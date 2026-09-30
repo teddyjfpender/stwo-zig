@@ -127,6 +127,51 @@ extern "C" int stwo_accumulate_quotient_numerator_addressed_on(
     std::uint32_t *output_2,
     std::uint32_t *output_3,
     void *stream);
+extern "C" int stwo_accumulate_quotient_numerator_addressed_variant_on(
+    const std::uint32_t *group_offsets,
+    const BatchTermDescriptor *term_descriptors,
+    std::uint32_t term_count,
+    std::uint32_t group_count,
+    std::uint32_t max_output_size,
+    const AddressedSourceDescriptor *source_descriptors,
+    std::uint32_t source_count,
+    const QM31 *line_coefficients,
+    std::uint32_t line_term_count,
+    const std::uint32_t *group_log_sizes,
+    const std::uint64_t *output_offsets,
+    std::size_t output_word_count,
+    std::uint32_t *output_0,
+    std::uint32_t *output_1,
+    std::uint32_t *output_2,
+    std::uint32_t *output_3,
+    bool finalized_groups,
+    void *stream);
+extern "C" int stwo_accumulate_quotient_numerator_native_bucket_on(
+    const BatchTermDescriptor *terms,
+    std::uint32_t term_count,
+    std::uint32_t term_begin,
+    std::uint32_t term_end,
+    const AddressedSourceDescriptor *sources,
+    std::uint32_t source_count,
+    const QM31 *lines,
+    std::uint32_t line_term_count,
+    std::uint32_t source_log_size,
+    std::uint32_t group_log_size,
+    std::uint32_t representative_term_index,
+    std::uint64_t output_offset,
+    std::size_t output_word_count,
+    std::size_t scratch_word_count,
+    std::uint32_t *scratch_0,
+    std::uint32_t *scratch_1,
+    std::uint32_t *scratch_2,
+    std::uint32_t *scratch_3,
+    std::uint32_t *output_0,
+    std::uint32_t *output_1,
+    std::uint32_t *output_2,
+    std::uint32_t *output_3,
+    bool first_bucket,
+    void *stream,
+    std::uint32_t *launches_out);
 extern "C" int stwo_combine_quotients_from_numerators_on(
     std::uint32_t half_coset_initial_index,
     std::uint32_t half_coset_step_size,
@@ -714,6 +759,99 @@ bool test_zero_and_accumulate(DeviceArena &arena) {
                     return false;
                 }
             }
+        }
+    }
+    // The production finalizer stores each group's sum of B coefficients in
+    // the first term's A slot. Compare the finalized path on every output row.
+    std::vector<QM31> finalized_lines = lines;
+    for (std::uint32_t group = 0; group < group_count; ++group) {
+        QM31 b_sum = oods_reference::zero();
+        for (std::uint32_t index = offsets[group];
+             index < offsets[group + 1]; ++index) {
+            b_sum = oods_reference::add(
+                b_sum, lines[3 * descriptors[index].term_index + 1]);
+        }
+        finalized_lines[3 * descriptors[offsets[group]].term_index] = b_sum;
+    }
+    auto *device_finalized_lines = arena.allocate<QM31>(finalized_lines.size());
+    std::uint32_t *finalized_outputs[4];
+    if (device_finalized_lines == nullptr ||
+        !arena.upload(device_finalized_lines, finalized_lines)) return false;
+    for (auto &output : finalized_outputs) {
+        output = arena.allocate<std::uint32_t>(addressed_offsets.back());
+        if (output == nullptr) return false;
+    }
+    if (!check(stwo_accumulate_quotient_numerator_addressed_variant_on(
+            device_offsets, device_descriptors, descriptors.size(),
+            group_count, max_output, device_addressed, addressed.size(),
+            device_finalized_lines, 3, device_logs, device_addressed_offsets,
+            addressed_offsets.back(), finalized_outputs[0],
+            finalized_outputs[1], finalized_outputs[2], finalized_outputs[3],
+            true, arena.stream), "accumulate finalized quotient numerators")) {
+        return false;
+    }
+    std::vector<std::uint32_t> actual_finalized[4];
+    for (int coordinate = 0; coordinate < 4; ++coordinate) {
+        actual_finalized[coordinate].resize(addressed_offsets.back());
+        if (!arena.read(&actual_finalized[coordinate],
+                        finalized_outputs[coordinate])) return false;
+    }
+    if (!arena.sync()) return false;
+    for (int coordinate = 0; coordinate < 4; ++coordinate) {
+        if (actual_finalized[coordinate] != actual_addressed[coordinate]) {
+            std::fprintf(stderr, "finalized numerator coordinate %d mismatch\n",
+                         coordinate);
+            return false;
+        }
+    }
+    // Native-height buckets may reorder terms, but their lifted output must
+    // match the full-height finalized kernel exactly.
+    const std::vector<BatchTermDescriptor> sorted_terms{
+        descriptors[1], descriptors[0], descriptors[2]};
+    auto *device_sorted_terms =
+        arena.allocate<BatchTermDescriptor>(sorted_terms.size());
+    std::uint32_t *scratch[4];
+    std::uint32_t *bucket_outputs[4];
+    if (device_sorted_terms == nullptr ||
+        !arena.upload(device_sorted_terms, sorted_terms)) return false;
+    for (int coordinate = 0; coordinate < 4; ++coordinate) {
+        scratch[coordinate] = arena.allocate<std::uint32_t>(8);
+        bucket_outputs[coordinate] =
+            arena.allocate<std::uint32_t>(addressed_offsets.back());
+        if (scratch[coordinate] == nullptr ||
+            bucket_outputs[coordinate] == nullptr) return false;
+    }
+    const struct { std::uint32_t begin, end, source_log, group_log,
+                   representative; std::uint64_t offset; bool first; }
+        buckets[]{{0, 1, 2, 3, 0, 0, true},
+                  {1, 2, 3, 3, 0, 0, false},
+                  {2, 3, 3, 4, 2, 8, true}};
+    for (const auto &bucket : buckets) {
+        std::uint32_t launches = 0;
+        if (!check(stwo_accumulate_quotient_numerator_native_bucket_on(
+                device_sorted_terms, sorted_terms.size(), bucket.begin,
+                bucket.end, device_addressed, addressed.size(),
+                device_finalized_lines, 3, bucket.source_log,
+                bucket.group_log, bucket.representative, bucket.offset,
+                addressed_offsets.back(), 8, scratch[0], scratch[1],
+                scratch[2], scratch[3], bucket_outputs[0],
+                bucket_outputs[1], bucket_outputs[2], bucket_outputs[3],
+                bucket.first, arena.stream, &launches),
+            "accumulate native-height quotient bucket") || launches != 2)
+            return false;
+    }
+    std::vector<std::uint32_t> actual_bucket[4];
+    for (int coordinate = 0; coordinate < 4; ++coordinate) {
+        actual_bucket[coordinate].resize(addressed_offsets.back());
+        if (!arena.read(&actual_bucket[coordinate], bucket_outputs[coordinate]))
+            return false;
+    }
+    if (!arena.sync()) return false;
+    for (int coordinate = 0; coordinate < 4; ++coordinate) {
+        if (actual_bucket[coordinate] != actual_finalized[coordinate]) {
+            std::fprintf(stderr, "native bucket coordinate %d mismatch\n",
+                         coordinate);
+            return false;
         }
     }
     return expect_invalid(

@@ -32,7 +32,7 @@ if digest.hexdigest() != identity['dirty_content_sha256']:
 Path('/workspace/compiled-snapshot.json').write_text(json.dumps(identity, indent=2) + '\n')
 env = dict(os.environ, STWO_CUDA_ARCHIVE_CACHE='/workspace/cuda-archive-cache',
            LD_LIBRARY_PATH='/usr/local/cuda/lib64:' + os.environ.get('LD_LIBRARY_PATH', ''))
-if Path('/workspace/native-cubins/manifest.json').exists():
+if Path('/workspace/native-cubins/manifest.json').exists() and os.environ.get('STWO_CUDA_DISABLE_CUBIN_IMPORT') != '1':
     env['STWO_CUDA_AOT_CUBIN_IMPORT_ROOT'] = '/workspace/native-cubins'
 flags = ['-Doptimize=ReleaseFast', '-Dimplementation-commit=' + identity['implementation_commit'],
          '-Dimplementation-tree=' + identity['implementation_tree'], '-Dimplementation-dirty=true',
@@ -106,7 +106,13 @@ else:
     run('preprocessed-export', [str(root / 'zig-out/bin/cairo-preprocessed-export'),
                                str(preprocessed_path), 'canonical'])
 prover = root / 'zig-out/bin/stwo-cairo-cuda'
-failure_path = '/workspace/tiny-' + identity['dirty_content_sha256'][:16] + '.unverified.bin'
+run_output = Path('/workspace/qualified-runs') / (identity['dirty_content_sha256'][:16] + '-' + str(time.time_ns()))
+run_output.mkdir(parents=True, exist_ok=False)
+print('OUTPUT: ' + str(run_output), flush=True)
+tiny_proof = run_output / 'tiny-proof.json'
+tiny_backend = run_output / 'tiny-backend.json'
+tiny_verification = run_output / 'tiny-verification.json'
+failure_path = str(run_output / 'tiny.unverified.bin')
 proof_env = dict(env, STWO_CAIRO_CUDA_ARTIFACT_DIR=str(root / 'vectors/cairo'),
                  STWO_CAIRO_CUDA_PREPROCESSED_COEFFICIENTS='/workspace/canonical.stwzppc',
                  STWO_CAIRO_CUDA_PREPROCESSED_VARIANT='canonical',
@@ -117,19 +123,19 @@ if os.environ.get('STWO_CUDA_SOURCE_DIAGNOSTIC') == '1':
     proof_env['STWO_CAIRO_CUDA_SOURCE_DIAGNOSTIC'] = str(source_diagnostics)
 run('tiny-proof', [str(prover), 'prove', '--backend', 'cuda', '--input',
                    str(root / 'vectors/cairo/official/all_opcodes.prover_input.cpi'),
-                   '--output', '/workspace/tiny-proof.json', '--report-out',
-                   '/workspace/tiny-backend.json', '--repeat', '1'], extra_env=proof_env, timeout=180)
-run('tiny-official-verification', [str(verifier), 'verify', '--proof', '/workspace/tiny-proof.json',
+                   '--output', str(tiny_proof), '--report-out',
+                   str(tiny_backend), '--repeat', '1'], extra_env=proof_env, timeout=180)
+run('tiny-official-verification', [str(verifier), 'verify', '--proof', str(tiny_proof),
                                   '--channel', 'blake2s', '--proof-format', 'json',
-                                  '--result', '/workspace/tiny-verification.json'], timeout=60)
+                                  '--result', str(tiny_verification)], timeout=60)
 sys.path.insert(0, str(root / 'scripts'))
 from benchmark_cairo_cuda import check_receipts, sha
-check_receipts(json.loads(Path('/workspace/tiny-backend.json').read_text()),
-               json.loads(Path('/workspace/tiny-verification.json').read_text()),
-               Path('/workspace/tiny-proof.json'), input_sha256=sha(root / 'vectors/cairo/official/all_opcodes.prover_input.cpi'),
+check_receipts(json.loads(tiny_backend.read_text()),
+               json.loads(tiny_verification.read_text()),
+               tiny_proof, input_sha256=sha(root / 'vectors/cairo/official/all_opcodes.prover_input.cpi'),
                executable_sha256=sha(prover))
 run('sn-pie-suite', [sys.executable, str(root / 'scripts/benchmark_cairo_cuda.py'),
                     '--prover', str(prover), '--verifier', str(verifier), '--input-dir', '/workspace/inputs',
                     '--artifact-dir', str(root / 'vectors/cairo'), '--preprocessed', '/workspace/canonical.stwzppc',
-                    '--out', '/workspace/sn-pie-suite', '--timeout', '240'], timeout=1100)
+                    '--out', str(run_output / 'sn-pie-suite'), '--timeout', '240'], timeout=1100)
 print('COMPLETE: canonical NVIDIA suite accepted by official Rust verifier', flush=True)

@@ -269,7 +269,7 @@ test "Cairo emitter fails closed on geometry drift and remains development only"
     authority.pack.provenance = .source_derived;
     try std.testing.expectError(
         subject.Error.DevelopmentSemanticsRequired,
-        subject.testing.emit(allocator, authority),
+        subject.emitProofDerivedDiagnostic(allocator, authority),
     );
 
     authority = fixture.authority(&bundle);

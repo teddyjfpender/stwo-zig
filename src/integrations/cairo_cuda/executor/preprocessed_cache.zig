@@ -35,13 +35,12 @@ pub fn load(
     allocator: std.mem.Allocator,
     session: anytype,
     path: []const u8,
-    artifact_identity: proof_ir.Digest,
+    expected_artifact_identity: ?proof_ir.Digest,
     expected_identities: anytype,
     prepared: *const trace_commit.Prepared,
     bound: *const trace_commit.Bound,
 ) !Receipt {
-    if (digestEmpty(artifact_identity) or
-        prepared.tree_ordinal != 0 or
+    if (prepared.tree_ordinal != 0 or
         prepared.input_form != .coefficients or
         prepared.column_logs.len != expected_identities.len or
         prepared.column_offsets.len != expected_identities.len + 1 or
@@ -53,7 +52,10 @@ pub fn load(
     defer file.close();
     var reader_buffer: [1 << 20]u8 = undefined;
     var reader = file.readerStreaming(&reader_buffer);
-    const stream = &reader.interface;
+    var artifact_hash = std.crypto.hash.sha2.Sha256.init(.{});
+    var hashing_buffer: [4096]u8 = undefined;
+    var hashing_reader = reader.interface.hashed(&artifact_hash, &hashing_buffer);
+    const stream = &hashing_reader.reader;
     if (!std.mem.eql(u8, try stream.takeArray(8), format_magic))
         return error.InvalidPreprocessedArtifact;
     if (try stream.takeInt(u32, .little) != format_version or
@@ -117,6 +119,14 @@ pub fn load(
     var trailing: [1]u8 = undefined;
     if (try stream.readSliceShort(&trailing) != 0)
         return error.InvalidPreprocessedArtifact;
+    // Hash the same raw bytes that were parsed and uploaded, before SIMD
+    // canonicalization. This avoids a separate whole-artifact read and binds
+    // the receipt to consumed content rather than an earlier file snapshot.
+    const artifact_identity = artifact_hash.finalResult();
+    if (expected_artifact_identity) |expected| {
+        if (!std.mem.eql(u8, &expected, &artifact_identity))
+            return error.PreprocessedArtifactIdentityMismatch;
+    }
 
     var receipt = Receipt{
         .artifact_identity = artifact_identity,

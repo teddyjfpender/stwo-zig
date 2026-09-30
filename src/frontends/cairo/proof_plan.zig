@@ -295,9 +295,9 @@ pub const CairoProofPlan = struct {
         return fromSeeds(allocator, seeds, feeds, false);
     }
 
-    /// Builds the current canonical dependency graph after exact input geometry
-    /// is resolved. All generated families, including EC, use their current
-    /// witness IR; optional backend composites are a subsequent lowering.
+    /// Builds the canonical dependency graph after exact input geometry is
+    /// resolved. EC-op and its partial-multiply member share one ordered
+    /// native/recorded composite; all other generated writers use witness IR.
     pub fn fromCanonicalGeometry(
         allocator: std.mem.Allocator,
         geometry: *const claim_generator.OwnedClaimGeometry,
@@ -314,7 +314,11 @@ pub const CairoProofPlan = struct {
                 .deferred => return error.IncompleteClaimGeometry,
             };
             if (log < 4 or log > 30) return error.InvalidRowExtent;
-            const writer: WriterKind = if (claim_generator.isFixedComponent(component.name))
+            const writer: WriterKind = if (component.instance == 0 and
+                (std.mem.eql(u8, component.name, "ec_op_builtin") or
+                    std.mem.eql(u8, component.name, "partial_ec_mul_generic")))
+                .native_backend
+            else if (claim_generator.isFixedComponent(component.name))
                 .fixed_table
             else if (witnesses.find(component.name) != null)
                 .recorded_aot
@@ -322,10 +326,14 @@ pub const CairoProofPlan = struct {
                 std.mem.eql(u8, component.name, "memory_id_to_big") or
                 std.mem.eql(u8, component.name, "memory_id_to_small"))
                 .memory_trace
-            else return error.MissingCanonicalWriter;
+            else
+                return error.MissingCanonicalWriter;
             seed.* = .{
-                .name = component.name, .instance = component.instance,
-                .writer = writer, .padded_rows = @as(u32, 1) << @intCast(log), .real_rows = active,
+                .name = component.name,
+                .instance = component.instance,
+                .writer = writer,
+                .padded_rows = @as(u32, 1) << @intCast(log),
+                .real_rows = active,
             };
             try (RowExtent{ .real_rows = active, .padded_rows = seed.padded_rows }).validate();
         }
@@ -491,8 +499,7 @@ pub const CairoProofPlan = struct {
         instance: u32,
     ) ?*const Component {
         for (self.components) |*component| {
-            if (component.instance == instance and std.mem.eql(u8,
-                canonicalComponentName(component.name, instance), canonicalComponentName(name, instance)))
+            if (component.instance == instance and std.mem.eql(u8, canonicalComponentName(component.name, instance), canonicalComponentName(name, instance)))
                 return component;
         }
         return null;

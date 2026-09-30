@@ -265,6 +265,26 @@ test "mixed trace commitment transforms packed cohorts and copies only on device
     );
     defer bound.deinit();
 
+    var descending_cohorts = cohorts;
+    descending_cohorts[0].trace_log_rows = 3;
+    descending_cohorts[0].evaluation_log_rows = 4;
+    descending_cohorts[0].coefficient_words = 8;
+    descending_cohorts[0].evaluation_words = 16;
+    descending_cohorts[1].trace_log_rows = 2;
+    descending_cohorts[1].evaluation_log_rows = 3;
+    descending_cohorts[1].coefficient_offset_words = 8;
+    descending_cohorts[1].coefficient_words = 4;
+    descending_cohorts[1].evaluation_offset_words = 16;
+    descending_cohorts[1].evaluation_words = 8;
+    var descending_prepared = prepared;
+    descending_prepared.cohorts = &descending_cohorts;
+    var descending_bound = try subject.Bound.init(std.testing.allocator, &descending_prepared, Provider{});
+    defer descending_bound.deinit();
+    try std.testing.expectEqual(@as(u32, 8), descending_bound.lifted_segments[0].source_size);
+    try std.testing.expectEqual(@as(u32, 16), descending_bound.lifted_segments[1].source_size);
+    try std.testing.expectEqual(@as(usize, 0x2040), descending_bound.lifted_segments[0].columns.storage.address);
+    try std.testing.expectEqual(@as(usize, 0x2000), descending_bound.lifted_segments[1].columns.storage.address);
+
     const first_writer = try bound.writerOutput(0);
     const second_writer = try bound.writerOutput(1);
     try std.testing.expectEqual(@as(usize, 4), first_writer.storage.len);

@@ -247,8 +247,11 @@ pub const Bound = struct {
         forward_twiddles: []const u32,
         inverse_twiddles: []const u32,
         preprocessed_path: []const u8,
-        preprocessed_artifact_identity: [32]u8,
+        preprocessed_artifact_identity: ?[32]u8 = null,
         preprocessed_column_identities: []const []const u8,
+        /// The caller must retain the same prepared arena with immutable
+        /// process-cache coefficients. This receipt is not a proof input.
+        resident_preprocessed: ?preprocessed_cache.Receipt = null,
     };
 
     pub const StaticReceipt = struct {
@@ -328,7 +331,19 @@ pub const Bound = struct {
             .twiddles_inverse,
             inputs.inverse_twiddles,
         );
-        const preprocessed = try preprocessed_cache.load(
+        try self.quotient.initializeTransform(session, self.pcs.twiddles_inverse);
+        const preprocessed = if (inputs.resident_preprocessed) |receipt| cached: {
+            try receipt.validate();
+            if (!std.mem.eql(u8, &receipt.commitment_identity, &self.preprocessed_commit.prepared.identity) or
+                receipt.column_count != inputs.preprocessed_column_identities.len or
+                receipt.coefficient_words != self.preprocessed_commit.coefficients.len)
+                return error.InvalidPreprocessedCacheBinding;
+            if (inputs.preprocessed_artifact_identity) |expected| {
+                if (!std.mem.eql(u8, &expected, &receipt.artifact_identity))
+                    return error.PreprocessedArtifactIdentityMismatch;
+            }
+            break :cached receipt;
+        } else try preprocessed_cache.load(
             request.allocator,
             session,
             inputs.preprocessed_path,

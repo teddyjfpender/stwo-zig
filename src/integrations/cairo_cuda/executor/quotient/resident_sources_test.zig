@@ -37,6 +37,7 @@ test "tree-relative sources lower to exact multi-arena addresses" {
     const prepared = try bound.prepareNumerator(
         &session,
         topology,
+        topology.batch_terms,
         quotient,
     );
     try std.testing.expectEqual(@as(u32, 2), prepared.group_count);
@@ -132,6 +133,9 @@ fn testTopology() !types.Topology {
 
 fn testQuotient() pcs_types.Quotient {
     return .{
+        .subdomain_coordinates = undefined,
+        .subdomain_inverse_twiddles = undefined,
+        .coefficient_logs = undefined,
         .challenge = slice(
             @import("stwo_cuda_backend").abi.field.SecureField,
             0x4_0000,

@@ -30,6 +30,23 @@ const TestApi = struct {
         return accept(stream);
     }
 
+    pub fn stwo_relation_fused_global_on(
+        _: [*]const u32,
+        _: [*]const u32,
+        _: [*]const u32,
+        _: [*]const relation.Geometry,
+        instances: u32,
+        pair_blocks: u32,
+        chain_blocks: u32,
+        _: [*]const field.SecureField,
+        alpha_count: u32,
+        _: *const field.SecureField,
+        stream: *anyopaque,
+    ) c_int {
+        if (instances != 1 or pair_blocks != 2 or chain_blocks != 1 or alpha_count != 2) return 1;
+        return accept(stream);
+    }
+
     pub fn stwo_relation_pairs_global_on(
         _: [*]const u32,
         _: [*]const u32,
@@ -241,6 +258,31 @@ test "resident relation graph binds one stream and records exact launches" {
 
     try std.testing.expectEqual(@as(u32, 4), TestApi.calls);
     try std.testing.expectEqual(@as(u64, relation.launch_count), session.launches);
+}
+
+test "tiled relation graph admits bounded scratch and records its exact launch count" {
+    TestApi.calls = 0;
+    var session = TestSession{};
+    TestApi.expected_stream = session.context.stream;
+    var tiled_topology = topology;
+    tiled_topology.fused_fractions = true;
+    var tiled_instance = instance();
+    tiled_instance.denominator_slab.len = 1;
+    const prepared = try relation.prepare(std.testing.allocator, .{
+        .topology = tiled_topology,
+        .buffers = buffers(),
+        .instances = &.{tiled_instance},
+    });
+    defer relation.deinit(std.testing.allocator, prepared);
+    try relation.OpsFor(TestApi).execute(&session, prepared);
+    try std.testing.expectEqual(@as(u32, 3), TestApi.calls);
+    try std.testing.expectEqual(@as(u64, relation.fused_launch_count), session.launches);
+    tiled_topology.fused_fractions = false;
+    try std.testing.expectError(error.InvalidKernelDescriptor, relation.prepare(std.testing.allocator, .{
+        .topology = tiled_topology,
+        .buffers = buffers(),
+        .instances = &.{tiled_instance},
+    }));
 }
 
 test "relation transcript binding seals challenges and canonical claims" {

@@ -27,6 +27,7 @@ struct BatchTermDescriptor {
     std::uint32_t source_log_size;
 };
 
+
 struct CompactSourceDescriptor {
     std::uint64_t offset_words;
     std::uint32_t stride_words;

@@ -3,7 +3,7 @@ const std = @import("std");
 const model = @import("cairo_witness_model");
 const writer = @import("writer.zig");
 
-pub const codegen_version: u64 = 17;
+pub const codegen_version: u64 = 18;
 const bundle_sha256 = "b2108615463b3c7003b07df20e800a42c4c7625344a681ed22e78e57238c90a6";
 const cairo_revision = "82f21252a68ec006d73e299f5bf1ce6d4db0ee78";
 const stwo_revision = "7b211edde786775016ef3eecb837a6240d8fe792";
@@ -85,14 +85,12 @@ pub fn generate(allocator: std.mem.Allocator, bundle_path: []const u8, support_p
         // in both passes. Preserve the historical writer's source identities.
         const carry_pass = try std.mem.replaceOwned(u8, allocator, generated.written(), "__host__ __forceinline__", "__host__ __device__ __forceinline__");
         defer allocator.free(carry_pass);
-        const dual_pass = try std.mem.replaceOwned(u8, allocator, carry_pass,
-            "static __host__ uint32_t", "static __host__ __device__ uint32_t");
+        const dual_pass = try std.mem.replaceOwned(u8, allocator, carry_pass, "static __host__ uint32_t", "static __host__ __device__ uint32_t");
         defer allocator.free(dual_pass);
         // CuMetal cannot import the multi-instruction PTX carry chain. Use the
         // source authority's exact integer carry implementation on Apple GPUs;
         // NVIDIA retains its original PTX path.
-        const portable = try std.mem.replaceOwned(u8, allocator, dual_pass,
-            "#ifdef __CUDA_ARCH__", "#if defined(__CUDA_ARCH__) && !defined(STWO_CUMETAL)");
+        const portable = try std.mem.replaceOwned(u8, allocator, dual_pass, "#ifdef __CUDA_ARCH__", "#if defined(__CUDA_ARCH__) && !defined(STWO_CUMETAL)");
         defer allocator.free(portable);
         // EC-op invokes this deduction 252 times. Share the device function
         // instead of expanding the complete field inversion at every call.
@@ -106,9 +104,7 @@ pub fn generate(allocator: std.mem.Allocator, bundle_path: []const u8, support_p
             uses_inverse = uses_inverse or kind == .partial_ec_mul_generic or kind == .partial_ec_mul_w9 or kind == .partial_ec_mul_w18 or kind == .felt_div;
         }
         const bounded = if (uses_generic_ec)
-            try std.mem.replaceOwned(u8, allocator, portable,
-                "static __device__ __forceinline__ void stwo_wit_deduce_partial_ec_mul_generic(",
-                "static __device__ __noinline__ void stwo_wit_deduce_partial_ec_mul_generic(")
+            try std.mem.replaceOwned(u8, allocator, portable, "static __device__ __forceinline__ void stwo_wit_deduce_partial_ec_mul_generic(", "static __device__ __noinline__ void stwo_wit_deduce_partial_ec_mul_generic(")
         else
             try allocator.dupe(u8, portable);
         defer allocator.free(bounded);
@@ -116,10 +112,9 @@ pub fn generate(allocator: std.mem.Allocator, bundle_path: []const u8, support_p
         // repeatedly. It preserves the imported arithmetic and avoids copying
         // the entire inverse implementation into every curve/addition site.
         const final_source = if (uses_inverse)
-            try std.mem.replaceOwned(u8, allocator, bounded,
-                "__device__ __forceinline__ felt252 felt_inverse(",
-                "__device__ __noinline__ felt252 felt_inverse(")
-        else try allocator.dupe(u8, bounded);
+            try std.mem.replaceOwned(u8, allocator, bounded, "__device__ __forceinline__ felt252 felt_inverse(", "__device__ __noinline__ felt252 felt_inverse(")
+        else
+            try allocator.dupe(u8, bounded);
         defer allocator.free(final_source);
         const cache_key = witnessCacheKey(program.semantic_hash);
         const name = try std.fmt.allocPrint(allocator, "witness_{s}_{x:0>16}.cu", .{ program.label, cache_key });

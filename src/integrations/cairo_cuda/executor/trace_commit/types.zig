@@ -34,6 +34,7 @@ pub const Slots = struct {
     merkle_hashes: u32,
     merkle_layers: u32,
     progressive_states: ?u32,
+    compact_prefix_states: [2]?u32 = .{ null, null },
     root: u32,
     twiddles_forward: u32,
     twiddles_inverse: u32,

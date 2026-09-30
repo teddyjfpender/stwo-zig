@@ -153,7 +153,7 @@ def validate_recorded_witness_identity(
     semantic_hash = int(str(entry["semantic_hash"]), 16)
     expected_kernel = f"stwo_jit_witness_{semantic_hash:016x}"
     codegen_version = entry.get("codegen_version", WITNESS_CODEGEN_VERSION)
-    if type(codegen_version) is not int or codegen_version not in (12, 13, 14, 15, 16, 17):
+    if type(codegen_version) is not int or codegen_version not in (12, 13, 14, 15, 16, 17, 18):
         raise BuildError(f"AOT manifest entry {index} has an unknown witness generator version")
     expected_cache_key = witness_cache_key(semantic_hash, codegen_version)
     source = generated_dir / str(entry["file"])
@@ -185,7 +185,7 @@ def validate_cairo_eval_identity(
         raise BuildError(
             f"AOT manifest entry {index} has a non-canonical Cairo eval identity"
         )
-    if entry["codegen_version"] == 3:
+    if entry["codegen_version"] == 6:
         _validate_parametric_cairo_eval(generated_dir, entry, index)
         return
     if (
@@ -302,16 +302,16 @@ def _validate_parametric_cairo_eval(generated_dir: Path, entry: dict[str, object
     authority = "550200479d03f3cc5df12d3795cfe4645824bd96368f3cd6e70c0df8669c62ec"
     program = str(entry["program_identity"])
     source = hashlib.sha256((generated_dir / str(entry["file"])).read_bytes()).hexdigest()
-    if (entry["identity_scheme"] != "sha256-cairo-eval-parametric-source-v3"
+    if (entry["identity_scheme"] != "sha256-cairo-eval-parametric-source-v6"
             or entry["kind"] != "constraint" or entry["catalog_identity"] != authority
             or re.fullmatch(r"[0-9a-f]{64}", program) is None
             or not isinstance(entry["occurrences"], list) or not entry["occurrences"]):
         raise BuildError(f"AOT manifest entry {index} has invalid parametric Cairo authority")
     semantic = int(str(entry["semantic_hash"]), 16)
-    cache = hashlib.sha256(b"stwo-zig/cairo-cuda-eval-parametric/v3\x00"
+    cache = hashlib.sha256(b"stwo-zig/cairo-cuda-eval-parametric/v6\x00"
                            + bytes.fromhex(program) + bytes.fromhex(source) + bytes.fromhex(authority)).hexdigest()[:16]
     if (entry["source_sha256"] != source or entry["cache_key"] != cache
-            or entry["kernel_name"] != f"stwo_cairo_cuda_eval_v3_{semantic:016x}"):
+            or entry["kernel_name"] != f"stwo_cairo_cuda_eval_v6_{semantic:016x}"):
         raise BuildError(f"AOT manifest entry {index} has stale parametric Cairo identities")
 
 

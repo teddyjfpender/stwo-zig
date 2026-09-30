@@ -1,0 +1,279 @@
+{
+  "researched_on": "2026-09-29",
+  "repositories": [
+    {
+      "repository": "ingonyama-zk/icicle-stwo",
+      "revision": "7d73bd35aa86ec33a4fbe9d41c012509a92f5e34",
+      "path": "zig-out/cairo-cuda-research-20260929/icicle-stwo",
+      "commit_time": "2025-03-27T11:00:21+01:00",
+      "url": "https://github.com/ingonyama-zk/icicle-stwo",
+      "license": "Apache-2.0",
+      "production_code_copied": false,
+      "inspected_files": [
+        {
+          "path": "LICENSE",
+          "sha256": "6fc3ae0cc00eeac4c08b33d060ce3725438dcde152dc571e08f3d8e6f86b3b8f",
+          "url": "https://github.com/ingonyama-zk/icicle-stwo/blob/7d73bd35aa86ec33a4fbe9d41c012509a92f5e34/LICENSE"
+        },
+        {
+          "path": "README.md",
+          "sha256": "3c2e0acf762032afac93e9605a6f55d25f71cc548d4b1fcf7b4d8e594fd3028d",
+          "url": "https://github.com/ingonyama-zk/icicle-stwo/blob/7d73bd35aa86ec33a4fbe9d41c012509a92f5e34/README.md"
+        }
+      ]
+    },
+    {
+      "repository": "ingonyama-zk/icicle",
+      "revision": "625532a624e5aaa6e9d31a1c92587f1fcc30dc76",
+      "path": "zig-out/cairo-cuda-research-20260929/icicle",
+      "commit_time": "2025-08-06T14:34:31+03:00",
+      "url": "https://github.com/ingonyama-zk/icicle",
+      "license": "MIT",
+      "production_code_copied": false,
+      "inspected_files": [
+        {
+          "path": "LICENSE",
+          "sha256": "46c2c509356567761cc6a0e46b2741127b4253365be295c8d9d4dcb446ea2aac",
+          "url": "https://github.com/ingonyama-zk/icicle/blob/625532a624e5aaa6e9d31a1c92587f1fcc30dc76/LICENSE"
+        },
+        {
+          "path": "icicle/include/icicle/fields/stark_fields/m31.h",
+          "sha256": "4d634a0348462f4baafc6f62c086c007208e609c7c7f3859dc075ed4610603ae",
+          "url": "https://github.com/ingonyama-zk/icicle/blob/625532a624e5aaa6e9d31a1c92587f1fcc30dc76/icicle/include/icicle/fields/stark_fields/m31.h"
+        }
+      ]
+    },
+    {
+      "repository": "matter-labs/zksync-airbender",
+      "revision": "6ec4ea725d654c5e4fd3a122d571ca37804f9abd",
+      "path": "zig-out/cairo-cuda-research-20260929/zksync-airbender",
+      "commit_time": "2026-04-23T17:03:15+02:00",
+      "url": "https://github.com/matter-labs/zksync-airbender",
+      "license": "MIT OR Apache-2.0",
+      "production_code_copied": false,
+      "inspected_files": [
+        {
+          "path": "LICENSE-MIT",
+          "sha256": "55b99c8988be3233b8f1294828608de28b43ea298e5eae9ceadc00cdd038cf8e",
+          "url": "https://github.com/matter-labs/zksync-airbender/blob/6ec4ea725d654c5e4fd3a122d571ca37804f9abd/LICENSE-MIT"
+        },
+        {
+          "path": "LICENSE-APACHE",
+          "sha256": "d5c156659360ecf2a2f566ea630091ac07c4858ef466defe992b6c96f9252af4",
+          "url": "https://github.com/matter-labs/zksync-airbender/blob/6ec4ea725d654c5e4fd3a122d571ca37804f9abd/LICENSE-APACHE"
+        },
+        {
+          "path": "gpu_prover/src/prover/trace_holder.rs",
+          "sha256": "ccb5c91cd072c0c8c6d088708073d23e214d4e0289647397cf3e2c70cd229d43",
+          "url": "https://github.com/matter-labs/zksync-airbender/blob/6ec4ea725d654c5e4fd3a122d571ca37804f9abd/gpu_prover/src/prover/trace_holder.rs"
+        },
+        {
+          "path": "gpu_prover/src/prover/memory.rs",
+          "sha256": "2f5b52abd2acf35c8536fea60d43a72a46244c7f1f7557f7acb4b5b3d55d8fd3",
+          "url": "https://github.com/matter-labs/zksync-airbender/blob/6ec4ea725d654c5e4fd3a122d571ca37804f9abd/gpu_prover/src/prover/memory.rs"
+        },
+        {
+          "path": "gpu_prover/src/prover/context.rs",
+          "sha256": "eef686973a61985f3af96a10befae5fd0aab8b8bdfaaf8e9ee51626928c0c682",
+          "url": "https://github.com/matter-labs/zksync-airbender/blob/6ec4ea725d654c5e4fd3a122d571ca37804f9abd/gpu_prover/src/prover/context.rs"
+        },
+        {
+          "path": "gpu_prover/src/allocator/device.rs",
+          "sha256": "f5b449fdc08d1e11648d024e30282a534465cc5b54af30afbb5d87cea318aa7e",
+          "url": "https://github.com/matter-labs/zksync-airbender/blob/6ec4ea725d654c5e4fd3a122d571ca37804f9abd/gpu_prover/src/allocator/device.rs"
+        },
+        {
+          "path": "gpu_prover/native/stage3.cu",
+          "sha256": "ea324d309ee11d0903b657c2882a2f878bee46238eddc1c6e7ed261a5695c6ad",
+          "url": "https://github.com/matter-labs/zksync-airbender/blob/6ec4ea725d654c5e4fd3a122d571ca37804f9abd/gpu_prover/native/stage3.cu"
+        },
+        {
+          "path": "gpu_prover/native/field.cuh",
+          "sha256": "bad06156a6e1a3d9a1680dfd5883510348e223e97f5ba113faff97fa4f7d876f",
+          "url": "https://github.com/matter-labs/zksync-airbender/blob/6ec4ea725d654c5e4fd3a122d571ca37804f9abd/gpu_prover/native/field.cuh"
+        },
+        {
+          "path": "gpu_prover/native/blake2s.cu",
+          "sha256": "2feec86fe7779172406d3a97d5fb795d77d60511a4f24ac8427a83ad7379b783",
+          "url": "https://github.com/matter-labs/zksync-airbender/blob/6ec4ea725d654c5e4fd3a122d571ca37804f9abd/gpu_prover/native/blake2s.cu"
+        }
+      ]
+    },
+    {
+      "repository": "matter-labs/era-bellman-cuda",
+      "revision": "d1fa8670ee84ec3477c6cc1c85a3554cfa5e0206",
+      "path": "zig-out/cairo-cuda-research-20260929/era-bellman-cuda",
+      "commit_time": "2026-04-23T17:51:14+02:00",
+      "url": "https://github.com/matter-labs/era-bellman-cuda",
+      "license": "MIT OR Apache-2.0",
+      "production_code_copied": false,
+      "inspected_files": [
+        {
+          "path": "LICENSE-MIT",
+          "sha256": "eb2c8edd3f14bab815f6fda2e60e44ea450cbb10860d7a35dd5a394f83c0b0a3",
+          "url": "https://github.com/matter-labs/era-bellman-cuda/blob/d1fa8670ee84ec3477c6cc1c85a3554cfa5e0206/LICENSE-MIT"
+        },
+        {
+          "path": "LICENSE-APACHE",
+          "sha256": "e0053f7598a919bf0845aa9a2dd3ccded45bc8e916895cc2f9509c54bf6cab93",
+          "url": "https://github.com/matter-labs/era-bellman-cuda/blob/d1fa8670ee84ec3477c6cc1c85a3554cfa5e0206/LICENSE-APACHE"
+        },
+        {
+          "path": "src/allocator.cu",
+          "sha256": "fdaf460072f2ea8b5985e9fdebe1cf1e33c7875c4dd97a515d772a76f5c696a0",
+          "url": "https://github.com/matter-labs/era-bellman-cuda/blob/d1fa8670ee84ec3477c6cc1c85a3554cfa5e0206/src/allocator.cu"
+        },
+        {
+          "path": "src/ntt.cu",
+          "sha256": "3a637d7b007bccbfd9c721409a82c3d985b4af4671050df71a670f27f46f113b",
+          "url": "https://github.com/matter-labs/era-bellman-cuda/blob/d1fa8670ee84ec3477c6cc1c85a3554cfa5e0206/src/ntt.cu"
+        }
+      ]
+    },
+    {
+      "repository": "supranational/sppark",
+      "revision": "9e5c7951d4ff4992f78af26f48d3c9230b8c4136",
+      "path": "zig-out/cairo-cuda-research-20260929/sppark",
+      "commit_time": "2026-09-27T19:22:51+02:00",
+      "url": "https://github.com/supranational/sppark",
+      "license": "Apache-2.0",
+      "production_code_copied": false,
+      "inspected_files": [
+        {
+          "path": "LICENSE",
+          "sha256": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4",
+          "url": "https://github.com/supranational/sppark/blob/9e5c7951d4ff4992f78af26f48d3c9230b8c4136/LICENSE"
+        },
+        {
+          "path": "ntt/kernels/gs_mixed_radix_narrow.cu",
+          "sha256": "cebdb05d531970dc098ec44a9ee1427ec7329bf1e67ec10dcd303a69cc175635",
+          "url": "https://github.com/supranational/sppark/blob/9e5c7951d4ff4992f78af26f48d3c9230b8c4136/ntt/kernels/gs_mixed_radix_narrow.cu"
+        },
+        {
+          "path": "ntt/parameters.cuh",
+          "sha256": "07db8a4915359ddba20376f13dba466458131ff2aa6d6e0b95edb9c583446d67",
+          "url": "https://github.com/supranational/sppark/blob/9e5c7951d4ff4992f78af26f48d3c9230b8c4136/ntt/parameters.cuh"
+        },
+        {
+          "path": "util/gpu_t.cuh",
+          "sha256": "afce0d697d4464e631bfda126bd2787eeef42c3bb475c0c27e1b82149136367f",
+          "url": "https://github.com/supranational/sppark/blob/9e5c7951d4ff4992f78af26f48d3c9230b8c4136/util/gpu_t.cuh"
+        },
+        {
+          "path": "polynomial/evaluate.cuh",
+          "sha256": "23e9d073b49ef4f2d32ea6b3e74afbae916752cf1dfb876ff172999449744fc0",
+          "url": "https://github.com/supranational/sppark/blob/9e5c7951d4ff4992f78af26f48d3c9230b8c4136/polynomial/evaluate.cuh"
+        }
+      ]
+    },
+    {
+      "repository": "garrick247/VortexSTARK",
+      "revision": "272714aacd337d516a1d14d64e7c8cf0e0f4909b",
+      "path": "zig-out/cairo-cuda-research-20260929/VortexSTARK",
+      "commit_time": "2026-05-16T07:47:56-05:00",
+      "url": "https://github.com/garrick247/VortexSTARK",
+      "license": "BSL-1.1; inspected non-production grant, change date 2029-03-20",
+      "production_code_copied": false,
+      "inspected_files": [
+        {
+          "path": "LICENSE",
+          "sha256": "92c9e1d2e52dcc257afce52e0cb27d9a6e95d4c21a4ec40bf201af4b26e989f8",
+          "url": "https://github.com/garrick247/VortexSTARK/blob/272714aacd337d516a1d14d64e7c8cf0e0f4909b/LICENSE"
+        },
+        {
+          "path": "cuda/constraint_eval_warp.cu",
+          "sha256": "b6e0d5a5c83ee3ce84097516dee43c4b08a50aa0dc2e052dc454b3a98b1aaa26",
+          "url": "https://github.com/garrick247/VortexSTARK/blob/272714aacd337d516a1d14d64e7c8cf0e0f4909b/cuda/constraint_eval_warp.cu"
+        },
+        {
+          "path": "cuda/batch_eval_at_point.cu",
+          "sha256": "2963a09193fe86958ad8c6aec6bb0183480ce55ea323e8fea74146ce0cd6265b",
+          "url": "https://github.com/garrick247/VortexSTARK/blob/272714aacd337d516a1d14d64e7c8cf0e0f4909b/cuda/batch_eval_at_point.cu"
+        },
+        {
+          "path": "src/merkle.rs",
+          "sha256": "d61ec9473d7d5fb99fcc17159bd4c5557bc38610d19157f788a0843d78ba2c76",
+          "url": "https://github.com/garrick247/VortexSTARK/blob/272714aacd337d516a1d14d64e7c8cf0e0f4909b/src/merkle.rs"
+        }
+      ]
+    },
+    {
+      "repository": "ingonyama-zk/icicle-stwo",
+      "revision": "37b52a9c36d95a6acf66524a585cd495df131268",
+      "path": "zig-out/cairo-cuda-research-20260929/icicle-stwo-gpu",
+      "branch": "feat/icicle-backend-mt",
+      "url": "https://github.com/ingonyama-zk/icicle-stwo",
+      "license": "Apache-2.0",
+      "production_code_copied": false,
+      "inspected_files": [
+        {
+          "path": "LICENSE",
+          "sha256": "6fc3ae0cc00eeac4c08b33d060ce3725438dcde152dc571e08f3d8e6f86b3b8f",
+          "url": "https://github.com/ingonyama-zk/icicle-stwo/blob/37b52a9c36d95a6acf66524a585cd495df131268/LICENSE"
+        },
+        {
+          "path": "crates/prover/src/core/backend/icicle/mod.rs",
+          "sha256": "7b72349fc305064388ed23397f87e40b560650fc845634d6e0336ff3337296c1",
+          "url": "https://github.com/ingonyama-zk/icicle-stwo/blob/37b52a9c36d95a6acf66524a585cd495df131268/crates/prover/src/core/backend/icicle/mod.rs"
+        }
+      ]
+    },
+    {
+      "repository": "starkware-libs/stwo",
+      "revision": "7b211edde786775016ef3eecb837a6240d8fe792",
+      "license": "Apache-2.0",
+      "path": "/Users/theodorepender/.cargo/git/checkouts/stwo-59e22971a65c0edb/7b211ed",
+      "production_code_copied": false,
+      "inspected_files": [
+        {
+          "path": "LICENSE",
+          "sha256": "6fc3ae0cc00eeac4c08b33d060ce3725438dcde152dc571e08f3d8e6f86b3b8f",
+          "url": "https://github.com/starkware-libs/stwo/blob/7b211edde786775016ef3eecb837a6240d8fe792/LICENSE"
+        },
+        {
+          "path": "crates/stwo/src/prover/backend/simd/quotients.rs",
+          "sha256": "4add92151b2fc6de2fe31d8b34037c4578f799ed614ab485c86a231586a7bd17",
+          "url": "https://github.com/starkware-libs/stwo/blob/7b211edde786775016ef3eecb837a6240d8fe792/crates/stwo/src/prover/backend/simd/quotients.rs"
+        }
+      ]
+    }
+  ],
+  "primary_research_and_documentation": [
+    {
+      "title": "NVIDIA CUDA 12.8 best practices",
+      "url": "https://docs.nvidia.com/cuda/archive/12.8.0/cuda-c-best-practices-guide/index.html"
+    },
+    {
+      "title": "Nsight Compute profiling guide",
+      "url": "https://docs.nvidia.com/nsight-compute/ProfilingGuide/index.html"
+    },
+    {
+      "title": "NVIDIA graph launch measurements",
+      "url": "https://developer.nvidia.com/blog/constant-time-launch-for-straight-line-cuda-graphs-and-other-performance-enhancements/"
+    },
+    {
+      "title": "NVIDIA CUDA13 shared-memory spilling",
+      "url": "https://developer.nvidia.com/blog/how-to-improve-cuda-kernel-performance-with-shared-memory-register-spilling/"
+    },
+    {
+      "title": "NVIDIA vector memory access",
+      "url": "https://developer.nvidia.com/blog/cuda-pro-tip-increase-performance-with-vectorized-memory-access/"
+    },
+    {
+      "title": "Single-pass parallel prefix scan",
+      "url": "https://research.nvidia.com/publication/2016-03_single-pass-parallel-prefix-scan-decoupled-look-back"
+    },
+    {
+      "title": "Circle STARKs",
+      "url": "https://eprint.iacr.org/2024/278"
+    },
+    {
+      "title": "FlashAttention; IO-aware analogy only",
+      "url": "https://arxiv.org/abs/2205.14135"
+    },
+    {
+      "title": "RTX5090 capacity; no latency inference",
+      "url": "https://www.nvidia.com/en-us/geforce/graphics-cards/50-series/rtx-5090/"
+    }
+  ]
+}

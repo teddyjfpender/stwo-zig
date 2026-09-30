@@ -491,14 +491,18 @@ inline cudaError_t launch_n2b_final(
         start_stage + stages - 1u != log_n) {
         return STWO_CUDA_ERROR_INVALID_CONFIGURATION;
     }
-    if (stages == 7 || stages == 8) {
+    if (stages == 6 || stages == 7 || stages == 8) {
         const uint32_t log_values = stages - kN2bLogWarp;
         const uint32_t warps =
             1u << (log_n - kN2bLogWarp - log_values);
         const uint32_t block_warps = warps < 4u ? warps : 4u;
         const dim3 grid{warps / block_warps, column_count};
         const dim3 block{32, block_warps};
-        if (stages == 7) {
+        if (stages == 6) {
+            n2b_final_warp<1, IncludeCircle><<<
+                grid, block, 0, stream>>>(
+                    columns, log_n, start_stage, twiddles);
+        } else if (stages == 7) {
             n2b_final_warp<2, IncludeCircle><<<
                 grid, block, 0, stream>>>(
                     columns, log_n, start_stage, twiddles);

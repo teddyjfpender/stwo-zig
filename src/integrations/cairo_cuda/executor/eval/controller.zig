@@ -1,9 +1,9 @@
 //! Production-shaped resident Cairo constraint controller.
 //!
 //! Ingress seals every host-derived offset, descriptor, and AOT placement.
-//! Constraint execution remains direct and sequential. The only injected
-//! operation is the addressed compact-source LDE lift, whose CUDA primitive
-//! is not yet present in the backend.
+//! Constraint execution remains direct and sequential. Exact-domain sources
+//! reuse retained commitment evaluations; larger domains use the native
+//! addressed compact-source polynomial extension.
 
 const std = @import("std");
 const proof_ir = @import("stwo_backend_contracts").proof_program;
@@ -77,13 +77,9 @@ pub const Prepared = struct {
             &plan.program_identity,
             &program.program_digest,
         )) return error.InvalidKernelDescriptor;
-        var topology = try topology_module.Topology.derive(
-            allocator,
-            bundle,
-            preprocessed_logs,
-        );
-        errdefer topology.deinit();
         const parametric = plan.evaluation_codegen_version == 2;
+        var topology = if (parametric) try topology_module.Topology.deriveCanonical(allocator, bundle, preprocessed_logs) else try topology_module.Topology.derive(allocator, bundle, preprocessed_logs);
+        errdefer topology.deinit();
         var catalog = if (parametric) try constraint_catalog.Catalog.initCanonical(allocator, bundle) else try constraint_catalog.Catalog.init(allocator, bundle);
         errdefer catalog.deinit();
         try validatePlan(plan, topology, catalog.catalog_identity);
@@ -91,6 +87,8 @@ pub const Prepared = struct {
         const arena_words: u64 = physical.total_words;
         const trace_offsets = try buildTraceOffsets(
             allocator,
+            plan,
+            program,
             physical,
             topology,
             slots.lde_tile,
@@ -156,6 +154,7 @@ pub const Prepared = struct {
             slots,
             arguments,
             lde_descriptors,
+            trace_offsets,
         );
         return .{
             .constants = constants,
@@ -311,13 +310,13 @@ pub const Bound = struct {
             diagnostic_cursor = powers.len;
         }
         for (self.prepared.topology.components) |component| {
-            try transform.Native.extendAddressed(
+            if (component.recompute_source_count != 0) try transform.Native.extendAddressed(
                 session,
                 .constraint_evaluation,
                 self.arena,
                 try self.lde_descriptors.sub(
                     component.first_source,
-                    component.source_count,
+                    component.recompute_source_count,
                 ),
                 self.prepared.lde_tile_offset,
                 component.evaluation_log_size,
@@ -326,12 +325,14 @@ pub const Bound = struct {
             );
             if (self.prepared.slots.diagnostic) |id| {
                 const destination = try transaction.slot(id);
-                const descriptors = self.prepared.lde_descriptors[component.first_source..][0..component.source_count];
+                const width: usize = if (self.prepared.topology.wide_trace_offsets) 2 else 1;
+                const offsets = self.prepared.trace_offsets[component.first_trace_offset..][0 .. width * component.source_count];
                 for (diagnosticRows(component.evaluation_log_size)) |sample_row| {
                     for ([_]isize{ -1, 0, 1 }) |offset| {
                         const row = @import("stwo_core").utils.offsetBitReversedCircleDomainIndex(sample_row, component.trace_log_size, component.evaluation_log_size, offset);
-                        for (descriptors) |descriptor| {
-                            try session.context.copyDeviceSlice(u32, try destination.sub(diagnostic_cursor, 1), try self.arena.sub(@intCast(descriptor.evaluation_offset_words + row), 1));
+                        for (0..component.source_count) |source_index| {
+                            const source_offset = @as(u64, offsets[width * source_index]) | (if (width == 2) @as(u64, offsets[width * source_index + 1]) << 32 else 0);
+                            try session.context.copyDeviceSlice(u32, try destination.sub(diagnostic_cursor, 1), try self.arena.sub(@intCast(source_offset + row), 1));
                             diagnostic_cursor += 1;
                         }
                     }
@@ -461,25 +462,45 @@ fn parameterLayoutFor(
 
 fn buildTraceOffsets(
     allocator: std.mem.Allocator,
+    plan: *const resident_plan.Plan,
+    program: proof_ir.ProofProgram,
     physical: *const arena_module.Plan,
     topology: topology_module.Topology,
     tile_slot: u32,
 ) ![]u32 {
     const tile = try physicalOffset(physical, tile_slot);
-    const output = try allocator.alloc(u32, topology.sources.len);
+    const output = try allocator.alloc(u32, topology.summary.trace_offset_words);
+    errdefer allocator.free(output);
     for (topology.components) |component| {
         for (
             topology.sources[component.first_source..][0..component.source_count],
             0..,
         ) |source, local| {
-            output[component.first_trace_offset + local] =
-                std.math.cast(
-                    u32,
-                    try add64(tile, source.tile_offset),
-                ) orelse return error.InvalidKernelDescriptor;
+            const address = if (source.reuse_committed_lde) try committedEvaluationOffset(plan, physical, program, source, component.evaluation_log_size) else try add64(tile, source.tile_offset);
+            if (topology.wide_trace_offsets) {
+                const index = component.first_trace_offset + 2 * local;
+                output[index] = @truncate(address);
+                output[index + 1] = @intCast(address >> 32);
+            } else output[component.first_trace_offset + local] = std.math.cast(u32, address) orelse return error.InvalidKernelDescriptor;
         }
     }
     return output;
+}
+
+// Reuse only identical domains and verify the physical packing against the
+// admitted commitment. Larger AIR domains continue to use polynomial extension.
+fn committedEvaluationOffset(plan: *const resident_plan.Plan, physical: *const arena_module.Plan, program: proof_ir.ProofProgram, source: topology_module.Source, evaluation_log: u32) !u64 {
+    if (source.role == .preprocessed or evaluation_log != source.log_rows + 1) return error.InvalidKernelDescriptor;
+    const ordinal = try commitmentOrdinal(program, sourceRole(source.role));
+    const tree = program.commitments[ordinal];
+    if (source.column >= tree.column_count or program.trace_columns[tree.first_column + source.column].log_rows != source.log_rows) return error.InvalidKernelDescriptor;
+    const coefficients = try requireSlot(plan, .trace_coefficients, @intCast(ordinal));
+    const evaluations = try requireSlot(plan, .trace_evaluations, @intCast(ordinal));
+    if (evaluations.words != try std.math.mul(u64, coefficients.words, 2)) return error.InvalidKernelDescriptor;
+    const offset = try std.math.mul(u64, try precedingCoefficientWords(program, tree, source.column), 2);
+    const count = @as(u64, 1) << @intCast(evaluation_log);
+    if (try add64(offset, count) > evaluations.words) return error.InvalidKernelDescriptor;
+    return add64(try physicalOffset(physical, evaluations.id), offset);
 }
 
 fn buildInteractionOffsets(
@@ -514,11 +535,13 @@ fn buildLdeDescriptors(
     );
     errdefer allocator.free(output);
     const tile_offset = try physicalOffset(physical, slots.lde_tile);
+    @memset(std.mem.sliceAsBytes(output), 0);
     for (topology.components) |component| {
+        var descriptor_cursor: usize = component.first_source;
         for (
             topology.sources[component.first_source..][0..component.source_count],
-            component.first_source..,
-        ) |source, source_index| {
+        ) |source| {
+            if (source.reuse_committed_lde) continue;
             const ordinal = try commitmentOrdinal(
                 program,
                 sourceRole(source.role),
@@ -539,7 +562,7 @@ fn buildLdeDescriptors(
                 .trace_coefficients,
                 @intCast(ordinal),
             );
-            output[source_index] = transform.AddressedLdeDescriptor.init(
+            output[descriptor_cursor] = transform.AddressedLdeDescriptor.init(
                 try add64(
                     try physicalOffset(physical, coefficient_slot.id),
                     try precedingCoefficientWords(
@@ -551,9 +574,11 @@ fn buildLdeDescriptors(
                 try add64(tile_offset, source.tile_offset),
                 source.log_rows,
             );
+            descriptor_cursor += 1;
         }
-        try transform.validateAddressedPlan(
-            output[component.first_source..][0..component.source_count],
+        if (descriptor_cursor != component.first_source + component.recompute_source_count) return error.InvalidKernelDescriptor;
+        if (component.recompute_source_count != 0) try transform.validateAddressedPlan(
+            output[component.first_source..][0..component.recompute_source_count],
             try usizeCount(physical.total_words),
             try usizeCount(tile_offset),
             component.evaluation_log_size,
@@ -724,7 +749,7 @@ fn buildProductsAndArguments(
         };
         const bounds = eval_stage.Bounds{
             .arena_words = arena_words,
-            .trace_offset_count = component.source_count,
+            .trace_offset_count = try std.math.mul(u32, component.source_count, if (parametric) 2 else 1),
             .base_param_count = if (parametric) constant_words else part.program.header.n_base_params,
             .ext_param_count = component.extended_parameter_count,
             .random_constraint_count = topology.summary.constraint_count,
@@ -881,14 +906,16 @@ fn preparedIdentity(
     slots: Slots,
     arguments: []const eval_stage.Args,
     lde_descriptors: []const transform.AddressedLdeDescriptor,
+    trace_offsets: []const u32,
 ) proof_ir.Digest {
     var hash = std.crypto.hash.sha2.Sha256.init(.{});
-    hash.update("stwo-zig/cairo/cuda/eval-controller/v1\x00");
+    hash.update("stwo-zig/cairo/cuda/eval-controller/v2\x00");
     hash.update(&plan);
     hash.update(&topology);
     hash.update(&catalog);
     hash.update(std.mem.asBytes(&slots));
     hash.update(std.mem.sliceAsBytes(arguments));
     hash.update(std.mem.sliceAsBytes(lde_descriptors));
+    hash.update(std.mem.sliceAsBytes(trace_offsets));
     return hash.finalResult();
 }

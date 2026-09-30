@@ -37,7 +37,7 @@ pub const Pack = struct {
             .new(circle_log)
             .circleDomain()
             .half_coset;
-        var tree = try twiddles.precomputeM31(allocator, root_coset);
+        var tree = try twiddles.precomputeM31Parallel(allocator, root_coset);
         errdefer twiddles.deinitM31(allocator, &tree);
         if (tree.twiddles.len != forward.words or
             tree.itwiddles.len != inverse.words)
@@ -73,5 +73,21 @@ fn m31Words(values: []const M31) []const u32 {
 test "canonical Cairo twiddle pack is a public checked constructor" {
     comptime {
         _ = Pack;
+    }
+}
+
+test "parallel twiddle tower matches serial for canonical and shifted cosets" {
+    var pool: prover.work_pool.WorkPool = undefined;
+    try pool.initInPlaceWithOptions(.{ .worker_count = 3, .stack_size = 128 * 1024, .backing_allocator = std.testing.allocator });
+    defer pool.deinit();
+    var binding = try prover.work_pool.ScopedPoolBinding.init(&pool);
+    defer binding.deinit();
+    for ([_]core.circle.Coset{ core.circle.Coset.halfOdds(17), core.circle.Coset.new(.{ .v = 13 }, 17), core.circle.Coset.halfOdds(13), core.circle.Coset.halfOdds(0) }) |coset| {
+        var expected = try twiddles.precomputeM31(std.testing.allocator, coset);
+        defer twiddles.deinitM31(std.testing.allocator, &expected);
+        var actual = try twiddles.precomputeM31Parallel(std.testing.allocator, coset);
+        defer twiddles.deinitM31(std.testing.allocator, &actual);
+        try std.testing.expectEqualSlices(M31, expected.twiddles, actual.twiddles);
+        try std.testing.expectEqualSlices(M31, expected.itwiddles, actual.itwiddles);
     }
 }

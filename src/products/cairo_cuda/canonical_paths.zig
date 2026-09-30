@@ -1,14 +1,12 @@
 //! Explicit asset paths for the proof-independent resident product.
 const std = @import("std");
 const stwo = @import("stwo_cairo_cuda");
-const publication = @import("publication.zig");
 
 pub const Paths = struct {
     allocator: std.mem.Allocator,
     arena: *std.heap.ArenaAllocator,
     source: stwo.integration.canonical_source.Paths,
     preprocessed: []const u8,
-    preprocessed_identity: [32]u8,
 
     pub fn init(parent: std.mem.Allocator, input: []const u8) !Paths {
         const arena = try parent.create(std.heap.ArenaAllocator);
@@ -36,7 +34,7 @@ pub const Paths = struct {
             .topology = try std.fs.path.join(allocator, &.{ asset_root, "official/witness_feed_topology_v1.json" }),
             .fixed = try std.fs.path.join(allocator, &.{ asset_root, "cairo_fixed_tables.bin" }),
             .relations = try std.fs.path.join(allocator, &.{ asset_root, "cairo_relation_templates.bin" }),
-        }, .preprocessed = preprocessed, .preprocessed_identity = try publication.sha256File(preprocessed) };
+        }, .preprocessed = preprocessed };
     }
 
     pub fn deinit(self: *Paths) void {

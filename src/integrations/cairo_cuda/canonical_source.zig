@@ -55,10 +55,11 @@ pub fn prepare(parent: std.mem.Allocator, paths: Paths, target: cuda.runtime.exe
     const witness_sha = try authenticate(paths.witnesses, "b2108615463b3c7003b07df20e800a42c4c7625344a681ed22e78e57238c90a6");
     const fixed_sha = try authenticate(paths.fixed, "ed8dd7b470d1837bd2db254f08ee30f3ed180099f8ed78653db008f195713890");
     const relation_sha = try authenticate(paths.relations, "2a692328b5e761b7129c82052542ba03221d228089fe1583f2d8043e6b3d231f");
-    const input_file_sha = try fileSha(paths.input);
-    var input = try cairo.adapter.input.readFile(allocator, paths.input);
-    const encoded = try cairo.adapter.compact_writer.encode(allocator, &input);
-    const input_sha = sha(encoded);
+    const captured = try @import("canonical_input.zig").read(allocator, paths.input);
+    var input = captured.input;
+    const encoded = captured.encoded;
+    const input_file_sha = captured.file_sha256;
+    const input_sha = captured.encoded_sha256;
     const witnesses = try cairo.witness.bundle.Bundle.readFile(allocator, paths.witnesses);
     const topology = try cairo.witness.feed_topology.readOfficial(allocator, paths.topology);
     const fixed_source = try cairo.witness.fixed_table_bundle.Bundle.readFile(allocator, paths.fixed);
@@ -117,18 +118,11 @@ pub fn prepare(parent: std.mem.Allocator, paths: Paths, target: cuda.runtime.exe
     }, &claim, active, topology, protocol, target);
     if (request.missing_lowerings.len != 0) return error.IncompleteCanonicalCudaLowering;
     try @import("executor/ingress/writer_preactions.zig").validateGatherGeometry(&request.proof);
-    // Detect file mutation across parsing without retaining an extra copy.
-    if (!std.mem.eql(u8, &input_file_sha, &try fileSha(paths.input))) return error.CanonicalInputChanged;
+    // The request binds the owned input capture, not a later read of its path.
     _ = try authenticate(paths.witnesses, "b2108615463b3c7003b07df20e800a42c4c7625344a681ed22e78e57238c90a6");
     _ = try authenticate(paths.fixed, "ed8dd7b470d1837bd2db254f08ee30f3ed180099f8ed78653db008f195713890");
     _ = try authenticate(paths.relations, "2a692328b5e761b7129c82052542ba03221d228089fe1583f2d8043e6b3d231f");
     return .{ .allocator = parent, .arena = arena, .adapted_bytes = encoded, .input = input, .input_file_sha256 = input_file_sha, .input_sha256 = input_sha, .variant = variant, .claim = claim, .geometry = geometry, .composition = bundle, .witnesses = witnesses, .feeds = feeds.bundle, .relations = relations, .fixed = fixed, .statement_bytes = statement, .preprocessed_logs = logs, .protocol = protocol, .request = request };
-}
-
-fn sha(bytes: []const u8) [32]u8 {
-    var digest: [32]u8 = undefined;
-    std.crypto.hash.sha2.Sha256.hash(bytes, &digest, .{});
-    return digest;
 }
 
 fn fileSha(path: []const u8) ![32]u8 {
@@ -162,6 +156,9 @@ test "canonical CUDA complete source requests prepare controllers locally" {
         var prepared = try prepare(std.testing.allocator, .{ .input = path, .variant = case.variant }, @import("request_compiler/sn2_test_support.zig").target());
         defer prepared.deinit();
         try std.testing.expectEqual(@as(usize, 0), prepared.request.missing_lowerings.len);
+        try std.testing.expectEqual(@as(u64, 0), prepared.request.resident.summary.decommit_terminal_shortfall_words);
+        for (prepared.request.proof_program.fri_layers) |layer|
+            try std.testing.expectEqual(layer.evaluation_log_rows, layer.log_rows_per_leaf);
         try std.testing.expectEqual(@as(u32, 2), prepared.request.resident.evaluation_codegen_version);
         try std.testing.expectEqual(@as(u32, 70), prepared.protocol.query_count);
         try std.testing.expectEqual(@as(u32, 26), prepared.protocol.query_pow_bits);
@@ -199,5 +196,8 @@ test "canonical CUDA SN PIE suite host admission" {
             std.debug.print("canonical_host_peak SN_PIE_{} live_bytes={}\n", .{ number, prepared.request.resident.summary.peak_live_words * 4 });
         }
         try std.testing.expectEqual(@as(usize, 0), prepared.request.missing_lowerings.len);
+        try std.testing.expectEqual(@as(u64, 0), prepared.request.resident.summary.decommit_terminal_shortfall_words);
+        for (prepared.request.proof_program.fri_layers) |layer|
+            try std.testing.expectEqual(layer.evaluation_log_rows, layer.log_rows_per_leaf);
     }
 }

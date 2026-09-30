@@ -26,6 +26,7 @@ pub const Source = struct {
     column: u32,
     log_rows: u32,
     tile_offset: u64,
+    reuse_committed_lde: bool = false,
 };
 
 pub const Component = struct {
@@ -34,6 +35,7 @@ pub const Component = struct {
     evaluation_log_size: u32,
     first_source: u32,
     source_count: u32,
+    recompute_source_count: u32 = 0,
     preprocessed_count: u32,
     main_count: u32,
     interaction_count: u32,
@@ -89,12 +91,21 @@ pub const Topology = struct {
     extended_parameter_descriptors: []eval_abi.ExtSourceDescriptor,
     summary: Summary,
     identity: proof_ir.Digest,
+    wide_trace_offsets: bool = false,
 
     pub fn derive(
         allocator: std.mem.Allocator,
         bundle: composition.Bundle,
         preprocessed_logs: []const u32,
     ) !Topology {
+        return deriveMode(allocator, bundle, preprocessed_logs, false);
+    }
+
+    pub fn deriveCanonical(allocator: std.mem.Allocator, bundle: composition.Bundle, preprocessed_logs: []const u32) !Topology {
+        return deriveMode(allocator, bundle, preprocessed_logs, true);
+    }
+
+    fn deriveMode(allocator: std.mem.Allocator, bundle: composition.Bundle, preprocessed_logs: []const u32, reuse_committed: bool) !Topology {
         if (bundle.plan_hash == 0 or
             bundle.components.len == 0 or
             preprocessed_logs.len == 0)
@@ -144,10 +155,13 @@ pub const Topology = struct {
                 try add(main_count, interaction_count),
             );
             const row_count = try pow2(captured.evaluation_log_size);
-            const tile_words = try mul(source_count, row_count);
+            const reuse = reuse_committed and captured.evaluation_log_size == captured.trace_log_size + 1;
+            const recompute_count = if (reuse) captured.preprocessed_indices.len else source_count;
+            const tile_words = try mul(recompute_count, row_count);
             maximum_tile_words = @max(maximum_tile_words, tile_words);
             const first_source = source_cursor;
             var local_source: u64 = 0;
+            var tile_source: u64 = 0;
             for (captured.preprocessed_indices) |column| {
                 if (column >= preprocessed_logs.len)
                     return error.InvalidCairoEvalTopology;
@@ -155,30 +169,35 @@ pub const Topology = struct {
                     .role = .preprocessed,
                     .column = column,
                     .log_rows = preprocessed_logs[column],
-                    .tile_offset = try mul(local_source, row_count),
+                    .tile_offset = try mul(tile_source, row_count),
                 };
                 source_cursor += 1;
                 local_source += 1;
+                tile_source += 1;
             }
             for (main.start..main.end) |column| {
                 sources[source_cursor] = .{
                     .role = .main,
                     .column = @intCast(column),
                     .log_rows = captured.trace_log_size,
-                    .tile_offset = try mul(local_source, row_count),
+                    .tile_offset = try mul(tile_source, row_count),
+                    .reuse_committed_lde = reuse,
                 };
                 source_cursor += 1;
                 local_source += 1;
+                if (!reuse) tile_source += 1;
             }
             for (interaction.start..interaction.end) |column| {
                 sources[source_cursor] = .{
                     .role = .interaction,
                     .column = @intCast(column),
                     .log_rows = captured.trace_log_size,
-                    .tile_offset = try mul(local_source, row_count),
+                    .tile_offset = try mul(tile_source, row_count),
+                    .reuse_committed_lde = reuse,
                 };
                 source_cursor += 1;
                 local_source += 1;
+                if (!reuse) tile_source += 1;
             }
             if (local_source != source_count)
                 return error.InvalidCairoEvalTopology;
@@ -220,6 +239,7 @@ pub const Topology = struct {
                 .evaluation_log_size = captured.evaluation_log_size,
                 .first_source = @intCast(first_source),
                 .source_count = @intCast(source_count),
+                .recompute_source_count = @intCast(recompute_count),
                 .preprocessed_count = @intCast(captured.preprocessed_indices.len),
                 .main_count = @intCast(main_count),
                 .interaction_count = @intCast(interaction_count),
@@ -238,7 +258,7 @@ pub const Topology = struct {
             };
             trace_offset_cursor = try add(
                 trace_offset_cursor,
-                source_count,
+                try mul(source_count, if (reuse_committed) @as(u64, 2) else 1),
             );
             interaction_offset_cursor = try add(
                 interaction_offset_cursor,
@@ -280,7 +300,7 @@ pub const Topology = struct {
             .extended_parameter_descriptor_words = try mul(extended_parameter_descriptors.len, 8),
             .extended_parameter_words = extended_cursor,
             .argument_words = try mul(placements.len, 24),
-            .lde_tile_words = maximum_tile_words,
+            .lde_tile_words = @max(1, maximum_tile_words),
             .accumulator_words = accumulator_words,
         };
         const identity = topologyIdentity(
@@ -297,6 +317,7 @@ pub const Topology = struct {
             .allocator = allocator,
             .components = components,
             .sources = sources,
+            .wide_trace_offsets = reuse_committed,
             .placements = placements,
             .accumulators = accumulators,
             .extended_parameter_descriptors = extended_parameter_descriptors,
@@ -443,11 +464,17 @@ fn topologyIdentity(
     summary: Summary,
 ) proof_ir.Digest {
     var hash = std.crypto.hash.sha2.Sha256.init(.{});
-    hash.update("stwo-zig/cairo/cuda/eval-topology/v1\x00");
+    hash.update("stwo-zig/cairo/cuda/eval-topology/v2\x00");
     hashInt(&hash, u64, bundle.plan_hash);
     for (preprocessed_logs) |value| hashInt(&hash, u32, value);
     hash.update(std.mem.sliceAsBytes(components));
-    hash.update(std.mem.sliceAsBytes(sources));
+    for (sources) |source| {
+        hashInt(&hash, u8, @intFromEnum(source.role));
+        hashInt(&hash, u32, source.column);
+        hashInt(&hash, u32, source.log_rows);
+        hashInt(&hash, u64, source.tile_offset);
+        hashInt(&hash, u8, @intFromBool(source.reuse_committed_lde));
+    }
     for (placements) |placement| {
         hashInt(&hash, u32, placement.component_index);
         hashInt(&hash, u32, placement.part_index);

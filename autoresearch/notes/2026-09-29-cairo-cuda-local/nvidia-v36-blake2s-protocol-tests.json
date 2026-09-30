@@ -1,0 +1,51 @@
+[
+  {
+    "protocol": "prefixed",
+    "command": [
+      "g++",
+      "-std=c++17",
+      "-O2",
+      "-I/usr/local/cuda/include",
+      "tests/cuda/native_blake2s_commitment_smoke.cpp",
+      "/workspace/stwo-zig/zig-out/lib/libstwo_cuda_kernels.a",
+      "-L/usr/local/cuda/lib64",
+      "-lcudart",
+      "-ldl",
+      "-lpthread",
+      "-Wl,-rpath,/usr/local/cuda/lib64",
+      "-o",
+      "/workspace/protocol-smoke-v36/commitment-prefixed"
+    ],
+    "archive_sha256": "f1adca95afd066287136d8eb22d91bb784584d784362adfbb833fc35d09a6a25",
+    "test_executable_sha256": "e8bcbf0f18d6f684bc60e395f03e03b4a2f4d543142f45b1fb83fd717279c927",
+    "returncode": 0,
+    "output": "native CUDA Blake2s commitment smoke passed\n",
+    "provider": "nvidia_cuda",
+    "accepted_proof": false
+  },
+  {
+    "protocol": "plain",
+    "command": [
+      "g++",
+      "-std=c++17",
+      "-O2",
+      "-I/usr/local/cuda/include",
+      "-DSTWO_BLAKE2S_TEST_PLAIN=1",
+      "tests/cuda/native_blake2s_commitment_smoke.cpp",
+      "/workspace/stwo-zig/zig-out/lib/libstwo_cuda_kernels.a",
+      "-L/usr/local/cuda/lib64",
+      "-lcudart",
+      "-ldl",
+      "-lpthread",
+      "-Wl,-rpath,/usr/local/cuda/lib64",
+      "-o",
+      "/workspace/protocol-smoke-v36/commitment-plain"
+    ],
+    "archive_sha256": "f1adca95afd066287136d8eb22d91bb784584d784362adfbb833fc35d09a6a25",
+    "test_executable_sha256": "61cebf416ce752cb3f17c698cc4ed6af40a44a2c3e9f878b7926e92ff4c0f59c",
+    "returncode": 0,
+    "output": "native CUDA Blake2s commitment smoke passed\n",
+    "provider": "nvidia_cuda",
+    "accepted_proof": false
+  }
+]

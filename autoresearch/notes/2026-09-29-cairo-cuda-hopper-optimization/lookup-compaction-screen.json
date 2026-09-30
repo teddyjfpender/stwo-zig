@@ -1,0 +1,386 @@
+[
+  {
+    "name": "add_opcode",
+    "lookup_words": 116,
+    "unique": 106,
+    "fraction": 0.914
+  },
+  {
+    "name": "add_opcode_small",
+    "lookup_words": 116,
+    "unique": 43,
+    "fraction": 0.371
+  },
+  {
+    "name": "add_ap_opcode",
+    "lookup_words": 54,
+    "unique": 28,
+    "fraction": 0.519
+  },
+  {
+    "name": "assert_eq_opcode",
+    "lookup_words": 23,
+    "unique": 18,
+    "fraction": 0.783
+  },
+  {
+    "name": "assert_eq_opcode_imm",
+    "lookup_words": 23,
+    "unique": 18,
+    "fraction": 0.783
+  },
+  {
+    "name": "assert_eq_opcode_double_deref",
+    "lookup_words": 56,
+    "unique": 25,
+    "fraction": 0.446
+  },
+  {
+    "name": "call_opcode_abs",
+    "lookup_words": 116,
+    "unique": 34,
+    "fraction": 0.293
+  },
+  {
+    "name": "call_opcode_rel_imm",
+    "lookup_words": 116,
+    "unique": 36,
+    "fraction": 0.31
+  },
+  {
+    "name": "generic_opcode",
+    "lookup_words": 260,
+    "unique": 211,
+    "fraction": 0.812
+  },
+  {
+    "name": "jnz_opcode_non_taken",
+    "lookup_words": 50,
+    "unique": 18,
+    "fraction": 0.36
+  },
+  {
+    "name": "jnz_opcode_taken",
+    "lookup_words": 83,
+    "unique": 55,
+    "fraction": 0.663
+  },
+  {
+    "name": "jump_opcode_abs",
+    "lookup_words": 50,
+    "unique": 21,
+    "fraction": 0.42
+  },
+  {
+    "name": "jump_opcode_double_deref",
+    "lookup_words": 83,
+    "unique": 28,
+    "fraction": 0.337
+  },
+  {
+    "name": "jump_opcode_rel",
+    "lookup_words": 50,
+    "unique": 24,
+    "fraction": 0.48
+  },
+  {
+    "name": "jump_opcode_rel_imm",
+    "lookup_words": 50,
+    "unique": 24,
+    "fraction": 0.48
+  },
+  {
+    "name": "mul_opcode",
+    "lookup_words": 172,
+    "unique": 142,
+    "fraction": 0.826
+  },
+  {
+    "name": "mul_opcode_small",
+    "lookup_words": 122,
+    "unique": 42,
+    "fraction": 0.344
+  },
+  {
+    "name": "qm_31_add_mul_opcode",
+    "lookup_words": 131,
+    "unique": 72,
+    "fraction": 0.55
+  },
+  {
+    "name": "ret_opcode",
+    "lookup_words": 83,
+    "unique": 27,
+    "fraction": 0.325
+  },
+  {
+    "name": "verify_instruction",
+    "lookup_words": 50,
+    "unique": 27,
+    "fraction": 0.54
+  },
+  {
+    "name": "blake_compress_opcode",
+    "lookup_words": 905,
+    "unique": 270,
+    "fraction": 0.298
+  },
+  {
+    "name": "blake_g",
+    "lookup_words": 86,
+    "unique": 76,
+    "fraction": 0.884
+  },
+  {
+    "name": "blake_round",
+    "lookup_words": 851,
+    "unique": 284,
+    "fraction": 0.334
+  },
+  {
+    "name": "triple_xor_32",
+    "lookup_words": 42,
+    "unique": 32,
+    "fraction": 0.762
+  },
+  {
+    "name": "partial_ec_mul_generic",
+    "lookup_words": 989,
+    "unique": 636,
+    "fraction": 0.643
+  },
+  {
+    "name": "pedersen_aggregator_window_bits_18",
+    "lookup_words": 396,
+    "unique": 297,
+    "fraction": 0.75
+  },
+  {
+    "name": "partial_ec_mul_window_bits_18",
+    "lookup_words": 499,
+    "unique": 318,
+    "fraction": 0.637
+  },
+  {
+    "name": "pedersen_aggregator_window_bits_9",
+    "lookup_words": 452,
+    "unique": 295,
+    "fraction": 0.653
+  },
+  {
+    "name": "partial_ec_mul_window_bits_9",
+    "lookup_words": 527,
+    "unique": 332,
+    "fraction": 0.63
+  },
+  {
+    "name": "cube_252",
+    "lookup_words": 260,
+    "unique": 176,
+    "fraction": 0.677
+  },
+  {
+    "name": "range_check_252_width_27",
+    "lookup_words": 45,
+    "unique": 37,
+    "fraction": 0.822
+  },
+  {
+    "name": "blake_round_sigma",
+    "lookup_words": 19,
+    "unique": 19,
+    "fraction": 1.0
+  },
+  {
+    "name": "pedersen_points_table_window_bits_18",
+    "lookup_words": 59,
+    "unique": 59,
+    "fraction": 1.0
+  },
+  {
+    "name": "pedersen_points_table_window_bits_9",
+    "lookup_words": 59,
+    "unique": 59,
+    "fraction": 1.0
+  },
+  {
+    "name": "poseidon_round_keys",
+    "lookup_words": 33,
+    "unique": 33,
+    "fraction": 1.0
+  },
+  {
+    "name": "range_check_11",
+    "lookup_words": 3,
+    "unique": 3,
+    "fraction": 1.0
+  },
+  {
+    "name": "range_check_12",
+    "lookup_words": 3,
+    "unique": 3,
+    "fraction": 1.0
+  },
+  {
+    "name": "range_check_18",
+    "lookup_words": 6,
+    "unique": 5,
+    "fraction": 0.833
+  },
+  {
+    "name": "range_check_20",
+    "lookup_words": 24,
+    "unique": 17,
+    "fraction": 0.708
+  },
+  {
+    "name": "range_check_3_3_3_3_3",
+    "lookup_words": 7,
+    "unique": 7,
+    "fraction": 1.0
+  },
+  {
+    "name": "range_check_3_6_6_3",
+    "lookup_words": 6,
+    "unique": 6,
+    "fraction": 1.0
+  },
+  {
+    "name": "range_check_4_3",
+    "lookup_words": 4,
+    "unique": 4,
+    "fraction": 1.0
+  },
+  {
+    "name": "range_check_4_4",
+    "lookup_words": 4,
+    "unique": 4,
+    "fraction": 1.0
+  },
+  {
+    "name": "range_check_4_4_4_4",
+    "lookup_words": 6,
+    "unique": 6,
+    "fraction": 1.0
+  },
+  {
+    "name": "range_check_6",
+    "lookup_words": 3,
+    "unique": 3,
+    "fraction": 1.0
+  },
+  {
+    "name": "range_check_7_2_5",
+    "lookup_words": 5,
+    "unique": 5,
+    "fraction": 1.0
+  },
+  {
+    "name": "range_check_8",
+    "lookup_words": 3,
+    "unique": 3,
+    "fraction": 1.0
+  },
+  {
+    "name": "range_check_9_9",
+    "lookup_words": 32,
+    "unique": 18,
+    "fraction": 0.562
+  },
+  {
+    "name": "verify_bitwise_xor_4",
+    "lookup_words": 5,
+    "unique": 5,
+    "fraction": 1.0
+  },
+  {
+    "name": "verify_bitwise_xor_7",
+    "lookup_words": 5,
+    "unique": 5,
+    "fraction": 1.0
+  },
+  {
+    "name": "verify_bitwise_xor_8",
+    "lookup_words": 10,
+    "unique": 7,
+    "fraction": 0.7
+  },
+  {
+    "name": "verify_bitwise_xor_9",
+    "lookup_words": 5,
+    "unique": 5,
+    "fraction": 1.0
+  },
+  {
+    "name": "bitwise_builtin",
+    "lookup_words": 278,
+    "unique": 155,
+    "fraction": 0.558
+  },
+  {
+    "name": "pedersen_builtin",
+    "lookup_words": 14,
+    "unique": 9,
+    "fraction": 0.643
+  },
+  {
+    "name": "pedersen_builtin_narrow_windows",
+    "lookup_words": 14,
+    "unique": 9,
+    "fraction": 0.643
+  },
+  {
+    "name": "poseidon_3_partial_rounds_chain",
+    "lookup_words": 254,
+    "unique": 200,
+    "fraction": 0.787
+  },
+  {
+    "name": "poseidon_aggregator",
+    "lookup_words": 522,
+    "unique": 419,
+    "fraction": 0.803
+  },
+  {
+    "name": "poseidon_builtin",
+    "lookup_words": 26,
+    "unique": 15,
+    "fraction": 0.577
+  },
+  {
+    "name": "poseidon_full_round_chain",
+    "lookup_words": 198,
+    "unique": 158,
+    "fraction": 0.798
+  },
+  {
+    "name": "range_check96_builtin",
+    "lookup_words": 36,
+    "unique": 18,
+    "fraction": 0.5
+  },
+  {
+    "name": "range_check_builtin",
+    "lookup_words": 34,
+    "unique": 21,
+    "fraction": 0.618
+  },
+  {
+    "name": "add_mod_builtin",
+    "lookup_words": 808,
+    "unique": 279,
+    "fraction": 0.345
+  },
+  {
+    "name": "mul_mod_builtin",
+    "lookup_words": 1196,
+    "unique": 536,
+    "fraction": 0.448
+  },
+  {
+    "name": "ec_op_builtin",
+    "lookup_words": 488,
+    "unique": 297,
+    "fraction": 0.609
+  }
+]

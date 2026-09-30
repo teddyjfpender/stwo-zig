@@ -124,6 +124,7 @@ constexpr std::uint32_t kM31Prime = 2147483647u;
 std::uint32_t b2n_launches(std::uint32_t log_n) {
     if (log_n >= 13u && log_n <= 18u) return 2;
     if (log_n >= 19u && log_n <= 23u) return 3;
+    if (log_n >= 24u && log_n <= 26u) return 4;
     return log_n;
 }
 
@@ -132,6 +133,7 @@ std::uint32_t n2b_launches(
     bool include_circle) {
     if (log_n >= 13u && log_n <= 19u) return 2;
     if (log_n >= 20u && log_n <= 23u) return 3;
+    if (log_n >= 24u && log_n <= 26u) return 4;
     return include_circle ? log_n : log_n - 1u;
 }
 
@@ -140,7 +142,7 @@ std::uint32_t expected_lde_launches(
     bool include_circle) {
     const std::uint32_t transform_launches =
         n2b_launches(log_n, include_circle);
-    return log_n >= 13u && log_n <= 23u
+    return log_n >= 13u && log_n <= 26u
         ? transform_launches
         : 1u + transform_launches;
 }
@@ -1085,7 +1087,15 @@ bool run_case(std::uint32_t log_n, std::uint32_t width) {
 
 }  // namespace
 
-int main() {
+int main(int argc, char **argv) {
+    if (argc == 2 && std::strcmp(argv[1], "--large") == 0) {
+        for (unsigned log_n = 24; log_n <= 26; ++log_n) {
+            if (!run_case(log_n, 1)) return 1;
+            std::printf("PASS: independent transform reference log %u\n", log_n);
+            std::fflush(stdout);
+        }
+        return 0;
+    }
     const struct {
         std::uint32_t log_n;
         std::uint32_t width;

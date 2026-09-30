@@ -12,15 +12,17 @@ constexpr M31 kM31Prime = 2147483647u;
 __host__ __device__ __forceinline__ M31 m31_mul(M31 left, M31 right) {
     const uint64_t product =
         static_cast<uint64_t>(left) * static_cast<uint64_t>(right);
-    const uint64_t folded = product + (product >> 31);
-    return static_cast<M31>((product + (folded >> 31)) & kM31Prime);
+    // Both inputs are canonical M31 values, so product < 2^62. Its two
+    // 31-bit halves sum to less than 2*p and need one modular correction.
+    const M31 folded = static_cast<M31>(product & kM31Prime) +
+                       static_cast<M31>(product >> 31);
+    return folded < kM31Prime ? folded : folded - kM31Prime;
 }
 
 __host__ __device__ __forceinline__ M31 m31_add(M31 left, M31 right) {
-    const uint64_t sum =
-        static_cast<uint64_t>(left) + static_cast<uint64_t>(right);
-    return static_cast<M31>(
-        sum < kM31Prime ? sum : sum - kM31Prime);
+    // The sum of two canonical values fits in u32.
+    const M31 sum = left + right;
+    return sum < kM31Prime ? sum : sum - kM31Prime;
 }
 
 __host__ __device__ __forceinline__ M31 m31_sub(M31 left, M31 right) {

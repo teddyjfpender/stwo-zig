@@ -99,8 +99,8 @@ def air_fixtures(path: Path) -> None:
         coefficients = [[rng.randrange(prime) for _ in range(4)] for _ in range(6)]
         denominator = [0, 1, prime-1, 7][case % 4]
         initial = [rng.randrange(prime) for _ in range(32)]
-        arena = trace + [0,0,0,1,address] + parameter + [x for c in coefficients for x in c] + [denominator] + initial
-        assert len(arena) == 74
+        arena = trace + [0,0,0,0,1,address] + parameter + [x for c in coefficients for x in c] + [denominator] + initial
+        assert len(arena) == 75
         output = []
         for row, value in enumerate(trace):
             scalar = (value+address) % prime
