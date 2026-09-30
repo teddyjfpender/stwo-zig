@@ -1,4 +1,5 @@
 test {
+    _ = @import("pcs/tiled_commit.zig");
     _ = @import("pcs/sampled_mixed_backend.zig");
     _ = @import("pcs/budgeted_merkle_test.zig");
     _ = @import("pcs/shared_commitment_test.zig");
