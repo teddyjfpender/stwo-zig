@@ -469,25 +469,80 @@ pub const TableMultiplicities = struct {
 
     /// Counts every table use among `lookups` (gate lookups are skipped).
     pub fn addUses(self: *TableMultiplicities, lookups: []const Lookup) Error!void {
+        return self.addUsesWith(lookups, false);
+    }
+
+    /// `addUses` for one worker of several: the large xor_12 table is
+    /// shared and counted atomically (its 2^24 slots rarely collide); every
+    /// other table is this worker's own, merged by `mergeLocal`. Counts are
+    /// integer sums, so the totals never depend on the interleaving.
+    pub fn addUsesLocal(self: *TableMultiplicities, lookups: []const Lookup) Error!void {
+        return self.addUsesWith(lookups, true);
+    }
+
+    /// A worker's tables for `addUsesLocal`: fresh small tables, `shared`'s
+    /// xor_12 columns.
+    pub fn initLocal(allocator: std.mem.Allocator, shared: *const TableMultiplicities) !TableMultiplicities {
+        var self: TableMultiplicities = undefined;
+        self.xor12 = shared.xor12;
+        var initialized: usize = 0;
+        const slots = [_]*[]u32{ &self.xor8[0], &self.xor8[1], &self.xor4, &self.xor7, &self.xor9, &self.rc16 };
+        const lengths = [_]usize{ shared.xor8[0].len, shared.xor8[1].len, shared.xor4.len, shared.xor7.len, shared.xor9.len, shared.rc16.len };
+        errdefer for (slots[0..initialized]) |slot| allocator.free(slot.*);
+        for (slots, lengths) |slot, len| {
+            slot.* = try allocator.alloc(u32, len);
+            @memset(slot.*, 0);
+            initialized += 1;
+        }
+        return self;
+    }
+
+    /// Frees a worker's own tables (never the shared xor_12 columns).
+    pub fn deinitLocal(self: *TableMultiplicities, allocator: std.mem.Allocator) void {
+        for (self.xor8) |counts| allocator.free(counts);
+        allocator.free(self.xor4);
+        allocator.free(self.xor7);
+        allocator.free(self.xor9);
+        allocator.free(self.rc16);
+        self.* = undefined;
+    }
+
+    /// Adds a worker's own tables into these.
+    pub fn mergeLocal(self: *TableMultiplicities, local: *const TableMultiplicities) void {
+        const into = [_][]u32{ self.xor8[0], self.xor8[1], self.xor4, self.xor7, self.xor9, self.rc16 };
+        const from = [_][]const u32{ local.xor8[0], local.xor8[1], local.xor4, local.xor7, local.xor9, local.rc16 };
+        for (into, from) |dst, src| for (dst, src) |*total, count| {
+            total.* += count;
+        };
+    }
+
+    inline fn bump(slot: *u32) void {
+        slot.* += 1;
+    }
+
+    inline fn addUsesWith(self: *TableMultiplicities, lookups: []const Lookup, comptime shared_xor12: bool) Error!void {
         for (lookups) |*lookup| {
             const tuple = lookup.values();
             const id = lookup.tuple[0];
             if (id.eql(gate)) continue;
             if (id.eql(xor8)) {
-                self.xor8[0][try xorRow(8, tuple)] += 1;
+                bump(&self.xor8[0][try xorRow(8, tuple)]);
             } else if (id.eql(xor8_b)) {
-                self.xor8[1][try xorRow(8, tuple)] += 1;
+                bump(&self.xor8[1][try xorRow(8, tuple)]);
             } else if (id.eql(xor12)) {
                 const slot = try xor_12.slotOf(tuple);
-                self.xor12[slot.column][slot.row] += 1;
+                const counter = &self.xor12[slot.column][slot.row];
+                if (shared_xor12) {
+                    _ = @atomicRmw(u32, counter, .Add, 1, .monotonic);
+                } else counter.* += 1;
             } else if (id.eql(xor4)) {
-                self.xor4[try xorRow(4, tuple)] += 1;
+                bump(&self.xor4[try xorRow(4, tuple)]);
             } else if (id.eql(xor7)) {
-                self.xor7[try xorRow(7, tuple)] += 1;
+                bump(&self.xor7[try xorRow(7, tuple)]);
             } else if (id.eql(xor9)) {
-                self.xor9[try xorRow(9, tuple)] += 1;
+                bump(&self.xor9[try xorRow(9, tuple)]);
             } else if (id.eql(rc16)) {
-                self.rc16[try range_check_16.rowOf(tuple)] += 1;
+                bump(&self.rc16[try range_check_16.rowOf(tuple)]);
             } else unreachable;
         }
     }
