@@ -235,3 +235,7 @@ pub fn computeFriInput(
     }
     return fri_queries;
 }
+
+test {
+    _ = @import("oods_test.zig");
+}

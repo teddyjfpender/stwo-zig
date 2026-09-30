@@ -266,3 +266,22 @@ test "component list: PerComponent round-trips through its array" {
     try std.testing.expectEqual(@as(u32, 30), per.get(.range_check_16));
     try std.testing.expectEqualSlices(u32, &values, &per.toArray());
 }
+
+test "component list: every relation use names a declared relation (statement_test.rs)" {
+    // `test_regression_relation_ids`: a misspelt relation undercounts uses in
+    // the relation-use check.
+    const known = [_][]const u8{
+        "Gate",               "RangeCheck_16",        "VerifyBitwiseXor_4", "VerifyBitwiseXor_7",
+        "VerifyBitwiseXor_8", "VerifyBitwiseXor_8_B", "VerifyBitwiseXor_9", "VerifyBitwiseXor_12",
+    };
+    for (component_facts.toArray(), COMPONENT_NAMES) |facts, name| {
+        for (facts.relation_uses_per_row) |relation_use| {
+            for (known) |relation| {
+                if (std.mem.eql(u8, relation, relation_use.relation_id)) break;
+            } else {
+                std.debug.print("component {s} declares uses of unknown relation {s}\n", .{ name, relation_use.relation_id });
+                return error.UnknownRelation;
+            }
+        }
+    }
+}

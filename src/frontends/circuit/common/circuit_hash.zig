@@ -114,3 +114,30 @@ test "circuit hash: config words reject values wider than a byte" {
     sizes.range_check_16 = 300;
     try std.testing.expectError(error.ValueDoesNotFitInByte, configWords(1, sizes));
 }
+
+test "circuit hash: the in-circuit hash matches the golden (circuit_hash_test.rs)" {
+    const QM31 = core.fields.qm31.QM31;
+    var ctx = try builder.Context(QM31).init(std.testing.allocator, 0);
+    defer ctx.deinit();
+    const sizes = PerComponent(u32){
+        .eq = 17,
+        .qm31_ops = 21,
+        .triple_xor = 17,
+        .m_31_to_u_32 = 18,
+        .blake_g_gate = 20,
+        .verify_bitwise_xor_8 = 16,
+        .verify_bitwise_xor_12 = 20,
+        .verify_bitwise_xor_4 = 8,
+        .verify_bitwise_xor_7 = 14,
+        .verify_bitwise_xor_9 = 18,
+        .range_check_16 = 16,
+    };
+    const root = try builder.blake.guessHash(QM31, &ctx, builder.blake.hashValue(QM31, .{ 0, 1, 2, 3, 4, 5, 6, 7 }));
+    const hash = try circuitHash(QM31, &ctx, sizes, 3, root);
+    var words: [8]u32 = undefined;
+    for (&words, hash.words) |*word, wire| word.* = builder.ivalue.unpackU32(QM31, ctx.get(wire.get()));
+    try std.testing.expectEqual([8]u32{
+        0xa8810641, 0x52391285, 0x90b37fd2, 0x905b887a,
+        0x7db7dc81, 0xa7c3a731, 0xd0d46b34, 0x8fa6a471,
+    }, words);
+}

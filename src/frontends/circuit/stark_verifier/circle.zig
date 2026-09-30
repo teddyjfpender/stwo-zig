@@ -137,3 +137,7 @@ pub fn computeHalfCosetPoints(comptime V: type, ctx: *Context(V), base_points: P
     core.utils.bitReverse(Point(Simd), points);
     return points;
 }
+
+test {
+    _ = @import("circle_test.zig");
+}

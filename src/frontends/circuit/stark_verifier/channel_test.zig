@@ -139,3 +139,56 @@ test "channel: pow accepts exactly the valid nonce and bit count" {
         }
     }
 }
+
+/// The core `Blake2sM31Channel` of the circuit proofs' channel profile.
+const HostChannel = core.vcs_lifted.channel_profile.proving_5a7c5ed.Blake2sM31MerkleChannel.Channel;
+
+fn expectHostDigest(ctx: *const Context, channel: Channel, host: HostChannel) !void {
+    const expected = builder.blake.reducedHashValueFromDigest(host.digestBytes());
+    try expectValue(ctx, channel.digest.low, expected.low);
+    try expectValue(ctx, channel.digest.high, expected.high);
+}
+
+test "channel: mix_u32s matches stwo, full 32-bit words included" {
+    const data = [_]u32{ 1, 0x8000_0000, 0xFFFF_FFFF, 2, 3 };
+    var ctx = try Context.init(std.testing.allocator, 0);
+    defer ctx.deinit();
+    var channel = Channel.init(QM31, &ctx);
+    var host: HostChannel = .{};
+    // Twice: the second mix starts from a non-zero digest.
+    for (0..2) |_| {
+        var words: [data.len]builder.wrappers.U32Wrapper(builder.Var) = undefined;
+        for (&words, data) |*word, value| word.* = .newUnsafe(try ctx.guess(builder.ivalue.packU32(QM31, value)));
+        try channel.mixU32s(QM31, &ctx, &words);
+        host.mixU32s(&data);
+        try expectHostDigest(&ctx, channel, host);
+    }
+    try std.testing.expectEqual(@as(u32, 0), channel.n_draws);
+    try expectValid(&ctx);
+}
+
+test "channel: unpack_qm31s_to_u32_words then mix_u32s matches stwo mix_felts" {
+    const M31 = core.fields.m31.M31;
+    const m = M31.fromCanonical;
+    const rounds = [_][]const QM31{
+        &.{
+            QM31.fromM31(m(42), m(1337), m(999999), m(2147483646)),
+            QM31.fromM31(m(1), m(0), m(0), m(0)),
+            QM31.fromM31(m(485399786), m(1255952693), m(1939438763), m(1561715227)),
+        },
+        &.{QM31.fromM31(m(1757357815), m(8864493), m(674769946), m(1715431414))},
+    };
+    var ctx = try Context.init(std.testing.allocator, 0);
+    defer ctx.deinit();
+    var channel = Channel.init(QM31, &ctx);
+    var host: HostChannel = .{};
+    for (rounds) |felts| {
+        host.mixFelts(felts);
+        const vars = try ctx.scratch().alloc(builder.Var, felts.len);
+        for (vars, felts) |*v, felt| v.* = try ctx.newVar(felt);
+        const words = try builder.blake.unpackQm31sToU32Words(QM31, &ctx, vars);
+        try channel.mixU32s(QM31, &ctx, words);
+        try expectHostDigest(&ctx, channel, host);
+    }
+    try expectValid(&ctx);
+}
