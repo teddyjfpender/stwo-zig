@@ -158,7 +158,9 @@ test "Cairo memory tables: Rust row geometry pads packed values before powers of
 }
 
 test "Cairo memory tables: empty big values use one SIMD padding component" {
-    var input = testInput(&.{}, &.{0});
+    var big: [0]memory.F252 = .{};
+    var small = [_]u128{0};
+    var input = testInput(&big, &small);
     try std.testing.expectEqual(@as(usize, 1), try bigComponentCount(&input));
     try std.testing.expectEqual(lane_count, try bigRowCount(&input, 0));
     var column: [lane_count]u32 = undefined;

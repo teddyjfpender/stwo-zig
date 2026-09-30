@@ -23,7 +23,7 @@ pub const production_ready = false;
 
 const NativeOps = struct {
     const Transform = stages.transform.Native;
-    const Commitment = stages.commitment.Native;
+    const Commitment = stages.commitment.PlainNative;
 };
 
 pub const Cohort = trace_types.Cohort;
@@ -303,6 +303,7 @@ pub const Bound = struct {
     merkle_hashes: common.Hashes,
     merkle_layers: common.MerkleLayers,
     progressive_states: ?common.ProgressiveStates,
+    compact_prefix_states: ?[2]common.ProgressiveStates = null,
     root: common.Hashes,
     twiddles_forward: common.Words,
     twiddles_inverse: common.Words,
@@ -343,6 +344,13 @@ pub const Bound = struct {
                 .source_size = try pow2u32(cohort.evaluation_log_rows),
             };
         }
+        // Commitment messages use stable ascending height order. Physical
+        // witness columns and their transcript indices stay in original order.
+        std.sort.block(commit_tree.LiftedSegment, segments, {}, struct {
+            fn lessThan(_: void, left: commit_tree.LiftedSegment, right: commit_tree.LiftedSegment) bool {
+                return left.source_size < right.source_size;
+            }
+        }.lessThan);
         return .{
             .allocator = allocator,
             .prepared = prepared,
@@ -377,6 +385,10 @@ pub const Bound = struct {
                 prepared.slots.root,
                 1,
             ),
+            .compact_prefix_states = if (prepared.slots.compact_prefix_states[0]) |first| .{
+                try (try provider.slot(first)).cast(field.ProgressiveBlake2sState),
+                try (try provider.slot(prepared.slots.compact_prefix_states[1] orelse return error.InvalidTraceCommitPlan)).cast(field.ProgressiveBlake2sState),
+            } else null,
             .twiddles_forward = try suffixWords(
                 provider,
                 prepared.slots.twiddles_forward,
@@ -566,18 +578,29 @@ pub const Bound = struct {
                 self.merkle_hashes,
                 self.prepared.layers,
             )
-        else
-            try Builder.baseField(
-                session,
-                self.prepared.stage,
-                self.prepared.tree_size,
-                .{
-                    .storage = self.evaluations,
-                    .column_stride_words = self.prepared.tree_size,
-                },
-                self.merkle_hashes,
-                self.prepared.layers,
-            );
+        else if (requiresProgressive(self.prepared.cohorts, self.prepared.tree_size)) blk: {
+            if (comptime @hasDecl(Ops.Commitment, "mixedLeaves")) {
+                break :blk try Builder.baseFieldMixed(
+                    session,
+                    self.prepared.stage,
+                    self.prepared.tree_size,
+                    self.lifted_segments,
+                    self.compact_prefix_states,
+                    self.merkle_hashes,
+                    self.prepared.layers,
+                );
+            } else return error.InvalidTraceCommitState;
+        } else try Builder.baseField(
+            session,
+            self.prepared.stage,
+            self.prepared.tree_size,
+            .{
+                .storage = self.evaluations,
+                .column_stride_words = self.prepared.tree_size,
+            },
+            self.merkle_hashes,
+            self.prepared.layers,
+        );
         try session.context.copyDeviceSlice(u32, try self.root.cast(u32), try root.cast(u32));
     }
 };
@@ -603,7 +626,7 @@ fn locateSlots(
         .column_offsets = try slotId(plan, .trace_column_offsets, ordinal),
         .merkle_hashes = try slotId(plan, .trace_merkle_hashes, ordinal),
         .merkle_layers = try slotId(plan, .trace_merkle_layers, ordinal),
-        .progressive_states = if (needs_progressive)
+        .progressive_states = if (needs_progressive and plan.slot(.trace_progressive_states, if (stage == .constraint_evaluation) 1 else 0) != null)
             try slotId(
                 plan,
                 .trace_progressive_states,
@@ -611,6 +634,13 @@ fn locateSlots(
             )
         else
             null,
+        .compact_prefix_states = blk: {
+            const prefix_ordinal: u32 = if (stage == .constraint_evaluation) 4 else 2;
+            break :blk .{
+                if (plan.slot(.trace_progressive_states, prefix_ordinal)) |value| value.id else null,
+                if (plan.slot(.trace_progressive_states, prefix_ordinal + 1)) |value| value.id else null,
+            };
+        },
         .root = try slotId(plan, .trace_root, ordinal),
         .twiddles_forward = try slotId(plan, .twiddles_forward, 0),
         .twiddles_inverse = try slotId(plan, .twiddles_inverse, 0),

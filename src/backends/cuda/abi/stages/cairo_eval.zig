@@ -4,7 +4,9 @@ const std = @import("std");
 
 pub const argument_count: u32 = 3;
 pub const interaction_count: u32 = 3;
-pub const launch_block: u32 = 256;
+// Cairo AIR placements can have only 1,024 rows. Smaller blocks expose enough
+// independent work to the GPU without changing the generated AIR or its ABI.
+pub const launch_block: u32 = 64;
 
 pub const ExtSourceKind = enum(u32) {
     constant,
@@ -138,6 +140,8 @@ pub const Args = extern struct {
 
 pub const Bounds = struct {
     arena_words: u64,
+    /// Physical table words: canonical AIR v4 stores low/high u32 pairs per
+    /// u64 source address; the legacy diagnostic table stores one u32.
     trace_offset_count: u64,
     base_param_count: u64,
     ext_param_count: u64,

@@ -3,13 +3,31 @@ const std = @import("std");
 const stwo = @import("stwo_cairo_cuda");
 const compact = stwo.frontend.compact_verifier_interchange;
 
+/// Host wall intervals, without additional GPU synchronization. Device event
+/// intervals in the verdict separately measure work enqueued by these phases.
+pub const IngressTimings = struct {
+    paths_ns: u64,
+    runtime_ns: u64,
+    source_ns: u64,
+    controllers_ns: u64,
+    twiddles_ns: u64,
+    allocation_ns: u64,
+    binding_ns: u64,
+    static_ns: u64,
+    writers_ns: u64,
+    statement_and_session_ns: u64,
+};
+
 pub const Receipt = struct {
     index: u32,
     protocol: compact.CompactProtocolV1,
     input_sha256: [32]u8,
     executable_sha256: [32]u8,
     planned_arena_bytes: u64,
+    prepared_arena_reused: bool = false,
+    preprocessed_reused: bool = false,
     ingress_ns: u64,
+    ingress_timings: IngressTimings,
     proof_execute_and_decode_ns: u64,
     adapted_input_until_publication_ns: u64,
     proof_sha256: [32]u8,
@@ -59,6 +77,14 @@ pub fn writeCanonicalProof(path: []const u8, prepared: anytype, decoded: anytype
 }
 
 pub fn writeReport(path: []const u8, receipts: []const Receipt) !void {
+    try writeReportWithTeardown(path, receipts, null);
+}
+
+pub fn writeFinalReport(path: []const u8, receipts: []const Receipt, runtime_teardown_ns: u64) !void {
+    try writeReportWithTeardown(path, receipts, runtime_teardown_ns);
+}
+
+fn writeReportWithTeardown(path: []const u8, receipts: []const Receipt, runtime_teardown_ns: ?u64) !void {
     var buffer: [65536]u8 = undefined;
     var atomic = try std.fs.cwd().atomicFile(path, .{ .write_buffer = &buffer });
     defer atomic.deinit();
@@ -67,6 +93,8 @@ pub fn writeReport(path: []const u8, receipts: []const Receipt) !void {
         .production_eligible = false,
         .verification_status = "zig_verified_rust_verification_pending",
         .timing_scope = "adapted input to official Rust proof JSON; excludes PIE execution/adaptation; proving stage reported separately from ingress and verification",
+        .runtime_lifecycle = "one runtime and bounded arena cache per process; startup charged to first trial; subsequent trials prepare fresh proof inputs; teardown reported separately",
+        .runtime_teardown_ns = runtime_teardown_ns,
         .completed_trials = receipts,
     }, .{ .whitespace = .indent_2 }, &atomic.file_writer.interface);
     try atomic.file_writer.interface.writeByte('\n');

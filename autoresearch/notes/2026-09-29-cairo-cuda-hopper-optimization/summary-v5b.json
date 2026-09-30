@@ -1,0 +1,124 @@
+{
+  "gpu": "NVIDIA H200, GPU-fff831b9-e355-31c9-d8fb-4fe4af6afd97, 143771, 570.124.06",
+  "security": {
+    "query_count": 70,
+    "query_pow_bits": 26,
+    "interaction_pow_bits": 24,
+    "log_blowup_factor": 1,
+    "fri_fold_step": 1,
+    "log_last_layer_degree_bound": 0,
+    "channel_salt": 0
+  },
+  "scope": "cold process; adapted input to publication; process wall includes teardown; excludes raw PIE execution and queueing",
+  "products": {
+    "baseline": "357cd8e4e595cf80c14987208c3734fdcf75de1639e62fbad259440ab38d8b79",
+    "candidate": "560b03e21d2f703a73907d681c5805edca706cf604420930d39f41405c604cb2"
+  },
+  "excluded_timing_blocks": [],
+  "results": [
+    {
+      "benchmark": "SN PIE 1",
+      "proof_sha256": "ddfd9c167d42b4fd3933abc2049fe468f7c914f2a7b34267664312f121a042ed",
+      "baseline": {
+        "proof_s": 1.885728958,
+        "adapted_publication_s": 6.579962739,
+        "process_wall_s": 7.143682500500001,
+        "teardown_s": 0.248150616,
+        "gpu_peak_gb": 100.970528768,
+        "arena_gb": 98.593598432,
+        "host_peak_gb": 1.520795648,
+        "trials": 2
+      },
+      "candidate": {
+        "proof_s": 1.9127292945,
+        "adapted_publication_s": 6.4684658084999995,
+        "process_wall_s": 7.009148289500001,
+        "teardown_s": 0.232663834,
+        "gpu_peak_gb": 100.911808512,
+        "arena_gb": 98.593598432,
+        "host_peak_gb": 1.521790976,
+        "trials": 2
+      },
+      "warm_proof_s": 1.759069649,
+      "warm_adapted_publication_s": 3.2950998164999996
+    },
+    {
+      "benchmark": "SN PIE 2",
+      "proof_sha256": "07109499daff9b2140fab7d91c4fd06c4675f3e206bf06da6fea787132e2c96b",
+      "baseline": {
+        "proof_s": 1.397272295,
+        "adapted_publication_s": 5.687581086,
+        "process_wall_s": 6.3714976530000005,
+        "teardown_s": 0.4098166875,
+        "gpu_peak_gb": 62.39715328,
+        "arena_gb": 59.485853696,
+        "host_peak_gb": 1.201045504,
+        "trials": 2
+      },
+      "candidate": {
+        "proof_s": 1.348611847,
+        "adapted_publication_s": 5.5308330795,
+        "process_wall_s": 5.9591364375,
+        "teardown_s": 0.148207315,
+        "gpu_peak_gb": 61.7873408,
+        "arena_gb": 59.485853696,
+        "host_peak_gb": 1.207898112,
+        "trials": 2
+      },
+      "warm_proof_s": 1.185487684,
+      "warm_adapted_publication_s": 2.3022920575
+    },
+    {
+      "benchmark": "SN PIE 3",
+      "proof_sha256": "a8912e68df4d21090389f1f796c17b57327830a9c738666426650c5e2f666650",
+      "baseline": {
+        "proof_s": 1.8763893905,
+        "adapted_publication_s": 6.780162173,
+        "process_wall_s": 7.3092993375,
+        "teardown_s": 0.229087697,
+        "gpu_peak_gb": 99.796123648,
+        "arena_gb": 97.412281984,
+        "host_peak_gb": 1.493090304,
+        "trials": 2
+      },
+      "candidate": {
+        "proof_s": 1.9103116130000002,
+        "adapted_publication_s": 6.489261762,
+        "process_wall_s": 7.0383007165,
+        "teardown_s": 0.2429517325,
+        "gpu_peak_gb": 99.737403392,
+        "arena_gb": 97.412281984,
+        "host_peak_gb": 1.495523328,
+        "trials": 2
+      },
+      "warm_proof_s": 1.751288183,
+      "warm_adapted_publication_s": 3.268644484
+    },
+    {
+      "benchmark": "SN PIE 4",
+      "proof_sha256": "a461dfdd91e78f41335f1592421582b47d7122517efb09ca95036b891908b435",
+      "baseline": {
+        "proof_s": 1.4934824985000001,
+        "adapted_publication_s": 6.1224826555,
+        "process_wall_s": 6.6021213395,
+        "teardown_s": 0.180606995,
+        "gpu_peak_gb": 80.267444224,
+        "arena_gb": 77.88629888,
+        "host_peak_gb": 1.488429056,
+        "trials": 2
+      },
+      "candidate": {
+        "proof_s": 1.5136222415,
+        "adapted_publication_s": 6.139747147,
+        "process_wall_s": 6.618936429,
+        "teardown_s": 0.1805319675,
+        "gpu_peak_gb": 80.208723968,
+        "arena_gb": 77.88629888,
+        "host_peak_gb": 1.494351872,
+        "trials": 2
+      },
+      "warm_proof_s": 1.3568093545,
+      "warm_adapted_publication_s": 2.8447593035
+    }
+  ]
+}

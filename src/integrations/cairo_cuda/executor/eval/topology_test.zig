@@ -105,3 +105,51 @@ test "SN2 eval topology preserves every heterogeneous component domain" {
         &mutated.identity,
     ));
 }
+
+test "canonical eval reuses only identical commitment domains" {
+    const allocator = std.testing.allocator;
+    var bundle = try composition.Bundle.readFile(allocator, "vectors/cairo/sn_pie_2_composition.bin");
+    defer bundle.deinit();
+    var fixed = try fixed_tables.Bundle.readFile(allocator, "vectors/cairo/cairo_fixed_tables.bin");
+    defer fixed.deinit();
+    const logs = try semantic_authority.preprocessedLogs(allocator, fixed);
+    defer allocator.free(logs);
+    var dense = try topology.Topology.derive(allocator, bundle, logs);
+    defer dense.deinit();
+    var compact = try topology.Topology.deriveCanonical(allocator, bundle, logs);
+    defer compact.deinit();
+    const geometry = try @import("../resident_plan_ingress.zig").deriveEvaluationMode(bundle, [_]u8{1} ** 32, true);
+    try std.testing.expectEqual(geometry.lde_tile_words, compact.summary.lde_tile_words);
+    try std.testing.expectEqual(dense.sources.len, compact.sources.len);
+    try std.testing.expectEqual(@as(u64, compact.sources.len) * 2, compact.summary.trace_offset_words);
+    try std.testing.expectEqual(@as(u64, dense.sources.len), dense.summary.trace_offset_words);
+    try std.testing.expect(compact.summary.lde_tile_words < dense.summary.lde_tile_words);
+    var reused: usize = 0;
+    var transformed: usize = 0;
+    for (compact.components) |component| {
+        var active: usize = 0;
+        for (compact.sources[component.first_source..][0..component.source_count]) |source| {
+            if (source.reuse_committed_lde) {
+                try std.testing.expect(source.role != .preprocessed);
+                try std.testing.expectEqual(component.evaluation_log_size, source.log_rows + 1);
+                reused += 1;
+            } else {
+                try std.testing.expectEqual(@as(u64, active) << @intCast(component.evaluation_log_size), source.tile_offset);
+                active += 1;
+                transformed += 1;
+            }
+        }
+        try std.testing.expectEqual(active, component.recompute_source_count);
+    }
+    try std.testing.expect(reused > 0 and transformed > 0);
+    // A larger AIR domain must extend coefficients rather than repeating the
+    // committed evaluations. Exercise that boundary on a real component.
+    const original = bundle.components[0].evaluation_log_size;
+    bundle.components[0].evaluation_log_size = bundle.components[0].trace_log_size + 2;
+    defer bundle.components[0].evaluation_log_size = original;
+    var larger = try topology.Topology.deriveCanonical(allocator, bundle, logs);
+    defer larger.deinit();
+    const first = larger.components[0];
+    try std.testing.expectEqual(first.source_count, first.recompute_source_count);
+    for (larger.sources[first.first_source..][0..first.source_count]) |source| try std.testing.expect(!source.reuse_committed_lde);
+}

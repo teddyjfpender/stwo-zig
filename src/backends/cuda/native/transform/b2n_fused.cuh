@@ -369,6 +369,15 @@ inline cudaError_t launch_b2n_init(
     if (log_n < stages || columns == 0)
         return STWO_CUDA_ERROR_INVALID_CONFIGURATION;
     switch (stages) {
+        case 6: {
+            const uint32_t warps = 1u << (log_n - 6u);
+            const uint32_t block_warps = warps < 4u ? warps : 4u;
+            b2n_init_warp<1><<<
+                dim3(warps / block_warps, columns),
+                dim3(32, block_warps), 0, stream>>>(
+                    inputs, outputs, log_n, stages, twiddles);
+            break;
+        }
         case 7: {
             const uint32_t warps = 1u << (log_n - 7u);
             const uint32_t block_warps = warps < 4u ? warps : 4u;

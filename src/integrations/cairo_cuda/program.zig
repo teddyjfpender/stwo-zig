@@ -361,7 +361,7 @@ fn friLayers(allocator: std.mem.Allocator, protocol: compact.CompactProtocolV1) 
         .round_count = protocol.fri_tree_count,
         .fold_step = protocol.fri_fold_step,
         .final_log = final_log,
-        .packed_log = core.fri.geometry.FriGeometry.packed_log,
+        .packed_log = 0, // Canonical Stwo hashes one secure evaluation per leaf.
     }) catch return Error.InvalidCompositionGeometry;
     const layers = try allocator.alloc(ir.FriLayer, geometry.roundCount());
     for (layers, 0..) |*layer, index| layer.* = .{

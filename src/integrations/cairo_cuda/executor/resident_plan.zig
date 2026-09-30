@@ -240,12 +240,22 @@ const Builder = struct {
         var max_commitment_log: u32 = 0;
         var trace_progressive_log: u32 = 0;
         var constraint_progressive_log: u32 = 0;
+        var trace_prefix_log: u32 = 0;
+        var constraint_prefix_log: u32 = 0;
         for (self.program.commitments) |tree| {
             max_commitment_log = @max(
                 max_commitment_log,
                 tree.evaluation_log_rows,
             );
             if (!treeIsMixed(self.program, tree)) continue;
+            if (fusedMixedTree(self.program, tree)) {
+                const prefix_log = compactPrefixLog(self.program, tree);
+                if (commitStageFor(tree.role) == .trace_commit)
+                    trace_prefix_log = @max(trace_prefix_log, prefix_log)
+                else
+                    constraint_prefix_log = @max(constraint_prefix_log, prefix_log);
+                continue;
+            }
             switch (commitStageFor(tree.role)) {
                 .trace_commit => trace_progressive_log = @max(
                     trace_progressive_log,
@@ -291,6 +301,13 @@ const Builder = struct {
                 .request_local,
                 false,
             );
+        }
+        for ([_]struct { log: u32, ordinal: u32, stage: telemetry.Stage }{
+            .{ .log = trace_prefix_log, .ordinal = 2, .stage = .trace_commit },
+            .{ .log = constraint_prefix_log, .ordinal = 4, .stage = .constraint_evaluation },
+        }) |prefix| {
+            if (prefix.log == 0) continue;
+            for (0..2) |bank| try self.add(.trace_progressive_states, prefix.ordinal + @as(u32, @intCast(bank)), try mul(try pow2usize(prefix.log), progressive_state_words), 64, prefix.stage, prefix.stage, .request_local, false);
         }
         for (self.program.commitments, 0..) |tree, ordinal| {
             const columns = self.program.trace_columns[tree.first_column .. tree.first_column + tree.column_count];
@@ -352,20 +369,23 @@ const Builder = struct {
     }
 
     fn addOods(self: *Builder) !void {
+        const diagnostic = std.posix.getenv("STWO_CAIRO_CUDA_SOURCE_DIAGNOSTIC") != null;
+        const final_stage: telemetry.Stage = if (diagnostic) .proof_assembly else .oods;
+        const point_stage: telemetry.Stage = if (diagnostic) .proof_assembly else .quotient;
         const samples = self.protocol.sampled_value_words / 4;
         const max_log = self.program.quotient.evaluation_log_rows;
         const factors = try mul(try mul(samples, max_log), 4);
         const first_blocks = divCeil(try pow2usize(max_log), 4096);
         const reduce_blocks = divCeil(try pow2usize(max_log), 512);
-        try self.add(.oods_parameter, 0, 4, 4, .constraint_evaluation, .quotient, .request_local, false);
-        try self.add(.oods_offset_points, 0, try mul(samples, 2), 2, .oods, .oods, .request_local, true);
-        try self.add(.oods_fold_counts, 0, samples, 1, .oods, .oods, .request_local, true);
-        try self.add(.oods_output_indices, 0, samples, 1, .oods, .oods, .request_local, true);
-        try self.add(.oods_sample_points, 0, try mul(samples, 8), 8, .oods, .quotient, .request_local, false);
-        try self.add(.oods_evaluation_points, 0, try mul(samples, 8), 8, .oods, .quotient, .request_local, false);
-        try self.add(.oods_folding_factors, 0, factors, 4, .oods, .oods, .request_local, false);
-        try self.add(.oods_reduce_a, 0, try mul(try mul(samples, first_blocks), 4), 4, .oods, .oods, .request_local, false);
-        try self.add(.oods_reduce_b, 0, try mul(try mul(samples, reduce_blocks), 4), 4, .oods, .oods, .request_local, false);
+        try self.add(.oods_parameter, 0, 4, 4, .constraint_evaluation, point_stage, .request_local, false);
+        try self.add(.oods_offset_points, 0, try mul(samples, 2), 2, .oods, final_stage, .request_local, true);
+        try self.add(.oods_fold_counts, 0, samples, 1, .oods, final_stage, .request_local, true);
+        try self.add(.oods_output_indices, 0, samples, 1, .oods, final_stage, .request_local, true);
+        try self.add(.oods_sample_points, 0, try mul(samples, 8), 8, .oods, point_stage, .request_local, false);
+        try self.add(.oods_evaluation_points, 0, try mul(samples, 8), 8, .oods, point_stage, .request_local, false);
+        try self.add(.oods_folding_factors, 0, factors, 4, .oods, final_stage, .request_local, false);
+        try self.add(.oods_reduce_a, 0, try mul(try mul(samples, first_blocks), 4), 4, .oods, final_stage, .request_local, false);
+        try self.add(.oods_reduce_b, 0, try mul(try mul(samples, reduce_blocks), 4), 4, .oods, final_stage, .request_local, false);
         try self.add(.oods_sampled_values, 0, self.protocol.sampled_value_words, 4, .oods, .proof_assembly, .request_local, false);
     }
 
@@ -374,7 +394,7 @@ const Builder = struct {
         const groups = self.quotient.group_log_sizes.len;
         const sources = self.quotient.sources.len;
         const partial_rows = self.quotient.partial_offsets[groups];
-        try self.add(.quotient_challenge, 0, 4, 4, .oods, .fri_commit, .request_local, false);
+        try self.add(.quotient_challenge, 0, 4, 4, .oods, if (std.posix.getenv("STWO_CAIRO_CUDA_SOURCE_DIAGNOSTIC") != null) .proof_assembly else .fri_commit, .request_local, false);
         try self.add(.quotient_prepared_terms, 0, try mul(terms, 5), 4, .quotient, .quotient, .request_local, true);
         try self.add(.quotient_group_offsets, 0, @as(usize, groups) + 1, 1, .quotient, .quotient, .request_local, true);
         try self.add(.quotient_group_term_indices, 0, terms, 1, .quotient, .quotient, .request_local, true);
@@ -410,6 +430,10 @@ const Builder = struct {
         // Retiring it at FRI commitment lets the opening arena overwrite the
         // committed values before their authentication paths are assembled.
         try self.add(.quotient_result_coordinates, 0, try mul(try pow2usize(self.program.quotient.evaluation_log_rows), 4), 64, .quotient, .decommit, .request_local, false);
+        const subdomain_rows = try pow2usize(self.program.quotient.evaluation_log_rows - 1);
+        try self.add(.quotient_subdomain_coordinates, 0, try mul(subdomain_rows, 4), 64, .quotient, .quotient, .request_local, false);
+        try self.add(.quotient_subdomain_inverse_twiddles, 0, subdomain_rows / 2, 64, .ingress, .quotient, .request_local, true);
+        try self.add(.quotient_coefficient_logs, 0, 4, 1, .ingress, .quotient, .request_local, true);
     }
 
     fn addFri(self: *Builder) !void {
@@ -493,7 +517,7 @@ const Builder = struct {
                 try friAssemblyWords(
                     queries,
                     expanded,
-                    layer.evaluation_log_rows - layer.log_rows_per_leaf,
+                    layer.log_rows_per_leaf,
                 ),
             );
         }
@@ -571,6 +595,33 @@ const Builder = struct {
         });
     }
 };
+
+/// The fused leaf launch carries a bounded cohort inventory in its parameters.
+/// Larger inventories retain the existing progressive implementation.
+fn fusedMixedTree(program: proof_ir.ProofProgram, tree: proof_ir.CommitmentTree) bool {
+    const columns = program.trace_columns[tree.first_column .. tree.first_column + tree.column_count];
+    var count: usize = 0;
+    var previous: ?u32 = null;
+    for (columns) |trace_column| {
+        if (previous == null or previous.? != trace_column.log_rows) count += 1;
+        previous = trace_column.log_rows;
+    }
+    return count > 0 and count <= @import("stwo_cuda_backend").runtime.stages.commitment.max_mixed_segments;
+}
+
+fn compactPrefixLog(program: proof_ir.ProofProgram, tree: proof_ir.CommitmentTree) u32 {
+    const columns = program.trace_columns[tree.first_column .. tree.first_column + tree.column_count];
+    var maximum: u32 = 0;
+    for (columns) |trace_column| maximum = @max(maximum, trace_column.log_rows);
+    const blowup = tree.evaluation_log_rows - maximum;
+    var prefix: u32 = 0;
+    for (columns) |trace_column| {
+        const log = trace_column.log_rows + blowup;
+        if (log < tree.evaluation_log_rows and log <= @import("stwo_cuda_backend").runtime.stages.commitment.max_compact_prefix_log)
+            prefix = @max(prefix, log);
+    }
+    return prefix;
+}
 
 fn validateInputs(
     program: proof_ir.ProofProgram,

@@ -92,6 +92,21 @@ pub fn runIfRequested(allocator: std.mem.Allocator, transaction: anytype, diagno
         try file.writeAll(std.mem.sliceAsBytes(coefficient_values));
         try file.sync();
     }
+    const SlotKind = @import("stwo_cairo_cuda").executor.resident_plan.SlotKind;
+    for ([_]SlotKind{ .oods_parameter, .oods_fold_counts, .oods_sample_points, .oods_evaluation_points, .oods_folding_factors, .oods_reduce_a, .oods_reduce_b, .quotient_challenge, .quotient_result_coordinates, .fri_last_coefficients }) |kind| {
+        const slot = diagnostic.request.resident.slot(kind, 0) orelse return error.InvalidDiagnosticSlot;
+        const source = try transaction.slot(slot.id);
+        const data = try allocator.alloc(u32, source.len);
+        defer allocator.free(data);
+        try session.context.readProofSlice(u32, data, source);
+        try session.context.sync();
+        const name = try std.fmt.allocPrint(allocator, "{s}.bin", .{@tagName(kind)});
+        defer allocator.free(name);
+        const file = try directory.createFile(name, .{ .exclusive = true });
+        defer file.close();
+        try file.writeAll(std.mem.sliceAsBytes(data));
+        try file.sync();
+    }
     const terminal = diagnostic.request.resident.slot(.terminal_bundle, 0) orelse return error.InvalidTerminalBinding;
     const source = try transaction.slot(terminal.id);
     const values = try allocator.alloc(u32, source.len);

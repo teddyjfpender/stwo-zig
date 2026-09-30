@@ -18,18 +18,33 @@
     "upstream_symbol_authority": "abi/upstream_symbols.json",
     "zig_owned_symbols": [
       "stwo_accumulate_quotient_numerator_addressed_on",
+      "stwo_accumulate_quotient_numerator_addressed_variant_on",
+      "stwo_accumulate_quotient_numerator_native_bucket_on",
       "stwo_accumulate_quotient_numerator_compact_on",
       "stwo_accumulate_quotient_numerator_single_write_on",
       "stwo_blake2s_contiguous_leaf_on",
+      "stwo_blake2s_contiguous_leaf_plain_on",
       "stwo_blake2s_contiguous_tail_on",
+      "stwo_blake2s_contiguous_tail_plain_on",
       "stwo_blake2s_fri_leaf_on",
+      "stwo_blake2s_fri_leaf_plain_on",
       "stwo_blake2s_interior4_on",
+      "stwo_blake2s_interior4_plain_on",
       "stwo_blake2s_layer_on",
+      "stwo_blake2s_layer_plain_on",
+      "stwo_blake2s_mixed_leaf_on",
+      "stwo_blake2s_mixed_leaf_plain_on",
+      "stwo_blake2s_mixed_seeded_on",
+      "stwo_blake2s_mixed_seeded_plain_on",
       "stwo_blake2s_pow_persistent_on",
       "stwo_blake2s_progressive_absorb_lifted_on",
+      "stwo_blake2s_progressive_absorb_lifted_plain_on",
       "stwo_blake2s_progressive_absorb_on",
+      "stwo_blake2s_progressive_absorb_plain_on",
       "stwo_blake2s_progressive_finalize_on",
+      "stwo_blake2s_progressive_finalize_plain_on",
       "stwo_blake2s_progressive_init_on",
+      "stwo_blake2s_progressive_init_plain_on",
       "stwo_blake2s_transcript_absorb_pow_on",
       "stwo_blake2s_transcript_draw_queries_on",
       "stwo_blake2s_transcript_draw_secure_on",
@@ -122,6 +137,7 @@
       "stwo_prepare_quotient_numerator_terms_on",
       "stwo_relation_expand_challenges_on",
       "stwo_relation_fraction_chain_global_on",
+      "stwo_relation_fused_global_on",
       "stwo_relation_pairs_global_on",
       "stwo_relation_tail_global_on",
       "stwo_witness_casm_input_scatter_on",
@@ -305,7 +321,7 @@
       "native_files": [
         {
           "path": "oods/field.cuh",
-          "sha256": "8634cb0aa351e3fa7ef7a6d975f082e98ce5c2931bd1239d129947e9b8e86563"
+          "sha256": "b9031b721438b6dbc6b944029aa6506abd2671d3123588f616b7fcaa516eeaec"
         },
         {
           "path": "relation/batch_inverse.cu",
@@ -317,7 +333,7 @@
         },
         {
           "path": "relation/graph.cu",
-          "sha256": "f2aa9076ae28c5e654337192479477cd83ba24874742133207d9941546a03a1c"
+          "sha256": "b4180c1988ed10cedd4ed886d13b9378d5e21b5c63ee1bdca5650c7c208b6345"
         },
         {
           "path": "relation/layout.cuh",

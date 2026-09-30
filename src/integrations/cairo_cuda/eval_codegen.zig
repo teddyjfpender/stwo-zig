@@ -8,6 +8,11 @@ const std = @import("std");
 const shapes = @import("stwo_cairo_frontend").codegen.field_shapes;
 const eval = @import("stwo_cairo_frontend").witness.eval_program;
 const shared = @import("stwo_cairo_frontend").codegen.eval_program;
+const banks = @import("eval_register_banks.zig");
+const slices = @import("eval_slices.zig");
+pub const parametric_version: u32 = 6;
+pub const slice_roots: usize = 16;
+pub const slice_minimum_instructions: usize = 2048;
 
 pub const codegen_version: u64 = 1;
 pub const product_identity_domain =
@@ -118,7 +123,9 @@ pub fn generate(
 /// Geometry-independent body. Constants are supplied by the authenticated
 /// live AIR template binding in `base_params`; they are never proof inputs.
 pub fn generateParametric(allocator: std.mem.Allocator, normalized: eval.Program, dynamic_constants: []const bool) ![]u8 {
-    return generateBodyMode(allocator, normalized, true, dynamic_constants, shared.instructionCount(normalized) > 8192);
+    if (shared.instructionCount(normalized) > slice_minimum_instructions)
+        return generateSliced(allocator, normalized, dynamic_constants);
+    return generateBodyMode(allocator, normalized, true, dynamic_constants, false);
 }
 
 pub fn generateMaterializedParity(allocator: std.mem.Allocator, program: eval.Program, dynamic_constants: []const bool) ![]u8 {
@@ -131,26 +138,13 @@ fn generateBody(allocator: std.mem.Allocator, program: eval.Program, parametric:
 
 fn generateBodyMode(allocator: std.mem.Allocator, program: eval.Program, parametric: bool, dynamic_constants: []const bool, materialized: bool) ![]u8 {
     try program.validate();
-    if (parametric) {
-        var constants: usize = 0;
-        for (program.base_insts) |inst| if (inst.op == .constant) {
-            constants += 1;
-        };
-        if (dynamic_constants.len != constants) return error.AirConstantExtentMismatch;
-    }
     var source = std.ArrayList(u8).empty;
     errdefer source.deinit(allocator);
     const writer = source.writer(allocator);
-    if (parametric) {
-        // The translated provider has no libdevice __nv_brev. Keep NVIDIA's
-        // native instruction and supply exact u32 reversal for local checks.
-        const portable = try std.mem.replaceOwned(u8, allocator, preamble, "return bits == 0u ? 0u : __brev(value) >> (32u - bits);", portable_bit_reverse);
-        defer allocator.free(portable);
-        try writer.writeAll(portable);
-    } else try writer.writeAll(preamble);
+    try writePreamble(allocator, writer, parametric);
     if (materialized) try writer.writeAll(local_bank_support);
     const name = if (parametric)
-        try std.fmt.allocPrint(allocator, "stwo_cairo_cuda_eval_v3_{x:0>16}", .{program.header.semantic_hash})
+        try std.fmt.allocPrint(allocator, "stwo_cairo_cuda_eval_v{}_{x:0>16}", .{ parametric_version, program.header.semantic_hash })
     else
         try kernelName(allocator, program.header.semantic_hash);
     defer allocator.free(name);
@@ -166,7 +160,36 @@ fn generateBodyMode(allocator: std.mem.Allocator, program: eval.Program, paramet
         \\        row >= args->row_count) return;
         \\
     , .{name});
-    if (materialized) try writer.print("    volatile unsigned base_bank[{}];\n    volatile StwoCairoQm31 ext_bank[{}];\n", .{ @max(program.header.max_base_regs, 1), @max(program.header.max_ext_regs, 1) });
+    try writeProgram(allocator, writer, program, parametric, dynamic_constants, materialized, &.{}, 0);
+    try writer.writeAll(result_store);
+    return source.toOwnedSlice(allocator);
+}
+
+fn writePreamble(allocator: std.mem.Allocator, writer: anytype, parametric: bool) !void {
+    if (parametric) {
+        // The translated provider has no libdevice __nv_brev. Keep NVIDIA's
+        // native instruction and supply exact u32 reversal for local checks.
+        const portable = try std.mem.replaceOwned(u8, allocator, preamble, "return bits == 0u ? 0u : __brev(value) >> (32u - bits);", portable_bit_reverse);
+        defer allocator.free(portable);
+        // Canonical v4 stores a little-endian u64 word address in two arena
+        // words; resident commitments can lie above the old 16 GiB limit.
+        const wide = try std.mem.replaceOwned(u8, allocator, portable, "return arena[(u64)arena[args.trace_offsets + global] + target];", "const u64 address = (u64)arena[args.trace_offsets + 2u * global] | ((u64)arena[args.trace_offsets + 2u * global + 1u] << 32u); return arena[address + target];");
+        defer allocator.free(wide);
+        try writer.writeAll(wide);
+    } else try writer.writeAll(preamble);
+}
+
+fn writeProgram(allocator: std.mem.Allocator, writer: anytype, program: eval.Program, parametric: bool, dynamic_constants: []const bool, materialized: bool, constant_offsets: []const u32, root_offset: usize) !void {
+    if (parametric) {
+        var constants: usize = 0;
+        for (program.base_insts) |inst| if (inst.op == .constant) {
+            constants += 1;
+        };
+        if (dynamic_constants.len != constants) return error.AirConstantExtentMismatch;
+    }
+    const bank_layout = if (materialized) try banks.Layout.init(allocator, program) else null;
+    defer if (bank_layout) |value| value.deinit(allocator);
+    if (bank_layout) |value| try writer.print("    volatile unsigned base_bank[{}];\n    volatile StwoCairoQm31 ext_bank[{}];\n", .{ @max(value.base_count, 1), @max(value.extended_count, 1) });
 
     const facts = if (parametric) try shapes.Facts.init(allocator, program) else null;
     defer if (facts) |value| value.deinit(allocator);
@@ -181,42 +204,72 @@ fn generateBodyMode(allocator: std.mem.Allocator, program: eval.Program, paramet
         .writer = writer,
         .parametric = parametric,
         .materialized = materialized,
+        .bank_layout = bank_layout,
         .dynamic_constants = dynamic_constants,
+        .constant_offsets = constant_offsets,
+        .root_offset = root_offset,
         .facts = facts,
         .last_writes = last_writes,
         .roots = program.constraint_roots,
     };
     try shared.walk(allocator, program, 0, &emitter);
-    try writer.writeAll(
-        \\    StwoCairoQm31 result = stwo_qm31_mul_base(
-        \\        part_acc,
-        \\        arena[args->denom_inv +
-        \\            (row >> args->trace_log_size)]);
-        \\    StwoCairoQm31 cumulative = {
-        \\        arena[args->coord_0 + row],
-        \\        arena[args->coord_1 + row],
-        \\        arena[args->coord_2 + row],
-        \\        arena[args->coord_3 + row]
-        \\    };
-        \\    cumulative = stwo_qm31_add(cumulative, result);
-        \\    arena[args->coord_0 + row] = cumulative.a;
-        \\    arena[args->coord_1 + row] = cumulative.b;
-        \\    arena[args->coord_2 + row] = cumulative.c;
-        \\    arena[args->coord_3 + row] = cumulative.d;
-        \\    (void)arena_words;
-        \\}
-        \\
-    );
+}
+
+fn generateSliced(allocator: std.mem.Allocator, program: eval.Program, dynamic_constants: []const bool) ![]u8 {
+    var source: std.ArrayList(u8) = .empty;
+    errdefer source.deinit(allocator);
+    const writer = source.writer(allocator);
+    try writePreamble(allocator, writer, true);
+    // Resource-bounded callees allow native optimization without one enormous
+    // volatile frame; their stack ranges are reused sequentially by one row.
+    try writer.writeAll("// STWO_BOUNDED_AIR_SLICES_V1\n");
+    var first: usize = 0;
+    while (first < program.constraint_roots.len) : (first += slice_roots) {
+        var slice = try slices.Slice.init(allocator, program, first, @min(first + slice_roots, program.constraint_roots.len), dynamic_constants);
+        defer slice.deinit();
+        try writer.print("__device__ __noinline__ StwoCairoQm31 stwo_air_slice_{x}_{}(unsigned *arena, const StwoCairoEvalArgs *args, unsigned row) {{\n", .{ program.header.semantic_hash, first });
+        try writeProgram(allocator, writer, slice.program, true, slice.dynamic_constants, false, slice.constant_offsets, first);
+        try writer.writeAll("    return part_acc;\n}\n");
+    }
+    try writer.print("extern \"C\" __global__ void __launch_bounds__(256) stwo_cairo_cuda_eval_v{}_{x:0>16}(unsigned *arena, u64 arena_words, const StwoCairoEvalArgs *args) {{\n    const unsigned row = blockIdx.x * blockDim.x + threadIdx.x;\n    if (arena == nullptr || args == nullptr || row >= args->row_count) return;\n    StwoCairoQm31 part_acc = {{0u, 0u, 0u, 0u}};\n", .{ parametric_version, program.header.semantic_hash });
+    first = 0;
+    while (first < program.constraint_roots.len) : (first += slice_roots)
+        try writer.print("    part_acc = stwo_qm31_add(part_acc, stwo_air_slice_{x}_{}(arena, args, row));\n", .{ program.header.semantic_hash, first });
+    try writer.writeAll(result_store);
     return source.toOwnedSlice(allocator);
 }
+
+const result_store =
+    \\    StwoCairoQm31 result = stwo_qm31_mul_base(
+    \\        part_acc,
+    \\        arena[args->denom_inv +
+    \\            (row >> args->trace_log_size)]);
+    \\    StwoCairoQm31 cumulative = {
+    \\        arena[args->coord_0 + row],
+    \\        arena[args->coord_1 + row],
+    \\        arena[args->coord_2 + row],
+    \\        arena[args->coord_3 + row]
+    \\    };
+    \\    cumulative = stwo_qm31_add(cumulative, result);
+    \\    arena[args->coord_0 + row] = cumulative.a;
+    \\    arena[args->coord_1 + row] = cumulative.b;
+    \\    arena[args->coord_2 + row] = cumulative.c;
+    \\    arena[args->coord_3 + row] = cumulative.d;
+    \\    (void)arena_words;
+    \\}
+    \\
+;
 
 fn CudaProgramEmitter(comptime Writer: type) type {
     return struct {
         writer: Writer,
         parametric: bool = false,
         materialized: bool = false,
+        bank_layout: ?banks.Layout = null,
         base_constant_cursor: u32 = 0,
         dynamic_constants: []const bool = &.{},
+        constant_offsets: []const u32 = &.{},
+        root_offset: usize = 0,
         facts: ?shapes.Facts = null,
         last_writes: []const usize = &.{},
         roots: []const u32 = &.{},
@@ -228,14 +281,20 @@ fn CudaProgramEmitter(comptime Writer: type) type {
                 if (self.facts.?.base[register]) |value|
                     return std.fmt.bufPrint(buffer, "{}u", .{value});
             }
-            return if (self.materialized) std.fmt.bufPrint(buffer, "base_bank[{}]", .{register}) else std.fmt.bufPrint(buffer, "b{}", .{register});
+            return if (self.materialized) std.fmt.bufPrint(buffer, "base_bank[{}]", .{self.bank_layout.?.base[register]}) else std.fmt.bufPrint(buffer, "b{}", .{register});
         }
 
         fn extRef(self: *@This(), register: u32, buffer: *[96]u8, scalar: bool) ![]const u8 {
-            if (self.materialized) return if (scalar)
-                std.fmt.bufPrint(buffer, "ext_bank[{}].a", .{register})
+            // Constant immediates also pass through this formatter, but their
+            // references are never emitted as register reads.
+            const slot = if (self.bank_layout) |value|
+                if (register < value.extended.len) value.extended[register] else register
             else
-                std.fmt.bufPrint(buffer, "stwo_local_load(ext_bank[{}])", .{register});
+                register;
+            if (self.materialized) return if (scalar)
+                std.fmt.bufPrint(buffer, "ext_bank[{}].a", .{slot})
+            else
+                std.fmt.bufPrint(buffer, "stwo_local_load(ext_bank[{}])", .{slot});
             return if (scalar) std.fmt.bufPrint(buffer, "e{}.a", .{register}) else std.fmt.bufPrint(buffer, "e{}", .{register});
         }
 
@@ -281,7 +340,8 @@ fn CudaProgramEmitter(comptime Writer: type) type {
                 ),
                 .constant => {
                     if (self.parametric and self.dynamic_constants[self.base_constant_cursor]) {
-                        try self.writer.print("    {s}{s} = arena[args->base_params + {}u];\n", .{ decl, dst, self.base_constant_cursor });
+                        const offset = if (self.constant_offsets.len == 0) self.base_constant_cursor else self.constant_offsets[self.base_constant_cursor];
+                        try self.writer.print("    {s}{s} = arena[args->base_params + {}u];\n", .{ decl, dst, offset });
                     } else try self.writer.print("    {s}{s} = {}u;\n", .{ decl, dst, inst.a });
                     if (self.parametric) self.base_constant_cursor += 1;
                 },
@@ -402,7 +462,7 @@ fn CudaProgramEmitter(comptime Writer: type) type {
                 .neg => try self.writer.print("stwo_qm31_neg({s})", .{a}),
             }
             try self.writer.writeAll(";\n");
-            if (self.materialized) try self.writer.print("    stwo_local_store(ext_bank[{}], value);\n    }}\n", .{i.dst});
+            if (self.materialized) try self.writer.print("    stwo_local_store(ext_bank[{}], value);\n    }}\n", .{self.bank_layout.?.extended[i.dst]});
             facts.extended[i.dst] = kind;
             self.extension_cursor += 1;
             // Keep canonical root/coefficient order and wait for the FINAL
@@ -419,11 +479,12 @@ fn CudaProgramEmitter(comptime Writer: type) type {
             var scalar: [96]u8 = undefined;
             const e = try self.extRef(root, &reference, false);
             const scalar_value = try self.extRef(root, &scalar, true);
+            const coefficient_offset = self.root_offset + offset;
             switch (self.facts.?.extended[root]) {
                 .zero => {},
-                .one => try self.writer.print("    part_acc = stwo_qm31_add(part_acc, stwo_load_qm31(arena, args->random_coeffs + (args->rc_base + {}u) * 4u));\n", .{offset}),
-                .base => try self.writer.print("    part_acc = stwo_qm31_add(part_acc, stwo_qm31_mul_base(stwo_load_qm31(arena, args->random_coeffs + (args->rc_base + {}u) * 4u), {s}));\n", .{ offset, scalar_value }),
-                .secure => try self.writer.print("    part_acc = stwo_qm31_add(part_acc, stwo_qm31_mul({s}, stwo_load_qm31(arena, args->random_coeffs + (args->rc_base + {}u) * 4u)));\n", .{ e, offset }),
+                .one => try self.writer.print("    part_acc = stwo_qm31_add(part_acc, stwo_load_qm31(arena, args->random_coeffs + (args->rc_base + {}u) * 4u));\n", .{coefficient_offset}),
+                .base => try self.writer.print("    part_acc = stwo_qm31_add(part_acc, stwo_qm31_mul_base(stwo_load_qm31(arena, args->random_coeffs + (args->rc_base + {}u) * 4u), {s}));\n", .{ coefficient_offset, scalar_value }),
+                .secure => try self.writer.print("    part_acc = stwo_qm31_add(part_acc, stwo_qm31_mul({s}, stwo_load_qm31(arena, args->random_coeffs + (args->rc_base + {}u) * 4u)));\n", .{ e, coefficient_offset }),
             }
         }
 
@@ -524,14 +585,10 @@ const preamble =
     \\    unsigned domain_log_size;
     \\    unsigned rc_base;
     \\};
-    \\__device__ __forceinline__ unsigned stwo_m31_reduce(u64 value) {
-    \\    value = (value & STWO_M31_P) + (value >> 31u);
-    \\    value = (value & STWO_M31_P) + (value >> 31u);
-    \\    return value == STWO_M31_P ? 0u : (unsigned)value;
-    \\}
     \\__device__ __forceinline__ unsigned stwo_m31_add(
     \\    unsigned lhs, unsigned rhs) {
-    \\    return stwo_m31_reduce((u64)lhs + rhs);
+    \\    const unsigned sum = lhs + rhs;
+    \\    return sum < STWO_M31_P ? sum : sum - STWO_M31_P;
     \\}
     \\__device__ __forceinline__ unsigned stwo_m31_sub(
     \\    unsigned lhs, unsigned rhs) {
@@ -539,7 +596,10 @@ const preamble =
     \\}
     \\__device__ __forceinline__ unsigned stwo_m31_mul(
     \\    unsigned lhs, unsigned rhs) {
-    \\    return stwo_m31_reduce((u64)lhs * rhs);
+    \\    const u64 product = (u64)lhs * rhs;
+    \\    const unsigned folded = (unsigned)(product & STWO_M31_P) +
+    \\        (unsigned)(product >> 31u);
+    \\    return folded < STWO_M31_P ? folded : folded - STWO_M31_P;
     \\}
     \\__device__ __forceinline__ unsigned stwo_m31_neg(unsigned value) {
     \\    return value == 0u ? 0u : STWO_M31_P - value;

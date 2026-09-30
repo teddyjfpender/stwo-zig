@@ -1,0 +1,1 @@
+{"schema": "stwo-cairo-cuda-wide-offset-parity-v1", "provider": "nvidia_cuda", "passed": true, "word_address": 4294967424, "cases_per_variant": 32, "variants": ["scalar", "materialized"], "full_proof_verified": false}

@@ -5,6 +5,10 @@
 #include "native_cairo_relation_smoke.cpp"
 #undef main
 #include <array>
+extern "C" int stwo_relation_fused_global_on(
+ const std::uint32_t*,const std::uint32_t*,const std::uint32_t*,const std::uint32_t*,
+ std::uint32_t,std::uint32_t,std::uint32_t,const std::uint32_t*,std::uint32_t,
+ const std::uint32_t*,void*);
 namespace {
 using Q = std::array<std::uint32_t, 4>;
 constexpr std::uint64_t prime = 2147483647;
@@ -25,7 +29,7 @@ bool run_nonuniform(){
  std::vector<std::uint32_t*>sources,descriptors,outputs,denominators,sums;
  std::vector<std::uint32_t>geometry;std::vector<Q>expected;
  std::uint32_t pair_blocks=0,inverse_blocks=0,row_blocks=0;
- for(std::uint32_t rows:{16u,4096u,2048u}){
+ for(std::uint32_t rows:{16u,256u,512u,1024u,4096u,2048u}){
   std::vector<std::uint32_t> words(rows*3);Q sum{};
   for(std::uint32_t r=0;r<rows;r++){words[r]=428564188;words[rows+r]=r*7919u+17;words[2*rows+r]=(r%7==0)?0:1;Q den=minus(plus(Q{428564188,0,0,0},times(Q{words[rows+r],0,0,0},alpha)),z);sum=plus(sum,times(Q{words[2*rows+r],0,0,0},inv(den)));}
   auto*source=arena.upload(words.data(),words.size());sources.push_back(arena.pointerTable({source}));
@@ -36,10 +40,26 @@ bool run_nonuniform(){
   std::uint32_t g[11]={pair_blocks,rb,inverse_blocks,ib,row_blocks,rb,rows,1,rows,0,0};geometry.insert(geometry.end(),g,g+11);pair_blocks+=rb;inverse_blocks+=ib;row_blocks+=rb;expected.push_back(sum);
  }
  auto*st=arena.pointerTable(sources),*dt=arena.pointerTable(descriptors),*ot=arena.pointerTable(outputs),*nt=arena.pointerTable(denominators),*ct=arena.pointerTable(sums);auto*geo=arena.upload(geometry.data(),geometry.size());auto*partial=arena.allocate(row_blocks*4);auto*scan=arena.allocate(row_blocks*4);
- if(!arena.sync("upload")||!check(stwo_relation_expand_challenges_on(drawn,powers,2,zz,arena.stream()),"challenges")||!check(stwo_relation_pairs_global_on(st,dt,ot,nt,geo,3,pair_blocks,powers,2,zz,arena.stream()),"pairs")||!check(stwo_relation_fraction_chain_global_on(ot,nt,geo,3,inverse_blocks,row_blocks,arena.stream()),"fractions")||!check(stwo_relation_tail_global_on(ot,ct,geo,3,row_blocks,partial,row_blocks,scan,row_blocks*4,arena.stream()),"tail"))return false;
- std::vector<Q>actual(3);for(int i=0;i<3;i++)if(!arena.download(actual[i].data(),sums[i],4))return false;if(!arena.sync("claims"))return false;
- bool pass=actual==expected;for(int i=0;i<3;i++)if(actual[i]!=expected[i]){std::fprintf(stderr,"nonuniform ragged claim mismatch instance=%d expected=%u,%u,%u,%u actual=%u,%u,%u,%u\n",i,expected[i][0],expected[i][1],expected[i][2],expected[i][3],actual[i][0],actual[i][1],actual[i][2],actual[i][3]);}
+ if(!arena.sync("upload")||!check(stwo_relation_expand_challenges_on(drawn,powers,2,zz,arena.stream()),"challenges")||!check(stwo_relation_pairs_global_on(st,dt,ot,nt,geo,expected.size(),pair_blocks,powers,2,zz,arena.stream()),"pairs")||!check(stwo_relation_fraction_chain_global_on(ot,nt,geo,expected.size(),inverse_blocks,row_blocks,arena.stream()),"fractions")||!check(stwo_relation_tail_global_on(ot,ct,geo,expected.size(),row_blocks,partial,row_blocks,scan,row_blocks*4,arena.stream()),"tail"))return false;
+ std::vector<Q>actual(expected.size());for(unsigned i=0;i<expected.size();i++)if(!arena.download(actual[i].data(),sums[i],4))return false;if(!arena.sync("claims"))return false;
+ bool pass=actual==expected;for(unsigned i=0;i<expected.size();i++)if(actual[i]!=expected[i]){std::fprintf(stderr,"nonuniform ragged claim mismatch instance=%d expected=%u,%u,%u,%u actual=%u,%u,%u,%u\n",i,expected[i][0],expected[i][1],expected[i][2],expected[i][3],actual[i][0],actual[i][1],actual[i][2],actual[i][3]);}
+ // Compare every completed coordinate of the fused and materialized paths.
+ std::vector<std::vector<std::uint32_t>> reference(expected.size());
+ for(unsigned i=0;i<expected.size();i++){
+  const auto rows=geometry[i*11+6];reference[i].resize(rows*4);
+  std::vector<std::uint64_t> ptrs(4);
+  if(!arena.download(ptrs.data(),outputs[i],8)||!arena.sync("output pointers"))return false;
+  for(unsigned c=0;c<4;c++)if(!arena.download(reference[i].data()+c*rows,reinterpret_cast<std::uint32_t*>(ptrs[c]),rows))return false;
+ }
+ if(!arena.sync("reference outputs")||!check(stwo_relation_fused_global_on(st,dt,ot,geo,expected.size(),pair_blocks,row_blocks,powers,2,zz,arena.stream()),"fused fractions")||!check(stwo_relation_tail_global_on(ot,ct,geo,expected.size(),row_blocks,partial,row_blocks,scan,row_blocks*4,arena.stream()),"fused tail"))return false;
+ for(unsigned i=0;i<expected.size();i++){
+  const auto rows=geometry[i*11+6];std::vector<std::uint32_t> candidate(rows*4);
+  std::vector<std::uint64_t> ptrs(4);
+  if(!arena.download(ptrs.data(),outputs[i],8)||!arena.sync("output pointers"))return false;
+  for(unsigned c=0;c<4;c++)if(!arena.download(candidate.data()+c*rows,reinterpret_cast<std::uint32_t*>(ptrs[c]),rows))return false;
+  if(!arena.sync("fused outputs")||candidate!=reference[i]){std::fprintf(stderr,"fused coordinate mismatch rows=%u\n",rows);return false;}
+ }
  return arena.destroy()&&pass;
 }
 }
-int main(){if(!run_nonuniform())return 1;std::puts("Cairo relation nonuniform ragged inverse passed: 16, 4096, 2048 rows; transcript-sized challenges; zero multiplicities");return 0;}
+int main(){if(!run_nonuniform())return 1;std::puts("Cairo relation nonuniform ragged inverse passed: 16, 256, 512, 1024, 4096, 2048 rows; tiled/materialized full-coordinate parity; transcript-sized challenges; zero multiplicities");return 0;}

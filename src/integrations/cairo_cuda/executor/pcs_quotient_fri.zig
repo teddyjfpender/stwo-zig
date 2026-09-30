@@ -35,6 +35,9 @@ pub fn bindQuotient(
         return error.InvalidKernelDescriptor;
     const result_words = result.len / 4;
     return .{
+        .subdomain_coordinates = try slots.exact(provider, plan, .quotient_subdomain_coordinates, 0),
+        .subdomain_inverse_twiddles = try slots.exact(provider, plan, .quotient_subdomain_inverse_twiddles, 0),
+        .coefficient_logs = try slots.exactWords(provider, plan, .quotient_coefficient_logs, 0, 4),
         .challenge = try (try slots.exactWords(
             provider,
             plan,

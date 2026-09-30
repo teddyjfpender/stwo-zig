@@ -150,6 +150,91 @@ __global__ void fraction_chain_global_kernel(
     }
 }
 
+// Fractions are generated and inverted in a bounded tile. For >=1024-row
+// instances, retain the old inverse kernel's exact groups of 32 denominators
+// (including zero propagation within a group). Smaller instances retain
+// individual inversion. No full-domain denominator slab is read or written.
+__global__ void relation_fractions_tiled_kernel(
+    const std::uint32_t *const *const *source_tables,
+    const std::uint32_t *const *descriptors,
+    M31 *const *const *output_tables,
+    const std::uint32_t *geometry,
+    std::uint32_t instance_count,
+    const QM31 *alphas,
+    const QM31 *z) {
+    std::uint32_t local_block = 0u;
+    const std::uint32_t instance = relation_instance_for_block(
+        geometry, instance_count, blockIdx.x, kPairFirst, kPairBlocks,
+        &local_block);
+    if (instance == instance_count) return;
+    const std::uint32_t *record = geometry + instance * kGeometryWords;
+    const std::uint32_t column = local_block / record[kRowBlocks];
+    const std::uint32_t row =
+        (local_block % record[kRowBlocks]) * kLaunchBlock + threadIdx.x;
+    const unsigned lane = threadIdx.x;
+    QM31 numerator = zero(), denominator = one();
+    if (row < record[kRows]) relation_column_fraction(
+        source_tables[instance], record[kRows], row, record[kRealRows],
+        record[kSourceOffset], descriptors[instance] + column * kDescriptorWords,
+        alphas, z[0], &numerator, &denominator);
+    QM31 reciprocal;
+    if (record[kRows] >= 1024u) {
+        __shared__ QM31 tree[2 * kLaunchBlock];
+        tree[kLaunchBlock + lane] = denominator;
+        __syncthreads();
+        for (unsigned width = kLaunchBlock / 2; width >= 8; width >>= 1) {
+            if (lane < width) tree[width + lane] =
+                mul(tree[2 * (width + lane)], tree[2 * (width + lane) + 1]);
+            __syncthreads();
+        }
+        if (lane < 8) tree[8 + lane] = inverse(tree[8 + lane]);
+        __syncthreads();
+        for (unsigned width = 8; width < kLaunchBlock; width <<= 1) {
+            if (lane < width) {
+                const unsigned parent = width + lane, child = 2 * parent;
+                const QM31 left = tree[child], right = tree[child + 1];
+                tree[child] = mul(tree[parent], right);
+                tree[child + 1] = mul(tree[parent], left);
+            }
+            __syncthreads();
+        }
+        reciprocal = tree[kLaunchBlock + lane];
+    } else reciprocal = inverse(denominator);
+    if (row >= record[kRows]) return;
+    const QM31 fraction = mul(numerator, reciprocal);
+    M31 *const *outputs = output_tables[instance];
+    const unsigned base = 4 * column;
+    outputs[base][row] = fraction.a.a;
+    outputs[base + 1][row] = fraction.a.b;
+    outputs[base + 2][row] = fraction.b.a;
+    outputs[base + 3][row] = fraction.b.b;
+}
+
+__global__ void fraction_prefix_global_kernel(
+    M31 *const *const *output_tables,
+    const std::uint32_t *geometry,
+    std::uint32_t instance_count) {
+    std::uint32_t block = 0;
+    const unsigned instance = relation_instance_for_block(
+        geometry, instance_count, blockIdx.x, kRowFirst, kRowBlocks, &block);
+    if (instance == instance_count) return;
+    const std::uint32_t *record = geometry + instance * kGeometryWords;
+    const unsigned row = block * kLaunchBlock + threadIdx.x;
+    if (row >= record[kRows]) return;
+    M31 *const *outputs = output_tables[instance];
+    QM31 accumulated = zero();
+    for (unsigned column = 0; column < record[kColumns]; ++column) {
+        const unsigned base = 4 * column;
+        accumulated = add(accumulated, QM31{
+            {outputs[base][row], outputs[base + 1][row]},
+            {outputs[base + 2][row], outputs[base + 3][row]}});
+        outputs[base][row] = accumulated.a.a;
+        outputs[base + 1][row] = accumulated.a.b;
+        outputs[base + 2][row] = accumulated.b.a;
+        outputs[base + 3][row] = accumulated.b.b;
+    }
+}
+
 __global__ void reduce_coordinates_ragged_kernel(
     M31 *const *const *output_tables,
     const std::uint32_t *geometry,
@@ -465,6 +550,38 @@ extern "C" int stwo_relation_pairs_global_on(
             instance_count,
             reinterpret_cast<const QM31 *>(alpha_powers),
             reinterpret_cast<const QM31 *>(z));
+    return static_cast<int>(cudaGetLastError());
+}
+
+extern "C" int stwo_relation_fused_global_on(
+    const std::uint32_t *const *const *source_tables,
+    const std::uint32_t *const *descriptors,
+    std::uint32_t *const *const *output_tables,
+    const std::uint32_t *geometry,
+    std::uint32_t instance_count,
+    std::uint32_t pair_blocks,
+    std::uint32_t chain_blocks,
+    const std::uint32_t *alpha_powers,
+    std::uint32_t alpha_count,
+    const std::uint32_t *z,
+    void *stream_raw) {
+    using namespace stwo::cuda::relation;
+    if (!source_tables || !descriptors || !output_tables || !geometry ||
+        !instance_count || !pair_blocks || !chain_blocks || !alpha_powers ||
+        !alpha_count || !z || !stream_raw || pair_blocks > 0x7fffffffu ||
+        chain_blocks > 0x7fffffffu)
+        return static_cast<int>(cudaErrorInvalidValue);
+    const cudaStream_t stream = reinterpret_cast<cudaStream_t>(stream_raw);
+    relation_fractions_tiled_kernel<<<pair_blocks, kLaunchBlock, 0, stream>>>(
+        source_tables, descriptors,
+        reinterpret_cast<M31 *const *const *>(output_tables), geometry,
+        instance_count, reinterpret_cast<const QM31 *>(alpha_powers),
+        reinterpret_cast<const QM31 *>(z));
+    cudaError_t status = cudaGetLastError();
+    if (status != cudaSuccess) return static_cast<int>(status);
+    fraction_prefix_global_kernel<<<chain_blocks, kLaunchBlock, 0, stream>>>(
+        reinterpret_cast<M31 *const *const *>(output_tables), geometry,
+        instance_count);
     return static_cast<int>(cudaGetLastError());
 }
 

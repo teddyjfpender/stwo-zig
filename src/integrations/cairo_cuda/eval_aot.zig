@@ -8,7 +8,7 @@ const std = @import("std");
 const composition = @import("stwo_cairo_frontend").witness.composition_bundle;
 const codegen = @import("eval_codegen.zig");
 const parametric = @import("parametric_eval.zig");
-pub const parametric_identity_scheme = "sha256-cairo-eval-parametric-source-v3";
+pub const parametric_identity_scheme = "sha256-cairo-eval-parametric-source-v6";
 
 pub const abi_schema = "cairo_eval_part_v1";
 pub const codegen_version = codegen.codegen_version;
@@ -134,7 +134,7 @@ fn buildMode(allocator: std.mem.Allocator, bundle: composition.Bundle, source_au
             );
             if (body_index == null) {
                 const kernel_name = (if (source_authority != null)
-                    std.fmt.allocPrint(allocator, "stwo_cairo_cuda_eval_v3_{x:0>16}", .{executable.header.semantic_hash})
+                    std.fmt.allocPrint(allocator, "stwo_cairo_cuda_eval_v6_{x:0>16}", .{executable.header.semantic_hash})
                 else
                     codegen.kernelName(allocator, part.semantic_hash)) catch |err| {
                     allocator.free(generated_source);
@@ -262,7 +262,7 @@ fn renderManifestMode(allocator: std.mem.Allocator, product: Product, parametric
         try writer.writeAll("\",\n");
         try writer.print(
             "    \"codegen_version\": {},\n",
-            .{if (parametric_mode) @as(u64, 3) else codegen.codegen_version},
+            .{if (parametric_mode) @as(u64, 6) else codegen.codegen_version},
         );
         try writer.print("    \"file\": \"{s}\",\n", .{filename});
         try writer.print(

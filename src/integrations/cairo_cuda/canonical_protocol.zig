@@ -65,11 +65,11 @@ fn decommitmentCapacity(bundle: cairo.witness.composition_bundle.Bundle, logs: [
         .round_count = geometry.fri_tree_count,
         .fold_step = geometry.fri_fold_step,
         .final_log = geometry.log_last_layer_degree_bound + geometry.log_blowup_factor,
-        .packed_log = core.fri.geometry.FriGeometry.packed_log,
+        .packed_log = 0,
     });
     for (0..fri.roundCount()) |index| {
         const expanded = try sizing.mul(queries, try sizing.pow2usize(try fri.roundFold(index)));
-        words = try sizing.addSize(words, try sizing.friAssemblyWords(queries, expanded, (try fri.evaluationLog(index)) - (try fri.leafLog(index))));
+        words = try sizing.addSize(words, try sizing.friAssemblyWords(queries, expanded, try fri.leafLog(index)));
     }
     return std.math.cast(u32, words) orelse error.GeometryOverflow;
 }

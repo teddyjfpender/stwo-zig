@@ -64,7 +64,7 @@ pub fn prepareAndUpload(
     sources: []const ComponentSubwords,
     input: *const @import("stwo_cairo_frontend").adapter.ProverInput,
 ) !Bound {
-    const shape = try deriveShape(feeds, fixed_tables);
+    const shape = try deriveShape(feeds, fixed_tables, schedule);
     const pointer_slot = try exactSlot(
         provider,
         plan,
@@ -215,10 +215,18 @@ pub fn prepareAndUpload(
 
     const post_feeds = try allocator.alloc(
         trace_writer.PostFeed,
-        feeds.feeds.len,
+        shape.post_feed_count,
     );
     errdefer allocator.free(post_feeds);
-    for (feeds.feeds, post_feeds) |feed, *post| {
+    var post_count: usize = 0;
+    for (feeds.feeds) |feed| {
+        // The native EC writer increments its seven address, seven value and
+        // two range-check counters itself. Running the canonical feed again
+        // would double-count them. Partial-multiply edges are absent from
+        // this fixed/memory feed bundle and use the separate writer graph.
+        if (try nativeEcOwnsFeed(schedule, feed)) continue;
+        const post = &post_feeds[post_count];
+        post_count += 1;
         const entry = schedule.find(feed.producer, 0) orelse
             return error.MissingMultiplicityFeedProducer;
         const source = findSource(
@@ -332,7 +340,8 @@ pub fn prepareAndUpload(
             },
         };
     }
-    if (pointer_cursor != pointer_slot.len or
+    if (post_count != post_feeds.len or
+        pointer_cursor != pointer_slot.len or
         metadata_cursor != metadata_slot.len)
     {
         return error.InvalidMultiplicityFeedExtent;
@@ -362,31 +371,37 @@ const Shape = struct {
     metadata_words: usize,
     multiplicity_words: usize,
     destination_count: usize,
+    post_feed_count: usize,
 };
 
 fn deriveShape(
     feeds: feed_bundle.Bundle,
     fixed_tables: fixed_plan.Plan,
+    schedule: trace_schedule.Schedule,
 ) !Shape {
     var pointer_count: usize = 0;
     var metadata_count: usize = 0;
     var multiplicity_count: usize = 0;
     var unique_count: usize = 0;
+    var post_feed_count: usize = 0;
     for (feeds.feeds) |feed| {
-        pointer_count = try add(
-            pointer_count,
-            try mul(@max(feed.luts.len, 1), pointer_words),
-        );
-        pointer_count = try add(
-            pointer_count,
-            try mul(feed.destinations.len, pointer_words),
-        );
-        metadata_count = try add(
-            metadata_count,
-            feed.descriptors.len,
-        );
-        for (feed.luts) |lut|
-            metadata_count = try add(metadata_count, lut.len);
+        if (!try nativeEcOwnsFeed(schedule, feed)) {
+            post_feed_count += 1;
+            pointer_count = try add(
+                pointer_count,
+                try mul(@max(feed.luts.len, 1), pointer_words),
+            );
+            pointer_count = try add(
+                pointer_count,
+                try mul(feed.destinations.len, pointer_words),
+            );
+            metadata_count = try add(
+                metadata_count,
+                feed.descriptors.len,
+            );
+            for (feed.luts) |lut|
+                metadata_count = try add(metadata_count, lut.len);
+        }
         for (feed.destinations) |destination| {
             if (!isFirstDestination(feeds, destination)) continue;
             unique_count += 1;
@@ -423,7 +438,47 @@ fn deriveShape(
         .metadata_words = metadata_count,
         .multiplicity_words = multiplicity_count,
         .destination_count = unique_count,
+        .post_feed_count = post_feed_count,
     };
+}
+
+fn nativeEcOwnsFeed(
+    schedule: trace_schedule.Schedule,
+    feed: feed_bundle.Feed,
+) !bool {
+    const entry = schedule.find(feed.producer, 0) orelse
+        return error.MissingMultiplicityFeedProducer;
+    if (entry.prepare_api != .native_ec_prepare) return false;
+    if (!std.mem.eql(u8, feed.producer, "ec_op_builtin") or
+        feed.active_row_count == null or
+        feed.active_row_count.? != feed.row_count or
+        feed.luts.len != 0 or
+        feed.descriptors.len != 16 * feed_stage.descriptor_words)
+    {
+        return error.InvalidNativeEcFeed;
+    }
+    for (0..16) |index| {
+        const descriptor = feed.descriptors[index * feed_stage.descriptor_words ..][0..feed_stage.descriptor_words];
+        const destination_index = descriptor[10];
+        if (destination_index >= feed.destinations.len or
+            descriptor[0] != index or descriptor[1] != 1 or
+            descriptor[7] != 0)
+        {
+            return error.InvalidNativeEcFeed;
+        }
+        const expected = if (index < 7) "memory_address_to_id" else if (index < 14) "memory_id_to_big" else "range_check_8";
+        if (!std.mem.eql(u8, feed.destinations[destination_index].name, expected))
+            return error.InvalidNativeEcFeed;
+        if (index >= 7 and index < 14) {
+            const small_index = descriptor[13];
+            if (descriptor[11] != 1 or small_index >= feed.destinations.len or
+                !std.mem.eql(u8, feed.destinations[small_index].name, "memory_id_to_big#small"))
+            {
+                return error.InvalidNativeEcFeed;
+            }
+        }
+    }
+    return true;
 }
 
 fn destinationWords(

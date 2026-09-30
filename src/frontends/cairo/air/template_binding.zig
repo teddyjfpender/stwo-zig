@@ -415,12 +415,25 @@ test "official Cairo AIR templates derive vanishing inverses from live geometry"
 
     try std.testing.expectEqual(@as(usize, 2), source.len);
     try std.testing.expectEqual(@as(usize, 2), rebound.len);
-    try std.testing.expect(!std.mem.eql(u32, source, rebound));
+    // Equal blowup keeps these two canonical coset inverses invariant when
+    // both logs grow together; check the live domains independently below.
+    try std.testing.expect(std.mem.eql(u32, source, rebound));
     for (source, 0..) |inverse, index| {
         const trace_coset =
             core.poly.circle.canonic.CanonicCoset.new(8).coset();
         const evaluation_domain =
             core.poly.circle.canonic.CanonicCoset.new(9).circleDomain();
+        const point_index = core.utils.bitReverseIndex(index, 1);
+        const vanishing = core.constraints.cosetVanishing(
+            M31,
+            trace_coset,
+            evaluation_domain.at(point_index),
+        );
+        try std.testing.expect(vanishing.mul(M31.fromCanonical(inverse)).eql(M31.one()));
+    }
+    for (rebound, 0..) |inverse, index| {
+        const trace_coset = core.poly.circle.canonic.CanonicCoset.new(9).coset();
+        const evaluation_domain = core.poly.circle.canonic.CanonicCoset.new(10).circleDomain();
         const point_index = core.utils.bitReverseIndex(index, 1);
         const vanishing = core.constraints.cosetVanishing(
             M31,

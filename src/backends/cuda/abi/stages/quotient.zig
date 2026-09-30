@@ -118,6 +118,60 @@ pub extern "c" fn stwo_accumulate_quotient_numerator_addressed_on(
     stream: *anyopaque,
 ) c_int;
 
+/// Set finalized_groups only after finalize_quotient_numerator_groups_on has
+/// stored each group's sum of B coefficients in its representative A slot.
+pub extern "c" fn stwo_accumulate_quotient_numerator_addressed_variant_on(
+    group_offsets: [*]const u32,
+    term_descriptors: [*]const BatchTermDescriptor,
+    term_count: u32,
+    group_count: u32,
+    max_output_size: u32,
+    source_descriptors: [*]const AddressedSourceDescriptor,
+    source_count: u32,
+    line_coefficients: [*]const field.SecureField,
+    line_term_count: u32,
+    group_log_sizes: [*]const u32,
+    output_offsets: [*]const u64,
+    output_word_count: usize,
+    outputs_0: [*]u32,
+    outputs_1: [*]u32,
+    outputs_2: [*]u32,
+    outputs_3: [*]u32,
+    finalized_groups: bool,
+    stream: *anyopaque,
+) c_int;
+
+/// Two launches per bucket: native-height linear combination, then exact
+/// bit-reversed lift into the group's output. Scratch may reuse the later
+/// quotient-result slab before that result is populated.
+pub extern "c" fn stwo_accumulate_quotient_numerator_native_bucket_on(
+    terms: [*]const BatchTermDescriptor,
+    term_count: u32,
+    term_begin: u32,
+    term_end: u32,
+    sources: [*]const AddressedSourceDescriptor,
+    source_count: u32,
+    lines: [*]const field.SecureField,
+    line_term_count: u32,
+    source_log_size: u32,
+    group_log_size: u32,
+    representative_term_index: u32,
+    output_offset: u64,
+    output_word_count: usize,
+    scratch_word_count: usize,
+    scratch_0: [*]u32,
+    scratch_1: [*]u32,
+    scratch_2: [*]u32,
+    scratch_3: [*]u32,
+    output_0: [*]u32,
+    output_1: [*]u32,
+    output_2: [*]u32,
+    output_3: [*]u32,
+    first_bucket: bool,
+    stream: *anyopaque,
+    launches_out: *u32,
+) c_int;
+
 pub extern "c" fn stwo_combine_quotients_from_numerators_on(
     half_coset_initial_index: u32,
     half_coset_step_size: u32,

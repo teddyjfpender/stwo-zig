@@ -202,7 +202,7 @@ pub fn deriveEvaluationMode(bundle: composition.Bundle, identity: proof_ir.Diges
         interaction_offsets = try add(interaction_offsets, 3);
         lde_tile_words = @max(
             lde_tile_words,
-            try mul(sources, try pow2(component.evaluation_log_size)),
+            try mul(if (parametric_constants and component.evaluation_log_size == component.trace_log_size + 1) component.preprocessed_indices.len else sources, try pow2(component.evaluation_log_size)),
         );
         if (component.evaluation_log_size >= logs.len)
             return error.InvalidIngressGeometry;
@@ -213,8 +213,7 @@ pub fn deriveEvaluationMode(bundle: composition.Bundle, identity: proof_ir.Diges
                 component_base,
                 part.program.header.n_base_params,
             );
-            if (parametric_constants) base_parameters = try add(base_parameters,
-                try @import("../parametric_eval.zig").constantWordCount(part.program));
+            if (parametric_constants) base_parameters = try add(base_parameters, try @import("../parametric_eval.zig").constantWordCount(part.program));
         }
         base_parameters = try add(base_parameters, component_base);
         extended_parameters = try add(
@@ -237,10 +236,10 @@ pub fn deriveEvaluationMode(bundle: composition.Bundle, identity: proof_ir.Diges
         .placement_count = std.math.cast(u32, placements) orelse
             return error.InvalidIngressGeometry,
         .argument_words = try mul(placements, 24),
-        .trace_offset_words = trace_offsets,
+        .trace_offset_words = try mul(trace_offsets, if (parametric_constants) @as(u64, 2) else 1),
         .interaction_offset_words = interaction_offsets,
         .lde_descriptor_words = try mul(trace_offsets, 6),
-        .lde_tile_words = lde_tile_words,
+        .lde_tile_words = @max(1, lde_tile_words),
         .base_parameter_words = base_parameters,
         .extended_parameter_descriptor_words = try mul(extended_parameters / 4, 8),
         .extended_parameter_words = extended_parameters,

@@ -1,0 +1,18 @@
+{
+  "schema": "stwo-cairo-cuda-parametric-parity-fixture-v1",
+  "kernel": "stwo_cairo_cuda_eval_v3_c07bc4e63727b7f4",
+  "source_sha256": "91e2b4be18a7fec76d79674513542f9b0ebfda94385ff6919a5468a7e9c3a9f4",
+  "evidence": "synthetic-materialized-register-rewrite-differential",
+  "full_proof_verified": false,
+  "provider": "native-nvidia-cuda",
+  "oracle_cases": 32,
+  "returncode": 0,
+  "output": "PASS: parametric AIR scalar and register-rewrite oracle (32 cases)\n",
+  "seconds": 2.2636978030204773,
+  "hashes": {
+    "kernel.cu": "91e2b4be18a7fec76d79674513542f9b0ebfda94385ff6919a5468a7e9c3a9f4",
+    "air_fixtures.cuh": "97fca5d236b3a4d6766e8a5921d3a0200c13dc776d117de113c183024a108f22",
+    "harness.cu": "8697b109916f18117b2c13d4aa719e3c51ccefd3c0c00f8e885132d28d9d8402",
+    "check": "742da4672c9337e5364548044607d3f6ec7822fc1508875b667f92ffada9e87f"
+  }
+}

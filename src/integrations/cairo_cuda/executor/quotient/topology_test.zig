@@ -167,7 +167,7 @@ test "SN2 quotient topology authenticates 6110 samples into 19 groups" {
     var expected_identity: [32]u8 = undefined;
     _ = try std.fmt.hexToBytes(
         &expected_identity,
-        "02c699fc8ce8daa2777eadd776d19508eebe9a3bcee2034649793693d6cf256f",
+        "fe5d2b9cee9fb46c0be0198613d07aae4d08bcf158113256539d1842de8c3bf7",
     );
     try std.testing.expectEqualSlices(
         u8,

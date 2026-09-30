@@ -1,7 +1,7 @@
-// Blake2s semantics derive from the pinned Rust CUDA authority. The product ABI
+// Plain and domain-prefixed Blake2s protocols share the same kernels. The product ABI
 // replaces its pointer tables with a checked resident slab on the proof stream.
 
-#include "blake2s_core.cuh"
+#include "blake2s_protocol.cuh"
 #include "progressive_scalar.cuh"
 #include "resident_layout.cuh"
 
@@ -74,16 +74,18 @@ __host__ __device__ constexpr uint32_t pending_words(
     return absorbed_columns == 0 ? 0 : ((absorbed_columns - 1) & 15u) + 1;
 }
 
+template <bool Prefixed>
 __global__ void progressive_init_kernel(
     uint32_t size,
     ProgressiveState *states) {
     const uint32_t row = blockIdx.x * blockDim.x + threadIdx.x;
     if (row >= size) return;
     ProgressiveState state{};
-    initialize_leaf(state.hash);
+    initialize_leaf_for<Prefixed>(state.hash);
     states[row] = state;
 }
 
+template <bool Prefixed>
 __global__ void progressive_absorb_kernel(
     uint32_t size,
     uint32_t column_count,
@@ -97,7 +99,7 @@ __global__ void progressive_absorb_kernel(
     ProgressiveState &state = states[row];
     STWO_LOAD_PROGRESSIVE(state);
     uint32_t pending = pending_words(absorbed_before);
-    uint64_t compressed_bytes = kDomainPrefixBytes +
+    uint64_t compressed_bytes = (Prefixed ? kDomainPrefixBytes : 0) +
         static_cast<uint64_t>(absorbed_before - pending) * sizeof(uint32_t);
     for (uint32_t column = 0; column < column_count; ++column) {
         if (pending == 16) {
@@ -137,6 +139,7 @@ __device__ __forceinline__ uint32_t lifted_column_index(
         (lifted_index & 1u);
 }
 
+template <bool Prefixed>
 __global__ void progressive_absorb_lifted_kernel(
     uint32_t size,
     uint32_t column_count,
@@ -151,7 +154,7 @@ __global__ void progressive_absorb_lifted_kernel(
     ProgressiveState &state = states[row];
     STWO_LOAD_PROGRESSIVE(state);
     uint32_t pending = pending_words(absorbed_before);
-    uint64_t compressed_bytes = kDomainPrefixBytes +
+    uint64_t compressed_bytes = (Prefixed ? kDomainPrefixBytes : 0) +
         static_cast<uint64_t>(absorbed_before - pending) * sizeof(uint32_t);
     const uint32_t source_row = lifted_column_index(row, log_ratio);
     for (uint32_t column = 0; column < column_count; ++column) {
@@ -184,6 +187,7 @@ __global__ void progressive_absorb_lifted_kernel(
     STWO_STORE_PROGRESSIVE(state);
 }
 
+template <bool Prefixed>
 __global__ void progressive_finalize_kernel(
     uint32_t size,
     uint32_t absorbed_columns,
@@ -212,7 +216,7 @@ __global__ void progressive_finalize_kernel(
     if (pending < 15) p14 = 0;
     if (pending < 16) p15 = 0;
     STWO_COMPRESS_PROGRESSIVE(
-        kDomainPrefixBytes +
+        (Prefixed ? kDomainPrefixBytes : 0) +
             static_cast<uint64_t>(absorbed_columns) * sizeof(uint32_t),
         0xffffffffu);
     result[row].words[0] = h0;
@@ -225,6 +229,7 @@ __global__ void progressive_finalize_kernel(
     result[row].words[7] = h7;
 }
 
+template <bool Prefixed>
 __global__ void contiguous_leaf_kernel(
     uint32_t size,
     uint32_t column_count,
@@ -235,7 +240,7 @@ __global__ void contiguous_leaf_kernel(
     if (row >= size) return;
 
     uint32_t initial[8];
-    initialize_leaf(initial);
+    initialize_leaf_for<Prefixed>(initial);
     uint32_t h0 = initial[0];
     uint32_t h1 = initial[1];
     uint32_t h2 = initial[2];
@@ -266,7 +271,7 @@ __global__ void contiguous_leaf_kernel(
         static_cast<size_t>(column + offset) * column_stride_words + row]
 
     uint32_t column = 0;
-    uint64_t compressed_bytes = kDomainPrefixBytes;
+    uint64_t compressed_bytes = (Prefixed ? kDomainPrefixBytes : 0);
     while (column_count - column > 16) {
         STWO_LOAD_COLUMN(p0, 0);
         STWO_LOAD_COLUMN(p1, 1);
@@ -337,7 +342,7 @@ __global__ void contiguous_leaf_kernel(
         ? columns[static_cast<size_t>(column + 15) * column_stride_words + row]
         : 0;
     STWO_COMPRESS_PROGRESSIVE(
-        kDomainPrefixBytes +
+        (Prefixed ? kDomainPrefixBytes : 0) +
             static_cast<uint64_t>(column_count) * sizeof(uint32_t),
         0xffffffffu);
 
@@ -353,13 +358,105 @@ __global__ void contiguous_leaf_kernel(
 #undef STWO_LOAD_COLUMN
 }
 
+// A bounded launch descriptor replaces the full-domain progressive state
+// slab. Descriptors travel as kernel arguments; no upload or scratch is used.
+struct MixedSegment {
+    const uint32_t *columns;
+    size_t stride_words;
+    size_t capacity_words;
+    uint32_t source_size;
+    uint32_t reserved;
+};
+static constexpr uint32_t kMaxMixedSegments = 96;
+struct MixedInputs {
+    MixedSegment segments[kMaxMixedSegments];
+};
+static_assert(sizeof(MixedSegment) == 32);
+static_assert(sizeof(MixedInputs) + 32 < 4096);
+
+template <bool Prefixed>
+__global__ void mixed_leaf_kernel(uint32_t size, uint32_t count,
+                                  MixedInputs inputs, uint32_t absorbed_before, uint32_t seed_size,
+                                  const ProgressiveState *seed, ProgressiveState *prefix,
+                                  Hash *result) {
+    const uint32_t row = blockIdx.x * blockDim.x + threadIdx.x;
+    if (row >= size) return;
+    ProgressiveState initial{};
+    if (seed != nullptr) initial = seed[lifted_column_index(row, __ffs(size / seed_size) - 1)];
+    else initialize_leaf_for<Prefixed>(initial.hash);
+    STWO_LOAD_PROGRESSIVE(initial);
+    uint32_t pending = pending_words(absorbed_before);
+    uint64_t compressed_bytes = (Prefixed ? kDomainPrefixBytes : 0) +
+        static_cast<uint64_t>(absorbed_before - pending) * 4;
+    uint64_t words = absorbed_before;
+    for (uint32_t segment = 0; segment < count; ++segment) {
+        const MixedSegment input = inputs.segments[segment];
+        const uint32_t ratio_log = __ffs(size / input.source_size) - 1;
+        const uint32_t source_row = lifted_column_index(row, ratio_log);
+        const uint32_t columns = input.capacity_words / input.stride_words;
+        for (uint32_t column = 0; column < columns; ++column) {
+            if (pending == 16) {
+                compressed_bytes += 64;
+                STWO_COMPRESS_PROGRESSIVE(compressed_bytes, 0);
+                pending = 0;
+            }
+            const uint32_t word = input.columns[
+                static_cast<size_t>(column) * input.stride_words + source_row];
+            switch (pending++) {
+                case 0: p0 = word; break;
+                case 1: p1 = word; break;
+                case 2: p2 = word; break;
+                case 3: p3 = word; break;
+                case 4: p4 = word; break;
+                case 5: p5 = word; break;
+                case 6: p6 = word; break;
+                case 7: p7 = word; break;
+                case 8: p8 = word; break;
+                case 9: p9 = word; break;
+                case 10: p10 = word; break;
+                case 11: p11 = word; break;
+                case 12: p12 = word; break;
+                case 13: p13 = word; break;
+                case 14: p14 = word; break;
+                default: p15 = word; break;
+            }
+        }
+        words += columns;
+    }
+    if (prefix != nullptr) {
+        ProgressiveState &state = prefix[row];
+        STWO_STORE_PROGRESSIVE(state);
+        return;
+    }
+    if (pending < 1) p0 = 0;
+    if (pending < 2) p1 = 0;
+    if (pending < 3) p2 = 0;
+    if (pending < 4) p3 = 0;
+    if (pending < 5) p4 = 0;
+    if (pending < 6) p5 = 0;
+    if (pending < 7) p6 = 0;
+    if (pending < 8) p7 = 0;
+    if (pending < 9) p8 = 0;
+    if (pending < 10) p9 = 0;
+    if (pending < 11) p10 = 0;
+    if (pending < 12) p11 = 0;
+    if (pending < 13) p12 = 0;
+    if (pending < 14) p13 = 0;
+    if (pending < 15) p14 = 0;
+    if (pending < 16) p15 = 0;
+    STWO_COMPRESS_PROGRESSIVE((Prefixed ? kDomainPrefixBytes : 0) + words * 4,
+                              0xffffffffu);
+    result[row] = {{h0,h1,h2,h3,h4,h5,h6,h7}};
+}
+
 #undef STWO_STORE_PROGRESSIVE
 #undef STWO_COMPRESS_PROGRESSIVE
 #undef STWO_LOAD_PROGRESSIVE
 
 }  // namespace stwo::cuda::blake2s
 
-extern "C" int stwo_blake2s_progressive_init_on(
+template <bool Prefixed>
+static int stwo_blake2s_progressive_init_on_impl(
     uint32_t size,
     stwo::cuda::blake2s::ProgressiveState *states,
     void *stream) {
@@ -368,7 +465,7 @@ extern "C" int stwo_blake2s_progressive_init_on(
         !stwo::cuda::blake2s::element_range(states, size, &state_range)) {
         return static_cast<int>(cudaErrorInvalidValue);
     }
-    stwo::cuda::blake2s::progressive_init_kernel<<<
+    stwo::cuda::blake2s::progressive_init_kernel<Prefixed><<<
         stwo::cuda::blake2s::blocks_for(size),
         stwo::cuda::blake2s::kBlockSize,
         0,
@@ -376,7 +473,22 @@ extern "C" int stwo_blake2s_progressive_init_on(
     return static_cast<int>(cudaPeekAtLastError());
 }
 
-extern "C" int stwo_blake2s_progressive_absorb_on(
+extern "C" int stwo_blake2s_progressive_init_on(
+    uint32_t size,
+    stwo::cuda::blake2s::ProgressiveState *states,
+    void *stream) {
+    return stwo_blake2s_progressive_init_on_impl<true>(size, states, stream);
+}
+
+extern "C" int stwo_blake2s_progressive_init_plain_on(
+    uint32_t size,
+    stwo::cuda::blake2s::ProgressiveState *states,
+    void *stream) {
+    return stwo_blake2s_progressive_init_on_impl<false>(size, states, stream);
+}
+
+template <bool Prefixed>
+static int stwo_blake2s_progressive_absorb_on_impl(
     uint32_t size,
     uint32_t absorbed_before,
     const uint32_t *columns,
@@ -401,7 +513,7 @@ extern "C" int stwo_blake2s_progressive_absorb_on(
         ranges_overlap(column_range, state_range)) {
         return static_cast<int>(cudaErrorInvalidValue);
     }
-    progressive_absorb_kernel<<<
+    progressive_absorb_kernel<Prefixed><<<
         blocks_for(size),
         kBlockSize,
         0,
@@ -415,7 +527,30 @@ extern "C" int stwo_blake2s_progressive_absorb_on(
     return static_cast<int>(cudaPeekAtLastError());
 }
 
-extern "C" int stwo_blake2s_progressive_absorb_lifted_on(
+extern "C" int stwo_blake2s_progressive_absorb_on(
+    uint32_t size,
+    uint32_t absorbed_before,
+    const uint32_t *columns,
+    size_t column_stride_words,
+    size_t column_capacity_words,
+    stwo::cuda::blake2s::ProgressiveState *states,
+    void *stream) {
+    return stwo_blake2s_progressive_absorb_on_impl<true>(size, absorbed_before, columns, column_stride_words, column_capacity_words, states, stream);
+}
+
+extern "C" int stwo_blake2s_progressive_absorb_plain_on(
+    uint32_t size,
+    uint32_t absorbed_before,
+    const uint32_t *columns,
+    size_t column_stride_words,
+    size_t column_capacity_words,
+    stwo::cuda::blake2s::ProgressiveState *states,
+    void *stream) {
+    return stwo_blake2s_progressive_absorb_on_impl<false>(size, absorbed_before, columns, column_stride_words, column_capacity_words, states, stream);
+}
+
+template <bool Prefixed>
+static int stwo_blake2s_progressive_absorb_lifted_on_impl(
     uint32_t size,
     uint32_t source_size,
     uint32_t absorbed_before,
@@ -449,7 +584,7 @@ extern "C" int stwo_blake2s_progressive_absorb_lifted_on(
     for (uint32_t ratio = size / source_size; ratio > 1; ratio >>= 1) {
         ++log_ratio;
     }
-    progressive_absorb_lifted_kernel<<<
+    progressive_absorb_lifted_kernel<Prefixed><<<
         blocks_for(size),
         kBlockSize,
         0,
@@ -464,7 +599,32 @@ extern "C" int stwo_blake2s_progressive_absorb_lifted_on(
     return static_cast<int>(cudaPeekAtLastError());
 }
 
-extern "C" int stwo_blake2s_progressive_finalize_on(
+extern "C" int stwo_blake2s_progressive_absorb_lifted_on(
+    uint32_t size,
+    uint32_t source_size,
+    uint32_t absorbed_before,
+    const uint32_t *columns,
+    size_t column_stride_words,
+    size_t column_capacity_words,
+    stwo::cuda::blake2s::ProgressiveState *states,
+    void *stream) {
+    return stwo_blake2s_progressive_absorb_lifted_on_impl<true>(size, source_size, absorbed_before, columns, column_stride_words, column_capacity_words, states, stream);
+}
+
+extern "C" int stwo_blake2s_progressive_absorb_lifted_plain_on(
+    uint32_t size,
+    uint32_t source_size,
+    uint32_t absorbed_before,
+    const uint32_t *columns,
+    size_t column_stride_words,
+    size_t column_capacity_words,
+    stwo::cuda::blake2s::ProgressiveState *states,
+    void *stream) {
+    return stwo_blake2s_progressive_absorb_lifted_on_impl<false>(size, source_size, absorbed_before, columns, column_stride_words, column_capacity_words, states, stream);
+}
+
+template <bool Prefixed>
+static int stwo_blake2s_progressive_finalize_on_impl(
     uint32_t size,
     uint32_t absorbed_columns,
     const stwo::cuda::blake2s::ProgressiveState *states,
@@ -479,7 +639,7 @@ extern "C" int stwo_blake2s_progressive_finalize_on(
         ranges_overlap(state_range, result_range)) {
         return static_cast<int>(cudaErrorInvalidValue);
     }
-    progressive_finalize_kernel<<<
+    progressive_finalize_kernel<Prefixed><<<
         blocks_for(size),
         kBlockSize,
         0,
@@ -491,7 +651,26 @@ extern "C" int stwo_blake2s_progressive_finalize_on(
     return static_cast<int>(cudaPeekAtLastError());
 }
 
-extern "C" int stwo_blake2s_contiguous_leaf_on(
+extern "C" int stwo_blake2s_progressive_finalize_on(
+    uint32_t size,
+    uint32_t absorbed_columns,
+    const stwo::cuda::blake2s::ProgressiveState *states,
+    stwo::cuda::blake2s::Hash *result,
+    void *stream) {
+    return stwo_blake2s_progressive_finalize_on_impl<true>(size, absorbed_columns, states, result, stream);
+}
+
+extern "C" int stwo_blake2s_progressive_finalize_plain_on(
+    uint32_t size,
+    uint32_t absorbed_columns,
+    const stwo::cuda::blake2s::ProgressiveState *states,
+    stwo::cuda::blake2s::Hash *result,
+    void *stream) {
+    return stwo_blake2s_progressive_finalize_on_impl<false>(size, absorbed_columns, states, result, stream);
+}
+
+template <bool Prefixed>
+static int stwo_blake2s_contiguous_leaf_on_impl(
     uint32_t size,
     const uint32_t *columns,
     size_t column_stride_words,
@@ -514,7 +693,7 @@ extern "C" int stwo_blake2s_contiguous_leaf_on(
         ranges_overlap(column_range, result_range)) {
         return static_cast<int>(cudaErrorInvalidValue);
     }
-    contiguous_leaf_kernel<<<
+    contiguous_leaf_kernel<Prefixed><<<
         blocks_for(size),
         kBlockSize,
         0,
@@ -525,4 +704,102 @@ extern "C" int stwo_blake2s_contiguous_leaf_on(
             column_stride_words,
             result);
     return static_cast<int>(cudaPeekAtLastError());
+}
+
+extern "C" int stwo_blake2s_contiguous_leaf_on(
+    uint32_t size,
+    const uint32_t *columns,
+    size_t column_stride_words,
+    size_t column_capacity_words,
+    stwo::cuda::blake2s::Hash *result,
+    void *stream) {
+    return stwo_blake2s_contiguous_leaf_on_impl<true>(size, columns, column_stride_words, column_capacity_words, result, stream);
+}
+
+extern "C" int stwo_blake2s_contiguous_leaf_plain_on(
+    uint32_t size,
+    const uint32_t *columns,
+    size_t column_stride_words,
+    size_t column_capacity_words,
+    stwo::cuda::blake2s::Hash *result,
+    void *stream) {
+    return stwo_blake2s_contiguous_leaf_on_impl<false>(size, columns, column_stride_words, column_capacity_words, result, stream);
+}
+
+template <bool Prefixed>
+static int mixed_seeded_on(uint32_t size, uint32_t count,
+                         const stwo::cuda::blake2s::MixedSegment *segments,
+                         uint32_t absorbed_before, uint32_t seed_size,
+                         const stwo::cuda::blake2s::ProgressiveState *seed,
+                         stwo::cuda::blake2s::ProgressiveState *prefix,
+                         stwo::cuda::blake2s::Hash *result, void *stream) {
+    using namespace stwo::cuda::blake2s;
+    DeviceRange outputs{};
+    if (stream == nullptr || segments == nullptr || size < 2 ||
+        (size & (size - 1)) != 0 || count == 0 || count > kMaxMixedSegments ||
+        ((prefix == nullptr) == (result == nullptr)) ||
+        !(prefix != nullptr ? element_range(prefix, size, &outputs) :
+                              element_range(result, size, &outputs)))
+        return static_cast<int>(cudaErrorInvalidValue);
+    DeviceRange previous{};
+    if (seed == nullptr) {
+        if (absorbed_before != 0 || seed_size != 0)
+            return static_cast<int>(cudaErrorInvalidValue);
+    } else if (absorbed_before == 0 || seed_size < 2 || seed_size > size ||
+               (seed_size & (seed_size - 1)) != 0 ||
+               !element_range(seed, seed_size, &previous) ||
+               ranges_overlap(previous, outputs)) {
+        return static_cast<int>(cudaErrorInvalidValue);
+    }
+    MixedInputs inputs{};
+    uint64_t words = absorbed_before;
+    for (uint32_t i = 0; i < count; ++i) {
+        const MixedSegment input = segments[i];
+        DeviceRange source{};
+        uint32_t columns = 0;
+        if (input.reserved != 0 || input.source_size < 2 ||
+            input.source_size > size ||
+            (input.source_size & (input.source_size - 1)) != 0 ||
+            !exact_word_slab_range(input.columns, input.capacity_words,
+                                   input.stride_words, input.source_size,
+                                   &columns, &source) ||
+            ranges_overlap(source, outputs))
+            return static_cast<int>(cudaErrorInvalidValue);
+        words += columns;
+        if (words > UINT32_MAX) return static_cast<int>(cudaErrorInvalidValue);
+        inputs.segments[i] = input;
+    }
+    mixed_leaf_kernel<Prefixed><<<blocks_for(size), kBlockSize, 0,
+        reinterpret_cast<cudaStream_t>(stream)>>>(size, count, inputs, absorbed_before, seed_size, seed, prefix, result);
+    return static_cast<int>(cudaPeekAtLastError());
+}
+
+extern "C" int stwo_blake2s_mixed_leaf_on(uint32_t size, uint32_t count,
+    const stwo::cuda::blake2s::MixedSegment *segments,
+    stwo::cuda::blake2s::Hash *result, void *stream) {
+    return mixed_seeded_on<true>(size, count, segments, 0, 0, nullptr, nullptr, result, stream);
+}
+extern "C" int stwo_blake2s_mixed_leaf_plain_on(uint32_t size, uint32_t count,
+    const stwo::cuda::blake2s::MixedSegment *segments,
+    stwo::cuda::blake2s::Hash *result, void *stream) {
+    return mixed_seeded_on<false>(size, count, segments, 0, 0, nullptr, nullptr, result, stream);
+}
+
+extern "C" int stwo_blake2s_mixed_seeded_on(uint32_t size, uint32_t count,
+    const stwo::cuda::blake2s::MixedSegment *segments,
+    uint32_t absorbed_before, uint32_t seed_size,
+    const stwo::cuda::blake2s::ProgressiveState *seed,
+    stwo::cuda::blake2s::ProgressiveState *prefix,
+    stwo::cuda::blake2s::Hash *result, void *stream) {
+    return mixed_seeded_on<true>(size, count, segments, absorbed_before,
+                                 seed_size, seed, prefix, result, stream);
+}
+extern "C" int stwo_blake2s_mixed_seeded_plain_on(uint32_t size, uint32_t count,
+    const stwo::cuda::blake2s::MixedSegment *segments,
+    uint32_t absorbed_before, uint32_t seed_size,
+    const stwo::cuda::blake2s::ProgressiveState *seed,
+    stwo::cuda::blake2s::ProgressiveState *prefix,
+    stwo::cuda::blake2s::Hash *result, void *stream) {
+    return mixed_seeded_on<false>(size, count, segments, absorbed_before,
+                                  seed_size, seed, prefix, result, stream);
 }

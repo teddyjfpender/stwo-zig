@@ -433,7 +433,7 @@ pub fn prepareAndUpload(
             output_table_cursor,
             output_table_words,
         );
-        const denominator_values = try mul(
+        const denominator_values = if (relations.fused_fractions) 1 else try mul(
             instance.geometry.rows,
             instance.geometry.columns,
         );
