@@ -31,7 +31,7 @@ const commitment_tree = @import("commitment_tree.zig");
 const vcs_lifted_prover = @import("../vcs_lifted/prover.zig");
 const leaves_mod = @import("../vcs_lifted/leaves.zig");
 const columns_mod = @import("../vcs_lifted/columns.zig");
-const blake2_stream4 = @import("../vcs_lifted/blake2_stream4.zig");
+const parents = @import("../vcs_lifted/parents.zig");
 const work_pool = @import("../work_pool.zig");
 const twiddles = @import("../poly/twiddles.zig");
 
@@ -45,6 +45,10 @@ pub const Ownership = enum {
     borrowed,
     /// The columns' value buffers become the retained coefficients.
     owned,
+    /// The columns' value buffers already hold the coefficients (a column of
+    /// `log_size` is a polynomial of that log size) and are retained as they
+    /// are: no interpolation.
+    owned_coefficients,
 };
 
 pub const Budget = struct {
@@ -68,8 +72,8 @@ pub fn applies(columns: []const ColumnEvaluation, log_blowup: u32, compact_min_l
 }
 
 /// Commits `columns` as the scheme's next tree (compact storage) and mixes
-/// its root into `channel`. With `.owned`, `columns` (the slice and its value
-/// buffers) is consumed on success and on error.
+/// its root into `channel`. With `.owned` or `.owned_coefficients`, `columns`
+/// (the slice and its value buffers) is consumed on success and on error.
 pub fn commit(
     comptime B: type,
     comptime H: type,
@@ -83,7 +87,7 @@ pub fn commit(
     const Tree = vcs_lifted_prover.MerkleProverLifted(H);
     const LeafOps = leaves_mod.Operations(H);
     const n = columns.len;
-    var owned_input = ownership == .owned;
+    var owned_input = ownership != .borrowed;
     defer if (owned_input) {
         for (columns) |column| if (column.values.len != 0) allocator.free(column.values);
         allocator.free(columns);
@@ -101,14 +105,14 @@ pub fn commit(
         if (ownership == .borrowed or buffer.ptr != column.values.ptr) allocator.free(buffer);
     };
     for (columns, coefficient_buffers) |column, *buffer| {
-        buffer.* = if (ownership == .owned) @constCast(column.values) else try allocator.dupe(M31, column.values);
+        buffer.* = if (ownership != .borrowed) @constCast(column.values) else try allocator.dupe(M31, column.values);
         buffers_ready += 1;
     }
-    if (ownership == .owned) {
+    if (ownership != .borrowed) {
         // The buffers now belong to `coefficient_buffers`.
         for (columns) |*column| column.values = &.{};
     }
-    {
+    if (ownership != .owned_coefficients) {
         const Interpolate = struct {
             values: []M31,
             domain: circle.CircleDomain,
@@ -256,13 +260,13 @@ pub fn commit(
                 half ^= 1;
                 break :blk halves[half][0..width];
             };
-            hashParents(H, current, out);
+            parents.hashParents(H, current, out);
             current = out;
         }
     }
     // 5. The layers above the tiles.
     var level = extended_log - tile_log;
-    while (level > 0) : (level -= 1) hashParents(H, merkle.layers[level], merkle.layers[level - 1]);
+    while (level > 0) : (level -= 1) parents.hashParents(H, merkle.layers[level], merkle.layers[level - 1]);
 
     // 6. The compact tree: coefficients for every column, and the extended
     //    evaluation of every small one.
@@ -293,7 +297,7 @@ pub fn commit(
     small_owned = false;
     tree_columns_owned = false;
     coefficient_array_owned = false;
-    if (ownership == .owned) {
+    if (ownership != .borrowed) {
         allocator.free(columns);
         owned_input = false;
     }
@@ -302,66 +306,15 @@ pub fn commit(
     try scheme.appendCommittedTree(allocator, tree, channel);
 }
 
+/// Whether `B`'s Merkle tree is this path's host tree itself.
+pub fn hostTree(comptime B: type, comptime H: type) bool {
+    return B.MerkleTree(H) == vcs_lifted_prover.MerkleProverLifted(H);
+}
+
 fn adopt(comptime B: type, comptime H: type, tree: vcs_lifted_prover.MerkleProverLifted(H)) !B.MerkleTree(H) {
     if (comptime B.MerkleTree(H) == vcs_lifted_prover.MerkleProverLifted(H)) return tree;
     if (comptime @hasDecl(B, "adoptHostMerkle")) return B.adoptHostMerkle(H, tree);
     @compileError("Backend-specific Merkle trees require `adoptHostMerkle` for tiled PCS commits.");
-}
-
-/// `out[i] = node(prev[2i], prev[2i + 1])`, with the node hash
-/// `vcs_lifted/layers.zig` uses, on the global pool for wide layers.
-fn hashParents(comptime H: type, prev: []const H.Hash, out: []H.Hash) void {
-    std.debug.assert(prev.len == 2 * out.len);
-    const Range = struct {
-        prev: []const H.Hash,
-        out: []H.Hash,
-        pub fn run(self: *@This()) void {
-            hashParentsSerial(H, self.prev, self.out);
-        }
-    };
-    const chunk: usize = 1 << 13;
-    const pool = work_pool.getGlobalPool();
-    if (pool == null or out.len <= chunk) {
-        hashParentsSerial(H, prev, out);
-        return;
-    }
-    var ranges: [256]Range = undefined;
-    var start: usize = 0;
-    while (start < out.len) {
-        var count: usize = 0;
-        while (count < ranges.len and start < out.len) : (count += 1) {
-            const end = @min(out.len, start + chunk);
-            ranges[count] = .{ .prev = prev[2 * start .. 2 * end], .out = out[start..end] };
-            start = end;
-        }
-        coset_blocks.runJobs(Range, ranges[0..count]);
-    }
-}
-
-fn hashParentsSerial(comptime H: type, prev: []const H.Hash, out: []H.Hash) void {
-    if (comptime @hasDecl(H, "nodeSeed") and @hasDecl(H, "hashChildrenWithSeed")) {
-        const seed = H.nodeSeed();
-        var i: usize = 0;
-        if (comptime blake2_stream4.supports(H)) {
-            while (i + 8 <= out.len) : (i += 8) {
-                const children: *const [16]H.Hash = @ptrCast(&prev[2 * i]);
-                const hashes = blake2_stream4.hashChildren8(H, seed, children);
-                inline for (0..8) |lane| out[i + lane] = hashes[lane];
-            }
-        }
-        if (comptime @hasDecl(H, "hashChildrenWithSeed4")) {
-            while (i + 4 <= out.len) : (i += 4) {
-                const children: *const [8]H.Hash = @ptrCast(&prev[2 * i]);
-                const hashes = H.hashChildrenWithSeed4(seed, children);
-                inline for (0..4) |lane| out[i + lane] = hashes[lane];
-            }
-        }
-        while (i < out.len) : (i += 1) {
-            out[i] = H.hashChildrenWithSeed(seed, .{ .left = prev[2 * i], .right = prev[2 * i + 1] });
-        }
-        return;
-    }
-    for (out, 0..) |*node, i| node.* = H.hashChildren(.{ .left = prev[2 * i], .right = prev[2 * i + 1] });
 }
 
 fn checkAgainstStreaming(comptime TestHasher: type, a: std.mem.Allocator, logs: []const u32, compact_min_log: u32, budget: Budget) !void {
@@ -403,6 +356,24 @@ fn checkAgainstStreaming(comptime TestHasher: type, a: std.mem.Allocator, logs: 
     try commit(Cpu, TestHasher, &tiled, a, columns, .borrowed, budget, &tiled_channel);
 
     try std.testing.expectEqualSlices(u8, &streaming_channel.digestBytes(), &tiled_channel.digestBytes());
+
+    // The same columns handed over as coefficients: the same tree.
+    var direct = try Scheme.init(a, config);
+    defer direct.deinit(a);
+    direct.setCompactPolynomialStorage(compact_min_log);
+    const coefficient_columns = try a.alloc(ColumnEvaluation, logs.len);
+    for (columns, coefficient_columns) |column, *out| {
+        const values = try a.dupe(M31, column.values);
+        const transform = try direct.twiddle_source.get(a, column.log_size);
+        _ = try circle.poly.interpolateOwnedValuesWithTwiddles(circle.CanonicCoset.new(column.log_size).circleDomain(), values, transform);
+        out.* = .{ .log_size = column.log_size, .values = values };
+    }
+    var direct_channel = Channel{};
+    try commit(Cpu, TestHasher, &direct, a, coefficient_columns, .owned_coefficients, budget, &direct_channel);
+    try std.testing.expectEqualSlices(u8, &streaming_channel.digestBytes(), &direct_channel.digestBytes());
+    for (tiled.trees.items[0].commitment.layers, direct.trees.items[0].commitment.layers) |want, got|
+        try std.testing.expectEqualSlices(u8, std.mem.sliceAsBytes(want), std.mem.sliceAsBytes(got));
+
     const expected = streaming.trees.items[0];
     const actual = tiled.trees.items[0];
     try std.testing.expectEqual(expected.commitment.layers.len, actual.commitment.layers.len);
@@ -446,4 +417,67 @@ test "tiled compact commitment equals the streaming compact commitment" {
         // A log-20 tree: the bottom four layers pruned, as `compactForQueries`.
         try checkAgainstStreaming(TestHasher, a, &.{ 19, 12, 3, 16 }, 12, .{ .tile_bytes = 1 << 20, .group_bytes = 1 << 20 });
     }
+}
+
+test "tiled compact commitment of polynomials equals the uncompacted tree" {
+    const a = std.testing.allocator;
+    var pool: work_pool.WorkPool = undefined;
+    try pool.initInPlaceWithOptions(.{ .worker_count = 3 });
+    defer pool.deinit();
+    var binding = try work_pool.ScopedPoolBinding.init(&pool);
+    defer binding.deinit();
+    const blake2_merkle = core.vcs_lifted.blake2_merkle;
+    const TestHasher = blake2_merkle.Blake2sMerkleHasher;
+    const MC = blake2_merkle.Blake2sMerkleChannel;
+    const Channel = core.channel.blake2s.Blake2sChannel;
+    const Cpu = struct {
+        pub fn MerkleTree(comptime Hasher: type) type {
+            return vcs_lifted_prover.MerkleProverLifted(Hasher);
+        }
+        pub fn commitMerkle(comptime Hasher: type, allocator: std.mem.Allocator, columns: []const []const M31) !MerkleTree(Hasher) {
+            return MerkleTree(Hasher).commit(allocator, columns);
+        }
+    };
+    const Scheme = @import("scheme.zig").CommitmentSchemeProver(Cpu, TestHasher, MC);
+    const config = core.pcs.PcsConfig{ .pow_bits = 0, .fri_config = try core.fri.FriConfig.init(0, 1, 8) };
+
+    // Mixed heights, one below the compact threshold; log 20 once extended,
+    // so the tiled tree also prunes its bottom layers.
+    const logs = [_]u32{ 19, 12, 3, 16 };
+    var polys: [logs.len]CircleCoefficients = undefined;
+    var filled: usize = 0;
+    defer for (polys[0..filled]) |*poly| poly.deinit(a);
+    for (logs, &polys, 0..) |log, *poly, index| {
+        const coefficients = try a.alloc(M31, @as(usize, 1) << @intCast(log));
+        for (coefficients, 0..) |*value, i| value.* = M31.fromU64(index * 7_000_003 + i * i * 131 + i + 9);
+        poly.* = try CircleCoefficients.initOwned(coefficients);
+        filled += 1;
+    }
+
+    var plain = try Scheme.init(a, config);
+    defer plain.deinit(a);
+    var plain_channel = Channel{};
+    try plain.commitPolysWithRecorder(a, &polys, null, &plain_channel);
+
+    var compact = try Scheme.init(a, config);
+    defer compact.deinit(a);
+    compact.setCompactPolynomialStorage(12);
+    var compact_channel = Channel{};
+    try compact.commitPolysWithRecorder(a, &polys, null, &compact_channel);
+
+    try std.testing.expectEqualSlices(u8, &plain_channel.digestBytes(), &compact_channel.digestBytes());
+    const expected = plain.trees.items[0];
+    const actual = compact.trees.items[0];
+    try std.testing.expect(actual.compact_polynomials);
+    // Tiled: the bottom four layers were never built.
+    try std.testing.expectEqual(@as(usize, 0), actual.commitment.layers[actual.commitment.layers.len - 1].len);
+    for (expected.commitment.layers[0 .. expected.commitment.layers.len - 4], actual.commitment.layers[0 .. actual.commitment.layers.len - 4]) |want, got|
+        try std.testing.expectEqualSlices(u8, std.mem.sliceAsBytes(want), std.mem.sliceAsBytes(got));
+    const n_leaves = @as(usize, 1) << 20;
+    const queries = [_]usize{ 0, 1, n_leaves - 1, n_leaves / 2 + 3, 7, 7 };
+    var want = try expected.decommit(a, &queries);
+    defer want.deinit(a);
+    var got = try actual.decommit(a, &queries);
+    defer got.deinit(a);
+    try std.testing.expectEqualDeep(want, got);
 }

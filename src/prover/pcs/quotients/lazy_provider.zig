@@ -290,6 +290,16 @@ pub const LazyQuotientProvider = struct {
         self.* = undefined;
     }
 
+    /// Frees the combined contribution views (the folded quotient inputs,
+    /// one secure column per sample group and domain) once every quotient
+    /// value is computed: FRI reads only the committed column after that.
+    /// The provider must not compute again; `deinit` stays valid.
+    pub fn releaseQuotientInputs(self: *LazyQuotientProvider, allocator: std.mem.Allocator) void {
+        var combined_plan = planning.CombinedContributionPlan{ .views = self.combined_views };
+        combined_plan.deinit(allocator);
+        self.combined_views = &.{};
+    }
+
     /// Compute quotient values for positions `[chunk_start .. chunk_start + chunk_len)`.
     ///
     /// The 4 output coordinate buffers must each have length >= `chunk_len`.

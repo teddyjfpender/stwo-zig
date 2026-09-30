@@ -15,6 +15,7 @@ const expand_mod = @import("expand.zig");
 const layers_mod = @import("layers.zig");
 const parameters = @import("parameters.zig");
 const streaming_committer = @import("streaming_committer.zig");
+const parents = @import("parents.zig");
 
 const M31 = m31.M31;
 const SecureColumnByCoords = secure_column.SecureColumnByCoords;
@@ -190,6 +191,106 @@ pub fn MerkleProverLifted(comptime H: type) type {
             );
         }
 
+        /// `commitWithLazyQuotients` followed by `compactForQueries`, without
+        /// ever holding the layers `compactForQueries` drops. The quotients
+        /// are computed into `out_column` first and the provider's quotient
+        /// inputs released (`releaseQuotientInputs`: the column is all FRI
+        /// reads from here on); then every aligned run of `2^pruned` leaves
+        /// is hashed from the column and reduced straight into the lowest
+        /// retained layer, and the layers above are hashed from it. Every
+        /// leaf and node is the same hash of the same children, so the
+        /// retained layers, and the root, are `commitWithLazyQuotients`'s.
+        pub fn commitWithLazyQuotientsCompact(
+            allocator: std.mem.Allocator,
+            provider: *quotient_ops.LazyQuotientProvider,
+            out_column: *SecureColumnByCoords,
+        ) !Self {
+            const domain_size = provider.domain_size;
+            if (domain_size < 2 or !std.math.isPowerOfTwo(domain_size)) return error.InvalidColumnSize;
+            const log_size: u32 = @intCast(std.math.log2_int(usize, domain_size));
+            const pruned = compactPrunedLayers(log_size);
+            if (pruned == 0) {
+                var tree = try commitWithLazyQuotients(allocator, provider, out_column);
+                tree.compactForQueries();
+                return tree;
+            }
+
+            try provider.computeAll(allocator, out_column);
+            provider.releaseQuotientInputs(allocator);
+
+            const layers = try allocateLayersPruned(allocator, log_size, pruned);
+            var tree = fromLayers(allocator, layers);
+            errdefer tree.deinit(allocator);
+            const retained_log = log_size - pruned;
+            const retained = tree.layers[retained_log];
+
+            const Job = struct {
+                column: *const SecureColumnByCoords,
+                /// Retained nodes `[first, first + out.len)`.
+                out: []H.Hash,
+                first: usize,
+                pruned: u32,
+
+                const batch_leaves = 512;
+
+                pub fn run(self: *@This()) void {
+                    var ping: [batch_leaves]H.Hash = undefined;
+                    var pong: [batch_leaves / 2]H.Hash = undefined;
+                    const group = @as(usize, 1) << @intCast(self.pruned);
+                    const nodes_per_batch = batch_leaves / group;
+                    var done: usize = 0;
+                    while (done < self.out.len) {
+                        const nodes = @min(nodes_per_batch, self.out.len - done);
+                        const leaf_start = (self.first + done) * group;
+                        const leaf_count = nodes * group;
+                        hashLazyLeafRange(&.{
+                            .column = self.column,
+                            .leaves = ping[0..leaf_count],
+                            .start = leaf_start,
+                            .end = leaf_start + leaf_count,
+                            .offset = leaf_start,
+                        });
+                        // Levels below the retained one ping-pong between
+                        // the two scratch buffers.
+                        var current: []H.Hash = ping[0..leaf_count];
+                        var width = leaf_count;
+                        var level: u32 = 0;
+                        while (level < self.pruned) : (level += 1) {
+                            width /= 2;
+                            const out = if (level + 1 == self.pruned)
+                                self.out[done..][0..width]
+                            else if (level % 2 == 0)
+                                pong[0..width]
+                            else
+                                ping[0..width];
+                            parents.hashParentsSerial(H, current, out);
+                            current = out;
+                        }
+                        done += nodes;
+                    }
+                }
+            };
+            var jobs: [256]Job = undefined;
+            const job_count = @min(jobs.len, retained.len);
+            const span = retained.len / job_count;
+            for (jobs[0..job_count], 0..) |*job, index| job.* = .{
+                .column = out_column,
+                .out = retained[index * span ..][0..span],
+                .first = index * span,
+                .pruned = pruned,
+            };
+            if (work_pool_mod.getGlobalPool()) |pool| {
+                var group: WaitGroup = .{};
+                for (jobs[1..job_count]) |*job| pool.spawnWg(&group, Job.run, .{job});
+                jobs[0].run();
+                group.wait();
+            } else for (jobs[0..job_count]) |*job| job.run();
+
+            var level = retained_log;
+            while (level > 0) : (level -= 1) parents.hashParents(H, tree.layers[level], tree.layers[level - 1]);
+            return tree;
+        }
+
         pub fn commitWithLazyQuotientsLegacy(
             allocator: std.mem.Allocator,
             provider: *quotient_ops.LazyQuotientProvider,
@@ -318,6 +419,8 @@ pub fn MerkleProverLifted(comptime H: type) type {
             leaves: []H.Hash,
             start: usize,
             end: usize,
+            /// The row `leaves[0]` holds.
+            offset: usize = 0,
         };
 
         fn hashLazyLeafRange(work: *const LazyLeafRange) void {
@@ -333,7 +436,7 @@ pub fn MerkleProverLifted(comptime H: type) type {
                 const seed = H.leafSeed();
                 while (position + 4 <= work.end) : (position += 4) {
                     const hashes = H.hashDirectM31LeavesWithSeed4(seed, &columns, position);
-                    inline for (0..4) |lane| work.leaves[position + lane] = hashes[lane];
+                    inline for (0..4) |lane| work.leaves[position + lane - work.offset] = hashes[lane];
                 }
             }
             while (position < work.end) : (position += 1) {
@@ -343,7 +446,7 @@ pub fn MerkleProverLifted(comptime H: type) type {
                 }
                 var hasher = H.defaultWithInitialState();
                 hasher.updateLeaf(values[0..]);
-                work.leaves[position] = hasher.finalize();
+                work.leaves[position - work.offset] = hasher.finalize();
             }
         }
 
@@ -551,8 +654,13 @@ pub fn MerkleProverLifted(comptime H: type) type {
         /// every leaf digest duplicates gigabytes on large proof domains.
         /// No commitment, transcript or decommitment format changes.
         pub fn compactForQueries(self: *Self) void {
-            if (self.maxLogSize() < 20) return;
-            self.pruneBottomLayers(4);
+            self.pruneBottomLayers(compactPrunedLayers(self.maxLogSize()));
+        }
+
+        /// The bottom layers `compactForQueries` drops from a tree of
+        /// `log_size`: none below log 20, else four.
+        pub fn compactPrunedLayers(log_size: u32) u32 {
+            return if (log_size < 20) 0 else 4;
         }
 
         pub fn pruneBottomLayers(self: *Self, count: usize) void {

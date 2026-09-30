@@ -534,7 +534,9 @@ pub fn configured(comptime options: CommitmentOptions) type {
             provider: anytype,
             out_column: anytype,
         ) !MerkleTree(H) {
-            return MerkleTree(H).commitWithLazyQuotients(allocator, provider, out_column);
+            // FRI keeps only `compactForQueries`'s layers of this tree; the
+            // compact commit never builds the others.
+            return MerkleTree(H).commitWithLazyQuotientsCompact(allocator, provider, out_column);
         }
     };
 }

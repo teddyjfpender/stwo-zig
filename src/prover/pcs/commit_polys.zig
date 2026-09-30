@@ -7,6 +7,18 @@ const prover_circle = @import("../poly/circle/mod.zig");
 const circle_transforms = @import("columns/circle_transforms.zig");
 const column_storage = @import("columns/storage.zig");
 const commit_dispatch = @import("commit_dispatch.zig");
+const tiled_commit = @import("tiled_commit.zig");
+
+/// Whether `polys` fit `tiled_commit` (as coefficient columns).
+fn tiledPolys(polys: []const prover_circle.CircleCoefficients, log_blowup: u32, compact_min_log: u32) bool {
+    if (polys.len == 0) return false;
+    var any_large = false;
+    for (polys) |poly| {
+        if (poly.log_size == 0) return false;
+        if (poly.log_size + log_blowup >= compact_min_log) any_large = true;
+    }
+    return any_large;
+}
 
 pub fn commit(
     comptime B: type,
@@ -30,6 +42,29 @@ pub fn commit(
     if (self.retained_column_allocator != null and self.coefficient_retention_policy != .never)
         return error.UnsupportedRetainedColumnStorage;
     const native_compact = comptime if (@hasDecl(B, "supportsCompactStreaming")) B.supportsCompactStreaming(H) else false;
+    // Compact storage on a host tree: commit tile by tile from the
+    // coefficients (`tiled_commit`), never holding every column's extension
+    // or the Merkle layers compaction drops. Same tree, same root.
+    if (comptime !native_compact and tiled_commit.hostTree(B, H)) {
+        if (self.compact_polynomial_storage and self.retained_column_allocator == null and
+            tiledPolys(polys, blowup, self.compact_polynomial_min_log_size))
+        {
+            const columns = try allocator.alloc(@import("commitment_tree.zig").ColumnEvaluation, polys.len);
+            var filled: usize = 0;
+            defer if (filled != polys.len) {
+                for (columns[0..filled]) |column| allocator.free(column.values);
+                allocator.free(columns);
+            };
+            for (polys, columns) |poly, *column| {
+                column.* = .{ .log_size = poly.log_size, .values = try allocator.dupe(M31, poly.coefficients()) };
+                filled += 1;
+            }
+            // Consumes `columns` on success and on error.
+            try tiled_commit.commit(B, H, self, allocator, columns, .owned_coefficients, .{}, channel);
+            if (timing) |*clock| std.log.info("pcs coefficient commit: path=tiled columns={} total_ns={}", .{ polys.len, clock.read() });
+            return;
+        }
+    }
     if (self.retained_column_allocator == null and !(native_compact and self.compact_polynomial_storage)) {
         if (try commit_dispatch.tryPrecommittedPolys(
             B,

@@ -267,11 +267,14 @@ pub fn wrapCairoProof(
 
     // 5. Prove, check against the registry, serialize. The prover reads
     // only the values and the preprocessed circuit; the gates go first.
-    const values = try ctx.intoValues();
+    // The prover frees the value table once the base trace is written.
+    var owned_values = prove.OwnedValues{ .allocator = allocator, .values = try ctx.intoValues() };
     ctx_owned = false;
-    defer allocator.free(values);
+    defer owned_values.release();
+    var options = wrap.options;
+    options.release_values = owned_values.releaseOption();
     const pcs_config = PcsConfigV2.fromFriAndTraceSize(circuit_fri, topology.preprocessed.traceLogSize());
-    var circuit_proof = try prove.Internal.prove(allocator, values, &topology.preprocessed, wrap.bundle, pcs_config, wrap.options, {});
+    var circuit_proof = try prove.Internal.prove(allocator, owned_values.values.?, &topology.preprocessed, wrap.bundle, pcs_config, options, {});
     defer circuit_proof.deinit();
     const root = blake2_hash.digestToU32s(circuit_proof.stark_proof.proof.commitment_scheme_proof.commitments.items[0]);
     const hash = blake2_hash.digestToU32s(circuit_proof.circuit_hash);

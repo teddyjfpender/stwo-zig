@@ -359,12 +359,38 @@ const BaseView = struct {
     }
 };
 
-/// Frees base component `index`'s columns when releasing.
-fn releaseComponent(allocator: std.mem.Allocator, release: ?[]ColumnEvaluation, base: BaseView, index: usize) void {
+/// The widest component's base trace.
+const max_trace_width = blk: {
+    var widest: usize = 0;
+    for (traceWidths()) |width| widest = @max(widest, width);
+    break :blk widest;
+};
+
+/// Base component `index`'s buffers that its LogUp columns may be written
+/// into when releasing (`logup_columns.buildReusing`): every row filler
+/// reads row `r` of its own component only. At most `interaction_width`.
+fn reusableBuffers(
+    release: ?[]ColumnEvaluation,
+    base: BaseView,
+    index: usize,
+    interaction_width: usize,
+    storage: *[max_trace_width][]M31,
+) []const []M31 {
+    const columns = release orelse return &.{};
+    const count = @min(traceWidths()[index], interaction_width);
+    for (storage[0..count], columns[base.offsets[index]..][0..count]) |*buffer, column|
+        buffer.* = @constCast(column.values);
+    return storage[0..count];
+}
+
+/// When releasing, empties base component `index`'s columns: the first
+/// `reused` now belong to its LogUp columns, the rest are freed.
+fn releaseComponent(allocator: std.mem.Allocator, release: ?[]ColumnEvaluation, base: BaseView, index: usize, reused: usize) void {
+    prover.measurement.process_usage.reportStage("circuit.interaction_component");
     const columns = release orelse return;
     const widths = traceWidths();
-    for (columns[base.offsets[index]..][0..widths[index]]) |*column| {
-        allocator.free(column.values);
+    for (columns[base.offsets[index]..][0..widths[index]], 0..) |*column, position| {
+        if (position >= reused) allocator.free(column.values);
         column.values = &.{};
     }
 }
@@ -473,11 +499,13 @@ pub fn writeInteractionTrace(
     return writeInteractionTraceImpl(allocator, base_columns, null, log_sizes, circuit, z, alpha);
 }
 
-/// `writeInteractionTrace` that frees each component's base columns (leaving
-/// them empty in `base`) as soon as that component's LogUp columns are
-/// built: component `i`'s interaction reads only base component `i`, so the
-/// base and interaction traces are never both whole. `base` is left with
-/// every column empty on success.
+/// `writeInteractionTrace` that consumes each component's base columns
+/// (leaving them empty in `base`) as that component's LogUp columns are
+/// built: component `i`'s interaction reads only row `r` of base component
+/// `i` for row `r`, so its LogUp columns are written into those buffers
+/// where the widths allow and the rest are freed. The base and interaction
+/// traces are never both whole. `base` is left with every column empty on
+/// success.
 pub fn writeInteractionTraceReleasing(
     allocator: std.mem.Allocator,
     base: *BaseTrace,
@@ -505,6 +533,9 @@ fn writeInteractionTraceImpl(
 
     var outputs: [N_COMPONENTS]?logup_columns.Output = .{null} ** N_COMPONENTS;
     defer for (outputs) |maybe| if (maybe) |output| freeColumns(allocator, output.columns);
+    // Releasing: each component's LogUp columns are written into its own
+    // base buffers where the widths allow, so the two are never both whole.
+    var reuse_storage: [max_trace_width][]M31 = undefined;
 
     const gather = .{
         .{ components.eq, 0, preprocessed.EQ_COLUMN_IDS },
@@ -519,12 +550,13 @@ fn writeInteractionTraceImpl(
         const pc = try pp.columns(entry[2]);
         if (pc[0].len != @as(usize, 1) << @intCast(logs[index])) return error.InvalidTraceShape;
         const Rows = GatherRows(K, index);
-        outputs[index] = try logup_columns.build(allocator, logs[index], widths[index] / 4, Rows{
+        const reuse = reusableBuffers(release, base, index, widths[index], &reuse_storage);
+        outputs[index] = try logup_columns.buildReusing(allocator, logs[index], widths[index] / 4, reuse, Rows{
             .base = base,
             .pp = &pc,
             .elements = &elements,
         }, Rows.fill);
-        releaseComponent(allocator, release, base, index);
+        releaseComponent(allocator, release, base, index, reuse.len);
     }
     const tables = .{
         .{ components.xor_8, 5, "bitwise_xor_8" },
@@ -537,25 +569,28 @@ fn writeInteractionTraceImpl(
         const index = entry[1];
         const pc = try pp.columns(.{ entry[2] ++ "_0", entry[2] ++ "_1", entry[2] ++ "_2" });
         const mults = base.component(index, table.relations.len);
-        outputs[index] = try logup_columns.build(allocator, logs[index], widths[index] / 4, XorTableRows{
+        const reuse = reusableBuffers(release, base, index, widths[index], &reuse_storage);
+        outputs[index] = try logup_columns.buildReusing(allocator, logs[index], widths[index] / 4, reuse, XorTableRows{
             .table = table,
             .mults = mults,
             .pp = pc,
             .elements = &elements,
         }, XorTableRows.fill);
-        releaseComponent(allocator, release, base, index);
+        releaseComponent(allocator, release, base, index, reuse.len);
     }
-    outputs[6] = try logup_columns.build(allocator, logs[6], widths[6] / 4, Xor12Rows{
+    const reuse_6 = reusableBuffers(release, base, 6, widths[6], &reuse_storage);
+    outputs[6] = try logup_columns.buildReusing(allocator, logs[6], widths[6] / 4, reuse_6, Xor12Rows{
         .mults = base.component(6, components.xor_12.n_mult_columns),
         .elements = &elements,
     }, Xor12Rows.fill);
-    releaseComponent(allocator, release, base, 6);
-    outputs[10] = try logup_columns.build(allocator, logs[10], widths[10] / 4, RangeCheckRows{
+    releaseComponent(allocator, release, base, 6, reuse_6.len);
+    const reuse_10 = reusableBuffers(release, base, 10, widths[10], &reuse_storage);
+    outputs[10] = try logup_columns.buildReusing(allocator, logs[10], widths[10] / 4, reuse_10, RangeCheckRows{
         .mults = base.component(10, 1),
         .seq = try pp.column("seq_16"),
         .elements = &elements,
     }, RangeCheckRows.fill);
-    releaseComponent(allocator, release, base, 10);
+    releaseComponent(allocator, release, base, 10, reuse_10.len);
 
     var total: usize = 0;
     for (outputs) |maybe| total += maybe.?.columns.len;

@@ -81,6 +81,28 @@ pub const ReleaseValues = struct {
     release: *const fn (context: *anyopaque) void,
 };
 
+/// A caller-owned value table handed to the prover for release: frees it
+/// after the base trace (`releaseOption`) or when the caller is done.
+pub const OwnedValues = struct {
+    allocator: std.mem.Allocator,
+    values: ?[]QM31,
+
+    pub fn release(self: *OwnedValues) void {
+        if (self.values) |values| self.allocator.free(values);
+        self.values = null;
+    }
+
+    /// `Options.release_values` for this table.
+    pub fn releaseOption(self: *OwnedValues) ReleaseValues {
+        return .{ .context = self, .release = releaseErased };
+    }
+
+    fn releaseErased(context: *anyopaque) void {
+        const self: *OwnedValues = @ptrCast(@alignCast(context));
+        self.release();
+    }
+};
+
 /// `COMPOSITION_POLYNOMIAL_LOG_DEGREE_BOUND`.
 pub const composition_log_degree_bound: u32 = 1;
 
@@ -156,6 +178,7 @@ pub fn Prover(comptime MC: type) type {
             errdefer if (scheme_owned) Engine.deinit(&scheme, allocator);
             scheme.setStorePolynomialsCoefficients();
             if (options.compact_polynomial_min_log) |min_log| scheme.setCompactPolynomialStorage(min_log);
+            const scheme_compact = scheme.compact_polynomial_storage;
 
             // Preprocessed tree.
             if (scheme.compact_polynomial_storage) {
@@ -218,6 +241,7 @@ pub fn Prover(comptime MC: type) type {
             step(observer, .mix_interaction_claim, &channel);
             try commit(&scheme, allocator, interaction.takeColumns(), &channel);
             step(observer, .commit_interaction_trace, &channel);
+            debugTrees(&scheme);
             // The committed trees hold the blown-up evaluations
             // (`CommitmentSchemeProver::evaluations`).
             if (comptime hasObserver(@TypeOf(observer), "onTraces"))
@@ -263,6 +287,7 @@ pub fn Prover(comptime MC: type) type {
             var stark_proof = try Engine.prove(allocator, &components, &channel, scheme, .{
                 .include_all_preprocessed_columns = true,
                 .recorder = recorder,
+                .cpu_composition_execution = if (scheme_compact) sequentialComposition() else null,
             });
             if (local_recorder) |*owned| printStageProfile(allocator, owned);
             errdefer stark_proof.deinit(allocator);
@@ -316,10 +341,46 @@ pub fn Prover(comptime MC: type) type {
             return prover.pcs.tiled_commit.applies(columns, scheme.config.fri_config.log_blowup_factor, scheme.compact_polynomial_min_log_size);
         }
 
+        fn debugTrees(scheme: *const Engine.Scheme) void {
+            if (!std.process.hasEnvVarConstant("STWO_DEBUG_TREES")) return;
+            for (scheme.trees.items, 0..) |tree, index| {
+                var values: usize = 0;
+                var coeffs: usize = 0;
+                var logs: [40]usize = .{0} ** 40;
+                for (tree.columns) |column| {
+                    values += column.values.len * 4;
+                    if (column.coefficient_values) |c| coeffs += c.len * 4;
+                    logs[column.log_size] += 1;
+                }
+                var merkle: usize = 0;
+                for (tree.commitment.layers) |layer| merkle += layer.len * 32;
+                var poly: usize = 0;
+                if (tree.coefficients) |cs| for (cs) |c| {
+                    poly += c.coeffs.len * 4;
+                };
+                std.debug.print("TREE {d}: columns {d} values {d} MB coeffs {d} MB polys {d} MB merkle {d} MB logs", .{ index, tree.columns.len, values >> 20, coeffs >> 20, poly >> 20, merkle >> 20 });
+                for (logs, 0..) |count, log| if (count != 0) std.debug.print(" {d}x{d}", .{ count, log });
+                std.debug.print("\n", .{});
+            }
+        }
+
         fn step(observer: anytype, comptime which: Step, channel: *const Channel) void {
             prover.measurement.process_usage.reportStage("circuit." ++ @tagName(which));
             if (comptime hasObserver(@TypeOf(observer), "onStep")) observer.onStep(which, channel.digestBytes());
         }
+    };
+}
+
+/// The low-memory composition schedule: the components one after another
+/// into one accumulator (each still row-parallel on the global pool), rather
+/// than all at once, each with its own accumulator and trace lease. Field
+/// addition is exact, so the composition evaluation is the same.
+fn sequentialComposition() prover.engine.CpuCompositionExecutionRequest {
+    const workers = if (prover.work_pool.getGlobalPool()) |pool| pool.workerCount() else 1;
+    return .{
+        .worker_count = @max(1, workers),
+        .host_byte_budget = std.math.maxInt(usize),
+        .contention_policy = .compatibility,
     };
 }
 

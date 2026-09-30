@@ -471,3 +471,76 @@ test "prover vcs_lifted: batched commit produces same root and decommitment" {
         decommitment.decommitment.decommitment,
     );
 }
+
+test "prover vcs_lifted: commitWithLazyQuotientsCompact equals the compacted lazy tree" {
+    const alloc = std.testing.allocator;
+    const pcs_utils = @import("stwo_core").pcs.utils;
+    const TreeVec = pcs_utils.TreeVec;
+    const ColumnEvaluation = quotient_ops.ColumnEvaluation;
+    const CirclePointQM31 = @import("stwo_core").circle.CirclePointQM31;
+    const QM31 = qm31.QM31;
+    const Hasher = @import("stwo_core").vcs_lifted.blake2_merkle.Blake2sMerkleHasher;
+    const Prover = MerkleProverLifted(Hasher);
+
+    // Log 20: the first height `compactForQueries` prunes.
+    const lifting_log_size: u32 = 20;
+    const domain_size = @as(usize, 1) << @intCast(lifting_log_size);
+    const col0 = try alloc.alloc(M31, domain_size);
+    defer alloc.free(col0);
+    for (col0, 0..) |*v, i| v.* = M31.fromU64((i * 2654435761 + 17) % 2147483647);
+    const col1 = try alloc.alloc(M31, 1 << 12);
+    defer alloc.free(col1);
+    for (col1, 0..) |*v, i| v.* = M31.fromU64(i * i + 5);
+    const tree_columns = [_]ColumnEvaluation{
+        .{ .log_size = lifting_log_size, .values = col0 },
+        .{ .log_size = 12, .values = col1 },
+    };
+
+    const point0 = @import("stwo_core").circle.SECURE_FIELD_CIRCLE_GEN.mul(7);
+    const point1 = @import("stwo_core").circle.SECURE_FIELD_CIRCLE_GEN.mul(19);
+    const points0 = [_]CirclePointQM31{point0};
+    const points1 = [_]CirclePointQM31{ point0, point1 };
+    const values0 = [_]QM31{QM31.fromU32Unchecked(1, 2, 3, 4)};
+    const values1 = [_]QM31{ QM31.fromU32Unchecked(5, 6, 7, 8), QM31.fromU32Unchecked(9, 10, 11, 12) };
+    const alpha = QM31.fromU32Unchecked(3, 0, 1, 0);
+
+    // Borrowed by both providers for the whole test.
+    var tree_items = [_][]const ColumnEvaluation{&tree_columns};
+    var point_tree = [_][]CirclePointQM31{ @constCast(&points0), @constCast(&points1) };
+    var value_tree = [_][]QM31{ @constCast(&values0), @constCast(&values1) };
+    var point_trees = [_][][]CirclePointQM31{&point_tree};
+    var value_trees = [_][][]QM31{&value_tree};
+    const Build = struct {
+        fn provider(a: std.mem.Allocator, items: [][]const ColumnEvaluation, points: [][][]CirclePointQM31, values: [][][]QM31, coeff: QM31, log: u32) !quotient_ops.LazyQuotientProvider {
+            return quotient_ops.LazyQuotientProvider.init(
+                a,
+                TreeVec([]const ColumnEvaluation).initOwned(items),
+                TreeVec([][]CirclePointQM31).initOwned(points),
+                TreeVec([][]QM31).initOwned(values),
+                coeff,
+                log,
+            );
+        }
+    };
+
+    var expected_provider = try Build.provider(alloc, &tree_items, &point_trees, &value_trees, alpha, lifting_log_size);
+    defer expected_provider.deinit(alloc);
+    var expected_column = try SecureColumnByCoords.uninitialized(alloc, domain_size);
+    defer expected_column.deinit(alloc);
+    var expected = try Prover.commitWithLazyQuotients(alloc, &expected_provider, &expected_column);
+    defer expected.deinit(alloc);
+    expected.compactForQueries();
+
+    var provider = try Build.provider(alloc, &tree_items, &point_trees, &value_trees, alpha, lifting_log_size);
+    defer provider.deinit(alloc);
+    var column = try SecureColumnByCoords.uninitialized(alloc, domain_size);
+    defer column.deinit(alloc);
+    var actual = try Prover.commitWithLazyQuotientsCompact(alloc, &provider, &column);
+    defer actual.deinit(alloc);
+
+    try std.testing.expectEqual(expected.layers.len, actual.layers.len);
+    try std.testing.expectEqual(@as(usize, 0), actual.layers[actual.layers.len - 1].len);
+    for (expected.layers, actual.layers) |expected_layer, actual_layer|
+        try std.testing.expectEqualSlices(Hasher.Hash, expected_layer, actual_layer);
+    for (expected_column.columns, column.columns) |e, a| try std.testing.expectEqualSlices(M31, e, a);
+}

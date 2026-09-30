@@ -182,7 +182,7 @@ fn reduce(
         break :blk try gpa.dupe(QM31, ctx.values());
     };
     // The prover frees the value table once the base trace is written.
-    var owned_values = OwnedValues{ .gpa = gpa, .values = values };
+    var owned_values = prove.OwnedValues{ .allocator = gpa, .values = values };
     defer owned_values.release();
     const build_ns = timer.lap();
 
@@ -200,34 +200,17 @@ fn reduce(
     return parent;
 }
 
-/// A fold's value table, freed by the prover after the base trace
-/// (`prove.Options.release_values`) or at the end of the reduction.
-const OwnedValues = struct {
-    gpa: std.mem.Allocator,
-    values: ?[]QM31,
-
-    fn release(self: *OwnedValues) void {
-        if (self.values) |values| self.gpa.free(values);
-        self.values = null;
-    }
-
-    fn releaseErased(context: *anyopaque) void {
-        const self: *OwnedValues = @ptrCast(@alignCast(context));
-        self.release();
-    }
-};
-
 fn proveNode(
     comptime P: type,
     gpa: std.mem.Allocator,
     fold: *const Fold,
-    owned_values: *OwnedValues,
+    owned_values: *prove.OwnedValues,
     subtasks: []const PackedNode,
     comptime is_root: bool,
 ) !LayerEntry {
     const canonical = fold.canonical;
     var options = fold.options;
-    options.release_values = .{ .context = owned_values, .release = OwnedValues.releaseErased };
+    options.release_values = owned_values.releaseOption();
     var proof = try P.prove(gpa, owned_values.values.?, &canonical.preprocessed, fold.bundle, canonical.shared.pcs_config, options, {});
     defer proof.deinit();
 

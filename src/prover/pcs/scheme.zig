@@ -32,6 +32,7 @@ const backed_columns = @import("backed_columns.zig");
 const scheme_decommit = @import("scheme_decommit.zig");
 const scheme_views = @import("scheme_views.zig");
 const shell_work_profile = @import("shell_work_profile.zig");
+const memoryStage = @import("../measurement/process_usage.zig").reportStage;
 pub const revision_lifting = @import("revision_lifting.zig");
 
 pub const quotient_ops = @import("quotient_ops.zig");
@@ -383,6 +384,7 @@ pub fn CommitmentSchemeProver(comptime B: type, comptime H: type, comptime MC: t
                 );
             };
 
+            memoryStage("pcs.sampled_values");
             // The downstream method consumes both owners on success and error.
             owns_scheme = false;
             owns_sampled_points = false;
@@ -576,6 +578,7 @@ pub fn CommitmentSchemeProver(comptime B: type, comptime H: type, comptime MC: t
                 );
                 defer provider.deinit(allocator);
                 provider.setBackendResidencyHandles(residency_handles);
+                memoryStage("pcs.quotient_provider");
 
                 var result = try prover_fri.FriProver(B, H, MC).commitLazyWithWorkRecorderAndRootMixCapture(
                     allocator,
@@ -587,6 +590,7 @@ pub fn CommitmentSchemeProver(comptime B: type, comptime H: type, comptime MC: t
                     if (shell_audit != null) &fri_root_mix_capture else null,
                 );
                 errdefer result.deinit(allocator);
+                memoryStage("pcs.fri_committed");
                 break :blk result;
             };
             if (shell_audit) |*audit| {

@@ -42,22 +42,47 @@ pub fn build(
         []Fraction,
     ) anyerror!void,
 ) !Output {
+    return buildReusing(allocator, log_size, secure_columns, &.{}, context, fillRow);
+}
+
+/// `build` whose first `reuse.len` output columns are written into `reuse`'s
+/// buffers (each `2^log_size` values from `allocator`) instead of fresh
+/// ones; the output owns them on success and the caller keeps them on
+/// error. A chunk reads all its rows (`fillRow`) before it writes any, and
+/// chunks are disjoint row runs, so `reuse` may be the very columns
+/// `fillRow` reads provided `fillRow(r)` reads only row `r` of them: the
+/// values written are the same as `build`'s.
+pub fn buildReusing(
+    allocator: std.mem.Allocator,
+    log_size: u32,
+    secure_columns: usize,
+    reuse: []const []M31,
+    context: anytype,
+    comptime fillRow: fn (
+        @TypeOf(context),
+        usize,
+        []Fraction,
+    ) anyerror!void,
+) !Output {
     if (secure_columns == 0 or log_size >= @bitSizeOf(usize))
         return error.InvalidPreparedGeometry;
     const row_count = @as(usize, 1) << @intCast(log_size);
     _ = std.math.mul(usize, row_count, secure_columns) catch
         return error.ColumnCountOverflow;
+    if (reuse.len > secure_columns * 4) return error.InvalidPreparedGeometry;
+    for (reuse) |buffer| if (buffer.len != row_count) return error.InvalidPreparedGeometry;
 
     const columns = try allocator.alloc(
         prover_pcs.ColumnEvaluation,
         secure_columns * 4,
     );
-    var initialized: usize = 0;
+    var initialized: usize = reuse.len;
     errdefer {
-        for (columns[0..initialized]) |column| allocator.free(column.values);
+        for (columns[reuse.len..initialized]) |column| allocator.free(column.values);
         allocator.free(columns);
     }
-    for (columns) |*column| {
+    for (columns[0..reuse.len], reuse) |*column, buffer| column.* = .{ .log_size = log_size, .values = buffer };
+    for (columns[reuse.len..]) |*column| {
         column.* = .{
             .log_size = log_size,
             .values = try allocator.alloc(M31, row_count),
@@ -209,4 +234,44 @@ test "paired LogUp builder accumulates batches and shifts the final column" {
     }
     try std.testing.expectEqual(@as(usize, 8), output.columns.len);
     try std.testing.expect(output.claimed_sum.eql(QM31.fromBase(M31.fromCanonical(272))));
+}
+
+test "LogUp builder writing into the columns it reads matches a fresh build" {
+    // Rows span several chunks so reads and writes interleave across workers.
+    const log_size: u32 = 14;
+    const row_count = @as(usize, 1) << log_size;
+    const Context = struct {
+        inputs: []const []M31,
+
+        fn fill(self: @This(), row: usize, out: []Fraction) !void {
+            for (out, 0..) |*fraction, index| {
+                const a = self.inputs[2 * index][row];
+                const b = self.inputs[2 * index + 1][row];
+                fraction.* = .{
+                    .numerator = QM31.fromBase(a),
+                    .denominator = QM31.fromU32Unchecked(b.v, a.v, 7, @intCast(row % 13)).add(QM31.one()),
+                };
+            }
+        }
+    };
+    const allocator = std.testing.allocator;
+    var inputs: [6][]M31 = undefined;
+    for (&inputs, 0..) |*column, index| {
+        column.* = try allocator.alloc(M31, row_count);
+        for (column.*, 0..) |*value, row| value.* = M31.fromU64((row * 2654435761 + index * 40503) % 2147483647);
+    }
+    const expected = try build(allocator, log_size, 3, Context{ .inputs = &inputs }, Context.fill);
+    defer {
+        for (expected.columns) |column| allocator.free(column.values);
+        allocator.free(expected.columns);
+    }
+    // The six input columns become the first six of twelve outputs.
+    const actual = try buildReusing(allocator, log_size, 3, &inputs, Context{ .inputs = &inputs }, Context.fill);
+    defer {
+        for (actual.columns) |column| allocator.free(column.values);
+        allocator.free(actual.columns);
+    }
+    try std.testing.expect(actual.claimed_sum.eql(expected.claimed_sum));
+    for (actual.columns[0..inputs.len], inputs) |column, input| try std.testing.expectEqual(input.ptr, column.values.ptr);
+    for (actual.columns, expected.columns) |a, e| try std.testing.expectEqualSlices(M31, e.values, a.values);
 }
