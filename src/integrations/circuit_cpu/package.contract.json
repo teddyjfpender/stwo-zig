@@ -17,6 +17,7 @@
     "stwo_prover_engine": "../../prover"
   },
   "injected_modules": [
+    "circuit_provers_under_test",
     "circuit_testing"
   ],
   "api_surface": [

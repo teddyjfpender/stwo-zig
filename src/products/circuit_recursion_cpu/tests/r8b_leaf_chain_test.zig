@@ -26,6 +26,9 @@
 
 const std = @import("std");
 const app = @import("app");
+/// The provers under test: the CPU here, the Metal ones in `circuit_metal`'s
+/// device R8b.
+const under_test = @import("circuit_provers_under_test");
 
 const wire = app.wire;
 const goldens_dir = "vectors/circuit/official/recursive_tree/four_leaves";
@@ -45,9 +48,10 @@ test "R8b: a Zig leaf of the leaf simple bootloader folds to the four_leaves gol
             .program_path = "vectors/circuit/official/programs/leaf_simple_bootloader_compiled.json",
             .prover_input_path = "vectors/circuit/r10/leaf_simple_bootloader.prover_input.json",
             .options = .{ .compact_polynomial_min_log = 18 },
+            .provers = under_test.provers,
         }, &timings);
         defer leaf.deinit();
-        std.debug.print("R8b: cairo prove {d} ms, wrap {d} ms\n", .{ timings.cairo_prove_ns / std.time.ns_per_ms, timings.wrap_ns / std.time.ns_per_ms });
+        std.debug.print("R8b ({s}): cairo prove {d} ms, wrap {d} ms\n", .{ under_test.backend_name, timings.cairo_prove_ns / std.time.ns_per_ms, timings.wrap_ns / std.time.ns_per_ms });
         var written = std.Io.Writer.Allocating.init(arena);
         try leaf.writeJson(&written.writer);
         break :blk written.written();
@@ -72,7 +76,9 @@ test "R8b: a Zig leaf of the leaf simple bootloader folds to the four_leaves gol
     // 3. Four Zig leaves to the root.
     const registry = try wire.registry.parseRegistry(arena, try std.fs.cwd().readFileAlloc(arena, registry_path, 1 << 20));
     const leaves = [_]wire.leaf_proof_json.LeafInput{leaf_input} ** 4;
-    var root = try app.foldTree(gpa, registry.registry, &leaves);
+    var fold_timer = try std.time.Timer.start();
+    var root = try app.foldTreeWith(gpa, registry.registry, &leaves, under_test.provers);
+    std.debug.print("R8b ({s}): fold four leaves {d} ms\n", .{ under_test.backend_name, fold_timer.read() / std.time.ns_per_ms });
     defer root.deinit();
     try std.testing.expectEqual(@as(usize, 3), root.stats.n_pair_reductions);
     inline for (.{ .{ "root.proof", "proof" }, .{ "root_outputs.json", "outputs" }, .{ "root_packed.json", "packed_tree" } }) |pair| {

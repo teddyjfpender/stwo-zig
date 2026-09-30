@@ -17,6 +17,9 @@
 
 const std = @import("std");
 const app = @import("app");
+/// The provers under test: the CPU here, the Metal ones in `circuit_metal`'s
+/// device R8 (byte-equal to the same expected output).
+const under_test = @import("circuit_provers_under_test");
 
 const expected_path = "vectors/circuit/official/leaf_prover/expected_output.json";
 
@@ -28,9 +31,10 @@ test "R8: leaf-wrap of use_all_opcodes_and_builtins equals leaf-prover's expecte
         .program_path = "vectors/circuit/official/programs/use_all_opcodes_and_builtins_compiled.json",
         .prover_input_path = "vectors/circuit/r10/use_all_opcodes_and_builtins.prover_input.json",
         .options = .{ .compact_polynomial_min_log = 18 },
+        .provers = under_test.provers,
     }, &timings);
     defer leaf.deinit();
-    std.debug.print("R8: cairo prove {d} ms, wrap {d} ms\n", .{ timings.cairo_prove_ns / std.time.ns_per_ms, timings.wrap_ns / std.time.ns_per_ms });
+    std.debug.print("R8 ({s}): cairo prove {d} ms, wrap {d} ms\n", .{ under_test.backend_name, timings.cairo_prove_ns / std.time.ns_per_ms, timings.wrap_ns / std.time.ns_per_ms });
 
     var written = std.Io.Writer.Allocating.init(allocator);
     defer written.deinit();

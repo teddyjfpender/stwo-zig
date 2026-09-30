@@ -25,6 +25,8 @@ const circuit = @import("stwo_circuit_frontend");
 const circuit_cpu = @import("stwo_circuit_cpu_integration");
 const wire = @import("stwo_circuit_recursion_wire");
 const testing = @import("circuit_testing");
+/// The backend under test: CPU here, Metal in `circuit_metal`'s device R9.
+const under_test = @import("circuit_provers_under_test");
 
 const recursion = circuit_cpu.recursion;
 const fixture = testing.fixture_json;
@@ -106,6 +108,7 @@ fn foldCopies(gpa: std.mem.Allocator, setup: *const Setup, n: usize) !Outputs {
         .table = &setup.table,
         .bundle = &setup.bundle,
         .options = .{ .compact_polynomial_min_log = 18 },
+        .provers = under_test.provers,
         .packed_allocator = packed_arena.allocator(),
     };
     const leaves = try gpa.alloc(wire.leaf_proof_json.LeafInput, n);
