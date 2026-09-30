@@ -84,20 +84,48 @@ pub const VerifierProof = struct {
 /// Merkle hasher is the plain Blake2s one.
 pub fn prepare(allocator: std.mem.Allocator, proof: anytype) !VerifierProof {
     const stark = &proof.stark_proof.proof.commitment_scheme_proof;
-    const aux = &proof.stark_proof.aux;
+    if (stark.sampled_values.items.len != wire.n_traces) return error.InvalidCircuitProof;
+    const config = try proofConfig(stark.sampled_values.items[0].len, proof.pcs_config);
+    return fromStarkProof(
+        allocator,
+        &proof.stark_proof,
+        config,
+        &proof.claimed_sums.toArray(),
+        proof.interaction_pow_nonce,
+        proof.channel_salt,
+    );
+}
+
+/// `proof_from_stark_proof`: the verifier proof of any `ExtendedStarkProof`
+/// committed with the plain Blake2s Merkle hasher, under `config` (the
+/// verified AIR's `ProofConfig`). `prepare` uses it for circuit proofs, the
+/// leaf wrap for Cairo proofs (`prepare_cairo_proof_for_circuit_verifier`).
+/// `config.component_shapes` is copied into the result.
+pub fn fromStarkProof(
+    allocator: std.mem.Allocator,
+    extended_proof: anytype,
+    proof_config: wire.ProofConfig,
+    claimed_sums_in: []const QM31,
+    interaction_pow_nonce: u64,
+    channel_salt: u32,
+) !VerifierProof {
+    const stark = &extended_proof.proof.commitment_scheme_proof;
+    const aux = &extended_proof.aux;
     if (stark.commitments.items.len != wire.n_traces or stark.sampled_values.items.len != wire.n_traces)
         return error.InvalidCircuitProof;
-    const config = try proofConfig(stark.sampled_values.items[0].len, proof.pcs_config);
-    config.validate() catch return error.InvalidCircuitProof;
+    proof_config.validate() catch return error.InvalidCircuitProof;
+    if (claimed_sums_in.len != proof_config.nComponents()) return error.InvalidCircuitProof;
 
     var arena = std.heap.ArenaAllocator.init(allocator);
     errdefer arena.deinit();
     const a = arena.allocator();
+    var config = proof_config;
+    config.component_shapes = try a.dupe(wire.ComponentShape, proof_config.component_shapes);
     const n_queries = config.nQueries();
     const queries = aux.unsorted_query_locations;
     if (queries.len != n_queries) return error.InvalidCircuitProof;
 
-    const claimed_sums = try a.dupe(QM31, &proof.claimed_sums.toArray());
+    const claimed_sums = try a.dupe(QM31, claimed_sums_in);
     const interaction = stark.sampled_values.items[2];
     const interaction_at_oods = try a.alloc(wire.InteractionAtOods, interaction.len);
     for (interaction, interaction_at_oods) |samples, *out| out.* = switch (samples.len) {
@@ -109,7 +137,7 @@ pub fn prepare(allocator: std.mem.Allocator, proof: anytype) !VerifierProof {
     if (composition.len != wire.n_composition_columns) return error.InvalidCircuitProof;
 
     var out = wire.Proof{
-        .channel_salt = QM31.fromU32Unchecked(proof.channel_salt % core.fields.m31.Modulus, 0, 0, 0),
+        .channel_salt = QM31.fromU32Unchecked(channel_salt % core.fields.m31.Modulus, 0, 0, 0),
         .trace_root = stark.commitments.items[1],
         .interaction_root = stark.commitments.items[2],
         .composition_polynomial_root = stark.commitments.items[3],
@@ -121,7 +149,7 @@ pub fn prepare(allocator: std.mem.Allocator, proof: anytype) !VerifierProof {
         .eval_domain_samples = undefined,
         .eval_domain_auth_paths = undefined,
         .pow_nonce = nonceQm31(stark.proof_of_work),
-        .interaction_pow_nonce = nonceQm31(proof.interaction_pow_nonce),
+        .interaction_pow_nonce = nonceQm31(interaction_pow_nonce),
         .fri = undefined,
     };
 
