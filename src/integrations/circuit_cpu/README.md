@@ -197,8 +197,9 @@ with `recursion.circuit_params.generate` and compares them with the committed
 registries byte for byte, trailing newline included.
 
 The product `stwo-circuit-recursion-cpu` (`src/products/circuit_recursion_cpu`,
-`zig build stwo-circuit-recursion-cpu`) runs both from the command line with
-upstream's flags (`fold-tree --program_input ... --circuit_registry_json ...`,
+`zig build stwo-circuit-recursion-cpu`) runs the leaf wrap and both of these
+from the command line, the last two with upstream's flags
+(`fold-tree --program_input ... --circuit_registry_json ...`,
 `circuit-params --definition D --registry [--output-path P]`).
 
 ## Measurements

@@ -10,14 +10,16 @@ Its output files are byte-compatible with upstream's binaries.
 | :--- | :--- |
 | Binary | `stwo-circuit-recursion-cpu` |
 | Backend | CPU (scalar and SIMD), no fallback |
-| Commands | `leaf-wrap` |
-| Upstream counterpart | `leaf-prover` (`crates/leaf_prover`) |
+| Build | `zig build stwo-circuit-recursion-cpu -Doptimize=ReleaseFast -j2` (product catalog, parity-gated) |
+| Commands | `leaf-wrap`, `fold-tree`, `circuit-params` |
+| Upstream counterparts | `leaf-prover` (`crates/leaf_prover`), `stwo_run_and_prove_recursive_tree`, `circuit-params --registry` (`crates/circuit_params`) |
+| Embedded data | the circuit AIR projection (`vectors/circuit/official/compiled_air_constraints_v1.bin`) and evaluation programs (`circuit_air.air_programs_v1.bin`), SHA-256-checked at run time |
 
 ## `leaf-wrap`
 
 ```sh
-zig build install --build-file src/products/circuit_recursion_cpu/build.zig -Doptimize=ReleaseFast -j2
-src/products/circuit_recursion_cpu/zig-out/bin/stwo-circuit-recursion-cpu leaf-wrap \
+zig build stwo-circuit-recursion-cpu -Doptimize=ReleaseFast -j2
+zig-out/bin/stwo-circuit-recursion-cpu leaf-wrap \
   --registry vectors/circuit/official/registries/leaf_prover_canonical_small.json \
   --program vectors/circuit/official/programs/use_all_opcodes_and_builtins_compiled.json \
   --prover-input vectors/circuit/r10/use_all_opcodes_and_builtins.prover_input.json \
@@ -42,20 +44,51 @@ Differences from `leaf-prover`, none of which changes the output bytes:
   (`stwo-circuit-oracle adapt-program`), where `leaf-prover` runs steps 1-2
   itself. `--program` is still required: its felts are the program the leaf
   circuit interns (`program_felts`).
-- `--assets` names the repository root that holds the committed artifacts
-  (`vectors/circuit/official/compiled_air_constraints_v1.bin`,
-  `circuit_air.air_programs_v1.bin` and the Cairo lane's witness and AIR
-  bundles).
+- `--assets` (default `.`) names the repository root that holds the Cairo
+  lane's committed witness and AIR bundles under `vectors/cairo/`. The
+  circuit AIR data is embedded.
 - `--compact-min-log <n|off>` (default 18) keeps only coefficients of the
   circuit proof's columns of at least 2^n rows once they are hashed.
   `--profile` prints the circuit prover's stage times.
 
+## `fold-tree`
+
+```sh
+zig-out/bin/stwo-circuit-recursion-cpu fold-tree \
+  --program_input leaves.json --circuit_registry_json registry.json \
+  --proof_path root.proof --program_output root_outputs.json \
+  --packed_output_path root_packed.json
+```
+
+`stwo_run_and_prove_recursive_tree` with its flags (`--flag value` or
+`--flag=value`): the manifest `{"leaves": [...]}` names `LeafInput` files in
+fold order; the three outputs are the root's Cairo-verifier felt stream, its
+output digest and its packed-output tree, byte for byte as upstream writes
+them (rung R9, `circuit-parity-r9` in the circuit CPU integration).
+
+## `circuit-params`
+
+```sh
+zig-out/bin/stwo-circuit-recursion-cpu circuit-params \
+  --definition circuit_registry_definitions/canonical_small/definition.json \
+  --registry --output-path registry.json
+```
+
+`circuit-params --registry`: the definition's paths resolve against the
+working directory, as upstream's do. Only the registry output is ported, not
+upstream's human-readable sizes report (`--registry` is required). Without
+`--output-path` the registry goes to standard output.
+
 ## Test
 
 ```sh
-zig build test --build-file src/products/circuit_recursion_cpu/build.zig -Doptimize=ReleaseFast -j2
-zig build circuit-parity-r8 --build-file src/products/circuit_recursion_cpu/build.zig -Doptimize=ReleaseFast -j2
+zig build test-circuit-recursion-cpu-product -Doptimize=ReleaseFast -j2
+zig build circuit-parity-r8 -Doptimize=ReleaseFast -j2
 ```
+
+`test-circuit-recursion-cpu-product` runs the command-line and
+embedded-asset tests, `--help` on the installed binary and the product
+closure gate.
 
 `circuit-parity-r8` (labelled large: a 2^23-row circuit proof, about 11 GB
 and 1-2 minutes) wraps `use_all_opcodes_and_builtins` and requires the file

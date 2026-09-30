@@ -87,8 +87,10 @@ before editing):
      a fold proves and reads and writes the recursion wire formats, and the
      frontend may depend on neither. Registry generation is
      `recursion/circuit_params.zig` beside them. The product is
-     `stwo-circuit-recursion-cpu` (`fold-tree`, `circuit-params`) with
-     upstream's flag names; `leaf-wrap` (M8) and `verify` are not in it yet.
+     `stwo-circuit-recursion-cpu`, built from the product catalog
+     (`zig build stwo-circuit-recursion-cpu`): `leaf-wrap` (M8),
+     `fold-tree` and `circuit-params`, the last two with upstream's flag
+     names. `verify` is not in it.
    - R9 is `circuit-parity-r9` (circuit CPU integration): 1, 2, 3, 4 and 5
      copies of the golden leaf, all three root files as raw bytes, against
      the upstream four-leaf goldens and the oracle's new `fold-tree`
@@ -96,7 +98,9 @@ before editing):
      upstream's tree library on the same leaves. The release binary wrote
      the same bytes. Per-internal-node CircuitSerialize digests are not
      recorded: upstream emits no internal node, and every internal proof is
-     bound by the root bytes.
+     bound by the root bytes. A leaf proof with bytes after its
+     CircuitSerialize proof is accepted and the extra bytes ignored, as
+     upstream's `deserialize_proof_with_config` on a slice ignores them.
    - Registry generation (`circuit-parity-registry`) reproduces both
      canonical_small test registries byte for byte from their upstream
      definitions; the committed registries equal the release
@@ -105,6 +109,14 @@ before editing):
      reduction commits the canonical preprocessed trace again, as upstream
      does. One fold takes 50-65 s and up to 18 GB here against upstream's
      20 s and 22.7 GB; speed and the 8 GB host budget are M11.
+   - **R11 as §8.2 defines it (acceptance and tamper) is not an M9 exit.**
+     The M9 row first read "R11 green". Its local exit is now R9 plus
+     byte-identical registry generation. Acceptance of Zig leaf and root
+     proofs by the Rust verifiers is implied: their bytes equal upstream's
+     (R8, R9). The tamper half is not built, and neither is Zig
+     `verify_native`, which R11 also needs to accept Rust proofs. So R11
+     stays open. It is listed in the M9 row as a later gate on the big-host
+     lane (§8.3).
 
 Rust paths are relative to the root of
 [`starkware-libs/proving`](https://github.com/starkware-libs/proving) at commit
@@ -1118,6 +1130,15 @@ feeds TopologyKeys and budgets.
 
 All commands take `--memory-budget` (§9.3) and `--checkpoints`.
 
+**As built (M8, M9).** One catalog product, `stwo-circuit-recursion-cpu`,
+with three commands. `leaf-wrap` is as in §7.1. `fold-tree` takes
+`stwo_run_and_prove_recursive_tree`'s flags (`--program_input`,
+`--proof_path`, `--program_output`, `--packed_output_path`,
+`--circuit_registry_json`). `circuit-params` takes
+`--definition D --registry [--output-path P]`. The circuit AIR data is
+embedded and authenticated. `verify`, `--memory-budget` and `--checkpoints`
+are not built (errata 10).
+
 ---
 
 ## 8. Parity test ladder
@@ -1373,7 +1394,7 @@ work can be started earlier against committed fixtures.
 | **M6** | Cairo statement and leaf topology | `statements/cairo_statement.zig`, `cairo_public_data.zig`, variants, enabled_bits | R6 leaf, from committed Cairo-root fixtures (M0): canonical_small trace_log 20, `get_preprocessed_root` 21/22/23; all 83 slots confirmed; then, on the big host, production and privacy registries against big-host fixtures (errata 9) | M0 (Cairo-root fixtures), M4, M5 | 3 wk |
 | **M7** | Circuit prover (scalar and SIMD CPU) | `air/*`, `witness/*`, `proving/*`, generalised composition AOT step, `src/integrations/circuit_cpu` | R7 green, including interaction-column hashes; both grinds (20-bit interaction, 26-bit FRI) per §4.7 on the `.internal` (M31) and `.root` (plain) profiles; multiverifier `proof.bin` reproduced exactly; Rust verifier accepts Zig proofs; builder-share and grind-time measurements recorded | M0 (bundle), M1, M3, M5 | 4–5 wk |
 | **M8** | Leaf wrap (Stage A) | `recursion/leaf_wrap.zig`, `topology_key.zig`, `topology_cache.zig`, product `leaf-wrap` | R8 both gates (expected_output.json; mainnet 1,580,295-step bucket-25 leaf); then, on the big host, R10d (Zig Cairo proof of SN_PIE_2 wrapped by Zig == release `leaf-prover`, errata 8) | M6, M7 (R10d also M10) | 1.5 wk |
-| **M9** | Fold tree and root | `recursion/{fold,tree,canonical}.zig`, product `fold-tree`, `circuit-params` | R9 raw bytes on four_leaves and N = 1, 2, 3, 5 (Rust-produced leaf fixtures, test registry); registry generation byte-identical for the test definitions (errata 10). Parity-complete for Stage A. | M7, M8 | 2 wk |
+| **M9** | Fold tree and root | `recursion/{fold,tree,canonical}.zig`, product `fold-tree`, `circuit-params` | R9 raw bytes on four_leaves and N = 1, 2, 3, 5 (Rust-produced leaf fixtures, test registry); registry generation byte-identical for the test definitions (errata 10). Parity-complete for Stage A. Then, as a later gate on the big-host lane, R11 acceptance/tamper (§8.2), which needs Zig `verify_native` (errata 10) | M7, M8 | 2 wk |
 | **M10** | Zig Cairo leaf lane (Stage B) | `src/frontends/cairo` channel/revision parameterisation, include-all, AtLeastPreprocessed, public-data mix, params loader, CPU M31 grind | R10a–R10c; Cairo-lane vectors unchanged except the §4.7 PoW order (R10d is a big-host gate after M8, errata 8) | M1 (parallel to M2–M9) | 4–6 wk |
 | **M11** | CPU performance | caches, streaming commit, low-memory policy, scheduler, static budget | ladder still green after every change; the §9.4 CPU targets measured, pass or fail reported honestly | M9 | 3–4 wk |
 | **M12** | Metal, then CUDA | `src/integrations/circuit_{metal,cuda}`, §4.7 grind kernels (M31 and plain Blake2s; 20 and 26 bits, plus 24 for Stage B), gather and blake_g kernels | R7–R9 on device byte-equal to CPU scalar; fail-closed capability checks | M11 | 4–6 wk |
