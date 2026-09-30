@@ -190,6 +190,9 @@ pub fn Prover(comptime MC: type) type {
             defer interaction.deinit();
             const sum = try witness.lookupSum(base.output_values, interaction.claimed_sums, elements.z, elements.alpha);
             if (!sum.isZero()) return error.InvalidLookupSum;
+            // The interaction pass was the base columns' last reader; the
+            // commitment holds its own copy.
+            witness.freeColumns(allocator, base.takeColumns());
             const claimed_sums = interaction.claimed_sums.toArray();
             lookup_transcript.mixInteractionClaim(&channel, &claimed_sums);
             step(observer, .mix_interaction_claim, &channel);

@@ -183,6 +183,17 @@ pub fn Context(comptime V: type) type {
             return self.value_table.items;
         }
 
+        /// Consumes the context: returns the value table and frees
+        /// everything else (gates, constants, scratch), for a prover that
+        /// needs only the values once the circuit is preprocessed. On error
+        /// the context is unchanged. Value mode only.
+        pub fn intoValues(self: *Self) Allocator.Error![]QM31 {
+            comptime if (V != QM31) @compileError("intoValues() exists only in value mode");
+            const table = try self.value_table.toOwnedSlice(self.gpa);
+            self.deinit();
+            return table;
+        }
+
         /// The interned constants and their variables, in first-use order.
         pub fn constantVars(self: *const Self) []const circuit_mod.Var {
             return self.constants.values();

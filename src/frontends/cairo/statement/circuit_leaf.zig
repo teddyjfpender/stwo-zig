@@ -115,6 +115,23 @@ pub fn outputHashFromOutputCells(cells: []const [8]u32) Error![8]u32 {
     return digest;
 }
 
+/// The leaf's output digest (`prove_leaf.rs`): the output segment's cells of
+/// an execution, packed by `outputHashFromOutputCells`. The segment is the
+/// one `public_data.derive` puts in the output claim, so the digest and the
+/// serialized aux data describe the same cells.
+pub fn outputHash(input: *const adapter.ProverInput) (Error || public_data.Error)![8]u32 {
+    const segments = try public_data.extractPublicSegments(input);
+    const output = segments[0] orelse return Error.AbsentPublicSegment;
+    if (output.stop.value < output.start.value or output.stop.value - output.start.value != n_outputs)
+        return Error.OutputCellCount;
+    var cells: [n_outputs][8]u32 = undefined;
+    for (&cells, 0..) |*cell, offset| {
+        const entry = try public_data.memoryEntryAt(input.memory, output.start.value + @as(u32, @intCast(offset)));
+        cell.* = public_data.memoryValueWords(entry.value);
+    }
+    return outputHashFromOutputCells(&cells);
+}
+
 // ---------------------------------------------------------------------------
 // Program
 

@@ -170,3 +170,15 @@ test "context: QM31 and NoValue build identical gate lists" {
     try std.testing.expectEqual(values.circuit.n_vars, topology.circuit.n_vars);
     try std.testing.expect(try values.isCircuitValid());
 }
+
+test "context: intoValues returns the value table and frees the rest" {
+    var ctx = try TraceContext.init(gpa, 1);
+    const a = try ctx.guess(QM31.fromU32Unchecked(5, 0, 0, 0));
+    _ = try ctx.add(a, ctx.one());
+    const expected = try gpa.dupe(QM31, ctx.values());
+    defer gpa.free(expected);
+    const values = try ctx.intoValues();
+    defer gpa.free(values);
+    try std.testing.expectEqual(expected.len, values.len);
+    for (expected, values) |want, got| try std.testing.expect(want.eql(got));
+}
