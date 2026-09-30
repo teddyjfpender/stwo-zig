@@ -4,6 +4,17 @@ const std = @import("std");
 const cli = @import("cli.zig");
 const stwo = @import("stwo_cairo_cuda");
 const publication = @import("publication.zig");
+const CanonicalSource = stwo.integration.canonical_source.Prepared;
+const Decoded = stwo.integration.canonical_verify.Decoded;
+const ProofCapture = stwo.frontend.witness.resident_verifier.ProofCapture;
+
+/// The verified proof and its authenticated openings are borrowed only during
+/// this callback. A recursive leaf builder can consume them without proving
+/// the same Cairo execution again or serializing a large capture sidecar.
+pub const VerifiedLeafSink = struct {
+    context: *anyopaque,
+    receive: *const fn (*anyopaque, *const CanonicalSource, *const Decoded, *const ProofCapture, u64) anyerror!void,
+};
 const ResidentStatic = struct {
     arena_key: [32]u8,
     receipt: stwo.executor.preprocessed_cache.Receipt,
@@ -25,6 +36,12 @@ pub fn main() !void {
 }
 
 fn prove(allocator: std.mem.Allocator, request: cli.Prove) !void {
+    return proveWithSink(allocator, request, null);
+}
+
+pub fn proveWithSink(allocator: std.mem.Allocator, request: cli.Prove, sink: ?VerifiedLeafSink) !void {
+    if (sink != null and (request.circuit_registry == null or request.repeat != 1))
+        return error.InvalidRecursiveLeafRequest;
     var receipts = std.ArrayList(publication.Receipt).empty;
     defer receipts.deinit(allocator);
     const executable = try std.fs.selfExePathAlloc(allocator);
@@ -40,7 +57,7 @@ fn prove(allocator: std.mem.Allocator, request: cli.Prove) !void {
     var expected_digest: ?[32]u8 = null;
     var resident_static: ?ResidentStatic = null;
     for (0..request.repeat) |index| {
-        const receipt = try proveOnce(allocator, &runtime, &resident_static, request, executable_digest, @intCast(index + 1), if (index == 0) runtime_init_ns else 0);
+        const receipt = try proveOnce(allocator, &runtime, &resident_static, request, executable_digest, @intCast(index + 1), if (index == 0) runtime_init_ns else 0, sink);
         if (expected_digest) |expected| {
             if (!std.mem.eql(u8, &expected, &receipt.proof_sha256)) return error.NondeterministicCairoCudaProof;
         } else expected_digest = receipt.proof_sha256;
@@ -61,6 +78,7 @@ fn proveOnce(
     executable_digest: [32]u8,
     index: u32,
     runtime_init_ns: u64,
+    sink: ?VerifiedLeafSink,
 ) !publication.Receipt {
     var timer = try std.time.Timer.start();
     var phase: []const u8 = "resolve_input";
@@ -238,11 +256,16 @@ fn proveOnce(
     defer output.deinit(allocator);
 
     phase = "verify_canonical_proof";
-    var decoded = try stwo.integration.canonical_verify.verifyAndDecode(allocator, &diagnostic, output.proof);
+    var capture: ProofCapture = undefined;
+    var decoded = if (sink != null)
+        try stwo.integration.canonical_verify.verifyAndDecodeWithCapture(allocator, &diagnostic, output.proof, &capture)
+    else
+        try stwo.integration.canonical_verify.verifyAndDecode(allocator, &diagnostic, output.proof);
     defer decoded.deinit(allocator);
+    defer if (sink != null) capture.deinit(allocator);
     phase = "publish_official_proof";
     const proof_bytes = try publication.writeCanonicalProof(request.output, &diagnostic, &decoded, output.proof.structural.interactionNonce());
-    return .{
+    const receipt: publication.Receipt = .{
         .index = index,
         .protocol = diagnostic.protocol,
         .input_sha256 = diagnostic.input_sha256,
@@ -269,6 +292,11 @@ fn proveOnce(
         .proof_bytes = proof_bytes,
         .verdict = output.verdict,
     };
+    if (sink) |receiver| {
+        phase = "deliver_verified_leaf";
+        try receiver.receive(receiver.context, &diagnostic, &decoded, &capture, output.proof.structural.interactionNonce());
+    }
+    return receipt;
 }
 
 const Uploader = struct {

@@ -81,6 +81,15 @@ src/integrations/circuit_cuda/build.zig
 -Dcuda-clang=/opt/homebrew/opt/llvm/bin/clang` regenerates the authenticated
 sources and lowers every body to `sm_80` and `sm_90` PTX. The check also
 validates each source SHA-256 and the exact eleven-body placement inventory.
+The catalogue also admits a geometry-bound AIR only when all eleven placements
+retain their pinned normalized program identities and constant counts. The
+Cairo CUDA product now exposes an in-process verified-proof sink; the circuit
+recursion app accepts its compressed proof plus authenticated opening capture
+through `leafWrapVerified`. The typed adapter is
+`src/products/circuit_recursion_cuda/verified_sink.zig`. It has a local
+compile/contract test, but is not installed as a full-CUDA pipeline command:
+the circuit wrap and fold still use the CPU PCS until the resident circuit
+session is implemented.
 
 ## Build steps
 

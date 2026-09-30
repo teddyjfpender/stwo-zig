@@ -113,6 +113,40 @@ pub fn build(b: *std.Build) void {
     app.addAnonymousImport("circuit_air_programs", .{
         .root_source_file = .{ .cwd_relative = b.pathFromRoot("../../../vectors/circuit/official/circuit_air.air_programs_v1.bin") },
     });
+    const cairo_cuda_backend = cairo_cuda.import_table.get("stwo_cuda_backend") orelse
+        @panic("Cairo CUDA integration is missing stwo_cuda_backend");
+    const cairo_facade = b.createModule(.{
+        .root_source_file = .{ .cwd_relative = b.pathFromRoot("../../cairo_cuda.zig") },
+        .target = target,
+        .optimize = optimize,
+    });
+    cairo_facade.addImport("stwo_cuda_backend", cairo_cuda_backend);
+    cairo_facade.addImport("stwo_cairo_frontend", cairo);
+    cairo_facade.addImport("stwo_cairo_cuda_integration", cairo_cuda);
+    const cairo_app = b.createModule(.{
+        .root_source_file = .{ .cwd_relative = b.pathFromRoot("../../products/cairo_cuda/app.zig") },
+        .target = target,
+        .optimize = optimize,
+    });
+    cairo_app.addImport("stwo_cairo_cuda", cairo_facade);
+    cairo_app.addImport("stwo_circuit_recursion_wire", wire);
+    const architectures = b.addOptions();
+    architectures.addOption([]const u8, "architectures", cuda_arch);
+    cairo_app.addImport("cuda_architectures", architectures.createModule());
+    const handoff_root = b.createModule(.{
+        .root_source_file = .{ .cwd_relative = b.pathFromRoot("../../products/circuit_recursion_cuda/verified_sink.zig") },
+        .target = target,
+        .optimize = optimize,
+    });
+    handoff_root.addImport("cairo_cuda_app", cairo_app);
+    handoff_root.addImport("circuit_recursion_app", app);
+    handoff_root.addImport("stwo_circuit_cpu_integration", circuit_cpu);
+    handoff_root.addImport("stwo_cairo_cuda_integration", cairo_cuda);
+    handoff_root.addImport("stwo_cairo_frontend", cairo);
+    const handoff_test = b.addTest(.{ .root_module = handoff_root });
+    const run_handoff_test = b.addRunArtifact(handoff_test);
+    run_handoff_test.setCwd(repository_root);
+    test_step.dependOn(&run_handoff_test.step);
     const product_root = b.createModule(.{
         .root_source_file = .{ .cwd_relative = b.pathFromRoot("../../products/circuit_recursion_cuda/main.zig") },
         .target = target,

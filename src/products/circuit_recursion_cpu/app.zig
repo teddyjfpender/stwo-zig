@@ -215,6 +215,41 @@ pub fn leafWrapWith(comptime CairoLeaf: type, allocator: std.mem.Allocator, requ
     timings.cairo_prove_ns = timer.lap();
 
     // Steps 4-8: the wrap.
+    const leaf = try wrapAfterCairoProof(allocator, request, &registry.registry, program, &cairo_proof, &input, false);
+    timings.wrap_ns = timer.lap();
+    return leaf;
+}
+
+/// The CUDA Cairo product supplies an independently verified compressed proof
+/// and its opening capture. This path never starts the Cairo CPU prover.
+pub fn leafWrapVerified(
+    allocator: std.mem.Allocator,
+    request: LeafWrapRequest,
+    verified: leaf_wrap.VerifiedCairoLeaf,
+    input: *const cairo.adapter.ProverInput,
+) !leaf_wrap.LeafProof {
+    const registry_text = try readFile(allocator, request.registry_path);
+    defer allocator.free(registry_text);
+    var registry = try wire.registry.parseRegistry(allocator, registry_text);
+    defer registry.deinit();
+    const program_json = try readFile(allocator, request.program_path);
+    const program = blk: {
+        defer allocator.free(program_json);
+        break :blk try cairo.statement.circuit_leaf.programFeltsFromCompiledJson(allocator, program_json);
+    };
+    defer allocator.free(program);
+    return wrapAfterCairoProof(allocator, request, &registry.registry, program, verified, input, true);
+}
+
+fn wrapAfterCairoProof(
+    allocator: std.mem.Allocator,
+    request: LeafWrapRequest,
+    registry: *const wire.registry.CircuitRegistry,
+    program: anytype,
+    cairo_proof: anytype,
+    input: *const cairo.adapter.ProverInput,
+    comptime verified: bool,
+) !leaf_wrap.LeafProof {
     var air = try Air.init(allocator);
     defer air.deinit();
     var cairo_table = try air.cairoTable(allocator);
@@ -225,7 +260,7 @@ pub fn leafWrapWith(comptime CairoLeaf: type, allocator: std.mem.Allocator, requ
     var cache = leaf_wrap.Cache.init(allocator, .{});
     defer cache.deinit();
     const wrap = leaf_wrap.LeafWrap{
-        .registry = &registry.registry,
+        .registry = registry,
         .cairo_table = &cairo_table,
         .bundle = &bundle,
         .program = program,
@@ -233,9 +268,10 @@ pub fn leafWrapWith(comptime CairoLeaf: type, allocator: std.mem.Allocator, requ
         .options = request.options,
         .provers = request.provers,
     };
-    const leaf = try leaf_wrap.wrapCairoProof(allocator, &wrap, &cairo_proof, &input);
-    timings.wrap_ns = timer.lap();
-    return leaf;
+    return if (comptime verified)
+        leaf_wrap.wrapVerifiedCairoLeaf(allocator, &wrap, cairo_proof, input)
+    else
+        leaf_wrap.wrapCairoProof(allocator, &wrap, cairo_proof, input);
 }
 
 /// Writes `leaf` to `path` atomically.
