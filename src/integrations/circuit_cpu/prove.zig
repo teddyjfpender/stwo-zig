@@ -48,6 +48,14 @@ const PerComponent = component_list.PerComponent;
 /// Stage timing scope; a null recorder makes it a no-op.
 pub const StageScope = prover.stage_profile.StageScope;
 const CapturedComponent = cairo.proving.air.component.Component;
+const NativeExecutor = cairo.proving.air.native_evaluator.Executor;
+const composition_aot = @import("circuit_composition_cpu_aot");
+
+/// The circuit AIR's generated native composition kernels
+/// (`composition_aot_build.zig`), one per recorded program.
+pub fn nativeCompositionExecutor() NativeExecutor {
+    return composition_aot.executor();
+}
 
 pub const profiles = core.vcs_lifted.channel_profile.proving_5a7c5ed;
 
@@ -98,6 +106,9 @@ pub const Options = struct {
     twiddle_tower: ?*const TwiddleTower = null,
     /// Optional whole-stage device evaluator for the captured circuit AIR.
     composition_device: ?DeviceStage.Device = null,
+    /// Evaluates composition with generated native kernels; null uses the
+    /// SIMD interpreter. Both produce the same field values.
+    composition_executor: ?NativeExecutor = nativeCompositionExecutor(),
 };
 
 const DeviceStage = cairo.proving.air.device_stage;
@@ -442,6 +453,8 @@ pub fn ProverOn(comptime B: type, comptime MC: type) type {
                     elements.alpha,
                     claimed_sum,
                 );
+                runtime.native_executor = options.composition_executor;
+                runtime.recorder = if (options.composition_executor != null) options.recorder else null;
                 component.* = runtime.asProverComponent();
                 // Every circuit component is a 2^20..2^23-row domain: give
                 // each the whole pool in turn, row-split, instead of leaving

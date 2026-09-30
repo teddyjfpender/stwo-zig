@@ -9,6 +9,7 @@ const graph_install = @import("../graph/install.zig");
 const graph = @import("../graph/modules.zig");
 const integration_graph = @import("../graph/integrations.zig");
 const product_policy = @import("../graph/product.zig");
+const composition_aot = @import("../../src/integrations/circuit_cpu/composition_aot_build.zig");
 
 const protocol_features = "circuit-recursion-proving-5a7c5ed-v1";
 
@@ -34,7 +35,7 @@ const source_closure = product_policy.SourceClosure{
         .{ .name = "stwo_prover_api", .source = "src/prover_api/mod.zig" },
         .{ .name = "stwo_prover_engine", .source = "src/prover/mod.zig" },
     },
-    .generated_imports = &.{ "circuit_air_projection", "circuit_air_programs" },
+    .generated_imports = &.{ "circuit_air_projection", "circuit_air_programs", "circuit_composition_cpu_aot" },
     .allowed_files = &.{
         "src/interop/felt_json.zig",
         "src/interop/cairo_prover_parameters.zig",
@@ -268,6 +269,7 @@ fn createProductModuleAt(context: Context, product_descriptor: graph.Product, ro
     integration.addImport("stwo_circuit_frontend", circuit_frontend);
     integration.addImport("stwo_cairo_frontend", cairo_frontend);
     integration.addImport("stwo_circuit_recursion_wire", wire);
+    integration.addImport("circuit_composition_cpu_aot", composition_aot.createModule(b, context.target, context.optimize, context.protocol.core, cairo_frontend, ""));
     root.addImport("stwo_circuit_cpu_integration", integration);
 
     for (embedded_assets) |asset| root.addAnonymousImport(asset.name, .{ .root_source_file = b.path(asset.path) });

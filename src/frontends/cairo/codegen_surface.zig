@@ -8,6 +8,7 @@ pub const frontends = struct {
         pub const witness = struct {
             pub const eval_program = @import("witness/eval_program.zig");
             pub const eval_program_identity = @import("witness/eval_program_identity.zig");
+            pub const composition_bundle = @import("witness/composition_bundle.zig");
         };
         pub const codegen = struct {
             pub const eval_program = @import("codegen/eval_program.zig");
