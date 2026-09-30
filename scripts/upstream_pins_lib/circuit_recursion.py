@@ -61,15 +61,52 @@ ORACLE_ARTIFACTS = (
 # (fixture, rung, adapted ProverInput under the repository root, registry in the proving
 # checkout) for `prove-cairo`, the leaf-lane Cairo proofs (R10c). The inputs are the
 # stwo-cairo 82f2125 fixtures authenticated by vectors/cairo/official provenance.
-# (fixture, rung, compiled program in the proving checkout) for `adapt-program`: the
-# leaf prover's own VM run and adapter (prove_leaf.rs steps 1-2), emitted as ProverInput JSON.
+# The leaf simple bootloader's input in upstream `test_golden_four_leaves_e2e`
+# (`crates/stwo_run_and_prove_recursive_tree/src/tests.rs`, `leaf_bl_input_json`): one
+# `simple_output` task with output [11, 13, 17]. (task program, task output, golden
+# hashed-output preimage the run must dump), paths in the proving checkout.
+SIMPLE_OUTPUT_TASK = (
+    "crates/stwo_run_and_prove_recursive_tree/test_data/simple_output_compiled.json",
+    (11, 13, 17),
+    "crates/stwo_run_and_prove_recursive_tree/test_data/goldens/four_leaves/leaf_preimage.json",
+)
+LEAF_BOOTLOADER_INPUT_PLACEHOLDER = "<leaf bootloader input written by the generator>"
+PREIMAGE_DUMP_PLACEHOLDER = "<hashed-output preimage dump, outside the tree>"
+# (fixture, rung, compiled program in the proving checkout, bootloader task or None) for
+# `adapt-program`: the leaf prover's own VM run and adapter (prove_leaf.rs steps 1-2), emitted as
+# ProverInput JSON.
 ADAPTED_PROGRAMS = (
     (
         f"{VECTORS}/r10/use_all_opcodes_and_builtins.prover_input.json",
         "r10c",
         "crates/leaf_prover/tests/data/use_all_opcodes_and_builtins_compiled.json",
+        None,
+    ),
+    (
+        f"{VECTORS}/r10/leaf_simple_bootloader.prover_input.json",
+        "r8b",
+        "crates/stwo_run_and_prove_recursive_tree/test_data/leaf_simple_bootloader_compiled.json",
+        SIMPLE_OUTPUT_TASK,
     ),
 )
+
+
+def leaf_bootloader_input(task: tuple, proving_root: str, dump_path: str) -> dict:
+    """`leaf_bl_input_json` of upstream's e2e test for `task` (a `SIMPLE_OUTPUT_TASK`)."""
+    program, output, _preimage = task
+    return {
+        "tasks": [
+            {
+                "type": "RunProgramTask",
+                "path": f"{proving_root}/{program}",
+                "program_input": {"output": list(output)},
+                "program_hash_function": "blake",
+            }
+        ],
+        "fact_topologies_path": None,
+        "single_page": True,
+        "output_preimage_dump_path": dump_path,
+    }
 CAIRO_PROOF_REGISTRY = "crates/leaf_prover/tests/data/circuit_registry_canonical_small.json"
 # The last field overrides the registry's lifting policy (None keeps it): small programs
 # never lift under AtLeastPreprocessed, so `fixed:22` covers the lifted Cairo trees.
@@ -200,6 +237,14 @@ UPSTREAM_COPIES = (
         "crates/leaf_prover/tests/data/circuit_fri_config_canonical_small.json",
     ),
     (
+        f"{VECTORS}/official/programs/simple_output_compiled.json",
+        "crates/stwo_run_and_prove_recursive_tree/test_data/simple_output_compiled.json",
+    ),
+    (
+        f"{VECTORS}/official/recursive_tree/four_leaves/leaf_preimage.json",
+        "crates/stwo_run_and_prove_recursive_tree/test_data/goldens/four_leaves/leaf_preimage.json",
+    ),
+    (
         f"{VECTORS}/official/recursive_tree/four_leaves/leaf.json",
         "crates/stwo_run_and_prove_recursive_tree/test_data/goldens/four_leaves/leaf.json",
     ),
@@ -226,8 +271,9 @@ MANAGED = (
 )
 
 
-def adapt_program_command(path: str, program: str) -> list[str]:
+def adapt_program_command(path: str, program: str, task: tuple | None = None) -> list[str]:
     """The recorded `adapt-program` invocation of an adapted ProverInput fixture."""
+    program_input = ["--program-input", LEAF_BOOTLOADER_INPUT_PLACEHOLDER] if task else []
     return [
         "stwo-circuit-oracle",
         "adapt-program",
@@ -235,6 +281,7 @@ def adapt_program_command(path: str, program: str) -> list[str]:
         PROVING_ROOT_PLACEHOLDER,
         "--program",
         program,
+        *program_input,
         "--output",
         path,
     ]
@@ -661,10 +708,14 @@ def _check_provenance(root: Path, repository: str, revision: str, toolchain: str
             errors.append(f"{path}: provenance command is not {command}")
         if path.endswith(".json"):
             errors.extend(_check_checkpoint(root, path, rung, subcommand, revision))
-    for path, _rung, program in ADAPTED_PROGRAMS:
-        command = adapt_program_command(path, program)
+    for path, _rung, program, task in ADAPTED_PROGRAMS:
+        command = adapt_program_command(path, program, task)
         if by_path.get(path, {}).get("command") != command:
             errors.append(f"{path}: provenance command is not {command}")
+        if task:
+            expected_input = leaf_bootloader_input(task, PROVING_ROOT_PLACEHOLDER, PREIMAGE_DUMP_PLACEHOLDER)
+            if by_path.get(path, {}).get("program_input") != expected_input:
+                errors.append(f"{path}: provenance program_input is not {expected_input}")
     for path, rung, prover_input, registry, policy in CAIRO_PROOF_ARTIFACTS:
         command = cairo_proof_command(path, prover_input, registry, policy)
         if by_path.get(path, {}).get("command") != command:

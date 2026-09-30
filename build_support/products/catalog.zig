@@ -123,6 +123,7 @@ pub const steps = [_]Step{
     .{ .name = "test-cairo-cpu-native-composition", .description = "Compare every authenticated native CPU AIR kernel with SIMD", .scope = .cairo_cpu },
     .{ .name = "test-cairo-cpu-oracle", .description = "Prove through the CPU CLI and require official Rust acceptance", .scope = .cairo_cpu },
     .{ .name = "circuit-parity-r8", .description = "R8: leaf-wrap of the leaf prover's test program equals leaf-prover's expected_output.json (large)", .scope = .circuit_recursion_cpu },
+    .{ .name = "circuit-parity-r8b", .description = "R8b: the Zig bootloader leaf equals four_leaves/leaf.json and folds to the root goldens (large)", .scope = .circuit_recursion_cpu },
     .{ .name = "test-cairo-metal-codegen", .description = "Test typed Metal composition generation and fusion", .scope = .cairo_metal },
     .{ .name = "test-cairo-metal-oracle", .description = "Require exact Cairo CPU/Metal parity and official Rust acceptance", .scope = .cairo_metal },
     .{ .name = "test-cairo-frontend", .description = "Run focused backend-neutral Cairo conformance tests", .scope = .compatibility_tools },

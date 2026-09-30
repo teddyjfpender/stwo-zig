@@ -14,7 +14,7 @@ host-specific. `python3 scripts/check_upstream_pins.py` rejects any drift. Regen
 
 | File | Rung | Content |
 |---|---|---|
-| `r0/primitives.json` | R0 | channel transcripts, grinds, field operations, hashing, circuit hashes, ChaCha20Rng, felt252 encoding, leaf JSON, base64, FRI folding with fold_step 4 |
+| `r0/primitives.json` | R0 | channel transcripts, grinds, field operations, hashing, circuit hashes, ChaCha20Rng, felt252 encoding, `Felt::from_dec_str` acceptance (release-build wrap past 2^256), leaf JSON, base64 encoding and `serde_with` decoding (indifferent padding), FRI folding with fold_step 4 |
 | `r2/gadgets.json` | R1, R2 | builder and gadget circuits, before and after `finalize` |
 | `r3/components.json` | R3 | all 94 in-circuit evaluators in a fresh `Context` |
 | `r3/statement_trace.json` | R3 | per-evaluator, per-harness-stage gate digests with evaluator-relative variables, in 128-gate windows |
@@ -32,12 +32,14 @@ host-specific. `python3 scripts/check_upstream_pins.py` rejects any drift. Regen
 | `official/registries/*.json` | R0, R6 | the checked-in circuit registries: the two canonical_small test registries and the privacy `large_proofs` registry |
 | `official/circuit_multiverifier/*.bin` | R4, R7 | upstream `test_data/circuit_multiverifier`: `CircuitSerialize` multiverifier and Cairo-verifier proofs (`LOG_BLOWUP_FACTOR` 3) |
 | `official/leaf_prover/expected_output.json` | R8 | the leaf prover's `SerializedLeafProof` golden for `use_all_opcodes_and_builtins` |
-| `official/recursive_tree/four_leaves/*` | R9 | the recursive tree's four-leaf goldens: `leaf.json` (`LeafInput`), `root.proof`, `root_outputs.json`, `root_packed.json` |
+| `official/recursive_tree/four_leaves/*` | R8b, R9 | the recursive tree's four-leaf goldens: `leaf.json` (`LeafInput`), `leaf_preimage.json` (the bootloader's hashed-output preimage dump, hex felts), `root.proof`, `root_outputs.json`, `root_packed.json` |
 | `r6/cairo_statement.json` | R6 | `CairoStatement` host facts: constants, leaf `enabled_bits`, ordered preprocessed ids, program limbs and hash, a synthetic `FlatClaim`'s aux data and mix digests, the leaf `ProofConfig` and proof size |
 | `official/programs/use_all_opcodes_and_builtins_compiled.json` | R6, R8 | upstream `crates/leaf_prover/tests/data/`: the leaf test program |
 | `official/programs/leaf_simple_bootloader_compiled.json` | registry | upstream `crates/stwo_run_and_prove_recursive_tree/test_data/`: the program of the recursive-tree registry definition |
 | `official/registry_definitions/{canonical_small,leaf_prover_canonical_small}/*.json` | registry | upstream `circuit-params` definitions of the two canonical_small test registries and the parameter files they name |
 | `r10/use_all_opcodes_and_builtins.prover_input.json` | R10c, R8 | the leaf prover's test program (`crates/leaf_prover/tests/data`) run and adapted by upstream `prove_leaf.rs` steps 1-2 |
+| `r10/leaf_simple_bootloader.prover_input.json` | R8b | the leaf simple bootloader running one `simple_output` task with output `[11, 13, 17]` (upstream `test_golden_four_leaves_e2e`'s `leaf_bl_input`), run and adapted by `prove_leaf.rs` steps 1-2; the run's hashed-output preimage dump equals `four_leaves/leaf_preimage.json` |
+| `official/programs/simple_output_compiled.json` | R8b | upstream `crates/stwo_run_and_prove_recursive_tree/test_data/`: the bootloader task of the four-leaf goldens |
 | `r10/all_opcodes.fixed_22.prove_cairo.json` | R10c | `all_opcodes` under `LiftingSizePolicy::Fixed(22)`: every tree, the preprocessed one included, lifted one level above its columns |
 | `r10/prove_lifted_example.json` | R10 lift | upstream's wide-Fibonacci prover test with the trace tree lifted 0, 1 and 3 levels: `bincode(StarkProof)` digests |
 | `r10/{all_opcodes,all_builtins,use_all_opcodes_and_builtins}.prove_cairo.json` | R10c | leaf-lane Cairo proofs (`prove_cairo::<Blake2sM31MerkleChannel>` under the canonical_small leaf registry's `cairo_prover_params`) of the stwo-cairo 82f2125 `vectors/cairo/official` inputs and the adapted leaf-prover program: proof byte digests and per-stage transcript values |

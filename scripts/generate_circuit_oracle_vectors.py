@@ -93,16 +93,35 @@ def generate(staging: Path, oracle: Path, proving: Path, zig_emit_dir: Path | No
         if path == lane.AIR_PROGRAMS:
             fields.update(bundle_summary((staging / path).read_bytes()))
         artifacts.append(artifact_record(staging, path, **fields))
-    for path, rung, program in lane.ADAPTED_PROGRAMS:
+    for path, rung, program, task in lane.ADAPTED_PROGRAMS:
         (staging / path).parent.mkdir(parents=True, exist_ok=True)
+        program_input: list[str] = []
+        fields: dict[str, object] = {"rung": rung, "command": lane.adapt_program_command(path, program, task)}
+        if task:
+            # The bootloader reads its task and dumps the hashed-output preimage at the paths the
+            # input names; the dump must be upstream's golden preimage, so the adapted run is the
+            # execution the golden leaf proves.
+            dump = staging / "leaf_preimage.dump.json"
+            input_file = staging / "leaf_bootloader_input.json"
+            input_file.write_text(
+                json.dumps(lane.leaf_bootloader_input(task, str(proving), str(dump)), indent=2),
+                encoding="utf-8",
+            )
+            program_input = ["--program-input", str(input_file)]
+            fields["program_input"] = lane.leaf_bootloader_input(
+                task, lane.PROVING_ROOT_PLACEHOLDER, lane.PREIMAGE_DUMP_PLACEHOLDER
+            )
         subprocess.run(
             [str(oracle), "adapt-program", "--proving-root", str(proving), "--program", program,
-             "--output", str(staging / path)],
+             *program_input, "--output", str(staging / path)],
             check=True,
         )
-        artifacts.append(
-            artifact_record(staging, path, rung=rung, command=lane.adapt_program_command(path, program))
-        )
+        if task:
+            if dump.read_bytes() != (proving / task[2]).read_bytes():
+                raise SystemExit(f"{path}: the bootloader's preimage dump differs from {task[2]}")
+            dump.unlink()
+            input_file.unlink()
+        artifacts.append(artifact_record(staging, path, **fields))
     adapted = {path for path, *_ in lane.ADAPTED_PROGRAMS}
     for path, rung, prover_input, registry, policy in lane.CAIRO_PROOF_ARTIFACTS:
         # Leaf-lane Cairo proofs of small programs: seconds and 2-4 GB each. An input

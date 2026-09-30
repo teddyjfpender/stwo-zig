@@ -24,7 +24,8 @@ const cairo = @import("stwo_cairo_frontend");
 const cairo_leaf = @import("stwo_cairo_cpu_integration").prover.leaf_transaction;
 const circuit = @import("stwo_circuit_frontend");
 const circuit_cpu = @import("stwo_circuit_cpu_integration");
-const wire = @import("stwo_circuit_recursion_wire");
+/// The wire formats, for callers that hand this module parsed inputs.
+pub const wire = @import("stwo_circuit_recursion_wire");
 const prover = @import("stwo_prover_engine");
 const cli = @import("cli.zig");
 
@@ -63,7 +64,7 @@ fn run(gpa: std.mem.Allocator, parsed: cli.Parsed) !void {
     switch (parsed) {
         .help => try std.fs.File.stdout().writeAll(cli.usage),
         .leaf_wrap => |command| try leafWrapCommand(gpa, command),
-        .fold_tree => |command| try foldTree(gpa, command),
+        .fold_tree => |command| try foldTreeCommand(gpa, command),
         .circuit_params => |command| try circuitParams(gpa, command),
     }
 }
@@ -277,10 +278,66 @@ const HashText = struct {
     }
 };
 
+/// The three root files of a recursive tree, as upstream writes them.
+pub const RootFiles = struct {
+    /// `root.proof`: the Cairo circuit verifier's felt stream.
+    proof: std.Io.Writer.Allocating,
+    /// `root_outputs.json`.
+    outputs: std.Io.Writer.Allocating,
+    /// `root_packed.json`.
+    packed_tree: std.Io.Writer.Allocating,
+    stats: recursion.Stats,
+
+    pub fn deinit(self: *RootFiles) void {
+        self.proof.deinit();
+        self.outputs.deinit();
+        self.packed_tree.deinit();
+        self.* = undefined;
+    }
+};
+
+/// `stwo_run_and_prove_recursive_tree` after `load_leaves`: builds the
+/// canonical multiverifier of `registry` (checked against it), folds
+/// `leaves` in order and renders the three root files.
+pub fn foldTree(gpa: std.mem.Allocator, registry: wire.registry.CircuitRegistry, leaves: []const wire.leaf_proof_json.LeafInput) !RootFiles {
+    if (leaves.len == 0) return error.EmptyLeaves;
+    // A proof-scoped worker pool (`STWO_ZIG_WORKERS` sizes it), as R9 folds.
+    var pool: prover.work_pool.WorkPool = undefined;
+    try pool.initInPlace();
+    defer pool.deinit();
+    var binding = try prover.work_pool.ScopedPoolBinding.init(&pool);
+    defer binding.deinit();
+
+    var air = try Air.init(gpa);
+    defer air.deinit();
+    var circuit_table = try air.circuitTable(gpa);
+    defer circuit_table.deinit();
+    var bundle = try airBundle(gpa);
+    defer bundle.deinit();
+    var canonical = try recursion.CanonicalCircuit.build(gpa, &circuit_table, registry);
+    defer canonical.deinit(gpa);
+
+    var packed_arena = std.heap.ArenaAllocator.init(gpa);
+    defer packed_arena.deinit();
+    const fold: recursion.Fold = .{
+        .canonical = &canonical,
+        .table = &circuit_table,
+        .bundle = &bundle,
+        .options = .{ .compact_polynomial_min_log = cli.default_compact_min_log },
+        .packed_allocator = packed_arena.allocator(),
+    };
+    var folded = try recursion.tree.foldLeaves(gpa, &fold, leaves);
+    defer folded.root.deinit();
+
+    var files: RootFiles = .{ .proof = .init(gpa), .outputs = .init(gpa), .packed_tree = .init(gpa), .stats = folded.stats };
+    errdefer files.deinit();
+    try recursion.tree.writeRootOutputs(&folded.root, &files.proof.writer, &files.outputs.writer, &files.packed_tree.writer);
+    return files;
+}
+
 /// `stwo_run_and_prove_recursive_tree`: loads the leaves and the registry,
-/// builds the canonical multiverifier (checked against the registry), folds
-/// and writes the three root files.
-fn foldTree(gpa: std.mem.Allocator, command: cli.FoldTree) !void {
+/// folds and writes the three root files.
+fn foldTreeCommand(gpa: std.mem.Allocator, command: cli.FoldTree) !void {
     var arena_state = std.heap.ArenaAllocator.init(gpa);
     defer arena_state.deinit();
     const arena = arena_state.allocator();
@@ -292,41 +349,16 @@ fn foldTree(gpa: std.mem.Allocator, command: cli.FoldTree) !void {
         leaf.* = (try wire.leaf_proof_json.parseLeafInput(arena, try readFile(arena, path))).value;
     }
     const registry = try wire.registry.parseRegistry(arena, try readFile(arena, command.circuit_registry_json));
-    if (leaves.len == 0) return error.EmptyLeaves;
 
-    var air = try Air.init(gpa);
-    defer air.deinit();
-    var circuit_table = try air.circuitTable(gpa);
-    defer circuit_table.deinit();
-    var bundle = try airBundle(gpa);
-    defer bundle.deinit();
-    var canonical = try recursion.CanonicalCircuit.build(gpa, &circuit_table, registry.registry);
-    defer canonical.deinit(gpa);
-
-    const fold: recursion.Fold = .{
-        .canonical = &canonical,
-        .table = &circuit_table,
-        .bundle = &bundle,
-        .options = .{ .compact_polynomial_min_log = 18 },
-        .packed_allocator = arena,
-    };
-    var folded = try recursion.tree.foldLeaves(gpa, &fold, leaves);
-    defer folded.root.deinit();
-
-    var proof: std.Io.Writer.Allocating = .init(gpa);
-    defer proof.deinit();
-    var outputs: std.Io.Writer.Allocating = .init(gpa);
-    defer outputs.deinit();
-    var packed_tree: std.Io.Writer.Allocating = .init(gpa);
-    defer packed_tree.deinit();
-    try recursion.tree.writeRootOutputs(&folded.root, &proof.writer, &outputs.writer, &packed_tree.writer);
-    try writeFile(command.proof_path, proof.written());
-    try writeFile(command.program_output, outputs.written());
-    try writeFile(command.packed_output_path, packed_tree.written());
+    var files = try foldTree(gpa, registry.registry, leaves);
+    defer files.deinit();
+    try writeFile(command.proof_path, files.proof.written());
+    try writeFile(command.program_output, files.outputs.written());
+    try writeFile(command.packed_output_path, files.packed_tree.written());
     std.log.info("recursive tree: {d} leaves, {d} layers, {d} reductions", .{
-        folded.stats.n_leaves,
-        folded.stats.n_layers,
-        folded.stats.n_pair_reductions,
+        files.stats.n_leaves,
+        files.stats.n_layers,
+        files.stats.n_pair_reductions,
     });
 }
 

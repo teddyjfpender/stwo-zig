@@ -112,21 +112,33 @@ pub fn addProduct(context: Context) void {
     });
     test_step.dependOn(&closure_check.step);
 
-    // R8: large (a 2^23-row circuit proof, about 11 GB); not part of the
-    // product test step. The test reads `vectors/` from the repository root.
-    const r8_root = graph.create(context.b, .{
-        .product = product(.@"test"),
-        .root_source_file = "src/products/circuit_recursion_cpu/tests/r8_leaf_wrap_test.zig",
-        .target = context.target,
-        .optimize = context.optimize,
-    });
-    r8_root.addImport("app", createProductModuleAt(context, product(.@"test"), "src/products/circuit_recursion_cpu/app.zig"));
-    const r8_tests = context.b.addRunArtifact(context.b.addTest(.{ .root_module = r8_root }));
-    r8_tests.setCwd(context.b.path("."));
+    // R8 and R8b: large (a 2^23-row circuit proof, about 11 GB, and for R8b
+    // a four-leaf tree after it); not part of the product test step. The
+    // tests read `vectors/` from the repository root.
+    const app = createProductModuleAt(context, product(.@"test"), "src/products/circuit_recursion_cpu/app.zig");
     context.b.step(
         "circuit-parity-r8",
         "Rung R8: leaf-wrap of the leaf prover's test program equals leaf-prover's expected_output.json",
-    ).dependOn(&r8_tests.step);
+    ).dependOn(addAppTest(context, app, "src/products/circuit_recursion_cpu/tests/r8_leaf_wrap_test.zig"));
+    context.b.step(
+        "circuit-parity-r8b",
+        "Rung R8b: the Zig leaf of the leaf simple bootloader equals four_leaves/leaf.json, and four of them fold to the root goldens",
+    ).dependOn(addAppTest(context, app, "src/products/circuit_recursion_cpu/tests/r8b_leaf_chain_test.zig"));
+}
+
+/// A test root that sees the product's `app` module, run from the
+/// repository root.
+fn addAppTest(context: Context, app: *std.Build.Module, root_source_file: []const u8) *std.Build.Step {
+    const root = graph.create(context.b, .{
+        .product = product(.@"test"),
+        .root_source_file = root_source_file,
+        .target = context.target,
+        .optimize = context.optimize,
+    });
+    root.addImport("app", app);
+    const run = context.b.addRunArtifact(context.b.addTest(.{ .root_module = root }));
+    run.setCwd(context.b.path("."));
+    return &run.step;
 }
 
 fn createProductModule(context: Context, product_descriptor: graph.Product) *std.Build.Module {
