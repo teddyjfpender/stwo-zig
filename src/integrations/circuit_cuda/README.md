@@ -87,6 +87,13 @@ CUDA circuit resident geometry now derives four lifted commitment trees and
 every FRI layer from that authenticated AIR and the circuit column layout. Its
 column logs, lifting heights and FRI count match all ten pinned Rust R7 proofs,
 including the internal and root production-security profiles. The circuit
+composition controller now maps the eleven pinned programs to Cairo CUDA's
+resident heterogeneous-domain evaluator. It seals the literal and denominator
+tables, source extension descriptors, random-coefficient placements and AOT
+launch bindings at ingress, then evaluates, lifts and splits the composition
+column entirely in resident memory. Local tests cover every recorded placement
+and reject a foreign device buffer; device execution and proof parity remain
+unqualified. The circuit
 transcript prefix has an ordered sink contract: a host reference replays all
 ten Rust proofs' digests through the interaction commitment, while a resident
 CUDA sink uses the existing device Blake2s transcript and PoW kernels with
