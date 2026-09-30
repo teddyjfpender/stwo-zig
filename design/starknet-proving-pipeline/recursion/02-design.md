@@ -71,6 +71,16 @@ before editing):
    host (§8.3). M10 closes locally on R10a–R10c with Cairo-lane vectors
    unchanged except the intended PoW-order change (§4.7). R10d moves to a
    big-host gate that runs after M8, listed in the M8 row of §10.
+9. **M6 exit is split (big-host registries rescoped).** M6 closes locally on
+   the canonical_small leaf: `circuit-parity-r6-leaf` (circuit CPU
+   integration) rebuilds the trace-log-20 leaf verifier of the committed
+   leaf-prover registry from the committed Cairo root and matches its
+   preprocessed root and circuit hash; R10b pins `get_preprocessed_root`
+   21/22/23; the 83 slots are checked against upstream `all_components` and
+   `official_claim_registry`. The privacy `large_proofs` leaves (canonical,
+   trace log 25–29) and the production registry need canonical Cairo roots
+   and circuits beyond this host (§8.3), so they move to a big-host gate
+   listed in the M6 row of §10.
 
 Rust paths are relative to the root of
 [`starkware-libs/proving`](https://github.com/starkware-libs/proving) at commit
@@ -1308,7 +1318,7 @@ work can be started earlier against committed fixtures.
 | **M3** | Interop formats | `src/interop/circuit_recursion/*` | three multiverifier `.bin` round-trip; `four_leaves/root.proof` parse → re-emit byte-identical; registry re-emit byte-identical; Cairo ExtendedBinary round trip on all `test_data` proofs | M1 | 1.5 wk |
 | **M4** | Projection reader and interpreter | `air_eval/*`, the 6 manual components, component tables, slot-order test root | R3 green: all 83 + 11 evaluator gate-list and value hashes, statement traces, 68 sample evaluations | M0 (projection), M2 | 3 wk |
 | **M5** | In-circuit verifier and fold topology | `stark_verifier/*`, `statements/{circuit_statement,multiverifier}.zig`, `common/*` | R4 and R5 green; R6 fold registry root and hash plus 45-column layout | M2, M3, M4 | 4 wk |
-| **M6** | Cairo statement and leaf topology | `statements/cairo_statement.zig`, `cairo_public_data.zig`, variants, enabled_bits | R6 leaf, from committed Cairo-root fixtures (M0): canonical_small trace_log 20, `get_preprocessed_root` 21/22/23; production and privacy registries against big-host fixtures; all 83 slots confirmed | M0 (Cairo-root fixtures), M4, M5 | 3 wk |
+| **M6** | Cairo statement and leaf topology | `statements/cairo_statement.zig`, `cairo_public_data.zig`, variants, enabled_bits | R6 leaf, from committed Cairo-root fixtures (M0): canonical_small trace_log 20, `get_preprocessed_root` 21/22/23; all 83 slots confirmed; then, on the big host, production and privacy registries against big-host fixtures (errata 9) | M0 (Cairo-root fixtures), M4, M5 | 3 wk |
 | **M7** | Circuit prover (scalar and SIMD CPU) | `air/*`, `witness/*`, `proving/*`, generalised composition AOT step, `src/integrations/circuit_cpu` | R7 green, including interaction-column hashes; both grinds (20-bit interaction, 26-bit FRI) per §4.7 on the `.internal` (M31) and `.root` (plain) profiles; multiverifier `proof.bin` reproduced exactly; Rust verifier accepts Zig proofs; builder-share and grind-time measurements recorded | M0 (bundle), M1, M3, M5 | 4–5 wk |
 | **M8** | Leaf wrap (Stage A) | `recursion/leaf_wrap.zig`, `topology_key.zig`, `topology_cache.zig`, product `leaf-wrap` | R8 both gates (expected_output.json; mainnet 1,580,295-step bucket-25 leaf); then, on the big host, R10d (Zig Cairo proof of SN_PIE_2 wrapped by Zig == release `leaf-prover`, errata 8) | M6, M7 (R10d also M10) | 1.5 wk |
 | **M9** | Fold tree and root | `recursion/{fold,tree,canonical}.zig`, product `fold-tree`, `circuit-params` | R9 raw bytes on four_leaves and N = 1, 2, 3, 5; R11 green. Parity-complete for Stage A. | M7, M8 | 2 wk |
