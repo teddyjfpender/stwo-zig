@@ -12,6 +12,7 @@ const M31 = fields.m31.M31;
 const QM31 = fields.qm31.QM31;
 const utils = @import("stwo_core").utils;
 const prover_pcs = @import("../pcs/mod.zig");
+const work_pool = @import("../work_pool.zig");
 
 pub const Fraction = struct {
     numerator: QM31,
@@ -23,6 +24,13 @@ pub const Output = struct {
     claimed_sum: QM31,
 };
 
+/// Rows are produced in fixed-size chunks on the global work pool (serially
+/// without one). A chunk fills its fractions, batch-inverts them and writes
+/// its running sums straight into the output columns, so the only full-size
+/// allocations are the columns themselves: no `rows x secure_columns`
+/// fraction table. Inversion and field addition are exact, so the chunking
+/// and the order the per-chunk claimed sums are combined in cannot change a
+/// value.
 pub fn build(
     allocator: std.mem.Allocator,
     log_size: u32,
@@ -37,19 +45,8 @@ pub fn build(
     if (secure_columns == 0 or log_size >= @bitSizeOf(usize))
         return error.InvalidPreparedGeometry;
     const row_count = @as(usize, 1) << @intCast(log_size);
-    const fraction_count = std.math.mul(usize, row_count, secure_columns) catch
+    _ = std.math.mul(usize, row_count, secure_columns) catch
         return error.ColumnCountOverflow;
-    const fractions = try allocator.alloc(Fraction, fraction_count);
-    defer allocator.free(fractions);
-
-    for (0..row_count) |row| {
-        const row_fractions = try rowSlice(fractions, row, secure_columns);
-        try fillRow(context, row, row_fractions);
-        for (row_fractions) |fraction| {
-            if (fraction.denominator.isZero()) return error.DegenerateDenominator;
-        }
-    }
-    try invertFractions(allocator, fractions);
 
     const columns = try allocator.alloc(
         prover_pcs.ColumnEvaluation,
@@ -68,17 +65,95 @@ pub fn build(
         initialized += 1;
     }
 
-    var claimed_sum = QM31.zero();
-    for (0..row_count) |row| {
-        var cumulative = QM31.zero();
-        for (try rowSlice(fractions, row, secure_columns), 0..) |fraction, batch| {
-            cumulative = cumulative.add(fraction.numerator);
-            const coordinates = cumulative.toM31Array();
-            for (coordinates, 0..) |coordinate, index| {
-                @constCast(columns[4 * batch + index].values)[row] = coordinate;
+    const Context = @TypeOf(context);
+    const Worker = struct {
+        context: Context,
+        columns: []prover_pcs.ColumnEvaluation,
+        secure_columns: usize,
+        chunk_rows: usize,
+        row_count: usize,
+        cursor: *std.atomic.Value(usize),
+        fractions: []Fraction,
+        denominators: []QM31,
+        inverses: []QM31,
+        sum: QM31 = QM31.zero(),
+        failure: ?anyerror = null,
+
+        fn run(self: *@This()) void {
+            self.runChunks() catch |err| {
+                self.failure = err;
+            };
+        }
+
+        fn runChunks(self: *@This()) !void {
+            while (true) {
+                const first = self.cursor.fetchAdd(self.chunk_rows, .monotonic);
+                if (first >= self.row_count) return;
+                try self.chunk(first, @min(first + self.chunk_rows, self.row_count));
             }
         }
-        claimed_sum = claimed_sum.add(cumulative);
+
+        fn chunk(self: *@This(), first: usize, end: usize) !void {
+            const n = (end - first) * self.secure_columns;
+            const fractions = self.fractions[0..n];
+            for (first..end) |row| {
+                const row_fractions = fractions[(row - first) * self.secure_columns ..][0..self.secure_columns];
+                try fillRow(self.context, row, row_fractions);
+                for (row_fractions) |fraction| {
+                    if (fraction.denominator.isZero()) return error.DegenerateDenominator;
+                }
+            }
+            for (fractions, self.denominators[0..n]) |fraction, *denominator| denominator.* = fraction.denominator;
+            try fields.batchInverseInPlace(QM31, self.denominators[0..n], self.inverses[0..n]);
+            for (first..end) |row| {
+                var cumulative = QM31.zero();
+                const row_fractions = fractions[(row - first) * self.secure_columns ..][0..self.secure_columns];
+                const row_inverses = self.inverses[(row - first) * self.secure_columns ..][0..self.secure_columns];
+                for (row_fractions, row_inverses, 0..) |fraction, inverse, batch| {
+                    cumulative = cumulative.add(fraction.numerator.mul(inverse));
+                    const coordinates = cumulative.toM31Array();
+                    for (coordinates, 0..) |coordinate, index| {
+                        @constCast(self.columns[4 * batch + index].values)[row] = coordinate;
+                    }
+                }
+                self.sum = self.sum.add(cumulative);
+            }
+        }
+    };
+
+    const chunk_rows: usize = @min(row_count, 1 << 12);
+    const chunk_count = row_count / chunk_rows;
+    const maybe_pool = work_pool.getGlobalPool();
+    const worker_count: usize = if (maybe_pool) |pool| @max(1, @min(pool.workerCount(), chunk_count)) else 1;
+    const scratch_len = chunk_rows * secure_columns;
+    const fractions = try allocator.alloc(Fraction, scratch_len * worker_count);
+    defer allocator.free(fractions);
+    const scalars = try allocator.alloc(QM31, 2 * scratch_len * worker_count);
+    defer allocator.free(scalars);
+    const workers = try allocator.alloc(Worker, worker_count);
+    defer allocator.free(workers);
+    var cursor = std.atomic.Value(usize).init(0);
+    for (workers, 0..) |*worker, index| worker.* = .{
+        .context = context,
+        .columns = columns,
+        .secure_columns = secure_columns,
+        .chunk_rows = chunk_rows,
+        .row_count = row_count,
+        .cursor = &cursor,
+        .fractions = fractions[index * scratch_len ..][0..scratch_len],
+        .denominators = scalars[2 * index * scratch_len ..][0..scratch_len],
+        .inverses = scalars[(2 * index + 1) * scratch_len ..][0..scratch_len],
+    };
+    if (maybe_pool) |pool| {
+        var group: std.Thread.WaitGroup = .{};
+        for (workers[1..]) |*worker| pool.spawnWg(&group, Worker.run, .{worker});
+        workers[0].run();
+        group.wait();
+    } else workers[0].run();
+    var claimed_sum = QM31.zero();
+    for (workers) |worker| {
+        if (worker.failure) |err| return err;
+        claimed_sum = claimed_sum.add(worker.sum);
     }
 
     const shift = try claimed_sum.divM31(M31.fromU64(row_count));
@@ -90,38 +165,6 @@ pub fn build(
         try inclusivePrefixSum(allocator, values);
     }
     return .{ .columns = columns, .claimed_sum = claimed_sum };
-}
-
-fn rowSlice(
-    fractions: []Fraction,
-    row: usize,
-    secure_columns: usize,
-) ![]Fraction {
-    const start = std.math.mul(usize, row, secure_columns) catch
-        return error.ColumnCountOverflow;
-    return fractions[start .. start + secure_columns];
-}
-
-fn invertFractions(
-    allocator: std.mem.Allocator,
-    fractions: []Fraction,
-) !void {
-    const max_chunk: usize = 1 << 16;
-    var start: usize = 0;
-    while (start < fractions.len) {
-        const end = @min(start + max_chunk, fractions.len);
-        const denominators = try allocator.alloc(QM31, end - start);
-        defer allocator.free(denominators);
-        for (fractions[start..end], denominators) |fraction, *denominator| {
-            denominator.* = fraction.denominator;
-        }
-        const inverses = try fields.batchInverse(QM31, allocator, denominators);
-        defer allocator.free(inverses);
-        for (fractions[start..end], inverses) |*fraction, inverse| {
-            fraction.numerator = fraction.numerator.mul(inverse);
-        }
-        start = end;
-    }
 }
 
 fn inclusivePrefixSum(
