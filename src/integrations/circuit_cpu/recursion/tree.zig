@@ -140,3 +140,37 @@ test "tree: an empty leaf list is rejected" {
     var fold: Fold = undefined;
     try std.testing.expectError(error.EmptyLeaves, foldEntries(std.testing.allocator, &fold, &.{}));
 }
+
+/// A layer entry that owns one allocation, for the ownership tests: its
+/// proof is never read, because every reduction fails before it.
+fn ownershipTestEntry(gpa: std.mem.Allocator) !LayerEntry {
+    var arena = std.heap.ArenaAllocator.init(gpa);
+    errdefer arena.deinit();
+    _ = try arena.allocator().alloc(u8, 16);
+    return .{
+        .arena = arena,
+        .proof = .{ .root = undefined },
+        .preprocessed_root = @splat(0),
+        .output_digest = @splat(0),
+        .packed_output = .{ .plain = &.{} },
+    };
+}
+
+test "tree: a failed reduction releases every entry it was given" {
+    const gpa = std.testing.allocator;
+    // The first packed-output allocation of the first reduction fails, so
+    // the fold stops with every entry (the reduced pair and the rest of the
+    // layer, or the single leaf) still to release; the testing allocator
+    // reports any that leaks.
+    var failing = std.testing.FailingAllocator.init(gpa, .{ .fail_index = 0 });
+    var fold: Fold = undefined;
+    fold.packed_allocator = failing.allocator();
+    for ([_]usize{ 1, 2, 3, 5 }) |n_entries| {
+        var entries: [5]LayerEntry = undefined;
+        var built: usize = 0;
+        errdefer for (entries[0..built]) |*entry| entry.deinit();
+        while (built < n_entries) : (built += 1) entries[built] = try ownershipTestEntry(gpa);
+        built = 0;
+        try std.testing.expectError(error.OutOfMemory, foldEntries(gpa, &fold, entries[0..n_entries]));
+    }
+}

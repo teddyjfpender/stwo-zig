@@ -49,8 +49,6 @@ pub const Error = error{
     /// The multiverifier circuit rejects its inputs: a child proof does not
     /// verify (upstream's `debug_assert!(context.is_circuit_valid())`).
     MultiverifierRejectedInputs,
-    /// A layer-0 proof has bytes after the `CircuitSerialize` proof.
-    TrailingProofBytes,
     /// A root entry (felt stream) was handed to another reduction.
     RootProofFolded,
 };
@@ -99,8 +97,10 @@ pub const LayerEntry = struct {
         const config = try fold.canonical.proofConfig();
         var decoded = try wire.circuit_serialize.deserializeProof(gpa, leaf.proof.proof, config);
         errdefer decoded.deinit();
-        // Upstream ignores trailing bytes; a leaf file is one proof.
-        if (decoded.consumed != leaf.proof.proof.len) return error.TrailingProofBytes;
+        // Upstream (`deserialize_proof_with_config` on a slice) ignores
+        // bytes after the proof; so does this port.
+        if (decoded.consumed != leaf.proof.proof.len)
+            log.warn("leaf proof: {d} bytes after the proof ignored", .{leaf.proof.proof.len - decoded.consumed});
         const output_digest = try leaf.outputDigest(gpa);
         return .{
             .arena = decoded.arena,

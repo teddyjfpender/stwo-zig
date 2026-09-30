@@ -33,6 +33,7 @@ const finalize = circuit.common.finalize;
 const preprocessed = circuit.common.preprocessed;
 const circuit_hash = circuit.common.circuit_hash;
 const circuit_statement = circuit.statements.circuit_statement;
+const cairo_leaf_config = circuit.statements.cairo_leaf_config;
 const layout = core.cairo_air_layout;
 const ComponentSizes = finalize.ComponentSizes;
 
@@ -90,6 +91,13 @@ test "R6 leaf: the rebuilt canonical_small leaf verifier reproduces the registry
     defer gpa.free(program_json);
     const program = try cairo.statement.circuit_leaf.programFeltsFromCompiledJson(gpa, program_json);
     defer gpa.free(program);
+
+    // `leaf_verifier_config`: 79 of the 83 Cairo slots are enabled.
+    {
+        var leaf_config = try cairo_leaf_config.leafVerifierConfig(gpa, &table, variant, cairo_params.fri_config, leaf.trace_log_size);
+        defer leaf_config.deinit(gpa);
+        try std.testing.expectEqual(@as(usize, 79), leaf_config.n_enabled_components);
+    }
 
     // `CircuitBuilder::build_context` with the committed root, then
     // `padded_preprocessed_circuit` at the registry's shared target.
