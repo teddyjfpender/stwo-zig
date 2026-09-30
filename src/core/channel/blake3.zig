@@ -126,6 +126,9 @@ pub const Channel = struct {
         return validNonce(self.powPrefix(bits), bits, nonce);
     }
     /// Reference grinder; optimized CPU/device grinding must preserve this nonce predicate.
+    /// Natural order `0, 1, 2, ...`: this channel is stwo-zig-only, so unlike
+    /// the BLAKE2s channels (`blake2s_pow_order.zig`) there is no Rust Stwo
+    /// SimdBackend order to match.
     pub fn grind(self: Self, bits: u32) u64 {
         if (bits > MAX_POW_BITS) @panic("unsupported BLAKE3 PoW difficulty");
         const prefix = self.powPrefix(bits);
