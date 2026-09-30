@@ -257,6 +257,12 @@ pub fn Prover(comptime MC: type) type {
                     claimed_sum,
                 );
                 component.* = runtime.asProverComponent();
+                // Every circuit component is a 2^20..2^23-row domain: give
+                // each the whole pool in turn, row-split, instead of leaving
+                // all but the largest on one core. Rows are written
+                // independently into per-component accumulators, so the
+                // composition is byte-identical.
+                component.pool_exclusive_domain = true;
             }
 
             scheme_owned = false;
