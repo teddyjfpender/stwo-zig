@@ -66,6 +66,17 @@ names them as the reason for the kernels (§9.2 item 7). The same kernel's M31
 mode also serves the Stage B Cairo lane's 24- and 26-bit grinds (§6.3 item 6)
 once that lane is wired to a provider.
 
+The pinned circuit AIR's eleven constraint programs now lower through the
+same authenticated CUDA evaluator used by Cairo. Run
+`zig build circuit-cuda-air-aot --build-file src/integrations/circuit_cuda/build.zig`
+to generate eleven unique kernels and their placement manifest in the Zig
+build cache. Normalized kernel identities were checked across two distinct
+circuit-size bindings; all eleven kernels passed `sm_90` PTX compilation
+with an NVPTX-capable Clang. This completes the circuit AIR code-generation
+piece, **not** device composition, PCS commitment, quotient, FRI, or the
+PIE-to-root CUDA pipeline. Those stages still need an actual resident proof
+session and H100 byte-parity measurements.
+
 ## Build steps
 
 Run each one with `zig build <step> --build-file src/integrations/circuit_cuda/build.zig`,

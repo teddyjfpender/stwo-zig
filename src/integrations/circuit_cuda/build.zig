@@ -27,6 +27,7 @@ pub fn build(b: *std.Build) void {
     const circuit_testing = circuit_dependency.module("circuit_testing");
     const cairo = b.dependency("stwo_cairo_frontend", dependency_options).module("stwo_cairo_frontend");
     const cairo_cpu = b.dependency("stwo_cairo_cpu_integration", dependency_options).module("stwo_cairo_cpu_integration");
+    const cairo_cuda = b.dependency("stwo_cairo_cuda_integration", dependency_options).module("stwo_cairo_cuda_integration");
     const cpu_dependency = b.dependency("stwo_circuit_cpu_integration", dependency_options);
     const circuit_cpu = cpu_dependency.module("stwo_circuit_cpu_integration");
     // The CPU integration's own module instances (one module per file per
@@ -47,11 +48,24 @@ pub fn build(b: *std.Build) void {
     integration.addImport("stwo_cpu_backend", cpu_backend);
     integration.addImport("stwo_circuit_frontend", circuit);
     integration.addImport("stwo_circuit_cpu_integration", circuit_cpu);
+    integration.addImport("stwo_cairo_cuda_integration", cairo_cuda);
 
     // Fixture tests read `vectors/circuit` from the repository root.
     const repository_root: std.Build.LazyPath = .{ .cwd_relative = b.pathFromRoot("../../..") };
 
     const test_step = b.step("test", "Test the stwo_circuit_cuda_integration package on any host (the kernel's search emulated on the CPU)");
+    const aot_step = b.step("circuit-cuda-air-aot", "Generate authenticated circuit AIR CUDA kernels in the build cache");
+    const aot_root = b.createModule(.{
+        .root_source_file = .{ .cwd_relative = b.pathFromRoot("../../tools/circuit_cuda_air_aot/main.zig") },
+        .target = b.graph.host,
+        .optimize = .ReleaseFast,
+    });
+    aot_root.addImport("stwo_circuit_cuda_integration", integration);
+    const aot_exe = b.addExecutable(.{ .name = "circuit-cuda-air-aot", .root_module = aot_root });
+    const aot_run = b.addRunArtifact(aot_exe);
+    aot_run.addFileArg(.{ .cwd_relative = b.pathFromRoot("../../../vectors/circuit/official/circuit_air.air_programs_v1.bin") });
+    _ = aot_run.addOutputDirectoryArg("circuit-cuda-air-aot");
+    aot_step.dependOn(&aot_run.step);
     const r7_emulated_step = b.step(
         "circuit-parity-r7-cuda-emulated",
         "Rung R7 with both grinds on the CUDA kernel's host emulation, byte for byte against the CPU oracle's fixture (any host)",

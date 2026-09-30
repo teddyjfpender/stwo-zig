@@ -34,6 +34,7 @@ pub const device_grind = @import("device_grind.zig");
 pub const emulation = @import("emulation.zig");
 /// Known answers for a grind under test (emulation and device tests).
 pub const grind_vectors = @import("grind_vectors.zig");
+pub const air_aot = @import("air_aot.zig");
 
 const profiles = core.vcs_lifted.channel_profile.proving_5a7c5ed;
 
@@ -85,6 +86,7 @@ test "invariant: the CUDA provers commit with the CPU oracle's hasher, channels 
 test {
     _ = emulation;
     _ = grind_vectors;
+    _ = air_aot;
 }
 
 test "provider path: the engine's grind returns the CPU channel's nonce through the (emulated) kernel" {

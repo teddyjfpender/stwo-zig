@@ -12,5 +12,6 @@
         .stwo_circuit_recursion_wire = .{ .path = "../../interop/circuit_recursion" },
         .stwo_circuit_cpu_integration = .{ .path = "../circuit_cpu" },
         .stwo_cairo_cpu_integration = .{ .path = "../cairo_cpu" },
+        .stwo_cairo_cuda_integration = .{ .path = "../cairo_cuda" },
     },
 }

@@ -75,5 +75,9 @@ comparable inputs and stage scopes. Measure cold and warm wall times, actual
 device high-water memory, host RSS, launches, transfer bytes, and GPU kernels;
 profile before changing geometry. Open uncertainty: circuit AIR lowering into
 the resident CUDA evaluator and the arena size of a full wrap are not yet
-measured. The present `circuit-recursion-cuda-hybrid` uses CPU Cairo and CPU
-PCS; it does not satisfy the full-CUDA gate.
+measured. The pinned AIR lowering now generates eleven unique kernels with
+geometry-invariant normalized identities, and all eleven pass `sm_90` PTX
+compilation. Their actual resident evaluation and the full circuit PCS still
+need implementation and measurement. The present
+`circuit-recursion-cuda-hybrid` uses CPU Cairo and CPU PCS; it does not satisfy
+the full-CUDA gate.

@@ -59,6 +59,10 @@ cudaError_t __cudaPopCallConfiguration(dim3 *grid, dim3 *block, size_t *shared, 
 
 // Device intrinsics, lowered with Clang's NVPTX builtins.
 __device__ __forceinline__ int __ffs(int value) { return __builtin_ffs(value); }
+__device__ __forceinline__ unsigned __brev(unsigned value) {
+    return __builtin_bitreverse32(value);
+}
+__device__ __forceinline__ int __clz(unsigned value) { return __builtin_clz(value); }
 __device__ __forceinline__ unsigned long long atomicAdd(unsigned long long *address,
                                                         unsigned long long value) {
     return __nvvm_atom_add_gen_ll(reinterpret_cast<long long *>(address),
