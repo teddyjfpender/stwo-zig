@@ -111,7 +111,7 @@ def run_trial(args: argparse.Namespace, number: int, trial: int, nvml, device) -
     try:
         with (out / "prover.log").open("xb") as log:
             process = subprocess.Popen(command, stdout=log, stderr=subprocess.STDOUT,
-                                       env=env, start_new_session=True)
+                                       env=env, cwd=Path(__file__).resolve().parents[1], start_new_session=True)
             killer = threading.Timer(args.timeout, expire)
             killer.start()
             try:
@@ -185,6 +185,7 @@ def main() -> int:
         raise RuntimeError("NVML device admission failed")
     suite = {"schema": "stwo-zig-cairo-cuda-sn-pie-suite-v1", "gpu": gpu[0],
              "prover_sha256": sha(args.prover), "verifier_sha256": sha(args.verifier),
+             "benchmark_driver_sha256": sha(Path(__file__)),
              "preprocessed_sha256": sha(args.preprocessed), "security": SECURITY,
              "preprocessed_variant": "canonical", "results": [], "full_suite_verified": False,
              "timing_scope": "adapted input through proof JSON; proving excludes ingress and verification; PIE execution and queueing excluded"}
@@ -195,11 +196,11 @@ def main() -> int:
                 suite["results"].append(result)
                 (args.out / "suite.json").write_text(json.dumps(suite, indent=2) + "\n")
                 print(f"SN PIE {number} trial {trial}: {result['status']}", flush=True)
-                if result["status"] != "verified":
-                    return 1
-        suite["full_suite_verified"] = True
+        suite["full_suite_verified"] = all(
+            result["status"] == "verified" for result in suite["results"]
+        )
         (args.out / "suite.json").write_text(json.dumps(suite, indent=2) + "\n")
-        return 0
+        return 0 if suite["full_suite_verified"] else 1
     finally:
         nvml.nvmlShutdown()
 

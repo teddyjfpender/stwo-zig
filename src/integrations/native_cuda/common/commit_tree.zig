@@ -17,6 +17,56 @@ const upper_tail_min_levels: usize = 2;
 
 pub fn BuilderFor(comptime Ops: type) type {
     return struct {
+        /// Packed mixed-height leaf messages with register-resident hash state.
+        pub fn baseFieldMixed(
+            session: anytype,
+            stage: telemetry.Stage,
+            size: u32,
+            segments: []const LiftedSegment,
+            prefixes: ?[2]common.ProgressiveStates,
+            hashes: common.Hashes,
+            layers: []const field.MerkleLayerDescriptor,
+        ) Error!common.Hashes {
+            if (segments.len == 0) return error.InvalidMerkleLayout;
+            try validateLayout(size, hashes.len, layers);
+            for (segments) |segment| {
+                if (!std.math.isPowerOfTwo(segment.source_size) or
+                    segment.source_size < 2 or segment.source_size > size)
+                    return error.InvalidMerkleLayout;
+                try validateMatrix(segment.source_size, segment.columns);
+            }
+            const leaves = try layerSlice(hashes, layers[0]);
+            var start: usize = 0;
+            var absorbed: u32 = 0;
+            var seed: ?common.ProgressiveStates = null;
+            if (comptime @hasDecl(Ops, "mixedPrefix")) {
+                if (prefixes) |storage| {
+                    const cap = @as(u32, 1) << @import("stwo_cuda_backend").runtime.stages.commitment.max_compact_prefix_log;
+                    var bank: usize = 0;
+                    while (start < segments.len and segments[start].source_size < size and segments[start].source_size <= cap) {
+                        const rows = segments[start].source_size;
+                        var end = start + 1;
+                        while (end < segments.len and segments[end].source_size == rows) : (end += 1) {}
+                        // Keep a nonempty final message for the leaf launch.
+                        if (end == segments.len) break;
+                        if (seed) |previous| if (previous.len > rows) return error.InvalidMerkleLayout;
+                        const destination = try storage[bank].sub(0, rows);
+                        try Ops.mixedPrefix(session, stage, rows, segments[start..end], absorbed, seed, destination);
+                        for (segments[start..end]) |segment| {
+                            absorbed = std.math.add(u32, absorbed, @intCast(segment.columns.storage.len / segment.columns.column_stride_words)) catch return error.SizeOverflow;
+                        }
+                        seed = destination;
+                        bank = 1 - bank;
+                        start = end;
+                    }
+                }
+                if (seed) |previous| {
+                    try Ops.mixedLeavesFromPrefix(session, stage, size, segments[start..], absorbed, previous, leaves);
+                } else try Ops.mixedLeaves(session, stage, size, segments, leaves);
+            } else try Ops.mixedLeaves(session, stage, size, segments, leaves);
+            return reduce(session, stage, hashes, layers);
+        }
+
         pub fn baseField(
             session: anytype,
             stage: telemetry.Stage,

@@ -33,7 +33,7 @@ pub fn emitCanonical(allocator: std.mem.Allocator, output: *std.Io.Writer, progr
 fn emitMode(allocator: std.mem.Allocator, output: *std.Io.Writer, program: model.Program, support_directory: std.fs.Dir, reuse_scratch: bool) !void {
     var schedule = try schedule_mod.build(allocator, program);
     defer schedule.deinit();
-    try emitPreamble(output);
+    try emitPreamble(output, reuse_scratch);
 
     var kinds = [_]bool{false} ** @typeInfo(model.DeduceKind).@"enum".fields.len;
     for (program.insts) |inst| {
@@ -468,7 +468,7 @@ fn emitEntryPreamble(output: *std.Io.Writer, semantic_hash: u64) !void {
     try output.writeByte('\n');
 }
 
-fn emitPreamble(output: *std.Io.Writer) !void {
+fn emitPreamble(output: *std.Io.Writer, canonical: bool) !void {
     try output.writeAll(
         \\typedef unsigned long long u64;
         \\
@@ -504,9 +504,24 @@ fn emitPreamble(output: *std.Io.Writer) !void {
         \\    reduced = (reduced & STWO_M31_P) + (reduced >> 31);
         \\    return reduced == STWO_M31_P ? 0u : reduced;
         \\#else
-        \\    u64 product = (u64)lhs * (u64)rhs;
-        \\    u64 reduced = (((((product >> 31) + product + 1u) >> 31) + product) & (u64)STWO_M31_P);
-        \\    return (unsigned)reduced;
+    );
+    try output.writeByte('\n');
+    if (canonical) {
+        try output.writeAll(
+            \\    u64 product = (u64)lhs * (u64)rhs;
+            \\    unsigned folded = (unsigned)(product & STWO_M31_P) +
+            \\        (unsigned)(product >> 31);
+            \\    return folded < STWO_M31_P ? folded : folded - STWO_M31_P;
+        );
+    } else {
+        try output.writeAll(
+            \\    u64 product = (u64)lhs * (u64)rhs;
+            \\    u64 reduced = (((((product >> 31) + product + 1u) >> 31) + product) & (u64)STWO_M31_P);
+            \\    return (unsigned)reduced;
+        );
+    }
+    try output.writeByte('\n');
+    try output.writeAll(
         \\#endif
         \\}
         \\

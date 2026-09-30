@@ -1,0 +1,1 @@
+{"schema": "stwo-cuda-large-transform-reference-v1", "provider": "nvidia_cuda", "log_sizes": [24, 25, 26], "passed": true, "reference": "independent scalar CPU M31 modulo implementation", "elapsed_s": 67.54202057793736, "full_proof_verified": false}

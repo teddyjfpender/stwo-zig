@@ -1,0 +1,23 @@
+{
+  "scope": "Research and host analysis only; no production algorithms changed, no new GPU benchmark or rental",
+  "host_admission": {
+    "command": "STWO_CAIRO_CUDA_LOCAL_INPUT_DIR=\"$PWD/zig-out/cairo-completion-20260927\" STWO_CAIRO_CUDA_DUMP_PLAN=1 /opt/homebrew/opt/zig@0.15/bin/zig build --build-file build_support/internal_build.zig -Drepository-root=\"$PWD\" -Dproduct-scope=cairo_cuda test-cairo-cuda-local -Dcairo-test-filter=\"canonical CUDA SN PIE suite host admission\" -Doptimize=ReleaseFast --summary all",
+    "tests_passed": 2,
+    "fixtures_admitted": 4,
+    "gpu_proof_run": false,
+    "log": "host-admission.log"
+  },
+  "reproduction": {
+    "command": "python3 autoresearch/notes/2026-09-29-cairo-cuda-design-research/analyze.py",
+    "authenticated_air_programs_analyzed": 142,
+    "template_sha256_and_semantic_hash_checked": true,
+    "two_runs_identical_json_outputs": true
+  },
+  "checks": [
+    "git diff --check passed",
+    "All research JSON parsed",
+    "Analysis Python AST parsed",
+    "Local dossier and brief links resolved"
+  ],
+  "native_cuda_validation": "Existing v45 receipt reused: 12 verified runs. Candidate designs remain uncompiled/unbenchmarked on native CUDA."
+}

@@ -173,15 +173,16 @@ fn prepareImpl(
     try component.validateRows(row_count);
     if (row_count == 0 or semantic_hash == 0)
         return error.InvalidKernelDescriptor;
-    // This label is packaged for provenance only. Production EC-op execution
-    // is a native multi-kernel graph with a dedicated workspace, not a
-    // standalone recorded-witness launch.
+    // The historical partial-EC entry is a native composite consumer. The
+    // current pinned Cairo catalogue contains the complete recorded witness
+    // and admits its ordinary producer/consumer dependency path instead.
     const is_native_composite = std.mem.eql(
         u8,
         label,
         native_composite_label,
     );
-    if (is_native_composite != allow_native_composite)
+    if (is_native_composite != allow_native_composite and
+        !(is_native_composite and registry.isCanonicalCairo()))
         return error.StrictAotViolation;
     const admitted = registry.resolveRecordedWitness(.{
         .label = label,
@@ -793,4 +794,35 @@ fn nextSlice(address: *usize, words: usize) common.Words {
     };
     address.* += words * @sizeOf(u32) + 64;
     return result;
+}
+
+test "canonical generic EC witness uses the complete authenticated recorded path" {
+    const witness_bundle = @import("stwo_cairo_frontend").witness.bundle;
+    var witnesses = try witness_bundle.Bundle.readFile(
+        std.testing.allocator,
+        "vectors/cairo/official/witness_programs_v1.bin",
+    );
+    defer witnesses.deinit();
+    const witness = witnesses.find(native_composite_label) orelse
+        return error.MissingCanonicalWitness;
+    var registry = try product_aot.Registry.initCanonicalCairo(std.testing.allocator);
+    defer registry.deinit();
+    var session = TestSession{};
+    var fixture = try TestBuffers.init(std.testing.allocator, witness.program, 16);
+    defer fixture.deinit();
+    var prepared = try prepare(
+        std.testing.allocator,
+        &session,
+        registry,
+        witness.label,
+        witness.semantic_hash,
+        witness.program,
+        testComponent(4),
+        16,
+        fixture.buffers(),
+    );
+    defer prepared.deinit();
+    session.context.active_stage = .trace_generation;
+    try prepared.launch(&session);
+    try std.testing.expectEqual(@as(u64, 1), session.launches);
 }

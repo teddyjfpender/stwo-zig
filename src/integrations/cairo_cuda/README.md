@@ -63,6 +63,50 @@ adapted-input wall time, host RSS and sampled whole-device memory. Inputs are
 already adapted: these measurements exclude PIE execution and queueing.
 It rejects noncanonical security, changed proof files and unverified results.
 
+## NVIDIA qualification (30 September 2026)
+
+All four canonical SN PIEs passed the pinned official Rust verifier on one H200,
+with zero AOT misses and zero CPU fallback. The retained v18 implementation uses
+the same canonical protocol as CPU and Metal. These are individual cold-process
+qualified proofs, rather than statistical medians:
+
+| Input | Proof execution and decode | Adapted input to publication | Sampled whole-device GPU peak |
+| :--- | ---: | ---: | ---: |
+| SN PIE 1 | 1.034 s | 5.737 s | 100.443 GB |
+| SN PIE 2 | 0.657 s | 4.706 s | 61.318 GB |
+| SN PIE 3 | 1.030 s | 5.570 s | 99.268 GB |
+| SN PIE 4 | 0.798 s | 5.248 s | 79.740 GB |
+
+The [v18 official-verifier receipt](../../../autoresearch/notes/2026-09-29-cairo-cuda-subsecond/suite-v18.json)
+contains proof digests, source identity, security settings, and per-stage times.
+The [research record](../../../autoresearch/notes/2026-09-29-cairo-cuda-subsecond/README.md)
+contains the paired comparisons and rejected variants. Proof execution/decode
+starts **after** authenticated input ingress; publication includes ingress,
+proof execution, and local proof decoding. Both measurements exclude PIE
+execution/adaptation, queueing, and external Rust verification. This is not an
+end-to-end Starknet block latency claim.
+
+The speedup comes from treating the authenticated Cairo input as a whole proof
+plan: 64 witness kernels, 68 parametric AIR bodies, and 48 common Native entries
+are selected by source identity and geometry. Recorded witness execution uses a
+native projective EC chain with batched normalization and exact ownership of
+multiplicity counters. That reduced the leading EC witness kernel from about
+127.5 ms to 5 ms. The resident proof arena, compact AIR register banks, and
+bounded AIR root slices keep the large PIEs within H200 memory; 16-root slices
+were faster than 32, while 8-root slices regressed. Fused mixed-height BLAKE2s
+commitment leaves, exact-domain reuse, log 24–26 transforms, native-height
+quotient accumulation, and resident preprocessed coefficients reduce repeated
+data movement and launches. Canonical plain commitments and one-row FRI leaves
+preserve the official verifier's proof format. Other Native proofs retain their
+prefixed commitment protocol.
+
+Relative to the earlier v9 qualified source, proof execution/decode improved
+by roughly 13%, 18%, 13%, and 15% for PIEs 1–4. Two-warp AIR and nine-multiply
+extension arithmetic were tested on all four proofs but did not improve the
+large PIEs, so they are not defaults. PIEs 1 and 3 remain just over one second,
+and cold ingress contributes another four to five seconds. This is a staged
+product; benchmark qualification does not replace the package release gates.
+
 ## Public API
 
 ```zig

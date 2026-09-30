@@ -102,6 +102,9 @@ pub const TraceTrees = struct {
 };
 
 pub const Quotient = struct {
+    subdomain_coordinates: common.Words,
+    subdomain_inverse_twiddles: common.Words,
+    coefficient_logs: common.Words,
     challenge: common.SecureFields,
     prepared_terms: column.DeviceSlice(
         quotient_abi.PreparedTermDescriptor,

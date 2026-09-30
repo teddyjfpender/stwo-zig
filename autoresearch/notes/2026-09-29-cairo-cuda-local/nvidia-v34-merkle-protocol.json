@@ -1,0 +1,35 @@
+{
+  "schema": "cairo-cuda-merkle-protocol-diagnostic-v1",
+  "transport_sha256": "0774a9fc22b10ca1bf72015e563c493d61201c92a7c0414bf9fcc9809014e64f",
+  "source_sha256": "b418aadaac13ecae09ba838b373f70ac447189581ae2e0c903c47dffc8ea56a8",
+  "accepted_proof": false,
+  "trees": [
+    {
+      "tree": 0,
+      "leaf_checks": 70,
+      "leaf_plain_matches": 0,
+      "leaf_prefixed_matches": 70,
+      "parent_checks": 1387,
+      "parent_plain_matches": 0,
+      "parent_prefixed_matches": 1387
+    },
+    {
+      "tree": 1,
+      "leaf_checks": 70,
+      "leaf_plain_matches": 0,
+      "leaf_prefixed_matches": 70,
+      "parent_checks": 1037,
+      "parent_plain_matches": 0,
+      "parent_prefixed_matches": 1037
+    },
+    {
+      "tree": 2,
+      "leaf_checks": 70,
+      "leaf_plain_matches": 0,
+      "leaf_prefixed_matches": 70,
+      "parent_checks": 1037,
+      "parent_plain_matches": 0,
+      "parent_prefixed_matches": 1037
+    }
+  ]
+}

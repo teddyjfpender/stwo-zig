@@ -151,14 +151,22 @@ inline Hash hash_words(const std::vector<std::uint32_t> &words) {
 }
 
 inline Hash hash_leaf_words(const std::vector<std::uint32_t> &words) {
+    #if defined(STWO_BLAKE2S_TEST_PLAIN)
+    return hash_words(words);
+#else
     return hash_prefixed_words(0x6661656cu, words);
+#endif
 }
 
 inline Hash hash_children(const Hash &left, const Hash &right) {
     std::vector<std::uint32_t> words;
     words.insert(words.end(), left.words, left.words + 8);
     words.insert(words.end(), right.words, right.words + 8);
+    #if defined(STWO_BLAKE2S_TEST_PLAIN)
+    return hash_words(words);
+#else
     return hash_prefixed_words(0x65646f6eu, words);
+#endif
 }
 
 inline bool equal(const Hash &left, const Hash &right) {

@@ -210,7 +210,15 @@ test "canonical CUDA feeds retain padded stride and authenticate active extent" 
     try std.testing.expect(proof.levels.len > 1);
     var tested_memory_padding = false;
     var tested_padding = false;
+    var tested_native_ec_ownership = false;
     for (first.bundle.feeds) |feed| {
+        if (std.mem.eql(u8, feed.producer, "ec_op_builtin")) {
+            // The native EC graph owns exactly these direct counters. Its
+            // partial-multiply edges have a separate composite writer path.
+            try std.testing.expectEqual(@as(usize, 16 * 14), feed.descriptors.len);
+            try std.testing.expectEqual(feed.row_count, feed.active_row_count.?);
+            tested_native_ec_ownership = true;
+        }
         for (feed.destinations) |target| {
             if (!std.mem.startsWith(u8, target.name, "memory_")) continue;
             try std.testing.expectEqual(try memoryDestinationWords(&input, target.name), target.words);
@@ -240,6 +248,7 @@ test "canonical CUDA feeds retain padded stride and authenticate active extent" 
     }
     try std.testing.expect(tested_padding);
     try std.testing.expect(tested_memory_padding);
+    try std.testing.expectEqual(input.builtin_segments.ec_op_builtin != null, tested_native_ec_ownership);
     for (geometry.extents) |*extent| {
         if (extent.active_rows < extent.padded_rows) {
             extent.active_rows += 1;
@@ -249,4 +258,49 @@ test "canonical CUDA feeds retain padded stride and authenticate active extent" 
     var changed = try compile(std.testing.allocator, &input, &claim, geometry, topology, fixed);
     defer changed.deinit();
     try std.testing.expect(!std.mem.eql(u8, &first.identity, &changed.identity));
+}
+
+test "native EC feed ownership is exact for the official all-builtin input" {
+    var input = try cairo.adapter.input.readFile(std.testing.allocator, "vectors/cairo/official/all_builtins.prover_input.json");
+    defer input.deinit(std.testing.allocator);
+    var claim = try cairo.claim_generator.deriveFromProverInput(std.testing.allocator, &input, .{ .preprocessed_variant = .canonical });
+    defer claim.deinit();
+    var topology = try cairo.witness.feed_topology.readOfficial(std.testing.allocator, "vectors/cairo/official/witness_feed_topology_v1.json");
+    defer topology.deinit();
+    var geometry = try geometry_mod.resolve(std.testing.allocator, &input, &claim, topology);
+    defer geometry.deinit();
+    var fixed = try cairo.witness.fixed_table_bundle.Bundle.readFile(std.testing.allocator, "vectors/cairo/cairo_fixed_tables.bin");
+    defer fixed.deinit();
+    var compiled = try compile(std.testing.allocator, &input, &claim, geometry, topology, fixed);
+    defer compiled.deinit();
+    var witnesses = try cairo.witness.bundle.Bundle.readFile(std.testing.allocator, "vectors/cairo/official/witness_programs_v1.bin");
+    defer witnesses.deinit();
+    const active_rows = try std.testing.allocator.alloc(u32, geometry.extents.len);
+    defer std.testing.allocator.free(active_rows);
+    for (geometry.extents, active_rows) |extent, *row| row.* = extent.active_rows;
+    var proof = try cairo.proof_plan.CairoProofPlan.fromCanonicalGeometry(std.testing.allocator, &claim, active_rows, witnesses, compiled.bundle);
+    defer proof.deinit();
+    var native_components: usize = 0;
+    for (proof.components) |component| {
+        if (!std.mem.eql(u8, component.name, "ec_op_builtin") and
+            !std.mem.eql(u8, component.name, "partial_ec_mul_generic")) continue;
+        try std.testing.expectEqual(cairo.proof_plan.WriterKind.native_backend, component.writer);
+        native_components += 1;
+    }
+    try std.testing.expectEqual(@as(usize, 2), native_components);
+    for (compiled.bundle.feeds) |feed| {
+        if (!std.mem.eql(u8, feed.producer, "ec_op_builtin")) continue;
+        try std.testing.expectEqual(@as(usize, 16 * 14), feed.descriptors.len);
+        try std.testing.expectEqual(feed.row_count, feed.active_row_count.?);
+        for (0..16) |index| {
+            const descriptor = feed.descriptors[index * 14 ..][0..14];
+            try std.testing.expectEqual(@as(u32, @intCast(index)), descriptor[0]);
+            try std.testing.expectEqual(@as(u32, 1), descriptor[1]);
+            const target = feed.destinations[descriptor[10]].name;
+            const expected = if (index < 7) "memory_address_to_id" else if (index < 14) "memory_id_to_big" else "range_check_8";
+            try std.testing.expectEqualStrings(expected, target);
+        }
+        return;
+    }
+    return error.MissingCanonicalEcFeed;
 }

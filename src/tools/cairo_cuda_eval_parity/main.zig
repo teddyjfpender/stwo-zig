@@ -2,9 +2,18 @@
 
 const std = @import("std");
 const stwo = @import("stwo");
-const composition = stwo.frontends.cairo.witness.composition_bundle;
-const eval_aot = stwo.integrations.cairo_cuda.eval_aot;
-const parity = stwo.integrations.cairo_cuda.eval_parity_fixture;
+const composition = if (@hasDecl(stwo, "frontends"))
+    stwo.frontends.cairo.witness.composition_bundle
+else
+    stwo.frontend.witness.composition_bundle;
+const eval_aot = if (@hasDecl(stwo, "integrations"))
+    stwo.integrations.cairo_cuda.eval_aot
+else
+    stwo.integration.eval_aot;
+const parity = if (@hasDecl(stwo, "integrations"))
+    stwo.integrations.cairo_cuda.eval_parity_fixture
+else
+    stwo.integration.eval_parity_fixture;
 
 const usage =
     "usage: cairo-cuda-eval-parity <composition.bin> <fixture.h>\n";

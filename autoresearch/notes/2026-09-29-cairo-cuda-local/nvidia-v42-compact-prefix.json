@@ -1,0 +1,59 @@
+[
+  {
+    "provider": "nvidia_cuda",
+    "protocol": "prefixed",
+    "command": [
+      "g++",
+      "-std=c++17",
+      "-O2",
+      "-I/usr/local/cuda/include",
+      "/workspace/mixed-v42/tests/cuda/native_blake2s_commitment_smoke.cpp",
+      "/workspace/mixed-v42/mixed.o",
+      "/workspace/stwo-zig/zig-out/lib/libstwo_cuda_kernels.a",
+      "-L/usr/local/cuda/lib64",
+      "-lcudart",
+      "-ldl",
+      "-lpthread",
+      "-Wl,-rpath,/usr/local/cuda/lib64",
+      "-o",
+      "/workspace/mixed-v42/check-prefixed"
+    ],
+    "returncode": 0,
+    "output": "native CUDA Blake2s commitment smoke passed\n",
+    "direct_mixed_oracle_cases": 160,
+    "seeded_prefix_oracle_cases": 144,
+    "full_proof_verified": false,
+    "source_sha256": "ef1d363f97cc39c8904bf5c22bbee0ba1a52642cb200a6d34f29a1c2f78cb7e7",
+    "test_sha256": "6d980e06cda6e52f3e814ade8cd3a3ac3b0a22cd841fd2c72968a9635e83ce83",
+    "executable_sha256": "f3511746a6696e49639820ea5709381d976e0f96f447d905da29e9c897917034"
+  },
+  {
+    "provider": "nvidia_cuda",
+    "protocol": "plain",
+    "command": [
+      "g++",
+      "-std=c++17",
+      "-O2",
+      "-I/usr/local/cuda/include",
+      "-DSTWO_BLAKE2S_TEST_PLAIN=1",
+      "/workspace/mixed-v42/tests/cuda/native_blake2s_commitment_smoke.cpp",
+      "/workspace/mixed-v42/mixed.o",
+      "/workspace/stwo-zig/zig-out/lib/libstwo_cuda_kernels.a",
+      "-L/usr/local/cuda/lib64",
+      "-lcudart",
+      "-ldl",
+      "-lpthread",
+      "-Wl,-rpath,/usr/local/cuda/lib64",
+      "-o",
+      "/workspace/mixed-v42/check-plain"
+    ],
+    "returncode": 0,
+    "output": "native CUDA Blake2s commitment smoke passed\n",
+    "direct_mixed_oracle_cases": 160,
+    "seeded_prefix_oracle_cases": 144,
+    "full_proof_verified": false,
+    "source_sha256": "ef1d363f97cc39c8904bf5c22bbee0ba1a52642cb200a6d34f29a1c2f78cb7e7",
+    "test_sha256": "6d980e06cda6e52f3e814ade8cd3a3ac3b0a22cd841fd2c72968a9635e83ce83",
+    "executable_sha256": "5c762e9d046c70e1f24ddb1b5daa9c932ac2e339c3f15adef1d7baa862583780"
+  }
+]

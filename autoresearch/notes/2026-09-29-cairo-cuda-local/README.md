@@ -1,12 +1,144 @@
-# CUDA local-first qualification — 2026-09-29
+# Cairo CUDA qualification and optimization — 29 September 2026
 
-Current status: native compilation is complete, and local canonical source admission
-passes for all four PIEs (12/12 checks). NVIDIA constraint snapshots match an
-independent evaluator at 368/368 boundary points; all 62 used preprocessed OODS
-samples match pinned Rust. Full proof verification still rejects composition OODS
-and the degree gate. No NVIDIA SN PIE benchmark is qualified. The pod is deleted,
-with $0.3253894353 credit remaining. Entries below record the earlier iterations;
-older balances and completion counts describe those sessions only.
+## Historical v45 NVIDIA suite
+
+The newer [qualified all-four-PIE H200 results](../2026-09-29-cairo-cuda-hopper-optimization/README.md) supersede this historical v45 table. The newer cold proof medians are 1.889, 1.323, 1.878 and 1.492 seconds; sampled GPU peaks are 100.971, 61.846, 99.796 and 80.267 GB.
+
+All four canonical SN PIEs passed Zig and the pinned official Rust verifier on
+one H200. Security remains 70 queries, 26 query PoW bits, 24 interaction PoW
+bits, blowup/fold step 1, final degree bound 0, no lifting, channel salt 0.
+Every run used native NVIDIA CUDA with zero CPU fallback and zero AOT misses.
+
+| Benchmark | Prove/decode median | Ingress median | Adapted input → publication median | Maximum sampled device peak | Maximum host RSS |
+|---|---:|---:|---:|---:|---:|
+| SN PIE 1 | 2.218 s | 4.510 s | 7.042 s | 114.800 GB | 1.534 GB |
+| SN PIE 2 | 1.504 s | 3.987 s | 5.708 s | 71.649 GB | 1.213 GB |
+| SN PIE 3 | 2.206 s | 4.599 s | 7.118 s | 113.626 GB | 1.504 GB |
+| SN PIE 4 | 1.595 s | 4.547 s | 6.420 s | 91.513 GB | 1.504 GB |
+
+These are **three trials per workload**, v45; see [the exact receipt](nvidia-v45-repeated-suite.json).
+Adapted-input totals exclude PIE execution, witness adaptation and queueing.
+Device memory is whole-device NVML usage sampled every 10 ms, a lower bound on
+peak usage; host RSS is separate. CPU/Metal unified memory uses a different metric.
+Subsecond proof phases and a 90% latency reduction have **not** been demonstrated.
+
+Qualified optimizations:
+
+- v39: conservative AIR register lifetime reuse removed about 31.7 GB of private
+  storage on PIEs 2–4 and resolved the PIE 1 constraint-evaluation OOM.
+- v41: exact parallel twiddle preparation and register-resident mixed-height
+  hashing reduced proof phases to 2.066–2.919 s and saved another 6.4 GB.
+- v42: native-height hashing reuses compact prefix states, reducing trace commitment
+  by 40–56% relative to v41. Prefix scratch is bounded at log 22.
+
+- v44: exact-domain resident evaluation reuse and 64-bit word addressing passed
+  all four full proofs; preprocessed parsing and fingerprinting share one pass.
+- v45: fused transforms at logs 24–26 and compact input capture passed all four
+  proofs; host RSS fell to 1.2–1.5 GB.
+
+Receipts: [v39](nvidia-v39-suite.json), [v41](nvidia-v41-suite.json),
+[v42](nvidia-v42-suite.json), [v44](nvidia-v44-suite.json),
+[v45](nvidia-v45-suite.json), [native hash differential](nvidia-v42-compact-prefix.json).
+Complete proof, executable and snapshot archives remain in ignored local build output.
+
+## Further qualified changes and rejected experiments
+
+Canonical AIR v4 widens source offset tables to little-endian 64-bit word addresses.
+This removes the old 16 GiB limit and allows reuse of resident commitment evaluations
+where their domain is exactly the AIR domain. Larger domains still extend coefficients.
+All four full proofs and an actual NVIDIA scalar/materialized differential above 16 GiB
+pass; [address test receipt](nvidia-v44-wide-offset-parity.json).
+
+Fused CUDA transforms now cover logs 24–26 in four intervals instead of a global
+pass per stage. New six-stage first/final warp variants keep continuation storage
+in registers. The [independent CPU-reference differential](nvidia-v45-large-transform-reference.json)
+passes at all three large sizes. All four full proofs passed in v45.
+
+Qualified setup changes capture canonical compact input once and combine preprocessed
+parsing and SHA256 fingerprinting in one file pass. Both retain canonical admission;
+both changes are reflected in the v45 benchmark table.
+
+The v46 arithmetic/aligned-load experiment passed all four full proofs, but
+was rejected as the default because its largest compiled AIR stack grew from
+24,224 to 38,616 bytes per thread, increasing sampled device usage by 3.88 GB.
+Single-trial proof phases improved to 1.993 / 1.364 / 1.989 / 1.419 s, roughly
+9–11% faster than v45; adapted-input totals remained around 5.8–7.3 s.
+The [full receipt](nvidia-v46-suite.json) and [independent arithmetic/address
+reference](nvidia-v46-math-wide-reference.json) preserve this tradeoff. The next
+arithmetic design must control materialized-kernel temporary lifetimes as well
+as instruction width. The v48 experiment retained v45 arithmetic and expanded
+compact prefix reuse to log 23. All four proofs passed, but proof times changed
+by less than 1% while sampled memory increased by 0.805 GB. It was rejected,
+and the default remains v45 with log-22 prefix scratch. See [v48](nvidia-v48-suite.json).
+
+The funded H200 session was deleted before its 15:00 UTC hard stop.
+Native cubins, the verifier, executables, source snapshots and all proof evidence
+were saved locally; deletion was confirmed by the provider. Entries below
+are **historical investigation records**; their balances, pending gates and deleted-pod
+statements do not describe the current session.
+
+## CUDA work remaining against the latency and memory targets
+
+The [CUDA design research](../2026-09-29-cairo-cuda-design-research/README.md)
+adds pinned reference implementations, stage and lifetime inventories, and
+authenticated AIR slicing models. Its estimates are research candidates;
+the qualified measured baseline remains the v45 table above.
+
+The current kernel changes address measured redundant work. They do not yet
+establish subsecond proving, 90% reduction, or single-5090 fit. The next changes
+must distinguish cold process setup from the proof phase and qualify both.
+
+1. Keep an authenticated prover process and its PP/twiddles/AOT modules warm.
+   The current one-process-per-proof suite repeats static setup and SHA256 work.
+   A persistent service needs identity checks, bounded request storage and
+   separate cold/warm receipts; subtracting setup from a cold run is insufficient.
+2. Reduce the largest EC AIR's private storage and instruction dependencies.
+   The v42 event profile attributes 391 ms to the generic partial-EC AIR and
+   189 ms to window-18 AIR on PIE 1. Register bank declarations underestimate
+   actual compiled private storage. Compare native resource usage and full
+   proof timings for each code-generation change, including launch geometry.
+3. Replace complete late-lived evaluation banks with a tiled schedule and
+   authenticated query gathering or bounded recomputation. Current trace
+   evaluations live through decommitment and coefficient banks overlap them.
+   Memory savings must be measured against extra transform work and transfer
+   time, rather than assuming a smaller allocation is faster.
+4. Batch/coalesce remaining transfers and overlap independent bounded tiles.
+   Preserve transcript stage dependencies, arena ownership and exact field
+   arithmetic. CUDA graphs help launch overhead only after those costs are
+   measured; they cannot remove the large AIR and residency costs by themselves.
+
+These choices follow [NVIDIA's CUDA 12.8 best-practices guide](https://docs.nvidia.com/cuda/archive/12.8.0/cuda-c-best-practices-guide/):
+minimize and batch transfers, arrange coalesced access, and assess register
+pressure alongside occupancy. Higher occupancy can increase spilling, so an
+occupancy percentage alone is not a performance result.
+
+## Earlier qualification findings
+
+Actual device coefficients match pinned Rust at all 1,464 main and 1,216
+interaction OODS samples; all 62 used preprocessed samples and eight composition
+samples match. The reader now converts canonical coefficients into Rust's SIMD
+layout above log 16, covered by a CPU/SIMD regression at logs 16, 18 and 20.
+The legacy prefix diagnostic links a different Stwo fork and is not the AIR
+verification authority. Its constraint comparison is explicitly labelled legacy.
+
+The independent quotient comparison found that CUDA's first two rows match
+pinned Rust, but subsequent rows differ and every upper-half coefficient is
+nonzero. The CUDA controller was extending subdomain numerator values by row
+repetition before division. The new path follows pinned Stwo: combine on the
+first subdomain, interpolate with that subdomain's twiddles, and extend the
+polynomial onto the full FRI domain. The NVIDIA degree gate passes this fix.
+Opening assembly then exposed legacy packed-tree geometry differing from Cairo's
+one-evaluation-per-leaf commitment, and a capacity bound using the packing log
+instead of the complete Merkle path. The canonical plan, controller, query
+expansion and buffer sizing now agree. Local controller, four-PIE capacity
+regressions and the native NVIDIA decommitment differential pass. Full NVIDIA
+proof verification now reaches the preprocessed Merkle root. CUDA absorbed
+physical cohorts in original order; pinned Stwo hashes stable ascending column
+heights. The bound commitment segments now use that canonical order while
+physical witness columns keep their original indices. The descending-cohort
+regression passes; NVIDIA qualification of the ordering fix is running.
+Security remains 70 queries, 26 query PoW bits and 24 interaction PoW bits.
+
 
 
 The CUDA canonical path now accepts source inputs through the same pinned
@@ -300,3 +432,17 @@ rules out a challenge/power binding mismatch for the captured tiny run.
 The local Rust oracle's six focused tests pass after enabling preprocessed OODS
 sampling. Full normal proof verification and all four PIE benchmarks remain
 unfinished; the saved artifacts and numerical checks are not accepted benchmarks.
+
+
+### Resumed H200 qualification: v36/v37
+
+The v36 complete canonical all_opcodes proof is accepted by the pinned official
+Rust verifier: see [backend receipt](nvidia-v36-tiny-backend.json) and
+[official verification](nvidia-v36-tiny-official-verification.json). Its isolated
+prove/decode phase is 0.755609840 seconds (one trial), zero fallback and zero AOT
+misses. This is a small qualification workload, not SN PIE performance.
+[Both commitment protocols](nvidia-v36-blake2s-protocol-tests.json) pass real
+NVIDIA tests. The first SN PIE then stopped during preparation because the old
+partial-EC composite restriction also covered its current complete recorded
+witness. v37 distinguishes the pinned canonical catalogue and retries the suite.
+No rejected SN PIE attempt is an accepted timing.

@@ -275,7 +275,7 @@ std::vector<std::uint32_t> expected_assembly(
         1, 1, fri_query_offset, 3, 0, 0, witness_offset, witness_count,
         fri_walk.hash_offset, fri_walk.hash_count,
         fri_walk.aux_offset, fri_walk.aux_count,
-        all_values_offset, static_cast<std::uint32_t>(expanded.size()), 2,
+        all_values_offset, static_cast<std::uint32_t>(expanded.size()), 3,
         static_cast<std::uint32_t>(assembly.size() - fri_start),
     };
     write_meta(assembly, 1, fri_meta);

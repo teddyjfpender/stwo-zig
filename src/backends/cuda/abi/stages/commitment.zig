@@ -2,6 +2,37 @@
 
 const field = @import("../field.zig");
 
+pub const max_mixed_segments = 96;
+/// At most 2 × 384 MiB of compact prefix state, independent of final tree log.
+pub const max_compact_prefix_log = 22;
+pub const MixedSegment = extern struct {
+    columns: [*]const u32,
+    stride_words: usize,
+    capacity_words: usize,
+    source_size: u32,
+    reserved: u32 = 0,
+};
+
+pub extern "c" fn stwo_blake2s_mixed_leaf_on(
+    size: u32,
+    count: u32,
+    segments: [*]const MixedSegment,
+    result: [*]field.Blake2sHash,
+    stream: *anyopaque,
+) c_int;
+
+pub extern "c" fn stwo_blake2s_mixed_seeded_on(
+    size: u32,
+    count: u32,
+    segments: [*]const MixedSegment,
+    absorbed_before: u32,
+    seed_size: u32,
+    seed: ?[*]const field.ProgressiveBlake2sState,
+    prefix: ?[*]field.ProgressiveBlake2sState,
+    result: ?[*]field.Blake2sHash,
+    stream: *anyopaque,
+) c_int;
+
 pub extern "c" fn stwo_blake2s_contiguous_leaf_on(
     size: u32,
     columns: [*]const u32,

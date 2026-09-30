@@ -20,6 +20,7 @@ pub const UseDescriptor = abi.UseDescriptor;
 pub const Geometries = column.DeviceSlice(Geometry);
 
 pub const launch_count = 9;
+pub const fused_launch_count = 8;
 const pointer_words = @sizeOf(usize) / @sizeOf(u32);
 const default_stage = telemetry.Stage.constraint_evaluation;
 
@@ -44,6 +45,7 @@ pub const Topology = struct {
     /// Native static frontends retain the zero identity because their trusted
     /// ingress already uploads compile-time descriptors and pointer tables.
     topology_identity: [32]u8 = [_]u8{0} ** 32,
+    fused_fractions: bool = false,
 
     pub fn validate(self: Topology) runtime_error.Error!void {
         if (self.geometry.len == 0 or self.max_alpha_powers == 0 or
@@ -213,6 +215,7 @@ pub fn prepare(
             .total_chain_blocks = options.topology.total_chain_blocks,
             .total_row_blocks = options.topology.total_row_blocks,
             .topology_identity = options.topology.topology_identity,
+            .fused_fractions = options.topology.fused_fractions,
         },
         .geometry = geometry,
         .buffers = options.buffers,
@@ -413,31 +416,48 @@ pub fn OpsForAt(
             );
             try common.record(session, stage, status);
 
-            status = Api.stwo_relation_pairs_global_on(
-                sources.pointer,
-                descriptors.pointer,
-                outputs.pointer,
-                denominators.pointer,
-                geometry.pointer,
-                instance_count,
-                topology.total_pair_blocks,
-                alphas.pointer,
-                topology.max_alpha_powers,
-                @ptrCast(z.pointer),
-                session.context.stream,
-            );
-            try common.record(session, stage, status);
+            if (topology.fused_fractions) {
+                status = Api.stwo_relation_fused_global_on(
+                    sources.pointer,
+                    descriptors.pointer,
+                    outputs.pointer,
+                    geometry.pointer,
+                    instance_count,
+                    topology.total_pair_blocks,
+                    topology.total_chain_blocks,
+                    alphas.pointer,
+                    topology.max_alpha_powers,
+                    @ptrCast(z.pointer),
+                    session.context.stream,
+                );
+                try common.recordMany(session, stage, status, 2);
+            } else {
+                status = Api.stwo_relation_pairs_global_on(
+                    sources.pointer,
+                    descriptors.pointer,
+                    outputs.pointer,
+                    denominators.pointer,
+                    geometry.pointer,
+                    instance_count,
+                    topology.total_pair_blocks,
+                    alphas.pointer,
+                    topology.max_alpha_powers,
+                    @ptrCast(z.pointer),
+                    session.context.stream,
+                );
+                try common.record(session, stage, status);
 
-            status = Api.stwo_relation_fraction_chain_global_on(
-                outputs.pointer,
-                denominators.pointer,
-                geometry.pointer,
-                instance_count,
-                topology.total_inverse_blocks,
-                topology.total_chain_blocks,
-                session.context.stream,
-            );
-            try common.recordMany(session, stage, status, 2);
+                status = Api.stwo_relation_fraction_chain_global_on(
+                    outputs.pointer,
+                    denominators.pointer,
+                    geometry.pointer,
+                    instance_count,
+                    topology.total_inverse_blocks,
+                    topology.total_chain_blocks,
+                    session.context.stream,
+                );
+                try common.recordMany(session, stage, status, 2);
+            }
 
             status = Api.stwo_relation_tail_global_on(
                 outputs.pointer,
@@ -492,6 +512,7 @@ fn validatePreparedInput(
             identity,
             geometry,
             options.topology.max_alpha_powers,
+            options.topology.fused_fractions,
             instance,
         );
     }
@@ -561,6 +582,7 @@ fn retainInstanceRanges(
     identity: residency.DeviceIdentity,
     geometry: Geometry,
     alpha_powers: u32,
+    fused_fractions: bool,
     instance: InstanceBinding,
 ) PrepareError!void {
     const source_count = std.math.cast(
@@ -572,7 +594,7 @@ fn retainInstanceRanges(
         geometry.columns,
         abi.descriptor_words,
     );
-    const denominator_values = try checkedMul(
+    const denominator_values = if (fused_fractions) 1 else try checkedMul(
         geometry.rows,
         geometry.columns,
     );
@@ -719,7 +741,7 @@ fn validateResidentPlan(
         _ = try session.context.deviceSlicePointer(
             field.SecureField,
             instance.denominator_slab,
-            try checkedMul(geometry.rows, geometry.columns),
+            if (state.topology.fused_fractions) 1 else try checkedMul(geometry.rows, geometry.columns),
         );
         _ = try session.context.deviceSlicePointer(
             field.SecureField,

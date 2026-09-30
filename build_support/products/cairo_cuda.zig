@@ -134,6 +134,16 @@ pub fn addProduct(context: Context) void {
         .filters = if (host_test_filter) |filter| &.{filter} else &.{"canonical CUDA"},
     });
     context.b.step("test-cairo-cuda-local", "Test canonical CUDA source admission and table geometry without a GPU").dependOn(&context.b.addRunArtifact(host_tests).step);
+    const relation_root = context.b.createModule(.{
+        .root_source_file = context.b.path("src/backends/cuda/relation_local_test_root.zig"),
+        .target = context.target,
+        .optimize = context.optimize,
+        .link_libc = true,
+    });
+    var relation_imports = integration_module.import_table.get("stwo_cuda_backend").?.import_table.iterator();
+    while (relation_imports.next()) |item| relation_root.addImport(item.key_ptr.*, item.value_ptr.*);
+    const relation_tests = context.b.addTest(.{ .root_module = relation_root, .filters = &.{"relation"} });
+    context.b.step("test-cairo-cuda-relation-local", "Test relation graph scratch admission and stream execution without a GPU").dependOn(&context.b.addRunArtifact(relation_tests).step);
     if (!descriptor.isAvailableOn(context.target.result.os.tag)) {
         policy.registerUnavailable(context.b, descriptor, context.target.result.os.tag);
         return;

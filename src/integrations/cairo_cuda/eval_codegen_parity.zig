@@ -40,7 +40,7 @@ pub fn generate(allocator: std.mem.Allocator, output: []const u8) !void {
     program.header.semantic_hash = program.semanticHash();
     const source = try codegen.generateParametric(allocator, program, &.{ false, false, true });
     defer allocator.free(source);
-    const name = try std.fmt.allocPrint(allocator, "stwo_cairo_cuda_eval_v3_{x:0>16}", .{program.header.semantic_hash});
+    const name = try std.fmt.allocPrint(allocator, "stwo_cairo_cuda_eval_v6_{x:0>16}", .{program.header.semantic_hash});
     defer allocator.free(name);
     try std.fs.cwd().makePath(output);
     var directory = try std.fs.cwd().openDir(output, .{});

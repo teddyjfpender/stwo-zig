@@ -82,6 +82,7 @@ pub const Plan = struct {
     total_inverse_blocks: u32,
     total_row_blocks: u32,
     topology_identity: [32]u8,
+    fused_fractions: bool = false,
 
     pub fn compile(
         allocator: std.mem.Allocator,
@@ -99,13 +100,14 @@ pub const Plan = struct {
         var plan = try compileSource(allocator, proof, source);
         errdefer plan.deinit();
         var hash = std.crypto.hash.sha2.Sha256.init(.{});
-        hash.update("stwo-zig/cairo/cuda/canonical-relation-plan/v1\x00");
+        hash.update("stwo-zig/cairo/cuda/canonical-relation-plan/tiled-v2\x00");
         hash.update(&source_topology.sha256);
         hash.update(&plan.topology_identity);
         for (proof.components) |component| {
             if (programs.find(component.name)) |program| hash.update(&program.program.semanticIdentity());
         }
         plan.topology_identity = hash.finalResult();
+        plan.fused_fractions = true;
         return plan;
     }
 
@@ -281,6 +283,7 @@ pub const Plan = struct {
             .total_chain_blocks = self.total_row_blocks,
             .total_row_blocks = self.total_row_blocks,
             .topology_identity = self.topology_identity,
+            .fused_fractions = self.fused_fractions,
         };
     }
 
@@ -320,7 +323,7 @@ pub const Plan = struct {
             );
             denominator_secure_fields = try checkedAddU64(
                 denominator_secure_fields,
-                values,
+                if (self.fused_fractions) 1 else values,
             );
             interaction_coordinate_cells = try checkedAddU64(
                 interaction_coordinate_cells,

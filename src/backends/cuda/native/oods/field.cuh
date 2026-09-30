@@ -50,9 +50,9 @@ constexpr CM31 kExtensionR{2u, 1u};
 constexpr CirclePoint kCircleGenerator{2u, 1268011823u};
 
 __host__ __device__ __forceinline__ M31 add(M31 lhs, M31 rhs) {
-    const std::uint64_t sum =
-        static_cast<std::uint64_t>(lhs) + static_cast<std::uint64_t>(rhs);
-    return static_cast<M31>(sum < kPrime ? sum : sum - kPrime);
+    // Canonical inputs are below 2^31 - 1, so their sum fits in u32.
+    const M31 sum = lhs + rhs;
+    return sum < kPrime ? sum : sum - kPrime;
 }
 
 __host__ __device__ __forceinline__ M31 sub(M31 lhs, M31 rhs) {
@@ -66,9 +66,11 @@ __host__ __device__ __forceinline__ M31 neg(M31 value) {
 __host__ __device__ __forceinline__ M31 mul(M31 lhs, M31 rhs) {
     const std::uint64_t value =
         static_cast<std::uint64_t>(lhs) * static_cast<std::uint64_t>(rhs);
-    const std::uint64_t first = value + (value >> 31);
-    const std::uint64_t second = value + (first >> 31);
-    return static_cast<M31>(second & kPrime);
+    // value < 2^62. Folding its high and low 31-bit halves produces a
+    // value below 2*p, which needs only one conditional subtraction.
+    const M31 folded = static_cast<M31>(value & kPrime) +
+                       static_cast<M31>(value >> 31);
+    return folded < kPrime ? folded : folded - kPrime;
 }
 
 __host__ __device__ __forceinline__ M31 square(M31 value) {

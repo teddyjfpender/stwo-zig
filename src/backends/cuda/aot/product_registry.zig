@@ -16,6 +16,7 @@ const canonical_cairo_witness_manifest = @embedFile("native/cairo_witness/aot_ma
 
 const Origin = enum {
     authenticated_product,
+    canonical_cairo,
     copied_reference,
 };
 
@@ -63,13 +64,18 @@ pub const Registry = struct {
     }
 
     pub fn initCanonicalCairo(allocator: std.mem.Allocator) !Registry {
-        var registry = try initFromManifest(allocator, canonical_cairo_witness_manifest, .authenticated_product);
+        var registry = try initFromManifest(allocator, canonical_cairo_witness_manifest, .canonical_cairo);
         errdefer registry.deinit();
         if (registry.parsed.value.len != 64) return error.InvalidCanonicalCairoWitnessInventory;
         for (registry.parsed.value) |entry| {
-            if (entry.codegen_version != 17) return error.InvalidCanonicalCairoWitnessGenerator;
+            if (entry.codegen_version != 18) return error.InvalidCanonicalCairoWitnessGenerator;
         }
         return registry;
+    }
+
+    /// Only the pinned, complete current Cairo witness catalogue has this origin.
+    pub fn isCanonicalCairo(self: Registry) bool {
+        return self.origin == .canonical_cairo;
     }
 
     pub fn deinit(self: *Registry) void {
@@ -90,7 +96,7 @@ pub const Registry = struct {
         self: Registry,
         canonical: CanonicalWitness,
     ) ?RecordedWitness {
-        if (self.origin != .authenticated_product or
+        if (self.origin == .copied_reference or
             canonical.label.len == 0 or
             canonical.semantic_hash == 0 or
             std.mem.allEqual(u8, &canonical.program_identity, 0))
@@ -149,7 +155,7 @@ fn initFromManifest(
     );
     errdefer parsed.deinit();
     if (parsed.value.len == 0) return error.EmptyProductAotRegistry;
-    if (origin == .authenticated_product) {
+    if (origin != .copied_reference) {
         for (parsed.value) |entry| {
             if (std.mem.eql(u8, entry.abi_schema, "recorded_witness_v1") and
                 !isProductRecordedWitness(entry))

@@ -53,8 +53,8 @@ class CudaCairoEvalAotTests(unittest.TestCase):
     def test_sn2_parity_fixture_and_strict_aot_smoke_are_pinned(self) -> None:
         fixture_bytes = PARITY_FIXTURE.read_bytes()
         self.assertEqual(
-            "583a9d20b8f540c71d8840f9025122dd"
-            "1b022fa11b7ae3a374e161016c1cea20",
+            "8d725bde7b00d1aedb75c9a5f0d8ff"
+            "6c35a61738134decf3fc333901930f4daa",
             hashlib.sha256(fixture_bytes).hexdigest(),
         )
         fixture_source = fixture_bytes.decode("utf-8")

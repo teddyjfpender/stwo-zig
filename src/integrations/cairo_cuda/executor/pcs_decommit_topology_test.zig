@@ -66,6 +66,7 @@ test "SN2 decommit topology opens compact trace cohorts and all FRI trees" {
     }
     try std.testing.expectEqual(topology.column_log_sizes.len, column_cursor);
     for (topology.fri_openings, 0..) |opening, ordinal| {
+        try std.testing.expectEqual(@as(u32, 0), opening.log_rows_per_leaf);
         try std.testing.expectEqual(
             @as(u32, @intCast(4 + ordinal)),
             opening.tree_index,
