@@ -70,7 +70,121 @@ pub const Options = struct {
     /// polynomial coefficients, for columns of at least this log size
     /// (`CommitmentSchemeProver.setCompactPolynomialStorage`).
     compact_polynomial_min_log: ?u32 = null,
+    /// The preprocessed tree of this proof's topology, already committed
+    /// (design §9.2 item 1): step 3 appends a lease on it instead of
+    /// interpolating, extending and hashing the preprocessed columns again.
+    /// It must be `PreprocessedCommitment.build` of the same preprocessed
+    /// circuit under the same `pcs_config` and compaction.
+    preprocessed_commitment: ?*const PreprocessedCommitment = null,
+    /// Canonical twiddles shared by consecutive proofs (`twiddleTower`);
+    /// null precomputes them per proof.
+    twiddle_tower: ?*const TwiddleTower = null,
 };
+
+pub const TwiddleTower = prover.poly.twiddle_tower.M31TwiddleTower;
+
+/// The tower that covers every circle domain a proof under `pcs_config`
+/// requests: the committed heights and the composition domain.
+pub fn twiddleTower(allocator: std.mem.Allocator, pcs_config: PcsConfigV2) !TwiddleTower {
+    return TwiddleTower.init(allocator, twiddleTowerLog(pcs_config), std.math.maxInt(usize));
+}
+
+fn twiddleTowerLog(pcs_config: PcsConfigV2) u32 {
+    // The composition polynomial is evaluated on its own domain, one above
+    // the trace bound (`COMPOSITION_POLYNOMIAL_LOG_DEGREE_BOUND`), then
+    // extended by the blowup.
+    return pcs_config.trace_lifting_log_size + composition_log_degree_bound;
+}
+
+/// A committed preprocessed tree shared by every proof of one topology.
+///
+/// Upstream re-interpolates, re-extends and re-hashes the preprocessed
+/// columns in every proof (`prove_circuit_assignment_with_channel`); the tree
+/// is a function of the columns and the commitment height alone, so one
+/// commitment serves every proof of the key, on both channel profiles (they
+/// share the plain Blake2s Merkle hasher). Each proof appends a lease
+/// (`retainShared`), which the scheme releases with the proof.
+pub const PreprocessedCommitment = struct {
+    tree: Tree,
+    pcs_config: PcsConfigV2,
+    compact_polynomial_min_log: ?u32,
+    /// `(log_size)` of each column, in layout order.
+    log_sizes: [preprocessed.N_PREPROCESSED_COLUMNS]u32,
+
+    pub const Tree = Internal.Engine.Scheme.CommitmentTree;
+    comptime {
+        std.debug.assert(Tree == Root.Engine.Scheme.CommitmentTree);
+    }
+
+    /// Commits `pp`'s columns as tree 0 of a `pcs_config` proof, exactly as
+    /// step 3 of `prove` does, and keeps the tree.
+    pub fn build(
+        allocator: std.mem.Allocator,
+        pp: *const preprocessed.PreprocessedCircuit,
+        pcs_config: PcsConfigV2,
+        options: Options,
+    ) !PreprocessedCommitment {
+        var scheme = try initScheme(Internal.Engine, allocator, pcs_config, options);
+        defer Internal.Engine.deinit(&scheme, allocator);
+        // The root is mixed into a throwaway channel; a proof mixes the
+        // lease's root into its own.
+        var channel = Internal.Channel{};
+        try Internal.commitColumns(&scheme, allocator, try preprocessedColumns(allocator, pp), &channel);
+        if (scheme.trees.items.len != 1) return error.PreprocessedCommitmentShape;
+        try scheme.trees.items[0].share(allocator);
+        var log_sizes: [preprocessed.N_PREPROCESSED_COLUMNS]u32 = undefined;
+        for (pp.columns, &log_sizes) |column, *log_size| log_size.* = column.logSize();
+        return .{
+            .tree = scheme.trees.pop().?,
+            .pcs_config = pcs_config,
+            .compact_polynomial_min_log = options.compact_polynomial_min_log,
+            .log_sizes = log_sizes,
+        };
+    }
+
+    pub fn deinit(self: *PreprocessedCommitment, allocator: std.mem.Allocator) void {
+        self.tree.deinit(allocator);
+        self.* = undefined;
+    }
+
+    pub fn root(self: *const PreprocessedCommitment) Internal.Hash {
+        return self.tree.root();
+    }
+
+    /// Retained host bytes: evaluations, coefficients and Merkle layers.
+    pub fn byteSize(self: *const PreprocessedCommitment) usize {
+        var bytes: usize = 0;
+        for (self.tree.columns) |column| bytes += column.values.len * @sizeOf(M31);
+        if (self.tree.coefficients) |coefficients| {
+            for (coefficients) |coefficient| bytes += coefficient.coefficients().len * @sizeOf(M31);
+        }
+        // The Merkle layers: at most one hash per leaf and per inner node.
+        bytes += (@as(usize, 2) << @intCast(self.tree.commitment.maxLogSize())) * @sizeOf(Internal.Hash);
+        return bytes;
+    }
+
+    /// Whether a proof of `pp` under `pcs_config` and `options` may use this
+    /// commitment. The caller vouches that `pp` is the circuit it was built
+    /// from (a topology-cache hit); the shape and every commitment parameter
+    /// are checked here.
+    fn check(self: *const PreprocessedCommitment, pp: *const preprocessed.PreprocessedCircuit, pcs_config: PcsConfigV2, options: Options) !void {
+        if (!std.meta.eql(self.pcs_config, pcs_config) or
+            !std.meta.eql(self.compact_polynomial_min_log, options.compact_polynomial_min_log))
+            return error.PreprocessedCommitmentMismatch;
+        for (pp.columns, self.log_sizes) |column, log_size|
+            if (column.logSize() != log_size) return error.PreprocessedCommitmentMismatch;
+    }
+};
+
+fn initScheme(comptime Engine: type, allocator: std.mem.Allocator, pcs_config: PcsConfigV2, options: Options) !Engine.Scheme {
+    var scheme = if (options.twiddle_tower) |tower|
+        try Engine.initRevisionWithTwiddleTower(pcs_config, tower)
+    else
+        try Engine.initRevision(allocator, pcs_config);
+    scheme.setStorePolynomialsCoefficients();
+    if (options.compact_polynomial_min_log) |min_log| scheme.setCompactPolynomialStorage(min_log);
+    return scheme;
+}
 
 /// `COMPOSITION_POLYNOMIAL_LOG_DEGREE_BOUND`.
 pub const composition_log_degree_bound: u32 = 1;
@@ -142,14 +256,20 @@ pub fn Prover(comptime MC: type) type {
             pcs_config.fri_config.mixInto(&channel);
             step(observer, .mix_fri_config, &channel);
 
-            var scheme = try Engine.initRevision(allocator, pcs_config);
+            var scheme = try initScheme(Engine, allocator, pcs_config, options);
             var scheme_owned = true;
             errdefer if (scheme_owned) Engine.deinit(&scheme, allocator);
-            scheme.setStorePolynomialsCoefficients();
-            if (options.compact_polynomial_min_log) |min_log| scheme.setCompactPolynomialStorage(min_log);
 
-            // Preprocessed tree.
-            try commit(&scheme, allocator, try preprocessedColumns(allocator, pp), &channel);
+            // Preprocessed tree: a lease on the topology's commitment, or
+            // committed here.
+            if (options.preprocessed_commitment) |cached| {
+                try cached.check(pp, pcs_config, options);
+                var lease = cached.tree.retainShared();
+                errdefer lease.deinit(allocator);
+                try scheme.appendCommittedTree(allocator, lease, &channel);
+            } else {
+                try commit(&scheme, allocator, try preprocessedColumns(allocator, pp), &channel);
+            }
             const preprocessed_root = scheme.trees.items[0].commitment.root();
             step(observer, .commit_preprocessed, &channel);
 
@@ -246,6 +366,8 @@ pub fn Prover(comptime MC: type) type {
                 .component_log_sizes = base.log_sizes,
             };
         }
+
+        pub const commitColumns = commit;
 
         /// Commits owned columns as the next tree and mixes its root.
         fn commit(scheme: *Engine.Scheme, allocator: std.mem.Allocator, columns: []prover.pcs.ColumnEvaluation, channel: *Channel) !void {

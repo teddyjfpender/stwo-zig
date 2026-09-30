@@ -216,6 +216,49 @@ fn expectedProof(lane: Lane, which: TestContext, parsed: Json) !Json {
 }
 
 fn proveAndCompare(comptime lane: Lane, comptime which: TestContext) !void {
+    return proveAndCompareLanes(&.{lane}, which, false);
+}
+
+/// Proves `which` on each of `lanes` (which share a PCS config) and compares
+/// every proof with its fixture. `cached` commits the preprocessed tree and
+/// builds the twiddle tower once, then every proof leases them
+/// (`prove.Options.preprocessed_commitment`, `twiddle_tower`), as a fold
+/// tree's reductions do.
+fn proveAndCompareLanes(comptime lanes: []const Lane, comptime which: TestContext, comptime cached: bool) !void {
+    const allocator = std.testing.allocator;
+    var ctx = try contexts.build(QM31, allocator, which);
+    defer ctx.deinit();
+    try ctx.finalize(false);
+    var pp = try preprocessed.PreprocessedCircuit.preprocessContext(QM31, allocator, &ctx);
+    defer pp.deinit(allocator);
+    try std.testing.expect(try ctx.isCircuitValid());
+
+    const pcs_config = switch (lanes[0]) {
+        .small => circuit_cpu.prove.defaultPcsConfig(pp.traceLogSize()),
+        .internal, .root => PcsConfigV2.fromFriAndTraceSize(try FriConfigV2.init(26, 0, 1, 70, 4), pp.traceLogSize()),
+    };
+    var tower: ?circuit_cpu.prove.TwiddleTower = if (cached) try circuit_cpu.prove.twiddleTower(allocator, pcs_config) else null;
+    defer if (tower) |*t| t.deinit(allocator);
+    var commitment: ?circuit_cpu.prove.PreprocessedCommitment = if (cached)
+        try circuit_cpu.prove.PreprocessedCommitment.build(allocator, &pp, pcs_config, .{ .twiddle_tower = &tower.? })
+    else
+        null;
+    defer if (commitment) |*c| c.deinit(allocator);
+    const options: circuit_cpu.prove.Options = .{
+        .preprocessed_commitment = if (commitment) |*c| c else null,
+        .twiddle_tower = if (tower) |*t| t else null,
+    };
+    inline for (lanes) |lane| try proveLaneAndCompare(lane, which, &ctx, &pp, pcs_config, options);
+}
+
+fn proveLaneAndCompare(
+    comptime lane: Lane,
+    comptime which: TestContext,
+    ctx: anytype,
+    pp: *const preprocessed.PreprocessedCircuit,
+    pcs_config: PcsConfigV2,
+    options: circuit_cpu.prove.Options,
+) !void {
     const allocator = std.testing.allocator;
     const bytes = try std.fs.cwd().readFileAlloc(allocator, if (lane == .small) fixture_path else profiles_path, 16 << 20);
     defer allocator.free(bytes);
@@ -223,19 +266,9 @@ fn proveAndCompare(comptime lane: Lane, comptime which: TestContext) !void {
     defer parsed.deinit();
     const expected = try expectedProof(lane, which, parsed.value);
 
-    var ctx = try contexts.build(QM31, allocator, which);
-    defer ctx.deinit();
-    try ctx.finalize(false);
-    var pp = try preprocessed.PreprocessedCircuit.preprocessContext(QM31, allocator, &ctx);
-    defer pp.deinit(allocator);
-    try std.testing.expect(try ctx.isCircuitValid());
     try std.testing.expectEqualStrings(field(expected, "values_sha256").string, &std.fmt.bytesToHex(circuit_testing.circuit_summary.valuesSha256(ctx.values()), .lower));
     try std.testing.expectEqual(@as(u32, @intCast(field(expected, "trace_log_size").integer)), pp.traceLogSize());
 
-    const pcs_config = switch (lane) {
-        .small => circuit_cpu.prove.defaultPcsConfig(pp.traceLogSize()),
-        .internal, .root => PcsConfigV2.fromFriAndTraceSize(try FriConfigV2.init(26, 0, 1, 70, 4), pp.traceLogSize()),
-    };
     const pcs_json = field(expected, "pcs_config");
     const fri = field(pcs_json, "fri_config");
     inline for (.{ "pow_bits", "log_blowup_factor", "log_last_layer_degree_bound", "n_queries", "fold_step" }) |name|
@@ -254,9 +287,9 @@ fn proveAndCompare(comptime lane: Lane, comptime which: TestContext) !void {
     defer recorder.deinit();
     var timer = try std.time.Timer.start();
     observer.timer = &timer;
-    var proof = try laneProver(lane).prove(allocator, ctx.values(), &pp, &bundle, pcs_config, .{
-        .recorder = if (profile) &recorder else null,
-    }, &observer);
+    var prove_options = options;
+    prove_options.recorder = if (profile) &recorder else null;
+    var proof = try laneProver(lane).prove(allocator, ctx.values(), pp, &bundle, pcs_config, prove_options, &observer);
     defer proof.deinit();
     if (profile) {
         var snapshot = try recorder.snapshot(allocator);
@@ -330,7 +363,7 @@ fn proveAndCompare(comptime lane: Lane, comptime which: TestContext) !void {
         std.crypto.hash.sha2.Sha256.hash(encoded, &digest, .{});
         try expectHex(field(serialized, "sha256"), &digest);
         const label = @tagName(lane) ++ "-" ++ @tagName(which);
-        try rust_verifier.emit(allocator, label, encoded, &proof, &pp);
+        try rust_verifier.emit(allocator, label, encoded, &proof, pp);
         // Upstream's `verify_circuit` is the circuit verifier, on the M31
         // channel. A root-profile proof is byte-identical to upstream's own
         // (checked above), which upstream's native stwo verifier accepted.
@@ -377,4 +410,12 @@ test "R7 profiles: root fibonacci under the 26-bit circuit FRI config" {
 
 test "R7 profiles: root blake_g_gate under the 26-bit circuit FRI config" {
     try proveAndCompare(.root, .blake_g_gate);
+}
+
+test "R7 cached: one committed preprocessed tree serves fibonacci proofs" {
+    try proveAndCompareLanes(&.{ .small, .small }, .fibonacci, true);
+}
+
+test "R7 cached: one committed preprocessed tree serves the internal and root profiles" {
+    try proveAndCompareLanes(&.{ .internal, .root }, .blake_g_gate, true);
 }

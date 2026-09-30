@@ -60,6 +60,11 @@ pub fn ProverEngine(
             return Scheme.initRevision(allocator, config);
         }
 
+        /// `initRevision` borrowing `tower`'s twiddles (it outlives the scheme).
+        pub fn initRevisionWithTwiddleTower(config: pcs_core.config_v2.PcsConfigV2, tower: *const @import("poly/twiddle_tower.zig").M31TwiddleTower) !Scheme {
+            return Scheme.initRevisionWithTwiddleTower(config, tower);
+        }
+
         pub fn deinit(scheme: *Scheme, allocator: std.mem.Allocator) void {
             scheme.deinit(allocator);
         }

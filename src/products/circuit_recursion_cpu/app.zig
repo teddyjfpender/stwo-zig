@@ -318,16 +318,20 @@ pub fn foldTree(gpa: std.mem.Allocator, registry: wire.registry.CircuitRegistry,
     defer circuit_table.deinit();
     var bundle = try airBundle(gpa);
     defer bundle.deinit();
-    var canonical = try recursion.CanonicalCircuit.build(gpa, &circuit_table, registry);
-    defer canonical.deinit(gpa);
+    // The canonical circuit with its committed preprocessed tree, by fold
+    // topology; every reduction of the tree leases that one commitment.
+    const options: circuit_cpu.prove.Options = .{ .compact_polynomial_min_log = cli.default_compact_min_log };
+    var topologies = recursion.canonical.Cache.init(gpa, .{});
+    defer topologies.deinit();
+    const canonical = try recursion.canonical.acquire(gpa, &topologies, &circuit_table, registry, options);
 
     var packed_arena = std.heap.ArenaAllocator.init(gpa);
     defer packed_arena.deinit();
     const fold: recursion.Fold = .{
-        .canonical = &canonical,
+        .canonical = canonical,
         .table = &circuit_table,
         .bundle = &bundle,
-        .options = .{ .compact_polynomial_min_log = cli.default_compact_min_log },
+        .options = options,
         .packed_allocator = packed_arena.allocator(),
     };
     var folded = try recursion.tree.foldLeaves(gpa, &fold, leaves);

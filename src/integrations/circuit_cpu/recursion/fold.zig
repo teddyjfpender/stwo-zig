@@ -207,7 +207,9 @@ fn proveNode(
     comptime is_root: bool,
 ) !LayerEntry {
     const canonical = fold.canonical;
-    var proof = try P.prove(gpa, values, &canonical.preprocessed, fold.bundle, canonical.shared.pcs_config, fold.options, {});
+    // Every fold proves the canonical circuit: its committed preprocessed
+    // tree and twiddles are shared by all of them (design §7.2).
+    var proof = try P.prove(gpa, values, &canonical.preprocessed, fold.bundle, canonical.shared.pcs_config, canonical.proveOptions(fold.options), {});
     defer proof.deinit();
 
     // `extract_root_and_outputs`.
