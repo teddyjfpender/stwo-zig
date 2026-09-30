@@ -43,6 +43,14 @@ const circuit_hash = circuit.common.circuit_hash;
 const witness = circuit.witness.trace;
 const PerComponent = component_list.PerComponent;
 const CapturedComponent = cairo.proving.air.component.Component;
+const NativeExecutor = cairo.proving.air.native_evaluator.Executor;
+const composition_aot = @import("circuit_composition_cpu_aot");
+
+/// The circuit AIR's generated native composition kernels
+/// (`composition_aot_build.zig`), one per recorded program.
+pub fn nativeCompositionExecutor() NativeExecutor {
+    return composition_aot.executor();
+}
 
 pub const profiles = core.vcs_lifted.channel_profile.proving_5a7c5ed;
 
@@ -70,6 +78,10 @@ pub const Options = struct {
     /// polynomial coefficients, for columns of at least this log size
     /// (`CommitmentSchemeProver.setCompactPolynomialStorage`).
     compact_polynomial_min_log: ?u32 = null,
+    /// Evaluates the composition with the generated native kernels; null
+    /// runs the SIMD interpreter over the same programs. Both are exact
+    /// field arithmetic, so the proof bytes are the same.
+    composition_executor: ?NativeExecutor = nativeCompositionExecutor(),
 };
 
 /// `COMPOSITION_POLYNOMIAL_LOG_DEGREE_BOUND`.
@@ -224,6 +236,8 @@ pub fn Prover(comptime MC: type) type {
                     elements.alpha,
                     claimed_sum,
                 );
+                runtime.native_executor = options.composition_executor;
+                runtime.recorder = if (options.composition_executor != null) options.recorder else null;
                 component.* = runtime.asProverComponent();
             }
 

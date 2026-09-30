@@ -1,4 +1,5 @@
 const std = @import("std");
+const composition_aot = @import("composition_aot_build.zig");
 
 pub fn build(b: *std.Build) void {
     const target = b.standardTargetOptions(.{});
@@ -38,6 +39,7 @@ pub fn build(b: *std.Build) void {
     integration.addImport("stwo_circuit_frontend", circuit);
     integration.addImport("stwo_cairo_frontend", cairo);
     integration.addImport("stwo_circuit_recursion_wire", wire);
+    integration.addImport("circuit_composition_cpu_aot", composition_aot.createModule(b, target, optimize, core, cairo, "../../../"));
 
     // Fixture tests read `vectors/circuit` from the repository root.
     const repository_root: std.Build.LazyPath = .{ .cwd_relative = b.pathFromRoot("../../..") };
@@ -179,6 +181,25 @@ pub fn build(b: *std.Build) void {
         "circuit-parity-r11",
         "Rung R11: the Zig circuit verifier and upstream verify_circuit accept three proofs and reject every tampering",
     ).dependOn(&r11_tests.step);
+
+    // Witness and prove benchmark on the R9 multiverifier (not a rung).
+    const bench_root = b.createModule(.{
+        .root_source_file = b.path("tests/bench_witness_test.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    bench_root.addImport("stwo_core", core);
+    bench_root.addImport("stwo_prover_engine", prover);
+    bench_root.addImport("stwo_circuit_frontend", circuit);
+    bench_root.addImport("stwo_circuit_cpu_integration", integration);
+    bench_root.addImport("stwo_circuit_recursion_wire", wire);
+    const bench_tests = b.addRunArtifact(b.addTest(.{ .root_module = bench_root, .filters = filters }));
+    bench_tests.setCwd(repository_root);
+    bench_tests.has_side_effects = true;
+    b.step(
+        "circuit-bench-witness",
+        "Benchmark: the R9 multiverifier's base and interaction witness, then one internal prove (large)",
+    ).dependOn(&bench_tests.step);
 
     const r7_step = b.step(
         "circuit-parity-r7",
