@@ -63,6 +63,8 @@ pub const Fold = struct {
     bundle: *const air.Bundle,
     /// Execution choices that never change bytes.
     options: prove.Options = .{},
+    /// The backend that proves each reduction; never changes bytes.
+    provers: *const prove.Provers = &prove.cpu_provers,
     /// Owns every `PackedNode` of the tree; outlives the fold.
     packed_allocator: std.mem.Allocator,
 };
@@ -185,9 +187,9 @@ fn reduce(
     const build_ns = timer.lap();
 
     const parent: LayerEntry = if (is_root)
-        try proveNode(prove.Root, gpa, fold, values, subtasks, true)
+        try proveNode(fold.provers.root, gpa, fold, values, subtasks, true)
     else
-        try proveNode(prove.Internal, gpa, fold, values, subtasks, false);
+        try proveNode(fold.provers.internal, gpa, fold, values, subtasks, false);
     log.info("reduce layer {d} pair {d}{s}: build {d} ms, prove {d} ms", .{
         layer_idx,
         pair_idx,
@@ -199,7 +201,7 @@ fn reduce(
 }
 
 fn proveNode(
-    comptime P: type,
+    proveFn: anytype,
     gpa: std.mem.Allocator,
     fold: *const Fold,
     values: []const QM31,
@@ -207,7 +209,7 @@ fn proveNode(
     comptime is_root: bool,
 ) !LayerEntry {
     const canonical = fold.canonical;
-    var proof = try P.prove(gpa, values, &canonical.preprocessed, fold.bundle, canonical.shared.pcs_config, fold.options, {});
+    var proof = try proveFn(gpa, values, &canonical.preprocessed, fold.bundle, canonical.shared.pcs_config, fold.options);
     defer proof.deinit();
 
     // `extract_root_and_outputs`.

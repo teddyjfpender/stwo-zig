@@ -61,6 +61,13 @@ pub fn build(b: *std.Build) void {
     r7_root.addImport("stwo_cairo_frontend", cairo);
     r7_root.addImport("stwo_circuit_recursion_wire", wire);
     r7_root.addImport("circuit_testing", circuit_testing);
+    const cpu_provers = b.createModule(.{
+        .root_source_file = b.path("tests/cpu_provers.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    cpu_provers.addImport("stwo_circuit_cpu_integration", integration);
+    r7_root.addImport("circuit_provers_under_test", cpu_provers);
     const r7_tests = b.addRunArtifact(b.addTest(.{ .root_module = r7_root, .filters = filters }));
     r7_tests.setCwd(repository_root);
     test_step.dependOn(&r7_tests.step);
@@ -135,6 +142,7 @@ pub fn build(b: *std.Build) void {
     r9_root.addImport("stwo_circuit_cpu_integration", integration);
     r9_root.addImport("stwo_circuit_recursion_wire", wire);
     r9_root.addImport("circuit_testing", circuit_testing);
+    r9_root.addImport("circuit_provers_under_test", cpu_provers);
     const r9_tests = b.addRunArtifact(b.addTest(.{ .root_module = r9_root, .filters = filters }));
     r9_tests.setCwd(repository_root);
     b.step(

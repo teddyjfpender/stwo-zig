@@ -82,41 +82,60 @@ pub fn defaultPcsConfig(trace_log_size: u32) PcsConfigV2 {
     return PcsConfigV2.fromFriAndTraceSize(fri, trace_log_size);
 }
 
+/// `CircuitProof<MC::H>`: its stark proof depends only on the Merkle
+/// hasher, so the CPU and device provers of a profile share this type.
+pub fn CircuitProofOf(comptime MC: type) type {
+    const Hash = MC.MerkleHasher.Hash;
+    return struct {
+        allocator: std.mem.Allocator,
+        pcs_config: PcsConfigV2,
+        /// `CircuitClaim::output_values`.
+        output_values: []QM31,
+        interaction_pow_nonce: u64,
+        /// `CircuitInteractionClaim::claimed_sums`.
+        claimed_sums: PerComponent(QM31),
+        stark_proof: core.proof.ExtendedStarkProof(MC.MerkleHasher),
+        channel_salt: u32,
+        circuit_hash: Hash,
+        /// Not a proof field: the committed log sizes the circuit hash
+        /// binds, for callers that re-derive it.
+        component_log_sizes: PerComponent(u32),
+
+        pub fn deinit(self: *@This()) void {
+            self.stark_proof.deinit(self.allocator);
+            self.allocator.free(self.output_values);
+            self.* = undefined;
+        }
+    };
+}
+
 pub fn Prover(comptime MC: type) type {
+    return ProverOn(CpuBackend, MC);
+}
+
+/// The circuit prover on the PCS backend `B` (design §4.6): the CPU backend
+/// is the parity oracle; a device backend (`circuit_metal`) reuses this
+/// transcript unchanged, so the two can differ only in where the work runs.
+/// A backend may supply the §4.7 interaction grind
+/// (`prover.pcs.proof_of_work.grindForBackend`); the CPU grinds on the
+/// channel, which walks the same `(hi, lo < 2^20)` order.
+pub fn ProverOn(comptime B: type, comptime MC: type) type {
     comptime std.debug.assert(MC.protocol_revision == .proving_5a7c5ed);
     return struct {
+        pub const Backend = B;
         pub const MerkleChannel = MC;
         pub const Channel = MC.Channel;
         pub const Hasher = MC.MerkleHasher;
-        pub const Engine = prover.engine.ProverEngine(CpuBackend, Hasher, MC, Channel);
+        pub const Engine = prover.engine.ProverEngine(B, Hasher, MC, Channel);
         pub const Hash = Hasher.Hash;
 
         comptime {
             @import("stwo_prover_api").assertProverEngine(Engine);
         }
 
-        /// `CircuitProof<MC::H>`.
-        pub const CircuitProof = struct {
-            allocator: std.mem.Allocator,
-            pcs_config: PcsConfigV2,
-            /// `CircuitClaim::output_values`.
-            output_values: []QM31,
-            interaction_pow_nonce: u64,
-            /// `CircuitInteractionClaim::claimed_sums`.
-            claimed_sums: PerComponent(QM31),
-            stark_proof: Engine.ExtendedProof,
-            channel_salt: u32,
-            circuit_hash: Hash,
-            /// Not a proof field: the committed log sizes the circuit hash
-            /// binds, for callers that re-derive it.
-            component_log_sizes: PerComponent(u32),
-
-            pub fn deinit(self: *CircuitProof) void {
-                self.stark_proof.deinit(self.allocator);
-                self.allocator.free(self.output_values);
-                self.* = undefined;
-            }
-        };
+        /// `CircuitProof<MC::H>`; one type per channel profile, whichever
+        /// backend proved it.
+        pub const CircuitProof = CircuitProofOf(MC);
 
         /// `prove_circuit_assignment_with_channel`. `values` is the finalized
         /// context's value table, `pp` its preprocessed circuit and
@@ -171,7 +190,10 @@ pub fn Prover(comptime MC: type) type {
             step(observer, .commit_base_trace, &channel);
 
             // Interaction elements.
-            const nonce = channel.grind(component_list.INTERACTION_POW_BITS);
+            const nonce = if (comptime B == CpuBackend)
+                channel.grind(component_list.INTERACTION_POW_BITS)
+            else
+                try prover.pcs.proof_of_work.grindForBackend(B, &channel, component_list.INTERACTION_POW_BITS);
             channel.mixU64(nonce);
             step(observer, .mix_interaction_pow_nonce, &channel);
             const elements = try lookup_transcript.drawLookupElements(allocator, &channel);
@@ -298,3 +320,55 @@ fn dupColumns(
 pub const Internal = Prover(profiles.Blake2sM31MerkleChannel);
 /// The circuit prover on the root profile.
 pub const Root = Prover(profiles.Blake2sMerkleChannel);
+
+/// The two profiles' provers bound to one backend, for the recursion
+/// drivers (leaf wrap, fold): the CPU set is the default, a device
+/// integration supplies its own (`circuit_metal.provers`). Both sets return
+/// the same proof types, so the drivers do not depend on the backend.
+pub const Provers = struct {
+    backend_name: []const u8,
+    internal: *const fn (
+        std.mem.Allocator,
+        []const QM31,
+        *const preprocessed.PreprocessedCircuit,
+        *const air.Bundle,
+        PcsConfigV2,
+        Options,
+    ) anyerror!Internal.CircuitProof,
+    root: *const fn (
+        std.mem.Allocator,
+        []const QM31,
+        *const preprocessed.PreprocessedCircuit,
+        *const air.Bundle,
+        PcsConfigV2,
+        Options,
+    ) anyerror!Root.CircuitProof,
+
+    /// The set of `ProverOn(B, ·)` for both profiles.
+    pub fn of(comptime I: type, comptime R: type) Provers {
+        comptime std.debug.assert(I.CircuitProof == Internal.CircuitProof and R.CircuitProof == Root.CircuitProof);
+        return .{
+            .backend_name = if (I.Backend == CpuBackend) "cpu" else @typeName(I.Backend),
+            .internal = Unobserved(I).prove,
+            .root = Unobserved(R).prove,
+        };
+    }
+
+    fn Unobserved(comptime P: type) type {
+        return struct {
+            fn prove(
+                allocator: std.mem.Allocator,
+                values: []const QM31,
+                pp: *const preprocessed.PreprocessedCircuit,
+                bundle: *const air.Bundle,
+                pcs_config: PcsConfigV2,
+                options: Options,
+            ) anyerror!P.CircuitProof {
+                return P.prove(allocator, values, pp, bundle, pcs_config, options, {});
+            }
+        };
+    }
+};
+
+/// The CPU scalar provers: the parity oracle.
+pub const cpu_provers = Provers.of(Internal, Root);
