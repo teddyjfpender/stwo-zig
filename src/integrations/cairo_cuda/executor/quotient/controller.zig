@@ -15,6 +15,8 @@ const resident_sources = @import("resident_sources.zig");
 const buckets_module = @import("buckets.zig");
 const topology_module = @import("topology.zig");
 
+pub const QuotientBindings = pcs_types.Quotient;
+
 const NativeOps = struct {
     pub const prepareTerms = quotient_stage.Native.prepareTerms;
     pub const finalizeGroups = quotient_stage.Native.finalizeGroups;
@@ -189,21 +191,61 @@ pub fn prepare(
     );
     errdefer topology.deinit();
     try validatePlan(plan, topology);
+    var evaluations: [4]common.Words = undefined;
+    if (topology.source_trees.len != evaluations.len)
+        return error.InvalidKernelDescriptor;
+    for (topology.source_trees) |span| {
+        const tree = try bindings.trees.require(span.role);
+        if (tree.ordinal != span.tree_ordinal or tree.first_column != span.first_source or
+            tree.column_count != span.source_count or tree.evaluations.len != span.evaluation_words)
+            return error.InvalidKernelDescriptor;
+        evaluations[span.tree_ordinal] = tree.evaluations;
+    }
+    return prepareFromTopology(
+        allocator,
+        session,
+        &topology,
+        &evaluations,
+        bindings.oods.sample_points,
+        bindings.oods.sampled_values,
+        bindings.quotient,
+        bindings.twiddles_forward,
+        program.quotient.evaluation_log_rows,
+        plan.identity,
+    );
+}
+
+/// Shared Cairo/circuit CUDA quotient preparation. The authenticated topology
+/// transfers into the returned controller only after every device binding and
+/// geometry check succeeds; on failure the caller retains ownership.
+pub fn prepareFromTopology(
+    allocator: std.mem.Allocator,
+    session: anytype,
+    topology_ptr: *topology_module.Topology,
+    tree_evaluations: []const common.Words,
+    sample_points: common.SecureCirclePoints,
+    sampled_values: common.SecureFields,
+    quotient: pcs_types.Quotient,
+    twiddles_forward: common.Words,
+    evaluation_log: u32,
+    plan_identity: proof_ir.Digest,
+) !Prepared {
+    const topology = topology_ptr.*;
+    if (std.mem.allEqual(u8, &plan_identity, 0) or evaluation_log == 0 or evaluation_log > 30)
+        return error.InvalidKernelDescriptor;
     var buckets = try buckets_module.build(allocator, topology);
     errdefer buckets.deinit();
     if (buckets.descriptors.len == 0 or
-        buckets.maximum_scratch_rows > bindings.quotient.result_coordinates.c0.len)
+        buckets.maximum_scratch_rows > quotient.result_coordinates.c0.len)
     {
         return error.InvalidKernelDescriptor;
     }
-    var sources = try resident_sources.Bound.init(
+    var sources = try resident_sources.Bound.initColumns(
         allocator,
         topology,
-        bindings.trees,
+        tree_evaluations,
     );
     errdefer sources.deinit();
-
-    const quotient = bindings.quotient;
     const groups = try quotient_stage.prepareGroups(
         allocator,
         session,
@@ -227,14 +269,16 @@ pub fn prepare(
         topology.partial_offsets,
         quotient.partial_log_sizes,
         quotient.partial_offsets,
-        program.quotient.evaluation_log_rows - 1,
+        evaluation_log - 1,
         topology.partial_offsets[topology.partial_offsets.len - 1],
     );
-    const circle = try deriveCircle(program.quotient.evaluation_log_rows);
-    const coefficient_log = program.quotient.evaluation_log_rows - 1;
+    const circle = try deriveCircle(evaluation_log);
+    const coefficient_log = evaluation_log - 1;
+    const forward_rows = @as(usize, 1) << @intCast(coefficient_log);
+    if (twiddles_forward.len < forward_rows) return error.InvalidKernelDescriptor;
     const views = Views{
-        .sample_points = bindings.oods.sample_points,
-        .sampled_values = bindings.oods.sampled_values,
+        .sample_points = sample_points,
+        .sampled_values = sampled_values,
         .challenge = quotient.challenge,
         .term_points = quotient.term_points,
         .line_coefficients = quotient.line_coefficients,
@@ -245,13 +289,14 @@ pub fn prepare(
         .subdomain_coordinates = quotient.subdomain_coordinates,
         .subdomain_inverse_twiddles = quotient.subdomain_inverse_twiddles,
         .coefficient_logs = quotient.coefficient_logs,
-        .forward_twiddles = try bindings.twiddles_forward.sub(bindings.twiddles_forward.len - (@as(usize, 1) << @intCast(coefficient_log)), @as(usize, 1) << @intCast(coefficient_log)),
+        .forward_twiddles = try twiddles_forward.sub(twiddles_forward.len - forward_rows, forward_rows),
     };
     try validateViews(
         topology,
-        program.quotient.evaluation_log_rows,
+        evaluation_log,
         views,
     );
+    topology_ptr.* = undefined;
     return .{
         .topology = topology,
         .buckets = buckets,
@@ -261,9 +306,9 @@ pub fn prepare(
         .combine = combine,
         .circle = circle,
         .views = views,
-        .plan_identity = plan.identity,
+        .plan_identity = plan_identity,
         .identity = preparedIdentity(
-            plan.identity,
+            plan_identity,
             topology.identity,
             sources.identity,
             views,

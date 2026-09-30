@@ -84,6 +84,8 @@ pub fn Sink(comptime Session: type, comptime Transcript: type, comptime Fri: typ
         primed: bool = false,
         initialized: bool = false,
         next_step: u32 = 0,
+        fri_round: u32 = 0,
+        fri_layers: ?u32 = null,
 
         pub const Root = common.Words;
         pub const Felts = common.Words;
@@ -200,6 +202,96 @@ pub fn Sink(comptime Session: type, comptime Transcript: type, comptime Fri: typ
             return self.initialized and self.next_step == 10;
         }
 
+        /// The circuit `prove_ex` tail follows the same channel order as the
+        /// CPU prover: composition alpha/root, OODS, sampled values, DEEP
+        /// alpha, FRI roots/alphas, terminal polynomial, PoW, queries.
+        pub fn drawCompositionAlpha(self: *Self, output: common.SecureFields) !void {
+            try self.drawAt(10, .constraint_evaluation, output);
+        }
+
+        pub fn mixCompositionRoot(self: *Self, root: common.Words) !void {
+            if (root.len != 8) return error.InvalidCircuitTranscriptPayload;
+            try self.mixAt(11, .constraint_evaluation, root, false);
+        }
+
+        pub fn drawOodsParameter(self: *Self, output: common.SecureFields) !void {
+            try self.drawAt(12, .oods, output);
+        }
+
+        pub fn mixSampledValues(self: *Self, values: common.SecureFields) !void {
+            if (values.len == 0) return error.InvalidCircuitTranscriptPayload;
+            try self.mixAt(13, .oods, try values.cast(u32), true);
+        }
+
+        pub fn drawQuotientAlpha(self: *Self, output: common.SecureFields) !void {
+            try self.drawAt(14, .oods, output);
+        }
+
+        pub fn setFriLayers(self: *Self, count: u32) !void {
+            if (self.next_step != 15 or self.fri_layers != null or count == 0 or count > 32)
+                return error.InvalidCircuitTranscriptState;
+            self.fri_layers = count;
+        }
+
+        pub fn mixFriRoot(self: *Self, root: common.Words) !void {
+            const count = self.fri_layers orelse return error.InvalidCircuitTranscriptState;
+            if (root.len != 8 or self.fri_round >= count)
+                return error.InvalidCircuitTranscriptPayload;
+            try self.mixAt(15 + 2 * self.fri_round, .fri_commit, root, false);
+        }
+
+        pub fn drawFriAlpha(self: *Self, output: common.SecureFields) !void {
+            const count = self.fri_layers orelse return error.InvalidCircuitTranscriptState;
+            if (self.fri_round >= count) return error.InvalidCircuitTranscriptState;
+            try self.drawAt(16 + 2 * self.fri_round, .fri_commit, output);
+            self.fri_round += 1;
+        }
+
+        pub fn mixLastLayer(self: *Self, coefficients: common.SecureFields) !void {
+            const count = self.fri_layers orelse return error.InvalidCircuitTranscriptState;
+            if (self.fri_round != count or coefficients.len == 0)
+                return error.InvalidCircuitTranscriptState;
+            try self.mixAt(15 + 2 * count, .fri_commit, try coefficients.cast(u32), true);
+        }
+
+        pub fn absorbQueryPow(self: *Self) !void {
+            const count = self.fri_layers orelse return error.InvalidCircuitTranscriptState;
+            if (self.next_step != 16 + 2 * count) return error.InvalidCircuitTranscriptState;
+            const bits = (self.fri_value orelse return error.InvalidCircuitTranscriptState).fri_config.pow_bits;
+            const view = self.bindings;
+            try Fri.grindPowAtStage(self.session, .pow, view.state, bits, pow_search_end, view.pow_prefix, view.pow_best_nonce, view.pow_completed_blocks, view.pow_nonce_words);
+            try Transcript.absorbPowAtStage(self.session, .pow, view.state, self.boundary(), view.pow_nonce_words, bits, view.pow_nonce_words);
+            self.next_step += 1;
+        }
+
+        pub fn drawQueries(self: *Self, output: common.Words, log_domain_size: u32) !void {
+            const count = self.fri_layers orelse return error.InvalidCircuitTranscriptState;
+            const config = self.fri_value orelse return error.InvalidCircuitTranscriptState;
+            if (self.next_step != 17 + 2 * count or output.len != config.fri_config.n_queries or
+                log_domain_size == 0 or log_domain_size > 30)
+                return error.InvalidCircuitTranscriptState;
+            if (output.owner != self.bindings.state.owner or output.generation != self.bindings.state.generation)
+                return error.InvalidCircuitTranscriptPayload;
+            try Transcript.drawQueries(self.session, self.bindings.state, self.boundary(), log_domain_size, output, output);
+            self.next_step += 1;
+        }
+
+        fn drawAt(self: *Self, expected: u32, stage: cuda.runtime.telemetry.Stage, output: common.SecureFields) !void {
+            if (!self.initialized or self.next_step != expected or output.len != 1 or
+                output.owner != self.bindings.state.owner or output.generation != self.bindings.state.generation)
+                return error.InvalidCircuitTranscriptState;
+            try Transcript.drawSecure(self.session, stage, self.bindings.state, self.boundary(), 1, 64, output, output);
+            self.next_step += 1;
+        }
+
+        fn mixAt(self: *Self, expected: u32, stage: cuda.runtime.telemetry.Stage, source: common.Words, validate_m31: bool) !void {
+            if (!self.initialized or self.next_step != expected or source.owner != self.bindings.state.owner or
+                source.generation != self.bindings.state.generation)
+                return error.InvalidCircuitTranscriptState;
+            try Transcript.mixWords(self.session, stage, self.bindings.state, self.boundary(), source, validate_m31, source);
+            self.next_step += 1;
+        }
+
         fn mix(self: *Self, source: common.Words, validate_m31: bool) !void {
             if (!self.initialized or self.next_step >= 10)
                 return error.InvalidCircuitTranscriptState;
@@ -291,7 +383,7 @@ const FakeTranscript = struct {
     }
 
     pub fn mixWords(session: *FakeSession, stage: cuda.runtime.telemetry.Stage, _: common.Words, boundary: transcript.Boundary, source: common.Words, _: bool, snapshot: common.Words) !void {
-        if (stage != .trace_commit or source.address != snapshot.address or
+        if ((boundary.expected_step < 10 and stage != .trace_commit) or source.address != snapshot.address or
             boundary.expected_step != session.transcript_calls - 1 or
             boundary.expected_chain == boundary.next_chain)
             return error.InvalidFakeCall;
@@ -299,15 +391,23 @@ const FakeTranscript = struct {
     }
 
     pub fn absorbPowAtStage(session: *FakeSession, stage: cuda.runtime.telemetry.Stage, _: common.Words, boundary: transcript.Boundary, nonce: common.Words, bits: u32, snapshot: common.Words) !void {
-        if (stage != .trace_commit or bits != 20 or nonce.address != snapshot.address or
-            boundary.expected_step != 6 or session.pow_calls != 1)
+        if (((boundary.expected_step == 6 and (stage != .trace_commit or bits != 20)) or
+            (boundary.expected_step != 6 and stage != .pow)) or
+            nonce.address != snapshot.address or session.pow_calls == 0)
             return error.InvalidFakeCall;
         session.transcript_calls += 1;
     }
 
     pub fn drawSecure(session: *FakeSession, stage: cuda.runtime.telemetry.Stage, _: common.Words, boundary: transcript.Boundary, count: u32, _: u32, output: common.SecureFields, snapshot: common.SecureFields) !void {
-        if (stage != .trace_commit or boundary.expected_step != 7 or
-            count != 2 or output.address != snapshot.address)
+        if ((boundary.expected_step == 7 and (stage != .trace_commit or count != 2)) or
+            (boundary.expected_step != 7 and (stage == .trace_commit or count != 1)) or
+            output.address != snapshot.address or boundary.expected_step != session.transcript_calls - 1)
+            return error.InvalidFakeCall;
+        session.transcript_calls += 1;
+    }
+
+    pub fn drawQueries(session: *FakeSession, _: common.Words, boundary: transcript.Boundary, _: u32, output: common.Words, snapshot: common.Words) !void {
+        if (output.address != snapshot.address or boundary.expected_step != session.transcript_calls - 1)
             return error.InvalidFakeCall;
         session.transcript_calls += 1;
     }
@@ -315,7 +415,7 @@ const FakeTranscript = struct {
 
 const FakeFri = struct {
     pub fn grindPowAtStage(session: *FakeSession, stage: cuda.runtime.telemetry.Stage, _: common.Words, bits: u32, search_end: u64, _: common.Words, _: common.Nonce, _: common.Words, _: common.Words) !void {
-        if (stage != .trace_commit or bits != 20 or search_end != pow_search_end)
+        if ((stage != .trace_commit and stage != .pow) or bits == 0 or search_end != pow_search_end)
             return error.InvalidFakeCall;
         session.pow_calls += 1;
     }
@@ -363,6 +463,24 @@ test "resident circuit prefix uses ten ordered device transcript operations" {
     try std.testing.expectEqual(@as(u32, 1), session.pow_calls);
     try std.testing.expectEqual(@as(u32, 11), session.transcript_calls);
     try std.testing.expect(session.m31);
+    const challenge = common.SecureFields{ .address = 0x1c00, .len = 1, .owner = 7, .generation = 3 };
+    try device.drawCompositionAlpha(challenge);
+    try device.mixCompositionRoot(root);
+    try device.drawOodsParameter(challenge);
+    try device.mixSampledValues(.{ .address = 0x1d00, .len = 3, .owner = 7, .generation = 3 });
+    try device.drawQuotientAlpha(challenge);
+    try device.setFriLayers(2);
+    for (0..2) |_| {
+        try device.mixFriRoot(root);
+        try device.drawFriAlpha(challenge);
+    }
+    try device.mixLastLayer(challenge);
+    try device.absorbQueryPow();
+    try device.drawQueries(.{ .address = 0x1e00, .len = 70, .owner = 7, .generation = 3 }, 20);
+    try std.testing.expectEqual(@as(u32, 22), device.next_step);
+    try std.testing.expectEqual(@as(u32, 23), session.transcript_calls);
+    try std.testing.expectEqual(@as(u32, 2), session.pow_calls);
+    try std.testing.expectError(error.InvalidCircuitTranscriptState, device.drawQueries(.{ .address = 0x1e00, .len = 70, .owner = 7, .generation = 3 }, 20));
 }
 
 test "resident circuit transcript native dispatch compiles against CUDA session" {
@@ -382,6 +500,18 @@ test "resident circuit transcript native dispatch compiles against CUDA session"
             try prefix.mixInteractionClaim(sums);
             try prefix.commitInteraction(root);
             try prefix.admitComposition();
+            const challenge = try claim.cast(cuda.abi.field.SecureField);
+            try device.drawCompositionAlpha(try challenge.sub(0, 1));
+            try device.mixCompositionRoot(root);
+            try device.drawOodsParameter(try challenge.sub(0, 1));
+            try device.mixSampledValues(challenge);
+            try device.drawQuotientAlpha(try challenge.sub(0, 1));
+            try device.setFriLayers(1);
+            try device.mixFriRoot(root);
+            try device.drawFriAlpha(try challenge.sub(0, 1));
+            try device.mixLastLayer(challenge);
+            try device.absorbQueryPow();
+            try device.drawQueries(claim, 20);
         }
     };
     const entry: *const fn (*NativeSink, PcsConfigV2, common.Words, common.Words, common.Words) anyerror!void = &Dispatch.execute;

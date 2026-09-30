@@ -28,6 +28,8 @@ pub fn build(b: *std.Build) void {
     const cairo = b.dependency("stwo_cairo_frontend", dependency_options).module("stwo_cairo_frontend");
     const cairo_cpu = b.dependency("stwo_cairo_cpu_integration", dependency_options).module("stwo_cairo_cpu_integration");
     const cairo_cuda = b.dependency("stwo_cairo_cuda_integration", dependency_options).module("stwo_cairo_cuda_integration");
+    const backend_contracts = cairo_cuda.import_table.get("stwo_backend_contracts") orelse
+        @panic("Cairo CUDA integration is missing stwo_backend_contracts");
     const cuda_backend = cairo_cuda.import_table.get("stwo_cuda_backend") orelse
         @panic("Cairo CUDA integration is missing stwo_cuda_backend");
     const native_cuda = cairo_cuda.import_table.get("stwo_native_cuda_integration") orelse
@@ -47,10 +49,12 @@ pub fn build(b: *std.Build) void {
         .optimize = optimize,
     });
     integration.addImport("stwo_core", core);
+    integration.addImport("stwo_backend_contracts", backend_contracts);
     integration.addImport("stwo_prover_api", prover_api);
     integration.addImport("stwo_prover_engine", prover);
     integration.addImport("stwo_cpu_backend", cpu_backend);
     integration.addImport("stwo_circuit_frontend", circuit);
+    integration.addImport("stwo_cairo_frontend", cairo);
     integration.addImport("stwo_circuit_cpu_integration", circuit_cpu);
     integration.addImport("stwo_cairo_cuda_integration", cairo_cuda);
     integration.addImport("stwo_cuda_backend", cuda_backend);

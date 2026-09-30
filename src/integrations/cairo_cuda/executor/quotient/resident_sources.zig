@@ -25,13 +25,42 @@ pub const Bound = struct {
         topology: types.Topology,
         trees: pcs_types.TraceTrees,
     ) !Bound {
+        try validateTreeInventory(topology, trees);
+        var evaluations: [4]common.Words = undefined;
+        if (topology.source_trees.len > evaluations.len)
+            return error.InvalidKernelDescriptor;
+        for (topology.source_trees) |span| {
+            const tree = try treeAt(trees, span.tree_ordinal);
+            evaluations[span.tree_ordinal] = tree.evaluations;
+        }
+        return initColumns(allocator, topology, evaluations[0..topology.source_trees.len]);
+    }
+
+    /// AIR-neutral binding for independently allocated compact trees.
+    /// The topology carries each tree's authenticated source widths.
+    pub fn initColumns(
+        allocator: std.mem.Allocator,
+        topology: types.Topology,
+        evaluations: []const common.Words,
+    ) !Bound {
         if (std.mem.allEqual(u8, &topology.identity, 0) or
             topology.sources.len == 0 or
-            topology.source_evaluation_word_count == 0)
+            topology.source_evaluation_word_count == 0 or
+            topology.source_trees.len != evaluations.len)
         {
             return error.InvalidKernelDescriptor;
         }
-        try validateTreeInventory(topology, trees);
+        var total_sources: usize = 0;
+        var total_words: u64 = 0;
+        for (topology.source_trees, evaluations, 0..) |span, tree, ordinal| {
+            if (span.tree_ordinal != ordinal or span.first_source != total_sources or
+                span.evaluation_words != tree.len)
+                return error.InvalidKernelDescriptor;
+            total_sources = std.math.add(usize, total_sources, span.source_count) catch return error.SizeOverflow;
+            total_words = std.math.add(u64, total_words, span.evaluation_words) catch return error.SizeOverflow;
+        }
+        if (total_sources != topology.sources.len or total_words != topology.source_evaluation_word_count)
+            return error.InvalidKernelDescriptor;
         const descriptors = try allocator.alloc(
             quotient_abi.AddressedSourceDescriptor,
             topology.sources.len,
@@ -47,14 +76,15 @@ pub const Bound = struct {
             *descriptor,
             *column,
         | {
-            const tree = try treeAt(trees, source.tree_ordinal);
+            if (source.tree_ordinal >= evaluations.len) return error.InvalidKernelDescriptor;
+            const tree = evaluations[source.tree_ordinal];
             const expected_global = std.math.add(
                 u32,
-                tree.first_column,
+                topology.source_trees[source.tree_ordinal].first_source,
                 source.local_column,
             ) catch return error.SizeOverflow;
             if (source.global_column != expected_global or
-                source.local_column >= tree.column_count or
+                source.local_column >= topology.source_trees[source.tree_ordinal].source_count or
                 source.compact.stride_words == 0 or
                 source.compact.log_size == 0 or
                 source.compact.log_size > 30)
@@ -65,7 +95,7 @@ pub const Bound = struct {
                 usize,
                 source.compact.offset_words,
             ) orelse return error.SizeOverflow;
-            column.* = try tree.evaluations.sub(
+            column.* = try tree.sub(
                 first,
                 source.compact.stride_words,
             );

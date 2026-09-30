@@ -107,6 +107,7 @@
       "stwo_fold_line_on",
       "stwo_fri_fold_fused2_on",
       "stwo_fri_fold_fused3_on",
+      "stwo_fri_fold_fused4_on",
       "stwo_fri_last_layer_on",
       "stwo_graph_capture_abort",
       "stwo_graph_capture_begin",

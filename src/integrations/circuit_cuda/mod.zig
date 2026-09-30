@@ -43,6 +43,9 @@ pub const resident_witness = @import("resident_witness.zig");
 pub const resident_interaction = @import("resident_interaction.zig");
 pub const resident_composition = @import("resident_composition.zig");
 pub const resident_composition_controller = @import("resident_composition_controller.zig");
+pub const resident_oods = @import("resident_oods.zig");
+pub const resident_fri = @import("resident_fri.zig");
+pub const resident_quotient = @import("resident_quotient.zig");
 
 const profiles = core.vcs_lifted.channel_profile.proving_5a7c5ed;
 
@@ -103,6 +106,9 @@ test {
     _ = resident_interaction;
     _ = resident_composition;
     _ = resident_composition_controller;
+    _ = resident_oods;
+    _ = resident_fri;
+    _ = resident_quotient;
 }
 
 test "provider path: the engine's grind returns the CPU channel's nonce through the (emulated) kernel" {
