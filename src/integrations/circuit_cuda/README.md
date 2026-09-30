@@ -101,6 +101,11 @@ the Merkle root in the final tree slot and allocates no dense lifted columns or
 per-row progressive Blake2s states. Recorded AIR tree sizes and a native CUDA
 dispatch compile check pass locally. A device root comparison against Rust
 remains necessary before treating this as a qualified commitment path.
+The preprocessed, base and interaction frontend columns enter as evaluations;
+the resident commitment interpolates them on the device before extension.
+The composition split already enters as coefficients. A checked device copy
+loads a separate witness column into the packed transform input, and rejects
+overlapping source ranges that could corrupt the transform.
 
 The circuit base witness now has resident CUDA row kernels for all five gate
 components and the 22 lookup-table multiplicity columns. The controller maps

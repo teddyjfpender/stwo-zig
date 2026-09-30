@@ -90,8 +90,8 @@ pub const Plan = struct {
             .allocator = allocator,
             .role = tree.role,
             .input_form = switch (tree.role) {
-                .preprocessed, .composition => .coefficients,
-                .main, .interaction => .evaluations,
+                .preprocessed, .main, .interaction => .evaluations,
+                .composition => .coefficients,
             },
             .stage = if (tree.role == .composition) .constraint_evaluation else .trace_commit,
             .tree_size = tree_size,
@@ -164,6 +164,41 @@ pub const Bound = struct {
 
     pub fn execute(self: *Bound, session: anytype) !void {
         return self.executeWith(NativeOps, session);
+    }
+
+    /// The circuit frontend writes the first three trees as trace
+    /// evaluations. Copy each resident witness column into the packed
+    /// transform input before interpolating it in place. The composition
+    /// tree is already split into coefficient columns by the evaluator.
+    pub fn executeEvaluations(self: *Bound, session: anytype, columns: []const common.Words) !void {
+        try self.loadEvaluations(session, columns);
+        try self.execute(session);
+    }
+
+    pub fn loadEvaluations(self: *Bound, session: anytype, columns: []const common.Words) !void {
+        if (!self.primed or self.executed or self.plan.input_form != .evaluations or
+            columns.len != self.plan.column_logs.len)
+            return error.InvalidCircuitCommitInput;
+        const destination = self.buffers.coefficients;
+        const owner = destination.owner;
+        const generation = destination.generation;
+        for (self.plan.cohorts) |cohort| {
+            const rows = try powerOfTwo(cohort.trace_log);
+            for (0..cohort.count) |local| {
+                const source = columns[cohort.first_column + local];
+                if (source.len != rows or source.owner != owner or source.generation != generation)
+                    return error.InvalidCircuitCommitInput;
+                const target = try destination.sub(cohort.coefficient_offset + local * rows, rows);
+                _ = try session.context.deviceSlicePointer(u32, source, rows);
+                if (source.address == target.address) continue;
+                const source_bytes = try mul(rows, @sizeOf(u32));
+                const source_end = try add(source.address, source_bytes);
+                const destination_end = try add(destination.address, try mul(destination.len, @sizeOf(u32)));
+                if (source.address < destination_end and destination.address < source_end)
+                    return error.InvalidCircuitCommitInput;
+                try session.context.copyDeviceSlice(u32, target, source);
+            }
+        }
     }
 
     pub fn executeWith(self: *Bound, comptime Ops: type, session: anytype) !void {
@@ -248,10 +283,22 @@ fn mul(left: usize, right: usize) !usize {
 const FakeSession = struct {
     context: struct {
         uploads: u32 = 0,
+        copies: u32 = 0,
 
         pub fn uploadSlice(self: *@This(), comptime F: type, destination: anytype, source: []const F) !void {
             if (destination.len != source.len) return error.InvalidFakeUpload;
             self.uploads += 1;
+        }
+
+        pub fn copyDeviceSlice(self: *@This(), comptime F: type, destination: anytype, source: anytype) !void {
+            if (F != u32 or destination.len != source.len or destination.address == source.address)
+                return error.InvalidFakeCopy;
+            self.copies += 1;
+        }
+
+        pub fn deviceSlicePointer(_: *@This(), comptime F: type, source: anytype, count: usize) ![*]F {
+            if (F != u32 or source.len != count) return error.InvalidFakeSlice;
+            return @ptrFromInt(source.address);
         }
     } = .{},
     inverse_calls: u32 = 0,
@@ -326,15 +373,40 @@ test "resident circuit commitment uses packed mixed-height CUDA path" {
     try std.testing.expectError(error.InvalidCircuitCommitState, bound.root());
     var session = FakeSession{};
     try bound.prime(&session);
+    const overlapping = [_]common.Words{
+        .{ .address = 0x300004, .len = 16, .owner = owner },
+        .{ .address = 0x510000, .len = 16, .owner = owner },
+        .{ .address = 0x520000, .len = 32, .owner = owner },
+    };
+    try std.testing.expectError(error.InvalidCircuitCommitInput, bound.loadEvaluations(&session, &overlapping));
+    const inputs = [_]common.Words{
+        .{ .address = 0x500000, .len = 16, .owner = owner },
+        .{ .address = 0x510000, .len = 16, .owner = owner },
+        .{ .address = 0x520000, .len = 32, .owner = owner },
+    };
+    try bound.loadEvaluations(&session, &inputs);
     try bound.executeWith(FakeOps, &session);
     const root = try bound.root();
     try std.testing.expectEqual(@as(usize, 0x200000 + 254 * 32), root.address);
     try std.testing.expectEqual(@as(usize, 8), root.len);
     try std.testing.expectEqual(@as(u32, 2), session.context.uploads);
+    try std.testing.expectEqual(@as(u32, 3), session.context.copies);
     try std.testing.expectEqual(@as(u32, 2), session.inverse_calls);
     try std.testing.expectEqual(@as(u32, 2), session.extend_calls);
     try std.testing.expectEqual(@as(u32, 1), session.mixed_calls);
     try std.testing.expectEqual(@as(u32, 1), session.tail_calls);
+}
+
+test "preprocessed circuit commitment consumes frontend evaluations" {
+    var logs = [_]u32{ 4, 5 };
+    var plan = try Plan.init(std.testing.allocator, .{
+        .role = .preprocessed,
+        .column_logs = &logs,
+        .lifted_log = 7,
+    }, 1);
+    defer plan.deinit();
+    try std.testing.expectEqual(InputForm.evaluations, plan.input_form);
+    try std.testing.expectEqual(@as(usize, 48), plan.requirements.coefficient_words);
 }
 
 test "resident circuit commitment native dispatch compiles against CUDA session" {
