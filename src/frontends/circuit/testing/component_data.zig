@@ -1,12 +1,13 @@
 //! Port of `crates/stark_verifier/src/test_utils.rs::TestComponentData`
 //! (https://github.com/starkware-libs/proving at
 //! 5a7c5ede4299c91a61df19a07cba4f7502c14230): component data allocated as
-//! fresh variables, in the upstream harness order.
+//! fresh variables, in the upstream harness order. Test-only.
 
 const std = @import("std");
 const stwo_core = @import("stwo_core");
-const constraint_eval = @import("constraint_eval.zig");
-const ivalue = @import("../builder/ivalue.zig");
+const circuit = @import("stwo_circuit_frontend");
+const constraint_eval = circuit.stark_verifier.constraint_eval;
+const ivalue = circuit.builder.ivalue;
 
 const QM31 = stwo_core.fields.qm31.QM31;
 const M31 = stwo_core.fields.m31.M31;

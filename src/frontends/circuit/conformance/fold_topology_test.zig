@@ -30,7 +30,6 @@ const component_list = circuit.common.component_list;
 const ComponentSizes = circuit.common.finalize.ComponentSizes;
 const multiverifier = circuit.statements.multiverifier;
 const circuit_statement = circuit.statements.circuit_statement;
-const ProofInfo = circuit.stark_verifier.proof.ProofInfo;
 
 /// `TARGET_PADDING_SIZES` of `circuit_multiverifier/src/test_utils.rs`.
 const TARGET_PADDING_SIZES = verifier_stages.privacy_target_sizes;
@@ -96,7 +95,7 @@ test "r6 fold: layout_from_component_sizes reproduces the 45-column multiverifie
     try std.testing.expectEqual(@as(u32, 21), layout.traceLogSize());
 }
 
-test "r6 fold: ProofInfo total bytes equal the multiverifier proof.bin length" {
+test "r6 fold: the proof size (ProofInfo total bytes) equals the multiverifier proof.bin length" {
     const allocator = std.testing.allocator;
     const layout = try preprocessed.ColumnLayout.fromComponentSizes(TARGET_PADDING_SIZES);
     var shared = try multiverifier.sharedConfig(allocator, layout, try verifier_stages.privacyPcsConfig());
@@ -106,8 +105,7 @@ test "r6 fold: ProofInfo total bytes equal the multiverifier proof.bin length" {
     try std.testing.expectEqual(@as(usize, 114), config.n_trace_columns);
     try std.testing.expectEqual(@as(usize, 152), config.n_interaction_columns);
     try std.testing.expectEqual(@as(usize, 6), config.nFriLayers());
-    const info = ProofInfo.fromConfig(config);
-    try std.testing.expectEqual(MULTIVERIFIER_PROOF_BIN_BYTES, info.totalBytes());
+    try std.testing.expectEqual(MULTIVERIFIER_PROOF_BIN_BYTES, config.serializedLen());
 }
 
 fn checkRegistry(path: []const u8) !usize {

@@ -78,23 +78,21 @@ pub fn parse(allocator: std.mem.Allocator, bytes: []const u8) !Inputs {
             .input_d = fields[3],
             .input_f0 = fields[4],
             .input_f1 = fields[5],
-            .out_a = fields[6],
-            .out_b = fields[7],
-            .out_c = fields[8],
-            .out_d = fields[9],
+            .out_base = fields[6],
         };
+        // The builder allocates the four outputs consecutively.
+        if (!std.mem.eql(u32, fields[6..10], &gate.outputs())) return error.InvalidBlakeGGate;
     }
-    var offsets: std.ArrayListUnmanaged(u32) = .empty;
+    var ends: std.ArrayListUnmanaged(u32) = .empty;
     var inputs: std.ArrayListUnmanaged(u32) = .empty;
     var outputs: std.ArrayListUnmanaged(u32) = .empty;
-    try offsets.append(a, 0);
     for (0..counts[8]) |_| {
         const n_inputs = try reader.int();
         for (0..n_inputs) |_| try inputs.append(a, try reader.int());
         const n_outputs = try reader.int();
         if (n_outputs != n_inputs) return error.InvalidPermutation;
         for (0..n_outputs) |_| try outputs.append(a, try reader.int());
-        try offsets.append(a, @intCast(inputs.items.len));
+        try ends.append(a, @intCast(inputs.items.len));
     }
     const output = try a.alloc(u32, counts[9]);
     try reader.ints(output);
@@ -119,7 +117,7 @@ pub fn parse(allocator: std.mem.Allocator, bytes: []const u8) !Inputs {
             .triple_xor = triple_xor,
             .m31_to_u32 = m31_to_u32,
             .blake_g_gate = blake_g_gate,
-            .permutation_offsets = offsets.items,
+            .permutation_ends = ends.items,
             .permutation_inputs = inputs.items,
             .permutation_outputs = outputs.items,
             .output = output,

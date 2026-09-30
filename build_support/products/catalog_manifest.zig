@@ -169,8 +169,12 @@ pub fn stepsForScope(b: *std.Build, scope: Scope) []const []const u8 {
         configured.inherited_product_scope
     else
         null;
+    // The prover and package scopes construct the core (and prover) products
+    // whole, their focused test steps included.
+    const constructs_core_products = scope == .prover or scope == .package;
     for (catalog.steps) |step| {
-        if (step.scope == scope or (inherited_scope != null and step.scope == inherited_scope.?))
+        const constructed = constructs_core_products and (step.scope == .core or step.scope == .prover);
+        if (step.scope == scope or constructed or (inherited_scope != null and step.scope == inherited_scope.?))
             names.put(step.name, {}) catch @panic("out of memory");
     }
     if (scope == .aggregate)

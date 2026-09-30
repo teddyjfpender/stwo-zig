@@ -67,3 +67,7 @@ pub fn selectQueries(comptime V: type, ctx: *Context(V), input: Simd, log_domain
 pub fn negSimd(comptime V: type, ctx: *Context(V), x: Simd) Error!Simd {
     return simd.sub(V, ctx, try simd.zero(V, ctx, x.len), x);
 }
+
+test {
+    _ = @import("select_queries_test.zig");
+}

@@ -11,8 +11,8 @@
 const std = @import("std");
 const core = @import("stwo_core");
 const circuit = @import("stwo_circuit_frontend");
+const wire = @import("stwo_circuit_recursion_wire");
 
-const FriConfigV2 = core.pcs.config_v2.FriConfigV2;
 const preprocessed = circuit.common.preprocessed;
 const Json = std.json.Value;
 
@@ -37,16 +37,40 @@ pub fn expectAccepted(allocator: std.mem.Allocator, comptime label: []const u8, 
     try expectHex(field(body, "proof_sha256"), digest);
 }
 
-/// With `STWO_CIRCUIT_R7_EMIT_DIR`, writes the CircuitSerialize bytes and the
-/// oracle's `verify-circuit` request for them.
-pub fn emit(
-    allocator: std.mem.Allocator,
-    label: []const u8,
-    encoded: []const u8,
+/// The `verify_circuit` request of a circuit proof of `prove.Prover(MC)`
+/// whose outputs are a digest: its config, preprocessed layout, root and
+/// output digest. `columns` holds the layout; the request borrows it.
+pub fn requestFor(
     proof: anytype,
     pp: *const preprocessed.PreprocessedCircuit,
+    columns: *[preprocessed.N_PREPROCESSED_COLUMNS]wire.verify_request.Column,
+) wire.verify_request.VerifyRequest {
+    const layout = pp.layout();
+    for (layout.entries, columns) |entry, *column| column.* = .{ .id = entry.id, .log_size = entry.log_size };
+    var digest: [8]u32 = undefined;
+    for (proof.output_values, &digest) |value, *word| {
+        const limbs = value.toM31Array();
+        word.* = limbs[0].toU32() | (limbs[1].toU32() << 16);
+    }
+    const root = proof.stark_proof.proof.commitment_scheme_proof.commitments.items[0];
+    return .{
+        .pcs_config = proof.pcs_config,
+        .preprocessed_column_log_sizes = columns,
+        .preprocessed_root = core.vcs.blake2_hash.digestToU32s(root),
+        .output_digest = digest,
+    };
+}
+
+/// With `env_var` naming a directory, writes `<label>.proof` and the
+/// oracle's `verify-circuit` request `<label>.request.json` into it.
+pub fn emitTo(
+    allocator: std.mem.Allocator,
+    comptime env_var: []const u8,
+    label: []const u8,
+    encoded: []const u8,
+    request: wire.verify_request.VerifyRequest,
 ) !void {
-    const directory = std.process.getEnvVarOwned(allocator, "STWO_CIRCUIT_R7_EMIT_DIR") catch |err| switch (err) {
+    const directory = std.process.getEnvVarOwned(allocator, env_var) catch |err| switch (err) {
         error.EnvironmentVariableNotFound => return,
         else => return err,
     };
@@ -56,39 +80,23 @@ pub fn emit(
     const proof_name = try std.fmt.allocPrint(allocator, "{s}.proof", .{label});
     defer allocator.free(proof_name);
     try dir.writeFile(.{ .sub_path = proof_name, .data = encoded });
-
-    const Request = struct {
-        pcs_config: struct {
-            fri_config: FriConfigV2,
-            trace_lifting_log_size: u32,
-            preprocessed_lifting_log_size: u32,
-        },
-        preprocessed_column_log_sizes: []const struct { []const u8, u32 },
-        preprocessed_root: [8]u32,
-        output_digest: [8]u32,
-    };
-    const layout = pp.layout();
-    var columns: [preprocessed.N_PREPROCESSED_COLUMNS]struct { []const u8, u32 } = undefined;
-    for (layout.entries, &columns) |entry, *column| column.* = .{ entry.id, entry.log_size };
-    var digest: [8]u32 = undefined;
-    for (proof.output_values, &digest) |value, *word| {
-        const limbs = value.toM31Array();
-        word.* = limbs[0].toU32() | (limbs[1].toU32() << 16);
-    }
-    const root = proof.stark_proof.proof.commitment_scheme_proof.commitments.items[0];
-    const request = Request{
-        .pcs_config = .{
-            .fri_config = proof.pcs_config.fri_config,
-            .trace_lifting_log_size = proof.pcs_config.trace_lifting_log_size,
-            .preprocessed_lifting_log_size = proof.pcs_config.preprocessed_lifting_log_size,
-        },
-        .preprocessed_column_log_sizes = &columns,
-        .preprocessed_root = circuit.common.circuit_hash.leU32sFromBytes(8, &root),
-        .output_digest = digest,
-    };
-    const json = try std.json.Stringify.valueAlloc(allocator, request, .{});
-    defer allocator.free(json);
+    var json: std.Io.Writer.Allocating = .init(allocator);
+    defer json.deinit();
+    try wire.verify_request.writeVerifyRequest(&json.writer, request);
     const request_name = try std.fmt.allocPrint(allocator, "{s}.request.json", .{label});
     defer allocator.free(request_name);
-    try dir.writeFile(.{ .sub_path = request_name, .data = json });
+    try dir.writeFile(.{ .sub_path = request_name, .data = json.written() });
+}
+
+/// With `STWO_CIRCUIT_R7_EMIT_DIR`, writes the CircuitSerialize bytes and the
+/// oracle's `verify-circuit` request for them.
+pub fn emit(
+    allocator: std.mem.Allocator,
+    label: []const u8,
+    encoded: []const u8,
+    proof: anytype,
+    pp: *const preprocessed.PreprocessedCircuit,
+) !void {
+    var columns: [preprocessed.N_PREPROCESSED_COLUMNS]wire.verify_request.Column = undefined;
+    try emitTo(allocator, "STWO_CIRCUIT_R7_EMIT_DIR", label, encoded, requestFor(proof, pp, &columns));
 }

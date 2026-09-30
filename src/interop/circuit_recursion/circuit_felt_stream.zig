@@ -21,14 +21,14 @@
 //! ```
 //!
 //! `queried_values` is already in the verifier's layout: per tree, one
-//! vector over all queries (`sortAndTransposeQueriedValues`). The lifting
+//! vector over all queries (`cairo_serialize.sortAndTransposeQueriedValues`). The lifting
 //! heights of the `PcsConfig` are not on the wire; `CairoCircuitProof::
 //! deserialize` takes them from its caller, and so does nothing here: the
 //! heights never reach a byte of the stream.
 
 const std = @import("std");
 const core = @import("stwo_core");
-const cairo_serialize = @import("cairo_serialize.zig");
+const cairo_serialize = @import("interop_felt_json");
 
 const M31 = core.fields.m31.M31;
 const QM31 = core.fields.qm31.QM31;
@@ -41,7 +41,7 @@ pub const FriConfig = cairo_serialize.FriConfig;
 /// travel as a fixed-size array in `ComponentList` order.
 pub const n_circuit_components: usize = 11;
 /// Trees of a circuit proof: preprocessed, trace, interaction, composition.
-pub const n_trees: usize = 4;
+pub const n_trees: usize = cairo_serialize.n_queried_trees;
 
 pub const DecodeError = cairo_serialize.DecodeError || error{
     /// Felts left after the proof.
@@ -187,94 +187,10 @@ pub fn writeJson(out: *std.Io.Writer, proof: *const CairoCircuitProof) (cairo_se
     try sink.end();
 }
 
-pub const TransposeError = error{
-    /// Columns of one tree with different query counts, a log-size list of
-    /// the wrong length, or an empty preprocessed tree.
-    ShapeMismatch,
-} || std.mem.Allocator.Error;
-
-/// `sort_and_transpose_queried_values`: converts tree-major queried values
-/// (`queried_values[tree][column][query]`, as the prover stores them) to the
-/// layout the Cairo verifier reads: per tree, all columns' values of query 0,
-/// then of query 1, and so on. The trace and interaction trees (1 and 2) are
-/// first stably sorted by column log size; the preprocessed tree is already
-/// sorted and the composition columns share one size, so trees 0 and 3 are
-/// only transposed. The query count is taken from the first preprocessed
-/// column, as upstream does. The result is owned by `allocator`.
-pub fn sortAndTransposeQueriedValues(
-    allocator: std.mem.Allocator,
-    queried_values: [n_trees][]const []const M31,
-    trace_log_sizes: []const u32,
-    interaction_log_sizes: []const u32,
-) TransposeError![n_trees][]M31 {
-    if (queried_values[0].len == 0) return error.ShapeMismatch;
-    const n_queries = queried_values[0][0].len;
-    const log_sizes = [n_trees]?[]const u32{ null, trace_log_sizes, interaction_log_sizes, null };
-
-    var result: [n_trees][]M31 = undefined;
-    var done: usize = 0;
-    errdefer for (result[0..done]) |tree| allocator.free(tree);
-    for (queried_values, log_sizes, 0..) |columns, sizes, tree| {
-        for (columns) |column| if (column.len != n_queries) return error.ShapeMismatch;
-        const order = try allocator.alloc(usize, columns.len);
-        defer allocator.free(order);
-        for (order, 0..) |*slot, index| slot.* = index;
-        if (sizes) |column_sizes| {
-            if (column_sizes.len != columns.len) return error.ShapeMismatch;
-            std.sort.block(usize, order, column_sizes, lessByLogSize);
-        }
-        const out = try allocator.alloc(M31, columns.len * n_queries);
-        for (0..n_queries) |query| {
-            for (order, 0..) |column, position| out[query * columns.len + position] = columns[column][query];
-        }
-        result[tree] = out;
-        done += 1;
-    }
-    return result;
-}
-
-fn lessByLogSize(sizes: []const u32, lhs: usize, rhs: usize) bool {
-    return sizes[lhs] < sizes[rhs];
-}
-
 fn m31s(comptime values: anytype) [values.len]M31 {
     var out: [values.len]M31 = undefined;
     inline for (values, 0..) |value, index| out[index] = M31.fromCanonical(value);
     return out;
-}
-
-test "felt stream: sort and transpose follows cairo-air utils" {
-    const allocator = std.testing.allocator;
-    // Two queries per column.
-    const pp = [_][]const M31{ &m31s(.{ 1, 2 }), &m31s(.{ 3, 4 }) };
-    const trace = [_][]const M31{ &m31s(.{ 10, 11 }), &m31s(.{ 20, 21 }), &m31s(.{ 30, 31 }) };
-    const interaction = [_][]const M31{ &m31s(.{ 40, 41 }), &m31s(.{ 50, 51 }) };
-    const composition = [_][]const M31{&m31s(.{ 60, 61 })};
-    // Trace sizes 5, 3, 5: the stable sort puts column 1 first and keeps 0
-    // before 2. Interaction sizes 4, 4 keep their order.
-    const result = try sortAndTransposeQueriedValues(
-        allocator,
-        .{ &pp, &trace, &interaction, &composition },
-        &.{ 5, 3, 5 },
-        &.{ 4, 4 },
-    );
-    defer for (result) |tree| allocator.free(tree);
-    const expected = [n_trees][]const M31{
-        &m31s(.{ 1, 3, 2, 4 }),
-        &m31s(.{ 20, 10, 30, 21, 11, 31 }),
-        &m31s(.{ 40, 50, 41, 51 }),
-        &m31s(.{ 60, 61 }),
-    };
-    for (expected, result) |want, got| {
-        try std.testing.expectEqual(want.len, got.len);
-        for (want, got) |a, b| try std.testing.expectEqual(a.v, b.v);
-    }
-    try std.testing.expectError(error.ShapeMismatch, sortAndTransposeQueriedValues(
-        allocator,
-        .{ &pp, &trace, &interaction, &composition },
-        &.{ 5, 3 },
-        &.{ 4, 4 },
-    ));
 }
 
 test "felt stream: a hand-built proof encodes, decodes and re-encodes identically" {

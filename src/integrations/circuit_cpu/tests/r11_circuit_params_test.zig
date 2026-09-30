@@ -1,4 +1,4 @@
-//! Registry generation (design §7.3, milestone M9): `circuit-params
+//! Registry generation (design §7.3): `circuit-params
 //! --registry` of https://github.com/starkware-libs/proving at
 //! 5a7c5ede4299c91a61df19a07cba4f7502c14230, byte for byte.
 //!

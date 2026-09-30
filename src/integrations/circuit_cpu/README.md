@@ -84,6 +84,7 @@ const bytes = try verifier_proof.serialize(allocator);
 | `Root` | The prover on the root (plain Blake2s channel) profile |
 | `verifier_proof` | `prepare_circuit_proof_for_circuit_verifier`, the generic `proof_from_stark_proof` (`fromStarkProof`, for circuit and Cairo proofs), CircuitSerialize bytes, and `circuitVerifierValues` (a decoded proof as the in-circuit verifier's `Proof(QM31)`) |
 | `cairo_verifier_proof` | `prepare_circuit_proof_for_cairo_verifier`: a root proof as the Cairo circuit verifier's felt stream (`root.proof`) |
+| `verify` | `verify_circuit` on a `CircuitSerialize` proof and a `wire.verify_request` request: decode, convert, build the verification circuit with values; a `Verdict` (accepted with the output digest, or the rejecting stage) |
 | `recursion` | Orchestration (design §7): `leaf_wrap` (`prove_leaf` steps 4-8), `topology_key` (design §3.5), `topology_cache` (the byte-bounded per-topology LRU), `canonical` (`CanonicalCircuit::build`), `fold` (`LayerEntry`, `reduce_pair`, `reduce_root_single`), `tree` (`fold_entries`, `foldLeaves`, `write_root_outputs`) and `circuit_params` (registry generation) |
 
 `prove` takes an optional observer (`onStep`, `onLookupElements`,
@@ -137,6 +138,7 @@ zig build circuit-parity-r4-values --build-file src/integrations/circuit_cpu/bui
 zig build circuit-parity-r6-leaf --build-file src/integrations/circuit_cpu/build.zig -Doptimize=ReleaseSafe -j2
 zig build circuit-parity-r9 --build-file src/integrations/circuit_cpu/build.zig -Doptimize=ReleaseFast -j2
 zig build circuit-parity-registry --build-file src/integrations/circuit_cpu/build.zig -Doptimize=ReleaseFast -j2
+zig build circuit-parity-r11 --build-file src/integrations/circuit_cpu/build.zig -Doptimize=ReleaseSafe -j2
 STWO_CIRCUIT_MULTIVERIFIER_INPUTS=<path> \
   zig build circuit-parity-r7-multiverifier --build-file src/integrations/circuit_cpu/build.zig -Doptimize=ReleaseFast -j2
 ```
@@ -191,6 +193,23 @@ four-leaf tree against the upstream goldens, the others against the oracle's
 `fold-tree` checkpoint (`vectors/circuit/r9/fold_tree.json`). Every
 reduction proves a 2^23-row multiverifier; the five trees are 15 reductions.
 
+`circuit-parity-r11` is rung R11, acceptance and tamper. `verify.zig` is
+upstream `verify_circuit` on a `CircuitSerialize` proof: it decodes the proof
+under `circuit_verifier_proof_config` of a request (the verified circuit's
+`PcsConfig`, preprocessed layout, root and claimed output digest; the
+oracle's `verify-circuit --request` format, `wire.verify_request`), converts
+it with `verifier_proof.circuitVerifierValues` and builds the frontend's
+verification circuit (`statements.circuit_verifier`) with values. The rung
+verifies upstream's multiverifier `proof.bin`, the Rust golden leaf under the
+recursive-tree canonical config and a Zig proof of the R7 fibonacci circuit,
+each untouched and after each of eight tamperings (output digest,
+preprocessed root, circuit hash via the layout, a claimed sum, the channel
+salt, both PoW nonces, a FRI witness). The Zig verdicts must be accept,
+then reject; upstream's verdicts on the same bytes are committed under
+`vectors/circuit/r11/verify/` and must agree (`STWO_CIRCUIT_R11_EMIT_DIR`
+writes the cases for `generate_circuit_oracle_vectors.py --r11-emit-dir`).
+About 30 s and under 1 GB in ReleaseSafe.
+
 `circuit-parity-registry` generates both canonical_small test registries from
 their upstream definitions (`vectors/circuit/official/registry_definitions`)
 with `recursion.circuit_params.generate` and compares them with the committed
@@ -220,11 +239,11 @@ footprint. The Zig wrap's memory is the circuit prover's (composition
 evaluation from coefficients peaks at about 16 GB); its reduction is M11
 work (design §9.3).
 
-The builder share of this fold proof is about 0.1% of wall time (0.7%
-with preprocessing), far below the 10% at which design §9.1 would schedule
-the topology tape (M13). The Zig builder cannot build this circuit yet (the
-in-circuit verifier gadgets are later milestones), so the builder number is
-upstream's; the Zig builder is a call-order port of it.
+The builder share of a fold is small: upstream's builder takes about 0.1%
+of this proof's wall time (0.7% with preprocessing), and the Zig builder
+about 0.6 s of a 50-68 s reduction (about 1%, the recursive-tree table
+below). Both are far below the 10% at which design §9.1 would schedule the
+topology tape.
 
 Grinds, measured separately (`STWO_CIRCUIT_STAGE_PROFILE=1`; the CPU search
 runs about 26-30 million Blake2s hashes per second on this host, and the

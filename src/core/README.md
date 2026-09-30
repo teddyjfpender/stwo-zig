@@ -57,7 +57,7 @@ The contractually reviewed surface is grouped below.
 | Area | Exports |
 | :--- | :--- |
 | Fields and domains | `fields`, `circle`, `fft`, `poly`, `fraction` |
-| AIR and algebra | `air`, `cairo_air_layout`, `constraint_framework`, `constraints`, `preprocessed_tables`, `queries` |
+| AIR and algebra | `air`, `cairo_air_layout`, `circuit_proof_shape`, `constraint_framework`, `constraints`, `preprocessed_tables`, `queries` |
 | Commitments and transcript | `channel`, `crypto`, `proof_of_work`, `vcs`, `vcs_lifted` |
 | Proof system | `pcs`, `fri`, `proof`, `proof_json`, `verifier`, `verifier_types` |
 | Protocol revisions | `protocol_revision` |
@@ -90,6 +90,10 @@ ids, the builtin memory-cell sizes, and the components a leaf verifier
 circuit disables per variant). The Cairo frontend consumes all three, so its
 bytes do not depend on where they are defined, and the circuit recursion
 frontend reads the same facts without importing the Cairo frontend.
+`circuit_proof_shape` is the one shape and size model of a circuit STARK
+proof (column counts, FRI layer schedule, `CircuitSerialize` length), shared
+by the circuit frontend's in-circuit verifier and the circuit-recursion wire
+package, which may not import each other.
 Oracle data used only by tests lives under `vcs_lifted/testdata/` and is not
 exported; the prover package receives it as an injected test module.
 

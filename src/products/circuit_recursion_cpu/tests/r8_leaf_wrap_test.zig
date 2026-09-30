@@ -1,4 +1,4 @@
-//! Rung R8 (design §8.2, milestone M8): the Zig leaf lane reproduces
+//! Rung R8 (design §8.2): the Zig leaf lane reproduces
 //! upstream `leaf-prover`'s output byte for byte.
 //!
 //! `leaf-prover --program use_all_opcodes_and_builtins_compiled.json

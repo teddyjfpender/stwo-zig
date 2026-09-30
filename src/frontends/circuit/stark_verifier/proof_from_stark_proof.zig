@@ -3,7 +3,7 @@
 //! 5a7c5ede4299c91a61df19a07cba4f7502c14230).
 //!
 //! Only the pure packing lives here. The full `StarkProof` to circuit
-//! `Proof` conversion belongs to the circuit prover (M7), which reuses the
+//! `Proof` conversion belongs to the circuit prover (`src/integrations/circuit_cpu`), which reuses the
 //! core proof capture (`ExtendedStarkProof.aux`, `VerifiedProofCapture`)
 //! instead of a third raw-query expansion.
 

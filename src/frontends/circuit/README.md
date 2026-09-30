@@ -61,14 +61,17 @@ being filled milestone by milestone. Today it holds:
   `merkle`, `sort_queries`, `select_queries`, `fri`, `oods`,
   `constraint_eval` (the accumulator, `ComponentData`,
   `compute_composition_polynomial`), `logup` and `verify`. `proof` holds
-  `ProofConfig`, `ProofInfo` (the proof size model) and `Proof(T)` for
+  `ProofConfig` (its size model, `serializedLen`, is
+  `core.circuit_proof_shape`, shared with the wire format) and `Proof(T)` for
   values, topology placeholders and wires, with its one `guess` traversal
   and `emptyProof`. `verify` takes a stage observer (`NoStages` ignores it).
 - `statements`: `CircuitStatement` (the circuit-verifier statement over the
   11 circuit evaluators), `circuit_verifier_proof_config`, `CircuitConfig`;
   `multiverifier` (`SharedConfig`, the fold shared config of
   `CanonicalCircuit::build`, `buildMultiverifierCircuit` and its topology
-  form); `cairo_statement` (M6, the port of `CairoStatement`, see below) and
+  form); `circuit_verifier` (`verify.rs`: `buildVerificationCircuit` and
+  `verifyCircuit`, one proof); `cairo_statement` (the port of
+  `CairoStatement`, see below) and
   `cairo_leaf_config` (`leaf_verifier_config`: enabled components and the
   leaf `ProofConfig` over the projection's Cairo slot table).
 
@@ -188,10 +191,10 @@ const statement = try Statement.init(arena, &ctx, inputs);
 | Interpreter | `air_eval.interpreter.Interpreter(Ctx, Data)` |
 | Slot tables | `air_eval.cairo_components` (83 slots), `air_eval.circuit_components` (11), `air_eval.component_table` |
 | Composition | `stark_verifier.constraint_eval` (`CompositionConstraintAccumulator`, `InteractionAtOods`), `stark_verifier.logup` |
-| Harness data | `stark_verifier.test_utils.TestComponentData` |
+| Harness data | `testing/component_data.zig` `TestComponentData` (test-only) |
 | Utilities | `common.component_utils.seqOfComponentSize` |
 | In-circuit verifier | `stark_verifier.verify` (`verify`, `Stage`, `NoStages`), `stark_verifier.proof` (`Proof`, `guess`, `emptyProof`), `stark_verifier.{channel,circle,merkle,sort_queries,select_queries,fri,oods}` |
-| Statements | `statements.circuit_statement` (`CircuitStatement`), `statements.multiverifier` (`buildMultiverifierCircuit`, `buildMultiverifierTopology`), `statements.cairo_statement`, `statements.cairo_leaf_config`, `statements.cairo_verifier` (`CairoVerifierConfig`, `VerifierStatement`, `buildCairoVerifierCircuit`, `buildCairoVerifierTopology`) |
+| Statements | `statements.circuit_statement` (`CircuitStatement`), `statements.multiverifier` (`buildMultiverifierCircuit`, `buildMultiverifierTopology`), `statements.circuit_verifier` (`buildVerificationCircuit`, `verifyCircuit`), `statements.cairo_statement`, `statements.cairo_leaf_config`, `statements.cairo_verifier` (`CairoVerifierConfig`, `VerifierStatement`, `buildCairoVerifierCircuit`, `buildCairoVerifierTopology`) |
 
 Every evaluator is generic over a builder context type `Ctx` exposing `Var`,
 `zero`, `one`, `constant`, `add`, `sub`, `mul`, `eq`, `inv` and `newVar` with
@@ -256,7 +259,7 @@ Tests that read `vectors/circuit` run from the repository root.
 - `circuit-parity-r6-fold` runs the oracle-free fold checks
   (`conformance/fold_topology_test.zig`: the 45-column layout, every
   committed registry's circuit hash, the R0 circuit-hash vectors, the static
-  component facts, and `ProofInfo.totalBytes` against the 182,884-byte
+  component facts, and the proof size (`ProofConfig.serializedLen`, upstream `ProofInfo::total_bytes`) against the 182,884-byte
   multiverifier `proof.bin`), then rebuilds each registry's multiverifier
   (`conformance/fold_rebuild_test.zig`, labelled large: 2^23-row targets,
   about 3.5 GB) and requires its layout, component log sizes, preprocessed

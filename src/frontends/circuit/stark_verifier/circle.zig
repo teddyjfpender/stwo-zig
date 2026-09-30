@@ -100,8 +100,7 @@ pub fn subPointsSimd(comptime V: type, ctx: *Context(V), p0: Point(Simd), p1: Po
 
 /// `generator_point`: the generator of the subgroup of size `2^log_size`.
 pub fn generatorPoint(log_size: usize) core.circle.CirclePointM31 {
-    std.debug.assert(log_size <= core.circle.M31_CIRCLE_LOG_ORDER);
-    return core.circle.M31_CIRCLE_GEN.repeatedDouble(@intCast(core.circle.M31_CIRCLE_LOG_ORDER - log_size));
+    return core.circle.CirclePointIndex.subgroupGen(@intCast(log_size)).toPoint();
 }
 
 /// `generator_point_simd`: that generator repeated in `len` lanes.
@@ -137,4 +136,8 @@ pub fn computeHalfCosetPoints(comptime V: type, ctx: *Context(V), base_points: P
     for (points[1..], 0..) |*point, i| point.* = try addPointsSimd(V, ctx, points[i], gen);
     core.utils.bitReverse(Point(Simd), points);
     return points;
+}
+
+test {
+    _ = @import("circle_test.zig");
 }

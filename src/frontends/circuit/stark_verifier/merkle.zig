@@ -116,3 +116,27 @@ pub fn decommitEvalDomainSamples(
 test {
     _ = @import("merkle_test.zig");
 }
+
+test "merkle: hash_leaf_m31s regression (merkle_test.rs)" {
+    const QM31 = @import("stwo_core").fields.qm31.QM31;
+    const M31 = @import("stwo_core").fields.m31.M31;
+    const blake2_hash = @import("stwo_core").vcs.blake2_hash;
+    var ctx = try Context(QM31).init(std.testing.allocator, 0);
+    defer ctx.deinit();
+    for ([_][]const u32{ &.{1641251221}, &.{ 1, 1641251221, 1176667027, 568581975 } }) |values| {
+        const wires = try ctx.scratch().alloc(M31Wrapper(Var), values.len);
+        var bytes: std.ArrayList(u8) = .empty;
+        defer bytes.deinit(std.testing.allocator);
+        for (wires, values) |*wire, value| {
+            wire.* = try builder.wrappers.guessM31(QM31, &ctx, builder.wrappers.m31Value(QM31, M31.fromCanonical(value)));
+            var le: [4]u8 = undefined;
+            std.mem.writeInt(u32, &le, value, .little);
+            try bytes.appendSlice(std.testing.allocator, &le);
+        }
+        const hash = try hashLeafM31s(QM31, &ctx, wires);
+        const expected = blake2_hash.digestToU32s(blake2_hash.Blake2sHasher.hash(bytes.items));
+        for (hash.words, expected) |wire, word| try std.testing.expectEqual(word, builder.ivalue.unpackU32(QM31, ctx.get(wire.get())));
+    }
+    try ctx.finalize(false);
+    try std.testing.expect(try ctx.isCircuitValid());
+}

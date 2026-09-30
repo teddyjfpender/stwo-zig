@@ -289,3 +289,85 @@ fn translateToBasePoint(comptime V: type, ctx: *Context(V), point: Point(Simd), 
     }
     return base;
 }
+
+test "fri: fold_coset matches the host fold (fri_test.rs test_fold_coset)" {
+    const core_fri = @import("stwo_core").fri;
+    const line = @import("stwo_core").poly.line;
+    const Coset = @import("stwo_core").circle.Coset;
+    const qm31 = builder.ivalue.qm31FromU32s;
+    const allocator = std.testing.allocator;
+    var ctx = try builder.Context(QM31).init(allocator, 0);
+    defer ctx.deinit();
+    const coset_log_size: u32 = 3;
+
+    var values: [1 << coset_log_size]QM31 = undefined;
+    var value_vars: [values.len]Var = undefined;
+    for (&values, &value_vars, 0..) |*value, *v, i| {
+        const w: u32 = @intCast(i);
+        value.* = qm31(4 * w, 4 * w + 1, 4 * w + 2, 4 * w + 3);
+        v.* = try ctx.constant(value.*);
+    }
+    const alpha = qm31(98, 76, 54, 32);
+    var alpha_vars: [coset_log_size]Var = undefined;
+    var alpha_pow = alpha;
+    for (&alpha_vars) |*v| {
+        v.* = try ctx.constant(alpha_pow);
+        alpha_pow = alpha_pow.mul(alpha_pow);
+    }
+    var fold_domain = try line.LineDomain.init(Coset.halfOdds(coset_log_size));
+    var twiddles: [coset_log_size][]Var = undefined;
+    for (&twiddles, 0..) |*fold, i| {
+        fold.* = try ctx.scratch().alloc(Var, @as(usize, 1) << @intCast(coset_log_size - i - 1));
+        for (fold.*, 0..) |*twiddle, k| {
+            const x = fold_domain.at(core.utils.bitReverseIndex(2 * k, fold_domain.logSize()));
+            twiddle.* = try ctx.constant(QM31.fromBase(try x.inv()));
+        }
+        fold_domain = fold_domain.double();
+    }
+    const actual = try foldCoset(QM31, &ctx, &value_vars, &twiddles, &alpha_vars);
+
+    // `stwo::core::fri::fold_coset`: fold the line until one value remains,
+    // squaring alpha after each fold.
+    var workspace = try core_fri.FoldLineWorkspace.init(allocator, values.len / 2);
+    defer workspace.deinit(allocator);
+    var domain = try line.LineDomain.init(Coset.halfOdds(coset_log_size));
+    var current = try allocator.dupe(QM31, &values);
+    var fold_alpha = alpha;
+    while (current.len > 1) {
+        const folded = try core_fri.foldLineSingleStep(allocator, current, domain, fold_alpha, &workspace);
+        allocator.free(current);
+        current = folded.values;
+        domain = folded.domain;
+        fold_alpha = fold_alpha.mul(fold_alpha);
+    }
+    defer allocator.free(current);
+    try std.testing.expect(ctx.get(actual).eql(current[0]));
+    try ctx.finalize(false);
+    try std.testing.expect(try ctx.isCircuitValid());
+}
+
+test "fri: validate_query_position_in_coset accepts the selected values only (fri_test.rs)" {
+    for ([_]bool{ true, false }) |success| {
+        var ctx = try builder.Context(QM31).init(std.testing.allocator, 0);
+        defer ctx.deinit();
+        const constant = struct {
+            fn at(c: *builder.Context(QM31), value: u32) !Var {
+                return c.constant(QM31.fromU32Unchecked(value, 0, 0, 0));
+            }
+        }.at;
+        // Three queries, layer step 2: cosets of four values.
+        var witness: [12]Var = undefined;
+        for (&witness, [_]u32{ 10, 11, 12, 13, 20, 21, 22, 23, 30, 31, 32, 33 }) |*v, value| v.* = try constant(&ctx, value);
+        const bit0 = [_]Var{ try constant(&ctx, 0), try constant(&ctx, 1), try constant(&ctx, 0) };
+        const bit1 = [_]Var{ try constant(&ctx, 0), try constant(&ctx, 0), try constant(&ctx, 1) };
+        const bits = [_][]const Var{ &bit0, &bit1 };
+        var layer = [_]Var{ try constant(&ctx, 10), try constant(&ctx, 21), try constant(&ctx, 32) };
+        if (!success) layer[2] = try constant(&ctx, 33);
+        try validateQueryPositionInCoset(QM31, &ctx, &witness, 4, &layer, &bits);
+        try std.testing.expectEqual(success, try ctx.isCircuitValid());
+    }
+}
+
+test {
+    _ = @import("fri_test.zig");
+}

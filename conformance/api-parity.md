@@ -113,6 +113,12 @@ This ledger maps every public export in the Zig root/module API surface to the p
       "rust_path": null,
       "source": "src/core/mod.zig"
     },
+    "stwo.core.circuit_proof_shape": {
+      "kind": "const",
+      "rationale": "Port of the circuit-recursion protocol revision of https://github.com/starkware-libs/proving at 5a7c5ede4299c91a61df19a07cba4f7502c14230, outside the Native a8fcf4b surface; the one shape and size model of a circuit STARK proof (ProofConfig column counts, compute_all_fold_steps and ProofInfo::total_bytes of crates/stark_verifier/src/proof.rs), shared by the circuit frontend's in-circuit verifier and the CircuitSerialize wire format (crates/circuit_serialize).",
+      "rust_path": null,
+      "source": "src/core/mod.zig"
+    },
     "stwo.core.channel": {
       "kind": "const",
       "rationale": null,
@@ -291,6 +297,12 @@ This ledger maps every public export in the Zig root/module API surface to the p
       "kind": "const",
       "rationale": null,
       "rust_path": "crates/stwo/src/lib.rs",
+      "source": "src/core/fields/mod.zig"
+    },
+    "stwo.core.fields.stark_prime": {
+      "kind": "const",
+      "rationale": "The Stark (felt252) prime, one definition shared by the Cairo frontend's felt252 arithmetic and the circuit-recursion wire package's Felt::from_dec_str port (starknet-types-core 0.2.4); not a Native a8fcf4b export.",
+      "rust_path": null,
       "source": "src/core/fields/mod.zig"
     },
     "stwo.core.fields.m31": {

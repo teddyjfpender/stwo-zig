@@ -1,4 +1,4 @@
-//! The M2 circuit builder as `CairoStatement`'s builder facade `B`.
+//! The circuit builder (`builder/`) as `CairoStatement`'s builder facade `B`.
 //!
 //! Each member is the single builder call the Rust statement makes
 //! (`crates/cairo_verifier/src/statement.rs`, https://github.com/starkware-libs/proving

@@ -17,7 +17,9 @@ pub const FriConfig = core.pcs.config_v2.FriConfigV2;
 
 pub const ChannelHash = enum { blake2s, blake2s_m31, poseidon252 };
 
-pub const PreprocessedTraceVariant = enum { canonical, canonical_without_pedersen, canonical_small };
+/// `PreProcessedTraceVariant`: the one definition, in core
+/// (`cairo_air_layout.Variant`); its tag names are the serde names.
+pub const PreprocessedTraceVariant = core.cairo_air_layout.Variant;
 
 /// serde: `"auto"`, `"at_least_preprocessed"` or `{"fixed": n}`.
 pub const LiftingSizePolicy = union(enum) {

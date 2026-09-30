@@ -1,4 +1,4 @@
-//! Rung R6, leaf (design §8.2, milestone M6): the leaf verifier circuit of
+//! Rung R6, leaf (design §8.2): the leaf verifier circuit of
 //! the checked-in canonical_small leaf-prover registry, rebuilt in Zig, must
 //! reproduce the registry's preprocessed root and circuit hash.
 //!
@@ -20,6 +20,7 @@
 //! committed at blowup 1.
 
 const std = @import("std");
+const blake2_hash = @import("stwo_core").vcs.blake2_hash;
 const core = @import("stwo_core");
 const circuit = @import("stwo_circuit_frontend");
 const cairo = @import("stwo_cairo_frontend");
@@ -113,7 +114,7 @@ test "R6 leaf: the rebuilt canonical_small leaf verifier reproduces the registry
     var pp = blk: {
         var ctx = try leaf_builder.buildTopology(gpa, leaf.trace_log_size, cairo_root);
         defer ctx.deinit();
-        const unpadded = finalize.computePaddedSizes(&ctx.circuit);
+        const unpadded = finalize.computePaddedSizes(.fromBuilder(&ctx.circuit));
         try std.testing.expectEqual(target, target.elementwiseMax(unpadded));
         try finalize.padToTargets(builder.NoValue, &ctx, target);
         break :blk try preprocessed.PreprocessedCircuit.fromBuilderCircuit(gpa, &ctx.circuit);
@@ -128,6 +129,6 @@ test "R6 leaf: the rebuilt canonical_small leaf verifier reproduces the registry
     const root = try pp.preprocessedRoot(gpa, circuit_fri.log_blowup_factor);
     const log_sizes = try circuit_statement.circuitComponentLogSizes(&pp_layout);
     const hash = try circuit_hash.hostCircuitHash(log_sizes, circuit_fri.log_blowup_factor, root);
-    try std.testing.expectEqual(leaf.preprocessed_root.words, circuit_hash.leU32sFromBytes(8, &root));
-    try std.testing.expectEqual(leaf.circuit_hash.words, circuit_hash.leU32sFromBytes(8, &hash));
+    try std.testing.expectEqual(leaf.preprocessed_root.words, blake2_hash.digestToU32s(root));
+    try std.testing.expectEqual(leaf.circuit_hash.words, blake2_hash.digestToU32s(hash));
 }

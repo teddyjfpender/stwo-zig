@@ -215,7 +215,9 @@ fn readLiftingSizePolicy(value: std.json.Value) ReadError!LiftingSizePolicy {
     }
 }
 
-fn readFriConfig(map: std.json.ObjectMap) ReadError!FriConfig {
+/// A `FriConfig` JSON object (`pow_bits`, `log_blowup_factor`,
+/// `log_last_layer_degree_bound`, `n_queries`, `fold_step`).
+pub fn readFriConfig(map: std.json.ObjectMap) ReadError!FriConfig {
     return .{
         .pow_bits = try json_text.unsigned(u32, try json_text.field(map, "pow_bits")),
         .log_blowup_factor = try json_text.unsigned(u32, try json_text.field(map, "log_blowup_factor")),
@@ -361,7 +363,7 @@ fn writeProverParameters(writer: *json_text.Writer, params: ProverParameters) st
     try writer.endObject();
 }
 
-fn writeFriConfig(writer: *json_text.Writer, config: FriConfig) std.Io.Writer.Error!void {
+pub fn writeFriConfig(writer: *json_text.Writer, config: FriConfig) std.Io.Writer.Error!void {
     try writer.beginObject();
     inline for (.{ "pow_bits", "log_blowup_factor", "log_last_layer_degree_bound", "n_queries", "fold_step" }) |name| {
         try writer.key(name);

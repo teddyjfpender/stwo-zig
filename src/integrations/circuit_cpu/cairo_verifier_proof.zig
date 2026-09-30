@@ -26,7 +26,7 @@ const PerComponent = component_list.PerComponent;
 pub const Error = error{
     /// The proof does not have the four circuit trees.
     InvalidCircuitProof,
-} || felt_stream.TransposeError;
+} || wire.cairo_serialize.TransposeError;
 
 /// A converted proof; its slices live in `arena`.
 pub const CairoVerifierProof = struct {
@@ -84,7 +84,7 @@ pub fn prepare(allocator: std.mem.Allocator, proof: anytype) Error!CairoVerifier
     const log_sizes = try columnLogSizesPerTree(a, proof.component_log_sizes);
     var tree_values: [n_trees][]const []const M31 = undefined;
     for (&tree_values, stark.queried_values.items) |*out, tree| out.* = tree;
-    const sorted = try felt_stream.sortAndTransposeQueriedValues(a, tree_values, log_sizes[0], log_sizes[1]);
+    const sorted = try wire.cairo_serialize.sortAndTransposeQueriedValues(a, tree_values, log_sizes[0], log_sizes[1]);
     const queried_values = try a.dupe([]M31, &sorted);
 
     const decommitments = try a.alloc([]Hash, n_trees);

@@ -308,6 +308,31 @@ test "vectors: R0 format checkpoints" {
         try expectHex(try json_text.string(try json_text.field(case, "output_digest")), &leaf_proof_json.DigestHex.toBytes(.{ .words = digest }));
     }
 
+    for (try json_text.array(try json_text.field(formats, "felt_from_dec_str"))) |item| {
+        const case = try json_text.object(item);
+        const felt_text = try json_text.string(try json_text.field(case, "text"));
+        const want = try json_text.field(case, "felt");
+        if (want == .null) {
+            try std.testing.expectError(error.InvalidDecimalFelt, wire.blake2_felt252.parseDecimalFelt(felt_text));
+        } else {
+            const expected = try std.fmt.parseInt(u256, try json_text.string(want), 10);
+            try std.testing.expectEqual(expected, try wire.blake2_felt252.parseDecimalFelt(felt_text));
+        }
+    }
+
+    for (try json_text.array(try json_text.field(formats, "base64_decode"))) |item| {
+        const case = try json_text.object(item);
+        const encoded = try json_text.string(try json_text.field(case, "base64"));
+        const want = try json_text.field(case, "bytes_hex");
+        if (want == .null) {
+            try std.testing.expectError(error.InvalidValue, leaf_proof_json.decodeBase64(allocator, encoded));
+        } else {
+            const bytes = try leaf_proof_json.decodeBase64(allocator, encoded);
+            defer allocator.free(bytes);
+            try expectHex(try json_text.string(want), bytes);
+        }
+    }
+
     for (try json_text.array(try json_text.field(formats, "digest_hex"))) |item| {
         const case = try json_text.object(item);
         var bytes: [32]u8 = undefined;

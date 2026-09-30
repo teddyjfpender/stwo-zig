@@ -22,6 +22,7 @@
 //! Only one circuit is alive at a time, as upstream.
 
 const std = @import("std");
+const blake2_hash = @import("stwo_core").vcs.blake2_hash;
 const core = @import("stwo_core");
 const circuit = @import("stwo_circuit_frontend");
 const cairo = @import("stwo_cairo_frontend");
@@ -98,7 +99,7 @@ pub const LeafBuilder = struct {
     pub fn init(tables: Tables, inputs: Inputs) LeafBuilder {
         return .{
             .table = tables.cairo,
-            .variant = cairo.proving.leaf_lane.variantOf(inputs.cairo_params.preprocessed_trace),
+            .variant = inputs.cairo_params.preprocessed_trace,
             .cairo_fri_config = inputs.cairo_params.fri_config,
             .circuit_fri_config = inputs.circuit_fri_config,
             .program = inputs.program,
@@ -141,7 +142,7 @@ pub const LeafBuilder = struct {
         try cairo.proving.preprocessed_commit.commit(Engine, gpa, &spec, if (pedersen) |*table| table else null, binding, &scheme, &channel, null);
         var roots = try scheme.roots(gpa);
         defer roots.deinit(gpa);
-        return circuit_hash.leU32sFromBytes(8, &roots.items[0]);
+        return blake2_hash.digestToU32s(roots.items[0]);
     }
 };
 
@@ -192,7 +193,7 @@ pub fn sharedTargetFixpoint(
         var shared = try multiverifier.foldSharedConfig(gpa, target, fri);
         defer shared.deinit(gpa);
         var ctx = try multiverifier.buildMultiverifierTopology(gpa, circuit_table, &shared, circuit.stark_verifier.verify.NoStages{});
-        const grown = target.elementwiseMax(finalize.computePaddedSizes(&ctx.circuit));
+        const grown = target.elementwiseMax(finalize.computePaddedSizes(.fromBuilder(&ctx.circuit)));
         if (std.meta.eql(grown, target)) return .{ .target = target, .multiverifier = ctx };
         ctx.deinit();
         target = grown;
@@ -201,7 +202,7 @@ pub fn sharedTargetFixpoint(
 
 /// `padded_preprocessed_circuit`: pads `ctx` (consumed) to `target` and
 /// preprocesses it.
-fn paddedPreprocessed(gpa: std.mem.Allocator, ctx: *builder.Context(builder.NoValue), target: ComponentSizes) !preprocessed.PreprocessedCircuit {
+pub fn paddedPreprocessed(gpa: std.mem.Allocator, ctx: *builder.Context(builder.NoValue), target: ComponentSizes) !preprocessed.PreprocessedCircuit {
     defer ctx.deinit();
     try finalize.padToTargets(builder.NoValue, ctx, target);
     return preprocessed.PreprocessedCircuit.fromBuilderCircuit(gpa, &ctx.circuit);
@@ -231,7 +232,7 @@ pub fn generate(gpa: std.mem.Allocator, tables: Tables, inputs: Inputs) !Generat
     while (trace_log_size <= definition.max_trace_log_size) : (trace_log_size += 1) {
         var ctx = try leaf_builder.buildTopology(gpa, trace_log_size, dummy_preprocessed_root);
         defer ctx.deinit();
-        const padded = finalize.computePaddedSizes(&ctx.circuit);
+        const padded = finalize.computePaddedSizes(.fromBuilder(&ctx.circuit));
         leaves_max = if (leaves_max) |max| max.elementwiseMax(padded) else padded;
     }
 

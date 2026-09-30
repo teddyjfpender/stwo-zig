@@ -148,7 +148,8 @@ fn parseUnsigned(comptime T: type, text: []const u8) !T {
 test "canonical Cairo sequence, range, XOR, and Blake columns are exact" {
     try std.testing.expectEqual(@as(u32, 17), try value("seq_6", 17));
     try std.testing.expectEqual(@as(u32, 5), try value("range_check_3_6_6_3_column_0", 5 << 15));
-    try std.testing.expectEqual(@as(u32, 9), try value("range_check_3_6_6_3_column_3", 9));
+    // Column 3 is the low three bits of the 18-bit row.
+    try std.testing.expectEqual(@as(u32, 9 & 7), try value("range_check_3_6_6_3_column_3", 9));
     try std.testing.expectEqual(@as(u32, 3 ^ 7), try value("bitwise_xor_4_2", (3 << 4) | 7));
     try std.testing.expectEqual(@as(u32, 14), try value("blake_sigma_0", 1));
     try std.testing.expectEqual(@as(u32, 0), try value("blake_sigma_0", 15));

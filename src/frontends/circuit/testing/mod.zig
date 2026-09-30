@@ -7,3 +7,5 @@ pub const circuit_summary = @import("circuit_summary.zig");
 pub const contexts = @import("contexts.zig");
 pub const verifier_stages = @import("verifier_stages.zig");
 pub const fold_registry = @import("fold_registry.zig");
+/// `crates/stark_verifier/src/test_utils.rs::TestComponentData`.
+pub const component_data = @import("component_data.zig");

@@ -131,7 +131,7 @@ pub fn proveFixtureForLane(
         }
     }
     const claim_options = claim_generator.Options{
-        .preprocessed_variant = claimVariant(variant),
+        .preprocessed_variant = variant,
         .memory_id_to_big_components = if (lane) |leaf| leaf.memory_id_to_big_components else null,
     };
     var target = blk: {
@@ -911,16 +911,6 @@ fn compositionLabelMatches(
         .{component.instance},
     ) catch return false;
     return std.mem.eql(u8, label, expected);
-}
-
-fn claimVariant(
-    variant: preprocessed.trace.Variant,
-) claim_generator.PreprocessedVariant {
-    return switch (variant) {
-        .canonical => .canonical,
-        .canonical_without_pedersen => .canonical_without_pedersen,
-        .canonical_small => .canonical_small,
-    };
 }
 
 test "official Cairo transaction configuration is upstream-compatible" {

@@ -18,6 +18,7 @@
 //! to the same structure `verifier_proof.prepare` builds for an internal node.
 
 const std = @import("std");
+const blake2_hash = @import("stwo_core").vcs.blake2_hash;
 const core = @import("stwo_core");
 const circuit = @import("stwo_circuit_frontend");
 const wire = @import("stwo_circuit_recursion_wire");
@@ -94,7 +95,7 @@ pub const LayerEntry = struct {
     /// proof config, its preprocessed root as declared, its output digest
     /// recomputed from the hashed-output preimage.
     pub fn fromLeaf(gpa: std.mem.Allocator, fold: *const Fold, leaf: wire.leaf_proof_json.LeafInput) !LayerEntry {
-        const config = try fold.canonical.proofConfig();
+        const config = fold.canonical.proofConfig();
         var decoded = try wire.circuit_serialize.deserializeProof(gpa, leaf.proof.proof, config);
         errdefer decoded.deinit();
         // Upstream (`deserialize_proof_with_config` on a slice) ignores
@@ -158,7 +159,7 @@ fn reduce(
     const values = blk: {
         var inputs_arena = std.heap.ArenaAllocator.init(gpa);
         defer inputs_arena.deinit();
-        const config = try canonical.proofConfig();
+        const config = canonical.proofConfig();
         var inputs: [2]multiverifier.MultiverifierInput(QM31) = undefined;
         var proofs: [2]circuit.stark_verifier.proof.Proof(QM31) = undefined;
         for (children, &inputs, &proofs) |child, *input, *child_proof| {
@@ -211,8 +212,8 @@ fn proveNode(
 
     // `extract_root_and_outputs`.
     const root_hash = proof.stark_proof.proof.commitment_scheme_proof.commitments.items[0];
-    const preprocessed_root = circuit.common.circuit_hash.leU32sFromBytes(8, &root_hash);
-    const circuit_hash_words = circuit.common.circuit_hash.leU32sFromBytes(8, &proof.circuit_hash);
+    const preprocessed_root = blake2_hash.digestToU32s(root_hash);
+    const circuit_hash_words = blake2_hash.digestToU32s(proof.circuit_hash);
     if (proof.output_values.len != n_digest_words) return error.BadOutputArity;
     var output_digest: Digest = undefined;
     for (&output_digest, proof.output_values) |*word, value| word.* = try unpackU32(value);

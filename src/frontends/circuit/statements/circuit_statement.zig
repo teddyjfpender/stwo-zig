@@ -5,7 +5,7 @@
 //! `CircuitConfig` of `verify.rs` (https://github.com/starkware-libs/proving
 //! at 5a7c5ede4299c91a61df19a07cba4f7502c14230). The statement implements
 //! the `stark_verifier.verify` statement interface over the 11 circuit-AIR
-//! evaluators of the M4 table (`air_eval.circuit_components`).
+//! evaluators of the circuit-AIR table (`air_eval.circuit_components`).
 //!
 //! `CircuitStatement.init` emits, in order: the in-circuit circuit hash
 //! (config words as constants, then Blake2s over them and the guessed root)
@@ -49,14 +49,15 @@ pub fn circuitComponentLogSizes(
     return component_list.circuitComponentLogSizes(layout);
 }
 
-/// The component shapes in `CircuitStatement::new` iteration order.
-pub fn circuitComponentShapes() [N_COMPONENTS]proof.ComponentShape {
+/// The component shapes in `CircuitStatement::new` iteration order
+/// (`all_circuit_components`).
+pub const circuit_component_shapes: [N_COMPONENTS]proof.ComponentShape = blk: {
     var shapes: [N_COMPONENTS]proof.ComponentShape = undefined;
     for (component_list.component_facts.toArray(), &shapes) |facts, *shape| {
         shape.* = .{ .trace_columns = facts.trace_columns, .interaction_columns = facts.interaction_columns };
     }
-    return shapes;
-}
+    break :blk shapes;
+};
 
 /// `circuit_verifier_proof_config`: the `ProofConfig` of proofs of a circuit
 /// with this preprocessed layout, verified by the circuit verifier.
@@ -65,10 +66,9 @@ pub fn circuitVerifierProofConfig(
     layout: *const preprocessed.ColumnLayout,
     pcs_config: PcsConfigV2,
 ) proof.ConfigError!proof.ProofConfig {
-    const shapes = circuitComponentShapes();
     return proof.ProofConfig.init(
         allocator,
-        &shapes,
+        &circuit_component_shapes,
         layout.entries.len,
         pcs_config,
         component_list.INTERACTION_POW_BITS,

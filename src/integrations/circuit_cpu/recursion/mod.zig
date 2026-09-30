@@ -10,19 +10,19 @@
 //! fold proves (the prover engine and CPU backend) and reads and writes the
 //! recursion wire formats, neither of which the frontend may depend on.
 
-/// The leaf wrap: `prove_leaf` steps 4-8 (design §7.1, M8).
+/// The leaf wrap: `prove_leaf` steps 4-8 (design §7.1).
 pub const leaf_wrap = @import("leaf_wrap.zig");
 /// Topology identity (design §3.5).
 pub const topology_key = @import("topology_key.zig");
 /// The byte-bounded per-topology LRU (design §9.3).
 pub const topology_cache = @import("topology_cache.zig");
-/// The canonical multiverifier (design §7.2, M9).
+/// The canonical multiverifier (design §7.2).
 pub const canonical = @import("canonical.zig");
-/// `circuit-params --registry` (design §7.3, M9).
+/// `circuit-params --registry` (design §7.3).
 pub const circuit_params = @import("circuit_params.zig");
-/// The pair reduction (design §7.2, M9).
+/// The pair reduction (design §7.2).
 pub const fold = @import("fold.zig");
-/// The recursive tree driver and root files (design §7.2, M9).
+/// The recursive tree driver and root files (design §7.2).
 pub const tree = @import("tree.zig");
 
 pub const CanonicalCircuit = canonical.CanonicalCircuit;

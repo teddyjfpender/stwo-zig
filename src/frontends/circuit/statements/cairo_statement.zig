@@ -5,7 +5,7 @@
 //! Every function keeps the Rust order of builder calls, because that order
 //! numbers the variables and interns the constants of the leaf circuit
 //! (design §3.3). The statement is generic over a builder facade `B`:
-//! `cairo_statement_builder.BuilderFacade(V)` is the M2 builder, and the
+//! `cairo_statement_builder.BuilderFacade(V)` is the builder (`builder/`), and the
 //! structural tests supply a recording facade. `B` must provide, with Rust
 //! semantics:
 //!
@@ -35,8 +35,8 @@
 //! context's arena. Cairo AIR facts (variants, ordered preprocessed ids,
 //! builtin cells, leaf components, the aux-data layout, `ProgramFelt` and the
 //! `claims_to_mix` program hash) come from `stwo_core.cairo_air_layout`;
-//! the memory constants come from the projection header (the M4 table's
-//! `constants`), `RELATION_USES_NUM_ROWS_SHIFT` from M5's `verify`, and the
+//! the memory constants come from the projection header (the evaluator table's
+//! `constants`), `RELATION_USES_NUM_ROWS_SHIFT` from `stark_verifier.verify`, and the
 //! three relation ids from the caller, so no third copy of them exists here.
 
 const std = @import("std");
@@ -152,7 +152,7 @@ pub fn CairoStatement(comptime B: type) type {
         /// One flag per `all_components()` slot.
         enabled_bits: []const bool,
         /// The enabled slot names, in `all_components()` order (the
-        /// `components` IndexMap keys; M4 binds the evaluators to them).
+        /// `components` IndexMap keys; the evaluator table binds the evaluators to them).
         components: []const []const u8,
         aux_data: AuxData(Var),
         packed_component_log_sizes: Simd,
@@ -169,7 +169,7 @@ pub fn CairoStatement(comptime B: type) type {
             /// The public output digest; `null` builds the topology (`NoValue`).
             output_hash: ?[8]u32,
             program: []const ProgramFelt,
-            /// `all_components()` slot names (the M4 projection's 83-slot order).
+            /// `all_components()` slot names (the projection's 83-slot order).
             slot_names: []const []const u8,
             enabled_bits: []const bool,
             preprocessed_root: [8]u32,

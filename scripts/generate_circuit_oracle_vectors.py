@@ -77,7 +77,9 @@ def artifact_record(staging: Path, path: str, **fields: object) -> dict:
     return {"path": path, **fields, "bytes": len(data), "sha256": hashlib.sha256(data).hexdigest()}
 
 
-def generate(staging: Path, oracle: Path, proving: Path, zig_emit_dir: Path | None) -> list[dict]:
+def generate(
+    staging: Path, oracle: Path, proving: Path, zig_emit_dir: Path | None, r11_emit_dir: Path | None
+) -> list[dict]:
     artifacts = []
     for path, rung, subcommand, reads_upstream in lane.ORACLE_ARTIFACTS:
         (staging / path).parent.mkdir(parents=True, exist_ok=True)
@@ -93,16 +95,35 @@ def generate(staging: Path, oracle: Path, proving: Path, zig_emit_dir: Path | No
         if path == lane.AIR_PROGRAMS:
             fields.update(bundle_summary((staging / path).read_bytes()))
         artifacts.append(artifact_record(staging, path, **fields))
-    for path, rung, program in lane.ADAPTED_PROGRAMS:
+    for path, rung, program, task in lane.ADAPTED_PROGRAMS:
         (staging / path).parent.mkdir(parents=True, exist_ok=True)
+        program_input: list[str] = []
+        fields: dict[str, object] = {"rung": rung, "command": lane.adapt_program_command(path, program, task)}
+        if task:
+            # The bootloader reads its task and dumps the hashed-output preimage at the paths the
+            # input names; the dump must be upstream's golden preimage, so the adapted run is the
+            # execution the golden leaf proves.
+            dump = staging / "leaf_preimage.dump.json"
+            input_file = staging / "leaf_bootloader_input.json"
+            input_file.write_text(
+                json.dumps(lane.leaf_bootloader_input(task, str(proving), str(dump)), indent=2),
+                encoding="utf-8",
+            )
+            program_input = ["--program-input", str(input_file)]
+            fields["program_input"] = lane.leaf_bootloader_input(
+                task, lane.PROVING_ROOT_PLACEHOLDER, lane.PREIMAGE_DUMP_PLACEHOLDER
+            )
         subprocess.run(
             [str(oracle), "adapt-program", "--proving-root", str(proving), "--program", program,
-             "--output", str(staging / path)],
+             *program_input, "--output", str(staging / path)],
             check=True,
         )
-        artifacts.append(
-            artifact_record(staging, path, rung=rung, command=lane.adapt_program_command(path, program))
-        )
+        if task:
+            if dump.read_bytes() != (proving / task[2]).read_bytes():
+                raise SystemExit(f"{path}: the bootloader's preimage dump differs from {task[2]}")
+            dump.unlink()
+            input_file.unlink()
+        artifacts.append(artifact_record(staging, path, **fields))
     adapted = {path for path, *_ in lane.ADAPTED_PROGRAMS}
     for path, rung, prover_input, registry, policy in lane.CAIRO_PROOF_ARTIFACTS:
         # Leaf-lane Cairo proofs of small programs: seconds and 2-4 GB each. An input
@@ -152,6 +173,25 @@ def generate(staging: Path, oracle: Path, proving: Path, zig_emit_dir: Path | No
         artifacts.append(
             artifact_record(staging, path, rung="r7", command=lane.verify_circuit_command(path, label))
         )
+    # R11 verdicts on Zig-emitted (tampered) proofs: regenerated from `--r11-emit-dir`, otherwise
+    # kept.
+    for path, label in lane.R11_VERDICTS:
+        (staging / path).parent.mkdir(parents=True, exist_ok=True)
+        if r11_emit_dir is None:
+            shutil.copyfile(ROOT / path, staging / path)
+        else:
+            subprocess.run(
+                [str(oracle), *lane.verify_circuit_command(
+                    str(staging / path), label, emit_dir=str(r11_emit_dir)
+                )[1:]],
+                check=True,
+            )
+        artifacts.append(
+            artifact_record(
+                staging, path, rung="r11",
+                command=lane.verify_circuit_command(path, label, emit_dir=lane.R11_EMIT_DIR_PLACEHOLDER),
+            )
+        )
     for path, upstream_path in lane.UPSTREAM_COPIES:
         (staging / path).parent.mkdir(parents=True, exist_ok=True)
         shutil.copyfile(proving / upstream_path, staging / path)
@@ -188,6 +228,12 @@ def main(argv: list[str] | None = None) -> int:
         help="STWO_CIRCUIT_R7_EMIT_DIR of the Zig circuit-parity-r7 steps; without it the "
         "committed verify-circuit verdicts are kept",
     )
+    parser.add_argument(
+        "--r11-emit-dir",
+        type=Path,
+        help="STWO_CIRCUIT_R11_EMIT_DIR of the Zig circuit-parity-r11 step; without it the "
+        "committed R11 verdicts are kept",
+    )
     args = parser.parse_args(argv)
 
     ledger = parse_ledger(ROOT / "conformance" / "upstream.md")
@@ -197,7 +243,7 @@ def main(argv: list[str] | None = None) -> int:
     vectors.mkdir(parents=True, exist_ok=True)
     with tempfile.TemporaryDirectory(dir=vectors.parent) as directory:
         staging = Path(directory)
-        artifacts = generate(staging, oracle, proving, args.zig_emit_dir)
+        artifacts = generate(staging, oracle, proving, args.zig_emit_dir, args.r11_emit_dir)
         record = provenance(artifacts, ledger, args.date)
         (staging / lane.PROVENANCE).write_text(json.dumps(record, indent=2) + "\n", encoding="utf-8")
         for path in (*lane.MANAGED, lane.PROVENANCE):

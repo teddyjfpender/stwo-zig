@@ -18,6 +18,7 @@
 //! the R7 multiverifier rung proves.
 
 const std = @import("std");
+const blake2_hash = @import("stwo_core").vcs.blake2_hash;
 const core = @import("stwo_core");
 const circuit = @import("stwo_circuit_frontend");
 const circuit_cpu = @import("stwo_circuit_cpu_integration");
@@ -73,7 +74,7 @@ fn loadFixture(gpa: std.mem.Allocator) !*Fixture {
     self.shared = try verifier_stages.privacySharedConfig(gpa);
     errdefer self.shared.deinit(gpa);
 
-    const config = try circuit_cpu.verifier_proof.proofConfig(self.shared.preprocessed_column_log_sizes.entries.len, self.shared.pcs_config);
+    const config = self.shared.proof_config.shape();
     self.multiverifier_proof = try decode(a, multiverifier_proof_path, config);
     self.cairo_proof = try decode(a, cairo_proof_path, config);
     return self;
@@ -127,9 +128,9 @@ test "R4: the multiverifier accepts proof.bin and proof_cairo.bin, stage by stag
     const cairo_hash = try circuit_hash.hostCircuitHash(
         log_sizes,
         verifier_stages.privacy_log_blowup_factor,
-        circuit_hash.bytesFromLeU32s(8, privacy_cairo_verifier_preprocessed_root),
+        blake2_hash.digestFromU32s(privacy_cairo_verifier_preprocessed_root),
     );
-    try std.testing.expectEqual(try words(preimage[16..24]), circuit_hash.leU32sFromBytes(8, &cairo_hash));
+    try std.testing.expectEqual(try words(preimage[16..24]), blake2_hash.digestToU32s(cairo_hash));
 
     const inputs = [_]multiverifier.MultiverifierInput(QM31){
         .{

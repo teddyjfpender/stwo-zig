@@ -1,5 +1,5 @@
 //! The shape of a circuit STARK proof: `ProofConfig` (the AIR and PCS
-//! parameters a verifier circuit is built for) and `ProofInfo` (its size).
+//! parameters a verifier circuit is built for) and `Proof(T)`.
 //!
 //! Ports `crates/stark_verifier/src/proof.rs` and the proof halves of
 //! `fri_proof.rs`, `merkle.rs` and `oods.rs`
@@ -8,10 +8,10 @@
 //! for proof values (`T = QM31`), topology placeholders (`T = NoValue`) and
 //! circuit wires (`T = Var`); `guess` is its single traversal, in the Rust
 //! `Guess` order. Its flat layout is the `CircuitSerialize` one of the wire
-//! format (M3), so a decoded proof converts without reordering.
-//! `ProofInfo.totalBytes` is the size model the `CircuitSerialize` reader and
-//! writer must agree with, computed from the same config walk rather than a
-//! second model.
+//! format, so a decoded proof converts without reordering. Column counts,
+//! the FRI schedule and the size (`ProofInfo::total_bytes`,
+//! `ProofConfig.serializedLen`) come from `core.circuit_proof_shape`, the
+//! model the `CircuitSerialize` reader and writer use too.
 
 const std = @import("std");
 const core = @import("stwo_core");
@@ -22,20 +22,13 @@ const constraint_eval = @import("constraint_eval.zig");
 const FriConfigV2 = core.pcs.config_v2.FriConfigV2;
 const PcsConfigV2 = core.pcs.config_v2.PcsConfigV2;
 const SECURE_EXTENSION_DEGREE = core.fields.qm31.SECURE_EXTENSION_DEGREE;
+const proof_shape = core.circuit_proof_shape;
 
 /// Committed trees: preprocessed, trace, interaction, composition.
-pub const N_TRACES: usize = 4;
-const N_U8S_PER_U32: usize = 4;
-/// Bytes of one `HashValue`: eight u32 words.
-const HASH_SIZE: usize = 2 * SECURE_EXTENSION_DEGREE * N_U8S_PER_U32;
-/// Bytes of one QM31.
-const QM31_SIZE: usize = SECURE_EXTENSION_DEGREE * N_U8S_PER_U32;
+pub const N_TRACES: usize = proof_shape.n_traces;
 
 /// Trace and interaction column counts of one component.
-pub const ComponentShape = struct {
-    trace_columns: usize,
-    interaction_columns: usize,
-};
+pub const ComponentShape = proof_shape.ComponentShape;
 
 pub const ConfigError = error{
     /// A component has fewer interaction columns than its cumulative sum.
@@ -72,10 +65,10 @@ pub const ProofConfig = struct {
     ) ConfigError!ProofConfig {
         var n_trace_columns: usize = 0;
         var n_interaction_columns: usize = 0;
-        for (component_shapes) |shape| {
-            if (shape.interaction_columns < SECURE_EXTENSION_DEGREE) return error.TooFewInteractionColumns;
-            n_trace_columns += shape.trace_columns;
-            n_interaction_columns += shape.interaction_columns;
+        for (component_shapes) |component| {
+            if (component.interaction_columns < SECURE_EXTENSION_DEGREE) return error.TooFewInteractionColumns;
+            n_trace_columns += component.trace_columns;
+            n_interaction_columns += component.interaction_columns;
         }
         if (pcs_config.trace_lifting_log_size != pcs_config.preprocessed_lifting_log_size)
             return error.MismatchedLiftingLogSizes;
@@ -89,13 +82,13 @@ pub const ProofConfig = struct {
         errdefer allocator.free(shapes);
         const cumulative = try allocator.alloc(bool, n_interaction_columns);
         var at: usize = 0;
-        for (component_shapes) |shape| {
+        for (component_shapes) |component| {
             // The last SECURE_EXTENSION_DEGREE interaction columns of every
             // component are its cumulative sum.
-            const plain = shape.interaction_columns - SECURE_EXTENSION_DEGREE;
+            const plain = component.interaction_columns - SECURE_EXTENSION_DEGREE;
             @memset(cumulative[at..][0..plain], false);
             @memset(cumulative[at + plain ..][0..SECURE_EXTENSION_DEGREE], true);
-            at += shape.interaction_columns;
+            at += component.interaction_columns;
         }
         return .{
             .n_interaction_pow_bits = n_interaction_pow_bits,
@@ -137,87 +130,31 @@ pub const ProofConfig = struct {
         };
     }
 
+    /// The byte-level shape of proofs under this config.
+    pub fn shape(self: ProofConfig) proof_shape.ProofShape {
+        return .{
+            .n_preprocessed_columns = self.n_preprocessed_columns,
+            .component_shapes = self.component_shapes,
+            .log_trace_size = @intCast(self.log_trace_size),
+            .fri = self.fri,
+        };
+    }
+
     /// Number of FRI inner layers (`compute_all_fold_steps(..).len()`).
     pub fn nFriLayers(self: ProofConfig) usize {
-        return core.fri.nFoldSteps(self.degreeLogRatio(), self.fri.fold_step);
+        return self.shape().nFriLayers();
     }
 
     /// `compute_all_fold_steps(log_trace_size - log_last_layer, fold_step)`,
     /// written into `buffer`.
     pub fn friFoldSteps(self: ProofConfig, buffer: *[MAX_FRI_LAYERS]u32) []const u32 {
-        return core.fri.allFoldSteps(self.degreeLogRatio(), self.fri.fold_step, buffer);
+        return self.shape().friFoldSteps(buffer);
     }
 
-    fn degreeLogRatio(self: ProofConfig) u32 {
-        return @as(u32, @intCast(self.log_trace_size)) - self.fri.log_last_layer_degree_bound;
-    }
-};
-
-/// `ProofInfo`: the proof size breakdown in bytes, from the config alone.
-/// Fields that scale with `n_queries` hold the per-query cost.
-pub const ProofInfo = struct {
-    log_trace_size: usize,
-    log_blowup_factor: usize,
-    n_queries: usize,
-    n_columns_per_trace: [N_TRACES]usize,
-    /// channel_salt, three roots, pow_nonce and interaction_pow_nonce.
-    fixed: usize,
-    /// One packed QM31 per component.
-    claim: usize,
-    /// One QM31 per column, plus the previous-point sample of every
-    /// cumulative-sum column.
-    oods: usize,
-    fri_commitments: usize,
-    fri_last_layer: usize,
-    eval_samples_per_query: usize,
-    eval_auth_per_query: usize,
-    fri_auth_per_query: usize,
-    fri_witness_per_query: usize,
-
-    /// `ProofInfo::from_config`.
-    pub fn fromConfig(config: ProofConfig) ProofInfo {
-        const n_queries = config.nQueries();
-        const log_eval_domain = config.logEvaluationDomainSize();
-        const n_columns_per_trace = config.nColumnsPerTrace();
-        var total_columns: usize = 0;
-        for (n_columns_per_trace) |n| total_columns += n;
-        var n_cumsum: usize = 0;
-        for (config.cumulative_sum_columns) |is_cumsum| n_cumsum += @intFromBool(is_cumsum);
-
-        var steps_buffer: [32]u32 = undefined;
-        const fold_steps = core.fri.allFoldSteps(config.degreeLogRatio(), config.fri.fold_step, &steps_buffer);
-
-        var fri_auth_per_query: usize = 0;
-        var fri_witness_per_query: usize = 0;
-        var log_layer_size = log_eval_domain;
-        for (fold_steps) |step| {
-            log_layer_size -= step;
-            fri_auth_per_query += log_layer_size * HASH_SIZE;
-            fri_witness_per_query += (@as(usize, 1) << @intCast(step)) * QM31_SIZE;
-        }
-
-        return .{
-            .log_trace_size = config.log_trace_size,
-            .log_blowup_factor = config.fri.log_blowup_factor,
-            .n_queries = n_queries,
-            .n_columns_per_trace = n_columns_per_trace,
-            .fixed = (1 + 3 * 2 + 1 + 1) * QM31_SIZE,
-            .claim = config.nComponents() * QM31_SIZE,
-            .oods = (total_columns + n_cumsum) * QM31_SIZE,
-            .fri_commitments = fold_steps.len * HASH_SIZE,
-            .fri_last_layer = (@as(usize, 1) << @intCast(config.fri.log_last_layer_degree_bound)) * QM31_SIZE,
-            .eval_samples_per_query = total_columns * N_U8S_PER_U32,
-            .eval_auth_per_query = N_TRACES * log_eval_domain * HASH_SIZE,
-            .fri_auth_per_query = fri_auth_per_query,
-            .fri_witness_per_query = fri_witness_per_query,
-        };
-    }
-
-    /// `ProofInfo::total_bytes`: the `CircuitSerialize` length of a proof.
-    pub fn totalBytes(self: ProofInfo) usize {
-        return self.fixed + self.claim + self.oods + self.fri_commitments + self.fri_last_layer +
-            (self.eval_samples_per_query + self.eval_auth_per_query + self.fri_auth_per_query +
-                self.fri_witness_per_query) * self.n_queries;
+    /// `ProofInfo::from_config(config).total_bytes()`: the `CircuitSerialize`
+    /// length of a proof.
+    pub fn serializedLen(self: ProofConfig) usize {
+        return self.shape().serializedLen();
     }
 };
 
@@ -228,8 +165,8 @@ const HashValue = builder.blake.HashValue;
 const M31Wrapper = builder.wrappers.M31Wrapper;
 const InteractionAtOods = constraint_eval.InteractionAtOods;
 
-/// Upper bound on FRI layers (`log_trace_size <= 30`).
-pub const MAX_FRI_LAYERS: usize = 32;
+/// Upper bound on FRI layers.
+pub const MAX_FRI_LAYERS: usize = proof_shape.max_fri_layers;
 
 pub const StructureError = error{
     /// A proof length differs from the one its config implies
