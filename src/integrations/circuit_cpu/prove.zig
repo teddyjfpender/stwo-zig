@@ -428,12 +428,12 @@ pub fn Prover(comptime MC: type) type {
             defer if (local_recorder) |*owned| owned.deinit();
             // Not handed to the captured components: they may be evaluated
             // concurrently, and the recorder's stage stack is single-threaded.
-            const recorder = options.recorder orelse if (local_recorder) |*owned| owned else null;
+            const engine_recorder = options.recorder orelse if (local_recorder) |*owned| owned else null;
 
             scheme_owned = false;
             var stark_proof = try Engine.prove(allocator, &components, &channel, scheme, .{
                 .include_all_preprocessed_columns = true,
-                .recorder = recorder,
+                .recorder = engine_recorder,
             });
             if (local_recorder) |*owned| printStageProfile(allocator, owned);
             errdefer stark_proof.deinit(allocator);
