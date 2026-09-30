@@ -1,0 +1,26 @@
+{
+  "schema": "stwo-zig-composition-metallib-provenance-v1",
+  "label": "circuit_air_composition_bounded_v1",
+  "artifact": {
+    "path": "vectors/circuit/official/circuit_air_composition_bounded.metallib",
+    "bytes": 367765,
+    "sha256": "bbcfb8879ae76b0c9cb771cd70fe335abaa9ee319cbf30491d161b2dc2090473"
+  },
+  "input": {
+    "path": "vectors/circuit/official/circuit_air.air_programs_v1.bin",
+    "sha256": "7b8022b09d84db371cc433aa0fcf132f7687f2720e05e4dc9a7650c575dc02c2"
+  },
+  "generated_source_sha256": "51c66b3d879e9def547eadbd134284621137f98f812390d68257ed8621d7bd75",
+  "recipe": [
+    "zig build metal-eval-source -Doptimize=ReleaseFast",
+    "zig-out/bin/metal-eval-source vectors/circuit/official/circuit_air.air_programs_v1.bin circuit_composition.metal --trace-abi bounded",
+    "xcrun --sdk macosx metal -mmacosx-version-min=14.0 -std=metal3.1 -fno-fast-math -Werror -Wno-unused-variable -c circuit_composition.metal -o circuit_composition.air",
+    "xcrun --sdk macosx metallib circuit_composition.air -o circuit_air_composition_bounded.metallib"
+  ],
+  "host": {
+    "os": "macOS 15.3.1 (24D70)",
+    "compiler": "Apple metal version 32023.620 (metalfe-32023.620)",
+    "reproduced_on_host": true
+  },
+  "note": "Artifact identity, not a build-recipe identity: metallib bytes are not reproducible across Xcode versions. Admission pins this digest (composition_aot.circuit_bounded_sha256_hex). -Wno-unused-variable: the shared generator emits unused QM31 one-constants for the circuit programs."
+}

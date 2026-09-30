@@ -45,6 +45,9 @@ pub const metallib_leaf = "air_template_composition_bounded.metallib";
 const AdmissionPolicy = enum {
     approved_product,
     process,
+    /// The circuit prover (`circuit_metal`): the circuit AIR's own pinned
+    /// library at its in-tree path.
+    circuit_product,
 };
 
 const Config = struct {
@@ -57,6 +60,14 @@ const Config = struct {
 
 var product_config: Config = .{ .admission_policy = .approved_product, .enabled_by_default = true };
 var process_config: Config = .{ .admission_policy = .process };
+var circuit_config: Config = .{ .admission_policy = .circuit_product, .enabled_by_default = true };
+
+/// The circuit prover's injectable device: the same stage, arena planning and
+/// accumulator order as the Cairo product, over the circuit AIR bundle, with
+/// the circuit's pinned composition library.
+pub fn circuitDevice() device_stage.Device {
+    return .{ .context = &circuit_config, .open = openAdapter };
+}
 
 /// Builds the product's injectable device. Product identity names the exact
 /// stored-domain digest, so this route ignores the process digest policy.
@@ -211,6 +222,7 @@ fn open(
     const admission = switch (settings.admission_policy) {
         .approved_product => composition_aot.authenticateBoundedForProduct(path),
         .process => composition_aot.authenticateFromProcess(allocator, path),
+        .circuit_product => composition_aot.authenticateCircuitBoundedForProduct(path),
     } catch return error.CompositionAotAdmissionDeclined;
     std.log.info(
         "device composition metallib admitted: {s} ({s}, {d} bytes)",
@@ -366,7 +378,7 @@ fn layoutFor(stored: ComponentPlan, rc_base: u32, domain_log_size: u32) metal.Ev
 }
 
 fn byteCap(settings: Config) u64 {
-    if (settings.admission_policy == .approved_product)
+    if (settings.admission_policy != .process)
         return eval_arena.default_byte_cap;
     const text = std.posix.getenv(eval_arena.byte_cap_env) orelse
         return eval_arena.default_byte_cap;
@@ -375,6 +387,10 @@ fn byteCap(settings: Config) u64 {
 }
 
 fn resolveMetallib(allocator: std.mem.Allocator, settings: Config) ![]u8 {
+    // The circuit route has one library at one path; the Cairo override
+    // variable does not apply to it.
+    if (settings.admission_policy == .circuit_product)
+        return allocator.dupe(u8, composition_aot.circuit_bounded_path);
     if (std.posix.getenv(metallib_env)) |override|
         return allocator.dupe(u8, override);
     if (settings.search_root) |asset| {
