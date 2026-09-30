@@ -101,6 +101,7 @@ constraints from coefficients.
 zig build test --build-file src/integrations/circuit_cpu/build.zig -Doptimize=ReleaseSafe -j2
 zig build circuit-parity-r7 --build-file src/integrations/circuit_cpu/build.zig -Doptimize=ReleaseSafe -j2
 zig build circuit-parity-r4-values --build-file src/integrations/circuit_cpu/build.zig -Doptimize=ReleaseSafe -j2
+zig build circuit-parity-r6-leaf --build-file src/integrations/circuit_cpu/build.zig -Doptimize=ReleaseSafe -j2
 STWO_CIRCUIT_MULTIVERIFIER_INPUTS=<path> \
   zig build circuit-parity-r7-multiverifier --build-file src/integrations/circuit_cpu/build.zig -Doptimize=ReleaseFast -j2
 ```
@@ -122,6 +123,18 @@ be satisfied. It also builds the multiverifier of two copies of the Cairo
 verifier proof, the circuit `proof.bin` proves, and matches its gate and
 value digests with `vectors/circuit/r7/multiverifier_inputs.json`. The R7
 circuits come from the frontend's shared `circuit_testing.contexts`.
+
+`circuit-parity-r6-leaf` is the leaf half of rung R6 (labelled large: a
+2^23-row circuit, about 3.3 GB and 15 s in ReleaseSafe). It rebuilds the
+leaf verifier of `vectors/circuit/official/registries/leaf_prover_canonical_small.json`
+as `circuit-params --registry` does: `leaf_verifier_config` over the
+registry's `cairo_prover_params` at trace log size 20, the leaf test program
+(`vectors/circuit/official/programs/use_all_opcodes_and_builtins_compiled.json`,
+loaded by the Cairo frontend's `programFeltsFromCompiledJson`), the committed
+canonical_small Cairo preprocessed root (`vectors/circuit/r6/topology.json`),
+the frontend's `buildCairoVerifierTopology`, padding to the registry target
+and preprocessing. The preprocessed root and circuit hash must equal the
+registry's.
 
 `circuit-parity-r7-multiverifier` reproduces
 `test_data/circuit_multiverifier/proof.bin` byte for byte. Its input, the

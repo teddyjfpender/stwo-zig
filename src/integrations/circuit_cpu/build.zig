@@ -100,6 +100,26 @@ pub fn build(b: *std.Build) void {
         "Rung R4: the in-circuit verifier over test_data/circuit_multiverifier in value mode, and the circuit proof.bin proves",
     ).dependOn(&r4_tests.step);
 
+    // R6, leaf: the canonical_small leaf verifier's preprocessed root and
+    // circuit hash against the committed registry. Large (a 2^23-row
+    // circuit); not part of `test`.
+    const r6_leaf_root = b.createModule(.{
+        .root_source_file = b.path("tests/r6_leaf_topology_test.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    r6_leaf_root.addImport("stwo_core", core);
+    r6_leaf_root.addImport("stwo_circuit_frontend", circuit);
+    r6_leaf_root.addImport("stwo_cairo_frontend", cairo);
+    r6_leaf_root.addImport("stwo_circuit_recursion_wire", wire);
+    r6_leaf_root.addImport("circuit_testing", circuit_testing);
+    const r6_leaf_tests = b.addRunArtifact(b.addTest(.{ .root_module = r6_leaf_root, .filters = filters }));
+    r6_leaf_tests.setCwd(repository_root);
+    b.step(
+        "circuit-parity-r6-leaf",
+        "Rung R6, leaf: the canonical_small leaf verifier's preprocessed root and circuit hash against the committed registry",
+    ).dependOn(&r6_leaf_tests.step);
+
     const r7_step = b.step(
         "circuit-parity-r7",
         "Rung R7: the prover_test.rs circuits proved byte for byte against the oracle's prove-small",

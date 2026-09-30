@@ -9,16 +9,15 @@
 //! trace and interaction column counts. The `ProofConfig` is M5's port of
 //! `ProofConfig::new`; nothing here restates a shape.
 //!
-//! What this does not build yet: the leaf circuit itself
-//! (`build_cairo_verifier_circuit`: `CairoStatement::new`, `empty_proof`
-//! guess, `verify`, `finalize`, `pad_to_targets`, preprocessing and the
-//! registry circuit-hash check). That needs the M2 builder and M5's
-//! gate-emitting `verify`.
+//! `LeafVerifierConfig.verifierConfig` completes `leaf_verifier_config`
+//! with the program, the Cairo preprocessed root and the ZK blinding amount;
+//! `cairo_verifier.zig` builds the leaf circuit from the result.
 
 const std = @import("std");
 const core = @import("stwo_core");
 const component_table = @import("../air_eval/component_table.zig");
 const proof = @import("../stark_verifier/proof.zig");
+const cairo_verifier = @import("cairo_verifier.zig");
 
 const layout = core.cairo_air_layout;
 const FriConfigV2 = core.pcs.config_v2.FriConfigV2;
@@ -27,6 +26,7 @@ const PcsConfigV2 = core.pcs.config_v2.PcsConfigV2;
 pub const cairo_slot_count = 83;
 
 pub const LeafVerifierConfig = struct {
+    variant: layout.Variant,
     proof_config: proof.ProofConfig,
     /// `leaf_verifier_components(..).enabled_bits`, in slot order.
     enabled_bits: [cairo_slot_count]bool,
@@ -35,6 +35,24 @@ pub const LeafVerifierConfig = struct {
     pub fn deinit(self: *LeafVerifierConfig, allocator: std.mem.Allocator) void {
         self.proof_config.deinit(allocator);
         self.* = undefined;
+    }
+
+    /// `leaf_verifier_config`'s `CairoVerifierConfig`: borrows this config
+    /// and `program`, which must outlive the result.
+    pub fn verifierConfig(
+        self: *const LeafVerifierConfig,
+        program: []const layout.ProgramFelt,
+        preprocessed_root: [8]u32,
+        zk_blinding_amount: ?usize,
+    ) cairo_verifier.CairoVerifierConfig {
+        return .{
+            .proof_config = self.proof_config,
+            .enabled_bits = &self.enabled_bits,
+            .program = program,
+            .preprocessed_root = preprocessed_root,
+            .variant = self.variant,
+            .zk_blinding_amount = zk_blinding_amount,
+        };
     }
 };
 
@@ -55,6 +73,7 @@ pub fn leafVerifierConfig(
     var names: [cairo_slot_count][]const u8 = undefined;
     for (&names, cairo_table.entries) |*name, entry| name.* = entry.name;
     var result: LeafVerifierConfig = undefined;
+    result.variant = variant;
     result.n_enabled_components = try layout.leafEnabledBits(variant, &names, &result.enabled_bits);
 
     var shapes: [cairo_slot_count]proof.ComponentShape = undefined;
