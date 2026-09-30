@@ -5,7 +5,7 @@
 //!
 //! - `DigestHex` and `SerializedLeafProof` (`crates/leaf_proof_format`): a
 //!   digest is eight little-endian `u32` words written `"{:#010x}"`; the proof
-//!   is standard, padded base64 of its `CircuitSerialize` bytes. The leaf
+//!   is standard base64 of its `CircuitSerialize` bytes, written padded. The leaf
 //!   prover writes `serde_json::to_string_pretty` with no trailing newline.
 //! - `LeafInput` and the leaves manifest
 //!   (`crates/stwo_run_and_prove_recursive_tree/src/leaf_io.rs`): a
@@ -14,8 +14,9 @@
 //!
 //! Reading follows serde: `DigestHex` accepts an optional `0x` prefix and
 //! `u32::from_str_radix(_, 16)` digits (either case, an optional `+`), base64
-//! must be canonical (`base64::STANDARD`: padded, zero trailing bits), and
-//! unknown fields are ignored. Re-emitting a Rust-written file reproduces its
+//! is decoded as `serde_with::base64::Base64` decodes it (base64 0.22, standard
+//! alphabet, `DecodePaddingMode::Indifferent`: no, partial or full `=` padding,
+//! zero trailing bits), and unknown fields are ignored. Re-emitting a Rust-written file reproduces its
 //! bytes.
 
 const std = @import("std");
@@ -140,16 +141,38 @@ pub fn parseLeavesManifest(gpa: std.mem.Allocator, text: []const u8) ReadError!O
 }
 
 fn readLeafProofFields(allocator: std.mem.Allocator, root: std.json.ObjectMap) ReadError!SerializedLeafProof {
-    const encoded = try json_text.string(try json_text.field(root, "proof"));
-    const decoder = std.base64.standard.Decoder;
-    const size = decoder.calcSizeForSlice(encoded) catch return error.InvalidValue;
-    const proof = try allocator.alloc(u8, size);
-    decoder.decode(proof, encoded) catch return error.InvalidValue;
+    const proof = try decodeBase64(allocator, try json_text.string(try json_text.field(root, "proof")));
     return .{
         .circuit_preprocessed_root = try DigestHex.fromJson(try json_text.field(root, "circuit_preprocessed_root")),
         .circuit_hash = try DigestHex.fromJson(try json_text.field(root, "circuit_hash")),
         .proof = proof,
     };
+}
+
+/// `serde_with::base64::Base64` deserialization: base64 0.22.1's
+/// `GeneralPurpose` engine with the standard alphabet,
+/// `DecodePaddingMode::Indifferent` and no trailing bits. Every quad but the
+/// last is four alphabet characters; the last holds two to four alphabet
+/// characters followed by up to `4 - n` `=` (at most two, never before its
+/// third character), so `"8A"`, `"8A="` and `"8A=="` all decode while
+/// `"8N=="` (trailing bits) and `"8==="` do not.
+pub fn decodeBase64(allocator: std.mem.Allocator, encoded: []const u8) ReadError![]u8 {
+    var pads: usize = 0;
+    while (pads < encoded.len and encoded[encoded.len - 1 - pads] == '=') pads += 1;
+    if (encoded.len != 0) {
+        const rem = encoded.len % 4;
+        const last_quad = encoded.len - (if (rem == 0) 4 else rem);
+        // Padding starts at the last quad's third character or later, and at
+        // least two alphabet characters precede it (base64 `decode_suffix`).
+        if (encoded.len - pads < last_quad + 2) return error.InvalidValue;
+    }
+    const body = encoded[0 .. encoded.len - pads];
+    const decoder = std.base64.standard_no_pad.Decoder;
+    const size = decoder.calcSizeForSlice(body) catch return error.InvalidValue;
+    const bytes = try allocator.alloc(u8, size);
+    errdefer allocator.free(bytes);
+    decoder.decode(bytes, body) catch return error.InvalidValue;
+    return bytes;
 }
 
 /// `serde_json::to_string_pretty(&SerializedLeafProof)`, no trailing newline.
@@ -201,15 +224,25 @@ test "leaf proof json: DigestHex reads what serde reads" {
     try std.testing.expectEqualSlices(u8, &bytes, &DigestHex.fromBytes(bytes).toBytes());
 }
 
-test "leaf proof json: base64 must be canonical" {
+test "leaf proof json: base64 padding is indifferent, trailing bits are not" {
     const allocator = std.testing.allocator;
     const head = "{\"circuit_preprocessed_root\":[\"0\",\"0\",\"0\",\"0\",\"0\",\"0\",\"0\",\"0\"]," ++
         "\"circuit_hash\":[\"0\",\"0\",\"0\",\"0\",\"0\",\"0\",\"0\",\"0\"],\"proof\":";
     var ok = try parseSerializedLeafProof(allocator, head ++ "\"8NU=\",\"extra\":1}");
     defer ok.deinit();
     try std.testing.expectEqualSlices(u8, &.{ 0xf0, 0xd5 }, ok.value.proof);
-    // Missing padding, nonzero trailing bits, and a URL-safe alphabet.
-    for ([_][]const u8{ "\"8NU\"}", "\"8NV=\"}", "\"-_-_\"}" }) |tail| {
+    // serde_with 3.21 accepts missing and partial padding.
+    for ([_][]const u8{ "8NU", "8A", "8A=", "8A==", "" }, [_][]const u8{ &.{ 0xf0, 0xd5 }, &.{0xf0}, &.{0xf0}, &.{0xf0}, &.{} }) |text, want| {
+        const bytes = try decodeBase64(allocator, text);
+        defer allocator.free(bytes);
+        try std.testing.expectEqualSlices(u8, want, bytes);
+    }
+    // Nonzero trailing bits, misplaced or excess padding, a lone final
+    // character, and a URL-safe alphabet.
+    for ([_][]const u8{ "8NV=", "8N==", "8===", "8A=A", "8A===", "AAAA=", "AAAAA", "=", "-_-_", "8N U" }) |text| {
+        try std.testing.expectError(error.InvalidValue, decodeBase64(allocator, text));
+    }
+    for ([_][]const u8{ "\"8NV=\"}", "\"-_-_\"}" }) |tail| {
         const text = try std.mem.concat(allocator, u8, &.{ head, tail });
         defer allocator.free(text);
         try std.testing.expectError(error.InvalidValue, parseSerializedLeafProof(allocator, text));

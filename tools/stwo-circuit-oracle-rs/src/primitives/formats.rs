@@ -126,12 +126,85 @@ fn base64_section() -> Result<Vec<Base64Vector>> {
 }
 
 #[derive(Serialize)]
+pub struct Base64DecodeVector {
+    pub base64: String,
+    /// The bytes `serde_with::base64::Base64` decodes (`DecodePaddingMode::Indifferent`), or
+    /// `None` when it rejects the text.
+    pub bytes_hex: Option<String>,
+}
+
+/// The `proof` field decoding of `leaf_proof_format::SerializedLeafProof`.
+#[serde_as]
+#[derive(serde::Deserialize)]
+struct Base64DecodeField(#[serde_as(as = "Base64")] Vec<u8>);
+
+/// Padding variants (none, partial, full, excess, misplaced), trailing bits and bad lengths.
+fn base64_decode_section() -> Result<Vec<Base64DecodeVector>> {
+    let texts = [
+        "", "8A", "8A=", "8A==", "8A===", "8NU", "8NU=", "8NU==", "8NV=", "8N==", "8===", "=",
+        "8A=A", "AAAA", "AAAA=", "AAAAA", "AAAAAA", "AAAAAA=", "AAAAAAA", "+/+/", "-_-_", "8N U",
+    ];
+    let vectors: Vec<_> = texts
+        .into_iter()
+        .map(|text| {
+            let json = serde_json::to_string(text)?;
+            let decoded: Option<Base64DecodeField> = serde_json::from_str(&json).ok();
+            Ok(Base64DecodeVector {
+                base64: text.to_string(),
+                bytes_hex: decoded.map(|field| hex::encode(field.0)),
+            })
+        })
+        .collect::<Result<_>>()?;
+    ensure!(
+        vectors.iter().any(|v| v.bytes_hex.is_none())
+            && vectors.iter().filter(|v| v.bytes_hex.is_some()).count() >= 8,
+        "base64 decode vectors must cover accepted and rejected texts"
+    );
+    Ok(vectors)
+}
+
+#[derive(Serialize)]
+pub struct FeltFromDecStrVector {
+    pub text: String,
+    /// `Felt::from_dec_str(text)` in decimal, or `None` when it is rejected. Upstream's release
+    /// profile compiles out lambdaworks' `debug_assert` on the digit add, so values past 2^256
+    /// can wrap.
+    pub felt: Option<String>,
+}
+
+fn felt_from_dec_str_section() -> Vec<FeltFromDecStrVector> {
+    const TWO_POW_256: &str =
+        "115792089237316195423570985008687907853269984665640564039457584007913129639936";
+    const TWO_POW_256_PLUS_3: &str =
+        "115792089237316195423570985008687907853269984665640564039457584007913129639939";
+    const TWO_POW_256_PLUS_4: &str =
+        "115792089237316195423570985008687907853269984665640564039457584007913129639940";
+    const STARK_PRIME: &str =
+        "3618502788666131213697322783095070105623107215331596699973092056135872020481";
+    let minus_plus_3 = format!("-{TWO_POW_256_PLUS_3}");
+    let texts = [
+        "0", "-0", "-5", "007", "", "-", "+1", "0x1", "--5", " 1", "1 ", STARK_PRIME,
+        TWO_POW_256, TWO_POW_256_PLUS_3, TWO_POW_256_PLUS_4, minus_plus_3.as_str(),
+        "1157920892373161954235709850086879078532699846656405640394575840079131296399360",
+    ];
+    texts
+        .into_iter()
+        .map(|text| FeltFromDecStrVector {
+            text: text.to_string(),
+            felt: Felt::from_dec_str(text).ok().map(|felt| felt.to_string()),
+        })
+        .collect()
+}
+
+#[derive(Serialize)]
 pub struct FormatsSection {
     pub chacha20_rng: Vec<ChaChaVector>,
     pub felt252_encoding: Vec<Felt252Vector>,
+    pub felt_from_dec_str: Vec<FeltFromDecStrVector>,
     pub digest_hex: Vec<DigestHexVector>,
     pub serialized_leaf_proof: Vec<LeafProofVector>,
     pub base64: Vec<Base64Vector>,
+    pub base64_decode: Vec<Base64DecodeVector>,
 }
 
 fn chacha(name: &'static str, seed: [u8; 32]) -> ChaChaVector {
@@ -181,6 +254,11 @@ pub fn formats_section() -> Result<FormatsSection> {
             STARK_PRIME_MINUS_ONE,
             "18446744073709551616",
         ],
+        // Past 2^256: the release-build digit add wraps (see `felt_from_dec_str`).
+        &[
+            "115792089237316195423570985008687907853269984665640564039457584007913129639939",
+            "-3",
+        ],
     ]
     .into_iter()
     .map(felt252_vector)
@@ -214,8 +292,10 @@ pub fn formats_section() -> Result<FormatsSection> {
     Ok(FormatsSection {
         chacha20_rng,
         felt252_encoding,
+        felt_from_dec_str: felt_from_dec_str_section(),
         digest_hex,
         serialized_leaf_proof,
         base64: base64_section()?,
+        base64_decode: base64_decode_section()?,
     })
 }
