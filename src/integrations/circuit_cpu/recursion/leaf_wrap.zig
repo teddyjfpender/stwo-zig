@@ -227,6 +227,7 @@ pub fn wrapCairoProof(
     const output_hash = try circuit_leaf.outputHash(input);
 
     // 4. The leaf circuit with values, padded to the shared target.
+    var timer = try std.time.Timer.start();
     var ctx = try cairo_verifier.buildCairoVerifierCircuit(QM31, allocator, wrap.cairo_table, &config, wrap.constants(), .{
         .proof = &proof_values,
         .serialized_aux_data = aux,
@@ -235,7 +236,9 @@ pub fn wrapCairoProof(
     var ctx_owned = true;
     defer if (ctx_owned) ctx.deinit();
     try finalize.padToTargets(QM31, &ctx, target);
+    const build_ns = timer.lap();
     if (!try ctx.isCircuitValid()) return error.CircuitRejectsProof;
+    const check_ns = timer.lap();
 
     const key = (topology_key.LeafKey{
         .config_name = entry.config,
@@ -270,6 +273,7 @@ pub fn wrapCairoProof(
     const values = try ctx.intoValues();
     ctx_owned = false;
     defer allocator.free(values);
+    const topology_ns = timer.lap();
     const pcs_config = PcsConfigV2.fromFriAndTraceSize(circuit_fri, topology.preprocessed.traceLogSize());
     var circuit_proof = try prove.Internal.prove(allocator, values, &topology.preprocessed, wrap.bundle, pcs_config, wrap.options, {});
     defer circuit_proof.deinit();
@@ -282,6 +286,13 @@ pub fn wrapCairoProof(
     defer prepared.deinit();
     const bytes = try prepared.serialize(allocator);
     errdefer allocator.free(bytes);
+    const prove_ns = timer.lap();
+    log.info("leaf wrap: build {d} ms, validity check {d} ms, topology {d} ms, prove {d} ms", .{
+        build_ns / std.time.ns_per_ms,
+        check_ns / std.time.ns_per_ms,
+        topology_ns / std.time.ns_per_ms,
+        prove_ns / std.time.ns_per_ms,
+    });
 
     const cache_hit = fresh == null;
     if (fresh) |*topology_entry| {

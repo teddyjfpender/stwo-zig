@@ -1361,6 +1361,28 @@ grind time separately.
 **The first measurement of M7** is the builder's share of leaf and fold wall
 time. That number decides whether M13 (the tape) is worth doing at all.
 
+**M13 decision measurement (2026-09-30, MEASURED): builder share ≈ 1-2.5%,
+so the tape is not built.** `stwo-circuit-recursion-cpu` ReleaseFast on an
+M4 Max (AC power, other agents' jobs running concurrently, so timings are
+indicative), with the phase logs in `leaf_wrap.zig` and `fold.zig`
+(`log.info`, scope `circuit_recursion`):
+
+| Workload | Runs | Builder phases (ms) | Circuit prove (s) | Builder share |
+|---|---:|---|---:|---:|
+| `leaf-wrap`, leaf simple bootloader, `recursive_tree_test` registry (R8b leaf) | 3 | build 435/689/469, validity 95/231/101, topology (per-key miss) 253/518/278 | 41.3/55.8/55.8 | 1.9% / 2.5% / 1.5% (median 1.9%) |
+| `fold-tree`, four `four_leaves/leaf.json`, 3 reductions (R8b/R9 fold) | 2 × 3 | convert+build+pad+validity+copy 702/716/617, 633/568/574 | 59.7/53.2/52.3, 53.1/45.8/44.7 | 1.2-1.3% per reduce (median 1.2%) |
+
+Fold outputs were byte-identical to the `four_leaves` goldens and the three
+leaf files byte-identical to each other. The tape would replace only the
+graph bookkeeping inside "build": the value arithmetic, the validity check
+(kept by the fail-closed rule, errata 11) and the per-key topology (already
+cached, §9.2 item 1) remain. The removable share is therefore below the
+measured 1.2-2.5%, far under the 10% gate. M13 stays unimplemented; revisit
+only if the prover gets roughly 5x faster (for example after M12) so that
+the builder crosses 10%. The prove time is dominated by
+`composition_evaluation` (15.1 s of the 41 s leaf prove in the `--profile`
+run), which is where the next wins are.
+
 ### 9.2 Wins, ordered by expected value per unit of parity risk
 
 1. **Per-key cache.** The committed preprocessed tree, its coefficients and
@@ -1468,7 +1490,7 @@ work can be started earlier against committed fixtures.
 | **M10** | Zig Cairo leaf lane (Stage B) | `src/frontends/cairo` channel/revision parameterisation, include-all, AtLeastPreprocessed, public-data mix, params loader, CPU M31 grind | R10a–R10c; Cairo-lane vectors unchanged except the §4.7 PoW order (R10d is a big-host gate after M8, errata 8) | M1 (parallel to M2–M9) | 4–6 wk |
 | **M11** | CPU performance | caches, streaming commit, low-memory policy, scheduler, static budget | ladder still green after every change; the §9.4 CPU targets measured, pass or fail reported honestly | M9 | 3–4 wk |
 | **M12** | Metal, then CUDA | `src/integrations/circuit_{metal,cuda}`, §4.7 grind kernels (M31 and plain Blake2s; 20 and 26 bits, plus 24 for Stage B), gather and blake_g kernels | R7–R9 on device byte-equal to CPU scalar; fail-closed capability checks | M11 | 4–6 wk |
-| **M13** | (optional) topology tape | record the NoValue build per key as an op stream; fill values from the shared `guess` traversal | only if builder share > 10%. Merge gates: two different proofs per key give identical tape digests; tape values equal value-mode Context values on every R8/R9 fixture; `-Dcircuit-audit` re-runs value mode | M9, M11 | 2 wk |
+| **M13** | (optional) topology tape — **not built: measured builder share 1.2-2.5% (§9.1)** | record the NoValue build per key as an op stream; fill values from the shared `guess` traversal | only if builder share > 10%. Merge gates: two different proofs per key give identical tape digests; tape values equal value-mode Context values on every R8/R9 fixture; `-Dcircuit-audit` re-runs value mode | M9, M11 | 2 wk |
 
 Critical path: M1 → M2 → M4 → M5 → M7 → M8 → M9, about 19 weeks. M0 runs
 alongside M1–M2. M3 and M10 run off the critical path.

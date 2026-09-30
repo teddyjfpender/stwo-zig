@@ -175,10 +175,16 @@ fn reduce(
                 .output_digest = builder.blake.hashValue(QM31, child.output_digest),
             };
         }
+        const convert_ns = timer.read();
+        var phase = try std.time.Timer.start();
         var ctx = try multiverifier.buildMultiverifierCircuit(QM31, gpa, fold.table, &inputs, &canonical.shared, circuit.stark_verifier.verify.NoStages{});
         defer ctx.deinit();
         try finalize.padToTargets(QM31, &ctx, canonical.target_sizes);
+        const graph_ns = phase.lap();
         if (!try ctx.isCircuitValid()) return error.MultiverifierRejectedInputs;
+        log.info("reduce layer {d} pair {d}: convert {d} ms, build {d} ms, validity check {d} ms", .{
+            layer_idx, pair_idx, convert_ns / std.time.ns_per_ms, graph_ns / std.time.ns_per_ms, phase.read() / std.time.ns_per_ms,
+        });
         break :blk try gpa.dupe(QM31, ctx.values());
     };
     defer gpa.free(values);
