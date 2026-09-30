@@ -29,11 +29,14 @@ Status markers: **VERIFIED** (read in code or on chain, with a reference),
   H200 (PR #203), all GPU proving is roughly **2–4 H200-hours per day**. Cluster
   size is set by GPU memory (~100 GB for 14M-step leaves), redundancy and
   latency, not throughput.
-- **The time bottleneck is the CPU side, not the GPU.** cairo-vm OS execution
-  costs tens of CPU-seconds per leaf, cold ingress ~5 s, and aggregation runs in
-  cairo-vm, against ~1 s of GPU per leaf proof. Recursion (leaf wrap plus fold,
-  two fixed-shape circuit proofs per leaf) costs about as much GPU as the leaves
-  themselves.
+- **The time bottleneck is on the CPU side, and it is not the Cairo VM.**
+  cairo-vm runs the Starknet OS at ~2.7M steps/s (5.36M steps in ~2 s,
+  MEASURED), so ~5 s for a 13M-step leaf. The long poles are preparing the OS
+  input (blockifier re-execution and state reads, 129 s wall / ~30 s CPU for 10
+  blocks from a local recording) and PIE serialization plus cold ingress
+  (~7–8 s), against ~1 s of GPU per leaf proof (§5.2). Recursion (leaf wrap plus
+  fold, two fixed-shape circuit proofs per leaf) costs about as much GPU as the
+  leaves themselves.
 - **Estimated running cost ≈ $215/day (~$78k/yr)** at today's gas (0.10 gwei,
   ETH $2,674): about $170/day of compute and $45/day of L1. The range is
   ~$170–550/day depending on reserved vs on-demand pricing and gas (§5.4).
@@ -149,8 +152,9 @@ the design point.
 
 | Stage | Jobs/batch | Per job | Where | Share of GPU time |
 |---|---|---|---|---|
-| OS execution (cairo-vm + OS hints → PIE) | 160 | ~13M steps; ~30–60 CPU-s (INFERRED) | CPU, single-threaded per leaf | CPU only — **largest by wall-clock** |
-| Leaf ingress (adapt + upload) | 160 | ~4–5 s (MEASURED, PR #203 cold ingress) | CPU/PCIe | overlappable |
+| OS input preparation (blockifier re-execution, state reads, trie witnesses) | 160 | 129 s wall / ~30 s CPU per 10 blocks from a local recording (MEASURED); ~0 when the sequencer supplies the OS input | CPU, latency-bound | CPU only — **largest by wall-clock today** |
+| OS execution (cairo-vm + OS hints → PIE) | 160 | ~2.7M steps/s: 5.36M steps in ~2 s (MEASURED), ~5 s per 13M-step leaf | CPU, one core per leaf | CPU only |
+| PIE write + leaf ingress (adapt + upload) | 160 | ~3 s zip write (MEASURED) + ~4–5 s cold ingress (MEASURED, PR #203) | CPU/PCIe | removable with in-memory handoff |
 | **Leaf Cairo proof** | 160 | **0.66–1.03 s** (MEASURED, H200, PR #203) | GPU, 61–100 GB | ~45% |
 | **Leaf wrap** (circuit verifies Cairo proof) | 160 | fixed circuit shape (qm31/blake_g 2²³ rows); today 50–65 s Zig CPU / ~20 s Rust CPU (MEASURED, M4 Max); ~0.5–1 s on GPU (INFERRED) | GPU (planned) | ~25–30% |
 | **Fold** (2-to-1 multiverifier) | 159 | same shape as the wrap | GPU (planned) | ~25–30% |
@@ -166,13 +170,23 @@ Consequences:
    GPU work.
 2. **Aggregation is negligible in throughput.** It is one proof per 1,500 blocks
    and matters only for latency.
-3. **The CPU side dominates wall-clock.** OS execution in cairo-vm and cold
-   ingress are 5–60× the GPU proof time per leaf. The next big wins are parallel
-   or streaming OS execution, and feeding the prover in memory (no PIE file, no
-   re-adaptation).
-4. **Latency path at batch close:** the last leaf's OS run (30–60 s), its proof
-   (~1 s + ingress), its wrap, **8 sequential folds**, aggregation (cairo-vm +
-   proof), then Stone (minutes).
+3. **The CPU side dominates wall-clock, but not because of the VM.** Measured
+   on a 10-block leaf (15630654–663, 5,358,099 steps) replayed from local
+   recordings: input preparation 129 s, cairo-vm OS run ~2 s, PIE validate and
+   write ~3 s. Levers, in order:
+   - **Feed OS input from the sequencer.** It already holds execution infos and
+     trie witnesses, so re-execution disappears. Otherwise run SNOS against a
+     co-located node database (Pathfinder or Juno) with blocks processed in
+     parallel: about 10–20 s CPU.
+   - **Hand the trace over in memory.** Run OS, adapter and GPU prover in one
+     process: no PIE zip (~3 s) and no re-adaptation (~4–5 s). Stream the
+     adapter into pinned device buffers.
+   - **Tune the VM last** (hint dispatch, memory layout; ~1.5–2× on ~5 s).
+
+   Target: CPU work per leaf of ~5–8 s, comparable to GPU proving.
+4. **Latency path at batch close:** the last leaf's input preparation and OS run
+   (~5–8 s after the levers above), its proof (~1 s), its wrap, **8 sequential
+   folds**, aggregation (cairo-vm + proof), then Stone (minutes).
 
 ### 5.3 Deployment (H200)
 
@@ -185,9 +199,10 @@ Consequences:
   - Per-leaf GPU time is ~2–3 s (leaf ~1 s + wrap and fold ~1–2 s, ingress
     overlapped). At 5k leaves/day that is ~3–4 H200-hours/day, **~10–15% of one
     H200**, so one node carries ~7–15× today's load.
-- **CPU:** a ~32-core pool co-located with the GPUs, for OS execution and
-  aggregation. At 5k leaves × ~60 CPU-s that is ~3.5 cores on average, plus
-  headroom for burst latency. One 64-core box runs Stone.
+- **CPU:** a ~32-core pool co-located with the GPUs, for OS input preparation,
+  OS execution, adaptation and aggregation. At 5k leaves × ~10–40 CPU-s that is
+  ~1–2.5 cores on average; the pool is sized for burst latency and parallel
+  per-block input preparation, not throughput. One 64-core box runs Stone.
 - **Data:** PIEs and prover inputs stay in RAM on the GPU node and never cross
   the network.
 
@@ -222,8 +237,8 @@ Sensitivity and unit costs:
 **INFERRED inputs to measure:**
 
 - circuit-proof time on a GPU (no CUDA circuit prover exists yet; wave E M12);
-- OS execution time with sequencer-supplied input (our 30-block leaf was bound
-  by RPC latency: 92 s CPU over 50 min wall);
+- the adapter and ingress cost with an in-memory handoff, and input
+  preparation against a co-located node database;
 - the circuit verifier's step count in Cairo, and aggregation cost at 160
   leaves.
 
