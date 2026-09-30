@@ -108,10 +108,17 @@ the stable size-sorted preprocessed layout to gate inputs, validates resident
 buffer ranges, and writes directly into the base commitment input. The exact
 CUDA row function also runs in a host emulation test against the circuit CPU
 component oracle: nonzero gate inputs, every output column, every table count,
-and malformed address/lookup rejection match. Both sm_80 and sm_90 PTX and the
-host ABI compile locally. This is not yet a device-parity or timing result;
-the interaction LogUp trace, circuit composition, PCS tail and proof assembly
-remain to be connected before a full-CUDA recursion proof can be benchmarked.
+and malformed address/lookup rejection match.
+
+The next resident stage generates the paired LogUp numerators and denominators
+for all eleven circuit components. It reuses the CUDA relation-completion
+kernel for inversion, claimed sums, and circle-order prefix scans, then checks
+the global sum against the public output gates on the device. Host emulation
+matches the CPU lookup oracle for all eleven components and rejects a tampered
+sum. Both sm_80 and sm_90 PTX and the host ABI compile locally. These are
+source and host-emulation checks, not a device-parity or timing result;
+composition, the PCS tail, proof assembly, and a full-CUDA recursion run still
+remain before a pipeline benchmark can be reported.
 
 The Cairo CUDA product now exposes an in-process verified-proof sink; the circuit
 recursion app accepts its compressed proof plus authenticated opening capture

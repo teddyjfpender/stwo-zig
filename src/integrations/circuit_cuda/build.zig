@@ -191,6 +191,17 @@ pub fn build(b: *std.Build) void {
     const witness_test = b.addTest(.{ .root_module = witness_test_root, .filters = filters });
     addEmulation(b, witness_test);
     test_step.dependOn(&b.addRunArtifact(witness_test).step);
+    const interaction_test_root = b.createModule(.{
+        .root_source_file = b.path("tests/interaction_fractions_emulation_test.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    interaction_test_root.addImport("stwo_core", core);
+    interaction_test_root.addImport("stwo_circuit_frontend", circuit);
+    interaction_test_root.addImport("stwo_cuda_backend", cuda_backend);
+    const interaction_test = b.addTest(.{ .root_module = interaction_test_root, .filters = filters });
+    addEmulation(b, interaction_test);
+    test_step.dependOn(&b.addRunArtifact(interaction_test).step);
 
     const r7_imports = R7Imports{
         .core = core,
@@ -239,6 +250,28 @@ pub fn build(b: *std.Build) void {
             base_ptx.addArg("-o");
             _ = base_ptx.addOutputFileArg("circuit_base_" ++ arch ++ ".ptx");
             compile_check_step.dependOn(&base_ptx.step);
+            const interaction_ptx = b.addSystemCommand(&.{
+                clang,        "-x",              "cuda",    "--cuda-device-only", "--cuda-gpu-arch=" ++ arch,
+                "-Xclang",    "-target-feature", "-Xclang", "+ptx78",             "-nocudainc",
+                "-nocudalib", "-std=c++17",      "-O3",     "-Wall",              "-Wextra",
+                "-Werror",    "-S",
+            });
+            interaction_ptx.addPrefixedDirectoryArg("-I", b.path("native/compile_check/include"));
+            interaction_ptx.addFileArg(.{ .cwd_relative = b.pathFromRoot("../../backends/cuda/native/circuit/interaction_fractions.cu") });
+            interaction_ptx.addArg("-o");
+            _ = interaction_ptx.addOutputFileArg("circuit_interaction_" ++ arch ++ ".ptx");
+            compile_check_step.dependOn(&interaction_ptx.step);
+            const lookup_ptx = b.addSystemCommand(&.{
+                clang,        "-x",              "cuda",    "--cuda-device-only", "--cuda-gpu-arch=" ++ arch,
+                "-Xclang",    "-target-feature", "-Xclang", "+ptx78",             "-nocudainc",
+                "-nocudalib", "-std=c++17",      "-O3",     "-Wall",              "-Wextra",
+                "-Werror",    "-S",
+            });
+            lookup_ptx.addPrefixedDirectoryArg("-I", b.path("native/compile_check/include"));
+            lookup_ptx.addFileArg(.{ .cwd_relative = b.pathFromRoot("../../backends/cuda/native/circuit/lookup_sum.cu") });
+            lookup_ptx.addArg("-o");
+            _ = lookup_ptx.addOutputFileArg("circuit_lookup_" ++ arch ++ ".ptx");
+            compile_check_step.dependOn(&lookup_ptx.step);
         }
         const host = b.addSystemCommand(&.{
             clang,        "-x",         "cuda",          "--cuda-host-only", "--cuda-gpu-arch=sm_90",
@@ -255,6 +288,20 @@ pub fn build(b: *std.Build) void {
         base_host.addPrefixedDirectoryArg("-I", b.path("native/compile_check/include"));
         base_host.addFileArg(.{ .cwd_relative = b.pathFromRoot("../../backends/cuda/native/circuit/base_witness.cu") });
         compile_check_step.dependOn(&base_host.step);
+        const interaction_host = b.addSystemCommand(&.{
+            clang,        "-x",  "cuda",  "--cuda-host-only", "--cuda-gpu-arch=sm_90", "-nocudainc",    "-nocudalib",
+            "-std=c++17", "-O2", "-Wall", "-Wextra",          "-Werror",               "-fsyntax-only",
+        });
+        interaction_host.addPrefixedDirectoryArg("-I", b.path("native/compile_check/include"));
+        interaction_host.addFileArg(.{ .cwd_relative = b.pathFromRoot("../../backends/cuda/native/circuit/interaction_fractions.cu") });
+        compile_check_step.dependOn(&interaction_host.step);
+        const lookup_host = b.addSystemCommand(&.{
+            clang,        "-x",  "cuda",  "--cuda-host-only", "--cuda-gpu-arch=sm_90", "-nocudainc",    "-nocudalib",
+            "-std=c++17", "-O2", "-Wall", "-Wextra",          "-Werror",               "-fsyntax-only",
+        });
+        lookup_host.addPrefixedDirectoryArg("-I", b.path("native/compile_check/include"));
+        lookup_host.addFileArg(.{ .cwd_relative = b.pathFromRoot("../../backends/cuda/native/circuit/lookup_sum.cu") });
+        compile_check_step.dependOn(&lookup_host.step);
     } else {
         compile_check_step.dependOn(&b.addFail("circuit-cuda-compile-check requires -Dcuda-clang=<NVPTX-capable clang>, e.g. /opt/homebrew/opt/llvm/bin/clang").step);
     }
@@ -384,6 +431,16 @@ fn addEmulation(b: *std.Build, compile: *std.Build.Step.Compile) void {
     compile.root_module.addCSourceFile(.{
         .file = .{ .cwd_relative = b.pathFromRoot("../../backends/cuda/native/circuit/base_witness.cu") },
         .flags = &.{ "-std=c++17", "-O3", "-DSTWO_CIRCUIT_BASE_HOST_EMULATION", "-Wall", "-Wextra", "-Werror" },
+        .language = .cpp,
+    });
+    compile.root_module.addCSourceFile(.{
+        .file = .{ .cwd_relative = b.pathFromRoot("../../backends/cuda/native/circuit/interaction_fractions.cu") },
+        .flags = &.{ "-std=c++17", "-O3", "-DSTWO_CIRCUIT_INTERACTION_HOST_EMULATION", "-Wall", "-Wextra", "-Werror" },
+        .language = .cpp,
+    });
+    compile.root_module.addCSourceFile(.{
+        .file = .{ .cwd_relative = b.pathFromRoot("../../backends/cuda/native/circuit/lookup_sum.cu") },
+        .flags = &.{ "-std=c++17", "-O3", "-DSTWO_CIRCUIT_LOOKUP_SUM_HOST_EMULATION", "-Wall", "-Wextra", "-Werror" },
         .language = .cpp,
     });
     compile.linkLibCpp();

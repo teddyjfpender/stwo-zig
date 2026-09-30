@@ -4,6 +4,8 @@ pub const commitment = @import("commitment.zig");
 pub const commitment_plain = @import("commitment_plain.zig");
 pub const cairo_base = @import("cairo_base.zig");
 pub const circuit_base = @import("circuit_base.zig");
+pub const circuit_interaction = @import("circuit_interaction.zig");
+pub const circuit_lookup_sum = @import("circuit_lookup_sum.zig");
 pub const cairo_ec_op = @import("cairo_ec_op.zig");
 pub const cairo_eval = @import("cairo_eval.zig");
 pub const cairo_witness = @import("cairo_witness.zig");
@@ -24,6 +26,8 @@ test {
     _ = commitment_plain;
     _ = cairo_base;
     _ = circuit_base;
+    _ = circuit_interaction;
+    _ = circuit_lookup_sum;
     _ = cairo_ec_op;
     _ = cairo_eval;
     _ = cairo_witness;

@@ -8,6 +8,8 @@
 
 #define STUB(name) int name() { return 0; }
 STUB(stwo_circuit_base_witness_on)
+STUB(stwo_circuit_interaction_fractions_on)
+STUB(stwo_circuit_lookup_sum_on)
 
 static uint32_t transform_chunks(uint32_t columns) {
     return (columns + 65534u) / 65535u;

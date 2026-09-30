@@ -40,6 +40,7 @@ pub const transcript_prefix = @import("transcript_prefix.zig");
 pub const resident_transcript = @import("resident_transcript.zig");
 pub const resident_commit = @import("resident_commit.zig");
 pub const resident_witness = @import("resident_witness.zig");
+pub const resident_interaction = @import("resident_interaction.zig");
 
 const profiles = core.vcs_lifted.channel_profile.proving_5a7c5ed;
 
@@ -97,6 +98,7 @@ test {
     _ = resident_transcript;
     _ = resident_commit;
     _ = resident_witness;
+    _ = resident_interaction;
 }
 
 test "provider path: the engine's grind returns the CPU channel's nonce through the (emulated) kernel" {

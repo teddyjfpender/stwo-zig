@@ -15,12 +15,12 @@ const runtime_error = @import("../error.zig");
 const telemetry = @import("../telemetry.zig");
 
 pub const Native = OpsFor(abi);
+pub const TraceCommitNative = OpsForAt(abi, .trace_commit);
 pub const Geometry = abi.Geometry;
 pub const Geometries = column.DeviceSlice(Geometry);
 pub const Topology = relation.Topology;
 
 const pointer_words = @sizeOf(usize) / @sizeOf(u32);
-const stage = telemetry.Stage.constraint_evaluation;
 
 comptime {
     std.debug.assert(pointer_words == 2);
@@ -113,6 +113,10 @@ pub fn deinit(allocator: std.mem.Allocator, prepared: *PreparedPlan) void {
 }
 
 pub fn OpsFor(comptime Api: type) type {
+    return OpsForAt(Api, .constraint_evaluation);
+}
+
+pub fn OpsForAt(comptime Api: type, comptime stage: telemetry.Stage) type {
     return struct {
         pub fn execute(
             session: anytype,

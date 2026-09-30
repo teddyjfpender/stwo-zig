@@ -64,7 +64,10 @@ pub fn OpsFor(comptime Api: type) type {
                 total_columns = std.math.add(u32, total_columns, source.column_count) catch return error.SizeOverflow;
                 descriptor.* = .{ .columns = source.pointer, .stride_words = source.stride_words, .capacity_words = segment.columns.storage.len, .source_size = segment.source_size };
             }
-            const status = Api.stwo_blake2s_mixed_seeded_on(size, @intCast(segments.len), &descriptors, absorbed, if (seed) |value| try common.count(value.len) else 0, seed_pointer, prefix_pointer, hashes_pointer, session.context.stream);
+            const status = if (output != null and seed == null and absorbed == 0)
+                Api.stwo_blake2s_mixed_leaf_on(size, @intCast(segments.len), &descriptors, hashes_pointer.?, session.context.stream)
+            else
+                Api.stwo_blake2s_mixed_seeded_on(size, @intCast(segments.len), &descriptors, absorbed, if (seed) |value| try common.count(value.len) else 0, seed_pointer, prefix_pointer, hashes_pointer, session.context.stream);
             try common.record(session, stage, status);
         }
 
