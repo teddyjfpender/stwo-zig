@@ -1,0 +1,29 @@
+{
+  "schema": "stwo-zig-cuda-source-snapshot-v1",
+  "implementation_commit": "214080ed64d4df5242effb3c3ef235c661bf8529",
+  "implementation_tree": "da8e3336a9014ff20476e95765c0cf4dd81224db",
+  "implementation_dirty": true,
+  "dirty_content_sha256": "2c88390a4d3794ae68ef41b6d4057139dcbb41320ebb2939519e8743214917f8",
+  "digest_algorithm": "SHA256 of sorted snapshot files, little-endian u64 path length/path/byte length/bytes",
+  "source_file_count": 8706,
+  "cached_official_verifier": {
+    "source_sha256": "005fc479100ede91defd2e7b017c3fcdc00feb49a8d7f8d2457cd3772413bf9c",
+    "binary_sha256": "369f83423fe45024d319c1af1e38fcdcb424e4e07a397d6f61924ce9c68e4afc"
+  },
+  "source.tar.gz": {
+    "sha256": "6b4bc38ec34b5af08d3394ba26c980142bccebc91e8c1db56b1f46573b19e5c3",
+    "bytes": 72826354
+  },
+  "inputs.tar.gz": {
+    "sha256": "db33f276f377fe5d6cac6f5b49a60cfbbbeba74d38c4a9cff597a976d535a168",
+    "bytes": 274672481
+  },
+  "native-cubins.tar.gz": {
+    "sha256": "389d69b8e76710d02d5319ebba5c5ba54e80377ca2f7689a5a889339cacdfe95",
+    "bytes": 11950189
+  },
+  "cuda-units-and-verifier.tar.gz": {
+    "sha256": "251488e91c9edff73f31d1de54f5d604129881ad28657ef73cdc3c69163cfb69",
+    "bytes": 25406872
+  }
+}

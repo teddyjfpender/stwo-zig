@@ -4,6 +4,8 @@ const fields = @import("stwo_core").fields;
 const m31 = @import("stwo_core").fields.m31;
 const utils = @import("stwo_core").utils;
 
+pub const precomputeM31Parallel = @import("twiddles_parallel.zig").precompute;
+
 const Coset = circle.Coset;
 const M31 = m31.M31;
 

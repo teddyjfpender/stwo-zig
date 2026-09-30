@@ -1,0 +1,17 @@
+{
+  "schema": "cairo-cuda-native-math-and-wide-parity-v1",
+  "provider": "nvidia_cuda",
+  "sm": 90,
+  "arithmetic_vectors": 100100,
+  "arithmetic_reference": "independent CPU uint64 modulo 2147483647",
+  "high_word_address": 4294967424,
+  "scalar_cases": 32,
+  "register_bank_cases": 32,
+  "all_passed": true,
+  "qualified_benchmark": false,
+  "scalar_source_sha256": "510acc0a127e3bed03f25723f034643813b002ccdd7893c51d27396c7d1e77d1",
+  "materialized_source_sha256": "46f0106c728b4945090814a7b95a34477fc9ad44079aedc6c13bdfac6b3e43de",
+  "tracked_arithmetic_harness_sha256": "4e7dc574f205a74372aa809e8b93087f5c604cd90336f31306fc6dd0f839d128",
+  "tracked_arithmetic_harness_passed": true,
+  "full_proof_verified": false
+}

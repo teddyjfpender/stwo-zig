@@ -1,0 +1,90 @@
+{
+  "gpu": "NVIDIA H200, GPU-fff831b9-e355-31c9-d8fb-4fe4af6afd97, 143771, 570.124.06",
+  "results": [
+    {
+      "benchmark": "SN PIE 1",
+      "baseline": {
+        "proof_s": 2.2155819525,
+        "adapted_publication_s": 7.090024411,
+        "gpu_peak_gb": 114.786566144,
+        "arena_gb": 107.197229376,
+        "trials": 2
+      },
+      "candidate": {
+        "proof_s": 1.889377993,
+        "adapted_publication_s": 6.432396498999999,
+        "gpu_peak_gb": 100.970528768,
+        "arena_gb": 98.593598432,
+        "trials": 2
+      },
+      "warm_proof_s": 1.7328666835,
+      "warm_adapted_publication_s": 3.218762384
+    },
+    {
+      "benchmark": "SN PIE 2",
+      "baseline": {
+        "proof_s": 1.5099671075,
+        "adapted_publication_s": 5.708894385000001,
+        "gpu_peak_gb": 71.635566592,
+        "arena_gb": 64.05535472,
+        "trials": 2
+      },
+      "candidate": {
+        "proof_s": 1.323294765,
+        "adapted_publication_s": 5.4387232359999995,
+        "gpu_peak_gb": 61.846061056,
+        "arena_gb": 59.485853696,
+        "trials": 2
+      },
+      "warm_proof_s": 1.164760049,
+      "warm_adapted_publication_s": 2.3066548105
+    },
+    {
+      "benchmark": "SN PIE 3",
+      "baseline": {
+        "proof_s": 2.2126724500000003,
+        "adapted_publication_s": 7.029167051,
+        "gpu_peak_gb": 113.612161024,
+        "arena_gb": 106.027135968,
+        "trials": 2
+      },
+      "candidate": {
+        "proof_s": 1.877564543,
+        "adapted_publication_s": 6.3642457045,
+        "gpu_peak_gb": 99.796123648,
+        "arena_gb": 97.412281984,
+        "trials": 2
+      },
+      "warm_proof_s": 1.7255035465000002,
+      "warm_adapted_publication_s": 3.208785647
+    },
+    {
+      "benchmark": "SN PIE 4",
+      "baseline": {
+        "proof_s": 1.5988659305000001,
+        "adapted_publication_s": 6.2464275295,
+        "gpu_peak_gb": 91.499790336,
+        "arena_gb": 83.911161952,
+        "trials": 2
+      },
+      "candidate": {
+        "proof_s": 1.4918385845,
+        "adapted_publication_s": 5.983937581999999,
+        "gpu_peak_gb": 80.267444224,
+        "arena_gb": 77.88629888,
+        "trials": 2
+      },
+      "warm_proof_s": 1.333849721,
+      "warm_adapted_publication_s": 2.8035114995
+    }
+  ],
+  "security": {
+    "query_count": 70,
+    "query_pow_bits": 26,
+    "interaction_pow_bits": 24,
+    "log_blowup_factor": 1,
+    "fri_fold_step": 1,
+    "log_last_layer_degree_bound": 0,
+    "channel_salt": 0
+  }
+}

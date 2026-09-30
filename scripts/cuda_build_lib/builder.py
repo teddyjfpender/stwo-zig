@@ -626,7 +626,7 @@ def aot_compile_command(
         and source.stem.startswith("witness_poseidon_3_partial_rounds_chain_")
     ):
         command.append("-Xptxas=-O0")
-    elif source.stem.startswith("constraint_cairo_eval_") and source.is_file() and source.stat().st_size >= 256 * 1024:
+    elif source.stem.startswith("constraint_cairo_eval_") and source.is_file() and source.stat().st_size >= 256 * 1024 and "STWO_BOUNDED_AIR_SLICES_V1" not in source.read_text():
         # Large AIR bodies trigger pathological assembly optimization even
         # below 1 MB (a 511 KB body exceeded six minutes and 6 GB locally).
         # Keep arithmetic exact and bind this option into the per-unit cache.

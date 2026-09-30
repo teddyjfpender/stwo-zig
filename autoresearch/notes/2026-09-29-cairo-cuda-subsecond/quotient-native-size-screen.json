@@ -1,0 +1,31 @@
+{
+  "schema": "stwo-cairo-quotient-native-size-screen-v1",
+  "fixture": "SN PIE 2 quotient topology",
+  "group_index": 0,
+  "group_log_size": 23,
+  "term_count": 5886,
+  "source_log_counts": {
+    "4": 22,
+    "6": 41,
+    "7": 7,
+    "8": 186,
+    "9": 82,
+    "10": 338,
+    "11": 6,
+    "12": 404,
+    "13": 23,
+    "14": 16,
+    "15": 402,
+    "16": 370,
+    "17": 432,
+    "18": 1439,
+    "19": 596,
+    "20": 1239,
+    "21": 116,
+    "23": 167
+  },
+  "native_term_row_operations": 3729655072,
+  "expanded_term_row_operations": 49375346688,
+  "work_reduction_upper_bound": 13.238582586009176,
+  "note": "Screen printed before existing stale topology identity expectation failed; it is diagnostic, not proof qualification."
+}

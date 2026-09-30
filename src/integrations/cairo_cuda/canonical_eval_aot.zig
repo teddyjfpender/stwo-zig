@@ -54,7 +54,9 @@ pub fn generate(allocator: std.mem.Allocator, manifest_path: []const u8, output_
         .family_count = cairo.claim_registry.claim_field_count,
         .body_count = product.bodies.len,
         .template_placement_count = product.occurrence_count,
-        .codegen_version = 3,
+        .codegen_version = @import("eval_codegen.zig").parametric_version,
+        .slice_minimum_instructions = @import("eval_codegen.zig").slice_minimum_instructions,
+        .slice_roots = @import("eval_codegen.zig").slice_roots,
         .device_qualified = false,
         .full_proof_verified = false,
     }, .{ .whitespace = .indent_2 }, &receipt.writer);

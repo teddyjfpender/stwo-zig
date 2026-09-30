@@ -9,9 +9,65 @@ const runtime_error = @import("../error.zig");
 const telemetry = @import("../telemetry.zig");
 
 pub const Native = OpsFor(abi);
+/// Pinned Stwo-Cairo uses plain BLAKE2s, independently of older proof formats.
+pub const PlainNative = OpsFor(@import("../../abi/stages/commitment_plain.zig"));
+pub const max_mixed_segments = abi.max_mixed_segments;
+pub const max_compact_prefix_log = abi.max_compact_prefix_log;
 
 pub fn OpsFor(comptime Api: type) type {
     return struct {
+        /// One register-resident leaf message across packed heterogeneous cohorts.
+        pub fn mixedLeaves(session: anytype, stage: telemetry.Stage, size: u32, segments: anytype, output: common.Hashes) runtime_error.Error!void {
+            try mixedWithSeed(session, stage, size, segments, 0, null, null, output);
+        }
+
+        pub fn mixedPrefix(session: anytype, stage: telemetry.Stage, size: u32, segments: anytype, absorbed: u32, seed: ?common.ProgressiveStates, output: common.ProgressiveStates) runtime_error.Error!void {
+            try mixedWithSeed(session, stage, size, segments, absorbed, seed, output, null);
+        }
+
+        pub fn mixedLeavesFromPrefix(session: anytype, stage: telemetry.Stage, size: u32, segments: anytype, absorbed: u32, seed: common.ProgressiveStates, output: common.Hashes) runtime_error.Error!void {
+            try mixedWithSeed(session, stage, size, segments, absorbed, seed, null, output);
+        }
+
+        fn mixedWithSeed(session: anytype, stage: telemetry.Stage, size: u32, segments: anytype, absorbed: u32, seed: ?common.ProgressiveStates, prefix: ?common.ProgressiveStates, output: ?common.Hashes) runtime_error.Error!void {
+            try requireCommitStage(stage);
+            try common.requireStage(session, stage);
+            if (size < 2 or !std.math.isPowerOfTwo(size) or
+                segments.len == 0 or segments.len > max_mixed_segments or
+                (prefix == null) == (output == null)) return error.InvalidKernelDescriptor;
+            const output_range = if (prefix) |value| blk: {
+                if (value.len != size) return error.SizeOverflow;
+                break :blk try layout.elementRange(value.address, value.len, @sizeOf(field.ProgressiveBlake2sState));
+            } else blk: {
+                if (output.?.len != size) return error.SizeOverflow;
+                break :blk try layout.elementRange(output.?.address, output.?.len, @sizeOf(field.Blake2sHash));
+            };
+            const prefix_pointer = if (prefix) |value| try common.states(session, value, size) else null;
+            const hashes_pointer = if (output) |value| try common.hashes(session, value, size) else null;
+            const seed_pointer = if (seed) |value| blk: {
+                if (absorbed == 0 or value.len < 2 or value.len > size or
+                    !std.math.isPowerOfTwo(value.len)) return error.InvalidKernelDescriptor;
+                const admitted = try layout.resident(session, field.ProgressiveBlake2sState, value, value.len);
+                if (layout.overlap(admitted.range, output_range)) return error.OverlappingDeviceRange;
+                break :blk admitted.pointer;
+            } else blk: {
+                if (absorbed != 0) return error.InvalidKernelDescriptor;
+                break :blk null;
+            };
+            var descriptors: [max_mixed_segments]abi.MixedSegment = undefined;
+            var total_columns = absorbed;
+            for (segments, descriptors[0..segments.len]) |segment, *descriptor| {
+                if (segment.source_size < 2 or segment.source_size > size or
+                    !std.math.isPowerOfTwo(segment.source_size)) return error.InvalidKernelDescriptor;
+                const source = try layout.wordMatrix(session, segment.columns, segment.source_size);
+                if (layout.overlap(source.range, output_range)) return error.OverlappingDeviceRange;
+                total_columns = std.math.add(u32, total_columns, source.column_count) catch return error.SizeOverflow;
+                descriptor.* = .{ .columns = source.pointer, .stride_words = source.stride_words, .capacity_words = segment.columns.storage.len, .source_size = segment.source_size };
+            }
+            const status = Api.stwo_blake2s_mixed_seeded_on(size, @intCast(segments.len), &descriptors, absorbed, if (seed) |value| try common.count(value.len) else 0, seed_pointer, prefix_pointer, hashes_pointer, session.context.stream);
+            try common.record(session, stage, status);
+        }
+
         pub fn contiguousLeaves(
             session: anytype,
             stage: telemetry.Stage,

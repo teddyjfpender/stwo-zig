@@ -49,7 +49,7 @@ pub fn writeConstants(program: eval.Program, output: []u32) !void {
 
 pub fn cacheKey(program_identity: [32]u8, source_identity: [32]u8, authority: [32]u8) u64 {
     var hash = std.crypto.hash.sha2.Sha256.init(.{});
-    hash.update("stwo-zig/cairo-cuda-eval-parametric/v3\x00");
+    hash.update("stwo-zig/cairo-cuda-eval-parametric/v6\x00");
     hash.update(&program_identity);
     hash.update(&source_identity);
     hash.update(&authority);

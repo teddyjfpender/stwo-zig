@@ -96,6 +96,7 @@ pub const Bound = struct {
         self: Bound,
         session: anytype,
         topology: types.Topology,
+        batch_terms: []const quotient_abi.BatchTermDescriptor,
         quotient: pcs_types.Quotient,
     ) !quotient_stage.AddressedNumeratorTopology {
         if (!std.mem.eql(
@@ -109,6 +110,7 @@ pub const Bound = struct {
             quotient.group_term_indices.len !=
                 topology.group_term_indices.len or
             quotient.batch_terms.len != topology.batch_terms.len or
+            batch_terms.len != topology.batch_terms.len or
             quotient.source_descriptors.len != topology.sources.len or
             quotient.group_log_sizes.len != topology.group_log_sizes.len)
         {
@@ -117,7 +119,7 @@ pub const Bound = struct {
         return quotient_stage.prepareAddressedNumeratorTopology(
             session,
             topology.group_offsets,
-            topology.batch_terms,
+            batch_terms,
             self.descriptors,
             self.columns,
             topology.group_log_sizes,

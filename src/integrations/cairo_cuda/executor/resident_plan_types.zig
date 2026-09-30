@@ -107,6 +107,9 @@ pub const SlotKind = enum(u8) {
     decommit_assembly,
     terminal_bundle,
     relation_base_inputs,
+    quotient_subdomain_coordinates,
+    quotient_subdomain_inverse_twiddles,
+    quotient_coefficient_logs,
 };
 
 pub const Slot = struct {

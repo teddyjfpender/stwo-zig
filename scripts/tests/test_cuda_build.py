@@ -282,7 +282,7 @@ class CudaBuildTests(unittest.TestCase):
             ROOT / "src/backends/cuda/abi/stages/composition_split.zig"
         ).read_text(encoding="utf-8")
         self.assertIn("kFirstFusedLogN = 13", schedules)
-        self.assertIn("kLastFusedLogN = 23", schedules)
+        self.assertIn("kLastFusedLogN = 26", schedules)
         self.assertIn("schedules_are_exact()", schedules)
         self.assertIn("b2n_stage<false>", b2n)
         self.assertIn("n2b_stage<<<", n2b)

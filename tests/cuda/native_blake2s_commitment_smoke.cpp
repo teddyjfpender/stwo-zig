@@ -1,3 +1,16 @@
+#if defined(STWO_BLAKE2S_TEST_PLAIN)
+#define stwo_blake2s_mixed_seeded_on stwo_blake2s_mixed_seeded_plain_on
+#define stwo_blake2s_mixed_leaf_on stwo_blake2s_mixed_leaf_plain_on
+#define stwo_blake2s_progressive_init_on stwo_blake2s_progressive_init_plain_on
+#define stwo_blake2s_progressive_absorb_on stwo_blake2s_progressive_absorb_plain_on
+#define stwo_blake2s_progressive_finalize_on stwo_blake2s_progressive_finalize_plain_on
+#define stwo_blake2s_contiguous_leaf_on stwo_blake2s_contiguous_leaf_plain_on
+#define stwo_blake2s_contiguous_tail_on stwo_blake2s_contiguous_tail_plain_on
+#define stwo_blake2s_layer_on stwo_blake2s_layer_plain_on
+#define stwo_blake2s_interior4_on stwo_blake2s_interior4_plain_on
+#define stwo_blake2s_fri_leaf_on stwo_blake2s_fri_leaf_plain_on
+#endif
+
 #include "blake2s_reference.h"
 #include "../../src/backends/cuda/native/commitment/blake2s_domain_states.h"
 
@@ -64,6 +77,22 @@ extern "C" int stwo_blake2s_fri_leaf_on(
     std::uint32_t log_rows_per_leaf,
     Hash *result,
     void *stream);
+
+struct MixedSegment {
+    const std::uint32_t *columns;
+    std::size_t stride_words;
+    std::size_t capacity_words;
+    std::uint32_t source_size;
+    std::uint32_t reserved;
+};
+extern "C" int stwo_blake2s_mixed_leaf_on(
+    std::uint32_t size, std::uint32_t count, const MixedSegment *segments,
+    Hash *result, void *stream);
+
+extern "C" int stwo_blake2s_mixed_seeded_on(
+    std::uint32_t size, std::uint32_t count, const MixedSegment *segments,
+    std::uint32_t absorbed, std::uint32_t seed_size, const void *seed,
+    void *prefix, Hash *result, void *stream);
 
 namespace {
 
@@ -164,10 +193,16 @@ bool test_pinned_zig_oracles() {
         return false;
     }
 
+#if defined(STWO_BLAKE2S_TEST_PLAIN)
+    const Hash empty_expected{{
+        0x307a2169u, 0x94809079u, 0xd02111e1u, 0x7c4a3542u, 0x48b6551fu, 0x1ea5a12cu, 0xfd0d251bu, 0xf9eed01eu
+    }};
+#else
     const Hash empty_expected{{
         0x153e132au, 0x19723802u, 0x77ead121u, 0x9c978228u,
         0xf2850f81u, 0xb9999084u, 0x865a41d3u, 0xad5fd819u,
     }};
+#endif
     if (!expect_hash(
             blake2s_reference::hash_leaf_words({}),
             empty_expected,
@@ -180,10 +215,16 @@ bool test_pinned_zig_oracles() {
     Hash right{};
     for (std::uint32_t &word : left.words) word = 0x01010101u;
     for (std::uint32_t &word : right.words) word = 0x02020202u;
+#if defined(STWO_BLAKE2S_TEST_PLAIN)
+    const Hash parent_expected{{
+        0x93690528u, 0x9fc97823u, 0x7ef38d44u, 0x2f063f89u, 0xea1b95abu, 0x34565153u, 0xe55a87b7u, 0xe754191eu
+    }};
+#else
     const Hash parent_expected{{
         0x4762c324u, 0xb1c76cc6u, 0x9ce7ae45u, 0xe3d5f9cfu,
         0xe1a896e5u, 0x39d1863eu, 0x6414f642u, 0x3ca54f36u,
     }};
+#endif
     return expect_hash(
         blake2s_reference::hash_children(left, right),
         parent_expected,
@@ -440,6 +481,85 @@ bool test_progressive(DeviceArena &arena) {
                 return false;
             }
         }
+    }
+    return true;
+}
+
+bool test_mixed(DeviceArena &arena) {
+    constexpr std::uint32_t size = 16;
+    const std::uint32_t widths[] = {1,15,16,17,31,32,33,73,128,257};
+    auto *result = reinterpret_cast<Hash *>(arena.allocate(size * 8));
+    if (!result) return false;
+    auto *prefix_a = arena.allocate(size * 24);
+    auto *prefix_b = arena.allocate(size * 24);
+    if (!prefix_a || !prefix_b) return false;
+    for (auto width : widths) {
+        std::vector<MixedSegment> segments;
+        std::vector<std::vector<std::uint32_t>> host;
+        std::uint32_t consumed = 0;
+        while (consumed < width) {
+            const auto ordinal = segments.size();
+            const std::uint32_t rows = 2u << (ordinal % 4);
+            const std::uint32_t columns = std::min(width - consumed, 7u + 11u * static_cast<std::uint32_t>(ordinal));
+            const std::size_t stride = rows + 3;
+            host.emplace_back(columns * stride, 0xa5a5a5a5u);
+            auto &words = host.back();
+            for (std::uint32_t col = 0; col < columns; ++col)
+                for (std::uint32_t row = 0; row < rows; ++row)
+                    words[col * stride + row] = 1009u * (consumed + col) + 17u * row + 3;
+            auto *device = arena.allocate(words.size());
+            if (!device || !arena.upload(device, words.data(), words.size() * 4)) return false;
+            segments.push_back({device,stride,words.size(),rows,0});
+            consumed += columns;
+        }
+        if (!check(stwo_blake2s_mixed_leaf_on(size, segments.size(), segments.data(), result, arena.stream), "mixed leaf")) return false;
+        std::vector<Hash> actual(size);
+        if (!arena.read(actual.data(), result, actual.size() * sizeof(Hash)) ||
+            !check(stwo_exec_context_sync(arena.context), "wait mixed leaves")) return false;
+        for (std::uint32_t row = 0; row < size; ++row) {
+            std::vector<std::uint32_t> words;
+            for (std::size_t i = 0; i < segments.size(); ++i) {
+                const auto segment = segments[i];
+                std::uint32_t ratio_log = 0;
+                while ((size >> ratio_log) != segment.source_size) ++ratio_log;
+                const auto source = ratio_log == 0 ? row :
+                    ((row >> (ratio_log + 1)) << 1) | (row & 1);
+                for (std::size_t col = 0; col < segment.capacity_words / segment.stride_words; ++col)
+                    words.push_back(host[i][col * segment.stride_words + source]);
+            }
+            if (!expect_hash(actual[row], blake2s_reference::hash_leaf_words(words), "mixed CPU oracle", row)) return false;
+        }
+        if (segments.size() > 1) {
+            std::uint32_t absorbed = 0, seed_size = 0;
+            const void *seed = nullptr;
+            std::size_t cursor = 0;
+            while (cursor + 1 < segments.size() && cursor < 3) {
+                auto *destination = cursor % 2 == 0 ? prefix_a : prefix_b;
+                const auto segment = segments[cursor];
+                if (!check(stwo_blake2s_mixed_seeded_on(segment.source_size, 1, &segments[cursor],
+                    absorbed, seed_size, seed, destination, nullptr, arena.stream), "compact prefix")) return false;
+                absorbed += segment.capacity_words / segment.stride_words;
+                seed_size = segment.source_size; seed = destination; ++cursor;
+            }
+            if (!check(stwo_blake2s_mixed_seeded_on(size, segments.size() - cursor, segments.data() + cursor,
+                absorbed, seed_size, seed, nullptr, result, arena.stream), "seeded mixed leaf")) return false;
+            std::vector<Hash> seeded(size);
+            if (!arena.read(seeded.data(), result, seeded.size() * sizeof(Hash)) ||
+                !check(stwo_exec_context_sync(arena.context), "wait seeded leaves")) return false;
+            for (std::uint32_t row = 0; row < size; ++row)
+                if (!expect_hash(seeded[row], actual[row], "seeded-direct parity", row)) return false;
+            if (stwo_blake2s_mixed_seeded_on(size, 1, segments.data(), absorbed, seed_size,
+                seed, const_cast<void *>(seed), nullptr, arena.stream) == 0) return false;
+        }
+        auto invalid = segments;
+        invalid[0].source_size = 3;
+        if (stwo_blake2s_mixed_leaf_on(size, invalid.size(), invalid.data(), result, arena.stream) == 0) return false;
+        invalid = segments; invalid[0].capacity_words--;
+        if (stwo_blake2s_mixed_leaf_on(size, invalid.size(), invalid.data(), result, arena.stream) == 0) return false;
+        invalid = segments; invalid[0].columns = reinterpret_cast<std::uint32_t *>(result);
+        if (stwo_blake2s_mixed_leaf_on(size, invalid.size(), invalid.data(), result, arena.stream) == 0) return false;
+        if (stwo_blake2s_mixed_leaf_on(size, 97, segments.data(), result, arena.stream) == 0 ||
+            stwo_blake2s_mixed_leaf_on(size, segments.size(), segments.data(), result, nullptr) == 0) return false;
     }
     return true;
 }
@@ -703,7 +823,7 @@ int main() {
             "get proof stream")) {
         return 1;
     }
-    if (!test_pinned_zig_oracles() || !test_progressive(arena) ||
+    if (!test_pinned_zig_oracles() || !test_progressive(arena) || !test_mixed(arena) ||
         !test_merkle_and_fri(arena) ||
         !arena.close()) {
         return 1;

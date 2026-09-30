@@ -1,0 +1,1056 @@
+{
+  "source": "autoresearch/notes/2026-09-29-cairo-cuda-design-research/host-admission.log",
+  "source_sha256": "b84607c3a47fa7dc38964aa9f072ad2ea6feb869b5aa342456eaff6255675860",
+  "scope": "Host admission planner, all four actual adapted inputs; 2/2 host tests passed. No GPU proof was run.",
+  "completeness": "Diagnostic prints slots >=2^26 words only. Stage sums are lower bounds; peak-live total is reported by complete planner.",
+  "results": [
+    {
+      "benchmark": "SN_PIE_1",
+      "arena_bytes": 107197229376,
+      "complete_planner_peak_live_bytes": 107197229336,
+      "largest_printed_stage": "trace_commit",
+      "unprinted_bytes_at_reported_peak_if_same_stage": 300242648,
+      "stage_printed_live_bytes_lower_bound": {
+        "ingress": 13002577944,
+        "trace_generation": 79370598876,
+        "trace_commit": 106896986688,
+        "constraint_evaluation": 78090869376,
+        "oods": 77332045952,
+        "quotient": 52597453440,
+        "fri_commit": 53805421888,
+        "pow": 53805421888,
+        "decommit": 53805421888,
+        "proof_assembly": 0
+      },
+      "large_slots": [
+        {
+          "kind": "adapted_input",
+          "ordinal": 0,
+          "bytes": 297470092,
+          "offset": 57234552320,
+          "first": "ingress",
+          "last": "trace_generation"
+        },
+        {
+          "kind": "writer_inputs",
+          "ordinal": 0,
+          "bytes": 1892934252,
+          "offset": 55341617920,
+          "first": "ingress",
+          "last": "trace_generation"
+        },
+        {
+          "kind": "writer_lookup_inputs",
+          "ordinal": 0,
+          "bytes": 24181813440,
+          "offset": 0,
+          "first": "trace_generation",
+          "last": "trace_commit"
+        },
+        {
+          "kind": "writer_scratch",
+          "ordinal": 0,
+          "bytes": 9106997316,
+          "offset": 46234620416,
+          "first": "trace_generation",
+          "last": "trace_generation"
+        },
+        {
+          "kind": "relation_base_inputs",
+          "ordinal": 0,
+          "bytes": 382730240,
+          "offset": 106514257152,
+          "first": "trace_commit",
+          "last": "trace_commit"
+        },
+        {
+          "kind": "relation_denominators",
+          "ordinal": 0,
+          "bytes": 8603631872,
+          "offset": 83071919616,
+          "first": "trace_commit",
+          "last": "trace_commit"
+        },
+        {
+          "kind": "eval_lde_tile",
+          "ordinal": 0,
+          "bytes": 3825205248,
+          "offset": 0,
+          "first": "constraint_evaluation",
+          "last": "constraint_evaluation"
+        },
+        {
+          "kind": "constraint_composition_accumulator",
+          "ordinal": 0,
+          "bytes": 536852992,
+          "offset": 4362076160,
+          "first": "constraint_evaluation",
+          "last": "constraint_evaluation"
+        },
+        {
+          "kind": "trace_progressive_states",
+          "ordinal": 2,
+          "bytes": 402653184,
+          "offset": 105708950784,
+          "first": "trace_commit",
+          "last": "trace_commit"
+        },
+        {
+          "kind": "trace_progressive_states",
+          "ordinal": 3,
+          "bytes": 402653184,
+          "offset": 106111603968,
+          "first": "trace_commit",
+          "last": "trace_commit"
+        },
+        {
+          "kind": "trace_coefficients",
+          "ordinal": 0,
+          "bytes": 2172402112,
+          "offset": 100315323136,
+          "first": "ingress",
+          "last": "oods"
+        },
+        {
+          "kind": "trace_evaluations",
+          "ordinal": 0,
+          "bytes": 4344804224,
+          "offset": 91675551488,
+          "first": "ingress",
+          "last": "decommit"
+        },
+        {
+          "kind": "trace_merkle_hashes",
+          "ordinal": 0,
+          "bytes": 4294967264,
+          "offset": 96020355840,
+          "first": "ingress",
+          "last": "decommit"
+        },
+        {
+          "kind": "trace_coefficients",
+          "ordinal": 1,
+          "bytes": 11026403392,
+          "offset": 63441884160,
+          "first": "trace_generation",
+          "last": "oods"
+        },
+        {
+          "kind": "trace_evaluations",
+          "ordinal": 1,
+          "bytes": 22052806784,
+          "offset": 24181813504,
+          "first": "trace_generation",
+          "last": "decommit"
+        },
+        {
+          "kind": "trace_merkle_hashes",
+          "ordinal": 1,
+          "bytes": 1073741792,
+          "offset": 102487725312,
+          "first": "trace_commit",
+          "last": "decommit"
+        },
+        {
+          "kind": "trace_coefficients",
+          "ordinal": 2,
+          "bytes": 8603631872,
+          "offset": 74468287744,
+          "first": "trace_commit",
+          "last": "oods"
+        },
+        {
+          "kind": "trace_evaluations",
+          "ordinal": 2,
+          "bytes": 17207263744,
+          "offset": 46234620416,
+          "first": "trace_commit",
+          "last": "decommit"
+        },
+        {
+          "kind": "trace_merkle_hashes",
+          "ordinal": 2,
+          "bytes": 1073741792,
+          "offset": 103561467136,
+          "first": "trace_commit",
+          "last": "decommit"
+        },
+        {
+          "kind": "constraint_composition_output",
+          "ordinal": 3,
+          "bytes": 268435456,
+          "offset": 4898929152,
+          "first": "constraint_evaluation",
+          "last": "decommit"
+        },
+        {
+          "kind": "trace_evaluations",
+          "ordinal": 3,
+          "bytes": 536870912,
+          "offset": 3825205248,
+          "first": "constraint_evaluation",
+          "last": "decommit"
+        },
+        {
+          "kind": "trace_merkle_hashes",
+          "ordinal": 3,
+          "bytes": 1073741792,
+          "offset": 104635208960,
+          "first": "trace_commit",
+          "last": "decommit"
+        },
+        {
+          "kind": "oods_reduce_a",
+          "ordinal": 0,
+          "bytes": 400359424,
+          "offset": 3202875392,
+          "first": "oods",
+          "last": "oods"
+        },
+        {
+          "kind": "oods_reduce_b",
+          "ordinal": 0,
+          "bytes": 3202875392,
+          "offset": 0,
+          "first": "oods",
+          "last": "oods"
+        },
+        {
+          "kind": "quotient_partial_coordinates",
+          "ordinal": 0,
+          "bytes": 402644224,
+          "offset": 0,
+          "first": "quotient",
+          "last": "quotient"
+        },
+        {
+          "kind": "quotient_result_coordinates",
+          "ordinal": 0,
+          "bytes": 268435456,
+          "offset": 1610612736,
+          "first": "quotient",
+          "last": "decommit"
+        },
+        {
+          "kind": "fri_merkle_hashes",
+          "ordinal": 0,
+          "bytes": 1073741792,
+          "offset": 0,
+          "first": "fri_commit",
+          "last": "decommit"
+        },
+        {
+          "kind": "fri_merkle_hashes",
+          "ordinal": 1,
+          "bytes": 536870880,
+          "offset": 1073741824,
+          "first": "fri_commit",
+          "last": "decommit"
+        }
+      ],
+      "counterfactuals": [
+        {
+          "perfectly_eliminated_slots": [
+            "writer_lookup_inputs"
+          ],
+          "largest_printed_stage": "trace_commit",
+          "printed_live_bytes_lower_bound": 82715173248,
+          "caveat": "Hypothetical perfect elimination with no replacement storage; ignores unprinted slots, replan packing, runtime/private/pool overhead. Not an implementable arena or observed GPU peak."
+        },
+        {
+          "perfectly_eliminated_slots": [
+            "writer_lookup_inputs",
+            "relation_denominators"
+          ],
+          "largest_printed_stage": "constraint_evaluation",
+          "printed_live_bytes_lower_bound": 78090869376,
+          "caveat": "Hypothetical perfect elimination with no replacement storage; ignores unprinted slots, replan packing, runtime/private/pool overhead. Not an implementable arena or observed GPU peak."
+        }
+      ]
+    },
+    {
+      "benchmark": "SN_PIE_2",
+      "arena_bytes": 64055354720,
+      "complete_planner_peak_live_bytes": 64055354664,
+      "largest_printed_stage": "trace_commit",
+      "unprinted_bytes_at_reported_peak_if_same_stage": 297633512,
+      "stage_printed_live_bytes_lower_bound": {
+        "ingress": 11769809696,
+        "trace_generation": 46764785892,
+        "trace_commit": 63757721152,
+        "constraint_evaluation": 49916630656,
+        "oods": 49158380672,
+        "quotient": 33814624896,
+        "fri_commit": 35022585152,
+        "pow": 35022585152,
+        "decommit": 35022585152,
+        "proof_assembly": 0
+      },
+      "large_slots": [
+        {
+          "kind": "writer_inputs",
+          "ordinal": 0,
+          "bytes": 957636096,
+          "offset": 29325861632,
+          "first": "ingress",
+          "last": "trace_generation"
+        },
+        {
+          "kind": "writer_lookup_inputs",
+          "ordinal": 0,
+          "bytes": 13326430400,
+          "offset": 0,
+          "first": "trace_generation",
+          "last": "trace_commit"
+        },
+        {
+          "kind": "writer_scratch",
+          "ordinal": 0,
+          "bytes": 4661200964,
+          "offset": 24664660480,
+          "first": "trace_generation",
+          "last": "trace_generation"
+        },
+        {
+          "kind": "relation_base_inputs",
+          "ordinal": 0,
+          "bytes": 307232768,
+          "offset": 63450489088,
+          "first": "trace_commit",
+          "last": "trace_commit"
+        },
+        {
+          "kind": "relation_denominators",
+          "ordinal": 0,
+          "bytes": 4569501952,
+          "offset": 44042281472,
+          "first": "trace_commit",
+          "last": "trace_commit"
+        },
+        {
+          "kind": "eval_lde_tile",
+          "ordinal": 0,
+          "bytes": 3825205248,
+          "offset": 0,
+          "first": "constraint_evaluation",
+          "last": "constraint_evaluation"
+        },
+        {
+          "kind": "constraint_composition_accumulator",
+          "ordinal": 0,
+          "bytes": 536869376,
+          "offset": 4362076160,
+          "first": "constraint_evaluation",
+          "last": "constraint_evaluation"
+        },
+        {
+          "kind": "trace_progressive_states",
+          "ordinal": 2,
+          "bytes": 402653184,
+          "offset": 62645182720,
+          "first": "trace_commit",
+          "last": "trace_commit"
+        },
+        {
+          "kind": "trace_progressive_states",
+          "ordinal": 3,
+          "bytes": 402653184,
+          "offset": 63047835904,
+          "first": "trace_commit",
+          "last": "trace_commit"
+        },
+        {
+          "kind": "trace_coefficients",
+          "ordinal": 0,
+          "bytes": 2172402112,
+          "offset": 57251555072,
+          "first": "ingress",
+          "last": "oods"
+        },
+        {
+          "kind": "trace_evaluations",
+          "ordinal": 0,
+          "bytes": 4344804224,
+          "offset": 48611783424,
+          "first": "ingress",
+          "last": "decommit"
+        },
+        {
+          "kind": "trace_merkle_hashes",
+          "ordinal": 0,
+          "bytes": 4294967264,
+          "offset": 52956587776,
+          "first": "ingress",
+          "last": "decommit"
+        },
+        {
+          "kind": "trace_coefficients",
+          "ordinal": 1,
+          "bytes": 5669114944,
+          "offset": 33803664384,
+          "first": "trace_generation",
+          "last": "oods"
+        },
+        {
+          "kind": "trace_evaluations",
+          "ordinal": 1,
+          "bytes": 11338229888,
+          "offset": 13326430464,
+          "first": "trace_generation",
+          "last": "decommit"
+        },
+        {
+          "kind": "trace_merkle_hashes",
+          "ordinal": 1,
+          "bytes": 1073741792,
+          "offset": 59423957248,
+          "first": "trace_commit",
+          "last": "decommit"
+        },
+        {
+          "kind": "trace_coefficients",
+          "ordinal": 2,
+          "bytes": 4569501952,
+          "offset": 39472779520,
+          "first": "trace_commit",
+          "last": "oods"
+        },
+        {
+          "kind": "trace_evaluations",
+          "ordinal": 2,
+          "bytes": 9139003904,
+          "offset": 24664660480,
+          "first": "trace_commit",
+          "last": "decommit"
+        },
+        {
+          "kind": "trace_merkle_hashes",
+          "ordinal": 2,
+          "bytes": 1073741792,
+          "offset": 60497699072,
+          "first": "trace_commit",
+          "last": "decommit"
+        },
+        {
+          "kind": "constraint_composition_output",
+          "ordinal": 3,
+          "bytes": 268435456,
+          "offset": 4898945536,
+          "first": "constraint_evaluation",
+          "last": "decommit"
+        },
+        {
+          "kind": "trace_evaluations",
+          "ordinal": 3,
+          "bytes": 536870912,
+          "offset": 3825205248,
+          "first": "constraint_evaluation",
+          "last": "decommit"
+        },
+        {
+          "kind": "trace_merkle_hashes",
+          "ordinal": 3,
+          "bytes": 1073741792,
+          "offset": 61571440896,
+          "first": "trace_commit",
+          "last": "decommit"
+        },
+        {
+          "kind": "oods_reduce_a",
+          "ordinal": 0,
+          "bytes": 400424960,
+          "offset": 3203399680,
+          "first": "oods",
+          "last": "oods"
+        },
+        {
+          "kind": "oods_reduce_b",
+          "ordinal": 0,
+          "bytes": 3203399680,
+          "offset": 0,
+          "first": "oods",
+          "last": "oods"
+        },
+        {
+          "kind": "quotient_partial_coordinates",
+          "ordinal": 0,
+          "bytes": 402652416,
+          "offset": 0,
+          "first": "quotient",
+          "last": "quotient"
+        },
+        {
+          "kind": "quotient_result_coordinates",
+          "ordinal": 0,
+          "bytes": 268435456,
+          "offset": 1610612736,
+          "first": "quotient",
+          "last": "decommit"
+        },
+        {
+          "kind": "fri_merkle_hashes",
+          "ordinal": 0,
+          "bytes": 1073741792,
+          "offset": 0,
+          "first": "fri_commit",
+          "last": "decommit"
+        },
+        {
+          "kind": "fri_merkle_hashes",
+          "ordinal": 1,
+          "bytes": 536870880,
+          "offset": 1073741824,
+          "first": "fri_commit",
+          "last": "decommit"
+        }
+      ],
+      "counterfactuals": [
+        {
+          "perfectly_eliminated_slots": [
+            "writer_lookup_inputs"
+          ],
+          "largest_printed_stage": "trace_commit",
+          "printed_live_bytes_lower_bound": 50431290752,
+          "caveat": "Hypothetical perfect elimination with no replacement storage; ignores unprinted slots, replan packing, runtime/private/pool overhead. Not an implementable arena or observed GPU peak."
+        },
+        {
+          "perfectly_eliminated_slots": [
+            "writer_lookup_inputs",
+            "relation_denominators"
+          ],
+          "largest_printed_stage": "constraint_evaluation",
+          "printed_live_bytes_lower_bound": 49916630656,
+          "caveat": "Hypothetical perfect elimination with no replacement storage; ignores unprinted slots, replan packing, runtime/private/pool overhead. Not an implementable arena or observed GPU peak."
+        }
+      ]
+    },
+    {
+      "benchmark": "SN_PIE_3",
+      "arena_bytes": 106027135968,
+      "complete_planner_peak_live_bytes": 106027135928,
+      "largest_printed_stage": "trace_commit",
+      "unprinted_bytes_at_reported_peak_if_same_stage": 300429688,
+      "stage_printed_live_bytes_lower_bound": {
+        "ingress": 13004367068,
+        "trace_generation": 78092867232,
+        "trace_commit": 105726706240,
+        "constraint_evaluation": 77112093312,
+        "oods": 76353269888,
+        "quotient": 51944936064,
+        "fri_commit": 53152904512,
+        "pow": 53152904512,
+        "decommit": 53152904512,
+        "proof_assembly": 0
+      },
+      "large_slots": [
+        {
+          "kind": "adapted_input",
+          "ordinal": 0,
+          "bytes": 285300024,
+          "offset": 56306472448,
+          "first": "ingress",
+          "last": "trace_generation"
+        },
+        {
+          "kind": "writer_inputs",
+          "ordinal": 0,
+          "bytes": 1906893444,
+          "offset": 54399578880,
+          "first": "ingress",
+          "last": "trace_generation"
+        },
+        {
+          "kind": "writer_lookup_inputs",
+          "ordinal": 0,
+          "bytes": 23979086016,
+          "offset": 0,
+          "first": "trace_generation",
+          "last": "trace_commit"
+        },
+        {
+          "kind": "writer_scratch",
+          "ordinal": 0,
+          "bytes": 9042649156,
+          "offset": 45356929536,
+          "first": "trace_generation",
+          "last": "trace_generation"
+        },
+        {
+          "kind": "relation_base_inputs",
+          "ordinal": 0,
+          "bytes": 382730240,
+          "offset": 105343976704,
+          "first": "trace_commit",
+          "last": "trace_commit"
+        },
+        {
+          "kind": "relation_denominators",
+          "ordinal": 0,
+          "bytes": 8614854912,
+          "offset": 81890416128,
+          "first": "trace_commit",
+          "last": "trace_commit"
+        },
+        {
+          "kind": "eval_lde_tile",
+          "ordinal": 0,
+          "bytes": 3825205248,
+          "offset": 0,
+          "first": "constraint_evaluation",
+          "last": "constraint_evaluation"
+        },
+        {
+          "kind": "constraint_composition_accumulator",
+          "ordinal": 0,
+          "bytes": 536852992,
+          "offset": 4362076160,
+          "first": "constraint_evaluation",
+          "last": "constraint_evaluation"
+        },
+        {
+          "kind": "trace_progressive_states",
+          "ordinal": 2,
+          "bytes": 402653184,
+          "offset": 104538670336,
+          "first": "trace_commit",
+          "last": "trace_commit"
+        },
+        {
+          "kind": "trace_progressive_states",
+          "ordinal": 3,
+          "bytes": 402653184,
+          "offset": 104941323520,
+          "first": "trace_commit",
+          "last": "trace_commit"
+        },
+        {
+          "kind": "trace_coefficients",
+          "ordinal": 0,
+          "bytes": 2172402112,
+          "offset": 99145042688,
+          "first": "ingress",
+          "last": "oods"
+        },
+        {
+          "kind": "trace_evaluations",
+          "ordinal": 0,
+          "bytes": 4344804224,
+          "offset": 90505271040,
+          "first": "ingress",
+          "last": "decommit"
+        },
+        {
+          "kind": "trace_merkle_hashes",
+          "ordinal": 0,
+          "bytes": 4294967264,
+          "offset": 94850075392,
+          "first": "ingress",
+          "last": "decommit"
+        },
+        {
+          "kind": "trace_coefficients",
+          "ordinal": 1,
+          "bytes": 10688921664,
+          "offset": 62586639360,
+          "first": "trace_generation",
+          "last": "oods"
+        },
+        {
+          "kind": "trace_evaluations",
+          "ordinal": 1,
+          "bytes": 21377843328,
+          "offset": 23979086080,
+          "first": "trace_generation",
+          "last": "decommit"
+        },
+        {
+          "kind": "trace_merkle_hashes",
+          "ordinal": 1,
+          "bytes": 1073741792,
+          "offset": 101317444864,
+          "first": "trace_commit",
+          "last": "decommit"
+        },
+        {
+          "kind": "trace_coefficients",
+          "ordinal": 2,
+          "bytes": 8614854912,
+          "offset": 73275561216,
+          "first": "trace_commit",
+          "last": "oods"
+        },
+        {
+          "kind": "trace_evaluations",
+          "ordinal": 2,
+          "bytes": 17229709824,
+          "offset": 45356929536,
+          "first": "trace_commit",
+          "last": "decommit"
+        },
+        {
+          "kind": "trace_merkle_hashes",
+          "ordinal": 2,
+          "bytes": 1073741792,
+          "offset": 102391186688,
+          "first": "trace_commit",
+          "last": "decommit"
+        },
+        {
+          "kind": "constraint_composition_output",
+          "ordinal": 3,
+          "bytes": 268435456,
+          "offset": 4898929152,
+          "first": "constraint_evaluation",
+          "last": "decommit"
+        },
+        {
+          "kind": "trace_evaluations",
+          "ordinal": 3,
+          "bytes": 536870912,
+          "offset": 3825205248,
+          "first": "constraint_evaluation",
+          "last": "decommit"
+        },
+        {
+          "kind": "trace_merkle_hashes",
+          "ordinal": 3,
+          "bytes": 1073741792,
+          "offset": 103464928512,
+          "first": "trace_commit",
+          "last": "decommit"
+        },
+        {
+          "kind": "oods_reduce_a",
+          "ordinal": 0,
+          "bytes": 400359424,
+          "offset": 3202875392,
+          "first": "oods",
+          "last": "oods"
+        },
+        {
+          "kind": "oods_reduce_b",
+          "ordinal": 0,
+          "bytes": 3202875392,
+          "offset": 0,
+          "first": "oods",
+          "last": "oods"
+        },
+        {
+          "kind": "quotient_partial_coordinates",
+          "ordinal": 0,
+          "bytes": 402644224,
+          "offset": 0,
+          "first": "quotient",
+          "last": "quotient"
+        },
+        {
+          "kind": "quotient_result_coordinates",
+          "ordinal": 0,
+          "bytes": 268435456,
+          "offset": 1610612736,
+          "first": "quotient",
+          "last": "decommit"
+        },
+        {
+          "kind": "fri_merkle_hashes",
+          "ordinal": 0,
+          "bytes": 1073741792,
+          "offset": 0,
+          "first": "fri_commit",
+          "last": "decommit"
+        },
+        {
+          "kind": "fri_merkle_hashes",
+          "ordinal": 1,
+          "bytes": 536870880,
+          "offset": 1073741824,
+          "first": "fri_commit",
+          "last": "decommit"
+        }
+      ],
+      "counterfactuals": [
+        {
+          "perfectly_eliminated_slots": [
+            "writer_lookup_inputs"
+          ],
+          "largest_printed_stage": "trace_commit",
+          "printed_live_bytes_lower_bound": 81747620224,
+          "caveat": "Hypothetical perfect elimination with no replacement storage; ignores unprinted slots, replan packing, runtime/private/pool overhead. Not an implementable arena or observed GPU peak."
+        },
+        {
+          "perfectly_eliminated_slots": [
+            "writer_lookup_inputs",
+            "relation_denominators"
+          ],
+          "largest_printed_stage": "constraint_evaluation",
+          "printed_live_bytes_lower_bound": 77112093312,
+          "caveat": "Hypothetical perfect elimination with no replacement storage; ignores unprinted slots, replan packing, runtime/private/pool overhead. Not an implementable arena or observed GPU peak."
+        }
+      ]
+    },
+    {
+      "benchmark": "SN_PIE_4",
+      "arena_bytes": 83911161952,
+      "complete_planner_peak_live_bytes": 83911161892,
+      "largest_printed_stage": "trace_commit",
+      "unprinted_bytes_at_reported_peak_if_same_stage": 299797988,
+      "stage_printed_live_bytes_lower_bound": {
+        "ingress": 12384603080,
+        "trace_generation": 63531197836,
+        "trace_commit": 83611363904,
+        "constraint_evaluation": 62061269632,
+        "oods": 61302429824,
+        "quotient": 41911050880,
+        "fri_commit": 43119011136,
+        "pow": 43119011136,
+        "decommit": 43119011136,
+        "proof_assembly": 0
+      },
+      "large_slots": [
+        {
+          "kind": "adapted_input",
+          "ordinal": 0,
+          "bytes": 284530660,
+          "offset": 44172528128,
+          "first": "ingress",
+          "last": "trace_generation"
+        },
+        {
+          "kind": "writer_inputs",
+          "ordinal": 0,
+          "bytes": 1287898820,
+          "offset": 42884629248,
+          "first": "ingress",
+          "last": "trace_generation"
+        },
+        {
+          "kind": "writer_lookup_inputs",
+          "ordinal": 0,
+          "bytes": 19504574656,
+          "offset": 0,
+          "first": "trace_generation",
+          "last": "trace_commit"
+        },
+        {
+          "kind": "writer_scratch",
+          "ordinal": 0,
+          "bytes": 6856122436,
+          "offset": 36028506624,
+          "first": "trace_generation",
+          "last": "trace_generation"
+        },
+        {
+          "kind": "relation_base_inputs",
+          "ordinal": 0,
+          "bytes": 382730240,
+          "offset": 83228634368,
+          "first": "trace_commit",
+          "last": "trace_commit"
+        },
+        {
+          "kind": "relation_denominators",
+          "ordinal": 0,
+          "bytes": 6024864000,
+          "offset": 62365064704,
+          "first": "trace_commit",
+          "last": "trace_commit"
+        },
+        {
+          "kind": "eval_lde_tile",
+          "ordinal": 0,
+          "bytes": 3825205248,
+          "offset": 0,
+          "first": "constraint_evaluation",
+          "last": "constraint_evaluation"
+        },
+        {
+          "kind": "constraint_composition_accumulator",
+          "ordinal": 0,
+          "bytes": 536869376,
+          "offset": 4362076160,
+          "first": "constraint_evaluation",
+          "last": "constraint_evaluation"
+        },
+        {
+          "kind": "trace_progressive_states",
+          "ordinal": 2,
+          "bytes": 402653184,
+          "offset": 82423328000,
+          "first": "trace_commit",
+          "last": "trace_commit"
+        },
+        {
+          "kind": "trace_progressive_states",
+          "ordinal": 3,
+          "bytes": 402653184,
+          "offset": 82825981184,
+          "first": "trace_commit",
+          "last": "trace_commit"
+        },
+        {
+          "kind": "trace_coefficients",
+          "ordinal": 0,
+          "bytes": 2172402112,
+          "offset": 77029700352,
+          "first": "ingress",
+          "last": "oods"
+        },
+        {
+          "kind": "trace_evaluations",
+          "ordinal": 0,
+          "bytes": 4344804224,
+          "offset": 68389928704,
+          "first": "ingress",
+          "last": "decommit"
+        },
+        {
+          "kind": "trace_merkle_hashes",
+          "ordinal": 0,
+          "bytes": 4294967264,
+          "offset": 72734733056,
+          "first": "ingress",
+          "last": "decommit"
+        },
+        {
+          "kind": "trace_coefficients",
+          "ordinal": 1,
+          "bytes": 8261965888,
+          "offset": 48078234624,
+          "first": "trace_generation",
+          "last": "oods"
+        },
+        {
+          "kind": "trace_evaluations",
+          "ordinal": 1,
+          "bytes": 16523931776,
+          "offset": 19504574720,
+          "first": "trace_generation",
+          "last": "decommit"
+        },
+        {
+          "kind": "trace_merkle_hashes",
+          "ordinal": 1,
+          "bytes": 1073741792,
+          "offset": 79202102528,
+          "first": "trace_commit",
+          "last": "decommit"
+        },
+        {
+          "kind": "trace_coefficients",
+          "ordinal": 2,
+          "bytes": 6024864000,
+          "offset": 56340200704,
+          "first": "trace_commit",
+          "last": "oods"
+        },
+        {
+          "kind": "trace_evaluations",
+          "ordinal": 2,
+          "bytes": 12049728000,
+          "offset": 36028506624,
+          "first": "trace_commit",
+          "last": "decommit"
+        },
+        {
+          "kind": "trace_merkle_hashes",
+          "ordinal": 2,
+          "bytes": 1073741792,
+          "offset": 80275844352,
+          "first": "trace_commit",
+          "last": "decommit"
+        },
+        {
+          "kind": "constraint_composition_output",
+          "ordinal": 3,
+          "bytes": 268435456,
+          "offset": 4898945536,
+          "first": "constraint_evaluation",
+          "last": "decommit"
+        },
+        {
+          "kind": "trace_evaluations",
+          "ordinal": 3,
+          "bytes": 536870912,
+          "offset": 3825205248,
+          "first": "constraint_evaluation",
+          "last": "decommit"
+        },
+        {
+          "kind": "trace_merkle_hashes",
+          "ordinal": 3,
+          "bytes": 1073741792,
+          "offset": 81349586176,
+          "first": "trace_commit",
+          "last": "decommit"
+        },
+        {
+          "kind": "oods_reduce_a",
+          "ordinal": 0,
+          "bytes": 400359424,
+          "offset": 3202875392,
+          "first": "oods",
+          "last": "oods"
+        },
+        {
+          "kind": "oods_reduce_b",
+          "ordinal": 0,
+          "bytes": 3202875392,
+          "offset": 0,
+          "first": "oods",
+          "last": "oods"
+        },
+        {
+          "kind": "quotient_partial_coordinates",
+          "ordinal": 0,
+          "bytes": 402652416,
+          "offset": 0,
+          "first": "quotient",
+          "last": "quotient"
+        },
+        {
+          "kind": "quotient_result_coordinates",
+          "ordinal": 0,
+          "bytes": 268435456,
+          "offset": 1610612736,
+          "first": "quotient",
+          "last": "decommit"
+        },
+        {
+          "kind": "fri_merkle_hashes",
+          "ordinal": 0,
+          "bytes": 1073741792,
+          "offset": 0,
+          "first": "fri_commit",
+          "last": "decommit"
+        },
+        {
+          "kind": "fri_merkle_hashes",
+          "ordinal": 1,
+          "bytes": 536870880,
+          "offset": 1073741824,
+          "first": "fri_commit",
+          "last": "decommit"
+        }
+      ],
+      "counterfactuals": [
+        {
+          "perfectly_eliminated_slots": [
+            "writer_lookup_inputs"
+          ],
+          "largest_printed_stage": "trace_commit",
+          "printed_live_bytes_lower_bound": 64106789248,
+          "caveat": "Hypothetical perfect elimination with no replacement storage; ignores unprinted slots, replan packing, runtime/private/pool overhead. Not an implementable arena or observed GPU peak."
+        },
+        {
+          "perfectly_eliminated_slots": [
+            "writer_lookup_inputs",
+            "relation_denominators"
+          ],
+          "largest_printed_stage": "constraint_evaluation",
+          "printed_live_bytes_lower_bound": 62061269632,
+          "caveat": "Hypothetical perfect elimination with no replacement storage; ignores unprinted slots, replan packing, runtime/private/pool overhead. Not an implementable arena or observed GPU peak."
+        }
+      ]
+    }
+  ]
+}

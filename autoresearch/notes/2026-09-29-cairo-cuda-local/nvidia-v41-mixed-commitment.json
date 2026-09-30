@@ -1,0 +1,57 @@
+[
+  {
+    "provider": "nvidia_cuda",
+    "protocol": "prefixed",
+    "command": [
+      "g++",
+      "-std=c++17",
+      "-O2",
+      "-I/usr/local/cuda/include",
+      "/workspace/mixed-v41/tests/cuda/native_blake2s_commitment_smoke.cpp",
+      "/workspace/mixed-v41/mixed.o",
+      "/workspace/stwo-zig/zig-out/lib/libstwo_cuda_kernels.a",
+      "-L/usr/local/cuda/lib64",
+      "-lcudart",
+      "-ldl",
+      "-lpthread",
+      "-Wl,-rpath,/usr/local/cuda/lib64",
+      "-o",
+      "/workspace/mixed-v41/check-prefixed"
+    ],
+    "returncode": 0,
+    "output": "native CUDA Blake2s commitment smoke passed\n",
+    "mixed_oracle_cases": 160,
+    "full_proof_verified": false,
+    "source_sha256": "3cef9d8caf7145d2b21476b41fb0dc7280e3fe835f58f0330c72ed4786470afa",
+    "test_sha256": "af732ea8e17f3e98a9d761b116b534436ee980e7c0129b9f56d25676a6fa21ff",
+    "executable_sha256": "4e1d78117270bb1083ddc430fe0c54a66f5d735f3c7b7c3ef868c6d123f07f2b"
+  },
+  {
+    "provider": "nvidia_cuda",
+    "protocol": "plain",
+    "command": [
+      "g++",
+      "-std=c++17",
+      "-O2",
+      "-I/usr/local/cuda/include",
+      "-DSTWO_BLAKE2S_TEST_PLAIN=1",
+      "/workspace/mixed-v41/tests/cuda/native_blake2s_commitment_smoke.cpp",
+      "/workspace/mixed-v41/mixed.o",
+      "/workspace/stwo-zig/zig-out/lib/libstwo_cuda_kernels.a",
+      "-L/usr/local/cuda/lib64",
+      "-lcudart",
+      "-ldl",
+      "-lpthread",
+      "-Wl,-rpath,/usr/local/cuda/lib64",
+      "-o",
+      "/workspace/mixed-v41/check-plain"
+    ],
+    "returncode": 0,
+    "output": "native CUDA Blake2s commitment smoke passed\n",
+    "mixed_oracle_cases": 160,
+    "full_proof_verified": false,
+    "source_sha256": "3cef9d8caf7145d2b21476b41fb0dc7280e3fe835f58f0330c72ed4786470afa",
+    "test_sha256": "af732ea8e17f3e98a9d761b116b534436ee980e7c0129b9f56d25676a6fa21ff",
+    "executable_sha256": "78aab6c3a9b0bfbed440e9e6c55561e9c524d8a953de92b64cceb6647628b239"
+  }
+]

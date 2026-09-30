@@ -18,7 +18,7 @@ const transcript_controller = @import("transcript/controller.zig");
 const transcript_schedule = @import("transcript/schedule.zig");
 
 const first_fri_step: u32 = 20;
-const packed_leaf_log: u32 = 2;
+const packed_leaf_log: u32 = 0;
 
 const NativeCommitment = struct {
     pub fn fri(
@@ -28,7 +28,7 @@ const NativeCommitment = struct {
         hashes: common.Hashes,
         layers: []const field.MerkleLayerDescriptor,
     ) !common.Hashes {
-        const Builder = commit_tree.BuilderFor(stages.commitment.Native);
+        const Builder = commit_tree.BuilderFor(stages.commitment.PlainNative);
         return Builder.fri(
             session,
             evaluation_size,

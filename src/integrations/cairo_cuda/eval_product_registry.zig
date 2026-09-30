@@ -62,8 +62,7 @@ pub const Registry = struct {
     }
 
     pub fn initCanonical(allocator: std.mem.Allocator) !Registry {
-        var parsed = try std.json.parseFromSlice([]WireEntry, allocator,
-            cuda_backend.product_aot.canonical_cairo_eval_product_manifest, .{});
+        var parsed = try std.json.parseFromSlice([]WireEntry, allocator, cuda_backend.product_aot.canonical_cairo_eval_product_manifest, .{});
         errdefer parsed.deinit();
         if (parsed.value.len != 68) return error.InvalidCanonicalAirInventory;
         for (parsed.value) |entry| {
@@ -136,8 +135,8 @@ fn validParametricEntry(entry: WireEntry) bool {
     const authority = decodeDigest(entry.catalog_identity) orelse return false;
     const parametric = @import("parametric_eval.zig");
     var kernel: [80]u8 = undefined;
-    const expected_kernel = std.fmt.bufPrint(&kernel, "stwo_cairo_cuda_eval_v3_{x:0>16}", .{semantic}) catch return false;
-    return entry.codegen_version == 3 and
+    const expected_kernel = std.fmt.bufPrint(&kernel, "stwo_cairo_cuda_eval_v6_{x:0>16}", .{semantic}) catch return false;
+    return entry.codegen_version == 6 and
         std.mem.eql(u8, entry.abi_schema, eval_aot.abi_schema) and
         std.mem.eql(u8, entry.identity_scheme, eval_aot.parametric_identity_scheme) and
         std.mem.eql(u8, entry.kind, "constraint") and std.mem.eql(u8, entry.module_globals, "none") and

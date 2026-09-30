@@ -1,0 +1,16 @@
+{
+  "benchmark": "SN PIE 1",
+  "trial": 1,
+  "status": "unverified",
+  "prover_exit_code": 1,
+  "adapted_input_sha256": "f56794faf3bc3a383c355dca8242bfb92c16e093249da4157770b44c4de227d1",
+  "process_wall_ns": 9934374051,
+  "timed_out": false,
+  "process_error": null,
+  "host_peak_rss_bytes": 1848123392,
+  "highest_sampled_device_used_bytes": 114850398208,
+  "nvml_sample_errors": 0,
+  "nvml_sample_count": 920,
+  "gpu_memory_measurement_valid": true,
+  "gpu_memory_scope": "whole device, sampled every 10 ms; lower bound on peak"
+}

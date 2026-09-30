@@ -251,7 +251,12 @@ void assemble_fri_kernel(
         meta[kMetaAuxCount] = state.walk.aux_count;
         meta[kMetaAllValuesOffset] = state.all_values_offset;
         meta[kMetaAllValuesCount] = state.expanded_count;
-        meta[kMetaLeafLogSize] = leaf_log_size;
+        // This metadata bounds row queries, whereas merkle_walk consumes
+        // packed leaf indices; these are distinct when leaves pack rows.
+        uint32_t query_log_size = 0;
+        for (uint64_t rows = coordinate_stride_words; rows > 1; rows >>= 1)
+            ++query_log_size;
+        meta[kMetaLeafLogSize] = query_log_size;
         meta[kMetaUsedWords] =
             assembly[kHeaderUsedWords] - state.tree_start;
     }
@@ -307,6 +312,8 @@ extern "C" int stwo_decommit_assemble_fri_on(
         expanded_positions == nullptr || expanded_count == nullptr ||
         expanded_capacity == 0 || coordinate_slab == nullptr ||
         coordinate_stride_words == 0 ||
+        (coordinate_stride_words & (coordinate_stride_words - 1u)) != 0 ||
+        coordinate_stride_words > (uint64_t{1} << 30) ||
         !slab_fits(
             coordinate_stride_words, 4, coordinate_slab_words) ||
         walk_queries == nullptr || walk_scratch == nullptr ||

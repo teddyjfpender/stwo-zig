@@ -13,7 +13,7 @@ constexpr uint32_t kMaxColumnsPerLaunch = 65535;
 constexpr uint32_t kMinLogN = 3;
 constexpr uint32_t kMaxLogN = 30;
 constexpr uint32_t kFirstFusedLogN = 13;
-constexpr uint32_t kLastFusedLogN = 23;
+constexpr uint32_t kLastFusedLogN = 26;
 
 template <typename T>
 struct ColumnSlab {
@@ -27,7 +27,7 @@ struct ColumnSlab {
 
 struct TransformSchedule {
     uint8_t interval_count;
-    uint8_t intervals[3];
+    uint8_t intervals[4];
 };
 
 constexpr TransformSchedule kB2nSchedules[] = {
@@ -42,6 +42,9 @@ constexpr TransformSchedule kB2nSchedules[] = {
     {3, {9, 6, 6}},
     {3, {10, 6, 6}},
     {3, {7, 8, 8}},
+    {4, {6, 6, 6, 6}},
+    {4, {7, 6, 6, 6}},
+    {4, {8, 6, 6, 6}},
 };
 
 constexpr TransformSchedule kN2bSchedules[] = {
@@ -56,6 +59,9 @@ constexpr TransformSchedule kN2bSchedules[] = {
     {3, {6, 6, 9}},
     {3, {6, 6, 10}},
     {3, {6, 6, 11}},
+    {4, {6, 6, 6, 6}},
+    {4, {6, 6, 6, 7}},
+    {4, {6, 6, 6, 8}},
 };
 
 constexpr bool valid_schedule(
@@ -93,13 +99,13 @@ constexpr bool selected_schedule_resource_contracts_hold() {
     // These rows replace the 8-stage continuation, whose sixteen dynamic
     // values require a local stack on the supported AOT toolchain. The
     // selected 6-stage continuation holds eight values in registers.
-    constexpr uint32_t b2n_indices[] = {2u, 3u, 8u, 9u};
+    constexpr uint32_t b2n_indices[] = {2u, 3u, 8u, 9u, 11u, 12u, 13u};
     for (uint32_t index : b2n_indices) {
         if (!schedule_tail_is_stack_free(kB2nSchedules[index], 1)) {
             return false;
         }
     }
-    constexpr uint32_t n2b_indices[] = {7u, 8u, 9u, 10u};
+    constexpr uint32_t n2b_indices[] = {7u, 8u, 9u, 10u, 11u, 12u, 13u};
     for (uint32_t index : n2b_indices) {
         const TransformSchedule &schedule = kN2bSchedules[index];
         for (uint32_t i = 0; i + 1u < schedule.interval_count; ++i) {

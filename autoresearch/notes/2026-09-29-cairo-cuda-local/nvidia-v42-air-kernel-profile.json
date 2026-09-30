@@ -1,0 +1,574 @@
+{
+  "schema": "stwo-cairo-cuda-aot-kernel-profile-v1",
+  "provider": "nvidia_cuda",
+  "qualified_benchmark": false,
+  "measurement": "CUDA event pairs surrounding individual AOT launches via an external profiler; profiling overhead included",
+  "prover_sha256": "9be17c7c04714695ab65ca788ed2fa2b4a0db95c2f17ec94474e480f2eb9d7ad",
+  "profiler_sha256": "75ca2ee98c702955ac775e1735ee176a74143e4f31d325595c95f15ea8f6da83",
+  "official_verification": {
+    "schema_version": 1,
+    "adapter_version": "stwo-cairo-official-verifier/1",
+    "stwo_cairo_revision": "82f21252a68ec006d73e299f5bf1ce6d4db0ee78",
+    "stwo_revision": "7b211edde786775016ef3eecb837a6240d8fe792",
+    "proof_sha256": "ddfd9c167d42b4fd3933abc2049fe468f7c914f2a7b34267664312f121a042ed",
+    "channel": "blake2s",
+    "proof_format": "json",
+    "verified": true,
+    "wall_time_ns": 59460100,
+    "error": null
+  },
+  "kernels": [
+    {
+      "kernel": "stwo_cairo_cuda_eval_v3_ba50438ddca00bc5",
+      "launches": 1,
+      "grid_threads": 1048576,
+      "gpu_ms": 390.871094
+    },
+    {
+      "kernel": "stwo_cairo_cuda_eval_v3_f4537cc3313a7813",
+      "launches": 1,
+      "grid_threads": 4194304,
+      "gpu_ms": 189.03891
+    },
+    {
+      "kernel": "stwo_jit_witness_becbbf6f2f210ad9",
+      "launches": 1,
+      "grid_threads": 2048,
+      "gpu_ms": 128.696869
+    },
+    {
+      "kernel": "stwo_cairo_cuda_eval_v3_20ac53552c8ab47f",
+      "launches": 1,
+      "grid_threads": 2097152,
+      "gpu_ms": 59.570015
+    },
+    {
+      "kernel": "stwo_cairo_cuda_eval_v3_e414065707fe0e8f",
+      "launches": 1,
+      "grid_threads": 16777216,
+      "gpu_ms": 37.91843
+    },
+    {
+      "kernel": "stwo_cairo_cuda_eval_v3_4f909056be12a284",
+      "launches": 1,
+      "grid_threads": 2097152,
+      "gpu_ms": 26.583328
+    },
+    {
+      "kernel": "stwo_jit_witness_4ad230c161d829a3",
+      "launches": 1,
+      "grid_threads": 2097152,
+      "gpu_ms": 26.483841
+    },
+    {
+      "kernel": "stwo_jit_witness_b863d4ded2d89fdf",
+      "launches": 1,
+      "grid_threads": 262144,
+      "gpu_ms": 21.374081
+    },
+    {
+      "kernel": "stwo_cairo_cuda_eval_v3_6e7d9762fbd1969a",
+      "launches": 1,
+      "grid_threads": 8388608,
+      "gpu_ms": 17.713568
+    },
+    {
+      "kernel": "stwo_jit_witness_e1cf71013a0f5925",
+      "launches": 1,
+      "grid_threads": 65536,
+      "gpu_ms": 17.038368
+    },
+    {
+      "kernel": "stwo_jit_witness_0a5012bd6007b9be",
+      "launches": 1,
+      "grid_threads": 524288,
+      "gpu_ms": 14.307648
+    },
+    {
+      "kernel": "stwo_cairo_cuda_eval_v3_91448bafa4e75cb5",
+      "launches": 1,
+      "grid_threads": 4194304,
+      "gpu_ms": 10.877632
+    },
+    {
+      "kernel": "stwo_cairo_cuda_eval_v3_15a6de4ad26733cf",
+      "launches": 1,
+      "grid_threads": 16777216,
+      "gpu_ms": 7.555584
+    },
+    {
+      "kernel": "stwo_cairo_cuda_eval_v3_f121becb27a01b51",
+      "launches": 1,
+      "grid_threads": 524288,
+      "gpu_ms": 7.376288
+    },
+    {
+      "kernel": "stwo_cairo_cuda_eval_v3_e9884ae7da22257f",
+      "launches": 1,
+      "grid_threads": 4194304,
+      "gpu_ms": 6.442464
+    },
+    {
+      "kernel": "stwo_cairo_cuda_eval_v3_c05ddc49664c6391",
+      "launches": 1,
+      "grid_threads": 524288,
+      "gpu_ms": 5.896704
+    },
+    {
+      "kernel": "stwo_cairo_cuda_eval_v3_6698ca774c7ca163",
+      "launches": 1,
+      "grid_threads": 262144,
+      "gpu_ms": 5.791776
+    },
+    {
+      "kernel": "stwo_cairo_cuda_eval_v3_73ef672ad1e99d37",
+      "launches": 1,
+      "grid_threads": 8388608,
+      "gpu_ms": 4.38528
+    },
+    {
+      "kernel": "stwo_jit_witness_36f44c8360e57615",
+      "launches": 1,
+      "grid_threads": 1048576,
+      "gpu_ms": 4.204352
+    },
+    {
+      "kernel": "stwo_cairo_cuda_eval_v3_751f65b635273678",
+      "launches": 1,
+      "grid_threads": 2097152,
+      "gpu_ms": 3.389472
+    },
+    {
+      "kernel": "stwo_cairo_cuda_eval_v3_3617b6afaf32e710",
+      "launches": 1,
+      "grid_threads": 2097152,
+      "gpu_ms": 3.283712
+    },
+    {
+      "kernel": "stwo_cairo_cuda_eval_v3_e002c8210e52d12e",
+      "launches": 1,
+      "grid_threads": 2097152,
+      "gpu_ms": 3.13216
+    },
+    {
+      "kernel": "stwo_cairo_cuda_eval_v3_a4aa30d3952d3247",
+      "launches": 1,
+      "grid_threads": 2097152,
+      "gpu_ms": 3.095872
+    },
+    {
+      "kernel": "stwo_cairo_cuda_eval_v3_cc13aa5b6e028a9f",
+      "launches": 1,
+      "grid_threads": 8388608,
+      "gpu_ms": 2.639008
+    },
+    {
+      "kernel": "stwo_jit_witness_bb78ac69a434a127",
+      "launches": 1,
+      "grid_threads": 8388608,
+      "gpu_ms": 2.220416
+    },
+    {
+      "kernel": "stwo_jit_witness_51e314719c4fa150",
+      "launches": 1,
+      "grid_threads": 8192,
+      "gpu_ms": 2.027136
+    },
+    {
+      "kernel": "stwo_jit_witness_48eaad578e60a980",
+      "launches": 1,
+      "grid_threads": 1048576,
+      "gpu_ms": 1.831296
+    },
+    {
+      "kernel": "stwo_cairo_cuda_eval_v3_d8e0f9866c43c2ca",
+      "launches": 1,
+      "grid_threads": 4194304,
+      "gpu_ms": 1.561696
+    },
+    {
+      "kernel": "stwo_cairo_cuda_eval_v3_0ce88083354b8d35",
+      "launches": 1,
+      "grid_threads": 1048576,
+      "gpu_ms": 1.547136
+    },
+    {
+      "kernel": "stwo_cairo_cuda_eval_v3_cac0420ea393b163",
+      "launches": 1,
+      "grid_threads": 2097152,
+      "gpu_ms": 1.44048
+    },
+    {
+      "kernel": "stwo_cairo_cuda_eval_v3_792590d1e13e3d0b",
+      "launches": 1,
+      "grid_threads": 2097152,
+      "gpu_ms": 1.340704
+    },
+    {
+      "kernel": "stwo_cairo_cuda_eval_v3_6142f9bc20588a94",
+      "launches": 1,
+      "grid_threads": 2097152,
+      "gpu_ms": 1.121984
+    },
+    {
+      "kernel": "stwo_jit_witness_7302dbf1d3b95b86",
+      "launches": 1,
+      "grid_threads": 4194304,
+      "gpu_ms": 0.996864
+    },
+    {
+      "kernel": "stwo_cairo_cuda_eval_v3_3b5c888efc076e7a",
+      "launches": 1,
+      "grid_threads": 131072,
+      "gpu_ms": 0.96672
+    },
+    {
+      "kernel": "stwo_cairo_cuda_eval_v3_7205ab34dcdb920d",
+      "launches": 1,
+      "grid_threads": 1048576,
+      "gpu_ms": 0.953408
+    },
+    {
+      "kernel": "stwo_cairo_cuda_eval_v3_8e3ee30308c76acb",
+      "launches": 1,
+      "grid_threads": 524288,
+      "gpu_ms": 0.931872
+    },
+    {
+      "kernel": "stwo_cairo_cuda_eval_v3_588dac9d42f6b550",
+      "launches": 1,
+      "grid_threads": 2097152,
+      "gpu_ms": 0.739264
+    },
+    {
+      "kernel": "stwo_jit_witness_49ca17d617cdfdc2",
+      "launches": 1,
+      "grid_threads": 2097152,
+      "gpu_ms": 0.722464
+    },
+    {
+      "kernel": "stwo_cairo_cuda_eval_v3_58ef5345a1a6a19b",
+      "launches": 1,
+      "grid_threads": 131072,
+      "gpu_ms": 0.714656
+    },
+    {
+      "kernel": "stwo_cairo_cuda_eval_v3_28582515c3999e53",
+      "launches": 1,
+      "grid_threads": 16384,
+      "gpu_ms": 0.697216
+    },
+    {
+      "kernel": "stwo_cairo_cuda_eval_v3_f3a6fefb41bb9e7b",
+      "launches": 1,
+      "grid_threads": 2097152,
+      "gpu_ms": 0.68656
+    },
+    {
+      "kernel": "stwo_jit_witness_cc732240ac96da6e",
+      "launches": 1,
+      "grid_threads": 65536,
+      "gpu_ms": 0.594368
+    },
+    {
+      "kernel": "stwo_jit_witness_4c685df6aa70bdfe",
+      "launches": 1,
+      "grid_threads": 131072,
+      "gpu_ms": 0.539744
+    },
+    {
+      "kernel": "stwo_jit_witness_2780bde3a07577cc",
+      "launches": 1,
+      "grid_threads": 4194304,
+      "gpu_ms": 0.512544
+    },
+    {
+      "kernel": "stwo_cairo_cuda_eval_v3_800a8e5d141c169e",
+      "launches": 1,
+      "grid_threads": 2097152,
+      "gpu_ms": 0.487872
+    },
+    {
+      "kernel": "stwo_cairo_cuda_eval_v3_0c8c77308db01a80",
+      "launches": 1,
+      "grid_threads": 4096,
+      "gpu_ms": 0.481504
+    },
+    {
+      "kernel": "stwo_jit_witness_99e872f9619b5a11",
+      "launches": 1,
+      "grid_threads": 262144,
+      "gpu_ms": 0.44704
+    },
+    {
+      "kernel": "stwo_jit_witness_8d98db1d31b90129",
+      "launches": 1,
+      "grid_threads": 2097152,
+      "gpu_ms": 0.420992
+    },
+    {
+      "kernel": "stwo_cairo_cuda_eval_v3_7ae47d325c8767b3",
+      "launches": 1,
+      "grid_threads": 4096,
+      "gpu_ms": 0.360256
+    },
+    {
+      "kernel": "stwo_jit_witness_b58a4d852bcfbbc8",
+      "launches": 1,
+      "grid_threads": 1048576,
+      "gpu_ms": 0.26064
+    },
+    {
+      "kernel": "stwo_cairo_cuda_eval_v3_dbb402bcc1a41130",
+      "launches": 1,
+      "grid_threads": 524288,
+      "gpu_ms": 0.188896
+    },
+    {
+      "kernel": "stwo_cairo_cuda_eval_v3_5e5fb15810ea27fd",
+      "launches": 1,
+      "grid_threads": 524288,
+      "gpu_ms": 0.184288
+    },
+    {
+      "kernel": "stwo_jit_witness_98d7d935a303b865",
+      "launches": 1,
+      "grid_threads": 2097152,
+      "gpu_ms": 0.13872
+    },
+    {
+      "kernel": "stwo_jit_witness_9145b4b693552cac",
+      "launches": 1,
+      "grid_threads": 1048576,
+      "gpu_ms": 0.129152
+    },
+    {
+      "kernel": "stwo_jit_witness_8c4ef00bd566feed",
+      "launches": 1,
+      "grid_threads": 1048576,
+      "gpu_ms": 0.125184
+    },
+    {
+      "kernel": "stwo_jit_witness_44b12b9d6e90e51d",
+      "launches": 1,
+      "grid_threads": 524288,
+      "gpu_ms": 0.121408
+    },
+    {
+      "kernel": "stwo_jit_witness_d837ca159d597a25",
+      "launches": 1,
+      "grid_threads": 1048576,
+      "gpu_ms": 0.116768
+    },
+    {
+      "kernel": "stwo_cairo_cuda_eval_v3_220d81bd8d6ec477",
+      "launches": 1,
+      "grid_threads": 262144,
+      "gpu_ms": 0.115968
+    },
+    {
+      "kernel": "stwo_jit_witness_ad479f3f51c8f650",
+      "launches": 1,
+      "grid_threads": 1048576,
+      "gpu_ms": 0.10496
+    },
+    {
+      "kernel": "stwo_jit_witness_e7536b0a967d377b",
+      "launches": 1,
+      "grid_threads": 524288,
+      "gpu_ms": 0.088672
+    },
+    {
+      "kernel": "stwo_jit_witness_57e09935feaee102",
+      "launches": 1,
+      "grid_threads": 1048576,
+      "gpu_ms": 0.087776
+    },
+    {
+      "kernel": "stwo_jit_witness_3d20c15a14add9de",
+      "launches": 1,
+      "grid_threads": 1048576,
+      "gpu_ms": 0.071392
+    },
+    {
+      "kernel": "stwo_cairo_cuda_eval_v3_c4f7761d89d0cb90",
+      "launches": 1,
+      "grid_threads": 524288,
+      "gpu_ms": 0.062336
+    },
+    {
+      "kernel": "stwo_cairo_cuda_eval_v3_004fca4c617cae1a",
+      "launches": 1,
+      "grid_threads": 524288,
+      "gpu_ms": 0.057504
+    },
+    {
+      "kernel": "stwo_cairo_cuda_eval_v3_76751be344433844",
+      "launches": 1,
+      "grid_threads": 524288,
+      "gpu_ms": 0.054368
+    },
+    {
+      "kernel": "stwo_cairo_cuda_eval_v3_493d926de8a4db14",
+      "launches": 1,
+      "grid_threads": 2048,
+      "gpu_ms": 0.051232
+    },
+    {
+      "kernel": "stwo_cairo_cuda_eval_v3_20613ce56c6d1ea5",
+      "launches": 1,
+      "grid_threads": 8192,
+      "gpu_ms": 0.045472
+    },
+    {
+      "kernel": "stwo_cairo_cuda_eval_v3_dc2be10c0d504adb",
+      "launches": 1,
+      "grid_threads": 2048,
+      "gpu_ms": 0.043808
+    },
+    {
+      "kernel": "stwo_cairo_cuda_eval_v3_89160704ff765b5c",
+      "launches": 1,
+      "grid_threads": 131072,
+      "gpu_ms": 0.036
+    },
+    {
+      "kernel": "stwo_cairo_cuda_eval_v3_db086017701593e0",
+      "launches": 1,
+      "grid_threads": 32768,
+      "gpu_ms": 0.033056
+    },
+    {
+      "kernel": "stwo_jit_witness_3c43d63ac963c130",
+      "launches": 1,
+      "grid_threads": 262144,
+      "gpu_ms": 0.03056
+    },
+    {
+      "kernel": "stwo_cairo_cuda_eval_v3_7ef972a5d6688858",
+      "launches": 1,
+      "grid_threads": 131072,
+      "gpu_ms": 0.022208
+    },
+    {
+      "kernel": "stwo_jit_witness_154882da03f89342",
+      "launches": 1,
+      "grid_threads": 2048,
+      "gpu_ms": 0.021952
+    },
+    {
+      "kernel": "stwo_cairo_cuda_eval_v3_f6cb16877965e24a",
+      "launches": 1,
+      "grid_threads": 131072,
+      "gpu_ms": 0.021344
+    },
+    {
+      "kernel": "stwo_jit_witness_1c1f5ab14c0667cd",
+      "launches": 1,
+      "grid_threads": 1024,
+      "gpu_ms": 0.017088
+    },
+    {
+      "kernel": "stwo_cairo_cuda_eval_v3_c611ef6ea6bd2061",
+      "launches": 1,
+      "grid_threads": 256,
+      "gpu_ms": 0.01616
+    },
+    {
+      "kernel": "stwo_jit_witness_c07a5982884afa1a",
+      "launches": 1,
+      "grid_threads": 131072,
+      "gpu_ms": 0.016064
+    },
+    {
+      "kernel": "stwo_cairo_cuda_eval_v3_47df0a761733c077",
+      "launches": 1,
+      "grid_threads": 65536,
+      "gpu_ms": 0.014464
+    },
+    {
+      "kernel": "stwo_jit_witness_4ee2164a1b06dda5",
+      "launches": 1,
+      "grid_threads": 1024,
+      "gpu_ms": 0.013952
+    },
+    {
+      "kernel": "stwo_cairo_cuda_eval_v3_ea5275587edf9674",
+      "launches": 1,
+      "grid_threads": 256,
+      "gpu_ms": 0.013088
+    },
+    {
+      "kernel": "stwo_jit_witness_e50ff77de385ab64",
+      "launches": 1,
+      "grid_threads": 4096,
+      "gpu_ms": 0.011264
+    },
+    {
+      "kernel": "stwo_cairo_cuda_eval_v3_2f743f265a823e57",
+      "launches": 1,
+      "grid_threads": 512,
+      "gpu_ms": 0.011136
+    },
+    {
+      "kernel": "stwo_cairo_cuda_eval_v3_efae9e8c68dba549",
+      "launches": 1,
+      "grid_threads": 32768,
+      "gpu_ms": 0.011104
+    },
+    {
+      "kernel": "stwo_cairo_cuda_eval_v3_a0ca930f9557f54f",
+      "launches": 1,
+      "grid_threads": 32768,
+      "gpu_ms": 0.010976
+    },
+    {
+      "kernel": "stwo_cairo_cuda_eval_v3_da8241be39e42c17",
+      "launches": 1,
+      "grid_threads": 256,
+      "gpu_ms": 0.010848
+    },
+    {
+      "kernel": "stwo_cairo_cuda_eval_v3_7a58776d46a0d41b",
+      "launches": 1,
+      "grid_threads": 8192,
+      "gpu_ms": 0.010624
+    },
+    {
+      "kernel": "stwo_cairo_cuda_eval_v3_16e62ffef5de5385",
+      "launches": 1,
+      "grid_threads": 256,
+      "gpu_ms": 0.010496
+    },
+    {
+      "kernel": "stwo_cairo_cuda_eval_v3_9374f8b45ca93e8f",
+      "launches": 1,
+      "grid_threads": 512,
+      "gpu_ms": 0.01024
+    },
+    {
+      "kernel": "stwo_cairo_cuda_eval_v3_09705bbddfc9f2e5",
+      "launches": 1,
+      "grid_threads": 512,
+      "gpu_ms": 0.01024
+    },
+    {
+      "kernel": "stwo_cairo_cuda_eval_v3_c06ceab427d079e4",
+      "launches": 1,
+      "grid_threads": 4096,
+      "gpu_ms": 0.010208
+    },
+    {
+      "kernel": "stwo_jit_witness_da729390f0d884f9",
+      "launches": 1,
+      "grid_threads": 65536,
+      "gpu_ms": 0.007872
+    },
+    {
+      "kernel": "stwo_jit_witness_58a69689aa366788",
+      "launches": 1,
+      "grid_threads": 16384,
+      "gpu_ms": 0.00768
+    }
+  ]
+}

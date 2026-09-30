@@ -204,7 +204,9 @@ pub fn derive(
             .evaluation_log_size = layer.evaluation_log_rows,
             .cumulative_fold = layer.cumulative_fold,
             .fold_step = layer.fold_step,
-            .log_rows_per_leaf = layer.log_rows_per_leaf,
+            // The proof-program field records the Merkle leaf-domain log;
+            // query expansion needs the number of evaluation rows per leaf.
+            .log_rows_per_leaf = std.math.sub(u32, layer.evaluation_log_rows, layer.log_rows_per_leaf) catch return error.InvalidKernelDescriptor,
             .max_expanded_positions = expanded,
         };
     }

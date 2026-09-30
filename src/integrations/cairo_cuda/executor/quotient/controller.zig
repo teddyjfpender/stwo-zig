@@ -7,16 +7,21 @@ const compact = @import("stwo_cairo_frontend").compact_verifier_interchange;
 const composition = @import("stwo_cairo_frontend").witness.composition_bundle;
 const common = @import("stwo_cuda_backend").runtime.stages.common;
 const quotient_stage = @import("stwo_cuda_backend").runtime.stages.quotient;
+const transform = @import("stwo_cuda_backend").runtime.stages.transform;
+const slot_binding = @import("../pcs_slot_binding.zig");
 const pcs_types = @import("../pcs_hooks_types.zig");
 const resident_plan = @import("../resident_plan.zig");
 const resident_sources = @import("resident_sources.zig");
+const buckets_module = @import("buckets.zig");
 const topology_module = @import("topology.zig");
 
 const NativeOps = struct {
     pub const prepareTerms = quotient_stage.Native.prepareTerms;
     pub const finalizeGroups = quotient_stage.Native.finalizeGroups;
-    pub const accumulate = quotient_stage.addressed.Native.accumulate;
+    pub const accumulate = quotient_stage.addressed.Native.accumulateBucketedFinalized;
     pub const combine = quotient_stage.Native.combineCompact;
+    pub const inverse = transform.Native.inverseCompact;
+    pub const extend = transform.Native.extend;
 };
 
 pub const Circle = struct {
@@ -34,10 +39,15 @@ const Views = struct {
     first_linear_terms: common.SecureFields,
     partial_coordinates: [4]common.Words,
     result_coordinates: quotient_stage.CoordinateColumns,
+    subdomain_coordinates: common.Words,
+    subdomain_inverse_twiddles: common.Words,
+    coefficient_logs: common.Words,
+    forward_twiddles: common.Words,
 };
 
 pub const Prepared = struct {
     topology: topology_module.Topology,
+    buckets: buckets_module.Plan,
     sources: resident_sources.Bound,
     groups: quotient_stage.PreparedGroups,
     numerator: quotient_stage.AddressedNumeratorTopology,
@@ -49,12 +59,20 @@ pub const Prepared = struct {
 
     pub fn deinit(self: *Prepared) void {
         self.sources.deinit();
+        self.buckets.deinit();
         self.topology.deinit();
         self.* = undefined;
     }
 
     pub fn execute(self: Prepared, session: anytype) !void {
         return self.executeWith(NativeOps, session);
+    }
+
+    /// Called after the canonical twiddle upload, before ingress is sealed.
+    pub fn initializeTransform(self: Prepared, session: anytype, inverse_twiddles: common.Words) !void {
+        const coefficient_log = self.combine.domain_log_size;
+        try prepareSubdomainTwiddles(session, inverse_twiddles, self.views.subdomain_inverse_twiddles, coefficient_log + 1);
+        try session.context.uploadSlice(u32, self.views.coefficient_logs, &.{ coefficient_log, coefficient_log, coefficient_log, coefficient_log });
     }
 
     pub fn executeWith(
@@ -84,7 +102,22 @@ pub const Prepared = struct {
         try Ops.accumulate(
             session,
             self.numerator,
+            quotient_stage.addressed.BucketExecution{
+                .buckets = self.buckets.descriptors,
+                .group_bucket_offsets = self.buckets.group_bucket_offsets,
+                .group_log_sizes = self.topology.group_log_sizes,
+                .output_offsets = self.topology.partial_offsets,
+                .group_term_offsets = self.topology.group_offsets,
+                .group_term_indices = self.topology.group_term_indices,
+                .maximum_scratch_rows = self.buckets.maximum_scratch_rows,
+            },
             self.views.line_coefficients,
+            .{
+                .c0 = self.views.result_coordinates.c0,
+                .c1 = self.views.result_coordinates.c1,
+                .c2 = self.views.result_coordinates.c2,
+                .c3 = self.views.result_coordinates.c3,
+            },
             .{
                 .c0 = self.views.partial_coordinates[0],
                 .c1 = self.views.partial_coordinates[1],
@@ -105,7 +138,27 @@ pub const Prepared = struct {
                 .c2 = self.views.partial_coordinates[2],
                 .c3 = self.views.partial_coordinates[3],
             },
-            self.views.result_coordinates,
+            try coordinateColumns(self.views.subdomain_coordinates),
+        );
+        // Quotients are defined on the first bit-reversed subdomain, as in
+        // pinned Stwo. Repeating its numerator rows on the full coset changes
+        // the rational function and violates the FRI degree bound.
+        const log_size = self.combine.domain_log_size;
+        const rows = @as(usize, 1) << @intCast(log_size);
+        const coefficients = common.WordMatrix{
+            .storage = self.views.subdomain_coordinates,
+            .column_stride_words = rows,
+        };
+        try Ops.inverse(session, .quotient, coefficients, coefficients, log_size, self.views.subdomain_inverse_twiddles);
+        try Ops.extend(
+            session,
+            .quotient,
+            coefficients,
+            self.views.coefficient_logs,
+            .{ .storage = try slot_binding.coordinateStorage(self.views.result_coordinates), .column_stride_words = rows * 2 },
+            log_size + 1,
+            self.views.forward_twiddles,
+            false,
         );
     }
 };
@@ -136,6 +189,13 @@ pub fn prepare(
     );
     errdefer topology.deinit();
     try validatePlan(plan, topology);
+    var buckets = try buckets_module.build(allocator, topology);
+    errdefer buckets.deinit();
+    if (buckets.descriptors.len == 0 or
+        buckets.maximum_scratch_rows > bindings.quotient.result_coordinates.c0.len)
+    {
+        return error.InvalidKernelDescriptor;
+    }
     var sources = try resident_sources.Bound.init(
         allocator,
         topology,
@@ -158,6 +218,7 @@ pub fn prepare(
     const numerator = try sources.prepareNumerator(
         session,
         topology,
+        buckets.terms,
         quotient,
     );
     const combine = try quotient_stage.prepareCompactCombineTopology(
@@ -166,10 +227,11 @@ pub fn prepare(
         topology.partial_offsets,
         quotient.partial_log_sizes,
         quotient.partial_offsets,
-        program.quotient.evaluation_log_rows,
+        program.quotient.evaluation_log_rows - 1,
         topology.partial_offsets[topology.partial_offsets.len - 1],
     );
     const circle = try deriveCircle(program.quotient.evaluation_log_rows);
+    const coefficient_log = program.quotient.evaluation_log_rows - 1;
     const views = Views{
         .sample_points = bindings.oods.sample_points,
         .sampled_values = bindings.oods.sampled_values,
@@ -180,6 +242,10 @@ pub fn prepare(
         .first_linear_terms = quotient.first_linear_terms,
         .partial_coordinates = quotient.partial_coordinates,
         .result_coordinates = quotient.result_coordinates,
+        .subdomain_coordinates = quotient.subdomain_coordinates,
+        .subdomain_inverse_twiddles = quotient.subdomain_inverse_twiddles,
+        .coefficient_logs = quotient.coefficient_logs,
+        .forward_twiddles = try bindings.twiddles_forward.sub(bindings.twiddles_forward.len - (@as(usize, 1) << @intCast(coefficient_log)), @as(usize, 1) << @intCast(coefficient_log)),
     };
     try validateViews(
         topology,
@@ -188,6 +254,7 @@ pub fn prepare(
     );
     return .{
         .topology = topology,
+        .buckets = buckets,
         .sources = sources,
         .groups = groups,
         .numerator = numerator,
@@ -252,6 +319,10 @@ fn validateViews(
     if (result_log_rows == 0 or result_log_rows > 30)
         return error.InvalidKernelDescriptor;
     const result_rows = @as(usize, 1) << @intCast(result_log_rows);
+    if (views.subdomain_coordinates.len != result_rows * 2 or
+        views.subdomain_inverse_twiddles.len != result_rows / 4 or
+        views.coefficient_logs.len != 4 or views.forward_twiddles.len != result_rows / 2)
+        return error.InvalidKernelDescriptor;
     const result = views.result_coordinates;
     if (result.c0.len != result_rows or
         result.c1.len != result_rows or
@@ -271,9 +342,31 @@ fn deriveCircle(domain_log_size: u32) !Circle {
             domain.half_coset.initial_index.v,
         ),
         .half_coset_step_size = try u32Count(
-            domain.half_coset.step_size.v,
+            domain.half_coset.step_size.mul(2).v,
         ),
     };
+}
+
+fn coordinateColumns(storage: common.Words) !quotient_stage.CoordinateColumns {
+    if (storage.len == 0 or storage.len % 4 != 0) return error.InvalidKernelDescriptor;
+    const rows = storage.len / 4;
+    return .{ .c0 = try storage.sub(0, rows), .c1 = try storage.sub(rows, rows), .c2 = try storage.sub(rows * 2, rows), .c3 = try storage.sub(rows * 3, rows) };
+}
+
+/// Each layer contributes its prefix, not the suffix used for a smaller
+/// canonical coset. The initial point stays fixed when splitting a domain.
+fn prepareSubdomainTwiddles(session: anytype, source: common.Words, destination: common.Words, domain_log: u32) !void {
+    if (domain_log < 4 or domain_log > 30 or !std.math.isPowerOfTwo(source.len) or destination.len != (@as(usize, 1) << @intCast(domain_log - 2)) or source.len < destination.len * 2) return error.InvalidKernelDescriptor;
+    const full_half = destination.len * 2;
+    var source_start = source.len - full_half;
+    var layer_size = destination.len / 2;
+    var cursor: usize = 0;
+    while (layer_size != 0) : (layer_size /= 2) {
+        try session.context.copyDeviceSlice(u32, try destination.sub(cursor, layer_size), try source.sub(source_start, layer_size));
+        cursor += layer_size;
+        source_start += layer_size * 2;
+    }
+    try session.context.copyDeviceSlice(u32, try destination.sub(cursor, 1), try source.sub(source.len - 1, 1));
 }
 
 fn preparedIdentity(
@@ -294,6 +387,10 @@ fn preparedIdentity(
     hashView(&hash, views.line_coefficients);
     hashView(&hash, views.group_points);
     hashView(&hash, views.first_linear_terms);
+    hashView(&hash, views.subdomain_coordinates);
+    hashView(&hash, views.subdomain_inverse_twiddles);
+    hashView(&hash, views.coefficient_logs);
+    hashView(&hash, views.forward_twiddles);
     for (views.partial_coordinates) |value| hashView(&hash, value);
     hashView(&hash, views.result_coordinates.c0);
     hashView(&hash, views.result_coordinates.c1);

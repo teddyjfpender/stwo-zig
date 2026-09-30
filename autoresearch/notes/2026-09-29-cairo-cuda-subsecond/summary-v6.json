@@ -1,0 +1,124 @@
+{
+  "gpu": "NVIDIA H200, GPU-a2ccaff0-1426-1323-b7b3-0505d67cb759, 143771, 570.124.06",
+  "security": {
+    "query_count": 70,
+    "query_pow_bits": 26,
+    "interaction_pow_bits": 24,
+    "log_blowup_factor": 1,
+    "fri_fold_step": 1,
+    "log_last_layer_degree_bound": 0,
+    "channel_salt": 0
+  },
+  "scope": "cold process; adapted input to publication; process wall includes teardown; excludes raw PIE execution and queueing",
+  "products": {
+    "baseline": "357cd8e4e595cf80c14987208c3734fdcf75de1639e62fbad259440ab38d8b79",
+    "candidate": "eb7eadb9393e49d27a9282d8b937384a3d7e50fb27500c9d6f42695b169684ff"
+  },
+  "excluded_timing_blocks": [],
+  "results": [
+    {
+      "benchmark": "SN PIE 1",
+      "proof_sha256": "ddfd9c167d42b4fd3933abc2049fe468f7c914f2a7b34267664312f121a042ed",
+      "baseline": {
+        "proof_s": 1.881673481,
+        "adapted_publication_s": 6.538310411,
+        "process_wall_s": 7.041089555,
+        "teardown_s": 0.2263583325,
+        "gpu_peak_gb": 100.970528768,
+        "arena_gb": 98.593598432,
+        "host_peak_gb": 1.518239744,
+        "trials": 2
+      },
+      "candidate": {
+        "proof_s": 1.3799982210000001,
+        "adapted_publication_s": 6.1311753565,
+        "process_wall_s": 6.635935173,
+        "teardown_s": 0.2185806585,
+        "gpu_peak_gb": 101.421416448,
+        "arena_gb": 98.593598432,
+        "host_peak_gb": 1.46178048,
+        "trials": 2
+      },
+      "warm_proof_s": 1.298757117,
+      "warm_adapted_publication_s": 2.8052010325
+    },
+    {
+      "benchmark": "SN PIE 2",
+      "proof_sha256": "07109499daff9b2140fab7d91c4fd06c4675f3e206bf06da6fea787132e2c96b",
+      "baseline": {
+        "proof_s": 1.366026757,
+        "adapted_publication_s": 5.6525572615,
+        "process_wall_s": 6.2645179515,
+        "teardown_s": 0.33166158850000005,
+        "gpu_peak_gb": 62.39715328,
+        "arena_gb": 59.485853696,
+        "host_peak_gb": 1.20000512,
+        "trials": 2
+      },
+      "candidate": {
+        "proof_s": 0.9841341225,
+        "adapted_publication_s": 5.3658912805,
+        "process_wall_s": 5.7698436235,
+        "teardown_s": 0.13899878,
+        "gpu_peak_gb": 62.296948736,
+        "arena_gb": 59.485853696,
+        "host_peak_gb": 1.144737792,
+        "trials": 2
+      },
+      "warm_proof_s": 0.8912148820000001,
+      "warm_adapted_publication_s": 1.969091026
+    },
+    {
+      "benchmark": "SN PIE 3",
+      "proof_sha256": "a8912e68df4d21090389f1f796c17b57327830a9c738666426650c5e2f666650",
+      "baseline": {
+        "proof_s": 1.876534268,
+        "adapted_publication_s": 6.673912381,
+        "process_wall_s": 7.1736224055,
+        "teardown_s": 0.22250179050000002,
+        "gpu_peak_gb": 99.796123648,
+        "arena_gb": 97.412281984,
+        "host_peak_gb": 1.494130688,
+        "trials": 2
+      },
+      "candidate": {
+        "proof_s": 1.374067944,
+        "adapted_publication_s": 6.181983650499999,
+        "process_wall_s": 6.666902246,
+        "teardown_s": 0.2324539405,
+        "gpu_peak_gb": 100.247011328,
+        "arena_gb": 97.412281984,
+        "host_peak_gb": 1.438797824,
+        "trials": 2
+      },
+      "warm_proof_s": 1.2933706515,
+      "warm_adapted_publication_s": 2.7207990175
+    },
+    {
+      "benchmark": "SN PIE 4",
+      "proof_sha256": "a461dfdd91e78f41335f1592421582b47d7122517efb09ca95036b891908b435",
+      "baseline": {
+        "proof_s": 1.4861990945,
+        "adapted_publication_s": 6.075954278,
+        "process_wall_s": 6.5302064995,
+        "teardown_s": 0.1790586315,
+        "gpu_peak_gb": 80.267444224,
+        "arena_gb": 77.88629888,
+        "host_peak_gb": 1.487847424,
+        "trials": 2
+      },
+      "candidate": {
+        "proof_s": 1.121187327,
+        "adapted_publication_s": 5.7794826275,
+        "process_wall_s": 6.214205510999999,
+        "teardown_s": 0.18267878399999998,
+        "gpu_peak_gb": 80.718331904,
+        "arena_gb": 77.88629888,
+        "host_peak_gb": 1.43501312,
+        "trials": 2
+      },
+      "warm_proof_s": 1.0367256770000002,
+      "warm_adapted_publication_s": 2.4567575525
+    }
+  ]
+}

@@ -65,6 +65,7 @@ test "SN2 quotient controller binds exact topology and stage order" {
         bindings,
     );
     defer prepared.deinit();
+    try prepared.initializeTransform(&session, bindings.twiddles_inverse);
     try std.testing.expectEqual(
         @as(usize, 6_342),
         prepared.topology.prepared_terms.len,
@@ -87,7 +88,7 @@ test "SN2 quotient controller binds exact topology and stage order" {
     try prepared.executeWith(FakeOps, &session);
     try std.testing.expectEqualSlices(
         u8,
-        &.{ 1, 2, 3, 4 },
+        &.{ 1, 2, 3, 4, 5, 6 },
         session.steps[0..session.step_count],
     );
 }
@@ -154,11 +155,18 @@ const FakeContext = struct {
             return error.InvalidDeviceAddress;
         }
     }
+
+    pub fn copyDeviceSlice(self: *@This(), comptime T: type, destination: anytype, source: anytype) !void {
+        try self.requireStage(.ingress);
+        try std.testing.expectEqual(source.len, destination.len);
+        try std.testing.expectEqual(source.owner, destination.owner);
+        try std.testing.expectEqual(@as(usize, 0), destination.address % @alignOf(T));
+    }
 };
 
 const FakeSession = struct {
     context: FakeContext,
-    steps: [4]u8 = undefined,
+    steps: [6]u8 = undefined,
     step_count: usize = 0,
 
     fn init(stage: telemetry.Stage) FakeSession {
@@ -174,6 +182,13 @@ const FakeSession = struct {
 };
 
 const FakeOps = struct {
+    pub fn inverse(session: *FakeSession, _: anytype, _: anytype, _: anytype, _: u32, _: anytype) !void {
+        try session.record(5);
+    }
+
+    pub fn extend(session: *FakeSession, _: anytype, _: anytype, _: anytype, _: anytype, _: u32, _: anytype, _: bool) !void {
+        try session.record(6);
+    }
     pub fn prepareTerms(
         session: *FakeSession,
         _: anytype,
@@ -199,6 +214,8 @@ const FakeOps = struct {
 
     pub fn accumulate(
         session: *FakeSession,
+        _: anytype,
+        _: anytype,
         _: anytype,
         _: anytype,
         _: anytype,

@@ -21,7 +21,7 @@ pub fn compute(
     slots: types.Slots,
 ) proof_ir.Digest {
     var hash = std.crypto.hash.sha2.Sha256.init(.{});
-    hash.update("stwo-zig/cairo/cuda/mixed-trace-commit/v1\x00");
+    hash.update("stwo-zig/cairo/cuda/mixed-trace-commit/v2\x00");
     hash.update(&program.program_digest);
     hash.update(&plan_identity);
     hash.update(&schedule_identity);
@@ -58,6 +58,8 @@ pub fn compute(
         const value = @field(slots, slot_field.name);
         if (slot_field.type == ?u32) {
             hashInt(&hash, u32, value orelse std.math.maxInt(u32));
+        } else if (slot_field.type == [2]?u32) {
+            for (value) |bank| hashInt(&hash, u32, bank orelse std.math.maxInt(u32));
         } else {
             hashInt(&hash, u32, value);
         }
