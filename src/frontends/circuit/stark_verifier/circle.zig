@@ -100,8 +100,7 @@ pub fn subPointsSimd(comptime V: type, ctx: *Context(V), p0: Point(Simd), p1: Po
 
 /// `generator_point`: the generator of the subgroup of size `2^log_size`.
 pub fn generatorPoint(log_size: usize) core.circle.CirclePointM31 {
-    std.debug.assert(log_size <= core.circle.M31_CIRCLE_LOG_ORDER);
-    return core.circle.M31_CIRCLE_GEN.repeatedDouble(@intCast(core.circle.M31_CIRCLE_LOG_ORDER - log_size));
+    return core.circle.CirclePointIndex.subgroupGen(@intCast(log_size)).toPoint();
 }
 
 /// `generator_point_simd`: that generator repeated in `len` lanes.

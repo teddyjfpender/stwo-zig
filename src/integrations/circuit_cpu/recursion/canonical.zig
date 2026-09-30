@@ -70,9 +70,7 @@ pub const CanonicalCircuit = struct {
         // 2. The multiverifier shape, padded to the target.
         var pp = blk: {
             var ctx = try multiverifier.buildMultiverifierTopology(gpa, table, &shared, circuit.stark_verifier.verify.NoStages{});
-            defer ctx.deinit();
-            try finalize.padToTargets(builder.NoValue, &ctx, target);
-            break :blk try preprocessed.PreprocessedCircuit.fromBuilderCircuit(gpa, &ctx.circuit);
+            break :blk try circuit_params.paddedPreprocessed(gpa, &ctx, target);
         };
         errdefer pp.deinit(gpa);
 
@@ -103,13 +101,7 @@ pub const CanonicalCircuit = struct {
 
     /// The `CircuitSerialize` layout of every proof in the tree
     /// (`shared_config.proof_config`).
-    pub fn proofConfig(self: *const CanonicalCircuit) verifier_proof.Error!wire.circuit_serialize.ProofConfig {
-        return verifier_proof.proofConfig(self.shared.preprocessed_column_log_sizes.entries.len, self.shared.pcs_config);
-    }
-
-    /// The circuit hash as eight little-endian words, the identity every
-    /// internal node carries in the packed output.
-    pub fn circuitHashWords(self: *const CanonicalCircuit) [8]u32 {
-        return circuit_hash.leU32sFromBytes(8, &self.circuit_hash);
+    pub fn proofConfig(self: *const CanonicalCircuit) wire.circuit_serialize.ProofConfig {
+        return self.shared.proof_config.shape();
     }
 };

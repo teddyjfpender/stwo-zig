@@ -39,14 +39,7 @@ pub const Error = error{
 
 /// The circuit verifier's view of the circuit AIR's components
 /// (`all_circuit_components`), in `ComponentList` order.
-pub const component_shapes: [component_list.N_COMPONENTS]wire.ComponentShape = blk: {
-    var shapes: [component_list.N_COMPONENTS]wire.ComponentShape = undefined;
-    for (component_list.component_facts.toArray(), &shapes) |facts, *shape| shape.* = .{
-        .trace_columns = facts.trace_columns,
-        .interaction_columns = facts.interaction_columns,
-    };
-    break :blk shapes;
-};
+pub const component_shapes = circuit.statements.circuit_statement.circuit_component_shapes;
 
 /// `ProofConfig::new(all_circuit_components, n_preprocessed, pcs_config,
 /// INTERACTION_POW_BITS)` as the wire format reads it.
@@ -189,14 +182,10 @@ pub fn fromStarkProof(
     }
 
     // FRI.
-    const n_layers = config.nFriLayers();
-    var steps_buffer: [64]u32 = undefined;
-    const steps = core.fri.allFoldSteps(
-        @intCast(config.log_trace_size - config.fri.log_last_layer_degree_bound),
-        config.fri.fold_step,
-        &steps_buffer,
-    );
-    if (steps.len != n_layers or stark.fri_proof.inner_layers.len + 1 != n_layers or
+    var steps_buffer: [core.circuit_proof_shape.max_fri_layers]u32 = undefined;
+    const steps = config.friFoldSteps(&steps_buffer);
+    const n_layers = steps.len;
+    if (stark.fri_proof.inner_layers.len + 1 != n_layers or
         aux.fri.inner_layers.len + 1 != n_layers)
         return error.InvalidCircuitProof;
     const commitments = try a.alloc(wire.Hash, n_layers);

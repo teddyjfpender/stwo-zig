@@ -1,9 +1,10 @@
 //! `CircuitSerialize`: the binary wire format of a circuit proof.
 //!
-//! Port of `crates/circuit_serialize` (`serialize.rs`, `deserialize.rs`) and
-//! of the size model `ProofInfo` in `crates/stark_verifier/src/proof.rs`, at
+//! Port of `crates/circuit_serialize` (`serialize.rs`, `deserialize.rs`) at
 //! https://github.com/starkware-libs/proving commit
-//! 5a7c5ede4299c91a61df19a07cba4f7502c14230.
+//! 5a7c5ede4299c91a61df19a07cba4f7502c14230. The proof's shape and size
+//! (`ProofInfo::total_bytes`) are `core.circuit_proof_shape`, the model the
+//! in-circuit verifier reads proofs with.
 //!
 //! The format carries no lengths: every count comes from a `ProofConfig`, so
 //! the same bytes decode only under the config they were written with. Field
@@ -35,20 +36,14 @@ const core = @import("stwo_core");
 const M31 = core.fields.m31.M31;
 const QM31 = core.fields.qm31.QM31;
 const m31_modulus = core.fields.m31.Modulus;
+const shape = core.circuit_proof_shape;
 
 pub const FriConfig = core.pcs.config_v2.FriConfigV2;
 
-/// Trees of a circuit proof: preprocessed, trace, interaction, composition.
-pub const n_traces: usize = 4;
-/// `N_COMPOSITION_COLUMNS = COMPOSITION_SPLIT (2) * EXTENSION_DEGREE (4)`.
-pub const n_composition_columns: usize = 8;
-/// The trailing interaction columns of every component that hold the
-/// cumulative sum and so are also sampled at the previous point.
-pub const n_cumulative_sum_columns_per_component: usize = 4;
-
-pub const hash_bytes: usize = 32;
-const m31_bytes: usize = 4;
-const qm31_bytes: usize = 4 * m31_bytes;
+pub const n_traces = shape.n_traces;
+pub const n_composition_columns = shape.n_composition_columns;
+pub const hash_bytes = shape.hash_bytes;
+const m31_bytes = shape.m31_bytes;
 
 /// A Merkle root or authentication-path node: the 32 Blake2s digest bytes.
 pub const Hash = [hash_bytes]u8;
@@ -65,145 +60,15 @@ pub const ShapeError = error{
     ShapeMismatch,
 };
 
-pub const ConfigError = error{
-    /// The config cannot describe a circuit proof (see `ProofConfig.validate`).
-    InvalidProofConfig,
-};
+/// The config cannot describe a circuit proof (`ProofShape.validate`).
+pub const ConfigError = shape.Error;
 
 /// Trace and interaction column counts of one AIR component.
-pub const ComponentShape = struct {
-    trace_columns: usize,
-    interaction_columns: usize,
-};
+pub const ComponentShape = shape.ComponentShape;
 
 /// The structure of a circuit proof: `ProofConfig` minus
 /// `n_interaction_pow_bits`, which no byte of the format depends on.
-///
-/// `component_shapes` is in the order the statement iterates its components
-/// (for the circuit AIR, `all_circuit_components`). It is borrowed.
-pub const ProofConfig = struct {
-    n_preprocessed_columns: usize,
-    component_shapes: []const ComponentShape,
-    log_trace_size: u32,
-    fri: FriConfig,
-
-    /// Rejects a config upstream would assert on or that has no proof shape:
-    /// a component with fewer interaction columns than its cumulative sum, a
-    /// zero FRI fold step, or a last layer larger than the trace.
-    pub fn validate(self: ProofConfig) ConfigError!void {
-        for (self.component_shapes) |shape| {
-            if (shape.interaction_columns < n_cumulative_sum_columns_per_component) {
-                return error.InvalidProofConfig;
-            }
-        }
-        if (self.fri.fold_step == 0) return error.InvalidProofConfig;
-        if (self.fri.log_last_layer_degree_bound > self.log_trace_size) {
-            return error.InvalidProofConfig;
-        }
-        if (self.logEvaluationDomainSize() > 31) return error.InvalidProofConfig;
-    }
-
-    pub fn nComponents(self: ProofConfig) usize {
-        return self.component_shapes.len;
-    }
-
-    pub fn nTraceColumns(self: ProofConfig) usize {
-        var total: usize = 0;
-        for (self.component_shapes) |shape| total += shape.trace_columns;
-        return total;
-    }
-
-    pub fn nInteractionColumns(self: ProofConfig) usize {
-        var total: usize = 0;
-        for (self.component_shapes) |shape| total += shape.interaction_columns;
-        return total;
-    }
-
-    pub fn nCumulativeSumColumns(self: ProofConfig) usize {
-        return self.component_shapes.len * n_cumulative_sum_columns_per_component;
-    }
-
-    /// `[preprocessed, trace, interaction, composition]` column counts.
-    pub fn nColumnsPerTrace(self: ProofConfig) [n_traces]usize {
-        return .{
-            self.n_preprocessed_columns,
-            self.nTraceColumns(),
-            self.nInteractionColumns(),
-            n_composition_columns,
-        };
-    }
-
-    pub fn nQueries(self: ProofConfig) usize {
-        return self.fri.n_queries;
-    }
-
-    pub fn logEvaluationDomainSize(self: ProofConfig) usize {
-        return @as(usize, self.log_trace_size) + self.fri.log_blowup_factor;
-    }
-
-    /// Number of FRI layers: `compute_all_fold_steps(log_trace_size -
-    /// log_last_layer_degree_bound, fold_step).len()`.
-    pub fn nFriLayers(self: ProofConfig) usize {
-        return std.math.divCeil(usize, self.degreeLogRatio(), self.fri.fold_step) catch unreachable;
-    }
-
-    /// The fold step of FRI layer `layer`: `fold_step`, except that the last
-    /// layer takes the remainder when the degree ratio is not a multiple.
-    pub fn friFoldStep(self: ProofConfig, layer: usize) usize {
-        const ratio = self.degreeLogRatio();
-        const step: usize = self.fri.fold_step;
-        std.debug.assert(layer < self.nFriLayers());
-        if (layer + 1 == self.nFriLayers() and ratio % step != 0) return ratio % step;
-        return step;
-    }
-
-    /// Authentication path length of FRI layer `layer`.
-    pub fn friPathLength(self: ProofConfig, layer: usize) usize {
-        var path_len = self.logEvaluationDomainSize();
-        for (0..layer + 1) |index| path_len -= self.friFoldStep(index);
-        return path_len;
-    }
-
-    /// Whether interaction column `column` also carries its value at the
-    /// previous point: the last four interaction columns of each component.
-    pub fn isCumulativeSumColumn(self: ProofConfig, column: usize) bool {
-        var start: usize = 0;
-        for (self.component_shapes) |shape| {
-            const end = start + shape.interaction_columns;
-            if (column < end) {
-                return column >= end - n_cumulative_sum_columns_per_component;
-            }
-            start = end;
-        }
-        unreachable;
-    }
-
-    /// `ProofInfo::from_config(config).total_bytes()`: the exact encoded size.
-    pub fn serializedLen(self: ProofConfig) usize {
-        const columns = self.nColumnsPerTrace();
-        const total_columns = columns[0] + columns[1] + columns[2] + columns[3];
-        const fixed = (1 + 3 * 2 + 1 + 1) * qm31_bytes;
-        const claim = self.nComponents() * qm31_bytes;
-        const oods = (total_columns + self.nCumulativeSumColumns()) * qm31_bytes;
-        const fri_commitments = self.nFriLayers() * hash_bytes;
-        const fri_last_layer = (@as(usize, 1) << @intCast(self.fri.log_last_layer_degree_bound)) * qm31_bytes;
-
-        const eval_samples_per_query = total_columns * m31_bytes;
-        const eval_auth_per_query = n_traces * self.logEvaluationDomainSize() * hash_bytes;
-        var fri_auth_per_query: usize = 0;
-        var fri_witness_per_query: usize = 0;
-        for (0..self.nFriLayers()) |layer| {
-            fri_auth_per_query += self.friPathLength(layer) * hash_bytes;
-            fri_witness_per_query += (@as(usize, 1) << @intCast(self.friFoldStep(layer))) * qm31_bytes;
-        }
-        const per_query = eval_samples_per_query + eval_auth_per_query + fri_auth_per_query + fri_witness_per_query;
-        return fixed + claim + oods + fri_commitments + fri_last_layer + per_query * self.nQueries();
-    }
-
-    fn degreeLogRatio(self: ProofConfig) usize {
-        return self.log_trace_size - self.fri.log_last_layer_degree_bound;
-    }
-};
+pub const ProofConfig = shape.ProofShape;
 
 pub const InteractionAtOods = struct {
     at_oods: QM31,
@@ -215,10 +80,10 @@ pub const FriProof = struct {
     layer_commitments: []Hash,
     last_layer_coefs: []QM31,
     /// Per layer, query-major: node `level` of query `q` is at
-    /// `[q * friPathLength(layer) + level]`.
+    /// `[q * path_len + level]`, `path_len` the layer's folded domain log size.
     auth_paths: [][]Hash,
     /// Per layer, query-major: coset value `i` of query `q` is at
-    /// `[q * 2^friFoldStep(layer) + i]`.
+    /// `[q * 2^step + i]`, `step` the layer's fold step.
     witness: [][]QM31,
 };
 
@@ -261,14 +126,17 @@ pub const Proof = struct {
             try expectLen(self.eval_domain_samples[tree].len, columns[tree] * n_queries);
             try expectLen(self.eval_domain_auth_paths[tree].len, n_queries * config.logEvaluationDomainSize());
         }
-        const n_layers = config.nFriLayers();
-        try expectLen(self.fri.layer_commitments.len, n_layers);
+        var steps_buffer: [shape.max_fri_layers]u32 = undefined;
+        const steps = config.friFoldSteps(&steps_buffer);
+        try expectLen(self.fri.layer_commitments.len, steps.len);
         try expectLen(self.fri.last_layer_coefs.len, @as(usize, 1) << @intCast(config.fri.log_last_layer_degree_bound));
-        try expectLen(self.fri.auth_paths.len, n_layers);
-        try expectLen(self.fri.witness.len, n_layers);
-        for (0..n_layers) |layer| {
-            try expectLen(self.fri.auth_paths[layer].len, n_queries * config.friPathLength(layer));
-            try expectLen(self.fri.witness[layer].len, n_queries << @intCast(config.friFoldStep(layer)));
+        try expectLen(self.fri.auth_paths.len, steps.len);
+        try expectLen(self.fri.witness.len, steps.len);
+        var path_len = config.logEvaluationDomainSize();
+        for (steps, 0..) |step, layer| {
+            path_len -= step;
+            try expectLen(self.fri.auth_paths[layer].len, n_queries * path_len);
+            try expectLen(self.fri.witness[layer].len, n_queries << @intCast(step));
         }
     }
 };
@@ -327,19 +195,22 @@ pub fn deserializeProof(
     proof.pow_nonce = try reader.qm31();
     proof.interaction_pow_nonce = try reader.qm31();
 
-    const n_layers = config.nFriLayers();
-    proof.fri.layer_commitments = try reader.hashes(allocator, n_layers);
+    var steps_buffer: [shape.max_fri_layers]u32 = undefined;
+    const steps = config.friFoldSteps(&steps_buffer);
+    proof.fri.layer_commitments = try reader.hashes(allocator, steps.len);
     proof.fri.last_layer_coefs = try reader.qm31s(
         allocator,
         @as(usize, 1) << @intCast(config.fri.log_last_layer_degree_bound),
     );
-    proof.fri.auth_paths = try allocator.alloc([]Hash, n_layers);
-    for (proof.fri.auth_paths, 0..) |*paths, layer| {
-        paths.* = try reader.hashes(allocator, n_queries * config.friPathLength(layer));
+    proof.fri.auth_paths = try allocator.alloc([]Hash, steps.len);
+    var path_len = config.logEvaluationDomainSize();
+    for (proof.fri.auth_paths, steps) |*paths, step| {
+        path_len -= step;
+        paths.* = try reader.hashes(allocator, n_queries * path_len);
     }
-    proof.fri.witness = try allocator.alloc([]QM31, n_layers);
-    for (proof.fri.witness, 0..) |*witness, layer| {
-        witness.* = try reader.qm31s(allocator, n_queries << @intCast(config.friFoldStep(layer)));
+    proof.fri.witness = try allocator.alloc([]QM31, steps.len);
+    for (proof.fri.witness, steps) |*witness, step| {
+        witness.* = try reader.qm31s(allocator, n_queries << @intCast(step));
     }
     return .{ .arena = arena, .proof = proof, .consumed = reader.position };
 }
@@ -479,26 +350,6 @@ fn patternBytes(allocator: std.mem.Allocator, len: usize) ![]u8 {
     return bytes;
 }
 
-test "circuit serialize: size model matches the stark_verifier ProofInfo breakdown" {
-    // log_trace 5, last layer 1: ratio 4 folds as [3, 1]; eval domain 6.
-    try std.testing.expectEqual(@as(usize, 2), test_config.nFriLayers());
-    try std.testing.expectEqual(@as(usize, 3), test_config.friFoldStep(0));
-    try std.testing.expectEqual(@as(usize, 1), test_config.friFoldStep(1));
-    try std.testing.expectEqual(@as(usize, 3), test_config.friPathLength(0));
-    try std.testing.expectEqual(@as(usize, 2), test_config.friPathLength(1));
-    // Component 0's four interaction columns are all cumulative sum; component
-    // 1 has four plain columns (4..7) before its cumulative sum (8..11).
-    try std.testing.expect(test_config.isCumulativeSumColumn(0));
-    try std.testing.expect(test_config.isCumulativeSumColumn(3));
-    try std.testing.expect(!test_config.isCumulativeSumColumn(4));
-    try std.testing.expect(!test_config.isCumulativeSumColumn(7));
-    try std.testing.expect(test_config.isCumulativeSumColumn(8));
-    try std.testing.expect(test_config.isCumulativeSumColumn(11));
-    // fixed 144 + claim 32 + oods (26 columns + 8 cumsum) * 16 + fri
-    // commitments 64 + last layer 32 + per query (104 + 768 + 160 + 160) * 2.
-    try std.testing.expectEqual(@as(usize, 144 + 32 + 544 + 64 + 32 + 1192 * 2), test_config.serializedLen());
-}
-
 test "circuit serialize: decode then encode reproduces the bytes" {
     const allocator = std.testing.allocator;
     const bytes = try patternBytes(allocator, test_config.serializedLen());
@@ -544,5 +395,5 @@ test "circuit serialize: encoding rejects a proof whose shape differs from the c
 
     var bad_config = test_config;
     bad_config.fri.fold_step = 0;
-    try std.testing.expectError(error.InvalidProofConfig, deserializeProof(allocator, bytes, bad_config));
+    try std.testing.expectError(error.InvalidProofShape, deserializeProof(allocator, bytes, bad_config));
 }

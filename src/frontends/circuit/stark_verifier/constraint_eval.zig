@@ -6,9 +6,6 @@
 //! Upstream's `RelationUse` lives with the other static component facts in
 //! `common/component_list.zig`.
 //!
-//! Stream M4 wrote the accumulator (the evaluators cannot run without it);
-//! M5 added `ComponentData` and `compute_composition_polynomial`.
-//!
 //! `ComponentDataTrait` is a comptime duck type. A component-data value `data`
 //! of type `Data` provides:
 //!

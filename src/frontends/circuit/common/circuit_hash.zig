@@ -7,7 +7,7 @@
 //! 5a7c5ede4299c91a61df19a07cba4f7502c14230). `configWords` is the single
 //! definition of the 12-byte config layout: the host hash here, the
 //! in-circuit hash (`blake2s_u32s` over the same words as constants), the
-//! prover transcript (M7) and the registry check all call it.
+//! circuit prover's transcript and the registry check all call it.
 
 const std = @import("std");
 const core = @import("stwo_core");
@@ -76,19 +76,12 @@ pub fn circuitHash(
     return builder.blake.blake2sU32s(V, ctx, &message, 4 * message.len);
 }
 
-/// `le_u32s_from_bytes`: consecutive little-endian u32 words.
+/// `le_u32s_from_bytes`: consecutive little-endian u32 words (the config
+/// words; a digest's words are `core.vcs.blake2_hash.digestToU32s`).
 pub fn leU32sFromBytes(comptime n_words: usize, bytes: *const [4 * n_words]u8) [n_words]u32 {
     var words: [n_words]u32 = undefined;
     for (&words, 0..) |*word, index| word.* = std.mem.readInt(u32, bytes[4 * index ..][0..4], .little);
     return words;
-}
-
-/// The inverse of `leU32sFromBytes`, e.g. digest words back into a
-/// `Blake2sHash`.
-pub fn bytesFromLeU32s(comptime n_words: usize, words: [n_words]u32) [4 * n_words]u8 {
-    var bytes: [4 * n_words]u8 = undefined;
-    for (words, 0..) |word, index| std.mem.writeInt(u32, bytes[4 * index ..][0..4], word, .little);
-    return bytes;
 }
 
 test "circuit hash: compute_circuit_hash_matches_golden" {
@@ -107,12 +100,12 @@ test "circuit hash: compute_circuit_hash_matches_golden" {
         .verify_bitwise_xor_9 = 18,
         .range_check_16 = 16,
     };
-    const root = bytesFromLeU32s(8, .{ 0, 1, 2, 3, 4, 5, 6, 7 });
+    const root = core.vcs.blake2_hash.digestFromU32s(.{ 0, 1, 2, 3, 4, 5, 6, 7 });
     const hash = try hostCircuitHash(sizes, 3, root);
     try std.testing.expectEqual([8]u32{
         0xa8810641, 0x52391285, 0x90b37fd2, 0x905b887a,
         0x7db7dc81, 0xa7c3a731, 0xd0d46b34, 0x8fa6a471,
-    }, leU32sFromBytes(8, &hash));
+    }, core.vcs.blake2_hash.digestToU32s(hash));
 }
 
 test "circuit hash: config words reject values wider than a byte" {

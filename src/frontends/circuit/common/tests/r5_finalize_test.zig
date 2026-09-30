@@ -56,7 +56,7 @@ test "R5: finalization, per-kind padding and ZK blinding match the oracle" {
         var topology = try contexts.build(builder.NoValue, gpa, which);
         defer topology.deinit();
         try topology.finalize(false);
-        try expectSizes(try fixture.field(record, "padded_sizes"), finalize.computePaddedSizes(&topology.circuit));
+        try expectSizes(try fixture.field(record, "padded_sizes"), finalize.computePaddedSizes(.fromBuilder(&topology.circuit)));
     }
 }
 
@@ -89,8 +89,8 @@ fn checkStages(comptime V: type, which: contexts.TestContext, stages: []const Va
         var ctx = try contexts.build(V, gpa, which);
         defer ctx.deinit();
         try ctx.finalize(false);
-        const targets = finalize.computePaddedSizes(&ctx.circuit);
-        var current = finalize.rawComponentSizes(&ctx.circuit);
+        const targets = finalize.computePaddedSizes(.fromBuilder(&ctx.circuit));
+        var current = finalize.rawComponentSizes(.fromBuilder(&ctx.circuit));
         inline for (finalize.PAD_ORDER) |kind| {
             @field(current, @tagName(kind)) = @field(targets, @tagName(kind));
             try finalize.padToTargets(V, &ctx, current);
@@ -127,7 +127,7 @@ fn expectStage(comptime V: type, stage: Value, name: []const u8, ctx: *const bui
         try std.testing.expect(raw_sizes == null and values_sha256 == null);
         return;
     }
-    try expectSizes(raw_sizes orelse return error.FixtureShape, finalize.rawComponentSizes(&ctx.circuit));
+    try expectSizes(raw_sizes orelse return error.FixtureShape, finalize.rawComponentSizes(.fromBuilder(&ctx.circuit)));
     if (V == QM31) {
         try std.testing.expectEqual(try fixture.digest(values_sha256 orelse return error.FixtureShape), circuit_summary.valuesSha256(ctx.values()));
         try std.testing.expect(try ctx.isCircuitValid());

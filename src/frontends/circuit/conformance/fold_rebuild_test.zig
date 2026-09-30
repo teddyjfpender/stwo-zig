@@ -12,6 +12,7 @@
 //! equal the registry's and the oracle's.
 
 const std = @import("std");
+const blake2_hash = @import("stwo_core").vcs.blake2_hash;
 const core = @import("stwo_core");
 const circuit = @import("circuit_frontend");
 const testing = @import("circuit_testing");
@@ -102,8 +103,8 @@ fn checkFold(gpa: std.mem.Allocator, table: *const circuit.air_eval.component_ta
     const hash = try circuit_hash.hostCircuitHash(log_sizes, fri.log_blowup_factor, root);
     try std.testing.expectEqualSlices(u8, &try fold_registry.parseDigest(entry.preprocessed_root), &root);
     try std.testing.expectEqualSlices(u8, &try fold_registry.parseDigest(entry.circuit_hash), &hash);
-    try std.testing.expectEqual(try verifier_stages.words8(try fixture.field(fold, "preprocessed_root")), circuit_hash.leU32sFromBytes(8, &root));
-    try std.testing.expectEqual(try verifier_stages.words8(try fixture.field(fold, "circuit_hash")), circuit_hash.leU32sFromBytes(8, &hash));
+    try std.testing.expectEqual(try verifier_stages.words8(try fixture.field(fold, "preprocessed_root")), blake2_hash.digestToU32s(root));
+    try std.testing.expectEqual(try verifier_stages.words8(try fixture.field(fold, "circuit_hash")), blake2_hash.digestToU32s(hash));
 }
 
 /// `padded_preprocessed_circuit`: the multiverifier topology, checked to
@@ -118,7 +119,7 @@ fn paddedPreprocessedCircuit(
 ) !preprocessed.PreprocessedCircuit {
     var ctx = try multiverifier.buildMultiverifierTopology(gpa, table, shared, circuit.stark_verifier.verify.NoStages{});
     defer ctx.deinit();
-    const unpadded = finalize.computePaddedSizes(&ctx.circuit);
+    const unpadded = finalize.computePaddedSizes(.fromBuilder(&ctx.circuit));
     try std.testing.expectEqual(target, target.elementwiseMax(unpadded));
     try expectFields(expected_unpadded, unpadded.map(log2));
     try finalize.padToTargets(builder.NoValue, &ctx, target);

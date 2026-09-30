@@ -11,6 +11,7 @@
 //! in `src/integrations/circuit_cpu`, which can decode `CircuitSerialize`.
 
 const std = @import("std");
+const blake2_hash = @import("stwo_core").vcs.blake2_hash;
 const core = @import("stwo_core");
 const circuit = @import("circuit_frontend");
 const testing = @import("circuit_testing");
@@ -52,7 +53,7 @@ test "R4: multiverifier verifier stages and preprocessed root match the oracle (
     defer pp.deinit(gpa);
     try std.testing.expect(pp.layout().eql(&shared.preprocessed_column_log_sizes));
     const root = try pp.preprocessedRoot(gpa, verifier_stages.privacy_log_blowup_factor);
-    const expected_root = circuit_hash.bytesFromLeU32s(8, try verifier_stages.words8(try fixture.field(body, "preprocessed_root")));
+    const expected_root = blake2_hash.digestFromU32s(try verifier_stages.words8(try fixture.field(body, "preprocessed_root")));
     try std.testing.expectEqualSlices(u8, &expected_root, &root);
 
     // The host preimage: each child's circuit hash is the host hash of its
@@ -61,7 +62,7 @@ test "R4: multiverifier verifier stages and preprocessed root match the oracle (
     try std.testing.expectEqual(@as(usize, 32), preimage.len);
     const log_sizes = try circuit.statements.circuit_statement.circuitComponentLogSizes(&shared.preprocessed_column_log_sizes);
     const child_hash = try circuit_hash.hostCircuitHash(log_sizes, verifier_stages.privacy_log_blowup_factor, expected_root);
-    for (circuit_hash.leU32sFromBytes(8, &child_hash), preimage[0..8]) |word, expected| {
+    for (blake2_hash.digestToU32s(child_hash), preimage[0..8]) |word, expected| {
         try std.testing.expectEqual(try fixture.unsigned(u32, expected), word);
     }
 }

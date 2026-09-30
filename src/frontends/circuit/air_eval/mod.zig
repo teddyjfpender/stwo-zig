@@ -13,7 +13,7 @@
 //! `Ctx` with `Var` and `Value` declarations and the methods `zero()`,
 //! `one()`, `constant(QM31) !Var`, `add/sub/mul(Var, Var) !Var`,
 //! `eq(Var, Var) !void`, `inv(Var) !Var` and `newVar(Value) !Var`, with the
-//! semantics of `crates/circuits/src/{context,ops}.rs`. The M2 builder's
+//! semantics of `crates/circuits/src/{context,ops}.rs`. The builder's
 //! `builder.Context(V)` has exactly this surface.
 
 pub const projection = @import("projection.zig");

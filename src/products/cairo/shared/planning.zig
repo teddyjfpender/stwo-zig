@@ -29,11 +29,7 @@ pub fn inspect(allocator: std.mem.Allocator, request: cli.Inspect) !void {
     try profile.admitInput(&paths, &input, library, request.params == null);
     var topology = try cairo.witness.feed_topology.readOfficial(allocator, paths.witness_topology);
     defer topology.deinit();
-    const variant: cairo.claim_generator.PreprocessedVariant = switch (paths.variant) {
-        .canonical => .canonical,
-        .canonical_small => .canonical_small,
-        .canonical_without_pedersen => .canonical_without_pedersen,
-    };
+    const variant: cairo.claim_generator.PreprocessedVariant = paths.variant;
     var geometry = try cairo.claim_generator.deriveFromProverInput(allocator, &input, .{ .preprocessed_variant = variant });
     defer geometry.deinit();
     const was_deferred = try allocator.alloc(bool, geometry.components.len);

@@ -5,6 +5,7 @@
 //! package); the circuit integrations use that codec.
 
 const std = @import("std");
+const blake2_hash = @import("stwo_core").vcs.blake2_hash;
 const core = @import("stwo_core");
 const circuit = @import("stwo_circuit_frontend");
 
@@ -56,7 +57,7 @@ pub fn parseDigest(words: DigestWords) ![32]u8 {
         if (!std.mem.startsWith(u8, text, "0x")) return error.InvalidDigestWord;
         word.* = try std.fmt.parseInt(u32, text[2..], 16);
     }
-    return circuit_hash.bytesFromLeU32s(8, out);
+    return blake2_hash.digestFromU32s(out);
 }
 
 pub fn load(allocator: std.mem.Allocator, path: []const u8) !std.json.Parsed(Registry) {

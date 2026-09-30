@@ -188,7 +188,7 @@ const statement = try Statement.init(arena, &ctx, inputs);
 | Interpreter | `air_eval.interpreter.Interpreter(Ctx, Data)` |
 | Slot tables | `air_eval.cairo_components` (83 slots), `air_eval.circuit_components` (11), `air_eval.component_table` |
 | Composition | `stark_verifier.constraint_eval` (`CompositionConstraintAccumulator`, `InteractionAtOods`), `stark_verifier.logup` |
-| Harness data | `stark_verifier.test_utils.TestComponentData` |
+| Harness data | `testing/component_data.zig` `TestComponentData` (test-only) |
 | Utilities | `common.component_utils.seqOfComponentSize` |
 | In-circuit verifier | `stark_verifier.verify` (`verify`, `Stage`, `NoStages`), `stark_verifier.proof` (`Proof`, `guess`, `emptyProof`), `stark_verifier.{channel,circle,merkle,sort_queries,select_queries,fri,oods}` |
 | Statements | `statements.circuit_statement` (`CircuitStatement`), `statements.multiverifier` (`buildMultiverifierCircuit`, `buildMultiverifierTopology`), `statements.cairo_statement`, `statements.cairo_leaf_config`, `statements.cairo_verifier` (`CairoVerifierConfig`, `VerifierStatement`, `buildCairoVerifierCircuit`, `buildCairoVerifierTopology`) |

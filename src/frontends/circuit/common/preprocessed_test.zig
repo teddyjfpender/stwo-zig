@@ -40,7 +40,6 @@ const SampleCircuit = struct {
         var self: SampleCircuit = .{};
         for (&self.triple_xor, 0..) |*gate, i| gate.* = .{ .input_a = 0, .input_b = 1, .input_c = 2, .out = @intCast(56 + i) };
         for (&self.blake_g_gate, 0..) |*gate, i| {
-            const o: u32 = @intCast(88 + 4 * i);
             gate.* = .{
                 .input_a = 0,
                 .input_b = 1,
@@ -48,10 +47,7 @@ const SampleCircuit = struct {
                 .input_d = 3,
                 .input_f0 = 4,
                 .input_f1 = 5,
-                .out_a = o,
-                .out_b = o + 1,
-                .out_c = o + 2,
-                .out_d = o + 3,
+                .out_base = @intCast(88 + 4 * i),
             };
         }
         for (&self.m31_to_u32, 0..) |*gate, i| gate.* = .{ .input = 0, .out = @intCast(72 + i) };
@@ -139,14 +135,14 @@ test "preprocessed: multiplicities count uses and blake_g outputs must agree" {
 
 test "preprocessed: permutations lower to add rows through fresh wires" {
     var sample = SampleCircuit.init();
-    const offsets = [_]u32{ 0, 2 };
+    const ends = [_]u32{2};
     const inputs = [_]u32{ 2, 5 };
     const outputs = [_]u32{ 30, 31 };
     const output_gates = [_]u32{ 0, 30, 2 };
     var view = sample.view();
     view.add = &.{};
     view.sub = &.{};
-    view.permutation_offsets = &offsets;
+    view.permutation_ends = &ends;
     view.permutation_inputs = &inputs;
     view.permutation_outputs = &outputs;
     view.output = &output_gates;
@@ -173,7 +169,7 @@ test "preprocessed: permutations lower to add rows through fresh wires" {
     }
 }
 
-const permutation_offsets = [_]u32{ 0, 2 };
+const permutation_ends = [_]u32{2};
 const permutation_inputs = [_]u32{ 2, 5 };
 const permutation_outputs = [_]u32{ 30, 31 };
 const permutation_output_gates = [_]u32{ 0, 30, 2 };
@@ -182,7 +178,7 @@ fn permutationView(sample: *const SampleCircuit) CircuitView {
     var view = sample.view();
     view.add = &.{};
     view.sub = &.{};
-    view.permutation_offsets = &permutation_offsets;
+    view.permutation_ends = &permutation_ends;
     view.permutation_inputs = &permutation_inputs;
     view.permutation_outputs = &permutation_outputs;
     view.output = &permutation_output_gates;
@@ -217,25 +213,25 @@ test "preprocessed: malformed circuit views fail closed" {
     view.add = &bad_add;
     try std.testing.expectError(error.VariableOutOfRange, preprocessed.PreprocessedCircuit.fromCircuit(allocator, view));
 
-    // A blake_g output other than `out_a` past `n_vars`.
-    sample.blake_g_gate[3].out_d = @intCast(n_vars);
+    // A blake_g gate whose last output (`out_base + 3`) is past `n_vars`.
+    sample.blake_g_gate[3].out_base = @intCast(n_vars - 3);
     try std.testing.expectError(error.VariableOutOfRange, preprocessed.PreprocessedCircuit.fromCircuit(allocator, sample.view()));
     sample = SampleCircuit.init();
 
-    // Permutation CSR layouts: decreasing offsets, a short final offset,
-    // unpaired outputs, and an out-of-range output.
-    const decreasing = [_]u32{ 0, 2, 1, 2 };
-    const short = [_]u32{ 0, 1 };
+    // Permutation CSR layouts: decreasing ends, a short final end, unpaired
+    // outputs, and an out-of-range output.
+    const decreasing = [_]u32{ 2, 1, 2 };
+    const short = [_]u32{1};
     const unpaired = [_]u32{30};
     const out_of_range = [_]u32{ 30, @intCast(n_vars) };
     inline for (.{
         .{ &decreasing, &permutation_outputs },
         .{ &short, &permutation_outputs },
-        .{ &permutation_offsets, &unpaired },
-        .{ &permutation_offsets, &out_of_range },
+        .{ &permutation_ends, &unpaired },
+        .{ &permutation_ends, &out_of_range },
     }) |case| {
         var malformed = permutationView(&sample);
-        malformed.permutation_offsets = case[0];
+        malformed.permutation_ends = case[0];
         malformed.permutation_outputs = case[1];
         try std.testing.expectError(error.VariableOutOfRange, preprocessed.PreprocessedCircuit.fromCircuit(allocator, malformed));
     }

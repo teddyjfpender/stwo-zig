@@ -5,9 +5,9 @@
 //! 5a7c5ede4299c91a61df19a07cba4f7502c14230), design §5.3.
 //!
 //! `VerifierStatement(V)` is the `impl Statement for CairoStatement` of
-//! `statement.rs`: it binds the `CairoStatement` port (over the M2 builder
+//! `statement.rs`: it binds the `CairoStatement` port (over the builder
 //! facade) to the `stark_verifier.verify` statement interface and to the
-//! enabled slots of M4's 83-slot Cairo evaluator table. It adds no gates of
+//! enabled slots of the 83-slot Cairo evaluator table (`air_eval.cairo_components`). It adds no gates of
 //! its own; every builder call is the statement's or an evaluator's.
 //!
 //! The leaf circuit is `CairoStatement::new`, the proof guess, `verify` and
@@ -16,6 +16,7 @@
 //! interned as constants, everything proof-specific is guessed.
 
 const std = @import("std");
+const blake2_hash = @import("stwo_core").vcs.blake2_hash;
 const core = @import("stwo_core");
 const builder = @import("../builder/mod.zig");
 const component_list = @import("../common/component_list.zig");
@@ -237,7 +238,7 @@ pub fn buildCairoVerifierCircuit(
         const seed: [32]u8 = if (V == builder.NoValue) [_]u8{0} ** 32 else blk: {
             var words: [8]u32 = undefined;
             for (&words, input.proof.trace_root.words) |*word, value| word.* = builder.ivalue.unpackU32(V, value.get());
-            break :blk circuit_hash.bytesFromLeU32s(8, words);
+            break :blk blake2_hash.digestFromU32s(words);
         };
         try zk_blinding.addZkBlinding(V, &ctx, seed, amount);
     }

@@ -27,7 +27,7 @@ const M31 = stwo_core.fields.m31.M31;
 const air_eval = circuit.air_eval;
 const builder = circuit.builder;
 const constraint_eval = circuit.stark_verifier.constraint_eval;
-const TestComponentData = circuit.stark_verifier.test_utils.TestComponentData;
+const TestComponentData = @import("../../testing/component_data.zig").TestComponentData;
 const Table = air_eval.component_table.Table;
 const Value = std.json.Value;
 

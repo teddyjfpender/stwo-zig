@@ -20,9 +20,10 @@
 //! overflows the multiply and is rejected).
 
 const std = @import("std");
+const blake2_hash = @import("stwo_core").vcs.blake2_hash;
 
 /// The Stark field prime, 2^251 + 17 * 2^192 + 1.
-pub const stark_prime: u256 = (1 << 251) + 17 * (1 << 192) + 1;
+pub const stark_prime: u256 = @import("stwo_core").fields.stark_prime;
 const small_threshold: u256 = 1 << 63;
 const big_marker: u32 = 1 << 31;
 
@@ -67,17 +68,7 @@ pub fn outputDigest(allocator: std.mem.Allocator, preimage: []const []const u8) 
     var words: std.ArrayList(u32) = .empty;
     defer words.deinit(allocator);
     for (preimage) |text| try appendFeltWords(allocator, &words, try parseDecimalFelt(text));
-    var hasher = std.crypto.hash.blake2.Blake2s256.init(.{});
-    for (words.items) |word| {
-        var bytes: [4]u8 = undefined;
-        std.mem.writeInt(u32, &bytes, word, .little);
-        hasher.update(&bytes);
-    }
-    var digest: [32]u8 = undefined;
-    hasher.final(&digest);
-    var out: [8]u32 = undefined;
-    for (&out, 0..) |*word, index| word.* = std.mem.readInt(u32, digest[index * 4 ..][0..4], .little);
-    return out;
+    return blake2_hash.digestToU32s(blake2_hash.Blake2sHasher.hashU32s(words.items));
 }
 
 test "blake2 felt252: decimal parsing follows Felt::from_dec_str" {

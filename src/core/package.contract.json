@@ -16,6 +16,7 @@
     "cairo_air_layout",
     "channel",
     "circle",
+    "circuit_proof_shape",
     "constraint_framework",
     "constraints",
     "crypto",

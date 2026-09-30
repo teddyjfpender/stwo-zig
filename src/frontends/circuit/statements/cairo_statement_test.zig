@@ -1,8 +1,8 @@
 //! Structural tests of the `CairoStatement` port through a recording builder
-//! facade. They pin what the port controls without the M2 builder: guess
+//! facade. They pin what the port controls without the builder: guess
 //! order and counts, the `set_outputs` wires, the aux-data parse, the
 //! `claims_to_mix` groups, the `verify_builtins` component choice and the
-//! public parameters. The last tests run the same port over the M2 builder
+//! public parameters. The last tests run the same port over the builder
 //! (`cairo_statement_builder.BuilderFacade`): `claims_to_mix` on the R6
 //! synthetic claim must mix to upstream's `FlatClaim::mix_into` digest, and
 //! the value and topology builds must emit the same gates. Gate-level parity
@@ -392,7 +392,7 @@ test "cairo statement: enabled bits over the projection's slot order match the R
     try std.testing.expectEqual(@as(usize, 79), try layout.leafEnabledBits(.canonical_small, names, &bits));
     try std.testing.expectEqualSlices(bool, fixture.enabled_bits, &bits);
 
-    // The projection header (through M4's table) and the statement checkpoint
+    // The projection header (through the evaluator table) and the statement checkpoint
     // agree on the memory constants the statement uses.
     const cairo_components = @import("../air_eval/cairo_components.zig");
     var table = try cairo_components.build(allocator, &projection);
@@ -475,7 +475,7 @@ const SyntheticInputs = struct {
 };
 
 /// Builds `CairoStatement::new`, `claims_to_mix`, `verify_claim` and
-/// `public_logup_sum` over the M2 builder; returns the context.
+/// `public_logup_sum` over the builder; returns the context.
 fn buildOverBuilder(comptime V: type, gpa: std.mem.Allocator, fixture: *const Fixture, inputs: SyntheticInputs, groups_out: ?*[7][]const builder.Var) !builder.Context(V) {
     const B = BuilderFacade(V);
     var ctx = try B.Context.init(gpa, 8);

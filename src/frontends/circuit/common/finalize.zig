@@ -5,7 +5,7 @@
 //! (https://github.com/starkware-libs/proving at
 //! 5a7c5ede4299c91a61df19a07cba4f7502c14230); the ZK half is
 //! `zk_blinding.zig`. `ComponentSizes` is the one size struct of the circuit
-//! lane: registry `LogSizes` (interop, M3) maps into it by field name,
+//! lane: registry `LogSizes` (`src/interop/circuit_recursion`) maps into it by field name,
 //! because the two declare their fields in different orders. Padding appends
 //! real gates through the builder API, so the constants it requests after
 //! `finalize` take upstream's path (the zero word of `pad_triple_xor` and
@@ -92,36 +92,20 @@ pub fn paddedSize(n_rows: usize) usize {
     return @max(std.math.ceilPowerOfTwoAssert(usize, @max(n_rows, 1)), component_list.N_LANES);
 }
 
-/// `qm31_ops_n_rows`: binary-op gates plus one row per permutation input and
-/// output.
-pub fn qm31OpsNRows(circuit: preprocessed.CircuitView) usize {
-    return circuit.add.len + circuit.sub.len + circuit.mul.len + circuit.pointwise_mul.len +
-        circuit.permutationRows();
-}
-
-/// `raw_component_sizes`, over either circuit representation: the
-/// preprocessing's `CircuitView` or the builder's `Circuit` (padding reads
-/// the live builder circuit).
-pub fn rawComponentSizes(circuit: anytype) ComponentSizes {
-    if (@TypeOf(circuit) == *const builder.Circuit or @TypeOf(circuit) == *builder.Circuit) return .{
-        .eq = circuit.eq.items.len,
-        .qm31_ops = circuit.nQm31OpsRows(),
-        .m31_to_u32 = circuit.m31_to_u32.items.len,
-        .triple_xor = circuit.triple_xor.items.len,
-        .blake_g_gate = circuit.blake_g_gate.items.len,
-    };
-    const view: preprocessed.CircuitView = circuit;
+/// `raw_component_sizes` of a circuit (`CircuitView.fromBuilder` reads a
+/// live builder circuit).
+pub fn rawComponentSizes(circuit: preprocessed.CircuitView) ComponentSizes {
     return .{
-        .eq = view.eq.len,
-        .qm31_ops = qm31OpsNRows(view),
-        .m31_to_u32 = view.m31_to_u32.len,
-        .triple_xor = view.triple_xor.len,
-        .blake_g_gate = view.blake_g_gate.len,
+        .eq = circuit.eq.len,
+        .qm31_ops = circuit.nQm31OpsRows(),
+        .m31_to_u32 = circuit.m31_to_u32.len,
+        .triple_xor = circuit.triple_xor.len,
+        .blake_g_gate = circuit.blake_g_gate.len,
     };
 }
 
 /// `compute_padded_sizes`.
-pub fn computePaddedSizes(circuit: anytype) ComponentSizes {
+pub fn computePaddedSizes(circuit: preprocessed.CircuitView) ComponentSizes {
     return rawComponentSizes(circuit).map(paddedSize);
 }
 
@@ -176,7 +160,7 @@ pub const PadError = Error || error{
 
 /// `pad_context`: pads each component to its padded size.
 pub fn padContext(comptime V: type, ctx: *builder.Context(V)) PadError!void {
-    return padToTargets(V, ctx, computePaddedSizes(&ctx.circuit));
+    return padToTargets(V, ctx, computePaddedSizes(.fromBuilder(&ctx.circuit)));
 }
 
 /// `pad_to_targets`: appends trivial gates until each component has its
@@ -238,11 +222,11 @@ test "finalize: pad_context pads every component and keeps the circuit valid" {
     try std.testing.expectError(error.NotFinalized, padContext(QM31, &ctx));
     try ctx.finalize(false);
     const n_constants = ctx.constants.count();
-    const padded = computePaddedSizes(&ctx.circuit);
+    const padded = computePaddedSizes(.fromBuilder(&ctx.circuit));
     // The +1 chain of `finalize_constants` alone adds 255 qm31_ops rows.
     try std.testing.expectEqual(ComponentSizes{ .eq = 16, .qm31_ops = 512, .m31_to_u32 = 16, .triple_xor = 16, .blake_g_gate = 16 }, padded);
     try padContext(QM31, &ctx);
-    try std.testing.expectEqual(padded, rawComponentSizes(&ctx.circuit));
+    try std.testing.expectEqual(padded, rawComponentSizes(.fromBuilder(&ctx.circuit)));
     // The zero word is var 0: padding interns no new constant.
     try std.testing.expectEqual(n_constants, ctx.constants.count());
     try std.testing.expectEqual(null, try ctx.circuit.firstYieldViolation(gpa));

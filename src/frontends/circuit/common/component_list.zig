@@ -6,9 +6,9 @@
 //! the `INTERACTION_POW_BITS` constant of `statement.rs`
 //! (https://github.com/starkware-libs/proving at
 //! 5a7c5ede4299c91a61df19a07cba4f7502c14230). This is the single definition
-//! of `ComponentList` and `PerComponent`: the evaluator table (M4
-//! `air_eval/circuit_components.zig`), the statements, the circuit hash and
-//! the prover's `air/component_list.zig` (M7) import it instead of re-listing
+//! of `ComponentList` and `PerComponent`: the evaluator table
+//! (`air_eval/circuit_components.zig`), the statements, the circuit hash and
+//! the prover's `air/component_list.zig` import it instead of re-listing
 //! the order.
 
 const std = @import("std");
@@ -142,7 +142,7 @@ pub const ComponentFacts = struct {
 /// The static facts of every component, from the generated evaluators in
 /// `crates/circuit_verifier/src/components/*.rs`. The R3 fixture
 /// (`vectors/circuit/r3/components.json`) pins the column counts and
-/// relation uses; M4's projection-driven evaluator table must agree with it.
+/// relation uses; the projection-driven evaluator table must agree with it.
 pub const component_facts: PerComponent(ComponentFacts) = .{
     .eq = .{
         .trace_columns = 4,

@@ -197,29 +197,20 @@ fn lessByLogSize(_: void, a: LayoutEntry, b: LayoutEntry) bool {
     return a.log_size < b.log_size;
 }
 
-/// Gate records of a finalized circuit, as the preprocessing reads them.
+/// Gate records of a finalized circuit: the builder's own (`builder/circuit.zig`).
 /// Variable indices are `u32` (the builder asserts `n_vars < 2^31`).
-pub const BinaryGate = struct { in0: u32, in1: u32, out: u32 };
-pub const EqGate = struct { in0: u32, in1: u32 };
-pub const TripleXorGate = struct { input_a: u32, input_b: u32, input_c: u32, out: u32 };
-pub const M31ToU32Gate = struct { input: u32, out: u32 };
-pub const BlakeGGate = struct {
-    input_a: u32,
-    input_b: u32,
-    input_c: u32,
-    input_d: u32,
-    input_f0: u32,
-    input_f1: u32,
-    out_a: u32,
-    out_b: u32,
-    out_c: u32,
-    out_d: u32,
-};
+pub const BinaryGate = builder_circuit.BinaryGate;
+pub const EqGate = builder_circuit.EqGate;
+pub const TripleXorGate = builder_circuit.TripleXorGate;
+pub const M31ToU32Gate = builder_circuit.M31ToU32Gate;
+/// Outputs `out_base .. out_base + 3` (`outputs()`).
+pub const BlakeGGate = builder_circuit.BlakeGGate;
 
 /// Read-only view of a finalized `Circuit` (`crates/circuits/src/circuit.rs`
-/// field for field). Permutations are in CSR form: gate `g` maps
-/// `permutation_inputs[offsets[g]..offsets[g + 1]]` to the same range of
-/// `permutation_outputs`.
+/// field for field), borrowing the gate lists. Permutations are in the
+/// builder's CSR form: gate `g` maps `permutation_inputs[start..end]` to the
+/// same range of `permutation_outputs`, with `end = permutation_ends[g]` and
+/// `start` the previous gate's end (0 for the first).
 pub const CircuitView = struct {
     n_vars: usize,
     add: []const BinaryGate = &.{},
@@ -230,14 +221,39 @@ pub const CircuitView = struct {
     triple_xor: []const TripleXorGate = &.{},
     m31_to_u32: []const M31ToU32Gate = &.{},
     blake_g_gate: []const BlakeGGate = &.{},
-    permutation_offsets: []const u32 = &.{0},
+    permutation_ends: []const u32 = &.{},
     permutation_inputs: []const u32 = &.{},
     permutation_outputs: []const u32 = &.{},
     /// `in0` of every output gate.
     output: []const u32 = &.{},
 
+    /// A view of a builder circuit; borrows its lists.
+    pub fn fromBuilder(circuit: *const builder_circuit.Circuit) CircuitView {
+        return .{
+            .n_vars = circuit.n_vars,
+            .add = circuit.add.items,
+            .sub = circuit.sub.items,
+            .mul = circuit.mul.items,
+            .pointwise_mul = circuit.pointwise_mul.items,
+            .eq = circuit.eq.items,
+            .triple_xor = circuit.triple_xor.items,
+            .m31_to_u32 = circuit.m31_to_u32.items,
+            .blake_g_gate = circuit.blake_g_gate.items,
+            .permutation_ends = circuit.permutation.ends.items,
+            .permutation_inputs = circuit.permutation.inputs.items,
+            .permutation_outputs = circuit.permutation.outputs.items,
+            .output = circuit.output.items,
+        };
+    }
+
     pub fn nPermutations(self: CircuitView) usize {
-        return self.permutation_offsets.len - 1;
+        return self.permutation_ends.len;
+    }
+
+    /// The input and output range of permutation gate `gate`.
+    pub fn permutationRange(self: CircuitView, gate: usize) struct { usize, usize } {
+        const begin = if (gate == 0) 0 else self.permutation_ends[gate - 1];
+        return .{ begin, self.permutation_ends[gate] };
     }
 
     /// Rows the permutations occupy in qm31_ops: one per input and output.
@@ -245,10 +261,15 @@ pub const CircuitView = struct {
         return self.permutation_inputs.len + self.permutation_outputs.len;
     }
 
+    /// `qm31_ops_n_rows`: binary-op gates plus one row per permutation input
+    /// and output.
+    pub fn nQm31OpsRows(self: CircuitView) usize {
+        return self.add.len + self.sub.len + self.mul.len + self.pointwise_mul.len + self.permutationRows();
+    }
+
     /// Checks every index `fromCircuit` dereferences: gate outputs below
-    /// `n_vars` and a CSR permutation layout (offsets start at 0, never
-    /// decrease, end at the input count, and outputs pair one-to-one with
-    /// inputs). Upstream indexes with bounds-checked `Vec`s and panics; this
+    /// `n_vars` and a CSR permutation layout (ends never decrease, the last
+    /// is the input count, and outputs pair one-to-one with inputs). Upstream indexes with bounds-checked `Vec`s and panics; this
     /// port fails closed with `VariableOutOfRange` instead. Use indices are
     /// checked by `computeUses`.
     pub fn validate(self: CircuitView) Error!void {
@@ -263,15 +284,16 @@ pub const CircuitView = struct {
         for (self.triple_xor) |gate| try check(self.n_vars, gate.out);
         for (self.m31_to_u32) |gate| try check(self.n_vars, gate.out);
         for (self.blake_g_gate) |gate| {
-            inline for (.{ "out_a", "out_b", "out_c", "out_d" }) |field| try check(self.n_vars, @field(gate, field));
+            // `out_base + 3 < n_vars` bounds all four outputs.
+            if (gate.out_base >= self.n_vars or self.n_vars - gate.out_base < 4) return error.VariableOutOfRange;
         }
         for (self.permutation_outputs) |variable| try check(self.n_vars, variable);
-        const offsets = self.permutation_offsets;
-        if (offsets.len == 0 or offsets[0] != 0) return error.VariableOutOfRange;
-        for (offsets[0 .. offsets.len - 1], offsets[1..]) |begin, end| {
-            if (end < begin) return error.VariableOutOfRange;
+        var previous: u32 = 0;
+        for (self.permutation_ends) |end| {
+            if (end < previous) return error.VariableOutOfRange;
+            previous = end;
         }
-        if (offsets[offsets.len - 1] != self.permutation_inputs.len or
+        if (previous != self.permutation_inputs.len or
             self.permutation_outputs.len != self.permutation_inputs.len)
             return error.VariableOutOfRange;
     }
@@ -379,8 +401,7 @@ pub const PreprocessedCircuit = struct {
             // gate's fresh wire and reads the output back from it.
             var permutation_address: usize = circuit.n_vars;
             for (0..circuit.nPermutations()) |gate| {
-                const begin = circuit.permutation_offsets[gate];
-                const end = circuit.permutation_offsets[gate + 1];
+                const begin, const end = circuit.permutationRange(gate);
                 for (circuit.permutation_inputs[begin..end], circuit.permutation_outputs[begin..end]) |input, output| {
                     try putFlags(cols, row, 0);
                     try put(cols[4], row, 0);
@@ -422,12 +443,10 @@ pub const PreprocessedCircuit = struct {
         {
             const cols = try builder.block(&BLAKE_G_GATE_COLUMN_IDS, circuit.blake_g_gate.len);
             for (circuit.blake_g_gate, 0..) |gate, row| {
-                inline for (.{
-                    "input_a",  "input_b", "input_c", "input_d", "input_f0",
-                    "input_f1", "out_a",   "out_b",   "out_c",   "out_d",
-                }, 0..) |field, col| try put(cols[col], row, @field(gate, field));
-                const mult = multiplicities[gate.out_a];
-                for ([_]u32{ gate.out_b, gate.out_c, gate.out_d }) |out| {
+                const outputs = gate.outputs();
+                for (gate.inputs() ++ outputs, 0..) |variable, col| try put(cols[col], row, variable);
+                const mult = multiplicities[outputs[0]];
+                for (outputs[1..]) |out| {
                     if (multiplicities[out] != mult) return error.MultiplicityMismatch;
                 }
                 try put(cols[10], row, mult);
@@ -476,62 +495,9 @@ pub const PreprocessedCircuit = struct {
     }
 
     /// `PreprocessedCircuit::from_finalized_circuit` of a finalized builder
-    /// circuit: the builder's gate lists converted to a `CircuitView`
-    /// (`BlakeGGate` outputs expanded from `out_base`, permutation ends to
-    /// CSR offsets) and preprocessed.
+    /// circuit, read in place (`CircuitView.fromBuilder`).
     pub fn fromBuilderCircuit(allocator: std.mem.Allocator, circuit: *const builder_circuit.Circuit) (Error || std.mem.Allocator.Error)!PreprocessedCircuit {
-        var arena_state = std.heap.ArenaAllocator.init(allocator);
-        defer arena_state.deinit();
-        const arena = arena_state.allocator();
-        const binary = struct {
-            fn copy(a: std.mem.Allocator, gates: []const builder_circuit.BinaryGate) ![]BinaryGate {
-                const out = try a.alloc(BinaryGate, gates.len);
-                for (gates, out) |gate, *dst| dst.* = .{ .in0 = gate.in0, .in1 = gate.in1, .out = gate.out };
-                return out;
-            }
-        }.copy;
-        const eq = try arena.alloc(EqGate, circuit.eq.items.len);
-        for (circuit.eq.items, eq) |gate, *dst| dst.* = .{ .in0 = gate.in0, .in1 = gate.in1 };
-        const triple_xor = try arena.alloc(TripleXorGate, circuit.triple_xor.items.len);
-        for (circuit.triple_xor.items, triple_xor) |gate, *dst|
-            dst.* = .{ .input_a = gate.input_a, .input_b = gate.input_b, .input_c = gate.input_c, .out = gate.out };
-        const m31_to_u32 = try arena.alloc(M31ToU32Gate, circuit.m31_to_u32.items.len);
-        for (circuit.m31_to_u32.items, m31_to_u32) |gate, *dst| dst.* = .{ .input = gate.input, .out = gate.out };
-        const blake_g_gate = try arena.alloc(BlakeGGate, circuit.blake_g_gate.items.len);
-        for (circuit.blake_g_gate.items, blake_g_gate) |gate, *dst| {
-            const out = gate.outputs();
-            dst.* = .{
-                .input_a = gate.input_a,
-                .input_b = gate.input_b,
-                .input_c = gate.input_c,
-                .input_d = gate.input_d,
-                .input_f0 = gate.input_f0,
-                .input_f1 = gate.input_f1,
-                .out_a = out[0],
-                .out_b = out[1],
-                .out_c = out[2],
-                .out_d = out[3],
-            };
-        }
-        const ends = circuit.permutation.ends.items;
-        const offsets = try arena.alloc(u32, ends.len + 1);
-        offsets[0] = 0;
-        @memcpy(offsets[1..], ends);
-        return fromCircuit(allocator, .{
-            .n_vars = circuit.n_vars,
-            .add = try binary(arena, circuit.add.items),
-            .sub = try binary(arena, circuit.sub.items),
-            .mul = try binary(arena, circuit.mul.items),
-            .pointwise_mul = try binary(arena, circuit.pointwise_mul.items),
-            .eq = eq,
-            .triple_xor = triple_xor,
-            .m31_to_u32 = m31_to_u32,
-            .blake_g_gate = blake_g_gate,
-            .permutation_offsets = offsets,
-            .permutation_inputs = circuit.permutation.inputs.items,
-            .permutation_outputs = circuit.permutation.outputs.items,
-            .output = circuit.output.items,
-        });
+        return fromCircuit(allocator, .fromBuilder(circuit));
     }
 
     /// `PreProcessedTrace::log_sizes`.

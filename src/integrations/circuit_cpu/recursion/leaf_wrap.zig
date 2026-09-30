@@ -1,5 +1,5 @@
 //! The leaf wrap: a Cairo proof verified by the leaf verifier circuit, and
-//! that circuit's execution proved (design §7.1, milestone M8).
+//! that circuit's execution proved (design §7.1).
 //!
 //! Ports steps 4-8 of `prove_leaf` (`crates/leaf_prover/src/prove_leaf.rs`,
 //! https://github.com/starkware-libs/proving at
@@ -34,6 +34,7 @@
 //! (rung R10c).
 
 const std = @import("std");
+const blake2_hash = @import("stwo_core").vcs.blake2_hash;
 const core = @import("stwo_core");
 const circuit = @import("stwo_circuit_frontend");
 const cairo = @import("stwo_cairo_frontend");
@@ -172,7 +173,7 @@ pub fn wrapCairoProof(
     const params = registry.cairo_prover_params;
     if (!params.include_all_preprocessed_columns) return error.IncludeAllPreprocessedColumnsRequired;
     if (params.lifting_size_policy != .at_least_preprocessed) return error.AtLeastPreprocessedRequired;
-    const variant = cairo.proving.leaf_lane.variantOf(params.preprocessed_trace);
+    const variant = params.preprocessed_trace;
     if (!std.mem.eql(u8, @tagName(cairo_proof.preprocessed_variant), @tagName(variant))) return error.VariantMismatch;
 
     // 1. The trace log size and the registry entry.
@@ -190,18 +191,10 @@ pub fn wrapCairoProof(
     var leaf_config = try cairo_leaf_config.leafVerifierConfig(allocator, wrap.cairo_table, variant, pcs.fri_config, trace_log_size);
     defer leaf_config.deinit(allocator);
     if (stark.commitments.items.len == 0) return error.ColumnCountMismatch;
-    const cairo_root = circuit_hash.leU32sFromBytes(8, &stark.commitments.items[0]);
+    const cairo_root = blake2_hash.digestToU32s(stark.commitments.items[0]);
     const config = leaf_config.verifierConfig(wrap.program, cairo_root, circuit_params.zkBlindingAmount(entry.zk_blinding, circuit_fri));
 
-    var shapes: [cairo_leaf_config.cairo_slot_count]wire.circuit_serialize.ComponentShape = undefined;
-    for (config.proof_config.component_shapes, shapes[0..config.proof_config.component_shapes.len]) |shape, *out|
-        out.* = .{ .trace_columns = shape.trace_columns, .interaction_columns = shape.interaction_columns };
-    const wire_config = wire.circuit_serialize.ProofConfig{
-        .n_preprocessed_columns = config.proof_config.n_preprocessed_columns,
-        .component_shapes = shapes[0..config.proof_config.component_shapes.len],
-        .log_trace_size = trace_log_size,
-        .fri = pcs.fri_config,
-    };
+    const wire_config = config.proof_config.shape();
     const widths = wire_config.nColumnsPerTrace();
     if (stark.queried_values.items.len != widths.len) return error.ColumnCountMismatch;
     for (stark.queried_values.items[0..3], widths[0..3]) |columns, width|
@@ -280,8 +273,8 @@ pub fn wrapCairoProof(
     const pcs_config = PcsConfigV2.fromFriAndTraceSize(circuit_fri, topology.preprocessed.traceLogSize());
     var circuit_proof = try prove.Internal.prove(allocator, values, &topology.preprocessed, wrap.bundle, pcs_config, wrap.options, {});
     defer circuit_proof.deinit();
-    const root = circuit_hash.leU32sFromBytes(8, &circuit_proof.stark_proof.proof.commitment_scheme_proof.commitments.items[0]);
-    const hash = circuit_hash.leU32sFromBytes(8, &circuit_proof.circuit_hash);
+    const root = blake2_hash.digestToU32s(circuit_proof.stark_proof.proof.commitment_scheme_proof.commitments.items[0]);
+    const hash = blake2_hash.digestToU32s(circuit_proof.circuit_hash);
     if (!std.mem.eql(u32, &hash, &entry.circuit_hash.words)) return error.CircuitHashMismatch;
     if (fresh == null and !std.mem.eql(u32, &hash, &topology.circuit_hash)) return error.TopologyMismatch;
 

@@ -22,6 +22,7 @@
 const std = @import("std");
 const json_text = @import("json_text.zig");
 const blake2_felt252 = @import("blake2_felt252.zig");
+const blake2_hash = @import("stwo_core").vcs.blake2_hash;
 
 pub const n_digest_words: usize = 8;
 
@@ -30,15 +31,11 @@ pub const DigestHex = struct {
     words: [n_digest_words]u32,
 
     pub fn fromBytes(bytes: [32]u8) DigestHex {
-        var words: [n_digest_words]u32 = undefined;
-        for (&words, 0..) |*word, index| word.* = std.mem.readInt(u32, bytes[index * 4 ..][0..4], .little);
-        return .{ .words = words };
+        return .{ .words = blake2_hash.digestToU32s(bytes) };
     }
 
     pub fn toBytes(self: DigestHex) [32]u8 {
-        var bytes: [32]u8 = undefined;
-        for (self.words, 0..) |word, index| std.mem.writeInt(u32, bytes[index * 4 ..][0..4], word, .little);
-        return bytes;
+        return blake2_hash.digestFromU32s(self.words);
     }
 
     pub fn eql(self: DigestHex, other: DigestHex) bool {

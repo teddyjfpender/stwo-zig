@@ -7,7 +7,6 @@ const core = @import("stwo_core");
 const leaf_config = @import("cairo_leaf_config.zig");
 const projection_mod = @import("../air_eval/projection.zig");
 const cairo_components = @import("../air_eval/cairo_components.zig");
-const proof = @import("../stark_verifier/proof.zig");
 
 const FriConfigV2 = core.pcs.config_v2.FriConfigV2;
 
@@ -57,7 +56,7 @@ test "cairo leaf config: ProofConfig and proof size match upstream for every reg
         for (record.get("n_columns_per_trace").?.array.items, columns) |want, got| try std.testing.expectEqual(int(want), got);
         try std.testing.expectEqual(int(record.get("log_trace_size").?), config.proof_config.log_trace_size);
         try std.testing.expectEqual(int(record.get("n_interaction_pow_bits").?), config.proof_config.n_interaction_pow_bits);
-        const total = proof.ProofInfo.fromConfig(config.proof_config).totalBytes();
+        const total = config.proof_config.serializedLen();
         try std.testing.expectEqual(int(record.get("proof_total_bytes").?), total);
     }
 }

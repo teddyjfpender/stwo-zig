@@ -5,8 +5,8 @@
 //!
 //! The component set is every `all_components()` slot minus the variant's
 //! disabled components (`stwo_core.cairo_air_layout`), taken in the Cairo slot
-//! order of the M4 projection table, whose entries carry each evaluator's
-//! trace and interaction column counts. The `ProofConfig` is M5's port of
+//! order of the projection's evaluator table, whose entries carry each evaluator's
+//! trace and interaction column counts. The `ProofConfig` is `stark_verifier.proof`'s port of
 //! `ProofConfig::new`; nothing here restates a shape.
 //!
 //! `LeafVerifierConfig.verifierConfig` completes `leaf_verifier_config`

@@ -1,4 +1,4 @@
-//! Rung R9 (design §8.2, milestone M9): the Zig recursive tree against
+//! Rung R9 (design §8.2): the Zig recursive tree against
 //! `stwo_run_and_prove_recursive_tree` of https://github.com/starkware-libs/proving
 //! at 5a7c5ede4299c91a61df19a07cba4f7502c14230, as raw bytes.
 //!

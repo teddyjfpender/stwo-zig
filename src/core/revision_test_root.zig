@@ -13,4 +13,5 @@ test {
     _ = @import("fields/qm31_pointwise.zig");
     _ = @import("preprocessed_tables.zig");
     _ = @import("cairo_air_layout.zig");
+    _ = @import("circuit_proof_shape.zig");
 }

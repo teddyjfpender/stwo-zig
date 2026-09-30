@@ -12,5 +12,4 @@ pub const proof = @import("proof.zig");
 pub const proof_from_stark_proof = @import("proof_from_stark_proof.zig");
 pub const select_queries = @import("select_queries.zig");
 pub const sort_queries = @import("sort_queries.zig");
-pub const test_utils = @import("test_utils.zig");
 pub const verify = @import("verify.zig");
