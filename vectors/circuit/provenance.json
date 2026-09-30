@@ -9,7 +9,7 @@
     "toolchain": "nightly-2026-01-15",
     "lock": "tools/stwo-circuit-oracle-rs/Cargo.lock",
     "lock_sha256": "4aedd6bd869d7e2fa46f12dc30bcd20a607ec1225083180c087513d2af9a93ac",
-    "source_sha256": "698c14c385a935f5cdc254d787e52fee2d55a5a26de9b0e4f0849037db6299cc"
+    "source_sha256": "72ff6d0dc8ccd5354518e87cb1dd1b89e426cdff8f26c2bf8487da4153b1c308"
   },
   "generator": "scripts/generate_circuit_oracle_vectors.py",
   "generated_on": "2026-09-30",
@@ -88,6 +88,12 @@
       "sha256": "5e2befae48dcdea8d19dc655e40ac236285d049d12573bfb341bec9ce39182f5"
     },
     {
+      "path": "vectors/circuit/official/programs/simple_output_compiled.json",
+      "upstream_path": "crates/stwo_run_and_prove_recursive_tree/test_data/simple_output_compiled.json",
+      "bytes": 16374,
+      "sha256": "cfba8d3f1d3323ea64713ab703b8a40f3e788d91100ab4d58667ae170a541d69"
+    },
+    {
       "path": "vectors/circuit/official/programs/use_all_opcodes_and_builtins_compiled.json",
       "upstream_path": "crates/leaf_prover/tests/data/use_all_opcodes_and_builtins_compiled.json",
       "bytes": 585859,
@@ -98,6 +104,12 @@
       "upstream_path": "crates/stwo_run_and_prove_recursive_tree/test_data/goldens/four_leaves/leaf.json",
       "bytes": 728371,
       "sha256": "199e8414eb27a71e119494afe63d447eedd4fd5fb7ee874b12a0c43cc6258f40"
+    },
+    {
+      "path": "vectors/circuit/official/recursive_tree/four_leaves/leaf_preimage.json",
+      "upstream_path": "crates/stwo_run_and_prove_recursive_tree/test_data/goldens/four_leaves/leaf_preimage.json",
+      "bytes": 101,
+      "sha256": "7b1c4719eb1432a0c8923eaf18883d95028ee4da82e86ebf22be34db68d84d01"
     },
     {
       "path": "vectors/circuit/official/recursive_tree/four_leaves/root.proof",
@@ -180,8 +192,8 @@
         "--output",
         "vectors/circuit/r0/primitives.json"
       ],
-      "bytes": 135847,
-      "sha256": "10ac5afef80bdc402cf5bf183a7b172b69e7d5ed998e91f8adbef8dc5d03867f"
+      "bytes": 139904,
+      "sha256": "49629f70d6109c6fa2c7a0cb96b75e1db2d22152411d44700542cd7c3c70faa6"
     },
     {
       "path": "vectors/circuit/r10/all_builtins.prove_cairo.json",
@@ -240,6 +252,43 @@
       "sha256": "90c8ebeb6c73a3d608c7c4bbb9652ee5b224ec37961794fa19a8d1aa8ff6b118"
     },
     {
+      "path": "vectors/circuit/r10/leaf_simple_bootloader.prover_input.json",
+      "rung": "r8b",
+      "command": [
+        "stwo-circuit-oracle",
+        "adapt-program",
+        "--proving-root",
+        "<proving checkout at the pinned revision>",
+        "--program",
+        "crates/stwo_run_and_prove_recursive_tree/test_data/leaf_simple_bootloader_compiled.json",
+        "--program-input",
+        "<leaf bootloader input written by the generator>",
+        "--output",
+        "vectors/circuit/r10/leaf_simple_bootloader.prover_input.json"
+      ],
+      "program_input": {
+        "tasks": [
+          {
+            "type": "RunProgramTask",
+            "path": "<proving checkout at the pinned revision>/crates/stwo_run_and_prove_recursive_tree/test_data/simple_output_compiled.json",
+            "program_input": {
+              "output": [
+                11,
+                13,
+                17
+              ]
+            },
+            "program_hash_function": "blake"
+          }
+        ],
+        "fact_topologies_path": null,
+        "single_page": true,
+        "output_preimage_dump_path": "<hashed-output preimage dump, outside the tree>"
+      },
+      "bytes": 166845,
+      "sha256": "a1b88fed21834b007b159d78d509b75bc6ec463972d0723315b0cf2a2b4506bb"
+    },
+    {
       "path": "vectors/circuit/r10/prove_lifted_example.json",
       "rung": "r10-lift",
       "command": [
@@ -284,6 +333,438 @@
       ],
       "bytes": 400073,
       "sha256": "c62fe9088e243667bf4b8badc92c9aaae4f61fee2a3c61029095862e33792567"
+    },
+    {
+      "path": "vectors/circuit/r11/verify/leaf-channel_salt.json",
+      "rung": "r11",
+      "command": [
+        "stwo-circuit-oracle",
+        "verify-circuit",
+        "--proof",
+        "<STWO_CIRCUIT_R11_EMIT_DIR of the Zig circuit-parity-r11 step>/leaf-channel_salt.proof",
+        "--request",
+        "<STWO_CIRCUIT_R11_EMIT_DIR of the Zig circuit-parity-r11 step>/leaf-channel_salt.request.json",
+        "--output",
+        "vectors/circuit/r11/verify/leaf-channel_salt.json"
+      ],
+      "bytes": 4251,
+      "sha256": "8f3e0978e94a9d306150a5f70de5dc9317a6368b8c336feef0ec2ae332a2465d"
+    },
+    {
+      "path": "vectors/circuit/r11/verify/leaf-circuit_hash.json",
+      "rung": "r11",
+      "command": [
+        "stwo-circuit-oracle",
+        "verify-circuit",
+        "--proof",
+        "<STWO_CIRCUIT_R11_EMIT_DIR of the Zig circuit-parity-r11 step>/leaf-circuit_hash.proof",
+        "--request",
+        "<STWO_CIRCUIT_R11_EMIT_DIR of the Zig circuit-parity-r11 step>/leaf-circuit_hash.request.json",
+        "--output",
+        "vectors/circuit/r11/verify/leaf-circuit_hash.json"
+      ],
+      "bytes": 4251,
+      "sha256": "161d83015e502e77163dcc24401bf189856b286c68da50922d6b65a7d05f3705"
+    },
+    {
+      "path": "vectors/circuit/r11/verify/leaf-claimed_sum.json",
+      "rung": "r11",
+      "command": [
+        "stwo-circuit-oracle",
+        "verify-circuit",
+        "--proof",
+        "<STWO_CIRCUIT_R11_EMIT_DIR of the Zig circuit-parity-r11 step>/leaf-claimed_sum.proof",
+        "--request",
+        "<STWO_CIRCUIT_R11_EMIT_DIR of the Zig circuit-parity-r11 step>/leaf-claimed_sum.request.json",
+        "--output",
+        "vectors/circuit/r11/verify/leaf-claimed_sum.json"
+      ],
+      "bytes": 4251,
+      "sha256": "83957e697ca77c64280c80b8b74ab2ec2937dafd30e9a9dc830c74842a6dd265"
+    },
+    {
+      "path": "vectors/circuit/r11/verify/leaf-fri_witness.json",
+      "rung": "r11",
+      "command": [
+        "stwo-circuit-oracle",
+        "verify-circuit",
+        "--proof",
+        "<STWO_CIRCUIT_R11_EMIT_DIR of the Zig circuit-parity-r11 step>/leaf-fri_witness.proof",
+        "--request",
+        "<STWO_CIRCUIT_R11_EMIT_DIR of the Zig circuit-parity-r11 step>/leaf-fri_witness.request.json",
+        "--output",
+        "vectors/circuit/r11/verify/leaf-fri_witness.json"
+      ],
+      "bytes": 4251,
+      "sha256": "0751340fa78c1a1126578f1709f618311204815d07b8f43e94ddd5d6ee98fd6c"
+    },
+    {
+      "path": "vectors/circuit/r11/verify/leaf-interaction_pow_nonce.json",
+      "rung": "r11",
+      "command": [
+        "stwo-circuit-oracle",
+        "verify-circuit",
+        "--proof",
+        "<STWO_CIRCUIT_R11_EMIT_DIR of the Zig circuit-parity-r11 step>/leaf-interaction_pow_nonce.proof",
+        "--request",
+        "<STWO_CIRCUIT_R11_EMIT_DIR of the Zig circuit-parity-r11 step>/leaf-interaction_pow_nonce.request.json",
+        "--output",
+        "vectors/circuit/r11/verify/leaf-interaction_pow_nonce.json"
+      ],
+      "bytes": 4251,
+      "sha256": "1a031e58bc5198055ed9eb11952789bf797042b5f6d0b58eea9c37fab8bbed7d"
+    },
+    {
+      "path": "vectors/circuit/r11/verify/leaf-none.json",
+      "rung": "r11",
+      "command": [
+        "stwo-circuit-oracle",
+        "verify-circuit",
+        "--proof",
+        "<STWO_CIRCUIT_R11_EMIT_DIR of the Zig circuit-parity-r11 step>/leaf-none.proof",
+        "--request",
+        "<STWO_CIRCUIT_R11_EMIT_DIR of the Zig circuit-parity-r11 step>/leaf-none.request.json",
+        "--output",
+        "vectors/circuit/r11/verify/leaf-none.json"
+      ],
+      "bytes": 4210,
+      "sha256": "e27aacd2f1a4b64540f5de683e9ec10aee923db8c992cb1e8f1a17fcbc2b50f5"
+    },
+    {
+      "path": "vectors/circuit/r11/verify/leaf-output_digest.json",
+      "rung": "r11",
+      "command": [
+        "stwo-circuit-oracle",
+        "verify-circuit",
+        "--proof",
+        "<STWO_CIRCUIT_R11_EMIT_DIR of the Zig circuit-parity-r11 step>/leaf-output_digest.proof",
+        "--request",
+        "<STWO_CIRCUIT_R11_EMIT_DIR of the Zig circuit-parity-r11 step>/leaf-output_digest.request.json",
+        "--output",
+        "vectors/circuit/r11/verify/leaf-output_digest.json"
+      ],
+      "bytes": 4251,
+      "sha256": "8e1499ddbd248d7914a64c5afc3d92d344bb8ac236e9dba8849ee1eeab83b15f"
+    },
+    {
+      "path": "vectors/circuit/r11/verify/leaf-pow_nonce.json",
+      "rung": "r11",
+      "command": [
+        "stwo-circuit-oracle",
+        "verify-circuit",
+        "--proof",
+        "<STWO_CIRCUIT_R11_EMIT_DIR of the Zig circuit-parity-r11 step>/leaf-pow_nonce.proof",
+        "--request",
+        "<STWO_CIRCUIT_R11_EMIT_DIR of the Zig circuit-parity-r11 step>/leaf-pow_nonce.request.json",
+        "--output",
+        "vectors/circuit/r11/verify/leaf-pow_nonce.json"
+      ],
+      "bytes": 4251,
+      "sha256": "f327f5d3959957bf01048b0ab5b44b99eab92f88835d8aa67cdb45b5476da00a"
+    },
+    {
+      "path": "vectors/circuit/r11/verify/leaf-preprocessed_root.json",
+      "rung": "r11",
+      "command": [
+        "stwo-circuit-oracle",
+        "verify-circuit",
+        "--proof",
+        "<STWO_CIRCUIT_R11_EMIT_DIR of the Zig circuit-parity-r11 step>/leaf-preprocessed_root.proof",
+        "--request",
+        "<STWO_CIRCUIT_R11_EMIT_DIR of the Zig circuit-parity-r11 step>/leaf-preprocessed_root.request.json",
+        "--output",
+        "vectors/circuit/r11/verify/leaf-preprocessed_root.json"
+      ],
+      "bytes": 4251,
+      "sha256": "0d2fae7e6c021d627e6e39f936fb7710ab872d9bb4b037b68a4bf73f573d7b32"
+    },
+    {
+      "path": "vectors/circuit/r11/verify/multiverifier-channel_salt.json",
+      "rung": "r11",
+      "command": [
+        "stwo-circuit-oracle",
+        "verify-circuit",
+        "--proof",
+        "<STWO_CIRCUIT_R11_EMIT_DIR of the Zig circuit-parity-r11 step>/multiverifier-channel_salt.proof",
+        "--request",
+        "<STWO_CIRCUIT_R11_EMIT_DIR of the Zig circuit-parity-r11 step>/multiverifier-channel_salt.request.json",
+        "--output",
+        "vectors/circuit/r11/verify/multiverifier-channel_salt.json"
+      ],
+      "bytes": 4252,
+      "sha256": "62ec0f20684d68254671289d095921cb844478011d9ebb5dc0314b9c9f376434"
+    },
+    {
+      "path": "vectors/circuit/r11/verify/multiverifier-circuit_hash.json",
+      "rung": "r11",
+      "command": [
+        "stwo-circuit-oracle",
+        "verify-circuit",
+        "--proof",
+        "<STWO_CIRCUIT_R11_EMIT_DIR of the Zig circuit-parity-r11 step>/multiverifier-circuit_hash.proof",
+        "--request",
+        "<STWO_CIRCUIT_R11_EMIT_DIR of the Zig circuit-parity-r11 step>/multiverifier-circuit_hash.request.json",
+        "--output",
+        "vectors/circuit/r11/verify/multiverifier-circuit_hash.json"
+      ],
+      "bytes": 4252,
+      "sha256": "be61e646bc6c27a3a9569ece7a60ca7871cdbb9a01c4bc3ec34603dd7e1d0e79"
+    },
+    {
+      "path": "vectors/circuit/r11/verify/multiverifier-claimed_sum.json",
+      "rung": "r11",
+      "command": [
+        "stwo-circuit-oracle",
+        "verify-circuit",
+        "--proof",
+        "<STWO_CIRCUIT_R11_EMIT_DIR of the Zig circuit-parity-r11 step>/multiverifier-claimed_sum.proof",
+        "--request",
+        "<STWO_CIRCUIT_R11_EMIT_DIR of the Zig circuit-parity-r11 step>/multiverifier-claimed_sum.request.json",
+        "--output",
+        "vectors/circuit/r11/verify/multiverifier-claimed_sum.json"
+      ],
+      "bytes": 4252,
+      "sha256": "254ebb8ee8732ac728cce748420a68f73d5b0245fe8ae8788eb20ad142059841"
+    },
+    {
+      "path": "vectors/circuit/r11/verify/multiverifier-fri_witness.json",
+      "rung": "r11",
+      "command": [
+        "stwo-circuit-oracle",
+        "verify-circuit",
+        "--proof",
+        "<STWO_CIRCUIT_R11_EMIT_DIR of the Zig circuit-parity-r11 step>/multiverifier-fri_witness.proof",
+        "--request",
+        "<STWO_CIRCUIT_R11_EMIT_DIR of the Zig circuit-parity-r11 step>/multiverifier-fri_witness.request.json",
+        "--output",
+        "vectors/circuit/r11/verify/multiverifier-fri_witness.json"
+      ],
+      "bytes": 4252,
+      "sha256": "be4f7b10106eeada70850608713ac9109755090c543cc1c10d32237eff54b726"
+    },
+    {
+      "path": "vectors/circuit/r11/verify/multiverifier-interaction_pow_nonce.json",
+      "rung": "r11",
+      "command": [
+        "stwo-circuit-oracle",
+        "verify-circuit",
+        "--proof",
+        "<STWO_CIRCUIT_R11_EMIT_DIR of the Zig circuit-parity-r11 step>/multiverifier-interaction_pow_nonce.proof",
+        "--request",
+        "<STWO_CIRCUIT_R11_EMIT_DIR of the Zig circuit-parity-r11 step>/multiverifier-interaction_pow_nonce.request.json",
+        "--output",
+        "vectors/circuit/r11/verify/multiverifier-interaction_pow_nonce.json"
+      ],
+      "bytes": 4252,
+      "sha256": "bfd9effe46b0eef8638fe618219febdeceda5a6afb3ccdfb7916403214a1b7a5"
+    },
+    {
+      "path": "vectors/circuit/r11/verify/multiverifier-none.json",
+      "rung": "r11",
+      "command": [
+        "stwo-circuit-oracle",
+        "verify-circuit",
+        "--proof",
+        "<STWO_CIRCUIT_R11_EMIT_DIR of the Zig circuit-parity-r11 step>/multiverifier-none.proof",
+        "--request",
+        "<STWO_CIRCUIT_R11_EMIT_DIR of the Zig circuit-parity-r11 step>/multiverifier-none.request.json",
+        "--output",
+        "vectors/circuit/r11/verify/multiverifier-none.json"
+      ],
+      "bytes": 4211,
+      "sha256": "f1f25a8e30287cc72491d905bcd4cedc31a2d50af87cde1744d370e2d9872384"
+    },
+    {
+      "path": "vectors/circuit/r11/verify/multiverifier-output_digest.json",
+      "rung": "r11",
+      "command": [
+        "stwo-circuit-oracle",
+        "verify-circuit",
+        "--proof",
+        "<STWO_CIRCUIT_R11_EMIT_DIR of the Zig circuit-parity-r11 step>/multiverifier-output_digest.proof",
+        "--request",
+        "<STWO_CIRCUIT_R11_EMIT_DIR of the Zig circuit-parity-r11 step>/multiverifier-output_digest.request.json",
+        "--output",
+        "vectors/circuit/r11/verify/multiverifier-output_digest.json"
+      ],
+      "bytes": 4252,
+      "sha256": "7023d2ea28fcf97bd42576d306d1db8f68c109d000681b291741e1ab5c00dc5b"
+    },
+    {
+      "path": "vectors/circuit/r11/verify/multiverifier-pow_nonce.json",
+      "rung": "r11",
+      "command": [
+        "stwo-circuit-oracle",
+        "verify-circuit",
+        "--proof",
+        "<STWO_CIRCUIT_R11_EMIT_DIR of the Zig circuit-parity-r11 step>/multiverifier-pow_nonce.proof",
+        "--request",
+        "<STWO_CIRCUIT_R11_EMIT_DIR of the Zig circuit-parity-r11 step>/multiverifier-pow_nonce.request.json",
+        "--output",
+        "vectors/circuit/r11/verify/multiverifier-pow_nonce.json"
+      ],
+      "bytes": 4252,
+      "sha256": "931538726efa1ced256b3ed898b6dc5e9ae0580b9210ac115c19e3f7d11e4542"
+    },
+    {
+      "path": "vectors/circuit/r11/verify/multiverifier-preprocessed_root.json",
+      "rung": "r11",
+      "command": [
+        "stwo-circuit-oracle",
+        "verify-circuit",
+        "--proof",
+        "<STWO_CIRCUIT_R11_EMIT_DIR of the Zig circuit-parity-r11 step>/multiverifier-preprocessed_root.proof",
+        "--request",
+        "<STWO_CIRCUIT_R11_EMIT_DIR of the Zig circuit-parity-r11 step>/multiverifier-preprocessed_root.request.json",
+        "--output",
+        "vectors/circuit/r11/verify/multiverifier-preprocessed_root.json"
+      ],
+      "bytes": 4252,
+      "sha256": "d70f68ee72b91513447ba96d67d1b29940f000ace7efdb6b6d6496d53da776c5"
+    },
+    {
+      "path": "vectors/circuit/r11/verify/small-fibonacci-channel_salt.json",
+      "rung": "r11",
+      "command": [
+        "stwo-circuit-oracle",
+        "verify-circuit",
+        "--proof",
+        "<STWO_CIRCUIT_R11_EMIT_DIR of the Zig circuit-parity-r11 step>/small-fibonacci-channel_salt.proof",
+        "--request",
+        "<STWO_CIRCUIT_R11_EMIT_DIR of the Zig circuit-parity-r11 step>/small-fibonacci-channel_salt.request.json",
+        "--output",
+        "vectors/circuit/r11/verify/small-fibonacci-channel_salt.json"
+      ],
+      "bytes": 4221,
+      "sha256": "a42894c7b2fe4539b52bb41526e154beda2529a720c970eb7b5bb5a60845335d"
+    },
+    {
+      "path": "vectors/circuit/r11/verify/small-fibonacci-circuit_hash.json",
+      "rung": "r11",
+      "command": [
+        "stwo-circuit-oracle",
+        "verify-circuit",
+        "--proof",
+        "<STWO_CIRCUIT_R11_EMIT_DIR of the Zig circuit-parity-r11 step>/small-fibonacci-circuit_hash.proof",
+        "--request",
+        "<STWO_CIRCUIT_R11_EMIT_DIR of the Zig circuit-parity-r11 step>/small-fibonacci-circuit_hash.request.json",
+        "--output",
+        "vectors/circuit/r11/verify/small-fibonacci-circuit_hash.json"
+      ],
+      "bytes": 4221,
+      "sha256": "2b87ced72344e90226c7fe7539bc916094bcdcc679f5de69739f64580086f6e7"
+    },
+    {
+      "path": "vectors/circuit/r11/verify/small-fibonacci-claimed_sum.json",
+      "rung": "r11",
+      "command": [
+        "stwo-circuit-oracle",
+        "verify-circuit",
+        "--proof",
+        "<STWO_CIRCUIT_R11_EMIT_DIR of the Zig circuit-parity-r11 step>/small-fibonacci-claimed_sum.proof",
+        "--request",
+        "<STWO_CIRCUIT_R11_EMIT_DIR of the Zig circuit-parity-r11 step>/small-fibonacci-claimed_sum.request.json",
+        "--output",
+        "vectors/circuit/r11/verify/small-fibonacci-claimed_sum.json"
+      ],
+      "bytes": 4221,
+      "sha256": "f33d087640a883351a4e4f08a1b9d30bcb3bbd28472303c0ac4bfd7a9f5b2cd6"
+    },
+    {
+      "path": "vectors/circuit/r11/verify/small-fibonacci-fri_witness.json",
+      "rung": "r11",
+      "command": [
+        "stwo-circuit-oracle",
+        "verify-circuit",
+        "--proof",
+        "<STWO_CIRCUIT_R11_EMIT_DIR of the Zig circuit-parity-r11 step>/small-fibonacci-fri_witness.proof",
+        "--request",
+        "<STWO_CIRCUIT_R11_EMIT_DIR of the Zig circuit-parity-r11 step>/small-fibonacci-fri_witness.request.json",
+        "--output",
+        "vectors/circuit/r11/verify/small-fibonacci-fri_witness.json"
+      ],
+      "bytes": 4221,
+      "sha256": "552c0cb1c145d2b133ebbec819827ca2cf647924edc6413c3638776640394fd0"
+    },
+    {
+      "path": "vectors/circuit/r11/verify/small-fibonacci-interaction_pow_nonce.json",
+      "rung": "r11",
+      "command": [
+        "stwo-circuit-oracle",
+        "verify-circuit",
+        "--proof",
+        "<STWO_CIRCUIT_R11_EMIT_DIR of the Zig circuit-parity-r11 step>/small-fibonacci-interaction_pow_nonce.proof",
+        "--request",
+        "<STWO_CIRCUIT_R11_EMIT_DIR of the Zig circuit-parity-r11 step>/small-fibonacci-interaction_pow_nonce.request.json",
+        "--output",
+        "vectors/circuit/r11/verify/small-fibonacci-interaction_pow_nonce.json"
+      ],
+      "bytes": 4221,
+      "sha256": "7837ab50fe0a7f4fe0d0e712c80ce6cdfcbedb3c39bba9c44a760e38379d905c"
+    },
+    {
+      "path": "vectors/circuit/r11/verify/small-fibonacci-none.json",
+      "rung": "r11",
+      "command": [
+        "stwo-circuit-oracle",
+        "verify-circuit",
+        "--proof",
+        "<STWO_CIRCUIT_R11_EMIT_DIR of the Zig circuit-parity-r11 step>/small-fibonacci-none.proof",
+        "--request",
+        "<STWO_CIRCUIT_R11_EMIT_DIR of the Zig circuit-parity-r11 step>/small-fibonacci-none.request.json",
+        "--output",
+        "vectors/circuit/r11/verify/small-fibonacci-none.json"
+      ],
+      "bytes": 4180,
+      "sha256": "b9da11e867bd9de6cbf58729bb031b44c8743aa1f75ce1d36ec81a598d65dc26"
+    },
+    {
+      "path": "vectors/circuit/r11/verify/small-fibonacci-output_digest.json",
+      "rung": "r11",
+      "command": [
+        "stwo-circuit-oracle",
+        "verify-circuit",
+        "--proof",
+        "<STWO_CIRCUIT_R11_EMIT_DIR of the Zig circuit-parity-r11 step>/small-fibonacci-output_digest.proof",
+        "--request",
+        "<STWO_CIRCUIT_R11_EMIT_DIR of the Zig circuit-parity-r11 step>/small-fibonacci-output_digest.request.json",
+        "--output",
+        "vectors/circuit/r11/verify/small-fibonacci-output_digest.json"
+      ],
+      "bytes": 4221,
+      "sha256": "a0d2527a99bfcdf8ef4a617150ce6366e1370ace95156c8c68b574219e8d55ef"
+    },
+    {
+      "path": "vectors/circuit/r11/verify/small-fibonacci-pow_nonce.json",
+      "rung": "r11",
+      "command": [
+        "stwo-circuit-oracle",
+        "verify-circuit",
+        "--proof",
+        "<STWO_CIRCUIT_R11_EMIT_DIR of the Zig circuit-parity-r11 step>/small-fibonacci-pow_nonce.proof",
+        "--request",
+        "<STWO_CIRCUIT_R11_EMIT_DIR of the Zig circuit-parity-r11 step>/small-fibonacci-pow_nonce.request.json",
+        "--output",
+        "vectors/circuit/r11/verify/small-fibonacci-pow_nonce.json"
+      ],
+      "bytes": 4221,
+      "sha256": "da907951162b8f81d76cae12343a468bdc01ea77f90bf870672691ab9d0368d7"
+    },
+    {
+      "path": "vectors/circuit/r11/verify/small-fibonacci-preprocessed_root.json",
+      "rung": "r11",
+      "command": [
+        "stwo-circuit-oracle",
+        "verify-circuit",
+        "--proof",
+        "<STWO_CIRCUIT_R11_EMIT_DIR of the Zig circuit-parity-r11 step>/small-fibonacci-preprocessed_root.proof",
+        "--request",
+        "<STWO_CIRCUIT_R11_EMIT_DIR of the Zig circuit-parity-r11 step>/small-fibonacci-preprocessed_root.request.json",
+        "--output",
+        "vectors/circuit/r11/verify/small-fibonacci-preprocessed_root.json"
+      ],
+      "bytes": 4221,
+      "sha256": "0a1ac10d06dcc0b47396c983543a401ec21410f8cfc7c6a27a74e9045e40b71c"
     },
     {
       "path": "vectors/circuit/r2/gadgets.json",

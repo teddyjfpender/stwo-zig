@@ -26,7 +26,8 @@
     "cairo_verifier_proof",
     "prove",
     "recursion",
-    "verifier_proof"
+    "verifier_proof",
+    "verify"
   ],
   "api_contract": {
     "signature_tests": [

@@ -159,6 +159,26 @@ pub fn build(b: *std.Build) void {
         "Registry generation: both canonical_small test definitions generate their committed registries byte for byte",
     ).dependOn(&params_tests.step);
 
+    // R11: acceptance and tamper, the Zig verifier against upstream's
+    // committed verdicts. Medium (two 2^21-2^23-row proofs verified in value
+    // mode, nine times each); not part of `test`.
+    const r11_root = b.createModule(.{
+        .root_source_file = b.path("tests/r11_verify_test.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    r11_root.addImport("stwo_core", core);
+    r11_root.addImport("stwo_circuit_frontend", circuit);
+    r11_root.addImport("stwo_circuit_cpu_integration", integration);
+    r11_root.addImport("stwo_circuit_recursion_wire", wire);
+    r11_root.addImport("circuit_testing", circuit_testing);
+    const r11_tests = b.addRunArtifact(b.addTest(.{ .root_module = r11_root, .filters = filters }));
+    r11_tests.setCwd(repository_root);
+    b.step(
+        "circuit-parity-r11",
+        "Rung R11: the Zig circuit verifier and upstream verify_circuit accept three proofs and reject every tampering",
+    ).dependOn(&r11_tests.step);
+
     const r7_step = b.step(
         "circuit-parity-r7",
         "Rung R7: the prover_test.rs circuits proved byte for byte against the oracle's prove-small",

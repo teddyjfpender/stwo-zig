@@ -19,6 +19,8 @@ pub const packed_node = @import("packed_node.zig");
 pub const registry = @import("registry.zig");
 /// `RegistryDefinition`: the input of `circuit-params`.
 pub const registry_definition = @import("registry_definition.zig");
+/// The inputs of `verify_circuit` besides the proof (`verify-circuit --request`).
+pub const verify_request = @import("verify_request.zig");
 /// Leaf output digests from decimal felt preimages.
 pub const blake2_felt252 = @import("blake2_felt252.zig");
 /// The serde_json text surface shared by the JSON formats.

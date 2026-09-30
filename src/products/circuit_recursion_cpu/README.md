@@ -11,8 +11,9 @@ Its output files are byte-compatible with upstream's binaries.
 | Binary | `stwo-circuit-recursion-cpu` |
 | Backend | CPU (scalar and SIMD), no fallback |
 | Build | `zig build stwo-circuit-recursion-cpu -Doptimize=ReleaseFast -j2` (product catalog, parity-gated) |
-| Commands | `leaf-wrap`, `fold-tree`, `circuit-params` |
-| Upstream counterparts | `leaf-prover` (`crates/leaf_prover`), `stwo_run_and_prove_recursive_tree`, `circuit-params --registry` (`crates/circuit_params`) |
+| Commands | `leaf-wrap`, `fold-tree`, `circuit-params`, `verify` |
+| Upstream counterparts | `leaf-prover` (`crates/leaf_prover`), `stwo_run_and_prove_recursive_tree`, `circuit-params --registry` (`crates/circuit_params`), `verify_circuit` (`crates/circuit_verifier`, no upstream binary) |
+| Release gates | `test-circuit-recursion-cpu-product`, `circuit-parity-local` |
 | Embedded data | the circuit AIR projection (`vectors/circuit/official/compiled_air_constraints_v1.bin`) and evaluation programs (`circuit_air.air_programs_v1.bin`), SHA-256-checked at run time |
 
 ## `leaf-wrap`
@@ -42,8 +43,11 @@ Differences from `leaf-prover`, none of which changes the output bytes:
 - The Zig lane has no Cairo VM. It starts from the execution the VM and the
   upstream adapter produce, as `ProverInput` JSON
   (`stwo-circuit-oracle adapt-program`), where `leaf-prover` runs steps 1-2
-  itself. `--program` is still required: its felts are the program the leaf
-  circuit interns (`program_felts`).
+  itself from `--program_input`. The contract is two steps: run the adapter
+  (`adapt-program --program P --program-input I`), then `leaf-wrap`.
+  `--program` is still required: its felts are the program the leaf
+  circuit interns (`program_felts`). Upstream's `--circuit_registry_json`
+  and `--output_path` are accepted for `--registry` and `--output`.
 - `--assets` (default `.`) names the repository root that holds the Cairo
   lane's committed witness and AIR bundles under `vectors/cairo/`. The
   circuit AIR data is embedded.
@@ -66,6 +70,32 @@ fold order; the three outputs are the root's Cairo-verifier felt stream, its
 output digest and its packed-output tree, byte for byte as upstream writes
 them (rung R9, `circuit-parity-r9` in the circuit CPU integration).
 
+The tree fails closed where upstream's release build does not. Upstream's
+`fold.rs` checks the multiverifier circuit only with
+`debug_assert!(context.is_circuit_valid())`, compiled out in release; its
+prover's one hard check is `lookup_sum == 0`. So a leaf with, for example, a
+wrong declared `circuit_preprocessed_root` or a preimage that does not hash
+to its output can make upstream write root files, while `fold-tree` stops
+with `MultiverifierRejectedInputs`. This is intentional (design errata 11):
+no valid input changes, and no invalid one gets a root.
+
+## `verify`
+
+```sh
+zig-out/bin/stwo-circuit-recursion-cpu verify --proof proof.bin --request request.json
+```
+
+Upstream `verify_circuit` (`crates/circuit_verifier/src/verify.rs`) on a
+`CircuitSerialize` proof: the request names the verified circuit's
+`PcsConfig`, preprocessed column log sizes (commitment order), preprocessed
+root and claimed output digest, in the format of
+`stwo-circuit-oracle verify-circuit --request`. The proof is decoded under
+`circuit_verifier_proof_config`, the verification circuit is built with
+values, and the proof is accepted exactly when that circuit is satisfied.
+It prints `accepted: output digest <hex>` and exits 0, or
+`rejected at <stage>: <reason>` and exits 3. Rung R11
+(`circuit-parity-r11`) holds it to upstream's verdicts.
+
 ## `circuit-params`
 
 ```sh
@@ -83,12 +113,32 @@ upstream's human-readable sizes report (`--registry` is required). Without
 
 ```sh
 zig build test-circuit-recursion-cpu-product -Doptimize=ReleaseFast -j2
+zig build circuit-parity-local -j2      # the release gate: every rung within 8 GB
+zig build circuit-parity-large -j2      # R8, R8b, R9 (11-18 GB peaks)
+zig build circuit-parity -j2            # both, local first
 zig build circuit-parity-r8 -Doptimize=ReleaseFast -j2
+zig build circuit-parity-r8b -Doptimize=ReleaseFast -j2
 ```
 
 `test-circuit-recursion-cpu-product` runs the command-line and
 embedded-asset tests, `--help` on the installed binary and the product
 closure gate.
+
+The parity lanes run each rung of design §8.2 as its own `zig build`, one
+after another. `circuit-parity-local`: the wire vectors (R0), the frontend
+rungs (R0 FRI, R1-R5, R4, R6 fold), R4 values, R6 leaf, R7, registry
+generation, R10b/R10c (`test-cairo-leaf-proof`) and R11.
+`circuit-parity-large`: R8, R8b, R9 and, when
+`STWO_CIRCUIT_MULTIVERIFIER_INPUTS` names its inputs, the R7 multiverifier.
+
+`circuit-parity-r8b` (labelled large) is the end-to-end chain: the Zig lane
+proves and wraps upstream's leaf simple bootloader running the
+`simple_output` task `[11, 13, 17]` under the recursive-tree registry, the
+leaf must equal `four_leaves/leaf.json` (root, circuit hash and proof, then
+the whole `LeafInput` assembled from the bootloader's preimage dump), and
+four copies of the Zig leaf must fold to `root.proof`, `root_outputs.json`
+and `root_packed.json` byte for byte. It took 278 s and 15.8 GB maximum RSS
+on 2026-09-30 (AC power, other agents running; indicative only).
 
 `circuit-parity-r8` (labelled large: a 2^23-row circuit proof, about 11 GB
 and 1-2 minutes) wraps `use_all_opcodes_and_builtins` and requires the file

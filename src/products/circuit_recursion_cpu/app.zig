@@ -1,7 +1,6 @@
 //! The circuit recursion CPU product: the leaf wrap, the recursive tree and
 //! registry generation of https://github.com/starkware-libs/proving at
-//! 5a7c5ede4299c91a61df19a07cba4f7502c14230, byte for byte (design §7.4,
-//! milestones M8 and M9).
+//! 5a7c5ede4299c91a61df19a07cba4f7502c14230, byte for byte (design §7.4).
 //!
 //! `leaf-wrap` is the Zig counterpart of upstream `leaf-prover`
 //! (`crates/leaf_prover/src/main.rs`): it proves an execution as a leaf Cairo
@@ -13,6 +12,10 @@
 //! adapt-program` writes it); `leaf-prover` runs those steps itself from the
 //! compiled program. The compiled program is still read: its felts are the
 //! program the leaf circuit interns, as upstream's `program_felts`.
+//!
+//! `verify` is upstream `verify_circuit` on a `CircuitSerialize` proof: it
+//! prints `accepted` (with the verifier's output digest) and exits 0, or
+//! prints where the proof was rejected and exits 3.
 //!
 //! The circuit AIR's compiled-constraint projection and recorded evaluation
 //! programs are embedded at build time and authenticated by SHA-256 before
@@ -66,6 +69,7 @@ fn run(gpa: std.mem.Allocator, parsed: cli.Parsed) !void {
         .leaf_wrap => |command| try leafWrapCommand(gpa, command),
         .fold_tree => |command| try foldTreeCommand(gpa, command),
         .circuit_params => |command| try circuitParams(gpa, command),
+        .verify => |command| if (!try verifyCommand(gpa, command)) std.process.exit(3),
     }
 }
 
@@ -360,6 +364,32 @@ fn foldTreeCommand(gpa: std.mem.Allocator, command: cli.FoldTree) !void {
         files.stats.n_layers,
         files.stats.n_pair_reductions,
     });
+}
+
+/// `verify_circuit` on a proof file: prints the verdict; false when the
+/// proof is rejected.
+fn verifyCommand(gpa: std.mem.Allocator, command: cli.Verify) !bool {
+    var arena_state = std.heap.ArenaAllocator.init(gpa);
+    defer arena_state.deinit();
+    const arena = arena_state.allocator();
+    const request = try wire.verify_request.parseVerifyRequest(arena, try readFile(arena, command.request));
+    const proof = try readFile(arena, command.proof);
+
+    var air = try Air.init(gpa);
+    defer air.deinit();
+    var circuit_table = try air.circuitTable(gpa);
+    defer circuit_table.deinit();
+    const verdict = try circuit_cpu.verify.verifyProofBytes(gpa, &circuit_table, &request.request, proof);
+
+    var buffer: [256]u8 = undefined;
+    var stdout = std.fs.File.stdout().writer(&buffer);
+    const out = &stdout.interface;
+    switch (verdict) {
+        .accepted => |digest| try out.print("accepted: output digest {f}\n", .{HashText{ .words = digest }}),
+        .rejected => |why| try out.print("rejected at {s}: {s}\n", .{ @tagName(why.stage), @errorName(why.reason) }),
+    }
+    try out.flush();
+    return verdict.isAccepted();
 }
 
 /// `circuit-params --registry`: the definition's files are read relative to

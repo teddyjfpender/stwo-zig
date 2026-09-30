@@ -1,4 +1,4 @@
-//! The circuit prover on the CPU backend (design §4, milestone M7): the
+//! The circuit prover on the CPU backend (design §4): the
 //! circuit AIR's recorded constraint programs bound to a proof's geometry,
 //! and the proving transcript of `crates/circuit_prover/src/prover.rs`
 //! (https://github.com/starkware-libs/proving at
@@ -8,6 +8,8 @@ pub const air = @import("air.zig");
 pub const prove = @import("prove.zig");
 pub const verifier_proof = @import("verifier_proof.zig");
 pub const cairo_verifier_proof = @import("cairo_verifier_proof.zig");
+/// `verify_circuit` on a `CircuitSerialize` proof.
+pub const verify = @import("verify.zig");
 pub const recursion = @import("recursion/mod.zig");
 
 pub const Internal = prove.Internal;
@@ -29,5 +31,6 @@ test {
     _ = prove;
     _ = verifier_proof;
     _ = cairo_verifier_proof;
+    _ = verify;
     _ = recursion;
 }

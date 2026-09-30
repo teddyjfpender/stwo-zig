@@ -21,7 +21,7 @@ bytes the Rust would write for it.
 The [package contract](package.contract.json) and [public facade](mod.zig) are
 the authoritative API records. The port's design is
 [`02-design.md`](../../../design/starknet-proving-pipeline/recursion/02-design.md)
-(section 2.3); this package is its milestone M3.
+(section 2.3).
 
 ## Purpose and boundaries
 
@@ -44,11 +44,14 @@ flowchart LR
 | Circuit registry and its queries | `registry` | `circuit_registry`, `ProverParameters` |
 | Registry definition (`circuit-params --definition`) | `registry_definition` | `circuit_params::RegistryDefinition` |
 | Leaf output digest from a decimal felt preimage | `blake2_felt252` | `LeafInput::output_digest`, `Blake2Felt252::encode_felts_to_u32s` |
+| `verify_circuit` inputs besides the proof | `verify_request` | the oracle's `verify-circuit --request` (`VerifyRequest`) |
 | serde_json pretty and compact text | `json_text` | `serde_json` |
 
 This package owns encodings only. It does not know the circuit AIR: the column
 counts a `ProofConfig` needs come from the caller (the circuit frontend, or in
-tests the oracle's R3 checkpoint). It does not verify proofs, build circuits,
+tests the oracle's R3 checkpoint). `ProofConfig` is
+`core.circuit_proof_shape.ProofShape`, the one shape and size model the
+in-circuit verifier uses too. It does not verify proofs, build circuits,
 or check that a registry's hashes match any circuit; those belong to the
 circuit frontend and the recursion products.
 
@@ -58,7 +61,11 @@ decoder: an M31 at or above P in the felt stream (Rust reduces it), a
 non-canonical `0x` felt string, a felt above `u64::MAX` (every felt of the
 Blake2s-hashed root stream fits), a duplicate key in the registry's config map
 (serde keeps the last), and nesting deeper than `packed_node.max_depth`.
-Otherwise reading follows serde, including ignoring unknown JSON fields.
+Otherwise reading follows serde, including ignoring unknown JSON fields and
+two release-build behaviours the R0 vectors pin: `Felt::from_dec_str` wraps
+its digit add modulo 2^256 (`2^256 + 3` reads as 3), and a leaf proof's
+base64 may omit or shorten its `=` padding (`serde_with`'s
+`DecodePaddingMode::Indifferent`; trailing bits must still be zero).
 
 ## Public API
 
@@ -79,11 +86,12 @@ try wire.registry.writeRegistry(writer, registry.registry);
 | Binary circuit proofs | `circuit_serialize` (`ProofConfig`, `ComponentShape`, `Proof`, `deserializeProof`, `serializeProof`, `serializeProofAlloc`) |
 | Felt primitives | `cairo_serialize` (`FeltReader`, `FeltWriter`, `FeltList`, `FeltJsonWriter`, `parseFeltJson`) |
 | Root proof stream | `circuit_felt_stream` (`CairoCircuitProof`, `decode`, `encode`, `writeJson`, `sortAndTransposeQueriedValues`) |
-| Leaf files | `leaf_proof_json` (`DigestHex`, `SerializedLeafProof`, `LeafInput`, parse and write functions, `parseLeavesManifest`) |
+| Leaf files | `leaf_proof_json` (`DigestHex`, `SerializedLeafProof`, `LeafInput`, parse and write functions, `decodeBase64`, `parseLeavesManifest`) |
 | Tree outputs | `packed_node` (`PackedNode`, `parsePackedNode`, `writePackedNode`, `writeRootOutputs`, `parseRootOutputs`) |
 | Registry | `registry` (`CircuitRegistry` with `config`, `leafVerifier`, `maxLeafTraceLogSize`, `multiverifier`; `parseProverParameters`, `parseFriConfig` for the definition's parameter files) |
 | Registry definition | `registry_definition` (`RegistryDefinition`, `parseRegistryDefinition`) |
 | Felt preimages | `blake2_felt252` (`parseDecimalFelt`, `appendFeltWords`, `outputDigest`) |
+| Verify requests | `verify_request` (`VerifyRequest`, `parseVerifyRequest`, `writeVerifyRequest`) |
 | JSON text | `json_text` (`Writer`, strict field readers) |
 
 Decoders return a value together with the arena that owns its slices; call

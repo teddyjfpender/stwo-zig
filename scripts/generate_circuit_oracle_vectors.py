@@ -77,7 +77,9 @@ def artifact_record(staging: Path, path: str, **fields: object) -> dict:
     return {"path": path, **fields, "bytes": len(data), "sha256": hashlib.sha256(data).hexdigest()}
 
 
-def generate(staging: Path, oracle: Path, proving: Path, zig_emit_dir: Path | None) -> list[dict]:
+def generate(
+    staging: Path, oracle: Path, proving: Path, zig_emit_dir: Path | None, r11_emit_dir: Path | None
+) -> list[dict]:
     artifacts = []
     for path, rung, subcommand, reads_upstream in lane.ORACLE_ARTIFACTS:
         (staging / path).parent.mkdir(parents=True, exist_ok=True)
@@ -171,6 +173,25 @@ def generate(staging: Path, oracle: Path, proving: Path, zig_emit_dir: Path | No
         artifacts.append(
             artifact_record(staging, path, rung="r7", command=lane.verify_circuit_command(path, label))
         )
+    # R11 verdicts on Zig-emitted (tampered) proofs: regenerated from `--r11-emit-dir`, otherwise
+    # kept.
+    for path, label in lane.R11_VERDICTS:
+        (staging / path).parent.mkdir(parents=True, exist_ok=True)
+        if r11_emit_dir is None:
+            shutil.copyfile(ROOT / path, staging / path)
+        else:
+            subprocess.run(
+                [str(oracle), *lane.verify_circuit_command(
+                    str(staging / path), label, emit_dir=str(r11_emit_dir)
+                )[1:]],
+                check=True,
+            )
+        artifacts.append(
+            artifact_record(
+                staging, path, rung="r11",
+                command=lane.verify_circuit_command(path, label, emit_dir=lane.R11_EMIT_DIR_PLACEHOLDER),
+            )
+        )
     for path, upstream_path in lane.UPSTREAM_COPIES:
         (staging / path).parent.mkdir(parents=True, exist_ok=True)
         shutil.copyfile(proving / upstream_path, staging / path)
@@ -207,6 +228,12 @@ def main(argv: list[str] | None = None) -> int:
         help="STWO_CIRCUIT_R7_EMIT_DIR of the Zig circuit-parity-r7 steps; without it the "
         "committed verify-circuit verdicts are kept",
     )
+    parser.add_argument(
+        "--r11-emit-dir",
+        type=Path,
+        help="STWO_CIRCUIT_R11_EMIT_DIR of the Zig circuit-parity-r11 step; without it the "
+        "committed R11 verdicts are kept",
+    )
     args = parser.parse_args(argv)
 
     ledger = parse_ledger(ROOT / "conformance" / "upstream.md")
@@ -216,7 +243,7 @@ def main(argv: list[str] | None = None) -> int:
     vectors.mkdir(parents=True, exist_ok=True)
     with tempfile.TemporaryDirectory(dir=vectors.parent) as directory:
         staging = Path(directory)
-        artifacts = generate(staging, oracle, proving, args.zig_emit_dir)
+        artifacts = generate(staging, oracle, proving, args.zig_emit_dir, args.r11_emit_dir)
         record = provenance(artifacts, ledger, args.date)
         (staging / lane.PROVENANCE).write_text(json.dumps(record, indent=2) + "\n", encoding="utf-8")
         for path in (*lane.MANAGED, lane.PROVENANCE):

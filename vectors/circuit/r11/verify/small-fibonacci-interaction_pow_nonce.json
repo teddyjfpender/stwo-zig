@@ -1,0 +1,231 @@
+{
+  "schema": "stwo-circuit-oracle-checkpoint-v1",
+  "rung": "r7",
+  "subcommand": "verify-circuit",
+  "authority": {
+    "repository": "https://github.com/starkware-libs/proving",
+    "revision": "5a7c5ede4299c91a61df19a07cba4f7502c14230"
+  },
+  "inputs": [],
+  "body": {
+    "request": {
+      "pcs_config": {
+        "fri_config": {
+          "pow_bits": 10,
+          "log_blowup_factor": 1,
+          "log_last_layer_degree_bound": 0,
+          "n_queries": 3,
+          "fold_step": 1
+        },
+        "trace_lifting_log_size": 21,
+        "preprocessed_lifting_log_size": 21
+      },
+      "preprocessed_column_log_sizes": [
+        [
+          "eq_in0_address",
+          4
+        ],
+        [
+          "eq_in1_address",
+          4
+        ],
+        [
+          "triple_xor_input_addr_0",
+          4
+        ],
+        [
+          "triple_xor_input_addr_1",
+          4
+        ],
+        [
+          "triple_xor_input_addr_2",
+          4
+        ],
+        [
+          "triple_xor_output_addr",
+          4
+        ],
+        [
+          "triple_xor_multiplicity",
+          4
+        ],
+        [
+          "m31_to_u32_input_addr",
+          4
+        ],
+        [
+          "m31_to_u32_output_addr",
+          4
+        ],
+        [
+          "m31_to_u32_multiplicity",
+          4
+        ],
+        [
+          "blake_g_gate_input_addr_a",
+          4
+        ],
+        [
+          "blake_g_gate_input_addr_b",
+          4
+        ],
+        [
+          "blake_g_gate_input_addr_c",
+          4
+        ],
+        [
+          "blake_g_gate_input_addr_d",
+          4
+        ],
+        [
+          "blake_g_gate_input_addr_f0",
+          4
+        ],
+        [
+          "blake_g_gate_input_addr_f1",
+          4
+        ],
+        [
+          "blake_g_gate_output_addr_a",
+          4
+        ],
+        [
+          "blake_g_gate_output_addr_b",
+          4
+        ],
+        [
+          "blake_g_gate_output_addr_c",
+          4
+        ],
+        [
+          "blake_g_gate_output_addr_d",
+          4
+        ],
+        [
+          "blake_g_gate_multiplicity",
+          4
+        ],
+        [
+          "bitwise_xor_4_0",
+          8
+        ],
+        [
+          "bitwise_xor_4_1",
+          8
+        ],
+        [
+          "bitwise_xor_4_2",
+          8
+        ],
+        [
+          "qm31_ops_add_flag",
+          11
+        ],
+        [
+          "qm31_ops_sub_flag",
+          11
+        ],
+        [
+          "qm31_ops_mul_flag",
+          11
+        ],
+        [
+          "qm31_ops_pointwise_mul_flag",
+          11
+        ],
+        [
+          "qm31_ops_in0_address",
+          11
+        ],
+        [
+          "qm31_ops_in1_address",
+          11
+        ],
+        [
+          "qm31_ops_out_address",
+          11
+        ],
+        [
+          "qm31_ops_mults",
+          11
+        ],
+        [
+          "bitwise_xor_7_0",
+          14
+        ],
+        [
+          "bitwise_xor_7_1",
+          14
+        ],
+        [
+          "bitwise_xor_7_2",
+          14
+        ],
+        [
+          "seq_16",
+          16
+        ],
+        [
+          "bitwise_xor_8_0",
+          16
+        ],
+        [
+          "bitwise_xor_8_1",
+          16
+        ],
+        [
+          "bitwise_xor_8_2",
+          16
+        ],
+        [
+          "bitwise_xor_9_0",
+          18
+        ],
+        [
+          "bitwise_xor_9_1",
+          18
+        ],
+        [
+          "bitwise_xor_9_2",
+          18
+        ],
+        [
+          "bitwise_xor_10_0",
+          20
+        ],
+        [
+          "bitwise_xor_10_1",
+          20
+        ],
+        [
+          "bitwise_xor_10_2",
+          20
+        ]
+      ],
+      "preprocessed_root": [
+        3839694203,
+        1426645878,
+        544260312,
+        942396420,
+        1308763733,
+        2376548999,
+        3794595096,
+        1471736858
+      ],
+      "output_digest": [
+        809871181,
+        809871181,
+        809871181,
+        809871181,
+        809871181,
+        809871181,
+        809871181,
+        809871181
+      ]
+    },
+    "proof_bytes": 40756,
+    "proof_sha256": "fabb6978a91d7248deb9a1e99297893310f333840df85a684f2b778386798cd5",
+    "accepted": false,
+    "rejection": "Verification failed"
+  }
+}

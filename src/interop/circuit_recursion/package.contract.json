@@ -23,7 +23,8 @@
     "leaf_proof_json",
     "packed_node",
     "registry",
-    "registry_definition"
+    "registry_definition",
+    "verify_request"
   ],
   "api_contract": {
     "signature_tests": [

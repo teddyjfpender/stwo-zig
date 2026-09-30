@@ -1,0 +1,231 @@
+{
+  "schema": "stwo-circuit-oracle-checkpoint-v1",
+  "rung": "r7",
+  "subcommand": "verify-circuit",
+  "authority": {
+    "repository": "https://github.com/starkware-libs/proving",
+    "revision": "5a7c5ede4299c91a61df19a07cba4f7502c14230"
+  },
+  "inputs": [],
+  "body": {
+    "request": {
+      "pcs_config": {
+        "fri_config": {
+          "pow_bits": 26,
+          "log_blowup_factor": 1,
+          "log_last_layer_degree_bound": 0,
+          "n_queries": 70,
+          "fold_step": 4
+        },
+        "trace_lifting_log_size": 24,
+        "preprocessed_lifting_log_size": 24
+      },
+      "preprocessed_column_log_sizes": [
+        [
+          "bitwise_xor_4_0",
+          8
+        ],
+        [
+          "bitwise_xor_4_1",
+          8
+        ],
+        [
+          "bitwise_xor_4_2",
+          8
+        ],
+        [
+          "bitwise_xor_7_0",
+          14
+        ],
+        [
+          "bitwise_xor_7_1",
+          14
+        ],
+        [
+          "bitwise_xor_7_2",
+          14
+        ],
+        [
+          "seq_16",
+          16
+        ],
+        [
+          "bitwise_xor_8_0",
+          16
+        ],
+        [
+          "bitwise_xor_8_1",
+          16
+        ],
+        [
+          "bitwise_xor_8_2",
+          16
+        ],
+        [
+          "bitwise_xor_9_0",
+          18
+        ],
+        [
+          "bitwise_xor_9_1",
+          18
+        ],
+        [
+          "bitwise_xor_9_2",
+          18
+        ],
+        [
+          "eq_in0_address",
+          20
+        ],
+        [
+          "eq_in1_address",
+          20
+        ],
+        [
+          "triple_xor_input_addr_0",
+          20
+        ],
+        [
+          "triple_xor_input_addr_1",
+          20
+        ],
+        [
+          "triple_xor_input_addr_2",
+          20
+        ],
+        [
+          "triple_xor_output_addr",
+          20
+        ],
+        [
+          "triple_xor_multiplicity",
+          20
+        ],
+        [
+          "bitwise_xor_10_0",
+          20
+        ],
+        [
+          "bitwise_xor_10_1",
+          20
+        ],
+        [
+          "bitwise_xor_10_2",
+          20
+        ],
+        [
+          "m31_to_u32_input_addr",
+          21
+        ],
+        [
+          "m31_to_u32_output_addr",
+          21
+        ],
+        [
+          "m31_to_u32_multiplicity",
+          21
+        ],
+        [
+          "qm31_ops_add_flag",
+          23
+        ],
+        [
+          "qm31_ops_sub_flag",
+          23
+        ],
+        [
+          "qm31_ops_mul_flag",
+          23
+        ],
+        [
+          "qm31_ops_pointwise_mul_flag",
+          23
+        ],
+        [
+          "qm31_ops_in0_address",
+          23
+        ],
+        [
+          "qm31_ops_in1_address",
+          23
+        ],
+        [
+          "qm31_ops_out_address",
+          23
+        ],
+        [
+          "qm31_ops_mults",
+          23
+        ],
+        [
+          "blake_g_gate_input_addr_a",
+          23
+        ],
+        [
+          "blake_g_gate_input_addr_b",
+          23
+        ],
+        [
+          "blake_g_gate_input_addr_c",
+          23
+        ],
+        [
+          "blake_g_gate_input_addr_d",
+          23
+        ],
+        [
+          "blake_g_gate_input_addr_f0",
+          23
+        ],
+        [
+          "blake_g_gate_input_addr_f1",
+          23
+        ],
+        [
+          "blake_g_gate_output_addr_a",
+          23
+        ],
+        [
+          "blake_g_gate_output_addr_b",
+          23
+        ],
+        [
+          "blake_g_gate_output_addr_c",
+          23
+        ],
+        [
+          "blake_g_gate_output_addr_d",
+          23
+        ],
+        [
+          "blake_g_gate_multiplicity",
+          23
+        ]
+      ],
+      "preprocessed_root": [
+        1495200548,
+        982317553,
+        239625226,
+        2570199350,
+        2714414743,
+        2779595219,
+        1037676955,
+        2269508257
+      ],
+      "output_digest": [
+        1603116091,
+        3258597502,
+        2711032228,
+        4175407283,
+        343882323,
+        1898618121,
+        1344732087,
+        1064799167
+      ]
+    },
+    "proof_bytes": 545896,
+    "proof_sha256": "7612a65e7f56d623187d66bdf975e0d049c69a4935453ecc4a52b20c8a517cf7",
+    "accepted": false,
+    "rejection": "Verification failed"
+  }
+}

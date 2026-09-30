@@ -117,6 +117,43 @@ before editing):
      `verify_native`, which R11 also needs to accept Rust proofs. So R11
      stays open. It is listed in the M9 row as a later gate on the big-host
      lane (§8.3).
+11. **Wave D audit fixes (2026-09-30).**
+   - **R8b** (`circuit-parity-r8b`, product): the Zig lane proves and wraps
+     upstream's leaf simple bootloader running the `simple_output` task
+     `[11, 13, 17]` (`test_golden_four_leaves_e2e`'s `leaf_bl_input`) under
+     the recursive-tree registry. Root, circuit hash and proof equal
+     `four_leaves/leaf.json`; the `LeafInput` assembled from the
+     bootloader's preimage dump equals the file byte for byte; four Zig
+     leaves fold to the root goldens. This closes the Zig-leaf-into-tree
+     chain that R8 (another program and registry) and R9 (a Rust leaf) left
+     untested.
+   - **R11 runs locally** (`circuit-parity-r11`, circuit CPU integration),
+     replacing errata 10's big-host deferral. `verify_circuit` is ported
+     (`statements/circuit_verifier.zig`, `integrations/circuit_cpu/verify.zig`,
+     product command `verify`). Three proofs (upstream's multiverifier
+     `proof.bin`, the Rust golden leaf, a Zig R7 proof) are accepted, and
+     rejected after each of eight tamperings, by both the Zig verifier and
+     oracle `verify-circuit`, whose verdicts are committed
+     (`vectors/circuit/r11/verify/`). Acceptance of the Cairo felt stream by
+     the Cairo `stwo_circuit_verifier` stays open.
+   - **Wire readers follow upstream's release build**: `Felt::from_dec_str`
+     wraps its digit add modulo 2^256 (lambdaworks only `debug_assert`s it),
+     and a leaf proof's base64 may omit or shorten its padding
+     (`serde_with` `DecodePaddingMode::Indifferent`). R0 pins both.
+   - **Intentional deviation, fail closed.** Upstream's `fold.rs` checks the
+     multiverifier only with `debug_assert!(context.is_circuit_valid())`;
+     its release prover's one hard check is `lookup_sum == 0`. So a leaf
+     with a wrong declared preprocessed root or a preimage that does not
+     hash to its output can make upstream write root files. The Zig tree
+     stops with `MultiverifierRejectedInputs` instead. No valid input
+     changes; no invalid input gets a root.
+   - **Aggregate steps**: `circuit-parity-local` (every rung within 8 GB:
+     R0-R7, registry generation, R10b/R10c, R11) is the product's release
+     gate; `circuit-parity-large` runs R8, R8b, R9 and the R7 multiverifier;
+     `circuit-parity` runs both (§8.2).
+   - **One proof shape model**: `core.circuit_proof_shape` holds the column
+     counts, FRI schedule and `CircuitSerialize` size that the in-circuit
+     verifier's `ProofConfig` and the wire package's reader both use.
 
 Rust paths are relative to the root of
 [`starkware-libs/proving`](https://github.com/starkware-libs/proving) at commit
@@ -1180,9 +1217,10 @@ Each rung is a `zig build circuit-parity-rN` step. The aggregate step is
 | **R6 topology** | Fold: per-column sha256 of preprocessed columns, `preprocessed_root` and `circuit_hash` of the multiverifier (+45-column layout, `circuit_multiverifier/src/test_utils.rs`). Leaf: the same for the canonical_small leaf (trace_log 20), built with the **Cairo preprocessed root** as a constant. That root is committed at `trace_log_size + log_blowup` under `Blake2sM31MerkleChannel` (`circuit_params/src/lib.rs:74-85`) and consumed as a committed fixture, together with `get_preprocessed_root` canonical_small 21/22/23. Production/privacy registries | digests, registry bytes | fold: none for test configs. Leaf: Cairo-root fixtures from the oracle `topology` subcommand (canonical_small, local OK) until R10b produces them in Zig. Production: `circuit-params` binary (big host) |
 | **R7 circuit proofs** | `circuit_prover/src/prover_test.rs` contexts (fibonacci, permutation, blake, …): transcript digest after each of the 8 steps, per-component base and interaction column sha256, claimed sums, all roots, FRI layer roots, CircuitSerialize bytes, `ProofInfo::total_bytes()` == length; three `.bin` round trips; ABI byte-compare (§4.2) | bytes | `prove-small`, `air-programs` |
 | **R8 leaf wrap** | Stage A: oracle-dumped Cairo proof of `use_all_opcodes_and_builtins` → `expected_output.json` bytes. Then a production-bucket leaf, mainnet `15627902-15627907` (1,580,295 steps, trace_log 25), against release `leaf-prover` | raw bytes | `dump-leaf-cairo-proof` (big host) |
+| **R8b leaf into tree** | the leaf simple bootloader's `simple_output` `[11, 13, 17]` execution (adapted by the oracle) → Zig Cairo proof → Zig wrap under the recursive-tree registry == `four_leaves/leaf.json`; four Zig leaves → root goldens (errata 11) | raw bytes | `adapt-program` |
 | **R9 fold tree** | `four_leaves` goldens as raw bytes; N = 1, 2, 3, 5 shapes from the release fold binary; per-internal-node CircuitSerialize sha256 | raw bytes | release binary (big host) |
 | **R10 Zig Cairo leaf** | R10a M31 channel/grind vectors; R10b canonical_small preprocessed roots at log blowup 1/2/3 (heights 21/22/23, errata 7); R10c `use_all_opcodes_and_builtins`, `all_opcodes`, `all_builtins` Binary bytes and canonical ExtendedBinary bytes (errata 7); R10d SN_PIE_2 (7,706,864 steps) → Zig Cairo proof → Zig wrap == release `leaf-prover` | raw bytes | `dump-leaf-cairo-proof` (big host) |
-| **R11 acceptance, tamper** | Rust `circuit_verifier` accepts Zig leaf/fold proofs; Zig `verify_native` accepts Rust proofs; root felt stream accepted by Cairo `stwo_circuit_verifier`; flip each of output digest, preprocessed root, circuit hash, claimed sum, nonce, salt, one FRI witness → both verifiers reject for the intended reason | accept/reject | `verify` |
+| **R11 acceptance, tamper** | Rust `circuit_verifier` accepts Zig leaf/fold proofs; Zig `verify_native` accepts Rust proofs; root felt stream accepted by Cairo `stwo_circuit_verifier`; flip each of output digest, preprocessed root, circuit hash, claimed sum, nonce, salt, one FRI witness → both verifiers reject for the intended reason. Built locally (errata 11): Zig `verify_circuit` and oracle `verify-circuit` on upstream's multiverifier proof, the golden leaf and a Zig R7 proof, untouched and with eight tamperings; the Cairo-verifier half is open | accept/reject | `verify-circuit` |
 
 The judges asked that R1 and R6 not wait on the oracle. **Only R1 meets
 that.** It needs only in-tree `expect!` snapshots, so it starts alongside M0.
