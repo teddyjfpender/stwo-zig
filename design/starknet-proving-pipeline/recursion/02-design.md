@@ -1050,6 +1050,32 @@ data.
 
 The cached preprocessed tree is reused whenever the key hits.
 
+**As built (M8).**
+
+- The orchestration lives in the circuit CPU integration,
+  `src/integrations/circuit_cpu/recursion/{leaf_wrap,topology_key,topology_cache}.zig`,
+  next to M9's fold. It needs the circuit prover and the Cairo frontend's
+  statement inputs, which the frontend package may not import (§2.2).
+- The input is the Cairo lane's in-memory proof (§6.4; R10c passes), not an
+  ExtendedBinary file: `cairo_proof_binary.zig` is still unbuilt (§2.3).
+- The cache holds the preprocessed circuit, its root and its circuit hash,
+  not a committed tree; the prover commits the preprocessed tree per proof
+  until M11. A new entry is published only after its proof passes the
+  registry check.
+- The leaf key also binds the Cairo proof's FRI config: the in-circuit
+  verifier's `ProofConfig`, and so the topology, depends on it.
+- R8 gate 1 is green: `circuit-parity-r8` reproduces `expected_output.json`
+  byte for byte.
+- R8 gate 2 ran Zig-only here on the smallest mainnet leaf,
+  `15627905-15627907`, run by the leaf bootloader
+  (`leaf_simple_bootloader_compiled.json`) and adapted by the upstream
+  adapter (`adapt-program --program-input`). It lands in the trace_log 25
+  bucket, and its circuit hash and preprocessed root equal the leaf entry
+  of a canonical registry that upstream `circuit-params` built for trace
+  logs 25-26. The byte comparison with release `leaf-prover`, and R10d,
+  stay big-host gates: upstream `leaf-prover` needs more than this host's
+  36 GB on a canonical leaf.
+
 ### 7.2 Fold and tree (`recursion/{fold,tree,canonical}.zig`)
 
 - `CanonicalCircuit` is built once per process. Rust builds the topology in
@@ -1083,6 +1109,8 @@ feeds TopologyKeys and budgets.
 ### 7.4 CLIs (`src/products/circuit_recursion_cpu`)
 
 - `leaf-wrap --registry R --cairo-proof P.bin [--checkpoints F] -o leaf.json`
+  (as built, M8: `leaf-wrap --registry R --program P.json --prover-input
+  I.json --output leaf.json`; see §7.1)
 - `fold-tree --registry R --manifest leaves.json -o DIR`. The manifest format
   `{"leaves":[...]}` and the outputs match `stwo_run_and_prove_recursive_tree`.
 - `circuit-params --definition D -o registry.json`

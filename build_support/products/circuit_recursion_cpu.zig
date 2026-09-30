@@ -1,12 +1,13 @@
-//! Build ownership for the circuit recursion CPU product: the recursive tree
-//! and registry generation of the circuit recursion stage (design §7.4,
-//! milestone M9).
+//! Build ownership for the circuit recursion CPU product: the leaf wrap, the
+//! recursive tree and registry generation of the circuit recursion stage
+//! (design §7.4, milestones M8 and M9).
 
 const std = @import("std");
 const build_identity = @import("../build_identity.zig");
 const closure_gate = @import("../gates/product_closure.zig");
 const graph_install = @import("../graph/install.zig");
 const graph = @import("../graph/modules.zig");
+const integration_graph = @import("../graph/integrations.zig");
 const product_policy = @import("../graph/product.zig");
 
 const protocol_features = "circuit-recursion-proving-5a7c5ed-v1";
@@ -23,6 +24,7 @@ const source_closure = product_policy.SourceClosure{
         .{ .name = "stwo_backend_contracts", .source = "src/backend/mod.zig" },
         .{ .name = "stwo_core", .source = "src/core/mod.zig" },
         .{ .name = "stwo_cairo_frontend", .source = "src/frontends/cairo/mod.zig" },
+        .{ .name = "stwo_cairo_cpu_integration", .source = "src/integrations/cairo_cpu/mod.zig" },
         .{ .name = "stwo_circuit_frontend", .source = "src/frontends/circuit/mod.zig" },
         .{ .name = "stwo_circuit_cpu_integration", .source = "src/integrations/circuit_cpu/mod.zig" },
         .{ .name = "stwo_circuit_recursion_wire", .source = "src/interop/circuit_recursion/mod.zig" },
@@ -43,6 +45,7 @@ const source_closure = product_policy.SourceClosure{
         "src/core",
         "src/frontends/cairo",
         "src/frontends/circuit",
+        "src/integrations/cairo_cpu",
         "src/integrations/circuit_cpu",
         "src/interop/circuit_recursion",
         "src/products/circuit_recursion_cpu",
@@ -90,7 +93,7 @@ pub fn addProduct(context: Context) void {
         descriptor.executable.?,
         root,
         descriptor.build_step,
-        "Build the circuit recursion CPU CLI (recursive tree, registry generation)",
+        "Build the circuit recursion CPU CLI (leaf wrap, recursive tree, registry generation)",
     );
 
     const tests = context.b.addTest(.{ .root_module = createProductModule(context, product(.@"test")) });
@@ -108,19 +111,40 @@ pub fn addProduct(context: Context) void {
         .binary = installed.executable,
     });
     test_step.dependOn(&closure_check.step);
+
+    // R8: large (a 2^23-row circuit proof, about 11 GB); not part of the
+    // product test step. The test reads `vectors/` from the repository root.
+    const r8_root = graph.create(context.b, .{
+        .product = product(.@"test"),
+        .root_source_file = "src/products/circuit_recursion_cpu/tests/r8_leaf_wrap_test.zig",
+        .target = context.target,
+        .optimize = context.optimize,
+    });
+    r8_root.addImport("app", createProductModuleAt(context, product(.@"test"), "src/products/circuit_recursion_cpu/app.zig"));
+    const r8_tests = context.b.addRunArtifact(context.b.addTest(.{ .root_module = r8_root }));
+    r8_tests.setCwd(context.b.path("."));
+    context.b.step(
+        "circuit-parity-r8",
+        "Rung R8: leaf-wrap of the leaf prover's test program equals leaf-prover's expected_output.json",
+    ).dependOn(&r8_tests.step);
 }
 
 fn createProductModule(context: Context, product_descriptor: graph.Product) *std.Build.Module {
+    return createProductModuleAt(context, product_descriptor, "src/products/circuit_recursion_cpu/main.zig");
+}
+
+fn createProductModuleAt(context: Context, product_descriptor: graph.Product, root_source_file: []const u8) *std.Build.Module {
     const b = context.b;
     const root = graph.create(b, .{
         .product = product_descriptor,
-        .root_source_file = "src/products/circuit_recursion_cpu/main.zig",
+        .root_source_file = root_source_file,
         .target = context.target,
         .optimize = context.optimize,
     });
     context.protocol.addImports(root);
     const cpu_backend = graph.addCpuBackendImport(b, context.protocol, product_descriptor, context.target, context.optimize, root);
     const cairo_frontend = graph.addCairoFrontendImport(b, context.protocol, product_descriptor, context.target, context.optimize, root);
+    _ = integration_graph.addCairoCpuImport(b, context.protocol, product_descriptor, context.target, context.optimize, cpu_backend, cairo_frontend, root);
     const wire = graph.createCircuitRecursionWire(b, context.protocol, product_descriptor, context.target, context.optimize, cairo_frontend);
     root.addImport("stwo_circuit_recursion_wire", wire);
 

@@ -131,6 +131,7 @@ pub const circuit_recursion_cpu_protocol_package_roots = &.{
     "dependency:../src/core:mod.zig",
     "dependency:../src/frontends/cairo:mod.zig",
     "dependency:../src/frontends/circuit:mod.zig",
+    "dependency:../src/integrations/cairo_cpu:mod.zig",
     "dependency:../src/integrations/circuit_cpu:mod.zig",
     "dependency:../src/interop/circuit_recursion:mod.zig",
     "dependency:../src/prover:mod.zig",

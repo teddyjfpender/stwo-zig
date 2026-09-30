@@ -1,20 +1,35 @@
-//! The circuit recursion CPU product: the recursive tree and registry
-//! generation of https://github.com/starkware-libs/proving at
+//! The circuit recursion CPU product: the leaf wrap, the recursive tree and
+//! registry generation of https://github.com/starkware-libs/proving at
 //! 5a7c5ede4299c91a61df19a07cba4f7502c14230, byte for byte (design §7.4,
-//! milestone M9).
+//! milestones M8 and M9).
+//!
+//! `leaf-wrap` is the Zig counterpart of upstream `leaf-prover`
+//! (`crates/leaf_prover/src/main.rs`): it proves an execution as a leaf Cairo
+//! proof under the registry's `cairo_prover_params`, wraps that proof in the
+//! registry's leaf verifier circuit and writes the `SerializedLeafProof` file
+//! byte for byte as `leaf-prover` does (pretty JSON, no trailing newline).
+//! The Zig lane has no Cairo VM, so it starts from the execution the VM and
+//! upstream adapter produce (`ProverInput` JSON, as `stwo-circuit-oracle
+//! adapt-program` writes it); `leaf-prover` runs those steps itself from the
+//! compiled program. The compiled program is still read: its felts are the
+//! program the leaf circuit interns, as upstream's `program_felts`.
 //!
 //! The circuit AIR's compiled-constraint projection and recorded evaluation
 //! programs are embedded at build time and authenticated by SHA-256 before
-//! use, so the binary needs no data files besides its inputs.
+//! use. `leaf-wrap` also reads the Cairo lane's witness and AIR bundles from
+//! the `--assets` repository root.
 
 const std = @import("std");
 const cairo = @import("stwo_cairo_frontend");
+const cairo_leaf = @import("stwo_cairo_cpu_integration").prover.leaf_transaction;
 const circuit = @import("stwo_circuit_frontend");
 const circuit_cpu = @import("stwo_circuit_cpu_integration");
 const wire = @import("stwo_circuit_recursion_wire");
+const prover = @import("stwo_prover_engine");
 const cli = @import("cli.zig");
 
 const recursion = circuit_cpu.recursion;
+const leaf_wrap = recursion.leaf_wrap;
 
 const projection_bytes = @embedFile("circuit_air_projection");
 const air_programs_bytes = @embedFile("circuit_air_programs");
@@ -47,29 +62,41 @@ pub fn main() !void {
 fn run(gpa: std.mem.Allocator, parsed: cli.Parsed) !void {
     switch (parsed) {
         .help => try std.fs.File.stdout().writeAll(cli.usage),
+        .leaf_wrap => |command| try leafWrapCommand(gpa, command),
         .fold_tree => |command| try foldTree(gpa, command),
         .circuit_params => |command| try circuitParams(gpa, command),
     }
 }
 
-/// The circuit AIR's evaluator tables and recorded programs, authenticated.
+/// The embedded circuit AIR projection, authenticated.
 const Air = struct {
     projection: circuit.air_eval.projection.Projection,
-    circuit_table: circuit.air_eval.component_table.Table,
 
-    /// Initializes in place: the tables borrow the projection.
-    fn init(self: *Air, gpa: std.mem.Allocator) !void {
+    fn init(gpa: std.mem.Allocator) !Air {
         try authenticate(projection_bytes, projection_sha256);
-        self.projection = try circuit.air_eval.projection.parse(gpa, projection_bytes);
-        errdefer self.projection.deinit();
-        self.circuit_table = try circuit.air_eval.circuit_components.build(gpa, &self.projection);
+        return .{ .projection = try circuit.air_eval.projection.parse(gpa, projection_bytes) };
     }
 
     fn deinit(self: *Air) void {
-        self.circuit_table.deinit();
         self.projection.deinit();
     }
+
+    /// The circuit AIR's evaluator table; borrows the projection.
+    fn circuitTable(self: *const Air, gpa: std.mem.Allocator) !circuit.air_eval.component_table.Table {
+        return circuit.air_eval.circuit_components.build(gpa, &self.projection);
+    }
+
+    /// The 83-slot Cairo evaluator table; borrows the projection.
+    fn cairoTable(self: *const Air, gpa: std.mem.Allocator) !circuit.air_eval.component_table.Table {
+        return circuit.air_eval.cairo_components.build(gpa, &self.projection);
+    }
 };
+
+/// The embedded circuit AIR evaluation programs, authenticated.
+fn airBundle(gpa: std.mem.Allocator) !circuit_cpu.air.Bundle {
+    try authenticate(air_programs_bytes, circuit_cpu.air.bundle_sha256);
+    return circuit_cpu.air.parse(gpa, air_programs_bytes);
+}
 
 fn authenticate(bytes: []const u8, comptime expected: *const [64]u8) !void {
     var digest: [32]u8 = undefined;
@@ -78,12 +105,177 @@ fn authenticate(bytes: []const u8, comptime expected: *const [64]u8) !void {
 }
 
 fn readFile(allocator: std.mem.Allocator, path: []const u8) ![]u8 {
-    return std.fs.cwd().readFileAlloc(allocator, path, max_input_bytes);
+    return std.fs.cwd().readFileAlloc(allocator, path, max_input_bytes) catch |err| {
+        std.log.err("cannot read {s}: {s}", .{ path, @errorName(err) });
+        return err;
+    };
 }
 
 fn writeFile(path: []const u8, bytes: []const u8) !void {
     try std.fs.cwd().writeFile(.{ .sub_path = path, .data = bytes });
 }
+
+/// The Cairo lane's committed bundles `leaf-wrap` reads, relative to the
+/// assets root.
+pub const cairo_asset_paths = struct {
+    pub const witness_programs = "vectors/cairo/official/witness_programs_v1.bin";
+    pub const feed_topology = "vectors/cairo/official/witness_feed_topology_v1.json";
+    pub const fixed_tables = "vectors/cairo/cairo_fixed_tables.bin";
+    pub const relation_templates = "vectors/cairo/cairo_relation_templates.bin";
+    pub const air_templates = "vectors/cairo/official/air_template_library_v1.json";
+};
+
+pub const LeafWrapRequest = struct {
+    registry_path: []const u8,
+    program_path: []const u8,
+    prover_input_path: []const u8,
+    assets: []const u8 = ".",
+    /// Execution choices of the circuit prover; never change bytes.
+    options: circuit_cpu.prove.Options = .{},
+};
+
+/// Wall time of each stage, in nanoseconds.
+pub const Timings = struct {
+    load_ns: u64 = 0,
+    cairo_prove_ns: u64 = 0,
+    wrap_ns: u64 = 0,
+};
+
+/// `prove_leaf` from an adapted execution: the leaf Cairo proof, then the
+/// wrap. The Cairo trace is released before the wrap starts.
+pub fn leafWrap(allocator: std.mem.Allocator, request: LeafWrapRequest, timings: *Timings) !leaf_wrap.LeafProof {
+    var timer = try std.time.Timer.start();
+
+    const registry_text = try readFile(allocator, request.registry_path);
+    defer allocator.free(registry_text);
+    var registry = try wire.registry.parseRegistry(allocator, registry_text);
+    defer registry.deinit();
+
+    const program_json = try readFile(allocator, request.program_path);
+    const program = blk: {
+        defer allocator.free(program_json);
+        break :blk try cairo.statement.circuit_leaf.programFeltsFromCompiledJson(allocator, program_json);
+    };
+    defer allocator.free(program);
+
+    var input = try cairo.adapter.official_input.readFile(allocator, request.prover_input_path);
+    defer input.deinit(allocator);
+    timings.load_ns = timer.lap();
+
+    // Steps 1-3 of `prove_leaf`: the leaf Cairo proof.
+    var cairo_proof = blk: {
+        const programs_path = try std.fs.path.join(allocator, &.{ request.assets, cairo_asset_paths.witness_programs });
+        defer allocator.free(programs_path);
+        var programs = try cairo.witness.bundle.Bundle.readFile(allocator, programs_path);
+        defer programs.deinit();
+        const topology_path = try std.fs.path.join(allocator, &.{ request.assets, cairo_asset_paths.feed_topology });
+        defer allocator.free(topology_path);
+        var topology = try cairo.witness.feed_topology.readOfficial(allocator, topology_path);
+        defer topology.deinit();
+        const fixed_path = try std.fs.path.join(allocator, &.{ request.assets, cairo_asset_paths.fixed_tables });
+        defer allocator.free(fixed_path);
+        var fixed = try cairo.witness.fixed_table_bundle.Bundle.readFile(allocator, fixed_path);
+        defer fixed.deinit();
+        const relations_path = try std.fs.path.join(allocator, &.{ request.assets, cairo_asset_paths.relation_templates });
+        defer allocator.free(relations_path);
+        var relations = try cairo.witness.relation_bundle.Bundle.readFile(allocator, relations_path);
+        defer relations.deinit();
+        const templates_path = try std.fs.path.join(allocator, &.{ request.assets, cairo_asset_paths.air_templates });
+        defer allocator.free(templates_path);
+        var air_templates = try cairo.air.template_library.Library.readFile(allocator, templates_path);
+        defer air_templates.deinit();
+        break :blk try cairo_leaf.proveLeafCairo(allocator, .{
+            .input = &input,
+            .programs = &programs,
+            .topology = topology,
+            .fixed = &fixed,
+            .relations = &relations,
+            .air_templates = &air_templates,
+        }, registry.registry.cairo_prover_params, null);
+    };
+    defer cairo_proof.deinit();
+    timings.cairo_prove_ns = timer.lap();
+
+    // Steps 4-8: the wrap.
+    var air = try Air.init(allocator);
+    defer air.deinit();
+    var cairo_table = try air.cairoTable(allocator);
+    defer cairo_table.deinit();
+    var bundle = try airBundle(allocator);
+    defer bundle.deinit();
+
+    var cache = leaf_wrap.Cache.init(allocator, .{});
+    defer cache.deinit();
+    const wrap = leaf_wrap.LeafWrap{
+        .registry = &registry.registry,
+        .cairo_table = &cairo_table,
+        .bundle = &bundle,
+        .program = program,
+        .cache = &cache,
+        .options = request.options,
+    };
+    const leaf = try leaf_wrap.wrapCairoProof(allocator, &wrap, &cairo_proof, &input);
+    timings.wrap_ns = timer.lap();
+    return leaf;
+}
+
+/// Writes `leaf` to `path` atomically.
+pub fn writeLeafProof(leaf: *const leaf_wrap.LeafProof, path: []const u8) !void {
+    var buffer: [64 * 1024]u8 = undefined;
+    var atomic = try std.fs.cwd().atomicFile(path, .{ .write_buffer = &buffer });
+    defer atomic.deinit();
+    try leaf.writeJson(&atomic.file_writer.interface);
+    try atomic.finish();
+}
+
+fn leafWrapCommand(gpa: std.mem.Allocator, command: cli.LeafWrap) !void {
+    var stderr_buffer: [4096]u8 = undefined;
+    var stderr = std.fs.File.stderr().writerStreaming(&stderr_buffer);
+    const out = &stderr.interface;
+    defer out.flush() catch {};
+
+    var recorder = prover.stage_profile.Recorder.init(gpa, "cpu", "circuit-leaf-wrap");
+    defer recorder.deinit();
+    var timings = Timings{};
+    var leaf = try leafWrap(gpa, .{
+        .registry_path = command.registry,
+        .program_path = command.program,
+        .prover_input_path = command.prover_input,
+        .assets = command.assets,
+        .options = .{
+            .compact_polynomial_min_log = command.compact_min_log,
+            .recorder = if (command.profile) &recorder else null,
+        },
+    }, &timings);
+    defer leaf.deinit();
+    try writeLeafProof(&leaf, command.output);
+    try out.print(
+        "leaf-wrap: load {d:.2} s, cairo prove {d:.2} s, wrap {d:.2} s; circuit hash {f}\n",
+        .{ seconds(timings.load_ns), seconds(timings.cairo_prove_ns), seconds(timings.wrap_ns), HashText{ .words = leaf.circuit_hash.words } },
+    );
+    if (command.profile) {
+        var profile = try recorder.snapshot(gpa);
+        defer profile.deinit(gpa);
+        for (profile.stages) |stage| try printStage(out, stage, 0);
+    }
+}
+
+fn seconds(ns: u64) f64 {
+    return @as(f64, @floatFromInt(ns)) / std.time.ns_per_s;
+}
+
+fn printStage(out: *std.Io.Writer, stage: prover.stage_profile.StageNode, depth: usize) !void {
+    try out.print("{s: >[3]}{s} {d:.3} s\n", .{ "", stage.id, stage.seconds, depth * 2 });
+    if (stage.children) |children| for (children) |child| try printStage(out, child, depth + 1);
+}
+
+const HashText = struct {
+    words: [8]u32,
+
+    pub fn format(self: HashText, writer: *std.Io.Writer) std.Io.Writer.Error!void {
+        for (self.words) |word| try writer.print("{x:0>8}", .{word});
+    }
+};
 
 /// `stwo_run_and_prove_recursive_tree`: loads the leaves and the registry,
 /// builds the canonical multiverifier (checked against the registry), folds
@@ -102,18 +294,18 @@ fn foldTree(gpa: std.mem.Allocator, command: cli.FoldTree) !void {
     const registry = try wire.registry.parseRegistry(arena, try readFile(arena, command.circuit_registry_json));
     if (leaves.len == 0) return error.EmptyLeaves;
 
-    var air: Air = undefined;
-    try air.init(gpa);
+    var air = try Air.init(gpa);
     defer air.deinit();
-    try authenticate(air_programs_bytes, circuit_cpu.air.bundle_sha256);
-    var bundle = try circuit_cpu.air.parse(gpa, air_programs_bytes);
+    var circuit_table = try air.circuitTable(gpa);
+    defer circuit_table.deinit();
+    var bundle = try airBundle(gpa);
     defer bundle.deinit();
-    var canonical = try recursion.CanonicalCircuit.build(gpa, &air.circuit_table, registry.registry);
+    var canonical = try recursion.CanonicalCircuit.build(gpa, &circuit_table, registry.registry);
     defer canonical.deinit(gpa);
 
     const fold: recursion.Fold = .{
         .canonical = &canonical,
-        .table = &air.circuit_table,
+        .table = &circuit_table,
         .bundle = &bundle,
         .options = .{ .compact_polynomial_min_log = 18 },
         .packed_allocator = arena,
@@ -153,12 +345,13 @@ fn circuitParams(gpa: std.mem.Allocator, command: cli.CircuitParams) !void {
         .program = try cairo.statement.circuit_leaf.programFeltsFromCompiledJson(arena, try readFile(arena, definition.program)),
     };
 
-    var air: Air = undefined;
-    try air.init(gpa);
+    var air = try Air.init(gpa);
     defer air.deinit();
-    var cairo_table = try circuit.air_eval.cairo_components.build(gpa, &air.projection);
+    var circuit_table = try air.circuitTable(gpa);
+    defer circuit_table.deinit();
+    var cairo_table = try air.cairoTable(gpa);
     defer cairo_table.deinit();
-    var generated = try recursion.circuit_params.generate(gpa, .{ .cairo = &cairo_table, .circuit = &air.circuit_table }, inputs);
+    var generated = try recursion.circuit_params.generate(gpa, .{ .cairo = &cairo_table, .circuit = &circuit_table }, inputs);
     defer generated.deinit();
 
     var out: std.Io.Writer.Allocating = .init(gpa);

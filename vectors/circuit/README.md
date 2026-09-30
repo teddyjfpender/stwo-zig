@@ -37,7 +37,7 @@ host-specific. `python3 scripts/check_upstream_pins.py` rejects any drift. Regen
 | `official/programs/use_all_opcodes_and_builtins_compiled.json` | R6, R8 | upstream `crates/leaf_prover/tests/data/`: the leaf test program |
 | `official/programs/leaf_simple_bootloader_compiled.json` | registry | upstream `crates/stwo_run_and_prove_recursive_tree/test_data/`: the program of the recursive-tree registry definition |
 | `official/registry_definitions/{canonical_small,leaf_prover_canonical_small}/*.json` | registry | upstream `circuit-params` definitions of the two canonical_small test registries and the parameter files they name |
-| `r10/use_all_opcodes_and_builtins.prover_input.json` | R10c | the leaf prover's test program (`crates/leaf_prover/tests/data`) run and adapted by upstream `prove_leaf.rs` steps 1-2 |
+| `r10/use_all_opcodes_and_builtins.prover_input.json` | R10c, R8 | the leaf prover's test program (`crates/leaf_prover/tests/data`) run and adapted by upstream `prove_leaf.rs` steps 1-2 |
 | `r10/all_opcodes.fixed_22.prove_cairo.json` | R10c | `all_opcodes` under `LiftingSizePolicy::Fixed(22)`: every tree, the preprocessed one included, lifted one level above its columns |
 | `r10/prove_lifted_example.json` | R10 lift | upstream's wide-Fibonacci prover test with the trace tree lifted 0, 1 and 3 levels: `bincode(StarkProof)` digests |
 | `r10/{all_opcodes,all_builtins,use_all_opcodes_and_builtins}.prove_cairo.json` | R10c | leaf-lane Cairo proofs (`prove_cairo::<Blake2sM31MerkleChannel>` under the canonical_small leaf registry's `cairo_prover_params`) of the stwo-cairo 82f2125 `vectors/cairo/official` inputs and the adapted leaf-prover program: proof byte digests and per-stage transcript values |

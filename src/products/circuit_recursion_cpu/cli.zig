@@ -5,6 +5,11 @@
 //! 5a7c5ede4299c91a61df19a07cba4f7502c14230, so a pipeline that runs them can
 //! run this product unchanged:
 //!
+//! - `leaf-wrap`: `leaf-prover` from an adapted execution (`--registry`,
+//!   `--program`, `--prover-input`, `--output`, `--assets`,
+//!   `--compact-min-log`, `--profile`). The Zig lane has no Cairo VM, so the
+//!   execution arrives as upstream's adapter writes it; the flags are this
+//!   product's own;
 //! - `fold-tree`: `stwo_run_and_prove_recursive_tree` (`--program_input`,
 //!   `--proof_path`, `--program_output`, `--packed_output_path`,
 //!   `--circuit_registry_json`, each `--flag value` or `--flag=value`);
@@ -15,9 +20,33 @@
 const std = @import("std");
 
 pub const Command = enum {
+    @"leaf-wrap",
     @"fold-tree",
     @"circuit-params",
 };
+
+pub const LeafWrap = struct {
+    /// The circuit registry (`cairo_prover_params`, the leaf verifiers).
+    registry: []const u8,
+    /// The compiled Cairo program the execution ran; its felts are the
+    /// program the leaf circuit interns.
+    program: []const u8,
+    /// The adapted execution (`ProverInput` JSON).
+    prover_input: []const u8,
+    /// Where the `SerializedLeafProof` JSON goes.
+    output: []const u8,
+    /// The repository root holding the Cairo lane's committed bundles.
+    assets: []const u8,
+    /// Circuit columns of at least this log size keep only coefficients
+    /// once hashed; null keeps evaluations too. Never changes the bytes.
+    compact_min_log: ?u32,
+    /// Print the circuit prover's stage times.
+    profile: bool,
+};
+
+/// Compact storage from 2^18-row columns: the circuit proof's large columns
+/// keep coefficients only, which bounds the wrap's resident memory.
+pub const default_compact_min_log: u32 = 18;
 
 pub const FoldTree = struct {
     /// `{"leaves": ["<path>", ...]}`, leaf files in fold order.
@@ -41,6 +70,7 @@ pub const CircuitParams = struct {
 };
 
 pub const Parsed = union(enum) {
+    leaf_wrap: LeafWrap,
     fold_tree: FoldTree,
     circuit_params: CircuitParams,
     help: void,
@@ -56,10 +86,15 @@ pub const Error = error{
     /// `circuit-params` without `--registry`: the sizes report is not ported.
     RegistryOutputRequired,
     UnexpectedArgument,
+    /// `--compact-min-log` is neither a log size nor `off`.
+    InvalidValue,
 };
 
 pub const usage =
-    \\usage: stwo-circuit-recursion-cpu fold-tree --program_input LEAVES.json --proof_path ROOT.proof
+    \\usage: stwo-circuit-recursion-cpu leaf-wrap --registry REGISTRY.json --program PROGRAM.json
+    \\           --prover-input PROVER_INPUT.json --output LEAF.json [--assets DIR]
+    \\           [--compact-min-log N|off] [--profile]
+    \\       stwo-circuit-recursion-cpu fold-tree --program_input LEAVES.json --proof_path ROOT.proof
     \\           --program_output ROOT_OUTPUTS.json --packed_output_path ROOT_PACKED.json
     \\           --circuit_registry_json REGISTRY.json
     \\       stwo-circuit-recursion-cpu circuit-params --definition DEFINITION.json --registry
@@ -75,6 +110,26 @@ pub fn parse(argv: []const []const u8) Error!Parsed {
     }
     const command = std.meta.stringToEnum(Command, argv[0]) orelse return error.UnknownCommand;
     return switch (command) {
+        .@"leaf-wrap" => blk: {
+            var profile = false;
+            const parsed = try parseFlags(struct {
+                registry: []const u8,
+                program: []const u8,
+                prover_input: []const u8,
+                output: []const u8,
+                assets: ?[]const u8,
+                compact_min_log: ?[]const u8,
+            }, argv[1..], &.{.{ .name = "--profile", .set = &profile }});
+            break :blk .{ .leaf_wrap = .{
+                .registry = parsed.registry,
+                .program = parsed.program,
+                .prover_input = parsed.prover_input,
+                .output = parsed.output,
+                .assets = parsed.assets orelse ".",
+                .compact_min_log = try compactMinLog(parsed.compact_min_log),
+                .profile = profile,
+            } };
+        },
         .@"fold-tree" => .{ .fold_tree = try parseFlags(FoldTree, argv[1..], &.{}) },
         .@"circuit-params" => blk: {
             var registry = false;
@@ -83,6 +138,12 @@ pub fn parse(argv: []const []const u8) Error!Parsed {
             break :blk .{ .circuit_params = .{ .definition = parsed.definition, .output_path = parsed.output_path } };
         },
     };
+}
+
+fn compactMinLog(value: ?[]const u8) Error!?u32 {
+    const text = value orelse return default_compact_min_log;
+    if (std.mem.eql(u8, text, "off")) return null;
+    return std.fmt.parseInt(u32, text, 10) catch error.InvalidValue;
 }
 
 fn isHelp(arg: []const u8) bool {
@@ -145,6 +206,28 @@ fn flagMatches(comptime field: []const u8, name: []const u8) bool {
     return true;
 }
 
+test "circuit recursion cli: leaf-wrap options, defaults and failures" {
+    const parsed = try parse(&.{ "leaf-wrap", "--registry", "r.json", "--program", "p.json", "--prover-input", "i.json", "--output", "o.json", "--assets", "/repo" });
+    try std.testing.expectEqualStrings("r.json", parsed.leaf_wrap.registry);
+    try std.testing.expectEqualStrings("p.json", parsed.leaf_wrap.program);
+    try std.testing.expectEqualStrings("i.json", parsed.leaf_wrap.prover_input);
+    try std.testing.expectEqualStrings("o.json", parsed.leaf_wrap.output);
+    try std.testing.expectEqualStrings("/repo", parsed.leaf_wrap.assets);
+    try std.testing.expectEqual(@as(?u32, default_compact_min_log), parsed.leaf_wrap.compact_min_log);
+    try std.testing.expect(!parsed.leaf_wrap.profile);
+    const tuned = try parse(&.{ "leaf-wrap", "--profile", "--compact-min-log", "off", "--registry=r", "--program=p", "--prover-input=i", "--output=o" });
+    try std.testing.expect(tuned.leaf_wrap.profile);
+    try std.testing.expectEqual(@as(?u32, null), tuned.leaf_wrap.compact_min_log);
+    try std.testing.expectEqualStrings(".", tuned.leaf_wrap.assets);
+    const sized = try parse(&.{ "leaf-wrap", "--compact-min-log", "20", "--registry=r", "--program=p", "--prover-input=i", "--output=o" });
+    try std.testing.expectEqual(@as(?u32, 20), sized.leaf_wrap.compact_min_log);
+    try std.testing.expectError(error.InvalidValue, parse(&.{ "leaf-wrap", "--compact-min-log", "x", "--registry=r", "--program=p", "--prover-input=i", "--output=o" }));
+    try std.testing.expectError(error.MissingRequiredFlag, parse(&.{ "leaf-wrap", "--registry", "r.json" }));
+    try std.testing.expectError(error.MissingValue, parse(&.{ "leaf-wrap", "--registry" }));
+    try std.testing.expectError(error.UnknownFlag, parse(&.{ "leaf-wrap", "--bogus", "x" }));
+    try std.testing.expectError(error.DuplicateFlag, parse(&.{ "leaf-wrap", "--profile", "--profile" }));
+}
+
 test "circuit recursion cli: fold-tree takes upstream's flags in either spelling" {
     const parsed = try parse(&.{
         "fold-tree",
@@ -174,6 +257,6 @@ test "circuit recursion cli: circuit-params requires --registry" {
     const stdout = try parse(&.{ "circuit-params", "--registry", "--definition=d.json" });
     try std.testing.expectEqual(@as(?[]const u8, null), stdout.circuit_params.output_path);
     try std.testing.expectError(error.RegistryOutputRequired, parse(&.{ "circuit-params", "--definition", "d.json" }));
-    try std.testing.expectError(error.UnknownCommand, parse(&.{"leaf-wrap"}));
+    try std.testing.expectError(error.UnknownCommand, parse(&.{"leaf-prover"}));
     try std.testing.expectError(error.MissingCommand, parse(&.{}));
 }

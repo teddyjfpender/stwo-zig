@@ -51,7 +51,8 @@ const USAGE: &str = "usage: stwo-circuit-oracle primitives [--output PATH]
        stwo-circuit-oracle verifier-stages --proving-root DIR [--output PATH]
        stwo-circuit-oracle cairo-statement --proving-root DIR [--output PATH]
        stwo-circuit-oracle prove-lifted-example [--output PATH]
-       stwo-circuit-oracle adapt-program --proving-root DIR --program PATH [--output PATH]
+       stwo-circuit-oracle adapt-program --proving-root DIR --program PATH [--program-input PATH]
+                                     [--output PATH]
        stwo-circuit-oracle prove-cairo --prover-input PATH --params PATH [--proving-root DIR]
                                    [--lifting-size-policy POLICY] [--proof-output PATH] [--output PATH]";
 
@@ -62,6 +63,7 @@ fn main() -> Result<()> {
     let (mut prover_input, mut params, mut proof_output, mut program) = (None, None, None, None);
     let mut lifting_size_policy = None;
     let (mut inputs_output, mut proof, mut request) = (None, None, None);
+    let mut program_input = None;
     while let Some(flag) = values.next() {
         let value = values
             .next()
@@ -82,6 +84,7 @@ fn main() -> Result<()> {
             "--params" => &mut params,
             "--proof-output" => &mut proof_output,
             "--program" => &mut program,
+            "--program-input" => &mut program_input,
             "--lifting-size-policy" => &mut lifting_size_policy,
             "--inputs-output" => &mut inputs_output,
             "--proof" => &mut proof,
@@ -146,6 +149,7 @@ fn main() -> Result<()> {
                 .context("adapt-program requires --program")?
                 .display()
                 .to_string(),
+            program_input.as_deref(),
         )?,
         "prove-cairo" => {
             let proved = prove_cairo::run(

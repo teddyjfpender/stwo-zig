@@ -570,7 +570,7 @@
     "circuit_recursion_cpu": {
       "host": "linux",
       "local": "hosted",
-      "description": "Circuit recursion CPU product: recursive tree and registry generation CLI (recursion M9)",
+      "description": "Circuit recursion CPU product: leaf wrap, recursive tree and registry generation CLI (recursion M8, M9)",
       "commands": [
         [
           "zig",
@@ -1175,7 +1175,8 @@
       ],
       "lanes": [
         "cairo_cpu",
-        "cairo_metal"
+        "cairo_metal",
+        "circuit_recursion_cpu"
       ]
     },
     {
