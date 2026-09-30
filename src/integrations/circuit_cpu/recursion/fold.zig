@@ -181,13 +181,15 @@ fn reduce(
         if (!try ctx.isCircuitValid()) return error.MultiverifierRejectedInputs;
         break :blk try gpa.dupe(QM31, ctx.values());
     };
-    defer gpa.free(values);
+    // The prover frees the value table once the base trace is written.
+    var owned_values = OwnedValues{ .gpa = gpa, .values = values };
+    defer owned_values.release();
     const build_ns = timer.lap();
 
     const parent: LayerEntry = if (is_root)
-        try proveNode(prove.Root, gpa, fold, values, subtasks, true)
+        try proveNode(prove.Root, gpa, fold, &owned_values, subtasks, true)
     else
-        try proveNode(prove.Internal, gpa, fold, values, subtasks, false);
+        try proveNode(prove.Internal, gpa, fold, &owned_values, subtasks, false);
     log.info("reduce layer {d} pair {d}{s}: build {d} ms, prove {d} ms", .{
         layer_idx,
         pair_idx,
@@ -198,16 +200,35 @@ fn reduce(
     return parent;
 }
 
+/// A fold's value table, freed by the prover after the base trace
+/// (`prove.Options.release_values`) or at the end of the reduction.
+const OwnedValues = struct {
+    gpa: std.mem.Allocator,
+    values: ?[]QM31,
+
+    fn release(self: *OwnedValues) void {
+        if (self.values) |values| self.gpa.free(values);
+        self.values = null;
+    }
+
+    fn releaseErased(context: *anyopaque) void {
+        const self: *OwnedValues = @ptrCast(@alignCast(context));
+        self.release();
+    }
+};
+
 fn proveNode(
     comptime P: type,
     gpa: std.mem.Allocator,
     fold: *const Fold,
-    values: []const QM31,
+    owned_values: *OwnedValues,
     subtasks: []const PackedNode,
     comptime is_root: bool,
 ) !LayerEntry {
     const canonical = fold.canonical;
-    var proof = try P.prove(gpa, values, &canonical.preprocessed, fold.bundle, canonical.shared.pcs_config, fold.options, {});
+    var options = fold.options;
+    options.release_values = .{ .context = owned_values, .release = OwnedValues.releaseErased };
+    var proof = try P.prove(gpa, owned_values.values.?, &canonical.preprocessed, fold.bundle, canonical.shared.pcs_config, options, {});
     defer proof.deinit();
 
     // `extract_root_and_outputs`.

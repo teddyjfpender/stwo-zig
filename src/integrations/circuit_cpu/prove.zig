@@ -70,6 +70,15 @@ pub const Options = struct {
     /// polynomial coefficients, for columns of at least this log size
     /// (`CommitmentSchemeProver.setCompactPolynomialStorage`).
     compact_polynomial_min_log: ?u32 = null,
+    /// Called once the base trace is written, the value table's last read:
+    /// a caller that owns `values` can free it there instead of holding it
+    /// through the proof. `values` must not be read after the call.
+    release_values: ?ReleaseValues = null,
+};
+
+pub const ReleaseValues = struct {
+    context: *anyopaque,
+    release: *const fn (context: *anyopaque) void,
 };
 
 /// `COMPOSITION_POLYNOMIAL_LOG_DEGREE_BOUND`.
@@ -149,13 +158,19 @@ pub fn Prover(comptime MC: type) type {
             if (options.compact_polynomial_min_log) |min_log| scheme.setCompactPolynomialStorage(min_log);
 
             // Preprocessed tree.
-            try commit(&scheme, allocator, try preprocessedColumns(allocator, pp), &channel);
+            if (scheme.compact_polynomial_storage) {
+                var views: [preprocessed.N_PREPROCESSED_COLUMNS]prover.pcs.ColumnEvaluation = undefined;
+                preprocessedViews(pp, &views);
+                try commitBorrowed(&scheme, allocator, &views, &channel);
+            } else try commit(&scheme, allocator, try preprocessedColumns(allocator, pp), &channel);
             const preprocessed_root = scheme.trees.items[0].commitment.root();
             step(observer, .commit_preprocessed, &channel);
 
             // Base trace.
             var base = try witness.writeTrace(allocator, values, pp);
             defer base.deinit();
+            // The value table's last reader was the base trace.
+            if (options.release_values) |release| release.release(release.context);
             const hash = try circuit_hash.hostCircuitHash(
                 base.log_sizes,
                 pcs_config.fri_config.log_blowup_factor,
@@ -166,8 +181,12 @@ pub fn Prover(comptime MC: type) type {
             channel.mixFelts(base.output_values);
             step(observer, .mix_claim, &channel);
             // The commitment owns (and extends) what it commits; the base
-            // columns stay here for the interaction pass.
-            try commit(&scheme, allocator, try dupColumns(allocator, base.columns), &channel);
+            // columns stay here for the interaction pass. A compact commitment
+            // streams bounded batches out of them instead of copying the tree.
+            if (scheme.compact_polynomial_storage)
+                try commitBorrowed(&scheme, allocator, base.columns, &channel)
+            else
+                try commit(&scheme, allocator, try dupColumns(allocator, base.columns), &channel);
             step(observer, .commit_base_trace, &channel);
 
             // Interaction elements.
@@ -179,10 +198,11 @@ pub fn Prover(comptime MC: type) type {
             step(observer, .draw_interaction_elements, &channel);
 
             // Interaction trace.
-            var interaction = try witness.writeInteractionTrace(
+            // Each component's base columns are freed once its LogUp columns
+            // exist; the committed tree holds the base coefficients.
+            var interaction = try witness.writeInteractionTraceReleasing(
                 allocator,
-                base.columns,
-                base.log_sizes,
+                &base,
                 pp,
                 elements.z,
                 elements.alpha,
@@ -227,11 +247,24 @@ pub fn Prover(comptime MC: type) type {
                 component.* = runtime.asProverComponent();
             }
 
+            // `STWO_CIRCUIT_STAGE_PROFILE` prints `prove_ex`'s stage tree when
+            // the caller brought no recorder. Timing only; no byte changes.
+            var local_recorder: ?prover.stage_profile.Recorder = if (options.recorder == null and
+                std.process.hasEnvVarConstant("STWO_CIRCUIT_STAGE_PROFILE"))
+                prover.stage_profile.Recorder.initWithOptions(allocator, "circuit_cpu", "prove", .{ .capture_tasks = false })
+            else
+                null;
+            defer if (local_recorder) |*owned| owned.deinit();
+            // Not handed to the captured components: they may be evaluated
+            // concurrently, and the recorder's stage stack is single-threaded.
+            const recorder = options.recorder orelse if (local_recorder) |*owned| owned else null;
+
             scheme_owned = false;
             var stark_proof = try Engine.prove(allocator, &components, &channel, scheme, .{
                 .include_all_preprocessed_columns = true,
-                .recorder = options.recorder,
+                .recorder = recorder,
             });
+            if (local_recorder) |*owned| printStageProfile(allocator, owned);
             errdefer stark_proof.deinit(allocator);
             step(observer, .prove_ex, &channel);
             return .{
@@ -248,15 +281,57 @@ pub fn Prover(comptime MC: type) type {
         }
 
         /// Commits owned columns as the next tree and mixes its root.
+        ///
+        /// Under compact storage the tree keeps only coefficients (and the
+        /// extended evaluations of columns below the compact threshold), so
+        /// nothing needs every column's extension at once. The commitment is
+        /// row-tiled (`pcs.tiled_commit`): coefficients once, then one row tile
+        /// of every column's extension, its leaves and its subtree at a time.
+        /// Shapes it does not cover stream bounded column batches instead
+        /// (`StreamingTreeBuilder`'s compact committer). The Merkle tree, and
+        /// so the root, is the same either way; only the transient peak changes.
         fn commit(scheme: *Engine.Scheme, allocator: std.mem.Allocator, columns: []prover.pcs.ColumnEvaluation, channel: *Channel) !void {
-            try Engine.commit(scheme, allocator, columns, null, channel);
+            if (!scheme.compact_polynomial_storage)
+                try Engine.commit(scheme, allocator, columns, null, channel)
+            else if (tiles(scheme, columns))
+                try prover.pcs.tiled_commit.commit(CpuBackend, Hasher, scheme, allocator, columns, .owned, .{}, channel)
+            else
+                try scheme.commitOwnedStreamingWithRecorder(allocator, columns, 0, null, channel);
             try Engine.flushPendingCommit(scheme, allocator, channel);
         }
 
+        /// `commit` for columns the caller keeps (compact storage only).
+        fn commitBorrowed(scheme: *Engine.Scheme, allocator: std.mem.Allocator, columns: []const prover.pcs.ColumnEvaluation, channel: *Channel) !void {
+            std.debug.assert(scheme.compact_polynomial_storage);
+            if (tiles(scheme, columns)) {
+                // The tiled commit copies each column once into its coefficients.
+                const descriptors = try allocator.dupe(prover.pcs.ColumnEvaluation, columns);
+                defer allocator.free(descriptors);
+                try prover.pcs.tiled_commit.commit(CpuBackend, Hasher, scheme, allocator, descriptors, .borrowed, .{}, channel);
+            } else try scheme.commitBorrowedStreamingWithRecorder(allocator, columns, 0, null, channel);
+            try Engine.flushPendingCommit(scheme, allocator, channel);
+        }
+
+        fn tiles(scheme: *const Engine.Scheme, columns: []const prover.pcs.ColumnEvaluation) bool {
+            return prover.pcs.tiled_commit.applies(columns, scheme.config.fri_config.log_blowup_factor, scheme.compact_polynomial_min_log_size);
+        }
+
         fn step(observer: anytype, comptime which: Step, channel: *const Channel) void {
+            prover.measurement.process_usage.reportStage("circuit." ++ @tagName(which));
             if (comptime hasObserver(@TypeOf(observer), "onStep")) observer.onStep(which, channel.digestBytes());
         }
     };
+}
+
+fn printStageProfile(allocator: std.mem.Allocator, recorder: *const prover.stage_profile.Recorder) void {
+    var profile = recorder.snapshot(allocator) catch return;
+    defer profile.deinit(allocator);
+    for (profile.stages) |node| printStageNode(node, 0);
+}
+
+fn printStageNode(node: prover.stage_profile.StageNode, depth: usize) void {
+    std.debug.print("CIRCUIT_STAGE {d} {s} {d:.3}s ({s})\n", .{ depth, node.id, node.seconds, node.label });
+    if (node.children) |children| for (children) |child| printStageNode(child, depth + 1);
 }
 
 fn hasObserver(comptime T: type, comptime name: []const u8) bool {
@@ -273,8 +348,16 @@ fn preprocessedColumns(
     pp: *const preprocessed.PreprocessedCircuit,
 ) ![]prover.pcs.ColumnEvaluation {
     var views: [preprocessed.N_PREPROCESSED_COLUMNS]prover.pcs.ColumnEvaluation = undefined;
-    for (pp.columns, &views) |column, *view| view.* = .{ .log_size = column.logSize(), .values = column.values };
+    preprocessedViews(pp, &views);
     return dupColumns(allocator, &views);
+}
+
+/// Borrowed views of the preprocessed columns, in layout order.
+fn preprocessedViews(
+    pp: *const preprocessed.PreprocessedCircuit,
+    views: *[preprocessed.N_PREPROCESSED_COLUMNS]prover.pcs.ColumnEvaluation,
+) void {
+    for (pp.columns, views) |column, *view| view.* = .{ .log_size = column.logSize(), .values = column.values };
 }
 
 fn dupColumns(
