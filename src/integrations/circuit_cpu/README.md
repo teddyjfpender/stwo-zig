@@ -75,13 +75,38 @@ const bytes = try verifier_proof.serialize(allocator);
 | `prove` | `Prover(MC)`, `Options`, `Step`, `defaultPcsConfig` and the transcript |
 | `Internal` | The prover on the internal (M31 channel) profile |
 | `Root` | The prover on the root (plain Blake2s channel) profile |
-| `verifier_proof` | `prepare_circuit_proof_for_circuit_verifier`, CircuitSerialize bytes, and `circuitVerifierValues` (a decoded proof as the in-circuit verifier's `Proof(QM31)`) |
+| `verifier_proof` | `prepare_circuit_proof_for_circuit_verifier`, the generic `proof_from_stark_proof` (`fromStarkProof`, for circuit and Cairo proofs), CircuitSerialize bytes, and `circuitVerifierValues` (a decoded proof as the in-circuit verifier's `Proof(QM31)`) |
+| `recursion` | Orchestration (design §7): `leaf_wrap` (`prove_leaf` steps 4-8), `topology_key` (design §3.5) and `topology_cache` (the byte-bounded per-topology LRU) |
 
 `prove` takes an optional observer (`onStep`, `onLookupElements`,
 `onTraces`) for conformance tests and an `Options` value whose fields change
 only execution: a stage-profile recorder and compact polynomial storage,
 which drops each tree's blown-up evaluations after hashing and evaluates the
 constraints from coefficients.
+
+## Leaf wrap (milestone M8)
+
+`recursion.leaf_wrap.wrapCairoProof` ports steps 4-8 of upstream
+`prove_leaf` and `prepare_cairo_proof_for_circuit_verifier`: it reads the
+trace log size off the Cairo proof's lifting heights, looks up the
+registry's leaf verifier, converts the Cairo proof with `fromStarkProof`,
+builds the leaf circuit with values (`buildCairoVerifierCircuit`), pads it
+to the registry target, requires it to be satisfied, proves it on the
+`Internal` profile and requires the proof's circuit hash to equal the
+registry's. The input is the Cairo CPU integration's in-memory leaf proof
+(`proveLeafCairo`), which R10c pins byte for byte to upstream `prove_cairo`.
+
+The preprocessed circuit is cached per `TopologyKey`: built on a key's first
+wrap and published only after that wrap's proof passes the registry check.
+A hit skips preprocessing and still checks the proof's circuit hash and the
+rebuilt circuit's variable count. Before proving, the builder context is
+reduced to its value table (`Context.intoValues`), and the prover frees the
+base columns once the interaction trace is written.
+
+The product `stwo-circuit-recursion-cpu leaf-wrap`
+([README](../../products/circuit_recursion_cpu/README.md)) drives it; its
+`circuit-parity-r8` rung requires the output file to equal upstream
+`leaf-prover`'s `expected_output.json` byte for byte.
 
 ## Dependencies
 
@@ -154,6 +179,16 @@ Apple M4 Max, AC power, `ReleaseFast`, compact storage from log 18:
 | Circuit | Build (Rust, value mode) | Preprocess | Prove (Zig) | Peak RSS |
 | :--- | ---: | ---: | ---: | ---: |
 | multiverifier of two Cairo proofs (2^21 qm31_ops rows, blowup 3, 27-bit FRI grind) | 0.05 s | 0.2 s (Rust), 0.15 s (Zig, from the dump) | 39.8 s | 5 GB |
+| leaf wrap of `use_all_opcodes_and_builtins` (canonical_small, 2^23 qm31_ops and blake_g_gate rows, blowup 1, 26-bit FRI grind) | 0.4 s (Zig) | 0.3 s (Zig) | 36-44 s | 11-17 GB |
+
+The leaf wrap is timed by `stwo-circuit-recursion-cpu leaf-wrap` on
+2026-09-30 with other agents' jobs running and 8-14 GB of swap in use, so its
+numbers are an upper band, not a benchmark. Upstream `leaf-prover` on the
+same input, same host: 30.4 s for the whole leaf (Cairo proof included; the
+circuit `prove_ex` is 13.7 s), 12.6 GB maximum RSS and 25.4 GB peak
+footprint. The Zig wrap's memory is the circuit prover's (composition
+evaluation from coefficients peaks at about 16 GB); its reduction is M11
+work (design §9.3).
 
 The builder share of this fold proof is about 0.1% of wall time (0.7%
 with preprocessing), far below the 10% at which design §9.1 would schedule
