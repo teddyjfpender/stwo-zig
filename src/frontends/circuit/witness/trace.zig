@@ -161,41 +161,64 @@ pub fn writeTrace(
         const log_size = try gatherLogSize(addr[0].len);
         log_sizes[0] = log_size;
         const cols = try sink.block(K.n_columns, log_size);
-        for (0..addr[0].len) |r| {
-            var row: [K.n_columns]M31 = undefined;
-            K.row(try value(values, addr[0][r]), &row);
-            scatter(K.n_columns, &cols, r, &row);
-        }
+        try parallelRows(allocator, &tables, addr[0].len, struct {
+            values: []const QM31,
+            addr: []const M31,
+            cols: [K.n_columns][]M31,
+
+            fn rows(self: @This(), start: usize, end: usize, _: *components.TableMultiplicities) Error!void {
+                for (start..end) |r| {
+                    var row: [K.n_columns]M31 = undefined;
+                    K.row(try value(self.values, self.addr[r]), &row);
+                    scatter(K.n_columns, &self.cols, r, &row);
+                }
+            }
+        }{ .values = values, .addr = addr[0], .cols = cols });
     }
     // qm31_ops: binary rows, then permutation rows in pairs whose in0 is the
     // zero wire (`extract_component_inputs`).
     {
         const K = components.qm31_ops;
         const pc = try pp.columns(preprocessed.QM31_OPS_COLUMN_IDS);
-        const in0 = pc[4];
-        const in1 = pc[5];
-        const out_address = pc[6];
-        const n_rows = in0.len;
+        const n_rows = pc[4].len;
         const log_size = try gatherLogSize(n_rows);
         log_sizes[1] = log_size;
         const first_permutation_row = circuit.first_permutation_row;
         if (first_permutation_row > n_rows or (n_rows - first_permutation_row) % 2 != 0)
             return error.InvalidPreprocessedCircuit;
         const cols = try sink.block(K.n_columns, log_size);
-        for (0..n_rows) |r| {
-            var row: [K.n_columns]M31 = undefined;
-            if (r < first_permutation_row) {
-                K.row(try value(values, in0[r]), try value(values, in1[r]), try value(values, out_address[r]), &row);
-            } else {
-                const pair = r - (r - first_permutation_row) % 2;
-                const through = if (r == pair)
-                    try value(values, in1[pair])
-                else
-                    try value(values, out_address[pair + 1]);
-                K.row(QM31.zero(), through, through, &row);
+        try parallelRows(allocator, &tables, n_rows, struct {
+            values: []const QM31,
+            in0: []const M31,
+            in1: []const M31,
+            out_address: []const M31,
+            first_permutation_row: usize,
+            cols: [K.n_columns][]M31,
+
+            fn rows(self: @This(), start: usize, end: usize, _: *components.TableMultiplicities) Error!void {
+                for (start..end) |r| {
+                    var row: [K.n_columns]M31 = undefined;
+                    if (r < self.first_permutation_row) {
+                        K.row(try value(self.values, self.in0[r]), try value(self.values, self.in1[r]), try value(self.values, self.out_address[r]), &row);
+                    } else {
+                        const pair = r - (r - self.first_permutation_row) % 2;
+                        const through = if (r == pair)
+                            try value(self.values, self.in1[pair])
+                        else
+                            try value(self.values, self.out_address[pair + 1]);
+                        K.row(QM31.zero(), through, through, &row);
+                    }
+                    scatter(K.n_columns, &self.cols, r, &row);
+                }
             }
-            scatter(K.n_columns, &cols, r, &row);
-        }
+        }{
+            .values = values,
+            .in0 = pc[4],
+            .in1 = pc[5],
+            .out_address = pc[6],
+            .first_permutation_row = first_permutation_row,
+            .cols = cols,
+        });
     }
     // triple_xor.
     {
@@ -204,19 +227,28 @@ pub fn writeTrace(
         const log_size = try gatherLogSize(pc[0].len);
         log_sizes[2] = log_size;
         const cols = try sink.block(K.n_columns, log_size);
-        for (0..pc[0].len) |r| {
-            var row: [K.n_columns]M31 = undefined;
-            K.row(
-                u32Of(try value(values, pc[0][r])),
-                u32Of(try value(values, pc[1][r])),
-                u32Of(try value(values, pc[2][r])),
-                u32Of(try value(values, pc[3][r])),
-                &row,
-            );
-            scatter(K.n_columns, &cols, r, &row);
-            const lookups = K.lookups(&row, .{ .in0 = pc[0][r], .in1 = pc[1][r], .in2 = pc[2][r], .out = pc[3][r], .mults = pc[4][r] });
-            try tables.addUses(&lookups);
-        }
+        try parallelRows(allocator, &tables, pc[0].len, struct {
+            values: []const QM31,
+            pc: *const @TypeOf(pc),
+            cols: [K.n_columns][]M31,
+
+            fn rows(self: @This(), start: usize, end: usize, counts: *components.TableMultiplicities) Error!void {
+                const c = self.pc;
+                for (start..end) |r| {
+                    var row: [K.n_columns]M31 = undefined;
+                    K.row(
+                        u32Of(try value(self.values, c[0][r])),
+                        u32Of(try value(self.values, c[1][r])),
+                        u32Of(try value(self.values, c[2][r])),
+                        u32Of(try value(self.values, c[3][r])),
+                        &row,
+                    );
+                    scatter(K.n_columns, &self.cols, r, &row);
+                    const lookups = K.lookups(&row, .{ .in0 = c[0][r], .in1 = c[1][r], .in2 = c[2][r], .out = c[3][r], .mults = c[4][r] });
+                    try counts.addUsesLocal(&lookups);
+                }
+            }
+        }{ .values = values, .pc = &pc, .cols = cols });
     }
     // m_31_to_u_32.
     {
@@ -225,13 +257,22 @@ pub fn writeTrace(
         const log_size = try gatherLogSize(pc[0].len);
         log_sizes[3] = log_size;
         const cols = try sink.block(K.n_columns, log_size);
-        for (0..pc[0].len) |r| {
-            var row: [K.n_columns]M31 = undefined;
-            K.row((try value(values, pc[0][r])).toM31Array()[0], &row);
-            scatter(K.n_columns, &cols, r, &row);
-            const lookups = K.lookups(&row, .{ .input = pc[0][r], .output = pc[1][r], .mults = pc[2][r] });
-            try tables.addUses(&lookups);
-        }
+        try parallelRows(allocator, &tables, pc[0].len, struct {
+            values: []const QM31,
+            pc: *const @TypeOf(pc),
+            cols: [K.n_columns][]M31,
+
+            fn rows(self: @This(), start: usize, end: usize, counts: *components.TableMultiplicities) Error!void {
+                const c = self.pc;
+                for (start..end) |r| {
+                    var row: [K.n_columns]M31 = undefined;
+                    K.row((try value(self.values, c[0][r])).toM31Array()[0], &row);
+                    scatter(K.n_columns, &self.cols, r, &row);
+                    const lookups = K.lookups(&row, .{ .input = c[0][r], .output = c[1][r], .mults = c[2][r] });
+                    try counts.addUsesLocal(&lookups);
+                }
+            }
+        }{ .values = values, .pc = &pc, .cols = cols });
     }
     // blake_g_gate.
     {
@@ -240,15 +281,23 @@ pub fn writeTrace(
         const log_size = try gatherLogSize(pc[0].len);
         log_sizes[4] = log_size;
         const cols = try sink.block(K.n_columns, log_size);
-        for (0..pc[0].len) |r| {
-            var words: [10]u32 = undefined;
-            for (&words, 0..) |*word, index| word.* = u32Of(try value(values, pc[index][r]));
-            var row: [K.n_columns]M31 = undefined;
-            K.row(words, &row);
-            scatter(K.n_columns, &cols, r, &row);
-            const lookups = K.lookups(&row, blakePp(&pc, r));
-            try tables.addUses(&lookups);
-        }
+        try parallelRows(allocator, &tables, pc[0].len, struct {
+            values: []const QM31,
+            pc: *const @TypeOf(pc),
+            cols: [K.n_columns][]M31,
+
+            fn rows(self: @This(), start: usize, end: usize, counts: *components.TableMultiplicities) Error!void {
+                for (start..end) |r| {
+                    var words: [10]u32 = undefined;
+                    for (&words, 0..) |*word, index| word.* = u32Of(try value(self.values, self.pc[index][r]));
+                    var row: [K.n_columns]M31 = undefined;
+                    K.row(words, &row);
+                    scatter(K.n_columns, &self.cols, r, &row);
+                    const lookups = K.lookups(&row, blakePp(self.pc, r));
+                    try counts.addUsesLocal(&lookups);
+                }
+            }
+        }{ .values = values, .pc = &pc, .cols = cols });
     }
     // The tables: their multiplicity columns.
     const table_columns = .{
@@ -278,6 +327,56 @@ pub fn writeTrace(
         .columns = columns,
         .output_values = output_values,
     };
+}
+
+/// Runs `body.rows(start, end, tables)` over `[0, n_rows)` in contiguous
+/// ranges on the proof's worker pool. A row writes only its own column
+/// entries; each range counts table uses into its own small tables (and the
+/// shared xor_12 columns, atomically), merged afterwards. Counts are integer
+/// sums, so the trace never depends on the split, and the first failing
+/// range in row order reports, as the serial loop would.
+fn parallelRows(
+    allocator: std.mem.Allocator,
+    tables: *components.TableMultiplicities,
+    n_rows: usize,
+    body: anytype,
+) (Error || std.mem.Allocator.Error)!void {
+    const Body = @TypeOf(body);
+    const max_tasks = 64;
+    const pool = prover.work_pool.getGlobalPool() orelse return body.rows(0, n_rows, tables);
+    const n_tasks = @min(@min(pool.workerCount(), max_tasks), @max(1, n_rows / 4096));
+    if (n_tasks <= 1) return body.rows(0, n_rows, tables);
+    const Task = struct {
+        body: Body,
+        start: usize,
+        end: usize,
+        tables: components.TableMultiplicities,
+        err: ?Error = null,
+
+        fn run(self: *@This()) void {
+            self.body.rows(self.start, self.end, &self.tables) catch |err| {
+                self.err = err;
+            };
+        }
+    };
+    var tasks: [max_tasks]Task = undefined;
+    var initialized: usize = 0;
+    defer for (tasks[0..initialized]) |*task| task.tables.deinitLocal(allocator);
+    for (tasks[0..n_tasks], 0..) |*task, index| {
+        task.* = .{
+            .body = body,
+            .start = n_rows * index / n_tasks,
+            .end = n_rows * (index + 1) / n_tasks,
+            .tables = try components.TableMultiplicities.initLocal(allocator, tables),
+        };
+        initialized += 1;
+    }
+    var wait_group = std.Thread.WaitGroup{};
+    for (tasks[1..n_tasks]) |*task| pool.spawnWg(&wait_group, Task.run, .{task});
+    Task.run(&tasks[0]);
+    wait_group.wait();
+    for (tasks[0..n_tasks]) |task| if (task.err) |err| return err;
+    for (tasks[0..n_tasks]) |*task| tables.mergeLocal(&task.tables);
 }
 
 inline fn scatter(comptime n: usize, cols: *const [n][]M31, r: usize, row: *const [n]M31) void {

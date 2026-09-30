@@ -36,6 +36,8 @@ const component_table = circuit.air_eval.component_table;
 const PackedNode = wire.packed_node.PackedNode;
 const CanonicalCircuit = canonical_mod.CanonicalCircuit;
 
+const StageScope = prove.StageScope;
+
 const log = std.log.scoped(.circuit_recursion);
 
 /// `N_RESERVED`: the output digest's words.
@@ -153,6 +155,11 @@ fn reduce(
 ) !LayerEntry {
     var timer = try std.time.Timer.start();
     const canonical = fold.canonical;
+    const recorder = fold.options.recorder;
+    var reduce_stage = try StageScope.begin(recorder, if (is_root) "fold_reduce_root" else "fold_reduce_internal", "one reduction");
+    defer reduce_stage.end();
+    var build_stage = try StageScope.begin(recorder, "fold_build", "build the multiverifier circuit with values");
+    defer build_stage.end();
 
     // The multiverifier circuit over both children, in value mode, padded
     // to the canonical target. Only its value table outlives this block.
@@ -184,6 +191,7 @@ fn reduce(
     // The prover frees the value table once the base trace is written.
     var owned_values = OwnedValues{ .gpa = gpa, .values = values };
     defer owned_values.release();
+    build_stage.end();
     const build_ns = timer.lap();
 
     const parent: LayerEntry = if (is_root)

@@ -61,6 +61,8 @@ const circuit_leaf = cairo.statement.circuit_leaf;
 const CircuitRegistry = wire.registry.CircuitRegistry;
 const DigestHex = wire.leaf_proof_json.DigestHex;
 
+const StageScope = prove.StageScope;
+
 const log = std.log.scoped(.circuit_recursion);
 
 pub const Error = error{
@@ -200,6 +202,10 @@ pub fn wrapCairoProof(
     for (stark.queried_values.items[0..3], widths[0..3]) |columns, width|
         if (columns.len != width) return error.ColumnCountMismatch;
 
+    const recorder = wrap.options.recorder;
+    var build_stage = try StageScope.begin(recorder, "leaf_wrap_build", "convert the Cairo proof and build the leaf circuit");
+    defer build_stage.end();
+
     // 3. `prepare_cairo_proof_for_circuit_verifier` and the output digest.
     var geometry = try cairo.statement_bootstrap.deriveFlatClaimGeometry(allocator, &cairo_proof.composition);
     defer geometry.deinit();
@@ -236,6 +242,7 @@ pub fn wrapCairoProof(
     defer if (ctx_owned) ctx.deinit();
     try finalize.padToTargets(QM31, &ctx, target);
     if (!try ctx.isCircuitValid()) return error.CircuitRejectsProof;
+    build_stage.end();
 
     const key = (topology_key.LeafKey{
         .config_name = entry.config,
@@ -255,6 +262,8 @@ pub fn wrapCairoProof(
         if (hit.n_vars != ctx.circuit.n_vars) return error.TopologyMismatch;
         break :blk hit;
     } else blk: {
+        var preprocess_stage = try StageScope.begin(recorder, "leaf_wrap_preprocess", "preprocess the leaf circuit (topology miss)");
+        defer preprocess_stage.end();
         fresh = .{
             .preprocessed = try PreprocessedCircuit.fromBuilderCircuit(wrap.cache.allocator, &ctx.circuit),
             .n_vars = ctx.circuit.n_vars,
@@ -278,9 +287,13 @@ pub fn wrapCairoProof(
     if (!std.mem.eql(u32, &hash, &entry.circuit_hash.words)) return error.CircuitHashMismatch;
     if (fresh == null and !std.mem.eql(u32, &hash, &topology.circuit_hash)) return error.TopologyMismatch;
 
-    var prepared = try verifier_proof.prepare(allocator, &circuit_proof);
-    defer prepared.deinit();
-    const bytes = try prepared.serialize(allocator);
+    const bytes = blk: {
+        var serialize_stage = try StageScope.begin(recorder, "leaf_wrap_serialize", "prepare and serialize the leaf proof");
+        defer serialize_stage.end();
+        var prepared = try verifier_proof.prepare(allocator, &circuit_proof);
+        defer prepared.deinit();
+        break :blk try prepared.serialize(allocator);
+    };
     errdefer allocator.free(bytes);
 
     const cache_hit = fresh == null;
