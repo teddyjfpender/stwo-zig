@@ -1,4 +1,5 @@
 test {
+    _ = @import("poly/circle/coset_blocks.zig");
     _ = @import("poly/circle/evaluation.zig");
     _ = @import("poly/circle/fft_kernels.zig");
     _ = @import("poly/circle/ops.zig");
