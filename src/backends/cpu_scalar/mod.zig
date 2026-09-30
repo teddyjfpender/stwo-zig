@@ -40,6 +40,12 @@ pub const CommitmentOptions = struct {
     preprocessed_preparation_cache: bool = false,
     preprocessed_overlap: bool = false,
     preparation_byte_budget: usize = 1024 * 1024 * 1024,
+    /// An optional proof-of-work provider (a type declaring any of the
+    /// `grindBlake2sProofOfWork`, `grindBlake2sM31ProofOfWork`, ... hooks of
+    /// `prover.pcs.proof_of_work.grindForBackend`). `void` grinds on the host.
+    /// It changes where the grind runs, never the nonce: providers walk the
+    /// canonical Stwo order and every nonce is revalidated by the channel.
+    proof_of_work: type = void,
 };
 pub const CpuBackend = configured(.{});
 
@@ -53,6 +59,8 @@ pub fn configured(comptime options: CommitmentOptions) type {
             .fri_folding = true,
             .fri_multi_fold = true,
         };
+        /// See `CommitmentOptions.proof_of_work`.
+        pub const ProofOfWork = options.proof_of_work;
         pub const supports_preprocessed_overlap = true;
         pub const supports_preprocessed_preparation_cache = options.preprocessed_preparation_cache;
         pub const default_preprocessed_overlap = options.preprocessed_overlap;
