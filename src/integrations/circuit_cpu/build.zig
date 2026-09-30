@@ -113,12 +113,51 @@ pub fn build(b: *std.Build) void {
     r6_leaf_root.addImport("stwo_cairo_frontend", cairo);
     r6_leaf_root.addImport("stwo_circuit_recursion_wire", wire);
     r6_leaf_root.addImport("circuit_testing", circuit_testing);
+    r6_leaf_root.addImport("stwo_circuit_cpu_integration", integration);
     const r6_leaf_tests = b.addRunArtifact(b.addTest(.{ .root_module = r6_leaf_root, .filters = filters }));
     r6_leaf_tests.setCwd(repository_root);
     b.step(
         "circuit-parity-r6-leaf",
         "Rung R6, leaf: the canonical_small leaf verifier's preprocessed root and circuit hash against the committed registry",
     ).dependOn(&r6_leaf_tests.step);
+
+    // R9: the recursive tree against upstream, raw bytes. Large (every
+    // reduction proves a 2^23-row multiverifier); not part of `test`.
+    const r9_root = b.createModule(.{
+        .root_source_file = b.path("tests/r9_fold_tree_test.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    r9_root.addImport("stwo_core", core);
+    r9_root.addImport("stwo_prover_engine", prover);
+    r9_root.addImport("stwo_circuit_frontend", circuit);
+    r9_root.addImport("stwo_circuit_cpu_integration", integration);
+    r9_root.addImport("stwo_circuit_recursion_wire", wire);
+    r9_root.addImport("circuit_testing", circuit_testing);
+    const r9_tests = b.addRunArtifact(b.addTest(.{ .root_module = r9_root, .filters = filters }));
+    r9_tests.setCwd(repository_root);
+    b.step(
+        "circuit-parity-r9",
+        "Rung R9: the recursive tree over 1, 2, 3, 4 and 5 golden leaves against upstream, byte for byte",
+    ).dependOn(&r9_tests.step);
+
+    // Registry generation against the committed canonical_small registries.
+    // Large (2^23-row leaf and multiverifier circuits); not part of `test`.
+    const params_root = b.createModule(.{
+        .root_source_file = b.path("tests/r11_circuit_params_test.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    params_root.addImport("stwo_cairo_frontend", cairo);
+    params_root.addImport("stwo_circuit_frontend", circuit);
+    params_root.addImport("stwo_circuit_cpu_integration", integration);
+    params_root.addImport("stwo_circuit_recursion_wire", wire);
+    const params_tests = b.addRunArtifact(b.addTest(.{ .root_module = params_root, .filters = filters }));
+    params_tests.setCwd(repository_root);
+    b.step(
+        "circuit-parity-registry",
+        "Registry generation: both canonical_small test definitions generate their committed registries byte for byte",
+    ).dependOn(&params_tests.step);
 
     const r7_step = b.step(
         "circuit-parity-r7",

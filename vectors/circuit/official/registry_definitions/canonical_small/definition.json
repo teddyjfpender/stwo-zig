@@ -1,0 +1,15 @@
+{
+    "cairo_prover_params_json": "crates/stwo_run_and_prove_recursive_tree/test_data/cairo_prover_params.json",
+    "circuit_fri_config_json": "crates/stwo_run_and_prove_recursive_tree/test_data/circuit_fri_config.json",
+    "program": "crates/stwo_run_and_prove_recursive_tree/test_data/leaf_simple_bootloader_compiled.json",
+    "min_trace_log_size": 20,
+    "max_trace_log_size": 20,
+    "pad_to_component_log_sizes": {
+        "eq": 20,
+        "qm31_ops": 23,
+        "m31_to_u32": 21,
+        "triple_xor": 20,
+        "blake_g_gate": 23
+    },
+    "add_zk_blinding": false
+}

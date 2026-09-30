@@ -8,7 +8,10 @@ commit `5a7c5ede4299c91a61df19a07cba4f7502c14230` (milestone M7 of the
 §4). Given a finalized circuit's value table and its preprocessed circuit, it
 produces the same proof bytes as upstream `prove_circuit_assignment`, on
 either channel profile, and converts the proof into the in-circuit verifier's
-CircuitSerialize format.
+CircuitSerialize format or the Cairo verifier's felt stream. On top of the
+prover, `recursion` folds leaf proofs into a root exactly as
+`stwo_run_and_prove_recursive_tree` does and generates circuit registries as
+`circuit-params --registry` does (milestone M9).
 
 | Property | Value |
 | :--- | :--- |
@@ -33,7 +36,11 @@ flowchart LR
     Engine[`stwo_prover_engine` + `stwo_cpu_backend`] --> Prove
     Prove --> Proof[CircuitProof]
     Proof --> VerifierProof[verifier_proof.zig]
-    Wire[`stwo_circuit_recursion_wire`: CircuitSerialize] --> VerifierProof
+    Proof --> CairoProof[cairo_verifier_proof.zig]
+    Wire[`stwo_circuit_recursion_wire`: CircuitSerialize, felt stream] --> VerifierProof
+    Wire --> CairoProof
+    VerifierProof --> Recursion[recursion: canonical, fold, tree, circuit_params]
+    CairoProof --> Recursion
 ```
 
 The integration owns only composition:
@@ -76,6 +83,8 @@ const bytes = try verifier_proof.serialize(allocator);
 | `Internal` | The prover on the internal (M31 channel) profile |
 | `Root` | The prover on the root (plain Blake2s channel) profile |
 | `verifier_proof` | `prepare_circuit_proof_for_circuit_verifier`, CircuitSerialize bytes, and `circuitVerifierValues` (a decoded proof as the in-circuit verifier's `Proof(QM31)`) |
+| `cairo_verifier_proof` | `prepare_circuit_proof_for_cairo_verifier`: a root proof as the Cairo circuit verifier's felt stream (`root.proof`) |
+| `recursion` | `canonical` (`CanonicalCircuit::build`), `fold` (`LayerEntry`, `reduce_pair`, `reduce_root_single`), `tree` (`fold_entries`, `foldLeaves`, `write_root_outputs`), `circuit_params` (registry generation) |
 
 `prove` takes an optional observer (`onStep`, `onLookupElements`,
 `onTraces`) for conformance tests and an `Options` value whose fields change
@@ -102,6 +111,8 @@ zig build test --build-file src/integrations/circuit_cpu/build.zig -Doptimize=Re
 zig build circuit-parity-r7 --build-file src/integrations/circuit_cpu/build.zig -Doptimize=ReleaseSafe -j2
 zig build circuit-parity-r4-values --build-file src/integrations/circuit_cpu/build.zig -Doptimize=ReleaseSafe -j2
 zig build circuit-parity-r6-leaf --build-file src/integrations/circuit_cpu/build.zig -Doptimize=ReleaseSafe -j2
+zig build circuit-parity-r9 --build-file src/integrations/circuit_cpu/build.zig -Doptimize=ReleaseFast -j2
+zig build circuit-parity-registry --build-file src/integrations/circuit_cpu/build.zig -Doptimize=ReleaseFast -j2
 STWO_CIRCUIT_MULTIVERIFIER_INPUTS=<path> \
   zig build circuit-parity-r7-multiverifier --build-file src/integrations/circuit_cpu/build.zig -Doptimize=ReleaseFast -j2
 ```
@@ -147,6 +158,25 @@ without the environment variable the test is skipped.
 storage. `STWO_CIRCUIT_R7_EMIT_DIR` makes both steps write the proofs and the
 oracle's `verify-circuit` requests.
 
+`circuit-parity-r9` is rung R9 (labelled large). It folds 1, 2, 3, 4 and 5
+copies of the upstream golden leaf
+(`vectors/circuit/official/recursive_tree/four_leaves/leaf.json`) under the
+recursive-tree test registry with `recursion.tree.foldLeaves` and compares
+`root.proof`, `root_outputs.json` and `root_packed.json` as raw bytes: the
+four-leaf tree against the upstream goldens, the others against the oracle's
+`fold-tree` checkpoint (`vectors/circuit/r9/fold_tree.json`). Every
+reduction proves a 2^23-row multiverifier; the five trees are 15 reductions.
+
+`circuit-parity-registry` generates both canonical_small test registries from
+their upstream definitions (`vectors/circuit/official/registry_definitions`)
+with `recursion.circuit_params.generate` and compares them with the committed
+registries byte for byte, trailing newline included.
+
+The product `stwo-circuit-recursion-cpu` (`src/products/circuit_recursion_cpu`,
+`zig build stwo-circuit-recursion-cpu`) runs both from the command line with
+upstream's flags (`fold-tree --program_input ... --circuit_registry_json ...`,
+`circuit-params --definition D --registry [--output-path P]`).
+
 ## Measurements
 
 Apple M4 Max, AC power, `ReleaseFast`, compact storage from log 18:
@@ -175,6 +205,22 @@ time is set by the Rust-order position `hi * 2^20 + lo` of the nonce):
 
 The expected cost of a 26-bit grind is about 2^26 hashes (2.2 s here); of a
 20-bit grind, about 2^20 (35 ms).
+
+Recursive tree and registry (2026-09-30, same host, AC power, ReleaseFast,
+run alone under the host's heavy-command semaphore; upstream is the release
+binary of `proving@5a7c5ed`):
+
+| Run | Zig | Upstream |
+| :--- | ---: | ---: |
+| one fold of the test registry (2^23-row multiverifier, 26-bit FRI grind), product CLI, `fold-tree` of one leaf | 68 s wall, 92 s CPU, 9.9 GB peak | 22 s wall, 192 s CPU, 22.9 GB peak |
+| `circuit-parity-r9` (15 reductions, scoped worker pool) | 627 s, 18.1 GB peak | 364 s for the same 15 (`fold-tree` oracle), 22.7 GB peak |
+| `circuit-params --registry`, recursive-tree definition | 3.5 s, 3.4 GB peak | 5.0 s, 7.7 GB peak |
+
+Per reduction the Zig builder takes about 0.6 s; the rest is the prover,
+which runs mostly on one core in this path (about 2 cores of CPU time per
+wall second against upstream's 8.5). It is 2.5-3x slower than upstream and
+above the 8 GB per-process budget of the development host; both are
+milestone M11 work (design §9), not parity issues.
 
 ## Contract and invariants
 

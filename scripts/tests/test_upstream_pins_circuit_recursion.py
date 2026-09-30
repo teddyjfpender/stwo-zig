@@ -130,6 +130,7 @@ class CircuitRecursionLaneTests(unittest.TestCase):
                 "air-programs",
                 "cairo-statement",
                 "prove-lifted-example",
+                "fold-tree",
             },
             subcommands,
         )

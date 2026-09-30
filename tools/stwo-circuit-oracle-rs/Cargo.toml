@@ -34,6 +34,7 @@ cairo-program-runner-lib = { git = "https://github.com/starkware-libs/proving", 
 cairo-vm = { version = "3.2.0", default-features = false, features = ["extensive_hints", "mod_builtin", "clap"] }
 circuit-cairo-verifier = { git = "https://github.com/starkware-libs/proving", rev = "5a7c5ede4299c91a61df19a07cba4f7502c14230" }
 circuit-multiverifier = { git = "https://github.com/starkware-libs/proving", rev = "5a7c5ede4299c91a61df19a07cba4f7502c14230" }
+circuit-registry = { git = "https://github.com/starkware-libs/proving", rev = "5a7c5ede4299c91a61df19a07cba4f7502c14230" }
 circuit-prover = { git = "https://github.com/starkware-libs/proving", rev = "5a7c5ede4299c91a61df19a07cba4f7502c14230" }
 circuit-serialize = { git = "https://github.com/starkware-libs/proving", rev = "5a7c5ede4299c91a61df19a07cba4f7502c14230" }
 circuit-common = { git = "https://github.com/starkware-libs/proving", rev = "5a7c5ede4299c91a61df19a07cba4f7502c14230" }
@@ -46,6 +47,7 @@ stwo = { git = "https://github.com/starkware-libs/proving", rev = "5a7c5ede4299c
 stwo-cairo-adapter = { git = "https://github.com/starkware-libs/proving", rev = "5a7c5ede4299c91a61df19a07cba4f7502c14230" }
 stwo-cairo-common = { git = "https://github.com/starkware-libs/proving", rev = "5a7c5ede4299c91a61df19a07cba4f7502c14230" }
 stwo-cairo-prover = { git = "https://github.com/starkware-libs/proving", rev = "5a7c5ede4299c91a61df19a07cba4f7502c14230" }
+stwo-run-and-prove-recursive-tree = { git = "https://github.com/starkware-libs/proving", rev = "5a7c5ede4299c91a61df19a07cba4f7502c14230" }
 stwo-examples = { git = "https://github.com/starkware-libs/proving", rev = "5a7c5ede4299c91a61df19a07cba4f7502c14230" }
 stwo-constraint-framework = { git = "https://github.com/starkware-libs/proving", rev = "5a7c5ede4299c91a61df19a07cba4f7502c14230" }
 
