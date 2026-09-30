@@ -110,6 +110,12 @@ pub fn build(b: *std.Build) void {
         .root = "pcs_pow_test_root.zig",
         .filters = &.{"BLAKE3 PoW"},
     });
+    _ = addFocusedTests(b, core, backend_contracts, prover_api, target, optimize, check_only, .{
+        .step = "test-pcs-blake2s-pow",
+        .description = "Check the pooled BLAKE2s grind (both channels) against the channel search and Rust SimdBackend known answers",
+        .root = "pcs_commitments_test_root.zig",
+        .filters = &.{"proof of work"},
+    });
     const pcs_revision_step = addFocusedTests(b, core, backend_contracts, prover_api, target, optimize, check_only, .{
         .step = "test-pcs-revision",
         .description = "Prove PCS openings under protocol revision proving_5a7c5ed against Rust vectors",

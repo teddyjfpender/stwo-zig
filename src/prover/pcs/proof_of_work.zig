@@ -13,20 +13,21 @@ const stwo_core = @import("stwo_core");
 const work_pool_mod = @import("../work_pool.zig");
 
 const Blake2sChannel = stwo_core.channel.blake2s.Blake2sChannel;
+const Blake2sM31Channel = stwo_core.channel.blake2s.Blake2sM31Channel;
 const Blake2sHasher = stwo_core.crypto.blake2s_backend.Blake2sHasher;
 const pow_order = stwo_core.channel.blake2s.pow_order;
 
 pub const grindBlake3InPool = @import("blake3_proof_of_work.zig").grindInPool;
 
 pub fn grind(channel: anytype, pow_bits: u32) u64 {
-    if (comptime @TypeOf(channel.*) == Blake2sChannel) {
+    if (comptime isBlake2sChannel(@TypeOf(channel.*))) {
         if (pow_bits == 0) return 0;
 
         // Preserve the dedicated PoW worker override. The default path reuses
         // the prover pool instead of creating and joining OS threads here.
         if (!std.process.hasEnvVarConstant("STWO_ZIG_POW_WORKERS")) {
             if (work_pool_mod.getGlobalPool()) |pool| {
-                return grindBlake2sInPool(channel.*, pow_bits, pool);
+                return grindBlake2sInPool(@TypeOf(channel.*), channel.*, pow_bits, pool);
             }
         }
     }
@@ -58,7 +59,7 @@ pub fn grindForBackend(comptime Backend: type, channel: anytype, pow_bits: u32) 
     if (pow_bits == 0) return 0;
     if (comptime @TypeOf(channel.*) == Blake2sChannel) {
         if (pow_bits > pow_order.MAX_POW_BITS) return error.UnsupportedProofOfWorkBits;
-        const prefix = computePowPrefix(channel.*, pow_bits);
+        const prefix = channel.computePowPrefix(pow_bits);
         const nonce = if (comptime @hasDecl(Backend, "grindBlake2sProofOfWork"))
             try Backend.grindBlake2sProofOfWork(prefix, pow_bits)
         else
@@ -117,14 +118,23 @@ test "proof of work backend rejects forbidden host search before channel work" {
     try std.testing.expectEqual(@as(usize, 0), channel.calls);
 }
 
+fn isBlake2sChannel(comptime Channel: type) bool {
+    return Channel == Blake2sChannel or Channel == Blake2sM31Channel;
+}
+
 /// First-word PoW predicate over eight candidates with the nonce-independent
 /// part of the terminal compression prepared once per proof. Valid for
-/// `pow_bits <= 32`, which the canonical search requires.
+/// `pow_bits <= 32`, which the canonical search requires: the channel checks
+/// the trailing zeros of the digest's first 128 bits, which for at most 32
+/// bits is the first little-endian word alone. `Blake2sM31Channel` digests
+/// are reduced modulo M31 word by word before that check (`reduceToM31`), so
+/// its checker reduces the first word the same way.
 const PowChecker = struct {
     prepared_prefix: Blake2sHasher.Fixed40NoncePrefix,
     mask: u32,
+    m31_output: bool,
 
-    fn init(prefix: *const [32]u8, pow_bits: u32) PowChecker {
+    fn init(prefix: *const [32]u8, pow_bits: u32, m31_output: bool) PowChecker {
         std.debug.assert(pow_bits >= 1 and pow_bits <= pow_order.MAX_POW_BITS);
         return .{
             .prepared_prefix = Blake2sHasher.prepareFixed40NoncePrefix(prefix),
@@ -132,6 +142,7 @@ const PowChecker = struct {
                 std.math.maxInt(u32)
             else
                 (@as(u32, 1) << @intCast(pow_bits)) - 1,
+            .m31_output = m31_output,
         };
     }
 
@@ -141,7 +152,13 @@ const PowChecker = struct {
             &nonces,
         );
         const Words = @Vector(pow_order.BATCH, u32);
-        const vector: Words = first_words;
+        var vector: Words = first_words;
+        if (self.m31_output) {
+            // `reduceToM31` on the first word: fold bit 31, subtract p once.
+            const p: Words = @splat(stwo_core.fields.m31.Modulus);
+            const folded = (vector & p) +% (vector >> @splat(31));
+            vector = @select(u32, folded >= p, folded -% p, folded);
+        }
         const matches = (vector & @as(Words, @splat(self.mask))) == @as(Words, @splat(0));
         return @bitCast(matches);
     }
@@ -159,7 +176,8 @@ const PowWork = struct {
 };
 
 fn grindBlake2sInPool(
-    channel: Blake2sChannel,
+    comptime Channel: type,
+    channel: Channel,
     pow_bits: u32,
     pool: *work_pool_mod.WorkPool,
 ) u64 {
@@ -174,8 +192,8 @@ fn grindBlake2sInPool(
     std.debug.assert(worker_count >= 2);
     std.debug.assert(worker_count <= work_pool_mod.MAX_WORKERS);
 
-    const prefix = computePowPrefix(channel, pow_bits);
-    const checker = PowChecker.init(&prefix, pow_bits);
+    const prefix = channel.computePowPrefix(pow_bits);
+    const checker = PowChecker.init(&prefix, pow_bits, Channel == Blake2sM31Channel);
     var best_index = std.atomic.Value(u64).init(std.math.maxInt(u64));
     var jobs: [work_pool_mod.MAX_WORKERS]PowWork = undefined;
     for (jobs[0..worker_count], 0..) |*job, worker_index| {
@@ -196,21 +214,13 @@ fn grindBlake2sInPool(
     return pow_order.finish(best_index.load(.acquire));
 }
 
-fn computePowPrefix(channel: Blake2sChannel, pow_bits: u32) [32]u8 {
-    var input: [52]u8 = [_]u8{0} ** 52;
-    std.mem.writeInt(u32, input[0..4], Blake2sChannel.POW_PREFIX, .little);
-    @memcpy(input[16..48], channel.digestBytes()[0..]);
-    std.mem.writeInt(u32, input[48..52], pow_bits, .little);
-    return Blake2sHasher.hashFixedSingleBlock(input.len, &input);
-}
-
 fn grindBlake2sResiduesForTest(
-    channel: Blake2sChannel,
+    channel: anytype,
     pow_bits: u32,
     worker_count: usize,
 ) u64 {
-    const prefix = computePowPrefix(channel, pow_bits);
-    const checker = PowChecker.init(&prefix, pow_bits);
+    const prefix = channel.computePowPrefix(pow_bits);
+    const checker = PowChecker.init(&prefix, pow_bits, @TypeOf(channel) == Blake2sM31Channel);
     var best_index = std.atomic.Value(u64).init(std.math.maxInt(u64));
     for (0..worker_count) |worker_index| {
         const job = PowWork{
@@ -225,20 +235,41 @@ fn grindBlake2sResiduesForTest(
 }
 
 test "proof of work: pooled batched residue search preserves the canonical nonce" {
-    var channel = Blake2sChannel{};
-    channel.mixU32s(&.{ 0x1234_5678, 0x9abc_def0 });
+    inline for (.{ Blake2sChannel, Blake2sM31Channel }) |Channel| {
+        for ([_]u64{ 0, 1, 7, 0x1111_2222_3333_4344 }) |seed| {
+            var channel = Channel{};
+            channel.mixU32s(&.{ 0x1234_5678, 0x9abc_def0 });
+            channel.mixU64(seed);
 
-    for ([_]u32{ 1, 4, 8, 10, 20 }) |pow_bits| {
-        const expected = channel.grind(pow_bits);
-        for ([_]usize{ 1, 2, 5, 16 }) |worker_count| {
-            const actual = grindBlake2sResiduesForTest(
-                channel,
-                pow_bits,
-                worker_count,
-            );
-            try std.testing.expectEqual(expected, actual);
-            try std.testing.expect(channel.verifyPowNonce(pow_bits, actual));
+            for ([_]u32{ 1, 4, 8, 10, 12, 20 }) |pow_bits| {
+                const expected = channel.grind(pow_bits);
+                for ([_]usize{ 1, 2, 5, 16 }) |worker_count| {
+                    const actual = grindBlake2sResiduesForTest(
+                        channel,
+                        pow_bits,
+                        worker_count,
+                    );
+                    try std.testing.expectEqual(expected, actual);
+                    try std.testing.expect(channel.verifyPowNonce(pow_bits, actual));
+                }
+            }
         }
+    }
+}
+
+test "proof of work: the M31 checker reduces the first digest word like the channel" {
+    // Every first word whose M31 reduction differs from the raw word in the
+    // low bits: 2^31 - 1 (reduces to 0), 2^31 (to 1), 2^32 - 1 (to 1), and
+    // multiples of 2^k above p. The predicate must match `reduceToM31`.
+    const p = stwo_core.fields.m31.Modulus;
+    const words = [_]u32{ 0, 1, p - 1, p, p + 1, 1 << 31, (1 << 31) + (1 << 20), std.math.maxInt(u32), p + (1 << 26), 1 << 26 };
+    for (words) |word| {
+        var digest: [32]u8 = @splat(0);
+        std.mem.writeInt(u32, digest[0..4], word, .little);
+        const reduced = std.mem.readInt(u32, stwo_core.vcs.blake2_hash.reduceToM31(digest)[0..4], .little);
+        var folded = (word & p) +% (word >> 31);
+        if (folded >= p) folded -%= p;
+        try std.testing.expectEqual(reduced, folded);
     }
 }
 
@@ -263,6 +294,14 @@ test "proof of work: prover pool grind matches Rust Stwo SimdBackend known answe
         .{ .seed = 0, .bits = 24, .nonce = 77309505868 }, // hi 18, lo 94540
         .{ .seed = 0, .bits = 26, .nonce = 34360584583 }, // hi 8, lo 846215
     };
+    // The same for `Blake2sM31Channel` (vectors of
+    // `stwo_core.channel.blake2s`'s M31 known-answer tests).
+    const m31_vectors = [_]struct { seed: u64, bits: u32, nonce: u64 }{
+        .{ .seed = 1, .bits = 20, .nonce = 12885632339 }, // hi 3, lo 730451
+        .{ .seed = 1, .bits = 24, .nonce = 4295766292 }, // hi 1, lo 798996
+        .{ .seed = 0x1111_2222_3333_4344, .bits = 20, .nonce = 0x1_0005_a700 },
+        .{ .seed = 0x1111_2222_3333_4344, .bits = 24, .nonce = 0xf_0001_6fbd },
+    };
     for ([_]usize{ 2, 7 }) |worker_count| {
         var pool: work_pool_mod.WorkPool = undefined;
         try pool.initInPlaceWithOptions(.{ .worker_count = worker_count });
@@ -270,7 +309,12 @@ test "proof of work: prover pool grind matches Rust Stwo SimdBackend known answe
         for (vectors) |vector| {
             var channel = Blake2sChannel{};
             channel.mixU64(vector.seed);
-            try std.testing.expectEqual(vector.nonce, grindBlake2sInPool(channel, vector.bits, &pool));
+            try std.testing.expectEqual(vector.nonce, grindBlake2sInPool(Blake2sChannel, channel, vector.bits, &pool));
+        }
+        for (m31_vectors) |vector| {
+            var channel = Blake2sM31Channel{};
+            channel.mixU64(vector.seed);
+            try std.testing.expectEqual(vector.nonce, grindBlake2sInPool(Blake2sM31Channel, channel, vector.bits, &pool));
         }
     }
 }
