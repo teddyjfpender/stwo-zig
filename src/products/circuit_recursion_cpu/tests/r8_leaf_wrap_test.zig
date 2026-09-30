@@ -17,6 +17,7 @@
 
 const std = @import("std");
 const app = @import("app");
+const prover = @import("stwo_prover_engine");
 
 const expected_path = "vectors/circuit/official/leaf_prover/expected_output.json";
 
@@ -25,6 +26,13 @@ test "R8: leaf-wrap of use_all_opcodes_and_builtins equals leaf-prover's expecte
     // safety bookkeeping serializes allocations and distorts this gate's
     // timings; parity is checked against the upstream bytes below.
     const allocator = std.heap.smp_allocator;
+    // Tests deliberately disable the process-global proof pool. Bind the
+    // same worker pool that the installed binary obtains automatically.
+    var pool: prover.work_pool.WorkPool = undefined;
+    try pool.initInPlace();
+    defer pool.deinit();
+    var binding = try prover.work_pool.ScopedPoolBinding.init(&pool);
+    defer binding.deinit();
     var timings = app.Timings{};
     var leaf = try app.leafWrap(allocator, .{
         .registry_path = "vectors/circuit/official/registries/leaf_prover_canonical_small.json",

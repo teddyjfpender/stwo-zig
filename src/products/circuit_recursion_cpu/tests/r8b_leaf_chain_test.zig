@@ -26,6 +26,7 @@
 
 const std = @import("std");
 const app = @import("app");
+const prover = @import("stwo_prover_engine");
 
 const wire = app.wire;
 const goldens_dir = "vectors/circuit/official/recursive_tree/four_leaves";
@@ -39,6 +40,13 @@ test "R8b: a Zig leaf of the leaf simple bootloader folds to the four_leaves gol
 
     // 1. The leaf: Zig Cairo proof and wrap.
     const leaf_json = blk: {
+        // The test runner has no process-global pool; the product CLI does.
+        // Scope this pool to the leaf so foldTree can own its own pool later.
+        var pool: prover.work_pool.WorkPool = undefined;
+        try pool.initInPlace();
+        defer pool.deinit();
+        var binding = try prover.work_pool.ScopedPoolBinding.init(&pool);
+        defer binding.deinit();
         var timings = app.Timings{};
         var leaf = try app.leafWrap(gpa, .{
             .registry_path = registry_path,

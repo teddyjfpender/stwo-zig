@@ -210,6 +210,7 @@ fn addAppTest(context: Context, app: *std.Build.Module, root_source_file: []cons
         .optimize = context.optimize,
     });
     root.addImport("app", app);
+    root.addImport("stwo_prover_engine", context.protocol.prover);
     const run = context.b.addRunArtifact(context.b.addTest(.{ .root_module = root }));
     run.setCwd(context.b.path("."));
     return &run.step;
