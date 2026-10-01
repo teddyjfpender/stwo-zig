@@ -74,6 +74,17 @@ pub fn decodeProofWithGeometry(
                 .fri_config = try geometry.friConfig(),
                 .lifting_log_size = geometry.lifting_log_size,
             },
+            // The recursive Cairo leaf uses the proving_5a7c5ed PCS lane.
+            // Its explicit lifting heights are authenticated by the runtime
+            // protocol and verifier, then carried into the generic proof used
+            // to build the leaf circuit witness.
+            .revision_config = if (geometry.m31_channel) pcs.config_v2.PcsConfigV2.fromFriAndLiftingSize(.{
+                .pow_bits = geometry.query_pow_bits,
+                .log_blowup_factor = geometry.log_blowup_factor,
+                .log_last_layer_degree_bound = geometry.log_last_layer_degree_bound,
+                .n_queries = @intCast(geometry.query_count),
+                .fold_step = geometry.fold_step,
+            }, geometry.lifting_log_size.?) else null,
             .commitments = pcs.TreeVec(Hasher.Hash).initOwned(commitments),
             .sampled_values = sampled_values,
             .decommitments = trace.decommitments,
