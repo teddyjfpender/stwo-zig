@@ -151,6 +151,13 @@ pub fn parse(argv: []const []const u8) Error!Parsed {
                     .{ .flag = "output_path", .field = "output" },
                 },
             });
+            if (parsed.cairo_proof) |path| {
+                if (std.mem.eql(u8, path, parsed.output) or
+                    std.mem.eql(u8, path, parsed.prover_input) or
+                    std.mem.eql(u8, path, parsed.registry) or
+                    std.mem.eql(u8, path, parsed.program))
+                    return error.InvalidValue;
+            }
             break :blk .{ .leaf_wrap = .{
                 .registry = parsed.registry,
                 .program = parsed.program,
@@ -286,6 +293,9 @@ test "circuit recursion cli: leaf-wrap options, defaults and failures" {
     try std.testing.expectEqualStrings("i.json", parsed.leaf_wrap.prover_input);
     try std.testing.expectEqualStrings("o.json", parsed.leaf_wrap.output);
     try std.testing.expectEqualStrings("/repo", parsed.leaf_wrap.assets);
+    const cairo_dump = try parse(&.{ "leaf-wrap", "--registry", "r.json", "--program", "p.json", "--prover-input", "i.json", "--output", "o.json", "--cairo-proof", "c.json" });
+    try std.testing.expectEqualStrings("c.json", cairo_dump.leaf_wrap.cairo_proof.?);
+    try std.testing.expectError(error.InvalidValue, parse(&.{ "leaf-wrap", "--registry", "r.json", "--program", "p.json", "--prover-input", "i.json", "--output", "o.json", "--cairo-proof", "i.json" }));
     try std.testing.expectEqual(@as(?u32, default_compact_min_log), parsed.leaf_wrap.compact_min_log);
     try std.testing.expect(!parsed.leaf_wrap.profile);
     const tuned = try parse(&.{ "leaf-wrap", "--profile", "--compact-min-log", "off", "--registry=r", "--program=p", "--prover-input=i", "--output=o" });
