@@ -15,6 +15,11 @@ pub const Requirement = struct {
     alignment_words: usize = 1,
     live_from: telemetry.Stage,
     live_through: telemetry.Stage,
+    // Two ordered points within a stage. The default occupies the full
+    // stage; a producer finishing in phase 0 may alias a consumer that first
+    // writes in phase 1, provided their execution is ordered on the stream.
+    live_from_phase: u1 = 0,
+    live_through_phase: u1 = 1,
 };
 
 pub const Placement = struct {
@@ -49,19 +54,33 @@ pub const Plan = struct {
         }
         std.mem.sort(Requirement, ordered, {}, orderRequirements);
 
-        const placements = try allocator.alloc(Placement, ordered.len);
+        var placements = try allocator.alloc(Placement, ordered.len);
         errdefer allocator.free(placements);
-        var initialized: usize = 0;
-        var total_words: usize = 0;
-        for (ordered) |requirement| {
-            const offset = try findOffset(requirement, placements[0..initialized]);
-            const located = Placement{
-                .requirement = requirement,
-                .offset_words = offset,
-            };
-            placements[initialized] = located;
-            initialized += 1;
-            total_words = @max(total_words, try located.endWords());
+        var total_words = try placeSorted(ordered, placements);
+
+        // First-fit decreasing is usually tight, but large mixed-lifetime
+        // proofs can strand several GB in holes. Try a bounded set of stable
+        // orderings and keep only a strictly smaller layout. Small arenas
+        // retain the original fast path and all results remain deterministic.
+        if (ordered.len >= 64 and total_words > 25_000_000_000) {
+            const lower_bound = try peakLiveWords(requirements);
+            var max_alignment: usize = 1;
+            for (requirements) |requirement|
+                max_alignment = @max(max_alignment, requirement.alignment_words);
+            const target = std.math.add(usize, lower_bound, max_alignment) catch
+                return error.SizeOverflow;
+            var candidate = try allocator.alloc(Placement, ordered.len);
+            defer allocator.free(candidate);
+            for (0..64) |index| {
+                if (total_words <= target) break;
+                @memcpy(ordered, requirements);
+                std.mem.sort(Requirement, ordered, @as(u64, @intCast(index)) + 1, orderPerturbed);
+                const candidate_words = try placeSorted(ordered, candidate);
+                if (candidate_words < total_words) {
+                    std.mem.swap([]Placement, &placements, &candidate);
+                    total_words = candidate_words;
+                }
+            }
         }
         std.mem.sort(Placement, placements, {}, orderPlacementsById);
         return .{ .placements = placements, .total_words = total_words };
@@ -200,7 +219,7 @@ fn validateRequirement(requirement: Requirement) runtime_error.Error!void {
     if (requirement.words == 0 or
         requirement.alignment_words == 0 or
         !std.math.isPowerOfTwo(requirement.alignment_words) or
-        requirement.live_from.index() > requirement.live_through.index())
+        lifetimeStart(requirement) > lifetimeEnd(requirement))
     {
         return error.InvalidArenaRequirement;
     }
@@ -208,10 +227,52 @@ fn validateRequirement(requirement: Requirement) runtime_error.Error!void {
 
 fn orderRequirements(_: void, lhs: Requirement, rhs: Requirement) bool {
     if (lhs.words != rhs.words) return lhs.words > rhs.words;
-    const lhs_lifetime = lhs.live_through.index() - lhs.live_from.index();
-    const rhs_lifetime = rhs.live_through.index() - rhs.live_from.index();
+    const lhs_lifetime = lifetimeEnd(lhs) - lifetimeStart(lhs);
+    const rhs_lifetime = lifetimeEnd(rhs) - lifetimeStart(rhs);
     if (lhs_lifetime != rhs_lifetime) return lhs_lifetime > rhs_lifetime;
     return lhs.id < rhs.id;
+}
+
+fn orderPerturbed(seed: u64, lhs: Requirement, rhs: Requirement) bool {
+    const lhs_score = @as(u128, lhs.words) * splitmix64(@as(u64, lhs.id) +% seed *% 10_007);
+    const rhs_score = @as(u128, rhs.words) * splitmix64(@as(u64, rhs.id) +% seed *% 10_007);
+    if (lhs_score != rhs_score) return lhs_score > rhs_score;
+    return lhs.id < rhs.id;
+}
+
+fn splitmix64(input: u64) u64 {
+    var value = input +% 0x9e3779b97f4a7c15;
+    value = (value ^ (value >> 30)) *% 0xbf58476d1ce4e5b9;
+    value = (value ^ (value >> 27)) *% 0x94d049bb133111eb;
+    return value ^ (value >> 31);
+}
+
+fn placeSorted(requirements: []const Requirement, placements: []Placement) runtime_error.Error!usize {
+    var total_words: usize = 0;
+    for (requirements, 0..) |requirement, index| {
+        const offset = try findOffset(requirement, placements[0..index]);
+        const located = Placement{ .requirement = requirement, .offset_words = offset };
+        placements[index] = located;
+        total_words = @max(total_words, try located.endWords());
+    }
+    return total_words;
+}
+
+fn peakLiveWords(requirements: []const Requirement) runtime_error.Error!usize {
+    var peak: usize = 0;
+    for (0..telemetry.stage_count * 2) |point| {
+        var live: usize = 0;
+        for (requirements) |requirement| {
+            if (lifetimeStart(requirement) <= point and
+                point <= lifetimeEnd(requirement))
+            {
+                live = std.math.add(usize, live, requirement.words) catch
+                    return error.SizeOverflow;
+            }
+        }
+        peak = @max(peak, live);
+    }
+    return peak;
 }
 
 fn orderPlacementsById(_: void, lhs: Placement, rhs: Placement) bool {
@@ -248,8 +309,16 @@ fn findOffset(
 }
 
 fn lifetimesOverlap(lhs: Requirement, rhs: Requirement) bool {
-    return lhs.live_from.index() <= rhs.live_through.index() and
-        rhs.live_from.index() <= lhs.live_through.index();
+    return lifetimeStart(lhs) <= lifetimeEnd(rhs) and
+        lifetimeStart(rhs) <= lifetimeEnd(lhs);
+}
+
+fn lifetimeStart(requirement: Requirement) usize {
+    return requirement.live_from.index() * 2 + requirement.live_from_phase;
+}
+
+fn lifetimeEnd(requirement: Requirement) usize {
+    return requirement.live_through.index() * 2 + requirement.live_through_phase;
 }
 
 test "arena aliases scratch only after its protocol lifetime ends" {
@@ -283,6 +352,19 @@ test "arena aliases scratch only after its protocol lifetime ends" {
     try std.testing.expectEqual(oods.offset_words, quotient.offset_words);
     try std.testing.expect(oods.offset_words >= 1024);
     try std.testing.expectEqual(@as(usize, 1536), plan.total_words);
+}
+
+test "arena aliases ordered work within one protocol stage" {
+    const allocator = std.testing.allocator;
+    var plan = try Plan.init(allocator, &.{
+        .{ .id = 1, .words = 1024, .live_from = .trace_generation, .live_through = .trace_commit, .live_through_phase = 0 },
+        .{ .id = 2, .words = 1024, .live_from = .trace_commit, .live_from_phase = 1, .live_through = .decommit },
+        .{ .id = 3, .words = 1024, .live_from = .trace_commit, .live_through = .decommit },
+    });
+    defer plan.deinit(allocator);
+    try std.testing.expectEqual((try plan.placement(1)).offset_words, (try plan.placement(2)).offset_words);
+    try std.testing.expect((try plan.placement(3)).offset_words != (try plan.placement(1)).offset_words);
+    try std.testing.expectEqual(@as(usize, 2048), plan.total_words);
 }
 
 test "arena preserves alignment and concurrent slot separation" {

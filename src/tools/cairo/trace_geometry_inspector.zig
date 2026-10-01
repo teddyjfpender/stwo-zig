@@ -5,16 +5,19 @@ const stwo = @import("stwo");
 const source = stwo.integrations.cairo_cuda.canonical_source;
 const trace_commit = stwo.integrations.cairo_cuda.executor.trace_commit;
 const CompileOptions = stwo.backends.cuda.runtime.execution_plan.CompileOptions;
+const Stage = stwo.backends.cuda.runtime.telemetry.Stage;
 
 pub fn main() !void {
     const allocator = std.heap.smp_allocator;
     const args = try std.process.argsAlloc(allocator);
     defer std.process.argsFree(allocator, args);
-    if (args.len < 2) {
-        std.debug.print("usage: cairo-trace-geometry <adapted-input.cpi>...\n", .{});
+    const breakdown = args.len > 1 and std.mem.eql(u8, args[1], "--memory-breakdown");
+    const first_path: usize = if (breakdown) 2 else 1;
+    if (args.len <= first_path) {
+        std.debug.print("usage: cairo-trace-geometry [--memory-breakdown] <adapted-input.cpi>...\n", .{});
         return error.InvalidArgument;
     }
-    var assets = try source.Assets.load(allocator, .{ .input = args[1] });
+    var assets = try source.Assets.load(allocator, .{ .input = args[first_path] });
     defer assets.deinit();
     const target: CompileOptions = .{
         .sm = 90,
@@ -28,7 +31,7 @@ pub fn main() !void {
         .lane_streams = 0,
         .enable_graphs = true,
     };
-    for (args[1..]) |path| {
+    for (args[first_path..]) |path| {
         var prepared = try source.prepareWithAssets(allocator, .{ .input = path }, target, &assets);
         defer prepared.deinit();
         const summary = prepared.request.resident.summary;
@@ -36,6 +39,37 @@ pub fn main() !void {
             std.fs.path.stem(path),           summary.logicalBytes(),    summary.peak_live_words * 4,
             summary.allocatedResidentBytes(), summary.coefficient_cells, summary.evaluation_cells,
         });
+        if (breakdown) {
+            const pie = std.fs.path.stem(path);
+            for (std.enums.values(Stage)) |stage| {
+                for (0..2) |phase| {
+                    const point = stage.index() * 2 + phase;
+                    var live_words: u64 = 0;
+                    for (prepared.request.resident.slots) |slot| {
+                        if (slot.live_from.index() * 2 + slot.live_from_phase <= point and
+                            slot.live_through.index() * 2 + slot.live_through_phase >= point)
+                            live_words += slot.words;
+                    }
+                    std.debug.print("stage pie={s} stage={s} phase={} live_bytes={}\n", .{ pie, @tagName(stage), phase, live_words * 4 });
+                }
+            }
+            for (prepared.request.resident.slots) |slot| {
+                std.debug.print("slot pie={s} kind={s} ordinal={} bytes={} from={s}/{} through={s}/{} storage={s}\n", .{
+                    pie,                      @tagName(slot.kind),  slot.ordinal,                slot.words * 4,
+                    @tagName(slot.live_from), slot.live_from_phase, @tagName(slot.live_through), slot.live_through_phase,
+                    @tagName(slot.storage),
+                });
+            }
+            for (prepared.request.proof.components, prepared.composition.components) |planned, component| {
+                const witness = prepared.witnesses.find(planned.name) orelse continue;
+                const rows: u64 = @as(u64, 1) << @intCast(component.trace_log_size);
+                const lookup_bytes = rows * witness.program.n_lookup_words * 4;
+                if (lookup_bytes == 0) continue;
+                std.debug.print("lookup pie={s} component={s} instance={} rows={} words_per_row={} bytes={}\n", .{
+                    pie, planned.name, planned.instance, rows, witness.program.n_lookup_words, lookup_bytes,
+                });
+            }
+        }
         for (prepared.claim.components, prepared.geometry.extents) |component, extent| {
             if (!std.mem.eql(u8, component.name, "pedersen_builtin") and
                 !std.mem.eql(u8, component.name, "pedersen_aggregator_window_bits_18") and

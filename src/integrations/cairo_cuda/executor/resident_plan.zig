@@ -194,7 +194,10 @@ const Builder = struct {
         try self.add(.writer_inputs, 0, try words(writer.input_words), 64, .ingress, .trace_generation, .request_local, false);
         try self.add(.writer_pointer_tables, 0, try words(writer.pointer_words), 2, .ingress, .trace_generation, .request_local, false);
         try self.add(.writer_descriptors, 0, try words(writer.descriptor_words), 8, .ingress, .trace_generation, .request_local, true);
-        try self.add(.writer_lookup_inputs, 0, try words(writer.lookup_words), 64, .trace_generation, relationSourceLifetime(), .request_local, false);
+        // Relation consumes these values before interaction commitment starts.
+        // The lookup slab can share storage with interaction evaluations.
+        const lookup_last = relationSourceLifetime();
+        try self.addPhased(.writer_lookup_inputs, 0, try words(writer.lookup_words), 64, .trace_generation, lookup_last, .request_local, false, 0, if (lookup_last == .trace_commit) 0 else 1);
         try self.add(.writer_scratch, 0, try words(writer.scratch_words), 64, .trace_generation, .trace_generation, .request_local, false);
         if (std.posix.getenv("STWO_CAIRO_CUDA_SOURCE_DIAGNOSTIC") != null) {
             const diagnostic_words = try std.math.add(u64, try std.math.add(u64, try std.math.mul(u64, self.bundle.total_constraints, 4), try std.math.mul(u64, evaluation.trace_offset_words, 24)), try std.math.add(u64, try std.math.mul(u64, evaluation.extended_parameter_words, 8), try std.math.mul(u64, self.bundle.components.len, 64)));
@@ -344,10 +347,10 @@ const Builder = struct {
                 storage,
                 tree.role == .preprocessed,
             );
-            try self.add(.trace_evaluations, @intCast(ordinal), try words(evaluations), 64, first, .decommit, storage, tree.role == .preprocessed);
+            try self.addPhased(.trace_evaluations, @intCast(ordinal), try words(evaluations), 64, first, .decommit, storage, tree.role == .preprocessed, if (tree.role == .interaction) 1 else 0, 1);
             try self.add(.trace_column_logs, @intCast(ordinal), columns.len, 1, first, .decommit, storage, true);
             try self.add(.trace_column_offsets, @intCast(ordinal), try mul(columns.len + 1, 2), 2, first, .decommit, storage, true);
-            try self.add(.trace_merkle_hashes, @intCast(ordinal), try merkleWords(tree.evaluation_log_rows), 64, .trace_commit, .decommit, storage, tree.role == .preprocessed);
+            try self.addPhased(.trace_merkle_hashes, @intCast(ordinal), try merkleWords(tree.evaluation_log_rows), 64, .trace_commit, .decommit, storage, tree.role == .preprocessed, if (tree.role == .interaction) 1 else 0, 1);
             try self.add(.trace_merkle_layers, @intCast(ordinal), (@as(usize, tree.evaluation_log_rows) + 1) * 4, 4, .trace_commit, .decommit, storage, true);
             try self.add(.trace_root, @intCast(ordinal), 8, 8, .trace_commit, .proof_assembly, .request_local, false);
         }
@@ -558,6 +561,22 @@ const Builder = struct {
         storage: proof_ir.StorageClass,
         immutable: bool,
     ) !void {
+        return self.addPhased(kind, ordinal, slot_words, alignment, live_from, live_through, storage, immutable, 0, 1);
+    }
+
+    fn addPhased(
+        self: *Builder,
+        kind: SlotKind,
+        ordinal: u32,
+        slot_words: usize,
+        alignment: usize,
+        live_from: telemetry.Stage,
+        live_through: telemetry.Stage,
+        storage: proof_ir.StorageClass,
+        immutable: bool,
+        first_phase: u1,
+        last_phase: u1,
+    ) !void {
         if (slot_words == 0 or alignment == 0 or
             !std.math.isPowerOfTwo(alignment) or
             live_from.index() > live_through.index())
@@ -578,6 +597,8 @@ const Builder = struct {
             .alignment_words = alignment,
             .live_from = first_live,
             .live_through = live_through,
+            .live_from_phase = if (immutable) 0 else first_phase,
+            .live_through_phase = last_phase,
             .storage = storage,
             .immutable = immutable,
             .identity = slotIdentity(
@@ -589,6 +610,8 @@ const Builder = struct {
                 alignment,
                 first_live,
                 live_through,
+                if (immutable) 0 else first_phase,
+                last_phase,
                 storage,
                 immutable,
             ),
@@ -714,6 +737,8 @@ fn requestRequirements(
             .alignment_words = slot.alignment_words,
             .live_from = slot.live_from,
             .live_through = slot.live_through,
+            .live_from_phase = slot.live_from_phase,
+            .live_through_phase = slot.live_through_phase,
         };
         cursor += 1;
     }
@@ -743,15 +768,18 @@ fn summarize(
     var peak: u64 = 0;
     inline for (std.meta.fields(telemetry.Stage)) |field| {
         const stage: telemetry.Stage = @enumFromInt(field.value);
-        var live: u64 = 0;
-        for (slots) |slot| {
-            if (slot.live_from.index() <= stage.index() and
-                slot.live_through.index() >= stage.index())
-            {
-                live = try add64(live, slot.words);
+        inline for (0..2) |phase| {
+            const point = stage.index() * 2 + phase;
+            var live: u64 = 0;
+            for (slots) |slot| {
+                if (slot.live_from.index() * 2 + slot.live_from_phase <= point and
+                    slot.live_through.index() * 2 + slot.live_through_phase >= point)
+                {
+                    live = try add64(live, slot.words);
+                }
             }
+            peak = @max(peak, live);
         }
-        peak = @max(peak, live);
     }
     return .{
         .slot_count = slots.len,
@@ -814,11 +842,13 @@ fn slotIdentity(
     alignment: usize,
     live_from: telemetry.Stage,
     live_through: telemetry.Stage,
+    first_phase: u1,
+    last_phase: u1,
     storage: proof_ir.StorageClass,
     immutable: bool,
 ) proof_ir.Digest {
     var hash = std.crypto.hash.sha2.Sha256.init(.{});
-    hash.update("stwo-zig-cairo-cuda-resident-slot-v2");
+    hash.update("stwo-zig-cairo-cuda-resident-slot-v3");
     hash.update(&program.semantic_digest);
     hashInt(&hash, u64, plan_hash);
     hashInt(&hash, u8, @intFromEnum(kind));
@@ -827,6 +857,8 @@ fn slotIdentity(
     hashInt(&hash, u64, alignment);
     hashInt(&hash, u8, @intFromEnum(live_from));
     hashInt(&hash, u8, @intFromEnum(live_through));
+    hashInt(&hash, u8, first_phase);
+    hashInt(&hash, u8, last_phase);
     hashInt(&hash, u8, @intFromEnum(storage));
     hashInt(&hash, u8, @intFromBool(immutable));
     var result: proof_ir.Digest = undefined;

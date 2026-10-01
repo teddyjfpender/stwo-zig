@@ -120,6 +120,8 @@ pub const Slot = struct {
     alignment_words: usize,
     live_from: telemetry.Stage,
     live_through: telemetry.Stage,
+    live_from_phase: u1 = 0,
+    live_through_phase: u1 = 1,
     storage: proof_ir.StorageClass,
     immutable: bool,
     identity: proof_ir.Digest,

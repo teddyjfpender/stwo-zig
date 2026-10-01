@@ -251,9 +251,9 @@ strata, so their raw frequencies are not an estimate of production traffic.
 
 ## Post-fix H200 qualification and large low-block PIEs
 
-The latest [joined CSV](pie-scale.csv) still has one row for each of the 6,187
-catalogued PIEs. It now includes **464 latest GPU trials: 456 verified proofs
-and eight device-memory admission failures**. The [64-bit-offset retest](pie-proving-offset-fix-20261001.csv)
+The [joined CSV](pie-scale.csv) still has one row for each of the 6,187
+catalogued PIEs. At the 64-bit-offset retest stage it included **464 GPU trials:
+456 verified proofs and eight device-memory admission failures**. The [64-bit-offset retest](pie-proving-offset-fix-20261001.csv)
 re-ran all 15 earlier `TraceCommitGeometryOverflow` cases on the H200. Eight
 generated canonical proofs, all accepted by the pinned official Rust verifier.
 Their adapted-input-to-publication times were 10.323–11.647 s and sampled GPU
@@ -308,3 +308,48 @@ records that failure, rather than implying a proof was generated. The two
 record the canonical 70-query, 26-bit query PoW, and 24-bit interaction PoW
 security settings and the prover digests before and after raising the compact
 input limit. The pod was stopped after collecting the receipts.
+
+## Complexity-dense PIE memory qualification
+
+The seven H200 admission failures from the offset retest now all generate
+canonical proofs accepted by the pinned official Rust verifier. The current
+[joined CSV](pie-scale.csv) records **463 verified GPU proofs and one historical
+memory failure** among 464 trials; that remaining case is outside this
+complexity-dense optimization pass. The [per-PIE receipt](pie-proving-memory-optimized-20261001.csv),
+[memory-cause analysis](cuda-memory-causes-20261001.csv), and
+[machine/security receipt](h200-memory-optimized-machine.json) preserve the
+measured results and prover/verifier identities. Times are seconds and memory
+is decimal GB. `Proof` is the CUDA proof-execute/finish phase; `Input→proof`
+includes the separately recorded ingress and publication work.
+
+| PIE | Steps M | Distinct Pedersen keys | Prior plan GB | New plan GB | GPU peak GB | Proof s | Input→proof s |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| `15613730_15613744` | 26.73 | 132134 | 162.7 | 131.8 | 133.6 | 1.836 | 10.961 |
+| `15613811_15613820` | 28.78 | 144739 | 168.9 | 136.3 | 138.1 | 1.932 | 12.067 |
+| `15593020_15593029` | 29.84 | 194714 | 151.8 | 123.1 | 124.9 | 1.782 | 11.694 |
+| `15580230_15580239` | 30.56 | 136617 | 168.7 | 136.1 | 137.9 | 1.906 | 11.357 |
+| `15563910_15563919` | 33.99 | 142701 | 171.7 | 139.8 | 141.7 | 2.048 | 12.067 |
+| `15578950_15578959` | 35.89 | 144860 | 177.4 | 144.1 | 145.9 | 2.135 | 12.367 |
+| `15578550_15578559` | 39.94 | 150773 | 178.3 | 144.7 | 146.6 | 2.129 | 12.683 |
+
+The failure was caused by simultaneous reservation of the writer's
+37–43 GB lookup-output slab and the interaction trace's extended evaluations
+inside one coarse `trace_commit` lifetime. The relation kernel finishes
+reading the lookup slab before the interaction commitment first writes its
+evaluations. The resident planner now represents these ordered subphases and
+aliases their storage. A bounded deterministic placement search closes the
+remaining holes in large arenas; small arenas keep the original placement
+path. Neither change modifies Cairo AIR geometry, transcript values, or the
+proof format. Distinct Pedersen keys crossing the 131,072-row padding boundary
+also contribute a sharp memory step, but the lookup overlap spans the wider
+component mix: the largest case has 42.8 GB of lookup outputs, only 16.7 GB
+of which belongs to partial EC multiplication.
+
+The largest plan fell **33.6 GB (18.9%)**, from 178.3 to 144.7 GB. Its
+measured GPU peak is 146.6 GB against 150.755 GB total, leaving **4.20 GB**
+of physical headroom. This is a measured fit on the H200, not a capacity
+guarantee for other devices or concurrent workloads. A previously verified
+near-capacity control PIE, `15571670_15571679`, also passed the official
+verifier with the final binary; its [control receipt](pie-proving-memory-control-20261001.csv)
+records an 11.060 s publication and 120.5 GB GPU peak. The H200 pod was
+stopped after these checks.
