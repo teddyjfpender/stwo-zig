@@ -1,0 +1,17 @@
+{
+  "gpu": "NVIDIA H200, GPU-548bdb19-16ef-78d0-d79a-d21d49a15e76, 143771, 570.195.03",
+  "security": {
+    "query_count": 70,
+    "query_pow_bits": 26,
+    "interaction_pow_bits": 24,
+    "log_blowup_factor": 1,
+    "fri_fold_step": 1,
+    "log_last_layer_degree_bound": 0,
+    "channel_salt": 0
+  },
+  "prover_sha256": "862f11cefbd020e79dcc638c328834db8d4f9a805dc365a9499385b644795a7b",
+  "verifier_sha256": null,
+  "local_official_verifier_sha256": "890e7f539ab4e1c6f6ff7e4136781ae4569dd7dcb2a28d6a1d7e0444d9213170",
+  "stwo_cairo_revision": "82f21252a68ec006d73e299f5bf1ce6d4db0ee78",
+  "stwo_revision": "7b211edde786775016ef3eecb837a6240d8fe792"
+}

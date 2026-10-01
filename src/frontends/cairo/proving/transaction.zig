@@ -22,6 +22,7 @@ const trace_commit = @import("trace_commit.zig");
 const preprocessed_commit = @import("preprocessed_commit.zig");
 const transcript = @import("transcript.zig");
 const geometry = @import("../witness/resident_geometry.zig");
+pub const leaf_lane = @import("leaf_lane.zig");
 
 const QM31 = core.fields.qm31.QM31;
 const VerifierComponent = core.air.components.Component;
@@ -68,6 +69,7 @@ pub fn Result(comptime Engine: type) type {
         claimed_sums: []QM31,
         interaction_pow: u64,
         preprocessed_variant: preprocessed.trace.Variant,
+        channel_salt: u32 = 0,
         proof_owned: bool = true,
 
         pub fn deinit(self: *@This()) void {
@@ -102,7 +104,36 @@ pub fn proveFixtureWithRecorder(
     variant: preprocessed.trace.Variant,
     recorder: ?*prover.stage_profile.Recorder,
 ) !Result(Engine) {
+    return proveFixtureForLane(Engine, allocator, fixture, variant, recorder, null);
+}
+
+/// The one Cairo proving transaction. `lane == null` is the official lane
+/// (stwo-cairo 82f2125, `official_pcs_config`); a `leaf_lane.Lane` selects the
+/// `proving_5a7c5ed` leaf protocol and requires `Engine.MerkleChannel` to be a
+/// channel profile. The step order is upstream `prove_cairo_common`'s for both.
+pub fn proveFixtureForLane(
+    comptime Engine: type,
+    allocator: std.mem.Allocator,
+    fixture: Fixture,
+    variant: preprocessed.trace.Variant,
+    recorder: ?*prover.stage_profile.Recorder,
+    lane: ?leaf_lane.Lane,
+) !Result(Engine) {
     comptime @import("stwo_prover_api").assertProverEngine(Engine);
+    if (lane) |leaf| {
+        if (comptime core.protocol_revision.Revision.of(Engine.MerkleChannel) != .proving_5a7c5ed)
+            return error.LeafLaneRequiresChannelProfile;
+        if (leaf.variant != variant) return error.PreprocessedVariantMismatch;
+        // Compact storage prunes or drops what the post-commit lift reads.
+        switch (fixture.sampled_evaluation) {
+            .retained_coefficients, .committed_columns => {},
+            .compact_polynomials, .compact_preprocessed => return error.UnsupportedLeafLaneStorage,
+        }
+    }
+    const claim_options = claim_generator.Options{
+        .preprocessed_variant = variant,
+        .memory_id_to_big_components = if (lane) |leaf| leaf.memory_id_to_big_components else null,
+    };
     var target = blk: {
         var stage = try prover.stage_profile.StageScope.begin(
             recorder,
@@ -119,9 +150,10 @@ pub fn proveFixtureWithRecorder(
     const preprocessed_binding = preprocessed.product_cache.Binding{
         .variant = variant,
         .spec_digest = preprocessed.product_cache.specDigest(target),
-        .pcs_digest = preprocessed.product_cache.pcsDigest(
-            official_pcs_config,
-        ),
+        .pcs_digest = if (lane) |leaf|
+            preprocessed.product_cache.pcsDigestRevision(leaf.fri_config)
+        else
+            preprocessed.product_cache.pcsDigest(official_pcs_config),
     };
 
     var pedersen: preprocessed.pedersen_table.Table = undefined;
@@ -159,9 +191,14 @@ pub fn proveFixtureWithRecorder(
     }
 
     var channel = Engine.Channel{};
-    transcript.mixChannelSalt(&channel, 0);
-    official_pcs_config.mixInto(&channel);
-    var scheme = try Engine.init(allocator, official_pcs_config);
+    transcript.mixChannelSalt(&channel, if (lane) |leaf| leaf.channel_salt else 0);
+    // `Revision.proving_5a7c5ed.mixConfig` is exactly the FRI config's mix;
+    // the lifting heights, unknown until the claim exists, are never mixed.
+    if (lane) |leaf| leaf.fri_config.mixInto(&channel) else official_pcs_config.mixInto(&channel);
+    var scheme = try Engine.init(
+        allocator,
+        if (lane) |leaf| core.protocol_revision.Revision.friLegacyView(leaf.fri_config) else official_pcs_config,
+    );
     var scheme_owned = true;
     errdefer if (scheme_owned) Engine.deinit(&scheme, allocator);
     switch (fixture.sampled_evaluation) {
@@ -180,7 +217,9 @@ pub fn proveFixtureWithRecorder(
         recorder,
     );
     defer preprocessed_worker.deinit();
-    preprocessed_worker.start(recorder);
+    // The leaf lane's preprocessed height depends on the trace, so its tree
+    // is committed only after the claim fixes the heights (`finish`).
+    if (lane == null) preprocessed_worker.start(recorder);
 
     // Backends that bind one contiguous resident source arena get their base
     // trace planned and allocated *before* component execution, so every
@@ -192,7 +231,9 @@ pub fn proveFixtureWithRecorder(
         Engine.Backend.adopts_source_trace_arena;
 
     var planned_geometry: ?claim_generator.OwnedClaimGeometry = null;
-    errdefer if (planned_geometry) |*owned| owned.deinit();
+    // The arena-planned base trace borrows this geometry (`borrowed_geometry`),
+    // so the transaction frees it on every exit, after `base` (declared later).
+    defer if (planned_geometry) |*owned| owned.deinit();
     var planned_composition: ?witness.composition_bundle.Bundle = null;
     errdefer if (planned_composition) |*owned| owned.deinit();
     var arena: ?trace_arena.Arena = null;
@@ -229,7 +270,7 @@ pub fn proveFixtureWithRecorder(
         var claim = claim_generator.deriveFromProverInput(
             allocator,
             fixture.input,
-            .{ .preprocessed_variant = claimVariant(variant) },
+            claim_options,
         ) catch null;
         if (claim) |*live| {
             if (live.deferredCount() != 0) {
@@ -327,7 +368,7 @@ pub fn proveFixtureWithRecorder(
                 fixture.interaction_executor,
                 fixture.topology,
                 fixture.fixed,
-                claimVariant(variant),
+                claim_options,
                 pedersen_deductions,
                 recorder,
                 .{ .geometry = &planned_geometry.?, .arena = ready },
@@ -361,7 +402,7 @@ pub fn proveFixtureWithRecorder(
             fixture.interaction_executor,
             fixture.topology,
             fixture.fixed,
-            claimVariant(variant),
+            claim_options,
             pedersen_deductions,
             recorder,
             null,
@@ -393,8 +434,18 @@ pub fn proveFixtureWithRecorder(
     var flat = try base.geometry.flatten();
     defer flat.deinit();
     var owned_statement = try statement_bootstrap.init(allocator, .{
-        .channel_salt = 0,
-        .pcs = .{
+        .channel_salt = if (lane) |leaf| leaf.channel_salt else 0,
+        // Ordinal 2 is statement metadata; the transaction mixes the config
+        // itself. On the leaf lane its eight words with lifting 0 are exactly
+        // the two felts `FriConfig::mix_into` mixes.
+        .pcs = if (lane) |leaf| .{
+            .pow_bits = leaf.fri_config.pow_bits,
+            .log_blowup_factor = leaf.fri_config.log_blowup_factor,
+            .n_queries = leaf.fri_config.n_queries,
+            .log_last_layer_degree_bound = leaf.fri_config.log_last_layer_degree_bound,
+            .fold_step = leaf.fri_config.fold_step,
+            .lifting_log_size = 0,
+        } else .{
             .pow_bits = official_pcs_config.pow_bits,
             .log_blowup_factor = official_pcs_config.fri_config.log_blowup_factor,
             .n_queries = @intCast(official_pcs_config.fri_config.n_queries),
@@ -408,6 +459,19 @@ pub fn proveFixtureWithRecorder(
     });
     errdefer owned_statement.deinit();
 
+    if (lane) |leaf| {
+        // `LiftingSizePolicy::AtLeastPreprocessed`: the heights follow the
+        // claim, padding components included, and precede every commitment.
+        var max_claim_log_size: u32 = 0;
+        for (base.geometry.components) |component| switch (component.log_size) {
+            .known => |log_size| max_claim_log_size = @max(max_claim_log_size, log_size),
+            .deferred => return error.InvalidCompositionGeometry,
+        };
+        if (comptime @hasDecl(Engine.Scheme, "setRevisionConfig"))
+            try scheme.setRevisionConfig(try leaf.pcsConfig(max_claim_log_size))
+        else
+            return error.LeafLaneRequiresChannelProfile;
+    }
     try preprocessed_worker.finish(recorder);
     // The fixed-data tree keeps its own compact representation. After the
     // worker joins, future witness trees can retain ordinary committed columns.
@@ -416,7 +480,7 @@ pub fn proveFixtureWithRecorder(
         scheme.setCoefficientRetentionPolicy(.never);
     }
     prover.measurement.process_usage.reportStage("cairo.preprocessed_complete");
-    try transcript.mixClaim(allocator, &channel, &owned_statement);
+    try transcript.mixClaim(Engine.MerkleChannel, allocator, &channel, &owned_statement);
 
     {
         var stage = try prover.stage_profile.StageScope.begin(
@@ -514,6 +578,14 @@ pub fn proveFixtureWithRecorder(
     }
 
     prover.measurement.process_usage.reportStage("cairo.interaction_commit_complete");
+    // The components' OODS bound (`resident_geometry.validateMaximumDegreeLog`
+    // expects it plus one). On the leaf lane it is upstream `prove_ex`'s
+    // `max_log_degree_bound`, the committed trace height minus the blowup,
+    // which lifting raises above the composition's evaluation domain.
+    const component_bound_log_size: u32 = if (lane != null)
+        try revisionComponentBound(Engine, &scheme)
+    else
+        composition.max_evaluation_log_size;
     const runtime_components = try allocator.alloc(
         proving_air.component.Component,
         composition.components.len,
@@ -534,7 +606,7 @@ pub fn proveFixtureWithRecorder(
             allocator,
             captured,
             preprocessed_logs,
-            composition.max_evaluation_log_size,
+            component_bound_log_size,
             lookup.z,
             lookup.alpha,
             claimed_sum,
@@ -594,6 +666,7 @@ pub fn proveFixtureWithRecorder(
         .{
             .recorder = recorder,
             .composition_stage = if (bound) |*ready| ready.asStage() else null,
+            .include_all_preprocessed_columns = lane != null,
         },
     );
     prover.measurement.process_usage.reportStage("cairo.proof_complete");
@@ -605,6 +678,7 @@ pub fn proveFixtureWithRecorder(
         .claimed_sums = interaction.takeClaimedSums(),
         .interaction_pow = interaction_pow,
         .preprocessed_variant = variant,
+        .channel_salt = if (lane) |leaf| leaf.channel_salt else 0,
     };
 }
 
@@ -620,6 +694,10 @@ pub fn verifyAndConsume(
 ) !void {
     comptime @import("stwo_prover_api").assertProverEngine(Engine);
     if (!result.proof_owned) return error.ProofAlreadyConsumed;
+    // The core verifier implements the existing lane's heights only; a leaf
+    // lane proof is accepted by upstream `verify_cairo_ex` (R10c oracle).
+    if (result.proof.proof.commitment_scheme_proof.revision_config != null)
+        return error.UnsupportedRevisionVerification;
     const allocator = result.allocator;
     const composition = &result.composition;
     const stark_proof = &result.proof.proof;
@@ -656,6 +734,7 @@ pub fn verifyAndConsume(
     const commitments = stark_proof.commitment_scheme_proof.commitments.items;
     try scheme.commit(allocator, commitments[0], preprocessed_logs, &channel);
     try transcript.mixClaim(
+        Engine.MerkleChannel,
         allocator,
         &channel,
         &result.statement,
@@ -731,6 +810,13 @@ pub fn verifyAndConsume(
         &scheme,
         proof,
     );
+}
+
+fn revisionComponentBound(comptime Engine: type, scheme: *const Engine.Scheme) !u32 {
+    if (comptime @hasField(Engine.Scheme, "revision_config")) {
+        const config = scheme.revision_config orelse return error.MissingRevisionConfig;
+        return config.trace_lifting_log_size - config.fri_config.log_blowup_factor + 1;
+    } else return error.LeafLaneRequiresChannelProfile;
 }
 
 /// Publishes the stage's coverage as three zero-duration marker scopes, which
@@ -825,16 +911,6 @@ fn compositionLabelMatches(
         .{component.instance},
     ) catch return false;
     return std.mem.eql(u8, label, expected);
-}
-
-fn claimVariant(
-    variant: preprocessed.trace.Variant,
-) claim_generator.PreprocessedVariant {
-    return switch (variant) {
-        .canonical => .canonical,
-        .canonical_without_pedersen => .canonical_without_pedersen,
-        .canonical_small => .canonical_small,
-    };
 }
 
 test "official Cairo transaction configuration is upstream-compatible" {

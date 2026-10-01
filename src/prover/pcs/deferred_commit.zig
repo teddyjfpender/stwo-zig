@@ -25,6 +25,7 @@ const column_storage = @import("columns/storage.zig");
 const commitment_tree = @import("commitment_tree.zig");
 const tree_builders = @import("tree_builders.zig");
 const merkle_layer_cache = @import("merkle_layer_cache.zig");
+const work_pool_mod = @import("../work_pool.zig");
 
 const ColumnEvaluation = commitment_tree.ColumnEvaluation;
 
@@ -74,7 +75,21 @@ pub fn trySpawn(
             worker_work_recorder: ?*work_profile.Recorder(true),
             out: *P.Slot,
             layer_source: ?merkle_layer_cache.LayerSource,
+            pool: ?*work_pool_mod.WorkPool,
         ) void {
+            // Borrow the coordinator's proof-scoped pool for this build, as
+            // the Cairo preprocessed overlap does. Unbound, the worker would
+            // see a live scoped pool elsewhere and run every transform and
+            // Merkle layer on this one thread.
+            var pool_binding: ?work_pool_mod.ScopedPoolBinding = null;
+            if (pool) |active| {
+                pool_binding = work_pool_mod.ScopedPoolBinding.initIfNeeded(active) catch |err| {
+                    column_storage.freeOwnedColumnEvaluations(worker_allocator, columns);
+                    out.err = err;
+                    return;
+                };
+            }
+            defer if (pool_binding) |*bound| bound.deinit();
             // This seam is coordinator-local. Capture its borrowed source at
             // launch and bind it only for this tree's joined worker lifetime;
             // unrelated commitments must never discover another source.
@@ -134,7 +149,7 @@ pub fn trySpawn(
     const thread = std.Thread.spawn(
         .{},
         Worker.run,
-        .{ scheme, allocator, owned_columns, work_recorder, slot, merkle_layer_cache.armed() },
+        .{ scheme, allocator, owned_columns, work_recorder, slot, merkle_layer_cache.armed(), work_pool_mod.currentScopedPool() },
     ) catch {
         allocator.destroy(slot);
         return false;
@@ -203,6 +218,8 @@ pub fn resolveObserved(scheme: anytype, allocator: std.mem.Allocator) anyerror!v
         tree.deinit(allocator);
         allocator.destroy(slot);
     }
+    if (comptime @hasDecl(@TypeOf(scheme.*), "liftCommittedTree"))
+        try scheme.liftCommittedTree(allocator, &tree);
     if (comptime @hasField(@TypeOf(scheme.*), "compact_polynomial_storage")) {
         if (scheme.compact_polynomial_storage)
             try tree.compactPolynomialStorage(allocator, scheme.compact_polynomial_min_log_size);

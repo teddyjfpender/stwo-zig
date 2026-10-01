@@ -9,6 +9,7 @@ pub const Scope = enum {
     architecture,
     cairo_cpu,
     cairo_metal,
+    circuit_recursion_cpu,
     compatibility_tools,
     core,
     cairo_cuda,
@@ -63,6 +64,8 @@ pub const Configure = struct {
 /// carried by a product descriptor. Root dispatch and closure validation both
 /// consume this exact list.
 pub const steps = [_]Step{
+    .{ .name = "benchmark-circuit-cuda-resident", .description = "Build the verified resident circuit recursion CUDA benchmark", .scope = .cairo_cuda },
+    .{ .name = "circuit-recursion-cuda-resident", .description = "Build the fully resident PIE-to-root CUDA prover", .scope = .cairo_cuda },
     .{ .name = "check-cairo-cuda-local", .description = "Compile the full Cairo CUDA product without a GPU or CUDA runtime", .scope = .cairo_cuda },
     .{ .name = "test-cairo-cuda-local", .description = "Test canonical CUDA source admission and table geometry without a GPU", .scope = .cairo_cuda },
     .{ .name = "test-stwo-prover-fft", .description = "Test circle transforms, radix scheduling and coefficient parity", .scope = .prover },
@@ -110,6 +113,7 @@ pub const steps = [_]Step{
     .{ .name = "cuda-native-archive", .description = "Build the exact static CUDA runtime and generated AOT pack", .scope = .cuda_tools },
     .{ .name = "cuda-native-adapter", .description = "Build the external-authority Native CUDA proof adapter", .scope = .cuda_tools },
     .{ .name = "cairo-input", .description = "Build adapted Cairo input inspector", .scope = .compatibility_tools },
+    .{ .name = "cairo-trace-geometry", .description = "Build Cairo CUDA trace geometry inspector", .scope = .compatibility_tools },
     .{ .name = "cairo-air-bundle-inspector", .description = "Build official Cairo AIR bundle inspector", .scope = .compatibility_tools },
     .{ .name = "cairo-zkvm-fixtures", .description = "Derive the zkvm basket ProverInputs through the pinned Cairo VM adapter", .scope = .cairo_cpu },
     .{ .name = "cairo-csp-fixtures", .description = "Validate exact Cairo CSP sources and derive review candidates", .scope = .cairo_cpu },
@@ -121,11 +125,17 @@ pub const steps = [_]Step{
     .{ .name = "test-cairo-preprocessed-cache", .description = "Qualify preprocessing cache identity, integrity and fallback", .scope = .cairo_cpu },
     .{ .name = "test-cairo-cpu-native-composition", .description = "Compare every authenticated native CPU AIR kernel with SIMD", .scope = .cairo_cpu },
     .{ .name = "test-cairo-cpu-oracle", .description = "Prove through the CPU CLI and require official Rust acceptance", .scope = .cairo_cpu },
+    .{ .name = "circuit-parity-r8", .description = "R8: leaf-wrap of the leaf prover's test program equals leaf-prover's expected_output.json (large)", .scope = .circuit_recursion_cpu },
+    .{ .name = "circuit-parity", .description = "The whole circuit recursion parity ladder: the local lane, then the large lane", .scope = .circuit_recursion_cpu },
+    .{ .name = "circuit-parity-local", .description = "Circuit parity ladder within 8 GB: R0-R7, registry, R10b/R10c, R11", .scope = .circuit_recursion_cpu },
+    .{ .name = "circuit-parity-large", .description = "Circuit parity ladder above 8 GB: R8, R8b, R9, R7 multiverifier (large)", .scope = .circuit_recursion_cpu },
+    .{ .name = "circuit-parity-r8b", .description = "R8b: the Zig bootloader leaf equals four_leaves/leaf.json and folds to the root goldens (large)", .scope = .circuit_recursion_cpu },
     .{ .name = "test-cairo-metal-codegen", .description = "Test typed Metal composition generation and fusion", .scope = .cairo_metal },
     .{ .name = "test-cairo-metal-oracle", .description = "Require exact Cairo CPU/Metal parity and official Rust acceptance", .scope = .cairo_metal },
     .{ .name = "test-cairo-frontend", .description = "Run focused backend-neutral Cairo conformance tests", .scope = .compatibility_tools },
     .{ .name = "test-cairo-cpu-air", .description = "Run Cairo CPU AIR integration tests", .scope = .compatibility_tools },
     .{ .name = "test-cairo-cpu-proof", .description = "Run the complete official Cairo CPU proof gate", .scope = .compatibility_tools },
+    .{ .name = "test-cairo-leaf-proof", .description = "R10b/R10c: the Cairo leaf lane against proving@5a7c5ed preprocessed roots and prove_cairo checkpoints", .scope = .compatibility_tools },
     .{ .name = "riscv-opcode-manifest", .description = "Dump the Sail-authoritative opcode and proof-family policy as JSON", .scope = .compatibility_tools },
     .{ .name = "riscv-opcode-manifest-check", .description = "Validate stable RV32IM protocol IDs and proof classifications", .scope = .compatibility_tools },
     .{ .name = "test-riscv", .description = "Run RISC-V runner tests (trace_dump)", .scope = .riscv_cpu_compat },
@@ -269,6 +279,9 @@ pub const steps = [_]Step{
     .{ .name = "upstream-surface", .description = "Validate upstream API surface", .scope = .policy },
     .{ .name = "build-configure-closure", .description = "Verify focused configure closure", .scope = .policy },
     .{ .name = "registry-parity", .description = "Compare focused and aggregate registries", .scope = .policy },
+    .{ .name = "circuit-air-projection-check", .description = "Authenticate and decode the compiled-AIR projection", .scope = .policy },
+    .{ .name = "circuit-slot-order", .description = "Assert the circuit projection's Cairo slot order", .scope = .policy },
+    .{ .name = "circuit-lint", .description = "Reject order-unstable constructs in the circuit frontend", .scope = .policy },
     .{ .name = "release-gate", .description = "Run the standard release gate", .scope = .release },
     .{ .name = "release-gate-strict", .description = "Run the strict release gate", .scope = .release },
 };
@@ -337,7 +350,7 @@ pub const configure = [_]Configure{
             .protocol_manifest = "rv32im-zkvm-v1+lifted-pcs-v1+metal-runtime-v2+authenticated-core-aot-v2+rv32im-zkvm-poseidon2-v1",
         }},
     },
-    .{ .scope = .package, .role = .package_exports, .product_ids = &.{ "stwo-core", "stwo-prover", "stwo" }, .module_roots = &.{ "src/products/prover/root.zig", "src/stwo.zig" }, .generated_module_roots = &.{"generated:options:"}, .dependency_module_roots = package_dependencies.protocol_package_roots, .allowed_module_files = &.{ "src/stwo.zig", "build_support/graph/identity/emitter.zig" }, .allowed_module_prefixes = &.{ "src/products/core", "src/products/prover" }, .external_tools = &.{"python3"}, .constructors = &.{"products/libraries.addProducts"}, .constructed_products = &.{
+    .{ .scope = .package, .role = .package_exports, .product_ids = &.{ "stwo-core", "stwo-prover", "stwo" }, .module_roots = &.{ "src/products/prover/root.zig", "src/stwo.zig" }, .generated_module_roots = &.{"generated:options:"}, .dependency_module_roots = package_dependencies.core_prover_products_package_roots, .allowed_module_files = &.{ "src/stwo.zig", "build_support/graph/identity/emitter.zig" }, .allowed_module_prefixes = &.{ "src/products/core", "src/products/prover" }, .external_tools = &.{"python3"}, .constructors = &.{"products/libraries.addProducts"}, .constructed_products = &.{
         .{ .product_id = "stwo-core", .frontend = "none", .backend = "none", .role = "library", .protocol_manifest = "stwo-core-v1" },
         .{ .product_id = "stwo-prover", .frontend = "none", .backend = "contracts", .role = "library", .protocol_manifest = "generic-prover+backend-contracts-v1" },
         .{ .product_id = "stwo", .frontend = "aggregate", .backend = "contracts", .role = "library", .protocol_manifest = "aggregate-sdk-v1" },
@@ -356,6 +369,11 @@ pub const configure = [_]Configure{
         .dependency_module_roots = package_dependencies.frontend_cuda_metal_cpu_protocol_package_roots,
         .allowed_module_files = &.{
             "tests/cuda/cumetal/native_frontend_execution.zig",
+            // The deduction contract the CUDA witness AOT generator shares
+            // with the Cairo witness programs.
+            "src/frontends/cairo/witness/deduction_contract.zig",
+            "src/interop/felt_json.zig",
+            "src/interop/cairo_prover_parameters.zig",
             "src/interop/postcard.zig",
             "src/products/native_cuda/blake_route.zig",
             "src/stwo.zig",

@@ -7,3 +7,5 @@ formal/riscv-refinement/generated/** linguist-generated=true
 vectors/** linguist-generated=true
 third_party/bzip2/** whitespace=-trailing-space,-blank-at-eof
 vectors/riscv_csp/inputs/*.bin binary
+vectors/starknet/**/*.zip binary
+vectors/starknet/**/*.proof binary

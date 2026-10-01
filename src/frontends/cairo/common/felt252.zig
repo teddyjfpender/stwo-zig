@@ -23,12 +23,11 @@ pub const WIDTH27_N_WORDS: usize = 10;
 /// Bits per word in the wide decomposition.
 pub const WIDTH27_BITS_PER_WORD: usize = 27;
 
-/// P = 2^251 + 17 * 2^192 + 1, as 4 x u64 limbs (little-endian).
-pub const PRIME: [4]u64 = .{
-    1,
-    0,
-    0,
-    0x0800000000000011,
+/// P = 2^251 + 17 * 2^192 + 1 (`core.fields.stark_prime`), as 4 x u64 limbs
+/// (little-endian).
+pub const PRIME: [4]u64 = blk: {
+    const p = @import("stwo_core").fields.stark_prime;
+    break :blk .{ @truncate(p), @truncate(p >> 64), @truncate(p >> 128), @truncate(p >> 192) };
 };
 
 /// P - 1 as 8 x u32 limbs (little-endian).
@@ -100,6 +99,14 @@ pub const Felt252 = struct {
             word |= self.limbs[limb_idx + 1] << carry_shift;
         }
         return M31.fromCanonical(@intCast(word & WORD_MASK));
+    }
+
+    /// All 28 9-bit words, little-endian: upstream `split_f252` /
+    /// `Felt252::get_limbs`. The value is not reduced modulo P.
+    pub fn limbs9(self: Felt252) [N_WORDS]M31 {
+        var words: [N_WORDS]M31 = undefined;
+        for (&words, 0..) |*word, index| word.* = self.getM31(index);
+        return words;
     }
 
     /// Reconstruct from 28 x 9-bit M31 words.

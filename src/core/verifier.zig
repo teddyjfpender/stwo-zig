@@ -43,7 +43,21 @@ pub fn verify(
         proof_in,
         null,
         null,
+        false,
     );
+}
+
+pub fn verifyEx(
+    comptime H: type,
+    comptime MC: type,
+    allocator: std.mem.Allocator,
+    component_list: []const air_components.Component,
+    channel: anytype,
+    commitment_scheme: *pcs_verifier.CommitmentSchemeVerifier(H, MC),
+    proof_in: proof_mod.StarkProof(H),
+    include_all_preprocessed_columns: bool,
+) anyerror!void {
+    return verifyImpl(H, MC, true, allocator, component_list, channel, commitment_scheme, proof_in, null, null, include_all_preprocessed_columns);
 }
 
 /// Complete STARK verification with transactional publication of the exact
@@ -69,6 +83,7 @@ pub fn verifyWithQueryCapture(
         proof_in,
         capture,
         null,
+        false,
     );
 }
 
@@ -95,7 +110,22 @@ pub fn verifyWithProofCapture(
         proof_in,
         null,
         capture,
+        false,
     );
+}
+
+pub fn verifyExWithProofCapture(
+    comptime H: type,
+    comptime MC: type,
+    allocator: std.mem.Allocator,
+    component_list: []const air_components.Component,
+    channel: anytype,
+    commitment_scheme: *pcs_verifier.CommitmentSchemeVerifier(H, MC),
+    proof_in: proof_mod.StarkProof(H),
+    include_all_preprocessed_columns: bool,
+    capture: *ProofCapture(H),
+) anyerror!void {
+    return verifyImpl(H, MC, true, allocator, component_list, channel, commitment_scheme, proof_in, null, capture, include_all_preprocessed_columns);
 }
 
 /// Verifies an immutable proof without consuming it. Every published capture
@@ -112,7 +142,24 @@ pub fn verifyBorrowedWithProofCapture(
     proof: *const proof_mod.StarkProof(H),
     capture: *ProofCapture(H),
 ) anyerror!void {
-    return verifyImpl(H, MC, false, allocator, component_list, channel, commitment_scheme, proof.*, null, capture);
+    return verifyImpl(H, MC, false, allocator, component_list, channel, commitment_scheme, proof.*, null, capture, false);
+}
+
+/// Borrowed pinned-revision proof capture for circuits whose PCS opens every
+/// preprocessed column. This preserves the caller's decoded proof for the
+/// recursive witness conversion after successful native verification.
+pub fn verifyBorrowedExWithProofCapture(
+    comptime H: type,
+    comptime MC: type,
+    allocator: std.mem.Allocator,
+    component_list: []const air_components.Component,
+    channel: anytype,
+    commitment_scheme: *pcs_verifier.CommitmentSchemeVerifier(H, MC),
+    proof: *const proof_mod.StarkProof(H),
+    include_all_preprocessed_columns: bool,
+    capture: *ProofCapture(H),
+) anyerror!void {
+    return verifyImpl(H, MC, false, allocator, component_list, channel, commitment_scheme, proof.*, null, capture, include_all_preprocessed_columns);
 }
 
 fn verifyImpl(
@@ -126,6 +173,7 @@ fn verifyImpl(
     proof_in: proof_mod.StarkProof(H),
     capture_out: ?*QueryCapture,
     proof_capture_out: ?*ProofCapture(H),
+    include_all_preprocessed_columns: bool,
 ) anyerror!void {
     var proof = proof_in;
     var proof_moved = false;
@@ -148,10 +196,18 @@ fn verifyImpl(
     const composition_log_size = components.compositionLogDegreeBound();
     const composition_log_split = components.compositionLogSplit() catch
         return VerificationError.InvalidStructure;
-    const max_log_degree_bound = verifier_types.compositionMaskLogSize(
+    const component_mask_log = verifier_types.compositionMaskLogSize(
         composition_log_size,
         composition_log_split,
     ) orelse return VerificationError.InvalidStructure;
+    // In the proving@5a7c5ed revision every committed tree, including the
+    // composition tree, is lifted to the configured height. The AIR's own
+    // degree can be lower; OODS and quotient replay use the lifted domain.
+    const max_log_degree_bound = if (comptime @import("protocol_revision.zig").Revision.of(MC) == .proving_5a7c5ed) blk: {
+        const config = commitment_scheme.revision_config;
+        const lifted_mask_log = std.math.sub(u32, config.trace_lifting_log_size, config.fri_config.log_blowup_factor) catch return VerificationError.InvalidStructure;
+        break :blk @max(component_mask_log, lifted_mask_log);
+    } else component_mask_log;
 
     const composition_randomness = channel.drawSecureFelt();
 
@@ -191,7 +247,7 @@ fn verifyImpl(
         allocator,
         oods_point,
         max_log_degree_bound,
-        false,
+        include_all_preprocessed_columns,
     );
     var sample_points_moved = false;
     defer if (!sample_points_moved) sample_points.deinitDeep(allocator);
@@ -205,7 +261,8 @@ fn verifyImpl(
 
     const composition_oods_eval = proof.extractCompositionOodsEvalWithSplit(
         oods_point,
-        composition_log_size,
+        std.math.add(u32, max_log_degree_bound, composition_log_split) catch
+            return VerificationError.InvalidStructure,
         composition_log_split,
     ) orelse return VerificationError.InvalidStructure;
 

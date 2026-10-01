@@ -299,15 +299,31 @@ def cairo_eval_body_key(semantic_hash: int) -> int:
 
 
 def _validate_parametric_cairo_eval(generated_dir: Path, entry: dict[str, object], index: int) -> None:
-    authority = "550200479d03f3cc5df12d3795cfe4645824bd96368f3cd6e70c0df8669c62ec"
+    circuit = entry["identity_scheme"] == "sha256-circuit-eval-parametric-source-v6"
+    authority = (
+        "7b8022b09d84db371cc433aa0fcf132f7687f2720e05e4dc9a7650c575dc02c2"
+        if circuit else
+        "550200479d03f3cc5df12d3795cfe4645824bd96368f3cd6e70c0df8669c62ec"
+    )
     program = str(entry["program_identity"])
     source = hashlib.sha256((generated_dir / str(entry["file"])).read_bytes()).hexdigest()
-    if (entry["identity_scheme"] != "sha256-cairo-eval-parametric-source-v6"
+    if (entry["identity_scheme"] not in {"sha256-cairo-eval-parametric-source-v6", "sha256-circuit-eval-parametric-source-v6"}
             or entry["kind"] != "constraint" or entry["catalog_identity"] != authority
             or re.fullmatch(r"[0-9a-f]{64}", program) is None
             or not isinstance(entry["occurrences"], list) or not entry["occurrences"]):
         raise BuildError(f"AOT manifest entry {index} has invalid parametric Cairo authority")
     semantic = int(str(entry["semantic_hash"]), 16)
+    if circuit:
+        if entry["label"] != f"circuit_eval_{semantic:016x}" or any(
+            not isinstance(item, dict)
+            or set(item) != {"component_index", "part_index"}
+            or type(item["component_index"]) is not int
+            or type(item["part_index"]) is not int
+            or not (0 <= item["component_index"] < 11)
+            or item["part_index"] < 0
+            for item in entry["occurrences"]
+        ):
+            raise BuildError(f"AOT manifest entry {index} has invalid circuit placement")
     cache = hashlib.sha256(b"stwo-zig/cairo-cuda-eval-parametric/v6\x00"
                            + bytes.fromhex(program) + bytes.fromhex(source) + bytes.fromhex(authority)).hexdigest()[:16]
     if (entry["source_sha256"] != source or entry["cache_key"] != cache

@@ -298,12 +298,31 @@ pub fn evaluateAndReleaseWithWorkRecorder(
         if (preferBarycentricWaves(trees, sampled_points.items) or std.process.hasEnvVarConstant("STWO_ZIG_EXPERIMENTAL_PARALLEL_BARYCENTRIC_WEIGHTS")) {
             // Large evaluation-form trees benefit from inner parallelism.
             // Drain one tree at a time so its bounded weight/dot lease does not
-            // compete with unrelated tree workers or nested waits.
+            // compete with unrelated tree workers or nested waits. The
+            // evaluation-form trees are drained together, one weight vector
+            // per distinct (domain, point) across all of them.
+            var shared_trees = std.ArrayList(coefficient_plan_ops.SharedPointTree).empty;
+            defer shared_trees.deinit(allocator);
             for (worker_contexts) |*context| {
+                if (context.tree.coefficients == null) {
+                    try shared_trees.append(allocator, .{
+                        .columns = context.tree.columns,
+                        .points = context.tree_points,
+                        .values = context.tree_values,
+                    });
+                    continue;
+                }
                 context.parallel_coefficient_plans = true;
                 context.parallel_barycentric_plans = true;
                 context.run();
             }
+            try coefficient_plan_ops.evaluateBarycentricSharedPoints(
+                std.heap.page_allocator,
+                shared_trees.items,
+                lifting_log_size,
+                &barycentric_cache,
+                barycentric_work_audit,
+            );
         } else {
             const primary_tree = largestTreeIndex(trees, sampled_points.items);
             worker_contexts[primary_tree].parallel_coefficient_plans = true;

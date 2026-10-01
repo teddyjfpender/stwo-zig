@@ -131,7 +131,7 @@ pub fn addProducts(context: Context) void {
         native_cuda,
         stwo,
     );
-    _ = integration_graph.addCairoCpuImport(
+    const cairo_cpu = integration_graph.addCairoCpuImport(
         b,
         protocol,
         compatibility_product,
@@ -167,6 +167,10 @@ pub fn addProducts(context: Context) void {
     const cairo_input = consumer(context, protocol, "src/tools/cairo/input_inspector.zig");
     cairo_input.addImport("stwo", stwo);
     addExecutable(context, cairo_input, "cairo-input", "cairo-input", "Build adapted Cairo input inspector", false);
+
+    const cairo_trace_geometry = consumer(context, protocol, "src/tools/cairo/trace_geometry_inspector.zig");
+    cairo_trace_geometry.addImport("stwo", stwo);
+    addExecutable(context, cairo_trace_geometry, "cairo-trace-geometry", "cairo-trace-geometry", "Build Cairo CUDA trace geometry inspector", false);
 
     const cairo_composition = consumer(
         context,
@@ -234,6 +238,35 @@ pub fn addProducts(context: Context) void {
         "test-cairo-cpu-proof",
         "Run the complete official Cairo CPU proof gate",
     ).dependOn(&run_cairo_cpu_proof_tests.step);
+
+    const cairo_leaf_proof_test_root = consumer(
+        context,
+        protocol,
+        "src/tests/cairo/cpu_leaf_proof_test.zig",
+    );
+    // Only the Cairo packages: the leaf-lane gate must not depend on the
+    // aggregate `stwo` root.
+    cairo_leaf_proof_test_root.addImport("stwo_cairo_frontend", cairo_frontend);
+    cairo_leaf_proof_test_root.addImport("stwo_cairo_cpu_integration", cairo_cpu);
+    cairo_leaf_proof_test_root.addImport("stwo_native_examples", native_examples);
+    // The registry reader (`registry.parseRegistry`) that loads the lane's
+    // `cairo_prover_params`.
+    cairo_leaf_proof_test_root.addImport("stwo_circuit_recursion_wire", graph.createCircuitRecursionWire(
+        b,
+        protocol,
+        compatibility_product,
+        context.target,
+        context.optimize,
+        cairo_frontend,
+    ));
+    const cairo_leaf_proof_tests = context.b.addTest(.{
+        .root_module = cairo_leaf_proof_test_root,
+    });
+    const run_cairo_leaf_proof_tests = context.b.addRunArtifact(cairo_leaf_proof_tests);
+    context.b.step(
+        "test-cairo-leaf-proof",
+        "R10b/R10c: the Cairo leaf lane against proving@5a7c5ed preprocessed roots and prove_cairo checkpoints",
+    ).dependOn(&run_cairo_leaf_proof_tests.step);
 
     const opcode = consumer(context, protocol, "src/tools/riscv_opcode_manifest/main.zig");
     opcode.addImport("stwo", stwo);

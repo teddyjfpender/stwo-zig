@@ -13,6 +13,16 @@ pub const initial_accumulator = [_]u8{0} ** 32;
 pub const column_domain = "STWO_CAIRO_BASE_COLUMN_V1\x00";
 pub const accumulator_domain = "STWO_CAIRO_BASE_ACCUMULATOR_V1\x00";
 
+/// A column and accumulator domain pair (`Domains` of
+/// `tools/stwo-trace-digest`); every lane's receipts share the record
+/// layout and differ only here.
+pub const Domains = struct {
+    column: []const u8,
+    accumulator: []const u8,
+};
+
+pub const cairo_base_domains = Domains{ .column = column_domain, .accumulator = accumulator_domain };
+
 pub const Column = struct {
     ordinal: u32,
     row_count: u64,
@@ -58,10 +68,21 @@ pub fn digestColumn(
     column_ordinal: u32,
     values: []const u32,
 ) Error!Digest {
+    return digestColumnIn(cairo_base_domains, component_ordinal, label, column_ordinal, values);
+}
+
+/// `digestColumn` under `domains`.
+pub fn digestColumnIn(
+    domains: Domains,
+    component_ordinal: u32,
+    label: []const u8,
+    column_ordinal: u32,
+    values: []const u32,
+) Error!Digest {
     try validateLabel(label);
     const row_count = std.math.cast(u64, values.len) orelse return Error.RowCountOverflow;
     var hasher = std.crypto.hash.sha2.Sha256.init(.{});
-    hasher.update(column_domain);
+    hasher.update(domains.column);
     updateInt(&hasher, u32, component_ordinal);
     updateInt(&hasher, u32, @intCast(label.len));
     hasher.update(label);
@@ -84,10 +105,21 @@ pub fn extendAccumulator(
     label: []const u8,
     columns: []const Column,
 ) Error!Digest {
+    return extendAccumulatorIn(cairo_base_domains, previous, component_ordinal, label, columns);
+}
+
+/// `extendAccumulator` under `domains`.
+pub fn extendAccumulatorIn(
+    domains: Domains,
+    previous: Digest,
+    component_ordinal: u32,
+    label: []const u8,
+    columns: []const Column,
+) Error!Digest {
     try validateLabel(label);
     if (columns.len == 0) return Error.EmptyComponent;
     var hasher = std.crypto.hash.sha2.Sha256.init(.{});
-    hasher.update(accumulator_domain);
+    hasher.update(domains.accumulator);
     hasher.update(&previous);
     updateInt(&hasher, u32, component_ordinal);
     updateInt(&hasher, u32, @intCast(label.len));

@@ -1,5 +1,7 @@
 const std = @import("std");
 const eval_program = @import("eval_program.zig");
+const core = @import("stwo_core");
+const M31 = core.fields.m31.M31;
 
 pub const magic = "STWZEVA\x00".*;
 pub const version: u32 = 1;
@@ -227,7 +229,8 @@ fn projectedPlanHash(bytes: []const u8) u64 {
     return hash;
 }
 
-fn deinitComponent(allocator: std.mem.Allocator, component: *Component) void {
+/// Frees one owned component (every slice and program it holds).
+pub fn deinitComponent(allocator: std.mem.Allocator, component: *Component) void {
     allocator.free(component.label);
     allocator.free(component.trace_spans);
     allocator.free(component.preprocessed_indices);
@@ -235,6 +238,72 @@ fn deinitComponent(allocator: std.mem.Allocator, component: *Component) void {
     allocator.free(component.ext_sources);
     for (component.parts) |*part| part.program.deinit();
     allocator.free(component.parts);
+}
+
+/// The inverses of the trace coset's vanishing polynomial on the
+/// evaluation domain, bit-reversed: a component's `denominator_inverses` at
+/// `trace_log` evaluated over `evaluation_log`.
+pub fn denominatorInverses(
+    allocator: std.mem.Allocator,
+    trace_log: u32,
+    evaluation_log: u32,
+) ![]u32 {
+    const delta = std.math.sub(
+        u32,
+        evaluation_log,
+        trace_log,
+    ) catch return error.InvalidComponentGeometry;
+    if (delta >= @bitSizeOf(usize)) return error.InvalidComponentGeometry;
+
+    const values = try allocator.alloc(u32, @as(usize, 1) << @intCast(delta));
+    errdefer allocator.free(values);
+    const trace_coset = core.poly.circle.canonic.CanonicCoset.new(trace_log).coset();
+    const evaluation_domain =
+        core.poly.circle.canonic.CanonicCoset.new(evaluation_log).circleDomain();
+    for (values, 0..) |*value, index| {
+        value.* = (try core.constraints.cosetVanishing(
+            M31,
+            trace_coset,
+            evaluation_domain.at(index),
+        ).inv()).toU32();
+    }
+    core.utils.bitReverse(u32, values);
+    return values;
+}
+
+/// A stable identity of a component schedule (`Bundle.plan_hash`).
+pub fn scheduleHash(components: []const Component) u64 {
+    var hash: u64 = 0xcbf29ce484222325;
+    for (components) |component| {
+        hashBytes(&hash, component.label);
+        hashInt(&hash, component.instance);
+        hashInt(&hash, component.trace_log_size);
+        hashInt(&hash, component.evaluation_log_size);
+        hashInt(&hash, component.n_constraints);
+        hashInt(&hash, component.random_coefficient_offset);
+        for (component.trace_spans) |span| {
+            hashInt(&hash, span.tree);
+            hashInt(&hash, span.start);
+            hashInt(&hash, span.end);
+        }
+        for (component.preprocessed_indices) |index| hashInt(&hash, index);
+        for (component.parts) |part| hashInt(&hash, part.semantic_hash);
+    }
+    return if (hash == 0) 1 else hash;
+}
+
+fn hashInt(hash: *u64, value: anytype) void {
+    const T = @TypeOf(value);
+    var encoded: [@sizeOf(T)]u8 = undefined;
+    std.mem.writeInt(T, &encoded, value, .little);
+    hashBytes(hash, &encoded);
+}
+
+fn hashBytes(hash: *u64, bytes: []const u8) void {
+    for (bytes) |byte| {
+        hash.* ^= byte;
+        hash.* *%= 0x100000001b3;
+    }
 }
 
 fn allZero(value: [4]u32) bool {

@@ -53,32 +53,36 @@ pub const Prepared = struct {
             request.trace_dispatch,
         );
         errdefer resident.deinit();
-        var preprocessed_commit = try trace_commit.Prepared.initProduced(
+        var preprocessed_commit = try trace_commit.Prepared.initProducedWithBlowup(
             allocator,
             request.proof_program,
             request.resident,
             .preprocessed,
+            protocol.log_blowup_factor,
         );
         errdefer preprocessed_commit.deinit();
-        var main_commit = try trace_commit.Prepared.initMain(
+        var main_commit = try trace_commit.Prepared.initMainWithBlowup(
             allocator,
             request.proof_program,
             request.resident,
             request.trace_dispatch,
+            protocol.log_blowup_factor,
         );
         errdefer main_commit.deinit();
-        var interaction_commit = try trace_commit.Prepared.initProduced(
+        var interaction_commit = try trace_commit.Prepared.initProducedWithBlowup(
             allocator,
             request.proof_program,
             request.resident,
             .interaction,
+            protocol.log_blowup_factor,
         );
         errdefer interaction_commit.deinit();
-        var composition_commit = try trace_commit.Prepared.initProduced(
+        var composition_commit = try trace_commit.Prepared.initProducedWithBlowup(
             allocator,
             request.proof_program,
             request.resident,
             .composition,
+            protocol.log_blowup_factor,
         );
         errdefer composition_commit.deinit();
         var evaluation = try eval_controller.Prepared.init(
@@ -126,6 +130,8 @@ pub const Prepared = struct {
         protocol: compact.CompactProtocolV1,
         bundle: composition.Bundle,
     ) !Bound {
+        var bind_phase: []const u8 = "upload_commit_metadata";
+        errdefer |err| std.log.err("cairo-cuda controller binding phase={s}: {s}", .{ bind_phase, @errorName(err) });
         const Uploader = RoutedUploader(
             @TypeOf(transaction.proofSession()),
             @TypeOf(provider),
@@ -141,24 +147,28 @@ pub const Prepared = struct {
             &self.composition_commit,
         }) |prepared| try prepared.uploadMetadata(&uploader);
 
+        bind_phase = "preprocessed_commit";
         var preprocessed_commit = try trace_commit.Bound.init(
             self.allocator,
             &self.preprocessed_commit,
             provider,
         );
         errdefer preprocessed_commit.deinit();
+        bind_phase = "main_commit";
         var main_commit = try trace_commit.Bound.init(
             self.allocator,
             &self.main_commit,
             provider,
         );
         errdefer main_commit.deinit();
+        bind_phase = "interaction_commit";
         var interaction_commit = try trace_commit.Bound.init(
             self.allocator,
             &self.interaction_commit,
             provider,
         );
         errdefer interaction_commit.deinit();
+        bind_phase = "composition_commit";
         var composition_commit = try trace_commit.Bound.init(
             self.allocator,
             &self.composition_commit,
@@ -166,14 +176,17 @@ pub const Prepared = struct {
         );
         errdefer composition_commit.deinit();
 
+        bind_phase = "pcs_hooks";
         const pcs = try hooks.bind(
             provider,
             &request.resident,
             request.proof_program,
             protocol,
         );
+        bind_phase = "evaluation_ingress";
         var evaluation = try self.evaluation.uploadIngress(transaction);
         errdefer evaluation.deinit();
+        bind_phase = "oods";
         var oods = try oods_controller.prepare(
             self.allocator,
             transaction.proofSession(),
@@ -185,6 +198,7 @@ pub const Prepared = struct {
             self.transcript,
         );
         errdefer oods.deinit();
+        bind_phase = "quotient";
         var quotient = try quotient_controller.prepare(
             self.allocator,
             transaction.proofSession(),
@@ -195,6 +209,7 @@ pub const Prepared = struct {
             pcs,
         );
         errdefer quotient.deinit();
+        bind_phase = "fri";
         var fri = try fri_controller.prepare(
             self.allocator,
             transaction.proofSession(),
@@ -205,6 +220,7 @@ pub const Prepared = struct {
             self.transcript,
         );
         errdefer fri.deinit();
+        bind_phase = "decommit";
         var decommit = try decommit_controller.prepare(
             self.allocator,
             transaction.proofSession(),
@@ -252,6 +268,8 @@ pub const Bound = struct {
         /// The caller must retain the same prepared arena with immutable
         /// process-cache coefficients. This receipt is not a proof input.
         resident_preprocessed: ?preprocessed_cache.Receipt = null,
+        /// A separately owned immutable device image survives arena eviction.
+        device_image: ?*preprocessed_cache.DeviceImage = null,
     };
 
     pub const StaticReceipt = struct {
@@ -281,6 +299,7 @@ pub const Bound = struct {
         request: *const request_compiler.PreparedRequest,
         inputs: StaticInputs,
     ) !StaticReceipt {
+        var static_timer = try std.time.Timer.start();
         const session = transaction.proofSession();
         try proof_capture.validateLayout(
             .{ .proof = request.resident.terminal_bundle },
@@ -332,7 +351,16 @@ pub const Bound = struct {
             inputs.inverse_twiddles,
         );
         try self.quotient.initializeTransform(session, self.pcs.twiddles_inverse);
-        const preprocessed = if (inputs.resident_preprocessed) |receipt| cached: {
+        const initial_upload_ns = static_timer.lap();
+        const device_image_hit = if (inputs.device_image) |image| image.receipt != null else false;
+        const preprocessed = if (device_image_hit)
+            try inputs.device_image.?.restore(
+                session,
+                self.preprocessed_commit.coefficients,
+                inputs.preprocessed_artifact_identity,
+                self.preprocessed_commit.prepared.identity,
+            )
+        else if (inputs.resident_preprocessed) |receipt| cached: {
             try receipt.validate();
             if (!std.mem.eql(u8, &receipt.commitment_identity, &self.preprocessed_commit.prepared.identity) or
                 receipt.column_count != inputs.preprocessed_column_identities.len or
@@ -352,10 +380,22 @@ pub const Bound = struct {
             self.preprocessed_commit.prepared,
             &self.preprocessed_commit,
         );
+        if (!std.mem.eql(u8, &preprocessed.commitment_identity, &self.preprocessed_commit.prepared.identity) or
+            preprocessed.column_count != inputs.preprocessed_column_identities.len or
+            preprocessed.coefficient_words != self.preprocessed_commit.coefficients.len)
+            return error.InvalidPreprocessedCacheBinding;
+        if (inputs.device_image) |image| {
+            if (!device_image_hit)
+                try image.capture(session, self.preprocessed_commit.coefficients, preprocessed);
+        }
+        const preprocessed_load_ns = static_timer.lap();
         try self.preprocessed_commit.materializeBaseEvaluations(
             session,
             .ingress,
         );
+        std.debug.print("cairo-cuda static-phase initial_upload_ns={} preprocessed_load_ns={} materialize_ns={} cached={} device_image_hit={}\n", .{
+            initial_upload_ns, preprocessed_load_ns, static_timer.lap(), inputs.resident_preprocessed != null or device_image_hit, device_image_hit,
+        });
         return .{ .preprocessed = preprocessed };
     }
 

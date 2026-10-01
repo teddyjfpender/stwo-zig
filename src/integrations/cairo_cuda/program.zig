@@ -174,11 +174,17 @@ fn validateAuthority(allocator: std.mem.Allocator, authority: Authority) !void {
         authority.composition,
     );
     const bundle = authority.composition;
+    const air_degree_bound = bundle.verifierMaxLogDegreeBound() catch
+        return Error.InvalidCompositionGeometry;
+    const protocol_degree_bound = authority.protocol.max_log_degree_bound;
+    const lifted_degree_bound = authority.protocol.channel_profile == .blake2s_m31 and
+        authority.protocol.fri_lifting_log_size != null and
+        protocol_degree_bound >= air_degree_bound and
+        protocol_degree_bound + authority.protocol.log_blowup_factor == authority.protocol.fri_lifting_log_size.?;
     if (bundle.plan_hash == 0 or
         bundle.plan_hash != authority.pack.composition_plan_hash or
-        authority.pack.verifier_max_log_degree_bound != authority.protocol.max_log_degree_bound or
-        (bundle.verifierMaxLogDegreeBound() catch
-            return Error.InvalidCompositionGeometry) != authority.pack.verifier_max_log_degree_bound or
+        authority.pack.verifier_max_log_degree_bound != protocol_degree_bound or
+        (air_degree_bound != protocol_degree_bound and !lifted_degree_bound) or
         bundle.components.len != authority.proof.components.len or
         authority.preprocessed_logs.len != authority.protocol.trace_columns[0])
     {
@@ -280,7 +286,7 @@ fn traceColumns(allocator: std.mem.Allocator, authority: Authority) ![]ir.TraceC
             }
         }
     }
-    const composition_log = authority.protocol.max_log_degree_bound;
+    const composition_log = try authority.composition.verifierMaxLogDegreeBound();
     for (0..authority.protocol.trace_columns[3]) |_| {
         columns[cursor] = columnAt(cursor, std.math.maxInt(u32) - 1, composition_log, .composition);
         cursor += 1;
@@ -340,13 +346,15 @@ fn commitmentTrees(columns: []const ir.TraceColumn, protocol: compact.CompactPro
                     return Error.GeometryOverflow,
             );
         }
+        const tree_log = protocol.fri_lifting_log_size orelse evaluation_log;
+        if (tree_log < evaluation_log) return Error.InvalidCompositionGeometry;
         trees[tree_index] = .{
             .id = tree_index,
             .role = @enumFromInt(tree_index),
             .first_column = first,
             .column_count = count,
-            .evaluation_log_rows = evaluation_log,
-            .log_rows_per_leaf = evaluation_log,
+            .evaluation_log_rows = tree_log,
+            .log_rows_per_leaf = tree_log,
             .retain_openings = true,
         };
         first = std.math.add(u32, first, count) catch return Error.GeometryOverflow;
@@ -767,7 +775,7 @@ fn findComponent(
     instance: u32,
 ) ?*const composition.Component {
     for (bundle.components) |*component| {
-        if (component.instance == instance and std.mem.eql(u8, proof_plan.canonicalComponentName(component.label, instance), label))
+        if (component.instance == instance and std.mem.eql(u8, proof_plan.canonicalComponentName(component.label, instance), proof_plan.canonicalComponentName(label, instance)))
             return component;
     }
     return null;

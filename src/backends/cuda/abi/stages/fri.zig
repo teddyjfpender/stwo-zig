@@ -2,6 +2,13 @@
 
 const field = @import("../field.zig");
 
+pub extern "c" fn stwo_circuit_degree_verdict_on(
+    fri_degree_error: [*]const u32,
+    circuit_error: [*]const u32,
+    verdict: [*]u32,
+    stream: *anyopaque,
+) c_int;
+
 pub extern "c" fn stwo_fold_circle_into_line_on(
     domain: [*]const u32,
     domain_words: usize,
@@ -40,6 +47,25 @@ pub extern "c" fn stwo_fri_fold_fused3_on(
     twiddle_offset_0: u32,
     twiddle_offset_1: u32,
     twiddle_offset_2: u32,
+    size: u32,
+    first_fold_is_circle: u32,
+    evaluation_values: [*]const u32,
+    evaluation_words: usize,
+    evaluation_stride: u32,
+    alpha: *const field.SecureField,
+    folded_values: [*]u32,
+    folded_words: usize,
+    folded_stride: u32,
+    stream: *anyopaque,
+) c_int;
+
+pub extern "c" fn stwo_fri_fold_fused4_on(
+    domain: [*]const u32,
+    domain_words: usize,
+    twiddle_offset_0: u32,
+    twiddle_offset_1: u32,
+    twiddle_offset_2: u32,
+    twiddle_offset_3: u32,
     size: u32,
     first_fold_is_circle: u32,
     evaluation_values: [*]const u32,

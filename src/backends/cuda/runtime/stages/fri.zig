@@ -9,6 +9,25 @@ pub const Native = OpsFor(abi);
 
 pub fn OpsFor(comptime Api: type) type {
     return struct {
+        pub fn circuitDegreeVerdict(
+            session: anytype,
+            fri_degree_error: common.Words,
+            circuit_error: common.Words,
+            verdict: common.Words,
+        ) runtime_error.Error!void {
+            const stage = telemetry.Stage.fri_commit;
+            try common.requireStage(session, stage);
+            if (fri_degree_error.len != 1 or circuit_error.len != 1 or verdict.len != 1)
+                return error.InvalidKernelDescriptor;
+            const status = Api.stwo_circuit_degree_verdict_on(
+                try common.words(session, fri_degree_error, 1),
+                try common.words(session, circuit_error, 1),
+                try common.words(session, verdict, 1),
+                session.context.stream,
+            );
+            try common.record(session, stage, status);
+        }
+
         pub fn fold(
             session: anytype,
             circle: bool,
@@ -101,6 +120,43 @@ pub fn OpsFor(comptime Api: type) type {
                 twiddle_offsets[0],
                 twiddle_offsets[1],
                 twiddle_offsets[2],
+                size,
+                @intFromBool(first_fold_is_circle),
+                source.pointer,
+                source.words,
+                source.stride,
+                @ptrCast(try common.secure(session, alpha, 1)),
+                destination.pointer,
+                destination.words,
+                destination.stride,
+                session.context.stream,
+            );
+            try common.record(session, stage, status);
+        }
+
+        pub fn foldFour(
+            session: anytype,
+            domain: common.Words,
+            twiddle_offsets: [4]u32,
+            size: u32,
+            first_fold_is_circle: bool,
+            evaluation_values: common.WordMatrix,
+            alpha: common.SecureFields,
+            folded_values: common.WordMatrix,
+        ) runtime_error.Error!void {
+            const stage = telemetry.Stage.fri_commit;
+            try common.requireStage(session, stage);
+            if (size < 16 or size > (@as(u32, 1) << 30) or size & (size - 1) != 0)
+                return error.InvalidKernelDescriptor;
+            const source = try matrix(session, evaluation_values, size);
+            const destination = try matrix(session, folded_values, size / 16);
+            const status = Api.stwo_fri_fold_fused4_on(
+                try common.words(session, domain, 1),
+                domain.len,
+                twiddle_offsets[0],
+                twiddle_offsets[1],
+                twiddle_offsets[2],
+                twiddle_offsets[3],
                 size,
                 @intFromBool(first_fold_is_circle),
                 source.pointer,

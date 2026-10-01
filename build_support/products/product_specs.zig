@@ -6,6 +6,7 @@ const cairo_cpu = @import("cairo_cpu.zig");
 const cairo_cuda = @import("cairo_cuda.zig");
 const cairo_metal = @import("cairo_metal.zig");
 const catalog = @import("catalog.zig");
+const circuit_recursion_cpu = @import("circuit_recursion_cpu.zig");
 const core = @import("core.zig");
 const native_cpu = @import("native_cpu.zig");
 const native_cuda = @import("native_cuda.zig");
@@ -22,6 +23,7 @@ pub const Constructor = enum {
     cairo_cpu,
     cairo_cuda,
     cairo_metal,
+    circuit_recursion_cpu,
     core,
     prover,
     native_cpu,
@@ -48,7 +50,7 @@ pub const Spec = struct {
 pub const products = [_]Spec{
     .{ .descriptor = aggregate.descriptor, .scope = .aggregate, .constructor = .aggregate, .identity_step = "identity-stwo-zig", .configure_tools = &.{"python3"}, .generated_module_roots = &.{"generated:options:"}, .dependency_module_roots = catalog.package_dependencies.native_riscv_cpu_protocol_package_roots, .configure_allowed_files = &.{"build_support/graph/identity/emitter.zig"} },
     .{ .descriptor = core.descriptor, .scope = .core, .constructor = .core, .identity_step = "identity-stwo-core", .configure_tools = &.{"python3"}, .generated_module_roots = &.{"generated:options:"}, .dependency_module_roots = catalog.package_dependencies.core_package_roots, .configure_allowed_files = &.{"build_support/graph/identity/emitter.zig"} },
-    .{ .descriptor = prover.descriptor, .scope = .prover, .constructor = .prover, .identity_step = "identity-stwo-prover", .configure_tools = &.{"python3"}, .generated_module_roots = &.{"generated:options:"}, .dependency_module_roots = catalog.package_dependencies.protocol_package_roots, .configure_allowed_files = &.{ "build_support/graph/identity/emitter.zig", "src/products/core/surface.zig" } },
+    .{ .descriptor = prover.descriptor, .scope = .prover, .constructor = .prover, .identity_step = "identity-stwo-prover", .configure_tools = &.{"python3"}, .generated_module_roots = &.{"generated:options:"}, .dependency_module_roots = catalog.package_dependencies.core_prover_products_package_roots, .configure_allowed_files = &.{ "build_support/graph/identity/emitter.zig", "src/products/core/surface.zig" } },
     .{ .descriptor = native_cpu.descriptor(.cli), .scope = .native_cpu, .constructor = .native_cpu, .configure_tools = &.{"python3"}, .generated_module_roots = &.{"generated:options:"}, .dependency_module_roots = catalog.package_dependencies.native_cpu_protocol_package_roots },
     .{
         .descriptor = riscv_cpu.descriptor,
@@ -96,6 +98,9 @@ pub const products = [_]Spec{
         .dependency_module_roots = catalog.package_dependencies.cairo_cpu_protocol_package_roots,
         .configure_allowed_files = &.{
             "build_support/products/cairo_witness_cpu_aot.zig",
+            // `cairo-preprocessed-export`, the bounded canonical coefficient
+            // exporter built beside the product.
+            "src/tools/cairo_preprocessed_export/main.zig",
             "build_support/products/cairo_composition_cpu_aot.zig",
         },
         .configure_allowed_prefixes = &.{
@@ -157,6 +162,33 @@ pub const products = [_]Spec{
         .runtime_probes = &.{ "cuda", "cudart", "stwo_cuda_kernels" },
         .generated_module_roots = &.{"generated:options:"},
         .dependency_module_roots = catalog.package_dependencies.cairo_cuda_protocol_package_roots,
+        // The CUDA AOT generators and the witness codegen model they share,
+        // built beside the product.
+        .configure_allowed_files = &.{
+            "src/tools/cairo_cuda_eval_aot/main.zig",
+            "src/tools/cairo_cuda_witness_aot/main.zig",
+            "src/tools/cairo_witness_cpu_codegen/model.zig",
+        },
+    },
+    .{
+        .descriptor = circuit_recursion_cpu.descriptor,
+        .scope = .circuit_recursion_cpu,
+        .constructor = .circuit_recursion_cpu,
+        // `zig` runs the parity ladder's rungs (`circuit-parity*`).
+        .configure_tools = &.{ "python3", "zig" },
+        // The embedded circuit AIR data (`circuit_air_projection`,
+        // `circuit_air_programs`), authenticated by the product at run time.
+        .generated_module_roots = &.{"generated:circuit-composition-cpu-aot:"},
+        .configure_allowed_files = &.{
+            "vectors/circuit/official/circuit_air.air_programs_v1.bin",
+            "vectors/circuit/official/compiled_air_constraints_v1.bin",
+            // The circuit AIR's native composition kernels: build wiring,
+            // the generator's entry and the Cairo codegen surface it reads.
+            "src/integrations/circuit_cpu/composition_aot_build.zig",
+            "src/frontends/cairo/codegen_surface.zig",
+        },
+        .configure_allowed_prefixes = &.{"src/tools/cairo_composition_cpu_codegen"},
+        .dependency_module_roots = catalog.package_dependencies.circuit_recursion_cpu_protocol_package_roots,
     },
     .{ .descriptor = riscv_cuda.descriptor, .scope = .deferred, .constructor = .unavailable, .dependency_module_roots = catalog.package_dependencies.riscv_cuda_protocol_package_roots },
 };

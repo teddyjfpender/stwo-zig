@@ -1,0 +1,6150 @@
+{
+  "schema": "stwo-circuit-oracle-checkpoint-v1",
+  "rung": "r0",
+  "subcommand": "primitives",
+  "authority": {
+    "repository": "https://github.com/starkware-libs/proving",
+    "revision": "5a7c5ede4299c91a61df19a07cba4f7502c14230"
+  },
+  "inputs": [],
+  "body": {
+    "upstream_expectations": [
+      {
+        "source": "crates/stwo/src/core/vcs_lifted/hasher_test.rs",
+        "name": "blake2s_hash_u32s",
+        "value": "efee1538e0216d3a09ce742ce768c44a7db004d801c40f66040994353f55fe85"
+      },
+      {
+        "source": "crates/stwo/src/core/vcs_lifted/hasher_test.rs",
+        "name": "blake2s_hash_u32s_followed_by_digest",
+        "value": "18a60268d189dccf5065ddd361d280474fbc2b08d75a7e4e1c20e57a67f2f7fa"
+      },
+      {
+        "source": "crates/circuit_verifier/src/circuit_hash_test.rs",
+        "name": "compute_circuit_hash_matches_golden",
+        "value": "[a8810641, 52391285, 90b37fd2, 905b887a, 7db7dc81, a7c3a731, d0d46b34, 8fa6a471]"
+      },
+      {
+        "source": "crates/leaf_prover/tests/data/circuit_registry_canonical_small.json",
+        "name": "leaf_prover_leaf_verifier",
+        "value": "[f2c6d668, d27ddadb, 668f252d, df6a6ed3, 85dd1ceb, 859543da, 468f3d35, b6f8071f]"
+      },
+      {
+        "source": "crates/leaf_prover/tests/data/circuit_registry_canonical_small.json",
+        "name": "leaf_prover_multiverifier",
+        "value": "[4d013787, 4d13cf6e, ba17c793, b7993eb3, 42ee429e, e38dd7e5, f5429b6d, 520eca69]"
+      },
+      {
+        "source": "crates/stwo_run_and_prove_recursive_tree/test_data/circuit_registry.json",
+        "name": "recursive_tree_leaf_verifier",
+        "value": "[d2d85a42, 79697b22, 3a41a061, 011cb393, 7a040ec9, 4508f4ca, 42239409, 60f3baea]"
+      },
+      {
+        "source": "crates/stwo_run_and_prove_recursive_tree/test_data/circuit_registry.json",
+        "name": "recursive_tree_multiverifier",
+        "value": "[a5989715, 2377c07a, c6d1e844, 54f0a04d, 8be65a7d, fd73c261, 9078e728, 973f680f]"
+      },
+      {
+        "source": "crates/circuit_prover/src/circuit_hash.rs",
+        "name": "poseidon252_root",
+        "value": "1e153175973f9466ee2f662e1f782c10a3d0b6bfa92d64c2b78c53fd35195ca"
+      }
+    ],
+    "channels": [
+      {
+        "lane": "blake2s",
+        "name": "draws_from_default",
+        "initial_digest": "0000000000000000000000000000000000000000000000000000000000000000",
+        "ops": [
+          {
+            "op": "draw_u32s",
+            "words": [
+              1508103417,
+              49928118,
+              1851109195,
+              649450964,
+              1514800545,
+              4236765031,
+              523819246,
+              4066564620
+            ],
+            "digest": "0000000000000000000000000000000000000000000000000000000000000000"
+          },
+          {
+            "op": "draw_u32s",
+            "words": [
+              1769619091,
+              1335149496,
+              4154990216,
+              1426464368,
+              853727757,
+              1673676888,
+              2783363576,
+              3475124027
+            ],
+            "digest": "0000000000000000000000000000000000000000000000000000000000000000"
+          },
+          {
+            "op": "draw_secure_felt",
+            "felt": [
+              1751831125,
+              1559795173,
+              442209472,
+              1280396692
+            ],
+            "digest": "0000000000000000000000000000000000000000000000000000000000000000"
+          },
+          {
+            "op": "draw_secure_felts",
+            "n_felts": 5,
+            "felts": [
+              [
+                1839261536,
+                1778992654,
+                807858428,
+                143171319
+              ],
+              [
+                128590986,
+                1618375851,
+                213276683,
+                76892197
+              ],
+              [
+                1395791505,
+                609432176,
+                709581468,
+                187537741
+              ],
+              [
+                1528355827,
+                1913296029,
+                361552993,
+                1461582054
+              ],
+              [
+                1697754439,
+                1481543124,
+                1474938844,
+                128953215
+              ]
+            ],
+            "digest": "0000000000000000000000000000000000000000000000000000000000000000"
+          },
+          {
+            "op": "draw_secure_felts",
+            "n_felts": 4,
+            "felts": [
+              [
+                1038593754,
+                667504661,
+                137667305,
+                804295778
+              ],
+              [
+                261669609,
+                1349091526,
+                833580189,
+                425801364
+              ],
+              [
+                284794628,
+                535817880,
+                679041173,
+                374213845
+              ],
+              [
+                1825270299,
+                1855814333,
+                1379869063,
+                1100436207
+              ]
+            ],
+            "digest": "0000000000000000000000000000000000000000000000000000000000000000"
+          }
+        ]
+      },
+      {
+        "lane": "blake2s_m31",
+        "name": "draws_from_default",
+        "initial_digest": "0000000000000000000000000000000000000000000000000000000000000000",
+        "ops": [
+          {
+            "op": "draw_u32s",
+            "words": [
+              1508103417,
+              49928118,
+              1851109195,
+              649450964,
+              1514800545,
+              2089281384,
+              523819246,
+              1919080973
+            ],
+            "digest": "0000000000000000000000000000000000000000000000000000000000000000"
+          },
+          {
+            "op": "draw_u32s",
+            "words": [
+              1769619091,
+              1335149496,
+              2007506569,
+              1426464368,
+              853727757,
+              1673676888,
+              635879929,
+              1327640380
+            ],
+            "digest": "0000000000000000000000000000000000000000000000000000000000000000"
+          },
+          {
+            "op": "draw_secure_felt",
+            "felt": [
+              1751831125,
+              1559795173,
+              442209472,
+              1280396692
+            ],
+            "digest": "0000000000000000000000000000000000000000000000000000000000000000"
+          },
+          {
+            "op": "draw_secure_felts",
+            "n_felts": 5,
+            "felts": [
+              [
+                1839261536,
+                1778992654,
+                807858428,
+                143171319
+              ],
+              [
+                128590986,
+                1618375851,
+                213276683,
+                76892197
+              ],
+              [
+                1395791505,
+                609432176,
+                709581468,
+                187537741
+              ],
+              [
+                1528355827,
+                1913296029,
+                361552993,
+                1461582054
+              ],
+              [
+                1697754439,
+                1481543124,
+                1474938844,
+                128953215
+              ]
+            ],
+            "digest": "0000000000000000000000000000000000000000000000000000000000000000"
+          },
+          {
+            "op": "draw_secure_felts",
+            "n_felts": 4,
+            "felts": [
+              [
+                1038593754,
+                667504661,
+                137667305,
+                804295778
+              ],
+              [
+                261669609,
+                1349091526,
+                833580189,
+                425801364
+              ],
+              [
+                284794628,
+                535817880,
+                679041173,
+                374213845
+              ],
+              [
+                1825270299,
+                1855814333,
+                1379869063,
+                1100436207
+              ]
+            ],
+            "digest": "0000000000000000000000000000000000000000000000000000000000000000"
+          }
+        ]
+      },
+      {
+        "lane": "blake2s",
+        "name": "mix_u32s_then_felts",
+        "initial_digest": "0000000000000000000000000000000000000000000000000000000000000000",
+        "ops": [
+          {
+            "op": "mix_u32s",
+            "words": [
+              1,
+              2,
+              3,
+              4,
+              5,
+              6,
+              7,
+              8,
+              9
+            ],
+            "digest": "7091768357bb1bb3346fdab6b357d7fa46b8fbe32c2e4324a0ffc294cbf9a1c7"
+          },
+          {
+            "op": "mix_felts",
+            "felts": [
+              [
+                2147483646,
+                0,
+                1,
+                1073741824
+              ],
+              [
+                1923782,
+                1923783,
+                0,
+                7
+              ]
+            ],
+            "digest": "1a88a51f8f82910e68f7f009e7e3bfc46b68e3b5a5c8139830cc378d02982c1c"
+          },
+          {
+            "op": "draw_secure_felt",
+            "felt": [
+              1004527484,
+              1308625158,
+              1284648302,
+              653682572
+            ],
+            "digest": "1a88a51f8f82910e68f7f009e7e3bfc46b68e3b5a5c8139830cc378d02982c1c"
+          }
+        ]
+      },
+      {
+        "lane": "blake2s_m31",
+        "name": "mix_u32s_then_felts",
+        "initial_digest": "0000000000000000000000000000000000000000000000000000000000000000",
+        "ops": [
+          {
+            "op": "mix_u32s",
+            "words": [
+              1,
+              2,
+              3,
+              4,
+              5,
+              6,
+              7,
+              8,
+              9
+            ],
+            "digest": "7191760358bb1b33356fda36b457d77a47b8fb632c2e4324a1ffc214ccf9a147"
+          },
+          {
+            "op": "mix_felts",
+            "felts": [
+              [
+                2147483646,
+                0,
+                1,
+                1073741824
+              ],
+              [
+                1923782,
+                1923783,
+                0,
+                7
+              ]
+            ],
+            "digest": "3c3248278190b942d7a5373862e387280655432d675fa8129ac92522d77a3c21"
+          },
+          {
+            "op": "draw_secure_felt",
+            "felt": [
+              78267936,
+              1088966659,
+              1067160942,
+              1328502707
+            ],
+            "digest": "3c3248278190b942d7a5373862e387280655432d675fa8129ac92522d77a3c21"
+          }
+        ]
+      },
+      {
+        "lane": "blake2s",
+        "name": "mix_felts_then_u32s",
+        "initial_digest": "0000000000000000000000000000000000000000000000000000000000000000",
+        "ops": [
+          {
+            "op": "mix_felts",
+            "felts": [
+              [
+                2147483646,
+                0,
+                1,
+                1073741824
+              ],
+              [
+                1923782,
+                1923783,
+                0,
+                7
+              ]
+            ],
+            "digest": "5085a11c1668083c893ab4d4c74ea5a164f3e948cd62b9a737c02fecdf673be7"
+          },
+          {
+            "op": "mix_u32s",
+            "words": [
+              1,
+              2,
+              3,
+              4,
+              5,
+              6,
+              7,
+              8,
+              9
+            ],
+            "digest": "ef9895d4fa8957ea5ff11a9c7e7f856ffde626c97ace452092ee5be615a2c780"
+          },
+          {
+            "op": "draw_secure_felt",
+            "felt": [
+              734524610,
+              1596423225,
+              1236952094,
+              1011982753
+            ],
+            "digest": "ef9895d4fa8957ea5ff11a9c7e7f856ffde626c97ace452092ee5be615a2c780"
+          }
+        ]
+      },
+      {
+        "lane": "blake2s_m31",
+        "name": "mix_felts_then_u32s",
+        "initial_digest": "0000000000000000000000000000000000000000000000000000000000000000",
+        "ops": [
+          {
+            "op": "mix_felts",
+            "felts": [
+              [
+                2147483646,
+                0,
+                1,
+                1073741824
+              ],
+              [
+                1923782,
+                1923783,
+                0,
+                7
+              ]
+            ],
+            "digest": "5085a11c1668083c8a3ab454c84ea52164f3e948ce62b92738c02f6ce0673b67"
+          },
+          {
+            "op": "mix_u32s",
+            "words": [
+              1,
+              2,
+              3,
+              4,
+              5,
+              6,
+              7,
+              8,
+              9
+            ],
+            "digest": "bac83f15c5ab324e512fb06417f0da46b31c6c38ec99075057036a79eda9c448"
+          },
+          {
+            "op": "draw_secure_felt",
+            "felt": [
+              364650426,
+              1140443184,
+              1556349093,
+              717678878
+            ],
+            "digest": "bac83f15c5ab324e512fb06417f0da46b31c6c38ec99075057036a79eda9c448"
+          }
+        ]
+      },
+      {
+        "lane": "blake2s",
+        "name": "mix_resets_draw_counter",
+        "initial_digest": "0000000000000000000000000000000000000000000000000000000000000000",
+        "ops": [
+          {
+            "op": "draw_u32s",
+            "words": [
+              1508103417,
+              49928118,
+              1851109195,
+              649450964,
+              1514800545,
+              4236765031,
+              523819246,
+              4066564620
+            ],
+            "digest": "0000000000000000000000000000000000000000000000000000000000000000"
+          },
+          {
+            "op": "draw_u32s",
+            "words": [
+              1769619091,
+              1335149496,
+              4154990216,
+              1426464368,
+              853727757,
+              1673676888,
+              2783363576,
+              3475124027
+            ],
+            "digest": "0000000000000000000000000000000000000000000000000000000000000000"
+          },
+          {
+            "op": "mix_u64",
+            "value": {
+              "value": "1229801703532086340",
+              "hi": 286335522,
+              "lo": 858997828
+            },
+            "digest": "bc9e3fc1d24e8897956d3359327397249d6bcacd224d927404e7ba4a77dc6ece"
+          },
+          {
+            "op": "draw_u32s",
+            "words": [
+              1450004210,
+              2803800895,
+              3398206991,
+              2166376786,
+              1885192998,
+              2864099933,
+              3216103029,
+              3583180982
+            ],
+            "digest": "bc9e3fc1d24e8897956d3359327397249d6bcacd224d927404e7ba4a77dc6ece"
+          },
+          {
+            "op": "mix_u32s",
+            "words": [],
+            "digest": "1f3baa33c587a6d11f27f16e4f5d2ac9258d8c65c76ed7101e515eed56d72662"
+          },
+          {
+            "op": "draw_u32s",
+            "words": [
+              778373669,
+              1316684149,
+              1585660272,
+              19806417,
+              1879421428,
+              4080387325,
+              1603998495,
+              2531992999
+            ],
+            "digest": "1f3baa33c587a6d11f27f16e4f5d2ac9258d8c65c76ed7101e515eed56d72662"
+          },
+          {
+            "op": "mix_felts",
+            "felts": [],
+            "digest": "f342bed151560272596fdd2c1908e919459064b032d1f0295048ec50b3c49c57"
+          },
+          {
+            "op": "draw_secure_felt",
+            "felt": [
+              1739859862,
+              1055526534,
+              51723711,
+              339927104
+            ],
+            "digest": "f342bed151560272596fdd2c1908e919459064b032d1f0295048ec50b3c49c57"
+          }
+        ]
+      },
+      {
+        "lane": "blake2s_m31",
+        "name": "mix_resets_draw_counter",
+        "initial_digest": "0000000000000000000000000000000000000000000000000000000000000000",
+        "ops": [
+          {
+            "op": "draw_u32s",
+            "words": [
+              1508103417,
+              49928118,
+              1851109195,
+              649450964,
+              1514800545,
+              2089281384,
+              523819246,
+              1919080973
+            ],
+            "digest": "0000000000000000000000000000000000000000000000000000000000000000"
+          },
+          {
+            "op": "draw_u32s",
+            "words": [
+              1769619091,
+              1335149496,
+              2007506569,
+              1426464368,
+              853727757,
+              1673676888,
+              635879929,
+              1327640380
+            ],
+            "digest": "0000000000000000000000000000000000000000000000000000000000000000"
+          },
+          {
+            "op": "mix_u64",
+            "value": {
+              "value": "1229801703532086340",
+              "hi": 286335522,
+              "lo": 858997828
+            },
+            "digest": "bd9e3f41d34e8817956d3359327397249e6bca4d224d927404e7ba4a78dc6e4e"
+          },
+          {
+            "op": "draw_u32s",
+            "words": [
+              1436845501,
+              388200032,
+              1332358310,
+              150177869,
+              811563116,
+              1490734703,
+              997520743,
+              580320423
+            ],
+            "digest": "bd9e3f41d34e8817956d3359327397249e6bca4d224d927404e7ba4a78dc6e4e"
+          },
+          {
+            "op": "mix_u32s",
+            "words": [],
+            "digest": "8d113f1d6b303432ff54347b877c7537c0ff7378b6a1b00c7abeb0249ea00203"
+          },
+          {
+            "op": "draw_u32s",
+            "words": [
+              982083843,
+              523716272,
+              360448842,
+              1246251724,
+              2050194003,
+              1736573988,
+              506891753,
+              1410080792
+            ],
+            "digest": "8d113f1d6b303432ff54347b877c7537c0ff7378b6a1b00c7abeb0249ea00203"
+          },
+          {
+            "op": "mix_felts",
+            "felts": [],
+            "digest": "17ec6e4d9a9fbc1333ebff6098789f18e33c73006a842c23cd183a4980ba924d"
+          },
+          {
+            "op": "draw_secure_felt",
+            "felt": [
+              1434382675,
+              1233884795,
+              2135018532,
+              2032537468
+            ],
+            "digest": "17ec6e4d9a9fbc1333ebff6098789f18e33c73006a842c23cd183a4980ba924d"
+          }
+        ]
+      },
+      {
+        "lane": "blake2s",
+        "name": "mix_hash",
+        "initial_digest": "0000000000000000000000000000000000000000000000000000000000000000",
+        "ops": [
+          {
+            "op": "mix_hash",
+            "hash": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+            "digest": "3ec2373385e7587c0a590d180eaafc742920ac72ee8109e48f097247bd6b7d5f"
+          },
+          {
+            "op": "draw_secure_felt",
+            "felt": [
+              463226858,
+              1207821452,
+              931936829,
+              1036247894
+            ],
+            "digest": "3ec2373385e7587c0a590d180eaafc742920ac72ee8109e48f097247bd6b7d5f"
+          },
+          {
+            "op": "mix_hash",
+            "hash": "ffffff7f00000080ffffffff00000080feffff7fefbeaddef0ffff7f0000ffff",
+            "digest": "c10ff9a4736dbd13f41ab45c70debd26c449edf40236fca306f5aea64453c341"
+          },
+          {
+            "op": "draw_u32s",
+            "words": [
+              2735100814,
+              1399781702,
+              1337061808,
+              1461684668,
+              3068350209,
+              2816683362,
+              2968153380,
+              2704517643
+            ],
+            "digest": "c10ff9a4736dbd13f41ab45c70debd26c449edf40236fca306f5aea64453c341"
+          }
+        ]
+      },
+      {
+        "lane": "blake2s_m31",
+        "name": "mix_hash",
+        "initial_digest": "0000000000000000000000000000000000000000000000000000000000000000",
+        "ops": [
+          {
+            "op": "mix_hash",
+            "hash": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+            "digest": "3ec2373385e7587c0a590d180eaafc742920ac72ef8109648f097247bd6b7d5f"
+          },
+          {
+            "op": "draw_secure_felt",
+            "felt": [
+              293924419,
+              224788997,
+              1072083262,
+              2111421241
+            ],
+            "digest": "3ec2373385e7587c0a590d180eaafc742920ac72ef8109648f097247bd6b7d5f"
+          },
+          {
+            "op": "mix_hash",
+            "hash": "ffffff7f00000080ffffffff00000080feffff7fefbeaddef0ffff7f0000ffff",
+            "digest": "f5a5361ed779c0093714d93135f348747b8ef66b95cd221338a5fa060a53ce14"
+          },
+          {
+            "op": "draw_u32s",
+            "words": [
+              2040866690,
+              668327925,
+              149539990,
+              164349965,
+              409545690,
+              1921174810,
+              699194028,
+              90259218
+            ],
+            "digest": "f5a5361ed779c0093714d93135f348747b8ef66b95cd221338a5fa060a53ce14"
+          }
+        ]
+      },
+      {
+        "lane": "blake2s",
+        "name": "circuit_transcript_preamble_shape",
+        "initial_digest": "0000000000000000000000000000000000000000000000000000000000000000",
+        "ops": [
+          {
+            "op": "mix_felts",
+            "felts": [
+              [
+                0,
+                0,
+                0,
+                0
+              ]
+            ],
+            "digest": "f401874fee3bc5e1fcbabfba108e5b9a9950d45810190098aae7734e91a1240f"
+          },
+          {
+            "op": "mix_fri_config",
+            "config": {
+              "pow_bits": 26,
+              "log_blowup_factor": 1,
+              "log_last_layer_degree_bound": 0,
+              "n_queries": 35,
+              "fold_step": 4
+            },
+            "digest": "b2591041e4e71d6dd7ad412c672eba81052f1f84d60dd2e1deda4123287762b8"
+          },
+          {
+            "op": "mix_hash",
+            "hash": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+            "digest": "556ebf3faeee96326714eb010451165c4a3ed8f88612104f5e2bcb54a151d190"
+          },
+          {
+            "op": "mix_hash",
+            "hash": "ffffff7f00000080ffffffff00000080feffff7fefbeaddef0ffff7f0000ffff",
+            "digest": "3ea746bcf017c3af9a0ccd922feedde30efa05dde1d1d63c2997b5370d7b5f73"
+          },
+          {
+            "op": "mix_felts",
+            "felts": [
+              [
+                17366,
+                44463,
+                0,
+                0
+              ],
+              [
+                37013,
+                48867,
+                0,
+                0
+              ],
+              [
+                47249,
+                37070,
+                0,
+                0
+              ],
+              [
+                41517,
+                29640,
+                0,
+                0
+              ],
+              [
+                30012,
+                19462,
+                0,
+                0
+              ],
+              [
+                38424,
+                54598,
+                0,
+                0
+              ],
+              [
+                43334,
+                27829,
+                0,
+                0
+              ],
+              [
+                50583,
+                21541,
+                0,
+                0
+              ]
+            ],
+            "digest": "bce31c7bd6343cda1ac1dd6b74aa570a9f9f5658afe1fc43762f192aa432b696"
+          },
+          {
+            "op": "mix_hash",
+            "hash": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+            "digest": "e51a496a1ef20c250c4919821c45266f819dfa4ef25b717ef0065ffec3d83ec7"
+          },
+          {
+            "op": "mix_u64",
+            "value": {
+              "value": "21475540190",
+              "hi": 5,
+              "lo": 703710
+            },
+            "digest": "e6571a4d27e232cfdd579b9b046a6cd1a04c454e17b25a26b14a4755311aed94"
+          },
+          {
+            "op": "draw_secure_felt",
+            "felt": [
+              1988282965,
+              1347786245,
+              1356558621,
+              326743415
+            ],
+            "digest": "e6571a4d27e232cfdd579b9b046a6cd1a04c454e17b25a26b14a4755311aed94"
+          },
+          {
+            "op": "draw_secure_felt",
+            "felt": [
+              1334875491,
+              1208830203,
+              128739881,
+              1063506336
+            ],
+            "digest": "e6571a4d27e232cfdd579b9b046a6cd1a04c454e17b25a26b14a4755311aed94"
+          }
+        ]
+      },
+      {
+        "lane": "blake2s_m31",
+        "name": "circuit_transcript_preamble_shape",
+        "initial_digest": "0000000000000000000000000000000000000000000000000000000000000000",
+        "ops": [
+          {
+            "op": "mix_felts",
+            "felts": [
+              [
+                0,
+                0,
+                0,
+                0
+              ]
+            ],
+            "digest": "f401874fef3bc561fdbabf3a118e5b1a9950d45811190018aae7734e91a1240f"
+          },
+          {
+            "op": "mix_fri_config",
+            "config": {
+              "pow_bits": 26,
+              "log_blowup_factor": 1,
+              "log_last_layer_degree_bound": 0,
+              "n_queries": 35,
+              "fold_step": 4
+            },
+            "digest": "2c8d375a20494a4a3c6ea005daec457000f18e39a8807b739d2c1b645265243a"
+          },
+          {
+            "op": "mix_hash",
+            "hash": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+            "digest": "3a4f1c513a84e309f6fcbe010e0cb80ccd0a5610b231ed6619e773458db50a30"
+          },
+          {
+            "op": "mix_hash",
+            "hash": "ffffff7f00000080ffffffff00000080feffff7fefbeaddef0ffff7f0000ffff",
+            "digest": "5a4017246293a1467465d31894d9a73c70f5a95a9846ec59d4ed212163450c37"
+          },
+          {
+            "op": "mix_felts",
+            "felts": [
+              [
+                17366,
+                44463,
+                0,
+                0
+              ],
+              [
+                37013,
+                48867,
+                0,
+                0
+              ],
+              [
+                47249,
+                37070,
+                0,
+                0
+              ],
+              [
+                41517,
+                29640,
+                0,
+                0
+              ],
+              [
+                30012,
+                19462,
+                0,
+                0
+              ],
+              [
+                38424,
+                54598,
+                0,
+                0
+              ],
+              [
+                43334,
+                27829,
+                0,
+                0
+              ],
+              [
+                50583,
+                21541,
+                0,
+                0
+              ]
+            ],
+            "digest": "0acc3b5826c02c719c10bf00f5e2c12e0e6be73cfd23e3012727eb64cf775c51"
+          },
+          {
+            "op": "mix_hash",
+            "hash": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+            "digest": "b693ff2879cdb824c7ad4a1619edfd6dbb656b69b969dd70b864f479d750ed06"
+          },
+          {
+            "op": "mix_u64",
+            "value": {
+              "value": "21475540190",
+              "hi": 5,
+              "lo": 703710
+            },
+            "digest": "ee9f5544926ed902c49e6c751c7e4f158582112e73cafa3250420c7a715d4931"
+          },
+          {
+            "op": "draw_secure_felt",
+            "felt": [
+              2065698048,
+              1546494857,
+              1056654351,
+              1069091205
+            ],
+            "digest": "ee9f5544926ed902c49e6c751c7e4f158582112e73cafa3250420c7a715d4931"
+          },
+          {
+            "op": "draw_secure_felt",
+            "felt": [
+              23651844,
+              1358131228,
+              1698583172,
+              607400605
+            ],
+            "digest": "ee9f5544926ed902c49e6c751c7e4f158582112e73cafa3250420c7a715d4931"
+          }
+        ]
+      },
+      {
+        "lane": "blake2s",
+        "name": "fri_config_production",
+        "initial_digest": "0000000000000000000000000000000000000000000000000000000000000000",
+        "ops": [
+          {
+            "op": "mix_fri_config",
+            "config": {
+              "pow_bits": 26,
+              "log_blowup_factor": 1,
+              "log_last_layer_degree_bound": 0,
+              "n_queries": 70,
+              "fold_step": 4
+            },
+            "digest": "54eb2c5200f192007d8034e03112037a8dc2438073d5fe0c16ca7422a8cfb3d6"
+          },
+          {
+            "op": "draw_secure_felt",
+            "felt": [
+              1462921036,
+              1866649806,
+              445026694,
+              1680956189
+            ],
+            "digest": "54eb2c5200f192007d8034e03112037a8dc2438073d5fe0c16ca7422a8cfb3d6"
+          }
+        ]
+      },
+      {
+        "lane": "blake2s_m31",
+        "name": "fri_config_production",
+        "initial_digest": "0000000000000000000000000000000000000000000000000000000000000000",
+        "ops": [
+          {
+            "op": "mix_fri_config",
+            "config": {
+              "pow_bits": 26,
+              "log_blowup_factor": 1,
+              "log_last_layer_degree_bound": 0,
+              "n_queries": 70,
+              "fold_step": 4
+            },
+            "digest": "54eb2c5200f192007e8034603112037a8ec2430073d5fe0c16ca7422a9cfb356"
+          },
+          {
+            "op": "draw_secure_felt",
+            "felt": [
+              245085826,
+              717115330,
+              46803973,
+              501148425
+            ],
+            "digest": "54eb2c5200f192007e8034603112037a8ec2430073d5fe0c16ca7422a9cfb356"
+          }
+        ]
+      },
+      {
+        "lane": "blake2s",
+        "name": "fri_config_privacy_large_proofs",
+        "initial_digest": "0000000000000000000000000000000000000000000000000000000000000000",
+        "ops": [
+          {
+            "op": "mix_fri_config",
+            "config": {
+              "pow_bits": 26,
+              "log_blowup_factor": 2,
+              "log_last_layer_degree_bound": 0,
+              "n_queries": 35,
+              "fold_step": 4
+            },
+            "digest": "eac805d758d424515e55528390423999484f6c621304d9a7cead6e3dfb66b7b9"
+          },
+          {
+            "op": "draw_secure_felt",
+            "felt": [
+              1106298717,
+              1254521191,
+              1950950872,
+              1440630874
+            ],
+            "digest": "eac805d758d424515e55528390423999484f6c621304d9a7cead6e3dfb66b7b9"
+          }
+        ]
+      },
+      {
+        "lane": "blake2s_m31",
+        "name": "fri_config_privacy_large_proofs",
+        "initial_digest": "0000000000000000000000000000000000000000000000000000000000000000",
+        "ops": [
+          {
+            "op": "mix_fri_config",
+            "config": {
+              "pow_bits": 26,
+              "log_blowup_factor": 2,
+              "log_last_layer_degree_bound": 0,
+              "n_queries": 35,
+              "fold_step": 4
+            },
+            "digest": "ebc8055758d424515f55520391423919484f6c621404d927cead6e3dfc66b739"
+          },
+          {
+            "op": "draw_secure_felt",
+            "felt": [
+              1841906293,
+              939302548,
+              1133804082,
+              443399471
+            ],
+            "digest": "ebc8055758d424515f55520391423919484f6c621404d927cead6e3dfc66b739"
+          }
+        ]
+      },
+      {
+        "lane": "blake2s",
+        "name": "fri_config_canonical_small",
+        "initial_digest": "0000000000000000000000000000000000000000000000000000000000000000",
+        "ops": [
+          {
+            "op": "mix_fri_config",
+            "config": {
+              "pow_bits": 26,
+              "log_blowup_factor": 1,
+              "log_last_layer_degree_bound": 0,
+              "n_queries": 35,
+              "fold_step": 4
+            },
+            "digest": "03ab8422ebd0fa8e36ccaf98a446ce1687d577384461c6429bec9fa93297f5bb"
+          },
+          {
+            "op": "draw_secure_felt",
+            "felt": [
+              842173232,
+              1974602258,
+              1648451127,
+              1412318914
+            ],
+            "digest": "03ab8422ebd0fa8e36ccaf98a446ce1687d577384461c6429bec9fa93297f5bb"
+          }
+        ]
+      },
+      {
+        "lane": "blake2s_m31",
+        "name": "fri_config_canonical_small",
+        "initial_digest": "0000000000000000000000000000000000000000000000000000000000000000",
+        "ops": [
+          {
+            "op": "mix_fri_config",
+            "config": {
+              "pow_bits": 26,
+              "log_blowup_factor": 1,
+              "log_last_layer_degree_bound": 0,
+              "n_queries": 35,
+              "fold_step": 4
+            },
+            "digest": "03ab8422ecd0fa0e37ccaf18a446ce1687d577384461c6429cec9f293397f53b"
+          },
+          {
+            "op": "draw_secure_felt",
+            "felt": [
+              1383968523,
+              1855280292,
+              1459428779,
+              1046489869
+            ],
+            "digest": "03ab8422ecd0fa0e37ccaf18a446ce1687d577384461c6429cec9f293397f53b"
+          }
+        ]
+      },
+      {
+        "lane": "blake2s",
+        "name": "fri_config_cairo_leaf",
+        "initial_digest": "0000000000000000000000000000000000000000000000000000000000000000",
+        "ops": [
+          {
+            "op": "mix_fri_config",
+            "config": {
+              "pow_bits": 26,
+              "log_blowup_factor": 1,
+              "log_last_layer_degree_bound": 0,
+              "n_queries": 70,
+              "fold_step": 1
+            },
+            "digest": "a1a1fa8edd7dc292fef1fb026f0f336ff5a81af816443327df885ec4bde6657e"
+          },
+          {
+            "op": "draw_secure_felt",
+            "felt": [
+              1662562131,
+              1341998895,
+              994384672,
+              160833600
+            ],
+            "digest": "a1a1fa8edd7dc292fef1fb026f0f336ff5a81af816443327df885ec4bde6657e"
+          }
+        ]
+      },
+      {
+        "lane": "blake2s_m31",
+        "name": "fri_config_cairo_leaf",
+        "initial_digest": "0000000000000000000000000000000000000000000000000000000000000000",
+        "ops": [
+          {
+            "op": "mix_fri_config",
+            "config": {
+              "pow_bits": 26,
+              "log_blowup_factor": 1,
+              "log_last_layer_degree_bound": 0,
+              "n_queries": 70,
+              "fold_step": 1
+            },
+            "digest": "a2a1fa0ede7dc212fef1fb026f0f336ff6a81a7816443327e0885e44bde6657e"
+          },
+          {
+            "op": "draw_secure_felt",
+            "felt": [
+              123942265,
+              1788773272,
+              2106767767,
+              269761988
+            ],
+            "digest": "a2a1fa0ede7dc212fef1fb026f0f336ff6a81a7816443327e0885e44bde6657e"
+          }
+        ]
+      }
+    ],
+    "grind": {
+      "grind_low_bits": 20,
+      "cases": [
+        {
+          "lane": "blake2s",
+          "seed": 0,
+          "digest": "94bb15542026f4f607416f019dffe21bb39bbb32cc92085ab615660a6b5fbef4",
+          "pow_bits": 16,
+          "nonce": {
+            "value": "387046",
+            "hi": 0,
+            "lo": 387046
+          },
+          "minimality_proven": true
+        },
+        {
+          "lane": "blake2s",
+          "seed": 1,
+          "digest": "4cc65fa085cc1cb5b570e4ccbb76d165fdf78b5ac499da3931cadb0a7a71f7b3",
+          "pow_bits": 16,
+          "nonce": {
+            "value": "146629",
+            "hi": 0,
+            "lo": 146629
+          },
+          "minimality_proven": true
+        },
+        {
+          "lane": "blake2s",
+          "seed": 0,
+          "digest": "94bb15542026f4f607416f019dffe21bb39bbb32cc92085ab615660a6b5fbef4",
+          "pow_bits": 20,
+          "nonce": {
+            "value": "674794",
+            "hi": 0,
+            "lo": 674794
+          },
+          "minimality_proven": true
+        },
+        {
+          "lane": "blake2s",
+          "seed": 2,
+          "digest": "927adcf37da3b597c9135d77862d18947b86fb032250dea88f2addce0f5886fc",
+          "pow_bits": 20,
+          "nonce": {
+            "value": "827763",
+            "hi": 0,
+            "lo": 827763
+          },
+          "minimality_proven": true
+        },
+        {
+          "lane": "blake2s",
+          "seed": 1,
+          "digest": "4cc65fa085cc1cb5b570e4ccbb76d165fdf78b5ac499da3931cadb0a7a71f7b3",
+          "pow_bits": 20,
+          "nonce": {
+            "value": "12885063745",
+            "hi": 3,
+            "lo": 161857
+          },
+          "minimality_proven": true
+        },
+        {
+          "lane": "blake2s",
+          "seed": 6,
+          "digest": "70000a09163073bc481201693d05cc4bdc3b22795c7c6d5d5c645b568af50d9e",
+          "pow_bits": 20,
+          "nonce": {
+            "value": "8590107492",
+            "hi": 2,
+            "lo": 172900
+          },
+          "minimality_proven": true
+        },
+        {
+          "lane": "blake2s",
+          "seed": 0,
+          "digest": "94bb15542026f4f607416f019dffe21bb39bbb32cc92085ab615660a6b5fbef4",
+          "pow_bits": 24,
+          "nonce": {
+            "value": "77309505868",
+            "hi": 18,
+            "lo": 94540
+          },
+          "minimality_proven": false
+        },
+        {
+          "lane": "blake2s",
+          "seed": 1,
+          "digest": "4cc65fa085cc1cb5b570e4ccbb76d165fdf78b5ac499da3931cadb0a7a71f7b3",
+          "pow_bits": 24,
+          "nonce": {
+            "value": "77309420030",
+            "hi": 18,
+            "lo": 8702
+          },
+          "minimality_proven": false
+        },
+        {
+          "lane": "blake2s",
+          "seed": 0,
+          "digest": "94bb15542026f4f607416f019dffe21bb39bbb32cc92085ab615660a6b5fbef4",
+          "pow_bits": 26,
+          "nonce": {
+            "value": "34360584583",
+            "hi": 8,
+            "lo": 846215
+          },
+          "minimality_proven": false
+        },
+        {
+          "lane": "blake2s",
+          "seed": 1,
+          "digest": "4cc65fa085cc1cb5b570e4ccbb76d165fdf78b5ac499da3931cadb0a7a71f7b3",
+          "pow_bits": 26,
+          "nonce": {
+            "value": "420907351822",
+            "hi": 98,
+            "lo": 556814
+          },
+          "minimality_proven": false
+        },
+        {
+          "lane": "blake2s",
+          "seed": 2,
+          "digest": "927adcf37da3b597c9135d77862d18947b86fb032250dea88f2addce0f5886fc",
+          "pow_bits": 26,
+          "nonce": {
+            "value": "210453684466",
+            "hi": 49,
+            "lo": 286962
+          },
+          "minimality_proven": false
+        },
+        {
+          "lane": "blake2s_m31",
+          "seed": 0,
+          "digest": "94bb15542126f47607416f019dffe21bb39bbb32cc92085ab615660a6c5fbe74",
+          "pow_bits": 16,
+          "nonce": {
+            "value": "44720",
+            "hi": 0,
+            "lo": 44720
+          },
+          "minimality_proven": true
+        },
+        {
+          "lane": "blake2s_m31",
+          "seed": 1,
+          "digest": "4dc65f2086cc1c35b670e44cbb76d165fdf78b5ac499da3931cadb0a7b71f733",
+          "pow_bits": 16,
+          "nonce": {
+            "value": "71636",
+            "hi": 0,
+            "lo": 71636
+          },
+          "minimality_proven": true
+        },
+        {
+          "lane": "blake2s_m31",
+          "seed": 0,
+          "digest": "94bb15542126f47607416f019dffe21bb39bbb32cc92085ab615660a6c5fbe74",
+          "pow_bits": 20,
+          "nonce": {
+            "value": "340382",
+            "hi": 0,
+            "lo": 340382
+          },
+          "minimality_proven": true
+        },
+        {
+          "lane": "blake2s_m31",
+          "seed": 3,
+          "digest": "e49b20314d38d109efed356194740e3b0836ca7454e9b41a104077209c08ff7b",
+          "pow_bits": 20,
+          "nonce": {
+            "value": "405827",
+            "hi": 0,
+            "lo": 405827
+          },
+          "minimality_proven": true
+        },
+        {
+          "lane": "blake2s_m31",
+          "seed": 1,
+          "digest": "4dc65f2086cc1c35b670e44cbb76d165fdf78b5ac499da3931cadb0a7b71f733",
+          "pow_bits": 20,
+          "nonce": {
+            "value": "12885632339",
+            "hi": 3,
+            "lo": 730451
+          },
+          "minimality_proven": true
+        },
+        {
+          "lane": "blake2s_m31",
+          "seed": 2,
+          "digest": "937adc737ea3b517c9135d77872d18147b86fb032350de28902add4e1058867c",
+          "pow_bits": 20,
+          "nonce": {
+            "value": "8590444871",
+            "hi": 2,
+            "lo": 510279
+          },
+          "minimality_proven": true
+        },
+        {
+          "lane": "blake2s_m31",
+          "seed": 0,
+          "digest": "94bb15542126f47607416f019dffe21bb39bbb32cc92085ab615660a6c5fbe74",
+          "pow_bits": 24,
+          "nonce": {
+            "value": "34359828456",
+            "hi": 8,
+            "lo": 90088
+          },
+          "minimality_proven": false
+        },
+        {
+          "lane": "blake2s_m31",
+          "seed": 1,
+          "digest": "4dc65f2086cc1c35b670e44cbb76d165fdf78b5ac499da3931cadb0a7b71f733",
+          "pow_bits": 24,
+          "nonce": {
+            "value": "4295766292",
+            "hi": 1,
+            "lo": 798996
+          },
+          "minimality_proven": false
+        },
+        {
+          "lane": "blake2s_m31",
+          "seed": 0,
+          "digest": "94bb15542126f47607416f019dffe21bb39bbb32cc92085ab615660a6c5fbe74",
+          "pow_bits": 26,
+          "nonce": {
+            "value": "206159181515",
+            "hi": 48,
+            "lo": 751307
+          },
+          "minimality_proven": false
+        },
+        {
+          "lane": "blake2s_m31",
+          "seed": 1,
+          "digest": "4dc65f2086cc1c35b670e44cbb76d165fdf78b5ac499da3931cadb0a7b71f733",
+          "pow_bits": 26,
+          "nonce": {
+            "value": "244813283955",
+            "hi": 57,
+            "lo": 148083
+          },
+          "minimality_proven": false
+        },
+        {
+          "lane": "blake2s_m31",
+          "seed": 2,
+          "digest": "937adc737ea3b517c9135d77872d18147b86fb032350de28902add4e1058867c",
+          "pow_bits": 26,
+          "nonce": {
+            "value": "914829007135",
+            "hi": 213,
+            "lo": 973087
+          },
+          "minimality_proven": false
+        }
+      ]
+    },
+    "fields": {
+      "m31_from_u32": [
+        {
+          "input": 0,
+          "output": 0
+        },
+        {
+          "input": 1,
+          "output": 1
+        },
+        {
+          "input": 2,
+          "output": 2
+        },
+        {
+          "input": 65535,
+          "output": 65535
+        },
+        {
+          "input": 65536,
+          "output": 65536
+        },
+        {
+          "input": 305419896,
+          "output": 305419896
+        },
+        {
+          "input": 2147483646,
+          "output": 2147483646
+        },
+        {
+          "input": 2147483647,
+          "output": 0
+        },
+        {
+          "input": 2147483648,
+          "output": 1
+        },
+        {
+          "input": 4294967294,
+          "output": 0
+        },
+        {
+          "input": 4294967295,
+          "output": 1
+        }
+      ],
+      "m31_reduce_u64": [
+        {
+          "input": "0",
+          "output": 0
+        },
+        {
+          "input": "2147483647",
+          "output": 0
+        },
+        {
+          "input": "2147483648",
+          "output": 1
+        },
+        {
+          "input": "4294967294",
+          "output": 0
+        },
+        {
+          "input": "4611686014132420608",
+          "output": 2147483646
+        },
+        {
+          "input": "4611686009837453316",
+          "output": 1
+        },
+        {
+          "input": "12884901885",
+          "output": 3
+        }
+      ],
+      "qm31_from_u32s": [
+        {
+          "input": [
+            2147483647,
+            2147483648,
+            4294967295,
+            5
+          ],
+          "output": [
+            0,
+            1,
+            1,
+            5
+          ]
+        },
+        {
+          "input": [
+            0,
+            2147483646,
+            2147483648,
+            1
+          ],
+          "output": [
+            0,
+            2147483646,
+            1,
+            1
+          ]
+        }
+      ],
+      "qm31_binary": [
+        {
+          "a": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "b": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "add": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "sub": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "mul": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "pointwise_mul": [
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "a": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "b": [
+            1,
+            0,
+            0,
+            0
+          ],
+          "add": [
+            1,
+            0,
+            0,
+            0
+          ],
+          "sub": [
+            2147483646,
+            0,
+            0,
+            0
+          ],
+          "mul": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "pointwise_mul": [
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "a": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "b": [
+            0,
+            1,
+            0,
+            0
+          ],
+          "add": [
+            0,
+            1,
+            0,
+            0
+          ],
+          "sub": [
+            0,
+            2147483646,
+            0,
+            0
+          ],
+          "mul": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "pointwise_mul": [
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "a": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "b": [
+            0,
+            0,
+            1,
+            0
+          ],
+          "add": [
+            0,
+            0,
+            1,
+            0
+          ],
+          "sub": [
+            0,
+            0,
+            2147483646,
+            0
+          ],
+          "mul": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "pointwise_mul": [
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "a": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "b": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "add": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "sub": [
+            0,
+            0,
+            0,
+            2147483646
+          ],
+          "mul": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "pointwise_mul": [
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "a": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "b": [
+            2147483646,
+            2147483646,
+            2147483646,
+            2147483646
+          ],
+          "add": [
+            2147483646,
+            2147483646,
+            2147483646,
+            2147483646
+          ],
+          "sub": [
+            1,
+            1,
+            1,
+            1
+          ],
+          "mul": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "pointwise_mul": [
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "a": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "b": [
+            2,
+            3,
+            5,
+            7
+          ],
+          "add": [
+            2,
+            3,
+            5,
+            7
+          ],
+          "sub": [
+            2147483645,
+            2147483644,
+            2147483642,
+            2147483640
+          ],
+          "mul": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "pointwise_mul": [
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "a": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "b": [
+            1659099300,
+            905558730,
+            651199673,
+            1375009625
+          ],
+          "add": [
+            1659099300,
+            905558730,
+            651199673,
+            1375009625
+          ],
+          "sub": [
+            488384347,
+            1241924917,
+            1496283974,
+            772474022
+          ],
+          "mul": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "pointwise_mul": [
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "a": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "b": [
+            474642921,
+            876336632,
+            1911695779,
+            974600512
+          ],
+          "add": [
+            474642921,
+            876336632,
+            1911695779,
+            974600512
+          ],
+          "sub": [
+            1672840726,
+            1271147015,
+            235787868,
+            1172883135
+          ],
+          "mul": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "pointwise_mul": [
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "a": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "b": [
+            65535,
+            32767,
+            0,
+            0
+          ],
+          "add": [
+            65535,
+            32767,
+            0,
+            0
+          ],
+          "sub": [
+            2147418112,
+            2147450880,
+            0,
+            0
+          ],
+          "mul": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "pointwise_mul": [
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "a": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "b": [
+            0,
+            0,
+            1073741824,
+            3
+          ],
+          "add": [
+            0,
+            0,
+            1073741824,
+            3
+          ],
+          "sub": [
+            0,
+            0,
+            1073741823,
+            2147483644
+          ],
+          "mul": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "pointwise_mul": [
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "a": [
+            1,
+            0,
+            0,
+            0
+          ],
+          "b": [
+            1,
+            0,
+            0,
+            0
+          ],
+          "add": [
+            2,
+            0,
+            0,
+            0
+          ],
+          "sub": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "mul": [
+            1,
+            0,
+            0,
+            0
+          ],
+          "pointwise_mul": [
+            1,
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "a": [
+            1,
+            0,
+            0,
+            0
+          ],
+          "b": [
+            0,
+            1,
+            0,
+            0
+          ],
+          "add": [
+            1,
+            1,
+            0,
+            0
+          ],
+          "sub": [
+            1,
+            2147483646,
+            0,
+            0
+          ],
+          "mul": [
+            0,
+            1,
+            0,
+            0
+          ],
+          "pointwise_mul": [
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "a": [
+            1,
+            0,
+            0,
+            0
+          ],
+          "b": [
+            0,
+            0,
+            1,
+            0
+          ],
+          "add": [
+            1,
+            0,
+            1,
+            0
+          ],
+          "sub": [
+            1,
+            0,
+            2147483646,
+            0
+          ],
+          "mul": [
+            0,
+            0,
+            1,
+            0
+          ],
+          "pointwise_mul": [
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "a": [
+            1,
+            0,
+            0,
+            0
+          ],
+          "b": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "add": [
+            1,
+            0,
+            0,
+            1
+          ],
+          "sub": [
+            1,
+            0,
+            0,
+            2147483646
+          ],
+          "mul": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "pointwise_mul": [
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "a": [
+            1,
+            0,
+            0,
+            0
+          ],
+          "b": [
+            2147483646,
+            2147483646,
+            2147483646,
+            2147483646
+          ],
+          "add": [
+            0,
+            2147483646,
+            2147483646,
+            2147483646
+          ],
+          "sub": [
+            2,
+            1,
+            1,
+            1
+          ],
+          "mul": [
+            2147483646,
+            2147483646,
+            2147483646,
+            2147483646
+          ],
+          "pointwise_mul": [
+            2147483646,
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "a": [
+            1,
+            0,
+            0,
+            0
+          ],
+          "b": [
+            2,
+            3,
+            5,
+            7
+          ],
+          "add": [
+            3,
+            3,
+            5,
+            7
+          ],
+          "sub": [
+            2147483646,
+            2147483644,
+            2147483642,
+            2147483640
+          ],
+          "mul": [
+            2,
+            3,
+            5,
+            7
+          ],
+          "pointwise_mul": [
+            2,
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "a": [
+            1,
+            0,
+            0,
+            0
+          ],
+          "b": [
+            1659099300,
+            905558730,
+            651199673,
+            1375009625
+          ],
+          "add": [
+            1659099301,
+            905558730,
+            651199673,
+            1375009625
+          ],
+          "sub": [
+            488384348,
+            1241924917,
+            1496283974,
+            772474022
+          ],
+          "mul": [
+            1659099300,
+            905558730,
+            651199673,
+            1375009625
+          ],
+          "pointwise_mul": [
+            1659099300,
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "a": [
+            1,
+            0,
+            0,
+            0
+          ],
+          "b": [
+            474642921,
+            876336632,
+            1911695779,
+            974600512
+          ],
+          "add": [
+            474642922,
+            876336632,
+            1911695779,
+            974600512
+          ],
+          "sub": [
+            1672840727,
+            1271147015,
+            235787868,
+            1172883135
+          ],
+          "mul": [
+            474642921,
+            876336632,
+            1911695779,
+            974600512
+          ],
+          "pointwise_mul": [
+            474642921,
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "a": [
+            1,
+            0,
+            0,
+            0
+          ],
+          "b": [
+            65535,
+            32767,
+            0,
+            0
+          ],
+          "add": [
+            65536,
+            32767,
+            0,
+            0
+          ],
+          "sub": [
+            2147418113,
+            2147450880,
+            0,
+            0
+          ],
+          "mul": [
+            65535,
+            32767,
+            0,
+            0
+          ],
+          "pointwise_mul": [
+            65535,
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "a": [
+            1,
+            0,
+            0,
+            0
+          ],
+          "b": [
+            0,
+            0,
+            1073741824,
+            3
+          ],
+          "add": [
+            1,
+            0,
+            1073741824,
+            3
+          ],
+          "sub": [
+            1,
+            0,
+            1073741823,
+            2147483644
+          ],
+          "mul": [
+            0,
+            0,
+            1073741824,
+            3
+          ],
+          "pointwise_mul": [
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "a": [
+            0,
+            1,
+            0,
+            0
+          ],
+          "b": [
+            0,
+            1,
+            0,
+            0
+          ],
+          "add": [
+            0,
+            2,
+            0,
+            0
+          ],
+          "sub": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "mul": [
+            2147483646,
+            0,
+            0,
+            0
+          ],
+          "pointwise_mul": [
+            0,
+            1,
+            0,
+            0
+          ]
+        },
+        {
+          "a": [
+            0,
+            1,
+            0,
+            0
+          ],
+          "b": [
+            0,
+            0,
+            1,
+            0
+          ],
+          "add": [
+            0,
+            1,
+            1,
+            0
+          ],
+          "sub": [
+            0,
+            1,
+            2147483646,
+            0
+          ],
+          "mul": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "pointwise_mul": [
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "a": [
+            0,
+            1,
+            0,
+            0
+          ],
+          "b": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "add": [
+            0,
+            1,
+            0,
+            1
+          ],
+          "sub": [
+            0,
+            1,
+            0,
+            2147483646
+          ],
+          "mul": [
+            0,
+            0,
+            2147483646,
+            0
+          ],
+          "pointwise_mul": [
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "a": [
+            0,
+            1,
+            0,
+            0
+          ],
+          "b": [
+            2147483646,
+            2147483646,
+            2147483646,
+            2147483646
+          ],
+          "add": [
+            2147483646,
+            0,
+            2147483646,
+            2147483646
+          ],
+          "sub": [
+            1,
+            2,
+            1,
+            1
+          ],
+          "mul": [
+            1,
+            2147483646,
+            1,
+            2147483646
+          ],
+          "pointwise_mul": [
+            0,
+            2147483646,
+            0,
+            0
+          ]
+        },
+        {
+          "a": [
+            0,
+            1,
+            0,
+            0
+          ],
+          "b": [
+            2,
+            3,
+            5,
+            7
+          ],
+          "add": [
+            2,
+            4,
+            5,
+            7
+          ],
+          "sub": [
+            2147483645,
+            2147483645,
+            2147483642,
+            2147483640
+          ],
+          "mul": [
+            2147483644,
+            2,
+            2147483640,
+            5
+          ],
+          "pointwise_mul": [
+            0,
+            3,
+            0,
+            0
+          ]
+        },
+        {
+          "a": [
+            0,
+            1,
+            0,
+            0
+          ],
+          "b": [
+            1659099300,
+            905558730,
+            651199673,
+            1375009625
+          ],
+          "add": [
+            1659099300,
+            905558731,
+            651199673,
+            1375009625
+          ],
+          "sub": [
+            488384347,
+            1241924918,
+            1496283974,
+            772474022
+          ],
+          "mul": [
+            1241924917,
+            1659099300,
+            772474022,
+            651199673
+          ],
+          "pointwise_mul": [
+            0,
+            905558730,
+            0,
+            0
+          ]
+        },
+        {
+          "a": [
+            0,
+            1,
+            0,
+            0
+          ],
+          "b": [
+            474642921,
+            876336632,
+            1911695779,
+            974600512
+          ],
+          "add": [
+            474642921,
+            876336633,
+            1911695779,
+            974600512
+          ],
+          "sub": [
+            1672840726,
+            1271147016,
+            235787868,
+            1172883135
+          ],
+          "mul": [
+            1271147015,
+            474642921,
+            1172883135,
+            1911695779
+          ],
+          "pointwise_mul": [
+            0,
+            876336632,
+            0,
+            0
+          ]
+        },
+        {
+          "a": [
+            0,
+            1,
+            0,
+            0
+          ],
+          "b": [
+            65535,
+            32767,
+            0,
+            0
+          ],
+          "add": [
+            65535,
+            32768,
+            0,
+            0
+          ],
+          "sub": [
+            2147418112,
+            2147450881,
+            0,
+            0
+          ],
+          "mul": [
+            2147450880,
+            65535,
+            0,
+            0
+          ],
+          "pointwise_mul": [
+            0,
+            32767,
+            0,
+            0
+          ]
+        },
+        {
+          "a": [
+            0,
+            1,
+            0,
+            0
+          ],
+          "b": [
+            0,
+            0,
+            1073741824,
+            3
+          ],
+          "add": [
+            0,
+            1,
+            1073741824,
+            3
+          ],
+          "sub": [
+            0,
+            1,
+            1073741823,
+            2147483644
+          ],
+          "mul": [
+            0,
+            0,
+            2147483644,
+            1073741824
+          ],
+          "pointwise_mul": [
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "a": [
+            0,
+            0,
+            1,
+            0
+          ],
+          "b": [
+            0,
+            0,
+            1,
+            0
+          ],
+          "add": [
+            0,
+            0,
+            2,
+            0
+          ],
+          "sub": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "mul": [
+            2,
+            1,
+            0,
+            0
+          ],
+          "pointwise_mul": [
+            0,
+            0,
+            1,
+            0
+          ]
+        },
+        {
+          "a": [
+            0,
+            0,
+            1,
+            0
+          ],
+          "b": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "add": [
+            0,
+            0,
+            1,
+            1
+          ],
+          "sub": [
+            0,
+            0,
+            1,
+            2147483646
+          ],
+          "mul": [
+            2147483646,
+            2,
+            0,
+            0
+          ],
+          "pointwise_mul": [
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "a": [
+            0,
+            0,
+            1,
+            0
+          ],
+          "b": [
+            2147483646,
+            2147483646,
+            2147483646,
+            2147483646
+          ],
+          "add": [
+            2147483646,
+            2147483646,
+            0,
+            2147483646
+          ],
+          "sub": [
+            1,
+            1,
+            2,
+            1
+          ],
+          "mul": [
+            2147483646,
+            2147483644,
+            2147483646,
+            2147483646
+          ],
+          "pointwise_mul": [
+            0,
+            0,
+            2147483646,
+            0
+          ]
+        },
+        {
+          "a": [
+            0,
+            0,
+            1,
+            0
+          ],
+          "b": [
+            2,
+            3,
+            5,
+            7
+          ],
+          "add": [
+            2,
+            3,
+            6,
+            7
+          ],
+          "sub": [
+            2147483645,
+            2147483644,
+            2147483643,
+            2147483640
+          ],
+          "mul": [
+            3,
+            19,
+            2,
+            3
+          ],
+          "pointwise_mul": [
+            0,
+            0,
+            5,
+            0
+          ]
+        },
+        {
+          "a": [
+            0,
+            0,
+            1,
+            0
+          ],
+          "b": [
+            1659099300,
+            905558730,
+            651199673,
+            1375009625
+          ],
+          "add": [
+            1659099300,
+            905558730,
+            651199674,
+            1375009625
+          ],
+          "sub": [
+            488384347,
+            1241924917,
+            1496283975,
+            772474022
+          ],
+          "mul": [
+            2074873368,
+            1253735276,
+            1659099300,
+            905558730
+          ],
+          "pointwise_mul": [
+            0,
+            0,
+            651199673,
+            0
+          ]
+        },
+        {
+          "a": [
+            0,
+            0,
+            1,
+            0
+          ],
+          "b": [
+            474642921,
+            876336632,
+            1911695779,
+            974600512
+          ],
+          "add": [
+            474642921,
+            876336632,
+            1911695780,
+            974600512
+          ],
+          "sub": [
+            1672840726,
+            1271147015,
+            235787869,
+            1172883135
+          ],
+          "mul": [
+            701307399,
+            1713413156,
+            474642921,
+            876336632
+          ],
+          "pointwise_mul": [
+            0,
+            0,
+            1911695779,
+            0
+          ]
+        },
+        {
+          "a": [
+            0,
+            0,
+            1,
+            0
+          ],
+          "b": [
+            65535,
+            32767,
+            0,
+            0
+          ],
+          "add": [
+            65535,
+            32767,
+            1,
+            0
+          ],
+          "sub": [
+            2147418112,
+            2147450880,
+            1,
+            0
+          ],
+          "mul": [
+            0,
+            0,
+            65535,
+            32767
+          ],
+          "pointwise_mul": [
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "a": [
+            0,
+            0,
+            1,
+            0
+          ],
+          "b": [
+            0,
+            0,
+            1073741824,
+            3
+          ],
+          "add": [
+            0,
+            0,
+            1073741825,
+            3
+          ],
+          "sub": [
+            0,
+            0,
+            1073741824,
+            2147483644
+          ],
+          "mul": [
+            2147483645,
+            1073741830,
+            0,
+            0
+          ],
+          "pointwise_mul": [
+            0,
+            0,
+            1073741824,
+            0
+          ]
+        },
+        {
+          "a": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "b": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "add": [
+            0,
+            0,
+            0,
+            2
+          ],
+          "sub": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "mul": [
+            2147483645,
+            2147483646,
+            0,
+            0
+          ],
+          "pointwise_mul": [
+            0,
+            0,
+            0,
+            1
+          ]
+        },
+        {
+          "a": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "b": [
+            2147483646,
+            2147483646,
+            2147483646,
+            2147483646
+          ],
+          "add": [
+            2147483646,
+            2147483646,
+            2147483646,
+            0
+          ],
+          "sub": [
+            1,
+            1,
+            1,
+            2
+          ],
+          "mul": [
+            3,
+            2147483646,
+            1,
+            2147483646
+          ],
+          "pointwise_mul": [
+            0,
+            0,
+            0,
+            2147483646
+          ]
+        },
+        {
+          "a": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "b": [
+            2,
+            3,
+            5,
+            7
+          ],
+          "add": [
+            2,
+            3,
+            5,
+            8
+          ],
+          "sub": [
+            2147483645,
+            2147483644,
+            2147483642,
+            2147483641
+          ],
+          "mul": [
+            2147483628,
+            3,
+            2147483644,
+            2
+          ],
+          "pointwise_mul": [
+            0,
+            0,
+            0,
+            7
+          ]
+        },
+        {
+          "a": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "b": [
+            1659099300,
+            905558730,
+            651199673,
+            1375009625
+          ],
+          "add": [
+            1659099300,
+            905558730,
+            651199673,
+            1375009626
+          ],
+          "sub": [
+            488384347,
+            1241924917,
+            1496283974,
+            772474023
+          ],
+          "mul": [
+            893748371,
+            2074873368,
+            1241924917,
+            1659099300
+          ],
+          "pointwise_mul": [
+            0,
+            0,
+            0,
+            1375009625
+          ]
+        },
+        {
+          "a": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "b": [
+            474642921,
+            876336632,
+            1911695779,
+            974600512
+          ],
+          "add": [
+            474642921,
+            876336632,
+            1911695779,
+            974600513
+          ],
+          "sub": [
+            1672840726,
+            1271147015,
+            235787868,
+            1172883136
+          ],
+          "mul": [
+            434070491,
+            701307399,
+            1271147015,
+            474642921
+          ],
+          "pointwise_mul": [
+            0,
+            0,
+            0,
+            974600512
+          ]
+        },
+        {
+          "a": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "b": [
+            65535,
+            32767,
+            0,
+            0
+          ],
+          "add": [
+            65535,
+            32767,
+            0,
+            1
+          ],
+          "sub": [
+            2147418112,
+            2147450880,
+            0,
+            1
+          ],
+          "mul": [
+            0,
+            0,
+            2147450880,
+            65535
+          ],
+          "pointwise_mul": [
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "a": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "b": [
+            0,
+            0,
+            1073741824,
+            3
+          ],
+          "add": [
+            0,
+            0,
+            1073741824,
+            4
+          ],
+          "sub": [
+            0,
+            0,
+            1073741823,
+            2147483645
+          ],
+          "mul": [
+            1073741817,
+            2147483645,
+            0,
+            0
+          ],
+          "pointwise_mul": [
+            0,
+            0,
+            0,
+            3
+          ]
+        },
+        {
+          "a": [
+            2147483646,
+            2147483646,
+            2147483646,
+            2147483646
+          ],
+          "b": [
+            2147483646,
+            2147483646,
+            2147483646,
+            2147483646
+          ],
+          "add": [
+            2147483645,
+            2147483645,
+            2147483645,
+            2147483645
+          ],
+          "sub": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "mul": [
+            2147483645,
+            6,
+            0,
+            4
+          ],
+          "pointwise_mul": [
+            1,
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "a": [
+            2147483646,
+            2147483646,
+            2147483646,
+            2147483646
+          ],
+          "b": [
+            2,
+            3,
+            5,
+            7
+          ],
+          "add": [
+            1,
+            2,
+            4,
+            6
+          ],
+          "sub": [
+            2147483644,
+            2147483643,
+            2147483641,
+            2147483639
+          ],
+          "mul": [
+            17,
+            2147483620,
+            3,
+            2147483630
+          ],
+          "pointwise_mul": [
+            2147483645,
+            2147483644,
+            2147483642,
+            2147483640
+          ]
+        },
+        {
+          "a": [
+            2147483646,
+            2147483646,
+            2147483646,
+            2147483646
+          ],
+          "b": [
+            1659099300,
+            905558730,
+            651199673,
+            1375009625
+          ],
+          "add": [
+            1659099299,
+            905558729,
+            651199672,
+            1375009624
+          ],
+          "sub": [
+            488384346,
+            1241924916,
+            1496283973,
+            772474021
+          ],
+          "mul": [
+            572804985,
+            549184267,
+            2117753029,
+            1851583613
+          ],
+          "pointwise_mul": [
+            488384347,
+            1241924917,
+            1496283974,
+            772474022
+          ]
+        },
+        {
+          "a": [
+            2147483646,
+            2147483646,
+            2147483646,
+            2147483646
+          ],
+          "b": [
+            474642921,
+            876336632,
+            1911695779,
+            974600512
+          ],
+          "add": [
+            474642920,
+            876336631,
+            1911695778,
+            974600511
+          ],
+          "sub": [
+            1672840725,
+            1271147014,
+            235787867,
+            1172883134
+          ],
+          "mul": [
+            1413799468,
+            529267186,
+            1612082091,
+            57691450
+          ],
+          "pointwise_mul": [
+            1672840726,
+            1271147015,
+            235787868,
+            1172883135
+          ]
+        },
+        {
+          "a": [
+            2147483646,
+            2147483646,
+            2147483646,
+            2147483646
+          ],
+          "b": [
+            65535,
+            32767,
+            0,
+            0
+          ],
+          "add": [
+            65534,
+            32766,
+            2147483646,
+            2147483646
+          ],
+          "sub": [
+            2147418111,
+            2147450879,
+            2147483646,
+            2147483646
+          ],
+          "mul": [
+            2147450879,
+            2147385345,
+            2147450879,
+            2147385345
+          ],
+          "pointwise_mul": [
+            2147418112,
+            2147450880,
+            0,
+            0
+          ]
+        },
+        {
+          "a": [
+            2147483646,
+            2147483646,
+            2147483646,
+            2147483646
+          ],
+          "b": [
+            0,
+            0,
+            1073741824,
+            3
+          ],
+          "add": [
+            2147483646,
+            2147483646,
+            1073741823,
+            2
+          ],
+          "sub": [
+            2147483646,
+            2147483646,
+            1073741822,
+            2147483643
+          ],
+          "mul": [
+            1073741832,
+            1073741819,
+            1073741826,
+            1073741820
+          ],
+          "pointwise_mul": [
+            0,
+            0,
+            1073741823,
+            2147483644
+          ]
+        },
+        {
+          "a": [
+            2,
+            3,
+            5,
+            7
+          ],
+          "b": [
+            2,
+            3,
+            5,
+            7
+          ],
+          "add": [
+            4,
+            6,
+            10,
+            14
+          ],
+          "sub": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "mul": [
+            2147483524,
+            128,
+            2147483625,
+            58
+          ],
+          "pointwise_mul": [
+            4,
+            9,
+            25,
+            49
+          ]
+        },
+        {
+          "a": [
+            2,
+            3,
+            5,
+            7
+          ],
+          "b": [
+            1659099300,
+            905558730,
+            651199673,
+            1375009625
+          ],
+          "add": [
+            1659099302,
+            905558733,
+            651199678,
+            1375009632
+          ],
+          "sub": [
+            488384349,
+            1241924920,
+            1496283979,
+            772474029
+          ],
+          "mul": [
+            52258671,
+            1811401552,
+            1281439508,
+            1517754196
+          ],
+          "pointwise_mul": [
+            1170714953,
+            569192543,
+            1108514718,
+            1035132787
+          ]
+        },
+        {
+          "a": [
+            2,
+            3,
+            5,
+            7
+          ],
+          "b": [
+            474642921,
+            876336632,
+            1911695779,
+            974600512
+          ],
+          "add": [
+            474642923,
+            876336635,
+            1911695784,
+            974600519
+          ],
+          "sub": [
+            1672840728,
+            1271147018,
+            235787873,
+            1172883142
+          ],
+          "mul": [
+            570339084,
+            1620434071,
+            1433415497,
+            356086439
+          ],
+          "pointwise_mul": [
+            949285842,
+            481526249,
+            968544307,
+            379752643
+          ]
+        },
+        {
+          "a": [
+            2,
+            3,
+            5,
+            7
+          ],
+          "b": [
+            65535,
+            32767,
+            0,
+            0
+          ],
+          "add": [
+            65537,
+            32770,
+            5,
+            7
+          ],
+          "sub": [
+            2147418114,
+            2147450883,
+            5,
+            7
+          ],
+          "mul": [
+            32769,
+            262139,
+            98306,
+            622580
+          ],
+          "pointwise_mul": [
+            131070,
+            98301,
+            0,
+            0
+          ]
+        },
+        {
+          "a": [
+            2,
+            3,
+            5,
+            7
+          ],
+          "b": [
+            0,
+            0,
+            1073741824,
+            3
+          ],
+          "add": [
+            2,
+            3,
+            1073741829,
+            10
+          ],
+          "sub": [
+            2,
+            3,
+            1073741828,
+            4
+          ],
+          "mul": [
+            1073741768,
+            1073741842,
+            2147483639,
+            1073741831
+          ],
+          "pointwise_mul": [
+            0,
+            0,
+            1073741826,
+            21
+          ]
+        },
+        {
+          "a": [
+            1659099300,
+            905558730,
+            651199673,
+            1375009625
+          ],
+          "b": [
+            1659099300,
+            905558730,
+            651199673,
+            1375009625
+          ],
+          "add": [
+            1170714953,
+            1811117460,
+            1302399346,
+            602535603
+          ],
+          "sub": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "mul": [
+            361565069,
+            1716567450,
+            1964445262,
+            2030930859
+          ],
+          "pointwise_mul": [
+            1184080479,
+            536927565,
+            1765044270,
+            518621166
+          ]
+        },
+        {
+          "a": [
+            1659099300,
+            905558730,
+            651199673,
+            1375009625
+          ],
+          "b": [
+            474642921,
+            876336632,
+            1911695779,
+            974600512
+          ],
+          "add": [
+            2133742221,
+            1781895362,
+            415411805,
+            202126490
+          ],
+          "sub": [
+            1184456379,
+            29222098,
+            886987541,
+            400409113
+          ],
+          "mul": [
+            1543247627,
+            1167444462,
+            1699995427,
+            893530206
+          ],
+          "pointwise_mul": [
+            1476989584,
+            1022080232,
+            1584768721,
+            1835435985
+          ]
+        },
+        {
+          "a": [
+            1659099300,
+            905558730,
+            651199673,
+            1375009625
+          ],
+          "b": [
+            65535,
+            32767,
+            0,
+            0
+          ],
+          "add": [
+            1659164835,
+            905591497,
+            651199673,
+            1375009625
+          ],
+          "sub": [
+            1659033765,
+            905525963,
+            651199673,
+            1375009625
+          ],
+          "mul": [
+            1314222579,
+            239025000,
+            842068556,
+            1156631207
+          ],
+          "pointwise_mul": [
+            1975577890,
+            661355311,
+            0,
+            0
+          ]
+        },
+        {
+          "a": [
+            1659099300,
+            905558730,
+            651199673,
+            1375009625
+          ],
+          "b": [
+            0,
+            0,
+            1073741824,
+            3
+          ],
+          "add": [
+            1659099300,
+            905558730,
+            1724941497,
+            1375009628
+          ],
+          "sub": [
+            1659099300,
+            905558730,
+            1724941496,
+            1375009622
+          ],
+          "mul": [
+            1571198150,
+            409036801,
+            260357107,
+            1135109971
+          ],
+          "pointwise_mul": [
+            0,
+            0,
+            1399341660,
+            1977545228
+          ]
+        },
+        {
+          "a": [
+            474642921,
+            876336632,
+            1911695779,
+            974600512
+          ],
+          "b": [
+            474642921,
+            876336632,
+            1911695779,
+            974600512
+          ],
+          "add": [
+            949285842,
+            1752673264,
+            1675907911,
+            1949201024
+          ],
+          "sub": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "mul": [
+            799144237,
+            1711909239,
+            2107232726,
+            1772989668
+          ],
+          "pointwise_mul": [
+            855824060,
+            678910482,
+            174127475,
+            1890230296
+          ]
+        },
+        {
+          "a": [
+            474642921,
+            876336632,
+            1911695779,
+            974600512
+          ],
+          "b": [
+            65535,
+            32767,
+            0,
+            0
+          ],
+          "add": [
+            474708456,
+            876369399,
+            1911695779,
+            974600512
+          ],
+          "sub": [
+            474577386,
+            876303865,
+            1911695779,
+            974600512
+          ],
+          "mul": [
+            652107880,
+            1114027232,
+            1428732265,
+            571015996
+          ],
+          "pointwise_mul": [
+            1570684587,
+            918576707,
+            0,
+            0
+          ]
+        },
+        {
+          "a": [
+            474642921,
+            876336632,
+            1911695779,
+            974600512
+          ],
+          "b": [
+            0,
+            0,
+            1073741824,
+            3
+          ],
+          "add": [
+            474642921,
+            876336632,
+            837953956,
+            974600515
+          ],
+          "sub": [
+            474642921,
+            876336632,
+            837953955,
+            974600509
+          ],
+          "mul": [
+            579123349,
+            813145128,
+            829537035,
+            1862097079
+          ],
+          "pointwise_mul": [
+            0,
+            0,
+            2029589713,
+            776317889
+          ]
+        },
+        {
+          "a": [
+            65535,
+            32767,
+            0,
+            0
+          ],
+          "b": [
+            65535,
+            32767,
+            0,
+            0
+          ],
+          "add": [
+            131070,
+            65534,
+            0,
+            0
+          ],
+          "sub": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "mul": [
+            1073676289,
+            2147287043,
+            0,
+            0
+          ],
+          "pointwise_mul": [
+            2147352578,
+            1073676289,
+            0,
+            0
+          ]
+        },
+        {
+          "a": [
+            65535,
+            32767,
+            0,
+            0
+          ],
+          "b": [
+            0,
+            0,
+            1073741824,
+            3
+          ],
+          "add": [
+            65535,
+            32767,
+            1073741824,
+            3
+          ],
+          "sub": [
+            65535,
+            32767,
+            1073741823,
+            2147483644
+          ],
+          "mul": [
+            0,
+            0,
+            1073676290,
+            1073954812
+          ],
+          "pointwise_mul": [
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "a": [
+            0,
+            0,
+            1073741824,
+            3
+          ],
+          "b": [
+            0,
+            0,
+            1073741824,
+            3
+          ],
+          "add": [
+            0,
+            0,
+            1,
+            6
+          ],
+          "sub": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "mul": [
+            1073741803,
+            536870909,
+            0,
+            0
+          ],
+          "pointwise_mul": [
+            0,
+            0,
+            536870912,
+            9
+          ]
+        }
+      ],
+      "qm31_unary": [
+        {
+          "a": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "neg": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "inverse": null,
+          "pointwise_inv_or_zero": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "pointwise_lsb": [
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "a": [
+            1,
+            0,
+            0,
+            0
+          ],
+          "neg": [
+            2147483646,
+            0,
+            0,
+            0
+          ],
+          "inverse": [
+            1,
+            0,
+            0,
+            0
+          ],
+          "pointwise_inv_or_zero": [
+            1,
+            0,
+            0,
+            0
+          ],
+          "pointwise_lsb": [
+            1,
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "a": [
+            0,
+            1,
+            0,
+            0
+          ],
+          "neg": [
+            0,
+            2147483646,
+            0,
+            0
+          ],
+          "inverse": [
+            0,
+            2147483646,
+            0,
+            0
+          ],
+          "pointwise_inv_or_zero": [
+            0,
+            1,
+            0,
+            0
+          ],
+          "pointwise_lsb": [
+            0,
+            1,
+            0,
+            0
+          ]
+        },
+        {
+          "a": [
+            0,
+            0,
+            1,
+            0
+          ],
+          "neg": [
+            0,
+            0,
+            2147483646,
+            0
+          ],
+          "inverse": [
+            0,
+            0,
+            1717986918,
+            1288490188
+          ],
+          "pointwise_inv_or_zero": [
+            0,
+            0,
+            1,
+            0
+          ],
+          "pointwise_lsb": [
+            0,
+            0,
+            1,
+            0
+          ]
+        },
+        {
+          "a": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "neg": [
+            0,
+            0,
+            0,
+            2147483646
+          ],
+          "inverse": [
+            0,
+            0,
+            1288490188,
+            429496729
+          ],
+          "pointwise_inv_or_zero": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "pointwise_lsb": [
+            0,
+            0,
+            0,
+            1
+          ]
+        },
+        {
+          "a": [
+            2147483646,
+            2147483646,
+            2147483646,
+            2147483646
+          ],
+          "neg": [
+            1,
+            1,
+            1,
+            1
+          ],
+          "inverse": [
+            0,
+            1073741823,
+            0,
+            1073741824
+          ],
+          "pointwise_inv_or_zero": [
+            2147483646,
+            2147483646,
+            2147483646,
+            2147483646
+          ],
+          "pointwise_lsb": [
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "a": [
+            2,
+            3,
+            5,
+            7
+          ],
+          "neg": [
+            2147483645,
+            2147483644,
+            2147483642,
+            2147483640
+          ],
+          "inverse": [
+            1872321655,
+            1001036049,
+            1570299045,
+            399995576
+          ],
+          "pointwise_inv_or_zero": [
+            1073741824,
+            1431655765,
+            858993459,
+            1840700269
+          ],
+          "pointwise_lsb": [
+            0,
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "a": [
+            1659099300,
+            905558730,
+            651199673,
+            1375009625
+          ],
+          "neg": [
+            488384347,
+            1241924917,
+            1496283974,
+            772474022
+          ],
+          "inverse": [
+            130787272,
+            1679167739,
+            1299423034,
+            522048475
+          ],
+          "pointwise_inv_or_zero": [
+            1951266280,
+            1990569847,
+            24540817,
+            2050650214
+          ],
+          "pointwise_lsb": [
+            0,
+            0,
+            1,
+            1
+          ]
+        },
+        {
+          "a": [
+            474642921,
+            876336632,
+            1911695779,
+            974600512
+          ],
+          "neg": [
+            1672840726,
+            1271147015,
+            235787868,
+            1172883135
+          ],
+          "inverse": [
+            325116298,
+            1753335658,
+            1411020326,
+            122942994
+          ],
+          "pointwise_inv_or_zero": [
+            1355623842,
+            1914593272,
+            348872415,
+            1969256050
+          ],
+          "pointwise_lsb": [
+            1,
+            0,
+            1,
+            0
+          ]
+        },
+        {
+          "a": [
+            65535,
+            32767,
+            0,
+            0
+          ],
+          "neg": [
+            2147418112,
+            2147450880,
+            0,
+            0
+          ],
+          "inverse": [
+            1431699456,
+            21846,
+            0,
+            0
+          ],
+          "pointwise_inv_or_zero": [
+            65537,
+            2147418109,
+            0,
+            0
+          ],
+          "pointwise_lsb": [
+            1,
+            1,
+            0,
+            0
+          ]
+        },
+        {
+          "a": [
+            0,
+            0,
+            1073741824,
+            3
+          ],
+          "neg": [
+            0,
+            0,
+            1073741823,
+            2147483644
+          ],
+          "inverse": [
+            0,
+            0,
+            1497434543,
+            34824059
+          ],
+          "pointwise_inv_or_zero": [
+            0,
+            0,
+            2,
+            1431655765
+          ],
+          "pointwise_lsb": [
+            0,
+            0,
+            0,
+            1
+          ]
+        }
+      ],
+      "m31_to_u32": [
+        {
+          "input": 0,
+          "output": [
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "input": 1,
+          "output": [
+            1,
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "input": 65535,
+          "output": [
+            65535,
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "input": 65536,
+          "output": [
+            0,
+            1,
+            0,
+            0
+          ]
+        },
+        {
+          "input": 305419896,
+          "output": [
+            22136,
+            4660,
+            0,
+            0
+          ]
+        },
+        {
+          "input": 2147483646,
+          "output": [
+            65534,
+            32767,
+            0,
+            0
+          ]
+        }
+      ],
+      "pack_u32": [
+        {
+          "value": 0,
+          "packed": [
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "value": 1,
+          "packed": [
+            1,
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "value": 2,
+          "packed": [
+            2,
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "value": 65535,
+          "packed": [
+            65535,
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "value": 65536,
+          "packed": [
+            0,
+            1,
+            0,
+            0
+          ]
+        },
+        {
+          "value": 305419896,
+          "packed": [
+            22136,
+            4660,
+            0,
+            0
+          ]
+        },
+        {
+          "value": 2147483646,
+          "packed": [
+            65534,
+            32767,
+            0,
+            0
+          ]
+        },
+        {
+          "value": 2147483647,
+          "packed": [
+            65535,
+            32767,
+            0,
+            0
+          ]
+        },
+        {
+          "value": 2147483648,
+          "packed": [
+            0,
+            32768,
+            0,
+            0
+          ]
+        },
+        {
+          "value": 4294967294,
+          "packed": [
+            65534,
+            65535,
+            0,
+            0
+          ]
+        },
+        {
+          "value": 4294967295,
+          "packed": [
+            65535,
+            65535,
+            0,
+            0
+          ]
+        }
+      ]
+    },
+    "hashing": {
+      "hashers": [
+        {
+          "hasher": "blake2s",
+          "words": [],
+          "hash_u32s": "69217a3079908094e11121d042354a7c1f55b6482ca1a51e1b250dfd1ed0eef9",
+          "followed_by_digest": "efee1538e0216d3a09ce742ce768c44a7db004d801c40f66040994353f55fe85",
+          "hash_u32s_followed_by_digest": "6aa93747b2a5f8d8f633f359c5195649b35a0c8f4e8285913444a6ebe8f41b7f"
+        },
+        {
+          "hasher": "blake2s",
+          "words": [
+            1
+          ],
+          "hash_u32s": "b1fa77b39910ec3814fe1694effb70017d5ad177a8df7a88fe059ca098c8ff70",
+          "followed_by_digest": "efee1538e0216d3a09ce742ce768c44a7db004d801c40f66040994353f55fe85",
+          "hash_u32s_followed_by_digest": "f8ade1906f8668bc3f6c84eb7ac2e46a6c063b5f9280f75e2bc37d800b01e2e3"
+        },
+        {
+          "hasher": "blake2s",
+          "words": [
+            1,
+            0
+          ],
+          "hash_u32s": "9e7ea5deb229c6ddb97172622bed2ee83a7d652f6ed6f5c1aa0b9e2bae8da960",
+          "followed_by_digest": "efee1538e0216d3a09ce742ce768c44a7db004d801c40f66040994353f55fe85",
+          "hash_u32s_followed_by_digest": "02159766f6dbeeba1576a96d76d8e96a80fd96668fbeee91422fe33ce808229c"
+        },
+        {
+          "hasher": "blake2s",
+          "words": [
+            0,
+            1,
+            2,
+            3,
+            305419896,
+            4294967295,
+            7,
+            8,
+            9
+          ],
+          "hash_u32s": "efee1538e0216d3a09ce742ce768c44a7db004d801c40f66040994353f55fe85",
+          "followed_by_digest": "efee1538e0216d3a09ce742ce768c44a7db004d801c40f66040994353f55fe85",
+          "hash_u32s_followed_by_digest": "18a60268d189dccf5065ddd361d280474fbc2b08d75a7e4e1c20e57a67f2f7fa"
+        },
+        {
+          "hasher": "blake2s",
+          "words": [
+            16843009,
+            33686018,
+            50529027,
+            67372036,
+            84215045,
+            101058054,
+            117901063,
+            134744072,
+            151587081,
+            168430090,
+            185273099,
+            202116108
+          ],
+          "hash_u32s": "e1e149c1c96e34eb1d909860b6538d030885c3335fecbd37538946442157d6ae",
+          "followed_by_digest": "efee1538e0216d3a09ce742ce768c44a7db004d801c40f66040994353f55fe85",
+          "hash_u32s_followed_by_digest": "d13470981667f43e9e2e76bdf23afcc46987432f6965ba594451a1302baa5fe3"
+        },
+        {
+          "hasher": "blake2s",
+          "words": [
+            2147483647,
+            2147483646,
+            2147483645,
+            2147483644,
+            2147483643,
+            2147483642,
+            2147483641,
+            2147483640,
+            2147483639,
+            2147483638,
+            2147483637,
+            2147483636,
+            2147483635,
+            2147483634,
+            2147483633,
+            2147483632
+          ],
+          "hash_u32s": "d61e5c9a9066f00ee196797ce18fd9a0c5560565ba33189f47f9b9388237bbfb",
+          "followed_by_digest": "efee1538e0216d3a09ce742ce768c44a7db004d801c40f66040994353f55fe85",
+          "hash_u32s_followed_by_digest": "f4ce0e4bbb5d96a898eb0238100cb6e0ac9f34116a83b56c27fc7ae71db5f82e"
+        },
+        {
+          "hasher": "blake2s",
+          "words": [
+            4294967295,
+            4294967294,
+            4294967293,
+            4294967292,
+            4294967291,
+            4294967290,
+            4294967289,
+            4294967288,
+            4294967287,
+            4294967286,
+            4294967285,
+            4294967284,
+            4294967283,
+            4294967282,
+            4294967281,
+            4294967280,
+            4294967279
+          ],
+          "hash_u32s": "789903296677f8fd1c7ce3eebddf5697685d4782b71af5fdc8d6d32b066b13da",
+          "followed_by_digest": "efee1538e0216d3a09ce742ce768c44a7db004d801c40f66040994353f55fe85",
+          "hash_u32s_followed_by_digest": "eef7a3a516a10658fa2635cc3dd5fb67c95c02d41ded0f1f20f755e7ae8e1be3"
+        },
+        {
+          "hasher": "blake2s_m31",
+          "words": [],
+          "hash_u32s": "69217a307a908014e211215042354a7c1f55b6482ca1a51e1c250d7d1fd0ee79",
+          "followed_by_digest": "efee1538e0216d3a09ce742ce768c44a7db004d801c40f66040994353f55fe85",
+          "hash_u32s_followed_by_digest": "6aa93747b3a5f858f633f359c5195649b45a0c0f4f8285113544a66be8f41b7f"
+        },
+        {
+          "hasher": "blake2s_m31",
+          "words": [
+            1
+          ],
+          "hash_u32s": "b2fa77339910ec3815fe1614effb70017d5ad177a9df7a08ff059c2098c8ff70",
+          "followed_by_digest": "efee1538e0216d3a09ce742ce768c44a7db004d801c40f66040994353f55fe85",
+          "hash_u32s_followed_by_digest": "f9ade1107086683c406c846b7ac2e46a6c063b5f9280f75e2cc37d000c01e263"
+        },
+        {
+          "hasher": "blake2s_m31",
+          "words": [
+            1,
+            0
+          ],
+          "hash_u32s": "9f7ea55eb329c65db97172622ced2e683a7d652f6fd6f541aa0b9e2bae8da960",
+          "followed_by_digest": "efee1538e0216d3a09ce742ce768c44a7db004d801c40f66040994353f55fe85",
+          "hash_u32s_followed_by_digest": "02159766f7dbee3a1576a96d76d8e96a80fd966690beee11422fe33ce908221c"
+        },
+        {
+          "hasher": "blake2s_m31",
+          "words": [
+            0,
+            1,
+            2,
+            3,
+            305419896,
+            4294967295,
+            7,
+            8,
+            9
+          ],
+          "hash_u32s": "efee1538e0216d3a09ce742ce768c44a7eb0045801c40f66040994354055fe05",
+          "followed_by_digest": "efee1538e0216d3a09ce742ce768c44a7db004d801c40f66040994353f55fe85",
+          "hash_u32s_followed_by_digest": "18a60268d289dc4f5165dd5361d280474fbc2b08d75a7e4e1c20e57a68f2f77a"
+        },
+        {
+          "hasher": "blake2s_m31",
+          "words": [
+            16843009,
+            33686018,
+            50529027,
+            67372036,
+            84215045,
+            101058054,
+            117901063,
+            134744072,
+            151587081,
+            168430090,
+            185273099,
+            202116108
+          ],
+          "hash_u32s": "e2e14941ca6e346b1d909860b6538d030885c3335fecbd37538946442257d62e",
+          "followed_by_digest": "efee1538e0216d3a09ce742ce768c44a7db004d801c40f66040994353f55fe85",
+          "hash_u32s_followed_by_digest": "d23470181667f43e9f2e763df33afc446987432f6965ba594451a1302caa5f63"
+        },
+        {
+          "hasher": "blake2s_m31",
+          "words": [
+            2147483647,
+            2147483646,
+            2147483645,
+            2147483644,
+            2147483643,
+            2147483642,
+            2147483641,
+            2147483640,
+            2147483639,
+            2147483638,
+            2147483637,
+            2147483636,
+            2147483635,
+            2147483634,
+            2147483633,
+            2147483632
+          ],
+          "hash_u32s": "d71e5c1a9066f00ee196797ce28fd920c5560565bb33181f47f9b9388337bb7b",
+          "followed_by_digest": "efee1538e0216d3a09ce742ce768c44a7db004d801c40f66040994353f55fe85",
+          "hash_u32s_followed_by_digest": "f4ce0e4bbc5d962898eb0238110cb660ac9f34116a83b56c28fc7a671db5f82e"
+        },
+        {
+          "hasher": "blake2s_m31",
+          "words": [
+            4294967295,
+            4294967294,
+            4294967293,
+            4294967292,
+            4294967291,
+            4294967290,
+            4294967289,
+            4294967288,
+            4294967287,
+            4294967286,
+            4294967285,
+            4294967284,
+            4294967283,
+            4294967282,
+            4294967281,
+            4294967280,
+            4294967279
+          ],
+          "hash_u32s": "789903296777f87d1d7ce36ebedf5617695d4702b81af57dc8d6d32b076b135a",
+          "followed_by_digest": "efee1538e0216d3a09ce742ce768c44a7db004d801c40f66040994353f55fe85",
+          "hash_u32s_followed_by_digest": "eff7a32516a10658fb26354c3dd5fb67ca5c02541ded0f1f21f75567af8e1b63"
+        }
+      ],
+      "concat_and_hash": [
+        {
+          "hasher": "blake2s",
+          "left": "0000000001000000020000000300000004000000050000000600000007000000",
+          "right": "ffffff7f00000080ffffffff00000080feffff7f000000000100000002000000",
+          "concat_and_hash": "b29c9ca20ea2cd69c76f56e0c13d56b7a76a4d1e6155b56acdf37a60a0c6d1f0"
+        },
+        {
+          "hasher": "blake2s_m31",
+          "left": "0000000001000000020000000300000004000000050000000600000007000000",
+          "right": "ffffff7f00000080ffffffff00000080feffff7f000000000100000002000000",
+          "concat_and_hash": "b39c9c220ea2cd69c86f5660c23d5637a76a4d1e6155b56acdf37a60a1c6d170"
+        }
+      ],
+      "reduce_to_m31": [
+        {
+          "input": "0000000001000000feffff7fffffff7f0000008000000080ffffffff39300000",
+          "output": "0000000001000000feffff7f0000000001000000010000000100000039300000"
+        },
+        {
+          "input": "fefffffffeffff7fefbeadde00000000ffffff7fffffff7fffffffff01000000",
+          "output": "00000000feffff7ff0bead5e0000000000000000000000000100000001000000"
+        }
+      ],
+      "circuit_hash": [
+        {
+          "name": "circuit_hash_test_golden",
+          "log_blowup_factor": 3,
+          "component_log_sizes": [
+            17,
+            21,
+            17,
+            18,
+            20,
+            16,
+            20,
+            8,
+            14,
+            18,
+            16
+          ],
+          "config_words": [
+            286593283,
+            336598034,
+            269618696
+          ],
+          "preprocessed_root": "0000000001000000020000000300000004000000050000000600000007000000",
+          "circuit_hash": "410681a885123952d27fb3907a885b9081dcb77d31a7c3a7346bd4d071a4a68f",
+          "in_circuit_words": [
+            2827028033,
+            1379472005,
+            2427682770,
+            2421917818,
+            2109201537,
+            2814617393,
+            3503582004,
+            2410062961
+          ]
+        },
+        {
+          "name": "leaf_prover_leaf_verifier",
+          "log_blowup_factor": 1,
+          "component_log_sizes": [
+            20,
+            23,
+            19,
+            20,
+            23,
+            16,
+            20,
+            8,
+            14,
+            18,
+            16
+          ],
+          "config_words": [
+            320279553,
+            336598804,
+            269618696
+          ],
+          "preprocessed_root": "d643afad9590e3be91b8ce902da2c8733c75064c189646d546a9b56c97c52554",
+          "circuit_hash": "68d6c6f2dbda7dd22d258f66d36e6adfeb1cdd85da439585353d8f461f07f8b6",
+          "in_circuit_words": [
+            4073117288,
+            3531463387,
+            1720657197,
+            3748294355,
+            2245860587,
+            2241151962,
+            1183792437,
+            3069708063
+          ]
+        },
+        {
+          "name": "leaf_prover_multiverifier",
+          "log_blowup_factor": 1,
+          "component_log_sizes": [
+            20,
+            23,
+            19,
+            20,
+            23,
+            16,
+            20,
+            8,
+            14,
+            18,
+            16
+          ],
+          "config_words": [
+            320279553,
+            336598804,
+            269618696
+          ],
+          "preprocessed_root": "cf5339d176cf1c660afee67b69b53d0a914eba4e1716a2c2b6432eba917aa89d",
+          "circuit_hash": "8737014d6ecf134d93c717bab33e99b79e42ee42e5d78de36d9b42f569ca0e52",
+          "in_circuit_words": [
+            1291925383,
+            1293143918,
+            3122120595,
+            3080273587,
+            1122910878,
+            3817723877,
+            4114783085,
+            1376701033
+          ]
+        },
+        {
+          "name": "recursive_tree_leaf_verifier",
+          "log_blowup_factor": 1,
+          "component_log_sizes": [
+            20,
+            23,
+            20,
+            21,
+            23,
+            16,
+            20,
+            8,
+            14,
+            18,
+            16
+          ],
+          "config_words": [
+            337056769,
+            336598805,
+            269618696
+          ],
+          "preprocessed_root": "24f31e59f1f98c3a0a64480e3621329997aecaa1d341ada59bb1d93da1f24587",
+          "circuit_hash": "425ad8d2227b697961a0413a93b31c01c90e047acaf4084509942342eabaf360",
+          "in_circuit_words": [
+            3537394242,
+            2036955938,
+            977379425,
+            18658195,
+            2047086281,
+            1158214858,
+            1109627913,
+            1626585834
+          ]
+        },
+        {
+          "name": "recursive_tree_multiverifier",
+          "log_blowup_factor": 1,
+          "component_log_sizes": [
+            20,
+            23,
+            20,
+            21,
+            23,
+            16,
+            20,
+            8,
+            14,
+            18,
+            16
+          ],
+          "config_words": [
+            337056769,
+            336598805,
+            269618696
+          ],
+          "preprocessed_root": "39ab79e4ace45bc522c3989f54023bd7fb54aeb7c5548ae7136f48b04510e966",
+          "circuit_hash": "159798a57ac0772344e8d1c64da0f0547d5ae68b61c273fd28e778900f683f97",
+          "in_circuit_words": [
+            2778240789,
+            595050618,
+            3335645252,
+            1425055821,
+            2347129469,
+            4252222049,
+            2423842600,
+            2537515023
+          ]
+        }
+      ]
+    },
+    "formats": {
+      "chacha20_rng": [
+        {
+          "name": "zero_seed",
+          "seed": "0000000000000000000000000000000000000000000000000000000000000000",
+          "next_u32": [
+            2917185654,
+            2419978656,
+            3848953152,
+            683509331,
+            3088700093,
+            451775904,
+            3438229160,
+            3339548555,
+            2086224346,
+            2370328401,
+            1071654007,
+            927652024,
+            4105716586,
+            480319509,
+            1773569987,
+            2254827186,
+            3202811807,
+            2050511189,
+            2090318488,
+            218639731,
+            2687045579,
+            1768285000,
+            1045677586,
+            3984256562,
+            1981921065,
+            1129244316,
+            2956161493,
+            3577337972,
+            673180977,
+            1174080081,
+            520806828,
+            1867348299,
+            3869247789,
+            3781961315,
+            147947182,
+            1973446681,
+            2576249230,
+            3328365435,
+            877052848,
+            1572053161,
+            1748444929,
+            257784607,
+            4248444456,
+            515660004,
+            332649075,
+            3230977993,
+            1651635039,
+            4064846400,
+            1486888979,
+            1800844247,
+            2866421973,
+            180343358,
+            548518085,
+            1931970043,
+            882336707,
+            2760989876,
+            2211173421,
+            772637944,
+            324579821,
+            1068261904,
+            4294454303,
+            1444466029,
+            1813932776,
+            2115397425,
+            1955112677,
+            2915387179,
+            3755235835,
+            2971532662,
+            1004543717,
+            720939292,
+            3678279626,
+            1200845451,
+            261668430,
+            3373288848,
+            1194017814,
+            2229903491,
+            3384151174,
+            949793623,
+            3478228973,
+            1300932346,
+            2737115360,
+            1178947740,
+            102030521,
+            355003303,
+            3612365086,
+            2813985970,
+            2448479257,
+            3675722242,
+            3367367004,
+            447172428,
+            2702218887,
+            1387042214,
+            2002148220,
+            562719562,
+            2240211114,
+            1275694726,
+            167026418,
+            212465418,
+            394821312,
+            1669812906,
+            859602297,
+            1271555883,
+            744755393,
+            1206669601,
+            2362148078,
+            274716738,
+            416000226,
+            1597224899,
+            2596530214,
+            3250368786,
+            3078058352,
+            779303009,
+            1303882477,
+            3222225313,
+            2349263445,
+            170322329,
+            3476546507,
+            3841998429,
+            4262405043,
+            127470555,
+            247976071,
+            2554461707,
+            3713558506,
+            1610309978,
+            2180591084,
+            3790543859,
+            387840083,
+            3682866966,
+            3575810076,
+            2112803132,
+            1211511477,
+            83148072,
+            3702014128,
+            3555926725,
+            1273797337,
+            3102562176
+          ]
+        },
+        {
+          "name": "ascending_seed",
+          "seed": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+          "next_u32": [
+            2100034873,
+            1780073945,
+            1996733837,
+            1229642936,
+            1876440458,
+            3429555900,
+            1283312818,
+            2451892952,
+            3888915243,
+            2871222434,
+            1777274431,
+            1686095930,
+            3929375269,
+            765720497,
+            2690787266,
+            205609800,
+            826456088,
+            3517376173,
+            1633444115,
+            659440559,
+            4126388728,
+            1549512161,
+            318568684,
+            1551185194,
+            1829242994,
+            1564274385,
+            609780125,
+            1006636644,
+            1593221275,
+            3461963230,
+            2135566861,
+            3445265713,
+            3693998658,
+            3583134375,
+            4018841452,
+            997363241,
+            914301792,
+            3082742343,
+            815587571,
+            3806560462,
+            453159044,
+            604724362,
+            2369572244,
+            2119177051,
+            2023811015,
+            3802395725,
+            3529671146,
+            597542241,
+            3222383591,
+            2117811447,
+            1345951920,
+            2697257651,
+            2839381135,
+            3019683679,
+            2169910513,
+            2193052011,
+            3187274317,
+            3033797462,
+            3626997229,
+            2551958872,
+            4294495050,
+            3366441247,
+            2820462598,
+            742108900,
+            413260799,
+            1133271079,
+            3929298063,
+            2411615945,
+            2906890389,
+            184405252,
+            1241175959,
+            2651393492,
+            777203170,
+            1073772461,
+            1448403962,
+            4060301915,
+            445970973,
+            4101394237,
+            2434834169,
+            1700110565,
+            2785011467,
+            1009357050,
+            2645665773,
+            3510736682,
+            3223215956,
+            2778526893,
+            1319414937,
+            1522558773,
+            2516348704,
+            3858134066,
+            1564081920,
+            2987589444,
+            1551828602,
+            2763094097,
+            934288170,
+            76920648,
+            3635224062,
+            1495815331,
+            1112345971,
+            1114532226,
+            1437945801,
+            2760371872,
+            186832587,
+            65388501,
+            3738857587,
+            877940176,
+            1689288035,
+            124802910,
+            2135643930,
+            3332767940,
+            458404373,
+            799618522,
+            3191363608,
+            375126187,
+            1182549509,
+            3897594644,
+            4015948151,
+            2608676807,
+            2561774653,
+            3388604119,
+            74894615,
+            4294870333,
+            1920138348,
+            3001018097,
+            49405441,
+            1528295596,
+            35644495,
+            4070337898,
+            2955826763,
+            566958412,
+            3579536097,
+            2390871139,
+            1439030736,
+            3056205696,
+            2714062589,
+            1366586801
+          ]
+        },
+        {
+          "name": "blake2s_digest_seed",
+          "seed": "efee1538e0216d3a09ce742ce768c44a7db004d801c40f66040994353f55fe85",
+          "next_u32": [
+            2106562343,
+            1031812070,
+            2999298993,
+            275818461,
+            2348678500,
+            2767671604,
+            642388594,
+            1646485366,
+            2768652657,
+            2546895287,
+            2024383476,
+            3634875182,
+            1270225343,
+            3530012121,
+            3808170591,
+            3505738459,
+            305997364,
+            964107157,
+            639195225,
+            3564102644,
+            1505161294,
+            3184146689,
+            3014582470,
+            4058061939,
+            3389014402,
+            2485695658,
+            418181425,
+            4027893734,
+            4077393260,
+            718412163,
+            1333555640,
+            1485508035,
+            3373932680,
+            2623722085,
+            1933900984,
+            2403216068,
+            1815453664,
+            2646735526,
+            1837530355,
+            2795081694,
+            356675612,
+            3428292999,
+            1450906780,
+            1232863538,
+            1540149049,
+            3467472207,
+            3012557537,
+            796830667,
+            391936901,
+            3126533594,
+            2328016198,
+            379833753,
+            4039387370,
+            690944060,
+            3579647894,
+            4256561098,
+            1011298655,
+            4177100133,
+            3760280886,
+            3755759321,
+            2816937944,
+            3024033854,
+            935508895,
+            2232006347,
+            738936747,
+            895963225,
+            187220106,
+            3857249910,
+            3858435819,
+            1694203248,
+            3780844011,
+            2303743865,
+            2061608067,
+            1907172697,
+            3547587155,
+            2874125459,
+            1279264990,
+            1495492965,
+            1582354726,
+            3711038594,
+            1018469814,
+            3204759640,
+            560911469,
+            3610622799,
+            1277619304,
+            1689645410,
+            3800270183,
+            1639259924,
+            998656783,
+            3660082185,
+            1706641784,
+            2735664844,
+            1140158764,
+            3796541459,
+            2320666420,
+            986165887,
+            757173680,
+            3571669063,
+            3713399991,
+            2260721996,
+            1749435974,
+            2034422408,
+            3289583876,
+            197017830,
+            553151254,
+            113881696,
+            4168002352,
+            2288399066,
+            821560707,
+            172471868,
+            3037493743,
+            2547299763,
+            466118043,
+            630983685,
+            2787362457,
+            3768519125,
+            3838189953,
+            1245355167,
+            150644326,
+            3025191440,
+            3490906601,
+            2732454544,
+            1412634887,
+            863216142,
+            3419207936,
+            301111160,
+            1157022168,
+            1660137963,
+            1259071033,
+            757602291,
+            2935168836,
+            1241263677,
+            2645328987,
+            4238363328,
+            3415155162,
+            3900037326
+          ]
+        }
+      ],
+      "felt252_encoding": [
+        {
+          "preimage": [],
+          "words": [],
+          "output_digest": "69217a3079908094e11121d042354a7c1f55b6482ca1a51e1b250dfd1ed0eef9"
+        },
+        {
+          "preimage": [
+            "0"
+          ],
+          "words": [
+            0,
+            0
+          ],
+          "output_digest": "50dfdb12f464323c96af88ff5e8d90c5a1e7a04cdcf99d7cbcf9a271f08a766d"
+        },
+        {
+          "preimage": [
+            "1"
+          ],
+          "words": [
+            0,
+            1
+          ],
+          "output_digest": "569675eb70a80aff63930f92b3fdc8f4ce81c0b2dea0ec43ab95a3371c2e32f6"
+        },
+        {
+          "preimage": [
+            "9223372036854775807"
+          ],
+          "words": [
+            2147483647,
+            4294967295
+          ],
+          "output_digest": "f6d8109812b260936261b2a4e88b9c34797d70859afe5a1d49b3e267ef4a35c8"
+        },
+        {
+          "preimage": [
+            "9223372036854775808"
+          ],
+          "words": [
+            2147483648,
+            0,
+            0,
+            0,
+            0,
+            0,
+            2147483648,
+            0
+          ],
+          "output_digest": "fc2e70524be8e70403c730cdf92e598dee6b7a3adeb314463829e1a3ee4ab450"
+        },
+        {
+          "preimage": [
+            "3618502788666131213697322783095070105623107215331596699973092056135872020480"
+          ],
+          "words": [
+            2281701376,
+            17,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "output_digest": "07536cdca342bc1fb91fd96a54b708a85c71b12673a690ccde4a4b7c9318c0b7"
+        },
+        {
+          "preimage": [
+            "42",
+            "9223372036854775808",
+            "0",
+            "3618502788666131213697322783095070105623107215331596699973092056135872020480",
+            "18446744073709551616"
+          ],
+          "words": [
+            0,
+            42,
+            2147483648,
+            0,
+            0,
+            0,
+            0,
+            0,
+            2147483648,
+            0,
+            0,
+            0,
+            2281701376,
+            17,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            2147483648,
+            0,
+            0,
+            0,
+            0,
+            1,
+            0,
+            0
+          ],
+          "output_digest": "249f457be55c10fbc98ba3506717ef818f91800742e1e6a7282083725d0617b0"
+        },
+        {
+          "preimage": [
+            "115792089237316195423570985008687907853269984665640564039457584007913129639939",
+            "-3"
+          ],
+          "words": [
+            0,
+            3,
+            2281701376,
+            16,
+            4294967295,
+            4294967295,
+            4294967295,
+            4294967295,
+            4294967295,
+            4294967294
+          ],
+          "output_digest": "c99b77a7e40e5dbf9158c0fcb69152efcbd98243dbc02b177de2cda297dcb373"
+        }
+      ],
+      "felt_from_dec_str": [
+        {
+          "text": "0",
+          "felt": "0"
+        },
+        {
+          "text": "-0",
+          "felt": "0"
+        },
+        {
+          "text": "-5",
+          "felt": "3618502788666131213697322783095070105623107215331596699973092056135872020476"
+        },
+        {
+          "text": "007",
+          "felt": "7"
+        },
+        {
+          "text": "",
+          "felt": null
+        },
+        {
+          "text": "-",
+          "felt": null
+        },
+        {
+          "text": "+1",
+          "felt": null
+        },
+        {
+          "text": "0x1",
+          "felt": null
+        },
+        {
+          "text": "--5",
+          "felt": null
+        },
+        {
+          "text": " 1",
+          "felt": null
+        },
+        {
+          "text": "1 ",
+          "felt": null
+        },
+        {
+          "text": "3618502788666131213697322783095070105623107215331596699973092056135872020481",
+          "felt": "0"
+        },
+        {
+          "text": "115792089237316195423570985008687907853269984665640564039457584007913129639936",
+          "felt": "0"
+        },
+        {
+          "text": "115792089237316195423570985008687907853269984665640564039457584007913129639939",
+          "felt": "3"
+        },
+        {
+          "text": "115792089237316195423570985008687907853269984665640564039457584007913129639940",
+          "felt": null
+        },
+        {
+          "text": "-115792089237316195423570985008687907853269984665640564039457584007913129639939",
+          "felt": "3618502788666131213697322783095070105623107215331596699973092056135872020478"
+        },
+        {
+          "text": "1157920892373161954235709850086879078532699846656405640394575840079131296399360",
+          "felt": "0"
+        }
+      ],
+      "digest_hex": [
+        {
+          "bytes": "efee1538e0216d3a09ce742ce768c44a7db004d801c40f66040994353f55fe85",
+          "json": "[\"0x3815eeef\",\"0x3a6d21e0\",\"0x2c74ce09\",\"0x4ac468e7\",\"0xd804b07d\",\"0x660fc401\",\"0x35940904\",\"0x85fe553f\"]"
+        },
+        {
+          "bytes": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+          "json": "[\"0x03020100\",\"0x07060504\",\"0x0b0a0908\",\"0x0f0e0d0c\",\"0x13121110\",\"0x17161514\",\"0x1b1a1918\",\"0x1f1e1d1c\"]"
+        },
+        {
+          "bytes": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+          "json": "[\"0xffffffff\",\"0xffffffff\",\"0xffffffff\",\"0xffffffff\",\"0xffffffff\",\"0xffffffff\",\"0xffffffff\",\"0xffffffff\"]"
+        }
+      ],
+      "serialized_leaf_proof": [
+        {
+          "proof_bytes_hex": "",
+          "pretty_json": "{\n  \"circuit_preprocessed_root\": [\n    \"0x3815eeef\",\n    \"0x3a6d21e0\",\n    \"0x2c74ce09\",\n    \"0x4ac468e7\",\n    \"0xd804b07d\",\n    \"0x660fc401\",\n    \"0x35940904\",\n    \"0x85fe553f\"\n  ],\n  \"circuit_hash\": [\n    \"0x03020100\",\n    \"0x07060504\",\n    \"0x0b0a0908\",\n    \"0x0f0e0d0c\",\n    \"0x13121110\",\n    \"0x17161514\",\n    \"0x1b1a1918\",\n    \"0x1f1e1d1c\"\n  ],\n  \"proof\": \"\"\n}"
+        },
+        {
+          "proof_bytes_hex": "f0",
+          "pretty_json": "{\n  \"circuit_preprocessed_root\": [\n    \"0x3815eeef\",\n    \"0x3a6d21e0\",\n    \"0x2c74ce09\",\n    \"0x4ac468e7\",\n    \"0xd804b07d\",\n    \"0x660fc401\",\n    \"0x35940904\",\n    \"0x85fe553f\"\n  ],\n  \"circuit_hash\": [\n    \"0x03020100\",\n    \"0x07060504\",\n    \"0x0b0a0908\",\n    \"0x0f0e0d0c\",\n    \"0x13121110\",\n    \"0x17161514\",\n    \"0x1b1a1918\",\n    \"0x1f1e1d1c\"\n  ],\n  \"proof\": \"8A==\"\n}"
+        },
+        {
+          "proof_bytes_hex": "f0d5",
+          "pretty_json": "{\n  \"circuit_preprocessed_root\": [\n    \"0x3815eeef\",\n    \"0x3a6d21e0\",\n    \"0x2c74ce09\",\n    \"0x4ac468e7\",\n    \"0xd804b07d\",\n    \"0x660fc401\",\n    \"0x35940904\",\n    \"0x85fe553f\"\n  ],\n  \"circuit_hash\": [\n    \"0x03020100\",\n    \"0x07060504\",\n    \"0x0b0a0908\",\n    \"0x0f0e0d0c\",\n    \"0x13121110\",\n    \"0x17161514\",\n    \"0x1b1a1918\",\n    \"0x1f1e1d1c\"\n  ],\n  \"proof\": \"8NU=\"\n}"
+        },
+        {
+          "proof_bytes_hex": "f0d5ba",
+          "pretty_json": "{\n  \"circuit_preprocessed_root\": [\n    \"0x3815eeef\",\n    \"0x3a6d21e0\",\n    \"0x2c74ce09\",\n    \"0x4ac468e7\",\n    \"0xd804b07d\",\n    \"0x660fc401\",\n    \"0x35940904\",\n    \"0x85fe553f\"\n  ],\n  \"circuit_hash\": [\n    \"0x03020100\",\n    \"0x07060504\",\n    \"0x0b0a0908\",\n    \"0x0f0e0d0c\",\n    \"0x13121110\",\n    \"0x17161514\",\n    \"0x1b1a1918\",\n    \"0x1f1e1d1c\"\n  ],\n  \"proof\": \"8NW6\"\n}"
+        },
+        {
+          "proof_bytes_hex": "f0d5ba9f",
+          "pretty_json": "{\n  \"circuit_preprocessed_root\": [\n    \"0x3815eeef\",\n    \"0x3a6d21e0\",\n    \"0x2c74ce09\",\n    \"0x4ac468e7\",\n    \"0xd804b07d\",\n    \"0x660fc401\",\n    \"0x35940904\",\n    \"0x85fe553f\"\n  ],\n  \"circuit_hash\": [\n    \"0x03020100\",\n    \"0x07060504\",\n    \"0x0b0a0908\",\n    \"0x0f0e0d0c\",\n    \"0x13121110\",\n    \"0x17161514\",\n    \"0x1b1a1918\",\n    \"0x1f1e1d1c\"\n  ],\n  \"proof\": \"8NW6nw==\"\n}"
+        },
+        {
+          "proof_bytes_hex": "f0d5ba9f64",
+          "pretty_json": "{\n  \"circuit_preprocessed_root\": [\n    \"0x3815eeef\",\n    \"0x3a6d21e0\",\n    \"0x2c74ce09\",\n    \"0x4ac468e7\",\n    \"0xd804b07d\",\n    \"0x660fc401\",\n    \"0x35940904\",\n    \"0x85fe553f\"\n  ],\n  \"circuit_hash\": [\n    \"0x03020100\",\n    \"0x07060504\",\n    \"0x0b0a0908\",\n    \"0x0f0e0d0c\",\n    \"0x13121110\",\n    \"0x17161514\",\n    \"0x1b1a1918\",\n    \"0x1f1e1d1c\"\n  ],\n  \"proof\": \"8NW6n2Q=\"\n}"
+        }
+      ],
+      "base64": [
+        {
+          "bytes_hex": "",
+          "base64": ""
+        },
+        {
+          "bytes_hex": "a5",
+          "base64": "pQ=="
+        },
+        {
+          "bytes_hex": "a5ec",
+          "base64": "pew="
+        },
+        {
+          "bytes_hex": "a5ec37",
+          "base64": "pew3"
+        },
+        {
+          "bytes_hex": "a5ec377e",
+          "base64": "pew3fg=="
+        },
+        {
+          "bytes_hex": "a5ec377e81",
+          "base64": "pew3foE="
+        },
+        {
+          "bytes_hex": "a5ec377e81c8135aed347f86c9105be2357c87ce1158e32a7d84cf1659e02b72",
+          "base64": "pew3foHIE1rtNH+GyRBb4jV8h84RWOMqfYTPFlngK3I="
+        },
+        {
+          "bytes_hex": "a5ec377e81c8135aed347f86c9105be2357c87ce1158e32a7d84cf1659e02b7285cc175ee12873bacd145fe62970bbc2155ce72e71b8c30a5de42f76b9c00b52",
+          "base64": "pew3foHIE1rtNH+GyRBb4jV8h84RWOMqfYTPFlngK3KFzBde4Shzus0UX+YpcLvCFVznLnG4wwpd5C92ucALUg=="
+        },
+        {
+          "bytes_hex": "fbff",
+          "base64": "+/8="
+        },
+        {
+          "bytes_hex": "f83e3f",
+          "base64": "+D4/"
+        }
+      ],
+      "base64_decode": [
+        {
+          "base64": "",
+          "bytes_hex": ""
+        },
+        {
+          "base64": "8A",
+          "bytes_hex": "f0"
+        },
+        {
+          "base64": "8A=",
+          "bytes_hex": "f0"
+        },
+        {
+          "base64": "8A==",
+          "bytes_hex": "f0"
+        },
+        {
+          "base64": "8A===",
+          "bytes_hex": null
+        },
+        {
+          "base64": "8NU",
+          "bytes_hex": "f0d5"
+        },
+        {
+          "base64": "8NU=",
+          "bytes_hex": "f0d5"
+        },
+        {
+          "base64": "8NU==",
+          "bytes_hex": null
+        },
+        {
+          "base64": "8NV=",
+          "bytes_hex": null
+        },
+        {
+          "base64": "8N==",
+          "bytes_hex": null
+        },
+        {
+          "base64": "8===",
+          "bytes_hex": null
+        },
+        {
+          "base64": "=",
+          "bytes_hex": null
+        },
+        {
+          "base64": "8A=A",
+          "bytes_hex": null
+        },
+        {
+          "base64": "AAAA",
+          "bytes_hex": "000000"
+        },
+        {
+          "base64": "AAAA=",
+          "bytes_hex": null
+        },
+        {
+          "base64": "AAAAA",
+          "bytes_hex": null
+        },
+        {
+          "base64": "AAAAAA",
+          "bytes_hex": "00000000"
+        },
+        {
+          "base64": "AAAAAA=",
+          "bytes_hex": "00000000"
+        },
+        {
+          "base64": "AAAAAAA",
+          "bytes_hex": "0000000000"
+        },
+        {
+          "base64": "+/+/",
+          "bytes_hex": "fbffbf"
+        },
+        {
+          "base64": "-_-_",
+          "bytes_hex": null
+        },
+        {
+          "base64": "8N U",
+          "bytes_hex": null
+        }
+      ]
+    },
+    "fri": {
+      "log_size": 8,
+      "fold_step": 4,
+      "log_last_layer_degree_bound": 0,
+      "input_formula": "input[i] = (i + 1, 2i + 3, 3i + 5, 7i + 11) mod P",
+      "input_sha256": "676b7f2de3eb1878a8aee09df51706bfe3eb7dcb3c3588f3994c1e07e41dd747",
+      "layers": [
+        {
+          "layer": 0,
+          "layer_alpha": [
+            5,
+            7,
+            11,
+            13
+          ],
+          "input_log_size": 8,
+          "folds": [
+            {
+              "kind": "circle_into_line",
+              "alpha": [
+                5,
+                7,
+                11,
+                13
+              ],
+              "log_size": 7,
+              "values_sha256": "012d32936102268b54bb331e44297762696434e0f64e8794086ec51d373d44ec",
+              "head": [
+                [
+                  1502722116,
+                  2034726799,
+                  546122179,
+                  519690040
+                ],
+                [
+                  644761541,
+                  112756872,
+                  1601361506,
+                  1627793693
+                ],
+                [
+                  535085718,
+                  1010553954,
+                  269186366,
+                  1954349642
+                ],
+                [
+                  1612397955,
+                  1136929749,
+                  1878297367,
+                  193134203
+                ]
+              ]
+            },
+            {
+              "kind": "line",
+              "alpha": [
+                2147483241,
+                594,
+                2147483575,
+                284
+              ],
+              "log_size": 6,
+              "values_sha256": "2b8c1166945cb6b198e1f327ba230bc882f1570545d6b5de4464bf6418bff673",
+              "head": [
+                [
+                  260453233,
+                  122899373,
+                  1295901623,
+                  781152486
+                ],
+                [
+                  113856702,
+                  285915516,
+                  1520040916,
+                  646115312
+                ],
+                [
+                  2024990107,
+                  100763769,
+                  1563215752,
+                  1588400080
+                ],
+                [
+                  1199350438,
+                  1431729334,
+                  1707969076,
+                  1973154759
+                ]
+              ]
+            },
+            {
+              "kind": "line",
+              "alpha": [
+                2147185599,
+                2146844055,
+                2147204719,
+                2147167503
+              ],
+              "log_size": 5,
+              "values_sha256": "6fe210bdddeb5fcb7e4357f9750d36f7dd3efe03202bc5aa178385b93ed36b06",
+              "head": [
+                [
+                  884653698,
+                  20883303,
+                  465555305,
+                  95467192
+                ],
+                [
+                  56921244,
+                  508021022,
+                  1564738378,
+                  1868949571
+                ],
+                [
+                  1333360979,
+                  833449394,
+                  1916931153,
+                  2038803627
+                ],
+                [
+                  377621934,
+                  694832556,
+                  1518296159,
+                  2054421490
+                ]
+              ]
+            },
+            {
+              "kind": "line",
+              "alpha": [
+                265336516,
+                1020600651,
+                232203409,
+                1939045885
+              ],
+              "log_size": 4,
+              "values_sha256": "f151fefeb2b3dc0198b6e3aec72e44345a3ec9f6f4cb48a17d827b780448e17f",
+              "head": [
+                [
+                  741154623,
+                  367501840,
+                  974473847,
+                  501152370
+                ],
+                [
+                  859886182,
+                  1459557281,
+                  830211620,
+                  1525746594
+                ],
+                [
+                  329485687,
+                  3764637,
+                  402593583,
+                  1995773125
+                ],
+                [
+                  908095072,
+                  1079277906,
+                  1338873234,
+                  605406063
+                ]
+              ]
+            }
+          ]
+        },
+        {
+          "layer": 1,
+          "layer_alpha": [
+            17,
+            19,
+            23,
+            29
+          ],
+          "input_log_size": 4,
+          "folds": [
+            {
+              "kind": "line",
+              "alpha": [
+                17,
+                19,
+                23,
+                29
+              ],
+              "log_size": 3,
+              "values_sha256": "f1a2fb03345029790266384124d46d0ac91bd8b0600f6e56841b79916613f279",
+              "head": [
+                [
+                  1589506003,
+                  315653175,
+                  1604729235,
+                  549071008
+                ],
+                [
+                  1087825336,
+                  1973335393,
+                  1548756041,
+                  772681831
+                ],
+                [
+                  433654542,
+                  1155126466,
+                  1865438325,
+                  1587706207
+                ],
+                [
+                  1921874369,
+                  372808054,
+                  630282604,
+                  1022205184
+                ]
+              ]
+            },
+            {
+              "kind": "line",
+              "alpha": [
+                2147481617,
+                3002,
+                2147483327,
+                1860
+              ],
+              "log_size": 2,
+              "values_sha256": "c0760805bf628f35c0c3e6032c651b7417bfbb95ceb9148c60c9ddec4d38c425",
+              "head": [
+                [
+                  1614813560,
+                  991659091,
+                  1328449768,
+                  2142432690
+                ],
+                [
+                  2000797311,
+                  452785261,
+                  903700745,
+                  1570912163
+                ],
+                [
+                  1379936596,
+                  515489534,
+                  1245031851,
+                  1220003358
+                ],
+                [
+                  1181554444,
+                  1983032498,
+                  653029093,
+                  218468054
+                ]
+              ]
+            },
+            {
+              "kind": "line",
+              "alpha": [
+                2137068543,
+                2129557527,
+                2137615407,
+                2138010767
+              ],
+              "log_size": 1,
+              "values_sha256": "100b6eec7158de19da00be74f6c0d1d560889579ab330526ed207de8dd4c98d6",
+              "head": [
+                [
+                  1101510146,
+                  835766143,
+                  1994760257,
+                  2117154112
+                ],
+                [
+                  352491041,
+                  1563269260,
+                  1988829571,
+                  1406383972
+                ]
+              ]
+            },
+            {
+              "kind": "line",
+              "alpha": [
+                2023554118,
+                480854346,
+                928624930,
+                1103868795
+              ],
+              "log_size": 0,
+              "values_sha256": "d5c4299b10a98d577d3b24240c7d7854732120dbafa02f844dee8566a6ed02e4",
+              "head": [
+                [
+                  1266552422,
+                  1856893702,
+                  1654478679,
+                  295175920
+                ]
+              ]
+            }
+          ]
+        }
+      ],
+      "last_layer": [
+        1266552422,
+        1856893702,
+        1654478679,
+        295175920
+      ]
+    }
+  }
+}

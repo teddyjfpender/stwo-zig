@@ -57,7 +57,7 @@ pub fn build(b: *std.Build) void {
             baseline.addGate(b);
             construction_observer.recordConstructor(b, "gates/baseline.addGate");
         },
-        .core, .prover, .native_cpu, .native_cuda, .native_metal, .riscv_cpu, .riscv_metal, .cairo_cpu, .cairo_metal, .cairo_cuda => constructProduct(
+        .core, .prover, .native_cpu, .native_cuda, .native_metal, .riscv_cpu, .riscv_metal, .cairo_cpu, .cairo_metal, .cairo_cuda, .circuit_recursion_cpu => constructProduct(
             b,
             target,
             optimize,
@@ -400,6 +400,9 @@ fn addPolicyGates(b: *std.Build) void {
         .{ "package-workspace", "Audit package ownership, API, and dependency boundaries", &.{ "python3", "scripts/check_package_workspace.py" } },
         .{ "registry-parity", "Compare focused and aggregate compiled capability registries", &.{ "python3", "scripts/check_registry_parity.py" } },
         .{ "upstream-surface", "Validate API parity rust_path entries against pinned upstream commit", &.{ "python3", "scripts/check_upstream_surface.py" } },
+        .{ "circuit-air-projection-check", "Authenticate and decode the committed compiled-AIR projection", &.{ "zig", "build", "circuit-air-projection-check", "--build-file", "src/frontends/circuit/build.zig", "-j2" } },
+        .{ "circuit-slot-order", "Assert the circuit projection's Cairo slot order equals the Cairo claim registry", &.{ "zig", "build", "test", "--build-file", "conformance/circuit_slot_order/build.zig", "-j2" } },
+        .{ "circuit-lint", "Reject order-unstable constructs in the circuit recursion frontend", &.{ "python3", "scripts/lint_circuit_frontend.py" } },
     }) |gate| {
         const command = b.addSystemCommand(gate[2]);
         b.step(gate[0], gate[1]).dependOn(&command.step);

@@ -7,6 +7,9 @@
 #include <stdint.h>
 
 #define STUB(name) int name() { return 0; }
+STUB(stwo_circuit_base_witness_on)
+STUB(stwo_circuit_interaction_fractions_on)
+STUB(stwo_circuit_lookup_sum_on)
 
 static uint32_t transform_chunks(uint32_t columns) {
     return (columns + 65534u) / 65535u;
@@ -222,6 +225,7 @@ STUB(stwo_blake2s_transcript_draw_queries_on)
 STUB(stwo_blake2s_transcript_draw_secure_on)
 STUB(stwo_blake2s_transcript_draw_u32s_on)
 STUB(stwo_blake2s_transcript_init_on)
+STUB(stwo_blake2s_m31_transcript_init_on)
 STUB(stwo_blake2s_transcript_mix_words_on)
 STUB(stwo_blake2s_transcript_mix_words_pair_on)
 STUB(stwo_combine_quotients_from_numerators_on)
@@ -237,6 +241,7 @@ STUB(stwo_finalize_quotient_numerator_groups_on)
 STUB(stwo_fold_circle_into_line_on)
 STUB(stwo_fold_line_on)
 STUB(stwo_fri_fold_fused3_on)
+STUB(stwo_fri_fold_fused4_on)
 STUB(stwo_fri_fold_fused2_on)
 STUB(stwo_fri_last_layer_on)
 STUB(stwo_native_wide_fibonacci_trace_on)

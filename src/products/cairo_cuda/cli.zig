@@ -7,6 +7,7 @@ pub const Prove = struct {
     output: []const u8,
     report_out: []const u8,
     repeat: u32,
+    circuit_registry: ?[]const u8 = null,
 };
 
 pub const Parsed = union(enum) {
@@ -25,6 +26,7 @@ pub fn parse(argv: []const []const u8) !Parsed {
     var repeat: u32 = 1;
     var seen_backend = false;
     var seen_repeat = false;
+    var circuit_registry: ?[]const u8 = null;
     var index: usize = 1;
     while (index < argv.len) : (index += 2) {
         if (index + 1 >= argv.len) return error.MissingArgumentValue;
@@ -51,6 +53,9 @@ pub fn parse(argv: []const []const u8) !Parsed {
                 return error.InvalidRepeatCount;
             if (repeat == 0 or repeat > 16)
                 return error.InvalidRepeatCount;
+        } else if (std.mem.eql(u8, flag, "--circuit-registry")) {
+            if (circuit_registry != null) return error.DuplicateArgument;
+            circuit_registry = try path(value);
         } else {
             return error.UnknownArgument;
         }
@@ -68,6 +73,7 @@ pub fn parse(argv: []const []const u8) !Parsed {
         .output = proof_output,
         .report_out = report_output,
         .repeat = repeat,
+        .circuit_registry = circuit_registry,
     } };
 }
 
@@ -75,7 +81,8 @@ pub fn writeUsage(writer: anytype) !void {
     try writer.writeAll(
         \\Usage:
         \\  stwo-cairo-cuda prove --backend cuda --input <adapted-input> \
-        \\    --output <proof.json> --report-out <report.json> [--repeat N]
+        \\    --output <proof.json> --report-out <report.json> [--repeat N] \\
+        \\    [--circuit-registry <production.json>]
         \\
     );
 }
@@ -130,5 +137,19 @@ test "non-CUDA and output aliasing are rejected" {
         "same.json",
         "--report-out",
         "same.json",
+    }));
+}
+
+test "circuit leaf registry is an explicit proof-profile input" {
+    const parsed = try parse(&.{
+        "prove",           "--backend",  "cuda",         "--input",      "leaf.json",
+        "--output",        "proof.json", "--report-out", "receipt.json", "--circuit-registry",
+        "production.json",
+    });
+    try std.testing.expectEqualStrings("production.json", parsed.prove.circuit_registry.?);
+    try std.testing.expectError(error.DuplicateArgument, parse(&.{
+        "prove",           "--backend",          "cuda",         "--input",      "leaf.json",
+        "--output",        "proof.json",         "--report-out", "receipt.json", "--circuit-registry",
+        "production.json", "--circuit-registry", "other.json",
     }));
 }

@@ -1,0 +1,54 @@
+{
+  "schema": "stwo-zig-package-contract-v2",
+  "package": "stwo_circuit_cpu_integration",
+  "version": "0.1.0",
+  "layer": "integration",
+  "owner": "circuit-cpu-integration",
+  "public_modules": {
+    "stwo_circuit_cpu_integration": "mod.zig"
+  },
+  "dependencies": {
+    "stwo_cairo_frontend": "../../frontends/cairo",
+    "stwo_circuit_frontend": "../../frontends/circuit",
+    "stwo_circuit_recursion_wire": "../../interop/circuit_recursion",
+    "stwo_core": "../../core",
+    "stwo_cpu_backend": "../../backends/cpu_scalar",
+    "stwo_prover_api": "../../prover_api",
+    "stwo_prover_engine": "../../prover"
+  },
+  "injected_modules": [
+    "circuit_provers_under_test",
+    "circuit_testing"
+  ],
+  "api_surface": [
+    "Internal",
+    "Root",
+    "air",
+    "cairo_verifier_proof",
+    "prove",
+    "recursion",
+    "verifier_proof",
+    "verify"
+  ],
+  "api_contract": {
+    "signature_tests": [
+      "mod.zig::api signature: both channel profiles bind the CPU engine"
+    ],
+    "invariant_tests": [
+      "mod.zig::invariant: both profiles commit with the plain Blake2s Merkle hasher"
+    ]
+  },
+  "ci": {
+    "lane": "circuit_cpu_integration",
+    "host": "linux",
+    "command": [
+      "zig",
+      "build",
+      "test",
+      "--build-file",
+      "src/integrations/circuit_cpu/build.zig",
+      "-Doptimize=ReleaseSafe",
+      "-j2"
+    ]
+  }
+}

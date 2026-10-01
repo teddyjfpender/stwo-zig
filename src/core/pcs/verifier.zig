@@ -8,6 +8,7 @@ const mod_pcs = @import("mod.zig");
 const quotients = @import("quotients.zig");
 const pcs_utils = @import("utils.zig");
 const vcs_verifier = @import("../vcs_lifted/verifier.zig");
+const Revision = @import("../protocol_revision.zig").Revision;
 
 const CirclePointQM31 = circle.CirclePointQM31;
 const M31 = m31.M31;
@@ -71,20 +72,36 @@ pub fn VerifiedProofCapture(comptime H: type) type {
 }
 
 /// Verifier-side state of the PCS commitment phase.
+///
+/// `MC` selects the protocol revision (`Revision.of`). Under `stwo_7b211ed`
+/// `init` takes the legacy `PcsConfig` and trees are as tall as their largest
+/// column. Under `proving_5a7c5ed` (`CommitmentSchemeVerifier<MC>` of
+/// proving@5a7c5ed) `init` takes a `PcsConfigV2`: each tree is verified at
+/// its configured lifting height, the proof domain is the last tree's height,
+/// preprocessed queries follow `prepare_preprocessed_query_positions`, and the
+/// proof of work is checked at `fri_config.pow_bits`; `config` then holds
+/// `Revision.legacyView` of that configuration.
 pub fn CommitmentSchemeVerifier(comptime H: type, comptime MC: type) type {
+    const verifier_revision = Revision.of(MC);
+    const explicit_heights = verifier_revision == .proving_5a7c5ed;
     return struct {
         trees: TreeVec(vcs_verifier.MerkleVerifierLifted(H)),
         config: PcsConfig,
+        revision_config: if (explicit_heights) Config else void,
+
+        pub const revision = verifier_revision;
+        pub const Config = verifier_revision.PcsConfig();
 
         const Self = @This();
         const MerkleVerifier = vcs_verifier.MerkleVerifierLifted(H);
         const FriVerifier = fri.FriVerifier(H, MC);
         const CommitmentSchemeProof = mod_pcs.CommitmentSchemeProof(H);
 
-        pub fn init(allocator: std.mem.Allocator, config: PcsConfig) !Self {
+        pub fn init(allocator: std.mem.Allocator, config: Config) !Self {
             return .{
                 .trees = TreeVec(MerkleVerifier).initOwned(try allocator.alloc(MerkleVerifier, 0)),
-                .config = config,
+                .config = verifier_revision.legacyView(config),
+                .revision_config = if (explicit_heights) config else {},
             };
         }
 
@@ -126,7 +143,15 @@ pub fn CommitmentSchemeVerifier(comptime H: type, comptime MC: type) type {
                 extended_log_sizes[i] = log_size + self.config.fri_config.log_blowup_factor;
             }
 
-            var merkle_verifier = try MerkleVerifier.init(allocator, commitment, extended_log_sizes);
+            var merkle_verifier = if (comptime explicit_heights)
+                try MerkleVerifier.initWithHeight(
+                    allocator,
+                    commitment,
+                    extended_log_sizes,
+                    try verifier_revision.treeHeight(self.revision_config, self.trees.items.len, extended_log_sizes),
+                )
+            else
+                try MerkleVerifier.init(allocator, commitment, extended_log_sizes);
             errdefer merkle_verifier.deinit(allocator);
             try appendTree(self, allocator, merkle_verifier);
         }
@@ -243,7 +268,14 @@ pub fn CommitmentSchemeVerifier(comptime H: type, comptime MC: type) type {
             var column_log_sizes = try self.columnLogSizes(allocator);
             defer column_log_sizes.deinitDeep(allocator);
 
-            const lifting_log_size = try computeLiftingLogSize(column_log_sizes, sampled_points_owned);
+            const lifting_log_size = if (comptime explicit_heights) blk: {
+                // Shape checks only; the domain is the last tree's height.
+                _ = computeLiftingLogSize(column_log_sizes, sampled_points_owned) catch |err| switch (err) {
+                    error.EmptySampledSet => {},
+                    else => return err,
+                };
+                break :blk self.trees.items[self.trees.items.len - 1].height;
+            } else try computeLiftingLogSize(column_log_sizes, sampled_points_owned);
             if (lifting_log_size < self.config.fri_config.log_blowup_factor) {
                 return verifier_types.VerificationError.ShapeMismatch;
             }
@@ -281,11 +313,7 @@ pub fn CommitmentSchemeVerifier(comptime H: type, comptime MC: type) type {
                 allocator.free(query_positions_tree);
             }
             for (query_positions_tree, 0..) |*positions, i| {
-                const tree_log_size: ?u32 =
-                    if (column_log_sizes.items[i].len == 0)
-                        null
-                    else
-                        maxOrDefault(column_log_sizes.items[i], 0);
+                const tree_log_size = self.queryTreeLogSize(i, column_log_sizes.items[i]);
                 positions.* = try pcs_utils.prepareTreeQueryPositions(
                     allocator,
                     query_positions,
@@ -314,11 +342,7 @@ pub fn CommitmentSchemeVerifier(comptime H: type, comptime MC: type) type {
 
             for (self.trees.items, 0..) |tree, i| {
                 if (proof_capture_out != null) {
-                    const tree_log_size: ?u32 =
-                        if (column_log_sizes.items[i].len == 0)
-                            null
-                        else
-                            maxOrDefault(column_log_sizes.items[i], 0);
+                    const tree_log_size = self.queryTreeLogSize(i, column_log_sizes.items[i]);
                     const raw_tree_positions = try pcs_utils.prepareTreeQueryPositions(
                         allocator,
                         query_capture.raw,
@@ -460,6 +484,17 @@ pub fn CommitmentSchemeVerifier(comptime H: type, comptime MC: type) type {
                 trace_paths_owned = false;
                 fri_capture_owned = false;
             }
+        }
+
+        /// The leaf count queries address in tree `i`: its explicit height
+        /// (0 meaning an empty preprocessed tree without queries), or its
+        /// largest column.
+        fn queryTreeLogSize(self: *const Self, i: usize, log_sizes: []const u32) ?u32 {
+            if (comptime explicit_heights) {
+                const height = self.trees.items[i].height;
+                return if (height == 0) null else height;
+            }
+            return if (log_sizes.len == 0) null else maxOrDefault(log_sizes, 0);
         }
 
         fn appendTree(self: *Self, allocator: std.mem.Allocator, tree: MerkleVerifier) !void {

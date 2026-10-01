@@ -40,6 +40,7 @@ pub const decodeProof = proof_reconstruction.decodeProof;
 pub const decodeProofWithGeometry = proof_reconstruction.decodeProofWithGeometry;
 pub const sampleShape = geometry.sampleShape;
 pub const freeSampleShape = geometry.freeSampleShape;
+pub const ProofCapture = core_verifier.ProofCapture(Hasher);
 
 const qm31FromWords = types.qm31FromWords;
 const qm31Words = types.qm31Words;
@@ -59,7 +60,7 @@ pub fn verify(allocator: std.mem.Allocator, input: VerifyInput) !void {
     const config_words = transcriptWords(input.transcript_inputs, 2) orelse
         return Error.InvalidProofShape;
     if (!protocol_geometry.matchesTranscript(config_words)) return Error.InvalidProtocolGeometry;
-    return verifyWithGeometry(allocator, input, protocol_geometry);
+    return verifyWithGeometry(MerkleChannel, allocator, input, protocol_geometry, null);
 }
 
 /// Verifies a Cairo proof against caller-authenticated runtime PCS geometry.
@@ -70,13 +71,31 @@ pub fn verifyRuntime(
     input: VerifyInput,
     protocol_geometry: ProtocolGeometry,
 ) !void {
-    return verifyWithGeometry(allocator, input, protocol_geometry);
+    if (protocol_geometry.m31_channel)
+        return verifyWithGeometry(@import("stwo_core").vcs_lifted.channel_profile.proving_5a7c5ed.Blake2sM31MerkleChannel, allocator, input, protocol_geometry, null);
+    return verifyWithGeometry(MerkleChannel, allocator, input, protocol_geometry, null);
 }
 
-fn verifyWithGeometry(
+/// Verify the complete proof and retain the original-order Merkle paths and
+/// FRI cosets needed by the recursive circuit witness. The capture is
+/// published only after every AIR, PCS, and FRI check succeeds.
+pub fn verifyRuntimeWithProofCapture(
     allocator: std.mem.Allocator,
     input: VerifyInput,
     protocol_geometry: ProtocolGeometry,
+    capture: *ProofCapture,
+) !void {
+    if (protocol_geometry.m31_channel)
+        return verifyWithGeometry(@import("stwo_core").vcs_lifted.channel_profile.proving_5a7c5ed.Blake2sM31MerkleChannel, allocator, input, protocol_geometry, capture);
+    return verifyWithGeometry(MerkleChannel, allocator, input, protocol_geometry, capture);
+}
+
+fn verifyWithGeometry(
+    comptime MC: type,
+    allocator: std.mem.Allocator,
+    input: VerifyInput,
+    protocol_geometry: ProtocolGeometry,
+    capture: ?*ProofCapture,
 ) !void {
     try protocol_geometry.validate();
     if (input.tree_logs[0].len == 0 or input.tree_logs[1].len == 0 or
@@ -84,7 +103,8 @@ fn verifyWithGeometry(
         return Error.InvalidTraceShape;
     const verifier_max_log_degree_bound = input.composition.verifierMaxLogDegreeBound() catch
         return Error.InvalidProtocolGeometry;
-    if (protocol_geometry.max_log_degree_bound != verifier_max_log_degree_bound or
+    if ((protocol_geometry.max_log_degree_bound != verifier_max_log_degree_bound and
+        (!protocol_geometry.m31_channel or protocol_geometry.max_log_degree_bound < verifier_max_log_degree_bound)) or
         protocol_geometry.trace_tree_count != 4)
         return Error.InvalidProtocolGeometry;
     const config_words = transcriptWords(input.transcript_inputs, 2) orelse
@@ -99,7 +119,8 @@ fn verifyWithGeometry(
         !hashWordsEqual(transcriptWords(input.transcript_inputs, 20), commitment_words[8..16]))
         return Error.InvalidProofShape;
 
-    var channel = Channel{};
+    const ActiveChannel = if (@hasDecl(MC, "Channel")) MC.Channel else Channel;
+    var channel = ActiveChannel{};
     for ([_]u32{ 1, 2, 3, 10, 11, 12, 13, 14, 15, 16, 20 }) |ordinal| {
         channel.mixU32s(transcriptWords(input.transcript_inputs, ordinal) orelse
             return Error.InvalidProofShape);
@@ -149,7 +170,7 @@ fn verifyWithGeometry(
         const random_coefficient = diagnostic_channel.drawSecureFelt();
         var composition_root: Hasher.Hash = undefined;
         @memcpy(&composition_root, std.mem.sliceAsBytes(commitment_words[24..32]));
-        MerkleChannel.mixRoot(&diagnostic_channel, composition_root);
+        MC.mixRoot(&diagnostic_channel, composition_root);
         const parameter = diagnostic_channel.drawSecureFelt();
         const parameter_square = parameter.square();
         const denominator = parameter_square.add(QM31.one()).inv() catch unreachable;
@@ -177,7 +198,8 @@ fn verifyWithGeometry(
             .allocator = allocator,
             .captured = &input.composition.components[index],
             .preprocessed_logs = input.tree_logs[0],
-            .lifting_log_size = input.composition.max_evaluation_log_size,
+            .lifting_log_size = protocol_geometry.lifting_log_size orelse
+                input.composition.max_evaluation_log_size,
             .lookup_z = lookup_z,
             .lookup_alpha = lookup_alpha,
             .claimed_sum = try qm31FromWords(claim_words[index * 4 ..][0..4]),
@@ -185,11 +207,11 @@ fn verifyWithGeometry(
         component.* = runtime.asComponent();
     }
 
-    const shape = try sampleShape(allocator, input.composition, .{
+    const shape = try geometry.sampleShapeWithPolicy(allocator, input.composition, .{
         input.tree_logs[0].len,
         input.tree_logs[1].len,
         input.tree_logs[2].len,
-    });
+    }, protocol_geometry.include_all_preprocessed_columns);
     defer freeSampleShape(allocator, shape);
     var proof = try decodeProofWithGeometry(
         allocator,
@@ -208,10 +230,19 @@ fn verifyWithGeometry(
     }
 
     const config = proof.commitment_scheme_proof.config;
-    var commitment_scheme = try pcs_verifier.CommitmentSchemeVerifier(Hasher, MerkleChannel).init(
-        allocator,
-        config,
-    );
+    var commitment_scheme = if (comptime @import("stwo_core").protocol_revision.Revision.of(MC) == .proving_5a7c5ed)
+        try pcs_verifier.CommitmentSchemeVerifier(Hasher, MC).init(allocator, @import("stwo_core").pcs.config_v2.PcsConfigV2.fromFriAndLiftingSize(
+            try @import("stwo_core").pcs.config_v2.FriConfigV2.init(
+                protocol_geometry.query_pow_bits,
+                protocol_geometry.log_last_layer_degree_bound,
+                protocol_geometry.log_blowup_factor,
+                @intCast(protocol_geometry.query_count),
+                protocol_geometry.fold_step,
+            ),
+            protocol_geometry.lifting_log_size.?,
+        ))
+    else
+        try pcs_verifier.CommitmentSchemeVerifier(Hasher, MC).init(allocator, config);
     defer commitment_scheme.deinit(allocator);
     commitment_scheme.trees.deinit(allocator);
     const trees = try allocator.alloc(vcs_verifier.MerkleVerifierLifted(Hasher), 3);
@@ -230,7 +261,10 @@ fn verifyWithGeometry(
             &root,
             std.mem.sliceAsBytes(commitment_words[tree_index * proof_bundle.hash_words ..][0..proof_bundle.hash_words]),
         );
-        tree.* = try vcs_verifier.MerkleVerifierLifted(Hasher).init(allocator, root, extended);
+        tree.* = if (comptime @import("stwo_core").protocol_revision.Revision.of(MC) == .proving_5a7c5ed)
+            try vcs_verifier.MerkleVerifierLifted(Hasher).initWithHeight(allocator, root, extended, protocol_geometry.lifting_log_size.?)
+        else
+            try vcs_verifier.MerkleVerifierLifted(Hasher).init(allocator, root, extended);
         initialized += 1;
     }
     commitment_scheme.trees = pcs.TreeVec(vcs_verifier.MerkleVerifierLifted(Hasher)).initOwned(trees);
@@ -248,15 +282,30 @@ fn verifyWithGeometry(
             );
         }
     }
-    try core_verifier.verify(
-        Hasher,
-        MerkleChannel,
-        allocator,
-        verifier_components,
-        &channel,
-        &commitment_scheme,
-        proof,
-    );
+    if (capture) |out| {
+        try core_verifier.verifyExWithProofCapture(
+            Hasher,
+            MC,
+            allocator,
+            verifier_components,
+            &channel,
+            &commitment_scheme,
+            proof,
+            protocol_geometry.include_all_preprocessed_columns,
+            out,
+        );
+    } else {
+        try core_verifier.verifyEx(
+            Hasher,
+            MC,
+            allocator,
+            verifier_components,
+            &channel,
+            &commitment_scheme,
+            proof,
+            protocol_geometry.include_all_preprocessed_columns,
+        );
+    }
 }
 
 fn validateStatementBinding(
@@ -277,7 +326,7 @@ fn validateStatementBinding(
             .n_queries = @intCast(protocol_geometry.query_count),
             .log_last_layer_degree_bound = protocol_geometry.log_last_layer_degree_bound,
             .fold_step = protocol_geometry.fold_step,
-            .lifting_log_size = protocol_geometry.lifting_log_size,
+            .lifting_log_size = if (protocol_geometry.m31_channel) null else protocol_geometry.lifting_log_size,
         },
         .composition = &input.composition,
         .prover_input = input.statement,

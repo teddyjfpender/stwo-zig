@@ -29,6 +29,7 @@ pub fn compile(
     fixed: cairo.witness.fixed_table_bundle.Bundle,
 ) !Owned {
     if (geometry.extents.len != claim.components.len) return error.CanonicalGeometryMismatch;
+    const big_component_count = claim.memoryIdToBigCount();
     const arena = try allocator.create(std.heap.ArenaAllocator);
     errdefer allocator.destroy(arena);
     arena.* = std.heap.ArenaAllocator.init(allocator);
@@ -39,7 +40,7 @@ pub fn compile(
         const producer = topology.find(component.name) orelse {
             if (std.mem.eql(u8, component.name, "memory_id_to_big") or
                 std.mem.eql(u8, component.name, "memory_id_to_small"))
-                try entries.append(scratch, try memoryRangeFeed(scratch, component.name, extent, fixed));
+                try entries.append(scratch, try memoryRangeFeed(scratch, component.name, component.instance, extent, fixed));
             continue;
         };
         var descriptors = std.ArrayList(u32).empty;
@@ -53,15 +54,15 @@ pub fn compile(
             if (std.mem.eql(u8, feed.target, "memory_address_to_id")) {
                 if (feed.words_per_instance != 1 or feed.relation != 0) return error.UnsupportedMemoryFeed;
                 descriptor[8] = try cast(input.memory.address_to_id.len -| 1);
-                descriptor[10] = try destination(scratch, &destinations, "memory_address_to_id", try memoryDestinationWords(input, "memory_address_to_id"));
+                descriptor[10] = try destination(scratch, &destinations, "memory_address_to_id", try memoryDestinationWords(input, "memory_address_to_id", big_component_count));
                 descriptor[12] = @bitCast(@as(i32, -1));
             } else if (std.mem.eql(u8, feed.target, "memory_id_to_big")) {
                 if (feed.words_per_instance != 1 or feed.relation != 0) return error.UnsupportedMemoryFeed;
                 descriptor[8] = try cast(input.memory.f252_values.len);
-                descriptor[10] = try destination(scratch, &destinations, "memory_id_to_big", try memoryDestinationWords(input, "memory_id_to_big"));
+                descriptor[10] = try destination(scratch, &destinations, "memory_id_to_big", try memoryDestinationWords(input, "memory_id_to_big", big_component_count));
                 descriptor[11] = 1;
                 descriptor[12] = try cast(input.memory.small_values.len);
-                descriptor[13] = try destination(scratch, &destinations, "memory_id_to_big#small", try memoryDestinationWords(input, "memory_id_to_big#small"));
+                descriptor[13] = try destination(scratch, &destinations, "memory_id_to_big#small", try memoryDestinationWords(input, "memory_id_to_big#small", big_component_count));
             } else if (cairo.claim_generator.isFixedComponent(feed.target)) {
                 const entry = findFixed(fixed, feed.target) orelse return error.MissingCanonicalFixedTable;
                 const plan = try cairo.conformance.fixed_feed_plan.Plan.init(entry, feed);
@@ -116,7 +117,7 @@ pub fn compile(
 
 // Every committed memory limb, including zero padding, participates in the
 // range argument. Read the final AIR slab: multiplicity first, then limbs.
-fn memoryRangeFeed(allocator: std.mem.Allocator, name: []const u8, extent: geometry_mod.Extent, fixed: cairo.witness.fixed_table_bundle.Bundle) !feeds.Feed {
+fn memoryRangeFeed(allocator: std.mem.Allocator, name: []const u8, instance: u32, extent: geometry_mod.Extent, fixed: cairo.witness.fixed_table_bundle.Bundle) !feeds.Feed {
     const big = std.mem.eql(u8, name, "memory_id_to_big");
     const limbs: u32 = if (big) memory_tables.big_limb_count else memory_tables.small_limb_count;
     const table = findFixed(fixed, "range_check_9_9") orelse return error.MissingCanonicalFixedTable;
@@ -137,7 +138,10 @@ fn memoryRangeFeed(allocator: std.mem.Allocator, name: []const u8, extent: geome
     const destinations = try allocator.alloc(feeds.Destination, 1);
     destinations[0] = .{ .name = try allocator.dupe(u8, "range_check_9_9"), .words = @as(u64, table.row_count) * table.multiplicity_columns };
     return .{
-        .producer = try allocator.dupe(u8, name),
+        .producer = if (big)
+            try std.fmt.allocPrint(allocator, "memory_id_to_big[{d}]", .{instance})
+        else
+            try allocator.dupe(u8, name),
         .row_count = extent.padded_rows,
         .active_row_count = extent.padded_rows,
         .sub_words_per_row = limbs + 1,
@@ -170,14 +174,14 @@ fn destination(allocator: std.mem.Allocator, values: *std.ArrayList(feeds.Destin
 
 // Counter storage follows padded table geometry. Descriptor bounds still
 // follow the live ID domain, so padding never admits an out-of-range lookup.
-fn memoryDestinationWords(input: *const cairo.adapter.ProverInput, name: []const u8) !u64 {
+fn memoryDestinationWords(input: *const cairo.adapter.ProverInput, name: []const u8, big_component_count: usize) !u64 {
     if (std.mem.eql(u8, name, "memory_address_to_id"))
         return std.math.mul(u64, try memory_tables.addressRowCount(input), 16);
     if (std.mem.eql(u8, name, "memory_id_to_big#small"))
         return try memory_tables.smallRowCount(input);
     var words: u64 = 0;
-    for (0..try memory_tables.bigComponentCount(input)) |instance|
-        words = try std.math.add(u64, words, try memory_tables.bigRowCount(input, @intCast(instance)));
+    for (0..big_component_count) |instance|
+        words = try std.math.add(u64, words, try memory_tables.paddedBigRowCount(input, instance, big_component_count));
     return words;
 }
 
@@ -221,7 +225,7 @@ test "canonical CUDA feeds retain padded stride and authenticate active extent" 
         }
         for (feed.destinations) |target| {
             if (!std.mem.startsWith(u8, target.name, "memory_")) continue;
-            try std.testing.expectEqual(try memoryDestinationWords(&input, target.name), target.words);
+            try std.testing.expectEqual(try memoryDestinationWords(&input, target.name, claim.memoryIdToBigCount()), target.words);
             const live: u64 = if (std.mem.eql(u8, target.name, "memory_address_to_id"))
                 input.memory.address_to_id.len - 1
             else if (std.mem.eql(u8, target.name, "memory_id_to_big"))

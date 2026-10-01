@@ -15,6 +15,7 @@
 @property(nonatomic, strong) id<MTLComputePipelineState> poseidon2M31Leaves;
 @property(nonatomic, strong) id<MTLComputePipelineState> poseidon2M31LeavesWide;
 @property(nonatomic, strong) id<MTLComputePipelineState> proofOfWork;
+@property(nonatomic, strong) id<MTLComputePipelineState> proofOfWorkM31;
 @property(nonatomic, strong) id<MTLComputePipelineState> blake3ProofOfWork;
 @property(nonatomic, strong) id<MTLComputePipelineState> blake3LeafAbsorbCompact;
 @property(nonatomic, strong) id<MTLComputePipelineState> blake3LeavesWide;

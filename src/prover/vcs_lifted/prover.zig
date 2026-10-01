@@ -33,6 +33,7 @@ pub fn MerkleProverLifted(comptime H: type) type {
         const Self = @This();
         const LeafOps = leaves_mod.Operations(H);
         const ExpandOps = expand_mod.Operations(H);
+        const HashExpandOps = expand_mod.Operations(H.Hash);
         const LayerOps = layers_mod.Operations(H);
         const LayerExecutor = LayerOps.Executor;
         const parallel_min_nodes_per_worker = parameters.parallel_min_nodes_per_worker;
@@ -129,6 +130,8 @@ pub fn MerkleProverLifted(comptime H: type) type {
             return .{ .layers = layers, .layer_allocator = layerAllocator(allocator) };
         }
 
+        /// Commits a tree as tall as its largest column (the Native and Cairo
+        /// lanes).
         pub fn commit(
             allocator: std.mem.Allocator,
             columns: []const []const M31,
@@ -136,6 +139,32 @@ pub fn MerkleProverLifted(comptime H: type) type {
             return commitWithOptions(
                 allocator,
                 columns,
+                null,
+                merkleWorkerOverride(allocator),
+                reuseAvailablePool(allocator),
+            );
+        }
+
+        /// Commits at an explicit lifting height, as proving@5a7c5ed's
+        /// `MerkleProverLifted::commit(columns, lifting_log_size, 0)`: every
+        /// column, the largest included, is lifted to `2^lifting_log_size`
+        /// leaves. The height must dominate every column and must be 0 when
+        /// there are none (an empty tree is one hash of no data). Queries and
+        /// decommitments then address the lifted leaves. The lift replicates
+        /// the finished leaf layer, so the transient peak is one leaf layer at
+        /// the largest column's size plus one at `2^lifting_log_size`.
+        /// Bottom-layer pruning (`compactForQueries`) rebuilds leaves at the
+        /// largest column's height, so a lifted tree with pruned leaves refuses
+        /// to decommit (`error.InvalidColumnSize`) rather than open wrong paths.
+        pub fn commitLifted(
+            allocator: std.mem.Allocator,
+            columns: []const []const M31,
+            lifting_log_size: u32,
+        ) !Self {
+            return commitWithOptions(
+                allocator,
+                columns,
+                lifting_log_size,
                 merkleWorkerOverride(allocator),
                 reuseAvailablePool(allocator),
             );
@@ -354,24 +383,30 @@ pub fn MerkleProverLifted(comptime H: type) type {
             columns: []const []const M31,
             worker_override: ?usize,
         ) !Self {
-            return commitWithOptions(allocator, columns, worker_override, false);
+            return commitWithOptions(allocator, columns, null, worker_override, false);
         }
 
+        /// `lifting_log_size == null` commits at the largest column's height.
         fn commitWithOptions(
             allocator: std.mem.Allocator,
             columns: []const []const M31,
+            lifting_log_size: ?u32,
             worker_override: ?usize,
             reuse_pool: bool,
         ) !Self {
             const sorted = try sortColumnsByLogSizeAsc(allocator, columns);
             defer allocator.free(sorted);
+            const max_col_log_size: u32 = if (sorted.len == 0) 0 else sorted[sorted.len - 1].log_size;
+            const height = lifting_log_size orelse max_col_log_size;
+            if (height < max_col_log_size or (sorted.len == 0 and height != 0))
+                return error.InvalidTreeHeight;
 
             // Use MmapAllocator for individual layer buffers (sequential-read
             // hint helps the OS prefetcher during Merkle hashing).
             const layer_alloc = layerAllocator(allocator);
 
             if (allColumnsConstant(sorted)) {
-                return commitConstantColumns(allocator, layer_alloc, sorted);
+                return commitConstantColumns(allocator, layer_alloc, sorted, height);
             }
 
             var layers_bottom_up = std.ArrayList([]H.Hash).empty;
@@ -386,9 +421,8 @@ pub fn MerkleProverLifted(comptime H: type) type {
             // array bounded (saves ~(N - batch_size) * sizeof(H) peak RAM,
             // e.g. >100 MiB for 2^20 leaves with Blake2s).
             try layers_bottom_up.ensureUnusedCapacity(allocator, 1);
-            const leaves = blk: {
+            const column_leaves = blk: {
                 if (sorted.len > 0) {
-                    const max_col_log_size = sorted[sorted.len - 1].log_size;
                     const total_leaves = @as(usize, 1) << @intCast(max_col_log_size);
                     const four_way_leaves = comptime @hasDecl(H, "leafSeed") and @hasDecl(H, "hashPackedLeavesWithSeed4");
                     if (four_way_leaves or total_leaves >= batched_leaf_threshold) {
@@ -398,6 +432,7 @@ pub fn MerkleProverLifted(comptime H: type) type {
                 }
                 break :blk try LeafOps.build(allocator, layer_alloc, sorted);
             };
+            const leaves = try liftLeaves(layer_alloc, column_leaves, height - max_col_log_size);
             layers_bottom_up.appendAssumeCapacity(leaves);
 
             if (leaves.len > 1) {
@@ -434,15 +469,53 @@ pub fn MerkleProverLifted(comptime H: type) type {
             return work_pool_mod.getGlobalPool() != null or merklePoolReuseEnabled(allocator);
         }
 
+        /// Re-commits a finished tree at a taller explicit height. The result
+        /// is the tree `commitLifted(columns, lifting_log_size)` builds from
+        /// the same columns: a lifted leaf is the natural leaf at the lifted
+        /// index, so only the leaf replication and the node hashes above it
+        /// are recomputed, never a column value. This is the single lifting
+        /// step behind every commit path of a `proving_5a7c5ed` scheme
+        /// (`pcs.revision_lifting`), so no specialised leaf builder needs a
+        /// lifted variant. A tree whose leaf layer was pruned
+        /// (`compactForQueries`) cannot be lifted and returns
+        /// `error.InvalidColumnSize`; a lower height is `InvalidTreeHeight`.
+        /// On error the tree is unchanged.
+        pub fn liftTo(self: *Self, allocator: std.mem.Allocator, lifting_log_size: u32) !void {
+            const natural = self.maxLogSize();
+            if (lifting_log_size == natural) return;
+            if (lifting_log_size < natural) return error.InvalidTreeHeight;
+            const leaves = self.layers[natural];
+            if (leaves.len == 0) return error.InvalidColumnSize;
+            const layer_alloc = self.layer_allocator;
+            const lifted = try liftLeaves(
+                layer_alloc,
+                try layer_alloc.dupe(H.Hash, leaves),
+                lifting_log_size - natural,
+            );
+            const rebuilt = try buildTreeFromOwnedLeaves(allocator, layer_alloc, lifted, lifting_log_size);
+            self.deinit(allocator);
+            self.* = rebuilt;
+        }
+
+        /// Lifts a finished leaf layer by `log_ratio` more levels:
+        /// `lifted[i] = leaves[((i >> (log_ratio + 1)) << 1) + (i & 1)]`, the
+        /// final step of upstream `build_leaves`. Takes ownership of `leaves`.
+        fn liftLeaves(layer_alloc: std.mem.Allocator, leaves: []H.Hash, log_ratio: u32) ![]H.Hash {
+            if (log_ratio == 0) return leaves;
+            defer layer_alloc.free(leaves);
+            const lifted = try layer_alloc.alloc(H.Hash, leaves.len << @intCast(log_ratio));
+            HashExpandOps.expandHashers(lifted, leaves, @intCast(log_ratio + 1));
+            return lifted;
+        }
+
+        /// Every leaf of a constant-column tree is the same hash at any height.
         fn commitConstantColumns(
             allocator: std.mem.Allocator,
             layer_alloc: std.mem.Allocator,
             columns: []const ColumnRef,
+            height: u32,
         ) !Self {
-            const leaf_count = if (columns.len == 0)
-                @as(usize, 1)
-            else
-                @as(usize, 1) << @intCast(columns[columns.len - 1].log_size);
+            const leaf_count = @as(usize, 1) << @intCast(height);
 
             var leaf_hasher = H.defaultWithInitialState();
             for (columns) |column| leaf_hasher.updateLeaf(column.values[0..1]);

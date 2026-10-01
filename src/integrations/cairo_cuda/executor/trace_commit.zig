@@ -40,7 +40,7 @@ pub const Prepared = struct {
     cohorts: []Cohort,
     writer_spans: []WriterSpan,
     column_logs: []u32,
-    column_offsets: []u32,
+    column_offsets: []u64,
     layers: []field.MerkleLayerDescriptor,
     slots: Slots,
     identity: proof_ir.Digest,
@@ -57,7 +57,18 @@ pub const Prepared = struct {
             plan,
             .main,
             schedule,
+            null,
         );
+    }
+
+    pub fn initMainWithBlowup(
+        allocator: std.mem.Allocator,
+        program: proof_ir.ProofProgram,
+        plan: resident_plan.Plan,
+        schedule: trace_schedule.Schedule,
+        column_blowup_log: u32,
+    ) !Prepared {
+        return init(allocator, program, plan, .main, schedule, column_blowup_log);
     }
 
     /// Compiles the same compact resident PCS path for a tree whose
@@ -77,7 +88,19 @@ pub const Prepared = struct {
             plan,
             role,
             null,
+            null,
         );
+    }
+
+    pub fn initProducedWithBlowup(
+        allocator: std.mem.Allocator,
+        program: proof_ir.ProofProgram,
+        plan: resident_plan.Plan,
+        role: proof_ir.CommitmentRole,
+        column_blowup_log: u32,
+    ) !Prepared {
+        if (role == .main) return error.InvalidTraceCommitRole;
+        return init(allocator, program, plan, role, null, column_blowup_log);
     }
 
     fn init(
@@ -86,6 +109,7 @@ pub const Prepared = struct {
         plan: resident_plan.Plan,
         role: proof_ir.CommitmentRole,
         schedule: ?trace_schedule.Schedule,
+        column_blowup_log: ?u32,
     ) !Prepared {
         try program.validate();
         if (std.mem.allEqual(u8, &plan.identity, 0) or
@@ -112,7 +136,7 @@ pub const Prepared = struct {
         const tree_ordinal: u32 = @intCast(located.ordinal);
         const columns = program.trace_columns[tree.first_column .. tree.first_column + tree.column_count];
 
-        const geometry = try geometry_compiler.compile(allocator, columns, tree);
+        const geometry = try geometry_compiler.compileWithBlowup(allocator, columns, tree, column_blowup_log);
         errdefer geometry.deinit(allocator);
         const writers = if (schedule) |writer_schedule|
             try geometry_compiler.compileWriterSpans(
@@ -285,7 +309,7 @@ pub const Prepared = struct {
         uploader: anytype,
     ) !void {
         try uploader.upload(u32, self.slots.column_logs, self.column_logs);
-        try uploader.upload(u32, self.slots.column_offsets, self.column_offsets);
+        try uploader.upload(u64, self.slots.column_offsets, self.column_offsets);
         try uploader.upload(
             field.MerkleLayerDescriptor,
             self.slots.merkle_layers,
@@ -656,7 +680,7 @@ fn validateSlotExtents(
     try exactSlot(plan, slots.coefficients, totalCohortWords(geometry.cohorts, false));
     try exactSlot(plan, slots.evaluations, totalCohortWords(geometry.cohorts, true));
     try exactSlot(plan, slots.column_logs, geometry.column_logs.len);
-    try exactSlot(plan, slots.column_offsets, geometry.column_offsets.len);
+    try exactSlot(plan, slots.column_offsets, try mul(geometry.column_offsets.len, 2));
     try exactSlot(
         plan,
         slots.merkle_layers,
@@ -908,7 +932,7 @@ test "mixed geometry stays compact and preserves canonical cohort order" {
     defer geometry.deinit(std.testing.allocator);
     try std.testing.expectEqual(@as(usize, 3), geometry.cohorts.len);
     try std.testing.expectEqualSlices(
-        u32,
+        u64,
         &.{ 0, 8, 16, 20, 36 },
         geometry.column_offsets,
     );

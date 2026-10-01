@@ -1,0 +1,58 @@
+[package]
+name = "stwo-circuit-oracle"
+version = "0.1.0"
+edition = "2024"
+license = "Apache-2.0"
+publish = false
+
+[package.metadata.circuit-recursion-oracle]
+checkpoint-schema = "stwo-circuit-oracle-checkpoint-v1"
+proving-repository = "https://github.com/starkware-libs/proving"
+proving-revision = "5a7c5ede4299c91a61df19a07cba4f7502c14230"
+rust-toolchain = "nightly-2026-01-15"
+
+[dependencies]
+anyhow = "1.0"
+bincode = "1.3"
+hex = "0.4"
+itertools = "0.12"
+indexmap = { version = "2.10", features = ["std"] }
+num-traits = "0.2"
+rand_chacha = "=0.3.1"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+serde_with = { version = "3.12.0", features = ["base64"] }
+sha2 = "0.10"
+starknet-ff = { version = "=0.3.7", default-features = false, features = ["alloc"] }
+starknet-types-core = { version = "=0.2.4", features = ["hash"] }
+
+air_code_gen = { git = "https://github.com/starkware-libs/proving", rev = "5a7c5ede4299c91a61df19a07cba4f7502c14230" }
+air_common = { git = "https://github.com/starkware-libs/proving", rev = "5a7c5ede4299c91a61df19a07cba4f7502c14230" }
+air_compile = { git = "https://github.com/starkware-libs/proving", rev = "5a7c5ede4299c91a61df19a07cba4f7502c14230" }
+cairo-air = { git = "https://github.com/starkware-libs/proving", rev = "5a7c5ede4299c91a61df19a07cba4f7502c14230" }
+cairo-program-runner-lib = { git = "https://github.com/starkware-libs/proving", rev = "5a7c5ede4299c91a61df19a07cba4f7502c14230" }
+cairo-vm = { version = "3.2.0", default-features = false, features = ["extensive_hints", "mod_builtin", "clap"] }
+circuit-cairo-verifier = { git = "https://github.com/starkware-libs/proving", rev = "5a7c5ede4299c91a61df19a07cba4f7502c14230" }
+circuit-multiverifier = { git = "https://github.com/starkware-libs/proving", rev = "5a7c5ede4299c91a61df19a07cba4f7502c14230" }
+circuit-registry = { git = "https://github.com/starkware-libs/proving", rev = "5a7c5ede4299c91a61df19a07cba4f7502c14230" }
+circuit-prover = { git = "https://github.com/starkware-libs/proving", rev = "5a7c5ede4299c91a61df19a07cba4f7502c14230" }
+circuit-serialize = { git = "https://github.com/starkware-libs/proving", rev = "5a7c5ede4299c91a61df19a07cba4f7502c14230" }
+circuit-common = { git = "https://github.com/starkware-libs/proving", rev = "5a7c5ede4299c91a61df19a07cba4f7502c14230" }
+circuit-verifier = { git = "https://github.com/starkware-libs/proving", rev = "5a7c5ede4299c91a61df19a07cba4f7502c14230" }
+circuits = { git = "https://github.com/starkware-libs/proving", rev = "5a7c5ede4299c91a61df19a07cba4f7502c14230" }
+circuits-stark-verifier = { git = "https://github.com/starkware-libs/proving", rev = "5a7c5ede4299c91a61df19a07cba4f7502c14230" }
+eval_air_fn_constraints = { git = "https://github.com/starkware-libs/proving", rev = "5a7c5ede4299c91a61df19a07cba4f7502c14230" }
+leaf-proof-format = { git = "https://github.com/starkware-libs/proving", rev = "5a7c5ede4299c91a61df19a07cba4f7502c14230" }
+stwo = { git = "https://github.com/starkware-libs/proving", rev = "5a7c5ede4299c91a61df19a07cba4f7502c14230", features = ["parallel", "prover"] }
+stwo-cairo-adapter = { git = "https://github.com/starkware-libs/proving", rev = "5a7c5ede4299c91a61df19a07cba4f7502c14230" }
+stwo-cairo-common = { git = "https://github.com/starkware-libs/proving", rev = "5a7c5ede4299c91a61df19a07cba4f7502c14230" }
+stwo-cairo-prover = { git = "https://github.com/starkware-libs/proving", rev = "5a7c5ede4299c91a61df19a07cba4f7502c14230" }
+stwo-run-and-prove-recursive-tree = { git = "https://github.com/starkware-libs/proving", rev = "5a7c5ede4299c91a61df19a07cba4f7502c14230" }
+stwo-examples = { git = "https://github.com/starkware-libs/proving", rev = "5a7c5ede4299c91a61df19a07cba4f7502c14230" }
+stwo-constraint-framework = { git = "https://github.com/starkware-libs/proving", rev = "5a7c5ede4299c91a61df19a07cba4f7502c14230" }
+
+[profile.release]
+codegen-units = 16
+lto = false
+
+[workspace]

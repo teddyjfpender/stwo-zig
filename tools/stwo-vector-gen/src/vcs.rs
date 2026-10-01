@@ -199,20 +199,33 @@ pub(crate) fn generate_vcs_lifted_prover_vectors(
     state: &mut u64,
     count: usize,
 ) -> Vec<VcsLiftedProverVector> {
-    let mut out = Vec::with_capacity(count);
-    while out.len() < count {
-        let Some(base) = build_vcs_lifted_base_case(state) else {
-            continue;
-        };
-        out.push(VcsLiftedProverVector {
+    let mut bases = Vec::with_capacity(count);
+    while bases.len() < count {
+        if let Some(base) = build_vcs_lifted_base_case(state) {
+            bases.push(base);
+        }
+    }
+    // Unsorted / duplicate query KATs are appended after the random cases and
+    // consume no RNG, so the primary stream (and every later section) is unchanged.
+    let mut extra = fixed_unsorted_vcs_lifted_cases();
+    extra.extend(
+        bases
+            .iter()
+            .take(VCS_LIFTED_PROVER_UNSORTED_VARIANT_COUNT)
+            .map(unsorted_duplicate_variant),
+    );
+    bases
+        .into_iter()
+        .chain(extra)
+        .map(|base| VcsLiftedProverVector {
             root: encode_hash(base.root),
-            column_log_sizes: base.column_log_sizes.clone(),
+            column_log_sizes: base.column_log_sizes,
             columns: base
                 .columns
                 .into_iter()
                 .map(|column| column.into_iter().map(encode_m31).collect())
                 .collect(),
-            query_positions: base.query_positions.clone(),
+            query_positions: base.query_positions,
             queried_values: base
                 .queried_values
                 .into_iter()
@@ -224,9 +237,148 @@ pub(crate) fn generate_vcs_lifted_prover_vectors(
                 .into_iter()
                 .map(encode_hash)
                 .collect(),
-        });
+        })
+        .collect()
+}
+
+/// Number of random base cases re-emitted with reversed + duplicated queries.
+const VCS_LIFTED_PROVER_UNSORTED_VARIANT_COUNT: usize = 4;
+
+/// Fixed KATs (columns of log sizes 3, 2, 3 holding 1..=20) with unsorted and
+/// duplicated query positions. Confirmed against upstream stwo 7b211ed
+/// `MerkleProverLifted::decommit`, which normalises with `.sorted().dedup()`.
+fn fixed_unsorted_vcs_lifted_cases() -> Vec<VcsLiftedBaseCase> {
+    let columns: Vec<Vec<M31>> = vec![
+        (1..=8).map(M31::from_u32_unchecked).collect(),
+        (9..=12).map(M31::from_u32_unchecked).collect(),
+        (13..=20).map(M31::from_u32_unchecked).collect(),
+    ];
+    [
+        vec![7, 3, 1, 3],
+        vec![5, 4, 4, 0],
+        vec![7, 6, 5, 4, 3, 2, 1, 0, 7],
+    ]
+    .into_iter()
+    .map(|query_positions| lifted_case(columns.clone(), vec![3, 2, 3], query_positions))
+    .collect()
+}
+
+/// Re-emits `base` with its queries reversed and the first one duplicated.
+/// The Merkle witness must not change: only the queried values follow the
+/// caller's order.
+fn unsorted_duplicate_variant(base: &VcsLiftedBaseCase) -> VcsLiftedBaseCase {
+    let mut query_positions = base
+        .query_positions
+        .iter()
+        .rev()
+        .copied()
+        .collect::<Vec<_>>();
+    query_positions.push(base.query_positions[0]);
+    let case = lifted_case(
+        base.columns.clone(),
+        base.column_log_sizes.clone(),
+        query_positions,
+    );
+    assert_eq!(case.root, base.root);
+    assert_eq!(
+        case.decommitment.hash_witness,
+        base.decommitment.hash_witness
+    );
+    case
+}
+
+fn lifted_case(
+    columns: Vec<Vec<M31>>,
+    column_log_sizes: Vec<u32>,
+    query_positions: Vec<usize>,
+) -> VcsLiftedBaseCase {
+    let layers = commit_vcs_lifted_layers(&columns, &column_log_sizes);
+    let root = layers[0][0];
+    let queried_values = lifted_queried_values(&columns, layers.len() - 1, &query_positions);
+    let hash_witness = lifted_hash_witness(&layers, &query_positions);
+    VcsLiftedBaseCase {
+        root,
+        column_log_sizes,
+        columns,
+        query_positions,
+        queried_values,
+        decommitment: MerkleDecommitmentLifted::<LiftedMerkleHasher> { hash_witness },
     }
-    out
+}
+
+/// Commits `columns` (sorted by log size, stable) and returns every layer,
+/// root first, mirroring upstream `MerkleProverLifted::commit`.
+fn commit_vcs_lifted_layers(
+    columns: &[Vec<M31>],
+    column_log_sizes: &[u32],
+) -> Vec<Vec<Blake2sHash>> {
+    let mut sorted_indices = (0..columns.len()).collect::<Vec<_>>();
+    sorted_indices.sort_by_key(|&i| (column_log_sizes[i], i));
+    let sorted_columns = sorted_indices
+        .iter()
+        .map(|&i| &columns[i])
+        .collect::<Vec<_>>();
+    build_vcs_lifted_layers(build_vcs_lifted_leaves(&sorted_columns))
+}
+
+/// Builds all Merkle layers above `leaves`, root first.
+pub(crate) fn build_vcs_lifted_layers(leaves: Vec<Blake2sHash>) -> Vec<Vec<Blake2sHash>> {
+    let mut layers = vec![leaves];
+    while layers.last().expect("at least one layer").len() > 1 {
+        let prev = layers.last().expect("previous layer");
+        layers.push(
+            (0..(prev.len() >> 1))
+                .map(|i| LiftedMerkleHasher::hash_children((prev[2 * i], prev[2 * i + 1])))
+                .collect(),
+        );
+    }
+    layers.reverse();
+    layers
+}
+
+fn lifted_queried_values(
+    columns: &[Vec<M31>],
+    max_layer_log_size: usize,
+    query_positions: &[usize],
+) -> Vec<Vec<M31>> {
+    columns
+        .iter()
+        .map(|col| {
+            let log_size = col.len().ilog2() as usize;
+            let shift = max_layer_log_size - log_size;
+            query_positions
+                .iter()
+                .map(|pos| col[(pos >> (shift + 1) << 1) + (pos & 1)])
+                .collect::<Vec<_>>()
+        })
+        .collect()
+}
+
+/// Authentication-path witness of upstream `MerkleProverLifted::decommit`
+/// (stwo 7b211ed): positions are sorted and deduplicated first, then each layer
+/// is walked in sibling chunks (`chunk_by(|a, b| a ^ 1 == *b)`), emitting the
+/// sibling hash of every singleton chunk. `layers` is root first.
+pub(crate) fn lifted_hash_witness(
+    layers: &[Vec<Blake2sHash>],
+    query_positions: &[usize],
+) -> Vec<Blake2sHash> {
+    let mut prev_layer_queries = query_positions.to_vec();
+    prev_layer_queries.sort_unstable();
+    prev_layer_queries.dedup();
+    let mut hash_witness = Vec::<Blake2sHash>::new();
+    for layer_log_size in (0..layers.len() - 1).rev() {
+        let prev_layer_hashes = &layers[layer_log_size + 1];
+        let mut curr_layer_queries = Vec::<usize>::new();
+        for chunk in prev_layer_queries.chunk_by(|a, b| a ^ 1 == *b) {
+            let first = chunk[0];
+            if chunk.len() == 1 {
+                hash_witness.push(prev_layer_hashes[first ^ 1]);
+            }
+            curr_layer_queries.push(first >> 1);
+        }
+        prev_layer_queries = curr_layer_queries;
+    }
+    hash_witness
 }
 
 fn build_vcs_lifted_base_case(state: &mut u64) -> Option<VcsLiftedBaseCase> {
@@ -254,67 +406,10 @@ fn build_vcs_lifted_base_case(state: &mut u64) -> Option<VcsLiftedBaseCase> {
     }
     query_positions.sort_unstable();
 
-    let mut sorted_indices = (0..columns.len()).collect::<Vec<_>>();
-    sorted_indices.sort_by_key(|&i| (column_log_sizes[i], i));
-    let sorted_columns = sorted_indices
-        .iter()
-        .map(|&i| &columns[i])
-        .collect::<Vec<_>>();
-
-    let leaves = build_vcs_lifted_leaves(&sorted_columns);
-    let mut layers = vec![leaves];
-    while layers.last().expect("at least one layer").len() > 1 {
-        let prev = layers.last().expect("previous layer");
-        layers.push(
-            (0..(prev.len() >> 1))
-                .map(|i| LiftedMerkleHasher::hash_children((prev[2 * i], prev[2 * i + 1])))
-                .collect(),
-        );
-    }
-    layers.reverse();
-    let root = layers
-        .first()
-        .expect("root layer")
-        .first()
-        .copied()
-        .expect("root hash");
-
-    let max_layer_log_size = layers.len() - 1;
-    let queried_values = columns
-        .iter()
-        .map(|col| {
-            let log_size = col.len().ilog2() as usize;
-            let shift = max_layer_log_size - log_size;
-            query_positions
-                .iter()
-                .map(|pos| col[(pos >> (shift + 1) << 1) + (pos & 1)])
-                .collect::<Vec<_>>()
-        })
-        .collect::<Vec<_>>();
-
-    let mut hash_witness = Vec::<Blake2sHash>::new();
-    let mut prev_layer_queries = query_positions.clone();
-    prev_layer_queries.dedup();
-    for layer_log_size in (0..layers.len() - 1).rev() {
-        let prev_layer_hashes = layers
-            .get(layer_log_size + 1)
-            .expect("previous layer hashes");
-        let mut curr_layer_queries = Vec::<usize>::new();
-        let mut p: usize = 0;
-        while p < prev_layer_queries.len() {
-            let first = prev_layer_queries[p];
-            let mut chunk_len = 1;
-            if p + 1 < prev_layer_queries.len() && ((first ^ 1) == prev_layer_queries[p + 1]) {
-                chunk_len = 2;
-            }
-            if chunk_len == 1 {
-                hash_witness.push(prev_layer_hashes[first ^ 1]);
-            }
-            curr_layer_queries.push(first >> 1);
-            p += chunk_len;
-        }
-        prev_layer_queries = curr_layer_queries;
-    }
+    let layers = commit_vcs_lifted_layers(&columns, &column_log_sizes);
+    let root = layers[0][0];
+    let queried_values = lifted_queried_values(&columns, layers.len() - 1, &query_positions);
+    let hash_witness = lifted_hash_witness(&layers, &query_positions);
 
     let decommitment = MerkleDecommitmentLifted::<LiftedMerkleHasher> { hash_witness };
     let verifier = MerkleVerifierLifted::<LiftedMerkleHasher>::new(root, column_log_sizes.clone());

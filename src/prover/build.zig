@@ -10,7 +10,8 @@ pub fn build(b: *std.Build) void {
     ) orelse false;
     const dependency_options = .{ .target = target, .optimize = optimize };
 
-    const core = b.dependency("stwo_core", dependency_options).module("stwo_core");
+    const core_package = b.dependency("stwo_core", dependency_options);
+    const core = core_package.module("stwo_core");
     const backend_contracts = b.dependency(
         "stwo_backend_contracts",
         dependency_options,
@@ -38,6 +39,12 @@ pub fn build(b: *std.Build) void {
     deep_tests.addImport("stwo_core", core);
     deep_tests.addImport("stwo_prover_engine", prover);
     deep_tests.addImport("stwo_prover_api", prover_api);
+    // Test-only Rust-oracle data owned by core, outside the stwo_core API.
+    deep_tests.addImport("lifted_height_vectors", b.createModule(.{
+        .root_source_file = core_package.path("vcs_lifted/testdata/lifted_height_vectors.zig"),
+        .target = target,
+        .optimize = optimize,
+    }));
     const run_deep_tests = b.addRunArtifact(b.addTest(.{
         .root_module = deep_tests,
     }));
@@ -92,6 +99,12 @@ pub fn build(b: *std.Build) void {
         .filters = &.{"budgeted Merkle"},
     });
     _ = addFocusedTests(b, core, backend_contracts, prover_api, target, optimize, check_only, .{
+        .step = "test-pcs-tiled-commit",
+        .description = "Check the row-tiled compact commitment against the streaming compact commitment",
+        .root = "pcs_commitments_test_root.zig",
+        .filters = &.{"tiled compact commitment"},
+    });
+    _ = addFocusedTests(b, core, backend_contracts, prover_api, target, optimize, check_only, .{
         .step = "test-pcs-borrowed-streaming",
         .description = "Check bounded borrowed commitments and failure ownership",
         .root = "pcs_commitments_test_root.zig",
@@ -102,6 +115,11 @@ pub fn build(b: *std.Build) void {
         .description = "Check BLAKE3 nonce batching against the streaming hash and deterministic pool search",
         .root = "pcs_pow_test_root.zig",
         .filters = &.{"BLAKE3 PoW"},
+    });
+    const pcs_revision_step = addFocusedTests(b, core, backend_contracts, prover_api, target, optimize, check_only, .{
+        .step = "test-pcs-revision",
+        .description = "Prove PCS openings under protocol revision proving_5a7c5ed against Rust vectors",
+        .root = "pcs_revision_test_root.zig",
     });
     const pcs_commitments_step = addFocusedTests(b, core, backend_contracts, prover_api, target, optimize, check_only, .{
         .step = "test-pcs-commitments",
@@ -170,6 +188,7 @@ pub fn build(b: *std.Build) void {
     test_step.dependOn(poly_step);
     test_step.dependOn(pcs_commitments_step);
     test_step.dependOn(pow_step);
+    test_step.dependOn(pcs_revision_step);
     test_step.dependOn(quotient_ops_step);
 }
 

@@ -8,7 +8,7 @@ pub const Paths = struct {
     source: stwo.integration.canonical_source.Paths,
     preprocessed: []const u8,
 
-    pub fn init(parent: std.mem.Allocator, input: []const u8) !Paths {
+    pub fn init(parent: std.mem.Allocator, input: []const u8, circuit_registry: ?[]const u8) !Paths {
         const arena = try parent.create(std.heap.ArenaAllocator);
         errdefer parent.destroy(arena);
         arena.* = std.heap.ArenaAllocator.init(parent);
@@ -25,8 +25,16 @@ pub const Paths = struct {
             else => return err,
         };
         const variant = std.meta.stringToEnum(stwo.frontend.preprocessed.trace.Variant, variant_name) orelse return error.InvalidPreprocessedVariant;
+        const leaf_lane = if (circuit_registry) |registry_path| blk: {
+            const wire = @import("stwo_circuit_recursion_wire");
+            const bytes = try std.fs.cwd().readFileAlloc(allocator, registry_path, 16 << 20);
+            var registry = try wire.registry.parseRegistry(allocator, bytes);
+            defer registry.deinit();
+            break :blk try stwo.frontend.proving.leaf_lane.Lane.fromParameters(registry.registry.cairo_prover_params);
+        } else null;
         return .{ .allocator = parent, .arena = arena, .source = .{
             .input = input,
+            .leaf_lane = leaf_lane,
             .variant = variant,
             .automatic_variant = !std.process.hasEnvVarConstant("STWO_CAIRO_CUDA_PREPROCESSED_VARIANT"),
             .library = try std.fs.path.join(allocator, &.{ asset_root, "official/air_template_library_v1.json" }),

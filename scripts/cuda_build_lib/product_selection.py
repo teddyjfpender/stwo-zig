@@ -234,7 +234,7 @@ def _load_aot_product_sets(
     if (
         not isinstance(frontends, dict)
         or tuple(frontends) != tuple(sorted(frontends))
-        or set(frontends) != {"cairo", "native", "riscv", "sm83"}
+        or set(frontends) != {"cairo", "circuit", "native", "riscv", "sm83"}
     ):
         raise BuildError("CUDA AOT frontend catalog is not canonical")
     frontend_sets: dict[str, tuple[str, ...] | None] = {}

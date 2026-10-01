@@ -133,7 +133,8 @@ pub fn memoryBig(
     counts: *const cpu_memory_multiplicity.Counts,
     component: usize,
 ) !OwnedColumns {
-    const rows: u32 = @intCast(try memory_tables.bigRowCount(input, component));
+    // Live or padding: the claim fixes how many components exist.
+    const rows: u32 = @intCast(try memory_tables.paddedBigRowCount(input, component, memory_tables.max_big_components));
     var result = try initOwned(allocator, rows, memory_tables.big_column_count);
     errdefer result.deinit();
     var destinations: [memory_tables.big_column_count][]u32 = undefined;
@@ -148,7 +149,7 @@ pub fn memoryBigInto(
     component: usize,
     columns: []const []u32,
 ) !void {
-    try validateDestinations(columns, memory_tables.big_column_count, try memory_tables.bigRowCount(input, component));
+    try validateDestinations(columns, memory_tables.big_column_count, try memory_tables.paddedBigRowCount(input, component, memory_tables.max_big_components));
     try fillColumns(.big, input, counts, component, columns, columns[0].len);
 }
 
@@ -343,7 +344,11 @@ fn testFinalTables(allocator: std.mem.Allocator) !void {
     var malformed = natural;
     malformed[0] = malformed[0][0..31];
     try std.testing.expectError(error.InvalidBaseTraceGeometry, memoryBigInto(&input, &counts, 0, &malformed));
-    try std.testing.expectError(error.InvalidComponent, memoryBigInto(&input, &counts, 1, &natural));
+    // Component 1 is `opt_n_id_to_big_components` padding, one 16-row zero
+    // block, which these 32-row columns do not fit; past the enable slots
+    // there is no component at all.
+    try std.testing.expectError(error.InvalidBaseTraceGeometry, memoryBigInto(&input, &counts, 1, &natural));
+    try std.testing.expectError(error.InvalidComponent, memoryBigInto(&input, &counts, memory_tables.max_big_components, &natural));
     small[0] = @as(u128, 1) << 72;
     try std.testing.expectError(error.InvalidEncoding, memorySmallInto(&input, &counts, natural[0..memory_tables.small_column_count]));
 }

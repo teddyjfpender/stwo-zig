@@ -414,6 +414,8 @@ static StwoZigMetalRuntime *create_runtime_from_library(
                                                       error_message, error_message_len);
         runtime.proofOfWork = make_pipeline(device, library, @"stwo_zig_blake2s_pow_search",
                                            error_message, error_message_len);
+        runtime.proofOfWorkM31 = make_pipeline(device, library, @"stwo_zig_blake2s_m31_pow_search",
+                                              error_message, error_message_len);
         runtime.parents = make_pipeline(device, library, @"stwo_zig_blake2s_parents",
                                         error_message, error_message_len);
         runtime.poseidon2M31Parents = make_pipeline(device, library, @"stwo_zig_poseidon2_m31_parents",
@@ -953,7 +955,7 @@ static StwoZigMetalRuntime *create_runtime_from_library(
             runtime.decommitGatherTraceValuesResident == nil || runtime.decommitGatherTreeValuesResident == nil ||
             runtime.decommitGatherTreeValuesResidentWide == nil ||
             runtime.qm31ToCoordinates == nil ||
-            runtime.proofOfWork == nil ||
+            runtime.proofOfWork == nil || runtime.proofOfWorkM31 == nil ||
             runtime.blake3LeafAbsorbCompact == nil || runtime.blake3LeavesWide == nil || runtime.blake3FriFoldLine == nil || runtime.blake3Qm31ToCoordinates == nil || runtime.blake3Transcript == nil || runtime.blake3Leaves == nil || runtime.blake3ProofOfWork == nil || runtime.blake3ParentTailSparse == nil || runtime.blake3ParentsSparse == nil || runtime.blake3Parents == nil ||
             runtime.decommitAssembleFriResident == nil ||
             runtime.decommitSparseParentResident == nil || runtime.decommitAssembleTraceResident == nil ||

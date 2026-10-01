@@ -208,7 +208,7 @@ test "mixed trace commitment transforms packed cohorts and copies only on device
         },
     };
     const logs = [_]u32{ 2, 3 };
-    const offsets = [_]u32{ 0, 4, 12 };
+    const offsets = [_]u64{ 0, 4, 12 };
     const layers = [_]field.MerkleLayerDescriptor{
         .{ .offset_hashes = 0, .hash_count = 16 },
         .{ .offset_hashes = 16, .hash_count = 8 },
@@ -247,7 +247,7 @@ test "mixed trace commitment transforms packed cohorts and copies only on device
                 1 => words(0x1000, 12),
                 2 => words(0x2000, 24),
                 3 => words(0x3000, 2),
-                4 => words(0x4000, 3),
+                4 => words(0x4000, 6),
                 5 => words(0x5000, 31 * 8),
                 6 => words(0x6000, 5 * 4),
                 7 => words(0x7000, 16 * 24),

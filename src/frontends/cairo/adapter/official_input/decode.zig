@@ -9,7 +9,7 @@ const opcodes = @import("../opcodes.zig");
 const wire = @import("wire.zig");
 
 pub const Limits = struct {
-    max_file_bytes: u64 = 2 * 1024 * 1024 * 1024,
+    max_file_bytes: u64 = 4 * 1024 * 1024 * 1024,
     max_states: usize = cpu.MEMORY_ADDRESS_BOUND,
     max_memory_addresses: usize = cpu.MEMORY_ADDRESS_BOUND,
     max_memory_values: usize = memory_mod.DEFAULT_ID,

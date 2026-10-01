@@ -1,6 +1,7 @@
 const std = @import("std");
 const adapter = @import("adapter/mod.zig");
 const opcodes = @import("adapter/opcodes.zig");
+const BuiltinCells = @import("stwo_core").cairo_air_layout.Builtin;
 const dependencies = @import("proof_plan/dependencies.zig");
 pub const semantic_authority = @import("proof_plan/semantic_authority.zig");
 const witness_bundle = @import("witness/bundle.zig");
@@ -308,7 +309,13 @@ pub const CairoProofPlan = struct {
         if (active_rows.len != geometry.components.len) return error.InvalidRowExtent;
         const seeds = try allocator.alloc(ComponentSeed, geometry.components.len);
         defer allocator.free(seeds);
-        for (geometry.components, active_rows, seeds) |component, active, *seed| {
+        const owned_labels = try allocator.alloc(?[]u8, geometry.components.len);
+        defer {
+            for (owned_labels) |label| if (label) |name| allocator.free(name);
+            allocator.free(owned_labels);
+        }
+        @memset(owned_labels, null);
+        for (geometry.components, active_rows, seeds, owned_labels) |component, active, *seed, *label| {
             const log = switch (component.log_size) {
                 .known => |value| value,
                 .deferred => return error.IncompleteClaimGeometry,
@@ -328,8 +335,10 @@ pub const CairoProofPlan = struct {
                 .memory_trace
             else
                 return error.MissingCanonicalWriter;
+            if (std.mem.eql(u8, component.name, "memory_id_to_big"))
+                label.* = try std.fmt.allocPrint(allocator, "memory_id_to_big[{d}]", .{component.instance});
             seed.* = .{
-                .name = component.name,
+                .name = if (label.*) |name| name else component.name,
                 .instance = component.instance,
                 .writer = writer,
                 .padded_rows = @as(u32, 1) << @intCast(log),
@@ -368,7 +377,7 @@ pub const CairoProofPlan = struct {
 
         for (seeds, real_rows, 0..) |seed, *rows, index| {
             rows.* = seed.real_rows;
-            const canonical_edges = canonicalProducerEdges(seed.name);
+            const canonical_edges = canonicalProducerEdges(canonicalComponentName(seed.name, seed.instance));
             var edge_count: usize = 0;
             for (canonical_edges) |edge| {
                 if (seedIndex(seeds, edge.producer) != null) edge_count += 1;
@@ -381,7 +390,7 @@ pub const CairoProofPlan = struct {
                 edge_lists[index][edge_index] = edge;
                 edge_index += 1;
             }
-            const canonical_feeds = canonicalCapacityFeeds(seed.name);
+            const canonical_feeds = canonicalCapacityFeeds(canonicalComponentName(seed.name, seed.instance));
             var feed_count: usize = 0;
             for (canonical_feeds) |feed| {
                 if (seedIndex(seeds, feed.producer) != null) feed_count += 1;
@@ -548,10 +557,10 @@ fn directRealRows(input: *const adapter.ProverInput, component: []const u8, padd
     }
     const Builtin = struct { name: []const u8, segment: ?adapter.MemorySegmentAddresses, cells: u32 };
     const builtins = [_]Builtin{
-        .{ .name = "bitwise_builtin", .segment = input.builtin_segments.bitwise_builtin, .cells = 5 },
-        .{ .name = "range_check_builtin", .segment = input.builtin_segments.range_check_builtin, .cells = 1 },
-        .{ .name = "pedersen_builtin", .segment = input.builtin_segments.pedersen_builtin, .cells = 3 },
-        .{ .name = "poseidon_builtin", .segment = input.builtin_segments.poseidon_builtin, .cells = 6 },
+        .{ .name = "bitwise_builtin", .segment = input.builtin_segments.bitwise_builtin, .cells = BuiltinCells.bitwise.memoryCells() },
+        .{ .name = "range_check_builtin", .segment = input.builtin_segments.range_check_builtin, .cells = BuiltinCells.range_check.memoryCells() },
+        .{ .name = "pedersen_builtin", .segment = input.builtin_segments.pedersen_builtin, .cells = BuiltinCells.pedersen.memoryCells() },
+        .{ .name = "poseidon_builtin", .segment = input.builtin_segments.poseidon_builtin, .cells = BuiltinCells.poseidon.memoryCells() },
     };
     for (builtins) |builtin| {
         if (!std.mem.eql(u8, component, builtin.name)) continue;
@@ -566,6 +575,14 @@ fn directRealRows(input: *const adapter.ProverInput, component: []const u8, padd
 
 fn seedIndex(seeds: []const ComponentSeed, name: []const u8) ?usize {
     for (seeds, 0..) |seed, index| if (std.mem.eql(u8, seed.name, name)) return index;
+    // Canonical dependencies name the memory family; instance-specific feeds
+    // name one member. Resolve a family reference to its first instance.
+    if (std.mem.eql(u8, name, "memory_id_to_big"))
+        for (seeds, 0..) |seed, index| {
+            if (seed.instance == 0 and
+                std.mem.eql(u8, canonicalComponentName(seed.name, seed.instance), name))
+                return index;
+        };
     return null;
 }
 
@@ -599,7 +616,8 @@ fn feedTargets(seed: ComponentSeed, feed: feed_bundle.Feed) bool {
 fn destinationTargets(seed: ComponentSeed, destination: []const u8) bool {
     if (std.mem.eql(u8, destination, "memory_id_to_big#small"))
         return std.mem.eql(u8, seed.name, "memory_id_to_small");
-    return std.mem.eql(u8, seed.name, destination);
+    return std.mem.eql(u8, seed.name, destination) or
+        std.mem.eql(u8, canonicalComponentName(seed.name, seed.instance), destination);
 }
 
 fn capacityContains(feeds: []const CapacityFeed, producer: []const u8) bool {

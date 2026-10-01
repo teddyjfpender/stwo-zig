@@ -276,7 +276,7 @@ fn dispatchFor(
             .buffers = common,
         },
         .memory_trace => .{
-            .prepare_api = try memoryApi(component.name),
+            .prepare_api = try memoryApi(proof_plan.canonicalComponentName(component.name, component.instance)),
             .execution = .standalone,
             .launch_owner = component_index,
             .buffers = common,

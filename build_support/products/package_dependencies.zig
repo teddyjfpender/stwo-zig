@@ -1,6 +1,9 @@
 //! Package-root closures admitted by product and tool build scopes.
 
 pub const core_package_roots = &.{
+    // The focused M31 and BLAKE2s test steps (`test-stwo-core-m31`,
+    // `test-stwo-core-blake2s`).
+    "dependency:../src/core:focused_test_root.zig",
     "dependency:../src/core:mod.zig",
 };
 
@@ -8,6 +11,22 @@ pub const protocol_package_roots = &.{
     "dependency:../src/backend:mod.zig",
     "dependency:../src/core:mod.zig",
     "dependency:../src/prover:mod.zig",
+    "dependency:../src/prover_api:mod.zig",
+};
+
+/// `protocol_package_roots` plus the focused test roots of the core and
+/// prover products, for the scopes that construct those products whole
+/// (`prover`, `package`).
+pub const core_prover_products_package_roots = &.{
+    "dependency:../src/backend:mod.zig",
+    "dependency:../src/core:focused_test_root.zig",
+    "dependency:../src/core:mod.zig",
+    "dependency:../src/core:vcs_lifted/testdata/lifted_height_vectors.zig",
+    "dependency:../src/prover:coefficient_storage_test_root.zig",
+    "dependency:../src/prover:focused_test_root.zig",
+    "dependency:../src/prover:merkle_test_root.zig",
+    "dependency:../src/prover:mod.zig",
+    "dependency:../src/prover:work_pool_test.zig",
     "dependency:../src/prover_api:mod.zig",
 };
 
@@ -121,6 +140,19 @@ pub const cairo_cpu_protocol_package_roots = &.{
     "dependency:../src/core:mod.zig",
     "dependency:../src/frontends/cairo:mod.zig",
     "dependency:../src/integrations/cairo_cpu:mod.zig",
+    "dependency:../src/prover:mod.zig",
+    "dependency:../src/prover_api:mod.zig",
+};
+
+pub const circuit_recursion_cpu_protocol_package_roots = &.{
+    "dependency:../src/backend:mod.zig",
+    "dependency:../src/backends/cpu_scalar:mod.zig",
+    "dependency:../src/core:mod.zig",
+    "dependency:../src/frontends/cairo:mod.zig",
+    "dependency:../src/frontends/circuit:mod.zig",
+    "dependency:../src/integrations/cairo_cpu:mod.zig",
+    "dependency:../src/integrations/circuit_cpu:mod.zig",
+    "dependency:../src/interop/circuit_recursion:mod.zig",
     "dependency:../src/prover:mod.zig",
     "dependency:../src/prover_api:mod.zig",
 };
@@ -331,6 +363,9 @@ pub const compatibility_package_roots = &.{
     "dependency:../src/integrations/cairo_metal:mod.zig",
     "dependency:../src/integrations/native_cuda:mod.zig",
     "dependency:../src/integrations/riscv_cpu:mod.zig",
+    // The circuit recursion wire package (`test-cairo-leaf-proof` reads its
+    // registries).
+    "dependency:../src/interop/circuit_recursion:mod.zig",
     "dependency:../src/interop/proof_wire:mod.zig",
     "dependency:../src/prover:mod.zig",
     "dependency:../src/prover_api:mod.zig",

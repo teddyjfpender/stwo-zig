@@ -1,5 +1,6 @@
 //! Mixed-height trace and OODS resident bindings for Cairo CUDA.
 
+const std = @import("std");
 const proof_ir = @import("stwo_backend_contracts").proof_program;
 const field = @import("stwo_cuda_backend").abi.field;
 const shared_views = @import("stwo_native_cuda_integration").common.resident_views;
@@ -82,13 +83,13 @@ pub fn bindTrees(
                 index,
                 columns.len,
             ),
-            .column_offsets = try slots.exactWords(
+            .column_offsets = try (try slots.exactWords(
                 provider,
                 plan,
                 .trace_column_offsets,
                 index,
-                columns.len + 1,
-            ),
+                try slots.mul(columns.len + 1, 2),
+            )).cast(u64),
             .merkle_hashes = try hashes.cast(field.Blake2sHash),
             .merkle_layers = try layers.cast(
                 field.MerkleLayerDescriptor,
@@ -117,11 +118,16 @@ pub fn uniformCompositionView(
             return error.InvalidKernelDescriptor;
     }
     const coefficient_rows = try slots.pow2(coefficient_log);
-    const evaluation_rows = try slots.pow2(tree.evaluation_log_rows);
+    // The committed tree may be lifted above the physical LDE columns.
+    // The uniform composition view addresses the compact column storage.
+    if (tree.evaluations.len % columns.len != 0)
+        return error.InvalidKernelDescriptor;
+    const evaluation_rows = tree.evaluations.len / columns.len;
     if (tree.coefficients.len !=
         try slots.mul(columns.len, coefficient_rows) or
-        tree.evaluations.len !=
-            try slots.mul(columns.len, evaluation_rows))
+        !std.math.isPowerOfTwo(evaluation_rows) or
+        evaluation_rows <= coefficient_rows or
+        evaluation_rows > try slots.pow2(tree.evaluation_log_rows))
     {
         return error.InvalidKernelDescriptor;
     }

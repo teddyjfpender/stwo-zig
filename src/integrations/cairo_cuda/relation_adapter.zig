@@ -460,13 +460,13 @@ fn selectCanonicalTraces(
         const planned = &proof.components[component_index];
         if (planned.canonical_ordinal != canonical_ordinal)
             return Error.InvalidComponentOrder;
-        const relation_name = relationName(planned.name);
+        const relation_name = relationName(proof_plan.canonicalComponentName(planned.name, planned.instance));
         const relation_index = findRelationComponent(
             relations,
             relation_name,
         ) orelse return Error.MissingRelationComponent;
         const relation_component = &relations.components[relation_index];
-        const wanted_part = relationPart(planned.name);
+        const wanted_part = relationPart(proof_plan.canonicalComponentName(planned.name, planned.instance));
         const trace_index = findTrace(
             relation_component.traces,
             wanted_part,
@@ -501,7 +501,7 @@ fn validateActiveTraceCoverage(
     for (relations.components, 0..) |component, relation_index| {
         var active = false;
         for (proof.components) |planned| {
-            if (std.mem.eql(u8, relationName(planned.name), component.name)) {
+            if (std.mem.eql(u8, relationName(proof_plan.canonicalComponentName(planned.name, planned.instance)), component.name)) {
                 active = true;
                 break;
             }
@@ -580,7 +580,7 @@ fn traceRows(
     // The current proof plan represents the split memory components with one
     // main part each. Keep that compatibility exact and name-gated.
     const split_memory = (part == .each_memory_big and
-        std.mem.eql(u8, component.name, "memory_id_to_big")) or
+        std.mem.eql(u8, proof_plan.canonicalComponentName(component.name, component.instance), "memory_id_to_big")) or
         (part == .memory_small and
             std.mem.eql(u8, component.name, "memory_id_to_small"));
     if (!split_memory or component.trace_parts.len != 1 or

@@ -31,9 +31,10 @@ flowchart LR
 
 The staged CLI now derives witness geometry, relations, AIR constants and PCS
 controllers directly from the authenticated source input. The SN2 proof-derived
-path remains a compatibility diagnostic. Production admission still requires
-real NVIDIA proofs accepted by the pinned official Rust verifier; host tests and
-CuMetal translation do not satisfy that requirement.
+path remains a compatibility diagnostic. Two contiguous mainnet leaves under
+the production circuit registry now have real H100 proofs accepted by the pinned
+official Rust verifier. This qualifies those leaves, not the recursive CUDA
+pipeline or every possible Cairo input.
 
 ## Canonical source path
 
@@ -44,11 +45,14 @@ It excludes the 271 legacy SN2 evaluation bodies. CPU, Metal and CUDA share the
 preprocessed profile admission policy: the small profile automatically upgrades
 to canonical when the input requires it; an explicitly undersized profile fails.
 
-The protocol matches the CPU/Metal suite: 70 queries, 26 query PoW bits,
+The default protocol matches the CPU/Metal suite: 70 queries, 26 query PoW bits,
 24 interaction PoW bits, blowup 1, FRI fold step 1, final degree bound 0,
-no lifting and channel salt 0. CUDA verifies the decoded proof independently in
-Zig before publishing official Rust proof JSON. Publication alone does not
-establish official Rust acceptance.
+no lifting and channel salt 0. Passing `--circuit-registry` to the staged CLI
+selects the registry's Cairo leaf lane instead: Blake2s-M31 transcript,
+the registry's memory-component count and preprocessed variant, lifted PCS
+height, and full preprocessed sampling. CUDA verifies the decoded proof
+independently in Zig before publishing official Rust proof JSON. The two
+production mainnet leaves below also passed the pinned Rust verifier.
 
 Compile the complete CLI locally, including Linux code, without a GPU:
 
@@ -106,6 +110,44 @@ extension arithmetic were tested on all four proofs but did not improve the
 large PIEs, so they are not defaults. PIEs 1 and 3 remain just over one second,
 and cold ingress contributes another four to five seconds. This is a staged
 product; benchmark qualification does not replace the package release gates.
+
+## Production-registry mainnet leaf qualification on H100
+
+On 30 September 2026, the two contiguous adapted leaves
+`15627902-15627904` and `15627905-15627907` were proved under
+`vectors/circuit/official/registries/production.json` with the resident CUDA
+prover. Both decoded proofs passed independent Zig verification and the pinned
+official Rust `verify_cairo_ex` verifier. The first leaf's canonical Rust
+`bincode(CairoProofForRustVerifier)` was **byte-identical** to the pinned Rust
+prover for both leaves. The first was 3,346,454 bytes, SHA-256
+`a699160cbccf6869762d2473b349b64886858dc4dfec75869a012d2906cd9ff1`.
+The second was 3,345,638 bytes, SHA-256
+`7304ccf3636a7abcc6f1cfcf661af49f346fe7a2e537a276e65a43dc381e206a`.
+
+The H100 process reused its CUDA runtime and preprocessed arena between the
+three trials per input. Times are individual wall measurements, not medians;
+ingress includes source preparation, bindings and uploads, while proof time
+includes resident execution and decode. The input was already adapted, and
+Rust verification ran separately.
+
+| Leaf | Trial | Ingress | Proof and decode | Input to publication | Reserved device arena |
+| :--- | ---: | ---: | ---: | ---: | ---: |
+| 15627902-15627904 | cold | 7.048 s | 0.486 s | 7.777 s | 51.51 GB |
+| 15627902-15627904 | warm 1 | 2.209 s | 0.352 s | 2.655 s | 51.51 GB |
+| 15627902-15627904 | warm 2 | 2.305 s | 0.357 s | 2.794 s | 51.51 GB |
+| 15627905-15627907 | cold | 5.418 s | 0.492 s | 6.021 s | 50.89 GB |
+| 15627905-15627907 | warm 1 | 1.515 s | 0.345 s | 1.962 s | 50.89 GB |
+| 15627905-15627907 | warm 2 | 1.642 s | 0.345 s | 2.077 s | 50.89 GB |
+
+For the warm first leaf, source parsing and compilation accounted for about
+1.2–1.3 s and controller preparation for about 0.34 s. Those host ingress
+costs dominate its 0.35 s proof execution. The large reserved arena is a
+capacity bound, not measured live allocation or whole-device peak. The pinned
+Rust acceptance check can be repeated with
+`cargo +nightly-2026-01-15 run --release --bin verify_cairo_cuda_json --
+PROOF.json [EXPECTED_BINCODE_SHA256]` from `tools/stwo-circuit-oracle-rs`.
+The circuit wrap and root fold still need resident CUDA implementations;
+these leaf timings are not a PIE-to-root measurement.
 
 ## Public API
 

@@ -4,12 +4,10 @@ use stwo::core::fri::{fold_circle_into_line, fold_line};
 use stwo::core::poly::circle::CanonicCoset;
 use stwo::core::poly::line::LineDomain;
 use stwo::core::vcs::blake2_hash::Blake2sHash;
-use stwo::core::vcs_lifted::blake2_merkle::Blake2sMerkleHasher as LiftedMerkleHasher;
-use stwo::core::vcs_lifted::MerkleHasherLifted;
 
 use crate::common::*;
 use crate::model::*;
-use crate::vcs::build_vcs_lifted_leaves;
+use crate::vcs::{build_vcs_lifted_layers, build_vcs_lifted_leaves, lifted_hash_witness};
 
 pub(crate) fn generate_fri_fold_vectors(state: &mut u64, count: usize) -> Vec<FriFoldVector> {
     let mut out = Vec::with_capacity(count);
@@ -209,6 +207,9 @@ fn compute_fri_decommit_outputs(
     })
 }
 
+/// Upstream `core::vcs_lifted::verifier::LOG_PACKED_LEAF_SIZE` (stwo 7b211ed).
+const LOG_PACKED_LEAF_SIZE: u32 = 2;
+
 pub(crate) fn generate_fri_layer_decommit_vectors(
     state: &mut u64,
     count: usize,
@@ -326,48 +327,43 @@ fn compute_fri_layer_decommit_outputs(
             base_columns[coord].push(coords[coord]);
         }
     }
-    let sorted_columns = base_columns.iter().collect::<Vec<_>>();
-    let leaves = build_vcs_lifted_leaves(&sorted_columns);
-    let mut layers = vec![leaves];
-    while layers.last().expect("at least one layer").len() > 1 {
-        let prev = layers.last().expect("previous layer");
-        layers.push(
-            (0..(prev.len() >> 1))
-                .map(|i| LiftedMerkleHasher::hash_children((prev[2 * i], prev[2 * i + 1])))
-                .collect(),
-        );
-    }
-    layers.reverse();
-    let commitment = layers
-        .first()
-        .expect("root layer")
-        .first()
-        .copied()
-        .expect("root hash");
 
-    let mut hash_witness = Vec::<Blake2sHash>::new();
-    let mut prev_layer_queries = helper.decommitment_positions.clone();
-    prev_layer_queries.dedup();
-    for layer_log_size in (0..layers.len() - 1).rev() {
-        let prev_layer_hashes = layers
-            .get(layer_log_size + 1)
-            .expect("previous layer hashes");
-        let mut curr_layer_queries = Vec::<usize>::new();
-        let mut p: usize = 0;
-        while p < prev_layer_queries.len() {
-            let first = prev_layer_queries[p];
-            let mut chunk_len = 1;
-            if p + 1 < prev_layer_queries.len() && ((first ^ 1) == prev_layer_queries[p + 1]) {
-                chunk_len = 2;
+    // Upstream stwo 7b211ed FriFirstLayerProver/FriInnerLayerProver: when
+    // `log_size >= LOG_PACKED_LEAF_SIZE && fold_step > 1`, the layer is committed
+    // over `pack_leaves_input` columns (column `coord + offset * 4` holds
+    // coordinate `coord` of row `4 * packed_row + offset`) at height
+    // `log_size - LOG_PACKED_LEAF_SIZE`, and decommitted at
+    // `decommitment_positions.map(|p| p >> LOG_PACKED_LEAF_SIZE).dedup()`.
+    // The pinned a8fcf4bd has no leaf packing, so it is modelled here and
+    // checked against 7b211ed's MerkleProverLifted by an external harness.
+    let pack_leaves = column.len().ilog2() >= LOG_PACKED_LEAF_SIZE && fold_step > 1;
+    let (leaf_columns, merkle_positions) = if pack_leaves {
+        let packed_len = column.len() >> LOG_PACKED_LEAF_SIZE;
+        let mut packed_columns = vec![Vec::with_capacity(packed_len); 4 << LOG_PACKED_LEAF_SIZE];
+        for packed_row in 0..packed_len {
+            for offset in 0..(1usize << LOG_PACKED_LEAF_SIZE) {
+                for coord in 0..4 {
+                    packed_columns[coord + offset * 4]
+                        .push(base_columns[coord][(packed_row << LOG_PACKED_LEAF_SIZE) + offset]);
+                }
             }
-            if chunk_len == 1 {
-                hash_witness.push(prev_layer_hashes[first ^ 1]);
-            }
-            curr_layer_queries.push(first >> 1);
-            p += chunk_len;
         }
-        prev_layer_queries = curr_layer_queries;
-    }
+        let mut positions = helper
+            .decommitment_positions
+            .iter()
+            .map(|position| position >> LOG_PACKED_LEAF_SIZE)
+            .collect::<Vec<_>>();
+        positions.dedup();
+        (packed_columns, positions)
+    } else {
+        (base_columns, helper.decommitment_positions.clone())
+    };
+
+    let layers = build_vcs_lifted_layers(build_vcs_lifted_leaves(
+        &leaf_columns.iter().collect::<Vec<_>>(),
+    ));
+    let commitment = layers[0][0];
+    let hash_witness = lifted_hash_witness(&layers, &merkle_positions);
 
     Ok(FriLayerDecommitOutputs {
         commitment,

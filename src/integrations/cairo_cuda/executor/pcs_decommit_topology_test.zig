@@ -402,7 +402,7 @@ fn compactTree(
         .coefficients = metadata,
         .evaluations = words(evaluation_address, evaluation_words),
         .column_log_sizes = metadata,
-        .column_offsets = words(metadata.address + 0x1000, tree.column_count + 1),
+        .column_offsets = words(metadata.address + 0x1000, 2 * (tree.column_count + 1)).cast(u64) catch unreachable,
         .merkle_hashes = hashes(
             metadata.address + 0x2000,
             (@as(usize, 1) << @intCast(tree.evaluation_log_rows)) * 2 - 1,

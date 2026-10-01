@@ -5,7 +5,13 @@ const builtin = @import("builtin");
 pub const m31 = @import("m31.zig");
 pub const cm31 = @import("cm31.zig");
 pub const qm31 = @import("qm31.zig");
+pub const qm31_pointwise = @import("qm31_pointwise.zig");
 pub const packed_qm31 = @import("packed_qm31.zig");
+
+/// The Stark (felt252) field prime, P = 2^251 + 17 * 2^192 + 1: the one
+/// definition the Cairo frontend's felt252 arithmetic and the circuit
+/// recursion wire package's felt encoding share.
+pub const stark_prime: u256 = (@as(u256, 1) << 251) + (@as(u256, 17) << 192) + 1;
 
 /// Inverts all elements in `column` using Montgomery's trick.
 ///

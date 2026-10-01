@@ -61,8 +61,9 @@ pub const Error = error{
 pub fn reportStage(stage: []const u8) void {
     if (!std.process.hasEnvVarConstant("STWO_HOST_MEMORY_PROFILE")) return;
     const usage = sample() catch return;
-    std.debug.print("PROCESS_MEMORY_STAGE {s} current_bytes={?d} lifetime_peak_bytes={?d} source={s}\n", .{
-        stage, usage.current_physical_footprint_bytes, usage.lifetime_peak_physical_footprint_bytes, @tagName(usage.source),
+    // Wall-clock milliseconds: stage deltas are durations.
+    std.debug.print("PROCESS_MEMORY_STAGE {s} current_bytes={?d} lifetime_peak_bytes={?d} source={s} wall_ms={d}\n", .{
+        stage, usage.current_physical_footprint_bytes, usage.lifetime_peak_physical_footprint_bytes, @tagName(usage.source), std.time.milliTimestamp(),
     });
 }
 

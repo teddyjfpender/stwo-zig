@@ -1,0 +1,14 @@
+{
+  "gpu": "NVIDIA H200, GPU-387a29f3-1314-0775-236b-8b0ed7116ff4, 143771, 580.178.04",
+  "security": {
+    "query_count": 70,
+    "query_pow_bits": 26,
+    "interaction_pow_bits": 24,
+    "log_blowup_factor": 1,
+    "fri_fold_step": 1,
+    "log_last_layer_degree_bound": 0,
+    "channel_salt": 0
+  },
+  "prover_sha256": "d32b2938856346657e32b3538f5c2e456420c7e40b831e35f5c13da6a74dacfc",
+  "verifier_sha256": null
+}

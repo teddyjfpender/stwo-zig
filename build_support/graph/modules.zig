@@ -187,7 +187,53 @@ pub fn createCairoFrontend(
         .optimize = optimize,
     });
     protocol.addImports(frontend);
+    // The injected interop felt JSON writer behind `proof.cairo_serde`.
+    const felt_json = create(b, .{
+        .product = product,
+        .root_source_file = "src/interop/felt_json.zig",
+        .target = target,
+        .optimize = optimize,
+    });
+    felt_json.addImport("stwo_core", protocol.core);
+    frontend.addImport("interop_felt_json", felt_json);
+    // The injected `ProverParameters` (the circuit registry's
+    // `cairo_prover_params`, shared with the circuit-recursion wire package)
+    // behind `proving.leaf_lane`.
+    const prover_parameters = create(b, .{
+        .product = product,
+        .root_source_file = "src/interop/cairo_prover_parameters.zig",
+        .target = target,
+        .optimize = optimize,
+    });
+    prover_parameters.addImport("stwo_core", protocol.core);
+    frontend.addImport("interop_cairo_prover_parameters", prover_parameters);
     return frontend;
+}
+
+/// Constructs the circuit-recursion wire package beside a Cairo frontend.
+/// The two share the injected `interop_felt_json` and
+/// `interop_cairo_prover_parameters` modules: a file belongs to one module per
+/// compilation, so the wire package takes the frontend's instances.
+pub fn createCircuitRecursionWire(
+    b: *std.Build,
+    protocol: ProtocolModules,
+    product: Product,
+    target: std.Build.ResolvedTarget,
+    optimize: std.builtin.OptimizeMode,
+    cairo_frontend: *std.Build.Module,
+) *std.Build.Module {
+    const wire = create(b, .{
+        .product = product,
+        .root_source_file = "src/interop/circuit_recursion/mod.zig",
+        .target = target,
+        .optimize = optimize,
+    });
+    wire.addImport("stwo_core", protocol.core);
+    inline for (.{ "interop_felt_json", "interop_cairo_prover_parameters" }) |name| {
+        wire.addImport(name, cairo_frontend.import_table.get(name) orelse
+            @panic("Cairo frontend is missing " ++ name));
+    }
+    return wire;
 }
 
 /// Declares a consumer's dependency on the package-owned Cairo API.

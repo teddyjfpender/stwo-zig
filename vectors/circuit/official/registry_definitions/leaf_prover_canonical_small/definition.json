@@ -1,0 +1,8 @@
+{
+    "cairo_prover_params_json": "crates/leaf_prover/tests/data/cairo_prover_params_canonical_small.json",
+    "circuit_fri_config_json": "crates/leaf_prover/tests/data/circuit_fri_config_canonical_small.json",
+    "program": "crates/leaf_prover/tests/data/use_all_opcodes_and_builtins_compiled.json",
+    "min_trace_log_size": 20,
+    "max_trace_log_size": 20,
+    "add_zk_blinding": false
+}

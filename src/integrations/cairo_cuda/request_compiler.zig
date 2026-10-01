@@ -644,7 +644,8 @@ fn findComponent(
     instance: u32,
 ) ?*const composition.Component {
     for (bundle.components) |*component| {
-        if (component.instance == instance and std.mem.eql(u8, proof_plan.canonicalComponentName(component.label, instance), name))
+        if (component.instance == instance and
+            std.mem.eql(u8, proof_plan.canonicalComponentName(component.label, instance), proof_plan.canonicalComponentName(name, instance)))
             return component;
     }
     return null;

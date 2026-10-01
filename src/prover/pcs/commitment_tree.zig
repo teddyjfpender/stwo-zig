@@ -88,7 +88,9 @@ pub fn freeRetainedColumns(
     allocator.free(columns);
 }
 
-const HostMerkleBackend = struct {
+/// The host reference Merkle backend behind `CommitmentTreeProver(H)`; its
+/// column preparation takes the portable interpolate-then-extend path.
+pub const HostMerkleBackend = struct {
     pub const reuses_constant_merkle_parents = true;
 
     pub fn MerkleTree(comptime H: type) type {

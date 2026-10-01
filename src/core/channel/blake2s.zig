@@ -140,7 +140,7 @@ pub fn Blake2sChannelGeneric(comptime is_m31_output: bool) type {
 
         /// Compute the constant prefix hash: H(POW_PREFIX, [0u8;12], digest, n_bits).
         /// This is invariant across nonces and can be cached for the grinding loop.
-        fn computePowPrefix(self: Self, n_bits: u32) Digest32 {
+        pub fn computePowPrefix(self: Self, n_bits: u32) Digest32 {
             var prefixed_hasher = Hasher.init();
             const prefix_bytes = u32ToBytesLe(POW_PREFIX);
             const bits_bytes = u32ToBytesLe(n_bits);
@@ -204,18 +204,7 @@ pub fn Blake2sChannelGeneric(comptime is_m31_output: bool) type {
         /// as Rust does.
         pub fn grind(self: Self, n_bits: u32) u64 {
             if (n_bits == 0) return 0;
-
-            // Determine thread count from env or CPU count.
-            const n_threads: usize = blk: {
-                if (comptime builtin.is_test) break :blk 1;
-                const env_val = std.process.getEnvVarOwned(
-                    std.heap.page_allocator,
-                    "STWO_ZIG_POW_WORKERS",
-                ) catch break :blk std.Thread.getCpuCount() catch 1;
-                defer std.heap.page_allocator.free(env_val);
-                break :blk std.fmt.parseInt(usize, env_val, 10) catch 1;
-            };
-            return self.grindWithWorkerCount(n_bits, n_threads);
+            return self.grindWithWorkerCount(n_bits, powWorkerCount());
         }
 
         pub fn grindWithWorkerCount(self: Self, n_bits: u32, n_workers: usize) u64 {
@@ -302,6 +291,17 @@ pub fn Blake2sChannelGeneric(comptime is_m31_output: bool) type {
             return hasher.finalize();
         }
     };
+}
+
+/// PoW worker count: `STWO_ZIG_POW_WORKERS`, else the CPU count; one in tests.
+fn powWorkerCount() usize {
+    if (comptime builtin.is_test) return 1;
+    const env_val = std.process.getEnvVarOwned(
+        std.heap.page_allocator,
+        "STWO_ZIG_POW_WORKERS",
+    ) catch return std.Thread.getCpuCount() catch 1;
+    defer std.heap.page_allocator.free(env_val);
+    return std.fmt.parseInt(usize, env_val, 10) catch 1;
 }
 
 fn trailingZeroBits(bytes: []const u8) u32 {
@@ -528,6 +528,29 @@ test "blake2s m31 channel: grind matches Rust Stwo SimdBackend known answers" {
         // Natural-order grinding returns 79253736 here.
         .{ .seed = 0x1111_2222_3333_4344, .bits = 26, .nonce = 150324282603 }, // hi 35, lo 427243
     });
+}
+
+test "blake2s channels: grind matches proving@5a7c5ed SimdBackend known answers" {
+    // `<SimdBackend as GrindOps<C>>::grind(&c, bits)` of
+    // https://github.com/starkware-libs/proving at
+    // 5a7c5ede4299c91a61df19a07cba4f7502c14230 after
+    // `c.mix_u64(0x1111222233334344)` (upstream
+    // `test_parallel_grind_with_high_pow_bits`): the recursion lanes' order is
+    // the default order.
+    const vectors = [_]struct { bits: u32, blake2s: u64, blake2s_m31: u64 }{
+        .{ .bits = 1, .blake2s = 0, .blake2s_m31 = 0 },
+        .{ .bits = 10, .blake2s = 0x413, .blake2s_m31 = 0x415 },
+        .{ .bits = 20, .blake2s = 0xede9, .blake2s_m31 = 0x1_0005_a700 },
+        .{ .bits = 24, .blake2s = 0x9_000e_1aa1, .blake2s_m31 = 0xf_0001_6fbd },
+    };
+    var plain = Blake2sChannel{};
+    plain.mixU64(0x1111_2222_3333_4344);
+    var reduced = Blake2sM31Channel{};
+    reduced.mixU64(0x1111_2222_3333_4344);
+    for (vectors) |vector| {
+        try std.testing.expectEqual(vector.blake2s, plain.grind(vector.bits));
+        try std.testing.expectEqual(vector.blake2s_m31, reduced.grind(vector.bits));
+    }
 }
 
 test "blake2s channel: grind agrees with Rust below the lattice boundary" {

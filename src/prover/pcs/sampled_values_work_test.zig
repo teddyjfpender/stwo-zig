@@ -654,3 +654,78 @@ test "sampled barycentric residency keeps large device trees out of the host sla
 test "sampled barycentric residency declines unsupported host geometry before changing outputs" {
     try residencyEpochCase(std.testing.allocator, false);
 }
+
+fn expectSharedPointsMatchReference(allocator: std.mem.Allocator) !void {
+    const ColumnEvaluation = @import("stwo_prover_api").ColumnEvaluation;
+    const lifting_log_size: u32 = 10;
+    // Two trees on two domains; the out-of-domain point and its predecessor
+    // recur across trees and mask shapes, as a proof's trees sample them.
+    const log_sizes = [_]u32{ 10, 8, 10, 10 };
+    var storage: [log_sizes.len][]M31 = undefined;
+    var built: usize = 0;
+    defer for (storage[0..built]) |values| allocator.free(values);
+    var columns: [log_sizes.len]ColumnEvaluation = undefined;
+    for (log_sizes, &storage, &columns, 0..) |log_size, *values, *column, column_idx| {
+        values.* = try allocator.alloc(M31, @as(usize, 1) << @intCast(log_size));
+        built += 1;
+        for (values.*, 0..) |*value, row| value.* = M31.fromCanonical(@intCast(((column_idx + 3) * (row + 5) * 2654435761) % m31.Modulus));
+        column.* = .{ .log_size = log_size, .values = values.* };
+    }
+    const p = circle.SECURE_FIELD_CIRCLE_GEN.mul(17);
+    const p_prev = circle.SECURE_FIELD_CIRCLE_GEN.mul(29);
+    const single = [_]CirclePointQM31{p};
+    const pair = [_]CirclePointQM31{ p_prev, p };
+    const tree_a_points = [_][]const CirclePointQM31{ &single, &pair };
+    const tree_b_points = [_][]const CirclePointQM31{ &pair, &single };
+    var values_storage: [4][2]QM31 = undefined;
+    var tree_a_values = [_][]QM31{ values_storage[0][0..1], values_storage[1][0..2] };
+    var tree_b_values = [_][]QM31{ values_storage[2][0..2], values_storage[3][0..1] };
+    const trees = [_]coefficient_plans.SharedPointTree{
+        .{ .columns = columns[0..2], .points = &tree_a_points, .values = &tree_a_values },
+        .{ .columns = columns[2..4], .points = &tree_b_points, .values = &tree_b_values },
+    };
+
+    var contexts = std.AutoHashMap(u32, evaluation_mod.BarycentricContext).init(allocator);
+    defer {
+        var iterator = contexts.valueIterator();
+        while (iterator.next()) |context| context.deinit(allocator);
+        contexts.deinit();
+    }
+    for ([_]u32{ 8, 10 }) |log_size| try contexts.put(log_size, try evaluation_mod.BarycentricContext.init(allocator, log_size));
+
+    var audit: sampled_work.Audit = .{};
+    try coefficient_plans.evaluateBarycentricSharedPoints(allocator, &trees, lifting_log_size, &contexts, &audit);
+    // One vector per (domain, lifted point): (10, p), (10, p_prev) and both
+    // points lifted to 8, where per-tree plans build six.
+    try std.testing.expectEqual(@as(u64, 4), audit.barycentric_weight_vector_count);
+
+    for (trees) |tree| {
+        for (tree.columns, tree.points, tree.values) |column, points, values| {
+            const evaluation = try prover_circle.CircleEvaluation.init(
+                canonic.CanonicCoset.new(column.log_size).circleDomain(),
+                column.values,
+            );
+            for (points, values) |point, value| {
+                const expected = try evaluation.barycentricEvalAtPoint(
+                    allocator,
+                    point_evaluation.repeatedDoubleOnCircleQM31(point, lifting_log_size - column.log_size),
+                );
+                try std.testing.expect(expected.eql(value));
+            }
+        }
+    }
+}
+
+test "prover pcs: shared-point barycentric weights serve every tree and mask shape" {
+    try expectSharedPointsMatchReference(std.testing.allocator);
+}
+
+test "prover pcs: shared-point barycentric dots use the scoped worker pool" {
+    if (builtin.single_threaded) return;
+    var pool: work_pool_mod.WorkPool = undefined;
+    try pool.initInPlaceWithOptions(.{ .worker_count = 4 });
+    defer pool.deinit();
+    var binding = try work_pool_mod.ScopedPoolBinding.init(&pool);
+    defer binding.deinit();
+    try expectSharedPointsMatchReference(std.testing.allocator);
+}

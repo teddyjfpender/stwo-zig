@@ -10,6 +10,16 @@ pub extern "c" fn stwo_blake2s_transcript_init_on(
     stream: *anyopaque,
 ) c_int;
 
+/// Same resident channel state with every Blake2s output reduced per word
+/// modulo M31, matching the pinned recursion leaf transcript.
+pub extern "c" fn stwo_blake2s_m31_transcript_init_on(
+    state: [*]u32,
+    seed: ?[*]const u32,
+    seed_snapshot: ?[*]u32,
+    initial_chain: u64,
+    stream: *anyopaque,
+) c_int;
+
 pub extern "c" fn stwo_blake2s_transcript_mix_words_on(
     state: [*]u32,
     expected_step: u32,

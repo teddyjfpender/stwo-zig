@@ -175,7 +175,7 @@ pub fn MetalMerkleTree(comptime H: type) type {
             allocator: std.mem.Allocator,
             columns: []const []const M31,
         ) !Self {
-            return commitOwned(runtime, allocator, columns, false, null);
+            return commitOwned(runtime, allocator, columns, false, null, null);
         }
 
         pub fn commitShared(
@@ -183,7 +183,16 @@ pub fn MetalMerkleTree(comptime H: type) type {
             allocator: std.mem.Allocator,
             columns: []const []const M31,
         ) !Self {
-            return commitOwned(runtime, allocator, columns, true, null);
+            return commitOwned(runtime, allocator, columns, true, null, null);
+        }
+
+        pub fn commitSharedAtHeight(
+            runtime: *runtime_mod.Runtime,
+            allocator: std.mem.Allocator,
+            columns: []const []const M31,
+            height: u32,
+        ) !Self {
+            return commitOwned(runtime, allocator, columns, true, null, height);
         }
 
         pub fn commitSharedBacking(
@@ -192,7 +201,7 @@ pub fn MetalMerkleTree(comptime H: type) type {
             columns: []const []const M31,
             backings: []const []M31,
         ) !Self {
-            return commitOwned(runtime, allocator, columns, true, backings);
+            return commitOwned(runtime, allocator, columns, true, backings, null);
         }
 
         fn commitOwned(
@@ -201,6 +210,7 @@ pub fn MetalMerkleTree(comptime H: type) type {
             columns: []const []const M31,
             tracks_shared_runtime: bool,
             backings: ?[]const []M31,
+            height: ?u32,
         ) !Self {
             const maybe_domain = comptime hash_domain.directParameters(H);
             if (comptime maybe_domain == null) return error.UnsupportedMetalHash;
@@ -219,6 +229,10 @@ pub fn MetalMerkleTree(comptime H: type) type {
                 log_sizes[index] = log_size;
                 max_log_size = @max(max_log_size, log_size);
                 word_columns[index] = std.mem.bytesAsSlice(u32, std.mem.sliceAsBytes(column));
+            }
+            if (height) |required| {
+                if (required < max_log_size) return error.InvalidTreeHeight;
+                max_log_size = required;
             }
 
             const tree = if (backings) |values|

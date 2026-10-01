@@ -11,7 +11,8 @@ __global__ void initialize_kernel(
     uint32_t *state_words,
     const uint32_t *seed,
     uint32_t *seed_snapshot,
-    uint64_t initial_chain) {
+    uint64_t initial_chain,
+    uint32_t m31_output) {
     State *state = as_state(state_words);
     if (seed == nullptr) {
 #pragma unroll
@@ -24,7 +25,7 @@ __global__ void initialize_kernel(
     }
     state->cursor = 0;
     state->status = state->draws <= kMaximumSeedDraws ? kOk : kInvalidSeed;
-    state->reserved = 0;
+    state->reserved = m31_output;
     state->chain = initial_chain;
     state->padding[0] = 0;
     state->padding[1] = 0;
@@ -221,7 +222,25 @@ extern "C" int stwo_blake2s_transcript_init_on(
     }
     stwo::cuda::transcript::initialize_kernel<<<
         1, 1, 0, reinterpret_cast<cudaStream_t>(stream)>>>(
-            state, seed, seed_snapshot, initial_chain);
+            state, seed, seed_snapshot, initial_chain, 0);
+    return static_cast<int>(cudaPeekAtLastError());
+}
+
+extern "C" int stwo_blake2s_m31_transcript_init_on(
+    uint32_t *state,
+    const uint32_t *seed,
+    uint32_t *seed_snapshot,
+    uint64_t initial_chain,
+    void *stream) {
+    if (state == nullptr ||
+        reinterpret_cast<uintptr_t>(state) % alignof(stwo::cuda::transcript::State) != 0 ||
+        stream == nullptr ||
+        (seed != nullptr && seed_snapshot == nullptr)) {
+        return static_cast<int>(cudaErrorInvalidValue);
+    }
+    stwo::cuda::transcript::initialize_kernel<<<
+        1, 1, 0, reinterpret_cast<cudaStream_t>(stream)>>>(
+            state, seed, seed_snapshot, initial_chain, 1);
     return static_cast<int>(cudaPeekAtLastError());
 }
 

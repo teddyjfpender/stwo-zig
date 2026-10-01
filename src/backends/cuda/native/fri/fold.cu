@@ -140,6 +140,71 @@ __global__ void fold_three_kernel(
             alpha_2));
 }
 
+// Circuit recursion uses four folds per commitment. Fuse the reduction so
+// intermediate secure-field vectors never touch HBM.
+__global__ void fold_four_kernel(
+    const M31 *domain,
+    uint32_t twiddle_offset_0,
+    uint32_t twiddle_offset_1,
+    uint32_t twiddle_offset_2,
+    uint32_t twiddle_offset_3,
+    uint32_t size,
+    uint32_t first_is_circle,
+    const uint32_t *evaluations,
+    uint32_t evaluation_stride,
+    const QM31 *alpha_pointer,
+    uint32_t *folded,
+    uint32_t folded_stride) {
+    const uint32_t output_index = blockIdx.x * blockDim.x + threadIdx.x;
+    if (output_index >= size / 16) return;
+    const QM31 alpha_0 = *alpha_pointer;
+    const QM31 alpha_1 = mul(alpha_0, alpha_0);
+    const QM31 alpha_2 = mul(alpha_1, alpha_1);
+    const QM31 alpha_3 = mul(alpha_2, alpha_2);
+    QM31 stage_0[8];
+#pragma unroll
+    for (uint32_t pair = 0; pair < 8; ++pair) {
+        const uint32_t index = 8 * output_index + pair;
+        const M31 inverse_x = first_is_circle != 0
+            ? circle_twiddle(domain + twiddle_offset_0, index)
+            : domain[twiddle_offset_0 + index];
+        stage_0[pair] = fold_pair(
+            load(evaluations, evaluation_stride, 2 * index),
+            load(evaluations, evaluation_stride, 2 * index + 1),
+            inverse_x,
+            alpha_0);
+    }
+    QM31 stage_1[4];
+#pragma unroll
+    for (uint32_t pair = 0; pair < 4; ++pair) {
+        const uint32_t index = 4 * output_index + pair;
+        stage_1[pair] = fold_pair(
+            stage_0[2 * pair],
+            stage_0[2 * pair + 1],
+            domain[twiddle_offset_1 + index],
+            alpha_1);
+    }
+    QM31 stage_2[2];
+#pragma unroll
+    for (uint32_t pair = 0; pair < 2; ++pair) {
+        const uint32_t index = 2 * output_index + pair;
+        stage_2[pair] = fold_pair(
+            stage_1[2 * pair],
+            stage_1[2 * pair + 1],
+            domain[twiddle_offset_2 + index],
+            alpha_2);
+    }
+    store(
+        folded,
+        folded_stride,
+        output_index,
+        fold_pair(
+            stage_2[0],
+            stage_2[1],
+            domain[twiddle_offset_3 + output_index],
+            alpha_3));
+}
+
 __global__ void fold_two_kernel(
     const M31 *domain,
     uint32_t twiddle_offset_0,
@@ -338,6 +403,65 @@ extern "C" int stwo_fri_fold_fused3_on(
             domain, twiddle_offset_0, twiddle_offset_1, twiddle_offset_2,
             size, first_is_circle, evaluations, evaluation_stride, alpha,
             folded, folded_stride);
+    return static_cast<int>(cudaPeekAtLastError());
+}
+
+extern "C" int stwo_fri_fold_fused4_on(
+    const uint32_t *domain,
+    size_t domain_words,
+    uint32_t twiddle_offset_0,
+    uint32_t twiddle_offset_1,
+    uint32_t twiddle_offset_2,
+    uint32_t twiddle_offset_3,
+    uint32_t size,
+    uint32_t first_is_circle,
+    const uint32_t *evaluations,
+    size_t evaluation_words,
+    uint32_t evaluation_stride,
+    const stwo::cuda::fri::QM31 *alpha,
+    uint32_t *folded,
+    size_t folded_words,
+    uint32_t folded_stride,
+    void *stream) {
+    const uint32_t stage_0_words = first_is_circle != 0 ? size / 4 : size / 2;
+    size_t evaluation_bytes = 0;
+    size_t folded_bytes = 0;
+    if (domain == nullptr || size < 16 ||
+        size > (1u << stwo::cuda::fri::kMaximumLogSize) ||
+        !stwo::cuda::fri::is_power_of_two(size) || first_is_circle > 1 ||
+        twiddle_offset_0 > domain_words ||
+        stage_0_words > domain_words - twiddle_offset_0 ||
+        twiddle_offset_1 > domain_words ||
+        size / 4 > domain_words - twiddle_offset_1 ||
+        twiddle_offset_2 > domain_words ||
+        size / 8 > domain_words - twiddle_offset_2 ||
+        twiddle_offset_3 > domain_words ||
+        size / 16 > domain_words - twiddle_offset_3 ||
+        evaluations == nullptr || alpha == nullptr || folded == nullptr ||
+        evaluation_words != static_cast<size_t>(4) * evaluation_stride ||
+        folded_words != static_cast<size_t>(4) * folded_stride ||
+        evaluation_stride < size || folded_stride < size / 16 ||
+        stream == nullptr ||
+        !stwo::cuda::fri::checked_bytes(
+            evaluation_words, sizeof(uint32_t), &evaluation_bytes) ||
+        !stwo::cuda::fri::checked_bytes(
+            folded_words, sizeof(uint32_t), &folded_bytes) ||
+        stwo::cuda::fri::ranges_overlap(
+            evaluations, evaluation_bytes, folded, folded_bytes)) {
+        return static_cast<int>(cudaErrorInvalidValue);
+    }
+    const uint32_t output_count = size / 16;
+    const uint32_t blocks =
+        (output_count + stwo::cuda::fri::kThreads - 1) /
+        stwo::cuda::fri::kThreads;
+    stwo::cuda::fri::fold_four_kernel<<<
+        blocks,
+        stwo::cuda::fri::kThreads,
+        0,
+        reinterpret_cast<cudaStream_t>(stream)>>>(
+            domain, twiddle_offset_0, twiddle_offset_1, twiddle_offset_2,
+            twiddle_offset_3, size, first_is_circle, evaluations,
+            evaluation_stride, alpha, folded, folded_stride);
     return static_cast<int>(cudaPeekAtLastError());
 }
 

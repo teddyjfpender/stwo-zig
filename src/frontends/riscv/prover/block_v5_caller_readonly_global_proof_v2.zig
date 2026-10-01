@@ -172,16 +172,16 @@ pub const Policy = struct {
         try authority.roster.requireEpoch(authority.sealed);
         const binding = original.state.binding;
         try authority.roster.requireSource(authority.ordinal, .caller, binding.execution_index, authority.group_id, .{ binding.first_roots[0], binding.first_roots[1], original.memory.witness_root }, authority.census, authority.source_identity);
-        var classification = Q.zero();
+        var classification_sum = Q.zero();
         var read = Q.zero();
         var count: u64 = 0;
         for (claims.readonly_claims) |part| {
-            classification = classification.add(part.claim.classification_sum);
+            classification_sum = classification_sum.add(part.claim.classification_sum);
             read = read.add(part.claim.read_sum);
             count = try std.math.add(u64, count, part.claim.readonly_count);
         }
         if (original.partition.all_rw_events != authority.census.all_rw or count != authority.census.readonly or original.partition.readonly_events != count or original.partition.mutable_events != authority.census.mutable) return error.UntrustedGlobalCallerSourceCensus;
-        return .{ .program = original.program, .state = original.state, .tables = original.tables, .memory = original.memory, .partition = original.partition, .readonly_provider = .{ .classification_sum = classification, .read_sum = read, .events = original.partition.all_rw_events, .readonly_count = count, .ordinal = authority.ordinal, .group_id = authority.group_id, .index = binding.execution_index, .source_identity = authority.source_identity, .epoch = authority.roster.epoch(), .sealed_digest = authority.sealed.digest } };
+        return .{ .program = original.program, .state = original.state, .tables = original.tables, .memory = original.memory, .partition = original.partition, .readonly_provider = .{ .classification_sum = classification_sum, .read_sum = read, .events = original.partition.all_rw_events, .readonly_count = count, .ordinal = authority.ordinal, .group_id = authority.group_id, .index = binding.execution_index, .source_identity = authority.source_identity, .epoch = authority.roster.epoch(), .sealed_digest = authority.sealed.digest } };
     }
     pub fn mixReceiptIdentity(channel: anytype, verified: *const @This().Verified) void {
         const claim = verified.readonly_provider;

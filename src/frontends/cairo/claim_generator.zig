@@ -9,6 +9,8 @@ const std = @import("std");
 const adapter = @import("adapter/mod.zig");
 const opcodes = @import("adapter/opcodes.zig");
 const claim_registry = @import("air/official_claim_registry.zig");
+const layout = @import("stwo_core").cairo_air_layout;
+const Builtin = layout.Builtin;
 
 pub const simd_log_lanes: u32 = 4;
 pub const max_sequence_log_size: u32 = 25;
@@ -16,11 +18,9 @@ pub const log_memory_address_bound: u32 = 29;
 pub const memory_address_to_id_split: usize = 1 << (log_memory_address_bound - max_sequence_log_size);
 pub const max_memory_id_to_big_components: usize = claim_registry.memory_id_to_big_enable_slot_count;
 
-pub const PreprocessedVariant = enum {
-    canonical,
-    canonical_without_pedersen,
-    canonical_small,
-};
+/// The one preprocessed-trace variant enum, shared with the fixed-column
+/// spec and circuit recursion (`stwo_core.cairo_air_layout.Variant`).
+pub const PreprocessedVariant = layout.Variant;
 
 pub const Options = struct {
     preprocessed_variant: PreprocessedVariant,
@@ -81,6 +81,15 @@ pub const OwnedClaimGeometry = struct {
     pub fn deinit(self: *OwnedClaimGeometry) void {
         self.allocator.free(self.components);
         self.* = undefined;
+    }
+
+    /// Enabled `memory_id_to_big` instances, padding included.
+    pub fn memoryIdToBigCount(self: *const OwnedClaimGeometry) usize {
+        var count: usize = 0;
+        for (self.components) |component| {
+            if (std.mem.eql(u8, component.name, "memory_id_to_big")) count += 1;
+        }
+        return count;
     }
 
     pub fn deferredCount(self: *const OwnedClaimGeometry) usize {
@@ -284,13 +293,13 @@ fn activateBuiltinClosures(
     variant: PreprocessedVariant,
 ) Error!usize {
     const specs = [_]BuiltinSpec{
-        .{ .name = "add_mod_builtin", .segment = segments.add_mod_builtin, .cells_per_instance = 7 },
-        .{ .name = "bitwise_builtin", .segment = segments.bitwise_builtin, .cells_per_instance = 5 },
-        .{ .name = "mul_mod_builtin", .segment = segments.mul_mod_builtin, .cells_per_instance = 7 },
-        .{ .name = "poseidon_builtin", .segment = segments.poseidon_builtin, .cells_per_instance = 6 },
-        .{ .name = "range_check96_builtin", .segment = segments.range_check96_builtin, .cells_per_instance = 1 },
-        .{ .name = "range_check_builtin", .segment = segments.range_check_builtin, .cells_per_instance = 1 },
-        .{ .name = "ec_op_builtin", .segment = segments.ec_op_builtin, .cells_per_instance = 7 },
+        .{ .name = "add_mod_builtin", .segment = segments.add_mod_builtin, .cells_per_instance = Builtin.add_mod.memoryCells() },
+        .{ .name = "bitwise_builtin", .segment = segments.bitwise_builtin, .cells_per_instance = Builtin.bitwise.memoryCells() },
+        .{ .name = "mul_mod_builtin", .segment = segments.mul_mod_builtin, .cells_per_instance = Builtin.mul_mod.memoryCells() },
+        .{ .name = "poseidon_builtin", .segment = segments.poseidon_builtin, .cells_per_instance = Builtin.poseidon.memoryCells() },
+        .{ .name = "range_check96_builtin", .segment = segments.range_check96_builtin, .cells_per_instance = Builtin.range_check96.memoryCells() },
+        .{ .name = "range_check_builtin", .segment = segments.range_check_builtin, .cells_per_instance = Builtin.range_check.memoryCells() },
+        .{ .name = "ec_op_builtin", .segment = segments.ec_op_builtin, .cells_per_instance = Builtin.ec_op.memoryCells() },
     };
     var count: usize = 0;
     for (specs) |spec| if (spec.segment) |segment| {
@@ -301,14 +310,13 @@ fn activateBuiltinClosures(
     };
     if (segments.pedersen_builtin) |segment| {
         count += 1;
-        const name = switch (variant) {
-            .canonical => "pedersen_builtin",
-            .canonical_small => "pedersen_builtin_narrow_windows",
-            .canonical_without_pedersen => return Error.UnsupportedPreprocessedVariant,
-        };
+        // The prover-side closure refuses the Pedersen-free trace; otherwise
+        // the component is the one `verify_builtins` bounds.
+        if (variant == .canonical_without_pedersen) return Error.UnsupportedPreprocessedVariant;
+        const name = layout.pedersenBuiltinComponent(variant);
         try activateBuiltinClosure(active, name);
         const field = findField(name) orelse return Error.UnknownClaimComponent;
-        known_logs[field.field_index] = try builtinLog(segment, 3);
+        known_logs[field.field_index] = try builtinLog(segment, Builtin.pedersen.memoryCells());
     }
     return count;
 }

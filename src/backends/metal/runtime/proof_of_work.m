@@ -1,5 +1,5 @@
 bool stwo_zig_metal_blake2s_pow_search(
-    void *runtime_ptr, const uint32_t prefix_words[8],
+    void *runtime_ptr, bool m31_output, const uint32_t prefix_words[8],
     const uint32_t round_zero_columns[16], uint32_t pow_bits,
     uint64_t *nonce, double *gpu_milliseconds, uint32_t *dispatch_count,
     char *error_message, size_t error_message_len
@@ -13,6 +13,13 @@ bool stwo_zig_metal_blake2s_pow_search(
 
     @autoreleasepool {
         StwoZigMetalRuntime *runtime = (__bridge StwoZigMetalRuntime *)runtime_ptr;
+        // `Blake2sM31Channel` reduces the output words mod P before counting
+        // zeros; the plain channel does not. Same index order for both.
+        id<MTLComputePipelineState> pipeline = m31_output ? runtime.proofOfWorkM31 : runtime.proofOfWork;
+        if (pipeline == nil) {
+            write_error(error_message, error_message_len, @"Metal BLAKE2s proof-of-work pipeline is missing");
+            return false;
+        }
         id<MTLBuffer> result = [runtime.device newBufferWithLength:sizeof(uint32_t)
                                                        options:MTLResourceStorageModeShared];
         if (result == nil) {
@@ -44,7 +51,7 @@ bool stwo_zig_metal_blake2s_pow_search(
                 write_error(error_message, error_message_len, @"Metal proof-of-work command allocation failed");
                 return false;
             }
-            [encoder setComputePipelineState:runtime.proofOfWork];
+            [encoder setComputePipelineState:pipeline];
             [encoder setBytes:prefix_words length:8u * sizeof(uint32_t) atIndex:0];
             [encoder setBytes:round_zero_columns length:16u * sizeof(uint32_t) atIndex:1];
             [encoder setBytes:&interval_base length:sizeof(interval_base) atIndex:2];
@@ -52,7 +59,7 @@ bool stwo_zig_metal_blake2s_pow_search(
             [encoder setBytes:&pow_bits length:sizeof(pow_bits) atIndex:4];
             [encoder setBuffer:result offset:0u atIndex:5];
             NSUInteger width = MIN((NSUInteger)256u,
-                runtime.proofOfWork.maxTotalThreadsPerThreadgroup);
+                pipeline.maxTotalThreadsPerThreadgroup);
             [encoder dispatchThreads:MTLSizeMake(interval_count, 1u, 1u)
                  threadsPerThreadgroup:MTLSizeMake(width, 1u, 1u)];
             [encoder endEncoding];

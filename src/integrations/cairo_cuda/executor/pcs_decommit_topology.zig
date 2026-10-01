@@ -42,6 +42,15 @@ pub const FriOpening = struct {
     max_expanded_positions: usize,
 };
 
+pub const OpeningTree = struct {
+    ordinal: u32,
+    role: proof_ir.CommitmentRole,
+    column_count: u32,
+    evaluations: common.Words,
+    merkle_hashes: common.Hashes,
+    merkle_layers: common.MerkleLayers,
+};
+
 pub const Topology = struct {
     allocator: std.mem.Allocator,
     trace_openings: []TraceOpening,
@@ -91,6 +100,148 @@ pub const Topology = struct {
     }
 };
 
+pub const GenericTree = struct {
+    column_logs: []const u32,
+    lifted_log: u32,
+};
+
+pub const GenericFriLayer = struct {
+    evaluation_log: u32,
+    cumulative_fold: u32,
+    fold_step: u32,
+    log_rows_per_leaf: u32 = 0,
+};
+
+/// AIR-neutral mixed-height opening geometry. Circuit recursion uses this
+/// with its own authenticated tree inventory and four-fold FRI schedule.
+pub fn deriveGeneric(
+    allocator: std.mem.Allocator,
+    trees: [4]GenericTree,
+    layers: []const GenericFriLayer,
+    blowup: u32,
+    query_log: u32,
+    query_count: usize,
+    assembly_capacity_words: usize,
+    identity_seed: proof_ir.Digest,
+) !Topology {
+    if (blowup == 0 or blowup > 4 or query_log == 0 or query_log > 30 or
+        query_count == 0 or query_count > decommit_stage.max_protocol_queries or
+        layers.len == 0 or layers.len > 32 or assembly_capacity_words == 0 or
+        std.mem.allEqual(u8, &identity_seed, 0))
+        return error.InvalidKernelDescriptor;
+    var total_columns: usize = 0;
+    for (trees) |tree| {
+        if (tree.column_logs.len == 0 or tree.lifted_log == 0 or tree.lifted_log > 30)
+            return error.InvalidKernelDescriptor;
+        total_columns = try add(total_columns, tree.column_logs.len);
+    }
+    const openings = try allocator.alloc(TraceOpening, trees.len);
+    errdefer allocator.free(openings);
+    const column_logs = try allocator.alloc(u32, total_columns);
+    errdefer allocator.free(column_logs);
+    const group_storage = try allocator.alloc(TraceGroup, total_columns);
+    defer allocator.free(group_storage);
+    var group_count: usize = 0;
+    var column_cursor: usize = 0;
+    for (trees, openings, 0..) |tree, *opening, ordinal| {
+        const first_group = group_count;
+        var evaluation_offset: u64 = 0;
+        var first: usize = 0;
+        while (first < tree.column_logs.len) {
+            const evaluation_log = std.math.add(u32, tree.column_logs[first], blowup) catch return error.SizeOverflow;
+            if (evaluation_log > tree.lifted_log) return error.InvalidKernelDescriptor;
+            var end = first + 1;
+            while (end < tree.column_logs.len and tree.column_logs[end] == tree.column_logs[first]) : (end += 1) {}
+            const count = end - first;
+            const stride = try pow2u64(evaluation_log);
+            const words = try mulU64(count, stride);
+            group_storage[group_count] = .{
+                .tree_ordinal = @intCast(ordinal),
+                .first_column = @intCast(first),
+                .column_count = @intCast(count),
+                .evaluation_log_rows = evaluation_log,
+                .evaluation_offset_words = evaluation_offset,
+                .evaluation_words = words,
+            };
+            @memset(column_logs[column_cursor..][0..count], evaluation_log);
+            column_cursor += count;
+            evaluation_offset = std.math.add(u64, evaluation_offset, words) catch return error.SizeOverflow;
+            group_count += 1;
+            first = end;
+        }
+        if ((ordinal != 0 and tree.lifted_log > query_log) or evaluation_offset == 0)
+            return error.InvalidKernelDescriptor;
+        opening.* = .{
+            .tree_index = @intCast(ordinal),
+            .role = @enumFromInt(ordinal),
+            .column_count = @intCast(tree.column_logs.len),
+            .source_log_size = query_log,
+            .tree_log_size = tree.lifted_log,
+            .leaf_log_size = tree.lifted_log,
+            .first_group = @intCast(first_group),
+            .group_count = @intCast(group_count - first_group),
+        };
+    }
+    const groups = try allocator.dupe(TraceGroup, group_storage[0..group_count]);
+    errdefer allocator.free(groups);
+    const fri = try allocator.alloc(FriOpening, layers.len);
+    errdefer allocator.free(fri);
+    for (layers, fri, 0..) |layer, *opening, ordinal| {
+        if (layer.evaluation_log == 0 or layer.evaluation_log > 30 or
+            layer.cumulative_fold >= query_log or layer.evaluation_log != query_log - layer.cumulative_fold or
+            layer.fold_step == 0 or layer.fold_step > 4 or layer.fold_step > layer.evaluation_log or
+            layer.log_rows_per_leaf > layer.evaluation_log)
+            return error.InvalidKernelDescriptor;
+        opening.* = .{
+            .tree_index = @intCast(trees.len + ordinal),
+            .evaluation_log_size = layer.evaluation_log,
+            .cumulative_fold = layer.cumulative_fold,
+            .fold_step = layer.fold_step,
+            .log_rows_per_leaf = layer.log_rows_per_leaf,
+            .max_expanded_positions = try mul(query_count, try pow2usize(layer.fold_step)),
+        };
+    }
+    var hash = std.crypto.hash.sha2.Sha256.init(.{});
+    hash.update("stwo-zig/cuda/generic-decommit-topology/v1\x00");
+    hash.update(&identity_seed);
+    hashInt(&hash, u32, blowup);
+    hashInt(&hash, u32, query_log);
+    hashInt(&hash, u64, query_count);
+    hashInt(&hash, u64, assembly_capacity_words);
+    for (openings) |opening| {
+        hashInt(&hash, u32, opening.tree_index);
+        hashInt(&hash, u32, opening.column_count);
+        hashInt(&hash, u32, opening.tree_log_size);
+        hashInt(&hash, u32, opening.first_group);
+        hashInt(&hash, u32, opening.group_count);
+    }
+    for (groups) |group| {
+        hashInt(&hash, u32, group.tree_ordinal);
+        hashInt(&hash, u32, group.first_column);
+        hashInt(&hash, u32, group.column_count);
+        hashInt(&hash, u32, group.evaluation_log_rows);
+        hashInt(&hash, u64, group.evaluation_offset_words);
+    }
+    for (fri) |opening| {
+        hashInt(&hash, u32, opening.evaluation_log_size);
+        hashInt(&hash, u32, opening.cumulative_fold);
+        hashInt(&hash, u32, opening.fold_step);
+        hashInt(&hash, u32, opening.log_rows_per_leaf);
+    }
+    return .{
+        .allocator = allocator,
+        .trace_openings = openings,
+        .trace_groups = groups,
+        .column_log_sizes = column_logs,
+        .fri_openings = fri,
+        .query_log_size = query_log,
+        .query_count = query_count,
+        .tree_count = @intCast(trees.len + layers.len),
+        .assembly_capacity_words = assembly_capacity_words,
+        .identity = hash.finalResult(),
+    };
+}
+
 pub fn derive(
     allocator: std.mem.Allocator,
     program: proof_ir.ProofProgram,
@@ -111,7 +262,7 @@ pub fn derive(
         TraceGroup,
         program.trace_columns.len,
     );
-    errdefer allocator.free(group_storage);
+    defer allocator.free(group_storage);
 
     // FRI queries live on the quotient/composition lifting domain. Fixed
     // columns may have a taller commitment and must map those queries upward;
@@ -183,7 +334,6 @@ pub fn derive(
         group_storage[0..group_count],
     );
     errdefer allocator.free(groups);
-    allocator.free(group_storage);
 
     const fri = try allocator.alloc(
         FriOpening,
@@ -268,6 +418,28 @@ pub fn openAllWith(
     decommit: shared_views.Decommit,
     assembly: common.Words,
 ) !void {
+    var opening_trees: [4]OpeningTree = undefined;
+    if (trees.len != opening_trees.len) return error.InvalidKernelDescriptor;
+    for (trees.active(), &opening_trees) |tree, *opening| opening.* = .{
+        .ordinal = tree.ordinal,
+        .role = tree.role,
+        .column_count = tree.column_count,
+        .evaluations = tree.evaluations,
+        .merkle_hashes = tree.merkle_hashes,
+        .merkle_layers = tree.merkle_layers,
+    };
+    return openAllViewsWith(Decommit, session, topology, &opening_trees, fri, decommit, assembly);
+}
+
+pub fn openAllViewsWith(
+    comptime Decommit: type,
+    session: anytype,
+    topology: Topology,
+    trees: []const OpeningTree,
+    fri: shared_views.Fri,
+    decommit: shared_views.Decommit,
+    assembly: common.Words,
+) !void {
     try validateRuntime(topology, decommit, assembly);
     if (trees.len != topology.trace_openings.len or
         fri.layer_count != topology.fri_openings.len)
@@ -299,7 +471,7 @@ fn openTrace(
     comptime Decommit: type,
     session: anytype,
     topology: Topology,
-    trees: pcs_types.TraceTrees,
+    trees: []const OpeningTree,
     decommit: shared_views.Decommit,
     assembly: common.Words,
     opening: TraceOpening,
@@ -476,10 +648,10 @@ fn validateInputs(
 }
 
 fn treeAt(
-    trees: pcs_types.TraceTrees,
+    trees: []const OpeningTree,
     ordinal: u32,
-) !pcs_types.CompactTree {
-    for (trees.active()) |tree| {
+) !OpeningTree {
+    for (trees) |tree| {
         if (tree.ordinal == ordinal) return tree;
     }
     return error.InvalidKernelDescriptor;

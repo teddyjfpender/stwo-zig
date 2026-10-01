@@ -4,8 +4,12 @@ const scheme = @import("scheme.zig");
 const deferred_commit = @import("deferred_commit.zig");
 /// Shared backend-aware nonce search for PCS and interaction transcripts.
 pub const proof_of_work = @import("proof_of_work.zig");
+pub const tiled_commit = @import("tiled_commit.zig");
 
 pub const quotient_ops = scheme.quotient_ops;
+/// `proving_5a7c5ed` commitment heights: the single lifting step of every
+/// commit path and the FRI/PoW view of a V2 configuration.
+pub const revision_lifting = scheme.revision_lifting;
 /// Diagnostic/backend parity owners. These are additive exports of the exact
 /// executors already used by `quotient_ops`; external backends must not fork
 /// the quotient formula when validating an accelerated result.
@@ -28,6 +32,11 @@ pub fn CommitmentTreeProver(comptime H: type) type {
     return scheme.CommitmentTreeProver(H);
 }
 pub const CommitmentTreeProverForBackend = @import("commitment_tree.zig").CommitmentTreeProverForBackend;
+/// Host backend of `CommitmentTreeProver(H)`, for one-off commitments that
+/// build a tree outside a `CommitmentSchemeProver`.
+pub const HostMerkleBackend = @import("commitment_tree.zig").HostMerkleBackend;
+/// Interpolate-and-extend preparation shared by every PCS commit path.
+pub const column_preparation = @import("columns/preparation.zig");
 
 pub fn TreeDecommitmentResult(comptime H: type) type {
     return scheme.TreeDecommitmentResult(H);

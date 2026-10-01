@@ -227,7 +227,7 @@ pub fn prepareAndUpload(
         if (try nativeEcOwnsFeed(schedule, feed)) continue;
         const post = &post_feeds[post_count];
         post_count += 1;
-        const entry = schedule.find(feed.producer, 0) orelse
+        const entry = producerEntry(schedule, feed.producer) orelse
             return error.MissingMultiplicityFeedProducer;
         const source = findSource(
             sources,
@@ -446,7 +446,7 @@ fn nativeEcOwnsFeed(
     schedule: trace_schedule.Schedule,
     feed: feed_bundle.Feed,
 ) !bool {
-    const entry = schedule.find(feed.producer, 0) orelse
+    const entry = producerEntry(schedule, feed.producer) orelse
         return error.MissingMultiplicityFeedProducer;
     if (entry.prepare_api != .native_ec_prepare) return false;
     if (!std.mem.eql(u8, feed.producer, "ec_op_builtin") or
@@ -479,6 +479,15 @@ fn nativeEcOwnsFeed(
         }
     }
     return true;
+}
+
+fn producerEntry(schedule: trace_schedule.Schedule, producer: []const u8) ?*const trace_schedule.Entry {
+    if (schedule.find(producer, 0)) |entry| return entry;
+    const prefix = "memory_id_to_big[";
+    if (!std.mem.startsWith(u8, producer, prefix) or
+        !std.mem.endsWith(u8, producer, "]")) return null;
+    const instance = std.fmt.parseInt(u32, producer[prefix.len .. producer.len - 1], 10) catch return null;
+    return schedule.find(producer, instance) orelse schedule.find("memory_id_to_big", instance);
 }
 
 fn destinationWords(

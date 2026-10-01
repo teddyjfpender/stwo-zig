@@ -215,7 +215,7 @@ fn testTrees(
                 @intCast(span.evaluation_words),
             ),
             .column_log_sizes = logs,
-            .column_offsets = words(logs.address + 0x400, tree.column_count + 1),
+            .column_offsets = try words(logs.address + 0x400, 2 * (tree.column_count + 1)).cast(u64),
             .merkle_hashes = try hashes.cast(field.Blake2sHash),
             .merkle_layers = try layers.cast(field.MerkleLayerDescriptor),
             .root = try hashes.cast(field.Blake2sHash),

@@ -90,7 +90,16 @@ const Builder = struct {
 
         const trees = try locateTrees(self.program, self.protocol);
         for (masks.preprocessed_used, 0..) |used, local| {
-            if (!used) continue;
+            if (!used) {
+                // The lifted circuit leaf samples every preprocessed column.
+                // Even an AIR-unused sample contributes to the PCS DEEP
+                // quotient and consumes a randomness power in Rust.
+                if (self.protocol.include_all_preprocessed_columns) {
+                    const source = try self.sourceAt(trees[0], local);
+                    try self.appendColumn(source, &.{0});
+                }
+                continue;
+            }
             const source = try self.sourceAt(trees[0], local);
             try self.appendColumn(source, &.{0});
         }
@@ -136,7 +145,8 @@ const Builder = struct {
         offsets: []const i32,
     ) !void {
         if (offsets.len == 0 or offsets.len > 2 or
-            source.log_size >= self.lifting_log_size)
+            source.log_size > self.lifting_log_size or
+            (offsets.len == 2 and source.log_size == self.lifting_log_size))
         {
             return Error.InvalidSampleGeometry;
         }
@@ -223,9 +233,8 @@ pub fn derive(
     );
     errdefer allocator.free(source_geometry.trees);
     errdefer allocator.free(source_geometry.sources);
-    const lifting_log_size = try geometry.validatedLiftingLogSize(
-        bundle.max_evaluation_log_size,
-    );
+    const lifting_log_size = protocol.fri_lifting_log_size orelse
+        try geometry.validatedLiftingLogSize(bundle.max_evaluation_log_size);
     var builder = Builder{
         .allocator = allocator,
         .program = program,
@@ -445,8 +454,10 @@ fn locateTrees(
                 return Error.InvalidProgramGeometry;
             maximum_log = @max(maximum_log, column.log_rows);
         }
+        const column_evaluation_log = std.math.add(u32, maximum_log, protocol.log_blowup_factor) catch return Error.GeometryOverflow;
         if (tree.evaluation_log_rows !=
-            maximum_log + protocol.log_blowup_factor)
+            (protocol.fri_lifting_log_size orelse column_evaluation_log) or
+            tree.evaluation_log_rows < column_evaluation_log)
         {
             return Error.InvalidProgramGeometry;
         }
@@ -477,7 +488,11 @@ fn validateInputs(
     }
     const verifier_log = bundle.verifierMaxLogDegreeBound() catch
         return Error.InvalidBundleGeometry;
-    if (verifier_log != protocol.max_log_degree_bound or
+    const lifted_degree_bound = protocol.channel_profile == .blake2s_m31 and
+        protocol.fri_lifting_log_size != null and
+        protocol.max_log_degree_bound >= verifier_log and
+        protocol.max_log_degree_bound + protocol.log_blowup_factor == protocol.fri_lifting_log_size.?;
+    if ((verifier_log != protocol.max_log_degree_bound and !lifted_degree_bound) or
         program.quotient.evaluation_log_rows != try protocol.evaluationLogSize() or
         program.quotient.evaluation_log_rows > 30 or
         program.quotient.term_count != bundle.total_constraints or
@@ -551,7 +566,6 @@ fn validateDerived(
     if (builder.sampled_value_count != protocol_samples or
         builder.groups.items.len == 0 or
         builder.groups.items.len > 65_535 or
-        builder.terms.items.len < builder.sampled_value_count or
         builder.sources.len != program.trace_columns.len)
     {
         return Error.InvalidSampleGeometry;

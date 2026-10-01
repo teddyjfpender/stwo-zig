@@ -1,0 +1,100 @@
+{
+  "schema": "stwo-circuit-oracle-checkpoint-v1",
+  "rung": "r10-lift",
+  "subcommand": "prove-lifted-example",
+  "authority": {
+    "repository": "https://github.com/starkware-libs/proving",
+    "revision": "5a7c5ede4299c91a61df19a07cba4f7502c14230"
+  },
+  "inputs": [],
+  "body": {
+    "fri_config": [
+      10,
+      1,
+      0,
+      3,
+      1
+    ],
+    "cases": [
+      {
+        "log_n_rows": 5,
+        "sequence_len": 100,
+        "trace_lifting_log_size": 6,
+        "preprocessed_lifting_log_size": 0,
+        "commitments": [
+          "69217a3079908094e11121d042354a7c1f55b6482ca1a51e1b250dfd1ed0eef9",
+          "9c427fe3b8bc0a370ec9b1fa1f31dd3c4151f4125cf518870f403847177ce80b",
+          "ee00a2b98ec885c249d18aaf60865c29a18678a21c422ee4bf9e3e1e92a63c13"
+        ],
+        "proof_of_work": {
+          "value": "668",
+          "hi": 0,
+          "lo": 668
+        },
+        "fri_inner_layer_roots": [
+          "a07271fa4f9bb2ff9ebfc1953d361a6d5b73c879570e3212c352b574553aee86",
+          "5c80bcfeb561df900f506c2d0c71f09b7b021ed49865e8ba7966c984d62084b6",
+          "ffe02b9fe2d4ad770326b23215df05f1d5a9ba5559140932f2b73bcfb549ea24",
+          "9b4ce18e0cca59fee606407f9e4afcd4d3cd79d9ce3a168701a764d0a9839db5"
+        ],
+        "sampled_values_sha256": "40404bb6c82c739ba4349c9e14f015eb2ce1312b53947be89e8da01d34516c4d",
+        "stark_proof_bytes": 6676,
+        "stark_proof_sha256": "7b34402449bccd4b73c28f6d1c7647b37d8a457c6a10b5c1e477bebfd88516e2"
+      },
+      {
+        "log_n_rows": 5,
+        "sequence_len": 100,
+        "trace_lifting_log_size": 7,
+        "preprocessed_lifting_log_size": 0,
+        "commitments": [
+          "69217a3079908094e11121d042354a7c1f55b6482ca1a51e1b250dfd1ed0eef9",
+          "81aca70edab081584e662040002a96f33daabb4b2429c7a07aa0dcf1738a22b9",
+          "787ffd7e5c52fc0347eee234c93111d4b6d9adaf275eda6fa449b0fddc354eef"
+        ],
+        "proof_of_work": {
+          "value": "22",
+          "hi": 0,
+          "lo": 22
+        },
+        "fri_inner_layer_roots": [
+          "088692ca48cd8bfba98ae2bea8865592d5b82ae0bb017a1b642244809b4ea00b",
+          "6d04bba1a2d3cd0486c12193028b04835374d4803d68e3fe2adf5e072cedce09",
+          "37e9bb8f0d86b5f8e38db0b79cb9fe3fac0daea21a108c1bc83ea2e4a1a9fd75",
+          "5ae5bdfc1ca0a2b5a678b07f64087db09a9019e61bb81ee0d45d922de91ac2ee",
+          "1f894a9bdda72ac0521214df183b987352218200fa41ef0c65d10fff7b2a091f"
+        ],
+        "sampled_values_sha256": "2479b046a72724ff700a7eba267d470e079dcdfccac95a348a2b3d14705d19a3",
+        "stark_proof_bytes": 7716,
+        "stark_proof_sha256": "7f3e82e1207f6553df347d22d448ada4c9d25d7daf403772b300785b370dab9e"
+      },
+      {
+        "log_n_rows": 5,
+        "sequence_len": 100,
+        "trace_lifting_log_size": 9,
+        "preprocessed_lifting_log_size": 0,
+        "commitments": [
+          "69217a3079908094e11121d042354a7c1f55b6482ca1a51e1b250dfd1ed0eef9",
+          "413c357be322865aa74c1de98803588799cc43b2616c14f55bc2b53f11429d76",
+          "313df0337b43430c713f0f3a65f1c6e197565e59ab6915ae22c8613cf9480609"
+        ],
+        "proof_of_work": {
+          "value": "2824",
+          "hi": 0,
+          "lo": 2824
+        },
+        "fri_inner_layer_roots": [
+          "971141d0557224f5b9ed94131bd8c954e2dfa1a46f5df07d9bafb59ce8d418bb",
+          "4d57b56f213a6a39f1c24bc146f26f3e257356c71ef0378f4b005c62c5e71222",
+          "dea5ddd3ddff2f0553b39bf6cd8dd7a2ddb0c72ee50cfeec29b137ffcd6c4386",
+          "b01fcf2f4048c4f640c5153db5074080a72791095d7981200177f53a3e73af5c",
+          "5c13f9bfd543bcab6a96c40c55dc7b39985e3c2537181ffc0349785937cac49b",
+          "da6be42ebf398556e603fbdd866eaaaf245682ddde70e76d2f53445580b4f3aa",
+          "2bc45b0670e0d8f7659301e80b6fe38f5a6a8f589de5dc8fafc9bb594f1e3c53"
+        ],
+        "sampled_values_sha256": "1e26c900f282d1a9a4c1b7641f767c8a0b03a6945a75666244449d536a7b202f",
+        "stark_proof_bytes": 8884,
+        "stark_proof_sha256": "6376c4cc89e562114fd7d0d2fc1d2ee095409a1cf4ea474e57f4ae9bd9f4488f"
+      }
+    ]
+  }
+}

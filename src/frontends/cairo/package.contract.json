@@ -14,7 +14,9 @@
     "stwo_prover_engine": "../../prover"
   },
   "injected_modules": [
-    "cairo_frontend"
+    "cairo_frontend",
+    "interop_cairo_prover_parameters",
+    "interop_felt_json"
   ],
   "api_surface": [
     "CasmState",
@@ -22,6 +24,7 @@
     "ProverInput",
     "adapter",
     "air",
+    "air_layout",
     "arena_lifetime",
     "claim_generator",
     "claim_registry",

@@ -1,0 +1,254 @@
+{
+  "description": "Two continuous Starknet PIEs 15627902-15627904 and 15627905-15627907; adapted input to one recursive root",
+  "rows": [
+    {
+      "label": "h100_original",
+      "gpu": "H100",
+      "process_wall_s": 32.308,
+      "adapted_input_to_root_wall_s": null,
+      "phase_breakdown_s": {
+        "adapt_s": 0.0,
+        "load_s": 0.0,
+        "cairo_prove_s": 9.494,
+        "circuit_wrap_s": 12.579,
+        "fold_s": 9.021,
+        "process_overhead_s": 1.214
+      },
+      "root_sha256": {
+        "proof": "9093f941c4a9144fd653441c582cc0921bac8431df8df46bdd556b8e661af724",
+        "outputs": "abaefd94d716e2e4f07b5a2fcd521764e5d4c0f8dd04ec60e095bf74d0e1349b",
+        "packed": "72f17bf582e5438defd30e2f3c52f87ff47e5d6f0d1223b98d37bac8007c54a2"
+      },
+      "leaf_proof_sha256": null,
+      "parity": {
+        "proof": true,
+        "outputs": true,
+        "packed": true
+      },
+      "root_gpu_proof_s": 3.002511365,
+      "root_gpu_arena_bytes": 28132566560
+    },
+    {
+      "label": "h200_canonical_separate",
+      "gpu": "H200 SXM",
+      "process_wall_s": 17.565,
+      "adapted_input_to_root_wall_s": 18.315,
+      "phase_breakdown_s": {
+        "adapt_s": 0.0,
+        "load_s": 0.0,
+        "cairo_prove_s": 7.041,
+        "arena_release_s": 0.0,
+        "circuit_wrap_s": 4.058,
+        "fold_s": 5.608,
+        "process_overhead_s": 0.858
+      },
+      "root_sha256": {
+        "proof": "9093f941c4a9144fd653441c582cc0921bac8431df8df46bdd556b8e661af724",
+        "outputs": "abaefd94d716e2e4f07b5a2fcd521764e5d4c0f8dd04ec60e095bf74d0e1349b",
+        "packed": "72f17bf582e5438defd30e2f3c52f87ff47e5d6f0d1223b98d37bac8007c54a2"
+      },
+      "leaf_proof_sha256": [
+        "01ed69eb3083e2d3e91acd77b1bad060907374cdb924f024132864f072804a1c",
+        "fe69619f1b3a699038fdaea6a4e5dd420d0f0fba0a17a01e681ab5cfbe901400"
+      ],
+      "parity": {
+        "reference_sha256": "15a965e6768aa9f50b271dd60fa26ed302db7a3aa45f6c7f3732863a1c27a28a",
+        "rust_root_byte_equal_by_digest": true,
+        "leaf_and_input_byte_equal_by_digest": true
+      },
+      "root_gpu_proof_s": 0.683114679,
+      "root_gpu_arena_bytes": 28132566560
+    },
+    {
+      "label": "h200_canonical_integrated_1",
+      "gpu": "H200 SXM",
+      "process_wall_s": 15.195,
+      "adapted_input_to_root_wall_s": 15.9,
+      "phase_breakdown_s": {
+        "adapt_s": 0.0,
+        "load_s": 0.0,
+        "cairo_prove_s": 7.349,
+        "arena_release_s": 0.0,
+        "circuit_wrap_s": 3.983,
+        "fold_s": 2.904,
+        "process_overhead_s": 0.96
+      },
+      "root_sha256": {
+        "proof": "9093f941c4a9144fd653441c582cc0921bac8431df8df46bdd556b8e661af724",
+        "outputs": "abaefd94d716e2e4f07b5a2fcd521764e5d4c0f8dd04ec60e095bf74d0e1349b",
+        "packed": "72f17bf582e5438defd30e2f3c52f87ff47e5d6f0d1223b98d37bac8007c54a2"
+      },
+      "leaf_proof_sha256": [
+        "01ed69eb3083e2d3e91acd77b1bad060907374cdb924f024132864f072804a1c",
+        "fe69619f1b3a699038fdaea6a4e5dd420d0f0fba0a17a01e681ab5cfbe901400"
+      ],
+      "parity": {
+        "reference_sha256": "15a965e6768aa9f50b271dd60fa26ed302db7a3aa45f6c7f3732863a1c27a28a",
+        "rust_root_byte_equal_by_digest": true,
+        "leaf_and_input_byte_equal_by_digest": true
+      },
+      "root_gpu_proof_s": 0.51858967,
+      "root_gpu_arena_bytes": 28132566560
+    },
+    {
+      "label": "h200_canonical_integrated_2",
+      "gpu": "H200 SXM",
+      "process_wall_s": 15.323,
+      "adapted_input_to_root_wall_s": 16.008,
+      "phase_breakdown_s": {
+        "adapt_s": 0.0,
+        "load_s": 0.0,
+        "cairo_prove_s": 7.321,
+        "arena_release_s": 0.0,
+        "circuit_wrap_s": 4.22,
+        "fold_s": 2.914,
+        "process_overhead_s": 0.868
+      },
+      "root_sha256": {
+        "proof": "9093f941c4a9144fd653441c582cc0921bac8431df8df46bdd556b8e661af724",
+        "outputs": "abaefd94d716e2e4f07b5a2fcd521764e5d4c0f8dd04ec60e095bf74d0e1349b",
+        "packed": "72f17bf582e5438defd30e2f3c52f87ff47e5d6f0d1223b98d37bac8007c54a2"
+      },
+      "leaf_proof_sha256": [
+        "01ed69eb3083e2d3e91acd77b1bad060907374cdb924f024132864f072804a1c",
+        "fe69619f1b3a699038fdaea6a4e5dd420d0f0fba0a17a01e681ab5cfbe901400"
+      ],
+      "parity": {
+        "reference_sha256": "15a965e6768aa9f50b271dd60fa26ed302db7a3aa45f6c7f3732863a1c27a28a",
+        "rust_root_byte_equal_by_digest": true,
+        "leaf_and_input_byte_equal_by_digest": true
+      },
+      "root_gpu_proof_s": 0.529753114,
+      "root_gpu_arena_bytes": 28132566560
+    },
+    {
+      "label": "h200_compact_terminal_1",
+      "gpu": "H200 SXM",
+      "process_wall_s": 16.05,
+      "adapted_input_to_root_wall_s": 16.885,
+      "phase_breakdown_s": {
+        "adapt_s": 0.0,
+        "load_s": 0.0,
+        "cairo_prove_s": 9.514,
+        "arena_release_s": 0.0,
+        "circuit_wrap_s": 3.962,
+        "fold_s": 1.332,
+        "process_overhead_s": 1.241
+      },
+      "root_sha256": {
+        "proof": "c80bde61f58b461f678b055c5651dccc181772841458621e587c4c7852dc59c5",
+        "outputs": "abaefd94d716e2e4f07b5a2fcd521764e5d4c0f8dd04ec60e095bf74d0e1349b",
+        "packed": "0740f6f437339b5f10a70e70f40fe81e749b27c3ca8566011261144182495439"
+      },
+      "leaf_proof_sha256": [
+        "01ed69eb3083e2d3e91acd77b1bad060907374cdb924f024132864f072804a1c",
+        "fe69619f1b3a699038fdaea6a4e5dd420d0f0fba0a17a01e681ab5cfbe901400"
+      ],
+      "parity": {
+        "reference_sha256": "15a965e6768aa9f50b271dd60fa26ed302db7a3aa45f6c7f3732863a1c27a28a",
+        "rust_root_byte_equal_by_digest": false,
+        "rust_root_output_byte_equal_by_digest": true,
+        "leaf_and_input_byte_equal_by_digest": true
+      },
+      "root_gpu_proof_s": 0.244890877,
+      "root_gpu_arena_bytes": 13042624704
+    },
+    {
+      "label": "h200_compact_terminal_2",
+      "gpu": "H200 SXM",
+      "process_wall_s": 13.363,
+      "adapted_input_to_root_wall_s": 14.143,
+      "phase_breakdown_s": {
+        "adapt_s": 0.0,
+        "load_s": 0.0,
+        "cairo_prove_s": 6.987,
+        "arena_release_s": 0.0,
+        "circuit_wrap_s": 4.074,
+        "fold_s": 1.34,
+        "process_overhead_s": 0.962
+      },
+      "root_sha256": {
+        "proof": "c80bde61f58b461f678b055c5651dccc181772841458621e587c4c7852dc59c5",
+        "outputs": "abaefd94d716e2e4f07b5a2fcd521764e5d4c0f8dd04ec60e095bf74d0e1349b",
+        "packed": "0740f6f437339b5f10a70e70f40fe81e749b27c3ca8566011261144182495439"
+      },
+      "leaf_proof_sha256": [
+        "01ed69eb3083e2d3e91acd77b1bad060907374cdb924f024132864f072804a1c",
+        "fe69619f1b3a699038fdaea6a4e5dd420d0f0fba0a17a01e681ab5cfbe901400"
+      ],
+      "parity": {
+        "reference_sha256": "15a965e6768aa9f50b271dd60fa26ed302db7a3aa45f6c7f3732863a1c27a28a",
+        "rust_root_byte_equal_by_digest": false,
+        "rust_root_output_byte_equal_by_digest": true,
+        "leaf_and_input_byte_equal_by_digest": true
+      },
+      "root_gpu_proof_s": 0.248673524,
+      "root_gpu_arena_bytes": 13042624704
+    }
+  ],
+  "stage_profile_s": {
+    "leaf": {
+      "channel_salt_and_fri_config": 0.056064,
+      "check_relation_uses": 0.000466,
+      "claims_mixed": 0.0045,
+      "component_sizes": 0.000536,
+      "composition_check": 0.000267,
+      "composition_coeff_and_oods_point": 0.000753,
+      "composition_polynomial": 0.009765,
+      "fri_commit": 0.001375,
+      "fri_decommit": 0.39033,
+      "fri_input": 0.073705,
+      "fri_pow": 0.000327,
+      "interaction_elements": 0.000266,
+      "logup_sum": 0.009974,
+      "merkle_decommit": 0.736573,
+      "oods_responses": 0.000941,
+      "oods_values_mixed": 0.039344,
+      "preprocessed_root": 0.000487,
+      "query_bits": 0.000816,
+      "select_queries": 0.000821,
+      "trace_root_and_interaction_pow": 0.000419,
+      "verify_claim": 0.000341
+    },
+    "fold": {
+      "channel_salt_and_fri_config": 0.00037,
+      "check_relation_uses": 0.000245,
+      "claims_mixed": 0.000305,
+      "component_sizes": 0.000252,
+      "composition_check": 0.000222,
+      "composition_coeff_and_oods_point": 0.000397,
+      "composition_polynomial": 0.000474,
+      "finalize": 0.003178,
+      "fri_commit": 0.000602,
+      "fri_decommit": 0.120918,
+      "fri_input": 0.004272,
+      "fri_pow": 0.000331,
+      "guess_output_digest_and_root": 0.000192,
+      "guess_proof": 0.017316,
+      "interaction_elements": 0.000243,
+      "logup_sum": 0.000283,
+      "merkle_decommit": 0.135092,
+      "oods_responses": 0.000436,
+      "oods_values_mixed": 0.00202,
+      "preimage_hash": 0.000198,
+      "preprocessed_root": 0.000284,
+      "query_bits": 0.000806,
+      "select_queries": 0.000873,
+      "set_outputs": 0.000168,
+      "statement": 0.000284,
+      "trace_root_and_interaction_pow": 0.00035,
+      "verify_claim": 0.000298
+    }
+  },
+  "concurrent_two_process_leaf_wrap": {
+    "result": "one leaf passed, one failed with InsufficientDeviceMemory because the standalone leaf-wrap retained its Cairo arena",
+    "pair_wall_s": 8.941705625,
+    "qualified_full_pipeline": false
+  },
+  "concurrent_two_process_batch_leaf_wrap": {
+    "result": "both leaves passed and matched pinned digests",
+    "pair_wall_s": 15.105655315,
+    "qualified_full_pipeline": false,
+    "comparison": "sequential shared-runtime leaf pair about 11.4 s"
+  }
+}

@@ -48,6 +48,8 @@ const source_closure = policy.SourceClosure{
         .{ .name = "stwo_backend_contracts", .source = "src/backend/mod.zig" },
         .{ .name = "stwo_core", .source = "src/core/mod.zig" },
         .{ .name = "stwo_cairo_frontend", .source = "src/frontends/cairo/mod.zig" },
+        .{ .name = "interop_felt_json", .source = "src/interop/felt_json.zig" },
+        .{ .name = "interop_cairo_prover_parameters", .source = "src/interop/cairo_prover_parameters.zig" },
         .{ .name = "stwo_cairo_metal_integration", .source = "src/integrations/cairo_metal/mod.zig" },
         .{ .name = "stwo_metal_backend", .source = "src/backends/metal/mod.zig" },
         .{ .name = "stwo_metal_session", .source = "src/tools/metal_session/mod.zig" },
@@ -226,7 +228,7 @@ pub fn addProduct(context: Context) void {
     });
     codegen_root.addImport("stwo_cairo_frontend", stwo.import_table.get("stwo_cairo_frontend").?);
     const codegen_tests = context.b.addTest(.{ .root_module = codegen_root, .filters = &.{ "Metal evaluation codegen", "Metal evaluation hybrid" } });
-    context.b.step("test-cairo-metal-codegen", "Test typed Metal composition generation and fusion").dependOn(&context.b.addRunArtifact(codegen_tests).step);
+    context.b.step(codegen_test_step, "Test typed Metal composition generation and fusion").dependOn(&context.b.addRunArtifact(codegen_tests).step);
     cairo_support.linkBzip2(context.b, tests);
     metal.linkRuntime(context.b, tests);
     const run_tests = context.b.addRunArtifact(tests);
@@ -289,6 +291,8 @@ pub fn addProduct(context: Context) void {
     );
 }
 
+const codegen_test_step = "test-cairo-metal-codegen";
+
 fn registerMissingAotBundle(b: *std.Build) void {
     const reason =
         "requires -Dmetal-core-aot-bundle=<path>; build the bundle with " ++
@@ -312,6 +316,9 @@ fn registerUnavailableReleaseGates(b: *std.Build, reason: []const u8) void {
         if (std.mem.eql(u8, gate, descriptor.test_step.?)) continue;
         b.step(gate, reason).dependOn(&failure.step);
     }
+    // The product's remaining catalog step, so the configured step set does
+    // not depend on whether the product can be built here.
+    b.step(codegen_test_step, reason).dependOn(&failure.step);
 }
 
 fn createStwoModule(
@@ -449,7 +456,7 @@ test "Cairo Metal is a focused parity-gated product" {
     try std.testing.expect(std.mem.indexOf(
         u8,
         protocol_features,
-        "authenticated-cairo-composition-bounded-aot-v2",
+        "authenticated-cairo-composition-bounded-aot-v4",
     ) != null);
     var installs_composition_aot = false;
     for (descriptor.installed_artifacts) |artifact| {

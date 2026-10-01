@@ -16,12 +16,12 @@ pub fn compute(
     cohorts: []const types.Cohort,
     writers: []const types.WriterSpan,
     column_logs: []const u32,
-    column_offsets: []const u32,
+    column_offsets: []const u64,
     layers: []const field.MerkleLayerDescriptor,
     slots: types.Slots,
 ) proof_ir.Digest {
     var hash = std.crypto.hash.sha2.Sha256.init(.{});
-    hash.update("stwo-zig/cairo/cuda/mixed-trace-commit/v2\x00");
+    hash.update("stwo-zig/cairo/cuda/mixed-trace-commit/v3\x00");
     hash.update(&program.program_digest);
     hash.update(&plan_identity);
     hash.update(&schedule_identity);
@@ -48,7 +48,7 @@ pub fn compute(
         hashInt(&hash, u64, writer.coefficient_words);
     }
     for (column_logs) |value| hashInt(&hash, u32, value);
-    for (column_offsets) |value| hashInt(&hash, u32, value);
+    for (column_offsets) |value| hashInt(&hash, u64, value);
     for (layers) |layer| {
         hashInt(&hash, u64, layer.offset_hashes);
         hashInt(&hash, u32, layer.hash_count);

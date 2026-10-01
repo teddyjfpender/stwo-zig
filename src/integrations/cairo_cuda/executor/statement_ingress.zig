@@ -30,7 +30,10 @@ pub fn derive(
             .n_queries = protocol.query_count,
             .log_last_layer_degree_bound = protocol.log_last_layer_degree_bound,
             .fold_step = protocol.fri_fold_step,
-            .lifting_log_size = protocol.fri_lifting_log_size,
+            // proving@5a7c5ed mixes only the two FRI config felts. Its
+            // explicit commitment heights are PCS geometry, not transcript
+            // words; the ordinary lane retains its legacy sixth word.
+            .lifting_log_size = if (protocol.channel_profile == .blake2s_m31) null else protocol.fri_lifting_log_size,
         },
         .composition = bundle,
         .prover_input = input,

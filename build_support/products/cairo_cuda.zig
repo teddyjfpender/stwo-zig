@@ -27,6 +27,8 @@ const source_closure = policy.SourceClosure{
         .{ .name = "stwo_backend_contracts", .source = "src/backend/mod.zig" },
         .{ .name = "stwo_core", .source = "src/core/mod.zig" },
         .{ .name = "stwo_cairo_frontend", .source = "src/frontends/cairo/mod.zig" },
+        .{ .name = "interop_felt_json", .source = "src/interop/felt_json.zig" },
+        .{ .name = "interop_cairo_prover_parameters", .source = "src/interop/cairo_prover_parameters.zig" },
         .{ .name = "stwo_cairo_cuda_integration", .source = "src/integrations/cairo_cuda/mod.zig" },
         .{ .name = "stwo_cpu_backend", .source = "src/backends/cpu_scalar/mod.zig" },
         .{ .name = "stwo_cuda_backend", .source = "src/backends/cuda/mod.zig" },
@@ -174,6 +176,7 @@ pub fn addProduct(context: Context) void {
         cairo_eval_aot,
     );
     cuda.linkRuntime(installed.executable, options.toolchain(), archive);
+    addCircuitResidentBenchmark(context, options.toolchain(), cairo_eval_aot);
     const install_archive = context.b.addInstallFile(
         archive.directory.path(context.b, "libstwo_cuda_kernels.a"),
         "lib/libstwo_cuda_kernels.a",
@@ -212,6 +215,143 @@ pub fn addProduct(context: Context) void {
         descriptor.benchmark_step.?,
         "Run the strict resident SN2 Cairo CUDA benchmark",
     ).dependOn(&benchmark.step);
+}
+
+/// The circuit benchmark is a separate executable and full circuit AOT
+/// archive. It does not change the Cairo product's source closure or binary.
+fn addCircuitResidentBenchmark(context: Context, toolchain: cuda.Toolchain, cairo_eval_aot: cuda_aot.GeneratedSet) void {
+    const b = context.b;
+    const core = context.protocol.core;
+    const prover = context.protocol.prover;
+    const prover_api = context.protocol.prover_api;
+    // Package test targets attach C ABI stubs to their root modules. The
+    // benchmark links the real CUDA archive, so take the product graph's
+    // clean runtime modules instead of those test-owned module instances.
+    const stwo = createStwoModule(context, .library);
+    const cairo_cuda = stwo.import_table.get("stwo_cairo_cuda_integration") orelse @panic("missing product Cairo CUDA module");
+    const cairo_frontend = cairo_cuda.import_table.get("stwo_cairo_frontend") orelse @panic("missing product Cairo frontend");
+    const backend_contracts = cairo_cuda.import_table.get("stwo_backend_contracts") orelse @panic("missing CUDA backend contracts");
+    const cuda_backend = cairo_cuda.import_table.get("stwo_cuda_backend") orelse @panic("missing CUDA runtime");
+    const native_cuda = cairo_cuda.import_table.get("stwo_native_cuda_integration") orelse @panic("missing native CUDA integration");
+    const native_examples = native_cuda.import_table.get("stwo_native_examples") orelse @panic("missing native examples");
+    const circuit = b.createModule(.{
+        .root_source_file = b.path("src/frontends/circuit/mod.zig"),
+        .target = context.target,
+        .optimize = context.optimize,
+    });
+    circuit.addImport("stwo_core", core);
+    circuit.addImport("stwo_prover_engine", prover);
+    const testing = b.createModule(.{
+        .root_source_file = b.path("src/frontends/circuit/testing/mod.zig"),
+        .target = context.target,
+        .optimize = context.optimize,
+    });
+    testing.addImport("stwo_core", core);
+    testing.addImport("stwo_circuit_frontend", circuit);
+    const cpu_backend = native_examples.import_table.get("stwo_cpu_backend") orelse @panic("missing product CPU backend");
+    const wire = graph.createCircuitRecursionWire(b, context.protocol, product(.library), context.target, context.optimize, cairo_frontend);
+    const circuit_cpu = b.createModule(.{
+        .root_source_file = b.path("src/integrations/circuit_cpu/mod.zig"),
+        .target = context.target,
+        .optimize = context.optimize,
+    });
+    context.protocol.addImports(circuit_cpu);
+    circuit_cpu.addImport("stwo_cpu_backend", cpu_backend);
+    circuit_cpu.addImport("stwo_circuit_frontend", circuit);
+    circuit_cpu.addImport("stwo_cairo_frontend", cairo_frontend);
+    circuit_cpu.addImport("stwo_circuit_recursion_wire", wire);
+    const forbidden_cpu_aot = b.createModule(.{
+        .root_source_file = b.path("src/integrations/circuit_cuda/cpu_composition_forbidden.zig"),
+        .target = context.target,
+        .optimize = context.optimize,
+    });
+    forbidden_cpu_aot.addImport("stwo_cairo_frontend", cairo_frontend);
+    circuit_cpu.addImport("circuit_composition_cpu_aot", forbidden_cpu_aot);
+    const integration = b.createModule(.{
+        .root_source_file = b.path("src/integrations/circuit_cuda/mod.zig"),
+        .target = context.target,
+        .optimize = context.optimize,
+    });
+    integration.addImport("stwo_core", core);
+    integration.addImport("stwo_backend_contracts", backend_contracts);
+    integration.addImport("stwo_prover_api", prover_api);
+    integration.addImport("stwo_prover_engine", prover);
+    integration.addImport("stwo_cpu_backend", cpu_backend);
+    integration.addImport("stwo_circuit_frontend", circuit);
+    integration.addImport("stwo_cairo_frontend", cairo_frontend);
+    integration.addImport("stwo_circuit_cpu_integration", circuit_cpu);
+    integration.addImport("stwo_cairo_cuda_integration", cairo_cuda);
+    integration.addImport("stwo_cuda_backend", cuda_backend);
+    integration.addImport("stwo_native_cuda_integration", native_cuda);
+    const root = b.createModule(.{
+        .root_source_file = b.path("src/integrations/circuit_cuda/tests/resident_bench.zig"),
+        .target = context.target,
+        .optimize = context.optimize,
+    });
+    root.addImport("stwo_core", core);
+    root.addImport("stwo_circuit_frontend", circuit);
+    root.addImport("stwo_circuit_cpu_integration", circuit_cpu);
+    root.addImport("stwo_circuit_cuda_integration", integration);
+    root.addImport("stwo_cuda_backend", cuda_backend);
+    root.addImport("circuit_testing", testing);
+    const exe = b.addExecutable(.{ .name = "stwo-circuit-cuda-resident-bench", .root_module = root });
+    const circuit_archive = cuda.addCircuitArchive(
+        b,
+        toolchain,
+        cairo_eval_aot,
+        b.path("src/backends/cuda/aot/native/circuit_eval"),
+    );
+    cuda.linkRuntime(exe, toolchain, circuit_archive);
+    b.step("benchmark-circuit-cuda-resident", "Build the verified resident circuit-recursion CUDA benchmark").dependOn(&b.addInstallArtifact(exe, .{}).step);
+
+    const cairo_app = b.createModule(.{
+        .root_source_file = b.path("src/products/cairo_cuda/app.zig"),
+        .target = context.target,
+        .optimize = context.optimize,
+    });
+    cairo_app.addImport("stwo_cairo_cuda", stwo);
+    cairo_app.addImport("stwo_circuit_recursion_wire", wire);
+    const architectures = b.addOptions();
+    architectures.addOption([]const u8, "architectures", "80,90");
+    cairo_app.addImport("cuda_architectures", architectures.createModule());
+    const cairo_cpu = integration_graph.addCairoCpuImport(
+        b,
+        context.protocol,
+        product(.library),
+        context.target,
+        context.optimize,
+        cpu_backend,
+        cairo_frontend,
+        circuit_cpu,
+    );
+    const circuit_app = b.createModule(.{
+        .root_source_file = b.path("src/products/circuit_recursion_cpu/app.zig"),
+        .target = context.target,
+        .optimize = context.optimize,
+    });
+    circuit_app.addImport("stwo_cairo_frontend", cairo_frontend);
+    circuit_app.addImport("stwo_cairo_cpu_integration", cairo_cpu);
+    circuit_app.addImport("stwo_circuit_frontend", circuit);
+    circuit_app.addImport("stwo_circuit_cpu_integration", circuit_cpu);
+    circuit_app.addImport("stwo_circuit_recursion_wire", wire);
+    circuit_app.addImport("stwo_prover_engine", prover);
+    circuit_app.addAnonymousImport("circuit_air_projection", .{ .root_source_file = b.path("vectors/circuit/official/compiled_air_constraints_v1.bin") });
+    circuit_app.addAnonymousImport("circuit_air_programs", .{ .root_source_file = b.path("vectors/circuit/official/circuit_air.air_programs_v1.bin") });
+    const pipeline_root = b.createModule(.{
+        .root_source_file = b.path("src/products/circuit_recursion_cuda/main.zig"),
+        .target = context.target,
+        .optimize = context.optimize,
+    });
+    pipeline_root.addImport("cairo_cuda_app", cairo_app);
+    pipeline_root.addImport("circuit_recursion_app", circuit_app);
+    pipeline_root.addImport("stwo_circuit_cpu_integration", circuit_cpu);
+    pipeline_root.addImport("stwo_circuit_cuda_integration", integration);
+    pipeline_root.addImport("stwo_circuit_recursion_wire", wire);
+    pipeline_root.addImport("stwo_cairo_cuda_integration", cairo_cuda);
+    pipeline_root.addImport("stwo_cairo_frontend", cairo_frontend);
+    const pipeline_exe = b.addExecutable(.{ .name = "stwo-circuit-recursion-cuda", .root_module = pipeline_root });
+    cuda.linkRuntime(pipeline_exe, toolchain, circuit_archive);
+    b.step("circuit-recursion-cuda-resident", "Build the fully resident PIE-to-root CUDA prover").dependOn(&b.addInstallArtifact(pipeline_exe, .{}).step);
 }
 
 fn createStwoModule(
@@ -303,6 +443,15 @@ fn createProductModule(
     });
     context.protocol.addImports(root);
     root.addImport("stwo_cairo_cuda", stwo);
+    const cairo_frontend = stwo.import_table.get("stwo_cairo_cuda_integration").?.import_table.get("stwo_cairo_frontend").?;
+    root.addImport("stwo_circuit_recursion_wire", graph.createCircuitRecursionWire(
+        context.b,
+        context.protocol,
+        product_descriptor,
+        context.target,
+        context.optimize,
+        cairo_frontend,
+    ));
     const architecture_options = context.b.addOptions();
     architecture_options.addOption([]const u8, "architectures", architectures);
     root.addOptions("cuda_architectures", architecture_options);

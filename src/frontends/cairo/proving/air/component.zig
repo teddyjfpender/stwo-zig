@@ -162,12 +162,25 @@ pub const Component = struct {
             column.random_coeff_powers,
         );
         defer accumulator.allocator.free(coefficients);
-        var lease = try trace_lease.Lease.init(accumulator.allocator, trace, captured);
+        // Interpreted components whose coefficient-backed columns would not
+        // fit `tile_lease_budget` expand one row tile at a time; everything
+        // else expands whole (or reads committed evaluations in place).
+        var tiles: ?trace_lease.Tiles = if (self.native_executor == null)
+            try trace_lease.Tiles.plan(accumulator.allocator, trace, captured, tile_lease_budget, tile_group_budget)
+        else
+            null;
+        defer if (tiles) |*owned| owned.deinit();
+        var lease = if (tiles == null)
+            try trace_lease.Lease.init(accumulator.allocator, trace, captured)
+        else
+            trace_lease.Lease{ .allocator = accumulator.allocator, .source = trace };
         defer lease.deinit();
+        prover.measurement.process_usage.reportStage("composition.lease_expanded");
         const context = TraceContext{
             .trace = lease.trace(),
             .captured = captured,
             .evaluation_log_size = captured.evaluation_log_size,
+            .tiles = if (tiles) |*owned| owned else null,
         };
         var evaluation = EvaluationContext{
             .allocator = accumulator.allocator,
@@ -202,44 +215,78 @@ pub const Component = struct {
         // writer must accumulate. The serial path has to honour the same
         // protocol as the parallel one below, or a second component silently
         // clobbers the first.
+        if (tiles) |*owned| {
+            // Tiles are disjoint row runs: every tile stores (or accumulates)
+            // under the same fresh-column decision the whole range would.
+            const direct_store = column.next_fresh_index == 0;
+            const tile_rows = owned.tileRows();
+            for (0..owned.tileCount()) |tile| {
+                try owned.load(tile);
+                const first = tile * tile_rows;
+                if (maybe_pool) |pool| if (pool.workerCount() > 1) {
+                    try evaluateParallel(accumulator.allocator, &evaluation, pool, first, first + tile_rows, !direct_store, true);
+                    continue;
+                };
+                try evaluation.evaluateRange(first, first + tile_rows, !direct_store);
+            }
+            column.next_fresh_index = if (direct_store) row_count else null;
+            return;
+        }
         const serial_pool = maybe_pool orelse
             return evaluateSerial(&evaluation, column, row_count);
         if (row_count < parallel_row_threshold or serial_pool.workerCount() <= 1) {
             return evaluateSerial(&evaluation, column, row_count);
         }
-        const pool = serial_pool;
-
-        const dynamic = self.native_executor != null;
-        const chunk_rows: usize = 8192;
-        var cursor = std.atomic.Value(usize).init(0);
-        const worker_count = @min(pool.workerCount(), if (dynamic) std.math.divCeil(usize, row_count, chunk_rows) catch unreachable else row_count / simd.lane_count);
-        const workers = try accumulator.allocator.alloc(RangeWorker, worker_count);
-        defer accumulator.allocator.free(workers);
-        const row_groups = row_count / simd.lane_count;
         const direct_store = column.next_fresh_index == 0;
-        for (workers, 0..) |*worker, index| {
-            worker.* = .{
-                .evaluation = evaluation,
-                .row_start = if (dynamic) 0 else (row_groups * index / worker_count) * simd.lane_count,
-                .row_end = if (dynamic) row_count else (row_groups * (index + 1) / worker_count) * simd.lane_count,
-                .cursor = if (dynamic) &cursor else null,
-                .chunk_rows = chunk_rows,
-                .additive = !direct_store,
-            };
-        }
-
-        var wait_group = std.Thread.WaitGroup{};
-        for (workers[1..]) |*worker| {
-            pool.spawnWg(&wait_group, RangeWorker.run, .{worker});
-        }
-        RangeWorker.run(&workers[0]);
-        wait_group.wait();
-        for (workers) |worker| {
-            if (worker.err) |err| return err;
-        }
+        try evaluateParallel(accumulator.allocator, &evaluation, serial_pool, 0, row_count, !direct_store, self.native_executor != null);
         column.next_fresh_index = if (direct_store) row_count else null;
     }
 };
+
+/// Row-tile budget for coefficient-backed interpreted components
+/// (`trace_lease.Tiles`), and the budget of their per-group prefolds.
+const tile_lease_budget: usize = 256 << 20;
+const tile_group_budget: usize = 256 << 20;
+
+/// Evaluates rows `[row_start, row_end)` on `pool`: fixed contiguous splits,
+/// or (`dynamic`) 8192-row chunks claimed from a shared cursor.
+fn evaluateParallel(
+    allocator: std.mem.Allocator,
+    evaluation: *const EvaluationContext,
+    pool: *prover.work_pool.WorkPool,
+    row_start: usize,
+    row_end: usize,
+    additive: bool,
+    dynamic: bool,
+) !void {
+    const row_count = row_end - row_start;
+    const chunk_rows: usize = 8192;
+    var cursor = std.atomic.Value(usize).init(row_start);
+    const worker_count = @max(1, @min(pool.workerCount(), if (dynamic) std.math.divCeil(usize, row_count, chunk_rows) catch unreachable else row_count / simd.lane_count));
+    const workers = try allocator.alloc(RangeWorker, worker_count);
+    defer allocator.free(workers);
+    const row_groups = row_count / simd.lane_count;
+    for (workers, 0..) |*worker, index| {
+        worker.* = .{
+            .evaluation = evaluation.*,
+            .row_start = if (dynamic) row_start else row_start + (row_groups * index / worker_count) * simd.lane_count,
+            .row_end = if (dynamic) row_end else row_start + (row_groups * (index + 1) / worker_count) * simd.lane_count,
+            .cursor = if (dynamic) &cursor else null,
+            .chunk_rows = chunk_rows,
+            .additive = additive,
+        };
+    }
+
+    var wait_group = std.Thread.WaitGroup{};
+    for (workers[1..]) |*worker| {
+        pool.spawnWg(&wait_group, RangeWorker.run, .{worker});
+    }
+    RangeWorker.run(&workers[0]);
+    wait_group.wait();
+    for (workers) |worker| {
+        if (worker.err) |err| return err;
+    }
+}
 
 const parallel_row_threshold: usize = 4096;
 
@@ -283,7 +330,11 @@ const EvaluationContext = struct {
         return .{
             .evaluation_log_size = self.captured.evaluation_log_size,
             .trace_log_size = self.captured.trace_log_size,
-            .trace = .{ .context = self.trace, .resolve = resolveTrace },
+            .trace = .{
+                .context = self.trace,
+                .resolve = resolveTrace,
+                .resolve_at = if (self.trace.tiles != null) resolveTraceAt else null,
+            },
             .extension_parameters = self.parameters,
             .random_coefficients = self.coefficients,
             .constraint_base = part.rc_base,
@@ -366,6 +417,9 @@ pub const TraceContext = struct {
     trace: *const Trace,
     captured: *const composition.Component,
     evaluation_log_size: u32,
+    /// Set while a component is evaluated tile by tile: expanded columns
+    /// resolve to the loaded tile's block.
+    tiles: ?*const trace_lease.Tiles = null,
 };
 
 /// Re-export of the resolver interface so callers outside this file can build a
@@ -384,6 +438,7 @@ pub fn resolveTrace(
 ) !simd.ResolvedColumn {
     const context: *const TraceContext = @ptrCast(@alignCast(raw_context));
     const key = try trace_lease.address(context.trace, context.captured, interaction, local_column);
+    if (context.tiles) |tiles| if (tiles.view(key, 0)) |block| return tileRead(context, block);
     const column = context.trace.polys.items[key.tree][key.column];
 
     try column.validate();
@@ -394,6 +449,32 @@ pub fn resolveTrace(
     return .{
         .values = column.values,
         .shift_amt = @intCast(shift + 1),
+    };
+}
+
+/// `resolveTrace` for a read at `mask_offset`: a tiled column's halo, read
+/// by row, or the ordinary resolution.
+pub fn resolveTraceAt(
+    raw_context: *const anyopaque,
+    interaction: u8,
+    local_column: u32,
+    mask_offset: i32,
+) !simd.ResolvedColumn {
+    const context: *const TraceContext = @ptrCast(@alignCast(raw_context));
+    if (context.tiles) |tiles| {
+        const key = try trace_lease.address(context.trace, context.captured, interaction, local_column);
+        if (tiles.view(key, mask_offset)) |block| return tileRead(context, block);
+    }
+    return resolveTrace(raw_context, interaction, local_column);
+}
+
+fn tileRead(context: *const TraceContext, block: trace_lease.Tiles.View) !simd.ResolvedColumn {
+    if (block.coset_log > context.evaluation_log_size) return error.InvalidTraceShape;
+    return .{
+        .values = block.values,
+        .shift_amt = @intCast(context.evaluation_log_size - block.coset_log + 1),
+        .base = block.base,
+        .row_indexed = block.row_indexed,
     };
 }
 

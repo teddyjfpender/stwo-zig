@@ -91,9 +91,20 @@ pub fn sampleShape(
     bundle: composition_bundle.Bundle,
     tree_column_counts: [3]usize,
 ) ![][]usize {
+    return sampleShapeWithPolicy(allocator, bundle, tree_column_counts, false);
+}
+
+/// The pinned circuit leaf samples every preprocessed column, including
+/// columns unused by the AIR; the ordinary Cairo proof samples used columns.
+pub fn sampleShapeWithPolicy(
+    allocator: std.mem.Allocator,
+    bundle: composition_bundle.Bundle,
+    tree_column_counts: [3]usize,
+    include_all_preprocessed: bool,
+) ![][]usize {
     const used_preprocessed = try allocator.alloc(bool, tree_column_counts[0]);
     defer allocator.free(used_preprocessed);
-    @memset(used_preprocessed, false);
+    @memset(used_preprocessed, include_all_preprocessed);
     const base_counts = try allocator.alloc(usize, tree_column_counts[1]);
     defer allocator.free(base_counts);
     @memset(base_counts, 0);

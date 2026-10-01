@@ -16,6 +16,14 @@ __global__ void initialize_degree_error_kernel(uint32_t *degree_error) {
     if (blockIdx.x == 0 && threadIdx.x == 0) *degree_error = 0;
 }
 
+__global__ void circuit_degree_verdict_kernel(
+    const uint32_t *fri_degree_error,
+    const uint32_t *circuit_error,
+    uint32_t *verdict) {
+    if (blockIdx.x == 0 && threadIdx.x == 0)
+        *verdict = (*fri_degree_error != 0 || *circuit_error != 0) ? 1u : 0u;
+}
+
 __global__ void naturalize_kernel(
     const uint32_t *evaluation,
     uint32_t evaluation_stride,
@@ -278,5 +286,22 @@ extern "C" int stwo_fri_last_layer_on(
         proof_stream>>>(
             coefficients, size, log_size, degree_bound, degree_error,
             transcript_coefficients);
+    return static_cast<int>(cudaPeekAtLastError());
+}
+
+// One device-side publication guard: malformed circuit rows, failed LogUp
+// closure, or an invalid FRI degree all poison the SWPC terminal header.
+extern "C" int stwo_circuit_degree_verdict_on(
+    const uint32_t *fri_degree_error,
+    const uint32_t *circuit_error,
+    uint32_t *verdict,
+    void *stream) {
+    if (fri_degree_error == nullptr || circuit_error == nullptr ||
+        verdict == nullptr || stream == nullptr ||
+        verdict == fri_degree_error || verdict == circuit_error)
+        return -1;
+    stwo::cuda::fri::circuit_degree_verdict_kernel<<<1, 1, 0,
+        reinterpret_cast<cudaStream_t>(stream)>>>(fri_degree_error, circuit_error,
+                                            verdict);
     return static_cast<int>(cudaPeekAtLastError());
 }

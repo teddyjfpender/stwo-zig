@@ -111,7 +111,7 @@ pub fn build(
         interaction_executor,
         topology,
         fixed,
-        variant,
+        .{ .preprocessed_variant = variant },
         pedersen_table,
         recorder,
         null,
@@ -130,7 +130,7 @@ pub fn buildInto(
     interaction_executor: ?@import("../witness/interaction_executor.zig").Executor,
     topology: feed_topology.Loaded,
     fixed: *const fixed_tables.Bundle,
-    variant: claim_generator.PreprocessedVariant,
+    claim_options: claim_generator.Options,
     pedersen_table: ?deductions.PedersenTable,
     recorder: ?*prover.stage_profile.Recorder,
     prepared: ?Prepared,
@@ -163,7 +163,7 @@ pub fn buildInto(
         break :blk try claim_generator.deriveFromProverInput(
             allocator,
             input,
-            .{ .preprocessed_variant = variant },
+            claim_options,
         );
     };
     errdefer geometry.deinit();
@@ -199,6 +199,9 @@ fn buildWithCollector(
     collector: *Collector,
     borrowed: bool,
 ) !BaseTrace {
+    // The claim fixes the `memory_id_to_big` instance count: the natural one,
+    // or `opt_n_id_to_big_components` with zero padding components.
+    const big_component_count = geometry.memoryIdToBigCount();
     // Qualification control only. The new lifetime policy remains opt-in until
     // CPU and Metal measurements pass the memory and timing gates.
     const incremental = if (std.posix.getenv("STWO_CAIRO_INCREMENTAL_MULTIPLICITIES")) |value| std.mem.eql(u8, value, "1") else false;
@@ -250,7 +253,7 @@ fn buildWithCollector(
         if (counts_state) |*state| {
             var tables = try state.takeTables();
             errdefer tables.deinit();
-            try fixed_trace.addMemoryRangeChecksLive(input, &tables);
+            try fixed_trace.addMemoryRangeChecksForComponents(input, big_component_count, &tables);
             break :blk tables;
         }
         break :blk try fixed_trace.populateLiveTopology(
@@ -259,6 +262,7 @@ fn buildWithCollector(
             topology,
             execution.producers,
             fixed,
+            big_component_count,
         );
     };
     errdefer multiplicities.deinit();
@@ -309,13 +313,12 @@ fn buildWithCollector(
         );
         defer allocator.free(address);
         try implicit.memoryAddressInto(input, &counts, address);
-        const big_component_count = try tables.bigComponentCount(input);
         for (0..big_component_count) |component_index| {
             const big = try collector.reserveNamed(
                 "memory_id_to_big",
                 @intCast(component_index),
                 tables.big_column_count,
-                try tables.bigRowCount(input, component_index),
+                try tables.paddedBigRowCount(input, component_index, big_component_count),
             );
             defer allocator.free(big);
             // Base AIR places multiplicity first; interaction sources place it

@@ -42,6 +42,8 @@ pub const ProtocolGeometry = struct {
     log_last_layer_degree_bound: u32,
     fold_step: u32,
     lifting_log_size: ?u32,
+    m31_channel: bool = false,
+    include_all_preprocessed_columns: bool = false,
 
     /// Decodes canonical PCS words supplied by an authenticated statement or
     /// manifest. Parsing alone does not establish the caller's security policy.
@@ -104,6 +106,9 @@ pub const ProtocolGeometry = struct {
         if (self.lifting_log_size) |log_size| {
             if (log_size == 0 or log_size > 31) return Error.InvalidProtocolGeometry;
         }
+        if (self.m31_channel and (self.lifting_log_size == null or !self.include_all_preprocessed_columns or
+            self.max_log_degree_bound + self.log_blowup_factor != self.lifting_log_size.?))
+            return Error.InvalidProtocolGeometry;
         var config = fri.FriConfig.init(
             self.log_last_layer_degree_bound,
             self.log_blowup_factor,
@@ -132,7 +137,7 @@ pub const ProtocolGeometry = struct {
             @intCast(self.query_count),
             self.log_last_layer_degree_bound,
             self.fold_step,
-            self.lifting_log_size orelse 0,
+            if (self.m31_channel) 0 else self.lifting_log_size orelse 0,
             0,
             0,
         };

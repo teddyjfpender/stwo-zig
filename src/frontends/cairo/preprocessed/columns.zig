@@ -1,6 +1,12 @@
 //! Logical-row evaluation of canonical Stwo-Cairo preprocessed columns.
+//!
+//! The `seq_*` and `bitwise_xor_*` row formulas live in core
+//! (`preprocessed_tables`) so other AIRs share them without depending on this
+//! frontend; this file parses Cairo column identities and owns the
+//! Cairo-only tables.
 
 const std = @import("std");
+const tables = @import("stwo_core").preprocessed_tables;
 const blake = @import("../witness/deductions/blake.zig");
 const pedersen = @import("../witness/deductions/pedersen.zig");
 const poseidon = @import("../witness/deductions/poseidon.zig");
@@ -12,26 +18,16 @@ pub const Error = error{
     UnsupportedPedersenWindow,
 };
 
-const Sequence = struct {
-    row_limit: u32,
-};
-
 const RangeCheck = struct {
     row_limit: u32,
     shift: u5,
     mask: u32,
 };
 
-const BitwiseXor = struct {
-    bits: u5,
-    column: u2,
-    row_limit: u32,
-};
-
 pub const Plan = union(enum) {
-    sequence: Sequence,
+    sequence: tables.Seq,
     range_check: RangeCheck,
-    bitwise_xor: BitwiseXor,
+    bitwise_xor: tables.BitwiseXor,
     blake_sigma: u5,
     poseidon_round_key: u6,
     pedersen_point: u6,
@@ -39,10 +35,8 @@ pub const Plan = union(enum) {
     pub fn init(identity: []const u8) Error!Plan {
         if (std.mem.startsWith(u8, identity, "seq_")) {
             const log_size = try parseUnsigned(u5, identity["seq_".len..]);
-            if (log_size >= 31) return Error.InvalidColumnIdentity;
-            return .{ .sequence = .{
-                .row_limit = @as(u32, 1) << log_size,
-            } };
+            return .{ .sequence = tables.Seq.init(log_size) catch
+                return Error.InvalidColumnIdentity };
         }
         if (std.mem.startsWith(u8, identity, "range_check_"))
             return rangeCheckPlan(identity["range_check_".len..]);
@@ -70,15 +64,12 @@ pub const Plan = union(enum) {
 
     pub fn value(self: Plan, row: u32) !u32 {
         return switch (self) {
-            .sequence => |plan| if (row < plan.row_limit)
-                row
-            else
-                Error.InvalidRow,
+            .sequence => |plan| plan.value(row),
             .range_check => |plan| if (row < plan.row_limit)
                 (row >> plan.shift) & plan.mask
             else
                 Error.InvalidRow,
-            .bitwise_xor => |plan| bitwiseXorValue(plan, row),
+            .bitwise_xor => |plan| plan.value(row),
             .blake_sigma => |column| blakeSigma(column, row),
             .poseidon_round_key => |column| poseidonRoundKey(column, row),
             .pedersen_point => |column| pedersenPoint(column, row),
@@ -124,25 +115,8 @@ fn bitwiseXorPlan(suffix: []const u8) Error!Plan {
         return Error.InvalidColumnIdentity;
     const bits = try parseUnsigned(u5, suffix[0..separator]);
     const column = try parseUnsigned(u2, suffix[separator + 1 ..]);
-    if (bits == 0 or bits >= 16 or column > 2)
-        return Error.InvalidColumnIdentity;
-    return .{ .bitwise_xor = .{
-        .bits = bits,
-        .column = column,
-        .row_limit = @as(u32, 1) << @intCast(@as(u6, bits) * 2),
-    } };
-}
-
-fn bitwiseXorValue(plan: BitwiseXor, row: u32) Error!u32 {
-    if (row >= plan.row_limit) return Error.InvalidRow;
-    const lhs = row >> plan.bits;
-    const rhs = row & ((@as(u32, 1) << plan.bits) - 1);
-    return switch (plan.column) {
-        0 => lhs,
-        1 => rhs,
-        2 => lhs ^ rhs,
-        else => unreachable,
-    };
+    return .{ .bitwise_xor = tables.BitwiseXor.init(bits, column) catch
+        return Error.InvalidColumnIdentity };
 }
 
 fn blakeSigma(column: u5, row: u32) !u32 {
@@ -174,7 +148,8 @@ fn parseUnsigned(comptime T: type, text: []const u8) !T {
 test "canonical Cairo sequence, range, XOR, and Blake columns are exact" {
     try std.testing.expectEqual(@as(u32, 17), try value("seq_6", 17));
     try std.testing.expectEqual(@as(u32, 5), try value("range_check_3_6_6_3_column_0", 5 << 15));
-    try std.testing.expectEqual(@as(u32, 1), try value("range_check_3_6_6_3_column_3", 9));
+    // Column 3 is the low three bits of the 18-bit row.
+    try std.testing.expectEqual(@as(u32, 9 & 7), try value("range_check_3_6_6_3_column_3", 9));
     try std.testing.expectEqual(@as(u32, 3 ^ 7), try value("bitwise_xor_4_2", (3 << 4) | 7));
     try std.testing.expectEqual(@as(u32, 14), try value("blake_sigma_0", 1));
     try std.testing.expectEqual(@as(u32, 0), try value("blake_sigma_0", 15));

@@ -16,6 +16,7 @@ const build_script_root = "scripts/cuda_build_lib";
 pub const AotProduct = enum {
     native,
     cairo,
+    circuit,
 };
 
 pub const Toolchain = struct {
@@ -63,15 +64,26 @@ pub fn addArchive(
     cairo_eval_root: ?cuda_aot.GeneratedSet,
 ) Archive {
     require(toolchain);
+    if (product == .circuit) @panic("Circuit CUDA archive requires addCircuitArchive with both AOT source sets");
     const command = buildCommand(
         b,
         toolchain,
         false,
         product,
         cairo_eval_root,
+        null,
     );
     return .{
         .directory = command.addOutputDirectoryArg("stwo-native-cuda-runtime"),
+        .build = command,
+    };
+}
+
+pub fn addCircuitArchive(b: *std.Build, toolchain: Toolchain, cairo_generated: cuda_aot.GeneratedSet, generated_circuit_eval: std.Build.LazyPath) Archive {
+    require(toolchain);
+    const command = buildCommand(b, toolchain, false, .circuit, cairo_generated, generated_circuit_eval);
+    return .{
+        .directory = command.addOutputDirectoryArg("stwo-circuit-cuda-runtime"),
         .build = command,
     };
 }
@@ -83,6 +95,7 @@ pub fn addPlan(b: *std.Build, toolchain: Toolchain) *std.Build.Step.Run {
         toolchain,
         true,
         .native,
+        null,
         null,
     );
     _ = command.addOutputDirectoryArg("stwo-native-cuda-plan");
@@ -99,8 +112,22 @@ pub fn addCairoPlan(b: *std.Build, generated: cuda_aot.GeneratedSet) *std.Build.
         .cuda_home = "/cuda-plan-only",
         .library_dir = "/cuda-plan-only/lib64",
         .architectures = "sm_90",
-    }, true, .cairo, generated);
+    }, true, .cairo, generated, null);
     _ = command.addOutputDirectoryArg("cairo-cuda-local-plan");
+    _ = command.captureStdOut();
+    return command;
+}
+
+pub fn addCircuitPlan(b: *std.Build, cairo_generated: cuda_aot.GeneratedSet, generated: std.Build.LazyPath) *std.Build.Step.Run {
+    const command = buildCommand(b, .{
+        .nvcc = "/cuda-plan-only/bin/nvcc",
+        .host_cxx = "/cuda-plan-only/bin/c++",
+        .archiver = "/cuda-plan-only/bin/ar",
+        .cuda_home = "/cuda-plan-only",
+        .library_dir = "/cuda-plan-only/lib64",
+        .architectures = "sm_90",
+    }, true, .circuit, cairo_generated, generated);
+    _ = command.addOutputDirectoryArg("circuit-cuda-local-plan");
     _ = command.captureStdOut();
     return command;
 }
@@ -141,6 +168,7 @@ fn buildCommand(
     plan_only: bool,
     product: AotProduct,
     cairo_eval_root: ?cuda_aot.GeneratedSet,
+    circuit_eval_root: ?std.Build.LazyPath,
 ) *std.Build.Step.Run {
     const native_aot = cuda_aot.addNative(b);
     const command = b.addSystemCommand(&.{"python3"});
@@ -169,7 +197,7 @@ fn buildCommand(
     command.addArgs(&.{ "--frontend", @tagName(product) });
     command.addArgs(&.{ "--aot-set-root", "." });
     command.addDirectoryArg(native_aot.directory);
-    if (product == .cairo) {
+    if (product == .cairo or product == .circuit) {
         const generated = cairo_eval_root orelse @panic(
             "Cairo CUDA archive requires generated eval AOT sources",
         );
@@ -178,7 +206,12 @@ fn buildCommand(
         command.addDirectoryArg(generated.canonical_eval orelse @panic("Current Cairo AIR product is absent"));
         command.addArgs(&.{ "--aot-set", "cairo_witness", "--aot-set-root", "cairo_witness" });
         command.addDirectoryArg(generated.canonical_witness orelse @panic("Current Cairo witness product is absent"));
-    } else if (cairo_eval_root != null) {
+    }
+    if (product == .circuit) {
+        const generated = circuit_eval_root orelse @panic("Circuit CUDA archive requires generated circuit AIR AOT sources");
+        command.addArgs(&.{ "--aot-set", "circuit_eval", "--aot-set-root", "circuit_eval" });
+        command.addDirectoryArg(generated);
+    } else if (product == .native and (cairo_eval_root != null or circuit_eval_root != null)) {
         @panic("Native CUDA archive cannot consume Cairo AOT sources");
     }
     command.addArgs(&.{ "--nvcc", toolchain.nvcc });

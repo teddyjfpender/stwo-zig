@@ -74,8 +74,22 @@ the more explicit transaction modules in `stwo_cairo_cpu_integration` or
 - `stwo_backend_contracts`
 - `stwo_prover_api`
 - `stwo_prover_engine`
+- `interop_felt_json` (injected, `src/interop/felt_json.zig`): the streaming
+  felt JSON writer behind `proof.cairo_serde`, shared with circuit recursion
 
 The frontend has no CPU, Metal, or CUDA backend dependency.
+
+The preprocessed-trace variants and their ordered column ids, the builtin
+memory-cell sizes, the leaf verifier's disabled components, the leaf
+statement's aux-data layout and its `claims_to_mix` program hash live in
+`stwo_core.cairo_air_layout`, shared with circuit recursion; this package
+re-exports them as `air_layout`, `preprocessed.trace.Variant` and
+`claim_generator.PreprocessedVariant`. `statement.circuit_leaf` derives the
+circuit-recursion leaf's host inputs (serialized aux data, program limbs,
+output digest, `enabled_bits`) from the lane's existing statement code;
+`vectors/circuit/r6/cairo_statement.json` pins them, and R10b
+(`zig build test-cairo-leaf-proof`) commits the canonical_small trace
+to the roots of `vectors/circuit/r6/topology.json`.
 
 ## Build, test, and run
 

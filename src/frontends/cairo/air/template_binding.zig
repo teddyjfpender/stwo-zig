@@ -32,7 +32,7 @@ pub fn instantiate(
     errdefer allocator.free(components);
     var initialized: usize = 0;
     errdefer for (components[0..initialized]) |*component|
-        deinitComponent(allocator, component);
+        composition.deinitComponent(allocator, component);
     var tree_cursors = [3]u32{ 0, 0, 0 };
     var constraint_cursor: u32 = 0;
     var maximum_evaluation_log: u32 = 0;
@@ -83,7 +83,7 @@ pub fn instantiate(
         .max_kernel_instructions = 1_000_000,
         .total_constraints = constraint_cursor,
         .max_evaluation_log_size = maximum_evaluation_log,
-        .plan_hash = scheduleHash(components),
+        .plan_hash = composition.scheduleHash(components),
         .components = components,
     };
 }
@@ -155,7 +155,7 @@ fn instantiateComponent(
         template.trace_log_size,
         trace_log,
     );
-    const denominators = try denominatorInverses(
+    const denominators = try composition.denominatorInverses(
         allocator,
         trace_log,
         evaluation_log,
@@ -208,34 +208,6 @@ fn instantiateComponent(
     };
 }
 
-fn denominatorInverses(
-    allocator: std.mem.Allocator,
-    trace_log: u32,
-    evaluation_log: u32,
-) ![]u32 {
-    const delta = std.math.sub(
-        u32,
-        evaluation_log,
-        trace_log,
-    ) catch return error.InvalidTemplateGeometry;
-    if (delta >= @bitSizeOf(usize)) return error.InvalidTemplateGeometry;
-
-    const values = try allocator.alloc(u32, @as(usize, 1) << @intCast(delta));
-    errdefer allocator.free(values);
-    const trace_coset = core.poly.circle.canonic.CanonicCoset.new(trace_log).coset();
-    const evaluation_domain =
-        core.poly.circle.canonic.CanonicCoset.new(evaluation_log).circleDomain();
-    for (values, 0..) |*value, index| {
-        value.* = (try core.constraints.cosetVanishing(
-            M31,
-            trace_coset,
-            evaluation_domain.at(index),
-        ).inv()).toU32();
-    }
-    core.utils.bitReverse(u32, values);
-    return values;
-}
-
 fn rebindDomainConstants(
     program: *eval_program.Program,
     label: []const u8,
@@ -247,14 +219,22 @@ fn rebindDomainConstants(
         return;
     const source_stride = @as(u64, 1) << @intCast(source_log);
     const target_stride = @as(u64, 1) << @intCast(target_log);
-    for (1..claim_generator.memory_address_to_id_split) |chunk| {
-        const source = std.math.cast(u32, chunk * source_stride) orelse
+    const chunk_count = claim_generator.memory_address_to_id_split - 1;
+    var sources: [chunk_count]u32 = undefined;
+    var targets: [chunk_count]u32 = undefined;
+    var counts: [chunk_count]usize = undefined;
+    for (0..chunk_count) |index| {
+        const chunk = index + 1;
+        sources[index] = std.math.cast(u32, chunk * source_stride) orelse
             return error.InvalidTemplateGeometry;
-        const target = std.math.cast(u32, chunk * target_stride) orelse
+        targets[index] = std.math.cast(u32, chunk * target_stride) orelse
             return error.InvalidTemplateGeometry;
-        if (try program.replaceBaseConstant(source, target) == 0)
-            return error.MissingDomainConstant;
     }
+    // The chunk offsets of two log sizes overlap whenever they differ by fewer
+    // than log2(split) bits (e.g. 8 * 2^10 == 1 * 2^13), so sequential
+    // single-constant replacement would rewrite an already rebound offset.
+    try program.replaceBaseConstantsSimultaneous(&sources, &targets, &counts);
+    for (counts) |count| if (count == 0) return error.MissingDomainConstant;
 }
 
 fn rebindSequenceColumn(
@@ -306,53 +286,6 @@ fn segmentStart(segments: adapter.BuiltinSegments, label: []const u8) ?u32 {
         }
     }
     return null;
-}
-
-fn deinitComponent(
-    allocator: std.mem.Allocator,
-    component: *composition.Component,
-) void {
-    allocator.free(component.label);
-    allocator.free(component.trace_spans);
-    allocator.free(component.preprocessed_indices);
-    allocator.free(component.denominator_inverses);
-    allocator.free(component.ext_sources);
-    for (component.parts) |*part| part.program.deinit();
-    allocator.free(component.parts);
-}
-
-fn scheduleHash(components: []const composition.Component) u64 {
-    var hash: u64 = 0xcbf29ce484222325;
-    for (components) |component| {
-        hashBytes(&hash, component.label);
-        hashInt(&hash, component.instance);
-        hashInt(&hash, component.trace_log_size);
-        hashInt(&hash, component.evaluation_log_size);
-        hashInt(&hash, component.n_constraints);
-        hashInt(&hash, component.random_coefficient_offset);
-        for (component.trace_spans) |span| {
-            hashInt(&hash, span.tree);
-            hashInt(&hash, span.start);
-            hashInt(&hash, span.end);
-        }
-        for (component.preprocessed_indices) |index| hashInt(&hash, index);
-        for (component.parts) |part| hashInt(&hash, part.semantic_hash);
-    }
-    return if (hash == 0) 1 else hash;
-}
-
-fn hashInt(hash: *u64, value: anytype) void {
-    const T = @TypeOf(value);
-    var encoded: [@sizeOf(T)]u8 = undefined;
-    std.mem.writeInt(T, &encoded, value, .little);
-    hashBytes(hash, &encoded);
-}
-
-fn hashBytes(hash: *u64, bytes: []const u8) void {
-    for (bytes) |byte| {
-        hash.* ^= byte;
-        hash.* *%= 0x100000001b3;
-    }
 }
 
 test "official Cairo AIR templates instantiate live logs and segment starts" {
@@ -408,40 +341,28 @@ test "official Cairo AIR templates instantiate live logs and segment starts" {
 
 test "official Cairo AIR templates derive vanishing inverses from live geometry" {
     const allocator = std.testing.allocator;
-    const source = try denominatorInverses(allocator, 8, 9);
+    // Every inverse is the live trace coset's vanishing polynomial, inverted,
+    // at the live evaluation domain's bit-reversed point. At one blowup the
+    // canonic-coset values do not depend on the trace size: 8 -> 9 and
+    // 9 -> 10 agree.
+    inline for (.{ .{ 8, 9 }, .{ 9, 10 }, .{ 8, 10 } }) |logs| {
+        const inverses = try composition.denominatorInverses(allocator, logs[0], logs[1]);
+        defer allocator.free(inverses);
+        const log_blowup = logs[1] - logs[0];
+        try std.testing.expectEqual(@as(usize, 1) << log_blowup, inverses.len);
+        const trace_coset = core.poly.circle.canonic.CanonicCoset.new(logs[0]).coset();
+        const evaluation_domain = core.poly.circle.canonic.CanonicCoset.new(logs[1]).circleDomain();
+        for (inverses, 0..) |inverse, index| {
+            const point_index = core.utils.bitReverseIndex(index, log_blowup);
+            const vanishing = core.constraints.cosetVanishing(M31, trace_coset, evaluation_domain.at(point_index));
+            try std.testing.expect(vanishing.mul(M31.fromCanonical(inverse)).eql(M31.one()));
+        }
+    }
+    const source = try composition.denominatorInverses(allocator, 8, 9);
     defer allocator.free(source);
-    const rebound = try denominatorInverses(allocator, 9, 10);
+    const rebound = try composition.denominatorInverses(allocator, 9, 10);
     defer allocator.free(rebound);
-
-    try std.testing.expectEqual(@as(usize, 2), source.len);
-    try std.testing.expectEqual(@as(usize, 2), rebound.len);
-    // Equal blowup keeps these two canonical coset inverses invariant when
-    // both logs grow together; check the live domains independently below.
-    try std.testing.expect(std.mem.eql(u32, source, rebound));
-    for (source, 0..) |inverse, index| {
-        const trace_coset =
-            core.poly.circle.canonic.CanonicCoset.new(8).coset();
-        const evaluation_domain =
-            core.poly.circle.canonic.CanonicCoset.new(9).circleDomain();
-        const point_index = core.utils.bitReverseIndex(index, 1);
-        const vanishing = core.constraints.cosetVanishing(
-            M31,
-            trace_coset,
-            evaluation_domain.at(point_index),
-        );
-        try std.testing.expect(vanishing.mul(M31.fromCanonical(inverse)).eql(M31.one()));
-    }
-    for (rebound, 0..) |inverse, index| {
-        const trace_coset = core.poly.circle.canonic.CanonicCoset.new(9).coset();
-        const evaluation_domain = core.poly.circle.canonic.CanonicCoset.new(10).circleDomain();
-        const point_index = core.utils.bitReverseIndex(index, 1);
-        const vanishing = core.constraints.cosetVanishing(
-            M31,
-            trace_coset,
-            evaluation_domain.at(point_index),
-        );
-        try std.testing.expect(vanishing.mul(M31.fromCanonical(inverse)).eql(M31.one()));
-    }
+    try std.testing.expectEqualSlices(u32, source, rebound);
 }
 
 test "sequence rebinding permits larger components without sequence inputs" {
@@ -465,4 +386,59 @@ test "sequence rebinding permits larger components without sequence inputs" {
         small.indexOf("blake_sigma_0").?,
         projected[0],
     );
+}
+
+test "memory address chunk offsets rebind exactly once for every live log size" {
+    const allocator = std.testing.allocator;
+    const library_path = try std.fs.cwd().realpathAlloc(
+        allocator,
+        "vectors/cairo/official/air_template_library_v1.json",
+    );
+    defer allocator.free(library_path);
+    var library = try template_library.Library.readFile(allocator, library_path);
+    defer library.deinit();
+    const split = claim_generator.memory_address_to_id_split;
+    var checked: usize = 0;
+    inline for (.{ preprocessed.Variant.canonical, preprocessed.Variant.canonical_small }) |variant| {
+        // Includes target logs one to three above the template log, where a
+        // rebound chunk offset equals a later chunk's template offset.
+        var log: u32 = 4;
+        while (log <= 22) : (log += 1) {
+            const live_components = try allocator.dupe(
+                claim_generator.ComponentGeometry,
+                &.{.{ .name = "memory_address_to_id", .log_size = .{ .known = log } }},
+            );
+            var geometry = claim_generator.OwnedClaimGeometry{
+                .allocator = allocator,
+                .components = live_components,
+            };
+            defer geometry.deinit();
+            var bundle = instantiate(allocator, library, &geometry, variant, .{}) catch |err| switch (err) {
+                // This variant carries no sequence column of that size.
+                error.MissingTargetSequenceColumn => continue,
+                else => return err,
+            };
+            defer bundle.deinit();
+            checked += 1;
+            const source = try library.sourceFor("memory_address_to_id", log, variant);
+            const template = source.find("memory_address_to_id").?;
+            const source_stride = @as(u64, 1) << @intCast(template.trace_log_size);
+            const target_stride = @as(u64, 1) << @intCast(log);
+            for (template.parts, bundle.components[0].parts) |template_part, live_part| {
+                const original = template_part.program.base_insts;
+                const rebound = live_part.program.base_insts;
+                try std.testing.expectEqual(original.len, rebound.len);
+                for (original, rebound) |before, after| {
+                    if (before.op != .constant) continue;
+                    var expected = before.a;
+                    for (1..split) |chunk| {
+                        if (@as(u64, before.a) == chunk * source_stride)
+                            expected = @intCast(chunk * target_stride);
+                    }
+                    try std.testing.expectEqual(expected, after.a);
+                }
+            }
+        }
+    }
+    try std.testing.expect(checked >= 20);
 }

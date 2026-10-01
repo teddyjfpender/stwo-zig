@@ -95,6 +95,21 @@ pub const bounded_label = "air_template_composition_bounded_v4";
 pub const bounded_sha256_hex = "a11c91fc929fc1cf978e7b3ce5db03cdb5ce11cc88fa1fcf1d46df4f87cab9d1";
 pub const bounded_length: u64 = 10121115;
 
+/// The circuit AIR's bounded (native + tiled) readers: `metal-eval-source
+/// vectors/circuit/official/circuit_air.air_programs_v1.bin --trace-abi
+/// bounded`, compiled with the CI recipe plus `-Wno-unused-variable` (the
+/// generator leaves unused QM31 one-constants in these programs). Minted on
+/// macOS 15.3.1 with Apple metal 32023.620; like the Cairo artifacts it is an
+/// artifact identity, not a build-recipe identity
+/// (`vectors/circuit/official/circuit_air_composition_bounded.provenance.json`).
+/// It is pinned only by the circuit route (`authenticateCircuitBoundedForProduct`)
+/// and is deliberately not in `approved_metallibs`: the Cairo product's
+/// library override must not be able to name it.
+pub const circuit_bounded_label = "circuit_air_composition_bounded_v1";
+pub const circuit_bounded_sha256_hex = "bbcfb8879ae76b0c9cb771cd70fe335abaa9ee319cbf30491d161b2dc2090473";
+pub const circuit_bounded_length: u64 = 367765;
+pub const circuit_bounded_path = "vectors/circuit/official/circuit_air_composition_bounded.metallib";
+
 pub const approved_metallibs = [_]ApprovedMetallib{
     .{
         .label = eval_domain_label,
@@ -457,6 +472,32 @@ pub fn authenticateBoundedForProduct(path: []const u8) !Admission {
         recordRejection(path, err);
         return err;
     };
+}
+
+/// The circuit prover's composition library, pinned by content like the Cairo
+/// product's. A different library at the path is rejected, never loaded.
+pub fn authenticateCircuitBoundedForProduct(path: []const u8) !Admission {
+    const expected = parseDigest(circuit_bounded_sha256_hex) catch unreachable;
+    const admission = authenticate(path, .{ .pinned_digest = expected }) catch |err| {
+        recordRejection(path, err);
+        return err;
+    };
+    if (admission.measurement.length != circuit_bounded_length) {
+        recordRejection(path, Error.CompositionMetallibLengthMismatch);
+        return Error.CompositionMetallibLengthMismatch;
+    }
+    return .{ .measurement = admission.measurement, .label = circuit_bounded_label };
+}
+
+test "circuit composition route admits only the pinned circuit artifact" {
+    const admitted = try authenticateCircuitBoundedForProduct(circuit_bounded_path);
+    try std.testing.expectEqual(circuit_bounded_length, admitted.measurement.length);
+    try std.testing.expectEqualStrings(circuit_bounded_sha256_hex, &admitted.measurement.hex());
+    try std.testing.expectEqualStrings(circuit_bounded_label, admitted.label.?);
+    try std.testing.expectError(Error.CompositionMetallibDigestMismatch, authenticate(
+        "vectors/cairo/official/air_template_composition_bounded.metallib",
+        .{ .pinned_digest = try parseDigest(circuit_bounded_sha256_hex) },
+    ));
 }
 
 test "bounded composition product admits only its native and tiled artifact" {

@@ -3,6 +3,7 @@
 const std = @import("std");
 const adapter = @import("../mod.zig");
 const opcodes = @import("../opcodes.zig");
+const Builtin = @import("stwo_core").cairo_air_layout.Builtin;
 
 pub const Digest = [std.crypto.hash.sha2.Sha256.digest_length]u8;
 
@@ -89,15 +90,15 @@ pub fn fromInput(input: *const adapter.ProverInput, input_sha256: Digest) Summar
         .execution_resources = .{
             .opcode_counts = opcode_counts,
             .builtin_counts = .{
-                .add_mod_builtin = instances(segments.add_mod_builtin, 7),
-                .bitwise_builtin = instances(segments.bitwise_builtin, 5),
-                .ec_op_builtin = instances(segments.ec_op_builtin, 7),
-                .mul_mod_builtin = instances(segments.mul_mod_builtin, 7),
+                .add_mod_builtin = instances(segments.add_mod_builtin, Builtin.add_mod.memoryCells()),
+                .bitwise_builtin = instances(segments.bitwise_builtin, Builtin.bitwise.memoryCells()),
+                .ec_op_builtin = instances(segments.ec_op_builtin, Builtin.ec_op.memoryCells()),
+                .mul_mod_builtin = instances(segments.mul_mod_builtin, Builtin.mul_mod.memoryCells()),
                 .output_builtin = instances(segments.output, 1),
-                .pedersen_builtin = instances(segments.pedersen_builtin, 3),
-                .poseidon_builtin = instances(segments.poseidon_builtin, 6),
-                .range_check96_builtin = instances(segments.range_check96_builtin, 1),
-                .range_check_builtin = instances(segments.range_check_builtin, 1),
+                .pedersen_builtin = instances(segments.pedersen_builtin, Builtin.pedersen.memoryCells()),
+                .poseidon_builtin = instances(segments.poseidon_builtin, Builtin.poseidon.memoryCells()),
+                .range_check96_builtin = instances(segments.range_check96_builtin, Builtin.range_check96.memoryCells()),
+                .range_check_builtin = instances(segments.range_check_builtin, Builtin.range_check.memoryCells()),
             },
             .memory_address_to_id = input.memory.address_to_id.len,
             .memory_id_to_big = input.memory.f252_values.len,

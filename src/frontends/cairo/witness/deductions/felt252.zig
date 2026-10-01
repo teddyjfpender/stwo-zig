@@ -7,8 +7,7 @@ const bits_per_word: usize = 9;
 const word_mask: u256 = (1 << bits_per_word) - 1;
 
 /// P = 2^251 + 17 * 2^192 + 1.
-pub const prime: u256 = (@as(u256, 1) << 251) +
-    (@as(u256, 17) << 192) + 1;
+pub const prime: u256 = @import("stwo_core").fields.stark_prime;
 
 const NativeModulus = std.crypto.ff.Modulus(256);
 const native_modulus = blk: {

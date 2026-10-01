@@ -175,6 +175,7 @@ test "Cairo execution tables: small limbs and encoded tags match Metal" {
         );
     }
     try std.testing.expectEqual(@as(u32, 351), expected[3]);
+    // Bits 63..71 of the small value: 0xa5 << 1 (bit 63 is clear).
     try std.testing.expectEqual(@as(u32, 330), expected[7]);
 
     // Metal treats every tag except 1 as the small-value table selector.

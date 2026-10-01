@@ -42,11 +42,13 @@ pub fn compile(
     components: composition.Bundle,
     input: *const adapter.ProverInput,
 ) !Plan {
-    const expected_count = std.math.add(
-        usize,
-        try memory_tables.bigComponentCount(input),
-        2,
-    ) catch return error.MemoryGeometryOverflow;
+    var big_component_count: usize = 0;
+    for (components.components) |component| {
+        if (std.mem.eql(u8, @import("stwo_cairo_frontend").proof_plan.canonicalComponentName(component.label, component.instance), "memory_id_to_big"))
+            big_component_count += 1;
+    }
+    const expected_count = std.math.add(usize, big_component_count, 2) catch
+        return error.MemoryGeometryOverflow;
     const entries = try allocator.alloc(Entry, expected_count);
     errdefer allocator.free(entries);
 
@@ -59,6 +61,7 @@ pub fn compile(
             component,
             @intCast(component_index),
             kind,
+            big_component_count,
         );
         count += 1;
     }
@@ -76,6 +79,7 @@ fn compileEntry(
     component: composition.Component,
     component_index: u32,
     kind: Kind,
+    big_component_count: usize,
 ) !Entry {
     const row_count: usize = @as(usize, 1) << @intCast(
         component.trace_log_size,
@@ -90,9 +94,10 @@ fn compileEntry(
             .output_column_count = memory_tables.address_column_count,
         },
         .id_to_big => blk: {
-            const expected_rows = try memory_tables.bigRowCount(
+            const expected_rows = try memory_tables.paddedBigRowCount(
                 input,
                 component.instance,
+                big_component_count,
             );
             const offset = std.math.mul(
                 usize,
@@ -102,10 +107,7 @@ fn compileEntry(
             break :blk Geometry{
                 .expected_rows = expected_rows,
                 .source_value_offset = offset,
-                .source_value_count = @min(
-                    expected_rows,
-                    input.memory.f252_values.len - offset,
-                ),
+                .source_value_count = expected_rows,
                 .source_words_per_value = 8,
                 .limb_count = memory_tables.big_limb_count,
                 .output_column_count = memory_tables.big_column_count,

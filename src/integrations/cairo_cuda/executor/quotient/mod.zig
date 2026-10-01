@@ -2,6 +2,7 @@
 
 pub const topology = @import("topology.zig");
 pub const types = @import("types.zig");
+pub const buckets = @import("buckets.zig");
 pub const resident_sources = @import("resident_sources.zig");
 pub const controller = @import("controller.zig");
 

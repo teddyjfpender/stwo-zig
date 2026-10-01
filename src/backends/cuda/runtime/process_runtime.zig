@@ -112,6 +112,11 @@ pub fn ProcessOwnedRuntimeFor(comptime Session: type) type {
             );
         }
 
+        pub fn releasePreparedExecution(self: *Self) runtime_error.Error!void {
+            if (!self.owns_registry or !self.inner.isReady()) return error.InvalidState;
+            try self.inner.session.releasePreparedExecution();
+        }
+
         pub fn completedProofs(self: Self) u64 {
             return self.inner.completedProofs();
         }
@@ -313,6 +318,7 @@ test "process-owned runtime admits exactly one live owner" {
         completed_proofs: u64 = 0,
         active: bool = false,
         closed: bool = false,
+        prepared: bool = true,
 
         pub fn open(_: []const u32) runtime_error.Error!@This() {
             return .{};
@@ -332,10 +338,21 @@ test "process-owned runtime admits exactly one live owner" {
         }
 
         pub fn hasPreparedExecution(
-            _: *const @This(),
+            self: *const @This(),
             cache_key: [32]u8,
         ) bool {
-            return cache_key[0] == 9;
+            return self.prepared and cache_key[0] == 9;
+        }
+
+        pub fn releasePreparedExecution(self: *@This()) runtime_error.Error!void {
+            if (self.active or self.closed) return error.InvalidState;
+            self.prepared = false;
+        }
+
+        pub fn finishRetained(self: *@This()) runtime_error.Error!void {
+            if (!self.active or self.closed) return error.InvalidState;
+            self.active = false;
+            self.completed_proofs += 1;
         }
 
         pub fn close(self: *@This()) runtime_error.Error!void {
@@ -356,6 +373,14 @@ test "process-owned runtime admits exactly one live owner" {
         first.hasPreparedExecution([_]u8{9} ** 32),
     );
     try std.testing.expectError(error.InvalidState, Runtime.open(&.{89}));
+    const proof = try first.beginProof();
+    try std.testing.expectError(error.InvalidState, first.releasePreparedExecution());
+    try proof.finishRetained();
+    try first.releasePreparedExecution();
+    try std.testing.expect(!first.hasPreparedExecution([_]u8{9} ** 32));
+    _ = try first.beginProof();
+    try first.inner.session.finishRetained();
+    try std.testing.expectEqual(@as(u64, 2), first.completedProofs());
     try first.close();
 
     var second = try Runtime.open(&.{89});

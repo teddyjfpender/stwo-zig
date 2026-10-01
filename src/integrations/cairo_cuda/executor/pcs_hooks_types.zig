@@ -76,7 +76,7 @@ pub const CompactTree = struct {
     coefficients: Words,
     evaluations: Words,
     column_log_sizes: Words,
-    column_offsets: Words,
+    column_offsets: column.DeviceSlice(u64),
     merkle_hashes: common.Hashes,
     merkle_layers: common.MerkleLayers,
     root: common.Hashes,

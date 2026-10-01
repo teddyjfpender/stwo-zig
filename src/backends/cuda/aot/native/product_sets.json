@@ -9,6 +9,15 @@
       ],
       "status": "staged"
     },
+    "circuit": {
+      "sets": [
+        ".",
+        "cairo_canonical_eval",
+        "cairo_witness",
+        "circuit_eval"
+      ],
+      "status": "staged"
+    },
     "native": {
       "sets": [
         "."
@@ -30,6 +39,7 @@
     ".",
     "cairo_canonical_eval",
     "cairo_eval",
-    "cairo_witness"
+    "cairo_witness",
+    "circuit_eval"
   ]
 }

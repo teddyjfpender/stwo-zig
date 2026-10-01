@@ -8,6 +8,7 @@ import struct
 from collections.abc import Callable
 from pathlib import Path
 
+from .official_cairo_air import AIR_COMPILER, generator_closure_sha256
 from .official_cairo_air import check as check_air_programs
 
 
@@ -47,10 +48,10 @@ def check(
                 f"{relative_path}: source {key!r} is {source.get(key)!r}, "
                 f"expected {expected!r}"
             )
-    if generator.get("path") != "tools/stwo-cairo-air-compiler":
+    if generator.get("path") != AIR_COMPILER:
         errors.append(f"{relative_path}: AIR compiler path drifted")
     else:
-        closure = closure_sha256(root / generator["path"])
+        closure = generator_closure_sha256(root, closure_sha256)
         if generator.get("closure_sha256") != closure:
             errors.append(f"{relative_path}: AIR compiler closure drifted")
 

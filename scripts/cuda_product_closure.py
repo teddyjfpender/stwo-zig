@@ -314,9 +314,26 @@ def validate_abi(
         path.read_text(encoding="utf-8", errors="strict")
         for path in sorted(RUNTIME_STAGES.rglob("*.zig"))
     )
-    missing_wrappers = sorted(
-        symbol for symbol in stage_symbols if symbol not in wrapper_payload
-    )
+    wrapped_symbols = {
+        symbol for symbol in stage_symbols if symbol in wrapper_payload
+    }
+    # A stage may bind a second ABI through the same checked OpsFor body.
+    # commitment_plain.zig, for example, aliases the generic method names to
+    # the plain BLAKE2s exports. Admit an alias only when that ABI file is
+    # imported by a stage and the stage actually calls Api.<alias>.
+    for abi_file in sorted((ABI / "stages").glob("*.zig")):
+        if f'{abi_file.name}"' not in wrapper_payload:
+            continue
+        abi_payload = abi_file.read_text(encoding="utf-8", errors="strict")
+        for alias, target in re.findall(
+            r"pub\s+const\s+(stwo_[A-Za-z0-9_]+)\s*=\s*(stwo_[A-Za-z0-9_]+)\s*;",
+            abi_payload,
+        ):
+            if target in stage_symbols and re.search(
+                rf"\bApi\.{re.escape(alias)}\s*\(", wrapper_payload
+            ):
+                wrapped_symbols.add(target)
+    missing_wrappers = sorted(stage_symbols - wrapped_symbols)
     if missing_wrappers:
         raise ProductClosureError(
             f"resident CUDA stage ABI has no checked Zig wrapper: {missing_wrappers}"

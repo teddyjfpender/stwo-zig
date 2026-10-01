@@ -1,0 +1,92 @@
+{
+  "cairo_prover_params": {
+    "channel_hash": "blake2s",
+    "channel_salt": 0,
+    "fri_config": {
+      "pow_bits": 16,
+      "log_blowup_factor": 1,
+      "log_last_layer_degree_bound": 0,
+      "n_queries": 70,
+      "fold_step": 1
+    },
+    "preprocessed_trace": "canonical_small",
+    "store_polynomials_coefficients": false,
+    "include_all_preprocessed_columns": true,
+    "opt_n_id_to_big_components": 16,
+    "lifting_size_policy": "at_least_preprocessed"
+  },
+  "circuit_proof_configs": {
+    "default": {
+      "fri_config": {
+        "pow_bits": 26,
+        "log_blowup_factor": 1,
+        "log_last_layer_degree_bound": 0,
+        "n_queries": 35,
+        "fold_step": 4
+      },
+      "component_log_sizes": {
+        "eq": 20,
+        "qm31_ops": 23,
+        "m31_to_u32": 20,
+        "triple_xor": 19,
+        "blake_g_gate": 23
+      }
+    }
+  },
+  "leaf_verifiers": [
+    {
+      "config": "default",
+      "trace_log_size": 20,
+      "preprocessed_root": [
+        "0xadaf43d6",
+        "0xbee39095",
+        "0x90ceb891",
+        "0x73c8a22d",
+        "0x4c06753c",
+        "0xd5469618",
+        "0x6cb5a946",
+        "0x5425c597"
+      ],
+      "circuit_hash": [
+        "0xf2c6d668",
+        "0xd27ddadb",
+        "0x668f252d",
+        "0xdf6a6ed3",
+        "0x85dd1ceb",
+        "0x859543da",
+        "0x468f3d35",
+        "0xb6f8071f"
+      ],
+      "zk_blinding": false
+    }
+  ],
+  "multiverifiers": [
+    {
+      "config": "default",
+      "input_configs": [
+        "default",
+        "default"
+      ],
+      "preprocessed_root": [
+        "0xd13953cf",
+        "0x661ccf76",
+        "0x7be6fe0a",
+        "0x0a3db569",
+        "0x4eba4e91",
+        "0xc2a21617",
+        "0xba2e43b6",
+        "0x9da87a91"
+      ],
+      "circuit_hash": [
+        "0x4d013787",
+        "0x4d13cf6e",
+        "0xba17c793",
+        "0xb7993eb3",
+        "0x42ee429e",
+        "0xe38dd7e5",
+        "0xf5429b6d",
+        "0x520eca69"
+      ]
+    }
+  ]
+}

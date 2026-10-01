@@ -76,8 +76,13 @@ test "SN2 resident inventory is identity-bound and fits the modeled H100 arena" 
     }
     const claims_slot = plan.slot(.interaction_claims, 0) orelse return error.MissingInteractionClaims;
     try std.testing.expectEqual(Stage.trace_commit, claims_slot.live_from);
+    const main_evaluations = plan.slot(.trace_evaluations, 1) orelse return error.MissingMainEvaluations;
+    try std.testing.expectEqual(Stage.trace_commit, main_evaluations.live_from);
     const oods_parameter = plan.slot(.oods_parameter, 0) orelse return error.MissingOodsParameter;
     try std.testing.expectEqual(Stage.constraint_evaluation, oods_parameter.live_from);
+    const reduce_a = plan.slot(.oods_reduce_a, 0) orelse return error.MissingOodsReduction;
+    const reduce_b = plan.slot(.oods_reduce_b, 0) orelse return error.MissingOodsReduction;
+    try std.testing.expectEqual(reduce_a.words, reduce_b.words);
     const quotient_challenge = plan.slot(.quotient_challenge, 0) orelse return error.MissingQuotientChallenge;
     try std.testing.expectEqual(Stage.oods, quotient_challenge.live_from);
     var retained_ingress = ingress;
