@@ -12,6 +12,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import os
 import re
 import shutil
 import subprocess
@@ -41,7 +42,8 @@ def gpu_used_bytes() -> int:
     return int(result.stdout.splitlines()[0].strip()) * (1 << 20)
 
 
-def run(command: list[str], log: Path, sample_device_memory: bool = False) -> dict:
+def run(command: list[str], log: Path, sample_device_memory: bool = False,
+        env: dict[str, str] | None = None) -> dict:
     idle_gpu_bytes = gpu_used_bytes() if sample_device_memory else None
     samples = []
     stop_probe = threading.Event()
@@ -61,7 +63,8 @@ def run(command: list[str], log: Path, sample_device_memory: bool = False) -> di
         sampler.start()
     try:
         with log.open("w") as sink:
-            result = subprocess.run(["/usr/bin/time", *time_flags, *command], cwd=ROOT, stdout=sink, stderr=subprocess.STDOUT)
+            result = subprocess.run(["/usr/bin/time", *time_flags, *command], cwd=ROOT,
+                                    stdout=sink, stderr=subprocess.STDOUT, env=env)
         wall_s = round(time.perf_counter() - started, 3)
     finally:
         stop_probe.set()
@@ -232,6 +235,7 @@ def main() -> None:
     parser.add_argument("--adapted-dir", type=Path, help="reuse separately authenticated adapted inputs and preimages")
     parser.add_argument("--backend", choices=("cpu", "metal", "cuda-hybrid", "cuda-resident"), default="cpu")
     parser.add_argument("--cuda-batch", action="store_true", help="reuse one Cairo CUDA runtime across distinct PIE leaves")
+    parser.add_argument("--cuda-static-image", action="store_true", help="reuse authenticated fixed Cairo coefficients on the GPU (experimental)")
     parser.add_argument("--sample-device-memory", action="store_true", help="sample whole-device H100 memory with nvidia-smi")
     parser.add_argument("--circuit-prover", type=Path, help="override the selected backend's binary")
     parser.add_argument("--rust-reducer", type=Path, help="optional pinned Rust reducer for byte parity")
@@ -240,6 +244,8 @@ def main() -> None:
     args = parser.parse_args()
     if args.cuda_batch and args.backend != "cuda-resident":
         raise ValueError("--cuda-batch requires --backend cuda-resident")
+    if args.cuda_static_image and not args.cuda_batch:
+        raise ValueError("--cuda-static-image requires --cuda-batch")
     if args.sample_device_memory and args.backend != "cuda-resident":
         raise ValueError("--sample-device-memory requires --backend cuda-resident")
     out = args.out.resolve()
@@ -329,8 +335,12 @@ def main() -> None:
         } for name, _, _, _, adapted, wrapped, _, _ in planned], indent=2) + "\n")
         print(f"proving and wrapping {len(planned)} leaves in one CUDA runtime", flush=True)
         batch_log = out / "cuda_batch.log"
+        batch_env = {key: value for key, value in os.environ.items()
+                     if key != "STWO_CAIRO_CUDA_STATIC_IMAGE"}
+        if args.cuda_static_image:
+            batch_env["STWO_CAIRO_CUDA_STATIC_IMAGE"] = "1"
         batch = run([str(prover), "leaf-wrap-batch", "--manifest", str(batch_manifest)], batch_log,
-                    args.sample_device_memory)
+                    args.sample_device_memory, batch_env)
         batch["host_phases"] = resident_host_phases(batch_log, "leaf-wrap-batch")
         proofs = resident_circuit_proofs(batch_log)
         if len(proofs) != len(planned) or any(proof["profile"] != "internal" for proof in proofs):
@@ -398,6 +408,7 @@ def main() -> None:
                             "circuit_fri": registry["circuit_proof_configs"]["default"]["fri_config"]},
                "registry_sha256": digest(REGISTRY),
                "leaves": rows, "fold": fold, "cuda_batch": batch,
+               "cuda_static_image": args.cuda_static_image,
                "phase_breakdown_s": phase_breakdown(rows, fold, batch),
                "serial_wall_s": round(sum(row["adapt"]["wall_s"] for row in rows) +
                                       (batch["wall_s"] if batch else sum(row["leaf_wrap"]["wall_s"] for row in rows)) + fold["wall_s"], 3),
