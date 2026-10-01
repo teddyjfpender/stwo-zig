@@ -102,8 +102,8 @@ ingress is currently dominant for these PIEs.
 The 39.941M-step PIE **did not produce a proof**. It failed in
 `prepare_controllers` with `TraceCommitGeometryOverflow`, after 4.210 s of
 process time and before significant GPU allocation. The failure is a geometry
-admission issue, not an observed GPU OOM; the exact overflowing expression
-needs a diagnostic. The current geometry stores column offsets as `u32`.
+admission issue, not an observed GPU OOM. The exact cause and matched-PIE
+comparison are in [Trace geometry diagnosis](#trace-geometry-diagnosis) below.
 At 27.952M steps, sampled H200 device usage already reached 133.7 GB; at
 31.906M it was 125.8 GB. This non-monotonicity means step count alone cannot
 predict memory: component mix and trace geometry matter. The new variable-size
@@ -132,6 +132,58 @@ This study measures individual PIE proofs. It does not include Starknet PIE
 generation, scheduling, wrapping, or aggregation into a recursive root. The
 [separate tree-scaling study](../cuda-ingress-tree-scaling-h200-20261001/README.md)
 used repeated verified leaves and is explicitly synthetic.
+
+## Trace geometry diagnosis
+
+The [geometry diagnostic CSV](trace-geometry-diagnostic.csv) contains exact
+plans for all **15** admission failures and **10** passing PIEs of comparable
+size. Reproduce it locally with `zig build cairo-trace-geometry
+-Doptimize=ReleaseFast` and `zig-out/bin/cairo-trace-geometry <input.cpi>`;
+the tool reads an adapted CPI and the pinned source assets but needs no GPU.
+Every failed PIE's **main trace** exceeds the CUDA trace-commit planner's
+`u32` packed coefficient-column offset, whose largest value is
+**4,294,967,295 field words** (just under 16 GiB at four bytes per word).
+The main totals span 4,351,815,696–5,312,170,176 words. The two largest
+failures also exceed this limit in the interaction trace. This is the exact
+`std.math.cast(u32, coefficient_offset + ...)` failure in
+`src/integrations/cairo_cuda/executor/trace_commit/geometry.zig`; none of
+these trials measured a GPU out-of-memory condition.
+
+The column **count** is identical in these plans: 4,484 main and 2,932
+interaction columns per PIE. The difference is the padded height of those
+columns. The `pedersen_aggregator_window_bits_18` component deduplicates
+Pedersen keys. When its distinct-key count rises above **131,072**, its
+height rounds from 2^17 to 2^18 rows. Its downstream
+`partial_ec_mul_window_bits_18` receives **28 rows per padded aggregator
+row**, so it jumps from 3,670,016 active / 2^22 padded rows to 7,340,032
+active / 2^23 padded rows. That component alone has 297 main columns: the
+height jump adds **1,245,708,288 words** (4.983 decimal GB) to the main
+coefficient trace and 1,090,519,040 words to the 260-column interaction
+trace. Every observed failure crossed this boundary; none of the 10 matched
+passing plans did. Lowering just this component by one log size would put
+all 15 observed main traces back below the `u32` offset ceiling, although
+that is *not* a valid way to prove the original inputs.
+
+| PIE | OS steps | Pedersen calls | Distinct Pedersen keys | Main trace words | Main excess words |
+|---|---:|---:|---:|---:|---:|
+| `15591030_15591030` failed | 24,046,442 | 179,844 | 131,623 | 4,354,897,360 | 59,930,065 |
+| `15592650_15592650` verified | 24,054,096 | 178,072 | 129,868 | 2,805,961,168 | 0 |
+| `15572160_15572169` verified | 31,905,765 | 236,888 | 123,785 | 3,604,355,904 | 0 |
+| `15578550_15578559` failed | 39,941,355 | 269,903 | 150,773 | 5,312,170,176 | 1,017,202,881 |
+
+The near-equal 24M-step pair differs by only 1,755 distinct Pedersen keys,
+but its main-trace size differs by 1,548,936,192 words. The Pedersen
+multiplication height accounts for 1,245,708,288 of those words; EC-op and
+Poseidon component heights explain much of the remainder. A 31.9M-step PIE
+can therefore fit while a 24M-step PIE fails. Raw step count or Pedersen-call
+count alone is not a sound admission estimate; deduplicated component heights
+and the complete per-tree sum are needed.
+
+Removing this admission limit requires widening the trace-commit offsets
+through the host/device pipeline or changing how large component traces are
+partitioned. The current measurements do **not** establish that a proof of
+these PIEs would fit H200 memory after widening the offsets, nor do they
+establish a time or memory bound for the unadapted 179.94M-step PIE.
 
 ## Expanded measured cohort
 

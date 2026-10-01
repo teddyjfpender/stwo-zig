@@ -168,6 +168,10 @@ pub fn addProducts(context: Context) void {
     cairo_input.addImport("stwo", stwo);
     addExecutable(context, cairo_input, "cairo-input", "cairo-input", "Build adapted Cairo input inspector", false);
 
+    const cairo_trace_geometry = consumer(context, protocol, "src/tools/cairo/trace_geometry_inspector.zig");
+    cairo_trace_geometry.addImport("stwo", stwo);
+    addExecutable(context, cairo_trace_geometry, "cairo-trace-geometry", "cairo-trace-geometry", "Build Cairo CUDA trace geometry inspector", false);
+
     const cairo_composition = consumer(
         context,
         protocol,

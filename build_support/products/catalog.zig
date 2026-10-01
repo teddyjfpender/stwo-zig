@@ -113,6 +113,7 @@ pub const steps = [_]Step{
     .{ .name = "cuda-native-archive", .description = "Build the exact static CUDA runtime and generated AOT pack", .scope = .cuda_tools },
     .{ .name = "cuda-native-adapter", .description = "Build the external-authority Native CUDA proof adapter", .scope = .cuda_tools },
     .{ .name = "cairo-input", .description = "Build adapted Cairo input inspector", .scope = .compatibility_tools },
+    .{ .name = "cairo-trace-geometry", .description = "Build Cairo CUDA trace geometry inspector", .scope = .compatibility_tools },
     .{ .name = "cairo-air-bundle-inspector", .description = "Build official Cairo AIR bundle inspector", .scope = .compatibility_tools },
     .{ .name = "cairo-zkvm-fixtures", .description = "Derive the zkvm basket ProverInputs through the pinned Cairo VM adapter", .scope = .cairo_cpu },
     .{ .name = "cairo-csp-fixtures", .description = "Validate exact Cairo CSP sources and derive review candidates", .scope = .cairo_cpu },
