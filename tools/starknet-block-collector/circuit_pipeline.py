@@ -136,14 +136,19 @@ def resident_leaf_stages(log: Path, report: Path) -> dict[str, float]:
 
 
 def resident_batch_leaf_stages(log: Path, report: Path, index: int) -> dict[str, float]:
-    match = re.search(rf"circuit-cuda batch-leaf index={index} wrap_ns=(\d+)", log.read_text())
+    content = log.read_text()
+    match = re.search(rf"circuit-cuda batch-leaf index={index} wrap_ns=(\d+)", content)
     if not match:
         raise ValueError(f"missing resident batch leaf {index} telemetry: {log}")
+    releases = re.findall(r"cairo-cuda handoff prepared_arena_release_ns=(\d+)", content)
+    if len(releases) <= index:
+        raise ValueError(f"missing resident batch arena release {index} telemetry: {log}")
     receipt = json.loads(report.read_text())["completed_trials"][0]
     if receipt["verdict"]["counters"]["cpu_fallback_attempts"]:
         raise ValueError(f"nonresident Cairo proof: {report}")
     return {"load_s": 0.0,
             "cairo_prove_s": receipt["adapted_input_until_publication_ns"] / 1e9,
+            "arena_release_s": int(releases[index]) / 1e9,
             "wrap_s": int(match.group(1)) / 1e9}
 
 
@@ -193,6 +198,7 @@ def phase_breakdown(rows: list[dict], fold: dict, batch: dict | None = None) -> 
         "adapt_s": sum(row["adapt"]["wall_s"] for row in rows),
         "load_s": sum(row["leaf_stages"]["load_s"] for row in rows),
         "cairo_prove_s": sum(row["leaf_stages"]["cairo_prove_s"] for row in rows),
+        "arena_release_s": sum(row["leaf_stages"].get("arena_release_s", 0) for row in rows),
         "circuit_wrap_s": sum(row["leaf_stages"]["wrap_s"] for row in rows),
         "fold_s": fold["wall_s"],
     }
@@ -317,7 +323,7 @@ def main() -> None:
             rows.append({"pie": str(pie), "blocks": source["blocks"], "cairo_steps": source["n_steps"],
                          "initial_root": source["initial_root"], "final_root": source["final_root"],
                          "adapt": adapt,
-                         "leaf_wrap": {"wall_s": round(stages["cairo_prove_s"] + stages["wrap_s"], 3),
+                         "leaf_wrap": {"wall_s": round(stages["cairo_prove_s"] + stages["arena_release_s"] + stages["wrap_s"], 3),
                                        "peak_rss_bytes": batch["peak_rss_bytes"],
                                        "peak_memory_footprint_bytes": batch["peak_memory_footprint_bytes"],
                                        "log": str(batch_log), "shared_process": True},

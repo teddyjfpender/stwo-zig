@@ -350,8 +350,10 @@ fn proveOnce(
     if (sink) |receiver| {
         phase = "deliver_verified_leaf";
         if (release_arena_for_sink) {
+            var release_timer = try std.time.Timer.start();
             try runtime.releasePreparedExecution();
             resident_static.* = null;
+            std.debug.print("cairo-cuda handoff prepared_arena_release_ns={}\n", .{release_timer.read()});
         }
         try receiver.receive(receiver.context, &diagnostic, &decoded, &capture, output.proof.structural.interactionNonce());
     }
