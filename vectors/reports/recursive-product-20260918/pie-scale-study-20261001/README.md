@@ -145,7 +145,7 @@ adaptation times and peak memory are in
 driver, protocol, and prover digest are in
 [h200-wave2-machine.json](h200-wave2-machine.json).
 
-The [joined PIE-level CSV](pie-scale.csv) now has **198 verified GPU proofs**
+The [joined PIE-level CSV](pie-scale.csv) now has **286 verified GPU proofs**
 and 12 recorded geometry failures across the 6,187 catalogued PIEs. It joins
 each measured row to its source receipt filename and includes block count,
 OS steps, archive and adapted sizes, M5 adaptation time and peak memory,
@@ -156,9 +156,9 @@ peak memory. Unmeasured cells remain blank. The 35 additional proofs span
 block-range variation missing from the initial size-targeted cohort.
 
 The [first stratified selection](pie-selection-wave2.csv) records 248 further
-ready PIEs using seed 20261001 across step and block-count strata. Its first
-four 40-PIE shards have produced 149 verified GPU proofs and 11 geometry
-failures. Their [per-PIE proof receipts](pie-proving-wave2-shard-0.csv) are
+ready PIEs using seed 20261001 across step and block-count strata. All seven
+shards were proved on the H200: 237 produced Rust-verified GPU proofs and 11
+failed trace-geometry admission. Their [per-PIE proof receipts](pie-proving-wave2-shard-0.csv) are
 separate by shard; all 248 [adaptation receipts](adaptation-wave2-shard-0.csv)
 are likewise retained by shard. The [size-bin summary](pie-size-distribution.csv)
 shows catalogue counts, measured trial and failure counts, and timing and
