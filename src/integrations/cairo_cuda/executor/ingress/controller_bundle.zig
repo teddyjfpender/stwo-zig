@@ -297,6 +297,7 @@ pub const Bound = struct {
         request: *const request_compiler.PreparedRequest,
         inputs: StaticInputs,
     ) !StaticReceipt {
+        var static_timer = try std.time.Timer.start();
         const session = transaction.proofSession();
         try proof_capture.validateLayout(
             .{ .proof = request.resident.terminal_bundle },
@@ -348,6 +349,7 @@ pub const Bound = struct {
             inputs.inverse_twiddles,
         );
         try self.quotient.initializeTransform(session, self.pcs.twiddles_inverse);
+        const initial_upload_ns = static_timer.lap();
         const preprocessed = if (inputs.resident_preprocessed) |receipt| cached: {
             try receipt.validate();
             if (!std.mem.eql(u8, &receipt.commitment_identity, &self.preprocessed_commit.prepared.identity) or
@@ -368,10 +370,14 @@ pub const Bound = struct {
             self.preprocessed_commit.prepared,
             &self.preprocessed_commit,
         );
+        const preprocessed_load_ns = static_timer.lap();
         try self.preprocessed_commit.materializeBaseEvaluations(
             session,
             .ingress,
         );
+        std.debug.print("cairo-cuda static-phase initial_upload_ns={} preprocessed_load_ns={} materialize_ns={} cached={}\n", .{
+            initial_upload_ns, preprocessed_load_ns, static_timer.lap(), inputs.resident_preprocessed != null,
+        });
         return .{ .preprocessed = preprocessed };
     }
 

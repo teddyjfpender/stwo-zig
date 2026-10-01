@@ -152,6 +152,19 @@ def resident_batch_leaf_stages(log: Path, report: Path, index: int) -> dict[str,
             "wrap_s": int(match.group(1)) / 1e9}
 
 
+def resident_cairo_static_phases(log: Path, index: int = 0) -> dict[str, float | bool]:
+    pattern = (r"cairo-cuda static-phase initial_upload_ns=(\d+) "
+               r"preprocessed_load_ns=(\d+) materialize_ns=(\d+) cached=(true|false)")
+    phases = re.findall(pattern, log.read_text())
+    if len(phases) <= index:
+        return {}
+    initial, load, materialize, cached = phases[index]
+    return {"initial_upload_s": int(initial) / 1e9,
+            "preprocessed_load_s": int(load) / 1e9,
+            "materialize_s": int(materialize) / 1e9,
+            "cached": cached == "true"}
+
+
 def resident_circuit_proofs(log: Path) -> list[dict]:
     pattern = (r"circuit-cuda circuit-proof profile=(internal|root) resident_ns=(\d+) "
                r"verify_ns=(\d+) convert_ns=(\d+) arena_bytes=(\d+) "
@@ -296,6 +309,8 @@ def main() -> None:
                      "leaf_stages": (resident_leaf_stages(out / f"{name}.leaf_wrap.log", cairo_report)
                                      if args.backend == "cuda-resident" else leaf_stages(out / f"{name}.leaf_wrap.log")),
                      "circuit_proofs": circuit_proofs,
+                     "cairo_static_phases": resident_cairo_static_phases(out / f"{name}.leaf_wrap.log")
+                     if args.backend == "cuda-resident" else {},
                      "leaf_proof_sha256": digest(wrapped), "leaf_input_sha256": digest(leaf)})
 
     batch = None
@@ -328,6 +343,7 @@ def main() -> None:
                                        "peak_memory_footprint_bytes": batch["peak_memory_footprint_bytes"],
                                        "log": str(batch_log), "shared_process": True},
                          "leaf_stages": stages, "circuit_proofs": [proofs[index]],
+                         "cairo_static_phases": resident_cairo_static_phases(batch_log, index),
                          "leaf_proof_sha256": digest(wrapped), "leaf_input_sha256": digest(leaf)})
 
     manifest_path = out / "leaves.json"
