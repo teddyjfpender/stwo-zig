@@ -36,22 +36,25 @@ PROOF = {
 }
 
 
-def keyed(path: Path | None) -> dict[str, dict]:
-    if path is None:
-        return {}
-    with path.open(newline="") as source:
-        rows = list(csv.DictReader(source))
-    result = {row["pie"]: row for row in rows}
-    if len(result) != len(rows):
-        raise ValueError(f"duplicate PIE names in {path}")
+def keyed(paths: list[Path] | None) -> dict[str, dict]:
+    result = {}
+    for path in paths or []:
+        with path.open(newline="") as source:
+            rows = list(csv.DictReader(source))
+        for row in rows:
+            name = row["pie"]
+            if name in result:
+                raise ValueError(f"duplicate PIE name {name} in {path}")
+            row["_receipt_file"] = path.name
+            result[name] = row
     return result
 
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--catalog", type=Path, required=True)
-    parser.add_argument("--adaptation", type=Path)
-    parser.add_argument("--proving", type=Path)
+    parser.add_argument("--adaptation", type=Path, action="append")
+    parser.add_argument("--proving", type=Path, action="append")
     parser.add_argument("--out", type=Path, required=True)
     args = parser.parse_args()
     with args.catalog.open(newline="") as source:
@@ -64,15 +67,17 @@ def main() -> None:
     names = {row["pie"] for row in catalog}
     if set(adaptation) - names or set(proving) - names:
         raise ValueError("measurement names are absent from the catalogue")
-    fields = catalog_fields + list(ADAPT.values()) + list(PROOF.values())
+    fields = catalog_fields + ["adapt_receipt_file"] + list(ADAPT.values()) + ["proof_receipt_file"] + list(PROOF.values())
     args.out.parent.mkdir(parents=True, exist_ok=True)
     with args.out.open("w", newline="") as sink:
         writer = csv.DictWriter(sink, fieldnames=fields, lineterminator="\n")
         writer.writeheader()
         for row in catalog:
             name = row["pie"]
+            row["adapt_receipt_file"] = adaptation.get(name, {}).get("_receipt_file", "")
             row.update({target: adaptation.get(name, {}).get(source, "")
                         for source, target in ADAPT.items()})
+            row["proof_receipt_file"] = proving.get(name, {}).get("_receipt_file", "")
             row.update({target: proving.get(name, {}).get(source, "")
                         for source, target in PROOF.items()})
             writer.writerow(row)

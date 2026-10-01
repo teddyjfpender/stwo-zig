@@ -121,7 +121,7 @@ this benchmark.
 
 Exported proofs were checked with
 [verify_cairo_cuda_pie_cohort.py](../../../../scripts/verify_cairo_cuda_pie_cohort.py).
-The joined CSV contains all **6,187** unique PIEs and 69 columns, with blanks
+The joined CSV contains all **6,187** unique PIEs and 71 columns, with blanks
 for unmeasured stages. The [catalogue tool](../../../../scripts/catalog_starknet_pies.py)
 and [join tool](../../../../scripts/join_starknet_pie_scale.py) reproduce its
 construction without placing API credentials, archives, adapted inputs, or
@@ -131,3 +131,31 @@ This study measures individual PIE proofs. It does not include Starknet PIE
 generation, scheduling, wrapping, or aggregation into a recursive root. The
 [separate tree-scaling study](../cuda-ingress-tree-scaling-h200-20261001/README.md)
 used repeated verified leaves and is explicitly synthetic.
+
+## Expanded measured cohort
+
+An additional 35 archive-backed PIEs were adapted and proved with canonical
+CUDA security on H200 pods. The first 19 proofs are in
+[pie-proving-expanded-initial.csv](pie-proving-expanded-initial.csv); the
+remaining 16 are in
+[pie-proving-expanded-leftover.csv](pie-proving-expanded-leftover.csv).
+All 35 exported proofs passed the pinned official Rust verifier. Their M5
+adaptation times and peak memory are in
+[adaptation-expanded.csv](adaptation-expanded.csv). The resumed H200's device,
+driver, protocol, and prover digest are in
+[h200-wave2-machine.json](h200-wave2-machine.json).
+
+The [joined PIE-level CSV](pie-scale.csv) now has **49 verified GPU proofs**
+and one recorded geometry failure across the 6,187 catalogued PIEs. It joins
+each measured row to its source receipt filename and includes block count,
+OS steps, archive and adapted sizes, M5 adaptation time and peak memory,
+H200 source and fixed-load timings, ingress subphases, proof execution,
+publication, official Rust verification, H200 process RSS, and sampled GPU
+peak memory. Unmeasured cells remain blank. The 35 additional proofs span
+0.860–13.247 million steps and one to 40 blocks; they deliberately add
+block-range variation missing from the initial size-targeted cohort.
+
+The [next stratified selection](pie-selection-wave2.csv) records a fixed-seed
+sample of 248 further ready PIEs across step and block-count strata. The
+selection is a workload plan, not a claim that those rows have GPU results;
+only rows with a proof receipt in the joined CSV have measured GPU times.

@@ -157,6 +157,11 @@ def main() -> None:
                                    "--format=csv,noheader,nounits"], text=True).strip().splitlines()
     if len(gpu) != 1:
         parser.error("exactly one NVIDIA GPU must be visible")
+    (args.out / "machine.json").write_text(json.dumps({"gpu": gpu[0],
+                                                         "security": baseline.SECURITY,
+                                                         "prover_sha256": baseline.sha(args.prover),
+                                                         "verifier_sha256": baseline.sha(args.verifier)
+                                                         if args.verifier else None}, indent=2) + "\n")
     nvml = ctypes.CDLL("libnvidia-ml.so.1")
     if nvml.nvmlInit_v2() != 0:
         raise RuntimeError("NVML initialization failed")
@@ -208,11 +213,6 @@ def main() -> None:
     finally:
         nvml.nvmlShutdown()
     write_csv(suite_path, rows)
-    (args.out / "machine.json").write_text(json.dumps({"gpu": gpu[0],
-                                                         "security": baseline.SECURITY,
-                                                         "prover_sha256": baseline.sha(args.prover),
-                                                         "verifier_sha256": baseline.sha(args.verifier)
-                                                         if args.verifier else None}, indent=2) + "\n")
 
 
 if __name__ == "__main__":
