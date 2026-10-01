@@ -43,6 +43,8 @@ pub const LeafWrap = struct {
     prover_input: []const u8,
     /// Where the `SerializedLeafProof` JSON goes.
     output: []const u8,
+    /// Optional pinned-Rust-verifier JSON of the embedded Cairo proof.
+    cairo_proof: ?[]const u8,
     /// The repository root holding the Cairo lane's committed bundles.
     assets: []const u8,
     /// Circuit columns of at least this log size keep only coefficients
@@ -113,7 +115,7 @@ pub const Error = error{
 pub const usage =
     \\usage: stwo-circuit-recursion-cpu leaf-wrap --registry REGISTRY.json --program PROGRAM.json
     \\           --prover-input PROVER_INPUT.json --output LEAF.json [--assets DIR]
-    \\           [--compact-min-log N|off] [--profile]
+    \\           [--cairo-proof CAIRO.json] [--compact-min-log N|off] [--profile]
     \\       stwo-circuit-recursion-cpu fold-tree --program_input LEAVES.json --proof_path ROOT.proof
     \\           --program_output ROOT_OUTPUTS.json --packed_output_path ROOT_PACKED.json
     \\           --circuit_registry_json REGISTRY.json [--profile]
@@ -138,6 +140,7 @@ pub fn parse(argv: []const []const u8) Error!Parsed {
                 program: []const u8,
                 prover_input: []const u8,
                 output: []const u8,
+                cairo_proof: ?[]const u8,
                 assets: ?[]const u8,
                 compact_min_log: ?[]const u8,
             }, argv[1..], .{
@@ -153,6 +156,7 @@ pub fn parse(argv: []const []const u8) Error!Parsed {
                 .program = parsed.program,
                 .prover_input = parsed.prover_input,
                 .output = parsed.output,
+                .cairo_proof = parsed.cairo_proof,
                 .assets = parsed.assets orelse ".",
                 .compact_min_log = try compactMinLog(parsed.compact_min_log),
                 .profile = profile,

@@ -59,8 +59,8 @@ pub fn writeCanonicalProof(path: []const u8, prepared: anytype, decoded: anytype
     var buffer: [65536]u8 = undefined;
     var atomic = try std.fs.cwd().atomicFile(path, .{ .write_buffer = &buffer });
     defer atomic.deinit();
-    const Document = stwo.frontend.proof.json.Document(@TypeOf(decoded.proof));
-    try std.json.Stringify.value(Document{
+    const Base = stwo.frontend.proof.json.Document(@TypeOf(decoded.proof));
+    const document = Base{
         .input = &prepared.input,
         .composition = &prepared.composition,
         .claimed_sums = decoded.claimed_sums,
@@ -68,7 +68,19 @@ pub fn writeCanonicalProof(path: []const u8, prepared: anytype, decoded: anytype
         .channel_salt = prepared.protocol.channel_salt,
         .preprocessed_variant = prepared.variant,
         .stark_proof = &decoded.proof,
-    }, .{}, &atomic.file_writer.interface);
+    };
+    if (prepared.protocol.fri_lifting_log_size) |lifting| {
+        if (prepared.protocol.channel_profile != .blake2s_m31) return error.InvalidCairoLeafLifting;
+        const Pinned = stwo.frontend.proof.json.PinnedLeafDocument(@TypeOf(decoded.proof));
+        try std.json.Stringify.value(Pinned{
+            .document = document,
+            .trace_lifting_log_size = lifting,
+            .preprocessed_lifting_log_size = lifting,
+        }, .{}, &atomic.file_writer.interface);
+    } else {
+        if (prepared.protocol.channel_profile != .blake2s) return error.InvalidCairoLeafLifting;
+        try std.json.Stringify.value(document, .{}, &atomic.file_writer.interface);
+    }
     try atomic.file_writer.interface.writeByte('\n');
     try atomic.file_writer.interface.flush();
     const size = (try atomic.file_writer.file.stat()).size;

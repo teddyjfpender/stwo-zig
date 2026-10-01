@@ -143,6 +143,7 @@ pub const LeafWrapRequest = struct {
     registry_path: []const u8,
     program_path: []const u8,
     prover_input_path: []const u8,
+    cairo_proof_path: ?[]const u8 = null,
     assets: []const u8 = ".",
     /// Execution choices of the circuit prover; never change bytes.
     options: circuit_cpu.prove.Options = .{},
@@ -220,9 +221,40 @@ pub fn leafWrapWith(comptime CairoLeaf: type, allocator: std.mem.Allocator, requ
     timings.cairo_prove_ns = timer.lap();
 
     // Steps 4-8: the wrap.
-    const leaf = try wrapAfterCairoProof(allocator, request, &registry.registry, program, &cairo_proof, &input, false);
+    var leaf = try wrapAfterCairoProof(allocator, request, &registry.registry, program, &cairo_proof, &input, false);
+    errdefer leaf.deinit();
     timings.wrap_ns = timer.lap();
+    if (request.cairo_proof_path) |path| {
+        const lane = try cairo.proving.leaf_lane.Lane.fromParameters(registry.registry.cairo_prover_params);
+        var max_trace_log: u32 = 0;
+        for (cairo_proof.composition.components) |component|
+            max_trace_log = @max(max_trace_log, component.trace_log_size);
+        const pcs = try lane.pcsConfig(max_trace_log);
+        try writeCairoProof(path, &input, &cairo_proof, pcs.trace_lifting_log_size);
+    }
     return leaf;
+}
+
+fn writeCairoProof(path: []const u8, input: anytype, result: anytype, lifting: u32) !void {
+    var buffer: [64 * 1024]u8 = undefined;
+    var atomic = try std.fs.cwd().atomicFile(path, .{ .write_buffer = &buffer });
+    defer atomic.deinit();
+    const Pinned = cairo.proof.json.PinnedLeafDocument(@TypeOf(result.proof.proof));
+    try std.json.Stringify.value(Pinned{
+        .document = .{
+            .input = input,
+            .composition = &result.composition,
+            .claimed_sums = result.claimed_sums,
+            .interaction_pow = result.interaction_pow,
+            .channel_salt = result.channel_salt,
+            .preprocessed_variant = result.preprocessed_variant,
+            .stark_proof = &result.proof.proof,
+        },
+        .trace_lifting_log_size = lifting,
+        .preprocessed_lifting_log_size = lifting,
+    }, .{}, &atomic.file_writer.interface);
+    try atomic.file_writer.interface.writeByte('\n');
+    try atomic.finish();
 }
 
 /// The CUDA Cairo product supplies an independently verified compressed proof
@@ -367,6 +399,7 @@ fn leafWrapCommandWith(comptime CairoLeaf: type, provers: *const circuit_cpu.pro
         .registry_path = command.registry,
         .program_path = command.program,
         .prover_input_path = command.prover_input,
+        .cairo_proof_path = command.cairo_proof,
         .assets = command.assets,
         .options = .{
             .compact_polynomial_min_log = command.compact_min_log,

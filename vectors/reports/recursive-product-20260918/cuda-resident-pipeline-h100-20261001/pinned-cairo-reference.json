@@ -1,0 +1,29 @@
+{
+  "schema": "stwo-circuit-recursion-pinned-cairo-reference-v1",
+  "source": "starkware-libs/proving@5a7c5ede4299c91a61df19a07cba4f7502c14230",
+  "security": "70 FRI queries, 26 PoW bits, lifted Blake2s-M31 leaf channel",
+  "purpose": "Canonical Cairo proof binary digests for the two contiguous PIEs in receipt.json. Generated separately with stwo-circuit-oracle prove-cairo and checked against the local CPU recursion leaf lane. The new pinned JSON publisher was verified directly on CPU and Metal for the first PIE. CUDA JSON verification remains pending a fresh GPU proof file.",
+  "leaves": [
+    {
+      "name": "15627902-15627904",
+      "adapted_input_sha256": "570cc4b40bad437dd27e01da7a6dcc3fc2601049884274e3b335fd245e3aca9a",
+      "checkpoint_sha256": "3a2d9ef8823c67ceee80f382bfd0b6f6457d06a740bf4d002aaa99acfe41ddc5",
+      "cairo_binary_bytes": 3346454,
+      "cairo_binary_sha256": "a699160cbccf6869762d2473b349b64886858dc4dfec75869a012d2906cd9ff1",
+      "cpu_leaf_rust_verifier_accepted": true,
+      "cpu_leaf_binary_equal_to_rust": true,
+      "metal_leaf_rust_verifier_accepted": true,
+      "metal_leaf_binary_equal_to_rust": true,
+      "cpu_metal_pinned_json_sha256": "3b85397fbc4d84817560ed15b6aac0a69e35998a15b524ef1a672a8b7480ed85"
+    },
+    {
+      "name": "15627905-15627907",
+      "adapted_input_sha256": "e2d318e60122685444071e3039eb1a6d4a8f659800ad679099b8e5d48a4cd823",
+      "checkpoint_sha256": "32b0a668c7e7def6a48de6e23edaea4e02fc7577fdbe9c486d2c2c740edad6b7",
+      "cairo_binary_bytes": 3345638,
+      "cairo_binary_sha256": "7304ccf3636a7abcc6f1cfcf661af49f346fe7a2e537a276e65a43dc381e206a",
+      "cpu_leaf_rust_verifier_accepted": true,
+      "cpu_leaf_binary_equal_to_rust": true
+    }
+  ]
+}

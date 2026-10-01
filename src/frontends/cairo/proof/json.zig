@@ -37,6 +37,28 @@ pub fn Document(comptime StarkProof: type) type {
     };
 }
 
+pub fn PinnedLeafDocument(comptime StarkProof: type) type {
+    return struct {
+        document: Document(StarkProof),
+        trace_lifting_log_size: u32,
+        preprocessed_lifting_log_size: u32,
+
+        pub fn jsonStringify(self: @This(), writer: anytype) !void {
+            writeDocumentWithLiftedConfig(
+                writer,
+                self.document.input,
+                self.document.composition,
+                self.document.claimed_sums,
+                self.document.interaction_pow,
+                self.document.channel_salt,
+                self.document.preprocessed_variant,
+                self.document.stark_proof,
+                .{ self.trace_lifting_log_size, self.preprocessed_lifting_log_size },
+            ) catch return error.WriteFailed;
+        }
+    };
+}
+
 pub fn writeDocument(
     writer: anytype,
     input: *const adapter.ProverInput,
@@ -46,6 +68,20 @@ pub fn writeDocument(
     channel_salt: u32,
     variant: preprocessed.Variant,
     stark_proof: anytype,
+) !void {
+    return writeDocumentWithLiftedConfig(writer, input, composition, claimed_sums, interaction_pow, channel_salt, variant, stark_proof, null);
+}
+
+fn writeDocumentWithLiftedConfig(
+    writer: anytype,
+    input: *const adapter.ProverInput,
+    composition: *const composition_bundle.Bundle,
+    claimed_sums: []const QM31,
+    interaction_pow: u64,
+    channel_salt: u32,
+    variant: preprocessed.Variant,
+    stark_proof: anytype,
+    lifted: ?[2]u32,
 ) !void {
     if (composition.components.len != claimed_sums.len)
         return error.InvalidInteractionClaimGeometry;
@@ -59,7 +95,10 @@ pub fn writeDocument(
     try writer.objectField("interaction_claim");
     try writeInteractionClaim(writer, composition, claimed_sums);
     try writer.objectField("stark_proof");
-    try stwo_json.writeStarkProof(writer, stark_proof);
+    if (lifted) |heights|
+        try stwo_json.writeStarkProofPinnedV2(writer, stark_proof, heights[0], heights[1])
+    else
+        try stwo_json.writeStarkProof(writer, stark_proof);
     try writer.objectField("channel_salt");
     try writer.write(channel_salt);
     try writer.objectField("preprocessed_trace_variant");
