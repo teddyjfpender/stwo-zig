@@ -137,6 +137,15 @@ leaves has 18,816 Cairo steps, but the circuit root alone does not bind that
 aggregator output. The circuit applicative bootloader must do that before this
 is a final aggregate Starknet proof.
 
+A fresh M5 Max Metal run on 1 October 2026 reused the two exact adapted inputs
+and passed the Rust-qualified leaf/root digest gate. It took **72.754 s** in
+proving subprocesses and **72.828 s** from driver input handling until the root
+file existed; peak RSS was **17.07 GB** and macOS peak memory footprint was
+**34.75 GB**. The root proof SHA-256 remained
+`9093f941c4a9144fd653441c582cc0921bac8431df8df46bdd556b8e661af724`.
+This is one observation with adaptation excluded, so it does not replace the
+older table's complete-input timing.
+
 To reproduce the PIE-to-root receipt (including an optional Rust comparison):
 
 ```sh
