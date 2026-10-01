@@ -221,19 +221,52 @@ pub fn addProduct(context: Context) void {
 /// archive. It does not change the Cairo product's source closure or binary.
 fn addCircuitResidentBenchmark(context: Context, toolchain: cuda.Toolchain, cairo_eval_aot: cuda_aot.GeneratedSet) void {
     const b = context.b;
-    const dependencies = .{ .target = context.target, .optimize = context.optimize };
-    const core = b.dependency("stwo_core", dependencies).module("stwo_core");
-    const prover = b.dependency("stwo_prover_engine", dependencies).module("stwo_prover_engine");
-    const prover_api = b.dependency("stwo_prover_api", dependencies).module("stwo_prover_api");
-    const circuit_dep = b.dependency("stwo_circuit_frontend", dependencies);
-    const circuit = circuit_dep.module("stwo_circuit_frontend");
-    const cairo_frontend = b.dependency("stwo_cairo_frontend", dependencies).module("stwo_cairo_frontend");
-    const cairo_cuda = b.dependency("stwo_cairo_cuda_integration", dependencies).module("stwo_cairo_cuda_integration");
-    const circuit_cpu = b.dependency("stwo_circuit_cpu_integration", dependencies).module("stwo_circuit_cpu_integration");
+    const core = context.protocol.core;
+    const prover = context.protocol.prover;
+    const prover_api = context.protocol.prover_api;
+    // Package test targets attach C ABI stubs to their root modules. The
+    // benchmark links the real CUDA archive, so take the product graph's
+    // clean runtime modules instead of those test-owned module instances.
+    const stwo = createStwoModule(context, .library);
+    const cairo_cuda = stwo.import_table.get("stwo_cairo_cuda_integration") orelse @panic("missing product Cairo CUDA module");
+    const cairo_frontend = cairo_cuda.import_table.get("stwo_cairo_frontend") orelse @panic("missing product Cairo frontend");
     const backend_contracts = cairo_cuda.import_table.get("stwo_backend_contracts") orelse @panic("missing CUDA backend contracts");
     const cuda_backend = cairo_cuda.import_table.get("stwo_cuda_backend") orelse @panic("missing CUDA runtime");
     const native_cuda = cairo_cuda.import_table.get("stwo_native_cuda_integration") orelse @panic("missing native CUDA integration");
-    const cpu_backend = circuit_cpu.import_table.get("stwo_cpu_backend") orelse @panic("missing circuit CPU backend");
+    const native_examples = native_cuda.import_table.get("stwo_native_examples") orelse @panic("missing native examples");
+    const circuit = b.createModule(.{
+        .root_source_file = b.path("src/frontends/circuit/mod.zig"),
+        .target = context.target,
+        .optimize = context.optimize,
+    });
+    circuit.addImport("stwo_core", core);
+    circuit.addImport("stwo_prover_engine", prover);
+    const testing = b.createModule(.{
+        .root_source_file = b.path("src/frontends/circuit/testing/mod.zig"),
+        .target = context.target,
+        .optimize = context.optimize,
+    });
+    testing.addImport("stwo_core", core);
+    testing.addImport("stwo_circuit_frontend", circuit);
+    const cpu_backend = native_examples.import_table.get("stwo_cpu_backend") orelse @panic("missing product CPU backend");
+    const wire = graph.createCircuitRecursionWire(b, context.protocol, product(.library), context.target, context.optimize, cairo_frontend);
+    const circuit_cpu = b.createModule(.{
+        .root_source_file = b.path("src/integrations/circuit_cpu/mod.zig"),
+        .target = context.target,
+        .optimize = context.optimize,
+    });
+    context.protocol.addImports(circuit_cpu);
+    circuit_cpu.addImport("stwo_cpu_backend", cpu_backend);
+    circuit_cpu.addImport("stwo_circuit_frontend", circuit);
+    circuit_cpu.addImport("stwo_cairo_frontend", cairo_frontend);
+    circuit_cpu.addImport("stwo_circuit_recursion_wire", wire);
+    const forbidden_cpu_aot = b.createModule(.{
+        .root_source_file = b.path("src/integrations/circuit_cuda/cpu_composition_forbidden.zig"),
+        .target = context.target,
+        .optimize = context.optimize,
+    });
+    forbidden_cpu_aot.addImport("stwo_cairo_frontend", cairo_frontend);
+    circuit_cpu.addImport("circuit_composition_cpu_aot", forbidden_cpu_aot);
     const integration = b.createModule(.{
         .root_source_file = b.path("src/integrations/circuit_cuda/mod.zig"),
         .target = context.target,
@@ -260,7 +293,7 @@ fn addCircuitResidentBenchmark(context: Context, toolchain: cuda.Toolchain, cair
     root.addImport("stwo_circuit_cpu_integration", circuit_cpu);
     root.addImport("stwo_circuit_cuda_integration", integration);
     root.addImport("stwo_cuda_backend", cuda_backend);
-    root.addImport("circuit_testing", circuit_dep.module("circuit_testing"));
+    root.addImport("circuit_testing", testing);
     const exe = b.addExecutable(.{ .name = "stwo-circuit-cuda-resident-bench", .root_module = root });
     const circuit_archive = cuda.addCircuitArchive(
         b,

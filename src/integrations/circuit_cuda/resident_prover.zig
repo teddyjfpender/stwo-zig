@@ -205,7 +205,7 @@ pub fn prove(allocator: std.mem.Allocator, input: Input) !Result {
     const verdict = try tx.assembleAndFinish(transport, proof_slot);
     finished = true;
     if (!verdict.isResident()) return error.NonresidentCircuitProof;
-    var decoded = try terminal_decode.Proof.decode(
+    var decoded = terminal_decode.Proof.decode(
         allocator,
         terminal_layout,
         terminal_decommit,
@@ -216,7 +216,23 @@ pub fn prove(allocator: std.mem.Allocator, input: Input) !Result {
             .runtime_compile_attempts = verdict.aot.aot_misses,
             .cpu_fallback_attempts = verdict.counters.cpu_fallback_attempts,
         },
-    );
+    ) catch |err| {
+        const section = terminal_bundle.section(.decommitment);
+        const head = transport[section.offset_words..][0..@min(section.words, 8)];
+        std.log.err("resident circuit terminal decode: {s}; decommitment head={any}; proof reads={} bytes={}", .{
+            @errorName(err), head, verdict.counters.d2h_proof_operations, verdict.counters.d2h_proof_bytes,
+        });
+        if (section.words >= 8 + 16 * 9) {
+            const words = transport[section.offset_words..][0..section.words];
+            for (0..9) |index| {
+                const meta = words[8 + index * 16 ..][0..16];
+                std.log.err("resident circuit opening tree={} kind={} role={} queries={} values={} hashes={} aux={} all_values={} used={}", .{
+                    index, meta[0], meta[1], meta[3], meta[5], meta[9], meta[11], meta[13], meta[15],
+                });
+            }
+        }
+        return err;
+    };
     errdefer decoded.deinit(allocator);
     const stark = try decoded.decodeStarkProof(allocator, &logical, input.config);
     return .{

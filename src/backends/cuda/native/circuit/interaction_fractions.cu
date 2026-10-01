@@ -22,7 +22,6 @@ constexpr unsigned kMaxInteraction = 52;
 constexpr unsigned kComponents = 11;
 constexpr unsigned kPpWidths[kComponents] = {2, 8, 5, 3, 11, 3, 0, 3, 3, 3, 1};
 constexpr unsigned kBaseWidths[kComponents] = {4, 12, 20, 4, 52, 2, 16, 1, 1, 1, 1};
-constexpr unsigned kLookups[kComponents] = {2, 3, 12, 5, 26, 2, 16, 1, 1, 1, 1};
 constexpr unsigned kSecure[kComponents] = {1, 2, 6, 3, 13, 1, 8, 1, 1, 1, 1};
 
 // NVCC cannot address namespace-scope host constexpr arrays in device code.

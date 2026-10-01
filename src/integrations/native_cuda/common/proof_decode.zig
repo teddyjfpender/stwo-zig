@@ -307,7 +307,7 @@ fn decodeTraceOpenings(
         decommitments[role_index] = .{
             .hash_witness = try treeHashes(allocator, bundle, tree),
         };
-        try validateMerkleArtifacts(allocator, bundle, tree, queries);
+        try validateMerkleArtifacts(allocator, bundle, tree, queries, 0);
         opening_index += 1;
     }
     if (opening_index != opened_tree_count)
@@ -383,7 +383,8 @@ fn decodeFriLayer(
 ) !proof_wire.FriLayerWire {
     if (fri_tree.tree_index >= bundle.trees.len or
         fri_tree.fold_step == 0 or fri_tree.fold_step > 4 or
-        fri_tree.log_rows_per_leaf != 0)
+        (fri_tree.log_rows_per_leaf != 0 and fri_tree.log_rows_per_leaf != 2) or
+        fri_tree.log_rows_per_leaf > fri_tree.evaluation_log_size)
     {
         return error.InvalidFriOpening;
     }
@@ -393,6 +394,7 @@ fn decodeFriLayer(
         bundle.uniqueQueries(),
         @intCast(fri_tree.cumulative_fold),
     );
+    defer allocator.free(expected_queries);
     const queries = try bundle.section(tree.query_offset, tree.query_count);
     if (tree.kind != .fri or tree.role != fri_tree.tree_index or
         tree.leaf_log_size != fri_tree.evaluation_log_size or
@@ -402,6 +404,7 @@ fn decodeFriLayer(
         return error.InvalidFriOpening;
     }
     const expanded = try expandedQueries(allocator, expected_queries, fri_tree.fold_step);
+    defer allocator.free(expanded);
     const all_words = try scaledSection(
         bundle,
         tree.all_values_offset,
@@ -441,7 +444,7 @@ fn decodeFriLayer(
         }
     }
     if (witness_index != witness.len) return error.InvalidFriOpening;
-    try validateMerkleArtifacts(allocator, bundle, tree, expanded);
+    try validateMerkleArtifacts(allocator, bundle, tree, expanded, fri_tree.log_rows_per_leaf);
     return .{
         .fri_witness = witness,
         .decommitment = .{
@@ -456,13 +459,20 @@ fn validateMerkleArtifacts(
     bundle: decommit_bundle.Bundle,
     tree: decommit_bundle.TreeMeta,
     queries: []const u32,
+    log_rows_per_leaf: u32,
 ) !void {
     if (queries.len == 0 or queries.len > decommit_bundle.max_protocol_queries * 16)
         return error.InvalidMerkleArtifacts;
     const current = try allocator.alloc(u32, queries.len);
     defer allocator.free(current);
-    @memcpy(current, queries);
-    var current_len = queries.len;
+    var current_len: usize = 0;
+    for (queries) |query| {
+        const leaf = query >> @intCast(log_rows_per_leaf);
+        if (current_len == 0 or current[current_len - 1] != leaf) {
+            current[current_len] = leaf;
+            current_len += 1;
+        }
+    }
     var expected_hashes: usize = 0;
     var expected_aux: usize = 0;
     const aux = try scaledSection(
@@ -472,7 +482,7 @@ fn validateMerkleArtifacts(
         decommit_bundle.aux_node_words,
     );
     var aux_index: usize = 0;
-    var level = tree.leaf_log_size;
+    var level = tree.leaf_log_size - log_rows_per_leaf;
     while (level != 0) : (level -= 1) {
         var read: usize = 0;
         var write: usize = 0;
@@ -593,6 +603,7 @@ fn foldedQueries(
     folds: usize,
 ) ![]u32 {
     const output = try allocator.alloc(u32, queries.len);
+    errdefer allocator.free(output);
     var count: usize = 0;
     for (queries) |query| {
         const folded = query >> @intCast(folds);
@@ -601,7 +612,7 @@ fn foldedQueries(
             count += 1;
         }
     }
-    return output[0..count];
+    return try allocator.realloc(output, count);
 }
 
 fn expandedQueries(
@@ -612,6 +623,7 @@ fn expandedQueries(
     if (fold_step == 0 or fold_step > 4) return error.InvalidFriOpening;
     const coset_size: u32 = @as(u32, 1) << @intCast(fold_step);
     const output = try allocator.alloc(u32, std.math.mul(usize, queries.len, coset_size) catch return error.SizeOverflow);
+    errdefer allocator.free(output);
     var count: usize = 0;
     var previous_coset: ?u32 = null;
     for (queries) |query| {
@@ -621,7 +633,7 @@ fn expandedQueries(
         count += coset_size;
         previous_coset = coset;
     }
-    return output[0..count];
+    return try allocator.realloc(output, count);
 }
 
 fn findSorted(values: []const u32, needle: u32) ?usize {

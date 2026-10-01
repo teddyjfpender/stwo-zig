@@ -197,9 +197,11 @@ pub fn BuilderFor(comptime Ops: type) type {
             hashes: common.Hashes,
             layers: []const field.MerkleLayerDescriptor,
         ) Error!common.Hashes {
-            if (log_rows_per_leaf != 0)
+            if (log_rows_per_leaf != 0 and log_rows_per_leaf != 2)
                 return error.InvalidMerkleLayout;
-            try validateLayout(evaluation_size, hashes.len, layers);
+            if (evaluation_size < (@as(u32, 1) << @intCast(log_rows_per_leaf)))
+                return error.InvalidMerkleLayout;
+            try validateLayout(evaluation_size >> @intCast(log_rows_per_leaf), hashes.len, layers);
             const leaves = try layerSlice(hashes, layers[0]);
             try Ops.friLeaves(
                 session,

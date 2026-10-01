@@ -38,7 +38,7 @@ pub const Plan = struct {
             fri.fold_step == 0 or fri.fold_step > 4)
             return error.InvalidCircuitFriGeometry;
         var descriptor_count: usize = 0;
-        for (geometry.fri_layers) |source| descriptor_count = try add(descriptor_count, source.evaluation_log + 1);
+        for (geometry.fri_layers) |source| descriptor_count = try add(descriptor_count, source.evaluation_log - 1);
         const layers = try allocator.alloc(Layer, geometry.fri_layers.len);
         errdefer allocator.free(layers);
         const descriptors = try allocator.alloc(field.MerkleLayerDescriptor, descriptor_count);
@@ -52,8 +52,8 @@ pub const Plan = struct {
                 (ordinal + 1 < layers.len and source.fold_step != fri.fold_step))
                 return error.InvalidCircuitFriGeometry;
             const rows = try pow2u32(source.evaluation_log);
-            const count = source.evaluation_log + 1;
-            try fillDescriptors(descriptors[cursor..][0..count], rows);
+            const count = source.evaluation_log - 1;
+            try fillDescriptors(descriptors[cursor..][0..count], rows >> 2);
             var offsets = [_]u32{0} ** 4;
             for (0..source.fold_step) |fold| {
                 const log = source.evaluation_log - @as(u32, @intCast(fold));
@@ -97,7 +97,7 @@ pub const Plan = struct {
         for (self.layers, view.activeLayers()) |layer, resident| {
             const rows: usize = layer.evaluation_size;
             if (resident.coordinates.column_stride_words != rows or resident.coordinates.storage.len != try mul(rows, 4) or
-                resident.merkle_hashes.len != try fullTreeHashes(rows) or resident.merkle_layers.len != layer.merkle_count)
+                resident.merkle_hashes.len != try fullTreeHashes(rows >> 2) or resident.merkle_layers.len != layer.merkle_count)
                 return error.InvalidCircuitFriBuffers;
         }
         const final_rows = try pow2(self.final_log);
@@ -126,7 +126,7 @@ pub const Plan = struct {
             const root = try Builder.fri(
                 session,
                 layer.evaluation_size,
-                0,
+                2,
                 resident.coordinates,
                 resident.merkle_hashes,
                 self.descriptors[layer.merkle_first..][0..layer.merkle_count],
@@ -237,7 +237,7 @@ test "resident circuit FRI derives exact Rust R7 layer and terminal geometry" {
     for (geometry.fri_layers, plan.layers) |expected, actual| {
         try std.testing.expectEqual(expected.evaluation_log, actual.evaluation_log);
         try std.testing.expectEqual(expected.fold_step, actual.fold_step);
-        try std.testing.expectEqual(@as(usize, actual.evaluation_log + 1), actual.merkle_count);
+        try std.testing.expectEqual(@as(usize, actual.evaluation_log - 1), actual.merkle_count);
     }
 }
 

@@ -30,6 +30,7 @@ pub const Plan = struct {
             .evaluation_log = layer.evaluation_log,
             .cumulative_fold = layer.cumulative_fold,
             .fold_step = layer.fold_step,
+            .log_rows_per_leaf = 2,
         };
         const capacity = try capacityWords(geometry, queries);
         return .{ .topology = try decommit.deriveGeneric(
@@ -97,11 +98,17 @@ fn capacityWords(geometry: *const geometry_module.Geometry, queries: usize) !usi
     var words = try add(1024, try mul(queries, 2));
     for (geometry.trees) |tree| {
         words = try add(words, try mul(queries, try add(tree.column_logs.len, 1)));
-        words = try add(words, try mul(try mul(queries, tree.lifted_log), 8));
+        // The device Merkle walk temporarily reserves one hash (8 words)
+        // and two auxiliary nodes (10 words each) per query and level.
+        // Earlier 8-word accounting covered only the hash staging area.
+        words = try add(words, try mul(try mul(queries, tree.lifted_log), 28));
     }
     for (geometry.fri_layers) |layer| {
         const expanded = try mul(queries, try pow2(layer.fold_step));
         words = try add(words, try mul(expanded, 9));
+        // Four rows share each FRI Merkle leaf. Its 28 staging words per
+        // leaf and level fit under seven words per expanded row; eight
+        // leaves margin for each fixed-capacity record.
         words = try add(words, try mul(try mul(expanded, layer.evaluation_log), 8));
     }
     return try add(words, 1024);
@@ -141,7 +148,7 @@ test "resident circuit decommit geometry covers all trace and four-fold FRI open
     try std.testing.expectEqual(@as(usize, 4), plan.topology.trace_openings.len);
     try std.testing.expectEqual(geometry.fri_layers.len, plan.topology.fri_openings.len);
     try std.testing.expectEqual(@as(usize, 70), plan.topology.query_count);
-    try std.testing.expect(plan.topology.assembly_capacity_words < 2_077_800);
+    try std.testing.expect(plan.topology.assembly_capacity_words < 1_100_000);
     for (plan.topology.fri_openings) |opening| try std.testing.expect(opening.fold_step <= 4);
 }
 

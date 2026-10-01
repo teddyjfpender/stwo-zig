@@ -109,6 +109,7 @@ pub const GenericFriLayer = struct {
     evaluation_log: u32,
     cumulative_fold: u32,
     fold_step: u32,
+    log_rows_per_leaf: u32 = 0,
 };
 
 /// AIR-neutral mixed-height opening geometry. Circuit recursion uses this
@@ -188,14 +189,15 @@ pub fn deriveGeneric(
     for (layers, fri, 0..) |layer, *opening, ordinal| {
         if (layer.evaluation_log == 0 or layer.evaluation_log > 30 or
             layer.cumulative_fold >= query_log or layer.evaluation_log != query_log - layer.cumulative_fold or
-            layer.fold_step == 0 or layer.fold_step > 4 or layer.fold_step > layer.evaluation_log)
+            layer.fold_step == 0 or layer.fold_step > 4 or layer.fold_step > layer.evaluation_log or
+            layer.log_rows_per_leaf > layer.evaluation_log)
             return error.InvalidKernelDescriptor;
         opening.* = .{
             .tree_index = @intCast(trees.len + ordinal),
             .evaluation_log_size = layer.evaluation_log,
             .cumulative_fold = layer.cumulative_fold,
             .fold_step = layer.fold_step,
-            .log_rows_per_leaf = 0,
+            .log_rows_per_leaf = layer.log_rows_per_leaf,
             .max_expanded_positions = try mul(query_count, try pow2usize(layer.fold_step)),
         };
     }
@@ -224,6 +226,7 @@ pub fn deriveGeneric(
         hashInt(&hash, u32, opening.evaluation_log_size);
         hashInt(&hash, u32, opening.cumulative_fold);
         hashInt(&hash, u32, opening.fold_step);
+        hashInt(&hash, u32, opening.log_rows_per_leaf);
     }
     return .{
         .allocator = allocator,
