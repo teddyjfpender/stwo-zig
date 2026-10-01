@@ -76,6 +76,18 @@ pub const Stats = struct {
     m31_to_u32: usize = 0,
 };
 
+/// Actual AIR rows emitted by the primitive gates. Unlike `Stats`, this also
+/// counts output-assignment and permutation rows, so padding can use it when
+/// a witness is replayed against an already authenticated topology without
+/// retaining millions of gate records.
+pub const GateCounts = struct {
+    eq: usize = 0,
+    qm31_ops: usize = 0,
+    m31_to_u32: usize = 0,
+    triple_xor: usize = 0,
+    blake_g_gate: usize = 0,
+};
+
 /// Failures of the builder operations.
 pub const Error = Allocator.Error || error{
     /// The circuit would reach 2^31 variables, which no longer fit M31 addresses.
@@ -115,6 +127,8 @@ pub fn Context(comptime V: type) type {
         gpa: Allocator,
         scratch_arena: std.heap.ArenaAllocator,
         circuit: Circuit = .{},
+        record_gates: bool = true,
+        gate_counts: GateCounts = .{},
         /// Interned constants, in first-use order (upstream `IndexMap<QM31, Var>`).
         constants: std.AutoArrayHashMapUnmanaged(u128, circuit_mod.Var) = .empty,
         /// One value per variable in value mode; empty in topology mode.
@@ -137,7 +151,15 @@ pub fn Context(comptime V: type) type {
         /// with `u` marked as an output) followed by `n_reserved` reserved
         /// variables at `3..3+n_reserved`.
         pub fn init(gpa: Allocator, n_reserved: usize) Error!Self {
-            var self: Self = .{ .gpa = gpa, .scratch_arena = .init(gpa) };
+            return initWithGateRecording(gpa, n_reserved, true);
+        }
+
+        /// Build values while omitting gate arrays when an authenticated
+        /// preprocessed circuit already owns the topology. Only the caller
+        /// may opt in; it must prove and independently verify against that
+        /// authenticated circuit and check the resulting variable count.
+        pub fn initWithGateRecording(gpa: Allocator, n_reserved: usize, record_gates: bool) Error!Self {
+            var self: Self = .{ .gpa = gpa, .scratch_arena = .init(gpa), .record_gates = record_gates };
             errdefer self.deinit();
             _ = try self.constant(QM31.zero());
             _ = try self.constant(QM31.one());
@@ -208,6 +230,19 @@ pub fn Context(comptime V: type) type {
             return .{ .idx = idx };
         }
 
+        /// Append identical values for trivial padding gates in gate-free
+        /// replay. Those gates have no output dependencies, so a bulk fill
+        /// preserves every variable index and value of the ordinary builder.
+        pub fn appendRepeatedPaddingValue(self: *Self, count: usize, value: QM31) Error!void {
+            comptime if (V != QM31) @compileError("padding-value replay requires QM31");
+            std.debug.assert(!self.record_gates);
+            const new_len = std.math.add(usize, self.value_table.items.len, count) catch return error.TooManyVars;
+            if (new_len >= circuit_mod.max_vars) return error.TooManyVars;
+            try self.value_table.resize(self.gpa, new_len);
+            @memset(self.value_table.items[new_len - count .. new_len], value);
+            self.circuit.n_vars = @intCast(new_len);
+        }
+
         /// The value of `v`. Reading a reserved variable before `setOutputs`
         /// is a programmer error and panics, as upstream.
         pub fn get(self: *const Self, v: circuit_mod.Var) V {
@@ -234,7 +269,8 @@ pub fn Context(comptime V: type) type {
             defer reserved.deinit(self.gpa);
             for (reserved.items, vars) |reserved_idx, v| {
                 if (V == QM31) self.value_table.items[reserved_idx] = self.get(v);
-                try self.circuit.add.append(self.gpa, .{ .in0 = v.idx, .in1 = 0, .out = reserved_idx });
+                self.gate_counts.qm31_ops += 1;
+                if (self.record_gates) try self.circuit.add.append(self.gpa, .{ .in0 = v.idx, .in1 = 0, .out = reserved_idx });
                 try self.output(.{ .idx = reserved_idx });
             }
         }
@@ -263,6 +299,7 @@ pub fn Context(comptime V: type) type {
         /// Checks that every variable is used by a gate, except those marked
         /// unused or maybe unused, and that no variable marked unused is used.
         pub fn checkVarsUsed(self: *const Self) (Allocator.Error || error{ UsedVarMarkedUnused, UnusedVarNotMarked })!void {
+            std.debug.assert(self.record_gates);
             var multiplicities = try self.circuit.computeMultiplicities(self.gpa);
             defer multiplicities.deinit(self.gpa);
             for (multiplicities.n_uses, 0..) |uses, idx| {
@@ -300,6 +337,7 @@ pub fn Context(comptime V: type) type {
 
         /// Whether the values satisfy every gate (value mode only).
         pub fn isCircuitValid(self: *const Self) Allocator.Error!bool {
+            std.debug.assert(self.record_gates);
             return try self.circuit.check(self.gpa, self.values()) == null;
         }
 
@@ -309,7 +347,8 @@ pub fn Context(comptime V: type) type {
         pub fn eq(self: *Self, a: circuit_mod.Var, b: circuit_mod.Var) Error!void {
             self.stats.equals += 1;
             if (V == QM31 and self.assert_eq_on_eval and !self.get(a).eql(self.get(b))) return error.EqFailedOnEval;
-            try self.circuit.eq.append(self.gpa, .{ .in0 = a.idx, .in1 = b.idx });
+            self.gate_counts.eq += 1;
+            if (self.record_gates) try self.circuit.eq.append(self.gpa, .{ .in0 = a.idx, .in1 = b.idx });
         }
 
         /// `a + b`; returns the other operand, with no gate, when either is var 0.
@@ -324,7 +363,8 @@ pub fn Context(comptime V: type) type {
         /// Adds `a + b = out` for an existing `out` whose value the caller owns.
         pub fn addInto(self: *Self, a: circuit_mod.Var, b: circuit_mod.Var, out: circuit_mod.Var) Error!void {
             self.stats.add += 1;
-            try self.circuit.add.append(self.gpa, .{ .in0 = a.idx, .in1 = b.idx, .out = out.idx });
+            self.gate_counts.qm31_ops += 1;
+            if (self.record_gates) try self.circuit.add.append(self.gpa, .{ .in0 = a.idx, .in1 = b.idx, .out = out.idx });
         }
 
         /// `a - b`; never elided.
@@ -337,7 +377,8 @@ pub fn Context(comptime V: type) type {
         /// Adds `a - b = out` for an existing `out`.
         pub fn subInto(self: *Self, a: circuit_mod.Var, b: circuit_mod.Var, out: circuit_mod.Var) Error!void {
             self.stats.sub += 1;
-            try self.circuit.sub.append(self.gpa, .{ .in0 = a.idx, .in1 = b.idx, .out = out.idx });
+            self.gate_counts.qm31_ops += 1;
+            if (self.record_gates) try self.circuit.sub.append(self.gpa, .{ .in0 = a.idx, .in1 = b.idx, .out = out.idx });
         }
 
         /// `a * b`; returns var 0 when either operand is var 0, and the other
@@ -354,7 +395,8 @@ pub fn Context(comptime V: type) type {
         /// Adds `a * b = out` for an existing `out`.
         pub fn mulInto(self: *Self, a: circuit_mod.Var, b: circuit_mod.Var, out: circuit_mod.Var) Error!void {
             self.stats.mul += 1;
-            try self.circuit.mul.append(self.gpa, .{ .in0 = a.idx, .in1 = b.idx, .out = out.idx });
+            self.gate_counts.qm31_ops += 1;
+            if (self.record_gates) try self.circuit.mul.append(self.gpa, .{ .in0 = a.idx, .in1 = b.idx, .out = out.idx });
         }
 
         /// The coordinate-wise product `a .* b`; never elided.
@@ -367,13 +409,15 @@ pub fn Context(comptime V: type) type {
         /// Adds `a .* b = out` for an existing `out`.
         pub fn pointwiseMulInto(self: *Self, a: circuit_mod.Var, b: circuit_mod.Var, out: circuit_mod.Var) Error!void {
             self.stats.pointwise_mul += 1;
-            try self.circuit.pointwise_mul.append(self.gpa, .{ .in0 = a.idx, .in1 = b.idx, .out = out.idx });
+            self.gate_counts.qm31_ops += 1;
+            if (self.record_gates) try self.circuit.pointwise_mul.append(self.gpa, .{ .in0 = a.idx, .in1 = b.idx, .out = out.idx });
         }
 
         /// Adds `m31_to_u32(input) = out` for an existing `out`.
         pub fn m31ToU32Into(self: *Self, input: circuit_mod.Var, out: circuit_mod.Var) Error!void {
             self.stats.m31_to_u32 += 1;
-            try self.circuit.m31_to_u32.append(self.gpa, .{ .input = input.idx, .out = out.idx });
+            self.gate_counts.m31_to_u32 += 1;
+            if (self.record_gates) try self.circuit.m31_to_u32.append(self.gpa, .{ .input = input.idx, .out = out.idx });
         }
 
         /// `a / b`: guesses the quotient and constrains `out * b = a`. Does not
@@ -434,18 +478,21 @@ pub fn Context(comptime V: type) type {
             permutation(in_values, out_values);
             const outputs = try arena.alloc(circuit_mod.Var, inputs.len);
             for (outputs, out_values) |*out, value| out.* = try self.newVar(value);
-            const input_idx = try arena.alloc(u32, inputs.len);
-            for (input_idx, inputs) |*idx, v| idx.* = v.idx;
-            const output_idx = try arena.alloc(u32, inputs.len);
-            for (output_idx, outputs) |*idx, v| idx.* = v.idx;
-            try self.circuit.permutation.append(self.gpa, input_idx, output_idx);
+            self.gate_counts.qm31_ops += 2 * inputs.len;
+            if (self.record_gates) {
+                const input_idx = try arena.alloc(u32, inputs.len);
+                for (input_idx, inputs) |*idx, v| idx.* = v.idx;
+                const output_idx = try arena.alloc(u32, inputs.len);
+                for (output_idx, outputs) |*idx, v| idx.* = v.idx;
+                try self.circuit.permutation.append(self.gpa, input_idx, output_idx);
+            }
             return outputs;
         }
 
         /// Adds an output gate marking `a`.
         pub fn output(self: *Self, a: circuit_mod.Var) Error!void {
             self.stats.outputs += 1;
-            try self.circuit.output.append(self.gpa, a.idx);
+            if (self.record_gates) try self.circuit.output.append(self.gpa, a.idx);
         }
     };
 }

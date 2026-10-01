@@ -107,8 +107,23 @@ pub fn buildMultiverifierCircuit(
     shared: *const SharedConfig,
     stages: anytype,
 ) !builder.Context(V) {
+    return buildMultiverifierCircuitWithGateRecording(V, gpa, table, inputs, shared, true, stages);
+}
+
+/// Replay values against a separately authenticated multiverifier topology.
+/// Omitting gate arrays also omits the local gate check; the caller must use
+/// the authenticated preprocessed circuit and verify the resulting proof.
+pub fn buildMultiverifierCircuitWithGateRecording(
+    comptime V: type,
+    gpa: std.mem.Allocator,
+    table: *const component_table.Table,
+    inputs: []const MultiverifierInput(V),
+    shared: *const SharedConfig,
+    record_gates: bool,
+    stages: anytype,
+) !builder.Context(V) {
     if (inputs.len == 0) return error.NoMultiverifierInputs;
-    var ctx = try builder.Context(V).init(gpa, component_list.N_RESERVED);
+    var ctx = try builder.Context(V).initWithGateRecording(gpa, component_list.N_RESERVED, record_gates);
     errdefer ctx.deinit();
     const config: circuit_statement.CircuitConfig = .{
         .config = shared.pcs_config,

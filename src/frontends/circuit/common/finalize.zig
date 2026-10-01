@@ -182,30 +182,61 @@ fn rowsToAdd(n_rows: usize, target: usize) error{ComponentExceedsTarget}!usize {
 
 /// `0 = 0` rows.
 fn padEq(comptime V: type, ctx: *builder.Context(V), target: usize) PadError!void {
-    for (0..try rowsToAdd(ctx.circuit.eq.items.len, target)) |_| try ctx.eq(ctx.zero(), ctx.zero());
+    const n = try rowsToAdd(ctx.gate_counts.eq, target);
+    if (V == QM31 and !ctx.record_gates) {
+        ctx.gate_counts.eq = target;
+        ctx.stats.equals += n;
+        return;
+    }
+    for (0..n) |_| try ctx.eq(ctx.zero(), ctx.zero());
 }
 
 /// `1 + 1` rows (`1` rather than `0` so the add peephole does not elide them).
 fn padQm31Ops(comptime V: type, ctx: *builder.Context(V), target: usize) PadError!void {
-    for (0..try rowsToAdd(ctx.circuit.nQm31OpsRows(), target)) |_| _ = try ctx.add(ctx.one(), ctx.one());
+    const n = try rowsToAdd(ctx.gate_counts.qm31_ops, target);
+    if (V == QM31 and !ctx.record_gates) {
+        try ctx.appendRepeatedPaddingValue(n, QM31.fromU32Unchecked(2, 0, 0, 0));
+        ctx.gate_counts.qm31_ops = target;
+        ctx.stats.add += n;
+        return;
+    }
+    for (0..n) |_| _ = try ctx.add(ctx.one(), ctx.one());
 }
 
 /// `0 ^ 0 ^ 0` rows. The zero word is requested even when no row is added.
 fn padTripleXor(comptime V: type, ctx: *builder.Context(V), target: usize) PadError!void {
-    const n = try rowsToAdd(ctx.circuit.triple_xor.items.len, target);
+    const n = try rowsToAdd(ctx.gate_counts.triple_xor, target);
     const zero = try builder.wrappers.constU32(V, ctx, 0);
+    if (V == QM31 and !ctx.record_gates) {
+        try ctx.appendRepeatedPaddingValue(n, QM31.zero());
+        ctx.gate_counts.triple_xor = target;
+        ctx.stats.triple_xor += n;
+        return;
+    }
     for (0..n) |_| _ = try builder.blake.tripleXor(V, ctx, zero, zero, zero);
 }
 
 /// `m31_to_u32(0)` rows.
 fn padM31ToU32(comptime V: type, ctx: *builder.Context(V), target: usize) PadError!void {
-    for (0..try rowsToAdd(ctx.circuit.m31_to_u32.items.len, target)) |_| _ = try builder.blake.m31ToU32(V, ctx, ctx.zero());
+    const n = try rowsToAdd(ctx.gate_counts.m31_to_u32, target);
+    if (V == QM31 and !ctx.record_gates) {
+        try ctx.appendRepeatedPaddingValue(n, QM31.zero());
+        ctx.gate_counts.m31_to_u32 = target;
+        ctx.stats.m31_to_u32 += n;
+        return;
+    }
+    for (0..n) |_| _ = try builder.blake.m31ToU32(V, ctx, ctx.zero());
 }
 
 /// `G(0, 0, 0, 0, 0, 0)` rows. The zero word is requested even when no row is added.
 fn padBlakeGGate(comptime V: type, ctx: *builder.Context(V), target: usize) PadError!void {
-    const n = try rowsToAdd(ctx.circuit.blake_g_gate.items.len, target);
+    const n = try rowsToAdd(ctx.gate_counts.blake_g_gate, target);
     const zero = try builder.wrappers.constU32(V, ctx, 0);
+    if (V == QM31 and !ctx.record_gates) {
+        try ctx.appendRepeatedPaddingValue(std.math.mul(usize, n, 4) catch return error.TooManyVars, QM31.zero());
+        ctx.gate_counts.blake_g_gate = target;
+        return;
+    }
     for (0..n) |_| _ = try builder.blake.blakeGGate(V, ctx, zero, zero, zero, zero, zero, zero);
 }
 
@@ -259,4 +290,40 @@ test "finalize: QM31 and NoValue padding emit the same gates" {
     defer gpa.free(b);
     try std.testing.expectEqualStrings(a, b);
     try std.testing.expect(try values.isCircuitValid());
+}
+
+test "finalize: gate-free witness replay keeps values and padding positions" {
+    const gpa = std.testing.allocator;
+    const Build = struct {
+        fn run(ctx: *builder.Context(QM31)) !void {
+            const x = try builder.wrappers.guessU32(QM31, ctx, builder.wrappers.u32Value(QM31, 0x1234_5678));
+            const base = try ctx.constant(QM31.fromU32Unchecked(17, 0, 0, 0));
+            const sum = try ctx.add(base, ctx.one());
+            _ = try ctx.mul(sum, base);
+            try ctx.eq(base, base);
+            _ = try builder.blake.m31ToU32(QM31, ctx, base);
+            _ = try builder.blake.tripleXor(QM31, ctx, x, x, x);
+            _ = try builder.blake.blakeGGate(QM31, ctx, x, x, x, x, x, x);
+            try ctx.finalize(false);
+        }
+    };
+    var full = try builder.Context(QM31).init(gpa, 0);
+    defer full.deinit();
+    try Build.run(&full);
+    const targets = computePaddedSizes(.fromBuilder(&full.circuit));
+    try padToTargets(QM31, &full, targets);
+    try std.testing.expectEqualDeep(targets, rawComponentSizes(.fromBuilder(&full.circuit)));
+    try std.testing.expectEqual(targets.qm31_ops, full.gate_counts.qm31_ops);
+    try std.testing.expectEqual(targets.blake_g_gate, full.gate_counts.blake_g_gate);
+    try std.testing.expect(try full.isCircuitValid());
+
+    var witness = try builder.Context(QM31).initWithGateRecording(gpa, 0, false);
+    defer witness.deinit();
+    try Build.run(&witness);
+    try padToTargets(QM31, &witness, targets);
+    try std.testing.expectEqual(full.circuit.n_vars, witness.circuit.n_vars);
+    try std.testing.expectEqualDeep(full.gate_counts, witness.gate_counts);
+    try std.testing.expectEqual(@as(usize, 0), witness.circuit.blake_g_gate.items.len);
+    try std.testing.expectEqual(@as(usize, 0), witness.circuit.add.items.len);
+    for (full.values(), witness.values()) |expected, actual| try std.testing.expect(expected.eql(actual));
 }

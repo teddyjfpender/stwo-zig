@@ -36,21 +36,19 @@ pub const Profile = struct {
         self.previous_variables = state.n_vars;
     }
 
-    pub fn report(self: *Profile, state: *const circuit.builder.Circuit, phase: []const u8) void {
+    pub fn report(self: *Profile, ctx: anytype, phase: []const u8) void {
         if (!self.enabled) return;
         const elapsed_ns = if (self.timer) |*timer| timer.lap() else 0;
-        std.debug.print("circuit-verifier-size kind={s} phase={s} variables={} add={} sub={} mul={} pointwise_mul={} eq={} triple_xor={} m31_to_u32={} blake_g={} elapsed_ns={}\n", .{
+        std.debug.print("circuit-verifier-size kind={s} phase={s} variables={} recorded={} qm31_ops={} eq={} triple_xor={} m31_to_u32={} blake_g={} elapsed_ns={}\n", .{
             self.label,
             phase,
-            state.n_vars,
-            state.add.items.len,
-            state.sub.items.len,
-            state.mul.items.len,
-            state.pointwise_mul.items.len,
-            state.eq.items.len,
-            state.triple_xor.items.len,
-            state.m31_to_u32.items.len,
-            state.blake_g_gate.items.len,
+            ctx.circuit.n_vars,
+            ctx.record_gates,
+            ctx.gate_counts.qm31_ops,
+            ctx.gate_counts.eq,
+            ctx.gate_counts.triple_xor,
+            ctx.gate_counts.m31_to_u32,
+            ctx.gate_counts.blake_g_gate,
             elapsed_ns,
         });
     }

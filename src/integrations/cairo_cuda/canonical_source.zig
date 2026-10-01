@@ -22,6 +22,69 @@ pub const Paths = struct {
     relations: []const u8 = "vectors/cairo/cairo_relation_templates.bin",
 };
 
+/// Source-authority artifacts that do not depend on an adapted PIE. A batch
+/// retains these authenticated, parsed objects across distinct proofs while
+/// each `Prepared` still owns its input, claim, geometry, feeds and request.
+pub const Assets = struct {
+    allocator: std.mem.Allocator,
+    arena: *std.heap.ArenaAllocator,
+    witness_path: []const u8,
+    fixed_path: []const u8,
+    relation_path: []const u8,
+    library_path: []const u8,
+    topology_path: []const u8,
+    witness_sha: [32]u8,
+    fixed_sha: [32]u8,
+    relation_sha: [32]u8,
+    witnesses: cairo.witness.bundle.Bundle,
+    topology: cairo.witness.feed_topology.Loaded,
+    fixed_source: cairo.witness.fixed_table_bundle.Bundle,
+    relations: cairo.witness.relation_bundle.Bundle,
+    library: cairo.air.template_library.Library,
+
+    pub fn load(parent: std.mem.Allocator, paths: Paths) !Assets {
+        const arena = try parent.create(std.heap.ArenaAllocator);
+        errdefer parent.destroy(arena);
+        arena.* = std.heap.ArenaAllocator.init(parent);
+        errdefer arena.deinit();
+        const allocator = arena.allocator();
+        const witness_sha = try authenticate(paths.witnesses, "b2108615463b3c7003b07df20e800a42c4c7625344a681ed22e78e57238c90a6");
+        const fixed_sha = try authenticate(paths.fixed, "ed8dd7b470d1837bd2db254f08ee30f3ed180099f8ed78653db008f195713890");
+        const relation_sha = try authenticate(paths.relations, "2a692328b5e761b7129c82052542ba03221d228089fe1583f2d8043e6b3d231f");
+        return .{
+            .allocator = parent,
+            .arena = arena,
+            .witness_path = try allocator.dupe(u8, paths.witnesses),
+            .fixed_path = try allocator.dupe(u8, paths.fixed),
+            .relation_path = try allocator.dupe(u8, paths.relations),
+            .library_path = try allocator.dupe(u8, paths.library),
+            .topology_path = try allocator.dupe(u8, paths.topology),
+            .witness_sha = witness_sha,
+            .fixed_sha = fixed_sha,
+            .relation_sha = relation_sha,
+            .witnesses = try cairo.witness.bundle.Bundle.readFile(allocator, paths.witnesses),
+            .topology = try cairo.witness.feed_topology.readOfficial(allocator, paths.topology),
+            .fixed_source = try cairo.witness.fixed_table_bundle.Bundle.readFile(allocator, paths.fixed),
+            .relations = try cairo.witness.relation_bundle.Bundle.readFile(allocator, paths.relations),
+            .library = try @import("canonical_eval_aot.zig").loadLibrary(allocator, paths.library),
+        };
+    }
+
+    pub fn deinit(self: *Assets) void {
+        self.arena.deinit();
+        self.allocator.destroy(self.arena);
+        self.* = undefined;
+    }
+
+    fn checkPaths(self: *const Assets, paths: Paths) !void {
+        if (!std.mem.eql(u8, self.witness_path, paths.witnesses) or
+            !std.mem.eql(u8, self.fixed_path, paths.fixed) or
+            !std.mem.eql(u8, self.relation_path, paths.relations) or
+            !std.mem.eql(u8, self.library_path, paths.library) or
+            !std.mem.eql(u8, self.topology_path, paths.topology)) return error.CanonicalAssetPathMismatch;
+    }
+};
+
 pub const Prepared = struct {
     allocator: std.mem.Allocator,
     arena: *std.heap.ArenaAllocator,
@@ -50,24 +113,35 @@ pub const Prepared = struct {
 };
 
 pub fn prepare(parent: std.mem.Allocator, paths: Paths, target: cuda.runtime.execution_plan.CompileOptions) !Prepared {
+    return prepareWithAssets(parent, paths, target, null);
+}
+
+/// Prepare one dynamic PIE request while borrowing previously authenticated
+/// source artifacts. The caller retains `assets` until the proof finishes.
+pub fn prepareWithAssets(parent: std.mem.Allocator, paths: Paths, target: cuda.runtime.execution_plan.CompileOptions, assets: ?*const Assets) !Prepared {
+    var profile = SourceProfile.init();
     const arena = try parent.create(std.heap.ArenaAllocator);
     errdefer parent.destroy(arena);
     arena.* = std.heap.ArenaAllocator.init(parent);
     errdefer arena.deinit();
     const allocator = arena.allocator();
-    const witness_sha = try authenticate(paths.witnesses, "b2108615463b3c7003b07df20e800a42c4c7625344a681ed22e78e57238c90a6");
-    const fixed_sha = try authenticate(paths.fixed, "ed8dd7b470d1837bd2db254f08ee30f3ed180099f8ed78653db008f195713890");
-    const relation_sha = try authenticate(paths.relations, "2a692328b5e761b7129c82052542ba03221d228089fe1583f2d8043e6b3d231f");
+    if (assets) |shared| try shared.checkPaths(paths);
+    const witness_sha = if (assets) |shared| shared.witness_sha else try authenticate(paths.witnesses, "b2108615463b3c7003b07df20e800a42c4c7625344a681ed22e78e57238c90a6");
+    const fixed_sha = if (assets) |shared| shared.fixed_sha else try authenticate(paths.fixed, "ed8dd7b470d1837bd2db254f08ee30f3ed180099f8ed78653db008f195713890");
+    const relation_sha = if (assets) |shared| shared.relation_sha else try authenticate(paths.relations, "2a692328b5e761b7129c82052542ba03221d228089fe1583f2d8043e6b3d231f");
+    profile.mark("asset_authentication");
     const captured = try @import("canonical_input.zig").read(allocator, paths.input);
     var input = captured.input;
     const encoded = captured.encoded;
     const input_file_sha = captured.file_sha256;
     const input_sha = captured.encoded_sha256;
-    const witnesses = try cairo.witness.bundle.Bundle.readFile(allocator, paths.witnesses);
-    const topology = try cairo.witness.feed_topology.readOfficial(allocator, paths.topology);
-    const fixed_source = try cairo.witness.fixed_table_bundle.Bundle.readFile(allocator, paths.fixed);
-    const relations = try cairo.witness.relation_bundle.Bundle.readFile(allocator, paths.relations);
-    const library = try @import("canonical_eval_aot.zig").loadLibrary(allocator, paths.library);
+    profile.mark("input_read");
+    const witnesses = if (assets) |shared| shared.witnesses else try cairo.witness.bundle.Bundle.readFile(allocator, paths.witnesses);
+    const topology = if (assets) |shared| shared.topology else try cairo.witness.feed_topology.readOfficial(allocator, paths.topology);
+    const fixed_source = if (assets) |shared| shared.fixed_source else try cairo.witness.fixed_table_bundle.Bundle.readFile(allocator, paths.fixed);
+    const relations = if (assets) |shared| shared.relations else try cairo.witness.relation_bundle.Bundle.readFile(allocator, paths.relations);
+    const library = if (assets) |shared| shared.library else try @import("canonical_eval_aot.zig").loadLibrary(allocator, paths.library);
+    profile.mark("asset_decode");
     const preferred_variant: cairo.preprocessed.trace.Variant = if (paths.leaf_lane) |lane|
         @enumFromInt(@intFromEnum(lane.variant))
     else
@@ -85,17 +159,22 @@ pub fn prepare(parent: std.mem.Allocator, paths: Paths, target: cuda.runtime.exe
             .memory_id_to_big_components = memory_components,
         });
     }
+    profile.mark("claim_and_variant");
     const spec = try cairo.preprocessed.trace.Spec.init(allocator, variant);
     const fixed = try @import("canonical_fixed.zig").project(allocator, fixed_source, spec);
     const logs = try spec.logs(allocator);
+    profile.mark("fixed_projection");
     const geometry = try geometry_mod.resolve(allocator, &input, &claim, topology);
     const bundle = try library.instantiate(allocator, &claim, variant, input.builtin_segments);
+    profile.mark("geometry_and_air");
     const feeds = try feeds_mod.compile(allocator, &input, &claim, geometry, topology, fixed);
+    profile.mark("multiplicity_feeds");
     const statement = try cairo.statement_bootstrap.encodeCompactStatementV1(allocator, &bundle, &input);
     const protocol = if (paths.leaf_lane) |lane|
         try @import("canonical_protocol.zig").deriveLeaf(allocator, bundle, logs, lane)
     else
         try @import("canonical_protocol.zig").derive(allocator, bundle, logs);
+    profile.mark("statement_and_protocol");
     var composition_sha = std.crypto.hash.sha2.Sha256.init(.{});
     composition_sha.update(&parametric.source_authority);
     for (bundle.components) |component| composition_sha.update(&identities.componentProgramDigest(parametric.source_authority, component));
@@ -133,14 +212,31 @@ pub fn prepare(parent: std.mem.Allocator, paths: Paths, target: cuda.runtime.exe
             .composition_plan_hash = bundle.plan_hash,
         },
     }, &claim, active, topology, protocol, target);
+    profile.mark("request_compile");
     if (request.missing_lowerings.len != 0) return error.IncompleteCanonicalCudaLowering;
     try @import("executor/ingress/writer_preactions.zig").validateGatherGeometry(&request.proof);
     // The request binds the owned input capture, not a later read of its path.
-    _ = try authenticate(paths.witnesses, "b2108615463b3c7003b07df20e800a42c4c7625344a681ed22e78e57238c90a6");
-    _ = try authenticate(paths.fixed, "ed8dd7b470d1837bd2db254f08ee30f3ed180099f8ed78653db008f195713890");
-    _ = try authenticate(paths.relations, "2a692328b5e761b7129c82052542ba03221d228089fe1583f2d8043e6b3d231f");
+    if (assets == null) {
+        _ = try authenticate(paths.witnesses, "b2108615463b3c7003b07df20e800a42c4c7625344a681ed22e78e57238c90a6");
+        _ = try authenticate(paths.fixed, "ed8dd7b470d1837bd2db254f08ee30f3ed180099f8ed78653db008f195713890");
+        _ = try authenticate(paths.relations, "2a692328b5e761b7129c82052542ba03221d228089fe1583f2d8043e6b3d231f");
+    }
+    profile.mark("final_admission");
     return .{ .allocator = parent, .arena = arena, .adapted_bytes = encoded, .input = input, .input_file_sha256 = input_file_sha, .input_sha256 = input_sha, .variant = variant, .claim = claim, .geometry = geometry, .composition = bundle, .witnesses = witnesses, .feeds = feeds.bundle, .relations = relations, .fixed = fixed, .statement_bytes = statement, .preprocessed_logs = logs, .protocol = protocol, .request = request };
 }
+
+const SourceProfile = struct {
+    timer: ?std.time.Timer,
+
+    fn init() SourceProfile {
+        if (!std.process.hasEnvVarConstant("STWO_CAIRO_SOURCE_STAGE_PROFILE")) return .{ .timer = null };
+        return .{ .timer = std.time.Timer.start() catch null };
+    }
+
+    fn mark(self: *SourceProfile, name: []const u8) void {
+        if (self.timer) |*timer| std.debug.print("cairo-cuda source-stage name={s} elapsed_ns={}\n", .{ name, timer.lap() });
+    }
+};
 
 fn fileSha(path: []const u8) ![32]u8 {
     const file = try std.fs.cwd().openFile(path, .{});
@@ -184,6 +280,31 @@ test "canonical CUDA complete source requests prepare controllers locally" {
         defer controllers.deinit();
         try std.testing.expect(controllers.evaluation.constants.?.len > 0);
     }
+}
+
+test "canonical CUDA shared authenticated assets preserve the dynamic request" {
+    const paths: Paths = .{
+        .input = "vectors/cairo/official/all_builtins.prover_input.json",
+        .variant = .canonical,
+    };
+    const target = @import("request_compiler/sn2_test_support.zig").target();
+    var assets = try Assets.load(std.testing.allocator, paths);
+    defer assets.deinit();
+    var fresh = try prepare(std.testing.allocator, paths, target);
+    defer fresh.deinit();
+    var reused = try prepareWithAssets(std.testing.allocator, paths, target, &assets);
+    defer reused.deinit();
+    try std.testing.expectEqual(fresh.input_sha256, reused.input_sha256);
+    try std.testing.expectEqual(fresh.request.plan.cache_key, reused.request.plan.cache_key);
+    try std.testing.expectEqual(fresh.composition.plan_hash, reused.composition.plan_hash);
+    try std.testing.expectEqual(fresh.feeds.feeds.len, reused.feeds.feeds.len);
+    try std.testing.expectEqual(fresh.protocol.query_count, reused.protocol.query_count);
+    try std.testing.expectError(error.CanonicalAssetPathMismatch, prepareWithAssets(
+        std.testing.allocator,
+        .{ .input = paths.input, .fixed = "another-fixed-file.bin" },
+        target,
+        &assets,
+    ));
 }
 
 test "canonical CUDA circuit leaf prepares lifted M31 source geometry" {

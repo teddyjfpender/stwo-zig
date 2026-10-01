@@ -198,7 +198,8 @@ pub fn tripleXor(comptime V: type, ctx: *context_mod.Context(V), a: U32Wrapper(V
     const x = ivalue.unpackU32(V, ctx.get(a.get())) ^ ivalue.unpackU32(V, ctx.get(b.get())) ^ ivalue.unpackU32(V, ctx.get(c.get()));
     const out = try ctx.newVar(ivalue.packU32(V, x));
     ctx.stats.triple_xor += 1;
-    try ctx.circuit.triple_xor.append(ctx.gpa, .{ .input_a = a.get().idx, .input_b = b.get().idx, .input_c = c.get().idx, .out = out.idx });
+    ctx.gate_counts.triple_xor += 1;
+    if (ctx.record_gates) try ctx.circuit.triple_xor.append(ctx.gpa, .{ .input_a = a.get().idx, .input_b = b.get().idx, .input_c = c.get().idx, .out = out.idx });
     return .newUnsafe(out);
 }
 
@@ -244,7 +245,8 @@ pub fn blakeGGate(
     for (&outputs, out_words) |*out, word| out.* = .newUnsafe(try ctx.newVar(ivalue.packU32(V, word)));
     const out_base = outputs[0].get().idx;
     for (outputs, 0..) |out, i| std.debug.assert(out.get().idx == out_base + i);
-    try ctx.circuit.blake_g_gate.append(ctx.gpa, .{
+    ctx.gate_counts.blake_g_gate += 1;
+    if (ctx.record_gates) try ctx.circuit.blake_g_gate.append(ctx.gpa, .{
         .input_a = a.get().idx,
         .input_b = b.get().idx,
         .input_c = c.get().idx,

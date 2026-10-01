@@ -336,21 +336,6 @@ fn wrapCairoProofImpl(
     for (aux, aux_words) |*out, word| out.* = M31.fromCanonical(word);
     const output_hash = try circuit_leaf.outputHash(input);
 
-    // 4. The leaf circuit with values, padded to the shared target.
-    var stages = stage_profile.Profile.init("leaf");
-    var ctx = try cairo_verifier.buildCairoVerifierCircuit(QM31, allocator, wrap.cairo_table, &config, wrap.constants(), .{
-        .proof = &proof_values,
-        .serialized_aux_data = aux,
-        .output_hash = output_hash,
-    }, &stages);
-    var ctx_owned = true;
-    defer if (ctx_owned) ctx.deinit();
-    stages.report(&ctx.circuit, "raw");
-    try finalize.padToTargets(QM31, &ctx, target);
-    stages.report(&ctx.circuit, "padded");
-    if (!try ctx.isCircuitValid()) return error.CircuitRejectsProof;
-    build_stage.end();
-
     const key = (topology_key.LeafKey{
         .config_name = entry.config,
         .circuit_fri = circuit_fri,
@@ -363,9 +348,30 @@ fn wrapCairoProofImpl(
         .cairo_preprocessed_root = cairo_root,
         .program = wrap.program,
     }).key();
+    const cached = wrap.cache.get(key);
+    // A resident source proves against the authenticated cached topology and
+    // independently verifies the resulting proof. Its witness builder needs
+    // the values and row counts, but not another full set of gate records.
+    const record_gates = wrap.source == null or cached == null;
+
+    // 4. The leaf circuit with values, padded to the shared target.
+    var stages = stage_profile.Profile.init("leaf");
+    var ctx = try cairo_verifier.buildCairoVerifierCircuitWithGateRecording(QM31, allocator, wrap.cairo_table, &config, wrap.constants(), .{
+        .proof = &proof_values,
+        .serialized_aux_data = aux,
+        .output_hash = output_hash,
+    }, record_gates, &stages);
+    var ctx_owned = true;
+    defer if (ctx_owned) ctx.deinit();
+    stages.report(&ctx, "raw");
+    try finalize.padToTargets(QM31, &ctx, target);
+    stages.report(&ctx, "padded");
+    if (record_gates and !try ctx.isCircuitValid()) return error.CircuitRejectsProof;
+    build_stage.end();
+
     var fresh: ?LeafTopology = null;
     defer if (fresh) |*topology| topology.deinit(wrap.cache.allocator);
-    const topology: *const LeafTopology = if (wrap.cache.get(key)) |hit| blk: {
+    const topology: *const LeafTopology = if (cached) |hit| blk: {
         if (hit.n_vars != ctx.circuit.n_vars) return error.TopologyMismatch;
         break :blk hit;
     } else blk: {

@@ -9,6 +9,7 @@ const Decoded = stwo.integration.canonical_verify.Decoded;
 const ProofCapture = stwo.frontend.witness.resident_verifier.ProofCapture;
 pub const NativeRuntime = stwo.backend.runtime.NativeRuntime;
 const DeviceImage = stwo.executor.preprocessed_cache.DeviceImage;
+const CanonicalAssets = stwo.integration.canonical_source.Assets;
 
 /// The verified proof and its authenticated openings are borrowed only during
 /// this callback. A recursive leaf builder can consume them without proving
@@ -87,6 +88,18 @@ fn runItems(allocator: std.mem.Allocator, items: []const BatchItem, mode: Mode, 
     defer allocator.free(executable);
     const executable_digest = try publication.sha256File(executable);
     var startup = try std.time.Timer.start();
+    var shared_assets: ?CanonicalAssets = null;
+    defer if (shared_assets) |*assets| assets.deinit();
+    if (items.len > 1) {
+        var first_paths = try @import("canonical_paths.zig").Paths.init(
+            allocator,
+            items[0].request.input,
+            items[0].request.circuit_registry,
+        );
+        defer first_paths.deinit();
+        shared_assets = try CanonicalAssets.load(allocator, first_paths.source);
+    }
+    const asset_init_ns = if (shared_assets != null) startup.lap() else 0;
     var owned_runtime: NativeRuntime = undefined;
     var owned_runtime_live = false;
     defer if (owned_runtime_live) owned_runtime.abort() catch {};
@@ -107,7 +120,8 @@ fn runItems(allocator: std.mem.Allocator, items: []const BatchItem, mode: Mode, 
     var expected_digest: ?[32]u8 = null;
     var resident_static: ?ResidentStatic = null;
     for (items, 0..) |item, index| {
-        const receipt = try proveOnce(allocator, runtime, &resident_static, if (use_device_image) &device_image else null, item.request, executable_digest, @intCast(if (mode == .repeated) index + 1 else 1), if (index == 0) runtime_init_ns else 0, item.sink, external_runtime != null);
+        const assets: ?*const CanonicalAssets = if (shared_assets) |*shared| shared else null;
+        const receipt = try proveOnce(allocator, runtime, &resident_static, if (use_device_image) &device_image else null, item.request, executable_digest, @intCast(if (mode == .repeated) index + 1 else 1), if (index == 0) runtime_init_ns else 0, if (index == 0) asset_init_ns else 0, item.sink, external_runtime != null, assets);
         if (mode == .repeated) {
             if (expected_digest) |expected| {
                 if (!std.mem.eql(u8, &expected, &receipt.proof_sha256)) return error.NondeterministicCairoCudaProof;
@@ -145,8 +159,10 @@ fn proveOnce(
     executable_digest: [32]u8,
     index: u32,
     runtime_init_ns: u64,
+    asset_init_ns: u64,
     sink: ?VerifiedLeafSink,
     release_arena_for_sink: bool,
+    assets: ?*const CanonicalAssets,
 ) !publication.Receipt {
     var timer = try std.time.Timer.start();
     var phase: []const u8 = "resolve_input";
@@ -158,7 +174,7 @@ fn proveOnce(
 
     phase = "compile_canonical_source";
     const target = try compileTarget(runtime.planningSession());
-    var diagnostic = try stwo.integration.canonical_source.prepare(allocator, paths.source, target);
+    var diagnostic = try stwo.integration.canonical_source.prepareWithAssets(allocator, paths.source, target, assets);
     defer diagnostic.deinit();
     if (diagnostic.request.missing_lowerings.len != 0)
         return error.IncompleteCairoCudaLowering;
@@ -365,11 +381,11 @@ fn proveOnce(
         .planned_arena_bytes = @as(u64, arena_plan.total_words) * 4,
         .prepared_arena_reused = arena_reused,
         .preprocessed_reused = cached_preprocessed != null,
-        .ingress_ns = ingress_ns + runtime_init_ns,
+        .ingress_ns = ingress_ns + runtime_init_ns + asset_init_ns,
         .ingress_timings = .{
             .paths_ns = paths_end_ns,
             .runtime_ns = runtime_init_ns + runtime_end_ns - paths_end_ns,
-            .source_ns = source_end_ns - runtime_end_ns,
+            .source_ns = source_end_ns - runtime_end_ns + asset_init_ns,
             .controllers_ns = controllers_end_ns - source_end_ns,
             .twiddles_ns = twiddles_end_ns - controllers_end_ns,
             .allocation_ns = allocation_end_ns - twiddles_end_ns,
@@ -379,7 +395,7 @@ fn proveOnce(
             .statement_and_session_ns = ingress_ns - writers_end_ns,
         },
         .proof_execute_and_decode_ns = proof_end_ns - ingress_ns,
-        .adapted_input_until_publication_ns = timer.read() + runtime_init_ns,
+        .adapted_input_until_publication_ns = timer.read() + runtime_init_ns + asset_init_ns,
         .proof_sha256 = try publication.sha256File(request.output),
         .proof_bytes = proof_bytes,
         .verdict = output.verdict,

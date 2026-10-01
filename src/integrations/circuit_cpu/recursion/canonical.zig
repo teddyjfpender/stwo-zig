@@ -63,6 +63,8 @@ pub const CanonicalCircuit = struct {
     shared: multiverifier.SharedConfig,
     /// The registry's padding target.
     target_sizes: ComponentSizes,
+    /// Exact padded witness length of the authenticated outer topology.
+    n_vars: u32,
     /// The outer proof's configuration. A terminal circuit can be smaller
     /// than the child proofs it verifies, so this need not equal `shared`.
     prover_config: PcsConfigV2,
@@ -132,11 +134,15 @@ pub const CanonicalCircuit = struct {
 
         // 2. The multiverifier shape, padded to the target.
         var outer_target = target;
+        var n_vars: u32 = undefined;
         var pp = blk: {
             var ctx = try multiverifier.buildMultiverifierTopology(gpa, table, &shared, circuit.stark_verifier.verify.NoStages{});
+            defer ctx.deinit();
             if (mode == .terminal_compact)
                 outer_target = finalize.computePaddedSizes(.fromBuilder(&ctx.circuit));
-            break :blk try circuit_params.paddedPreprocessed(gpa, &ctx, outer_target);
+            try finalize.padToTargets(builder.NoValue, &ctx, outer_target);
+            n_vars = ctx.circuit.n_vars;
+            break :blk try preprocessed.PreprocessedCircuit.fromBuilderCircuit(gpa, &ctx.circuit);
         };
         errdefer pp.deinit(gpa);
 
@@ -167,6 +173,7 @@ pub const CanonicalCircuit = struct {
         return .{
             .shared = shared,
             .target_sizes = outer_target,
+            .n_vars = n_vars,
             .prover_config = PcsConfigV2.fromFriAndTraceSize(config.fri_config, layout.traceLogSize()),
             .preprocessed = pp,
             .preprocessed_root = identity.preprocessed_root,

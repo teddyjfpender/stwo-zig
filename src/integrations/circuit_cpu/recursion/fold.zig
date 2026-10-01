@@ -54,6 +54,8 @@ pub const Error = error{
     /// The multiverifier circuit rejects its inputs: a child proof does not
     /// verify (upstream's `debug_assert!(context.is_circuit_valid())`).
     MultiverifierRejectedInputs,
+    /// A replayed device witness does not fit its authenticated topology.
+    MultiverifierTopologyMismatch,
     /// A root entry (felt stream) was handed to another reduction.
     RootProofFolded,
 };
@@ -198,12 +200,14 @@ fn reduce(
             };
         }
         var stages = stage_profile.Profile.init("fold");
-        var ctx = try multiverifier.buildMultiverifierCircuit(QM31, gpa, fold.table, &inputs, &canonical.shared, &stages);
+        const record_gates = fold.source == null;
+        var ctx = try multiverifier.buildMultiverifierCircuitWithGateRecording(QM31, gpa, fold.table, &inputs, &canonical.shared, record_gates, &stages);
         defer ctx.deinit();
-        stages.report(&ctx.circuit, "raw");
+        stages.report(&ctx, "raw");
         try finalize.padToTargets(QM31, &ctx, canonical.target_sizes);
-        stages.report(&ctx.circuit, "padded");
-        if (!try ctx.isCircuitValid()) return error.MultiverifierRejectedInputs;
+        stages.report(&ctx, "padded");
+        if (ctx.circuit.n_vars != canonical.n_vars) return error.MultiverifierTopologyMismatch;
+        if (record_gates and !try ctx.isCircuitValid()) return error.MultiverifierRejectedInputs;
         break :blk try gpa.dupe(QM31, ctx.values());
     };
     // The prover frees the value table once the base trace is written.

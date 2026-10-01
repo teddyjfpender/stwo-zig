@@ -227,7 +227,23 @@ pub fn buildCairoVerifierCircuit(
     input: CairoVerifierInput(V),
     stages: anytype,
 ) !builder.Context(V) {
-    var ctx = try builder.Context(V).init(gpa, component_list.N_RESERVED);
+    return buildCairoVerifierCircuitWithGateRecording(V, gpa, table, config, constants, input, true, stages);
+}
+
+/// Value-only reconstruction against an authenticated, cached leaf topology.
+/// Callers that disable gate recording must not preprocess or locally check
+/// this context; they must prove and independently verify using that topology.
+pub fn buildCairoVerifierCircuitWithGateRecording(
+    comptime V: type,
+    gpa: std.mem.Allocator,
+    table: *const component_table.Table,
+    config: *const CairoVerifierConfig,
+    constants: cairo_statement.Constants,
+    input: CairoVerifierInput(V),
+    record_gates: bool,
+    stages: anytype,
+) !builder.Context(V) {
+    var ctx = try builder.Context(V).initWithGateRecording(gpa, component_list.N_RESERVED, record_gates);
     errdefer ctx.deinit();
     const statement = try VerifierStatement(V).init(&ctx, table, config, constants, input.serialized_aux_data, input.output_hash);
     const proof_vars = try proof.guess(V, &ctx, input.proof);
