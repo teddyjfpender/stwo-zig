@@ -233,18 +233,83 @@ pub fn leafWrapVerified(
     verified: leaf_wrap.VerifiedCairoLeaf,
     input: *const cairo.adapter.ProverInput,
 ) !leaf_wrap.LeafProof {
-    const registry_text = try readFile(allocator, request.registry_path);
-    defer allocator.free(registry_text);
-    var registry = try wire.registry.parseRegistry(allocator, registry_text);
-    defer registry.deinit();
-    const program_json = try readFile(allocator, request.program_path);
-    const program = blk: {
-        defer allocator.free(program_json);
-        break :blk try cairo.statement.circuit_leaf.programFeltsFromCompiledJson(allocator, program_json);
-    };
-    defer allocator.free(program);
-    return wrapAfterCairoProof(allocator, request, &registry.registry, program, verified, input, true);
+    var session = try VerifiedLeafSession.init(allocator, request);
+    defer session.deinit();
+    return session.wrap(verified, input);
 }
+
+/// Retains the registry, compiled program, AIR tables, and checked leaf
+/// topology across distinct verified Cairo proofs with the same leaf program.
+/// A cache hit still rebuilds the witness and checks the circuit hash against
+/// the registry; no proof-dependent data is retained between wraps.
+pub const VerifiedLeafSession = struct {
+    allocator: std.mem.Allocator,
+    request: LeafWrapRequest,
+    registry: wire.registry.OwnedRegistry,
+    program: []cairo.statement.circuit_leaf.ProgramFelt,
+    air: *Air,
+    cairo_table: circuit.air_eval.component_table.Table,
+    bundle: circuit_cpu.air.Bundle,
+    cache: leaf_wrap.Cache,
+
+    pub fn init(allocator: std.mem.Allocator, request: LeafWrapRequest) !VerifiedLeafSession {
+        const registry_text = try readFile(allocator, request.registry_path);
+        defer allocator.free(registry_text);
+        var registry = try wire.registry.parseRegistry(allocator, registry_text);
+        errdefer registry.deinit();
+        const program_json = try readFile(allocator, request.program_path);
+        defer allocator.free(program_json);
+        const program = try cairo.statement.circuit_leaf.programFeltsFromCompiledJson(allocator, program_json);
+        errdefer allocator.free(program);
+        const air = try allocator.create(Air);
+        errdefer allocator.destroy(air);
+        air.* = try Air.init(allocator);
+        errdefer air.deinit();
+        var cairo_table = try air.cairoTable(allocator);
+        errdefer cairo_table.deinit();
+        var bundle = try airBundle(allocator);
+        errdefer bundle.deinit();
+        return .{
+            .allocator = allocator,
+            .request = request,
+            .registry = registry,
+            .program = program,
+            .air = air,
+            .cairo_table = cairo_table,
+            .bundle = bundle,
+            .cache = leaf_wrap.Cache.init(allocator, .{}),
+        };
+    }
+
+    pub fn deinit(self: *VerifiedLeafSession) void {
+        self.cache.deinit();
+        self.bundle.deinit();
+        self.cairo_table.deinit();
+        self.air.deinit();
+        self.allocator.destroy(self.air);
+        self.allocator.free(self.program);
+        self.registry.deinit();
+        self.* = undefined;
+    }
+
+    pub fn wrap(
+        self: *VerifiedLeafSession,
+        verified: leaf_wrap.VerifiedCairoLeaf,
+        input: *const cairo.adapter.ProverInput,
+    ) !leaf_wrap.LeafProof {
+        const context = leaf_wrap.LeafWrap{
+            .registry = &self.registry.registry,
+            .cairo_table = &self.cairo_table,
+            .bundle = &self.bundle,
+            .program = self.program,
+            .cache = &self.cache,
+            .options = self.request.options,
+            .provers = self.request.provers,
+            .source = self.request.source,
+        };
+        return leaf_wrap.wrapVerifiedCairoLeaf(self.allocator, &context, verified, input);
+    }
+};
 
 fn wrapAfterCairoProof(
     allocator: std.mem.Allocator,

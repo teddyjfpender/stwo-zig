@@ -47,7 +47,13 @@ fn verifyWith(
     defer geometry.deinit();
     if (!std.mem.eql(u8, &geometry.identity, &result.geometry_identity))
         return error.CircuitResidentGeometryMismatch;
-    const pp_root = try input.preprocessed.preprocessedRoot(allocator, input.config.fri_config.log_blowup_factor);
+    // The production recursion lane binds this root to the registry or the
+    // independently built canonical circuit. Standalone R7 fixtures without
+    // such a binding still recompute it from the preprocessed columns.
+    const pp_root = if (input.expected_preprocessed_root) |words|
+        core.vcs.blake2_hash.digestFromU32s(words)
+    else
+        try input.preprocessed.preprocessedRoot(allocator, input.config.fri_config.log_blowup_factor);
     const roots = result.stark.commitment_scheme_proof.commitments.items;
     if (!std.mem.eql(u8, &pp_root, &roots[0])) return error.CircuitPreprocessedRootMismatch;
     const sizes = try components.circuitComponentLogSizes(&layout);

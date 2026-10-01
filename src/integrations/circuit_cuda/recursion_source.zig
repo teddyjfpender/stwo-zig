@@ -34,6 +34,7 @@ fn prove(erased: *anyopaque, allocator: std.mem.Allocator, input: Source.Input) 
         .air = &bound_air,
         .catalog = context.catalog,
         .config = input.config,
+        .expected_preprocessed_root = input.expected_preprocessed_root,
         .profile = switch (input.profile) {
             .internal => .internal,
             .root => .root,

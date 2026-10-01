@@ -30,7 +30,7 @@ const n_segments = layout.n_segments;
 const n_outputs = layout.n_outputs;
 const n_words_per_output_cell = layout.n_words_per_output_cell;
 const aux_data_fixed_len = layout.aux_data_fixed_len;
-const ProgramFelt = layout.ProgramFelt;
+pub const ProgramFelt = layout.ProgramFelt;
 
 comptime {
     // The lane's public-segment table is the statement's segment list.

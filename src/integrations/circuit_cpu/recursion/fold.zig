@@ -255,6 +255,7 @@ fn proveNodeFromSource(
         .air = fold.bundle,
         .config = fold.canonical.shared.pcs_config,
         .profile = if (is_root) .root else .internal,
+        .expected_preprocessed_root = blake2_hash.digestToU32s(fold.canonical.preprocessed_root),
     });
     errdefer produced.deinit();
     const expected_root = blake2_hash.digestToU32s(fold.canonical.preprocessed_root);

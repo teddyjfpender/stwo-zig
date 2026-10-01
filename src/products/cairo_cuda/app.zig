@@ -15,6 +15,11 @@ pub const VerifiedLeafSink = struct {
     context: *anyopaque,
     receive: *const fn (*anyopaque, *const CanonicalSource, *const Decoded, *const ProofCapture, u64) anyerror!void,
 };
+pub const BatchItem = struct {
+    request: cli.Prove,
+    sink: ?VerifiedLeafSink,
+};
+const Mode = enum { repeated, distinct };
 const ResidentStatic = struct {
     arena_key: [32]u8,
     receipt: stwo.executor.preprocessed_cache.Receipt,
@@ -42,8 +47,28 @@ fn prove(allocator: std.mem.Allocator, request: cli.Prove) !void {
 pub fn proveWithSink(allocator: std.mem.Allocator, request: cli.Prove, sink: ?VerifiedLeafSink) !void {
     if (sink != null and (request.circuit_registry == null or request.repeat != 1))
         return error.InvalidRecursiveLeafRequest;
-    var receipts = std.ArrayList(publication.Receipt).empty;
-    defer receipts.deinit(allocator);
+    if (request.repeat == 0 or request.repeat > 16) return error.InvalidRepeatCount;
+    const items = try allocator.alloc(BatchItem, request.repeat);
+    defer allocator.free(items);
+    for (items) |*item| item.* = .{ .request = request, .sink = sink };
+    return runItems(allocator, items, .repeated);
+}
+
+/// Prove distinct adapted PIEs in one process. The authenticated arena key
+/// decides whether a later item may reuse static preprocessing; no witness or
+/// transcript state is shared between items.
+pub fn proveBatchWithSinks(allocator: std.mem.Allocator, items: []const BatchItem) !void {
+    if (items.len == 0 or items.len > 256) return error.InvalidBatchSize;
+    for (items) |item| {
+        if (item.sink == null or item.request.circuit_registry == null or item.request.repeat != 1)
+            return error.InvalidRecursiveLeafRequest;
+    }
+    return runItems(allocator, items, .distinct);
+}
+
+fn runItems(allocator: std.mem.Allocator, items: []const BatchItem, mode: Mode) !void {
+    const receipts = try allocator.alloc(publication.Receipt, items.len);
+    defer allocator.free(receipts);
     const executable = try std.fs.selfExePathAlloc(allocator);
     defer allocator.free(executable);
     const executable_digest = try publication.sha256File(executable);
@@ -56,18 +81,27 @@ pub fn proveWithSink(allocator: std.mem.Allocator, request: cli.Prove, sink: ?Ve
     const runtime_init_ns = startup.read();
     var expected_digest: ?[32]u8 = null;
     var resident_static: ?ResidentStatic = null;
-    for (0..request.repeat) |index| {
-        const receipt = try proveOnce(allocator, &runtime, &resident_static, request, executable_digest, @intCast(index + 1), if (index == 0) runtime_init_ns else 0, sink);
-        if (expected_digest) |expected| {
-            if (!std.mem.eql(u8, &expected, &receipt.proof_sha256)) return error.NondeterministicCairoCudaProof;
-        } else expected_digest = receipt.proof_sha256;
-        try receipts.append(allocator, receipt);
-        try publication.writeReport(request.report_out, receipts.items);
+    for (items, 0..) |item, index| {
+        const receipt = try proveOnce(allocator, &runtime, &resident_static, item.request, executable_digest, @intCast(if (mode == .repeated) index + 1 else 1), if (index == 0) runtime_init_ns else 0, item.sink);
+        if (mode == .repeated) {
+            if (expected_digest) |expected| {
+                if (!std.mem.eql(u8, &expected, &receipt.proof_sha256)) return error.NondeterministicCairoCudaProof;
+            } else expected_digest = receipt.proof_sha256;
+        }
+        receipts[index] = receipt;
+        try publication.writeReport(item.request.report_out, if (mode == .repeated) receipts[0 .. index + 1] else receipts[index .. index + 1]);
     }
     var teardown = try std.time.Timer.start();
     try runtime.close();
     runtime_live = false;
-    try publication.writeFinalReport(request.report_out, receipts.items, teardown.read());
+    const teardown_ns = teardown.read();
+    if (mode == .repeated) {
+        try publication.writeFinalReport(items[0].request.report_out, receipts, teardown_ns);
+    } else {
+        for (items, 0..) |item, index| {
+            try publication.writeFinalReport(item.request.report_out, receipts[index .. index + 1], if (index + 1 == items.len) teardown_ns else 0);
+        }
+    }
 }
 
 fn proveOnce(

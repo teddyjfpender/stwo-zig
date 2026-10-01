@@ -9,6 +9,7 @@ pub const Context = struct {
     allocator: std.mem.Allocator,
     request: circuit_app.LeafWrapRequest,
     output_path: []const u8,
+    shared_session: ?*circuit_app.VerifiedLeafSession = null,
     delivered: bool = false,
     wrap_ns: u64 = 0,
 
@@ -35,7 +36,10 @@ pub const Context = struct {
             .capture = capture,
         };
         var timer = try std.time.Timer.start();
-        var leaf = try circuit_app.leafWrapVerified(self.allocator, self.request, verified, &prepared.input);
+        var leaf = if (self.shared_session) |session|
+            try session.wrap(verified, &prepared.input)
+        else
+            try circuit_app.leafWrapVerified(self.allocator, self.request, verified, &prepared.input);
         defer leaf.deinit();
         try circuit_app.writeLeafProof(&leaf, self.output_path);
         self.wrap_ns = timer.read();

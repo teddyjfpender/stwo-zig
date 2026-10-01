@@ -17,11 +17,13 @@ pub fn main() !void {
     defer std.process.argsFree(allocator, args);
     if (args.len < 2) return error.MissingCommand;
     if (std.mem.eql(u8, args[1], "leaf-wrap")) return leafWrap(allocator, args[2..]);
+    if (std.mem.eql(u8, args[1], "leaf-wrap-batch")) return leafWrapBatch(allocator, args[2..]);
     if (std.mem.eql(u8, args[1], "fold-tree")) return foldTree(allocator, args[2..]);
     return error.UnknownCommand;
 }
 
 fn leafWrap(allocator: std.mem.Allocator, args: []const []const u8) !void {
+    var wall = try std.time.Timer.start();
     const registry = try flag(args, "--registry");
     const program = try flag(args, "--program");
     const input = try flag(args, "--input");
@@ -30,6 +32,7 @@ fn leafWrap(allocator: std.mem.Allocator, args: []const []const u8) !void {
     const cairo_report = try flag(args, "--cairo-report");
     var catalog = try circuit_cuda.air_aot.build(allocator, try circuit_app.authenticatedAirPrograms());
     defer catalog.deinit();
+    const catalog_ns = wall.lap();
     var backend = circuit_cuda.recursion_source.Context{ .catalog = &catalog };
     var receiver = sink.Context{
         .allocator = allocator,
@@ -51,9 +54,87 @@ fn leafWrap(allocator: std.mem.Allocator, args: []const []const u8) !void {
     }, receiver.sink());
     if (!receiver.delivered) return error.MissingVerifiedCairoLeaf;
     std.debug.print("circuit-cuda leaf-wrap total_ns={} wrap_ns={} proof={s}\n", .{ total.read(), receiver.wrap_ns, leaf_path });
+    std.debug.print("circuit-cuda leaf-wrap setup_ns={} execution_ns={}\n", .{ catalog_ns, wall.lap() });
+}
+
+const BatchManifestItem = struct {
+    registry: []const u8,
+    program: []const u8,
+    input: []const u8,
+    output: []const u8,
+    cairo_proof: []const u8,
+    cairo_report: []const u8,
+};
+
+fn leafWrapBatch(allocator: std.mem.Allocator, args: []const []const u8) !void {
+    var wall = try std.time.Timer.start();
+    var arena = std.heap.ArenaAllocator.init(allocator);
+    defer arena.deinit();
+    const a = arena.allocator();
+    const manifest_path = try flag(args, "--manifest");
+    const parsed = try std.json.parseFromSlice([]BatchManifestItem, a, try readFile(a, manifest_path), .{
+        .allocate = .alloc_always,
+        .ignore_unknown_fields = false,
+    });
+    if (parsed.value.len == 0 or parsed.value.len > 256) return error.InvalidBatchSize;
+    var catalog = try circuit_cuda.air_aot.build(allocator, try circuit_app.authenticatedAirPrograms());
+    defer catalog.deinit();
+    var backend = circuit_cuda.recursion_source.Context{ .catalog = &catalog };
+    const first = parsed.value[0];
+    for (parsed.value[1..]) |entry| {
+        if (!std.mem.eql(u8, entry.registry, first.registry) or
+            !std.mem.eql(u8, entry.program, first.program))
+            return error.MixedLeafPrograms;
+    }
+    var shared = try circuit_app.VerifiedLeafSession.init(allocator, .{
+        .registry_path = first.registry,
+        .program_path = first.program,
+        .prover_input_path = first.input,
+        .source = backend.source(),
+    });
+    defer shared.deinit();
+    const setup_ns = wall.lap();
+    const receivers = try a.alloc(sink.Context, parsed.value.len);
+    const items = try a.alloc(cairo_app.BatchItem, parsed.value.len);
+    for (parsed.value, receivers, items) |entry, *receiver, *item| {
+        receiver.* = .{
+            .allocator = allocator,
+            .request = .{
+                .registry_path = entry.registry,
+                .program_path = entry.program,
+                .prover_input_path = entry.input,
+                .source = backend.source(),
+            },
+            .output_path = entry.output,
+            .shared_session = &shared,
+        };
+        item.* = .{
+            .request = .{
+                .input = entry.input,
+                .output = entry.cairo_proof,
+                .report_out = entry.cairo_report,
+                .repeat = 1,
+                .circuit_registry = entry.registry,
+            },
+            .sink = receiver.sink(),
+        };
+    }
+    var total = try std.time.Timer.start();
+    try cairo_app.proveBatchWithSinks(allocator, items);
+    for (receivers, 0..) |receiver, index| {
+        if (!receiver.delivered) return error.MissingVerifiedCairoLeaf;
+        std.debug.print("circuit-cuda batch-leaf index={} wrap_ns={} proof={s}\n", .{
+            index, receiver.wrap_ns, receiver.output_path,
+        });
+    }
+    std.debug.print("circuit-cuda leaf-wrap-batch leaves={} total_ns={}\n", .{ receivers.len, total.read() });
+    std.debug.print("circuit-cuda leaf-wrap-batch setup_ns={} execution_ns={} cache_hits={} cache_misses={}\n", .{
+        setup_ns, wall.lap(), shared.cache.stats.hits, shared.cache.stats.misses,
+    });
 }
 
 fn foldTree(allocator: std.mem.Allocator, args: []const []const u8) !void {
+    var wall = try std.time.Timer.start();
     var arena = std.heap.ArenaAllocator.init(allocator);
     defer arena.deinit();
     const a = arena.allocator();
@@ -69,8 +150,10 @@ fn foldTree(allocator: std.mem.Allocator, args: []const []const u8) !void {
         const parsed = try wire.leaf_proof_json.parseLeafInput(a, try readFile(a, path));
         leaf.* = parsed.value;
     }
+    const parse_ns = wall.lap();
     var catalog = try circuit_cuda.air_aot.build(allocator, try circuit_app.authenticatedAirPrograms());
     defer catalog.deinit();
+    const catalog_ns = wall.lap();
     var backend = circuit_cuda.recursion_source.Context{ .catalog = &catalog };
     var timer = try std.time.Timer.start();
     var files = try circuit_app.foldTreeWithSource(
@@ -88,6 +171,9 @@ fn foldTree(allocator: std.mem.Allocator, args: []const []const u8) !void {
     try std.fs.cwd().writeFile(.{ .sub_path = packed_path, .data = files.packed_tree.written() });
     std.debug.print("circuit-cuda fold-tree leaves={} reductions={} prove_ns={} proof_bytes={}\n", .{
         files.stats.n_leaves, files.stats.n_pair_reductions, fold_ns, files.proof.written().len,
+    });
+    std.debug.print("circuit-cuda fold-tree parse_ns={} catalog_ns={} fold_ns={} publish_ns={}\n", .{
+        parse_ns, catalog_ns, fold_ns, wall.lap() - fold_ns,
     });
 }
 

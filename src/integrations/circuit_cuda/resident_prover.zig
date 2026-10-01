@@ -40,6 +40,7 @@ pub const Input = struct {
     catalog: *const air_aot.Catalog,
     config: core.pcs.config_v2.PcsConfigV2,
     profile: Profile,
+    expected_preprocessed_root: ?[8]u32 = null,
 };
 
 pub const Result = struct {
@@ -61,6 +62,7 @@ pub const Result = struct {
 /// consumer must independently verify the STARK before publishing it as a
 /// recursive child proof; decoding alone is not verification.
 pub fn prove(allocator: std.mem.Allocator, input: Input) !Result {
+    var phase = try std.time.Timer.start();
     if (input.values.len == 0 or input.preprocessed.n_outputs == 0 or
         input.preprocessed.n_outputs + circuit.witness.trace.U_VAR_IDX + 1 > input.values.len)
         return error.InvalidCircuitResidentInput;
@@ -111,14 +113,19 @@ pub fn prove(allocator: std.mem.Allocator, input: Input) !Result {
     const planned_arena_bytes = try memory_plan.bytes();
     var twiddles = try Twiddles.init(allocator, twiddle_words);
     defer twiddles.deinit();
+    const plan_ns = phase.lap();
 
     // The preprocessed root is circuit-static and may be cached across
     // proofs of the same topology. The GPU still commits that tree and the
     // native verifier checks the committed root against this identity.
-    const pp_root = try input.preprocessed.preprocessedRoot(allocator, blowup);
+    const pp_root = if (input.expected_preprocessed_root) |words|
+        core.vcs.blake2_hash.digestFromU32s(words)
+    else
+        try input.preprocessed.preprocessedRoot(allocator, blowup);
     const sizes = try circuit.common.component_list.circuitComponentLogSizes(&layout);
     const circuit_hash = try circuit.common.circuit_hash.hostCircuitHash(sizes, blowup, pp_root);
     const hash_words = core.vcs.blake2_hash.digestToU32s(circuit_hash);
+    const static_hash_ns = phase.lap();
 
     var tx = try cuda.runtime.proof_transaction.ResidentProofTransaction.openPrepared(
         allocator,
@@ -171,6 +178,7 @@ pub fn prove(allocator: std.mem.Allocator, input: Input) !Result {
     try fri_plan.upload(session, views.fri, views.twiddles_inverse);
     try decommit_plan.upload(session, views.decommit);
     try tx.finishIngress();
+    const ingress_ns = phase.lap();
 
     var schedule = pipeline.Bound{
         .transaction = &tx,
@@ -199,10 +207,12 @@ pub fn prove(allocator: std.mem.Allocator, input: Input) !Result {
         .twiddles_inverse = views.twiddles_inverse,
     };
     try schedule.execute(allocator, input.config);
+    const schedule_ns = phase.lap();
     const transport = try allocator.alloc(u32, terminal_bundle.total_words);
     defer allocator.free(transport);
     const proof_slot = (try memory_plan.slot(.terminal_bundle, 0)).requirement.id;
     const verdict = try tx.assembleAndFinish(transport, proof_slot);
+    const finish_ns = phase.lap();
     finished = true;
     if (!verdict.isResident()) return error.NonresidentCircuitProof;
     var decoded = terminal_decode.Proof.decode(
@@ -235,6 +245,9 @@ pub fn prove(allocator: std.mem.Allocator, input: Input) !Result {
     };
     errdefer decoded.deinit(allocator);
     const stark = try decoded.decodeStarkProof(allocator, &logical, input.config);
+    std.debug.print("circuit-cuda resident-phase profile={s} plan_ns={} static_hash_ns={} ingress_ns={} schedule_ns={} finish_ns={} decode_ns={}\n", .{
+        @tagName(input.profile), plan_ns, static_hash_ns, ingress_ns, schedule_ns, finish_ns, phase.lap(),
+    });
     return .{
         .allocator = allocator,
         .terminal_proof = decoded,

@@ -16,6 +16,7 @@ import re
 import shutil
 import subprocess
 import sys
+import threading
 import time
 from pathlib import Path
 
@@ -34,20 +35,50 @@ def digest(path: Path) -> str:
     return h.hexdigest()
 
 
-def run(command: list[str], log: Path) -> dict:
+def gpu_used_bytes() -> int:
+    result = subprocess.run(["nvidia-smi", "--query-gpu=memory.used", "--format=csv,noheader,nounits"],
+                            capture_output=True, text=True, check=True, timeout=2)
+    return int(result.stdout.splitlines()[0].strip()) * (1 << 20)
+
+
+def run(command: list[str], log: Path, sample_device_memory: bool = False) -> dict:
+    idle_gpu_bytes = gpu_used_bytes() if sample_device_memory else None
+    samples = []
+    stop_probe = threading.Event()
+
+    def probe() -> None:
+        while not stop_probe.is_set():
+            try:
+                samples.append(gpu_used_bytes())
+            except (OSError, subprocess.SubprocessError, ValueError, IndexError):
+                pass
+            stop_probe.wait(0.25)
+
+    sampler = threading.Thread(target=probe, daemon=True) if sample_device_memory else None
     started = time.perf_counter()
     time_flags = ["-l"] if sys.platform == "darwin" else ["-v"]
-    with log.open("w") as sink:
-        result = subprocess.run(["/usr/bin/time", *time_flags, *command], cwd=ROOT, stdout=sink, stderr=subprocess.STDOUT)
+    if sampler:
+        sampler.start()
+    try:
+        with log.open("w") as sink:
+            result = subprocess.run(["/usr/bin/time", *time_flags, *command], cwd=ROOT, stdout=sink, stderr=subprocess.STDOUT)
+        wall_s = round(time.perf_counter() - started, 3)
+    finally:
+        stop_probe.set()
+        if sampler:
+            sampler.join()
     content = log.read_text(errors="replace")
     if result.returncode:
         raise RuntimeError(f"{command[0]} exited {result.returncode}; see {log}:\n{content[-2000:]}")
     rss = re.search(r"(\d+)\s+maximum resident set size", content)
     rss_kb = re.search(r"Maximum resident set size \(kbytes\):\s*(\d+)", content)
     footprint = re.search(r"(\d+)\s+peak memory footprint", content)
-    return {"wall_s": round(time.perf_counter() - started, 3),
+    return {"wall_s": wall_s,
             "peak_rss_bytes": int(rss.group(1)) if rss else int(rss_kb.group(1)) * 1024 if rss_kb else None,
             "peak_memory_footprint_bytes": int(footprint.group(1)) if footprint else None,
+            "gpu_idle_used_bytes": idle_gpu_bytes,
+            "gpu_peak_used_bytes": max(samples) if samples else None,
+            "gpu_sample_interval_s": 0.25 if sampler else None,
             "log": str(log)}
 
 
@@ -104,19 +135,59 @@ def resident_leaf_stages(log: Path, report: Path) -> dict[str, float]:
             "wrap_s": int(match.group(2)) / 1e9}
 
 
+def resident_batch_leaf_stages(log: Path, report: Path, index: int) -> dict[str, float]:
+    match = re.search(rf"circuit-cuda batch-leaf index={index} wrap_ns=(\d+)", log.read_text())
+    if not match:
+        raise ValueError(f"missing resident batch leaf {index} telemetry: {log}")
+    receipt = json.loads(report.read_text())["completed_trials"][0]
+    if receipt["verdict"]["counters"]["cpu_fallback_attempts"]:
+        raise ValueError(f"nonresident Cairo proof: {report}")
+    return {"load_s": 0.0,
+            "cairo_prove_s": receipt["adapted_input_until_publication_ns"] / 1e9,
+            "wrap_s": int(match.group(1)) / 1e9}
+
+
 def resident_circuit_proofs(log: Path) -> list[dict]:
     pattern = (r"circuit-cuda circuit-proof profile=(internal|root) resident_ns=(\d+) "
                r"verify_ns=(\d+) convert_ns=(\d+) arena_bytes=(\d+) "
                r"peak_device_bytes=(\d+) terminal_bytes=(\d+)")
-    return [{"profile": profile, "resident_s": int(prove) / 1e9,
+    content = log.read_text()
+    proofs = [{"profile": profile, "resident_s": int(prove) / 1e9,
              "verify_s": int(verify) / 1e9, "convert_s": int(convert) / 1e9,
              "arena_bytes": int(arena), "peak_device_bytes": int(peak),
              "terminal_bytes": int(terminal)}
             for profile, prove, verify, convert, arena, peak, terminal
-            in re.findall(pattern, log.read_text())]
+            in re.findall(pattern, content)]
+    phase_pattern = (r"circuit-cuda resident-phase profile=(internal|root) plan_ns=(\d+) "
+                     r"static_hash_ns=(\d+) ingress_ns=(\d+) schedule_ns=(\d+) "
+                     r"finish_ns=(\d+) decode_ns=(\d+)")
+    phases = re.findall(phase_pattern, content)
+    if phases and len(phases) != len(proofs):
+        raise ValueError(f"incomplete resident circuit phase telemetry: {log}")
+    for proof, (profile, *values) in zip(proofs, phases):
+        if proof["profile"] != profile:
+            raise ValueError(f"resident circuit phase order mismatch: {log}")
+        proof["resident_phases_s"] = dict(zip(
+            ("plan", "static_hash", "ingress", "schedule", "finish", "decode"),
+            (int(value) / 1e9 for value in values)))
+    return proofs
 
 
-def phase_breakdown(rows: list[dict], fold: dict) -> dict[str, float]:
+def resident_host_phases(log: Path, command: str) -> dict | None:
+    content = log.read_text()
+    if command == "fold-tree":
+        match = re.search(r"circuit-cuda fold-tree parse_ns=(\d+) catalog_ns=(\d+) fold_ns=(\d+) publish_ns=(\d+)", content)
+        return dict(zip(("parse_s", "catalog_s", "fold_s", "publish_s"),
+                        (int(value) / 1e9 for value in match.groups()))) if match else None
+    if command == "leaf-wrap-batch":
+        match = re.search(r"circuit-cuda leaf-wrap-batch setup_ns=(\d+) execution_ns=(\d+) cache_hits=(\d+) cache_misses=(\d+)", content)
+        return {"setup_s": int(match.group(1)) / 1e9, "execution_s": int(match.group(2)) / 1e9,
+                "leaf_topology_cache_hits": int(match.group(3)),
+                "leaf_topology_cache_misses": int(match.group(4))} if match else None
+    return None
+
+
+def phase_breakdown(rows: list[dict], fold: dict, batch: dict | None = None) -> dict[str, float]:
     """Account for the serial wall clock without hiding process overhead."""
     phases = {
         "adapt_s": sum(row["adapt"]["wall_s"] for row in rows),
@@ -125,7 +196,8 @@ def phase_breakdown(rows: list[dict], fold: dict) -> dict[str, float]:
         "circuit_wrap_s": sum(row["leaf_stages"]["wrap_s"] for row in rows),
         "fold_s": fold["wall_s"],
     }
-    total = sum(row["adapt"]["wall_s"] + row["leaf_wrap"]["wall_s"] for row in rows) + fold["wall_s"]
+    total = sum(row["adapt"]["wall_s"] for row in rows) + (
+        batch["wall_s"] if batch else sum(row["leaf_wrap"]["wall_s"] for row in rows)) + fold["wall_s"]
     phases["process_overhead_s"] = total - sum(phases.values())
     return {key: round(value, 3) for key, value in phases.items()}
 
@@ -136,11 +208,17 @@ def main() -> None:
     parser.add_argument("--proving-root", type=Path, help="proving@5a7c5ed checkout")
     parser.add_argument("--adapted-dir", type=Path, help="reuse separately authenticated adapted inputs and preimages")
     parser.add_argument("--backend", choices=("cpu", "metal", "cuda-hybrid", "cuda-resident"), default="cpu")
+    parser.add_argument("--cuda-batch", action="store_true", help="reuse one Cairo CUDA runtime across distinct PIE leaves")
+    parser.add_argument("--sample-device-memory", action="store_true", help="sample whole-device H100 memory with nvidia-smi")
     parser.add_argument("--circuit-prover", type=Path, help="override the selected backend's binary")
     parser.add_argument("--rust-reducer", type=Path, help="optional pinned Rust reducer for byte parity")
     parser.add_argument("--out", type=Path, required=True)
     parser.add_argument("names", nargs="+", help="contiguous leaf PIE names, in block order")
     args = parser.parse_args()
+    if args.cuda_batch and args.backend != "cuda-resident":
+        raise ValueError("--cuda-batch requires --backend cuda-resident")
+    if args.sample_device_memory and args.backend != "cuda-resident":
+        raise ValueError("--sample-device-memory requires --backend cuda-resident")
     out = args.out.resolve()
     out.mkdir(parents=True, exist_ok=True)
     if args.adapted_dir is None and (args.oracle is None or args.proving_root is None):
@@ -161,6 +239,7 @@ def main() -> None:
     prover = (args.circuit_prover or default_prover).resolve()
     rows = []
     manifest = []
+    planned = []
     for name, pie, source in pie_sequence(args.names):
         input_path = out / f"{name}.bootloader_input.json"
         preimage = out / f"{name}.preimage.hex.json"
@@ -184,6 +263,9 @@ def main() -> None:
             adapt = run([str(oracle), "adapt-program", "--proving-root", str(proving),
                          "--program", LEAF_PROGRAM, "--program-input", str(input_path),
                          "--output", str(adapted)], out / f"{name}.adapt.log")
+        if args.cuda_batch:
+            planned.append((name, pie, source, preimage, adapted, wrapped, leaf, adapt))
+            continue
         print(f"proving and wrapping {name}", flush=True)
         if args.backend == "cuda-resident":
             cairo_proof = out / f"{name}.cairo_proof.json"
@@ -196,7 +278,7 @@ def main() -> None:
             command = [str(prover), "leaf-wrap", "--registry", str(REGISTRY),
                        "--program", str(ROOT / "vectors/circuit/official/programs/leaf_simple_bootloader_compiled.json"),
                        "--prover-input", str(adapted), "--output", str(wrapped), "--assets", str(ROOT)]
-        wrap = run(command, out / f"{name}.leaf_wrap.log")
+        wrap = run(command, out / f"{name}.leaf_wrap.log", args.sample_device_memory)
         leaf_input(wrapped, preimage, leaf)
         manifest.append(str(leaf))
         circuit_proofs = resident_circuit_proofs(out / f"{name}.leaf_wrap.log") if args.backend == "cuda-resident" else []
@@ -209,6 +291,38 @@ def main() -> None:
                                      if args.backend == "cuda-resident" else leaf_stages(out / f"{name}.leaf_wrap.log")),
                      "circuit_proofs": circuit_proofs,
                      "leaf_proof_sha256": digest(wrapped), "leaf_input_sha256": digest(leaf)})
+
+    batch = None
+    if args.cuda_batch:
+        batch_manifest = out / "cuda_batch.json"
+        batch_manifest.write_text(json.dumps([{
+            "registry": str(REGISTRY),
+            "program": str(ROOT / "vectors/circuit/official/programs/leaf_simple_bootloader_compiled.json"),
+            "input": str(adapted), "output": str(wrapped),
+            "cairo_proof": str(out / f"{name}.cairo_proof.json"),
+            "cairo_report": str(out / f"{name}.cairo_report.json"),
+        } for name, _, _, _, adapted, wrapped, _, _ in planned], indent=2) + "\n")
+        print(f"proving and wrapping {len(planned)} leaves in one CUDA runtime", flush=True)
+        batch_log = out / "cuda_batch.log"
+        batch = run([str(prover), "leaf-wrap-batch", "--manifest", str(batch_manifest)], batch_log,
+                    args.sample_device_memory)
+        batch["host_phases"] = resident_host_phases(batch_log, "leaf-wrap-batch")
+        proofs = resident_circuit_proofs(batch_log)
+        if len(proofs) != len(planned) or any(proof["profile"] != "internal" for proof in proofs):
+            raise ValueError("missing resident batch wrap proof telemetry")
+        for index, (name, pie, source, preimage, adapted, wrapped, leaf, adapt) in enumerate(planned):
+            leaf_input(wrapped, preimage, leaf)
+            manifest.append(str(leaf))
+            stages = resident_batch_leaf_stages(batch_log, out / f"{name}.cairo_report.json", index)
+            rows.append({"pie": str(pie), "blocks": source["blocks"], "cairo_steps": source["n_steps"],
+                         "initial_root": source["initial_root"], "final_root": source["final_root"],
+                         "adapt": adapt,
+                         "leaf_wrap": {"wall_s": round(stages["cairo_prove_s"] + stages["wrap_s"], 3),
+                                       "peak_rss_bytes": batch["peak_rss_bytes"],
+                                       "peak_memory_footprint_bytes": batch["peak_memory_footprint_bytes"],
+                                       "log": str(batch_log), "shared_process": True},
+                         "leaf_stages": stages, "circuit_proofs": [proofs[index]],
+                         "leaf_proof_sha256": digest(wrapped), "leaf_input_sha256": digest(leaf)})
 
     manifest_path = out / "leaves.json"
     manifest_path.write_text(json.dumps({"leaves": manifest}, indent=2) + "\n")
@@ -224,9 +338,10 @@ def main() -> None:
         fold_command = [str(prover), "fold-tree", "--program_input", str(manifest_path),
                         "--circuit_registry_json", str(REGISTRY), "--proof_path", str(root),
                         "--program_output", str(outputs), "--packed_output_path", str(packed)]
-    fold = run(fold_command, out / "fold.log")
+    fold = run(fold_command, out / "fold.log", args.sample_device_memory)
     if args.backend == "cuda-resident":
         fold["circuit_proofs"] = resident_circuit_proofs(out / "fold.log")
+        fold["host_phases"] = resident_host_phases(out / "fold.log", "fold-tree")
         if len(fold["circuit_proofs"]) != max(1, len(manifest) - 1) or fold["circuit_proofs"][-1]["profile"] != "root":
             raise ValueError("missing resident fold/root proof telemetry")
     rust = None
@@ -256,12 +371,18 @@ def main() -> None:
                "security": {"cairo_fri": registry["cairo_prover_params"]["fri_config"],
                             "circuit_fri": registry["circuit_proof_configs"]["default"]["fri_config"]},
                "registry_sha256": digest(REGISTRY),
-               "leaves": rows, "fold": fold,
-               "phase_breakdown_s": phase_breakdown(rows, fold),
-               "serial_wall_s": round(sum(row["adapt"]["wall_s"] + row["leaf_wrap"]["wall_s"] for row in rows) + fold["wall_s"], 3),
-               "serial_peak_rss_bytes": max([fold["peak_rss_bytes"], *[row["leaf_wrap"]["peak_rss_bytes"] for row in rows]]),
+               "leaves": rows, "fold": fold, "cuda_batch": batch,
+               "phase_breakdown_s": phase_breakdown(rows, fold, batch),
+               "serial_wall_s": round(sum(row["adapt"]["wall_s"] for row in rows) +
+                                      (batch["wall_s"] if batch else sum(row["leaf_wrap"]["wall_s"] for row in rows)) + fold["wall_s"], 3),
+               "serial_peak_rss_bytes": max([fold["peak_rss_bytes"], *([batch["peak_rss_bytes"]] if batch else
+                                                                        [row["leaf_wrap"]["peak_rss_bytes"] for row in rows])]),
                "serial_peak_memory_footprint_bytes": max((value for value in
                    [fold["peak_memory_footprint_bytes"], *[row["leaf_wrap"]["peak_memory_footprint_bytes"] for row in rows]]
+                   if value is not None), default=None),
+               "sampled_whole_device_peak_used_bytes": max((value for value in
+                   [fold["gpu_peak_used_bytes"], *([batch["gpu_peak_used_bytes"]] if batch else
+                                                         [row["leaf_wrap"]["gpu_peak_used_bytes"] for row in rows])]
                    if value is not None), default=None),
                "root": {key: {"path": str(path), "sha256": digest(path)} for key, path in
                         (("proof", root), ("outputs", outputs), ("packed", packed))}}

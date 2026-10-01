@@ -384,12 +384,14 @@ fn wrapCairoProofImpl(
         .air = wrap.bundle,
         .config = pcs_config,
         .profile = .internal,
+        .expected_preprocessed_root = entry.preprocessed_root.words,
     }) else null;
     defer if (produced) |*item| item.deinit();
     var circuit_proof: ?prove.Internal.CircuitProof = if (produced == null) try wrap.provers.internal(allocator, values, &topology.preprocessed, wrap.bundle, pcs_config, topology.proveOptions(wrap.options)) else null;
     defer if (circuit_proof) |*item| item.deinit();
     const root = if (produced) |item| item.preprocessed_root else blake2_hash.digestToU32s(circuit_proof.?.stark_proof.proof.commitment_scheme_proof.commitments.items[0]);
     const hash = if (produced) |item| item.circuit_hash else blake2_hash.digestToU32s(circuit_proof.?.circuit_hash);
+    if (!std.mem.eql(u32, &root, &entry.preprocessed_root.words)) return error.PreprocessedRootMismatch;
     if (!std.mem.eql(u32, &hash, &entry.circuit_hash.words)) return error.CircuitHashMismatch;
     if (fresh == null and !std.mem.eql(u32, &hash, &topology.circuit_hash)) return error.TopologyMismatch;
 

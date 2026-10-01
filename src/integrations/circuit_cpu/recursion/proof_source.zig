@@ -14,6 +14,9 @@ pub const Input = struct {
     air: *const air.Bundle,
     config: core.pcs.config_v2.PcsConfigV2,
     profile: Profile,
+    /// The authenticated registry root (leaf) or independently precomputed
+    /// canonical root (fold). A backend still checks the committed proof root.
+    expected_preprocessed_root: ?[8]u32 = null,
 };
 pub const Proof = union(Profile) {
     internal: wire.circuit_serialize.Proof,

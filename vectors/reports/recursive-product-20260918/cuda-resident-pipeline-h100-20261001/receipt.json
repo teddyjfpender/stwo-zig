@@ -1,0 +1,126 @@
+{
+  "schema": "stwo-circuit-cuda-resident-pipeline-benchmark-v1",
+  "measured_utc": "2026-10-01",
+  "device": "H100 SXM 80 GB, sm_90",
+  "build": "ReleaseFast",
+  "input_scope": "already adapted contiguous mainnet PIEs through verified Cairo, wrap, and root; excludes PIE execution, adaptation, queue, and build",
+  "run_count": 1,
+  "source_commit": "4c40d90d705fc11c5aae2f9b6f20891189cf9ab7",
+  "binary_sha256": "e7b2a6369752a970480f47859d08344ecf546a9d52a90700f56e07cd1519e367",
+  "registry_sha256": "a2503220947f161185a4f5160fd5953db92f6aec0055367830ebc8a65187eabf",
+  "security": {
+    "cairo_fri": {
+      "pow_bits": 26,
+      "log_blowup_factor": 1,
+      "log_last_layer_degree_bound": 0,
+      "n_queries": 70,
+      "fold_step": 1
+    },
+    "circuit_fri": {
+      "pow_bits": 26,
+      "log_blowup_factor": 1,
+      "log_last_layer_degree_bound": 0,
+      "n_queries": 70,
+      "fold_step": 4
+    }
+  },
+  "serial_wall_s": 32.308,
+  "host_peak_rss_bytes": 5043953664,
+  "whole_device_peak_bytes": null,
+  "phase_breakdown_s": {
+    "adapt_s": 0.0,
+    "load_s": 0.0,
+    "cairo_prove_s": 9.494,
+    "circuit_wrap_s": 12.579,
+    "fold_s": 9.021,
+    "process_overhead_s": 1.214
+  },
+  "leaves": [
+    {
+      "pie": "15627902-15627904.zip",
+      "blocks": [
+        15627902,
+        15627904
+      ],
+      "cairo_steps": 1224007,
+      "adapted_input_sha256": "570cc4b40bad437dd27e01da7a6dcc3fc2601049884274e3b335fd245e3aca9a",
+      "preimage_sha256": "6ba24d85781e221b35fda38e3550e7107a3202952f61c3ff2696a761106e5de8",
+      "wall_s": 11.76,
+      "host_peak_rss_bytes": 5043953664,
+      "stages_s": {
+        "load_s": 0.0,
+        "cairo_prove_s": 4.983512311,
+        "wrap_s": 6.288633354
+      },
+      "circuit_proofs": [
+        {
+          "profile": "internal",
+          "resident_s": 2.32779435,
+          "verify_s": 1.70161887,
+          "convert_s": 0.000430903,
+          "arena_bytes": 28123850272,
+          "peak_device_bytes": 28123850272,
+          "terminal_bytes": 4018944
+        }
+      ],
+      "leaf_proof_sha256": "01ed69eb3083e2d3e91acd77b1bad060907374cdb924f024132864f072804a1c",
+      "leaf_input_sha256": "dcf3ed4214790cfef602766f4edbfbaa03dab2fa05ebc3fba88d082f566677d8"
+    },
+    {
+      "pie": "15627905-15627907.zip",
+      "blocks": [
+        15627905,
+        15627907
+      ],
+      "cairo_steps": 785807,
+      "adapted_input_sha256": "e2d318e60122685444071e3039eb1a6d4a8f659800ad679099b8e5d48a4cd823",
+      "preimage_sha256": "de65c3023ea4c6aecf03fe57de44ebf627a8d0cc47663b24e555013cb7199251",
+      "wall_s": 11.527,
+      "host_peak_rss_bytes": 4946001920,
+      "stages_s": {
+        "load_s": 0.0,
+        "cairo_prove_s": 4.510604753,
+        "wrap_s": 6.290346489
+      },
+      "circuit_proofs": [
+        {
+          "profile": "internal",
+          "resident_s": 2.855426202,
+          "verify_s": 1.442321586,
+          "convert_s": 0.000390112,
+          "arena_bytes": 28123850272,
+          "peak_device_bytes": 28123850272,
+          "terminal_bytes": 4018944
+        }
+      ],
+      "leaf_proof_sha256": "fe69619f1b3a699038fdaea6a4e5dd420d0f0fba0a17a01e681ab5cfbe901400",
+      "leaf_input_sha256": "7cda055e4bf0fcda6debab8c137aaa794176922ba4efb528994b1fd324aa22db"
+    }
+  ],
+  "fold": {
+    "wall_s": 9.021,
+    "host_peak_rss_bytes": 4144295936,
+    "circuit_proofs": [
+      {
+        "profile": "root",
+        "resident_s": 3.002511365,
+        "verify_s": 1.476797616,
+        "convert_s": 0.000198401,
+        "arena_bytes": 28132566560,
+        "peak_device_bytes": 28132566560,
+        "terminal_bytes": 4018944
+      }
+    ]
+  },
+  "root_sha256": {
+    "proof": "9093f941c4a9144fd653441c582cc0921bac8431df8df46bdd556b8e661af724",
+    "outputs": "abaefd94d716e2e4f07b5a2fcd521764e5d4c0f8dd04ec60e095bf74d0e1349b",
+    "packed": "72f17bf582e5438defd30e2f3c52f87ff47e5d6f0d1223b98d37bac8007c54a2"
+  },
+  "rust_root_byte_equal": {
+    "proof": true,
+    "outputs": true,
+    "packed": true
+  },
+  "qualification_note": "Zig verifies every Cairo and circuit proof; final root files match proving@5a7c5ed byte for byte. Cairo standalone Rust-verifier verdict remains pending."
+}
