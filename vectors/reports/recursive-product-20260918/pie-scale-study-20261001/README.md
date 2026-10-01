@@ -28,12 +28,13 @@ Every adapted file was hashed before transfer and checked again on the H200.
 
 The 179,936,666-step PIE `15553620_15553629` is a legacy ten-block range,
 not representative of the newer ~30M-step sizing policy. Its archive is
-953,263,717 bytes and its metadata reports 18,537,302 memory holes. The
-current CUDA product rejects adapted files above 2 GiB. The 40M-step cohort
-input is already 771 MB, so the 180M case needs an explicit size and memory
-admission decision; a linear estimate is not a measured adapted size or proof
-footprint. Re-baking that old block range into new contiguous PIE boundaries
-would change the workload and requires a separately qualified chain.
+953,263,717 bytes and its metadata reports 18,537,302 memory holes. Its
+adapted input measured 3,423,500,540 bytes. The CUDA product's default input
+limit was raised from 2 to 4 GiB to permit exact planning and a bounded GPU
+admission attempt. That attempt reached device allocation and failed with
+`InsufficientDeviceMemory`; the measured resident plan was 508,418,189,636
+bytes. Re-baking that old block range into new contiguous PIE boundaries would
+change the workload and requires a separately qualified chain.
 
 The 15 local Rust adaptations from 0.986M to 39.941M steps took **0.681–12.446
 s** each and peaked at **0.476–12.868 GB host RSS**. Their compact inputs range
@@ -181,12 +182,10 @@ and the complete per-tree sum are needed.
 
 The trace-commit offsets and their resident metadata slot are now 64-bit in
 the PR branch. The geometry inspector prepares all four CUDA commitment
-controllers for each of the 25 CPI files above without a GPU; all 15 former
-`u32` offset failures pass this admission check. The recorded H200 proof
-failures are historical measurements from before this change. A new GPU run
-must still establish whether their full proofs fit H200 memory and verify.
-These measurements also provide no time or memory bound for the unadapted
-179.94M-step PIE.
+controllers for each of the 25 original CPI files without a GPU; all 15 former
+`u32` offset failures pass this admission check. The original H200 failures
+were historical measurements before this change. The retests and their
+independent Rust verification are recorded below.
 
 ## Expanded measured cohort
 
@@ -201,10 +200,9 @@ adaptation times and peak memory are in
 driver, protocol, and prover digest are in
 [h200-wave2-machine.json](h200-wave2-machine.json).
 
-The [joined PIE-level CSV](pie-scale.csv) has **458 GPU trials: 443 proofs
-accepted by the pinned official Rust verifier and 15 trace-geometry admission
-failures** across the 6,187 catalogued PIEs. Every generated proof passed that
-independent verifier. The CSV joins
+Before the 64-bit-offset retest, the [joined PIE-level CSV](pie-scale.csv) had
+458 GPU trials: 443 proofs accepted by the pinned official Rust verifier and
+15 trace-geometry admission failures. The latest counts are below. The CSV joins
 each measured row to its source receipt filename and includes block count,
 OS steps, archive and adapted sizes, M5 adaptation time and peak memory,
 H200 source and fixed-load timings, ingress subphases, proof execution,
@@ -234,19 +232,79 @@ same H200, canonical security parameters, and prover binary recorded in
 | 16–24M | 167 | 6.680 / 7.468 s | 101.3 / 110.7 GB |
 | 24–32M | 60 | 7.058 / 7.970 s | 110.7 / 134.3 GB |
 
-Across all 443 verified PIEs, median adapted-input-to-publication time was
+Across those first 443 verified PIEs, median adapted-input-to-publication time was
 **6.196 s** and median sampled GPU use was **93.1 GB**. The median proof
 execution/finish phase was 0.964 s; source preparation, fixed-asset load, and
 other ingress had separate medians of 1.242 s, 2.441 s, and 1.386 s. Local M5
 adaptation took a median 5.409 s and separate Rust verification 0.058 s.
 These phase medians are computed independently and should not be added as if
 they were one trial. The largest successfully proved PIE had 31.906M steps.
-All 15 failed attempts were 24.046–39.941M steps and stopped at
+The first 15 failed attempts were 24.046–39.941M steps and stopped at
 `TraceCommitGeometryOverflow` during controller preparation; none was a Rust
-verification failure or a measured GPU out-of-memory event.
+verification failure. Their latest outcomes are below.
 
 The [size-bin summary](pie-size-distribution.csv) gives catalogue counts,
 trial and failure counts, and publication-time and sampled-GPU-memory
 percentiles by both OS steps and block span. Bin lower bounds are inclusive;
 upper bounds are exclusive. The selections deliberately cover size and block
 strata, so their raw frequencies are not an estimate of production traffic.
+
+## Post-fix H200 qualification and large low-block PIEs
+
+The latest [joined CSV](pie-scale.csv) still has one row for each of the 6,187
+catalogued PIEs. It now includes **464 latest GPU trials: 456 verified proofs
+and eight device-memory admission failures**. The [64-bit-offset retest](pie-proving-offset-fix-20261001.csv)
+re-ran all 15 earlier `TraceCommitGeometryOverflow` cases on the H200. Eight
+generated canonical proofs, all accepted by the pinned official Rust verifier.
+Their adapted-input-to-publication times were 10.323–11.647 s and sampled GPU
+peaks were 147.3–148.9 GB. The other seven reached `allocate_arena` and
+returned `InsufficientDeviceMemory`; their exact resident plans were
+151.8–178.3 GB, exceeding this H200's 150.755 GB total. None of the 15
+retests failed the trace-geometry offset check. The
+[resident-plan CSV](resident-plans-20261001.csv) records exact component-derived
+logical, peak-live, and allocated bytes for all 25 inputs examined in this
+round, including inputs excluded from a GPU run by capacity planning.
+
+To locate a useful high-step boundary without conflating it with a large block
+range, we selected the catalogue's largest one-block PIE and another with
+higher Pedersen, Poseidon, and EC-op counts; then the highest-step two- and
+three-block candidates around the H200 capacity boundary. The first five
+rows below produced canonical proofs accepted by the Rust verifier. `Source`
+is adapted input loading; `fixed` is canonical preprocessed-coefficient load;
+`other` includes the remaining ingress and publication. These are separate
+from M5 Rust adaptation and independent verification, which are in the
+[adaptation receipts](adaptation-large-pies-20261001.csv) and
+[proof receipts](pie-proving-large-one-block-20261001.csv) ([two-block
+receipts](pie-proving-large-two-block-20261001.csv)). Times are seconds and
+memory is decimal GB.
+
+| PIE | Blocks | Steps M | Pedersen / Poseidon / EC-op | Plan GB | GPU GB | Source | Fixed | Other | Proof | Input→proof |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| `15591789_15591789` | 1 | 25.379 | 191100 / 6070 / 960 | 144.0 | 145.9 | 3.519 | 3.537 | 2.731 | 1.725 | 11.512 |
+| `15584508_15584508` | 1 | 24.879 | 196768 / 6999 / 1086 | 145.6 | 147.5 | 3.508 | 3.779 | 2.402 | 1.796 | 11.485 |
+| `15587365_15587366` | 2 | 29.237 | 217440 / 4441 / 642 | 110.5 | 112.4 | 3.786 | 3.707 | 2.765 | 1.311 | 11.569 |
+| `15601094_15601095` | 2 | 28.927 | 249653 / 1748 / 96 | 135.8 | 137.7 | 3.955 | 3.628 | 2.668 | 1.647 | 11.898 |
+| `15597384_15597385` | 2 | 29.684 | 279761 / 2350 / 294 | 143.4 | 145.2 | 3.918 | 3.597 | 3.100 | 1.718 | 12.333 |
+
+The next larger two-block candidate, `15601156_15601157` (32.771M steps),
+plans 152.8 GB and already exceeds the H200's physical memory. Other selected
+low-block examples also exceed it: `15580721_15580722` (30.581M, 156.0 GB),
+`15581194_15581196` (three blocks, 29.310M, 152.6 GB), and
+`15588777_15588780` (four blocks, 33.679M, 166.0 GB). These four were
+adapted and planned exactly, but were not sent to the GPU. The largest
+low-block successes above are therefore an observed boundary for this
+selection, not a universal step ceiling. A previously verified 31.906M-step
+ten-block PIE used only 125.8 GB on the GPU. Component heights and distinct
+Pedersen keys matter more than step count or block count alone.
+
+Finally, `15553620_15553629` (179.937M steps, ten blocks) was adapted with
+the pinned Rust bootloader in 67.203 s at 41.82 GB host RSS. Its 3.424 GB
+compact input parsed and planned under the new 4 GiB default, then a bounded
+H200 run reached `allocate_arena` and returned `InsufficientDeviceMemory` in
+13.977 s. Its exact allocation plan is 508.418 GB, over 3.3 times this H200's
+physical capacity. The [GPU admission receipt](pie-proving-180m-admission-20261001.csv)
+records that failure, rather than implying a proof was generated. The two
+[H200 machine](h200-offset-fix-machine.json) [receipts](h200-large-input-machine.json)
+record the canonical 70-query, 26-bit query PoW, and 24-bit interaction PoW
+security settings and the prover digests before and after raising the compact
+input limit. The pod was stopped after collecting the receipts.

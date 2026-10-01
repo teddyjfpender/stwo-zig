@@ -1,0 +1,2 @@
+pie,os_steps,n_memory_holes,archive_bytes,cpi_bytes,status,ingress_s,proof_execute_finish_s,adapted_to_publication_s,process_wall_s,host_peak_rss_bytes,gpu_peak_used_bytes,planned_arena_bytes,peak_live_bytes,proof_bytes,proof_sha256,error
+15553620_15553629,179936666,,953263717,3423500540,failed,,,,13.977,7587766272,1197408256,,,,,cairo-cuda phase=allocate_arena failed: InsufficientDeviceMemory; error: InsufficientDeviceMemory

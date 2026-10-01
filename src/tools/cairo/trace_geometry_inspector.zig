@@ -31,6 +31,11 @@ pub fn main() !void {
     for (args[1..]) |path| {
         var prepared = try source.prepareWithAssets(allocator, .{ .input = path }, target, &assets);
         defer prepared.deinit();
+        const summary = prepared.request.resident.summary;
+        std.debug.print("resident pie={s} logical_bytes={} peak_live_bytes={} allocated_bytes={} coefficient_cells={} evaluation_cells={}\n", .{
+            std.fs.path.stem(path),           summary.logicalBytes(),    summary.peak_live_words * 4,
+            summary.allocatedResidentBytes(), summary.coefficient_cells, summary.evaluation_cells,
+        });
         for (prepared.claim.components, prepared.geometry.extents) |component, extent| {
             if (!std.mem.eql(u8, component.name, "pedersen_builtin") and
                 !std.mem.eql(u8, component.name, "pedersen_aggregator_window_bits_18") and
