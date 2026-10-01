@@ -41,6 +41,9 @@ pub const Input = struct {
     config: core.pcs.config_v2.PcsConfigV2,
     profile: Profile,
     expected_preprocessed_root: ?[8]u32 = null,
+    /// A process-owned runtime for consecutive recursive proofs. Standalone
+    /// callers leave this null and get the original proof-owned session.
+    runtime: ?*cuda.runtime.NativeRuntime = null,
 };
 
 pub const Result = struct {
@@ -127,10 +130,21 @@ pub fn prove(allocator: std.mem.Allocator, input: Input) !Result {
     const hash_words = core.vcs.blake2_hash.digestToU32s(circuit_hash);
     const static_hash_ns = phase.lap();
 
-    var tx = try cuda.runtime.proof_transaction.ResidentProofTransaction.openPrepared(
+    var placement = try memory_plan.placement.clone(allocator);
+    var tx = if (input.runtime) |runtime| blk: {
+        const retained = runtime.beginProof() catch |err| {
+            placement.deinit(allocator);
+            return err;
+        };
+        break :blk try cuda.runtime.proof_transaction.ResidentProofTransaction.openPreparedRetained(
+            allocator,
+            retained,
+            placement,
+        );
+    } else try cuda.runtime.proof_transaction.ResidentProofTransaction.openPrepared(
         allocator,
         &.{ 80, 90 },
-        try memory_plan.placement.clone(allocator),
+        placement,
     );
     var finished = false;
     defer if (!finished) tx.abort() catch {};

@@ -746,7 +746,9 @@ pub fn SessionForProvider(
                 return error.ThreadOwnershipViolation;
         }
 
-        fn releasePreparedExecution(self: *Self) runtime_error.Error!void {
+        /// Evict proof-independent prepared arenas between different product
+        /// families while retaining the CUDA context and loaded AOT modules.
+        pub fn releasePreparedExecution(self: *Self) runtime_error.Error!void {
             try self.requireOwner();
             if (self.state != .idle) return error.InvalidState;
             try self.execution_cache.deinit(&self.context);

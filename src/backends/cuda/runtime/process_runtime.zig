@@ -112,6 +112,11 @@ pub fn ProcessOwnedRuntimeFor(comptime Session: type) type {
             );
         }
 
+        pub fn releasePreparedExecution(self: *Self) runtime_error.Error!void {
+            if (!self.owns_registry or !self.inner.isReady()) return error.InvalidState;
+            try self.inner.session.releasePreparedExecution();
+        }
+
         pub fn completedProofs(self: Self) u64 {
             return self.inner.completedProofs();
         }

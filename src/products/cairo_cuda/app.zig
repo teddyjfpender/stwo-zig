@@ -7,6 +7,7 @@ const publication = @import("publication.zig");
 const CanonicalSource = stwo.integration.canonical_source.Prepared;
 const Decoded = stwo.integration.canonical_verify.Decoded;
 const ProofCapture = stwo.frontend.witness.resident_verifier.ProofCapture;
+pub const NativeRuntime = stwo.backend.runtime.NativeRuntime;
 
 /// The verified proof and its authenticated openings are borrowed only during
 /// this callback. A recursive leaf builder can consume them without proving
@@ -51,7 +52,7 @@ pub fn proveWithSink(allocator: std.mem.Allocator, request: cli.Prove, sink: ?Ve
     const items = try allocator.alloc(BatchItem, request.repeat);
     defer allocator.free(items);
     for (items) |*item| item.* = .{ .request = request, .sink = sink };
-    return runItems(allocator, items, .repeated);
+    return runItems(allocator, items, .repeated, null);
 }
 
 /// Prove distinct adapted PIEs in one process. The authenticated arena key
@@ -63,26 +64,43 @@ pub fn proveBatchWithSinks(allocator: std.mem.Allocator, items: []const BatchIte
         if (item.sink == null or item.request.circuit_registry == null or item.request.repeat != 1)
             return error.InvalidRecursiveLeafRequest;
     }
-    return runItems(allocator, items, .distinct);
+    return runItems(allocator, items, .distinct, null);
 }
 
-fn runItems(allocator: std.mem.Allocator, items: []const BatchItem, mode: Mode) !void {
+/// The circuit receiver borrows this runtime after each Cairo proof. Its
+/// prepared Cairo arena is evicted before the callback so a large circuit
+/// arena can fit on one GPU; the context and AOT modules remain live.
+pub fn proveBatchWithSinksUsingRuntime(allocator: std.mem.Allocator, items: []const BatchItem, runtime: *NativeRuntime) !void {
+    if (items.len == 0 or items.len > 256) return error.InvalidBatchSize;
+    for (items) |item| {
+        if (item.sink == null or item.request.circuit_registry == null or item.request.repeat != 1)
+            return error.InvalidRecursiveLeafRequest;
+    }
+    return runItems(allocator, items, .distinct, runtime);
+}
+
+fn runItems(allocator: std.mem.Allocator, items: []const BatchItem, mode: Mode, external_runtime: ?*NativeRuntime) !void {
     const receipts = try allocator.alloc(publication.Receipt, items.len);
     defer allocator.free(receipts);
     const executable = try std.fs.selfExePathAlloc(allocator);
     defer allocator.free(executable);
     const executable_digest = try publication.sha256File(executable);
     var startup = try std.time.Timer.start();
-    const accepted_sms = try stwo.backend.runtime.device_admission.parseArchitectures(allocator, @import("cuda_architectures").architectures);
-    defer allocator.free(accepted_sms);
-    var runtime = try stwo.backend.runtime.NativeRuntime.open(accepted_sms);
-    var runtime_live = true;
-    defer if (runtime_live) runtime.abort() catch {};
-    const runtime_init_ns = startup.read();
+    var owned_runtime: NativeRuntime = undefined;
+    var owned_runtime_live = false;
+    defer if (owned_runtime_live) owned_runtime.abort() catch {};
+    if (external_runtime == null) {
+        const accepted_sms = try stwo.backend.runtime.device_admission.parseArchitectures(allocator, @import("cuda_architectures").architectures);
+        defer allocator.free(accepted_sms);
+        owned_runtime = try NativeRuntime.open(accepted_sms);
+        owned_runtime_live = true;
+    }
+    const runtime = external_runtime orelse &owned_runtime;
+    const runtime_init_ns = if (external_runtime == null) startup.read() else 0;
     var expected_digest: ?[32]u8 = null;
     var resident_static: ?ResidentStatic = null;
     for (items, 0..) |item, index| {
-        const receipt = try proveOnce(allocator, &runtime, &resident_static, item.request, executable_digest, @intCast(if (mode == .repeated) index + 1 else 1), if (index == 0) runtime_init_ns else 0, item.sink);
+        const receipt = try proveOnce(allocator, runtime, &resident_static, item.request, executable_digest, @intCast(if (mode == .repeated) index + 1 else 1), if (index == 0) runtime_init_ns else 0, item.sink, external_runtime != null);
         if (mode == .repeated) {
             if (expected_digest) |expected| {
                 if (!std.mem.eql(u8, &expected, &receipt.proof_sha256)) return error.NondeterministicCairoCudaProof;
@@ -92,9 +110,11 @@ fn runItems(allocator: std.mem.Allocator, items: []const BatchItem, mode: Mode) 
         try publication.writeReport(item.request.report_out, if (mode == .repeated) receipts[0 .. index + 1] else receipts[index .. index + 1]);
     }
     var teardown = try std.time.Timer.start();
-    try runtime.close();
-    runtime_live = false;
-    const teardown_ns = teardown.read();
+    if (owned_runtime_live) {
+        try owned_runtime.close();
+        owned_runtime_live = false;
+    }
+    const teardown_ns = if (external_runtime == null) teardown.read() else 0;
     if (mode == .repeated) {
         try publication.writeFinalReport(items[0].request.report_out, receipts, teardown_ns);
     } else {
@@ -113,6 +133,7 @@ fn proveOnce(
     index: u32,
     runtime_init_ns: u64,
     sink: ?VerifiedLeafSink,
+    release_arena_for_sink: bool,
 ) !publication.Receipt {
     var timer = try std.time.Timer.start();
     var phase: []const u8 = "resolve_input";
@@ -328,6 +349,10 @@ fn proveOnce(
     };
     if (sink) |receiver| {
         phase = "deliver_verified_leaf";
+        if (release_arena_for_sink) {
+            try runtime.releasePreparedExecution();
+            resident_static.* = null;
+        }
         try receiver.receive(receiver.context, &diagnostic, &decoded, &capture, output.proof.structural.interactionNonce());
     }
     return receipt;

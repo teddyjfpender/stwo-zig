@@ -8,13 +8,16 @@ const cpu = @import("stwo_circuit_cpu_integration");
 const air_aot = @import("air_aot.zig");
 const resident = @import("resident_prover.zig");
 const verifier = @import("resident_verifier.zig");
+const cuda = @import("stwo_cuda_backend");
 
 const QM31 = core.fields.qm31.QM31;
 const Source = cpu.recursion.proof_source;
 const N = circuit.common.component_list.N_COMPONENTS;
+pub const Runtime = cuda.runtime.NativeRuntime;
 
 pub const Context = struct {
     catalog: *const air_aot.Catalog,
+    runtime: ?*cuda.runtime.NativeRuntime = null,
 
     pub fn source(self: *Context) Source.Source {
         return .{ .context = self, .prove = prove };
@@ -35,6 +38,7 @@ fn prove(erased: *anyopaque, allocator: std.mem.Allocator, input: Source.Input) 
         .catalog = context.catalog,
         .config = input.config,
         .expected_preprocessed_root = input.expected_preprocessed_root,
+        .runtime = context.runtime,
         .profile = switch (input.profile) {
             .internal => .internal,
             .root => .root,

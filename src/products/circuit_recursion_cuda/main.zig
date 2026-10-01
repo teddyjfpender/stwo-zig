@@ -79,7 +79,10 @@ fn leafWrapBatch(allocator: std.mem.Allocator, args: []const []const u8) !void {
     if (parsed.value.len == 0 or parsed.value.len > 256) return error.InvalidBatchSize;
     var catalog = try circuit_cuda.air_aot.build(allocator, try circuit_app.authenticatedAirPrograms());
     defer catalog.deinit();
-    var backend = circuit_cuda.recursion_source.Context{ .catalog = &catalog };
+    var runtime = try circuit_cuda.recursion_source.Runtime.open(&.{ 80, 90 });
+    var runtime_live = true;
+    defer if (runtime_live) runtime.abort() catch {};
+    var backend = circuit_cuda.recursion_source.Context{ .catalog = &catalog, .runtime = &runtime };
     const first = parsed.value[0];
     for (parsed.value[1..]) |entry| {
         if (!std.mem.eql(u8, entry.registry, first.registry) or
@@ -120,7 +123,9 @@ fn leafWrapBatch(allocator: std.mem.Allocator, args: []const []const u8) !void {
         };
     }
     var total = try std.time.Timer.start();
-    try cairo_app.proveBatchWithSinks(allocator, items);
+    try cairo_app.proveBatchWithSinksUsingRuntime(allocator, items, &runtime);
+    try runtime.close();
+    runtime_live = false;
     for (receivers, 0..) |receiver, index| {
         if (!receiver.delivered) return error.MissingVerifiedCairoLeaf;
         std.debug.print("circuit-cuda batch-leaf index={} wrap_ns={} proof={s}\n", .{
@@ -154,7 +159,10 @@ fn foldTree(allocator: std.mem.Allocator, args: []const []const u8) !void {
     var catalog = try circuit_cuda.air_aot.build(allocator, try circuit_app.authenticatedAirPrograms());
     defer catalog.deinit();
     const catalog_ns = wall.lap();
-    var backend = circuit_cuda.recursion_source.Context{ .catalog = &catalog };
+    var runtime = try circuit_cuda.recursion_source.Runtime.open(&.{ 80, 90 });
+    var runtime_live = true;
+    defer if (runtime_live) runtime.abort() catch {};
+    var backend = circuit_cuda.recursion_source.Context{ .catalog = &catalog, .runtime = &runtime };
     var timer = try std.time.Timer.start();
     var files = try circuit_app.foldTreeWithSource(
         allocator,
@@ -165,6 +173,8 @@ fn foldTree(allocator: std.mem.Allocator, args: []const []const u8) !void {
         backend.source(),
     );
     defer files.deinit();
+    try runtime.close();
+    runtime_live = false;
     const fold_ns = timer.read();
     try std.fs.cwd().writeFile(.{ .sub_path = proof_path, .data = files.proof.written() });
     try std.fs.cwd().writeFile(.{ .sub_path = outputs_path, .data = files.outputs.written() });
