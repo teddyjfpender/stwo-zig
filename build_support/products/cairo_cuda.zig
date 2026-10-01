@@ -304,8 +304,16 @@ fn addCircuitResidentBenchmark(context: Context, toolchain: cuda.Toolchain, cair
     cuda.linkRuntime(exe, toolchain, circuit_archive);
     b.step("benchmark-circuit-cuda-resident", "Build the verified resident circuit-recursion CUDA benchmark").dependOn(&b.addInstallArtifact(exe, .{}).step);
 
-    const cairo_app = createProductModule(context, product(.library), stwo, "80,90");
-    cairo_app.root_source_file = b.path("src/products/cairo_cuda/app.zig");
+    const cairo_app = b.createModule(.{
+        .root_source_file = b.path("src/products/cairo_cuda/app.zig"),
+        .target = context.target,
+        .optimize = context.optimize,
+    });
+    cairo_app.addImport("stwo_cairo_cuda", stwo);
+    cairo_app.addImport("stwo_circuit_recursion_wire", wire);
+    const architectures = b.addOptions();
+    architectures.addOption([]const u8, "architectures", "80,90");
+    cairo_app.addImport("cuda_architectures", architectures.createModule());
     const cairo_cpu = integration_graph.addCairoCpuImport(
         b,
         context.protocol,
