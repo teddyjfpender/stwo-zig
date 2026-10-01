@@ -69,8 +69,10 @@ for trial in ("serial-memory", "batch-memory", "batch-image-memory",
         if receipt["sampled_whole_device_peak_used_bytes"] is None:
             raise RuntimeError(f"missing GPU memory samples: {trial}")
     else:
-        samples.setdefault(variant, []).append(receipt["serial_wall_s"])
-    print(trial, "wall_s", receipt["serial_wall_s"],
+        samples.setdefault(variant, []).append((receipt["serial_wall_s"],
+                                                 receipt["adapted_input_to_root_wall_s"]))
+    print(trial, "process_wall_s", receipt["serial_wall_s"],
+          "adapted_input_to_root_wall_s", receipt["adapted_input_to_root_wall_s"],
           "whole_device_peak_bytes", receipt["sampled_whole_device_peak_used_bytes"],
           "root_sha256", receipt["root"]["proof"]["sha256"])
     for leaf in receipt["leaves"]:
@@ -78,5 +80,7 @@ for trial in ("serial-memory", "batch-memory", "batch-image-memory",
               "wrap_s", leaf["leaf_stages"]["wrap_s"],
               "static", leaf["cairo_static_phases"])
 for variant, values in samples.items():
-    print(variant, "median_wall_s", statistics.median(values), "samples", values)
+    print(variant, "median_process_wall_s", statistics.median(value[0] for value in values),
+          "median_adapted_input_to_root_wall_s", statistics.median(value[1] for value in values),
+          "samples", values)
 PY

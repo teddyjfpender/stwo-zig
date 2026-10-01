@@ -293,6 +293,7 @@ def main() -> None:
         raise ValueError("--cuda-static-image requires --cuda-batch")
     if args.sample_device_memory and args.backend != "cuda-resident":
         raise ValueError("--sample-device-memory requires --backend cuda-resident")
+    pipeline_started = time.perf_counter()
     out = args.out.resolve()
     out.mkdir(parents=True, exist_ok=True)
     if args.adapted_dir is None and (args.oracle is None or args.proving_root is None):
@@ -423,6 +424,7 @@ def main() -> None:
                         "--circuit_registry_json", str(REGISTRY), "--proof_path", str(root),
                         "--program_output", str(outputs), "--packed_output_path", str(packed)]
     fold = run(fold_command, out / "fold.log", args.sample_device_memory)
+    adapted_input_to_root_wall_s = round(time.perf_counter() - pipeline_started, 3)
     if args.backend == "cuda-resident":
         fold["circuit_proofs"] = resident_circuit_proofs(out / "fold.log")
         fold["host_phases"] = resident_host_phases(out / "fold.log", "fold-tree")
@@ -457,6 +459,7 @@ def main() -> None:
                "registry_sha256": digest(REGISTRY),
                "leaves": rows, "fold": fold, "cuda_batch": batch,
                "cuda_static_image": args.cuda_static_image,
+               "adapted_input_to_root_wall_s": adapted_input_to_root_wall_s,
                "phase_breakdown_s": phase_breakdown(rows, fold, batch),
                "serial_wall_s": round(sum(row["adapt"]["wall_s"] for row in rows) +
                                       (batch["wall_s"] if batch else sum(row["leaf_wrap"]["wall_s"] for row in rows)) + fold["wall_s"], 3),

@@ -165,8 +165,11 @@ tools/starknet-block-collector/run_cuda_resident_paired.sh \
 ```
 
 The nine trial directories retain proof JSON, logs, receipts, and sampled
-memory from the first three trials. The runner reports the uninstrumented
-two-run median for each mode. If the pinned Rust Cairo verifier is available
+memory from the first three trials. The runner reports uninstrumented
+two-run medians for both subprocess time (`serial_wall_s`, comparable to the
+earlier 32.308 s H100 receipt) and the driver wall from adapted-input loading
+until the root file exists (`adapted_input_to_root_wall_s`). The latter includes
+input copies, manifest checks, and assembly between proving commands. If the pinned Rust Cairo verifier is available
 on that host, set
 `STWO_PINNED_CAIRO_VERIFIER` to its absolute path; otherwise copy the output
 directories to a host with the verifier and run `verify_cuda_cairo.py` there.
