@@ -64,6 +64,8 @@ const BatchManifestItem = struct {
     output: []const u8,
     cairo_proof: []const u8,
     cairo_report: []const u8,
+    /// Decimal felt strings for an optional in-process root reduction.
+    output_preimage: ?[]const []const u8 = null,
 };
 
 fn leafWrapBatch(allocator: std.mem.Allocator, args: []const []const u8) !void {
@@ -72,6 +74,16 @@ fn leafWrapBatch(allocator: std.mem.Allocator, args: []const []const u8) !void {
     defer arena.deinit();
     const a = arena.allocator();
     const manifest_path = try flag(args, "--manifest");
+    const root_proof_path = optionalFlag(args, "--root-proof");
+    const root_outputs_path = optionalFlag(args, "--root-outputs");
+    const root_packed_path = optionalFlag(args, "--root-packed");
+    const integrated = root_proof_path != null;
+    if (integrated != (root_outputs_path != null) or integrated != (root_packed_path != null))
+        return error.IncompleteRootOutputPaths;
+    const root_mode = optionalFlag(args, "--root-mode") orelse "canonical";
+    const compact_root = std.mem.eql(u8, root_mode, "compact");
+    if (!std.mem.eql(u8, root_mode, "canonical") and !compact_root) return error.InvalidRootMode;
+    if (compact_root and !integrated) return error.CompactRootRequiresIntegratedFold;
     const parsed = try std.json.parseFromSlice([]BatchManifestItem, a, try readFile(a, manifest_path), .{
         .allocate = .alloc_always,
         .ignore_unknown_fields = false,
@@ -124,17 +136,50 @@ fn leafWrapBatch(allocator: std.mem.Allocator, args: []const []const u8) !void {
     }
     var total = try std.time.Timer.start();
     try cairo_app.proveBatchWithSinksUsingRuntime(allocator, items, &runtime);
-    try runtime.close();
-    runtime_live = false;
     for (receivers, 0..) |receiver, index| {
         if (!receiver.delivered) return error.MissingVerifiedCairoLeaf;
         std.debug.print("circuit-cuda batch-leaf index={} wrap_ns={} proof={s}\n", .{
             index, receiver.wrap_ns, receiver.output_path,
         });
     }
-    std.debug.print("circuit-cuda leaf-wrap-batch leaves={} total_ns={}\n", .{ receivers.len, total.read() });
+    const leaves_ns = total.read();
+    std.debug.print("circuit-cuda leaf-wrap-batch leaves={} total_ns={}\n", .{ receivers.len, leaves_ns });
+    if (integrated) {
+        const leaves = try a.alloc(wire.leaf_proof_json.LeafInput, parsed.value.len);
+        const parsed_proofs = try a.alloc(wire.leaf_proof_json.Owned(wire.leaf_proof_json.SerializedLeafProof), parsed.value.len);
+        var parsed_count: usize = 0;
+        defer for (parsed_proofs[0..parsed_count]) |*proof| proof.deinit();
+        for (parsed.value, leaves, parsed_proofs) |entry, *leaf, *proof| {
+            const preimage = entry.output_preimage orelse return error.MissingRootPreimage;
+            proof.* = try wire.leaf_proof_json.parseSerializedLeafProof(allocator, try readFile(a, entry.output));
+            parsed_count += 1;
+            leaf.* = .{ .proof = proof.value, .output_preimage = preimage };
+        }
+        var parsed_registry = try wire.registry.parseRegistry(a, try readFile(a, first.registry));
+        defer parsed_registry.deinit();
+        var fold_timer = try std.time.Timer.start();
+        var files = try circuit_app.foldTreeWithSourceMode(
+            allocator,
+            parsed_registry.registry,
+            leaves,
+            &circuit_cpu.prove.cpu_provers,
+            null,
+            backend.source(),
+            compact_root,
+        );
+        defer files.deinit();
+        const fold_ns = fold_timer.read();
+        try std.fs.cwd().writeFile(.{ .sub_path = root_proof_path.?, .data = files.proof.written() });
+        try std.fs.cwd().writeFile(.{ .sub_path = root_outputs_path.?, .data = files.outputs.written() });
+        try std.fs.cwd().writeFile(.{ .sub_path = root_packed_path.?, .data = files.packed_tree.written() });
+        std.debug.print("circuit-cuda integrated-fold leaves={} reductions={} fold_ns={} proof_bytes={}\n", .{
+            files.stats.n_leaves, files.stats.n_pair_reductions, fold_ns, files.proof.written().len,
+        });
+    }
+    try runtime.close();
+    runtime_live = false;
     std.debug.print("circuit-cuda leaf-wrap-batch setup_ns={} execution_ns={} cache_hits={} cache_misses={}\n", .{
-        setup_ns, wall.lap(), shared.cache.stats.hits, shared.cache.stats.misses,
+        setup_ns, leaves_ns, shared.cache.stats.hits, shared.cache.stats.misses,
     });
 }
 
@@ -148,6 +193,9 @@ fn foldTree(allocator: std.mem.Allocator, args: []const []const u8) !void {
     const proof_path = try flag(args, "--proof");
     const outputs_path = try flag(args, "--outputs");
     const packed_path = try flag(args, "--packed");
+    const root_mode = optionalFlag(args, "--root-mode") orelse "canonical";
+    const compact_root = std.mem.eql(u8, root_mode, "compact");
+    if (!std.mem.eql(u8, root_mode, "canonical") and !compact_root) return error.InvalidRootMode;
     const parsed_registry = try wire.registry.parseRegistry(a, try readFile(a, registry_path));
     const manifest = try wire.leaf_proof_json.parseLeavesManifest(a, try readFile(a, manifest_path));
     const leaves = try a.alloc(wire.leaf_proof_json.LeafInput, manifest.value.len);
@@ -164,13 +212,14 @@ fn foldTree(allocator: std.mem.Allocator, args: []const []const u8) !void {
     defer if (runtime_live) runtime.abort() catch {};
     var backend = circuit_cuda.recursion_source.Context{ .catalog = &catalog, .runtime = &runtime };
     var timer = try std.time.Timer.start();
-    var files = try circuit_app.foldTreeWithSource(
+    var files = try circuit_app.foldTreeWithSourceMode(
         allocator,
         parsed_registry.registry,
         leaves,
         &circuit_cpu.prove.cpu_provers,
         null,
         backend.source(),
+        compact_root,
     );
     defer files.deinit();
     try runtime.close();
@@ -194,6 +243,14 @@ fn flag(args: []const []const u8, name: []const u8) ![]const u8 {
         if (std.mem.eql(u8, key, name)) return args[index * 2 + 1];
     }
     return error.MissingArgument;
+}
+
+fn optionalFlag(args: []const []const u8, name: []const u8) ?[]const u8 {
+    if (args.len % 2 != 0) return null;
+    for (0..args.len / 2) |index| {
+        if (std.mem.eql(u8, args[index * 2], name)) return args[index * 2 + 1];
+    }
+    return null;
 }
 
 fn readFile(allocator: std.mem.Allocator, path: []const u8) ![]u8 {

@@ -46,6 +46,7 @@ const topology_key = @import("topology_key.zig");
 const topology_cache = @import("topology_cache.zig");
 const circuit_params = @import("circuit_params.zig");
 const proof_source = @import("proof_source.zig");
+const stage_profile = @import("stage_profile.zig");
 
 const M31 = core.fields.m31.M31;
 const QM31 = core.fields.qm31.QM31;
@@ -336,14 +337,17 @@ fn wrapCairoProofImpl(
     const output_hash = try circuit_leaf.outputHash(input);
 
     // 4. The leaf circuit with values, padded to the shared target.
+    var stages = stage_profile.Profile.init("leaf");
     var ctx = try cairo_verifier.buildCairoVerifierCircuit(QM31, allocator, wrap.cairo_table, &config, wrap.constants(), .{
         .proof = &proof_values,
         .serialized_aux_data = aux,
         .output_hash = output_hash,
-    }, circuit.stark_verifier.verify.NoStages{});
+    }, &stages);
     var ctx_owned = true;
     defer if (ctx_owned) ctx.deinit();
+    stages.report(&ctx.circuit, "raw");
     try finalize.padToTargets(QM31, &ctx, target);
+    stages.report(&ctx.circuit, "padded");
     if (!try ctx.isCircuitValid()) return error.CircuitRejectsProof;
     build_stage.end();
 

@@ -31,6 +31,7 @@ const circuit_hash = circuit.common.circuit_hash;
 const multiverifier = circuit.statements.multiverifier;
 const component_table = circuit.air_eval.component_table;
 const ComponentSizes = finalize.ComponentSizes;
+const PcsConfigV2 = core.pcs.config_v2.PcsConfigV2;
 
 pub const Hash = [32]u8;
 
@@ -41,6 +42,20 @@ pub const Error = error{
     /// `RecursiveTreeError::MultiverifierCircuitHash`: the built multiverifier
     /// does not hash to the registry's entry.
     MultiverifierCircuitHash,
+    UnsupportedCompactTerminalRegistry,
+    TerminalCircuitHashMismatch,
+};
+
+/// Production registry's homogeneous child key and the compact terminal key
+/// derived from that exact two-child verifier topology. The terminal root
+/// was independently committed by the resident prover and extracted from its
+/// verified proof; its hash was also recorded in the packed root. A change to
+/// the child registry requires deriving and qualifying a new terminal key.
+const terminal_key = struct {
+    const child_root = [_]u32{ 0xe479ab39, 0xc55be4ac, 0x9f98c322, 0xd73b0254, 0xb7ae54fb, 0xe78a54c5, 0xb0486f13, 0x66e91045 };
+    const child_hash = [_]u32{ 0xa5989715, 0x2377c07a, 0xc6d1e844, 0x54f0a04d, 0x8be65a7d, 0xfd73c261, 0x9078e728, 0x973f680f };
+    const root = [_]u32{ 2417389210, 2999989152, 2684763732, 3436300829, 3428327508, 3680076162, 2468850231, 399589778 };
+    const hash = [_]u32{ 708715752, 3519296436, 620525775, 1567930826, 4247635046, 1011846141, 340946107, 538352252 };
 };
 
 pub const CanonicalCircuit = struct {
@@ -48,6 +63,9 @@ pub const CanonicalCircuit = struct {
     shared: multiverifier.SharedConfig,
     /// The registry's padding target.
     target_sizes: ComponentSizes,
+    /// The outer proof's configuration. A terminal circuit can be smaller
+    /// than the child proofs it verifies, so this need not equal `shared`.
+    prover_config: PcsConfigV2,
     /// The padded multiverifier, preprocessed: the shape every fold proves.
     preprocessed: preprocessed.PreprocessedCircuit,
     /// Its preprocessed root at the circuit blowup and its circuit hash,
@@ -66,7 +84,45 @@ pub const CanonicalCircuit = struct {
         table: *const component_table.Table,
         registry: wire.registry.CircuitRegistry,
     ) !CanonicalCircuit {
+        return buildWithMode(gpa, table, registry, .canonical_host);
+    }
+
+    /// The resident prover commits the preprocessed columns on the device and
+    /// its independent verifier checks that commitment against the registry.
+    /// Avoid committing the same columns on the CPU merely to discover a root
+    /// that the authenticated registry already supplies.
+    pub fn buildForDevice(
+        gpa: std.mem.Allocator,
+        table: *const component_table.Table,
+        registry: wire.registry.CircuitRegistry,
+    ) !CanonicalCircuit {
+        return buildWithMode(gpa, table, registry, .canonical_device);
+    }
+
+    /// A terminal-only multiverifier. Its child proof configuration remains
+    /// canonical, but its own AIR is padded only to the rows it actually uses.
+    /// This circuit is intentionally not a homogeneous internal tree node.
+    pub fn buildTerminal(
+        gpa: std.mem.Allocator,
+        table: *const component_table.Table,
+        registry: wire.registry.CircuitRegistry,
+    ) !CanonicalCircuit {
+        return buildWithMode(gpa, table, registry, .terminal_compact);
+    }
+
+    const BuildMode = enum { canonical_host, canonical_device, terminal_compact };
+
+    fn buildWithMode(
+        gpa: std.mem.Allocator,
+        table: *const component_table.Table,
+        registry: wire.registry.CircuitRegistry,
+        mode: BuildMode,
+    ) !CanonicalCircuit {
         const entry = try registry.multiverifier();
+        if (mode == .terminal_compact and
+            (!std.mem.eql(u32, &entry.preprocessed_root.words, &terminal_key.child_root) or
+                !std.mem.eql(u32, &entry.circuit_hash.words, &terminal_key.child_hash)))
+            return error.UnsupportedCompactTerminalRegistry;
         const config = try registry.config(entry.config);
         const target = ComponentSizes.fromLogSizes(config.component_log_sizes);
 
@@ -75,25 +131,43 @@ pub const CanonicalCircuit = struct {
         errdefer shared.deinit(gpa);
 
         // 2. The multiverifier shape, padded to the target.
+        var outer_target = target;
         var pp = blk: {
             var ctx = try multiverifier.buildMultiverifierTopology(gpa, table, &shared, circuit.stark_verifier.verify.NoStages{});
-            break :blk try circuit_params.paddedPreprocessed(gpa, &ctx, target);
+            if (mode == .terminal_compact)
+                outer_target = finalize.computePaddedSizes(.fromBuilder(&ctx.circuit));
+            break :blk try circuit_params.paddedPreprocessed(gpa, &ctx, outer_target);
         };
         errdefer pp.deinit(gpa);
 
         // 3. Homogeneity: it has the layout it verifies.
         const layout = pp.layout();
-        if (!layout.eql(&shared.preprocessed_column_log_sizes) or
-            layout.traceLogSize() != shared.preprocessed_column_log_sizes.traceLogSize())
+        if (mode != .terminal_compact and (!layout.eql(&shared.preprocessed_column_log_sizes) or
+            layout.traceLogSize() != shared.preprocessed_column_log_sizes.traceLogSize()))
             return error.PaddingParity;
 
         // 4. The registry's trust anchor.
-        const identity = try circuit_params.identity(gpa, &pp, shared.pcs_config.fri_config.log_blowup_factor);
-        if (!std.mem.eql(u8, &identity.circuit_hash, &entry.circuit_hash.toBytes())) return error.MultiverifierCircuitHash;
+        const identity = if (mode != .canonical_host) blk: {
+            const root = if (mode == .terminal_compact)
+                core.vcs.blake2_hash.digestFromU32s(terminal_key.root)
+            else
+                entry.preprocessed_root.toBytes();
+            const log_sizes = try circuit.statements.circuit_statement.circuitComponentLogSizes(&layout);
+            break :blk circuit_params.Identity{
+                .preprocessed_root = root,
+                .circuit_hash = try circuit_hash.hostCircuitHash(log_sizes, shared.pcs_config.fri_config.log_blowup_factor, root),
+            };
+        } else try circuit_params.identity(gpa, &pp, shared.pcs_config.fri_config.log_blowup_factor);
+        if (mode == .terminal_compact and
+            !std.mem.eql(u8, &identity.circuit_hash, &core.vcs.blake2_hash.digestFromU32s(terminal_key.hash)))
+            return error.TerminalCircuitHashMismatch;
+        if (mode != .terminal_compact and !std.mem.eql(u8, &identity.circuit_hash, &entry.circuit_hash.toBytes()))
+            return error.MultiverifierCircuitHash;
 
         return .{
             .shared = shared,
-            .target_sizes = target,
+            .target_sizes = outer_target,
+            .prover_config = PcsConfigV2.fromFriAndTraceSize(config.fri_config, layout.traceLogSize()),
             .preprocessed = pp,
             .preprocessed_root = identity.preprocessed_root,
             .circuit_hash = identity.circuit_hash,
@@ -106,7 +180,7 @@ pub const CanonicalCircuit = struct {
     /// registry. The tree is stored as `options` says, for every fold.
     pub fn commitPreprocessed(self: *CanonicalCircuit, gpa: std.mem.Allocator, options: prove.Options) !void {
         if (self.commitment != null) return error.AlreadyCommitted;
-        const pcs_config = self.shared.pcs_config;
+        const pcs_config = self.prover_config;
         var twiddles = try prove.twiddleTower(gpa, pcs_config);
         errdefer twiddles.deinit(gpa);
         var commit_options = options;

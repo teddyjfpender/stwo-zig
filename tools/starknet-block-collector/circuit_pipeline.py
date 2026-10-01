@@ -214,6 +214,10 @@ def resident_circuit_proofs(log: Path) -> list[dict]:
 
 def resident_host_phases(log: Path, command: str) -> dict | None:
     content = log.read_text()
+    if command == "integrated-fold":
+        match = re.search(r"circuit-cuda integrated-fold leaves=(\d+) reductions=(\d+) fold_ns=(\d+) proof_bytes=(\d+)", content)
+        return {"leaves": int(match.group(1)), "reductions": int(match.group(2)),
+                "fold_s": int(match.group(3)) / 1e9, "proof_bytes": int(match.group(4))} if match else None
     if command == "fold-tree":
         match = re.search(r"circuit-cuda fold-tree parse_ns=(\d+) catalog_ns=(\d+) fold_ns=(\d+) publish_ns=(\d+)", content)
         return dict(zip(("parse_s", "catalog_s", "fold_s", "publish_s"),
@@ -226,7 +230,8 @@ def resident_host_phases(log: Path, command: str) -> dict | None:
     return None
 
 
-def phase_breakdown(rows: list[dict], fold: dict, batch: dict | None = None) -> dict[str, float]:
+def phase_breakdown(rows: list[dict], fold: dict, batch: dict | None = None,
+                    integrated: bool = False) -> dict[str, float]:
     """Account for the serial wall clock without hiding process overhead."""
     phases = {
         "adapt_s": sum(row["adapt"]["wall_s"] for row in rows),
@@ -237,12 +242,14 @@ def phase_breakdown(rows: list[dict], fold: dict, batch: dict | None = None) -> 
         "fold_s": fold["wall_s"],
     }
     total = sum(row["adapt"]["wall_s"] for row in rows) + (
-        batch["wall_s"] if batch else sum(row["leaf_wrap"]["wall_s"] for row in rows)) + fold["wall_s"]
+        batch["wall_s"] if batch else sum(row["leaf_wrap"]["wall_s"] for row in rows))
+    if not integrated:
+        total += fold["wall_s"]
     phases["process_overhead_s"] = total - sum(phases.values())
     return {key: round(value, 3) for key, value in phases.items()}
 
 
-def compare_qualified_reference(receipt: dict, reference_path: Path) -> dict:
+def compare_qualified_reference(receipt: dict, reference_path: Path, compact_root: bool = False) -> dict:
     """Bind a new run to a previously Rust-qualified PIE-to-root receipt."""
     reference = json.loads(reference_path.read_text())
     if reference.get("schema") != "stwo-circuit-cuda-resident-pipeline-benchmark-v1":
@@ -264,10 +271,14 @@ def compare_qualified_reference(receipt: dict, reference_path: Path) -> dict:
                 actual["adapt"].get("reused_preimage_sha256") == expected["preimage_sha256"])
         if not same:
             raise ValueError(f"leaf {index} differs from qualified reference")
-    for name, expected in reference["root_sha256"].items():
+    root_names = ("outputs",) if compact_root else reference["root_sha256"].keys()
+    for name in root_names:
+        expected = reference["root_sha256"][name]
         if receipt["root"][name]["sha256"] != expected:
             raise ValueError(f"{name} differs from qualified Rust root")
-    return {"reference_sha256": digest(reference_path), "rust_root_byte_equal_by_digest": True,
+    return {"reference_sha256": digest(reference_path),
+            "rust_root_byte_equal_by_digest": not compact_root,
+            "rust_root_output_byte_equal_by_digest": True,
             "leaf_and_input_byte_equal_by_digest": True}
 
 
@@ -279,7 +290,9 @@ def main() -> None:
     parser.add_argument("--backend", choices=("cpu", "metal", "cuda-hybrid", "cuda-resident"), default="cpu")
     parser.add_argument("--cuda-batch", action="store_true", help="reuse one Cairo CUDA runtime across distinct PIE leaves")
     parser.add_argument("--cuda-static-image", action="store_true", help="reuse authenticated fixed Cairo coefficients on the GPU (experimental)")
-    parser.add_argument("--sample-device-memory", action="store_true", help="sample whole-device H100 memory with nvidia-smi")
+    parser.add_argument("--cuda-integrated", action="store_true", help="fold the recursive root in the same CUDA process as the leaves")
+    parser.add_argument("--cuda-compact-root", action="store_true", help="experimental smaller terminal AIR; changes root proof bytes")
+    parser.add_argument("--sample-device-memory", action="store_true", help="sample whole-device CUDA memory with nvidia-smi")
     parser.add_argument("--circuit-prover", type=Path, help="override the selected backend's binary")
     parser.add_argument("--rust-reducer", type=Path, help="optional pinned Rust reducer for byte parity")
     parser.add_argument("--expected-receipt", type=Path,
@@ -291,6 +304,10 @@ def main() -> None:
         raise ValueError("--cuda-batch requires --backend cuda-resident")
     if args.cuda_static_image and not args.cuda_batch:
         raise ValueError("--cuda-static-image requires --cuda-batch")
+    if args.cuda_integrated and not args.cuda_batch:
+        raise ValueError("--cuda-integrated requires --cuda-batch")
+    if args.cuda_compact_root and not args.cuda_integrated:
+        raise ValueError("--cuda-compact-root requires --cuda-integrated")
     if args.sample_device_memory and args.backend != "cuda-resident":
         raise ValueError("--sample-device-memory requires --backend cuda-resident")
     pipeline_started = time.perf_counter()
@@ -380,18 +397,29 @@ def main() -> None:
             "input": str(adapted), "output": str(wrapped),
             "cairo_proof": str(out / f"{name}.cairo_proof.json"),
             "cairo_report": str(out / f"{name}.cairo_report.json"),
-        } for name, _, _, _, adapted, wrapped, _, _ in planned], indent=2) + "\n")
+            "output_preimage": [str(int(value, 16)) for value in json.loads(preimage.read_text())],
+        } for name, _, _, preimage, adapted, wrapped, _, _ in planned], indent=2) + "\n")
         print(f"proving and wrapping {len(planned)} leaves in one CUDA runtime", flush=True)
         batch_log = out / "cuda_batch.log"
         batch_env = {key: value for key, value in os.environ.items()
                      if key != "STWO_CAIRO_CUDA_STATIC_IMAGE"}
         if args.cuda_static_image:
             batch_env["STWO_CAIRO_CUDA_STATIC_IMAGE"] = "1"
-        batch = run([str(prover), "leaf-wrap-batch", "--manifest", str(batch_manifest)], batch_log,
+        batch_command = [str(prover), "leaf-wrap-batch", "--manifest", str(batch_manifest)]
+        if args.cuda_integrated:
+            batch_command.extend(["--root-proof", str(out / "root.proof"),
+                                  "--root-outputs", str(out / "root_outputs.json"),
+                                  "--root-packed", str(out / "root_packed.json")])
+            if args.cuda_compact_root:
+                batch_command.extend(["--root-mode", "compact"])
+        batch = run(batch_command, batch_log,
                     args.sample_device_memory, batch_env)
         batch["host_phases"] = resident_host_phases(batch_log, "leaf-wrap-batch")
         proofs = resident_circuit_proofs(batch_log)
-        if len(proofs) != len(planned) or any(proof["profile"] != "internal" for proof in proofs):
+        expected_proofs = len(planned) + (max(1, len(planned) - 1) if args.cuda_integrated else 0)
+        if (len(proofs) != expected_proofs or
+                any(proof["profile"] != "internal" for proof in proofs[:len(planned)]) or
+                (args.cuda_integrated and proofs[-1]["profile"] != "root")):
             raise ValueError("missing resident batch wrap proof telemetry")
         for index, (name, pie, source, preimage, adapted, wrapped, leaf, adapt) in enumerate(planned):
             leaf_input(wrapped, preimage, leaf)
@@ -415,7 +443,17 @@ def main() -> None:
     outputs = out / "root_outputs.json"
     packed = out / "root_packed.json"
     print(f"folding {len(manifest)} leaves", flush=True)
-    if args.backend == "cuda-resident":
+    if args.cuda_integrated:
+        host_phases = resident_host_phases(out / "cuda_batch.log", "integrated-fold")
+        if host_phases is None or host_phases["leaves"] != len(manifest) or host_phases["reductions"] != max(1, len(manifest) - 1):
+            raise ValueError("missing integrated root telemetry")
+        fold = {"wall_s": host_phases["fold_s"], "peak_rss_bytes": batch["peak_rss_bytes"],
+                "peak_memory_footprint_bytes": batch["peak_memory_footprint_bytes"],
+                "gpu_peak_used_bytes": batch["gpu_peak_used_bytes"],
+                "log": str(out / "cuda_batch.log"), "shared_process": True,
+                "host_phases": host_phases,
+                "circuit_proofs": resident_circuit_proofs(out / "cuda_batch.log")[len(manifest):]}
+    elif args.backend == "cuda-resident":
         fold_command = [str(prover), "fold-tree", "--manifest", str(manifest_path),
                         "--registry", str(REGISTRY), "--proof", str(root),
                         "--outputs", str(outputs), "--packed", str(packed)]
@@ -423,9 +461,10 @@ def main() -> None:
         fold_command = [str(prover), "fold-tree", "--program_input", str(manifest_path),
                         "--circuit_registry_json", str(REGISTRY), "--proof_path", str(root),
                         "--program_output", str(outputs), "--packed_output_path", str(packed)]
-    fold = run(fold_command, out / "fold.log", args.sample_device_memory)
+    if not args.cuda_integrated:
+        fold = run(fold_command, out / "fold.log", args.sample_device_memory)
     adapted_input_to_root_wall_s = round(time.perf_counter() - pipeline_started, 3)
-    if args.backend == "cuda-resident":
+    if args.backend == "cuda-resident" and not args.cuda_integrated:
         fold["circuit_proofs"] = resident_circuit_proofs(out / "fold.log")
         fold["host_phases"] = resident_host_phases(out / "fold.log", "fold-tree")
         if len(fold["circuit_proofs"]) != max(1, len(manifest) - 1) or fold["circuit_proofs"][-1]["profile"] != "root":
@@ -459,10 +498,13 @@ def main() -> None:
                "registry_sha256": digest(REGISTRY),
                "leaves": rows, "fold": fold, "cuda_batch": batch,
                "cuda_static_image": args.cuda_static_image,
+               "cuda_integrated": args.cuda_integrated,
+               "cuda_compact_root": args.cuda_compact_root,
                "adapted_input_to_root_wall_s": adapted_input_to_root_wall_s,
-               "phase_breakdown_s": phase_breakdown(rows, fold, batch),
+               "phase_breakdown_s": phase_breakdown(rows, fold, batch, args.cuda_integrated),
                "serial_wall_s": round(sum(row["adapt"]["wall_s"] for row in rows) +
-                                      (batch["wall_s"] if batch else sum(row["leaf_wrap"]["wall_s"] for row in rows)) + fold["wall_s"], 3),
+                                      (batch["wall_s"] if batch else sum(row["leaf_wrap"]["wall_s"] for row in rows)) +
+                                      (0 if args.cuda_integrated else fold["wall_s"]), 3),
                "serial_peak_rss_bytes": max([fold["peak_rss_bytes"], *([batch["peak_rss_bytes"]] if batch else
                                                                         [row["leaf_wrap"]["peak_rss_bytes"] for row in rows])]),
                "serial_peak_memory_footprint_bytes": max((value for value in
@@ -478,7 +520,8 @@ def main() -> None:
         rust["reducer_binary_sha256"] = digest(reducer)
         receipt["rust_parity"] = rust
     if args.expected_receipt:
-        receipt["qualified_reference_parity"] = compare_qualified_reference(receipt, args.expected_receipt.resolve())
+        receipt["qualified_reference_parity"] = compare_qualified_reference(
+            receipt, args.expected_receipt.resolve(), args.cuda_compact_root)
     (out / "receipt.json").write_text(json.dumps(receipt, indent=2) + "\n")
     print(json.dumps(receipt, indent=2))
 

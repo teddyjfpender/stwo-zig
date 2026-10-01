@@ -503,7 +503,23 @@ pub fn foldTreeWithSource(
     recorder: ?*prover.stage_profile.Recorder,
     source: ?recursion.proof_source.Source,
 ) !RootFiles {
+    return foldTreeWithSourceMode(gpa, registry, leaves, provers, recorder, source, false);
+}
+
+/// `compact_terminal` keeps the canonical child proof config but sizes the
+/// final outer circuit independently. It is valid only for a single root
+/// reduction; an internal node must retain the homogeneous registry shape.
+pub fn foldTreeWithSourceMode(
+    gpa: std.mem.Allocator,
+    registry: wire.registry.CircuitRegistry,
+    leaves: []const wire.leaf_proof_json.LeafInput,
+    provers: *const circuit_cpu.prove.Provers,
+    recorder: ?*prover.stage_profile.Recorder,
+    source: ?recursion.proof_source.Source,
+    compact_terminal: bool,
+) !RootFiles {
     if (leaves.len == 0) return error.EmptyLeaves;
+    if (compact_terminal and (source == null or leaves.len > 2)) return error.CompactTerminalRequiresSingleDeviceFold;
     // A proof-scoped worker pool (`STWO_ZIG_WORKERS` sizes it), as R9 folds.
     var pool: prover.work_pool.WorkPool = undefined;
     try pool.initInPlace();
@@ -530,7 +546,15 @@ pub fn foldTreeWithSource(
         var stage = try circuit_cpu.prove.StageScope.begin(recorder, "fold_canonical_build", "build and preprocess the canonical multiverifier");
         defer stage.end();
         if (source != null) {
-            device_canonical = try recursion.CanonicalCircuit.build(gpa, &circuit_table, registry);
+            device_canonical = if (compact_terminal)
+                try recursion.CanonicalCircuit.buildTerminal(gpa, &circuit_table, registry)
+            else
+                try recursion.CanonicalCircuit.buildForDevice(gpa, &circuit_table, registry);
+            if (compact_terminal) std.debug.print("circuit-compact-terminal preprocessed_root_hex={s} circuit_hash_hex={s} target={f}\n", .{
+                std.fmt.bytesToHex(device_canonical.?.preprocessed_root, .lower),
+                std.fmt.bytesToHex(device_canonical.?.circuit_hash, .lower),
+                device_canonical.?.target_sizes,
+            });
             break :blk &device_canonical.?;
         }
         break :blk try recursion.canonical.acquire(gpa, &topologies, &circuit_table, registry, options);

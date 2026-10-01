@@ -28,6 +28,7 @@ const verifier_proof = @import("../verifier_proof.zig");
 const cairo_verifier_proof = @import("../cairo_verifier_proof.zig");
 const canonical_mod = @import("canonical.zig");
 const proof_source = @import("proof_source.zig");
+const stage_profile = @import("stage_profile.zig");
 
 const QM31 = core.fields.qm31.QM31;
 const builder = circuit.builder;
@@ -196,9 +197,12 @@ fn reduce(
                 .output_digest = builder.blake.hashValue(QM31, child.output_digest),
             };
         }
-        var ctx = try multiverifier.buildMultiverifierCircuit(QM31, gpa, fold.table, &inputs, &canonical.shared, circuit.stark_verifier.verify.NoStages{});
+        var stages = stage_profile.Profile.init("fold");
+        var ctx = try multiverifier.buildMultiverifierCircuit(QM31, gpa, fold.table, &inputs, &canonical.shared, &stages);
         defer ctx.deinit();
+        stages.report(&ctx.circuit, "raw");
         try finalize.padToTargets(QM31, &ctx, canonical.target_sizes);
+        stages.report(&ctx.circuit, "padded");
         if (!try ctx.isCircuitValid()) return error.MultiverifierRejectedInputs;
         break :blk try gpa.dupe(QM31, ctx.values());
     };
@@ -253,7 +257,7 @@ fn proveNodeFromSource(
         .values = owned_values.values.?,
         .preprocessed = &fold.canonical.preprocessed,
         .air = fold.bundle,
-        .config = fold.canonical.shared.pcs_config,
+        .config = fold.canonical.prover_config,
         .profile = if (is_root) .root else .internal,
         .expected_preprocessed_root = blake2_hash.digestToU32s(fold.canonical.preprocessed_root),
     });
@@ -289,7 +293,7 @@ fn proveNode(
     options.release_values = .{ .context = owned_values, .release = OwnedValues.releaseErased };
     // Every fold proves the canonical circuit: its committed preprocessed
     // tree and twiddles are shared by all of them (design §7.2).
-    var proof = try proveFn(gpa, owned_values.values.?, &canonical.preprocessed, fold.bundle, canonical.shared.pcs_config, canonical.proveOptions(options));
+    var proof = try proveFn(gpa, owned_values.values.?, &canonical.preprocessed, fold.bundle, canonical.prover_config, canonical.proveOptions(options));
     defer proof.deinit();
 
     // `extract_root_and_outputs`.
