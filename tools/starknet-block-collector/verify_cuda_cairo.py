@@ -30,21 +30,34 @@ def sha256(path: Path) -> str:
 def verify(proof_dir: Path, receipt_path: Path, reference_path: Path, verifier: Path) -> dict:
     receipt = json.loads(receipt_path.read_text())
     reference = json.loads(reference_path.read_text())
+    qualified = json.loads((reference_path.parent / "receipt.json").read_text())
     if receipt.get("schema") != "stwo-starknet-circuit-pipeline-v1":
         raise ValueError("unsupported pipeline receipt")
     if reference.get("schema") != "stwo-circuit-recursion-pinned-cairo-reference-v1":
         raise ValueError("unsupported pinned Cairo reference")
+    if qualified.get("rust_root_byte_equal") != {"proof": True, "outputs": True, "packed": True}:
+        raise ValueError("reference root lacks pinned Rust byte parity")
     parity = receipt.get("qualified_reference_parity", {})
     if not parity.get("rust_root_byte_equal_by_digest") or not parity.get("leaf_and_input_byte_equal_by_digest"):
         raise ValueError("pipeline receipt lacks Rust-qualified leaf/root parity")
     leaves = receipt["leaves"]
     if len(leaves) != len(reference["leaves"]):
         raise ValueError("Cairo reference leaf count differs")
+    for key, filename in (("proof", "root.proof"), ("outputs", "root_outputs.json"),
+                          ("packed", "root_packed.json")):
+        expected_digest = qualified["root_sha256"][key]
+        if (receipt["root"][key]["sha256"] != expected_digest or
+                sha256(proof_dir / filename) != expected_digest):
+            raise ValueError(f"published root {key} differs from pinned Rust")
     results = []
-    for actual, expected in zip(leaves, reference["leaves"]):
+    for actual, expected, qualified_leaf in zip(leaves, reference["leaves"], qualified["leaves"]):
         name = Path(actual["pie"]).stem
         if (name != expected["name"] or
-                actual["adapt"].get("reused_adapted_input_sha256") != expected["adapted_input_sha256"]):
+                actual["adapt"].get("reused_adapted_input_sha256") != expected["adapted_input_sha256"] or
+                actual["leaf_proof_sha256"] != qualified_leaf["leaf_proof_sha256"] or
+                sha256(proof_dir / f"{name}.leaf_proof.json") != qualified_leaf["leaf_proof_sha256"] or
+                actual["leaf_input_sha256"] != qualified_leaf["leaf_input_sha256"] or
+                sha256(proof_dir / f"{name}.leaf.json") != qualified_leaf["leaf_input_sha256"]):
             raise ValueError(f"Cairo input differs from pinned Rust: {name}")
         proof = proof_dir / f"{name}.cairo_proof.json"
         checked = subprocess.run(
@@ -63,6 +76,7 @@ def verify(proof_dir: Path, receipt_path: Path, reference_path: Path, verifier: 
     return {"schema": "stwo-circuit-cuda-cairo-rust-verification-v1",
             "pipeline_receipt_sha256": sha256(receipt_path),
             "reference_sha256": sha256(reference_path),
+            "qualified_root_receipt_sha256": sha256(reference_path.parent / "receipt.json"),
             "verifier_binary_sha256": sha256(verifier), "leaves": results}
 
 
