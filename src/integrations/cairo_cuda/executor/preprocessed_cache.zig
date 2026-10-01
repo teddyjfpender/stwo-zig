@@ -7,6 +7,86 @@
 const std = @import("std");
 const proof_ir = @import("stwo_backend_contracts").proof_program;
 const trace_commit = @import("trace_commit.zig");
+const cuda = @import("stwo_cuda_backend");
+
+const NativeContext = @TypeOf(@as(cuda.runtime.NativeSession, undefined).context);
+
+/// Opt-in process snapshot of validated fixed coefficients. The first proof
+/// copies the exact uploaded words into this allocation; subsequent proofs
+/// restore them device-to-device after matching the source/layout identity.
+/// A receipt becomes reusable only after the first Cairo proof verifies.
+pub const DeviceImage = struct {
+    buffer: NativeContext.Buffer,
+    key: [32]u8,
+    receipt: ?Receipt = null,
+    pending: ?Receipt = null,
+
+    pub fn init(runtime: *cuda.runtime.NativeRuntime, words: usize, key: [32]u8) !DeviceImage {
+        return .{
+            .buffer = try runtime.inner.session.context.allocatePersistent(words),
+            .key = key,
+        };
+    }
+
+    pub fn deinit(self: *DeviceImage, runtime: *cuda.runtime.NativeRuntime) !void {
+        try runtime.inner.session.context.freePersistent(&self.buffer);
+        self.* = undefined;
+    }
+
+    pub fn slice(self: *const DeviceImage) cuda.runtime.column.DeviceSlice(u32) {
+        return .{
+            .address = @intFromPtr(self.buffer.pointer),
+            .len = self.buffer.words,
+            .owner = self.buffer.owner,
+            .generation = self.buffer.generation,
+        };
+    }
+
+    pub fn restore(self: *const DeviceImage, session: anytype, destination: anytype, expected: ?proof_ir.Digest) !Receipt {
+        const receipt = self.receipt orelse return error.InvalidPreprocessedDeviceImage;
+        try receipt.validate();
+        if (destination.len != self.buffer.words or
+            (expected != null and !std.mem.eql(u8, &expected.?, &receipt.artifact_identity)))
+            return error.InvalidPreprocessedDeviceImage;
+        try session.context.copyDeviceSlice(u32, destination, self.slice());
+        return receipt;
+    }
+
+    pub fn capture(self: *DeviceImage, session: anytype, source: anytype, receipt: Receipt) !void {
+        if (self.receipt != null or self.pending != null or source.len != self.buffer.words)
+            return error.InvalidPreprocessedDeviceImage;
+        try receipt.validate();
+        try session.context.copyDeviceSlice(u32, self.slice(), source);
+        self.pending = receipt;
+    }
+
+    pub fn admit(self: *DeviceImage) !void {
+        const receipt = self.pending orelse return error.InvalidPreprocessedDeviceImage;
+        if (self.receipt != null) return error.InvalidPreprocessedDeviceImage;
+        self.receipt = receipt;
+        self.pending = null;
+    }
+};
+
+pub fn deviceImageKey(path: []const u8, identities: []const []const u8, prepared: *const trace_commit.Prepared) [32]u8 {
+    var hash = std.crypto.hash.sha2.Sha256.init(.{});
+    hash.update("stwo-zig/cairo/cuda/preprocessed-device-image/v1\x00");
+    var path_size: [8]u8 = undefined;
+    std.mem.writeInt(u64, &path_size, @intCast(path.len), .little);
+    hash.update(&path_size);
+    hash.update(path);
+    hash.update(&prepared.identity);
+    var coefficient_words: [8]u8 = undefined;
+    std.mem.writeInt(u64, &coefficient_words, prepared.column_offsets[prepared.column_offsets.len - 1], .little);
+    hash.update(&coefficient_words);
+    for (identities) |identity| {
+        var size: [8]u8 = undefined;
+        std.mem.writeInt(u64, &size, identity.len, .little);
+        hash.update(&size);
+        hash.update(identity);
+    }
+    return hash.finalResult();
+}
 
 pub const format_magic = "STWZPPC\x00";
 pub const format_version: u32 = 1;
@@ -186,4 +266,52 @@ test "SIMD coefficient canonicalization is an involution" {
     canonicalizeSimdCoefficientBlocks(values, log_rows);
     for (values, 0..) |value, index|
         try std.testing.expectEqual(@as(u32, @intCast(index)), value);
+}
+
+test "device image admits only verified snapshots and restores exact words" {
+    const FakeSession = struct {
+        context: struct {
+            pub fn copyDeviceSlice(_: *@This(), comptime F: type, destination: anytype, source: anytype) !void {
+                if (F != u32 or destination.len != source.len) return error.InvalidCopy;
+                const dst: [*]u32 = @ptrFromInt(destination.address);
+                const src: [*]const u32 = @ptrFromInt(source.address);
+                @memcpy(dst[0..destination.len], src[0..source.len]);
+            }
+        } = .{},
+    };
+    var source = [_]u32{ 1, 2, 3, 4 };
+    var storage = [_]u32{0} ** 4;
+    var destination = [_]u32{0} ** 4;
+    var session = FakeSession{};
+    var receipt = Receipt{
+        .artifact_identity = [_]u8{1} ** 32,
+        .commitment_identity = [_]u8{2} ** 32,
+        .column_count = 1,
+        .coefficient_words = 4,
+        .identity = undefined,
+    };
+    receipt.identity = receiptIdentity(receipt);
+    var image = DeviceImage{
+        .buffer = .{ .pointer = &storage, .words = 4, .owner = 1, .generation = 1 },
+        .key = [_]u8{3} ** 32,
+    };
+    const source_slice: cuda.runtime.column.DeviceSlice(u32) = .{
+        .address = @intFromPtr(&source),
+        .len = 4,
+        .owner = 1,
+        .generation = 2,
+    };
+    const destination_slice: cuda.runtime.column.DeviceSlice(u32) = .{
+        .address = @intFromPtr(&destination),
+        .len = 4,
+        .owner = 1,
+        .generation = 3,
+    };
+    try image.capture(&session, source_slice, receipt);
+    try std.testing.expectError(error.InvalidPreprocessedDeviceImage, image.restore(&session, destination_slice, null));
+    try image.admit();
+    try std.testing.expectError(error.InvalidPreprocessedDeviceImage, image.admit());
+    try std.testing.expectError(error.InvalidPreprocessedDeviceImage, image.restore(&session, destination_slice, [_]u8{4} ** 32));
+    _ = try image.restore(&session, destination_slice, receipt.artifact_identity);
+    try std.testing.expectEqualSlices(u32, &source, &destination);
 }

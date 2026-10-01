@@ -268,6 +268,8 @@ pub const Bound = struct {
         /// The caller must retain the same prepared arena with immutable
         /// process-cache coefficients. This receipt is not a proof input.
         resident_preprocessed: ?preprocessed_cache.Receipt = null,
+        /// A separately owned immutable device image survives arena eviction.
+        device_image: ?*preprocessed_cache.DeviceImage = null,
     };
 
     pub const StaticReceipt = struct {
@@ -350,7 +352,14 @@ pub const Bound = struct {
         );
         try self.quotient.initializeTransform(session, self.pcs.twiddles_inverse);
         const initial_upload_ns = static_timer.lap();
-        const preprocessed = if (inputs.resident_preprocessed) |receipt| cached: {
+        const device_image_hit = if (inputs.device_image) |image| image.receipt != null else false;
+        const preprocessed = if (device_image_hit)
+            try inputs.device_image.?.restore(
+                session,
+                self.preprocessed_commit.coefficients,
+                inputs.preprocessed_artifact_identity,
+            )
+        else if (inputs.resident_preprocessed) |receipt| cached: {
             try receipt.validate();
             if (!std.mem.eql(u8, &receipt.commitment_identity, &self.preprocessed_commit.prepared.identity) or
                 receipt.column_count != inputs.preprocessed_column_identities.len or
@@ -370,13 +379,21 @@ pub const Bound = struct {
             self.preprocessed_commit.prepared,
             &self.preprocessed_commit,
         );
+        if (!std.mem.eql(u8, &preprocessed.commitment_identity, &self.preprocessed_commit.prepared.identity) or
+            preprocessed.column_count != inputs.preprocessed_column_identities.len or
+            preprocessed.coefficient_words != self.preprocessed_commit.coefficients.len)
+            return error.InvalidPreprocessedCacheBinding;
+        if (inputs.device_image) |image| {
+            if (!device_image_hit)
+                try image.capture(session, self.preprocessed_commit.coefficients, preprocessed);
+        }
         const preprocessed_load_ns = static_timer.lap();
         try self.preprocessed_commit.materializeBaseEvaluations(
             session,
             .ingress,
         );
-        std.debug.print("cairo-cuda static-phase initial_upload_ns={} preprocessed_load_ns={} materialize_ns={} cached={}\n", .{
-            initial_upload_ns, preprocessed_load_ns, static_timer.lap(), inputs.resident_preprocessed != null,
+        std.debug.print("cairo-cuda static-phase initial_upload_ns={} preprocessed_load_ns={} materialize_ns={} cached={} device_image_hit={}\n", .{
+            initial_upload_ns, preprocessed_load_ns, static_timer.lap(), inputs.resident_preprocessed != null or device_image_hit, device_image_hit,
         });
         return .{ .preprocessed = preprocessed };
     }

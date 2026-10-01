@@ -8,6 +8,7 @@ const CanonicalSource = stwo.integration.canonical_source.Prepared;
 const Decoded = stwo.integration.canonical_verify.Decoded;
 const ProofCapture = stwo.frontend.witness.resident_verifier.ProofCapture;
 pub const NativeRuntime = stwo.backend.runtime.NativeRuntime;
+const DeviceImage = stwo.executor.preprocessed_cache.DeviceImage;
 
 /// The verified proof and its authenticated openings are borrowed only during
 /// this callback. A recursive leaf builder can consume them without proving
@@ -97,10 +98,16 @@ fn runItems(allocator: std.mem.Allocator, items: []const BatchItem, mode: Mode, 
     }
     const runtime = external_runtime orelse &owned_runtime;
     const runtime_init_ns = if (external_runtime == null) startup.read() else 0;
+    const image_setting = std.process.getEnvVarOwned(allocator, "STWO_CAIRO_CUDA_STATIC_IMAGE") catch null;
+    defer if (image_setting) |value| allocator.free(value);
+    const use_device_image = external_runtime != null and items.len > 1 and
+        image_setting != null and std.mem.eql(u8, image_setting.?, "1");
+    var device_image: ?DeviceImage = null;
+    defer if (device_image) |*image| image.deinit(runtime) catch {};
     var expected_digest: ?[32]u8 = null;
     var resident_static: ?ResidentStatic = null;
     for (items, 0..) |item, index| {
-        const receipt = try proveOnce(allocator, runtime, &resident_static, item.request, executable_digest, @intCast(if (mode == .repeated) index + 1 else 1), if (index == 0) runtime_init_ns else 0, item.sink, external_runtime != null);
+        const receipt = try proveOnce(allocator, runtime, &resident_static, if (use_device_image) &device_image else null, item.request, executable_digest, @intCast(if (mode == .repeated) index + 1 else 1), if (index == 0) runtime_init_ns else 0, item.sink, external_runtime != null);
         if (mode == .repeated) {
             if (expected_digest) |expected| {
                 if (!std.mem.eql(u8, &expected, &receipt.proof_sha256)) return error.NondeterministicCairoCudaProof;
@@ -128,6 +135,7 @@ fn proveOnce(
     allocator: std.mem.Allocator,
     runtime: *stwo.backend.runtime.NativeRuntime,
     resident_static: *?ResidentStatic,
+    device_image_slot: ?*?DeviceImage,
     request: cli.Prove,
     executable_digest: [32]u8,
     index: u32,
@@ -162,6 +170,26 @@ fn proveOnce(
     );
     defer controllers_prepared.deinit();
     const controllers_end_ns = timer.read();
+    var device_image: ?*DeviceImage = null;
+    if (device_image_slot) |slot| {
+        const prepared = &controllers_prepared.preprocessed_commit;
+        const key = stwo.executor.preprocessed_cache.deviceImageKey(
+            paths.preprocessed,
+            diagnostic.fixed.preprocessed_identities,
+            prepared,
+        );
+        if (slot.*) |*image| {
+            if (!std.mem.eql(u8, &image.key, &key)) {
+                try image.deinit(runtime);
+                slot.* = null;
+            }
+        }
+        if (slot.* == null) {
+            const words = prepared.column_offsets[prepared.column_offsets.len - 1];
+            slot.* = try DeviceImage.init(runtime, words, key);
+        }
+        device_image = &slot.*.?;
+    }
     var twiddles = try stwo.executor.canonical_twiddles.Pack.init(
         allocator,
         &diagnostic.request.resident,
@@ -235,6 +263,7 @@ fn proveOnce(
             .preprocessed_path = paths.preprocessed,
             .preprocessed_column_identities = diagnostic.fixed.preprocessed_identities,
             .resident_preprocessed = cached_preprocessed,
+            .device_image = device_image,
         },
     );
     resident_static.* = .{ .arena_key = arena_key, .receipt = static_receipt.preprocessed };
@@ -318,6 +347,9 @@ fn proveOnce(
         try stwo.integration.canonical_verify.verifyAndDecode(allocator, &diagnostic, output.proof);
     defer decoded.deinit(allocator);
     defer if (sink != null) capture.deinit(allocator);
+    if (device_image) |image| {
+        if (image.pending != null) try image.admit();
+    }
     phase = "publish_official_proof";
     const proof_bytes = try publication.writeCanonicalProof(request.output, &diagnostic, &decoded, output.proof.structural.interactionNonce());
     const receipt: publication.Receipt = .{

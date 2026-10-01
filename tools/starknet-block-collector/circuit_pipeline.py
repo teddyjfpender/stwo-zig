@@ -154,15 +154,19 @@ def resident_batch_leaf_stages(log: Path, report: Path, index: int) -> dict[str,
 
 def resident_cairo_static_phases(log: Path, index: int = 0) -> dict[str, float | bool]:
     pattern = (r"cairo-cuda static-phase initial_upload_ns=(\d+) "
-               r"preprocessed_load_ns=(\d+) materialize_ns=(\d+) cached=(true|false)")
+               r"preprocessed_load_ns=(\d+) materialize_ns=(\d+) cached=(true|false)"
+               r"(?: device_image_hit=(true|false))?")
     phases = re.findall(pattern, log.read_text())
     if len(phases) <= index:
         return {}
-    initial, load, materialize, cached = phases[index]
-    return {"initial_upload_s": int(initial) / 1e9,
+    initial, load, materialize, cached, image_hit = phases[index]
+    result = {"initial_upload_s": int(initial) / 1e9,
             "preprocessed_load_s": int(load) / 1e9,
             "materialize_s": int(materialize) / 1e9,
             "cached": cached == "true"}
+    if image_hit:
+        result["device_image_hit"] = image_hit == "true"
+    return result
 
 
 def resident_circuit_proofs(log: Path) -> list[dict]:
