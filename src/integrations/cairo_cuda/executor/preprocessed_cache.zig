@@ -82,7 +82,7 @@ pub const DeviceImage = struct {
 
 pub fn deviceImageKey(path: []const u8, identities: []const []const u8, prepared: *const trace_commit.Prepared) [32]u8 {
     var hash = std.crypto.hash.sha2.Sha256.init(.{});
-    hash.update("stwo-zig/cairo/cuda/preprocessed-device-image/v2\x00");
+    hash.update("stwo-zig/cairo/cuda/preprocessed-device-image/v3\x00");
     var path_size: [8]u8 = undefined;
     std.mem.writeInt(u64, &path_size, @intCast(path.len), .little);
     hash.update(&path_size);
@@ -93,7 +93,7 @@ pub fn deviceImageKey(path: []const u8, identities: []const []const u8, prepared
     hashInt(&hash, u64, prepared.column_logs.len);
     for (prepared.column_logs) |log| hashInt(&hash, u32, log);
     hashInt(&hash, u64, prepared.column_offsets.len);
-    for (prepared.column_offsets) |offset| hashInt(&hash, u32, offset);
+    for (prepared.column_offsets) |offset| hashInt(&hash, u64, offset);
     var coefficient_words: [8]u8 = undefined;
     std.mem.writeInt(u64, &coefficient_words, prepared.column_offsets[prepared.column_offsets.len - 1], .little);
     hash.update(&coefficient_words);
@@ -303,7 +303,7 @@ test "SIMD coefficient canonicalization is an involution" {
 
 test "device image key follows fixed coefficient layout, not arena plan identity" {
     var logs = [_]u32{2};
-    var offsets = [_]u32{ 0, 4 };
+    var offsets = [_]u64{ 0, 4 };
     var prepared: trace_commit.Prepared = undefined;
     prepared.tree_ordinal = 0;
     prepared.tree_size = 8;

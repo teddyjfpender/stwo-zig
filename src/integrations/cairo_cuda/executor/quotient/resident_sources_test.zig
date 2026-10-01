@@ -186,6 +186,7 @@ fn tree(
 ) pcs_types.CompactTree {
     const base = 0x3_0000 + ordinal * 0x1000;
     const metadata = words(base, 1, 5);
+    const offsets = words(base + 0x80, 2 * (column_count + 1), 5);
     const hashes = words(base + 0x100, 8, 5);
     const layers = words(base + 0x200, 4, 5);
     const root = words(base + 0x300, 8, 5);
@@ -198,7 +199,7 @@ fn tree(
         .coefficients = metadata,
         .evaluations = evaluations,
         .column_log_sizes = metadata,
-        .column_offsets = metadata,
+        .column_offsets = offsets.cast(u64) catch unreachable,
         .merkle_hashes = hashes.cast(
             @import("stwo_cuda_backend").abi.field.Blake2sHash,
         ) catch unreachable,

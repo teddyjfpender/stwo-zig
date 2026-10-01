@@ -179,11 +179,14 @@ can therefore fit while a 24M-step PIE fails. Raw step count or Pedersen-call
 count alone is not a sound admission estimate; deduplicated component heights
 and the complete per-tree sum are needed.
 
-Removing this admission limit requires widening the trace-commit offsets
-through the host/device pipeline or changing how large component traces are
-partitioned. The current measurements do **not** establish that a proof of
-these PIEs would fit H200 memory after widening the offsets, nor do they
-establish a time or memory bound for the unadapted 179.94M-step PIE.
+The trace-commit offsets and their resident metadata slot are now 64-bit in
+the PR branch. The geometry inspector prepares all four CUDA commitment
+controllers for each of the 25 CPI files above without a GPU; all 15 former
+`u32` offset failures pass this admission check. The recorded H200 proof
+failures are historical measurements from before this change. A new GPU run
+must still establish whether their full proofs fit H200 memory and verify.
+These measurements also provide no time or memory bound for the unadapted
+179.94M-step PIE.
 
 ## Expanded measured cohort
 

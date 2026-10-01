@@ -346,7 +346,7 @@ const Builder = struct {
             );
             try self.add(.trace_evaluations, @intCast(ordinal), try words(evaluations), 64, first, .decommit, storage, tree.role == .preprocessed);
             try self.add(.trace_column_logs, @intCast(ordinal), columns.len, 1, first, .decommit, storage, true);
-            try self.add(.trace_column_offsets, @intCast(ordinal), columns.len + 1, 1, first, .decommit, storage, true);
+            try self.add(.trace_column_offsets, @intCast(ordinal), try mul(columns.len + 1, 2), 2, first, .decommit, storage, true);
             try self.add(.trace_merkle_hashes, @intCast(ordinal), try merkleWords(tree.evaluation_log_rows), 64, .trace_commit, .decommit, storage, tree.role == .preprocessed);
             try self.add(.trace_merkle_layers, @intCast(ordinal), (@as(usize, tree.evaluation_log_rows) + 1) * 4, 4, .trace_commit, .decommit, storage, true);
             try self.add(.trace_root, @intCast(ordinal), 8, 8, .trace_commit, .proof_assembly, .request_local, false);

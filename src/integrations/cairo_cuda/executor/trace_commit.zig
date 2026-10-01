@@ -40,7 +40,7 @@ pub const Prepared = struct {
     cohorts: []Cohort,
     writer_spans: []WriterSpan,
     column_logs: []u32,
-    column_offsets: []u32,
+    column_offsets: []u64,
     layers: []field.MerkleLayerDescriptor,
     slots: Slots,
     identity: proof_ir.Digest,
@@ -309,7 +309,7 @@ pub const Prepared = struct {
         uploader: anytype,
     ) !void {
         try uploader.upload(u32, self.slots.column_logs, self.column_logs);
-        try uploader.upload(u32, self.slots.column_offsets, self.column_offsets);
+        try uploader.upload(u64, self.slots.column_offsets, self.column_offsets);
         try uploader.upload(
             field.MerkleLayerDescriptor,
             self.slots.merkle_layers,
@@ -680,7 +680,7 @@ fn validateSlotExtents(
     try exactSlot(plan, slots.coefficients, totalCohortWords(geometry.cohorts, false));
     try exactSlot(plan, slots.evaluations, totalCohortWords(geometry.cohorts, true));
     try exactSlot(plan, slots.column_logs, geometry.column_logs.len);
-    try exactSlot(plan, slots.column_offsets, geometry.column_offsets.len);
+    try exactSlot(plan, slots.column_offsets, try mul(geometry.column_offsets.len, 2));
     try exactSlot(
         plan,
         slots.merkle_layers,
@@ -932,7 +932,7 @@ test "mixed geometry stays compact and preserves canonical cohort order" {
     defer geometry.deinit(std.testing.allocator);
     try std.testing.expectEqual(@as(usize, 3), geometry.cohorts.len);
     try std.testing.expectEqualSlices(
-        u32,
+        u64,
         &.{ 0, 8, 16, 20, 36 },
         geometry.column_offsets,
     );

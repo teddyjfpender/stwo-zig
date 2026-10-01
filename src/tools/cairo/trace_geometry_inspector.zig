@@ -3,6 +3,7 @@ const std = @import("std");
 const stwo = @import("stwo");
 
 const source = stwo.integrations.cairo_cuda.canonical_source;
+const trace_commit = stwo.integrations.cairo_cuda.executor.trace_commit;
 const CompileOptions = stwo.backends.cuda.runtime.execution_plan.CompileOptions;
 
 pub fn main() !void {
@@ -40,6 +41,21 @@ pub fn main() !void {
         }
         const program = prepared.request.proof_program;
         for (program.commitments) |tree| {
+            var commitment = if (tree.role == .main)
+                try trace_commit.Prepared.initMain(
+                    allocator,
+                    program,
+                    prepared.request.resident,
+                    prepared.request.trace_dispatch,
+                )
+            else
+                try trace_commit.Prepared.initProduced(
+                    allocator,
+                    program,
+                    prepared.request.resident,
+                    tree.role,
+                );
+            defer commitment.deinit();
             const columns = program.trace_columns[tree.first_column .. tree.first_column + tree.column_count];
             var words: u64 = 0;
             var max_log: u32 = 0;

@@ -83,13 +83,13 @@ pub fn bindTrees(
                 index,
                 columns.len,
             ),
-            .column_offsets = try slots.exactWords(
+            .column_offsets = try (try slots.exactWords(
                 provider,
                 plan,
                 .trace_column_offsets,
                 index,
-                columns.len + 1,
-            ),
+                try slots.mul(columns.len + 1, 2),
+            )).cast(u64),
             .merkle_hashes = try hashes.cast(field.Blake2sHash),
             .merkle_layers = try layers.cast(
                 field.MerkleLayerDescriptor,

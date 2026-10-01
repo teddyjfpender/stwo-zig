@@ -8,7 +8,7 @@ const types = @import("types.zig");
 pub const Geometry = struct {
     cohorts: []types.Cohort,
     column_logs: []u32,
-    column_offsets: []u32,
+    column_offsets: []u64,
 
     pub fn deinit(self: Geometry, allocator: std.mem.Allocator) void {
         allocator.free(self.column_offsets);
@@ -45,7 +45,7 @@ pub fn compileWithBlowup(
         return error.InvalidTraceCommitPlan;
     const logs = try allocator.alloc(u32, columns.len);
     errdefer allocator.free(logs);
-    const offsets = try allocator.alloc(u32, columns.len + 1);
+    const offsets = try allocator.alloc(u64, columns.len + 1);
     errdefer allocator.free(offsets);
     var cohorts = std.ArrayList(types.Cohort).empty;
     errdefer cohorts.deinit(allocator);
@@ -78,10 +78,10 @@ pub fn compileWithBlowup(
         });
         for (first..end) |index| {
             logs[index] = columns[index].log_rows;
-            offsets[index + 1] = std.math.cast(
-                u32,
-                coefficient_offset + (index - first + 1) * coefficient_stride,
-            ) orelse return error.TraceCommitGeometryOverflow;
+            offsets[index + 1] = @intCast(try add(
+                coefficient_offset,
+                try mul(index - first + 1, coefficient_stride),
+            ));
         }
         coefficient_offset = try add(coefficient_offset, coefficient_words);
         evaluation_offset = try add(evaluation_offset, evaluation_words);
@@ -97,7 +97,7 @@ pub fn compileWithBlowup(
 pub fn compileWriterSpans(
     allocator: std.mem.Allocator,
     columns: []const proof_ir.TraceColumn,
-    offsets: []const u32,
+    offsets: []const u64,
     schedule: trace_schedule.Schedule,
 ) ![]types.WriterSpan {
     const output = try allocator.alloc(types.WriterSpan, schedule.entries.len);
@@ -133,9 +133,10 @@ pub fn compileWriterSpans(
             .first_column = @intCast(begin),
             .column_count = @intCast(count),
             .trace_log_rows = trace_log,
-            .coefficient_offset_words = offsets[begin],
-            .coefficient_words = @as(usize, offsets[begin + count]) -
-                offsets[begin],
+            .coefficient_offset_words = std.math.cast(usize, offsets[begin]) orelse
+                return error.TraceCommitGeometryOverflow,
+            .coefficient_words = std.math.cast(usize, offsets[begin + count] - offsets[begin]) orelse
+                return error.TraceCommitGeometryOverflow,
         };
     }
     for (covered) |is_covered| {
@@ -162,4 +163,33 @@ fn mul(left: anytype, right: anytype) !usize {
         return error.TraceCommitGeometryOverflow;
     return std.math.mul(usize, lhs, rhs) catch
         error.TraceCommitGeometryOverflow;
+}
+
+test "mixed trace column offsets extend beyond four billion words" {
+    const column_count = 513;
+    const columns = try std.testing.allocator.alloc(proof_ir.TraceColumn, column_count);
+    defer std.testing.allocator.free(columns);
+    for (columns, 0..) |*column, index| column.* = .{
+        .id = @intCast(index),
+        .component = 0,
+        .ordinal = @intCast(index),
+        .log_rows = 23,
+        .role = .main,
+    };
+    const tree = proof_ir.CommitmentTree{
+        .id = 1,
+        .role = .main,
+        .first_column = 0,
+        .column_count = column_count,
+        .evaluation_log_rows = 24,
+        .log_rows_per_leaf = 24,
+        .retain_openings = true,
+    };
+    const geometry = try compile(std.testing.allocator, columns, tree);
+    defer geometry.deinit(std.testing.allocator);
+    const expected: u64 = @as(u64, column_count) << 23;
+    try std.testing.expect(expected > std.math.maxInt(u32));
+    try std.testing.expectEqual(expected, geometry.column_offsets[column_count]);
+    try std.testing.expectEqual(@as(usize, 1), geometry.cohorts.len);
+    try std.testing.expectEqual(expected, geometry.cohorts[0].coefficient_words);
 }
