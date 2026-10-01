@@ -42,12 +42,24 @@ pub const DeviceImage = struct {
         };
     }
 
-    pub fn restore(self: *const DeviceImage, session: anytype, destination: anytype, expected: ?proof_ir.Digest) !Receipt {
-        const receipt = self.receipt orelse return error.InvalidPreprocessedDeviceImage;
+    pub fn restore(
+        self: *const DeviceImage,
+        session: anytype,
+        destination: anytype,
+        expected: ?proof_ir.Digest,
+        commitment_identity: proof_ir.Digest,
+    ) !Receipt {
+        var receipt = self.receipt orelse return error.InvalidPreprocessedDeviceImage;
         try receipt.validate();
         if (destination.len != self.buffer.words or
             (expected != null and !std.mem.eql(u8, &expected.?, &receipt.artifact_identity)))
             return error.InvalidPreprocessedDeviceImage;
+        // The coefficient image is independent of arena slots. Bind its
+        // validated artifact to this request's commitment plan before the
+        // controller admits the receipt.
+        receipt.commitment_identity = commitment_identity;
+        receipt.identity = receiptIdentity(receipt);
+        try receipt.validate();
         try session.context.copyDeviceSlice(u32, destination, self.slice());
         return receipt;
     }
@@ -70,12 +82,18 @@ pub const DeviceImage = struct {
 
 pub fn deviceImageKey(path: []const u8, identities: []const []const u8, prepared: *const trace_commit.Prepared) [32]u8 {
     var hash = std.crypto.hash.sha2.Sha256.init(.{});
-    hash.update("stwo-zig/cairo/cuda/preprocessed-device-image/v1\x00");
+    hash.update("stwo-zig/cairo/cuda/preprocessed-device-image/v2\x00");
     var path_size: [8]u8 = undefined;
     std.mem.writeInt(u64, &path_size, @intCast(path.len), .little);
     hash.update(&path_size);
     hash.update(path);
-    hash.update(&prepared.identity);
+    hashInt(&hash, u32, prepared.tree_ordinal);
+    hashInt(&hash, u8, @intFromEnum(prepared.input_form));
+    hashInt(&hash, u32, prepared.tree_size);
+    hashInt(&hash, u64, prepared.column_logs.len);
+    for (prepared.column_logs) |log| hashInt(&hash, u32, log);
+    hashInt(&hash, u64, prepared.column_offsets.len);
+    for (prepared.column_offsets) |offset| hashInt(&hash, u32, offset);
     var coefficient_words: [8]u8 = undefined;
     std.mem.writeInt(u64, &coefficient_words, prepared.column_offsets[prepared.column_offsets.len - 1], .little);
     hash.update(&coefficient_words);
@@ -268,6 +286,26 @@ test "SIMD coefficient canonicalization is an involution" {
         try std.testing.expectEqual(@as(u32, @intCast(index)), value);
 }
 
+test "device image key follows fixed coefficient layout, not arena plan identity" {
+    var logs = [_]u32{2};
+    var offsets = [_]u32{ 0, 4 };
+    var prepared: trace_commit.Prepared = undefined;
+    prepared.tree_ordinal = 0;
+    prepared.tree_size = 8;
+    prepared.input_form = .coefficients;
+    prepared.column_logs = &logs;
+    prepared.column_offsets = &offsets;
+    prepared.identity = [_]u8{1} ** 32;
+    const first = deviceImageKey("/canonical", &.{"fixed"}, &prepared);
+    prepared.identity = [_]u8{2} ** 32;
+    const new_plan = deviceImageKey("/canonical", &.{"fixed"}, &prepared);
+    try std.testing.expectEqualSlices(u8, &first, &new_plan);
+    logs[0] = 3;
+    offsets[1] = 8;
+    const new_layout = deviceImageKey("/canonical", &.{"fixed"}, &prepared);
+    try std.testing.expect(!std.mem.eql(u8, &first, &new_layout));
+}
+
 test "device image admits only verified snapshots and restores exact words" {
     const FakeSession = struct {
         context: struct {
@@ -308,10 +346,12 @@ test "device image admits only verified snapshots and restores exact words" {
         .generation = 3,
     };
     try image.capture(&session, source_slice, receipt);
-    try std.testing.expectError(error.InvalidPreprocessedDeviceImage, image.restore(&session, destination_slice, null));
+    try std.testing.expectError(error.InvalidPreprocessedDeviceImage, image.restore(&session, destination_slice, null, receipt.commitment_identity));
     try image.admit();
     try std.testing.expectError(error.InvalidPreprocessedDeviceImage, image.admit());
-    try std.testing.expectError(error.InvalidPreprocessedDeviceImage, image.restore(&session, destination_slice, [_]u8{4} ** 32));
-    _ = try image.restore(&session, destination_slice, receipt.artifact_identity);
+    try std.testing.expectError(error.InvalidPreprocessedDeviceImage, image.restore(&session, destination_slice, [_]u8{4} ** 32, receipt.commitment_identity));
+    const rebound = try image.restore(&session, destination_slice, receipt.artifact_identity, [_]u8{5} ** 32);
+    try std.testing.expectEqualSlices(u8, &rebound.commitment_identity, &([_]u8{5} ** 32));
+    try rebound.validate();
     try std.testing.expectEqualSlices(u32, &source, &destination);
 }

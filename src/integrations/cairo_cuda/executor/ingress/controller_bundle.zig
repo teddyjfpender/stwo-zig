@@ -358,6 +358,7 @@ pub const Bound = struct {
                 session,
                 self.preprocessed_commit.coefficients,
                 inputs.preprocessed_artifact_identity,
+                self.preprocessed_commit.prepared.identity,
             )
         else if (inputs.resident_preprocessed) |receipt| cached: {
             try receipt.validate();
