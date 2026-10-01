@@ -27,7 +27,11 @@ class SafeRedirect(urllib.request.HTTPRedirectHandler):
         new = urllib.parse.urlsplit(new_url)
         if new.scheme != "https":
             raise ValueError("PIE download redirected to a non-HTTPS URL")
-        forwarded = dict(request.header_items())
+        # urllib has inserted the API host into the request by this point.
+        # Carrying that Host header to a presigned S3 URL invalidates its
+        # signature, even when Authorization is correctly stripped.
+        forwarded = {key: value for key, value in request.header_items()
+                     if key.lower() != "host"}
         if old.netloc != new.netloc:
             forwarded = {key: value for key, value in forwarded.items()
                          if key.lower() != "authorization"}

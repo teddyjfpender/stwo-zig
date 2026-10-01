@@ -1,0 +1,7 @@
+{
+  "platform": "macOS-26.7.1-arm64-arm-64bit-Mach-O",
+  "machine": "arm64",
+  "verifier_sha256": "eb58e47488cbd922cdb0d0af565c71fce6deefb6709c3f37a99410c8af448a98",
+  "stwo_cairo_revision": "82f21252a68ec006d73e299f5bf1ce6d4db0ee78",
+  "stwo_revision": "7b211edde786775016ef3eecb837a6240d8fe792"
+}
