@@ -28,6 +28,27 @@ const ResidentStatic = struct {
     receipt: stwo.executor.preprocessed_cache.Receipt,
 };
 
+/// Retains authenticated source assets and the checked fixed device image
+/// across separate batches on one resident runtime. Dynamic PIE inputs,
+/// transcripts, and proof transactions remain request-local.
+pub const BatchSession = struct {
+    allocator: std.mem.Allocator,
+    runtime: *NativeRuntime,
+    assets: ?CanonicalAssets = null,
+    device_image: ?DeviceImage = null,
+    resident_static: ?ResidentStatic = null,
+    executable_digest: ?[32]u8 = null,
+
+    pub fn deinit(self: *BatchSession) !void {
+        var assets = self.assets;
+        self.assets = null;
+        defer if (assets) |*owned| owned.deinit();
+        if (self.device_image) |*image| try image.deinit(self.runtime);
+        self.device_image = null;
+        self.resident_static = null;
+    }
+};
+
 pub fn main() !void {
     const allocator = std.heap.smp_allocator;
     const process_args = try std.process.argsAlloc(allocator);
@@ -54,7 +75,7 @@ pub fn proveWithSink(allocator: std.mem.Allocator, request: cli.Prove, sink: ?Ve
     const items = try allocator.alloc(BatchItem, request.repeat);
     defer allocator.free(items);
     for (items) |*item| item.* = .{ .request = request, .sink = sink };
-    return runItems(allocator, items, .repeated, null);
+    return runItems(allocator, items, .repeated, null, null);
 }
 
 /// Prove distinct adapted PIEs in one process. The authenticated arena key
@@ -66,7 +87,7 @@ pub fn proveBatchWithSinks(allocator: std.mem.Allocator, items: []const BatchIte
         if (item.sink == null or item.request.circuit_registry == null or item.request.repeat != 1)
             return error.InvalidRecursiveLeafRequest;
     }
-    return runItems(allocator, items, .distinct, null);
+    return runItems(allocator, items, .distinct, null, null);
 }
 
 /// The circuit receiver borrows this runtime after each Cairo proof. Its
@@ -78,28 +99,48 @@ pub fn proveBatchWithSinksUsingRuntime(allocator: std.mem.Allocator, items: []co
         if (item.sink == null or item.request.circuit_registry == null or item.request.repeat != 1)
             return error.InvalidRecursiveLeafRequest;
     }
-    return runItems(allocator, items, .distinct, runtime);
+    return runItems(allocator, items, .distinct, runtime, null);
 }
 
-fn runItems(allocator: std.mem.Allocator, items: []const BatchItem, mode: Mode, external_runtime: ?*NativeRuntime) !void {
+pub fn proveBatchWithSinksUsingSession(allocator: std.mem.Allocator, items: []const BatchItem, session: *BatchSession) !void {
+    if (items.len == 0 or items.len > 256) return error.InvalidBatchSize;
+    for (items) |item| {
+        if (item.sink == null or item.request.circuit_registry == null or item.request.repeat != 1)
+            return error.InvalidRecursiveLeafRequest;
+    }
+    return runItems(allocator, items, .distinct, session.runtime, session);
+}
+
+fn runItems(allocator: std.mem.Allocator, items: []const BatchItem, mode: Mode, external_runtime: ?*NativeRuntime, persistent: ?*BatchSession) !void {
     const receipts = try allocator.alloc(publication.Receipt, items.len);
     defer allocator.free(receipts);
-    const executable = try std.fs.selfExePathAlloc(allocator);
-    defer allocator.free(executable);
-    const executable_digest = try publication.sha256File(executable);
+    const executable_digest = if (persistent) |session| blk: {
+        if (session.executable_digest) |digest| break :blk digest;
+        const executable = try std.fs.selfExePathAlloc(allocator);
+        defer allocator.free(executable);
+        const digest = try publication.sha256File(executable);
+        session.executable_digest = digest;
+        break :blk digest;
+    } else blk: {
+        const executable = try std.fs.selfExePathAlloc(allocator);
+        defer allocator.free(executable);
+        break :blk try publication.sha256File(executable);
+    };
     var startup = try std.time.Timer.start();
-    var shared_assets: ?CanonicalAssets = null;
-    defer if (shared_assets) |*assets| assets.deinit();
-    if (items.len > 1) {
+    var local_assets: ?CanonicalAssets = null;
+    defer if (local_assets) |*assets| assets.deinit();
+    const assets_slot = if (persistent) |session| &session.assets else &local_assets;
+    var asset_init_ns: u64 = 0;
+    if ((items.len > 1 or persistent != null) and assets_slot.* == null) {
         var first_paths = try @import("canonical_paths.zig").Paths.init(
             allocator,
             items[0].request.input,
             items[0].request.circuit_registry,
         );
         defer first_paths.deinit();
-        shared_assets = try CanonicalAssets.load(allocator, first_paths.source);
+        assets_slot.* = try CanonicalAssets.load(allocator, first_paths.source);
+        asset_init_ns = startup.lap();
     }
-    const asset_init_ns = if (shared_assets != null) startup.lap() else 0;
     var owned_runtime: NativeRuntime = undefined;
     var owned_runtime_live = false;
     defer if (owned_runtime_live) owned_runtime.abort() catch {};
@@ -113,15 +154,17 @@ fn runItems(allocator: std.mem.Allocator, items: []const BatchItem, mode: Mode, 
     const runtime_init_ns = if (external_runtime == null) startup.read() else 0;
     const image_setting = std.process.getEnvVarOwned(allocator, "STWO_CAIRO_CUDA_STATIC_IMAGE") catch null;
     defer if (image_setting) |value| allocator.free(value);
-    const use_device_image = external_runtime != null and items.len > 1 and
+    const use_device_image = external_runtime != null and (items.len > 1 or persistent != null) and
         image_setting != null and std.mem.eql(u8, image_setting.?, "1");
-    var device_image: ?DeviceImage = null;
-    defer if (device_image) |*image| image.deinit(runtime) catch {};
+    var local_image: ?DeviceImage = null;
+    defer if (local_image) |*image| image.deinit(runtime) catch {};
+    const image_slot = if (persistent) |session| &session.device_image else &local_image;
     var expected_digest: ?[32]u8 = null;
-    var resident_static: ?ResidentStatic = null;
+    var local_static: ?ResidentStatic = null;
+    const static_slot = if (persistent) |session| &session.resident_static else &local_static;
     for (items, 0..) |item, index| {
-        const assets: ?*const CanonicalAssets = if (shared_assets) |*shared| shared else null;
-        const receipt = try proveOnce(allocator, runtime, &resident_static, if (use_device_image) &device_image else null, item.request, executable_digest, @intCast(if (mode == .repeated) index + 1 else 1), if (index == 0) runtime_init_ns else 0, if (index == 0) asset_init_ns else 0, item.sink, external_runtime != null, assets);
+        const assets: ?*const CanonicalAssets = if (assets_slot.*) |*shared| shared else null;
+        const receipt = try proveOnce(allocator, runtime, static_slot, if (use_device_image) image_slot else null, item.request, executable_digest, @intCast(if (mode == .repeated) index + 1 else 1), if (index == 0) runtime_init_ns else 0, if (index == 0) asset_init_ns else 0, item.sink, external_runtime != null, assets);
         if (mode == .repeated) {
             if (expected_digest) |expected| {
                 if (!std.mem.eql(u8, &expected, &receipt.proof_sha256)) return error.NondeterministicCairoCudaProof;
@@ -131,9 +174,9 @@ fn runItems(allocator: std.mem.Allocator, items: []const BatchItem, mode: Mode, 
         try publication.writeReport(item.request.report_out, if (mode == .repeated) receipts[0 .. index + 1] else receipts[index .. index + 1]);
     }
     var teardown = try std.time.Timer.start();
-    if (device_image) |*image| {
+    if (local_image) |*image| {
         try image.deinit(runtime);
-        device_image = null;
+        local_image = null;
         std.debug.print("cairo-cuda static-image release_ns={}\n", .{teardown.read()});
     }
     if (owned_runtime_live) {

@@ -18,6 +18,7 @@ pub fn main() !void {
     if (args.len < 2) return error.MissingCommand;
     if (std.mem.eql(u8, args[1], "leaf-wrap")) return leafWrap(allocator, args[2..]);
     if (std.mem.eql(u8, args[1], "leaf-wrap-batch")) return leafWrapBatch(allocator, args[2..]);
+    if (std.mem.eql(u8, args[1], "leaf-wrap-campaign")) return leafWrapCampaign(allocator, args[2..]);
     if (std.mem.eql(u8, args[1], "fold-tree")) return foldTree(allocator, args[2..]);
     return error.UnknownCommand;
 }
@@ -68,6 +69,71 @@ const BatchManifestItem = struct {
     output_preimage: ?[]const []const u8 = null,
 };
 
+const CampaignJob = struct {
+    manifest: []const u8,
+    root_proof: []const u8,
+    root_outputs: []const u8,
+    root_packed: []const u8,
+    root_mode: []const u8 = "canonical",
+};
+
+/// A bounded sequence of independent roots in one long-lived CUDA process.
+/// The static Cairo image, AIR catalog, and authenticated leaf topology are
+/// shared; each job gets its own manifest arena, proofs, and output paths.
+fn leafWrapCampaign(allocator: std.mem.Allocator, args: []const []const u8) !void {
+    var arena = std.heap.ArenaAllocator.init(allocator);
+    defer arena.deinit();
+    const a = arena.allocator();
+    const jobs_path = try flag(args, "--jobs");
+    const jobs = try std.json.parseFromSlice([]CampaignJob, a, try readFile(a, jobs_path), .{
+        .allocate = .alloc_always,
+        .ignore_unknown_fields = false,
+    });
+    if (jobs.value.len == 0 or jobs.value.len > 256) return error.InvalidCampaignSize;
+    const first_job = jobs.value[0];
+    const first_manifest = try std.json.parseFromSlice([]BatchManifestItem, a, try readFile(a, first_job.manifest), .{
+        .allocate = .alloc_always,
+        .ignore_unknown_fields = false,
+    });
+    if (first_manifest.value.len == 0 or first_manifest.value.len > 256) return error.InvalidBatchSize;
+    const first = first_manifest.value[0];
+    var catalog = try circuit_cuda.air_aot.build(allocator, try circuit_app.authenticatedAirPrograms());
+    defer catalog.deinit();
+    var runtime = try circuit_cuda.recursion_source.Runtime.open(&.{ 80, 90 });
+    var runtime_live = true;
+    defer if (runtime_live) runtime.abort() catch {};
+    var cairo_session = cairo_app.BatchSession{ .allocator = allocator, .runtime = &runtime };
+    var cairo_session_live = true;
+    defer if (cairo_session_live) cairo_session.deinit() catch {};
+    var backend = circuit_cuda.recursion_source.Context{ .catalog = &catalog, .runtime = &runtime };
+    var shared = try circuit_app.VerifiedLeafSession.init(allocator, .{
+        .registry_path = first.registry,
+        .program_path = first.program,
+        .prover_input_path = first.input,
+        .source = backend.source(),
+    });
+    defer shared.deinit();
+    for (jobs.value, 0..) |job, index| {
+        var job_arena = std.heap.ArenaAllocator.init(allocator);
+        defer job_arena.deinit();
+        const job_a = job_arena.allocator();
+        const parsed = try std.json.parseFromSlice([]BatchManifestItem, job_a, try readFile(job_a, job.manifest), .{
+            .allocate = .alloc_always,
+            .ignore_unknown_fields = false,
+        });
+        if (parsed.value.len == 0 or parsed.value.len > 256) return error.InvalidBatchSize;
+        const compact = std.mem.eql(u8, job.root_mode, "compact");
+        if (!compact and !std.mem.eql(u8, job.root_mode, "canonical")) return error.InvalidRootMode;
+        var timer = try std.time.Timer.start();
+        try runOneBatch(allocator, job_a, parsed.value, job.root_proof, job.root_outputs, job.root_packed, compact, &backend, &shared, &cairo_session, 0);
+        std.debug.print("circuit-cuda campaign-job index={} wall_ns={} root={s}\n", .{ index, timer.read(), job.root_proof });
+    }
+    try cairo_session.deinit();
+    cairo_session_live = false;
+    try runtime.close();
+    runtime_live = false;
+}
+
 fn leafWrapBatch(allocator: std.mem.Allocator, args: []const []const u8) !void {
     var wall = try std.time.Timer.start();
     var arena = std.heap.ArenaAllocator.init(allocator);
@@ -94,6 +160,9 @@ fn leafWrapBatch(allocator: std.mem.Allocator, args: []const []const u8) !void {
     var runtime = try circuit_cuda.recursion_source.Runtime.open(&.{ 80, 90 });
     var runtime_live = true;
     defer if (runtime_live) runtime.abort() catch {};
+    var cairo_session = cairo_app.BatchSession{ .allocator = allocator, .runtime = &runtime };
+    var cairo_session_live = true;
+    defer if (cairo_session_live) cairo_session.deinit() catch {};
     var backend = circuit_cuda.recursion_source.Context{ .catalog = &catalog, .runtime = &runtime };
     const first = parsed.value[0];
     for (parsed.value[1..]) |entry| {
@@ -109,9 +178,37 @@ fn leafWrapBatch(allocator: std.mem.Allocator, args: []const []const u8) !void {
     });
     defer shared.deinit();
     const setup_ns = wall.lap();
-    const receivers = try a.alloc(sink.Context, parsed.value.len);
-    const items = try a.alloc(cairo_app.BatchItem, parsed.value.len);
-    for (parsed.value, receivers, items) |entry, *receiver, *item| {
+    try runOneBatch(allocator, a, parsed.value, root_proof_path, root_outputs_path, root_packed_path, compact_root, &backend, &shared, &cairo_session, setup_ns);
+    try cairo_session.deinit();
+    cairo_session_live = false;
+    try runtime.close();
+    runtime_live = false;
+}
+
+fn runOneBatch(
+    allocator: std.mem.Allocator,
+    a: std.mem.Allocator,
+    entries: []const BatchManifestItem,
+    root_proof_path: ?[]const u8,
+    root_outputs_path: ?[]const u8,
+    root_packed_path: ?[]const u8,
+    compact_root: bool,
+    backend: *circuit_cuda.recursion_source.Context,
+    shared: *circuit_app.VerifiedLeafSession,
+    cairo_session: *cairo_app.BatchSession,
+    setup_ns: u64,
+) !void {
+    const integrated = root_proof_path != null;
+    const first = entries[0];
+    for (entries[1..]) |entry| {
+        if (!std.mem.eql(u8, entry.registry, first.registry) or
+            !std.mem.eql(u8, entry.program, first.program)) return error.MixedLeafPrograms;
+    }
+    if (!std.mem.eql(u8, first.registry, shared.request.registry_path) or
+        !std.mem.eql(u8, first.program, shared.request.program_path)) return error.MixedLeafPrograms;
+    const receivers = try a.alloc(sink.Context, entries.len);
+    const items = try a.alloc(cairo_app.BatchItem, entries.len);
+    for (entries, receivers, items) |entry, *receiver, *item| {
         receiver.* = .{
             .allocator = allocator,
             .request = .{
@@ -121,7 +218,7 @@ fn leafWrapBatch(allocator: std.mem.Allocator, args: []const []const u8) !void {
                 .source = backend.source(),
             },
             .output_path = entry.output,
-            .shared_session = &shared,
+            .shared_session = shared,
         };
         item.* = .{
             .request = .{
@@ -135,7 +232,7 @@ fn leafWrapBatch(allocator: std.mem.Allocator, args: []const []const u8) !void {
         };
     }
     var total = try std.time.Timer.start();
-    try cairo_app.proveBatchWithSinksUsingRuntime(allocator, items, &runtime);
+    try cairo_app.proveBatchWithSinksUsingSession(allocator, items, cairo_session);
     for (receivers, 0..) |receiver, index| {
         if (!receiver.delivered) return error.MissingVerifiedCairoLeaf;
         std.debug.print("circuit-cuda batch-leaf index={} wrap_ns={} proof={s}\n", .{
@@ -145,11 +242,11 @@ fn leafWrapBatch(allocator: std.mem.Allocator, args: []const []const u8) !void {
     const leaves_ns = total.read();
     std.debug.print("circuit-cuda leaf-wrap-batch leaves={} total_ns={}\n", .{ receivers.len, leaves_ns });
     if (integrated) {
-        const leaves = try a.alloc(wire.leaf_proof_json.LeafInput, parsed.value.len);
-        const parsed_proofs = try a.alloc(wire.leaf_proof_json.Owned(wire.leaf_proof_json.SerializedLeafProof), parsed.value.len);
+        const leaves = try a.alloc(wire.leaf_proof_json.LeafInput, entries.len);
+        const parsed_proofs = try a.alloc(wire.leaf_proof_json.Owned(wire.leaf_proof_json.SerializedLeafProof), entries.len);
         var parsed_count: usize = 0;
         defer for (parsed_proofs[0..parsed_count]) |*proof| proof.deinit();
-        for (parsed.value, leaves, parsed_proofs) |entry, *leaf, *proof| {
+        for (entries, leaves, parsed_proofs) |entry, *leaf, *proof| {
             const preimage = entry.output_preimage orelse return error.MissingRootPreimage;
             proof.* = try wire.leaf_proof_json.parseSerializedLeafProof(allocator, try readFile(a, entry.output));
             parsed_count += 1;
@@ -176,8 +273,6 @@ fn leafWrapBatch(allocator: std.mem.Allocator, args: []const []const u8) !void {
             files.stats.n_leaves, files.stats.n_pair_reductions, fold_ns, files.proof.written().len,
         });
     }
-    try runtime.close();
-    runtime_live = false;
     std.debug.print("circuit-cuda leaf-wrap-batch setup_ns={} execution_ns={} cache_hits={} cache_misses={}\n", .{
         setup_ns, leaves_ns, shared.cache.stats.hits, shared.cache.stats.misses,
     });
