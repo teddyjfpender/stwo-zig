@@ -353,3 +353,95 @@ near-capacity control PIE, `15571670_15571679`, also passed the official
 verifier with the final binary; its [control receipt](pie-proving-memory-control-20261001.csv)
 records an 11.060 s publication and 120.5 GB GPU peak. The H200 pod was
 stopped after these checks.
+
+## Component outliers and the next capacity boundary
+
+The [extreme selection](pie-extreme-selection-20261001.csv) compares every
+selected PIE with catalogue peers having the same number of blocks. The seven
+former H200 admission failures have median 259k Pedersen, 8,730 Poseidon,
+and 1,556 bitwise instances. Nine other verified 10- or 15-block PIEs in the
+same 25–40M-step range have medians 175k, 6,711, and 544 respectively;
+their median EC-op count is actually higher (768 versus 627). This small,
+non-random comparison explains why total steps or EC-op count alone did not
+identify the prior memory failures. For example, `15591789_15591789` has
+960 EC ops, 93% above the *whole-catalogue* mean of 497, but only 49% above
+the one-block mean of 643. The selected cohort includes the one-block maxima
+for EC-op, Pedersen, bitwise, range-check-96 and modular, Keccak, ECDSA, and
+Poseidon-heavy mixes, plus high-step two- to four-block cases.
+
+Exact planning of five additional ten-block PIEs exposes a different H200
+boundary. Before the second lifetime pass, their component-derived resident
+allocations were 148.4 GB at
+44.94M steps, 156.8 GB at 40.09M, 157.2 GB at 58.29M, 162.8 GB at 55.87M,
+and 184.8 GB at 48.29M. Thus a lower-step PIE can require more memory than
+a higher-step one. The 48.29M-step case peaks during trace generation at
+184.8 GB: 56.8 GB of main-trace evaluations, 56.7 GB of retained writer
+lookup outputs, 28.4 GB of main coefficients, and 25.6 GB of writer scratch
+are simultaneously live. The OODS phase is nearly as high at 184.3 GB. Its
+partial EC multiplication main and interaction traces alone contain 18.7 GB
+of coefficient words, before extension evaluations. These are exact plans,
+not measured H200 allocations; the 150.755 GB H200 cannot admit the four
+plans above that total.
+
+The first H200 proof attempt for the 44.94M-step case exhausted device memory
+during constraint evaluation, with 150.753 GB sampled against 150.755 GB
+total. The planner reserved the second OODS reduction buffer for 512-row
+chunks, while the actual mixed-height OODS binding and kernels use the same
+4096-row first-pass scratch extent for both alternating buffers. Correcting
+that redundant allocation removes about 7.2 GB of *logical* storage in the
+largest case. Main-trace evaluations were also marked live during witness
+generation although their first write occurs only in trace commitment;
+shortening that lifetime allows transient writer scratch to share the space.
+Neither change alters the witness values or proof protocol. The resulting
+exact plans for the five cases are **146.0, 154.7, 155.0, 160.5, and
+182.8 GB**, respectively, in the same order as above. The 48.29M-step case
+now peaks at 182.8 GB during trace commitment, primarily from simultaneous
+lookup inputs and main/interaction trace storage; reducing OODS scratch alone
+cannot make that single PIE fit this H200.
+
+For PIE construction, retain at least one complete block per PIE, then use
+the exact component-aware resident plan on each adapted candidate before
+GPU scheduling. A 6.0 GB reserve sets a 144.755 GB plan ceiling against this
+H200's total and covers the earlier 144.7 GB plan that measured 146.6 GB on
+device. The ceiling is a conservative admission rule for this machine, not a
+proof that every untested workload succeeds. If adding the next block crosses
+it, close the current PIE and begin the next one; aggregate those proofs in
+the recursion pipeline. Grouping must be decided from exact geometry after
+adaptation, since metadata-only step limits miss Pedersen-key padding and
+component-width jumps. A single block that exceeds the ceiling cannot be
+split further by this rule and needs a lower-memory proving architecture.
+
+The final H200 build proved **all 15 selected candidates with plans below
+physical device capacity**, including ten one-block component outliers,
+four formerly excluded two- to four-block PIEs, and the near-capacity
+ten-block case. Every proof passed the pinned official Rust verifier. The
+[full proof receipt](pie-proving-extreme-20261001.csv) records preparation,
+proof execution, publication, sampled GPU/host memory, and independent
+verification by PIE; the [adaptation receipt](adaptation-extreme-20261001.csv),
+[exact-capacity gate](pie-capacity-admission-20261001.csv), and
+[machine/security receipt](h200-extreme-machine.json) make the cohort
+reproducible. The joined [6,187-PIE CSV](pie-scale.csv) now contains **478
+verified GPU proofs**, with one earlier, excluded 180M-step memory failure.
+These 15 are deliberately selected stress cases, so their median is not a
+production traffic estimate.
+
+| PIE | Why selected | Steps M | Final plan GB | GPU peak GB | Proof s | Input→proof s |
+|---|---|---:|---:|---:|---:|---:|
+| `15582797_15582797` | Highest one-block EC and Poseidon | 20.85 | 88.6 | 90.5 | 1.293 | 15.314 |
+| `15603744_15603744` | Highest one-block bitwise | 22.22 | 87.9 | 89.7 | 1.236 | 8.242 |
+| `15581148_15581148` | Highest one-block range-check-96 and modular | 18.81 | 82.7 | 84.5 | 1.183 | 7.446 |
+| `15590913_15590913` | Highest one-block Pedersen | 22.67 | 103.4 | 105.2 | 1.567 | 8.755 |
+| `15588777_15588780` | Largest selected four-block PIE | 33.68 | 132.2 | 134.1 | 1.966 | 10.599 |
+| `15576750_15576759` | Ten-block, first attempt exhausted memory | 44.94 | 146.0 | 147.8 | 2.144 | 12.393 |
+
+For this H200, the [capacity planner](../../../../scripts/plan_cairo_cuda_pie_capacity.py)
+uses the exact `cairo-trace-geometry` plan and reserves 6.0 GB beyond it.
+That admits 14 of the 19 adapted stress cases. The 44.94M-step case was
+observed to pass with only 2.91 GB of device headroom, so the conservative
+gate still declines it for routine scheduling. Four larger ten-block cases
+remain above the H200's physical capacity even after these fixes; their
+adapted inputs and exact plans are in the selection and admission CSVs.
+For those, use smaller contiguous block groups before aggregation or change
+the prover to stream or spill retained lookup/trace data. The largest case
+still needs at least 34 GB less live storage before it can be a single H200
+PIE; the current lifetime changes do not claim to solve that architecture.

@@ -347,7 +347,12 @@ const Builder = struct {
                 storage,
                 tree.role == .preprocessed,
             );
-            try self.addPhased(.trace_evaluations, @intCast(ordinal), try words(evaluations), 64, first, .decommit, storage, tree.role == .preprocessed, if (tree.role == .interaction) 1 else 0, 1);
+            // Main writer kernels fill coefficients during trace generation;
+            // only the subsequent trace-commit LDE writes evaluations. Their
+            // buffer can therefore reuse transient writer scratch storage.
+            const evaluation_first: telemetry.Stage =
+                if (tree.role == .main) .trace_commit else first;
+            try self.addPhased(.trace_evaluations, @intCast(ordinal), try words(evaluations), 64, evaluation_first, .decommit, storage, tree.role == .preprocessed, if (tree.role == .interaction) 1 else 0, 1);
             try self.add(.trace_column_logs, @intCast(ordinal), columns.len, 1, first, .decommit, storage, true);
             try self.add(.trace_column_offsets, @intCast(ordinal), try mul(columns.len + 1, 2), 2, first, .decommit, storage, true);
             try self.addPhased(.trace_merkle_hashes, @intCast(ordinal), try merkleWords(tree.evaluation_log_rows), 64, .trace_commit, .decommit, storage, tree.role == .preprocessed, if (tree.role == .interaction) 1 else 0, 1);
@@ -379,7 +384,6 @@ const Builder = struct {
         const max_log = self.program.quotient.evaluation_log_rows;
         const factors = try mul(try mul(samples, max_log), 4);
         const first_blocks = divCeil(try pow2usize(max_log), 4096);
-        const reduce_blocks = divCeil(try pow2usize(max_log), 512);
         try self.add(.oods_parameter, 0, 4, 4, .constraint_evaluation, point_stage, .request_local, false);
         try self.add(.oods_offset_points, 0, try mul(samples, 2), 2, .oods, final_stage, .request_local, true);
         try self.add(.oods_fold_counts, 0, samples, 1, .oods, final_stage, .request_local, true);
@@ -387,8 +391,12 @@ const Builder = struct {
         try self.add(.oods_sample_points, 0, try mul(samples, 8), 8, .oods, point_stage, .request_local, false);
         try self.add(.oods_evaluation_points, 0, try mul(samples, 8), 8, .oods, point_stage, .request_local, false);
         try self.add(.oods_folding_factors, 0, factors, 4, .oods, final_stage, .request_local, false);
-        try self.add(.oods_reduce_a, 0, try mul(try mul(samples, first_blocks), 4), 4, .oods, final_stage, .request_local, false);
-        try self.add(.oods_reduce_b, 0, try mul(try mul(samples, reduce_blocks), 4), 4, .oods, final_stage, .request_local, false);
+        // Both buffers alternate the same first-pass reduction. The mixed-
+        // height OODS binding takes an exact scratch_count subview of each;
+        // sizing the second one for 512-row blocks kept seven unused copies.
+        const reduction_words = try mul(try mul(samples, first_blocks), 4);
+        try self.add(.oods_reduce_a, 0, reduction_words, 4, .oods, final_stage, .request_local, false);
+        try self.add(.oods_reduce_b, 0, reduction_words, 4, .oods, final_stage, .request_local, false);
         try self.add(.oods_sampled_values, 0, self.protocol.sampled_value_words, 4, .oods, .proof_assembly, .request_local, false);
     }
 

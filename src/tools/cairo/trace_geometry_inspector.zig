@@ -4,8 +4,10 @@ const stwo = @import("stwo");
 
 const source = stwo.integrations.cairo_cuda.canonical_source;
 const trace_commit = stwo.integrations.cairo_cuda.executor.trace_commit;
+const controller_bundle = stwo.integrations.cairo_cuda.executor.ingress.controller_bundle;
 const CompileOptions = stwo.backends.cuda.runtime.execution_plan.CompileOptions;
 const Stage = stwo.backends.cuda.runtime.telemetry.Stage;
+const Variant = stwo.frontends.cairo.preprocessed.trace.Variant;
 
 pub fn main() !void {
     const allocator = std.heap.smp_allocator;
@@ -17,7 +19,17 @@ pub fn main() !void {
         std.debug.print("usage: cairo-trace-geometry [--memory-breakdown] <adapted-input.cpi>...\n", .{});
         return error.InvalidArgument;
     }
-    var assets = try source.Assets.load(allocator, .{ .input = args[first_path] });
+    const forced_variant = std.posix.getenv("STWO_CAIRO_CUDA_PREPROCESSED_VARIANT");
+    const variant = if (forced_variant) |name|
+        std.meta.stringToEnum(Variant, name) orelse return error.InvalidPreprocessedVariant
+    else
+        Variant.canonical_small;
+    const paths = source.Paths{
+        .input = args[first_path],
+        .variant = variant,
+        .automatic_variant = forced_variant == null,
+    };
+    var assets = try source.Assets.load(allocator, paths);
     defer assets.deinit();
     const target: CompileOptions = .{
         .sm = 90,
@@ -32,12 +44,25 @@ pub fn main() !void {
         .enable_graphs = true,
     };
     for (args[first_path..]) |path| {
-        var prepared = try source.prepareWithAssets(allocator, .{ .input = path }, target, &assets);
+        var prepared = try source.prepareWithAssets(allocator, .{
+            .input = path,
+            .variant = variant,
+            .automatic_variant = forced_variant == null,
+        }, target, &assets);
         defer prepared.deinit();
+        var controllers = try controller_bundle.Prepared.init(
+            allocator,
+            &prepared.request,
+            prepared.protocol,
+            prepared.composition,
+            prepared.preprocessed_logs,
+        );
+        defer controllers.deinit();
         const summary = prepared.request.resident.summary;
-        std.debug.print("resident pie={s} logical_bytes={} peak_live_bytes={} allocated_bytes={} coefficient_cells={} evaluation_cells={}\n", .{
-            std.fs.path.stem(path),           summary.logicalBytes(),    summary.peak_live_words * 4,
-            summary.allocatedResidentBytes(), summary.coefficient_cells, summary.evaluation_cells,
+        std.debug.print("resident pie={s} logical_bytes={} peak_live_bytes={} allocated_bytes={} request_arena_bytes={} coefficient_cells={} evaluation_cells={}\n", .{
+            std.fs.path.stem(path),                              summary.logicalBytes(),           summary.peak_live_words * 4,
+            controllers.resident.combined_arena.total_words * 4, summary.allocatedResidentBytes(), summary.coefficient_cells,
+            summary.evaluation_cells,
         });
         if (breakdown) {
             const pie = std.fs.path.stem(path);
