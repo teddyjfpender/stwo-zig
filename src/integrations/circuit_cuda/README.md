@@ -71,4 +71,6 @@ A second, locally compiled optimization passes the registry-bound leaf root or i
 
 The next GPU comparison can add `--sample-device-memory` to the pipeline driver. It samples whole-device `nvidia-smi` used memory every 250 ms and records both idle and peak values; this is distinct from the planned arena extent and may include other GPU processes. The driver also records per-proof plan, static hash, ingress, schedule, finish, and decode timings to identify the remaining circuit cost.
 
+Each new pipeline receipt also carries Cairo CUDA ingress traffic, persistent and peak live bytes, kernel launches, and ingress-stage elapsed time. The driver rejects any Cairo receipt whose provider is not NVIDIA CUDA, reports a CPU fallback, or lacks its single terminal proof read. This is the provenance gate for comparing default batch mode with `--cuda-static-image`.
+
 For context, the earlier two-PIE CPU pipeline took 106.126 s and Metal took 75.979 s on the M5; the old H100 hybrid diagnostic took 296.902 s because its Cairo, wrap, and fold PCS ran on the host. Those figures use the complete adapted-input-to-root scope and are not comparable to the standalone 0.59–0.74 s circuit proofs above. The next benchmark should repeat the complete H100 run with sampled whole-device peak, the batch mode, phase timers, and exact Rust root comparison.

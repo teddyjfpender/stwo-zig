@@ -127,12 +127,7 @@ def resident_leaf_stages(log: Path, report: Path) -> dict[str, float]:
     if not match:
         raise ValueError(f"missing resident leaf stage timings: {log}")
     receipt = json.loads(report.read_text())["completed_trials"][0]
-    verdict = receipt["verdict"]
-    if not verdict.get("resident", False) and not verdict.get("is_resident", False):
-        # The exact verdict representation is versioned by the CUDA runtime;
-        # the Zig product itself enforces resident circuit proof production.
-        if verdict.get("counters", {}).get("cpu_fallback_attempts", 0):
-            raise ValueError(f"nonresident Cairo proof: {report}")
+    cairo_cuda_metrics(report)
     return {"load_s": 0.0,
             "cairo_prove_s": receipt["adapted_input_until_publication_ns"] / 1e9,
             "wrap_s": int(match.group(2)) / 1e9}
@@ -147,12 +142,31 @@ def resident_batch_leaf_stages(log: Path, report: Path, index: int) -> dict[str,
     if len(releases) <= index:
         raise ValueError(f"missing resident batch arena release {index} telemetry: {log}")
     receipt = json.loads(report.read_text())["completed_trials"][0]
-    if receipt["verdict"]["counters"]["cpu_fallback_attempts"]:
-        raise ValueError(f"nonresident Cairo proof: {report}")
+    cairo_cuda_metrics(report)
     return {"load_s": 0.0,
             "cairo_prove_s": receipt["adapted_input_until_publication_ns"] / 1e9,
             "arena_release_s": int(releases[index]) / 1e9,
             "wrap_s": int(match.group(1)) / 1e9}
+
+
+def cairo_cuda_metrics(report: Path) -> dict[str, int | float]:
+    trial = json.loads(report.read_text())["completed_trials"][0]
+    verdict = trial["verdict"]
+    counters = verdict["counters"]
+    if (verdict["provider"] != "nvidia_cuda" or counters["cpu_fallback_attempts"] != 0 or
+            counters["cpu_fallbacks_completed"] != 0 or counters["d2h_proof_operations"] != 1):
+        raise ValueError(f"nonresident Cairo proof: {report}")
+    stages = counters["stages"]
+    if len(stages) != 10:
+        raise ValueError(f"unexpected Cairo CUDA stage telemetry: {report}")
+    return {"planned_arena_bytes": trial["planned_arena_bytes"],
+            "peak_live_bytes": counters["peak_live_bytes"],
+            "persistent_bytes": counters["persistent_bytes"],
+            "h2d_bytes": counters["h2d_bytes"],
+            "d2d_bytes": counters["d2d_bytes"],
+            "d2h_proof_bytes": counters["d2h_proof_bytes"],
+            "kernel_launches": counters["kernel_launches"],
+            "ingress_stage_elapsed_s": stages[0]["device_elapsed_ns"] / 1e9}
 
 
 def resident_cairo_static_phases(log: Path, index: int = 0) -> dict[str, float | bool]:
@@ -319,6 +333,8 @@ def main() -> None:
                      "leaf_stages": (resident_leaf_stages(out / f"{name}.leaf_wrap.log", cairo_report)
                                      if args.backend == "cuda-resident" else leaf_stages(out / f"{name}.leaf_wrap.log")),
                      "circuit_proofs": circuit_proofs,
+                     "cairo_cuda_metrics": cairo_cuda_metrics(cairo_report)
+                     if args.backend == "cuda-resident" else {},
                      "cairo_static_phases": resident_cairo_static_phases(out / f"{name}.leaf_wrap.log")
                      if args.backend == "cuda-resident" else {},
                      "leaf_proof_sha256": digest(wrapped), "leaf_input_sha256": digest(leaf)})
@@ -357,6 +373,7 @@ def main() -> None:
                                        "peak_memory_footprint_bytes": batch["peak_memory_footprint_bytes"],
                                        "log": str(batch_log), "shared_process": True},
                          "leaf_stages": stages, "circuit_proofs": [proofs[index]],
+                         "cairo_cuda_metrics": cairo_cuda_metrics(out / f"{name}.cairo_report.json"),
                          "cairo_static_phases": resident_cairo_static_phases(batch_log, index),
                          "leaf_proof_sha256": digest(wrapped), "leaf_input_sha256": digest(leaf)})
 
