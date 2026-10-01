@@ -75,6 +75,7 @@ Status:
 | `rpc_proxy.py` | Recording/replaying JSON-RPC proxy (`http://127.0.0.1:<port>/b/<block>`). Coalesces concurrent calls into paced upstream batches with per-upstream AIMD rates, and keeps separate read and proof lanes. `--defer-proofs` logs expired proof requests for `backfill.py`. `--mode replay` serves only recorded data. |
 | `prove_pipeline.py` | Assemble leaves, prove each with stwo-zig CPU, verify with the official Rust verifier, run the aggregator over the leaf outputs, and prove and verify the aggregator PIE. Stages run one at a time behind a swap guard. |
 | `circuit_pipeline.py` | Prove contiguous committed PIEs through the pinned leaf bootloader, wrap each Cairo proof as a circuit proof, and fold them into one recursive root. Validates manifest digests and root continuity, records time/RSS per stage, and optionally compares all root files byte for byte with the pinned Rust reducer. The final applicative proof binding that root to the aggregator remains a separate stage. |
+| `run_cuda_resident_paired.sh` | Run the same two adapted PIEs twice on one NVIDIA GPU, with shared-runtime CUDA batching and then opt-in fixed-coefficient image reuse. Both runs require exact leaf/root digests against the Rust-qualified receipt and sample whole-device memory. Set `STWO_PINNED_CAIRO_VERIFIER` to also verify the published CUDA Cairo proofs with pinned Rust after each timed run. |
 | `assemble.py` | Runs `generate-pie` over consecutive blocks through a proxy and checks each leaf's first `old_root` and last `new_root` against the chain. |
 | `pie_info.py` | Reads the OS output header and execution resources from a PIE zip. |
 | `collector.py` | Fallback: follows the head, prefetches likely reads, captures global roots live, runs SNOS per block, and checks the single-block OS roots. |
@@ -149,3 +150,21 @@ python3 tools/starknet-block-collector/circuit_pipeline.py \
 
 For Metal, first build `src/integrations/circuit_metal` with
 `zig build -Doptimize=ReleaseFast`, then add `--backend metal` to the command.
+
+For the fully resident CUDA paired experiment, build
+`circuit-recursion-cuda-resident`, generate the canonical preprocessing artifact,
+and supply an absolute path to it. The adapted directory must contain the two
+`*.prover_input.json` files and matching `*.preimage.hex.json` files. The
+driver checks their hashes, the production security settings, both leaf files,
+and all three root files against the committed Rust-qualified receipt:
+
+```sh
+export STWO_CAIRO_CUDA_PREPROCESSED_COEFFICIENTS=/absolute/path/preprocessed-canonical.bin
+tools/starknet-block-collector/run_cuda_resident_paired.sh \
+  /absolute/path/adapted /absolute/path/results
+```
+
+The two output directories retain proof JSON, logs, receipts, and memory
+samples. If the pinned Rust Cairo verifier is available on that host, set
+`STWO_PINNED_CAIRO_VERIFIER` to its absolute path; otherwise copy the output
+directories to a host with the verifier and run `verify_cuda_cairo.py` there.
