@@ -73,7 +73,8 @@ verifier binary and pinned source revisions are recorded in
 reading the already downloaded PIE archive. `Source` is the H200 adapted-input
 source stage, including parsing and planning, so it is not a pure disk-read
 measurement. `Fixed load` is loading and uploading the canonical 2.1 GB
-preprocessed coefficient asset. `Other ingress` includes runtime setup,
+preprocessed coefficient asset. `Other ingress`
+(`proof_ingress_preparation_other_s` in the CSV) includes runtime setup,
 uploads, controller and writer preparation, and transcript binding. These
 three columns sum to H200 ingress. `Proof` times resident proof execution and
 finish; the backend's legacy JSON key says `proof_execute_and_decode_ns`, but
@@ -145,8 +146,10 @@ adaptation times and peak memory are in
 driver, protocol, and prover digest are in
 [h200-wave2-machine.json](h200-wave2-machine.json).
 
-The [joined PIE-level CSV](pie-scale.csv) now has **286 verified GPU proofs**
-and 12 recorded geometry failures across the 6,187 catalogued PIEs. It joins
+The [joined PIE-level CSV](pie-scale.csv) has **458 GPU trials: 443 proofs
+accepted by the pinned official Rust verifier and 15 trace-geometry admission
+failures** across the 6,187 catalogued PIEs. Every generated proof passed that
+independent verifier. The CSV joins
 each measured row to its source receipt filename and includes block count,
 OS steps, archive and adapted sizes, M5 adaptation time and peak memory,
 H200 source and fixed-load timings, ingress subphases, proof execution,
@@ -156,14 +159,39 @@ peak memory. Unmeasured cells remain blank. The 35 additional proofs span
 block-range variation missing from the initial size-targeted cohort.
 
 The [first stratified selection](pie-selection-wave2.csv) records 248 further
-ready PIEs using seed 20261001 across step and block-count strata. All seven
-shards were proved on the H200: 237 produced Rust-verified GPU proofs and 11
-failed trace-geometry admission. Their [per-PIE proof receipts](pie-proving-wave2-shard-0.csv) are
-separate by shard; all 248 [adaptation receipts](adaptation-wave2-shard-0.csv)
-are likewise retained by shard. The [size-bin summary](pie-size-distribution.csv)
-shows catalogue counts, measured trial and failure counts, and timing and
-memory percentiles by OS steps and block span. Bin labels have inclusive
-lower and exclusive upper bounds. The [second selection](pie-selection-wave3.csv)
-records 160 further ready PIEs using seed 20261002. Selection rows are a
-workload plan, not a claim that they have GPU results; only rows with a proof
-receipt in the joined CSV have measured GPU times.
+ready PIEs using seed 20261001 across step and block-count strata: **237
+verified, 11 failed admission**. The [second selection](pie-selection-wave3.csv)
+records 160 further ready PIEs using seed 20261002, with extra coverage of
+one-block ranges: **157 verified, 3 failed admission**. All 408 archives were
+checked against the catalogue, adapted with the pinned Rust leaf bootloader,
+hashed before and after transfer, and attempted on the H200. Per-PIE proof
+and adaptation receipts are retained by shard, starting with
+[wave-2 proof receipts](pie-proving-wave2-shard-0.csv) and
+[wave-3 proof receipts](pie-proving-wave3-shard-0.csv). Every shard used the
+same H200, canonical security parameters, and prover binary recorded in
+[the machine receipt](h200-wave2-machine.json).
+
+| OS steps | Verified PIEs | Publication median / p90 | Sampled GPU median / p90 |
+|---|---:|---:|---:|
+| <4M | 60 | 4.681 / 5.944 s | 35.2 / 36.0 GB |
+| 4–8M | 62 | 5.086 / 5.562 s | 46.5 / 50.9 GB |
+| 8–16M | 94 | 5.623 / 6.310 s | 68.1 / 85.0 GB |
+| 16–24M | 167 | 6.680 / 7.468 s | 101.3 / 110.7 GB |
+| 24–32M | 60 | 7.058 / 7.970 s | 110.7 / 134.3 GB |
+
+Across all 443 verified PIEs, median adapted-input-to-publication time was
+**6.196 s** and median sampled GPU use was **93.1 GB**. The median proof
+execution/finish phase was 0.964 s; source preparation, fixed-asset load, and
+other ingress had separate medians of 1.242 s, 2.441 s, and 1.386 s. Local M5
+adaptation took a median 5.409 s and separate Rust verification 0.058 s.
+These phase medians are computed independently and should not be added as if
+they were one trial. The largest successfully proved PIE had 31.906M steps.
+All 15 failed attempts were 24.046–39.941M steps and stopped at
+`TraceCommitGeometryOverflow` during controller preparation; none was a Rust
+verification failure or a measured GPU out-of-memory event.
+
+The [size-bin summary](pie-size-distribution.csv) gives catalogue counts,
+trial and failure counts, and publication-time and sampled-GPU-memory
+percentiles by both OS steps and block span. Bin lower bounds are inclusive;
+upper bounds are exclusive. The selections deliberately cover size and block
+strata, so their raw frequencies are not an estimate of production traffic.
