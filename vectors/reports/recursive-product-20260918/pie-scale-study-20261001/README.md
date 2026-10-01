@@ -145,8 +145,8 @@ adaptation times and peak memory are in
 driver, protocol, and prover digest are in
 [h200-wave2-machine.json](h200-wave2-machine.json).
 
-The [joined PIE-level CSV](pie-scale.csv) now has **49 verified GPU proofs**
-and one recorded geometry failure across the 6,187 catalogued PIEs. It joins
+The [joined PIE-level CSV](pie-scale.csv) now has **198 verified GPU proofs**
+and 12 recorded geometry failures across the 6,187 catalogued PIEs. It joins
 each measured row to its source receipt filename and includes block count,
 OS steps, archive and adapted sizes, M5 adaptation time and peak memory,
 H200 source and fixed-load timings, ingress subphases, proof execution,
@@ -155,7 +155,15 @@ peak memory. Unmeasured cells remain blank. The 35 additional proofs span
 0.860–13.247 million steps and one to 40 blocks; they deliberately add
 block-range variation missing from the initial size-targeted cohort.
 
-The [next stratified selection](pie-selection-wave2.csv) records a fixed-seed
-sample of 248 further ready PIEs across step and block-count strata. The
-selection is a workload plan, not a claim that those rows have GPU results;
-only rows with a proof receipt in the joined CSV have measured GPU times.
+The [first stratified selection](pie-selection-wave2.csv) records 248 further
+ready PIEs using seed 20261001 across step and block-count strata. Its first
+four 40-PIE shards have produced 149 verified GPU proofs and 11 geometry
+failures. Their [per-PIE proof receipts](pie-proving-wave2-shard-0.csv) are
+separate by shard; all 248 [adaptation receipts](adaptation-wave2-shard-0.csv)
+are likewise retained by shard. The [size-bin summary](pie-size-distribution.csv)
+shows catalogue counts, measured trial and failure counts, and timing and
+memory percentiles by OS steps and block span. Bin labels have inclusive
+lower and exclusive upper bounds. The [second selection](pie-selection-wave3.csv)
+records 160 further ready PIEs using seed 20261002. Selection rows are a
+workload plan, not a claim that they have GPU results; only rows with a proof
+receipt in the joined CSV have measured GPU times.
