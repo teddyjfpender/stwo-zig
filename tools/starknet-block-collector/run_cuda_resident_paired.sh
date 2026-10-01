@@ -27,15 +27,18 @@ fi
 command -v nvidia-smi >/dev/null
 nvidia-smi --query-gpu=name,memory.total --format=csv,noheader
 
-for trial in serial-1 batch-1 batch-image-1 batch-image-2 batch-2 serial-2; do
+for trial in serial-memory batch-memory batch-image-memory \
+             serial-1 batch-1 batch-image-1 batch-image-2 batch-2 serial-2; do
   case $trial in
     batch-image-*) options=(--cuda-batch --cuda-static-image) ;;
     batch-*) options=(--cuda-batch) ;;
     serial-*) options=() ;;
   esac
+  memory_options=()
+  if [[ $trial == *-memory ]]; then memory_options=(--sample-device-memory); fi
   python3 "$root/tools/starknet-block-collector/circuit_pipeline.py" \
     --backend cuda-resident "${options[@]}" \
-    --sample-device-memory --adapted-dir "$adapted" \
+    "${memory_options[@]}" --adapted-dir "$adapted" \
     --circuit-prover "$prover" --expected-receipt "$reference" \
     --out "$output/$trial" \
     15627902-15627904 15627905-15627907 \
@@ -58,10 +61,15 @@ from pathlib import Path
 
 out = Path(sys.argv[1])
 samples = {}
-for trial in ("serial-1", "batch-1", "batch-image-1", "batch-image-2", "batch-2", "serial-2"):
+for trial in ("serial-memory", "batch-memory", "batch-image-memory",
+              "serial-1", "batch-1", "batch-image-1", "batch-image-2", "batch-2", "serial-2"):
     receipt = json.loads((out / trial / "receipt.json").read_text())
     variant = trial.rsplit("-", 1)[0]
-    samples.setdefault(variant, []).append(receipt["serial_wall_s"])
+    if trial.endswith("-memory"):
+        if receipt["sampled_whole_device_peak_used_bytes"] is None:
+            raise RuntimeError(f"missing GPU memory samples: {trial}")
+    else:
+        samples.setdefault(variant, []).append(receipt["serial_wall_s"])
     print(trial, "wall_s", receipt["serial_wall_s"],
           "whole_device_peak_bytes", receipt["sampled_whole_device_peak_used_bytes"],
           "root_sha256", receipt["root"]["proof"]["sha256"])

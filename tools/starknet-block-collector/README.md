@@ -75,7 +75,7 @@ Status:
 | `rpc_proxy.py` | Recording/replaying JSON-RPC proxy (`http://127.0.0.1:<port>/b/<block>`). Coalesces concurrent calls into paced upstream batches with per-upstream AIMD rates, and keeps separate read and proof lanes. `--defer-proofs` logs expired proof requests for `backfill.py`. `--mode replay` serves only recorded data. |
 | `prove_pipeline.py` | Assemble leaves, prove each with stwo-zig CPU, verify with the official Rust verifier, run the aggregator over the leaf outputs, and prove and verify the aggregator PIE. Stages run one at a time behind a swap guard. |
 | `circuit_pipeline.py` | Prove contiguous committed PIEs through the pinned leaf bootloader, wrap each Cairo proof as a circuit proof, and fold them into one recursive root. Validates manifest digests and root continuity, records time/RSS per stage, and optionally compares all root files byte for byte with the pinned Rust reducer. The final applicative proof binding that root to the aggregator remains a separate stage. |
-| `run_cuda_resident_paired.sh` | Run the same two adapted PIEs on one NVIDIA GPU in serial, shared-runtime batch, and opt-in fixed-coefficient-image modes, repeated in ABCCBA order. Every run requires exact leaf/root digests against the Rust-qualified receipt and samples whole-device memory. Set `STWO_PINNED_CAIRO_VERIFIER` to also verify the published CUDA Cairo proofs with pinned Rust after each timed run. |
+| `run_cuda_resident_paired.sh` | Run the same two adapted PIEs on one NVIDIA GPU in serial, shared-runtime batch, and opt-in fixed-coefficient-image modes. One memory-sampled trial per mode precedes uninstrumented timing in ABCCBA order. Every run requires exact leaf/root digests against the Rust-qualified receipt. Set `STWO_PINNED_CAIRO_VERIFIER` to also verify the published CUDA Cairo proofs with pinned Rust after each run. |
 | `assemble.py` | Runs `generate-pie` over consecutive blocks through a proxy and checks each leaf's first `old_root` and last `new_root` against the chain. |
 | `pie_info.py` | Reads the OS output header and execution resources from a PIE zip. |
 | `collector.py` | Fallback: follows the head, prefetches likely reads, captures global roots live, runs SNOS per block, and checks the single-block OS roots. |
@@ -164,7 +164,9 @@ tools/starknet-block-collector/run_cuda_resident_paired.sh \
   /absolute/path/adapted /absolute/path/results
 ```
 
-The six trial directories retain proof JSON, logs, receipts, and memory
-samples. The runner reports the two-run median for each mode. If the pinned Rust Cairo verifier is available on that host, set
+The nine trial directories retain proof JSON, logs, receipts, and sampled
+memory from the first three trials. The runner reports the uninstrumented
+two-run median for each mode. If the pinned Rust Cairo verifier is available
+on that host, set
 `STWO_PINNED_CAIRO_VERIFIER` to its absolute path; otherwise copy the output
 directories to a host with the verifier and run `verify_cuda_cairo.py` there.
