@@ -159,6 +159,12 @@ def cairo_cuda_metrics(report: Path) -> dict[str, int | float]:
     stages = counters["stages"]
     if len(stages) != 10:
         raise ValueError(f"unexpected Cairo CUDA stage telemetry: {report}")
+    ingress_s = trial["ingress_ns"] / 1e9
+    proof_s = trial["proof_execute_and_decode_ns"] / 1e9
+    publication_s = (trial["adapted_input_until_publication_ns"] -
+                     trial["ingress_ns"] - trial["proof_execute_and_decode_ns"]) / 1e9
+    if publication_s < 0:
+        raise ValueError(f"overlapping Cairo CUDA phase telemetry: {report}")
     return {"planned_arena_bytes": trial["planned_arena_bytes"],
             "peak_live_bytes": counters["peak_live_bytes"],
             "persistent_bytes": counters["persistent_bytes"],
@@ -166,6 +172,10 @@ def cairo_cuda_metrics(report: Path) -> dict[str, int | float]:
             "d2d_bytes": counters["d2d_bytes"],
             "d2h_proof_bytes": counters["d2h_proof_bytes"],
             "kernel_launches": counters["kernel_launches"],
+            "ingress_s": ingress_s,
+            "source_preparation_s": trial["ingress_timings"]["source_ns"] / 1e9,
+            "proof_execute_s": proof_s,
+            "verify_and_publish_s": publication_s,
             "ingress_stage_elapsed_s": stages[0]["device_elapsed_ns"] / 1e9}
 
 
@@ -247,6 +257,52 @@ def phase_breakdown(rows: list[dict], fold: dict, batch: dict | None = None,
         total += fold["wall_s"]
     phases["process_overhead_s"] = total - sum(phases.values())
     return {key: round(value, 3) for key, value in phases.items()}
+
+
+def resident_detailed_phase_breakdown(rows: list[dict], fold: dict, process_wall_s: float,
+                                      adapted_to_root_s: float) -> dict[str, float]:
+    """Account for CUDA stages without counting the fixed load inside Cairo ingress twice."""
+    proofs = [proof for row in rows for proof in row["circuit_proofs"]] + fold["circuit_proofs"]
+    if any("resident_phases_s" not in proof for proof in proofs):
+        raise ValueError("missing resident circuit phase telemetry")
+    fixed_load = sum(row["cairo_static_phases"]["preprocessed_load_s"] for row in rows)
+    cairo_ingress = sum(row["cairo_cuda_metrics"]["ingress_s"] for row in rows)
+    cairo_proof = sum(row["cairo_cuda_metrics"]["proof_execute_s"] for row in rows)
+    cairo_publish = sum(row["cairo_cuda_metrics"]["verify_and_publish_s"] for row in rows)
+    circuit_resident = sum(proof["resident_s"] for proof in proofs)
+    circuit_verify = sum(proof["verify_s"] for proof in proofs)
+    circuit_convert = sum(proof["convert_s"] for proof in proofs)
+    circuit_stage = sum(row["leaf_stages"]["wrap_s"] for row in rows) + fold["wall_s"]
+    circuit_phases = {name: sum(proof["resident_phases_s"][name] for proof in proofs)
+                      for name in ("plan", "static_hash", "ingress", "schedule", "finish", "decode")}
+    arena_release = sum(row["leaf_stages"].get("arena_release_s", 0) for row in rows)
+    adapt = sum(row["adapt"]["wall_s"] for row in rows)
+    process_other = process_wall_s - sum(row["leaf_stages"]["cairo_prove_s"] +
+                                         row["leaf_stages"]["load_s"] +
+                                         row["leaf_stages"]["wrap_s"] +
+                                         row["leaf_stages"].get("arena_release_s", 0)
+                                         for row in rows) - fold["wall_s"] - adapt
+    phases = {
+        "adapt_s": adapt,
+        "adapted_input_load_s": sum(row["leaf_stages"]["load_s"] for row in rows),
+        "fixed_asset_load_s": fixed_load,
+        "cairo_other_ingress_s": cairo_ingress - fixed_load,
+        "cairo_proof_execute_s": cairo_proof,
+        "cairo_verify_and_publish_s": cairo_publish,
+        "arena_release_s": arena_release,
+        "circuit_host_preparation_s": circuit_stage - circuit_resident - circuit_verify - circuit_convert,
+        "circuit_resident_plan_and_ingress_s": sum(circuit_phases[name] for name in ("plan", "static_hash", "ingress")),
+        "circuit_resident_prove_s": circuit_phases["schedule"] + circuit_phases["finish"],
+        "circuit_resident_decode_s": circuit_phases["decode"],
+        "circuit_resident_other_s": circuit_resident - sum(circuit_phases.values()),
+        "circuit_local_verify_s": circuit_verify,
+        "circuit_convert_s": circuit_convert,
+        "process_other_s": process_other,
+        "driver_overhead_s": adapted_to_root_s - process_wall_s,
+    }
+    if abs(sum(phases.values()) - adapted_to_root_s) > 0.002:
+        raise ValueError("CUDA phase telemetry does not account for the pipeline wall time")
+    return {key: round(value, 6) for key, value in phases.items()}
 
 
 def compare_qualified_reference(receipt: dict, reference_path: Path, compact_root: bool = False,
@@ -533,6 +589,9 @@ def main() -> None:
                    if value is not None), default=None),
                "root": {key: {"path": str(path), "sha256": digest(path)} for key, path in
                         (("proof", root), ("outputs", outputs), ("packed", packed))}}
+    if args.backend == "cuda-resident":
+        receipt["detailed_phase_breakdown_s"] = resident_detailed_phase_breakdown(
+            rows, fold, receipt["serial_wall_s"], adapted_input_to_root_wall_s)
     if rust is not None:
         rust["reducer_binary_sha256"] = digest(reducer)
         receipt["rust_parity"] = rust

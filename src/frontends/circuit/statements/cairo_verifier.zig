@@ -243,8 +243,37 @@ pub fn buildCairoVerifierCircuitWithGateRecording(
     record_gates: bool,
     stages: anytype,
 ) !builder.Context(V) {
+    return buildCairoVerifierCircuitWithGateRecordingAndCapacity(
+        V,
+        gpa,
+        table,
+        config,
+        constants,
+        input,
+        record_gates,
+        null,
+        stages,
+    );
+}
+
+/// A cached, authenticated topology supplies the exact padded value count.
+/// Reserving it ahead of value replay avoids copying partial witness tables.
+pub fn buildCairoVerifierCircuitWithGateRecordingAndCapacity(
+    comptime V: type,
+    gpa: std.mem.Allocator,
+    table: *const component_table.Table,
+    config: *const CairoVerifierConfig,
+    constants: cairo_statement.Constants,
+    input: CairoVerifierInput(V),
+    record_gates: bool,
+    value_capacity: ?usize,
+    stages: anytype,
+) !builder.Context(V) {
     var ctx = try builder.Context(V).initWithGateRecording(gpa, component_list.N_RESERVED, record_gates);
     errdefer ctx.deinit();
+    if (V == core.fields.qm31.QM31) {
+        if (value_capacity) |capacity| try ctx.reserveValueCapacity(capacity);
+    }
     const statement = try VerifierStatement(V).init(&ctx, table, config, constants, input.serialized_aux_data, input.output_hash);
     const proof_vars = try proof.guess(V, &ctx, input.proof);
     try verify_mod.verify(V, &ctx, &proof_vars, config.proof_config, &statement, stages);

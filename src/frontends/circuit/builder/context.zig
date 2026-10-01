@@ -205,6 +205,16 @@ pub fn Context(comptime V: type) type {
             return self.value_table.items;
         }
 
+        /// A previously authenticated topology fixes the final variable
+        /// count. Reserve that many values before replay so growth never
+        /// copies a partially constructed witness. This changes capacity,
+        /// not variable numbering or the circuit's value semantics.
+        pub fn reserveValueCapacity(self: *Self, total: usize) Error!void {
+            comptime if (V != QM31) @compileError("reserveValueCapacity() requires value mode");
+            if (total >= circuit_mod.max_vars) return error.TooManyVars;
+            try self.value_table.ensureTotalCapacity(self.gpa, total);
+        }
+
         /// Consumes the context: returns the value table and frees
         /// everything else (gates, constants, scratch), for a prover that
         /// needs only the values once the circuit is preprocessed. On error

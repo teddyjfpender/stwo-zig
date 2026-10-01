@@ -201,14 +201,23 @@ fn reduce(
         }
         var stages = stage_profile.Profile.init("fold");
         const record_gates = fold.source == null;
-        var ctx = try multiverifier.buildMultiverifierCircuitWithGateRecording(QM31, gpa, fold.table, &inputs, &canonical.shared, record_gates, &stages);
-        defer ctx.deinit();
+        var ctx = try multiverifier.buildMultiverifierCircuitWithGateRecordingAndCapacity(
+            QM31,
+            gpa,
+            fold.table,
+            &inputs,
+            &canonical.shared,
+            record_gates,
+            if (record_gates) null else canonical.n_vars,
+            &stages,
+        );
+        errdefer ctx.deinit();
         stages.report(&ctx, "raw");
         try finalize.padToTargets(QM31, &ctx, canonical.target_sizes);
         stages.report(&ctx, "padded");
         if (ctx.circuit.n_vars != canonical.n_vars) return error.MultiverifierTopologyMismatch;
         if (record_gates and !try ctx.isCircuitValid()) return error.MultiverifierRejectedInputs;
-        break :blk try gpa.dupe(QM31, ctx.values());
+        break :blk try ctx.intoValues();
     };
     // The prover frees the value table once the base trace is written.
     var owned_values = OwnedValues{ .gpa = gpa, .values = values };

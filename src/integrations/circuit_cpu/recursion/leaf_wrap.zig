@@ -356,11 +356,11 @@ fn wrapCairoProofImpl(
 
     // 4. The leaf circuit with values, padded to the shared target.
     var stages = stage_profile.Profile.init("leaf");
-    var ctx = try cairo_verifier.buildCairoVerifierCircuitWithGateRecording(QM31, allocator, wrap.cairo_table, &config, wrap.constants(), .{
+    var ctx = try cairo_verifier.buildCairoVerifierCircuitWithGateRecordingAndCapacity(QM31, allocator, wrap.cairo_table, &config, wrap.constants(), .{
         .proof = &proof_values,
         .serialized_aux_data = aux,
         .output_hash = output_hash,
-    }, record_gates, &stages);
+    }, record_gates, if (cached) |hit| hit.n_vars else null, &stages);
     var ctx_owned = true;
     defer if (ctx_owned) ctx.deinit();
     stages.report(&ctx, "raw");

@@ -122,9 +122,37 @@ pub fn buildMultiverifierCircuitWithGateRecording(
     record_gates: bool,
     stages: anytype,
 ) !builder.Context(V) {
+    return buildMultiverifierCircuitWithGateRecordingAndCapacity(
+        V,
+        gpa,
+        table,
+        inputs,
+        shared,
+        record_gates,
+        null,
+        stages,
+    );
+}
+
+/// The value-only path knows the authenticated padded variable count before
+/// building. Exact reservation keeps its final value table movable without a
+/// second full-table allocation; topology and proof bytes are unchanged.
+pub fn buildMultiverifierCircuitWithGateRecordingAndCapacity(
+    comptime V: type,
+    gpa: std.mem.Allocator,
+    table: *const component_table.Table,
+    inputs: []const MultiverifierInput(V),
+    shared: *const SharedConfig,
+    record_gates: bool,
+    value_capacity: ?usize,
+    stages: anytype,
+) !builder.Context(V) {
     if (inputs.len == 0) return error.NoMultiverifierInputs;
     var ctx = try builder.Context(V).initWithGateRecording(gpa, component_list.N_RESERVED, record_gates);
     errdefer ctx.deinit();
+    if (V == core.fields.qm31.QM31) {
+        if (value_capacity) |capacity| try ctx.reserveValueCapacity(capacity);
+    }
     const config: circuit_statement.CircuitConfig = .{
         .config = shared.pcs_config,
         .preprocessed_column_log_sizes = shared.preprocessed_column_log_sizes,

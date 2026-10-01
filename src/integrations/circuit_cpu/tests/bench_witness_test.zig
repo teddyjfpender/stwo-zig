@@ -110,6 +110,58 @@ test "bench: multiverifier witness and prove" {
     defer gpa.free(values);
     std.debug.print("BENCH build_values_ms {d:.1}\n", .{ms(timer.lap())});
 
+    // The CUDA fold rebuilds only values against the authenticated topology.
+    // This local path checks every padded value, not merely the output digest,
+    // while timing the exact-capacity, gate-free handoff used by the GPU path.
+    if (envUsize("STWO_BENCH_VALUE_REPLAY", 0) != 0) {
+        var expected: [32]u8 = undefined;
+        std.crypto.hash.sha2.Sha256.hash(std.mem.sliceAsBytes(values), &expected, .{});
+        for (0..2) |variant| {
+            timer.reset();
+            const replay = blk: {
+                var inputs_arena = std.heap.ArenaAllocator.init(gpa);
+                defer inputs_arena.deinit();
+                const config = canonical.proofConfig();
+                const child_proof = try circuit_cpu.verifier_proof.circuitVerifierValues(inputs_arena.allocator(), &left.proof.circuit, config);
+                var proofs = [2]@TypeOf(child_proof){ child_proof, child_proof };
+                var inputs: [2]multiverifier.MultiverifierInput(QM31) = undefined;
+                for (&inputs, &proofs) |*input, *proof| input.* = .{
+                    .proof = proof,
+                    .preprocessed_root = circuit.builder.blake.hashValue(QM31, left.preprocessed_root),
+                    .output_digest = circuit.builder.blake.hashValue(QM31, left.output_digest),
+                };
+                var ctx = try multiverifier.buildMultiverifierCircuitWithGateRecordingAndCapacity(
+                    QM31,
+                    gpa,
+                    &table,
+                    &inputs,
+                    &canonical.shared,
+                    false,
+                    if (variant == 0) null else canonical.n_vars,
+                    circuit.stark_verifier.verify.NoStages{},
+                );
+                var ctx_owned = true;
+                defer if (ctx_owned) ctx.deinit();
+                try finalize.padToTargets(QM31, &ctx, canonical.target_sizes);
+                try std.testing.expectEqual(canonical.n_vars, ctx.circuit.n_vars);
+                if (variant == 0) break :blk try gpa.dupe(QM31, ctx.values());
+                const owned = try ctx.intoValues();
+                ctx_owned = false;
+                break :blk owned;
+            };
+            defer gpa.free(replay);
+            const replay_ns = timer.lap();
+            var actual: [32]u8 = undefined;
+            std.crypto.hash.sha2.Sha256.hash(std.mem.sliceAsBytes(replay), &actual, .{});
+            try std.testing.expectEqualSlices(u8, &expected, &actual);
+            std.debug.print("BENCH replay_{s}_ms {d:.1} values_sha256 {s}\n", .{
+                if (variant == 0) "copy" else "owned", ms(replay_ns),
+                std.fmt.bytesToHex(actual, .lower),
+            });
+        }
+        return;
+    }
+
     const reps = envUsize("STWO_BENCH_REPS", 3);
     const pp = &canonical.preprocessed;
     const z = QM31.fromU32Unchecked(12345, 678, 91011, 1213);
