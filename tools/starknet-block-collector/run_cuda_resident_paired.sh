@@ -44,6 +44,23 @@ for trial in serial-memory batch-memory batch-image-memory \
     15627902-15627904 15627905-15627907 \
     > "$output/$trial-driver.log" 2>&1
 
+  python3 - "$trial" "$output/$trial/receipt.json" <<'PY'
+import json
+import sys
+
+trial, path = sys.argv[1:]
+receipt = json.load(open(path))
+if trial.startswith("batch-"):
+    phases = receipt["cuda_batch"]["host_phases"]
+    if phases["leaf_topology_cache_hits"] < 1:
+        raise SystemExit(f"no shared leaf topology cache hit: {trial}")
+if trial.startswith("batch-image-"):
+    hits = [leaf["cairo_static_phases"].get("device_image_hit")
+            for leaf in receipt["leaves"]]
+    if hits != [False, True]:
+        raise SystemExit(f"fixed-coefficient image did not hit on the second PIE: {hits}")
+PY
+
   if [[ -n ${STWO_PINNED_CAIRO_VERIFIER:-} ]]; then
     python3 "$root/tools/starknet-block-collector/verify_cuda_cairo.py" \
       --proof-dir "$output/$trial" --receipt "$output/$trial/receipt.json" \
