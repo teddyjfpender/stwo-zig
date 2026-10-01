@@ -13,6 +13,7 @@ import argparse
 import hashlib
 import json
 import re
+import shutil
 import subprocess
 import sys
 import time
@@ -87,6 +88,22 @@ def leaf_stages(log: Path) -> dict[str, float]:
     return dict(zip(("load_s", "cairo_prove_s", "wrap_s"), map(float, match.groups())))
 
 
+def resident_leaf_stages(log: Path, report: Path) -> dict[str, float]:
+    match = re.search(r"circuit-cuda leaf-wrap total_ns=(\d+) wrap_ns=(\d+)", log.read_text())
+    if not match:
+        raise ValueError(f"missing resident leaf stage timings: {log}")
+    receipt = json.loads(report.read_text())["completed_trials"][0]
+    verdict = receipt["verdict"]
+    if not verdict.get("resident", False) and not verdict.get("is_resident", False):
+        # The exact verdict representation is versioned by the CUDA runtime;
+        # the Zig product itself enforces resident circuit proof production.
+        if verdict.get("counters", {}).get("cpu_fallback_attempts", 0):
+            raise ValueError(f"nonresident Cairo proof: {report}")
+    return {"load_s": 0.0,
+            "cairo_prove_s": receipt["adapted_input_until_publication_ns"] / 1e9,
+            "wrap_s": int(match.group(2)) / 1e9}
+
+
 def phase_breakdown(rows: list[dict], fold: dict) -> dict[str, float]:
     """Account for the serial wall clock without hiding process overhead."""
     phases = {
@@ -103,9 +120,10 @@ def phase_breakdown(rows: list[dict], fold: dict) -> dict[str, float]:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--oracle", type=Path, required=True, help="pinned stwo-circuit-oracle binary")
-    parser.add_argument("--proving-root", type=Path, required=True, help="proving@5a7c5ed checkout")
-    parser.add_argument("--backend", choices=("cpu", "metal", "cuda-hybrid"), default="cpu")
+    parser.add_argument("--oracle", type=Path, help="pinned stwo-circuit-oracle binary")
+    parser.add_argument("--proving-root", type=Path, help="proving@5a7c5ed checkout")
+    parser.add_argument("--adapted-dir", type=Path, help="reuse separately authenticated adapted inputs and preimages")
+    parser.add_argument("--backend", choices=("cpu", "metal", "cuda-hybrid", "cuda-resident"), default="cpu")
     parser.add_argument("--circuit-prover", type=Path, help="override the selected backend's binary")
     parser.add_argument("--rust-reducer", type=Path, help="optional pinned Rust reducer for byte parity")
     parser.add_argument("--out", type=Path, required=True)
@@ -113,15 +131,19 @@ def main() -> None:
     args = parser.parse_args()
     out = args.out.resolve()
     out.mkdir(parents=True, exist_ok=True)
-    oracle = args.oracle.resolve()
-    proving = args.proving_root.resolve()
-    proving_commit = subprocess.check_output(["git", "-C", str(proving), "rev-parse", "HEAD"], text=True).strip()
-    if proving_commit != PINNED_PROVING_COMMIT:
+    if args.adapted_dir is None and (args.oracle is None or args.proving_root is None):
+        raise ValueError("--oracle and --proving-root are required unless --adapted-dir is set")
+    oracle = args.oracle.resolve() if args.oracle else None
+    proving = args.proving_root.resolve() if args.proving_root else None
+    proving_commit = (subprocess.check_output(["git", "-C", str(proving), "rev-parse", "HEAD"], text=True).strip()
+                      if proving else None)
+    if proving_commit is not None and proving_commit != PINNED_PROVING_COMMIT:
         raise ValueError(f"expected proving@{PINNED_PROVING_COMMIT}, got {proving_commit}")
     default_provers = {
         "cpu": ROOT / "zig-out/bin/stwo-circuit-recursion-cpu",
         "metal": ROOT / "src/integrations/circuit_metal/zig-out/bin/stwo-circuit-recursion-metal",
         "cuda-hybrid": ROOT / "src/integrations/circuit_cuda/zig-out/bin/stwo-circuit-recursion-cuda-hybrid",
+        "cuda-resident": ROOT / "src/integrations/circuit_cuda/zig-out/bin/stwo-circuit-recursion-cuda",
     }
     default_prover = default_provers[args.backend]
     prover = (args.circuit_prover or default_prover).resolve()
@@ -133,25 +155,43 @@ def main() -> None:
         adapted = out / f"{name}.prover_input.json"
         wrapped = out / f"{name}.leaf_proof.json"
         leaf = out / f"{name}.leaf.json"
-        input_path.write_text(json.dumps({
-            "tasks": [{"type": "CairoPiePath", "path": str(pie), "program_hash_function": "blake"}],
-            "fact_topologies_path": None, "single_page": True,
-            "output_preimage_dump_path": str(preimage),
-        }, indent=2) + "\n")
-        print(f"adapting {name}", flush=True)
-        adapt = run([str(oracle), "adapt-program", "--proving-root", str(proving),
-                     "--program", LEAF_PROGRAM, "--program-input", str(input_path),
-                     "--output", str(adapted)], out / f"{name}.adapt.log")
+        if args.adapted_dir:
+            source_dir = args.adapted_dir.resolve()
+            shutil.copyfile(source_dir / adapted.name, adapted)
+            shutil.copyfile(source_dir / preimage.name, preimage)
+            adapt = {"wall_s": 0.0, "peak_rss_bytes": 0, "log": None,
+                     "reused_adapted_input_sha256": digest(adapted),
+                     "reused_preimage_sha256": digest(preimage)}
+        else:
+            input_path.write_text(json.dumps({
+                "tasks": [{"type": "CairoPiePath", "path": str(pie), "program_hash_function": "blake"}],
+                "fact_topologies_path": None, "single_page": True,
+                "output_preimage_dump_path": str(preimage),
+            }, indent=2) + "\n")
+            print(f"adapting {name}", flush=True)
+            adapt = run([str(oracle), "adapt-program", "--proving-root", str(proving),
+                         "--program", LEAF_PROGRAM, "--program-input", str(input_path),
+                         "--output", str(adapted)], out / f"{name}.adapt.log")
         print(f"proving and wrapping {name}", flush=True)
-        wrap = run([str(prover), "leaf-wrap", "--registry", str(REGISTRY),
-                    "--program", str(ROOT / "vectors/circuit/official/programs/leaf_simple_bootloader_compiled.json"),
-                    "--prover-input", str(adapted), "--output", str(wrapped), "--assets", str(ROOT)],
-                   out / f"{name}.leaf_wrap.log")
+        if args.backend == "cuda-resident":
+            cairo_proof = out / f"{name}.cairo_proof.json"
+            cairo_report = out / f"{name}.cairo_report.json"
+            command = [str(prover), "leaf-wrap", "--registry", str(REGISTRY),
+                       "--program", str(ROOT / "vectors/circuit/official/programs/leaf_simple_bootloader_compiled.json"),
+                       "--input", str(adapted), "--output", str(wrapped),
+                       "--cairo-proof", str(cairo_proof), "--cairo-report", str(cairo_report)]
+        else:
+            command = [str(prover), "leaf-wrap", "--registry", str(REGISTRY),
+                       "--program", str(ROOT / "vectors/circuit/official/programs/leaf_simple_bootloader_compiled.json"),
+                       "--prover-input", str(adapted), "--output", str(wrapped), "--assets", str(ROOT)]
+        wrap = run(command, out / f"{name}.leaf_wrap.log")
         leaf_input(wrapped, preimage, leaf)
         manifest.append(str(leaf))
         rows.append({"pie": str(pie), "blocks": source["blocks"], "cairo_steps": source["n_steps"],
                      "initial_root": source["initial_root"], "final_root": source["final_root"],
-                     "adapt": adapt, "leaf_wrap": wrap, "leaf_stages": leaf_stages(out / f"{name}.leaf_wrap.log"),
+                     "adapt": adapt, "leaf_wrap": wrap,
+                     "leaf_stages": (resident_leaf_stages(out / f"{name}.leaf_wrap.log", cairo_report)
+                                     if args.backend == "cuda-resident" else leaf_stages(out / f"{name}.leaf_wrap.log")),
                      "leaf_proof_sha256": digest(wrapped), "leaf_input_sha256": digest(leaf)})
 
     manifest_path = out / "leaves.json"
@@ -160,10 +200,15 @@ def main() -> None:
     outputs = out / "root_outputs.json"
     packed = out / "root_packed.json"
     print(f"folding {len(manifest)} leaves", flush=True)
-    fold = run([str(prover), "fold-tree", "--program_input", str(manifest_path),
-                "--circuit_registry_json", str(REGISTRY), "--proof_path", str(root),
-                "--program_output", str(outputs), "--packed_output_path", str(packed)],
-               out / "fold.log")
+    if args.backend == "cuda-resident":
+        fold_command = [str(prover), "fold-tree", "--manifest", str(manifest_path),
+                        "--registry", str(REGISTRY), "--proof", str(root),
+                        "--outputs", str(outputs), "--packed", str(packed)]
+    else:
+        fold_command = [str(prover), "fold-tree", "--program_input", str(manifest_path),
+                        "--circuit_registry_json", str(REGISTRY), "--proof_path", str(root),
+                        "--program_output", str(outputs), "--packed_output_path", str(packed)]
+    fold = run(fold_command, out / "fold.log")
     rust = None
     if args.rust_reducer:
         reducer = args.rust_reducer.resolve()
@@ -181,9 +226,12 @@ def main() -> None:
     registry = json.loads(REGISTRY.read_text())
     receipt = {"schema": "stwo-starknet-circuit-pipeline-v1", "backend": args.backend,
                "device_scope": ("circuit interaction and FRI proof-of-work grinds only; Cairo and circuit PCS on CPU"
-                                if args.backend == "cuda-hybrid" else args.backend),
+                                if args.backend == "cuda-hybrid" else
+                                "Cairo PIE, circuit leaf wrap, and all circuit folds on resident CUDA"
+                                if args.backend == "cuda-resident" else args.backend),
                "proving_commit": proving_commit,
-               "oracle_binary_sha256": digest(oracle), "prover_binary_sha256": digest(prover),
+               "oracle_binary_sha256": digest(oracle) if oracle else None,
+               "prover_binary_sha256": digest(prover),
                "scope": "contiguous Starknet PIEs to one recursive circuit root; final applicative aggregation is separate",
                "security": {"cairo_fri": registry["cairo_prover_params"]["fri_config"],
                             "circuit_fri": registry["circuit_proof_configs"]["default"]["fri_config"]},
@@ -192,7 +240,9 @@ def main() -> None:
                "phase_breakdown_s": phase_breakdown(rows, fold),
                "serial_wall_s": round(sum(row["adapt"]["wall_s"] + row["leaf_wrap"]["wall_s"] for row in rows) + fold["wall_s"], 3),
                "serial_peak_rss_bytes": max([fold["peak_rss_bytes"], *[row["leaf_wrap"]["peak_rss_bytes"] for row in rows]]),
-               "serial_peak_memory_footprint_bytes": max([fold["peak_memory_footprint_bytes"], *[row["leaf_wrap"]["peak_memory_footprint_bytes"] for row in rows]]),
+               "serial_peak_memory_footprint_bytes": max((value for value in
+                   [fold["peak_memory_footprint_bytes"], *[row["leaf_wrap"]["peak_memory_footprint_bytes"] for row in rows]]
+                   if value is not None), default=None),
                "root": {key: {"path": str(path), "sha256": digest(path)} for key, path in
                         (("proof", root), ("outputs", outputs), ("packed", packed))}}
     if rust is not None:

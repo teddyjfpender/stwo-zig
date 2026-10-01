@@ -162,13 +162,28 @@ pub fn build(b: *std.Build) void {
     b.step("circuit-cuda-leaf-handoff-check", "Compile the verified CUDA Cairo proof-to-recursion leaf handoff without a GPU").dependOn(&run_handoff_test.step);
     test_step.dependOn(&run_handoff_test.step);
     const product_root = b.createModule(.{
-        .root_source_file = .{ .cwd_relative = b.pathFromRoot("../../products/circuit_recursion_cuda/main.zig") },
+        .root_source_file = .{ .cwd_relative = b.pathFromRoot("../../products/circuit_recursion_cuda/hybrid_main.zig") },
         .target = target,
         .optimize = optimize,
     });
     product_root.addImport("circuit_recursion_app", app);
     product_root.addImport("stwo_cairo_cpu_integration", cairo_cpu);
     product_root.addImport("stwo_circuit_cuda_integration", integration);
+
+    const resident_product_root = b.createModule(.{
+        .root_source_file = .{ .cwd_relative = b.pathFromRoot("../../products/circuit_recursion_cuda/main.zig") },
+        .target = target,
+        .optimize = optimize,
+    });
+    resident_product_root.addImport("cairo_cuda_app", cairo_app);
+    resident_product_root.addImport("circuit_recursion_app", app);
+    resident_product_root.addImport("stwo_circuit_cpu_integration", circuit_cpu);
+    resident_product_root.addImport("stwo_circuit_cuda_integration", integration);
+    resident_product_root.addImport("stwo_circuit_recursion_wire", wire);
+    resident_product_root.addImport("stwo_cairo_cuda_integration", cairo_cuda);
+    resident_product_root.addImport("stwo_cairo_frontend", cairo);
+    const resident_product_check = b.addObject(.{ .name = "circuit-cuda-resident-pipeline-check", .root_module = resident_product_root });
+    b.step("circuit-cuda-resident-pipeline-check", "Typecheck fully resident PIE-to-root pipeline without a GPU").dependOn(&resident_product_check.step);
 
     const resident_bench_root = b.createModule(.{
         .root_source_file = b.path("tests/resident_bench.zig"),
@@ -200,6 +215,15 @@ pub fn build(b: *std.Build) void {
         resident_exe.linkSystemLibrary("cuda");
         resident_exe.linkLibC();
         b.step("circuit-cuda-resident-bench", "Build the fully resident circuit proof benchmark on a CUDA host").dependOn(&b.addInstallArtifact(resident_exe, .{}).step);
+        const pipeline_exe = b.addExecutable(.{ .name = "stwo-circuit-recursion-cuda", .root_module = resident_product_root });
+        pipeline_exe.addObjectFile(.{ .cwd_relative = archive_path });
+        pipeline_exe.addObjectFile(.{ .cwd_relative = host_runtime.? });
+        pipeline_exe.addObjectFile(.{ .cwd_relative = unwind_runtime.? });
+        pipeline_exe.addLibraryPath(.{ .cwd_relative = cuda_library_dir.? });
+        pipeline_exe.linkSystemLibrary("cudart");
+        pipeline_exe.linkSystemLibrary("cuda");
+        pipeline_exe.linkLibC();
+        b.step("circuit-cuda-resident-pipeline", "Build the fully resident PIE-to-root CUDA pipeline").dependOn(&b.addInstallArtifact(pipeline_exe, .{}).step);
     }
 
     // Host emulation: the kernel's own search code as host C++.
@@ -373,7 +397,7 @@ pub fn build(b: *std.Build) void {
     // module is required here: sharing it would put both the compile-check
     // stub and the real NVCC object in the GPU binary.
     const stubbed_product_root = b.createModule(.{
-        .root_source_file = .{ .cwd_relative = b.pathFromRoot("../../products/circuit_recursion_cuda/main.zig") },
+        .root_source_file = .{ .cwd_relative = b.pathFromRoot("../../products/circuit_recursion_cuda/hybrid_main.zig") },
         .target = target,
         .optimize = optimize,
     });

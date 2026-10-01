@@ -10,6 +10,7 @@ pub const Context = struct {
     request: circuit_app.LeafWrapRequest,
     output_path: []const u8,
     delivered: bool = false,
+    wrap_ns: u64 = 0,
 
     pub fn sink(self: *Context) cairo_app.VerifiedLeafSink {
         return .{ .context = self, .receive = receive };
@@ -33,9 +34,11 @@ pub const Context = struct {
             .preprocessed_variant = prepared.variant,
             .capture = capture,
         };
+        var timer = try std.time.Timer.start();
         var leaf = try circuit_app.leafWrapVerified(self.allocator, self.request, verified, &prepared.input);
         defer leaf.deinit();
         try circuit_app.writeLeafProof(&leaf, self.output_path);
+        self.wrap_ns = timer.read();
         self.delivered = true;
     }
 };

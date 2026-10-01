@@ -27,6 +27,7 @@ const air = @import("../air.zig");
 const verifier_proof = @import("../verifier_proof.zig");
 const cairo_verifier_proof = @import("../cairo_verifier_proof.zig");
 const canonical_mod = @import("canonical.zig");
+const proof_source = @import("proof_source.zig");
 
 const QM31 = core.fields.qm31.QM31;
 const builder = circuit.builder;
@@ -76,6 +77,8 @@ pub const Fold = struct {
     options: prove.Options = .{},
     /// The backend that proves each reduction; never changes bytes.
     provers: *const prove.Provers = &prove.cpu_provers,
+    /// A verified device proof handoff. When set, no CPU circuit prover runs.
+    source: ?proof_source.Source = null,
     /// Owns every `PackedNode` of the tree; outlives the fold.
     packed_allocator: std.mem.Allocator,
 };
@@ -205,7 +208,9 @@ fn reduce(
     build_stage.end();
     const build_ns = timer.lap();
 
-    const parent: LayerEntry = if (is_root)
+    const parent: LayerEntry = if (fold.source) |source|
+        try proveNodeFromSource(source, gpa, fold, &owned_values, subtasks, is_root)
+    else if (is_root)
         try proveNode(fold.provers.root, gpa, fold, &owned_values, subtasks, true)
     else
         try proveNode(fold.provers.internal, gpa, fold, &owned_values, subtasks, false);
@@ -235,6 +240,40 @@ const OwnedValues = struct {
         self.release();
     }
 };
+
+fn proveNodeFromSource(
+    source: proof_source.Source,
+    gpa: std.mem.Allocator,
+    fold: *const Fold,
+    owned_values: *OwnedValues,
+    subtasks: []const PackedNode,
+    is_root: bool,
+) !LayerEntry {
+    var produced = try source.run(gpa, .{
+        .values = owned_values.values.?,
+        .preprocessed = &fold.canonical.preprocessed,
+        .air = fold.bundle,
+        .config = fold.canonical.shared.pcs_config,
+        .profile = if (is_root) .root else .internal,
+    });
+    errdefer produced.deinit();
+    const expected_root = blake2_hash.digestToU32s(fold.canonical.preprocessed_root);
+    const expected_hash = blake2_hash.digestToU32s(fold.canonical.circuit_hash);
+    if (!std.mem.eql(u32, &produced.preprocessed_root, &expected_root) or
+        !std.mem.eql(u32, &produced.circuit_hash, &expected_hash))
+        return error.CanonicalProofIdentityMismatch;
+    const node_proof: NodeProof = switch (produced.proof) {
+        .internal => |proof| if (!is_root) .{ .circuit = proof } else return error.WrongProofProfile,
+        .root => |proof| if (is_root) .{ .root = proof } else return error.WrongProofProfile,
+    };
+    return .{
+        .arena = produced.arena,
+        .proof = node_proof,
+        .preprocessed_root = produced.preprocessed_root,
+        .output_digest = produced.output_digest,
+        .packed_output = .{ .composite = .{ .circuit_hash = produced.circuit_hash, .subtasks = subtasks } },
+    };
+}
 
 fn proveNode(
     proveFn: anytype,

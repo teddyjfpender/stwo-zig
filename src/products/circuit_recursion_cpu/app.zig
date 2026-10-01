@@ -37,6 +37,10 @@ const leaf_wrap = recursion.leaf_wrap;
 
 const projection_bytes = @embedFile("circuit_air_projection");
 const air_programs_bytes = @embedFile("circuit_air_programs");
+pub fn authenticatedAirPrograms() ![]const u8 {
+    try authenticate(air_programs_bytes, circuit_cpu.air.bundle_sha256);
+    return air_programs_bytes;
+}
 /// SHA-256 of `vectors/circuit/official/compiled_air_constraints_v1.bin`
 /// (`vectors/circuit/provenance.json`).
 const projection_sha256 = "ceea3c293a4fcd3ca8a20ba62f4845732f8725bdf610fe6367c83adcb8be7e09";
@@ -145,6 +149,7 @@ pub const LeafWrapRequest = struct {
     /// The backend that proves the wrap (the CPU here; `circuit_metal`'s
     /// device rungs inject theirs); never changes bytes.
     provers: *const circuit_cpu.prove.Provers = &circuit_cpu.prove.cpu_provers,
+    source: ?recursion.proof_source.Source = null,
 };
 
 /// Wall time of each stage, in nanoseconds.
@@ -267,6 +272,7 @@ fn wrapAfterCairoProof(
         .cache = &cache,
         .options = request.options,
         .provers = request.provers,
+        .source = request.source,
     };
     return if (comptime verified)
         leaf_wrap.wrapVerifiedCairoLeaf(allocator, &wrap, cairo_proof, input)
@@ -386,6 +392,19 @@ pub fn foldTreeWithProfiled(
     provers: *const circuit_cpu.prove.Provers,
     recorder: ?*prover.stage_profile.Recorder,
 ) !RootFiles {
+    return foldTreeWithSource(gpa, registry, leaves, provers, recorder, null);
+}
+
+/// Proof production can be injected without changing the byte-level tree
+/// driver. A non-null source performs all circuit STARK proving on its backend.
+pub fn foldTreeWithSource(
+    gpa: std.mem.Allocator,
+    registry: wire.registry.CircuitRegistry,
+    leaves: []const wire.leaf_proof_json.LeafInput,
+    provers: *const circuit_cpu.prove.Provers,
+    recorder: ?*prover.stage_profile.Recorder,
+    source: ?recursion.proof_source.Source,
+) !RootFiles {
     if (leaves.len == 0) return error.EmptyLeaves;
     // A proof-scoped worker pool (`STWO_ZIG_WORKERS` sizes it), as R9 folds.
     var pool: prover.work_pool.WorkPool = undefined;
@@ -407,9 +426,15 @@ pub fn foldTreeWithProfiled(
     options.recorder = recorder;
     var topologies = recursion.canonical.Cache.init(gpa, .{});
     defer topologies.deinit();
+    var device_canonical: ?recursion.CanonicalCircuit = null;
+    defer if (device_canonical) |*item| item.deinit(gpa);
     const canonical = blk: {
         var stage = try circuit_cpu.prove.StageScope.begin(recorder, "fold_canonical_build", "build and preprocess the canonical multiverifier");
         defer stage.end();
+        if (source != null) {
+            device_canonical = try recursion.CanonicalCircuit.build(gpa, &circuit_table, registry);
+            break :blk &device_canonical.?;
+        }
         break :blk try recursion.canonical.acquire(gpa, &topologies, &circuit_table, registry, options);
     };
 
@@ -422,6 +447,7 @@ pub fn foldTreeWithProfiled(
         .bundle = &bundle,
         .options = options,
         .provers = provers,
+        .source = source,
         .packed_allocator = packed_safe.allocator(),
     };
     const jobs = if (recorder == null and std.mem.eql(u8, provers.backend_name, "cpu"))

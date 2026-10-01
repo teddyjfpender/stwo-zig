@@ -22,6 +22,7 @@ pub const canonical = @import("canonical.zig");
 pub const circuit_params = @import("circuit_params.zig");
 /// The pair reduction (design §7.2).
 pub const fold = @import("fold.zig");
+pub const proof_source = @import("proof_source.zig");
 /// The recursive tree driver and root files (design §7.2).
 pub const tree = @import("tree.zig");
 
@@ -37,5 +38,6 @@ test {
     _ = canonical;
     _ = circuit_params;
     _ = fold;
+    _ = proof_source;
     _ = tree;
 }

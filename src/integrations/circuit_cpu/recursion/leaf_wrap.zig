@@ -45,6 +45,7 @@ const verifier_proof = @import("../verifier_proof.zig");
 const topology_key = @import("topology_key.zig");
 const topology_cache = @import("topology_cache.zig");
 const circuit_params = @import("circuit_params.zig");
+const proof_source = @import("proof_source.zig");
 
 const M31 = core.fields.m31.M31;
 const QM31 = core.fields.qm31.QM31;
@@ -103,26 +104,28 @@ pub const LeafTopology = struct {
     circuit_hash: [8]u32,
     /// The committed preprocessed tree and the twiddles every wrap of the
     /// key shares (design §7.1, §9.2 item 1).
-    commitment: prove.PreprocessedCommitment,
-    twiddles: prove.TwiddleTower,
+    commitment: ?prove.PreprocessedCommitment,
+    twiddles: ?prove.TwiddleTower,
 
     pub fn deinit(self: *LeafTopology, allocator: std.mem.Allocator) void {
-        self.commitment.deinit(allocator);
-        self.twiddles.deinit(allocator);
+        if (self.commitment) |*item| item.deinit(allocator);
+        if (self.twiddles) |*item| item.deinit(allocator);
         self.preprocessed.deinit(allocator);
     }
 
     pub fn byteSize(self: *const LeafTopology) usize {
         var bytes: usize = 0;
         for (self.preprocessed.columns) |column| bytes += column.values.len * @sizeOf(M31);
-        return bytes + self.commitment.byteSize() + self.twiddles.retainedBytes();
+        if (self.commitment) |*item| bytes += item.byteSize();
+        if (self.twiddles) |*item| bytes += item.retainedBytes();
+        return bytes;
     }
 
     /// `options` with this topology's commitment and twiddles.
     fn proveOptions(self: *const LeafTopology, options: prove.Options) prove.Options {
         var out = options;
-        out.preprocessed_commitment = &self.commitment;
-        out.twiddle_tower = &self.twiddles;
+        if (self.commitment) |*item| out.preprocessed_commitment = item;
+        if (self.twiddles) |*item| out.twiddle_tower = item;
         return out;
     }
 };
@@ -142,6 +145,8 @@ pub const LeafWrap = struct {
     options: prove.Options = .{},
     /// The backend that proves the wrap; never changes bytes.
     provers: *const prove.Provers = &prove.cpu_provers,
+    /// Verified device circuit proof; bypasses the CPU circuit prover.
+    source: ?proof_source.Source = null,
 
     /// The statement constants: the Cairo relation ids and the projection's
     /// memory constants.
@@ -186,9 +191,18 @@ fn buildTopology(
     circuit_ctx: anytype,
     circuit_fri: core.pcs.config_v2.FriConfigV2,
     options: prove.Options,
+    commit_on_host: bool,
 ) !LeafTopology {
     var pp = try PreprocessedCircuit.fromBuilderCircuit(allocator, circuit_ctx);
     errdefer pp.deinit(allocator);
+    if (!commit_on_host) return .{
+        .preprocessed = pp,
+        .n_vars = circuit_ctx.n_vars,
+        .preprocessed_root = undefined,
+        .circuit_hash = undefined,
+        .commitment = null,
+        .twiddles = null,
+    };
     const pcs_config = PcsConfigV2.fromFriAndTraceSize(circuit_fri, pp.traceLogSize());
     var twiddles = try prove.twiddleTower(allocator, pcs_config);
     errdefer twiddles.deinit(allocator);
@@ -353,7 +367,7 @@ fn wrapCairoProofImpl(
     } else blk: {
         var preprocess_stage = try StageScope.begin(recorder, "leaf_wrap_preprocess", "preprocess the leaf circuit (topology miss)");
         defer preprocess_stage.end();
-        fresh = try buildTopology(wrap.cache.allocator, &ctx.circuit, circuit_fri, wrap.options);
+        fresh = try buildTopology(wrap.cache.allocator, &ctx.circuit, circuit_fri, wrap.options, wrap.source == null);
         break :blk &fresh.?;
     };
     log.info("leaf topology {f}: {s}, {d} variables", .{ key, if (fresh == null) "cached" else "built", ctx.circuit.n_vars });
@@ -364,17 +378,33 @@ fn wrapCairoProofImpl(
     ctx_owned = false;
     defer allocator.free(values);
     const pcs_config = PcsConfigV2.fromFriAndTraceSize(circuit_fri, topology.preprocessed.traceLogSize());
-    var circuit_proof = try wrap.provers.internal(allocator, values, &topology.preprocessed, wrap.bundle, pcs_config, topology.proveOptions(wrap.options));
-    defer circuit_proof.deinit();
-    const root = blake2_hash.digestToU32s(circuit_proof.stark_proof.proof.commitment_scheme_proof.commitments.items[0]);
-    const hash = blake2_hash.digestToU32s(circuit_proof.circuit_hash);
+    var produced: ?proof_source.Produced = if (wrap.source) |source| try source.run(allocator, .{
+        .values = values,
+        .preprocessed = &topology.preprocessed,
+        .air = wrap.bundle,
+        .config = pcs_config,
+        .profile = .internal,
+    }) else null;
+    defer if (produced) |*item| item.deinit();
+    var circuit_proof: ?prove.Internal.CircuitProof = if (produced == null) try wrap.provers.internal(allocator, values, &topology.preprocessed, wrap.bundle, pcs_config, topology.proveOptions(wrap.options)) else null;
+    defer if (circuit_proof) |*item| item.deinit();
+    const root = if (produced) |item| item.preprocessed_root else blake2_hash.digestToU32s(circuit_proof.?.stark_proof.proof.commitment_scheme_proof.commitments.items[0]);
+    const hash = if (produced) |item| item.circuit_hash else blake2_hash.digestToU32s(circuit_proof.?.circuit_hash);
     if (!std.mem.eql(u32, &hash, &entry.circuit_hash.words)) return error.CircuitHashMismatch;
     if (fresh == null and !std.mem.eql(u32, &hash, &topology.circuit_hash)) return error.TopologyMismatch;
 
     const bytes = blk: {
         var serialize_stage = try StageScope.begin(recorder, "leaf_wrap_serialize", "prepare and serialize the leaf proof");
         defer serialize_stage.end();
-        var prepared = try verifier_proof.prepare(allocator, &circuit_proof);
+        if (produced) |*item| {
+            const internal_proof = switch (item.proof) {
+                .internal => |*internal| internal,
+                .root => return error.WrongProofProfile,
+            };
+            const config_shape = try verifier_proof.proofConfig(topology.preprocessed.columns.len, pcs_config);
+            break :blk try wire.circuit_serialize.serializeProofAlloc(allocator, internal_proof, config_shape);
+        }
+        var prepared = try verifier_proof.prepare(allocator, &circuit_proof.?);
         defer prepared.deinit();
         break :blk try prepared.serialize(allocator);
     };

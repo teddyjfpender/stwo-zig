@@ -69,10 +69,27 @@ pub fn columnLogSizesPerTree(
 /// of `prove.Prover(MC)` whose Merkle hasher is the plain Blake2s one (the
 /// root profile). The result copies what it needs; `proof` is unchanged.
 pub fn prepare(allocator: std.mem.Allocator, proof: anytype) Error!CairoVerifierProof {
-    const stark = &proof.stark_proof.proof.commitment_scheme_proof;
+    return fromVerifiedStark(allocator, &proof.stark_proof.proof, proof.component_log_sizes, proof.output_values, &proof.claimed_sums.toArray(), proof.interaction_pow_nonce, proof.channel_salt, proof.pcs_config.fri_config);
+}
+
+/// Build the Cairo root stream from an independently verified compressed
+/// STARK. The CUDA resident prover has no CPU prover auxiliary tree, and this
+/// wire format needs only the published proof and its public claims.
+pub fn fromVerifiedStark(
+    allocator: std.mem.Allocator,
+    proof: anytype,
+    log_sizes: PerComponent(u32),
+    output_values: []const QM31,
+    claimed_sums: []const QM31,
+    interaction_pow_nonce: u64,
+    channel_salt: u32,
+    fri_config: core.pcs.config_v2.FriConfigV2,
+) Error!CairoVerifierProof {
+    const stark = &proof.commitment_scheme_proof;
     const n_trees = felt_stream.n_trees;
     if (stark.commitments.items.len != n_trees or stark.sampled_values.items.len != n_trees or
-        stark.decommitments.items.len != n_trees or stark.queried_values.items.len != n_trees)
+        stark.decommitments.items.len != n_trees or stark.queried_values.items.len != n_trees or
+        claimed_sums.len != component_list.N_COMPONENTS)
         return error.InvalidCircuitProof;
 
     var arena = std.heap.ArenaAllocator.init(allocator);
@@ -81,10 +98,10 @@ pub fn prepare(allocator: std.mem.Allocator, proof: anytype) Error!CairoVerifier
 
     // `CairoStarkProof::from_stark_proof`: the trace and interaction trees
     // are stably sorted by column log size, then every tree is transposed.
-    const log_sizes = try columnLogSizesPerTree(a, proof.component_log_sizes);
+    const tree_logs = try columnLogSizesPerTree(a, log_sizes);
     var tree_values: [n_trees][]const []const M31 = undefined;
     for (&tree_values, stark.queried_values.items) |*out, tree| out.* = tree;
-    const sorted = try wire.cairo_serialize.sortAndTransposeQueriedValues(a, tree_values, log_sizes[0], log_sizes[1]);
+    const sorted = try wire.cairo_serialize.sortAndTransposeQueriedValues(a, tree_values, tree_logs[0], tree_logs[1]);
     const queried_values = try a.dupe([]M31, &sorted);
 
     const decommitments = try a.alloc([]Hash, n_trees);
@@ -100,11 +117,11 @@ pub fn prepare(allocator: std.mem.Allocator, proof: anytype) Error!CairoVerifier
     for (inner_layers, fri.inner_layers) |*out, *layer| out.* = try friLayer(a, layer);
 
     return .{ .arena = arena, .proof = .{
-        .output_values = try a.dupe(QM31, proof.output_values),
-        .interaction_pow = proof.interaction_pow_nonce,
-        .claimed_sums = proof.claimed_sums.toArray(),
+        .output_values = try a.dupe(QM31, output_values),
+        .interaction_pow = interaction_pow_nonce,
+        .claimed_sums = claimed_sums[0..component_list.N_COMPONENTS].*,
         .stark_proof = .{
-            .fri_config = proof.pcs_config.fri_config,
+            .fri_config = fri_config,
             .commitments = try a.dupe(Hash, stark.commitments.items),
             .sampled_values = sampled_values,
             .decommitments = decommitments,
@@ -116,7 +133,7 @@ pub fn prepare(allocator: std.mem.Allocator, proof: anytype) Error!CairoVerifier
                 .last_layer_poly = try a.dupe(QM31, fri.last_layer_poly.coeffs),
             },
         },
-        .channel_salt = proof.channel_salt,
+        .channel_salt = channel_salt,
     } };
 }
 
