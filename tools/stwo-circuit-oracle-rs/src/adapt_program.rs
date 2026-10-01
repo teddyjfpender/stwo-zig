@@ -19,6 +19,7 @@ pub fn run(
     proving_root: &std::path::Path,
     program: &str,
     program_input: Option<&std::path::Path>,
+    compact_output: bool,
 ) -> Result<Vec<u8>> {
     let mut checkout = ProvingRoot::open(proving_root)?;
     let bytes = checkout.read(program)?;
@@ -36,7 +37,32 @@ pub fn run(
     // changes from run to run; the proof does not depend on it (prove-cairo emits the same bytes
     // for every order observed). Sorted, the fixture is reproducible.
     prover_input.public_memory_addresses.sort_unstable();
+    if compact_output {
+        let mut bytes = Vec::new();
+        crate::compact::write(&mut bytes, &prover_input)
+            .context("failed to encode compact ProverInput")?;
+        return Ok(bytes);
+    }
     let mut json = serde_json::to_vec(&prover_input).context("failed to encode ProverInput")?;
     json.push(b'\n');
     Ok(json)
+}
+
+/// Re-encode an already adapted official JSON input without rerunning Cairo.
+/// This is a transport conversion: the Zig frontend re-admits the compact
+/// bytes and full proof parity is checked by the pipeline benchmark.
+pub fn convert_input(path: &std::path::Path) -> Result<Vec<u8>> {
+    const MAX_BYTES: u64 = 2 << 30;
+    let file =
+        std::fs::File::open(path).with_context(|| format!("failed to open {}", path.display()))?;
+    let size = file.metadata()?.len();
+    anyhow::ensure!(
+        size > 0 && size <= MAX_BYTES,
+        "adapted input size is outside bounds"
+    );
+    let input: stwo_cairo_adapter::ProverInput =
+        serde_json::from_reader(file).context("failed to decode official ProverInput JSON")?;
+    let mut bytes = Vec::new();
+    crate::compact::write(&mut bytes, &input).context("failed to encode compact ProverInput")?;
+    Ok(bytes)
 }

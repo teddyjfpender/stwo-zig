@@ -1,0 +1,327 @@
+{
+  "schema": "stwo-circuit-cuda-fold-scaling-v1",
+  "semantic_scope": "repeated verified leaves; not a continuous block chain",
+  "leaf_sha256": [
+    "dcf3ed4214790cfef602766f4edbfbaa03dab2fa05ebc3fba88d082f566677d8",
+    "7cda055e4bf0fcda6debab8c137aaa794176922ba4efb528994b1fd324aa22db"
+  ],
+  "registry_sha256": "a2503220947f161185a4f5160fd5953db92f6aec0055367830ebc8a65187eabf",
+  "rows": [
+    {
+      "leaves": 16,
+      "reductions": 15,
+      "wall_s": 22.109,
+      "prover_ns": 21387239739,
+      "stages_s": {
+        "reductions": 20.25096306,
+        "render": 0.002547894,
+        "setup_and_canonical": 1.027186417
+      },
+      "gpu_peak_used_bytes": 28771876864,
+      "host_peak_rss_bytes": 2347966464,
+      "files": {
+        "proof": {
+          "sha256": "05d13a39596f55545197efb4193f6e108cc673c020b1fb661100e3e50a4dddcc",
+          "bytes": 1503732
+        },
+        "outputs": {
+          "sha256": "96a08bc91efda0e9ecd28fce79820255ff07599d27bea49814e25d504172e8f7",
+          "bytes": 88
+        },
+        "packed": {
+          "sha256": "e21d9f393f39197da02410f232ddd7d22ba3eb03b450b9667892d3f4a5eead77",
+          "bytes": 106786
+        }
+      },
+      "level_components_ms": {
+        "1": {
+          "pairs": 8,
+          "build_ms": 5635,
+          "prove_ms": 4971
+        },
+        "2": {
+          "pairs": 4,
+          "build_ms": 2838,
+          "prove_ms": 2360
+        },
+        "3": {
+          "pairs": 2,
+          "build_ms": 1396,
+          "prove_ms": 1240
+        },
+        "4": {
+          "pairs": 1,
+          "build_ms": 703,
+          "prove_ms": 601
+        }
+      },
+      "levels_complete": false,
+      "prover_sha256": "06db31353743c4cfc0736aef02f3c06c2a016d4b9a35471554b9ccdd0adcb246"
+    },
+    {
+      "leaves": 64,
+      "reductions": 63,
+      "wall_s": 83.862,
+      "prover_ns": 83016507379,
+      "stages_s": {
+        "reductions": 81.914427192,
+        "render": 0.003232813,
+        "setup_and_canonical": 0.99782762
+      },
+      "gpu_peak_used_bytes": 28771876864,
+      "host_peak_rss_bytes": 2474676224,
+      "files": {
+        "proof": {
+          "sha256": "936032c4b19d2e8bfba1f71ddbc5181358d024a1e8fb2ea39a86cfb7a259cfbe",
+          "bytes": 1521206
+        },
+        "outputs": {
+          "sha256": "682a7ca1c0d3d7d59e0fc904e49f3e06740292ee0a330f2a963fcd8f7f0b1fcf",
+          "bytes": 87
+        },
+        "packed": {
+          "sha256": "358c70f5a78e1ac5ba35ffe4f40b684ad77cbad1c9ad21702e037dabb1358a62",
+          "bytes": 427546
+        }
+      },
+      "level_components_ms": {
+        "1": {
+          "pairs": 32,
+          "build_ms": 22615,
+          "prove_ms": 18470
+        },
+        "2": {
+          "pairs": 16,
+          "build_ms": 11299,
+          "prove_ms": 8439
+        },
+        "3": {
+          "pairs": 8,
+          "build_ms": 5666,
+          "prove_ms": 4576
+        },
+        "4": {
+          "pairs": 4,
+          "build_ms": 2743,
+          "prove_ms": 2214
+        },
+        "5": {
+          "pairs": 2,
+          "build_ms": 1387,
+          "prove_ms": 1064
+        },
+        "6": {
+          "pairs": 1,
+          "build_ms": 699,
+          "prove_ms": 518
+        }
+      },
+      "levels_complete": false,
+      "prover_sha256": "06db31353743c4cfc0736aef02f3c06c2a016d4b9a35471554b9ccdd0adcb246"
+    },
+    {
+      "leaves": 256,
+      "reductions": 255,
+      "wall_s": 332.393,
+      "prover_ns": 330370521167,
+      "stages_s": {
+        "reductions": 329.196252456,
+        "render": 0.007312201,
+        "setup_and_canonical": 1.048860743
+      },
+      "gpu_peak_used_bytes": 29323427840,
+      "host_peak_rss_bytes": 2978217984,
+      "files": {
+        "proof": {
+          "sha256": "14d33d68588916204626b1defdacf4d3ce5d733c93c3c3e6cb0e93af8ddb7eec",
+          "bytes": 1539380
+        },
+        "outputs": {
+          "sha256": "446fe01982af1d947a8bd829ae25e8c7a629db1c1599fd0690d137347dd52cab",
+          "bytes": 87
+        },
+        "packed": {
+          "sha256": "8492f77b171f6edaac880cfabd083dc888d4e5cc444d82219739b3c3307de8f1",
+          "bytes": 1710586
+        }
+      },
+      "level_components_ms": {
+        "1": {
+          "pairs": 128,
+          "build_ms": 90759,
+          "prove_ms": 71761
+        },
+        "2": {
+          "pairs": 64,
+          "build_ms": 45781,
+          "prove_ms": 33451
+        },
+        "3": {
+          "pairs": 32,
+          "build_ms": 22804,
+          "prove_ms": 16647
+        },
+        "4": {
+          "pairs": 16,
+          "build_ms": 11368,
+          "prove_ms": 8706
+        },
+        "5": {
+          "pairs": 8,
+          "build_ms": 5533,
+          "prove_ms": 4467
+        },
+        "6": {
+          "pairs": 4,
+          "build_ms": 2805,
+          "prove_ms": 2103
+        },
+        "7": {
+          "pairs": 2,
+          "build_ms": 1425,
+          "prove_ms": 1032
+        },
+        "8": {
+          "pairs": 1,
+          "build_ms": 708,
+          "prove_ms": 526
+        }
+      },
+      "levels_complete": false,
+      "prover_sha256": "06db31353743c4cfc0736aef02f3c06c2a016d4b9a35471554b9ccdd0adcb246"
+    },
+    {
+      "leaves": 1024,
+      "reductions": 1023,
+      "wall_s": 1341.938,
+      "prover_ns": 1335959000269,
+      "stages_s": {
+        "setup_and_canonical": 1.015752252,
+        "reductions": 1334.81127628,
+        "render": 0.02368724
+      },
+      "levels": [
+        {
+          "index": 0,
+          "pairs": 512,
+          "wall_s": 675.617461723
+        },
+        {
+          "index": 1,
+          "pairs": 256,
+          "wall_s": 337.996235193
+        },
+        {
+          "index": 2,
+          "pairs": 128,
+          "wall_s": 160.597519561
+        },
+        {
+          "index": 3,
+          "pairs": 64,
+          "wall_s": 80.588876567
+        },
+        {
+          "index": 4,
+          "pairs": 32,
+          "wall_s": 40.653174292
+        },
+        {
+          "index": 5,
+          "pairs": 16,
+          "wall_s": 20.0647755
+        },
+        {
+          "index": 6,
+          "pairs": 8,
+          "wall_s": 9.999257455
+        },
+        {
+          "index": 7,
+          "pairs": 4,
+          "wall_s": 4.989375408
+        },
+        {
+          "index": 8,
+          "pairs": 2,
+          "wall_s": 2.546513307
+        },
+        {
+          "index": 9,
+          "pairs": 1,
+          "wall_s": 1.264351567
+        }
+      ],
+      "levels_complete": true,
+      "level_components_ms": {
+        "1": {
+          "pairs": 512,
+          "build_ms": 365439,
+          "prove_ms": 292513
+        },
+        "2": {
+          "pairs": 256,
+          "build_ms": 183569,
+          "prove_ms": 145295
+        },
+        "3": {
+          "pairs": 128,
+          "build_ms": 89360,
+          "prove_ms": 67308
+        },
+        "4": {
+          "pairs": 64,
+          "build_ms": 44671,
+          "prove_ms": 33940
+        },
+        "5": {
+          "pairs": 32,
+          "build_ms": 22369,
+          "prove_ms": 17296
+        },
+        "6": {
+          "pairs": 16,
+          "build_ms": 11150,
+          "prove_ms": 8419
+        },
+        "7": {
+          "pairs": 8,
+          "build_ms": 5618,
+          "prove_ms": 4121
+        },
+        "8": {
+          "pairs": 4,
+          "build_ms": 2785,
+          "prove_ms": 2079
+        },
+        "9": {
+          "pairs": 2,
+          "build_ms": 1393,
+          "prove_ms": 1093
+        },
+        "10": {
+          "pairs": 1,
+          "build_ms": 696,
+          "prove_ms": 538
+        }
+      },
+      "gpu_peak_used_bytes": 29323427840,
+      "host_peak_rss_bytes": 5005217792,
+      "files": {
+        "proof": {
+          "sha256": "aeeb78e40a9511b2395132d56cf44b4a604d772ebcaae14d0303feb4e9c04f6c",
+          "bytes": 1529251
+        },
+        "outputs": {
+          "sha256": "c243870432dbf28dc08747581c789256cadaa06320fe934e949d66fe98fbe83c",
+          "bytes": 89
+        },
+        "packed": {
+          "sha256": "c5ded381ee949fa4623bca16e77133b3348885d4895fc12ca58365072c88210d",
+          "bytes": 6842746
+        }
+      },
+      "prover_sha256": "b825d8fcef9ffb3fd9d84f5efb25f3d21345488bb192570fc562280165b271ae"
+    }
+  ]
+}

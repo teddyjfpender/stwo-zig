@@ -31,12 +31,21 @@ pub fn read(allocator: std.mem.Allocator, path: []const u8) !Capture {
         var input = try cairo.adapter.input.parseSlice(allocator, bytes, limits);
         errdefer input.deinit(allocator);
         const digest = sha(bytes);
+        if (!std.mem.eql(u8, &digest, &try fileSha(path))) return error.CanonicalInputChanged;
         return .{ .input = input, .encoded = bytes, .file_sha256 = digest, .encoded_sha256 = digest };
     }
-    // The JSON transport needs normalization. Retain its existing streaming
-    // parser and mutation check, without allocating a full JSON byte capture.
-    const file_digest = try fileSha(path);
-    var input = try cairo.adapter.input.readFile(allocator, path);
+    // Capture the JSON bytes once. Parsing the slice avoids a second file
+    // read and the streaming token source; the final digest still detects a
+    // path replacement or mutation before the request is admitted.
+    // `allocator` is often the request arena; use a reclaimable temporary
+    // allocation so the large JSON capture does not survive the parse.
+    const json_bytes = try std.heap.page_allocator.alloc(u8, @intCast(stat.size));
+    defer std.heap.page_allocator.free(json_bytes);
+    if (try file.readAll(json_bytes) != json_bytes.len) return error.Truncated;
+    var trailing: [1]u8 = undefined;
+    if (try file.read(&trailing) != 0) return error.CanonicalInputChanged;
+    const file_digest = sha(json_bytes);
+    var input = try cairo.adapter.input.parseSlice(allocator, json_bytes, limits);
     errdefer input.deinit(allocator);
     const encoded = try cairo.adapter.compact_writer.encode(allocator, &input);
     errdefer allocator.free(encoded);
@@ -83,4 +92,23 @@ test "canonical input capture preserves normalized transport and digest" {
     captured.encoded[12] = 1;
     defer captured.encoded[12] = old;
     try std.testing.expectError(error.NonCanonicalEncoding, cairo.adapter.input.parseSlice(allocator, captured.encoded, .{}));
+}
+
+test "Rust oracle compact inputs match normalized JSON for continuous PIEs" {
+    const directory = std.process.getEnvVarOwned(std.testing.allocator, "STWO_CAIRO_CUDA_CONTINUOUS_INPUT_DIR") catch return error.SkipZigTest;
+    defer std.testing.allocator.free(directory);
+    for ([_][]const u8{ "15627902-15627904", "15627905-15627907" }) |name| {
+        const json_path = try std.fmt.allocPrint(std.testing.allocator, "{s}/{s}.prover_input.json", .{ directory, name });
+        defer std.testing.allocator.free(json_path);
+        const compact_path = try std.fmt.allocPrint(std.testing.allocator, "{s}/{s}.prover_input.cpi", .{ directory, name });
+        defer std.testing.allocator.free(compact_path);
+        var json = try read(std.testing.allocator, json_path);
+        defer json.input.deinit(std.testing.allocator);
+        defer std.testing.allocator.free(json.encoded);
+        var compact = try read(std.testing.allocator, compact_path);
+        defer compact.input.deinit(std.testing.allocator);
+        defer std.testing.allocator.free(compact.encoded);
+        try std.testing.expectEqualSlices(u8, json.encoded, compact.encoded);
+        try std.testing.expectEqualSlices(u8, &json.encoded_sha256, &compact.encoded_sha256);
+    }
 }

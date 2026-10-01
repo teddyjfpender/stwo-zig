@@ -1,0 +1,255 @@
+{
+  "schema": "stwo-starknet-circuit-pipeline-v1",
+  "backend": "cuda-resident",
+  "device_scope": "Cairo PIE, circuit leaf wrap, and all circuit folds on resident CUDA",
+  "proving_commit": null,
+  "oracle_binary_sha256": null,
+  "prover_binary_sha256": "06db31353743c4cfc0736aef02f3c06c2a016d4b9a35471554b9ccdd0adcb246",
+  "scope": "contiguous Starknet PIEs to one recursive circuit root; final applicative aggregation is separate",
+  "security": {
+    "cairo_fri": {
+      "pow_bits": 26,
+      "log_blowup_factor": 1,
+      "log_last_layer_degree_bound": 0,
+      "n_queries": 70,
+      "fold_step": 1
+    },
+    "circuit_fri": {
+      "pow_bits": 26,
+      "log_blowup_factor": 1,
+      "log_last_layer_degree_bound": 0,
+      "n_queries": 70,
+      "fold_step": 4
+    }
+  },
+  "registry_sha256": "a2503220947f161185a4f5160fd5953db92f6aec0055367830ebc8a65187eabf",
+  "leaves": [
+    {
+      "pie": "/workspace/stwo-zig/vectors/starknet/mainnet/pies/leaves/15627902-15627904.zip",
+      "blocks": [
+        15627902,
+        15627904
+      ],
+      "cairo_steps": 1224007,
+      "adapted_input_sha256": "c92a1ecd5baf8651e88c6d96f016cfa2646bbda2cf646fec9bc0558c200a6f81",
+      "preimage_sha256": "6ba24d85781e221b35fda38e3550e7107a3202952f61c3ff2696a761106e5de8",
+      "initial_root": "0x503c672070275a03c6ffc1c1c639b8242010d47784eb9290b1acfa5a69db6b8",
+      "final_root": "0x44eb983c7f8784f47fa61b0076471f2d0b3dcb4f1509700ffbc6d2118f98aef",
+      "adapt": {
+        "wall_s": 0.0,
+        "peak_rss_bytes": 0,
+        "log": null,
+        "reused_adapted_input_sha256": "c92a1ecd5baf8651e88c6d96f016cfa2646bbda2cf646fec9bc0558c200a6f81",
+        "reused_preimage_sha256": "6ba24d85781e221b35fda38e3550e7107a3202952f61c3ff2696a761106e5de8"
+      },
+      "leaf_wrap": {
+        "wall_s": 7.734,
+        "peak_rss_bytes": 3138052096,
+        "peak_memory_footprint_bytes": null,
+        "log": "/workspace/results/blake3-b/cuda_batch.log",
+        "shared_process": true
+      },
+      "leaf_stages": {
+        "load_s": 0.0,
+        "cairo_prove_s": 5.490643627,
+        "arena_release_s": 7.2779e-05,
+        "wrap_s": 2.243112297
+      },
+      "circuit_proofs": [
+        {
+          "profile": "internal",
+          "resident_s": 0.498367596,
+          "verify_s": 0.00441411,
+          "convert_s": 0.000380363,
+          "arena_bytes": 28123850272,
+          "peak_device_bytes": 28123850272,
+          "terminal_bytes": 4018944,
+          "resident_phases_s": {
+            "plan": 0.065035139,
+            "static_hash": 2.917e-06,
+            "ingress": 0.139952986,
+            "schedule": 0.239840565,
+            "finish": 0.04561869,
+            "decode": 0.002580671
+          }
+        }
+      ],
+      "cairo_cuda_metrics": {
+        "planned_arena_bytes": 51506694880,
+        "peak_live_bytes": 53679096992,
+        "persistent_bytes": 53679096992,
+        "h2d_bytes": 2551053824,
+        "d2d_bytes": 4531299516,
+        "d2h_proof_bytes": 8994704,
+        "kernel_launches": 4255,
+        "ingress_stage_elapsed_s": 4.09889502
+      },
+      "cairo_static_phases": {
+        "initial_upload_s": 0.030236846,
+        "preprocessed_load_s": 3.690020623,
+        "materialize_s": 0.001661765,
+        "cached": false,
+        "device_image_hit": false
+      },
+      "leaf_proof_sha256": "01ed69eb3083e2d3e91acd77b1bad060907374cdb924f024132864f072804a1c",
+      "leaf_input_sha256": "dcf3ed4214790cfef602766f4edbfbaa03dab2fa05ebc3fba88d082f566677d8"
+    },
+    {
+      "pie": "/workspace/stwo-zig/vectors/starknet/mainnet/pies/leaves/15627905-15627907.zip",
+      "blocks": [
+        15627905,
+        15627907
+      ],
+      "cairo_steps": 785807,
+      "adapted_input_sha256": "3c898538af071069385e5deae70a086a31e8ab87198fa198cd6fcf0f3e3d1557",
+      "preimage_sha256": "de65c3023ea4c6aecf03fe57de44ebf627a8d0cc47663b24e555013cb7199251",
+      "initial_root": "0x44eb983c7f8784f47fa61b0076471f2d0b3dcb4f1509700ffbc6d2118f98aef",
+      "final_root": "0x6489e07861160ed59ea887855f45a73140d3029ac1a608d8d50eb161804c207",
+      "adapt": {
+        "wall_s": 0.0,
+        "peak_rss_bytes": 0,
+        "log": null,
+        "reused_adapted_input_sha256": "3c898538af071069385e5deae70a086a31e8ab87198fa198cd6fcf0f3e3d1557",
+        "reused_preimage_sha256": "de65c3023ea4c6aecf03fe57de44ebf627a8d0cc47663b24e555013cb7199251"
+      },
+      "leaf_wrap": {
+        "wall_s": 2.518,
+        "peak_rss_bytes": 3138052096,
+        "peak_memory_footprint_bytes": null,
+        "log": "/workspace/results/blake3-b/cuda_batch.log",
+        "shared_process": true
+      },
+      "leaf_stages": {
+        "load_s": 0.0,
+        "cairo_prove_s": 1.433471213,
+        "arena_release_s": 3.9617e-05,
+        "wrap_s": 1.084569593
+      },
+      "circuit_proofs": [
+        {
+          "profile": "internal",
+          "resident_s": 0.495346982,
+          "verify_s": 0.004182171,
+          "convert_s": 0.0004038,
+          "arena_bytes": 28123850272,
+          "peak_device_bytes": 28123850272,
+          "terminal_bytes": 4018944,
+          "resident_phases_s": {
+            "plan": 0.075600842,
+            "static_hash": 1.893e-06,
+            "ingress": 0.136225173,
+            "schedule": 0.042399332,
+            "finish": 0.234234352,
+            "decode": 0.002530671
+          }
+        }
+      ],
+      "cairo_cuda_metrics": {
+        "planned_arena_bytes": 50893645984,
+        "peak_live_bytes": 53066048096,
+        "persistent_bytes": 53066048096,
+        "h2d_bytes": 347625072,
+        "d2d_bytes": 4527498428,
+        "d2h_proof_bytes": 8994704,
+        "kernel_launches": 4237,
+        "ingress_stage_elapsed_s": 0.388401398
+      },
+      "cairo_static_phases": {
+        "initial_upload_s": 0.02954455,
+        "preprocessed_load_s": 6.045e-06,
+        "materialize_s": 0.000260688,
+        "cached": true,
+        "device_image_hit": true
+      },
+      "leaf_proof_sha256": "fe69619f1b3a699038fdaea6a4e5dd420d0f0fba0a17a01e681ab5cfbe901400",
+      "leaf_input_sha256": "7cda055e4bf0fcda6debab8c137aaa794176922ba4efb528994b1fd324aa22db"
+    }
+  ],
+  "fold": {
+    "wall_s": 2.306168096,
+    "peak_rss_bytes": 3138052096,
+    "peak_memory_footprint_bytes": null,
+    "gpu_peak_used_bytes": null,
+    "log": "/workspace/results/blake3-b/cuda_batch.log",
+    "shared_process": true,
+    "host_phases": {
+      "leaves": 2,
+      "reductions": 1,
+      "fold_s": 2.306168096,
+      "proof_bytes": 1508773
+    },
+    "circuit_proofs": [
+      {
+        "profile": "root",
+        "resident_s": 0.491667856,
+        "verify_s": 0.003978085,
+        "convert_s": 0.000160996,
+        "arena_bytes": 28132566560,
+        "peak_device_bytes": 28132566560,
+        "terminal_bytes": 4018944,
+        "resident_phases_s": {
+          "plan": 0.054023914,
+          "static_hash": 2.374e-06,
+          "ingress": 0.134859886,
+          "schedule": 0.058028249,
+          "finish": 0.238037083,
+          "decode": 0.002480929
+        }
+      }
+    ]
+  },
+  "cuda_batch": {
+    "wall_s": 13.517,
+    "peak_rss_bytes": 3138052096,
+    "peak_memory_footprint_bytes": null,
+    "gpu_idle_used_bytes": null,
+    "gpu_peak_used_bytes": null,
+    "gpu_sample_interval_s": null,
+    "log": "/workspace/results/blake3-b/cuda_batch.log",
+    "host_phases": {
+      "setup_s": 0.385175208,
+      "execution_s": 10.446903786,
+      "leaf_topology_cache_hits": 1,
+      "leaf_topology_cache_misses": 1
+    }
+  },
+  "cuda_static_image": true,
+  "cuda_integrated": true,
+  "cuda_compact_root": false,
+  "adapted_format": "compact",
+  "adapted_input_to_root_wall_s": 13.675,
+  "phase_breakdown_s": {
+    "adapt_s": 0.0,
+    "load_s": 0.0,
+    "cairo_prove_s": 6.924,
+    "arena_release_s": 0.0,
+    "circuit_wrap_s": 3.328,
+    "fold_s": 2.306,
+    "process_overhead_s": 0.959
+  },
+  "serial_wall_s": 13.517,
+  "serial_peak_rss_bytes": 3138052096,
+  "serial_peak_memory_footprint_bytes": null,
+  "sampled_whole_device_peak_used_bytes": null,
+  "root": {
+    "proof": {
+      "path": "/workspace/results/blake3-b/root.proof",
+      "sha256": "9093f941c4a9144fd653441c582cc0921bac8431df8df46bdd556b8e661af724"
+    },
+    "outputs": {
+      "path": "/workspace/results/blake3-b/root_outputs.json",
+      "sha256": "abaefd94d716e2e4f07b5a2fcd521764e5d4c0f8dd04ec60e095bf74d0e1349b"
+    },
+    "packed": {
+      "path": "/workspace/results/blake3-b/root_packed.json",
+      "sha256": "72f17bf582e5438defd30e2f3c52f87ff47e5d6f0d1223b98d37bac8007c54a2"
+    }
+  },
+  "qualified_reference_parity": {
+    "reference_sha256": "15a965e6768aa9f50b271dd60fa26ed302db7a3aa45f6c7f3732863a1c27a28a",
+    "rust_root_byte_equal_by_digest": true,
+    "rust_root_output_byte_equal_by_digest": true,
+    "leaf_and_input_byte_equal_by_digest": true,
+    "adapted_transport_byte_equal_by_digest": false
+  }
+}

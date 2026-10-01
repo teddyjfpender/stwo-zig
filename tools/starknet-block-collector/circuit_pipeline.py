@@ -249,7 +249,8 @@ def phase_breakdown(rows: list[dict], fold: dict, batch: dict | None = None,
     return {key: round(value, 3) for key, value in phases.items()}
 
 
-def compare_qualified_reference(receipt: dict, reference_path: Path, compact_root: bool = False) -> dict:
+def compare_qualified_reference(receipt: dict, reference_path: Path, compact_root: bool = False,
+                                compact_input: bool = False) -> dict:
     """Bind a new run to a previously Rust-qualified PIE-to-root receipt."""
     reference = json.loads(reference_path.read_text())
     if reference.get("schema") != "stwo-circuit-cuda-resident-pipeline-benchmark-v1":
@@ -267,8 +268,8 @@ def compare_qualified_reference(receipt: dict, reference_path: Path, compact_roo
                 actual["cairo_steps"] == expected["cairo_steps"] and
                 actual["leaf_proof_sha256"] == expected["leaf_proof_sha256"] and
                 actual["leaf_input_sha256"] == expected["leaf_input_sha256"] and
-                actual["adapt"].get("reused_adapted_input_sha256") == expected["adapted_input_sha256"] and
-                actual["adapt"].get("reused_preimage_sha256") == expected["preimage_sha256"])
+                (compact_input or actual["adapted_input_sha256"] == expected["adapted_input_sha256"]) and
+                actual["preimage_sha256"] == expected["preimage_sha256"])
         if not same:
             raise ValueError(f"leaf {index} differs from qualified reference")
     root_names = ("outputs",) if compact_root else reference["root_sha256"].keys()
@@ -279,7 +280,8 @@ def compare_qualified_reference(receipt: dict, reference_path: Path, compact_roo
     return {"reference_sha256": digest(reference_path),
             "rust_root_byte_equal_by_digest": not compact_root,
             "rust_root_output_byte_equal_by_digest": True,
-            "leaf_and_input_byte_equal_by_digest": True}
+            "leaf_and_input_byte_equal_by_digest": True,
+            "adapted_transport_byte_equal_by_digest": not compact_input}
 
 
 def main() -> None:
@@ -287,6 +289,8 @@ def main() -> None:
     parser.add_argument("--oracle", type=Path, help="pinned stwo-circuit-oracle binary")
     parser.add_argument("--proving-root", type=Path, help="proving@5a7c5ed checkout")
     parser.add_argument("--adapted-dir", type=Path, help="reuse separately authenticated adapted inputs and preimages")
+    parser.add_argument("--adapted-format", choices=("json", "compact"), default="json",
+                        help="adapted PIE transport; compact requires an oracle that emits STWZCPI v1")
     parser.add_argument("--backend", choices=("cpu", "metal", "cuda-hybrid", "cuda-resident"), default="cpu")
     parser.add_argument("--cuda-batch", action="store_true", help="reuse one Cairo CUDA runtime across distinct PIE leaves")
     parser.add_argument("--cuda-static-image", action="store_true", help="reuse authenticated fixed Cairo coefficients on the GPU (experimental)")
@@ -335,12 +339,17 @@ def main() -> None:
     for name, pie, source in pie_sequence(args.names):
         input_path = out / f"{name}.bootloader_input.json"
         preimage = out / f"{name}.preimage.hex.json"
-        adapted = out / f"{name}.prover_input.json"
+        adapted_suffix = "cpi" if args.adapted_format == "compact" else "json"
+        adapted = out / f"{name}.prover_input.{adapted_suffix}"
         wrapped = out / f"{name}.leaf_proof.json"
         leaf = out / f"{name}.leaf.json"
         if args.adapted_dir:
             source_dir = args.adapted_dir.resolve()
-            shutil.copyfile(source_dir / adapted.name, adapted)
+            # The adapter already owns this immutable input. Prove directly
+            # from it instead of copying tens of megabytes into the receipt
+            # directory before every run. The prover captures and hashes the
+            # bytes it consumes, including a post-parse mutation check.
+            adapted = source_dir / adapted.name
             shutil.copyfile(source_dir / preimage.name, preimage)
             adapt = {"wall_s": 0.0, "peak_rss_bytes": 0, "log": None,
                      "reused_adapted_input_sha256": digest(adapted),
@@ -352,9 +361,12 @@ def main() -> None:
                 "output_preimage_dump_path": str(preimage),
             }, indent=2) + "\n")
             print(f"adapting {name}", flush=True)
-            adapt = run([str(oracle), "adapt-program", "--proving-root", str(proving),
-                         "--program", LEAF_PROGRAM, "--program-input", str(input_path),
-                         "--output", str(adapted)], out / f"{name}.adapt.log")
+            adapt_command = [str(oracle), "adapt-program", "--proving-root", str(proving),
+                             "--program", LEAF_PROGRAM, "--program-input", str(input_path),
+                             "--output", str(adapted)]
+            if args.adapted_format == "compact":
+                adapt_command.extend(["--input-format", "compact"])
+            adapt = run(adapt_command, out / f"{name}.adapt.log")
         if args.cuda_batch:
             planned.append((name, pie, source, preimage, adapted, wrapped, leaf, adapt))
             continue
@@ -377,6 +389,8 @@ def main() -> None:
         if args.backend == "cuda-resident" and len(circuit_proofs) != 1:
             raise ValueError(f"expected one resident circuit wrap proof for {name}")
         rows.append({"pie": str(pie), "blocks": source["blocks"], "cairo_steps": source["n_steps"],
+                     "adapted_input_sha256": adapt.get("reused_adapted_input_sha256") or digest(adapted),
+                     "preimage_sha256": adapt.get("reused_preimage_sha256") or digest(preimage),
                      "initial_root": source["initial_root"], "final_root": source["final_root"],
                      "adapt": adapt, "leaf_wrap": wrap,
                      "leaf_stages": (resident_leaf_stages(out / f"{name}.leaf_wrap.log", cairo_report)
@@ -426,6 +440,8 @@ def main() -> None:
             manifest.append(str(leaf))
             stages = resident_batch_leaf_stages(batch_log, out / f"{name}.cairo_report.json", index)
             rows.append({"pie": str(pie), "blocks": source["blocks"], "cairo_steps": source["n_steps"],
+                         "adapted_input_sha256": adapt.get("reused_adapted_input_sha256") or digest(adapted),
+                         "preimage_sha256": adapt.get("reused_preimage_sha256") or digest(preimage),
                          "initial_root": source["initial_root"], "final_root": source["final_root"],
                          "adapt": adapt,
                          "leaf_wrap": {"wall_s": round(stages["cairo_prove_s"] + stages["arena_release_s"] + stages["wrap_s"], 3),
@@ -500,6 +516,7 @@ def main() -> None:
                "cuda_static_image": args.cuda_static_image,
                "cuda_integrated": args.cuda_integrated,
                "cuda_compact_root": args.cuda_compact_root,
+               "adapted_format": args.adapted_format,
                "adapted_input_to_root_wall_s": adapted_input_to_root_wall_s,
                "phase_breakdown_s": phase_breakdown(rows, fold, batch, args.cuda_integrated),
                "serial_wall_s": round(sum(row["adapt"]["wall_s"] for row in rows) +
@@ -521,7 +538,8 @@ def main() -> None:
         receipt["rust_parity"] = rust
     if args.expected_receipt:
         receipt["qualified_reference_parity"] = compare_qualified_reference(
-            receipt, args.expected_receipt.resolve(), args.cuda_compact_root)
+            receipt, args.expected_receipt.resolve(), args.cuda_compact_root,
+            args.adapted_format == "compact")
     (out / "receipt.json").write_text(json.dumps(receipt, indent=2) + "\n")
     print(json.dumps(receipt, indent=2))
 

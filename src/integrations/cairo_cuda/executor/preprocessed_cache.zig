@@ -154,6 +154,14 @@ pub fn load(
     var hashing_buffer: [4096]u8 = undefined;
     var hashing_reader = reader.interface.hashed(&artifact_hash, &hashing_buffer);
     const stream = &hashing_reader.reader;
+    const profile_setting = std.process.getEnvVarOwned(allocator, "STWO_CAIRO_CUDA_PROFILE_PREPROCESSED") catch null;
+    defer if (profile_setting) |value| allocator.free(value);
+    const profile = profile_setting != null and std.mem.eql(u8, profile_setting.?, "1");
+    var phase_timer = try std.time.Timer.start();
+    var read_ns: u64 = 0;
+    var validate_ns: u64 = 0;
+    var transpose_ns: u64 = 0;
+    var upload_ns: u64 = 0;
     if (!std.mem.eql(u8, try stream.takeArray(8), format_magic))
         return error.InvalidPreprocessedArtifact;
     if (try stream.takeInt(u32, .little) != format_version or
@@ -193,12 +201,15 @@ pub fn load(
 
         const values = staging[0..words];
         try stream.readSliceAll(std.mem.sliceAsBytes(values));
+        if (profile) read_ns += phase_timer.lap();
         for (values) |value| {
             if (value >= 0x7fff_ffff)
                 return error.NonCanonicalPreprocessedCoefficient;
         }
+        if (profile) validate_ns += phase_timer.lap();
         if (log_rows > 16)
             canonicalizeSimdCoefficientBlocks(values, log_rows);
+        if (profile) transpose_ns += phase_timer.lap();
         const begin: usize = prepared.column_offsets[ordinal];
         const end: usize = prepared.column_offsets[ordinal + 1];
         if (end < begin or end - begin != words)
@@ -208,6 +219,7 @@ pub fn load(
             try bound.coefficients.sub(begin, words),
             values,
         );
+        if (profile) upload_ns += phase_timer.lap();
         coefficient_words = std.math.add(
             u64,
             coefficient_words,
@@ -221,6 +233,9 @@ pub fn load(
     // canonicalization. This avoids a separate whole-artifact read and binds
     // the receipt to consumed content rather than an earlier file snapshot.
     const artifact_identity = artifact_hash.finalResult();
+    if (profile) std.debug.print("cairo-cuda preprocessed-profile read_ns={} validate_ns={} transpose_ns={} upload_ns={} words={}\n", .{
+        read_ns, validate_ns, transpose_ns, upload_ns, coefficient_words,
+    });
     if (expected_artifact_identity) |expected| {
         if (!std.mem.eql(u8, &expected, &artifact_identity))
             return error.PreprocessedArtifactIdentityMismatch;

@@ -1,0 +1,249 @@
+{
+  "schema": "stwo-starknet-circuit-pipeline-v1",
+  "backend": "cuda-resident",
+  "device_scope": "Cairo PIE, circuit leaf wrap, and all circuit folds on resident CUDA",
+  "proving_commit": null,
+  "oracle_binary_sha256": null,
+  "prover_binary_sha256": "353a71596cb80728d739c4908a93cad1f82bd5139bdc11f936e089167903a29d",
+  "scope": "contiguous Starknet PIEs to one recursive circuit root; final applicative aggregation is separate",
+  "security": {
+    "cairo_fri": {
+      "pow_bits": 26,
+      "log_blowup_factor": 1,
+      "log_last_layer_degree_bound": 0,
+      "n_queries": 70,
+      "fold_step": 1
+    },
+    "circuit_fri": {
+      "pow_bits": 26,
+      "log_blowup_factor": 1,
+      "log_last_layer_degree_bound": 0,
+      "n_queries": 70,
+      "fold_step": 4
+    }
+  },
+  "registry_sha256": "a2503220947f161185a4f5160fd5953db92f6aec0055367830ebc8a65187eabf",
+  "leaves": [
+    {
+      "pie": "/workspace/stwo-zig/vectors/starknet/mainnet/pies/leaves/15627902-15627904.zip",
+      "blocks": [
+        15627902,
+        15627904
+      ],
+      "cairo_steps": 1224007,
+      "initial_root": "0x503c672070275a03c6ffc1c1c639b8242010d47784eb9290b1acfa5a69db6b8",
+      "final_root": "0x44eb983c7f8784f47fa61b0076471f2d0b3dcb4f1509700ffbc6d2118f98aef",
+      "adapt": {
+        "wall_s": 0.0,
+        "peak_rss_bytes": 0,
+        "log": null,
+        "reused_adapted_input_sha256": "570cc4b40bad437dd27e01da7a6dcc3fc2601049884274e3b335fd245e3aca9a",
+        "reused_preimage_sha256": "6ba24d85781e221b35fda38e3550e7107a3202952f61c3ff2696a761106e5de8"
+      },
+      "leaf_wrap": {
+        "wall_s": 7.071,
+        "peak_rss_bytes": 3139264512,
+        "peak_memory_footprint_bytes": null,
+        "log": "/workspace/results/local-a/cuda_batch.log",
+        "shared_process": true
+      },
+      "leaf_stages": {
+        "load_s": 0.0,
+        "cairo_prove_s": 4.947275701,
+        "arena_release_s": 0.000151917,
+        "wrap_s": 2.123789933
+      },
+      "circuit_proofs": [
+        {
+          "profile": "internal",
+          "resident_s": 0.497902377,
+          "verify_s": 0.004255933,
+          "convert_s": 0.000355442,
+          "arena_bytes": 28123850272,
+          "peak_device_bytes": 28123850272,
+          "terminal_bytes": 4018944,
+          "resident_phases_s": {
+            "plan": 0.064615139,
+            "static_hash": 4.158e-06,
+            "ingress": 0.143071818,
+            "schedule": 0.240273122,
+            "finish": 0.043803876,
+            "decode": 0.002423762
+          }
+        }
+      ],
+      "cairo_cuda_metrics": {
+        "planned_arena_bytes": 51506694880,
+        "peak_live_bytes": 53679096992,
+        "persistent_bytes": 53679096992,
+        "h2d_bytes": 2551053824,
+        "d2d_bytes": 4531299516,
+        "d2h_proof_bytes": 8994704,
+        "kernel_launches": 4255,
+        "ingress_stage_elapsed_s": 2.977692627
+      },
+      "cairo_static_phases": {
+        "initial_upload_s": 0.03013148,
+        "preprocessed_load_s": 2.593829405,
+        "materialize_s": 0.001524574,
+        "cached": false,
+        "device_image_hit": false
+      },
+      "leaf_proof_sha256": "01ed69eb3083e2d3e91acd77b1bad060907374cdb924f024132864f072804a1c",
+      "leaf_input_sha256": "dcf3ed4214790cfef602766f4edbfbaa03dab2fa05ebc3fba88d082f566677d8"
+    },
+    {
+      "pie": "/workspace/stwo-zig/vectors/starknet/mainnet/pies/leaves/15627905-15627907.zip",
+      "blocks": [
+        15627905,
+        15627907
+      ],
+      "cairo_steps": 785807,
+      "initial_root": "0x44eb983c7f8784f47fa61b0076471f2d0b3dcb4f1509700ffbc6d2118f98aef",
+      "final_root": "0x6489e07861160ed59ea887855f45a73140d3029ac1a608d8d50eb161804c207",
+      "adapt": {
+        "wall_s": 0.0,
+        "peak_rss_bytes": 0,
+        "log": null,
+        "reused_adapted_input_sha256": "e2d318e60122685444071e3039eb1a6d4a8f659800ad679099b8e5d48a4cd823",
+        "reused_preimage_sha256": "de65c3023ea4c6aecf03fe57de44ebf627a8d0cc47663b24e555013cb7199251"
+      },
+      "leaf_wrap": {
+        "wall_s": 2.955,
+        "peak_rss_bytes": 3139264512,
+        "peak_memory_footprint_bytes": null,
+        "log": "/workspace/results/local-a/cuda_batch.log",
+        "shared_process": true
+      },
+      "leaf_stages": {
+        "load_s": 0.0,
+        "cairo_prove_s": 1.917532889,
+        "arena_release_s": 4.4186e-05,
+        "wrap_s": 1.037170115
+      },
+      "circuit_proofs": [
+        {
+          "profile": "internal",
+          "resident_s": 0.493381825,
+          "verify_s": 0.004269403,
+          "convert_s": 0.000373377,
+          "arena_bytes": 28123850272,
+          "peak_device_bytes": 28123850272,
+          "terminal_bytes": 4018944,
+          "resident_phases_s": {
+            "plan": 0.068147957,
+            "static_hash": 3.442e-06,
+            "ingress": 0.14141281,
+            "schedule": 0.042429207,
+            "finish": 0.234834436,
+            "decode": 0.002371966
+          }
+        }
+      ],
+      "cairo_cuda_metrics": {
+        "planned_arena_bytes": 50893645984,
+        "peak_live_bytes": 53066048096,
+        "persistent_bytes": 53066048096,
+        "h2d_bytes": 347625072,
+        "d2d_bytes": 4527498428,
+        "d2h_proof_bytes": 8994704,
+        "kernel_launches": 4237,
+        "ingress_stage_elapsed_s": 0.3999758
+      },
+      "cairo_static_phases": {
+        "initial_upload_s": 0.030242093,
+        "preprocessed_load_s": 6.815e-06,
+        "materialize_s": 0.000269228,
+        "cached": true,
+        "device_image_hit": true
+      },
+      "leaf_proof_sha256": "fe69619f1b3a699038fdaea6a4e5dd420d0f0fba0a17a01e681ab5cfbe901400",
+      "leaf_input_sha256": "7cda055e4bf0fcda6debab8c137aaa794176922ba4efb528994b1fd324aa22db"
+    }
+  ],
+  "fold": {
+    "wall_s": 2.18783564,
+    "peak_rss_bytes": 3139264512,
+    "peak_memory_footprint_bytes": null,
+    "gpu_peak_used_bytes": null,
+    "log": "/workspace/results/local-a/cuda_batch.log",
+    "shared_process": true,
+    "host_phases": {
+      "leaves": 2,
+      "reductions": 1,
+      "fold_s": 2.18783564,
+      "proof_bytes": 1508773
+    },
+    "circuit_proofs": [
+      {
+        "profile": "root",
+        "resident_s": 0.514721561,
+        "verify_s": 0.004233342,
+        "convert_s": 0.000152626,
+        "arena_bytes": 28132566560,
+        "peak_device_bytes": 28132566560,
+        "terminal_bytes": 4018944,
+        "resident_phases_s": {
+          "plan": 0.054967329,
+          "static_hash": 3.354e-06,
+          "ingress": 0.157972055,
+          "schedule": 0.058080628,
+          "finish": 0.238278671,
+          "decode": 0.002372617
+        }
+      }
+    ]
+  },
+  "cuda_batch": {
+    "wall_s": 13.152,
+    "peak_rss_bytes": 3139264512,
+    "peak_memory_footprint_bytes": null,
+    "gpu_idle_used_bytes": null,
+    "gpu_peak_used_bytes": null,
+    "gpu_sample_interval_s": null,
+    "log": "/workspace/results/local-a/cuda_batch.log",
+    "host_phases": {
+      "setup_s": 0.370655021,
+      "execution_s": 10.208760677,
+      "leaf_topology_cache_hits": 1,
+      "leaf_topology_cache_misses": 1
+    }
+  },
+  "cuda_static_image": true,
+  "cuda_integrated": true,
+  "cuda_compact_root": false,
+  "adapted_input_to_root_wall_s": 13.348,
+  "phase_breakdown_s": {
+    "adapt_s": 0.0,
+    "load_s": 0.0,
+    "cairo_prove_s": 6.865,
+    "arena_release_s": 0.0,
+    "circuit_wrap_s": 3.161,
+    "fold_s": 2.188,
+    "process_overhead_s": 0.938
+  },
+  "serial_wall_s": 13.152,
+  "serial_peak_rss_bytes": 3139264512,
+  "serial_peak_memory_footprint_bytes": null,
+  "sampled_whole_device_peak_used_bytes": null,
+  "root": {
+    "proof": {
+      "path": "/workspace/results/local-a/root.proof",
+      "sha256": "9093f941c4a9144fd653441c582cc0921bac8431df8df46bdd556b8e661af724"
+    },
+    "outputs": {
+      "path": "/workspace/results/local-a/root_outputs.json",
+      "sha256": "abaefd94d716e2e4f07b5a2fcd521764e5d4c0f8dd04ec60e095bf74d0e1349b"
+    },
+    "packed": {
+      "path": "/workspace/results/local-a/root_packed.json",
+      "sha256": "72f17bf582e5438defd30e2f3c52f87ff47e5d6f0d1223b98d37bac8007c54a2"
+    }
+  },
+  "qualified_reference_parity": {
+    "reference_sha256": "15a965e6768aa9f50b271dd60fa26ed302db7a3aa45f6c7f3732863a1c27a28a",
+    "rust_root_byte_equal_by_digest": true,
+    "rust_root_output_byte_equal_by_digest": true,
+    "leaf_and_input_byte_equal_by_digest": true
+  }
+}

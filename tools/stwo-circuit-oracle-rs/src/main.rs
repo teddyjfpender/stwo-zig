@@ -8,6 +8,8 @@ mod air_programs;
 mod cairo_statement;
 mod checkpoint;
 mod columns;
+#[path = "../../stwo-cairo-vm-adapter-rs/src/compact.rs"]
+mod compact;
 mod compiled_air;
 mod components;
 mod contexts;
@@ -33,7 +35,7 @@ mod verify_circuit;
 
 use std::path::PathBuf;
 
-use anyhow::{Context, Result, bail};
+use anyhow::{bail, Context, Result};
 
 const USAGE: &str = "usage: stwo-circuit-oracle primitives [--output PATH]
        stwo-circuit-oracle gadgets [--output PATH]
@@ -52,7 +54,8 @@ const USAGE: &str = "usage: stwo-circuit-oracle primitives [--output PATH]
        stwo-circuit-oracle cairo-statement --proving-root DIR [--output PATH]
        stwo-circuit-oracle prove-lifted-example [--output PATH]
        stwo-circuit-oracle adapt-program --proving-root DIR --program PATH [--program-input PATH]
-                                     [--output PATH]
+                                     [--input-format json|compact] [--output PATH]
+       stwo-circuit-oracle convert-input --prover-input PATH --output PATH
        stwo-circuit-oracle prove-cairo --prover-input PATH --params PATH [--proving-root DIR]
                                    [--lifting-size-policy POLICY] [--proof-output PATH] [--output PATH]";
 
@@ -64,6 +67,7 @@ fn main() -> Result<()> {
     let mut lifting_size_policy = None;
     let (mut inputs_output, mut proof, mut request) = (None, None, None);
     let mut program_input = None;
+    let mut input_format = None;
     while let Some(flag) = values.next() {
         let value = values
             .next()
@@ -85,6 +89,7 @@ fn main() -> Result<()> {
             "--proof-output" => &mut proof_output,
             "--program" => &mut program,
             "--program-input" => &mut program_input,
+            "--input-format" => &mut input_format,
             "--lifting-size-policy" => &mut lifting_size_policy,
             "--inputs-output" => &mut inputs_output,
             "--proof" => &mut proof,
@@ -150,7 +155,27 @@ fn main() -> Result<()> {
                 .display()
                 .to_string(),
             program_input.as_deref(),
+            match input_format.as_deref() {
+                None => false,
+                Some(value) if value == std::path::Path::new("compact") => true,
+                Some(value) if value == std::path::Path::new("json") => false,
+                _ => bail!("--input-format must be json or compact"),
+            },
         )?,
+        "convert-input" => {
+            if proving_root.is_some()
+                || program.is_some()
+                || program_input.is_some()
+                || input_format.is_some()
+            {
+                bail!("convert-input accepts only --prover-input and --output");
+            }
+            adapt_program::convert_input(
+                prover_input
+                    .as_deref()
+                    .context("convert-input requires --prover-input")?,
+            )?
+        }
         "prove-cairo" => {
             let proved = prove_cairo::run(
                 prover_input

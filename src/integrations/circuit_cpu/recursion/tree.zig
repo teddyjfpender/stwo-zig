@@ -72,6 +72,8 @@ pub fn foldEntriesBounded(gpa: std.mem.Allocator, fold: *const Fold, entries: []
 
     var layer_idx: usize = 0;
     while (live.len > 1) {
+        var layer_timer = try std.time.Timer.start();
+        const layer_pairs = live.len / 2;
         log.info("reducing layer {d} with {d} entries", .{ layer_idx, live.len });
         const is_root = live.len == 2;
         var next_len: usize = 0;
@@ -128,6 +130,9 @@ pub fn foldEntriesBounded(gpa: std.mem.Allocator, fold: *const Fold, entries: []
                 next_len += 1;
             }
             live = live[0..next_len];
+            if (fold.source != null) std.debug.print("circuit-fold-layer index={} pairs={} elapsed_ns={}\n", .{
+                layer_idx, layer_pairs, layer_timer.read(),
+            });
             layer_idx += 1;
             continue;
         }
@@ -150,6 +155,9 @@ pub fn foldEntriesBounded(gpa: std.mem.Allocator, fold: *const Fold, entries: []
             next_len += 1;
         }
         live = live[0..next_len];
+        if (fold.source != null) std.debug.print("circuit-fold-layer index={} pairs={} elapsed_ns={}\n", .{
+            layer_idx, layer_pairs, layer_timer.read(),
+        });
         layer_idx += 1;
     }
     stats.n_layers = layer_idx;

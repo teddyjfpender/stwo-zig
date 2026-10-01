@@ -520,6 +520,7 @@ pub fn foldTreeWithSourceMode(
 ) !RootFiles {
     if (leaves.len == 0) return error.EmptyLeaves;
     if (compact_terminal and (source == null or leaves.len > 2)) return error.CompactTerminalRequiresSingleDeviceFold;
+    var source_stage_timer = try std.time.Timer.start();
     // A proof-scoped worker pool (`STWO_ZIG_WORKERS` sizes it), as R9 folds.
     var pool: prover.work_pool.WorkPool = undefined;
     try pool.initInPlace();
@@ -559,6 +560,7 @@ pub fn foldTreeWithSourceMode(
         }
         break :blk try recursion.canonical.acquire(gpa, &topologies, &circuit_table, registry, options);
     };
+    if (source != null) std.debug.print("circuit-fold-stage setup_and_canonical_ns={} leaves={}\n", .{ source_stage_timer.lap(), leaves.len });
 
     var packed_arena = std.heap.ArenaAllocator.init(gpa);
     defer packed_arena.deinit();
@@ -578,10 +580,12 @@ pub fn foldTreeWithSourceMode(
         1;
     var folded = try recursion.tree.foldLeavesBounded(gpa, &fold, leaves, jobs);
     defer folded.root.deinit();
+    if (source != null) std.debug.print("circuit-fold-stage reductions_ns={} count={}\n", .{ source_stage_timer.lap(), folded.stats.n_pair_reductions });
 
     var files: RootFiles = .{ .proof = .init(gpa), .outputs = .init(gpa), .packed_tree = .init(gpa), .stats = folded.stats };
     errdefer files.deinit();
     try recursion.tree.writeRootOutputs(&folded.root, &files.proof.writer, &files.outputs.writer, &files.packed_tree.writer);
+    if (source != null) std.debug.print("circuit-fold-stage render_ns={}\n", .{source_stage_timer.read()});
     return files;
 }
 
