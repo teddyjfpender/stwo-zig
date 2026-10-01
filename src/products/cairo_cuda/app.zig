@@ -117,6 +117,11 @@ fn runItems(allocator: std.mem.Allocator, items: []const BatchItem, mode: Mode, 
         try publication.writeReport(item.request.report_out, if (mode == .repeated) receipts[0 .. index + 1] else receipts[index .. index + 1]);
     }
     var teardown = try std.time.Timer.start();
+    if (device_image) |*image| {
+        try image.deinit(runtime);
+        device_image = null;
+        std.debug.print("cairo-cuda static-image release_ns={}\n", .{teardown.read()});
+    }
     if (owned_runtime_live) {
         try owned_runtime.close();
         owned_runtime_live = false;
