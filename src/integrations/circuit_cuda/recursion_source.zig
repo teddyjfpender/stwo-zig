@@ -23,6 +23,7 @@ pub const Context = struct {
 
 fn prove(erased: *anyopaque, allocator: std.mem.Allocator, input: Source.Input) !Source.Produced {
     const context: *Context = @ptrCast(@alignCast(erased));
+    var timer = try std.time.Timer.start();
     const layout = input.preprocessed.layout();
     const log_sizes = try circuit.common.component_list.circuitComponentLogSizes(&layout);
     var bound_air = try cpu.air.bind(allocator, input.air, log_sizes, &layout);
@@ -40,11 +41,13 @@ fn prove(erased: *anyopaque, allocator: std.mem.Allocator, input: Source.Input) 
     };
     var result = try resident.prove(allocator, resident_input);
     defer result.deinit();
+    const resident_ns = timer.lap();
     if (!result.verdict.isResident() or
         result.verdict.counters.cpu_fallback_attempts != 0)
         return error.NonresidentCircuitProof;
     var verified = try verifier.verify(allocator, resident_input, &result);
     defer verified.deinit();
+    const verify_ns = timer.lap();
 
     const stark = &result.stark.commitment_scheme_proof;
     const pp_root = stark.commitments.items[0];
@@ -74,7 +77,7 @@ fn prove(erased: *anyopaque, allocator: std.mem.Allocator, input: Source.Input) 
     const nonce = result.terminal_proof.decoded.interactionNonce();
     const root_words = core.vcs.blake2_hash.digestToU32s(pp_root);
     const hash_words = core.vcs.blake2_hash.digestToU32s(circuit_hash);
-    return switch (input.profile) {
+    const produced: Source.Produced = switch (input.profile) {
         .internal => blk: {
             const internal = try cpu.verifier_proof.fromVerifiedCapture(
                 allocator,
@@ -113,6 +116,11 @@ fn prove(erased: *anyopaque, allocator: std.mem.Allocator, input: Source.Input) 
             };
         },
     };
+    std.debug.print("circuit-cuda circuit-proof profile={s} resident_ns={} verify_ns={} convert_ns={} arena_bytes={} peak_device_bytes={} terminal_bytes={}\n", .{
+        @tagName(input.profile),                 resident_ns,                             verify_ns, timer.lap(), result.planned_arena_bytes,
+        result.verdict.counters.peak_live_bytes, result.verdict.counters.d2h_proof_bytes,
+    });
+    return produced;
 }
 
 test "resident recursion source typechecks both wire profiles" {

@@ -303,6 +303,47 @@ fn addCircuitResidentBenchmark(context: Context, toolchain: cuda.Toolchain, cair
     );
     cuda.linkRuntime(exe, toolchain, circuit_archive);
     b.step("benchmark-circuit-cuda-resident", "Build the verified resident circuit-recursion CUDA benchmark").dependOn(&b.addInstallArtifact(exe, .{}).step);
+
+    const cairo_app = createProductModule(context, product(.library), stwo, "80,90");
+    cairo_app.root_source_file = b.path("src/products/cairo_cuda/app.zig");
+    const cairo_cpu = integration_graph.addCairoCpuImport(
+        b,
+        context.protocol,
+        product(.library),
+        context.target,
+        context.optimize,
+        cpu_backend,
+        cairo_frontend,
+        circuit_cpu,
+    );
+    const circuit_app = b.createModule(.{
+        .root_source_file = b.path("src/products/circuit_recursion_cpu/app.zig"),
+        .target = context.target,
+        .optimize = context.optimize,
+    });
+    circuit_app.addImport("stwo_cairo_frontend", cairo_frontend);
+    circuit_app.addImport("stwo_cairo_cpu_integration", cairo_cpu);
+    circuit_app.addImport("stwo_circuit_frontend", circuit);
+    circuit_app.addImport("stwo_circuit_cpu_integration", circuit_cpu);
+    circuit_app.addImport("stwo_circuit_recursion_wire", wire);
+    circuit_app.addImport("stwo_prover_engine", prover);
+    circuit_app.addAnonymousImport("circuit_air_projection", .{ .root_source_file = b.path("vectors/circuit/official/compiled_air_constraints_v1.bin") });
+    circuit_app.addAnonymousImport("circuit_air_programs", .{ .root_source_file = b.path("vectors/circuit/official/circuit_air.air_programs_v1.bin") });
+    const pipeline_root = b.createModule(.{
+        .root_source_file = b.path("src/products/circuit_recursion_cuda/main.zig"),
+        .target = context.target,
+        .optimize = context.optimize,
+    });
+    pipeline_root.addImport("cairo_cuda_app", cairo_app);
+    pipeline_root.addImport("circuit_recursion_app", circuit_app);
+    pipeline_root.addImport("stwo_circuit_cpu_integration", circuit_cpu);
+    pipeline_root.addImport("stwo_circuit_cuda_integration", integration);
+    pipeline_root.addImport("stwo_circuit_recursion_wire", wire);
+    pipeline_root.addImport("stwo_cairo_cuda_integration", cairo_cuda);
+    pipeline_root.addImport("stwo_cairo_frontend", cairo_frontend);
+    const pipeline_exe = b.addExecutable(.{ .name = "stwo-circuit-recursion-cuda", .root_module = pipeline_root });
+    cuda.linkRuntime(pipeline_exe, toolchain, circuit_archive);
+    b.step("circuit-recursion-cuda-resident", "Build the fully resident PIE-to-root CUDA prover").dependOn(&b.addInstallArtifact(pipeline_exe, .{}).step);
 }
 
 fn createStwoModule(

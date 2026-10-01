@@ -104,6 +104,18 @@ def resident_leaf_stages(log: Path, report: Path) -> dict[str, float]:
             "wrap_s": int(match.group(2)) / 1e9}
 
 
+def resident_circuit_proofs(log: Path) -> list[dict]:
+    pattern = (r"circuit-cuda circuit-proof profile=(internal|root) resident_ns=(\d+) "
+               r"verify_ns=(\d+) convert_ns=(\d+) arena_bytes=(\d+) "
+               r"peak_device_bytes=(\d+) terminal_bytes=(\d+)")
+    return [{"profile": profile, "resident_s": int(prove) / 1e9,
+             "verify_s": int(verify) / 1e9, "convert_s": int(convert) / 1e9,
+             "arena_bytes": int(arena), "peak_device_bytes": int(peak),
+             "terminal_bytes": int(terminal)}
+            for profile, prove, verify, convert, arena, peak, terminal
+            in re.findall(pattern, log.read_text())]
+
+
 def phase_breakdown(rows: list[dict], fold: dict) -> dict[str, float]:
     """Account for the serial wall clock without hiding process overhead."""
     phases = {
@@ -187,11 +199,15 @@ def main() -> None:
         wrap = run(command, out / f"{name}.leaf_wrap.log")
         leaf_input(wrapped, preimage, leaf)
         manifest.append(str(leaf))
+        circuit_proofs = resident_circuit_proofs(out / f"{name}.leaf_wrap.log") if args.backend == "cuda-resident" else []
+        if args.backend == "cuda-resident" and len(circuit_proofs) != 1:
+            raise ValueError(f"expected one resident circuit wrap proof for {name}")
         rows.append({"pie": str(pie), "blocks": source["blocks"], "cairo_steps": source["n_steps"],
                      "initial_root": source["initial_root"], "final_root": source["final_root"],
                      "adapt": adapt, "leaf_wrap": wrap,
                      "leaf_stages": (resident_leaf_stages(out / f"{name}.leaf_wrap.log", cairo_report)
                                      if args.backend == "cuda-resident" else leaf_stages(out / f"{name}.leaf_wrap.log")),
+                     "circuit_proofs": circuit_proofs,
                      "leaf_proof_sha256": digest(wrapped), "leaf_input_sha256": digest(leaf)})
 
     manifest_path = out / "leaves.json"
@@ -209,6 +225,10 @@ def main() -> None:
                         "--circuit_registry_json", str(REGISTRY), "--proof_path", str(root),
                         "--program_output", str(outputs), "--packed_output_path", str(packed)]
     fold = run(fold_command, out / "fold.log")
+    if args.backend == "cuda-resident":
+        fold["circuit_proofs"] = resident_circuit_proofs(out / "fold.log")
+        if len(fold["circuit_proofs"]) != max(1, len(manifest) - 1) or fold["circuit_proofs"][-1]["profile"] != "root":
+            raise ValueError("missing resident fold/root proof telemetry")
     rust = None
     if args.rust_reducer:
         reducer = args.rust_reducer.resolve()

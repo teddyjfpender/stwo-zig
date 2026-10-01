@@ -450,7 +450,7 @@ pub fn foldTreeWithSource(
         .source = source,
         .packed_allocator = packed_safe.allocator(),
     };
-    const jobs = if (recorder == null and std.mem.eql(u8, provers.backend_name, "cpu"))
+    const jobs = if (source == null and recorder == null and std.mem.eql(u8, provers.backend_name, "cpu"))
         parallelFoldJobs(gpa)
     else
         1;
