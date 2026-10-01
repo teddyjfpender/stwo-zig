@@ -242,6 +242,35 @@ def phase_breakdown(rows: list[dict], fold: dict, batch: dict | None = None) -> 
     return {key: round(value, 3) for key, value in phases.items()}
 
 
+def compare_qualified_reference(receipt: dict, reference_path: Path) -> dict:
+    """Bind a new run to a previously Rust-qualified PIE-to-root receipt."""
+    reference = json.loads(reference_path.read_text())
+    if reference.get("schema") != "stwo-circuit-cuda-resident-pipeline-benchmark-v1":
+        raise ValueError(f"unsupported qualified reference: {reference_path}")
+    if reference.get("rust_root_byte_equal") != {"proof": True, "outputs": True, "packed": True}:
+        raise ValueError(f"reference lacks complete Rust root parity: {reference_path}")
+    if receipt["registry_sha256"] != reference["registry_sha256"] or receipt["security"] != reference["security"]:
+        raise ValueError("registry or security differs from qualified reference")
+    expected_leaves = reference["leaves"]
+    if len(receipt["leaves"]) != len(expected_leaves):
+        raise ValueError("leaf count differs from qualified reference")
+    for index, (actual, expected) in enumerate(zip(receipt["leaves"], expected_leaves)):
+        same = (Path(actual["pie"]).name == expected["pie"] and
+                actual["blocks"] == expected["blocks"] and
+                actual["cairo_steps"] == expected["cairo_steps"] and
+                actual["leaf_proof_sha256"] == expected["leaf_proof_sha256"] and
+                actual["leaf_input_sha256"] == expected["leaf_input_sha256"] and
+                actual["adapt"].get("reused_adapted_input_sha256") == expected["adapted_input_sha256"] and
+                actual["adapt"].get("reused_preimage_sha256") == expected["preimage_sha256"])
+        if not same:
+            raise ValueError(f"leaf {index} differs from qualified reference")
+    for name, expected in reference["root_sha256"].items():
+        if receipt["root"][name]["sha256"] != expected:
+            raise ValueError(f"{name} differs from qualified Rust root")
+    return {"reference_sha256": digest(reference_path), "rust_root_byte_equal_by_digest": True,
+            "leaf_and_input_byte_equal_by_digest": True}
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--oracle", type=Path, help="pinned stwo-circuit-oracle binary")
@@ -253,6 +282,8 @@ def main() -> None:
     parser.add_argument("--sample-device-memory", action="store_true", help="sample whole-device H100 memory with nvidia-smi")
     parser.add_argument("--circuit-prover", type=Path, help="override the selected backend's binary")
     parser.add_argument("--rust-reducer", type=Path, help="optional pinned Rust reducer for byte parity")
+    parser.add_argument("--expected-receipt", type=Path,
+                        help="require byte-identical leaf/input/root digests against a Rust-qualified receipt")
     parser.add_argument("--out", type=Path, required=True)
     parser.add_argument("names", nargs="+", help="contiguous leaf PIE names, in block order")
     args = parser.parse_args()
@@ -443,6 +474,8 @@ def main() -> None:
     if rust is not None:
         rust["reducer_binary_sha256"] = digest(reducer)
         receipt["rust_parity"] = rust
+    if args.expected_receipt:
+        receipt["qualified_reference_parity"] = compare_qualified_reference(receipt, args.expected_receipt.resolve())
     (out / "receipt.json").write_text(json.dumps(receipt, indent=2) + "\n")
     print(json.dumps(receipt, indent=2))
 
