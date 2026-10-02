@@ -100,6 +100,12 @@ fn leafWrapCampaign(allocator: std.mem.Allocator, args: []const []const u8) !voi
     });
     if (first_manifest.value.len == 0 or first_manifest.value.len > 256) return error.InvalidBatchSize;
     const first = first_manifest.value[0];
+    // An operator may trade one authenticated 2.17 GB host snapshot for
+    // avoiding fixed-asset reads between separate roots. This stays inside
+    // the same process and scoring clock; default release is memory-bounded.
+    const retain_setting = std.process.getEnvVarOwned(allocator, "STWO_CAIRO_CUDA_RETAIN_FIXED_HOST") catch null;
+    defer if (retain_setting) |value| allocator.free(value);
+    const retain_fixed_host = retain_setting != null and std.mem.eql(u8, retain_setting.?, "1");
     var prefetch = cairo_app.PrefetchJob{ .allocator = allocator, .path = "" };
     try prefetch.startFromEnvironment();
     var prefetch_live = true;
@@ -132,8 +138,8 @@ fn leafWrapCampaign(allocator: std.mem.Allocator, args: []const []const u8) !voi
         const compact = std.mem.eql(u8, job.root_mode, "compact");
         if (!compact and !std.mem.eql(u8, job.root_mode, "canonical")) return error.InvalidRootMode;
         var timer = try std.time.Timer.start();
-        try runOneBatch(allocator, job_a, parsed.value, job.root_proof, job.root_outputs, job.root_packed, compact, &backend, &shared, &cairo_session, 0);
-        if (index == 0) {
+        try runOneBatch(allocator, job_a, parsed.value, job.root_proof, job.root_outputs, job.root_packed, compact, &backend, &shared, &cairo_session, 0, retain_fixed_host);
+        if (index == 0 and !retain_fixed_host) {
             cairo_session.early_prefetch = null;
             prefetch.deinit();
             prefetch_live = false;
@@ -193,7 +199,7 @@ fn leafWrapBatch(allocator: std.mem.Allocator, args: []const []const u8) !void {
     });
     defer shared.deinit();
     const setup_ns = wall.lap();
-    try runOneBatch(allocator, a, parsed.value, root_proof_path, root_outputs_path, root_packed_path, compact_root, &backend, &shared, &cairo_session, setup_ns);
+    try runOneBatch(allocator, a, parsed.value, root_proof_path, root_outputs_path, root_packed_path, compact_root, &backend, &shared, &cairo_session, setup_ns, false);
     try cairo_session.deinit();
     cairo_session_live = false;
     try runtime.close();
@@ -212,6 +218,7 @@ fn runOneBatch(
     shared: *circuit_app.VerifiedLeafSession,
     cairo_session: *cairo_app.BatchSession,
     setup_ns: u64,
+    retain_fixed_host: bool,
 ) !void {
     const integrated = root_proof_path != null;
     const first = entries[0];
@@ -250,9 +257,11 @@ fn runOneBatch(
     try cairo_app.proveBatchWithSinksUsingSession(allocator, items, cairo_session);
     // The verified static receipt is enough after Cairo. Drop the 2.17 GB
     // host snapshot before parsing leaves or running the integrated fold.
-    if (cairo_session.early_prefetch) |prefetch| {
-        prefetch.releaseSnapshot();
-        cairo_session.early_prefetch = null;
+    if (!retain_fixed_host) {
+        if (cairo_session.early_prefetch) |prefetch| {
+            prefetch.releaseSnapshot();
+            cairo_session.early_prefetch = null;
+        }
     }
     for (receivers, 0..) |receiver, index| {
         if (!receiver.delivered) return error.MissingVerifiedCairoLeaf;

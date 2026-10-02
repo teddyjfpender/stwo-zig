@@ -9,7 +9,6 @@ const Decoded = stwo.integration.canonical_verify.Decoded;
 const ProofCapture = stwo.frontend.witness.resident_verifier.ProofCapture;
 pub const NativeRuntime = stwo.backend.runtime.NativeRuntime;
 const DeviceImage = stwo.executor.preprocessed_cache.DeviceImage;
-const Prefetched = stwo.executor.preprocessed_cache.Prefetched;
 const CanonicalAssets = stwo.integration.canonical_source.Assets;
 
 /// The verified proof and its authenticated openings are borrowed only during
@@ -29,63 +28,9 @@ const ResidentStatic = struct {
     receipt: stwo.executor.preprocessed_cache.Receipt,
 };
 
-/// An optional early read of the immutable coefficient artifact. A caller may
-/// start this before opening CUDA and hand it to the first Cairo proof; the
-/// checked loader still validates the path, digest, column identities, and
-/// coefficient values before it accepts the snapshot.
-pub const PrefetchJob = struct {
-    allocator: std.mem.Allocator,
-    path: []const u8,
-    owned_path: ?[]u8 = null,
-    thread: ?std.Thread = null,
-    snapshot: ?Prefetched = null,
-    failure: ?anyerror = null,
-
-    pub fn start(self: *PrefetchJob) !void {
-        self.thread = try std.Thread.spawn(.{}, read, .{self});
-    }
-
-    /// The recursion CLI has no parsed Cairo request yet. Capture the same
-    /// absolute path that canonical_paths later resolves for the proof.
-    pub fn startFromEnvironment(self: *PrefetchJob) !void {
-        const path = try std.process.getEnvVarOwned(self.allocator, "STWO_CAIRO_CUDA_PREPROCESSED_COEFFICIENTS");
-        errdefer self.allocator.free(path);
-        if (!std.fs.path.isAbsolute(path)) return error.ArtifactPathNotAbsolute;
-        self.path = path;
-        try self.start();
-        self.owned_path = path;
-    }
-
-    fn read(self: *PrefetchJob) void {
-        self.snapshot = Prefetched.read(self.allocator, self.path) catch |err| {
-            self.failure = err;
-            return;
-        };
-    }
-
-    pub fn wait(self: *PrefetchJob) !*const Prefetched {
-        if (self.thread) |thread| {
-            thread.join();
-            self.thread = null;
-        }
-        if (self.failure) |err| return err;
-        if (self.snapshot) |*snapshot| return snapshot;
-        return error.MissingPreprocessedPrefetch;
-    }
-
-    pub fn releaseSnapshot(self: *PrefetchJob) void {
-        if (self.thread) |thread| thread.join();
-        self.thread = null;
-        if (self.snapshot) |*snapshot| snapshot.deinit();
-        self.snapshot = null;
-    }
-
-    pub fn deinit(self: *PrefetchJob) void {
-        self.releaseSnapshot();
-        if (self.owned_path) |path| self.allocator.free(path);
-        self.* = undefined;
-    }
-};
+const ingress_jobs = @import("ingress_jobs.zig");
+pub const PrefetchJob = ingress_jobs.FixedAssetJob;
+const SourcePrepareJob = ingress_jobs.SourcePrepareJob;
 
 /// Retains authenticated source assets and the checked fixed device image
 /// across separate batches on one resident runtime. Dynamic PIE inputs,
@@ -241,9 +186,31 @@ fn runItems(allocator: std.mem.Allocator, items: []const BatchItem, mode: Mode, 
     var expected_digest: ?[32]u8 = null;
     var local_static: ?ResidentStatic = null;
     const static_slot = if (persistent) |session| &session.resident_static else &local_static;
+    const lookahead_setting = std.process.getEnvVarOwned(allocator, "STWO_CAIRO_CUDA_SOURCE_LOOKAHEAD") catch null;
+    defer if (lookahead_setting) |value| allocator.free(value);
+    const lookahead = mode == .distinct and items.len > 1 and assets_slot.* != null and
+        lookahead_setting != null and std.mem.eql(u8, lookahead_setting.?, "1");
+    const source_jobs = try allocator.alloc(?SourcePrepareJob, items.len);
+    defer allocator.free(source_jobs);
+    @memset(source_jobs, null);
+    defer for (source_jobs) |*slot| {
+        if (slot.*) |*job| job.deinit();
+    };
     for (items, 0..) |item, index| {
+        if (lookahead and index + 1 < items.len and ingress_jobs.sourceEligible(items[index + 1].request.input)) {
+            const target = try compileTarget(runtime.planningSession());
+            source_jobs[index + 1] = .{
+                .allocator = allocator,
+                .request = items[index + 1].request,
+                .target = target,
+                .assets = &assets_slot.*.?,
+            };
+            source_jobs[index + 1].?.start() catch {
+                source_jobs[index + 1] = null;
+            };
+        }
         const assets: ?*const CanonicalAssets = if (assets_slot.*) |*shared| shared else null;
-        const receipt = try proveOnce(allocator, runtime, static_slot, if (use_device_image) image_slot else null, item.request, executable_digest, @intCast(if (mode == .repeated) index + 1 else 1), if (index == 0) runtime_init_ns else 0, if (index == 0) asset_init_ns else 0, item.sink, external_runtime != null, assets, if (needs_prefetch) early_prefetch orelse &prefetch else null);
+        const receipt = try proveOnce(allocator, runtime, static_slot, if (use_device_image) image_slot else null, item.request, executable_digest, @intCast(if (mode == .repeated) index + 1 else 1), if (index == 0) runtime_init_ns else 0, if (index == 0) asset_init_ns else 0, item.sink, external_runtime != null, assets, if (needs_prefetch) early_prefetch orelse &prefetch else null, if (source_jobs[index]) |*job| job else null);
         if (mode == .repeated) {
             if (expected_digest) |expected| {
                 if (!std.mem.eql(u8, &expected, &receipt.proof_sha256)) return error.NondeterministicCairoCudaProof;
@@ -286,6 +253,7 @@ fn proveOnce(
     release_arena_for_sink: bool,
     assets: ?*const CanonicalAssets,
     prefetch: ?*PrefetchJob,
+    source_job: ?*SourcePrepareJob,
 ) !publication.Receipt {
     var timer = try std.time.Timer.start();
     var phase: []const u8 = "resolve_input";
@@ -297,8 +265,12 @@ fn proveOnce(
 
     phase = "compile_canonical_source";
     const target = try compileTarget(runtime.planningSession());
-    var diagnostic = try stwo.integration.canonical_source.prepareWithAssets(allocator, paths.source, target, assets);
+    var diagnostic = if (source_job) |job|
+        try job.take()
+    else
+        try stwo.integration.canonical_source.prepareWithAssets(allocator, paths.source, target, assets);
     defer diagnostic.deinit();
+    if (!std.meta.eql(diagnostic.request.plan.target, target)) return error.CairoSourceTargetChanged;
     if (diagnostic.request.missing_lowerings.len != 0)
         return error.IncompleteCairoCudaLowering;
     const source_end_ns = timer.read();
@@ -511,6 +483,8 @@ fn proveOnce(
         .prepared_arena_reused = arena_reused,
         .preprocessed_reused = cached_preprocessed != null,
         .ingress_ns = ingress_ns + runtime_init_ns + asset_init_ns,
+        .source_lookahead_prepare_ns = if (source_job) |job| job.preparation_ns else 0,
+        .source_lookahead_wait_ns = if (source_job) |job| job.wait_ns else 0,
         .ingress_timings = .{
             .paths_ns = paths_end_ns,
             .runtime_ns = runtime_init_ns + runtime_end_ns - paths_end_ns,
@@ -524,7 +498,7 @@ fn proveOnce(
             .statement_and_session_ns = ingress_ns - writers_end_ns,
         },
         .proof_execute_and_decode_ns = proof_end_ns - ingress_ns,
-        .adapted_input_until_publication_ns = timer.read() + runtime_init_ns + asset_init_ns,
+        .adapted_input_until_publication_ns = if (source_job) |job| job.elapsed() else timer.read() + runtime_init_ns + asset_init_ns,
         .proof_sha256 = try publication.sha256File(request.output),
         .proof_bytes = proof_bytes,
         .verdict = output.verdict,
