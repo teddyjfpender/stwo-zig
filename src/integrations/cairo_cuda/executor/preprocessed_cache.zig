@@ -109,6 +109,38 @@ pub fn deviceImageKey(path: []const u8, identities: []const []const u8, prepared
 pub const format_magic = "STWZPPC\x00";
 pub const format_version: u32 = 1;
 
+/// Owns the exact artifact bytes consumed by a later proof. Reading and
+/// hashing them before dynamic source preparation lets cold proofs overlap
+/// fixed-asset I/O with request compilation. The digest is of these retained
+/// bytes, so a file replacement cannot change the bytes admitted below.
+pub const Prefetched = struct {
+    allocator: std.mem.Allocator,
+    path: []const u8,
+    bytes: []u8,
+    identity: proof_ir.Digest,
+
+    pub fn read(allocator: std.mem.Allocator, path: []const u8) !Prefetched {
+        const file = try std.fs.cwd().openFile(path, .{});
+        defer file.close();
+        const size = (try file.stat()).size;
+        if (size < 16 or size > 4 << 30) return error.InvalidPreprocessedArtifact;
+        const length = std.math.cast(usize, size) orelse return error.PreprocessedArtifactOverflow;
+        const bytes = try allocator.alloc(u8, length);
+        errdefer allocator.free(bytes);
+        if (try file.readAll(bytes) != length) return error.InvalidPreprocessedArtifact;
+        var trailing: [1]u8 = undefined;
+        if (try file.read(&trailing) != 0) return error.InvalidPreprocessedArtifact;
+        var hash = std.crypto.hash.sha2.Sha256.init(.{});
+        hash.update(bytes);
+        return .{ .allocator = allocator, .path = path, .bytes = bytes, .identity = hash.finalResult() };
+    }
+
+    pub fn deinit(self: *Prefetched) void {
+        self.allocator.free(self.bytes);
+        self.* = undefined;
+    }
+};
+
 pub const Receipt = struct {
     artifact_identity: proof_ir.Digest,
     commitment_identity: proof_ir.Digest,
@@ -138,6 +170,19 @@ pub fn load(
     prepared: *const trace_commit.Prepared,
     bound: *const trace_commit.Bound,
 ) !Receipt {
+    return loadWithPrefetch(allocator, session, path, expected_artifact_identity, expected_identities, prepared, bound, null);
+}
+
+pub fn loadWithPrefetch(
+    allocator: std.mem.Allocator,
+    session: anytype,
+    path: []const u8,
+    expected_artifact_identity: ?proof_ir.Digest,
+    expected_identities: anytype,
+    prepared: *const trace_commit.Prepared,
+    bound: *const trace_commit.Bound,
+    prefetched: ?*const Prefetched,
+) !Receipt {
     if (prepared.tree_ordinal != 0 or
         prepared.input_form != .coefficients or
         prepared.column_logs.len != expected_identities.len or
@@ -146,14 +191,18 @@ pub fn load(
     {
         return error.InvalidPreprocessedCacheBinding;
     }
-    const file = try std.fs.cwd().openFile(path, .{});
-    defer file.close();
+    if (prefetched) |snapshot| {
+        if (!std.mem.eql(u8, snapshot.path, path)) return error.InvalidPreprocessedCacheBinding;
+    }
+    const file: ?std.fs.File = if (prefetched == null) try std.fs.cwd().openFile(path, .{}) else null;
+    defer if (file) |open_file| open_file.close();
     var reader_buffer: [1 << 20]u8 = undefined;
-    var reader = file.readerStreaming(&reader_buffer);
+    var reader = if (file) |open_file| open_file.readerStreaming(&reader_buffer) else undefined;
     var artifact_hash = std.crypto.hash.sha2.Sha256.init(.{});
     var hashing_buffer: [4096]u8 = undefined;
-    var hashing_reader = reader.interface.hashed(&artifact_hash, &hashing_buffer);
-    const stream = &hashing_reader.reader;
+    var hashing_reader = if (file != null) reader.interface.hashed(&artifact_hash, &hashing_buffer) else undefined;
+    var memory_reader = if (prefetched) |snapshot| std.Io.Reader.fixed(snapshot.bytes) else undefined;
+    const stream: *std.Io.Reader = if (prefetched != null) &memory_reader else &hashing_reader.reader;
     const profile_setting = std.process.getEnvVarOwned(allocator, "STWO_CAIRO_CUDA_PROFILE_PREPROCESSED") catch null;
     defer if (profile_setting) |value| allocator.free(value);
     const profile = profile_setting != null and std.mem.eql(u8, profile_setting.?, "1");
@@ -232,7 +281,7 @@ pub fn load(
     // Hash the same raw bytes that were parsed and uploaded, before SIMD
     // canonicalization. This avoids a separate whole-artifact read and binds
     // the receipt to consumed content rather than an earlier file snapshot.
-    const artifact_identity = artifact_hash.finalResult();
+    const artifact_identity = if (prefetched) |snapshot| snapshot.identity else artifact_hash.finalResult();
     if (profile) std.debug.print("cairo-cuda preprocessed-profile read_ns={} validate_ns={} transpose_ns={} upload_ns={} words={}\n", .{
         read_ns, validate_ns, transpose_ns, upload_ns, coefficient_words,
     });

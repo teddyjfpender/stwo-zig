@@ -265,6 +265,7 @@ pub const Bound = struct {
         preprocessed_path: []const u8,
         preprocessed_artifact_identity: ?[32]u8 = null,
         preprocessed_column_identities: []const []const u8,
+        preprocessed_prefetch: ?*const preprocessed_cache.Prefetched = null,
         /// The caller must retain the same prepared arena with immutable
         /// process-cache coefficients. This receipt is not a proof input.
         resident_preprocessed: ?preprocessed_cache.Receipt = null,
@@ -371,7 +372,7 @@ pub const Bound = struct {
                     return error.PreprocessedArtifactIdentityMismatch;
             }
             break :cached receipt;
-        } else try preprocessed_cache.load(
+        } else try preprocessed_cache.loadWithPrefetch(
             request.allocator,
             session,
             inputs.preprocessed_path,
@@ -379,6 +380,7 @@ pub const Bound = struct {
             inputs.preprocessed_column_identities,
             self.preprocessed_commit.prepared,
             &self.preprocessed_commit,
+            inputs.preprocessed_prefetch,
         );
         if (!std.mem.eql(u8, &preprocessed.commitment_identity, &self.preprocessed_commit.prepared.identity) or
             preprocessed.column_count != inputs.preprocessed_column_identities.len or
