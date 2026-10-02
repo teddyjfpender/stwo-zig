@@ -31,6 +31,9 @@ fn leafWrap(allocator: std.mem.Allocator, args: []const []const u8) !void {
     const leaf_path = try flag(args, "--output");
     const cairo_proof = try flag(args, "--cairo-proof");
     const cairo_report = try flag(args, "--cairo-report");
+    var prefetch = cairo_app.PrefetchJob{ .allocator = allocator, .path = "" };
+    try prefetch.startFromEnvironment();
+    defer prefetch.deinit();
     var catalog = try circuit_cuda.air_aot.build(allocator, try circuit_app.authenticatedAirPrograms());
     defer catalog.deinit();
     const catalog_ns = wall.lap();
@@ -46,13 +49,13 @@ fn leafWrap(allocator: std.mem.Allocator, args: []const []const u8) !void {
         .output_path = leaf_path,
     };
     var total = try std.time.Timer.start();
-    try cairo_app.proveWithSink(allocator, .{
+    try cairo_app.proveWithSinkUsingPrefetch(allocator, .{
         .input = input,
         .output = cairo_proof,
         .report_out = cairo_report,
         .repeat = 1,
         .circuit_registry = registry,
-    }, receiver.sink());
+    }, receiver.sink(), &prefetch);
     if (!receiver.delivered) return error.MissingVerifiedCairoLeaf;
     std.debug.print("circuit-cuda leaf-wrap total_ns={} wrap_ns={} proof={s}\n", .{ total.read(), receiver.wrap_ns, leaf_path });
     std.debug.print("circuit-cuda leaf-wrap setup_ns={} execution_ns={}\n", .{ catalog_ns, wall.lap() });
@@ -97,12 +100,16 @@ fn leafWrapCampaign(allocator: std.mem.Allocator, args: []const []const u8) !voi
     });
     if (first_manifest.value.len == 0 or first_manifest.value.len > 256) return error.InvalidBatchSize;
     const first = first_manifest.value[0];
+    var prefetch = cairo_app.PrefetchJob{ .allocator = allocator, .path = "" };
+    try prefetch.startFromEnvironment();
+    var prefetch_live = true;
+    defer if (prefetch_live) prefetch.deinit();
     var catalog = try circuit_cuda.air_aot.build(allocator, try circuit_app.authenticatedAirPrograms());
     defer catalog.deinit();
     var runtime = try circuit_cuda.recursion_source.Runtime.open(&.{ 80, 90 });
     var runtime_live = true;
     defer if (runtime_live) runtime.abort() catch {};
-    var cairo_session = cairo_app.BatchSession{ .allocator = allocator, .runtime = &runtime };
+    var cairo_session = cairo_app.BatchSession{ .allocator = allocator, .runtime = &runtime, .early_prefetch = &prefetch };
     var cairo_session_live = true;
     defer if (cairo_session_live) cairo_session.deinit() catch {};
     var backend = circuit_cuda.recursion_source.Context{ .catalog = &catalog, .runtime = &runtime };
@@ -126,6 +133,11 @@ fn leafWrapCampaign(allocator: std.mem.Allocator, args: []const []const u8) !voi
         if (!compact and !std.mem.eql(u8, job.root_mode, "canonical")) return error.InvalidRootMode;
         var timer = try std.time.Timer.start();
         try runOneBatch(allocator, job_a, parsed.value, job.root_proof, job.root_outputs, job.root_packed, compact, &backend, &shared, &cairo_session, 0);
+        if (index == 0) {
+            cairo_session.early_prefetch = null;
+            prefetch.deinit();
+            prefetch_live = false;
+        }
         std.debug.print("circuit-cuda campaign-job index={} wall_ns={} root={s}\n", .{ index, timer.read(), job.root_proof });
     }
     try cairo_session.deinit();
@@ -155,12 +167,15 @@ fn leafWrapBatch(allocator: std.mem.Allocator, args: []const []const u8) !void {
         .ignore_unknown_fields = false,
     });
     if (parsed.value.len == 0 or parsed.value.len > 256) return error.InvalidBatchSize;
+    var prefetch = cairo_app.PrefetchJob{ .allocator = allocator, .path = "" };
+    try prefetch.startFromEnvironment();
+    defer prefetch.deinit();
     var catalog = try circuit_cuda.air_aot.build(allocator, try circuit_app.authenticatedAirPrograms());
     defer catalog.deinit();
     var runtime = try circuit_cuda.recursion_source.Runtime.open(&.{ 80, 90 });
     var runtime_live = true;
     defer if (runtime_live) runtime.abort() catch {};
-    var cairo_session = cairo_app.BatchSession{ .allocator = allocator, .runtime = &runtime };
+    var cairo_session = cairo_app.BatchSession{ .allocator = allocator, .runtime = &runtime, .early_prefetch = &prefetch };
     var cairo_session_live = true;
     defer if (cairo_session_live) cairo_session.deinit() catch {};
     var backend = circuit_cuda.recursion_source.Context{ .catalog = &catalog, .runtime = &runtime };
@@ -233,6 +248,12 @@ fn runOneBatch(
     }
     var total = try std.time.Timer.start();
     try cairo_app.proveBatchWithSinksUsingSession(allocator, items, cairo_session);
+    // The verified static receipt is enough after Cairo. Drop the 2.17 GB
+    // host snapshot before parsing leaves or running the integrated fold.
+    if (cairo_session.early_prefetch) |prefetch| {
+        prefetch.releaseSnapshot();
+        cairo_session.early_prefetch = null;
+    }
     for (receivers, 0..) |receiver, index| {
         if (!receiver.delivered) return error.MissingVerifiedCairoLeaf;
         std.debug.print("circuit-cuda batch-leaf index={} wrap_ns={} proof={s}\n", .{

@@ -9,6 +9,7 @@ const Decoded = stwo.integration.canonical_verify.Decoded;
 const ProofCapture = stwo.frontend.witness.resident_verifier.ProofCapture;
 pub const NativeRuntime = stwo.backend.runtime.NativeRuntime;
 const DeviceImage = stwo.executor.preprocessed_cache.DeviceImage;
+const Prefetched = stwo.executor.preprocessed_cache.Prefetched;
 const CanonicalAssets = stwo.integration.canonical_source.Assets;
 
 /// The verified proof and its authenticated openings are borrowed only during
@@ -28,6 +29,64 @@ const ResidentStatic = struct {
     receipt: stwo.executor.preprocessed_cache.Receipt,
 };
 
+/// An optional early read of the immutable coefficient artifact. A caller may
+/// start this before opening CUDA and hand it to the first Cairo proof; the
+/// checked loader still validates the path, digest, column identities, and
+/// coefficient values before it accepts the snapshot.
+pub const PrefetchJob = struct {
+    allocator: std.mem.Allocator,
+    path: []const u8,
+    owned_path: ?[]u8 = null,
+    thread: ?std.Thread = null,
+    snapshot: ?Prefetched = null,
+    failure: ?anyerror = null,
+
+    pub fn start(self: *PrefetchJob) !void {
+        self.thread = try std.Thread.spawn(.{}, read, .{self});
+    }
+
+    /// The recursion CLI has no parsed Cairo request yet. Capture the same
+    /// absolute path that canonical_paths later resolves for the proof.
+    pub fn startFromEnvironment(self: *PrefetchJob) !void {
+        const path = try std.process.getEnvVarOwned(self.allocator, "STWO_CAIRO_CUDA_PREPROCESSED_COEFFICIENTS");
+        errdefer self.allocator.free(path);
+        if (!std.fs.path.isAbsolute(path)) return error.ArtifactPathNotAbsolute;
+        self.path = path;
+        try self.start();
+        self.owned_path = path;
+    }
+
+    fn read(self: *PrefetchJob) void {
+        self.snapshot = Prefetched.read(self.allocator, self.path) catch |err| {
+            self.failure = err;
+            return;
+        };
+    }
+
+    pub fn wait(self: *PrefetchJob) !*const Prefetched {
+        if (self.thread) |thread| {
+            thread.join();
+            self.thread = null;
+        }
+        if (self.failure) |err| return err;
+        if (self.snapshot) |*snapshot| return snapshot;
+        return error.MissingPreprocessedPrefetch;
+    }
+
+    pub fn releaseSnapshot(self: *PrefetchJob) void {
+        if (self.thread) |thread| thread.join();
+        self.thread = null;
+        if (self.snapshot) |*snapshot| snapshot.deinit();
+        self.snapshot = null;
+    }
+
+    pub fn deinit(self: *PrefetchJob) void {
+        self.releaseSnapshot();
+        if (self.owned_path) |path| self.allocator.free(path);
+        self.* = undefined;
+    }
+};
+
 /// Retains authenticated source assets and the checked fixed device image
 /// across separate batches on one resident runtime. Dynamic PIE inputs,
 /// transcripts, and proof transactions remain request-local.
@@ -38,6 +97,9 @@ pub const BatchSession = struct {
     device_image: ?DeviceImage = null,
     resident_static: ?ResidentStatic = null,
     executable_digest: ?[32]u8 = null,
+    /// Caller-owned job; it must outlive the first proof and can be released
+    /// once that proof has admitted the immutable static receipt.
+    early_prefetch: ?*PrefetchJob = null,
 
     pub fn deinit(self: *BatchSession) !void {
         var assets = self.assets;
@@ -69,13 +131,17 @@ fn prove(allocator: std.mem.Allocator, request: cli.Prove) !void {
 }
 
 pub fn proveWithSink(allocator: std.mem.Allocator, request: cli.Prove, sink: ?VerifiedLeafSink) !void {
+    return proveWithSinkUsingPrefetch(allocator, request, sink, null);
+}
+
+pub fn proveWithSinkUsingPrefetch(allocator: std.mem.Allocator, request: cli.Prove, sink: ?VerifiedLeafSink, early_prefetch: ?*PrefetchJob) !void {
     if (sink != null and (request.circuit_registry == null or request.repeat != 1))
         return error.InvalidRecursiveLeafRequest;
     if (request.repeat == 0 or request.repeat > 16) return error.InvalidRepeatCount;
     const items = try allocator.alloc(BatchItem, request.repeat);
     defer allocator.free(items);
     for (items) |*item| item.* = .{ .request = request, .sink = sink };
-    return runItems(allocator, items, .repeated, null, null);
+    return runItems(allocator, items, .repeated, null, null, early_prefetch);
 }
 
 /// Prove distinct adapted PIEs in one process. The authenticated arena key
@@ -87,7 +153,7 @@ pub fn proveBatchWithSinks(allocator: std.mem.Allocator, items: []const BatchIte
         if (item.sink == null or item.request.circuit_registry == null or item.request.repeat != 1)
             return error.InvalidRecursiveLeafRequest;
     }
-    return runItems(allocator, items, .distinct, null, null);
+    return runItems(allocator, items, .distinct, null, null, null);
 }
 
 /// The circuit receiver borrows this runtime after each Cairo proof. Its
@@ -99,7 +165,7 @@ pub fn proveBatchWithSinksUsingRuntime(allocator: std.mem.Allocator, items: []co
         if (item.sink == null or item.request.circuit_registry == null or item.request.repeat != 1)
             return error.InvalidRecursiveLeafRequest;
     }
-    return runItems(allocator, items, .distinct, runtime, null);
+    return runItems(allocator, items, .distinct, runtime, null, null);
 }
 
 pub fn proveBatchWithSinksUsingSession(allocator: std.mem.Allocator, items: []const BatchItem, session: *BatchSession) !void {
@@ -108,10 +174,10 @@ pub fn proveBatchWithSinksUsingSession(allocator: std.mem.Allocator, items: []co
         if (item.sink == null or item.request.circuit_registry == null or item.request.repeat != 1)
             return error.InvalidRecursiveLeafRequest;
     }
-    return runItems(allocator, items, .distinct, session.runtime, session);
+    return runItems(allocator, items, .distinct, session.runtime, session, session.early_prefetch);
 }
 
-fn runItems(allocator: std.mem.Allocator, items: []const BatchItem, mode: Mode, external_runtime: ?*NativeRuntime, persistent: ?*BatchSession) !void {
+fn runItems(allocator: std.mem.Allocator, items: []const BatchItem, mode: Mode, external_runtime: ?*NativeRuntime, persistent: ?*BatchSession, early_prefetch: ?*PrefetchJob) !void {
     const receipts = try allocator.alloc(publication.Receipt, items.len);
     defer allocator.free(receipts);
     const executable_digest = if (persistent) |session| blk: {
@@ -127,17 +193,34 @@ fn runItems(allocator: std.mem.Allocator, items: []const BatchItem, mode: Mode, 
         break :blk try publication.sha256File(executable);
     };
     var startup = try std.time.Timer.start();
+    var first_paths = try @import("canonical_paths.zig").Paths.init(
+        allocator,
+        items[0].request.input,
+        items[0].request.circuit_registry,
+    );
+    defer first_paths.deinit();
+    var prefetch = PrefetchJob{ .allocator = allocator, .path = first_paths.preprocessed };
+    defer prefetch.deinit();
+    const image_setting = std.process.getEnvVarOwned(allocator, "STWO_CAIRO_CUDA_STATIC_IMAGE") catch null;
+    defer if (image_setting) |value| allocator.free(value);
+    const use_device_image = external_runtime != null and (items.len > 1 or persistent != null) and
+        image_setting != null and std.mem.eql(u8, image_setting.?, "1");
+    // A verified leaf sink lends CUDA to the circuit prover. Its prepared
+    // Cairo arena may be evicted before the next leaf, so an old static
+    // receipt alone does not mean later leaves can skip the artifact. Retain
+    // one checked host snapshot for this batch and revalidate its columns on
+    // every reload. An admitted device image supersedes that host snapshot.
+    const needs_prefetch = if (persistent) |session|
+        (session.resident_static == null or items[0].sink != null) and
+            (!use_device_image or session.device_image == null or session.device_image.?.receipt == null)
+    else
+        true;
+    if (needs_prefetch and early_prefetch == null) try prefetch.start();
     var local_assets: ?CanonicalAssets = null;
     defer if (local_assets) |*assets| assets.deinit();
     const assets_slot = if (persistent) |session| &session.assets else &local_assets;
     var asset_init_ns: u64 = 0;
     if ((items.len > 1 or persistent != null) and assets_slot.* == null) {
-        var first_paths = try @import("canonical_paths.zig").Paths.init(
-            allocator,
-            items[0].request.input,
-            items[0].request.circuit_registry,
-        );
-        defer first_paths.deinit();
         assets_slot.* = try CanonicalAssets.load(allocator, first_paths.source);
         asset_init_ns = startup.lap();
     }
@@ -152,10 +235,6 @@ fn runItems(allocator: std.mem.Allocator, items: []const BatchItem, mode: Mode, 
     }
     const runtime = external_runtime orelse &owned_runtime;
     const runtime_init_ns = if (external_runtime == null) startup.read() else 0;
-    const image_setting = std.process.getEnvVarOwned(allocator, "STWO_CAIRO_CUDA_STATIC_IMAGE") catch null;
-    defer if (image_setting) |value| allocator.free(value);
-    const use_device_image = external_runtime != null and (items.len > 1 or persistent != null) and
-        image_setting != null and std.mem.eql(u8, image_setting.?, "1");
     var local_image: ?DeviceImage = null;
     defer if (local_image) |*image| image.deinit(runtime) catch {};
     const image_slot = if (persistent) |session| &session.device_image else &local_image;
@@ -164,7 +243,7 @@ fn runItems(allocator: std.mem.Allocator, items: []const BatchItem, mode: Mode, 
     const static_slot = if (persistent) |session| &session.resident_static else &local_static;
     for (items, 0..) |item, index| {
         const assets: ?*const CanonicalAssets = if (assets_slot.*) |*shared| shared else null;
-        const receipt = try proveOnce(allocator, runtime, static_slot, if (use_device_image) image_slot else null, item.request, executable_digest, @intCast(if (mode == .repeated) index + 1 else 1), if (index == 0) runtime_init_ns else 0, if (index == 0) asset_init_ns else 0, item.sink, external_runtime != null, assets);
+        const receipt = try proveOnce(allocator, runtime, static_slot, if (use_device_image) image_slot else null, item.request, executable_digest, @intCast(if (mode == .repeated) index + 1 else 1), if (index == 0) runtime_init_ns else 0, if (index == 0) asset_init_ns else 0, item.sink, external_runtime != null, assets, if (needs_prefetch) early_prefetch orelse &prefetch else null);
         if (mode == .repeated) {
             if (expected_digest) |expected| {
                 if (!std.mem.eql(u8, &expected, &receipt.proof_sha256)) return error.NondeterministicCairoCudaProof;
@@ -206,6 +285,7 @@ fn proveOnce(
     sink: ?VerifiedLeafSink,
     release_arena_for_sink: bool,
     assets: ?*const CanonicalAssets,
+    prefetch: ?*PrefetchJob,
 ) !publication.Receipt {
     var timer = try std.time.Timer.start();
     var phase: []const u8 = "resolve_input";
@@ -316,6 +396,11 @@ fn proveOnce(
         if (std.mem.eql(u8, &cached.arena_key, &arena_key)) cached.receipt else null
     else
         null;
+    const prefetched = if (cached_preprocessed == null and
+        (device_image == null or device_image.?.receipt == null))
+        if (prefetch) |job| try job.wait() else null
+    else
+        null;
     const static_receipt = try controllers.initializeStatic(
         &transaction,
         provider,
@@ -326,6 +411,7 @@ fn proveOnce(
             .inverse_twiddles = twiddles.inverseWords(),
             .preprocessed_path = paths.preprocessed,
             .preprocessed_column_identities = diagnostic.fixed.preprocessed_identities,
+            .preprocessed_prefetch = prefetched,
             .resident_preprocessed = cached_preprocessed,
             .device_image = device_image,
         },
