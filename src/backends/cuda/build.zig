@@ -17,7 +17,15 @@ pub fn build(b: *std.Build) void {
     backend.addImport("stwo_backend_contracts", backend_contracts);
 
     const filters: []const []const u8 = if (b.option([]const u8, "test-filter", "Run CUDA backend tests whose names contain this text")) |filter| &.{filter} else &.{};
-    const tests = b.addTest(.{ .root_module = backend, .filters = filters });
+    // Test-only C stubs must not mutate the exported production module. The
+    // circuit CUDA product imports this dependency and links the real archive.
+    const test_root = b.createModule(.{
+        .root_source_file = b.path("mod.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    test_root.addImport("stwo_backend_contracts", backend_contracts);
+    const tests = b.addTest(.{ .root_module = test_root, .filters = filters });
     tests.addCSourceFile(.{
         .file = b.path("runtime/stages/test_stubs.c"),
         .flags = &.{ "-std=c11", "-Wno-strict-prototypes" },
