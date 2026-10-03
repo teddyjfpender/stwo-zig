@@ -130,6 +130,28 @@ pub const LayerEntry = struct {
             .packed_output = try leafPackedNode(fold.packed_allocator, leaf.proof.circuit_hash.words, leaf.output_preimage),
         };
     }
+
+    /// Restore a nonterminal proof from an authenticated checkpoint. Its
+    /// packed subtree is borrowed from the checkpoint parser's arena, which
+    /// must outlive the complete staged fold and its output rendering.
+    pub fn fromCheckpoint(gpa: std.mem.Allocator, fold: *const Fold, node: wire.checkpoint.Node) !LayerEntry {
+        const expected_root = blake2_hash.digestToU32s(fold.canonical.preprocessed_root);
+        const expected_hash = blake2_hash.digestToU32s(fold.canonical.circuit_hash);
+        if (!std.mem.eql(u32, &node.preprocessed_root, &expected_root) or
+            node.packed_output != .composite or
+            !std.mem.eql(u32, &node.packed_output.composite.circuit_hash, &expected_hash))
+            return error.CheckpointIdentityMismatch;
+        var decoded = try wire.circuit_serialize.deserializeProof(gpa, node.proof, fold.canonical.proofConfig());
+        errdefer decoded.deinit();
+        if (decoded.consumed != node.proof.len) return error.TrailingCheckpointProofBytes;
+        return .{
+            .arena = decoded.arena,
+            .proof = .{ .circuit = decoded.proof },
+            .preprocessed_root = node.preprocessed_root,
+            .output_digest = node.output_digest,
+            .packed_output = node.packed_output,
+        };
+    }
 };
 
 /// `PackedNode::leaf`: the leaf circuit's `Composite` over its `Plain`

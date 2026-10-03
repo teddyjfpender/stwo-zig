@@ -1,6 +1,7 @@
 # Circuit recursion on Metal
 
 `stwo-circuit-recursion-metal` uses the same `leaf-wrap`, `fold-tree`,
+`fold-stage`, `fold-stage-root`,
 `circuit-params`, and `verify` CLI and proof formats as the CPU product. Its
 leaf Cairo proof and circuit proofs use the Metal backend. The pinned
 `proving@5a7c5ed` leaf protocol commits some Merkle trees above their largest

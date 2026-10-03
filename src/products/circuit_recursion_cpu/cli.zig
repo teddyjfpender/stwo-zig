@@ -16,6 +16,9 @@
 //! - `fold-tree`: `stwo_run_and_prove_recursive_tree` (`--program_input`,
 //!   `--proof_path`, `--program_output`, `--packed_output_path`,
 //!   `--circuit_registry_json`), drop-in, plus this product's `--profile`;
+//! - `fold-stage` and `fold-stage-root`: bounded, resumable subtrees over
+//!   typed leaf/checkpoint entries. The root command emits the same three
+//!   files as `fold-tree`;
 //! - `circuit-params`: `circuit-params --definition D --registry
 //!   [--output-path P]`. Only the registry output exists; upstream's
 //!   human-readable sizes report is not ported;
@@ -29,6 +32,8 @@ const std = @import("std");
 pub const Command = enum {
     @"leaf-wrap",
     @"fold-tree",
+    @"fold-stage",
+    @"fold-stage-root",
     @"circuit-params",
     verify,
 };
@@ -74,6 +79,20 @@ pub const FoldTree = struct {
     profile: bool = false,
 };
 
+pub const FoldStage = struct {
+    manifest: []const u8,
+    registry: []const u8,
+    checkpoint: []const u8,
+};
+
+pub const FoldStageRoot = struct {
+    manifest: []const u8,
+    registry: []const u8,
+    proof: []const u8,
+    outputs: []const u8,
+    packed_output: []const u8,
+};
+
 pub const CircuitParams = struct {
     /// The registry definition; the paths inside resolve against the
     /// working directory, as upstream's.
@@ -93,6 +112,8 @@ pub const Verify = struct {
 pub const Parsed = union(enum) {
     leaf_wrap: LeafWrap,
     fold_tree: FoldTree,
+    fold_stage: FoldStage,
+    fold_stage_root: FoldStageRoot,
     circuit_params: CircuitParams,
     verify: Verify,
     help: void,
@@ -119,6 +140,10 @@ pub const usage =
     \\       stwo-circuit-recursion-cpu fold-tree --program_input LEAVES.json --proof_path ROOT.proof
     \\           --program_output ROOT_OUTPUTS.json --packed_output_path ROOT_PACKED.json
     \\           --circuit_registry_json REGISTRY.json [--profile]
+    \\       stwo-circuit-recursion-cpu fold-stage --manifest ENTRIES.json --registry REGISTRY.json
+    \\           --checkpoint NODE.json
+    \\       stwo-circuit-recursion-cpu fold-stage-root --manifest ENTRIES.json --registry REGISTRY.json
+    \\           --proof ROOT.proof --outputs ROOT_OUTPUTS.json --packed-output ROOT_PACKED.json
     \\       stwo-circuit-recursion-cpu circuit-params --definition DEFINITION.json --registry
     \\           [--output-path REGISTRY.json]
     \\       stwo-circuit-recursion-cpu verify --proof PROOF.bin --request REQUEST.json
@@ -190,6 +215,8 @@ pub fn parse(argv: []const []const u8) Error!Parsed {
                 .profile = profile,
             } };
         },
+        .@"fold-stage" => .{ .fold_stage = try parseFlags(FoldStage, argv[1..], .{ .spelling = .kebab }) },
+        .@"fold-stage-root" => .{ .fold_stage_root = try parseFlags(FoldStageRoot, argv[1..], .{ .spelling = .kebab }) },
         .@"circuit-params" => blk: {
             var registry = false;
             const parsed = try parseFlags(struct { definition: []const u8, output_path: ?[]const u8 }, argv[1..], .{
