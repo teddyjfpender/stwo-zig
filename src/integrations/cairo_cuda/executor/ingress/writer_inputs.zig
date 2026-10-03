@@ -126,7 +126,11 @@ pub const Prepared = struct {
             self.column_count,
         );
         errdefer self.allocator.free(columns);
-        const staging = try self.allocator.alloc(u32, self.maximum_rows);
+        // Writer slots are contiguous per component. Pack adjacent columns
+        // before copying them, amortizing CUDA submission without retaining
+        // a second full-size host image of a large PIE. One oversized column
+        // still fits, and all other transfers stay at or below 32 MiB.
+        const staging = try self.allocator.alloc(u32, @min(self.word_count, @max(self.maximum_rows, 8 << 20)));
         defer self.allocator.free(staging);
         for (self.entries) |entry| {
             if (entry.component_index >= proof.components.len)
@@ -147,20 +151,28 @@ pub const Prepared = struct {
                 continue;
             };
             const rows: usize = entry.row_count;
-            for (0..entry.column_count) |local| {
+            var local: usize = 0;
+            while (local < entry.column_count) {
+                const group_columns = @min(@as(usize, entry.column_count) - local, staging.len / rows);
+                std.debug.assert(group_columns > 0);
                 const first = try add(
                     std.math.cast(usize, entry.first_word) orelse
                         return error.InvalidWriterInputLayout,
                     try mul(local, rows),
                 );
-                const destination = try storage.sub(first, rows);
-                try direct.writeColumn(local, staging[0..rows]);
+                for (0..group_columns) |group_index| {
+                    const offset = group_index * rows;
+                    try direct.writeColumn(local + group_index, staging[offset .. offset + rows]);
+                    columns[entry.first_column + local + group_index] = try storage.sub(first + offset, rows);
+                }
+                const words = group_columns * rows;
+                const destination = try storage.sub(first, words);
                 try session.context.uploadSlice(
                     u32,
                     destination,
-                    staging[0..rows],
+                    staging[0..words],
                 );
-                columns[entry.first_column + local] = destination;
+                local += group_columns;
             }
         }
         return .{

@@ -4,6 +4,7 @@ const std = @import("std");
 
 pub const Prove = struct {
     input: []const u8,
+    expected_input_sha256: ?[32]u8 = null,
     output: []const u8,
     report_out: []const u8,
     repeat: u32,
@@ -27,6 +28,7 @@ pub fn parse(argv: []const []const u8) !Parsed {
     var seen_backend = false;
     var seen_repeat = false;
     var circuit_registry: ?[]const u8 = null;
+    var expected_input_sha256: ?[32]u8 = null;
     var index: usize = 1;
     while (index < argv.len) : (index += 2) {
         if (index + 1 >= argv.len) return error.MissingArgumentValue;
@@ -56,6 +58,9 @@ pub fn parse(argv: []const []const u8) !Parsed {
         } else if (std.mem.eql(u8, flag, "--circuit-registry")) {
             if (circuit_registry != null) return error.DuplicateArgument;
             circuit_registry = try path(value);
+        } else if (std.mem.eql(u8, flag, "--input-sha256")) {
+            if (expected_input_sha256 != null) return error.DuplicateArgument;
+            expected_input_sha256 = try parseDigest(value);
         } else {
             return error.UnknownArgument;
         }
@@ -70,6 +75,7 @@ pub fn parse(argv: []const []const u8) !Parsed {
         return error.OutputPathCollision;
     return .{ .prove = .{
         .input = input orelse return error.MissingInput,
+        .expected_input_sha256 = expected_input_sha256,
         .output = proof_output,
         .report_out = report_output,
         .repeat = repeat,
@@ -82,7 +88,7 @@ pub fn writeUsage(writer: anytype) !void {
         \\Usage:
         \\  stwo-cairo-cuda prove --backend cuda --input <adapted-input> \
         \\    --output <proof.json> --report-out <report.json> [--repeat N] \\
-        \\    [--circuit-registry <production.json>]
+        \\    [--circuit-registry <production.json>] [--input-sha256 <hex>]
         \\
     );
 }
@@ -90,6 +96,16 @@ pub fn writeUsage(writer: anytype) !void {
 fn path(value: []const u8) ![]const u8 {
     if (value.len == 0 or value[0] == '-') return error.InvalidPath;
     return value;
+}
+
+pub fn parseDigest(value: []const u8) ![32]u8 {
+    if (value.len != 64) return error.InvalidInputDigest;
+    for (value) |char| {
+        if (!std.ascii.isDigit(char) and (char < 'a' or char > 'f')) return error.InvalidInputDigest;
+    }
+    var digest: [32]u8 = undefined;
+    _ = std.fmt.hexToBytes(&digest, value) catch return error.InvalidInputDigest;
+    return digest;
 }
 
 fn isHelp(value: []const u8) bool {
@@ -152,4 +168,17 @@ test "circuit leaf registry is an explicit proof-profile input" {
         "--output",        "proof.json",         "--report-out", "receipt.json", "--circuit-registry",
         "production.json", "--circuit-registry", "other.json",
     }));
+}
+
+test "expected input digest is lowercase canonical hex" {
+    const parsed = try parse(&.{
+        "prove",        "--backend",   "cuda",           "--input",                                                          "input.cpi", "--output", "proof.json",
+        "--report-out", "report.json", "--input-sha256", "1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef",
+    });
+    try std.testing.expectEqual(
+        try parseDigest("1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef"),
+        parsed.prove.expected_input_sha256.?,
+    );
+    try std.testing.expectError(error.InvalidInputDigest, parseDigest("1234"));
+    try std.testing.expectError(error.InvalidInputDigest, parseDigest("1234567890ABCDEF1234567890ABCDEF1234567890ABCDEF1234567890ABCDEF"));
 }

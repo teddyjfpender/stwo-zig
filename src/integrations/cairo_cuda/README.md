@@ -38,6 +38,22 @@ pipeline or every possible Cairo input.
 
 ## Canonical source path
 
+The recursive CUDA leaf product accepts an optional SHA-256 digest for each
+adapted input (`--input-sha256` on a single leaf, `input_sha256` in a batch
+manifest). The service supplies the digest of its immutable content-addressed
+object. Admission hashes the captured input bytes and compares them with that
+digest, then proves only from the captured bytes; it skips the otherwise
+redundant second pathname read. A direct CLI invocation without a digest keeps
+the path-replacement check. Distinct-input batches prepare one successor CPI
+while the current proof runs, unless `STWO_CAIRO_CUDA_SOURCE_LOOKAHEAD=0`.
+Eligibility uses the CPI header rather than a filename extension because
+content-addressed inputs have digest names, and caps the successor file at
+768 MiB. The first request and complete batch wall clock remain inside the
+measurement boundary. Each trial reports input read, parse/encode, hash wait,
+and identity-check time separately so the next bottleneck is visible. These
+ingress changes require a new H200 timing and
+byte-equivalence qualification before any speedup is claimed.
+
 `canonical_source.Prepared` owns the input and derives the complete proof plan
 from the pinned Stwo-Cairo AIR library. The canonical archive selects 64 witness
 kernels and 68 parametric AIR bodies, in addition to the 48 common Native entries.

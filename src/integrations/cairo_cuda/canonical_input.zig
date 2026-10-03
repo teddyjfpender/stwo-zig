@@ -9,9 +9,25 @@ pub const Capture = struct {
     encoded: []align(64) u8,
     file_sha256: [32]u8,
     encoded_sha256: [32]u8,
+    timings: Timings,
+};
+
+pub const Timings = struct {
+    read_ns: u64,
+    parse_and_encode_ns: u64,
+    digest_wait_ns: u64,
+    identity_check_ns: u64,
 };
 
 pub fn read(allocator: std.mem.Allocator, path: []const u8) !Capture {
+    return readExpected(allocator, path, null);
+}
+
+/// A service can supply the authenticated digest of its immutable CAS object.
+/// The digest of the captured bytes must match it; no second pathname read is
+/// needed because every subsequent operation uses the owned capture.
+pub fn readExpected(allocator: std.mem.Allocator, path: []const u8, expected: ?[32]u8) !Capture {
+    var timer = try std.time.Timer.start();
     const file = try std.fs.cwd().openFile(path, .{});
     defer file.close();
     const stat = try file.stat();
@@ -28,14 +44,19 @@ pub fn read(allocator: std.mem.Allocator, path: []const u8) !Capture {
         if (try file.readAll(bytes) != bytes.len) return error.Truncated;
         var trailing: [1]u8 = undefined;
         if (try file.read(&trailing) != 0) return error.CanonicalInputChanged;
+        const read_ns = timer.lap();
         var check = BytesHashJob{ .bytes = bytes };
         check.start();
         defer check.deinit();
         var input = try cairo.adapter.input.parseSlice(allocator, bytes, limits);
         errdefer input.deinit(allocator);
+        const parse_ns = timer.lap();
         const digest = check.wait();
-        if (!std.mem.eql(u8, &digest, &try fileSha(path))) return error.CanonicalInputChanged;
-        return .{ .input = input, .encoded = bytes, .file_sha256 = digest, .encoded_sha256 = digest };
+        const digest_wait_ns = timer.lap();
+        if (expected) |identity| {
+            if (!std.mem.eql(u8, &digest, &identity)) return error.CanonicalInputChanged;
+        } else if (!std.mem.eql(u8, &digest, &try fileSha(path))) return error.CanonicalInputChanged;
+        return .{ .input = input, .encoded = bytes, .file_sha256 = digest, .encoded_sha256 = digest, .timings = .{ .read_ns = read_ns, .parse_and_encode_ns = parse_ns, .digest_wait_ns = digest_wait_ns, .identity_check_ns = timer.lap() } };
     }
     // Capture the JSON bytes once. Parsing the slice avoids a second file
     // read and the streaming token source; the final digest still detects a
@@ -47,6 +68,7 @@ pub fn read(allocator: std.mem.Allocator, path: []const u8) !Capture {
     if (try file.readAll(json_bytes) != json_bytes.len) return error.Truncated;
     var trailing: [1]u8 = undefined;
     if (try file.read(&trailing) != 0) return error.CanonicalInputChanged;
+    const read_ns = timer.lap();
     var check = BytesHashJob{ .bytes = json_bytes };
     check.start();
     defer check.deinit();
@@ -54,9 +76,14 @@ pub fn read(allocator: std.mem.Allocator, path: []const u8) !Capture {
     errdefer input.deinit(allocator);
     const encoded = try cairo.adapter.compact_writer.encode(allocator, &input);
     errdefer allocator.free(encoded);
+    const parse_ns = timer.lap();
     const file_digest = check.wait();
-    if (!std.mem.eql(u8, &file_digest, &try fileSha(path))) return error.CanonicalInputChanged;
-    return .{ .input = input, .encoded = encoded, .file_sha256 = file_digest, .encoded_sha256 = sha(encoded) };
+    const digest_wait_ns = timer.lap();
+    if (expected) |identity| {
+        if (!std.mem.eql(u8, &file_digest, &identity)) return error.CanonicalInputChanged;
+    } else if (!std.mem.eql(u8, &file_digest, &try fileSha(path))) return error.CanonicalInputChanged;
+    const encoded_digest = sha(encoded);
+    return .{ .input = input, .encoded = encoded, .file_sha256 = file_digest, .encoded_sha256 = encoded_digest, .timings = .{ .read_ns = read_ns, .parse_and_encode_ns = parse_ns, .digest_wait_ns = digest_wait_ns, .identity_check_ns = timer.lap() } };
 }
 
 /// Hash captured immutable bytes while they are parsed. The second path hash
@@ -129,6 +156,41 @@ test "canonical input capture preserves normalized transport and digest" {
     captured.encoded[12] = 1;
     defer captured.encoded[12] = old;
     try std.testing.expectError(error.NonCanonicalEncoding, cairo.adapter.input.parseSlice(allocator, captured.encoded, .{}));
+}
+
+test "authenticated capture checks owned bytes without rereading the path" {
+    const allocator = std.testing.allocator;
+    const path = "vectors/cairo/official/all_opcodes.prover_input.cpi";
+    const expected = try fileSha(path);
+    var captured = try readExpected(allocator, path, expected);
+    defer captured.input.deinit(allocator);
+    defer allocator.free(captured.encoded);
+    try std.testing.expectEqual(expected, captured.file_sha256);
+    try std.testing.expectError(error.CanonicalInputChanged, readExpected(allocator, path, [_]u8{0} ** 32));
+}
+
+test "large compact capture keeps identical authority with expected digest" {
+    const allocator = std.testing.allocator;
+    const path = std.process.getEnvVarOwned(allocator, "STWO_CAIRO_CUDA_LARGE_INPUT") catch return error.SkipZigTest;
+    defer allocator.free(path);
+    var legacy = try read(allocator, path);
+    const expected = legacy.file_sha256;
+    const encoded = legacy.encoded_sha256;
+    std.debug.print("cairo-cuda capture legacy_ns={} identity_check_ns={}\n", .{
+        legacy.timings.read_ns + legacy.timings.parse_and_encode_ns + legacy.timings.digest_wait_ns + legacy.timings.identity_check_ns,
+        legacy.timings.identity_check_ns,
+    });
+    legacy.input.deinit(allocator);
+    allocator.free(legacy.encoded);
+    var authenticated = try readExpected(allocator, path, expected);
+    defer authenticated.input.deinit(allocator);
+    defer allocator.free(authenticated.encoded);
+    try std.testing.expectEqual(expected, authenticated.file_sha256);
+    try std.testing.expectEqual(encoded, authenticated.encoded_sha256);
+    std.debug.print("cairo-cuda capture authenticated_ns={} identity_check_ns={}\n", .{
+        authenticated.timings.read_ns + authenticated.timings.parse_and_encode_ns + authenticated.timings.digest_wait_ns + authenticated.timings.identity_check_ns,
+        authenticated.timings.identity_check_ns,
+    });
 }
 
 test "Rust oracle compact inputs match normalized JSON for continuous PIEs" {

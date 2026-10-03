@@ -100,6 +100,7 @@ pub const SourcePrepareJob = struct {
             return;
         };
         defer paths.deinit();
+        paths.source.expected_input_sha256 = self.request.expected_input_sha256;
         self.prepared = stwo.integration.canonical_source.prepareWithAssets(
             self.allocator,
             paths.source,
@@ -140,7 +141,28 @@ pub const SourcePrepareJob = struct {
 };
 
 pub fn sourceEligible(path: []const u8) bool {
-    if (!std.mem.endsWith(u8, path, ".cpi")) return false;
     const stat = std.fs.cwd().statFile(path) catch return false;
-    return stat.kind == .file and stat.size <= 64 << 20;
+    // Only one successor is prepared at a time. This bound covers the large
+    // production PIEs while preventing unbounded host captures. CAS objects
+    // have digest filenames, so detect the compact format by its header.
+    if (stat.kind != .file or stat.size < 64 or stat.size > 768 << 20) return false;
+    const file = std.fs.cwd().openFile(path, .{}) catch return false;
+    defer file.close();
+    var magic: [stwo.frontend.adapter.adapted_input.MAGIC.len]u8 = undefined;
+    if ((file.readAll(&magic) catch return false) != magic.len) return false;
+    return std.mem.eql(u8, &magic, &stwo.frontend.adapter.adapted_input.MAGIC);
+}
+
+test "source lookahead admits bounded digest-named compact inputs" {
+    var temporary = std.testing.tmpDir(.{});
+    defer temporary.cleanup();
+    const file = try temporary.dir.createFile("0123456789abcdef", .{});
+    defer file.close();
+    try file.writeAll(&stwo.frontend.adapter.adapted_input.MAGIC);
+    try file.setEndPos(65 << 20);
+    const path = try temporary.dir.realpathAlloc(std.testing.allocator, "0123456789abcdef");
+    defer std.testing.allocator.free(path);
+    try std.testing.expect(sourceEligible(path));
+    try file.setEndPos((768 << 20) + 1);
+    try std.testing.expect(!sourceEligible(path));
 }

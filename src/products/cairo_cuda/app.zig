@@ -32,6 +32,10 @@ const ingress_jobs = @import("ingress_jobs.zig");
 pub const PrefetchJob = ingress_jobs.FixedAssetJob;
 const SourcePrepareJob = ingress_jobs.SourcePrepareJob;
 
+pub fn parseInputDigest(value: []const u8) ![32]u8 {
+    return cli.parseDigest(value);
+}
+
 /// Retains authenticated source assets and the checked fixed device image
 /// across separate batches on one resident runtime. Dynamic PIE inputs,
 /// transcripts, and proof transactions remain request-local.
@@ -194,7 +198,7 @@ fn runItems(allocator: std.mem.Allocator, items: []const BatchItem, mode: Mode, 
     const lookahead_setting = std.process.getEnvVarOwned(allocator, "STWO_CAIRO_CUDA_SOURCE_LOOKAHEAD") catch null;
     defer if (lookahead_setting) |value| allocator.free(value);
     const lookahead = mode == .distinct and items.len > 1 and assets_slot.* != null and
-        lookahead_setting != null and std.mem.eql(u8, lookahead_setting.?, "1");
+        (lookahead_setting == null or std.mem.eql(u8, lookahead_setting.?, "1"));
     const source_jobs = try allocator.alloc(?SourcePrepareJob, items.len);
     defer allocator.free(source_jobs);
     @memset(source_jobs, null);
@@ -268,6 +272,7 @@ fn proveOnce(
     errdefer |err| std.debug.print("cairo-cuda phase={s} failed: {s}\n", .{ phase, @errorName(err) });
     var paths = try @import("canonical_paths.zig").Paths.init(allocator, request.input, request.circuit_registry);
     defer paths.deinit();
+    paths.source.expected_input_sha256 = request.expected_input_sha256;
     const paths_end_ns = timer.read();
     const runtime_end_ns = timer.read();
 
@@ -505,6 +510,7 @@ fn proveOnce(
         .ingress_ns = ingress_ns + runtime_init_ns + asset_init_ns,
         .source_lookahead_prepare_ns = if (source_job) |job| job.preparation_ns else 0,
         .source_lookahead_wait_ns = if (source_job) |job| job.wait_ns else 0,
+        .input_capture_timings = diagnostic.input_capture_timings,
         .ingress_timings = .{
             .paths_ns = paths_end_ns,
             .runtime_ns = runtime_init_ns + runtime_end_ns - paths_end_ns,
@@ -573,6 +579,7 @@ fn compileTarget(session: anytype) !stwo.backend.runtime
 
 test {
     _ = cli;
+    _ = ingress_jobs;
     _ = stwo.executor.ingress.controller_bundle;
     _ = stwo.integration.canonical_source;
 }
