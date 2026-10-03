@@ -251,24 +251,30 @@ pub fn loadWithPrefetch(
         const values = staging[0..words];
         try stream.readSliceAll(std.mem.sliceAsBytes(values));
         if (profile) read_ns += phase_timer.lap();
-        for (values) |value| {
-            if (value >= 0x7fff_ffff)
-                return error.NonCanonicalPreprocessedCoefficient;
-        }
+        // Accumulate the entire column before branching so the compiler can
+        // vectorize the canonical-field check over large fixed columns.
+        var invalid: u32 = 0;
+        for (values) |value| invalid |= @intFromBool(value >= 0x7fff_ffff);
+        if (invalid != 0) return error.NonCanonicalPreprocessedCoefficient;
         if (profile) validate_ns += phase_timer.lap();
-        if (log_rows > 16)
-            canonicalizeSimdCoefficientBlocks(values, log_rows);
-        if (profile) transpose_ns += phase_timer.lap();
         const begin: usize = prepared.column_offsets[ordinal];
         const end: usize = prepared.column_offsets[ordinal + 1];
         if (end < begin or end - begin != words)
             return error.InvalidPreprocessedCacheBinding;
+        const destination = try bound.coefficients.sub(begin, words);
         try session.context.uploadSlice(
             u32,
-            try bound.coefficients.sub(begin, words),
+            destination,
             values,
         );
         if (profile) upload_ns += phase_timer.lap();
+        if (log_rows > 16)
+            try cuda.runtime.stages.transform.Native.transposePreprocessed(
+                session,
+                destination,
+                log_rows,
+            );
+        if (profile) transpose_ns += phase_timer.lap();
         coefficient_words = std.math.add(
             u64,
             coefficient_words,

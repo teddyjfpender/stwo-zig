@@ -15,7 +15,6 @@ __device__ __forceinline__ void b2n_shuffle(
     uint32_t log_stride,
     uint32_t lane) {
     const uint32_t mask = 1u << log_stride;
-    __syncwarp(0xffffffffu);
 #pragma unroll
     for (uint32_t i = 0; i < 1u << (LogValues - 1u); ++i) {
         M31 *value = lane & mask ? values + 2u * i : values + 2u * i + 1u;
@@ -260,12 +259,9 @@ __global__ void b2n_continue(
         values[i] = column[block_start + i * min_stride + offset];
     }
 
-    uint32_t layer_size = 1u << (log_n - 1u);
-    uint32_t layer_offset = 0;
-    for (uint32_t stage = 2; stage < min_stage; ++stage) {
-        layer_size >>= 1;
-        layer_offset += layer_size;
-    }
+    uint32_t layer_size = 1u << (log_n - min_stage + 1u);
+    uint32_t layer_offset =
+        (1u << (log_n - 1u)) - layer_size;
     uint32_t stage = min_stage;
 #pragma unroll
     for (; stage < min_stage + LogValues; ++stage) {

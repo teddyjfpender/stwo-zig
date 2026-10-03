@@ -28,9 +28,12 @@ pub fn read(allocator: std.mem.Allocator, path: []const u8) !Capture {
         if (try file.readAll(bytes) != bytes.len) return error.Truncated;
         var trailing: [1]u8 = undefined;
         if (try file.read(&trailing) != 0) return error.CanonicalInputChanged;
+        var check = BytesHashJob{ .bytes = bytes };
+        check.start();
+        defer check.deinit();
         var input = try cairo.adapter.input.parseSlice(allocator, bytes, limits);
         errdefer input.deinit(allocator);
-        const digest = sha(bytes);
+        const digest = check.wait();
         if (!std.mem.eql(u8, &digest, &try fileSha(path))) return error.CanonicalInputChanged;
         return .{ .input = input, .encoded = bytes, .file_sha256 = digest, .encoded_sha256 = digest };
     }
@@ -44,14 +47,48 @@ pub fn read(allocator: std.mem.Allocator, path: []const u8) !Capture {
     if (try file.readAll(json_bytes) != json_bytes.len) return error.Truncated;
     var trailing: [1]u8 = undefined;
     if (try file.read(&trailing) != 0) return error.CanonicalInputChanged;
-    const file_digest = sha(json_bytes);
+    var check = BytesHashJob{ .bytes = json_bytes };
+    check.start();
+    defer check.deinit();
     var input = try cairo.adapter.input.parseSlice(allocator, json_bytes, limits);
     errdefer input.deinit(allocator);
     const encoded = try cairo.adapter.compact_writer.encode(allocator, &input);
     errdefer allocator.free(encoded);
+    const file_digest = check.wait();
     if (!std.mem.eql(u8, &file_digest, &try fileSha(path))) return error.CanonicalInputChanged;
     return .{ .input = input, .encoded = encoded, .file_sha256 = file_digest, .encoded_sha256 = sha(encoded) };
 }
+
+/// Hash captured immutable bytes while they are parsed. The second path hash
+/// still runs after parsing, so the replacement check retains its timing.
+const BytesHashJob = struct {
+    bytes: []const u8,
+    thread: ?std.Thread = null,
+    started: bool = false,
+    digest: [32]u8 = undefined,
+
+    fn start(self: *BytesHashJob) void {
+        self.thread = std.Thread.spawn(.{}, run, .{self}) catch return;
+        self.started = true;
+    }
+
+    fn run(self: *BytesHashJob) void {
+        self.digest = sha(self.bytes);
+    }
+
+    fn wait(self: *BytesHashJob) [32]u8 {
+        if (!self.started) return sha(self.bytes);
+        if (self.thread) |thread| {
+            thread.join();
+            self.thread = null;
+        }
+        return self.digest;
+    }
+
+    fn deinit(self: *BytesHashJob) void {
+        if (self.thread) |thread| thread.join();
+    }
+};
 
 fn sha(bytes: []const u8) [32]u8 {
     var digest: [32]u8 = undefined;
