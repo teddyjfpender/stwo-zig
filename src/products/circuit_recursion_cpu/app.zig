@@ -35,16 +35,14 @@ const cli = @import("cli.zig");
 const recursion = circuit_cpu.recursion;
 const leaf_wrap = recursion.leaf_wrap;
 const fold_stage = @import("stage.zig");
+pub const stage_campaign = @import("stage_campaign.zig");
+const assets = @import("assets.zig");
+const Air = assets.Air;
+const airBundle = assets.airBundle;
 
-const projection_bytes = @embedFile("circuit_air_projection");
-const air_programs_bytes = @embedFile("circuit_air_programs");
 pub fn authenticatedAirPrograms() ![]const u8 {
-    try authenticate(air_programs_bytes, circuit_cpu.air.bundle_sha256);
-    return air_programs_bytes;
+    return assets.authenticatedAirPrograms();
 }
-/// SHA-256 of `vectors/circuit/official/compiled_air_constraints_v1.bin`
-/// (`vectors/circuit/provenance.json`).
-const projection_sha256 = "ceea3c293a4fcd3ca8a20ba62f4845732f8725bdf610fe6367c83adcb8be7e09";
 
 /// Largest JSON input read (a leaf file is about 0.7 MB, a compiled
 /// program 1.6 MB).
@@ -79,37 +77,17 @@ fn runWith(comptime CairoLeaf: type, provers: *const circuit_cpu.prove.Provers, 
         .leaf_wrap => |command| try leafWrapCommandWith(CairoLeaf, provers, gpa, command),
         .fold_tree => |command| try foldTreeCommandWith(provers, gpa, command),
         .fold_stage => |command| try foldStageCommandWith(provers, gpa, command.manifest, command.registry, false, command.checkpoint, null, null, null),
+        .fold_stage_campaign => |command| try foldStageCampaignCommandWith(provers, gpa, command.jobs, command.registry),
         .fold_stage_root => |command| try foldStageCommandWith(provers, gpa, command.manifest, command.registry, true, null, command.proof, command.outputs, command.packed_output),
         .circuit_params => |command| try circuitParams(gpa, command),
         .verify => |command| if (!try verifyCommand(gpa, command)) std.process.exit(3),
     }
 }
 
-const StageManifestEntry = struct {
-    kind: []const u8,
-    path: []const u8,
-};
-
-const StageManifest = struct { entries: []const StageManifestEntry };
-
 /// Shared by Metal/CPU and CUDA CLIs; input arenas remain live until the
 /// checkpoint or final root has been rendered.
 pub fn loadStageInputs(allocator: std.mem.Allocator, path: []const u8) ![]StageInput {
-    const parsed = try std.json.parseFromSlice(StageManifest, allocator, try readFile(allocator, path), .{
-        .allocate = .alloc_always,
-        .ignore_unknown_fields = false,
-    });
-    if (parsed.value.entries.len == 0 or parsed.value.entries.len > 256) return error.InvalidFoldStageSize;
-    const inputs = try allocator.alloc(StageInput, parsed.value.entries.len);
-    for (parsed.value.entries, inputs) |entry, *input| {
-        input.* = if (std.mem.eql(u8, entry.kind, "leaf"))
-            .{ .leaf = (try wire.leaf_proof_json.parseLeafInput(allocator, try readFile(allocator, entry.path))).value }
-        else if (std.mem.eql(u8, entry.kind, "checkpoint"))
-            .{ .checkpoint = (try wire.checkpoint.parse(allocator, try readFile(allocator, entry.path))).node }
-        else
-            return error.InvalidFoldStageEntry;
-    }
-    return inputs;
+    return fold_stage.loadInputs(allocator, path);
 }
 
 fn foldStageCommandWith(
@@ -139,40 +117,17 @@ fn foldStageCommandWith(
     }
 }
 
-/// The embedded circuit AIR projection, authenticated.
-const Air = struct {
-    projection: circuit.air_eval.projection.Projection,
-
-    fn init(gpa: std.mem.Allocator) !Air {
-        try authenticate(projection_bytes, projection_sha256);
-        return .{ .projection = try circuit.air_eval.projection.parse(gpa, projection_bytes) };
-    }
-
-    fn deinit(self: *Air) void {
-        self.projection.deinit();
-    }
-
-    /// The circuit AIR's evaluator table; borrows the projection.
-    fn circuitTable(self: *const Air, gpa: std.mem.Allocator) !circuit.air_eval.component_table.Table {
-        return circuit.air_eval.circuit_components.build(gpa, &self.projection);
-    }
-
-    /// The 83-slot Cairo evaluator table; borrows the projection.
-    fn cairoTable(self: *const Air, gpa: std.mem.Allocator) !circuit.air_eval.component_table.Table {
-        return circuit.air_eval.cairo_components.build(gpa, &self.projection);
-    }
-};
-
-/// The embedded circuit AIR evaluation programs, authenticated.
-fn airBundle(gpa: std.mem.Allocator) !circuit_cpu.air.Bundle {
-    try authenticate(air_programs_bytes, circuit_cpu.air.bundle_sha256);
-    return circuit_cpu.air.parse(gpa, air_programs_bytes);
-}
-
-fn authenticate(bytes: []const u8, comptime expected: *const [64]u8) !void {
-    var digest: [32]u8 = undefined;
-    std.crypto.hash.sha2.Sha256.hash(bytes, &digest, .{});
-    if (!std.mem.eql(u8, &std.fmt.bytesToHex(digest, .lower), expected)) return error.EmbeddedAssetDigestMismatch;
+fn foldStageCampaignCommandWith(
+    provers: *const circuit_cpu.prove.Provers,
+    gpa: std.mem.Allocator,
+    jobs_path: []const u8,
+    registry_path: []const u8,
+) !void {
+    var arena_state = std.heap.ArenaAllocator.init(gpa);
+    defer arena_state.deinit();
+    const a = arena_state.allocator();
+    const registry = try wire.registry.parseRegistry(a, try readFile(a, registry_path));
+    try stage_campaign.run(gpa, registry.registry, provers, null, jobs_path);
 }
 
 fn readFile(allocator: std.mem.Allocator, path: []const u8) ![]u8 {
@@ -812,11 +767,6 @@ fn circuitParams(gpa: std.mem.Allocator, command: cli.CircuitParams) !void {
     } else {
         try std.fs.File.stdout().writeAll(out.written());
     }
-}
-
-test "circuit recursion app: the embedded assets are the authenticated ones" {
-    try authenticate(projection_bytes, projection_sha256);
-    try authenticate(air_programs_bytes, circuit_cpu.air.bundle_sha256);
 }
 
 test {

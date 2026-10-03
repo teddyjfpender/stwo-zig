@@ -11,7 +11,7 @@ Its output files are byte-compatible with upstream's binaries.
 | Binary | `stwo-circuit-recursion-cpu` |
 | Backend | CPU (scalar and SIMD), no fallback |
 | Build | `zig build stwo-circuit-recursion-cpu -Doptimize=ReleaseFast -j2` (product catalog, parity-gated) |
-| Commands | `leaf-wrap`, `fold-tree`, `fold-stage`, `fold-stage-root`, `circuit-params`, `verify` |
+| Commands | `leaf-wrap`, `fold-tree`, `fold-stage`, `fold-stage-campaign`, `fold-stage-root`, `circuit-params`, `verify` |
 | Upstream counterparts | `leaf-prover` (`crates/leaf_prover`), `stwo_run_and_prove_recursive_tree`, `circuit-params --registry` (`crates/circuit_params`), `verify_circuit` (`crates/circuit_verifier`, no upstream binary) |
 | Release gates | `test-circuit-recursion-cpu-product`, `circuit-parity-local` |
 | Embedded data | the circuit AIR projection (`vectors/circuit/official/compiled_air_constraints_v1.bin`) and evaluation programs (`circuit_air.air_programs_v1.bin`), SHA-256-checked at run time |
@@ -99,12 +99,23 @@ stwo-circuit-recursion-cpu fold-stage-root --manifest final.json \
   --outputs root_outputs.json --packed-output root_packed.json
 ```
 
+`fold-stage-campaign --jobs jobs.json --registry registry.json` proves up to
+256 independent **nonterminal** stages in one process. `jobs.json` is an array
+of `{"manifest":"left.json","checkpoint":"left.checkpoint.json"}` entries.
+The authenticated AIR, canonical circuit, and backend session are built once;
+each job receives its own input arena and checkpoint file. The command fails
+the whole campaign if any stage fails, so the caller publishes outputs only
+after successful exit. The service uses this for independent subtrees at one
+level and still runs the single final root with `fold-stage-root`.
+
 Stage chunks should cover power-of-two spans in the original sequence; an
 unpaired tail is carried unchanged. This preserves the one-shot tree's pairing
 and makes every independent subtree schedulable on a different worker. On
 Metal, both a four-leaf split into two checkpoints and a five-leaf tree with an
 odd carried leaf produced all three root files byte for byte identical to
-`fold-tree`. The proving service records the corresponding receipts.
+`fold-tree`. The proving service records the corresponding receipts. A direct
+Metal two-stage campaign produced the same two checkpoint SHA-256 digests as
+the separate commands: `1428a8ec…` and `6a9c8d3d…`.
 
 ## `verify`
 
