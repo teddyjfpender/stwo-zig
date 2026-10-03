@@ -11,6 +11,34 @@ pub const Input = union(enum) {
     checkpoint: wire.checkpoint.Node,
 };
 
+const ManifestEntry = struct {
+    kind: []const u8,
+    path: []const u8,
+};
+
+const Manifest = struct { entries: []const ManifestEntry };
+
+/// The input arena stays live through the proof and checkpoint render.
+pub fn loadInputs(allocator: std.mem.Allocator, path: []const u8) ![]Input {
+    const manifest = try std.fs.cwd().readFileAlloc(allocator, path, 64 << 20);
+    const parsed = try std.json.parseFromSlice(Manifest, allocator, manifest, .{
+        .allocate = .alloc_always,
+        .ignore_unknown_fields = false,
+    });
+    if (parsed.value.entries.len == 0 or parsed.value.entries.len > 256) return error.InvalidFoldStageSize;
+    const inputs = try allocator.alloc(Input, parsed.value.entries.len);
+    for (parsed.value.entries, inputs) |entry, *input| {
+        const bytes = try std.fs.cwd().readFileAlloc(allocator, entry.path, 64 << 20);
+        input.* = if (std.mem.eql(u8, entry.kind, "leaf"))
+            .{ .leaf = (try wire.leaf_proof_json.parseLeafInput(allocator, bytes)).value }
+        else if (std.mem.eql(u8, entry.kind, "checkpoint"))
+            .{ .checkpoint = (try wire.checkpoint.parse(allocator, bytes)).node }
+        else
+            return error.InvalidFoldStageEntry;
+    }
+    return inputs;
+}
+
 pub const Files = struct {
     checkpoint: std.Io.Writer.Allocating,
     proof: std.Io.Writer.Allocating,

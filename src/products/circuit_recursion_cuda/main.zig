@@ -22,6 +22,7 @@ pub fn main() !void {
     if (std.mem.eql(u8, args[1], "leaf-wrap-campaign")) return leafWrapCampaign(allocator, args[2..]);
     if (std.mem.eql(u8, args[1], "fold-tree")) return foldTree(allocator, args[2..]);
     if (std.mem.eql(u8, args[1], "fold-stage")) return foldStage(allocator, args[2..], false);
+    if (std.mem.eql(u8, args[1], "fold-stage-campaign")) return foldStageCampaign(allocator, args[2..]);
     if (std.mem.eql(u8, args[1], "fold-stage-root")) return foldStage(allocator, args[2..], true);
     return error.UnknownCommand;
 }
@@ -402,6 +403,26 @@ fn foldStage(allocator: std.mem.Allocator, args: []const []const u8, terminal_ro
         if (terminal_root) "root" else "internal", inputs.len, files.stats.n_pair_reductions,
         parse_ns,                                  prove_ns,   wall.lap(),
     });
+}
+
+fn foldStageCampaign(allocator: std.mem.Allocator, args: []const []const u8) !void {
+    var wall = try std.time.Timer.start();
+    var arena = std.heap.ArenaAllocator.init(allocator);
+    defer arena.deinit();
+    const a = arena.allocator();
+    const registry_path = try flag(args, "--registry");
+    const jobs_path = try flag(args, "--jobs");
+    const registry = try wire.registry.parseRegistry(a, try readFile(a, registry_path));
+    var catalog = try circuit_cuda.air_aot.build(allocator, try circuit_app.authenticatedAirPrograms());
+    defer catalog.deinit();
+    var runtime = try circuit_cuda.recursion_source.Runtime.open(&.{ 80, 90 });
+    var runtime_live = true;
+    defer if (runtime_live) runtime.abort() catch {};
+    var backend = circuit_cuda.recursion_source.Context{ .catalog = &catalog, .runtime = &runtime };
+    try circuit_app.stage_campaign.run(allocator, registry.registry, &circuit_cpu.prove.cpu_provers, backend.source(), jobs_path);
+    try runtime.close();
+    runtime_live = false;
+    std.debug.print("circuit-cuda fold-stage-campaign wall_ns={}\n", .{wall.read()});
 }
 
 fn flag(args: []const []const u8, name: []const u8) ![]const u8 {
