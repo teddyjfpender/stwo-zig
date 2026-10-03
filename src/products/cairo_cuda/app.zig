@@ -214,12 +214,17 @@ fn runItems(allocator: std.mem.Allocator, items: []const BatchItem, mode: Mode, 
                 .target = target,
                 .assets = &assets_slot.*.?,
             };
-            source_jobs[index + 1].?.start() catch {
-                source_jobs[index + 1] = null;
-            };
         }
         const assets: ?*const CanonicalAssets = if (assets_slot.*) |*shared| shared else null;
-        const receipt = try proveOnce(allocator, runtime, static_slot, if (use_device_image) image_slot else null, item.request, executable_digest, @intCast(if (mode == .repeated) index + 1 else 1), if (index == 0) runtime_init_ns else 0, if (index == 0) asset_init_ns else 0, item.sink, external_runtime != null, assets, if (needs_prefetch) early_prefetch orelse &prefetch else null, if (source_jobs[index]) |*job| job else null);
+        const current_source_job: ?*SourcePrepareJob = if (source_jobs[index]) |*job|
+            if (job.thread != null) job else null
+        else
+            null;
+        const next_source_job: ?*SourcePrepareJob = if (index + 1 < items.len)
+            if (source_jobs[index + 1]) |*job| job else null
+        else
+            null;
+        const receipt = try proveOnce(allocator, runtime, static_slot, if (use_device_image) image_slot else null, item.request, executable_digest, @intCast(if (mode == .repeated) index + 1 else 1), if (index == 0) runtime_init_ns else 0, if (index == 0) asset_init_ns else 0, item.sink, external_runtime != null, assets, if (needs_prefetch) early_prefetch orelse &prefetch else null, current_source_job, next_source_job);
         if (mode == .repeated and item.sink == null) {
             // Repeated CLI proofs publish a canonical file. A verified sink
             // receives the decoded proof directly and has no file digest.
@@ -266,6 +271,7 @@ fn proveOnce(
     assets: ?*const CanonicalAssets,
     prefetch: ?*PrefetchJob,
     source_job: ?*SourcePrepareJob,
+    next_source_job: ?*SourcePrepareJob,
 ) !publication.Receipt {
     var timer = try std.time.Timer.start();
     var phase: []const u8 = "resolve_input";
@@ -407,6 +413,11 @@ fn proveOnce(
     );
     resident_static.* = .{ .arena_key = arena_key, .receipt = static_receipt.preprocessed };
     const static_end_ns = timer.read();
+    // Loading the fixed 2.17 GB artifact and preparing the next CPI both
+    // consume host memory bandwidth. Start lookahead after static admission
+    // so they do not contend; writer preparation and proof still provide
+    // ample overlap for the next request.
+    if (next_source_job) |job| job.start() catch {};
     phase = "prepare_writers";
     var registry = try stwo.backend.product_aot.Registry.initCanonicalCairo(
         allocator,
