@@ -216,10 +216,13 @@ fn runItems(allocator: std.mem.Allocator, items: []const BatchItem, mode: Mode, 
         }
         const assets: ?*const CanonicalAssets = if (assets_slot.*) |*shared| shared else null;
         const receipt = try proveOnce(allocator, runtime, static_slot, if (use_device_image) image_slot else null, item.request, executable_digest, @intCast(if (mode == .repeated) index + 1 else 1), if (index == 0) runtime_init_ns else 0, if (index == 0) asset_init_ns else 0, item.sink, external_runtime != null, assets, if (needs_prefetch) early_prefetch orelse &prefetch else null, if (source_jobs[index]) |*job| job else null);
-        if (mode == .repeated) {
+        if (mode == .repeated and item.sink == null) {
+            // Repeated CLI proofs publish a canonical file. A verified sink
+            // receives the decoded proof directly and has no file digest.
+            const digest = receipt.proof_sha256 orelse return error.MissingCanonicalProof;
             if (expected_digest) |expected| {
-                if (!std.mem.eql(u8, &expected, &receipt.proof_sha256)) return error.NondeterministicCairoCudaProof;
-            } else expected_digest = receipt.proof_sha256;
+                if (!std.mem.eql(u8, &expected, &digest)) return error.NondeterministicCairoCudaProof;
+            } else expected_digest = digest;
         }
         receipts[index] = receipt;
         try publication.writeReport(item.request.report_out, if (mode == .repeated) receipts[0 .. index + 1] else receipts[index .. index + 1]);
@@ -481,8 +484,16 @@ fn proveOnce(
     if (device_image) |image| {
         if (image.pending != null) try image.admit();
     }
-    phase = "publish_official_proof";
-    const proof_bytes = try publication.writeCanonicalProof(request.output, &diagnostic, &decoded, output.proof.structural.interactionNonce());
+    // The recursive receiver consumes the independently verified proof in
+    // memory. Serializing and rehashing a standalone Cairo JSON here would
+    // only create a temporary artifact that the worker immediately discards.
+    var published_bytes: ?u64 = null;
+    var published_sha256: ?[32]u8 = null;
+    if (sink == null) {
+        phase = "publish_official_proof";
+        published_bytes = try publication.writeCanonicalProof(request.output, &diagnostic, &decoded, output.proof.structural.interactionNonce());
+        published_sha256 = try publication.sha256File(request.output);
+    }
     const receipt: publication.Receipt = .{
         .index = index,
         .protocol = diagnostic.protocol,
@@ -508,8 +519,8 @@ fn proveOnce(
         },
         .proof_execute_and_decode_ns = proof_end_ns - ingress_ns,
         .adapted_input_until_publication_ns = if (source_job) |job| job.elapsed() else timer.read() + runtime_init_ns + asset_init_ns,
-        .proof_sha256 = try publication.sha256File(request.output),
-        .proof_bytes = proof_bytes,
+        .proof_sha256 = published_sha256,
+        .proof_bytes = published_bytes,
         .verdict = output.verdict,
     };
     if (sink) |receiver| {
