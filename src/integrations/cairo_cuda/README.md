@@ -45,14 +45,27 @@ object. Admission hashes the captured input bytes and compares them with that
 digest, then proves only from the captured bytes; it skips the otherwise
 redundant second pathname read. A direct CLI invocation without a digest keeps
 the path-replacement check. Distinct-input batches prepare one successor CPI
-while the current proof runs, unless `STWO_CAIRO_CUDA_SOURCE_LOOKAHEAD=0`.
+after the preceding proof's fixed-data upload, then overlap source work with
+writer preparation and proof, unless `STWO_CAIRO_CUDA_SOURCE_LOOKAHEAD=0`.
 Eligibility uses the CPI header rather than a filename extension because
 content-addressed inputs have digest names, and caps the successor file at
 768 MiB. The first request and complete batch wall clock remain inside the
 measurement boundary. Each trial reports input read, parse/encode, hash wait,
-and identity-check time separately so the next bottleneck is visible. These
-ingress changes require a new H200 timing and
-byte-equivalence qualification before any speedup is claimed.
+and identity-check time separately so the next bottleneck is visible.
+
+The first H200 two-PIE A/B used distinct 377 MiB and 102 MiB compact inputs
+under the canonical circuit leaf lane. The fresh-process baseline completed in
+10.940 and 10.869 s; the authenticated-capture and delayed-lookahead candidate
+completed in 10.004 and 10.137 s, with both leaf proof hashes unchanged and
+the same 97.22 GB sampled device peak. The sum of measured ingress stages fell
+from 4.582/4.565 s to 3.618/3.984 s. This is an unranked direct diagnostic,
+not a 90% ingress reduction. The wider 408 MiB and 663 MiB second PIEs exposed
+a separate CUDA pool-admission bug: freed arena pages retained by the private
+pool were omitted from available capacity. Counting the pool's unused pages
+allowed both previously failing batches to complete at 102.65 GB and 142.65 GB
+sampled peaks, respectively. The 408 MiB leaf matched a standalone baseline
+proof byte for byte; the 663 MiB parity check uses a baseline with only the
+pool fix because unmodified main cannot complete its circuit wrap.
 
 `canonical_source.Prepared` owns the input and derives the complete proof plan
 from the pinned Stwo-Cairo AIR library. The canonical archive selects 64 witness
