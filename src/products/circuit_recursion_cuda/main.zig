@@ -8,6 +8,7 @@ const circuit_cpu = @import("stwo_circuit_cpu_integration");
 const circuit_cuda = @import("stwo_circuit_cuda_integration");
 const wire = @import("stwo_circuit_recursion_wire");
 const sink = @import("verified_sink.zig");
+const CampaignJob = @import("campaign_contract.zig").CampaignJob;
 
 const max_file = 64 << 20;
 
@@ -72,14 +73,6 @@ const BatchManifestItem = struct {
     output_preimage: ?[]const []const u8 = null,
 };
 
-const CampaignJob = struct {
-    manifest: []const u8,
-    root_proof: []const u8,
-    root_outputs: []const u8,
-    root_packed: []const u8,
-    root_mode: []const u8 = "canonical",
-};
-
 /// A bounded sequence of independent roots in one long-lived CUDA process.
 /// The static Cairo image, AIR catalog, and authenticated leaf topology are
 /// shared; each job gets its own manifest arena, proofs, and output paths.
@@ -127,6 +120,7 @@ fn leafWrapCampaign(allocator: std.mem.Allocator, args: []const []const u8) !voi
     });
     defer shared.deinit();
     for (jobs.value, 0..) |job, index| {
+        try job.validate();
         var job_arena = std.heap.ArenaAllocator.init(allocator);
         defer job_arena.deinit();
         const job_a = job_arena.allocator();
@@ -136,7 +130,7 @@ fn leafWrapCampaign(allocator: std.mem.Allocator, args: []const []const u8) !voi
         });
         if (parsed.value.len == 0 or parsed.value.len > 256) return error.InvalidBatchSize;
         const compact = std.mem.eql(u8, job.root_mode, "compact");
-        if (!compact and !std.mem.eql(u8, job.root_mode, "canonical")) return error.InvalidRootMode;
+        const integrated = job.root_proof != null;
         var timer = try std.time.Timer.start();
         try runOneBatch(allocator, job_a, parsed.value, job.root_proof, job.root_outputs, job.root_packed, compact, &backend, &shared, &cairo_session, 0, retain_fixed_host);
         if (index == 0 and !retain_fixed_host) {
@@ -144,7 +138,9 @@ fn leafWrapCampaign(allocator: std.mem.Allocator, args: []const []const u8) !voi
             prefetch.deinit();
             prefetch_live = false;
         }
-        std.debug.print("circuit-cuda campaign-job index={} wall_ns={} root={s}\n", .{ index, timer.read(), job.root_proof });
+        std.debug.print("circuit-cuda campaign-job index={} wall_ns={} mode={s}\n", .{
+            index, timer.read(), if (integrated) "integrated-root" else "leaves-only",
+        });
     }
     try cairo_session.deinit();
     cairo_session_live = false;

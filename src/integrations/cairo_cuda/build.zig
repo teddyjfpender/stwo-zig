@@ -47,8 +47,22 @@ pub fn build(b: *std.Build) void {
         b.allocator.dupe([]const u8, &.{filter}) catch @panic("out of memory")
     else
         &.{};
+    // The test executable uses a distinct module so its C stubs never become
+    // part of the CUDA-backed production integration imported by the circuit
+    // recursion product.
+    const test_root = b.addModule("stwo_cairo_cuda_integration_tests", .{
+        .root_source_file = b.path("mod.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    test_root.addImport("stwo_backend_contracts", backend_contracts);
+    test_root.addImport("stwo_core", core);
+    test_root.addImport("stwo_prover_engine", prover);
+    test_root.addImport("stwo_cuda_backend", cuda_backend);
+    test_root.addImport("stwo_cairo_frontend", cairo_frontend);
+    test_root.addImport("stwo_native_cuda_integration", native_cuda);
     const tests = b.addTest(.{
-        .root_module = integration,
+        .root_module = test_root,
         .filters = filters,
     });
     tests.addCSourceFile(.{
