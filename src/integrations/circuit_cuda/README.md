@@ -38,7 +38,20 @@ Use `fibonacci` or `blake_g_gate` as the circuit and `internal` or `root` as the
 
 ## PIE-to-root pipeline
 
-`circuit-recursion-cuda-resident` builds `stwo-circuit-recursion-cuda` with the full Cairo and circuit CUDA archive. Its `leaf-wrap` command proves the adapted Cairo PIE on CUDA, verifies its published proof, constructs the leaf verifier circuit, proves that circuit on CUDA, and writes the serialized leaf. Its `fold-tree` command builds the canonical multiverifier and proves every internal fold and the root on CUDA. Host-side circuit construction, proof verification, and wire conversion remain; neither command calls a CPU STARK prover. The older `circuit-recursion-cuda-hybrid` is retained as a separate historical comparison.
+`circuit-recursion-cuda-resident` builds `stwo-circuit-recursion-cuda` with the
+full Cairo and circuit CUDA archive. Its `leaf-wrap` command proves the
+adapted Cairo PIE on CUDA, verifies the proof, hands the decoded proof directly
+to the leaf verifier circuit, proves that circuit on CUDA, and writes the
+serialized leaf. The integrated path does not serialize a standalone Cairo
+JSON; its Cairo receipt uses the verified-sink schema. Standalone
+`stwo-cairo-cuda prove` still writes the canonical Rust-verifier JSON and v2
+receipt.
+
+The `fold-tree` command builds the canonical multiverifier and proves every
+internal fold and the root on CUDA. Host-side circuit construction, proof
+verification, and wire conversion remain; neither command calls a CPU STARK
+prover. The older `circuit-recursion-cuda-hybrid` is retained as a separate
+historical comparison.
 
 The continuous-PIE benchmark driver is `tools/starknet-block-collector/circuit_pipeline.py --backend cuda-resident`. It checks block/root continuity and PIE digests, runs both commands, records Cairo receipt and wrap/fold wall time, and compares all three root files with the pinned Rust reducer when requested. `--adapted-dir` reuses an already adapted, separately authenticated input set to avoid rebuilding the Rust adapter on the GPU host. The reused input and preimage digests are written into the receipt. Qualify an end-to-end result only after the resident Cairo receipt, every circuit proof's resident verdict and native verification, and Rust root equality all pass.
 
