@@ -18,6 +18,8 @@ pub const circuit_felt_stream = @import("circuit_felt_stream.zig");
 pub const leaf_proof_json = @import("leaf_proof_json.zig");
 /// `PackedNode` and the root output digest file.
 pub const packed_node = @import("packed_node.zig");
+/// Lossless nonterminal fold proof transport between workers.
+pub const checkpoint = @import("checkpoint.zig");
 /// The circuit registry JSON and its queries.
 pub const registry = @import("registry.zig");
 /// `RegistryDefinition`: the input of `circuit-params`.

@@ -11,7 +11,7 @@ Its output files are byte-compatible with upstream's binaries.
 | Binary | `stwo-circuit-recursion-cpu` |
 | Backend | CPU (scalar and SIMD), no fallback |
 | Build | `zig build stwo-circuit-recursion-cpu -Doptimize=ReleaseFast -j2` (product catalog, parity-gated) |
-| Commands | `leaf-wrap`, `fold-tree`, `circuit-params`, `verify` |
+| Commands | `leaf-wrap`, `fold-tree`, `fold-stage`, `fold-stage-root`, `circuit-params`, `verify` |
 | Upstream counterparts | `leaf-prover` (`crates/leaf_prover`), `stwo_run_and_prove_recursive_tree`, `circuit-params --registry` (`crates/circuit_params`), `verify_circuit` (`crates/circuit_verifier`, no upstream binary) |
 | Release gates | `test-circuit-recursion-cpu-product`, `circuit-parity-local` |
 | Embedded data | the circuit AIR projection (`vectors/circuit/official/compiled_air_constraints_v1.bin`) and evaluation programs (`circuit_air.air_programs_v1.bin`), SHA-256-checked at run time |
@@ -78,6 +78,33 @@ wrong declared `circuit_preprocessed_root` or a preimage that does not hash
 to its output can make upstream write root files, while `fold-tree` stops
 with `MultiverifierRejectedInputs`. This is intentional (design errata 11):
 no valid input changes, and no invalid one gets a root.
+
+## Bounded fold stages
+
+`fold-stage` proves a nonterminal subtree with the internal circuit profile
+and writes one checkpoint. `fold-stage-root` consumes leaf inputs, checkpoints,
+or both and writes the ordinary three root files. Their manifest is
+`{"entries":[{"kind":"leaf","path":"..."},{"kind":"checkpoint","path":"..."}]}`
+in left-to-right order. A checkpoint carries the exact serialized internal
+proof, canonical preprocessed root, output digest, and packed subtree. On load,
+the proof is decoded under the canonical circuit config; the preprocessed root
+and circuit hash must match that circuit. A terminal root proof cannot be fed
+back as an internal checkpoint.
+
+```sh
+stwo-circuit-recursion-cpu fold-stage --manifest left.json \
+  --registry registry.json --checkpoint left.checkpoint.json
+stwo-circuit-recursion-cpu fold-stage-root --manifest final.json \
+  --registry registry.json --proof root.proof \
+  --outputs root_outputs.json --packed-output root_packed.json
+```
+
+Stage chunks should cover power-of-two spans in the original sequence; an
+unpaired tail is carried unchanged. This preserves the one-shot tree's pairing
+and makes every independent subtree schedulable on a different worker. On
+Metal, both a four-leaf split into two checkpoints and a five-leaf tree with an
+odd carried leaf produced all three root files byte for byte identical to
+`fold-tree`. The proving service records the corresponding receipts.
 
 ## `verify`
 

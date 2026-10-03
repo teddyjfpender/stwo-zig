@@ -34,6 +34,7 @@ const cli = @import("cli.zig");
 
 const recursion = circuit_cpu.recursion;
 const leaf_wrap = recursion.leaf_wrap;
+const fold_stage = @import("stage.zig");
 
 const projection_bytes = @embedFile("circuit_air_projection");
 const air_programs_bytes = @embedFile("circuit_air_programs");
@@ -77,8 +78,64 @@ fn runWith(comptime CairoLeaf: type, provers: *const circuit_cpu.prove.Provers, 
         .help => try std.fs.File.stdout().writeAll(cli.usage),
         .leaf_wrap => |command| try leafWrapCommandWith(CairoLeaf, provers, gpa, command),
         .fold_tree => |command| try foldTreeCommandWith(provers, gpa, command),
+        .fold_stage => |command| try foldStageCommandWith(provers, gpa, command.manifest, command.registry, false, command.checkpoint, null, null, null),
+        .fold_stage_root => |command| try foldStageCommandWith(provers, gpa, command.manifest, command.registry, true, null, command.proof, command.outputs, command.packed_output),
         .circuit_params => |command| try circuitParams(gpa, command),
         .verify => |command| if (!try verifyCommand(gpa, command)) std.process.exit(3),
+    }
+}
+
+const StageManifestEntry = struct {
+    kind: []const u8,
+    path: []const u8,
+};
+
+const StageManifest = struct { entries: []const StageManifestEntry };
+
+/// Shared by Metal/CPU and CUDA CLIs; input arenas remain live until the
+/// checkpoint or final root has been rendered.
+pub fn loadStageInputs(allocator: std.mem.Allocator, path: []const u8) ![]StageInput {
+    const parsed = try std.json.parseFromSlice(StageManifest, allocator, try readFile(allocator, path), .{
+        .allocate = .alloc_always,
+        .ignore_unknown_fields = false,
+    });
+    if (parsed.value.entries.len == 0 or parsed.value.entries.len > 256) return error.InvalidFoldStageSize;
+    const inputs = try allocator.alloc(StageInput, parsed.value.entries.len);
+    for (parsed.value.entries, inputs) |entry, *input| {
+        input.* = if (std.mem.eql(u8, entry.kind, "leaf"))
+            .{ .leaf = (try wire.leaf_proof_json.parseLeafInput(allocator, try readFile(allocator, entry.path))).value }
+        else if (std.mem.eql(u8, entry.kind, "checkpoint"))
+            .{ .checkpoint = (try wire.checkpoint.parse(allocator, try readFile(allocator, entry.path))).node }
+        else
+            return error.InvalidFoldStageEntry;
+    }
+    return inputs;
+}
+
+fn foldStageCommandWith(
+    provers: *const circuit_cpu.prove.Provers,
+    gpa: std.mem.Allocator,
+    manifest_path: []const u8,
+    registry_path: []const u8,
+    terminal_root: bool,
+    checkpoint_path: ?[]const u8,
+    proof_path: ?[]const u8,
+    outputs_path: ?[]const u8,
+    packed_path: ?[]const u8,
+) !void {
+    var arena_state = std.heap.ArenaAllocator.init(gpa);
+    defer arena_state.deinit();
+    const a = arena_state.allocator();
+    const inputs = try loadStageInputs(a, manifest_path);
+    const registry = try wire.registry.parseRegistry(a, try readFile(a, registry_path));
+    var files = try foldStageWithSource(gpa, registry.registry, inputs, provers, null, terminal_root);
+    defer files.deinit();
+    if (terminal_root) {
+        try writeFile(proof_path.?, files.proof.written());
+        try writeFile(outputs_path.?, files.outputs.written());
+        try writeFile(packed_path.?, files.packed_tree.written());
+    } else {
+        try writeFile(checkpoint_path.?, files.checkpoint.written());
     }
 }
 
@@ -454,6 +511,63 @@ pub const RootFiles = struct {
         self.* = undefined;
     }
 };
+
+pub const StageInput = fold_stage.Input;
+pub const StageFiles = fold_stage.Files;
+
+/// Fold a bounded, contiguous subtree. Intermediate stages use only the
+/// internal circuit profile and publish a resumable proof; the final stage
+/// uses the ordinary root profile and publishes the three canonical files.
+pub fn foldStageWithSource(
+    gpa: std.mem.Allocator,
+    registry: wire.registry.CircuitRegistry,
+    inputs: []const StageInput,
+    provers: *const circuit_cpu.prove.Provers,
+    source: ?recursion.proof_source.Source,
+    terminal_root: bool,
+) !StageFiles {
+    if (inputs.len == 0 or (!terminal_root and inputs.len < 2)) return error.InvalidFoldStageSize;
+    var stage_timer = try std.time.Timer.start();
+    var pool: prover.work_pool.WorkPool = undefined;
+    try pool.initInPlace();
+    defer pool.deinit();
+    var binding = try prover.work_pool.ScopedPoolBinding.init(&pool);
+    defer binding.deinit();
+
+    var air = try Air.init(gpa);
+    defer air.deinit();
+    var circuit_table = try air.circuitTable(gpa);
+    defer circuit_table.deinit();
+    var bundle = try airBundle(gpa);
+    defer bundle.deinit();
+    const options = recursion.fold.default_options;
+    var topologies = recursion.canonical.Cache.init(gpa, .{});
+    defer topologies.deinit();
+    var device_canonical: ?recursion.CanonicalCircuit = null;
+    defer if (device_canonical) |*item| item.deinit(gpa);
+    const canonical = blk: {
+        if (source != null) {
+            device_canonical = try recursion.CanonicalCircuit.buildForDevice(gpa, &circuit_table, registry);
+            break :blk &device_canonical.?;
+        }
+        break :blk try recursion.canonical.acquire(gpa, &topologies, &circuit_table, registry, options);
+    };
+    const setup_ns = stage_timer.lap();
+    var packed_arena = std.heap.ArenaAllocator.init(gpa);
+    defer packed_arena.deinit();
+    var packed_safe = std.heap.ThreadSafeAllocator{ .child_allocator = packed_arena.allocator() };
+    const fold: recursion.Fold = .{
+        .canonical = canonical,
+        .table = &circuit_table,
+        .bundle = &bundle,
+        .options = options,
+        .provers = provers,
+        .source = source,
+        .packed_allocator = packed_safe.allocator(),
+    };
+    const jobs = if (source == null and std.mem.eql(u8, provers.backend_name, "cpu")) parallelFoldJobs(gpa) else 1;
+    return fold_stage.run(gpa, &fold, inputs, jobs, terminal_root, &stage_timer, setup_ns);
+}
 
 /// `stwo_run_and_prove_recursive_tree` after `load_leaves`: builds the
 /// canonical multiverifier of `registry` (checked against it), folds

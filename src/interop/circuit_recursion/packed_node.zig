@@ -57,10 +57,12 @@ pub fn parsePackedNode(gpa: std.mem.Allocator, text: []const u8) ReadError!Owned
     errdefer arena.deinit();
     const allocator = arena.allocator();
     const parsed = try json_text.parse(allocator, text);
-    return .{ .arena = arena, .node = try readNode(allocator, parsed.value, 0) };
+    return .{ .arena = arena, .node = try parseValue(allocator, parsed.value, 0) };
 }
 
-fn readNode(allocator: std.mem.Allocator, value: std.json.Value, depth: usize) ReadError!PackedNode {
+/// Parse a nested node from an already parsed JSON document. The caller owns
+/// the document and `allocator` until every borrowed subtree is rendered.
+pub fn parseValue(allocator: std.mem.Allocator, value: std.json.Value, depth: usize) ReadError!PackedNode {
     if (depth == max_depth) return error.TooDeep;
     const tagged = try json_text.object(value);
     if (tagged.count() != 1) return error.InvalidValue;
@@ -79,7 +81,7 @@ fn readNode(allocator: std.mem.Allocator, value: std.json.Value, depth: usize) R
         for (words, &circuit_hash) |word, *slot| slot.* = try json_text.unsigned(u32, word);
         const items = try json_text.array(try json_text.field(body, "subtasks"));
         const subtasks = try allocator.alloc(PackedNode, items.len);
-        for (items, subtasks) |item, *slot| slot.* = try readNode(allocator, item, depth + 1);
+        for (items, subtasks) |item, *slot| slot.* = try parseValue(allocator, item, depth + 1);
         return .{ .composite = .{ .circuit_hash = circuit_hash, .subtasks = subtasks } };
     }
     return error.InvalidValue;
@@ -88,10 +90,11 @@ fn readNode(allocator: std.mem.Allocator, value: std.json.Value, depth: usize) R
 /// `serde_json::to_string(&PackedNode)`.
 pub fn writePackedNode(out: *std.Io.Writer, node: PackedNode) std.Io.Writer.Error!void {
     var writer = json_text.Writer.init(out, false);
-    try writeNode(&writer, node);
+    try writeValue(&writer, node);
 }
 
-fn writeNode(writer: *json_text.Writer, node: PackedNode) std.Io.Writer.Error!void {
+/// Write a node inside an existing JSON writer (for a checkpoint envelope).
+pub fn writeValue(writer: *json_text.Writer, node: PackedNode) std.Io.Writer.Error!void {
     try writer.beginObject();
     switch (node) {
         .plain => |preimage| {
@@ -112,7 +115,7 @@ fn writeNode(writer: *json_text.Writer, node: PackedNode) std.Io.Writer.Error!vo
             try writer.endArray();
             try writer.key("subtasks");
             try writer.beginArray();
-            for (composite.subtasks) |child| try writeNode(writer, child);
+            for (composite.subtasks) |child| try writeValue(writer, child);
             try writer.endArray();
             try writer.endObject();
         },

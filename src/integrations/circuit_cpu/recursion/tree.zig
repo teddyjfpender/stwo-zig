@@ -52,6 +52,12 @@ pub fn foldEntries(gpa: std.mem.Allocator, fold: *const Fold, entries: []LayerEn
 /// when `max_jobs > 1`. Profiles stay serial because their stage recorder has
 /// one stack. The final root remains one ordinary reduction.
 pub fn foldEntriesBounded(gpa: std.mem.Allocator, fold: *const Fold, entries: []LayerEntry, max_jobs: usize) !Folded {
+    return foldEntriesBoundedProfile(gpa, fold, entries, max_jobs, true);
+}
+
+/// A nonterminal stage produces a circuit proof that can be checkpointed and
+/// folded again. Its last pair uses the internal profile, unlike the root.
+pub fn foldEntriesBoundedProfile(gpa: std.mem.Allocator, fold: *const Fold, entries: []LayerEntry, max_jobs: usize, terminal_root: bool) !Folded {
     if (entries.len == 0) return error.EmptyLeaves;
     var stats: Stats = .{ .n_leaves = entries.len, .n_layers = 0, .n_pair_reductions = 0 };
     // `live[0..len]` are the entries of the current layer that are still
@@ -60,6 +66,11 @@ pub fn foldEntriesBounded(gpa: std.mem.Allocator, fold: *const Fold, entries: []
     errdefer for (live) |*entry| entry.deinit();
 
     if (live.len == 1) {
+        if (!terminal_root) {
+            const carried = live[0];
+            live = live[0..0];
+            return .{ .root = carried, .stats = stats };
+        }
         log.info("single-leaf tree: folding the leaf with itself for the root pass", .{});
         // `reduceRootSingle` consumes the entry, even on error.
         const single = &live[0];
@@ -75,7 +86,7 @@ pub fn foldEntriesBounded(gpa: std.mem.Allocator, fold: *const Fold, entries: []
         var layer_timer = try std.time.Timer.start();
         const layer_pairs = live.len / 2;
         log.info("reducing layer {d} with {d} entries", .{ layer_idx, live.len });
-        const is_root = live.len == 2;
+        const is_root = terminal_root and live.len == 2;
         var next_len: usize = 0;
         var index: usize = 0;
         const parallel = max_jobs > 1 and live.len >= 4 and fold.options.recorder == null and
@@ -256,6 +267,29 @@ pub fn writeRootOutputs(
     }
     try wire.packed_node.writeRootOutputs(outputs_out, root.output_digest);
     try wire.packed_node.writePackedNode(packed_out, root.packed_output);
+}
+
+/// Publish a nonterminal node without losing the proof profile or the packed
+/// output subtree. Re-reading this checkpoint yields the same next-layer
+/// circuit values as retaining the LayerEntry in memory.
+pub fn writeCheckpoint(
+    gpa: std.mem.Allocator,
+    fold: *const Fold,
+    node: *const LayerEntry,
+    out: *std.Io.Writer,
+) !void {
+    const proof = switch (node.proof) {
+        .circuit => |*value| value,
+        .root => return error.RootProofFolded,
+    };
+    const bytes = try wire.circuit_serialize.serializeProofAlloc(gpa, proof, fold.canonical.proofConfig());
+    defer gpa.free(bytes);
+    try wire.checkpoint.write(out, .{
+        .proof = bytes,
+        .preprocessed_root = node.preprocessed_root,
+        .output_digest = node.output_digest,
+        .packed_output = node.packed_output,
+    });
 }
 
 test "tree: an empty leaf list is rejected" {
