@@ -34,8 +34,9 @@ pub const Receipt = struct {
     ingress_timings: IngressTimings,
     proof_execute_and_decode_ns: u64,
     adapted_input_until_publication_ns: u64,
-    proof_sha256: [32]u8,
-    proof_bytes: u64,
+    /// Null when the verified proof was handed directly to a recursive sink.
+    proof_sha256: ?[32]u8,
+    proof_bytes: ?u64,
     verdict: stwo.backend.runtime.session.Verdict,
 };
 
@@ -104,11 +105,15 @@ fn writeReportWithTeardown(path: []const u8, receipts: []const Receipt, runtime_
     var buffer: [65536]u8 = undefined;
     var atomic = try std.fs.cwd().atomicFile(path, .{ .write_buffer = &buffer });
     defer atomic.deinit();
+    const handed_off = receipts.len != 0 and receipts[0].proof_sha256 == null;
     try std.json.Stringify.value(.{
-        .schema = "stwo-zig-cairo-cuda-canonical-receipt-v2",
+        .schema = if (handed_off) "stwo-zig-cairo-cuda-verified-sink-receipt-v1" else "stwo-zig-cairo-cuda-canonical-receipt-v2",
         .production_eligible = false,
-        .verification_status = "zig_verified_rust_verification_pending",
-        .timing_scope = "adapted input to official Rust proof JSON; excludes PIE execution/adaptation; in-command source lookahead overlaps previous proofs, so per-trial windows are not additive; proving stage reported separately from ingress and verification",
+        .verification_status = if (handed_off) "zig_verified_delivered_to_recursive_sink" else "zig_verified_rust_verification_pending",
+        .timing_scope = if (handed_off)
+            "adapted input to verified Cairo handoff; excludes PIE execution/adaptation and the recursive sink's work; in-command source lookahead overlaps previous proofs, so per-trial windows are not additive"
+        else
+            "adapted input to official Rust proof JSON; excludes PIE execution/adaptation; in-command source lookahead overlaps previous proofs, so per-trial windows are not additive; proving stage reported separately from ingress and verification",
         .runtime_lifecycle = "one runtime and bounded arena cache per process; startup charged to first trial; subsequent trials prepare fresh proof inputs; teardown reported separately",
         .runtime_teardown_ns = runtime_teardown_ns,
         .completed_trials = receipts,
