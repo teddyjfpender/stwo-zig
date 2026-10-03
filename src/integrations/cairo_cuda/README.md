@@ -53,19 +53,21 @@ content-addressed inputs have digest names, and caps the successor file at
 measurement boundary. Each trial reports input read, parse/encode, hash wait,
 and identity-check time separately so the next bottleneck is visible.
 
-The first H200 two-PIE A/B used distinct 377 MiB and 102 MiB compact inputs
-under the canonical circuit leaf lane. The fresh-process baseline completed in
-10.940 and 10.869 s; the authenticated-capture and delayed-lookahead candidate
-completed in 10.004 and 10.137 s, with both leaf proof hashes unchanged and
-the same 97.22 GB sampled device peak. The sum of measured ingress stages fell
-from 4.582/4.565 s to 3.618/3.984 s. This is an unranked direct diagnostic,
-not a 90% ingress reduction. The wider 408 MiB and 663 MiB second PIEs exposed
-a separate CUDA pool-admission bug: freed arena pages retained by the private
-pool were omitted from available capacity. Counting the pool's unused pages
-allowed both previously failing batches to complete at 102.65 GB and 142.65 GB
-sampled peaks, respectively. The 408 MiB leaf matched a standalone baseline
-proof byte for byte; the 663 MiB parity check uses a baseline with only the
-pool fix because unmodified main cannot complete its circuit wrap.
+The final H200 A/B used distinct 377/102 MiB compact inputs, then a mixed
+377/408/102/663 MiB sequence, under the canonical circuit leaf lane. Both
+variants included the CUDA pool-admission fix. Fresh-process two-PIE commands
+took 11.516/11.134 s for the baseline and 10.535/10.380 s for the optimized
+path; four-PIE commands took 23.078/22.562 s versus 19.470/18.816 s. All
+proof hashes matched byte for byte, and sampled device peaks were identical
+at 97.22 and 142.65 GB. Summed ingress fell from 5.267/4.888 s to
+4.201/4.207 s for two PIEs, and from 10.971/10.505 s to 6.914/6.803 s for
+four PIEs. These are unranked direct diagnostics, not a 90% ingress reduction.
+The wider 408 MiB and 663 MiB PIEs exposed a separate CUDA pool-admission bug:
+freed arena pages retained by the private pool were omitted from available
+capacity. Counting the pool's unused pages let both previously failing batches
+complete at 102.65 GB and 142.65 GB sampled peaks. The 663 MiB parity
+comparison used a baseline with only the pool fix because unmodified main
+cannot complete its circuit wrap.
 
 `canonical_source.Prepared` owns the input and derives the complete proof plan
 from the pinned Stwo-Cairo AIR library. The canonical archive selects 64 witness
