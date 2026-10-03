@@ -41,10 +41,13 @@ It runs upstream `prove_leaf` from step 3 on:
 Differences from `leaf-prover`, none of which changes the output bytes:
 
 - The Zig lane has no Cairo VM. It starts from the execution the VM and the
-  upstream adapter produce, as `ProverInput` JSON
+  upstream adapter produce, as `ProverInput` JSON or lossless compact CPI
   (`stwo-circuit-oracle adapt-program`), where `leaf-prover` runs steps 1-2
   itself from `--program_input`. The contract is two steps: run the adapter
   (`adapt-program --program P --program-input I`), then `leaf-wrap`.
+  The canonical Cairo input reader admits both encodings with the same
+  semantic checks, so prepared compact inputs can reach a Metal leaf without
+  a JSON conversion step.
   `--program` is still required: its felts are the program the leaf
   circuit interns (`program_felts`). Upstream's `--circuit_registry_json`
   and `--output_path` are accepted for `--registry` and `--output`.

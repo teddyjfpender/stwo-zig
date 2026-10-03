@@ -45,7 +45,7 @@ pub const LeafWrap = struct {
     /// The compiled Cairo program the execution ran; its felts are the
     /// program the leaf circuit interns.
     program: []const u8,
-    /// The adapted execution (`ProverInput` JSON).
+    /// The adapted execution (`ProverInput` JSON or compact CPI).
     prover_input: []const u8,
     /// Where the `SerializedLeafProof` JSON goes.
     output: []const u8,

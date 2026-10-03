@@ -8,9 +8,9 @@
 //! registry's leaf verifier circuit and writes the `SerializedLeafProof` file
 //! byte for byte as `leaf-prover` does (pretty JSON, no trailing newline).
 //! The Zig lane has no Cairo VM, so it starts from the execution the VM and
-//! upstream adapter produce (`ProverInput` JSON, as `stwo-circuit-oracle
-//! adapt-program` writes it); `leaf-prover` runs those steps itself from the
-//! compiled program. The compiled program is still read: its felts are the
+//! upstream adapter produce (`ProverInput` JSON or lossless compact CPI, as
+//! `stwo-circuit-oracle adapt-program` writes it); `leaf-prover` runs those
+//! steps itself from the compiled program. The compiled program is still read: its felts are the
 //! program the leaf circuit interns, as upstream's `program_felts`.
 //!
 //! `verify` is upstream `verify_circuit` on a `CircuitSerialize` proof: it
@@ -193,7 +193,7 @@ pub fn leafWrapWith(comptime CairoLeaf: type, allocator: std.mem.Allocator, requ
     };
     defer allocator.free(program);
 
-    var input = try cairo.adapter.official_input.readFile(allocator, request.prover_input_path);
+    var input = try cairo.adapter.input.readFile(allocator, request.prover_input_path);
     defer input.deinit(allocator);
     timings.load_ns = timer.lap();
 

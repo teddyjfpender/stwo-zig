@@ -3,8 +3,12 @@
 `stwo-circuit-recursion-metal` uses the same `leaf-wrap`, `fold-tree`,
 `fold-stage`, `fold-stage-campaign`, `fold-stage-root`,
 `circuit-params`, and `verify` CLI and proof formats as the CPU product. Its
-leaf Cairo proof and circuit proofs use the Metal backend. The pinned
-`proving@5a7c5ed` leaf protocol commits some Merkle trees above their largest
+leaf Cairo proof and circuit proofs use the Metal backend. Its `leaf-wrap`
+input accepts official adapted JSON or lossless compact CPI through
+the Cairo frontend's canonical reader. This lets a CPU preparation service
+publish compact inputs once for Metal and CUDA workers.
+
+The pinned `proving@5a7c5ed` leaf protocol commits some Merkle trees above their largest
 column; the Metal backend re-commits resident trees at the explicit height on
 the device before mixing their roots into the transcript. Small trees follow
 its declared host commitment path.
