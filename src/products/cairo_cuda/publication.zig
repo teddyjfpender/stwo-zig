@@ -31,6 +31,7 @@ pub const Receipt = struct {
     /// are reported separately from critical-path ingress wall time.
     source_lookahead_prepare_ns: u64 = 0,
     source_lookahead_wait_ns: u64 = 0,
+    input_capture_timings: stwo.integration.canonical_source.InputTimings,
     ingress_timings: IngressTimings,
     proof_execute_and_decode_ns: u64,
     adapted_input_until_publication_ns: u64,

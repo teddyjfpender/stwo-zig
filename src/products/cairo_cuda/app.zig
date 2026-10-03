@@ -32,6 +32,10 @@ const ingress_jobs = @import("ingress_jobs.zig");
 pub const PrefetchJob = ingress_jobs.FixedAssetJob;
 const SourcePrepareJob = ingress_jobs.SourcePrepareJob;
 
+pub fn parseInputDigest(value: []const u8) ![32]u8 {
+    return cli.parseDigest(value);
+}
+
 /// Retains authenticated source assets and the checked fixed device image
 /// across separate batches on one resident runtime. Dynamic PIE inputs,
 /// transcripts, and proof transactions remain request-local.
@@ -194,7 +198,7 @@ fn runItems(allocator: std.mem.Allocator, items: []const BatchItem, mode: Mode, 
     const lookahead_setting = std.process.getEnvVarOwned(allocator, "STWO_CAIRO_CUDA_SOURCE_LOOKAHEAD") catch null;
     defer if (lookahead_setting) |value| allocator.free(value);
     const lookahead = mode == .distinct and items.len > 1 and assets_slot.* != null and
-        lookahead_setting != null and std.mem.eql(u8, lookahead_setting.?, "1");
+        (lookahead_setting == null or std.mem.eql(u8, lookahead_setting.?, "1"));
     const source_jobs = try allocator.alloc(?SourcePrepareJob, items.len);
     defer allocator.free(source_jobs);
     @memset(source_jobs, null);
@@ -210,12 +214,17 @@ fn runItems(allocator: std.mem.Allocator, items: []const BatchItem, mode: Mode, 
                 .target = target,
                 .assets = &assets_slot.*.?,
             };
-            source_jobs[index + 1].?.start() catch {
-                source_jobs[index + 1] = null;
-            };
         }
         const assets: ?*const CanonicalAssets = if (assets_slot.*) |*shared| shared else null;
-        const receipt = try proveOnce(allocator, runtime, static_slot, if (use_device_image) image_slot else null, item.request, executable_digest, @intCast(if (mode == .repeated) index + 1 else 1), if (index == 0) runtime_init_ns else 0, if (index == 0) asset_init_ns else 0, item.sink, external_runtime != null, assets, if (needs_prefetch) early_prefetch orelse &prefetch else null, if (source_jobs[index]) |*job| job else null);
+        const current_source_job: ?*SourcePrepareJob = if (source_jobs[index]) |*job|
+            if (job.thread != null) job else null
+        else
+            null;
+        const next_source_job: ?*SourcePrepareJob = if (index + 1 < items.len)
+            if (source_jobs[index + 1]) |*job| job else null
+        else
+            null;
+        const receipt = try proveOnce(allocator, runtime, static_slot, if (use_device_image) image_slot else null, item.request, executable_digest, @intCast(if (mode == .repeated) index + 1 else 1), if (index == 0) runtime_init_ns else 0, if (index == 0) asset_init_ns else 0, item.sink, external_runtime != null, assets, if (needs_prefetch) early_prefetch orelse &prefetch else null, current_source_job, next_source_job);
         if (mode == .repeated and item.sink == null) {
             // Repeated CLI proofs publish a canonical file. A verified sink
             // receives the decoded proof directly and has no file digest.
@@ -262,12 +271,14 @@ fn proveOnce(
     assets: ?*const CanonicalAssets,
     prefetch: ?*PrefetchJob,
     source_job: ?*SourcePrepareJob,
+    next_source_job: ?*SourcePrepareJob,
 ) !publication.Receipt {
     var timer = try std.time.Timer.start();
     var phase: []const u8 = "resolve_input";
     errdefer |err| std.debug.print("cairo-cuda phase={s} failed: {s}\n", .{ phase, @errorName(err) });
     var paths = try @import("canonical_paths.zig").Paths.init(allocator, request.input, request.circuit_registry);
     defer paths.deinit();
+    paths.source.expected_input_sha256 = request.expected_input_sha256;
     const paths_end_ns = timer.read();
     const runtime_end_ns = timer.read();
 
@@ -402,6 +413,11 @@ fn proveOnce(
     );
     resident_static.* = .{ .arena_key = arena_key, .receipt = static_receipt.preprocessed };
     const static_end_ns = timer.read();
+    // Loading the fixed 2.17 GB artifact and preparing the next CPI both
+    // consume host memory bandwidth. Start lookahead after static admission
+    // so they do not contend; writer preparation and proof still provide
+    // ample overlap for the next request.
+    if (next_source_job) |job| job.start() catch {};
     phase = "prepare_writers";
     var registry = try stwo.backend.product_aot.Registry.initCanonicalCairo(
         allocator,
@@ -505,6 +521,7 @@ fn proveOnce(
         .ingress_ns = ingress_ns + runtime_init_ns + asset_init_ns,
         .source_lookahead_prepare_ns = if (source_job) |job| job.preparation_ns else 0,
         .source_lookahead_wait_ns = if (source_job) |job| job.wait_ns else 0,
+        .input_capture_timings = diagnostic.input_capture_timings,
         .ingress_timings = .{
             .paths_ns = paths_end_ns,
             .runtime_ns = runtime_init_ns + runtime_end_ns - paths_end_ns,
@@ -573,6 +590,7 @@ fn compileTarget(session: anytype) !stwo.backend.runtime
 
 test {
     _ = cli;
+    _ = ingress_jobs;
     _ = stwo.executor.ingress.controller_bundle;
     _ = stwo.integration.canonical_source;
 }

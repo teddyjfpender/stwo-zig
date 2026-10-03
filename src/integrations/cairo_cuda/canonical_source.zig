@@ -8,8 +8,11 @@ const request_mod = @import("request_compiler.zig");
 const parametric = @import("parametric_eval.zig");
 const identities = @import("identity.zig");
 
+pub const InputTimings = @import("canonical_input.zig").Timings;
+
 pub const Paths = struct {
     input: []const u8,
+    expected_input_sha256: ?[32]u8 = null,
     /// When set, prove the pinned circuit leaf protocol under this registry
     /// lane. The variant and memory padding come from the lane, not CLI hints.
     leaf_lane: ?cairo.proving.leaf_lane.Lane = null,
@@ -91,6 +94,7 @@ pub const Prepared = struct {
     adapted_bytes: []align(64) u8,
     input: cairo.adapter.ProverInput,
     input_file_sha256: [32]u8,
+    input_capture_timings: InputTimings,
     input_sha256: [32]u8,
     variant: cairo.preprocessed.trace.Variant,
     claim: cairo.claim_generator.OwnedClaimGeometry,
@@ -130,7 +134,7 @@ pub fn prepareWithAssets(parent: std.mem.Allocator, paths: Paths, target: cuda.r
     const fixed_sha = if (assets) |shared| shared.fixed_sha else try authenticate(paths.fixed, "ed8dd7b470d1837bd2db254f08ee30f3ed180099f8ed78653db008f195713890");
     const relation_sha = if (assets) |shared| shared.relation_sha else try authenticate(paths.relations, "2a692328b5e761b7129c82052542ba03221d228089fe1583f2d8043e6b3d231f");
     profile.mark("asset_authentication");
-    const captured = try @import("canonical_input.zig").read(allocator, paths.input);
+    const captured = try @import("canonical_input.zig").readExpected(allocator, paths.input, paths.expected_input_sha256);
     var input = captured.input;
     const encoded = captured.encoded;
     const input_file_sha = captured.file_sha256;
@@ -222,7 +226,7 @@ pub fn prepareWithAssets(parent: std.mem.Allocator, paths: Paths, target: cuda.r
         _ = try authenticate(paths.relations, "2a692328b5e761b7129c82052542ba03221d228089fe1583f2d8043e6b3d231f");
     }
     profile.mark("final_admission");
-    return .{ .allocator = parent, .arena = arena, .adapted_bytes = encoded, .input = input, .input_file_sha256 = input_file_sha, .input_sha256 = input_sha, .variant = variant, .claim = claim, .geometry = geometry, .composition = bundle, .witnesses = witnesses, .feeds = feeds.bundle, .relations = relations, .fixed = fixed, .statement_bytes = statement, .preprocessed_logs = logs, .protocol = protocol, .request = request };
+    return .{ .allocator = parent, .arena = arena, .adapted_bytes = encoded, .input = input, .input_file_sha256 = input_file_sha, .input_capture_timings = captured.timings, .input_sha256 = input_sha, .variant = variant, .claim = claim, .geometry = geometry, .composition = bundle, .witnesses = witnesses, .feeds = feeds.bundle, .relations = relations, .fixed = fixed, .statement_bytes = statement, .preprocessed_logs = logs, .protocol = protocol, .request = request };
 }
 
 const SourceProfile = struct {

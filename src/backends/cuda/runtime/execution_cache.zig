@@ -313,11 +313,31 @@ pub fn CacheFor(comptime Api: type, comptime Context: type) type {
             arena_bytes: usize,
         ) runtime_error.Error!bool {
             const memory = try context.memoryInfo();
-            const usable_free = memory.free -
-                @min(memory.free, device_memory_safety_reserve_bytes);
+            // cudaMemGetInfo excludes pages retained by our private async
+            // pool. An evicted arena remains reusable there, so looking only
+            // at driver-free bytes falsely rejects a differently sized next
+            // request even when its allocation fits on this device.
+            const reusable = if (@hasDecl(Api, "stwo_exec_context_pool_current")) blk: {
+                const pool = try context.poolCurrent();
+                if (pool.used > pool.reserved) return error.InvalidState;
+                break :blk pool.reserved - pool.used;
+            } else 0;
+            const usable_free = usableMemory(memory.free, memory.total, reusable);
             return arena_bytes <= usable_free;
         }
     };
+}
+
+fn usableMemory(driver_free: usize, total: usize, pool_reusable: usize) usize {
+    const available = @min(total, std.math.add(usize, driver_free, pool_reusable) catch std.math.maxInt(usize));
+    return available - @min(available, device_memory_safety_reserve_bytes);
+}
+
+test "arena admission counts reusable async pool pages" {
+    const gib: usize = 1 << 30;
+    try std.testing.expect(usableMemory(45 * gib, 140 * gib, 93 * gib) >= 98 * gib);
+    try std.testing.expect(usableMemory(45 * gib, 140 * gib, 93 * gib) < 139 * gib);
+    try std.testing.expect(usableMemory(45 * gib, 140 * gib, 0) < 98 * gib);
 }
 
 fn increment(value: u64) error{Overflow}!u64 {

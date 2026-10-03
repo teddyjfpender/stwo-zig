@@ -38,6 +38,37 @@ pipeline or every possible Cairo input.
 
 ## Canonical source path
 
+The recursive CUDA leaf product accepts an optional SHA-256 digest for each
+adapted input (`--input-sha256` on a single leaf, `input_sha256` in a batch
+manifest). The service supplies the digest of its immutable content-addressed
+object. Admission hashes the captured input bytes and compares them with that
+digest, then proves only from the captured bytes; it skips the otherwise
+redundant second pathname read. A direct CLI invocation without a digest keeps
+the path-replacement check. Distinct-input batches prepare one successor CPI
+after the preceding proof's fixed-data upload, then overlap source work with
+writer preparation and proof, unless `STWO_CAIRO_CUDA_SOURCE_LOOKAHEAD=0`.
+Eligibility uses the CPI header rather than a filename extension because
+content-addressed inputs have digest names, and caps the successor file at
+768 MiB. The first request and complete batch wall clock remain inside the
+measurement boundary. Each trial reports input read, parse/encode, hash wait,
+and identity-check time separately so the next bottleneck is visible.
+
+The final H200 A/B used distinct 377/102 MiB compact inputs, then a mixed
+377/408/102/663 MiB sequence, under the canonical circuit leaf lane. Both
+variants included the CUDA pool-admission fix. Fresh-process two-PIE commands
+took 11.516/11.134 s for the baseline and 10.535/10.380 s for the optimized
+path; four-PIE commands took 23.078/22.562 s versus 19.470/18.816 s. All
+proof hashes matched byte for byte, and sampled device peaks were identical
+at 97.22 and 142.65 GB. Summed ingress fell from 5.267/4.888 s to
+4.201/4.207 s for two PIEs, and from 10.971/10.505 s to 6.914/6.803 s for
+four PIEs. These are unranked direct diagnostics, not a 90% ingress reduction.
+The wider 408 MiB and 663 MiB PIEs exposed a separate CUDA pool-admission bug:
+freed arena pages retained by the private pool were omitted from available
+capacity. Counting the pool's unused pages let both previously failing batches
+complete at 102.65 GB and 142.65 GB sampled peaks. The 663 MiB parity
+comparison used a baseline with only the pool fix because unmodified main
+cannot complete its circuit wrap.
+
 `canonical_source.Prepared` owns the input and derives the complete proof plan
 from the pinned Stwo-Cairo AIR library. The canonical archive selects 64 witness
 kernels and 68 parametric AIR bodies, in addition to the 48 common Native entries.

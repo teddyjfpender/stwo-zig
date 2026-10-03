@@ -32,6 +32,10 @@ fn leafWrap(allocator: std.mem.Allocator, args: []const []const u8) !void {
     const registry = try flag(args, "--registry");
     const program = try flag(args, "--program");
     const input = try flag(args, "--input");
+    const input_sha256 = if (optionalFlag(args, "--input-sha256")) |value|
+        try cairo_app.parseInputDigest(value)
+    else
+        null;
     const leaf_path = try flag(args, "--output");
     const cairo_proof = try flag(args, "--cairo-proof");
     const cairo_report = try flag(args, "--cairo-report");
@@ -55,6 +59,7 @@ fn leafWrap(allocator: std.mem.Allocator, args: []const []const u8) !void {
     var total = try std.time.Timer.start();
     try cairo_app.proveWithSinkUsingPrefetch(allocator, .{
         .input = input,
+        .expected_input_sha256 = input_sha256,
         .output = cairo_proof,
         .report_out = cairo_report,
         .repeat = 1,
@@ -69,6 +74,7 @@ const BatchManifestItem = struct {
     registry: []const u8,
     program: []const u8,
     input: []const u8,
+    input_sha256: ?[]const u8 = null,
     output: []const u8,
     cairo_proof: []const u8,
     cairo_report: []const u8,
@@ -244,6 +250,10 @@ fn runOneBatch(
         item.* = .{
             .request = .{
                 .input = entry.input,
+                .expected_input_sha256 = if (entry.input_sha256) |value|
+                    try cairo_app.parseInputDigest(value)
+                else
+                    null,
                 .output = entry.cairo_proof,
                 .report_out = entry.cairo_report,
                 .repeat = 1,
