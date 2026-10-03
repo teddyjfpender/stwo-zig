@@ -169,6 +169,7 @@ pub const LeafWrapRequest = struct {
 pub const Timings = struct {
     load_ns: u64 = 0,
     cairo_prove_ns: u64 = 0,
+    cairo_execute_ns: u64 = 0,
     wrap_ns: u64 = 0,
 };
 
@@ -219,7 +220,8 @@ pub fn leafWrapWith(comptime CairoLeaf: type, allocator: std.mem.Allocator, requ
         defer allocator.free(templates_path);
         var air_templates = try cairo.air.template_library.Library.readFile(allocator, templates_path);
         defer air_templates.deinit();
-        break :blk try CairoLeaf.proveLeafCairo(allocator, .{
+        const prove_started = try std.time.Instant.now();
+        const result = try CairoLeaf.proveLeafCairo(allocator, .{
             .input = &input,
             .programs = &programs,
             .topology = topology,
@@ -228,6 +230,8 @@ pub fn leafWrapWith(comptime CairoLeaf: type, allocator: std.mem.Allocator, requ
             .air_templates = &air_templates,
             .composition_device = CairoLeaf.compositionDevice(request.assets),
         }, registry.registry.cairo_prover_params, null);
+        timings.cairo_execute_ns = (try std.time.Instant.now()).since(prove_started);
+        break :blk result;
     };
     defer cairo_proof.deinit();
     timings.cairo_prove_ns = timer.lap();
@@ -425,6 +429,7 @@ fn leafWrapCommandWith(comptime CairoLeaf: type, provers: *const circuit_cpu.pro
         "leaf-wrap: load {d:.2} s, cairo prove {d:.2} s, wrap {d:.2} s; circuit hash {f}\n",
         .{ seconds(timings.load_ns), seconds(timings.cairo_prove_ns), seconds(timings.wrap_ns), HashText{ .words = leaf.circuit_hash.words } },
     );
+    try out.print("circuit-proof-stage kind=cairo ns={}\n", .{timings.cairo_execute_ns});
     if (command.profile) {
         var profile = try recorder.snapshot(gpa);
         defer profile.deinit(gpa);

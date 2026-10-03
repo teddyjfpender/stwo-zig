@@ -253,12 +253,14 @@ fn reduce(
         try proveNode(fold.provers.root, gpa, fold, &owned_values, subtasks, true)
     else
         try proveNode(fold.provers.internal, gpa, fold, &owned_values, subtasks, false);
+    const proof_ns = timer.read();
+    if (fold.source == null) std.debug.print("circuit-proof-stage kind=fold ns={} layer={} pair={}\n", .{ proof_ns, layer_idx, pair_idx });
     log.info("reduce layer {d} pair {d}{s}: build {d} ms, prove {d} ms", .{
         layer_idx,
         pair_idx,
         if (is_root) " (root)" else "",
         build_ns / std.time.ns_per_ms,
-        timer.read() / std.time.ns_per_ms,
+        proof_ns / std.time.ns_per_ms,
     });
     return parent;
 }
