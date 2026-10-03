@@ -148,8 +148,13 @@ fn runItems(allocator: std.mem.Allocator, items: []const BatchItem, mode: Mode, 
     defer prefetch.deinit();
     const image_setting = std.process.getEnvVarOwned(allocator, "STWO_CAIRO_CUDA_STATIC_IMAGE") catch null;
     defer if (image_setting) |value| allocator.free(value);
+    // A multi-leaf resident batch evicts its Cairo arena for every circuit
+    // wrap. Keep the verified fixed coefficients on device across leaves;
+    // an explicit setting can still disable this when capacity is tighter.
+    const image_requested = image_setting != null and std.mem.eql(u8, image_setting.?, "1");
+    const image_default = image_setting == null and mode == .distinct and items.len > 1;
     const use_device_image = external_runtime != null and (items.len > 1 or persistent != null) and
-        image_setting != null and std.mem.eql(u8, image_setting.?, "1");
+        (image_requested or image_default);
     // A verified leaf sink lends CUDA to the circuit prover. Its prepared
     // Cairo arena may be evicted before the next leaf, so an old static
     // receipt alone does not mean later leaves can skip the artifact. Retain
@@ -327,6 +332,10 @@ fn proveOnce(
     const arena_reused = runtime.hasPreparedExecution(arena_key);
     if (!arena_reused) {
         resident_static.* = null;
+        // A preceding leaf wrap may have left its circuit arena prepared.
+        // Evict it before admitting the Cairo arena so the two large
+        // workspaces do not overlap in device memory.
+        try runtime.releasePreparedExecution();
         try runtime.prepareExecution(allocator, arena_key, try arena_plan.clone(allocator));
     }
     const session = try runtime.beginProof();
