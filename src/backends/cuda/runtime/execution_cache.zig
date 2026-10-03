@@ -317,7 +317,7 @@ pub fn CacheFor(comptime Api: type, comptime Context: type) type {
             // pool. An evicted arena remains reusable there, so looking only
             // at driver-free bytes falsely rejects a differently sized next
             // request even when its allocation fits on this device.
-            const reusable = if (@hasDecl(Context, "poolCurrent")) blk: {
+            const reusable = if (@hasDecl(Api, "stwo_exec_context_pool_current")) blk: {
                 const pool = try context.poolCurrent();
                 if (pool.used > pool.reserved) return error.InvalidState;
                 break :blk pool.reserved - pool.used;
