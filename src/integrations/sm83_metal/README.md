@@ -5,6 +5,7 @@
 | Version | `0.1.0` |
 | Layer | `integration` |
 | Owner | `sm83-metal-integration` |
+| Public Zig module | `stwo_sm83_metal_integration` |
 | Focused CI host | macOS |
 
 ## Purpose and architecture

@@ -134,7 +134,10 @@ build contracts are available through `product-matrix-identity`,
 ### Package owner guides
 
 Every first-party package has an owner guide tied to its machine-readable
-contract. Start with the smallest package that owns the behavior being changed:
+contract. Start with the smallest package that owns the behavior being changed.
+The [source package index](src/README.md) includes the circuit-recursion
+packages, additional integrations, and command-line product guides omitted
+from this quick list:
 
 | Layer | Package guides |
 | :--- | :--- |
