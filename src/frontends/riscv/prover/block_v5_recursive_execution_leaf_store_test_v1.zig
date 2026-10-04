@@ -7,7 +7,7 @@ const Stores = @import("block_v5_recursive_execution_leaf_store_v1.zig");
 const T = Stores.ForFamily(.caller_arithmetic);
 const C = T.Codec;
 const Seal = @import("block_v5_source_seal_v1.zig");
-const Original = @import("block_v5_caller_capture_unit_test.zig").Fixture;
+const Original = @import("tests/block_v5_caller_capture_unit_test.zig").Fixture;
 const Protocol = @import("block_v5_precompile_protocol_v1.zig");
 const Parent = @import("../recursion/blake3_execution_parent_protocol.zig");
 const wires = [_]C.Bus.Wire{.{ .circuit = 1500, .wire = 0, .uses = 1, .source = .open_sum, .coordinate = 0 }};

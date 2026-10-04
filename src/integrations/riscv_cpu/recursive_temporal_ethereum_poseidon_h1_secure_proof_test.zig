@@ -10,28 +10,28 @@ const core = @import("stwo_core");
 const frontend = @import("stwo_riscv_frontend");
 const prover_engine = @import("stwo_prover_engine");
 
-const leaf_support = @import("ethereum_block_leaf_support.zig");
+const leaf_support = @import("./ethereum_block_leaf_support.zig");
 const ingress =
-    @import("recursive_temporal_ethereum_poseidon_h1_ingress_v1.zig");
+    @import("./recursive_temporal_ethereum_poseidon_h1_ingress_v1.zig");
 const h1_manifest =
-    @import("recursive_temporal_ethereum_poseidon_h1_manifest_v1.zig");
+    @import("./recursive_temporal_ethereum_poseidon_h1_manifest_v1.zig");
 const h1_cohort =
-    @import("recursive_temporal_ethereum_poseidon_h1_proof_cohort_v1.zig");
+    @import("./recursive_temporal_ethereum_poseidon_h1_proof_cohort_v1.zig");
 const parent_artifact =
-    @import("recursive_temporal_secure_parent_artifact_v1.zig");
+    @import("./recursive_temporal_secure_parent_artifact_v1.zig");
 const parent_engine =
-    @import("recursive_temporal_secure_parent_native_engine_v1.zig");
+    @import("./recursive_temporal_secure_parent_native_engine_v1.zig");
 const node_public =
-    @import("recursive_temporal_node_public_authority_v2.zig");
+    @import("./recursive_temporal_node_public_authority_v2.zig");
 const leaf_descriptor =
-    @import("recursive_temporal_ethereum_leaf_descriptor_v1.zig");
-const node_profile = @import("recursive_temporal_node_profile_v1.zig");
+    @import("./recursive_temporal_ethereum_leaf_descriptor_v1.zig");
+const node_profile = @import("./recursive_temporal_node_profile_v1.zig");
 const proof_security =
-    @import("recursive_temporal_proof_security_v1.zig");
+    @import("./recursive_temporal_proof_security_v1.zig");
 const child_transcript =
-    @import("recursive_temporal_child_transcript_authority_v1.zig");
+    @import("./recursive_temporal_child_transcript_authority_v1.zig");
 const provider_bridge =
-    @import("recursive_temporal_incremental_provider_authority_v1.zig");
+    @import("./recursive_temporal_incremental_provider_authority_v1.zig");
 
 const recursion = frontend.recursion;
 const prover = leaf_support.prover;

@@ -10,13 +10,13 @@ const std = @import("std");
 const stwo_core = @import("stwo_core");
 const shard_planner = @import("stwo_prover_engine").pcs.residency_shard_plan;
 const frontend = @import("stwo_riscv_frontend");
-const support = @import("ethereum_block_leaf_support.zig");
+const support = @import("./ethereum_block_leaf_support.zig");
 const provider_batch_execution =
-    @import("ethereum_candidate_degree5_provider_batch_execution_v1.zig");
+    @import("./ethereum_candidate_degree5_provider_batch_execution_v1.zig");
 const provider_prepared_batch =
-    @import("ethereum_candidate_degree5_provider_prepared_batch_v1.zig");
+    @import("./ethereum_candidate_degree5_provider_prepared_batch_v1.zig");
 const provider_proof_batch =
-    @import("ethereum_candidate_degree5_provider_proof_batch_v1.zig");
+    @import("./ethereum_candidate_degree5_provider_proof_batch_v1.zig");
 
 const prover = frontend.prover_mod;
 const M31 = stwo_core.fields.m31.M31;

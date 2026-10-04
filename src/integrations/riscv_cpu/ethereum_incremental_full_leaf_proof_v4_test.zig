@@ -12,15 +12,15 @@ const stwo_core = @import("stwo_core");
 const CpuBackend = @import("stwo_cpu_backend").CpuBackend;
 const frontend = @import("stwo_riscv_frontend");
 
-const artifact_v2 = @import("ethereum_incremental_boundary_artifact_v2.zig");
-const artifact_v4 = @import("ethereum_incremental_boundary_artifact_v4.zig");
-const authority_v1 = @import("ethereum_incremental_boundary_authority_v1.zig");
-const boundary_capture = @import("ethereum_incremental_boundary_capture_v2.zig");
-const boundary_v4 = @import("ethereum_incremental_boundary_authority_v4.zig");
-const full_leaf = @import("ethereum_incremental_full_leaf_proof_v4.zig");
-const profile_mod = @import("ethereum_incremental_full_leaf_profile_v4.zig");
+const artifact_v2 = @import("./ethereum_incremental_boundary_artifact_v2.zig");
+const artifact_v4 = @import("./ethereum_incremental_boundary_artifact_v4.zig");
+const authority_v1 = @import("./ethereum_incremental_boundary_authority_v1.zig");
+const boundary_capture = @import("./ethereum_incremental_boundary_capture_v2.zig");
+const boundary_v4 = @import("./ethereum_incremental_boundary_authority_v4.zig");
+const full_leaf = @import("./ethereum_incremental_full_leaf_proof_v4.zig");
+const profile_mod = @import("./ethereum_incremental_full_leaf_profile_v4.zig");
 const proof_artifact =
-    @import("ethereum_incremental_full_leaf_proof_artifact_v4.zig");
+    @import("./ethereum_incremental_full_leaf_proof_artifact_v4.zig");
 
 const M31 = stwo_core.fields.m31.M31;
 const prover = frontend.prover_mod;
@@ -298,7 +298,7 @@ fn exerciseFullLeaf(comptime frames_only: bool) !void {
     try std.testing.expectEqual(@as(u32, 193), profile.protocol.pcs.query_count);
 
     if (frames_only) {
-        const frame_tests = @import("ethereum_incremental_field_transcript_v4_test_support.zig");
+        const frame_tests = @import("./ethereum_incremental_field_transcript_v4_test_support.zig");
         try frame_tests.checkLegacy(&profile, &native, public_authority.public_data);
         try frame_tests.checkLegacy(&detailed_profile, &native, public_authority.public_data);
         const field_profile = try prepared.mintProfileWithAdmission(

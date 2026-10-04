@@ -2,7 +2,7 @@
 const std = @import("std");
 const core = @import("stwo_core");
 const frontend = @import("stwo_riscv_frontend");
-const helper = @import("recursive_common_ethereum_initial_input_packet_v1.zig");
+const helper = @import("./recursive_common_ethereum_initial_input_packet_v1.zig");
 const genuine = @import("recursive_common_ethereum_initial_input_lane_v1_test.zig");
 const Air = helper.Air;
 const Lane = Air.lane;
@@ -15,7 +15,7 @@ const Value = arithmetic.Value;
 const a = std.testing.allocator;
 const Memory = frontend.air.relation_challenges.RelationElements(7);
 const memory = Memory.dummy();
-const CIRCUIT_ID = @import("recursive_common_ethereum_incremental_leaf_public_sums_v4.zig").CIRCUIT_ID;
+const CIRCUIT_ID = @import("./recursive_common_ethereum_incremental_leaf_public_sums_v4.zig").CIRCUIT_ID;
 const FIXED_COUNT = 8 + 4 + 18 + 4;
 pub const TestGraph = struct {
     circuit: arithmetic.Circuit,
@@ -89,7 +89,7 @@ fn graphWireClosure(plan: *const Air.Relation.Plan, graph: *const TestGraph, row
     const graph_mod = r.composition_circuit;
     const linear = r.linear_ops_witness;
     const multiply = r.qm31_mul_full_witness;
-    const native_support = @import("recursive_common_ethereum_incremental_leaf_public_sums_v4_support.zig");
+    const native_support = @import("./recursive_common_ethereum_incremental_leaf_public_sums_v4_support.zig");
     const nodes = try a.alloc(graph_mod.Node, graph.circuit.nodes().len);
     defer a.free(nodes);
     for (nodes, graph.circuit.nodes()) |*destination, source| destination.* = native_support.graphNode(source);

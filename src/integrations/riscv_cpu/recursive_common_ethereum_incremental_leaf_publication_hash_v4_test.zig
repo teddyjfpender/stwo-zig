@@ -1,8 +1,8 @@
 const std = @import("std");
 const frontend = @import("stwo_riscv_frontend");
-const subject = @import("recursive_common_ethereum_incremental_leaf_publication_hash_v4.zig");
-const shared = @import("recursive_public_hash_rows_v1.zig");
-const schema = @import("recursive_common_ethereum_incremental_leaf_field_public_v4_schema3.zig");
+const subject = @import("./recursive_common_ethereum_incremental_leaf_publication_hash_v4.zig");
+const shared = @import("./recursive_public_hash_rows_v1.zig");
+const schema = @import("./recursive_common_ethereum_incremental_leaf_field_public_v4_schema3.zig");
 
 /// Reuses the existing independent projected schedule fixture. This does not
 /// mint a native owner or claim that all publication source routes are closed.

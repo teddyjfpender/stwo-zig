@@ -11,7 +11,7 @@ const prover = frontend.prover_mod;
 const public_data_mod = frontend.air.public_data;
 const artifact = prover.guest_precompile.ethereum_proof_artifact;
 const fixture = frontend.testing.guest_precompile_test_elf;
-const TrackedAllocator = @import("recursive_common_ethereum_incremental_leaf_genuine_runtime_v4.zig").TrackedSmpAllocatorV4;
+const TrackedAllocator = @import("./recursive_common_ethereum_incremental_leaf_genuine_runtime_v4.zig").TrackedSmpAllocatorV4;
 const Engine = prover.ProverEngineForBackend(CpuBackend);
 
 // These parameters deliberately do not select a production security profile.

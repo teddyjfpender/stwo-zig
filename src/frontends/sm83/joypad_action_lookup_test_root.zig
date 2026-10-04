@@ -1,3 +1,3 @@
 test {
-    _ = @import("air/joypad_action_lookup_test.zig");
+    _ = @import("air/tests/joypad_action_lookup_test.zig");
 }

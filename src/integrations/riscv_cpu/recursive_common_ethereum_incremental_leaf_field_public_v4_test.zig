@@ -2,12 +2,12 @@ const std = @import("std");
 const frontend = @import("stwo_riscv_frontend");
 const CpuBackend = @import("stwo_cpu_backend").CpuBackend;
 
-const artifact = @import("recursive_node_artifact_v1.zig");
-const field_public = @import("recursive_field_node_public_v2.zig");
+const artifact = @import("./recursive_node_artifact_v1.zig");
+const field_public = @import("./recursive_field_node_public_v2.zig");
 const input =
-    @import("recursive_common_ethereum_incremental_leaf_input_v4.zig");
+    @import("./recursive_common_ethereum_incremental_leaf_input_v4.zig");
 const subject =
-    @import("recursive_common_ethereum_incremental_leaf_field_public_v4.zig");
+    @import("./recursive_common_ethereum_incremental_leaf_field_public_v4.zig");
 
 const recursion = frontend.recursion;
 const public_data = frontend.air.public_data;

@@ -18,11 +18,11 @@ const std = @import("std");
 const CpuBackend = @import("stwo_cpu_backend").CpuBackend;
 const frontend = @import("stwo_riscv_frontend");
 
-const route_mod = @import("ethereum_incremental_omitted_leaf_route_v1.zig");
+const route_mod = @import("./ethereum_incremental_omitted_leaf_route_v1.zig");
 const execution_mod =
-    @import("ethereum_candidate_degree5_provider_batch_execution_v1.zig");
+    @import("./ethereum_candidate_degree5_provider_batch_execution_v1.zig");
 const throughput =
-    @import("ethereum_incremental_full_leaf_throughput_execution_v1.zig");
+    @import("./ethereum_incremental_full_leaf_throughput_execution_v1.zig");
 
 const provider_authority =
     frontend.testing.narrow_memory_provider_shard_authority;

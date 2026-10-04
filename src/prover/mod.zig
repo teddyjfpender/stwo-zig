@@ -31,15 +31,15 @@ pub const execution = @import("execution/mod.zig");
 
 test {
     _ = @import("vcs_lifted/blake2_stream4.zig");
-    _ = @import("fri_work_test.zig");
-    _ = @import("work_pool_test.zig");
+    _ = @import("tests/fri_work_test.zig");
+    _ = @import("tests/work_pool_test.zig");
     _ = host_budget_allocator;
-    _ = @import("tracked_smp_allocator_test.zig");
-    _ = @import("task_graph_nested_test.zig");
-    _ = @import("task_graph_profile_failure_test.zig");
-    _ = @import("task_graph_profile_test.zig");
-    _ = @import("task_graph_retained_lease_test.zig");
-    _ = @import("task_graph_work_pool_test.zig");
+    _ = @import("tests/tracked_smp_allocator_test.zig");
+    _ = @import("tests/task_graph_nested_test.zig");
+    _ = @import("tests/task_graph_profile_failure_test.zig");
+    _ = @import("tests/task_graph_profile_test.zig");
+    _ = @import("tests/task_graph_retained_lease_test.zig");
+    _ = @import("tests/task_graph_work_pool_test.zig");
 }
 
 test "api signature: engine reexports the stable transaction contract" {

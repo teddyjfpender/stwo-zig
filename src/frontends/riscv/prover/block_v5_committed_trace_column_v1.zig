@@ -79,5 +79,5 @@ fn evaluateBounded(a: std.mem.Allocator, full: []const M, trace_log: u32, transf
 }
 
 test {
-    _ = @import("block_v5_committed_trace_column_test.zig");
+    _ = @import("tests/block_v5_committed_trace_column_test.zig");
 }

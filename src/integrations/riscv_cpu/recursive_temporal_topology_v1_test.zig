@@ -1,22 +1,22 @@
 const std = @import("std");
 const frontend = @import("stwo_riscv_frontend");
 
-const leaf_mod = @import("recursive_temporal_leaf_or_empty_v1.zig");
-const topology = @import("recursive_temporal_topology_v1.zig");
+const leaf_mod = @import("./recursive_temporal_leaf_or_empty_v1.zig");
+const topology = @import("./recursive_temporal_topology_v1.zig");
 const empty_transcript =
-    @import("recursive_temporal_empty_parent_transcript_v1.zig");
-const empty_source = @import("recursive_temporal_empty_parent_source_v1.zig");
-const node_profile = @import("recursive_temporal_node_profile_v1.zig");
-const proof_security = @import("recursive_temporal_proof_security_v1.zig");
+    @import("./recursive_temporal_empty_parent_transcript_v1.zig");
+const empty_source = @import("./recursive_temporal_empty_parent_source_v1.zig");
+const node_profile = @import("./recursive_temporal_node_profile_v1.zig");
+const proof_security = @import("./recursive_temporal_proof_security_v1.zig");
 const heterogeneous_pair =
-    @import("recursive_temporal_heterogeneous_pair_v1.zig");
-const statement_plan = @import("recursive_temporal_statement_plan_v1.zig");
+    @import("./recursive_temporal_heterogeneous_pair_v1.zig");
+const statement_plan = @import("./recursive_temporal_statement_plan_v1.zig");
 const profile_transport_test =
     @import("recursive_temporal_profile_plan_transport_v1_test.zig");
 const verified_reducer_test =
     @import("recursive_temporal_verified_reducer_v1_test.zig");
 const ethereum_leaf_bridge =
-    @import("recursive_temporal_ethereum_leaf_bridge_v1.zig");
+    @import("./recursive_temporal_ethereum_leaf_bridge_v1.zig");
 const ethereum_leaf_child_field_test =
     frontend.testing.ethereum_leaf_child_field_test;
 const provider_shard_child_field_test =

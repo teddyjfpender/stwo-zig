@@ -3,10 +3,10 @@
 const std = @import("std");
 const core = @import("stwo_core");
 const recursion = @import("stwo_riscv_frontend").recursion;
-const verifier = @import("recursive_segment_v2_detached_parent_verifier.zig");
-const command = @import("recursive_segment_v2_detached_parent_command.zig");
+const verifier = @import("./recursive_segment_v2_detached_parent_verifier.zig");
+const command = @import("./recursive_segment_v2_detached_parent_command.zig");
 const cohort = @import("stwo_riscv_frontend").recursion.detached_parent_components_v1;
-const composition = @import("recursive_segment_v2_detached_composition.zig");
+const composition = @import("./recursive_segment_v2_detached_composition.zig");
 const v3 = recursion.recursion_air_composition_circuit_v3;
 const QM31 = core.fields.qm31.QM31;
 
@@ -15,7 +15,7 @@ test "detached parent capture replays genuine sparse cohort after input destruct
     var key: *command.OwnedKeyV1 = undefined;
     var expected: verifier.ExpectedV1 = undefined;
     var claims: verifier.ClaimsV1 = undefined;
-    const Owner = @import("recursive_segment_v2_detached_child_transcript.zig").ParentOwnedV1;
+    const Owner = @import("./recursive_segment_v2_detached_child_transcript.zig").ParentOwnedV1;
     var owner: *Owner = undefined;
     {
         var input_arena = std.heap.ArenaAllocator.init(allocator);
@@ -49,7 +49,7 @@ test "detached parent capture replays genuine sparse cohort after input destruct
     }
     defer key.deinit();
     defer owner.deinit();
-    try @import("recursive_segment_v2_detached_boundary.zig").testing.parentBoundary(allocator, owner);
+    try @import("./recursive_segment_v2_detached_boundary.zig").testing.parentBoundary(allocator, owner);
     expected = owner.expected().*;
     claims = owner.claims();
     const capture = owner.captureView();
@@ -82,10 +82,10 @@ test "detached parent capture replays genuine sparse cohort after input destruct
         mutations += 1;
     }
     try std.testing.expectEqual(@as(usize, 45), mutations);
-    const prefix_module = @import("recursive_segment_v2_detached_prefix.zig");
+    const prefix_module = @import("./recursive_segment_v2_detached_prefix.zig");
     const prefix = try prefix_module.OwnedV1.init(allocator, owner, 1);
     defer prefix.deinit();
-    const transcript = try @import("recursive_segment_v2_detached_pcs_rows.zig").OwnedV1.init(allocator, owner, prefix, 1);
+    const transcript = try @import("./recursive_segment_v2_detached_pcs_rows.zig").OwnedV1.init(allocator, owner, prefix, 1);
     defer transcript.deinit();
     var public_limbs: usize = 0;
     for (prefix.view().payload) |row| {
@@ -106,6 +106,6 @@ test "detached parent capture replays genuine sparse cohort after input destruct
     try std.testing.expectEqual(program.circuit.nodes.len, prepared_composition.evaluatedValues().len);
     // Compare both selected lanes against the independent full-column oracle,
     // including every logical row and provider request/output.
-    try @import("recursive_segment_v2_detached_pcs_checks.zig").testFromVerifiedChild(allocator, owner);
+    try @import("./recursive_segment_v2_detached_pcs_checks.zig").testFromVerifiedChild(allocator, owner);
     std.debug.print("DETACHED_PARENT_CAPTURE active_rows={d} physical_claims={d} sampled_values={d} graph_nodes={d} rejected_claims_and_samples={d} public_transcript_limbs={d} input_destroyed=true parent_verified=true consumer_proof_created=false\n", .{ key.key().manifest.roster_count, claims.values.len, capture.sampled_values.len, program.circuit.nodes.len, mutations, public_limbs });
 }

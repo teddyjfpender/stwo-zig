@@ -2,19 +2,19 @@ const std = @import("std");
 const artifact_store = @import("stwo_artifact_store");
 
 const subject =
-    @import("recursive_pipeline_worker_campaign_consumers_v2.zig");
+    @import("./recursive_pipeline_worker_campaign_consumers_v2.zig");
 const common_backend =
-    @import("recursive_pipeline_worker_campaign_common_fold_v2.zig");
+    @import("./recursive_pipeline_worker_campaign_common_fold_v2.zig");
 const canonical_backend =
-    @import("recursive_pipeline_worker_campaign_canonical_empty_v2.zig");
+    @import("./recursive_pipeline_worker_campaign_canonical_empty_v2.zig");
 const fold_lease =
-    @import("recursive_pipeline_campaign_fold_lease_v2.zig");
+    @import("./recursive_pipeline_campaign_fold_lease_v2.zig");
 const validation =
-    @import("recursive_process_local_validation_token_v1.zig");
+    @import("./recursive_process_local_validation_token_v1.zig");
 const preprocessed =
-    @import("recursive_process_local_preprocessed_authority_v1.zig");
+    @import("./recursive_process_local_preprocessed_authority_v1.zig");
 const throughput =
-    @import("recursive_recursion_verifier_throughput_v1.zig");
+    @import("./recursive_recursion_verifier_throughput_v1.zig");
 
 test "campaign Stage103 and Stage104 siblings are typed and unrouteable" {
     const Stage103 = subject.Stage103For(

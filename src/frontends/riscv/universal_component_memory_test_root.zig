@@ -1,1 +1,3 @@
-comptime { _ = @import("recursion/air/universal_typed_component_test.zig"); }
+comptime {
+    _ = @import("recursion/air/tests/universal_typed_component_test.zig");
+}

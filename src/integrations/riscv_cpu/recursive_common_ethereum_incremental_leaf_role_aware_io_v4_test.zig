@@ -3,7 +3,7 @@ const stwo_core = @import("stwo_core");
 const frontend = @import("stwo_riscv_frontend");
 
 const subject =
-    @import("recursive_common_ethereum_incremental_leaf_role_aware_io_v4.zig");
+    @import("./recursive_common_ethereum_incremental_leaf_role_aware_io_v4.zig");
 
 const M31 = stwo_core.fields.m31.M31;
 const relations_mod = frontend.air.relation_challenges;

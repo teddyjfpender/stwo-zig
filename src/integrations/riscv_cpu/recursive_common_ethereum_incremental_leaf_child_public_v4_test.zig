@@ -1,7 +1,7 @@
 const std = @import("std");
 
 const subject =
-    @import("recursive_common_ethereum_incremental_leaf_child_public_v4.zig");
+    @import("./recursive_common_ethereum_incremental_leaf_child_public_v4.zig");
 
 test "child-public binding rejects removed legacy claim hash admission" {
     const claim = digest(101);

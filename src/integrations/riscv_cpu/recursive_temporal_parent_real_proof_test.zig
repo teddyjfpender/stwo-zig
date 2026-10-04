@@ -12,23 +12,23 @@ const frontend = @import("stwo_riscv_frontend");
 
 const ingress = @import("recursive_segment_v2_leaf_outer_proof_test.zig");
 const outer_proof = @import("recursive_segment_v2_outer_proof_test.zig");
-const recording_support = @import("recursive_v3_recording_test_support.zig");
+const recording_support = @import("./recursive_v3_recording_test_support.zig");
 
-const leaf_outer = @import("recursive_segment_v2_leaf_outer.zig");
-const outer_cohort = @import("recursive_segment_v2_outer_cohort.zig");
-const outer_engine = @import("recursive_segment_v2_outer_engine.zig");
+const leaf_outer = @import("./recursive_segment_v2_leaf_outer.zig");
+const outer_cohort = @import("./recursive_segment_v2_outer_cohort.zig");
+const outer_engine = @import("./recursive_segment_v2_outer_engine.zig");
 const child_authority =
-    @import("recursive_segment_v2_temporal_child_authority.zig");
-const pair_authority = @import("recursive_temporal_pair_authority_v2.zig");
-const prefix_runtime = @import("recursive_temporal_parent_prefix_runtime.zig");
-const row18_source = @import("recursive_temporal_parent_row18_source_v3.zig");
-const temporal_cohort = @import("recursive_temporal_parent_cohort_v3.zig");
-const temporal_manifest = @import("recursive_temporal_parent_manifest_v3.zig");
-const temporal_nonfri = @import("recursive_temporal_nonfri_source_v2.zig");
+    @import("./recursive_segment_v2_temporal_child_authority.zig");
+const pair_authority = @import("./recursive_temporal_pair_authority_v2.zig");
+const prefix_runtime = @import("./recursive_temporal_parent_prefix_runtime.zig");
+const row18_source = @import("./recursive_temporal_parent_row18_source_v3.zig");
+const temporal_cohort = @import("./recursive_temporal_parent_cohort_v3.zig");
+const temporal_manifest = @import("./recursive_temporal_parent_manifest_v3.zig");
+const temporal_nonfri = @import("./recursive_temporal_nonfri_source_v2.zig");
 const level2_composition =
-    @import("recursive_temporal_level2_composition_v1.zig");
-const binary_driver = @import("recursive_binary_outer.zig");
-const binary_cohort_mod = @import("recursive_binary_outer_cohort.zig");
+    @import("./recursive_temporal_level2_composition_v1.zig");
+const binary_driver = @import("./recursive_binary_outer.zig");
+const binary_cohort_mod = @import("./recursive_binary_outer_cohort.zig");
 
 const recursion = frontend.recursion;
 const universal = recursion.air.universal_challenges;

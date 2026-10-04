@@ -139,10 +139,10 @@ test {
     _ = @import("environment_proof_components.zig");
     _ = @import("environment_proof_components_test.zig");
     _ = air;
-    _ = @import("air/cartridge_access_test.zig");
-    _ = @import("air/joypad_component_test.zig");
-    _ = @import("air/joypad_test.zig");
-    _ = @import("air/scheduler_test.zig");
+    _ = @import("air/tests/cartridge_access_test.zig");
+    _ = @import("air/tests/joypad_component_test.zig");
+    _ = @import("air/tests/joypad_test.zig");
+    _ = @import("air/tests/scheduler_test.zig");
     _ = @import("runner/cartridge_memory_apu_test.zig");
     _ = @import("runner/cartridge_memory_core_test.zig");
     _ = @import("runner/cartridge_memory_ppu_test.zig");

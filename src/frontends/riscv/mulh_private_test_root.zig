@@ -4,7 +4,7 @@ const authority = @import("air/lang/typed_mulh_authority.zig");
 
 test {
     _ = authority;
-    _ = @import("air/lang/typed_mulh_authority_test.zig");
+    _ = @import("air/lang/tests/typed_mulh_authority_test.zig");
     _ = @import("runner/mulh_retirement.zig");
-    _ = @import("runner/mulh_retirement_test.zig");
+    _ = @import("runner/tests/mulh_retirement_test.zig");
 }

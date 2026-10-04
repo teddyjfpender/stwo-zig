@@ -1,3 +1,3 @@
 test {
-    _ = @import("prover/block_v5_precompile_large_profile_test.zig");
+    _ = @import("prover/tests/block_v5_precompile_large_profile_test.zig");
 }

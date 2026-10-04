@@ -1,9 +1,9 @@
 const std = @import("std");
 const core = @import("stwo_core");
 const frontend = @import("stwo_riscv_frontend");
-const public = @import("recursive_field_node_public_v2.zig");
-const canonical = @import("recursive_common_canonical_empty_field_public_v2.zig");
-const subject = @import("recursive_common_canonical_empty_boundary_v3.zig");
+const public = @import("./recursive_field_node_public_v2.zig");
+const canonical = @import("./recursive_common_canonical_empty_field_public_v2.zig");
+const subject = @import("./recursive_common_canonical_empty_boundary_v3.zig");
 const recorder = frontend.recursion.air.composition_graph_recorder;
 const M31 = core.fields.m31.M31;
 const QM31 = core.fields.qm31.QM31;
@@ -71,8 +71,8 @@ pub fn exercise(fixture: *const public.NodePublicV2) !void {
 }
 
 fn checkSession(node: *const public.NodePublicV2) !void {
-    const sessions = @import("recursive_temporal_secure_parent_artifact_v1.zig");
-    const manifest = @import("recursive_common_canonical_empty_universal_manifest_v2.zig");
+    const sessions = @import("./recursive_temporal_secure_parent_artifact_v1.zig");
+    const manifest = @import("./recursive_common_canonical_empty_universal_manifest_v2.zig");
     const Channel = frontend.recursion.poseidon2_channel.Channel;
     var authority = sessions.CanonicalEmptySessionAuthorityV1{
         .ingress_identity_sha256 = [_]u8{1} ** 32,

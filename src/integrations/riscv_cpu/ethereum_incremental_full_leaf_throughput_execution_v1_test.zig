@@ -1,7 +1,7 @@
 const std = @import("std");
 
 const subject =
-    @import("ethereum_incremental_full_leaf_throughput_execution_v1.zig");
+    @import("./ethereum_incremental_full_leaf_throughput_execution_v1.zig");
 const process_usage = @import("stwo_prover_engine").measurement.process_usage;
 
 test "Stage101 execution policy admits strict worker counts one through eighteen" {

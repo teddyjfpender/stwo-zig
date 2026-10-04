@@ -2,12 +2,12 @@
 //! both adjacent native leaves; cold verification reconstructs it from ELF.
 const std = @import("std");
 const frontend = @import("stwo_riscv_frontend");
-const admission = @import("ethereum_fixed_program_admission_v1.zig");
-const fixture = @import("recursive_common_ethereum_incremental_leaf_universal_proof_v4_genuine_fixture.zig");
-const input_mod = @import("recursive_common_ethereum_incremental_leaf_input_v4.zig");
+const admission = @import("./ethereum_fixed_program_admission_v1.zig");
+const fixture = @import("./recursive_common_ethereum_incremental_leaf_universal_proof_v4_genuine_fixture.zig");
+const input_mod = @import("./recursive_common_ethereum_incremental_leaf_input_v4.zig");
 const Engine = frontend.recursion.engine.ProverEngineForBackend(@import("stwo_cpu_backend").CpuBackend);
 const Input = input_mod.FreshInputV4(Engine);
-const runtime = @import("recursive_common_ethereum_incremental_leaf_genuine_runtime_v4.zig");
+const runtime = @import("./recursive_common_ethereum_incremental_leaf_genuine_runtime_v4.zig");
 fn sha(bytes: []const u8) [32]u8 {
     var result: [32]u8 = undefined;
     std.crypto.hash.sha2.Sha256.hash(bytes, &result, .{});
@@ -36,7 +36,7 @@ test "Ethereum fixed program native leaves destroy producer and freshly verify a
     defer wrong_program.deinit();
     try std.testing.expectEqual(program.descriptor().compatibility_root, wrong_program.descriptor().compatibility_root);
     for (artifacts.bytes, 0..) |bytes, index| {
-        const coordinate = try @import("recursive_node_artifact_v1.zig").TaskCoordinateV1.init(0, @intCast(index));
+        const coordinate = try @import("./recursive_node_artifact_v1.zig").TaskCoordinateV1.init(0, @intCast(index));
         try std.testing.expectError(error.EthereumFixedProgramAdmissionRequired, Input.coldOpen(allocator, bytes, coordinate, .{}));
         try std.testing.expectError(error.EthereumFixedProgramAdmissionMismatch, Input.coldOpenWithProgramAdmission(allocator, bytes, coordinate, .{}, wrong_program));
         var fresh = try Input.coldOpenWithProgramAdmission(allocator, bytes, coordinate, .{}, program);

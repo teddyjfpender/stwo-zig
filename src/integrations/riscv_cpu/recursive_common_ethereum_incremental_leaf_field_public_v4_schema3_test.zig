@@ -1,14 +1,14 @@
 const std = @import("std");
 const frontend = @import("stwo_riscv_frontend");
 
-const artifact = @import("recursive_node_artifact_v1.zig");
-const node_public = @import("recursive_field_node_public_v2.zig");
+const artifact = @import("./recursive_node_artifact_v1.zig");
+const node_public = @import("./recursive_field_node_public_v2.zig");
 const role_io =
-    @import("recursive_common_ethereum_incremental_leaf_role_aware_io_v4.zig");
+    @import("./recursive_common_ethereum_incremental_leaf_role_aware_io_v4.zig");
 const schema2 =
-    @import("recursive_common_ethereum_incremental_leaf_field_public_v4.zig");
+    @import("./recursive_common_ethereum_incremental_leaf_field_public_v4.zig");
 const subject =
-    @import("recursive_common_ethereum_incremental_leaf_field_public_v4_schema3.zig");
+    @import("./recursive_common_ethereum_incremental_leaf_field_public_v4_schema3.zig");
 
 const channel = frontend.recursion.poseidon2_channel;
 

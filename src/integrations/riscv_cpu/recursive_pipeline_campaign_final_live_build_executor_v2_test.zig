@@ -1,8 +1,8 @@
 const std = @import("std");
 const artifact_store = @import("stwo_artifact_store");
 
-const protocol = @import("recursive_pipeline_worker_protocol_v1.zig");
-const worker_mod = @import("recursive_pipeline_worker_v1.zig");
+const protocol = @import("./recursive_pipeline_worker_protocol_v1.zig");
+const worker_mod = @import("./recursive_pipeline_worker_v1.zig");
 const subject = @import(
     "recursive_pipeline_campaign_final_live_build_executor_v2.zig",
 );

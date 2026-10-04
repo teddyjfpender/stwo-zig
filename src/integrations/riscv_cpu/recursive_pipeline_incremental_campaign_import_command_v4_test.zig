@@ -2,13 +2,13 @@ const std = @import("std");
 const artifact_store = @import("stwo_artifact_store");
 
 const command =
-    @import("recursive_pipeline_incremental_campaign_import_command_v4.zig");
+    @import("./recursive_pipeline_incremental_campaign_import_command_v4.zig");
 const ethereum_policy =
-    @import("recursive_pipeline_incremental_campaign_ethereum_policy_v4.zig");
+    @import("./recursive_pipeline_incremental_campaign_ethereum_policy_v4.zig");
 const receipt_mod =
-    @import("recursive_pipeline_incremental_campaign_import_receipt_v4.zig");
+    @import("./recursive_pipeline_incremental_campaign_import_receipt_v4.zig");
 const table =
-    @import("recursive_pipeline_incremental_campaign_table_v4.zig");
+    @import("./recursive_pipeline_incremental_campaign_table_v4.zig");
 
 test "campaign import receipt is canonical and path-free" {
     const segment_count: u32 = 5;

@@ -3,22 +3,22 @@ const stwo_core = @import("stwo_core");
 const frontend = @import("stwo_riscv_frontend");
 
 const subject =
-    @import("recursive_common_canonical_empty_universal_proof_v2.zig");
+    @import("./recursive_common_canonical_empty_universal_proof_v2.zig");
 const input_mod =
-    @import("recursive_common_canonical_empty_wrapper_input_v1.zig");
+    @import("./recursive_common_canonical_empty_wrapper_input_v1.zig");
 const manifest_mod =
-    @import("recursive_common_canonical_empty_universal_manifest_v2.zig");
+    @import("./recursive_common_canonical_empty_universal_manifest_v2.zig");
 const cohort_mod =
-    @import("recursive_common_canonical_empty_universal_cohort_v2.zig");
-const registry_mod = @import("recursive_circuit_registry_v1.zig");
+    @import("./recursive_common_canonical_empty_universal_cohort_v2.zig");
+const registry_mod = @import("./recursive_circuit_registry_v1.zig");
 const process_validation =
-    @import("recursive_process_local_validation_token_v1.zig");
+    @import("./recursive_process_local_validation_token_v1.zig");
 const preprocessed_authority =
-    @import("recursive_process_local_preprocessed_authority_v1.zig");
+    @import("./recursive_process_local_preprocessed_authority_v1.zig");
 const throughput =
-    @import("recursive_recursion_verifier_throughput_v1.zig");
-const artifact_mod = @import("recursive_node_artifact_v1.zig");
-const leaf_mod = @import("recursive_temporal_leaf_or_empty_v1.zig");
+    @import("./recursive_recursion_verifier_throughput_v1.zig");
+const artifact_mod = @import("./recursive_node_artifact_v1.zig");
+const leaf_mod = @import("./recursive_temporal_leaf_or_empty_v1.zig");
 
 const recursion = frontend.recursion;
 const span = recursion.span_statement;
@@ -627,7 +627,7 @@ fn exerciseTranscriptProgramBinding(
     first: *subject.Kernel.RecordedReplayV1,
     first_graph: [32]u8,
 ) !void {
-    const program_mod = @import("recursive_secure_transcript_program_v1.zig");
+    const program_mod = @import("./recursive_secure_transcript_program_v1.zig");
     // Legacy SHA tags remain witness-dependent, but the field profile no
     // longer emits them. Substituting one must fail program admission.
     try std.testing.expect(program_mod.Source.session_seal.witnessDependent());

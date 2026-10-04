@@ -9,7 +9,7 @@ const Range = @import("frontends/riscv/prover/block_v5_range16_component_v1.zig"
 const metal = @import("backends/metal/runtime/secure_polynomial_codegen_v1.zig");
 const cuda = @import("backends/cuda/secure_polynomial_codegen_v1.zig");
 comptime {
-    _ = @import("frontends/riscv/prover/block_v5_word_gpu_program_test.zig");
+    _ = @import("frontends/riscv/prover/tests/block_v5_word_gpu_program_test.zig");
 }
 test "secure GPU codegen binds typed source and reuses executable across dynamic public values" {
     const a = std.testing.allocator;

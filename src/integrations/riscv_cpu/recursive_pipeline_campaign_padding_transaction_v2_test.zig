@@ -1,10 +1,10 @@
 const std = @import("std");
 
-const subject = @import("recursive_pipeline_campaign_padding_transaction_v2.zig");
-const target_mod = @import("recursive_pipeline_campaign_padding_target_v2.zig");
+const subject = @import("./recursive_pipeline_campaign_padding_transaction_v2.zig");
+const target_mod = @import("./recursive_pipeline_campaign_padding_target_v2.zig");
 const fixture_mod =
     @import("recursive_common_wrapper_padding_remint_v2_test.zig");
-const shape_mod = @import("recursive_pipeline_campaign_shape_v2.zig");
+const shape_mod = @import("./recursive_pipeline_campaign_shape_v2.zig");
 
 test "pre-final target and three cold remints mint one campaign authority" {
     var fixture = try fixture_mod.Fixture.init();

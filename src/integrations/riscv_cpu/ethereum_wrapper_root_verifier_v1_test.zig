@@ -2,12 +2,12 @@
 const std = @import("std");
 const core = @import("stwo_core");
 const recursion = @import("stwo_riscv_frontend").recursion;
-const verifier = @import("ethereum_wrapper_root_verifier_v1.zig");
-const transport = @import("ethereum_wrapper_root_command_v1.zig");
-const manifest_mod = @import("recursive_common_ethereum_incremental_leaf_universal_manifest_v4.zig");
-const field = @import("ethereum_wrapper_field_transcript_v1.zig");
-const session_mod = @import("recursive_temporal_secure_parent_artifact_v1.zig");
-const node_mod = @import("recursive_field_node_public_v2.zig");
+const verifier = @import("./ethereum_wrapper_root_verifier_v1.zig");
+const transport = @import("./ethereum_wrapper_root_command_v1.zig");
+const manifest_mod = @import("./recursive_common_ethereum_incremental_leaf_universal_manifest_v4.zig");
+const field = @import("./ethereum_wrapper_field_transcript_v1.zig");
+const session_mod = @import("./recursive_temporal_secure_parent_artifact_v1.zig");
+const node_mod = @import("./recursive_field_node_public_v2.zig");
 const lowering = recursion.air.verifier_arithmetic_lowering;
 const QM31 = core.fields.qm31.QM31;
 const Relations = recursion.air.universal_challenges.UniversalRelations;
@@ -50,7 +50,7 @@ pub fn testKey() !verifier.KeyV1 {
         .parameters = .{ .query_reference = try recursion.air.query_bits_witness.Reference.seal(lane, lane), .poseidon_active_rows = 1 },
         .wire_terms = &terms,
     };
-    key.session_fields = try @import("ethereum_wrapper_fixed_circuit_v1.zig").sessionFields(&key);
+    key.session_fields = try @import("./ethereum_wrapper_fixed_circuit_v1.zig").sessionFields(&key);
     return key;
 }
 
@@ -63,12 +63,12 @@ pub fn testInitialKey() !verifier.Initial38.KeyV1 {
         .parameters = .{ .query_reference = ordinary.parameters.query_reference, .poseidon_active_rows = ordinary.parameters.poseidon_active_rows },
         .wire_terms = &terms,
     };
-    key.session_fields = try @import("ethereum_wrapper_fixed_circuit_v1.zig").sessionFields(&key);
+    key.session_fields = try @import("./ethereum_wrapper_fixed_circuit_v1.zig").sessionFields(&key);
     return key;
 }
 
 test "Ethereum fixed field namespace excludes custody and binds root parameters anchors and profile" {
-    const fixed = @import("ethereum_wrapper_fixed_circuit_v1.zig");
+    const fixed = @import("./ethereum_wrapper_fixed_circuit_v1.zig");
     const key = try testKey();
     try key.validate();
     const expected = try fixed.sessionFields(&key);
@@ -215,7 +215,7 @@ test "Ethereum root execution endpoint rejects canonical empty before proof deco
     const statement = try span.SpanStatement.emptyLeaf(job, 210);
     var words: [node_mod.STATEMENT_WORD_COUNT]u32 = undefined;
     for (&words, try statement.canonicalWords()) |*out, word| out.* = word.toU32();
-    const node = try node_mod.NodePublicV2.initLeaf(try @import("recursive_node_artifact_v1.zig").TaskCoordinateV1.init(0, 210), words, digest);
+    const node = try node_mod.NodePublicV2.initLeaf(try @import("./recursive_node_artifact_v1.zig").TaskCoordinateV1.init(0, 210), words, digest);
     const key = try testKey();
     const claims: verifier.ClaimsV1 = .{ .values = @splat(QM31.zero()), .poseidon_partials = @splat(QM31.zero()) };
     try std.testing.expectError(error.InvalidEthereumRootPublicInputs, verifier.verify(std.testing.allocator, &key, &node, claims, 0, &.{}));
@@ -226,7 +226,7 @@ test "Ethereum root execution endpoint rejects canonical empty before proof deco
     try std.testing.expectError(error.InvalidEthereumRootPublicInputs, verifier.Initial38.verifyWithCapture(std.testing.allocator, &initial_key, &node, initial_claims, 0, &.{}, &initial_capture));
     var capture: verifier.ProofCapture = undefined;
     try std.testing.expectError(error.InvalidEthereumRootPublicInputs, verifier.verifyWithCapture(std.testing.allocator, &key, &node, claims, 0, &.{}, &capture));
-    try std.testing.expectError(error.InvalidEthereumRootPublicInputs, @import("ethereum_wrapper_detached_transcript_v1.zig").OwnedV1.init(std.testing.allocator, &key, &node, claims, 0, &.{}));
+    try std.testing.expectError(error.InvalidEthereumRootPublicInputs, @import("./ethereum_wrapper_detached_transcript_v1.zig").OwnedV1.init(std.testing.allocator, &key, &node, claims, 0, &.{}));
 }
 
 test "Ethereum initial root transport pins38 key and owns exact child geometry" {
@@ -249,7 +249,7 @@ test "Ethereum initial root transport pins38 key and owns exact child geometry" 
     try std.testing.expectError(error.EthereumRootKeyHashMismatch, transport.Initial38.OwnedKeyV1.admit(allocator, bytes, wrong_pin));
     @memset(bytes, 0xaa);
     try owner.key().validate();
-    const shape = try @import("ethereum_wrapper_child_shape_v1.zig").Initial38.OwnedV1.create(allocator, owner.key());
+    const shape = try @import("./ethereum_wrapper_child_shape_v1.zig").Initial38.OwnedV1.create(allocator, owner.key());
     defer shape.deinit();
     try std.testing.expectEqual(@as(usize, 38), shape.wireDimensions().claimed_sum_count);
     try shape.validateAgainstKey(&key);
@@ -258,7 +258,7 @@ test "Ethereum initial root transport pins38 key and owns exact child geometry" 
     try std.testing.expectError(error.ManifestSealMismatch, changed.validate());
     changed = key;
     changed.preprocessed_root[0] += 1;
-    changed.session_fields = try @import("ethereum_wrapper_fixed_circuit_v1.zig").sessionFields(&changed);
+    changed.session_fields = try @import("./ethereum_wrapper_fixed_circuit_v1.zig").sessionFields(&changed);
     try std.testing.expectError(error.EthereumChildShapeKeyMismatch, shape.validateAgainstKey(&changed));
 }
 

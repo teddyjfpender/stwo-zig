@@ -15,9 +15,9 @@ const recursion = frontend.recursion;
 const cohort_mod = recursion.segment_outer_cohort_v2;
 const boundary = recursion.segment_leaf_outer_authority_v2;
 const poseidon2_air = frontend.air.memory_commitment.poseidon2_air;
-const leaf_outer = @import("recursive_segment_v2_leaf_outer.zig");
-const outer_cohort = @import("recursive_segment_v2_outer_cohort.zig");
-const proof_engine = @import("recursive_segment_v2_outer_engine.zig");
+const leaf_outer = @import("./recursive_segment_v2_leaf_outer.zig");
+const outer_cohort = @import("./recursive_segment_v2_outer_cohort.zig");
+const proof_engine = @import("./recursive_segment_v2_outer_engine.zig");
 
 pub const VerifiedOuterProof = struct {
     receipt: proof_engine.Receipt,

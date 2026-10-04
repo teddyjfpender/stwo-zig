@@ -7,8 +7,8 @@ const recursion = frontend.recursion;
 const air = recursion.air;
 const direct = air.direct_constraint_program;
 const Ledger = air.relation_interaction.TupleLedger;
-const Program = @import("recursive_secure_transcript_program_v1.zig").Program;
-const rows_mod = @import("recursive_secure_transcript_rows_v1.zig");
+const Program = @import("./recursive_secure_transcript_program_v1.zig").Program;
+const rows_mod = @import("./recursive_secure_transcript_rows_v1.zig");
 const Rows = rows_mod.Rows;
 const PayloadRow = std.meta.Child(@FieldType(Rows, "payload"));
 
@@ -60,7 +60,7 @@ pub fn exercise(first: anytype, second: anytype) !void {
     defer right.deinit();
     try validate(&right, &second.program, &second.execution);
     if (first.program.kind == .canonical_empty) {
-        const root = @import("recursive_common_canonical_empty_universal_manifest_v2.zig").PREPROCESSED_ROOT;
+        const root = @import("./recursive_common_canonical_empty_universal_manifest_v2.zig").PREPROCESSED_ROOT;
         var root_words: usize = 0;
         for (left.payload) |row| {
             const pp = row.preprocessing;
@@ -72,7 +72,7 @@ pub fn exercise(first: anytype, second: anytype) !void {
         }
         try std.testing.expectEqual(@as(usize, 8), root_words);
         std.debug.print("CANONICAL_CHILD_KEY_BINDING root_words=8 fixed_in_air=true\n", .{});
-        const manifest = @import("recursive_common_canonical_empty_universal_manifest_v2.zig");
+        const manifest = @import("./recursive_common_canonical_empty_universal_manifest_v2.zig");
         try exerciseSessionKeys(&left, &first.program, &first.execution, .{ try manifest.verificationKeyId(), try manifest.nextParentVkId(), try manifest.airProgramId() });
         try exerciseProviderPartials(left.payload, .{ QM31.zero(), first.replay.claims.values[34] });
     }
@@ -279,10 +279,10 @@ fn exercisePrepared(first: anytype, second: anytype) !void {
 pub fn validatePrepared(prepared: *const rows_mod.Prepared) !void {
     const allocator = std.testing.allocator;
     try prepared.validate();
-    const manifest_mod = @import("recursive_common_fold_universal_manifest_v2.zig");
-    const support = @import("recursive_binary_outer_cohort_support.zig");
+    const manifest_mod = @import("./recursive_common_fold_universal_manifest_v2.zig");
+    const support = @import("./recursive_binary_outer_cohort_support.zig");
     var logs = [_]u32{4} ** 36;
-    logs[34] = @import("recursive_common_fold_field_public_v2.zig").MINIMUM_POSEIDON_LOG_SIZE;
+    logs[34] = @import("./recursive_common_fold_field_public_v2.zig").MINIMUM_POSEIDON_LOG_SIZE;
     logs[35] = 16;
     try prepared.installLogSizes(&logs);
     const manifest = try manifest_mod.buildForDerivedLogSizes(logs);
@@ -483,8 +483,8 @@ pub fn exerciseFold(cold: anytype) !void {
 }
 
 fn exercisePublicBoundary(cold: anytype, transcript_rows: *const Rows) !void {
-    const public = @import("recursive_field_node_public_v2.zig");
-    const hashes = @import("recursive_common_fold_public_hash_v3.zig");
+    const public = @import("./recursive_field_node_public_v2.zig");
+    const hashes = @import("./recursive_common_fold_public_hash_v3.zig");
     const capture = &cold.composition_capture;
     const composition = air.composition_circuit;
     const allocator = std.testing.allocator;

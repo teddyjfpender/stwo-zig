@@ -1,15 +1,15 @@
 const std = @import("std");
 const frontend = @import("stwo_riscv_frontend");
 
-const artifact_io = @import("ethereum_precompile_artifact_io.zig");
-const artifact_v2 = @import("ethereum_incremental_boundary_artifact_v2.zig");
-const boundary_v4 = @import("ethereum_incremental_boundary_authority_v4.zig");
-const postprocess = @import("ethereum_incremental_capture_postprocess_v4.zig");
-const publication = @import("ethereum_incremental_capture_publication_v4.zig");
+const artifact_io = @import("./ethereum_precompile_artifact_io.zig");
+const artifact_v2 = @import("./ethereum_incremental_boundary_artifact_v2.zig");
+const boundary_v4 = @import("./ethereum_incremental_boundary_authority_v4.zig");
+const postprocess = @import("./ethereum_incremental_capture_postprocess_v4.zig");
+const publication = @import("./ethereum_incremental_capture_publication_v4.zig");
 const wire_publication =
-    @import("ethereum_incremental_public_wire_publication_v4.zig");
+    @import("./ethereum_incremental_public_wire_publication_v4.zig");
 const support =
-    @import("ethereum_incremental_boundary_artifact_v3_test_support.zig");
+    @import("./ethereum_incremental_boundary_artifact_v3_test_support.zig");
 
 const memory_state = frontend.runner.memory_state;
 const minimal = frontend.runner.minimal_trace;
@@ -26,7 +26,7 @@ test "VM-free V4 owner mints sequential jobs then cold-publishes independently" 
     defer allocator.free(root);
     const fixture = try support.Fixture.init();
     const execution = executionAuthority();
-    const initial = [_]@import("ethereum_incremental_boundary_authority_v1.zig").SparseWordV1{.{
+    const initial = [_]@import("./ethereum_incremental_boundary_authority_v1.zig").SparseWordV1{.{
         .address = 0x2000,
         .value = 11,
     }};
@@ -56,7 +56,7 @@ test "VM-free V4 owner mints sequential jobs then cold-publishes independently" 
     );
     defer allocator.free(left_wire_bytes);
     try publishRaw(allocator, root, 0, left_compact, left_wire_bytes);
-    const left_touched = [_]@import("ethereum_incremental_boundary_authority_v1.zig").TouchedWordV1{.{
+    const left_touched = [_]@import("./ethereum_incremental_boundary_authority_v1.zig").TouchedWordV1{.{
         .address = 0x2000,
         .old_word = 11,
         .new_word = 12,
@@ -99,7 +99,7 @@ test "VM-free V4 owner mints sequential jobs then cold-publishes independently" 
     );
     defer allocator.free(right_wire_bytes);
     try publishRaw(allocator, root, 1, right_compact, right_wire_bytes);
-    const right_touched = [_]@import("ethereum_incremental_boundary_authority_v1.zig").TouchedWordV1{
+    const right_touched = [_]@import("./ethereum_incremental_boundary_authority_v1.zig").TouchedWordV1{
         .{ .address = 0x2000, .old_word = 12, .new_word = 13, .final_clock = 7 },
         .{ .address = 0x2004, .old_word = 0, .new_word = 9, .final_clock = 6 },
     };
@@ -199,7 +199,7 @@ fn retainedMetadata(
 
 test "sequential mint order failure poisons the process-local owner" {
     const allocator = std.testing.allocator;
-    const initial = [_]@import("ethereum_incremental_boundary_authority_v1.zig").SparseWordV1{.{
+    const initial = [_]@import("./ethereum_incremental_boundary_authority_v1.zig").SparseWordV1{.{
         .address = 0x2000,
         .value = 11,
     }};
@@ -216,7 +216,7 @@ test "sequential mint order failure poisons the process-local owner" {
     defer wire.deinit();
     const metadata = try wire.data.metadata();
     const value = publicData(.right, metadata);
-    const touched = [_]@import("ethereum_incremental_boundary_authority_v1.zig").TouchedWordV1{
+    const touched = [_]@import("./ethereum_incremental_boundary_authority_v1.zig").TouchedWordV1{
         .{ .address = 0x2000, .old_word = 12, .new_word = 13, .final_clock = 7 },
     };
     const input = postprocess.MintInputV4{
@@ -453,7 +453,7 @@ test "selected leaf mint cold verifies from admitted entry without campaign seal
     const wire_bytes = try wire_publication.encodeWireAlloc(allocator, .{ .segment_index = 1, .segment_count = 2 }, &wire.data);
     defer allocator.free(wire_bytes);
     try publishRaw(allocator, root, 1, compact, wire_bytes);
-    const touched = [_]@import("ethereum_incremental_boundary_authority_v1.zig").TouchedWordV1{
+    const touched = [_]@import("./ethereum_incremental_boundary_authority_v1.zig").TouchedWordV1{
         .{ .address = 0x2000, .old_word = 12, .new_word = 13, .final_clock = 7 },
         .{ .address = 0x2004, .old_word = 0, .new_word = 9, .final_clock = 6 },
     };

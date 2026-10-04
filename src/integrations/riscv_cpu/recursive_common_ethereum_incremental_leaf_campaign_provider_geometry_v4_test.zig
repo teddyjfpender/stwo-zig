@@ -1,7 +1,7 @@
 const std = @import("std");
 
 const subject =
-    @import("recursive_common_ethereum_incremental_leaf_campaign_provider_geometry_v4.zig");
+    @import("./recursive_common_ethereum_incremental_leaf_campaign_provider_geometry_v4.zig");
 
 test "campaign provider geometry synthetic two-leaf maximum is checked" {
     const identities = [2][32]u8{ identity(10), identity(50) };

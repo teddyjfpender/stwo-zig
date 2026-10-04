@@ -4,12 +4,12 @@ const CpuBackend = @import("stwo_cpu_backend").CpuBackend;
 const frontend = @import("stwo_riscv_frontend");
 
 const subject =
-    @import("recursive_pipeline_worker_campaign_real_leaf_v4.zig");
+    @import("./recursive_pipeline_worker_campaign_real_leaf_v4.zig");
 const backend_mod =
-    @import("recursive_pipeline_worker_campaign_real_leaf_backend_v4.zig");
+    @import("./recursive_pipeline_worker_campaign_real_leaf_backend_v4.zig");
 const fold_child =
-    @import("recursive_common_ethereum_incremental_leaf_campaign_fold_child_v4.zig");
-const protocol = @import("recursive_pipeline_worker_protocol_v1.zig");
+    @import("./recursive_common_ethereum_incremental_leaf_campaign_fold_child_v4.zig");
+const protocol = @import("./recursive_pipeline_worker_protocol_v1.zig");
 const padding_fixture =
     @import("recursive_common_wrapper_padding_remint_v2_test.zig");
 
@@ -87,7 +87,7 @@ test "campaign Stage102 real backend and final fold lease type-check separately"
     std.testing.refAllDecls(Lease);
     try std.testing.expect(!Backend.available);
     try std.testing.expectEqual(
-        @import("recursive_circuit_registry_v1.zig").CircuitRoleV4
+        @import("./recursive_circuit_registry_v1.zig").CircuitRoleV4
             .ethereum_incremental_leaf_wrapper_v4,
         Lease.ROLE,
     );

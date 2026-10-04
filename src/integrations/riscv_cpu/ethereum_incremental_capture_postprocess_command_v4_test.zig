@@ -1,6 +1,6 @@
 const std = @import("std");
 const command =
-    @import("ethereum_incremental_capture_postprocess_command_v4.zig");
+    @import("./ethereum_incremental_capture_postprocess_command_v4.zig");
 const authority_tests =
     @import("ethereum_incremental_capture_postprocess_authority_v4_test.zig");
 const recovery_tests =

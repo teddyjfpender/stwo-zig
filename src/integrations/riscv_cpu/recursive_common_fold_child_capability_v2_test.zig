@@ -1,11 +1,11 @@
 const std = @import("std");
 
-const subject = @import("recursive_common_fold_child_capability_v2.zig");
-const common_child = @import("recursive_common_fold_child_v2.zig");
-const empty_child = @import("recursive_pipeline_worker_canonical_empty_v2.zig");
-const live = @import("recursive_common_fold_universal_cohort_v2.zig");
-const proof = @import("recursive_common_fold_universal_proof_v2.zig");
-const registry_mod = @import("recursive_circuit_registry_v1.zig");
+const subject = @import("./recursive_common_fold_child_capability_v2.zig");
+const common_child = @import("./recursive_common_fold_child_v2.zig");
+const empty_child = @import("./recursive_pipeline_worker_canonical_empty_v2.zig");
+const live = @import("./recursive_common_fold_universal_cohort_v2.zig");
+const proof = @import("./recursive_common_fold_universal_proof_v2.zig");
+const registry_mod = @import("./recursive_circuit_registry_v1.zig");
 
 const Tagged = subject.TaggedFoldChildV2(
     subject.UnavailableRealLeafChildV2,
@@ -16,8 +16,8 @@ const Tagged = subject.TaggedFoldChildV2(
 test "schema4 child capability is typed role-neutral and production closed" {
     // Compile the concrete backend's ownership and worker handoff paths even
     // while production geometry/parity admission remains unavailable.
-    const Backend = @import("recursive_common_fold_secure_proof_v2.zig").BackendV2(
-        @import("recursive_common_canonical_empty_universal_proof_v2.zig").CAPTURE_DERIVED_FIXED_WIRE_DIMENSIONS_V2,
+    const Backend = @import("./recursive_common_fold_secure_proof_v2.zig").BackendV2(
+        @import("./recursive_common_canonical_empty_universal_proof_v2.zig").CAPTURE_DERIVED_FIXED_WIRE_DIMENSIONS_V2,
     );
     std.mem.doNotOptimizeAway(&Backend.proveAndColdVerify);
     std.mem.doNotOptimizeAway(&Backend.coldOpen);

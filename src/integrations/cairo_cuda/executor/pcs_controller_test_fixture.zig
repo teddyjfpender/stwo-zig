@@ -8,7 +8,7 @@ const semantic_authority = @import("stwo_cairo_frontend").proof_plan.semantic_au
 const proof_ir = @import("stwo_backend_contracts").proof_program;
 const resident_plan = @import("resident_plan.zig");
 const resident_test = @import("resident_plan_test_support.zig");
-const plan_fixture = @import("resident_plan_test.zig");
+const plan_fixture = @import("tests/resident_plan_test.zig");
 
 pub const Fixture = struct {
     allocator: std.mem.Allocator,

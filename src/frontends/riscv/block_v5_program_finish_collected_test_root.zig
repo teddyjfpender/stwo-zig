@@ -1,3 +1,3 @@
 comptime {
-    _ = @import("prover/block_v5_program_finish_collected_test.zig");
+    _ = @import("prover/tests/block_v5_program_finish_collected_test.zig");
 }

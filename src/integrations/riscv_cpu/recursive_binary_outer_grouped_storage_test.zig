@@ -3,7 +3,7 @@ const core = @import("stwo_core");
 const recursion = @import("stwo_riscv_frontend").recursion;
 const Cpu = @import("stwo_cpu_backend").CpuBackend;
 const M31 = core.fields.m31.M31;
-const support = @import("recursive_binary_outer_support.zig");
+const support = @import("./recursive_binary_outer_support.zig");
 
 // Only column geometry is under test. Commitments below use the production
 // circle FFT, PCS preparation and Poseidon Merkle implementations.

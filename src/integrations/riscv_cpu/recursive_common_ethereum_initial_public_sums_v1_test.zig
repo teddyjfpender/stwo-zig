@@ -4,10 +4,10 @@
 const std = @import("std");
 const core = @import("stwo_core");
 const frontend = @import("stwo_riscv_frontend");
-const compact = @import("recursive_common_ethereum_initial_public_sums_v1.zig");
+const compact = @import("./recursive_common_ethereum_initial_public_sums_v1.zig");
 const support = compact.support;
 const genuine = @import("recursive_common_ethereum_initial_input_lane_v1_test.zig");
-const fixed = @import("ethereum_fixed_program_admission_v1.zig");
+const fixed = @import("./ethereum_fixed_program_admission_v1.zig");
 const admission_mod = support.program_admission;
 const arithmetic = frontend.recursion.arithmetic_circuit;
 const Value = arithmetic.Value;
@@ -16,7 +16,7 @@ const QM31 = core.fields.qm31.QM31;
 const a = std.testing.allocator;
 comptime {
     _ = @import("recursive_common_ethereum_initial_input_packet_v1_test.zig");
-    _ = @import("recursive_common_ethereum_incremental_leaf_field_frame_plan_v4.zig");
+    _ = @import("./recursive_common_ethereum_incremental_leaf_field_frame_plan_v4.zig");
     _ = @import("recursive_common_ethereum_initial_input_rows_v1_test.zig");
 }
 const layout = support.span.canonical_layout;

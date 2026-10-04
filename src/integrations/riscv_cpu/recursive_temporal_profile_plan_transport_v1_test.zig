@@ -1,8 +1,8 @@
 const std = @import("std");
 
-const node_profile = @import("recursive_temporal_node_profile_v1.zig");
-const plan_mod = @import("recursive_temporal_statement_plan_v1.zig");
-const subject = @import("recursive_temporal_profile_plan_transport_v1.zig");
+const node_profile = @import("./recursive_temporal_node_profile_v1.zig");
+const plan_mod = @import("./recursive_temporal_statement_plan_v1.zig");
+const subject = @import("./recursive_temporal_profile_plan_transport_v1.zig");
 
 test "profile transport projects all nine ordered authorities without native limbs" {
     const plan = try fixturePlan();
@@ -114,9 +114,9 @@ fn profile(
     height: u8,
     verification_key: [8]u32,
     next_key: [8]u32,
-    admitted: @import("recursive_temporal_proof_security_v1.zig").ProofSecurityV1,
-    parent: @import("recursive_temporal_proof_security_v1.zig").ProofSecurityV1,
-    transcript: @import("recursive_temporal_child_transcript_authority_v1.zig").DescriptorV1,
+    admitted: @import("./recursive_temporal_proof_security_v1.zig").ProofSecurityV1,
+    parent: @import("./recursive_temporal_proof_security_v1.zig").ProofSecurityV1,
+    transcript: @import("./recursive_temporal_child_transcript_authority_v1.zig").DescriptorV1,
 ) !node_profile.NodeProfileV1 {
     return node_profile.NodeProfileV1.init(
         kind,

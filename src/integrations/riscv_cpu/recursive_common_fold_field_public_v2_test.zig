@@ -2,13 +2,13 @@ const std = @import("std");
 const stwo_core = @import("stwo_core");
 const frontend = @import("stwo_riscv_frontend");
 
-const subject = @import("recursive_common_fold_field_public_v2.zig");
-const artifact = @import("recursive_node_artifact_v1.zig");
-const field_public = @import("recursive_field_node_public_v2.zig");
+const subject = @import("./recursive_common_fold_field_public_v2.zig");
+const artifact = @import("./recursive_node_artifact_v1.zig");
+const field_public = @import("./recursive_field_node_public_v2.zig");
 const suffix_boundary =
-    @import("recursive_common_fold_suffix_input_boundary_v2.zig");
+    @import("./recursive_common_fold_suffix_input_boundary_v2.zig");
 const suffix_closure =
-    @import("recursive_common_fold_suffix_closure_v2.zig");
+    @import("./recursive_common_fold_suffix_closure_v2.zig");
 
 const recursion = frontend.recursion;
 const QM31 = stwo_core.fields.qm31.QM31;
@@ -67,7 +67,7 @@ test "common fold derives exact field parent and 116 Poseidon calls" {
 }
 
 fn checkRecordedPublicBoundary(node: *const field_public.NodePublicV2) !void {
-    const output = @import("recursive_common_fold_public_output_v3.zig");
+    const output = @import("./recursive_common_fold_public_output_v3.zig");
     const recorder = recursion.air.composition_graph_recorder;
     const M31 = stwo_core.fields.m31.M31;
     const allocator = std.testing.allocator;
@@ -114,7 +114,7 @@ fn checkRecordedPublicBoundary(node: *const field_public.NodePublicV2) !void {
 }
 
 fn checkClaimTranscript() !void {
-    const manifest_mod = @import("recursive_common_fold_universal_manifest_v2.zig");
+    const manifest_mod = @import("./recursive_common_fold_universal_manifest_v2.zig");
     var logs = [_]u32{4} ** manifest_mod.COMPONENT_COUNT;
     logs[@intFromEnum(manifest_mod.ComponentKey.poseidon2)] = subject.MINIMUM_POSEIDON_LOG_SIZE;
     logs[@intFromEnum(manifest_mod.ComponentKey.range_check_8_8)] = recursion.air.range_check_8_8_bridge.LOG_SIZE;
@@ -283,8 +283,8 @@ fn fixtureJob() !recursion.span_statement.JobContext {
 }
 
 fn checkTranscriptProviderBoundary(statement: anytype) !void {
-    const layout_mod = @import("recursive_common_fold_poseidon_schedule_v2.zig");
-    const closure = @import("recursive_common_fold_field_public_closure_v2.zig");
+    const layout_mod = @import("./recursive_common_fold_poseidon_schedule_v2.zig");
+    const closure = @import("./recursive_common_fold_field_public_closure_v2.zig");
     const relations = recursion.air.universal_challenges.UniversalRelations.dummy();
     const providers = try recursion.air.universal_shared_provider.SharedProviderRelations.init(&relations);
     const source_identity = [_]u8{1} ** 32;
@@ -315,9 +315,9 @@ fn checkTranscriptProviderBoundary(statement: anytype) !void {
 }
 
 fn checkSessionTranscript(parent: *const field_public.NodePublicV2) !void {
-    const session_mod = @import("recursive_temporal_secure_parent_artifact_v1.zig");
-    const manifest_mod = @import("recursive_common_fold_universal_manifest_v2.zig");
-    const program_mod = @import("recursive_secure_transcript_program_v1.zig");
+    const session_mod = @import("./recursive_temporal_secure_parent_artifact_v1.zig");
+    const manifest_mod = @import("./recursive_common_fold_universal_manifest_v2.zig");
+    const program_mod = @import("./recursive_secure_transcript_program_v1.zig");
     const M31 = stwo_core.fields.m31.M31;
     const Channel = recursion.poseidon2_channel.Channel;
     var logs = [_]u32{4} ** manifest_mod.COMPONENT_COUNT;

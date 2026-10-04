@@ -2,8 +2,8 @@ const std = @import("std");
 const stwo_core = @import("stwo_core");
 const frontend = @import("stwo_riscv_frontend");
 
-const artifact = @import("recursive_segment_v2_verified_artifact.zig");
-const publication_mod = @import("recursive_segment_v2_verified_publication.zig");
+const artifact = @import("./recursive_segment_v2_verified_artifact.zig");
+const publication_mod = @import("./recursive_segment_v2_verified_publication.zig");
 
 const M31 = stwo_core.fields.m31.M31;
 const QM31 = stwo_core.fields.qm31.QM31;

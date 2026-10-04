@@ -2,9 +2,9 @@ const std = @import("std");
 const stwo_core = @import("stwo_core");
 const frontend = @import("stwo_riscv_frontend");
 
-const subject = @import("recursive_temporal_child_authority.zig");
-const outer = @import("recursive_fri_outer.zig");
-const test_support = @import("recursive_temporal_child_authority_test_support.zig");
+const subject = @import("./recursive_temporal_child_authority.zig");
+const outer = @import("./recursive_fri_outer.zig");
+const test_support = @import("./recursive_temporal_child_authority_test_support.zig");
 
 const M31 = stwo_core.fields.m31.M31;
 const QM31 = stwo_core.fields.qm31.QM31;

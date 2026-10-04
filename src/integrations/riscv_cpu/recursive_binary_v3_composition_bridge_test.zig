@@ -4,11 +4,11 @@ const std = @import("std");
 const stwo_core = @import("stwo_core");
 const frontend = @import("stwo_riscv_frontend");
 
-const artifact_mod = @import("recursive_binary_v3_verified_artifact.zig");
-const bridge_mod = @import("recursive_binary_v3_composition_bridge.zig");
-const cohort_mod = @import("recursive_binary_outer_cohort.zig");
-const driver = @import("recursive_binary_outer.zig");
-const publication_mod = @import("recursive_binary_verified_publication.zig");
+const artifact_mod = @import("./recursive_binary_v3_verified_artifact.zig");
+const bridge_mod = @import("./recursive_binary_v3_composition_bridge.zig");
+const cohort_mod = @import("./recursive_binary_outer_cohort.zig");
+const driver = @import("./recursive_binary_outer.zig");
+const publication_mod = @import("./recursive_binary_verified_publication.zig");
 
 const M31 = stwo_core.fields.m31.M31;
 const QM31 = stwo_core.fields.qm31.QM31;

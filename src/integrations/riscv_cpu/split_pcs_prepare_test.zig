@@ -27,7 +27,7 @@ const proof_workspace = frontend.testing.proof_workspace;
 const main_trace_plan = frontend.testing.main_trace_plan;
 const runner = frontend.runner;
 const public_data_mod = frontend.air.public_data;
-const test_support = @import("split_pcs_prepare_test_support.zig");
+const test_support = @import("./split_pcs_prepare_test_support.zig");
 
 const test_config = pcs_core.PcsConfig{
     .pow_bits = 0,

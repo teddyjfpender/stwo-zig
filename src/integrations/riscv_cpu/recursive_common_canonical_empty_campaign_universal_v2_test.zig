@@ -2,35 +2,35 @@ const std = @import("std");
 const frontend = @import("stwo_riscv_frontend");
 
 const subject =
-    @import("recursive_common_canonical_empty_campaign_universal_proof_v2.zig");
+    @import("./recursive_common_canonical_empty_campaign_universal_proof_v2.zig");
 const source_mod =
-    @import("recursive_common_canonical_empty_campaign_source_v2.zig");
+    @import("./recursive_common_canonical_empty_campaign_source_v2.zig");
 const field_public =
-    @import("recursive_common_canonical_empty_campaign_field_public_v2.zig");
+    @import("./recursive_common_canonical_empty_campaign_field_public_v2.zig");
 const manifest_mod =
-    @import("recursive_common_canonical_empty_campaign_universal_manifest_v2.zig");
+    @import("./recursive_common_canonical_empty_campaign_universal_manifest_v2.zig");
 const cohort_mod =
-    @import("recursive_common_canonical_empty_campaign_universal_cohort_v2.zig");
+    @import("./recursive_common_canonical_empty_campaign_universal_cohort_v2.zig");
 const graph_mod =
-    @import("recursive_common_canonical_empty_campaign_composition_graph_v2.zig");
+    @import("./recursive_common_canonical_empty_campaign_composition_graph_v2.zig");
 const capture_mod =
-    @import("recursive_common_canonical_empty_campaign_composition_capture_v2.zig");
+    @import("./recursive_common_canonical_empty_campaign_composition_capture_v2.zig");
 const fold_child =
-    @import("recursive_common_canonical_empty_campaign_fold_child_v2.zig");
+    @import("./recursive_common_canonical_empty_campaign_fold_child_v2.zig");
 const prefinal_child =
-    @import("recursive_common_canonical_empty_campaign_prefinal_fold_child_v2.zig");
+    @import("./recursive_common_canonical_empty_campaign_prefinal_fold_child_v2.zig");
 const prefinal_union =
-    @import("recursive_pipeline_campaign_prefinal_fold_lease_v2.zig");
+    @import("./recursive_pipeline_campaign_prefinal_fold_lease_v2.zig");
 const worker_backend =
-    @import("recursive_pipeline_worker_campaign_canonical_empty_v2.zig");
+    @import("./recursive_pipeline_worker_campaign_canonical_empty_v2.zig");
 const prefinal_worker =
-    @import("recursive_pipeline_worker_campaign_canonical_empty_prefinal_v2.zig");
-const shape_mod = @import("recursive_pipeline_campaign_shape_v2.zig");
-const leaf_mod = @import("recursive_temporal_leaf_or_empty_v1.zig");
+    @import("./recursive_pipeline_worker_campaign_canonical_empty_prefinal_v2.zig");
+const shape_mod = @import("./recursive_pipeline_campaign_shape_v2.zig");
+const leaf_mod = @import("./recursive_temporal_leaf_or_empty_v1.zig");
 const secure_artifact =
-    @import("recursive_temporal_secure_parent_artifact_v1.zig");
+    @import("./recursive_temporal_secure_parent_artifact_v1.zig");
 const secure_engine =
-    @import("recursive_temporal_secure_parent_native_engine_v1.zig");
+    @import("./recursive_temporal_secure_parent_native_engine_v1.zig");
 
 const recursion = frontend.recursion;
 const span = recursion.span_statement;
@@ -147,7 +147,7 @@ test "campaign canonical-empty schedule binds runtime shape and rejects legacy s
 }
 
 test "campaign q193 entrypoint fails closed before proof without final remint" {
-    const final_mod = @import("recursive_pipeline_campaign_final_remint_v2.zig");
+    const final_mod = @import("./recursive_pipeline_campaign_final_remint_v2.zig");
     const shape = try shape_mod.CampaignShapeAuthorityV2.init(
         sha(210),
         sha(220),

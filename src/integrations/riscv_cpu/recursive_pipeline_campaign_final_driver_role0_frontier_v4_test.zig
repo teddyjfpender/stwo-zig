@@ -1,16 +1,16 @@
 const std = @import("std");
 const artifact_store = @import("stwo_artifact_store");
 
-const protocol = @import("recursive_pipeline_worker_protocol_v1.zig");
-const driver_mod = @import("recursive_pipeline_campaign_final_driver_v2.zig");
+const protocol = @import("./recursive_pipeline_worker_protocol_v1.zig");
+const driver_mod = @import("./recursive_pipeline_campaign_final_driver_v2.zig");
 const frontier_mod =
-    @import("recursive_pipeline_worker_campaign_role0_frontier_v4.zig");
+    @import("./recursive_pipeline_worker_campaign_role0_frontier_v4.zig");
 const bridge_fixture =
     @import("recursive_pipeline_worker_campaign_final_session_bridge_v4_test.zig");
 const fixture_mod =
     @import("recursive_pipeline_worker_campaign_stage102_lifecycle_v4_test.zig");
 const fixture_support =
-    @import("recursive_pipeline_worker_campaign_stage102_lifecycle_test_support_v4.zig");
+    @import("./recursive_pipeline_worker_campaign_stage102_lifecycle_test_support_v4.zig");
 
 const Lifecycle = bridge_fixture.Lifecycle;
 const FinalWorker = bridge_fixture.FinalWorker;

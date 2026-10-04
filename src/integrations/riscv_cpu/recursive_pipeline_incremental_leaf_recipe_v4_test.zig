@@ -1,7 +1,7 @@
 const std = @import("std");
 const artifact_store = @import("stwo_artifact_store");
 
-const subject = @import("recursive_pipeline_incremental_leaf_recipe_v4.zig");
+const subject = @import("./recursive_pipeline_incremental_leaf_recipe_v4.zig");
 
 test "stage101 recipe is canonical and binds every leaf-local input" {
     const value = try fixture(4, 5);

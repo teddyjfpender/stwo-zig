@@ -4,8 +4,8 @@ const artifact_store = @import("stwo_artifact_store");
 const subject = @import(
     "recursive_pipeline_campaign_final_live_runtime_epoch_v2.zig",
 );
-const worker_mod = @import("recursive_pipeline_worker_v1.zig");
-const driver_mod = @import("recursive_pipeline_campaign_final_driver_v2.zig");
+const worker_mod = @import("./recursive_pipeline_worker_v1.zig");
+const driver_mod = @import("./recursive_pipeline_campaign_final_driver_v2.zig");
 const test_adapter_mod = @import(
     "recursive_pipeline_campaign_final_live_build_test_support_v2.zig",
 );

@@ -1,3 +1,3 @@
 test {
-    _ = @import("air/scheduler_binding_test.zig");
+    _ = @import("air/tests/scheduler_binding_test.zig");
 }

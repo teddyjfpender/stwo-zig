@@ -25,7 +25,7 @@ const session = @import("../../runner/guest_precompile/bulk_memcpy_session_tape_
 const stark_component = @import("bulk_memcpy_stark_component_v1.zig");
 const trace_mod = @import("bulk_memcpy_trace_v1.zig");
 const words = @import("bulk_memcpy_word_candidate_v1.zig");
-const prepared_evaluation_test = @import("../prepared_evaluation_owner_test.zig");
+const prepared_evaluation_test = @import("../tests/prepared_evaluation_owner_test.zig");
 
 pub const format_version: u16 = 1;
 pub const production_active = false;

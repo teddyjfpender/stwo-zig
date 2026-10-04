@@ -6,8 +6,8 @@
 
 test {
     _ = @import("segment_transcript_outer_source_test_root.zig");
-    _ = @import("recursion/segment_leaf_outer_bundle_test.zig");
-    _ = @import("recursion/segment_statement_outer_source_test.zig");
-    _ = @import("recursion/segment_public_outer_source_test.zig");
-    _ = @import("recursion/outer_parent_child_admission_test.zig");
+    _ = @import("recursion/tests/segment_leaf_outer_bundle_test.zig");
+    _ = @import("recursion/tests/segment_statement_outer_source_test.zig");
+    _ = @import("recursion/tests/segment_public_outer_source_test.zig");
+    _ = @import("recursion/tests/outer_parent_child_admission_test.zig");
 }

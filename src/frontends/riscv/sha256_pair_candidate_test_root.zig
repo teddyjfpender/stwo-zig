@@ -16,5 +16,5 @@ test "fixed64 SHA-256 pair candidate declarations compile" {
 }
 
 comptime {
-    _ = @import("air/guest_precompile/sha256_pair_candidate_v1_test.zig");
+    _ = @import("air/guest_precompile/tests/sha256_pair_candidate_v1_test.zig");
 }

@@ -1,9 +1,9 @@
 const std = @import("std");
 const frontend = @import("stwo_riscv_frontend");
 
-const publication_mod = @import("recursive_segment_v2_verified_publication.zig");
-const child_authority = @import("recursive_segment_v2_temporal_child_authority.zig");
-const pair_authority = @import("recursive_temporal_pair_authority_v2.zig");
+const publication_mod = @import("./recursive_segment_v2_verified_publication.zig");
+const child_authority = @import("./recursive_segment_v2_temporal_child_authority.zig");
+const pair_authority = @import("./recursive_temporal_pair_authority_v2.zig");
 
 const recursion = frontend.recursion;
 const protocol = recursion.protocol;

@@ -5,8 +5,8 @@ const std = @import("std");
 const core = @import("stwo_core");
 const frontend = @import("stwo_riscv_frontend");
 const postcard = @import("interop_postcard");
-const admission = @import("ethereum_wrapper_composition_v1.zig");
-const support = @import("universal_typed_component_proof_test_support.zig");
+const admission = @import("./ethereum_wrapper_composition_v1.zig");
+const support = @import("./universal_typed_component_proof_test_support.zig");
 const recursion = frontend.recursion;
 const air = recursion.air;
 const M31 = core.fields.m31.M31;
@@ -77,7 +77,7 @@ fn commitSourceTree(
 ) !void {
     if (value_allocator) |selected| {
         defer allocator.free(values);
-        const Storage = @import("recursive_binary_outer_support.zig").TreeStorageForManifest(manifest_mod);
+        const Storage = @import("./recursive_binary_outer_support.zig").TreeStorageForManifest(manifest_mod);
         var storage = try Storage.initWithValueAllocator(allocator, selected, manifest, tree_index);
         defer storage.deinit();
         try std.testing.expectEqual(values.len, storage.storage.len);

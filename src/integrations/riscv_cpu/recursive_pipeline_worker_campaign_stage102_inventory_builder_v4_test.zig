@@ -1,11 +1,11 @@
 const std = @import("std");
 const artifact_store = @import("stwo_artifact_store");
 
-const protocol = @import("recursive_pipeline_worker_protocol_v1.zig");
+const protocol = @import("./recursive_pipeline_worker_protocol_v1.zig");
 const immutable =
-    @import("recursive_pipeline_worker_campaign_stage102_inventory_v4.zig");
+    @import("./recursive_pipeline_worker_campaign_stage102_inventory_v4.zig");
 const builder =
-    @import("recursive_pipeline_worker_campaign_stage102_inventory_builder_v4.zig");
+    @import("./recursive_pipeline_worker_campaign_stage102_inventory_builder_v4.zig");
 
 test "Stage102 builder deep-owns every transient admission projection" {
     const allocator = std.testing.allocator;

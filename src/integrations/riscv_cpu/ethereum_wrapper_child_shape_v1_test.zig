@@ -3,9 +3,9 @@
 const std = @import("std");
 const core = @import("stwo_core");
 const recursion = @import("stwo_riscv_frontend").recursion;
-const subject = @import("ethereum_wrapper_child_shape_v1.zig");
-const verifier = @import("ethereum_wrapper_root_verifier_v1.zig");
-const components_mod = @import("ethereum_wrapper_verifier_components_v1.zig");
+const subject = @import("./ethereum_wrapper_child_shape_v1.zig");
+const verifier = @import("./ethereum_wrapper_root_verifier_v1.zig");
+const components_mod = @import("./ethereum_wrapper_verifier_components_v1.zig");
 const fixture = @import("ethereum_wrapper_root_verifier_v1_test.zig");
 const QM31 = core.fields.qm31.QM31;
 const M31 = core.fields.m31.M31;
@@ -82,7 +82,7 @@ test "Ethereum child fixed shape owns key geometry and rejects changed admission
     const before = owner.proofShape().*;
     try owner.validateAgainstKey(&key);
     key.preprocessed_root[0] += 1;
-    key.session_fields = try @import("ethereum_wrapper_fixed_circuit_v1.zig").sessionFields(&key);
+    key.session_fields = try @import("./ethereum_wrapper_fixed_circuit_v1.zig").sessionFields(&key);
     try std.testing.expectError(error.EthereumChildShapeKeyMismatch, owner.validateAgainstKey(&key));
     try std.testing.expectEqualDeep(before, owner.proofShape().*);
     const changed = try subject.OwnedV1.create(allocator, &key);

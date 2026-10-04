@@ -8,9 +8,9 @@ const direct = air.direct_constraint_program;
 const M31 = core.fields.m31.M31;
 const Ledger = air.relation_interaction.TupleLedger;
 const Row = [Air.LOGICAL_INPUT_COUNT]M31;
-const transcript = @import("recursive_secure_transcript_rows_v1.zig");
-const public = @import("recursive_field_node_public_v2.zig");
-const hashes = @import("recursive_common_fold_public_hash_v3.zig");
+const transcript = @import("./recursive_secure_transcript_rows_v1.zig");
+const public = @import("./recursive_field_node_public_v2.zig");
+const hashes = @import("./recursive_common_fold_public_hash_v3.zig");
 
 test "field statement bridge rejects noncanonical limb aliases" {
     const identity = try Air.computeSemanticDigest(std.testing.allocator);

@@ -1,10 +1,10 @@
 const std = @import("std");
 
-const subject = @import("recursive_pipeline_campaign_prefinal_fold_lease_v2.zig");
-const target_mod = @import("recursive_pipeline_campaign_padding_target_v2.zig");
+const subject = @import("./recursive_pipeline_campaign_prefinal_fold_lease_v2.zig");
+const target_mod = @import("./recursive_pipeline_campaign_padding_target_v2.zig");
 const fixture_mod =
     @import("recursive_common_wrapper_padding_remint_v2_test.zig");
-const shape_mod = @import("recursive_pipeline_campaign_shape_v2.zig");
+const shape_mod = @import("./recursive_pipeline_campaign_shape_v2.zig");
 
 fn Lease(comptime role: subject.Role) type {
     return struct {

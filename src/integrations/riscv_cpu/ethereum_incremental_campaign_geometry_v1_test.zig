@@ -1,10 +1,10 @@
 //! CLI admission stays explicit across materialization, capture and full-leaf proof.
 const std = @import("std");
-const geometry = @import("ethereum_incremental_campaign_geometry_v1.zig");
-const capture = @import("ethereum_incremental_capture_materializer_options_v4.zig");
-const fast = @import("ethereum_incremental_capture_postprocess_command_v4.zig");
-const replay = @import("ethereum_incremental_full_leaf_replay_command_v4.zig");
-const materialize = @import("ethereum_block_leaf_materializer_options.zig");
+const geometry = @import("./ethereum_incremental_campaign_geometry_v1.zig");
+const capture = @import("./ethereum_incremental_capture_materializer_options_v4.zig");
+const fast = @import("./ethereum_incremental_capture_postprocess_command_v4.zig");
+const replay = @import("./ethereum_incremental_full_leaf_replay_command_v4.zig");
+const materialize = @import("./ethereum_block_leaf_materializer_options.zig");
 
 comptime {
     _ = geometry;
@@ -69,7 +69,7 @@ test "materializer snapshot policy permits synchronous laptop capture without ch
 }
 
 test "retained replay claim admission is explicit across CPU prepared forwarding" {
-    const profile = @import("ethereum_incremental_full_leaf_profile_v4.zig");
+    const profile = @import("./ethereum_incremental_full_leaf_profile_v4.zig");
     const base = [_][]const u8{
         "--retained-materialization-result", "materialization.json", "--publication-root", "root",
         "--segment-index",                   "1",                    "--output",           "leaf.stwief04",
@@ -97,11 +97,11 @@ test "retained replay claim admission is explicit across CPU prepared forwarding
 }
 
 comptime {
-    _ = @import("ethereum_incremental_full_leaf_residency_preflight_v1.zig");
+    _ = @import("./ethereum_incremental_full_leaf_residency_preflight_v1.zig");
 }
 
 comptime {
-    _ = @import("ethereum_block_leaf_compact_manifest.zig");
+    _ = @import("./ethereum_block_leaf_compact_manifest.zig");
 }
 
 test "explicit one worker proof pool binds commitment helpers without changing default" {

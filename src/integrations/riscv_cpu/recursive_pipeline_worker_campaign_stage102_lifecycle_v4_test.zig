@@ -2,23 +2,23 @@ const std = @import("std");
 const artifact_store = @import("stwo_artifact_store");
 const frontend = @import("stwo_riscv_frontend");
 
-const protocol = @import("recursive_pipeline_worker_protocol_v1.zig");
-const support = @import("recursive_pipeline_worker_support_v1.zig");
-const storage = @import("recursive_pipeline_worker_storage_v1.zig");
-const worker_mod = @import("recursive_pipeline_worker_v1.zig");
-const real_worker = @import("recursive_pipeline_worker_campaign_real_leaf_v4.zig");
-const campaign_artifact = @import("recursive_campaign_node_artifact_v2.zig");
-const campaign_public = @import("recursive_campaign_node_public_v2.zig");
-const campaign_store = @import("recursive_campaign_node_artifact_store_v2.zig");
-const node_store = @import("recursive_node_artifact_store_v2.zig");
-const shape_mod = @import("recursive_pipeline_campaign_shape_v2.zig");
-const target_mod = @import("recursive_pipeline_campaign_padding_target_v2.zig");
-const remint_mod = @import("recursive_common_wrapper_padding_remint_v2.zig");
-const final_mod = @import("recursive_pipeline_campaign_final_remint_v2.zig");
-const policy_mod = @import("recursive_pipeline_worker_execution_policy_v2.zig");
-const inventory = @import("recursive_pipeline_worker_campaign_stage102_inventory_v4.zig");
-const builder_mod = @import("recursive_pipeline_worker_campaign_stage102_inventory_builder_v4.zig");
-const provider_mod = @import("recursive_pipeline_worker_campaign_session_provider_v4.zig");
+const protocol = @import("./recursive_pipeline_worker_protocol_v1.zig");
+const support = @import("./recursive_pipeline_worker_support_v1.zig");
+const storage = @import("./recursive_pipeline_worker_storage_v1.zig");
+const worker_mod = @import("./recursive_pipeline_worker_v1.zig");
+const real_worker = @import("./recursive_pipeline_worker_campaign_real_leaf_v4.zig");
+const campaign_artifact = @import("./recursive_campaign_node_artifact_v2.zig");
+const campaign_public = @import("./recursive_campaign_node_public_v2.zig");
+const campaign_store = @import("./recursive_campaign_node_artifact_store_v2.zig");
+const node_store = @import("./recursive_node_artifact_store_v2.zig");
+const shape_mod = @import("./recursive_pipeline_campaign_shape_v2.zig");
+const target_mod = @import("./recursive_pipeline_campaign_padding_target_v2.zig");
+const remint_mod = @import("./recursive_common_wrapper_padding_remint_v2.zig");
+const final_mod = @import("./recursive_pipeline_campaign_final_remint_v2.zig");
+const policy_mod = @import("./recursive_pipeline_worker_execution_policy_v2.zig");
+const inventory = @import("./recursive_pipeline_worker_campaign_stage102_inventory_v4.zig");
+const builder_mod = @import("./recursive_pipeline_worker_campaign_stage102_inventory_builder_v4.zig");
+const provider_mod = @import("./recursive_pipeline_worker_campaign_session_provider_v4.zig");
 const lifecycle_support = @import(
     "recursive_pipeline_worker_campaign_stage102_lifecycle_test_support_v4.zig",
 );
@@ -549,7 +549,7 @@ fn initRow(
     );
     const canonical = try statement.canonicalWords();
     var statement_words: [
-        @import("recursive_field_node_public_v2.zig")
+        @import("./recursive_field_node_public_v2.zig")
             .STATEMENT_WORD_COUNT
     ]u32 = undefined;
     for (&statement_words, canonical) |*destination, word|
@@ -573,7 +573,7 @@ fn initRow(
         .pcs_identity_sha256 = geometry.pcs.identity_sha256,
         .padding_layout_identity_sha256 = geometry.padding_layout_identity_sha256,
         .registry_identity_sha256 = fixture.remint.registry.identity_sha256,
-        .node_public_abi_sha256 = @import("recursive_field_node_public_v2.zig").abiIdentitySha256(),
+        .node_public_abi_sha256 = @import("./recursive_field_node_public_v2.zig").abiIdentitySha256(),
         .proof_shape_identity_sha256 = geometry.proof_shape.identity_sha256,
         .ordered_children = .{
             try node_store.fromSharedRef(child_ref),

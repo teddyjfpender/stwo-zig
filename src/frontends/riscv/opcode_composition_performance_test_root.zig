@@ -2,9 +2,9 @@
 //! touched by the E-022 manifest cutover.
 
 test {
-    _ = @import("air/lang/typed_base_alu_reg_witness_performance_test.zig");
-    _ = @import("air/lang/typed_branch_eq_authority_test.zig");
-    _ = @import("air/lang/typed_jal_authority_test.zig");
-    _ = @import("air/lang/typed_jalr_authority_test.zig");
-    _ = @import("air/lang/typed_shifts_reg_witness_performance_test.zig");
+    _ = @import("air/lang/tests/typed_base_alu_reg_witness_performance_test.zig");
+    _ = @import("air/lang/tests/typed_branch_eq_authority_test.zig");
+    _ = @import("air/lang/tests/typed_jal_authority_test.zig");
+    _ = @import("air/lang/tests/typed_jalr_authority_test.zig");
+    _ = @import("air/lang/tests/typed_shifts_reg_witness_performance_test.zig");
 }

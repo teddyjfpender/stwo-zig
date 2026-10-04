@@ -1,12 +1,12 @@
 const std = @import("std");
 const frontend = @import("stwo_riscv_frontend");
 
-const subject = @import("recursive_pipeline_campaign_padding_target_v2.zig");
-const remint_mod = @import("recursive_common_wrapper_padding_remint_v2.zig");
-const final_mod = @import("recursive_pipeline_campaign_final_remint_v2.zig");
+const subject = @import("./recursive_pipeline_campaign_padding_target_v2.zig");
+const remint_mod = @import("./recursive_common_wrapper_padding_remint_v2.zig");
+const final_mod = @import("./recursive_pipeline_campaign_final_remint_v2.zig");
 const fixture_mod =
     @import("recursive_common_wrapper_padding_remint_v2_test.zig");
-const shape_mod = @import("recursive_pipeline_campaign_shape_v2.zig");
+const shape_mod = @import("./recursive_pipeline_campaign_shape_v2.zig");
 
 const PROVIDER_ROW: usize = @intFromEnum(
     frontend.recursion.air.universal_roster.Component.poseidon2,

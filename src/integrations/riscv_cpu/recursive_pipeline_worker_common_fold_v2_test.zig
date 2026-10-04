@@ -1,9 +1,9 @@
 const std = @import("std");
 const artifact_store = @import("stwo_artifact_store");
 
-const subject = @import("recursive_pipeline_worker_common_fold_v2.zig");
-const campaign_shape = @import("recursive_pipeline_campaign_shape_v2.zig");
-const node_artifact = @import("recursive_node_artifact_v2.zig");
+const subject = @import("./recursive_pipeline_worker_common_fold_v2.zig");
+const campaign_shape = @import("./recursive_pipeline_campaign_shape_v2.zig");
+const node_artifact = @import("./recursive_node_artifact_v2.zig");
 
 test "stage104 topology derives a non-power-of-two campaign shape" {
     const shape = try campaign_shape.CampaignShapeAuthorityV2.init(

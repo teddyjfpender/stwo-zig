@@ -2,5 +2,5 @@
 
 test {
     _ = @import("recursion/binary_transcript_outer_source.zig");
-    _ = @import("recursion/binary_transcript_outer_source_test.zig");
+    _ = @import("recursion/tests/binary_transcript_outer_source_test.zig");
 }

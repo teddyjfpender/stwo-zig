@@ -82,12 +82,12 @@ EXPLICIT_NON_AUTHORITY_CONSUMERS = frozenset({
     Path("frontends/riscv/test_inventory.zig"),
     Path("frontends/riscv/polynomial_compiler_test_root.zig"),
 })
-ARTIFACT_TEST = LANG_ROOT / "typed_poseidon2_frontier_artifact_test.zig"
-LAYOUT_EXECUTOR_TEST = LANG_ROOT / "typed_poseidon2_layout_executor_test.zig"
+ARTIFACT_TEST = LANG_ROOT / "tests/typed_poseidon2_frontier_artifact_test.zig"
+LAYOUT_EXECUTOR_TEST = LANG_ROOT / "tests/typed_poseidon2_layout_executor_test.zig"
 BENCHMARK_COMMAND = LANG_ROOT / "poseidon_layout_benchmark_command.zig"
 BENCHMARK_PROTOCOL = LANG_ROOT / "poseidon_layout_benchmark_protocol.zig"
-BENCHMARK_PROTOCOL_TEST = LANG_ROOT / "poseidon_layout_benchmark_protocol_test.zig"
-BENCHMARK_ARTIFACT_TEST = LANG_ROOT / "poseidon_layout_benchmark_artifact_test.zig"
+BENCHMARK_PROTOCOL_TEST = LANG_ROOT / "tests/poseidon_layout_benchmark_protocol_test.zig"
+BENCHMARK_ARTIFACT_TEST = LANG_ROOT / "tests/poseidon_layout_benchmark_artifact_test.zig"
 BENCHMARK_TOOL = Path("frontends/riscv/poseidon_layout_benchmark_tool.zig")
 ARTIFACT_DATA_CONSUMERS = frozenset({
     ARTIFACT_TEST,
@@ -148,6 +148,8 @@ def _is_non_authority_source(relative: Path) -> bool:
     if relative in EXPLICIT_NON_AUTHORITY_CONSUMERS:
         return True
     # A familiar basename in a nested directory is not an authority grant.
-    # Every authoring exception is one exact, reviewable path directly beneath
-    # the language root.
-    return relative.parent == LANG_ROOT and relative.name in AUTHORING_FILES
+    # Every authoring exception is one exact, reviewable path beneath the
+    # language root, with test-only authoring files in its tests directory.
+    return relative.name in AUTHORING_FILES and relative.parent in {
+        LANG_ROOT, LANG_ROOT / "tests"
+    }

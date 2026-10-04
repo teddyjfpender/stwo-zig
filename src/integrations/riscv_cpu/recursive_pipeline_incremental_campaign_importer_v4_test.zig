@@ -1,11 +1,11 @@
 const std = @import("std");
 const artifact_store = @import("stwo_artifact_store");
 
-const importer = @import("recursive_pipeline_incremental_campaign_importer_v4.zig");
-const recipe_mod = @import("recursive_pipeline_incremental_leaf_recipe_v4.zig");
-const table_mod = @import("recursive_pipeline_incremental_campaign_table_v4.zig");
+const importer = @import("./recursive_pipeline_incremental_campaign_importer_v4.zig");
+const recipe_mod = @import("./recursive_pipeline_incremental_leaf_recipe_v4.zig");
+const table_mod = @import("./recursive_pipeline_incremental_campaign_table_v4.zig");
 const wire_publication =
-    @import("ethereum_incremental_public_wire_publication_v4.zig");
+    @import("./ethereum_incremental_public_wire_publication_v4.zig");
 
 const synthetic_count: u32 = 2;
 
@@ -320,7 +320,7 @@ fn ref(
         @as(
             u64,
             @intCast(
-                @import("ethereum_block_leaf_support.zig").source_wire.encoded_size,
+                @import("./ethereum_block_leaf_support.zig").source_wire.encoded_size,
             ),
         )
     else

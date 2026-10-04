@@ -2,9 +2,9 @@ const std = @import("std");
 const frontend = @import("stwo_riscv_frontend");
 
 const field_public =
-    @import("recursive_common_ethereum_incremental_leaf_field_public_v4.zig");
+    @import("./recursive_common_ethereum_incremental_leaf_field_public_v4.zig");
 const subject =
-    @import("recursive_common_ethereum_incremental_leaf_public_semantics_v4.zig");
+    @import("./recursive_common_ethereum_incremental_leaf_public_semantics_v4.zig");
 
 test "role0 completion claim consumes actual Ethereum decoded tuple" {
     const completion = try field_public.CompletionProjectionV4.init(

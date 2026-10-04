@@ -6,5 +6,5 @@
 //! whole proof graph.
 
 test {
-    _ = @import("air/lang/row_window_test.zig");
+    _ = @import("air/lang/tests/row_window_test.zig");
 }

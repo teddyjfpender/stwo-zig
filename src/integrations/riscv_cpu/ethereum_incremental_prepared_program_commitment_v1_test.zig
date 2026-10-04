@@ -1,9 +1,9 @@
 const std = @import("std");
 
 const prepared =
-    @import("ethereum_incremental_prepared_program_commitment_v1.zig");
+    @import("./ethereum_incremental_prepared_program_commitment_v1.zig");
 const frontend = @import("stwo_riscv_frontend");
-const elf_fixture = @import("recursive_common_ethereum_incremental_leaf_universal_proof_v4_genuine_fixture.zig");
+const elf_fixture = @import("./recursive_common_ethereum_incremental_leaf_universal_proof_v4_genuine_fixture.zig");
 
 fn buildEthereumElf(allocator: std.mem.Allocator) ![]u8 {
     // Reuse the genuine proof fixture's admitted completion and ELF layout.

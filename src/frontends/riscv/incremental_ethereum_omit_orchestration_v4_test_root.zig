@@ -9,5 +9,5 @@
 //! order, and the bindings of the per-shard leaf authority.
 
 comptime {
-    _ = @import("prover/incremental_ethereum_omit_orchestration_v4_test.zig");
+    _ = @import("prover/tests/incremental_ethereum_omit_orchestration_v4_test.zig");
 }

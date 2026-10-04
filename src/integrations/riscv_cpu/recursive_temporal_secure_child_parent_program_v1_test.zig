@@ -3,7 +3,7 @@ const stwo_core = @import("stwo_core");
 const frontend = @import("stwo_riscv_frontend");
 
 const program =
-    @import("recursive_temporal_secure_child_parent_program_v1.zig");
+    @import("./recursive_temporal_secure_child_parent_program_v1.zig");
 
 const composition_v3 = frontend.recursion.recursion_air_composition_circuit_v3;
 const recorder = composition_v3.segment_recorder_v3.graph_recorder;

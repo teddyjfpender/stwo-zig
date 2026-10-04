@@ -1,8 +1,8 @@
 const std = @import("std");
 
 const subject =
-    @import("recursive_temporal_secure_child_composition_v1.zig");
-const h1_graph = @import("recursive_temporal_secure_child_h1_graph_v1.zig");
+    @import("./recursive_temporal_secure_child_composition_v1.zig");
+const h1_graph = @import("./recursive_temporal_secure_child_h1_graph_v1.zig");
 const h1_session_fixture =
     @import("recursive_temporal_secure_child_h1_session_v1_test.zig");
 const stwo_core = @import("stwo_core");

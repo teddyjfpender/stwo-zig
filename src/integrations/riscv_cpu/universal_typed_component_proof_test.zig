@@ -36,7 +36,7 @@ const fri_leaf_witness = recursion_air.fri_merkle_leaf_witness;
 const fri_node = recursion_air.fri_merkle_node;
 const fri_node_relation = recursion_air.fri_merkle_node_relation;
 const fri_node_witness = recursion_air.fri_merkle_node_witness;
-const test_support = @import("universal_typed_component_proof_test_support.zig");
+const test_support = @import("./universal_typed_component_proof_test_support.zig");
 
 const Engine = recursion_engine.ProverEngineForBackend(CpuBackend);
 const VerifierScheme = stwo_core.pcs.verifier.CommitmentSchemeVerifier(

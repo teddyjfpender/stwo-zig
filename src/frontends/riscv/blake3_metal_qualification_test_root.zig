@@ -12,7 +12,7 @@ test "Metal compact canonical native BLAKE3 parent matches CPU qualification" {
     defer a.free(mode);
     try @import("blake3_runtime").initialize(Engine, a, mode);
     defer Metal.shutdown() catch unreachable;
-    try @import("prover/compact_range_execution_test.zig").checkProofForBackend(true, Metal);
+    try @import("prover/tests/compact_range_execution_test.zig").checkProofForBackend(true, Metal);
 }
 test "Metal canonical four-leaf BLAKE3 aggregation tree" {
     const a = std.testing.allocator;
@@ -21,7 +21,7 @@ test "Metal canonical four-leaf BLAKE3 aggregation tree" {
     try @import("blake3_runtime").initialize(Engine, a, mode);
     defer Metal.shutdown() catch unreachable;
     try requireNativeHashKernels(a);
-    try @import("prover/blake3_segment_tree_test.zig").checkForBackend(Metal, true);
+    try @import("prover/tests/blake3_segment_tree_test.zig").checkForBackend(Metal, true);
 }
 /// A correct CPU fallback must not masquerade as GPU hash qualification.
 fn requireNativeHashKernels(a: std.mem.Allocator) !void {

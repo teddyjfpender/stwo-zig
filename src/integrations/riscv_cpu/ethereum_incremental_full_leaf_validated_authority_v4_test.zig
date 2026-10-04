@@ -2,11 +2,11 @@ const std = @import("std");
 const frontend = @import("stwo_riscv_frontend");
 
 const fixture_mod =
-    @import("ethereum_incremental_boundary_artifact_v3_test_support.zig");
+    @import("./ethereum_incremental_boundary_artifact_v3_test_support.zig");
 const lease_mod =
-    @import("ethereum_incremental_full_leaf_validated_lease_v2.zig");
+    @import("./ethereum_incremental_full_leaf_validated_lease_v2.zig");
 const authority_mod =
-    @import("ethereum_incremental_full_leaf_validated_authority_v4.zig");
+    @import("./ethereum_incremental_full_leaf_validated_authority_v4.zig");
 
 const statement = frontend.air.statement;
 const statement_v2 = frontend.air.statement_v2;

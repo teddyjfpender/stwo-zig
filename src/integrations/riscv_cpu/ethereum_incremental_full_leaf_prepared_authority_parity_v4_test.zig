@@ -1,11 +1,11 @@
 const std = @import("std");
 const subject =
-    @import("ethereum_incremental_full_leaf_prepared_authority_parity_v4.zig");
+    @import("./ethereum_incremental_full_leaf_prepared_authority_parity_v4.zig");
 
 test "Stage101 prepared parity live API type-instantiates" {
     std.testing.refAllDecls(subject);
     std.testing.refAllDecls(
-        @import("ethereum_incremental_full_leaf_prepared_replay_producer_v4.zig"),
+        @import("./ethereum_incremental_full_leaf_prepared_replay_producer_v4.zig"),
     );
     try std.testing.expect(!subject.DIGEST_IS_ADMISSION);
 }

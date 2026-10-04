@@ -774,7 +774,7 @@ fn boolean(value: bool) M31 {
 }
 
 test {
-    _ = @import("branch_test.zig");
+    _ = @import("tests/branch_test.zig");
 }
 
 test "branch AIR rejects delayed IME promotion mutation" {

@@ -4,16 +4,16 @@ const frontend = @import("stwo_riscv_frontend");
 const prover_engine = @import("stwo_prover_engine");
 
 const ethereum_leaf =
-    @import("recursive_temporal_ethereum_leaf_descriptor_v1.zig");
+    @import("./recursive_temporal_ethereum_leaf_descriptor_v1.zig");
 const incremental_provider =
-    @import("recursive_temporal_incremental_provider_authority_v1.zig");
+    @import("./recursive_temporal_incremental_provider_authority_v1.zig");
 const native_provider = frontend.prover_mod.memory_provider_shard_authority;
 const poseidon_air = frontend.air.memory_commitment.poseidon2_air;
 const node_public =
-    @import("recursive_temporal_node_public_authority_v2.zig");
-const reducer_mod = @import("recursive_temporal_verified_reducer_v1.zig");
-const statement_plan = @import("recursive_temporal_statement_plan_v1.zig");
-const topology = @import("recursive_temporal_topology_v1.zig");
+    @import("./recursive_temporal_node_public_authority_v2.zig");
+const reducer_mod = @import("./recursive_temporal_verified_reducer_v1.zig");
+const statement_plan = @import("./recursive_temporal_statement_plan_v1.zig");
+const topology = @import("./recursive_temporal_topology_v1.zig");
 
 const recursion = frontend.recursion;
 const source_wire = frontend.prover_mod.guest_precompile

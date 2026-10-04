@@ -1,9 +1,9 @@
 const std = @import("std");
 const core = @import("stwo_core");
 const recursion = @import("stwo_riscv_frontend").recursion;
-const subject = @import("ethereum_wrapper_detached_fold_v1.zig");
-const shape_mod = @import("ethereum_wrapper_child_shape_v1.zig");
-const manifest = @import("recursive_common_ethereum_incremental_leaf_universal_manifest_v4.zig");
+const subject = @import("./ethereum_wrapper_detached_fold_v1.zig");
+const shape_mod = @import("./ethereum_wrapper_child_shape_v1.zig");
+const manifest = @import("./recursive_common_ethereum_incremental_leaf_universal_manifest_v4.zig");
 const fixture = @import("ethereum_wrapper_root_verifier_v1_test.zig");
 
 fn fixtureManifest() manifest.Manifest {
@@ -39,10 +39,10 @@ test "Ethereum field fold rejects wrong selected shape before proof parsing" {
     const Adapter = subject.Types(wrong_dimensions);
     const key = try fixture.testKey();
     const session = try fixture.testSession(key.session_fields);
-    const public = @import("recursive_field_node_public_v2.zig");
+    const public = @import("./recursive_field_node_public_v2.zig");
     var words: [public.STATEMENT_WORD_COUNT]u32 = undefined;
     for (session.parent_statement_words, &words) |word, *out| out.* = word.toU32();
-    const node = try public.NodePublicV2.initLeaf(try @import("recursive_node_artifact_v1.zig").TaskCoordinateV1.init(0, 0), words, [_]u32{9} ** 8);
-    const claims: @import("ethereum_wrapper_root_verifier_v1.zig").ClaimsV1 = .{ .values = @splat(core.fields.qm31.QM31.zero()), .poseidon_partials = @splat(core.fields.qm31.QM31.zero()) };
+    const node = try public.NodePublicV2.initLeaf(try @import("./recursive_node_artifact_v1.zig").TaskCoordinateV1.init(0, 0), words, [_]u32{9} ** 8);
+    const claims: @import("./ethereum_wrapper_root_verifier_v1.zig").ClaimsV1 = .{ .values = @splat(core.fields.qm31.QM31.zero()), .poseidon_partials = @splat(core.fields.qm31.QM31.zero()) };
     try std.testing.expectError(error.EthereumFoldChildShapeMismatch, Adapter.Child.init(std.testing.allocator, &key, &node, claims, 0, &.{}));
 }

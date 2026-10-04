@@ -234,7 +234,7 @@ pub fn ForModules(comptime Backend: type, comptime Bus: type, comptime Protocol:
 }
 
 test {
-    _ = @import("block_v5_native_recursive_consuming_test.zig");
+    _ = @import("tests/block_v5_native_recursive_consuming_test.zig");
 }
 test "native expected setup cache: independently required key rejects mismatch before proof work" {
     const wanted: [32]u8 = @splat(3);

@@ -1,12 +1,12 @@
 const std = @import("std");
 const core = @import("stwo_core");
 const recursion = @import("stwo_riscv_frontend").recursion;
-const verifier = @import("recursive_common_fold_detached_verifier_v2.zig");
-const manifest = @import("recursive_common_fold_universal_manifest_v2.zig");
-const session_mod = @import("recursive_temporal_secure_parent_artifact_v1.zig");
-const program_mod = @import("recursive_secure_transcript_program_v1.zig");
-const field = @import("recursive_common_fold_field_public_v2.zig");
-const NodePublicV2 = @import("recursive_field_node_public_v2.zig").NodePublicV2;
+const verifier = @import("./recursive_common_fold_detached_verifier_v2.zig");
+const manifest = @import("./recursive_common_fold_universal_manifest_v2.zig");
+const session_mod = @import("./recursive_temporal_secure_parent_artifact_v1.zig");
+const program_mod = @import("./recursive_secure_transcript_program_v1.zig");
+const field = @import("./recursive_common_fold_field_public_v2.zig");
+const NodePublicV2 = @import("./recursive_field_node_public_v2.zig").NodePublicV2;
 const M31 = core.fields.m31.M31;
 const QM31 = core.fields.qm31.QM31;
 const Capture = struct { commitments: [4]recursion.poseidon2_channel.Digest, sampled_values: [1]QM31, fri: struct { layers: [1]u8 }, last_layer_coefficients: [1]QM31, queries: struct { raw: [193]u32 } };
@@ -23,7 +23,7 @@ fn parent(index: u32) !NodePublicV2 {
     const fixtures = @import("recursive_common_fold_field_public_v2_test.zig");
     const left = try fixtures.emptyLeaf(index, "left-key-fixture");
     const right = try fixtures.emptyLeaf(index + 1, "right-key-fixture");
-    return (try field.PoseidonScheduleV2.build(&left, &right, try @import("recursive_node_artifact_v2.zig").TaskCoordinateV1.init(1, index / 2))).parent;
+    return (try field.PoseidonScheduleV2.build(&left, &right, try @import("./recursive_node_artifact_v2.zig").TaskCoordinateV1.init(1, index / 2))).parent;
 }
 fn session(key: *const verifier.EthereumKeyV1, node: *const NodePublicV2, custody: u8) !session_mod.SessionV1 {
     const fields = try key.sessionFields();
@@ -104,7 +104,7 @@ test "Ethereum fold fixed transcript shares namespace and preserves legacy const
     try std.testing.expectEqualDeep(program.identity, changed_witness.identity);
     capture.commitments[0][0] += 1;
     try std.testing.expectError(error.InvalidRecursiveTranscriptProgram, program_mod.Program.initEthereumFoldKeyV1(allocator, &key, &capture));
-    try std.testing.expect(!@import("ethereum_wrapper_detached_fold_v1.zig").FOLD_ADMISSION_AVAILABLE);
+    try std.testing.expect(!@import("./ethereum_wrapper_detached_fold_v1.zig").FOLD_ADMISSION_AVAILABLE);
 }
 
 test "Ethereum fold engine replay consumes admitted key and preserves legacy fallback" {
@@ -115,18 +115,18 @@ test "Ethereum fold engine replay consumes admitted key and preserves legacy fal
     // validity. Full child-proof and parent lifecycle gates remain required.
     const Cohort = struct {
         admitted: ?verifier.EthereumKeyV1,
-        fixed_manifest: @import("recursive_common_fold_universal_manifest_v2.zig").Manifest,
+        fixed_manifest: @import("./recursive_common_fold_universal_manifest_v2.zig").Manifest,
         reject: bool = false,
 
         pub fn ethereumDetachedVerifierKey(self: *@This()) !verifier.EthereumKeyV1 {
             if (self.reject) return error.CommonFoldCohortMismatch;
             return self.admitted orelse error.EthereumFoldFixedAdmissionRequired;
         }
-        pub fn manifest(self: *@This()) *const @import("recursive_common_fold_universal_manifest_v2.zig").Manifest {
+        pub fn manifest(self: *@This()) *const @import("./recursive_common_fold_universal_manifest_v2.zig").Manifest {
             return &self.fixed_manifest;
         }
     };
-    const engine = @import("recursive_temporal_secure_parent_native_engine_v1.zig");
+    const engine = @import("./recursive_temporal_secure_parent_native_engine_v1.zig");
     var cohort: Cohort = .{ .admitted = key, .fixed_manifest = key.key.manifest };
     var actual = try engine.initCommonFoldTranscriptProgram(Cohort, allocator, &cohort, &capture);
     defer actual.deinit();

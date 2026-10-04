@@ -1,7 +1,7 @@
 const std = @import("std");
 const QM31 = @import("stwo_core").fields.qm31.QM31;
-const subject = @import("recursive_common_fold_q193_bootstrap_v2.zig");
-const verifier = @import("recursive_common_fold_detached_verifier_v2.zig");
+const subject = @import("./recursive_common_fold_q193_bootstrap_v2.zig");
+const verifier = @import("./recursive_common_fold_detached_verifier_v2.zig");
 
 /// Rebuild setup using children 212/213 and compare all public key bytes with
 /// the saved 210/211 bootstrap key. No parent proof or capture supplies setup.
@@ -9,9 +9,9 @@ const verifier = @import("recursive_common_fold_detached_verifier_v2.zig");
 pub fn exerciseSetup(live: *const subject.BootstrapLiveV2) !void {
     const allocator = std.testing.allocator;
     const recursion = @import("stwo_riscv_frontend").recursion;
-    const manifest_mod = @import("recursive_common_fold_universal_manifest_v2.zig");
+    const manifest_mod = @import("./recursive_common_fold_universal_manifest_v2.zig");
     const Engine = recursion.engine.ProverEngineForBackend(@import("stwo_cpu_backend").CpuBackend);
-    const Tree = @import("recursive_binary_outer_support.zig").TreeStorageForManifest(manifest_mod);
+    const Tree = @import("./recursive_binary_outer_support.zig").TreeStorageForManifest(manifest_mod);
     var cohort = try subject.SecureCohort.init(allocator, .{ .live = live });
     defer cohort.deinit();
     const relations = recursion.air.universal_challenges.UniversalRelations.dummy();
@@ -19,7 +19,7 @@ pub fn exerciseSetup(live: *const subject.BootstrapLiveV2) !void {
     const generated = try cohort.rebuildGeneratedInteractions(&relations, &providers);
     var components = try cohort.initComponents(&generated, &relations, &providers);
     defer components.deinit();
-    const protocol = @import("recursive_temporal_secure_parent_protocol_v1.zig").AuthorityV1.secureParent();
+    const protocol = @import("./recursive_temporal_secure_parent_protocol_v1.zig").AuthorityV1.secureParent();
     var scheme = try Engine.init(allocator, try protocol.pcsConfig());
     defer Engine.deinit(&scheme, allocator);
     var transcript = Engine.Channel{};
@@ -36,8 +36,8 @@ pub fn exerciseSetup(live: *const subject.BootstrapLiveV2) !void {
     inline for (std.meta.fields(@TypeOf(components.suffix))[0..16], 18..) |field, index|
         key.parameters[index] = @field(components.suffix, field.name).parameters;
     _ = try key.validate();
-    const transport = @import("recursive_common_fold_verifier_command_v2.zig");
-    const bytes = try std.json.Stringify.valueAlloc(allocator, transport.KeyFile{ .format_version = 1, .common_fold_schema = @import("recursive_common_fold_secure_cohort_v2.zig").SCHEMA_VERSION, .key = key }, .{});
+    const transport = @import("./recursive_common_fold_verifier_command_v2.zig");
+    const bytes = try std.json.Stringify.valueAlloc(allocator, transport.KeyFile{ .format_version = 1, .common_fold_schema = @import("./recursive_common_fold_secure_cohort_v2.zig").SCHEMA_VERSION, .key = key }, .{});
     defer allocator.free(bytes);
     var actual: [32]u8 = undefined;
     std.crypto.hash.sha2.Sha256.hash(bytes, &actual, .{});
@@ -74,7 +74,7 @@ pub fn exercise(cold: *const subject.OwnedBootstrapProofV2) !void {
     const verify_ns = timer.read();
     if (std.process.getEnvVarOwned(allocator, "STWO_RECURSION_VERIFIER_EXPORT_DIR")) |path| {
         defer allocator.free(path);
-        const digest = try @import("recursive_common_fold_verifier_command_v2.zig").writeBundle(allocator, path, key, node, claims, nonce, bytes);
+        const digest = try @import("./recursive_common_fold_verifier_command_v2.zig").writeBundle(allocator, path, key, node, claims, nonce, bytes);
         std.debug.print("COMMON_FOLD_VERIFIER_EXPORT key_sha256={s} independent_key_admission=false\n", .{std.fmt.bytesToHex(digest, .lower)});
     } else |err| switch (err) {
         error.EnvironmentVariableNotFound => {},
@@ -84,11 +84,11 @@ pub fn exercise(cold: *const subject.OwnedBootstrapProofV2) !void {
     var capture: verifier.ProofCapture = undefined;
     const captured_terminal = try verifier.verifyWithCapture(allocator, &key, &node, &claims, nonce, bytes, &capture);
     defer capture.deinit(allocator);
-    const publication = @import("recursive_segment_v2_verified_publication.zig");
+    const publication = @import("./recursive_segment_v2_verified_publication.zig");
     try std.testing.expectEqualDeep(terminal, captured_terminal);
     try std.testing.expectEqualDeep(publication.captureIdentity(&cold.fresh.capture), publication.captureIdentity(&capture));
     std.debug.print("COMMON_FOLD_DETACHED_CAPTURE native_capture_matches=true rebuilt_child_cohort=false\n", .{});
-    const detached = @import("recursive_common_fold_detached_transcript_v2.zig");
+    const detached = @import("./recursive_common_fold_detached_transcript_v2.zig");
     var witness = try detached.Owned.init(allocator, &key, &node, &claims, nonce, bytes);
     defer witness.deinit();
     try std.testing.expectEqualDeep(cold.transcript.program.identity, witness.program.identity);

@@ -7,7 +7,7 @@ const semantic_authority = @import("stwo_cairo_frontend").proof_plan.semantic_au
 const pcs_hooks = @import("../pcs_hooks.zig");
 const resident_plan = @import("../resident_plan.zig");
 const resident_test = @import("../resident_plan_test_support.zig");
-const fixture = @import("../resident_plan_test.zig");
+const fixture = @import("../tests/resident_plan_test.zig");
 const subject = @import("controller.zig");
 
 test "SN2 quotient controller binds exact topology and stage order" {

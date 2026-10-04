@@ -9,7 +9,7 @@ const degree5_candidate = @import(
 );
 
 comptime {
-    _ = @import("air/lang/typed_poseidon2_degree5_backend_test.zig");
+    _ = @import("air/lang/tests/typed_poseidon2_degree5_backend_test.zig");
     _ = @import(
         "prover/memory_provider_shards/degree5_provider_stage_a_transaction_v1_test.zig",
     );

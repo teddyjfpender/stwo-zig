@@ -1,10 +1,10 @@
 const std = @import("std");
 const frontend = @import("stwo_riscv_frontend");
 
-const artifact = @import("recursive_node_artifact_v1.zig");
-const field_public = @import("recursive_field_node_public_v2.zig");
+const artifact = @import("./recursive_node_artifact_v1.zig");
+const field_public = @import("./recursive_field_node_public_v2.zig");
 const subject =
-    @import("recursive_common_canonical_empty_field_public_v2.zig");
+    @import("./recursive_common_canonical_empty_field_public_v2.zig");
 
 const recursion = frontend.recursion;
 const poseidon = frontend.air.memory_commitment.poseidon2;

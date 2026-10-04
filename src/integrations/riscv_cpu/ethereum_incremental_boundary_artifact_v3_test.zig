@@ -1,11 +1,11 @@
 const std = @import("std");
 const frontend = @import("stwo_riscv_frontend");
 
-const artifact = @import("ethereum_incremental_boundary_artifact_v3.zig");
-const artifact_v2 = @import("ethereum_incremental_boundary_artifact_v2.zig");
-const authority_v1 = @import("ethereum_incremental_boundary_authority_v1.zig");
-const boundary_v3 = @import("ethereum_incremental_boundary_authority_v3.zig");
-const support = @import("ethereum_incremental_boundary_artifact_v3_test_support.zig");
+const artifact = @import("./ethereum_incremental_boundary_artifact_v3.zig");
+const artifact_v2 = @import("./ethereum_incremental_boundary_artifact_v2.zig");
+const authority_v1 = @import("./ethereum_incremental_boundary_authority_v1.zig");
+const boundary_v3 = @import("./ethereum_incremental_boundary_authority_v3.zig");
+const support = @import("./ethereum_incremental_boundary_artifact_v3_test_support.zig");
 
 const memory_state = frontend.runner.memory_state;
 const public_data = frontend.air.public_data;

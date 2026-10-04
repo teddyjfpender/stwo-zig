@@ -8,6 +8,6 @@ const std = @import("std");
 const components = @import("recursion/segment_statement_outer_components_v2.zig");
 
 test {
-    _ = @import("recursion/segment_statement_outer_source_v2_test.zig");
+    _ = @import("recursion/tests/segment_statement_outer_source_v2_test.zig");
     std.testing.refAllDeclsRecursive(components);
 }

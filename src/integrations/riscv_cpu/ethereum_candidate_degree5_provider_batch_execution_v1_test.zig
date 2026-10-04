@@ -3,7 +3,7 @@ const frontend = @import("stwo_riscv_frontend");
 const shard_planner = @import("stwo_prover_engine").pcs.residency_shard_plan;
 
 const subject =
-    @import("ethereum_candidate_degree5_provider_batch_execution_v1.zig");
+    @import("./ethereum_candidate_degree5_provider_batch_execution_v1.zig");
 
 const authority = frontend.testing.narrow_memory_provider_shard_authority;
 const poseidon2_air = frontend.air.memory_commitment.poseidon2_air;
