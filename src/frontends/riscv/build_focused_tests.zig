@@ -14,6 +14,14 @@ pub const Spec = struct {
 
 pub const specs = [_]Spec{
     .{
+        .step = "test-blake3-x0-statement-wire",
+        .description = "Check local-zero custody survives authenticated BLAKE3 statement encoding",
+        .root = "block_v5_x0_native_unit_test_root.zig",
+        .imports_prover_engine = true,
+        .filters = &.{"block-v5 x0 native real instruction cells"},
+        .minimum = 1,
+    },
+    .{
         .step = "test-block-execution-bridge-v2",
         .description = "Check block-v2 typed access and integer transition bridge",
         .root = "block_execution_access_bridge_test_root.zig",

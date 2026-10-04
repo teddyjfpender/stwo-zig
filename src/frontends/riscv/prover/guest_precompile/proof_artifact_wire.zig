@@ -97,6 +97,8 @@ fn encodeStatementFor(comptime blake3: bool, writer: anytype, statement: *const 
         return error.InvalidComponentCount;
     }
     try statement.public_data.validate();
+    if (blake3 and statement.x0_local_custody_version > @import("../../air/x0_local_custody_v1.zig").VERSION)
+        return error.InvalidStatement;
     try validateIoResources(&statement.public_data, limits);
 
     try writeInt(writer, u32, statement.n_components);
@@ -151,6 +153,11 @@ fn encodeStatementFor(comptime blake3: bool, writer: anytype, statement: *const 
         try writeInt(writer, u32, word.value);
         try writeInt(writer, u32, word.clock);
     }
+    // Preserve the original BLAKE3 encoding for the ordinary recipe. The
+    // versioned local-zero recipe must be carried by the authenticated
+    // statement bytes instead of disappearing during a fresh artifact decode.
+    if (blake3 and statement.x0_local_custody_version != 0)
+        try writeInt(writer, u32, statement.x0_local_custody_version);
 }
 
 pub fn decodeStatement(allocator: std.mem.Allocator, bytes: []const u8, limits: Limits) !OwnedStatement {
@@ -163,6 +170,7 @@ fn decodeStatementFor(comptime blake3: bool, allocator: std.mem.Allocator, bytes
     var cursor = Cursor.init(bytes);
     var result: StatementFor(blake3) = undefined;
     result.initializeDescriptorStorage();
+    result.x0_local_custody_version = 0;
     result.n_components = try cursor.readInt(u32);
     if (result.n_components > base_statement.MAX_COMPONENTS)
         return error.InvalidComponentCount;
@@ -256,6 +264,11 @@ fn decodeStatementFor(comptime blake3: bool, allocator: std.mem.Allocator, bytes
     };
     try public.validate();
     result.public_data = public;
+    if (blake3 and cursor.position != bytes.len) {
+        result.x0_local_custody_version = try cursor.readInt(u32);
+        if (result.x0_local_custody_version != @import("../../air/x0_local_custody_v1.zig").VERSION)
+            return error.InvalidStatement;
+    }
     try cursor.requireDone();
     return .{
         .value = result,
