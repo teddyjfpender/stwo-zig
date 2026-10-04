@@ -30,7 +30,7 @@ const CpuBackend = @import("stwo_cpu_backend").CpuBackend;
 const frontend = @import("stwo_riscv_frontend");
 
 const transcript_mod =
-    @import("ethereum_incremental_omitted_provider_transcript_v1.zig");
+    @import("./ethereum_incremental_omitted_provider_transcript_v1.zig");
 
 const QM31 = stwo_core.fields.qm31.QM31;
 const statement_mod = frontend.air.statement;

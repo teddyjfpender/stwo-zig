@@ -1,8 +1,8 @@
 const std = @import("std");
 const core = @import("stwo_core");
 const frontend = @import("stwo_riscv_frontend");
-const subject = @import("recursive_common_ethereum_incremental_leaf_global_binding_v1.zig");
-const support = @import("recursive_common_ethereum_incremental_leaf_public_sums_v4_support.zig");
+const subject = @import("./recursive_common_ethereum_incremental_leaf_global_binding_v1.zig");
+const support = @import("./recursive_common_ethereum_incremental_leaf_public_sums_v4_support.zig");
 const arithmetic = frontend.recursion.arithmetic_circuit;
 const projection = frontend.recursion.segment_leaf_local_projection_v3;
 const layout = frontend.recursion.span_statement.canonical_layout;
@@ -124,7 +124,7 @@ test "Ethereum global projection rejects overflow reversal aliases and shifted i
 
 test "Ethereum global projection full program preserves canonical tail and exact local fanout" {
     const allocator = std.testing.allocator;
-    const elf = @import("recursive_common_ethereum_incremental_leaf_universal_proof_v4_genuine_fixture.zig").programElf();
+    const elf = @import("./recursive_common_ethereum_incremental_leaf_universal_proof_v4_genuine_fixture.zig").programElf();
     const admission = try support.program_admission.ProgramAdmissionV1.createFromElf(allocator, &elf);
     defer admission.deinit();
     var local = try support.buildWithProgram(allocator, 2, admission);
@@ -134,7 +134,7 @@ test "Ethereum global projection full program preserves canonical tail and exact
     try std.testing.expectEqual(local.bindings.len + subject.WORD_COUNT + subject.AUX_COUNT, global.bindings.len);
     const tail = support.CHALLENGE_WORD_COUNT + support.CANONICAL_CLAIM_WORD_COUNT;
     try std.testing.expectEqualDeep(local.bindings[local.bindings.len - tail ..], global.bindings[global.bindings.len - tail ..]);
-    const routing = @import("recursive_common_ethereum_incremental_leaf_statement_routing_v4.zig");
+    const routing = @import("./recursive_common_ethereum_incremental_leaf_statement_routing_v4.zig");
     const local_plan = try routing.Plan.init(local.bindings, local.circuit.useCounts()[0..local.bindings.len], @splat(1));
     const global_plan = try routing.Plan.init(global.bindings, global.circuit.useCounts()[0..global.bindings.len], @splat(2));
     try std.testing.expect(local_plan.local_publication);

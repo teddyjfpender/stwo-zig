@@ -5,10 +5,10 @@ const std = @import("std");
 const stwo_core = @import("stwo_core");
 const frontend = @import("stwo_riscv_frontend");
 const postcard = @import("interop_postcard");
-const core_outer = @import("recursive_fri_outer.zig");
-const subject = @import("recursive_segment_v2_leaf_outer.zig");
-const memory_workload = @import("recursive_segment_v2_memory_workload.zig");
-const noncore_gate = @import("recursive_segment_v2_noncore_owner_real_gate.zig");
+const core_outer = @import("./recursive_fri_outer.zig");
+const subject = @import("./recursive_segment_v2_leaf_outer.zig");
+const memory_workload = @import("./recursive_segment_v2_memory_workload.zig");
+const noncore_gate = @import("./recursive_segment_v2_noncore_owner_real_gate.zig");
 const M31 = stwo_core.fields.m31.M31;
 const prover = frontend.prover_mod;
 const runner = frontend.runner;
@@ -24,7 +24,7 @@ const Engine = subject.Engine;
 pub const TUPLE_CLOSURE_DIAGNOSTIC_ENV =
     "STWO_RECURSION_OUTER_CLOSURE_DIAGNOSTIC";
 
-const native_ingress = @import("recursive_segment_v2_native_ingress.zig");
+const native_ingress = @import("./recursive_segment_v2_native_ingress.zig");
 const test_config = native_ingress.DEVELOPMENT_CONFIG;
 
 test "generic Poseidon2 native V2 capture prepares the owned recursive leaf" {
@@ -268,10 +268,10 @@ fn runGateWithHookForSteps(
 
     const native_lifecycle = if (comptime NativeEngine != Engine) NativeEngine.Backend.runtimeLifecycleSnapshot() else {};
     const native_telemetry = if (comptime NativeEngine != Engine) try NativeEngine.Backend.telemetrySnapshot() else {};
-    var native_memory = @import("recursive_segment_v2_outer_engine.zig").ProducerAllocator{};
+    var native_memory = @import("./recursive_segment_v2_outer_engine.zig").ProducerAllocator{};
     defer std.debug.assert(native_memory.isEmpty());
     const native_allocator = native_memory.allocator();
-    var probe = @import("recursive_segment_v2_native_profile.zig").Probe.init(allocator);
+    var probe = @import("./recursive_segment_v2_native_profile.zig").Probe.init(allocator);
     defer probe.deinit();
     var prove_timer = try std.time.Timer.start();
     var output = try prover.proveRiscVSegmentV2WithEngine(
@@ -461,9 +461,9 @@ fn runGateWithHookForSteps(
                 left_result.execution_trace.rows.items.len,
                 if (comptime NativeEngine == Engine) "cpu" else "metal",
                 test_config.fri_config.n_queries,
-                @import("recursive_segment_v2_outer_engine.zig").OUTER_CONFIG.fri_config.n_queries,
+                @import("./recursive_segment_v2_outer_engine.zig").OUTER_CONFIG.fri_config.n_queries,
                 test_config.pow_bits,
-                @import("recursive_segment_v2_outer_engine.zig").OUTER_CONFIG.pow_bits,
+                @import("./recursive_segment_v2_outer_engine.zig").OUTER_CONFIG.pow_bits,
                 if (memory_addresses != null) "lw_addi_sw_updates" else "finite_addi_bne_counter_loop",
                 memory_addresses orelse 0,
                 milliseconds(prove_ns),
@@ -541,11 +541,11 @@ fn runGateWithHookForSteps(
     // verifier cohort. The owner is heap-stable at the integration boundary;
     // its in-place initializer still exercises the audited move-safe return
     // path internally, which protects ReleaseFast from stale stack pointers.
-    const source_preflight = try @import("recursive_segment_v2_noncore_owner.zig")
+    const source_preflight = try @import("./recursive_segment_v2_noncore_owner.zig")
         .PreflightV2.init(&bundle);
-    var public_native_relations = @import("recursive_segment_v2_noncore_owner.zig")
+    var public_native_relations = @import("./recursive_segment_v2_noncore_owner.zig")
         .nativeRelations(&bundle);
-    const public_native_inputs = @import("recursive_segment_v2_noncore_owner.zig")
+    const public_native_inputs = @import("./recursive_segment_v2_noncore_owner.zig")
         .publicInputs(&bundle, &public_native_relations);
     var public_native_sum_source = try recursion
         .segment_public_native_sum_authority_v2.SourceV2.init(

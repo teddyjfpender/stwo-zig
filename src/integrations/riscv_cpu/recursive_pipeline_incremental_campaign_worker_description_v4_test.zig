@@ -2,19 +2,19 @@ const std = @import("std");
 const artifact_store = @import("stwo_artifact_store");
 
 const custody_mod =
-    @import("recursive_pipeline_incremental_campaign_cold_description_v4.zig");
+    @import("./recursive_pipeline_incremental_campaign_cold_description_v4.zig");
 const description_mod =
-    @import("recursive_pipeline_incremental_campaign_worker_description_v4.zig");
+    @import("./recursive_pipeline_incremental_campaign_worker_description_v4.zig");
 const receipt_mod =
-    @import("recursive_pipeline_incremental_campaign_import_receipt_v4.zig");
+    @import("./recursive_pipeline_incremental_campaign_import_receipt_v4.zig");
 const recipe_mod =
-    @import("recursive_pipeline_incremental_leaf_recipe_v4.zig");
-const support = @import("ethereum_block_leaf_support.zig");
+    @import("./recursive_pipeline_incremental_leaf_recipe_v4.zig");
+const support = @import("./ethereum_block_leaf_support.zig");
 const table_mod =
-    @import("recursive_pipeline_incremental_campaign_table_v4.zig");
+    @import("./recursive_pipeline_incremental_campaign_table_v4.zig");
 const wire_publication =
-    @import("ethereum_incremental_public_wire_publication_v4.zig");
-const worker = @import("recursive_pipeline_worker_native_leaf_v4.zig");
+    @import("./ethereum_incremental_public_wire_publication_v4.zig");
+const worker = @import("./recursive_pipeline_worker_native_leaf_v4.zig");
 
 test "campaign worker description emits exact runtime-derived 2 3 and 5 leaf projections" {
     inline for (.{ @as(u32, 2), @as(u32, 3), @as(u32, 5) }) |count|

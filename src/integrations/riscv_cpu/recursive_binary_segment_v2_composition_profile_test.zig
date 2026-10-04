@@ -4,7 +4,7 @@ const std = @import("std");
 const stwo_core = @import("stwo_core");
 const frontend = @import("stwo_riscv_frontend");
 
-const subject = @import("recursive_binary_composition_authority.zig");
+const subject = @import("./recursive_binary_composition_authority.zig");
 
 const M31 = stwo_core.fields.m31.M31;
 const QM31 = stwo_core.fields.qm31.QM31;

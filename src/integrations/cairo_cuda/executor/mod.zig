@@ -34,17 +34,17 @@ pub const transcript = @import("transcript/mod.zig");
 
 test {
     _ = @import("proof_session.zig");
-    _ = @import("pcs_decommit_controller_test.zig");
-    _ = @import("pcs_decommit_topology_test.zig");
-    _ = @import("pcs_hooks_test.zig");
-    _ = @import("pcs_fri_controller_test.zig");
-    _ = @import("pcs_oods_controller_test.zig");
-    _ = @import("pcs_oods_topology_test.zig");
-    _ = @import("resident_plan_test.zig");
-    _ = @import("terminal_route_test.zig");
-    _ = @import("trace_commit_test.zig");
-    _ = @import("trace_schedule_test.zig");
-    _ = @import("base_writer_binding_test.zig");
-    _ = @import("trace_writer_controller_test.zig");
+    _ = @import("tests/pcs_decommit_controller_test.zig");
+    _ = @import("tests/pcs_decommit_topology_test.zig");
+    _ = @import("tests/pcs_hooks_test.zig");
+    _ = @import("tests/pcs_fri_controller_test.zig");
+    _ = @import("tests/pcs_oods_controller_test.zig");
+    _ = @import("tests/pcs_oods_topology_test.zig");
+    _ = @import("tests/resident_plan_test.zig");
+    _ = @import("tests/terminal_route_test.zig");
+    _ = @import("tests/trace_commit_test.zig");
+    _ = @import("tests/trace_schedule_test.zig");
+    _ = @import("tests/base_writer_binding_test.zig");
+    _ = @import("tests/trace_writer_controller_test.zig");
     @import("std").testing.refAllDeclsRecursive(@This());
 }

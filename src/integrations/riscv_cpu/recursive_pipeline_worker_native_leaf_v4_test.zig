@@ -1,9 +1,9 @@
 const std = @import("std");
 const artifact_store = @import("stwo_artifact_store");
 
-const subject = @import("recursive_pipeline_worker_native_leaf_v4.zig");
-const recipe = @import("recursive_pipeline_incremental_leaf_recipe_v4.zig");
-const wire = @import("ethereum_incremental_public_wire_publication_v4.zig");
+const subject = @import("./recursive_pipeline_worker_native_leaf_v4.zig");
+const recipe = @import("./recursive_pipeline_incremental_leaf_recipe_v4.zig");
+const wire = @import("./ethereum_incremental_public_wire_publication_v4.zig");
 
 test "stage101 exposes the exact seven-input proof contract" {
     const description = try subject.Adapter.describe(.prove, 101);

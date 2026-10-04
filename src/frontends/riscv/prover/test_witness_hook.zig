@@ -17,5 +17,5 @@ pub const applyLegacyOpcodeAuthority = core.applyLegacyOpcodeAuthority;
 pub const applyLegacyLuiAuthority = core.applyLegacyLuiAuthority;
 
 test {
-    _ = @import("test_witness_hook_test.zig");
+    _ = @import("tests/test_witness_hook_test.zig");
 }

@@ -2,7 +2,7 @@
 
 const std = @import("std");
 
-const driver = @import("recursive_binary_outer.zig");
+const driver = @import("./recursive_binary_outer.zig");
 
 test "binary temporal parent profile APIs type-check as a complete surface" {
     std.testing.refAllDeclsRecursive(driver.TemporalParentArtifactViewV1);
@@ -145,12 +145,12 @@ test "binary temporal parent frontier exposes the independently verified V3 path
 }
 
 test "binary temporal artifact preflight rejects duplicate custody first" {
-    var publication: @import("recursive_segment_v2_verified_publication.zig")
+    var publication: @import("./recursive_segment_v2_verified_publication.zig")
         .VerifiedSegmentV2PublicationV1 = undefined;
     @memset(std.mem.asBytes(&publication), 0);
     var capture: driver.OuterProofCapture = undefined;
     @memset(std.mem.asBytes(&capture), 0);
-    var recursive_witness: @import("recursive_segment_v2_verified_artifact.zig")
+    var recursive_witness: @import("./recursive_segment_v2_verified_artifact.zig")
         .RecursiveWitnessV1 = undefined;
     const child = driver.TemporalChildArtifactV1{
         .publication = &publication,
@@ -159,7 +159,7 @@ test "binary temporal artifact preflight rejects duplicate custody first" {
     };
     var segment_manifest: @import("stwo_riscv_frontend").recursion.air
         .segment_outer_adapter_manifest_v2.Manifest = undefined;
-    var pair: @import("recursive_temporal_pair_authority_v2.zig")
+    var pair: @import("./recursive_temporal_pair_authority_v2.zig")
         .PreparedTemporalPairAuthorityV1 = undefined;
     @memset(std.mem.asBytes(&pair), 0);
     try std.testing.expectError(

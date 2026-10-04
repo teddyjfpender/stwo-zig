@@ -1,3 +1,3 @@
 test "non-core custody focused inventory compiles" {
-    _ = @import("recursion/segment_outer_noncore_audits_v2_test.zig");
+    _ = @import("recursion/tests/segment_outer_noncore_audits_v2_test.zig");
 }

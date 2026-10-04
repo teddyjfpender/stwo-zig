@@ -1,8 +1,8 @@
 const std = @import("std");
 const frontend = @import("stwo_riscv_frontend");
 
-const field_public = @import("recursive_field_node_public_v2.zig");
-const subject = @import("recursive_node_artifact_v2.zig");
+const field_public = @import("./recursive_field_node_public_v2.zig");
+const subject = @import("./recursive_node_artifact_v2.zig");
 
 const recursion = frontend.recursion;
 

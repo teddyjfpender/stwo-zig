@@ -9,13 +9,13 @@ pub const interaction_legacy_test_oracle = @import("air/interaction_legacy_test_
 pub const recursion_air_composition_v3 = @import("recursion/recursion_air_composition_circuit_v3_test_support.zig");
 
 pub const clock_update_component_test =
-    @import("air/clock_update_component_test.zig");
+    @import("air/tests/clock_update_component_test.zig");
 pub const relation_export_components_test =
-    @import("air/relation_export_components_test.zig");
-pub const relation_export_test = @import("air/relation_export_test.zig");
-pub const semantic_component_test = @import("air/semantic_component_test.zig");
+    @import("air/tests/relation_export_components_test.zig");
+pub const relation_export_test = @import("air/tests/relation_export_test.zig");
+pub const semantic_component_test = @import("air/tests/semantic_component_test.zig");
 pub const typed_poseidon2_proof_test =
-    @import("air/lang/typed_poseidon2_proof_test.zig");
+    @import("air/lang/tests/typed_poseidon2_proof_test.zig");
 pub const typed_lui = @import("air/lang/typed_lui.zig");
 pub const typed_lui_witness = @import("air/lang/typed_lui_witness.zig");
 pub const lui_legacy_test_oracle =
@@ -229,9 +229,9 @@ pub const narrow_memory_provider_degree5_ethereum_candidate_v1 =
 pub const narrow_memory_provider_order_component =
     @import("prover/memory_provider_shards/provider_order_component.zig");
 pub const ethereum_leaf_child_field_test =
-    @import("recursion/ethereum_leaf_child_field_test.zig");
+    @import("recursion/tests/ethereum_leaf_child_field_test.zig");
 pub const provider_shard_child_field_test =
-    @import("recursion/provider_shard_child_field_test.zig");
+    @import("recursion/tests/provider_shard_child_field_test.zig");
 pub const aggregation_test_fixture = @import("aggregation/test_fixture.zig");
 pub const aggregation_types = @import("aggregation/types.zig");
 pub const binary_pair_outer_fixture =

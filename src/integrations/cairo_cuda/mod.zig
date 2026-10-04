@@ -46,25 +46,25 @@ test "api signature: Cairo CUDA keeps its emitter explicitly development-only" {
 }
 
 test {
-    _ = @import("casm_input_test.zig");
+    _ = @import("tests/casm_input_test.zig");
     _ = base_writer_plan;
-    _ = @import("witness_edge_test.zig");
-    _ = @import("witness_multi_edge_test.zig");
+    _ = @import("tests/witness_edge_test.zig");
+    _ = @import("tests/witness_multi_edge_test.zig");
     _ = lowering_map;
     _ = native_ec;
-    _ = @import("program_test.zig");
-    _ = @import("product_registry_test.zig");
-    _ = @import("recorded_witness_fixture_test.zig");
-    _ = @import("relation_adapter_test.zig");
-    _ = @import("relation_adapter_layout_test.zig");
+    _ = @import("tests/program_test.zig");
+    _ = @import("tests/product_registry_test.zig");
+    _ = @import("tests/recorded_witness_fixture_test.zig");
+    _ = @import("tests/relation_adapter_test.zig");
+    _ = @import("tests/relation_adapter_layout_test.zig");
     _ = recorded_witness;
     _ = @import("request_compiler.zig");
     _ = diagnostic_sn2;
     _ = eval_codegen;
     _ = eval_product_registry;
-    _ = @import("eval_aot_test.zig");
-    _ = @import("eval_parity_fixture_test.zig");
-    _ = @import("relation_sn2_parity_fixture_test.zig");
+    _ = @import("tests/eval_aot_test.zig");
+    _ = @import("tests/eval_parity_fixture_test.zig");
+    _ = @import("tests/relation_sn2_parity_fixture_test.zig");
     _ = executor;
     @import("std").testing.refAllDeclsRecursive(@This());
 }

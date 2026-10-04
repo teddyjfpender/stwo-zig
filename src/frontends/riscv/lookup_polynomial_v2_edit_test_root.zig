@@ -5,6 +5,6 @@
 //! production integration gate remains `test-lookup-batching`.
 
 test {
-    _ = @import("air/lang/lookup_polynomial_program_v2_test.zig");
-    _ = @import("air/lang/lookup_physical_manifest_v2_test.zig");
+    _ = @import("air/lang/tests/lookup_polynomial_program_v2_test.zig");
+    _ = @import("air/lang/tests/lookup_physical_manifest_v2_test.zig");
 }

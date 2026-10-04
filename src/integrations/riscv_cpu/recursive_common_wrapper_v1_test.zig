@@ -1,9 +1,9 @@
 const std = @import("std");
 
-const artifact = @import("recursive_node_artifact_v1.zig");
-const manifest_mod = @import("recursive_common_wrapper_manifest_v1.zig");
-const padding = @import("recursive_common_wrapper_padding_v1.zig");
-const registry = @import("recursive_circuit_registry_v1.zig");
+const artifact = @import("./recursive_node_artifact_v1.zig");
+const manifest_mod = @import("./recursive_common_wrapper_manifest_v1.zig");
+const padding = @import("./recursive_common_wrapper_padding_v1.zig");
+const registry = @import("./recursive_circuit_registry_v1.zig");
 
 test "common wrapper target requires three cold geometries and never squeezes" {
     var geometries = try fixtureGeometries();

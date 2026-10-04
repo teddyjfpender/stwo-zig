@@ -3,7 +3,7 @@ const std = @import("std");
 const core = @import("stwo_core");
 const frontend = @import("stwo_riscv_frontend");
 const relation = frontend.recursion.air.relation_interaction;
-const initial_rows = @import("recursive_common_ethereum_initial_input_rows_v1.zig");
+const initial_rows = @import("./recursive_common_ethereum_initial_input_rows_v1.zig");
 const Owner = frontend.recursion.compact_tuple_ledger_v1.Owner;
 const tables = frontend.air.lookups.tables;
 const TABLE_SIZE = tables.schema.size(.range_check_8_8);
@@ -23,7 +23,7 @@ fn appendBoth(old: *relation.TupleLedger, compact: *relation.TupleLedger, domain
 
 test "Ethereum compact tuple ledger matches canonical records and range provider exactly" {
     const allocator = std.testing.allocator;
-    const Range = @import("recursive_common_ethereum_incremental_leaf_range_provider_v4.zig").OwnerV4;
+    const Range = @import("./recursive_common_ethereum_incremental_leaf_range_provider_v4.zig").OwnerV4;
     var ordinary = relation.TupleLedger.init(allocator);
     defer ordinary.deinit();
     var compact = try Owner.init(allocator, false);
@@ -153,7 +153,7 @@ test "Ethereum compact tuple ledger cleans up every allocation failure" {
 }
 
 fn exerciseProviderAllocationFailures(allocator: std.mem.Allocator) !void {
-    const Range = @import("recursive_common_ethereum_incremental_leaf_range_provider_v4.zig").OwnerV4;
+    const Range = @import("./recursive_common_ethereum_incremental_leaf_range_provider_v4.zig").OwnerV4;
     var compact = try Owner.init(allocator, false);
     defer compact.deinit();
     var sink = compact.ledger();

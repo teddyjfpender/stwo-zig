@@ -28,14 +28,14 @@ const CpuBackend = @import("stwo_cpu_backend").CpuBackend;
 const frontend = @import("stwo_riscv_frontend");
 
 const shared_batch =
-    @import("ethereum_candidate_degree5_provider_shared_batch_v1.zig");
-const artifact_mod = @import("ethereum_degree5_provider_proof_artifact_v1.zig");
+    @import("./ethereum_candidate_degree5_provider_shared_batch_v1.zig");
+const artifact_mod = @import("./ethereum_degree5_provider_proof_artifact_v1.zig");
 const execution_mod =
-    @import("ethereum_candidate_degree5_provider_batch_execution_v1.zig");
+    @import("./ethereum_candidate_degree5_provider_batch_execution_v1.zig");
 const prepared_mod =
-    @import("ethereum_candidate_degree5_provider_prepared_batch_v1.zig");
+    @import("./ethereum_candidate_degree5_provider_prepared_batch_v1.zig");
 const transcript_mod =
-    @import("ethereum_incremental_omitted_provider_transcript_v1.zig");
+    @import("./ethereum_incremental_omitted_provider_transcript_v1.zig");
 
 const QM31 = stwo_core.fields.qm31.QM31;
 const poseidon2_air = frontend.air.memory_commitment.poseidon2_air;

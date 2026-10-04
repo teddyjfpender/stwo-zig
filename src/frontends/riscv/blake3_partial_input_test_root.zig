@@ -1,3 +1,3 @@
 comptime {
-    _ = @import("prover/blake3_partial_input_test.zig");
+    _ = @import("prover/tests/blake3_partial_input_test.zig");
 }

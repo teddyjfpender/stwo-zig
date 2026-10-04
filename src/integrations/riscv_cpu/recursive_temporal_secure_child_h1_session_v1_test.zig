@@ -12,11 +12,11 @@ const frontend = @import("stwo_riscv_frontend");
 
 const canonical_empty = frontend.recursion.canonical_empty_cohort_v3;
 const h1_components =
-    @import("recursive_temporal_ethereum_poseidon_h1_components_v1.zig");
+    @import("./recursive_temporal_ethereum_poseidon_h1_components_v1.zig");
 const h1_graph =
-    @import("recursive_temporal_secure_child_h1_graph_v1.zig");
+    @import("./recursive_temporal_secure_child_h1_graph_v1.zig");
 const h1_manifest =
-    @import("recursive_temporal_ethereum_poseidon_h1_manifest_v1.zig");
+    @import("./recursive_temporal_ethereum_poseidon_h1_manifest_v1.zig");
 const v3_test_support = frontend.recursion.recursion_air_composition_circuit_v3_test_support;
 
 const recursion = frontend.recursion;

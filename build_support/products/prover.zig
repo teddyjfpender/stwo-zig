@@ -13,7 +13,7 @@ const source_closure = product_policy.SourceClosure{
         "src/products/prover/surface.zig",
         "src/prover/focused_test_root.zig",
         "src/prover/merkle_test_root.zig",
-        "src/prover/work_pool_test.zig",
+        "src/prover/tests/work_pool_test.zig",
     },
     .named_imports = &.{
         .{ .name = "stwo_core", .source = "src/core/mod.zig" },
@@ -132,7 +132,7 @@ pub fn addProduct(context: Context) Result {
     protocol.addImports(coefficient_root);
     const coefficient_tests = context.b.addTest(.{ .root_module = coefficient_root, .filters = &.{"coefficient storage"} });
     context.b.step("test-stwo-prover-coefficient-storage", "Qualify compact polynomial commitments, quotients, openings and failure custody").dependOn(&context.b.addRunArtifact(coefficient_tests).step);
-    const pool_root = graph.create(context.b, .{ .product = graph.proverProduct(.@"test"), .root_source_file = "src/prover/work_pool_test.zig", .target = context.target, .optimize = context.optimize });
+    const pool_root = graph.create(context.b, .{ .product = graph.proverProduct(.@"test"), .root_source_file = "src/prover/tests/work_pool_test.zig", .target = context.target, .optimize = context.optimize });
     protocol.addImports(pool_root);
     const pool_tests = context.b.addTest(.{ .root_module = pool_root });
     context.b.step("test-stwo-prover-pool", "Test proof-scoped pool lifetimes and concurrent borrowed coordinators").dependOn(&context.b.addRunArtifact(pool_tests).step);

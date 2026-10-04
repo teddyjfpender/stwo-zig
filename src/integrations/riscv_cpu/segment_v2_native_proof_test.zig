@@ -730,7 +730,7 @@ fn nativeSegmentsMode(comptime ProofEngine: type, comptime suite_name: []const u
         try std.testing.expect(preparation_budget.peak_live_bytes <= preparation_budget.limit);
         std.debug.print("V2_BLAKE3_NATIVE_PARENT_HANDOFF slots=1 queue_limit_bytes={d} retained_bytes={d} preparation_peak_bytes={d} preparation_limit_bytes={d}\n", .{ queued_byte_limit, try parent.retainedBytes(), preparation_budget.peak_live_bytes, preparation_budget.limit });
         std.debug.print("V2_BLAKE3_NATIVE_PARENT_PREPARATION canonical=true hash_columns_emitted_directly=true row_oracle_parity=true intermediates_released=true bounded_thread_handoff=true inputs={d}\n", .{parent.rows.input_count});
-        const execution_policy = @import("recursive_pipeline_worker_execution_policy_v2.zig");
+        const execution_policy = @import("./recursive_pipeline_worker_execution_policy_v2.zig");
         const host = try execution_policy.HostExecutionAuthorityV2.detect(16 * 1024 * 1024 * 1024);
         const pipeline_policy = try execution_policy.PolicyV2.init(host, .{ .total_cpu_tokens = 3, .cpu_tokens_per_node = 3, .proof_worker_count = 2, .maximum_parallel_nodes = 1, .total_rss_bytes = 12 * 1024 * 1024 * 1024, .rss_bytes_per_node = 12 * 1024 * 1024 * 1024 });
         const pipeline = frontend.recursion.blake3_native_parent_pipeline;

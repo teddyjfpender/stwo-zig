@@ -1,7 +1,7 @@
 const std = @import("std");
 
 const subject =
-    @import("ethereum_incremental_full_leaf_prepared_proof_transaction_v4.zig");
+    @import("./ethereum_incremental_full_leaf_prepared_proof_transaction_v4.zig");
 
 test "prepared transaction pins one construction of every expensive owner" {
     std.testing.refAllDecls(subject.PreparedProofTransactionV4);

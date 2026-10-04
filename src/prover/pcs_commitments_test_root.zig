@@ -3,7 +3,7 @@ test {
     _ = @import("pcs/sampled_mixed_backend.zig");
     _ = @import("pcs/budgeted_merkle_test.zig");
     _ = @import("pcs/shared_commitment_test.zig");
-    _ = @import("fri_work_test.zig");
+    _ = @import("tests/fri_work_test.zig");
     _ = @import("pcs/retained_column_storage_test.zig");
     _ = @import("pcs/owned_source_admission_test.zig");
     _ = @import("pcs/columns/circle_transforms.zig");

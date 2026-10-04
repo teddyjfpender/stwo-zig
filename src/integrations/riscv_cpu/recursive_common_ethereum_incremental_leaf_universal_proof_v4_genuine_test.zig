@@ -8,33 +8,33 @@ const CpuBackend = @import("stwo_cpu_backend").CpuBackend;
 const frontend = @import("stwo_riscv_frontend");
 
 const campaign_mod =
-    @import("recursive_common_ethereum_incremental_leaf_campaign_provider_geometry_v4.zig");
+    @import("./recursive_common_ethereum_incremental_leaf_campaign_provider_geometry_v4.zig");
 const campaign_materializer =
-    @import("recursive_common_ethereum_incremental_leaf_campaign_materializer_v4.zig");
+    @import("./recursive_common_ethereum_incremental_leaf_campaign_materializer_v4.zig");
 const materializer_mod =
-    @import("recursive_common_ethereum_incremental_leaf_materializer_v4.zig");
+    @import("./recursive_common_ethereum_incremental_leaf_materializer_v4.zig");
 const fixture =
-    @import("recursive_common_ethereum_incremental_leaf_universal_proof_v4_genuine_fixture.zig");
+    @import("./recursive_common_ethereum_incremental_leaf_universal_proof_v4_genuine_fixture.zig");
 const input_mod =
-    @import("recursive_common_ethereum_incremental_leaf_input_v4.zig");
+    @import("./recursive_common_ethereum_incremental_leaf_input_v4.zig");
 const proof_mod =
-    @import("recursive_common_ethereum_incremental_leaf_universal_proof_v4.zig");
+    @import("./recursive_common_ethereum_incremental_leaf_universal_proof_v4.zig");
 const proof_artifact =
-    @import("ethereum_incremental_full_leaf_proof_artifact_v4.zig");
+    @import("./ethereum_incremental_full_leaf_proof_artifact_v4.zig");
 const runtime_mod =
-    @import("recursive_common_ethereum_incremental_leaf_genuine_runtime_v4.zig");
+    @import("./recursive_common_ethereum_incremental_leaf_genuine_runtime_v4.zig");
 const recipe_mod =
-    @import("recursive_pipeline_incremental_leaf_recipe_v4.zig");
-const registry_mod = @import("recursive_circuit_registry_v1.zig");
+    @import("./recursive_pipeline_incremental_leaf_recipe_v4.zig");
+const registry_mod = @import("./recursive_circuit_registry_v1.zig");
 const table_mod =
-    @import("recursive_pipeline_incremental_campaign_table_v4.zig");
+    @import("./recursive_pipeline_incremental_campaign_table_v4.zig");
 const wire_publication =
-    @import("ethereum_incremental_public_wire_publication_v4.zig");
+    @import("./ethereum_incremental_public_wire_publication_v4.zig");
 
 const M31 = stwo_core.fields.m31.M31;
 const Engine = frontend.recursion.engine.ProverEngineForBackend(CpuBackend);
 const FreshInput = input_mod.FreshInputV4(Engine);
-const FixedProgram = @import("ethereum_fixed_program_admission_v1.zig").OwnedV1;
+const FixedProgram = @import("./ethereum_fixed_program_admission_v1.zig").OwnedV1;
 const Campaign = campaign_mod.OwnedCampaignProviderGeometryV4;
 const Materialized =
     campaign_materializer.PreparedOwnedCampaignCaptureV4(Engine);
@@ -123,12 +123,12 @@ test "role0 retained corpus records and reopens its whole program admission" {
     Sha256.hash(&elf, &digest, .{});
     const bytes = try readPinnedStage101(allocator, path, &std.fmt.bytesToHex(digest, .lower));
     defer allocator.free(bytes);
-    const admitted = try @import("recursive_common_ethereum_incremental_leaf_program_admission_v1.zig").ProgramAdmissionV1.createFromElf(allocator, bytes);
+    const admitted = try @import("./recursive_common_ethereum_incremental_leaf_program_admission_v1.zig").ProgramAdmissionV1.createFromElf(allocator, bytes);
     defer admitted.deinit();
     try std.testing.expectEqual(digest, admitted.sourceSha256());
 }
 
-const ClaimAdmissionV4 = @import("ethereum_incremental_full_leaf_profile_v4.zig").ClaimAdmissionV4;
+const ClaimAdmissionV4 = @import("./ethereum_incremental_full_leaf_profile_v4.zig").ClaimAdmissionV4;
 const NativeReplayManifestV1 = runtime_mod.NativeReplayManifestV1;
 
 test "role0 schema3 native pair serializes destroys producer and freshly verifies" {
@@ -189,7 +189,7 @@ fn produceRetainedNativePair(comptime admission: ClaimAdmissionV4) !void {
     const program_hex = std.fmt.bytesToHex(program_digest, .lower);
     const retained_elf = try readPinnedStage101(allocator, program_path, &program_hex);
     defer allocator.free(retained_elf);
-    const program_admission = try @import("recursive_common_ethereum_incremental_leaf_program_admission_v1.zig")
+    const program_admission = try @import("./recursive_common_ethereum_incremental_leaf_program_admission_v1.zig")
         .ProgramAdmissionV1.createFromElf(allocator, retained_elf);
     defer program_admission.deinit();
     const metadata_path = try std.fs.path.join(allocator, &.{ directory, "global-metadata-v1.json" });
@@ -203,7 +203,7 @@ fn produceRetainedNativePair(comptime admission: ClaimAdmissionV4) !void {
         defer allocator.free(path);
         const bytes = try readPinnedStage101(allocator, path, &hex);
         defer allocator.free(bytes);
-        var fresh_native = try FreshInput.coldOpen(allocator, bytes, try @import("recursive_node_artifact_v1.zig").TaskCoordinateV1.init(0, @intCast(index)), .{});
+        var fresh_native = try FreshInput.coldOpen(allocator, bytes, try @import("./recursive_node_artifact_v1.zig").TaskCoordinateV1.init(0, @intCast(index)), .{});
         defer fresh_native.deinit();
         try std.testing.expectEqual(
             admission,
@@ -238,11 +238,11 @@ fn expectedWrapperGeometry(allocator: std.mem.Allocator) !frontend.recursion.fix
     if (pin.len != 64) return error.InvalidEthereumGeometryKeyPin;
     var digest: [32]u8 = undefined;
     _ = try std.fmt.hexToBytes(&digest, pin);
-    const bytes = try @import("ethereum_precompile_artifact_io.zig").readFileBounded(allocator, path, 64 * 1024 * 1024);
+    const bytes = try @import("./ethereum_precompile_artifact_io.zig").readFileBounded(allocator, path, 64 * 1024 * 1024);
     defer allocator.free(bytes);
-    const key = try @import("ethereum_wrapper_root_command_v1.zig").OwnedKeyV1.admit(allocator, bytes, digest);
+    const key = try @import("./ethereum_wrapper_root_command_v1.zig").OwnedKeyV1.admit(allocator, bytes, digest);
     defer key.deinit();
-    const shape = try @import("ethereum_wrapper_child_shape_v1.zig").OwnedV1.create(allocator, key.key());
+    const shape = try @import("./ethereum_wrapper_child_shape_v1.zig").OwnedV1.create(allocator, key.key());
     defer shape.deinit();
     std.debug.print("ETHEREUM_WRAPPER_GEOMETRY_EXPECTED key_sha256={s} dimensions={any} key_admitted=true proof_verified=false\n", .{ pin, shape.wireDimensions() });
     return shape.wireDimensions();
@@ -366,22 +366,22 @@ fn runWrapper(
     printAllocatorSnapshot("materialized-live", tracked_allocator.snapshot());
     if (mode == .tree0_compare) {
         stage.* = .cohort;
-        try @import("ethereum_wrapper_tree0_probe_v1.zig").compare(Engine, @import("ethereum_tree0_probe_backend").Backend, runtime_allocator, &materialized, worker_policy.worker_count);
+        try @import("./ethereum_wrapper_tree0_probe_v1.zig").compare(Engine, @import("ethereum_tree0_probe_backend").Backend, runtime_allocator, &materialized, worker_policy.worker_count);
         try finishAndPrintPhase(total_usage, .total, worker_policy);
         return;
     }
     if (mode == .failed_replay) {
         stage.* = .cohort;
-        try @import("ethereum_failed_wrapper_replay_v1.zig").replayFromEnvironment(Engine, runtime_allocator, &materialized);
+        try @import("./ethereum_failed_wrapper_replay_v1.zig").replayFromEnvironment(Engine, runtime_allocator, &materialized);
         try finishAndPrintPhase(total_usage, .total, worker_policy);
         return;
     }
     if (mode == .air_preflight or mode == .geometry_preflight) {
         stage.* = .cohort;
-        var admission_scope: @import("ethereum_native_verification_scope_v1.zig").ScopeV1 = undefined;
+        var admission_scope: @import("./ethereum_native_verification_scope_v1.zig").ScopeV1 = undefined;
         try admission_scope.initInPlace(worker_policy.worker_count);
         defer admission_scope.deinit();
-        const preflight = @import("ethereum_typed_air_preflight_v4.zig");
+        const preflight = @import("./ethereum_typed_air_preflight_v4.zig");
         if (mode == .geometry_preflight)
             try preflight.geometryOnly(Engine, runtime_allocator, &materialized, expected_geometry)
         else
@@ -391,10 +391,10 @@ fn runWrapper(
     }
     if (mode == .closure) {
         stage.* = .cohort;
-        var admission_scope: @import("ethereum_native_verification_scope_v1.zig").ScopeV1 = undefined;
+        var admission_scope: @import("./ethereum_native_verification_scope_v1.zig").ScopeV1 = undefined;
         try admission_scope.initInPlace(worker_policy.worker_count);
         defer admission_scope.deinit();
-        try @import("ethereum_statement_root_cohort_replay.zig").audit(Engine, runtime_allocator, &materialized);
+        try @import("./ethereum_statement_root_cohort_replay.zig").audit(Engine, runtime_allocator, &materialized);
         try finishAndPrintPhase(total_usage, .total, worker_policy);
         return;
     }
@@ -435,7 +435,7 @@ fn runWrapper(
         return;
     }
 
-    const root_command = @import("ethereum_wrapper_root_command_v1.zig");
+    const root_command = @import("./ethereum_wrapper_root_command_v1.zig");
     const initial_profile = materialized.initial_input_admission != null;
     // The next saved-parent consumer admits the ordinary 36-component profile.
     // Initial38 retains its existing explicitly selected lifecycle below.
@@ -582,15 +582,15 @@ fn runWrapper(
     try finishAndPrintPhase(total_usage, .total, worker_policy);
 }
 
-fn checkExpectedRootPublic(expected: *const @import("recursive_field_node_public_v2.zig").NodePublicV2, receipt: anytype) !void {
+fn checkExpectedRootPublic(expected: *const @import("./recursive_field_node_public_v2.zig").NodePublicV2, receipt: anytype) !void {
     try std.testing.expectEqualDeep(expected.coordinate, receipt.coordinate);
     try std.testing.expectEqualDeep(expected.statement_words, receipt.statement_words);
     try std.testing.expectEqualDeep(expected.output_digest, receipt.output_digest);
 }
 
-fn checkInitialRootRejections(allocator: std.mem.Allocator, bundle: @import("ethereum_wrapper_root_command_v1.zig").BundleLocationV1) !void {
-    const command = @import("ethereum_wrapper_root_command_v1.zig").Initial38;
-    const verifier = @import("ethereum_wrapper_root_verifier_v1.zig").Initial38;
+fn checkInitialRootRejections(allocator: std.mem.Allocator, bundle: @import("./ethereum_wrapper_root_command_v1.zig").BundleLocationV1) !void {
+    const command = @import("./ethereum_wrapper_root_command_v1.zig").Initial38;
+    const verifier = @import("./ethereum_wrapper_root_verifier_v1.zig").Initial38;
     var dir = try std.fs.cwd().openDir(bundle.path, .{});
     defer dir.close();
     const key_bytes = try dir.readFileAlloc(allocator, "key.json", 64 * 1024 * 1024);
@@ -612,7 +612,7 @@ fn checkInitialRootRejections(allocator: std.mem.Allocator, bundle: @import("eth
     var changed_inputs = inputs;
     var changed_source = inputs.node.source_digest;
     changed_source[0] = (changed_source[0] + 1) % stwo_core.fields.m31.Modulus;
-    changed_inputs.node = try @import("recursive_field_node_public_v2.zig").NodePublicV2.initLeaf(inputs.node.coordinate, inputs.node.statement_words, changed_source);
+    changed_inputs.node = try @import("./recursive_field_node_public_v2.zig").NodePublicV2.initLeaf(inputs.node.coordinate, inputs.node.statement_words, changed_source);
     const changed_json = try std.json.Stringify.valueAlloc(allocator, changed_inputs, .{});
     defer allocator.free(changed_json);
     try runtime_mod.writeReplayFile(dir, "rejected-public-inputs.json", changed_json);
@@ -716,7 +716,7 @@ fn finishAndPrintPhase(
 ) !void {
     const receipt = try measurement.finish(phase, policy);
     try receipt.validate();
-    @import("ethereum_wrapper_resources_v1.zig").progress(
+    @import("./ethereum_wrapper_resources_v1.zig").progress(
         "ETHEREUM_INCREMENTAL_ROLE0_PHASE phase={s} source={s} " ++
             "wall_ns={d} process_cpu_ns={d} parallelism_milli={d} " ++
             "peak_footprint_bytes={d} energy_nj={d} instructions={d} " ++
@@ -739,7 +739,7 @@ fn finishAndPrintPhase(
 
 fn UnusedChild(comptime ProofTypes: type) type {
     return struct {
-        wrapper: @import("recursive_common_wrapper_authority_v2.zig")
+        wrapper: @import("./recursive_common_wrapper_authority_v2.zig")
             .FreshWrapperViewV2,
         ingress: ProofTypes.Ingress,
         graph: ProofTypes.Graph,
@@ -855,7 +855,7 @@ fn fixtureRecord(
     const statement = ref(
         .statement,
         1,
-        @import("ethereum_block_leaf_support.zig").source_wire.encoded_size,
+        @import("./ethereum_block_leaf_support.zig").source_wire.encoded_size,
         @intCast(20 + index),
     );
     const recipe = ref(
@@ -958,7 +958,7 @@ test "role0 saved Stage101 proof binds dynamic statement roots" {
 /// Consumes the cold owner on every path. Both a freshly produced proof and a
 /// retained candidate exercise the identical publication and mutation checks.
 fn checkRecursivePublication(cold_value: Proof.OwnedColdProofV4, worker_policy: runtime_mod.WorkerPolicyV4, stage: *Stage) !void {
-    var measurements = @import("ethereum_wrapper_resources_v1.zig").Measurements.init();
+    var measurements = @import("./ethereum_wrapper_resources_v1.zig").Measurements.init();
     var cold = cold_value;
     var cold_live = true;
     defer if (cold_live) cold.deinit();
@@ -985,7 +985,7 @@ fn checkRecursivePublication(cold_value: Proof.OwnedColdProofV4, worker_policy: 
     try std.testing.expectEqual(admitted_graph.lane.circuit_id, (try evidence.cold.foldGraphView()).lane.circuit_id);
     try std.testing.expect(caller_graph.lane.circuit_id != admitted_graph.lane.circuit_id);
     const encoded_node = try evidence.node_artifact.encodeCanonical();
-    const decoded_node = try @import("recursive_node_artifact_v2.zig")
+    const decoded_node = try @import("./recursive_node_artifact_v2.zig")
         .RecursiveNodeArtifactV2.decodeCanonical(&encoded_node);
     try std.testing.expectEqualDeep(evidence.node_artifact, decoded_node);
     measurements.mark("publication.serialization");
@@ -1114,7 +1114,7 @@ fn materializeReplayInput(
     if (pin.len != 64) return error.InvalidRealMaterializationPin;
     var expected: [32]u8 = undefined;
     _ = try std.fmt.hexToBytes(&expected, pin);
-    const initial_mod = @import("recursive_common_ethereum_initial_input_admission_v1.zig");
+    const initial_mod = @import("./recursive_common_ethereum_initial_input_admission_v1.zig");
     const shape = try frontend.recursion.vm_public_claim.Shape.init(initial_mod.INPUT_CAPACITY, initial_mod.OUTPUT_CAPACITY);
     const initial = try initial_mod.InitialInputAdmissionV1.open(allocator, absolute, expected, shape);
     defer initial.deinit();
@@ -1155,7 +1155,7 @@ fn replaySavedStage101(check: enum { composition, transcript_geometry, statement
     var input_value = try FreshInput.coldOpen(
         tracked.allocator(),
         bytes,
-        try @import("recursive_node_artifact_v1.zig").TaskCoordinateV1.init(0, 0),
+        try @import("./recursive_node_artifact_v1.zig").TaskCoordinateV1.init(0, 0),
         proof_artifact.Limits{},
     );
     var input_live = true;
@@ -1171,10 +1171,10 @@ fn replaySavedStage101(check: enum { composition, transcript_geometry, statement
     input_live = false;
     defer prepared.deinit();
     try prepared.auditDeep();
-    if (check == .statement_roots) try @import("ethereum_statement_root_replay.zig").audit(tracked.allocator(), &prepared);
+    if (check == .statement_roots) try @import("./ethereum_statement_root_replay.zig").audit(tracked.allocator(), &prepared);
     if (check == .transcript_geometry) {
-        const native_core = @import("recursive_common_ethereum_incremental_leaf_native_core_v4.zig");
-        const geometry = @import("recursive_common_ethereum_incremental_leaf_transcript_geometry_v4.zig");
+        const native_core = @import("./recursive_common_ethereum_incremental_leaf_native_core_v4.zig");
+        const geometry = @import("./recursive_common_ethereum_incremental_leaf_transcript_geometry_v4.zig");
         var plans = try native_core.buildPlans(tracked.allocator(), &prepared.captured_fri, prepared.role_aware_io.padded_tuple_capacity);
         defer for (&plans) |*plan| plan.deinit();
         _ = try geometry.AuthorityV4.mint(&prepared.transcript, &plans[0], &plans[1]);
@@ -1190,7 +1190,7 @@ test "role0 saved Stage101 label input commitment is rejected" {
     defer allocator.free(path);
     const bytes = try readPinnedStage101(allocator, path, digest);
     defer allocator.free(bytes);
-    var input_value = try FreshInput.coldOpen(allocator, bytes, try @import("recursive_node_artifact_v1.zig").TaskCoordinateV1.init(0, 0), proof_artifact.Limits{});
+    var input_value = try FreshInput.coldOpen(allocator, bytes, try @import("./recursive_node_artifact_v1.zig").TaskCoordinateV1.init(0, 0), proof_artifact.Limits{});
     defer input_value.deinit();
     const vm_claim = frontend.recursion.vm_public_claim;
     const semantics = frontend.recursion.vm_public_semantics_circuit;
@@ -1218,7 +1218,7 @@ test "role0 saved Stage101 label input commitment is rejected" {
 const readPinnedStage101 = runtime_mod.readPinnedStage101;
 
 test "Ethereum cohort replay publication preserves absent and present initial claims" {
-    try @import("ethereum_statement_root_cohort_replay.zig").exercisePublicationCodec();
+    try @import("./ethereum_statement_root_cohort_replay.zig").exercisePublicationCodec();
 }
 
 test "role0 saved Stage101 pair closes the complete statement-root cohort" {
@@ -1341,7 +1341,7 @@ test "role0 retained wrapper candidate cold verifies from pinned inputs without 
 }
 
 test "Ethereum wrapper geometry gate rejects every incompatible wire dimension" {
-    const preflight = @import("ethereum_typed_air_preflight_v4.zig");
+    const preflight = @import("./ethereum_typed_air_preflight_v4.zig");
     const WireDimensions = frontend.recursion.fixed_wire.Dimensions;
     const expected = WireDimensions{
         .commitment_count = 4,
@@ -1390,19 +1390,19 @@ fn coldOpenNativePair(
     stage: ?*Stage,
 ) ![2]FreshInput {
     try std.testing.expectEqual(@as(usize, 2), bytes.len);
-    var scope: @import("ethereum_native_verification_scope_v1.zig").ScopeV1 = undefined;
+    var scope: @import("./ethereum_native_verification_scope_v1.zig").ScopeV1 = undefined;
     try scope.initInPlace(policy.worker_count);
     defer scope.deinit();
     if (stage) |value| value.* = .first_cold_open;
     const global_pair: ?GlobalReplayMetadataV1 = if (metadata_json) |data| try decodeGlobalReplayMetadata(allocator, data) else null;
-    const first_coordinate = try @import("recursive_node_artifact_v1.zig").TaskCoordinateV1.init(0, if (global_pair) |metadata| metadata.leaves[0].segment_index else 0);
+    const first_coordinate = try @import("./recursive_node_artifact_v1.zig").TaskCoordinateV1.init(0, if (global_pair) |metadata| metadata.leaves[0].segment_index else 0);
     var first = if (fixed_program) |program|
         try FreshInput.coldOpenWithProgramAdmission(allocator, bytes[0], first_coordinate, .{}, program)
     else
         try FreshInput.coldOpen(allocator, bytes[0], first_coordinate, .{});
     errdefer first.deinit();
     if (stage) |value| value.* = .second_cold_open;
-    const second_coordinate = try @import("recursive_node_artifact_v1.zig").TaskCoordinateV1.init(0, if (global_pair) |metadata| metadata.leaves[1].segment_index else 1);
+    const second_coordinate = try @import("./recursive_node_artifact_v1.zig").TaskCoordinateV1.init(0, if (global_pair) |metadata| metadata.leaves[1].segment_index else 1);
     var second = if (fixed_program) |program|
         try FreshInput.coldOpenWithProgramAdmission(allocator, bytes[1], second_coordinate, .{}, program)
     else
@@ -1485,7 +1485,7 @@ fn realReplayProgramSha(allocator: std.mem.Allocator, manifest: ?NativeReplayMan
     const metadata = try decodeGlobalReplayMetadata(allocator, metadata_json orelse return error.MissingGlobalReplayMetadata);
     const absolute = try std.fs.cwd().realpathAlloc(allocator, path);
     defer allocator.free(absolute);
-    var retained = try @import("ethereum_incremental_capture_retained_authority_v4.zig").RetainedAuthorityV4.openWithCampaignGeometryV1(allocator, absolute, .authenticated_v1);
+    var retained = try @import("./ethereum_incremental_capture_retained_authority_v4.zig").RetainedAuthorityV4.openWithCampaignGeometryV1(allocator, absolute, .authenticated_v1);
     defer retained.deinit();
     if (!std.meta.eql(expected, retained.materialization_identity.sha256)) return error.EthereumBundleMaterializationIdentityMismatch;
     for (&metadata.leaves) |*leaf| try retained.validateLeafMetadata(leaf);
@@ -1587,7 +1587,7 @@ fn replaySavedPair(comptime mode: WrapperMode) !void {
     if (mode == .candidate_replay) {
         const candidate_path = try std.process.getEnvVarOwned(allocator, "STWO_ETHEREUM_WRAPPER_CANDIDATE");
         defer allocator.free(candidate_path);
-        const candidate_bytes = try @import("ethereum_wrapper_candidate_v1.zig").load(allocator, candidate_path);
+        const candidate_bytes = try @import("./ethereum_wrapper_candidate_v1.zig").load(allocator, candidate_path);
         defer allocator.free(candidate_bytes);
         var tracked = runtime_mod.TrackedSmpAllocatorV4{};
         defer std.debug.assert(tracked.isEmpty());

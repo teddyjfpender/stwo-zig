@@ -4,8 +4,8 @@ const std = @import("std");
 const stwo_core = @import("stwo_core");
 const frontend = @import("stwo_riscv_frontend");
 
-const cohort_mod = @import("recursive_binary_outer_cohort.zig");
-const driver = @import("recursive_binary_outer.zig");
+const cohort_mod = @import("./recursive_binary_outer_cohort.zig");
+const driver = @import("./recursive_binary_outer.zig");
 const fixed_wire = frontend.recursion.fixed_wire;
 const protocol = frontend.recursion.protocol;
 const fixture_mod = frontend.testing.binary_pair_outer_fixture;

@@ -1,8 +1,8 @@
 const std = @import("std");
 const core = @import("stwo_core");
 const frontend = @import("stwo_riscv_frontend");
-const admission = @import("ethereum_fixed_program_admission_v1.zig");
-const fixture = @import("recursive_common_ethereum_incremental_leaf_universal_proof_v4_genuine_fixture.zig");
+const admission = @import("./ethereum_fixed_program_admission_v1.zig");
+const fixture = @import("./recursive_common_ethereum_incremental_leaf_universal_proof_v4_genuine_fixture.zig");
 const Sha256 = std.crypto.hash.sha2.Sha256;
 fn sha(bytes: []const u8) [32]u8 {
     var result: [32]u8 = undefined;

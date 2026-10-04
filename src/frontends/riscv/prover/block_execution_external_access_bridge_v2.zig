@@ -129,7 +129,7 @@ pub fn signerPair(comptime S: type, main: []const S, slot: usize) !pair_mod.Pair
 }
 
 test {
-    _ = @import("block_execution_external_memory_tuple_test.zig");
+    _ = @import("tests/block_execution_external_memory_tuple_test.zig");
 }
 
 test "block-v2 external access bridge enumerates SHA, Keccak and signer caller slots" {

@@ -2,26 +2,26 @@ const std = @import("std");
 const artifact_store = @import("stwo_artifact_store");
 const frontend = @import("stwo_riscv_frontend");
 
-const subject = @import("recursive_common_wrapper_padding_remint_v2.zig");
-const registry = @import("recursive_circuit_registry_v1.zig");
-const campaign_artifact = @import("recursive_campaign_node_artifact_v2.zig");
-const campaign_public = @import("recursive_campaign_node_public_v2.zig");
-const campaign_pipeline = @import("recursive_campaign_node_pipeline_v2.zig");
-const campaign_shape = @import("recursive_pipeline_campaign_shape_v2.zig");
-const campaign_empty = @import("recursive_common_canonical_empty_campaign_source_v2.zig");
+const subject = @import("./recursive_common_wrapper_padding_remint_v2.zig");
+const registry = @import("./recursive_circuit_registry_v1.zig");
+const campaign_artifact = @import("./recursive_campaign_node_artifact_v2.zig");
+const campaign_public = @import("./recursive_campaign_node_public_v2.zig");
+const campaign_pipeline = @import("./recursive_campaign_node_pipeline_v2.zig");
+const campaign_shape = @import("./recursive_pipeline_campaign_shape_v2.zig");
+const campaign_empty = @import("./recursive_common_canonical_empty_campaign_source_v2.zig");
 const campaign_final =
-    @import("recursive_pipeline_campaign_final_remint_v2.zig");
+    @import("./recursive_pipeline_campaign_final_remint_v2.zig");
 const campaign_target =
-    @import("recursive_pipeline_campaign_padding_target_v2.zig");
+    @import("./recursive_pipeline_campaign_padding_target_v2.zig");
 const campaign_fold_lease =
-    @import("recursive_pipeline_campaign_fold_lease_v2.zig");
+    @import("./recursive_pipeline_campaign_fold_lease_v2.zig");
 const final_description =
-    @import("recursive_pipeline_campaign_final_description_v2.zig");
+    @import("./recursive_pipeline_campaign_final_description_v2.zig");
 const execution_policy =
-    @import("recursive_pipeline_worker_execution_policy_v2.zig");
-const protocol = @import("recursive_pipeline_worker_protocol_v1.zig");
-const node_store = @import("recursive_node_artifact_store_v2.zig");
-const leaf_mod = @import("recursive_temporal_leaf_or_empty_v1.zig");
+    @import("./recursive_pipeline_worker_execution_policy_v2.zig");
+const protocol = @import("./recursive_pipeline_worker_protocol_v1.zig");
+const node_store = @import("./recursive_node_artifact_store_v2.zig");
+const leaf_mod = @import("./recursive_temporal_leaf_or_empty_v1.zig");
 
 const air = frontend.recursion.air;
 const roster = air.universal_roster;
@@ -1122,5 +1122,5 @@ fn fixtureArtifactRef(
 }
 
 fn fieldPublicAbi() [32]u8 {
-    return @import("recursive_field_node_public_v2.zig").abiIdentitySha256();
+    return @import("./recursive_field_node_public_v2.zig").abiIdentitySha256();
 }

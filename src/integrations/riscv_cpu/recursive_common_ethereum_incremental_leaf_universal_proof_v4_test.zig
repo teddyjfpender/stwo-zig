@@ -3,10 +3,10 @@ const CpuBackend = @import("stwo_cpu_backend").CpuBackend;
 const frontend = @import("stwo_riscv_frontend");
 
 const subject =
-    @import("recursive_common_ethereum_incremental_leaf_universal_proof_v4.zig");
+    @import("./recursive_common_ethereum_incremental_leaf_universal_proof_v4.zig");
 const child_capability =
-    @import("recursive_common_fold_child_capability_v2.zig");
-const registry = @import("recursive_circuit_registry_v1.zig");
+    @import("./recursive_common_fold_child_capability_v2.zig");
+const registry = @import("./recursive_circuit_registry_v1.zig");
 
 const Engine = frontend.recursion.engine.ProverEngineForBackend(CpuBackend);
 const Proof = subject.Types(Engine);
@@ -37,7 +37,7 @@ test "role0 q193 cold owner and fold-child contracts instantiate" {
 
 test "role0 fold child is the typed schema4 real branch" {
     const Empty = struct {
-        wrapper: @import("recursive_common_wrapper_authority_v2.zig").FreshWrapperViewV2,
+        wrapper: @import("./recursive_common_wrapper_authority_v2.zig").FreshWrapperViewV2,
         ingress: Proof.Ingress,
         graph: Proof.Graph,
         query_words: *const [193]@import("stwo_core").fields.m31.M31,

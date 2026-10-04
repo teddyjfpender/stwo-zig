@@ -1,8 +1,8 @@
 const std = @import("std");
 
-const leaf_support = @import("ethereum_block_leaf_support.zig");
-const bundle = @import("ethereum_provider_omitted_leaf_bundle_v1.zig");
-const subject = @import("recursive_common_real_omitted_leaf_input_v1.zig");
+const leaf_support = @import("./ethereum_block_leaf_support.zig");
+const bundle = @import("./ethereum_provider_omitted_leaf_bundle_v1.zig");
+const subject = @import("./recursive_common_real_omitted_leaf_input_v1.zig");
 
 const Engine = leaf_support.RecursiveEngine;
 

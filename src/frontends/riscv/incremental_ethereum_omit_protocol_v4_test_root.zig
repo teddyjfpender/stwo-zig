@@ -8,5 +8,5 @@
 //! after a ten-minute product build.
 
 comptime {
-    _ = @import("prover/incremental_ethereum_omit_protocol_v4_test.zig");
+    _ = @import("prover/tests/incremental_ethereum_omit_protocol_v4_test.zig");
 }

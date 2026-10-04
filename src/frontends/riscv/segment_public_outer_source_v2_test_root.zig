@@ -5,5 +5,5 @@ test "V2 public-spine source instantiates" {
 }
 
 comptime {
-    _ = @import("recursion/segment_public_outer_source_v2_test.zig");
+    _ = @import("recursion/tests/segment_public_outer_source_v2_test.zig");
 }

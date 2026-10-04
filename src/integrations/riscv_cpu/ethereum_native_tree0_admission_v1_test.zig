@@ -1,7 +1,7 @@
 const std = @import("std");
 const core = @import("stwo_core");
 const frontend = @import("stwo_riscv_frontend");
-const subject = @import("ethereum_native_tree0_admission_v1.zig");
+const subject = @import("./ethereum_native_tree0_admission_v1.zig");
 const extension_mod = frontend.air.guest_precompile.ethereum_statement;
 const bridge = frontend.prover_mod.incremental_bridge_external_v3;
 const BaseEngine = frontend.recursion.engine.ProverEngineForBackend(@import("stwo_cpu_backend").CpuBackend);
@@ -86,8 +86,8 @@ test "Ethereum native Tree0 fixed bridge selectors change actual PCS commitment"
 
 test "Ethereum fixed program recursive Tree0 admission binds whole ELF beyond identical roots" {
     const allocator = std.testing.allocator;
-    const program_mod = @import("ethereum_fixed_program_admission_v1.zig");
-    const elf = @import("recursive_common_ethereum_incremental_leaf_universal_proof_v4_genuine_fixture.zig").programElf();
+    const program_mod = @import("./ethereum_fixed_program_admission_v1.zig");
+    const elf = @import("./recursive_common_ethereum_incremental_leaf_universal_proof_v4_genuine_fixture.zig").programElf();
     var expected_sha: [32]u8 = undefined;
     std.crypto.hash.sha2.Sha256.hash(&elf, &expected_sha, .{});
     const program = try program_mod.OwnedV1.createFromElf(allocator, &elf, expected_sha);

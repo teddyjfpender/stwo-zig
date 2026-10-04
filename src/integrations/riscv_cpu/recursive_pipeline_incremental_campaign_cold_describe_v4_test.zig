@@ -2,15 +2,15 @@ const std = @import("std");
 const artifact_store = @import("stwo_artifact_store");
 
 const cold_describe =
-    @import("recursive_pipeline_incremental_campaign_cold_describe_v4.zig");
+    @import("./recursive_pipeline_incremental_campaign_cold_describe_v4.zig");
 const command =
-    @import("recursive_pipeline_incremental_campaign_cold_describe_command_v4.zig");
+    @import("./recursive_pipeline_incremental_campaign_cold_describe_command_v4.zig");
 const description_mod =
-    @import("recursive_pipeline_incremental_campaign_cold_description_v4.zig");
+    @import("./recursive_pipeline_incremental_campaign_cold_description_v4.zig");
 const receipt_mod =
-    @import("recursive_pipeline_incremental_campaign_import_receipt_v4.zig");
+    @import("./recursive_pipeline_incremental_campaign_import_receipt_v4.zig");
 const table_mod =
-    @import("recursive_pipeline_incremental_campaign_table_v4.zig");
+    @import("./recursive_pipeline_incremental_campaign_table_v4.zig");
 
 test "cold campaign description is canonical path-free and topology-bound" {
     const receipt = try fixtureReceipt(5, 0xab);

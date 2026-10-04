@@ -2,12 +2,12 @@ const std = @import("std");
 const stwo_core = @import("stwo_core");
 const frontend = @import("stwo_riscv_frontend");
 
-const subject = @import("recursive_common_fold_input_v1.zig");
-const authority_mod = @import("recursive_common_wrapper_authority_v1.zig");
-const manifest_mod = @import("recursive_common_wrapper_manifest_v1.zig");
-const artifact_mod = @import("recursive_node_artifact_v1.zig");
-const registry_mod = @import("recursive_circuit_registry_v1.zig");
-const statement_plan = @import("recursive_temporal_statement_plan_v1.zig");
+const subject = @import("./recursive_common_fold_input_v1.zig");
+const authority_mod = @import("./recursive_common_wrapper_authority_v1.zig");
+const manifest_mod = @import("./recursive_common_wrapper_manifest_v1.zig");
+const artifact_mod = @import("./recursive_node_artifact_v1.zig");
+const registry_mod = @import("./recursive_circuit_registry_v1.zig");
+const statement_plan = @import("./recursive_temporal_statement_plan_v1.zig");
 
 const QM31 = stwo_core.fields.qm31.QM31;
 const CirclePointQM31 = stwo_core.circle.CirclePointQM31;

@@ -2,11 +2,11 @@ const std = @import("std");
 const frontend = @import("stwo_riscv_frontend");
 
 const subject =
-    @import("ethereum_incremental_capture_postprocess_authority_v4.zig");
-const publication = @import("ethereum_incremental_capture_publication_v4.zig");
-const leaf_support = @import("ethereum_block_leaf_support.zig");
+    @import("./ethereum_incremental_capture_postprocess_authority_v4.zig");
+const publication = @import("./ethereum_incremental_capture_publication_v4.zig");
+const leaf_support = @import("./ethereum_block_leaf_support.zig");
 const support =
-    @import("ethereum_incremental_boundary_artifact_v3_test_support.zig");
+    @import("./ethereum_incremental_boundary_artifact_v3_test_support.zig");
 
 test "nonfinal role completion is exact admitted ELF CUSTOM-0 fetch" {
     const custom_word = frontend.isa.custom0.encodeKeccakf(5);

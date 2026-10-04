@@ -7,8 +7,8 @@ const singleRootStatement = frontend.recursion.detached_segment_command_v1.singl
 
 test "SegmentV2 single root admits a complete one-segment execution" {
     const allocator = std.testing.allocator;
-    const model = @import("recursive_segment_v2_memory_workload.zig");
-    const workload = @import("recursive_segment_v2_workload.zig");
+    const model = @import("./recursive_segment_v2_memory_workload.zig");
+    const workload = @import("./recursive_segment_v2_workload.zig");
     var segments = try model.materialize(1, allocator, 1, 13);
     defer segments[0].deinit();
     const results = [1]*const frontend.runner.SegmentResult{&segments[0].base};

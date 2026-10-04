@@ -3,15 +3,15 @@ const CpuBackend = @import("stwo_cpu_backend").CpuBackend;
 const frontend = @import("stwo_riscv_frontend");
 
 const manifest_mod =
-    @import("recursive_common_ethereum_incremental_leaf_universal_manifest_v4.zig");
+    @import("./recursive_common_ethereum_incremental_leaf_universal_manifest_v4.zig");
 const materializer =
-    @import("recursive_common_ethereum_incremental_leaf_materializer_v4.zig");
+    @import("./recursive_common_ethereum_incremental_leaf_materializer_v4.zig");
 const runtime_mod =
-    @import("recursive_common_ethereum_incremental_leaf_genuine_runtime_v4.zig");
+    @import("./recursive_common_ethereum_incremental_leaf_genuine_runtime_v4.zig");
 const public_semantics =
-    @import("recursive_common_ethereum_incremental_leaf_public_semantics_v4.zig");
+    @import("./recursive_common_ethereum_incremental_leaf_public_semantics_v4.zig");
 const cohort =
-    @import("recursive_common_ethereum_incremental_leaf_universal_cohort_v4.zig");
+    @import("./recursive_common_ethereum_incremental_leaf_universal_cohort_v4.zig");
 
 const Engine = frontend.recursion.engine.ProverEngineForBackend(CpuBackend);
 const bridge_external = frontend.prover_mod.incremental_bridge_external_v3;
@@ -22,10 +22,10 @@ const M31 = @import("stwo_core").fields.m31.M31;
 const QM31 = @import("stwo_core").fields.qm31.QM31;
 
 test "role0 recorded payload preserves legacy layout and constant-word metadata" {
-    const program = @import("recursive_common_ethereum_incremental_leaf_transcript_program_v4.zig");
-    const support = @import("recursive_common_ethereum_incremental_leaf_transcript_program_v4_support.zig");
+    const program = @import("./recursive_common_ethereum_incremental_leaf_transcript_program_v4.zig");
+    const support = @import("./recursive_common_ethereum_incremental_leaf_transcript_program_v4_support.zig");
     const witness = frontend.recursion.air.transcript_payload_witness;
-    const rows_support = @import("recursive_common_ethereum_incremental_leaf_transcript_rows_v4_support.zig");
+    const rows_support = @import("./recursive_common_ethereum_incremental_leaf_transcript_rows_v4_support.zig");
     const rate = frontend.recursion.recording_poseidon_channel_v4.RATE;
     const operation = program.OperationV4{
         .recording_index = 0,
@@ -118,7 +118,7 @@ test "role0 recorded payload preserves legacy layout and constant-word metadata"
 
 test "role0 post-tree1 profile retains every native mix operation" {
     const recording = frontend.recursion.recording_poseidon_channel_v4;
-    const support = @import("recursive_common_ethereum_incremental_leaf_transcript_program_v4_support.zig");
+    const support = @import("./recursive_common_ethereum_incremental_leaf_transcript_program_v4_support.zig");
     var channel = recording.Channel.init(std.testing.allocator);
     defer channel.deinit();
     channel.setContextTag(4);
@@ -133,8 +133,8 @@ test "role0 post-tree1 profile retains every native mix operation" {
 
 test "role0 relation rows preserve both values from each native draw" {
     const recording = frontend.recursion.recording_poseidon_channel_v4;
-    const program = @import("recursive_common_ethereum_incremental_leaf_transcript_program_v4.zig");
-    const rows = @import("recursive_common_ethereum_incremental_leaf_transcript_rows_v4_support.zig");
+    const program = @import("./recursive_common_ethereum_incremental_leaf_transcript_program_v4.zig");
+    const rows = @import("./recursive_common_ethereum_incremental_leaf_transcript_rows_v4_support.zig");
     const allocator = std.testing.allocator;
     var channel = recording.Channel.init(allocator);
     defer channel.deinit();
@@ -171,9 +171,9 @@ test "role0 relation rows preserve both values from each native draw" {
 }
 
 test "role0 public logup owners propagate authenticated native view rejection" {
-    const native_core = @import("recursive_common_ethereum_incremental_leaf_native_core_v4.zig");
-    const row16 = @import("recursive_common_ethereum_incremental_leaf_public_logup_input_v4.zig");
-    const row17 = @import("recursive_common_ethereum_incremental_leaf_public_logup_control_v4.zig");
+    const native_core = @import("./recursive_common_ethereum_incremental_leaf_native_core_v4.zig");
+    const row16 = @import("./recursive_common_ethereum_incremental_leaf_public_logup_input_v4.zig");
+    const row17 = @import("./recursive_common_ethereum_incremental_leaf_public_logup_control_v4.zig");
     // No separate validate method: each native getter must authenticate its
     // owner and its returned view, just as the real native core does.
     const RejectedNative = struct {
@@ -190,8 +190,8 @@ test "role0 public logup owners propagate authenticated native view rejection" {
 }
 
 test "role0 transcript statement metadata matches the shared AIR input" {
-    const program = @import("recursive_common_ethereum_incremental_leaf_transcript_program_v4.zig");
-    const support = @import("recursive_common_ethereum_incremental_leaf_transcript_program_v4_support.zig");
+    const program = @import("./recursive_common_ethereum_incremental_leaf_transcript_program_v4.zig");
+    const support = @import("./recursive_common_ethereum_incremental_leaf_transcript_program_v4_support.zig");
     const row10 = frontend.recursion.air.statement_input;
     const operation = program.OperationV4{
         .recording_index = 3,
@@ -237,7 +237,7 @@ test "role0 default claim shape builds its complete semantics graph" {
 }
 
 test "role0 public sum reservation does not reject an admitted graph" {
-    const sums = @import("recursive_common_ethereum_incremental_leaf_public_sums_v4_support.zig");
+    const sums = @import("./recursive_common_ethereum_incremental_leaf_public_sums_v4_support.zig");
     const limits = sums.arithmetic.Limits{};
     for ([_]u32{ 2, sums.role_binding.MAX_TUPLE_CAPACITY }) |capacity| {
         var program = try sums.build(std.testing.allocator, capacity);
@@ -408,7 +408,7 @@ test "stage102 V4 fresh program custody rejects pointer and identity drift" {
     try custody.validateBorrowed(&program);
     var metrics = materializer.MaterializationMetricsV4{};
     var schedule_rows = [_]u8{ 6, 7 };
-    try @import("recursive_common_ethereum_incremental_leaf_materializer_v4_support.zig")
+    try @import("./recursive_common_ethereum_incremental_leaf_materializer_v4_support.zig")
         .recordProgramResources(
         &metrics,
         &program,
@@ -518,9 +518,9 @@ test "fresh composition schedule projection is deterministic across workers" {
 
 test "role0 Ethereum detailed claim frames authenticate exact input routing" {
     const recording = frontend.recursion.recording_poseidon_channel_v4;
-    const program = @import("recursive_common_ethereum_incremental_leaf_transcript_program_v4.zig");
-    const support = @import("recursive_common_ethereum_incremental_leaf_transcript_program_v4_support.zig");
-    const rows_support = @import("recursive_common_ethereum_incremental_leaf_transcript_rows_v4_support.zig");
+    const program = @import("./recursive_common_ethereum_incremental_leaf_transcript_program_v4.zig");
+    const support = @import("./recursive_common_ethereum_incremental_leaf_transcript_program_v4_support.zig");
+    const rows_support = @import("./recursive_common_ethereum_incremental_leaf_transcript_rows_v4_support.zig");
     const air = frontend.recursion.air;
     const witness = air.transcript_payload_witness;
     const allocator = std.testing.allocator;
@@ -612,8 +612,8 @@ test "role0 Ethereum detailed claim frames authenticate exact input routing" {
 test "role0 Ethereum shared claim view preserves native transcript bytes and offsets" {
     const types = frontend.prover_mod.guest_precompile.ethereum_types;
     const recording = frontend.recursion.recording_poseidon_channel_v4;
-    const program = @import("recursive_common_ethereum_incremental_leaf_transcript_program_v4.zig");
-    const support = @import("recursive_common_ethereum_incremental_leaf_transcript_program_v4_support.zig");
+    const program = @import("./recursive_common_ethereum_incremental_leaf_transcript_program_v4.zig");
+    const support = @import("./recursive_common_ethereum_incremental_leaf_transcript_program_v4_support.zig");
     const allocator = std.testing.allocator;
     var claims = std.mem.zeroes(types.ExtensionClaim);
     // Give every field and every limb a distinct value. Zero fixtures would

@@ -2,16 +2,16 @@ const std = @import("std");
 const artifact_store = @import("stwo_artifact_store");
 const frontend = @import("stwo_riscv_frontend");
 
-const protocol = @import("recursive_pipeline_worker_protocol_v1.zig");
-const worker_mod = @import("recursive_pipeline_worker_v1.zig");
-const worker_support = @import("recursive_pipeline_worker_support_v1.zig");
+const protocol = @import("./recursive_pipeline_worker_protocol_v1.zig");
+const worker_mod = @import("./recursive_pipeline_worker_v1.zig");
+const worker_support = @import("./recursive_pipeline_worker_support_v1.zig");
 const executor_mod = @import(
     "recursive_pipeline_campaign_final_live_build_executor_v2.zig",
 );
 const committed_adapter_mod = @import(
     "recursive_pipeline_campaign_final_live_committed_stage_v2.zig",
 );
-const driver_mod = @import("recursive_pipeline_campaign_final_driver_v2.zig");
+const driver_mod = @import("./recursive_pipeline_campaign_final_driver_v2.zig");
 const test_adapter_mod = @import(
     "recursive_pipeline_campaign_final_live_build_test_support_v2.zig",
 );
@@ -27,9 +27,9 @@ const live_plan_mod = @import(
 const empty_source = @import(
     "recursive_common_canonical_empty_campaign_source_v2.zig",
 );
-const leaf_mod = @import("recursive_temporal_leaf_or_empty_v1.zig");
-const node_store = @import("recursive_node_artifact_store_v2.zig");
-const campaign_artifact = @import("recursive_campaign_node_artifact_v2.zig");
+const leaf_mod = @import("./recursive_temporal_leaf_or_empty_v1.zig");
+const node_store = @import("./recursive_node_artifact_store_v2.zig");
+const campaign_artifact = @import("./recursive_campaign_node_artifact_v2.zig");
 const bridge_fixture = @import(
     "recursive_pipeline_worker_campaign_final_session_bridge_v4_test.zig",
 );

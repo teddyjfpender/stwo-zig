@@ -1,7 +1,7 @@
 const std = @import("std");
 const artifact_store = @import("stwo_artifact_store");
 
-const subject = @import("recursive_pipeline_worker_execution_policy_v2.zig");
+const subject = @import("./recursive_pipeline_worker_execution_policy_v2.zig");
 
 test "execution policy saturates configurable cores under both token caps" {
     const host = try subject.HostExecutionAuthorityV2.init(

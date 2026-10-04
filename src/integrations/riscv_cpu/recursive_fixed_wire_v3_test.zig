@@ -89,7 +89,7 @@ pub fn exerciseCaptured(prepared: anytype, source: anytype) !void {
 }
 
 fn exerciseZeroPolicy() !void {
-    const Prepared = @import("recursive_secure_transcript_rows_v1.zig").Prepared;
+    const Prepared = @import("./recursive_secure_transcript_rows_v1.zig").Prepared;
     for (36..39) |item| {
         try std.testing.expect(Prepared.isFixedZeroInput(.canonical_empty, @intCast(item)));
         try std.testing.expect(Prepared.isFixedZeroInput(.common_fold, @intCast(item)));

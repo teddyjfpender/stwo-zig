@@ -22,7 +22,7 @@ const segment_artifact =
     prover.guest_precompile.ethereum_segment_proof_artifact;
 const poseidon_segment_artifact =
     prover.guest_precompile.ethereum_segment_poseidon2_proof_artifact;
-const proof_security = @import("recursive_temporal_proof_security_v1.zig");
+const proof_security = @import("./recursive_temporal_proof_security_v1.zig");
 const segment_admission_test = @import(
     "ethereum_segment_v2_admission_test_support.zig",
 );

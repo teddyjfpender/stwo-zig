@@ -5,5 +5,5 @@
 //! prover-engine-backed row executor and performance diagnostic.
 
 test {
-    _ = @import("air/lang/lookup_batch_planner_test.zig");
+    _ = @import("air/lang/tests/lookup_batch_planner_test.zig");
 }

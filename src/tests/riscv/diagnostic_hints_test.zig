@@ -3,7 +3,7 @@
 //!
 //! The hints themselves -- their text, their cause attribution, and the fact
 //! that both raise sites emit them -- are pinned inside the package that owns
-//! them, in `src/frontends/riscv/air/diagnostic_hints_test.zig`. Those pins used
+//! them, in `src/frontends/riscv/air/tests/diagnostic_hints_test.zig`. Those pins used
 //! to live here, reaching into that package with
 //! `@embedFile("../../frontends/riscv/air/opcode_memory.zig")`, because no gate
 //! compiled a `test` written inside the frontend module (issue #152 item 11).

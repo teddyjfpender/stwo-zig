@@ -2,10 +2,10 @@ const std = @import("std");
 const frontend = @import("stwo_riscv_frontend");
 
 const subject =
-    @import("recursive_common_canonical_empty_campaign_source_v2.zig");
-const shape_mod = @import("recursive_pipeline_campaign_shape_v2.zig");
-const campaign_public = @import("recursive_campaign_node_public_v2.zig");
-const leaf_mod = @import("recursive_temporal_leaf_or_empty_v1.zig");
+    @import("./recursive_common_canonical_empty_campaign_source_v2.zig");
+const shape_mod = @import("./recursive_pipeline_campaign_shape_v2.zig");
+const campaign_public = @import("./recursive_campaign_node_public_v2.zig");
+const leaf_mod = @import("./recursive_temporal_leaf_or_empty_v1.zig");
 
 const recursion = frontend.recursion;
 const span = recursion.span_statement;

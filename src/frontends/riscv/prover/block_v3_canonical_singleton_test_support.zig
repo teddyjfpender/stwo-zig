@@ -3,7 +3,7 @@
 const std = @import("std");
 const Cpu = @import("stwo_cpu_backend").CpuBackend;
 const Budget = @import("stwo_prover_engine").host_budget_allocator.SharedHostBudget;
-const fixture = @import("block_memory_core_sha_fixture_test.zig");
+const fixture = @import("tests/block_memory_core_sha_fixture_test.zig");
 const Native = @import("blake3_ethereum_sha_proof.zig");
 const parent = @import("../recursion/blake3_execution_parent_proof.zig");
 const exact = @import("../recursion/blake3_exact_root_aggregate.zig");
@@ -151,11 +151,9 @@ pub fn proveWithProfile(a: std.mem.Allocator, view: fixture.FixtureView, profile
     );
     defer work.free(outer_wire);
     var outer = if (profile == .diagnostic_q8_pow0)
-        try receiver.verifyDiagnosticExactBytes(work, outer_wire, outer_admission,
-            outer_admission.expected_id, statement.job, &roots)
+        try receiver.verifyDiagnosticExactBytes(work, outer_wire, outer_admission, outer_admission.expected_id, statement.job, &roots)
     else
-        try receiver.verifyExactBytes(work, outer_wire, outer_admission,
-            outer_admission.expected_id, statement.job, &roots);
+        try receiver.verifyExactBytes(work, outer_wire, outer_admission, outer_admission.expected_id, statement.job, &roots);
     defer outer.deinit();
     _ = try outer.root();
     const leaf_bytes = try a.dupe(u8, leaf_wire);

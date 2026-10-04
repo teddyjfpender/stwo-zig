@@ -1,6 +1,6 @@
 const std = @import("std");
 const subject =
-    @import("recursive_common_canonical_empty_wrapper_gap_v1.zig");
+    @import("./recursive_common_canonical_empty_wrapper_gap_v1.zig");
 
 test "canonical-empty diagnostic shape cannot enter common proof route" {
     const gap = try subject.GapAuthorityV1.inspect();

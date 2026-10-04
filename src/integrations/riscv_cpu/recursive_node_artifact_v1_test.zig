@@ -1,8 +1,8 @@
 const std = @import("std");
 
-const artifact = @import("recursive_node_artifact_v1.zig");
-const registry_mod = @import("recursive_circuit_registry_v1.zig");
-const stage_mod = @import("recursive_node_stage_adapter_v1.zig");
+const artifact = @import("./recursive_node_artifact_v1.zig");
+const registry_mod = @import("./recursive_circuit_registry_v1.zig");
+const stage_mod = @import("./recursive_node_stage_adapter_v1.zig");
 
 test "recursive node canonical codec and ordered children" {
     const geometries = try fixtureGeometries();

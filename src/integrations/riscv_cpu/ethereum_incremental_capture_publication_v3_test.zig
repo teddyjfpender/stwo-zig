@@ -1,15 +1,15 @@
 const std = @import("std");
 const frontend = @import("stwo_riscv_frontend");
 
-const artifact_v2 = @import("ethereum_incremental_boundary_artifact_v2.zig");
+const artifact_v2 = @import("./ethereum_incremental_boundary_artifact_v2.zig");
 const artifact_v3_support =
-    @import("ethereum_incremental_boundary_artifact_v3_test_support.zig");
-const boundary_v3 = @import("ethereum_incremental_boundary_authority_v3.zig");
-const capture_mod = @import("ethereum_incremental_boundary_capture_v2.zig");
-const options = @import("ethereum_incremental_capture_materializer_options_v3.zig");
-const publication = @import("ethereum_incremental_capture_publication_v3.zig");
+    @import("./ethereum_incremental_boundary_artifact_v3_test_support.zig");
+const boundary_v3 = @import("./ethereum_incremental_boundary_authority_v3.zig");
+const capture_mod = @import("./ethereum_incremental_boundary_capture_v2.zig");
+const options = @import("./ethereum_incremental_capture_materializer_options_v3.zig");
+const publication = @import("./ethereum_incremental_capture_publication_v3.zig");
 const owner_mod =
-    @import("ethereum_incremental_capture_publication_owner_v3.zig");
+    @import("./ethereum_incremental_capture_publication_owner_v3.zig");
 
 const memory_state = frontend.runner.memory_state;
 const minimal = frontend.runner.minimal_trace;
@@ -425,5 +425,5 @@ fn layout(side: Side) memory_state.MemoryLayout {
 }
 
 comptime {
-    _ = @import("ethereum_incremental_capture_materializer_v3.zig").run;
+    _ = @import("./ethereum_incremental_capture_materializer_v3.zig").run;
 }

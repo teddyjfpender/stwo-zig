@@ -4,26 +4,26 @@ const CpuBackend = @import("stwo_cpu_backend").CpuBackend;
 const frontend = @import("stwo_riscv_frontend");
 
 const subject =
-    @import("recursive_pipeline_campaign_genuine_three_leaf_final_remint_fixture_v2.zig");
+    @import("./recursive_pipeline_campaign_genuine_three_leaf_final_remint_fixture_v2.zig");
 const canonical_proof =
-    @import("recursive_common_canonical_empty_universal_proof_v2.zig");
-const registry = @import("recursive_circuit_registry_v1.zig");
+    @import("./recursive_common_canonical_empty_universal_proof_v2.zig");
+const registry = @import("./recursive_circuit_registry_v1.zig");
 const table_mod =
-    @import("recursive_pipeline_incremental_campaign_table_v4.zig");
+    @import("./recursive_pipeline_incremental_campaign_table_v4.zig");
 const recipe_mod =
-    @import("recursive_pipeline_incremental_leaf_recipe_v4.zig");
+    @import("./recursive_pipeline_incremental_leaf_recipe_v4.zig");
 const wire_publication =
-    @import("ethereum_incremental_public_wire_publication_v4.zig");
+    @import("./ethereum_incremental_public_wire_publication_v4.zig");
 const policy_mod =
-    @import("recursive_pipeline_worker_execution_policy_v2.zig");
-const protocol = @import("recursive_pipeline_worker_protocol_v1.zig");
+    @import("./recursive_pipeline_worker_execution_policy_v2.zig");
+const protocol = @import("./recursive_pipeline_worker_protocol_v1.zig");
 const backend_mod =
-    @import("recursive_pipeline_worker_campaign_real_leaf_backend_v4.zig");
+    @import("./recursive_pipeline_worker_campaign_real_leaf_backend_v4.zig");
 const opener_mod =
-    @import("recursive_pipeline_worker_campaign_real_leaf_inventory_opener_v4.zig");
+    @import("./recursive_pipeline_worker_campaign_real_leaf_inventory_opener_v4.zig");
 const lifecycle_mod =
-    @import("recursive_pipeline_worker_campaign_stage102_final_lifecycle_v4.zig");
-const final_mod = @import("recursive_pipeline_campaign_final_remint_v2.zig");
+    @import("./recursive_pipeline_worker_campaign_stage102_final_lifecycle_v4.zig");
+const final_mod = @import("./recursive_pipeline_campaign_final_remint_v2.zig");
 
 const Engine = frontend.recursion.engine.ProverEngineForBackend(CpuBackend);
 
@@ -85,7 +85,7 @@ test "genuine three-leaf fixture rejects unauthenticated STWCIT04 refs before q1
 }
 
 test "genuine 3-to-4 three-cold-proof FinalRemint exact body compiles without q193" {
-    const shape = try @import("recursive_pipeline_campaign_shape_v2.zig")
+    const shape = try @import("./recursive_pipeline_campaign_shape_v2.zig")
         .CampaignShapeAuthorityV2.init(digest(1), digest(2), 3);
     try std.testing.expectEqual(@as(u32, 4), shape.padded_leaf_count);
     try std.testing.expectEqual(@as(u32, 1), shape.empty_leaf_count);
@@ -187,7 +187,7 @@ test "role0 transitive genuine gate returns exact production lease and bypasses 
         "coldOpenNodeForGenuineGate",
     ));
     try std.testing.expect(GateOpener.LeasePayload ==
-        @import("recursive_common_ethereum_incremental_leaf_campaign_fold_child_v4.zig")
+        @import("./recursive_common_ethereum_incremental_leaf_campaign_fold_child_v4.zig")
             .Types(Engine).OwnedLeaseV4);
     try std.testing.expect(@hasDecl(
         GateOpener.Stage102AdapterV4,
@@ -301,7 +301,7 @@ test "role0 transitive genuine gate returns exact production lease and bypasses 
         ),
     );
 
-    const shape = try @import("recursive_pipeline_campaign_shape_v2.zig")
+    const shape = try @import("./recursive_pipeline_campaign_shape_v2.zig")
         .CampaignShapeAuthorityV2.init(digest(21), digest(22), 3);
     const final_remint = final_mod.CampaignFinalRemintAuthorityV2{
         .shape = &shape,
@@ -425,7 +425,7 @@ fn fixtureRecord(
     const statement = ref(
         .statement,
         1,
-        @import("ethereum_block_leaf_support.zig").source_wire.encoded_size,
+        @import("./ethereum_block_leaf_support.zig").source_wire.encoded_size,
         @intCast(20 + index),
     );
     const recipe = ref(

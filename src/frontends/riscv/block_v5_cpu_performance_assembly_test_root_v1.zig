@@ -3,7 +3,7 @@
 const std = @import("std");
 test {
     _ = @import("prover/block_v5_supplemental_worker_reuse_test_v1.zig");
-    _ = @import("prover/block_v5_native_recursive_consuming_test.zig");
+    _ = @import("prover/tests/block_v5_native_recursive_consuming_test.zig");
     _ = @import("prover/block_v5_supplemental_recursive_lifetime_test_v1.zig");
     _ = @import("prover/block_v5_readonly_input_collection_test_v1.zig");
     _ = @import("prover/block_v5_readonly_input_collection_bodies_test_v1.zig");

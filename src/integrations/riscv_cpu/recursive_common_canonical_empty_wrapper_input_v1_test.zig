@@ -2,9 +2,9 @@ const std = @import("std");
 const frontend = @import("stwo_riscv_frontend");
 
 const subject =
-    @import("recursive_common_canonical_empty_wrapper_input_v1.zig");
-const artifact_mod = @import("recursive_node_artifact_v1.zig");
-const leaf_mod = @import("recursive_temporal_leaf_or_empty_v1.zig");
+    @import("./recursive_common_canonical_empty_wrapper_input_v1.zig");
+const artifact_mod = @import("./recursive_node_artifact_v1.zig");
+const leaf_mod = @import("./recursive_temporal_leaf_or_empty_v1.zig");
 
 const recursion = frontend.recursion;
 const span = recursion.span_statement;

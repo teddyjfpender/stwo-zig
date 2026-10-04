@@ -2,6 +2,6 @@
 
 comptime {
     _ = @import(
-        "prover/guest_precompile/ethereum_matched_ab_omitted_provider_policy_v1_test.zig",
+        "prover/guest_precompile/tests/ethereum_matched_ab_omitted_provider_policy_v1_test.zig",
     );
 }

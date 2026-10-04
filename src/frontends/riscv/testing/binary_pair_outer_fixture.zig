@@ -11,9 +11,9 @@ const std = @import("std");
 
 const pair_fixture = @import("../recursion/binary_pair_test_fixture.zig");
 const nonfri_bundle_mod = @import("../recursion/binary_pair_nonfri_outer_bundle.zig");
-const nonfri_fixture_mod = @import("../recursion/binary_pair_nonfri_outer_bundle_test.zig");
+const nonfri_fixture_mod = @import("../recursion/tests/binary_pair_nonfri_outer_bundle_test.zig");
 const fri_source_mod = @import("../recursion/binary_fri_outer_source.zig");
-const fri_fixture_mod = @import("../recursion/binary_fri_outer_source_test.zig");
+const fri_fixture_mod = @import("../recursion/tests/binary_fri_outer_source_test.zig");
 const statement_source_mod = @import("../recursion/outer_parent_statement_air_source.zig");
 
 pub const CHILD_DIMENSIONS = pair_fixture.DIMENSIONS;

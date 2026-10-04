@@ -4,18 +4,18 @@ const CpuBackend = @import("stwo_cpu_backend").CpuBackend;
 const frontend = @import("stwo_riscv_frontend");
 
 const subject =
-    @import("recursive_pipeline_campaign_genuine_stage101_authenticated_inputs_v4.zig");
+    @import("./recursive_pipeline_campaign_genuine_stage101_authenticated_inputs_v4.zig");
 const namespace_mod =
-    @import("recursive_pipeline_campaign_namespace_v1.zig");
-const native_worker = @import("recursive_pipeline_worker_native_leaf_v4.zig");
-const protocol = @import("recursive_pipeline_worker_protocol_v1.zig");
+    @import("./recursive_pipeline_campaign_namespace_v1.zig");
+const native_worker = @import("./recursive_pipeline_worker_native_leaf_v4.zig");
+const protocol = @import("./recursive_pipeline_worker_protocol_v1.zig");
 const recipe_mod =
-    @import("recursive_pipeline_incremental_leaf_recipe_v4.zig");
-const support = @import("recursive_pipeline_worker_support_v1.zig");
+    @import("./recursive_pipeline_incremental_leaf_recipe_v4.zig");
+const support = @import("./recursive_pipeline_worker_support_v1.zig");
 const table_mod =
-    @import("recursive_pipeline_incremental_campaign_table_v4.zig");
+    @import("./recursive_pipeline_incremental_campaign_table_v4.zig");
 const wire_publication =
-    @import("ethereum_incremental_public_wire_publication_v4.zig");
+    @import("./ethereum_incremental_public_wire_publication_v4.zig");
 
 const Engine = frontend.recursion.engine.ProverEngineForBackend(CpuBackend);
 const Family = blk: {
@@ -269,7 +269,7 @@ fn fixtureRecord(
     const statement = ref(
         .statement,
         1,
-        @import("ethereum_block_leaf_support.zig").source_wire.encoded_size,
+        @import("./ethereum_block_leaf_support.zig").source_wire.encoded_size,
         @intCast(30 + index),
     );
     const recipe = ref(

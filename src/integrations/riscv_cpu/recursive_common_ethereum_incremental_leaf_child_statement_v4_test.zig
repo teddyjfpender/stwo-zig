@@ -1,7 +1,7 @@
 const std = @import("std");
 const frontend = @import("stwo_riscv_frontend");
-const subject = @import("recursive_common_ethereum_incremental_leaf_child_statement_v4.zig");
-const child_public = @import("recursive_common_ethereum_incremental_leaf_child_public_v4.zig");
+const subject = @import("./recursive_common_ethereum_incremental_leaf_child_statement_v4.zig");
+const child_public = @import("./recursive_common_ethereum_incremental_leaf_child_public_v4.zig");
 const Engine = frontend.recursion.engine.ProverEngineForBackend(@import("stwo_cpu_backend").CpuBackend);
 const RawWords = [@typeInfo(frontend.recursion.span_statement.StatementWords).array.len]u32;
 

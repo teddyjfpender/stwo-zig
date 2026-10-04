@@ -6,6 +6,6 @@ test "LT_REG private fixed-authority declarations compile" {
 }
 
 comptime {
-    _ = @import("air/lang/typed_lt_reg_authority_test.zig");
-    _ = @import("runner/lt_reg_retirement_test.zig");
+    _ = @import("air/lang/tests/typed_lt_reg_authority_test.zig");
+    _ = @import("runner/tests/lt_reg_retirement_test.zig");
 }

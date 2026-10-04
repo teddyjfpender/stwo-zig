@@ -2,7 +2,7 @@ const std = @import("std");
 const core = @import("stwo_core");
 const frontend = @import("stwo_riscv_frontend");
 const air = frontend.recursion.air;
-const subject = @import("recursive_common_fold_public_hash_v3.zig");
+const subject = @import("./recursive_common_fold_public_hash_v3.zig");
 const WordAir = air.field_public_word_v3;
 const HashAir = air.vm_public_claim_hash;
 const Ledger = air.relation_interaction.TupleLedger;
@@ -19,7 +19,7 @@ pub fn exercise(left: anytype, right: anytype, schedule: anytype) !void {
     defer prepared.deinit();
     try check(&prepared);
     const relations = air.universal_challenges.UniversalRelations.dummy();
-    const boundary_mod = @import("recursive_common_fold_public_output_v3.zig");
+    const boundary_mod = @import("./recursive_common_fold_public_output_v3.zig");
     const boundary = try boundary_mod.derive(&schedule.parent, &relations);
     var definition = try WordAir.build(std.testing.allocator);
     defer definition.deinit();

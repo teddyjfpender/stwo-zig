@@ -11,7 +11,7 @@ const composition = @import("stwo_cairo_frontend").witness.composition_bundle;
 const fixed_table = @import("stwo_cairo_frontend").witness.fixed_table_bundle;
 const semantic_authority = @import("stwo_cairo_frontend").proof_plan.semantic_authority;
 const quotient_geometry = @import("stwo_cairo_frontend").witness.quotient_geometry;
-const fixture = @import("../resident_plan_test.zig");
+const fixture = @import("../tests/resident_plan_test.zig");
 const subject = @import("topology.zig");
 
 test "SN2 quotient topology authenticates 6110 samples into 19 groups" {

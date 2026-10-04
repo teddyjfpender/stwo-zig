@@ -3,8 +3,8 @@ const frontend = @import("stwo_riscv_frontend");
 const core = @import("stwo_core");
 const M31 = core.fields.m31.M31;
 const air = frontend.recursion.air;
-const subject = @import("recursive_common_ethereum_incremental_leaf_statement_routing_v4.zig");
-const sums = @import("recursive_common_ethereum_incremental_leaf_public_sums_v4_support.zig");
+const subject = @import("./recursive_common_ethereum_incremental_leaf_statement_routing_v4.zig");
+const sums = @import("./recursive_common_ethereum_incremental_leaf_public_sums_v4_support.zig");
 
 test "Ethereum statement routing closes admitted graph sources and rejects missing duplicate shifted routes" {
     const allocator = std.testing.allocator;

@@ -2,7 +2,7 @@
 //! name there is compiled into nothing, and nothing else would say so.
 //!
 //! The inventory is a hand-written list because Zig's test collection needs a
-//! literal `@import`, and a hand-written list of 115 paths drifts. This walks
+//! literal `@import`, and a hand-written path list drifts. This walks
 //! the package tree instead of trusting it. A test count floor catches tests
 //! *dropped* from a binary; this catches tests that were never in one, which is
 //! the failure that hid 142 of them.

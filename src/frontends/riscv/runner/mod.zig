@@ -833,5 +833,5 @@ fn makeTestElf(instructions: []const u32) [84 + 64]u8 {
 }
 
 test {
-    _ = @import("segment_continuation_test.zig");
+    _ = @import("tests/segment_continuation_test.zig");
 }

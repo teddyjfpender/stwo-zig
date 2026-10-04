@@ -1,12 +1,12 @@
 const std = @import("std");
-const contract = @import("ethereum_block_leaf_contract.zig");
-const materializer = @import("ethereum_block_leaf_materializer.zig");
-const poseidon_contract = @import("ethereum_poseidon_leaf_product_contract.zig");
-const poseidon_producer = @import("ethereum_poseidon_leaf_product_producer.zig");
-const poseidon_request = @import("ethereum_poseidon_leaf_product_request.zig");
-const poseidon_verifier = @import("ethereum_poseidon_leaf_product_verifier.zig");
-const producer = @import("ethereum_block_leaf_producer.zig");
-const verifier = @import("ethereum_block_leaf_verifier.zig");
+const contract = @import("./ethereum_block_leaf_contract.zig");
+const materializer = @import("./ethereum_block_leaf_materializer.zig");
+const poseidon_contract = @import("./ethereum_poseidon_leaf_product_contract.zig");
+const poseidon_producer = @import("./ethereum_poseidon_leaf_product_producer.zig");
+const poseidon_request = @import("./ethereum_poseidon_leaf_product_request.zig");
+const poseidon_verifier = @import("./ethereum_poseidon_leaf_product_verifier.zig");
+const producer = @import("./ethereum_block_leaf_producer.zig");
+const verifier = @import("./ethereum_block_leaf_verifier.zig");
 const frontend = @import("stwo_riscv_frontend");
 
 test "streamed leaf entrypoints fail closed before filesystem access" {

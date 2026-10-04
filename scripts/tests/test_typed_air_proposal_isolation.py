@@ -34,13 +34,13 @@ class TypedAirProposalIsolationTests(unittest.TestCase):
                 "src/frontends/riscv/air/lang/materialization_cost.zig": (
                     "pub const marker = true;\n"
                 ),
-                "src/frontends/riscv/air/lang/materialization_cost_test.zig": (
+                "src/frontends/riscv/air/lang/tests/materialization_cost_test.zig": (
                     'const cost = @import("materialization_cost.zig");\n'
                 ),
                 "src/frontends/riscv/air/lang/materialization_direct_benchmark.zig": (
                     'const cost = @import("materialization_cost.zig");\n'
                 ),
-                "src/frontends/riscv/air/lang/typed_poseidon2_layout_executor_test.zig": (
+                "src/frontends/riscv/air/lang/tests/typed_poseidon2_layout_executor_test.zig": (
                     'const executor = @import("typed_poseidon2_layout_executor.zig");\n'
                     'const reviewed = @import("typed_air_h009_artifacts");\n'
                     "const frontier = reviewed.h009_poseidon2_frontier;\n"
@@ -66,7 +66,7 @@ class TypedAirProposalIsolationTests(unittest.TestCase):
                 "src/tests/riscv/proposal_test.zig": (
                     "const policy = frontend.air.lang.cost_aware_materializer;\n"
                 ),
-                "src/frontends/riscv/air/lang/typed_poseidon2_frontier_artifact_test.zig": (
+                "src/frontends/riscv/air/lang/tests/typed_poseidon2_frontier_artifact_test.zig": (
                     'const reviewed = @import("typed_air_h009_artifacts");\n'
                     "const bytes = reviewed.h009_poseidon2_frontier;\n"
                 ),
@@ -122,7 +122,7 @@ class TypedAirProposalIsolationTests(unittest.TestCase):
     def test_reviewed_artifact_fields_are_confined_to_the_exact_artifact_test(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             repo = Path(temporary)
-            source = repo / "src/frontends/riscv/air/lang/materialization_cost_test.zig"
+            source = repo / "src/frontends/riscv/air/lang/tests/materialization_cost_test.zig"
             source.parent.mkdir(parents=True)
             source.write_text(
                 'const reviewed = @import("typed_air_h009_artifacts");\n'

@@ -7,8 +7,8 @@
 //! complete recursive verifier.
 
 test {
-    _ = @import("recursion/air/composition_circuit_test.zig");
+    _ = @import("recursion/air/tests/composition_circuit_test.zig");
     _ = @import("recursion/vm_air_composition_circuit.zig");
-    _ = @import("recursion/vm_air_profile_test.zig");
-    _ = @import("recursion/vm_leaf_context_test.zig");
+    _ = @import("recursion/tests/vm_air_profile_test.zig");
+    _ = @import("recursion/tests/vm_leaf_context_test.zig");
 }

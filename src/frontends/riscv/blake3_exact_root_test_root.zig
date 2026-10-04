@@ -1,3 +1,3 @@
 comptime {
-    _ = @import("prover/blake3_exact_root_test.zig");
+    _ = @import("prover/tests/blake3_exact_root_test.zig");
 }

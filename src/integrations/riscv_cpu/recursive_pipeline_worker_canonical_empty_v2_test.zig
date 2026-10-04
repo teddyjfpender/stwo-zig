@@ -2,8 +2,8 @@ const std = @import("std");
 const artifact_store = @import("stwo_artifact_store");
 const M31 = @import("stwo_core").fields.m31.M31;
 
-const subject = @import("recursive_pipeline_worker_canonical_empty_v2.zig");
-const protocol = @import("recursive_pipeline_worker_protocol_v1.zig");
+const subject = @import("./recursive_pipeline_worker_canonical_empty_v2.zig");
+const protocol = @import("./recursive_pipeline_worker_protocol_v1.zig");
 
 test "stage103 describes only the field canonical-empty wrapper" {
     const description = try subject.Adapter.describe(.prove, 103);

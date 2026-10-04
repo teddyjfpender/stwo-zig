@@ -1,7 +1,7 @@
 const std = @import("std");
 const frontend = @import("stwo_riscv_frontend");
 const M31 = @import("stwo_core").fields.m31.M31;
-const authority_mod = @import("ethereum_incremental_boundary_authority_v4.zig");
+const authority_mod = @import("./ethereum_incremental_boundary_authority_v4.zig");
 
 const memory_state = frontend.runner.memory_state;
 const public_data = frontend.air.public_data;

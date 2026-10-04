@@ -4,80 +4,80 @@ const CpuBackend = @import("stwo_cpu_backend").CpuBackend;
 const frontend = @import("stwo_riscv_frontend");
 
 const role0_mod =
-    @import("recursive_common_ethereum_incremental_leaf_campaign_prefinal_fold_child_v4.zig");
+    @import("./recursive_common_ethereum_incremental_leaf_campaign_prefinal_fold_child_v4.zig");
 const role0_proof_mod =
-    @import("recursive_common_ethereum_incremental_leaf_universal_proof_v4.zig");
-const recursive_core = @import("recursive_fri_outer.zig");
+    @import("./recursive_common_ethereum_incremental_leaf_universal_proof_v4.zig");
+const recursive_core = @import("./recursive_fri_outer.zig");
 const live_mod =
-    @import("recursive_common_fold_campaign_prefinal_live_v2.zig");
+    @import("./recursive_common_fold_campaign_prefinal_live_v2.zig");
 const proof_mod =
-    @import("recursive_common_fold_campaign_prefinal_proof_v2.zig");
+    @import("./recursive_common_fold_campaign_prefinal_proof_v2.zig");
 const final_proof_mod =
-    @import("recursive_common_fold_campaign_final_proof_v2.zig");
+    @import("./recursive_common_fold_campaign_final_proof_v2.zig");
 const final_backend_mod =
-    @import("recursive_pipeline_worker_campaign_common_fold_v2.zig");
+    @import("./recursive_pipeline_worker_campaign_common_fold_v2.zig");
 const campaign_artifact_mod =
-    @import("recursive_campaign_node_artifact_v2.zig");
+    @import("./recursive_campaign_node_artifact_v2.zig");
 const child_opener_mod =
-    @import("recursive_pipeline_worker_campaign_child_cold_opener_v2.zig");
+    @import("./recursive_pipeline_worker_campaign_child_cold_opener_v2.zig");
 const real_inventory_opener_mod =
-    @import("recursive_pipeline_worker_campaign_real_leaf_inventory_opener_v4.zig");
+    @import("./recursive_pipeline_worker_campaign_real_leaf_inventory_opener_v4.zig");
 const real_backend_mod =
-    @import("recursive_pipeline_worker_campaign_real_leaf_backend_v4.zig");
+    @import("./recursive_pipeline_worker_campaign_real_leaf_backend_v4.zig");
 const real_leaf_composite_mod =
-    @import("recursive_pipeline_worker_campaign_real_leaf_composite_v4.zig");
+    @import("./recursive_pipeline_worker_campaign_real_leaf_composite_v4.zig");
 const final_worker_transaction_mod =
-    @import("recursive_pipeline_campaign_final_worker_transaction_v2.zig");
+    @import("./recursive_pipeline_campaign_final_worker_transaction_v2.zig");
 const final_composite_mod =
-    @import("recursive_pipeline_worker_campaign_final_composite_v2.zig");
+    @import("./recursive_pipeline_worker_campaign_final_composite_v2.zig");
 const final_driver_mod =
-    @import("recursive_pipeline_campaign_final_driver_v2.zig");
+    @import("./recursive_pipeline_campaign_final_driver_v2.zig");
 const final_live_runtime_mod =
-    @import("recursive_pipeline_campaign_final_live_runtime_v2.zig");
+    @import("./recursive_pipeline_campaign_final_live_runtime_v2.zig");
 const final_owned_live_runtime_mod =
-    @import("recursive_pipeline_campaign_final_owned_live_runtime_v2.zig");
+    @import("./recursive_pipeline_campaign_final_owned_live_runtime_v2.zig");
 const final_assembly_bound_runtime_mod =
-    @import("recursive_pipeline_campaign_final_assembly_bound_runtime_v2.zig");
+    @import("./recursive_pipeline_campaign_final_assembly_bound_runtime_v2.zig");
 const stage102_final_lifecycle_mod =
-    @import("recursive_pipeline_worker_campaign_stage102_final_lifecycle_v4.zig");
+    @import("./recursive_pipeline_worker_campaign_stage102_final_lifecycle_v4.zig");
 const target_native_q193_mod =
-    @import("recursive_pipeline_campaign_target_native_q193_pairs_v2.zig");
-const protocol = @import("recursive_pipeline_worker_protocol_v1.zig");
+    @import("./recursive_pipeline_campaign_target_native_q193_pairs_v2.zig");
+const protocol = @import("./recursive_pipeline_worker_protocol_v1.zig");
 const stage102_inventory_mod =
-    @import("recursive_pipeline_worker_campaign_stage102_inventory_v4.zig");
+    @import("./recursive_pipeline_worker_campaign_stage102_inventory_v4.zig");
 const stage102_inventory_builder_mod =
-    @import("recursive_pipeline_worker_campaign_stage102_inventory_builder_v4.zig");
+    @import("./recursive_pipeline_worker_campaign_stage102_inventory_builder_v4.zig");
 const session_provider_mod =
-    @import("recursive_pipeline_worker_campaign_session_provider_v4.zig");
+    @import("./recursive_pipeline_worker_campaign_session_provider_v4.zig");
 const role0_final_mod =
-    @import("recursive_common_ethereum_incremental_leaf_campaign_fold_child_v4.zig");
+    @import("./recursive_common_ethereum_incremental_leaf_campaign_fold_child_v4.zig");
 const role1_final_mod =
-    @import("recursive_common_canonical_empty_campaign_fold_child_v2.zig");
+    @import("./recursive_common_canonical_empty_campaign_fold_child_v2.zig");
 const canonical_proof =
-    @import("recursive_common_canonical_empty_universal_proof_v2.zig");
+    @import("./recursive_common_canonical_empty_universal_proof_v2.zig");
 const campaign_empty_proof =
-    @import("recursive_common_canonical_empty_campaign_universal_proof_v2.zig");
+    @import("./recursive_common_canonical_empty_campaign_universal_proof_v2.zig");
 const genuine_final =
-    @import("recursive_pipeline_campaign_genuine_final_remint_v2.zig");
+    @import("./recursive_pipeline_campaign_genuine_final_remint_v2.zig");
 const genuine_three_leaf_fixture_mod =
-    @import("recursive_pipeline_campaign_genuine_three_leaf_final_remint_fixture_v2.zig");
+    @import("./recursive_pipeline_campaign_genuine_three_leaf_final_remint_fixture_v2.zig");
 const genuine_three_leaf_tree_gate_mod =
-    @import("recursive_pipeline_campaign_genuine_three_leaf_tree_gate_v2.zig");
+    @import("./recursive_pipeline_campaign_genuine_three_leaf_tree_gate_v2.zig");
 const authenticated_stage101_mod =
-    @import("recursive_pipeline_campaign_genuine_stage101_authenticated_inputs_v4.zig");
+    @import("./recursive_pipeline_campaign_genuine_stage101_authenticated_inputs_v4.zig");
 const genuine_stage102_tree_lifecycle_mod =
-    @import("recursive_pipeline_campaign_genuine_stage102_tree_lifecycle_v4.zig");
+    @import("./recursive_pipeline_campaign_genuine_stage102_tree_lifecycle_v4.zig");
 const prefinal =
-    @import("recursive_pipeline_campaign_prefinal_fold_lease_v2.zig");
-const target_mod = @import("recursive_pipeline_campaign_padding_target_v2.zig");
+    @import("./recursive_pipeline_campaign_prefinal_fold_lease_v2.zig");
+const target_mod = @import("./recursive_pipeline_campaign_padding_target_v2.zig");
 const padding_remint_mod =
-    @import("recursive_common_wrapper_padding_remint_v2.zig");
+    @import("./recursive_common_wrapper_padding_remint_v2.zig");
 const campaign_final_mod =
-    @import("recursive_pipeline_campaign_final_remint_v2.zig");
+    @import("./recursive_pipeline_campaign_final_remint_v2.zig");
 const padding_fixture_mod =
     @import("recursive_common_wrapper_padding_remint_v2_test.zig");
-const policy_mod = @import("recursive_pipeline_worker_execution_policy_v2.zig");
-const registry_mod = @import("recursive_circuit_registry_v1.zig");
+const policy_mod = @import("./recursive_pipeline_worker_execution_policy_v2.zig");
+const registry_mod = @import("./recursive_circuit_registry_v1.zig");
 
 const Engine = frontend.recursion.engine.ProverEngineForBackend(CpuBackend);
 
@@ -311,7 +311,7 @@ const RuntimePlanVisitor = struct {
         self: *RuntimePlanVisitor,
         coordinate: final_driver_mod.Coordinate,
     ) !void {
-        try @import("recursive_campaign_node_public_v2.zig")
+        try @import("./recursive_campaign_node_public_v2.zig")
             .validateStageCoordinate(self.shape, .leaf_wrapper, coordinate);
         if (coordinate.index < self.shape.real_leaf_count)
             return error.UnexpectedRuntimePlanCoordinate;
@@ -1017,7 +1017,7 @@ test "campaign q193 nominal pair plans derive every role from runtime shape" {
 
     const real_real = try target_native_q193_mod.PairPlanV2.init(
         &authority13,
-        try @import("recursive_campaign_node_public_v2.zig").coordinate(
+        try @import("./recursive_campaign_node_public_v2.zig").coordinate(
             &shape13,
             1,
             0,
@@ -1025,7 +1025,7 @@ test "campaign q193 nominal pair plans derive every role from runtime shape" {
     );
     const real_empty = try target_native_q193_mod.PairPlanV2.init(
         &authority13,
-        try @import("recursive_campaign_node_public_v2.zig").coordinate(
+        try @import("./recursive_campaign_node_public_v2.zig").coordinate(
             &shape13,
             1,
             6,
@@ -1033,7 +1033,7 @@ test "campaign q193 nominal pair plans derive every role from runtime shape" {
     );
     const empty_empty = try target_native_q193_mod.PairPlanV2.init(
         &authority13,
-        try @import("recursive_campaign_node_public_v2.zig").coordinate(
+        try @import("./recursive_campaign_node_public_v2.zig").coordinate(
             &shape13,
             1,
             7,
@@ -1041,7 +1041,7 @@ test "campaign q193 nominal pair plans derive every role from runtime shape" {
     );
     const common_common = try target_native_q193_mod.PairPlanV2.init(
         &authority13,
-        try @import("recursive_campaign_node_public_v2.zig").coordinate(
+        try @import("./recursive_campaign_node_public_v2.zig").coordinate(
             &shape13,
             2,
             0,

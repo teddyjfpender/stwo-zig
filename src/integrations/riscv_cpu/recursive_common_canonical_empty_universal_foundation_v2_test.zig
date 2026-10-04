@@ -3,7 +3,7 @@ const stwo_core = @import("stwo_core");
 const frontend = @import("stwo_riscv_frontend");
 
 const foundation =
-    @import("recursive_common_canonical_empty_universal_foundation_v2.zig");
+    @import("./recursive_common_canonical_empty_universal_foundation_v2.zig");
 
 const M31 = stwo_core.fields.m31.M31;
 const air = frontend.recursion.air;

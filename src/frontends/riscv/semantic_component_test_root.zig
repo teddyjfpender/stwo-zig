@@ -3,5 +3,5 @@
 //! frontend package's multi-gigabyte edit loop.
 
 test {
-    _ = @import("air/semantic_component_test.zig");
+    _ = @import("air/tests/semantic_component_test.zig");
 }

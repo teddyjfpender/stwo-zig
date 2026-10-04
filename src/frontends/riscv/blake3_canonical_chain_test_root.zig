@@ -1,3 +1,3 @@
 comptime {
-    _ = @import("prover/blake3_canonical_chain_test.zig");
+    _ = @import("prover/tests/blake3_canonical_chain_test.zig");
 }

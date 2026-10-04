@@ -2,8 +2,8 @@ const std = @import("std");
 const frontend = @import("stwo_riscv_frontend");
 
 const subject =
-    @import("ethereum_incremental_capture_raw_recovery_v4.zig");
-const publication = @import("ethereum_incremental_capture_publication_v4.zig");
+    @import("./ethereum_incremental_capture_raw_recovery_v4.zig");
+const publication = @import("./ethereum_incremental_capture_publication_v4.zig");
 
 test "raw recovery manifest roundtrips exact ordered cold inventory" {
     const allocator = std.testing.allocator;

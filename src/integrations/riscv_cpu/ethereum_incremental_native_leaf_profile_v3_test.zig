@@ -2,13 +2,13 @@ const std = @import("std");
 const stwo_core = @import("stwo_core");
 const frontend = @import("stwo_riscv_frontend");
 
-const profile_mod = @import("ethereum_incremental_native_leaf_profile_v3.zig");
-const artifact_v3 = @import("ethereum_incremental_boundary_artifact_v3.zig");
-const artifact_v2 = @import("ethereum_incremental_boundary_artifact_v2.zig");
-const authority_v1 = @import("ethereum_incremental_boundary_authority_v1.zig");
-const boundary_v3 = @import("ethereum_incremental_boundary_authority_v3.zig");
+const profile_mod = @import("./ethereum_incremental_native_leaf_profile_v3.zig");
+const artifact_v3 = @import("./ethereum_incremental_boundary_artifact_v3.zig");
+const artifact_v2 = @import("./ethereum_incremental_boundary_artifact_v2.zig");
+const authority_v1 = @import("./ethereum_incremental_boundary_authority_v1.zig");
+const boundary_v3 = @import("./ethereum_incremental_boundary_authority_v3.zig");
 const support =
-    @import("ethereum_incremental_boundary_artifact_v3_test_support.zig");
+    @import("./ethereum_incremental_boundary_artifact_v3_test_support.zig");
 
 const M31 = stwo_core.fields.m31.M31;
 const QM31 = stwo_core.fields.qm31.QM31;

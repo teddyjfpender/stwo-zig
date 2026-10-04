@@ -9,5 +9,5 @@ test "V2 transcript outer source instantiates" {
 }
 
 test {
-    _ = @import("recursion/segment_transcript_outer_source_v2_test.zig");
+    _ = @import("recursion/tests/segment_transcript_outer_source_v2_test.zig");
 }

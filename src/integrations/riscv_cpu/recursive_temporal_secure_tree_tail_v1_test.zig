@@ -1,8 +1,8 @@
 const std = @import("std");
 const frontend = @import("stwo_riscv_frontend");
 
-const tail = @import("recursive_temporal_secure_tree_tail_v1.zig");
-const topology = @import("recursive_temporal_topology_v1.zig");
+const tail = @import("./recursive_temporal_secure_tree_tail_v1.zig");
+const topology = @import("./recursive_temporal_topology_v1.zig");
 
 const recursion = frontend.recursion;
 const channel = recursion.poseidon2_channel;

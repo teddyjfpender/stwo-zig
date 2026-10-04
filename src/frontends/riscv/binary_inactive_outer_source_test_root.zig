@@ -1,3 +1,3 @@
 test {
-    _ = @import("recursion/binary_inactive_outer_source_test.zig");
+    _ = @import("recursion/tests/binary_inactive_outer_source_test.zig");
 }

@@ -2,14 +2,14 @@ const std = @import("std");
 const frontend = @import("stwo_riscv_frontend");
 
 const batch =
-    @import("recursive_temporal_ethereum_poseidon_h1_batch_v1.zig");
+    @import("./recursive_temporal_ethereum_poseidon_h1_batch_v1.zig");
 const product =
-    @import("recursive_temporal_ethereum_poseidon_h1_product_v1.zig");
+    @import("./recursive_temporal_ethereum_poseidon_h1_product_v1.zig");
 const parent_artifact =
-    @import("recursive_temporal_secure_parent_artifact_v1.zig");
+    @import("./recursive_temporal_secure_parent_artifact_v1.zig");
 const verified_publication =
-    @import("recursive_binary_verified_publication.zig");
-const topology = @import("recursive_temporal_topology_v1.zig");
+    @import("./recursive_binary_verified_publication.zig");
+const topology = @import("./recursive_temporal_topology_v1.zig");
 
 const recursion = frontend.recursion;
 const channel = recursion.poseidon2_channel;

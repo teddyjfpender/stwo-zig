@@ -4,18 +4,18 @@
 //! child verification remain mandatory. No native leaf inputs are loaded.
 const std = @import("std");
 const recursion = @import("stwo_riscv_frontend").recursion;
-const adapter_mod = @import("ethereum_wrapper_detached_fold_v1.zig");
-const child_transport = @import("ethereum_wrapper_root_command_v1.zig");
-const child_shape = @import("ethereum_wrapper_child_shape_v1.zig");
-const verifier = @import("recursive_common_fold_detached_verifier_v2.zig");
-const transport = @import("recursive_common_fold_verifier_command_v2.zig");
-const public = @import("recursive_field_node_public_v2.zig");
-const manifest = @import("recursive_common_fold_universal_manifest_v2.zig");
-const cohort_mod = @import("recursive_common_fold_secure_cohort_v2.zig");
-const engine = @import("recursive_temporal_secure_parent_native_engine_v1.zig");
-const runtime = @import("recursive_common_ethereum_incremental_leaf_genuine_runtime_v4.zig");
-const native_scope = @import("ethereum_native_verification_scope_v1.zig");
-const artifact = @import("recursive_temporal_secure_parent_artifact_v1.zig");
+const adapter_mod = @import("./ethereum_wrapper_detached_fold_v1.zig");
+const child_transport = @import("./ethereum_wrapper_root_command_v1.zig");
+const child_shape = @import("./ethereum_wrapper_child_shape_v1.zig");
+const verifier = @import("./recursive_common_fold_detached_verifier_v2.zig");
+const transport = @import("./recursive_common_fold_verifier_command_v2.zig");
+const public = @import("./recursive_field_node_public_v2.zig");
+const manifest = @import("./recursive_common_fold_universal_manifest_v2.zig");
+const cohort_mod = @import("./recursive_common_fold_secure_cohort_v2.zig");
+const engine = @import("./recursive_temporal_secure_parent_native_engine_v1.zig");
+const runtime = @import("./recursive_common_ethereum_incremental_leaf_genuine_runtime_v4.zig");
+const native_scope = @import("./ethereum_native_verification_scope_v1.zig");
+const artifact = @import("./recursive_temporal_secure_parent_artifact_v1.zig");
 
 pub fn run(comptime dimensions: recursion.fixed_wire.Dimensions) !void {
     @setEvalBranchQuota(50_000_000);
@@ -63,7 +63,7 @@ pub fn run(comptime dimensions: recursion.fixed_wire.Dimensions) !void {
         const session = try cohort.session();
         // The cohort has already derived its admitted Tree0. Report the
         // full proving PCS floor before allocating any of that request's trees.
-        try @import("ethereum_wrapper_resources_v1.zig").reportPlan(manifest, cohort.manifest(), session.protocol.fri_log_blowup_factor, .never);
+        try @import("./ethereum_wrapper_resources_v1.zig").reportPlan(manifest, cohort.manifest(), session.protocol.fri_log_blowup_factor, .never);
         // Freeze the independently prepared AIR key before any candidate
         // commitment exists, using the existing verifier transport encoding.
         const key_json = try std.json.Stringify.valueAlloc(owned_allocator, transport.EthereumKeyFile{ .format_version = 1, .common_fold_schema = cohort_mod.SCHEMA_VERSION, .key = key }, .{});
@@ -143,7 +143,7 @@ fn keyPin(allocator: std.mem.Allocator, name: []const u8) ![32]u8 {
     return result;
 }
 
-fn rejectChangedChildBoundaries(children: *const [2]public.NodePublicV2, parent_coordinate: @import("recursive_node_artifact_v2.zig").TaskCoordinateV1) !void {
+fn rejectChangedChildBoundaries(children: *const [2]public.NodePublicV2, parent_coordinate: @import("./recursive_node_artifact_v2.zig").TaskCoordinateV1) !void {
     const span = recursion.span_statement;
     const M31 = @import("stwo_core").fields.m31.M31;
     var words: span.StatementWords = undefined;
@@ -174,7 +174,7 @@ fn rejectChangedChildBoundaries(children: *const [2]public.NodePublicV2, parent_
 }
 
 fn leafWithStatement(original: *const public.NodePublicV2, statement: recursion.span_statement.SpanStatement) !public.NodePublicV2 {
-    const coordinate = try @import("recursive_node_artifact_v2.zig").TaskCoordinateV1.init(0, @intCast(statement.slots.nodeIndex()));
+    const coordinate = try @import("./recursive_node_artifact_v2.zig").TaskCoordinateV1.init(0, @intCast(statement.slots.nodeIndex()));
     const canonical = try statement.canonicalWords();
     var words: [public.STATEMENT_WORD_COUNT]u32 = undefined;
     for (&words, canonical) |*word, value| word.* = value.toU32();

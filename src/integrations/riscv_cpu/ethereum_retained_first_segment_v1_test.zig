@@ -2,7 +2,7 @@
 //! require the same global/local source validation as V4 raw capture.
 const std = @import("std");
 const frontend = @import("stwo_riscv_frontend");
-const retained_mod = @import("ethereum_incremental_capture_retained_authority_v4.zig");
+const retained_mod = @import("./ethereum_incremental_capture_retained_authority_v4.zig");
 const global = frontend.recursion.segment_leaf_local_authority_v3;
 
 const Observer = struct {

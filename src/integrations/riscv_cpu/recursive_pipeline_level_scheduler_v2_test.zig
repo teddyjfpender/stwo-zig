@@ -1,8 +1,8 @@
 const std = @import("std");
 
-const subject = @import("recursive_pipeline_level_scheduler_v2.zig");
-const policy_mod = @import("recursive_pipeline_worker_execution_policy_v2.zig");
-const shape_mod = @import("recursive_pipeline_campaign_shape_v2.zig");
+const subject = @import("./recursive_pipeline_level_scheduler_v2.zig");
+const policy_mod = @import("./recursive_pipeline_worker_execution_policy_v2.zig");
+const shape_mod = @import("./recursive_pipeline_campaign_shape_v2.zig");
 
 test "runtime campaign scheduler prefers ready parents and respects dual tokens" {
     const shape = try shape_mod.CampaignShapeAuthorityV2.init(

@@ -2,16 +2,16 @@ const std = @import("std");
 const frontend = @import("stwo_riscv_frontend");
 const m31 = @import("stwo_core").fields.m31;
 
-const artifact_io = @import("ethereum_precompile_artifact_io.zig");
-const capture = @import("ethereum_incremental_capture_publication_v4.zig");
+const artifact_io = @import("./ethereum_precompile_artifact_io.zig");
+const capture = @import("./ethereum_incremental_capture_publication_v4.zig");
 const owner_mod =
-    @import("ethereum_incremental_public_wire_publication_owner_v4.zig");
+    @import("./ethereum_incremental_public_wire_publication_owner_v4.zig");
 const publication =
-    @import("ethereum_incremental_public_wire_publication_v4.zig");
+    @import("./ethereum_incremental_public_wire_publication_v4.zig");
 const reconstruction =
-    @import("ethereum_incremental_role_public_reconstruction_v4.zig");
+    @import("./ethereum_incremental_role_public_reconstruction_v4.zig");
 const support =
-    @import("ethereum_incremental_boundary_artifact_v3_test_support.zig");
+    @import("./ethereum_incremental_boundary_artifact_v3_test_support.zig");
 
 test "V4 public-wire companion cold-adopts a crash prefix and seals last" {
     const allocator = std.testing.allocator;
@@ -162,7 +162,7 @@ test "V4 role-aware public data is reconstructed from wire layout and raw IO" {
     var left = try support.OwnedWire.init(allocator, &fixture.leftSource());
     defer left.deinit();
     const input = [_]u8{ 11, 0, 0, 0 };
-    const left_sources = [_]@import("ethereum_incremental_boundary_authority_v4.zig").WordBoundarySourceV4{.{
+    const left_sources = [_]@import("./ethereum_incremental_boundary_authority_v4.zig").WordBoundarySourceV4{.{
         .word = .{
             .addr = 0x2000,
             .initial_word = 11,
@@ -195,7 +195,7 @@ test "V4 role-aware public data is reconstructed from wire layout and raw IO" {
     right_source.exit_register_clocks = local_exit_register_clocks;
     var right = try support.OwnedWire.init(allocator, &right_source);
     defer right.deinit();
-    const right_sources = [_]@import("ethereum_incremental_boundary_authority_v4.zig").WordBoundarySourceV4{
+    const right_sources = [_]@import("./ethereum_incremental_boundary_authority_v4.zig").WordBoundarySourceV4{
         .{
             .word = .{
                 .addr = 0x2000,

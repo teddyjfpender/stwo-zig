@@ -1,5 +1,5 @@
 const std = @import("std");
-const command = @import("recursive_segment_v2_detached_leaf_options.zig");
+const command = @import("./recursive_segment_v2_detached_leaf_options.zig");
 const pin = "ab" ** 32;
 const valid = [_][]const u8{ "--memory-addresses", "16", "--segment-count", "1", "--segments-output", "new-output", "--child-0-key", "key.json", "--child-0-key-sha256", pin };
 

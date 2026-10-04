@@ -3,13 +3,13 @@ const CpuBackend = @import("stwo_cpu_backend").CpuBackend;
 const frontend = @import("stwo_riscv_frontend");
 
 const components =
-    @import("recursive_common_ethereum_incremental_leaf_transcript_components_v4.zig");
+    @import("./recursive_common_ethereum_incremental_leaf_transcript_components_v4.zig");
 const cohort =
-    @import("recursive_common_ethereum_incremental_leaf_transcript_cohort_v4.zig");
+    @import("./recursive_common_ethereum_incremental_leaf_transcript_cohort_v4.zig");
 const geometry =
-    @import("recursive_common_ethereum_incremental_leaf_transcript_geometry_v4.zig");
+    @import("./recursive_common_ethereum_incremental_leaf_transcript_geometry_v4.zig");
 const rows =
-    @import("recursive_common_ethereum_incremental_leaf_transcript_rows_v4.zig");
+    @import("./recursive_common_ethereum_incremental_leaf_transcript_rows_v4.zig");
 
 const Engine = frontend.recursion.engine.ProverEngineForBackend(CpuBackend);
 
@@ -37,7 +37,7 @@ test "stage102 role0 transcript rows retain inactive recursion lanes" {
 
 test "Ethereum prepared transcript and suffix owners hide mutable rows and plans" {
     const Prefix = cohort.PreparedV4(Engine);
-    const Suffix = @import("recursive_common_ethereum_incremental_leaf_suffix_cohort_v4.zig").PreparedV4(Engine);
+    const Suffix = @import("./recursive_common_ethereum_incremental_leaf_suffix_cohort_v4.zig").PreparedV4(Engine);
     try std.testing.expect(@typeInfo(Prefix) == .@"opaque");
     try std.testing.expect(@typeInfo(Suffix) == .@"opaque");
     inline for (.{ Prefix, Suffix }) |Owner| {
@@ -53,7 +53,7 @@ test "Ethereum prepared transcript and suffix owners hide mutable rows and plans
 test "Ethereum generated interaction audit matches canonical columns and independent cold sums" {
     const allocator = std.testing.allocator;
     const air = frontend.recursion.air;
-    const support = @import("recursive_common_ethereum_incremental_leaf_transcript_cohort_v4_support.zig");
+    const support = @import("./recursive_common_ethereum_incremental_leaf_transcript_cohort_v4_support.zig");
     var definition = try air.control.build(allocator);
     defer definition.deinit();
     const plan = try components.ControlRelation.authenticate(&definition);
@@ -90,6 +90,6 @@ fn auditedInteractionFailureCase(
     logical: []const components.ControlRelation.Row,
     relations: *const frontend.recursion.air.universal_challenges.UniversalRelations,
 ) !void {
-    var generated = try @import("recursive_common_ethereum_incremental_leaf_transcript_cohort_v4_support.zig").generateWithAudit(components.ControlFramework, allocator, plan, logical, 4, relations);
+    var generated = try @import("./recursive_common_ethereum_incremental_leaf_transcript_cohort_v4_support.zig").generateWithAudit(components.ControlFramework, allocator, plan, logical, 4, relations);
     defer generated.deinit(allocator);
 }

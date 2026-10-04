@@ -2,7 +2,7 @@ const std = @import("std");
 const stwo_core = @import("stwo_core");
 const frontend = @import("stwo_riscv_frontend");
 
-const subject = @import("recursive_binary_verified_publication.zig");
+const subject = @import("./recursive_binary_verified_publication.zig");
 
 const QM31 = stwo_core.fields.qm31.QM31;
 const recursion = frontend.recursion;

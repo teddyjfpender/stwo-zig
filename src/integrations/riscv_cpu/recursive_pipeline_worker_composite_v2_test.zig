@@ -1,14 +1,14 @@
 const std = @import("std");
 const artifact_store = @import("stwo_artifact_store");
 
-const subject = @import("recursive_pipeline_worker_composite_v2.zig");
+const subject = @import("./recursive_pipeline_worker_composite_v2.zig");
 const canonical_empty =
-    @import("recursive_pipeline_worker_canonical_empty_v2.zig");
-const native_leaf = @import("recursive_pipeline_worker_native_leaf_v4.zig");
+    @import("./recursive_pipeline_worker_canonical_empty_v2.zig");
+const native_leaf = @import("./recursive_pipeline_worker_native_leaf_v4.zig");
 const child_capability =
-    @import("recursive_common_fold_child_capability_v2.zig");
-const common_child = @import("recursive_common_fold_child_v2.zig");
-const node_artifact = @import("recursive_node_artifact_v2.zig");
+    @import("./recursive_common_fold_child_capability_v2.zig");
+const common_child = @import("./recursive_common_fold_child_v2.zig");
+const node_artifact = @import("./recursive_node_artifact_v2.zig");
 
 test "composite contract pins stage codes and typed CAS outputs" {
     const expected = [_]struct {

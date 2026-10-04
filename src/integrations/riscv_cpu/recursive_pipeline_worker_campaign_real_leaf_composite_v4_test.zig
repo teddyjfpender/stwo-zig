@@ -4,20 +4,20 @@ const CpuBackend = @import("stwo_cpu_backend").CpuBackend;
 const frontend = @import("stwo_riscv_frontend");
 
 const subject =
-    @import("recursive_pipeline_worker_campaign_real_leaf_composite_v4.zig");
-const protocol = @import("recursive_pipeline_worker_protocol_v1.zig");
+    @import("./recursive_pipeline_worker_campaign_real_leaf_composite_v4.zig");
+const protocol = @import("./recursive_pipeline_worker_protocol_v1.zig");
 const native_execution =
-    @import("recursive_pipeline_worker_native_leaf_execution_v4.zig");
+    @import("./recursive_pipeline_worker_native_leaf_execution_v4.zig");
 const real_backend =
-    @import("recursive_pipeline_worker_campaign_real_leaf_backend_v4.zig");
+    @import("./recursive_pipeline_worker_campaign_real_leaf_backend_v4.zig");
 const padding_fixture =
     @import("recursive_common_wrapper_padding_remint_v2_test.zig");
-const final_mod = @import("recursive_pipeline_campaign_final_remint_v2.zig");
+const final_mod = @import("./recursive_pipeline_campaign_final_remint_v2.zig");
 const projection_mod =
-    @import("recursive_pipeline_campaign_fold_projection_v2.zig");
-const policy_mod = @import("recursive_pipeline_worker_execution_policy_v2.zig");
+    @import("./recursive_pipeline_campaign_fold_projection_v2.zig");
+const policy_mod = @import("./recursive_pipeline_worker_execution_policy_v2.zig");
 const session_provider =
-    @import("recursive_pipeline_worker_campaign_session_provider_v4.zig");
+    @import("./recursive_pipeline_worker_campaign_session_provider_v4.zig");
 
 const Engine = frontend.recursion.engine.ProverEngineForBackend(CpuBackend);
 const ActiveSources = @TypeOf(

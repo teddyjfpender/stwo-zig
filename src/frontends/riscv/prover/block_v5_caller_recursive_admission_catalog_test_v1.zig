@@ -4,7 +4,7 @@ const Pairs = @import("block_v5_caller_recursive_admission_pair_v1.zig");
 const CatalogModule = @import("block_v5_caller_recursive_admission_catalog_v1.zig");
 const Pipeline = @import("block_v5_caller_recursive_pipeline_v1.zig");
 const Session = Pipeline.ForBackend(@import("stwo_cpu_backend").CpuBackend).Session;
-const Original = @import("block_v5_caller_capture_unit_test.zig").Fixture;
+const Original = @import("tests/block_v5_caller_capture_unit_test.zig").Fixture;
 const Sparse = @import("block_v5_recursive_execution_leaf_store_test_v1.zig").Fixture;
 fn callerSink(_: *anyopaque, _: u32, _: *@import("block_v5_precompile_family_proof_v1.zig").Proof) !void {
     return error.UnexpectedProofInvocation;

@@ -1,7 +1,7 @@
 const std = @import("std");
 const frontend = @import("stwo_riscv_frontend");
-const subject = @import("recursive_segment_v2_leaf_outer.zig");
-const recursive_fri_outer = @import("recursive_fri_outer.zig");
+const subject = @import("./recursive_segment_v2_leaf_outer.zig");
+const recursive_fri_outer = @import("./recursive_fri_outer.zig");
 
 const poseidon2_air = frontend.air.memory_commitment.poseidon2_air;
 

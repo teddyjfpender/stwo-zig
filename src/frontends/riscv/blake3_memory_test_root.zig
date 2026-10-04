@@ -9,9 +9,9 @@ pub fn main() !void {
     }
 }
 comptime {
-    _ = @import("recursion/air/blake3_parent_append_test.zig");
+    _ = @import("recursion/air/tests/blake3_parent_append_test.zig");
     _ = @import("recursion/air/blake3_g_partition.zig");
     _ = @import("recursion/air/blake3_parent_row_storage.zig");
-    _ = @import("recursion/air/blake3_g_packed_test.zig");
-    _ = @import("recursion/air/blake3_committed_test.zig");
+    _ = @import("recursion/air/tests/blake3_g_packed_test.zig");
+    _ = @import("recursion/air/tests/blake3_committed_test.zig");
 }

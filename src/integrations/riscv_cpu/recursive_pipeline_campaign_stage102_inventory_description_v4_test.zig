@@ -2,10 +2,10 @@ const std = @import("std");
 const artifact_store = @import("stwo_artifact_store");
 
 const description =
-    @import("recursive_pipeline_campaign_stage102_inventory_description_v4.zig");
+    @import("./recursive_pipeline_campaign_stage102_inventory_description_v4.zig");
 const bridge_mod =
-    @import("recursive_pipeline_campaign_stage102_inventory_description_bridge_v4.zig");
-const protocol = @import("recursive_pipeline_worker_protocol_v1.zig");
+    @import("./recursive_pipeline_campaign_stage102_inventory_description_bridge_v4.zig");
+const protocol = @import("./recursive_pipeline_worker_protocol_v1.zig");
 
 const Digest = artifact_store.Digest;
 

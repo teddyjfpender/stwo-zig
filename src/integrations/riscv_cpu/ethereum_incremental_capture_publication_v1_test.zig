@@ -1,12 +1,12 @@
 const std = @import("std");
 const frontend = @import("stwo_riscv_frontend");
 
-const artifact_io = @import("ethereum_precompile_artifact_io.zig");
-const artifact_mod = @import("ethereum_incremental_boundary_artifact_v2.zig");
-const authority_mod = @import("ethereum_incremental_boundary_authority_v1.zig");
-const capture_mod = @import("ethereum_incremental_boundary_capture_v2.zig");
-const publication = @import("ethereum_incremental_capture_publication_v1.zig");
-const publication_owner = @import("ethereum_incremental_capture_publication_owner_v1.zig");
+const artifact_io = @import("./ethereum_precompile_artifact_io.zig");
+const artifact_mod = @import("./ethereum_incremental_boundary_artifact_v2.zig");
+const authority_mod = @import("./ethereum_incremental_boundary_authority_v1.zig");
+const capture_mod = @import("./ethereum_incremental_boundary_capture_v2.zig");
+const publication = @import("./ethereum_incremental_capture_publication_v1.zig");
+const publication_owner = @import("./ethereum_incremental_capture_publication_owner_v1.zig");
 
 const memory_state = frontend.runner.memory_state;
 

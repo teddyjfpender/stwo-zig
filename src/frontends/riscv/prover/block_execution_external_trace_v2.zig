@@ -227,7 +227,7 @@ fn zeroPair() pair_source.Pair(Q) {
 }
 
 test {
-    _ = @import("block_execution_external_trace_parity_test.zig");
+    _ = @import("tests/block_execution_external_trace_parity_test.zig");
 }
 
 fn requireValues(columns: []const Column, size: usize) !void {

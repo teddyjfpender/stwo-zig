@@ -2,14 +2,14 @@ const std = @import("std");
 const artifact_store = @import("stwo_artifact_store");
 
 const subject =
-    @import("recursive_pipeline_worker_campaign_final_session_bridge_v4.zig");
+    @import("./recursive_pipeline_worker_campaign_final_session_bridge_v4.zig");
 const lifecycle_mod =
-    @import("recursive_pipeline_worker_campaign_stage102_final_lifecycle_v4.zig");
+    @import("./recursive_pipeline_worker_campaign_stage102_final_lifecycle_v4.zig");
 const fixture_mod =
     @import("recursive_pipeline_worker_campaign_stage102_lifecycle_v4_test.zig");
 const fixture_support =
-    @import("recursive_pipeline_worker_campaign_stage102_lifecycle_test_support_v4.zig");
-const final_mod = @import("recursive_pipeline_campaign_final_remint_v2.zig");
+    @import("./recursive_pipeline_worker_campaign_stage102_lifecycle_test_support_v4.zig");
+const final_mod = @import("./recursive_pipeline_campaign_final_remint_v2.zig");
 
 const Assembly = fixture_support.FinalLifecycleAssemblyV4(
     fixture_mod.FixtureAuthorityV4,

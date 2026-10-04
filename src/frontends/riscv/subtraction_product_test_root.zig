@@ -1,3 +1,3 @@
 comptime {
-    _ = @import("recursion/air/qm31_sub_mul_test.zig");
+    _ = @import("recursion/air/tests/qm31_sub_mul_test.zig");
 }

@@ -2,6 +2,6 @@
 
 comptime {
     _ = @import("prover/interaction_witness_work.zig");
-    _ = @import("prover/interaction_trace_execution_policy_test.zig");
-    _ = @import("prover/interaction_columns_test.zig");
+    _ = @import("prover/tests/interaction_trace_execution_policy_test.zig");
+    _ = @import("prover/tests/interaction_columns_test.zig");
 }

@@ -1,25 +1,25 @@
 const std = @import("std");
 const stwo_core = @import("stwo_core");
 const frontend = @import("stwo_riscv_frontend");
-const checkpoint_store = @import("recursive_node_artifact_store_v2.zig");
-const test_inputs = @import("recursive_common_fold_q193_bootstrap_test_inputs.zig");
-const secure_artifact = @import("recursive_temporal_secure_parent_artifact_v1.zig");
+const checkpoint_store = @import("./recursive_node_artifact_store_v2.zig");
+const test_inputs = @import("./recursive_common_fold_q193_bootstrap_test_inputs.zig");
+const secure_artifact = @import("./recursive_temporal_secure_parent_artifact_v1.zig");
 
-const subject = @import("recursive_common_fold_q193_bootstrap_v2.zig");
+const subject = @import("./recursive_common_fold_q193_bootstrap_v2.zig");
 const geometry_support =
-    @import("recursive_common_fold_q193_bootstrap_geometry_v2.zig");
+    @import("./recursive_common_fold_q193_bootstrap_geometry_v2.zig");
 const canonical_proof =
-    @import("recursive_common_canonical_empty_universal_proof_v2.zig");
+    @import("./recursive_common_canonical_empty_universal_proof_v2.zig");
 const canonical_input =
-    @import("recursive_common_canonical_empty_wrapper_input_v1.zig");
-const fold_input = @import("recursive_common_fold_input_v2.zig");
+    @import("./recursive_common_canonical_empty_wrapper_input_v1.zig");
+const fold_input = @import("./recursive_common_fold_input_v2.zig");
 const throughput =
-    @import("recursive_recursion_verifier_throughput_v1.zig");
+    @import("./recursive_recursion_verifier_throughput_v1.zig");
 const process_validation =
-    @import("recursive_process_local_validation_token_v1.zig");
-const node_v1 = @import("recursive_node_artifact_v1.zig");
-const node_v2 = @import("recursive_node_artifact_v2.zig");
-const leaf_mod = @import("recursive_temporal_leaf_or_empty_v1.zig");
+    @import("./recursive_process_local_validation_token_v1.zig");
+const node_v1 = @import("./recursive_node_artifact_v1.zig");
+const node_v2 = @import("./recursive_node_artifact_v2.zig");
+const leaf_mod = @import("./recursive_temporal_leaf_or_empty_v1.zig");
 
 const recursion = frontend.recursion;
 const span = recursion.span_statement;
@@ -376,7 +376,7 @@ fn exerciseBootstrap(comptime mode: Exercise) !void {
         );
         defer geometry_cohort.deinit();
         const prefix = geometry_cohort.source_owner.transcriptRows();
-        const statement_count = 2 * @import("recursive_field_node_public_v2.zig").AIR_WORD_COUNT;
+        const statement_count = 2 * @import("./recursive_field_node_public_v2.zig").AIR_WORD_COUNT;
         try std.testing.expectEqual(statement_count + 8, prefix.logical[10].len);
         const range_requests = geometry_cohort.range_batch.counter.signedTotal().neg().toU32();
         try std.testing.expect(range_requests > 3 * statement_count);

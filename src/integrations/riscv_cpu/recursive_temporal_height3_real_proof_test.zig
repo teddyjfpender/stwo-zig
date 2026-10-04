@@ -8,13 +8,13 @@
 const std = @import("std");
 const frontend = @import("stwo_riscv_frontend");
 
-const octet_fixture = @import("recursive_segment_v2_temporal_octet_fixture.zig");
+const octet_fixture = @import("./recursive_segment_v2_temporal_octet_fixture.zig");
 const parent_gate = @import("recursive_temporal_parent_real_proof_test.zig");
-const parent_capture = @import("recursive_temporal_verified_parent_capture_v1.zig");
+const parent_capture = @import("./recursive_temporal_verified_parent_capture_v1.zig");
 
-const leaf_outer = @import("recursive_segment_v2_leaf_outer.zig");
-const pair_mod = @import("recursive_temporal_parent_pair_authority_v1.zig");
-const node_mod = @import("recursive_temporal_verified_node_v1.zig");
+const leaf_outer = @import("./recursive_segment_v2_leaf_outer.zig");
+const pair_mod = @import("./recursive_temporal_parent_pair_authority_v1.zig");
+const node_mod = @import("./recursive_temporal_verified_node_v1.zig");
 const recursion = frontend.recursion;
 
 const FIRST_PARENT_COUNT: usize = octet_fixture.LEAF_COUNT / 2;

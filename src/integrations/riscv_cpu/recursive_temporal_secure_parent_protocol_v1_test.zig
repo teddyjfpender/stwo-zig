@@ -2,7 +2,7 @@ const std = @import("std");
 const frontend = @import("stwo_riscv_frontend");
 
 const subject =
-    @import("recursive_temporal_secure_parent_protocol_v1.zig");
+    @import("./recursive_temporal_secure_parent_protocol_v1.zig");
 
 const admission = frontend.recursion.outer_parent_child_admission;
 const protocol = frontend.recursion.protocol;

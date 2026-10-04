@@ -357,6 +357,17 @@ The `src/` root may also contain a minimal build entry point when Zig's module-r
 require one. `src/std_shims_freestanding.zig` is the deliberate example: it establishes the
 freestanding verifier import boundary and must not accumulate reusable implementation code.
 
+### Test layout
+
+Keep ordinary `*_test.zig` files in a `tests/` directory beside the subsystem they
+exercise. A test may import its sibling implementation through `../`; production
+modules should never depend on the test directory. Keep standalone focused-test
+roots at the package root when Zig must compile them as independent modules:
+moving such a root below the package root can make its imports escape the module
+boundary. A root should only select tests or establish build-time imports; put
+test bodies in the nearby `tests/` directory. When moving a test, update its
+relative imports, every focused build path, and any explicit test inventory.
+
 ### No junk drawers
 
 Do not add `utils.zig`, `helpers.zig`, `common.zig`, or `manager.zig` unless the name describes a

@@ -1,11 +1,11 @@
 const std = @import("std");
 const frontend = @import("stwo_riscv_frontend");
 
-const capture = @import("ethereum_incremental_capture_publication_v4.zig");
-const raw = @import("ethereum_incremental_capture_raw_transport_v4.zig");
-const leaf_support = @import("ethereum_block_leaf_support.zig");
+const capture = @import("./ethereum_incremental_capture_publication_v4.zig");
+const raw = @import("./ethereum_incremental_capture_raw_transport_v4.zig");
+const leaf_support = @import("./ethereum_block_leaf_support.zig");
 const support =
-    @import("ethereum_incremental_boundary_artifact_v3_test_support.zig");
+    @import("./ethereum_incremental_boundary_artifact_v3_test_support.zig");
 
 const minimal = frontend.runner.minimal_trace;
 const projection_v3 = frontend.recursion.segment_leaf_local_projection_v3;

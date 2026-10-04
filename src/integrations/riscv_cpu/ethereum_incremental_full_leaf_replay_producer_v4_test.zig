@@ -3,7 +3,7 @@ const CpuBackend = @import("stwo_cpu_backend").CpuBackend;
 const frontend = @import("stwo_riscv_frontend");
 
 const producer =
-    @import("ethereum_incremental_full_leaf_replay_producer_v4.zig");
+    @import("./ethereum_incremental_full_leaf_replay_producer_v4.zig");
 
 comptime {
     _ = @import("ethereum_incremental_full_leaf_validated_authority_v4_test.zig");

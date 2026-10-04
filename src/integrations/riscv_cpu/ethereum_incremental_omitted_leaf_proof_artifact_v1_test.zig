@@ -25,8 +25,8 @@ const CpuBackend = @import("stwo_cpu_backend").CpuBackend;
 const frontend = @import("stwo_riscv_frontend");
 
 const envelope =
-    @import("ethereum_incremental_omitted_leaf_proof_artifact_v1.zig");
-const stwief04 = @import("ethereum_incremental_full_leaf_proof_artifact_v4.zig");
+    @import("./ethereum_incremental_omitted_leaf_proof_artifact_v1.zig");
+const stwief04 = @import("./ethereum_incremental_full_leaf_proof_artifact_v4.zig");
 
 const QM31 = stwo_core.fields.qm31.QM31;
 const poseidon2_air = frontend.air.memory_commitment.poseidon2_air;

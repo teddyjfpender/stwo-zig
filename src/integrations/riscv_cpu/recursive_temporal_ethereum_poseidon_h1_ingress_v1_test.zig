@@ -3,26 +3,26 @@ const core = @import("stwo_core");
 const frontend = @import("stwo_riscv_frontend");
 
 const ingress =
-    @import("recursive_temporal_ethereum_poseidon_h1_ingress_v1.zig");
+    @import("./recursive_temporal_ethereum_poseidon_h1_ingress_v1.zig");
 const materializer =
-    @import("recursive_temporal_ethereum_poseidon_h1_materializer_v1.zig");
+    @import("./recursive_temporal_ethereum_poseidon_h1_materializer_v1.zig");
 const cohort =
-    @import("recursive_temporal_ethereum_poseidon_h1_cohort_v1.zig");
+    @import("./recursive_temporal_ethereum_poseidon_h1_cohort_v1.zig");
 const h1_manifest =
-    @import("recursive_temporal_ethereum_poseidon_h1_manifest_v1.zig");
+    @import("./recursive_temporal_ethereum_poseidon_h1_manifest_v1.zig");
 const h1_components =
-    @import("recursive_temporal_ethereum_poseidon_h1_components_v1.zig");
+    @import("./recursive_temporal_ethereum_poseidon_h1_components_v1.zig");
 const h1_trace =
-    @import("recursive_temporal_ethereum_poseidon_h1_trace_v1.zig");
+    @import("./recursive_temporal_ethereum_poseidon_h1_trace_v1.zig");
 const h1_interactions =
-    @import("recursive_temporal_ethereum_poseidon_h1_interactions_v1.zig");
+    @import("./recursive_temporal_ethereum_poseidon_h1_interactions_v1.zig");
 const h1_boundary =
-    @import("recursive_temporal_ethereum_poseidon_h1_boundary_v1.zig");
+    @import("./recursive_temporal_ethereum_poseidon_h1_boundary_v1.zig");
 const h1_proof_cohort =
-    @import("recursive_temporal_ethereum_poseidon_h1_proof_cohort_v1.zig");
+    @import("./recursive_temporal_ethereum_poseidon_h1_proof_cohort_v1.zig");
 const secure_parent_engine =
-    @import("recursive_temporal_secure_parent_native_engine_v1.zig");
-const statement_plan = @import("recursive_temporal_statement_plan_v1.zig");
+    @import("./recursive_temporal_secure_parent_native_engine_v1.zig");
+const statement_plan = @import("./recursive_temporal_statement_plan_v1.zig");
 
 const recursion = frontend.recursion;
 const global_v3 = recursion.segment_leaf_local_authority_v3;

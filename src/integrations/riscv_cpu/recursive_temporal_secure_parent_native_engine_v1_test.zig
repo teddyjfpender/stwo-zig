@@ -2,12 +2,12 @@ const std = @import("std");
 const frontend = @import("stwo_riscv_frontend");
 
 const artifact_mod =
-    @import("recursive_temporal_secure_parent_artifact_v1.zig");
+    @import("./recursive_temporal_secure_parent_artifact_v1.zig");
 const engine_mod =
-    @import("recursive_temporal_secure_parent_native_engine_v1.zig");
-const cohort_mod = @import("recursive_binary_outer_cohort.zig");
+    @import("./recursive_temporal_secure_parent_native_engine_v1.zig");
+const cohort_mod = @import("./recursive_binary_outer_cohort.zig");
 const verified_publication =
-    @import("recursive_binary_verified_publication.zig");
+    @import("./recursive_binary_verified_publication.zig");
 
 const recursion = frontend.recursion;
 const manifest_mod = recursion.air.universal_adapter_manifest;

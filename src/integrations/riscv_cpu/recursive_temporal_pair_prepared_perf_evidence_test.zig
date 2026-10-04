@@ -9,9 +9,9 @@ const stwo_core = @import("stwo_core");
 const frontend = @import("stwo_riscv_frontend");
 
 const child_authority =
-    @import("recursive_segment_v2_temporal_child_authority.zig");
-const pair_authority = @import("recursive_temporal_pair_authority_v2.zig");
-const temporal_source = @import("recursive_temporal_nonfri_source_v2.zig");
+    @import("./recursive_segment_v2_temporal_child_authority.zig");
+const pair_authority = @import("./recursive_temporal_pair_authority_v2.zig");
+const temporal_source = @import("./recursive_temporal_nonfri_source_v2.zig");
 
 const recursion = frontend.recursion;
 const protocol = recursion.protocol;

@@ -2,11 +2,11 @@ const std = @import("std");
 const frontend = @import("stwo_riscv_frontend");
 
 const campaign =
-    @import("recursive_common_ethereum_incremental_leaf_campaign_provider_geometry_v4.zig");
+    @import("./recursive_common_ethereum_incremental_leaf_campaign_provider_geometry_v4.zig");
 const complete_mod =
-    @import("recursive_common_ethereum_incremental_leaf_complete_provider_geometry_v4.zig");
+    @import("./recursive_common_ethereum_incremental_leaf_complete_provider_geometry_v4.zig");
 const manifest =
-    @import("recursive_common_ethereum_incremental_leaf_universal_manifest_v4.zig");
+    @import("./recursive_common_ethereum_incremental_leaf_universal_manifest_v4.zig");
 
 const shared = frontend.recursion.segment_shared_poseidon_schedule_v2;
 

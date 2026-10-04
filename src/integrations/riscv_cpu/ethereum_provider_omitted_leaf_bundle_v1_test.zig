@@ -2,11 +2,11 @@ const std = @import("std");
 const core = @import("stwo_core");
 const frontend = @import("stwo_riscv_frontend");
 
-const leaf_support = @import("ethereum_block_leaf_support.zig");
-const artifact = @import("ethereum_degree5_provider_proof_artifact_v1.zig");
-const bundle = @import("ethereum_provider_omitted_leaf_bundle_v1.zig");
+const leaf_support = @import("./ethereum_block_leaf_support.zig");
+const artifact = @import("./ethereum_degree5_provider_proof_artifact_v1.zig");
+const bundle = @import("./ethereum_provider_omitted_leaf_bundle_v1.zig");
 const bundle_support =
-    @import("ethereum_provider_omitted_leaf_bundle_v1_support.zig");
+    @import("./ethereum_provider_omitted_leaf_bundle_v1_support.zig");
 
 const Engine = leaf_support.RecursiveEngine;
 const guest = frontend.prover_mod.guest_precompile;

@@ -44,7 +44,7 @@ export fn system_batch(op: u32, rounds: u32) u64 {
     return sum;
 }
 test "system benchmark Keccak trace and witness semantic gates" {
-    _ = @import("air/guest_precompile/keccakf_witness_test.zig");
+    _ = @import("air/guest_precompile/tests/keccakf_witness_test.zig");
     var random = std.Random.DefaultPrng.init(198);
     for (0..128) |_| {
         var state: authority.State = undefined;
@@ -77,7 +77,7 @@ test "system frame fast paths retain encoded digest bytes" {
     for (words, 0..) |word, i| try std.testing.expectEqual(word, std.mem.readInt(u32, encoded[at + 8 + i * 4 ..][0..4], .little));
 }
 test {
-    _ = @import("air/guest_precompile/keccakf_multiplicities_test.zig");
+    _ = @import("air/guest_precompile/tests/keccakf_multiplicities_test.zig");
 }
 
 export fn system_slot_case(a: *const authority.State, b: *const authority.State, rows: [*]u8, histogram: [*]u32) void {

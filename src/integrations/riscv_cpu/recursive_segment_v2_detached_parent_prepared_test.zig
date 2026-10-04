@@ -31,7 +31,7 @@ test "detached parent snapshots typed rows and rejects mutable ingress and inact
     const prepared = try prepared_mod.testSnapshotAdmission();
     defer prepared.deinit();
     const protocol = frontend.recursion.detached_parent_protocol_v1;
-    const verifier = @import("recursive_segment_v2_detached_parent_verifier.zig");
+    const verifier = @import("./recursive_segment_v2_detached_parent_verifier.zig");
     // Structural fixture only: these nonzero placeholders are not independent
     // key admission. Derive wire-decoder bounds without any witness or proof.
     var key = protocol.KeyV1{ .manifest = prepared.manifest().*, .parameters = prepared.parameters(), .preprocessed_root = @splat(1), .child_key_sha256 = @splat(@splat(1)) };

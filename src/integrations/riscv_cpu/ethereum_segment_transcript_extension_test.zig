@@ -10,7 +10,7 @@ const stwo_core = @import("stwo_core");
 const pcs_core = stwo_core.pcs;
 const shard_planner = @import("stwo_prover_engine").pcs.residency_shard_plan;
 const frontend = @import("stwo_riscv_frontend");
-const support = @import("ethereum_block_leaf_support.zig");
+const support = @import("./ethereum_block_leaf_support.zig");
 
 const prover = frontend.prover_mod;
 const M31 = stwo_core.fields.m31.M31;

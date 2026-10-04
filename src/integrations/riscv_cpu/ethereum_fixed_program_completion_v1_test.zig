@@ -1,9 +1,9 @@
 const std = @import("std");
 const core = @import("stwo_core");
 const frontend = @import("stwo_riscv_frontend");
-const admission = @import("ethereum_fixed_program_admission_v1.zig");
+const admission = @import("./ethereum_fixed_program_admission_v1.zig");
 const subject = admission.completion;
-const fixture = @import("recursive_common_ethereum_incremental_leaf_universal_proof_v4_genuine_fixture.zig");
+const fixture = @import("./recursive_common_ethereum_incremental_leaf_universal_proof_v4_genuine_fixture.zig");
 const arithmetic = frontend.recursion.arithmetic_circuit;
 const M31 = core.fields.m31.M31;
 const QM31 = core.fields.qm31.QM31;
@@ -30,8 +30,8 @@ test "Ethereum completion opening authenticates every admitted raw and decoded l
     defer circuit.deinit();
     const values = try allocator.alloc(QM31, input_count);
     defer allocator.free(values);
-    const sums = @import("recursive_common_ethereum_incremental_leaf_public_sums_v4.zig");
-    const routes = @import("recursive_common_ethereum_incremental_leaf_role_input_routing_v4.zig");
+    const sums = @import("./recursive_common_ethereum_incremental_leaf_public_sums_v4.zig");
+    const routes = @import("./recursive_common_ethereum_incremental_leaf_role_input_routing_v4.zig");
     const bindings = try allocator.alloc(sums.InputSourceV4, input_count);
     defer allocator.free(bindings);
     for (bindings, 0..) |*binding, index| binding.* = if (index < 7) .{ .statement_word = @intCast(index) } else .{ .completion_opening_word = @intCast(index - 7) };
@@ -85,7 +85,7 @@ test "Ethereum completion opening preserves independent whole ELF and explicit o
     defer other.deinit();
     try std.testing.expectEqual(try selected.completionRoot(), try other.completionRoot());
     try std.testing.expectError(error.EthereumFixedProgramAdmissionMismatch, selected.validateDescriptor(other.descriptor()));
-    const Program = @import("recursive_common_ethereum_incremental_leaf_program_admission_v1.zig").ProgramAdmissionV1;
+    const Program = @import("./recursive_common_ethereum_incremental_leaf_program_admission_v1.zig").ProgramAdmissionV1;
     const selected_program = try Program.createWithFixedProgram(allocator, selected);
     defer selected_program.deinit();
     const other_program = try Program.createWithFixedProgram(allocator, other);
