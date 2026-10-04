@@ -83,6 +83,16 @@ test "block-v5 x0 native real instruction cells and signed table census preserve
     try std.testing.expectEqual(old.statement.n_components, current.statement.n_components);
     try std.testing.expectEqual(@as(u32, 0), current.statement.public_data.reg_last_clock[0]);
     try current.statement.validateBlake3Execution();
+    const wire = @import("../guest_precompile/proof_artifact_wire.zig");
+    var encoded: std.ArrayList(u8) = .empty;
+    defer encoded.deinit(a);
+    try wire.encodeBlake3Statement(encoded.writer(a), &current.statement, .{});
+    var decoded = try wire.decodeBlake3Statement(a, encoded.items, .{});
+    defer decoded.deinit(a);
+    try std.testing.expect(decoded.value.localZeroCustody());
+    try decoded.value.validateBlake3Execution();
+    encoded.items[encoded.items.len - 1] = 2;
+    try std.testing.expectError(error.InvalidStatement, wire.decodeBlake3Statement(a, encoded.items, .{}));
     const old_total = old.opcode_columns.lookup_counters.?.get(.range_check_20).signedTotal();
     const new_total = current.opcode_columns.lookup_counters.?.get(.range_check_20).signedTotal();
     // Three actual x0 accesses disappear from custody, while all three real
