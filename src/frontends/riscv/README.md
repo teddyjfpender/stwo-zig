@@ -77,6 +77,7 @@ const Claim = riscv.RiscVClaim;
 | ISA and diagnostics | `isa`, `diagnostics`, `testing` |
 | Statement ownership | `RiscVClaim`, `owned_statement` |
 | Engine-generic proving | `prover_mod`, `proveRiscVWithEngineAndPublicData`, `proveRiscVWithEngineAndPublicDataWithExecution`, `verifyRiscVWithEngine`, `provePoseidon2WithEngineAndPublicData`, `verifyPoseidon2WithEngine`, `proveAndVerifyElfWithEngine` |
+| Ethereum-profile proving | `proveEthereumWithEngine`, `proveEthereumWithEngineUsingExecution`, `verifyEthereumWithEngine` |
 | Segment proving and verified capture | `proveRiscVSegmentV2WithEngine`, `verifyRiscVSegmentV2WithEngine`, `verifyRiscVSegmentV2WithEngineUsingChannelAndCapture`, `verifyRiscVWithEngineUsingChannelAndProofCapture`, `verifyRiscVWithEngineUsingChannelAndQueryCapture` |
 | Proving instrumentation | `process_usage`, `provePoseidon2WithEngineAndPublicDataUsingChannelAndPhaseMeter` |
 | Execution geometry | `MAX_EXECUTION_STEPS` — the canonical one-shot AIR clock bound shared by execution admission and guest-profile routing |
@@ -86,12 +87,6 @@ The execution result and proof objects contain owned allocations; follow the
 deinitialization methods on the returned concrete types. Host callbacks are
 part of the public statement boundary and must be deterministic.
 
-
-Additional exported surfaces:
-
-- `proveEthereumWithEngine`
-- `proveEthereumWithEngineUsingExecution`
-- `verifyEthereumWithEngine`
 
 ## Dependencies
 
@@ -388,8 +383,8 @@ page](https://ethproofs.org/csp-benchmarks) was checked on 2026-07-28
 (Europe/Lisbon); its dataset reported a last update of 2026-06-30 08:32 UTC.
 The displayed reference ordinal is obtained by sorting all published systems
 for the same target and input size by proof duration, fastest first. It belongs
-to the historical published `stark-v` row, not to the current
-`stwo-zig-riscv` binary. The current report was collected on an Apple M5 Max,
+to the historical published `stark-v` row, not to the
+`stwo-zig-riscv` binary. The retained report was collected on an Apple M5 Max,
 not CSP's AWS `mac2.metal` Apple M1/8-core/16-GiB host, and was not uploaded;
 therefore its timings are host-qualified and its official CSP rank is
 `Unranked`. Poseidon2-M31 has no ordinal because changing the field changes the

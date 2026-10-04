@@ -58,7 +58,7 @@ comptime prover_api.assertProverEngine(MyEngine);
 | :--- | :--- |
 | Column transaction | `ColumnEvaluation`, `ColumnSource`, `QuotientOpsError`, `column` |
 | Engine contract | `ProveOptions`, `CpuCompositionContentionPolicy`, `CpuCompositionExecutionRequest`, `DeviceCompositionStage`, `assertProverEngine`, `device_composition`, `engine` |
-| Observability | `stage_profile`, `task_profile`, `work_profile`, `TaskProfile`, `TASK_PROFILE_SCHEMA_VERSION` |
+| Observability | `stage_profile`, `task_profile`, `work_profile`, `TaskProfile`, `TASK_PROFILE_SCHEMA_VERSION`, `CompositionSubphase`, `EvaluationDiagnostic`, `EvaluationStage`, `ProveDiagnostic`, `ProvePhase` |
 
 `ColumnEvaluation` is a borrowed view and validates both its declared log size
 and storage length. `ColumnSource` records whether a commitment column is
@@ -93,14 +93,6 @@ implementation policy.
 `assertProverEngine` checks the associated types and exact `init`, `deinit`,
 `commit`, and `prove` signatures at compile time.
 
-
-Additional exported surfaces:
-
-- `CompositionSubphase`
-- `EvaluationDiagnostic`
-- `EvaluationStage`
-- `ProveDiagnostic`
-- `ProvePhase`
 
 ## Dependencies
 

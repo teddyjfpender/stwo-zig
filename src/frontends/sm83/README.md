@@ -9,6 +9,7 @@ cartridge, UI, or difficulty rule belongs in this package.
 | Version | `0.1.0` |
 | Layer | `frontend` |
 | Owner | `sm83-frontend` |
+| Public Zig module | `stwo_sm83_frontend` |
 | Focused CI host | Linux |
 
 ## Purpose and architecture
@@ -393,9 +394,9 @@ detached-DMA control must fail and a post-run OAM mutation must be rejected.
 This is emulator conformance evidence; the proof keeps unsupported blocked CPU
 cycles and open-bus behavior fail-closed.
 
-## PR handoff evidence
+## Qualification evidence
 
-| Scope | Current verified evidence |
+| Scope | Retained verification evidence |
 | --- | --- |
 | Decode and emulator | All 244 legal base and 256 CB encodings are represented; 11 illegal base encodings fail closed. All 500,000 pinned SingleStepTests transitions pass, with 498,000 cycle-exact cases and the named HALT/STOP authority differences above. |
 | Family AIR and backend parity | Exact family counts cover all 500,000 corpus rows. The focused CPU/SIMD lane passes 29/29 tests and the Metal lane passes 21/21, including real proofs and semantic, ownership, and vacuity mutations across all 15 selectors. |
@@ -408,22 +409,23 @@ The proof claim is the reduced, versioned DMG-B profile described below. The
 table is not a claim of universal Game Boy hardware fidelity or a completed
 Pokemon battle proof.
 
-### Draft contribution-boundary work
+### Application fixture boundary
 
 The generic decoder, runner, AIR, statements, prover, and verifier are
-ROM-agnostic. The current draft still co-locates the pinned Pokemon action,
+ROM-agnostic. The package still co-locates the pinned Pokémon action,
 checkpoint, replay, and hardware-audit fixtures in this frontend package so
 CPU and Metal exercise one identical external oracle. That placement does not
-meet the repository rule that frontends contain no application-specific
-content and is a merge blocker. Before merge, move those files and their build
-steps into a dedicated SM83 application-fixture package while preserving the
-frontend's generic public interfaces and the exact pinned gates.
+meet the intended boundary that frontends contain no application-specific
+content. A future extraction should move those files and their build steps
+into a dedicated SM83 application-fixture package while preserving the
+frontend's generic interfaces and the pinned gates.
 
 The prior manual-source ceiling violations are resolved without generated-file
 exceptions: the fixture is 818 lines plus a 209-line input helper, replay is
 821 plus a 174-line profile helper, the APU component is 755 plus a 196-line
 support helper, and the Python gate test is 811 plus a 217-line contract test.
-Source conformance reports zero violations.
+These are local fixture splits; they do not establish that the repository-wide
+source-conformance gate passes.
 
 ## Hardware fidelity and graduation
 

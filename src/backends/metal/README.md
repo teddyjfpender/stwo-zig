@@ -60,7 +60,7 @@ const Engine = metal.PlainMetalProverEngine;
 | Proving | `MetalProverEngine`, `PlainMetalProverEngine`, `prover_engine`, `protocol_recipes`, `recipes` |
 | Reliability | `recovery`, `telemetry`, `source_contract` |
 | Generated/device assets | `shaders`, `riscv_polynomial_codegen` |
-| Admission | `core_aot`, `execution_policy` |
+| Admission | `core_aot`, `execution_policy`, `hash_domain` |
 
 `core_aot` authenticates a bundle against the selected AOT profile before device
 execution. `execution_policy` admits host work for hybrid requests and rejects
@@ -71,10 +71,6 @@ Prefer the typed engine or an integration package over reaching into runtime
 submodules. Low-level runtime APIs require explicit lifecycle, ownership, and
 telemetry handling.
 
-
-Additional exported surfaces:
-
-- `hash_domain`
 
 ## Dependencies
 

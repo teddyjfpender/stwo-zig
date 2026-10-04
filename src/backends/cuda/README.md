@@ -33,9 +33,10 @@ This is not the generic host-slice backend contract implemented by
 `Context` types plus two architectural declarations:
 `resident = true` and `allows_cpu_fallback = false`.
 
-The package has substantial staged implementation, but the repository product
-matrix still marks CUDA products unavailable for production use. Do not
-interpret package compilation or host-stub tests as device acceptance.
+The package has substantial device implementation and retained H100/H200 proof
+qualifications. The repository product matrix still defers CUDA distribution
+pending current NVIDIA requalification. A host-only package build is not a
+device proof or a product release gate.
 
 ## Public API
 
@@ -72,8 +73,9 @@ individual integration packages.
 
 | Frontend | CUDA state |
 | :--- | :--- |
-| Native examples | NVIDIA staged; Native CuMetal wide-Fibonacci proof/verify gate qualified locally |
-| Cairo | Staged on NVIDIA; CuMetal fails closed pending AOT and proof parity |
+| Native examples | NVIDIA product staged; Native CuMetal wide-Fibonacci proof/verify gate qualified locally |
+| Cairo | Four canonical SN PIE proofs qualified on an H200 with official verification; product distribution deferred; CuMetal proof execution still gated |
+| Circuit recursion | Resident H100 circuit proofs and continuous two-PIE-to-root pipelines qualified on H100 and H200; see the [circuit CUDA integration](../../integrations/circuit_cuda/README.md) |
 | RISC-V | CuMetal/NVIDIA fail closed pending authenticated AOT and proof parity |
 | SM83 | No CUDA product descriptor |
 
@@ -110,6 +112,9 @@ There is no released backend-only process. The staged Linux product build is
 registered as `stwo-native-cuda`, but it is unavailable unless every explicit
 CUDA toolchain path and architecture option is supplied. Treat those builds as
 engineering/device-acceptance work, not a production release.
+The [Cairo H200 receipts](../../integrations/cairo_cuda/README.md#nvidia-qualification-30-september-2026)
+and [circuit H100/H200 receipts](../../integrations/circuit_cuda/README.md#retained-h100-qualification-1-october-2026)
+record the qualified workloads and their measurement boundaries.
 
 ### Apple Silicon portability development
 
@@ -176,7 +181,7 @@ tool, source, diagnostic, metallib, and execution-provenance hashes. Adding
 translated outputs to source control, accepting a smaller floor, or using
 translated timings as CUDA evidence is not permitted.
 
-### Current Cairo local development lane
+### Cairo CuMetal development lane (v0.6.0)
 
 The current Cairo translation lane uses CuMetal commit
 `e74b377942f9d2db0f2dde14c5a1b51a9c678692` (v0.6.0) with the exact
@@ -253,8 +258,8 @@ proofs, and independent verification.
 5. Run host contract tests and the explicit Linux/NVIDIA acceptance scope.
 6. Treat CuMetal as portability evidence only; never publish its timing as CUDA
    performance evidence.
-7. Keep Cairo and RISC-V CuMetal execution unavailable until their explicit AOT,
-   parity, and independent-verifier TODOs are closed.
+7. Keep Cairo and RISC-V CuMetal proof execution gated until their explicit
+   AOT, parity, and independent-verifier requirements are met.
 
 ## Related documentation
 

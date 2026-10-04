@@ -5,6 +5,7 @@
 | Version | `0.1.0` |
 | Layer | `integration` |
 | Owner | `sm83-cpu-integration` |
+| Public Zig module | `stwo_sm83_cpu_integration` |
 | Focused CI host | Linux |
 
 ## Purpose and architecture
@@ -12,9 +13,9 @@
 This package joins the ROM-agnostic SM83 frontend to the scalar and SIMD CPU
 proving backend. It proves all 15 flat-ISA family selectors: ALU8, DAA,
 INCDEC8, INCDEC16, accumulator rotate, LOAD8, LOAD16, ALU16, MISC, BRANCH,
-STACK, INTERRUPT, CB rotate/shift, CB BIT, and CB RES/SET. These are composed
-plus timer-disabled interrupt service. These are composed through Stwo
-commitment, composition, FRI, and verification as 21 canonical
+STACK, INTERRUPT, CB rotate/shift, CB BIT, and CB RES/SET. Together with
+timer-disabled interrupt service, these are composed through Stwo commitment,
+composition, FRI, and verification as 21 canonical
 components. Consecutive CPU state, PC, M-cycles, public boundaries, ROM
 fetches, and flat committed data-memory reads and writes are bound. Actions,
 final or intermediate observations, MBC banking, timer MMIO, and HALT
@@ -37,7 +38,12 @@ endpoints and raw system-image latches. The frontend still owns the statement,
 AIR, transcript, and proof transaction; this package selects the CPU/SIMD
 backend.
 
-The split keeps game content out of the proof system. Pokémon Red, Pokémon Blue, or a forked ROM will eventually be values supplied to one machine statement; none is compiled into this integration. The frontend owns SM83 decode, execution semantics, witness layout, AIR, and the backend-generic proof transaction. This package owns only the concrete CPU/SIMD backend selection and its adversarial integration tests.
+The split keeps game content out of the integration. Pokémon Red, Pokémon
+Blue, or a forked ROM is supplied as input to one machine statement; none is
+compiled into this adapter. The frontend owns SM83 decode, execution
+semantics, witness layout, AIR, and the backend-generic proof transaction. This
+package owns the concrete CPU/SIMD backend selection and its adversarial
+integration tests.
 
 ```mermaid
 flowchart LR
@@ -288,8 +294,15 @@ reduced/full hardware boundary and the graduation rule for each device.
 
 ## Change checklist
 
-Keep the frontend free of CPU backend imports. Update the statement mix and verifier together. Preserve exact commitment geometry. Add a mutation check whenever a new committed semantic field appears. Run the focused integration gate, the frontend corpus gate, formatting, and package-workspace validation. Do not expose a Pokémon-specific type or constant here.
+1. Keep CPU backend imports out of the frontend.
+2. Update the statement mix and verifier together; preserve exact commitment
+   geometry.
+3. Add a mutation check whenever a committed semantic field changes.
+4. Run the focused integration and frontend corpus gates, formatting, and
+   package-workspace validation.
+5. Keep Pokémon-specific types and constants out of this integration.
 
 ## Related documentation
 
-See the [SM83 frontend owner guide](../../frontends/sm83/README.md) for opcode authority, corpus counts, runner scope, and the staged whole-machine plan.
+See the [SM83 frontend guide](../../frontends/sm83/README.md) for opcode
+authority, corpus counts, runner scope, and the versioned machine profile.
