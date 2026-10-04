@@ -278,9 +278,11 @@ fn ExecutionStatement(comptime blake3: bool) type {
         /// Upstream has one table per family; Zig shards large tables and must bind
         /// the complete shard geometry before drawing relation challenges.
         pub fn mixShardManifest(self: Self, channel: anytype) void {
-            if (self.localZeroCustody()) {
-                channel.mixU32s(&.{ @import("x0_local_custody_v1.zig").TAG, self.x0_local_custody_version });
-                channel.mixRoot(@import("x0_local_custody_v1.zig").abiId());
+            if (blake3) {
+                if (self.localZeroCustody()) {
+                    channel.mixU32s(&.{ @import("x0_local_custody_v1.zig").TAG, self.x0_local_custody_version });
+                    channel.mixRoot(@import("x0_local_custody_v1.zig").abiId());
+                }
             }
             channel.mixU32s(&.{
                 if (blake3) 0x4253_4852 else 0x5348_5244, // "BSHR" / legacy "SHRD"
