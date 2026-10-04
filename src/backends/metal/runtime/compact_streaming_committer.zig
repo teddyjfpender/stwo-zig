@@ -11,6 +11,7 @@ pub fn Committer(comptime H: type) type {
         allocator: std.mem.Allocator,
         stream: ?leaf_stream.Stream(H) = null,
         pending: [16][]M31 = undefined,
+        pending_backings: [16][]align(std.heap.page_size_max) M31 = undefined,
         pending_count: usize = 0,
         planned_columns: ?usize = null,
         received_columns: usize = 0,
@@ -32,7 +33,7 @@ pub fn Committer(comptime H: type) type {
             self.* = undefined;
         }
         fn clearPending(self: *Self) void {
-            for (self.pending[0..self.pending_count]) |column| self.allocator.free(column);
+            for (self.pending_backings[0..self.pending_count]) |backing| self.allocator.free(backing);
             self.pending_count = 0;
         }
         fn ensureStream(self: *Self) !void {
@@ -80,8 +81,10 @@ pub fn Committer(comptime H: type) type {
             while (offset < refs.len) {
                 if (self.pending_count == 16) {
                     var columns: [16][]const M31 = undefined;
+                    var backings: [16][]const M31 = undefined;
                     for (self.pending, &columns) |value, *column| column.* = value;
-                    try self.stream.?.pushBlock(&columns, false, &.{});
+                    for (self.pending_backings, &backings) |value, *owner| owner.* = value;
+                    try self.stream.?.pushBlock(&columns, false, &backings);
                     self.clearPending();
                 }
                 // With a complete plan, an exact sixteen-column boundary no
@@ -100,7 +103,19 @@ pub fn Committer(comptime H: type) type {
                     offset += available;
                     continue;
                 }
-                self.pending[self.pending_count] = try self.allocator.dupe(M31, refs[offset].values);
+                // Carried columns outlive the caller's batch. One aligned copy
+                // gives Metal a no-copy view when the sixteen-word BLAKE2s
+                // block is complete, avoiding a second full-column upload.
+                const page = std.heap.page_size_max;
+                const padded_bytes = std.mem.alignForward(usize, refs[offset].values.len * @sizeOf(M31), page);
+                const owner = try self.allocator.alignedAlloc(
+                    M31,
+                    comptime std.mem.Alignment.fromByteUnits(std.heap.page_size_max),
+                    padded_bytes / @sizeOf(M31),
+                );
+                @memcpy(owner[0..refs[offset].values.len], refs[offset].values);
+                self.pending[self.pending_count] = owner[0..refs[offset].values.len];
+                self.pending_backings[self.pending_count] = owner;
                 self.pending_count += 1;
                 offset += 1;
             }
@@ -123,8 +138,10 @@ pub fn Committer(comptime H: type) type {
             }
             if (!self.stream.?.final_block) {
                 var columns: [16][]const M31 = undefined;
+                var backings: [16][]const M31 = undefined;
                 for (self.pending[0..self.pending_count], columns[0..self.pending_count]) |value, *column| column.* = value;
-                try self.stream.?.pushBlock(columns[0..self.pending_count], true, &.{});
+                for (self.pending_backings[0..self.pending_count], backings[0..self.pending_count]) |value, *owner| owner.* = value;
+                try self.stream.?.pushBlock(columns[0..self.pending_count], true, backings[0..self.pending_count]);
                 self.clearPending();
             }
             var result = try self.stream.?.finish(if (self.leaf_log_size >= 20) 4 else 0);

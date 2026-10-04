@@ -56,6 +56,17 @@ fn Device(comptime P: type) type {
             var device_options = options;
             if (device_options.composition_device == null)
                 device_options.composition_device = cairo_metal.composition_stage.circuitDevice();
+            // Wraps and folds both use blowup one. Their committed columns
+            // are already on the quotient domain, so retaining evaluations
+            // avoids repeatedly re-extending compact coefficients for
+            // composition, queries, and decommitment. Keep the caller's
+            // storage policy for circuits with a larger blowup.
+            if (device_options.compact_polynomial_min_log != null and
+                pcs_config.fri_config.log_blowup_factor == 1)
+            {
+                device_options.compact_polynomial_min_log = null;
+                device_options.evaluations_only = true;
+            }
             return P.prove(allocator, values, pp, air_template, pcs_config, device_options, observer);
         }
     };

@@ -41,11 +41,13 @@ void *stwo_zig_metal_blake2_leaf_stream_create_v1(
 static id<MTLBuffer> stwo_stream_source_buffer(
     StwoZigBlake2LeafStream *stream, const uint32_t *column, size_t words,
     const uint32_t *const *backings, const size_t *backing_words, uint32_t backing_count,
-    NSUInteger *offset, bool *aliased, void *budget, StwoZigStreamAdmitV1 admit
+    NSArray<id<MTLBuffer>> *prior_sources, const uint32_t *prior_backing_indices,
+    NSUInteger *offset, bool *aliased, uint32_t *backing_index,
+    void *budget, StwoZigStreamAdmitV1 admit
 ) {
     const uintptr_t address = (uintptr_t)column;
     const size_t bytes = words * sizeof(uint32_t);
-    *offset = 0u; *aliased = false;
+    *offset = 0u; *aliased = false; *backing_index = UINT32_MAX;
     for (uint32_t i = 0; i < backing_count; ++i) {
         const uintptr_t base = (uintptr_t)backings[i];
         if (backing_words[i] > SIZE_MAX / sizeof(uint32_t)) return nil;
@@ -54,10 +56,15 @@ static id<MTLBuffer> stwo_stream_source_buffer(
         if (address < base || address - base > backing_bytes || bytes > backing_bytes - (address - base)) continue;
         const size_t page = (size_t)getpagesize();
         if (stream.runtime.device.hasUnifiedMemory && base % page == 0u && backing_bytes % page == 0u && backing_bytes <= stream.runtime.device.maxBufferLength) {
+            for (NSUInteger prior = 0; prior < prior_sources.count; ++prior) {
+                if (prior_backing_indices[prior] != i) continue;
+                *offset = address - base; *aliased = true; *backing_index = i;
+                return prior_sources[prior];
+            }
             id<MTLBuffer> buffer = [stream.runtime.device newBufferWithBytesNoCopy:(void *)base
                 length:backing_bytes options:MTLResourceStorageModeShared deallocator:nil];
             if (!buffer) return nil;
-            *offset = address - base; *aliased = true;
+            *offset = address - base; *aliased = true; *backing_index = i;
             return buffer;
         }
         break;
@@ -87,17 +94,27 @@ bool stwo_zig_metal_blake2_leaf_stream_push_v1(
         const uint32_t destination_log = logs[count - 1u];
         if (((size_t)1u << destination_log) > SIZE_MAX / 32u) return false;
         const size_t state_bytes = ((size_t)1u << destination_log) * 32u;
-        if (state_bytes > stream.runtime.device.maxBufferLength || !admit(budget, state_bytes)) return false;
-        id<MTLBuffer> destination = [stream.runtime.device newBufferWithLength:state_bytes options:MTLResourceStorageModeShared];
+        if (state_bytes > stream.runtime.device.maxBufferLength) return false;
+        // At unchanged height, each GPU lane reads and writes only its own
+        // eight-word state. Reuse the previous state allocation instead of
+        // keeping two full leaf-state buffers live for every block.
+        const bool in_place = stream.states != nil && destination_log == stream.logSize;
+        if (!in_place && !admit(budget, state_bytes)) return false;
+        id<MTLBuffer> destination = in_place ? stream.states :
+            [stream.runtime.device newBufferWithLength:state_bytes options:MTLResourceStorageModeShared];
         if (!destination) return false;
         NSMutableArray<id<MTLBuffer>> *sources = [NSMutableArray arrayWithCapacity:count];
         NSUInteger offsets[16] = {0};
+        uint32_t source_backing_indices[16];
         for (uint32_t i = 0; i < count; ++i) {
             bool aliased = false;
+            uint32_t backing_index = UINT32_MAX;
             id<MTLBuffer> source = stwo_stream_source_buffer(stream, columns[i], lengths[i], backings,
-                backing_words, backing_count, &offsets[i], &aliased, budget, admit);
+                backing_words, backing_count, sources, source_backing_indices,
+                &offsets[i], &aliased, &backing_index, budget, admit);
             if (!source) return false;
             [sources addObject:source];
+            source_backing_indices[i] = backing_index;
             if (aliased) ++*aliases; else ++*uploads;
         }
         id<MTLCommandBuffer> command = [stream.runtime.queue commandBuffer];
