@@ -73,6 +73,35 @@ the independent Rust verifier accepted it and all 58,548 public output cells
 match the Cairo execution. The proof, qualification and capacity evidence are
 committed under the proving-service 512-PIE trial dataset.
 
+## Pinned Rust prover comparison
+
+The two-leaf adapted input (SHA-256
+`8a2591ab7abb007ec55a791b31920fee16871c8f4dbfd4db8cb38b514eda8b50`)
+was also proved twice with the pinned Rust `stwo-circuit-oracle prove-cairo`
+using `production.json`'s 70-query/26-PoW `cairo_prover_params`. Rust's own
+verifier accepted both runs; the canonical extended proof SHA-256 was
+`dab9ac2539b80501bc32d55cfd33f35e592195c01cf61a6c067adc0ce3f085ad`
+in each run. Rust and Zig had the **same first trace commitment**,
+`a98e22423bf5d235981f0b36d939ae56ef3be2751c58b032b2831e6e24ba0364`,
+but their subsequent proof bytes differed. Rust's interaction PoW nonce was
+`55834600113`; Zig's was `8590366531`. Replacing Zig's nonce with Rust's in
+the Zig proof failed the pinned Rust verifier's PoW check, confirming that the
+pre-interaction transcripts differ, rather than merely the nonce search order.
+
+The claims explain the difference. The pinned Rust leaf lane uses the
+`Blake2sM31MerkleChannel` and its registry parameters, including 16
+`memory_id_to_big` slots and disabled fixed-range/bitwise component claims.
+The standalone Zig CPU/Metal Cairo product uses its official plain-Blake2s
+profile and natural memory component count; on this fixture it has one
+`memory_id_to_big` slot and enables those fixed components. These are
+different valid proving profiles over the same Cairo execution. The final
+proofs must match the Cairo public output and pass independent verification;
+proof-byte equality with Rust requires explicitly selecting the pinned Rust
+leaf lane on every backend. The CUDA product supports that lane with
+`--circuit-registry`, while the standalone CPU/Metal product commands used
+here do not expose it. No Rust proof-byte equality is claimed for the saved
+applicative final proofs.
+
 Changing a leaf output or reversing the two leaves causes the Cairo execution
 to fail at the verifier-output equality assertion. The complete output segment
 is public in the adapted input. The final proof does not shorten the underlying
