@@ -94,13 +94,30 @@ The claims explain the difference. The pinned Rust leaf lane uses the
 The standalone Zig CPU/Metal Cairo product uses its official plain-Blake2s
 profile and natural memory component count; on this fixture it has one
 `memory_id_to_big` slot and enables those fixed components. These are
-different valid proving profiles over the same Cairo execution. The final
-proofs must match the Cairo public output and pass independent verification;
-proof-byte equality with Rust requires explicitly selecting the pinned Rust
-leaf lane on every backend. The CUDA product supports that lane with
-`--circuit-registry`, while the standalone CPU/Metal product commands used
-here do not expose it. No Rust proof-byte equality is claimed for the saved
-applicative final proofs.
+different valid proving profiles over the same Cairo execution. The saved
+standalone CPU/Metal final proofs remain valid, but are not byte-identical to
+the Rust-profile proof.
+
+The circuit-recursion CPU and Metal products now expose the same pinned
+Rust-profile lane for arbitrary adapted Cairo programs with `prove-cairo`:
+
+```sh
+zig-out/bin/stwo-circuit-recursion-cpu prove-cairo \
+  --registry vectors/circuit/official/registries/production.json \
+  --prover-input applicative.cpi --output applicative.proof.json --assets .
+```
+
+On the same two-leaf CPI, the CPU command produced a proof accepted by the
+pinned Rust `verify_cairo_ex::<Blake2sM31MerkleChannel>` verifier. Its canonical
+`bincode(CairoProofForRustVerifier)` SHA-256 is
+`08a918a2f0b5f90e7e00f81013b378dfb0d51b1336f697eded2b8d1a3466c198`,
+**identical to Rust's proof bytes**. The Metal command produced the same
+canonical binary digest and passed the same Rust verifier. The JSON transport
+itself is not compared byte for byte. This establishes exact CPU, Metal, and
+Rust proof parity for the pinned two-leaf
+fixture; it does not retroactively change the saved standalone proofs or
+establish parity with an upstream compiled applicative program that has not
+been published.
 
 Changing a leaf output or reversing the two leaves causes the Cairo execution
 to fail at the verifier-output equality assertion. The complete output segment

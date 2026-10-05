@@ -75,6 +75,7 @@ fn runWith(comptime CairoLeaf: type, provers: *const circuit_cpu.prove.Provers, 
     switch (parsed) {
         .help => try std.fs.File.stdout().writeAll(cli.usage),
         .leaf_wrap => |command| try leafWrapCommandWith(CairoLeaf, provers, gpa, command),
+        .prove_cairo => |command| try proveCairoCommandWith(CairoLeaf, gpa, command),
         .fold_tree => |command| try foldTreeCommandWith(provers, gpa, command),
         .fold_stage => |command| try foldStageCommandWith(provers, gpa, command.manifest, command.registry, false, command.checkpoint, null, null, null),
         .fold_stage_campaign => |command| try foldStageCampaignCommandWith(provers, gpa, command.jobs, command.registry),
@@ -199,40 +200,9 @@ pub fn leafWrapWith(comptime CairoLeaf: type, allocator: std.mem.Allocator, requ
     timings.load_ns = timer.lap();
 
     // Steps 1-3 of `prove_leaf`: the leaf Cairo proof.
-    var cairo_proof = blk: {
-        const programs_path = try std.fs.path.join(allocator, &.{ request.assets, cairo_asset_paths.witness_programs });
-        defer allocator.free(programs_path);
-        var programs = try cairo.witness.bundle.Bundle.readFile(allocator, programs_path);
-        defer programs.deinit();
-        const topology_path = try std.fs.path.join(allocator, &.{ request.assets, cairo_asset_paths.feed_topology });
-        defer allocator.free(topology_path);
-        var topology = try cairo.witness.feed_topology.readOfficial(allocator, topology_path);
-        defer topology.deinit();
-        const fixed_path = try std.fs.path.join(allocator, &.{ request.assets, cairo_asset_paths.fixed_tables });
-        defer allocator.free(fixed_path);
-        var fixed = try cairo.witness.fixed_table_bundle.Bundle.readFile(allocator, fixed_path);
-        defer fixed.deinit();
-        const relations_path = try std.fs.path.join(allocator, &.{ request.assets, cairo_asset_paths.relation_templates });
-        defer allocator.free(relations_path);
-        var relations = try cairo.witness.relation_bundle.Bundle.readFile(allocator, relations_path);
-        defer relations.deinit();
-        const templates_path = try std.fs.path.join(allocator, &.{ request.assets, cairo_asset_paths.air_templates });
-        defer allocator.free(templates_path);
-        var air_templates = try cairo.air.template_library.Library.readFile(allocator, templates_path);
-        defer air_templates.deinit();
-        const prove_started = try std.time.Instant.now();
-        const result = try CairoLeaf.proveLeafCairo(allocator, .{
-            .input = &input,
-            .programs = &programs,
-            .topology = topology,
-            .fixed = &fixed,
-            .relations = &relations,
-            .air_templates = &air_templates,
-            .composition_device = CairoLeaf.compositionDevice(request.assets),
-        }, registry.registry.cairo_prover_params, null);
-        timings.cairo_execute_ns = (try std.time.Instant.now()).since(prove_started);
-        break :blk result;
-    };
+    const prove_started = try std.time.Instant.now();
+    var cairo_proof = try proveCairoAdaptedWith(CairoLeaf, allocator, &input, request.assets, registry.registry.cairo_prover_params);
+    timings.cairo_execute_ns = (try std.time.Instant.now()).since(prove_started);
     defer cairo_proof.deinit();
     timings.cairo_prove_ns = timer.lap();
 
@@ -249,6 +219,66 @@ pub fn leafWrapWith(comptime CairoLeaf: type, allocator: std.mem.Allocator, requ
         try writeCairoProof(path, &input, &cairo_proof, pcs.trace_lifting_log_size);
     }
     return leaf;
+}
+
+/// The same pinned Rust-profile Cairo lane serves leaf wrapping and the
+/// applicative program. The latter has an arbitrary public output and must
+/// not be forced through the two-cell leaf verifier circuit.
+fn proveCairoAdaptedWith(
+    comptime CairoLeaf: type,
+    allocator: std.mem.Allocator,
+    input: *const cairo.adapter.ProverInput,
+    assets_root: []const u8,
+    params: wire.registry.ProverParameters,
+) !CairoLeaf.Result {
+    const programs_path = try std.fs.path.join(allocator, &.{ assets_root, cairo_asset_paths.witness_programs });
+    defer allocator.free(programs_path);
+    var programs = try cairo.witness.bundle.Bundle.readFile(allocator, programs_path);
+    defer programs.deinit();
+    const topology_path = try std.fs.path.join(allocator, &.{ assets_root, cairo_asset_paths.feed_topology });
+    defer allocator.free(topology_path);
+    var topology = try cairo.witness.feed_topology.readOfficial(allocator, topology_path);
+    defer topology.deinit();
+    const fixed_path = try std.fs.path.join(allocator, &.{ assets_root, cairo_asset_paths.fixed_tables });
+    defer allocator.free(fixed_path);
+    var fixed = try cairo.witness.fixed_table_bundle.Bundle.readFile(allocator, fixed_path);
+    defer fixed.deinit();
+    const relations_path = try std.fs.path.join(allocator, &.{ assets_root, cairo_asset_paths.relation_templates });
+    defer allocator.free(relations_path);
+    var relations = try cairo.witness.relation_bundle.Bundle.readFile(allocator, relations_path);
+    defer relations.deinit();
+    const templates_path = try std.fs.path.join(allocator, &.{ assets_root, cairo_asset_paths.air_templates });
+    defer allocator.free(templates_path);
+    var air_templates = try cairo.air.template_library.Library.readFile(allocator, templates_path);
+    defer air_templates.deinit();
+    return CairoLeaf.proveLeafCairo(allocator, .{
+        .input = input,
+        .programs = &programs,
+        .topology = topology,
+        .fixed = &fixed,
+        .relations = &relations,
+        .air_templates = &air_templates,
+        .composition_device = CairoLeaf.compositionDevice(assets_root),
+    }, params, null);
+}
+
+fn proveCairoCommandWith(comptime CairoLeaf: type, allocator: std.mem.Allocator, command: cli.ProveCairo) !void {
+    const started = try std.time.Instant.now();
+    const registry_text = try readFile(allocator, command.registry);
+    defer allocator.free(registry_text);
+    var registry = try wire.registry.parseRegistry(allocator, registry_text);
+    defer registry.deinit();
+    var input = try cairo.adapter.input.readFile(allocator, command.prover_input);
+    defer input.deinit(allocator);
+    var result = try proveCairoAdaptedWith(CairoLeaf, allocator, &input, command.assets orelse ".", registry.registry.cairo_prover_params);
+    defer result.deinit();
+    const lane = try cairo.proving.leaf_lane.Lane.fromParameters(registry.registry.cairo_prover_params);
+    var max_trace_log: u32 = 0;
+    for (result.composition.components) |component|
+        max_trace_log = @max(max_trace_log, component.trace_log_size);
+    const pcs = try lane.pcsConfig(max_trace_log);
+    try writeCairoProof(command.output, &input, &result, pcs.trace_lifting_log_size);
+    std.debug.print("prove-cairo: {d:.2} s\n", .{@as(f64, @floatFromInt((try std.time.Instant.now()).since(started))) / 1e9});
 }
 
 fn writeCairoProof(path: []const u8, input: anytype, result: anytype, lifting: u32) !void {
