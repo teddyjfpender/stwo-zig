@@ -2,9 +2,22 @@
 
 Development tool. It runs the Starknet aggregator program
 (`core/aggregator/main.cairo`, sequencer tag `APOLLO-0.14.3-RC.15`) over
-contiguous Starknet OS leaf PIEs via `starknet_os::runner::run_aggregator`
-and writes the aggregator's CairoPie, which can then be proved like any other
-PIE.
+ordered Starknet OS public outputs via `starknet_os::runner::run_aggregator`
+and writes the aggregator's CairoPie. The recursive root's packed tree already
+contains the full ordered public preimages, so a matching aggregator PIE can
+be built without downloading each source PIE ZIP again:
+
+```sh
+starknet-aggregator --packed-output root_packed.json --output aggregator.zip \
+    --program-output aggregator_output.json
+```
+
+This construction is a data-preparation step, not a proof that the outputs are
+authentic. The circuit-applicative Cairo proof verifies the root and asserts
+that these exact outputs are what the aggregator consumed. The root's leaf
+proofs bind each preimage to its proved OS execution.
+
+To cross-check against original ZIPs during qualification:
 
 ```sh
 starknet-aggregator --leaves leaf1.zip leaf2.zip ... --output aggregator.zip \
@@ -14,10 +27,10 @@ starknet-aggregator --leaves leaf1.zip leaf2.zip ... --output aggregator.zip \
 
 Leaves must be given in block order. The aggregator asserts that each leaf's
 initial root, block number and block hash equal the previous leaf's final values.
-When `--packed-output` is supplied, the runner also requires each OS output it
-actually passes to the aggregator to equal the corresponding ordered public
-preimage in the recursive circuit root. This is an input admission check; the
-final Cairo applicative proof must still enforce the relationship.
+When both sources are supplied, each ZIP's OS output must equal the
+corresponding packed public preimage. The runner limits packed trees to 4,096
+leaves, checks each leaf's OS program hash, and lets the aggregator enforce
+the contiguous block/state-root sequence.
 
 ## Build
 

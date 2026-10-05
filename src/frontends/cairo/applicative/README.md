@@ -44,8 +44,22 @@ memory was 16.9 GB. Metal produced the **same proof bytes**; its proof phase
 took 4.51 seconds and its command took 5.63 seconds with a 13.0 GB process
 peak. Metal logged two composition host admissions for missing evaluation
 functions, so this is backend parity rather than a claim that every composition
-operation executed on the GPU. These are two-leaf measurements, not a
-128/512-leaf timing.
+operation executed on the GPU.
+
+The saved 128-PIE root has also reached a matching, independently verified
+final applicative proof. The packed tree supplied the aggregator input without
+re-reading 128 PIE ZIPs. The CPU and Metal proof bytes were identical at
+SHA-256 `458c71504db6b10f342d5725bd5c83551bc66fca7202d395e15ca953b3193c74`.
+The local staged-input-to-verified-publication command took 18.624 seconds on
+CPU and 16.605 seconds on Metal; proof phases were 10.298 and 7.343 seconds,
+respectively. Process peaks were 31.188 and 24.623 GB. The proof and receipts
+are in the `proving-service` repository's
+`data/h200-api-128-512/h200-api-128-001/applicative-final` directory.
+
+The 512-PIE packed aggregator and final Cairo execution succeeded, but the
+44,250,309-step execution could not be proved by Metal on the local 64 GB M5:
+resident barycentric evaluation exhausted GPU memory. A 512-PIE final proof
+has therefore not been qualified. The separate H200 root proof remains valid.
 
 Changing a leaf output or reversing the two leaves causes the Cairo execution
 to fail at the verifier-output equality assertion. The complete output segment

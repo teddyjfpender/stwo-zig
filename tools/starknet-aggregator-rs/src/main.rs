@@ -3,9 +3,11 @@
 //!
 //! The aggregator's input is the leaves' outputs in simple-bootloader format:
 //! `[n_tasks, (output_size, os_program_hash, os_output...) ...]`. In production
-//! those outputs are vouched for by verifying the leaf proofs; here they are read
-//! straight from the leaf PIEs, which is enough to execute and prove the
-//! aggregator program itself.
+//! those outputs are vouched for by verifying the leaf proofs. For a circuit
+//! root, the packed public preimages are sufficient to run this aggregator:
+//! the final circuit-applicative Cairo proof checks that it consumed precisely
+//! those preimages and that their tree root was verified. ZIPs are optional
+//! cross-check inputs, not a requirement to rebuild the aggregator task.
 
 use std::path::{Path, PathBuf};
 
@@ -25,8 +27,8 @@ const STRK_FEE_TOKEN: &str = "0x04718f5a0fc34cc1af16a1cdee98ffb20c31f5cd61d6ab07
 
 #[derive(Parser)]
 struct Args {
-    /// Leaf PIE zips, in block order.
-    #[arg(long, num_args = 1.., required = true)]
+    /// Optional leaf PIE zips, in block order, for cross-checking a packed tree.
+    #[arg(long, num_args = 1..)]
     leaves: Vec<PathBuf>,
     /// Where to write the aggregator PIE zip.
     #[arg(long)]
@@ -34,8 +36,8 @@ struct Args {
     /// Also write the aggregator's program output (JSON array of hex felts).
     #[arg(long)]
     program_output: Option<PathBuf>,
-    /// Recursive circuit root's packed tree; require its ordered public
-    /// preimages to equal the OS outputs actually supplied to the aggregator.
+    /// Recursive circuit root's packed tree. With no ZIPs, its ordered public
+    /// preimages supply the aggregator input directly; with ZIPs, they must match.
     #[arg(long)]
     packed_output: Option<PathBuf>,
     /// Emit the full state diff (default: compressed, as on L1).
@@ -140,8 +142,11 @@ fn main() -> Result<()> {
         .as_deref()
         .map(packed_preimages)
         .transpose()?;
+    if args.leaves.is_empty() && packed.is_none() {
+        bail!("provide --packed-output, with optional --leaves for cross-checking");
+    }
     if let Some(ref preimages) = packed {
-        if preimages.len() != args.leaves.len() {
+        if !args.leaves.is_empty() && preimages.len() != args.leaves.len() {
             bail!(
                 "packed tree contains {} leaves, but {} OS PIEs were supplied",
                 preimages.len(),
@@ -149,9 +154,30 @@ fn main() -> Result<()> {
             );
         }
     }
-    let mut bootloader_output = vec![Felt::from(args.leaves.len())];
-    for (index, leaf) in args.leaves.iter().enumerate() {
-        let out = os_output(leaf)?;
+    let n_leaves = packed.as_ref().map_or(args.leaves.len(), Vec::len);
+    if n_leaves > 4096 {
+        bail!("aggregator input exceeds the 4096-leaf circuit-applicative bound");
+    }
+    let mut bootloader_output = vec![Felt::from(n_leaves)];
+    for index in 0..n_leaves {
+        let out = if let Some(leaf) = args.leaves.get(index) {
+            os_output(leaf)?
+        } else {
+            let preimage = &packed.as_ref().expect("packed source required")[index];
+            if preimage.len() < 5 || preimage[0] != os_hash {
+                bail!(
+                    "packed public preimage {} has an invalid OS program hash or output",
+                    index
+                );
+            }
+            preimage[1..].to_vec()
+        };
+        if out.len() < 4 {
+            bail!(
+                "OS output for PIE {} is too short for block continuity",
+                index
+            );
+        }
         if let Some(ref preimages) = packed {
             if preimages[index].len() != out.len() + 1
                 || preimages[index][0] != os_hash
@@ -159,13 +185,13 @@ fn main() -> Result<()> {
             {
                 bail!(
                     "packed public preimage for PIE {} differs from the aggregator input",
-                    leaf.display()
+                    index
                 );
             }
         }
         eprintln!(
-            "{}: {} output felts, blocks {}..{}",
-            leaf.display(),
+            "PIE {}: {} output felts, blocks {}..{}",
+            index,
             out.len(),
             out[2],
             out[3]
@@ -210,13 +236,14 @@ fn main() -> Result<()> {
     println!(
         "{}",
         serde_json::json!({
-            "leaves": args.leaves.len(),
+            "leaves": n_leaves,
             "n_steps": out.cairo_pie.execution_resources.n_steps,
             "builtins": out.cairo_pie.execution_resources.builtin_instance_counter,
             "output_felts": out.aggregator_output.len(),
             "os_program_hash": format!("{os_hash:#x}"),
             "aggregator_program_hash": format!("{:#x}", PROGRAM_HASHES.aggregator),
-            "packed_preimages_matched": packed.as_ref().map(Vec::len),
+            "input_source": if args.leaves.is_empty() { "packed_output" } else { "pie_zips" },
+            "packed_preimages_matched": if args.leaves.is_empty() { None } else { packed.as_ref().map(Vec::len) },
         })
     );
     Ok(())
