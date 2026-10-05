@@ -20,6 +20,7 @@ pub fn run(
     program: &str,
     program_input: Option<&std::path::Path>,
     compact_output: bool,
+    public_output: Option<&std::path::Path>,
 ) -> Result<Vec<u8>> {
     let mut checkout = ProvingRoot::open(proving_root)?;
     let bytes = checkout.read(program)?;
@@ -33,6 +34,25 @@ pub fn run(
     let runner = cairo_run_program(&program, program_input, config, None)
         .map_err(|error| anyhow::anyhow!("Cairo run failed: {error:?}"))?;
     let mut prover_input = adapt(&runner).context("adapter failed")?;
+    if let Some(path) = public_output {
+        let segment = prover_input
+            .builtin_segments
+            .output
+            .context("adapted Cairo execution lacks an output segment")?;
+        let values: Vec<_> = (segment.begin_addr..segment.stop_ptr)
+            .map(|address| {
+                let words = prover_input.memory.get(address as u32).as_u256();
+                let highest = words.iter().rposition(|word| *word != 0).unwrap_or(0);
+                let mut value = format!("0x{:x}", words[highest]);
+                for word in words[..highest].iter().rev() {
+                    use std::fmt::Write;
+                    write!(&mut value, "{word:08x}").expect("write into string");
+                }
+                value
+            })
+            .collect();
+        crate::output::emit(Some(path), &crate::output::json(&values)?)?;
+    }
     // The adapter collects the public memory addresses through a hash map, so their order
     // changes from run to run; the proof does not depend on it (prove-cairo emits the same bytes
     // for every order observed). Sorted, the fixture is reproducible.

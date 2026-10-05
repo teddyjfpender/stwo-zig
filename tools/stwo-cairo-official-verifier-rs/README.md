@@ -33,6 +33,13 @@ Rust-verifier transports are `json`, `binary`, and `extended_binary`.
 Cairo-serde felt arrays target the Cairo verifier and are deliberately rejected
 by this Rust adapter.
 
+For a Cairo proof whose public output must match an independently executed
+program, `inspect-blake2s-proof-public-output --proof PROOF.json --result
+OUTPUT.json` extracts the ordered public felts from the verified proof's claim.
+`inspect-blake2s-proof-public-statement` extracts its program and output
+commitments. Verify the proof first, then compare these values to the admitted
+execution and pinned program commitment; the inspector itself does not verify.
+
 ## Binary Transport Oracle
 
 The adapter can reproduce the exact raw bincode payload and independently
