@@ -50,7 +50,7 @@ PoW bits. Calldata and blob outputs differ, so their proof hashes and timing
 results must be compared within the same DA mode.
 The saved 128-PIE root also passed blob-mode applicative proving on Metal:
 27.456 seconds from published root to independently verified final receipt
-with a release aggregator. The [service evidence](https://github.com/teddyjfpender/proving-service/tree/feature/circuit-applicative-campaign-final/data/h200-api-128-512/h200-api-128-001/applicative-blob-final)
+with a release aggregator. The [service evidence](https://github.com/teddyjfpender/proving-service/tree/main/data/h200-api-128-512/h200-api-128-001/applicative-blob-final)
 contains the proof, DA segment, and digest-bound receipts. Blob mode has not
 been measured on the saved 512-PIE root.
 
