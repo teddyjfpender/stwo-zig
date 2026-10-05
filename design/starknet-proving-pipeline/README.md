@@ -236,23 +236,31 @@ Sensitivity and unit costs:
 
 **INFERRED inputs to measure:**
 
-- circuit-proof time on a GPU (no CUDA circuit prover exists yet; wave E M12);
+- current circuit-proof time on a GPU (the CUDA circuit prover now exists; this
+  earlier cost model has not been recalibrated from its campaign receipts);
 - the adapter and ingress cost with an in-memory handoff, and input
   preparation against a co-located node database;
 - the circuit verifier's step count in Cairo, and aggregation cost at 160
   leaves.
 
-## 6. What stwo-zig can prove today
+## 6. Current implementation
 
 | Program / stage | Status |
 |---|---|
-| OS PIE under the simple bootloader (CPU, Metal) | EXISTS. Adapter runs PIEs through `simple_bootloader` (proving `5a7c5ed`), Blake2s channel, official verifier accepts |
-| `leaf_simple_bootloader` + Blake2s-M31 channel | ABSENT. Channel exists in core only; Cairo products are Blake2s-only |
-| Leaf wrap and folds (M31 circuits) | ABSENT. StarkWare Rust only |
-| Applicative bootloader with aggregator + Cairo 1 verifier task | ABSENT. The adapter has no bootloader program-input path |
+| OS PIE under the pinned `leaf_simple_bootloader` | Qualified on CPU, Metal, and CUDA with adapted input and the production Blake2s-M31 registry; each leaf program runs exactly one PIE task |
+| Leaf wrap and binary circuit folds | Qualified on CPU, Metal, and CUDA; the 128- and 512-PIE H200 campaigns reached independently verified circuit roots |
+| Circuit-applicative Cairo 0 program | Implemented in `src/frontends/cairo/applicative`; it runs the Starknet aggregator and Cairo 1 circuit verifier tasks, reconstructs the tree, and proves their ordered-output equality. Two-leaf CPU/Metal proofs match pinned Rust proof bytes; 128 and 512 final proofs are independently Rust verified |
 | Stone | out of scope; StarkWare C++ |
 
-Benchmarks of each stage on real contiguous mainnet leaves: section 8.
+The exact compiled StarkWare circuit-applicative program is not public at the
+pinned revision. Our compiled program implements its public Rust input/hint
+interface, with its own pinned program identity. The shared SHARP on-chain tree
+is a later proof stage and is not implemented here. See the
+[applicative qualification](../../src/frontends/cairo/applicative/README.md)
+and [service receipts](https://github.com/teddyjfpender/proving-service/tree/main/data/h200-api-128-512).
+
+The experiments in section 8 are a historical M4 Max snapshot, before the
+current circuit and applicative products were completed.
 
 ## 7. Test data: live mainnet collection
 
@@ -316,5 +324,6 @@ this host. Numbers are single runs.
 | circuit-params registry generation | `leaf_simple_bootloader`, trace log 25–26 | StarkWare `proving` | 18.5 s | 19.8 GB | |
 | Leaf prover (Cairo proof + circuit verifier) | 6-block leaf | StarkWare `leaf_prover` | — | — | exceeded available memory (~18 GB into swap), stopped; needs a larger host |
 
-Not yet measured: fold (`circuit_multiverifier`), aggregation under the
-applicative bootloader, and the L1 wrap.
+Folds and aggregation have since been measured in the 128/512-PIE campaign
+receipts linked in section 6. The L1/shared on-chain-tree wrap has not been
+measured in this repository.

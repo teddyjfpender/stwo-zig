@@ -121,10 +121,33 @@ been published.
 The Go finalizer now accepts `--prover-interface rust-lane`, runs this command,
 and publishes only after the pinned Rust verifier checks the proof, program
 commitment, public output, and 70/26 security profile. Its retained two-leaf
-[proof and CPU/Metal receipts](https://github.com/teddyjfpender/proving-service/tree/feature/circuit-applicative-campaign-final/data/applicative-two-leaf-rust-lane)
+[proof and CPU/Metal receipts](https://github.com/teddyjfpender/proving-service/tree/main/data/applicative-two-leaf-rust-lane)
 show the same canonical binary digest end to end.
 
 Changing a leaf output or reversing the two leaves causes the Cairo execution
 to fail at the verifier-output equality assertion. The complete output segment
 is public in the adapted input. The final proof does not shorten the underlying
 leaf/fold tree: one-PIE leaves still require `N-1` pairwise folds.
+
+## Why the current tree has one PIE per circuit leaf
+
+The pinned `leaf_simple_bootloader_compiled.json` (SHA-256
+`5e2befae48dcdea8d19dc655e40ac236285d049d12573bfb341bec9ce39182f5`)
+calls `run_simple_bootloader_single_task`. Feeding it both retained PIEs as two
+`CairoPiePath` tasks failed the pinned Cairo runner at program counter 847 with
+an assertion of `1` against `2`. This is an executable restriction of the
+current leaf program, not a Go scheduler limit.
+
+The pinned ordinary `privacy_simple_bootloader_compiled.json` (SHA-256
+`c27a86a9f5777b50b1e6ceb5446930ab1af0147bb0bbe3ac226aa396388e9e8d`)
+did execute those two PIEs in one Cairo run. It emitted a two-cell digest and a
+399-felt preimage containing task count `2` and task records of 208 and 190
+felts. This proves that Cairo task grouping is technically possible, but it
+does **not** produce a valid leaf for the present production registry: the leaf
+verifier circuit binds the single-task program and its trace geometry. A
+multi-task leaf would require a new trusted leaf verifier/registry, an unpacker
+that counts OS tasks inside each circuit leaf, and full proof, memory, and
+aggregator-output qualification. Until then, the canonical binary tree over
+single-task leaves is the correct proved path. Fewer, larger OS PIEs can reduce
+its leaf and fold counts without changing the circuit protocol, subject to the
+measured H200 geometry and memory limits.
