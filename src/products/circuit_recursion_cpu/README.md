@@ -75,6 +75,8 @@ public output is longer than a leaf's. The same command is available from the
 Metal product. The two-leaf applicative fixture's canonical binary proof SHA
 matches pinned Rust on both backends; see the
 [applicative qualification](../../frontends/cairo/applicative/README.md#pinned-rust-prover-comparison).
+`--report-out report.json` emits separate input/assets, proof, and
+request-to-publication timings for the Go finalizer.
 
 ## `fold-tree`
 

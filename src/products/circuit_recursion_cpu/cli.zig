@@ -66,6 +66,7 @@ pub const ProveCairo = struct {
     prover_input: []const u8,
     output: []const u8,
     assets: ?[]const u8,
+    report_out: ?[]const u8,
 };
 
 /// Compact storage from 2^18-row columns: the circuit proof's large columns
@@ -154,7 +155,7 @@ pub const usage =
     \\           --prover-input PROVER_INPUT.json --output LEAF.json [--assets DIR]
     \\           [--cairo-proof CAIRO.json] [--compact-min-log N|off] [--profile]
     \\       stwo-circuit-recursion-cpu prove-cairo --registry REGISTRY.json
-    \\           --prover-input PROVER_INPUT.json --output CAIRO.json [--assets DIR]
+    \\           --prover-input PROVER_INPUT.json --output CAIRO.json [--assets DIR] [--report-out REPORT.json]
     \\       stwo-circuit-recursion-cpu fold-tree --program_input LEAVES.json --proof_path ROOT.proof
     \\           --program_output ROOT_OUTPUTS.json --packed_output_path ROOT_PACKED.json
     \\           --circuit_registry_json REGISTRY.json [--profile]
@@ -371,6 +372,8 @@ test "circuit recursion cli: pinned Cairo proof accepts an adapted input" {
     try std.testing.expectEqualStrings("a.cpi", parsed.prove_cairo.prover_input);
     try std.testing.expectEqualStrings("proof.json", parsed.prove_cairo.output);
     try std.testing.expectEqual(@as(?[]const u8, null), parsed.prove_cairo.assets);
+    const reported = try parse(&.{ "prove-cairo", "--registry", "r", "--prover-input", "a", "--output", "p", "--report-out", "timings.json" });
+    try std.testing.expectEqualStrings("timings.json", reported.prove_cairo.report_out.?);
     try std.testing.expectError(error.MissingRequiredFlag, parse(&.{ "prove-cairo", "--registry", "r.json" }));
 }
 

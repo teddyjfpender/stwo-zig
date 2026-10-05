@@ -42,6 +42,13 @@ recursive-tree test registry only.
 | `validate-applicative-input` | handoff | Parse a staged circuit-applicative bootloader input with the pinned Rust runner type; load its aggregator PIE and Cairo 1 verifier task and count packed leaves. This validates the input shape, not the Cairo applicative proof. |
 | `prove-cairo` | R10c | `prove_cairo::<Blake2sM31MerkleChannel>` of an adapted `ProverInput` under a registry's `cairo_prover_params` (the leaf prover's Cairo proof; `--lifting-size-policy` overrides the policy), verified with `verify_cairo_ex`; proof byte digests and per-stage values, and optionally the canonical `ExtendedBinary` payload (`--proof-output`) |
 
+`verify_cairo_cuda_json PROOF.json --receipt VERDICT.json` verifies a pinned
+Rust-profile Cairo proof and writes a machine-readable receipt containing the
+raw JSON and canonical binary proof digests, 70/26 security settings, program
+commitment, and public output. The receipt is published only after
+`verify_cairo_ex::<Blake2sM31MerkleChannel>` accepts the proof. The same binary
+continues to accept its previous optional expected canonical binary digest.
+
 ```sh
 cd tools/stwo-circuit-oracle-rs
 cargo run --release --locked -- primitives --output /tmp/primitives.json

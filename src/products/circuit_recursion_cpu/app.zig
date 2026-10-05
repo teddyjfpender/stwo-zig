@@ -31,6 +31,7 @@ const circuit_cpu = @import("stwo_circuit_cpu_integration");
 pub const wire = @import("stwo_circuit_recursion_wire");
 const prover = @import("stwo_prover_engine");
 const cli = @import("cli.zig");
+const cairo_report = @import("cairo_report.zig");
 
 const recursion = circuit_cpu.recursion;
 const leaf_wrap = recursion.leaf_wrap;
@@ -201,7 +202,7 @@ pub fn leafWrapWith(comptime CairoLeaf: type, allocator: std.mem.Allocator, requ
 
     // Steps 1-3 of `prove_leaf`: the leaf Cairo proof.
     const prove_started = try std.time.Instant.now();
-    var cairo_proof = try proveCairoAdaptedWith(CairoLeaf, allocator, &input, request.assets, registry.registry.cairo_prover_params);
+    var cairo_proof = try proveCairoAdaptedWith(CairoLeaf, allocator, &input, request.assets, registry.registry.cairo_prover_params, null);
     timings.cairo_execute_ns = (try std.time.Instant.now()).since(prove_started);
     defer cairo_proof.deinit();
     timings.cairo_prove_ns = timer.lap();
@@ -230,6 +231,7 @@ fn proveCairoAdaptedWith(
     input: *const cairo.adapter.ProverInput,
     assets_root: []const u8,
     params: wire.registry.ProverParameters,
+    prove_ns: ?*u64,
 ) !CairoLeaf.Result {
     const programs_path = try std.fs.path.join(allocator, &.{ assets_root, cairo_asset_paths.witness_programs });
     defer allocator.free(programs_path);
@@ -251,7 +253,8 @@ fn proveCairoAdaptedWith(
     defer allocator.free(templates_path);
     var air_templates = try cairo.air.template_library.Library.readFile(allocator, templates_path);
     defer air_templates.deinit();
-    return CairoLeaf.proveLeafCairo(allocator, .{
+    const prove_started = try std.time.Instant.now();
+    const result = try CairoLeaf.proveLeafCairo(allocator, .{
         .input = input,
         .programs = &programs,
         .topology = topology,
@@ -260,6 +263,8 @@ fn proveCairoAdaptedWith(
         .air_templates = &air_templates,
         .composition_device = CairoLeaf.compositionDevice(assets_root),
     }, params, null);
+    if (prove_ns) |value| value.* = (try std.time.Instant.now()).since(prove_started);
+    return result;
 }
 
 fn proveCairoCommandWith(comptime CairoLeaf: type, allocator: std.mem.Allocator, command: cli.ProveCairo) !void {
@@ -270,14 +275,20 @@ fn proveCairoCommandWith(comptime CairoLeaf: type, allocator: std.mem.Allocator,
     defer registry.deinit();
     var input = try cairo.adapter.input.readFile(allocator, command.prover_input);
     defer input.deinit(allocator);
-    var result = try proveCairoAdaptedWith(CairoLeaf, allocator, &input, command.assets orelse ".", registry.registry.cairo_prover_params);
+    var prove_ns: u64 = 0;
+    var result = try proveCairoAdaptedWith(CairoLeaf, allocator, &input, command.assets orelse ".", registry.registry.cairo_prover_params, &prove_ns);
     defer result.deinit();
+    const after_prove_ns = (try std.time.Instant.now()).since(started);
     const lane = try cairo.proving.leaf_lane.Lane.fromParameters(registry.registry.cairo_prover_params);
     var max_trace_log: u32 = 0;
     for (result.composition.components) |component|
         max_trace_log = @max(max_trace_log, component.trace_log_size);
     const pcs = try lane.pcsConfig(max_trace_log);
     try writeCairoProof(command.output, &input, &result, pcs.trace_lifting_log_size);
+    const publication_ns = (try std.time.Instant.now()).since(started);
+    if (command.report_out) |path| {
+        try cairo_report.write(path, after_prove_ns - prove_ns, prove_ns, publication_ns);
+    }
     std.debug.print("prove-cairo: {d:.2} s\n", .{@as(f64, @floatFromInt((try std.time.Instant.now()).since(started))) / 1e9});
 }
 

@@ -118,6 +118,11 @@ Rust proof parity for the pinned two-leaf
 fixture; it does not retroactively change the saved standalone proofs or
 establish parity with an upstream compiled applicative program that has not
 been published.
+The Go finalizer now accepts `--prover-interface rust-lane`, runs this command,
+and publishes only after the pinned Rust verifier checks the proof, program
+commitment, public output, and 70/26 security profile. Its retained two-leaf
+[proof and CPU/Metal receipts](https://github.com/teddyjfpender/proving-service/tree/feature/circuit-applicative-campaign-final/data/applicative-two-leaf-rust-lane)
+show the same canonical binary digest end to end.
 
 Changing a leaf output or reversing the two leaves causes the Cairo execution
 to fail at the verifier-output equality assertion. The complete output segment
