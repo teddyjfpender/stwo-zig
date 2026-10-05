@@ -40,6 +40,10 @@ struct Args {
     /// preimages supply the aggregator input directly; with ZIPs, they must match.
     #[arg(long)]
     packed_output: Option<PathBuf>,
+    /// Ordered, already admitted leaf output preimages. This allows the
+    /// aggregator to run while the circuit tree is still being proved.
+    #[arg(long, conflicts_with = "packed_output")]
+    preimages: Option<PathBuf>,
     /// Emit the full state diff (default: compressed, as on L1).
     #[arg(long)]
     full_output: bool,
@@ -88,6 +92,29 @@ fn packed_preimages(path: &Path) -> Result<Vec<Vec<Felt>>> {
         bail!("packed tree has no leaves");
     }
     Ok(leaves)
+}
+
+fn ordered_preimages(path: &Path) -> Result<Vec<Vec<Felt>>> {
+    let bytes = std::fs::read(path).with_context(|| format!("read {}", path.display()))?;
+    let encoded: Vec<Vec<String>> = serde_json::from_slice(&bytes)?;
+    if encoded.is_empty() || encoded.len() > 4096 {
+        bail!("preimage count must be 1..4096");
+    }
+    encoded
+        .into_iter()
+        .map(|preimage| {
+            if preimage.is_empty() {
+                bail!("empty leaf preimage");
+            }
+            preimage
+                .into_iter()
+                .map(|value| {
+                    Felt::from_dec_str(&value)
+                        .with_context(|| format!("invalid preimage felt {value}"))
+                })
+                .collect::<Result<Vec<_>>>()
+        })
+        .collect()
 }
 
 fn collect_preimages(
@@ -142,19 +169,25 @@ fn main() -> Result<()> {
         .as_deref()
         .map(packed_preimages)
         .transpose()?;
-    if args.leaves.is_empty() && packed.is_none() {
-        bail!("provide --packed-output, with optional --leaves for cross-checking");
+    let preimages = args
+        .preimages
+        .as_deref()
+        .map(ordered_preimages)
+        .transpose()?;
+    let revealed = packed.as_ref().or(preimages.as_ref());
+    if args.leaves.is_empty() && revealed.is_none() {
+        bail!("provide --packed-output or --preimages, with optional --leaves for cross-checking");
     }
-    if let Some(ref preimages) = packed {
+    if let Some(preimages) = revealed {
         if !args.leaves.is_empty() && preimages.len() != args.leaves.len() {
             bail!(
-                "packed tree contains {} leaves, but {} OS PIEs were supplied",
+                "preimage input contains {} leaves, but {} OS PIEs were supplied",
                 preimages.len(),
                 args.leaves.len()
             );
         }
     }
-    let n_leaves = packed.as_ref().map_or(args.leaves.len(), Vec::len);
+    let n_leaves = revealed.map_or(args.leaves.len(), Vec::len);
     if n_leaves > 4096 {
         bail!("aggregator input exceeds the 4096-leaf circuit-applicative bound");
     }
@@ -163,7 +196,7 @@ fn main() -> Result<()> {
         let out = if let Some(leaf) = args.leaves.get(index) {
             os_output(leaf)?
         } else {
-            let preimage = &packed.as_ref().expect("packed source required")[index];
+            let preimage = &revealed.expect("preimage source required")[index];
             if preimage.len() < 5 || preimage[0] != os_hash {
                 bail!(
                     "packed public preimage {} has an invalid OS program hash or output",
@@ -178,7 +211,7 @@ fn main() -> Result<()> {
                 index
             );
         }
-        if let Some(ref preimages) = packed {
+        if let Some(preimages) = revealed {
             if preimages[index].len() != out.len() + 1
                 || preimages[index][0] != os_hash
                 || &preimages[index][1..] != out.as_slice()
@@ -242,7 +275,9 @@ fn main() -> Result<()> {
             "output_felts": out.aggregator_output.len(),
             "os_program_hash": format!("{os_hash:#x}"),
             "aggregator_program_hash": format!("{:#x}", PROGRAM_HASHES.aggregator),
-            "input_source": if args.leaves.is_empty() { "packed_output" } else { "pie_zips" },
+            "input_source": if args.leaves.is_empty() {
+                if args.packed_output.is_some() { "packed_output" } else { "ordered_preimages" }
+            } else { "pie_zips" },
             "packed_preimages_matched": if args.leaves.is_empty() { None } else { packed.as_ref().map(Vec::len) },
         })
     );

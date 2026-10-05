@@ -17,6 +17,21 @@ authentic. The circuit-applicative Cairo proof verifies the root and asserts
 that these exact outputs are what the aggregator consumed. The root's leaf
 proofs bind each preimage to its proved OS execution.
 
+The ordered public preimages are available as soon as the PIEs enter a
+campaign, before their circuit proofs and folds finish. To construct the
+aggregator concurrently with proving, write a JSON array of leaf preimage
+arrays in block order, then run:
+
+```sh
+starknet-aggregator --preimages ordered_preimages.json --output aggregator.zip
+```
+
+The Go proving service prepares that bounded package from admitted,
+SHA-256-checked objects. On the committed two-PIE fixture, this mode wrote
+the same aggregator ZIP bytes as `--packed-output`. The final applicative
+proof remains responsible for proving that the resulting aggregator consumed
+the root's verified preimages.
+
 To cross-check against original ZIPs during qualification:
 
 ```sh
