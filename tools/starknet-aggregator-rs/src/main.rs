@@ -17,7 +17,7 @@ use cairo_vm::types::builtin_name::BuiltinName;
 use cairo_vm::types::layout_name::LayoutName;
 use cairo_vm::types::relocatable::MaybeRelocatable;
 use cairo_vm::vm::runners::cairo_pie::CairoPie;
-use clap::Parser;
+use clap::{Parser, ValueEnum};
 use starknet_os::hint_processor::aggregator_hint_processor::{AggregatorInput, DataAvailability};
 use starknet_os::runner::run_aggregator;
 use starknet_types_core::felt::Felt;
@@ -47,10 +47,32 @@ struct Args {
     /// Emit the full state diff (default: compressed, as on L1).
     #[arg(long)]
     full_output: bool,
+    /// DA mode used by the Starknet aggregator. Existing fixtures use calldata.
+    #[arg(long, value_enum, default_value_t = DaMode::Calldata)]
+    da_mode: DaMode,
+    /// New file for the blob DA segment. Required only with --da-mode blob.
+    #[arg(long)]
+    da_output: Option<PathBuf>,
     #[arg(long, default_value = "SN_MAIN")]
     chain_id: String,
     #[arg(long, default_value = "all_cairo")]
     layout: String,
+}
+
+#[derive(Clone, Copy, Debug, ValueEnum)]
+enum DaMode {
+    Calldata,
+    Blob,
+}
+
+struct RemoveOnDrop(Option<PathBuf>);
+
+impl Drop for RemoveOnDrop {
+    fn drop(&mut self) {
+        if let Some(path) = self.0.as_deref() {
+            let _ = std::fs::remove_file(path);
+        }
+    }
 }
 
 fn os_output(pie_path: &Path) -> Result<Vec<Felt>> {
@@ -163,6 +185,22 @@ fn collect_preimages(
 
 fn main() -> Result<()> {
     let args = Args::parse();
+    let da_path = match (args.da_mode, args.da_output.as_deref()) {
+        (DaMode::Calldata, None) => None,
+        (DaMode::Blob, Some(path)) if !path.exists() => Some(path),
+        (DaMode::Blob, Some(_)) => bail!("blob DA output already exists"),
+        (DaMode::Blob, None) => bail!("--da-mode blob requires --da-output"),
+        (DaMode::Calldata, Some(_)) => bail!("--da-output requires --da-mode blob"),
+    };
+    let da_temp = da_path.map(|path| path.with_extension(format!("tmp-{}", std::process::id())));
+    if let Some(path) = da_temp.as_deref() {
+        std::fs::OpenOptions::new()
+            .write(true)
+            .create_new(true)
+            .open(path)
+            .with_context(|| format!("reserve DA output {}", path.display()))?;
+    }
+    let _da_cleanup = RemoveOnDrop(da_temp.clone());
     let os_hash = PROGRAM_HASHES.os;
     let packed = args
         .packed_output
@@ -237,7 +275,9 @@ fn main() -> Result<()> {
     let input = AggregatorInput {
         bootloader_output: Some(bootloader_output),
         full_output: args.full_output,
-        da: DataAvailability::CallData,
+        da: da_temp.as_ref().map_or(DataAvailability::CallData, |path| {
+            DataAvailability::Blob(path.clone())
+        }),
         debug_mode: false,
         fee_token_address: Felt::from_hex(STRK_FEE_TOKEN)?,
         chain_id,
@@ -257,6 +297,15 @@ fn main() -> Result<()> {
         out.aggregator_output.len(),
         started.elapsed().as_secs_f64()
     );
+    let mut published_da_cleanup = RemoveOnDrop(None);
+    if let (Some(temporary), Some(destination)) = (da_temp.as_deref(), da_path) {
+        if std::fs::metadata(temporary)?.len() == 0 {
+            bail!("blob DA segment was not written");
+        }
+        std::fs::hard_link(temporary, &destination)
+            .with_context(|| format!("publish DA segment {}", destination.display()))?;
+        published_da_cleanup.0 = Some(destination.to_path_buf());
+    }
     out.cairo_pie.write_zip_file(&args.output, true)?;
     if let Some(path) = args.program_output {
         let hex: Vec<String> = out
@@ -266,6 +315,7 @@ fn main() -> Result<()> {
             .collect();
         std::fs::write(path, serde_json::to_string(&hex)?)?;
     }
+    published_da_cleanup.0 = None;
     println!(
         "{}",
         serde_json::json!({
@@ -278,6 +328,7 @@ fn main() -> Result<()> {
             "input_source": if args.leaves.is_empty() {
                 if args.packed_output.is_some() { "packed_output" } else { "ordered_preimages" }
             } else { "pie_zips" },
+            "da_mode": match args.da_mode { DaMode::Calldata => "calldata", DaMode::Blob => "blob" },
             "packed_preimages_matched": if args.leaves.is_empty() { None } else { packed.as_ref().map(Vec::len) },
         })
     );

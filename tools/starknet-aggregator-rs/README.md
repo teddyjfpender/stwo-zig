@@ -32,6 +32,28 @@ the same aggregator ZIP bytes as `--packed-output`. The final applicative
 proof remains responsible for proving that the resulting aggregator consumed
 the root's verified preimages.
 
+The pinned Starknet OS aggregator also has a blob data-availability branch.
+The existing 128/512 fixtures use the default `calldata` branch. To exercise
+the blob branch and publish its DA segment, pass:
+
+```sh
+starknet-aggregator --preimages ordered_preimages.json \
+    --da-mode blob --da-output aggregator.da.json --output aggregator.zip
+```
+
+The DA segment is a separate, hashed output artifact; this tool does not
+package or submit an L1 blob. On the two-PIE fixture, the blob-mode ZIP and
+DA segment were byte-identical whether built from ordered preimages or the
+packed tree. The blob-mode applicative Cairo execution was proved on Metal and
+accepted by the pinned independent Rust verifier at 70 FRI queries and 26
+PoW bits. Calldata and blob outputs differ, so their proof hashes and timing
+results must be compared within the same DA mode.
+The saved 128-PIE root also passed blob-mode applicative proving on Metal:
+27.456 seconds from published root to independently verified final receipt
+with a release aggregator. The [service evidence](https://github.com/teddyjfpender/proving-service/tree/feature/circuit-applicative-campaign-final/data/h200-api-128-512/h200-api-128-001/applicative-blob-final)
+contains the proof, DA segment, and digest-bound receipts. Blob mode has not
+been measured on the saved 512-PIE root.
+
 To cross-check against original ZIPs during qualification:
 
 ```sh
