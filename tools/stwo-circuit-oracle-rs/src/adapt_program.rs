@@ -72,7 +72,12 @@ pub fn run(
 /// This is a transport conversion: the Zig frontend re-admits the compact
 /// bytes and full proof parity is checked by the pipeline benchmark.
 pub fn convert_input(path: &std::path::Path) -> Result<Vec<u8>> {
-    const MAX_BYTES: u64 = 2 << 30;
+    use std::io::Read;
+
+    // Large applicative executions can exceed 2 GiB in official JSON while
+    // remaining well within the compact prover-input geometry. The conversion
+    // is bounded and streams decoding from the file; allow those inputs.
+    const MAX_BYTES: u64 = 4 << 30;
     let file =
         std::fs::File::open(path).with_context(|| format!("failed to open {}", path.display()))?;
     let size = file.metadata()?.len();
@@ -80,8 +85,18 @@ pub fn convert_input(path: &std::path::Path) -> Result<Vec<u8>> {
         size > 0 && size <= MAX_BYTES,
         "adapted input size is outside bounds"
     );
+    // serde_json::from_reader performs many tiny reads on a multi-gigabyte
+    // ProverInput. Read once under the bound and decode the owned bytes.
+    let mut encoded = Vec::with_capacity(size as usize);
+    file.take(MAX_BYTES + 1)
+        .read_to_end(&mut encoded)
+        .context("failed to read official ProverInput JSON")?;
+    anyhow::ensure!(
+        encoded.len() as u64 <= MAX_BYTES,
+        "adapted input grew beyond bound"
+    );
     let input: stwo_cairo_adapter::ProverInput =
-        serde_json::from_reader(file).context("failed to decode official ProverInput JSON")?;
+        serde_json::from_slice(&encoded).context("failed to decode official ProverInput JSON")?;
     let mut bytes = Vec::new();
     crate::compact::write(&mut bytes, &input).context("failed to encode compact ProverInput")?;
     Ok(bytes)

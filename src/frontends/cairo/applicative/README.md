@@ -56,10 +56,19 @@ respectively. Process peaks were 31.188 and 24.623 GB. The proof and receipts
 are in the `proving-service` repository's
 `data/h200-api-128-512/h200-api-128-001/applicative-final` directory.
 
-The 512-PIE packed aggregator and final Cairo execution succeeded, but the
-44,250,309-step execution could not be proved by Metal on the local 64 GB M5:
-resident barycentric evaluation exhausted GPU memory. A 512-PIE final proof
-has therefore not been qualified. The separate H200 root proof remains valid.
+The 512-PIE packed aggregator and final Cairo execution succeeded. Metal
+could not prove the 44,250,309-step execution on the local 64 GB M5: resident
+barycentric evaluation exhausted GPU memory. A saved PR #17 CUDA runtime then
+proved the same adapted input on one H200. Its 2.29 GB JSON transport took
+24.605 seconds from CPI to proof JSON; re-encoding the same execution as a
+909 MB canonical compact input reduced that to **8.059 seconds** cold, with
+byte-identical proof output. Compact source preparation fell to 2.785 seconds
+from 20.570 seconds with JSON. A same-input warm repeat took 4.746 seconds.
+The final proof SHA-256 is
+`c49a6fe9da397a1a545deae90ef3294ba111fb6e9a079112b9dcc7027bafde43`;
+the independent Rust verifier accepted it and all 58,548 public output cells
+match the Cairo execution. The proof, qualification and capacity evidence are
+committed under the proving-service 512-PIE trial dataset.
 
 Changing a leaf output or reversing the two leaves causes the Cairo execution
 to fail at the verifier-output equality assertion. The complete output segment
