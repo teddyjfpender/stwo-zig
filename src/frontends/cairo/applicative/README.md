@@ -38,10 +38,10 @@ The two leaves are contiguous PIEs `15627902-15627904` and
 `15627905-15627907`. The adapted applicative execution used 5,877,151 Cairo
 steps. The Zig CPU proof uses 70 FRI queries and 26 PoW bits; it passed Zig's
 verification and the independent pinned Rust `verify_cairo` implementation.
-On the measured local machine the CPU proof phase took 6.57 seconds, the
-complete adapted-input-to-proof command took 7.61 seconds, and peak physical
+On the measured local machine the CPU proof phase took 6.43 seconds, the
+complete adapted-input-to-proof command took 7.54 seconds, and peak physical
 memory was 16.9 GB. Metal produced the **same proof bytes**; its proof phase
-took 4.49 seconds and its command took 5.57 seconds with a 13.0 GB process
+took 4.51 seconds and its command took 5.63 seconds with a 13.0 GB process
 peak. Metal logged two composition host admissions for missing evaluation
 functions, so this is backend parity rather than a claim that every composition
 operation executed on the GPU. These are two-leaf measurements, not a
