@@ -5,6 +5,7 @@
 
 mod adapt_program;
 mod air_programs;
+mod applicative_input;
 mod cairo_statement;
 mod checkpoint;
 mod columns;
@@ -35,7 +36,7 @@ mod verify_circuit;
 
 use std::path::PathBuf;
 
-use anyhow::{bail, Context, Result};
+use anyhow::{Context, Result, bail};
 
 const USAGE: &str = "usage: stwo-circuit-oracle primitives [--output PATH]
        stwo-circuit-oracle gadgets [--output PATH]
@@ -56,6 +57,7 @@ const USAGE: &str = "usage: stwo-circuit-oracle primitives [--output PATH]
        stwo-circuit-oracle adapt-program --proving-root DIR --program PATH [--program-input PATH]
                                      [--input-format json|compact] [--output PATH]
        stwo-circuit-oracle convert-input --prover-input PATH --output PATH
+       stwo-circuit-oracle validate-applicative-input --program-input PATH [--output PATH]
        stwo-circuit-oracle prove-cairo --prover-input PATH --params PATH [--proving-root DIR]
                                    [--lifting-size-policy POLICY] [--proof-output PATH] [--output PATH]";
 
@@ -161,6 +163,11 @@ fn main() -> Result<()> {
                 Some(value) if value == std::path::Path::new("json") => false,
                 _ => bail!("--input-format must be json or compact"),
             },
+        )?,
+        "validate-applicative-input" => applicative_input::run(
+            program_input
+                .as_deref()
+                .context("validate-applicative-input requires --program-input")?,
         )?,
         "convert-input" => {
             if proving_root.is_some()

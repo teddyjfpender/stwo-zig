@@ -39,6 +39,7 @@ recursive-tree test registry only.
 | `air-programs` | R7 | The circuit AIR's 11 `FrameworkEval`s recorded into the `STWZEVA/1` bundle with the shared recorder of `tools/stwo-eval-program-abi` |
 | `prove-lifted-example` | R10 lift | Upstream's wide-Fibonacci prover test (`crates/examples`) with the trace tree committed 0, 1 and 3 levels above its columns, verified; `bincode(StarkProof)` digests and per-stage values |
 | `adapt-program` | R10c, R8 | The leaf prover's Cairo VM run and adapter (`prove_leaf.rs` steps 1-2) on a compiled program from the `proving` checkout, with its optional `--program-input` (`leaf-prover --program_input`, for example the leaf bootloader's task list), emitted as `ProverInput` JSON |
+| `validate-applicative-input` | handoff | Parse a staged circuit-applicative bootloader input with the pinned Rust runner type; load its aggregator PIE and Cairo 1 verifier task and count packed leaves. This validates the input shape, not the Cairo applicative proof. |
 | `prove-cairo` | R10c | `prove_cairo::<Blake2sM31MerkleChannel>` of an adapted `ProverInput` under a registry's `cairo_prover_params` (the leaf prover's Cairo proof; `--lifting-size-policy` overrides the policy), verified with `verify_cairo_ex`; proof byte digests and per-stage values, and optionally the canonical `ExtendedBinary` payload (`--proof-output`) |
 
 ```sh
