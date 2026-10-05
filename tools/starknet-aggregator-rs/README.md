@@ -8,24 +8,26 @@ PIE.
 
 ```sh
 starknet-aggregator --leaves leaf1.zip leaf2.zip ... --output aggregator.zip \
-    [--program-output out.json] [--full-output] [--chain-id SN_MAIN] [--layout all_cairo]
+    [--packed-output root_packed.json] [--program-output out.json] \
+    [--full-output] [--chain-id SN_MAIN] [--layout all_cairo]
 ```
 
 Leaves must be given in block order. The aggregator asserts that each leaf's
 initial root, block number and block hash equal the previous leaf's final values.
+When `--packed-output` is supplied, the runner also requires each OS output it
+actually passes to the aggregator to equal the corresponding ordered public
+preimage in the recursive circuit root. This is an input admission check; the
+final Cairo applicative proof must still enforce the relationship.
 
 ## Build
 
-The dependencies are pinned to match SNOS `feature/0.14.3` (`38cabc9`), so you
-can reuse SNOS's target directory instead of building from scratch:
+The dependencies are pinned to match SNOS `feature/0.14.3` (`38cabc9`).
+Apollo's build script needs `cairo-compile` from Cairo 0.14.3a3:
 
 ```sh
-source ~/Coding/snos/sequencer_venv/bin/activate   # cairo-lang 0.14.3a3
-export MLIR_SYS_190_PREFIX=/opt/homebrew/opt/llvm@19
-export LLVM_SYS_191_PREFIX=/opt/homebrew/opt/llvm@19
-export TABLEGEN_190_PREFIX=/opt/homebrew/opt/llvm@19
-export LIBRARY_PATH=/opt/homebrew/lib
-CARGO_TARGET_DIR=~/Coding/snos/target cargo build --release
+python3.12 -m venv .venv
+.venv/bin/python -m pip install cairo-lang==0.14.3a3
+PATH="$PWD/.venv/bin:$PATH" cargo build --locked --release
 ```
 
 ## Measured

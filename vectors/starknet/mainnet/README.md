@@ -36,6 +36,16 @@ Checks:
 Those timings come from an Apple M4 Max (36 GB, macOS 15.3) while other work
 was running. They are indicative, not benchmarks.
 
+The same directory now also holds `root.proof`, `root_outputs.json`,
+`root_packed.json`, and `root_verification.json` for the two contiguous PIEs,
+generated under the production circuit registry (70 queries and 26 PoW bits)
+on an M5 Max. The independent Cairo `stwo_circuit_verifier` accepted the root
+proof, and the packed tree's ordered public preimages produce its exact output
+digest. `starknet-aggregator --packed-output root_packed.json` rebuilt the
+committed aggregator PIE byte for byte from the two source PIEs; mutating a
+preimage caused an admission failure. These artifacts establish the real
+handoff inputs, not a final applicative proof.
+
 `blocks.jsonl` holds one line per block the collector processed: status, tx
 count, single-block OS steps, and chain roots. Only rows with `status: "ok"`
 have single-block OS runs whose roots matched the chain. The full RPC
