@@ -13,7 +13,7 @@ with the pinned upstream implementation.
 | Binary | `stwo-circuit-recursion-cpu` |
 | Backend | CPU (scalar and SIMD), no fallback |
 | Build | `zig build stwo-circuit-recursion-cpu -Doptimize=ReleaseFast -j2` (product catalog, parity-gated) |
-| Commands | `leaf-wrap`, `fold-tree`, `fold-stage`, `fold-stage-campaign`, `fold-stage-root`, `circuit-params`, `verify` |
+| Commands | `leaf-wrap`, `prove-cairo`, `fold-tree`, `fold-stage`, `fold-stage-campaign`, `fold-stage-root`, `circuit-params`, `verify` |
 | Upstream counterparts | `leaf-prover` (`crates/leaf_prover`), `stwo_run_and_prove_recursive_tree`, `circuit-params --registry` (`crates/circuit_params`), `verify_circuit` (`crates/circuit_verifier`, no upstream binary) |
 | Release gates | `test-circuit-recursion-cpu-product`, `circuit-parity-local` |
 | Embedded data | the circuit AIR projection (`vectors/circuit/official/compiled_air_constraints_v1.bin`) and evaluation programs (`circuit_air.air_programs_v1.bin`), SHA-256-checked at run time |
@@ -59,6 +59,24 @@ Differences from `leaf-prover`, none of which changes the output bytes:
 - `--compact-min-log <n|off>` (default 18) keeps only coefficients of the
   circuit proof's columns of at least 2^n rows once they are hashed.
   `--profile` prints the circuit prover's stage times.
+
+## `prove-cairo`
+
+```sh
+zig-out/bin/stwo-circuit-recursion-cpu prove-cairo \
+  --registry vectors/circuit/official/registries/production.json \
+  --prover-input applicative.cpi --output applicative.proof.json --assets .
+```
+
+This runs the pinned Rust-profile Cairo lane directly on an adapted JSON or
+compact CPI input, without applying the two-output-cell leaf-wrap circuit.
+It is the direct proof entry point for the circuit-applicative program, whose
+public output is longer than a leaf's. The same command is available from the
+Metal product. The two-leaf applicative fixture's canonical binary proof SHA
+matches pinned Rust on both backends; see the
+[applicative qualification](../../frontends/cairo/applicative/README.md#pinned-rust-prover-comparison).
+`--report-out report.json` emits separate input/assets, proof, and
+request-to-publication timings for the Go finalizer.
 
 ## `fold-tree`
 

@@ -173,6 +173,35 @@ pub fn inspect_blake2s_proof_public_statement(
     Ok(input::public_statement::summarize(&proof.claim.public_data))
 }
 
+pub fn inspect_blake2s_proof_public_output(
+    path: &Path,
+    format: ProofFormat,
+) -> Result<Vec<String>> {
+    validate_proof_file(path)?;
+    let proof: CairoProofForRustVerifier<Blake2sMerkleHasher> =
+        deserialize_proof_from_file(path, format.upstream())
+            .context("failed to deserialize Blake2s Cairo proof")?;
+    Ok(
+        cairo_air::utils::get_verification_output(&proof.claim.public_data.public_memory)
+            .output
+            .iter()
+            .map(|felt| {
+                let hex = felt
+                    .to_bytes_be()
+                    .iter()
+                    .map(|byte| format!("{byte:02x}"))
+                    .collect::<String>();
+                let trimmed = hex.trim_start_matches('0');
+                if trimmed.is_empty() {
+                    "0x0".to_owned()
+                } else {
+                    format!("0x{trimmed}")
+                }
+            })
+            .collect(),
+    )
+}
+
 pub fn inspect_blake2s_proof_claim(
     path: &Path,
     format: ProofFormat,

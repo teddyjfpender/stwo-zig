@@ -3,9 +3,11 @@
 //!
 //! The aggregator's input is the leaves' outputs in simple-bootloader format:
 //! `[n_tasks, (output_size, os_program_hash, os_output...) ...]`. In production
-//! those outputs are vouched for by verifying the leaf proofs; here they are read
-//! straight from the leaf PIEs, which is enough to execute and prove the
-//! aggregator program itself.
+//! those outputs are vouched for by verifying the leaf proofs. For a circuit
+//! root, the packed public preimages are sufficient to run this aggregator:
+//! the final circuit-applicative Cairo proof checks that it consumed precisely
+//! those preimages and that their tree root was verified. ZIPs are optional
+//! cross-check inputs, not a requirement to rebuild the aggregator task.
 
 use std::path::{Path, PathBuf};
 
@@ -15,7 +17,7 @@ use cairo_vm::types::builtin_name::BuiltinName;
 use cairo_vm::types::layout_name::LayoutName;
 use cairo_vm::types::relocatable::MaybeRelocatable;
 use cairo_vm::vm::runners::cairo_pie::CairoPie;
-use clap::Parser;
+use clap::{Parser, ValueEnum};
 use starknet_os::hint_processor::aggregator_hint_processor::{AggregatorInput, DataAvailability};
 use starknet_os::runner::run_aggregator;
 use starknet_types_core::felt::Felt;
@@ -25,8 +27,8 @@ const STRK_FEE_TOKEN: &str = "0x04718f5a0fc34cc1af16a1cdee98ffb20c31f5cd61d6ab07
 
 #[derive(Parser)]
 struct Args {
-    /// Leaf PIE zips, in block order.
-    #[arg(long, num_args = 1.., required = true)]
+    /// Optional leaf PIE zips, in block order, for cross-checking a packed tree.
+    #[arg(long, num_args = 1..)]
     leaves: Vec<PathBuf>,
     /// Where to write the aggregator PIE zip.
     #[arg(long)]
@@ -34,17 +36,48 @@ struct Args {
     /// Also write the aggregator's program output (JSON array of hex felts).
     #[arg(long)]
     program_output: Option<PathBuf>,
+    /// Recursive circuit root's packed tree. With no ZIPs, its ordered public
+    /// preimages supply the aggregator input directly; with ZIPs, they must match.
+    #[arg(long)]
+    packed_output: Option<PathBuf>,
+    /// Ordered, already admitted leaf output preimages. This allows the
+    /// aggregator to run while the circuit tree is still being proved.
+    #[arg(long, conflicts_with = "packed_output")]
+    preimages: Option<PathBuf>,
     /// Emit the full state diff (default: compressed, as on L1).
     #[arg(long)]
     full_output: bool,
+    /// DA mode used by the Starknet aggregator. Existing fixtures use calldata.
+    #[arg(long, value_enum, default_value_t = DaMode::Calldata)]
+    da_mode: DaMode,
+    /// New file for the blob DA segment. Required only with --da-mode blob.
+    #[arg(long)]
+    da_output: Option<PathBuf>,
     #[arg(long, default_value = "SN_MAIN")]
     chain_id: String,
     #[arg(long, default_value = "all_cairo")]
     layout: String,
 }
 
+#[derive(Clone, Copy, Debug, ValueEnum)]
+enum DaMode {
+    Calldata,
+    Blob,
+}
+
+struct RemoveOnDrop(Option<PathBuf>);
+
+impl Drop for RemoveOnDrop {
+    fn drop(&mut self) {
+        if let Some(path) = self.0.as_deref() {
+            let _ = std::fs::remove_file(path);
+        }
+    }
+}
+
 fn os_output(pie_path: &Path) -> Result<Vec<Felt>> {
-    let pie = CairoPie::read_zip_file(pie_path).with_context(|| format!("read {}", pie_path.display()))?;
+    let pie = CairoPie::read_zip_file(pie_path)
+        .with_context(|| format!("read {}", pie_path.display()))?;
     let seg = pie
         .metadata
         .builtin_segments
@@ -62,18 +95,178 @@ fn os_output(pie_path: &Path) -> Result<Vec<Felt>> {
         .collect::<Result<_>>()?;
     cells.sort_by_key(|(off, _)| *off);
     if cells.len() != seg.size || cells.iter().enumerate().any(|(i, (off, _))| i != *off) {
-        bail!("output segment of {} is not dense ({} cells, size {})", pie_path.display(), cells.len(), seg.size);
+        bail!(
+            "output segment of {} is not dense ({} cells, size {})",
+            pie_path.display(),
+            cells.len(),
+            seg.size
+        );
     }
     Ok(cells.into_iter().map(|(_, v)| v).collect())
 }
 
+fn packed_preimages(path: &Path) -> Result<Vec<Vec<Felt>>> {
+    let bytes = std::fs::read(path).with_context(|| format!("read {}", path.display()))?;
+    let root: serde_json::Value = serde_json::from_slice(&bytes)?;
+    let mut leaves = Vec::new();
+    collect_preimages(&root, &mut leaves, 0)?;
+    if leaves.is_empty() {
+        bail!("packed tree has no leaves");
+    }
+    Ok(leaves)
+}
+
+fn ordered_preimages(path: &Path) -> Result<Vec<Vec<Felt>>> {
+    let bytes = std::fs::read(path).with_context(|| format!("read {}", path.display()))?;
+    let encoded: Vec<Vec<String>> = serde_json::from_slice(&bytes)?;
+    if encoded.is_empty() || encoded.len() > 4096 {
+        bail!("preimage count must be 1..4096");
+    }
+    encoded
+        .into_iter()
+        .map(|preimage| {
+            if preimage.is_empty() {
+                bail!("empty leaf preimage");
+            }
+            preimage
+                .into_iter()
+                .map(|value| {
+                    Felt::from_dec_str(&value)
+                        .with_context(|| format!("invalid preimage felt {value}"))
+                })
+                .collect::<Result<Vec<_>>>()
+        })
+        .collect()
+}
+
+fn collect_preimages(
+    node: &serde_json::Value,
+    leaves: &mut Vec<Vec<Felt>>,
+    depth: usize,
+) -> Result<()> {
+    if depth > 32 {
+        bail!("packed tree exceeds maximum depth");
+    }
+    let composite = node
+        .get("Composite")
+        .context("expected a packed Composite node")?;
+    let children = composite
+        .get("subtasks")
+        .and_then(serde_json::Value::as_array)
+        .context("packed Composite has no subtasks")?;
+    if children.len() == 1 && children[0].get("Plain").is_some() {
+        let preimage = children[0]["Plain"]["output_preimage"]
+            .as_array()
+            .context("packed leaf has no output preimage")?;
+        if preimage.is_empty() {
+            bail!("packed leaf has an empty output preimage");
+        }
+        let parsed = preimage
+            .iter()
+            .map(|value| {
+                let text = value
+                    .as_str()
+                    .context("packed preimage felt is not a decimal string")?;
+                Felt::from_dec_str(text)
+                    .with_context(|| format!("invalid packed preimage felt {text}"))
+            })
+            .collect::<Result<Vec<_>>>()?;
+        leaves.push(parsed);
+        return Ok(());
+    }
+    if children.is_empty() || children.len() > 2 {
+        bail!("packed internal node has invalid arity");
+    }
+    for child in children {
+        collect_preimages(child, leaves, depth + 1)?;
+    }
+    Ok(())
+}
+
 fn main() -> Result<()> {
     let args = Args::parse();
+    let da_path = match (args.da_mode, args.da_output.as_deref()) {
+        (DaMode::Calldata, None) => None,
+        (DaMode::Blob, Some(path)) if !path.exists() => Some(path),
+        (DaMode::Blob, Some(_)) => bail!("blob DA output already exists"),
+        (DaMode::Blob, None) => bail!("--da-mode blob requires --da-output"),
+        (DaMode::Calldata, Some(_)) => bail!("--da-output requires --da-mode blob"),
+    };
+    let da_temp = da_path.map(|path| path.with_extension(format!("tmp-{}", std::process::id())));
+    if let Some(path) = da_temp.as_deref() {
+        std::fs::OpenOptions::new()
+            .write(true)
+            .create_new(true)
+            .open(path)
+            .with_context(|| format!("reserve DA output {}", path.display()))?;
+    }
+    let _da_cleanup = RemoveOnDrop(da_temp.clone());
     let os_hash = PROGRAM_HASHES.os;
-    let mut bootloader_output = vec![Felt::from(args.leaves.len())];
-    for leaf in &args.leaves {
-        let out = os_output(leaf)?;
-        eprintln!("{}: {} output felts, blocks {}..{}", leaf.display(), out.len(), out[2], out[3]);
+    let packed = args
+        .packed_output
+        .as_deref()
+        .map(packed_preimages)
+        .transpose()?;
+    let preimages = args
+        .preimages
+        .as_deref()
+        .map(ordered_preimages)
+        .transpose()?;
+    let revealed = packed.as_ref().or(preimages.as_ref());
+    if args.leaves.is_empty() && revealed.is_none() {
+        bail!("provide --packed-output or --preimages, with optional --leaves for cross-checking");
+    }
+    if let Some(preimages) = revealed {
+        if !args.leaves.is_empty() && preimages.len() != args.leaves.len() {
+            bail!(
+                "preimage input contains {} leaves, but {} OS PIEs were supplied",
+                preimages.len(),
+                args.leaves.len()
+            );
+        }
+    }
+    let n_leaves = revealed.map_or(args.leaves.len(), Vec::len);
+    if n_leaves > 4096 {
+        bail!("aggregator input exceeds the 4096-leaf circuit-applicative bound");
+    }
+    let mut bootloader_output = vec![Felt::from(n_leaves)];
+    for index in 0..n_leaves {
+        let out = if let Some(leaf) = args.leaves.get(index) {
+            os_output(leaf)?
+        } else {
+            let preimage = &revealed.expect("preimage source required")[index];
+            if preimage.len() < 5 || preimage[0] != os_hash {
+                bail!(
+                    "packed public preimage {} has an invalid OS program hash or output",
+                    index
+                );
+            }
+            preimage[1..].to_vec()
+        };
+        if out.len() < 4 {
+            bail!(
+                "OS output for PIE {} is too short for block continuity",
+                index
+            );
+        }
+        if let Some(preimages) = revealed {
+            if preimages[index].len() != out.len() + 1
+                || preimages[index][0] != os_hash
+                || &preimages[index][1..] != out.as_slice()
+            {
+                bail!(
+                    "packed public preimage for PIE {} differs from the aggregator input",
+                    index
+                );
+            }
+        }
+        eprintln!(
+            "PIE {}: {} output felts, blocks {}..{}",
+            index,
+            out.len(),
+            out[2],
+            out[3]
+        );
         bootloader_output.push(Felt::from(out.len() + 2));
         bootloader_output.push(os_hash);
         bootloader_output.extend(out);
@@ -82,7 +275,9 @@ fn main() -> Result<()> {
     let input = AggregatorInput {
         bootloader_output: Some(bootloader_output),
         full_output: args.full_output,
-        da: DataAvailability::CallData,
+        da: da_temp.as_ref().map_or(DataAvailability::CallData, |path| {
+            DataAvailability::Blob(path.clone())
+        }),
         debug_mode: false,
         fee_token_address: Felt::from_hex(STRK_FEE_TOKEN)?,
         chain_id,
@@ -94,27 +289,47 @@ fn main() -> Result<()> {
         other => bail!("unsupported layout {other}"),
     };
     let started = std::time::Instant::now();
-    let out = run_aggregator(layout, input).map_err(|e| anyhow::anyhow!("aggregator failed: {e:?}"))?;
+    let out =
+        run_aggregator(layout, input).map_err(|e| anyhow::anyhow!("aggregator failed: {e:?}"))?;
     eprintln!(
         "aggregator: {} steps, {} output felts, {:.2}s",
         out.cairo_pie.execution_resources.n_steps,
         out.aggregator_output.len(),
         started.elapsed().as_secs_f64()
     );
+    let mut published_da_cleanup = RemoveOnDrop(None);
+    if let (Some(temporary), Some(destination)) = (da_temp.as_deref(), da_path) {
+        if std::fs::metadata(temporary)?.len() == 0 {
+            bail!("blob DA segment was not written");
+        }
+        std::fs::hard_link(temporary, &destination)
+            .with_context(|| format!("publish DA segment {}", destination.display()))?;
+        published_da_cleanup.0 = Some(destination.to_path_buf());
+    }
     out.cairo_pie.write_zip_file(&args.output, true)?;
     if let Some(path) = args.program_output {
-        let hex: Vec<String> = out.aggregator_output.iter().map(|f| format!("{f:#x}")).collect();
+        let hex: Vec<String> = out
+            .aggregator_output
+            .iter()
+            .map(|f| format!("{f:#x}"))
+            .collect();
         std::fs::write(path, serde_json::to_string(&hex)?)?;
     }
+    published_da_cleanup.0 = None;
     println!(
         "{}",
         serde_json::json!({
-            "leaves": args.leaves.len(),
+            "leaves": n_leaves,
             "n_steps": out.cairo_pie.execution_resources.n_steps,
             "builtins": out.cairo_pie.execution_resources.builtin_instance_counter,
             "output_felts": out.aggregator_output.len(),
             "os_program_hash": format!("{os_hash:#x}"),
             "aggregator_program_hash": format!("{:#x}", PROGRAM_HASHES.aggregator),
+            "input_source": if args.leaves.is_empty() {
+                if args.packed_output.is_some() { "packed_output" } else { "ordered_preimages" }
+            } else { "pie_zips" },
+            "da_mode": match args.da_mode { DaMode::Calldata => "calldata", DaMode::Blob => "blob" },
+            "packed_preimages_matched": if args.leaves.is_empty() { None } else { packed.as_ref().map(Vec::len) },
         })
     );
     Ok(())

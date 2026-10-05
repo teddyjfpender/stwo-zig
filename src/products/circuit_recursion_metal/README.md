@@ -1,7 +1,7 @@
 # Circuit recursion on Metal
 
 `stwo-circuit-recursion-metal` proves Cairo leaves and recursive circuit folds
-with the Metal integrations. It shares the CPU product's `leaf-wrap`,
+with the Metal integrations. It shares the CPU product's `leaf-wrap`, `prove-cairo`,
 `fold-tree`, `fold-stage`, `fold-stage-campaign`, `fold-stage-root`,
 `circuit-params`, and `verify` commands and proof formats. The
 [CPU product guide](../circuit_recursion_cpu/README.md) documents the common

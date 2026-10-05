@@ -31,6 +31,7 @@ const std = @import("std");
 
 pub const Command = enum {
     @"leaf-wrap",
+    @"prove-cairo",
     @"fold-tree",
     @"fold-stage",
     @"fold-stage-campaign",
@@ -58,6 +59,14 @@ pub const LeafWrap = struct {
     compact_min_log: ?u32,
     /// Print the circuit prover's stage times.
     profile: bool,
+};
+
+pub const ProveCairo = struct {
+    registry: []const u8,
+    prover_input: []const u8,
+    output: []const u8,
+    assets: ?[]const u8,
+    report_out: ?[]const u8,
 };
 
 /// Compact storage from 2^18-row columns: the circuit proof's large columns
@@ -117,6 +126,7 @@ pub const Verify = struct {
 
 pub const Parsed = union(enum) {
     leaf_wrap: LeafWrap,
+    prove_cairo: ProveCairo,
     fold_tree: FoldTree,
     fold_stage: FoldStage,
     fold_stage_campaign: FoldStageCampaign,
@@ -144,6 +154,8 @@ pub const usage =
     \\usage: stwo-circuit-recursion-cpu leaf-wrap --registry REGISTRY.json --program PROGRAM.json
     \\           --prover-input PROVER_INPUT.json --output LEAF.json [--assets DIR]
     \\           [--cairo-proof CAIRO.json] [--compact-min-log N|off] [--profile]
+    \\       stwo-circuit-recursion-cpu prove-cairo --registry REGISTRY.json
+    \\           --prover-input PROVER_INPUT.json --output CAIRO.json [--assets DIR] [--report-out REPORT.json]
     \\       stwo-circuit-recursion-cpu fold-tree --program_input LEAVES.json --proof_path ROOT.proof
     \\           --program_output ROOT_OUTPUTS.json --packed_output_path ROOT_PACKED.json
     \\           --circuit_registry_json REGISTRY.json [--profile]
@@ -202,6 +214,7 @@ pub fn parse(argv: []const []const u8) Error!Parsed {
                 .profile = profile,
             } };
         },
+        .@"prove-cairo" => .{ .prove_cairo = try parseFlags(ProveCairo, argv[1..], .{ .spelling = .kebab }) },
         .@"fold-tree" => blk: {
             var profile = false;
             const parsed = try parseFlags(struct {
@@ -351,6 +364,17 @@ test "circuit recursion cli: leaf-wrap options, defaults and failures" {
     try std.testing.expectEqualStrings("o", upstream.leaf_wrap.output);
     try std.testing.expectError(error.DuplicateFlag, parse(&.{ "leaf-wrap", "--registry", "a", "--circuit_registry_json", "b" }));
     try std.testing.expectError(error.UnknownFlag, parse(&.{ "leaf-wrap", "--prover_input", "i" }));
+}
+
+test "circuit recursion cli: pinned Cairo proof accepts an adapted input" {
+    const parsed = try parse(&.{ "prove-cairo", "--registry=r.json", "--prover-input", "a.cpi", "--output", "proof.json" });
+    try std.testing.expectEqualStrings("r.json", parsed.prove_cairo.registry);
+    try std.testing.expectEqualStrings("a.cpi", parsed.prove_cairo.prover_input);
+    try std.testing.expectEqualStrings("proof.json", parsed.prove_cairo.output);
+    try std.testing.expectEqual(@as(?[]const u8, null), parsed.prove_cairo.assets);
+    const reported = try parse(&.{ "prove-cairo", "--registry", "r", "--prover-input", "a", "--output", "p", "--report-out", "timings.json" });
+    try std.testing.expectEqualStrings("timings.json", reported.prove_cairo.report_out.?);
+    try std.testing.expectError(error.MissingRequiredFlag, parse(&.{ "prove-cairo", "--registry", "r.json" }));
 }
 
 test "circuit recursion cli: fold-tree takes upstream's flags, in either value form" {

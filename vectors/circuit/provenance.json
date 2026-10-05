@@ -9,7 +9,7 @@
     "toolchain": "nightly-2026-01-15",
     "lock": "tools/stwo-circuit-oracle-rs/Cargo.lock",
     "lock_sha256": "4aedd6bd869d7e2fa46f12dc30bcd20a607ec1225083180c087513d2af9a93ac",
-    "source_sha256": "72ff6d0dc8ccd5354518e87cb1dd1b89e426cdff8f26c2bf8487da4153b1c308"
+    "source_sha256": "0b89985603743292efcc9f14c34ada269987c76f6bb7387824b93836cea0cc90"
   },
   "generator": "scripts/generate_circuit_oracle_vectors.py",
   "generated_on": "2026-09-30",

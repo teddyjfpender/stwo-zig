@@ -5,6 +5,7 @@
 
 mod adapt_program;
 mod air_programs;
+mod applicative_input;
 mod cairo_statement;
 mod checkpoint;
 mod columns;
@@ -35,7 +36,7 @@ mod verify_circuit;
 
 use std::path::PathBuf;
 
-use anyhow::{bail, Context, Result};
+use anyhow::{Context, Result, bail};
 
 const USAGE: &str = "usage: stwo-circuit-oracle primitives [--output PATH]
        stwo-circuit-oracle gadgets [--output PATH]
@@ -54,8 +55,9 @@ const USAGE: &str = "usage: stwo-circuit-oracle primitives [--output PATH]
        stwo-circuit-oracle cairo-statement --proving-root DIR [--output PATH]
        stwo-circuit-oracle prove-lifted-example [--output PATH]
        stwo-circuit-oracle adapt-program --proving-root DIR --program PATH [--program-input PATH]
-                                     [--input-format json|compact] [--output PATH]
+                                     [--input-format json|compact] [--public-output PATH] [--output PATH]
        stwo-circuit-oracle convert-input --prover-input PATH --output PATH
+       stwo-circuit-oracle validate-applicative-input --program-input PATH [--output PATH]
        stwo-circuit-oracle prove-cairo --prover-input PATH --params PATH [--proving-root DIR]
                                    [--lifting-size-policy POLICY] [--proof-output PATH] [--output PATH]";
 
@@ -68,6 +70,7 @@ fn main() -> Result<()> {
     let (mut inputs_output, mut proof, mut request) = (None, None, None);
     let mut program_input = None;
     let mut input_format = None;
+    let mut public_output = None;
     while let Some(flag) = values.next() {
         let value = values
             .next()
@@ -90,6 +93,7 @@ fn main() -> Result<()> {
             "--program" => &mut program,
             "--program-input" => &mut program_input,
             "--input-format" => &mut input_format,
+            "--public-output" => &mut public_output,
             "--lifting-size-policy" => &mut lifting_size_policy,
             "--inputs-output" => &mut inputs_output,
             "--proof" => &mut proof,
@@ -161,6 +165,12 @@ fn main() -> Result<()> {
                 Some(value) if value == std::path::Path::new("json") => false,
                 _ => bail!("--input-format must be json or compact"),
             },
+            public_output.as_deref(),
+        )?,
+        "validate-applicative-input" => applicative_input::run(
+            program_input
+                .as_deref()
+                .context("validate-applicative-input requires --program-input")?,
         )?,
         "convert-input" => {
             if proving_root.is_some()

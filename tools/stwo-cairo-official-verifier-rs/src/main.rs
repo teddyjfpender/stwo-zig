@@ -21,6 +21,16 @@ enum Command {
         format: ProofFormat,
         result: PathBuf,
     },
+    InspectBlake2sProofPublicStatement {
+        proof: PathBuf,
+        format: ProofFormat,
+        result: PathBuf,
+    },
+    InspectBlake2sProofPublicOutput {
+        proof: PathBuf,
+        format: ProofFormat,
+        result: PathBuf,
+    },
     SerializeCairo {
         proof: PathBuf,
         format: ProofFormat,
@@ -90,6 +100,30 @@ fn run() -> anyhow::Result<ExitCode> {
             result,
         } => {
             write_json_new(&result, &inspect_blake2s_proof_claim(&proof, format)?)?;
+            Ok(ExitCode::SUCCESS)
+        }
+        Command::InspectBlake2sProofPublicStatement {
+            proof,
+            format,
+            result,
+        } => {
+            write_json_new(
+                &result,
+                &stwo_cairo_official_verifier::inspect_blake2s_proof_public_statement(
+                    &proof, format,
+                )?,
+            )?;
+            Ok(ExitCode::SUCCESS)
+        }
+        Command::InspectBlake2sProofPublicOutput {
+            proof,
+            format,
+            result,
+        } => {
+            write_json_new(
+                &result,
+                &stwo_cairo_official_verifier::inspect_blake2s_proof_public_output(&proof, format)?,
+            )?;
             Ok(ExitCode::SUCCESS)
         }
         Command::SerializeCairo {
@@ -206,7 +240,9 @@ where
                 result: result.ok_or_else(|| anyhow::anyhow!("missing --result"))?,
             })
         }
-        "inspect-blake2s-proof" => {
+        "inspect-blake2s-proof"
+        | "inspect-blake2s-proof-public-statement"
+        | "inspect-blake2s-proof-public-output" => {
             let mut proof = None;
             let mut format = None;
             let mut result = None;
@@ -229,10 +265,27 @@ where
                     _ => anyhow::bail!("unknown option {flag}"),
                 }
             }
-            Ok(Command::InspectBlake2sProof {
-                proof: proof.ok_or_else(|| anyhow::anyhow!("missing --proof"))?,
-                format: format.unwrap_or(ProofFormat::Json),
-                result: result.ok_or_else(|| anyhow::anyhow!("missing --result"))?,
+            let proof = proof.ok_or_else(|| anyhow::anyhow!("missing --proof"))?;
+            let format = format.unwrap_or(ProofFormat::Json);
+            let result = result.ok_or_else(|| anyhow::anyhow!("missing --result"))?;
+            Ok(if command == "inspect-blake2s-proof" {
+                Command::InspectBlake2sProof {
+                    proof,
+                    format,
+                    result,
+                }
+            } else if command == "inspect-blake2s-proof-public-statement" {
+                Command::InspectBlake2sProofPublicStatement {
+                    proof,
+                    format,
+                    result,
+                }
+            } else {
+                Command::InspectBlake2sProofPublicOutput {
+                    proof,
+                    format,
+                    result,
+                }
             })
         }
         "serialize-cairo" => {
