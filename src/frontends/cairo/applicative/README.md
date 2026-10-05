@@ -64,6 +64,9 @@ proved the same adapted input on one H200. Its 2.29 GB JSON transport took
 909 MB canonical compact input reduced that to **8.059 seconds** cold, with
 byte-identical proof output. Compact source preparation fell to 2.785 seconds
 from 20.570 seconds with JSON. A same-input warm repeat took 4.746 seconds.
+Direct `adapt-program --input-format compact` reproduced the converted input
+byte for byte and the same public output; local Cairo execution/adaptation
+took 9.22 seconds on the M5.
 The final proof SHA-256 is
 `c49a6fe9da397a1a545deae90ef3294ba111fb6e9a079112b9dcc7027bafde43`;
 the independent Rust verifier accepted it and all 58,548 public output cells
