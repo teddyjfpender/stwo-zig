@@ -103,6 +103,18 @@ pub const Claims47 = struct {
         plan: *const plan_mod.Plan,
         boundary: *const PublicWireBoundaryV2,
     ) !Summary {
+        const summary = try self.residuals(plan, boundary);
+        for (summary.domain_totals) |value| if (!value.isZero()) return error.DirectLeafRelationNotClosed;
+        if (!summary.framework_total.isZero()) return error.DirectLeafRelationNotClosed;
+        return summary;
+    }
+
+    /// Cold diagnostic. Nonzero residuals are never accepted as a proof.
+    pub fn residuals(
+        self: *const Claims47,
+        plan: *const plan_mod.Plan,
+        boundary: *const PublicWireBoundaryV2,
+    ) !Summary {
         try plan.validate();
         try self.validateRows();
         try boundary.validate();
@@ -117,8 +129,6 @@ pub const Claims47 = struct {
             for (audit.values, 0..) |value, domain| totals[domain] = totals[domain].add(value);
         }
         totals[@intFromEnum(boundary.domain)] = totals[@intFromEnum(boundary.domain)].add(boundary.claimed_sum);
-        for (totals) |value| if (!value.isZero()) return error.DirectLeafRelationNotClosed;
-        if (!framework_total.isZero()) return error.DirectLeafRelationNotClosed;
         return .{ .domain_totals = totals, .framework_total = framework_total, .logical_rows = logical_rows, .event_terms = event_terms };
     }
 };

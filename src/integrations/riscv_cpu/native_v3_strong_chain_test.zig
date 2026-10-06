@@ -7,6 +7,7 @@ const fixture = @import("recursive_segment_v3_native_test_fixture.zig");
 const pinned_ingress = @import("recursive_segment_v3_native_security_ingress.zig");
 const leaf_outer = @import("recursive_segment_v2_leaf_outer.zig");
 const outer_cohort = @import("recursive_segment_v2_outer_cohort.zig");
+const M31 = @import("stwo_core").fields.m31.M31;
 
 const recursion = frontend.recursion;
 const Engine = recursion.engine.ProverEngineForBackend(CpuBackend);
@@ -91,17 +92,133 @@ test "real q193 native child feeds freshly verified q193 local outer" {
     defer prepared.deinit();
     try pinned_ingress.admitPreparedNativeV2(&prepared, pinned_key);
 
+    var cohort = try outer_cohort.Cohort.init(allocator, &prepared);
+    defer cohort.deinit();
+    try diagnoseDirect47(allocator, &prepared, &verified.native.global_metadata, &verified.native.link, &cohort);
+
     const strong_outer = recursion.segment_outer_transaction_v3.ForBackend(CpuBackend);
     const StrongKernel = strong_outer.EngineKernel(outer_cohort.Cohort);
     var strong = try StrongKernel.proveAndVerify(allocator, &prepared);
     defer strong.deinit(allocator);
     try strong.receipt.validate();
     try strong.artifact.validateEncoding();
-    var cohort = try outer_cohort.Cohort.init(allocator, &prepared);
-    defer cohort.deinit();
     try strong.field_snapshot.validateAgainst(cohort.manifest(), &strong.artifact);
     std.debug.print(
         "V3_STRONG_CHAIN native_ns={d} outer_transaction_ns={d} outer_prepare_ns={d} outer_prove_ns={d} outer_serialize_ns={d} outer_destroy_ns={d} outer_verify_ns={d} native_proof_bytes={d} outer_proof_bytes={d} outer_producer_peak_bytes={d} wrapper_proof_created=false\n",
         .{ native_ns, strong.receipt.transaction_ns, strong.receipt.producer_prepare_ns, strong.receipt.prover_ns, strong.receipt.serialize_ns, strong.receipt.producer_destroy_ns, strong.receipt.fresh_verifier_ns, verified.native.proof_bytes.len, strong.artifact.proof_bytes.len, strong.receipt.producer_peak_bytes },
     );
+}
+
+fn diagnoseDirect47(
+    allocator: std.mem.Allocator,
+    prepared: *const leaf_outer.PreparedNativeV2LeafOuter,
+    metadata: *const recursion.segment_leaf_local_authority_v3.MetadataV3,
+    link: *const recursion.segment_leaf_local_verified_link_v3.VerifiedLinkV3,
+    cohort: *outer_cohort.Cohort,
+) !void {
+    const program_mod = recursion.ethereum_leaf_link_program_v3;
+    const hash_mod = recursion.segment_leaf_wrapper_field_hash_witness_v3;
+    const source_air = recursion.air.ethereum_leaf_link_source_v1;
+    const arithmetic_air = recursion.air.ethereum_leaf_link_arithmetic_v1;
+    const arithmetic_witness = recursion.air.ethereum_leaf_link_arithmetic_witness_v1;
+    const direct_rows = recursion.segment_leaf_wrapper_cohort_direct_rows_v4;
+    const candidate = recursion.segment_leaf_wrapper_cohort_candidate_v4;
+    const call_buffer = recursion.segment_leaf_wrapper_cohort_calls_v3;
+    const provider_mod = recursion.segment_leaf_wrapper_cohort_provider_v3;
+    const plan_mod = recursion.segment_leaf_wrapper_roster_direct_v4;
+    var native = try recursion.segment_leaf_wrapper_field_witness_v3.NativeV1.initFromPrepared(allocator, prepared);
+    defer native.deinit();
+    var program = try program_mod.ProgramV3.init(allocator);
+    defer program.deinit();
+    var source = try recursion.segment_leaf_wrapper_source_projection_direct_v3.initFromNative(allocator, &program, prepared, metadata, link, &native);
+    defer source.deinit();
+    const metadata_words = try metadata.identityWords();
+    const link_words = try link.identityWords();
+    var metadata_hash = try hash_mod.HashV1.init(allocator, &metadata_words, recursion.segment_leaf_local_authority_v3.METADATA_ID_DOMAIN, source_air.METADATA_SCOPE, source_air.METADATA_DIGEST_KIND, recursion.ethereum_leaf_link_program_v1.METADATA_HASH_STEP_BASE, try metadata.identity());
+    defer metadata_hash.deinit();
+    var link_hash = try hash_mod.HashV1.init(allocator, &link_words, recursion.segment_leaf_local_verified_link_v3.IDENTITY_DOMAIN, source_air.LINK_SCOPE, source_air.LINK_DIGEST_KIND, recursion.ethereum_leaf_link_program_v1.LINK_HASH_STEP_BASE, link.identity);
+    defer link_hash.deinit();
+    var arithmetic = [_]arithmetic_air.Row{[_]M31{M31.zero()} ** arithmetic_air.LOGICAL_INPUT_COUNT} ** 16;
+    arithmetic[0] = try arithmetic_witness.logicalRow(.entry_root, metadata.entry.continuation_root, false, 0, 0);
+    arithmetic[1] = try arithmetic_witness.logicalRow(.exit_root, metadata.exit.continuation_root, false, 0, 0);
+    arithmetic[2] = try arithmetic_witness.logicalRow(.completion, 0, metadata.completion != null, 0, 0);
+    arithmetic[3] = try arithmetic_witness.logicalRow(.position, 0, false, metadata.global_cycle_start, metadata.local_cycle_count);
+    const base_calls = try cohort.core.completePoseidonCalls();
+    const plan = try plan_mod.Plan.build(allocator, cohort.manifest(), &program, .{
+        .program_words = native.program.words.len,
+        .base_poseidon_calls = base_calls.len,
+    });
+    const parts = [_][]const call_buffer.Call{
+        base_calls, metadata_hash.calls, link_hash.calls, native.program_hash.calls,
+    };
+    var buffer = try call_buffer.Buffer.init(allocator, &parts);
+    defer buffer.deinit();
+    const writer = try provider_mod.Writer.initForDirectPlan(allocator, &plan, &buffer, &parts);
+    var rows = try direct_rows.Rows.init(allocator, &plan, &program, &source, &arithmetic, &native, &metadata_hash, &link_hash);
+    defer rows.deinit();
+    const pp = try allocateDirectTree(allocator, &plan, 0);
+    defer freeDirectTree(allocator, pp);
+    const main = try allocateDirectTree(allocator, &plan, 1);
+    defer freeDirectTree(allocator, main);
+    const interaction = try allocateDirectTree(allocator, &plan, 2);
+    defer freeDirectTree(allocator, interaction);
+    try candidate.fillPreprocessed(allocator, cohort, &plan, &writer, &rows, pp);
+    try candidate.fillMain(allocator, cohort, &plan, &writer, &rows, main);
+    const relations = recursion.air.universal_challenges.UniversalRelations.dummy();
+    const shared = try recursion.air.universal_shared_provider.SharedProviderRelations.init(&relations);
+    const claims = try candidate.fillInteraction(allocator, cohort, &plan, &writer, &rows, &relations, &shared, main, interaction);
+    const boundary = try cohort.publicWireBoundary(&relations);
+    const residuals = try claims.residuals(&plan, &boundary);
+    var nonzero_domains: usize = 0;
+    for (residuals.domain_totals, 0..) |sum, domain| {
+        if (sum.isZero()) continue;
+        nonzero_domains += 1;
+        const limbs = sum.toM31Array();
+        std.debug.print("DIRECT47_RESIDUAL domain={d} limbs={d},{d},{d},{d}\n", .{ domain, limbs[0].toU32(), limbs[1].toU32(), limbs[2].toU32(), limbs[3].toU32() });
+    }
+    std.debug.print("DIRECT47_CANDIDATE claims=47 nonzero_domains={d} framework_zero={} proof_created=false\n", .{ nonzero_domains, residuals.framework_total.isZero() });
+    if (nonzero_domains == 0) _ = try claims.verifyAllDomains(&plan, &boundary);
+}
+
+fn allocateDirectTree(allocator: std.mem.Allocator, plan: *const recursion.segment_leaf_wrapper_roster_direct_v4.Plan, tree: u8) ![][]M31 {
+    const count = switch (tree) {
+        0 => plan.total_preprocessed_columns,
+        1 => plan.total_main_columns,
+        2 => plan.total_interaction_columns,
+        else => return error.InvalidDirectTree,
+    };
+    const columns = try allocator.alloc([]M31, count);
+    var written: usize = 0;
+    errdefer {
+        for (columns[0..written]) |column| allocator.free(column);
+        allocator.free(columns);
+    }
+    for (plan.placements) |maybe_item| {
+        const item = maybe_item.?;
+        const offset = switch (tree) {
+            0 => item.preprocessed_offset,
+            1 => item.main_offset,
+            2 => item.interaction_offset,
+            else => unreachable,
+        };
+        const n = switch (tree) {
+            0 => item.geometry.preprocessed_columns,
+            1 => item.geometry.main_columns,
+            2 => item.geometry.interaction_columns,
+            else => unreachable,
+        };
+        if (offset != written) return error.InvalidDirectTree;
+        const rows = @as(usize, 1) << @intCast(item.geometry.log_size);
+        for (columns[offset..][0..n]) |*column| {
+            column.* = try allocator.alloc(M31, rows);
+            @memset(column.*, M31.zero());
+            written += 1;
+        }
+    }
+    return columns;
+}
+
+fn freeDirectTree(allocator: std.mem.Allocator, columns: [][]M31) void {
+    for (columns) |column| allocator.free(column);
+    allocator.free(columns);
 }

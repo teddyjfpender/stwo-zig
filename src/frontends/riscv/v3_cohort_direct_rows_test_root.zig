@@ -8,4 +8,5 @@ test "direct 47-row appended writer compiles all typed row paths" {
 test {
     _ = direct;
     _ = @import("recursion/segment_leaf_wrapper_cohort_closure_v4.zig");
+    _ = @import("recursion/segment_leaf_wrapper_cohort_candidate_v4.zig");
 }
