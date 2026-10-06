@@ -187,6 +187,12 @@ pub fn build(b: *std.Build) void {
     });
     b.step("test-v6-appended-fixed-rows", "Check verifier-owned preprocessing for direct rows 39 through 49")
         .dependOn(&b.addRunArtifact(v6_appended_tests).step);
+    const v6_base_fixed_tests = b.addTest(.{
+        .root_module = v3_rows_root,
+        .filters = &.{"V6 base fixed"},
+    });
+    b.step("test-v6-base-fixed-rows", "Check independent V6 control, inactive, provider and byte-table preprocessing")
+        .dependOn(&b.addRunArtifact(v6_base_fixed_tests).step);
 
     const universal_root = b.createModule(.{
         .root_source_file = b.path("universal_typed_component_proof_test.zig"),
