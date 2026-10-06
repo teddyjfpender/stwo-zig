@@ -223,6 +223,12 @@ pub fn build(b: *std.Build) void {
     });
     b.step("test-v6-local-witness", "Check schema-2 child schedule and witness compatibility")
         .dependOn(&b.addRunArtifact(v6_local_witness_tests).step);
+    const v6_composition_control_fixed_tests = b.addTest(.{
+        .root_module = v3_rows_root,
+        .filters = &.{"V6 row19 physical columns"},
+    });
+    b.step("test-v6-composition-control-fixed", "Check verifier-owned V6 row-19 physical preprocessing")
+        .dependOn(&b.addRunArtifact(v6_composition_control_fixed_tests).step);
     const v6_transcript_fixed_tests = b.addTest(.{
         .root_module = v3_rows_root,
         .filters = &.{"V6 transcript fixed schedule matches executed V2"},
