@@ -21,7 +21,7 @@ FIELDS = (
     "v6_owner_or_move",
     "proof_obligation",
 )
-KNOWN_VALUE_MOVES = {4, 5, 42}
+KNOWN_VALUE_MOVES = {5, 42}
 CLASSIFICATIONS = {"template_rebuild", "move_leaf_values", "fixed", "inert"}
 
 
@@ -45,6 +45,8 @@ def check_inventory() -> list[dict[str, str]]:
     for index in KNOWN_VALUE_MOVES:
         if rows[index]["classification"] != "move_leaf_values":
             raise ValueError(f"known leaf-dependent row {index} lost its move gate")
+    if rows[4]["classification"] != "template_rebuild":
+        raise ValueError("row 4 must retain its independently rebuilt fixed schedule")
     if rows[34]["component"] != "poseidon2" or rows[49]["component"] != "local_receipt_hash":
         raise ValueError("V6 roster boundary changed")
     return rows

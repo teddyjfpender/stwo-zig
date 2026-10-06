@@ -23,6 +23,7 @@ const typed = @import("universal_typed_component.zig");
 const native_schedule = @import("verifier_schedule.zig");
 const instruction_template = @import("../transcript_instruction_template_v6.zig");
 const word_template = @import("../transcript_program_v2_template_words_v6.zig");
+const frame_template = @import("../transcript_word_template_v6.zig");
 const wrapper_profile = @import("../segment_leaf_wrapper_protocol_direct_v4.zig");
 
 pub const FORMAT_VERSION: u16 = 6;
@@ -50,6 +51,7 @@ pub const TemplateShapeV6 = struct {
     native_instruction_schedule_id: [32]u8,
     /// Independently rebuilt complete row-42 fixed columns, including padding.
     row42_preprocessed_id: [32]u8,
+    row4_preprocessed_id: [32]u8,
     /// Full shape-compiled row42 fixed columns; unlike the currently active
     /// V5 schedule this pins every proof-independent ProgramV2 word.
     row42_shape_preprocessed_id: [32]u8,
@@ -102,6 +104,17 @@ pub const TemplateManifestV6 = struct {
         );
         if (shape.program_words != native_instructions.canonical_program_word_count)
             return error.NativeProgramWordCountMismatchV6;
+        var row4_template = try frame_template.Template.buildFromAdmittedShape(
+            allocator,
+            native_plan,
+            native_wire_word_count,
+            component_descs,
+            infra_descs,
+            native_lookup_enabled,
+        );
+        defer row4_template.deinit();
+        const row4_capacity = try std.math.ceilPowerOfTwo(usize, @max(row4_template.rows.len, 16));
+        const row4_log_size: u32 = @intCast(std.math.log2_int(usize, row4_capacity));
 
         const program_calls = try std.math.divCeil(usize, shape.program_words + 1, hash_witness.RATE);
         const base_calls = v4.PoseidonCalls{
@@ -134,7 +147,7 @@ pub const TemplateManifestV6 = struct {
                 49 => v5.HashAdapter.manifestGeometry(.local_receipt_hash, child_layout.placements[2].log_size),
                 else => unreachable,
             };
-            if (row == 4) g = manualGeometry(4, g.log_size, frame_air);
+            if (row == 4) g = manualGeometry(4, @max(g.log_size, row4_log_size), frame_air);
             if (row == 34) g.log_size = provider_log;
             if (row == 36) g = manualGeometry(36, g.log_size, statement_air);
             try g.validateForComponentCount(COMPONENT_COUNT);
@@ -166,6 +179,7 @@ pub const TemplateManifestV6 = struct {
                 .native_lookup_enabled = native_instructions.lookup_enabled,
                 .native_instruction_schedule_id = native_instructions.schedule_id,
                 .row42_preprocessed_id = try row42PreprocessedShaId(shape.program_words),
+                .row4_preprocessed_id = try row4_template.preprocessedId(placements[4].geometry.log_size),
                 .row42_shape_preprocessed_id = try row42ShapePreprocessedShaId(
                     allocator,
                     native_plan,
@@ -316,6 +330,7 @@ fn templateSeal(value: *const TemplateManifestV6) [32]u8 {
     hashInt(&hash, u8, @intFromBool(value.shape.native_lookup_enabled));
     hash.update(&value.shape.native_instruction_schedule_id);
     hash.update(&value.shape.row42_preprocessed_id);
+    hash.update(&value.shape.row4_preprocessed_id);
     hash.update(&value.shape.row42_shape_preprocessed_id);
     for (value.placements) |placement| {
         const g = placement.geometry;
@@ -369,6 +384,9 @@ test "V6 template geometry is rebuilt without either leaf V2 manifest seal" {
     const shape = v4.Shape{ .program_words = native.canonical_program_word_count, .base_poseidon_calls = 1193 };
     const template = try TemplateManifestV6.build(allocator, &base_catalog, shape, &child_fixture.components, &child_fixture.infra, &plans.vm, 128, false);
     try template.validateAgainst(allocator, &base_catalog, shape, &child_fixture.components, &child_fixture.infra, &plans.vm, 128, false);
+    var tampered_row4 = template;
+    tampered_row4.shape.row4_preprocessed_id[0] ^= 1;
+    try std.testing.expectError(error.InvalidTemplateManifestV6, tampered_row4.validate());
 
     const first = try v2.assemble(&base_catalog, fixture.authorityIds());
     var changed_ids = fixture.authorityIds();
@@ -385,6 +403,10 @@ test "V6 template geometry is rebuilt without either leaf V2 manifest seal" {
     const second_v5 = try v5.Plan.build(allocator, &second, &link, shape, &child, &child_fixture.components, &child_fixture.infra);
     try std.testing.expect(!std.meta.eql(first_v5.seal, second_v5.seal));
     for (template.placements, 0..) |placement, row| {
+        if (row == 4) {
+            try std.testing.expect(placement.geometry.log_size >= first_v5.placements[row].?.geometry.log_size);
+            continue;
+        }
         try std.testing.expect(std.meta.eql(placement, first_v5.placements[row].?));
         try std.testing.expect(std.meta.eql(placement, second_v5.placements[row].?));
     }

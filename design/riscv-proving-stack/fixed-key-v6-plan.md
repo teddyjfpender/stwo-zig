@@ -21,9 +21,10 @@ the actual preprocessed columns can still contain leaf values.
 
 The highest-confidence leaf-value leaks are:
 
-* Row 4's V2 `constant_value` is copied from `frame.words` for non-payload
-  words. The V4 Tree0 export changes lookup behavior but does not turn every
-  such value into a fixed template constant.
+* Row 4's V2 `constant_value` initially required an origin audit. The
+  versioned shape compiler now shows its non-payload words are deterministic
+  draw counters/tags or padding; payload values remain in main. Its full
+  padded fixed columns and Tree0 selector are rebuilt independently.
 * Row 5's `constantPayload(.public_geometry, ...)` path places geometry and
   lookup identity words behind a fixed-value mask. Some fields are truly shape
   data; others are statement/activation identities. They need an explicit
@@ -116,6 +117,10 @@ both old V5 plan/key identities change, but the independently rebuilt 50-row
 geometry and V7 candidate key remain equal for a fixed test root. It also
 rejects changed shape, row-42 word count, and lookup mode. This is a structural
 key-invariance test, **not** evidence that two real leaves have the same full
-preprocessed root. Rows 4/5 still need their value migration; every remaining
-template-rebuild row in the TSV must be independently written and compared
+preprocessed root. Row 4's candidate schedule is now compiled from the native
+instruction plan and proved invariant across two executions with different
+Tree0 commitments. V6 increases row-4 geometry when that schedule exceeds the
+old synthetic catalog; its fixed-column digest is in the template seal. Row 5
+still needs its value-origin audit, and every remaining template-rebuild row
+in the TSV must be independently written and compared
 before a production root or VPK7 is admitted.
