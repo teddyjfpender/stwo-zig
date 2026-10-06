@@ -66,6 +66,20 @@ pub const Views = struct {
             return error.WrongV3Tree;
         try cohort.fillMainInto(cohort.manifest(), self.columns);
     }
+
+    /// Returns the V2 owner's generated interaction receipt so the direct
+    /// cohort can extract each reused row's claimed sum and domain audit.
+    /// Old row 34 is generated into scratch and must be discarded.
+    pub fn fillInteractionFromV2(
+        self: *Views,
+        cohort: anytype,
+        relations: anytype,
+        provider_challenges: anytype,
+    ) anyerror!@typeInfo(@TypeOf(cohort.fillInteractionInto(cohort.manifest(), relations, provider_challenges, self.columns))).error_union.payload {
+        if (self.tree != manifest_mod.INTERACTION_TREE_INDEX)
+            return error.WrongV3Tree;
+        return cohort.fillInteractionInto(cohort.manifest(), relations, provider_challenges, self.columns);
+    }
 };
 
 fn initMapped(
@@ -188,6 +202,11 @@ test "direct leaf views reuse V2 rows without copying old row34" {
             columns[10][0] = M31.fromCanonical(17);
             columns[REPLACED_ROW][0] = M31.fromCanonical(23);
         }
+        fn fillInteractionInto(_: *@This(), _: u8, _: u8, _: u8, columns: [][]M31) !u32 {
+            columns[0][0] = M31.fromCanonical(41);
+            columns[REPLACED_ROW * 4][0] = M31.fromCanonical(43);
+            return 47;
+        }
     };
     var mock = MockOwner{};
     try views.fillMainFromV2(&mock);
@@ -195,6 +214,7 @@ test "direct leaf views reuse V2 rows without copying old row34" {
     try std.testing.expectEqual(@as(u32, 23), views.old_provider_scratch[0].toU32());
     try std.testing.expect(destination[REPLACED_ROW][0].isZero());
     try std.testing.expectError(error.WrongV3Tree, views.fillPreprocessedFromV2(&mock));
+    try std.testing.expectError(error.WrongV3Tree, views.fillInteractionFromV2(&mock, @as(u8, 0), @as(u8, 0)));
 
     const pp_destination = try allocator.alloc([]M31, BASE_ROWS);
     defer allocator.free(pp_destination);
@@ -210,6 +230,20 @@ test "direct leaf views reuse V2 rows without copying old row34" {
     try std.testing.expectEqual(@as(u32, 31), pp_destination[10][0].toU32());
     try std.testing.expect(pp_destination[REPLACED_ROW][0].isZero());
     try std.testing.expectEqual(@as(u32, 37), pp_views.old_provider_scratch[0].toU32());
+
+    const io_destination = try allocator.alloc([]M31, BASE_ROWS * 4);
+    defer allocator.free(io_destination);
+    for (io_destination, 0..) |*column, i| {
+        column.* = try allocator.alloc(M31, if (i / 4 == REPLACED_ROW) 64 else 16);
+        @memset(column.*, M31.zero());
+    }
+    defer for (io_destination) |column| allocator.free(column);
+    var io_views = try initMapped(allocator, &source, &target, io_destination, manifest_mod.INTERACTION_TREE_INDEX);
+    defer io_views.deinit();
+    try std.testing.expectEqual(@as(u32, 47), try io_views.fillInteractionFromV2(&mock, @as(u8, 0), @as(u8, 0)));
+    try std.testing.expectEqual(@as(u32, 41), io_destination[0][0].toU32());
+    try std.testing.expectEqual(@as(u32, 43), io_views.old_provider_scratch[0].toU32());
+    try std.testing.expect(io_destination[REPLACED_ROW * 4][0].isZero());
     target[12].?.geometry.log_size += 1;
     try std.testing.expectError(error.V3BaseViewGeometryMismatch, initMapped(allocator, &source, &target, destination, manifest_mod.MAIN_TREE_INDEX));
 }
