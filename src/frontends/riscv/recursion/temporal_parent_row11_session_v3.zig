@@ -21,6 +21,14 @@ pub const CIRCUIT_ID: u32 = 0x5633_0011; // V3 row 11, separate from legacy 11.
 pub const LOG_SIZE: u32 = 12;
 pub const TRACE_SIZE: usize = 1 << LOG_SIZE;
 pub const PARENT_PROOF_AVAILABLE = false;
+pub const PREPROCESSED_DIGEST: [32]u8 = blk: {
+    var result: [32]u8 = undefined;
+    _ = std.fmt.hexToBytes(
+        &result,
+        "efc251be69de0a37843fd8ddca7be8c10617aa6cefe517f051ddfed0dc4413ac",
+    ) catch @compileError("invalid V3 temporal row-11 preprocessed digest");
+    break :blk result;
+};
 
 pub const SessionV3 = struct {
     allocator: std.mem.Allocator,
@@ -42,6 +50,8 @@ pub const SessionV3 = struct {
         if (preprocessed.log_size != LOG_SIZE or
             preprocessed.rows.len != graph.INPUT_COUNT)
             return error.TemporalRow11GeometryMismatch;
+        if (!std.mem.eql(u8, &preprocessed.authority_digest, &PREPROCESSED_DIGEST))
+            return error.TemporalRow11AuthorityMismatch;
         var definition = try row11_air.build(allocator);
         defer definition.deinit();
         const binding = try row11.Binding.canonical(&definition);
@@ -70,6 +80,8 @@ pub const SessionV3 = struct {
             self.preprocessed.log_size != LOG_SIZE or
             self.preprocessed.rows.len != graph.INPUT_COUNT)
             return error.TemporalRow11GeometryMismatch;
+        if (!std.mem.eql(u8, &self.preprocessed.authority_digest, &PREPROCESSED_DIGEST))
+            return error.TemporalRow11AuthorityMismatch;
         var expected = try row11.Preprocessed.init(
             self.allocator,
             CIRCUIT_ID,
@@ -99,6 +111,10 @@ pub const SessionV3 = struct {
         right: *const interval.IntervalV3,
         workspace: *WorkspaceV3,
     ) !void {
+        // A self-rehashed but altered row array must never reach the trace
+        // writer, even when this long-lived session is reused across nodes.
+        if (!std.mem.eql(u8, &self.preprocessed.authority_digest, &PREPROCESSED_DIGEST))
+            return error.TemporalRow11AuthorityMismatch;
         try pair.validateAgainst(left, right);
         if (workspace.inputs.len != graph.INPUT_COUNT or
             workspace.values.len != graph.NODE_COUNT)

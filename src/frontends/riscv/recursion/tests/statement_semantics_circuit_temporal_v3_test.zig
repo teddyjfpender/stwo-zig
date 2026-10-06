@@ -142,3 +142,50 @@ test "V3 temporal row-11 session reuses pinned graph and rejects self-rehashed r
     session.preprocessed.rows[0].circuit_id += 1;
     try std.testing.expectError(error.AuthorityMismatch, session.validate());
 }
+
+test "V3 temporal row-11 rejects a validly rehashed foreign input mapping" {
+    var session = try session_mod.SessionV3.init(std.testing.allocator);
+    defer session.deinit();
+    var workspace = try session_mod.WorkspaceV3.init(std.testing.allocator);
+    defer workspace.deinit();
+    var trace = try session_mod.TraceV3.init(std.testing.allocator);
+    defer trace.deinit();
+    const metadata = try fixture.threeLeaves();
+    const first = try interval.IntervalV3.fromLeaf(&metadata[0]);
+    const second = try interval.IntervalV3.fromLeaf(&metadata[1]);
+    const left = try interval.IntervalV3.fold(&first, &second);
+    const right = try interval.IntervalV3.fromLeaf(&metadata[2]);
+    const pair = try interval.PairPreflightV3.init(&left, &right);
+
+    const bindings = try std.testing.allocator.dupe(row11.InputBinding, session.circuit.inputBindings());
+    defer std.testing.allocator.free(bindings);
+    var changed = false;
+    for (bindings) |*binding| {
+        switch (binding.source) {
+            .statement => |source| {
+                if (source.scope == @import("../air/statement_input.zig").LEFT_STATEMENT_SCOPE and
+                    source.index == span.canonical_layout.protocol_start)
+                {
+                    binding.source = .{ .statement = .{
+                        .scope = source.scope,
+                        .index = source.index + 1,
+                        .active_kinds = source.active_kinds,
+                    } };
+                    changed = true;
+                    break;
+                }
+            },
+            else => {},
+        }
+    }
+    try std.testing.expect(changed);
+    var forged = try row11.Preprocessed.init(std.testing.allocator, session_mod.CIRCUIT_ID, bindings);
+    try forged.validate();
+    try std.testing.expect(!std.mem.eql(u8, &forged.authority_digest, &session_mod.PREPROCESSED_DIGEST));
+    session.preprocessed.deinit();
+    session.preprocessed = forged;
+    try std.testing.expectError(
+        error.TemporalRow11AuthorityMismatch,
+        session.fillTrace(&pair, &left, &right, &workspace, &trace),
+    );
+}
