@@ -1027,6 +1027,28 @@ test "native V2 proves a rebased leaf-local V3 segment without widening the AIR"
     substituted.authenticated_wire_id[0] ^= 1;
     try std.testing.expectError(error.SourceMutation, leased_link.validateAgainst(&global_metadata, &substituted, &capture.receipt));
     try projection.validateAgainst(&right_global);
+
+    // The reusable ingress must perform the same real prove, serialization,
+    // producer destruction, fresh verification and global-position join.
+    const PoseidonEngine = frontend.recursion.engine.ProverEngineForBackend(CpuBackend);
+    var admitted = try @import("recursive_segment_v3_native_ingress.zig").proveAndVerify(
+        PoseidonEngine,
+        allocator,
+        &right_global,
+        test_config,
+        digest("native-local-v3-session"),
+    );
+    defer admitted.deinit();
+    try admitted.validate();
+    try std.testing.expect(admitted.proof_bytes.len != 0);
+    try std.testing.expectEqualDeep(global_metadata, admitted.global_metadata);
+    try std.testing.expectEqualDeep(link.global_metadata_id, admitted.link.global_metadata_id);
+    var shifted = admitted.global_metadata;
+    shifted.global_cycle_start += 1;
+    try std.testing.expectError(
+        error.GlobalPositionMismatch,
+        admitted.link.validateAgainst(&shifted, &admitted.capture.public_data.data, &admitted.capture.receipt),
+    );
 }
 
 fn leafStatement(

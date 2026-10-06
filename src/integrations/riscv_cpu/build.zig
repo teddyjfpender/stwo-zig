@@ -96,6 +96,13 @@ pub fn build(b: *std.Build) void {
     b.step("test-segment-v2-native-proof", "Prove and independently verify real nonfinal and final SegmentV2 shards")
         .dependOn(&b.addRunArtifact(segment_tests).step);
 
+    const leaf_local_v3_tests = b.addTest(.{
+        .root_module = segment_root,
+        .filters = &.{"native V2 proves a rebased leaf-local V3 segment without widening the AIR"},
+    });
+    b.step("test-segment-v3-native-ingress", "Prove a leaf-local V3 segment and freshly verify its global link")
+        .dependOn(&b.addRunArtifact(leaf_local_v3_tests).step);
+
     const universal_root = b.createModule(.{
         .root_source_file = b.path("universal_typed_component_proof_test.zig"),
         .target = target,
