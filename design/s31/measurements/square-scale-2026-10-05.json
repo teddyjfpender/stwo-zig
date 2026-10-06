@@ -1,0 +1,367 @@
+{
+  "schema": "s31-cairo-scale-2026-10-05",
+  "host": "Apple M5 Max, macOS arm64",
+  "zig_version": "0.15.2",
+  "scarb_version": "2.18.0",
+  "build_mode": "ReleaseFast for Zig, Scarb dev for Cairo executable",
+  "method": "Five separate process runs per size after builds. S31 timing surrounds the circuit prover call and separately reports total through native verification. Cairo prover timing comes from the stwo-cairo-cpu report; VM adapter execution is outside the reported prove time. Cairo preprocessing cache was enabled. Both native verifiers accepted, and generated S31 verifiers rejected changed public words and corrupted proofs.",
+  "cases": [
+    {
+      "schema": "s31-cairo-scale-v0",
+      "rounds": 256,
+      "public_words": [
+        1,
+        2,
+        3,
+        65535,
+        1381993681,
+        1163620247,
+        833240539,
+        2139095920
+      ],
+      "trials": 5,
+      "fri_visible_settings": {
+        "pow_bits": 26,
+        "log_blowup_factor": 1,
+        "log_last_layer_degree_bound": 0,
+        "n_queries": 70,
+        "fold_step": 1
+      },
+      "s31": {
+        "raw_field_rows": 829,
+        "padded_field_rows": 1024,
+        "raw_blake_g_rows": 0,
+        "padded_blake_g_rows": 16,
+        "binary_proof_bytes": 799464,
+        "prove_seconds": [
+          0.652,
+          0.65,
+          0.67,
+          0.648,
+          0.65
+        ],
+        "median_prove_seconds": 0.65,
+        "median_total_through_verification_seconds": 0.884,
+        "native_verified": true,
+        "changed_public_rejected": true,
+        "tampered_proof_rejected": true
+      },
+      "cairo": {
+        "proving_profile": "official-live-cairo-canonical-small",
+        "vm_steps": 81019,
+        "json_proof_bytes_last_trial": 2067945,
+        "gzip_json_proof_bytes_last_trial": 801435,
+        "prove_seconds": [
+          0.734351291,
+          0.693062167,
+          0.690710334,
+          0.694693875,
+          0.691317709
+        ],
+        "median_prove_seconds": 0.693062167,
+        "median_request_through_verification_seconds": 0.729065583,
+        "median_peak_physical_footprint_bytes": 769001032,
+        "native_verified": true
+      },
+      "comparison_limit": "Different proof protocols, verifier implementations, encodings, and preprocessing policies; one host; stochastic PoW."
+    },
+    {
+      "schema": "s31-cairo-scale-v0",
+      "rounds": 1024,
+      "public_words": [
+        1,
+        2,
+        3,
+        65535,
+        199098280,
+        1395136049,
+        648701857,
+        486194923
+      ],
+      "trials": 5,
+      "fri_visible_settings": {
+        "pow_bits": 26,
+        "log_blowup_factor": 1,
+        "log_last_layer_degree_bound": 0,
+        "n_queries": 70,
+        "fold_step": 1
+      },
+      "s31": {
+        "raw_field_rows": 2365,
+        "padded_field_rows": 4096,
+        "raw_blake_g_rows": 0,
+        "padded_blake_g_rows": 16,
+        "binary_proof_bytes": 799464,
+        "prove_seconds": [
+          0.749,
+          0.733,
+          0.739,
+          0.742,
+          0.739
+        ],
+        "median_prove_seconds": 0.739,
+        "median_total_through_verification_seconds": 0.971,
+        "native_verified": true,
+        "changed_public_rejected": true,
+        "tampered_proof_rejected": true
+      },
+      "cairo": {
+        "proving_profile": "official-live-cairo-canonical-small",
+        "vm_steps": 323707,
+        "json_proof_bytes_last_trial": 2092195,
+        "gzip_json_proof_bytes_last_trial": 809748,
+        "prove_seconds": [
+          0.690181125,
+          0.695858541,
+          0.700778417,
+          0.719068459,
+          0.699003333
+        ],
+        "median_prove_seconds": 0.699003333,
+        "median_request_through_verification_seconds": 0.781109333,
+        "median_peak_physical_footprint_bytes": 1012041480,
+        "native_verified": true
+      },
+      "comparison_limit": "Different proof protocols, verifier implementations, encodings, and preprocessing policies; one host; stochastic PoW."
+    },
+    {
+      "schema": "s31-cairo-scale-v0",
+      "rounds": 4096,
+      "public_words": [
+        1,
+        2,
+        3,
+        65535,
+        1981619246,
+        1961888189,
+        286524246,
+        17089457
+      ],
+      "trials": 5,
+      "fri_visible_settings": {
+        "pow_bits": 26,
+        "log_blowup_factor": 1,
+        "log_last_layer_degree_bound": 0,
+        "n_queries": 70,
+        "fold_step": 1
+      },
+      "s31": {
+        "raw_field_rows": 8509,
+        "padded_field_rows": 16384,
+        "raw_blake_g_rows": 0,
+        "padded_blake_g_rows": 16,
+        "binary_proof_bytes": 799464,
+        "prove_seconds": [
+          0.491,
+          0.491,
+          0.494,
+          0.495,
+          0.5
+        ],
+        "median_prove_seconds": 0.494,
+        "median_total_through_verification_seconds": 0.733,
+        "native_verified": true,
+        "changed_public_rejected": true,
+        "tampered_proof_rejected": true
+      },
+      "cairo": {
+        "proving_profile": "official-live-cairo-canonical-small",
+        "vm_steps": 1294459,
+        "json_proof_bytes_last_trial": 2088375,
+        "gzip_json_proof_bytes_last_trial": 808142,
+        "prove_seconds": [
+          1.094496209,
+          1.108341792,
+          1.096216833,
+          1.112975666,
+          1.115701708
+        ],
+        "median_prove_seconds": 1.108341792,
+        "median_request_through_verification_seconds": 1.366853167,
+        "median_peak_physical_footprint_bytes": 1991854672,
+        "native_verified": true
+      },
+      "comparison_limit": "Different proof protocols, verifier implementations, encodings, and preprocessing policies; one host; stochastic PoW."
+    },
+    {
+      "schema": "s31-cairo-scale-v0",
+      "rounds": 8192,
+      "public_words": [
+        1,
+        2,
+        3,
+        65535,
+        1928313700,
+        388785291,
+        778380315,
+        271094746
+      ],
+      "trials": 5,
+      "fri_visible_settings": {
+        "pow_bits": 26,
+        "log_blowup_factor": 1,
+        "log_last_layer_degree_bound": 0,
+        "n_queries": 70,
+        "fold_step": 1
+      },
+      "s31": {
+        "raw_field_rows": 16701,
+        "padded_field_rows": 32768,
+        "raw_blake_g_rows": 0,
+        "padded_blake_g_rows": 16,
+        "binary_proof_bytes": 799464,
+        "prove_seconds": [
+          0.427,
+          0.436,
+          0.433,
+          0.436,
+          0.444
+        ],
+        "median_prove_seconds": 0.436,
+        "median_total_through_verification_seconds": 0.675,
+        "native_verified": true,
+        "changed_public_rejected": true,
+        "tampered_proof_rejected": true,
+        "one_run_peak_physical_footprint_bytes": 1026000336
+      },
+      "cairo": {
+        "proving_profile": "official-live-cairo-canonical-small",
+        "vm_steps": 2588795,
+        "json_proof_bytes_last_trial": 2075134,
+        "gzip_json_proof_bytes_last_trial": 803237,
+        "prove_seconds": [
+          1.66592975,
+          1.711943958,
+          1.69584575,
+          1.697843833,
+          1.734727625
+        ],
+        "median_prove_seconds": 1.697843833,
+        "median_request_through_verification_seconds": 2.20034275,
+        "median_peak_physical_footprint_bytes": 3646180832,
+        "native_verified": true
+      },
+      "comparison_limit": "Different proof protocols, verifier implementations, encodings, and preprocessing policies; one host; stochastic PoW."
+    },
+    {
+      "schema": "s31-cairo-scale-v0",
+      "rounds": 16384,
+      "public_words": [
+        1,
+        2,
+        3,
+        65535,
+        1715300190,
+        2129153027,
+        2087974439,
+        1620009801
+      ],
+      "trials": 5,
+      "fri_visible_settings": {
+        "pow_bits": 26,
+        "log_blowup_factor": 1,
+        "log_last_layer_degree_bound": 0,
+        "n_queries": 70,
+        "fold_step": 1
+      },
+      "s31": {
+        "raw_field_rows": 33085,
+        "padded_field_rows": 65536,
+        "raw_blake_g_rows": 0,
+        "padded_blake_g_rows": 16,
+        "binary_proof_bytes": 799464,
+        "prove_seconds": [
+          0.609,
+          0.607,
+          0.61,
+          0.636,
+          0.621
+        ],
+        "median_prove_seconds": 0.61,
+        "median_total_through_verification_seconds": 0.863,
+        "native_verified": true,
+        "changed_public_rejected": true,
+        "tampered_proof_rejected": true
+      },
+      "cairo": {
+        "vm_steps": 5177467,
+        "json_proof_bytes_last_trial": 2275742,
+        "gzip_json_proof_bytes_last_trial": 879644,
+        "prove_seconds": [
+          5.612482625,
+          3.990671041,
+          4.073614542,
+          4.0997875,
+          4.109585417
+        ],
+        "median_prove_seconds": 4.0997875,
+        "median_request_through_verification_seconds": 5.099851625,
+        "median_peak_physical_footprint_bytes": 12640397248,
+        "native_verified": true,
+        "proving_profile": "official-live-cairo-canonical"
+      },
+      "comparison_limit": "Different proof protocols, verifier implementations, encodings, and preprocessing policies; one host; stochastic PoW."
+    },
+    {
+      "schema": "s31-cairo-scale-v0",
+      "rounds": 32768,
+      "public_words": [
+        1,
+        2,
+        3,
+        65535,
+        106881715,
+        253417293,
+        2095035715,
+        1845219098
+      ],
+      "trials": 5,
+      "fri_visible_settings": {
+        "pow_bits": 26,
+        "log_blowup_factor": 1,
+        "log_last_layer_degree_bound": 0,
+        "n_queries": 70,
+        "fold_step": 1
+      },
+      "s31": {
+        "raw_field_rows": 65853,
+        "padded_field_rows": 131072,
+        "raw_blake_g_rows": 0,
+        "padded_blake_g_rows": 16,
+        "binary_proof_bytes": 799464,
+        "prove_seconds": [
+          0.521,
+          0.537,
+          0.552,
+          0.586,
+          0.564
+        ],
+        "median_prove_seconds": 0.552,
+        "median_total_through_verification_seconds": 0.813,
+        "native_verified": true,
+        "changed_public_rejected": true,
+        "tampered_proof_rejected": true,
+        "one_run_peak_physical_footprint_bytes": 1067353552
+      },
+      "cairo": {
+        "vm_steps": 10354811,
+        "json_proof_bytes_last_trial": 2413140,
+        "gzip_json_proof_bytes_last_trial": 929448,
+        "prove_seconds": [
+          6.58905575,
+          6.6405315,
+          6.754526625,
+          6.812596917,
+          6.901700542
+        ],
+        "median_prove_seconds": 6.754526625,
+        "median_request_through_verification_seconds": 8.66741425,
+        "median_peak_physical_footprint_bytes": 18946783680,
+        "native_verified": true,
+        "proving_profile": "official-live-cairo-canonical"
+      },
+      "comparison_limit": "Different proof protocols, verifier implementations, encodings, and preprocessing policies; one host; stochastic PoW."
+    }
+  ],
+  "s31_footprint_method": "/usr/bin/time -l peak memory footprint on one additional prove and verify run at 8192 and 32768 rounds"
+}

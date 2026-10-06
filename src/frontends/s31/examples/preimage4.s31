@@ -1,0 +1,9 @@
+// The assertion becomes a circuit equality constraint.
+circuit preimage4(public target: [m31; 4], private secret: [u16; 4])
+    -> public [m31; 4] {
+    let secret_field = m31_from_u16(secret);
+    let square = secret_field .* secret_field;
+    let offset = square + splat<4>(7_m31);
+    assert_eq(offset, target);
+    square
+}

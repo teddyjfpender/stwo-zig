@@ -1,0 +1,16 @@
+// A private path step, with a constrained direction bit and an ordered parent.
+fn parent(left: Digest<Poseidon2>, right: Digest<Poseidon2>) -> Digest<Poseidon2> {
+    poseidon2_pair(left, right)
+}
+
+circuit merkle_path1_poseidon(
+    private leaf: [m31; 8],
+    private sibling: Digest<Poseidon2>,
+    private direction: bit
+) -> public Digest<Poseidon2> {
+    let digest = poseidon2_leaf(leaf);
+    let ordered_left = select(direction, digest, sibling);
+    let ordered_right = select(direction, sibling, digest);
+    let root = parent(ordered_left, ordered_right);
+    root
+}

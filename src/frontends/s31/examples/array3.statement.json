@@ -1,0 +1,16 @@
+{
+  "public_inputs": {
+    "target": [
+      8,
+      11,
+      16
+    ]
+  },
+  "public_outputs": {
+    "square": [
+      1,
+      4,
+      9
+    ]
+  }
+}

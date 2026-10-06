@@ -1,0 +1,616 @@
+{
+  "cairo_adapter_sha256": "d177d579914ce370a5ac6ef5d933c0fd2dddb2a4c52bce20a242285c5b715066",
+  "cairo_prover_sha256": "3dda8ed20fad709d703a2d178124cb3a85b587c24cc8053eddcef22f69c3a9e6",
+  "cases": {
+    "arith4": {
+      "cairo_executable_sha256": "fd1a9ac82b1f08cb98f0efbe524723a3b9dc5ddc8c697ced21fc02b2d5afaa63",
+      "cairo_profile": "official-live-cairo-canonical-small",
+      "cairo_to_s31_prove_ratio": 1.4168911643404238,
+      "cairo_trials": [
+        {
+          "gzip_json_bytes": 801435,
+          "input_and_assets_seconds": 0.0354805,
+          "json_bytes": 2067945,
+          "prove_process_wall_seconds": 0.754387833,
+          "prove_seconds": 0.697408,
+          "prover_peak_physical_bytes": 768951784,
+          "sha256": "161197a9b141c9756e12e1fb2b2e1eb61c156fc6c532974ca1c16805d53f3365",
+          "verify_seconds": 0.004606375,
+          "witness_max_resident_bytes": 34799616,
+          "witness_wall_seconds": 0.048645875
+        },
+        {
+          "gzip_json_bytes": 801435,
+          "input_and_assets_seconds": 0.026355542,
+          "json_bytes": 2067945,
+          "prove_process_wall_seconds": 0.741578709,
+          "prove_seconds": 0.69535925,
+          "prover_peak_physical_bytes": 768804328,
+          "sha256": "161197a9b141c9756e12e1fb2b2e1eb61c156fc6c532974ca1c16805d53f3365",
+          "verify_seconds": 0.004575125,
+          "witness_max_resident_bytes": 34865152,
+          "witness_wall_seconds": 0.024757125
+        },
+        {
+          "gzip_json_bytes": 801435,
+          "input_and_assets_seconds": 0.026723916,
+          "json_bytes": 2067945,
+          "prove_process_wall_seconds": 0.746520625,
+          "prove_seconds": 0.69892925,
+          "prover_peak_physical_bytes": 768296472,
+          "sha256": "161197a9b141c9756e12e1fb2b2e1eb61c156fc6c532974ca1c16805d53f3365",
+          "verify_seconds": 0.00460075,
+          "witness_max_resident_bytes": 35553280,
+          "witness_wall_seconds": 0.026999334
+        }
+      ],
+      "cairo_vm_steps": 81019,
+      "median_cairo_prove_seconds": 0.697408,
+      "median_s31_prove_seconds": 0.49221,
+      "s31_cost": {
+        "assertion_map": [],
+        "canonical_ir_sha256": "afdd4467b3e476e55b583f0f570d0ecbf71687fb4bdf6d3935b1d130ce57cfad",
+        "circuit_hash": "ac88e532c10a8778580d546aa8076b3b0200e4fdd2d3a5f22ca5c19bf28686b7",
+        "finalization": {
+          "m31_to_u32_end": 8,
+          "m31_to_u32_start": 4,
+          "qm31_end": 829,
+          "qm31_start": 533
+        },
+        "fixed_table_max_log_size": 20,
+        "fri": {
+          "fold_step": 1,
+          "last_layer_degree_bound": 1,
+          "log_blowup_factor": 1,
+          "pow_bits": 26,
+          "queries": 70
+        },
+        "input_packing": [
+          {
+            "lanes": 4,
+            "name": "x",
+            "qm31_wires": 1
+          }
+        ],
+        "name": "arith4",
+        "padded": {
+          "blake_g": 16,
+          "eq": 16,
+          "m31_to_u32": 16,
+          "qm31_ops": 1024,
+          "triple_xor": 16
+        },
+        "preprocessed_cells": 4252752,
+        "preprocessed_columns": 45,
+        "preprocessed_root": "d9c7b53a1309ab9013031806b7e0d57e6010fc75b54e1e7b024e0b795dcb1f3c",
+        "program_sha256": "427f523329a26901a8abe7125def9ce185c96d1358db71c59024c623bb1e2441",
+        "public_binding": [
+          {
+            "binding_qm31_end": 529,
+            "binding_qm31_start": 525,
+            "conversion_m31_to_u32_end": 0,
+            "conversion_m31_to_u32_start": 0,
+            "conversion_qm31_end": 518,
+            "conversion_qm31_start": 518,
+            "name": "x",
+            "word_count": 4,
+            "word_start": 0
+          },
+          {
+            "binding_qm31_end": 533,
+            "binding_qm31_start": 529,
+            "conversion_m31_to_u32_end": 4,
+            "conversion_m31_to_u32_start": 0,
+            "conversion_qm31_end": 525,
+            "conversion_qm31_start": 518,
+            "name": "result",
+            "word_count": 4,
+            "word_start": 4
+          }
+        ],
+        "raw": {
+          "blake_g": 0,
+          "eq": 0,
+          "m31_to_u32": 8,
+          "qm31_ops": 829,
+          "triple_xor": 0
+        },
+        "source_map": [
+          {
+            "blake_g_end": 0,
+            "blake_g_start": 0,
+            "canonical_id": 0,
+            "eq_end": 0,
+            "eq_start": 0,
+            "m31_to_u32_end": 0,
+            "m31_to_u32_start": 0,
+            "name": "x",
+            "qm31_end": 6,
+            "qm31_start": 0,
+            "triple_xor_end": 0,
+            "triple_xor_start": 0
+          },
+          {
+            "blake_g_end": 0,
+            "blake_g_start": 0,
+            "canonical_id": 1,
+            "eq_end": 0,
+            "eq_start": 0,
+            "m31_to_u32_end": 0,
+            "m31_to_u32_start": 0,
+            "name": "field",
+            "qm31_end": 6,
+            "qm31_start": 6,
+            "triple_xor_end": 0,
+            "triple_xor_start": 0
+          },
+          {
+            "blake_g_end": 0,
+            "blake_g_start": 0,
+            "canonical_id": 2,
+            "eq_end": 0,
+            "eq_start": 0,
+            "m31_to_u32_end": 0,
+            "m31_to_u32_start": 0,
+            "name": "result",
+            "qm31_end": 518,
+            "qm31_start": 6,
+            "triple_xor_end": 0,
+            "triple_xor_start": 0
+          }
+        ],
+        "trace_log_size": 20
+      },
+      "s31_program_sha256": "427f523329a26901a8abe7125def9ce185c96d1358db71c59024c623bb1e2441",
+      "s31_trials": [
+        {
+          "cold_setup_seconds": 0.048943,
+          "proof_bytes": 434740,
+          "proof_sha256": "1e93eb2211809bd51dab98dba2a9ab62c25a560b030d7a0071ed3cb578eaf084",
+          "prove_process_wall_seconds": 0.607241125,
+          "prove_seconds": 0.490998,
+          "prover_max_resident_bytes": 1015234560,
+          "verifier_max_resident_bytes": 7421952,
+          "verify_wall_seconds": 0.39599275,
+          "witness_seconds": 0.000127
+        },
+        {
+          "cold_setup_seconds": 0.048703,
+          "proof_bytes": 434740,
+          "proof_sha256": "1e93eb2211809bd51dab98dba2a9ab62c25a560b030d7a0071ed3cb578eaf084",
+          "prove_process_wall_seconds": 0.604544792,
+          "prove_seconds": 0.49221,
+          "prover_max_resident_bytes": 1015234560,
+          "verifier_max_resident_bytes": 7421952,
+          "verify_wall_seconds": 0.016803833,
+          "witness_seconds": 0.000139
+        },
+        {
+          "cold_setup_seconds": 0.048573,
+          "proof_bytes": 434740,
+          "proof_sha256": "1e93eb2211809bd51dab98dba2a9ab62c25a560b030d7a0071ed3cb578eaf084",
+          "prove_process_wall_seconds": 0.606540125,
+          "prove_seconds": 0.494761,
+          "prover_max_resident_bytes": 1015234560,
+          "verifier_max_resident_bytes": 7421952,
+          "verify_wall_seconds": 0.015149125,
+          "witness_seconds": 0.000109
+        }
+      ],
+      "statement_words": [
+        1,
+        2,
+        3,
+        65535,
+        1381993681,
+        1163620247,
+        833240539,
+        2139095920
+      ]
+    },
+    "hash4": {
+      "cairo_executable_sha256": "ef9a7734c3cc1323d7c9bf7d9b51066d169a2e940a4e446140dbc0091bb73791",
+      "cairo_profile": "official-live-cairo-canonical-small",
+      "cairo_to_s31_prove_ratio": 1.776480809550707,
+      "cairo_trials": [
+        {
+          "gzip_json_bytes": 835111,
+          "input_and_assets_seconds": 0.018159333,
+          "json_bytes": 2472880,
+          "prove_process_wall_seconds": 0.784770125,
+          "prove_seconds": 0.744337042,
+          "prover_peak_physical_bytes": 1114310408,
+          "sha256": "806111ebe468be79a4c04bd95d4a3c443c91d625ca4600a21c685ca722e2bb5a",
+          "verify_seconds": 0.005581041,
+          "witness_max_resident_bytes": 6520832,
+          "witness_wall_seconds": 0.020979333
+        },
+        {
+          "gzip_json_bytes": 835111,
+          "input_and_assets_seconds": 0.012967708,
+          "json_bytes": 2472880,
+          "prove_process_wall_seconds": 0.777044208,
+          "prove_seconds": 0.742235,
+          "prover_peak_physical_bytes": 1083360936,
+          "sha256": "806111ebe468be79a4c04bd95d4a3c443c91d625ca4600a21c685ca722e2bb5a",
+          "verify_seconds": 0.0055945,
+          "witness_max_resident_bytes": 6504448,
+          "witness_wall_seconds": 0.015349083
+        },
+        {
+          "gzip_json_bytes": 835111,
+          "input_and_assets_seconds": 0.012163666,
+          "json_bytes": 2472880,
+          "prove_process_wall_seconds": 0.766928875,
+          "prove_seconds": 0.734829834,
+          "prover_peak_physical_bytes": 1083836192,
+          "sha256": "806111ebe468be79a4c04bd95d4a3c443c91d625ca4600a21c685ca722e2bb5a",
+          "verify_seconds": 0.005885625,
+          "witness_max_resident_bytes": 6553600,
+          "witness_wall_seconds": 0.011941208
+        }
+      ],
+      "cairo_vm_steps": 180,
+      "median_cairo_prove_seconds": 0.742235,
+      "median_s31_prove_seconds": 0.417812,
+      "s31_cost": {
+        "assertion_map": [],
+        "canonical_ir_sha256": "a0129811f76cce7f24e1fbe7368a8c058301e6668a2529ab902956e89a05769e",
+        "circuit_hash": "a6456a7a3a379935b163bb6db696ed03e2054f21526550a5cd8db8bb0c5ef396",
+        "finalization": {
+          "m31_to_u32_end": 12,
+          "m31_to_u32_start": 12,
+          "qm31_end": 448,
+          "qm31_start": 87
+        },
+        "fixed_table_max_log_size": 20,
+        "fri": {
+          "fold_step": 1,
+          "last_layer_degree_bound": 1,
+          "log_blowup_factor": 1,
+          "pow_bits": 26,
+          "queries": 70
+        },
+        "input_packing": [
+          {
+            "lanes": 4,
+            "name": "secret",
+            "qm31_wires": 1
+          }
+        ],
+        "name": "hash4",
+        "padded": {
+          "blake_g": 128,
+          "eq": 16,
+          "m31_to_u32": 16,
+          "qm31_ops": 512,
+          "triple_xor": 16
+        },
+        "preprocessed_cells": 4249888,
+        "preprocessed_columns": 45,
+        "preprocessed_root": "776f5f4b3aff3f2a3aa9896b0b2f8b8905d1db3e69cb250f3d6f594f40f53a20",
+        "program_sha256": "42211d5bf481e4686929fcb615d479cd03f3c06657bf8294916310e931c006e8",
+        "public_binding": [
+          {
+            "binding_qm31_end": 87,
+            "binding_qm31_start": 79,
+            "conversion_m31_to_u32_end": 12,
+            "conversion_m31_to_u32_start": 4,
+            "conversion_qm31_end": 79,
+            "conversion_qm31_start": 65,
+            "name": "digest",
+            "word_count": 8,
+            "word_start": 0
+          }
+        ],
+        "raw": {
+          "blake_g": 80,
+          "eq": 0,
+          "m31_to_u32": 12,
+          "qm31_ops": 448,
+          "triple_xor": 8
+        },
+        "source_map": [
+          {
+            "blake_g_end": 0,
+            "blake_g_start": 0,
+            "canonical_id": 0,
+            "eq_end": 0,
+            "eq_start": 0,
+            "m31_to_u32_end": 0,
+            "m31_to_u32_start": 0,
+            "name": "secret",
+            "qm31_end": 6,
+            "qm31_start": 0,
+            "triple_xor_end": 0,
+            "triple_xor_start": 0
+          },
+          {
+            "blake_g_end": 80,
+            "blake_g_start": 0,
+            "canonical_id": 1,
+            "eq_end": 0,
+            "eq_start": 0,
+            "m31_to_u32_end": 4,
+            "m31_to_u32_start": 0,
+            "name": "digest",
+            "qm31_end": 65,
+            "qm31_start": 6,
+            "triple_xor_end": 8,
+            "triple_xor_start": 0
+          }
+        ],
+        "trace_log_size": 20
+      },
+      "s31_program_sha256": "42211d5bf481e4686929fcb615d479cd03f3c06657bf8294916310e931c006e8",
+      "s31_trials": [
+        {
+          "cold_setup_seconds": 0.050137,
+          "proof_bytes": 470569,
+          "proof_sha256": "ea06e603fb9d58bed860a29b106ca1b9b425f0c83fcae3c119cd1c4d6f0ef794",
+          "prove_process_wall_seconds": 0.51771375,
+          "prove_seconds": 0.409142,
+          "prover_max_resident_bytes": 1015463936,
+          "verifier_max_resident_bytes": 7471104,
+          "verify_wall_seconds": 0.414272708,
+          "witness_seconds": 0.000135
+        },
+        {
+          "cold_setup_seconds": 0.050452,
+          "proof_bytes": 470569,
+          "proof_sha256": "ea06e603fb9d58bed860a29b106ca1b9b425f0c83fcae3c119cd1c4d6f0ef794",
+          "prove_process_wall_seconds": 0.534414709,
+          "prove_seconds": 0.418751,
+          "prover_max_resident_bytes": 1015431168,
+          "verifier_max_resident_bytes": 7471104,
+          "verify_wall_seconds": 0.017589208,
+          "witness_seconds": 0.000127
+        },
+        {
+          "cold_setup_seconds": 0.049122,
+          "proof_bytes": 470569,
+          "proof_sha256": "ea06e603fb9d58bed860a29b106ca1b9b425f0c83fcae3c119cd1c4d6f0ef794",
+          "prove_process_wall_seconds": 0.527966667,
+          "prove_seconds": 0.417812,
+          "prover_max_resident_bytes": 1015463936,
+          "verifier_max_resident_bytes": 7471104,
+          "verify_wall_seconds": 0.013515917,
+          "witness_seconds": 0.000127
+        }
+      ],
+      "statement_words": [
+        358105902,
+        2087172815,
+        487253739,
+        485644106,
+        1956641530,
+        877292629,
+        1871488248,
+        1385057956
+      ]
+    },
+    "mixed4": {
+      "cairo_executable_sha256": "3f99765fb165f603b11b19bc32fc5aa8805456758096f6551d8b2a239189d45f",
+      "cairo_profile": "official-live-cairo-canonical-small",
+      "cairo_to_s31_prove_ratio": 1.5151675331138983,
+      "cairo_trials": [
+        {
+          "gzip_json_bytes": 943716,
+          "input_and_assets_seconds": 0.021577833,
+          "json_bytes": 2645566,
+          "prove_process_wall_seconds": 0.767640584,
+          "prove_seconds": 0.721310084,
+          "prover_peak_physical_bytes": 1086752472,
+          "sha256": "fd2322878108bec38f336d6ef90368c4c7fe7c1d26d13e87a9f607e525cbc16f",
+          "verify_seconds": 0.005951334,
+          "witness_max_resident_bytes": 8159232,
+          "witness_wall_seconds": 0.023887459
+        },
+        {
+          "gzip_json_bytes": 943716,
+          "input_and_assets_seconds": 0.013114875,
+          "json_bytes": 2645566,
+          "prove_process_wall_seconds": 0.775525625,
+          "prove_seconds": 0.740098958,
+          "prover_peak_physical_bytes": 1086523120,
+          "sha256": "fd2322878108bec38f336d6ef90368c4c7fe7c1d26d13e87a9f607e525cbc16f",
+          "verify_seconds": 0.006325875,
+          "witness_max_resident_bytes": 8093696,
+          "witness_wall_seconds": 0.015505042
+        },
+        {
+          "gzip_json_bytes": 943716,
+          "input_and_assets_seconds": 0.013146041,
+          "json_bytes": 2645566,
+          "prove_process_wall_seconds": 0.760913625,
+          "prove_seconds": 0.724550084,
+          "prover_peak_physical_bytes": 1086752496,
+          "sha256": "fd2322878108bec38f336d6ef90368c4c7fe7c1d26d13e87a9f607e525cbc16f",
+          "verify_seconds": 0.006285041,
+          "witness_max_resident_bytes": 8208384,
+          "witness_wall_seconds": 0.01400775
+        }
+      ],
+      "cairo_vm_steps": 2765,
+      "median_cairo_prove_seconds": 0.724550084,
+      "median_s31_prove_seconds": 0.478198,
+      "s31_cost": {
+        "assertion_map": [],
+        "canonical_ir_sha256": "b6c1fb0eeb9b40e30025ee7b3fc054042909123ec5a2d50a9f6858121d1ab470",
+        "circuit_hash": "878c9f56bd6b159f59c7801abc24878e0bdd657d49cc06f77a28dec62e4b5a4b",
+        "finalization": {
+          "m31_to_u32_end": 16,
+          "m31_to_u32_start": 12,
+          "qm31_end": 461,
+          "qm31_start": 103
+        },
+        "fixed_table_max_log_size": 20,
+        "fri": {
+          "fold_step": 1,
+          "last_layer_degree_bound": 1,
+          "log_blowup_factor": 1,
+          "pow_bits": 26,
+          "queries": 70
+        },
+        "input_packing": [
+          {
+            "lanes": 4,
+            "name": "secret",
+            "qm31_wires": 1
+          }
+        ],
+        "name": "mixed4",
+        "padded": {
+          "blake_g": 128,
+          "eq": 16,
+          "m31_to_u32": 16,
+          "qm31_ops": 512,
+          "triple_xor": 16
+        },
+        "preprocessed_cells": 4249888,
+        "preprocessed_columns": 45,
+        "preprocessed_root": "9eb9623f1318097686f2b7a6dec8047262b14793ce2f8d8a69fd7eb75adf3dab",
+        "program_sha256": "c0b80c9a2030ee42cd80f9bc005256856a76900a0111c57be239b59d7c6bd32e",
+        "public_binding": [
+          {
+            "binding_qm31_end": 103,
+            "binding_qm31_start": 95,
+            "conversion_m31_to_u32_end": 12,
+            "conversion_m31_to_u32_start": 4,
+            "conversion_qm31_end": 95,
+            "conversion_qm31_start": 81,
+            "name": "digest",
+            "word_count": 8,
+            "word_start": 0
+          }
+        ],
+        "raw": {
+          "blake_g": 80,
+          "eq": 0,
+          "m31_to_u32": 16,
+          "qm31_ops": 461,
+          "triple_xor": 8
+        },
+        "source_map": [
+          {
+            "blake_g_end": 0,
+            "blake_g_start": 0,
+            "canonical_id": 0,
+            "eq_end": 0,
+            "eq_start": 0,
+            "m31_to_u32_end": 0,
+            "m31_to_u32_start": 0,
+            "name": "secret",
+            "qm31_end": 6,
+            "qm31_start": 0,
+            "triple_xor_end": 0,
+            "triple_xor_start": 0
+          },
+          {
+            "blake_g_end": 0,
+            "blake_g_start": 0,
+            "canonical_id": 1,
+            "eq_end": 0,
+            "eq_start": 0,
+            "m31_to_u32_end": 0,
+            "m31_to_u32_start": 0,
+            "name": "field",
+            "qm31_end": 6,
+            "qm31_start": 6,
+            "triple_xor_end": 0,
+            "triple_xor_start": 0
+          },
+          {
+            "blake_g_end": 0,
+            "blake_g_start": 0,
+            "canonical_id": 2,
+            "eq_end": 0,
+            "eq_start": 0,
+            "m31_to_u32_end": 0,
+            "m31_to_u32_start": 0,
+            "name": "mixed",
+            "qm31_end": 22,
+            "qm31_start": 6,
+            "triple_xor_end": 0,
+            "triple_xor_start": 0
+          },
+          {
+            "blake_g_end": 80,
+            "blake_g_start": 0,
+            "canonical_id": 3,
+            "eq_end": 0,
+            "eq_start": 0,
+            "m31_to_u32_end": 4,
+            "m31_to_u32_start": 0,
+            "name": "digest",
+            "qm31_end": 81,
+            "qm31_start": 22,
+            "triple_xor_end": 8,
+            "triple_xor_start": 0
+          }
+        ],
+        "trace_log_size": 20
+      },
+      "s31_program_sha256": "c0b80c9a2030ee42cd80f9bc005256856a76900a0111c57be239b59d7c6bd32e",
+      "s31_trials": [
+        {
+          "cold_setup_seconds": 0.050385,
+          "proof_bytes": 476135,
+          "proof_sha256": "7149e8d179c27451770cc4ef67a3dbc67bc1136c9ac1847acf4167abf9d75642",
+          "prove_process_wall_seconds": 0.584108042,
+          "prove_seconds": 0.473021,
+          "prover_max_resident_bytes": 1015463936,
+          "verifier_max_resident_bytes": 7503872,
+          "verify_wall_seconds": 0.399220834,
+          "witness_seconds": 0.000124
+        },
+        {
+          "cold_setup_seconds": 0.049167,
+          "proof_bytes": 476135,
+          "proof_sha256": "7149e8d179c27451770cc4ef67a3dbc67bc1136c9ac1847acf4167abf9d75642",
+          "prove_process_wall_seconds": 0.603429792,
+          "prove_seconds": 0.489237,
+          "prover_max_resident_bytes": 1015463936,
+          "verifier_max_resident_bytes": 7503872,
+          "verify_wall_seconds": 0.017360458,
+          "witness_seconds": 0.000109
+        },
+        {
+          "cold_setup_seconds": 0.049965,
+          "proof_bytes": 476135,
+          "proof_sha256": "7149e8d179c27451770cc4ef67a3dbc67bc1136c9ac1847acf4167abf9d75642",
+          "prove_process_wall_seconds": 0.591443625,
+          "prove_seconds": 0.478198,
+          "prover_max_resident_bytes": 1015480320,
+          "verifier_max_resident_bytes": 7503872,
+          "verify_wall_seconds": 0.017115333,
+          "witness_seconds": 0.000131
+        }
+      ],
+      "statement_words": [
+        1945945424,
+        1709009658,
+        2067060062,
+        350390018,
+        635023437,
+        584239925,
+        977155599,
+        383895054
+      ]
+    }
+  },
+  "comparison_limit": "Proof protocols, encodings, verifier paths and preprocessing policies differ. Cairo VM witness and S31 circuit witness are separately timed; PoW is stochastic.",
+  "compiler_sha256": "b7ce9c2d05004fecc081088e9cbf6aba3a298bd5daa4c23c0b0845edf699a081",
+  "fri_visible_settings": {
+    "fold_step": 1,
+    "log_blowup_factor": 1,
+    "log_last_layer_degree_bound": 0,
+    "n_queries": 70,
+    "pow_bits": 26
+  },
+  "machine": "macOS-26.7.1-arm64-arm-64bit-Mach-O",
+  "scarb_version": "scarb 2.18.0 (e6144df0f 2026-04-21)\ncairo: 2.18.0 (https://crates.io/crates/cairo-lang-compiler/2.18.0)\nsierra: 1.8.0\narch: aarch64-apple-darwin",
+  "schema": "s31-cairo-mvp-release-benchmark-v1",
+  "trials": 3,
+  "zig_version": "0.15.2"
+}

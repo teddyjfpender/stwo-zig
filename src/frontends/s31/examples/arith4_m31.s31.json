@@ -1,0 +1,16 @@
+{
+  "version": 1,
+  "name": "arith4_m31",
+  "inputs": [
+    {"name": "x", "kind": "m31", "length": 4, "visibility": "public"}
+  ],
+  "nodes": [
+    {"name": "result", "op": "repeat", "lhs": "x", "rounds": 256,
+     "body": [
+       {"op": "square"},
+       {"op": "add_const", "constant": 7}
+     ]}
+  ],
+  "assertions": [],
+  "public_outputs": ["result"]
+}

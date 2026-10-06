@@ -1,0 +1,11 @@
+{
+  "version": 0,
+  "name": "square256",
+  "lanes": 4,
+  "input": "x",
+  "nodes": [
+    { "name": "y", "op": "repeat_square_add", "lhs": "x", "constant": 7, "rounds": 256 }
+  ],
+  "result": "y",
+  "public_abi": "u32x8_input_result"
+}

@@ -1,0 +1,156 @@
+# S31 text language and proof-aware core library
+
+This is the **implemented, deliberately narrow** `.s31` frontend. It lowers to
+the existing normalized relation v1. The Zig relation validator and compiler
+then produce the same prover, AIR and sealed native verifier as a handwritten
+`.s31.json` relation. The text compiler is not a second proving backend.
+
+## Build and audit a program
+
+From the repository root:
+
+```sh
+python3 src/frontends/s31/s31.py lower src/frontends/s31/examples/arith4_m31.s31
+python3 src/frontends/s31/s31.py build src/frontends/s31/examples/arith4_m31.s31 --lowering direct-chip --out zig-out/s31/text-arith4
+python3 src/frontends/s31/s31.py explain zig-out/s31/text-arith4
+python3 src/frontends/s31/s31.py prove zig-out/s31/text-arith4 src/frontends/s31/examples/arith4.valid.json zig-out/s31/text-arith4.proof
+python3 src/frontends/s31/s31.py verify zig-out/s31/text-arith4 zig-out/s31/text-arith4.proof
+```
+
+`lower` prints the exact normalized JSON relation that the Zig compiler will
+consume. A text package contains `source.s31`, `source.s31.json`,
+`source-map.json`, and `typed-interface.json`; the manifest hashes all four.
+The proof protocol currently
+binds the normalized JSON bytes. `source_text_sha256` records the original text
+in the package manifest. `explain` joins text source positions to the backend's
+node gate-row spans and reports the chosen profile, chip, raw/padded rows, and
+preprocessed cells. `source_expressions` groups emitted nodes by source location
+and lists the chip's internal row count for `iterate` when selected. A node's
+gate-row span is not an additive whole-program total: shared expressions,
+padding, and chip boundaries are separately represented. Use the whole
+program cost report for totals.
+
+Equivalent handwritten JSON can have different whitespace and therefore a
+different source digest, circuit identity and proof bytes. The zero-overhead
+gate checks compare canonical IR, selected AIR components, raw/padded rows,
+preprocessed geometry and native-verifier acceptance, rather than identical
+proof byte strings.
+
+## Syntax and staging
+
+```text
+fn step(v: [m31; 4]) -> [m31; 4] {
+    v .* v + splat<4>(7_m31)
+}
+
+circuit arith4_m31(public x: [m31; 4]) -> public [m31; 4] {
+    let result = iterate<256>(step, x);
+    result
+}
+```
+
+A file has zero or more top-level `fn` declarations followed by one `circuit`.
+Functions and circuit bodies contain immutable `let` statements, optional
+`assert_eq(a, b);` statements, and a final expression. Supported expressions
+are names, `_m31` field literals, `+`, lane-wise `.*`, calls, parentheses, and
+static array literals such as `[sibling_0, sibling_1]`. Comments start with
+`//`. A scalar literal enters a circuit through `splat<N>(7_m31)`. Bare
+integers are used only as the compile-time `N` in `splat<N>` and `iterate<N>`;
+circuit arithmetic uses canonical field literals.
+
+Every array shape and iteration count is fixed in source. Pure functions are
+specialized at calls and cannot recurse. An `iterate` step is recognized before
+normal node emission and must be a composition of `state .* state`, addition of
+a uniform field constant, and multiplication by a uniform field constant. The
+existing relation permits 1–16 such steps and 1–32768 rounds. The current chip
+is narrower: only the four-lane, public, square-then-add form at power-of-two
+round counts 16–32768. Select the chip explicitly with `--lowering direct-chip`
+or another chip profile; an unsupported shape fails instead of falling back.
+
+The example above lowers to one `repeat` node with a `square` and `add_const 7`
+body. With `--lowering direct-chip`, its chip rows constrain
+`out[j] - in[j]^2 - 7 = 0` for each of four lanes. The indexed lookup relation
+connects round outputs to round inputs and the public endpoints. See the
+[source-to-AIR guide](LANGUAGE_AND_AIR.md#the-repeated-step-chip) for the full
+lookup and polynomial explanation. The text form and
+[`arith4_m31.s31.json`](examples/arith4_m31.s31.json) have the same normalized
+relation and canonical IR digest.
+
+## Types and library operations
+
+| Text type | Relation representation | Constraint meaning |
+| --- | --- | --- |
+| `[m31; N]` | `m31[N]` | Each word is canonical modulo `2^31-1`. |
+| `[u16; N]` | `u16[N]` | Input words are range checked by the selected proof profile. |
+| `bit` | `m31[1]` | Must be a direct input used by `select`; the circuit constrains `b²=b`. |
+| `Digest<Poseidon2>` | `m31[8]` | Nominal type for the pinned field-native digest. |
+| `Digest<Blake2sReduced>` | `m31[8]` | Nominal type for eight reduced BLAKE2s words. |
+
+These digest types prevent text programs from mixing hash families even though
+both erase to `m31[8]` in relation v1. They do **not** claim that any arbitrary
+eight-word input was produced by hashing; a digest input is a claimed value.
+Raw BLAKE2s-256 bytes are distinct from its reduced M31-word digest.
+
+| Function/operator | Lowering | Preconditions |
+| --- | --- | --- |
+| `a + b`, `a .* b` | Lane-wise `add`/`mul`, or constant variants | Equally shaped `[m31; N]`. |
+| `splat<N>(c_m31)` | Compile-time uniform constant | Canonical M31 literal; materialized only if needed. |
+| `m31_from_u16(x)` | `cast_m31` | Explicit value-preserving conversion. |
+| `select(bit, a, b)` | `select` | Same array/digest type; bit is a direct input and is constrained. |
+| `poseidon2_leaf(x)`, `blake2s_leaf(x)` | Corresponding leaf hash node | 4, 8, 12, or 16 M31 words. |
+| `poseidon2_pair(a,b)`, `blake2s_pair(a,b)` | Ordered-pair hash node | Two digests of the selected family. |
+| `merkle_path_poseidon2(leaf, siblings, directions)` and `merkle_path_blake2s(...)` | Optional leaf hash, then two selects and one ordered pair per level | Raw M31 leaf or same-family digest; static arrays of 1–16 digest and bit inputs. |
+| `assert_eq(a,b);` | Relation assertion | Equally typed operands; checked as a proof constraint. |
+
+The BLAKE2s leaf and pair operations use `S31LEAF1` and `S31PAIR1`
+personalization and little-endian canonical M31 words. Their digest words are
+individually reduced modulo M31. Poseidon2 uses the pinned Stark-V constants
+and the S31 sponge and ordered-parent framing. Exact encodings and existing
+security-review limits are in the [hash library brief](../../../design/s31/HASH_LIBRARY.md).
+The library's `encode_m31_words_le` and `decode_m31_words_le` pin the host-side
+four-byte word format and reject noncanonical values. Byte arrays are not yet
+first-class circuit values in this text subset.
+
+`merkle_path_poseidon2` accepts a source expression such as:
+
+```text
+let root = merkle_path_poseidon2(
+    leaf, [sibling_0, sibling_1], [direction_0, direction_1]);
+```
+
+The brackets group existing inputs at compile time. They create no witness
+array and must appear directly as Merkle arguments. They cannot be returned as
+a circuit value. The compiler emits one leaf node, then for each level two constrained
+select nodes and one ordered-pair hash node. The
+[`merkle_path2_poseidon.s31`](examples/merkle_path2_poseidon.s31) example is
+complete. A depth-one program written with ordinary pure functions and `let`
+is [`merkle_path1_poseidon.s31`](examples/merkle_path1_poseidon.s31); it lowers
+exactly to the existing JSON example.
+
+[`preimage4.s31`](examples/preimage4.s31) shows an `assert_eq` over a private
+`u16` witness and a public M31 target. It lowers exactly to the existing
+relation, including the equality assertion.
+
+## Checks and current boundary
+
+```sh
+python3 -m unittest discover -s src/frontends/s31 -p 'test_text_frontend.py' -v
+python3 src/frontends/s31/acceptance_text_v1.py
+zig build --build-file src/frontends/s31/build.zig test -Doptimize=ReleaseSafe
+```
+
+The Python tests compare five complete text relations to existing JSON
+relations, check independent arithmetic/hash/path values, and reject wrong
+digest families, unused unconstrained bits, dynamic loop counts, and recursion.
+The acceptance script builds both text and JSON forms for the recurrence and
+Poseidon2 Merkle path, checks their canonical IR and cost geometry, and proves
+both forms through their generated native verifiers. It also requires rejection
+of a changed public output and a non-Boolean private direction. The Zig suite
+independently validates and compiles the emitted relation.
+
+This initial text language has no modules, macros, arbitrary recursion,
+witness-dependent control flow, computed bit selectors, general `map`/`fold`,
+or private circuit-to-chip boundary. It reports source positions for emitted
+nodes and gate spans, but it does not yet render every symbolic AIR polynomial
+as source text. Expanding those features belongs after the backend has a
+general cost model and reviewed mixed circuit/chip boundary.

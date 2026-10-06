@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "name": "merkle2_poseidon",
+  "inputs": [
+    {"name": "left", "kind": "m31", "length": 8, "visibility": "private"},
+    {"name": "right", "kind": "m31", "length": 8, "visibility": "private"}
+  ],
+  "nodes": [
+    {"name": "left_digest", "op": "hash_poseidon2_leaf", "lhs": "left"},
+    {"name": "right_digest", "op": "hash_poseidon2_leaf", "lhs": "right"},
+    {"name": "root", "op": "hash_poseidon2_pair", "lhs": "left_digest", "rhs": "right_digest"}
+  ],
+  "assertions": [],
+  "public_outputs": ["root"]
+}

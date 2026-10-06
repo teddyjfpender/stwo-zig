@@ -1,0 +1,38 @@
+{
+  "version": 1,
+  "name": "arith4",
+  "inputs": [
+    {
+      "name": "x",
+      "kind": "u16",
+      "length": 4,
+      "visibility": "public"
+    }
+  ],
+  "nodes": [
+    {
+      "name": "field",
+      "op": "cast_m31",
+      "lhs": "x"
+    },
+    {
+      "name": "result",
+      "op": "repeat",
+      "lhs": "field",
+      "rounds": 256,
+      "body": [
+        {
+          "op": "square"
+        },
+        {
+          "op": "add_const",
+          "constant": 7
+        }
+      ]
+    }
+  ],
+  "assertions": [],
+  "public_outputs": [
+    "result"
+  ]
+}

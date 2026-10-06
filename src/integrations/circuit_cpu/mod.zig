@@ -11,6 +11,9 @@ pub const cairo_verifier_proof = @import("cairo_verifier_proof.zig");
 /// `verify_circuit` on a `CircuitSerialize` proof.
 pub const verify = @import("verify.zig");
 pub const recursion = @import("recursion/mod.zig");
+pub const repeated_step_chip = @import("repeated_step_chip.zig");
+pub const sparse_arithmetic = @import("sparse_arithmetic.zig");
+pub const direct_arithmetic = @import("direct_arithmetic.zig");
 
 pub const Internal = prove.Internal;
 pub const Root = prove.Root;
@@ -33,4 +36,6 @@ test {
     _ = cairo_verifier_proof;
     _ = verify;
     _ = recursion;
+    _ = repeated_step_chip;
+    _ = sparse_arithmetic;
 }

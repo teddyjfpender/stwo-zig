@@ -1,0 +1,45 @@
+{
+  "altered_key_rejected": true,
+  "cases": {
+    "arith4": {
+      "bad_witness_rejected": false,
+      "changed_public_rejected": true,
+      "native_verified_outside_repo": true,
+      "program_sha256": "427f523329a26901a8abe7125def9ce185c96d1358db71c59024c623bb1e2441",
+      "proof_bytes": 434740
+    },
+    "array3": {
+      "bad_witness_rejected": false,
+      "changed_public_rejected": true,
+      "native_verified_outside_repo": true,
+      "program_sha256": "479d8f92d6bc2c0d491dd82b935e2f98fd1921787f5a6400ae2e81f15158765f",
+      "proof_bytes": 439122
+    },
+    "hash4": {
+      "bad_witness_rejected": true,
+      "changed_public_rejected": true,
+      "native_verified_outside_repo": true,
+      "program_sha256": "42211d5bf481e4686929fcb615d479cd03f3c06657bf8294916310e931c006e8",
+      "proof_bytes": 470569
+    },
+    "mixed4": {
+      "bad_witness_rejected": true,
+      "changed_public_rejected": true,
+      "native_verified_outside_repo": true,
+      "program_sha256": "c0b80c9a2030ee42cd80f9bc005256856a76900a0111c57be239b59d7c6bd32e",
+      "proof_bytes": 476135
+    },
+    "preimage4": {
+      "bad_witness_rejected": true,
+      "changed_public_rejected": true,
+      "native_verified_outside_repo": true,
+      "program_sha256": "f6c9fc0f28e2776e65fa5956f5ad6715f18139769ce4dd636b7745f5b501ea90",
+      "proof_bytes": 441707
+    }
+  },
+  "compiler_sha256": "b7ce9c2d05004fecc081088e9cbf6aba3a298bd5daa4c23c0b0845edf699a081",
+  "schema": "s31-mvp-acceptance-v1",
+  "tampered_proof_rejected": true,
+  "truncated_proof_rejected": true,
+  "wrong_program_rejected": true
+}

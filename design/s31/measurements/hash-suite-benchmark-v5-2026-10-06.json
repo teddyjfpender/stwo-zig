@@ -1,0 +1,104 @@
+{
+  "cases": {
+    "merkle2": {
+      "median": {
+        "cold_setup_seconds": 0.051354,
+        "native_verify_process_wall_seconds": 0.01746729196747765,
+        "proof_bytes": 464630,
+        "prove_process_wall_seconds": 0.7453936249949038,
+        "prove_seconds": 0.631805,
+        "witness_seconds": 0.000137
+      },
+      "preprocessed_cells": 4255616,
+      "program_sha256": "4548cb41fb18a4a4a10037c9991f18cce97ff1ee9703c37ca7d0c608e121bdce",
+      "raw_rows": {
+        "blake_g": 240,
+        "eq": 0,
+        "m31_to_u32": 40,
+        "qm31_ops": 647,
+        "triple_xor": 24
+      },
+      "trials": [
+        {
+          "cold_setup_seconds": 0.051354,
+          "native_verify_process_wall_seconds": 0.39397191599709913,
+          "proof_bytes": 459523,
+          "proof_sha256": "6e18247dfe9fefb487c76ecb85e1569e7fb28947fc95f5c8563f9737d411916f",
+          "prove_process_wall_seconds": 0.5476328749791719,
+          "prove_seconds": 0.434145,
+          "witness_seconds": 0.000137
+        },
+        {
+          "cold_setup_seconds": 0.05701,
+          "native_verify_process_wall_seconds": 0.016887375037185848,
+          "proof_bytes": 464630,
+          "proof_sha256": "d1cc1cfc46bb621a0f8f27033be3a9bc645b6777c30ebaecf6c7743fcefb309e",
+          "prove_process_wall_seconds": 0.8135824159835465,
+          "prove_seconds": 0.689574,
+          "witness_seconds": 0.000138
+        },
+        {
+          "cold_setup_seconds": 0.049728,
+          "native_verify_process_wall_seconds": 0.01746729196747765,
+          "proof_bytes": 469423,
+          "proof_sha256": "3a3baabd2ffb70fcd90c1960825bb7e6f380b24f0ac7038dc985cdbb4c71ff36",
+          "prove_process_wall_seconds": 0.7453936249949038,
+          "prove_seconds": 0.631805,
+          "witness_seconds": 0.000132
+        }
+      ]
+    },
+    "merkle_path1": {
+      "median": {
+        "cold_setup_seconds": 0.053599,
+        "native_verify_process_wall_seconds": 0.013403791992459446,
+        "proof_bytes": 466687,
+        "prove_process_wall_seconds": 0.5717007500352338,
+        "prove_seconds": 0.443837,
+        "witness_seconds": 0.000151
+      },
+      "preprocessed_cells": 4255440,
+      "program_sha256": "e85ed49fc2fdfe64194789bf542dd7fac60634a1632af03fead4afce49e509fc",
+      "raw_rows": {
+        "blake_g": 160,
+        "eq": 2,
+        "m31_to_u32": 32,
+        "qm31_ops": 604,
+        "triple_xor": 16
+      },
+      "trials": [
+        {
+          "cold_setup_seconds": 0.053599,
+          "native_verify_process_wall_seconds": 0.395176291000098,
+          "proof_bytes": 466687,
+          "proof_sha256": "1839c30500d3e2cbad96d3c63accbd048b792a10a43209210a4c32c8c96bf335",
+          "prove_process_wall_seconds": 0.9899120000191033,
+          "prove_seconds": 0.870781,
+          "witness_seconds": 0.000151
+        },
+        {
+          "cold_setup_seconds": 0.06344,
+          "native_verify_process_wall_seconds": 0.013392749999184161,
+          "proof_bytes": 464774,
+          "proof_sha256": "dd279362815af0d3c9e630eff7f9892802d4d695eb9c687654fceeda0ae5b76b",
+          "prove_process_wall_seconds": 0.5717007500352338,
+          "prove_seconds": 0.443837,
+          "witness_seconds": 0.000242
+        },
+        {
+          "cold_setup_seconds": 0.049679,
+          "native_verify_process_wall_seconds": 0.013403791992459446,
+          "proof_bytes": 471337,
+          "proof_sha256": "c4f64cc56bfa9657e848efd3f9ad4ed0297f14f305d523b30e4b4fba06e71ace",
+          "prove_process_wall_seconds": 0.5498114579822868,
+          "prove_seconds": 0.439527,
+          "witness_seconds": 0.00015
+        }
+      ]
+    }
+  },
+  "compiler_sha256": "b68892d423cc8a2dc87d344bf5df68bb9af203d2e59d5d3c9d2962c90ceecc07",
+  "schema": "s31-hash-suite-benchmark-v5",
+  "timing_note": "distinct valid inputs per trial; cold setup included in each proof process; native verifier run separately; full-gate PoW not isolated",
+  "trials_per_case": 3
+}

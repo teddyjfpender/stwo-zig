@@ -7,5 +7,7 @@ pub const circuit_hash = @import("circuit_hash.zig");
 /// Component sizing and padding (`finalize.rs`).
 pub const finalize = @import("finalize.zig");
 pub const preprocessed = @import("preprocessed.zig");
+pub const sparse_arithmetic = @import("sparse_arithmetic.zig");
+pub const direct_arithmetic = @import("direct_arithmetic.zig");
 /// ZK blinding rows (`finalize.rs::add_zk_blinding`).
 pub const zk_blinding = @import("zk_blinding.zig");

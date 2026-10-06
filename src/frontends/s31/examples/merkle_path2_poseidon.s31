@@ -1,0 +1,11 @@
+// Static arrays group existing wires; they do not allocate circuit arrays.
+circuit merkle_path2_poseidon(
+    private leaf: [m31; 8],
+    private sibling_0: Digest<Poseidon2>,
+    private direction_0: bit,
+    private sibling_1: Digest<Poseidon2>,
+    private direction_1: bit
+) -> public Digest<Poseidon2> {
+    let root = merkle_path_poseidon2(leaf, [sibling_0, sibling_1], [direction_0, direction_1]);
+    root
+}

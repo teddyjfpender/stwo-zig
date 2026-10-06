@@ -1,0 +1,23 @@
+{
+  "public_inputs": {
+    "target": [
+      8,
+      11,
+      16
+    ]
+  },
+  "private_inputs": {
+    "secret": [
+      1,
+      2,
+      3
+    ]
+  },
+  "public_outputs": {
+    "square": [
+      1,
+      4,
+      9
+    ]
+  }
+}
