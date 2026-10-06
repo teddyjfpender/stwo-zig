@@ -29,6 +29,13 @@ pub const specs = [_]Spec{
         .minimum = 3,
     },
     .{
+        .step = "test-recursion-v7-wire-halves",
+        .description = "Bind native transcript u16 halves to canonical ProgramV2 words and row35 requests",
+        .root = "v7_halves_test_root.zig",
+        .filters = &.{ "V7", "V6 ProgramV2 bridge" },
+        .minimum = 5,
+    },
+    .{
         .step = "test-recursion-v5-direct-proof-gate",
         .description = "Check exact fifty-row adapter geometry and fail-closed proof publication",
         .root = "v5_direct_proof_gate_test_root.zig",
