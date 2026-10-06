@@ -157,6 +157,12 @@ It prints `accepted: output digest <hex>` and exits 0, or
 `rejected at <stage>: <reason>` and exits 3. Rung R11
 (`circuit-parity-r11`) holds it to upstream's verdicts.
 
+The terminal `root.proof` is a Cairo felt stream, not a `CircuitSerialize`
+proof. Verify it with the pinned StarkWare Cairo executable and the explicit
+registry/output/packed-tree checks in
+[`tools/verify_terminal_root.py`](../../../tools/verify_terminal_root.py);
+see [`tools/verify_terminal_root.md`](../../../tools/verify_terminal_root.md).
+
 ## `circuit-params`
 
 ```sh
