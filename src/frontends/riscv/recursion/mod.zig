@@ -114,6 +114,7 @@ pub const statement_semantics_circuit = @import("statement_semantics_circuit.zig
 pub const statement_semantics_circuit_blake3 = @import("statement_semantics_circuit_blake3.zig");
 pub const temporal_pair_node = @import("temporal_pair_node.zig");
 pub const temporal_pair_candidate_v3 = @import("temporal_pair_candidate_v3.zig");
+pub const temporal_interval_v3 = @import("temporal_interval_v3.zig");
 pub const transcript_program = @import("transcript_program.zig");
 pub const transcript_program_v2 = @import("transcript_program_v2.zig");
 pub const transcript_program_v2_field_authority_v1 =
