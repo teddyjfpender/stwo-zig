@@ -14,6 +14,14 @@ pub const Spec = struct {
 
 pub const specs = [_]Spec{
     .{
+        .step = "test-recursion-v6-program-template",
+        .description = "Pin proof-independent ProgramV2 words and leave leaf identities dynamic",
+        .root = "v6_program_template_test_root.zig",
+        .imports_prover_engine = true,
+        .filters = &.{"ProgramV2 template changes only"},
+        .minimum = 1,
+    },
+    .{
         .step = "test-recursion-v5-direct-roster",
         .description = "Pin the 50-row direct wrapper geometry and VPR6/VPK6 key namespace",
         .root = "v5_direct_roster_test_root.zig",
@@ -34,7 +42,7 @@ pub const specs = [_]Spec{
         .description = "Prove exact local-ID router/hash tuples and ordered Poseidon calls",
         .root = "segment_leaf_wrapper_source_projection_v3_test_root.zig",
         .imports_prover_engine = true,
-        .filters = &.{"V5 local identity", "V5 keeps the existing row39 PPR1", "V5 router and two hashes"},
+        .filters = &.{ "V5 local identity", "V5 keeps the existing row39 PPR1", "V5 router and two hashes" },
         .minimum = 4,
     },
     .{
