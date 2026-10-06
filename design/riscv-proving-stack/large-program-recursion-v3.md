@@ -47,6 +47,20 @@ preimage with Poseidon identity parity and a pinned typed word-source AIR.
 The 39-row outer shared providers have a field envelope over their sealed
 manifest, claims, challenges, geometry and split sums. These are inputs for a
 future wrapper cohort; neither field authority is yet consumed by a V3 proof.
+The staged `BundleV3` takes the freshly verified native V2 child and the
+separately verified 39-row outer publication, requires that they name the same
+local leaf, and derives their canonical ProgramV2/provider word rows and
+Poseidon hash calls. It checks exact word-to-hash lookup tuples and binds the
+native Tree0 root to the captured FRI root. These are verifier-owned witness
+inputs, not a proof that a V3 wrapper committed them.
+
+The partial V3 extension manifest pins the source, projection and arithmetic
+typed-AIR components at rows 39–41 after the exact V2 roster. Their adapters
+authenticate the pinned program semantics and geometry. The manifest refuses
+complete-wrapper publication: the remaining child-field router, transcript
+root, hash and range providers, and global lookup/PCS closure need one new
+verified V3 transaction. The existing 39-row V2 proof cannot be treated as if
+the three new rows were already committed.
 For the base RV32 leaf, the child verifier authority is the freshly verified
 native SegmentV2 capture inside `PreparedNativeV2LeafOuter`; the detached
 39-component recursive-child loader belongs to a later parent and cannot

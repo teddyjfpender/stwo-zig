@@ -48,6 +48,8 @@ pub const Error = public_data_v2.Error || error{
     InputDigestMismatch,
     InputMemoryMismatch,
     IoRangeOutOfBounds,
+    MixedIoCampaign,
+    DiscontinuousIoCampaign,
     NonZeroPublicIoState,
     OutputDigestMismatch,
     OutputLengthMismatch,
@@ -55,21 +57,46 @@ pub const Error = public_data_v2.Error || error{
     RunnerIoMismatch,
 };
 
-/// One verified leaf covers only the edge memory it actually owns. A caller
-/// accepting a complete job must combine captures and require both flags.
+/// One verified leaf covers only the edge memory it actually owns. The
+/// remaining fields let a caller reject endpoints borrowed from another job.
 pub const Coverage = struct {
     input: bool,
     output: bool,
+    session_id: Digest,
+    job_id: Digest,
+    input_digest: Digest,
+    output_digest: Digest,
+    segment_index: u32,
+    segment_count: u32,
+    global_cycle_start: u32,
+    global_cycle_end: u32,
 };
 
+/// Requires every leaf in one ordered V2 campaign exactly once. These values
+/// must originate from validated verifier captures; this host-side check is
+/// not itself a recursive proof of the leaf chain.
 pub fn requireComplete(coverages: []const Coverage) Error!void {
-    var input = false;
-    var output = false;
-    for (coverages) |coverage| {
-        input = input or coverage.input;
-        output = output or coverage.output;
+    if (coverages.len == 0) return error.IncompleteIoCoverage;
+    const first = coverages[0];
+    const count = std.math.cast(u32, coverages.len) orelse return error.IncompleteIoCoverage;
+    if (first.segment_count != count) return error.IncompleteIoCoverage;
+    var previous_end: u32 = 0;
+    for (coverages, 0..) |coverage, index| {
+        if (!std.meta.eql(coverage.session_id, first.session_id) or
+            !std.meta.eql(coverage.job_id, first.job_id) or
+            !std.meta.eql(coverage.input_digest, first.input_digest) or
+            !std.meta.eql(coverage.output_digest, first.output_digest) or
+            coverage.segment_count != first.segment_count)
+            return error.MixedIoCampaign;
+        if (coverage.segment_index != @as(u32, @intCast(index)) or
+            coverage.input != (index == 0) or
+            coverage.output != (index + 1 == coverages.len) or
+            (index == 0 and coverage.global_cycle_start != 0) or
+            (index != 0 and coverage.global_cycle_start != previous_end) or
+            coverage.global_cycle_end <= coverage.global_cycle_start)
+            return error.DiscontinuousIoCampaign;
+        previous_end = coverage.global_cycle_end;
     }
-    if (!input or !output) return error.IncompleteIoCoverage;
 }
 
 pub fn inputDigest(expected: Expected) Error!Digest {
@@ -151,7 +178,19 @@ pub fn validateAuthenticatedWire(
                 return error.OutputMemoryMismatch;
         }
     }
-    return .{ .input = is_first, .output = is_final };
+    const metadata = try data.metadata();
+    return .{
+        .input = is_first,
+        .output = is_final,
+        .session_id = metadata.session_id,
+        .job_id = metadata.job_id,
+        .input_digest = base.job.complete.public_input,
+        .output_digest = base.job.complete.public_output,
+        .segment_index = metadata.segment_index,
+        .segment_count = metadata.segment_count,
+        .global_cycle_start = metadata.global_cycle_start,
+        .global_cycle_end = metadata.global_cycle_end,
+    };
 }
 
 /// Native construction guard: the external I/O must match the runner result.

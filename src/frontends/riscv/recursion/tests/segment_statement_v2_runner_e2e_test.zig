@@ -249,6 +249,21 @@ test "segment statement V2 experimental public-I/O binding rejects changed claim
     const coverage = try io_binding.validateAuthenticatedWire(&public, expected);
     try std.testing.expect(coverage.input and coverage.output);
     try io_binding.requireComplete(&.{coverage});
+    var first_coverage = coverage;
+    first_coverage.segment_count = 2;
+    first_coverage.output = false;
+    var last_coverage = first_coverage;
+    last_coverage.segment_index = 1;
+    last_coverage.input = false;
+    last_coverage.output = true;
+    last_coverage.global_cycle_start = first_coverage.global_cycle_end;
+    last_coverage.global_cycle_end += 1;
+    try io_binding.requireComplete(&.{ first_coverage, last_coverage });
+    last_coverage.job_id[0] ^= 1;
+    try std.testing.expectError(error.MixedIoCampaign, io_binding.requireComplete(&.{ first_coverage, last_coverage }));
+    last_coverage.job_id[0] ^= 1;
+    last_coverage.global_cycle_start += 1;
+    try std.testing.expectError(error.DiscontinuousIoCampaign, io_binding.requireComplete(&.{ first_coverage, last_coverage }));
 
     var changed_input = input;
     changed_input[0] ^= 0xff;
