@@ -195,9 +195,9 @@ pub fn build(b: *std.Build) void {
         .dependOn(&b.addRunArtifact(v6_appended_tests).step);
     const v6_base_fixed_tests = b.addTest(.{
         .root_module = v3_rows_root,
-        .filters = &.{"V6 base fixed"},
+        .filters = &.{ "V6 base fixed", "V6 public rows 13", "V6 claim-hash fixed tail" },
     });
-    b.step("test-v6-base-fixed-rows", "Check independent V6 control, inactive, provider and byte-table preprocessing")
+    b.step("test-v6-base-fixed-rows", "Check independent V6 control, public, provider and byte-table preprocessing")
         .dependOn(&b.addRunArtifact(v6_base_fixed_tests).step);
     const v7_roster_tests = b.addTest(.{
         .root_module = v3_rows_root,
