@@ -19,11 +19,13 @@ SOURCE = HERE / "examples/arith4_m31.s31"
 ASSIGNMENT = HERE / "examples/arith4.valid.json"
 
 
-def run(*args: str, accept: bool = True) -> None:
+def run(*args: str, accept: bool = True) -> str:
     result = subprocess.run(args, cwd=s31.ROOT, capture_output=True, text=True)
+    output = result.stdout + result.stderr
     if (result.returncode == 0) != accept:
         raise AssertionError(f"unexpected exit {result.returncode} for {args!r}:\n"
-                             f"{result.stdout}{result.stderr}")
+                             f"{output}")
+    return output
 
 
 def main() -> None:
@@ -34,11 +36,11 @@ def main() -> None:
         work = Path(temporary)
         original = args.package.resolve() if args.package else s31.package_for(SOURCE)
         s31.verify_package(original)
+        original_key = json.loads((original / "verification-key.json").read_text())
         clone_source = work / "arith4_clone.s31"
         clone_source.write_text(SOURCE.read_text().replace("circuit arith4_m31(",
                                                            "circuit arith4_clone("))
-        clone = s31.package_for(clone_source)
-        original_key = json.loads((original / "verification-key.json").read_text())
+        clone = s31.build(clone_source, work / "clone", fri_fold_step=original_key["fri"]["fold_step"])
         clone_key = json.loads((clone / "verification-key.json").read_text())
         if original_key["preprocessed_root"] != clone_key["preprocessed_root"]:
             raise AssertionError("same arithmetic unexpectedly changed child AIR root")
@@ -108,6 +110,7 @@ def main() -> None:
         run("python3", str(HERE / "s31.py"), "state-fold-base", str(original), str(outer), str(state0))
         run(str(original_verifier), "state-fold-verify", str(state0), f"{state0}.statement.json")
         state_statement = json.loads(Path(f"{state0}.statement.json").read_text())
+        original_state_words = state_statement["fold_public_words"]
         state_statement["state_fold_key_sha256"] = hashlib.sha256(
             (clone / "state-fold-verification-key.json").read_bytes()).hexdigest()
         state_statement["base_public_words"] = statement["outer_public_words"]
@@ -116,11 +119,23 @@ def main() -> None:
         state_message = bytes.fromhex(clone_state["fold_preprocessed_root"]) + struct.pack(
             "<I8I4I4I", 0, *state_statement["base_public_words"],
             *state_statement["initial_state"], *state_statement["current_state"])
+        state_domain = {
+            "s31-state-fold-verification-key-v1": b"S31STF1!",
+            "s31-state-fold-verification-key-v2": b"S31STF1!",
+            "s31-state-fold-verification-key-v3": b"S31STF2!",
+        }[clone_state["schema"]]
+        if len(state_message) != 100:
+            raise AssertionError("wrong cloned state-fold digest preimage length")
         state_statement["fold_public_words"] = list(struct.unpack(
-            "<8I", hashlib.blake2s(state_message, person=b"S31STF1!").digest()))
+            "<8I", hashlib.blake2s(state_message, person=state_domain).digest()))
+        if state_statement["fold_public_words"] == original_state_words:
+            raise AssertionError("different state-fold keys produced the same public claim")
         replay_state_statement = work / "replay-state.statement.json"
         s31.write_json(replay_state_statement, state_statement)
-        run(str(clone_verifier), "state-fold-verify", str(state0), str(replay_state_statement), accept=False)
+        rejection = run(str(clone_verifier), "state-fold-verify", str(state0),
+                        str(replay_state_statement), accept=False)
+        if "InvalidStateFoldStatement" in rejection:
+            raise AssertionError("cloned statement was rejected before proof verification")
         print(json.dumps({"schema": "s31-recursion-key-binding-acceptance-v1",
                           "same_child_air": True,
                           "distinct_outer_air": True,

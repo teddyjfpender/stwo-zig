@@ -20,11 +20,16 @@ pub fn build(b: *std.Build) void {
         !std.mem.eql(u8, lowering, "sparse-wide-gate") and
         !std.mem.eql(u8, lowering, "direct-gate") and !std.mem.eql(u8, lowering, "direct-chip"))
         @panic("invalid s31-lowering");
+    const fri_fold_step = b.option(u32, "s31-fri-fold-step", "FRI folds per commitment for the gate profile (1 or 4)") orelse 1;
+    if ((fri_fold_step != 1 and fri_fold_step != 4) or
+        (fri_fold_step != 1 and !std.mem.eql(u8, lowering, "gate")))
+        @panic("FRI fold step 4 requires gate lowering; supported steps are 1 and 4");
     const s31_options = b.addOptions();
     s31_options.addOption(bool, "chip_mode", std.mem.eql(u8, lowering, "chip") or std.mem.eql(u8, lowering, "sparse-chip") or std.mem.eql(u8, lowering, "direct-chip"));
     s31_options.addOption(bool, "sparse_mode", std.mem.startsWith(u8, lowering, "sparse-"));
     s31_options.addOption(bool, "wide_mode", std.mem.eql(u8, lowering, "sparse-wide-gate"));
     s31_options.addOption(bool, "direct_mode", std.mem.startsWith(u8, lowering, "direct-"));
+    s31_options.addOption(u32, "fri_fold_step", fri_fold_step);
     s31_options.addOption([]const u8, "stdlib_lock_sha256", b.option([]const u8, "s31-stdlib-sha256", "Pinned S31 standard library lock digest") orelse "");
 
     const frontend = b.addModule("stwo_s31_prototype", .{

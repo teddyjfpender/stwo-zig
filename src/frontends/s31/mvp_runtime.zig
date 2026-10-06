@@ -336,11 +336,13 @@ fn printWords(words: [8]u32) void {
     std.debug.print("\n", .{});
 }
 
+const fri_fold_step: u32 = @import("s31_options").fri_fold_step;
+
 fn showcasePcsConfig(trace_log_size: u32) !PcsConfigV2 {
-    // Match the Cairo proof's visible FRI settings: 26 PoW bits, blowup 2,
-    // last-layer degree bound 1, 70 queries and fold step 1. Other protocol differences
-    // remain, so timings are a directional showcase, not a controlled ratio.
-    return PcsConfigV2.fromFriAndTraceSize(try FriConfigV2.init(26, 0, 1, 70, 1), trace_log_size);
+    // Keep the 26 PoW bits, blowup 2 and 70 queries fixed across the two
+    // supported FRI schedules. The fold step is sealed in the child key and
+    // mixed into the transcript by FriConfigV2.
+    return PcsConfigV2.fromFriAndTraceSize(try FriConfigV2.init(26, 0, 1, 70, fri_fold_step), trace_log_size);
 }
 
 fn directPcsConfig(circuit_log_size: u32, chip_rounds: ?u32) !PcsConfigV2 {
@@ -562,7 +564,7 @@ fn inspect(allocator: std.mem.Allocator, source: relation.Program) !void {
         .assertion_map = maps.assertions.items,
         .public_binding = maps.bindings.items,
         .finalization = maps.finalization.?,
-        .fri = .{ .pow_bits = 26, .log_blowup_factor = 1, .last_layer_degree_bound = 1, .queries = 70, .fold_step = 1 },
+        .fri = .{ .pow_bits = 26, .log_blowup_factor = 1, .last_layer_degree_bound = 1, .queries = 70, .fold_step = fri_fold_step },
     };
     const encoded = try std.json.Stringify.valueAlloc(allocator, report, .{});
     defer allocator.free(encoded);
@@ -2159,14 +2161,16 @@ fn wrapStateFold(
     defer if (cache) |*prepared| prepared.deinit(allocator);
     return wrapStateFoldWithCache(allocator, source, child_proof_path, child_statement_path,
         output_path, child_key_path, first_key_path, state_key_path, base_case,
-        low_memory, audit_only, &cache);
+        low_memory, audit_only, &cache, false);
 }
 
 const StateFoldCache = struct {
     pp: preprocessed.PreprocessedCircuit,
     commitment: cpu.prove.PreprocessedCommitment,
+    topology: ?circuit.builder.Circuit = null,
 
     fn deinit(self: *StateFoldCache, allocator: std.mem.Allocator) void {
+        if (self.topology) |*trusted| trusted.deinit(allocator);
         self.commitment.deinit(allocator);
         self.pp.deinit(allocator);
     }
@@ -2180,8 +2184,8 @@ fn rejectExistingFoldOutput(path: []const u8) !void {
     return error.OutputAlreadyExists;
 }
 
-/// Reuse the sealed preprocessed circuit and commitment while every step
-/// independently checks its child proof and value/topology gate equality.
+/// Reuse the sealed preprocessed circuit, commitment and padded topology.
+/// Each step still checks its child proof and exact value/topology gate equality.
 fn wrapStateFoldBatch(
     allocator: std.mem.Allocator,
     source: relation.Program,
@@ -2238,7 +2242,7 @@ fn wrapStateFoldBatch(
             try std.fmt.allocPrint(scratch, "{s}/state-{d:0>5}.proof", .{ checkpoint_dir, first_step + @as(u32, @intCast(index)) });
         try wrapStateFoldWithCache(allocator, source, current_proof, current_statement,
             target, child_key_path, first_key_path, state_key_path,
-            base_case and index == 0, low_memory, false, &cache);
+            base_case and index == 0, low_memory, false, &cache, true);
         current_proof = target;
         current_statement = try std.fmt.allocPrint(scratch, "{s}.statement.json", .{target});
     }
@@ -2257,6 +2261,7 @@ fn wrapStateFoldWithCache(
     low_memory: bool,
     audit_only: bool,
     cache: *?StateFoldCache,
+    retain_topology: bool,
 ) !void {
     const spec = source.stateFoldStep() orelse return error.UnsupportedStateFoldSource;
     const child_bytes = try std.fs.cwd().readFileAlloc(allocator, child_key_path, 4096);
@@ -2371,7 +2376,12 @@ fn wrapStateFoldWithCache(
         std.debug.print("S31 state-fold circuit audit: step={d} valid=true rejected={d}\n", .{ step, if (base_case) @as(u32, 18) else 19 });
         return;
     }
-    {
+    if (cache.*) |*prepared| {
+        const trusted = if (prepared.topology) |*topology_circuit| topology_circuit else return error.MissingStateFoldTopology;
+        try circuit.common.finalize.padContext(QM31, &values);
+        if (!sameTopology(&values.circuit, trusted) or !try values.isCircuitValid())
+            return error.InvalidStateFoldCircuit;
+    } else {
         var topology_ctx = try state_fold.topology(allocator, projection_bytes, verified.layout, verified.pcs, verified.base_root, spec.body);
         defer topology_ctx.deinit();
         if (!sameTopology(&values.circuit, &topology_ctx.circuit)) return error.StateFoldValueDependentTopology;
@@ -2379,15 +2389,17 @@ fn wrapStateFoldWithCache(
         try circuit.common.finalize.padContext(circuit.builder.NoValue, &topology_ctx);
         if (!sameTopology(&values.circuit, &topology_ctx.circuit) or !try values.isCircuitValid())
             return error.InvalidStateFoldCircuit;
-        if (cache.* == null) {
-            var pp = try preprocessed.PreprocessedCircuit.fromBuilderCircuit(allocator, &topology_ctx.circuit);
-            errdefer pp.deinit(allocator);
-            var committed = try cpu.prove.PreprocessedCommitment.build(allocator, &pp, verified.pcs, .{});
-            errdefer committed.deinit(allocator);
-            const actual_root = committed.root();
-            if (!std.mem.eql(u8, &actual_root, &verified.root) or !pp.layout().eql(&verified.layout))
-                return error.StateFoldKeyTopologyMismatch;
-            cache.* = .{ .pp = pp, .commitment = committed };
+        var pp = try preprocessed.PreprocessedCircuit.fromBuilderCircuit(allocator, &topology_ctx.circuit);
+        errdefer pp.deinit(allocator);
+        var committed = try cpu.prove.PreprocessedCommitment.build(allocator, &pp, verified.pcs, .{});
+        errdefer committed.deinit(allocator);
+        const actual_root = committed.root();
+        if (!std.mem.eql(u8, &actual_root, &verified.root) or !pp.layout().eql(&verified.layout))
+            return error.StateFoldKeyTopologyMismatch;
+        cache.* = .{ .pp = pp, .commitment = committed };
+        if (retain_topology) {
+            cache.*.?.topology = topology_ctx.circuit;
+            topology_ctx.circuit = .{};
         }
     }
     const prepared = if (cache.*) |*item| item else unreachable;
@@ -2736,7 +2748,7 @@ fn validateKey(allocator: std.mem.Allocator, source: relation.Program, key: Key)
         !std.mem.eql(u8, key.air_bundle_sha256, cpu.air.bundle_sha256) or
         key.fri.pow_bits != 26 or key.fri.log_blowup_factor != 1 or
         key.fri.last_layer_degree_bound != 1 or key.fri.queries != 70 or
-        key.fri.fold_step != 1) return error.InvalidVerificationKey;
+        key.fri.fold_step != fri_fold_step) return error.InvalidVerificationKey;
     try validateCompiledKey(allocator, source, key, program_digest);
 }
 

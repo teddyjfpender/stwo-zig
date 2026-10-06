@@ -32,17 +32,49 @@ the witness and preprocessed commitment. The earlier square/add sample saw
 local observations.
 
 The native batch `state-fold-advance` path reuses the immutable preprocessed
-circuit and commitment across steps. It still rebuilds a witness-free
-topology and checks full gate equality at every step, then natively verifies
-each child and output proof. In one three-step local comparison, the cached
-batch took 9.94 s wall versus 10.87 s for three one-step commands, an 8.6%
-reduction; peak RSS was about 9.31 GB in both. All three proofs were
-byte-identical. This is one sample, not a stable benchmark or a solution to
-the main verifier-circuit cost.
+circuit, commitment and padded witness-free topology across steps. It still
+checks full gate equality against each step's value circuit, then natively verifies
+each child and output proof. Before topology retention was added, a
+three-step batch reusing only the commitment took 9.94 s wall versus 10.87 s
+for three one-step commands, an 8.6% reduction; peak RSS was about 9.31 GB
+in both. The later topology cache saves a further small amount of wall time
+at roughly 150 MB higher peak RSS in the one-fold fixture. All compared
+proofs were byte-identical. The old timing was one sample; topology caching
+does not address the main verifier-circuit cost.
+
+## Four FRI folds per commitment
+
+The gate package now permits `--fri-fold-step 4` as an explicit build-time
+choice. The PoW, blowup and query counts remain 26, 1 and 70. The FRI
+configuration is mixed into the transcript and pinned by the package key;
+cross-schedule leaf proofs are rejected even when the leaf AIR root and
+circuit hash are identical. The wrapper and fold keys acquire distinct roots.
+The [local pinned Stwo protocol revision](../../src/core/protocol_revision.zig)
+also uses fold step 4 in its production configuration; this is still an
+engineering comparison, not an independent soundness calculation.
+
+| Affine-square recursive circuit | Fold step 1 | Fold step 4 | Change |
+| --- | ---: | ---: | ---: |
+| Raw variables | 11,823,705 | 5,589,622 | −52.7% |
+| Padded variables | 19,642,180 | 9,811,780 | −50.0% |
+| FRI decommitment variables | 7,948,629 | 2,288,070 | −71.2% |
+| Padded Blake-G rows | 4,194,304 | 2,097,152 | −50.0% |
+| Trace log size | 22 | 21 | −1 |
+
+The main reduction is in FRI decommitment: fewer commitment layers mean far
+fewer in-circuit Blake2s Merkle-path checks. The proof format and verifier
+geometry change, while the source relation does not. Full state-fold and
+cross-schedule acceptance tests pass. In [four alternating local runs per
+schedule](measurements/fri-fold-step-v1-2026-10-07.json), the three-step batch
+had a median wall time of 10.819 s at fold step 1 and 6.457 s at fold step 4
+(40.3% lower). Median peak RSS was 9.46 GB versus 5.09 GB (46.2% lower),
+and the top proof shrank from 554,591 to 372,317 bytes (32.9% lower). The
+same source, assignment and visible PoW, blowup and query counts were used;
+these are local measurements, not a universal speedup or a soundness proof.
 
 The next efficiency sequence is:
 
-1. Reduce repeated Merkle/FRI verifier work through exact common-path
+1. Reduce remaining Merkle/FRI verifier work through exact common-path
    sharing or a dedicated recursive verifier AIR. Any shared opening must be
    constrained to the same index, leaf, tree root, and transcript challenge.
    Benchmark raw rows, padded rows, proof bytes, wall time, and peak RSS;

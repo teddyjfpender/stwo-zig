@@ -103,6 +103,24 @@ LogUp, FRI and proof-of-work inputs, just as in the [recursion chapter](recursio
 The hash gadget packs the constrained low and high limbs as an exact `u32`
 word; it does not reduce the counter modulo M31 before hashing.
 
+Here are actual counter witnesses at the carry boundary. The circuit checks
+each column's equations and `u16` ranges; the numbers are integers before
+they are embedded in M31.
+
+| Public step `n` | `lo` | `hi` | `base` | `recurse` | `borrow` | `prev_lo` | `prev_hi` | Proved previous step |
+| ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| 0 | 0 | 0 | 1 | 0 | 0 | 0 | 0 | base proof |
+| 65,535 | 65,535 | 0 | 0 | 1 | 0 | 65,534 | 0 | 65,534 |
+| 65,536 | 0 | 1 | 0 | 1 | 1 | 65,535 | 0 | 65,535 |
+| 65,537 | 1 | 1 | 0 | 1 | 0 | 0 | 1 | 65,536 |
+
+For `n=65,536`, `prev_lo=0-1+65,536·1=65,535` and
+`prev_hi=1-1=0`. Choosing `borrow=0` would require `prev_lo=-1`, outside
+`u16`; choosing `borrow=1` at `n=65,537` would require `prev_lo=65,536`,
+also outside `u16`. At `n=0`, the base branch makes `recurse=0` and
+`borrow=0`. These range checks rule out wrapping the counter while moving
+to the child proof.
+
 Each scalar equality, multiplication, range check and hash gate is lowered
 to the circuit AIR components. For one lane, the transition constraint
 polynomial is
@@ -165,13 +183,15 @@ prover from swapping the initial state mid-chain under the hash assumption.
 The installed prover rejects supplied `K0`, `K1`, or `KS` bytes that differ
 from its sealed package. Key generation rederives `K1`, constructs the
 state-fold AIR, and checks that its padded child-proof geometry equals
-`K1`'s. Every wrap compares value-bearing and witness-free gate lists before
-and after padding, checks the circuit, checks its root against `KS`, and
-natively verifies the newly produced proof. The native top verifier needs
+`K1`'s. A single-step wrap compares value-bearing and witness-free gate
+lists before and after padding; a batch reuses the first sealed padded
+topology and compares every later padded value circuit gate by gate. Both
+paths check circuit satisfaction and the key root, then natively verify the
+newly produced proof. The native top verifier needs
 only that proof and statement; earlier proof files can be deleted. The
 [acceptance fixture](../acceptance_state_fold.py) challenges repaired false
 state, step, leaf and initial-state claims; corrupt proof bytes; a changed
-step key; and 17 or 18 direct in-circuit mutations per branch, including
+step key; and 18 or 19 direct in-circuit mutations per branch, including
 child transcript roots, sampled trace values, Merkle paths, claimed sums
 and FRI data. This is
 an engineering argument under STARK and BLAKE2s assumptions, not a formal
@@ -200,14 +220,47 @@ python3 src/frontends/s31/acceptance_state_fold_general.py
 ```
 
 `state-fold-advance` validates the package once. Its native batch path
-reuses the preprocessed circuit and commitment while checking each child
-proof and each fresh value circuit against the witness-free topology. It
+reuses the preprocessed circuit, commitment and sealed padded topology.
+It checks each child proof and compares each fresh value circuit gate by gate
+against that topology. It
 natively verifies the final proof. With `--checkpoint-dir`, each
 intermediate proof and statement is kept as `state-00002.proof` and so on;
 passing one of those proofs as the next input resumes from that step. The
 command checks the `u32` counter bound before starting, limits one batch to
 65,536 proofs, and refuses to
 overwrite an existing proof or statement.
+
+## Choose the FRI schedule
+
+The default gate package uses one FRI fold per commitment. Build a separate
+package with four folds per commitment when recursively proving many steps:
+
+```sh
+python3 src/frontends/s31/s31.py build \
+  src/frontends/s31/examples/affine_square4.s31 \
+  --out zig-out/s31/affine-square4-fri4 --fri-fold-step 4
+```
+
+The four-fold setting keeps 26 proof-of-work bits, blowup factor 2, and 70
+queries. It changes the FRI transcript and proof shape, so it is sealed into
+the package manifest and verification key. A proof from one schedule cannot
+be verified under the other. The leaf AIR can have the same preprocessed root
+in both packages, while the recursive AIR and all recursive keys differ.
+This is a protocol choice made at build time, not an optimization a verifier
+may silently apply to an existing proof. The [FRI schedule acceptance
+fixture](../acceptance_fri_fold_step.py) checks both leaf verifiers,
+cross-schedule rejection, and the manifest binding.
+
+For the affine-square source, the four-fold verifier circuit has 5,589,622
+raw variables and 9,811,780 padded variables, versus 11,823,705 and
+19,642,180 with one fold. The exact [cost map](../../../../design/s31/RECURSION_PERFORMANCE.md)
+shows which verifier phase shrinks. These are circuit sizes; the local timing
+and memory comparison is in the [measurement record](../../../../design/s31/measurements/fri-fold-step-v1-2026-10-07.json):
+the three-step batch's local median wall time fell from 10.819 to 6.457
+seconds and median peak RSS from 9.46 to 5.09 GB across four runs per
+schedule. The retained PoW, blowup, and
+query counts do not by themselves constitute an independent FRI soundness
+analysis.
 
 `audit-state-fold-base` and `audit-state-fold-next` test the base selector,
 zero-test inverse, predecessor counter, current state, selected root,

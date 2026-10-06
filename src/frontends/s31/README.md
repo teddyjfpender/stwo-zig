@@ -140,6 +140,12 @@ recurrence with square, addition and multiplication by constants from source
 and proves one more computation step in each fold. Its `u32` step counter
 supports up to 2³²−1 added steps. `state-fold-advance` runs
 multiple steps with optional checkpoints for resume.
+For recursive packages, `s31 build SOURCE --out PACKAGE --fri-fold-step 4`
+uses four FRI folds per commitment with the same 26 PoW bits, blowup factor 2,
+and 70 queries. It is a distinct, key-bound proof schedule: the affine-square
+state-fold circuit has 5.59 million raw variables versus 11.82 million at the
+default fold step 1. The [state-fold chapter](docs/state-fold.md#choose-the-fri-schedule)
+explains the proof and verifier boundary.
 The [recursive cost map](../../../design/s31/RECURSION_PERFORMANCE.md) breaks
 the verifier circuit down by stage and records the current proving bottleneck.
 The v2 wrapper fixes the child AIR root with equality gates and embeds the

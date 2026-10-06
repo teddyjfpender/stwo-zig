@@ -121,9 +121,11 @@ def standard_library_lock(explicit_import: bool) -> dict:
 
 
 def build_json(source_path: Path, output: Path, lowering: str = "gate",
-               library_lock: dict | None = None) -> Path:
+               library_lock: dict | None = None, fri_fold_step: int = 1) -> Path:
     if lowering not in {"gate", "chip", "sparse-gate", "sparse-chip", "sparse-wide-gate", "direct-gate", "direct-chip"}:
         raise ValueError("lowering must be gate, chip, sparse-gate, sparse-chip, sparse-wide-gate, direct-gate, or direct-chip")
+    if type(fri_fold_step) is not int or fri_fold_step not in (1, 4) or (fri_fold_step == 4 and lowering != "gate"):
+        raise ValueError("FRI fold step 4 requires gate lowering; supported steps are 1 and 4")
     source_path = source_path.resolve()
     source, data = load_source(source_path)
     lock_bytes = ((json.dumps(library_lock, indent=2, sort_keys=True) + "\n").encode()
@@ -140,6 +142,8 @@ def build_json(source_path: Path, output: Path, lowering: str = "gate",
             raise FileExistsError(f"package was built with different compiler inputs: {output}")
         if manifest.get("lowering", "gate") != lowering:
             raise FileExistsError(f"package was built with different lowering: {output}")
+        if manifest.get("fri_fold_step", 1) != fri_fold_step:
+            raise FileExistsError(f"package was built with a different FRI fold step: {output}")
         if manifest.get("stdlib_lock_sha256") != lock_digest:
             raise FileExistsError(f"package was built with a different standard library lock: {output}")
         return output
@@ -151,7 +155,7 @@ def build_json(source_path: Path, output: Path, lowering: str = "gate",
         invoke(
             "zig", "build", "--build-file", str(BUILD_FILE), "install",
             "-Doptimize=ReleaseFast", "-Ds31-version=1",
-            f"-Ds31-lowering={lowering}",
+            f"-Ds31-lowering={lowering}", f"-Ds31-fri-fold-step={fri_fold_step}",
             f"-Ds31-source={source_path}", f"-Ds31-name={name}",
             *lock_option,
             "--prefix", str(staging),
@@ -206,7 +210,7 @@ def build_json(source_path: Path, output: Path, lowering: str = "gate",
         invoke(
             "zig", "build", "--build-file", str(BUILD_FILE), "install",
             "-Doptimize=ReleaseFast", "-Ds31-version=1",
-            f"-Ds31-lowering={lowering}",
+            f"-Ds31-lowering={lowering}", f"-Ds31-fri-fold-step={fri_fold_step}",
             f"-Ds31-source={source_path}", f"-Ds31-name={name}",
             f"-Ds31-key={staging / 'verification-key.json'}",
             *recursive_option,
@@ -234,6 +238,7 @@ def build_json(source_path: Path, output: Path, lowering: str = "gate",
             "schema": "s31-package-v1",
             "name": name,
             "lowering": lowering,
+            "fri_fold_step": fri_fold_step,
             "program_sha256": sha256(data),
             "compiler_sha256": compiler_sha256,
             "canonical_ir_sha256": inspection["canonical_ir_sha256"],
@@ -276,7 +281,7 @@ def text_interface(circuit: object, explicit_import: bool) -> dict:
     }
 
 
-def build_text(source_path: Path, output: Path, lowering: str = "gate") -> Path:
+def build_text(source_path: Path, output: Path, lowering: str = "gate", fri_fold_step: int = 1) -> Path:
     from text_frontend import Parser
 
     source_path = source_path.resolve()
@@ -293,13 +298,15 @@ def build_text(source_path: Path, output: Path, lowering: str = "gate") -> Path:
             raise FileExistsError(f"package already exists for a different source: {output}")
         if manifest["compiler_sha256"] != compiler_fingerprint() or manifest["lowering"] != lowering:
             raise FileExistsError(f"package was built with different compiler inputs or lowering: {output}")
+        if manifest.get("fri_fold_step", 1) != fri_fold_step:
+            raise FileExistsError(f"package was built with a different FRI fold step: {output}")
         return output
     output.parent.mkdir(parents=True, exist_ok=True)
     with tempfile.TemporaryDirectory(prefix=f".{output.name}.text-", dir=output.parent) as directory:
         staging_root = Path(directory)
         normalized_path = staging_root / "normalized.s31.json"
         normalized_path.write_bytes(normalized)
-        package = build_json(normalized_path, staging_root / "package", lowering, library_lock)
+        package = build_json(normalized_path, staging_root / "package", lowering, library_lock, fri_fold_step)
         (package / "source.s31").write_bytes(text_data)
         write_json(package / "source-map.json", {
             "schema": "s31-text-source-map-v1", "source_sha256": sha256(text_data),
@@ -317,10 +324,10 @@ def build_text(source_path: Path, output: Path, lowering: str = "gate") -> Path:
     return output
 
 
-def build(source_path: Path, output: Path, lowering: str = "gate") -> Path:
+def build(source_path: Path, output: Path, lowering: str = "gate", fri_fold_step: int = 1) -> Path:
     if source_path.suffix == ".s31":
-        return build_text(source_path, output, lowering)
-    return build_json(source_path, output, lowering)
+        return build_text(source_path, output, lowering, fri_fold_step)
+    return build_json(source_path, output, lowering, fri_fold_step=fri_fold_step)
 
 
 def verify_package(package: Path) -> dict:
@@ -343,6 +350,10 @@ def verify_package(package: Path) -> dict:
     }
     if not required_artifacts.issubset(artifacts):
         raise ValueError("S31 package is missing required artifacts")
+    fri_fold_step = manifest.get("fri_fold_step", 1)
+    if (type(fri_fold_step) is not int or fri_fold_step not in (1, 4) or
+            (fri_fold_step == 4 and manifest.get("lowering") != "gate")):
+        raise ValueError("invalid S31 package FRI fold step")
     if manifest.get("lowering") == "gate":
         if not {"recursive-verification-key.json", "recursive-verification-key-level2.json", "fixed-fold-verification-key.json"}.issubset(artifacts):
             raise ValueError("gate package is missing its recursive verification keys")
@@ -399,9 +410,12 @@ def verify_package(package: Path) -> dict:
     if file_hash(package / "source.s31.json") != manifest["program_sha256"]:
         raise ValueError("S31 package source changed")
     key = json.loads((package / "verification-key.json").read_text())
-    if (key.get("name") != manifest["name"] or
+    fri_config = key.get("fri")
+    if (not isinstance(fri_config, dict) or
+            key.get("name") != manifest["name"] or
             key.get("program_sha256") != manifest["program_sha256"] or
-            key.get("canonical_ir_sha256") != manifest.get("canonical_ir_sha256")):
+            key.get("canonical_ir_sha256") != manifest.get("canonical_ir_sha256") or
+            fri_config.get("fold_step") != fri_fold_step):
         raise ValueError("S31 package key does not match manifest")
     report = json.loads((package / "cost-report.json").read_text())
     inspected_key_fields = (
@@ -739,7 +753,7 @@ def oracle_provenance() -> dict:
 
 
 def trial(source_or_package: Path, assignment_path: Path, output: Path,
-          lowering: str | None = None) -> dict:
+          lowering: str | None = None, fri_fold_step: int | None = None) -> dict:
     """Build, prove, verify, and record one reproducible agent-facing trial."""
     source_or_package = source_or_package.resolve()
     assignment_path = assignment_path.resolve()
@@ -752,8 +766,11 @@ def trial(source_or_package: Path, assignment_path: Path, output: Path,
         manifest = verify_package(package)
         if lowering is not None and lowering != manifest["lowering"]:
             raise ValueError("requested lowering differs from the supplied package")
+        if fri_fold_step is not None and fri_fold_step != manifest.get("fri_fold_step", 1):
+            raise ValueError("requested FRI fold step differs from the supplied package")
     else:
-        package = build(source_or_package, output / "package", lowering or "gate")
+        package = build(source_or_package, output / "package", lowering or "gate",
+                        1 if fri_fold_step is None else fri_fold_step)
         manifest = verify_package(package)
     build_seconds = time.perf_counter() - started
     assignment = json.loads(assignment_path.read_text())
@@ -814,6 +831,7 @@ def trial(source_or_package: Path, assignment_path: Path, output: Path,
         "package": str(package),
         "assignment": str(assignment_path),
         "lowering": manifest["lowering"],
+        "fri_fold_step": manifest.get("fri_fold_step", 1),
         "profile": cost["profile"],
         "canonical_ir_sha256": cost["canonical_ir_sha256"],
         "program_sha256": manifest["program_sha256"],
@@ -943,11 +961,15 @@ def main() -> None:
     sub.add_argument("source", type=Path)
     sub.add_argument("--out", type=Path, required=True)
     sub.add_argument("--lowering", choices=("gate", "chip", "sparse-gate", "sparse-chip", "sparse-wide-gate", "direct-gate", "direct-chip"), default="gate")
+    sub.add_argument("--fri-fold-step", type=int, choices=(1, 4), default=1,
+                     help="FRI folds per commitment for gate proofs; 4 can shrink recursive verifier circuits")
     sub = commands.add_parser("trial", help="build, prove, verify, and record one trial")
     sub.add_argument("source_or_package", type=Path)
     sub.add_argument("assignment", type=Path)
     sub.add_argument("--out", type=Path, required=True)
     sub.add_argument("--lowering", choices=("gate", "chip", "sparse-gate", "sparse-chip", "sparse-wide-gate", "direct-gate", "direct-chip"))
+    sub.add_argument("--fri-fold-step", type=int, choices=(1, 4),
+                     help="select a gate package's FRI schedule, or check a supplied package")
     sub = commands.add_parser("tune", help="compare verified proof profiles on one source and assignment corpus")
     sub.add_argument("source", type=Path)
     sub.add_argument("assignments", type=Path, nargs="+")
@@ -1056,10 +1078,11 @@ def main() -> None:
             sys.stdout.buffer.write(normalized)
         return
     if args.command == "build":
-        print(build(args.source, args.out, args.lowering))
+        print(build(args.source, args.out, args.lowering, args.fri_fold_step))
         return
     if args.command == "trial":
-        print(json.dumps(trial(args.source_or_package, args.assignment, args.out, args.lowering),
+        print(json.dumps(trial(args.source_or_package, args.assignment, args.out,
+                               args.lowering, args.fri_fold_step),
                          indent=2, sort_keys=True))
         return
     if args.command == "tune":
@@ -1180,6 +1203,9 @@ def main() -> None:
             first_step = 0
             base_case = True
         elif initial.get("schema") == expected_statement:
+            prior_step = initial.get("step")
+            if type(prior_step) is not int or prior_step < 0 or prior_step > counter_max:
+                raise ValueError("input state-fold statement has an invalid step counter")
             first_step = initial["step"] + 1
             base_case = False
         else:
@@ -1192,11 +1218,15 @@ def main() -> None:
         with tempfile.TemporaryDirectory(prefix="s31-state-fold-advance-") as temporary:
             checkpoints = args.checkpoint_dir.resolve() if args.checkpoint_dir else Path(temporary)
             checkpoints.mkdir(parents=True, exist_ok=True)
+            planned_paths = set()
             for index in range(args.steps):
                 step = first_step + index
                 target = (outer if index == args.steps - 1 else
                           checkpoints / f"state-{step:05d}.proof")
                 target_statement = Path(str(target) + ".statement.json")
+                if target in planned_paths or target_statement in planned_paths:
+                    raise ValueError(f"state-fold batch outputs collide: {target}")
+                planned_paths.update((target, target_statement))
                 if target.exists() or target_statement.exists():
                     raise ValueError(f"refusing to overwrite fold proof or statement: {target}")
             batch_capability = ("s31-state-fold-batch-v2" if new_counter else "s31-state-fold-batch-v1")

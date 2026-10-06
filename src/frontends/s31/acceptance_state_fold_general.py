@@ -121,6 +121,21 @@ def main() -> None:
                    str(top), str(work / "zero.proof"), "--steps", "0", accept=False)
         if "counter would overflow" not in overflow or "at least one step" not in zero:
             raise AssertionError("state-fold advance rejected bounds for the wrong reason")
+        malformed_step = copy.deepcopy(statement(top))
+        malformed_step["step"] = True
+        malformed_step_path = work / "malformed-step.json"
+        s31.write_json(malformed_step_path, malformed_step)
+        malformed = run("python3", str(HERE / "s31.py"), "state-fold-advance", str(package),
+                        str(top), str(work / "malformed.proof"), "--statement",
+                        str(malformed_step_path), "--steps", "1", accept=False)
+        if "invalid step counter" not in malformed:
+            raise AssertionError("malformed step failed after batch preflight")
+        collision_dir = work / "collision-checkpoints"
+        collision = run("python3", str(HERE / "s31.py"), "state-fold-advance", str(package),
+                        str(first), str(collision_dir / "state-00000.proof"),
+                        "--steps", "2", "--checkpoint-dir", str(collision_dir), accept=False)
+        if "batch outputs collide" not in collision or any(collision_dir.iterdir()):
+            raise AssertionError("batch output collision was not rejected before proving")
         root = key["fold_preprocessed_root"]
         for i, proof in enumerate(folds):
             item = statement(proof)

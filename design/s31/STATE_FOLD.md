@@ -78,9 +78,10 @@ independent cryptographic audit.
   initial state, a changed key digest/root/hash, and a recomputed but false
   top digest once the proof is checked.
 - The prover first verifies and captures the serialized child proof natively,
-  then verifies that proof in the value circuit. It compares that circuit's
-  gate lists against a witness-free topology before and after padding,
-  checks circuit satisfaction and the sealed root, proves, and natively
+  then verifies that proof in the value circuit. A single-step wrap compares
+  its gate lists against a witness-free topology before and after padding;
+  batch wraps compare each padded value circuit against the retained sealed
+  topology. Both check circuit satisfaction and the sealed root, prove, and natively
   verifies its own result before writing it.
 - Base and recursive audits mutate leaf words, state, step, selected root,
   branch selector, inverse, predecessor counter and borrow inside the circuit.
@@ -103,7 +104,8 @@ The state-fold key schema is v3, its statement schema is v2, and its digest
 domain is `S31STF2!`. Existing v1/v2 packages remain readable through the
 Python package verifier and use their sealed binaries.
 `state-fold-advance` validates a package once and uses a native batch
-prover that reuses the preprocessed circuit and commitment across steps.
+prover that reuses the preprocessed circuit, commitment and padded topology
+across steps.
 It keeps optional intermediate checkpoints and verifies the top proof.
 Every step still checks child proof validity and compares the value circuit
 with a fresh witness-free topology. Resuming from a checkpoint gives the
@@ -132,3 +134,9 @@ with the low-memory policy; the proof bytes matched. These are isolated
 local v1 samples, not a general performance guarantee. The
 [v3 counter record](measurements/state-fold-u32-v3-2026-10-07.json) gives the
 current key and raw/padded geometry without a timing claim.
+The [FRI schedule record](measurements/fri-fold-step-v1-2026-10-07.json)
+compares the same v3 counter under two separately keyed proof schedules.
+Four folds per FRI commitment halves the padded recursive AIR and reduced
+median three-step wall time by 40.3% in four local runs per schedule. The
+PoW, blowup and query counts stay fixed; this is not an independent FRI
+soundness analysis.
