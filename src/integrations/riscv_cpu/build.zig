@@ -181,6 +181,12 @@ pub fn build(b: *std.Build) void {
     });
     b.step("test-v6-row4-template", "Check independently rebuilt fixed row-4 transcript columns")
         .dependOn(&b.addRunArtifact(v6_row4_tests).step);
+    const v6_appended_tests = b.addTest(.{
+        .root_module = v3_rows_root,
+        .filters = &.{"V6 appended rows rebuild fixed columns"},
+    });
+    b.step("test-v6-appended-fixed-rows", "Check verifier-owned preprocessing for direct rows 39 through 49")
+        .dependOn(&b.addRunArtifact(v6_appended_tests).step);
 
     const universal_root = b.createModule(.{
         .root_source_file = b.path("universal_typed_component_proof_test.zig"),
