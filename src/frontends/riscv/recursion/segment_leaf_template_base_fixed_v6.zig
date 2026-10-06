@@ -20,9 +20,12 @@ const binding_air = @import("air/transcript_binding.zig");
 const state_air = @import("air/transcript_state.zig");
 const relation_air = @import("air/relation_challenge.zig");
 const randomness_air = @import("air/verifier_randomness.zig");
+const public_source = @import("segment_public_outer_source_v2.zig");
+const public_components = @import("segment_public_outer_components_v2_contract.zig");
+const public_air = @import("air/segment_public_outer_air_v2.zig");
 
 pub const PRODUCTION_PROOF_ACTIVATION = false;
-pub const QUALIFIED_ROWS = [_]u8{ 0, 1, 2, 3, 6, 7, 8, 9, 10, 34, 35 };
+pub const QUALIFIED_ROWS = [_]u8{ 0, 1, 2, 3, 6, 7, 8, 9, 10, 12, 34, 35 };
 
 pub const Writer = struct {
     allocator: std.mem.Allocator,
@@ -138,6 +141,16 @@ pub const Writer = struct {
                     return error.FixedBaseGeometryMismatchV6;
                 // V2's row-10 is explicitly inactive in every physical lane.
             },
+            12 => {
+                if (columns.len != public_air.PublicationHeader.PREPROCESSED_COLUMN_COUNT or
+                    public_source.PUBLICATION_HEADER_WORD_COUNT > capacity)
+                    return error.FixedBaseGeometryMismatchV6;
+                for (0..public_source.PUBLICATION_HEADER_WORD_COUNT) |index| {
+                    const fixed = publicationHeaderRow(index, M31.zero());
+                    const logical = public_components.logicalRow(fixed);
+                    put(columns, geometry.log_size, index, logical[public_air.PublicationHeader.PHYSICAL_MAIN_COLUMN_COUNT..][0..columns.len]);
+                }
+            },
             34 => {
                 if (columns.len != 1)
                     return error.FixedBaseGeometryMismatchV6;
@@ -191,6 +204,14 @@ pub fn controlRowsFromPlan(allocator: std.mem.Allocator, plan: *const schedule.P
 fn put(columns: [][]M31, log_size: u32, logical: usize, values: []const M31) void {
     const committed = framework.committedRow(logical, log_size);
     for (values, columns) |value, column| column[committed] = value;
+}
+
+fn publicationHeaderRow(index: usize, value: M31) public_source.RelayRowV2 {
+    return .{
+        .source_kind = .publication_bridge,
+        .source_fields = .{ public_source.PUBLICATION_BRIDGE_CIRCUIT_ID, @intCast(index), 0, 0, 0 },
+        .value = value,
+    };
 }
 
 test "V6 base fixed control matches executed V2 native source" {
@@ -261,6 +282,14 @@ test "V6 base fixed rows reconstruct without a leaf" {
             9 => try expectFixedRows(columns, geometry.log_size, writer.transcript_rows.randomness),
             10 => for (columns) |column| for (column) |value| {
                 try std.testing.expect(value.isZero());
+            },
+            12 => {
+                for (0..public_source.PUBLICATION_HEADER_WORD_COUNT) |logical| {
+                    const expected = public_components.logicalRow(publicationHeaderRow(logical, M31.fromCanonical(123)));
+                    const committed = framework.committedRow(logical, geometry.log_size);
+                    for (expected[public_air.PublicationHeader.PHYSICAL_MAIN_COLUMN_COUNT..][0..columns.len], columns) |value, column|
+                        try std.testing.expectEqual(value.toU32(), column[committed].toU32());
+                }
             },
             34 => {
                 const committed = framework.committedRow(0, geometry.log_size);

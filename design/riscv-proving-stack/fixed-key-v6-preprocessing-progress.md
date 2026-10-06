@@ -8,7 +8,7 @@ ProgramV2 template-word schedule: exactly the 16 wire/statement identity words
 remain dynamic main values. The writer rejects every other row and refuses a
 complete preprocessed root. Production admission remains disabled.
 
-An independent base writer also covers **rows 0–3, 6–10, 34 and 35**. It
+An independent base writer also covers **rows 0–3, 6–10, 12, 34 and 35**. It
 derives row 0's ten columns from the admitted native verifier plan; its rows
 match the executed V2 source control tuples. The transcript binding, state,
 relation-draw and randomness schedules in rows 2, 3, 8 and 9 are reconstructed
@@ -18,6 +18,8 @@ preprocessed columns; row 10 is explicitly inactive and all zero. Row 34 has
 only the canonical provider marker, and row 35 is the pinned 65,536-entry
 byte-pair table plus its framework first-row marker. These writers reject
 every other base row and cannot issue a complete preprocessed root.
+Row 12's 27 publication-header relay selectors and source coordinates are
+recompiled from the fixed publication ABI; the publication values stay main.
 
 | Rows | Current preprocessed producer | V6 status | Remaining proof obligation |
 | --- | --- | --- | --- |
@@ -27,7 +29,10 @@ every other base row and cannot issue a complete preprocessed root.
 | 5 | V2 transcript payload writer | Unqualified, separate migration | Classify fixed geometry versus leaf-dependent identity words and bind dynamic words to native source producers. |
 | 6–9 | `transcript_fixed_schedule_v6` / `segment_leaf_template_base_fixed_v6` | Deterministically written | Rows 6 and 7 have zero fixed columns. Rows 8 and 9 match the executed V2 relation-draw and randomness fixed tuples; compare complete physical columns across two strong captures in the full-root gate. |
 | 10 | `segment_leaf_template_base_fixed_v6` | Deterministically written | The V2 component is explicitly inactive; compare physical zero columns in the full-root gate. |
-| 11–17 | `detached_leaf_noncore_owner_v2` statement/public prepared tables | Unqualified | Recompile semantic graph, claim and LogUp schedule from independently admitted program/descriptor shape; prove no identity-bearing constants remain fixed. |
+| 11 | `segment_statement_outer_source_v2` | Unqualified | Its fixed byte-selector layout depends on retained-entry counts and payload offsets in the canonical wire, not merely the total wire-word count. Admit this partition as template shape or version the AIR with selector coordinates in main plus exact source joins. |
+| 12 | `segment_leaf_template_base_fixed_v6` | Deterministically written | All 27 header relay source coordinates, masks and default circuit fields derive from the fixed publication ABI. Values remain main. Compare physical columns across genuine captures in the full-root gate. |
+| 13–16 | `segment_public_outer_source_v2` | Unqualified | Recompile claim/hash, seal, boundary and challenge relays from independently admitted geometry and graph use counts; prove no identity-bearing constants remain fixed. |
+| 17 | `vm_public_logup_control_witness_v2` | Blocked on variable public term count | The frozen V2 witness and AIR fix 70 public terms and 71 active rows. `segment_profile.initPlans(16,16)` admits 102 public terms, so V2 `preflight` returns `InvalidPlanProfile`. A versioned variable-cardinality AIR/source or an independently justified fixed 70-term VM shape is required; do not force the V2 schedule into V6. |
 | 18–33 | `detached_leaf_cohort_v2` core verifier tables | Unqualified | Rebuild composition, Merkle, query and FRI coordinate schedules from the native verifier and PCS shape, without copying positions or proof data from a capture into preprocessing. |
 | 34–35 | `segment_leaf_template_base_fixed_v6` | Deterministically written | Marker and byte table match the V2 writers' exact committed-row formulas. The six ordered call ranges remain a separate main-trace/lookup obligation. |
 | 36–38 | V2 statement boundary, public LogUp and verifier-input provider | Unqualified | Rebuild source selectors/multiplicities and move any leaf-dependent constants to main with exact typed joins. |
