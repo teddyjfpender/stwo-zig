@@ -18,6 +18,7 @@ const row5_template = @import("../segment_leaf_template_payload_fixed_v7.zig");
 const row5_air = @import("transcript_payload_direct_v7.zig");
 const row42_template = @import("../transcript_program_v2_template_words_v6.zig");
 const row42_air = @import("transcript_program_v2_field_bridge_v6.zig");
+const row39_air = @import("ethereum_leaf_link_source_direct_v6.zig");
 const security = @import("../segment_v3_production_security_policy.zig");
 
 pub const FORMAT_VERSION: u16 = 7;
@@ -37,6 +38,7 @@ pub const TemplateManifestV7 = struct {
     row5_active_rows: u32,
     row5_preprocessed_id: [32]u8,
     row42_preprocessed_id: [32]u8,
+    row39_preprocessed_id: [32]u8,
     total_preprocessed_columns: u32,
     total_main_columns: u32,
     total_interaction_columns: u32,
@@ -91,13 +93,15 @@ pub const TemplateManifestV7 = struct {
         defer words.deinit();
         const fixed42 = try row42_air.FixedSchedule.initFromTemplate(words.words);
         if (words.words.len != shape.program_words) return error.V7TemplateProgramShapeMismatch;
-        const result = try fromSchedules(&prior, &row5, fixed42);
+        const result = try fromSchedules(&prior, &row5, fixed42, &link);
         try result.validate();
         return result;
     }
 
-    fn fromSchedules(prior: *const v6.TemplateManifestV6, row5: *const row5_template.Template, fixed42: row42_air.FixedSchedule) !TemplateManifestV7 {
+    fn fromSchedules(prior: *const v6.TemplateManifestV6, row5: *const row5_template.Template, fixed42: row42_air.FixedSchedule, link: *const link_program.ProgramV3) !TemplateManifestV7 {
         try prior.validate();
+        try link.validate();
+        if (!std.mem.eql(u8, &link.schedule_id, &prior.shape.link_schedule_id)) return error.V7TemplateLinkScheduleMismatch;
         var placements: [COMPONENT_COUNT]Placement = undefined;
         var pp: u32 = 0;
         var main: u32 = 0;
@@ -110,6 +114,7 @@ pub const TemplateManifestV7 = struct {
             var geometry = old.geometry;
             if (index == 5) geometry = airGeometry(5, @max(geometry.log_size, row5_log_size), row5_air);
             if (index == 42) geometry = airGeometry(42, geometry.log_size, row42_air);
+            if (index == 39) geometry = airGeometry(39, geometry.log_size, row39_air);
             try geometry.validateForComponentCount(COMPONENT_COUNT);
             target.* = .{
                 .geometry = geometry,
@@ -131,6 +136,7 @@ pub const TemplateManifestV7 = struct {
             .row5_active_rows = @intCast(row5.rows.len),
             .row5_preprocessed_id = try row5FixedColumnsId(row5, placements[5].geometry.log_size),
             .row42_preprocessed_id = try row42FixedColumnsId(fixed42),
+            .row39_preprocessed_id = try row39FixedColumnsId(link, placements[39].geometry.log_size),
             .total_preprocessed_columns = pp,
             .total_main_columns = main,
             .total_interaction_columns = interaction,
@@ -155,6 +161,8 @@ pub const TemplateManifestV7 = struct {
                 airGeometry(5, @max(old.geometry.log_size, row5_log_size), row5_air)
             else if (index == 42)
                 airGeometry(42, old.geometry.log_size, row42_air)
+            else if (index == 39)
+                airGeometry(39, old.geometry.log_size, row39_air)
             else
                 old.geometry;
             if (!std.meta.eql(placement.geometry, expected) or
@@ -251,7 +259,7 @@ pub const TemplateManifestV7 = struct {
         );
         defer words.deinit();
         if (words.words.len != shape.program_words) return error.V7TemplateProgramShapeMismatch;
-        return fromSchedules(&prior, &row5, try row42_air.FixedSchedule.initFromTemplate(words.words));
+        return fromSchedules(&prior, &row5, try row42_air.FixedSchedule.initFromTemplate(words.words), &link);
     }
 
     pub fn requireCompletePreprocessing(_: *const TemplateManifestV7) error{V7TemplatePreprocessingUnavailable}!void {
@@ -266,6 +274,7 @@ pub const TemplateManifestV7 = struct {
         hashInt(&hash, u32, self.row5_active_rows);
         hash.update(&self.row5_preprocessed_id);
         hash.update(&self.row42_preprocessed_id);
+        hash.update(&self.row39_preprocessed_id);
         for (self.placements) |placement| {
             const g = placement.geometry;
             hashInt(&hash, u8, g.roster_row);
@@ -323,6 +332,25 @@ pub fn row42FixedColumnsId(fixed: row42_air.FixedSchedule) ![32]u8 {
     for (0..row42_air.PREPROCESSED_COLUMN_COUNT) |column| for (0..fixed.rowCapacity()) |row| {
         const values = try fixed.preprocessedRow(row);
         hashInt(&hash, u32, values[column].toU32());
+    };
+    return hash.finalResult();
+}
+
+/// The corrected row-39 AIR uses the same fixed link schedule as V6, with
+/// only a new relation effect. Seal every padded fixed value independently
+/// of the child witness or its native claim words.
+pub fn row39FixedColumnsId(link: *const link_program.ProgramV3, log_size: u32) ![32]u8 {
+    try link.validate();
+    if (log_size >= @bitSizeOf(usize)) return error.InvalidV7TemplateRow39Geometry;
+    const capacity = @as(usize, 1) << @intCast(log_size);
+    if (link.source_rows.len > capacity) return error.InvalidV7TemplateRow39Geometry;
+    var hash = fixedColumnsHasher(39, log_size, row39_air.PREPROCESSED_COLUMN_COUNT, row39_air.SEMANTIC_DIGEST);
+    for (0..row39_air.PREPROCESSED_COLUMN_COUNT) |column| for (0..capacity) |row| {
+        const value = if (row < link.source_rows.len)
+            link.source_rows[row].logical(M31.zero())[row39_air.PHYSICAL_MAIN_COLUMN_COUNT + column]
+        else
+            M31.zero();
+        hashInt(&hash, u32, value.toU32());
     };
     return hash.finalResult();
 }

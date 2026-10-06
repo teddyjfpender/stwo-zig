@@ -372,6 +372,8 @@ fn diagnoseDirect50(
             true,
         );
         const v7_plan = try recursion.segment_leaf_wrapper_roster_direct_v7.Plan.fromTemplate(&v7_template);
+        try checkV7CoreFriFixedParity(allocator, &core_profile, &v7_plan, &plan, pp);
+        std.debug.print("DIRECT50_V7_CORE_FRI_FIXED rows25_26_source_parity=true proof_created=false\n", .{});
         var physical = try recursion.segment_leaf_wrapper_physical_bridge_v7.Writer.init(
             allocator,
             &v7_plan,
@@ -381,6 +383,12 @@ fn diagnoseDirect50(
             native.program.words,
         );
         defer physical.deinit();
+        const source39 = try recursion.segment_leaf_wrapper_source_physical_v7.Writer.init(
+            allocator,
+            &v7_plan,
+            &program,
+            rows50.base.source,
+        );
         var wire_rows: [recursion.segment_leaf_wrapper_range_provider_v7.WIRE_ROW_COUNT]recursion.air.transcript_program_v2_field_bridge_v6.Row = undefined;
         @memcpy(&wire_rows, physical.row42[10..18]);
         var range_v7 = try recursion.segment_leaf_wrapper_range_provider_v7.Provider.init(
@@ -398,31 +406,36 @@ fn diagnoseDirect50(
         var v7_interaction = try V7ChangedTree.init(allocator, &v7_plan, .interaction);
         defer v7_interaction.deinit();
         try physical.fillPreprocessed(v7_pp.columns);
+        try source39.fillPreprocessed(v7_pp.columns);
         try physical.fillMain(v7_main.columns);
+        try source39.fillMain(v7_main.columns);
         try range_v7.fillMain(&v7_plan, v7_main.columns);
         const physical_claims = try physical.fillInteraction(&relations, v7_interaction.columns);
+        const source39_claim = try source39.fillInteraction(&relations, v7_interaction.columns);
         const range_claim = try range_v7.fillInteraction(&v7_plan, &shared, v7_interaction.columns);
         const half_residual = try physical.wireHalfResidual(&relations);
         if (!half_residual.isZero() or
             !physical_claims.row5.audit.total.eql(physical_claims.row5.claim) or
             !physical_claims.row42.audit.total.eql(physical_claims.row42.claim) or
+            !source39_claim.audit.total.eql(source39_claim.claim) or
             !range_claim.audit.total.eql(range_claim.claim))
             return error.V7PhysicalClaimMismatch;
-        std.debug.print("DIRECT50_V7_PHYSICAL row5={d} row42={d} row35_requests={d} half_scope_zero=true proof_created=false\n", .{
-            physical.row5.rows.len, physical.row42.len, range_v7.wire_requests,
+        std.debug.print("DIRECT50_V7_PHYSICAL row5={d} row42={d} row35_requests={d} row39={d} half_scope_zero=true proof_created=false\n", .{
+            physical.row5.rows.len, physical.row42.len, range_v7.wire_requests, source39.rows.len,
         });
-        const changed_rows = [_]usize{ 5, 35, 42 };
+        const changed_rows = [_]usize{ 5, 35, 39, 42 };
         const changed_audits = [_]recursion.air.relation_interaction.DomainAudit{
-            physical_claims.row5.audit, range_claim.audit, physical_claims.row42.audit,
+            physical_claims.row5.audit, range_claim.audit, source39_claim.audit, physical_claims.row42.audit,
         };
         for ([_]usize{ 25, 29, 30 }) |domain| {
             var adjusted = residuals.domain_totals[domain];
             for (changed_rows, changed_audits) |row, audit|
                 adjusted = adjusted.sub(claims.audits[row].values[domain]).add(audit.values[domain]);
-            // The versioned half-word bridge must close its complete domain
-            // in the real cohort. Domains 25 and 29 retain unrelated V5 rows
-            // and are diagnostic until those rows are replaced physically.
-            if (domain == 30 and !adjusted.isZero()) return error.V7PhysicalWireDomainUnclosed;
+            // The versioned source and half-word bridges must close these
+            // complete domains in the real cohort. Domain 29 still retains
+            // the leaf-dependent V5 statement source and is diagnostic.
+            if ((domain == 25 or domain == 30) and !adjusted.isZero())
+                return error.V7PhysicalBridgeDomainUnclosed;
             const limbs = adjusted.toM31Array();
             std.debug.print("DIRECT50_V7_CHANGED_RESIDUAL domain={d} zero={} limbs={d},{d},{d},{d}\n", .{
                 domain, adjusted.isZero(), limbs[0].toU32(), limbs[1].toU32(), limbs[2].toU32(), limbs[3].toU32(),
@@ -670,12 +683,48 @@ fn freeDirectTree(allocator: std.mem.Allocator, columns: [][]M31) void {
     allocator.free(columns);
 }
 
-/// The real-leaf V7 diagnostic materializes only its three changed rows;
+fn checkV7CoreFriFixedParity(
+    allocator: std.mem.Allocator,
+    profile: *const recursion.air.segment_leaf_wrapper_template_v6.CoreProfileV6,
+    v7_plan: *const recursion.segment_leaf_wrapper_roster_direct_v7.Plan,
+    old_plan: *const recursion.segment_leaf_wrapper_roster_direct_v5.Plan,
+    old_tree: [][]M31,
+) !void {
+    var writer = try recursion.segment_core_fri_rows25_26_fixed_v7.Writer.init(allocator, profile);
+    defer writer.deinit();
+    for ([_]u8{ 25, 26 }) |row| {
+        const old = old_plan.placements[row].?;
+        const current = v7_plan.placements[row];
+        if (!std.meta.eql(old.geometry, current.geometry)) return error.V7CoreFriFixedGeometryMismatch;
+        const width = current.geometry.preprocessed_columns;
+        const capacity = @as(usize, 1) << @intCast(current.geometry.log_size);
+        const scratch = try allocator.alloc([]M31, width);
+        var initialized: usize = 0;
+        defer {
+            for (scratch[0..initialized]) |column| allocator.free(column);
+            allocator.free(scratch);
+        }
+        for (scratch) |*column| {
+            column.* = try allocator.alloc(M31, capacity);
+            @memset(column.*, M31.zero());
+            initialized += 1;
+        }
+        try writer.writeRow(row, current.geometry, scratch);
+        if (old.preprocessed_offset > old_tree.len or width > old_tree.len - old.preprocessed_offset)
+            return error.V7CoreFriFixedSourceMismatch;
+        for (scratch, old_tree[old.preprocessed_offset..][0..width]) |expected, actual| {
+            if (actual.len != capacity) return error.V7CoreFriFixedSourceMismatch;
+            for (expected, actual) |a, b| if (!a.eql(b)) return error.V7CoreFriFixedSourceMismatch;
+        }
+    }
+}
+
+/// The real-leaf V7 diagnostic materializes only its four changed rows;
 /// the remaining columns stay absent until the complete V7 cohort exists.
 const V7ChangedTree = struct {
     allocator: std.mem.Allocator,
     columns: [][]M31,
-    allocations: [3][]M31,
+    allocations: [4][]M31,
 
     fn init(allocator: std.mem.Allocator, plan: *const recursion.segment_leaf_wrapper_roster_direct_v7.Plan, comptime kind: enum { preprocessed, main, interaction }) !V7ChangedTree {
         const count = switch (kind) {
@@ -686,10 +735,10 @@ const V7ChangedTree = struct {
         const columns = try allocator.alloc([]M31, count);
         errdefer allocator.free(columns);
         @memset(columns, &.{});
-        var allocations: [3][]M31 = undefined;
+        var allocations: [4][]M31 = undefined;
         var written: usize = 0;
         errdefer for (allocations[0..written]) |allocation| allocator.free(allocation);
-        inline for (.{ @as(usize, 5), @as(usize, 35), @as(usize, 42) }, 0..) |row, slot| {
+        inline for (.{ @as(usize, 5), @as(usize, 35), @as(usize, 39), @as(usize, 42) }, 0..) |row, slot| {
             const placement = plan.placements[row];
             const offset = switch (kind) {
                 .preprocessed => placement.preprocessed_offset,

@@ -110,11 +110,20 @@ The first physical V7 bridge also runs on the real q193 capture: row 5 writes
 4,700 rows, row 42 writes a 4,096-row padded table, and the versioned row-35
 counter includes exactly 24 wire-byte requests. Its row-5/row-42 NPH2
 interaction claims cancel under the shared relation draw. This is a scoped
-physical claim check. Substituting the new physical row-5/35/42 audits into
-the real 50-row cohort closes the complete domain-30 residual exactly; this
-is now a regression gate, not just a printed diagnostic. Domains 25 and 29
-remain nonzero because their other rows still use the diagnostic V5 cohort.
-Neither the scoped check nor the domain-30 gate creates a proof.
+physical claim check. The verifier-owned V7 key now also binds row 39's
+corrected direct-source AIR and every padded fixed column. Substituting the
+new physical row-5/35/39/42 audits into the real 50-row cohort closes the
+complete domain-25 and domain-30 residuals exactly; both are regression
+gates, not just printed diagnostics. Domain 29 remains nonzero because its
+statement source still uses the diagnostic V5 cohort. Neither the scoped
+check nor these two domain gates creates a proof.
+Row 36 cannot simply be moved into the present fixed key: two valid SegmentV2
+statement wires with 664 and 668 words share the same 1,024-row geometry but
+require different fixed scope/index columns. The focused counterexample gate
+rejects deriving that key from padded size or the separate 128-word native
+transcript. A sound replacement must either admit the exact statement length
+as independently verified key shape, or constrain variable active/index/use
+columns in a versioned proof-visible AIR.
 For the V6 base fixed schedule, rows 15 and 16 are deliberately unqualified.
 Their Tree0 columns include the exact dense input-use multiplicities of the
 native-public-sum arithmetic graph. Section lengths alone do not determine
@@ -132,6 +141,12 @@ physical fixed-column parity against the native graph and mutation gates.
 Row 22 rebuilds the core Merkle-root schedule from verifier-owned query,
 tree, and FRI counts; rows 23–32 still require admitted tree-column,
 recursion-plan, FRI-layout, and circuit-graph shape inputs.
+The verifier-owned FRI leaf and node fixed schedules for rows 25 and 26 now
+have an independent writer. Its complete committed-order columns, including
+padding, match the native witness writer in focused tests and the real q193
+Tree0 source. These rows are qualified as standalone fixed-column sources;
+they are not yet admitted into the complete V7 fixed key. Rows 23–24 and
+27–32 still require more shape authority.
 A further dormant row-4 profile can export kind and eight split argument limbs
 for instructions with an actual payload row, using that row's existing
 transcript-payload relation. Its coverage audit rejects duplicate origins and

@@ -223,6 +223,24 @@ pub fn build(b: *std.Build) void {
     });
     b.step("test-v7-physical-bridge", "Check template-backed V7 row5/row42 physical columns and half-word claim closure")
         .dependOn(&b.addRunArtifact(v7_physical_bridge_tests).step);
+    const v7_statement_shape_tests = b.addTest(.{
+        .root_module = v3_rows_root,
+        .filters = &.{"row36 exact fixed columns differ for wire lengths"},
+    });
+    b.step("test-v7-statement-shape", "Reject a row36 fixed key inferred from padded geometry alone")
+        .dependOn(&b.addRunArtifact(v7_statement_shape_tests).step);
+    const v7_source_physical_tests = b.addTest(.{
+        .root_module = v3_rows_root,
+        .filters = &.{"V7 row39 physical source uses corrected AIR"},
+    });
+    b.step("test-v7-source-physical", "Check verifier-keyed V7 row39 fixed source and corrected physical interaction")
+        .dependOn(&b.addRunArtifact(v7_source_physical_tests).step);
+    const v7_core_fri_fixed_tests = b.addTest(.{
+        .root_module = v3_rows_root,
+        .filters = &.{ "FRI leaf and node fixed columns are independently reconstructed", "FRI fixed writer rejects changed authority" },
+    });
+    b.step("test-v7-core-fri-fixed", "Check verifier-owned FRI leaf/node fixed columns against native physical writers")
+        .dependOn(&b.addRunArtifact(v7_core_fri_fixed_tests).step);
     const v6_npv2_tests = b.addTest(.{
         .root_module = v3_rows_root,
         .filters = &.{"V6 local router exports exactly eight hash-bound authority words to NPV2"},
