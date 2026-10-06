@@ -140,6 +140,16 @@ pub fn build(b: *std.Build) void {
     });
     b.step("test-segment-v3-pinned-native-ingress", "Prove and verify a real V3 local leaf under an independent q193 Tree0 pin")
         .dependOn(&b.addRunArtifact(v3_pinned_tests).step);
+    const v3_rows_root = b.createModule(.{
+        .root_source_file = b.path("../../frontends/riscv/segment_leaf_wrapper_source_projection_v3_test_root.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    v3_rows_root.addImport("stwo_core", core);
+    v3_rows_root.addImport("stwo_prover_engine", prover);
+    const v3_rows_tests = b.addTest(.{ .root_module = v3_rows_root });
+    b.step("test-v3-source-projection-rows", "Check typed V3 leaf source and projection joins")
+        .dependOn(&b.addRunArtifact(v3_rows_tests).step);
 
     const universal_root = b.createModule(.{
         .root_source_file = b.path("universal_typed_component_proof_test.zig"),
