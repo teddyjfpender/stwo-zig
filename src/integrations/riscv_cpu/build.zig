@@ -199,6 +199,12 @@ pub fn build(b: *std.Build) void {
     });
     b.step("test-v6-base-fixed-rows", "Check independent V6 control, public, provider and byte-table preprocessing")
         .dependOn(&b.addRunArtifact(v6_base_fixed_tests).step);
+    const v7_fixed_key_tests = b.addTest(.{
+        .root_module = v3_rows_root,
+        .filters = &.{"V7 candidate key binds complete fixed columns"},
+    });
+    b.step("test-v7-fixed-key-template", "Check V7 fixed-key row5/row42 geometry and complete fixed columns")
+        .dependOn(&b.addRunArtifact(v7_fixed_key_tests).step);
     const v7_roster_tests = b.addTest(.{
         .root_module = v3_rows_root,
         .filters = &.{"V7 roster pins wire-half AIR geometry"},
