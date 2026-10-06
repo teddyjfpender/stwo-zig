@@ -19,6 +19,7 @@ pub fn ForBackend(comptime Backend: type) type {
         const storage = @import("transaction_storage_v2.zig");
         const support = @import("segment_outer_transaction_support_v2.zig");
         const identity_mod = @import("canonical_proof_identity_v1.zig");
+        const provider_field = @import("segment_outer_shared_provider_field_authority_v1.zig");
         const protocol = @import("segment_outer_protocol_v3.zig");
         const channel_mod = @import("poseidon2_channel.zig");
         const verifier_tree = @import("verifier_tree.zig");
@@ -91,12 +92,56 @@ pub fn ForBackend(comptime Backend: type) type {
             }
         };
 
+        /// Host-side field preparation minted only after fresh verification of
+        /// this strong child. The future 49-row wrapper must prove these words
+        /// came from its verifier rows; this value alone is not recursive AIR.
+        pub const FieldSnapshotV3 = struct {
+            manifest_seal: [32]u8,
+            profile_id: channel_mod.Digest,
+            verification_key_id: channel_mod.Digest,
+            preprocessed_root: channel_mod.Digest,
+            proof_id: channel_mod.Digest,
+            claims: manifest_mod.ClaimVector,
+            relations: universal.UniversalRelations,
+            poseidon2_partials: [2]core.fields.qm31.QM31,
+            provider: provider_field.AuthorityV1,
+
+            pub fn deinit(self: *FieldSnapshotV3) void {
+                self.provider.deinit();
+                self.* = undefined;
+            }
+
+            pub fn validateAgainst(
+                self: *const FieldSnapshotV3,
+                manifest: *const manifest_mod.Manifest,
+                artifact: *const Artifact,
+            ) !void {
+                try manifest.validate();
+                try self.claims.validate(manifest);
+                try self.relations.validate();
+                if (!std.meta.eql(self.manifest_seal, manifest.seal) or
+                    !std.meta.eql(self.profile_id, artifact.profile_id) or
+                    !std.meta.eql(self.verification_key_id, artifact.verification_key_id) or
+                    !std.meta.eql(self.preprocessed_root, artifact.preprocessed_root) or
+                    !std.meta.eql(self.proof_id, artifact.proof_id))
+                    return error.InvalidV3OuterFieldSnapshot;
+                try self.provider.validateAgainst(
+                    manifest,
+                    &self.claims,
+                    &self.relations,
+                    self.poseidon2_partials,
+                );
+            }
+        };
+
         pub const Verified = struct {
             artifact: Artifact,
             capture: Capture,
+            field_snapshot: FieldSnapshotV3,
             receipt: Receipt,
 
             pub fn deinit(self: *Verified, allocator: std.mem.Allocator) void {
+                self.field_snapshot.deinit();
                 self.capture.deinit(allocator);
                 self.artifact.deinit(allocator);
                 self.* = undefined;
@@ -164,8 +209,16 @@ pub fn ForBackend(comptime Backend: type) type {
                     };
                     phase.reset();
                     var capture: Capture = undefined;
-                    try verifyArtifact(allocator, authority_inputs, &artifact, &capture);
+                    var field_snapshot: FieldSnapshotV3 = undefined;
+                    try verifyArtifactAndFields(
+                        allocator,
+                        authority_inputs,
+                        &artifact,
+                        &capture,
+                        &field_snapshot,
+                    );
                     errdefer capture.deinit(allocator);
+                    errdefer field_snapshot.deinit();
                     const fresh_verifier_ns = phase.read();
                     const receipt = Receipt{
                         .producer_prepare_ns = producer_prepare_ns,
@@ -180,7 +233,12 @@ pub fn ForBackend(comptime Backend: type) type {
                         .transcript_draws = proved.transcript_draws,
                     };
                     try receipt.validate();
-                    return .{ .artifact = artifact, .capture = capture, .receipt = receipt };
+                    return .{
+                        .artifact = artifact,
+                        .capture = capture,
+                        .field_snapshot = field_snapshot,
+                        .receipt = receipt,
+                    };
                 }
 
                 const Proved = struct {
@@ -265,6 +323,40 @@ pub fn ForBackend(comptime Backend: type) type {
                     artifact: *const Artifact,
                     capture_out: *Capture,
                 ) !void {
+                    return verifyArtifactInternal(
+                        allocator,
+                        authority_inputs,
+                        artifact,
+                        capture_out,
+                        null,
+                    );
+                }
+
+                /// Freshly verifies one strong child and also returns the
+                /// bounded field inputs needed by a future wrapper witness.
+                pub fn verifyArtifactAndFields(
+                    allocator: std.mem.Allocator,
+                    authority_inputs: Cohort.AuthorityInputs,
+                    artifact: *const Artifact,
+                    capture_out: *Capture,
+                    fields_out: *FieldSnapshotV3,
+                ) !void {
+                    return verifyArtifactInternal(
+                        allocator,
+                        authority_inputs,
+                        artifact,
+                        capture_out,
+                        fields_out,
+                    );
+                }
+
+                fn verifyArtifactInternal(
+                    allocator: std.mem.Allocator,
+                    authority_inputs: Cohort.AuthorityInputs,
+                    artifact: *const Artifact,
+                    capture_out: *Capture,
+                    fields_out: ?*FieldSnapshotV3,
+                ) !void {
                     try artifact.validateEncoding();
                     var cohort = try Cohort.init(allocator, authority_inputs);
                     defer cohort.deinit();
@@ -339,6 +431,30 @@ pub fn ForBackend(comptime Backend: type) type {
                         proof_for_verifier,
                         &capture,
                     );
+                    errdefer capture.deinit(allocator);
+                    if (fields_out) |out| {
+                        var provider = try provider_field.AuthorityV1.init(
+                            allocator,
+                            manifest,
+                            &claims,
+                            &relations,
+                            generated.core.poseidon2_partials,
+                        );
+                        errdefer provider.deinit();
+                        const fields = FieldSnapshotV3{
+                            .manifest_seal = manifest.seal,
+                            .profile_id = artifact.profile_id,
+                            .verification_key_id = artifact.verification_key_id,
+                            .preprocessed_root = artifact.preprocessed_root,
+                            .proof_id = artifact.proof_id,
+                            .claims = claims,
+                            .relations = relations,
+                            .poseidon2_partials = generated.core.poseidon2_partials,
+                            .provider = provider,
+                        };
+                        try fields.validateAgainst(manifest, artifact);
+                        out.* = fields;
+                    }
                     capture_out.* = capture;
                 }
 

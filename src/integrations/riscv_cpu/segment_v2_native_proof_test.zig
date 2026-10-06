@@ -1165,6 +1165,21 @@ test "native V2 proves a rebased leaf-local V3 segment without widening the AIR"
     try strong.artifact.validateEncoding();
     try std.testing.expect(strong.artifact.proof_bytes.len != 0);
     try std.testing.expect(strong.receipt.producer_peak_bytes > 0);
+    try strong.field_snapshot.validateAgainst(cohort.manifest(), &strong.artifact);
+    var wrong_field_identity = strong.field_snapshot;
+    wrong_field_identity.proof_id[0] ^= 1;
+    try std.testing.expectError(
+        error.InvalidV3OuterFieldSnapshot,
+        wrong_field_identity.validateAgainst(cohort.manifest(), &strong.artifact),
+    );
+    const first_provider_word = strong.field_snapshot.provider.words[0];
+    strong.field_snapshot.provider.words[0] = M31.fromCanonical(2);
+    try std.testing.expectError(
+        error.SharedProviderFieldAuthorityMismatch,
+        strong.field_snapshot.validateAgainst(cohort.manifest(), &strong.artifact),
+    );
+    strong.field_snapshot.provider.words[0] = first_provider_word;
+    try strong.field_snapshot.validateAgainst(cohort.manifest(), &strong.artifact);
     var wrong_query = strong.artifact;
     wrong_query.query_count = 3;
     var rejected_capture: strong_outer.Capture = undefined;
