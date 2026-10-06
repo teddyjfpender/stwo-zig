@@ -1,7 +1,7 @@
 # S31 Bitcoin header light client: executable base and recursive target
 
 Status: wide integers, byte-exact SHA256d, mainnet compact target decoding,
-proof of work, and a two-header same-difficulty link are executable and have
+proof of work, and a genesis-anchored two-header same-difficulty link are executable and have
 generated native verifiers. A dedicated SHA AIR witness planner feeds the
 existing packed SHA provider, but S31 proofs still use the generic SHA
 circuit. Full header-chain policy and recursive proof verification remain
@@ -42,10 +42,10 @@ adds 614 raw QM31 rows and uses the same padded trace size; it proves byte
 exactness and the target inequality inside one Stwo proof.
 
 [`bitcoin_header_pair.s31`](../../src/frontends/s31/examples/bitcoin_header_pair.s31)
-proves the real genesis-to-block-one transition with two SHA256d operations,
+pins its parent SHA256d digest to the mainnet genesis checkpoint, then proves
 the child's exact previous-hash bytes, equal `nBits` for this non-retarget
 step, and PoW checks for both headers. Its generated native verifier accepted
-the proof and rejected a changed public pair root. The
+the real genesis-to-block-one witness and rejected a changed public pair root. The
 [single-trial record](measurements/bitcoin-header-pair-v1-2026-10-06.json)
 contains raw/padded geometry, proof bytes and timings. This is a two-header
 segment proof, not a general chain-policy or recursive proof.
@@ -102,7 +102,7 @@ This is the major remaining efficiency gate.
 
 The first four padded sizes are exercised by the six-call provider test. The
 boundary size follows its 24 input and eight output words per call. The
-generic two-header circuit currently has 714,559 raw QM31 rows, padded to
+generic two-header circuit currently has 714,595 raw QM31 rows, padded to
 1,048,576; these row counts cannot be converted into a speedup ratio without
 counting all column widths, lookup tables, interactions and verifier work.
 
@@ -189,7 +189,7 @@ a fold while keeping the outer verifier and proof size bounded.
 | --- | --- | --- |
 | 1. Wide arithmetic | Typed byte/int values, carry/borrow relations, independent oracle | Current example and native proof; add boundary and randomized adversarial vectors. |
 | 2. Byte-exact header hash | **Generic circuit complete:** `Bytes80`, SHA256d relation, one native proof. **SHA AIR witness planner complete:** three call records and packed provider rows. Remaining: authenticated circuit-to-chip lookup, new proof roster and verifier, nominal `BlockHash`, broader Bitcoin Core differential vectors, and measured cost crossover. | Genesis and randomized byte checks; native proof and changed-root rejection currently pass. Chip substitution must fail until one-proof lookup closure is implemented. |
-| 3. Header policy | **Two-header same-bits segment complete:** compact target, powLimit, unsigned comparison, exact previous-hash link, equal `nBits` for a non-retarget step. Remaining: retarget transitions, timestamp/MTP policy, work increment, checkpoint and versioned public state ABI. | Real genesis-to-block-one proof accepted; swapped headers and changed bits rejected by independent oracle; invalid transitions need native adversarial corpus. |
+| 3. Header policy | **Genesis-anchored two-header same-bits segment complete:** compact target, powLimit, unsigned comparison, exact previous-hash link, equal `nBits` for a non-retarget step. Remaining: retarget transitions, timestamp/MTP policy, work increment and versioned public state ABI. | Real genesis-to-block-one proof accepted; changed checkpoint, link and bits rejected by independent oracle; invalid transitions need native adversarial corpus. |
 | 4. In-circuit S31 verifier | One pinned `S31NAT*` profile and verification-key policy | Valid native/circuit parity; malformed proof, key, profile, transcript, FRI and statement mutations all reject. |
 | 5. Recursive fold | Base and step wrappers; proof of a proof of a step | Two- and many-step folds; fixed-size outer statement/proof; checkpoint and fork-policy tests. |
 

@@ -80,7 +80,7 @@ def abi(source: dict, lowering: str) -> dict:
             length = node["length"]
         elif op in {"sum_lanes", "u256_le"}:
             length = 1
-        elif op in {"hash_sha256d_header", "bitcoin_target_mainnet", "bitcoin_prev_hash"}:
+        elif op in {"hash_sha256d_header", "bitcoin_target_mainnet", "bitcoin_prev_hash", "bitcoin_genesis_hash_mainnet"}:
             length = 16
         elif op == "bitcoin_header_bits":
             length = 2
@@ -89,7 +89,7 @@ def abi(source: dict, lowering: str) -> dict:
             length = 8
         else:
             length = shapes[node["lhs"]]["length"]
-        shapes[node["name"]] = {"kind": "u16" if op in {"u256_add", "u256_add_checked", "hash_sha256d_header", "bitcoin_target_mainnet", "bitcoin_prev_hash", "bitcoin_header_bits"} else "m31", "length": length}
+        shapes[node["name"]] = {"kind": "u16" if op in {"u256_add", "u256_add_checked", "hash_sha256d_header", "bitcoin_target_mainnet", "bitcoin_prev_hash", "bitcoin_header_bits", "bitcoin_genesis_hash_mainnet"} else "m31", "length": length}
     return {
         "schema": "s31-public-abi-v1",
         "encoding": "eight canonical M31 words, encoded little-endian u32; unused words are zero" if lowering.startswith("direct-") else "eight little-endian u32 words; unused words are zero",
@@ -508,6 +508,10 @@ def equations(package: Path) -> dict:
             shape = ("u16", length)
             field_equations.append(f"{name}[j] = {node['lhs']}[{start}+j], 0 <= j < {length}")
             notes.append("This is a fixed view of already range-checked header limbs; assertions against the view reuse those same circuit wires.")
+        elif op == "bitcoin_genesis_hash_mainnet":
+            shape = ("u16", 16)
+            field_equations.append(f"{name}[j] = little_endian_u16(mainnet_genesis_raw_bytes[2j:2j+2]), 0 <= j < 16")
+            notes.append("The raw mainnet genesis digest is a compiler-owned constant, not a prover input.")
         elif op in hashes:
             shape = ("m31", 8)
             arguments = ", ".join(node[key] for key in ("lhs", "rhs") if key in node)

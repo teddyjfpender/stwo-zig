@@ -1,13 +1,15 @@
 use std@1;
 
 // A two-header mainnet segment within one difficulty interval. The source
-// proves both PoW checks, exact previous-hash linkage, and unchanged nBits.
+// proves the genesis checkpoint, both PoW checks, exact previous-hash
+// linkage, and unchanged nBits.
 circuit bitcoin_header_pair(
     private parent: Bytes80,
     private child: Bytes80
 ) -> public Digest<Poseidon2> {
     let parent_hash = std::hash::sha256d_header(parent);
     let child_hash = std::hash::sha256d_header(child);
+    assert_eq(parent_hash, std::bitcoin::genesis_hash_mainnet());
     assert_eq(std::bitcoin::prev_hash(child), parent_hash);
     assert_eq(std::bitcoin::header_bits(child), std::bitcoin::header_bits(parent));
 

@@ -72,7 +72,7 @@ The worked examples use checked-in sources under [`../examples`](../examples):
 | [`preimage4.s31`](../examples/preimage4.s31) | Private `u16` witness and an equality assertion | `gate` |
 | [`wide_order.s31`](../examples/wide_order.s31) | Sixteen-limb addition and comparison with an auxiliary public commitment | `gate` |
 | [`bitcoin_header_pow.s31`](../examples/bitcoin_header_pow.s31) | Byte-exact SHA256d and mainnet compact proof of work for one header | `sparse-wide-gate` |
-| [`bitcoin_header_pair.s31`](../examples/bitcoin_header_pair.s31) | Genesis-to-block-one hash linkage, same bits, and both PoW checks | `sparse-wide-gate` |
+| [`bitcoin_header_pair.s31`](../examples/bitcoin_header_pair.s31) | Mainnet genesis checkpoint, block-one hash linkage, same bits, and both PoW checks | `sparse-wide-gate` |
 
 If this is your first STARK, read [the hand-worked walkthrough](walkthrough.md)
 before running the tour. It distinguishes the small teaching trace from the

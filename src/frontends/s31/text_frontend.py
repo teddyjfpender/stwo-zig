@@ -30,7 +30,7 @@ BUILTINS = {
     "std::bytes::to_u256_le", "std::bytes::from_u256_le", "std::bytes::limbs_m31",
     "sha256d_header",
     "target_mainnet",
-    "prev_hash", "header_bits",
+    "prev_hash", "header_bits", "genesis_hash_mainnet",
 } | mathlib.BUILTINS
 STANDARD_ALIASES = {
     "std::field::from_u16": "m31_from_u16",
@@ -43,6 +43,7 @@ STANDARD_ALIASES = {
     "std::bitcoin::target_mainnet": "target_mainnet",
     "std::bitcoin::prev_hash": "prev_hash",
     "std::bitcoin::header_bits": "header_bits",
+    "std::bitcoin::genesis_hash_mainnet": "genesis_hash_mainnet",
     "std::merkle::path_poseidon2": "merkle_path_poseidon2",
     "std::merkle::path_blake2s": "merkle_path_blake2s",
 }
@@ -516,6 +517,8 @@ class Compiler:
                 return self.builder.header_prev_hash(self.expect_value(args[0], expr), wanted=wanted, span=self.span(expr))
             if name == "header_bits" and len(args) == 1:
                 return self.builder.header_bits(self.expect_value(args[0], expr), wanted=wanted, span=self.span(expr))
+            if name == "genesis_hash_mainnet" and len(args) == 0:
+                return self.builder.genesis_hash_mainnet(wanted=wanted, span=self.span(expr))
             if name in {"poseidon2_pair", "blake2s_pair"} and len(args) == 2:
                 family = "poseidon2" if name.startswith("poseidon2") else "blake2s_reduced"
                 return self.builder.hash_pair(family, *(self.expect_value(arg, expr) for arg in args),

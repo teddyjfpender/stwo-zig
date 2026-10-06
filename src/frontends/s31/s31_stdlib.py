@@ -211,6 +211,11 @@ class Builder:
         return self.emit("bitcoin_header_bits", Type("u16", 2),
                          wanted=wanted, span=span, lhs=self.realize(value).ref)
 
+    def genesis_hash_mainnet(self, *, wanted: str | None = None,
+                             span: dict[str, int] | None = None) -> Value:
+        return self.emit("bitcoin_genesis_hash_mainnet", Type("bytes32", 16),
+                         wanted=wanted, span=span)
+
     def hash_pair(self, family: str, lhs: Value, rhs: Value, *, wanted: str | None = None,
                   span: dict[str, int] | None = None) -> Value:
         expected = Type("digest", 8, family)

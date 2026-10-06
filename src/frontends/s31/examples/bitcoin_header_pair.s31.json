@@ -1,0 +1,134 @@
+{
+  "assertions": [
+    {
+      "lhs": "parent_hash",
+      "rhs": "_s31_0"
+    },
+    {
+      "lhs": "_s31_1",
+      "rhs": "parent_hash"
+    },
+    {
+      "lhs": "_s31_2",
+      "rhs": "_s31_3"
+    },
+    {
+      "lhs": "parent_pow",
+      "rhs": "_s31_4"
+    },
+    {
+      "lhs": "child_pow",
+      "rhs": "_s31_5"
+    }
+  ],
+  "inputs": [
+    {
+      "kind": "u16",
+      "length": 40,
+      "name": "parent",
+      "visibility": "private"
+    },
+    {
+      "kind": "u16",
+      "length": 40,
+      "name": "child",
+      "visibility": "private"
+    }
+  ],
+  "name": "bitcoin_header_pair",
+  "nodes": [
+    {
+      "lhs": "parent",
+      "name": "parent_hash",
+      "op": "hash_sha256d_header"
+    },
+    {
+      "lhs": "child",
+      "name": "child_hash",
+      "op": "hash_sha256d_header"
+    },
+    {
+      "name": "_s31_0",
+      "op": "bitcoin_genesis_hash_mainnet"
+    },
+    {
+      "lhs": "child",
+      "name": "_s31_1",
+      "op": "bitcoin_prev_hash"
+    },
+    {
+      "lhs": "child",
+      "name": "_s31_2",
+      "op": "bitcoin_header_bits"
+    },
+    {
+      "lhs": "parent",
+      "name": "_s31_3",
+      "op": "bitcoin_header_bits"
+    },
+    {
+      "lhs": "parent",
+      "name": "parent_target",
+      "op": "bitcoin_target_mainnet"
+    },
+    {
+      "lhs": "child",
+      "name": "child_target",
+      "op": "bitcoin_target_mainnet"
+    },
+    {
+      "lhs": "parent_hash",
+      "name": "parent_pow",
+      "op": "u256_le",
+      "rhs": "parent_target"
+    },
+    {
+      "lhs": "child_hash",
+      "name": "child_pow",
+      "op": "u256_le",
+      "rhs": "child_target"
+    },
+    {
+      "constant": 1,
+      "length": 1,
+      "name": "_s31_4",
+      "op": "constant"
+    },
+    {
+      "constant": 1,
+      "length": 1,
+      "name": "_s31_5",
+      "op": "constant"
+    },
+    {
+      "lhs": "parent_hash",
+      "name": "_s31_6",
+      "op": "cast_m31"
+    },
+    {
+      "lhs": "_s31_6",
+      "name": "parent_root",
+      "op": "hash_poseidon2_leaf"
+    },
+    {
+      "lhs": "child_hash",
+      "name": "_s31_7",
+      "op": "cast_m31"
+    },
+    {
+      "lhs": "_s31_7",
+      "name": "child_root",
+      "op": "hash_poseidon2_leaf"
+    },
+    {
+      "lhs": "parent_root",
+      "name": "segment_root",
+      "op": "hash_poseidon2_pair",
+      "rhs": "child_root"
+    }
+  ],
+  "public_outputs": [
+    "segment_root"
+  ],
+  "version": 1
+}

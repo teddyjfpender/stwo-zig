@@ -165,6 +165,7 @@ circuit bitcoin_header_pair(private parent: Bytes80, private child: Bytes80)
     -> public Digest<Poseidon2> {
     let parent_hash = std::hash::sha256d_header(parent);
     let child_hash = std::hash::sha256d_header(child);
+    assert_eq(parent_hash, std::bitcoin::genesis_hash_mainnet());
     assert_eq(std::bitcoin::prev_hash(child), parent_hash);
     assert_eq(std::bitcoin::header_bits(child), std::bitcoin::header_bits(parent));
     let parent_target = std::bitcoin::target_mainnet(parent);
@@ -180,15 +181,20 @@ circuit bitcoin_header_pair(private parent: Bytes80, private child: Bytes80)
 }
 ```
 
-For this source, `prev_hash(child)` is a view of the already constrained
+The fixed `genesis_hash_mainnet()` value is the raw byte order of mainnet's
+genesis digest, with its displayed value pinned in
+[Bitcoin Core's mainnet parameters](https://github.com/bitcoin/bitcoin/blob/master/src/kernel/chainparams.cpp#L145-L149).
+The first assertion pins the private parent's computed digest
+to that network checkpoint. It adds no witness-controlled input. For this
+source, `prev_hash(child)` is a view of the already constrained
 `child` limbs 2–17. `header_bits(child)` is a view of limbs 36–37. The
 assertions compare these same circuit wires with the SHA output wires and
 the parent's bits wires; the views introduce no new witness values. In the
 actual profile, each equality is packed into Eq component rows. Two SHA256d
 calls contribute six fixed compression blocks, and two target checks each
 prove a 256-bit inequality. The public value is a Poseidon2 commitment to
-the two hashes in their specified order; it must be anchored by the relying
-party before it identifies a particular chain segment.
+the two hashes in their specified order. A relying party must still check the
+expected public root to identify a particular child header or chain segment.
 
 ```sh
 python3 src/frontends/s31/s31.py trial \
@@ -199,9 +205,10 @@ python3 src/frontends/s31/s31.py trial \
 ```
 
 One local trial accepted the real pair and rejected a changed public root.
-It used 714,559 raw QM31 rows, 9,519 Eq rows, and 7,320 conversion rows;
-the proof was 369,753 bytes. Proving took 0.422 s and native verification
-0.474 s in that run. The raw SHA arithmetic is nearly twice the single-header
+It used 714,595 raw QM31 rows, 9,523 Eq rows, and 7,320 conversion rows;
+the proof was 379,136 bytes. Proving took 0.702 s and native verification
+0.474 s in that run; 0.280 s of proving was a variable FRI nonce search.
+The raw SHA arithmetic is nearly twice the single-header
 cost; the QM31 trace pads to 1,048,576 rows. These are single stochastic-PoW
 observations. The [trial record](../../../../design/s31/measurements/bitcoin-header-pair-v1-2026-10-06.json)
 pins the source and proof digests.

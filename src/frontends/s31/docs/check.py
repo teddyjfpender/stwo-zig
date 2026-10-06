@@ -107,6 +107,7 @@ def check_examples() -> None:
     )
     checked_pair, _ = compile_text((S31 / "examples/bitcoin_header_pair.s31").read_text())
     assert pair_relation == checked_pair
+    assert pair_relation == json.loads((S31 / "examples/bitcoin_header_pair.s31.json").read_text())
     pair_assignment = json.loads((S31 / "examples/bitcoin_header_pair.valid.json").read_text())
     assert evaluate_relation(pair_relation, pair_assignment) == pair_assignment["public_outputs"]
     worked = DOCS / "worked-proofs.md"

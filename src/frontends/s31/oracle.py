@@ -30,7 +30,8 @@ _OPS = frozenset({"constant", "cast_m31", "add", "mul", "add_const",
                   "mul_const", "sum_lanes", "select", "repeat",
                   "u256_add", "u256_le", "u256_add_checked",
                   "hash_sha256d_header", "bitcoin_target_mainnet",
-                  "bitcoin_prev_hash", "bitcoin_header_bits"}) | _HASH_OPS
+                  "bitcoin_prev_hash", "bitcoin_header_bits",
+                  "bitcoin_genesis_hash_mainnet"}) | _HASH_OPS
 _NODE_FIELDS = frozenset({"name", "op", "lhs", "rhs", "selector",
                           "constant", "length", "rounds", "body"})
 
@@ -166,6 +167,9 @@ def _validated_shapes(relation: Mapping[str, Any]) -> tuple[dict[str, tuple[str,
             if lhs != ("u16", 40):
                 raise OracleError(f"{name}: {op} requires forty u16 limbs")
             shape = ("u16", 2 if op == "bitcoin_header_bits" else 16)
+        elif op == "bitcoin_genesis_hash_mainnet":
+            _absent(node, "lhs", "rhs", "selector", "constant", "length", "rounds", "body")
+            shape = ("u16", 16)
         elif op == "select":
             _absent(node, "constant", "length", "rounds", "body")
             if rhs is None:
@@ -312,6 +316,9 @@ def evaluate_relation(relation: Mapping[str, Any], assignment: Mapping[str, Any]
         elif op in ("bitcoin_prev_hash", "bitcoin_header_bits"):
             start = 2 if op == "bitcoin_prev_hash" else 36
             result = lhs[start:start + (16 if op == "bitcoin_prev_hash" else 2)]
+        elif op == "bitcoin_genesis_hash_mainnet":
+            result = list(struct.unpack("<16H", bytes.fromhex(
+                "6fe28c0ab6f1b372c1a6a246ae63f74f931e8365e15a089c68d6190000000000")))
         elif op == "select":
             bit = values[node["selector"]][0]
             if bit not in (0, 1):

@@ -61,9 +61,10 @@ pub fn compileRaw(comptime V: type, allocator: std.mem.Allocator, program: relat
         const lhs: ?Entry = if (node.lhs) |name| values.get(name) orelse return error.UnknownOperand else null;
         const rhs: ?Entry = if (node.rhs) |name| values.get(name) orelse return error.UnknownOperand else null;
         const selector: ?Entry = if (node.selector) |name| values.get(name) orelse return error.UnknownOperand else null;
-        const length: usize = if (node.op == .constant) node.length.? else if (node.op == .sum_lanes or node.op == .u256_le) 1 else if (node.op == .hash_blake2s or node.op == .hash_blake2s_leaf or node.op == .hash_blake2s_pair or node.op == .hash_poseidon2_leaf or node.op == .hash_poseidon2_pair) 8 else lhs.?.shape.length;
+        const length: usize = if (node.op == .constant) node.length.? else if (node.op == .bitcoin_genesis_hash_mainnet) 16 else if (node.op == .sum_lanes or node.op == .u256_le) 1 else if (node.op == .hash_blake2s or node.op == .hash_blake2s_leaf or node.op == .hash_blake2s_pair or node.op == .hash_poseidon2_leaf or node.op == .hash_poseidon2_pair) 8 else lhs.?.shape.length;
         const entry: Entry = switch (node.op) {
             .constant => .{ .shape = .{ .kind = .m31, .length = length }, .lanes = try circuit.builder.simd.repeat(V, &ctx, M31.fromCanonical(node.constant.?), length) },
+            .bitcoin_genesis_hash_mainnet => try mainnetGenesisHash(V, &ctx),
             .cast_m31 => .{ .shape = .{ .kind = .m31, .length = length }, .lanes = lhs.?.lanes, .raw = lhs.?.raw },
             .add => .{ .shape = .{ .kind = .m31, .length = length }, .lanes = try circuit.builder.simd.add(V, &ctx, lhs.?.lanes, rhs.?.lanes) },
             .mul => .{ .shape = .{ .kind = .m31, .length = length }, .lanes = try circuit.builder.simd.mul(V, &ctx, lhs.?.lanes, rhs.?.lanes) },
@@ -262,6 +263,7 @@ fn compileWithSpansMode(comptime V: type, allocator: std.mem.Allocator, program:
                 break :blk .{ .shape = .{ .kind = node.kind, .length = node.length }, .lanes = try circuit.builder.simd.pack(V, &ctx, wrappers), .raw = raw, .boolean = boolean };
             },
             .constant => .{ .shape = .{ .kind = .m31, .length = node.length }, .lanes = try circuit.builder.simd.repeat(V, &ctx, M31.fromCanonical(node.constant.?), node.length) },
+            .bitcoin_genesis_hash_mainnet => try mainnetGenesisHash(V, &ctx),
             .cast_m31 => .{ .shape = .{ .kind = .m31, .length = node.length }, .lanes = entries[node.lhs.?].lanes, .raw = entries[node.lhs.?].raw, .boolean = entries[node.lhs.?].boolean },
             .add => .{ .shape = .{ .kind = .m31, .length = node.length }, .lanes = try circuit.builder.simd.add(V, &ctx, entries[node.lhs.?].lanes, entries[node.rhs.?].lanes) },
             .mul => .{ .shape = .{ .kind = .m31, .length = node.length }, .lanes = try circuit.builder.simd.mul(V, &ctx, entries[node.lhs.?].lanes, entries[node.rhs.?].lanes) },
@@ -440,6 +442,17 @@ fn headerSlice(comptime V: type, ctx: *circuit.builder.Context(V), input: Entry,
     const wrappers = try ctx.scratch().alloc(circuit.builder.wrappers.M31Wrapper(Var), length);
     for (raw, wrappers) |wire, *wrapped| wrapped.* = .newUnsafe(wire);
     return .{ .shape = .{ .kind = .u16, .length = length }, .lanes = try circuit.builder.simd.pack(V, ctx, wrappers), .raw = raw };
+}
+
+fn mainnetGenesisHash(comptime V: type, ctx: *circuit.builder.Context(V)) !Entry {
+    const raw = try ctx.scratch().alloc(Var, 16);
+    const wrappers = try ctx.scratch().alloc(circuit.builder.wrappers.M31Wrapper(Var), 16);
+    for (raw, wrappers, 0..) |*wire, *wrapped, i| {
+        const value = std.mem.readInt(u16, relation.mainnet_genesis_hash_raw[2 * i ..][0..2], .little);
+        wire.* = try ctx.constant(QM31.fromBase(M31.fromCanonical(value)));
+        wrapped.* = .newUnsafe(wire.*);
+    }
+    return .{ .shape = .{ .kind = .u16, .length = 16 }, .lanes = try circuit.builder.simd.pack(V, ctx, wrappers), .raw = raw };
 }
 
 /// Little-endian 16-bit limbs. Every output digit is range checked and every

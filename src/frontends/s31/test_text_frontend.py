@@ -40,6 +40,7 @@ class TextFrontendTests(unittest.TestCase):
 
     def test_two_real_headers_link_and_keep_nonretarget_bits(self) -> None:
         relation, _ = compile_file(EXAMPLES / "bitcoin_header_pair.s31")
+        self.assertEqual(relation, json.loads((EXAMPLES / "bitcoin_header_pair.s31.json").read_text()))
         assignment = json.loads((EXAMPLES / "bitcoin_header_pair.valid.json").read_text())
         self.assertEqual(evaluate_relation(relation, assignment), assignment["public_outputs"])
         parent = encode_header80(assignment["private_inputs"]["parent"])
@@ -53,10 +54,18 @@ class TextFrontendTests(unittest.TestCase):
             swapped["private_inputs"]["child"], swapped["private_inputs"]["parent"])
         with self.assertRaisesRegex(OracleError, r"assertions\[0\] failed"):
             evaluate_relation(relation, swapped)
+        broken_link = copy.deepcopy(assignment)
+        broken_link["private_inputs"]["child"][2] ^= 1
+        with self.assertRaisesRegex(OracleError, r"assertions\[1\] failed"):
+            evaluate_relation(relation, broken_link)
         changed_bits = copy.deepcopy(assignment)
         changed_bits["private_inputs"]["child"][37] = 0x1c00
-        with self.assertRaisesRegex(OracleError, r"assertions\[1\] failed"):
+        with self.assertRaisesRegex(OracleError, r"assertions\[2\] failed"):
             evaluate_relation(relation, changed_bits)
+        wrong_parent = copy.deepcopy(assignment)
+        wrong_parent["private_inputs"]["parent"][39] ^= 1
+        with self.assertRaisesRegex(OracleError, r"assertions\[0\] failed"):
+            evaluate_relation(relation, wrong_parent)
 
     def test_field_cast_arithmetic_and_selection(self) -> None:
         self.assertEqual(reference_m31_from_u16([0, 65535]), [0, 65535])

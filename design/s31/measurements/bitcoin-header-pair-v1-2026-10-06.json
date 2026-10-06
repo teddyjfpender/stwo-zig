@@ -3,15 +3,15 @@
   "program": "bitcoin_header_pair",
   "profile": "sparse-wide-v5",
   "lowering": "sparse-wide-gate",
-  "program_sha256": "22e06fb4dbf48531d072fa3c563f771504f12b681794ae82b6e0b87dcfac3210",
-  "canonical_ir_sha256": "60f2e2e106c73563cfecf5648495b71c89783119c6770c0a6929357f029134f8",
-  "proof_sha256": "d3220125ef29f97442edc324ab837b698561f7e66334c5c4c5ad8eeb08af9f36",
-  "proof_bytes": 369753,
+  "program_sha256": "7d9a9b7007a3e24429c01f611d9faa59387f4263fe7122d0536916f6d882c412",
+  "canonical_ir_sha256": "8d40b07010ddd8a857c7e3dd3bd946acc7dddf700a24a6ef744f9c211009781d",
+  "proof_sha256": "19a70be6c36830a09d262c37705111cf009ab3d4e93ab026db44a752f2ad5959",
+  "proof_bytes": 379136,
   "raw": {
     "blake_g": 0,
-    "eq": 9519,
+    "eq": 9523,
     "m31_to_u32": 7320,
-    "qm31_ops": 714559,
+    "qm31_ops": 714595,
     "triple_xor": 0
   },
   "padded": {
@@ -22,15 +22,15 @@
     "triple_xor": 0
   },
   "preprocessed_cells": 8511488,
-  "prove_seconds": 0.42170520802028477,
-  "verify_seconds": 0.473951332969591,
+  "prove_seconds": 0.7019801250426099,
+  "verify_seconds": 0.47435679205227643,
   "prover_stages": {
-    "fri_pow_seconds": 0.006223,
-    "interaction_pow_seconds": 0.003531,
-    "prove_excluding_pow_seconds": 0.313714,
-    "prove_seconds": 0.323468,
-    "setup_seconds": 0.072833,
-    "witness_seconds": 0.009636
+    "fri_pow_seconds": 0.279809,
+    "interaction_pow_seconds": 0.000559,
+    "prove_excluding_pow_seconds": 0.321172,
+    "prove_seconds": 0.60154,
+    "setup_seconds": 0.075217,
+    "witness_seconds": 0.010545
   },
   "native_verifier_accepted": true,
   "changed_public_statement_rejected": "public_outputs.segment_root[0]",
