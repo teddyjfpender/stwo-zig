@@ -12,6 +12,7 @@ const views_mod = @import("segment_leaf_wrapper_cohort_views_v3.zig");
 const provider_mod = @import("segment_leaf_wrapper_cohort_provider_v3.zig");
 const calls_mod = @import("segment_leaf_wrapper_cohort_calls_v3.zig");
 const rows_mod = @import("segment_leaf_wrapper_cohort_direct_rows_v4.zig");
+const range_provider = @import("segment_leaf_wrapper_range_provider_direct_v4.zig");
 const closure = @import("segment_leaf_wrapper_cohort_closure_v4.zig");
 const universal = @import("air/universal_challenges.zig");
 const shared_mod = @import("air/universal_provider_relations.zig");
@@ -52,6 +53,9 @@ pub fn fillMain(
     try views.fillMainFromV2(base);
     var provider_columns = try mainProviderColumns(plan, destination);
     try writer.fillMainInto(&provider_columns);
+    var range = try range_provider.Provider.init(allocator, &base.noncore.range_prepared.range_check, rows.arithmetic);
+    defer range.deinit();
+    try range.fillMain(plan, destination);
     try rows.fillMain(plan, destination);
 }
 
@@ -79,8 +83,11 @@ pub fn fillInteraction(
     var row34 = try writer.generateInteractionFromMain(&provider_columns, shared);
     defer row34.deinit(allocator);
     try copyProviderInteraction(plan, &row34, destination);
+    var range = try range_provider.Provider.init(allocator, &base.noncore.range_prepared.range_check, rows.arithmetic);
+    defer range.deinit();
+    const row35 = try range.fillInteraction(plan, shared, destination);
     const appended = try rows.fillInteraction(plan, relations, destination);
-    return closure.Claims47.fromGenerated(plan, &reused, writer, &row34, &appended, relations, shared);
+    return closure.Claims47.fromGenerated(plan, &reused, writer, &row34, &row35, &appended, relations, shared);
 }
 
 fn validateSources(

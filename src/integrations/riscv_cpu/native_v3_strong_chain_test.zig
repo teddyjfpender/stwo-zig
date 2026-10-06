@@ -175,6 +175,14 @@ fn diagnoseDirect47(
         nonzero_domains += 1;
         const limbs = sum.toM31Array();
         std.debug.print("DIRECT47_RESIDUAL domain={d} limbs={d},{d},{d},{d}\n", .{ domain, limbs[0].toU32(), limbs[1].toU32(), limbs[2].toU32(), limbs[3].toU32() });
+        for (claims.audits, 0..) |audit, row| {
+            const contribution = audit.values[domain];
+            if (contribution.isZero()) continue;
+            const term = contribution.toM31Array();
+            std.debug.print("DIRECT47_TERM domain={d} row={d} limbs={d},{d},{d},{d}\n", .{
+                domain, row, term[0].toU32(), term[1].toU32(), term[2].toU32(), term[3].toU32(),
+            });
+        }
     }
     std.debug.print("DIRECT47_CANDIDATE claims=47 nonzero_domains={d} framework_zero={} proof_created=false\n", .{ nonzero_domains, residuals.framework_total.isZero() });
     if (nonzero_domains == 0) _ = try claims.verifyAllDomains(&plan, &boundary);

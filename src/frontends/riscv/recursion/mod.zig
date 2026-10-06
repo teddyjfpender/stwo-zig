@@ -215,6 +215,7 @@ pub const segment_leaf_wrapper_cohort_provider_v3 = @import("segment_leaf_wrappe
 pub const segment_leaf_wrapper_cohort_direct_rows_v4 = @import("segment_leaf_wrapper_cohort_direct_rows_v4.zig");
 pub const segment_leaf_wrapper_cohort_closure_v4 = @import("segment_leaf_wrapper_cohort_closure_v4.zig");
 pub const segment_leaf_wrapper_cohort_candidate_v4 = @import("segment_leaf_wrapper_cohort_candidate_v4.zig");
+pub const segment_leaf_wrapper_range_provider_direct_v4 = @import("segment_leaf_wrapper_range_provider_direct_v4.zig");
 pub const segment_leaf_wrapper_roster_direct_v4 = @import("air/segment_leaf_wrapper_roster_direct_v4.zig");
 pub const segment_leaf_wrapper_las2_boundary_v4 = @import("segment_leaf_wrapper_las2_boundary_v4.zig");
 pub const ethereum_leaf_link_program_v1 = @import("ethereum_leaf_link_program_v1.zig");

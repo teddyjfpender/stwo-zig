@@ -9,4 +9,5 @@ test {
     _ = direct;
     _ = @import("recursion/segment_leaf_wrapper_cohort_closure_v4.zig");
     _ = @import("recursion/segment_leaf_wrapper_cohort_candidate_v4.zig");
+    _ = @import("recursion/segment_leaf_wrapper_range_provider_direct_v4.zig");
 }
