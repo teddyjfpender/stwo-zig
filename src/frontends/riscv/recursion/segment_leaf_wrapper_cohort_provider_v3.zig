@@ -10,6 +10,7 @@ const poseidon = @import("../air/memory_commitment/poseidon2_air.zig");
 const poseidon_layout = @import("../air/memory_commitment/poseidon2_layout.zig");
 const calls_mod = @import("segment_leaf_wrapper_cohort_calls_v3.zig");
 const provider_relations = @import("air/universal_provider_relations.zig");
+const direct_plan = @import("air/segment_leaf_wrapper_roster_direct_v4.zig");
 
 pub const PRODUCTION_PROOF_ACTIVATION = false;
 pub const MAIN_COLUMNS = poseidon.N_MAIN_COLUMNS;
@@ -28,6 +29,28 @@ pub const Writer = struct {
     ) !Writer {
         try buffer.validateAgainst(parts);
         return .{ .allocator = allocator, .buffer = buffer, .parts = parts };
+    }
+
+    /// Exact direct-roster admission for the physical writer. The source of
+    /// each requester part remains the enclosing cohort's responsibility.
+    pub fn initForDirectPlan(
+        allocator: std.mem.Allocator,
+        plan: *const direct_plan.Plan,
+        buffer: *const calls_mod.Buffer,
+        parts: []const []const calls_mod.Call,
+    ) !Writer {
+        try plan.validate();
+        const writer = try init(allocator, buffer, parts);
+        if (parts.len != 4 or buffer.ranges.len != 4 or
+            buffer.ranges[0].len != plan.poseidon_calls.base or
+            buffer.ranges[1].len != plan.poseidon_calls.metadata or
+            buffer.ranges[2].len != plan.poseidon_calls.link or
+            buffer.ranges[3].len != plan.poseidon_calls.program or
+            buffer.calls.len != plan.poseidon_calls.total or
+            plan.shape.base_poseidon_calls != buffer.ranges[0].len)
+            return error.DirectProviderCallLayoutMismatch;
+        try writer.requireLogSize(plan.placements[34].?.geometry.log_size);
+        return writer;
     }
 
     pub fn logSize(self: *const Writer) !u32 {
