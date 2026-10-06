@@ -8,8 +8,9 @@ const channel = @import("../poseidon2_channel.zig");
 const protocol = @import("../protocol.zig");
 const span = @import("../span_statement.zig");
 const segment_v2 = @import("../segment_statement_v2.zig");
+const io_binding = @import("../segment_public_io_binding_v1.zig");
 
-test "real adjacent runner segments authenticate as one canonical V2 span" {
+test "segment statement V2 real adjacent runner segments authenticate as one canonical span" {
     const allocator = std.testing.allocator;
     const instructions = [_]u32{
         0x0010_0093, // ADDI x1, x0, 1.
@@ -177,6 +178,152 @@ test "real adjacent runner segments authenticate as one canonical V2 span" {
     try std.testing.expect(!std.meta.eql(right_statement.body.executed.exit.public_io_state, changed_right.body.executed.exit.public_io_state));
 }
 
+test "segment statement V2 experimental public-I/O binding rejects changed claims and bytes" {
+    const allocator = std.testing.allocator;
+    const instructions = [_]u32{
+        0x0010_00b7, // LUI x1, 0x100: output MMIO base.
+        0x0040_0113, // ADDI x2, x0, 4.
+        0x0020_a223, // SW x2, 4(x1): output length.
+        0x02a0_0193, // ADDI x3, x0, 42.
+        0x0030_a423, // SW x3, 8(x1): output data.
+        0x0000_006f, // JAL x0, 0: self-loop completion.
+    };
+    var elf = @import("../../runner/guest_precompile/test_elf.zig").buildProgram(
+        instructions.len,
+        &instructions,
+        8,
+        .rv32im_zkvm_v1,
+    );
+    declareInput(&elf);
+    const input = [_]u8{ 1, 2, 3, 4, 5 };
+    var session = try runner.BaseExecutionSession.init(allocator, &elf, .{ .input = &input });
+    defer session.deinit();
+    var result = try session.startSegment(16);
+    defer result.deinit();
+    try std.testing.expect(result.segment_role.is_first and result.segment_role.is_last);
+    try std.testing.expectEqualSlices(u8, &.{ 42, 0, 0, 0 }, result.output.?);
+
+    const expected = io_binding.Expected{
+        .input_start = result.input_start,
+        .input = &input,
+        .output_len_addr = result.output_len_addr,
+        .output_data_addr = result.output_data_addr,
+        .output = result.output orelse &.{},
+    };
+    try io_binding.validateRunner(&result, expected);
+    const zero_io: span.Digest = .{0} ** 8;
+    const entry = try machineState(
+        result.entry_cpu,
+        segment_v2.snapshotDigest(result.rw_memory.words, .initial_word).id,
+        zero_io,
+    );
+    const exit = try machineState(
+        result.exit_cpu,
+        segment_v2.snapshotDigest(result.rw_memory.words, .final_word).id,
+        zero_io,
+    );
+    const job = try span.JobContext.init(
+        try span.CompleteExecution.init(
+            protocol.PROTOCOL_ID_WORDS,
+            scalarDigest(17),
+            entry,
+            exit,
+            try io_binding.inputDigest(expected),
+            try io_binding.outputDigest(expected),
+            @intCast(result.cycle_count),
+        ),
+        1,
+    );
+    const statement = try leafStatement(
+        job,
+        &result,
+        entry,
+        exit,
+        try span.EdgeClaim.present(job.complete.public_input),
+        try span.EdgeClaim.present(job.complete.public_output),
+    );
+    const source = try segment_v2.SourceV2.fromSegmentResult(digest("bound-session"), statement, &result);
+    const words = try encode(allocator, &source);
+    defer allocator.free(words);
+    const public = try public_data_v2.PublicDataV2.authenticate(words);
+    try io_binding.validateAuthenticatedWire(&public, expected);
+
+    var changed_input = input;
+    changed_input[0] ^= 0xff;
+    var changed_expected = expected;
+    changed_expected.input = &changed_input;
+    try std.testing.expectError(error.RunnerIoMismatch, io_binding.validateRunner(&result, changed_expected));
+    try std.testing.expectError(error.InputDigestMismatch, io_binding.validateAuthenticatedWire(&public, changed_expected));
+
+    var changed_job = job;
+    changed_job.complete.public_input = try io_binding.inputDigest(changed_expected);
+    const changed_statement = try leafStatement(
+        changed_job,
+        &result,
+        entry,
+        exit,
+        try span.EdgeClaim.present(changed_job.complete.public_input),
+        try span.EdgeClaim.present(changed_job.complete.public_output),
+    );
+    const changed_source = try segment_v2.SourceV2.fromSegmentResult(digest("bound-session"), changed_statement, &result);
+    const changed_words = try encode(allocator, &changed_source);
+    defer allocator.free(changed_words);
+    const changed_public = try public_data_v2.PublicDataV2.authenticate(changed_words);
+    try std.testing.expectError(error.InputMemoryMismatch, io_binding.validateAuthenticatedWire(&changed_public, changed_expected));
+
+    var changed_output = expected;
+    changed_output.output = &.{9};
+    changed_job = job;
+    changed_job.complete.public_output = try io_binding.outputDigest(changed_output);
+    const output_statement = try leafStatement(
+        changed_job,
+        &result,
+        entry,
+        exit,
+        try span.EdgeClaim.present(changed_job.complete.public_input),
+        try span.EdgeClaim.present(changed_job.complete.public_output),
+    );
+    const output_source = try segment_v2.SourceV2.fromSegmentResult(digest("bound-session"), output_statement, &result);
+    const output_words = try encode(allocator, &output_source);
+    defer allocator.free(output_words);
+    const output_public = try public_data_v2.PublicDataV2.authenticate(output_words);
+    try std.testing.expectError(error.OutputLengthMismatch, io_binding.validateAuthenticatedWire(&output_public, changed_output));
+
+    const changed_output_bytes = [_]u8{ 43, 0, 0, 0 };
+    changed_output.output = &changed_output_bytes;
+    changed_job = job;
+    changed_job.complete.public_output = try io_binding.outputDigest(changed_output);
+    const changed_output_statement = try leafStatement(
+        changed_job,
+        &result,
+        entry,
+        exit,
+        try span.EdgeClaim.present(changed_job.complete.public_input),
+        try span.EdgeClaim.present(changed_job.complete.public_output),
+    );
+    const changed_output_source = try segment_v2.SourceV2.fromSegmentResult(digest("bound-session"), changed_output_statement, &result);
+    const changed_output_words = try encode(allocator, &changed_output_source);
+    defer allocator.free(changed_output_words);
+    const changed_output_public = try public_data_v2.PublicDataV2.authenticate(changed_output_words);
+    try std.testing.expectError(error.OutputMemoryMismatch, io_binding.validateAuthenticatedWire(&changed_output_public, changed_output));
+
+    changed_job = job;
+    changed_job.complete.initial_state.public_io_state = digest("not-zero-io-state");
+    const state_statement = try leafStatement(
+        changed_job,
+        &result,
+        changed_job.complete.initial_state,
+        exit,
+        try span.EdgeClaim.present(changed_job.complete.public_input),
+        try span.EdgeClaim.present(changed_job.complete.public_output),
+    );
+    const state_source = try segment_v2.SourceV2.fromSegmentResult(digest("bound-session"), state_statement, &result);
+    const state_words = try encode(allocator, &state_source);
+    defer allocator.free(state_words);
+    const state_public = try public_data_v2.PublicDataV2.authenticate(state_words);
+    try std.testing.expectError(error.NonZeroPublicIoState, io_binding.validateAuthenticatedWire(&state_public, expected));
+}
+
 fn leafStatement(
     job: span.JobContext,
     result: *const runner.SegmentResult,
@@ -236,4 +383,15 @@ fn scalarDigest(value: u32) span.Digest {
     var result: span.Digest = .{0} ** channel.RATE;
     result[0] = value;
     return result;
+}
+
+fn declareInput(elf: []u8) void {
+    const names = "\x00__text_start\x00__text_len\x00__input_start\x00__input_end\x00";
+    @memcpy(elf[480..][0..names.len], names);
+    std.mem.writeInt(u32, elf[308..312], names.len, .little);
+    std.mem.writeInt(u32, elf[268..272], 5 * 16, .little);
+    std.mem.writeInt(u32, elf[608..612], @intCast(std.mem.indexOf(u8, names, "__input_start").?), .little);
+    std.mem.writeInt(u32, elf[612..616], 0x00100100, .little);
+    std.mem.writeInt(u32, elf[624..628], @intCast(std.mem.indexOf(u8, names, "__input_end").?), .little);
+    std.mem.writeInt(u32, elf[628..632], 0x00100108, .little);
 }

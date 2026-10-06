@@ -11,6 +11,8 @@ pub const detached_leaf_cohort_v2 = @import("detached_leaf_cohort_v2.zig");
 pub const detached_parent_preparation_v1 = @import("detached_parent_preparation_v1.zig");
 
 pub const segment_public_claim_hash_authority_v2 = @import("segment_public_claim_hash_authority_v2.zig");
+/// Opt-in native proof-capture check; recursive AIR activation remains closed.
+pub const segment_public_io_binding_v1 = @import("segment_public_io_binding_v1.zig");
 pub const arithmetic_circuit = @import("arithmetic_circuit.zig");
 pub const binary_arithmetic_rows_heterogeneous_v2 =
     @import("binary_arithmetic_rows_heterogeneous_v2.zig");
