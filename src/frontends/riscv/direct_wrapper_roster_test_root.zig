@@ -3,6 +3,7 @@ const direct = @import("recursion/air/segment_leaf_wrapper_roster_direct_v4.zig"
 const v2 = @import("recursion/air/segment_outer_adapter_manifest_v2.zig");
 const catalog = @import("recursion/air/segment_outer_typed_catalog_v2.zig");
 const program_mod = @import("recursion/ethereum_leaf_link_program_v3.zig");
+const protocol = @import("recursion/segment_leaf_wrapper_protocol_direct_v4.zig");
 const fixture = @import("wrapper_roster_v3_test_root.zig");
 
 test "direct 47-row wrapper roster excludes post-challenge provider input" {
@@ -20,6 +21,15 @@ test "direct 47-row wrapper roster excludes post-challenge provider input" {
     try std.testing.expectEqual(@as(u8, 44), plan.placements[44].?.claimed_sum_index);
     try std.testing.expectEqual(@as(u8, 46), plan.placements[46].?.claimed_sum_index);
     try std.testing.expectEqualDeep(program_mod.SCHEDULE_ID, plan.program_schedule_id);
+    try protocol.REQUIRED_CHAIN.validate();
+    const protocol_id = try protocol.protocolId(&plan);
+    const root_a = [_]u32{ 1, 2, 3, 4, 5, 6, 7, 8 };
+    var root_b = root_a;
+    root_b[0] += 1;
+    const key_a = try protocol.verificationKeyId(&plan, root_a);
+    const key_b = try protocol.verificationKeyId(&plan, root_b);
+    try std.testing.expect(!std.meta.eql(key_a, key_b));
+    try std.testing.expect(!std.meta.eql(protocol_id, @import("recursion/protocol.zig").PROTOCOL_ID_WORDS));
     try std.testing.expect(!direct.COMPLETE_WRAPPER_PROOF_AVAILABLE);
     try std.testing.expectError(error.V3WrapperProofUnavailable, plan.requireCompleteWrapperProof());
 
