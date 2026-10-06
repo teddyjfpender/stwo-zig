@@ -160,6 +160,10 @@ pub const ethereum_leaf_link_projection_v1 =
     @import("ethereum_leaf_link_projection_v1.zig");
 pub const ethereum_leaf_link_source_v1 =
     @import("ethereum_leaf_link_source_v1.zig");
+pub const ethereum_leaf_link_arithmetic_v1 =
+    @import("ethereum_leaf_link_arithmetic_v1.zig");
+pub const segment_leaf_wrapper_link_manifest_v3 =
+    @import("segment_leaf_wrapper_link_manifest_v3.zig");
 pub const ethereum_leaf_child_field_router_v1 =
     @import("ethereum_leaf_child_field_router_v1.zig");
 pub const universal_challenges = @import("universal_challenges.zig");

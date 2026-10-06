@@ -35,6 +35,14 @@ pub const Row = [LOGICAL_INPUT_COUNT]M31;
 pub const Runtime = relation_interaction.Runtime(LOGICAL_INPUT_COUNT, RELATION_EVENT_COUNT, LOOKUP_BATCH_SIZE);
 pub const Plan = Runtime.Plan;
 pub const SEMANTIC_DIGEST_HEX = "243e18c518f53e3343b12cead79de625b1ffa21bc50b8f75f5cbc498a17d7352";
+/// Required by the generic typed-component proof adapter. The semantic
+/// program remains pinned by `Definition.validate`; this is its byte form.
+pub const SEMANTIC_DIGEST: [32]u8 = blk: {
+    var result: [32]u8 = undefined;
+    _ = std.fmt.hexToBytes(&result, SEMANTIC_DIGEST_HEX) catch
+        @compileError("invalid V3 arithmetic semantic digest");
+    break :blk result;
+};
 
 pub const ROOT = 0;
 pub const ROOT_LOW = 1;

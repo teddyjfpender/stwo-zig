@@ -14,6 +14,14 @@ pub const Spec = struct {
 
 pub const specs = [_]Spec{
     .{
+        .step = "test-recursion-v3-link-manifest",
+        .description = "Pin the three typed V3 leaf-link adapter geometries without enabling a wrapper proof",
+        .root = "link_manifest_v3_test_root.zig",
+        .imports_prover_engine = true,
+        .filters = &.{"V3 link extension manifest"},
+        .minimum = 1,
+    },
+    .{
         .step = "test-legacy-interaction-oracle",
         .description = "Check retired interaction generation and retained memory layouts",
         .root = "air_semantics_test_root.zig",
