@@ -1,4 +1,4 @@
-//! VPR7/VPK7 candidate identity for an independently rebuilt V6 template.
+//! VPR7/VPK7 candidate identity for an independently rebuilt V7 template.
 //!
 //! The template contains no V2 manifest seal or leaf proof identity. A full
 //! deterministic preprocessing writer is still missing, so a root supplied to
@@ -8,7 +8,8 @@ const core = @import("stwo_core");
 const channel = @import("poseidon2_channel.zig");
 const frozen = @import("protocol.zig");
 const security = @import("segment_v3_production_security_policy.zig");
-const template_mod = @import("air/segment_leaf_wrapper_template_v6.zig");
+const template_mod = @import("air/segment_leaf_wrapper_template_v7.zig");
+const prior_template = @import("air/segment_leaf_wrapper_template_v6.zig");
 const relation = @import("../air/lang/relation.zig");
 
 const M31 = core.fields.m31.M31;
@@ -28,7 +29,7 @@ comptime {
         @compileError("VPR7/VPK7 security or template shape drifted");
 }
 
-pub fn candidateProtocolId(template: *const template_mod.TemplateManifestV6) !channel.Digest {
+pub fn candidateProtocolId(template: *const template_mod.TemplateManifestV7) !channel.Digest {
     try template.validate();
     var words: [54]M31 = undefined;
     var at: usize = 0;
@@ -56,18 +57,18 @@ pub fn candidateProtocolId(template: *const template_mod.TemplateManifestV6) !ch
 
 /// Pure candidate derivation. A production VPK7 must take its root only from
 /// completed verifier-owned template preprocessing, not this external value.
-pub fn candidateVerificationKeyId(template: *const template_mod.TemplateManifestV6, template_root: channel.Digest) !channel.Digest {
+pub fn candidateVerificationKeyId(template: *const template_mod.TemplateManifestV7, template_root: channel.Digest) !channel.Digest {
     const protocol_id = try candidateProtocolId(template);
     var words: [16]M31 = undefined;
     for (protocol_id, 0..) |word, index| words[index] = M31.fromCanonical(word);
     for (template_root, 0..) |word, index| {
-        if (word >= core.fields.m31.Modulus) return error.NonCanonicalTemplateRootV6;
+        if (word >= core.fields.m31.Modulus) return error.NonCanonicalTemplateRootV7;
         words[8 + index] = M31.fromCanonical(word);
     }
     return channel.hashCanonicalWords(&words, VERIFICATION_KEY_ID_DOMAIN);
 }
 
-pub fn requireAdmittedKey(_: *const template_mod.TemplateManifestV6) error{TemplatePreprocessingUnavailable}!void {
+pub fn requireAdmittedKey(_: *const template_mod.TemplateManifestV7) error{TemplatePreprocessingUnavailable}!void {
     return error.TemplatePreprocessingUnavailable;
 }
 
@@ -97,9 +98,9 @@ test "VPR7 candidate is shape-only while VPK7 awaits a rebuilt template root" {
     defer plans.recursion.deinit();
     const native = try @import("transcript_instruction_template_v6.zig").InstructionTemplateV6.build(allocator, &plans.vm, 128, &child_fixture.components, &child_fixture.infra, false);
     const shape = v4.Shape{ .program_words = native.canonical_program_word_count, .base_poseidon_calls = 1193 };
-    const core_profile = try template_mod.testFrozenCoreProfileV6();
+    const core_profile = try prior_template.testFrozenCoreProfileV6();
     const core_query_mapping = try core_profile.reference();
-    const template = try template_mod.TemplateManifestV6.build(allocator, &v6_catalog, shape, &child_fixture.components, &child_fixture.infra, &plans.vm, &core_profile, &core_query_mapping, 128, false);
+    const template = try template_mod.TemplateManifestV7.build(allocator, &v6_catalog, shape, &child_fixture.components, &child_fixture.infra, &plans.vm, &core_profile, &core_query_mapping, 128, false);
     const vpr7 = try candidateProtocolId(&template);
     const root = [_]u32{1} ** 8;
     const vpk7 = try candidateVerificationKeyId(&template, root);
@@ -115,15 +116,15 @@ test "VPR7 candidate is shape-only while VPK7 awaits a rebuilt template root" {
     const first_old = try v5.Plan.build(allocator, &first_leaf, &link, shape, &child, &child_fixture.components, &child_fixture.infra);
     const second_old = try v5.Plan.build(allocator, &second_leaf, &link, shape, &child, &child_fixture.components, &child_fixture.infra);
     try std.testing.expect(!std.meta.eql(try old_protocol.verificationKeyId(&first_old, root), try old_protocol.verificationKeyId(&second_old, root)));
-    const rebuilt_template = try template_mod.TemplateManifestV6.build(allocator, &v6_catalog, shape, &child_fixture.components, &child_fixture.infra, &plans.vm, &core_profile, &core_query_mapping, 128, false);
+    const rebuilt_template = try template_mod.TemplateManifestV7.build(allocator, &v6_catalog, shape, &child_fixture.components, &child_fixture.infra, &plans.vm, &core_profile, &core_query_mapping, 128, false);
     try std.testing.expect(std.meta.eql(vpk7, try candidateVerificationKeyId(&rebuilt_template, root)));
     var changed_root = root;
     changed_root[0] = 2;
     try std.testing.expect(!std.meta.eql(vpk7, try candidateVerificationKeyId(&template, changed_root)));
     changed_root[0] = core.fields.m31.Modulus;
-    try std.testing.expectError(error.NonCanonicalTemplateRootV6, candidateVerificationKeyId(&template, changed_root));
+    try std.testing.expectError(error.NonCanonicalTemplateRootV7, candidateVerificationKeyId(&template, changed_root));
     const changed_shape = v4.Shape{ .program_words = shape.program_words, .base_poseidon_calls = 1194 };
-    const other = try template_mod.TemplateManifestV6.build(allocator, &v6_catalog, changed_shape, &child_fixture.components, &child_fixture.infra, &plans.vm, &core_profile, &core_query_mapping, 128, false);
+    const other = try template_mod.TemplateManifestV7.build(allocator, &v6_catalog, changed_shape, &child_fixture.components, &child_fixture.infra, &plans.vm, &core_profile, &core_query_mapping, 128, false);
     try std.testing.expect(!std.meta.eql(vpr7, try candidateProtocolId(&other)));
     try std.testing.expectError(error.TemplatePreprocessingUnavailable, requireAdmittedKey(&template));
 }
