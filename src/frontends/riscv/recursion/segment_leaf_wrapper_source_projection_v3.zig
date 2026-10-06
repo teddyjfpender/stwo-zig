@@ -1,15 +1,19 @@
 //! Typed main-column materialization for V3 wrapper rows 39 and 40.
 //!
 //! This is a witness builder, not proof admission. The native capture owns the
-//! 42 transcript claims and local statement; the strong outer verifier must
-//! supply the remaining field digests before a 49-row transaction may consume
-//! this witness. All raw, verifier, and statement joins are checked here, and
+//! 28 transcript claims and local statement; the strong outer verifier supplies
+//! the provider words and root before a 49-row transaction may consume this
+//! witness. All raw, verifier, and statement joins are checked here, and
 //! the complete raw-word multiplicity is checked against hash/arithmetic use.
 
 const std = @import("std");
 const core = @import("stwo_core");
-const program_mod = @import("ethereum_leaf_link_program_v1.zig");
+const program_mod = @import("ethereum_leaf_link_program_v2.zig");
 const source_air = @import("air/ethereum_leaf_link_source_v1.zig");
+const field_witness = @import("segment_leaf_wrapper_field_witness_v3.zig");
+const field_hash = @import("segment_leaf_wrapper_field_hash_witness_v3.zig");
+const provider_authority = @import("segment_outer_shared_provider_field_authority_v1.zig");
+const manifest_mod = @import("air/segment_outer_adapter_manifest_v2.zig");
 const metadata_mod = @import("segment_leaf_local_authority_v3.zig");
 const link_mod = @import("segment_leaf_local_verified_link_v3.zig");
 const segment_v2 = @import("segment_statement_v2.zig");
@@ -19,16 +23,12 @@ const Digest = [program_mod.DIGEST_WORD_COUNT]u32;
 
 pub const PRODUCTION_PROOF_ACTIVATION = false;
 
-/// These values are only witness inputs. Their eventual authority must come
-/// from a fresh strong child verifier and be reconstructed by the V3 verifier.
-/// Passing this struct alone never grants admission or publication.
-pub const UnadmittedFieldDigestsV3 = struct {
+/// These are reconstructed from the independently verified native and strong
+/// outer children; final recursive authority still requires 49-row AIR.
+const ChildFieldDigestsV3 = struct {
     program: Digest,
     preprocessed_root: Digest,
-    provider_relation_context: Digest,
-    provider_core_claim: Digest,
-    provider_manifest: Digest,
-    provider_cancellation: Digest,
+    provider_digest: Digest,
 };
 
 const Sources = struct {
@@ -39,7 +39,7 @@ const Sources = struct {
     local_authority: Digest,
     local_wire: Digest,
     local_receipt: Digest,
-    fields: UnadmittedFieldDigestsV3,
+    fields: ChildFieldDigestsV3,
     transcript_claims: [program_mod.TRANSCRIPT_CLAIM_COUNT][4]M31,
     local_statement: []const M31,
 };
@@ -49,19 +49,23 @@ pub const WitnessV3 = struct {
     source_values: []M31,
     projection_values: []M31,
 
-    /// `prepared` must be a successfully verified native preparation. This
-    /// function checks its capture again; it deliberately does not admit the
-    /// six child field digests until the strong-child snapshot is wired in.
-    pub fn initFromNativeAndUnadmittedFields(
+    /// Child fields are rebuilt from the native program authority and the
+    /// snapshot minted *after* strong 39-row verification. This only prepares
+    /// rows: the eventual 49-row verifier must prove those child facts.
+    pub fn initFromVerifiedChildren(
         allocator: std.mem.Allocator,
-        program: *const program_mod.ProgramV1,
+        program: *const program_mod.ProgramV2,
         prepared: anytype,
         metadata: *const metadata_mod.MetadataV3,
         link: *const link_mod.VerifiedLinkV3,
-        fields: UnadmittedFieldDigestsV3,
+        native_fields: *const field_witness.NativeV1,
+        strong: anytype,
+        manifest: *const manifest_mod.Manifest,
     ) !WitnessV3 {
         try prepared.validate();
         try program.validate();
+        try native_fields.validateAgainst(prepared);
+        try strong.field_snapshot.validateAgainst(manifest, &strong.artifact);
         try link.validateAgainst(
             metadata,
             &prepared.capture.public_data.data,
@@ -76,6 +80,18 @@ pub const WitnessV3 = struct {
                 claim.c0.a, claim.c0.b, claim.c1.a, claim.c1.b,
             };
         }
+        // Row 45 consumes the same PFD1 digest limbs that row 39 emits. Its
+        // hash witness must recompute them from the strong verifier's words.
+        var provider_hash = try field_hash.HashV1.init(
+            allocator,
+            strong.field_snapshot.provider.words,
+            provider_authority.DOMAIN,
+            field_witness.PROVIDER_SCOPE,
+            field_hash.PROVIDER_FIELD_DIGEST_KIND,
+            field_hash.PROVIDER_STEP_BASE,
+            strong.field_snapshot.provider.digest,
+        );
+        defer provider_hash.deinit();
         const sources = Sources{
             .metadata = try metadata.identityWords(),
             .link = try link.identityWords(),
@@ -84,7 +100,11 @@ pub const WitnessV3 = struct {
             .local_authority = try canonicalDigest(prepared.capture.receipt.authority_id),
             .local_wire = try canonicalDigest(prepared.capture.receipt.wire_id),
             .local_receipt = try canonicalDigest(prepared.capture.receipt.identity),
-            .fields = fields,
+            .fields = .{
+                .program = try canonicalDigest(native_fields.program.digest),
+                .preprocessed_root = try canonicalDigest(strong.field_snapshot.preprocessed_root),
+                .provider_digest = try canonicalDigest(provider_hash.digest),
+            },
             .transcript_claims = transcript_claims,
             .local_statement = prepared.capture.public_data.data.words(),
         };
@@ -97,20 +117,20 @@ pub const WitnessV3 = struct {
         self.* = undefined;
     }
 
-    pub fn sourceRow(self: *const WitnessV3, program: *const program_mod.ProgramV1, index: usize) !source_air.Row {
+    pub fn sourceRow(self: *const WitnessV3, program: *const program_mod.ProgramV2, index: usize) !source_air.Row {
         if (index >= self.source_values.len or index >= program.source_rows.len)
             return error.InvalidV3LeafSource;
         return program.source_rows[index].logical(self.source_values[index]);
     }
 
-    pub fn projectionRow(self: *const WitnessV3, program: *const program_mod.ProgramV1, index: usize) !@import("air/ethereum_leaf_link_projection_v1.zig").Row {
+    pub fn projectionRow(self: *const WitnessV3, program: *const program_mod.ProgramV2, index: usize) !@import("air/ethereum_leaf_link_projection_v1.zig").Row {
         if (index >= self.projection_values.len or index >= program.projection_rows.len)
             return error.InvalidV3LeafProjection;
         return program.projection_rows[index].logical(self.projection_values[index]);
     }
 };
 
-fn build(allocator: std.mem.Allocator, program: *const program_mod.ProgramV1, sources: *const Sources) !WitnessV3 {
+fn build(allocator: std.mem.Allocator, program: *const program_mod.ProgramV2, sources: *const Sources) !WitnessV3 {
     try program.validate();
     const source_values = try allocator.alloc(M31, program.source_rows.len);
     errdefer allocator.free(source_values);
@@ -121,6 +141,7 @@ fn build(allocator: std.mem.Allocator, program: *const program_mod.ProgramV1, so
     for (program.projection_rows, projection_values) |row, *destination|
         destination.* = try projectionValue(row, sources);
     try checkRawMultiplicity(program);
+    try checkProviderDigestMultiplicity(program);
     return .{ .allocator = allocator, .source_values = source_values, .projection_values = projection_values };
 }
 
@@ -187,10 +208,7 @@ fn verifier(sources: *const Sources, kind: u32, index_0: u32, index_1: u32) !M31
         source_air.LOCAL_RECEIPT_DIGEST_KIND => sources.local_receipt,
         source_air.PROGRAM_AUTHORITY_KIND => sources.fields.program,
         source_air.PREPROCESSED_ROOT_KIND => sources.fields.preprocessed_root,
-        source_air.PROVIDER_RELATION_CONTEXT_KIND => sources.fields.provider_relation_context,
-        source_air.PROVIDER_CORE_CLAIM_KIND => sources.fields.provider_core_claim,
-        source_air.PROVIDER_MANIFEST_KIND => sources.fields.provider_manifest,
-        source_air.PROVIDER_CANCELLATION_KIND => sources.fields.provider_cancellation,
+        field_hash.PROVIDER_FIELD_DIGEST_KIND => sources.fields.provider_digest,
         else => return error.InvalidV3LeafVerifierCoordinate,
     };
     if (digest[index_1] >= core.fields.m31.Modulus)
@@ -207,7 +225,7 @@ fn canonicalDigest(value: Digest) !Digest {
 /// Source raw use counts must equal one hash-preimage use, every row-40
 /// primary/secondary raw read, and the ten row-41 arithmetic reads. This is
 /// exact for the two local raw scopes; other relation domains close later.
-fn checkRawMultiplicity(program: *const program_mod.ProgramV1) !void {
+fn checkRawMultiplicity(program: *const program_mod.ProgramV2) !void {
     var metadata = [_]u32{1} ** metadata_mod.METADATA_IDENTITY_WORDS;
     var link = [_]u32{1} ** link_mod.IDENTITY_WORDS;
     for (program.projection_rows) |row| {
@@ -234,6 +252,31 @@ fn checkRawMultiplicity(program: *const program_mod.ProgramV1) !void {
     }
 }
 
+/// The PFD1 source emits each digest limb twice: once for row 40 and once for
+/// row 45's field-hash `recursion_verifier_input_word` consumption. The latter
+/// is checked by HashV1.init against the strong snapshot's provider words.
+fn checkProviderDigestMultiplicity(program: *const program_mod.ProgramV2) !void {
+    var source_count = [_]u32{0} ** program_mod.DIGEST_WORD_COUNT;
+    var projection_count = [_]u32{0} ** program_mod.DIGEST_WORD_COUNT;
+    for (program.source_rows) |row| {
+        if (row.kind != field_hash.PROVIDER_FIELD_DIGEST_KIND) continue;
+        if (row.active != 1 or row.verifier_mask != 1 or row.index_0 != 0 or
+            row.index_1 >= source_count.len or row.use_count != 2)
+            return error.V3ProviderDigestTupleMismatch;
+        source_count[row.index_1] += 1;
+    }
+    for (program.projection_rows) |row| {
+        if (row.verifier_kind != field_hash.PROVIDER_FIELD_DIGEST_KIND) continue;
+        if (row.active != 1 or row.verifier_mask != 1 or
+            row.verifier_index_0 != 0 or row.verifier_index_1 >= projection_count.len)
+            return error.V3ProviderDigestTupleMismatch;
+        projection_count[row.verifier_index_1] += 1;
+    }
+    for (source_count, projection_count) |sources, projections|
+        if (sources != 1 or projections != 1)
+            return error.V3ProviderDigestTupleMismatch;
+}
+
 fn increment(metadata: *[metadata_mod.METADATA_IDENTITY_WORDS]u32, link: *[link_mod.IDENTITY_WORDS]u32, scope: u32, index: u32) !void {
     if (scope == source_air.METADATA_SCOPE and index < metadata.len) {
         metadata[index] += 1;
@@ -243,11 +286,25 @@ fn increment(metadata: *[metadata_mod.METADATA_IDENTITY_WORDS]u32, link: *[link_
 }
 
 test "row 39 and 40 exact raw multiplicity matches hash and arithmetic consumers" {
-    var program = try program_mod.ProgramV1.init(std.testing.allocator);
+    var program = try program_mod.ProgramV2.init(std.testing.allocator);
     defer program.deinit();
     try checkRawMultiplicity(&program);
+    try checkProviderDigestMultiplicity(&program);
     program.source_rows[0].use_count += 1;
     try std.testing.expectError(error.V3LeafRawMultiplicityMismatch, checkRawMultiplicity(&program));
+}
+
+test "row 39 provider digest emission cannot lose its second consumer" {
+    var program = try program_mod.ProgramV2.init(std.testing.allocator);
+    defer program.deinit();
+    const first = program_mod.SOURCE_ROW_COUNT - program_mod.DIGEST_WORD_COUNT;
+    program.source_rows[first].use_count = 1;
+    try std.testing.expectError(error.V3ProviderDigestTupleMismatch, checkProviderDigestMultiplicity(&program));
+    program.source_rows[first].use_count = 2;
+    program.source_rows[first].active = 0;
+    try std.testing.expectError(error.V3ProviderDigestTupleMismatch, checkProviderDigestMultiplicity(&program));
+    program.source_rows[first].active = 1;
+    try checkProviderDigestMultiplicity(&program);
 }
 
 test "row 40 rejects a mutated typed raw join" {
@@ -296,10 +353,7 @@ test "row 40 rejects verifier and local-statement tuple mutations" {
         .fields = .{
             .program = zero_digest,
             .preprocessed_root = zero_digest,
-            .provider_relation_context = zero_digest,
-            .provider_core_claim = zero_digest,
-            .provider_manifest = zero_digest,
-            .provider_cancellation = zero_digest,
+            .provider_digest = zero_digest,
         },
         .transcript_claims = .{.{ zero, zero, zero, zero }} ** program_mod.TRANSCRIPT_CLAIM_COUNT,
         .local_statement = &local_statement,
@@ -350,7 +404,7 @@ test "row 40 rejects verifier and local-statement tuple mutations" {
 }
 
 test "row 39 and 40 materialize the complete typed schedule" {
-    var program = try program_mod.ProgramV1.init(std.testing.allocator);
+    var program = try program_mod.ProgramV2.init(std.testing.allocator);
     defer program.deinit();
     const zero = M31.zero();
     const zero_digest: Digest = .{0} ** program_mod.DIGEST_WORD_COUNT;
@@ -366,10 +420,7 @@ test "row 39 and 40 materialize the complete typed schedule" {
         .fields = .{
             .program = zero_digest,
             .preprocessed_root = zero_digest,
-            .provider_relation_context = zero_digest,
-            .provider_core_claim = zero_digest,
-            .provider_manifest = zero_digest,
-            .provider_cancellation = zero_digest,
+            .provider_digest = zero_digest,
         },
         .transcript_claims = .{.{ zero, zero, zero, zero }} ** program_mod.TRANSCRIPT_CLAIM_COUNT,
         .local_statement = &local_statement,
@@ -387,7 +438,7 @@ test "row 39 and 40 materialize the complete typed schedule" {
 }
 
 comptime {
-    if (program_mod.SOURCE_ROW_COUNT != 842 or program_mod.PROJECTION_ROW_COUNT != 1117 or
-        program_mod.TRANSCRIPT_CLAIM_COUNT != 42 or segment_v2.FORMAT_VERSION != 2)
+    if (program_mod.SOURCE_ROW_COUNT != 794 or program_mod.PROJECTION_ROW_COUNT != 1093 or
+        program_mod.TRANSCRIPT_CLAIM_COUNT != 28 or segment_v2.FORMAT_VERSION != 2)
         @compileError("V3 leaf source/projection geometry drifted");
 }

@@ -170,6 +170,8 @@ pub const segment_leaf_wrapper_field_manifest_v3 =
     @import("segment_leaf_wrapper_field_manifest_v3.zig");
 pub const segment_leaf_wrapper_roster_v3 =
     @import("segment_leaf_wrapper_roster_v3.zig");
+pub const segment_leaf_wrapper_roster_v3_v2 =
+    @import("segment_leaf_wrapper_roster_v3_v2.zig");
 pub const segment_leaf_wrapper_proof_gate_v3 =
     @import("segment_leaf_wrapper_proof_gate_v3.zig");
 pub const ethereum_leaf_child_field_router_v1 =

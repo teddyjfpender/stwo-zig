@@ -1237,6 +1237,48 @@ test "native V2 proves a rebased leaf-local V3 segment without widening the AIR"
         rejected_capture.deinit(allocator);
     }
     try std.testing.expect(rejected);
+
+    // The corrected schedule admits only the single provider digest emitted
+    // by row 39 and consumed by both row 40 and row 45. Its program and roster
+    // IDs cannot alias the earlier unclosed provider-digest schedule.
+    var link_program_v2 = try recursion.ethereum_leaf_link_program_v2.ProgramV2.init(allocator);
+    defer link_program_v2.deinit();
+    const wrapper_plan_v2 = try recursion.air.segment_leaf_wrapper_roster_v3_v2.PlanV2.build(
+        allocator,
+        cohort.manifest(),
+        &link_program_v2,
+        hash_calls.shape(),
+    );
+    try wrapper_plan_v2.validateAgainst(allocator, cohort.manifest(), &link_program_v2, hash_calls.shape());
+    _ = try recursion.segment_leaf_wrapper_protocol_v3.protocolId(&wrapper_plan_v2);
+    var link_rows = try recursion.segment_leaf_wrapper_source_projection_v3.WitnessV3.initFromVerifiedChildren(
+        allocator,
+        &link_program_v2,
+        &prepared,
+        &admitted.global_metadata,
+        &admitted.link,
+        &fields.native,
+        &strong,
+        cohort.manifest(),
+    );
+    defer link_rows.deinit();
+    try std.testing.expectEqual(@as(usize, 794), link_rows.source_values.len);
+    try std.testing.expectEqual(@as(usize, 1093), link_rows.projection_values.len);
+    strong.field_snapshot.provider.digest[0] ^= 1;
+    try std.testing.expectError(
+        error.SharedProviderFieldAuthorityMismatch,
+        recursion.segment_leaf_wrapper_source_projection_v3.WitnessV3.initFromVerifiedChildren(
+            allocator,
+            &link_program_v2,
+            &prepared,
+            &admitted.global_metadata,
+            &admitted.link,
+            &fields.native,
+            &strong,
+            cohort.manifest(),
+        ),
+    );
+    strong.field_snapshot.provider.digest[0] ^= 1;
 }
 
 fn leafStatement(

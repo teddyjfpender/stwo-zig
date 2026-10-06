@@ -10,13 +10,13 @@ const core = @import("stwo_core");
 const channel = @import("poseidon2_channel.zig");
 const frozen = @import("protocol.zig");
 const security_policy = @import("segment_v3_production_security_policy.zig");
-const roster = @import("air/segment_leaf_wrapper_roster_v3.zig");
+const roster = @import("air/segment_leaf_wrapper_roster_v3_v2.zig");
 const relation = @import("../air/lang/relation.zig");
 
 const M31 = core.fields.m31.M31;
-pub const FORMAT_VERSION: u32 = 3;
-pub const PROTOCOL_ID_DOMAIN: u32 = 0x5650_5233; // VPR3
-pub const VERIFICATION_KEY_ID_DOMAIN: u32 = 0x5650_4b33; // VPK3
+pub const FORMAT_VERSION: u32 = 4; // V3 wrapper, corrected schedule epoch 2.
+pub const PROTOCOL_ID_DOMAIN: u32 = 0x5650_5234; // VPR4
+pub const VERIFICATION_KEY_ID_DOMAIN: u32 = 0x5650_4b34; // VPK4
 pub const TARGET_SECURITY_BITS: u32 = 120;
 pub const PCS_CONFIG = security_policy.REQUIRED_PCS_CONFIG;
 pub const INTERACTION_POW_BITS = security_policy.REQUIRED_INTERACTION_POW_BITS;
@@ -82,7 +82,7 @@ pub fn requireCurrentImplementation() !void {
 
 /// Binds a new key namespace to the exact roster, PCS profile, relation
 /// registry and field/hash suite. No caller-provided profile is admitted.
-pub fn protocolId(plan: *const roster.Plan) !channel.Digest {
+pub fn protocolId(plan: *const roster.PlanV2) !channel.Digest {
     try plan.validate();
     var words: [62]M31 = undefined;
     var at: usize = 0;
@@ -108,10 +108,10 @@ pub fn protocolId(plan: *const roster.Plan) !channel.Digest {
     return channel.hashCanonicalWords(&words, PROTOCOL_ID_DOMAIN);
 }
 
-/// A separate verification-key identity includes the preprocessed root.
-/// The eventual verifier must recompute that root from the pinned roster;
-/// passing this function an arbitrary root is not proof admission.
-pub fn verificationKeyId(plan: *const roster.Plan, preprocessed_root: channel.Digest) !channel.Digest {
+/// A separate verification-key identity pins the recomputed preprocessed
+/// root. The verifier must recompute it from the pinned roster; passing an
+/// arbitrary root to this function is not proof admission.
+pub fn verificationKeyId(plan: *const roster.PlanV2, preprocessed_root: channel.Digest) !channel.Digest {
     const protocol_id = try protocolId(plan);
     var words: [16]M31 = undefined;
     for (protocol_id, 0..) |word, index| words[index] = M31.fromCanonical(word);

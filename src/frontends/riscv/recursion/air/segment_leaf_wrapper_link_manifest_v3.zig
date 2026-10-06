@@ -8,7 +8,6 @@ const base = @import("universal_manifest_contract.zig");
 const v2_manifest = @import("segment_outer_adapter_manifest_v2.zig");
 const typed = @import("universal_typed_component.zig");
 const binding = @import("universal_relation_binding.zig");
-const program_mod = @import("../ethereum_leaf_link_program_v1.zig");
 const source_air = @import("ethereum_leaf_link_source_v1.zig");
 const projection_air = @import("ethereum_leaf_link_projection_v1.zig");
 const arithmetic_air = @import("ethereum_leaf_link_arithmetic_v1.zig");
@@ -55,7 +54,7 @@ pub const Manifest = struct {
     total_constraints: u32,
     seal: [32]u8,
 
-    pub fn build(allocator: std.mem.Allocator, program: *const program_mod.ProgramV1) !Manifest {
+    pub fn build(allocator: std.mem.Allocator, program: anytype) !Manifest {
         try program.validate();
         // Cold typed-program admission precedes every geometry projection.
         inline for (.{ source_air, projection_air, arithmetic_air }) |Air| {
@@ -133,7 +132,7 @@ pub const Manifest = struct {
             return error.InvalidV3LinkManifest;
     }
 
-    pub fn validateAgainst(self: *const Manifest, program: *const program_mod.ProgramV1) !void {
+    pub fn validateAgainst(self: *const Manifest, program: anytype) !void {
         try program.validate();
         try self.validate();
         if (self.placements[keyIndex(.link_source)].?.geometry.log_size != program.source_log_size or

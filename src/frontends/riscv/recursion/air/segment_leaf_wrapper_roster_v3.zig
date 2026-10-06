@@ -115,7 +115,7 @@ pub const Plan = struct {
     pub fn build(
         allocator: std.mem.Allocator,
         base_manifest: *const v2.Manifest,
-        program: *const link_program.ProgramV1,
+        program: anytype,
         shape: Shape,
     ) !Plan {
         const result = try buildRaw(allocator, base_manifest, program, shape);
@@ -126,7 +126,7 @@ pub const Plan = struct {
     fn buildRaw(
         allocator: std.mem.Allocator,
         base_manifest: *const v2.Manifest,
-        program: *const link_program.ProgramV1,
+        program: anytype,
         shape: Shape,
     ) !Plan {
         try base_manifest.validate();
@@ -270,7 +270,7 @@ pub const Plan = struct {
         self: *const Plan,
         allocator: std.mem.Allocator,
         base_manifest: *const v2.Manifest,
-        program: *const link_program.ProgramV1,
+        program: anytype,
         shape: Shape,
     ) !void {
         try self.validate();
@@ -311,7 +311,7 @@ pub const Plan = struct {
     }
 };
 
-fn extraGeometry(row: u8, shape: Shape, program: *const link_program.ProgramV1) !Geometry {
+fn extraGeometry(row: u8, shape: Shape, program: anytype) !Geometry {
     const key: ComponentKey = @enumFromInt(row);
     return switch (key) {
         .program_words => FieldWordsAdapter.manifestGeometry(.program_words, try hash_witness.traceLogSize(shape.program_words)),
