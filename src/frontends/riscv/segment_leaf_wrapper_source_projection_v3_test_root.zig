@@ -3,4 +3,6 @@ comptime {
     _ = @import("recursion/segment_leaf_wrapper_source_projection_v3.zig");
     _ = @import("recursion/air/segment_leaf_wrapper_roster_v3_v2.zig");
     _ = @import("recursion/segment_leaf_wrapper_protocol_v3.zig");
+    _ = @import("recursion/ethereum_leaf_link_program_v3.zig");
+    _ = @import("recursion/ethereum_leaf_direct_public_authority_v3.zig");
 }
