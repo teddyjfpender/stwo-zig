@@ -35,6 +35,10 @@ new protocol/key namespace. Row 47 must receive `S2WR`/`S2CX` values from
 the *checked native base AIR*. Row 40's 24 `LAI1`/`LWI1`/`LRI1` consumers
 must close exactly with the router and hash rows. No second table of host
 labels counts as proof authority.
+The dormant router also forwards eight Tree0 words to `PPR1`. Direct V4
+already emits those words in row 39 and consumes them through row 44, so the
+V5 schedule must disable exactly those eight router forwards. Keeping them
+would over-emit `PPR1` even if the new identity tuples close.
 
 ## Fixed-key and public boundary policy
 
