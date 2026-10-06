@@ -186,6 +186,8 @@ pub const ethereum_leaf_child_field_router_v1 =
 pub const universal_challenges = @import("universal_challenges.zig");
 pub const vm_public_logup_control_witness_v2 =
     @import("vm_public_logup_control_witness_v2.zig");
+pub const vm_public_logup_control_v6 = @import("vm_public_logup_control_v6.zig");
+pub const vm_public_logup_control_witness_v6 = @import("vm_public_logup_control_witness_v6.zig");
 pub const universal_catalog = @import("universal_catalog.zig");
 pub const universal_adapter_manifest = @import("universal_adapter_manifest.zig");
 pub const universal_manifest = @import("universal_manifest.zig");

@@ -22,6 +22,13 @@ pub const specs = [_]Spec{
         .minimum = 1,
     },
     .{
+        .step = "test-recursion-v6-row17",
+        .description = "Validate variable-cardinality VM public LogUp row 17 without activating proofs",
+        .root = "v6_row17_test_root.zig",
+        .filters = &.{"V6 row17"},
+        .minimum = 3,
+    },
+    .{
         .step = "test-recursion-v5-direct-proof-gate",
         .description = "Check exact fifty-row adapter geometry and fail-closed proof publication",
         .root = "v5_direct_proof_gate_test_root.zig",
