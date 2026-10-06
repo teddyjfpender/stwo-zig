@@ -27,6 +27,8 @@ const public_logup = @import("air/vm_public_logup_control_witness_v6.zig");
 const public_source = @import("segment_public_outer_source_v2.zig");
 const public_components = @import("segment_public_outer_components_v2_contract.zig");
 const public_air = @import("air/segment_public_outer_air_v2.zig");
+const public_hash_source = @import("segment_public_claim_hash_authority_v2.zig");
+const authority_source = @import("segment_leaf_authority_v2.zig");
 const merkle_path_air = @import("air/merkle_path.zig");
 const query_bits_air = @import("air/query_bits.zig");
 const query_bits = @import("air/query_bits_witness.zig");
@@ -34,7 +36,10 @@ const query_mapping_air = @import("air/query_mapping.zig");
 const query_mapping = @import("air/query_mapping_witness.zig");
 
 pub const PRODUCTION_PROOF_ACTIVATION = false;
-pub const QUALIFIED_ROWS = [_]u8{ 0, 1, 2, 3, 4, 6, 7, 8, 9, 10, 12, 17, 20, 21, 33, 34, 35 };
+/// Rows 13--14 are fixed from the admitted descriptor and wire dimensions.
+/// Rows 15--16 still carry graph use counts specialized by the canonical
+/// statement topology, so they have no shape-only writer here.
+pub const QUALIFIED_ROWS = [_]u8{ 0, 1, 2, 3, 4, 6, 7, 8, 9, 10, 12, 13, 14, 17, 20, 21, 33, 34, 35 };
 
 pub const Writer = struct {
     allocator: std.mem.Allocator,
@@ -126,6 +131,7 @@ pub const Writer = struct {
     /// derives every value from a pinned plan/profile or fixed table formula.
     pub fn writeRow(self: *const Writer, row: u8, columns: [][]M31) !void {
         if (!qualified(row)) return error.UnqualifiedFixedRowV6;
+        if (row == 13 or row == 14) try self.manifest.validate();
         const geometry = self.manifest.placements[row].geometry;
         if (geometry.log_size >= @bitSizeOf(usize) or columns.len != geometry.preprocessed_columns)
             return error.FixedBaseGeometryMismatchV6;
@@ -197,14 +203,42 @@ pub const Writer = struct {
                     return error.FixedBaseGeometryMismatchV6;
                 // V2's row-10 is explicitly inactive in every physical lane.
             },
-            12 => {
-                if (columns.len != public_air.PublicationHeader.PREPROCESSED_COLUMN_COUNT or
-                    public_source.PUBLICATION_HEADER_WORD_COUNT > capacity)
+            12, 14 => {
+                const first: usize = switch (row) {
+                    12 => 0,
+                    14 => public_source.PUBLICATION_SEAL_START,
+                    else => unreachable,
+                };
+                const count: usize = switch (row) {
+                    12 => public_source.PUBLICATION_HEADER_WORD_COUNT,
+                    14 => public_source.PUBLICATION_SEAL_WORD_COUNT,
+                    else => unreachable,
+                };
+                const expected_width: usize = switch (row) {
+                    12 => public_air.PublicationHeader.PREPROCESSED_COLUMN_COUNT,
+                    14 => public_air.PublicationSeal.PREPROCESSED_COLUMN_COUNT,
+                    else => unreachable,
+                };
+                if (columns.len != expected_width or count > capacity)
                     return error.FixedBaseGeometryMismatchV6;
-                for (0..public_source.PUBLICATION_HEADER_WORD_COUNT) |index| {
-                    const fixed = publicationHeaderRow(index, M31.zero());
+                for (0..count) |index| {
+                    const fixed = try publicationRow(first + index, self.manifest.shape.native_wire_word_count, M31.zero());
                     const logical = public_components.logicalRow(fixed);
                     put(columns, geometry.log_size, index, logical[public_air.PublicationHeader.PHYSICAL_MAIN_COLUMN_COUNT..][0..columns.len]);
+                }
+            },
+            13 => {
+                if (columns.len != public_air.NativePublicSums.PREPROCESSED_COLUMN_COUNT)
+                    return error.FixedBaseGeometryMismatchV6;
+                const descriptor_count = try std.math.add(usize, self.manifest.shape.component_descriptors, self.manifest.shape.infra_descriptors);
+                const preimage_words = try std.math.add(usize, authority_source.AUTHORITY_HASH_FIXED_PREIMAGE_WORD_COUNT, try std.math.mul(usize, descriptor_count, authority_source.AUTHORITY_HASH_WORDS_PER_DESCRIPTOR));
+                const call_count = @import("poseidon2_channel.zig").canonicalWordPermutationCount(preimage_words);
+                const active = @max(public_source.NATIVE_PUBLIC_SUM_WORD_COUNT, call_count);
+                if (active > capacity or geometry.log_size != @as(u32, @intCast(std.math.log2_int_ceil(usize, @max(active, 16)))))
+                    return error.FixedBaseGeometryMismatchV6;
+                for (0..active) |index| {
+                    const fixed = try claimHashFixedRow(index, call_count, self.manifest.shape.native_wire_word_count);
+                    put(columns, geometry.log_size, index, &fixed);
                 }
             },
             17 => {
@@ -296,12 +330,56 @@ fn put(columns: [][]M31, log_size: u32, logical: usize, values: []const M31) voi
     for (values, columns) |value, column| column[committed] = value;
 }
 
-fn publicationHeaderRow(index: usize, value: M31) public_source.RelayRowV2 {
+fn publicationRow(index: usize, wire_word_count: u32, value: M31) !public_source.RelayRowV2 {
+    const arithmetic = index >= public_source.PUBLICATION_SUM_START and
+        index < public_source.PUBLICATION_SEAL_START + public_source.NATIVE_TOTAL_WORD_COUNT;
+    const control = index == public_source.CONTROL_PUBLICATION_INDEX;
+    const node = if (arithmetic)
+        try std.math.add(u32, wire_word_count, @intCast(index - public_source.PUBLICATION_SUM_START))
+    else
+        0;
     return .{
         .source_kind = .publication_bridge,
         .source_fields = .{ public_source.PUBLICATION_BRIDGE_CIRCUIT_ID, @intCast(index), 0, 0, 0 },
         .value = value,
+        .arithmetic_mask = @intFromBool(arithmetic),
+        .arithmetic_node_id = node,
+        .arithmetic_use_count = @intFromBool(arithmetic),
+        .control_mask = @intFromBool(control),
+        .control_use_count = @intFromBool(control),
     };
+}
+
+fn claimHashFixedRow(index: usize, call_count: usize, wire_word_count: u32) ![public_air.NativePublicSums.PREPROCESSED_COLUMN_COUNT]M31 {
+    if (index >= @max(public_source.NATIVE_PUBLIC_SUM_WORD_COUNT, call_count))
+        return error.FixedBaseGeometryMismatchV6;
+    const relay_active = index < public_source.NATIVE_PUBLIC_SUM_WORD_COUNT;
+    const authority_active = index < call_count;
+    const relay = if (relay_active)
+        try publicationRow(public_source.PUBLICATION_SUM_START + index, wire_word_count, M31.zero())
+    else
+        public_source.RelayRowV2{ .enabler = 0, .source_kind = .publication_bridge, .value = M31.zero(), .arithmetic_circuit_id = 0, .control_circuit_id = 0 };
+    var call_nodes: [public_hash_source.CALL_WIRE_GROUP_COUNT]u32 = @splat(0);
+    if (authority_active) for (&call_nodes, 0..) |*node, group| {
+        node.* = std.math.cast(u32, try std.math.add(usize, try std.math.mul(usize, index, public_hash_source.CALL_WIRE_GROUP_COUNT), group)) orelse return error.FixedBaseGeometryMismatchV6;
+    };
+    const row = public_hash_source.RowV2{
+        .relay_value = M31.zero(),
+        .relay_mask = @intFromBool(relay_active),
+        .authority_mask = @intFromBool(authority_active),
+        .bind_mask = @intFromBool(index == 0),
+        .source_fields = relay.source_fields,
+        .arithmetic_circuit_id = relay.arithmetic_circuit_id,
+        .arithmetic_node_id = relay.arithmetic_node_id,
+        .arithmetic_use_count = relay.arithmetic_use_count,
+        .control_circuit_id = relay.control_circuit_id,
+        .control_node_id = relay.control_node_id,
+        .control_use_count = relay.control_use_count,
+        .poseidon_tuple = @splat(M31.zero()),
+        .call_wire_nodes = call_nodes,
+    };
+    const logical = row.values();
+    return logical[public_air.NativePublicSums.PHYSICAL_MAIN_COLUMN_COUNT..][0..public_air.NativePublicSums.PREPROCESSED_COLUMN_COUNT].*;
 }
 
 test "V6 base fixed control matches executed V2 native source" {
@@ -398,9 +476,29 @@ test "V6 base fixed rows reconstruct without a leaf" {
             },
             12 => {
                 for (0..public_source.PUBLICATION_HEADER_WORD_COUNT) |logical| {
-                    const expected = public_components.logicalRow(publicationHeaderRow(logical, M31.fromCanonical(123)));
+                    const expected = public_components.logicalRow(try publicationRow(logical, writer.manifest.shape.native_wire_word_count, M31.fromCanonical(123)));
                     const committed = framework.committedRow(logical, geometry.log_size);
                     for (expected[public_air.PublicationHeader.PHYSICAL_MAIN_COLUMN_COUNT..][0..columns.len], columns) |value, column|
+                        try std.testing.expectEqual(value.toU32(), column[committed].toU32());
+                }
+            },
+            13 => {
+                const descriptor_count = @as(usize, writer.manifest.shape.component_descriptors) + writer.manifest.shape.infra_descriptors;
+                const words = authority_source.AUTHORITY_HASH_FIXED_PREIMAGE_WORD_COUNT + descriptor_count * authority_source.AUTHORITY_HASH_WORDS_PER_DESCRIPTOR;
+                const calls = @import("poseidon2_channel.zig").canonicalWordPermutationCount(words);
+                for (0..@max(public_source.NATIVE_PUBLIC_SUM_WORD_COUNT, calls)) |logical| {
+                    const committed = framework.committedRow(logical, geometry.log_size);
+                    try std.testing.expect(columns[0][committed].isOne());
+                    try std.testing.expectEqual(@as(u32, @intFromBool(logical < public_source.NATIVE_PUBLIC_SUM_WORD_COUNT)), columns[1][committed].toU32());
+                    try std.testing.expectEqual(@as(u32, @intFromBool(logical < calls)), columns[2][committed].toU32());
+                    try std.testing.expectEqual(@as(u32, @intCast(if (logical < calls) logical * public_hash_source.CALL_WIRE_GROUP_COUNT else 0)), columns[15][committed].toU32());
+                }
+            },
+            14 => {
+                for (0..public_source.PUBLICATION_SEAL_WORD_COUNT) |logical| {
+                    const expected = public_components.logicalRow(try publicationRow(public_source.PUBLICATION_SEAL_START + logical, writer.manifest.shape.native_wire_word_count, M31.fromCanonical(123)));
+                    const committed = framework.committedRow(logical, geometry.log_size);
+                    for (expected[public_air.PublicationSeal.PHYSICAL_MAIN_COLUMN_COUNT..][0..columns.len], columns) |value, column|
                         try std.testing.expectEqual(value.toU32(), column[committed].toU32());
                 }
             },
@@ -452,11 +550,95 @@ test "V6 base fixed rows reconstruct without a leaf" {
         }
         for (columns) |column| for (column) |value| try std.testing.expect(value.isZero());
     }
+    for ([_]u8{ 13, 14 }) |row| {
+        const geometry = writer.manifest.placements[row].geometry;
+        const capacity = @as(usize, 1) << @intCast(geometry.log_size);
+        const columns = try mutation_allocator.alloc([]M31, geometry.preprocessed_columns);
+        for (columns) |*column| {
+            column.* = try mutation_allocator.alloc(M31, capacity);
+            @memset(column.*, M31.zero());
+        }
+        writer.manifest.shape.native_wire_word_count += 1;
+        try std.testing.expectError(error.InvalidTemplateManifestV6, writer.writeRow(row, columns));
+        writer.manifest.shape.native_wire_word_count -= 1;
+        writer.manifest.placements[row].geometry.semantic_digest[0] ^= 1;
+        try std.testing.expectError(error.InvalidTemplateManifestV6, writer.writeRow(row, columns));
+        writer.manifest.placements[row].geometry.semantic_digest[0] ^= 1;
+        for (columns) |column| for (column) |value| try std.testing.expect(value.isZero());
+    }
     logs[20] += 1;
     const wrong_catalog = try catalog_mod.build(logs, fixture.boundaryComponents());
     try std.testing.expectError(error.FixedCoreQueryGeometryMismatchV6, Writer.init(allocator, &wrong_catalog, shape, &child_fixture.components, &child_fixture.infra, &plans.vm, &core_profile, &core_query_mapping, 128, false));
     try std.testing.expectError(error.UnqualifiedFixedRowV6, writer.writeRow(11, &.{}));
     try std.testing.expectError(error.UnqualifiedFixedRowsV6, writer.requireCompletePreprocessing());
+}
+
+test "V6 claim-hash fixed tail carries only admitted authority calls" {
+    const with_call = try claimHashFixedRow(20, 24, 128);
+    try std.testing.expectEqual(@as(u32, 1), with_call[0].toU32());
+    try std.testing.expectEqual(@as(u32, 0), with_call[1].toU32());
+    try std.testing.expectEqual(@as(u32, 1), with_call[2].toU32());
+    try std.testing.expectEqual(@as(u32, 0), with_call[9].toU32());
+    try std.testing.expectEqual(@as(u32, 20 * public_hash_source.CALL_WIRE_GROUP_COUNT), with_call[15].toU32());
+    try std.testing.expectError(error.FixedBaseGeometryMismatchV6, claimHashFixedRow(20, 20, 128));
+}
+
+test "V6 public rows 13 and 14 match authenticated native-sum graph and authority witness" {
+    const allocator = std.testing.allocator;
+    const support = @import("segment_public_outer_test_support.zig");
+    const graph_mod = @import("segment_public_native_sum_authority_v2.zig");
+    const poseidon_air = @import("../air/memory_commitment/poseidon2_air.zig");
+    const public_contract = @import("segment_public_outer_source_v2_contract.zig");
+    const public_writer = @import("segment_public_outer_source_v2_write_into_bound.zig");
+    for ([_]u32{ 0, 0x05060708 }) |register_value| {
+        var fixture = try support.Fixture.initWithRegister7(allocator, register_value);
+        defer fixture.deinit();
+        const prepared = try public_source.preflight(fixture.inputs());
+        var graph = try graph_mod.SourceV2.init(allocator, &prepared, fixture.inputs());
+        defer graph.deinit();
+        const binding = try graph.publicBinding(&prepared);
+        const wire_count = fixture.owned_public.data.words().len;
+        for (0..public_source.ARITHMETIC_PUBLICATION_WORD_COUNT) |index|
+            try std.testing.expectEqual(@as(u32, 1), binding.input_use_counts[wire_count + index]);
+
+        var arena = std.heap.ArenaAllocator.init(allocator);
+        defer arena.deinit();
+        const a = arena.allocator();
+        const counts = prepared.counts();
+        const destinations = public_source.DestinationsV2{
+            .publication_header = try a.alloc(public_source.RelayRowV2, counts.publication_header),
+            .native_public_sums = try a.alloc(public_source.RelayRowV2, counts.native_public_sums),
+            .publication_seal = try a.alloc(public_source.RelayRowV2, counts.publication_seal),
+            .boundary_bridge = try a.alloc(public_source.RelayRowV2, counts.boundary_bridge),
+            .native_challenges = try a.alloc(public_source.RelayRowV2, counts.native_challenges),
+            .relation_events = try a.alloc(public_source.RelationEventV2, counts.relay_relation_events),
+            .control = undefined,
+        };
+        const publication_events = try public_contract.publicationEvents(&fixture.publication);
+        const challenge_words = @import("segment_public_outer_source_v2_arithmetic_graph_binding_v2.zig").challengeWords(&fixture.relations);
+        public_writer.writeAssumeValid(destinations, &prepared, fixture.owned_public.data.words(), &publication_events, &challenge_words, binding.input_use_counts);
+
+        const hash_prepared = try public_hash_source.PreparedV2.initFromPublic(&prepared);
+        const calls = try hash_prepared.callCount();
+        const scratch = try allocator.alloc(poseidon_air.Call, calls);
+        defer allocator.free(scratch);
+        const rows = try allocator.alloc(public_hash_source.LogicalRowV2, hash_prepared.logical_row_count);
+        defer allocator.free(rows);
+        const events = try allocator.alloc(public_hash_source.RelationEventV2, try hash_prepared.eventCount());
+        defer allocator.free(events);
+        try public_hash_source.writeInto(&hash_prepared, &prepared, fixture.inputs(), destinations.native_public_sums, scratch, rows, events);
+        for (rows, 0..) |actual, index| {
+            const fixed = try claimHashFixedRow(index, calls, @intCast(wire_count));
+            try std.testing.expectEqualDeep(fixed, actual[public_air.NativePublicSums.PHYSICAL_MAIN_COLUMN_COUNT..][0..fixed.len].*);
+        }
+        for (0..public_source.PUBLICATION_SEAL_WORD_COUNT) |index| {
+            const actual = destinations.publication_seal[index];
+            const fixed = try publicationRow(public_source.PUBLICATION_SEAL_START + index, @intCast(wire_count), M31.zero());
+            const actual_logical = public_components.logicalRow(actual);
+            const fixed_logical = public_components.logicalRow(fixed);
+            try std.testing.expectEqualDeep(actual_logical[public_air.PublicationSeal.PHYSICAL_MAIN_COLUMN_COUNT..], fixed_logical[public_air.PublicationSeal.PHYSICAL_MAIN_COLUMN_COUNT..]);
+        }
+    }
 }
 
 fn expectFixedRows(columns: [][]M31, log_size: u32, rows: anytype) !void {
