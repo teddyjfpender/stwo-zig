@@ -27,6 +27,14 @@ pub const INTERACTION_BATCH_COUNT: usize = 1;
 pub const INTERACTION_COLUMN_COUNT: usize = 4;
 pub const MAXIMUM_CONSTRAINT_DEGREE: u32 = 2;
 pub const SEMANTIC_DIGEST_HEX = "53e56c86d19dac6996819ccb03c75a57b23714b8781710900d5e450db6f4d0c5";
+/// The generic typed proof adapter consumes the same pinned digest as the
+/// source's cold `Definition.validate` check.
+pub const SEMANTIC_DIGEST: [32]u8 = blk: {
+    var result: [32]u8 = undefined;
+    _ = std.fmt.hexToBytes(&result, SEMANTIC_DIGEST_HEX) catch
+        @compileError("invalid SegmentV2 Program field source semantic digest");
+    break :blk result;
+};
 pub const Row = [LOGICAL_INPUT_COUNT]M31;
 pub const Runtime = relation_interaction.Runtime(LOGICAL_INPUT_COUNT, RELATION_EVENT_COUNT, LOOKUP_BATCH_SIZE);
 pub const Plan = Runtime.Plan;
