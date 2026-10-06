@@ -91,19 +91,8 @@ pub const TemplateManifestV7 = struct {
         defer words.deinit();
         const fixed42 = try row42_air.FixedSchedule.initFromTemplate(words.words);
         if (words.words.len != shape.program_words) return error.V7TemplateProgramShapeMismatch;
-        var result = try fromSchedules(&prior, &row5, fixed42);
-        try result.validateAgainst(
-            allocator,
-            base_catalog,
-            shape,
-            component_descs,
-            infra_descs,
-            native_plan,
-            core_profile,
-            core_query_mapping,
-            native_wire_word_count,
-            native_lookup_enabled,
-        );
+        const result = try fromSchedules(&prior, &row5, fixed42);
+        try result.validate();
         return result;
     }
 
