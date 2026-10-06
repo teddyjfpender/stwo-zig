@@ -23,7 +23,7 @@ Tree0, metadata, and link components, with these **versioned replacements**:
 | Row | Change and proof obligation |
 | --- | --- |
 | 4 | Export the eight Tree0 frame words from the actual transcript-word values with the extra lookup multiplicity required by row 44. |
-| 5 | Export canonical native ProgramV2 words from the actual transcript payload; use explicit fixed-word equality for constants and proof-visible joins for dynamic words. |
+| 5 | Export the 16 committed `u16` halves of the eight native wire-ID words. The row-42 bridge must prove canonical 32-bit recomposition before ProgramV2 hashing. |
 | 34 | Commit one ordered Poseidon provider over six call ranges: native verifier, metadata, link, ProgramV2, local authority, local receipt. |
 | 35 | Recompute byte-table multiplicities including authenticated row-41 arithmetic requests. |
 | 36 | Version the Statement source to emit one additional use at the exact 56 `S2WR`/`S2CX` words routed into local identities. |
@@ -94,6 +94,18 @@ only 16 identity words dynamic. It is **not** a physical 50-row proof: the
 physical claims still come from the older V5 cohort and remain nonzero until
 the new AIRs, row-35 provider, and verifier-owned fixed columns are installed
 in the committed trees and checked by a fresh verifier.
+The real capture also exposed a fixed-column bug: constant transcript
+payloads such as PCS settings had been reconstructed with value zero. The
+V7 row-5 writer now derives these values from admitted PCS, geometry, and
+lookup descriptors. All 4,700 row-5 fixed rows match the q193 native source.
+The V7 candidate template independently rebuilds this complete padded row-5
+table and the row-42 ProgramV2 table, sizes row 5 for its actual cardinality,
+and seals both AIR identities, fixed-column digests, and all 50 placements.
+The V7 roster and candidate protocol ID now derive from that verifier-owned
+template rather than a leaf-specific V2 manifest. Distinct leaves with the
+same admitted shape get the same candidate key. No verification key is
+admitted until the remaining base fixed tables and a fresh detached proof
+transaction are qualified.
 For the V6 base fixed schedule, rows 15 and 16 are deliberately unqualified.
 Their Tree0 columns include the exact dense input-use multiplicities of the
 native-public-sum arithmetic graph. Section lengths alone do not determine
@@ -104,6 +116,10 @@ fixed key. Activation needs either a verifier-selected, shape-only graph
 topology schedule with identical multiplicities across every leaf using the
 key, or a versioned AIR that authenticates variable multiplicities as main
 witness columns. The current writer rejects both rows before touching Tree0.
+Independent shape-derived writers now cover rows 11, 13, 14, 18, and 19;
+rows 11, 18, and 19 have not yet been admitted into the complete template
+key. The row-13/14 writer covers the public authority hash and seal, with
+physical fixed-column parity against the native graph and mutation gates.
 A further dormant row-4 profile can export kind and eight split argument limbs
 for instructions with an actual payload row, using that row's existing
 transcript-payload relation. Its coverage audit rejects duplicate origins and

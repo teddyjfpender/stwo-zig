@@ -203,14 +203,19 @@ input, transcript or public-I/O state.
    statement, and custody checks only establish first/last placement; they do
    not prove that those digests represent the runner's actual input/output.
    The V2 canonical wire retains sparse `(address, value)` snapshots but drops
-   the runner's I/O word-role bits and I/O address/length metadata, so the
-   verifier cannot reconstruct the byte relation from that wire alone. The V3
-   wrapper must not inherit that unbound claim. The minimal repro and
+   the runner's I/O word-role bits and I/O address/length metadata. A V3
+   projection now retains verifier-owned offsets, reads exact input/output/
+   output-length words from the authenticated sparse wire, and rejects absent
+   words or stale changed wires. Its dormant byte and edge-digest AIRs check
+   the claimed bytes and consume independently recomputed expected digests.
+   These tests do not yet make the source proof-visible: row 11 needs a typed
+   relation from the authenticated SegmentV2 memory entries to the V3 bridge.
+   The existing BLAKE3 memory-opening AIR cannot stand in for that relation;
+   SegmentV2's continuation memory uses Poseidon. The V3 wrapper must not
+   inherit an unbound claim. The minimal repro and
    acceptance criteria are tracked in [issue #228](https://github.com/teddyjfpender/stwo-zig/issues/228).
-   An opt-in native capture check now defines a versioned I/O digest and
-   compares trusted ABI bytes with authenticated sparse snapshots. It remains
-   experimental: the V3 wrapper still needs the corresponding verifier-input
-   and AIR relation before it can assert application I/O.
+   The host capture and dormant AIR checks remain experimental until their
+   memory source, fixed schedule, and fresh wrapper proof are joined.
 
 The first normal gate should prove a real two-leaf program, verify both local
 proofs, both wrapper proofs and their parent, then reject mutations to global
