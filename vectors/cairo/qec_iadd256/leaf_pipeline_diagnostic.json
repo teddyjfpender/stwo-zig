@@ -45,7 +45,9 @@
       "independent_leaf_verify": {
         "accepted": true,
         "wall_s": 0.09
-      }
+      },
+      "source_generation_s": 0.071,
+      "initial_scarb_compile_s": 3.247
     },
     {
       "batch": 1,
@@ -74,7 +76,9 @@
       "independent_leaf_verify": {
         "accepted": true,
         "wall_s": 0.09
-      }
+      },
+      "source_generation_s": 0.071,
+      "initial_scarb_compile_s": 3.907
     }
   ],
   "fold": {

@@ -147,7 +147,9 @@ diagnostic, **not** an independently verified final root.
 
 The M5 Max, ReleaseFast run of distinct batches 0 and 1 used the same
 `total_shots=9024` and `repetitions=1`, so their leaf digests refer to the
-same 9,024-shot experiment. The strengthened bridge's preparation was
+same 9,024-shot experiment. Source generation took 0.071 s for each batch,
+and initial Scarb compilation took 3.247/3.907 s; fresh outputs matched the
+proved executable hashes. The strengthened bridge's preparation was
 10.524/10.808 s respectively: fresh compile 2.414/2.433 s, direct
 VM/adaptation 3.678/3.724 s, and bootloader VM/adaptation 4.069/4.264 s.
 The leaf-wrap calls were 40.24/37.10 s wall, split into Cairo proving
