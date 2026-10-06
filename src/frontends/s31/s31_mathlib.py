@@ -14,6 +14,7 @@ BUILTINS = {
     "std::math::neg", "std::math::sub", "std::math::square", "std::math::pow",
     "std::math::sum", "std::math::dot", "std::math::poly_eval",
     "std::math::sum_lanes", "std::math::dot_lanes",
+    "std::math::add_u256", "std::math::add_u256_checked", "std::math::le_u256",
 }
 MAX_STATIC_TERMS = 64
 
@@ -21,6 +22,24 @@ MAX_STATIC_TERMS = 64
 def _m31(value: Value) -> None:
     if value.typ.kind != "m31":
         raise TypeErrorS31("std::math requires [m31; N] values")
+
+
+def add_u256(builder: Builder, lhs: Value, rhs: Value, *, wanted: str | None = None,
+             span: dict[str, int] | None = None) -> Value:
+    """Wrapping 256-bit addition, with a Boolean carry at every limb."""
+    return builder.u256_binary("u256_add", lhs, rhs, wanted=wanted, span=span)
+
+
+def add_u256_checked(builder: Builder, lhs: Value, rhs: Value, *, wanted: str | None = None,
+                     span: dict[str, int] | None = None) -> Value:
+    """256-bit addition constrained to reject a final carry."""
+    return builder.u256_binary("u256_add_checked", lhs, rhs, wanted=wanted, span=span)
+
+
+def le_u256(builder: Builder, lhs: Value, rhs: Value, *, wanted: str | None = None,
+            span: dict[str, int] | None = None) -> Value:
+    """Return one field bit for unsigned lhs <= rhs."""
+    return builder.u256_binary("u256_le", lhs, rhs, wanted=wanted, span=span)
 
 
 def neg(builder: Builder, value: Value, *, wanted: str | None = None,

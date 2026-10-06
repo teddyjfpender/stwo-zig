@@ -26,7 +26,8 @@ _HASH_OPS = frozenset({
     "hash_poseidon2_leaf", "hash_poseidon2_pair",
 })
 _OPS = frozenset({"constant", "cast_m31", "add", "mul", "add_const",
-                  "mul_const", "sum_lanes", "select", "repeat"}) | _HASH_OPS
+                  "mul_const", "sum_lanes", "select", "repeat",
+                  "u256_add", "u256_le", "u256_add_checked"}) | _HASH_OPS
 _NODE_FIELDS = frozenset({"name", "op", "lhs", "rhs", "selector",
                           "constant", "length", "rounds", "body"})
 
@@ -152,6 +153,11 @@ def _validated_shapes(relation: Mapping[str, Any]) -> tuple[dict[str, tuple[str,
             _absent(node, "rhs", "constant", "length", "rounds", "body")
             _same_m31(node, lhs)
             shape = ("m31", 1)
+        elif op in ("u256_add", "u256_le", "u256_add_checked"):
+            _absent(node, "constant", "length", "rounds", "body")
+            if lhs != ("u16", 16) or rhs != ("u16", 16):
+                raise OracleError(f"{name}: {op} requires two 16-limb u256 operands")
+            shape = ("u16", 16) if op in {"u256_add", "u256_add_checked"} else ("m31", 1)
         elif op == "select":
             _absent(node, "constant", "length", "rounds", "body")
             if rhs is None:
@@ -273,6 +279,13 @@ def evaluate_relation(relation: Mapping[str, Any], assignment: Mapping[str, Any]
             result = [(a * node["constant"]) % P for a in lhs]
         elif op == "sum_lanes":
             result = [sum(lhs) % P]
+        elif op in ("u256_add", "u256_le", "u256_add_checked"):
+            a = sum(word << (16 * index) for index, word in enumerate(lhs))
+            b = sum(word << (16 * index) for index, word in enumerate(rhs))
+            if op == "u256_add_checked" and a + b >= 1 << 256:
+                raise OracleError(f"{name}: 256-bit addition overflow")
+            result = ([((a + b) >> (16 * index)) & 0xffff for index in range(16)]
+                      if op != "u256_le" else [int(a <= b)])
         elif op == "select":
             bit = values[node["selector"]][0]
             if bit not in (0, 1):

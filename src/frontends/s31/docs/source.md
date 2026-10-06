@@ -8,8 +8,12 @@ modulo `p`; `p` itself is **not** a canonical encoding of zero. A `u16` value
 is an integer from `0` through `65535`. `m31_from_u16` preserves its numeric
 value and changes its type. There are no implicit integer/field conversions.
 
-Text types are fixed-size `[m31; N]` and `[u16; N]`, a single `bit`, and
-`Digest<Poseidon2>` or `Digest<Blake2sReduced>`. `bit` erases to `m31[1]` in
+Text types are fixed-size `[m31; N]` and `[u16; N]`, `UInt256`, `Bytes32`, a
+single `bit`, and `Digest<Poseidon2>` or `Digest<Blake2sReduced>`. The two
+wide types each erase to sixteen little-endian `u16` limbs; explicit
+conversion chooses the integer meaning of 32 bytes. Their arithmetic and
+range constraints are worked by hand in [thirty-two bytes and 256-bit
+arithmetic](wide-values.md). `bit` erases to `m31[1]` in
 relation JSON and must be a directly declared input used by `select`. The
 circuit constrains `b²=b`, so it has only values zero and one. A digest erases
 to `m31[8]`, but retains a nominal family in text so a Poseidon2 digest cannot
@@ -75,6 +79,11 @@ contract and worked polynomial are in [the library chapter](library.md).
 | `std::math::sum_lanes(x)` | Sum the positions of one `[m31; N]` into `[m31; 1]`. |
 | `std::math::dot_lanes(x,w)` | Sum pointwise products of two equal `[m31; N]` arrays into `[m31; 1]`. |
 | `std::math::poly_eval(x,[c0,...,cd])` | Horner evaluation, low-degree coefficient first, 1..64 coefficients. |
+| `std::math::add_u256(a,b)` | Unsigned 256-bit addition modulo $2^{256}$, with constrained carries. |
+| `std::math::add_u256_checked(a,b)` | Unsigned 256-bit addition with the final carry constrained to zero. |
+| `std::math::le_u256(a,b)` | Unsigned comparison `a <= b`, with constrained borrows; returns `[m31; 1]`. |
+| `std::bytes::to_u256_le(x)`, `std::bytes::from_u256_le(x)` | Explicit, zero-row little-endian reinterpretation between `Bytes32` and `UInt256`. |
+| `std::bytes::limbs_m31(x)` | Cast each of sixteen range-checked limbs to M31 for field arithmetic or hashing. |
 | `std::field::from_u16(x)` | Value-preserving cast from `[u16; N]`. |
 | `std::field::select(bit,a,b)` | `a` if zero, `b` if one; same type/shape. |
 | `std::hash::poseidon2_leaf/pair`, `std::hash::blake2s_leaf/pair` | The [typed hash operations](hashes.md). |
@@ -144,6 +153,7 @@ semantics:
 | `add`, `mul` | Two equally shaped `m31[N]` arrays, lane-wise modulo `p`. |
 | `add_const`, `mul_const` | `m31[N]` and one canonical constant, lane-wise. |
 | `sum_lanes` | One `m31[N]` gives `m31[1]` containing the sum of its declared positions. `dot_lanes` first emits pointwise `mul`, then this node. |
+| `u256_add`, `u256_add_checked`, `u256_le` | Two `u16[16]` operands give a `u16[16]` sum or an `m31[1]` comparison. Digits are range checked; carries and borrows are Boolean. Checked addition also requires final carry zero. |
 | `repeat` | `lhs: m31[N]`, `rounds`, and a static `body` of `square`, `add_const`, `mul_const` steps. |
 | `select` | Equal `m31[N]` arrays `lhs`, `rhs`; `selector: m31[1]` constrained to a bit. |
 | `hash_blake2s`, `hash_blake2s_leaf/pair`, `hash_poseidon2_leaf/pair` | The [exact encodings and framing](hashes.md); each returns `m31[8]`. |

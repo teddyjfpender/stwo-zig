@@ -1,0 +1,23 @@
+use std@1;
+
+// The 32 bytes and unsigned integer share sixteen little-endian u16 limbs.
+// The public root is an auxiliary S31 commitment, not a Bitcoin block hash.
+circuit wide_order(
+    private digest_bytes: Bytes32,
+    private increment: UInt256,
+    private target: UInt256
+) -> public Digest<Poseidon2> {
+    let digest_number = std::bytes::to_u256_le(digest_bytes);
+    let computed_target = std::math::add_u256(digest_number, increment);
+    assert_eq(computed_target, target);
+
+    let within_target = std::math::le_u256(digest_number, target);
+    assert_eq(within_target, splat<1>(1_m31));
+
+    let digest_limbs = std::bytes::limbs_m31(digest_bytes);
+    let increment_limbs = std::bytes::limbs_m31(increment);
+    let digest_commitment = std::hash::poseidon2_leaf(digest_limbs);
+    let increment_commitment = std::hash::poseidon2_leaf(increment_limbs);
+    let root = std::hash::poseidon2_pair(digest_commitment, increment_commitment);
+    root
+}

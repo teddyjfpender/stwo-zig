@@ -27,6 +27,7 @@ BUILTINS = {
     "splat", "iterate", "m31_from_u16", "select", "poseidon2_leaf",
     "poseidon2_pair", "blake2s_leaf", "blake2s_pair",
     "merkle_path_poseidon2", "merkle_path_blake2s",
+    "std::bytes::to_u256_le", "std::bytes::from_u256_le", "std::bytes::limbs_m31",
 } | mathlib.BUILTINS
 STANDARD_ALIASES = {
     "std::field::from_u16": "m31_from_u16",
@@ -167,6 +168,10 @@ class Parser:
                 raise self.error(str(exc), token) from exc
         if self.accept("bit"):
             return Type("bit", 1)
+        if self.accept("UInt256"):
+            return Type("uint256", 16)
+        if self.accept("Bytes32"):
+            return Type("bytes32", 16)
         if self.accept("Digest"):
             self.expect("<")
             family = self.identifier()
@@ -175,7 +180,7 @@ class Parser:
             if normalized is None:
                 raise self.error("digest family must be Poseidon2 or Blake2sReduced", token)
             return Type("digest", 8, normalized)
-        raise self.error("expected [m31; N], [u16; N], bit, or Digest<Family>")
+        raise self.error("expected [m31; N], [u16; N], bit, UInt256, Bytes32, or Digest<Family>")
 
     def parameters(self, circuit: bool) -> tuple[Any, ...]:
         self.expect("(")
@@ -453,11 +458,14 @@ class Compiler:
                     operation = (mathlib.sum_lanes if arity == 1 else mathlib.dot_lanes)
                     return operation(self.builder, *values, wanted=wanted, span=self.span(expr))
                 values = tuple(self.expect_value(self.eval_expr(arg, env), arg) for arg in expr.args)
-                arity = 2 if name == "std::math::sub" else 1
+                arity = 2 if name in {"std::math::sub", "std::math::add_u256", "std::math::add_u256_checked", "std::math::le_u256"} else 1
                 if len(values) != arity:
                     raise TypeErrorS31(f"{name} expects {arity} arguments")
                 operation = {"std::math::neg": mathlib.neg, "std::math::sub": mathlib.sub,
-                             "std::math::square": mathlib.square}[name]
+                             "std::math::square": mathlib.square,
+                             "std::math::add_u256": mathlib.add_u256,
+                             "std::math::add_u256_checked": mathlib.add_u256_checked,
+                             "std::math::le_u256": mathlib.le_u256}[name]
                 return operation(self.builder, *values, wanted=wanted, span=self.span(expr))
             if name == "iterate":
                 if expr.generic is None or len(expr.args) != 2 or expr.args[0].kind != "name":
@@ -476,7 +484,18 @@ class Compiler:
                     raise TypeErrorS31("splat<N>(constant_m31) expected")
                 return self.builder.splat(args[0], expr.generic)
             if name == "m31_from_u16" and len(args) == 1:
-                return self.builder.cast_m31(self.expect_value(args[0], expr), wanted=wanted, span=self.span(expr))
+                value = self.expect_value(args[0], expr)
+                if value.typ.kind != "u16":
+                    raise TypeErrorS31("m31_from_u16 requires a [u16; N] value; use std::bytes::limbs_m31 for wide values")
+                return self.builder.cast_m31(value, wanted=wanted, span=self.span(expr))
+            if name in {"std::bytes::to_u256_le", "std::bytes::from_u256_le"} and len(args) == 1:
+                target = "uint256" if name.endswith("to_u256_le") else "bytes32"
+                return self.builder.bytes32_reinterpret(self.expect_value(args[0], expr), target)
+            if name == "std::bytes::limbs_m31" and len(args) == 1:
+                value = self.expect_value(args[0], expr)
+                if value.typ.kind not in {"uint256", "bytes32"}:
+                    raise TypeErrorS31("limbs_m31 requires UInt256 or Bytes32")
+                return self.builder.cast_m31(value, wanted=wanted, span=self.span(expr))
             if name in {"poseidon2_leaf", "blake2s_leaf"} and len(args) == 1:
                 family = "poseidon2" if name.startswith("poseidon2") else "blake2s_reduced"
                 return self.builder.hash_leaf(family, self.expect_value(args[0], expr), wanted=wanted, span=self.span(expr))

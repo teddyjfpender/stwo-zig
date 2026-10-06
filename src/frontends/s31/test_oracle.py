@@ -152,6 +152,45 @@ class OracleTests(unittest.TestCase):
                 with self.assertRaisesRegex(OracleError, "does not match"):
                     evaluate_relation(relation, wrong)
 
+    def test_u256_carry_order_and_commitment(self) -> None:
+        relation, assignment = fixture("wide_order")
+        self.assertEqual(evaluate_relation(relation, assignment), assignment["public_outputs"])
+        limbs = assignment["private_inputs"]
+        self.assertEqual(limbs["digest_bytes"][:2], [65535, 0])
+        self.assertEqual(limbs["target"][:2], [0, 1])
+        self.assertEqual(limbs["target"][15], 32768)
+        bad = copy.deepcopy(assignment)
+        bad["private_inputs"]["target"][1] = 0
+        with self.assertRaisesRegex(OracleError, r"assertions\[0\] failed"):
+            evaluate_relation(relation, bad)
+        bad = copy.deepcopy(assignment)
+        bad["private_inputs"]["increment"] = [0] * 16
+        with self.assertRaisesRegex(OracleError, r"assertions\[0\] failed"):
+            evaluate_relation(relation, bad)
+        bad = copy.deepcopy(assignment)
+        bad["private_inputs"]["digest_bytes"][0] = 65536
+        with self.assertRaisesRegex(OracleError, "0..65535"):
+            evaluate_relation(relation, bad)
+
+    def test_checked_u256_add_rejects_final_carry_and_comparison_is_boolean(self) -> None:
+        relation = {
+            "version": 1, "name": "checked", "inputs": [
+                {"name": key, "kind": "u16", "length": 16, "visibility": "private"}
+                for key in ("a", "b")],
+            "nodes": [
+                {"name": "sum", "op": "u256_add_checked", "lhs": "a", "rhs": "b"},
+                {"name": "less", "op": "u256_le", "lhs": "sum", "rhs": "b"}],
+            "assertions": [], "public_outputs": ["less"],
+        }
+        assignment = {"public_inputs": {}, "private_inputs": {
+            "a": [1] + [0] * 15, "b": [2] + [0] * 15},
+            "public_outputs": {"less": [0]}}
+        self.assertEqual(evaluate_relation(relation, assignment), {"less": [0]})
+        assignment["private_inputs"]["a"] = [65535] * 16
+        assignment["private_inputs"]["b"] = [1] + [0] * 15
+        with self.assertRaisesRegex(OracleError, "256-bit addition overflow"):
+            evaluate_relation(relation, assignment)
+
     def test_unknown_hash_or_future_node_never_counts_as_a_check(self) -> None:
         relation, assignment = fixture("hash4")
         relation["nodes"][0]["op"] = "hash_unreviewed"

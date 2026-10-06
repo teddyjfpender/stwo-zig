@@ -6,7 +6,7 @@ S31 compiles a fixed-size relation into Stwo circuit AIR and, for a supported re
 
 The earlier [source-to-AIR implementation guide](LANGUAGE_AND_AIR.md) remains available for backend detail.
 
-The compiler accepts normalized JSON and a [limited typed `.s31` text language](TEXT_LANGUAGE.md) that lowers to the same relation. Inputs have `u16` or `m31` type, fixed length, and public or private visibility. Nodes are topologically ordered. Supported normalized operations are `constant`, `cast_m31`, lane-wise `add`/`mul`, `add_const`/`mul_const`, `sum_lanes`, statically bounded `repeat` with `square` and constant steps, `select`, BLAKE2s raw/leaf/ordered-pair hashing, and pinned M31 Poseidon2 leaf/ordered-pair hashing. BLAKE2s hash inputs are canonical M31 words encoded little endian as 32-bit words; its eight digest words are reduced modulo M31. Poseidon2 outputs eight canonical M31 state words directly. Assertions constrain equal arrays. Public inputs and outputs occupy at most eight direct words: `u32` in the original profile, canonical M31 in direct-v4. Witnesses cannot change graph shape.
+The compiler accepts normalized JSON and a [limited typed `.s31` text language](TEXT_LANGUAGE.md) that lowers to the same relation. Inputs have `u16` or `m31` relation type, fixed length, and public or private visibility. The text language also has nominal `Bytes32` and `UInt256` values backed by sixteen `u16` limbs. Nodes are topologically ordered. Supported normalized operations are `constant`, `cast_m31`, lane-wise `add`/`mul`, `add_const`/`mul_const`, `sum_lanes`, constrained `u256_add`/`u256_add_checked`/`u256_le`, statically bounded `repeat` with `square` and constant steps, `select`, BLAKE2s raw/leaf/ordered-pair hashing, and pinned M31 Poseidon2 leaf/ordered-pair hashing. BLAKE2s hash inputs are canonical M31 words encoded little endian as 32-bit words; its eight digest words are reduced modulo M31. Poseidon2 outputs eight canonical M31 state words directly. Assertions constrain equal arrays. Public inputs and outputs occupy at most eight direct words: `u32` in the original profile, canonical M31 in direct-v4. Witnesses cannot change graph shape.
 
 To use the text frontend and inspect its exact lowering:
 
@@ -90,6 +90,13 @@ projection; `dot_lanes` adds one pointwise multiplication.
 `equations` exposes semantic field equations and source positions, with the
 generic AIR's lookup and public-binding terms documented separately in
 [the guide](docs/walkthrough.md).
+
+The [`wide_order.s31` example](examples/wide_order.s31) uses typed 32-byte
+values, constrained 256-bit addition and comparison, and a Poseidon2 public
+commitment. The [worked wide-value chapter](docs/wide-values.md) derives its
+carry and borrow equations by hand. Use `--lowering gate` for this example;
+the current sparse profile does not admit its equality rows. This is a wide
+arithmetic foundation, not a Bitcoin SHA256d or recursive verifier.
 
 From the repository root:
 

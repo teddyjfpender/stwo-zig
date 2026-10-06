@@ -17,14 +17,23 @@ general module loader or user-published package format yet.
 
 | Namespace | Implemented operations | Backend relation |
 | --- | --- | --- |
-| `std::math` | `neg`, `sub`, `square`, static `pow<K>`, static-group `sum`, `dot`, `poly_eval`, fixed-array `sum_lanes`, `dot_lanes` | Existing M31 add/mul and constant gates; `sum_lanes` adds constrained unpacking across packed circuit words. |
+| `std::math` | `neg`, `sub`, `square`, static `pow<K>`, static-group `sum`, `dot`, `poly_eval`, fixed-array `sum_lanes`, `dot_lanes`, `add_u256`, `add_u256_checked`, `le_u256` | M31 arithmetic and constrained packed reduction; wide operations use sixteen range-checked digits and Boolean carries/borrows. |
 | `std::field` | `from_u16`, `select` | Explicit conversion; direct input bit selector with `b²-b=0`. |
+| `std::bytes` | `to_u256_le`, `from_u256_le`, `limbs_m31` | Explicit nominal byte/integer reinterpretation and value-preserving cast of sixteen `u16` limbs. |
 | `std::hash` | Poseidon2 and BLAKE2s reduced leaf/pair hashes | Existing pinned hash nodes. |
 | `std::merkle` | Fixed-depth Poseidon2 and BLAKE2s paths | Hash nodes plus two constrained selects per level. |
 
 All math operations have fixed shapes. Most operate independently on the lanes
 of `[m31; N]`; `sum_lanes` and `dot_lanes` reduce them to `[m31; 1]`. The
-compiler checks types and canonical field constants before relation emission.
+wide [256-bit example](../../src/frontends/s31/docs/wide-values.md) treats
+these values as a separate type: ordinary addition wraps modulo $2^{256}$,
+checked addition forbids overflow, and unsigned comparison returns one M31
+bit. It is a base for the
+[Bitcoin header light-client plan](BITCOIN_LIGHT_CLIENT.md), which also
+requires byte-exact SHA256d, compact-target rules, a wider public statement,
+and an in-circuit S31 verifier.
+
+The compiler checks types and canonical field constants before relation emission.
 `pow<K>` requires a compile-time exponent `0 <= K < p`, where
 `p = 2^31 - 1`, and defines `x^0 = 1` even for `x = 0`. It uses left-to-right
 binary exponentiation: for nonconstant `x`, `K > 0` takes at most

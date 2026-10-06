@@ -1,0 +1,24 @@
+{
+  "schema": "s31-wide-arithmetic-baseline-v1",
+  "program": "src/frontends/s31/examples/wide_order.s31",
+  "assignment": "src/frontends/s31/examples/wide_order.valid.json",
+  "lowering": "gate",
+  "canonical_ir_sha256": "4b1f19fcb46acab8aeecd5c7d394c25bbe60592842315da5631ea6647795201d",
+  "raw": {"qm31_ops": 16422, "eq": 69, "m31_to_u32": 88, "triple_xor": 0, "blake_g": 0},
+  "padded": {"qm31_ops": 32768, "eq": 128, "m31_to_u32": 128, "triple_xor": 16, "blake_g": 16},
+  "preprocessed_cells": 4507264,
+  "proof_bytes": 427557,
+  "independent_value_oracle": "passed",
+  "native_verifier_accepted": true,
+  "changed_public_root_rejected": true,
+  "single_observation_seconds": {"build_or_load": 51.2755, "prove": 1.6877, "verify": 0.4202},
+  "checked_add_variant": {
+    "source_transform": "replace the one std::math::add_u256 call with std::math::add_u256_checked",
+    "canonical_ir_sha256": "2fa5f5c5d4c7d2350d66dcd4a273213fabace37c4568fbde7f7bef5f9755f3c3",
+    "raw_eq_rows": 70,
+    "proof_bytes": 431934,
+    "native_verifier_accepted": true,
+    "changed_public_root_rejected": true
+  },
+  "scope": "256-bit addition, comparison and three Poseidon2 hashes; no Bitcoin SHA256d or recursion"
+}

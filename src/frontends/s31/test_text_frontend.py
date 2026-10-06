@@ -5,7 +5,7 @@ import unittest
 from pathlib import Path
 
 import generate_merkle_path
-from s31_stdlib import (P, decode_m31_words_le, encode_m31_words_le, reference_digest,
+from s31_stdlib import (P, decode_m31_words_le, decode_u256_le, encode_m31_words_le, encode_u256_le, reference_digest,
                         reference_iterate, reference_m31_binary, reference_m31_from_u16,
                         reference_merkle_path, reference_select)
 from text_frontend import Parser, SourceError, compile_file, compile_text
@@ -33,6 +33,13 @@ class TextFrontendTests(unittest.TestCase):
                          [0x01020304, 1])
         with self.assertRaises(ValueError):
             decode_m31_words_le(P.to_bytes(4, "little"))
+        wide = [0xffff, 0x0102] + [0] * 13 + [0x8000]
+        self.assertEqual(decode_u256_le(encode_u256_le(wide)), wide)
+        self.assertEqual(encode_u256_le(wide)[:4], bytes([0xff, 0xff, 2, 1]))
+        with self.assertRaises(ValueError):
+            encode_u256_le([65536] + [0] * 15)
+        with self.assertRaises(ValueError):
+            decode_u256_le(bytes(31))
 
     def test_existing_relations_are_identical(self) -> None:
         for name in ("arith4_m31", "merkle_path1_poseidon", "merkle_path1",
@@ -104,6 +111,42 @@ class TextFrontendTests(unittest.TestCase):
             compile_text("circuit bad(private x: [u16; 1]) -> public [m31; 1] { std::math::sum_lanes(x) }")
         with self.assertRaisesRegex(SourceError, "equally shaped"):
             compile_text("circuit bad(private x: [m31; 1]) -> public [m31; 1] { std::math::dot_lanes(x, splat<2>(1_m31)) }")
+
+    def test_u256_types_lower_to_range_checked_limbs_and_carry_nodes(self) -> None:
+        relation, _ = compile_file(EXAMPLES / "wide_order.s31")
+        self.assertEqual(relation, json.loads((EXAMPLES / "wide_order.s31.json").read_text()))
+        self.assertEqual({item["kind"] for item in relation["inputs"]}, {"u16"})
+        self.assertEqual([node["op"] for node in relation["nodes"][:2]],
+                         ["u256_add", "u256_le"])
+        self.assertEqual([node["op"] for node in relation["nodes"]].count("cast_m31"), 2)
+        self.assertEqual(relation["public_outputs"], ["root"])
+        with self.assertRaisesRegex(SourceError, "requires two UInt256"):
+            compile_text("""
+circuit bad(private bytes: Bytes32, private integer: UInt256) -> public [m31; 1] {
+    std::math::le_u256(bytes, integer)
+}
+""")
+        with self.assertRaisesRegex(SourceError, "use std::bytes::limbs_m31"):
+            compile_text("circuit bad(private bytes: Bytes32) -> public [m31; 16] { m31_from_u16(bytes) }")
+        with self.assertRaisesRegex(ValueError, "current public ABI allows at most eight words"):
+            compile_text("circuit wide(private x: UInt256) -> public UInt256 { x }")
+
+    def test_checked_u256_addition_has_distinct_relation_node(self) -> None:
+        source = """use std@1;
+circuit checked(private a: UInt256, private b: UInt256) -> public [m31; 1] {
+    let sum = std::math::add_u256_checked(a, b);
+    std::math::le_u256(sum, b)
+}"""
+        relation, _ = compile_text(source)
+        self.assertEqual([node["op"] for node in relation["nodes"]],
+                         ["u256_add_checked", "u256_le"])
+        bytes_source = """circuit retyped(private x: UInt256) -> public Digest<Poseidon2> {
+    let bytes = std::bytes::from_u256_le(x);
+    std::hash::poseidon2_leaf(std::bytes::limbs_m31(bytes))
+}"""
+        retyped, _ = compile_text(bytes_source)
+        self.assertEqual([node["op"] for node in retyped["nodes"]],
+                         ["cast_m31", "hash_poseidon2_leaf"])
 
     def test_static_sum_uses_balanced_dependencies(self) -> None:
         relation, _ = compile_text("""

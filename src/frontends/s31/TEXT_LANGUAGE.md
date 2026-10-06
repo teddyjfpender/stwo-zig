@@ -91,6 +91,8 @@ relation and canonical IR digest.
 | --- | --- | --- |
 | `[m31; N]` | `m31[N]` | Each word is canonical modulo `2^31-1`. |
 | `[u16; N]` | `u16[N]` | Input words are range checked by the selected proof profile. |
+| `Bytes32` | `u16[16]` | Thirty-two bytes packed into sixteen little-endian, range-checked limbs. |
+| `UInt256` | `u16[16]` | Unsigned integer with the same limbs; arithmetic is explicit. |
 | `bit` | `m31[1]` | Must be a direct input used by `select`; the circuit constrains `b²=b`. |
 | `Digest<Poseidon2>` | `m31[8]` | Nominal type for the pinned field-native digest. |
 | `Digest<Blake2sReduced>` | `m31[8]` | Nominal type for eight reduced BLAKE2s words. |
@@ -110,6 +112,8 @@ Raw BLAKE2s-256 bytes are distinct from its reduced M31-word digest.
 | `poseidon2_pair(a,b)`, `blake2s_pair(a,b)` | Ordered-pair hash node | Two digests of the selected family. |
 | `merkle_path_poseidon2(leaf, siblings, directions)` and `merkle_path_blake2s(...)` | Optional leaf hash, then two selects and one ordered pair per level | Raw M31 leaf or same-family digest; static arrays of 1–16 digest and bit inputs. |
 | `assert_eq(a,b);` | Relation assertion | Equally typed operands; checked as a proof constraint. |
+| `std::bytes::to_u256_le(x)`, `from_u256_le(x)` | No node; change nominal type | Explicit little-endian interpretation of `Bytes32` or `UInt256`. |
+| `std::bytes::limbs_m31(x)` | `cast_m31` | `Bytes32` or `UInt256`; preserves all sixteen limb values. |
 
 Qualified standard operations are compiler-owned. An explicit `use std@1;`
 pin is recorded in `stdlib-lock.json`; the lock digest is embedded in the
@@ -132,6 +136,14 @@ There is no general module loader or third-party package system yet.
 | `std::math::sum_lanes(x)` | Constrained extraction and balanced sum of every lane in one array | `[m31; N] -> [m31; 1]`, `1 <= N <= 4096`. |
 | `std::math::dot_lanes(a,b)` | One pointwise `mul` followed by `sum_lanes` | Equal `[m31; N]` shapes; returns `[m31; 1]`. |
 | `std::math::poly_eval(x,[c0,...,cd])` | Horner evaluation, low-degree coefficient first | 1–64 coefficients, each shaped like `x`. |
+| `std::math::add_u256(a,b)` | `u256_add` with sixteen constrained carries | Two `UInt256` values; modular sum. |
+| `std::math::add_u256_checked(a,b)` | `u256_add_checked` with final carry constrained to zero | Two `UInt256` values; overflow rejected. |
+| `std::math::le_u256(a,b)` | `u256_le` with sixteen constrained borrows | Two `UInt256` values; `[m31; 1]` Boolean result. |
+
+The [wide-value worked example](docs/wide-values.md) gives the exact integer
+equations, source, assignment, and current Bitcoin boundary. Its `u16`
+operands use the general `gate` proof profile: the current sparse profile
+rejects the equality rows used by these constraints.
 
 [`math_polynomial4.s31`](examples/math_polynomial4.s31) is a complete math
 example, with an equivalent [normalized relation](examples/math_polynomial4.s31.json)
@@ -154,8 +166,9 @@ individually reduced modulo M31. Poseidon2 uses the pinned Stark-V constants
 and the S31 sponge and ordered-parent framing. Exact encodings and existing
 security-review limits are in the [hash library brief](../../../design/s31/HASH_LIBRARY.md).
 The library's `encode_m31_words_le` and `decode_m31_words_le` pin the host-side
-four-byte word format and reject noncanonical values. Byte arrays are not yet
-first-class circuit values in this text subset.
+four-byte word format and reject noncanonical values. `Bytes32` is a nominal
+32-byte value backed by sixteen `u16` limbs; arbitrary-length byte arrays are
+not yet first-class circuit values in this text subset.
 
 `merkle_path_poseidon2` accepts a source expression such as:
 

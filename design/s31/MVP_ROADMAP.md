@@ -51,6 +51,15 @@ For the equivalent 32,768-round Cairo executable, a [new five-input matched run]
 
 The 256-round full circuit has 4,248,656 preprocessed cells; its sparse-chip version has 69,680. The 32,768-round sparse chip saves about 16 times the preprocessed cells of the sparse gate and yields a 20,153-byte smaller proof. These are structural and artifact measurements, not a measured 16× proving-speed claim. The earlier [seven-trial record](measurements/profiles-v2-2026-10-06.json) timed only the interaction PoW separately and included cold preprocessed commitment work inside `prove`; it remains as historical evidence. The [cached sparse record](measurements/profiles-cached-v3-2026-10-06.json) and matched v4 record above separate both PoW phases and cold commitment setup. They show a non-PoW chip crossover for this recurrence, while total proving still varies substantially with PoW.
 
+The Bitcoin-oriented [wide-value slice](BITCOIN_LIGHT_CLIENT.md) adds nominal
+`Bytes32` and `UInt256`, explicit little-endian conversion, and constrained
+256-bit modular addition and unsigned comparison to `std@1`. Its checked
+example passes an independent oracle and generated native verifier, which
+rejects a changed public root. The [single-trial record](measurements/bitcoin-wide-v1-2026-10-06.json)
+captures the general `gate` cost. This is a limb-arithmetic base, not a
+SHA256d header proof or an in-circuit recursive verifier. The document gives
+the profile-specific wrapper, public-state ABI, and Bitcoin policy exit gates.
+
 ## Decision: version every proof profile
 
 Keep `circuit-v1` byte compatible with the pinned eleven-component Stwo circuit proof. `hybrid-step-v2` adds one repeated-step AIR chip to it; `sparse-v3` keeps the three arithmetic/range components; `direct-m31-v4` keeps only the QM31 arithmetic component and uses a canonical M31 public ABI. A verifier must reject an unknown profile before decoding its STARK proof. Each key pins the profile, source and canonical IR hashes, chip parameters, component geometry, public ABI, preprocessed root, PCS/FRI settings, channel and proof size limit. The profile tag, source digest and circuit identity enter the Fiat–Shamir transcript before the base commitment. A fully explicit generated component manifest remains a next step.

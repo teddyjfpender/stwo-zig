@@ -7,12 +7,13 @@ implicitly. `use std@2;` and third-party packages are rejected.
 This is a versioned compiler builtin package, not a general module loader.
 
 Most `std::math` helpers below lower to normalized `add`, `mul`,
-`add_const`, or `mul_const` nodes. `sum_lanes` has its own normalized relation
-node because it changes an array's shape. The circuit compiler lowers it to
+`add_const`, or `mul_const` nodes. `sum_lanes` and the two `u256` operations
+have their own normalized relation nodes. The circuit compiler lowers
+`sum_lanes` to
 constrained packed-wire additions, a fixed QM31 multiplier, and a base mask.
-The native verifier proves all
-these operations through the ordinary circuit AIR. No helper is a host-only
-calculation or a new specialized AIR chip.
+The wide operations use range-checked limbs and Boolean carries or borrows.
+The native verifier proves all these operations through the ordinary circuit
+AIR. No helper is a host-only calculation or a new specialized AIR chip.
 
 ## The current API
 
@@ -27,6 +28,9 @@ calculation or a new specialized AIR chip.
 | `std::math::sum_lanes(x)` | `Σⱼ x[j] mod p`, returned as `[m31; 1]` | One `[m31; N]`, `1 <= N <= 4096`. |
 | `std::math::dot_lanes(x,w)` | `Σⱼ x[j]·w[j] mod p`, returned as `[m31; 1]` | Two equally shaped `[m31; N]` arrays, `1 <= N <= 4096`. |
 | `std::math::poly_eval(x,[c0,c1,...,cd])` | `c0+c1·x+...+cd·x^d mod p` | 1..64 coefficients, each the same shape as `x`; **low degree first**. |
+| `std::math::add_u256(a,b)` | `(a+b) mod 2^256` | Two `UInt256` values; sixteen little-endian limbs. |
+| `std::math::add_u256_checked(a,b)` | `a+b` with final carry zero | Two `UInt256` values; overflow makes the relation unsatisfiable. |
+| `std::math::le_u256(a,b)` | `1` if `a <= b`, else `0` | Two `UInt256` values; result `[m31; 1]`. |
 
 The group in brackets is a compile-time list of existing circuit values,
 not a witness array that can be indexed. Each item may be an input,
@@ -107,6 +111,10 @@ canonical graph and row geometry, and both native verifiers accepted proofs.
 The rest of `std` provides `std::field::from_u16` and
 `std::field::select`, Poseidon2 and BLAKE2s reduced leaf/pair calls
 under `std::hash`, and fixed-depth path calls under `std::merkle`.
+`std::bytes::to_u256_le`, `from_u256_le`, and `limbs_m31` give explicit
+conversions for the nominal `Bytes32` and `UInt256` types. The
+[wide-value chapter](wide-values.md) shows exact limb equations and a complete
+source example. These calls do not compute Bitcoin SHA256d.
 Their field, bit, digest, and hash rules are in [source semantics](source.md)
 and [hash semantics](hashes.md).
 
@@ -181,8 +189,9 @@ python3 src/frontends/s31/s31.py verify zig-out/s31/mathlib4-text zig-out/s31/ma
 ~~~
 
 The remaining math gaps are dynamic indexing of one `[m31; N]`, checked
-inversion/division, computed bits, integer comparisons, general module
-loading, and dedicated math chips. `sum_lanes` and `dot_lanes` work on
+inversion/division, computed bits, wider integer operations beyond addition
+and unsigned comparison, general module loading, and dedicated math chips.
+`sum_lanes` and `dot_lanes` work on
 statically sized arrays; they do not expose an arbitrary lane as a source
 value.
 

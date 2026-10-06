@@ -59,7 +59,7 @@ pub fn compileRaw(comptime V: type, allocator: std.mem.Allocator, program: relat
         const lhs: ?Entry = if (node.lhs) |name| values.get(name) orelse return error.UnknownOperand else null;
         const rhs: ?Entry = if (node.rhs) |name| values.get(name) orelse return error.UnknownOperand else null;
         const selector: ?Entry = if (node.selector) |name| values.get(name) orelse return error.UnknownOperand else null;
-        const length: usize = if (node.op == .constant) node.length.? else if (node.op == .sum_lanes) 1 else if (node.op == .hash_blake2s or node.op == .hash_blake2s_leaf or node.op == .hash_blake2s_pair or node.op == .hash_poseidon2_leaf or node.op == .hash_poseidon2_pair) 8 else lhs.?.shape.length;
+        const length: usize = if (node.op == .constant) node.length.? else if (node.op == .sum_lanes or node.op == .u256_le) 1 else if (node.op == .hash_blake2s or node.op == .hash_blake2s_leaf or node.op == .hash_blake2s_pair or node.op == .hash_poseidon2_leaf or node.op == .hash_poseidon2_pair) 8 else lhs.?.shape.length;
         const entry: Entry = switch (node.op) {
             .constant => .{ .shape = .{ .kind = .m31, .length = length }, .lanes = try circuit.builder.simd.repeat(V, &ctx, M31.fromCanonical(node.constant.?), length) },
             .cast_m31 => .{ .shape = .{ .kind = .m31, .length = length }, .lanes = lhs.?.lanes, .raw = lhs.?.raw },
@@ -68,6 +68,9 @@ pub fn compileRaw(comptime V: type, allocator: std.mem.Allocator, program: relat
             .add_const => .{ .shape = .{ .kind = .m31, .length = length }, .lanes = try circuit.builder.simd.add(V, &ctx, lhs.?.lanes, try circuit.builder.simd.repeat(V, &ctx, M31.fromCanonical(node.constant.?), length)) },
             .mul_const => .{ .shape = .{ .kind = .m31, .length = length }, .lanes = try circuit.builder.simd.mul(V, &ctx, lhs.?.lanes, try circuit.builder.simd.repeat(V, &ctx, M31.fromCanonical(node.constant.?), length)) },
             .sum_lanes => .{ .shape = .{ .kind = .m31, .length = 1 }, .lanes = try sumLanes(V, &ctx, lhs.?.lanes) },
+            .u256_add => try u256Binary(V, &ctx, lhs.?, rhs.?, false, false),
+            .u256_le => try u256Binary(V, &ctx, lhs.?, rhs.?, true, false),
+            .u256_add_checked => try u256Binary(V, &ctx, lhs.?, rhs.?, false, true),
             .repeat => blk: {
                 const constants = try scratch.alloc(?Simd, node.body.?.len);
                 for (node.body.?, constants) |step, *slot| slot.* = if (step.constant) |value| try circuit.builder.simd.repeat(V, &ctx, M31.fromCanonical(value), length) else null;
@@ -259,6 +262,9 @@ fn compileWithSpansMode(comptime V: type, allocator: std.mem.Allocator, program:
             .add_const => .{ .shape = .{ .kind = .m31, .length = node.length }, .lanes = try circuit.builder.simd.add(V, &ctx, entries[node.lhs.?].lanes, try circuit.builder.simd.repeat(V, &ctx, M31.fromCanonical(node.constant.?), node.length)) },
             .mul_const => .{ .shape = .{ .kind = .m31, .length = node.length }, .lanes = try circuit.builder.simd.mul(V, &ctx, entries[node.lhs.?].lanes, try circuit.builder.simd.repeat(V, &ctx, M31.fromCanonical(node.constant.?), node.length)) },
             .sum_lanes => .{ .shape = .{ .kind = .m31, .length = 1 }, .lanes = try sumLanes(V, &ctx, entries[node.lhs.?].lanes) },
+            .u256_add => try u256Binary(V, &ctx, entries[node.lhs.?], entries[node.rhs.?], false, false),
+            .u256_le => try u256Binary(V, &ctx, entries[node.lhs.?], entries[node.rhs.?], true, false),
+            .u256_add_checked => try u256Binary(V, &ctx, entries[node.lhs.?], entries[node.rhs.?], false, true),
             .repeat => blk: {
                 if (chip_mode) {
                     const spec = program.repeatedStepChip().?;
@@ -399,6 +405,52 @@ fn outputWord(comptime V: type, ctx: *circuit.builder.Context(V), entry: Entry, 
     return if (direct_output or entry.shape.kind == .u16) base else (try circuit.builder.blake.m31ToU32(V, ctx, base)).get();
 }
 
+/// Little-endian 16-bit limbs. Every output digit is range checked and every
+/// carry/borrow is Boolean. Since each integer equation has magnitude below
+/// 2^18 < p, equality in M31 is also equality over the integers.
+fn u256Binary(comptime V: type, ctx: *circuit.builder.Context(V), lhs: Entry, rhs: Entry, compare: bool, checked: bool) !Entry {
+    const left = lhs.raw orelse return error.InvalidU256Operand;
+    const right = rhs.raw orelse return error.InvalidU256Operand;
+    if (left.len != 16 or right.len != 16) return error.InvalidU256Operand;
+    const base = try ctx.constant(QM31.fromBase(M31.fromCanonical(1 << 16)));
+    const digits = try ctx.scratch().alloc(Var, 16);
+    var incoming = ctx.zero();
+    var carry_value: u32 = 0;
+    for (left, right, digits) |a, b, *digit| {
+        const av: u32 = if (comptime V == QM31) ctx.get(a).toM31Array()[0].v else 0;
+        const bv: u32 = if (comptime V == QM31) ctx.get(b).toM31Array()[0].v else 0;
+        const value: u32 = if (compare)
+            (bv + (1 << 16) - av - carry_value) & 0xffff
+        else
+            (av + bv + carry_value) & 0xffff;
+        const next: u32 = if (compare)
+            @intFromBool(bv < av + carry_value)
+        else
+            (av + bv + carry_value) >> 16;
+        digit.* = try ctx.guessU16(circuit.builder.ivalue.fromQm31(V, QM31.fromBase(M31.fromCanonical(value))));
+        const outgoing = try ctx.guess(circuit.builder.ivalue.fromQm31(V, QM31.fromBase(M31.fromCanonical(next))));
+        try ctx.eq(try ctx.mul(outgoing, outgoing), outgoing);
+        const scaled = try ctx.mul(outgoing, base);
+        if (compare) {
+            try ctx.eq(try ctx.add(b, scaled), try ctx.add(try ctx.add(a, incoming), digit.*));
+        } else {
+            try ctx.eq(try ctx.add(try ctx.add(a, b), incoming), try ctx.add(digit.*, scaled));
+        }
+        incoming = outgoing;
+        carry_value = next;
+    }
+    if (compare) {
+        const result = try ctx.sub(ctx.one(), incoming);
+        const output_wires = try ctx.scratch().alloc(Var, 1);
+        output_wires[0] = result;
+        return .{ .shape = .{ .kind = .m31, .length = 1 }, .lanes = Simd.fromPacked(output_wires, 1), .raw = output_wires };
+    }
+    if (checked) try ctx.eq(incoming, ctx.zero());
+    const wrappers = try ctx.scratch().alloc(circuit.builder.wrappers.M31Wrapper(Var), 16);
+    for (wrappers, digits) |*wrapped, digit| wrapped.* = .newUnsafe(digit);
+    return .{ .shape = .{ .kind = .u16, .length = 16 }, .lanes = try circuit.builder.simd.pack(V, ctx, wrappers), .raw = digits };
+}
+
 /// Sum packed M31 coordinates with a QM31 linear functional. In the basis
 /// (1, i, u, iu), where i² = -1 and u² = 2 + i, the base coordinate of
 /// x * (1 - i + u/5 - 3iu/5) is a + b + c + d for
@@ -496,6 +548,54 @@ test "private preimage relation has a constrained witness and static topology" {
 
     const invalid_ctx = compile(QM31, std.testing.allocator, program.value, invalid.value);
     if (invalid_ctx) |got| {
+        var bad = got;
+        defer bad.deinit();
+        try std.testing.expect(!try bad.isCircuitValid());
+    } else |err| {
+        try std.testing.expectEqual(error.EqFailedOnEval, err);
+    }
+}
+
+test "wide integer carries and borrows are constrained with stable topology" {
+    var program = try relation.parseProgram(std.testing.allocator, @embedFile("examples/wide_order.s31.json"));
+    defer program.deinit();
+    var valid = try relation.parseAssignment(std.testing.allocator, @embedFile("examples/wide_order.valid.json"));
+    defer valid.deinit();
+
+    const words = try relation.evaluate(std.testing.allocator, program.value, valid.value);
+    try std.testing.expectEqualSlices(u32, &.{ 1516562408, 720678098, 331586352, 1266462312, 857462184, 360942592, 889867968, 271788129 }, &words);
+    var values = try compile(QM31, std.testing.allocator, program.value, valid.value);
+    defer values.deinit();
+    var topology = try compile(circuit.builder.NoValue, std.testing.allocator, program.value, null);
+    defer topology.deinit();
+    try std.testing.expectEqual(values.circuit.n_vars, topology.circuit.n_vars);
+    try std.testing.expect(std.meta.eql(values.gate_counts, topology.gate_counts));
+    try std.testing.expect(try values.isCircuitValid());
+
+    // A different target still has valid u16 digits, but it breaks the
+    // constrained 256-bit addition before a proof can be produced.
+    var private = &valid.value.private_inputs.?;
+    private.object.getPtr("target").?.array.items[1] = .{ .integer = 2 };
+    try std.testing.expectError(error.AssertionFailed, relation.evaluate(std.testing.allocator, program.value, valid.value));
+    const invalid_ctx = compile(QM31, std.testing.allocator, program.value, valid.value);
+    if (invalid_ctx) |got| {
+        var bad = got;
+        defer bad.deinit();
+        try std.testing.expect(!try bad.isCircuitValid());
+    } else |err| {
+        try std.testing.expectEqual(error.EqFailedOnEval, err);
+    }
+
+    program.value.nodes[0].op = .u256_add_checked;
+    var overflow = try relation.parseAssignment(std.testing.allocator, @embedFile("examples/wide_order.valid.json"));
+    defer overflow.deinit();
+    var overflow_private = &overflow.value.private_inputs.?;
+    for (overflow_private.object.getPtr("digest_bytes").?.array.items) |*limb| {
+        limb.* = .{ .integer = 65535 };
+    }
+    try std.testing.expectError(error.U256Overflow, relation.evaluate(std.testing.allocator, program.value, overflow.value));
+    const overflow_ctx = compile(QM31, std.testing.allocator, program.value, overflow.value);
+    if (overflow_ctx) |got| {
         var bad = got;
         defer bad.deinit();
         try std.testing.expect(!try bad.isCircuitValid());

@@ -21,7 +21,7 @@ pub const Step = struct {
     op: StepOp,
     constant: ?u32 = null,
 };
-pub const Op = enum { constant, cast_m31, add, mul, add_const, mul_const, repeat, hash_blake2s, hash_blake2s_leaf, hash_blake2s_pair, select, hash_poseidon2_leaf, hash_poseidon2_pair, sum_lanes };
+pub const Op = enum { constant, cast_m31, add, mul, add_const, mul_const, repeat, hash_blake2s, hash_blake2s_leaf, hash_blake2s_pair, select, hash_poseidon2_leaf, hash_poseidon2_pair, sum_lanes, u256_add, u256_le, u256_add_checked };
 pub const leaf_personalization = [8]u8{ 'S', '3', '1', 'L', 'E', 'A', 'F', '1' };
 pub const pair_personalization = [8]u8{ 'S', '3', '1', 'P', 'A', 'I', 'R', '1' };
 pub const Node = struct {
@@ -126,6 +126,16 @@ pub const Program = struct {
                     if (lhs == null or lhs.?.kind != .m31 or rhs != null or node.constant != null or node.length != null or node.rounds != null or node.body != null) return error.InvalidNode;
                     result = .{ .kind = .m31, .length = 1 };
                 },
+                .u256_add, .u256_le, .u256_add_checked => {
+                    if (lhs == null or rhs == null or lhs.?.kind != .u16 or rhs.?.kind != .u16 or
+                        lhs.?.length != 16 or rhs.?.length != 16 or node.constant != null or
+                        node.length != null or node.rounds != null or node.body != null)
+                        return error.InvalidNode;
+                    result = if (node.op == .u256_add or node.op == .u256_add_checked)
+                        .{ .kind = .u16, .length = 16 }
+                    else
+                        .{ .kind = .m31, .length = 1 };
+                },
                 .repeat => {
                     if (lhs == null or lhs.?.kind != .m31 or rhs != null or node.constant != null or node.length != null or node.rounds == null or node.rounds.? == 0 or node.rounds.? > 32768 or node.body == null or node.body.?.len == 0 or node.body.?.len > 16) return error.InvalidNode;
                     for (node.body.?) |step| switch (step.op) {
@@ -184,11 +194,11 @@ pub const Program = struct {
         for (self.nodes) |node| {
             const length: usize = switch (node.op) {
                 .constant => node.length orelse return error.InvalidNode,
-                .sum_lanes => 1,
+                .sum_lanes, .u256_le => 1,
                 .hash_blake2s, .hash_blake2s_leaf, .hash_blake2s_pair, .hash_poseidon2_leaf, .hash_poseidon2_pair => 8,
                 else => (shapes.get(node.lhs orelse return error.InvalidNode) orelse return error.UnknownOperand).length,
             };
-            const shape: Shape = .{ .kind = .m31, .length = length };
+            const shape: Shape = .{ .kind = if (node.op == .u256_add or node.op == .u256_add_checked) .u16 else .m31, .length = length };
             if (std.mem.eql(u8, node.name, name)) return shape;
             try shapes.put(allocator, node.name, shape);
         }
@@ -272,12 +282,35 @@ pub fn evaluate(allocator: std.mem.Allocator, program: Program, assignment: Assi
     }
     for (program.inputs) |input| try values.put(allocator, input.name, try inputValues(allocator, assignment, input));
     for (program.nodes) |node| {
-        const length: usize = if (node.op == .constant) node.length.? else if (node.op == .sum_lanes) 1 else if (node.op == .hash_blake2s or node.op == .hash_blake2s_leaf or node.op == .hash_blake2s_pair or node.op == .hash_poseidon2_leaf or node.op == .hash_poseidon2_pair) 8 else (values.get(node.lhs.?) orelse return error.UnknownOperand).len;
+        const length: usize = if (node.op == .constant) node.length.? else if (node.op == .sum_lanes or node.op == .u256_le) 1 else if (node.op == .hash_blake2s or node.op == .hash_blake2s_leaf or node.op == .hash_blake2s_pair or node.op == .hash_poseidon2_leaf or node.op == .hash_poseidon2_pair) 8 else (values.get(node.lhs.?) orelse return error.UnknownOperand).len;
         const out = try allocator.alloc(M31, length);
         errdefer allocator.free(out);
         const lhs = if (node.lhs) |name| values.get(name) orelse return error.UnknownOperand else null;
         const rhs = if (node.rhs) |name| values.get(name) orelse return error.UnknownOperand else null;
         const selector = if (node.selector) |name| values.get(name) orelse return error.UnknownOperand else null;
+        if (node.op == .u256_add or node.op == .u256_add_checked) {
+            var carry: u32 = 0;
+            for (out, lhs.?, rhs.?) |*slot, a, b| {
+                const total = a.v + b.v + carry;
+                slot.* = M31.fromCanonical(total & 0xffff);
+                carry = total >> 16;
+            }
+            if (node.op == .u256_add_checked and carry != 0) return error.U256Overflow;
+            try values.put(allocator, node.name, out);
+            continue;
+        }
+        if (node.op == .u256_le) {
+            var le = true;
+            for (0..16) |offset| {
+                const index = 15 - offset;
+                if (lhs.?[index].v == rhs.?[index].v) continue;
+                le = lhs.?[index].v < rhs.?[index].v;
+                break;
+            }
+            out[0] = M31.fromCanonical(@intFromBool(le));
+            try values.put(allocator, node.name, out);
+            continue;
+        }
         if (node.op == .hash_blake2s or node.op == .hash_blake2s_leaf or node.op == .hash_blake2s_pair) {
             const message = try allocator.alloc(u8, (lhs.?.len + if (node.op == .hash_blake2s_pair) rhs.?.len else @as(usize, 0)) * 4);
             defer allocator.free(message);
@@ -330,7 +363,7 @@ pub fn evaluate(allocator: std.mem.Allocator, program: Program, assignment: Assi
                 if (bit > 1) return error.InvalidSelector;
                 break :blk if (bit == 0) lhs.?[i] else rhs.?[i];
             },
-            .hash_blake2s, .hash_blake2s_leaf, .hash_blake2s_pair, .hash_poseidon2_leaf, .hash_poseidon2_pair => unreachable,
+            .hash_blake2s, .hash_blake2s_leaf, .hash_blake2s_pair, .hash_poseidon2_leaf, .hash_poseidon2_pair, .u256_add, .u256_le, .u256_add_checked => unreachable,
         };
         try values.put(allocator, node.name, out);
     }

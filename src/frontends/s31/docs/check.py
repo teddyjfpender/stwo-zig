@@ -15,7 +15,7 @@ sys.path.insert(0, str(S31))
 
 import poseidon2_oracle as poseidon  # noqa: E402
 from oracle import OracleError, evaluate_relation  # noqa: E402
-from s31_stdlib import P, reference_iterate  # noqa: E402
+from s31_stdlib import P, decode_u256_le, encode_u256_le, reference_iterate  # noqa: E402
 from text_frontend import compile_text  # noqa: E402
 
 
@@ -145,6 +145,25 @@ def check_examples() -> None:
     for t in range(5):
         a, b, c = 3 + t, 3 + t, 9 + 7 * t
         assert (c - a * b - (-t * (t - 1))) % P == 0
+
+    wide_doc = DOCS / "wide-values.md"
+    wide_relation, _ = compile_text(
+        text_block_containing(wide_doc, "circuit wide_order"), "wide-values.md"
+    )
+    assert wide_relation == json.loads((S31 / "examples/wide_order.s31.json").read_text())
+    wide_assignment = json.loads((S31 / "examples/wide_order.valid.json").read_text())
+    wide_values = wide_assignment["private_inputs"]
+    h = wide_values["digest_bytes"]
+    target = wide_values["target"]
+    assert h == [65535] + [0] * 14 + [32768]
+    assert target == [0, 1] + [0] * 13 + [32768]
+    assert int.from_bytes(encode_u256_le(h), "little") + 1 == int.from_bytes(encode_u256_le(target), "little")
+    assert decode_u256_le(encode_u256_le(h)) == h
+    assert evaluate_relation(wide_relation, wide_assignment) == wide_assignment["public_outputs"]
+    assert wide_assignment["public_outputs"]["root"] == [
+        1516562408, 720678098, 331586352, 1266462312,
+        857462184, 360942592, 889867968, 271788129,
+    ]
 
     # Check the packed-reduction witness values written in the teaching gate table.
     inverse_five = pow(5, -1, P)

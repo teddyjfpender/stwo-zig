@@ -2,7 +2,8 @@
 
 This module only constructs the existing normalized relation. The Zig validator,
 witness evaluator, AIR compiler, and generated native verifier remain authoritative.
-Types erased by that relation (bit and digest families) are checked here first.
+Types erased by that relation (bit, digest families, and 256-bit values) are
+checked here first. UInt256 and Bytes32 use sixteen little-endian u16 limbs.
 """
 
 from __future__ import annotations
@@ -31,15 +32,17 @@ class Type:
     def __post_init__(self) -> None:
         if self.length < 1 or self.length > 4096:
             raise TypeErrorS31("array length must be 1..4096")
-        if self.kind not in {"m31", "u16", "bit", "digest"}:
+        if self.kind not in {"m31", "u16", "bit", "digest", "uint256", "bytes32"}:
             raise TypeErrorS31(f"unsupported type {self.kind}")
         if self.kind == "bit" and self.length != 1:
             raise TypeErrorS31("bit is a single constrained field value")
         if self.kind == "digest" and (self.length != 8 or self.family not in {"poseidon2", "blake2s_reduced"}):
             raise TypeErrorS31("digest must name a supported eight-word hash family")
+        if self.kind in {"uint256", "bytes32"} and (self.length != 16 or self.family):
+            raise TypeErrorS31("256-bit values require sixteen little-endian u16 limbs")
 
     def relation_shape(self) -> tuple[str, int]:
-        return ("u16" if self.kind == "u16" else "m31", self.length)
+        return ("u16" if self.kind in {"u16", "uint256", "bytes32"} else "m31", self.length)
 
 
 @dataclass(frozen=True)
@@ -151,10 +154,24 @@ class Builder:
 
     def cast_m31(self, value: Value, *, wanted: str | None = None,
                  span: dict[str, int] | None = None) -> Value:
-        if value.typ.kind != "u16":
-            raise TypeErrorS31("m31_from_u16 requires a u16 array")
+        if value.typ.kind not in {"u16", "uint256", "bytes32"}:
+            raise TypeErrorS31("m31 limb conversion requires u16-backed values")
         return self.emit("cast_m31", Type("m31", value.typ.length), wanted=wanted,
                          span=span, lhs=self.realize(value).ref)
+
+    def u256_binary(self, op: str, lhs: Value, rhs: Value, *, wanted: str | None = None,
+                    span: dict[str, int] | None = None) -> Value:
+        if lhs.typ != Type("uint256", 16) or rhs.typ != lhs.typ:
+            raise TypeErrorS31(f"{op} requires two UInt256 values")
+        result = Type("uint256", 16) if op in {"u256_add", "u256_add_checked"} else Type("m31", 1)
+        return self.emit(op, result, wanted=wanted, span=span,
+                         lhs=self.realize(lhs).ref, rhs=self.realize(rhs).ref)
+
+    def bytes32_reinterpret(self, value: Value, target: str) -> Value:
+        expected = "bytes32" if target == "uint256" else "uint256"
+        if value.typ != Type(expected, 16):
+            raise TypeErrorS31(f"explicit little-endian conversion requires {expected}")
+        return Value(Type(target, 16), ref=self.realize(value).ref)
 
     def hash_leaf(self, family: str, value: Value, *, wanted: str | None = None,
                   span: dict[str, int] | None = None) -> Value:
@@ -242,6 +259,19 @@ def decode_m31_words_le(encoded: bytes) -> list[int]:
     if any(word >= P for word in words):
         raise ValueError("noncanonical M31 word encoding")
     return words
+
+
+def decode_u256_le(encoded: bytes) -> list[int]:
+    """Convert exactly 32 bytes to the source language's sixteen u16 limbs."""
+    if len(encoded) != 32:
+        raise ValueError("UInt256/Bytes32 requires exactly 32 bytes")
+    return list(struct.unpack("<16H", encoded))
+
+
+def encode_u256_le(limbs: list[int]) -> bytes:
+    if len(limbs) != 16 or any(type(word) is not int or not 0 <= word < 65536 for word in limbs):
+        raise ValueError("UInt256/Bytes32 requires sixteen canonical u16 limbs")
+    return struct.pack("<16H", *limbs)
 
 
 def reference_m31_binary(op: str, lhs: list[int], rhs: list[int]) -> list[int]:
