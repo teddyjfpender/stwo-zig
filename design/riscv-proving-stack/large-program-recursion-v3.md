@@ -64,6 +64,8 @@ child proof publications, the sparse-memory sidecar and final-only completion
 flag, and independently
 verified before a parent can be published. Host preflight alone cannot grant
 that authority.
+Its 2,244 input bindings require a 4,096-row (log-12) statement input trace;
+the legacy parent roster fixes this row at log 11 and cannot be reused for V3.
 
 `integrations/riscv_cpu/recursive_segment_v3_outer_stage.zig` can now prove
 and freshly verify the actual 39-component local V2 outer transaction for a
