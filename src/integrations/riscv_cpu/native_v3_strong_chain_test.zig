@@ -1,6 +1,7 @@
 //! Heavy gate: independently pinned strong native child enters a strong local outer proof.
 //! This does not construct or publish the 49-row V3 wrapper.
 const std = @import("std");
+const builtin = @import("builtin");
 const frontend = @import("stwo_riscv_frontend");
 const CpuBackend = @import("stwo_cpu_backend").CpuBackend;
 const fixture = @import("recursive_segment_v3_native_test_fixture.zig");
@@ -94,8 +95,17 @@ test "real q193 native child feeds freshly verified q193 local outer" {
 
     var cohort = try outer_cohort.Cohort.init(allocator, &prepared);
     defer cohort.deinit();
+    const prepare_ns = timer.lap();
     try diagnoseDirect47(allocator, &prepared, &verified.native.global_metadata, &verified.native.link, &cohort);
+    const direct47_ns = timer.lap();
     try diagnoseDirect50(allocator, &prepared, &verified.native.global_metadata, &verified.native.link, &cohort);
+    const direct50_ns = timer.lap();
+    if (std.process.hasEnvVarConstant("STWO_V5_TUPLE_DIAG_ONLY")) {
+        std.debug.print("DIRECT50_TIMING native_ingress_ns={d} recursive_prepare_ns={d} direct47_ns={d} direct50_ns={d} peak_rss_bytes={d} strong_outer_skipped=true\n", .{
+            native_ns, prepare_ns, direct47_ns, direct50_ns, peakRssBytes(),
+        });
+        return;
+    }
 
     const strong_outer = recursion.segment_outer_transaction_v3.ForBackend(CpuBackend);
     const StrongKernel = strong_outer.EngineKernel(outer_cohort.Cohort);
@@ -196,6 +206,7 @@ fn diagnoseDirect50(
     link: *const recursion.segment_leaf_local_verified_link_v3.VerifiedLinkV3,
     cohort: *outer_cohort.Cohort,
 ) !void {
+    var phase_timer = try std.time.Timer.start();
     const link_program = recursion.ethereum_leaf_link_program_v3;
     const local_program = recursion.ethereum_leaf_child_field_program_v1;
     const local_witness = recursion.ethereum_leaf_child_field_witness_v1;
@@ -260,7 +271,21 @@ fn diagnoseDirect50(
     const local = try local_rows.Rows.init(allocator, &child_program, &child_witness, inputs);
     var statement = try statement_air.Schedule.init(allocator, &child_program, cohort.noncore.boundary_workspace.statement_rows);
     defer statement.deinit();
-    var rows50 = try v5_rows.Rows.init(allocator, &plan, &rows47, &statement, &local);
+    var template = try recursion.transcript_program_v2_template_words_v6.Template.initFromShape(
+        allocator,
+        &prepared.vm_plan,
+        prepared.pcs_config,
+        @intCast(prepared.capture.public_data.data.words().len),
+        descriptors,
+        infra,
+        true,
+    );
+    defer template.deinit();
+    try template.checkCanonicalWords(native.program.words);
+    std.debug.print("DIRECT50_TEMPLATE words={d} dynamic={d} shape_parity=true\n", .{
+        template.words.len, recursion.transcript_program_v2_template_words_v6.DYNAMIC_COUNT,
+    });
+    var rows50 = try v5_rows.Rows.initWithTemplate(allocator, &plan, &rows47, &statement, &local, &template);
     defer rows50.deinit();
     const pp = try allocateDirectTree(allocator, &plan, 0);
     defer freeDirectTree(allocator, pp);
@@ -268,11 +293,15 @@ fn diagnoseDirect50(
     defer freeDirectTree(allocator, main);
     const interaction = try allocateDirectTree(allocator, &plan, 2);
     defer freeDirectTree(allocator, interaction);
+    const setup_ns = phase_timer.lap();
     try candidate.fillPreprocessed(allocator, cohort, &plan, &writer, &rows50, pp);
+    const preprocessed_ns = phase_timer.lap();
     try candidate.fillMain(allocator, cohort, &plan, &writer, &rows50, main);
+    const main_ns = phase_timer.lap();
     const relations = recursion.air.universal_challenges.UniversalRelations.dummy();
     const shared = try recursion.air.universal_shared_provider.SharedProviderRelations.init(&relations);
     const claims = try candidate.fillInteraction(allocator, cohort, &plan, &writer, &rows50, &relations, &shared, main, interaction);
+    const interaction_ns = phase_timer.lap();
     const boundary = try cohort.publicWireBoundary(&relations);
     const expected = las2_mod.ExpectedPublic{
         .link = link.identity,
@@ -281,6 +310,26 @@ fn diagnoseDirect50(
     };
     const las2 = try las2_mod.BoundaryV4.derive(expected, &relations);
     const residuals = try claims.residuals(&plan, &boundary, &las2, expected, &relations);
+    if (std.process.hasEnvVarConstant("STWO_V5_TUPLE_DIAG_ONLY")) {
+        var row5_fanout = try recursion.segment_leaf_wrapper_row5_fanout_v6.Schedule.init(
+            allocator,
+            &program,
+            cohort.noncore.transcript_workspace.transcript_payload_rows,
+        );
+        defer row5_fanout.deinit();
+        var statement_v6 = try recursion.segment_leaf_statement_source_direct_v6.Schedule.init(
+            allocator,
+            &program,
+            &child_program,
+            cohort.noncore.boundary_workspace.statement_rows,
+        );
+        defer statement_v6.deinit();
+        std.debug.print("DIRECT50_V6_SCHEDULE row5_fanout={d} statement_link={d} statement_local={d} overlaps={d}\n", .{
+            row5_fanout.selected_count, statement_v6.link_uses, statement_v6.local_uses, statement_v6.overlaps,
+        });
+        try diagnoseDirect50Tuples(allocator, cohort, &rows50, &child_witness, &las2, &row5_fanout, &statement_v6);
+    }
+    const tuple_ns = phase_timer.lap();
     var nonzero_domains: usize = 0;
     for (residuals.domain_totals, 0..) |sum, domain| {
         if (sum.isZero()) continue;
@@ -295,7 +344,161 @@ fn diagnoseDirect50(
         }
     }
     std.debug.print("DIRECT50_CANDIDATE claims=50 nonzero_domains={d} framework_zero={} proof_created=false\n", .{ nonzero_domains, residuals.framework_total.isZero() });
+    std.debug.print("DIRECT50_PHASE setup_ns={d} preprocessed_ns={d} main_ns={d} interaction_ns={d} tuple_audit_ns={d} peak_rss_bytes={d}\n", .{
+        setup_ns, preprocessed_ns, main_ns, interaction_ns, tuple_ns, peakRssBytes(),
+    });
     if (nonzero_domains == 0) _ = try claims.verifyAllDomains(&plan, &boundary, &las2, expected, &relations);
+}
+
+fn diagnoseDirect50Tuples(
+    allocator: std.mem.Allocator,
+    cohort: *outer_cohort.Cohort,
+    rows: *const recursion.segment_leaf_wrapper_cohort_rows_v5.Rows,
+    child_witness: *const recursion.ethereum_leaf_child_field_witness_v1.WitnessV1,
+    las2: *const recursion.segment_leaf_wrapper_las2_boundary_v4.BoundaryV4,
+    row5_fanout: *const recursion.segment_leaf_wrapper_row5_fanout_v6.Schedule,
+    statement_v6: *const recursion.segment_leaf_statement_source_direct_v6.Schedule,
+) !void {
+    const ri = recursion.air.relation_interaction;
+    const relation = frontend.air.relation;
+    const mask = (@as(u64, 1) << @intFromEnum(relation.Domain.recursion_verifier_input_word)) |
+        (@as(u64, 1) << @intFromEnum(relation.Domain.recursion_statement_word)) |
+        (@as(u64, 1) << @intFromEnum(relation.Domain.recursion_vm_public_claim_word));
+    var ledger = ri.TupleLedger.init(allocator);
+    defer ledger.deinit();
+    try cohort.noncore.appendTupleContributions(&ledger, mask);
+    try cohort.core.appendTupleContributions(allocator, &ledger, mask);
+    var keep: usize = 0;
+    for (ledger.contributions.items) |entry| {
+        if (entry.component == 4 or entry.component == 5 or entry.component == 34 or entry.component == 35 or entry.component == 36) continue;
+        ledger.contributions.items[keep] = entry;
+        keep += 1;
+    }
+    ledger.contributions.items = ledger.contributions.items[0..keep];
+
+    try cohort.noncore.transcript_owner.owners.transcript_payload.relation.appendPreparedTupleContributions(
+        &ledger,
+        5,
+        row5_fanout.rows,
+        mask,
+    );
+    try appendDirectAirTuples(recursion.segment_leaf_statement_source_direct_v6, allocator, &ledger, 36, statement_v6.rows, mask);
+    try appendDirectAirTuples(recursion.ethereum_leaf_link_source_direct_v6, allocator, &ledger, 39, rows.base.source, mask);
+    try appendDirectAirTuples(recursion.air.ethereum_leaf_link_projection_v1, allocator, &ledger, 40, rows.base.projection, mask);
+    try appendDirectAirTuples(recursion.air.ethereum_leaf_link_arithmetic_v1, allocator, &ledger, 41, rows.base.arithmetic, mask);
+    try appendDirectAirTuples(recursion.transcript_program_v2_field_bridge_v5, allocator, &ledger, 42, rows.program, mask);
+    try appendDirectHashTuples(allocator, &ledger, 43, &rows.base.native.program_hash, mask);
+    try appendDirectAirTuples(recursion.air.segment_v2_tree0_field_link_direct_v4, allocator, &ledger, 44, &rows.base.native.tree0_link.rows, mask);
+    try appendDirectHashTuples(allocator, &ledger, 45, rows.base.metadata_hash, mask);
+    try appendDirectHashTuples(allocator, &ledger, 46, rows.base.link_hash, mask);
+
+    const router_air = recursion.air.ethereum_leaf_child_field_router_v1;
+    const router = try allocator.alloc(router_air.Row, @as(usize, 1) << @intCast(rows.local.layout.placements[0].log_size));
+    defer allocator.free(router);
+    @memset(router, [_]M31{M31.zero()} ** router_air.LOGICAL_INPUT_COUNT);
+    const active = child_witness.router_rows.len - recursion.segment_leaf_wrapper_local_identity_v5.REMOVED_TREE0_FORWARD_ROWS;
+    @memcpy(router[0..active], child_witness.router_rows[0..active]);
+    try appendDirectAirTuples(router_air, allocator, &ledger, 47, router, mask);
+    const hash_air = recursion.air.vm_public_claim_hash;
+    const authority_rows = try allocator.alloc(recursion.air.vm_public_claim_hash_relation.Row, @as(usize, 1) << @intCast(rows.local.layout.placements[1].log_size));
+    defer allocator.free(authority_rows);
+    @memset(authority_rows, [_]M31{M31.zero()} ** hash_air.LOGICAL_INPUT_COUNT);
+    for (authority_rows[0..child_witness.authority_hash.main_rows.len], 0..) |*row, index|
+        row.* = try child_witness.authorityHashLogicalRow(rows.local.program, index);
+    try appendDirectHashAirTuples(allocator, &ledger, 48, authority_rows, mask);
+    const receipt_rows = try allocator.alloc(recursion.air.vm_public_claim_hash_relation.Row, @as(usize, 1) << @intCast(rows.local.layout.placements[2].log_size));
+    defer allocator.free(receipt_rows);
+    @memset(receipt_rows, [_]M31{M31.zero()} ** hash_air.LOGICAL_INPUT_COUNT);
+    for (receipt_rows[0..child_witness.receipt_hash.main_rows.len], 0..) |*row, index|
+        row.* = try child_witness.receiptHashLogicalRow(rows.local.program, index);
+    try appendDirectHashAirTuples(allocator, &ledger, 49, receipt_rows, mask);
+
+    const public_authority = recursion.ethereum_leaf_direct_public_authority_v3;
+    const expected_authority = try public_authority.AuthorityV1.fromSlice(&las2.expected_words);
+    for (0..recursion.segment_leaf_wrapper_las2_boundary_v4.TERM_COUNT) |index| {
+        const tuple = try expected_authority.statementTuple(index);
+        const secure = [_]@import("stwo_core").fields.qm31.QM31{
+            .fromBase(tuple[0]), .fromBase(tuple[1]), .fromBase(tuple[2]),
+        };
+        try ledger.append(.recursion_statement_word, 50, 0, .consume, @import("stwo_core").fields.qm31.QM31.one().neg(), &secure);
+    }
+    const report = ledger.classify();
+    std.debug.print("DIRECT50_TUPLES total={d} unmatched={d} domain25={d} domain29={d} domain30={d}\n", .{
+        report.contribution_count,
+        report.unmatched_tuple_count,
+        report.unmatched_by_domain[25],
+        report.unmatched_by_domain[29],
+        report.unmatched_by_domain[30],
+    });
+    var unmatched_by_row: [3][51]usize = @splat(@splat(0));
+    var cursor: usize = 0;
+    while (cursor < ledger.contributions.items.len) {
+        const first = ledger.contributions.items[cursor];
+        var end = cursor + 1;
+        var residual = first.signed_weight;
+        var components: u64 = @as(u64, 1) << @intCast(first.component);
+        while (end < ledger.contributions.items.len and
+            ledger.contributions.items[end].domain == first.domain and
+            std.mem.eql(u8, &ledger.contributions.items[end].tuple_hash, &first.tuple_hash)) : (end += 1)
+        {
+            residual = residual.add(ledger.contributions.items[end].signed_weight);
+            components |= @as(u64, 1) << @intCast(ledger.contributions.items[end].component);
+        }
+        const domain_index: ?usize = switch (first.domain) {
+            .recursion_verifier_input_word => 0,
+            .recursion_statement_word => 1,
+            .recursion_vm_public_claim_word => 2,
+            else => null,
+        };
+        if (domain_index) |domain| {
+            if (!residual.isZero()) {
+                for (0..51) |component| {
+                    if (components & (@as(u64, 1) << @intCast(component)) != 0)
+                        unmatched_by_row[domain][component] += 1;
+                }
+            }
+        }
+        cursor = end;
+    }
+    for (unmatched_by_row, [_]u8{ 25, 29, 30 }) |histogram, domain| {
+        std.debug.print("DIRECT50_UNMATCHED_ROWS domain={d}", .{domain});
+        for (histogram, 0..) |count, row| if (count != 0)
+            std.debug.print(" row{d}={d}", .{ row, count });
+        std.debug.print("\n", .{});
+    }
+    ledger.printUnmatched(3);
+}
+
+fn appendDirectAirTuples(comptime Air: type, allocator: std.mem.Allocator, ledger: *recursion.air.relation_interaction.TupleLedger, component: u8, rows: []const Air.Row, mask: u64) !void {
+    var definition = try Air.build(allocator);
+    defer definition.deinit();
+    const plan = try Air.authenticate(&definition);
+    try plan.appendPreparedTupleContributions(ledger, component, rows, mask);
+}
+
+fn appendDirectHashAirTuples(allocator: std.mem.Allocator, ledger: *recursion.air.relation_interaction.TupleLedger, component: u8, rows: []const recursion.air.vm_public_claim_hash_relation.Row, mask: u64) !void {
+    const Air = recursion.air.vm_public_claim_hash;
+    var definition = try Air.build(allocator);
+    defer definition.deinit();
+    const plan = try recursion.air.vm_public_claim_hash_relation.authenticate(&definition);
+    try plan.appendPreparedTupleContributions(ledger, component, rows, mask);
+}
+
+fn appendDirectHashTuples(allocator: std.mem.Allocator, ledger: *recursion.air.relation_interaction.TupleLedger, component: u8, witness: *const recursion.segment_leaf_wrapper_field_hash_witness_v3.HashV1, mask: u64) !void {
+    const Air = recursion.air.vm_public_claim_hash;
+    const rows = try allocator.alloc(recursion.air.vm_public_claim_hash_relation.Row, @as(usize, 1) << @intCast(witness.log_size));
+    defer allocator.free(rows);
+    @memset(rows, [_]M31{M31.zero()} ** Air.LOGICAL_INPUT_COUNT);
+    for (rows[0..witness.main.len], 0..) |*row, index| row.* = try witness.logicalRow(index);
+    try appendDirectHashAirTuples(allocator, ledger, component, rows, mask);
+}
+
+fn peakRssBytes() u64 {
+    if (builtin.os.tag != .linux and builtin.os.tag != .macos) return 0;
+    const rss = std.posix.getrusage(std.posix.rusage.SELF).maxrss;
+    if (rss <= 0) return 0;
+    const value: u64 = @intCast(rss);
+    return if (builtin.os.tag == .linux) value * 1024 else value;
 }
 
 fn allocateDirectTree(allocator: std.mem.Allocator, plan: anytype, tree: u8) ![][]M31 {

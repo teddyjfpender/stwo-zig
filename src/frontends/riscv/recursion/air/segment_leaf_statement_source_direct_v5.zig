@@ -126,6 +126,13 @@ pub fn logicalRow(value: M31, active: M31, extra_use: M31, scope: M31, index: M3
 }
 
 fn buildRaw(allocator: std.mem.Allocator) !Definition {
+    return buildRawForExtraLimit(allocator, 1);
+}
+
+/// V6 reuses the exact main/preprocessed layout while allowing two
+/// independently key-owned additional Statement consumers.
+pub fn buildRawForExtraLimit(allocator: std.mem.Allocator, comptime max_extra: u32) !Definition {
+    if (max_extra != 1 and max_extra != 2) @compileError("unsupported Statement fan-out limit");
     var arena = ir.Arena.init(allocator);
     errdefer arena.deinit();
     const span = source.SourceSpan.generated();
@@ -137,7 +144,18 @@ fn buildRaw(allocator: std.mem.Allocator) !Definition {
     const inactive = try arena.sub(one, pp[0], span);
     const roots = [DIRECT_CONSTRAINT_COUNT]types.ValueId{
         try arena.mul(pp[0], try arena.sub(pp[0], one, span), span),
-        try arena.mul(pp[1], try arena.sub(pp[1], one, span), span),
+        if (max_extra == 1)
+            try arena.mul(pp[1], try arena.sub(pp[1], one, span), span)
+        else
+            try arena.mul(
+                pp[1],
+                try arena.mul(
+                    try arena.sub(pp[1], one, span),
+                    try arena.sub(pp[1], try arena.constantField(2, span), span),
+                    span,
+                ),
+                span,
+            ),
         try arena.mul(inactive, pp[1], span),
         try arena.mul(inactive, pp[2], span),
         try arena.mul(inactive, pp[3], span),
