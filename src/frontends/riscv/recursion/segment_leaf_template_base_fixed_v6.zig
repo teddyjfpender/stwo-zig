@@ -325,6 +325,12 @@ test "V6 base fixed rows reconstruct without a leaf" {
     const shape = shape_mod.Shape{ .program_words = instructions.canonical_program_word_count, .base_poseidon_calls = 1193 };
     var writer = try Writer.init(allocator, &catalog, shape, &child_fixture.components, &child_fixture.infra, &plans.vm, &core_profile, &core_query_mapping, 128, false);
     defer writer.deinit();
+    const changed_relay = try public_logup.preflight(&plans.vm, &.{ .value = M31.fromCanonical(9182) });
+    for (writer.public_logup_rows.rows, changed_relay.rows) |first, second| {
+        const first_values = first.values();
+        const second_values = second.values();
+        try std.testing.expectEqualDeep(first_values[public_logup_air.PHYSICAL_MAIN_COLUMN_COUNT..], second_values[public_logup_air.PHYSICAL_MAIN_COLUMN_COUNT..]);
+    }
     for (QUALIFIED_ROWS) |row| {
         const geometry = writer.manifest.placements[row].geometry;
         const capacity = @as(usize, 1) << @intCast(geometry.log_size);
