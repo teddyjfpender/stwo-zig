@@ -14,6 +14,7 @@ const runner = frontend.runner;
 const channel = frontend.recursion.poseidon2_channel;
 const protocol = frontend.recursion.protocol;
 const segment_v2 = frontend.recursion.segment_statement_v2;
+const io_binding = frontend.recursion.segment_public_io_binding_v1;
 const global_v3 = frontend.recursion.segment_leaf_local_authority_v3;
 const projection_v3 = frontend.recursion.segment_leaf_local_projection_v3;
 const verified_link_v3 = frontend.recursion.segment_leaf_local_verified_link_v3;
@@ -77,22 +78,32 @@ fn nativeSegmentsMode(comptime ProofEngine: type, comptime suite_name: []const u
     );
     defer program.deinit(allocator);
 
-    const public_input = digest("native-v2-input");
-    const public_output = digest("native-v2-output");
+    const expected_io = io_binding.Expected{
+        .input_start = left_result.input_start,
+        .input = left_result.input.?,
+        .output_len_addr = right_result.output_len_addr,
+        .output_data_addr = right_result.output_data_addr,
+        .output = right_result.output orelse &.{},
+    };
+    try io_binding.validateRunner(left_result, expected_io);
+    try io_binding.validateRunner(right_result, expected_io);
+    const public_input = try io_binding.inputDigest(expected_io);
+    const public_output = try io_binding.outputDigest(expected_io);
+    const zero_io: span.Digest = .{0} ** 8;
     const initial_state = try machineState(
         left_result.entry_cpu,
         segment_v2.snapshotIdentity(left_result.rw_memory.words, .initial_word).id,
-        digest("native-v2-io-entry"),
+        zero_io,
     );
     const shared_state = try machineState(
         left_result.exit_cpu,
         segment_v2.snapshotIdentity(left_result.rw_memory.words, .final_word).id,
-        digest("native-v2-io-shared"),
+        zero_io,
     );
     const final_state = try machineState(
         right_result.exit_cpu,
         segment_v2.snapshotIdentity(right_result.rw_memory.words, .final_word).id,
-        digest("native-v2-io-exit"),
+        zero_io,
     );
     const total_cycles = try std.math.add(
         u64,
@@ -261,6 +272,15 @@ fn nativeSegmentsMode(comptime ProofEngine: type, comptime suite_name: []const u
     const left_verify_ns = left_verify_timer.read();
     defer left_capture.deinit(allocator);
     try left_capture.validate();
+    const left_io_coverage = try io_binding.validateVerifiedCapture(ProofEngine, &left_capture, expected_io);
+    try std.testing.expect(left_io_coverage.input and !left_io_coverage.output);
+    try std.testing.expectError(error.IncompleteIoCoverage, io_binding.requireComplete(&.{left_io_coverage}));
+    var changed_expected_io = expected_io;
+    changed_expected_io.input = &.{1};
+    try std.testing.expectError(
+        error.InputDigestMismatch,
+        io_binding.validateVerifiedCapture(ProofEngine, &left_capture, changed_expected_io),
+    );
     try std.testing.expectEqual(left_public.wireId(), left_capture.receipt.wire_id);
     try std.testing.expectEqual(
         left_output.statement.authority_id,
@@ -812,14 +832,28 @@ fn nativeSegmentsMode(comptime ProofEngine: type, comptime suite_name: []const u
     try std.testing.expect(right_metadata.completion != null);
     right_proof_moved = true;
     var right_verify_timer = try std.time.Timer.start();
-    try prover.verifyRiscVSegmentV2WithEngine(
+    var right_capture: prover.VerifiedSegmentV2CaptureForEngine(ProofEngine) = undefined;
+    var right_channel = ProofEngine.Channel{};
+    try prover.verifyRiscVSegmentV2WithEngineUsingChannelAndCapture(
         ProofEngine,
         allocator,
         test_config,
         right_output.statement,
         right_output.proof,
         right_output.interaction_claim,
+        &right_channel,
+        &right_capture,
     );
+    defer right_capture.deinit(allocator);
+    const right_io_coverage = try io_binding.validateVerifiedCapture(ProofEngine, &right_capture, expected_io);
+    try std.testing.expect(!right_io_coverage.input and right_io_coverage.output);
+    var changed_final_io = expected_io;
+    changed_final_io.output = &.{1};
+    try std.testing.expectError(
+        error.OutputDigestMismatch,
+        io_binding.validateVerifiedCapture(ProofEngine, &right_capture, changed_final_io),
+    );
+    try io_binding.requireComplete(&.{ left_io_coverage, right_io_coverage });
     const right_verify_ns = right_verify_timer.read();
 
     std.debug.print(

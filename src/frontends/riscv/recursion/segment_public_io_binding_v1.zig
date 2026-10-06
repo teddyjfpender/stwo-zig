@@ -44,6 +44,7 @@ pub const Expected = struct {
 };
 
 pub const Error = public_data_v2.Error || error{
+    IncompleteIoCoverage,
     InputDigestMismatch,
     InputMemoryMismatch,
     IoRangeOutOfBounds,
@@ -53,6 +54,23 @@ pub const Error = public_data_v2.Error || error{
     OutputMemoryMismatch,
     RunnerIoMismatch,
 };
+
+/// One verified leaf covers only the edge memory it actually owns. A caller
+/// accepting a complete job must combine captures and require both flags.
+pub const Coverage = struct {
+    input: bool,
+    output: bool,
+};
+
+pub fn requireComplete(coverages: []const Coverage) Error!void {
+    var input = false;
+    var output = false;
+    for (coverages) |coverage| {
+        input = input or coverage.input;
+        output = output or coverage.output;
+    }
+    if (!input or !output) return error.IncompleteIoCoverage;
+}
 
 pub fn inputDigest(expected: Expected) Error!Digest {
     try expected.validate();
@@ -81,9 +99,9 @@ pub fn validateVerifiedCapture(
     comptime Engine: type,
     capture: *const @import("../prover/verifier.zig").VerifiedSegmentV2CaptureForEngine(Engine),
     expected: Expected,
-) !void {
+) !Coverage {
     try capture.validate();
-    try validateAuthenticatedWire(&capture.public_data.data, expected);
+    return validateAuthenticatedWire(&capture.public_data.data, expected);
 }
 
 /// Checks a canonical wire's claims and sparse memory against external I/O.
@@ -92,7 +110,7 @@ pub fn validateVerifiedCapture(
 pub fn validateAuthenticatedWire(
     data: *const public_data_v2.PublicDataV2,
     expected: Expected,
-) Error!void {
+) Error!Coverage {
     try expected.validate();
     const view = try data.authenticatedView();
     const base = try view.statement.base();
@@ -115,14 +133,16 @@ pub fn validateAuthenticatedWire(
     if (!std.meta.eql(base.job.complete.public_output, try outputDigest(expected)))
         return error.OutputDigestMismatch;
 
-    if (executed.first_segment == 0) {
+    const is_first = executed.first_segment == 0;
+    const is_final = executed.endSegment() == base.job.segment_count;
+    if (is_first) {
         for (expected.input, 0..) |byte, index| {
             const address = expected.input_start + @as(u32, @intCast(index));
             if (sparseByte(&view, view.entry_snapshot, address) != byte)
                 return error.InputMemoryMismatch;
         }
     }
-    if (executed.endSegment() == base.job.segment_count) {
+    if (is_final) {
         if (sparseWord(&view, view.exit_snapshot, expected.output_len_addr) != @as(u32, @intCast(expected.output.len)))
             return error.OutputLengthMismatch;
         for (expected.output, 0..) |byte, index| {
@@ -131,6 +151,7 @@ pub fn validateAuthenticatedWire(
                 return error.OutputMemoryMismatch;
         }
     }
+    return .{ .input = is_first, .output = is_final };
 }
 
 /// Native construction guard: the external I/O must match the runner result.

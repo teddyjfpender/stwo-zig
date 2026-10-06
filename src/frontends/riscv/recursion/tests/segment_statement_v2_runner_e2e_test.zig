@@ -246,7 +246,9 @@ test "segment statement V2 experimental public-I/O binding rejects changed claim
     const words = try encode(allocator, &source);
     defer allocator.free(words);
     const public = try public_data_v2.PublicDataV2.authenticate(words);
-    try io_binding.validateAuthenticatedWire(&public, expected);
+    const coverage = try io_binding.validateAuthenticatedWire(&public, expected);
+    try std.testing.expect(coverage.input and coverage.output);
+    try io_binding.requireComplete(&.{coverage});
 
     var changed_input = input;
     changed_input[0] ^= 0xff;
