@@ -8,6 +8,7 @@
 const std = @import("std");
 const core = @import("stwo_core");
 const air = @import("air/segment_v2_tree0_field_link_v3.zig");
+const direct_air = @import("air/segment_v2_tree0_field_link_direct_v4.zig");
 const transcript = @import("transcript_program_v2.zig");
 const channel = @import("poseidon2_channel.zig");
 const universal = @import("air/universal_challenges.zig");
@@ -69,6 +70,28 @@ pub const WitnessV3 = struct {
         errdefer actual.deinit(allocator);
         try verifyExactNativeTranscriptLookup(allocator, &self.rows);
         return actual;
+    }
+
+    /// Direct-wrapper row 44 also consumes the PPR1 native-root tuple emitted
+    /// by row 39. That final tuple closes only with the complete 47-row cohort.
+    pub fn generateDirectInteraction(
+        self: *const WitnessV3,
+        allocator: std.mem.Allocator,
+        relations: *const universal.UniversalRelations,
+    ) !direct_air.Runtime.Interaction {
+        var definition = try direct_air.build(allocator);
+        defer definition.deinit();
+        const plan = try direct_air.authenticate(&definition);
+        try verifyExactNativeTranscriptLookup(allocator, &self.rows);
+        return plan.generateInteraction(
+            allocator,
+            &definition.arena,
+            direct_air.SEMANTIC_DIGEST,
+            definition.events,
+            &self.rows,
+            LOG_SIZE,
+            relations,
+        );
     }
 };
 
@@ -177,6 +200,8 @@ test "Tree0 exact lookup rejects a changed transcript limb" {
     };
     var lookup = try witness.generateInteraction(std.testing.allocator, &relations);
     defer lookup.deinit(std.testing.allocator);
+    var direct_lookup = try witness.generateDirectInteraction(std.testing.allocator, &relations);
+    defer direct_lookup.deinit(std.testing.allocator);
     rows[3][1] = rows[3][1].add(M31.one());
     try std.testing.expectError(
         error.Tree0NativeTranscriptLookupMismatch,

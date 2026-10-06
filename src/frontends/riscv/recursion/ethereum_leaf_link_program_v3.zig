@@ -18,7 +18,7 @@ const source_air = @import("air/ethereum_leaf_link_source_v1.zig");
 pub const FORMAT_VERSION: u16 = 3;
 pub const SCHEMA_VERSION: u16 = 3;
 pub const ID_DOMAIN = "stwo-zig/riscv-ethereum-leaf-link-program/v3-direct\x00";
-pub const SCHEDULE_ID_HEX = "6563b6195a6e7e2e6825ca227b7585f70523f9bf79ffd3ac040447e567a15dbe";
+pub const SCHEDULE_ID_HEX = "e666652f65825e2f849dc3e4442cf86d11ff34ab90653ecfbae847bbca0cc705";
 pub const SCHEDULE_ID: [32]u8 = blk: {
     var value: [32]u8 = undefined;
     _ = std.fmt.hexToBytes(&value, SCHEDULE_ID_HEX) catch @compileError("invalid direct V3 row schedule ID");
@@ -124,7 +124,7 @@ fn fill(source: []SourceScheduleRowV1, projection: []ProjectionScheduleRowV1, ba
     const verifier_start = raw_count + claim_words + digest_words;
     for (0..DIGEST_WORD_COUNT) |limb| {
         source[verifier_start + limb] = verifierSource(source_air.PROGRAM_AUTHORITY_KIND, limb, 2);
-        source[verifier_start + DIGEST_WORD_COUNT + limb] = verifierSource(source_air.PREPROCESSED_ROOT_KIND, limb, 1);
+        source[verifier_start + DIGEST_WORD_COUNT + limb] = verifierSource(source_air.PREPROCESSED_ROOT_KIND, limb, 2);
     }
     @memcpy(projection, base.projection_rows[0..projection.len]);
     for (projection[public_start..]) |*row| row.statement_scope = direct_authority.SCOPE;
@@ -183,7 +183,7 @@ test "direct schedule contains no provider digest or post-challenge source" {
         try std.testing.expectEqual(source_air.PROGRAM_AUTHORITY_KIND, program_row.kind);
         try std.testing.expectEqual(@as(u32, 2), program_row.use_count);
         try std.testing.expectEqual(source_air.PREPROCESSED_ROOT_KIND, root_row.kind);
-        try std.testing.expectEqual(@as(u32, 1), root_row.use_count);
+        try std.testing.expectEqual(@as(u32, 2), root_row.use_count);
     }
     for (program.projection_rows) |row| {
         try std.testing.expect(row.verifier_kind != provider_kind);

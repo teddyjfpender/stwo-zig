@@ -1153,6 +1153,50 @@ test "native V2 proves a rebased leaf-local V3 segment without widening the AIR"
     try std.testing.expectEqualDeep(fields.provider.authority.digest, field_manifest.provider_input.digest);
     try std.testing.expectError(error.V3WrapperProofUnavailable, field_manifest.requireCompleteWrapperProof());
 
+    // Direct V3 source/projection rows use only the native capture. Their
+    // LAS2 authority is 24 words; no separate outer proof enters this path.
+    var direct_program = try recursion.ethereum_leaf_link_program_v3.ProgramV3.init(allocator);
+    defer direct_program.deinit();
+    var direct_rows = try recursion.segment_leaf_wrapper_source_projection_direct_v3.initFromNative(
+        allocator,
+        &direct_program,
+        &prepared,
+        &admitted.global_metadata,
+        &admitted.link,
+        &fields.native,
+    );
+    defer direct_rows.deinit();
+    try std.testing.expectEqual(@as(usize, 802), direct_rows.source_values.len);
+    try std.testing.expectEqual(@as(usize, 1085), direct_rows.projection_values.len);
+    _ = try direct_rows.sourceRow(&direct_program, 801);
+    _ = try direct_rows.projectionRow(&direct_program, 1084);
+    fields.native.tree0_root[0] ^= 1;
+    try std.testing.expectError(
+        error.Tree0FieldRootMismatch,
+        recursion.segment_leaf_wrapper_source_projection_direct_v3.initFromNative(
+            allocator,
+            &direct_program,
+            &prepared,
+            &admitted.global_metadata,
+            &admitted.link,
+            &fields.native,
+        ),
+    );
+    fields.native.tree0_root[0] ^= 1;
+    fields.native.program.digest[0] ^= 1;
+    try std.testing.expectError(
+        error.ProgramFieldIdentityMismatch,
+        recursion.segment_leaf_wrapper_source_projection_direct_v3.initFromNative(
+            allocator,
+            &direct_program,
+            &prepared,
+            &admitted.global_metadata,
+            &admitted.link,
+            &fields.native,
+        ),
+    );
+    fields.native.program.digest[0] ^= 1;
+
     // Materialize the one enlarged row-34 call slice from source-owned calls
     // and all four new hash preimages. The 49-row proof still needs to commit
     // this slice and close the remaining typed lookup interactions.

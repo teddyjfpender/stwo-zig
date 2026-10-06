@@ -26,13 +26,13 @@ pub const PRODUCTION_PROOF_ACTIVATION = false;
 
 /// These are reconstructed from the independently verified native and strong
 /// outer children; final recursive authority still requires 49-row AIR.
-const ChildFieldDigestsV3 = struct {
+pub const ChildFieldDigestsV3 = struct {
     program: Digest,
     preprocessed_root: Digest,
     provider_digest: Digest,
 };
 
-const Sources = struct {
+pub const Sources = struct {
     metadata: metadata_mod.IdentityWords,
     link: link_mod.IdentityWords,
     metadata_digest: Digest,
@@ -119,13 +119,13 @@ pub const WitnessV3 = struct {
         self.* = undefined;
     }
 
-    pub fn sourceRow(self: *const WitnessV3, program: *const program_mod.ProgramV2, index: usize) !source_air.Row {
+    pub fn sourceRow(self: *const WitnessV3, program: anytype, index: usize) !source_air.Row {
         if (index >= self.source_values.len or index >= program.source_rows.len)
             return error.InvalidV3LeafSource;
         return program.source_rows[index].logical(self.source_values[index]);
     }
 
-    pub fn projectionRow(self: *const WitnessV3, program: *const program_mod.ProgramV2, index: usize) !@import("air/ethereum_leaf_link_projection_v1.zig").Row {
+    pub fn projectionRow(self: *const WitnessV3, program: anytype, index: usize) !@import("air/ethereum_leaf_link_projection_v1.zig").Row {
         if (index >= self.projection_values.len or index >= program.projection_rows.len)
             return error.InvalidV3LeafProjection;
         return program.projection_rows[index].logical(self.projection_values[index]);
@@ -133,6 +133,13 @@ pub const WitnessV3 = struct {
 };
 
 fn build(allocator: std.mem.Allocator, program: *const program_mod.ProgramV2, sources: *const Sources) !WitnessV3 {
+    return buildWithSources(allocator, program, sources, true);
+}
+
+/// Shared physical row writer for the legacy strong diagnostic and the direct
+/// native wrapper. The caller must separately audit its verifier-input tuple
+/// multiplicities and provenance; this is never proof admission.
+pub fn buildWithSources(allocator: std.mem.Allocator, program: anytype, sources: *const Sources, comptime require_provider_digest: bool) !WitnessV3 {
     try program.validate();
     const source_values = try allocator.alloc(M31, program.source_rows.len);
     errdefer allocator.free(source_values);
@@ -143,7 +150,7 @@ fn build(allocator: std.mem.Allocator, program: *const program_mod.ProgramV2, so
     for (program.projection_rows, projection_values) |row, *destination|
         destination.* = try projectionValue(row, sources);
     try checkRawMultiplicity(program);
-    try checkProviderDigestMultiplicity(program);
+    if (require_provider_digest) try checkProviderDigestMultiplicity(program);
     return .{ .allocator = allocator, .source_values = source_values, .projection_values = projection_values };
 }
 
@@ -227,7 +234,7 @@ fn canonicalDigest(value: Digest) !Digest {
 /// Source raw use counts must equal one hash-preimage use, every row-40
 /// primary/secondary raw read, and the ten row-41 arithmetic reads. This is
 /// exact for the two local raw scopes; other relation domains close later.
-fn checkRawMultiplicity(program: *const program_mod.ProgramV2) !void {
+fn checkRawMultiplicity(program: anytype) !void {
     var metadata = [_]u32{1} ** metadata_mod.METADATA_IDENTITY_WORDS;
     var link = [_]u32{1} ** link_mod.IDENTITY_WORDS;
     for (program.projection_rows) |row| {
