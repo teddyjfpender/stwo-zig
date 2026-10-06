@@ -1,0 +1,5 @@
+[toolchain]
+# Matches the pinned Stark-V guest toolchain so all crypto guests share one
+# provenance line. riscv32im-unknown-none-elf must be installed for it.
+channel = "nightly-2026-01-29"
+targets = ["riscv32im-unknown-none-elf"]
