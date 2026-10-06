@@ -1,0 +1,16 @@
+{
+  "version": 1,
+  "name": "lane_stats4",
+  "inputs": [
+    {"name": "x", "kind": "m31", "length": 4, "visibility": "private"},
+    {"name": "weights", "kind": "m31", "length": 4, "visibility": "private"}
+  ],
+  "nodes": [
+    {"name": "total", "op": "sum_lanes", "lhs": "x"},
+    {"name": "weighted_product", "op": "mul", "lhs": "x", "rhs": "weights"},
+    {"name": "weighted", "op": "sum_lanes", "lhs": "weighted_product"},
+    {"name": "result", "op": "add", "lhs": "total", "rhs": "weighted"}
+  ],
+  "assertions": [],
+  "public_outputs": ["result"]
+}

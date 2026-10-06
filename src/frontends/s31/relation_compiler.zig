@@ -59,7 +59,7 @@ pub fn compileRaw(comptime V: type, allocator: std.mem.Allocator, program: relat
         const lhs: ?Entry = if (node.lhs) |name| values.get(name) orelse return error.UnknownOperand else null;
         const rhs: ?Entry = if (node.rhs) |name| values.get(name) orelse return error.UnknownOperand else null;
         const selector: ?Entry = if (node.selector) |name| values.get(name) orelse return error.UnknownOperand else null;
-        const length: usize = if (node.op == .constant) node.length.? else if (node.op == .hash_blake2s or node.op == .hash_blake2s_leaf or node.op == .hash_blake2s_pair or node.op == .hash_poseidon2_leaf or node.op == .hash_poseidon2_pair) 8 else lhs.?.shape.length;
+        const length: usize = if (node.op == .constant) node.length.? else if (node.op == .sum_lanes) 1 else if (node.op == .hash_blake2s or node.op == .hash_blake2s_leaf or node.op == .hash_blake2s_pair or node.op == .hash_poseidon2_leaf or node.op == .hash_poseidon2_pair) 8 else lhs.?.shape.length;
         const entry: Entry = switch (node.op) {
             .constant => .{ .shape = .{ .kind = .m31, .length = length }, .lanes = try circuit.builder.simd.repeat(V, &ctx, M31.fromCanonical(node.constant.?), length) },
             .cast_m31 => .{ .shape = .{ .kind = .m31, .length = length }, .lanes = lhs.?.lanes, .raw = lhs.?.raw },
@@ -67,6 +67,7 @@ pub fn compileRaw(comptime V: type, allocator: std.mem.Allocator, program: relat
             .mul => .{ .shape = .{ .kind = .m31, .length = length }, .lanes = try circuit.builder.simd.mul(V, &ctx, lhs.?.lanes, rhs.?.lanes) },
             .add_const => .{ .shape = .{ .kind = .m31, .length = length }, .lanes = try circuit.builder.simd.add(V, &ctx, lhs.?.lanes, try circuit.builder.simd.repeat(V, &ctx, M31.fromCanonical(node.constant.?), length)) },
             .mul_const => .{ .shape = .{ .kind = .m31, .length = length }, .lanes = try circuit.builder.simd.mul(V, &ctx, lhs.?.lanes, try circuit.builder.simd.repeat(V, &ctx, M31.fromCanonical(node.constant.?), length)) },
+            .sum_lanes => .{ .shape = .{ .kind = .m31, .length = 1 }, .lanes = try sumLanes(V, &ctx, lhs.?.lanes) },
             .repeat => blk: {
                 const constants = try scratch.alloc(?Simd, node.body.?.len);
                 for (node.body.?, constants) |step, *slot| slot.* = if (step.constant) |value| try circuit.builder.simd.repeat(V, &ctx, M31.fromCanonical(value), length) else null;
@@ -240,6 +241,7 @@ fn compileWithSpansMode(comptime V: type, allocator: std.mem.Allocator, program:
             .mul => .{ .shape = .{ .kind = .m31, .length = node.length }, .lanes = try circuit.builder.simd.mul(V, &ctx, entries[node.lhs.?].lanes, entries[node.rhs.?].lanes) },
             .add_const => .{ .shape = .{ .kind = .m31, .length = node.length }, .lanes = try circuit.builder.simd.add(V, &ctx, entries[node.lhs.?].lanes, try circuit.builder.simd.repeat(V, &ctx, M31.fromCanonical(node.constant.?), node.length)) },
             .mul_const => .{ .shape = .{ .kind = .m31, .length = node.length }, .lanes = try circuit.builder.simd.mul(V, &ctx, entries[node.lhs.?].lanes, try circuit.builder.simd.repeat(V, &ctx, M31.fromCanonical(node.constant.?), node.length)) },
+            .sum_lanes => .{ .shape = .{ .kind = .m31, .length = 1 }, .lanes = try sumLanes(V, &ctx, entries[node.lhs.?].lanes) },
             .repeat => blk: {
                 if (chip_mode) {
                     const spec = program.repeatedStepChip().?;
@@ -380,6 +382,28 @@ fn outputWord(comptime V: type, ctx: *circuit.builder.Context(V), entry: Entry, 
     return if (direct_output or entry.shape.kind == .u16) base else (try circuit.builder.blake.m31ToU32(V, ctx, base)).get();
 }
 
+/// Unpack each base-field lane and add in a balanced tree. Every unpack and
+/// addition is a circuit gate; the result is a one-lane base-field Simd.
+fn sumLanes(comptime V: type, ctx: *circuit.builder.Context(V), input: Simd) !Simd {
+    if (input.len == 1) return input;
+    const lanes = try circuit.builder.simd.unpack(V, ctx, input);
+    var width = lanes.len;
+    while (width > 1) {
+        var next: usize = 0;
+        var index: usize = 0;
+        while (index + 1 < width) : (index += 2) {
+            lanes[next] = try ctx.add(lanes[index], lanes[index + 1]);
+            next += 1;
+        }
+        if (index < width) {
+            lanes[next] = lanes[index];
+            next += 1;
+        }
+        width = next;
+    }
+    return Simd.fromPacked(lanes[0..1], 1);
+}
+
 fn hashBlake2s(comptime V: type, ctx: *circuit.builder.Context(V), input: Simd, length: usize) !Simd {
     const digest = try circuit.builder.blake.blake2sM31(V, ctx, input.data, length * 4);
     const words = try ctx.scratch().alloc(Var, 2);
@@ -443,6 +467,48 @@ test "private preimage relation has a constrained witness and static topology" {
         try std.testing.expect(!try bad.isCircuitValid());
     } else |err| {
         try std.testing.expectEqual(error.EqFailedOnEval, err);
+    }
+}
+
+test "sum_lanes constrains partial and multiple packed wires" {
+    const allocator = std.testing.allocator;
+    for ([_]u32{ 1, 3, 4, 5, 8 }) |length| {
+        var inputs = [_]relation.Input{.{ .name = "x", .kind = .m31, .length = length, .visibility = .private }};
+        var nodes = [_]relation.Node{.{ .name = "total", .op = .sum_lanes, .lhs = "x" }};
+        var outputs = [_][]const u8{"total"};
+        const program: relation.Program = .{
+            .version = 1,
+            .name = "reduce",
+            .inputs = &inputs,
+            .nodes = &nodes,
+            .assertions = &.{},
+            .public_outputs = &outputs,
+        };
+        const selected: [2][]const u8 = switch (length) {
+            1 => .{ "[2147483646]", "2147483646" },
+            3 => .{ "[2147483646,2,3]", "4" },
+            4 => .{ "[2147483646,2,3,4]", "8" },
+            5 => .{ "[2147483646,2,3,4,5]", "13" },
+            8 => .{ "[2147483646,2,3,4,5,6,7,8]", "34" },
+            else => unreachable,
+        };
+        const input_json = selected[0];
+        const expected = selected[1];
+        const source = try std.fmt.allocPrint(allocator, "{{\"public_inputs\":{{}},\"private_inputs\":{{\"x\":{s}}},\"public_outputs\":{{\"total\":[{s}]}}}}", .{ input_json, expected });
+        defer allocator.free(source);
+        var assignment = try relation.parseAssignment(allocator, source);
+        defer assignment.deinit();
+        try std.testing.expectEqual(@as(u32, @intCast(try std.fmt.parseInt(u32, expected, 10))), (try relation.evaluate(allocator, program, assignment.value))[0]);
+        var values = try compile(QM31, allocator, program, assignment.value);
+        defer values.deinit();
+        var topology = try compile(circuit.builder.NoValue, allocator, program, null);
+        defer topology.deinit();
+        try std.testing.expect(try values.isCircuitValid());
+        try std.testing.expectEqual(values.circuit.n_vars, topology.circuit.n_vars);
+        try std.testing.expect(std.meta.eql(values.gate_counts, topology.gate_counts));
+        var direct = try compileDirect(QM31, allocator, program, assignment.value, false);
+        defer direct.deinit();
+        try std.testing.expect(try direct.isCircuitValid());
     }
 }
 

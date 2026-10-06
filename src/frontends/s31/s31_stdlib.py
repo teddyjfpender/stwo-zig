@@ -138,6 +138,17 @@ class Builder:
         return self.emit(op, lhs.typ, wanted=wanted, span=span,
                          lhs=self.realize(lhs).ref, rhs=self.realize(rhs).ref)
 
+    def sum_lanes(self, value: Value, *, wanted: str | None = None,
+                  span: dict[str, int] | None = None) -> Value:
+        if value.typ.kind != "m31":
+            raise TypeErrorS31("sum_lanes requires a [m31; N] value")
+        if value.constant is not None:
+            return self.splat(value.constant * value.typ.length % P, 1)
+        if value.typ.length == 1:
+            return value
+        return self.emit("sum_lanes", Type("m31", 1), wanted=wanted,
+                         span=span, lhs=self.realize(value).ref)
+
     def cast_m31(self, value: Value, *, wanted: str | None = None,
                  span: dict[str, int] | None = None) -> Value:
         if value.typ.kind != "u16":

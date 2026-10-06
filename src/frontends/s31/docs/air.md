@@ -6,6 +6,15 @@ circuit AIR. For one recognized recurrence, it can add a specialized AIR
 component called the repeated-step chip. Both kinds of component enter **one
 Stwo proof**.
 
+For a first pass, think of the chip trace as a worksheet: every row writes
+the state **before** and **after** one round. Its local equation checks the
+calculation inside that row. A lookup argument checks that each row's
+“after” tuple is the next row's “before” tuple. Endpoint checks bind the
+first and last tuples to the public input and output. Together these prove
+one connected computation, not merely a collection of valid but unrelated
+rounds. [The beginner walkthrough](walkthrough.md) first shows the analogous
+issue for two circuit gates.
+
 ## The program the chip recognizes
 
 ```s31
@@ -49,7 +58,9 @@ The chip has **nine base columns** and one row per round:
 | `out0..out3` | `s[i+1,0..3]`. |
 
 Take a smaller eligible instance with `R=16` and public input
-`x=[1,2,3,4]`. The first two rows are:
+`x=[1,2,3,4]`. This is a hand example of the same chip shape; the checked-in
+`arith4_m31.s31` program above uses `R=256`. The first two logical rows of
+the 16-round example are:
 
 ```text
 logical row    index     in[0..3]          out[0..3]
@@ -176,10 +187,12 @@ preprocessed columns.
 ## What is inspectable today
 
 `s31 lower` prints normalized relation JSON. `s31 explain PACKAGE` prints
-source positions, canonical IDs, gate-row spans, selected profile, chip round
-count, raw/padded rows, and fixed-cell cost. `s31 inspect PACKAGE` prints the
-backend cost report and bound hashes. The six chip expressions above come
-from the current row evaluator used by both prover and verifier.
+source positions, canonical IDs, builder gate spans, selected profile, chip
+round count, raw/padded rows, and fixed-cell cost. `s31 equations PACKAGE`
+prints source-level field equations, source positions, and canonical IDs.
+`s31 inspect PACKAGE` prints the backend cost report and bound hashes. The
+six chip expressions above come from the current row evaluator used by both
+prover and verifier.
 
 The CLI does **not** yet render the pinned generic circuit AIR's full
 instantiated polynomial program as text. The circuit equations in this guide

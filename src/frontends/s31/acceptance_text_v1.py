@@ -15,6 +15,7 @@ CASES = (
     ("merkle_path1_poseidon", "merkle_path1_poseidon", "direct-gate"),
     ("math_polynomial4", "math_polynomial4", "direct-gate"),
     ("mathlib4", "mathlib4", "direct-gate"),
+    ("lane_stats4", "lane_stats4", "direct-gate"),
 )
 EQUAL_FIELDS = (
     "canonical_ir_sha256", "profile", "chip", "raw", "padded",
@@ -81,15 +82,24 @@ def main() -> None:
             text_package = s31.build(text_source, work / f"{name}-text", lowering)
             json_package = s31.build(json_source, work / f"{name}-json", lowering)
             lock = json.loads((text_package / "stdlib-lock.json").read_text())
-            if lock["package"] != "std" or lock["version"] != 1 or lock["explicit_import"] != (name == "mathlib4"):
+            if lock["package"] != "std" or lock["version"] != 1 or lock["explicit_import"] != (name in {"mathlib4", "lane_stats4"}):
                 raise AssertionError(f"{name}: unexpected standard library lock")
             s31.verify_package(text_package)
+            equation_report = s31.equations(text_package)
+            relation = json.loads((text_package / "source.s31.json").read_text())
+            if ([node["name"] for node in equation_report["nodes"]] !=
+                    [node["name"] for node in relation["nodes"]]):
+                raise AssertionError(f"{name}: equation report omitted or reordered a relation node")
+            if name == "mathlib4":
+                last = equation_report["nodes"][-1]
+                if last["field_equations"] != ["result[j] - weighted[j] - 11 = 0"]:
+                    raise AssertionError("mathlib4: equation inspector misstated the output gate")
             text_report = json.loads((text_package / "cost-report.json").read_text())
             json_report = json.loads((json_package / "cost-report.json").read_text())
-            # The mathlib fixture deliberately gives handwritten relation nodes
-            # descriptive names, so its name-bearing source map differs.
+            # The handwritten math fixtures give relation nodes descriptive
+            # names, so their name-bearing source maps differ.
             compared = (field for field in EQUAL_FIELDS
-                        if name != "mathlib4" or field != "source_map")
+                        if name not in {"mathlib4", "lane_stats4"} or field != "source_map")
             mismatches = [field for field in compared if text_report[field] != json_report[field]]
             if mismatches:
                 raise AssertionError(f"{name}: text and JSON cost structures differ: {mismatches}")

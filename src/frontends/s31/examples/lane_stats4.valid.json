@@ -1,0 +1,8 @@
+{
+  "public_inputs": {},
+  "private_inputs": {
+    "x": [2, 3, 5, 7],
+    "weights": [11, 13, 17, 19]
+  },
+  "public_outputs": {"result": [296]}
+}

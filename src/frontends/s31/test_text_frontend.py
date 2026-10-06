@@ -83,6 +83,28 @@ class TextFrontendTests(unittest.TestCase):
         with self.assertRaisesRegex(SourceError, "1..64 terms"):
             compile_text(f"circuit bad(private x: [m31; 1]) -> public [m31; 1] {{ std::math::sum([{too_many}]) }}")
 
+    def test_lane_reductions_lower_to_constrained_relation_ops(self) -> None:
+        relation, _ = compile_file(EXAMPLES / "lane_stats4.s31")
+        self.assertEqual([node["op"] for node in relation["nodes"]],
+                         ["sum_lanes", "mul", "sum_lanes", "add"])
+        self.assertEqual(relation["nodes"][0]["lhs"], "x")
+        self.assertEqual(relation["nodes"][2]["lhs"], relation["nodes"][1]["name"])
+        assignment = json.loads((EXAMPLES / "lane_stats4.valid.json").read_text())
+        x = assignment["private_inputs"]["x"]
+        weights = assignment["private_inputs"]["weights"]
+        self.assertEqual(assignment["public_outputs"]["result"],
+                         [(sum(x) + sum(a * b for a, b in zip(x, weights))) % P])
+
+    def test_lane_reductions_validate_types_and_fold_static_cases(self) -> None:
+        source = "circuit fold(private x: [m31; 1]) -> public [m31; 1] { std::math::sum_lanes(x) }"
+        self.assertEqual(compile_text(source)[0]["nodes"], [])
+        constant, _ = compile_text("circuit fold() -> public [m31; 1] { std::math::sum_lanes(splat<4>(7_m31)) }")
+        self.assertEqual(constant["nodes"][0]["constant"], 28)
+        with self.assertRaisesRegex(SourceError, r"requires \[m31; N\]"):
+            compile_text("circuit bad(private x: [u16; 1]) -> public [m31; 1] { std::math::sum_lanes(x) }")
+        with self.assertRaisesRegex(SourceError, "equally shaped"):
+            compile_text("circuit bad(private x: [m31; 1]) -> public [m31; 1] { std::math::dot_lanes(x, splat<2>(1_m31)) }")
+
     def test_static_sum_uses_balanced_dependencies(self) -> None:
         relation, _ = compile_text("""
 circuit balanced(private a: [m31; 1], private b: [m31; 1],

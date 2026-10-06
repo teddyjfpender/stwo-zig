@@ -444,6 +444,14 @@ class Compiler:
                                                   wanted=wanted, span=self.span(expr))
                     return mathlib.poly_eval(self.builder, self.expect_value(args[0], expr), args[1],
                                              wanted=wanted, span=self.span(expr))
+                if name in {"std::math::sum_lanes", "std::math::dot_lanes"}:
+                    arity = 1 if name == "std::math::sum_lanes" else 2
+                    if len(expr.args) != arity:
+                        raise TypeErrorS31(f"{name} expects {arity} arguments")
+                    values = tuple(self.expect_value(self.eval_expr(arg, env), arg)
+                                   for arg in expr.args)
+                    operation = (mathlib.sum_lanes if arity == 1 else mathlib.dot_lanes)
+                    return operation(self.builder, *values, wanted=wanted, span=self.span(expr))
                 values = tuple(self.expect_value(self.eval_expr(arg, env), arg) for arg in expr.args)
                 arity = 2 if name == "std::math::sub" else 1
                 if len(values) != arity:

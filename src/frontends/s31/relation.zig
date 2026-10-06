@@ -21,7 +21,7 @@ pub const Step = struct {
     op: StepOp,
     constant: ?u32 = null,
 };
-pub const Op = enum { constant, cast_m31, add, mul, add_const, mul_const, repeat, hash_blake2s, hash_blake2s_leaf, hash_blake2s_pair, select, hash_poseidon2_leaf, hash_poseidon2_pair };
+pub const Op = enum { constant, cast_m31, add, mul, add_const, mul_const, repeat, hash_blake2s, hash_blake2s_leaf, hash_blake2s_pair, select, hash_poseidon2_leaf, hash_poseidon2_pair, sum_lanes };
 pub const leaf_personalization = [8]u8{ 'S', '3', '1', 'L', 'E', 'A', 'F', '1' };
 pub const pair_personalization = [8]u8{ 'S', '3', '1', 'P', 'A', 'I', 'R', '1' };
 pub const Node = struct {
@@ -122,6 +122,10 @@ pub const Program = struct {
                     if (lhs == null or lhs.?.kind != .m31 or rhs != null or node.constant == null or node.constant.? >= P or node.length != null or node.rounds != null or node.body != null) return error.InvalidNode;
                     result = lhs.?;
                 },
+                .sum_lanes => {
+                    if (lhs == null or lhs.?.kind != .m31 or rhs != null or node.constant != null or node.length != null or node.rounds != null or node.body != null) return error.InvalidNode;
+                    result = .{ .kind = .m31, .length = 1 };
+                },
                 .repeat => {
                     if (lhs == null or lhs.?.kind != .m31 or rhs != null or node.constant != null or node.length != null or node.rounds == null or node.rounds.? == 0 or node.rounds.? > 32768 or node.body == null or node.body.?.len == 0 or node.body.?.len > 16) return error.InvalidNode;
                     for (node.body.?) |step| switch (step.op) {
@@ -174,6 +178,7 @@ pub const Program = struct {
         for (self.nodes) |node| {
             if (std.mem.eql(u8, node.name, name)) {
                 if (node.op == .constant) return .{ .kind = .m31, .length = node.length.? };
+                if (node.op == .sum_lanes) return .{ .kind = .m31, .length = 1 };
                 if (node.op == .hash_blake2s or node.op == .hash_blake2s_leaf or node.op == .hash_blake2s_pair or node.op == .hash_poseidon2_leaf or node.op == .hash_poseidon2_pair) return .{ .kind = .m31, .length = 8 };
                 const previous = self.shapeOf(node.lhs.?) orelse return null;
                 return .{ .kind = .m31, .length = previous.length };
@@ -259,7 +264,7 @@ pub fn evaluate(allocator: std.mem.Allocator, program: Program, assignment: Assi
     }
     for (program.inputs) |input| try values.put(allocator, input.name, try inputValues(allocator, assignment, input));
     for (program.nodes) |node| {
-        const length: usize = if (node.op == .constant) node.length.? else if (node.op == .hash_blake2s or node.op == .hash_blake2s_leaf or node.op == .hash_blake2s_pair or node.op == .hash_poseidon2_leaf or node.op == .hash_poseidon2_pair) 8 else (values.get(node.lhs.?) orelse return error.UnknownOperand).len;
+        const length: usize = if (node.op == .constant) node.length.? else if (node.op == .sum_lanes) 1 else if (node.op == .hash_blake2s or node.op == .hash_blake2s_leaf or node.op == .hash_blake2s_pair or node.op == .hash_poseidon2_leaf or node.op == .hash_poseidon2_pair) 8 else (values.get(node.lhs.?) orelse return error.UnknownOperand).len;
         const out = try allocator.alloc(M31, length);
         errdefer allocator.free(out);
         const lhs = if (node.lhs) |name| values.get(name) orelse return error.UnknownOperand else null;
@@ -296,6 +301,11 @@ pub fn evaluate(allocator: std.mem.Allocator, program: Program, assignment: Assi
             .mul => lhs.?[i].mul(rhs.?[i]),
             .add_const => lhs.?[i].add(c),
             .mul_const => lhs.?[i].mul(c),
+            .sum_lanes => blk: {
+                var sum = M31.zero();
+                for (lhs.?) |word| sum = sum.add(word);
+                break :blk sum;
+            },
             .repeat => blk: {
                 var v = lhs.?[i];
                 for (0..node.rounds.?) |_| for (node.body.?) |step| {

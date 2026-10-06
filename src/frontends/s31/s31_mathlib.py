@@ -13,6 +13,7 @@ from s31_stdlib import Builder, P, StaticGroup, TypeErrorS31, Value
 BUILTINS = {
     "std::math::neg", "std::math::sub", "std::math::square", "std::math::pow",
     "std::math::sum", "std::math::dot", "std::math::poly_eval",
+    "std::math::sum_lanes", "std::math::dot_lanes",
 }
 MAX_STATIC_TERMS = 64
 
@@ -113,6 +114,26 @@ def dot_static(builder: Builder, lhs: StaticGroup, rhs: StaticGroup,
         for a, b in zip(left, right))
     return sum_static(builder, StaticGroup(products),
                       wanted=wanted if len(left) > 1 else None, span=span)
+
+
+def sum_lanes(builder: Builder, value: Value, *, wanted: str | None = None,
+              span: dict[str, int] | None = None) -> Value:
+    """Sum all lanes of one fixed M31 array to a single M31 word."""
+    _m31(value)
+    return builder.sum_lanes(value, wanted=wanted, span=span)
+
+
+def dot_lanes(builder: Builder, lhs: Value, rhs: Value,
+              *, wanted: str | None = None,
+              span: dict[str, int] | None = None) -> Value:
+    """One pointwise product followed by the constrained lane reduction."""
+    _m31(lhs)
+    if lhs.typ != rhs.typ:
+        raise TypeErrorS31("std::math::dot_lanes requires equally shaped [m31; N] values")
+    products = builder.binary("mul", lhs, rhs,
+                              wanted=wanted if lhs.typ.length == 1 else None, span=span)
+    return builder.sum_lanes(products,
+                             wanted=wanted if lhs.typ.length > 1 else None, span=span)
 
 
 def poly_eval(builder: Builder, x: Value, coefficients: StaticGroup,

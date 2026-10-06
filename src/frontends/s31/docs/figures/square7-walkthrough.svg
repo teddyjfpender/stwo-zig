@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1120 390" role="img" aria-labelledby="title desc">
+  <title id="title">Square plus seven: circuit wires and a schematic AIR table</title>
+  <desc id="desc">The public input x equals 3 in lane 2. A multiply gate reads the x wire twice and produces square equals 9. An add gate reads the same square wire and constant 7 to produce public result 16. A lower row shows these as illustrative multiply and add AIR rows, connected by wire address 11. Actual S31 rows pack all four lanes and include additional gates.</desc>
+  <style>
+    .bg{fill:#f8fafc}.card{fill:#fff;stroke:#bdcddd;stroke-width:2}.public{fill:#e0f2fe;stroke:#52a4d8;stroke-width:2}.gate{fill:#e9e8ff;stroke:#8a82da;stroke-width:2}.trace{fill:#e8f5eb;stroke:#70af7d;stroke-width:2}.ink{fill:#172b3d}.muted{fill:#4c6073}.link{fill:none;stroke:#52718c;stroke-width:2.5}.dash{stroke-dasharray:6 5}
+    text{font-family:system-ui,-apple-system,sans-serif}.label{font-size:18px;font-weight:730}.small{font-size:14px}.mono{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:16px}.heading{font-size:20px;font-weight:760}
+    @media(prefers-color-scheme:dark){.bg{fill:#111b26}.card{fill:#1b2a39;stroke:#496078}.public{fill:#153d53;stroke:#5daedf}.gate{fill:#2f2d59;stroke:#958ee8}.trace{fill:#203d2b;stroke:#81be8b}.ink{fill:#edf3fa}.muted{fill:#b3c1cf}.link{stroke:#9bb2c5}}
+  </style>
+  <defs><marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto"><path d="M1 1 L8 5 L1 9" fill="none" stroke="#52718c" stroke-width="1.5"/></marker></defs>
+  <rect class="bg" x="1" y="1" width="1118" height="388" rx="16"/>
+  <text class="ink heading" x="28" y="39">Circuit values for lane 2: x = 3, square = 9, result = 16</text>
+  <rect class="public" x="26" y="80" width="154" height="80" rx="10"/>
+  <text class="ink label" x="42" y="111">public x</text><text class="ink mono" x="42" y="140">addr 10 · 3</text>
+  <path class="link" d="M180 120 H246" marker-end="url(#arrow)"/>
+  <text class="muted small" x="195" y="88">used twice</text>
+  <rect class="gate" x="252" y="80" width="180" height="80" rx="10"/>
+  <text class="ink label" x="267" y="111">multiply</text><text class="ink mono" x="267" y="140">3 × 3 = 9</text>
+  <path class="link" d="M432 120 H498" marker-end="url(#arrow)"/>
+  <rect class="card" x="504" y="80" width="169" height="80" rx="10"/>
+  <text class="ink label" x="519" y="111">square wire</text><text class="ink mono" x="519" y="140">addr 11 · 9</text>
+  <path class="link" d="M673 120 H734" marker-end="url(#arrow)"/>
+  <rect class="gate" x="740" y="80" width="169" height="80" rx="10"/>
+  <text class="ink label" x="755" y="111">add</text><text class="ink mono" x="755" y="140">9 + 7 = 16</text>
+  <path class="link" d="M909 120 H945" marker-end="url(#arrow)"/>
+  <rect class="public" x="951" y="80" width="145" height="80" rx="10"/>
+  <text class="ink label" x="964" y="111">public result</text><text class="ink mono" x="964" y="140">addr 12 · 16</text>
+  <rect class="card" x="727" y="183" width="193" height="52" rx="9"/>
+  <text class="ink mono" x="741" y="215">constant 7 · addr 13</text>
+  <path class="link" d="M825 183 V165" marker-end="url(#arrow)"/>
+  <text class="ink heading" x="28" y="279">Schematic AIR view: two local equations plus one wire connection</text>
+  <rect class="trace" x="27" y="300" width="466" height="59" rx="9"/>
+  <text class="ink mono" x="43" y="337">row 0 · mul · A=3  B=3  C=9</text>
+  <path class="link" d="M493 330 H615" marker-end="url(#arrow)"/>
+  <text class="muted small" x="505" y="309">addr 11 must match</text>
+  <rect class="trace" x="621" y="300" width="474" height="59" rx="9"/>
+  <text class="ink mono" x="637" y="337">row 1 · add · A=9  B=7  C=16</text>
+  <path class="link dash" d="M590 160 V286"/>
+  <text class="muted small" x="28" y="382">Rows are a teaching model. The actual S31 direct AIR packs four lanes and has more rows and lookup columns.</text>
+</svg>

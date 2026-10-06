@@ -72,6 +72,8 @@ contract and worked polynomial are in [the library chapter](library.md).
 | `std::math::pow<K>(x)` | Static binary exponentiation, `0 <= K < p`; `x^0=1`, including `0^0`. |
 | `std::math::sum([a,...])` | Balanced sum across 1..64 statically grouped, equally shaped M31 arrays. |
 | `std::math::dot([a,...],[b,...])` | Pairwise products and balanced sum across equal static groups. |
+| `std::math::sum_lanes(x)` | Sum the positions of one `[m31; N]` into `[m31; 1]`. |
+| `std::math::dot_lanes(x,w)` | Sum pointwise products of two equal `[m31; N]` arrays into `[m31; 1]`. |
 | `std::math::poly_eval(x,[c0,...,cd])` | Horner evaluation, low-degree coefficient first, 1..64 coefficients. |
 | `std::field::from_u16(x)` | Value-preserving cast from `[u16; N]`. |
 | `std::field::select(bit,a,b)` | `a` if zero, `b` if one; same type/shape. |
@@ -83,6 +85,9 @@ and lower identically. `std::math::sub` with a constant right operand becomes
 one `add_const` with `p-c`; `pow<5>` becomes three multiplication nodes. This
 is source-level convenience over the same proof gates. `pow<p-2>(x)` is not a
 checked inverse: at zero it returns zero, and no nonzero assertion is added.
+The [lane-reduction example](library.md#reduce-one-array-to-one-value) shows
+the difference between summing static groups of arrays and summing the
+positions inside one array.
 
 ## A hand-written private-witness function
 
@@ -138,6 +143,7 @@ semantics:
 | `cast_m31` | `lhs: u16[N]` gives the same values as `m31[N]`. |
 | `add`, `mul` | Two equally shaped `m31[N]` arrays, lane-wise modulo `p`. |
 | `add_const`, `mul_const` | `m31[N]` and one canonical constant, lane-wise. |
+| `sum_lanes` | One `m31[N]` gives `m31[1]` containing the sum of its declared positions. `dot_lanes` first emits pointwise `mul`, then this node. |
 | `repeat` | `lhs: m31[N]`, `rounds`, and a static `body` of `square`, `add_const`, `mul_const` steps. |
 | `select` | Equal `m31[N]` arrays `lhs`, `rhs`; `selector: m31[1]` constrained to a bit. |
 | `hash_blake2s`, `hash_blake2s_leaf/pair`, `hash_poseidon2_leaf/pair` | The [exact encodings and framing](hashes.md); each returns `m31[8]`. |

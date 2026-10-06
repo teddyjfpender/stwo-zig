@@ -6,7 +6,7 @@ S31 compiles a fixed-size relation into Stwo circuit AIR and, for a supported re
 
 The earlier [source-to-AIR implementation guide](LANGUAGE_AND_AIR.md) remains available for backend detail.
 
-The compiler accepts normalized JSON and a [limited typed `.s31` text language](TEXT_LANGUAGE.md) that lowers to the same relation. Inputs have `u16` or `m31` type, fixed length, and public or private visibility. Nodes are topologically ordered. Supported normalized operations are `constant`, `cast_m31`, lane-wise `add`/`mul`, `add_const`/`mul_const`, statically bounded `repeat` with `square` and constant steps, `select`, BLAKE2s raw/leaf/ordered-pair hashing, and pinned M31 Poseidon2 leaf/ordered-pair hashing. BLAKE2s hash inputs are canonical M31 words encoded little endian as 32-bit words; its eight digest words are reduced modulo M31. Poseidon2 outputs eight canonical M31 state words directly. Assertions constrain equal arrays. Public inputs and outputs occupy at most eight direct words: `u32` in the original profile, canonical M31 in direct-v4. Witnesses cannot change graph shape.
+The compiler accepts normalized JSON and a [limited typed `.s31` text language](TEXT_LANGUAGE.md) that lowers to the same relation. Inputs have `u16` or `m31` type, fixed length, and public or private visibility. Nodes are topologically ordered. Supported normalized operations are `constant`, `cast_m31`, lane-wise `add`/`mul`, `add_const`/`mul_const`, `sum_lanes`, statically bounded `repeat` with `square` and constant steps, `select`, BLAKE2s raw/leaf/ordered-pair hashing, and pinned M31 Poseidon2 leaf/ordered-pair hashing. BLAKE2s hash inputs are canonical M31 words encoded little endian as 32-bit words; its eight digest words are reduced modulo M31. Poseidon2 outputs eight canonical M31 state words directly. Assertions constrain equal arrays. Public inputs and outputs occupy at most eight direct words: `u32` in the original profile, canonical M31 in direct-v4. Witnesses cannot change graph shape.
 
 To use the text frontend and inspect its exact lowering:
 
@@ -14,6 +14,7 @@ To use the text frontend and inspect its exact lowering:
 python3 src/frontends/s31/s31.py lower src/frontends/s31/examples/arith4_m31.s31
 python3 src/frontends/s31/s31.py build src/frontends/s31/examples/arith4_m31.s31 --lowering direct-chip --out zig-out/s31/text-arith4
 python3 src/frontends/s31/s31.py explain zig-out/s31/text-arith4
+python3 src/frontends/s31/s31.py equations zig-out/s31/text-arith4
 ```
 
 The text package includes the original `.s31`, normalized JSON, and a source map; all are hashed in its manifest. `explain` joins source locations to the existing gate-row cost report. See [the text language guide](TEXT_LANGUAGE.md) for its implemented syntax, typed library functions, constraints, examples, and limits. The [standard/math library brief](../../../design/s31/STDLIB_MATHLIB.md) records the qualified library operations and the remaining work for a useful release.
@@ -22,7 +23,13 @@ The [standard/math library chapter](docs/library.md) covers `use std@1;`,
 static `sum`/`dot`, Horner polynomial evaluation, hand calculations, and the
 source-hashed library lock embedded in text packages. The complete
 [`mathlib4.s31` example](examples/mathlib4.s31) builds under `direct-gate`
-and produces a native verifier.
+and produces a native verifier. [`lane_stats4.s31`](examples/lane_stats4.s31)
+computes the sum and weighted dot product of private array lanes, returning
+one public M31 word. Its `sum_lanes` operations use constrained lane
+extraction and additions; `dot_lanes` adds one pointwise multiplication.
+`equations` exposes semantic field equations and source positions, with the
+generic AIR's lookup and public-binding terms documented separately in
+[the guide](docs/walkthrough.md).
 
 From the repository root:
 

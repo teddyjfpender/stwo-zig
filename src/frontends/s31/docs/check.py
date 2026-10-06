@@ -25,7 +25,27 @@ def text_block(path: Path, prefix: str) -> str:
     raise AssertionError(f"{path}: missing {prefix!r} example")
 
 
+def text_block_containing(path: Path, marker: str) -> str:
+    for block in re.findall(r"(?:```|~~~)(?:text|s31)\n(.*?)\n(?:```|~~~)", path.read_text(), re.S):
+        if marker in block:
+            return block
+    raise AssertionError(f"{path}: missing {marker!r} example")
+
+
 def check_examples() -> None:
+    walkthrough, _ = compile_text(
+        text_block(DOCS / "walkthrough.md", "circuit square_plus_seven"), "walkthrough.md"
+    )
+    assert [node["op"] for node in walkthrough["nodes"]] == ["mul", "add_const"]
+    assert walkthrough["nodes"][1]["constant"] == 7
+    assert [(x * x + 7) % P for x in [1, 2, 3, 4]] == [8, 11, 16, 23]
+    # The chapter's two-row interpolation and quotient identities are exact.
+    for t in range(5):
+        a, b, c = 3 + 6 * t, 3 + 4 * t, 9 + 7 * t
+        z = t * (t - 1)
+        assert ((1 - t) * (c - a * b) - z * (24 * t + 23)) % P == 0
+        assert (t * (c - a - b) - z * (-3)) % P == 0
+
     for chapter, prefix, fixture in (
         ("source.md", "circuit preimage4", "preimage4"),
         ("circuits.md", "circuit math_polynomial4", "math_polynomial4"),
@@ -42,7 +62,7 @@ def check_examples() -> None:
         "hash_poseidon2_leaf", "select", "select", "hash_poseidon2_pair"
     ]
     library_relation, _ = compile_text(
-        text_block(DOCS / "library.md", "use std@1;"), "library.md"
+        text_block_containing(DOCS / "library.md", "circuit mathlib4"), "library.md"
     )
     checked_library, _ = compile_text((S31 / "examples/mathlib4.s31").read_text())
     assert library_relation == checked_library
@@ -50,6 +70,19 @@ def check_examples() -> None:
     assert library_assignment["public_outputs"]["result"] == [
         (2 * x + 3 * (2 * x**3 + 3 * x**2 + 5 * x + 7) + 11) % P
         for x in library_assignment["public_inputs"]["x"]
+    ]
+    lane_source = text_block_containing(DOCS / "library.md", "circuit lane_stats4")
+    lane_relation, _ = compile_text(lane_source, "library.md")
+    fixture_relation, _ = compile_text((S31 / "examples/lane_stats4.s31").read_text())
+    assert lane_relation == fixture_relation
+    assert [node["op"] for node in lane_relation["nodes"]] == [
+        "sum_lanes", "mul", "sum_lanes", "add"
+    ]
+    lane_assignment = json.loads((S31 / "examples/lane_stats4.valid.json").read_text())
+    xs = lane_assignment["private_inputs"]["x"]
+    weights = lane_assignment["private_inputs"]["weights"]
+    assert lane_assignment["public_outputs"]["result"] == [
+        (sum(xs) + sum(x * w for x, w in zip(xs, weights))) % P
     ]
     assignment = json.loads((S31 / "examples/math_polynomial4.valid.json").read_text())
     assert assignment["public_outputs"]["result"] == [

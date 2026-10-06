@@ -13,6 +13,7 @@ From the repository root:
 python3 src/frontends/s31/s31.py lower src/frontends/s31/examples/arith4_m31.s31
 python3 src/frontends/s31/s31.py build src/frontends/s31/examples/arith4_m31.s31 --lowering direct-chip --out zig-out/s31/text-arith4
 python3 src/frontends/s31/s31.py explain zig-out/s31/text-arith4
+python3 src/frontends/s31/s31.py equations zig-out/s31/text-arith4
 python3 src/frontends/s31/s31.py prove zig-out/s31/text-arith4 src/frontends/s31/examples/arith4.valid.json zig-out/s31/text-arith4.proof
 python3 src/frontends/s31/s31.py verify zig-out/s31/text-arith4 zig-out/s31/text-arith4.proof
 ```
@@ -29,6 +30,9 @@ and lists the chip's internal row count for `iterate` when selected. A node's
 gate-row span is not an additive whole-program total: shared expressions,
 padding, and chip boundaries are separately represented. Use the whole
 program cost report for totals.
+`equations` prints source-level field equations beside their source positions,
+canonical IDs, and builder gate counts. It does not expand the pinned generic
+AIR's lookup, public-binding, or polynomial terms.
 
 Equivalent handwritten JSON can have different whitespace and therefore a
 different source digest, circuit identity and proof bytes. The zero-overhead
@@ -58,7 +62,8 @@ Functions and circuit bodies contain immutable `let` statements, optional
 are names, `_m31` field literals, `+`, lane-wise `.*`, calls, parentheses, and
 static array literals such as `[sibling_0, sibling_1]`. Comments start with
 `//`. A scalar literal enters a circuit through `splat<N>(7_m31)`. Bare
-integers are used only as the compile-time `N` in `splat<N>` and `iterate<N>`;
+integers are used only as the compile-time `N` in `splat<N>`, `iterate<N>`,
+and `std::math::pow<N>`;
 circuit arithmetic uses canonical field literals.
 
 Every array shape and iteration count is fixed in source. Pure functions are
@@ -124,6 +129,8 @@ There is no general module loader or third-party package system yet.
 | `std::math::pow<K>(x)` | Static square-and-multiply chain | `[m31; N]`, `0 <= K < p`; `x^0 = 1`. |
 | `std::math::sum([a,...])` | Balanced addition tree over statically grouped terms | 1–64 equally shaped `[m31; N]` values. |
 | `std::math::dot([a,...],[b,...])` | Pairwise products and balanced sum | Equal groups of 1–64 equally shaped `[m31; N]` values. |
+| `std::math::sum_lanes(x)` | Constrained extraction and balanced sum of every lane in one array | `[m31; N] -> [m31; 1]`, `1 <= N <= 4096`. |
+| `std::math::dot_lanes(a,b)` | One pointwise `mul` followed by `sum_lanes` | Equal `[m31; N]` shapes; returns `[m31; 1]`. |
 | `std::math::poly_eval(x,[c0,...,cd])` | Horner evaluation, low-degree coefficient first | 1–64 coefficients, each shaped like `x`. |
 
 [`math_polynomial4.s31`](examples/math_polynomial4.s31) is a complete math
@@ -135,6 +142,11 @@ The [versioned library example](examples/mathlib4.s31) exercises the three
 static group helpers. Its [handwritten relation](examples/mathlib4.s31.json)
 has the same canonical IR and AIR row geometry. The [library chapter](docs/library.md)
 works through the values, lowering, and package lock.
+Unlike static-group `sum` and `dot`, the [lane statistics example](examples/lane_stats4.s31)
+reduces positions of one witness array. Its [handwritten relation](examples/lane_stats4.s31.json)
+uses a normalized `sum_lanes` node. Each extracted lane and addition is
+constrained by circuit gates; `dot_lanes` emits one pointwise multiplication
+followed by the same reduction.
 
 The BLAKE2s leaf and pair operations use `S31LEAF1` and `S31PAIR1`
 personalization and little-endian canonical M31 words. Their digest words are

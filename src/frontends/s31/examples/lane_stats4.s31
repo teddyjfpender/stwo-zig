@@ -1,0 +1,9 @@
+use std@1;
+
+circuit lane_stats4(private x: [m31; 4], private weights: [m31; 4])
+    -> public [m31; 1] {
+    let total = std::math::sum_lanes(x);
+    let weighted = std::math::dot_lanes(x, weights);
+    let result = total + weighted;
+    result
+}

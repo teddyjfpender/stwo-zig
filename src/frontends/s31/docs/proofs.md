@@ -9,6 +9,7 @@ from the repository root:
 python3 src/frontends/s31/s31.py lower src/frontends/s31/examples/math_polynomial4.s31
 python3 src/frontends/s31/s31.py build src/frontends/s31/examples/math_polynomial4.s31 --lowering direct-gate --out zig-out/s31/docs-polynomial
 python3 src/frontends/s31/s31.py explain zig-out/s31/docs-polynomial
+python3 src/frontends/s31/s31.py equations zig-out/s31/docs-polynomial
 python3 src/frontends/s31/s31.py inspect zig-out/s31/docs-polynomial
 python3 src/frontends/s31/s31.py prove zig-out/s31/docs-polynomial src/frontends/s31/examples/math_polynomial4.valid.json zig-out/s31/docs-polynomial.proof
 python3 src/frontends/s31/s31.py verify zig-out/s31/docs-polynomial zig-out/s31/docs-polynomial.proof
@@ -87,8 +88,12 @@ statement.
 ## Read the cost report correctly
 
 `explain` lists normalized node names, source locations, canonical IDs,
-gate-row spans, and source-expression groups. `inspect` exposes the backend
-report. In that report:
+gate-row spans, and source-expression groups. `equations` prints the
+source-level M31 field equation for each arithmetic node, along with its
+source location, canonical ID, and builder gate counts. For example, the
+first multiply in `math_polynomial4` appears as
+`_s31_0[j] - x[j] * x[j] = 0`. It labels these as semantic equations, not
+expanded AIR terms. `inspect` exposes the backend report. In that report:
 
 | Field | How to read it |
 | --- | --- |
@@ -126,14 +131,15 @@ the root [S31 README](../README.md).
 
 ## Current audit boundary
 
-The commands above expose source, normalized relation, canonical identity,
-gate spans, selected profile, fixed-cell counts, proof artifacts, and native
-verification. They do not yet print the complete instantiated symbolic
-polynomial program of the pinned generic circuit AIR, nor a source-expression
-to individual polynomial-term map. The [AIR chapter](air.md) gives the exact
-specialized-chip row constraints and the semantic circuit gate equations;
-the generic AIR bundle remains a pinned build asset. A symbolic exporter with
-an identity check against that asset is still needed for term-by-term audit.
+The commands above expose source, normalized relation, semantic field
+equations, canonical identity, builder gate counts, selected profile,
+fixed-cell counts, proof artifacts, and native verification. The equation
+exporter does **not** expand the complete instantiated symbolic polynomial
+program of the pinned generic circuit AIR, nor map source expressions to
+individual polynomial terms or physical AIR rows. The [AIR chapter](air.md)
+gives the exact specialized-chip row constraints; the generic AIR bundle
+remains a pinned build asset. A symbolic exporter with an identity check
+against that asset is still needed for term-by-term audit.
 
 S31 also lacks a private circuit-to-chip boundary for mixed programs,
 automatic chip selection, a dedicated Poseidon2 batch chip, and recursive

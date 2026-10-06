@@ -22,6 +22,7 @@ S31 = Path(__file__).resolve().parent.parent
 DOCS = S31 / "docs"
 CHAPTERS = (
     ("README.md", "Start here"),
+    ("walkthrough.md", "0. One proof by hand"),
     ("source.md", "1. Source language"),
     ("library.md", "2. Standard / math library"),
     ("circuits.md", "3. Circuit gates"),
@@ -161,7 +162,7 @@ class Handler(SimpleHTTPRequestHandler):
 <script>{MATHJAX_CONFIG}</script><script defer src="/assets/tex-svg.js"></script>
 </head><body><div class="layout">
 <aside><a class="brand" href="/docs/">S31 Docs</a>
-<div class="sub">Source → library → circuits → AIR → proof</div><nav>{nav}</nav></aside>
+<div class="sub">Computation → circuit → AIR → proof</div><nav>{nav}</nav></aside>
 <main><article>{body}
 <div class="footer">Live preview of {html.escape(str(source.relative_to(S31)))} · Refresh to see edits</div>
 </article></main></div></body></html>"""

@@ -7,7 +7,7 @@ const core = @import("stwo_core");
 const relation = @import("relation.zig");
 const M31 = core.fields.m31.M31;
 
-pub const Tag = enum { input, constant, cast_m31, add, mul, add_const, mul_const, repeat, hash_blake2s, hash_blake2s_leaf, hash_blake2s_pair, select, hash_poseidon2_leaf, hash_poseidon2_pair };
+pub const Tag = enum { input, constant, cast_m31, add, mul, add_const, mul_const, repeat, hash_blake2s, hash_blake2s_leaf, hash_blake2s_pair, select, hash_poseidon2_leaf, hash_poseidon2_pair, sum_lanes };
 pub const Node = struct {
     tag: Tag,
     kind: relation.Kind,
@@ -213,6 +213,13 @@ fn simplify(node: *Node, nodes: []const Node) ?u32 {
                     };
                 };
                 node.* = constantNode(node.length, value.toU32());
+            }
+        },
+        .sum_lanes => {
+            if (lhs.?.length == 1) return node.lhs;
+            if (lhs.?.tag == .constant) {
+                const value = M31.fromCanonical(lhs.?.constant.?);
+                node.* = constantNode(1, value.mul(M31.fromU64(lhs.?.length)).toU32());
             }
         },
         else => {},

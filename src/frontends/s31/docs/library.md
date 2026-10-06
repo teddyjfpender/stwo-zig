@@ -6,10 +6,12 @@ Existing sources without that line continue to use the same version
 implicitly. `use std@2;` and third-party packages are rejected.
 This is a versioned compiler builtin package, not a general module loader.
 
-Every `std::math` helper below lowers to the existing normalized
-`add`, `mul`, `add_const`, or `mul_const` nodes. The native verifier proves
-those nodes through the ordinary circuit AIR. No helper is a host-only
-calculation and none adds a new AIR opcode.
+Most `std::math` helpers below lower to normalized `add`, `mul`,
+`add_const`, or `mul_const` nodes. `sum_lanes` has its own normalized relation
+node because it changes an array's shape. The circuit compiler lowers it to
+constrained lane projections and additions. The native verifier proves all
+these operations through the ordinary circuit AIR. No helper is a host-only
+calculation or a new specialized AIR chip.
 
 ## The current API
 
@@ -21,6 +23,8 @@ calculation and none adds a new AIR opcode.
 | `std::math::pow<K>(x)` | `x^K mod p` | Literal `0 <= K < p`; `x^0=1`, including zero. |
 | `std::math::sum([a,b,...])` | `a+b+... mod p` | 1..64 same-shaped arrays grouped in source. |
 | `std::math::dot([a,b,...],[u,v,...])` | `a·u+b·v+... mod p` | Equal groups of 1..64 same-shaped arrays. |
+| `std::math::sum_lanes(x)` | `Σⱼ x[j] mod p`, returned as `[m31; 1]` | One `[m31; N]`, `1 <= N <= 4096`. |
+| `std::math::dot_lanes(x,w)` | `Σⱼ x[j]·w[j] mod p`, returned as `[m31; 1]` | Two equally shaped `[m31; N]` arrays, `1 <= N <= 4096`. |
 | `std::math::poly_eval(x,[c0,c1,...,cd])` | `c0+c1·x+...+cd·x^d mod p` | 1..64 coefficients, each the same shape as `x`; **low degree first**. |
 
 The group in brackets is a compile-time list of existing circuit values,
@@ -28,7 +32,8 @@ not a witness array that can be indexed. Each item may be an input,
 an earlier result, or a `splat<N>(constant_m31)`. For example, if each
 item has type `[m31; 4]`, `dot` returns four independent inner products:
 output lane `j` uses lane `j` from every term. It does **not** sum the four
-coordinates of one `[m31; 4]` value.
+coordinates of one `[m31; 4]` value. Use `sum_lanes` or `dot_lanes` to reduce
+those coordinates to one word.
 
 `sum` uses a balanced addition tree. `dot` multiplies corresponding
 terms, then uses that tree; before constant folding, `n` terms need
@@ -37,6 +42,59 @@ so `d+1` coefficients need at most `d` multiplications and `d`
 additions. Compile-time constant folding and canonical graph sharing can
 remove or merge nodes. These are transparent lowering bounds, not claims
 of globally optimal addition chains.
+
+## Reduce one array to one value
+
+This [checked-in program](../examples/lane_stats4.s31) has private data and
+one public result:
+
+~~~s31
+use std@1;
+
+circuit lane_stats4(private x: [m31; 4], private weights: [m31; 4])
+    -> public [m31; 1] {
+    let total = std::math::sum_lanes(x);
+    let weighted = std::math::dot_lanes(x, weights);
+    let result = total + weighted;
+    result
+}
+~~~
+
+For the [sample assignment](../examples/lane_stats4.valid.json), fill the
+per-lane values by hand:
+
+| Lane, one array position | Private `x[j]` | Private `weights[j]` | Product `x[j]·weights[j]` |
+| ---: | ---: | ---: | ---: |
+| 0 | 2 | 11 | 22 |
+| 1 | 3 | 13 | 39 |
+| 2 | 5 | 17 | 85 |
+| 3 | 7 | 19 | 133 |
+| **Sum across lanes** | **17** | — | **279** |
+
+Thus `total=[17]`, `weighted=[279]`, and `result=[296]`. Each bracketed
+result is an array of **one** M31 word. The public statement contains only
+`result=[296]`; `x` and `weights` are private witnesses. Verification says
+there exist private arrays satisfying the compiled equations for that
+public result. The public statement does not list the arrays or uniquely
+determine them; this is not a general zero-knowledge promise about the proof.
+
+The text frontend lowers this source to `sum_lanes(x)`, a pointwise
+`mul(x,weights)`, `sum_lanes(product)`, and a final `add`. Inside each
+`sum_lanes`, the compiler extracts only the declared M31 positions from
+packed circuit wires with constrained gates, then connects them with a
+balanced addition tree. `dot_lanes` adds the pointwise products first. Tail
+padding in a packed wire is excluded from the sum. This is why a single
+source call can require multiple circuit gates and AIR rows; the row count
+is not one per library call.
+
+For this four-lane source under `direct-gate`, the builder attributes ten
+QM31 gates to each `sum_lanes` node. The **whole** circuit has 346 raw
+QM31-operation rows, padded to 512, and 4,096 fixed cells. Input handling,
+wire lookup, public binding, and finalization contribute to that total;
+builder gate spans are not physical AIR row ownership. The checked-in
+[handwritten relation](../examples/lane_stats4.s31.json) was separately
+compared with the text source under `direct-gate`: they have the same
+canonical graph and row geometry, and both native verifiers accepted proofs.
 
 The rest of `std` provides `std::field::from_u16` and
 `std::field::select`, Poseidon2 and BLAKE2s reduced leaf/pair calls
@@ -114,9 +172,10 @@ python3 src/frontends/s31/s31.py prove zig-out/s31/mathlib4-text src/frontends/s
 python3 src/frontends/s31/s31.py verify zig-out/s31/mathlib4-text zig-out/s31/mathlib4-text.proof
 ~~~
 
-The remaining math gap is real: there is no projection or dynamic indexing
-of one `[m31; N]`, so `sum` and `dot` cannot reduce its lanes. Checked
+The remaining math gaps are dynamic indexing of one `[m31; N]`, checked
 inversion/division, computed bits, integer comparisons, general module
-loading, and dedicated math chips are also absent.
+loading, and dedicated math chips. `sum_lanes` and `dot_lanes` work on
+statically sized arrays; they do not expose an arbitrary lane as a source
+value.
 
 Next: [circuit lowering](circuits.md).

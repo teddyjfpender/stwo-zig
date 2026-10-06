@@ -30,6 +30,9 @@ text .s31 ──parse/typecheck/specialize──▶ normalized relation JSON
 
 ## Read in order
 
+0. [One computation, one proof](walkthrough.md): an ELI5 account followed by
+   a complete `x²+7` example. Fill circuit wires and schematic AIR rows by
+   hand, see why wiring matters, and factor the constraint polynomials.
 1. [Source language and relation](source.md): syntax, types, field semantics,
    static shapes, normalized JSON, and the public statement.
 2. [Standard and math library](library.md): the pinned `std@1` package,
@@ -50,9 +53,15 @@ The worked examples use checked-in sources under [`../examples`](../examples):
 | --- | --- | --- |
 | [`math_polynomial4.s31`](../examples/math_polynomial4.s31) | Static power, constants, four M31 lanes, circuit gates | `direct-gate` |
 | [`mathlib4.s31`](../examples/mathlib4.s31) | `use std@1`, Horner polynomial, static dot/sum, library lock | `direct-gate` |
+| [`lane_stats4.s31`](../examples/lane_stats4.s31) | Private arrays, lane sum and dot, one public result | `direct-gate` |
 | [`arith4_m31.s31`](../examples/arith4_m31.s31) | `iterate`, gate unrolling versus one linked AIR chip | `direct-chip` |
 | [`merkle_path1_poseidon.s31`](../examples/merkle_path1_poseidon.s31) | Private leaf, constrained bit, ordered hashing, public root | `direct-gate` |
 | [`preimage4.s31`](../examples/preimage4.s31) | Private `u16` witness and an equality assertion | `gate` |
+
+If this is your first STARK, read [the hand-worked walkthrough](walkthrough.md)
+before running the tour. It distinguishes the small teaching trace from the
+actual packed S31 circuit AIR and states exactly what verifier acceptance
+means.
 
 ## Five-minute tour
 
@@ -60,12 +69,14 @@ The worked examples use checked-in sources under [`../examples`](../examples):
 python3 src/frontends/s31/s31.py lower src/frontends/s31/examples/math_polynomial4.s31
 python3 src/frontends/s31/s31.py build src/frontends/s31/examples/math_polynomial4.s31 --lowering direct-gate --out zig-out/s31/docs-polynomial
 python3 src/frontends/s31/s31.py explain zig-out/s31/docs-polynomial
+python3 src/frontends/s31/s31.py equations zig-out/s31/docs-polynomial
 python3 src/frontends/s31/s31.py prove zig-out/s31/docs-polynomial src/frontends/s31/examples/math_polynomial4.valid.json zig-out/s31/docs-polynomial.proof
 python3 src/frontends/s31/s31.py verify zig-out/s31/docs-polynomial zig-out/s31/docs-polynomial.proof
 ```
 
 `lower` shows the exact relation consumed by Zig. `explain` joins text source
-positions to canonical nodes and gate-row spans. `prove` writes a public-only
+positions to canonical nodes and builder gate spans. `equations` shows each
+node's semantic field equation. `prove` writes a public-only
 statement beside the proof; `verify` runs the generated native verifier on that
 statement, proof, and pinned key. The documented program computes
 `x^5 + 3x - 7` over `p = 2^31 - 1`, independently in four lanes.
@@ -85,7 +96,7 @@ statement, proof, and pinned key. The documented program computes
 | Native verifier | The generated host binary that checks the STARK proof against its embedded program and key. |
 
 The current text frontend has no general imports, user-defined modules, dynamic loops,
-computed-bit selectors, general reductions, or checked inversion. `explain`
+computed-bit selectors, arbitrary lane indexing, user-defined folds, or checked inversion. `explain`
 does **not** print every instantiated symbolic polynomial from the pinned
 circuit AIR bundle. This guide gives the semantic gate equations and the exact
 specialized-chip equations; [the audit guide](proofs.md) explains the remaining

@@ -1,7 +1,7 @@
 # S31 standard and math library: current contract and remaining work
 
-Status: compiler-owned `std@1` package with an explicit source pin and static
-math helpers, 2026-10-06. This document distinguishes
+Status: compiler-owned `std@1` package with an explicit source pin, static
+math helpers, and constrained lane reductions, 2026-10-06. This document distinguishes
 what is executable today from the work needed for a useful library release.
 The [text language guide](../../src/frontends/s31/TEXT_LANGUAGE.md) defines the
 implemented syntax; the [MVP roadmap](MVP_ROADMAP.md) tracks proof-backend work.
@@ -17,12 +17,13 @@ general module loader or user-published package format yet.
 
 | Namespace | Implemented operations | Backend relation |
 | --- | --- | --- |
-| `std::math` | `neg`, `sub`, `square`, static `pow<K>`, static-group `sum`, `dot`, `poly_eval` | Existing M31 add/mul and constant gates. |
+| `std::math` | `neg`, `sub`, `square`, static `pow<K>`, static-group `sum`, `dot`, `poly_eval`, fixed-array `sum_lanes`, `dot_lanes` | Existing M31 add/mul and constant gates; `sum_lanes` adds constrained unpacking across packed circuit words. |
 | `std::field` | `from_u16`, `select` | Explicit conversion; direct input bit selector with `b²-b=0`. |
 | `std::hash` | Poseidon2 and BLAKE2s reduced leaf/pair hashes | Existing pinned hash nodes. |
 | `std::merkle` | Fixed-depth Poseidon2 and BLAKE2s paths | Hash nodes plus two constrained selects per level. |
 
-All math operations are lane-wise on `[m31; N]` and have fixed shapes. The
+All math operations have fixed shapes. Most operate independently on the lanes
+of `[m31; N]`; `sum_lanes` and `dot_lanes` reduce them to `[m31; 1]`. The
 compiler checks types and canonical field constants before relation emission.
 `pow<K>` requires a compile-time exponent `0 <= K < p`, where
 `p = 2^31 - 1`, and defines `x^0 = 1` even for `x = 0`. It uses left-to-right
@@ -62,9 +63,25 @@ chapter](../../src/frontends/s31/docs/library.md) gives exact types,
 coefficient order, a hand calculation, and the lock format.
 
 The static groups are lists of existing arrays in source. `sum` and `dot`
-reduce across the list, **not across lanes of one `[m31; N]` array**. This
-distinction keeps the lowering within the current normalized relation and
-avoids claiming that array projection is implemented.
+reduce across that list. In contrast, `sum_lanes(x)` sums the positions of
+one `[m31; N]` value, and `dot_lanes(x,w)` multiplies matching positions then
+sums them. The new normalized `sum_lanes` operation unpacks each packed M31
+coordinate through constrained circuit gates, uses a balanced addition tree,
+and publishes a one-word result. It does not expose general indexing.
+
+[`lane_stats4.s31`](../../src/frontends/s31/examples/lane_stats4.s31) is a
+private-witness example. With `x=[2,3,5,7]` and `weights=[11,13,17,19]`,
+the total is 17, the dot product is 279, and the public output is 296. Its
+[handwritten relation](../../src/frontends/s31/examples/lane_stats4.s31.json)
+has the same canonical IR, preprocessed root, and row geometry as the text
+form. Under `direct-gate`, the circuit has 346 raw QM31 rows, 512 padded
+rows, and 4,096 fixed cells. A text proof of 55,883 bytes was accepted by its
+native verifier; changing the public output to 297 was rejected. These are
+one-run measurements, not a performance comparison with Cairo.
+Each four-lane reduction currently accounts for ten QM31 builder gates.
+A future packed-coordinate projection could reduce that cost if its field
+identity and partial-wire behavior are proved; the current unpack-and-add
+path is the correctness baseline.
 
 ## Definition of a useful v1 library
 
@@ -81,7 +98,7 @@ chip it activates.
 | Work package | Exit gate | Rough effort for one experienced engineer |
 | --- | --- | ---: |
 | General modules and shape-polymorphic pure functions | Extend the current `use std@1` pin to named modules, deterministic external resolution, lockfiles for imported source, and source maps through those calls. | 2–4 weeks |
-| Field/vector core | Add reductions over lanes of one array, fixed-array indexing, concatenation, and vector/matrix kernels; direct-gate proofs match independent oracles. Static-group `sum`, `dot`, and Horner evaluation are implemented. | 2–4 weeks |
+| Field/vector core | Add fixed-array indexing, concatenation, and vector/matrix kernels; direct-gate proofs match independent oracles. Static-group and lane reductions, dot products, and Horner evaluation are implemented. | 2–4 weeks |
 | Nonzero inverse and checked division | Witness generation plus `x·inv=1`, a nonzero contract, zero rejection, batch inverse cost comparison, and native-verifier mutation tests. | 2–3 weeks |
 | Boolean/range/integer core | Computed bits, comparisons, range constraints and explicit integer/field casts; no host-only assertions or unconstrained hint outputs. | 3–6 weeks |
 | Library release discipline | API/version policy, corpus of positive and negative proofs, cost regression gates, and audit views from source to AIR polynomial. | 2–3 weeks |
@@ -100,10 +117,10 @@ still need the backend efficiency work in the [MVP roadmap](MVP_ROADMAP.md).
 1. Extend the existing `std@1` lock to named modules and imported source.
    The current package key already binds the compiler-owned library source
    digest; a user module needs the same deterministic resolution.
-2. Add array projections and reductions over lanes with a direct arithmetic
-   lowering. The implemented static-group reductions and Horner evaluation
-   already use matched source/JSON programs and independent scalar oracles.
-   True array reductions and small linear algebra remain.
+2. Extend array operations past the implemented lane reductions. Fixed-array
+   projection, indexing, concatenation, and small linear algebra remain.
+   Compare their direct arithmetic cost and retain matched source/JSON
+   programs and independent scalar oracles.
 3. Add checked inversion with an explicit nonzero contract. A witness-supplied
    inverse is useful only when the AIR enforces `x·y-1=0`; the prover must reject
    zero input before committing. Compare this with static exponentiation on
@@ -117,7 +134,7 @@ still need the backend efficiency work in the [MVP roadmap](MVP_ROADMAP.md).
    selected profile.
 
 The principal blocker is therefore not a collection of function names: the
-normalized relation lacks projections, reductions over array lanes, computed
+normalized relation lacks general projections, computed
 bits, and constrained witness hints, while the text frontend lacks general
 modules. The versioned compiler-owned package and matched math examples
 establish a source-to-AIR audit pattern without changing the proof protocol.

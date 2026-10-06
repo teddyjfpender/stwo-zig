@@ -70,7 +70,16 @@ def load_source(path: Path) -> tuple[dict, bytes]:
 def abi(source: dict, lowering: str) -> dict:
     shapes = {item["name"]: {"kind": item["kind"], "length": item["length"]} for item in source["inputs"]}
     for node in source["nodes"]:
-        length = node.get("length") if node["op"] == "constant" else 8 if node["op"] in {"hash_blake2s", "hash_blake2s_leaf", "hash_blake2s_pair", "hash_poseidon2_leaf", "hash_poseidon2_pair"} else shapes[node["lhs"]]["length"]
+        op = node["op"]
+        if op == "constant":
+            length = node["length"]
+        elif op == "sum_lanes":
+            length = 1
+        elif op in {"hash_blake2s", "hash_blake2s_leaf", "hash_blake2s_pair",
+                    "hash_poseidon2_leaf", "hash_poseidon2_pair"}:
+            length = 8
+        else:
+            length = shapes[node["lhs"]]["length"]
         shapes[node["name"]] = {"kind": "m31", "length": length}
     return {
         "schema": "s31-public-abi-v1",
@@ -360,11 +369,112 @@ def explain(package: Path) -> dict:
     }
 
 
+def equations(package: Path) -> dict:
+    """Explain node semantics; this is not a dump of the pinned circuit AIR."""
+    report = explain(package)
+    relation = json.loads((package / "source.s31.json").read_text())
+    cost_nodes = {node["name"]: node for node in report["nodes"]}
+    shapes = {item["name"]: (item["kind"], item["length"]) for item in relation["inputs"]}
+    nodes = []
+    hashes = {
+        "hash_blake2s", "hash_blake2s_leaf", "hash_blake2s_pair",
+        "hash_poseidon2_leaf", "hash_poseidon2_pair",
+    }
+    for node in relation["nodes"]:
+        name, op = node["name"], node["op"]
+        field_equations: list[str] = []
+        functional_spec: str | None = None
+        notes: list[str] = []
+        if op == "constant":
+            shape = ("m31", node["length"])
+            field_equations.append(f"{name}[j] - {node['constant']} = 0")
+        elif op == "sum_lanes":
+            shape = ("m31", 1)
+            length = shapes[node["lhs"]][1]
+            field_equations.append(f"{name}[0] - sum({node['lhs']}[j] for j=0..{length - 1}) = 0")
+        elif op in hashes:
+            shape = ("m31", 8)
+            arguments = ", ".join(node[key] for key in ("lhs", "rhs") if key in node)
+            functional_spec = f"{name} = {op}({arguments})"
+            notes.append("The hash's internal circuit equations are not expanded here.")
+        else:
+            shape = ("m31", shapes[node["lhs"]][1])
+            lhs = f"{node['lhs']}[j]"
+            rhs = f"{node['rhs']}[j]" if "rhs" in node else ""
+            constant = node.get("constant")
+            if op == "cast_m31":
+                field_equations.append(f"{name}[j] - {lhs} = 0")
+                notes.append("The u16 input has a separate range obligation.")
+            elif op == "add":
+                field_equations.append(f"{name}[j] - {lhs} - {rhs} = 0")
+            elif op == "mul":
+                field_equations.append(f"{name}[j] - {lhs} * {rhs} = 0")
+            elif op == "add_const":
+                field_equations.append(f"{name}[j] - {lhs} - {constant} = 0")
+            elif op == "mul_const":
+                field_equations.append(f"{name}[j] - {lhs} * {constant} = 0")
+            elif op == "select":
+                selector = f"{node['selector']}[0]"
+                field_equations.extend((
+                    f"{selector} * ({selector} - 1) = 0",
+                    f"{name}[j] - (1 - {selector}) * {lhs} - {selector} * {rhs} = 0",
+                ))
+            elif op == "repeat":
+                functional_spec = f"{name}[j] = F^{node['rounds']}({lhs})"
+                for index, step in enumerate(node["body"], start=1):
+                    previous = f"v{index - 1}"
+                    if step["op"] == "square":
+                        expression = f"{previous} * {previous}"
+                    elif step["op"] == "add_const":
+                        expression = f"{previous} + {step['constant']}"
+                    else:
+                        expression = f"{previous} * {step['constant']}"
+                    notes.append(f"F step {index}: v{index} = {expression} (v0 is the current state)")
+                notes.append("The selected profile either unrolls this body or uses the pinned step AIR chip.")
+            else:
+                functional_spec = f"{name} = {op}({lhs})"
+                notes.append("No source-level equation is available for this operation.")
+        shapes[name] = shape
+        cost = cost_nodes.get(name, {})
+        nodes.append({
+            "name": name, "op": op,
+            "output": {"kind": shape[0], "length": shape[1]},
+            "field_equations": field_equations,
+            "functional_spec": functional_spec,
+            "notes": notes,
+            "index": "j ranges over the output array" if shape[1] > 1 else "j=0",
+            "source": cost.get("source"),
+            "canonical_id": cost.get("canonical_id"),
+            "builder_gate_rows": cost.get("gate_rows"),
+            "expanded_air_terms": False,
+        })
+    assertions = [f"{item['lhs']}[j] - {item['rhs']}[j] = 0"
+                  for item in relation["assertions"]]
+    return {
+        "schema": "s31-semantic-equations-v1",
+        "program": relation["name"],
+        "field_modulus": 2147483647,
+        "scope": ("Source-level field equations. The pinned circuit AIR also constrains "
+                  "wire lookup closure, public binding, range/bit rules, and profile-specific rows. "
+                  "Builder gate counts are not physical AIR row ownership."),
+        "profile": report["profile"],
+        "nodes": nodes,
+        "assertions": assertions,
+        "public_inputs": [item["name"] for item in relation["inputs"]
+                          if item["visibility"] == "public"],
+        "public_outputs": relation["public_outputs"],
+    }
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(prog="s31", description="S31 circuit relation compiler")
     commands = parser.add_subparsers(dest="command", required=True)
-    for command in ("check", "inspect", "explain", "run"):
-        sub = commands.add_parser(command)
+    for command in ("check", "inspect", "explain", "equations", "run"):
+        help_text = {
+            "explain": "show canonical nodes, source positions, and builder gate counts",
+            "equations": "show source-level field equations (not expanded AIR terms)",
+        }.get(command)
+        sub = commands.add_parser(command, help=help_text)
         sub.add_argument("source_or_package", type=Path)
         if command == "run":
             sub.add_argument("assignment", type=Path)
@@ -401,6 +511,9 @@ def main() -> None:
         return
     if args.command == "explain":
         print(json.dumps(explain(package_for(args.source_or_package)), indent=2, sort_keys=True))
+        return
+    if args.command == "equations":
+        print(json.dumps(equations(package_for(args.source_or_package)), indent=2, sort_keys=True))
         return
     if args.command in ("check", "inspect", "run"):
         package = package_for(args.source_or_package)
