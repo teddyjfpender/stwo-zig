@@ -1,20 +1,43 @@
 """Semantic and lowering checks for the proof-aware S31 text core."""
 
 import json
+import copy
 import unittest
 from pathlib import Path
 
 import generate_merkle_path
-from s31_stdlib import (P, decode_m31_words_le, decode_u256_le, encode_m31_words_le, encode_u256_le, reference_digest,
+from s31_stdlib import (P, decode_header80, encode_header80, decode_m31_words_le, decode_u256_le, encode_m31_words_le, encode_u256_le, reference_digest,
                         reference_iterate, reference_m31_binary, reference_m31_from_u16,
                         reference_merkle_path, reference_select)
 from text_frontend import Parser, SourceError, compile_file, compile_text
+from oracle import OracleError, evaluate_relation
 
 
 EXAMPLES = Path(__file__).resolve().parent / "examples"
 
 
 class TextFrontendTests(unittest.TestCase):
+    def test_bitcoin_header_sha256d_and_compact_pow(self) -> None:
+        hash_relation, _ = compile_file(EXAMPLES / "bitcoin_header_hash.s31")
+        pow_relation, _ = compile_file(EXAMPLES / "bitcoin_header_pow.s31")
+        assignment = json.loads((EXAMPLES / "bitcoin_header_hash.valid.json").read_text())
+        header_bytes = encode_header80(assignment["private_inputs"]["header"])
+        self.assertEqual(len(header_bytes), 80)
+        self.assertEqual(header_bytes[72:76], bytes.fromhex("ffff001d"))
+        self.assertEqual(decode_header80(header_bytes), assignment["private_inputs"]["header"])
+        self.assertEqual([node["op"] for node in hash_relation["nodes"]],
+                         ["hash_sha256d_header", "cast_m31", "hash_poseidon2_leaf"])
+        self.assertEqual([node["op"] for node in pow_relation["nodes"][:3]],
+                         ["hash_sha256d_header", "bitcoin_target_mainnet", "u256_le"])
+        self.assertEqual(evaluate_relation(pow_relation, assignment), assignment["public_outputs"])
+        for limb, value in ((37, 0x1d80), (37, 0x2100), (39, assignment["private_inputs"]["header"][39] + 1)):
+            changed = copy.deepcopy(assignment)
+            changed["private_inputs"]["header"][limb] = value
+            with self.subTest(limb=limb, value=value), self.assertRaises(OracleError):
+                evaluate_relation(pow_relation, changed)
+        with self.assertRaisesRegex(SourceError, "requires a serialized Bytes80"):
+            compile_text("circuit bad(private x: Bytes32) -> public Bytes32 { std::hash::sha256d_header(x) }")
+
     def test_field_cast_arithmetic_and_selection(self) -> None:
         self.assertEqual(reference_m31_from_u16([0, 65535]), [0, 65535])
         with self.assertRaises(ValueError):

@@ -80,12 +80,14 @@ def abi(source: dict, lowering: str) -> dict:
             length = node["length"]
         elif op in {"sum_lanes", "u256_le"}:
             length = 1
+        elif op in {"hash_sha256d_header", "bitcoin_target_mainnet"}:
+            length = 16
         elif op in {"hash_blake2s", "hash_blake2s_leaf", "hash_blake2s_pair",
                     "hash_poseidon2_leaf", "hash_poseidon2_pair"}:
             length = 8
         else:
             length = shapes[node["lhs"]]["length"]
-        shapes[node["name"]] = {"kind": "u16" if op in {"u256_add", "u256_add_checked"} else "m31", "length": length}
+        shapes[node["name"]] = {"kind": "u16" if op in {"u256_add", "u256_add_checked", "hash_sha256d_header", "bitcoin_target_mainnet"} else "m31", "length": length}
     return {
         "schema": "s31-public-abi-v1",
         "encoding": "eight canonical M31 words, encoded little-endian u32; unused words are zero" if lowering.startswith("direct-") else "eight little-endian u32 words; unused words are zero",
@@ -478,6 +480,27 @@ def equations(package: Path) -> dict:
                     f"{name}[0] = 1 - b[16]",
                 ))
             notes.append("These are limb equations; the circuit also range checks each digit and constrains each carry/borrow Boolean.")
+        elif op == "hash_sha256d_header":
+            shape = ("u16", 16)
+            functional_spec = f"{name} = SHA256(SHA256(LE16_bytes({node['lhs']}[0..39])))"
+            field_equations.extend((
+                "input and output limbs each lie in [0,65535]",
+                "each decomposed bit b satisfies b * (b - 1) = 0",
+                "low16 + 65536*carry_low = low16_a + low16_b",
+                "high16 + 65536*carry_high = high16_a + high16_b + carry_low",
+            ))
+            notes.append("SHA-256 uses three fixed 64-byte compression blocks: two for the header and one for the second hash. Padding and bit lengths 640 and 256 are constants.")
+            notes.append("Rotations and shifts permute constrained bits; choose, majority, and XOR use field multiplication. The output is raw digest bytes in little-endian u16 limbs.")
+        elif op == "bitcoin_target_mainnet":
+            shape = ("u16", 16)
+            functional_spec = f"{name} = DecodeCompactMainnet(LE16_bytes({node['lhs']})[72..75])"
+            field_equations.extend((
+                "header nBits limbs decompose into Boolean bits and four little-endian bytes",
+                "s[e] in {0,1}; sum(s[e], e=1..32)=1; sum(e*s[e])=exponent",
+                "target byte[j] = sum(s[e] * mantissa byte[j-e+3]) over valid e and byte positions",
+                "mantissa sign bit = 0; target bytes[28..31] = 0; target != 0",
+            ))
+            notes.append("The high-byte zero rule is equivalent to target <= Bitcoin mainnet powLimit, whose highest nonzero byte is 27 and equals 255.")
         elif op in hashes:
             shape = ("m31", 8)
             arguments = ", ".join(node[key] for key in ("lhs", "rhs") if key in node)

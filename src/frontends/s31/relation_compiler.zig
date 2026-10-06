@@ -7,6 +7,8 @@ const circuit = @import("stwo_circuit_frontend");
 const relation = @import("relation.zig");
 const canonical = @import("canonical.zig");
 const poseidon2 = @import("poseidon2.zig");
+const sha256d = @import("sha256d.zig");
+const bitcoin_target = @import("bitcoin_target.zig");
 
 const M31 = core.fields.m31.M31;
 const QM31 = core.fields.qm31.QM31;
@@ -71,6 +73,8 @@ pub fn compileRaw(comptime V: type, allocator: std.mem.Allocator, program: relat
             .u256_add => try u256Binary(V, &ctx, lhs.?, rhs.?, false, false),
             .u256_le => try u256Binary(V, &ctx, lhs.?, rhs.?, true, false),
             .u256_add_checked => try u256Binary(V, &ctx, lhs.?, rhs.?, false, true),
+            .hash_sha256d_header => try sha256dHeader(V, &ctx, lhs.?),
+            .bitcoin_target_mainnet => try mainnetTarget(V, &ctx, lhs.?),
             .repeat => blk: {
                 const constants = try scratch.alloc(?Simd, node.body.?.len);
                 for (node.body.?, constants) |step, *slot| slot.* = if (step.constant) |value| try circuit.builder.simd.repeat(V, &ctx, M31.fromCanonical(value), length) else null;
@@ -265,6 +269,8 @@ fn compileWithSpansMode(comptime V: type, allocator: std.mem.Allocator, program:
             .u256_add => try u256Binary(V, &ctx, entries[node.lhs.?], entries[node.rhs.?], false, false),
             .u256_le => try u256Binary(V, &ctx, entries[node.lhs.?], entries[node.rhs.?], true, false),
             .u256_add_checked => try u256Binary(V, &ctx, entries[node.lhs.?], entries[node.rhs.?], false, true),
+            .hash_sha256d_header => try sha256dHeader(V, &ctx, entries[node.lhs.?]),
+            .bitcoin_target_mainnet => try mainnetTarget(V, &ctx, entries[node.lhs.?]),
             .repeat => blk: {
                 if (chip_mode) {
                     const spec = program.repeatedStepChip().?;
@@ -403,6 +409,24 @@ fn compileWithSpansMode(comptime V: type, allocator: std.mem.Allocator, program:
 fn outputWord(comptime V: type, ctx: *circuit.builder.Context(V), entry: Entry, index: usize, direct_output: bool) !Var {
     const base = if (entry.raw) |raw| raw[index] else try circuit.builder.simd.unpackIdx(V, ctx, entry.lanes, index);
     return if (direct_output or entry.shape.kind == .u16) base else (try circuit.builder.blake.m31ToU32(V, ctx, base)).get();
+}
+
+fn sha256dHeader(comptime V: type, ctx: *circuit.builder.Context(V), input: Entry) !Entry {
+    const header = input.raw orelse return error.InvalidHeaderOperand;
+    const digest = try sha256d.hashHeader(V, ctx, header);
+    const raw = try ctx.scratch().dupe(Var, &digest);
+    const wrappers = try ctx.scratch().alloc(circuit.builder.wrappers.M31Wrapper(Var), 16);
+    for (raw, wrappers) |wire, *wrapped| wrapped.* = .newUnsafe(wire);
+    return .{ .shape = .{ .kind = .u16, .length = 16 }, .lanes = try circuit.builder.simd.pack(V, ctx, wrappers), .raw = raw };
+}
+
+fn mainnetTarget(comptime V: type, ctx: *circuit.builder.Context(V), input: Entry) !Entry {
+    const header = input.raw orelse return error.InvalidHeaderOperand;
+    const target = try bitcoin_target.mainnetTarget(V, ctx, header);
+    const raw = try ctx.scratch().dupe(Var, &target);
+    const wrappers = try ctx.scratch().alloc(circuit.builder.wrappers.M31Wrapper(Var), 16);
+    for (raw, wrappers) |wire, *wrapped| wrapped.* = .newUnsafe(wire);
+    return .{ .shape = .{ .kind = .u16, .length = 16 }, .lanes = try circuit.builder.simd.pack(V, ctx, wrappers), .raw = raw };
 }
 
 /// Little-endian 16-bit limbs. Every output digit is range checked and every

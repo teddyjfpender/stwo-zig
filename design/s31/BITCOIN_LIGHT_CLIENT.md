@@ -1,8 +1,10 @@
 # S31 Bitcoin header light client: executable base and recursive target
 
-Status: the wide-integer base is executable; Bitcoin hashing, header rules, and
-recursive proof verification are design work. The concrete program and
-handwritten constraints are in [the wide-value chapter](../../src/frontends/s31/docs/wide-values.md).
+Status: wide integers, byte-exact SHA256d of one 80-byte header, mainnet compact
+target decoding, and the proof-of-work inequality are executable and have
+generated native verifiers. Header-chain policy and recursive proof verification
+remain design work. The [Bitcoin header chapter](../../src/frontends/s31/docs/bitcoin-sha256d.md)
+shows the concrete program and handwritten constraints.
 This document specifies a **header-chain light client**. It does not claim
 transaction, UTXO, or script validity from headers alone.
 
@@ -22,12 +24,28 @@ are cost records for this exact program, not Bitcoin block proofs. The source
 uses modular `add_u256`; a separately measured variant uses
 `add_u256_checked` to reject overflow.
 
+`Bytes80` adds the serialized header shape. `std::hash::sha256d_header` fully
+constrains the two header compression blocks and one second-hash block.
+`std::bitcoin::target_mainnet` decodes bytes 72–75 with a constrained compact
+exponent and nonnegative mantissa, enforces a nonzero result within mainnet
+`powLimit`, and returns `UInt256`. The
+[`bitcoin_header_pow.s31`](../../src/frontends/s31/examples/bitcoin_header_pow.s31)
+program compares the digest interpreted as a little-endian integer to that
+target and asserts success. Its generated native verifier accepted the
+genesis-header proof and rejected a changed public commitment. This is a
+single-header proof, not a chain validity proof.
+The [matched single-header measurement](measurements/bitcoin-header-sha256d-v1-2026-10-06.json)
+records hash-only and PoW versions of the same genesis witness. The latter
+adds 614 raw QM31 rows and uses the same padded trace size; it proves byte
+exactness and the target inequality inside one Stwo proof.
+
 The next type layer should distinguish `BlockHash`, `Target`, `Work`, and
 `ChainWork` from generic bytes and integers. Each conversion must name byte
 order and prove its preconditions. A `BlockHash` should originate from a
 constrained SHA256d call, or be visibly an externally asserted value. A
-`Target` should originate from a constrained, consensus-correct compact
-`nBits` decoder. A `ChainWork` update should use checked addition or another
+`Target` can originate from the current mainnet compact decoder, but its type
+should prevent accidental use with another network or policy. A `ChainWork`
+update should use checked addition or another
 reviewed overflow contract; modular `add_u256` would hide overflow if the
 statement intends mathematical accumulated work.
 
@@ -103,12 +121,13 @@ a fold while keeping the outer verifier and proof size bounded.
 | Stage | Deliverable | Required evidence |
 | --- | --- | --- |
 | 1. Wide arithmetic | Typed byte/int values, carry/borrow relations, independent oracle | Current example and native proof; add boundary and randomized adversarial vectors. |
-| 2. Byte-exact header hash | `Bytes80`, SHA256d relation or dedicated chip, `BlockHash` type | Bitcoin Core differential vectors; one native proof; trace mutation rejection; gate/chip cost crossover. |
-| 3. Header policy | Compact target, difficulty transitions, work increment, versioned public state ABI | Historical and edge-case header corpus; invalid transitions rejected by native verifier. |
+| 2. Byte-exact header hash | **Generic circuit complete:** `Bytes80`, SHA256d relation, one native proof. Remaining: nominal `BlockHash`, broader Bitcoin Core differential vectors, and a dedicated chip cost crossover. | Genesis and randomized byte checks; native proof and changed-root rejection currently pass. |
+| 3. Header policy | **Single-header mainnet PoW complete:** compact target, powLimit, unsigned comparison. Remaining: difficulty transitions, header linkage, work increment, and versioned public state ABI. | Historical and edge-case header corpus; invalid transitions rejected by native verifier. |
 | 4. In-circuit S31 verifier | One pinned `S31NAT*` profile and verification-key policy | Valid native/circuit parity; malformed proof, key, profile, transcript, FRI and statement mutations all reject. |
 | 5. Recursive fold | Base and step wrappers; proof of a proof of a step | Two- and many-step folds; fixed-size outer statement/proof; checkpoint and fork-policy tests. |
 
-Optimization should now start with byte-exact SHA256d and target operations.
+Optimization should now focus on a dedicated SHA chip and the header-chain
+policy.
 The current wide example takes 16,422 raw QM31 rows, 69 Eq rows, and 88
 M31-to-u32 rows. `sparse-wide-gate` retains only the four AIR components it
 needs, cutting fixed cells from 4,507,264 to 328,320 and the one-sample

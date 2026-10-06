@@ -8,10 +8,11 @@ modulo `p`; `p` itself is **not** a canonical encoding of zero. A `u16` value
 is an integer from `0` through `65535`. `m31_from_u16` preserves its numeric
 value and changes its type. There are no implicit integer/field conversions.
 
-Text types are fixed-size `[m31; N]` and `[u16; N]`, `UInt256`, `Bytes32`, a
+Text types are fixed-size `[m31; N]` and `[u16; N]`, `UInt256`, `Bytes32`, `Bytes80`, a
 single `bit`, and `Digest<Poseidon2>` or `Digest<Blake2sReduced>`. The two
-wide types each erase to sixteen little-endian `u16` limbs; explicit
-conversion chooses the integer meaning of 32 bytes. Their arithmetic and
+`UInt256` and `Bytes32` each erase to sixteen little-endian `u16` limbs;
+`Bytes80` erases to forty. Explicit conversion chooses the integer meaning of
+32 bytes. Their arithmetic and
 range constraints are worked by hand in [thirty-two bytes and 256-bit
 arithmetic](wide-values.md). `bit` erases to `m31[1]` in
 relation JSON and must be a directly declared input used by `select`. The
@@ -87,6 +88,8 @@ contract and worked polynomial are in [the library chapter](library.md).
 | `std::field::from_u16(x)` | Value-preserving cast from `[u16; N]`. |
 | `std::field::select(bit,a,b)` | `a` if zero, `b` if one; same type/shape. |
 | `std::hash::poseidon2_leaf/pair`, `std::hash::blake2s_leaf/pair` | The [typed hash operations](hashes.md). |
+| `std::hash::sha256d_header(header)` | Fully constrained double SHA-256 of an 80-byte header, returning `Bytes32`. |
+| `std::bitcoin::target_mainnet(header)` | Constrained decoding of header `nBits` into a mainnet-limited `UInt256` target. |
 | `std::merkle::path_poseidon2`, `std::merkle::path_blake2s` | Fixed-depth path built from hashes and selects. |
 
 The older unqualified spellings (`select`, `poseidon2_leaf`, etc.) still work
@@ -157,6 +160,8 @@ semantics:
 | `repeat` | `lhs: m31[N]`, `rounds`, and a static `body` of `square`, `add_const`, `mul_const` steps. |
 | `select` | Equal `m31[N]` arrays `lhs`, `rhs`; `selector: m31[1]` constrained to a bit. |
 | `hash_blake2s`, `hash_blake2s_leaf/pair`, `hash_poseidon2_leaf/pair` | The [exact encodings and framing](hashes.md); each returns `m31[8]`. |
+| `hash_sha256d_header` | `lhs: u16[40]` gives raw double-SHA digest as `u16[16]`; three compression blocks are constrained. |
+| `bitcoin_target_mainnet` | `lhs: u16[40]` gives a nonzero, mainnet-limited compact target as `u16[16]`. |
 
 An assertion names two values of equal type and length. It is part of the
 relation even if it is not used by the output expression. The JSON parser

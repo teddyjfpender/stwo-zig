@@ -8,7 +8,7 @@ For `.s31` editor support, see the [S31 TextMate grammar and neon theme](../../.
 
 The earlier [source-to-AIR implementation guide](LANGUAGE_AND_AIR.md) remains available for backend detail.
 
-The compiler accepts normalized JSON and a [limited typed `.s31` text language](TEXT_LANGUAGE.md) that lowers to the same relation. Inputs have `u16` or `m31` relation type, fixed length, and public or private visibility. The text language also has nominal `Bytes32` and `UInt256` values backed by sixteen `u16` limbs. Nodes are topologically ordered. Supported normalized operations are `constant`, `cast_m31`, lane-wise `add`/`mul`, `add_const`/`mul_const`, `sum_lanes`, constrained `u256_add`/`u256_add_checked`/`u256_le`, statically bounded `repeat` with `square` and constant steps, `select`, BLAKE2s raw/leaf/ordered-pair hashing, and pinned M31 Poseidon2 leaf/ordered-pair hashing. BLAKE2s hash inputs are canonical M31 words encoded little endian as 32-bit words; its eight digest words are reduced modulo M31. Poseidon2 outputs eight canonical M31 state words directly. Assertions constrain equal arrays. Public inputs and outputs occupy at most eight direct words: `u32` in the original profile, canonical M31 in direct-v4. Witnesses cannot change graph shape.
+The compiler accepts normalized JSON and a [limited typed `.s31` text language](TEXT_LANGUAGE.md) that lowers to the same relation. Inputs have `u16` or `m31` relation type, fixed length, and public or private visibility. The text language has nominal `Bytes32` and `UInt256` values backed by sixteen `u16` limbs and `Bytes80` backed by forty. Nodes are topologically ordered. Supported normalized operations include arithmetic, constrained 256-bit addition/comparison, static repeats, selection, BLAKE2s and Poseidon2 hashes, byte-exact Bitcoin header SHA256d, and mainnet compact-target decoding. BLAKE2s hash inputs are canonical M31 words encoded little endian as 32-bit words; its eight digest words are reduced modulo M31. Poseidon2 outputs eight canonical M31 state words directly. Assertions constrain equal arrays. Public inputs and outputs occupy at most eight direct words: `u32` in the original profile, canonical M31 in direct-v4. Witnesses cannot change graph shape.
 
 To use the text frontend and inspect its exact lowering:
 
@@ -96,9 +96,11 @@ generic AIR's lookup and public-binding terms documented separately in
 The [`wide_order.s31` example](examples/wide_order.s31) uses typed 32-byte
 values, constrained 256-bit addition and comparison, and a Poseidon2 public
 commitment. The [worked wide-value chapter](docs/wide-values.md) derives its
-carry and borrow equations by hand. Use `--lowering gate` for this example;
-the current sparse profile does not admit its equality rows. This is a wide
-arithmetic foundation, not a Bitcoin SHA256d or recursive verifier.
+carry and borrow equations by hand. Use `--lowering sparse-wide-gate` for this
+example. For an actual Bitcoin header proof, see
+[`bitcoin_header_pow.s31`](examples/bitcoin_header_pow.s31) and its
+[worked walkthrough](docs/bitcoin-sha256d.md): three constrained SHA-256
+compression blocks, mainnet `nBits` decoding, and a hash ≤ target assertion.
 
 From the repository root:
 
@@ -180,4 +182,4 @@ The v1 acceptance suite proves arithmetic, Blake2s, mixed, three-lane, and priva
 
 The direct/Cairo comparison also requires the compiled Cairo executable and VM adapter input from `S31_TRIALS=1 src/frontends/s31/scale.sh 32768`, plus a direct profile benchmark including 32,768 rounds. It checks the same public values under both native verifiers; its recorded time ratio applies only to this recurrence and the selected proof implementations.
 
-The default v1 profile still pays for all eleven circuit AIR components and 45 preprocessed columns. The arithmetic-only sparse v3 profile uses three components and 12 preprocessed columns; direct-M31 v4 uses one and eight. Each has a distinct verification key and native verifier. The public ABI is limited to eight words. Poseidon2 is currently lowered into that arithmetic circuit; there is no dedicated batch hash chip. There is no general control flow, automatic chip extraction, private circuit-to-chip boundary, or recursive verifier generation. The older v0 `showcase`, `compare.sh`, and `scale.sh` paths remain available for the large repeated-arithmetic Cairo comparison. The [engineering brief](../../../design/s31/README.md) and [MVP roadmap](../../../design/s31/MVP_ROADMAP.md) describe the remaining work.
+The default v1 profile still pays for all eleven circuit AIR components and 45 preprocessed columns. The arithmetic-only sparse v3 profile uses three components and 12 preprocessed columns; direct-M31 v4 uses one and eight. The sparse-wide v5 profile adds equality rows for wide-integer and SHA gadgets. Each has a distinct verification key and native verifier. The public ABI is limited to eight words. Poseidon2 and SHA256d are currently lowered into the generic arithmetic circuit; there is no dedicated SHA or batch hash chip. There is no general control flow, automatic chip extraction, private circuit-to-chip boundary, or recursive verifier generation. The older v0 `showcase`, `compare.sh`, and `scale.sh` paths remain available for the large repeated-arithmetic Cairo comparison. The [engineering brief](../../../design/s31/README.md) and [MVP roadmap](../../../design/s31/MVP_ROADMAP.md) describe the remaining work.

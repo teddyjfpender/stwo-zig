@@ -93,6 +93,14 @@ def check_examples() -> None:
         (sum(xs) + sum(x * w for x, w in zip(xs, weights))) % P
     ]
     assert evaluate_relation(lane_relation, lane_assignment) == {"result": [296]}
+    bitcoin_relation, _ = compile_text(
+        text_block_containing(DOCS / "bitcoin-sha256d.md", "circuit bitcoin_header_pow"),
+        "bitcoin-sha256d.md",
+    )
+    checked_bitcoin, _ = compile_text((S31 / "examples/bitcoin_header_pow.s31").read_text())
+    assert bitcoin_relation == checked_bitcoin
+    bitcoin_assignment = json.loads((S31 / "examples/bitcoin_header_hash.valid.json").read_text())
+    assert evaluate_relation(bitcoin_relation, bitcoin_assignment) == bitcoin_assignment["public_outputs"]
     worked = DOCS / "worked-proofs.md"
     worked_lane, _ = compile_text(text_block(worked, "use std@1;"), "worked-proofs.md")
     assert worked_lane == lane_relation

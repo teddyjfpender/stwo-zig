@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import hashlib
 import re
+import struct
 from collections.abc import Mapping
 from typing import Any
 
@@ -27,7 +28,8 @@ _HASH_OPS = frozenset({
 })
 _OPS = frozenset({"constant", "cast_m31", "add", "mul", "add_const",
                   "mul_const", "sum_lanes", "select", "repeat",
-                  "u256_add", "u256_le", "u256_add_checked"}) | _HASH_OPS
+                  "u256_add", "u256_le", "u256_add_checked",
+                  "hash_sha256d_header", "bitcoin_target_mainnet"}) | _HASH_OPS
 _NODE_FIELDS = frozenset({"name", "op", "lhs", "rhs", "selector",
                           "constant", "length", "rounds", "body"})
 
@@ -158,6 +160,11 @@ def _validated_shapes(relation: Mapping[str, Any]) -> tuple[dict[str, tuple[str,
             if lhs != ("u16", 16) or rhs != ("u16", 16):
                 raise OracleError(f"{name}: {op} requires two 16-limb u256 operands")
             shape = ("u16", 16) if op in {"u256_add", "u256_add_checked"} else ("m31", 1)
+        elif op in ("hash_sha256d_header", "bitcoin_target_mainnet"):
+            _absent(node, "rhs", "constant", "length", "rounds", "body")
+            if lhs != ("u16", 40):
+                raise OracleError(f"{name}: {op} requires forty u16 limbs")
+            shape = ("u16", 16)
         elif op == "select":
             _absent(node, "constant", "length", "rounds", "body")
             if rhs is None:
@@ -286,6 +293,21 @@ def evaluate_relation(relation: Mapping[str, Any], assignment: Mapping[str, Any]
                 raise OracleError(f"{name}: 256-bit addition overflow")
             result = ([((a + b) >> (16 * index)) & 0xffff for index in range(16)]
                       if op != "u256_le" else [int(a <= b)])
+        elif op == "hash_sha256d_header":
+            header = struct.pack("<40H", *lhs)
+            first = hashlib.sha256(header).digest()
+            result = list(struct.unpack("<16H", hashlib.sha256(first).digest()))
+        elif op == "bitcoin_target_mainnet":
+            header = struct.pack("<40H", *lhs)
+            compact = int.from_bytes(header[72:76], "little")
+            exponent, mantissa = compact >> 24, compact & 0x7fffff
+            if compact & 0x800000 or not 1 <= exponent <= 32 or not mantissa:
+                raise OracleError(f"{name}: invalid mainnet compact target")
+            target = (mantissa >> (8 * (3 - exponent)) if exponent <= 3
+                      else mantissa << (8 * (exponent - 3)))
+            if not 0 < target <= 0xffff << 208:
+                raise OracleError(f"{name}: target exceeds mainnet powLimit or is zero")
+            result = [(target >> (16 * index)) & 0xffff for index in range(16)]
         elif op == "select":
             bit = values[node["selector"]][0]
             if bit not in (0, 1):

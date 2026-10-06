@@ -32,7 +32,7 @@ class Type:
     def __post_init__(self) -> None:
         if self.length < 1 or self.length > 4096:
             raise TypeErrorS31("array length must be 1..4096")
-        if self.kind not in {"m31", "u16", "bit", "digest", "uint256", "bytes32"}:
+        if self.kind not in {"m31", "u16", "bit", "digest", "uint256", "bytes32", "bytes80"}:
             raise TypeErrorS31(f"unsupported type {self.kind}")
         if self.kind == "bit" and self.length != 1:
             raise TypeErrorS31("bit is a single constrained field value")
@@ -40,9 +40,11 @@ class Type:
             raise TypeErrorS31("digest must name a supported eight-word hash family")
         if self.kind in {"uint256", "bytes32"} and (self.length != 16 or self.family):
             raise TypeErrorS31("256-bit values require sixteen little-endian u16 limbs")
+        if self.kind == "bytes80" and (self.length != 40 or self.family):
+            raise TypeErrorS31("Bytes80 requires forty little-endian u16 limbs")
 
     def relation_shape(self) -> tuple[str, int]:
-        return ("u16" if self.kind in {"u16", "uint256", "bytes32"} else "m31", self.length)
+        return ("u16" if self.kind in {"u16", "uint256", "bytes32", "bytes80"} else "m31", self.length)
 
 
 @dataclass(frozen=True)
@@ -181,6 +183,20 @@ class Builder:
         return self.emit(op, Type("digest", 8, family), wanted=wanted, span=span,
                          lhs=self.realize(value).ref)
 
+    def sha256d_header(self, value: Value, *, wanted: str | None = None,
+                       span: dict[str, int] | None = None) -> Value:
+        if value.typ != Type("bytes80", 40):
+            raise TypeErrorS31("sha256d_header requires a serialized Bytes80 header")
+        return self.emit("hash_sha256d_header", Type("bytes32", 16),
+                         wanted=wanted, span=span, lhs=self.realize(value).ref)
+
+    def bitcoin_target_mainnet(self, value: Value, *, wanted: str | None = None,
+                               span: dict[str, int] | None = None) -> Value:
+        if value.typ != Type("bytes80", 40):
+            raise TypeErrorS31("target_mainnet requires a serialized Bytes80 header")
+        return self.emit("bitcoin_target_mainnet", Type("uint256", 16),
+                         wanted=wanted, span=span, lhs=self.realize(value).ref)
+
     def hash_pair(self, family: str, lhs: Value, rhs: Value, *, wanted: str | None = None,
                   span: dict[str, int] | None = None) -> Value:
         expected = Type("digest", 8, family)
@@ -272,6 +288,19 @@ def encode_u256_le(limbs: list[int]) -> bytes:
     if len(limbs) != 16 or any(type(word) is not int or not 0 <= word < 65536 for word in limbs):
         raise ValueError("UInt256/Bytes32 requires sixteen canonical u16 limbs")
     return struct.pack("<16H", *limbs)
+
+
+def decode_header80(encoded: bytes) -> list[int]:
+    """Turn exactly 80 serialized header bytes into S31 `Bytes80` limbs."""
+    if len(encoded) != 80:
+        raise ValueError("Bytes80 requires exactly 80 serialized bytes")
+    return list(struct.unpack("<40H", encoded))
+
+
+def encode_header80(limbs: list[int]) -> bytes:
+    if len(limbs) != 40 or any(type(word) is not int or not 0 <= word < 65536 for word in limbs):
+        raise ValueError("Bytes80 requires forty canonical u16 limbs")
+    return struct.pack("<40H", *limbs)
 
 
 def reference_m31_binary(op: str, lhs: list[int], rhs: list[int]) -> list[int]:

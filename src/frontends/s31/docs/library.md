@@ -114,7 +114,10 @@ under `std::hash`, and fixed-depth path calls under `std::merkle`.
 `std::bytes::to_u256_le`, `from_u256_le`, and `limbs_m31` give explicit
 conversions for the nominal `Bytes32` and `UInt256` types. The
 [wide-value chapter](wide-values.md) shows exact limb equations and a complete
-source example. These calls do not compute Bitcoin SHA256d.
+source example. `std::hash::sha256d_header(Bytes80)` now computes and proves
+byte-exact Bitcoin header hashing; `std::bitcoin::target_mainnet(Bytes80)`
+constrains the mainnet compact target. The [Bitcoin header chapter](bitcoin-sha256d.md)
+works through both operations and the proof-of-work comparison.
 Their field, bit, digest, and hash rules are in [source semantics](source.md)
 and [hash semantics](hashes.md).
 

@@ -21,7 +21,7 @@ pub const Step = struct {
     op: StepOp,
     constant: ?u32 = null,
 };
-pub const Op = enum { constant, cast_m31, add, mul, add_const, mul_const, repeat, hash_blake2s, hash_blake2s_leaf, hash_blake2s_pair, select, hash_poseidon2_leaf, hash_poseidon2_pair, sum_lanes, u256_add, u256_le, u256_add_checked };
+pub const Op = enum { constant, cast_m31, add, mul, add_const, mul_const, repeat, hash_blake2s, hash_blake2s_leaf, hash_blake2s_pair, select, hash_poseidon2_leaf, hash_poseidon2_pair, sum_lanes, u256_add, u256_le, u256_add_checked, hash_sha256d_header, bitcoin_target_mainnet };
 pub const leaf_personalization = [8]u8{ 'S', '3', '1', 'L', 'E', 'A', 'F', '1' };
 pub const pair_personalization = [8]u8{ 'S', '3', '1', 'P', 'A', 'I', 'R', '1' };
 pub const Node = struct {
@@ -136,6 +136,18 @@ pub const Program = struct {
                     else
                         .{ .kind = .m31, .length = 1 };
                 },
+                .hash_sha256d_header => {
+                    if (lhs == null or lhs.?.kind != .u16 or lhs.?.length != 40 or
+                        rhs != null or node.constant != null or node.length != null or
+                        node.rounds != null or node.body != null) return error.InvalidNode;
+                    result = .{ .kind = .u16, .length = 16 };
+                },
+                .bitcoin_target_mainnet => {
+                    if (lhs == null or lhs.?.kind != .u16 or lhs.?.length != 40 or
+                        rhs != null or node.constant != null or node.length != null or
+                        node.rounds != null or node.body != null) return error.InvalidNode;
+                    result = .{ .kind = .u16, .length = 16 };
+                },
                 .repeat => {
                     if (lhs == null or lhs.?.kind != .m31 or rhs != null or node.constant != null or node.length != null or node.rounds == null or node.rounds.? == 0 or node.rounds.? > 32768 or node.body == null or node.body.?.len == 0 or node.body.?.len > 16) return error.InvalidNode;
                     for (node.body.?) |step| switch (step.op) {
@@ -195,10 +207,11 @@ pub const Program = struct {
             const length: usize = switch (node.op) {
                 .constant => node.length orelse return error.InvalidNode,
                 .sum_lanes, .u256_le => 1,
+                .hash_sha256d_header, .bitcoin_target_mainnet => 16,
                 .hash_blake2s, .hash_blake2s_leaf, .hash_blake2s_pair, .hash_poseidon2_leaf, .hash_poseidon2_pair => 8,
                 else => (shapes.get(node.lhs orelse return error.InvalidNode) orelse return error.UnknownOperand).length,
             };
-            const shape: Shape = .{ .kind = if (node.op == .u256_add or node.op == .u256_add_checked) .u16 else .m31, .length = length };
+            const shape: Shape = .{ .kind = if (node.op == .u256_add or node.op == .u256_add_checked or node.op == .hash_sha256d_header or node.op == .bitcoin_target_mainnet) .u16 else .m31, .length = length };
             if (std.mem.eql(u8, node.name, name)) return shape;
             try shapes.put(allocator, node.name, shape);
         }
@@ -282,12 +295,31 @@ pub fn evaluate(allocator: std.mem.Allocator, program: Program, assignment: Assi
     }
     for (program.inputs) |input| try values.put(allocator, input.name, try inputValues(allocator, assignment, input));
     for (program.nodes) |node| {
-        const length: usize = if (node.op == .constant) node.length.? else if (node.op == .sum_lanes or node.op == .u256_le) 1 else if (node.op == .hash_blake2s or node.op == .hash_blake2s_leaf or node.op == .hash_blake2s_pair or node.op == .hash_poseidon2_leaf or node.op == .hash_poseidon2_pair) 8 else (values.get(node.lhs.?) orelse return error.UnknownOperand).len;
+        const length: usize = if (node.op == .constant) node.length.? else if (node.op == .sum_lanes or node.op == .u256_le) 1 else if (node.op == .hash_sha256d_header or node.op == .bitcoin_target_mainnet) 16 else if (node.op == .hash_blake2s or node.op == .hash_blake2s_leaf or node.op == .hash_blake2s_pair or node.op == .hash_poseidon2_leaf or node.op == .hash_poseidon2_pair) 8 else (values.get(node.lhs.?) orelse return error.UnknownOperand).len;
         const out = try allocator.alloc(M31, length);
         errdefer allocator.free(out);
         const lhs = if (node.lhs) |name| values.get(name) orelse return error.UnknownOperand else null;
         const rhs = if (node.rhs) |name| values.get(name) orelse return error.UnknownOperand else null;
         const selector = if (node.selector) |name| values.get(name) orelse return error.UnknownOperand else null;
+        if (node.op == .hash_sha256d_header) {
+            var header: [80]u8 = undefined;
+            for (lhs.?, 0..) |word, i|
+                std.mem.writeInt(u16, header[2 * i ..][0..2], @intCast(word.toU32()), .little);
+            var first: [32]u8 = undefined;
+            var digest: [32]u8 = undefined;
+            std.crypto.hash.sha2.Sha256.hash(&header, &first, .{});
+            std.crypto.hash.sha2.Sha256.hash(&first, &digest, .{});
+            for (out, 0..) |*slot, i| slot.* = M31.fromCanonical(std.mem.readInt(u16, digest[2 * i ..][0..2], .little));
+            try values.put(allocator, node.name, out);
+            continue;
+        }
+        if (node.op == .bitcoin_target_mainnet) {
+            const compact = lhs.?[36].toU32() | (lhs.?[37].toU32() << 16);
+            const target = try mainnetTarget(compact);
+            for (out, 0..) |*slot, i| slot.* = M31.fromCanonical(@intCast((target >> @as(u8, @intCast(16 * i))) & 0xffff));
+            try values.put(allocator, node.name, out);
+            continue;
+        }
         if (node.op == .u256_add or node.op == .u256_add_checked) {
             var carry: u32 = 0;
             for (out, lhs.?, rhs.?) |*slot, a, b| {
@@ -363,7 +395,7 @@ pub fn evaluate(allocator: std.mem.Allocator, program: Program, assignment: Assi
                 if (bit > 1) return error.InvalidSelector;
                 break :blk if (bit == 0) lhs.?[i] else rhs.?[i];
             },
-            .hash_blake2s, .hash_blake2s_leaf, .hash_blake2s_pair, .hash_poseidon2_leaf, .hash_poseidon2_pair, .u256_add, .u256_le, .u256_add_checked => unreachable,
+            .hash_blake2s, .hash_blake2s_leaf, .hash_blake2s_pair, .hash_poseidon2_leaf, .hash_poseidon2_pair, .u256_add, .u256_le, .u256_add_checked, .hash_sha256d_header, .bitcoin_target_mainnet => unreachable,
         };
         try values.put(allocator, node.name, out);
     }
@@ -380,6 +412,19 @@ pub fn evaluate(allocator: std.mem.Allocator, program: Program, assignment: Assi
         for (actual, claimed_values) |a, b| if (!a.eql(b)) return error.PublicOutputMismatch;
     }
     return claimed;
+}
+
+pub fn mainnetTarget(compact: u32) !u256 {
+    const exponent: u8 = @intCast(compact >> 24);
+    const mantissa: u32 = compact & 0x007f_ffff;
+    if (compact & 0x0080_0000 != 0 or exponent == 0 or exponent > 32 or mantissa == 0)
+        return error.InvalidCompactTarget;
+    const target: u256 = if (exponent <= 3)
+        @as(u256, mantissa) >> @as(u8, @intCast(8 * (3 - @as(u32, exponent))))
+    else
+        @as(u256, mantissa) << @as(u8, @intCast(8 * (@as(u32, exponent) - 3)));
+    if (target == 0 or target > (@as(u256, 0xffff) << 208)) return error.InvalidCompactTarget;
+    return target;
 }
 
 fn arrayValues(allocator: std.mem.Allocator, object: std.json.Value, name: []const u8, shape: Shape) ![]M31 {

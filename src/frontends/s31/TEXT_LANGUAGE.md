@@ -92,6 +92,7 @@ relation and canonical IR digest.
 | `[m31; N]` | `m31[N]` | Each word is canonical modulo `2^31-1`. |
 | `[u16; N]` | `u16[N]` | Input words are range checked by the selected proof profile. |
 | `Bytes32` | `u16[16]` | Thirty-two bytes packed into sixteen little-endian, range-checked limbs. |
+| `Bytes80` | `u16[40]` | Eighty serialized header bytes packed into forty little-endian, range-checked limbs. |
 | `UInt256` | `u16[16]` | Unsigned integer with the same limbs; arithmetic is explicit. |
 | `bit` | `m31[1]` | Must be a direct input used by `select`; the circuit constrains `b²=b`. |
 | `Digest<Poseidon2>` | `m31[8]` | Nominal type for the pinned field-native digest. |
@@ -114,6 +115,8 @@ Raw BLAKE2s-256 bytes are distinct from its reduced M31-word digest.
 | `assert_eq(a,b);` | Relation assertion | Equally typed operands; checked as a proof constraint. |
 | `std::bytes::to_u256_le(x)`, `from_u256_le(x)` | No node; change nominal type | Explicit little-endian interpretation of `Bytes32` or `UInt256`. |
 | `std::bytes::limbs_m31(x)` | `cast_m31` | `Bytes32` or `UInt256`; preserves all sixteen limb values. |
+| `std::hash::sha256d_header(header)` | `hash_sha256d_header` | `Bytes80` to byte-exact `Bytes32`; two first-pass and one second-pass SHA-256 blocks are fully constrained. |
+| `std::bitcoin::target_mainnet(header)` | `bitcoin_target_mainnet` | `Bytes80` to `UInt256`; decodes `nBits` at bytes 72–75 and constrains a nonzero target within mainnet `powLimit`. |
 
 Qualified standard operations are compiler-owned. An explicit `use std@1;`
 pin is recorded in `stdlib-lock.json`; the lock digest is embedded in the
@@ -142,8 +145,9 @@ There is no general module loader or third-party package system yet.
 
 The [wide-value worked example](docs/wide-values.md) gives the exact integer
 equations, source, assignment, and current Bitcoin boundary. Its `u16`
-operands use the general `gate` proof profile: the current sparse profile
-rejects the equality rows used by these constraints.
+operands use `sparse-wide-gate`, which includes the equality and range rows.
+The [Bitcoin header walkthrough](docs/bitcoin-sha256d.md) follows the
+byte-exact SHA256d and compact proof-of-work operations through the circuit.
 
 [`math_polynomial4.s31`](examples/math_polynomial4.s31) is a complete math
 example, with an equivalent [normalized relation](examples/math_polynomial4.s31.json)

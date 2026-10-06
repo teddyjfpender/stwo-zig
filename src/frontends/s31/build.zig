@@ -41,6 +41,12 @@ pub fn build(b: *std.Build) void {
     });
     poseidon_ref.addImport("stwo_core", core);
     frontend.addImport("s31_poseidon_ref", poseidon_ref);
+    const sha256_ref = b.createModule(.{
+        .root_source_file = b.path("../riscv/air/guest_precompile/sha256_compression.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    frontend.addImport("s31_sha256_ref", sha256_ref);
 
     const tests = b.addRunArtifact(b.addTest(.{ .root_module = frontend }));
     b.step("test", "Test the S31 prototype parser, evaluator and circuit compiler").dependOn(&tests.step);

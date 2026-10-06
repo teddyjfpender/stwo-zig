@@ -20,7 +20,8 @@ general module loader or user-published package format yet.
 | `std::math` | `neg`, `sub`, `square`, static `pow<K>`, static-group `sum`, `dot`, `poly_eval`, fixed-array `sum_lanes`, `dot_lanes`, `add_u256`, `add_u256_checked`, `le_u256` | M31 arithmetic and constrained packed reduction; wide operations use sixteen range-checked digits and Boolean carries/borrows. |
 | `std::field` | `from_u16`, `select` | Explicit conversion; direct input bit selector with `b²-b=0`. |
 | `std::bytes` | `to_u256_le`, `from_u256_le`, `limbs_m31` | Explicit nominal byte/integer reinterpretation and value-preserving cast of sixteen `u16` limbs. |
-| `std::hash` | Poseidon2 and BLAKE2s reduced leaf/pair hashes | Existing pinned hash nodes. |
+| `std::hash` | Poseidon2 and BLAKE2s reduced leaf/pair hashes; byte-exact SHA256d of `Bytes80` | Existing pinned hash nodes plus a constrained three-block SHA circuit. |
+| `std::bitcoin` | `target_mainnet(Bytes80)` | Constrained compact `nBits` decoder with mainnet powLimit. |
 | `std::merkle` | Fixed-depth Poseidon2 and BLAKE2s paths | Hash nodes plus two constrained selects per level. |
 
 All math operations have fixed shapes. Most operate independently on the lanes
@@ -30,8 +31,9 @@ these values as a separate type: ordinary addition wraps modulo $2^{256}$,
 checked addition forbids overflow, and unsigned comparison returns one M31
 bit. It is a base for the
 [Bitcoin header light-client plan](BITCOIN_LIGHT_CLIENT.md), which also
-requires byte-exact SHA256d, compact-target rules, a wider public statement,
-and an in-circuit S31 verifier.
+now has byte-exact SHA256d and compact-target rules for a single mainnet
+header. It still requires chain difficulty/linkage rules, a wider public
+statement, and an in-circuit S31 verifier.
 
 The compiler checks types and canonical field constants before relation emission.
 `pow<K>` requires a compile-time exponent `0 <= K < p`, where

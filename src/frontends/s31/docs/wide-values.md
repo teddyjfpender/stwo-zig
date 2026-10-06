@@ -1,13 +1,13 @@
 # Thirty-two bytes and 256-bit arithmetic
 
 Bitcoin makes byte order, 256-bit integers, and exact hash bytes unavoidable.
-S31 now has two **different** source types backed by the same sixteen
-little-endian `u16` limbs:
+S31 has three distinct byte and integer source types:
 
 | Source type | Meaning | Erased relation shape |
 | --- | --- | --- |
 | `Bytes32` | Exactly 32 uninterpreted bytes | `u16[16]` |
 | `UInt256` | Unsigned integer in $0\ldots 2^{256}-1$ | `u16[16]` |
+| `Bytes80` | Exactly 80 serialized Bitcoin header bytes | `u16[40]` |
 
 For raw bytes $b_0,\ldots,b_{31}$, limb $L_i=b_{2i}+2^8b_{2i+1}$, and the
 integer interpretation is $\sum_{i=0}^{15}L_i2^{16i}$. The conversion
@@ -133,11 +133,12 @@ include proof of work and are not a throughput estimate; the evidence is in
 
 ## Boundary for a Bitcoin proof
 
-This example proves **wide integer arithmetic**, not Bitcoin proof of work:
-there is no constrained SHA256d computation from an 80-byte header to
-`digest_bytes`. The present public ABI has eight M31 words, fewer than the
-sixteen `u16` slots needed to reveal an arbitrary 32-byte value directly.
-We need a wider, versioned public ABI for raw Bitcoin hashes and a dedicated
-byte-exact SHA256d chip before claiming a header verifier. We also need an
-S31 proof verifier inside a circuit before claiming recursive Bitcoin
-headers. [The library roadmap](library.md) lists these boundaries explicitly.
+This **wide arithmetic** example takes digest bytes as an independent private
+input, so it does not itself prove Bitcoin proof of work. The newer
+[Bitcoin header walkthrough](bitcoin-sha256d.md) starts from `Bytes80`,
+constrains both SHA-256 passes, decodes the header's compact target, and checks
+the resulting hash inequality. The current public ABI has eight M31 words,
+fewer than the sixteen `u16` slots needed to reveal the 32-byte hash directly;
+that example publishes an auxiliary Poseidon2 commitment. A dedicated SHA chip,
+header-chain rules, and an S31 verifier inside a circuit remain future work for
+an efficient recursive Bitcoin light client.

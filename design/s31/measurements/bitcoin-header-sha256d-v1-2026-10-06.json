@@ -1,0 +1,40 @@
+{
+  "schema": "s31-bitcoin-header-sha256d-v1",
+  "date": "2026-10-06",
+  "machine": "local Apple Silicon macOS; Zig 0.15.2; Python 3.14.6",
+  "profile": "sparse-wide-gate",
+  "header": "Bitcoin mainnet genesis header, 80 serialized bytes",
+  "reference_double_sha256_raw": "6fe28c0ab6f1b372c1a6a246ae63f74f931e8365e15a089c68d6190000000000",
+  "public_poseidon2_root": [93892305, 397617766, 1762064199, 2128125525, 211345822, 958247097, 595994426, 1074837273],
+  "hash_only": {
+    "source": "src/frontends/s31/examples/bitcoin_header_hash.s31",
+    "canonical_ir_sha256": "b4dfaecddc520a24cb17ca45907350acd5be52adb481af4da400ad12e3b562fc",
+    "raw_qm31_ops": 356268,
+    "raw_eq": 4714,
+    "raw_m31_to_u32": 3648,
+    "padded_qm31_ops": 524288,
+    "preprocessed_cells": 4288512,
+    "proof_bytes": 333648,
+    "prove_seconds": 0.33405845798552036,
+    "prove_excluding_pow_seconds": 0.16608299999999998,
+    "verify_seconds": 0.4160043749725446,
+    "native_verifier_accepted": true,
+    "changed_public_statement_rejected": true
+  },
+  "mainnet_pow": {
+    "source": "src/frontends/s31/examples/bitcoin_header_pow.s31",
+    "canonical_ir_sha256": "3938890321815f511b55bdc3118450552a8cb3e73ae23b45ecddd76d07a166fc",
+    "raw_qm31_ops": 356882,
+    "raw_eq": 4757,
+    "raw_m31_to_u32": 3664,
+    "padded_qm31_ops": 524288,
+    "preprocessed_cells": 4288512,
+    "proof_bytes": 338687,
+    "prove_seconds": 0.3352436249842867,
+    "prove_excluding_pow_seconds": 0.163049,
+    "verify_seconds": 0.4205562500283122,
+    "native_verifier_accepted": true,
+    "changed_public_statement_rejected": true
+  },
+  "interpretation": "One local proof per program, not a throughput benchmark. Times include stochastic proof of work. The PoW program adds 614 raw QM31 rows relative to the hash-only program; both round to the same padded trace size. Neither result is a matched Cairo comparison or a recursive proof."
+}

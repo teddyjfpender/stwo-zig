@@ -42,7 +42,10 @@ text .s31 ──parse/typecheck/specialize──▶ normalized relation JSON
    exact claim a proof makes.
 - [Thirty-two bytes and 256-bit arithmetic](wide-values.md): distinct
    `Bytes32` and `UInt256` types, hand-filled carry and borrow tables,
-   constrained limb equations, and the exact boundary before Bitcoin headers.
+   and constrained limb equations.
+- [Bitcoin header SHA256d and proof of work](bitcoin-sha256d.md): one actual
+   80-byte header, three SHA compression blocks, compact target decoding,
+   handwritten gate equations, and a verified proof.
 - [Source language and relation](source.md): syntax, types, field semantics,
    static shapes, normalized JSON, and the public statement.
 - [Standard and math library](library.md): the pinned `std@1` package,
@@ -68,6 +71,7 @@ The worked examples use checked-in sources under [`../examples`](../examples):
 | [`merkle_path1_poseidon.s31`](../examples/merkle_path1_poseidon.s31) | Private leaf, constrained bit, ordered hashing, public root | `direct-gate` |
 | [`preimage4.s31`](../examples/preimage4.s31) | Private `u16` witness and an equality assertion | `gate` |
 | [`wide_order.s31`](../examples/wide_order.s31) | Sixteen-limb addition and comparison with an auxiliary public commitment | `gate` |
+| [`bitcoin_header_pow.s31`](../examples/bitcoin_header_pow.s31) | Byte-exact SHA256d and mainnet compact proof of work for one header | `sparse-wide-gate` |
 
 If this is your first STARK, read [the hand-worked walkthrough](walkthrough.md)
 before running the tour. It distinguishes the small teaching trace from the
