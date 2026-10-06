@@ -101,7 +101,7 @@ test "real q193 native child feeds freshly verified q193 local outer" {
     defer cohort.deinit();
     try strong.field_snapshot.validateAgainst(cohort.manifest(), &strong.artifact);
     std.debug.print(
-        "V3_STRONG_CHAIN native_ns={d} outer_transaction_ns={d} outer_prove_ns={d} outer_verify_ns={d} native_proof_bytes={d} outer_proof_bytes={d} wrapper_proof_created=false\n",
-        .{ native_ns, strong.receipt.transaction_ns, strong.receipt.prover_ns, strong.receipt.fresh_verifier_ns, verified.native.proof_bytes.len, strong.artifact.proof_bytes.len },
+        "V3_STRONG_CHAIN native_ns={d} outer_transaction_ns={d} outer_prepare_ns={d} outer_prove_ns={d} outer_serialize_ns={d} outer_destroy_ns={d} outer_verify_ns={d} native_proof_bytes={d} outer_proof_bytes={d} outer_producer_peak_bytes={d} wrapper_proof_created=false\n",
+        .{ native_ns, strong.receipt.transaction_ns, strong.receipt.producer_prepare_ns, strong.receipt.prover_ns, strong.receipt.serialize_ns, strong.receipt.producer_destroy_ns, strong.receipt.fresh_verifier_ns, verified.native.proof_bytes.len, strong.artifact.proof_bytes.len, strong.receipt.producer_peak_bytes },
     );
 }
