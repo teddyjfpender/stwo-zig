@@ -1,3 +1,10 @@
+# Historical composition preparation notes
+
+The Ethereum-specific commands below belong to the archived block experiment at
+`archive/riscv-ethereum-block-v5-20261006` (`f374b1db6`). They are not build
+targets on current main. Use the retained detached SegmentV2 commands in the
+CPU and Metal integration READMEs for active qualification.
+
 # Composition preparation boundary
 
 `vm_composition_preparation.zig` owns the graph, retained schedule, evaluation

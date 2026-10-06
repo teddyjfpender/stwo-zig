@@ -34,24 +34,6 @@ pub fn Assembly(comptime direction: ethereum.Direction) type {
             errdefer self.ethereum.destroy(a);
             return self.finishSha(a, statement, claims);
         }
-
-        pub fn createBlockV5Standalone(a: std.mem.Allocator, statement: *const Statement, total_steps: u32, relations: *const Relations, claims: *const Claim) !*Self {
-            return createBlockV5StandaloneForCircuitProfileV1(a, statement, total_steps, relations, claims, @import("../block_v5_precompile_protocol_v1.zig").circuit_profile);
-        }
-
-        pub fn createBlockV5StandaloneForCircuitProfileV1(a: std.mem.Allocator, statement: *const Statement, total_steps: u32, relations: *const Relations, claims: *const Claim, circuit_profile: @import("../ethereum_circuit_profile_v1.zig").CircuitProfileV1) !*Self {
-            try circuit_profile.requireCallerExecution(.rv32im_zkvm_ethereum_sha_v1);
-            try statement.ethereum.validateGeometryWithCircuitProfileV1(total_steps, circuit_profile);
-            try claims.validate(statement);
-            try statement.sha.validateForRecipe(total_steps, circuit_profile.localZeroCustody());
-            const self = try a.create(Self);
-            errdefer a.destroy(self);
-            self.relations = relations.*;
-            self.ethereum = try Ethereum.createBlockV5StandaloneForCircuitProfileV1(a, &statement.ethereum, total_steps, &self.relations.ethereum, &claims.ethereum, circuit_profile);
-            errdefer self.ethereum.destroy(a);
-            return self.finishSha(a, statement, claims);
-        }
-
         fn finishSha(self: *Self, a: std.mem.Allocator, statement: *const Statement, claims: *const Claim) !*Self {
             return if (statement.ethereum.localZeroCustody()) self.finishShaForRecipe(true, a, statement, claims) else self.finishShaForRecipe(false, a, statement, claims);
         }

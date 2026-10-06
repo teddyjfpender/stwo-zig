@@ -226,30 +226,6 @@ pub fn Assembly(comptime direction: Direction) type {
         /// occupy these roots; program/memory/machine requests remain open for
         /// the common B5SS global providers. No native or custody offset enters
         /// this component placement.
-        pub fn createBlockV5Standalone(
-            allocator: std.mem.Allocator,
-            extension: *const statement_mod.Statement,
-            total_steps: u32,
-            relations: *const relations_mod.Relations,
-            claim: *const types.ExtensionClaim,
-        ) !*Self {
-            return createBlockV5StandaloneForCircuitProfileV1(allocator, extension, total_steps, relations, claim, @import("../block_v5_precompile_protocol_v1.zig").circuit_profile);
-        }
-
-        pub fn createBlockV5StandaloneForCircuitProfileV1(
-            allocator: std.mem.Allocator,
-            extension: *const statement_mod.Statement,
-            total_steps: u32,
-            relations: *const relations_mod.Relations,
-            claim: *const types.ExtensionClaim,
-            circuit_profile: @import("../ethereum_circuit_profile_v1.zig").CircuitProfileV1,
-        ) !*Self {
-            try circuit_profile.requireCallerExecution(.rv32im_zkvm_ethereum_v1);
-            try extension.validateGeometryWithCircuitProfileV1(total_steps, circuit_profile);
-            const origin = PlacementDescriptor{ .preprocessed_offset = 0, .main_offset = 0, .interaction_offset = 0 };
-            return createPlaced(allocator, extension, relations, &.{}, claim, try Placements.initAt(origin, extension), circuit_profile);
-        }
-
         fn createPlaced(allocator: std.mem.Allocator, extension: *const statement_mod.Statement, relations: *const relations_mod.Relations, base: []const Handle, claim: *const types.ExtensionClaim, placements: Placements, circuit_profile: @import("../ethereum_circuit_profile_v1.zig").CircuitProfileV1) !*Self {
             try claim.validate(extension);
             if (base.len > proof_workspace.MAX_COMPONENT_HANDLES) return error.TooManyComponentHandles;

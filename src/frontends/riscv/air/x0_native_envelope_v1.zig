@@ -77,6 +77,13 @@ pub fn Builder(comptime S: type) type {
         pub const Direct = struct {
             values: [MAX_CONSTRAINTS]S = undefined,
             len: usize = 0,
+
+            pub fn allZero(self: @This()) bool {
+                for (self.values[0..self.len]) |value| {
+                    if (!value.isZero()) return false;
+                }
+                return true;
+            }
         };
         pub fn access(list: *const entry.Builder(S).List, group: Group, hints: []const S) !Zero.Access {
             if (hints.len != 2) return error.InvalidX0HintGeometry;
