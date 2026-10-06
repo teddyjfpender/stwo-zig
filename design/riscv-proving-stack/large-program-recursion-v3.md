@@ -42,6 +42,12 @@ link. The staged manifest has no V3 publication capability: the local proof
 still does not constrain global position, so a temporal candidate cannot use
 this stage as a verified recursive child.
 
+The base RV32 SegmentV2 transcript ProgramV2 has an exact canonical M31
+preimage with Poseidon identity parity and a pinned typed word-source AIR.
+The 39-row outer shared providers have a field envelope over their sealed
+manifest, claims, challenges, geometry and split sums. These are inputs for a
+future wrapper cohort; neither field authority is yet consumed by a V3 proof.
+
 ## Proof path still required
 
 1. Connect the two-pass plan/replay to proof publication. The first pass now
@@ -75,7 +81,8 @@ this stage as a verified recursive child.
    digests and `MachineState.public_io_state` are copied from the span
    statement, and custody checks only establish first/last placement; they do
    not prove that those digests represent the runner's actual input/output.
-   The V3 wrapper must not inherit that unbound claim.
+   The V3 wrapper must not inherit that unbound claim. The minimal repro and
+   acceptance criteria are tracked in [issue #228](https://github.com/teddyjfpender/stwo-zig/issues/228).
 
 The first normal gate should prove a real two-leaf program, verify both local
 proofs, both wrapper proofs and their parent, then reject mutations to global

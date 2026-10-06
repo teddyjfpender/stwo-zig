@@ -69,6 +69,8 @@ pub const segment_leaf_outer_air_v2 = @import("segment_leaf_outer_air_v2.zig");
 pub const segment_leaf_outer_authority_v2 = @import("segment_leaf_outer_authority_v2.zig");
 pub const segment_outer_cohort_v2 = @import("segment_outer_cohort_v2.zig");
 pub const segment_outer_noncore_audits_v2 = @import("segment_outer_noncore_audits_v2.zig");
+pub const segment_outer_shared_provider_field_authority_v1 =
+    @import("segment_outer_shared_provider_field_authority_v1.zig");
 pub const segment_publication_input_provider_authority_v2 =
     @import("segment_publication_input_provider_authority_v2.zig");
 pub const segment_profile = @import("segment_profile.zig");
@@ -101,8 +103,11 @@ pub const span_continuation_v1 = @import("span_continuation_v1.zig");
 pub const statement_semantics_circuit = @import("statement_semantics_circuit.zig");
 pub const statement_semantics_circuit_blake3 = @import("statement_semantics_circuit_blake3.zig");
 pub const temporal_pair_node = @import("temporal_pair_node.zig");
+pub const temporal_pair_candidate_v3 = @import("temporal_pair_candidate_v3.zig");
 pub const transcript_program = @import("transcript_program.zig");
 pub const transcript_program_v2 = @import("transcript_program_v2.zig");
+pub const transcript_program_v2_field_authority_v1 =
+    @import("transcript_program_v2_field_authority_v1.zig");
 pub const transcript_shape = @import("transcript_shape.zig");
 pub const vm_public_claim = @import("vm_public_claim.zig");
 pub const vm_public_semantics_circuit = @import("vm_public_semantics_circuit.zig");
