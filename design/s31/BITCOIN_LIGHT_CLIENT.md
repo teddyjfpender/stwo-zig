@@ -186,12 +186,14 @@ recursive property.
 This repository has a separate
 [Cairo-oriented recursion product](../../src/products/circuit_recursion_cpu/README.md).
 Its `leaf-wrap` consumes a Cairo proof through a pinned registry. S31's
-`S31NAT*` envelopes and generated keys are different, so that product is not
-yet an S31 proof verifier. An S31 recursion implementation must first choose
-the supported inner profile and build a circuit verifier for its exact proof
-format. The native verifier is the differential oracle for valid and
-malformed inputs. Then the wrapper can prove one step, two linked steps, and
-a fold while keeping the outer verifier and proof size bounded.
+`S31NAT*` envelopes and generated keys are different. A [one-level S31 gate
+wrapper](../../src/frontends/s31/docs/recursion.md) now converts a real
+`circuit-v1` S31 proof into the eleven-component in-circuit verifier, proves
+the satisfied verifier circuit, and independently verifies its outer proof
+under an embedded child key. The native verifier and adversarial corpus are
+differential checks. This does not yet admit the `sparse-wide-v5` Bitcoin
+header proof or make a homogeneous many-step fold. Those require an exact
+sparse-wide recursive verifier and one canonical wrapper shape.
 
 ## Engineering sequence and exit gates
 
@@ -200,7 +202,7 @@ a fold while keeping the outer verifier and proof size bounded.
 | 1. Wide arithmetic | Typed byte/int values, carry/borrow relations, independent oracle | Current example and native proof; add boundary and randomized adversarial vectors. |
 | 2. Byte-exact header hash | **Generic circuit complete:** `Bytes80`, SHA256d relation, one native proof. **SHA AIR witness planner complete:** three call records and packed provider rows. Remaining: authenticated circuit-to-chip lookup, new proof roster and verifier, nominal `BlockHash`, broader Bitcoin Core differential vectors, and measured cost crossover. | Genesis and randomized byte checks; native proof and changed-root rejection currently pass. Chip substitution must fail until one-proof lookup closure is implemented. |
 | 3. Header policy | **Genesis-anchored two-header first step complete:** compact target, powLimit, unsigned comparison, exact previous-hash link, equal `nBits`, and strict first-step timestamp order. Remaining: retarget transitions, general eleven-block MTP and contextual future-time policy, work increment and versioned public state ABI. | Real genesis-to-block-one proof accepted; changed public claim rejected by native verifier; changed checkpoint, link, bits and equal time rejected by independent oracle; broader native adversarial corpus remains. |
-| 4. In-circuit S31 verifier | One pinned `S31NAT*` profile and verification-key policy | Valid native/circuit parity; malformed proof, key, profile, transcript, FRI and statement mutations all reject. |
+| 4. In-circuit S31 verifier | **One-level `circuit-v1` wrapper implemented:** proof conversion, in-circuit child verifier, outer proof, key-bound native outer verifier. Remaining: sparse-wide profile, wrapping externally supplied proofs, and broader transcript/FRI mutation coverage. | Valid leaf and outer proofs; seven changed key/statement/proof inputs rejected; changed child public word, trace root, claimed sum, and FRI coefficient rejected inside the verifier circuit. |
 | 5. Recursive fold | Base and step wrappers; proof of a proof of a step | Two- and many-step folds; fixed-size outer statement/proof; checkpoint and fork-policy tests. |
 
 Optimization should now focus on a dedicated SHA chip and the header-chain

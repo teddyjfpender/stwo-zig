@@ -6,6 +6,7 @@ const circuit = @import("stwo_circuit_frontend");
 const cpu = @import("stwo_circuit_cpu_integration");
 const s31 = @import("stwo_s31_prototype");
 const native = @import("native_verifier.zig");
+const recursion_gate = @import("recursion_gate.zig");
 const relation = s31.relation;
 
 const QM31 = core.fields.qm31.QM31;
@@ -49,6 +50,15 @@ const Key = struct {
         queries: u32,
         fold_step: u32,
     },
+};
+
+const RecursiveStatement = struct {
+    schema: []const u8,
+    child_key_sha256: []const u8,
+    child_public_words: [8]u32,
+    outer_public_words: [8]u32,
+    outer_preprocessed_root: []const u8,
+    outer_circuit_hash: []const u8,
 };
 
 const Rows = struct { eq: usize, qm31_ops: usize, triple_xor: usize, m31_to_u32: usize, blake_g: usize };
@@ -114,11 +124,15 @@ pub fn main() !void {
     } else if (std.mem.eql(u8, command, "inspect") and args.len == 2) {
         try inspect(allocator, parsed.value);
     } else if (std.mem.eql(u8, command, "prove") and args.len == 4) {
-        try prove(allocator, parsed.value, args[2], args[3], null);
+        try prove(allocator, parsed.value, args[2], args[3], null, false, null, null);
+    } else if (std.mem.eql(u8, command, "recurse-check") and args.len == 4 and !chip_mode and !sparse_mode and !direct_mode) {
+        try prove(allocator, parsed.value, args[2], args[3], null, true, null, null);
+    } else if (std.mem.eql(u8, command, "recurse-prove") and args.len == 6 and !chip_mode and !sparse_mode and !direct_mode) {
+        try prove(allocator, parsed.value, args[2], args[3], null, true, args[4], args[5]);
     } else if (std.mem.eql(u8, command, "prove-adversarial") and args.len == 5 and (sparse_mode or direct_mode) and chip_mode) {
         const mutation = std.meta.stringToEnum(cpu.sparse_arithmetic.Mutation, args[4]) orelse
             return error.InvalidMutation;
-        try prove(allocator, parsed.value, args[2], args[3], mutation);
+        try prove(allocator, parsed.value, args[2], args[3], mutation, false, null, null);
     } else return usage();
 }
 
@@ -130,15 +144,17 @@ pub fn verifierMain(embedded_key: []const u8) !void {
     const allocator = gpa_state.allocator();
     const args = try std.process.argsAlloc(allocator);
     defer std.process.argsFree(allocator, args);
+    if (args.len == 4 and std.mem.eql(u8, args[1], "recurse-verify"))
+        return verifyOuter(allocator, args[2], args[3], embedded_key);
     if (args.len != 4) {
-        std.debug.print("usage: s31-PROGRAM-native-verifier PROOF PUBLIC-STATEMENT.json VERIFICATION-KEY.json\n", .{});
+        std.debug.print("usage: s31-PROGRAM-native-verifier PROOF PUBLIC-STATEMENT.json VERIFICATION-KEY.json | recurse-verify OUTER-PROOF OUTER-STATEMENT.json\n", .{});
         return error.InvalidArguments;
     }
     try verify(allocator, args[1], args[2], args[3], embedded_key);
 }
 
 fn usage() error{InvalidArguments} {
-    std.debug.print("usage: s31-program check | inspect | run ASSIGNMENT.json | prove ASSIGNMENT.json PROOF\n", .{});
+    std.debug.print("usage: s31-program check | inspect | run ASSIGNMENT.json | prove ASSIGNMENT.json PROOF | recurse-check ASSIGNMENT.json CHILD-PROOF | recurse-prove ASSIGNMENT.json CHILD-PROOF OUTER-PROOF CHILD-KEY.json\n", .{});
     return error.InvalidArguments;
 }
 
@@ -387,7 +403,7 @@ fn inspect(allocator: std.mem.Allocator, source: relation.Program) !void {
     std.debug.print("{s}\n", .{encoded});
 }
 
-fn prove(allocator: std.mem.Allocator, source: relation.Program, assignment_path: []const u8, path: []const u8, mutation: ?cpu.sparse_arithmetic.Mutation) !void {
+fn prove(allocator: std.mem.Allocator, source: relation.Program, assignment_path: []const u8, path: []const u8, mutation: ?cpu.sparse_arithmetic.Mutation, recurse_check: bool, outer_path: ?[]const u8, child_key_path: ?[]const u8) !void {
     var total_timer = try std.time.Timer.start();
     var assignment = try readAssignment(allocator, assignment_path);
     defer assignment.deinit();
@@ -577,6 +593,48 @@ fn prove(allocator: std.mem.Allocator, source: relation.Program, assignment_path
         else
             try native.serialize(allocator, &proof);
         try verifyBytes(allocator, source, &pp, assignment.value, encoded);
+        if (recurse_check) {
+            const layout = pp.layout();
+            const root = committed.root();
+            const expected: recursion_gate.Expected = .{
+                .preprocessed_root = root,
+                .circuit_hash = try circuit.common.circuit_hash.hostCircuitHash(
+                    try circuit.common.component_list.circuitComponentLogSizes(&layout),
+                    pcs.fri_config.log_blowup_factor,
+                    root,
+                ),
+                .public_words = public_words,
+            };
+            var recursive = try recursion_gate.verifyChild(allocator, projection_bytes, layout, &proof, expected);
+            defer recursive.deinit();
+            if (outer_path == null) {
+                var wrong_statement = expected;
+                wrong_statement.public_words[0] = (wrong_statement.public_words[0] + 1) % core.fields.m31.Modulus;
+                if (recursion_gate.verifyChild(allocator, projection_bytes, layout, &proof, wrong_statement)) |accepted| {
+                    var invalid = accepted;
+                    invalid.deinit();
+                    return error.RecursiveVerifierAcceptedWrongStatement;
+                } else |err| switch (err) {
+                    error.VerificationFailed, error.EqFailedOnEval => {},
+                    else => return err,
+                }
+                inline for (.{ .trace_root, .claimed_sum, .fri_last_layer }) |corruption| {
+                    if (recursion_gate.verifyChildWithMutation(allocator, projection_bytes, layout, &proof, expected, corruption)) |accepted| {
+                        var invalid = accepted;
+                        invalid.deinit();
+                        return error.RecursiveVerifierAcceptedCorruptProof;
+                    } else |err| switch (err) {
+                        error.VerificationFailed, error.EqFailedOnEval => {},
+                        else => return err,
+                    }
+                }
+            }
+            std.debug.print("S31 recursive child circuit: vars={d} qm31_ops={d} valid=true\n", .{
+                recursive.circuit.n_vars,
+                recursive.circuit.mul.items.len + recursive.circuit.add.items.len + recursive.circuit.sub.items.len,
+            });
+            if (outer_path) |destination| try proveOuter(allocator, source, &recursive, layout, pcs, &bundle, expected, destination, child_key_path.?);
+        }
     }
     defer allocator.free(encoded);
 
@@ -607,6 +665,165 @@ fn prove(allocator: std.mem.Allocator, source: relation.Program, assignment_path
         @as(f64, @floatFromInt(sparse_fri_pow_ns)) / std.time.ns_per_s,
     });
     std.debug.print("proof: {s}\n", .{path});
+}
+
+fn proveOuter(
+    allocator: std.mem.Allocator,
+    source: relation.Program,
+    values: *circuit.builder.Context(QM31),
+    child_layout: preprocessed.ColumnLayout,
+    child_pcs: PcsConfigV2,
+    bundle: *const cpu.air.Bundle,
+    expected_child: recursion_gate.Expected,
+    path: []const u8,
+    child_key_path: []const u8,
+) !void {
+    const key_bytes = try std.fs.cwd().readFileAlloc(allocator, child_key_path, 4096);
+    defer allocator.free(key_bytes);
+    var parsed_key = try std.json.parseFromSlice(Key, allocator, key_bytes, .{ .ignore_unknown_fields = false });
+    defer parsed_key.deinit();
+    try validateKey(allocator, source, parsed_key.value);
+    if (!std.mem.eql(u8, parsed_key.value.preprocessed_root, &std.fmt.bytesToHex(expected_child.preprocessed_root, .lower)) or
+        !std.mem.eql(u8, parsed_key.value.circuit_hash, &std.fmt.bytesToHex(expected_child.circuit_hash, .lower)))
+        return error.RecursiveChildKeyMismatch;
+    var pp = blk: {
+        var topology_ctx = try recursion_gate.topology(allocator, projection_bytes, child_layout, child_pcs);
+        defer topology_ctx.deinit();
+        if (!sameTopology(&values.circuit, &topology_ctx.circuit)) return error.RecursiveValueDependentTopology;
+        try circuit.common.finalize.padContext(QM31, values);
+        try circuit.common.finalize.padContext(circuit.builder.NoValue, &topology_ctx);
+        if (!sameTopology(&values.circuit, &topology_ctx.circuit) or !try values.isCircuitValid())
+            return error.InvalidRecursiveCircuit;
+        break :blk try preprocessed.PreprocessedCircuit.fromBuilderCircuit(allocator, &topology_ctx.circuit);
+    };
+    defer pp.deinit(allocator);
+    // The AIR columns own their values. The checked value graph is no longer
+    // needed by the prover, which consumes only the variable-value table.
+    values.circuit.deinit(allocator);
+    values.circuit = .{};
+    const pcs = try showcasePcsConfig(pp.traceLogSize());
+    var committed = try cpu.prove.PreprocessedCommitment.build(allocator, &pp, pcs, .{});
+    defer committed.deinit(allocator);
+    var timer = try std.time.Timer.start();
+    var outer = try cpu.Internal.prove(allocator, values.values(), &pp, bundle, pcs, .{
+        .preprocessed_commitment = &committed,
+    }, {});
+    defer outer.deinit();
+    const prove_ns = timer.read();
+    if (outer.output_values.len != 8) return error.InvalidRecursivePublicOutput;
+    var public_words: [8]u32 = undefined;
+    for (outer.output_values, &public_words) |value, *word| {
+        const limbs = value.toM31Array();
+        if (limbs[0].v > 65535 or limbs[1].v > 65535 or limbs[2].v != 0 or limbs[3].v != 0)
+            return error.InvalidRecursivePublicOutput;
+        word.* = limbs[0].v | (limbs[1].v << 16);
+    }
+    if (!std.meta.eql(public_words, recursion_gate.statementDigest(expected_child.preprocessed_root, expected_child.public_words)))
+        return error.RecursiveStatementDigestMismatch;
+    const encoded = try native.serialize(allocator, &outer);
+    defer allocator.free(encoded);
+    const layout = pp.layout();
+    const root = committed.root();
+    const hash = try circuit.common.circuit_hash.hostCircuitHash(
+        try circuit.common.component_list.circuitComponentLogSizes(&layout),
+        pcs.fri_config.log_blowup_factor,
+        root,
+    );
+    try native.verify(allocator, &layout, bundle, pcs, root, hash, public_words, encoded);
+    try std.fs.cwd().makePath(std.fs.path.dirname(path) orelse ".");
+    try std.fs.cwd().writeFile(.{ .sub_path = path, .data = encoded });
+    var key_digest: [32]u8 = undefined;
+    std.crypto.hash.sha2.Sha256.hash(key_bytes, &key_digest, .{});
+    const key_hex = std.fmt.bytesToHex(key_digest, .lower);
+    const root_hex = std.fmt.bytesToHex(root, .lower);
+    const hash_hex = std.fmt.bytesToHex(hash, .lower);
+    const statement: RecursiveStatement = .{
+        .schema = "s31-recursive-gate-statement-v1",
+        .child_key_sha256 = &key_hex,
+        .child_public_words = expected_child.public_words,
+        .outer_public_words = public_words,
+        .outer_preprocessed_root = &root_hex,
+        .outer_circuit_hash = &hash_hex,
+    };
+    const encoded_statement = try std.json.Stringify.valueAlloc(allocator, statement, .{});
+    defer allocator.free(encoded_statement);
+    const statement_path = try std.fmt.allocPrint(allocator, "{s}.statement.json", .{path});
+    defer allocator.free(statement_path);
+    try std.fs.cwd().writeFile(.{ .sub_path = statement_path, .data = encoded_statement });
+    std.debug.print("S31 recursive outer proof: bytes={d} prove={d:.3}s root={s} hash={s} public={any}\n", .{
+        encoded.len,
+        @as(f64, @floatFromInt(prove_ns)) / std.time.ns_per_s,
+        &std.fmt.bytesToHex(root, .lower),
+        &std.fmt.bytesToHex(hash, .lower),
+        public_words,
+    });
+}
+
+fn verifyOuter(
+    allocator: std.mem.Allocator,
+    proof_path: []const u8,
+    statement_path: []const u8,
+    embedded_key: []const u8,
+) !void {
+    if (chip_mode or sparse_mode or direct_mode) return error.UnsupportedRecursiveProfile;
+    var parsed_source = try parsedProgram(allocator);
+    defer parsed_source.deinit();
+    var parsed_key = try std.json.parseFromSlice(Key, allocator, embedded_key, .{ .ignore_unknown_fields = false });
+    defer parsed_key.deinit();
+    try validateKey(allocator, parsed_source.value, parsed_key.value);
+    const statement_bytes = try std.fs.cwd().readFileAlloc(allocator, statement_path, 4096);
+    defer allocator.free(statement_bytes);
+    var parsed_statement = try std.json.parseFromSlice(RecursiveStatement, allocator, statement_bytes, .{ .ignore_unknown_fields = false });
+    defer parsed_statement.deinit();
+    const statement = parsed_statement.value;
+    var key_digest: [32]u8 = undefined;
+    std.crypto.hash.sha2.Sha256.hash(embedded_key, &key_digest, .{});
+    if (!std.mem.eql(u8, statement.schema, "s31-recursive-gate-statement-v1") or
+        !std.mem.eql(u8, statement.child_key_sha256, &std.fmt.bytesToHex(key_digest, .lower)))
+        return error.InvalidRecursiveStatement;
+    for (statement.child_public_words) |word| if (word >= core.fields.m31.Modulus) return error.NoncanonicalPublicWord;
+    var child_root: [32]u8 = undefined;
+    _ = try std.fmt.hexToBytes(&child_root, parsed_key.value.preprocessed_root);
+    if (!std.meta.eql(statement.outer_public_words, recursion_gate.statementDigest(child_root, statement.child_public_words)))
+        return error.InvalidRecursiveStatement;
+    const child_layout = try preprocessed.ColumnLayout.fromComponentSizes(.{
+        .eq = parsed_key.value.padded.eq,
+        .qm31_ops = parsed_key.value.padded.qm31_ops,
+        .triple_xor = parsed_key.value.padded.triple_xor,
+        .m31_to_u32 = parsed_key.value.padded.m31_to_u32,
+        .blake_g_gate = parsed_key.value.padded.blake_g,
+    });
+    if (child_layout.traceLogSize() != parsed_key.value.trace_log_size)
+        return error.InvalidVerificationKey;
+    var pp = blk: {
+        var topology_ctx = try recursion_gate.topology(
+            allocator,
+            projection_bytes,
+            child_layout,
+            try showcasePcsConfig(parsed_key.value.trace_log_size),
+        );
+        defer topology_ctx.deinit();
+        try circuit.common.finalize.padContext(circuit.builder.NoValue, &topology_ctx);
+        break :blk try preprocessed.PreprocessedCircuit.fromBuilderCircuit(allocator, &topology_ctx.circuit);
+    };
+    defer pp.deinit(allocator);
+    const pcs = try showcasePcsConfig(pp.traceLogSize());
+    const root = try pp.preprocessedRoot(allocator, pcs.fri_config.log_blowup_factor);
+    const layout = pp.layout();
+    const hash = try circuit.common.circuit_hash.hostCircuitHash(
+        try circuit.common.component_list.circuitComponentLogSizes(&layout),
+        pcs.fri_config.log_blowup_factor,
+        root,
+    );
+    if (!std.mem.eql(u8, statement.outer_preprocessed_root, &std.fmt.bytesToHex(root, .lower)) or
+        !std.mem.eql(u8, statement.outer_circuit_hash, &std.fmt.bytesToHex(hash, .lower)))
+        return error.InvalidRecursiveStatement;
+    var bundle = try parseAirBundle(allocator);
+    defer bundle.deinit();
+    const proof_bytes = try std.fs.cwd().readFileAlloc(allocator, proof_path, 16 << 20);
+    defer allocator.free(proof_bytes);
+    try native.verify(allocator, &layout, &bundle, pcs, root, hash, statement.outer_public_words, proof_bytes);
+    std.debug.print("S31 recursive outer verification accepted: {s}\n", .{proof_path});
 }
 
 fn verify(allocator: std.mem.Allocator, path: []const u8, statement_path: []const u8, key_path: []const u8, embedded_key: []const u8) !void {

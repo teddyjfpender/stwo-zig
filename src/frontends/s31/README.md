@@ -107,7 +107,7 @@ checks, equal `nBits`, and the strict first-step median-time-past rule. It still
 SHA circuit. The
 [`sha_chip_plan.zig` boundary](sha_chip_plan.zig) prepares three SHA AIR calls
 per header and tests their byte-level linkage; proof-bound chip integration
-and an S31 recursive verifier remain future work.
+and a recursive verifier for the sparse-wide Bitcoin profile remain future work.
 
 The packed SHA AIR has a focused six-call proof test for two SHA256d headers:
 
@@ -119,6 +119,12 @@ It proves one STARK against trusted public compression boundaries and rejects
 a substituted digest boundary. S31's private header witness still needs an
 authenticated circuit-to-chip lookup before this AIR can replace the generic
 SHA circuit in the header example.
+
+The [recursion chapter](docs/recursion.md) demonstrates a one-level
+`gate`-profile wrapper: a real S31 proof is verified inside a circuit, the
+wrapper is proved, and its outer proof is checked by a generated native
+verifier. The chapter states the remaining steps for the sparse-wide Bitcoin
+header proof and a repeatable fold.
 
 From the repository root:
 
@@ -200,4 +206,4 @@ The v1 acceptance suite proves arithmetic, Blake2s, mixed, three-lane, and priva
 
 The direct/Cairo comparison also requires the compiled Cairo executable and VM adapter input from `S31_TRIALS=1 src/frontends/s31/scale.sh 32768`, plus a direct profile benchmark including 32,768 rounds. It checks the same public values under both native verifiers; its recorded time ratio applies only to this recurrence and the selected proof implementations.
 
-The default v1 profile still pays for all eleven circuit AIR components and 45 preprocessed columns. The arithmetic-only sparse v3 profile uses three components and 12 preprocessed columns; direct-M31 v4 uses one and eight. The sparse-wide v5 profile adds equality rows for wide-integer and SHA gadgets. Each has a distinct verification key and native verifier. The public ABI is limited to eight words. Poseidon2 and SHA256d are currently lowered into the generic arithmetic circuit; there is no dedicated SHA or batch hash chip. There is no general control flow, automatic chip extraction, private circuit-to-chip boundary, or recursive verifier generation. The older v0 `showcase`, `compare.sh`, and `scale.sh` paths remain available for the large repeated-arithmetic Cairo comparison. The [engineering brief](../../../design/s31/README.md) and [MVP roadmap](../../../design/s31/MVP_ROADMAP.md) describe the remaining work.
+The default v1 profile still pays for all eleven circuit AIR components and 45 preprocessed columns. The arithmetic-only sparse v3 profile uses three components and 12 preprocessed columns; direct-M31 v4 uses one and eight. The sparse-wide v5 profile adds equality rows for wide-integer and SHA gadgets. Each has a distinct verification key and native verifier. The public ABI is limited to eight words. Poseidon2 and SHA256d are currently lowered into the generic arithmetic circuit; there is no integrated SHA chip. There is no general control flow, automatic chip extraction, private circuit-to-chip boundary, or recursive verifier generation for arbitrary S31 profiles. The one-level `gate` wrapper is described above. The older v0 `showcase`, `compare.sh`, and `scale.sh` paths remain available for the large repeated-arithmetic Cairo comparison. The [engineering brief](../../../design/s31/README.md) and [MVP roadmap](../../../design/s31/MVP_ROADMAP.md) describe the remaining work.

@@ -27,6 +27,7 @@ CHAPTERS = (
     ("worked-choice.md", "0c. A private choice"),
     ("wide-values.md", "0d. Thirty-two bytes and 256-bit math"),
     ("bitcoin-sha256d.md", "0e. Bitcoin header SHA256d and PoW"),
+    ("recursion.md", "0f. One-level proof recursion"),
     ("source.md", "1. Source language"),
     ("library.md", "2. Standard / math library"),
     ("circuits.md", "3. Circuit gates"),

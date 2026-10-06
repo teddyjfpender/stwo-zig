@@ -46,6 +46,9 @@ text .s31 ──parse/typecheck/specialize──▶ normalized relation JSON
 - [Bitcoin header SHA256d and proof of work](bitcoin-sha256d.md): two actual
    linked 80-byte headers, six SHA compression blocks, compact target decoding,
    handwritten gate equations, verified proofs, and the SHA chip boundary.
+- [One-level proof recursion](recursion.md): a real S31 child proof verified
+   inside a circuit, an independently verified outer proof, adversarial
+   statements, costs, and the precise boundary before a repeatable fold.
 - [Source language and relation](source.md): syntax, types, field semantics,
    static shapes, normalized JSON, and the public statement.
 - [Standard and math library](library.md): the pinned `std@1` package,
