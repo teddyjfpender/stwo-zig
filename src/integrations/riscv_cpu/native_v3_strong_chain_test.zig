@@ -242,7 +242,7 @@ fn diagnoseDirect50(
     arithmetic[3] = try arithmetic_witness.logicalRow(.position, 0, false, metadata.global_cycle_start, metadata.local_cycle_count);
     const descriptors = prepared.capture.vm_air.component_descs;
     const infra = prepared.capture.vm_air.infra_descs;
-    var child_program = try local_program.ProgramV1.init(allocator, descriptors, infra);
+    var child_program = try local_program.ProgramV1.initWithNativeProgramBridge(allocator, descriptors, infra);
     defer child_program.deinit();
     const inputs = local_witness.InputsV1{
         .public_data = &prepared.capture.public_data.data,

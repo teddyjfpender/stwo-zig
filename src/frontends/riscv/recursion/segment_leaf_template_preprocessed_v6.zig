@@ -61,7 +61,7 @@ pub const Writer = struct {
         );
         var link = try link_program.ProgramV3.init(allocator);
         errdefer link.deinit();
-        var child = try child_program.ProgramV1.init(allocator, component_descs, infra_descs);
+        var child = try child_program.ProgramV1.initWithNativeProgramBridge(allocator, component_descs, infra_descs);
         errdefer child.deinit();
         var frame = try row4_template.Template.buildFromAdmittedShape(
             allocator,

@@ -193,6 +193,12 @@ pub fn build(b: *std.Build) void {
     });
     b.step("test-v6-base-fixed-rows", "Check independent V6 control, inactive, provider and byte-table preprocessing")
         .dependOn(&b.addRunArtifact(v6_base_fixed_tests).step);
+    const v6_npv2_tests = b.addTest(.{
+        .root_module = v3_rows_root,
+        .filters = &.{"V6 local router exports exactly eight hash-bound authority words to NPV2"},
+    });
+    b.step("test-v6-local-npv2", "Check the versioned proof-visible authority-word bridge")
+        .dependOn(&b.addRunArtifact(v6_npv2_tests).step);
 
     const universal_root = b.createModule(.{
         .root_source_file = b.path("universal_typed_component_proof_test.zig"),

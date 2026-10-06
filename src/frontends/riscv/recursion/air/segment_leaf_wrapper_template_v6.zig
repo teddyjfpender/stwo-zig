@@ -89,7 +89,7 @@ pub const TemplateManifestV6 = struct {
 
         var link = try link_program.ProgramV3.init(allocator);
         defer link.deinit();
-        var child = try child_program.ProgramV1.init(allocator, component_descs, infra_descs);
+        var child = try child_program.ProgramV1.initWithNativeProgramBridge(allocator, component_descs, infra_descs);
         defer child.deinit();
         const linked = try link_manifest.Manifest.build(allocator, &link);
         const child_layout = try local.Layout.init(&child);
@@ -397,7 +397,7 @@ test "V6 template geometry is rebuilt without either leaf V2 manifest seal" {
 
     var link = try link_program.ProgramV3.init(allocator);
     defer link.deinit();
-    var child = try child_program.ProgramV1.init(allocator, &child_fixture.components, &child_fixture.infra);
+    var child = try child_program.ProgramV1.initWithNativeProgramBridge(allocator, &child_fixture.components, &child_fixture.infra);
     defer child.deinit();
     const first_v5 = try v5.Plan.build(allocator, &first, &link, shape, &child, &child_fixture.components, &child_fixture.infra);
     const second_v5 = try v5.Plan.build(allocator, &second, &link, shape, &child, &child_fixture.components, &child_fixture.infra);
