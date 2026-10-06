@@ -68,11 +68,11 @@ test "V3 interval retains a global cycle beyond the V2 cap" {
     );
 }
 
-fn threeLeaves() ![3]global.MetadataV3 {
+pub fn threeLeaves() ![3]global.MetadataV3 {
     return threeLeavesWithCycles(.{ 3, 2, 2 });
 }
 
-fn threeLeavesWithCycles(cycles: [3]u32) ![3]global.MetadataV3 {
+pub fn threeLeavesWithCycles(cycles: [3]u32) ![3]global.MetadataV3 {
     const initial_id = digest("initial");
     const middle_1_id = digest("middle-1");
     const middle_2_id = digest("middle-2");

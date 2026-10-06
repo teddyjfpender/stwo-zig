@@ -50,6 +50,20 @@ two child proof families and all interval fields, then freshly verify its own
 proof before exposing the resulting node. The legacy `SpanStatement.fold`
 requires equal child heights, so the V3 relation uses height-independent
 `foldExecuted` and validates the resulting aligned canonical parent statement.
+The pinned row-11 statement-semantics graph also enforces equal child heights.
+`statement_semantics_circuit_temporal_v3.zig` now builds the separate pinned
+graph for unequal-height pairs (2,244 inputs, 17,304 nodes, 2,910 zero
+constraints). It derives each child and parent slot from the 32-bit executed
+segment count and first segment with bit-constrained 16-bit words, while the
+existing body-fold equations constrain order, 64-bit cycle addition and CPU
+state continuity. A three-leaf `2+1` fold satisfies it; mutations to child or
+parent height, slot index, ordering and CPU boundary fail. The old row-11
+program identity remains unchanged. The V3 graph still has to be installed
+as a committed component in a new parent roster, joined to verifier-owned
+child proof publications, the sparse-memory sidecar and final-only completion
+flag, and independently
+verified before a parent can be published. Host preflight alone cannot grant
+that authority.
 
 `integrations/riscv_cpu/recursive_segment_v3_outer_stage.zig` can now prove
 and freshly verify the actual 39-component local V2 outer transaction for a

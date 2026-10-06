@@ -171,6 +171,7 @@ pub const steps = [_]Step{
     .{ .name = "test-riscv-recursion-ingress", .description = "Validate production-derived recursive public ingress without proving", .scope = .riscv_cpu },
     .{ .name = "test-riscv-v3-link-schedule", .description = "Validate leaf-local V3 projection and exact typed boundary routing", .scope = .riscv_cpu },
     .{ .name = "test-riscv-v3-temporal-interval", .description = "Validate V3 arbitrary-span temporal reduction and odd carries", .scope = .riscv_cpu },
+    .{ .name = "test-riscv-v3-temporal-row11", .description = "Validate the separately pinned unequal-height temporal statement graph", .scope = .riscv_cpu },
     .{ .name = "test-riscv-recursion-typed-control", .description = "Prove and independently verify the typed universal-control adapter", .scope = .riscv_cpu },
     .{ .name = "test-riscv-release-exhaustive", .description = "Run the exhaustive RISC-V proof and adversarial release suites", .scope = .riscv_cpu },
     .{ .name = "test-riscv-sail-oracle", .description = "Run the sail_oracle self-check and forged-trace rejection against the pinned Sail oracle", .scope = .riscv_cpu },
