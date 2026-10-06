@@ -93,6 +93,13 @@ its configured query-plus-PoW ledger is 96 bits under this repository's
 both current presets against the existing recursion target profile
 (193 queries, 16 PCS PoW, 10 interaction PoW). This policy specifies required
 configuration; it does not prove that a future transaction actually used it.
+The separate `segment_outer_transaction_v3.zig` now proves and freshly verifies
+the real 39-row local outer child at q193/PCS-PoW16/fold4 with a versioned
+10-bit interaction nonce before relation draws. It recomputes the preprocessed
+root and the 47-domain child lookup closure during fresh verification. A
+focused real-ELF ReleaseSafe gate rejects changed query/profile metadata and
+nonce. This is a strong child transaction, not the 49-row global V3 wrapper;
+it does not produce a V2 publication or enable V3 recursive root publication.
 
 The base RV32 SegmentV2 transcript ProgramV2 has an exact canonical M31
 preimage with Poseidon identity parity and a pinned typed word-source AIR.
