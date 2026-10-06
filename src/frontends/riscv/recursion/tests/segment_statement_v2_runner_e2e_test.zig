@@ -430,6 +430,12 @@ test "segment statement V2 experimental public-I/O binding rejects changed claim
         error.NonZeroPublicIoState,
         verifier_expected.admitNativeSource(digest("bound-session"), state_statement, &result),
     );
+    // The diagnostic projection must reauthenticate borrowed wire bytes; an
+    // earlier successful PublicDataV2.authenticate is not a reusable lease.
+    const original_tag = words[0];
+    words[0] = @import("stwo_core").fields.m31.M31.zero();
+    try std.testing.expectError(error.CanonicalTagMismatch, io_custody_v3.projectAuthenticatedWire(allocator, &public, &verifier_expected, 7));
+    words[0] = original_tag;
 }
 
 fn leafStatement(
