@@ -426,6 +426,50 @@ test "runner: V3 plan replays exact leaf sizes with guest policy and input" {
     try std.testing.expectEqual(@as(u32, 2), summary.leaf_count);
     try std.testing.expectEqual(@as(usize, 2), consumer.count);
 
+    const original_exit = plan.leaf_records[0].exit_cpu.regs[1];
+    plan.leaf_records[0].exit_cpu.regs[1] ^= 1;
+    try std.testing.expectError(error.CampaignPlanReplayMismatch, segment_plan.replay(
+        .rv32im_zkvm_v1,
+        std.testing.allocator,
+        &elf,
+        options,
+        &plan,
+        &consumer,
+    ));
+    try std.testing.expectEqual(@as(usize, 2), consumer.count);
+    plan.leaf_records[0].exit_cpu.regs[1] = original_exit;
+
+    const original_memory = plan.leaf_records[0].exit_memory.id[0];
+    plan.leaf_records[0].exit_memory.id[0] ^= 1;
+    try std.testing.expectError(error.CampaignPlanReplayMismatch, segment_plan.replay(
+        .rv32im_zkvm_v1,
+        std.testing.allocator,
+        &elf,
+        options,
+        &plan,
+        &consumer,
+    ));
+    try std.testing.expectEqual(@as(usize, 2), consumer.count);
+    plan.leaf_records[0].exit_memory.id[0] = original_memory;
+
+    var observer_context: u8 = 0;
+    const Observer = struct {
+        fn observe(_: *anyopaque, _: segment_session.PreRetirementBoundaryV1) anyerror!void {}
+    };
+    var observed = options;
+    observed.pre_retirement_boundary_observer = .{
+        .context = &observer_context,
+        .observe_fn = Observer.observe,
+    };
+    try std.testing.expectError(error.CampaignCallbackPlanUnsupported, segment_plan.replay(
+        .rv32im_zkvm_v1,
+        std.testing.allocator,
+        &elf,
+        observed,
+        &plan,
+        &consumer,
+    ));
+
     var altered = options;
     altered.input = "changed-input";
     try std.testing.expectError(error.CampaignPlanInputMismatch, segment_plan.replay(

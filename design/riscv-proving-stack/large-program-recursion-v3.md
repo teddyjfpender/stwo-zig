@@ -21,9 +21,12 @@ decoded proof, and joins the verifier-owned receipt to the V3 metadata. Its
 the global position.
 
 `recursion/segment_execution_plan_v3.zig` runs the ELF once to size every
-leaf, records the exact total, ELF/input hashes and guest policy, then checks
-those counts during replay. It rejects host callbacks until a host transcript
-has its own authority. Planning is advisory and does not authenticate a proof.
+leaf, records the exact total, ELF/input hashes, guest policy, and compact
+per-leaf CPU, sparse-memory, clock and I/O boundary records. Replay checks
+these records before exposing a leaf to the proof consumer, so equal-sized but
+different executions cannot silently reuse a plan. It rejects host and
+retirement callbacks until their behavior has an authenticated replay
+contract. Planning is advisory and does not authenticate a proof.
 
 ## Proof path still required
 
