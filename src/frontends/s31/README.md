@@ -136,7 +136,9 @@ routine outer verification does not rebuild the large verifier topology.
 The [fixed-key fold chapter](docs/recursion-fold.md) shows repeatable proof
 verification under one sealed key and a constrained `u16` step counter.
 The [state-fold chapter](docs/state-fold.md) extracts a typed four-lane
-recurrence from source and proves one more computation step in each fold.
+recurrence with square, addition and multiplication by constants from source
+and proves one more computation step in each fold. `state-fold-advance` runs
+multiple steps with optional checkpoints for resume.
 The v2 wrapper fixes the child AIR root with equality gates and embeds the
 SHA-256 digest of the exact child key as constants in its personalized
 one-block BLAKE2s public claim. A same-AIR, different-key replay fixture

@@ -6,16 +6,16 @@ and [acceptance fixture](../../src/frontends/s31/acceptance_state_fold.py).
 
 ## Relation and public statement
 
-S31's normalized source must satisfy `Program.repeatedStepChip()`: one public
+S31's normalized source must satisfy `Program.stateFoldStep()`: one public
 four-lane input; an optional `u16` to M31 cast; one static `repeat` node with
-`square` then `add_const`; a power-of-two base count from 16 through 32,768;
-no assertions; and one public four-lane output.
-The extractor returns the base round count `r` and constant `c`. A normal
-leaf proof establishes `S0 = f^r(x)` for `f(v)=v²+c` lane by lane. The first
+1–32,768 base rounds; a body of 1–16 ordered `square`, `add_const`, or
+`mul_const` operations; no assertions; and one public four-lane output.
+The extractor returns the base round count `r` and exact body `b`. A normal
+leaf proof establishes `S0 = f_b^r(x)` lane by lane. The first
 wrapper proof attests to that leaf proof and exposes digest `D1`.
 
 The state-fold key `KS` includes the exact SHA-256 digest of `K1`, the
-source-extracted `r` and `c`, pinned AIR asset identities, its component
+source-extracted `r` and ordered body `b`, pinned AIR asset identities, its component
 layout, preprocessed root and circuit hash. A package only generates `KS`
 when the compiler reports a matching source shape. It rejects a geometry
 mismatch between its own proof layout and `K1`'s; both branches of the
@@ -45,7 +45,7 @@ previous states, child proof and digest. Its constraints enforce:
 ```text
 base∈{0,1}; n·base=0; (n+base)·inv=1
 recurse=1-base; predecessor=n-recurse∈u16
-Sn[i] = S0[i] + recurse·(Previous[i]²+c-S0[i]) in M31
+Sn[i] = S0[i] + recurse·(f_b(Previous[i])-S0[i]) in M31
 child_root = base ? root(K1) : R
 child_public = base ? D1 : G(R,predecessor,D1,S0,Previous)
 verify_stark(child_proof, child_root, child_public)
@@ -54,11 +54,11 @@ output = G(R,n,D1,S0,Sn)
 
 At `n=0`, the equations force `base=1`, `Sn=S0`, and verification of a `K1`
 proof with output `D1`. That proof verifies the leaf and its `W0`. At
-`n>0`, the equations force `base=0`, prove `Sn=f(Previous)`, and verify a
+`n>0`, the equations force `base=0`, prove `Sn=f_b(Previous)`, and verify a
 child proof whose statement commits to the same `S0` and `Previous` at
 counter `n-1`. The counter decreases in the well-founded `u16` range.
 At the top, `G` binds the root, step and states to their public values under
-BLAKE2s collision resistance. Induction gives `Sn=f^n(S0)=f^(r+n)(x)`.
+BLAKE2s collision resistance. Induction gives `Sn=f_b^n(S0)=f_b^(r+n)(x)`.
 
 This reasoning assumes STARK soundness, correctness of the in-circuit
 verifier, proof capture that preserves the native-verifier data, the sealed
@@ -67,7 +67,7 @@ independent cryptographic audit.
 
 ## Enforcement and tests
 
-- The source extractor, not a supplied step constant, selects `c` and `r`.
+- The source extractor, not supplied witness metadata, selects `b` and `r`.
 - Native verification rejects noncanonical leaf or state words, a changed
   initial state, a changed key digest/root/hash, and a recomputed but false
   top digest once the proof is checked.
@@ -85,10 +85,20 @@ independent cryptographic audit.
 - The same-AIR, different-key fixture repairs all public hashes under a
   second package and still rejects cross-key replay.
 
-The current fixed step is deliberately narrow. A general source-level fold
-needs a typed, statically bounded step compiler that lowers an S31 function
-against previous and current state variables, then binds that function's
-canonical IR and public ABI into `KS`. Bitcoin needs byte-exact SHA256d,
+The current typed step is deliberately bounded to four lanes and three
+operation kinds. The [affine-square example](../../src/frontends/s31/examples/affine_square4.s31)
+proves `f(x)=3x²+5` from a three-round base program and two more recursive
+steps; its independent [acceptance fixture](../../src/frontends/s31/acceptance_state_fold_general.py)
+checks the source-derived operation list, state values, and hostile key edits.
+The state-fold key schema is v2. Existing v1 packages remain readable through
+the Python package verifier and use their sealed v1 binaries.
+`state-fold-advance` validates a package once, derives a bounded sequence of
+proofs, optionally keeps intermediate checkpoints, and verifies the top proof.
+Resuming from a checkpoint gives the same proof bytes; the acceptance fixture
+checks both normal and low-memory resume.
+
+An arbitrary S31 function fold still needs typed state beyond four lanes and
+lowering for other operations with a sound circuit boundary. Bitcoin needs byte-exact SHA256d,
 target and linkage constraints, wide work arithmetic, and an in-circuit
 verifier for the sparse-wide header proof profile. Those changes must retain
 the fixed-key geometry condition or use a dedicated chip/adapter with its

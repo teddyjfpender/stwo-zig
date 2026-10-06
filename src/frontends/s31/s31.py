@@ -198,7 +198,7 @@ def build_json(source_path: Path, output: Path, lowering: str = "gate",
             invoke(str(prover), "fold-keygen", str(staging / "verification-key.json"),
                    str(recursive_key), str(fold_key))
             fold_option = (f"-Ds31-fold-key={fold_key}",)
-            if inspection.get("repeated_step") is not None:
+            if inspection.get("state_fold_step") is not None:
                 state_fold_key = staging / "state-fold-verification-key.json"
                 invoke(str(prover), "state-fold-keygen", str(staging / "verification-key.json"),
                        str(recursive_key), str(state_fold_key))
@@ -357,19 +357,29 @@ def verify_package(package: Path) -> dict:
                 fold_key.get("projection_sha256") != PROJECTION_SHA256 or
                 fold_key.get("air_bundle_sha256") != AIR_BUNDLE_SHA256):
             raise ValueError("S31 fold key does not match its base key and pinned AIR")
+        report = json.loads((package / "cost-report.json").read_text())
         if "state-fold-verification-key.json" in artifacts:
             state_fold_key = json.loads((package / "state-fold-verification-key.json").read_text())
-            repeat_step = json.loads((package / "cost-report.json").read_text()).get("repeated_step")
-            if (state_fold_key.get("schema") != "s31-state-fold-verification-key-v1" or
-                    state_fold_key.get("base_recursive_key_sha256") != file_hash(package / "recursive-verification-key.json") or
-                    state_fold_key.get("projection_sha256") != PROJECTION_SHA256 or
-                    state_fold_key.get("air_bundle_sha256") != AIR_BUNDLE_SHA256 or
-                    not isinstance(repeat_step, dict) or
-                    state_fold_key.get("source_rounds") != repeat_step.get("rounds") or
-                    state_fold_key.get("step_constant") != repeat_step.get("constant")):
+            fold_step = report.get("state_fold_step")
+            common_valid = (state_fold_key.get("base_recursive_key_sha256") == file_hash(package / "recursive-verification-key.json") and
+                            state_fold_key.get("projection_sha256") == PROJECTION_SHA256 and
+                            state_fold_key.get("air_bundle_sha256") == AIR_BUNDLE_SHA256)
+            # The v1 shape remains readable for packages built before the
+            # general step compiler; its installed verifier is sealed to v1.
+            if state_fold_key.get("schema") == "s31-state-fold-verification-key-v1":
+                old_step = report.get("repeated_step")
+                valid_step = (isinstance(old_step, dict) and
+                              state_fold_key.get("source_rounds") == old_step.get("rounds") and
+                              state_fold_key.get("step_constant") == old_step.get("constant"))
+            else:
+                valid_step = (state_fold_key.get("schema") == "s31-state-fold-verification-key-v2" and
+                              isinstance(fold_step, dict) and
+                              state_fold_key.get("source_rounds") == fold_step.get("rounds") and
+                              state_fold_key.get("step_body") == fold_step.get("body"))
+            if not common_valid or not valid_step:
                 raise ValueError("S31 state-fold key does not match its base key and pinned AIR")
-        elif json.loads((package / "cost-report.json").read_text()).get("repeated_step") is not None:
-            raise ValueError("repeat-step gate package is missing its state-fold key")
+        elif any(report.get(name) is not None for name in ("state_fold_step", "repeated_step")):
+            raise ValueError("supported recurrence package is missing its state-fold key")
     for name, expected in artifacts.items():
         if not isinstance(name, str) or not isinstance(expected, str):
             raise ValueError("invalid S31 package artifact entry")
@@ -970,6 +980,16 @@ def main() -> None:
         sub.add_argument("outer_proof", type=Path)
         sub.add_argument("--statement", type=Path)
         sub.add_argument("--low-memory", action="store_true")
+    sub = commands.add_parser("state-fold-advance", help="prove several source steps, with optional resumable checkpoints")
+    sub.add_argument("package", type=Path)
+    sub.add_argument("child_proof", type=Path)
+    sub.add_argument("outer_proof", type=Path)
+    sub.add_argument("--steps", type=int, required=True,
+                     help="number of new fold proofs; the first starts at step zero for a recursive base proof")
+    sub.add_argument("--statement", type=Path)
+    sub.add_argument("--checkpoint-dir", type=Path,
+                     help="keep each intermediate proof and statement for resume")
+    sub.add_argument("--low-memory", action="store_true")
     sub = commands.add_parser("audit-recursive", help="audit a saved child proof's in-circuit verifier inputs")
     sub.add_argument("package", type=Path)
     sub.add_argument("child_proof", type=Path)
@@ -1131,6 +1151,47 @@ def main() -> None:
                      str(package / key_name),
                      *(("--low-memory",) if args.low_memory else ())), end="")
         print(f"fold statement: {outer}.statement.json")
+    elif args.command == "state-fold-advance":
+        if manifest["lowering"] != "gate" or "state-fold-verification-key.json" not in manifest["artifacts"]:
+            raise ValueError("state-fold-advance requires a supported gate-profile recurrence package")
+        child = args.child_proof.resolve()
+        statement = args.statement.resolve() if args.statement else Path(str(child) + ".statement.json")
+        outer = args.outer_proof.resolve()
+        if child == outer or args.steps < 1:
+            raise ValueError("state-fold-advance needs a distinct output and at least one step")
+        initial = json.loads(statement.read_text())
+        if initial.get("schema") == "s31-recursive-gate-statement-v2":
+            first_step = 0
+            base_case = True
+        elif initial.get("schema") == "s31-state-fold-statement-v1":
+            first_step = initial["step"] + 1
+            base_case = False
+        else:
+            raise ValueError("input must be a first-level recursive or state-fold proof")
+        if first_step + args.steps - 1 > 65535:
+            raise ValueError("state-fold u16 step counter would overflow")
+        executable = package / "bin" / f"s31-{manifest['name']}-prover"
+        verifier = package / "bin" / f"s31-{manifest['name']}-native-verifier"
+        outer.parent.mkdir(parents=True, exist_ok=True)
+        with tempfile.TemporaryDirectory(prefix="s31-state-fold-advance-") as temporary:
+            checkpoints = args.checkpoint_dir.resolve() if args.checkpoint_dir else Path(temporary)
+            checkpoints.mkdir(parents=True, exist_ok=True)
+            for index in range(args.steps):
+                step = first_step + index
+                target = (outer if index == args.steps - 1 else
+                          checkpoints / f"state-{step:05d}.proof")
+                target_statement = Path(str(target) + ".statement.json")
+                if target.exists() or target_statement.exists():
+                    raise ValueError(f"refusing to overwrite fold proof or statement: {target}")
+                command = "state-fold-wrap-base" if base_case and index == 0 else "state-fold-wrap-next"
+                print(invoke(str(executable), command, str(child), str(statement), str(target),
+                             str(package / "verification-key.json"),
+                             str(package / "recursive-verification-key.json"),
+                             str(package / "state-fold-verification-key.json"),
+                             *(("--low-memory",) if args.low_memory else ())), end="")
+                child, statement = target, target_statement
+            print(invoke(str(verifier), "state-fold-verify", str(outer), str(statement)), end="")
+        print(f"state-fold top proof: {outer}")
     elif args.command == "audit-recursive":
         if manifest["lowering"] != "gate":
             raise ValueError("audit-recursive requires a gate-profile package")

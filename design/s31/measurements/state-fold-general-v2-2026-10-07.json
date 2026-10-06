@@ -1,0 +1,64 @@
+{
+  "schema": "s31-state-fold-measurement-v2",
+  "date": "2026-10-07",
+  "fixture": "src/frontends/s31/examples/affine_square4.s31",
+  "source_step": {
+    "lanes": 4,
+    "base_rounds": 3,
+    "body": [
+      {"op": "square", "constant": null},
+      {"op": "mul_const", "constant": 3},
+      {"op": "add_const", "constant": 5}
+    ]
+  },
+  "scope": "Local ReleaseFast samples from one build and proof sequence; no warmup or cross-machine comparison",
+  "key": {
+    "schema": "s31-state-fold-verification-key-v2",
+    "root": "eb8a1337c3f1132c2801b427ca4c89d206dc44a0e912b37b6756e040bcf126ec",
+    "circuit_hash": "91502feb4d124e22e6430a30c087cdf62e3eff9fc323d6fa12637a40b161ad06",
+    "trace_log_size": 22,
+    "raw_vars": 11823692,
+    "padded_vars": 19642180,
+    "raw_rows": {
+      "eq": 37527,
+      "qm31_ops": 1419424,
+      "triple_xor": 243880,
+      "m31_to_u32": 423808,
+      "blake_g": 2438800
+    },
+    "padded_rows": {
+      "eq": 65536,
+      "qm31_ops": 2097152,
+      "triple_xor": 262144,
+      "m31_to_u32": 524288,
+      "blake_g": 4194304
+    }
+  },
+  "leaf": {
+    "three_round_output": [116432, 2281157, 28403792, 213295877],
+    "proof_bytes": 419902,
+    "witness_seconds": 0.000506,
+    "prove_seconds": 0.440581
+  },
+  "fold_step_0": {
+    "proof_bytes": 550387,
+    "prove_seconds": 2.706
+  },
+  "fold_step_1": {
+    "state": [2014526231, 973145909, 460619153, 76276684],
+    "proof_bytes": 552213,
+    "prove_seconds": 2.678
+  },
+  "checks": {
+    "three_base_rounds_computed_independently": true,
+    "fold_states_computed_independently": true,
+    "non_chip_step_bound_into_key": true,
+    "base_and_recursive_circuit_mutations_rejected": true,
+    "rehashed_false_final_state_rejected": true,
+    "altered_step_body_key_rejected": true,
+    "top_verifies_without_lower_proof_files": true,
+    "checkpoint_and_low_memory_resumes_match_proof_bytes": true,
+    "padded_geometry_matches_original_square_add_fold": true
+  },
+  "acceptance_command": "python3 src/frontends/s31/acceptance_state_fold_general.py"
+}

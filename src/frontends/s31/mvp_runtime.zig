@@ -102,7 +102,7 @@ const StateFoldKey = struct {
     projection_sha256: []const u8,
     air_bundle_sha256: []const u8,
     source_rounds: u32,
-    step_constant: u32,
+    step_body: []const relation.Step,
     fold_preprocessed_root: []const u8,
     fold_circuit_hash: []const u8,
     padded: Rows,
@@ -176,6 +176,7 @@ const Report = struct {
     profile: []const u8,
     chip: ?ChipKey,
     repeated_step: ?relation.ChipSpec,
+    state_fold_step: ?relation.StateFoldSpec,
     program_sha256: []const u8,
     canonical_ir_sha256: []const u8,
     preprocessed_root: []const u8,
@@ -542,6 +543,7 @@ fn inspect(allocator: std.mem.Allocator, source: relation.Program) !void {
             break :blk .{ .rounds = spec.rounds, .constant = spec.constant, .relation_id = cpu.repeated_step_chip.relation_id };
         } else null,
         .repeated_step = source.repeatedStepChip(),
+        .state_fold_step = source.stateFoldStep(),
         .program_sha256 = &source_hex,
         .canonical_ir_sha256 = &ir_hex,
         .preprocessed_root = &root_hex,
@@ -1427,7 +1429,7 @@ fn generateStateFoldKey(
     recursive_key_path: []const u8,
     output_path: []const u8,
 ) !void {
-    const spec = source.repeatedStepChip() orelse return error.UnsupportedStateFoldSource;
+    const spec = source.stateFoldStep() orelse return error.UnsupportedStateFoldSource;
     const child_bytes = try std.fs.cwd().readFileAlloc(allocator, child_key_path, 4096);
     defer allocator.free(child_bytes);
     var parsed_child = try std.json.parseFromSlice(Key, allocator, child_bytes, .{ .ignore_unknown_fields = false });
@@ -1469,7 +1471,7 @@ fn generateStateFoldKey(
         .blake_g_gate = first.outer_padded.blake_g,
     });
     if (first_layout.traceLogSize() != first.outer_trace_log_size) return error.InvalidRecursiveVerificationKey;
-    var topology_ctx = try state_fold.topology(allocator, projection_bytes, first_layout, try showcasePcsConfig(first_layout.traceLogSize()), expected_first.root, spec.constant);
+    var topology_ctx = try state_fold.topology(allocator, projection_bytes, first_layout, try showcasePcsConfig(first_layout.traceLogSize()), expected_first.root, spec.body);
     defer topology_ctx.deinit();
     try circuit.common.finalize.padContext(circuit.builder.NoValue, &topology_ctx);
     const padded = circuit.common.finalize.rawComponentSizes(preprocessed.CircuitView.fromBuilder(&topology_ctx.circuit));
@@ -1490,12 +1492,12 @@ fn generateStateFoldKey(
     const root_hex = std.fmt.bytesToHex(root, .lower);
     const hash_hex = std.fmt.bytesToHex(hash, .lower);
     const state_key: StateFoldKey = .{
-        .schema = "s31-state-fold-verification-key-v1",
+        .schema = "s31-state-fold-verification-key-v2",
         .base_recursive_key_sha256 = &first_hex,
         .projection_sha256 = projection_sha256,
         .air_bundle_sha256 = cpu.air.bundle_sha256,
         .source_rounds = spec.rounds,
-        .step_constant = spec.constant,
+        .step_body = spec.body,
         .fold_preprocessed_root = &root_hex,
         .fold_circuit_hash = &hash_hex,
         .padded = .{
@@ -1692,13 +1694,17 @@ fn validateStateFoldKey(
     first_bytes: []const u8,
     first: RecursiveKey,
     key: StateFoldKey,
-    spec: relation.ChipSpec,
+    spec: relation.StateFoldSpec,
 ) !VerifiedFoldKey {
-    if (!std.mem.eql(u8, key.schema, "s31-state-fold-verification-key-v1") or
-        key.source_rounds != spec.rounds or key.step_constant != spec.constant)
+    if (!std.mem.eql(u8, key.schema, "s31-state-fold-verification-key-v2") or
+        key.source_rounds != spec.rounds or key.step_body.len != spec.body.len)
         return error.InvalidStateFoldVerificationKey;
+    for (key.step_body, spec.body) |sealed, source_step| {
+        if (sealed.op != source_step.op or sealed.constant != source_step.constant)
+            return error.InvalidStateFoldVerificationKey;
+    }
     // Both fold keys have the same layout and identity fields; the key's
-    // domain, transition constant, and source rounds are checked above.
+    // domain, ordered transition body, and source rounds are checked above.
     const common: FoldKey = .{
         .schema = "s31-fixed-fold-verification-key-v2",
         .base_recursive_key_sha256 = key.base_recursive_key_sha256,
@@ -1784,7 +1790,7 @@ fn inspectStateFold(
     first_key_path: []const u8,
     state_key_path: []const u8,
 ) !void {
-    const spec = source.repeatedStepChip() orelse return error.UnsupportedStateFoldSource;
+    const spec = source.stateFoldStep() orelse return error.UnsupportedStateFoldSource;
     const child_bytes = try std.fs.cwd().readFileAlloc(allocator, child_key_path, 4096);
     defer allocator.free(child_bytes);
     if (!std.mem.eql(u8, child_bytes, sealed_prover_key)) return error.UnsealedRecursiveKey;
@@ -1802,7 +1808,7 @@ fn inspectStateFold(
     var state_key = try std.json.parseFromSlice(StateFoldKey, allocator, state_bytes, .{ .ignore_unknown_fields = false });
     defer state_key.deinit();
     const verified = try validateStateFoldKey(child_bytes, first_bytes, first.value, state_key.value, spec);
-    var topology_ctx = try state_fold.topology(allocator, projection_bytes, verified.layout, verified.pcs, verified.base_root, spec.constant);
+    var topology_ctx = try state_fold.topology(allocator, projection_bytes, verified.layout, verified.pcs, verified.base_root, spec.body);
     defer topology_ctx.deinit();
     try emitFoldGeometry(allocator, &topology_ctx, verified, state_key.value.padded, "s31-state-fold-geometry-v1");
 }
@@ -2100,7 +2106,7 @@ fn expectStateFoldCircuitRejection(
     current_state: [4]u32,
     previous_state: [4]u32,
     step: u16,
-    constant: u32,
+    body: []const relation.Step,
     mutation: ?state_fold.Mutation,
 ) !void {
     if (state_fold.verifyPreparedWithMutation(
@@ -2116,7 +2122,7 @@ fn expectStateFoldCircuitRejection(
         current_state,
         previous_state,
         step,
-        constant,
+        body,
         mutation,
     )) |accepted| {
         var invalid = accepted;
@@ -2141,7 +2147,7 @@ fn wrapStateFold(
     low_memory: bool,
     audit_only: bool,
 ) !void {
-    const spec = source.repeatedStepChip() orelse return error.UnsupportedStateFoldSource;
+    const spec = source.stateFoldStep() orelse return error.UnsupportedStateFoldSource;
     const child_bytes = try std.fs.cwd().readFileAlloc(allocator, child_key_path, 4096);
     defer allocator.free(child_bytes);
     if (!std.mem.eql(u8, child_bytes, sealed_prover_key)) return error.UnsealedRecursiveKey;
@@ -2195,7 +2201,7 @@ fn wrapStateFold(
         base_public_words = previous.value.base_public_words;
         initial_state = previous.value.initial_state;
         previous_state = previous.value.current_state;
-        current_state = try state_fold.nextState(previous_state, spec.constant);
+        current_state = try state_fold.nextState(previous_state, spec.body);
         child_public_words = previous.value.fold_public_words;
         child_root = verified.root;
         child_hash = verified.hash;
@@ -2220,40 +2226,40 @@ fn wrapStateFold(
         current_state,
         previous_state,
         step,
-        spec.constant,
+        spec.body,
     );
     defer values.deinit();
     if (audit_only) {
         var wrong_leaf = base_public_words;
         wrong_leaf[0] ^= 1;
-        try expectStateFoldCircuitRejection(allocator, verified, &captured, verified.base_root, verified.root, wrong_leaf, initial_state, current_state, previous_state, step, spec.constant, null);
+        try expectStateFoldCircuitRejection(allocator, verified, &captured, verified.base_root, verified.root, wrong_leaf, initial_state, current_state, previous_state, step, spec.body, null);
         var wrong_current = current_state;
         wrong_current[0] = if (wrong_current[0] == 0) 1 else 0;
-        try expectStateFoldCircuitRejection(allocator, verified, &captured, verified.base_root, verified.root, base_public_words, initial_state, wrong_current, previous_state, step, spec.constant, null);
-        try expectStateFoldCircuitRejection(allocator, verified, &captured, verified.base_root, verified.root, base_public_words, initial_state, current_state, previous_state, if (step == 0) 1 else step - 1, spec.constant, null);
+        try expectStateFoldCircuitRejection(allocator, verified, &captured, verified.base_root, verified.root, base_public_words, initial_state, wrong_current, previous_state, step, spec.body, null);
+        try expectStateFoldCircuitRejection(allocator, verified, &captured, verified.base_root, verified.root, base_public_words, initial_state, current_state, previous_state, if (step == 0) 1 else step - 1, spec.body, null);
         var wrong_initial = initial_state;
         wrong_initial[0] = if (wrong_initial[0] == 0) 1 else 0;
-        try expectStateFoldCircuitRejection(allocator, verified, &captured, verified.base_root, verified.root, base_public_words, wrong_initial, current_state, previous_state, step, spec.constant, null);
+        try expectStateFoldCircuitRejection(allocator, verified, &captured, verified.base_root, verified.root, base_public_words, wrong_initial, current_state, previous_state, step, spec.body, null);
         if (base_case) {
             var wrong_root = verified.base_root;
             wrong_root[0] ^= 1;
-            try expectStateFoldCircuitRejection(allocator, verified, &captured, wrong_root, verified.root, base_public_words, initial_state, current_state, previous_state, step, spec.constant, null);
+            try expectStateFoldCircuitRejection(allocator, verified, &captured, wrong_root, verified.root, base_public_words, initial_state, current_state, previous_state, step, spec.body, null);
         } else {
             var wrong_root = verified.root;
             wrong_root[0] ^= 1;
-            try expectStateFoldCircuitRejection(allocator, verified, &captured, verified.base_root, wrong_root, base_public_words, initial_state, current_state, previous_state, step, spec.constant, null);
+            try expectStateFoldCircuitRejection(allocator, verified, &captured, verified.base_root, wrong_root, base_public_words, initial_state, current_state, previous_state, step, spec.body, null);
             var wrong_previous = previous_state;
             wrong_previous[0] = if (wrong_previous[0] == 0) 1 else 0;
-            try expectStateFoldCircuitRejection(allocator, verified, &captured, verified.base_root, verified.root, base_public_words, initial_state, current_state, wrong_previous, step, spec.constant, null);
+            try expectStateFoldCircuitRejection(allocator, verified, &captured, verified.base_root, verified.root, base_public_words, initial_state, current_state, wrong_previous, step, spec.body, null);
         }
         inline for (.{ .base_selector, .zero_test_inverse, .previous_counter, .current_state }) |mutation| {
-            try expectStateFoldCircuitRejection(allocator, verified, &captured, verified.base_root, verified.root, base_public_words, initial_state, current_state, previous_state, step, spec.constant, mutation);
+            try expectStateFoldCircuitRejection(allocator, verified, &captured, verified.base_root, verified.root, base_public_words, initial_state, current_state, previous_state, step, spec.body, mutation);
         }
         std.debug.print("S31 state-fold circuit audit: step={d} valid=true rejected={d}\n", .{ step, if (base_case) @as(u32, 9) else 10 });
         return;
     }
     var pp = blk: {
-        var topology_ctx = try state_fold.topology(allocator, projection_bytes, verified.layout, verified.pcs, verified.base_root, spec.constant);
+        var topology_ctx = try state_fold.topology(allocator, projection_bytes, verified.layout, verified.pcs, verified.base_root, spec.body);
         defer topology_ctx.deinit();
         if (!sameTopology(&values.circuit, &topology_ctx.circuit)) return error.StateFoldValueDependentTopology;
         try circuit.common.finalize.padContext(QM31, &values);
@@ -2331,7 +2337,7 @@ fn verifyStateFold(
     if (chip_mode or sparse_mode or direct_mode) return error.UnsupportedRecursiveProfile;
     var source = try parsedProgram(allocator);
     defer source.deinit();
-    const spec = source.value.repeatedStepChip() orelse return error.UnsupportedStateFoldSource;
+    const spec = source.value.stateFoldStep() orelse return error.UnsupportedStateFoldSource;
     var child = try std.json.parseFromSlice(Key, allocator, child_bytes, .{ .ignore_unknown_fields = false });
     defer child.deinit();
     try validateKey(allocator, source.value, child.value);

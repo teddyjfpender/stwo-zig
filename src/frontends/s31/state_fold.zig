@@ -1,10 +1,11 @@
 //! A fixed-key recursive fold that adds one four-lane M31 recurrence step.
-//! The source's statically recognized `iterate` body supplies `x*x+c`.
+//! The source's statically recognized `iterate` body supplies the transition.
 const std = @import("std");
 const core = @import("stwo_core");
 const circuit = @import("stwo_circuit_frontend");
 const cpu = @import("stwo_circuit_cpu_integration");
 const recursion_gate = @import("recursion_gate.zig");
+const relation = @import("stwo_s31_prototype").relation;
 
 const QM31 = core.fields.qm31.QM31;
 const M31 = core.fields.m31.M31;
@@ -35,13 +36,25 @@ pub fn statementDigest(root: [32]u8, step: u16, leaf_words: [8]u32, initial: [4]
     return wordsFromBytes(digest);
 }
 
-pub fn nextState(previous: [4]u32, constant: u32) ![4]u32 {
-    if (constant >= core.fields.m31.Modulus) return error.InvalidStepConstant;
+pub fn nextState(previous: [4]u32, body: []const relation.Step) ![4]u32 {
+    if (body.len == 0 or body.len > 16) return error.InvalidStepBody;
     var result: [4]u32 = undefined;
     for (previous, &result) |word, *out| {
         if (word >= core.fields.m31.Modulus) return error.NoncanonicalState;
-        const x = M31.fromCanonical(word);
-        out.* = x.mul(x).add(M31.fromCanonical(constant)).v;
+        var x = M31.fromCanonical(word);
+        for (body) |step| switch (step.op) {
+            .square => {
+                if (step.constant != null) return error.InvalidStepBody;
+                x = x.mul(x);
+            },
+            .add_const, .mul_const => {
+                const constant = step.constant orelse return error.InvalidStepBody;
+                if (constant >= core.fields.m31.Modulus) return error.InvalidStepConstant;
+                const rhs = M31.fromCanonical(constant);
+                x = if (step.op == .add_const) x.add(rhs) else x.mul(rhs);
+            },
+        };
+        out.* = x.v;
     }
     return result;
 }
@@ -83,7 +96,7 @@ pub fn buildCircuit(
     table: *const circuit.air_eval.component_table.Table,
     config: *const circuit.statements.circuit_statement.CircuitConfig,
     base_root: [32]u8,
-    step_constant: u32,
+    step_body: []const relation.Step,
     self_root_value: Blake.HashValue(V),
     leaf_value: Blake.HashValue(V),
     initial_value: [4]u32,
@@ -93,7 +106,7 @@ pub fn buildCircuit(
     input: *const circuit.stark_verifier.proof.Proof(V),
     witness_indices: ?*WitnessIndices,
 ) !circuit.builder.Context(V) {
-    if (step_constant >= core.fields.m31.Modulus) return error.InvalidStepConstant;
+    if (step_body.len == 0 or step_body.len > 16) return error.InvalidStepBody;
     var ctx = try circuit.builder.Context(V).init(allocator, circuit.common.component_list.N_RESERVED);
     errdefer ctx.deinit();
     const self_root = try Blake.guessHash(V, &ctx, self_root_value);
@@ -124,9 +137,22 @@ pub fn buildCircuit(
         .current_state = current[0].idx,
     };
 
-    const constant = try ctx.constant(QM31.fromBase(M31.fromCanonical(step_constant)));
+    var constants: [16]?Var = .{null} ** 16;
+    for (step_body, 0..) |op, j| switch (op.op) {
+        .square => if (op.constant != null) return error.InvalidStepBody,
+        .add_const, .mul_const => {
+            const constant = op.constant orelse return error.InvalidStepBody;
+            if (constant >= core.fields.m31.Modulus) return error.InvalidStepConstant;
+            constants[j] = try ctx.constant(QM31.fromBase(M31.fromCanonical(constant)));
+        },
+    };
     for (0..4) |i| {
-        const next = try ctx.add(try ctx.mul(previous[i], previous[i]), constant);
+        var next = previous[i];
+        for (step_body, 0..) |op, j| next = switch (op.op) {
+            .square => try ctx.mul(next, next),
+            .add_const => try ctx.add(next, constants[j].?),
+            .mul_const => try ctx.mul(next, constants[j].?),
+        };
         try ctx.eq(current[i], try selectWord(V, &ctx, recurse, initial[i], next));
     }
     const fixed_base_root = try Blake.constantHash(V, &ctx, Blake.hashValue(QM31, wordsFromBytes(base_root)));
@@ -163,7 +189,7 @@ pub fn topology(
     child_layout: circuit.common.preprocessed.ColumnLayout,
     child_pcs: core.pcs.config_v2.PcsConfigV2,
     base_root: [32]u8,
-    step_constant: u32,
+    step_body: []const relation.Step,
 ) !circuit.builder.Context(NoValue) {
     try recursion_gate.authenticateProjection(projection_bytes);
     var projection = try circuit.air_eval.projection.parse(allocator, projection_bytes);
@@ -179,7 +205,7 @@ pub fn topology(
     var scratch = std.heap.ArenaAllocator.init(allocator);
     defer scratch.deinit();
     const empty = try circuit.stark_verifier.proof.emptyProof(scratch.allocator(), proof_config);
-    return buildCircuit(NoValue, allocator, &table, &config, base_root, step_constant, undefined, undefined, undefined, undefined, undefined, 0, &empty, null);
+    return buildCircuit(NoValue, allocator, &table, &config, base_root, step_body, undefined, undefined, undefined, undefined, undefined, 0, &empty, null);
 }
 
 pub fn verifyPrepared(
@@ -195,7 +221,7 @@ pub fn verifyPrepared(
     current: [4]u32,
     previous: [4]u32,
     step: u16,
-    step_constant: u32,
+    step_body: []const relation.Step,
 ) !circuit.builder.Context(QM31) {
     return verifyPreparedWithMutation(
         allocator,
@@ -210,7 +236,7 @@ pub fn verifyPrepared(
         current,
         previous,
         step,
-        step_constant,
+        step_body,
         null,
     );
 }
@@ -228,7 +254,7 @@ pub fn verifyPreparedWithMutation(
     current: [4]u32,
     previous: [4]u32,
     step: u16,
-    step_constant: u32,
+    step_body: []const relation.Step,
     mutation: ?Mutation,
 ) !circuit.builder.Context(QM31) {
     if (adapted.config.n_preprocessed_columns != child_layout.entries.len or
@@ -253,7 +279,7 @@ pub fn verifyPreparedWithMutation(
         &table,
         &config,
         base_root,
-        step_constant,
+        step_body,
         Blake.hashValue(QM31, wordsFromBytes(self_root)),
         Blake.hashValue(QM31, leaf_words),
         initial,

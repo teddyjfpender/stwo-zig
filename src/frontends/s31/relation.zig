@@ -45,6 +45,7 @@ pub const Shape = struct {
     length: usize,
 };
 pub const ChipSpec = struct { rounds: u32, constant: u32 };
+pub const StateFoldSpec = struct { rounds: u32, body: []const Step };
 pub const Program = struct {
     version: u32,
     name: []const u8,
@@ -53,10 +54,10 @@ pub const Program = struct {
     assertions: []Assertion,
     public_outputs: [][]const u8,
 
-    /// The first hybrid profile accepts exactly one public four-lane
-    /// square/add recurrence. Broader extraction requires a private boundary
-    /// relation and a new versioned chip registry.
-    pub fn repeatedStepChip(self: Program) ?ChipSpec {
+    /// A state fold uses the exact, statically validated step body of a public
+    /// four-lane recurrence. No private inputs, side assertions, or extra
+    /// computations can affect the extracted state transition.
+    pub fn stateFoldStep(self: Program) ?StateFoldSpec {
         if (self.inputs.len != 1 or self.assertions.len != 0 or
             self.public_outputs.len != 1)
             return null;
@@ -78,9 +79,20 @@ pub const Program = struct {
             node.rounds == null or node.body == null)
             return null;
         const rounds = node.rounds.?;
+        const body = node.body.?;
+        if (rounds < 1 or rounds > 32768 or body.len < 1 or body.len > 16)
+            return null;
+        return .{ .rounds = rounds, .body = body };
+    }
+
+    /// The dedicated hybrid chip still accepts only its narrow, power-of-two
+    /// square/add profile. Its extraction must not expand with the fold.
+    pub fn repeatedStepChip(self: Program) ?ChipSpec {
+        const spec = self.stateFoldStep() orelse return null;
+        const rounds = spec.rounds;
         if (rounds < 16 or rounds > 32768 or !std.math.isPowerOfTwo(rounds))
             return null;
-        const body = node.body.?;
+        const body = spec.body;
         if (body.len != 2 or body[0].op != .square or
             body[1].op != .add_const or body[1].constant == null)
             return null;
@@ -482,6 +494,34 @@ fn validName(name: []const u8) bool {
     if (name.len == 0 or name.len > 128) return false;
     for (name) |char| if (!std.ascii.isAlphanumeric(char) and char != '_') return false;
     return true;
+}
+
+test "state fold extracts the source body but refuses private or side relations" {
+    const source =
+        \\{"version":1,"name":"general_fold","inputs":[{"name":"x","kind":"m31","length":4,"visibility":"public"}],"nodes":[{"name":"y","op":"repeat","lhs":"x","rounds":3,"body":[{"op":"square"},{"op":"mul_const","constant":3},{"op":"add_const","constant":5}]}],"assertions":[],"public_outputs":["y"]}
+    ;
+    var parsed = try parseProgram(std.testing.allocator, source);
+    defer parsed.deinit();
+    const spec = parsed.value.stateFoldStep() orelse return error.TestUnexpectedResult;
+    try std.testing.expectEqual(@as(u32, 3), spec.rounds);
+    try std.testing.expectEqual(@as(usize, 3), spec.body.len);
+    try std.testing.expectEqual(StepOp.square, spec.body[0].op);
+    try std.testing.expectEqual(StepOp.mul_const, spec.body[1].op);
+    try std.testing.expectEqual(@as(?u32, 3), spec.body[1].constant);
+    try std.testing.expectEqual(StepOp.add_const, spec.body[2].op);
+    try std.testing.expectEqual(@as(?u32, 5), spec.body[2].constant);
+    try std.testing.expect(parsed.value.repeatedStepChip() == null);
+
+    var private_input = [1]Input{parsed.value.inputs[0]};
+    private_input[0].visibility = .private;
+    var private_program = parsed.value;
+    private_program.inputs = &private_input;
+    try std.testing.expect(private_program.stateFoldStep() == null);
+
+    var side_assertion = [1]Assertion{.{ .lhs = "x", .rhs = "x" }};
+    var side_program = parsed.value;
+    side_program.assertions = &side_assertion;
+    try std.testing.expect(side_program.stateFoldStep() == null);
 }
 
 test "malformed relation nodes cannot introduce unconstrained operands or metadata" {

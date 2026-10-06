@@ -50,11 +50,12 @@ def main() -> None:
         s31.verify_package(package)
         key = package / "state-fold-verification-key.json"
         sealed = json.loads(key.read_text())
-        if sealed["schema"] != "s31-state-fold-verification-key-v1":
+        if sealed["schema"] != "s31-state-fold-verification-key-v2":
             raise AssertionError("state-fold key missing")
-        step_constant = sealed["step_constant"]
+        step_body = sealed["step_body"]
         rounds = sealed["source_rounds"]
-        if (step_constant, rounds) != (7, 256):
+        if (step_body, rounds) != ([{"op": "square", "constant": None},
+                                   {"op": "add_const", "constant": 7}], 256):
             raise AssertionError("source recurrence mismatch")
         child_key = package / "verification-key.json"
         first_key = package / "recursive-verification-key.json"
@@ -89,7 +90,7 @@ def main() -> None:
             if item["initial_state"] != original["child_public_words"][4:8]:
                 raise AssertionError("initial state is not the leaf's public output")
             if step:
-                expected = [(word * word + step_constant) % P for word in expected]
+                expected = [(word * word + 7) % P for word in expected]
             if item["current_state"] != expected:
                 raise AssertionError(f"wrong independently computed state at step {step}")
             if item["fold_public_words"] != digest(root, step, item["base_public_words"],
@@ -150,7 +151,7 @@ def main() -> None:
         run(str(prover), "state-fold-wrap-next", str(bad_child), f"{folds[2]}.statement.json",
             str(work / "invalid.proof"), str(child_key), str(first_key), str(key), accept=False)
         tampered_key = json.loads(key.read_text())
-        tampered_key["step_constant"] ^= 1
+        tampered_key["step_body"][1]["constant"] ^= 1
         bad_key = work / "wrong-step-key.json"
         s31.write_json(bad_key, tampered_key)
         run(str(prover), "state-fold-wrap-next", str(folds[2]), f"{folds[2]}.statement.json",

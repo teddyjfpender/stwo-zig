@@ -19,11 +19,15 @@ circuit arith4_m31(public x: [m31; 4]) -> public [m31; 4] {
 ```
 
 The text frontend specializes `step` and lowers `iterate<256>` to a static
-`repeat` node. The compiler recognizes this exact four-lane `square` then
-`add_const` body, including its constant 7 and 256-round base length. It
-generates `state-fold-verification-key.json` only for sources with that typed
-shape and a power-of-two base count from 16 through 32,768. This is
-source-driven: changing 7 changes the step relation and key.
+`repeat` node. The state-fold compiler accepts a public four-lane recurrence
+with 1–32,768 base rounds and a static step body of 1–16 ordered operations:
+square, add a field constant, or multiply by a field constant. It accepts no
+private input, side assertion, or extra node in this profile. The ordered
+body, including constant 7 here, and the 256-round base length are copied
+into the versioned state-fold key and checked against the sealed source.
+The dedicated hybrid chip still has its narrower power-of-two `square` then
+`add_const` profile. A different supported step can use the generic gate
+leaf and the same state-fold mechanism.
 
 The ordinary leaf proof `P0` proves the first 256 steps. Its eight public
 M31 words are the four inputs and four outputs. The latter become the
@@ -71,7 +75,7 @@ n · base = 0
 previous_step = n - recurse, with previous_step ∈ u16
 
 for each lane i:
-    next_i = P_i · P_i + 7 mod (2³¹ - 1)
+    next_i = step(P_i) = P_i · P_i + 7 mod (2³¹ - 1)
     S_i = S0_i + recurse · (next_i - S0_i)
 
 child_root   = base ? root(K1) : R
@@ -85,7 +89,7 @@ product, and inverse equations force the base branch at step zero and the
 recursive branch at every positive step. The `u16` predecessor decreases by
 one, so a valid recursive proof must eventually reach the base case. At
 step zero the lane equation reduces to `S=S0`; at a positive step it reduces
-to `S=P²+7`. The child verifier constrains its commitments, transcript,
+to `S=step(P)`. The child verifier constrains its commitments, transcript,
 LogUp, FRI and proof-of-work inputs, just as in the [recursion chapter](recursion.md).
 
 Each scalar equality, multiplication, range check and hash gate is lowered
@@ -93,14 +97,40 @@ to the circuit AIR components. For one lane, the transition constraint
 polynomial is
 
 ```text
-C = S - S0 - recurse · (P² + 7 - S0).
+C = S - S0 - recurse · (step(P) - S0).
 ```
 
 On a valid trace row, `C=0` in M31. The prover interpolates the trace
 columns into polynomials, commits to their evaluations, and proves the AIR
 identities using the same machinery explained in [AIR and polynomials](air.md).
-The transition is genuinely inside that proof; the host's independently
+For this example, `step(P)=P²+7`. Each body operation becomes an addition
+or multiplication gate before this equality. The transition is genuinely
+inside that proof; the host's independently
 computed `nextState` is only a witness-generation and cross-check step.
+
+## A different function by hand
+
+The [second source file](../examples/affine_square4.s31) defines
+`step(v)=3v²+5` and `iterate<3>(step,x)`. The source step is the ordered
+list `[square, mul_const(3), add_const(5)]`. Its first lane starts at 1:
+
+```text
+base round 1: 3·1²+5       = 8
+base round 2: 3·8²+5       = 197
+base round 3: 3·197²+5     = 116432
+fold step 1:  3·116432²+5  = 40669231877
+                             = 18·2147483647 + 2014526231
+```
+
+A fifth application is carried by the next proof. In the
+general circuit, the per-lane transition is
+`C=S-S0-recurse·(3P²+5-S0)=0`. The base proof certifies three rounds;
+fold step 2 certifies five rounds in total. See the
+[general acceptance fixture](../acceptance_state_fold_general.py) for all
+four lanes and adversarial claims. The [local geometry and timing record](../../../../design/s31/measurements/state-fold-general-v2-2026-10-07.json)
+shows that this three-operation step stays within the original padded AIR
+sizes; the extra raw arithmetic rows are small compared with the embedded
+STARK verifier.
 
 ## Public binding and the self-key
 
@@ -149,8 +179,19 @@ python3 src/frontends/s31/s31.py state-fold-next zig-out/s31/arith4-state-fold \
   zig-out/s31/state0.proof zig-out/s31/state1.proof
 python3 src/frontends/s31/s31.py verify-state-fold zig-out/s31/arith4-state-fold \
   zig-out/s31/state1.proof
+python3 src/frontends/s31/s31.py state-fold-advance zig-out/s31/arith4-state-fold \
+  zig-out/s31/state1.proof zig-out/s31/state4.proof --steps 3 \
+  --checkpoint-dir zig-out/s31/state-checkpoints
 python3 src/frontends/s31/acceptance_state_fold.py
+python3 src/frontends/s31/acceptance_state_fold_general.py
 ```
+
+`state-fold-advance` validates the package once, proves every step in order,
+and natively verifies the final proof. With `--checkpoint-dir`, each
+intermediate proof and statement is kept as `state-00002.proof` and so on;
+passing one of those proofs as the next input resumes from that step. The
+command checks the `u16` counter bound before starting and refuses to
+overwrite an existing proof or statement.
 
 `audit-state-fold-base` and `audit-state-fold-next` test the base selector,
 zero-test inverse, predecessor counter, current state, selected root,
@@ -160,6 +201,8 @@ sample took 3.62 s and 9.31 GB peak RSS normally, versus 3.82 s and
 7.00 GB in low-memory mode. Both paths produced the same 550,173-byte
 proof. The native top verifier took 0.07 s wall and 205 MB in that local
 sample. These are single-machine observations, not speed guarantees.
+That sample used the original v1 square/add key; v2 binds the ordered body
+and therefore has a different key and proof bytes.
 `inspect-state-fold PACKAGE` rebuilds the AIR and reports raw rows and
 padding headroom. Compared with `inspect-fold` on the same source, this
 state transition adds only 48 raw variables, 4 equality rows, 32 QM31
@@ -168,8 +211,9 @@ counts do not change. Both AIRs occupy the same padded component sizes.
 The [measurement record](../../../../design/s31/measurements/state-fold-v1-2026-10-07.json)
 contains the exact geometry and sampled timings.
 
-The current step extractor covers a four-lane M31 `square` plus static
-constant recurrence. It does not yet compile an arbitrary S31 function into
+The current step extractor covers a four-lane M31 recurrence composed from
+square, add-constant, and multiply-constant operations. It does not yet
+compile an arbitrary S31 function into
 the fold or handle Bitcoin's 80-byte header state, SHA256d, target rule and
 sparse-wide proof profile. The state-fold AIR shows the interface those
 larger transitions need: a typed state, a constrained transition, and a
