@@ -103,19 +103,19 @@ their active/limb schedule against independently admitted verifier rows, and
 close their transcript-word lookups; the host `BundleV3` cannot grant that
 authority on its own.
 
-The partial V3 extension manifest pins the source, projection and arithmetic
-typed-AIR components at rows 39–41 after the exact V2 roster. Their adapters
-authenticate the pinned program semantics and geometry. The manifest refuses
-complete-wrapper publication: the remaining child-field router, transcript
-root, hash and range providers, and global lookup/PCS closure need one new
-verified V3 transaction. The existing 39-row V2 proof cannot be treated as if
-the three new rows were already committed.
-Another partial manifest pins ProgramV2 words/hash and verified-outer provider
-words/hash at rows 42–45. Its adapter gate checks pinned domains, scopes,
-word counts, digest kinds and outputs, while the real small-ELF gate constructs
-the corresponding `BundleV3` only after both local proof transactions verify.
-Row 46 is reserved for the typed Tree0 link. These separate manifests describe
-candidate rows; neither defines a complete 47-row proof roster.
+The V3 leaf-wrapper roster fixes all 49 rows: the 39 local verifier rows,
+typed link source/projection/arithmetic at 39–41, ProgramV2 and provider
+word/hash rows at 42–45, the Tree0 link at 46, and metadata/link hash callers
+at 47–48. Row 34 must be rebuilt as one enlarged Poseidon provider for every
+caller; copying the 39-row V2 proof would leave the added rows outside its
+commitment and lookup closure. The roster and exact-row claim gate pin geometry
+and reject incomplete assemblies, but cannot themselves prove anything. The
+new V3 protocol/key identity binds the roster, relation registry, strong
+security profile and independently recomputed preprocessed root. Publication
+remains disabled until the verifier-owned source/interaction cohort, combined
+hash-call witness, exact global lookup closure and PCS transaction are built
+and freshly verified. The separate partial manifests remain useful as focused
+typed-component tests; they are not proof publications.
 For the base RV32 leaf, the child verifier authority is the freshly verified
 native SegmentV2 capture inside `PreparedNativeV2LeafOuter`; the detached
 39-component recursive-child loader belongs to a later parent and cannot
