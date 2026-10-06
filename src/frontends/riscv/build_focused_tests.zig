@@ -42,8 +42,8 @@ pub const specs = [_]Spec{
         .description = "Check the dormant proof-visible native ProgramV2 wire-ID export profile",
         .root = "direct_npv2_source_test_root.zig",
         .imports_prover_engine = true,
-        .filters = &.{"NPV2 base payload export"},
-        .minimum = 3,
+        .filters = &.{"NPV2"},
+        .minimum = 9,
     },
     .{
         .step = "test-recursion-direct-wrapper-kernel",
