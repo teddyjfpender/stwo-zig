@@ -20,6 +20,59 @@ const scheduled = @import("../scheduled_channel_v2.zig");
 const transcript = @import("../transcript_program_v2.zig");
 const field_authority = @import("../transcript_program_v2_field_authority_v1.zig");
 const field_source = @import("../air/transcript_program_v2_field_source_v1.zig");
+const wrapper_field_witness = @import("../segment_leaf_wrapper_field_witness_v3.zig");
+
+test "native V3 field witness binds ProgramV2 words and Tree0 capture root" {
+    var fixture = try Fixture.init(std.testing.allocator);
+    defer fixture.deinit();
+    const MockPrepared = struct {
+        transcript_program: transcript.Program,
+        vm_plan: schedule.Plan,
+        pcs_config: PcsConfig,
+        capture: struct {
+            public_data: struct { data: public_data_v2.PublicDataV2 },
+            vm_air: struct {
+                component_descs: []const statement_v1.FamilyComponentDesc,
+                infra_descs: []const statement_v1.InfraComponentDesc,
+            },
+            proof: struct { commitments: []const channel.Digest },
+        },
+        captured_fri: struct { trace_roots: []const channel.Digest },
+
+        pub fn validate(self: *const @This()) !void {
+            try self.transcript_program.validateAgainst(
+                &self.vm_plan,
+                self.pcs_config,
+                &self.capture.public_data.data,
+                self.capture.vm_air.component_descs,
+                self.capture.vm_air.infra_descs,
+            );
+        }
+    };
+    const prepared = MockPrepared{
+        .transcript_program = fixture.program,
+        .vm_plan = fixture.plan,
+        .pcs_config = config,
+        .capture = .{
+            .public_data = .{ .data = fixture.data },
+            .vm_air = .{ .component_descs = &component_descs, .infra_descs = &infra_descs },
+            .proof = .{ .commitments = &fixture.trace_commitments },
+        },
+        .captured_fri = .{ .trace_roots = &fixture.trace_commitments },
+    };
+    var witness = try wrapper_field_witness.NativeV1.initFromPrepared(std.testing.allocator, &prepared);
+    defer witness.deinit();
+    try witness.validateAgainst(&prepared);
+    try std.testing.expectEqualDeep(fixture.trace_commitments[0], witness.tree0_root);
+    witness.program_words.rows[0][0] = witness.program_words.rows[0][0].add(M31.one());
+    try std.testing.expectError(error.InvalidFieldWordWitness, witness.validateAgainst(&prepared));
+    witness.program_words.rows[0][0] = witness.program_words.rows[0][0].sub(M31.one());
+    witness.program_hash.main[0].output[0] = witness.program_hash.main[0].output[0].add(M31.one());
+    try std.testing.expectError(error.FieldHashWitnessMismatch, witness.validateAgainst(&prepared));
+    witness.program_hash.main[0].output[0] = witness.program_hash.main[0].output[0].sub(M31.one());
+    witness.tree0_root[0] ^= 1;
+    try std.testing.expectError(error.Tree0FieldRootMismatch, witness.validateAgainst(&prepared));
+}
 
 test "V2 transcript program field preimage is exact and rejects changed words" {
     const source_digest = try field_source.computeSemanticDigest(std.testing.allocator);

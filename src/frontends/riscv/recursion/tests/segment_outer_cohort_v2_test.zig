@@ -22,6 +22,9 @@ const input_provider_authority =
 const shared_provider_field =
     @import("../segment_outer_shared_provider_field_authority_v1.zig");
 const universal_challenges = @import("../air/universal_challenges.zig");
+const field_word_witness = @import("../transcript_program_v2_field_word_witness_v1.zig");
+const field_word_source = @import("../air/transcript_program_v2_field_source_v1.zig");
+const field_hash_witness = @import("../segment_leaf_wrapper_field_hash_witness_v3.zig");
 
 test "shared providers have a canonical field envelope tied to 39-row claims" {
     const manifest = try fixtureManifest();
@@ -40,6 +43,37 @@ test "shared providers have a canonical field envelope tied to 39-row claims" {
     );
     defer authority.deinit();
     try authority.validateAgainst(&manifest, &claims, &relations, partials);
+    var source_words = try field_word_witness.WordsV1.init(
+        std.testing.allocator,
+        authority.words,
+        field_word_source.PROVIDER_WORD_SCOPE,
+    );
+    defer source_words.deinit();
+    try source_words.validateAgainst(authority.words, field_word_source.PROVIDER_WORD_SCOPE);
+    var lookup = try source_words.generateInteraction(std.testing.allocator, &relations);
+    defer lookup.deinit(std.testing.allocator);
+    try std.testing.expectEqual(
+        field_word_source.PROVIDER_WORD_SCOPE,
+        source_words.rows[0][3].toU32(),
+    );
+    var hash = try field_hash_witness.HashV1.init(
+        std.testing.allocator,
+        authority.words,
+        shared_provider_field.DOMAIN,
+        field_word_source.PROVIDER_WORD_SCOPE,
+        field_hash_witness.PROVIDER_FIELD_DIGEST_KIND,
+        field_hash_witness.PROVIDER_STEP_BASE,
+        authority.digest,
+    );
+    defer hash.deinit();
+    try hash.validateAgainst(
+        authority.words,
+        shared_provider_field.DOMAIN,
+        field_word_source.PROVIDER_WORD_SCOPE,
+        field_hash_witness.PROVIDER_FIELD_DIGEST_KIND,
+        field_hash_witness.PROVIDER_STEP_BASE,
+        authority.digest,
+    );
 
     authority.words[2] = authority.words[2].add(M31.one());
     try std.testing.expectError(

@@ -16,6 +16,7 @@ const Span = lang.source.SourceSpan;
 
 pub const STABLE_NAME = "recursion.segment_v2.program_field_source.v1";
 pub const PROGRAM_WORD_SCOPE: u32 = 0x5056_3257; // "PV2W"
+pub const PROVIDER_WORD_SCOPE: u32 = 0x5350_5731; // "SPW1"
 pub const PHYSICAL_MAIN_COLUMN_COUNT: usize = 1;
 pub const PREPROCESSED_COLUMN_COUNT: usize = 4;
 pub const LOGICAL_INPUT_COUNT: usize = 5;
@@ -66,11 +67,18 @@ pub const Definition = struct {
 };
 
 pub fn logicalRow(value: M31, active: u32, expected: M31, index: u32) Row {
+    return logicalRowScoped(value, active, expected, PROGRAM_WORD_SCOPE, index);
+}
+
+/// A second independently pinned preprocessing instance carries the shared
+/// provider envelope through the same word equality and lookup equation.
+pub fn logicalRowScoped(value: M31, active: u32, expected: M31, scope: u32, index: u32) Row {
+    if (active == 0) return [_]M31{M31.zero()} ** LOGICAL_INPUT_COUNT;
     return .{
         value,
         M31.fromCanonical(active),
         expected,
-        M31.fromCanonical(PROGRAM_WORD_SCOPE),
+        M31.fromCanonical(scope),
         M31.fromCanonical(index),
     };
 }
