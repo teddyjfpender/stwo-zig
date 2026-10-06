@@ -85,6 +85,15 @@ half-word payloads, range-constrain each half, and prove the eight 32-bit
 recompositions in row 42 before either the tuple ledger or a fixed key can be
 admitted. Host recomposition is only a diagnostic and does not close this
 soundness obligation.
+The V7 bridge now implements those AIR equations, with 24 row-35 byte-table
+requests and a canonical-gap check that rejects field-modulus aliases. On one
+real q193 native capture, the diagnostic ledger closed all 24,336 selected
+lookup contributions: zero unmatched tuples in domains 25, 29, and 30. This
+uses a shape-compiled fixed schedule for 3,194 ProgramV2 words and leaves
+only 16 identity words dynamic. It is **not** a physical 50-row proof: the
+physical claims still come from the older V5 cohort and remain nonzero until
+the new AIRs, row-35 provider, and verifier-owned fixed columns are installed
+in the committed trees and checked by a fresh verifier.
 A further dormant row-4 profile can export kind and eight split argument limbs
 for instructions with an actual payload row, using that row's existing
 transcript-payload relation. Its coverage audit rejects duplicate origins and
