@@ -165,6 +165,7 @@ pub fn build(b: *std.Build) void {
     });
     v3_rows_root.addImport("stwo_core", core);
     v3_rows_root.addImport("stwo_prover_engine", prover);
+    v3_rows_root.addImport("stwo_prover_api", prover_api);
     const v3_rows_tests = b.addTest(.{ .root_module = v3_rows_root });
     b.step("test-v3-source-projection-rows", "Check typed V3 leaf source and projection joins")
         .dependOn(&b.addRunArtifact(v3_rows_tests).step);
