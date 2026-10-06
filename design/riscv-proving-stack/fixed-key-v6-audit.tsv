@@ -1,0 +1,51 @@
+row	component	classification	preprocessed_surface	v6_owner_or_move	proof_obligation
+0	control	template_rebuild	instruction sequence; tag; args; terminal mask	template opcode schedule; dynamic statement and wire values stay in row5 main	Reconstruct from pinned native verifier shape and compare every descriptor
+1	transcript_air	template_rebuild	call id; hash id; instruction descriptor; call flags	template call schedule	Derive call count and order from the pinned program template
+2	transcript_binding	template_rebuild	call id; hash id; instruction descriptor; call flags	template call schedule	Same ordered calls as row1 and row34
+3	transcript_state	template_rebuild	instruction descriptor; state keys; frame masks	template frame schedule; sponge states in main	Derive frame schedule without execution outputs
+4	transcript_word	move_leaf_values	constant_value for non-payload frame words; instruction descriptor	versioned fixed selector plus main word; true padding constants remain fixed	Constrain main word to frame and payload relations; export Tree0 frame words
+5	transcript_payload	move_leaf_values	constant_mask; public_geometry value; source kind and indices	public geometry and identities in main; fixed source selectors in template	Join each dynamic value to native statement or admitted geometry and NPV2
+6	pow_check	template_rebuild	PoW bit count; active-bit schedule	pinned native PCS and interaction profile; nonce in main	Reject any profile downgrade and bind nonce to actual checked word
+7	pow_frame	template_rebuild	instruction; PoW kind; call and hash IDs; bit count	template frame schedule; draw words in main	Same PoW frame and call order as native verifier
+8	relation_challenge	template_rebuild	instruction descriptor; challenge index; masks	template draw schedule; challenge in main	Bind draws to exact transcript order
+9	verifier_randomness	template_rebuild	query and draw descriptors; multiplicities	template query schedule; sampled words in main	Bind every query word to native transcript and profile
+10	statement_input	inert	inactive V2 row layout	fixed inert template	Keep row inactive under versioned AIR identity
+11	statement_semantics_input	template_rebuild	circuit id; graph node/source; constants; use counts	pinned native verifier graph template; variable statement in main	Rebuild from admitted graph; never take graph from child artifact
+12	vm_public_claim_input	template_rebuild	word kind; word index; constant words; I/O indices	pinned public claim schema; claim words in main	Rebuild constant schema and bind dynamic claim words
+13	vm_public_claim_hash	template_rebuild	hash chunk masks; indices; constant words	fixed hash schedule; preimage in main	Join hash calls to row34 and row12 claim words
+14	vm_public_io_hash	template_rebuild	I/O hash chunk masks; indices; constant words	fixed I/O schema; I/O bytes and digest in main	Bind actual public I/O bytes before application publication
+15	vm_public_claim_semantics_input	template_rebuild	circuit/node ids; source selectors; indices; use counts	pinned native claim graph template; values in main	Rebuild graph and close source lookups
+16	vm_public_logup_input	template_rebuild	circuit/node ids; source selectors; indices; use counts	pinned native LogUp graph template; values in main	Rebuild graph and close source lookups
+17	vm_public_logup_control	template_rebuild	control schedule; selector and reference indices	pinned V2 LogUp control template; values in main	Rebuild row17 override under V6 semantic identity
+18	vm_air_composition_input	template_rebuild	graph binding and source selectors; constants	pinned native composition graph template; values in main	Rebuild graph from independently admitted verifier program
+19	vm_air_composition_control	template_rebuild	composition control selectors and geometry	pinned native composition template	Rebuild from admitted component geometry
+20	query_bits	template_rebuild	query count; lane and bit selectors	pinned PCS shape; raw query words in main	Do not replace raw transcript words with masked Merkle positions
+21	query_mapping	template_rebuild	query/lane mapping; log sizes	pinned PCS and tree geometry; positions in main	Rebuild mapping from admitted shape
+22	merkle_root	template_rebuild	root source selectors; tree indices	pinned tree schedule; commitment roots in main	Bind root words to native transcript and Tree0
+23	trace_merkle	template_rebuild	column and opening schedule; tree geometry	pinned trace geometry; openings in main	Rebuild from admitted tree shape and checked queries
+24	pcs_deep_input	template_rebuild	DEEP source schedule and geometry	pinned PCS shape; sampled values in main	Rebuild source coordinates and close verifier inputs
+25	fri_merkle_leaf	template_rebuild	FRI layer and leaf schedule	pinned FRI shape; leaf values in main	Rebuild from PCS profile and checked query positions
+26	fri_merkle_node	template_rebuild	FRI node schedule and path geometry	pinned FRI shape; sibling values in main	Rebuild from PCS profile and checked query positions
+27	fri_merkle_anchor	template_rebuild	FRI anchor and root selectors	pinned FRI shape; root words in main	Bind roots to native transcript commitments
+28	fri_verifier_control	template_rebuild	fold and layer control schedule	pinned FRI profile and shape; fold values in main	Rebuild control from q193 fold4 profile
+29	fri_verifier_input	template_rebuild	FRI input source coordinates	pinned FRI shape; values in main	Close transcript and opening sources
+30	qm31_mul	template_rebuild	arithmetic operation selectors	fixed arithmetic template; operands in main	No request-dependent preprocessed operand
+31	qm31_inv	template_rebuild	arithmetic operation selectors	fixed arithmetic template; operand in main	No request-dependent preprocessed operand
+32	linear_ops	template_rebuild	linear operation selectors	fixed arithmetic template; operands in main	No request-dependent preprocessed operand
+33	merkle_path	template_rebuild	path and bit selectors; tree geometry	pinned Merkle shape; path values in main	Rebuild path selectors from checked query geometry
+34	poseidon2	template_rebuild	canonical provider marker and padded call capacity	fixed six-range call capacity; calls in main	Bind every ordered call and reject missing or reordered range
+35	range_check_8_8	fixed	byte-table values and multiplicity layout	fixed byte table	Close all range requests including row41
+36	statement_source	template_rebuild	active; scope; index; V5 extra_use selector	pinned statement coordinate schedule; value in main	Exactly 56 S2WR and S2CX extra uses with no duplicates
+37	public_logup_source	template_rebuild	active; source kind and index; use count	pinned source schedule; value in main	Close public LogUp source tuples
+38	verifier_input_provider	template_rebuild	active; LUP2 class; indices	pinned verifier input schedule; value in main	Close child verifier input tuples
+39	link_source	template_rebuild	fixed source selector; kind; index; use count	pinned LAS2 source schedule; value in main	Emit exactly the verifier-owned link and native input words
+40	link_projection	template_rebuild	projection selector; index; use count	pinned LAS2 projection schedule; value in main	Join 24 public words to independent LAS2 boundary
+41	link_arithmetic	template_rebuild	operation selector and operand coordinates	fixed arithmetic schedule; operands in main	Close fused arithmetic and byte-range requests
+42	program_words	move_leaf_values	V4 expected ProgramV2 word in preprocessing	V5 fixed mode and true constants only; canonical word in main	Every dynamic index consumes exactly one native NPV2 producer
+43	program_hash	template_rebuild	word indices; marker; call schedule	fixed ProgramV2 hash schedule; preimage in main	Hash exact row42 words through ordered row34 calls
+44	tree0_field	template_rebuild	Tree0 word selectors and indices	fixed Tree0 bridge; root in main	Join native row4 frame and row39 PPR1 exactly
+45	metadata_hash	template_rebuild	hash chunk masks; indices; constants	fixed link metadata hash schedule; preimage in main	Join metadata source and row34 calls
+46	link_hash	template_rebuild	hash chunk masks; indices; constants	fixed link hash schedule; preimage in main	Join link source and row34 calls
+47	local_router	template_rebuild	source/sink selectors; indices; descriptor constants	pinned component descriptor geometry; routed values in main	Close 56 S2WR/S2CX and 24 LAI1/LWI1/LRI1 tuples
+48	local_authority_hash	template_rebuild	preimage indices; marker; fixed constants	fixed authority hash schedule; preimage in main	Join router words and ordered row34 authority calls
+49	local_receipt_hash	template_rebuild	preimage indices; marker; fixed constants	fixed receipt hash schedule; preimage in main	Join router words and ordered row34 receipt calls
