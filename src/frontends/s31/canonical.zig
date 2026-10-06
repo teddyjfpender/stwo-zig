@@ -88,11 +88,19 @@ pub fn build(allocator: std.mem.Allocator, program: relation.Program) !IR {
         const lhs: ?u32 = if (raw.lhs) |name| ids.get(name) orelse return error.UnknownOperand else null;
         const rhs: ?u32 = if (raw.rhs) |name| ids.get(name) orelse return error.UnknownOperand else null;
         const selector: ?u32 = if (raw.selector) |name| ids.get(name) orelse return error.UnknownOperand else null;
-        const shape = program.shapeOf(raw.name) orelse return error.UnknownOperand;
+        // The relation validator has already checked shapes. Canonical nodes
+        // are in dependency order, so derive this shape from the preceding
+        // operand rather than recursively rescanning the full source chain.
+        const length: u32 = switch (raw.op) {
+            .constant => raw.length.?,
+            .sum_lanes => 1,
+            .hash_blake2s, .hash_blake2s_leaf, .hash_blake2s_pair, .hash_poseidon2_leaf, .hash_poseidon2_pair => 8,
+            else => nodes.items[lhs.?].length,
+        };
         var node: Node = .{
             .tag = @enumFromInt(@as(u8, @intFromEnum(raw.op)) + 1),
-            .kind = shape.kind,
-            .length = @intCast(shape.length),
+            .kind = .m31,
+            .length = length,
             .lhs = lhs,
             .rhs = rhs,
             .selector = selector,
@@ -251,6 +259,36 @@ test "canonical graph folds constants and shares repeated expressions" {
     try std.testing.expectEqual(@as(usize, 4), ir.nodes.len);
     try std.testing.expectEqual(@as(u32, 10), ir.nodes[2].constant.?);
     try std.testing.expectEqual(ir.source_map[3].id, ir.source_map[4].id);
+}
+
+test "deep source chain canonicalizes without recursive shape lookup" {
+    var arena = std.heap.ArenaAllocator.init(std.testing.allocator);
+    defer arena.deinit();
+    const allocator = arena.allocator();
+    const chain_len = 4096;
+    const source_nodes = try allocator.alloc(relation.Node, chain_len);
+    var previous: []const u8 = "x";
+    for (source_nodes, 0..) |*node, index| {
+        const name = try std.fmt.allocPrint(allocator, "step_{d}", .{index});
+        node.* = .{ .name = name, .op = .add_const, .lhs = previous, .constant = 1 };
+        previous = name;
+    }
+    var inputs = [_]relation.Input{.{ .name = "x", .kind = .m31, .length = 1, .visibility = .private }};
+    var outputs = [_][]const u8{previous};
+    const program: relation.Program = .{
+        .version = 1,
+        .name = "deep_chain",
+        .inputs = &inputs,
+        .nodes = source_nodes,
+        .assertions = &.{},
+        .public_outputs = &outputs,
+    };
+    const shape = (try program.shapeOf(std.testing.allocator, previous)) orelse return error.UnknownOutput;
+    try std.testing.expectEqual(@as(usize, 1), shape.length);
+    var ir = try build(std.testing.allocator, program);
+    defer ir.deinit();
+    try std.testing.expectEqual(@as(usize, chain_len + 1), ir.nodes.len);
+    try std.testing.expectEqual(@as(u32, chain_len), ir.public_outputs[0].id);
 }
 
 test "legacy arithmetic canonical digest remains stable after select extension" {

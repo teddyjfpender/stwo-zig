@@ -2,6 +2,7 @@
 """Prove that text and handwritten relations retain the same S31 cost shape."""
 
 import json
+import shutil
 import sys
 import tempfile
 from pathlib import Path
@@ -71,6 +72,66 @@ def reject_bad_text_claims(package: Path, assignment_path: Path, proof: Path,
             raise AssertionError("text bit selector accepted witness value 2")
 
 
+def reject_forged_text_source(package: Path, work: Path) -> None:
+    """A package manifest cannot authorize text that lowers to a different AIR."""
+    forged = work / "mathlib4-forged-text-package"
+    shutil.copytree(package, forged)
+    manifest_path = forged / "manifest.json"
+    original_manifest = json.loads(manifest_path.read_text())
+    missing_artifact = json.loads(json.dumps(original_manifest))
+    del missing_artifact["artifacts"]["bin/s31-mathlib4-native-verifier"]
+    s31.write_json(manifest_path, missing_artifact)
+    try:
+        s31.verify_package(forged)
+    except ValueError as exc:
+        if "missing required artifacts" not in str(exc):
+            raise AssertionError(f"omitted verifier was rejected for the wrong reason: {exc}") from exc
+    else:
+        raise AssertionError("manifest omitted the verifier artifact without rejection")
+    s31.write_json(manifest_path, original_manifest)
+
+    key_path = forged / "verification-key.json"
+    original_key = json.loads(key_path.read_text())
+    changed_key = {**original_key, "name": "forged-program"}
+    s31.write_json(key_path, changed_key)
+    mismatched_key = json.loads(json.dumps(original_manifest))
+    mismatched_key["artifacts"]["verification-key.json"] = s31.file_hash(key_path)
+    s31.write_json(manifest_path, mismatched_key)
+    try:
+        s31.verify_package(forged)
+    except ValueError as exc:
+        if "key does not match manifest" not in str(exc):
+            raise AssertionError(f"mismatched key was rejected for the wrong reason: {exc}") from exc
+    else:
+        raise AssertionError("manifest accepted a rehashed key for another program")
+    s31.write_json(key_path, original_key)
+    s31.write_json(manifest_path, original_manifest)
+
+    source = forged / "source.s31"
+    original = source.read_text()
+    changed = original.replace("11_m31", "12_m31")
+    if changed == original or changed.count("12_m31") != 1:
+        raise AssertionError("mathlib4 tamper fixture no longer identifies one constant")
+    source.write_text(changed)
+    source_digest = s31.file_hash(source)
+    source_map_path = forged / "source-map.json"
+    source_map = json.loads(source_map_path.read_text())
+    source_map["source_sha256"] = source_digest
+    s31.write_json(source_map_path, source_map)
+    manifest = json.loads(manifest_path.read_text())
+    manifest["source_text_sha256"] = source_digest
+    for name in ("source.s31", "source-map.json"):
+        manifest["artifacts"][name] = s31.file_hash(forged / name)
+    s31.write_json(manifest_path, manifest)
+    try:
+        s31.verify_package(forged)
+    except ValueError as exc:
+        if "text source does not lower to the sealed relation" not in str(exc):
+            raise AssertionError(f"forged text was rejected for the wrong reason: {exc}") from exc
+    else:
+        raise AssertionError("text package accepted source computing +12 with sealed relation computing +11")
+
+
 def main() -> None:
     result = []
     with tempfile.TemporaryDirectory(prefix="s31-text-acceptance-") as directory:
@@ -85,6 +146,8 @@ def main() -> None:
             if lock["package"] != "std" or lock["version"] != 1 or lock["explicit_import"] != (name in {"mathlib4", "lane_stats4"}):
                 raise AssertionError(f"{name}: unexpected standard library lock")
             s31.verify_package(text_package)
+            if name == "mathlib4":
+                reject_forged_text_source(text_package, work)
             equation_report = s31.equations(text_package)
             relation = json.loads((text_package / "source.s31.json").read_text())
             if ([node["name"] for node in equation_report["nodes"]] !=
@@ -106,6 +169,14 @@ def main() -> None:
             text_proof = work / f"{name}-text.proof"
             text_bytes = prove_and_verify(text_package, assignment, text_proof)
             reject_bad_text_claims(text_package, assignment, text_proof, work, name)
+            if name == "lane_stats4":
+                trial_report = s31.trial(text_package, assignment, work / "lane_stats4-trial")
+                if (trial_report["canonical_ir_sha256"] != text_report["canonical_ir_sha256"] or
+                        trial_report["raw"] != text_report["raw"] or
+                        trial_report["changed_public_statement_rejected"] != "public_outputs.result[0]" or
+                        trial_report["independent_value_oracle"] != {
+                            "status": "passed", "computed_public_outputs": {"result": [296]}}):
+                    raise AssertionError("lane_stats4: trial report does not match the verified package")
             json_bytes = prove_and_verify(json_package, assignment, work / f"{name}-json.proof")
             result.append({"name": name, "lowering": lowering,
                            "canonical_ir_sha256": text_report["canonical_ir_sha256"],

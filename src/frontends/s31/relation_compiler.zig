@@ -382,26 +382,43 @@ fn outputWord(comptime V: type, ctx: *circuit.builder.Context(V), entry: Entry, 
     return if (direct_output or entry.shape.kind == .u16) base else (try circuit.builder.blake.m31ToU32(V, ctx, base)).get();
 }
 
-/// Unpack each base-field lane and add in a balanced tree. Every unpack and
-/// addition is a circuit gate; the result is a one-lane base-field Simd.
+/// Sum packed M31 coordinates with a QM31 linear functional. In the basis
+/// (1, i, u, iu), where i² = -1 and u² = 2 + i, the base coordinate of
+/// x * (1 - i + u/5 - 3iu/5) is a + b + c + d for
+/// x = a + bi + cu + diu. A pointwise multiply by (1, 0, 0, 0) then extracts
+/// that coordinate. These are ordinary constrained multiplication gates.
+///
+/// The final wire can have arbitrary unused coordinates, so mask them before
+/// adding packed wires. The result is a one-lane base-field Simd.
 fn sumLanes(comptime V: type, ctx: *circuit.builder.Context(V), input: Simd) !Simd {
     if (input.len == 1) return input;
-    const lanes = try circuit.builder.simd.unpack(V, ctx, input);
-    var width = lanes.len;
+    const wires = try ctx.scratch().dupe(Var, input.data);
+    if (input.len % 4 != 0) {
+        const n = input.len % 4;
+        const mask = try ctx.constant(QM31.fromU32Unchecked(1, @intFromBool(n > 1), @intFromBool(n > 2), 0));
+        wires[wires.len - 1] = try ctx.pointwiseMul(wires[wires.len - 1], mask);
+    }
+    var width = wires.len;
     while (width > 1) {
         var next: usize = 0;
         var index: usize = 0;
         while (index + 1 < width) : (index += 2) {
-            lanes[next] = try ctx.add(lanes[index], lanes[index + 1]);
+            wires[next] = try ctx.add(wires[index], wires[index + 1]);
             next += 1;
         }
         if (index < width) {
-            lanes[next] = lanes[index];
+            wires[next] = wires[index];
             next += 1;
         }
         width = next;
     }
-    return Simd.fromPacked(lanes[0..1], 1);
+    const dual = try ctx.constant(QM31.fromU32Unchecked(1, 2147483646, 858993459, 1717986917));
+    const projected = try ctx.mul(wires[0], dual);
+    const base_mask = try ctx.constant(QM31.fromU32Unchecked(1, 0, 0, 0));
+    const result = try ctx.pointwiseMul(projected, base_mask);
+    const wire = try ctx.scratch().alloc(Var, 1);
+    wire[0] = result;
+    return Simd.fromPacked(wire, 1);
 }
 
 fn hashBlake2s(comptime V: type, ctx: *circuit.builder.Context(V), input: Simd, length: usize) !Simd {
@@ -509,6 +526,36 @@ test "sum_lanes constrains partial and multiple packed wires" {
         var direct = try compileDirect(QM31, allocator, program, assignment.value, false);
         defer direct.deinit();
         try std.testing.expect(try direct.isCircuitValid());
+    }
+}
+
+test "sum_lanes packed linear functional masks unused coordinates and reduces gates" {
+    const dual = QM31.fromU32Unchecked(1, 2147483646, 858993459, 1717986917);
+    for (0..4) |coordinate| {
+        var basis = [_]u32{0} ** 4;
+        basis[coordinate] = 1;
+        const image = QM31.fromU32Unchecked(basis[0], basis[1], basis[2], basis[3]).mul(dual);
+        try std.testing.expectEqual(@as(u32, 1), image.toM31Array()[0].v);
+    }
+
+    for ([_]struct { len: usize, expected: u32, gates: usize }{
+        .{ .len = 1, .expected = 2147483646, .gates = 0 },
+        .{ .len = 3, .expected = 4, .gates = 3 },
+        .{ .len = 4, .expected = 8, .gates = 2 },
+        .{ .len = 5, .expected = 13, .gates = 4 },
+        .{ .len = 8, .expected = 34, .gates = 3 },
+    }) |case| {
+        var ctx = try circuit.builder.Context(QM31).init(std.testing.allocator, 0);
+        defer ctx.deinit();
+        const first = try ctx.guess(QM31.fromU32Unchecked(2147483646, 2, 3, 4));
+        const second = try ctx.guess(QM31.fromU32Unchecked(5, 6, 7, 8));
+        const data = [_]Var{ first, second };
+        const before = ctx.circuit.nQm31OpsRows();
+        const reduced = try sumLanes(QM31, &ctx, Simd.fromPacked(data[0 .. (case.len + 3) / 4], case.len));
+        try std.testing.expectEqual(case.gates, ctx.circuit.nQm31OpsRows() - before);
+        try std.testing.expectEqual(case.expected, ctx.get(reduced.data[0]).toM31Array()[0].v);
+        try ctx.finalize(false);
+        try std.testing.expect(try ctx.isCircuitValid());
     }
 }
 

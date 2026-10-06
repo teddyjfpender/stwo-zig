@@ -65,23 +65,37 @@ coefficient order, a hand calculation, and the lock format.
 The static groups are lists of existing arrays in source. `sum` and `dot`
 reduce across that list. In contrast, `sum_lanes(x)` sums the positions of
 one `[m31; N]` value, and `dot_lanes(x,w)` multiplies matching positions then
-sums them. The new normalized `sum_lanes` operation unpacks each packed M31
-coordinate through constrained circuit gates, uses a balanced addition tree,
-and publishes a one-word result. It does not expose general indexing.
+sums them. The normalized `sum_lanes` operation adds packed QM31 words in a
+balanced tree, masks unused coordinates in a partial final word, and applies
+a constrained field-linear projection into the base coordinate. In the basis
+`(1, i, u, iu)` with `i² = -1` and `u² = 2 + i`, the base coordinate of
+`(a + bi + cu + diu) * (1 - i + u/5 - 3iu/5)` is `a+b+c+d` in M31. A
+pointwise base mask isolates that coordinate. The projection uses circuit
+multiplication gates, so the sum is checked by the proof. It does not expose
+general indexing.
 
 [`lane_stats4.s31`](../../src/frontends/s31/examples/lane_stats4.s31) is a
 private-witness example. With `x=[2,3,5,7]` and `weights=[11,13,17,19]`,
 the total is 17, the dot product is 279, and the public output is 296. Its
 [handwritten relation](../../src/frontends/s31/examples/lane_stats4.s31.json)
 has the same canonical IR, preprocessed root, and row geometry as the text
-form. Under `direct-gate`, the circuit has 346 raw QM31 rows, 512 padded
-rows, and 4,096 fixed cells. A text proof of 55,883 bytes was accepted by its
-native verifier; changing the public output to 297 was rejected. These are
-one-run measurements, not a performance comparison with Cairo.
-Each four-lane reduction currently accounts for ten QM31 builder gates.
-A future packed-coordinate projection could reduce that cost if its field
-identity and partial-wire behavior are proved; the current unpack-and-add
-path is the correctness baseline.
+form. Under `direct-gate`, the packed lowering has 323 raw QM31 rows, 512
+padded rows, and 4,096 fixed cells. The earlier unpack-and-add lowering had
+346 raw rows; each four-lane sum now uses two builder gates instead of ten.
+The partial-word and wraparound cases have circuit-validity tests, and the
+native verifier accepts the correct output and rejects a changed one. Proof
+bytes and proving times vary with proof randomness; the [reproducible 64-lane
+benchmark](measurements/packed-reduction-2026-10-06.json) records matched
+programs and native-verifier checks. These are local measurements, not a
+performance comparison with Cairo.
+
+On that private 64-lane reduction, the same normalized relation uses 639 to
+474 raw rows and 1,024 to 512 padded rows. Across ten distinct valid
+witnesses, median proof size fell from 73,567.5 to 55,578 bytes (24.5%).
+Median prover-reported time after subtracting its logged proof-of-work stages
+fell from 1.983 to 1.358 ms (1.46×); whole-process median prove time was
+117 to 111 ms. The transcript-dependent proof-of-work time ranged widely,
+so this short run does not establish a stable end-to-end proving speedup.
 
 ## Definition of a useful v1 library
 

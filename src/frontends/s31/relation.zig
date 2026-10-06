@@ -173,16 +173,24 @@ pub const Program = struct {
         if (public_words == 0 or public_words > 8) return error.PublicAbiTooWide;
     }
 
-    pub fn shapeOf(self: Program, name: []const u8) ?Shape {
-        for (self.inputs) |input| if (std.mem.eql(u8, input.name, name)) return .{ .kind = input.kind, .length = input.length };
+    pub fn shapeOf(self: Program, allocator: std.mem.Allocator, name: []const u8) !?Shape {
+        var shapes = std.StringHashMapUnmanaged(Shape){};
+        defer shapes.deinit(allocator);
+        for (self.inputs) |input| {
+            const shape: Shape = .{ .kind = input.kind, .length = input.length };
+            if (std.mem.eql(u8, input.name, name)) return shape;
+            try shapes.put(allocator, input.name, shape);
+        }
         for (self.nodes) |node| {
-            if (std.mem.eql(u8, node.name, name)) {
-                if (node.op == .constant) return .{ .kind = .m31, .length = node.length.? };
-                if (node.op == .sum_lanes) return .{ .kind = .m31, .length = 1 };
-                if (node.op == .hash_blake2s or node.op == .hash_blake2s_leaf or node.op == .hash_blake2s_pair or node.op == .hash_poseidon2_leaf or node.op == .hash_poseidon2_pair) return .{ .kind = .m31, .length = 8 };
-                const previous = self.shapeOf(node.lhs.?) orelse return null;
-                return .{ .kind = .m31, .length = previous.length };
-            }
+            const length: usize = switch (node.op) {
+                .constant => node.length orelse return error.InvalidNode,
+                .sum_lanes => 1,
+                .hash_blake2s, .hash_blake2s_leaf, .hash_blake2s_pair, .hash_poseidon2_leaf, .hash_poseidon2_pair => 8,
+                else => (shapes.get(node.lhs orelse return error.InvalidNode) orelse return error.UnknownOperand).length,
+            };
+            const shape: Shape = .{ .kind = .m31, .length = length };
+            if (std.mem.eql(u8, node.name, name)) return shape;
+            try shapes.put(allocator, node.name, shape);
         }
         return null;
     }
@@ -237,7 +245,7 @@ pub fn claimedWords(allocator: std.mem.Allocator, program: Program, assignment: 
         }
     }
     for (program.public_outputs) |name| {
-        const shape = program.shapeOf(name) orelse return error.UnknownOutput;
+        const shape = (try program.shapeOf(allocator, name)) orelse return error.UnknownOutput;
         const values = try arrayValues(allocator, assignment.public_outputs, name, shape);
         defer allocator.free(values);
         for (values) |value| {
@@ -334,7 +342,7 @@ pub fn evaluate(allocator: std.mem.Allocator, program: Program, assignment: Assi
     const claimed = try claimedWords(allocator, program, assignment);
     for (program.public_outputs) |name| {
         const actual = values.get(name) orelse return error.UnknownOutput;
-        const claimed_values = try arrayValues(allocator, assignment.public_outputs, name, program.shapeOf(name).?);
+        const claimed_values = try arrayValues(allocator, assignment.public_outputs, name, (try program.shapeOf(allocator, name)).?);
         defer allocator.free(claimed_values);
         for (actual, claimed_values) |a, b| if (!a.eql(b)) return error.PublicOutputMismatch;
     }
@@ -360,4 +368,53 @@ fn validName(name: []const u8) bool {
     if (name.len == 0 or name.len > 128) return false;
     for (name) |char| if (!std.ascii.isAlphanumeric(char) and char != '_') return false;
     return true;
+}
+
+test "malformed relation nodes cannot introduce unconstrained operands or metadata" {
+    const malformed = [_][]const u8{
+        // An extra parser field must not silently change the author's relation.
+        \\{"version":1,"name":"bad","inputs":[{"name":"x","kind":"m31","length":1,"visibility":"public"}],"nodes":[{"name":"y","op":"add_const","lhs":"x","constant":1,"ignored":"x"}],"assertions":[],"public_outputs":["y"]}
+        ,
+        // A selector on any other operation would otherwise be unproved data.
+        \\{"version":1,"name":"bad","inputs":[{"name":"x","kind":"m31","length":1,"visibility":"public"}],"nodes":[{"name":"y","op":"add_const","lhs":"x","constant":1,"selector":"x"}],"assertions":[],"public_outputs":["y"]}
+        ,
+        // A select must have a scalar selector, regardless of its value.
+        \\{"version":1,"name":"bad","inputs":[{"name":"x","kind":"m31","length":2,"visibility":"public"}],"nodes":[{"name":"y","op":"select","lhs":"x","rhs":"x","selector":"x"}],"assertions":[],"public_outputs":["y"]}
+        ,
+        // Noncanonical constants must not enter the circuit or public ABI.
+        \\{"version":1,"name":"bad","inputs":[],"nodes":[{"name":"y","op":"constant","constant":2147483647,"length":1}],"assertions":[],"public_outputs":["y"]}
+        ,
+    };
+    for (malformed) |source| {
+        if (parseProgram(std.testing.allocator, source)) |parsed| {
+            var accepted = parsed;
+            accepted.deinit();
+            return error.TestUnexpectedResult;
+        } else |_| {}
+    }
+}
+
+test "public statement binds exact fields and canonical M31 words" {
+    const source =
+        \\{"version":1,"name":"public_binding","inputs":[{"name":"x","kind":"m31","length":1,"visibility":"public"}],"nodes":[{"name":"y","op":"add_const","lhs":"x","constant":1}],"assertions":[],"public_outputs":["y"]}
+    ;
+    var program = try parseProgram(std.testing.allocator, source);
+    defer program.deinit();
+    const malformed = [_][]const u8{
+        \\{"public_inputs":{"x":[3],"other":[0]},"public_outputs":{"y":[4]}}
+        ,
+        \\{"public_inputs":{"x":[3]},"public_outputs":{"other":[4]}}
+        ,
+        \\{"public_inputs":{"x":[2147483647]},"public_outputs":{"y":[4]}}
+        ,
+        \\{"public_inputs":{"x":[3]},"public_outputs":{"y":[2147483647]}}
+        ,
+    };
+    for (malformed) |source_json| {
+        var assignment = try parseAssignment(std.testing.allocator, source_json);
+        defer assignment.deinit();
+        if (claimedWords(std.testing.allocator, program.value, assignment.value)) |_| {
+            return error.TestUnexpectedResult;
+        } else |_| {}
+    }
 }

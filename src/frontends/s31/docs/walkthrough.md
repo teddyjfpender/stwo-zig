@@ -230,6 +230,7 @@ and profile constraints extend beyond these equations. Use
 [`explain` and `inspect`](proofs.md#read-the-cost-report-correctly) alongside
 it when auditing a package.
 
-Next: [source syntax and field semantics](source.md), then
+Next: [a private reduction and a recurrence worked by hand](worked-proofs.md),
+then [source syntax and field semantics](source.md), then
 [the actual generic circuit layout](circuits.md) and
 [the repeated-step AIR by hand](air.md).

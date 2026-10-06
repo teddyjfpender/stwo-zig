@@ -22,7 +22,8 @@ S31 = Path(__file__).resolve().parent.parent
 DOCS = S31 / "docs"
 CHAPTERS = (
     ("README.md", "Start here"),
-    ("walkthrough.md", "0. One proof by hand"),
+    ("walkthrough.md", "0a. One proof by hand"),
+    ("worked-proofs.md", "0b. Reduction and recurrence"),
     ("source.md", "1. Source language"),
     ("library.md", "2. Standard / math library"),
     ("circuits.md", "3. Circuit gates"),

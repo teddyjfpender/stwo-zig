@@ -183,6 +183,9 @@ wire consistency across rows. Chip and circuit components share base and
 interaction commitment trees, composition, FRI, transcript challenges, and
 one native verifier invocation. The chip adds one AIR component with no new
 preprocessed columns.
+[The two-function walkthrough](worked-proofs.md#example-b-a-recurrence-with-one-transition-per-chip-row)
+puts this transition table beside a private cross-lane reduction circuit so
+the two meanings of a row can be compared directly.
 
 ## What is inspectable today
 

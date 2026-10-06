@@ -12,12 +12,46 @@ To use the text frontend and inspect its exact lowering:
 
 ```sh
 python3 src/frontends/s31/s31.py lower src/frontends/s31/examples/arith4_m31.s31
+python3 src/frontends/s31/s31.py oracle src/frontends/s31/examples/lane_stats4.s31 src/frontends/s31/examples/lane_stats4.valid.json
 python3 src/frontends/s31/s31.py build src/frontends/s31/examples/arith4_m31.s31 --lowering direct-chip --out zig-out/s31/text-arith4
 python3 src/frontends/s31/s31.py explain zig-out/s31/text-arith4
 python3 src/frontends/s31/s31.py equations zig-out/s31/text-arith4
 ```
 
-The text package includes the original `.s31`, normalized JSON, and a source map; all are hashed in its manifest. `explain` joins source locations to the existing gate-row cost report. See [the text language guide](TEXT_LANGUAGE.md) for its implemented syntax, typed library functions, constraints, examples, and limits. The [standard/math library brief](../../../design/s31/STDLIB_MATHLIB.md) records the qualified library operations and the remaining work for a useful release.
+For a single source-to-proof audit, `trial` builds or reuses a package, proves an
+assignment, runs its native verifier, checks that a changed public word is
+rejected, and writes a compact machine-readable report:
+
+```sh
+python3 src/frontends/s31/s31.py trial \
+  src/frontends/s31/examples/lane_stats4.s31 \
+  src/frontends/s31/examples/lane_stats4.valid.json \
+  --lowering direct-gate --out zig-out/s31/lane-stats4-trial
+```
+
+The output contains `proof.bin`, public and changed statements,
+`trial-report.json`, `explain.json`, and `equations.json`. The report records
+canonical IR, raw and padded geometry, proof bytes, hashes, and local timings;
+it does not copy the private assignment. It also runs an independent Python
+value oracle for arithmetic nodes before proving, checking the relation and
+claimed output without using the Zig runtime. `s31 oracle` runs that check
+without building a proof. Hash nodes are explicitly marked unsupported by
+this oracle; the proof and native verifier still run. The oracle checks
+values, not circuit equivalence or proof soundness. `equations` shows
+source-level field equations, not every term in the pinned circuit AIR.
+Timing is a single local observation, so use repeated measurements before
+making a speed claim.
+
+The text package includes the original `.s31`, normalized JSON, typed
+interface, and source map. Package inspection re-lowers the text and checks
+that these files agree with the sealed relation; the manifest hashes package
+artifacts and the native verifier binds its key. The manifest is unsigned, so
+verifier and key authenticity still depend on a trusted distribution path.
+`explain` joins source locations to the existing gate-row cost report. See
+[the text language guide](TEXT_LANGUAGE.md) for implemented syntax, typed
+library functions, constraints, examples, and limits. The [standard/math
+library brief](../../../design/s31/STDLIB_MATHLIB.md) records qualified
+library operations and the remaining work for a useful release.
 
 The [standard/math library chapter](docs/library.md) covers `use std@1;`,
 static `sum`/`dot`, Horner polynomial evaluation, hand calculations, and the
@@ -25,8 +59,8 @@ source-hashed library lock embedded in text packages. The complete
 [`mathlib4.s31` example](examples/mathlib4.s31) builds under `direct-gate`
 and produces a native verifier. [`lane_stats4.s31`](examples/lane_stats4.s31)
 computes the sum and weighted dot product of private array lanes, returning
-one public M31 word. Its `sum_lanes` operations use constrained lane
-extraction and additions; `dot_lanes` adds one pointwise multiplication.
+one public M31 word. Its `sum_lanes` operations use constrained packed-lane
+projection; `dot_lanes` adds one pointwise multiplication.
 `equations` exposes semantic field equations and source positions, with the
 generic AIR's lookup and public-binding terms documented separately in
 [the guide](docs/walkthrough.md).

@@ -14,6 +14,7 @@ ROOT = S31.parents[2]
 sys.path.insert(0, str(S31))
 
 import poseidon2_oracle as poseidon  # noqa: E402
+from oracle import evaluate_relation  # noqa: E402
 from s31_stdlib import P, reference_iterate  # noqa: E402
 from text_frontend import compile_text  # noqa: E402
 
@@ -30,6 +31,13 @@ def text_block_containing(path: Path, marker: str) -> str:
         if marker in block:
             return block
     raise AssertionError(f"{path}: missing {marker!r} example")
+
+
+def json_block_containing(path: Path, marker: str) -> dict:
+    for block in re.findall(r"```json\n(.*?)\n```", path.read_text(), re.S):
+        if marker in block:
+            return json.loads(block)
+    raise AssertionError(f"{path}: missing JSON example containing {marker!r}")
 
 
 def check_examples() -> None:
@@ -84,6 +92,58 @@ def check_examples() -> None:
     assert lane_assignment["public_outputs"]["result"] == [
         (sum(xs) + sum(x * w for x, w in zip(xs, weights))) % P
     ]
+    assert evaluate_relation(lane_relation, lane_assignment) == {"result": [296]}
+    worked = DOCS / "worked-proofs.md"
+    worked_lane, _ = compile_text(text_block(worked, "use std@1;"), "worked-proofs.md")
+    assert worked_lane == lane_relation
+    assert json_block_containing(worked, '"name": "lane_stats4"') == lane_relation
+    recurrence, _ = compile_text(text_block(worked, "fn step"), "worked-proofs.md")
+    assert recurrence == json_block_containing(worked, '"name": "square7_16"')
+    assert recurrence["nodes"] == [{
+        "name": "result", "op": "repeat", "lhs": "x", "rounds": 16,
+        "body": [{"op": "square"}, {"op": "add_const", "constant": 7}],
+    }]
+    states = [[1, 2, 3, 4]]
+    for _ in range(16):
+        states.append([(x * x + 7) % P for x in states[-1]])
+    assert states[1:4] == [
+        [8, 11, 16, 23], [71, 128, 263, 536], [5048, 16391, 69176, 287303]
+    ]
+    assert states[16] == [1737765234, 2070257821, 1388597838, 1651172055]
+    recurrence_assignment = json_block_containing(worked, '"public_inputs": {"x"')
+    assert recurrence_assignment == {
+        "public_inputs": {"x": states[0]}, "private_inputs": {},
+        "public_outputs": {"result": states[16]},
+    }
+    assert evaluate_relation(recurrence, recurrence_assignment) == {"result": states[16]}
+
+    # Check the packed-reduction witness values written in the teaching gate table.
+    inverse_five = pow(5, -1, P)
+    dual = (1, P - 1, inverse_five, (-3 * inverse_five) % P)
+    assert dual == (1, 2147483646, 858993459, 1717986917)
+
+    def qm31_mul(a: tuple[int, ...], b: tuple[int, ...]) -> tuple[int, ...]:
+        # i²=-1, u²=2+i, with coordinate basis (1,i,u,iu).
+        def cmul(x: tuple[int, int], y: tuple[int, int]) -> tuple[int, int]:
+            return ((x[0] * y[0] - x[1] * y[1]) % P,
+                    (x[0] * y[1] + x[1] * y[0]) % P)
+        low = cmul(a[:2], b[:2])
+        high = cmul(a[2:], b[2:])
+        cross_a = cmul(a[:2], b[2:])
+        cross_b = cmul(a[2:], b[:2])
+        return ((low[0] + 2 * high[0] - high[1]) % P,
+                (low[1] + high[0] + 2 * high[1]) % P,
+                (cross_a[0] + cross_b[0]) % P,
+                (cross_a[1] + cross_b[1]) % P)
+
+    products = [x * w % P for x, w in zip(xs, weights)]
+    assert qm31_mul(tuple(xs), dual) == (17, 3, 858993473, 1717986919)
+    assert qm31_mul(tuple(products), dual) == (279, 65, 1288490434, 429496772)
+    for t in range(5):
+        a, b, c = 2 + 15 * t, 11 + 268 * t, 22 + 274 * t
+        z = t * (t - 1)
+        assert ((1 - t) * (c - a * b) - z * (427 + 4020 * t)) % P == 0
+        assert (t * (c - a - b) - z * (-9)) % P == 0
     assignment = json.loads((S31 / "examples/math_polynomial4.valid.json").read_text())
     assert assignment["public_outputs"]["result"] == [
         (pow(x, 5, P) + 3 * x - 7) % P for x in assignment["public_inputs"]["x"]
@@ -128,6 +188,23 @@ def check_hashes() -> None:
     assert documented_sigma == source_sigma
 
 
+def check_documented_measurement() -> None:
+    report = json.loads((ROOT / "design/s31/measurements/packed-reduction-2026-10-06.json").read_text())
+    assert report["case"]["lowering"] == "direct-gate"
+    assert report["case"]["measured_trials_per_version"] == 10
+    before, after = report["results"]["baseline"], report["results"]["packed"]
+    assert before["canonical_ir_sha256"] == after["canonical_ir_sha256"]
+    assert (before["raw"]["qm31_ops"], after["raw"]["qm31_ops"]) == (639, 474)
+    assert (before["padded"]["qm31_ops"], after["padded"]["qm31_ops"]) == (1024, 512)
+    assert (before["median_proof_bytes"], after["median_proof_bytes"]) == (73567.5, 55578.0)
+    assert round(before["median_prove_excluding_pow_seconds"] * 1000, 3) == 1.983
+    assert round(after["median_prove_excluding_pow_seconds"] * 1000, 3) == 1.358
+    assert round(before["median_wall_proving_seconds"] * 1000) == 117
+    assert round(after["median_wall_proving_seconds"] * 1000) == 111
+    assert all(result["valid_proof_accepted"] and result["changed_public_output_rejected"]
+               for result in (before, after))
+
+
 def check_links() -> None:
     for chapter in DOCS.glob("*.md"):
         for target in re.findall(r"\]\(([^)]+)\)", chapter.read_text()):
@@ -145,5 +222,6 @@ def check_links() -> None:
 if __name__ == "__main__":
     check_examples()
     check_hashes()
+    check_documented_measurement()
     check_links()
     print("S31 docs: examples, hash constants, links, and figures agree")

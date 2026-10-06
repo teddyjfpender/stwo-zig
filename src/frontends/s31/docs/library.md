@@ -9,7 +9,8 @@ This is a versioned compiler builtin package, not a general module loader.
 Most `std::math` helpers below lower to normalized `add`, `mul`,
 `add_const`, or `mul_const` nodes. `sum_lanes` has its own normalized relation
 node because it changes an array's shape. The circuit compiler lowers it to
-constrained lane projections and additions. The native verifier proves all
+constrained packed-wire additions, a fixed QM31 multiplier, and a base mask.
+The native verifier proves all
 these operations through the ordinary circuit AIR. No helper is a host-only
 calculation or a new specialized AIR chip.
 
@@ -77,21 +78,27 @@ result is an array of **one** M31 word. The public statement contains only
 there exist private arrays satisfying the compiled equations for that
 public result. The public statement does not list the arrays or uniquely
 determine them; this is not a general zero-knowledge promise about the proof.
+[The full worked proof](worked-proofs.md#example-a-a-private-cross-lane-computation)
+follows this exact function through relation JSON, circuit wires, schematic
+AIR gate rows, polynomials, and the native verifier's claim.
 
 The text frontend lowers this source to `sum_lanes(x)`, a pointwise
-`mul(x,weights)`, `sum_lanes(product)`, and a final `add`. Inside each
-`sum_lanes`, the compiler extracts only the declared M31 positions from
-packed circuit wires with constrained gates, then connects them with a
-balanced addition tree. `dot_lanes` adds the pointwise products first. Tail
-padding in a packed wire is excluded from the sum. This is why a single
-source call can require multiple circuit gates and AIR rows; the row count
-is not one per library call.
+`mul(x,weights)`, `sum_lanes(product)`, and a final `add`. Each `sum_lanes`
+adds packed QM31 wires in a balanced tree, masks any unused positions in a
+partial final wire, then uses a fixed QM31 multiplier and a base-coordinate
+mask to obtain the M31 sum. These are constrained circuit gates. For four
+positions, reduction takes **two builder gates** instead of extracting all
+four positions. `dot_lanes` adds the pointwise products first. One source
+call can still require multiple circuit gates and AIR rows; the row count
+is not one per library call. The exact field identity and every hand-filled
+wire appear in [the worked proof](worked-proofs.md#example-a-a-private-cross-lane-computation).
 
-For this four-lane source under `direct-gate`, the builder attributes ten
-QM31 gates to each `sum_lanes` node. The **whole** circuit has 346 raw
-QM31-operation rows, padded to 512, and 4,096 fixed cells. Input handling,
-wire lookup, public binding, and finalization contribute to that total;
-builder gate spans are not physical AIR row ownership. The checked-in
+For this four-lane source under `direct-gate`, the two `sum_lanes` nodes,
+one pointwise product, and one final add make six source arithmetic builder
+gates. The **whole** circuit has 323 raw QM31-operation rows, padded to
+512, and 4,096 fixed cells. Input handling, wire lookup, public binding,
+and finalization contribute to that total; builder gate spans are not
+physical AIR row ownership. The checked-in
 [handwritten relation](../examples/lane_stats4.s31.json) was separately
 compared with the text source under `direct-gate`: they have the same
 canonical graph and row geometry, and both native verifiers accepted proofs.

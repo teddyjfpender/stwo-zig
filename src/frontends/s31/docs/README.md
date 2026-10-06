@@ -30,21 +30,24 @@ text .s31 ──parse/typecheck/specialize──▶ normalized relation JSON
 
 ## Read in order
 
-0. [One computation, one proof](walkthrough.md): an ELI5 account followed by
+- [One computation, one proof](walkthrough.md): an ELI5 account followed by
    a complete `x²+7` example. Fill circuit wires and schematic AIR rows by
    hand, see why wiring matters, and factor the constraint polynomials.
-1. [Source language and relation](source.md): syntax, types, field semantics,
+- [Two proofs worked by hand](worked-proofs.md): a private cross-lane sum
+    and dot product from source through gate equations and public binding,
+    followed by a 16-round recurrence with actual transition rows.
+- [Source language and relation](source.md): syntax, types, field semantics,
    static shapes, normalized JSON, and the public statement.
-2. [Standard and math library](library.md): the pinned `std@1` package,
+- [Standard and math library](library.md): the pinned `std@1` package,
    typed operations, static reductions, Horner evaluation, and a proof example.
-3. [Circuit lowering](circuits.md): a hand-drawn gate graph, packed M31 lanes,
+- [Circuit lowering](circuits.md): a hand-drawn gate graph, packed M31 lanes,
    fixed/witness columns, address lookups, and the six proof profiles.
-4. [AIR and polynomials](air.md): a hand-filled trace, the **actual six
+- [AIR and polynomials](air.md): a hand-filled trace, the **actual six
    repeated-step chip constraints**, lookup closure, quotient, and FRI.
-5. [Hashes and Merkle paths](hashes.md): complete input/output encodings,
+- [Hashes and Merkle paths](hashes.md): complete input/output encodings,
    Poseidon2 permutation and constants, BLAKE2s framing, and a hand-drawn
    one-level path.
-6. [Packages, verification, and audit](proofs.md): build/prove/verify commands,
+- [Packages, verification, and audit](proofs.md): build/prove/verify commands,
    what the key binds, artifact names, cost report fields, and current limits.
 
 The worked examples use checked-in sources under [`../examples`](../examples):
@@ -67,6 +70,7 @@ means.
 
 ```sh
 python3 src/frontends/s31/s31.py lower src/frontends/s31/examples/math_polynomial4.s31
+python3 src/frontends/s31/s31.py oracle src/frontends/s31/examples/math_polynomial4.s31 src/frontends/s31/examples/math_polynomial4.valid.json
 python3 src/frontends/s31/s31.py build src/frontends/s31/examples/math_polynomial4.s31 --lowering direct-gate --out zig-out/s31/docs-polynomial
 python3 src/frontends/s31/s31.py explain zig-out/s31/docs-polynomial
 python3 src/frontends/s31/s31.py equations zig-out/s31/docs-polynomial
@@ -74,7 +78,9 @@ python3 src/frontends/s31/s31.py prove zig-out/s31/docs-polynomial src/frontends
 python3 src/frontends/s31/s31.py verify zig-out/s31/docs-polynomial zig-out/s31/docs-polynomial.proof
 ```
 
-`lower` shows the exact relation consumed by Zig. `explain` joins text source
+`lower` shows the exact relation consumed by Zig. `oracle` independently
+evaluates supported arithmetic relation nodes against the assignment, without
+proving; hash nodes are unsupported. `explain` joins text source
 positions to canonical nodes and builder gate spans. `equations` shows each
 node's semantic field equation. `prove` writes a public-only
 statement beside the proof; `verify` runs the generated native verifier on that
