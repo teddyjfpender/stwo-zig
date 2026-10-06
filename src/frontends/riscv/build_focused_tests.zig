@@ -14,6 +14,14 @@ pub const Spec = struct {
 
 pub const specs = [_]Spec{
     .{
+        .step = "test-recursion-v3-production-security-policy",
+        .description = "Reject weak native and outer child profiles before V3 publication",
+        .root = "v3_production_security_policy_test.zig",
+        .imports_prover_engine = true,
+        .filters = &.{"V3 production security policy"},
+        .minimum = 1,
+    },
+    .{
         .step = "test-recursion-v3-field-manifest",
         .description = "Pin staged ProgramV2/provider source and hash typed adapters without V3 publication",
         .root = "field_manifest_v3_test_root.zig",

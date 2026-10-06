@@ -18,7 +18,10 @@ admitted V3 source for one leaf, projects it into the bounded V2 AIR, creates
 and serializes its Poseidon2 proof, destroys the producer, freshly verifies the
 decoded proof, and joins the verifier-owned receipt to the V3 metadata. Its
 `VerifiedLinkV3` is checked by the host. It is not yet a recursive proof of
-the global position.
+the global position. Its public constructor now takes one native verifier
+capture instead of a detachable wire/receipt pair. This narrows accidental
+misuse but is not an adversarial proof capability: the final V3 verifier must
+re-establish child authority from the committed proof and admitted key.
 
 `recursion/segment_execution_plan_v3.zig` runs the ELF once to size every
 leaf, records the exact total, ELF/input hashes, guest policy, and compact
@@ -58,6 +61,12 @@ The current V2 outer-child profile is explicitly developmental: three FRI
 queries and zero interaction/PCS PoW bits. A production V3 wrapper must pin a
 distinct security profile and upgrade the local outer prover and its recursive
 verifier together; wrapping a weak local outer proof does not strengthen it.
+The present native `SECURE_PCS_CONFIG` is a different 70-query/26-PoW preset;
+its configured query-plus-PoW ledger is 96 bits under this repository's
+`PcsConfig.securityBits()` calculation. A fail-closed V3 policy now rejects
+both current presets against the existing recursion target profile
+(193 queries, 16 PCS PoW, 10 interaction PoW). This policy specifies required
+configuration; it does not prove that a future transaction actually used it.
 
 The base RV32 SegmentV2 transcript ProgramV2 has an exact canonical M31
 preimage with Poseidon identity parity and a pinned typed word-source AIR.
