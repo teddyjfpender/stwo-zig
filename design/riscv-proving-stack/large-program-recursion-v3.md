@@ -66,6 +66,9 @@ verified before a parent can be published. Host preflight alone cannot grant
 that authority.
 Its 2,244 input bindings require a 4,096-row (log-12) statement input trace;
 the legacy parent roster fixes this row at log 11 and cannot be reused for V3.
+The [temporal parent boundary](temporal-parent-v3.md) now pins a 1,869-word
+candidate frame and separates the qualified row-11 input trace from six
+unqualified proof obligations, including the arithmetic graph itself.
 `temporal_parent_row11_session_v3.zig` now initializes the pinned graph and
 log-12 preprocessed binding once, reuses fixed-size scratch across pairs, and
 materializes the actual typed row-11 preprocessed/main columns for each

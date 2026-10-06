@@ -14,6 +14,13 @@ pub const Spec = struct {
 
 pub const specs = [_]Spec{
     .{
+        .step = "test-recursion-v3-extra-rows",
+        .description = "Check V3 wrapper rows 41-48 shared word and hash-state closure",
+        .root = "v3_extra_rows_test.zig",
+        .filters = &.{"V3 extra row exact tuple gate"},
+        .minimum = 1,
+    },
+    .{
         .step = "test-recursion-v3-production-security-policy",
         .description = "Reject weak native and outer child profiles before V3 publication",
         .root = "v3_production_security_policy_test.zig",
