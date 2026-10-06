@@ -124,6 +124,15 @@ rejects deriving that key from padded size or the separate 128-word native
 transcript. A sound replacement must either admit the exact statement length
 as independently verified key shape, or constrain variable active/index/use
 columns in a versioned proof-visible AIR.
+The bounded V8 row-36 AIR candidate implements the second option for a
+1,024-row schedule with 664–887 wire words. One verifier-owned ordinal column
+is constant across lengths; committed phase and bounded-distance columns
+constrain the exact wire/context/padding order, derive scope and index, and
+limit extra use to 0–2. Focused tests evaluate every row at 664, 668, and 887
+words and reject forged phase, ordinal, count, and fan-out. It remains dormant:
+its public wire-count parameter is not yet linked by a proof-visible relation
+to the authenticated SegmentV2 child geometry, and it has no physical writer
+or admitted V7 roster placement.
 For the V6 base fixed schedule, rows 15 and 16 are deliberately unqualified.
 Their Tree0 columns include the exact dense input-use multiplicities of the
 native-public-sum arithmetic graph. Section lengths alone do not determine

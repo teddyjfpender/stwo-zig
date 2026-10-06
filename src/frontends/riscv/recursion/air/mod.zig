@@ -155,6 +155,7 @@ pub const transcript_payload = @import("transcript_payload.zig");
 pub const transcript_payload_relation = @import("transcript_payload_relation.zig");
 pub const transcript_payload_direct_v6 = @import("transcript_payload_direct_v6.zig");
 pub const transcript_payload_direct_v7 = @import("transcript_payload_direct_v7.zig");
+pub const segment_leaf_statement_source_direct_v8 = @import("segment_leaf_statement_source_direct_v8.zig");
 pub const transcript_program_v2_field_bridge_v6 = @import("transcript_program_v2_field_bridge_v6.zig");
 pub const transcript_payload_witness = @import("transcript_payload_witness.zig");
 pub const transcript_state = @import("transcript_state.zig");
