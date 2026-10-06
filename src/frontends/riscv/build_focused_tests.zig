@@ -14,6 +14,14 @@ pub const Spec = struct {
 
 pub const specs = [_]Spec{
     .{
+        .step = "test-recursion-v5-direct-roster",
+        .description = "Pin the 50-row direct wrapper geometry and VPR6/VPK6 key namespace",
+        .root = "v5_direct_roster_test_root.zig",
+        .imports_prover_engine = true,
+        .filters = &.{ "direct V5 roster pins", "VPR6 rejects", "VPR6 and VPK6" },
+        .minimum = 3,
+    },
+    .{
         .step = "test-recursion-v5-statement-source",
         .description = "Check exact extra source fan-out for local identity routing",
         .root = "segment_leaf_wrapper_source_projection_v3_test_root.zig",
