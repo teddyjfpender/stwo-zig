@@ -41,7 +41,7 @@ row	component	classification	preprocessed_surface	v6_owner_or_move	proof_obligat
 39	link_source	template_rebuild	fixed source selector; kind; index; use count	pinned LAS2 source schedule; value in main	Emit exactly the verifier-owned link and native input words
 40	link_projection	template_rebuild	projection selector; index; use count	pinned LAS2 projection schedule; value in main	Join 24 public words to independent LAS2 boundary
 41	link_arithmetic	template_rebuild	operation selector and operand coordinates	fixed arithmetic schedule; operands in main	Close fused arithmetic and byte-range requests
-42	program_words	move_leaf_values	V4 expected ProgramV2 word in preprocessing	V5 fixed mode and true constants only; canonical word in main	Every dynamic index consumes exactly one native NPV2 producer
+42	program_words	move_leaf_values	V4 expected ProgramV2 word in preprocessing	V6 shape compiler fixes all but wire-ID and statement-authority words 10..25; canonical values remain in main	The 16 dynamic indices each consume a native NPV2 producer and all fixed words match the independently rebuilt template
 43	program_hash	template_rebuild	word indices; marker; call schedule	fixed ProgramV2 hash schedule; preimage in main	Hash exact row42 words through ordered row34 calls
 44	tree0_field	template_rebuild	Tree0 word selectors and indices	fixed Tree0 bridge; root in main	Join native row4 frame and row39 PPR1 exactly
 45	metadata_hash	template_rebuild	hash chunk masks; indices; constants	fixed link metadata hash schedule; preimage in main	Join metadata source and row34 calls
