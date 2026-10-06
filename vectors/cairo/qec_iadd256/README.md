@@ -52,14 +52,16 @@ generated one-repetition batch.
 
 ## Measured local rung
 
-One M1 macOS ReleaseFast observation at 64 shots and one repetition produced a
+One Apple M5 Max (64 GiB) macOS ReleaseFast observation at 64 shots and one repetition produced a
 real Zig Cairo proof accepted by both Zig and the pinned official Rust
 verifier. The proof config records 70 FRI queries and 26 PoW bits. Scarb
 execution took 36,935,007 Cairo steps. From executable/arguments to verified
 proof publication, the Zig command took 20.993 s: 3.485 s execution, 17.024 s
 proving and 0.010 s Zig verification, with other preparation/encoding in the
 remainder. The prover's lifetime physical footprint peaked at 29.464 GB. The
-JSON proof was 3,682,553 bytes. These are one observation and one host, not a
+JSON proof was 3,682,553 bytes. The proof receipt's `target.cpu_model=apple_m1`
+describes the Zig compilation target; the physical host was an M5 Max. These
+are one observation and one host, not a
 cross-route speed claim. A two-repetition **execution-only** run took
 73,467,522 Cairo steps; it has no proof timing.
 
