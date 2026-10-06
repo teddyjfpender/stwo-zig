@@ -10,6 +10,7 @@ const span = @import("../span_statement.zig");
 const segment_v2 = @import("../segment_statement_v2.zig");
 const io_binding = @import("../segment_public_io_binding_v1.zig");
 const io_ingress = @import("../segment_public_io_ingress_v2.zig");
+const io_custody_v3 = @import("../segment_public_io_memory_custody_v3.zig");
 
 test "segment statement V2 verifier public-I/O policy owns external bytes and keeps recursive activation closed" {
     const allocator = std.testing.allocator;
@@ -286,6 +287,30 @@ test "segment statement V2 experimental public-I/O binding rejects changed claim
     const public = try public_data_v2.PublicDataV2.authenticate(words);
     const coverage = try io_binding.validateAuthenticatedWire(&public, expected);
     _ = try verifier_expected.inspectAuthenticatedWire(&public);
+    var projection = try io_custody_v3.projectAuthenticatedWire(allocator, &public, &verifier_expected, 7);
+    defer projection.deinit();
+    try std.testing.expectEqualDeep(coverage, projection.coverage);
+    try std.testing.expectEqual(@as(usize, 4), projection.words.len);
+    try std.testing.expectEqualDeep([_]u32{ 0x0010_0100, 0x0010_0104, 0x0010_0004, 0x0010_0008 }, [_]u32{ projection.words[0].address, projection.words[1].address, projection.words[2].address, projection.words[3].address });
+    try std.testing.expectEqual(@as(u32, 1), projection.words[0].bridge_row[0].toU32());
+    try std.testing.expectEqual(@as(u32, 5), projection.words[1].bridge_row[0].toU32());
+    try std.testing.expectEqual(@as(u32, 4), projection.words[2].bridge_row[0].toU32());
+    try std.testing.expectEqual(@as(u32, 42), projection.words[3].bridge_row[0].toU32());
+    const projected_view = try public.authenticatedView();
+    for (projection.words) |item| {
+        const offset = item.retained_wire_offset;
+        const address = @as(u32, projected_view.words[offset].toU32()) |
+            (@as(u32, projected_view.words[offset + 1].toU32()) << 16);
+        const value = @as(u32, projected_view.words[offset + 2].toU32()) |
+            (@as(u32, projected_view.words[offset + 3].toU32()) << 16);
+        try std.testing.expectEqual(item.address, address);
+        for (0..4) |byte| try std.testing.expectEqual(
+            (value >> @as(u5, @intCast(byte * 8))) & 0xff,
+            item.bridge_row[byte].toU32(),
+        );
+    }
+    try std.testing.expectError(error.V3MemorySourceAirUnavailable, projection.requireProofVisibleSource());
+    try std.testing.expectError(error.InvalidPublicIoWordAddress, io_custody_v3.projectAuthenticatedWire(allocator, &public, &verifier_expected, 0));
     try std.testing.expect(coverage.input and coverage.output);
     try io_binding.requireComplete(&.{coverage});
     var first_coverage = coverage;
@@ -329,6 +354,9 @@ test "segment statement V2 experimental public-I/O binding rejects changed claim
     defer allocator.free(changed_words);
     const changed_public = try public_data_v2.PublicDataV2.authenticate(changed_words);
     try std.testing.expectError(error.InputMemoryMismatch, io_binding.validateAuthenticatedWire(&changed_public, changed_expected));
+    var changed_policy = try io_ingress.VerifierExpectedIo.initOwned(allocator, changed_expected);
+    defer changed_policy.deinit();
+    try std.testing.expectError(error.InputMemoryMismatch, io_custody_v3.projectAuthenticatedWire(allocator, &changed_public, &changed_policy, 7));
     try std.testing.expectError(error.InputDigestMismatch, verifier_expected.inspectAuthenticatedWire(&changed_public));
     try std.testing.expectError(
         error.InputDigestMismatch,
@@ -377,6 +405,9 @@ test "segment statement V2 experimental public-I/O binding rejects changed claim
     defer allocator.free(changed_output_words);
     const changed_output_public = try public_data_v2.PublicDataV2.authenticate(changed_output_words);
     try std.testing.expectError(error.OutputMemoryMismatch, io_binding.validateAuthenticatedWire(&changed_output_public, changed_output));
+    var changed_output_policy = try io_ingress.VerifierExpectedIo.initOwned(allocator, changed_output);
+    defer changed_output_policy.deinit();
+    try std.testing.expectError(error.OutputMemoryMismatch, io_custody_v3.projectAuthenticatedWire(allocator, &changed_output_public, &changed_output_policy, 7));
     try std.testing.expectError(error.OutputDigestMismatch, verifier_expected.inspectAuthenticatedWire(&changed_output_public));
 
     changed_job = job;
