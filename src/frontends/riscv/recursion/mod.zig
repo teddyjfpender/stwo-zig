@@ -234,6 +234,7 @@ pub const segment_leaf_statement_source_direct_v5 = @import("air/segment_leaf_st
 pub const ethereum_leaf_child_field_program_v1 = @import("ethereum_leaf_child_field_program_v1.zig");
 pub const ethereum_leaf_child_field_witness_v1 = @import("ethereum_leaf_child_field_witness_v1.zig");
 pub const segment_leaf_wrapper_las2_boundary_v4 = @import("segment_leaf_wrapper_las2_boundary_v4.zig");
+pub const segment_leaf_wrapper_global_statement_boundary_v6 = @import("segment_leaf_wrapper_global_statement_boundary_v6.zig");
 pub const ethereum_leaf_link_program_v1 = @import("ethereum_leaf_link_program_v1.zig");
 pub const ethereum_leaf_link_program_v2 = @import("ethereum_leaf_link_program_v2.zig");
 pub const ethereum_leaf_link_program_v3 = @import("ethereum_leaf_link_program_v3.zig");

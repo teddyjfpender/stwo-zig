@@ -9,6 +9,8 @@ const native = @import("../segment_leaf_outer_air_v2.zig").Statement;
 const link_program = @import("../ethereum_leaf_link_program_v3.zig");
 const child_program = @import("../ethereum_leaf_child_field_program_v1.zig");
 const local = @import("../segment_leaf_wrapper_local_identity_v5.zig");
+const segment_v2 = @import("../segment_statement_v2.zig");
+const leaf_v2 = @import("../segment_leaf_authority_v2.zig");
 const digest = @import("../../air/lang/digest.zig");
 const validate_mod = @import("../../air/lang/validate.zig");
 
@@ -68,6 +70,7 @@ pub const Schedule = struct {
     id: [32]u8,
     link_uses: usize,
     local_uses: usize,
+    arithmetic_uses: usize,
     overlaps: usize,
 
     pub fn init(allocator: std.mem.Allocator, link: *const link_program.ProgramV3, child: *const child_program.ProgramV1, old_rows: []const native.Row) !Schedule {
@@ -84,12 +87,14 @@ pub const Schedule = struct {
         errdefer allocator.free(rows);
         var link_count: usize = 0;
         var local_count: usize = 0;
+        var arithmetic_count: usize = 0;
         var overlap_count: usize = 0;
         for (old_rows, rows) |old_row, *new_row| {
             const active = old_row[1].toU32();
             if (active > 1) return error.InvalidDirectStatementV6Schedule;
             var link_extra: u32 = 0;
             var local_extra: u32 = 0;
+            var arithmetic_extra: u32 = 0;
             if (active == 1) {
                 for (link.projection_rows, seen_link) |projection, *seen| {
                     if (projection.local_statement_mask == 0 or
@@ -109,16 +114,23 @@ pub const Schedule = struct {
                     local_extra = 1;
                     local_count += 1;
                 }
+                if (isArithmeticSource(old_row[2].toU32(), old_row[3].toU32())) {
+                    arithmetic_extra = 1;
+                    arithmetic_count += 1;
+                }
             }
             if (link_extra == 1 and local_extra == 1) overlap_count += 1;
-            new_row.* = old.logicalRow(old_row[0], old_row[1], M31.fromCanonical(link_extra + local_extra), old_row[2], old_row[3]);
+            const extra = link_extra + local_extra + arithmetic_extra;
+            if (extra > 2) return error.InvalidDirectStatementV6Schedule;
+            new_row.* = old.logicalRow(old_row[0], old_row[1], M31.fromCanonical(extra), old_row[2], old_row[3]);
         }
         for (seen_local) |seen| if (!seen) return error.MissingDirectStatementV6LocalProducer;
         for (link.projection_rows, seen_link) |projection, seen| {
             if (projection.local_statement_mask == 1 and !seen)
                 return error.MissingDirectStatementV6LinkProducer;
         }
-        var result = Schedule{ .allocator = allocator, .rows = rows, .id = undefined, .link_uses = link_count, .local_uses = local_count, .overlaps = overlap_count };
+        if (arithmetic_count != 5) return error.MissingDirectStatementV6ArithmeticProducer;
+        var result = Schedule{ .allocator = allocator, .rows = rows, .id = undefined, .link_uses = link_count, .local_uses = local_count, .arithmetic_uses = arithmetic_count, .overlaps = overlap_count };
         result.id = result.scheduleId(link);
         return result;
     }
@@ -132,7 +144,8 @@ pub const Schedule = struct {
         var wanted = try init(self.allocator, link, child, old_rows);
         defer wanted.deinit();
         if (!std.meta.eql(self.id, wanted.id) or self.rows.len != wanted.rows.len or
-            self.link_uses != wanted.link_uses or self.local_uses != wanted.local_uses or self.overlaps != wanted.overlaps)
+            self.link_uses != wanted.link_uses or self.local_uses != wanted.local_uses or
+            self.arithmetic_uses != wanted.arithmetic_uses or self.overlaps != wanted.overlaps)
             return error.InvalidDirectStatementV6Schedule;
         for (self.rows, wanted.rows) |actual, expected|
             if (!std.meta.eql(actual, expected)) return error.InvalidDirectStatementV6Schedule;
@@ -151,6 +164,16 @@ pub const Schedule = struct {
         return hash.finalResult();
     }
 };
+
+fn isArithmeticSource(scope: u32, index: u32) bool {
+    if (scope != leaf_v2.WIRE_SCOPE) return false;
+    const layout = segment_v2.fixed_layout;
+    return index == layout.entry_continuation_root or
+        index == layout.entry_continuation_root + 1 or
+        index == layout.exit_continuation_root or
+        index == layout.exit_continuation_root + 1 or
+        index == layout.completion;
+}
 
 test "direct V6 Statement supports three exact consumers" {
     const actual = try computeSemanticDigest(std.testing.allocator);

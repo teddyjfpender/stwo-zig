@@ -324,10 +324,13 @@ fn diagnoseDirect50(
             cohort.noncore.boundary_workspace.statement_rows,
         );
         defer statement_v6.deinit();
-        std.debug.print("DIRECT50_V6_SCHEDULE row5_fanout={d} statement_link={d} statement_local={d} overlaps={d}\n", .{
-            row5_fanout.selected_count, statement_v6.link_uses, statement_v6.local_uses, statement_v6.overlaps,
+        std.debug.print("DIRECT50_V6_SCHEDULE row5_fanout={d} statement_link={d} statement_local={d} statement_arithmetic={d} overlaps={d}\n", .{
+            row5_fanout.selected_count, statement_v6.link_uses, statement_v6.local_uses, statement_v6.arithmetic_uses, statement_v6.overlaps,
         });
-        try diagnoseDirect50Tuples(allocator, cohort, &rows50, &child_witness, &las2, &row5_fanout, &statement_v6);
+        // Diagnostic only: production must receive these words as verifier public input.
+        const global_statement_expected = recursion.segment_leaf_wrapper_global_statement_boundary_v6.ExpectedPublic{ .words = metadata.base_statement_words };
+        const global_statement_boundary = try recursion.segment_leaf_wrapper_global_statement_boundary_v6.BoundaryV6.derive(global_statement_expected, &relations);
+        try diagnoseDirect50Tuples(allocator, cohort, &rows50, &child_witness, &las2, &row5_fanout, &statement_v6, &global_statement_boundary);
     }
     const tuple_ns = phase_timer.lap();
     var nonzero_domains: usize = 0;
@@ -358,6 +361,7 @@ fn diagnoseDirect50Tuples(
     las2: *const recursion.segment_leaf_wrapper_las2_boundary_v4.BoundaryV4,
     row5_fanout: *const recursion.segment_leaf_wrapper_row5_fanout_v6.Schedule,
     statement_v6: *const recursion.segment_leaf_statement_source_direct_v6.Schedule,
+    global_statement_boundary: *const recursion.segment_leaf_wrapper_global_statement_boundary_v6.BoundaryV6,
 ) !void {
     const ri = recursion.air.relation_interaction;
     const relation = frontend.air.relation;
@@ -422,6 +426,7 @@ fn diagnoseDirect50Tuples(
         };
         try ledger.append(.recursion_statement_word, 50, 0, .consume, @import("stwo_core").fields.qm31.QM31.one().neg(), &secure);
     }
+    try global_statement_boundary.appendTupleContributions(&ledger);
     const report = ledger.classify();
     std.debug.print("DIRECT50_TUPLES total={d} unmatched={d} domain25={d} domain29={d} domain30={d}\n", .{
         report.contribution_count,
@@ -430,7 +435,7 @@ fn diagnoseDirect50Tuples(
         report.unmatched_by_domain[29],
         report.unmatched_by_domain[30],
     });
-    var unmatched_by_row: [3][51]usize = @splat(@splat(0));
+    var unmatched_by_row: [3][52]usize = @splat(@splat(0));
     var cursor: usize = 0;
     while (cursor < ledger.contributions.items.len) {
         const first = ledger.contributions.items[cursor];
@@ -452,7 +457,7 @@ fn diagnoseDirect50Tuples(
         };
         if (domain_index) |domain| {
             if (!residual.isZero()) {
-                for (0..51) |component| {
+                for (0..52) |component| {
                     if (components & (@as(u64, 1) << @intCast(component)) != 0)
                         unmatched_by_row[domain][component] += 1;
                 }

@@ -7,6 +7,7 @@ const candidate = @import("recursion/segment_leaf_wrapper_cohort_candidate_v5.zi
 const direct_source_v6 = @import("recursion/air/ethereum_leaf_link_source_direct_v6.zig");
 const statement_v6 = @import("recursion/air/segment_leaf_statement_source_direct_v6.zig");
 const row5_fanout_v6 = @import("recursion/segment_leaf_wrapper_row5_fanout_v6.zig");
+const global_statement_boundary_v6 = @import("recursion/segment_leaf_wrapper_global_statement_boundary_v6.zig");
 
 test {
     _ = roster;
@@ -18,4 +19,5 @@ test {
     std.testing.refAllDeclsRecursive(direct_source_v6);
     std.testing.refAllDeclsRecursive(statement_v6);
     std.testing.refAllDeclsRecursive(row5_fanout_v6);
+    std.testing.refAllDeclsRecursive(global_statement_boundary_v6);
 }
