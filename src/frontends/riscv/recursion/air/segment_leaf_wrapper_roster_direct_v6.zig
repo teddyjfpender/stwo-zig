@@ -1,10 +1,11 @@
-//! Physical 50-row direct roster with the versioned row36 Statement AIR.
-//! Row5 NPV2 geometry is still pending; this key cannot admit a proof.
+//! Physical 50-row direct roster with versioned row5 and row36 AIR.
+//! No proof is admitted until the complete V6 cohort is qualified.
 
 const std = @import("std");
 const core = @import("stwo_core");
 const legacy = @import("segment_leaf_wrapper_roster_direct_v5.zig");
 const statement = @import("segment_leaf_statement_source_direct_v6.zig");
+const payload = @import("transcript_payload_direct_v6.zig");
 const typed = @import("universal_typed_component.zig");
 const v2 = @import("segment_outer_adapter_manifest_v2.zig");
 const v4 = @import("segment_leaf_wrapper_roster_direct_v4.zig");
@@ -19,7 +20,7 @@ pub const COMPONENT_COUNT = legacy.COMPONENT_COUNT;
 pub const DOMAIN = "stwo-zig/riscv-direct-leaf-wrapper-roster/v6\x00";
 pub const TRANSCRIPT_DOMAIN: u32 = 0x5256_3657; // RV6W
 pub const PRODUCTION_PROOF_ACTIVATION = false;
-pub const ROW5_NPV2_GEOMETRY_PENDING = true;
+pub const ROW5_NPV2_GEOMETRY_PENDING = false;
 pub const Geometry = legacy.Geometry;
 pub const Placement = legacy.Placement;
 
@@ -27,6 +28,10 @@ pub const Plan = struct {
     format_version: u16 = FORMAT_VERSION,
     legacy_plan: legacy.Plan,
     placements: [COMPONENT_COUNT]?Placement,
+    total_preprocessed_columns: u32,
+    total_main_columns: u32,
+    total_interaction_columns: u32,
+    total_constraints: u32,
     seal: [32]u8,
 
     pub fn build(
@@ -44,32 +49,55 @@ pub const Plan = struct {
 
     pub fn fromLegacy(base: *const legacy.Plan) !Plan {
         try base.validate();
-        var placements = base.placements;
-        var row36 = placements[36] orelse return error.InvalidDirectV6WrapperRoster;
-        row36.geometry = statementGeometry(row36.geometry.log_size);
-        placements[36] = row36;
-        var result = Plan{ .legacy_plan = base.*, .placements = placements, .seal = undefined };
-        result.seal = result.computeSeal();
+        const result = try buildRawFromLegacy(base);
         try result.validate();
+        return result;
+    }
+
+    fn buildRawFromLegacy(base: *const legacy.Plan) !Plan {
+        var placements: [COMPONENT_COUNT]?Placement = @splat(null);
+        var pp: u32 = 0;
+        var main: u32 = 0;
+        var interaction: u32 = 0;
+        var constraints: u32 = 0;
+        for (base.placements, 0..) |old, index| {
+            const prior = old orelse return error.InvalidDirectV6WrapperRoster;
+            var geometry = prior.geometry;
+            if (index == 5) geometry = payloadGeometry(geometry.log_size);
+            if (index == 36) geometry = statementGeometry(geometry.log_size);
+            try geometry.validateForComponentCount(COMPONENT_COUNT);
+            placements[index] = .{
+                .geometry = geometry,
+                .preprocessed_offset = pp,
+                .main_offset = main,
+                .interaction_offset = interaction,
+                .constraint_offset = constraints,
+                .claimed_sum_index = @intCast(index),
+            };
+            pp = try std.math.add(u32, pp, geometry.preprocessed_columns);
+            main = try std.math.add(u32, main, geometry.main_columns);
+            interaction = try std.math.add(u32, interaction, geometry.interaction_columns);
+            constraints = try std.math.add(u32, constraints, @as(u32, geometry.direct_constraints) + geometry.interaction_batches);
+        }
+        var result = Plan{
+            .legacy_plan = base.*,
+            .placements = placements,
+            .total_preprocessed_columns = pp,
+            .total_main_columns = main,
+            .total_interaction_columns = interaction,
+            .total_constraints = constraints,
+            .seal = undefined,
+        };
+        result.seal = result.computeSeal();
         return result;
     }
 
     pub fn validate(self: *const Plan) !void {
         try self.legacy_plan.validate();
-        if (self.format_version != FORMAT_VERSION or !std.meta.eql(self.seal, self.computeSeal()))
+        if (self.format_version != FORMAT_VERSION)
             return error.InvalidDirectV6WrapperRoster;
-        for (self.placements, self.legacy_plan.placements, 0..) |new, old, index| {
-            var expected = old orelse return error.InvalidDirectV6WrapperRoster;
-            if (index == 36) expected.geometry = statementGeometry(expected.geometry.log_size);
-            if (!std.meta.eql(new, @as(?Placement, expected))) return error.InvalidDirectV6WrapperRoster;
-        }
-        const old = self.legacy_plan.placements[36].?.geometry;
-        const new = self.placements[36].?.geometry;
-        if (new.preprocessed_columns != old.preprocessed_columns or
-            new.main_columns != old.main_columns or
-            new.interaction_columns != old.interaction_columns or
-            new.direct_constraints != old.direct_constraints or
-            new.interaction_batches != old.interaction_batches)
+        const expected = try buildRawFromLegacy(&self.legacy_plan);
+        if (!std.meta.eql(self.*, expected))
             return error.InvalidDirectV6WrapperRoster;
     }
 
@@ -90,7 +118,7 @@ pub const Plan = struct {
 
     pub fn mixGeometryPrefix(self: *const Plan, channel: anytype) !void {
         try self.validate();
-        channel.mixU32s(&.{ TRANSCRIPT_DOMAIN, FORMAT_VERSION, COMPONENT_COUNT, self.legacy_plan.total_preprocessed_columns, self.legacy_plan.total_main_columns, self.legacy_plan.total_interaction_columns, self.legacy_plan.total_constraints });
+        channel.mixU32s(&.{ TRANSCRIPT_DOMAIN, FORMAT_VERSION, COMPONENT_COUNT, self.total_preprocessed_columns, self.total_main_columns, self.total_interaction_columns, self.total_constraints });
         var words: [8]u32 = undefined;
         for (&words, 0..) |*word, index|
             word.* = std.mem.readInt(u32, self.seal[index * 4 ..][0..4], .little);
@@ -113,11 +141,45 @@ pub const Plan = struct {
         var hash = std.crypto.hash.sha2.Sha256.init(.{});
         hash.update(DOMAIN);
         hash.update(&self.legacy_plan.seal);
+        hash.update(&payload.SEMANTIC_DIGEST);
         hash.update(&statement.SEMANTIC_DIGEST);
         hash.update(&self.legacy_plan.local_schedule_id);
+        for (self.placements) |maybe_item| {
+            const item = maybe_item orelse return @splat(0);
+            const g = item.geometry;
+            hashInt(&hash, u32, g.log_size);
+            inline for (.{ g.preprocessed_columns, g.main_columns, g.interaction_columns, g.direct_constraints, g.interaction_batches }) |n|
+                hashInt(&hash, u16, n);
+            hash.update(&g.semantic_digest);
+            inline for (.{ item.preprocessed_offset, item.main_offset, item.interaction_offset, item.constraint_offset }) |n|
+                hashInt(&hash, u32, n);
+        }
+        inline for (.{ self.total_preprocessed_columns, self.total_main_columns, self.total_interaction_columns, self.total_constraints }) |n|
+            hashInt(&hash, u32, n);
         return hash.finalResult();
     }
 };
+
+fn payloadGeometry(log_size: u32) Geometry {
+    return .{
+        .roster_row = 5,
+        .log_size = log_size,
+        .preprocessed_columns = payload.PREPROCESSED_COLUMN_COUNT,
+        .main_columns = payload.PHYSICAL_MAIN_COLUMN_COUNT,
+        .interaction_columns = payload.INTERACTION_COLUMN_COUNT,
+        .direct_constraints = payload.DIRECT_CONSTRAINT_COUNT,
+        .interaction_batches = payload.INTERACTION_BATCH_COUNT,
+        .protocol_constraint_degree = @intCast(typed.protocolMaximumConstraintDegree(payload)),
+        .profiled_constraint_degree = payload.MAXIMUM_CONSTRAINT_DEGREE,
+        .semantic_digest = payload.SEMANTIC_DIGEST,
+    };
+}
+
+fn hashInt(hash: *std.crypto.hash.sha2.Sha256, comptime T: type, value: T) void {
+    var bytes: [@sizeOf(T)]u8 = undefined;
+    std.mem.writeInt(T, &bytes, value, .little);
+    hash.update(&bytes);
+}
 
 fn statementGeometry(log_size: u32) Geometry {
     return .{
@@ -155,7 +217,12 @@ test "V6 roster changes row36 identity and fails closed on resealed mutation" {
     const shape = v4.Shape{ .program_words = 100, .base_poseidon_calls = 1193 };
     var plan = try Plan.build(allocator, &manifest, &program, shape, &local_source, &child_fixture.components, &child_fixture.infra);
     try plan.validateAgainst(allocator, &manifest, &program, shape, &local_source, &child_fixture.components, &child_fixture.infra);
+    try std.testing.expectEqualDeep(payload.SEMANTIC_DIGEST, plan.placements[5].?.geometry.semantic_digest);
     try std.testing.expectEqualDeep(statement.SEMANTIC_DIGEST, plan.placements[36].?.geometry.semantic_digest);
+    try std.testing.expectEqual(plan.legacy_plan.total_preprocessed_columns + 1, plan.total_preprocessed_columns);
+    try std.testing.expectEqual(plan.legacy_plan.total_interaction_columns + 4, plan.total_interaction_columns);
+    try std.testing.expectEqual(plan.legacy_plan.placements[6].?.preprocessed_offset + 1, plan.placements[6].?.preprocessed_offset);
+    try std.testing.expectEqual(plan.legacy_plan.placements[6].?.interaction_offset + 4, plan.placements[6].?.interaction_offset);
     try std.testing.expect(!std.meta.eql(plan.seal, plan.legacy_plan.seal));
     var first = @import("../poseidon2_channel.zig").Channel{};
     var expected = global_statement.ExpectedPublic{ .words = @splat(core.fields.m31.M31.zero()) };
@@ -165,6 +232,10 @@ test "V6 roster changes row36 identity and fails closed on resealed mutation" {
     try plan.mixBeforeRelationDraw(&changed, expected);
     try std.testing.expect(!std.meta.eql(first.drawU32s(), changed.drawU32s()));
     plan.placements[36].?.geometry.semantic_digest[0] ^= 1;
+    plan.seal = plan.computeSeal();
+    try std.testing.expectError(error.InvalidDirectV6WrapperRoster, plan.validate());
+    plan.placements[36].?.geometry.semantic_digest[0] ^= 1;
+    plan.placements[5].?.geometry.semantic_digest[0] ^= 1;
     plan.seal = plan.computeSeal();
     try std.testing.expectError(error.InvalidDirectV6WrapperRoster, plan.validate());
 }
