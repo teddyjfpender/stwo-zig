@@ -6,8 +6,6 @@
 
 pub const interaction_legacy_test_oracle = @import("air/interaction_legacy_test_oracle.zig");
 
-pub const recursion_air_composition_v3 = @import("recursion/recursion_air_composition_circuit_v3_test_support.zig");
-
 pub const clock_update_component_test =
     @import("air/tests/clock_update_component_test.zig");
 pub const relation_export_components_test =
@@ -234,8 +232,6 @@ pub const provider_shard_child_field_test =
     @import("recursion/tests/provider_shard_child_field_test.zig");
 pub const aggregation_test_fixture = @import("aggregation/test_fixture.zig");
 pub const aggregation_types = @import("aggregation/types.zig");
-pub const binary_pair_outer_fixture =
-    @import("testing/binary_pair_outer_fixture.zig");
 /// Retained handwritten JALR evaluator for adversarial differential tests only.
 pub const jalr_semantics =
     @import("air/semantics/jalr_legacy_test_oracle.zig");

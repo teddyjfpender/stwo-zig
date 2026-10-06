@@ -1,9 +1,0 @@
-comptime {
-    _ = @import("recursion/air/tests/blake3_compact_metadata_test.zig");
-    _ = @import("recursion/air/tests/blake3_parent_join_test.zig");
-    _ = @import("recursion/air/tests/blake3_parent_append_test.zig");
-    _ = @import("prover/tests/blake3_continuation_witness_test.zig");
-    _ = @import("recursion/air/tests/blake3_memory_custody_test.zig");
-    _ = @import("recursion/air/tests/blake3_memory_update_chain_test.zig");
-    _ = @import("recursion/air/tests/blake3_memory_update_proof_test.zig");
-}

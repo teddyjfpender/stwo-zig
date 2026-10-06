@@ -6,7 +6,6 @@ const product_policy = @import("../graph/product.zig");
 const riscv_cpu_policy = @import("riscv_cpu_policy.zig");
 const riscv_cpu_modules = @import("riscv_cpu_modules.zig");
 const riscv_cpu_tests = @import("riscv_cpu_tests.zig");
-const ethereum_block_proof = @import("riscv_cpu_ethereum_block_proof.zig");
 const riscv_refinement = @import("riscv_refinement.zig");
 const riscv_poseidon2_pair = @import("riscv_poseidon2_pair.zig");
 const degree_bounded_poseidon = @import("riscv_cpu_degree_bounded_poseidon.zig");
@@ -93,7 +92,6 @@ pub fn addProduct(context: Context) void {
         "riscv-memcpy-admission-observer",
         "Build the exact RISC-V bulk-memcpy admission observer",
     ).dependOn(&install_memcpy_admission.step);
-    ethereum_block_proof.add(context, product);
     riscv_poseidon2_pair.add(context, product);
     degree_bounded_poseidon.add(context, product, testContext(context));
     degree5_poseidon.add(context, product, testContext(context));
@@ -159,28 +157,7 @@ pub fn addProduct(context: Context) void {
     static_step.dependOn(&install_static_trace.step);
 
     const test_context = testContext(context);
-    context.b.step(
-        "test-block-execution-sidecar-v2",
-        "Check block-v2 same-root typed execution sidecar PCS proof",
-    ).dependOn(test_filter.addSuites(context.b, &.{.{
-        .tests = riscv_cpu_tests.addFocusedTestRoot(
-            test_context,
-            "src/frontends/riscv/block_execution_sidecar_proof_test_root.zig",
-            &.{"block-v2 same-root sidecar quotient"},
-        ),
-        .minimum = 1,
-    }}));
-    context.b.step(
-        "test-block-execution-native-root-v2",
-        "Check sidecar roots against a freshly verified native RISC-V execution proof",
-    ).dependOn(test_filter.addSuites(context.b, &.{.{
-        .tests = riscv_cpu_tests.addFocusedTestRoot(
-            test_context,
-            "src/frontends/riscv/block_execution_sidecar_native_test_root.zig",
-            &.{ "block-v2 native-root execution sidecar", "block-v3", "SHA and Keccak committed caller rows", "block-v4 external SHA Keccak sidecar", "block-v4 external signer Keccak sidecar", "block-v4 active signer source", "block-v4 empty execution range plan" },
-        ),
-        .minimum = 5,
-    }}));
+
     context.b.step(
         "test-block-memory-range-v2",
         "Check block-v2 range and RW initial-provider witnesses",
@@ -203,93 +180,7 @@ pub fn addProduct(context: Context) void {
         ),
         .minimum = 3,
     }}));
-    context.b.step(
-        "test-block-v5-program-census",
-        "Check exact block-wide ROM fetch aggregation from full and sparse native schedules",
-    ).dependOn(test_filter.addSuites(context.b, &.{.{
-        .tests = riscv_cpu_tests.addFocusedTestRoot(
-            test_context,
-            "src/frontends/riscv/block_v5_program_census_test_root.zig",
-            &.{"block-v5 census merges full and sparse native program schedules exactly"},
-        ),
-        .minimum = 1,
-    }}));
-    context.b.step(
-        "test-block-v5-source-seal",
-        "Check the versioned block-v5 source and first-round transcript binding",
-    ).dependOn(test_filter.addSuites(context.b, &.{.{
-        .tests = riscv_cpu_tests.addFocusedTestRoot(
-            test_context,
-            "src/frontends/riscv/block_v5_source_seal_test_root.zig",
-            &.{"block-v5 seal binds exact ordered family roster"},
-        ),
-        .minimum = 1,
-    }}));
-    context.b.step(
-        "test-block-v5-native-lookup",
-        "Freshly verify global block-v5 native lookup table providers",
-    ).dependOn(test_filter.addSuites(context.b, &.{.{
-        .tests = riscv_cpu_tests.addFocusedTestRoot(test_context, "src/frontends/riscv/block_v5_native_lookup_test_root.zig", &.{"block-v5 global native lookup providers"}),
-        .minimum = 1,
-    }}));
-    context.b.step(
-        "test-block-v5-global",
-        "Freshly verify native-v3 global joins and complete ordinary exact recursion",
-    ).dependOn(test_filter.addSuites(context.b, &.{.{
-        .tests = riscv_cpu_tests.addFocusedTestRoot(
-            test_context,
-            "src/frontends/riscv/block_v5_full_join_test_root.zig",
-            &.{ "block-v5 genuine native ROM", "block-v5 complete ordinary bundle", "block-v5 complete ordinary detached", "block-v5 concrete producer" },
-        ),
-        .minimum = 3,
-    }}));
-    context.b.step(
-        "test-block-v5-canonical",
-        "Freshly verify the whole ordinary detached bundle at q70/PoW26",
-    ).dependOn(test_filter.addSuites(context.b, &.{.{
-        .tests = riscv_cpu_tests.addFocusedTestRoot(test_context, "src/frontends/riscv/block_v5_full_join_test_root.zig", &.{"block-v5 canonical security whole ordinary detached bundle"}),
-        .minimum = 1,
-    }}));
-    context.b.step(
-        "test-block-v5-caller-global",
-        "Freshly verify the real caller bundle, global buses and exact recursion",
-    ).dependOn(test_filter.addSuites(context.b, &.{.{
-        .tests = riscv_cpu_tests.addFocusedTestRoot(test_context, "src/frontends/riscv/block_v5_full_caller_join_test_root.zig", &.{"block-v5 complete caller SHA Keccak"}),
-        .minimum = 1,
-    }}));
-    context.b.step(
-        "test-block-v5-precompile-family",
-        "Freshly verify independently committed typed block-v5 precompile arithmetic",
-    ).dependOn(test_filter.addSuites(context.b, &.{.{
-        .tests = riscv_cpu_tests.addFocusedTestRoot(
-            test_context,
-            "src/frontends/riscv/block_v5_precompile_family_test_root.zig",
-            &.{ "block-v5 standalone typed precompile roots", "block-v5 caller PC projection" },
-        ),
-        .minimum = 1,
-    }}));
-    context.b.step(
-        "test-block-v5-mixed-queue",
-        "Check bounded exact mixed-radix parent scheduling and cancellation",
-    ).dependOn(test_filter.addSuites(context.b, &.{.{
-        .tests = riscv_cpu_tests.addFocusedTestRoot(
-            test_context,
-            "src/frontends/riscv/block_v5_mixed_queue_test_root.zig",
-            &.{ "218-leaf mixed queue", "mixed queue stops new work" },
-        ),
-        .minimum = 2,
-    }}));
-    context.b.step(
-        "test-block-v4-parallel-families",
-        "Freshly verify the small real-I/O block with concurrent memory and execution proving",
-    ).dependOn(test_filter.addSuites(context.b, &.{.{
-        .tests = riscv_cpu_tests.addFocusedTestRoot(
-            test_context,
-            "src/frontends/riscv/block_v4_cpu_multi_segment_assembly_test_root.zig",
-            &.{"block-v4 streaming diagnostic complete receiver crosses real IO and sparse external roster"},
-        ),
-        .minimum = 1,
-    }}));
+
     context.b.step(
         "test-block-rw-initial-joint-v2",
         "Prove and freshly verify block-v2 RW initial source with shared BLAKE3 paths",
@@ -301,61 +192,7 @@ pub fn addProduct(context: Context) void {
         ),
         .minimum = 1,
     }}));
-    context.b.step(
-        "test-blake3-exact-frontier",
-        "Check exact-count recursive forest ownership and coverage",
-    ).dependOn(test_filter.addSuites(context.b, &.{.{
-        .tests = riscv_cpu_tests.addFocusedTestRoot(
-            test_context,
-            "src/frontends/riscv/blake3_stream_frontier_test_root.zig",
-            &.{"exact-count V2"},
-        ),
-        .minimum = 4,
-    }}));
-    context.b.step(
-        "test-blake3-exact-root",
-        "Prove a canonical ragged exact-count recursive root",
-    ).dependOn(test_filter.addSuites(context.b, &.{.{
-        .tests = riscv_cpu_tests.addFocusedTestRoot(
-            test_context,
-            "src/frontends/riscv/blake3_exact_root_test_root.zig",
-            &.{"exact-count V2 six-leaf one-root canonical proof"},
-        ),
-        .minimum = 1,
-    }}));
-    context.b.step(
-        "test-block-v3-recursive",
-        "Prove linked block-v3 dyadic and exact-count diagnostic roots",
-    ).dependOn(test_filter.addSuites(context.b, &.{.{
-        .tests = riscv_cpu_tests.addFocusedTestRoot(
-            test_context,
-            "src/frontends/riscv/block_v3_recursive_test_root.zig",
-            &.{"block-v3"},
-        ),
-        .minimum = 1,
-    }}));
-    context.b.step(
-        "test-block-v4-bundle-manifest",
-        "Check staged block-v4 bundle serialization and hash-pinned reopening",
-    ).dependOn(test_filter.addSuites(context.b, &.{.{
-        .tests = riscv_cpu_tests.addFocusedTestRoot(
-            test_context,
-            "src/frontends/riscv/block_v4_cpu_bundle_manifest_test_root.zig",
-            &.{ "bundle JSON and staged files round trip", "bundle snapshot rejects an incomplete", "bundle snapshot requires rebound", "recursion policy rejects an unpinned file", "detached bundle rejects an unpinned" },
-        ),
-        .minimum = 5,
-    }}));
-    context.b.step(
-        "test-block-v4-detached-bundle",
-        "Freshly verify a canonical detached block-v4 bundle with independent SHA pins",
-    ).dependOn(test_filter.addSuites(context.b, &.{.{
-        .tests = riscv_cpu_tests.addFocusedTestRoot(
-            test_context,
-            "src/frontends/riscv/block_v4_cpu_multi_segment_assembly_test_root.zig",
-            &.{"block-v4 streaming canonical complete receiver crosses real IO and sparse external roster"},
-        ),
-        .minimum = 1,
-    }}));
+
     const core_prover_tests = riscv_cpu_tests.addCoreProverTests(test_context);
     const exhaustive_tests = riscv_cpu_tests.addExhaustiveTests(test_context);
     const air_satisfaction_exports = riscv_cpu_tests.addAirSatisfactionExportTests(test_context);
@@ -442,56 +279,7 @@ pub fn addProduct(context: Context) void {
         .tests = riscv_cpu_tests.addFocusedTestRoot(test_context, "src/frontends/riscv/guest_precompile_test_root.zig", &.{ "guest proof artifact", "public input byte binding" }),
         .minimum = 6,
     }}));
-    context.b.step(
-        "test-riscv-blake3-tree-pipeline",
-        "Qualify bounded persistent preparation and proving on a native four-leaf tree",
-    ).dependOn(test_filter.addSuites(context.b, &.{.{
-        .tests = riscv_cpu_tests.addFocusedTestRoot(test_context, "src/frontends/riscv/blake3_aggregation_test_root.zig", &.{"BLAKE3 adjacent segments form a four-leaf tree"}),
-        .minimum = 1,
-    }}));
-    context.b.step(
-        "test-riscv-blake3-aggregation",
-        "Prove adjacent BLAKE3 execution segments and their recursive aggregate",
-    ).dependOn(test_filter.addSuites(context.b, &.{.{
-        .tests = riscv_cpu_tests.addFocusedTestRoot(test_context, "src/frontends/riscv/blake3_aggregation_test_root.zig", &.{ "BLAKE3 adjacent segments", "BLAKE3 Ethereum adjacent segments", "BLAKE3 segment Span construction" }),
-        .minimum = 4,
-    }}));
-    context.b.step(
-        "test-riscv-blake3-ethereum-canonical-aggregation",
-        "Prove full-width Ethereum segments and their aggregate at 70 queries and 26 PoW bits",
-    ).dependOn(test_filter.addSuites(context.b, &.{.{
-        .tests = riscv_cpu_tests.addFocusedTestRoot(test_context, "src/frontends/riscv/blake3_aggregation_test_root.zig", &.{"BLAKE3 Ethereum canonical segments"}),
-        .minimum = 1,
-    }}));
-    context.b.step(
-        "test-riscv-blake3-canonical-chain",
-        "Prove a BLAKE3 execution leaf and parent at 70 queries and 26 PoW bits",
-    ).dependOn(test_filter.addSuites(context.b, &.{.{
-        .tests = riscv_cpu_tests.addFocusedTestRoot(test_context, "src/frontends/riscv/blake3_canonical_chain_test_root.zig", &.{"BLAKE3 canonical leaf"}),
-        .minimum = 1,
-    }}));
-    context.b.step(
-        "test-riscv-blake3-execution-commitments",
-        "Validate joined native execution and BLAKE3 commitment component preparation",
-    ).dependOn(test_filter.addSuites(context.b, &.{.{
-        .tests = riscv_cpu_tests.addFocusedTestRoot(
-            test_context,
-            "src/frontends/riscv/blake3_execution_commitment_test_root.zig",
-            &.{"BLAKE3 execution commitment"},
-        ),
-        .minimum = 8,
-    }}));
-    context.b.step(
-        "test-riscv-blake3-memory-update",
-        "Prove BLAKE3 memory updates and validate public-I/O continuation conversions",
-    ).dependOn(test_filter.addSuites(context.b, &.{.{
-        .tests = riscv_cpu_tests.addFocusedTestRoot(
-            test_context,
-            "src/frontends/riscv/blake3_memory_update_proof_test_root.zig",
-            &.{"BLAKE3 memory update proves"},
-        ),
-        .minimum = 9,
-    }}));
+
     context.b.step(
         "test-riscv-blake3-memory-path",
         "Prove a full-depth BLAKE3 byte-memory opening",
@@ -514,17 +302,7 @@ pub fn addProduct(context: Context) void {
         ),
         .minimum = 1,
     }}));
-    context.b.step(
-        "test-riscv-statement-codecs",
-        "Validate legacy and full-digest BLAKE3 Span encoding and folding",
-    ).dependOn(test_filter.addSuites(context.b, &.{.{
-        .tests = riscv_cpu_tests.addFocusedTestRoot(
-            test_context,
-            "src/frontends/riscv/recursion_statement_codec_test_root.zig",
-            &.{ "program commitment:", "public LogUp:", "public data:", "BLAKE3 public data", "R-012", "BLAKE3 Span", "BLAKE3 identity", "BLAKE3 statement AIR", "BLAKE3 statement circuit", "BLAKE3 statement provider", "BLAKE3 composition compiler", "BLAKE3 composition witness", "BLAKE3 Span identity", "BLAKE3 routed frame witness", "BLAKE3 canonical frames" },
-        ),
-        .minimum = 86,
-    }}));
+
     context.b.step(
         "test-riscv-recursion-ingress",
         "Validate production-derived recursive public ingress without proving",

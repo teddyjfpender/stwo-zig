@@ -15,207 +15,17 @@ const trace_mod = frontend.runner.trace;
 const state_chain = frontend.runner.state_chain;
 const memory_state = frontend.runner.memory_state;
 const runner_result = frontend.runner.result_mod;
-const prove_block = frontend.host.prove_block;
-const BlockInput = frontend.host.block_input.BlockInput;
 const stage_profile = @import("stwo_prover_api").stage_profile;
 
 pub const Blake3Execution = prover_mod.blake3_execution.ForBackend(CpuBackend);
-pub const Blake3ExecutionParent = prover_mod.blake3_execution_parent.ForBackend(CpuBackend);
 pub const CpuProverEngine = prover_mod.ProverEngineForBackend(CpuBackend);
 pub const Poseidon2ProveOutput = prover_mod.Poseidon2ProveOutput;
 pub const Poseidon2InteractionClaim = prover_mod.Poseidon2InteractionClaim;
 pub const poseidon2_proof_artifact = prover_mod.guest_precompile.proof_artifact;
-pub const ethereum_proof_artifact =
-    prover_mod.guest_precompile.ethereum_proof_artifact;
-pub const ethereum_segment_proof_artifact =
-    prover_mod.guest_precompile.ethereum_segment_proof_artifact;
-pub const ethereum_segment_source_wire =
-    prover_mod.guest_precompile.ethereum_segment_source_wire;
-pub const ethereum_block_leaf_contract =
-    @import("ethereum_block_leaf_contract.zig");
-pub const ethereum_block_leaf_evidence =
-    @import("ethereum_block_leaf_evidence.zig");
-pub const ethereum_precompile_artifact_io =
-    @import("ethereum_precompile_artifact_io.zig");
+pub const ethereum_proof_artifact = prover_mod.guest_precompile.ethereum_proof_artifact;
 pub const resource_usage = @import("stwo_prover_engine").measurement.resource_report;
-pub const ethereum_block_leaf_compact_manifest =
-    @import("ethereum_block_leaf_compact_manifest.zig");
-pub const ethereum_block_compact_replay =
-    @import("ethereum_block_compact_replay.zig");
-pub const ethereum_block_compact_replay_receipt =
-    @import("ethereum_block_compact_replay_receipt.zig");
-pub const ethereum_block_leaf_materializer =
-    @import("ethereum_block_leaf_materializer.zig");
-pub const ethereum_incremental_capture_materializer_v3 =
-    @import("ethereum_incremental_capture_materializer_v3.zig");
-pub const ethereum_incremental_capture_materializer_v4 =
-    @import("ethereum_incremental_capture_materializer_v4.zig");
-pub const ethereum_incremental_capture_postprocess_command_v4 =
-    @import("ethereum_incremental_capture_postprocess_command_v4.zig");
-pub const ethereum_incremental_full_leaf_replay_command_v4 =
-    @import("ethereum_incremental_full_leaf_replay_command_v4.zig");
-pub const ethereum_incremental_full_leaf_throughput_execution_v1 =
-    @import("ethereum_incremental_full_leaf_throughput_execution_v1.zig");
-pub const ethereum_block_leaf_producer =
-    @import("ethereum_block_leaf_producer.zig");
-pub const ethereum_block_leaf_support =
-    @import("ethereum_block_leaf_support.zig");
-pub const ethereum_block_leaf_verifier =
-    @import("ethereum_block_leaf_verifier.zig");
-pub const ethereum_guest_pc_profile = @import("ethereum_guest_pc_profile.zig");
-pub const ethereum_poseidon_leaf_product_contract =
-    @import("ethereum_poseidon_leaf_product_contract.zig");
-pub const ethereum_poseidon_leaf_profile_receipt =
-    @import("ethereum_poseidon_leaf_profile_receipt.zig");
-pub const ethereum_poseidon_leaf_geometry_snapshot =
-    @import("ethereum_poseidon_leaf_geometry_snapshot.zig");
-pub const ethereum_poseidon_leaf_geometry_command =
-    @import("ethereum_poseidon_leaf_geometry_command.zig");
-pub const ethereum_poseidon_provider_resource_plan_v1 =
-    @import("ethereum_poseidon_provider_resource_plan_v1.zig");
-pub const ethereum_poseidon_provider_call_artifact_v1 =
-    @import("ethereum_poseidon_provider_call_artifact_v1.zig");
-pub const ethereum_poseidon_provider_stage_a_checkpoint_v1 =
-    @import("ethereum_poseidon_provider_stage_a_checkpoint_v1.zig");
-pub const ethereum_poseidon_provider_proof_artifact_v1 =
-    @import("ethereum_poseidon_provider_proof_artifact_v1.zig");
-pub const ethereum_poseidon_provider_proof_artifact_v2 =
-    @import("ethereum_poseidon_provider_proof_artifact_v2.zig");
-pub const ethereum_poseidon_provider_stage_b_lifecycle_v1 =
-    @import("ethereum_poseidon_provider_stage_b_lifecycle_v1.zig");
-pub const ethereum_poseidon_provider_stage_b_prefix_v2 =
-    @import("ethereum_poseidon_provider_stage_b_prefix_v2.zig");
-pub const ethereum_poseidon_provider_combined_v1 =
-    @import("ethereum_poseidon_provider_combined_v1.zig");
-pub const ethereum_poseidon_provider_prepared_capture_v1 =
-    @import("ethereum_poseidon_provider_prepared_capture_v1.zig");
-pub const ethereum_poseidon_provider_prepared_capture_receipt_v1 =
-    @import("ethereum_poseidon_provider_prepared_capture_receipt_v1.zig");
-pub const ethereum_poseidon_provider_fused_v1 =
-    @import("ethereum_poseidon_provider_fused_v1.zig");
-pub const ethereum_poseidon_provider_hpc_benchmark_v1 =
-    @import("ethereum_poseidon_provider_hpc_benchmark_v1.zig");
-pub const ethereum_poseidon_provider_raw_pair_benchmark_v1 =
-    @import("ethereum_poseidon_provider_raw_pair_benchmark_v1.zig");
-pub const ethereum_poseidon_provider_raw_batch_benchmark_v2 =
-    @import("ethereum_poseidon_provider_raw_batch_benchmark_v2.zig");
-pub const ethereum_poseidon_provider_topology_sweep_v1 =
-    @import("ethereum_poseidon_provider_topology_sweep_v1.zig");
-pub const ethereum_poseidon_provider_retention_sweep_v1 =
-    @import("ethereum_poseidon_provider_retention_sweep_v1.zig");
-pub const ethereum_poseidon_provider_retention_admission_v2 =
-    @import("ethereum_poseidon_provider_retention_admission_v2.zig");
-pub const ethereum_poseidon_provider_retained_batch_receipt_v3 =
-    @import("ethereum_poseidon_provider_retained_batch_receipt_v3.zig");
-pub const ethereum_poseidon_provider_retained_batch_v3 =
-    @import("ethereum_poseidon_provider_retained_batch_v3.zig");
-pub const ethereum_degree5_provider_proof_artifact_v1 =
-    @import("ethereum_degree5_provider_proof_artifact_v1.zig");
-pub const ethereum_candidate_degree5_provider_batch_execution_v1 =
-    @import("ethereum_candidate_degree5_provider_batch_execution_v1.zig");
-pub const ethereum_candidate_degree5_provider_prepared_batch_v1 =
-    @import("ethereum_candidate_degree5_provider_prepared_batch_v1.zig");
-pub const ethereum_candidate_degree5_provider_order_batch_v1 =
-    @import("ethereum_candidate_degree5_provider_order_batch_v1.zig");
-pub const ethereum_provider_omitted_leaf_bundle_v1 =
-    @import("ethereum_provider_omitted_leaf_bundle_v1.zig");
-pub const bulk_memcpy_tape_artifact_v1 =
-    @import("bulk_memcpy_tape_artifact_v1.zig");
-pub const bulk_memcpy_statement_artifact_v1 =
-    @import("bulk_memcpy_statement_artifact_v1.zig");
-pub const bulk_memcpy_retained_observation_v1 =
-    @import("bulk_memcpy_retained_observation_v1.zig");
-pub const bulk_memcpy_current_selected_segment_authority_v1 =
-    @import("bulk_memcpy_current_selected_segment_authority_v1.zig");
-pub const bulk_memcpy_retained_microproof_receipt_v1 =
-    @import("bulk_memcpy_retained_microproof_receipt_v1.zig");
-pub const bulk_memcpy_retained_microproof_receipt_v2 =
-    @import("bulk_memcpy_retained_microproof_receipt_v2.zig");
-pub const bulk_memcpy_retained_journal_v1 =
-    @import("bulk_memcpy_retained_journal_v1.zig");
-pub const bulk_memcpy_retained_replay_v1 =
-    @import("bulk_memcpy_retained_replay_v1.zig");
-pub const bulk_memcpy_retained_microproof_v1 =
-    @import("bulk_memcpy_retained_microproof_v1.zig");
-pub const bulk_memcpy_retained_microproof_command_v1 =
-    @import("bulk_memcpy_retained_microproof_command_v1.zig");
-pub const ethereum_candidate_combined_execution_capture_receipt_v1 =
-    @import("ethereum_candidate_combined_execution_capture_receipt_v1.zig");
-pub const ethereum_candidate_combined_execution_capture_v1 =
-    @import("ethereum_candidate_combined_execution_capture_v1.zig");
-pub const ethereum_candidate_combined_execution_capture_command_v1 =
-    @import("ethereum_candidate_combined_execution_capture_command_v1.zig");
-pub const ethereum_candidate_combined_execution_replay_receipt_v1 =
-    @import("ethereum_candidate_combined_execution_replay_receipt_v1.zig");
-pub const ethereum_candidate_combined_execution_replay_v1 =
-    @import("ethereum_candidate_combined_execution_replay_v1.zig");
-pub const ethereum_candidate_combined_execution_replay_command_v1 =
-    @import("ethereum_candidate_combined_execution_replay_command_v1.zig");
-pub const ethereum_matched_ab_rematerialization_authority_v1 =
-    @import("ethereum_matched_ab_rematerialization_authority_v1.zig");
-pub const ethereum_matched_ab_leaf_request_v1 =
-    @import("ethereum_matched_ab_leaf_request_v1.zig");
-pub const ethereum_matched_ab_rematerialization_controller_v1 =
-    @import("ethereum_matched_ab_rematerialization_controller_v1.zig");
-pub const ethereum_matched_ab_rematerialization_command_v1 =
-    @import("ethereum_matched_ab_rematerialization_command_v1.zig");
-pub const ethereum_matched_ab_geometry_audit_v1 =
-    @import("ethereum_matched_ab_geometry_audit_v1.zig");
-pub const ethereum_poseidon_leaf_product_producer =
-    @import("ethereum_poseidon_leaf_product_producer.zig");
-pub const ethereum_poseidon_leaf_matched_ab_result_v1 =
-    @import("ethereum_poseidon_leaf_matched_ab_result_v1.zig");
-pub const ethereum_poseidon_leaf_matched_ab_baseline_command_v1 =
-    @import("ethereum_poseidon_leaf_matched_ab_baseline_command_v1.zig");
-pub const ethereum_poseidon_leaf_product_request =
-    @import("ethereum_poseidon_leaf_product_request.zig");
-pub const ethereum_poseidon_leaf_product_verifier =
-    @import("ethereum_poseidon_leaf_product_verifier.zig");
-pub const ethereum_unoptimized_baseline_admission_receipt_v1 =
-    @import("ethereum_unoptimized_baseline_admission_receipt_v1.zig");
-pub const ethereum_unoptimized_baseline_admission_v1 =
-    @import("ethereum_unoptimized_baseline_admission_v1.zig");
-pub const ethereum_incremental_native_leaf_profile_v3 =
-    @import("ethereum_incremental_native_leaf_profile_v3.zig");
-pub const ethereum_incremental_native_leaf_proof_v3 =
-    @import("ethereum_incremental_native_leaf_proof_v3.zig");
-pub const ethereum_incremental_native_leaf_proof_artifact_v3 =
-    @import("ethereum_incremental_native_leaf_proof_artifact_v3.zig");
+/// The qualified CSP recursion producer shares this generic outer verifier.
 pub const recursive_fri_outer = @import("recursive_fri_outer.zig");
-pub const recursive_common_wrapper_manifest_v1 =
-    @import("recursive_common_wrapper_manifest_v1.zig");
-pub const recursive_common_wrapper_padding_v1 =
-    @import("recursive_common_wrapper_padding_v1.zig");
-pub const recursive_common_wrapper_authority_v1 =
-    @import("recursive_common_wrapper_authority_v1.zig");
-pub const recursive_common_wrapper_authority_v2 =
-    @import("recursive_common_wrapper_authority_v2.zig");
-pub const recursive_common_fold_input_v1 =
-    @import("recursive_common_fold_input_v1.zig");
-pub const recursive_common_fold_input_v2 =
-    @import("recursive_common_fold_input_v2.zig");
-pub const recursive_common_fold_field_public_v2 =
-    @import("recursive_common_fold_field_public_v2.zig");
-pub const recursive_common_ethereum_incremental_leaf_input_v4 =
-    @import("recursive_common_ethereum_incremental_leaf_input_v4.zig");
-pub const recursive_common_ethereum_incremental_leaf_field_public_v4 =
-    @import("recursive_common_ethereum_incremental_leaf_field_public_v4.zig");
-pub const recursive_field_node_public_v2 =
-    @import("recursive_field_node_public_v2.zig");
-pub const recursive_circuit_registry_v1 =
-    @import("recursive_circuit_registry_v1.zig");
-pub const recursive_node_artifact_v2 =
-    @import("recursive_node_artifact_v2.zig");
-pub const recursive_common_real_omitted_leaf_input_v1 =
-    @import("recursive_common_real_omitted_leaf_input_v1.zig");
-pub const recursive_node_artifact_store_v1 =
-    @import("recursive_node_artifact_store_v1.zig");
-pub const recursive_node_artifact_store_v2 =
-    @import("recursive_node_artifact_store_v2.zig");
-pub const recursive_pipeline_worker_protocol_v1 =
-    @import("recursive_pipeline_worker_protocol_v1.zig");
-pub const recursive_pipeline_worker_v1 =
-    @import("recursive_pipeline_worker_v1.zig");
 
 comptime {
     prover_mod.assertProverEngine(CpuProverEngine);
@@ -436,23 +246,6 @@ pub fn proveAndVerifyElf(
         elf_bytes,
         max_steps,
         pcs_config,
-    );
-}
-
-pub fn proveEthereumBlock(
-    allocator: std.mem.Allocator,
-    elf_bytes: []const u8,
-    block_input: *const BlockInput,
-    pcs_config: pcs_core.PcsConfig,
-    max_steps: usize,
-) !prove_block.ProveBlockResult {
-    return prove_block.proveEthereumBlockWithEngine(
-        CpuProverEngine,
-        allocator,
-        elf_bytes,
-        block_input,
-        pcs_config,
-        max_steps,
     );
 }
 

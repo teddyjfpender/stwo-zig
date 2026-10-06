@@ -124,50 +124,12 @@ pub fn build(b: *std.Build) void {
     test_step.dependOn(TestCountFloor.add(b, run_tests, test_floor));
 
     addFocusedTests(b, core, prover, prover_api, postcard, typed_air_artifacts, target, optimize, check_only, .{
-        .step = "test-ethereum-fixed-program-air",
-        .description = "Check fixed ELF table constraints and unchanged legacy program relations",
-        .root = "ethereum_fixed_program_air_test_root.zig",
-        .imports_prover_engine = true,
-        .filters = &.{ "Ethereum fixed program table", "program interaction:" },
-        .minimum = 7,
-    });
-    addFocusedTests(b, core, prover, prover_api, postcard, typed_air_artifacts, target, optimize, check_only, .{
         .step = "test-vm-leaf-context-v2",
         .description = "Test SegmentV2 verifier-instance and capture authority",
         .root = "vm_leaf_context_v2_test_root.zig",
         .imports_prover_engine = true,
         .filters = &.{ "SegmentV2 VM leaf ContextV2", "Ethereum selected base claim admission" },
         .minimum = 4,
-    });
-    addFocusedTests(b, core, prover, prover_api, postcard, typed_air_artifacts, target, optimize, check_only, .{
-        .step = "test-ethereum-vm-composition-program",
-        .description = "Check the recording scalar, production masks and active Ethereum verifier program",
-        .root = "vm_air_profile_v2_test_root.zig",
-        .imports_prover_engine = true,
-        .filters = &.{
-            "Ethereum extension evaluators replay over the canonical recording scalar",
-            "Ethereum extension mask geometry is derived from production vtables",
-            "authenticated VM AIR ProfileV2 cold-compiles the Ethereum verifier program",
-        },
-        .minimum = 5, // Three named checks plus two import-discovery tests.
-    });
-    addFocusedTests(b, core, prover, prover_api, postcard, typed_air_artifacts, target, optimize, check_only, .{
-        .step = "test-vm-air-profile-v2",
-        .description = "Test physical VM profile and composition-program authority",
-        .root = "vm_air_profile_v2_test_root.zig",
-        .imports_prover_engine = true,
-        .strip = b.option(bool, "profile-test-strip", "Omit VM profile-test debug symbols while retaining the selected runtime safety mode") orelse false,
-        .filters = &.{ "authenticated VM AIR ProfileV2", "Ethereum extension", "base ContextV2", "fresh prepared circuit", "provider shard verifier program and field authority" },
-        .minimum = 15,
-    });
-
-    addFocusedTests(b, core, prover, prover_api, postcard, typed_air_artifacts, target, optimize, check_only, .{
-        .step = "test-ethereum-commitment-v1",
-        .description = "Test Ethereum node sponge and full-output Poseidon caller constraints",
-        .root = "ethereum_commitment_v1_test_root.zig",
-        .imports_prover_engine = true,
-        .filters = &.{"Ethereum node V1"},
-        .minimum = 6,
     });
 
     const poseidon_frontier_test_root = b.createModule(.{
@@ -329,48 +291,6 @@ pub fn build(b: *std.Build) void {
         "keccakf-adaptive-corpus-projection-install",
         "Install the retained-corpus adaptive-Keccak projection tool",
     ).dependOn(&b.addInstallArtifact(keccak_projection, .{}).step);
-
-    const stack_swap_elf_check_root = b.createModule(.{
-        .root_source_file = b.path("stack_swap_candidate_elf_check_v1.zig"),
-        .target = target,
-        .optimize = optimize,
-    });
-    stack_swap_elf_check_root.addImport("stwo_core", core);
-    stack_swap_elf_check_root.addImport("stwo_prover_api", prover_api);
-    stack_swap_elf_check_root.addImport("stwo_prover_engine", prover);
-    const stack_swap_elf_check = b.addExecutable(.{
-        .name = "check-stack-swap-candidate-elf-v1",
-        .root_module = stack_swap_elf_check_root,
-    });
-    const run_stack_swap_elf_check = b.addRunArtifact(stack_swap_elf_check);
-    if (b.args) |args| run_stack_swap_elf_check.addArgs(args);
-    run_stack_swap_elf_check.has_side_effects = true;
-    b.step(
-        "check-stack-swap-candidate-elf-v1",
-        "Check and receipt one externally digest-bound Ethereum+SWAP guest ELF",
-    ).dependOn(&run_stack_swap_elf_check.step);
-
-    const combined_candidate_elf_check_root = b.createModule(.{
-        .root_source_file = b.path("ethereum_candidate_combined_elf_check_v1.zig"),
-        .target = target,
-        .optimize = optimize,
-    });
-    combined_candidate_elf_check_root.addImport("stwo_core", core);
-    combined_candidate_elf_check_root.addImport("stwo_prover_api", prover_api);
-    combined_candidate_elf_check_root.addImport("stwo_prover_engine", prover);
-    const combined_candidate_elf_check = b.addExecutable(.{
-        .name = "check-ethereum-combined-candidate-elf-v1",
-        .root_module = combined_candidate_elf_check_root,
-    });
-    const run_combined_candidate_elf_check = b.addRunArtifact(
-        combined_candidate_elf_check,
-    );
-    if (b.args) |args| run_combined_candidate_elf_check.addArgs(args);
-    run_combined_candidate_elf_check.has_side_effects = true;
-    b.step(
-        "check-ethereum-combined-candidate-elf-v1",
-        "Cold-check and receipt one actual combined bulk4+SWAP5 guest ELF",
-    ).dependOn(&run_combined_candidate_elf_check.step);
 
     for (@import("build_focused_tests.zig").specs) |spec|
         addFocusedTests(b, core, prover, prover_api, postcard, typed_air_artifacts, target, optimize, check_only, spec);

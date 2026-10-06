@@ -1,3 +1,10 @@
+# Historical workload ladder
+
+The Ethereum-specific commands below belong to the archived block experiment at
+`archive/riscv-ethereum-block-v5-20261006` (`f374b1db6`). They are not build
+targets on current main. For supported commands, see the RISC-V frontend and
+CPU/Metal integration READMEs.
+
 # Existing RISC-V complete-proof workload ladder
 
 Read-only inventory at checkpoint `87a3965f`, 2026-09-08. No build or proof was run for this inventory. Commands below run from the repository root. Use the existing serialized build wrapper; do not overlap them with the retained Ethereum diagnostic.
