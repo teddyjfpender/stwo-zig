@@ -141,9 +141,13 @@ vectors/circuit/official/registries/production.json --proof_path root.proof
 --program_output root-outputs.json --packed_output_path root-packed.json`.
 The output's terminal `root.proof` is a Cairo circuit-verifier felt stream,
 not a `CircuitSerialize` proof. The current standalone `verify` command cannot
-independently verify that terminal format. The fold does reject invalid child
-proofs inside its multiverifier; this is a successful fold/proof-generation
-diagnostic, **not** an independently verified final root.
+verify that terminal format. Use the pinned StarkWare Cairo verifier through
+[`tools/verify_terminal_root.py`](../../../tools/verify_terminal_root.md)
+with `root.proof`, root outputs, packed tree, production registry and a clean
+checkout of `proving@5a7c5ed`. It independently checks the terminal proof,
+its public output and the exposed packed tree. Altered proof and output
+claims were rejected. This qualifies the two-batch terminal root, not a
+complete 141-batch or 8,000-repetition result.
 
 The M5 Max, ReleaseFast run of distinct batches 0 and 1 used the same
 `total_shots=9024` and `repetitions=1`, so their leaf digests refer to the
@@ -157,6 +161,9 @@ The leaf-wrap calls were 40.24/37.10 s wall, split into Cairo proving
 40.12/41.82 GB. Both binary leaf proofs passed independent verification in
 0.09 s each. Folding them took 8.26 s and 13.81 GB peak RSS; the terminal
 proof SHA-256 was `84ce57c46b8ba0e832bad666e7b44e567873ccfd468a53ac8726e55497ea671d`.
+The pinned Cairo verifier accepted it after 9,747,576 Cairo steps; its
+published eight-word digest matched the independently recomputed digest of
+the registry circuit hash and root output.
 The exact hashes, stage times, security profile and verification status are
 in `leaf_pipeline_diagnostic.json`. Preparation timings came from rerunning
 only the bridge; both adapted CPI hashes matched the files used to prove.

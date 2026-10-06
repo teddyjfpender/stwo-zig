@@ -3,17 +3,18 @@
 This is an architecture experiment for the public, SHA-256-pinned KMX fixture
 defined in [benchmark-contract.md](benchmark-contract.md). The first measured
 rung is **one repetition of one complete 64-shot batch**, not the upstream
-8,000-repetition, 9,024-shot benchmark. The three routes currently have
+8,000-repetition, 9,024-shot benchmark. The routes currently have
 different proof boundaries, so the numbers below are resource observations,
 not a speed ranking.
 
 | Route | Verified proof boundary | Security | One-batch result | Peak host memory | Main scaling limit |
 | --- | --- | --- | --- | --- | --- |
 | RV32 guest | Hashes supplied KMX bytes, derives SHAKE inputs, executes every fixed gate, checks the result and returns the public commitment | 70 FRI queries, 26 PoW bits | 10,748,299 RV32 steps; 7.581 s prove, 0.256 s verify | 16.24 GB | 16,777,216-step native cap; later batches replay an ever-longer SHAKE prefix |
-| Cairo executable | Executes fixed gates and an independent addition check on host-derived public SHAKE inputs; all 512 result words are public | 70 FRI queries, 26 PoW bits; official Rust verifier accepted proof | 36,935,007 Cairo steps; 17.024 s prove, 0.010 s Zig verify | 29.46 GB | Host input derivation is outside the proof; the generated Cairo executable is not yet a wrap-ready Cairo 0 leaf |
+| Cairo executable | Executes fixed gates and an independent addition check on host-derived public SHAKE inputs; all 512 result words are public | 70 FRI queries, 26 PoW bits; official Rust verifier accepted proof | 36,935,007 Cairo steps; 17.024 s prove, 0.010 s Zig verify | 29.46 GB | The direct proof has 513 output cells and cannot itself enter the two-cell leaf wrapper |
+| Cairo bootloader leaf | Fixed Cairo1 task checks all 512 input and output words; pinned bootloader binds its program hash and two result cells before circuit wrapping | 70 FRI queries, 26 PoW bits for Cairo and circuit; two distinct leaves independently verified | Batches 0/1: 27.18/23.35 s Cairo prove plus 12.79/13.49 s wrap; their fold took 8.26 s | 40.12/41.82 GB leaf peaks; 13.81 GB fold peak | Only two of 141 batches and one repetition; fixed public KMX and host SHAKE remain outside the proof |
 | Direct gate AIR | Constrains all CX/CCX transitions and 512 terminal bits for 64 distinct shots against verifier-reconstructed public fixture/challenge columns | 70 FRI queries, 26 PoW bits; fresh Zig verifier accepted proof | 228,544 trace cells; 22.006 ms prove, 35.377 ms decode/verify at one repetition | 12.501 MB whole-process RSS | Wide static columns grow with repetitions; SHAKE and parsing are trusted host verifier work |
 
-All three observations ran on the same Apple M5 Max with 64 GiB RAM. The Cairo
+All observations ran on the same Apple M5 Max with 64 GiB RAM. The Cairo
 receipt's `target.cpu_model=apple_m1` names its generic Zig compilation target,
 not the physical host. They must not be divided into a route speedup because
 the proof boundaries differ. The RV32 and Cairo proof hashes and reproduction
@@ -26,7 +27,7 @@ repetition, but only the RV32 guest currently checks SHAKE derivation inside
 its proved execution.
 The RV32 guest exposes the raw KMX as public input, whereas the upstream Rust
 challenge treats it as private and publishes its hash. None of these routes has
-produced a 141-batch recursive root.
+produced a complete 141-batch recursive root.
 
 The direct AIR's verifier reparses the pinned public circuit, derives the 64
 SHAKE pairs, recomputes the fixed-column root and rejects a changed challenge.
@@ -52,20 +53,30 @@ the KMX seed made the last batch take 83,892,949 instructions for one
 repetition; that too is execution-only evidence. Simply increasing leaf count
 will not make the full upstream workload practical.
 
-The Cairo route is a useful independent implementation of the gate relation,
-but its 36.9 million-step leaf already has a large witness and a 29.46 GB
+The direct Cairo executable has a 36.9 million-step proof and a 29.46 GB
 host peak. Its generated 117 MB PIE exceeded the present PIE adapter's
-`memory.bin` limit. The separately verified `stwo-cairo-cpu` proof cannot be
-passed directly to circuit `leaf-wrap`: the wrapper reproves from adapted
-input under its registry's Cairo profile and requires lifting heights absent
-from this proof. The current QEC Cairo1 statement publishes 513 cells (a
-length prefix and 512 qubit words), while the existing leaf circuit accepts
-exactly two bounded output cells. The leaf CLI also expects Cairo 0-style
-top-level program `data`, whereas the executable stores `program.bytecode`.
-A validated executable-to-CPI bridge, two-cell statement redesign and
-QEC-specific registry are needed before a Cairo-to-root timing can be claimed.
-This is a concrete integration gap, not evidence that the existing wrapper
-verified the current QEC proof.
+`memory.bin` limit. Its separately verified proof cannot be passed directly
+to `leaf-wrap`: the wrapper reproves adapted input under its registry's Cairo
+profile, and the direct program publishes 513 cells where the circuit leaf
+accepts exactly two bounded cells.
+
+A separate fixed-statement Cairo1 program now returns two digest cells. The
+pinned Cairo bootloader executes it inside a Cairo 0 trace with all eleven
+public segments and binds the executable program hash and its result cells.
+The bridge recomputes the SHA-pinned fixture, SHAKE inputs, gate outputs,
+digest, generated source and arguments, then freshly compiles the executable
+before admitting its compact input. Two distinct 64-shot leaves passed
+independent circuit-proof verification and folded into a terminal root proof.
+The pinned StarkWare Cairo verifier independently accepted that terminal
+felt-stream proof; a focused checker also bound its public output to the
+production registry and the two-leaf packed tree. Altered proof felts and an
+altered output claim were rejected. The terminal verifier executed 9,747,576
+Cairo steps; this is verification work, not part of the 8.26 s fold time.
+The original standalone Cairo proof was not reused: `leaf-wrap` generated new
+Cairo and circuit proofs. Exact receipts and commands are in the
+[Cairo QEC README](../../vectors/cairo/qec_iadd256/README.md) and
+[terminal-root verifier](../../tools/verify_terminal_root.md). This is a real
+Cairo-to-fold path over batches 0 and 1, not the full workload.
 
 ## Next proof architecture
 

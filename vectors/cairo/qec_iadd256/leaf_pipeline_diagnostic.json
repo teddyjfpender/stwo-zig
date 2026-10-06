@@ -93,8 +93,11 @@
     "root_felt_proof_sha256": "84ce57c46b8ba0e832bad666e7b44e567873ccfd468a53ac8726e55497ea671d",
     "root_output_sha256": "a1bba11f4188a1e91747027c62d5c284c4688bdb26ade8570ef1764fb80b5ff3",
     "root_packed_sha256": "04b62bb677679b5939ed07bb2539d581a128e10b5cef8699b1d89e405582f953",
-    "terminal_root_independently_verified": false,
-    "verification_gap": "root is Cairo verifier felt stream; available standalone verify CLI accepts internal CircuitSerialize proof only"
+    "terminal_root_independently_verified": true,
+    "terminal_verifier": "StarkWare proving@5a7c5ed stwo_circuit_verifier Cairo executable; tools/verify_terminal_root.py checks registry, packed tree and output binding",
+    "terminal_verifier_cairo_steps": 9747576,
+    "terminal_verifier_output_words": [2556026839, 4199023084, 1184413043, 572087286, 4291030969, 2593195461, 2790601923, 2040688564],
+    "terminal_negative_checks": "changed interior proof felt and output felt rejected by Cairo verifier; changed declared output word rejected by wrapper"
   },
   "negative_check": "Mutating one input word caused direct VM ASSERT_EQ failure. Independent fixture/source rederivation and fresh Scarb compilation reject mismatched statement digest or executable bytes before adaptation.",
   "limitations": [
