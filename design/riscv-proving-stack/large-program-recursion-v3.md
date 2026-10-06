@@ -53,6 +53,13 @@ local leaf, and derives their canonical ProgramV2/provider word rows and
 Poseidon hash calls. It checks exact word-to-hash lookup tuples and binds the
 native Tree0 root to the captured FRI root. These are verifier-owned witness
 inputs, not a proof that a V3 wrapper committed them.
+The typed Tree0 link now emits the verified native root as verifier-input
+words, consumes the matching transcript root, and consumes the transcript
+frame coordinates. Its focused relation gate rejects changed limbs and frame
+coordinates. The V3 wrapper still has to commit the link rows, constrain
+their active/limb schedule against independently admitted verifier rows, and
+close their transcript-word lookups; the host `BundleV3` cannot grant that
+authority on its own.
 
 The partial V3 extension manifest pins the source, projection and arithmetic
 typed-AIR components at rows 39–41 after the exact V2 roster. Their adapters

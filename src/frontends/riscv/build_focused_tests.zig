@@ -392,6 +392,14 @@ pub const specs = [_]Spec{
         .imports_prover_engine = true,
     },
     .{
+        .step = "test-recursion-v3-tree0-link",
+        .description = "Run the non-activating verifier-owned V3 Tree0 field-link tests",
+        .root = "tree0_field_link_v3_test.zig",
+        .imports_prover_engine = true,
+        .filters = &.{"Tree0"},
+        .minimum = 6,
+    },
+    .{
         .step = "test-recursion-pair-node",
         .description = "Run the authenticated native R-009 pair-node boundary tests",
         .root = "pair_node_test_root.zig",
