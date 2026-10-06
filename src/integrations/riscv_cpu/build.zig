@@ -205,6 +205,12 @@ pub fn build(b: *std.Build) void {
     });
     b.step("test-v7-wire-roster", "Check versioned native wire-half physical geometry and key seal")
         .dependOn(&b.addRunArtifact(v7_roster_tests).step);
+    const v7_payload_fixed_tests = b.addTest(.{
+        .root_module = v3_rows_root,
+        .filters = &.{"V7 row5 fixed schedule comes from admitted transcript shape"},
+    });
+    b.step("test-v7-payload-fixed", "Check verifier-owned native half-word payload fixed columns")
+        .dependOn(&b.addRunArtifact(v7_payload_fixed_tests).step);
     const v6_npv2_tests = b.addTest(.{
         .root_module = v3_rows_root,
         .filters = &.{"V6 local router exports exactly eight hash-bound authority words to NPV2"},

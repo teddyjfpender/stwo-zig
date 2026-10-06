@@ -320,6 +320,23 @@ fn diagnoseDirect50(
             cohort.noncore.transcript_workspace.transcript_payload_rows,
         );
         defer row5_fanout.deinit();
+        var row5_fixed = try recursion.segment_leaf_template_payload_fixed_v7.Template.initFromShape(
+            allocator,
+            &prepared.vm_plan,
+            @intCast(prepared.capture.public_data.data.words().len),
+            descriptors,
+            infra,
+            true,
+            &program,
+        );
+        defer row5_fixed.deinit();
+        try row5_fixed.validateSource(
+            allocator,
+            &program,
+            cohort.noncore.transcript_workspace.transcript_payload_rows,
+            rows47.native.program.words[10..18],
+        );
+        std.debug.print("DIRECT50_ROW5_FIXED rows={d} shape_parity=true\n", .{row5_fixed.rows.len});
         var statement_v6 = try recursion.segment_leaf_statement_source_direct_v6.Schedule.init(
             allocator,
             &program,
