@@ -135,6 +135,46 @@ test "real adjacent runner segments authenticate as one canonical V2 span" {
     try std.testing.expectEqual(@as(u32, 1), right_metadata.segment_index);
     try std.testing.expect(!left_metadata.is_final);
     try std.testing.expect(right_metadata.is_final);
+
+    // Diagnostic of a known protocol limitation: these are the same runner
+    // results, yet changing only the advertised public-I/O digests and the
+    // otherwise unused public-I/O machine state still authenticates as a V2
+    // wire. This exercises statement custody, not proof verification. The
+    // verifier needs a versioned relation to actual input/output bytes before
+    // these fields can be trusted as application claims.
+    var changed_left = left_statement;
+    changed_left.job.complete.public_input = digest("different-input-claim");
+    changed_left.body.executed.input = try span.EdgeClaim.present(changed_left.job.complete.public_input);
+    changed_left.job.complete.initial_state.public_io_state = digest("different-io-entry");
+    changed_left.body.executed.entry.public_io_state = changed_left.job.complete.initial_state.public_io_state;
+    const changed_left_source = try segment_v2.SourceV2.fromSegmentResult(
+        session_id,
+        changed_left,
+        &left_result,
+    );
+    const changed_left_words = try encode(allocator, &changed_left_source);
+    defer allocator.free(changed_left_words);
+    const changed_left_public = try public_data_v2.PublicDataV2.authenticate(changed_left_words);
+    const changed_left_metadata = try changed_left_public.metadata();
+    try std.testing.expect(!std.meta.eql(left_metadata.public_input, changed_left_metadata.public_input));
+    try std.testing.expect(!std.meta.eql(left_statement.body.executed.entry.public_io_state, changed_left.body.executed.entry.public_io_state));
+
+    var changed_right = right_statement;
+    changed_right.job.complete.public_output = digest("different-output-claim");
+    changed_right.body.executed.output = try span.EdgeClaim.present(changed_right.job.complete.public_output);
+    changed_right.job.complete.final_state.public_io_state = digest("different-io-exit");
+    changed_right.body.executed.exit.public_io_state = changed_right.job.complete.final_state.public_io_state;
+    const changed_right_source = try segment_v2.SourceV2.fromSegmentResult(
+        session_id,
+        changed_right,
+        &right_result,
+    );
+    const changed_right_words = try encode(allocator, &changed_right_source);
+    defer allocator.free(changed_right_words);
+    const changed_right_public = try public_data_v2.PublicDataV2.authenticate(changed_right_words);
+    const changed_right_metadata = try changed_right_public.metadata();
+    try std.testing.expect(!std.meta.eql(right_metadata.public_output, changed_right_metadata.public_output));
+    try std.testing.expect(!std.meta.eql(right_statement.body.executed.exit.public_io_state, changed_right.body.executed.exit.public_io_state));
 }
 
 fn leafStatement(
