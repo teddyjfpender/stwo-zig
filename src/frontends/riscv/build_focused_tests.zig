@@ -67,7 +67,7 @@ pub const specs = [_]Spec{
         .root = "direct_npv2_source_test_root.zig",
         .imports_prover_engine = true,
         .filters = &.{"NPV2"},
-        .minimum = 14,
+        .minimum = 15,
     },
     .{
         .step = "test-recursion-direct-wrapper-kernel",

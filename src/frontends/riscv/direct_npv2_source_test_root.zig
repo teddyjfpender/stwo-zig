@@ -3,6 +3,7 @@ const payload = @import("recursion/air/transcript_payload.zig");
 const fixed_bridge = @import("recursion/air/transcript_program_v2_field_bridge_v5.zig");
 const descriptor_export = @import("recursion/air/transcript_word_descriptor_export_v4.zig");
 const descriptor_schedule = @import("recursion/transcript_program_v2_row4_descriptor_schedule_v4.zig");
+const descriptor_owner = @import("recursion/transcript_program_v2_instruction_owner_contract_v5.zig");
 const field = @import("recursion/transcript_program_v2_field_authority_v1.zig");
 const origins = @import("recursion/transcript_program_v2_word_origins_v4.zig");
 const transcript = @import("recursion/transcript_program_v2.zig");
@@ -20,6 +21,68 @@ test {
     _ = fixed_bridge;
     _ = descriptor_export;
     _ = descriptor_schedule;
+    _ = descriptor_owner;
+}
+
+test "NPV2 instruction owner anchors native row3 but refuses publication" {
+    const verifier_schedule = @import("recursion/air/verifier_schedule.zig");
+    const instructions = try std.testing.allocator.alloc(transcript.Instruction, 1);
+    defer std.testing.allocator.free(instructions);
+    instructions[0] = .{ .kind = .relation_draw, .verifier_sequence = 0, .sub_index = 7, .args = .{ 1, 2, 3, 4 } };
+    const program = transcript.Program{
+        .allocator = std.testing.allocator,
+        .plan_id = .{0} ** 8,
+        .wire_id = .{0} ** 8,
+        .statement_authority_id = .{0} ** 8,
+        .wire_word_count = 0,
+        .pcs_config = protocol.PCS_CONFIG,
+        .instructions = instructions,
+        .identity = .{0} ** 8,
+    };
+    const steps = [_]verifier_schedule.VerifierStep{.bind_protocol};
+    const plan = verifier_schedule.Plan{
+        .allocator = std.testing.allocator,
+        .schema = .vm,
+        .spec = verifier_schedule.VM_PROGRAM_SPEC_V1,
+        .protocol_id = .{0} ** 8,
+        .shape_id = .{0} ** 8,
+        .authority_digest = .{0} ** 8,
+        .steps = &steps,
+    };
+    const operation = [_]transcript.Operation{.{
+        .instruction_index = 0,
+        .first_hash_id = 0,
+        .hash_count = 1,
+        .first_call_id = 0,
+        .call_count = 1,
+        .draw = null,
+    }};
+    const encoded = plan.steps[0].encode();
+    const Pp = struct {
+        row_mask: u32 = 1,
+        segment_mask: u32 = 1,
+        binary_mask: u32 = 0,
+        verifier_id: u32 = 0,
+        call_id: u32 = 0,
+        hash_id: u32 = 0,
+        hash_step: u32 = 0,
+        is_first: u32 = 1,
+        sequence: u32 = 0,
+        tag: u32,
+        args: [4]u32,
+    };
+    const Row3 = struct { preprocessing: Pp };
+    var rows = [_]Row3{.{ .preprocessing = .{ .tag = encoded.tag, .args = encoded.args } }};
+    var audit = try descriptor_owner.AnchorAudit.init(std.testing.allocator, &program, &plan, &operation, &rows);
+    defer audit.deinit();
+    try std.testing.expectEqual(@as(usize, 1), audit.anchors.len);
+    try std.testing.expectError(error.MissingProofVisibleInstructionOwner, audit.requireProofVisibleOwner());
+    rows[0].preprocessing.is_first = 0;
+    try std.testing.expectError(error.InvalidNativeInstructionAnchor, descriptor_owner.AnchorAudit.init(std.testing.allocator, &program, &plan, &operation, &rows));
+    rows[0].preprocessing.is_first = 1;
+    rows[0].preprocessing.sequence = 1;
+    try std.testing.expectError(error.InvalidNativeInstructionAnchor, descriptor_owner.AnchorAudit.init(std.testing.allocator, &program, &plan, &operation, &rows));
+    try std.testing.expectEqual(@as(usize, 6), descriptor_owner.REQUIRED_EQUATIONS.len);
 }
 
 test "NPV2 row4 descriptor variant pins semantic identity" {
