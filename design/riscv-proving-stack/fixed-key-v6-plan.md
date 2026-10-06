@@ -90,3 +90,25 @@ primarily changes how the base verifier schedule and manifest are admitted, and
 which row-4/5 values are fixed versus witness data. It must preserve the same
 native verifier equations and transcript byte order; a shape-only key cannot
 be obtained by simply deleting varying fields from a hash.
+
+## Dormant implementation slice
+
+`segment_leaf_wrapper_template_v6.zig` now rebuilds all 50 geometry placements
+and six call ranges from the typed base catalog and independently compiled link,
+local-router, and native-instruction schedules. It takes no V2 manifest or
+leaf identity. The instruction compiler uses the verifier plan, exact strong
+PCS/interaction profile, canonical wire length, descriptor mix, and lookup
+mode. It checks that this schedule's canonical ProgramV2 word count equals the
+claimed row-42 size. It also rebuilds and fingerprints every fixed row-42
+column, including padding. `segment_leaf_wrapper_protocol_template_v7.zig`
+derives domain-separated **candidate** VPR7/VPK7 identities from this template
+and a supplied test root. Both modules refuse proof/key admission.
+
+The focused test changes the V2 transcript and statement source identities:
+both old V5 plan/key identities change, but the independently rebuilt 50-row
+geometry and V7 candidate key remain equal for a fixed test root. It also
+rejects changed shape, row-42 word count, and lookup mode. This is a structural
+key-invariance test, **not** evidence that two real leaves have the same full
+preprocessed root. Rows 4/5 still need their value migration; every remaining
+template-rebuild row in the TSV must be independently written and compared
+before a production root or VPK7 is admitted.

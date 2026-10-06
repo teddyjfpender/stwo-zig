@@ -169,6 +169,12 @@ pub fn build(b: *std.Build) void {
     const v3_rows_tests = b.addTest(.{ .root_module = v3_rows_root });
     b.step("test-v3-source-projection-rows", "Check typed V3 leaf source and projection joins")
         .dependOn(&b.addRunArtifact(v3_rows_tests).step);
+    const v6_template_tests = b.addTest(.{
+        .root_module = v3_rows_root,
+        .filters = &.{"V6 template geometry is rebuilt without either leaf V2 manifest seal"},
+    });
+    b.step("test-v6-fixed-key-template", "Check verifier-owned V6 template geometry and key separation")
+        .dependOn(&b.addRunArtifact(v6_template_tests).step);
 
     const universal_root = b.createModule(.{
         .root_source_file = b.path("universal_typed_component_proof_test.zig"),

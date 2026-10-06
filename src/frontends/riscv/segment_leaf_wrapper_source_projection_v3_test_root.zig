@@ -11,4 +11,6 @@ comptime {
     _ = @import("recursion/segment_leaf_wrapper_las2_boundary_v4.zig");
     _ = @import("recursion/segment_leaf_wrapper_local_identity_v5.zig");
     _ = @import("recursion/air/segment_leaf_statement_source_direct_v5.zig");
+    _ = @import("recursion/air/segment_leaf_wrapper_template_v6.zig");
+    _ = @import("recursion/segment_leaf_wrapper_protocol_template_v7.zig");
 }
