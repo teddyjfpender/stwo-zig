@@ -56,6 +56,7 @@ def check_examples() -> None:
 
     for chapter, prefix, fixture in (
         ("source.md", "circuit preimage4", "preimage4"),
+        ("recursion.md", "circuit preimage4", "preimage4"),
         ("circuits.md", "circuit math_polynomial4", "math_polynomial4"),
         ("air.md", "fn step", "arith4_m31"),
     ):

@@ -112,6 +112,34 @@ does not make an untrusted verifier binary trustworthy. This implementation
 has executable adversarial checks, not a formal soundness proof or an
 independent cryptographic audit.
 
+## A private-witness child
+
+The [preimage example](../examples/preimage4.s31) has a different circuit
+shape and a private four-word `u16` witness:
+
+~~~s31
+circuit preimage4(public target: [m31; 4], private secret: [u16; 4])
+    -> public [m31; 4] {
+    let secret_field = m31_from_u16(secret);
+    let square = secret_field .* secret_field;
+    let offset = square + splat<4>(7_m31);
+    assert_eq(offset, target);
+    square
+}
+~~~
+
+For the checked assignment, `secret = [1,2,3,42]`, `square =
+[1,4,9,1764]`, and `target = [8,11,16,1771]`. The child circuit proves
+each `secret[j]` is in the `u16` range and satisfies
+`secret[j]² + 7 = target[j]` in M31; `assert_eq` becomes a circuit equality
+constraint. The outer circuit verifies that child
+STARK. Its statement contains the eight public `target || square` words
+and the digest binding those words to the child key's root. It contains no
+private `secret` value or child proof. The [second acceptance fixture](../acceptance_recursion_private.py)
+proves and audits this route, and rejects changed public claims and an
+incorrect private assignment. This shows proof-of-proof composition for a
+private witness; it does not yet implement a many-step fold.
+
 ## Reproduce
 
 From the repository root, first prove the child as an ordinary S31 program,
