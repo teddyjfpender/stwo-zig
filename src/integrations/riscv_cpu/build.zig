@@ -199,6 +199,12 @@ pub fn build(b: *std.Build) void {
     });
     b.step("test-v6-local-npv2", "Check the versioned proof-visible authority-word bridge")
         .dependOn(&b.addRunArtifact(v6_npv2_tests).step);
+    const v6_transcript_fixed_tests = b.addTest(.{
+        .root_module = v3_rows_root,
+        .filters = &.{"V6 transcript fixed schedule matches executed V2"},
+    });
+    b.step("test-v6-transcript-fixed-schedule", "Check shape-only transcript call, frame, relation and randomness preprocessing")
+        .dependOn(&b.addRunArtifact(v6_transcript_fixed_tests).step);
 
     const universal_root = b.createModule(.{
         .root_source_file = b.path("universal_typed_component_proof_test.zig"),

@@ -8,21 +8,24 @@ ProgramV2 template-word schedule: exactly the 16 wire/statement identity words
 remain dynamic main values. The writer rejects every other row and refuses a
 complete preprocessed root. Production admission remains disabled.
 
-An independent base writer also covers **rows 0, 10, 34 and 35**. It derives
-row 0's ten columns from the admitted native verifier plan; its rows match
-the executed V2 source control tuples. Row 10 is the explicitly inactive
-all-zero component. Row 34 has only the canonical provider marker, and row 35
-is the pinned 65,536-entry byte-pair table plus its framework first-row
-marker. These writers reject every other base row and cannot issue a complete
-preprocessed root.
+An independent base writer also covers **rows 0–3, 6–10, 34 and 35**. It
+derives row 0's ten columns from the admitted native verifier plan; its rows
+match the executed V2 source control tuples. The transcript binding, state,
+relation-draw and randomness schedules in rows 2, 3, 8 and 9 are reconstructed
+from the admitted native plan and descriptor shape. Their fixed tuples match
+the executed V2 source in the focused test. Rows 1, 6 and 7 have no
+preprocessed columns; row 10 is explicitly inactive and all zero. Row 34 has
+only the canonical provider marker, and row 35 is the pinned 65,536-entry
+byte-pair table plus its framework first-row marker. These writers reject
+every other base row and cannot issue a complete preprocessed root.
 
 | Rows | Current preprocessed producer | V6 status | Remaining proof obligation |
 | --- | --- | --- | --- |
 | 0 | `segment_leaf_template_base_fixed_v6` | Deterministically written | Native-plan control tuples match an executed V2 transcript source; compare two strong captures in the full-root gate. |
-| 1–3 | `segment_transcript_outer_source_v2_write_rows_assume_valid` via `detached_leaf_noncore_owner_v2` | Unqualified | Recompile call, frame and state-key schedules from the admitted native plan; compare entire fixed tables against the executed source. Frame outputs stay main. |
+| 1–3 | `transcript_fixed_schedule_v6` / `segment_leaf_template_base_fixed_v6` | Deterministically written | Row 1 has zero fixed columns. Rows 2 and 3 match the executed V2 transcript source's binding and state-key fixed tuples; compare complete physical columns across two strong captures in the full-root gate. Frame outputs stay main. |
 | 4 | `transcript_word_template_v6` | Schedule qualified, not full root | Exact fixed frame words, padding and Tree0 selector pass two executed-transcript tests. Integrate its expanded geometry into the complete physical tree. |
 | 5 | V2 transcript payload writer | Unqualified, separate migration | Classify fixed geometry versus leaf-dependent identity words and bind dynamic words to native source producers. |
-| 6–9 | V2 PoW, relation-draw and randomness writers | Unqualified | Rebuild PoW bit selectors and query/draw coordinates from pinned q193/16/10/fold4 profile and native shape. Compare physical columns across distinct captures. |
+| 6–9 | `transcript_fixed_schedule_v6` / `segment_leaf_template_base_fixed_v6` | Deterministically written | Rows 6 and 7 have zero fixed columns. Rows 8 and 9 match the executed V2 relation-draw and randomness fixed tuples; compare complete physical columns across two strong captures in the full-root gate. |
 | 10 | `segment_leaf_template_base_fixed_v6` | Deterministically written | The V2 component is explicitly inactive; compare physical zero columns in the full-root gate. |
 | 11–17 | `detached_leaf_noncore_owner_v2` statement/public prepared tables | Unqualified | Recompile semantic graph, claim and LogUp schedule from independently admitted program/descriptor shape; prove no identity-bearing constants remain fixed. |
 | 18–33 | `detached_leaf_cohort_v2` core verifier tables | Unqualified | Rebuild composition, Merkle, query and FRI coordinate schedules from the native verifier and PCS shape, without copying positions or proof data from a capture into preprocessing. |
