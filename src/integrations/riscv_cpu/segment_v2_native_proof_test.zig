@@ -1200,6 +1200,46 @@ test "native V2 proves a rebased leaf-local V3 segment without widening the AIR"
     try std.testing.expectEqualDeep(fields.native.program.digest, field_manifest.program_input.digest);
     try std.testing.expectEqualDeep(fields.provider.authority.digest, field_manifest.provider_input.digest);
     try std.testing.expectError(error.V3WrapperProofUnavailable, field_manifest.requireCompleteWrapperProof());
+
+    // A separate versioned outer transaction proves the same genuine leaf
+    // cohort under q193/PCS-PoW16/fold4 and verifies its 10-bit interaction
+    // nonce before reconstructing relation challenges. Its artifact is not a
+    // legacy V2 publication and cannot yet stand in for the 49-row wrapper.
+    const strong_outer = recursion.segment_outer_transaction_v3.ForBackend(CpuBackend);
+    const StrongKernel = strong_outer.EngineKernel(outer_cohort.Cohort);
+    var strong = try StrongKernel.proveAndVerify(allocator, &prepared);
+    defer strong.deinit(allocator);
+    try strong.receipt.validate();
+    try strong.artifact.validateEncoding();
+    try std.testing.expect(strong.artifact.proof_bytes.len != 0);
+    try std.testing.expect(strong.receipt.producer_peak_bytes > 0);
+    var wrong_query = strong.artifact;
+    wrong_query.query_count = 3;
+    var rejected_capture: strong_outer.Capture = undefined;
+    try std.testing.expectError(
+        error.InvalidV3OuterArtifact,
+        StrongKernel.verifyArtifact(allocator, &prepared, &wrong_query, &rejected_capture),
+    );
+    var wrong_profile = strong.artifact;
+    wrong_profile.profile_id[0] ^= 1;
+    try std.testing.expectError(
+        error.InvalidV3OuterProfile,
+        StrongKernel.verifyArtifact(allocator, &prepared, &wrong_profile, &rejected_capture),
+    );
+    var wrong_nonce = strong.artifact;
+    var rejected = false;
+    for (0..64) |_| {
+        wrong_nonce.interaction_pow_nonce +%= 1;
+        StrongKernel.verifyArtifact(allocator, &prepared, &wrong_nonce, &rejected_capture) catch |err| {
+            if (err == error.InvalidV3OuterInteractionPow) {
+                rejected = true;
+                break;
+            }
+            continue;
+        };
+        rejected_capture.deinit(allocator);
+    }
+    try std.testing.expect(rejected);
 }
 
 fn leafStatement(
