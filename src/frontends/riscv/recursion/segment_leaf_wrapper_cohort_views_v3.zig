@@ -16,6 +16,7 @@ pub const BASE_ROWS: usize = manifest_mod.COMPONENT_COUNT;
 pub const REPLACED_ROW: usize = 34;
 pub const REPLACED_FRAME_ROW: usize = 4;
 pub const REPLACED_RANGE_ROW: usize = 35;
+pub const REPLACED_STATEMENT_ROW: usize = 36;
 pub const Placement = manifest_mod.Placement;
 pub const REUSED_MASK: u64 = (@as(u64, 1) << BASE_ROWS) - 1 -
     (@as(u64, 1) << REPLACED_ROW) - (@as(u64, 1) << REPLACED_RANGE_ROW) -
@@ -71,6 +72,16 @@ pub fn collectReusedClaims(generated: anytype) !ReusedClaims {
     return result;
 }
 
+/// V5 replaces row36 with a versioned Statement source that has one fixed
+/// fan-out selector. Its V2 interaction receipt must never enter V5 closure.
+pub fn collectReusedClaimsV5(generated: anytype) !ReusedClaims {
+    var result = try collectReusedClaims(generated);
+    result.claims[REPLACED_STATEMENT_ROW] = QM31.zero();
+    result.audits[REPLACED_STATEMENT_ROW] = emptyAudit();
+    result.present_mask &= ~(@as(u64, 1) << REPLACED_STATEMENT_ROW);
+    return result;
+}
+
 fn emptyAudit() DomainAudit {
     return .{
         .values = @splat(QM31.zero()),
@@ -87,6 +98,7 @@ pub const Views = struct {
     old_provider_scratch: []M31,
     old_range_scratch: []M31,
     old_frame_scratch: []M31,
+    old_statement_scratch: []M31,
 
     /// Both manifests must already be independently validated. This checks
     /// that every reused row has identical typed geometry and maps its V2
@@ -121,6 +133,7 @@ pub const Views = struct {
         self.allocator.free(self.old_provider_scratch);
         self.allocator.free(self.old_range_scratch);
         self.allocator.free(self.old_frame_scratch);
+        self.allocator.free(self.old_statement_scratch);
         self.allocator.free(self.columns);
         self.* = undefined;
     }
@@ -188,9 +201,17 @@ fn initMapped(
     const frame_scratch = try allocator.alloc(M31, try std.math.mul(usize, frame_count, frame_rows));
     errdefer allocator.free(frame_scratch);
     @memset(frame_scratch, M31.zero());
+    const old_statement = source[REPLACED_STATEMENT_ROW].?;
+    const statement_rows = @as(usize, 1) << @intCast(old_statement.geometry.log_size);
+    const statement_count = if (tree == manifest_mod.MAIN_TREE_INDEX) 0 else count(old_statement, tree);
+    const statement_scratch = try allocator.alloc(M31, try std.math.mul(usize, statement_count, statement_rows));
+    errdefer allocator.free(statement_scratch);
+    @memset(statement_scratch, M31.zero());
     for (source[0..BASE_ROWS], 0..) |maybe_old, row| {
         const old = maybe_old orelse return error.V3BaseViewShapeMismatch;
         const newer = target[row] orelse return error.V3BaseViewShapeMismatch;
+        const replaced_statement = row == REPLACED_STATEMENT_ROW and
+            !std.meta.eql(old.geometry, newer.geometry);
         if (newer.geometry.roster_row != row) return error.V3BaseViewGeometryMismatch;
         const old_start = offset(old, tree);
         const n = count(old, tree);
@@ -207,7 +228,18 @@ fn initMapped(
             for (0..n) |i| columns[old_start + i] = frame_scratch[i * frame_rows ..][0..frame_rows];
             continue;
         }
-        if (row == REPLACED_FRAME_ROW) {
+        if (replaced_statement and tree != manifest_mod.MAIN_TREE_INDEX) {
+            if (old.geometry.log_size != newer.geometry.log_size or
+                newer.geometry.main_columns != old.geometry.main_columns)
+                return error.V3BaseViewGeometryMismatch;
+            for (0..n) |i| columns[old_start + i] = statement_scratch[i * statement_rows ..][0..statement_rows];
+            continue;
+        }
+        if (replaced_statement and tree == manifest_mod.MAIN_TREE_INDEX) {
+            if (old.geometry.log_size != newer.geometry.log_size or
+                newer.geometry.main_columns != old.geometry.main_columns)
+                return error.V3BaseViewGeometryMismatch;
+        } else if (row == REPLACED_FRAME_ROW) {
             const expected_count = if (tree == manifest_mod.PREPROCESSED_TREE_INDEX) n + 1 else n;
             if (newer.geometry.log_size != old.geometry.log_size or
                 count(newer, tree) != expected_count)
@@ -230,6 +262,7 @@ fn initMapped(
         .old_provider_scratch = scratch,
         .old_range_scratch = range_scratch,
         .old_frame_scratch = frame_scratch,
+        .old_statement_scratch = statement_scratch,
     };
 }
 

@@ -95,6 +95,7 @@ test "real q193 native child feeds freshly verified q193 local outer" {
     var cohort = try outer_cohort.Cohort.init(allocator, &prepared);
     defer cohort.deinit();
     try diagnoseDirect47(allocator, &prepared, &verified.native.global_metadata, &verified.native.link, &cohort);
+    try diagnoseDirect50(allocator, &prepared, &verified.native.global_metadata, &verified.native.link, &cohort);
 
     const strong_outer = recursion.segment_outer_transaction_v3.ForBackend(CpuBackend);
     const StrongKernel = strong_outer.EngineKernel(outer_cohort.Cohort);
@@ -188,7 +189,116 @@ fn diagnoseDirect47(
     if (nonzero_domains == 0) _ = try claims.verifyAllDomains(&plan, &boundary);
 }
 
-fn allocateDirectTree(allocator: std.mem.Allocator, plan: *const recursion.segment_leaf_wrapper_roster_direct_v4.Plan, tree: u8) ![][]M31 {
+fn diagnoseDirect50(
+    allocator: std.mem.Allocator,
+    prepared: *const leaf_outer.PreparedNativeV2LeafOuter,
+    metadata: *const recursion.segment_leaf_local_authority_v3.MetadataV3,
+    link: *const recursion.segment_leaf_local_verified_link_v3.VerifiedLinkV3,
+    cohort: *outer_cohort.Cohort,
+) !void {
+    const link_program = recursion.ethereum_leaf_link_program_v3;
+    const local_program = recursion.ethereum_leaf_child_field_program_v1;
+    const local_witness = recursion.ethereum_leaf_child_field_witness_v1;
+    const local_rows = recursion.segment_leaf_wrapper_local_identity_v5;
+    const statement_air = recursion.segment_leaf_statement_source_direct_v5;
+    const hash_mod = recursion.segment_leaf_wrapper_field_hash_witness_v3;
+    const source_air = recursion.air.ethereum_leaf_link_source_v1;
+    const arithmetic_air = recursion.air.ethereum_leaf_link_arithmetic_v1;
+    const arithmetic_witness = recursion.air.ethereum_leaf_link_arithmetic_witness_v1;
+    const direct_rows = recursion.segment_leaf_wrapper_cohort_direct_rows_v4;
+    const v5_rows = recursion.segment_leaf_wrapper_cohort_rows_v5;
+    const candidate = recursion.segment_leaf_wrapper_cohort_candidate_v5;
+    const call_buffer = recursion.segment_leaf_wrapper_cohort_calls_v3;
+    const provider_mod = recursion.segment_leaf_wrapper_cohort_provider_v3;
+    const plan_mod = recursion.segment_leaf_wrapper_roster_direct_v5;
+    const las2_mod = recursion.segment_leaf_wrapper_las2_boundary_v4;
+    var native = try recursion.segment_leaf_wrapper_field_witness_v3.NativeV1.initFromPrepared(allocator, prepared);
+    defer native.deinit();
+    var program = try link_program.ProgramV3.init(allocator);
+    defer program.deinit();
+    var source = try recursion.segment_leaf_wrapper_source_projection_direct_v3.initFromNative(allocator, &program, prepared, metadata, link, &native);
+    defer source.deinit();
+    const metadata_words = try metadata.identityWords();
+    const link_words = try link.identityWords();
+    var metadata_hash = try hash_mod.HashV1.init(allocator, &metadata_words, recursion.segment_leaf_local_authority_v3.METADATA_ID_DOMAIN, source_air.METADATA_SCOPE, source_air.METADATA_DIGEST_KIND, recursion.ethereum_leaf_link_program_v1.METADATA_HASH_STEP_BASE, try metadata.identity());
+    defer metadata_hash.deinit();
+    var link_hash = try hash_mod.HashV1.init(allocator, &link_words, recursion.segment_leaf_local_verified_link_v3.IDENTITY_DOMAIN, source_air.LINK_SCOPE, source_air.LINK_DIGEST_KIND, recursion.ethereum_leaf_link_program_v1.LINK_HASH_STEP_BASE, link.identity);
+    defer link_hash.deinit();
+    var arithmetic = [_]arithmetic_air.Row{[_]M31{M31.zero()} ** arithmetic_air.LOGICAL_INPUT_COUNT} ** 16;
+    arithmetic[0] = try arithmetic_witness.logicalRow(.entry_root, metadata.entry.continuation_root, false, 0, 0);
+    arithmetic[1] = try arithmetic_witness.logicalRow(.exit_root, metadata.exit.continuation_root, false, 0, 0);
+    arithmetic[2] = try arithmetic_witness.logicalRow(.completion, 0, metadata.completion != null, 0, 0);
+    arithmetic[3] = try arithmetic_witness.logicalRow(.position, 0, false, metadata.global_cycle_start, metadata.local_cycle_count);
+    const descriptors = prepared.capture.vm_air.component_descs;
+    const infra = prepared.capture.vm_air.infra_descs;
+    var child_program = try local_program.ProgramV1.init(allocator, descriptors, infra);
+    defer child_program.deinit();
+    const inputs = local_witness.InputsV1{
+        .public_data = &prepared.capture.public_data.data,
+        .context = &prepared.authority_prepared.source.context,
+        .receipt = &prepared.capture.receipt,
+        .tree0_root = native.tree0_root,
+        .component_descs = descriptors,
+        .infra_descs = infra,
+    };
+    var child_witness = try local_witness.WitnessV1.init(allocator, &child_program, inputs);
+    defer child_witness.deinit();
+    const base_calls = try cohort.core.completePoseidonCalls();
+    const plan = try plan_mod.Plan.build(allocator, cohort.manifest(), &program, .{
+        .program_words = native.program.words.len,
+        .base_poseidon_calls = base_calls.len,
+    }, &child_program, descriptors, infra);
+    const parts = [_][]const call_buffer.Call{
+        base_calls,                                  metadata_hash.calls,                       link_hash.calls, native.program_hash.calls,
+        child_witness.authority_hash.poseidon_calls, child_witness.receipt_hash.poseidon_calls,
+    };
+    var buffer = try call_buffer.Buffer.init(allocator, &parts);
+    defer buffer.deinit();
+    const writer = try provider_mod.Writer.init(allocator, &buffer, &parts);
+    var rows47 = try direct_rows.Rows.init(allocator, &plan.base_plan, &program, &source, &arithmetic, &native, &metadata_hash, &link_hash);
+    defer rows47.deinit();
+    const local = try local_rows.Rows.init(allocator, &child_program, &child_witness, inputs);
+    var statement = try statement_air.Schedule.init(allocator, &child_program, cohort.noncore.boundary_workspace.statement_rows);
+    defer statement.deinit();
+    var rows50 = try v5_rows.Rows.init(allocator, &plan, &rows47, &statement, &local);
+    defer rows50.deinit();
+    const pp = try allocateDirectTree(allocator, &plan, 0);
+    defer freeDirectTree(allocator, pp);
+    const main = try allocateDirectTree(allocator, &plan, 1);
+    defer freeDirectTree(allocator, main);
+    const interaction = try allocateDirectTree(allocator, &plan, 2);
+    defer freeDirectTree(allocator, interaction);
+    try candidate.fillPreprocessed(allocator, cohort, &plan, &writer, &rows50, pp);
+    try candidate.fillMain(allocator, cohort, &plan, &writer, &rows50, main);
+    const relations = recursion.air.universal_challenges.UniversalRelations.dummy();
+    const shared = try recursion.air.universal_shared_provider.SharedProviderRelations.init(&relations);
+    const claims = try candidate.fillInteraction(allocator, cohort, &plan, &writer, &rows50, &relations, &shared, main, interaction);
+    const boundary = try cohort.publicWireBoundary(&relations);
+    const expected = las2_mod.ExpectedPublic{
+        .link = link.identity,
+        .native_program = native.program.digest,
+        .native_tree0 = native.tree0_root,
+    };
+    const las2 = try las2_mod.BoundaryV4.derive(expected, &relations);
+    const residuals = try claims.residuals(&plan, &boundary, &las2, expected, &relations);
+    var nonzero_domains: usize = 0;
+    for (residuals.domain_totals, 0..) |sum, domain| {
+        if (sum.isZero()) continue;
+        nonzero_domains += 1;
+        const limbs = sum.toM31Array();
+        std.debug.print("DIRECT50_RESIDUAL domain={d} limbs={d},{d},{d},{d}\n", .{ domain, limbs[0].toU32(), limbs[1].toU32(), limbs[2].toU32(), limbs[3].toU32() });
+        for (claims.audits, 0..) |audit, row| {
+            const contribution = audit.values[domain];
+            if (contribution.isZero()) continue;
+            const term = contribution.toM31Array();
+            std.debug.print("DIRECT50_TERM domain={d} row={d} limbs={d},{d},{d},{d}\n", .{ domain, row, term[0].toU32(), term[1].toU32(), term[2].toU32(), term[3].toU32() });
+        }
+    }
+    std.debug.print("DIRECT50_CANDIDATE claims=50 nonzero_domains={d} framework_zero={} proof_created=false\n", .{ nonzero_domains, residuals.framework_total.isZero() });
+    if (nonzero_domains == 0) _ = try claims.verifyAllDomains(&plan, &boundary, &las2, expected, &relations);
+}
+
+fn allocateDirectTree(allocator: std.mem.Allocator, plan: anytype, tree: u8) ![][]M31 {
     const count = switch (tree) {
         0 => plan.total_preprocessed_columns,
         1 => plan.total_main_columns,
