@@ -18,6 +18,7 @@ const statement = @import("../../air/statement.zig");
 const hash_witness = @import("vm_public_claim_hash_witness.zig");
 const frame_air = @import("transcript_word_direct_v4.zig");
 const statement_air = @import("segment_leaf_statement_source_direct_v5.zig");
+const public_logup_v6 = @import("vm_public_logup_control_v6.zig");
 const program_air = @import("transcript_program_v2_field_bridge_v5.zig");
 const typed = @import("universal_typed_component.zig");
 const native_schedule = @import("verifier_schedule.zig");
@@ -241,6 +242,7 @@ pub const TemplateManifestV6 = struct {
                 else => unreachable,
             };
             if (row == 4) g = manualGeometry(4, @max(g.log_size, row4_log_size), frame_air);
+            if (row == 17) g = manualGeometry(17, g.log_size, public_logup_v6);
             if (row == 34) g.log_size = provider_log;
             if (row == 36) g = manualGeometry(36, g.log_size, statement_air);
             try g.validateForComponentCount(COMPONENT_COUNT);
@@ -521,8 +523,14 @@ test "V6 template geometry is rebuilt without either leaf V2 manifest seal" {
             try std.testing.expect(placement.geometry.log_size >= first_v5.placements[row].?.geometry.log_size);
             continue;
         }
-        try std.testing.expect(std.meta.eql(placement, first_v5.placements[row].?));
-        try std.testing.expect(std.meta.eql(placement, second_v5.placements[row].?));
+        var first_expected = first_v5.placements[row].?;
+        var second_expected = second_v5.placements[row].?;
+        if (row == 17) {
+            first_expected.geometry.semantic_digest = public_logup_v6.SEMANTIC_DIGEST;
+            second_expected.geometry.semantic_digest = public_logup_v6.SEMANTIC_DIGEST;
+        }
+        try std.testing.expect(std.meta.eql(placement, first_expected));
+        try std.testing.expect(std.meta.eql(placement, second_expected));
     }
     try std.testing.expectError(error.TemplatePreprocessingUnavailable, template.requireCompletePreprocessing());
 

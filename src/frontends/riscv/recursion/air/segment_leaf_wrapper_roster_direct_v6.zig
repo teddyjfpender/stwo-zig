@@ -6,6 +6,7 @@ const core = @import("stwo_core");
 const legacy = @import("segment_leaf_wrapper_roster_direct_v5.zig");
 const statement = @import("segment_leaf_statement_source_direct_v6.zig");
 const payload = @import("transcript_payload_direct_v6.zig");
+const public_logup = @import("vm_public_logup_control_v6.zig");
 const typed = @import("universal_typed_component.zig");
 const v2 = @import("segment_outer_adapter_manifest_v2.zig");
 const v4 = @import("segment_leaf_wrapper_roster_direct_v4.zig");
@@ -64,6 +65,7 @@ pub const Plan = struct {
             const prior = old orelse return error.InvalidDirectV6WrapperRoster;
             var geometry = prior.geometry;
             if (index == 5) geometry = payloadGeometry(geometry.log_size);
+            if (index == 17) geometry = publicLogupGeometry(geometry.log_size);
             if (index == 36) geometry = statementGeometry(geometry.log_size);
             try geometry.validateForComponentCount(COMPONENT_COUNT);
             placements[index] = .{
@@ -142,6 +144,7 @@ pub const Plan = struct {
         hash.update(DOMAIN);
         hash.update(&self.legacy_plan.seal);
         hash.update(&payload.SEMANTIC_DIGEST);
+        hash.update(&public_logup.SEMANTIC_DIGEST);
         hash.update(&statement.SEMANTIC_DIGEST);
         hash.update(&self.legacy_plan.local_schedule_id);
         for (self.placements) |maybe_item| {
@@ -172,6 +175,21 @@ fn payloadGeometry(log_size: u32) Geometry {
         .protocol_constraint_degree = @intCast(typed.protocolMaximumConstraintDegree(payload)),
         .profiled_constraint_degree = payload.MAXIMUM_CONSTRAINT_DEGREE,
         .semantic_digest = payload.SEMANTIC_DIGEST,
+    };
+}
+
+fn publicLogupGeometry(log_size: u32) Geometry {
+    return .{
+        .roster_row = 17,
+        .log_size = log_size,
+        .preprocessed_columns = public_logup.PREPROCESSED_COLUMN_COUNT,
+        .main_columns = public_logup.PHYSICAL_MAIN_COLUMN_COUNT,
+        .interaction_columns = public_logup.INTERACTION_COLUMN_COUNT,
+        .direct_constraints = public_logup.DIRECT_CONSTRAINT_COUNT,
+        .interaction_batches = public_logup.INTERACTION_BATCH_COUNT,
+        .protocol_constraint_degree = @intCast(typed.protocolMaximumConstraintDegree(public_logup)),
+        .profiled_constraint_degree = public_logup.MAXIMUM_CONSTRAINT_DEGREE,
+        .semantic_digest = public_logup.SEMANTIC_DIGEST,
     };
 }
 
@@ -218,6 +236,7 @@ test "V6 roster changes row36 identity and fails closed on resealed mutation" {
     var plan = try Plan.build(allocator, &manifest, &program, shape, &local_source, &child_fixture.components, &child_fixture.infra);
     try plan.validateAgainst(allocator, &manifest, &program, shape, &local_source, &child_fixture.components, &child_fixture.infra);
     try std.testing.expectEqualDeep(payload.SEMANTIC_DIGEST, plan.placements[5].?.geometry.semantic_digest);
+    try std.testing.expectEqualDeep(public_logup.SEMANTIC_DIGEST, plan.placements[17].?.geometry.semantic_digest);
     try std.testing.expectEqualDeep(statement.SEMANTIC_DIGEST, plan.placements[36].?.geometry.semantic_digest);
     try std.testing.expectEqual(plan.legacy_plan.total_preprocessed_columns + 1, plan.total_preprocessed_columns);
     try std.testing.expectEqual(plan.legacy_plan.total_interaction_columns + 4, plan.total_interaction_columns);
