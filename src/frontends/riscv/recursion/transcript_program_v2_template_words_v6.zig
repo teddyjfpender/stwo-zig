@@ -43,6 +43,8 @@ pub const Template = struct {
         authenticated_lookup_v2: bool,
     ) !Template {
         try plan.validate();
+        try program_contract.validatePlanPrefix(plan);
+        try program_contract.validatePcsAgainstPlan(pcs, plan);
         if (wire_word_count == 0 or component_descs.len > statement.MAX_COMPONENTS or
             infra_descs.len > statement.MAX_INFRA_COMPONENTS)
             return error.InvalidProgramTemplateShape;
