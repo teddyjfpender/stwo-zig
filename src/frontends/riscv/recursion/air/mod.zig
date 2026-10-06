@@ -121,6 +121,8 @@ pub const segment_boundary_components_v2 = @import("segment_boundary_components_
 pub const segment_outer_adapter_manifest_v2 = @import("segment_outer_adapter_manifest_v2.zig");
 pub const transcript_program_v2_field_source_v1 =
     @import("transcript_program_v2_field_source_v1.zig");
+pub const segment_v2_tree0_field_link_v3 =
+    @import("segment_v2_tree0_field_link_v3.zig");
 pub const segment_outer_typed_catalog_v2 = @import("segment_outer_typed_catalog_v2.zig");
 pub const segment_publication_input_provider_component_v2 =
     @import("segment_publication_input_provider_component_v2.zig");

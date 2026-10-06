@@ -79,6 +79,8 @@ pub const segment_leaf_wrapper_field_hash_witness_v3 =
     @import("segment_leaf_wrapper_field_hash_witness_v3.zig");
 pub const segment_leaf_wrapper_field_lookup_v3 =
     @import("segment_leaf_wrapper_field_lookup_v3.zig");
+pub const segment_v2_tree0_field_witness_v3 =
+    @import("segment_v2_tree0_field_witness_v3.zig");
 pub const segment_publication_input_provider_authority_v2 =
     @import("segment_publication_input_provider_authority_v2.zig");
 pub const segment_profile = @import("segment_profile.zig");

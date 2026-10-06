@@ -27,6 +27,7 @@ test "native V3 field witness binds ProgramV2 words and Tree0 capture root" {
     defer fixture.deinit();
     const MockPrepared = struct {
         transcript_program: transcript.Program,
+        transcript_execution: transcript.Execution,
         vm_plan: schedule.Plan,
         pcs_config: PcsConfig,
         capture: struct {
@@ -47,10 +48,12 @@ test "native V3 field witness binds ProgramV2 words and Tree0 capture root" {
                 self.capture.vm_air.component_descs,
                 self.capture.vm_air.infra_descs,
             );
+            try self.transcript_execution.validateAgainst(&self.transcript_program);
         }
     };
     const prepared = MockPrepared{
         .transcript_program = fixture.program,
+        .transcript_execution = fixture.execution,
         .vm_plan = fixture.plan,
         .pcs_config = config,
         .capture = .{
@@ -64,6 +67,13 @@ test "native V3 field witness binds ProgramV2 words and Tree0 capture root" {
     defer witness.deinit();
     try witness.validateAgainst(&prepared);
     try std.testing.expectEqualDeep(fixture.trace_commitments[0], witness.tree0_root);
+    try std.testing.expectEqualDeep(fixture.trace_commitments[0], witness.tree0_link.transcript_root);
+    witness.tree0_link.rows[3][1] = witness.tree0_link.rows[3][1].add(M31.one());
+    try std.testing.expectError(error.Tree0FieldWitnessMismatch, witness.validateAgainst(&prepared));
+    witness.tree0_link.rows[3][1] = witness.tree0_link.rows[3][1].sub(M31.one());
+    witness.tree0_link.rows[3][5] = witness.tree0_link.rows[3][5].add(M31.one());
+    try std.testing.expectError(error.Tree0FieldWitnessMismatch, witness.validateAgainst(&prepared));
+    witness.tree0_link.rows[3][5] = witness.tree0_link.rows[3][5].sub(M31.one());
     witness.program_words.rows[0][0] = witness.program_words.rows[0][0].add(M31.one());
     try std.testing.expectError(error.InvalidFieldWordWitness, witness.validateAgainst(&prepared));
     witness.program_words.rows[0][0] = witness.program_words.rows[0][0].sub(M31.one());

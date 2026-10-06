@@ -13,6 +13,7 @@ const provider_field = @import("segment_outer_shared_provider_field_authority_v1
 const words_mod = @import("transcript_program_v2_field_word_witness_v1.zig");
 const hash_mod = @import("segment_leaf_wrapper_field_hash_witness_v3.zig");
 const lookup_mod = @import("segment_leaf_wrapper_field_lookup_v3.zig");
+const tree0_mod = @import("segment_v2_tree0_field_witness_v3.zig");
 const word_source = @import("air/transcript_program_v2_field_source_v1.zig");
 const leaf_source = @import("air/ethereum_leaf_link_source_v1.zig");
 const manifest_mod = @import("air/segment_outer_adapter_manifest_v2.zig");
@@ -37,6 +38,7 @@ pub const NativeV1 = struct {
     program_words: words_mod.WordsV1,
     program_hash: hash_mod.HashV1,
     tree0_root: channel.Digest,
+    tree0_link: tree0_mod.WitnessV3,
 
     pub fn initFromPrepared(allocator: std.mem.Allocator, prepared: anytype) !NativeV1 {
         try prepared.validate();
@@ -68,11 +70,15 @@ pub const NativeV1 = struct {
         );
         errdefer program_hash.deinit();
         _ = try lookup_mod.verifyExact(allocator, &program_words, &program_hash);
+        const tree0_link = try tree0_mod.WitnessV3.initFromPrepared(allocator, prepared);
+        if (!std.meta.eql(root, tree0_link.native_root))
+            return error.Tree0FieldRootMismatch;
         return .{
             .program = program,
             .program_words = program_words,
             .program_hash = program_hash,
             .tree0_root = root,
+            .tree0_link = tree0_link,
         };
     }
 
@@ -107,7 +113,10 @@ pub const NativeV1 = struct {
             &self.program_words,
             &self.program_hash,
         );
+        try self.tree0_link.validateAgainst(self.program.allocator, prepared);
         if (!std.meta.eql(self.tree0_root, try nativeTree0(prepared)))
+            return error.Tree0FieldRootMismatch;
+        if (!std.meta.eql(self.tree0_root, self.tree0_link.native_root))
             return error.Tree0FieldRootMismatch;
     }
 
@@ -311,6 +320,7 @@ test "Tree0 field tuple keeps verifier kind tree index and canonical limb" {
         .program_words = undefined,
         .program_hash = undefined,
         .tree0_root = .{ 1, 2, 3, 4, 5, 6, 7, 8 },
+        .tree0_link = undefined,
     };
     const tuple = try source.tree0VerifierTuple(3);
     try std.testing.expectEqual(@as(u32, 0), tuple[0].toU32());
