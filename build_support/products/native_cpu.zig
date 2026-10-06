@@ -121,6 +121,33 @@ pub fn addProduct(context: Context) void {
         "Build the focused Native CPU/SIMD benchmark",
     );
 
+    const qec_root = graph.create(context.b, .{
+        .product = product(.@"test"),
+        .root_source_file = "src/examples/qec_gate_static.zig",
+        .target = context.target,
+        .optimize = context.optimize,
+    });
+    context.protocol.addImports(qec_root);
+    _ = graph.addCpuBackendImport(
+        context.b,
+        context.protocol,
+        product(.@"test"),
+        context.target,
+        context.optimize,
+        qec_root,
+    );
+    _ = graph.addProofWireImport(
+        context.b,
+        context.protocol,
+        product(.@"test"),
+        context.target,
+        context.optimize,
+        qec_root,
+    );
+    const qec_tests = context.b.addTest(.{ .root_module = qec_root });
+    context.b.step("test-qec-gate-static", "Test the experimental fixed-wiring QEC gate proof")
+        .dependOn(&context.b.addRunArtifact(qec_tests).step);
+
     const tests = addProductTests(context);
     const facade_tests = context.b.addTest(.{
         .root_module = createStwoModule(context, .@"test"),
