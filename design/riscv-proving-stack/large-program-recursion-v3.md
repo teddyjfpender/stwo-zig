@@ -34,10 +34,12 @@ has its own authority. Planning is advisory and does not authenticate a proof.
    leaf's actual execution and boundary identities to its V3 proof. Do not
    treat the planning receipt as a proof.
 2. Complete the recursive leaf wrapper to constrain every V3 metadata word to
-   the verified local V2 wire. The existing Ethereum leaf-link schedule now
-   routes the base span and 168 directly equal boundary words, but it is not a
-   proof transaction. Continuation-root limb conversion, completion tags,
-   proof identity and verifier key still need exact AIR joins. Make the
+   the verified local V2 wire. The Ethereum leaf-link schedule now routes the
+   base span, directly equal boundary words, and redundant position/completion
+   fields. Separate typed AIR constrains canonical continuation-root limbs,
+   completion tags, and 64-bit position arithmetic. These pieces are not yet
+   one proof transaction: proof identity, verifier key, ProgramV2/provider
+   authority and shared lookup closure still need integration. Make the
    wrapper available to the base RV32 profile as well.
 3. Prove global position and length arithmetic with canonical 16-bit limbs:
    `end = start + local_count`, no overflow, exact segment order and bounded
