@@ -34,10 +34,11 @@ pub const RELATION_EVENT_COUNT: usize = 2;
 pub const ETHEREUM_RAW_WIRE_SCOPE = ethereum_routing.RAW_WIRE_HASH_SCOPE;
 pub const ETHEREUM_RAW_ROOT_SOURCE_SCOPE = ethereum_routing.STATEMENT_SCOPE;
 pub const ETHEREUM_RAW_ROOT_SOURCE_BASE = ethereum_routing.RAW_V2_SOURCE_BASE;
-/// Direct wrapper only: canonical ProgramV2 words 10..17 are the wire-ID
-/// digest. This versioned row-5 profile exports those exact main values, not
-/// a second host-constructed word table.
+/// The earlier NPV2 direct profile is retained as an inactive diagnostic.
+/// Native row5 stores sixteen u16 payload halves, while canonical ProgramV2
+/// words 10..17 are eight full field words; V7 uses NPH2 plus recomposition.
 pub const NPV2_SCOPE: u32 = 0x4e50_5632;
+pub const WIRE_HALF_SCOPE: u32 = 0x4e50_4832; // NPH2
 pub const NPV2_WIRE_WORD_BASE: u32 = 10;
 pub const NPV2_WIRE_WORD_COUNT: usize = 8;
 pub const NPV2_COMPLETE_EXPORT_AVAILABLE = false;
@@ -462,20 +463,20 @@ pub fn identity(allocator: std.mem.Allocator) !digest.Identity {
 }
 
 fn buildDefinition(allocator: std.mem.Allocator) !Definition {
-    return buildDefinitionForProfile(allocator, false, false, false, false);
+    return buildDefinitionForProfile(allocator, false, false, false, false, false);
 }
 
 /// Ethereum-only extension; the default arena and its semantic seal remain
 /// byte-for-byte unchanged.
 pub fn buildClockRoutingArena(allocator: std.mem.Allocator) !ir.Arena {
-    const result = try buildDefinitionForProfile(allocator, true, false, false, false);
+    const result = try buildDefinitionForProfile(allocator, true, false, false, false, false);
     return result.arena;
 }
 
 /// Explicit Ethereum schema4 raw-wire export. Neither existing profile selects
 /// this additional relation or changes its arena input/event ordering.
 pub fn buildRawWireRoutingArena(allocator: std.mem.Allocator) !ir.Arena {
-    const result = try buildDefinitionForProfile(allocator, true, true, false, false);
+    const result = try buildDefinitionForProfile(allocator, true, true, false, false, false);
     return result.arena;
 }
 
@@ -485,15 +486,21 @@ pub fn buildRawWireRoutingArena(allocator: std.mem.Allocator) !ir.Arena {
 /// other canonical ProgramV2 word. The existing verifier-input relation
 /// keeps its single use: this new event reads the same committed main value.
 pub fn buildNpv2WireExportArena(allocator: std.mem.Allocator) !ir.Arena {
-    const result = try buildDefinitionForProfile(allocator, true, true, true, false);
+    const result = try buildDefinitionForProfile(allocator, true, true, true, false, false);
     return result.arena;
 }
 
-/// Direct SegmentV2 wrapper profile. It extends the native row-5 AIR by only
-/// the eight wire-ID NPV2 outputs; unrelated Ethereum clock/raw exports stay
-/// out of this roster. The extra mask is key-owned preprocessing.
+/// Earlier direct diagnostic. It cannot bind full wire words because the
+/// committed row5 values are u16 halves. Use the V7 NPH2 profile instead.
 pub fn buildDirectNpv2WireExportArena(allocator: std.mem.Allocator) !ir.Arena {
-    const result = try buildDefinitionForProfile(allocator, false, false, true, false);
+    const result = try buildDefinitionForProfile(allocator, false, false, true, false, false);
+    return result.arena;
+}
+
+/// Direct V7 profile: export all sixteen transcript u16 halves under NPH2.
+/// Row42 must range-check and recompose each pair before publishing a word.
+pub fn buildDirectWireHalfExportArena(allocator: std.mem.Allocator) !ir.Arena {
+    const result = try buildDefinitionForProfile(allocator, false, false, true, false, true);
     return result.arena;
 }
 
@@ -501,7 +508,7 @@ pub fn buildDirectNpv2WireExportArena(allocator: std.mem.Allocator) !ir.Arena {
 /// values under q193/fold-step-4. High u16 limbs, the absent-lifting flag,
 /// and all remaining ProgramV2 words still need other proof-visible routes.
 pub fn buildNpv2WirePcsExportArena(allocator: std.mem.Allocator) !ir.Arena {
-    const result = try buildDefinitionForProfile(allocator, true, true, true, true);
+    const result = try buildDefinitionForProfile(allocator, true, true, true, true, false);
     return result.arena;
 }
 
@@ -523,7 +530,7 @@ test "NPV2 PCS row-5 profile has pinned typed AIR identity" {
     try std.testing.expectEqualSlices(u8, &NPV2_WIRE_PCS_SEMANTIC_DIGEST, &actual);
 }
 
-fn buildDefinitionForProfile(allocator: std.mem.Allocator, comptime clock_routing: bool, comptime raw_wire_routing: bool, comptime npv2_wire_export: bool, comptime npv2_pcs_export: bool) !Definition {
+fn buildDefinitionForProfile(allocator: std.mem.Allocator, comptime clock_routing: bool, comptime raw_wire_routing: bool, comptime npv2_wire_export: bool, comptime npv2_pcs_export: bool, comptime wire_half_export: bool) !Definition {
     var arena = ir.Arena.init(allocator);
     errdefer arena.deinit();
     const span = source.SourceSpan.generated();
@@ -567,7 +574,7 @@ fn buildDefinitionForProfile(allocator: std.mem.Allocator, comptime clock_routin
     const publication_uses: ?types.ValueId = if (clock_routing) try arena.input("preprocessed.publication_uses", .felt, span) else null;
     const raw_wire_mask: ?types.ValueId = if (raw_wire_routing) try arena.input("preprocessed.raw_wire_mask", .selector, span) else null;
     const raw_root_mask: ?types.ValueId = if (raw_wire_routing) try arena.input("preprocessed.raw_root_mask", .selector, span) else null;
-    const npv2_wire_mask: ?types.ValueId = if (npv2_wire_export) try arena.input("preprocessed.npv2_wire_mask", .selector, span) else null;
+    const npv2_wire_mask: ?types.ValueId = if (npv2_wire_export) try arena.input(if (wire_half_export) "preprocessed.wire_half_mask" else "preprocessed.npv2_wire_mask", .selector, span) else null;
     const npv2_pcs_mask: ?types.ValueId = if (npv2_pcs_export) try arena.input("preprocessed.npv2_pcs_mask", .selector, span) else null;
     const npv2_pcs_index: ?types.ValueId = if (npv2_pcs_export) try arena.input("preprocessed.npv2_pcs_index", .felt, span) else null;
     const parameters = Parameters{
@@ -666,7 +673,7 @@ fn buildDefinitionForProfile(allocator: std.mem.Allocator, comptime clock_routin
         const statement_kind = try arena.constantField(@intFromEnum(VerifierInputKind.statement), span);
         const wire_item = try arena.constantField(1, span);
         const one_use = try arena.constantField(1, span);
-        const wire_index_base = try arena.constantField(NPV2_WIRE_WORD_BASE, span);
+        const wire_index_base = try arena.constantField(if (wire_half_export) 0 else NPV2_WIRE_WORD_BASE, span);
         _ = try arena.assertZero(
             "direct.npv2_wire_source_kind",
             try arena.mul(mask, try arena.sub(preprocessed.source_kind, statement_kind, span), span),
@@ -688,8 +695,15 @@ fn buildDefinitionForProfile(allocator: std.mem.Allocator, comptime clock_routin
             .semantic,
             span,
         );
+        if (wire_half_export) _ = try arena.assertZero(
+            "direct.wire_half_dynamic",
+            try arena.mul(mask, preprocessed.constant_mask, span),
+            null,
+            .semantic,
+            span,
+        );
         const npv2_index = try arena.add(wire_index_base, preprocessed.limb_index, span);
-        const npv2_scope = try arena.constantField(NPV2_SCOPE, span);
+        const npv2_scope = try arena.constantField(if (wire_half_export) WIRE_HALF_SCOPE else NPV2_SCOPE, span);
         _ = try relation_effect.appendGroup(1, &arena, .{.{
             .domain = .recursion_vm_public_claim_word,
             .role = .emit,
