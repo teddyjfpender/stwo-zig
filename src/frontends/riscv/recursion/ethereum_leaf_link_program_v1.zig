@@ -7,6 +7,10 @@
 //! Program, preprocessed-root, and provider digests enter only through
 //! verifier-produced field lanes; this module never converts SHA bytes into
 //! field authority and cannot mint a verified leaf.
+//! Snapshot, register-clock, and memory-clock boundary words have direct V2
+//! wire joins. Continuation-root limb conversion, completion tag conversion,
+//! global 64-bit arithmetic, and the verifier authority graph still need AIR
+//! components before any recursive V3 leaf proof can be activated.
 
 const std = @import("std");
 const core = @import("stwo_core");
@@ -25,6 +29,7 @@ const M31 = core.fields.m31.M31;
 
 pub const FORMAT_VERSION: u16 = 1;
 pub const SCHEMA_VERSION: u16 = 1;
+pub const COMPLETE_RECURSIVE_V3_WRAPPER_AVAILABLE = false;
 pub const TRANSCRIPT_CLAIM_COUNT: usize = 42;
 pub const SECURE_VALUE_WORD_COUNT: usize = 4;
 pub const TRANSCRIPT_WORD_COUNT: usize =
@@ -43,9 +48,12 @@ pub const SOURCE_ROW_COUNT: usize =
 pub const PUBLIC_AUTHORITY_DIGEST_COUNT: usize = 7;
 pub const PUBLIC_AUTHORITY_WORD_COUNT: usize =
     PUBLIC_AUTHORITY_DIGEST_COUNT * DIGEST_WORD_COUNT;
+/// Each boundary contributes 84 directly equal metadata/wire words. Its
+/// continuation root needs a separate field-to-u32-limbs arithmetic relation.
+pub const BOUNDARY_JOIN_ROW_COUNT: usize = 2 * 84;
 pub const PROJECTION_ROW_COUNT: usize =
     2 * span.SPAN_STATEMENT_CANONICAL_WORDS + link_v3.IDENTITY_WORDS +
-    PUBLIC_AUTHORITY_WORD_COUNT;
+    BOUNDARY_JOIN_ROW_COUNT + PUBLIC_AUTHORITY_WORD_COUNT;
 
 pub const METADATA_BASE_START: usize = 4;
 pub const METADATA_SEGMENT_INDEX_START: usize = 416;
@@ -53,7 +61,9 @@ pub const METADATA_SEGMENT_COUNT_START: usize = 418;
 pub const METADATA_GLOBAL_START: usize = 420;
 pub const METADATA_GLOBAL_END: usize = 424;
 pub const METADATA_LOCAL_COUNT_START: usize = 428;
+pub const METADATA_ENTRY_BOUNDARY_START: usize = 430;
 pub const METADATA_ENTRY_CONTINUATION_ROOT: usize = 440;
+pub const METADATA_EXIT_BOUNDARY_START: usize = 515;
 pub const METADATA_EXIT_CONTINUATION_ROOT: usize = 525;
 
 pub const SourceScheduleRowV1 = struct {
@@ -379,6 +389,20 @@ fn fillProjectionRows(
         link_uses[index] += 1;
         at += 1;
     }
+    at = appendBoundaryJoinRows(
+        destination,
+        at,
+        metadata_uses,
+        METADATA_ENTRY_BOUNDARY_START,
+        true,
+    );
+    at = appendBoundaryJoinRows(
+        destination,
+        at,
+        metadata_uses,
+        METADATA_EXIT_BOUNDARY_START,
+        false,
+    );
     const public_kinds = [_]u32{
         source_air.LINK_DIGEST_KIND,
         source_air.PROGRAM_AUTHORITY_KIND,
@@ -401,6 +425,70 @@ fn fillProjectionRows(
         }
     }
     std.debug.assert(at == destination.len);
+}
+
+/// The V3 metadata puts register clocks before memory clocks; the V2 wire
+/// puts them after. Route every directly equal boundary field by its canonical
+/// coordinate. A root is a single M31 in V3 but two u16 limbs in V2, so a
+/// separate arithmetic component must constrain that conversion.
+fn appendBoundaryJoinRows(
+    destination: []ProjectionScheduleRowV1,
+    start: usize,
+    metadata_uses: *[metadata_v3.METADATA_IDENTITY_WORDS]u32,
+    metadata_start: usize,
+    entry: bool,
+) usize {
+    const wire_snapshot = if (entry)
+        segment_v2.fixed_layout.entry_snapshot_id
+    else
+        segment_v2.fixed_layout.exit_snapshot_id;
+    const wire_snapshot_count = if (entry)
+        segment_v2.fixed_layout.entry_snapshot_count
+    else
+        segment_v2.fixed_layout.exit_snapshot_count;
+    const wire_registers = if (entry)
+        segment_v2.fixed_layout.entry_register_clocks
+    else
+        segment_v2.fixed_layout.exit_register_clocks;
+    const wire_memory = if (entry)
+        segment_v2.fixed_layout.entry_memory_clock_id
+    else
+        segment_v2.fixed_layout.exit_memory_clock_id;
+    const wire_memory_count = if (entry)
+        segment_v2.fixed_layout.entry_memory_clock_count
+    else
+        segment_v2.fixed_layout.exit_memory_clock_count;
+
+    var at = start;
+    at = appendBoundaryWordJoins(destination, at, metadata_uses, metadata_start, wire_snapshot, 8);
+    at = appendBoundaryWordJoins(destination, at, metadata_uses, metadata_start + 8, wire_snapshot_count, 2);
+    at = appendBoundaryWordJoins(destination, at, metadata_uses, metadata_start + 11, wire_registers, 64);
+    at = appendBoundaryWordJoins(destination, at, metadata_uses, metadata_start + 75, wire_memory, 8);
+    at = appendBoundaryWordJoins(destination, at, metadata_uses, metadata_start + 83, wire_memory_count, 2);
+    std.debug.assert(at - start == BOUNDARY_JOIN_ROW_COUNT / 2);
+    return at;
+}
+
+fn appendBoundaryWordJoins(
+    destination: []ProjectionScheduleRowV1,
+    start: usize,
+    metadata_uses: *[metadata_v3.METADATA_IDENTITY_WORDS]u32,
+    metadata_start: usize,
+    wire_start: usize,
+    count: usize,
+) usize {
+    for (0..count) |offset| {
+        const metadata_index = metadata_start + offset;
+        destination[start + offset] = rawStatementRow(
+            source_air.METADATA_SCOPE,
+            metadata_index,
+            leaf_v2.WIRE_SCOPE,
+            wire_start + offset,
+            false,
+        );
+        metadata_uses[metadata_index] += 1;
+    }
+    return start + count;
 }
 
 fn linkProjectionRow(
@@ -649,10 +737,13 @@ comptime {
         link_v3.IDENTITY_WORDS != 50 or span.SPAN_STATEMENT_CANONICAL_WORDS != 412 or
         TRANSCRIPT_WORD_COUNT != 168 or METADATA_HASH_ROW_COUNT != 77 or
         LINK_HASH_ROW_COUNT != 7 or POSEIDON_CALL_COUNT != 84 or
-        SOURCE_ROW_COUNT != 842 or PROJECTION_ROW_COUNT != 930 or
+        SOURCE_ROW_COUNT != 842 or PROJECTION_ROW_COUNT != 1098 or
         LINK_HASH_STEP_BASE <= METADATA_HASH_ROW_COUNT or
         METADATA_BASE_START + span.SPAN_STATEMENT_CANONICAL_WORDS !=
-            METADATA_SEGMENT_INDEX_START)
+            METADATA_SEGMENT_INDEX_START or
+        METADATA_ENTRY_BOUNDARY_START + 85 != METADATA_EXIT_BOUNDARY_START or
+        METADATA_EXIT_BOUNDARY_START + 85 + 8 !=
+            metadata_v3.METADATA_IDENTITY_WORDS)
     {
         @compileError("Ethereum leaf-link program geometry drifted");
     }

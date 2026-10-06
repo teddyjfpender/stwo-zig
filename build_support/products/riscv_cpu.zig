@@ -271,6 +271,14 @@ pub fn addProduct(context: Context) void {
         &.{"recursive public ingress accepts production-derived self-loop guest"},
     )));
     context.b.step(
+        "test-riscv-v3-link-schedule",
+        "Validate leaf-local V3 projection and exact typed boundary routing",
+    ).dependOn(test_filter.addRun(context.b, riscv_cpu_tests.addFocusedTestRoot(
+        test_context,
+        "src/frontends/riscv/temporal_pair_node_test_root.zig",
+        &.{"leaf-local V3"},
+    )));
+    context.b.step(
         "test-riscv-recursion-typed-control",
         "Prove and independently verify the typed universal-control adapter",
     ).dependOn(test_filter.addSuites(context.b, &.{.{

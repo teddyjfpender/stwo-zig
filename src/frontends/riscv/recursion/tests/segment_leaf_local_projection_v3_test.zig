@@ -291,6 +291,72 @@ test "leaf-local V3: shared canonical projection rejects position and route muta
     try std.testing.expectError(error.InvalidEthereumLeafLinkProgram, program.validate());
 }
 
+test "leaf-local V3: link schedule joins every directly equal V2 boundary field" {
+    const link_program = @import("../ethereum_leaf_link_program_v1.zig");
+    const source_air = @import("../air/ethereum_leaf_link_source_v1.zig");
+    const leaf_v2 = @import("../segment_leaf_authority_v2.zig");
+
+    var program = try link_program.ProgramV1.init(std.testing.allocator);
+    defer program.deinit();
+    const first = 2 * span.SPAN_STATEMENT_CANONICAL_WORDS +
+        @import("../segment_leaf_local_verified_link_v3.zig").IDENTITY_WORDS;
+    try std.testing.expectEqual(@as(usize, 168), link_program.BOUNDARY_JOIN_ROW_COUNT);
+    try std.testing.expectEqual(@as(usize, 1098), link_program.PROJECTION_ROW_COUNT);
+    for (0..2) |side| {
+        const metadata_start = if (side == 0)
+            link_program.METADATA_ENTRY_BOUNDARY_START
+        else
+            link_program.METADATA_EXIT_BOUNDARY_START;
+        const wire_snapshot = if (side == 0)
+            segment_v2.fixed_layout.entry_snapshot_id
+        else
+            segment_v2.fixed_layout.exit_snapshot_id;
+        const wire_snapshot_count = if (side == 0)
+            segment_v2.fixed_layout.entry_snapshot_count
+        else
+            segment_v2.fixed_layout.exit_snapshot_count;
+        const wire_registers = if (side == 0)
+            segment_v2.fixed_layout.entry_register_clocks
+        else
+            segment_v2.fixed_layout.exit_register_clocks;
+        const wire_memory = if (side == 0)
+            segment_v2.fixed_layout.entry_memory_clock_id
+        else
+            segment_v2.fixed_layout.exit_memory_clock_id;
+        const wire_memory_count = if (side == 0)
+            segment_v2.fixed_layout.entry_memory_clock_count
+        else
+            segment_v2.fixed_layout.exit_memory_clock_count;
+        const pairs = [_]struct { metadata: usize, wire: usize, count: usize }{
+            .{ .metadata = metadata_start, .wire = wire_snapshot, .count = 8 },
+            .{ .metadata = metadata_start + 8, .wire = wire_snapshot_count, .count = 2 },
+            .{ .metadata = metadata_start + 11, .wire = wire_registers, .count = 64 },
+            .{ .metadata = metadata_start + 75, .wire = wire_memory, .count = 8 },
+            .{ .metadata = metadata_start + 83, .wire = wire_memory_count, .count = 2 },
+        };
+        var at = first + side * 84;
+        for (pairs) |pair| {
+            for (0..pair.count) |offset| {
+                const row = program.projection_rows[at];
+                try std.testing.expectEqual(@as(u32, 1), row.raw_mask);
+                try std.testing.expectEqual(@as(u32, 1), row.local_statement_mask);
+                try std.testing.expectEqual(source_air.METADATA_SCOPE, row.raw_scope);
+                try std.testing.expectEqual(leaf_v2.WIRE_SCOPE, row.statement_scope);
+                try std.testing.expectEqual(@as(u32, @intCast(pair.metadata + offset)), row.raw_index);
+                try std.testing.expectEqual(@as(u32, @intCast(pair.wire + offset)), row.statement_index);
+                try std.testing.expectEqual(@as(u32, 2), program.source_rows[pair.metadata + offset].use_count);
+                at += 1;
+            }
+        }
+        try std.testing.expectEqual(first + (side + 1) * 84, at);
+    }
+
+    const target = first + 10; // first entry-register clock limb
+    program.projection_rows[target].statement_index =
+        segment_v2.fixed_layout.exit_register_clocks;
+    try std.testing.expectError(error.InvalidEthereumLeafLinkProgram, program.validate());
+}
+
 fn largePositionMetadata() !global_v3.MetadataV3 {
     const first_cycle: u64 = (@as(u64, 1) << 40) + 0xfffe;
     const cycle_count: u32 = 0x10003;
