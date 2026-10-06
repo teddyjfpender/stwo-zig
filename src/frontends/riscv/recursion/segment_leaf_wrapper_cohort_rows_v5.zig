@@ -11,6 +11,7 @@ const base_rows_mod = @import("segment_leaf_wrapper_cohort_direct_rows_v4.zig");
 const local_mod = @import("segment_leaf_wrapper_local_identity_v5.zig");
 const statement_air = @import("air/segment_leaf_statement_source_direct_v5.zig");
 const program_air = @import("air/transcript_program_v2_field_bridge_v5.zig");
+const template_mod = @import("transcript_program_v2_template_words_v6.zig");
 const source_air = @import("air/ethereum_leaf_link_source_v1.zig");
 const projection_air = @import("air/ethereum_leaf_link_projection_v1.zig");
 const arithmetic_air = @import("air/ethereum_leaf_link_arithmetic_v1.zig");
@@ -62,6 +63,20 @@ pub const Rows = struct {
         statement: *const statement_air.Schedule,
         local: *const local_mod.Rows,
     ) !Rows {
+        return initWithTemplate(allocator, plan, base, statement, local, null);
+    }
+
+    /// Diagnostic migration path. The independently compiled shape fixes all
+    /// ProgramV2 words except its sixteen native identity words. V5 Plan/key
+    /// remains non-authorizing until a versioned Tree0 root is admitted.
+    pub fn initWithTemplate(
+        allocator: std.mem.Allocator,
+        plan: *const plan_mod.Plan,
+        base: *const base_rows_mod.Rows,
+        statement: *const statement_air.Schedule,
+        local: *const local_mod.Rows,
+        template: ?*const template_mod.Template,
+    ) !Rows {
         try plan.validate();
         if (base.native.program.words.len != plan.base_plan.shape.program_words or
             statement.rows.len > traceSize(plan, 36) or
@@ -79,6 +94,7 @@ pub const Rows = struct {
         const fixed = try program_air.FixedSchedule.init(base.native.program.words.len);
         if (fixed.log_size != plan.placements[42].?.geometry.log_size)
             return error.InvalidDirectV5Rows;
+        if (template) |authority| try authority.checkCanonicalWords(base.native.program.words);
         const program = try allocator.alloc(program_air.Row, fixed.rowCapacity());
         errdefer allocator.free(program);
         for (program, 0..) |*row, index| {
@@ -86,10 +102,19 @@ pub const Rows = struct {
                 base.native.program.words[index]
             else
                 M31.zero();
-            if (program_air.fixedValue(@intCast(index))) |expected| {
-                if (value.toU32() != expected) return error.InvalidDirectV5ProgramFixedWord;
+            if (template) |authority| {
+                const pp = if (index < authority.words.len)
+                    try authority.preprocessedRow(index)
+                else
+                    try fixed.preprocessedRow(index);
+                if (index >= authority.words.len and !value.isZero()) return error.InvalidDirectV5ProgramFixedWord;
+                row.* = .{ value, pp[0], pp[1], pp[2], pp[3], pp[4] };
+            } else {
+                if (program_air.fixedValue(@intCast(index))) |expected| {
+                    if (value.toU32() != expected) return error.InvalidDirectV5ProgramFixedWord;
+                }
+                row.* = try fixed.logicalRow(index, value);
             }
-            row.* = try fixed.logicalRow(index, value);
         }
         return .{ .allocator = allocator, .base = base, .statement = statement, .local = local, .program = program };
     }
