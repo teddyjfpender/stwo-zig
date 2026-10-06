@@ -14,6 +14,14 @@ pub const Spec = struct {
 
 pub const specs = [_]Spec{
     .{
+        .step = "test-recursion-v3-field-manifest",
+        .description = "Pin staged ProgramV2/provider source and hash typed adapters without V3 publication",
+        .root = "field_manifest_v3_test_root.zig",
+        .imports_prover_engine = true,
+        .filters = &.{"V3 field extension"},
+        .minimum = 1,
+    },
+    .{
         .step = "test-recursion-v3-link-manifest",
         .description = "Pin the three typed V3 leaf-link adapter geometries without enabling a wrapper proof",
         .root = "link_manifest_v3_test_root.zig",

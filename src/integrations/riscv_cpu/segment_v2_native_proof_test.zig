@@ -1175,6 +1175,31 @@ test "native V2 proves a rebased leaf-local V3 segment without widening the AIR"
             &stage.publication,
         ),
     );
+
+    // The two field preimages now come from the separately verified native
+    // child and 39-row outer proof, then enter pinned typed-adapter geometry.
+    // Their AIR/LogUp rows still need one new V3 STARK transaction.
+    const outer_cohort = @import("recursive_segment_v2_outer_cohort.zig");
+    var cohort = try outer_cohort.Cohort.init(allocator, &prepared);
+    defer cohort.deinit();
+    var fields = try recursion.segment_leaf_wrapper_field_witness_v3.BundleV3.init(
+        allocator,
+        &prepared,
+        &stage.capture,
+        &stage.publication,
+        &stage.recursive_witness,
+        cohort.manifest(),
+    );
+    defer fields.deinit();
+    const field_manifest = try recursion.air.segment_leaf_wrapper_field_manifest_v3.Manifest.build(
+        allocator,
+        &fields.native,
+        &fields.provider,
+    );
+    try field_manifest.validateAgainst(allocator, &fields.native, &fields.provider);
+    try std.testing.expectEqualDeep(fields.native.program.digest, field_manifest.program_input.digest);
+    try std.testing.expectEqualDeep(fields.provider.authority.digest, field_manifest.provider_input.digest);
+    try std.testing.expectError(error.V3WrapperProofUnavailable, field_manifest.requireCompleteWrapperProof());
 }
 
 fn leafStatement(
