@@ -56,6 +56,8 @@ pub fn prepare(
     max_leaves: u32,
 ) !Plan {
     try requireUnhosted(options);
+    const elf_id = digest(elf);
+    const input_id = digest(options.input);
     var collector = Collector(profile){ .allocator = allocator };
     defer collector.counts.deinit(allocator);
     const summary = try campaign.run(
@@ -67,13 +69,16 @@ pub fn prepare(
         max_leaves,
         &collector,
     );
+    if (!std.meta.eql(elf_id, digest(elf)) or
+        !std.meta.eql(input_id, digest(options.input)))
+        return error.CampaignSourceMutation;
     const counts = try collector.counts.toOwnedSlice(allocator);
     errdefer allocator.free(counts);
     var plan: Plan = .{
         .allocator = allocator,
         .profile = profile,
-        .elf_sha256 = digest(elf),
-        .input_sha256 = digest(options.input),
+        .elf_sha256 = elf_id,
+        .input_sha256 = input_id,
         .stop_on_halt_flag = options.stop_on_halt_flag,
         .strict_completion = options.strict_completion,
         .require_current_output_accesses = options.require_current_output_accesses,
@@ -118,6 +123,9 @@ pub fn replay(
         @intCast(plan.cycle_counts.len),
         &checked,
     );
+    if (!std.meta.eql(plan.elf_sha256, digest(elf)) or
+        !std.meta.eql(plan.input_sha256, digest(options.input)))
+        return error.CampaignSourceMutation;
     if (checked.next != plan.cycle_counts.len or
         !std.meta.eql(summary, plan.summary))
         return error.CampaignPlanReplayMismatch;

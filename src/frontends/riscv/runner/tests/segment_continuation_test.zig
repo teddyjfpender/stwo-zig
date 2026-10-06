@@ -393,7 +393,7 @@ test "runner: V3 plan replays exact leaf sizes with guest policy and input" {
         0x0001_2183, // LW x3, 0(x2).
         0x0000_0073, // ECALL.
     };
-    const elf = makeTestElf(&instructions);
+    var elf = makeTestElf(&instructions);
     const options: segment_session.SessionOptions = .{
         .stop_on_halt_flag = true,
     };
@@ -435,6 +435,25 @@ test "runner: V3 plan replays exact leaf sizes with guest policy and input" {
         altered,
         &plan,
         &consumer,
+    ));
+    const MutatingConsumer = struct {
+        elf: *[84 + 64]u8,
+        changed: bool = false,
+        pub fn onSegment(self: *@This(), _: *const result_mod.SegmentResult) !void {
+            if (!self.changed) {
+                self.elf[120] ^= 1; // Unused ELF padding; execution can still finish.
+                self.changed = true;
+            }
+        }
+    };
+    var mutator = MutatingConsumer{ .elf = &elf };
+    try std.testing.expectError(error.CampaignSourceMutation, segment_plan.replay(
+        .rv32im_zkvm_v1,
+        std.testing.allocator,
+        &elf,
+        options,
+        &plan,
+        &mutator,
     ));
     plan.cycle_counts[0] += 1;
     try std.testing.expectError(error.InvalidCampaignPlan, segment_plan.replay(
