@@ -46,6 +46,7 @@ test "V3 temporal parent roster encodes two child sources and reuses pinned row1
     try std.testing.expectEqual(@as(u32, 0), candidate.words[inputs.Layout.right_child_start + inputs.Layout.child_completion_start].toU32());
     try std.testing.expectEqual(@as(u32, 0), candidate.words[inputs.Layout.parent_start + inputs.Layout.parent_completion_start].toU32());
     try std.testing.expectEqual(@as(u32, 12), plan.descriptors[@intFromEnum(roster.Component.statement_row11)].geometry.?.log_size);
+    try std.testing.expect(plan.descriptors[@intFromEnum(roster.Component.statement_circuit)].geometry == null);
     try std.testing.expectError(error.ParentProofUnavailable, candidate.requireVerifiedParent());
     try std.testing.expectError(error.ParentProofUnavailable, plan.requireVerificationKey());
 

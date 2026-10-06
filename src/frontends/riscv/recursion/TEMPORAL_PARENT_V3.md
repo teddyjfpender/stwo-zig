@@ -22,11 +22,12 @@ self-referential verification-key preimage while the recursive key schedule is
 still being designed.
 
 `temporal_parent_roster_v3.zig` fixes the versioned component order and stage
-identity. Its statement row uses the qualified log-12 row-11 graph, including
-the graph, typed AIR, binding and preprocessed identities. The other five
+identity. Its statement-input row uses the qualified log-12 row-11 typed AIR,
+including the graph, binding and preprocessed identities. The other six
 roster obligations remain unqualified: left and right child verifiers,
-boundary/completion joins, endpoint-identity joins, and shared lookup
-provider. Their geometry is deliberately absent rather than filled with
+the arithmetic statement graph, boundary/completion joins,
+endpoint-identity joins, and shared lookup provider. Their geometry is
+deliberately absent rather than filled with
 invented zero-column components. The stage identity is not a verification
 key, and `requireVerificationKey` and `requireVerifiedParent` fail closed.
 
@@ -40,7 +41,8 @@ To activate a parent transaction, the remaining work is:
    those verifier outputs and to the parent public statement. Constrain the
    64-bit cycle join, CPU state, sparse snapshot identity/count/root,
    endpoint metadata identities and final-only completion. The existing
-   row-11 session constrains the three 412-word statements only.
+   row-11 session checks the three 412-word statements natively and emits its
+   typed input trace; the arithmetic graph still needs committed AIR.
 3. Bind the completed component roster, exact shared lookup closure,
    preprocessed root, protocol/security profile and proof bytes in one fresh
    parent verifier transaction. Only its successful result may publish a

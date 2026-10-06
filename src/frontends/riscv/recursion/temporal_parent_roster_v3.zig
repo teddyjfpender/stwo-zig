@@ -16,16 +16,17 @@ const inputs = @import("temporal_parent_inputs_v3.zig");
 pub const FORMAT_VERSION: u32 = 3;
 pub const SCHEMA_VERSION: u32 = 1;
 pub const STAGE_DOMAIN: u32 = 0x5450_5333; // TPS3, never a verifier-key domain.
-pub const COMPONENT_COUNT: usize = 6;
+pub const COMPONENT_COUNT: usize = 7;
 pub const PRODUCTION_PROOF_ACTIVATION = false;
 
 pub const Component = enum(u8) {
     left_child_verifier = 0,
     right_child_verifier = 1,
     statement_row11 = 2,
-    boundary_and_completion = 3,
-    endpoint_identity = 4,
-    lookup_provider = 5,
+    statement_circuit = 3,
+    boundary_and_completion = 4,
+    endpoint_identity = 5,
+    lookup_provider = 6,
 };
 
 pub const Qualification = enum(u8) {
@@ -108,6 +109,7 @@ fn expectedDescriptors() [COMPONENT_COUNT]Descriptor {
             .interaction_batches = row11_air.INTERACTION_BATCH_COUNT,
             .semantic_digest = row11_air.SEMANTIC_DIGEST,
         } },
+        .{ .component = .statement_circuit, .input_words = graph.INPUT_COUNT, .qualification = .missing_typed_air, .geometry = null },
         .{ .component = .boundary_and_completion, .input_words = 6 * inputs.BOUNDARY_WORDS + 3 * inputs.COMPLETION_WORDS, .qualification = .missing_typed_air, .geometry = null },
         .{ .component = .endpoint_identity, .input_words = 6 * 8, .qualification = .missing_typed_air, .geometry = null },
         .{ .component = .lookup_provider, .input_words = 0, .qualification = .missing_typed_air, .geometry = null },
@@ -157,6 +159,6 @@ fn hashWord(hash: *std.crypto.hash.sha2.Sha256, value: u32) void {
 
 comptime {
     if (STAGE_DOMAIN >= core.fields.m31.Modulus or
-        COMPONENT_COUNT != 6 or PRODUCTION_PROOF_ACTIVATION)
+        COMPONENT_COUNT != 7 or PRODUCTION_PROOF_ACTIVATION)
         @compileError("V3 temporal parent roster identity drifted");
 }
