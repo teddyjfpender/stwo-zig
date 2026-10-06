@@ -428,6 +428,7 @@ test "runner: V3 plan replays exact leaf sizes with guest policy and input" {
 
     const original_exit = plan.leaf_records[0].exit_cpu.regs[1];
     plan.leaf_records[0].exit_cpu.regs[1] ^= 1;
+    plan.leaf_records[1].entry_cpu.regs[1] ^= 1;
     try std.testing.expectError(error.CampaignPlanReplayMismatch, segment_plan.replay(
         .rv32im_zkvm_v1,
         std.testing.allocator,
@@ -438,9 +439,11 @@ test "runner: V3 plan replays exact leaf sizes with guest policy and input" {
     ));
     try std.testing.expectEqual(@as(usize, 2), consumer.count);
     plan.leaf_records[0].exit_cpu.regs[1] = original_exit;
+    plan.leaf_records[1].entry_cpu.regs[1] = original_exit;
 
     const original_memory = plan.leaf_records[0].exit_memory.id[0];
     plan.leaf_records[0].exit_memory.id[0] ^= 1;
+    plan.leaf_records[1].entry_memory.id[0] ^= 1;
     try std.testing.expectError(error.CampaignPlanReplayMismatch, segment_plan.replay(
         .rv32im_zkvm_v1,
         std.testing.allocator,
@@ -451,6 +454,11 @@ test "runner: V3 plan replays exact leaf sizes with guest policy and input" {
     ));
     try std.testing.expectEqual(@as(usize, 2), consumer.count);
     plan.leaf_records[0].exit_memory.id[0] = original_memory;
+    plan.leaf_records[1].entry_memory.id[0] = original_memory;
+
+    plan.leaf_records[0].exit_cpu.regs[1] ^= 1;
+    try std.testing.expectError(error.CampaignBoundaryDiscontinuity, plan.validate());
+    plan.leaf_records[0].exit_cpu.regs[1] ^= 1;
 
     var observer_context: u8 = 0;
     const Observer = struct {

@@ -89,10 +89,20 @@ pub const Plan = struct {
             self.leaf_records.len != self.cycle_counts.len)
             return error.InvalidCampaignPlan;
         var total: u64 = 0;
-        for (self.cycle_counts) |count| {
+        for (self.cycle_counts, self.leaf_records, 0..) |count, record, index| {
             if (count == 0 or count > self.leaf_budget) return error.InvalidCampaignPlan;
             total = std.math.add(u64, total, count) catch
                 return error.InvalidCampaignPlan;
+            if (index + 1 == self.leaf_records.len) {
+                if (record.completion_reason != self.summary.completion_reason)
+                    return error.InvalidCampaignPlan;
+            } else {
+                if (record.completion_reason != null) return error.InvalidCampaignPlan;
+                const next = self.leaf_records[index + 1];
+                if (!std.meta.eql(record.exit_cpu, next.entry_cpu) or
+                    !std.meta.eql(record.exit_memory, next.entry_memory))
+                    return error.CampaignBoundaryDiscontinuity;
+            }
         }
         if (total != self.summary.retired_cycles) return error.InvalidCampaignPlan;
     }
