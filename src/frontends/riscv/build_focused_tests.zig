@@ -14,6 +14,14 @@ pub const Spec = struct {
 
 pub const specs = [_]Spec{
     .{
+        .step = "test-recursion-v3-wrapper-kernel",
+        .description = "Reject fake 49-row wrapper cohorts and detached artifacts before qualification",
+        .root = "v3_wrapper_kernel_test_root.zig",
+        .imports_prover_engine = true,
+        .filters = &.{"V3 wrapper kernel rejects fake cohort"},
+        .minimum = 1,
+    },
+    .{
         .step = "test-recursion-v3-extra-rows",
         .description = "Check V3 wrapper rows 41-48 shared word and hash-state closure",
         .root = "v3_extra_rows_test.zig",
