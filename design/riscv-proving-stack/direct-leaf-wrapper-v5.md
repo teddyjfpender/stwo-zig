@@ -94,6 +94,16 @@ only 16 identity words dynamic. It is **not** a physical 50-row proof: the
 physical claims still come from the older V5 cohort and remain nonzero until
 the new AIRs, row-35 provider, and verifier-owned fixed columns are installed
 in the committed trees and checked by a fresh verifier.
+For the V6 base fixed schedule, rows 15 and 16 are deliberately unqualified.
+Their Tree0 columns include the exact dense input-use multiplicities of the
+native-public-sum arithmetic graph. Section lengths alone do not determine
+that graph: merging the four sorted sparse-memory address lists changes the
+input wiring, and the completion path can add a program-access term. A
+per-leaf graph digest or use-count array cannot be imported into a reusable
+fixed key. Activation needs either a verifier-selected, shape-only graph
+topology schedule with identical multiplicities across every leaf using the
+key, or a versioned AIR that authenticates variable multiplicities as main
+witness columns. The current writer rejects both rows before touching Tree0.
 A further dormant row-4 profile can export kind and eight split argument limbs
 for instructions with an actual payload row, using that row's existing
 transcript-payload relation. Its coverage audit rejects duplicate origins and

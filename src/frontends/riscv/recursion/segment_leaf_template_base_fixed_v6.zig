@@ -37,9 +37,30 @@ const query_mapping = @import("air/query_mapping_witness.zig");
 
 pub const PRODUCTION_PROOF_ACTIVATION = false;
 /// Rows 13--14 are fixed from the admitted descriptor and wire dimensions.
-/// Rows 15--16 still carry graph use counts specialized by the canonical
-/// statement topology, so they have no shape-only writer here.
+/// Rows 15--16 carry graph input-use counts specialized by the canonical
+/// statement topology. A fixed writer would need a verifier-owned graph
+/// topology schedule (including sparse-address overlap and completion kind),
+/// or an AIR revision that authenticates these counts in main columns. The
+/// current template has neither, so these rows must never enter its key.
 pub const QUALIFIED_ROWS = [_]u8{ 0, 1, 2, 3, 4, 6, 7, 8, 9, 10, 12, 13, 14, 17, 20, 21, 33, 34, 35 };
+
+/// These are the precise dependencies of the row-15/16 use-count columns.
+/// The existing TemplateShapeV6 holds counts and transcript/core schedules,
+/// but no one of these graph-topology facts. A native statement or graph
+/// digest is request-specific and cannot be copied into a fixed key.
+pub const MISSING_PUBLIC_GRAPH_SHAPE = [_]PublicGraphShapeInput{
+    .canonical_sparse_address_overlap,
+    .completion_path,
+    .graph_topology,
+    .dense_input_use_counts,
+};
+
+pub const PublicGraphShapeInput = enum {
+    canonical_sparse_address_overlap,
+    completion_path,
+    graph_topology,
+    dense_input_use_counts,
+};
 
 pub const Writer = struct {
     allocator: std.mem.Allocator,
@@ -130,6 +151,9 @@ pub const Writer = struct {
     /// Caller supplies one fresh row-local Tree0 column set. This writer
     /// derives every value from a pinned plan/profile or fixed table formula.
     pub fn writeRow(self: *const Writer, row: u8, columns: [][]M31) !void {
+        // Return before validating or touching destination storage. In
+        // particular, zero-filled columns are not a legal row-15/16 schedule.
+        if (row == 15 or row == 16) return error.PublicGraphShapeNotAdmittedV6;
         if (!qualified(row)) return error.UnqualifiedFixedRowV6;
         if (row == 13 or row == 14) try self.manifest.validate();
         const geometry = self.manifest.placements[row].geometry;
@@ -570,6 +594,14 @@ test "V6 base fixed rows reconstruct without a leaf" {
     const wrong_catalog = try catalog_mod.build(logs, fixture.boundaryComponents());
     try std.testing.expectError(error.FixedCoreQueryGeometryMismatchV6, Writer.init(allocator, &wrong_catalog, shape, &child_fixture.components, &child_fixture.infra, &plans.vm, &core_profile, &core_query_mapping, 128, false));
     try std.testing.expectError(error.UnqualifiedFixedRowV6, writer.writeRow(11, &.{}));
+    var untouched = [_]M31{M31.fromCanonical(917)};
+    var invalid_destination = [_][]M31{untouched[0..]};
+    for ([_]u8{ 15, 16 }) |row| {
+        try std.testing.expect(!qualified(row));
+        try std.testing.expectError(error.PublicGraphShapeNotAdmittedV6, writer.writeRow(row, &invalid_destination));
+        try std.testing.expectEqual(@as(u32, 917), untouched[0].toU32());
+    }
+    try std.testing.expectEqual(@as(usize, 4), MISSING_PUBLIC_GRAPH_SHAPE.len);
     try std.testing.expectError(error.UnqualifiedFixedRowsV6, writer.requireCompletePreprocessing());
 }
 
