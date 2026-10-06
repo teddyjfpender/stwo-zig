@@ -222,6 +222,7 @@ pub const segment_leaf_wrapper_range_provider_v7 = @import("segment_leaf_wrapper
 pub const segment_leaf_wrapper_roster_direct_v4 = @import("air/segment_leaf_wrapper_roster_direct_v4.zig");
 pub const segment_leaf_wrapper_roster_direct_v5 = @import("air/segment_leaf_wrapper_roster_direct_v5.zig");
 pub const segment_leaf_wrapper_roster_direct_v6 = @import("air/segment_leaf_wrapper_roster_direct_v6.zig");
+pub const segment_leaf_wrapper_roster_direct_v7 = @import("air/segment_leaf_wrapper_roster_direct_v7.zig");
 pub const segment_leaf_wrapper_protocol_direct_v5 = @import("segment_leaf_wrapper_protocol_direct_v5.zig");
 pub const segment_leaf_wrapper_protocol_direct_v6 = @import("segment_leaf_wrapper_protocol_direct_v6.zig");
 pub const segment_leaf_wrapper_cohort_rows_v5 = @import("segment_leaf_wrapper_cohort_rows_v5.zig");

@@ -333,7 +333,7 @@ fn diagnoseDirect50(
         // Diagnostic only: production must receive these words as verifier public input.
         const global_statement_expected = recursion.segment_leaf_wrapper_global_statement_boundary_v6.ExpectedPublic{ .words = metadata.base_statement_words };
         const global_statement_boundary = try recursion.segment_leaf_wrapper_global_statement_boundary_v6.BoundaryV6.derive(global_statement_expected, &relations);
-        try diagnoseDirect50Tuples(allocator, cohort, &rows50, &child_witness, &las2, &row5_fanout, &statement_v6, &global_statement_boundary);
+        try diagnoseDirect50Tuples(allocator, cohort, &rows50, &template, &child_witness, &las2, &row5_fanout, &statement_v6, &global_statement_boundary);
     }
     const tuple_ns = phase_timer.lap();
     var nonzero_domains: usize = 0;
@@ -360,6 +360,7 @@ fn diagnoseDirect50Tuples(
     allocator: std.mem.Allocator,
     cohort: *outer_cohort.Cohort,
     rows: *const recursion.segment_leaf_wrapper_cohort_rows_v5.Rows,
+    template: *const recursion.transcript_program_v2_template_words_v6.Template,
     child_witness: *const recursion.ethereum_leaf_child_field_witness_v1.WitnessV1,
     las2: *const recursion.segment_leaf_wrapper_las2_boundary_v4.BoundaryV4,
     row5_fanout: *const recursion.segment_leaf_wrapper_row5_fanout_v6.Schedule,
@@ -383,18 +384,26 @@ fn diagnoseDirect50Tuples(
     }
     ledger.contributions.items = ledger.contributions.items[0..keep];
 
-    var row5_wire = try recursion.segment_leaf_wrapper_row5_wire_v6.Schedule.init(
+    var row5_wire = try recursion.segment_leaf_wrapper_row5_halves_v7.Schedule.init(
         allocator,
         row5_fanout.rows,
         rows.base.native.program.words[10..18],
     );
     defer row5_wire.deinit();
-    try appendDirectAirTuples(recursion.air.transcript_payload_direct_v6, allocator, &ledger, 5, row5_wire.rows, mask);
+    try appendDirectAirTuples(recursion.air.transcript_payload_direct_v7, allocator, &ledger, 5, row5_wire.rows, mask);
     try appendDirectAirTuples(recursion.segment_leaf_statement_source_direct_v6, allocator, &ledger, 36, statement_v6.rows, mask);
     try appendDirectAirTuples(recursion.ethereum_leaf_link_source_direct_v6, allocator, &ledger, 39, rows.base.source, mask);
     try appendDirectAirTuples(recursion.air.ethereum_leaf_link_projection_v1, allocator, &ledger, 40, rows.base.projection, mask);
     try appendDirectAirTuples(recursion.air.ethereum_leaf_link_arithmetic_v1, allocator, &ledger, 41, rows.base.arithmetic, mask);
-    try appendDirectAirTuples(recursion.transcript_program_v2_field_bridge_v5, allocator, &ledger, 42, rows.program, mask);
+    const program_air = recursion.air.transcript_program_v2_field_bridge_v6;
+    const program_schedule = try program_air.FixedSchedule.initFromTemplate(template.words);
+    const program_rows = try allocator.alloc(program_air.Row, program_schedule.rowCapacity());
+    defer allocator.free(program_rows);
+    for (program_rows, 0..) |*row, index| {
+        const value = if (index < rows.base.native.program.words.len) rows.base.native.program.words[index] else M31.zero();
+        row.* = try program_schedule.logicalRow(index, value);
+    }
+    try appendDirectAirTuples(program_air, allocator, &ledger, 42, program_rows, mask);
     try appendDirectHashTuples(allocator, &ledger, 43, &rows.base.native.program_hash, mask);
     try appendDirectAirTuples(recursion.air.segment_v2_tree0_field_link_direct_v4, allocator, &ledger, 44, &rows.base.native.tree0_link.rows, mask);
     try appendDirectHashTuples(allocator, &ledger, 45, rows.base.metadata_hash, mask);

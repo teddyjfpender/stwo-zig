@@ -46,6 +46,7 @@ pub const Plan = Runtime.Plan;
 pub const FixedSchedule = struct {
     word_count: u32,
     log_size: u8,
+    template_words: ?[]const M31 = null,
 
     pub fn init(word_count: usize) !FixedSchedule {
         if (word_count == 0 or word_count >= core.fields.m31.Modulus)
@@ -64,10 +65,25 @@ pub const FixedSchedule = struct {
         return @as(usize, 1) << @intCast(self.log_size);
     }
 
+    /// The caller must supply a shape-only ProgramV2 template compiled from
+    /// independently admitted verifier inputs. Only its sixteen identity
+    /// positions may be dynamic; this AIR enforces every other word in Tree0.
+    pub fn initFromTemplate(words: []const M31) !FixedSchedule {
+        if (words.len < 26) return error.InvalidDirectProgramTemplate;
+        var result = try init(words.len);
+        for (words[10..26]) |word| if (!word.isZero())
+            return error.InvalidDirectProgramTemplate;
+        result.template_words = words;
+        return result;
+    }
+
     pub fn preprocessedRow(self: FixedSchedule, row: usize) !PreprocessedRow {
         if (row >= self.rowCapacity()) return error.InvalidDirectProgramRow;
         if (row >= self.word_count) return [_]M31{M31.zero()} ** PREPROCESSED_COLUMN_COUNT;
-        const fixed = fixedValue(@intCast(row));
+        const fixed: ?u32 = if (self.template_words) |words|
+            if (row < 10 or row >= 26) words[row].toU32() else null
+        else
+            fixedValue(@intCast(row));
         return .{
             M31.one(),
             M31.fromCanonical(HASH_INPUT_SCOPE),
@@ -86,6 +102,20 @@ pub const FixedSchedule = struct {
         return .{value} ++ wire ++ fixed;
     }
 };
+
+test "V7 shape template fixes every nonidentity ProgramV2 word" {
+    var words = [_]M31{M31.zero()} ** 42;
+    words[0] = M31.fromCanonical(program_contract.FORMAT_VERSION);
+    words[26] = M31.fromCanonical(771);
+    const schedule = try FixedSchedule.initFromTemplate(&words);
+    const fixed = try schedule.preprocessedRow(26);
+    try std.testing.expect(fixed[3].isOne());
+    try std.testing.expectEqual(@as(u32, 771), fixed[4].toU32());
+    const identity = try schedule.preprocessedRow(18);
+    try std.testing.expect(identity[3].isZero());
+    words[18] = M31.one();
+    try std.testing.expectError(error.InvalidDirectProgramTemplate, FixedSchedule.initFromTemplate(&words));
+}
 
 /// Canonical ProgramV2 indices: format/schema (0,1) and PCS words (28..40).
 /// Six low PCS words are exported by native row5; every other PCS word is a

@@ -199,6 +199,12 @@ pub fn build(b: *std.Build) void {
     });
     b.step("test-v6-base-fixed-rows", "Check independent V6 control, inactive, provider and byte-table preprocessing")
         .dependOn(&b.addRunArtifact(v6_base_fixed_tests).step);
+    const v7_roster_tests = b.addTest(.{
+        .root_module = v3_rows_root,
+        .filters = &.{"V7 roster pins wire-half AIR geometry"},
+    });
+    b.step("test-v7-wire-roster", "Check versioned native wire-half physical geometry and key seal")
+        .dependOn(&b.addRunArtifact(v7_roster_tests).step);
     const v6_npv2_tests = b.addTest(.{
         .root_module = v3_rows_root,
         .filters = &.{"V6 local router exports exactly eight hash-bound authority words to NPV2"},
