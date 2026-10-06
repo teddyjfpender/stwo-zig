@@ -36,6 +36,7 @@ pub const COMPLETE_WRAPPER_PROOF_AVAILABLE = false;
 
 pub const Geometry = base.Geometry;
 pub const Placement = base.Placement;
+pub const AdapterBinding = @import("universal_adapter_manifest.zig").AdapterBinding;
 pub const Manifest = Plan;
 pub const ComponentKey = enum(u8) {
     local_router = 47,

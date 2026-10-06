@@ -22,6 +22,14 @@ pub const specs = [_]Spec{
         .minimum = 1,
     },
     .{
+        .step = "test-recursion-v5-direct-proof-gate",
+        .description = "Check exact fifty-row adapter geometry and fail-closed proof publication",
+        .root = "v5_direct_proof_gate_test_root.zig",
+        .imports_prover_engine = true,
+        .filters = &.{"V5 gate binds exact 50 rows and remains proof-inactive"},
+        .minimum = 1,
+    },
+    .{
         .step = "test-recursion-v5-direct-roster",
         .description = "Pin the 50-row direct wrapper geometry and VPR6/VPK6 key namespace",
         .root = "v5_direct_roster_test_root.zig",
