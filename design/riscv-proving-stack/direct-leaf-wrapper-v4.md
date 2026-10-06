@@ -64,6 +64,33 @@ child key through an admitted program/statement or registered key family;
 accepting the key carried in a child artifact would let a prover select an
 arbitrary circuit.
 
+### Native program authority that is still missing
+
+The current row-42 word AIR checks a main word against a preprocessed word,
+then row 43 hashes that word. Nothing in rows 0–38 produces the same indexed
+word tuple. Thus these two rows authenticate a self-consistent preimage, not
+the program that actually drove the native verifier. This is a soundness
+blocker even if host code reconstructs both objects from the same input.
+
+The intended versioned bridge uses a distinct `NPV2` lookup tuple
+`(scope, index, value)` emitted by the native verifier program source and
+consumed by row 42. Row 42 then emits the existing `PV2W` tuple consumed by
+row 43. The native producer must derive every canonical ProgramV2 header,
+PCS, statement and instruction word from the corresponding verifier-owned
+source that rows 0–38 actually use; a second independently supplied word
+table would merely move the gap. Active/index preprocessing may be fixed by
+shape, while word values remain main data. The proof must reject a missing,
+duplicated, reordered, or changed word through exact lookup closure and the
+ProgramV2 hash.
+
+An independent detached verifier may require an expected native identity and
+recompute the 47-row Tree0 root before checking proof bytes. That protects a
+local transaction from artifact-selected keys, but if it also needs the full
+native proof and ProgramV2 for every child, it is not yet succinct recursive
+admission. A production parent must prove its own membership/identity policy
+for any leaf-dependent key. Neither the expected identity nor a root copied
+from a child artifact may become an unchecked public input.
+
 ## Transcript and proof boundary
 
 1. Admit the native proof under its pinned q193 profile/key. Derive the V3
