@@ -35,6 +35,13 @@ metadata preimages and the folded parent statement, including 64-bit positions
 past the V2 clock cap. It is a native preflight for a future parent AIR, with
 mutation gates; it does not accept either child as a recursive proof.
 
+`integrations/riscv_cpu/recursive_segment_v3_outer_stage.zig` can now prove
+and freshly verify the actual 39-component local V2 outer transaction for a
+projected V3 leaf, then bind its verifier publication to the host-checked V3
+link. The staged manifest has no V3 publication capability: the local proof
+still does not constrain global position, so a temporal candidate cannot use
+this stage as a verified recursive child.
+
 ## Proof path still required
 
 1. Connect the two-pass plan/replay to proof publication. The first pass now

@@ -16,9 +16,15 @@ const M31 = @import("stwo_core").fields.m31.M31;
 pub const FORMAT_VERSION: u16 = 3;
 pub const SCHEMA_VERSION: u16 = 1;
 pub const ID_DOMAIN: u32 = 0x5354_4733; // "STG3"
-pub const LOCAL_V2_OUTER_COMPONENT_COUNT: u8 = 39;
+pub const LOCAL_V2_OUTER_COMPONENT_COUNT: u8 =
+    @intCast(@import("air/segment_outer_adapter_manifest_v2.zig").COMPONENT_COUNT);
 pub const GLOBAL_POSITION_RECURSIVELY_PROVEN = false;
 pub const V3_RECURSIVE_PUBLICATION_AVAILABLE = false;
+
+comptime {
+    if (LOCAL_V2_OUTER_COMPONENT_COUNT != 39)
+        @compileError("V3 staged outer manifest must be reviewed after V2 roster changes");
+}
 
 pub const StageManifestV3 = struct {
     format_version: u16 = FORMAT_VERSION,
