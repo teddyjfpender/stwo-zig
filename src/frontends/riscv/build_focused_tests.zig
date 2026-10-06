@@ -14,6 +14,14 @@ pub const Spec = struct {
 
 pub const specs = [_]Spec{
     .{
+        .step = "test-recursion-v4-direct-roster",
+        .description = "Pin the 47-row direct native verifier wrapper without PFD1 provider rows",
+        .root = "direct_wrapper_roster_test_root.zig",
+        .imports_prover_engine = true,
+        .filters = &.{"direct 47-row wrapper roster excludes post-challenge provider input"},
+        .minimum = 1,
+    },
+    .{
         .step = "test-recursion-v4-direct-row34",
         .description = "Check direct leaf ordered Poseidon calls and enlarged row-34 trace writer",
         .root = "v3_cohort_calls_test_root.zig",

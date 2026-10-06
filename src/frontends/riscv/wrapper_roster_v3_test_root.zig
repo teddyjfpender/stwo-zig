@@ -105,7 +105,7 @@ test "V3 wrapper roster combines exact 39 plus 10 rows and resizes one Poseidon 
     );
 }
 
-fn fixtureLogSizes() universal.LogSizes {
+pub fn fixtureLogSizes() universal.LogSizes {
     var result = [_]u32{4} ** roster.COMPONENT_COUNT;
     result[0] = 5;
     result[1] = 6;
@@ -122,7 +122,7 @@ fn fixtureLogSizes() universal.LogSizes {
     return result;
 }
 
-fn boundaryComponents() [boundary.COMPONENT_COUNT]boundary.ComponentGeometryV2 {
+pub fn boundaryComponents() [boundary.COMPONENT_COUNT]boundary.ComponentGeometryV2 {
     const log_size: u8 = 8;
     return .{
         .{
@@ -156,7 +156,7 @@ fn boundaryComponents() [boundary.COMPONENT_COUNT]boundary.ComponentGeometryV2 {
     };
 }
 
-fn authorityIds() v2.AuthorityIds {
+pub fn authorityIds() v2.AuthorityIds {
     return .{
         .transcript_manifest_id = nativeDigest(11),
         .statement_manifest_id = nativeDigest(29),
