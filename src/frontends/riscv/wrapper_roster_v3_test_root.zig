@@ -10,6 +10,8 @@ const provider = @import("recursion/segment_publication_input_provider_authority
 const range = @import("recursion/air/range_check_8_8_bridge.zig");
 const row17 = @import("recursion/air/vm_public_logup_control_witness_v2.zig");
 const program_mod = @import("recursion/ethereum_leaf_link_program_v1.zig");
+const program_v2_mod = @import("recursion/ethereum_leaf_link_program_v2.zig");
+const roster_v2 = @import("recursion/air/segment_leaf_wrapper_roster_v3_v2.zig");
 const profile = @import("recursion/segment_leaf_wrapper_protocol_v3.zig");
 const gate = @import("recursion/air/segment_leaf_wrapper_proof_gate_v3.zig");
 const tree0_air = @import("recursion/air/segment_v2_tree0_field_link_v3.zig");
@@ -49,28 +51,31 @@ test "V3 wrapper roster combines exact 39 plus 10 rows and resizes one Poseidon 
     try std.testing.expectEqual(@as(u32, 4), plan.placements[46].?.geometry.log_size);
     try std.testing.expectEqualSlices(u8, &@import("recursion/air/vm_public_claim_hash.zig").SEMANTIC_DIGEST, &plan.placements[47].?.geometry.semantic_digest);
     try std.testing.expectError(error.V3WrapperProofUnavailable, plan.requireCompleteWrapperProof());
-    const v3_protocol_id = try profile.protocolId(&plan);
+    var program_v2 = try program_v2_mod.ProgramV2.init(std.testing.allocator);
+    defer program_v2.deinit();
+    const plan_v2 = try roster_v2.PlanV2.build(std.testing.allocator, &plan_base, &program_v2, shape);
+    const v3_protocol_id = try profile.protocolId(&plan_v2);
     try std.testing.expect(!std.meta.eql(
         v3_protocol_id,
         @import("recursion/protocol.zig").PROTOCOL_ID_WORDS,
     ));
-    const different_shape = try subject.Plan.build(
+    const different_shape = try roster_v2.PlanV2.build(
         std.testing.allocator,
         &plan_base,
-        &program,
+        &program_v2,
         .{ .program_words = 101, .provider_words = 200, .base_poseidon_calls = 1193 },
     );
     try std.testing.expect(!std.meta.eql(v3_protocol_id, try profile.protocolId(&different_shape)));
     const root_a = [_]u32{ 1, 2, 3, 4, 5, 6, 7, 8 };
     var root_b = root_a;
     root_b[0] += 1;
-    const key_a = try profile.verificationKeyId(&plan, root_a);
-    const key_b = try profile.verificationKeyId(&plan, root_b);
+    const key_a = try profile.verificationKeyId(&plan_v2, root_a);
+    const key_b = try profile.verificationKeyId(&plan_v2, root_b);
     try std.testing.expect(!std.meta.eql(key_a, key_b));
     root_b[0] = @import("stwo_core").fields.m31.Modulus;
     try std.testing.expectError(
         error.NonCanonicalV3PreprocessedRoot,
-        profile.verificationKeyId(&plan, root_b),
+        profile.verificationKeyId(&plan_v2, root_b),
     );
     var partial_gate = try gate.ProofGate.init(&plan);
     try std.testing.expectError(error.IncompleteV3WrapperGate, partial_gate.sealGate(&plan));

@@ -46,12 +46,23 @@ their row-34 trace, manifest, claimed sums and interaction tree all belong to
 the new 47-row transaction.
 
 The direct ProgramV3 source schedule must omit the old provider-digest
-emitter and its projection/hash consumers. Its immutable schedule ID, typed
+emitter and its projection/hash consumers. Its public verifier-input shape is
+exactly 24 field limbs: link identity, native ProgramV2 digest and native
+Tree0/preprocessed root. The old 56-limb authority scope must be rejected so
+no provider digest survives as an unconstrained public word. Each consumed
+digest tuple needs the exact emission multiplicity; the Tree0 root also needs
+an AIR equality bridge to the native verifier's commitment input, rather than
+only a host-side equality check. Its immutable schedule ID, typed
 AIR geometry, relation registry, q193/PCS-PoW16/fold4 and 10-bit interaction
 PoW belong in a new protocol and verification-key namespace. The verifier
 recomputes the preprocessed root and admits only an independently pinned
 native Tree0/program key; a prover-supplied root or mutable host snapshot is
-not a key.
+not a key. The native transcript ProgramV2 includes the local wire and
+statement-authority identities, so its preprocessed words and the direct
+wrapper key may vary per leaf. The detached parent must authenticate the
+child key through an admitted program/statement or registered key family;
+accepting the key carried in a child artifact would let a prover select an
+arbitrary circuit.
 
 ## Transcript and proof boundary
 
