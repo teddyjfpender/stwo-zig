@@ -356,6 +356,22 @@ test "runner: real ELF campaign releases each leaf and preserves global order" {
         &limited,
     ));
     try std.testing.expectEqual(@as(usize, 2), limited.count);
+
+    var halt_policy = Consumer{};
+    const stopped = try segment_campaign.run(
+        .rv32im_zkvm_v1,
+        std.testing.allocator,
+        &elf,
+        .{ .stop_on_halt_flag = true },
+        2,
+        3,
+        &halt_policy,
+    );
+    try std.testing.expectEqual(@as(u32, 2), stopped.leaf_count);
+    try std.testing.expectEqual(@as(u64, 3), stopped.retired_cycles);
+    try std.testing.expectEqual(CompletionReason.halt_flag, stopped.completion_reason);
+    try std.testing.expectEqualSlices(usize, &.{ 2, 1, 0 }, &halt_policy.lengths);
+
     try std.testing.expectError(error.LeafBudgetExceedsLocalClock, segment_campaign.run(
         .rv32im_zkvm_v1,
         std.testing.allocator,
