@@ -103,6 +103,12 @@ root and the 47-domain child lookup closure during fresh verification. A
 focused real-ELF ReleaseSafe gate rejects changed query/profile metadata and
 nonce. This is a strong child transaction, not the 49-row global V3 wrapper;
 it does not produce a V2 publication or enable V3 recursive root publication.
+An independent-key real-ELF gate now chains the q193 native proof into this
+q193 outer transaction, serializes and freshly verifies both, and validates
+the strong field snapshot. On the local M5 CPU that gate measured 16.45 s for
+native ingress and 32.30 s for the outer transaction (20.80 s proof,
+8.60 s fresh verification), with 1.22 MB and 2.49 MB proof files. These are
+two child proofs for one local leaf, not a global-position wrapper or a root.
 
 The base RV32 SegmentV2 transcript ProgramV2 has an exact canonical M31
 preimage with Poseidon identity parity and a pinned typed word-source AIR.
@@ -130,13 +136,26 @@ at 47–48. Row 34 must be rebuilt as one enlarged Poseidon provider for every
 caller; copying the 39-row V2 proof would leave the added rows outside its
 commitment and lookup closure. The roster and exact-row claim gate pin geometry
 and reject incomplete assemblies, but cannot themselves prove anything. The
-new V3 protocol/key identity includes the roster, relation registry, strong
+versioned ProgramV2 schedule now uses the verifier capture's 28 native
+transcript claims rather than the older 42-claim design assumption. A real
+ELF yields 794 row-39 source values and 1,093 row-40 projections. It emits
+the one authenticated provider digest consumed by both the projection and
+provider-hash rows; the old schedule's four orphan provider digests cannot
+serve as proof inputs. The distinct VPR4/VPK4 protocol/key identity includes
+that schedule, the roster, relation registry, strong
 security profile and preprocessed root; the future verifier must recompute that
 root from pinned sources rather than trust a caller-supplied digest. Publication
 remains disabled until the verifier-owned source/interaction cohort, combined
 hash-call witness, exact global lookup closure and PCS transaction are built
 and freshly verified. The separate partial manifests remain useful as focused
 typed-component tests; they are not proof publications.
+The transaction kernel stages the three-tree transcript and fresh-verifier
+boundary but is deliberately unreachable until a concrete 49-row cohort has
+been qualified. Its inactive ready branch is not evidence that such a proof
+works. The provider field digest does not itself bind the ordered row-34 call
+buffer or strong child proof ID; the new cohort must reconstruct and constrain
+both. The typed row-41–48 diagnostic currently closes only two local tuple
+domains and cannot substitute for the full 47-domain lookup audit.
 For the base RV32 leaf, the child verifier authority is the freshly verified
 native SegmentV2 capture inside `PreparedNativeV2LeafOuter`; the detached
 39-component recursive-child loader belongs to a later parent and cannot
