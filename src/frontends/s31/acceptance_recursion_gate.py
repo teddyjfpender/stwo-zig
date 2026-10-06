@@ -60,7 +60,7 @@ def main() -> None:
         leaf = work / "leaf.proof"
         outer = work / "outer.proof"
         run(str(prover), "recurse-check", str(ASSIGNMENT),
-            str(work / "audit-leaf.proof"), accept=True)
+            str(work / "audit-leaf.proof"), str(key), accept=True)
         run(str(prover), "recurse-prove", str(ASSIGNMENT), str(leaf),
             str(outer), str(key), accept=True)
         statement_path = Path(f"{outer}.statement.json")
@@ -115,8 +115,9 @@ def main() -> None:
         # binds the original child words rather than a caller's replacement.
         changed = copy.deepcopy(statement)
         changed["child_public_words"][0] += 1
-        root = bytes.fromhex(json.loads(key.read_text())["preprocessed_root"])
-        digest = hashlib.blake2s(root + struct.pack("<8I", *changed["child_public_words"])).digest()
+        key_digest = hashlib.sha256(key.read_bytes()).digest()
+        digest = hashlib.blake2s(key_digest + struct.pack("<8I", *changed["child_public_words"]),
+                                 person=b"S31RCV2!").digest()
         changed["outer_public_words"] = list(struct.unpack("<8I", digest))
         wrong_child = work / "wrong-child.json"
         write_json(wrong_child, changed)
@@ -169,11 +170,12 @@ def main() -> None:
             "child_profile": child_profile,
             "leaf_proof_bytes": leaf.stat().st_size,
             "outer_proof_bytes": outer.stat().st_size,
+            "outer_public_words": statement["outer_public_words"],
             "outer_statement_sha256": hashlib.sha256(statement_path.read_bytes()).hexdigest(),
             "accepted": 4,
             "rejected": 12,
             "in_circuit_rejections": [
-                "changed_public_word", "trace_root", "claimed_sum",
+                "changed_public_word", "preprocessed_root", "trace_root", "claimed_sum",
                 "channel_salt", "fri_witness", "fri_last_layer",
             ],
         }, indent=2, sort_keys=True))

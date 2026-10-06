@@ -16,12 +16,13 @@ const projection_sha256 = "ceea3c293a4fcd3ca8a20ba62f4845732f8725bdf610fe6367c83
 pub const Expected = struct {
     preprocessed_root: [32]u8,
     circuit_hash: [32]u8,
+    child_key_digest: [32]u8,
     public_words: [8]u32,
 };
 
 /// Audit-only corruption of distinct verifier inputs. These are applied
 /// after native proof conversion, so rejection exercises the circuit itself.
-pub const Mutation = enum { trace_root, claimed_sum, channel_salt, fri_witness, fri_last_layer };
+pub const Mutation = enum { preprocessed_root, trace_root, claimed_sum, channel_salt, fri_witness, fri_last_layer };
 
 fn hashWords(bytes: [32]u8) [8]u32 {
     var words: [8]u32 = undefined;
@@ -30,15 +31,16 @@ fn hashWords(bytes: [32]u8) [8]u32 {
     return words;
 }
 
-/// The exact public output of the upstream single-circuit verifier:
-/// BLAKE2s(preprocessed_root || eight little-endian u32 output words).
-pub fn statementDigest(root: [32]u8, child_words: [8]u32) [8]u32 {
+/// S31 v2 recursive output. The bound verifier constrains the child root
+/// separately and embeds this key digest as eight fixed circuit constants.
+/// The personalization separates this output from other 64-byte hashes.
+pub fn statementDigest(key_digest: [32]u8, child_words: [8]u32) [8]u32 {
     var preimage: [64]u8 = undefined;
-    @memcpy(preimage[0..32], &root);
+    @memcpy(preimage[0..32], &key_digest);
     for (child_words, 0..) |word, index|
         std.mem.writeInt(u32, preimage[32 + 4 * index ..][0..4], word, .little);
     var digest: [32]u8 = undefined;
-    std.crypto.hash.blake2.Blake2s256.hash(&preimage, &digest, .{});
+    std.crypto.hash.blake2.Blake2s256.hash(&preimage, &digest, .{ .context = "S31RCV2!".* });
     return hashWords(digest);
 }
 
@@ -56,6 +58,8 @@ pub fn topology(
     projection_bytes: []const u8,
     layout: circuit.common.preprocessed.ColumnLayout,
     pcs: core.pcs.config_v2.PcsConfigV2,
+    child_key_digest: [32]u8,
+    child_root: [32]u8,
 ) !circuit.builder.Context(NoValue) {
     try authenticateProjection(projection_bytes);
     var projection = try circuit.air_eval.projection.parse(allocator, projection_bytes);
@@ -71,7 +75,7 @@ pub fn topology(
     var scratch = std.heap.ArenaAllocator.init(allocator);
     defer scratch.deinit();
     const empty = try circuit.stark_verifier.proof.emptyProof(scratch.allocator(), proof_config);
-    return circuit.statements.circuit_verifier.buildVerificationCircuit(
+    return circuit.statements.circuit_verifier.buildVerificationCircuitBound(
         NoValue,
         allocator,
         &table,
@@ -79,6 +83,7 @@ pub fn topology(
         undefined,
         &empty,
         .{ .output_digest = undefined },
+        .{ .key_digest = child_key_digest, .preprocessed_root = child_root },
     );
 }
 
@@ -162,7 +167,9 @@ pub fn verifyPreparedWithMutation(
     var scratch = std.heap.ArenaAllocator.init(allocator);
     defer scratch.deinit();
     var proof_values = try cpu.verifier_proof.circuitVerifierValues(scratch.allocator(), &adapted.proof, adapted.config);
+    var root_words = hashWords(expected.preprocessed_root);
     if (mutation) |change| switch (change) {
+        .preprocessed_root => root_words[0] ^= 1,
         .trace_root => proof_values.trace_root = circuit.builder.blake.hashValue(QM31, @splat(0)),
         .claimed_sum => proof_values.claimed_sums[0] = proof_values.claimed_sums[0].add(QM31.one()),
         .channel_salt => proof_values.channel_salt = proof_values.channel_salt.add(QM31.one()),
@@ -173,12 +180,13 @@ pub fn verifyPreparedWithMutation(
         .config = pcs,
         .preprocessed_column_log_sizes = layout,
     };
-    return circuit.statements.circuit_verifier.verifyCircuit(
+    return circuit.statements.circuit_verifier.verifyCircuitBound(
         allocator,
         &table,
         &config,
-        circuit.builder.blake.hashValue(QM31, hashWords(expected.preprocessed_root)),
+        circuit.builder.blake.hashValue(QM31, root_words),
         &proof_values,
         .{ .output_digest = circuit.builder.blake.hashValue(QM31, expected.public_words) },
+        .{ .key_digest = expected.child_key_digest, .preprocessed_root = expected.preprocessed_root },
     );
 }

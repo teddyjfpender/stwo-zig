@@ -132,6 +132,10 @@ The [recursion chapter](docs/recursion.md) demonstrates a one-level
 inside a circuit, and wrapped in an outer proof checked by a generated native
 verifier. Gate packages seal a recursive verification key at build time, so
 routine outer verification does not rebuild the large verifier topology.
+The v2 wrapper fixes the child AIR root with equality gates and embeds the
+SHA-256 digest of the exact child key as constants in its personalized
+one-block BLAKE2s public claim. A same-AIR, different-key replay fixture
+checks that this changes the outer AIR and rejects the old outer proof.
 `wrap --low-memory` trades some proving time for lower peak RAM while
 producing the same proof bytes.
 The chapter states the remaining steps for the sparse-wide Bitcoin

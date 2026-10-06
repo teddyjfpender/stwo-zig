@@ -23,18 +23,31 @@ by four outputs:
 The child key fixes the normalized source, circuit topology, preprocessed
 root, AIR bundle, eleven component shapes, PCS/FRI settings and transcript
 profile. The outer circuit guesses a child proof and runs the STARK verifier
-**inside its constraints**. Its public output is exactly:
+**inside its constraints**. It also fixes the eight child-root words by
+equality constraints against constants from the child key. Its public output
+is exactly:
 
 ```text
-Blake2s(child_preprocessed_root || LE32(child_public_words[0..8]))
+Blake2s-256(person="S31RCV2!",
+  SHA256(exact_child_key_bytes) || LE32(child_public_words[0..8]))
 ```
 
-The preimage is 64 bytes. For this fixture the outer digest, interpreted as
-eight little-endian `u32` words, is:
+The preimage remains one 64-byte Blake2s block. The key digest is eight
+**fixed circuit constants**, not witness values. The child root equality
+prevents a valid proof for a different AIR from being paired with that key.
+For root word `i`, the circuit adds the equality gate
+`guessed_root[i] = key.preprocessed_root[i]`; the in-circuit verifier also
+checks the child proof's first commitment against `guessed_root`. The eight
+key-digest constants enter the Blake2s message as its first eight `u32`
+words, followed by the eight constrained child output words. Both the
+value-bearing prover graph and the witness-free graph must have the same
+gate list and constant table before the outer AIR is accepted.
+For this fixture the outer digest, interpreted as eight little-endian `u32`
+words, is:
 
 ```text
-[600134516, 3955606978, 1223275420, 1510507231,
- 2769122967, 3174302306, 2521594207, 4164527659]
+[1165332741, 1691151829, 1726621965, 1268399239,
+ 691784874, 833490328, 1935791649, 1134705563]
 ```
 
 The outer verifier embeds the child key and a sealed recursive key generated
@@ -70,7 +83,10 @@ S31NAT1 child proof ── native verification
 CircuitStatement over all 11 child AIR components
     │ constrain roots, Fiat–Shamir, LogUp, composition, FRI and PoW
     ▼
-Verifier circuit output = Blake2s(child root || public words)
+Verifier circuit root = fixed child-key root
+    │ 8 word equalities
+    ▼
+Verifier circuit output = Blake2s(person="S31RCV2!", key digest || public words)
     │ prove with the full circuit AIR
     ▼
 S31NAT1 outer proof ── separately built native verifier
@@ -88,11 +104,11 @@ circuit satisfaction, and natively verifies the outer proof before writing
 it. `recurse-check` runs a separate audit: it serializes the in-circuit proof
 input from both the prover's metadata and the native verifier's authenticated
 opening capture, then requires the bytes to match exactly. It also requires
-rejection for a changed public word, trace commitment, claimed LogUp sum,
+rejection for a changed public word, preprocessed root, trace commitment, claimed LogUp sum,
 channel salt, FRI opening witness, and FRI last-layer coefficient.
 `recurse-prove` avoids those extra audit builds.
 `audit-recursive` accepts a saved child proof and public statement, replays
-native verification, and tests the same six in-circuit mutations on the
+native verification, and tests the same seven in-circuit mutations on the
 verifier-captured witness without needing the private assignment.
 For the documented fixture, the prover-side and verifier-captured in-circuit
 inputs serialized to the same 799,464 bytes. This equality checks conversion
@@ -102,6 +118,15 @@ The public outer statement contains the child key digest, eight child words,
 the outer digest, and the outer circuit's root and hash. The native outer
 verifier checks the last two against its embedded recursive key; the statement
 cannot choose them. It rejects unsupported profiles before decoding.
+The v2 outer AIR itself contains the key digest as constants and fixes the
+child root, so an outer proof for one compiled child key cannot be replayed
+under a different compiled key even if both keys describe the same gate
+topology. `recurse-check` takes the child key path so this binding is also
+tested by its audit circuit.
+The [cross-key acceptance fixture](../acceptance_recursion_key_binding.py)
+builds two differently named programs with identical child AIR roots. It
+shows that the child proof verifies under either key, while the outer AIR
+roots differ and an attempted outer-proof replay is rejected.
 
 The security claim is conditional on the soundness of the child and outer
 STARKs, the collision resistance of BLAKE2s and SHA-256, and the correctness
@@ -134,7 +159,7 @@ each `secret[j]` is in the `u16` range and satisfies
 `secret[j]² + 7 = target[j]` in M31; `assert_eq` becomes a circuit equality
 constraint. The outer circuit verifies that child
 STARK. Its statement contains the eight public `target || square` words
-and the digest binding those words to the child key's root. It contains no
+and the digest binding those words to the exact child key. It contains no
 private `secret` value or child proof. The [second acceptance fixture](../acceptance_recursion_private.py)
 proves and audits this route, and rejects changed public claims and an
 incorrect private assignment. This shows proof-of-proof composition for a
@@ -170,28 +195,32 @@ python3 src/frontends/s31/s31.py verify-recursive \
 
 python3 src/frontends/s31/acceptance_recursion_gate.py \
   --package zig-out/s31/recursive-arith4
+
+python3 src/frontends/s31/acceptance_recursion_key_binding.py \
+  --package zig-out/s31/recursive-arith4
 ```
 
 `recurse-prove ASSIGNMENT CHILD-PROOF OUTER-PROOF CHILD-KEY` remains a one-shot
 prover command. The acceptance run checks both one-shot and saved-proof
 wrappers, rejects changed leaf and outer statements, altered proofs and
-keys, and runs both audits to exercise the six direct in-circuit
+keys, and runs both audits to exercise the seven direct in-circuit
 corruptions above using both prover metadata and authenticated capture.
 
-One `ReleaseFast` run produced a 438,157-byte child proof. The verifier
-circuit had 10,277,308 variables and 1,139,003 arithmetic gates. After
-releasing both checked circuit graphs before proving, outer proving took
-2.644 seconds and produced a 547,655-byte proof. The full command took
-4.27 seconds and peaked at 9.39 GB resident memory (`/usr/bin/time -l`,
-macOS). Before that graph release, a separate run peaked at 9.70 GB and
-took 4.92 seconds. These are single observations, not controlled benchmark
-distributions or a Bitcoin-specific cost claim. The verifier circuit still
-dominates memory; reducing its gate count and the prover's trace storage
-are required for practical folding.
+A `ReleaseFast` v2 acceptance run produced a 438,157-byte child proof and a
+541,609-byte outer proof. The earlier v1 wrapper had 10,277,308 verifier
+variables and 1,139,003 arithmetic gates. Its outer proving took 2.644
+seconds and produced a 547,655-byte proof; the full command took 4.27
+seconds and peaked at 9.39 GB resident memory (`/usr/bin/time -l`, macOS).
+These are single observations, not controlled benchmark distributions or a
+Bitcoin-specific cost claim. The v1 timing is historical and should not be
+used as a v2 benchmark. The verifier circuit still dominates memory;
+reducing its gate count and the prover's trace storage are required for
+practical folding.
 
 `s31.py wrap ... --low-memory` retains committed evaluations without a
 second coefficient copy during outer proving. Three local runs of the same
-`arith4_m31` witness with `/usr/bin/time -l` gave these ranges:
+`arith4_m31` witness with the earlier v1 wrapper and `/usr/bin/time -l`
+gave these ranges:
 
 | Outer proving policy | Wall time | Peak resident memory | Outer proof |
 | --- | ---: | ---: | ---: |

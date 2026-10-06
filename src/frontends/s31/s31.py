@@ -319,7 +319,7 @@ def verify_package(package: Path) -> dict:
         if "recursive-verification-key.json" not in artifacts:
             raise ValueError("gate package is missing its recursive verification key")
         recursive_key = json.loads((package / "recursive-verification-key.json").read_text())
-        if (recursive_key.get("schema") != "s31-recursive-verification-key-v1" or
+        if (recursive_key.get("schema") != "s31-recursive-verification-key-v2" or
                 recursive_key.get("child_key_sha256") != file_hash(package / "verification-key.json") or
                 recursive_key.get("projection_sha256") != PROJECTION_SHA256 or
                 recursive_key.get("air_bundle_sha256") != AIR_BUNDLE_SHA256):
