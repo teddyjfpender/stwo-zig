@@ -10,4 +10,5 @@ comptime {
     _ = @import("recursion/air/transcript_program_v2_field_bridge_v4.zig");
     _ = @import("recursion/segment_leaf_wrapper_las2_boundary_v4.zig");
     _ = @import("recursion/segment_leaf_wrapper_local_identity_v5.zig");
+    _ = @import("recursion/air/segment_leaf_statement_source_direct_v5.zig");
 }
