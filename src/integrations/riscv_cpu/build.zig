@@ -217,6 +217,12 @@ pub fn build(b: *std.Build) void {
     });
     b.step("test-v7-payload-fixed", "Check verifier-owned native half-word payload fixed columns")
         .dependOn(&b.addRunArtifact(v7_payload_fixed_tests).step);
+    const v7_physical_bridge_tests = b.addTest(.{
+        .root_module = v3_rows_root,
+        .filters = &.{"V7 physical row5 and row42 claims close native half tuples"},
+    });
+    b.step("test-v7-physical-bridge", "Check template-backed V7 row5/row42 physical columns and half-word claim closure")
+        .dependOn(&b.addRunArtifact(v7_physical_bridge_tests).step);
     const v6_npv2_tests = b.addTest(.{
         .root_module = v3_rows_root,
         .filters = &.{"V6 local router exports exactly eight hash-bound authority words to NPV2"},

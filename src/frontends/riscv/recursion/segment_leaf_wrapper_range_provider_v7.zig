@@ -11,6 +11,10 @@ const arithmetic = @import("air/ethereum_leaf_link_arithmetic_v1.zig");
 const program = @import("air/transcript_program_v2_field_bridge_v6.zig");
 const bridge = @import("air/range_check_8_8_bridge.zig");
 const counter_mod = @import("../air/lookups/tables/counter.zig");
+const roster = @import("air/segment_leaf_wrapper_roster_direct_v7.zig");
+const shared = @import("air/universal_provider_relations.zig");
+const relation = @import("../air/lang/relation.zig");
+const DomainAudit = @import("air/relation_interaction.zig").DomainAudit;
 
 pub const PRODUCTION_PROOF_ACTIVATION = false;
 pub const WIRE_ROW_COUNT: usize = 8;
@@ -67,6 +71,50 @@ pub const Provider = struct {
     pub fn deinit(self: *Provider) void {
         self.legacy_provider.deinit();
         self.* = undefined;
+    }
+
+    /// Row35 keeps the native counter AIR, but its committed multiplicities
+    /// must include the 24 new V7 wire-byte requests before interaction.
+    pub fn fillMain(self: *const Provider, plan: *const roster.Plan, destination: [][]M31) !void {
+        try plan.validate();
+        const placement = plan.placements[legacy.ROW];
+        if (placement.geometry.log_size != bridge.LOG_SIZE or
+            placement.geometry.main_columns != bridge.PHYSICAL_MAIN_COLUMN_COUNT or
+            placement.main_offset >= destination.len)
+            return error.V7RangeGeometryMismatch;
+        var columns = [bridge.PHYSICAL_MAIN_COLUMN_COUNT][]M31{destination[placement.main_offset]};
+        var definition = try bridge.build(self.legacy_provider.allocator);
+        defer definition.deinit();
+        const binding = try bridge.Binding.canonical(&definition);
+        const executor = try bridge.Executor.init(&definition, &binding);
+        try executor.generateMainInto(&self.legacy_provider.batch, &columns);
+    }
+
+    pub fn fillInteraction(self: *const Provider, plan: *const roster.Plan, provider_relations: *const shared.SharedProviderRelations, destination: [][]M31) !legacy.ClaimAudit {
+        try plan.validate();
+        try provider_relations.validate();
+        const placement = plan.placements[legacy.ROW];
+        if (placement.geometry.log_size != bridge.LOG_SIZE or
+            placement.geometry.interaction_columns != bridge.INTERACTION_COLUMN_COUNT or
+            placement.interaction_offset > destination.len or
+            bridge.INTERACTION_COLUMN_COUNT > destination.len - placement.interaction_offset)
+            return error.V7RangeGeometryMismatch;
+        var generated = try self.legacy_provider.batch.generateNativeInteraction(self.legacy_provider.allocator, &provider_relations.native);
+        defer generated.deinit(self.legacy_provider.allocator);
+        const size = @as(usize, 1) << bridge.LOG_SIZE;
+        for (generated.columns, destination[placement.interaction_offset..][0..bridge.INTERACTION_COLUMN_COUNT]) |source, target| {
+            if (source.len != size or target.len != size) return error.V7RangeGeometryMismatch;
+            for (target) |value| if (!value.isZero()) return error.V7RangeDestinationNotFresh;
+        }
+        for (generated.columns, destination[placement.interaction_offset..][0..bridge.INTERACTION_COLUMN_COUNT]) |source, target| @memcpy(target, source);
+        var audit = DomainAudit{
+            .values = @splat(QM31.zero()),
+            .total = generated.claim,
+            .logical_rows = size,
+            .event_terms = size,
+        };
+        audit.values[@intFromEnum(relation.Domain.range_check_8_8)] = generated.claim;
+        return .{ .claim = generated.claim, .audit = audit };
     }
 };
 

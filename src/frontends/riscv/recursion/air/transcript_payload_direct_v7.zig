@@ -30,7 +30,7 @@ pub const SEMANTIC_DIGEST: digest.Digest = blk: {
 pub const Runtime = compiler.Runtime(LOGICAL_INPUT_COUNT, RELATION_EVENT_COUNT, LOOKUP_BATCH_SIZE);
 pub const Row = Runtime.Row;
 pub const Plan = Runtime.Plan;
-const events: [RELATION_EVENT_COUNT]types.EffectId = .{ @enumFromInt(0), @enumFromInt(1), @enumFromInt(2) };
+pub const events: [RELATION_EVENT_COUNT]types.EffectId = .{ @enumFromInt(0), @enumFromInt(1), @enumFromInt(2) };
 
 pub const Definition = struct {
     arena: ir.Arena,

@@ -303,7 +303,7 @@ fn airGeometry(comptime row: u8, log_size: u32, comptime air: type) Geometry {
 /// Hash all fixed columns, column-major in logical row order. The AIR writer
 /// deterministically permutes logical rows into committed order; the digest
 /// includes zero padding up to the exact committed trace capacity.
-fn row5FixedColumnsId(template: *const row5_template.Template, log_size: u32) ![32]u8 {
+pub fn row5FixedColumnsId(template: *const row5_template.Template, log_size: u32) ![32]u8 {
     if (log_size >= @bitSizeOf(usize)) return error.InvalidV7TemplateRow5Geometry;
     const capacity = @as(usize, 1) << @intCast(log_size);
     if (template.rows.len > capacity) return error.InvalidV7TemplateRow5Geometry;
@@ -318,7 +318,7 @@ fn row5FixedColumnsId(template: *const row5_template.Template, log_size: u32) ![
     return hash.finalResult();
 }
 
-fn row42FixedColumnsId(fixed: row42_air.FixedSchedule) ![32]u8 {
+pub fn row42FixedColumnsId(fixed: row42_air.FixedSchedule) ![32]u8 {
     var hash = fixedColumnsHasher(42, fixed.log_size, row42_air.PREPROCESSED_COLUMN_COUNT, row42_air.SEMANTIC_DIGEST);
     for (0..row42_air.PREPROCESSED_COLUMN_COUNT) |column| for (0..fixed.rowCapacity()) |row| {
         const values = try fixed.preprocessedRow(row);
