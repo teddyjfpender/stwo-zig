@@ -16,6 +16,9 @@ const link = @import("ethereum_leaf_link_program_v3.zig");
 const plan = @import("air/verifier_schedule.zig");
 const statement = @import("../air/statement.zig");
 const framework = @import("air/framework_interaction.zig");
+const lookup = @import("../air/lang/lookup_physical_manifest_v2.zig");
+const program = @import("transcript_program_v2_program.zig");
+const security = @import("segment_v3_production_security_policy.zig");
 
 pub const PRODUCTION_PROOF_ACTIVATION = false;
 pub const DOMAIN = "stwo-zig/riscv-v7-row5-fixed-columns/v1\x00";
@@ -36,10 +39,17 @@ pub const Template = struct {
     ) !Template {
         const instructions = try instruction.compileInstructions(allocator, native_plan, wire_word_count, component_descs, infra_descs, lookup_enabled);
         defer allocator.free(instructions);
-        return init(allocator, instructions, link_program);
+        const activation: ?lookup.AuthenticatedStatement = if (lookup_enabled) blk: {
+            var core: statement.RiscVStatement = undefined;
+            core.n_components = @intCast(component_descs.len);
+            @memcpy(core.component_descs[0..component_descs.len], component_descs);
+            var manifest = lookup.Manifest.native();
+            break :blk try lookup.AuthenticatedStatement.init(&core, &manifest);
+        } else null;
+        return init(allocator, instructions, link_program, activation);
     }
 
-    pub fn init(allocator: std.mem.Allocator, instructions: []const transcript.Instruction, link_program: *const link.ProgramV3) !Template {
+    pub fn init(allocator: std.mem.Allocator, instructions: []const transcript.Instruction, link_program: *const link.ProgramV3, activation: ?lookup.AuthenticatedStatement) !Template {
         var frames = try frame_template.Template.build(allocator, instructions);
         defer frames.deinit();
         var original: std.ArrayList(payload_relation.Row) = .empty;
@@ -48,7 +58,11 @@ pub const Template = struct {
             const fixed = frame.preprocessing;
             if (fixed.is_payload == 0) continue;
             if (fixed.sequence >= instructions.len) return error.InvalidV7PayloadTemplate;
-            const value = M31.fromCanonical(fixed.constant_value);
+            const metadata = source.payloadMetadata(instructions[fixed.sequence], fixed.payload_index);
+            const value = if (metadata.constant_mask == 1)
+                try fixedPayloadWord(instructions[fixed.sequence], fixed.payload_index, activation)
+            else
+                M31.zero();
             const item = source.payloadRow(
                 instructions[fixed.sequence],
                 fixed.sequence,
@@ -79,18 +93,43 @@ pub const Template = struct {
         native_rows: []const payload_relation.Row,
         wire_words: []const M31,
     ) !void {
+        if (try self.firstSourceMismatch(allocator, link_program, native_rows, wire_words) != null)
+            return error.V7PayloadFixedSourceMismatch;
+    }
+
+    pub const SourceMismatch = struct {
+        row: usize,
+        column: usize,
+        actual: u32,
+        expected: u32,
+    };
+
+    pub fn firstSourceMismatch(
+        self: *const Template,
+        allocator: std.mem.Allocator,
+        link_program: *const link.ProgramV3,
+        native_rows: []const payload_relation.Row,
+        wire_words: []const M31,
+    ) !?SourceMismatch {
         if (!std.meta.eql(self.id, fixedDigest(self.rows)))
             return error.InvalidV7PayloadFixedSchedule;
         var selected = try fanout.Schedule.init(allocator, link_program, native_rows);
         defer selected.deinit();
         var wire = try halves.Schedule.init(allocator, selected.rows, wire_words);
         defer wire.deinit();
-        if (wire.rows.len != self.rows.len) return error.V7PayloadFixedSourceMismatch;
-        for (wire.rows, self.rows) |actual, expected| {
+        if (wire.rows.len != self.rows.len) return error.V7PayloadFixedSourceRowCountMismatch;
+        for (wire.rows, self.rows, 0..) |actual, expected, row_index| {
             const start = direct.PHYSICAL_MAIN_COLUMN_COUNT;
-            if (!std.mem.eql(M31, actual[start..][0..direct.PREPROCESSED_COLUMN_COUNT], expected[start..][0..direct.PREPROCESSED_COLUMN_COUNT]))
-                return error.V7PayloadFixedSourceMismatch;
+            for (actual[start..][0..direct.PREPROCESSED_COLUMN_COUNT], expected[start..][0..direct.PREPROCESSED_COLUMN_COUNT], 0..) |actual_value, fixed_value, column_index| {
+                if (!actual_value.eql(fixed_value)) return .{
+                    .row = row_index,
+                    .column = column_index,
+                    .actual = actual_value.toU32(),
+                    .expected = fixed_value.toU32(),
+                };
+            }
         }
+        return null;
     }
 
     pub fn writeInto(self: *const Template, log_size: u32, columns: [][]M31) !void {
@@ -124,6 +163,57 @@ fn fixedDigest(rows: []const direct.Row) [32]u8 {
         hash.update(&bytes);
     };
     return hash.finalResult();
+}
+
+/// Only the transcript kinds whose payload metadata declares a constant may
+/// reach this function. Their values are rebuilt from admitted verifier shape.
+fn fixedPayloadWord(item: transcript.Instruction, index: u32, activation: ?lookup.AuthenticatedStatement) !M31 {
+    const position: usize = @intCast(index);
+    if (position >= try item.payloadWordCount()) return error.InvalidV7PayloadTemplate;
+    return switch (item.kind) {
+        .pcs_config => blk: {
+            var words = [_]M31{M31.zero()} ** 8;
+            const count = try item.payloadWordCount();
+            if (count != 4 and count != 8) return error.InvalidV7PayloadTemplate;
+            program.writePcsFelts(words[0..count], security.REQUIRED_PCS_CONFIG);
+            break :blk words[position];
+        },
+        .lookup_activation_header => blk: {
+            const a = activation orelse return error.InvalidV7PayloadTemplate;
+            break :blk splitU32((&[_]u32{
+                lookup.TRANSCRIPT_TAG,
+                lookup.FORMAT_VERSION,
+                a.format_version,
+                a.component_count,
+                a.opcode_main_columns,
+                a.opcode_interaction_columns,
+                a.detailed_claim_count,
+            })[position / 2], position % 2);
+        },
+        .lookup_manifest_identity, .lookup_statement_identity, .lookup_activation_identity => blk: {
+            const a = activation orelse return error.InvalidV7PayloadTemplate;
+            const digest = switch (item.kind) {
+                .lookup_manifest_identity => a.manifest_identity,
+                .lookup_statement_identity => a.statement_identity,
+                .lookup_activation_identity => a.activation_identity,
+                else => unreachable,
+            };
+            break :blk M31.fromCanonical(std.mem.readInt(u16, digest[position * 2 ..][0..2], .little));
+        },
+        .main_log_size, .interaction_log_size => splitU64(item.args[1], position),
+        .interaction_log_count => splitU64(item.args[0], position),
+        .shard_header => splitU32((&[_]u32{ 0x5348_5244, item.args[0], item.args[1] })[position / 2], position % 2),
+        .shard_component, .shard_infra => splitU32(item.args[position / 2], position % 2),
+        else => error.InvalidV7PayloadTemplate,
+    };
+}
+
+fn splitU64(value: u64, position: usize) M31 {
+    return M31.fromCanonical(@intCast((value >> @intCast(16 * position)) & 0xffff));
+}
+
+fn splitU32(value: u32, half: usize) M31 {
+    return M31.fromCanonical(if (half == 0) value & 0xffff else value >> 16);
 }
 
 test "V7 row5 fixed schedule comes from admitted transcript shape" {

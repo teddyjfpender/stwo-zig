@@ -330,12 +330,18 @@ fn diagnoseDirect50(
             &program,
         );
         defer row5_fixed.deinit();
-        try row5_fixed.validateSource(
+        const row5_mismatch = try row5_fixed.firstSourceMismatch(
             allocator,
             &program,
             cohort.noncore.transcript_workspace.transcript_payload_rows,
             rows47.native.program.words[10..18],
         );
+        if (row5_mismatch) |mismatch| {
+            std.debug.print("DIRECT50_ROW5_FIXED_MISMATCH row={d} column={d} actual={d} expected={d}\n", .{
+                mismatch.row, mismatch.column, mismatch.actual, mismatch.expected,
+            });
+            return error.V7PayloadFixedSourceMismatch;
+        }
         std.debug.print("DIRECT50_ROW5_FIXED rows={d} shape_parity=true\n", .{row5_fixed.rows.len});
         var statement_v6 = try recursion.segment_leaf_statement_source_direct_v6.Schedule.init(
             allocator,
