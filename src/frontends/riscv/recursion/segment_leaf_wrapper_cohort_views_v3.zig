@@ -7,12 +7,65 @@
 
 const std = @import("std");
 const M31 = @import("stwo_core").fields.m31.M31;
+const QM31 = @import("stwo_core").fields.qm31.QM31;
 const manifest_mod = @import("air/segment_outer_adapter_manifest_v2.zig");
+const DomainAudit = @import("air/relation_interaction.zig").DomainAudit;
 
 pub const PRODUCTION_PROOF_ACTIVATION = false;
 pub const BASE_ROWS: usize = manifest_mod.COMPONENT_COUNT;
 pub const REPLACED_ROW: usize = 34;
 pub const Placement = manifest_mod.Placement;
+pub const REUSED_MASK: u64 = (@as(u64, 1) << BASE_ROWS) - 1 - (@as(u64, 1) << REPLACED_ROW);
+pub const NONCORE_MASK: u64 = ((@as(u64, 1) << 18) - 1) | (((@as(u64, 1) << 4) - 1) << 35);
+
+pub const ReusedClaims = struct {
+    claims: [BASE_ROWS]QM31,
+    audits: [BASE_ROWS]DomainAudit,
+    present_mask: u64,
+};
+
+/// Called only after the V2 owner's `fillInteractionInto` returned a validated
+/// generated receipt. The direct transaction contributes its new row-34 claim
+/// and appended claims before checking all 47 relation domains.
+pub fn collectReusedClaims(generated: anytype) !ReusedClaims {
+    var result = ReusedClaims{
+        .claims = @splat(QM31.zero()),
+        .audits = @splat(emptyAudit()),
+        .present_mask = 0,
+    };
+    try generated.noncore.installClaimsAndAudits(
+        &result.claims,
+        &result.audits,
+        &result.present_mask,
+    );
+    if (result.present_mask != NONCORE_MASK or
+        generated.core.claims.len != 17 or generated.core.audits.len != 17)
+        return error.V3ReusedClaimCoverageMismatch;
+    for (generated.core.claims[0..16], generated.core.audits[0..16], 18..) |claim, audit, row| {
+        const bit = @as(u64, 1) << @intCast(row);
+        if (result.present_mask & bit != 0) return error.V3ReusedClaimCoverageMismatch;
+        result.claims[row] = claim;
+        result.audits[row] = audit;
+        result.present_mask |= bit;
+    }
+    if (result.present_mask != REUSED_MASK or
+        !result.claims[REPLACED_ROW].eql(QM31.zero()))
+        return error.V3ReusedClaimCoverageMismatch;
+    for (result.claims, result.audits, 0..) |claim, audit, row| {
+        if (row != REPLACED_ROW and !claim.eql(audit.total))
+            return error.V3ReusedClaimAuditMismatch;
+    }
+    return result;
+}
+
+fn emptyAudit() DomainAudit {
+    return .{
+        .values = @splat(QM31.zero()),
+        .total = QM31.zero(),
+        .logical_rows = 0,
+        .event_terms = 0,
+    };
+}
 
 pub const Views = struct {
     allocator: std.mem.Allocator,
@@ -246,6 +299,50 @@ test "direct leaf views reuse V2 rows without copying old row34" {
     try std.testing.expect(io_destination[REPLACED_ROW * 4][0].isZero());
     target[12].?.geometry.log_size += 1;
     try std.testing.expectError(error.V3BaseViewGeometryMismatch, initMapped(allocator, &source, &target, destination, manifest_mod.MAIN_TREE_INDEX));
+}
+
+test "direct leaf retains 38 V2 claims and drops obsolete row34" {
+    const one = QM31.one();
+    const Noncore = struct {
+        omit_row35: bool = false,
+        fn installClaimsAndAudits(
+            self: *const @This(),
+            claims: *[BASE_ROWS]QM31,
+            audits: *[BASE_ROWS]DomainAudit,
+            mask: *u64,
+        ) !void {
+            for (0..BASE_ROWS) |row| {
+                if (row >= 18 and row <= REPLACED_ROW) continue;
+                if (self.omit_row35 and row == 35) continue;
+                claims[row] = if (row == 0) QM31.one() else QM31.zero();
+                audits[row] = emptyAudit();
+                audits[row].total = claims[row];
+                mask.* |= @as(u64, 1) << @intCast(row);
+            }
+        }
+    };
+    const Generated = struct {
+        noncore: Noncore,
+        core: struct { claims: [17]QM31, audits: [17]DomainAudit },
+    };
+    var generated = Generated{
+        .noncore = .{},
+        .core = .{ .claims = @splat(QM31.zero()), .audits = @splat(emptyAudit()) },
+    };
+    generated.core.claims[0] = one;
+    generated.core.audits[0].total = one;
+    generated.core.claims[16] = one; // old row 34 must be ignored
+    generated.core.audits[16].total = one;
+    const reused = try collectReusedClaims(&generated);
+    try std.testing.expectEqual(REUSED_MASK, reused.present_mask);
+    try std.testing.expect(reused.claims[0].eql(one));
+    try std.testing.expect(reused.claims[18].eql(one));
+    try std.testing.expect(reused.claims[34].eql(QM31.zero()));
+    generated.core.audits[0].total = QM31.zero();
+    try std.testing.expectError(error.V3ReusedClaimAuditMismatch, collectReusedClaims(&generated));
+    generated.core.audits[0].total = one;
+    generated.noncore.omit_row35 = true;
+    try std.testing.expectError(error.V3ReusedClaimCoverageMismatch, collectReusedClaims(&generated));
 }
 
 fn fakePlacement(row: u8, main_offset: u32, main_columns: u16, log_size: u32) Placement {
