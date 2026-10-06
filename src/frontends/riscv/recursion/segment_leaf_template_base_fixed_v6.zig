@@ -24,15 +24,21 @@ const public_source = @import("segment_public_outer_source_v2.zig");
 const public_components = @import("segment_public_outer_components_v2_contract.zig");
 const public_air = @import("air/segment_public_outer_air_v2.zig");
 const merkle_path_air = @import("air/merkle_path.zig");
+const query_bits_air = @import("air/query_bits.zig");
+const query_bits = @import("air/query_bits_witness.zig");
+const query_mapping_air = @import("air/query_mapping.zig");
+const query_mapping = @import("air/query_mapping_witness.zig");
 
 pub const PRODUCTION_PROOF_ACTIVATION = false;
-pub const QUALIFIED_ROWS = [_]u8{ 0, 1, 2, 3, 6, 7, 8, 9, 10, 12, 33, 34, 35 };
+pub const QUALIFIED_ROWS = [_]u8{ 0, 1, 2, 3, 6, 7, 8, 9, 10, 12, 20, 21, 33, 34, 35 };
 
 pub const Writer = struct {
     allocator: std.mem.Allocator,
     manifest: template_mod.TemplateManifestV6,
     control_rows: []control_witness.Row,
     transcript_rows: transcript_fixed.Fixed,
+    query_bit_rows: query_bits.Preprocessed,
+    query_mapping_rows: query_mapping.Preprocessed,
 
     pub fn init(
         allocator: std.mem.Allocator,
@@ -69,14 +75,24 @@ pub const Writer = struct {
             lookup_enabled,
         );
         errdefer transcript_rows.deinit();
+        const core_reference = try core_profile.reference();
+        var query_bit_rows = try query_bits.Preprocessed.init(allocator, try core_reference.queryBitsReference());
+        errdefer query_bit_rows.deinit();
+        var query_mapping_rows = try query_mapping.Preprocessed.init(allocator, core_reference);
+        errdefer query_mapping_rows.deinit();
         if (manifest.placements[0].geometry.preprocessed_columns != control_air.PREPROCESSED_COLUMN_COUNT or
             manifest.placements[0].geometry.log_size >= @bitSizeOf(usize) or
             control_rows.len > @as(usize, 1) << @intCast(manifest.placements[0].geometry.log_size))
             return error.FixedControlGeometryMismatchV6;
-        return .{ .allocator = allocator, .manifest = manifest, .control_rows = control_rows, .transcript_rows = transcript_rows };
+        if (manifest.placements[20].geometry.log_size != query_bit_rows.log_size or
+            manifest.placements[21].geometry.log_size != query_mapping_rows.log_size)
+            return error.FixedCoreQueryGeometryMismatchV6;
+        return .{ .allocator = allocator, .manifest = manifest, .control_rows = control_rows, .transcript_rows = transcript_rows, .query_bit_rows = query_bit_rows, .query_mapping_rows = query_mapping_rows };
     }
 
     pub fn deinit(self: *Writer) void {
+        self.query_mapping_rows.deinit();
+        self.query_bit_rows.deinit();
         self.transcript_rows.deinit();
         self.allocator.free(self.control_rows);
         self.* = undefined;
@@ -154,6 +170,30 @@ pub const Writer = struct {
                     const fixed = publicationHeaderRow(index, M31.zero());
                     const logical = public_components.logicalRow(fixed);
                     put(columns, geometry.log_size, index, logical[public_air.PublicationHeader.PHYSICAL_MAIN_COLUMN_COUNT..][0..columns.len]);
+                }
+            },
+            20 => {
+                if (columns.len != query_bits_air.PREPROCESSED_COLUMN_COUNT or
+                    geometry.log_size != self.query_bit_rows.log_size or
+                    self.query_bit_rows.rows.len > capacity)
+                    return error.FixedCoreQueryGeometryMismatchV6;
+                const reference = try self.manifest.shape.core_profile.reference();
+                try self.query_bit_rows.validateAgainst(try reference.queryBitsReference());
+                for (self.query_bit_rows.rows, 0..) |fixed, index| {
+                    const values = fixed.values();
+                    put(columns, geometry.log_size, index, &values);
+                }
+            },
+            21 => {
+                if (columns.len != query_mapping_air.PREPROCESSED_COLUMN_COUNT or
+                    geometry.log_size != self.query_mapping_rows.log_size or
+                    self.query_mapping_rows.rows.len > capacity)
+                    return error.FixedCoreQueryGeometryMismatchV6;
+                const reference = try self.manifest.shape.core_profile.reference();
+                try self.query_mapping_rows.validateAgainst(reference);
+                for (self.query_mapping_rows.rows, 0..) |fixed, index| {
+                    const values = fixed.values();
+                    put(columns, geometry.log_size, index, &values);
                 }
             },
             33 => if (columns.len != merkle_path_air.PREPROCESSED_COLUMN_COUNT)
@@ -250,6 +290,14 @@ test "V6 base fixed rows reconstruct without a leaf" {
     defer fixed_schedule.deinit();
     inline for (.{ .{ 2, fixed_schedule.bindings.len }, .{ 3, fixed_schedule.states.len }, .{ 8, fixed_schedule.relations.len }, .{ 9, fixed_schedule.randomness.len } }) |item|
         logs[item[0]] = @max(logs[item[0]], @as(u32, @intCast(std.math.log2_int_ceil(usize, @max(item[1], 1)))));
+    const core_profile = try template_mod.testFrozenCoreProfileV6();
+    const core_query_mapping = try core_profile.reference();
+    var bit_shape = try query_bits.Preprocessed.init(allocator, try core_query_mapping.queryBitsReference());
+    defer bit_shape.deinit();
+    var map_shape = try query_mapping.Preprocessed.init(allocator, core_query_mapping);
+    defer map_shape.deinit();
+    logs[20] = bit_shape.log_size;
+    logs[21] = map_shape.log_size;
     const catalog = try catalog_mod.build(logs, fixture.boundaryComponents());
     const instructions = try @import("transcript_instruction_template_v6.zig").InstructionTemplateV6.build(
         allocator,
@@ -260,8 +308,6 @@ test "V6 base fixed rows reconstruct without a leaf" {
         false,
     );
     const shape = shape_mod.Shape{ .program_words = instructions.canonical_program_word_count, .base_poseidon_calls = 1193 };
-    const core_profile = try template_mod.testFrozenCoreProfileV6();
-    const core_query_mapping = try core_profile.reference();
     var writer = try Writer.init(allocator, &catalog, shape, &child_fixture.components, &child_fixture.infra, &plans.vm, &core_profile, &core_query_mapping, 128, false);
     defer writer.deinit();
     for (QUALIFIED_ROWS) |row| {
@@ -300,6 +346,8 @@ test "V6 base fixed rows reconstruct without a leaf" {
                         try std.testing.expectEqual(value.toU32(), column[committed].toU32());
                 }
             },
+            20 => try expectCorePreprocessedParity(query_bits_air, query_bits, allocator, a, &writer.query_bit_rows, try core_query_mapping.queryBitsReference(), columns, geometry.log_size),
+            21 => try expectCorePreprocessedParity(query_mapping_air, query_mapping, allocator, a, &writer.query_mapping_rows, core_query_mapping, columns, geometry.log_size),
             34 => {
                 const committed = framework.committedRow(0, geometry.log_size);
                 try std.testing.expect(columns[0][committed].isOne());
@@ -316,6 +364,31 @@ test "V6 base fixed rows reconstruct without a leaf" {
         }
         if (row != 10 and columns.len > 0) try std.testing.expectError(error.FixedBaseDestinationNotFreshV6, writer.writeRow(row, columns));
     }
+    var mutation_arena = std.heap.ArenaAllocator.init(allocator);
+    defer mutation_arena.deinit();
+    const mutation_allocator = mutation_arena.allocator();
+    for ([_]u8{ 20, 21 }) |row| {
+        const geometry = writer.manifest.placements[row].geometry;
+        const capacity = @as(usize, 1) << @intCast(geometry.log_size);
+        const columns = try mutation_allocator.alloc([]M31, geometry.preprocessed_columns);
+        for (columns) |*column| {
+            column.* = try mutation_allocator.alloc(M31, capacity);
+            @memset(column.*, M31.zero());
+        }
+        if (row == 20) {
+            writer.query_bit_rows.rows[0].query += 1;
+            try std.testing.expectError(error.AuthorityMismatch, writer.writeRow(row, columns));
+            writer.query_bit_rows.rows[0].query -= 1;
+        } else {
+            writer.query_mapping_rows.rows[0].query += 1;
+            try std.testing.expectError(error.AuthorityMismatch, writer.writeRow(row, columns));
+            writer.query_mapping_rows.rows[0].query -= 1;
+        }
+        for (columns) |column| for (column) |value| try std.testing.expect(value.isZero());
+    }
+    logs[20] += 1;
+    const wrong_catalog = try catalog_mod.build(logs, fixture.boundaryComponents());
+    try std.testing.expectError(error.FixedCoreQueryGeometryMismatchV6, Writer.init(allocator, &wrong_catalog, shape, &child_fixture.components, &child_fixture.infra, &plans.vm, &core_profile, &core_query_mapping, 128, false));
     try std.testing.expectError(error.UnqualifiedFixedRowV6, writer.writeRow(11, &.{}));
     try std.testing.expectError(error.UnqualifiedFixedRowV6, writer.writeRow(17, &.{}));
     try std.testing.expectError(error.UnqualifiedFixedRowsV6, writer.requireCompletePreprocessing());
@@ -326,5 +399,31 @@ fn expectFixedRows(columns: [][]M31, log_size: u32, rows: anytype) !void {
         const committed = framework.committedRow(logical, log_size);
         for (fixed.values(), columns) |value, column|
             try std.testing.expectEqual(value.toU32(), column[committed].toU32());
+    }
+}
+
+fn expectCorePreprocessedParity(
+    comptime Air: type,
+    comptime Witness: type,
+    allocator: std.mem.Allocator,
+    arena: std.mem.Allocator,
+    preprocessing: anytype,
+    reference: anytype,
+    physical: [][]M31,
+    log_size: u32,
+) !void {
+    var definition = try Air.build(allocator);
+    defer definition.deinit();
+    const binding = try Witness.Binding.canonical(&definition);
+    const executor = try Witness.Executor.init(&definition, &binding);
+    const capacity = @as(usize, 1) << @intCast(log_size);
+    var raw: [Air.PREPROCESSED_COLUMN_COUNT][]M31 = undefined;
+    for (&raw) |*column| column.* = try arena.alloc(M31, capacity);
+    try executor.generatePreprocessedInto(preprocessing, reference, &raw);
+    for (raw, physical) |core_column, template_column| {
+        for (core_column, 0..) |value, logical| {
+            const committed = framework.committedRow(logical, log_size);
+            try std.testing.expectEqual(value.toU32(), template_column[committed].toU32());
+        }
     }
 }
