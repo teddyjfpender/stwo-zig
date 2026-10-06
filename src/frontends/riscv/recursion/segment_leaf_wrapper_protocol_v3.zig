@@ -108,8 +108,9 @@ pub fn protocolId(plan: *const roster.Plan) !channel.Digest {
     return channel.hashCanonicalWords(&words, PROTOCOL_ID_DOMAIN);
 }
 
-/// A separate verification-key identity pins the recomputed preprocessed
-/// root. Protocol identity alone is never sufficient to admit a proof.
+/// A separate verification-key identity includes the preprocessed root.
+/// The eventual verifier must recompute that root from the pinned roster;
+/// passing this function an arbitrary root is not proof admission.
 pub fn verificationKeyId(plan: *const roster.Plan, preprocessed_root: channel.Digest) !channel.Digest {
     const protocol_id = try protocolId(plan);
     var words: [16]M31 = undefined;

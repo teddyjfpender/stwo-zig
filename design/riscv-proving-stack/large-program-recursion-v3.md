@@ -120,8 +120,9 @@ at 47–48. Row 34 must be rebuilt as one enlarged Poseidon provider for every
 caller; copying the 39-row V2 proof would leave the added rows outside its
 commitment and lookup closure. The roster and exact-row claim gate pin geometry
 and reject incomplete assemblies, but cannot themselves prove anything. The
-new V3 protocol/key identity binds the roster, relation registry, strong
-security profile and independently recomputed preprocessed root. Publication
+new V3 protocol/key identity includes the roster, relation registry, strong
+security profile and preprocessed root; the future verifier must recompute that
+root from pinned sources rather than trust a caller-supplied digest. Publication
 remains disabled until the verifier-owned source/interaction cohort, combined
 hash-call witness, exact global lookup closure and PCS transaction are built
 and freshly verified. The separate partial manifests remain useful as focused
