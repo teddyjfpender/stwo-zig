@@ -182,6 +182,17 @@ test "ProgramV2 template changes only at its sixteen dynamic identity words" {
     defer from_shape.deinit();
     try std.testing.expectEqualSlices(M31, template.words, from_shape.words);
     try std.testing.expectEqualDeep(template.key_digest, from_shape.key_digest);
+    const support = @import("../air/public_data_v2_test_support.zig");
+    const different = try support.Fixture.initWithRegister7(1);
+    const different_source = different.leftSource();
+    const different_words = try support.encode(std.testing.allocator, &different_source);
+    defer std.testing.allocator.free(different_words);
+    const different_data = try public_data.PublicDataV2.authenticate(different_words);
+    try std.testing.expect(!std.meta.eql(fixture.data.wireId(), different_data.wireId()));
+    var different_template = try Template.init(std.testing.allocator, &fixture.plan, pcs, &different_data, &components, &infra, false);
+    defer different_template.deinit();
+    try std.testing.expectEqualSlices(M31, template.words, different_template.words);
+    try std.testing.expectEqualDeep(template.key_digest, different_template.key_digest);
     try std.testing.expect(template.words.len > DYNAMIC_END);
     var dynamic: usize = 0;
     for (template.words, 0..) |_, index| {
