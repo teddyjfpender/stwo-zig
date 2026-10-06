@@ -385,6 +385,59 @@ test "runner: real ELF campaign releases each leaf and preserves global order" {
     try std.testing.expectEqual(@as(usize, 2), limited.count);
 }
 
+test "runner: planned V3 campaign rejects shortened or trailing leaf budgets" {
+    const instructions = [_]u32{
+        0x0010_0137, // LUI x2, 0x100.
+        0x0550_0093, // ADDI x1, x0, 0x55.
+        0x0011_2023, // SW x1, 0(x2).
+        0x0001_2183, // LW x3, 0(x2).
+        0x0010_8193, // ADDI x3, x1, 1.
+        0x0000_0073, // ECALL.
+    };
+    const elf = makeTestElf(&instructions);
+    const Consumer = struct {
+        count: usize = 0,
+
+        pub fn onSegment(self: *@This(), _: *const result_mod.SegmentResult) !void {
+            self.count += 1;
+        }
+    };
+
+    var exact = Consumer{};
+    const summary = try segment_campaign.runPlanned(
+        .rv32im_zkvm_v1,
+        std.testing.allocator,
+        &elf,
+        .{},
+        &.{ 2, 2, 2 },
+        &exact,
+    );
+    try std.testing.expectEqual(@as(u32, 3), summary.leaf_count);
+    try std.testing.expectEqual(@as(usize, 3), exact.count);
+
+    var shortened = Consumer{};
+    try std.testing.expectError(error.CampaignBudgetScheduleMismatch, segment_campaign.runPlanned(
+        .rv32im_zkvm_v1,
+        std.testing.allocator,
+        &elf,
+        .{},
+        &.{ 2, 5 },
+        &shortened,
+    ));
+    try std.testing.expectEqual(@as(usize, 1), shortened.count);
+
+    var trailing = Consumer{};
+    try std.testing.expectError(error.CampaignBudgetScheduleMismatch, segment_campaign.runPlanned(
+        .rv32im_zkvm_v1,
+        std.testing.allocator,
+        &elf,
+        .{},
+        &.{ 2, 2, 2, 2 },
+        &trailing,
+    ));
+    try std.testing.expectEqual(@as(usize, 2), trailing.count);
+}
+
 test "runner: V3 plan replays exact leaf sizes with guest policy and input" {
     const instructions = [_]u32{
         0x0010_0137, // LUI x2, 0x100.

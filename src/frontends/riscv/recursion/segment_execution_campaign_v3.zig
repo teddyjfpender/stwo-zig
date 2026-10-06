@@ -105,6 +105,12 @@ fn runInternal(
         {
             return error.InvalidCampaignSegment;
         }
+        if (planned_budgets != null and
+            (base.cycle_count != budget or
+                (base.completion_reason != null and count + 1 != max_leaves)))
+        {
+            return error.CampaignBudgetScheduleMismatch;
+        }
         // A consumer sees a complete, immutable leaf before its storage is
         // returned to the allocator. It never observes the next leaf in flight.
         try consumer.onSegment(&segment);
