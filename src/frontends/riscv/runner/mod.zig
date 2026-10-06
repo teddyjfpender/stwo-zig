@@ -36,6 +36,7 @@ pub const memory_state = @import("memory_state.zig");
 pub const minimal_trace = @import("minimal_trace/mod.zig");
 pub const result_mod = @import("result.zig");
 pub const segment_session = @import("segment_session.zig");
+pub const segment_campaign = @import("segment_campaign.zig");
 pub const host_mod = @import("../host/mod.zig");
 
 pub const Cpu = cpu.Cpu;

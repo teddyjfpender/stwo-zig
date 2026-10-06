@@ -3,6 +3,7 @@
 const std = @import("std");
 const result_mod = @import("../result.zig");
 const segment_session = @import("../segment_session.zig");
+const segment_campaign = @import("../segment_campaign.zig");
 
 const CompletionReason = result_mod.CompletionReason;
 const ContinuationToken = result_mod.ContinuationToken;
@@ -302,6 +303,69 @@ test "runner: leaf-local segments reset proof clocks while preserving global sta
     try first.rw_memory.requireContinuationTo(second.rw_memory);
     try std.testing.expectEqual(@as(u32, 0x55), second.exit_cpu.readReg(1));
     try std.testing.expectEqual(@as(u32, 0x56), second.exit_cpu.readReg(3));
+}
+
+test "runner: real ELF campaign releases each leaf and preserves global order" {
+    const instructions = [_]u32{
+        0x0010_0137, // LUI x2, 0x100.
+        0x0550_0093, // ADDI x1, x0, 0x55.
+        0x0011_2023, // SW x1, 0(x2).
+        0x0001_2183, // LW x3, 0(x2).
+        0x0010_8193, // ADDI x3, x1, 1.
+        0x0000_0073, // ECALL.
+    };
+    const elf = makeTestElf(&instructions);
+    const Consumer = struct {
+        lengths: [3]usize = @splat(0),
+        count: usize = 0,
+        previous_exit: ?@import("../cpu.zig").Cpu = null,
+
+        pub fn onSegment(self: *@This(), leaf: *const result_mod.SegmentResult) !void {
+            try std.testing.expect(self.count < self.lengths.len);
+            try std.testing.expectEqual(@as(u64, @intCast(1 + 2 * self.count)), leaf.global_first_cycle);
+            if (self.previous_exit) |previous|
+                try std.testing.expect(std.meta.eql(previous, leaf.entry_cpu));
+            self.previous_exit = leaf.exit_cpu;
+            self.lengths[self.count] = leaf.execution_trace.rows.items.len;
+            self.count += 1;
+        }
+    };
+    var consumer = Consumer{};
+    const summary = try segment_campaign.run(
+        .rv32im_zkvm_v1,
+        std.testing.allocator,
+        &elf,
+        &.{},
+        2,
+        3,
+        &consumer,
+    );
+    try std.testing.expectEqual(@as(u32, 3), summary.leaf_count);
+    try std.testing.expectEqual(@as(u64, 6), summary.retired_cycles);
+    try std.testing.expectEqual(CompletionReason.ecall, summary.completion_reason);
+    try std.testing.expectEqualSlices(usize, &.{ 2, 2, 2 }, &consumer.lengths);
+
+    var limited = Consumer{};
+    try std.testing.expectError(error.CampaignLeafLimitReached, segment_campaign.run(
+        .rv32im_zkvm_v1,
+        std.testing.allocator,
+        &elf,
+        &.{},
+        2,
+        2,
+        &limited,
+    ));
+    try std.testing.expectEqual(@as(usize, 2), limited.count);
+    try std.testing.expectError(error.LeafBudgetExceedsLocalClock, segment_campaign.run(
+        .rv32im_zkvm_v1,
+        std.testing.allocator,
+        &elf,
+        &.{},
+        @as(usize, @import("../../recursion/segment_leaf_local_authority_v3.zig").MAX_LEAF_CYCLES) + 1,
+        3,
+        &limited,
+    ));
+    try std.testing.expectEqual(@as(usize, 2), limited.count);
 }
 
 test "runner: continuation capability binds the clock frame" {
