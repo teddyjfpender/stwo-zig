@@ -16,6 +16,8 @@ const inactive_air = @import("air/statement_input.zig");
 const range_air = @import("air/range_check_8_8_contract.zig");
 const framework = @import("air/framework_interaction.zig");
 const transcript_fixed = @import("transcript_fixed_schedule_v6.zig");
+const frame_fixed = @import("transcript_word_template_v6.zig");
+const frame_air = @import("air/transcript_word_direct_v4.zig");
 const binding_air = @import("air/transcript_binding.zig");
 const state_air = @import("air/transcript_state.zig");
 const relation_air = @import("air/relation_challenge.zig");
@@ -32,13 +34,14 @@ const query_mapping_air = @import("air/query_mapping.zig");
 const query_mapping = @import("air/query_mapping_witness.zig");
 
 pub const PRODUCTION_PROOF_ACTIVATION = false;
-pub const QUALIFIED_ROWS = [_]u8{ 0, 1, 2, 3, 6, 7, 8, 9, 10, 12, 17, 20, 21, 33, 34, 35 };
+pub const QUALIFIED_ROWS = [_]u8{ 0, 1, 2, 3, 4, 6, 7, 8, 9, 10, 12, 17, 20, 21, 33, 34, 35 };
 
 pub const Writer = struct {
     allocator: std.mem.Allocator,
     manifest: template_mod.TemplateManifestV6,
     control_rows: []control_witness.Row,
     transcript_rows: transcript_fixed.Fixed,
+    frame_rows: frame_fixed.Template,
     public_logup_rows: public_logup.PreparedV6,
     query_bit_rows: query_bits.Preprocessed,
     query_mapping_rows: query_mapping.Preprocessed,
@@ -78,6 +81,15 @@ pub const Writer = struct {
             lookup_enabled,
         );
         errdefer transcript_rows.deinit();
+        var frame_rows = try frame_fixed.Template.buildFromAdmittedShape(
+            allocator,
+            native_plan,
+            native_wire_word_count,
+            component_descs,
+            infra_descs,
+            lookup_enabled,
+        );
+        errdefer frame_rows.deinit();
         const public_logup_rows = try public_logup.preflight(native_plan, &.{ .value = M31.zero() });
         const core_reference = try core_profile.reference();
         var query_bit_rows = try query_bits.Preprocessed.init(allocator, try core_reference.queryBitsReference());
@@ -94,10 +106,15 @@ pub const Writer = struct {
         if (manifest.placements[17].geometry.log_size != public_logup_air.TRACE_LOG_SIZE or
             !std.meta.eql(manifest.placements[17].geometry.semantic_digest, public_logup_air.SEMANTIC_DIGEST))
             return error.FixedPublicLogupGeometryMismatchV6;
-        return .{ .allocator = allocator, .manifest = manifest, .control_rows = control_rows, .transcript_rows = transcript_rows, .public_logup_rows = public_logup_rows, .query_bit_rows = query_bit_rows, .query_mapping_rows = query_mapping_rows };
+        if (manifest.placements[4].geometry.preprocessed_columns != frame_air.PREPROCESSED_COLUMN_COUNT or
+            frame_rows.rows.len > @as(usize, 1) << @intCast(manifest.placements[4].geometry.log_size) or
+            !std.meta.eql(try frame_rows.preprocessedId(manifest.placements[4].geometry.log_size), manifest.shape.row4_preprocessed_id))
+            return error.FixedFrameGeometryMismatchV6;
+        return .{ .allocator = allocator, .manifest = manifest, .control_rows = control_rows, .transcript_rows = transcript_rows, .frame_rows = frame_rows, .public_logup_rows = public_logup_rows, .query_bit_rows = query_bit_rows, .query_mapping_rows = query_mapping_rows };
     }
 
     pub fn deinit(self: *Writer) void {
+        self.frame_rows.deinit();
         self.query_mapping_rows.deinit();
         self.query_bit_rows.deinit();
         self.transcript_rows.deinit();
@@ -143,6 +160,17 @@ pub const Writer = struct {
                 for (self.transcript_rows.states, 0..) |fixed, index| {
                     const values = fixed.values();
                     put(columns, geometry.log_size, index, &values);
+                }
+            },
+            4 => {
+                if (columns.len != frame_air.PREPROCESSED_COLUMN_COUNT or self.frame_rows.rows.len > capacity)
+                    return error.FixedBaseGeometryMismatchV6;
+                for (self.frame_rows.rows, 0..) |fixed, index| {
+                    const values = fixed.preprocessing.values();
+                    var physical: [frame_air.PREPROCESSED_COLUMN_COUNT]M31 = undefined;
+                    @memcpy(physical[0..values.len], &values);
+                    physical[values.len] = M31.fromCanonical(fixed.tree0_bridge);
+                    put(columns, geometry.log_size, index, &physical);
                 }
             },
             8 => {
@@ -354,6 +382,15 @@ test "V6 base fixed rows reconstruct without a leaf" {
             1, 6, 7, 33 => try std.testing.expectEqual(@as(usize, 0), columns.len),
             2 => try expectFixedRows(columns, geometry.log_size, writer.transcript_rows.bindings),
             3 => try expectFixedRows(columns, geometry.log_size, writer.transcript_rows.states),
+            4 => {
+                for (writer.frame_rows.rows, 0..) |fixed, logical| {
+                    const values = fixed.preprocessing.values();
+                    const committed = framework.committedRow(logical, geometry.log_size);
+                    for (values, columns[0..values.len]) |value, column|
+                        try std.testing.expectEqual(value.toU32(), column[committed].toU32());
+                    try std.testing.expectEqual(fixed.tree0_bridge, columns[values.len][committed].toU32());
+                }
+            },
             8 => try expectFixedRows(columns, geometry.log_size, writer.transcript_rows.relations),
             9 => try expectFixedRows(columns, geometry.log_size, writer.transcript_rows.randomness),
             10 => for (columns) |column| for (column) |value| {
