@@ -16,6 +16,7 @@ const channel_mod = @import("poseidon2_channel.zig");
 const verifier_tree = @import("verifier_tree.zig");
 const Geometry = @import("air/segment_leaf_wrapper_roster_direct_v4.zig");
 const Protocol = @import("segment_leaf_wrapper_protocol_direct_v4.zig");
+const admission = @import("segment_leaf_wrapper_direct_admission_v4.zig");
 
 pub const FORMAT_VERSION: u16 = 4;
 pub const WRAPPER_PROOF_AVAILABLE = false;
@@ -108,23 +109,25 @@ pub fn ForBackend(comptime Backend: type) type {
 
                 pub fn proveAndVerify(
                     allocator: std.mem.Allocator,
+                    expected_native: admission.ExpectedNative,
                     authority_inputs: Cohort.AuthorityInputs,
                 ) !Verified {
                     if (comptime !WRAPPER_PROOF_AVAILABLE) {
                         return error.V3WrapperProofUnavailable;
-                    } else return proveAndVerifyReady(allocator, authority_inputs);
+                    } else return proveAndVerifyReady(allocator, expected_native, authority_inputs);
                 }
 
                 /// No detached artifact can bypass the same activation gate.
                 pub fn verifyArtifact(
                     allocator: std.mem.Allocator,
+                    expected_native: admission.ExpectedNative,
                     authority_inputs: Cohort.AuthorityInputs,
                     artifact: *const Artifact,
                     capture_out: *Capture,
                 ) !void {
                     if (comptime !WRAPPER_PROOF_AVAILABLE) {
                         return error.V3WrapperProofUnavailable;
-                    } else return verifyArtifactReady(allocator, authority_inputs, artifact, capture_out);
+                    } else return verifyArtifactReady(allocator, expected_native, authority_inputs, artifact, capture_out);
                 }
 
                 const Proved = struct {
@@ -136,6 +139,7 @@ pub fn ForBackend(comptime Backend: type) type {
 
                 fn proveAndVerifyReady(
                     allocator: std.mem.Allocator,
+                    expected_native: admission.ExpectedNative,
                     authority_inputs: Cohort.AuthorityInputs,
                 ) !Verified {
                     var timer = try std.time.Timer.start();
@@ -150,6 +154,7 @@ pub fn ForBackend(comptime Backend: type) type {
                     // or field snapshot supplied by the proof producer.
                     try producer.requireFreshNativeChild();
                     try producer.validatePlanSource();
+                    try admission.requireExpectedNative(expected_native, producer.nativeIdentity());
                     const plan = producer.plan();
                     try plan.validate();
                     const profile_id = try Protocol.protocolId(plan);
@@ -185,7 +190,7 @@ pub fn ForBackend(comptime Backend: type) type {
                     };
                     phase.reset();
                     var capture: Capture = undefined;
-                    try verifyArtifactReady(allocator, authority_inputs, &artifact, &capture);
+                    try verifyArtifactReady(allocator, expected_native, authority_inputs, &artifact, &capture);
                     errdefer capture.deinit(allocator);
                     return .{
                         .artifact = artifact,
@@ -259,6 +264,7 @@ pub fn ForBackend(comptime Backend: type) type {
 
                 fn verifyArtifactReady(
                     allocator: std.mem.Allocator,
+                    expected_native: admission.ExpectedNative,
                     authority_inputs: Cohort.AuthorityInputs,
                     artifact: *const Artifact,
                     capture_out: *Capture,
@@ -272,11 +278,13 @@ pub fn ForBackend(comptime Backend: type) type {
                     try plan.validate();
                     const geometry = plan;
                     try geometry.validate();
-                    if (!std.mem.eql(u8, &plan.seal, &artifact.manifest_seal) or
-                        !std.meta.eql(try Protocol.protocolId(plan), artifact.profile_id))
-                        return error.InvalidV3WrapperProfile;
-                    if (!std.meta.eql(try Protocol.verificationKeyId(plan, artifact.preprocessed_root), artifact.verification_key_id))
-                        return error.InvalidV3WrapperKey;
+                    const independently_recomputed_root = try recomputePreprocessedRoot(allocator, &cohort);
+                    const binding = try admission.IndependentBinding.fromVerifiedSources(
+                        plan,
+                        expected_native,
+                        independently_recomputed_root,
+                    );
+                    try admission.admit(expected_native, cohort.nativeIdentity(), binding, artifact);
                     var stream = std.io.fixedBufferStream(artifact.proof_bytes);
                     var proof = try postcard.deserializeProof(engine_mod.Hasher, allocator, stream.reader());
                     var proof_owned = true;
@@ -288,7 +296,6 @@ pub fn ForBackend(comptime Backend: type) type {
                     if (commitments.len != Geometry.TREE_COUNT + 1 or
                         !std.meta.eql(commitments[Geometry.PREPROCESSED_TREE_INDEX], artifact.preprocessed_root))
                         return error.InvalidV3WrapperProofShape;
-                    try assertPreprocessedRoot(allocator, &cohort, artifact.preprocessed_root);
 
                     var scheme = try VerifierScheme.init(allocator, Protocol.PCS_CONFIG);
                     defer scheme.deinit(allocator);
@@ -325,11 +332,10 @@ pub fn ForBackend(comptime Backend: type) type {
                     capture_out.* = capture;
                 }
 
-                fn assertPreprocessedRoot(
+                fn recomputePreprocessedRoot(
                     allocator: std.mem.Allocator,
                     cohort: *Cohort,
-                    actual: channel_mod.Digest,
-                ) !void {
+                ) !channel_mod.Digest {
                     const plan = cohort.plan();
                     const geometry = plan;
                     var scheme = try Engine.init(allocator, Protocol.PCS_CONFIG);
@@ -342,8 +348,9 @@ pub fn ForBackend(comptime Backend: type) type {
                     try Engine.flushPendingCommit(&scheme, allocator, &channel);
                     var roots = try scheme.roots(allocator);
                     defer roots.deinit(allocator);
-                    if (roots.items.len != 1 or !std.meta.eql(roots.items[0], actual))
+                    if (roots.items.len != 1)
                         return error.V3WrapperPreprocessedRootMismatch;
+                    return roots.items[0];
                 }
             };
         }
@@ -364,11 +371,12 @@ test "direct V3 wrapper kernel rejects fake cohort and detached artifact before 
         pub const DOMAIN_COUNT = REQUIRED_DOMAIN_COUNT;
     };
     const Kernel = ForBackend(CpuBackend).EngineKernel(Fake);
-    try std.testing.expectError(error.V3WrapperProofUnavailable, Kernel.proveAndVerify(std.testing.allocator, .{}));
+    const expected = admission.ExpectedNative{ .program_identity = .{0} ** 8, .tree0_root = .{0} ** 8 };
+    try std.testing.expectError(error.V3WrapperProofUnavailable, Kernel.proveAndVerify(std.testing.allocator, expected, .{}));
     var artifact: Kernel.Artifact = undefined;
     var capture: ForBackend(CpuBackend).Capture = undefined;
     try std.testing.expectError(
         error.V3WrapperProofUnavailable,
-        Kernel.verifyArtifact(std.testing.allocator, .{}, &artifact, &capture),
+        Kernel.verifyArtifact(std.testing.allocator, expected, .{}, &artifact, &capture),
     );
 }

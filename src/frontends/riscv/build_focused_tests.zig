@@ -26,8 +26,8 @@ pub const specs = [_]Spec{
         .description = "Reject unqualified direct 47-row wrapper proofs and validate fixed roster storage",
         .root = "direct_wrapper_kernel_test_root.zig",
         .imports_prover_engine = true,
-        .filters = &.{ "direct V3 wrapper kernel rejects fake cohort", "direct fixed roster storage" },
-        .minimum = 2,
+        .filters = &.{ "direct V3 wrapper kernel rejects fake cohort", "direct fixed roster storage", "direct detached admission" },
+        .minimum = 3,
     },
     .{
         .step = "test-recursion-v4-direct-roster",
