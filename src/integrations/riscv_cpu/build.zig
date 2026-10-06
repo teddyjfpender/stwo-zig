@@ -175,6 +175,12 @@ pub fn build(b: *std.Build) void {
     });
     b.step("test-v6-fixed-key-template", "Check verifier-owned V6 template geometry and key separation")
         .dependOn(&b.addRunArtifact(v6_template_tests).step);
+    const v7_template_protocol_tests = b.addTest(.{
+        .root_module = v3_rows_root,
+        .filters = &.{"VPR7 candidate is shape-only while VPK7 awaits a rebuilt template root"},
+    });
+    b.step("test-v7-template-protocol", "Check pinned V6 template identity in candidate VPR7/VPK7")
+        .dependOn(&b.addRunArtifact(v7_template_protocol_tests).step);
     const v6_row4_tests = b.addTest(.{
         .root_module = v3_rows_root,
         .filters = &.{"V6 row4"},

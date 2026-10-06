@@ -97,7 +97,8 @@ test "VPR7 candidate is shape-only while VPK7 awaits a rebuilt template root" {
     defer plans.recursion.deinit();
     const native = try @import("transcript_instruction_template_v6.zig").InstructionTemplateV6.build(allocator, &plans.vm, 128, &child_fixture.components, &child_fixture.infra, false);
     const shape = v4.Shape{ .program_words = native.canonical_program_word_count, .base_poseidon_calls = 1193 };
-    const template = try template_mod.TemplateManifestV6.build(allocator, &v6_catalog, shape, &child_fixture.components, &child_fixture.infra, &plans.vm, 128, false);
+    const core_query_mapping = try template_mod.pinnedCoreQueryReference();
+    const template = try template_mod.TemplateManifestV6.build(allocator, &v6_catalog, shape, &child_fixture.components, &child_fixture.infra, &plans.vm, &core_query_mapping, 128, false);
     const vpr7 = try candidateProtocolId(&template);
     const root = [_]u32{1} ** 8;
     const vpk7 = try candidateVerificationKeyId(&template, root);
@@ -113,7 +114,7 @@ test "VPR7 candidate is shape-only while VPK7 awaits a rebuilt template root" {
     const first_old = try v5.Plan.build(allocator, &first_leaf, &link, shape, &child, &child_fixture.components, &child_fixture.infra);
     const second_old = try v5.Plan.build(allocator, &second_leaf, &link, shape, &child, &child_fixture.components, &child_fixture.infra);
     try std.testing.expect(!std.meta.eql(try old_protocol.verificationKeyId(&first_old, root), try old_protocol.verificationKeyId(&second_old, root)));
-    const rebuilt_template = try template_mod.TemplateManifestV6.build(allocator, &v6_catalog, shape, &child_fixture.components, &child_fixture.infra, &plans.vm, 128, false);
+    const rebuilt_template = try template_mod.TemplateManifestV6.build(allocator, &v6_catalog, shape, &child_fixture.components, &child_fixture.infra, &plans.vm, &core_query_mapping, 128, false);
     try std.testing.expect(std.meta.eql(vpk7, try candidateVerificationKeyId(&rebuilt_template, root)));
     var changed_root = root;
     changed_root[0] = 2;
@@ -121,7 +122,7 @@ test "VPR7 candidate is shape-only while VPK7 awaits a rebuilt template root" {
     changed_root[0] = core.fields.m31.Modulus;
     try std.testing.expectError(error.NonCanonicalTemplateRootV6, candidateVerificationKeyId(&template, changed_root));
     const changed_shape = v4.Shape{ .program_words = shape.program_words, .base_poseidon_calls = 1194 };
-    const other = try template_mod.TemplateManifestV6.build(allocator, &v6_catalog, changed_shape, &child_fixture.components, &child_fixture.infra, &plans.vm, 128, false);
+    const other = try template_mod.TemplateManifestV6.build(allocator, &v6_catalog, changed_shape, &child_fixture.components, &child_fixture.infra, &plans.vm, &core_query_mapping, 128, false);
     try std.testing.expect(!std.meta.eql(vpr7, try candidateProtocolId(&other)));
     try std.testing.expectError(error.TemplatePreprocessingUnavailable, requireAdmittedKey(&template));
 }

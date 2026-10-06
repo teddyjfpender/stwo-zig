@@ -25,6 +25,8 @@ const instruction_template = @import("../transcript_instruction_template_v6.zig"
 const word_template = @import("../transcript_program_v2_template_words_v6.zig");
 const frame_template = @import("../transcript_word_template_v6.zig");
 const wrapper_profile = @import("../segment_leaf_wrapper_protocol_direct_v4.zig");
+const query_mapping = @import("query_mapping_witness.zig");
+const pinned_profile = @import("../segment_profile.zig");
 
 pub const FORMAT_VERSION: u16 = 6;
 pub const COMPONENT_COUNT: usize = 50;
@@ -49,6 +51,8 @@ pub const TemplateShapeV6 = struct {
     native_wire_word_count: u32,
     native_lookup_enabled: bool,
     native_instruction_schedule_id: [32]u8,
+    core_query_mapping_id: [32]u8,
+    core_query_bits_id: [32]u8,
     /// Independently rebuilt complete row-42 fixed columns, including padding.
     row42_preprocessed_id: [32]u8,
     row4_preprocessed_id: [32]u8,
@@ -56,6 +60,35 @@ pub const TemplateShapeV6 = struct {
     /// V5 schedule this pins every proof-independent ProgramV2 word.
     row42_shape_preprocessed_id: [32]u8,
 };
+
+/// Current verifier-side frozen VM and recursion lane profile. Both are
+/// explicitly compiled from the pinned circuit specification; a caller's
+/// self-sealed reference cannot choose a different query mapping key.
+pub fn pinnedCoreQueryReference() !query_mapping.Reference {
+    const vm = pinned_profile.circuitProfile();
+    const recursion = pinned_profile.circuitProfile();
+    return query_mapping.Reference.seal(
+        .{
+            .query_count = vm.query_count,
+            .lifting_log_size = vm.lifting_log_size,
+            .tree_heights = &pinned_profile.TREE_HEIGHTS,
+            .fri_fold_widths = vm.fold_widths,
+        },
+        .{
+            .query_count = recursion.query_count,
+            .lifting_log_size = recursion.lifting_log_size,
+            .tree_heights = &pinned_profile.TREE_HEIGHTS,
+            .fri_fold_widths = recursion.fold_widths,
+        },
+    );
+}
+
+pub fn requirePinnedCoreQueryReference(reference: *const query_mapping.Reference) !void {
+    try reference.validate();
+    const expected = try pinnedCoreQueryReference();
+    if (!std.mem.eql(u8, &expected.authority_digest, &reference.authority_digest))
+        return error.CoreQueryProfileMismatchV6;
+}
 
 pub const TemplateManifestV6 = struct {
     shape: TemplateShapeV6,
@@ -76,10 +109,12 @@ pub const TemplateManifestV6 = struct {
         component_descs: []const statement.FamilyComponentDesc,
         infra_descs: []const statement.InfraComponentDesc,
         native_plan: *const native_schedule.Plan,
+        core_query_mapping: *const query_mapping.Reference,
         native_wire_word_count: u32,
         native_lookup_enabled: bool,
     ) !TemplateManifestV6 {
         try base_catalog.validate();
+        try requirePinnedCoreQueryReference(core_query_mapping);
         if (shape.program_words == 0 or shape.base_poseidon_calls == 0 or
             shape.program_words > std.math.maxInt(u32) or
             shape.base_poseidon_calls > std.math.maxInt(u32) or
@@ -178,6 +213,8 @@ pub const TemplateManifestV6 = struct {
                 .native_wire_word_count = native_instructions.wire_word_count,
                 .native_lookup_enabled = native_instructions.lookup_enabled,
                 .native_instruction_schedule_id = native_instructions.schedule_id,
+                .core_query_mapping_id = core_query_mapping.authority_digest,
+                .core_query_bits_id = (try core_query_mapping.queryBitsReference()).authority_digest,
                 .row42_preprocessed_id = try row42PreprocessedShaId(shape.program_words),
                 .row4_preprocessed_id = try row4_template.preprocessedId(placements[4].geometry.log_size),
                 .row42_shape_preprocessed_id = try row42ShapePreprocessedShaId(
@@ -204,7 +241,11 @@ pub const TemplateManifestV6 = struct {
 
     pub fn validate(self: *const TemplateManifestV6) !void {
         try self.poseidon_calls.validate();
+        const pinned_core = try pinnedCoreQueryReference();
+        const pinned_bits = try pinned_core.queryBitsReference();
         if (self.shape.program_words == 0 or self.shape.base_poseidon_calls == 0 or
+            !std.mem.eql(u8, &self.shape.core_query_mapping_id, &pinned_core.authority_digest) or
+            !std.mem.eql(u8, &self.shape.core_query_bits_id, &pinned_bits.authority_digest) or
             !std.mem.eql(u8, &self.shape.row42_preprocessed_id, &(try row42PreprocessedShaId(self.shape.program_words))) or
             !std.mem.eql(u8, &self.seal, &templateSeal(self)))
             return error.InvalidTemplateManifestV6;
@@ -239,11 +280,12 @@ pub const TemplateManifestV6 = struct {
         component_descs: []const statement.FamilyComponentDesc,
         infra_descs: []const statement.InfraComponentDesc,
         native_plan: *const native_schedule.Plan,
+        core_query_mapping: *const query_mapping.Reference,
         native_wire_word_count: u32,
         native_lookup_enabled: bool,
     ) !void {
         try self.validate();
-        const rebuilt = try build(allocator, base_catalog, shape, component_descs, infra_descs, native_plan, native_wire_word_count, native_lookup_enabled);
+        const rebuilt = try build(allocator, base_catalog, shape, component_descs, infra_descs, native_plan, core_query_mapping, native_wire_word_count, native_lookup_enabled);
         if (!std.meta.eql(self.*, rebuilt)) return error.TemplateAdmissionMismatchV6;
     }
 
@@ -329,6 +371,8 @@ fn templateSeal(value: *const TemplateManifestV6) [32]u8 {
     hashInt(&hash, u32, value.shape.native_wire_word_count);
     hashInt(&hash, u8, @intFromBool(value.shape.native_lookup_enabled));
     hash.update(&value.shape.native_instruction_schedule_id);
+    hash.update(&value.shape.core_query_mapping_id);
+    hash.update(&value.shape.core_query_bits_id);
     hash.update(&value.shape.row42_preprocessed_id);
     hash.update(&value.shape.row4_preprocessed_id);
     hash.update(&value.shape.row42_shape_preprocessed_id);
@@ -382,8 +426,9 @@ test "V6 template geometry is rebuilt without either leaf V2 manifest seal" {
     try std.testing.expect(!std.meta.eql(without_lookup.schedule_id, with_lookup.schedule_id));
     try std.testing.expect(with_lookup.canonical_program_word_count > without_lookup.canonical_program_word_count);
     const shape = v4.Shape{ .program_words = native.canonical_program_word_count, .base_poseidon_calls = 1193 };
-    const template = try TemplateManifestV6.build(allocator, &base_catalog, shape, &child_fixture.components, &child_fixture.infra, &plans.vm, 128, false);
-    try template.validateAgainst(allocator, &base_catalog, shape, &child_fixture.components, &child_fixture.infra, &plans.vm, 128, false);
+    const core_query_mapping = try pinnedCoreQueryReference();
+    const template = try TemplateManifestV6.build(allocator, &base_catalog, shape, &child_fixture.components, &child_fixture.infra, &plans.vm, &core_query_mapping, 128, false);
+    try template.validateAgainst(allocator, &base_catalog, shape, &child_fixture.components, &child_fixture.infra, &plans.vm, &core_query_mapping, 128, false);
     var tampered_row4 = template;
     tampered_row4.shape.row4_preprocessed_id[0] ^= 1;
     try std.testing.expectError(error.InvalidTemplateManifestV6, tampered_row4.validate());
@@ -413,11 +458,21 @@ test "V6 template geometry is rebuilt without either leaf V2 manifest seal" {
     try std.testing.expectError(error.TemplatePreprocessingUnavailable, template.requireCompletePreprocessing());
 
     const changed_shape = v4.Shape{ .program_words = shape.program_words, .base_poseidon_calls = 1194 };
-    const other_template = try TemplateManifestV6.build(allocator, &base_catalog, changed_shape, &child_fixture.components, &child_fixture.infra, &plans.vm, 128, false);
+    const other_template = try TemplateManifestV6.build(allocator, &base_catalog, changed_shape, &child_fixture.components, &child_fixture.infra, &plans.vm, &core_query_mapping, 128, false);
     try std.testing.expect(!std.meta.eql(template.seal, other_template.seal));
-    try std.testing.expectError(error.TemplateAdmissionMismatchV6, template.validateAgainst(allocator, &base_catalog, changed_shape, &child_fixture.components, &child_fixture.infra, &plans.vm, 128, false));
-    try std.testing.expectError(error.NativeProgramWordCountMismatchV6, TemplateManifestV6.build(allocator, &base_catalog, .{ .program_words = shape.program_words + 1, .base_poseidon_calls = 1193 }, &child_fixture.components, &child_fixture.infra, &plans.vm, 128, false));
-    try std.testing.expectError(error.InvalidMainGeometry, TemplateManifestV6.build(allocator, &base_catalog, shape, &child_fixture.components, &child_fixture.infra, &plans.vm, 128, true));
+    try std.testing.expectError(error.TemplateAdmissionMismatchV6, template.validateAgainst(allocator, &base_catalog, changed_shape, &child_fixture.components, &child_fixture.infra, &plans.vm, &core_query_mapping, 128, false));
+    try std.testing.expectError(error.NativeProgramWordCountMismatchV6, TemplateManifestV6.build(allocator, &base_catalog, .{ .program_words = shape.program_words + 1, .base_poseidon_calls = 1193 }, &child_fixture.components, &child_fixture.infra, &plans.vm, &core_query_mapping, 128, false));
+    try std.testing.expectError(error.InvalidMainGeometry, TemplateManifestV6.build(allocator, &base_catalog, shape, &child_fixture.components, &child_fixture.infra, &plans.vm, &core_query_mapping, 128, true));
+    var changed_core = core_query_mapping;
+    changed_core.authority_digest[0] ^= 1;
+    try std.testing.expectError(error.AuthorityMismatch, TemplateManifestV6.build(allocator, &base_catalog, shape, &child_fixture.components, &child_fixture.infra, &plans.vm, &changed_core, 128, false));
+    var changed_recursion_lane = core_query_mapping.recursion;
+    changed_recursion_lane.query_count += 1;
+    const valid_but_unpinned = try query_mapping.Reference.seal(core_query_mapping.vm, changed_recursion_lane);
+    try std.testing.expectError(error.CoreQueryProfileMismatchV6, TemplateManifestV6.build(allocator, &base_catalog, shape, &child_fixture.components, &child_fixture.infra, &plans.vm, &valid_but_unpinned, 128, false));
+    var changed_template = template;
+    changed_template.shape.core_query_mapping_id[0] ^= 1;
+    try std.testing.expectError(error.InvalidTemplateManifestV6, changed_template.validate());
     var corrupted = template;
     corrupted.placements[42].geometry.log_size += 1;
     try std.testing.expectError(error.InvalidTemplateManifestV6, corrupted.validate());
