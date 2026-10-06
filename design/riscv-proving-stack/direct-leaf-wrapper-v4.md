@@ -1,0 +1,92 @@
+# Direct RISC-V leaf wrapper proof
+
+## Decision
+
+The production leaf wrapper must prove the native SegmentV2 verifier and the
+V3 global-position relation in **one** STARK transaction. Rows 0–38 of the
+existing detached leaf cohort already verify the native proof. A separately
+proved 39-row local outer STARK therefore repeats the same verifier and is
+not a recursively authenticated child merely because the host freshly checks
+it. The strong q193 native-to-outer gate remains a useful diagnostic, not a
+required step or soundness premise for the direct wrapper.
+
+The staged 49-row wrapper is not a production candidate. Its provider field
+digest (PFD1) is derived from the 39-row outer proof's claims, relation draws
+and Poseidon partial sums. Those values are available only after the outer
+interaction transcript. Replacing that proof with the wrapper's own 39 rows
+would require main-tree rows 39/40 and 45 to commit a digest of *this same*
+wrapper's future challenges and sums. That is a commitment-order cycle.
+Host validation of a previously proved outer PFD1 does not fix it: the 49-row
+AIR does not verify that outer proof. No PFD1 field may be treated as
+pre-challenge proof authority in the direct wrapper.
+
+## Canonical direct roster
+
+The next versioned roster has 47 components. Rows 0–33 and 35–38 retain the
+native-verifier owners; row 34 is rebuilt as the single enlarged Poseidon
+provider for the entire transaction. New rows are:
+
+| Row | Component | Input available before main commitment? |
+| --- | --- | --- |
+| 39 | V3 metadata/link source | Yes: canonical global statement and native verifier inputs |
+| 40 | V3 source projection | Yes: row-39 values, local wire, pinned constants |
+| 41 | 64-bit position/completion arithmetic | Yes: local count and global span |
+| 42 | native transcript ProgramV2 field words | Yes: native child proof and fixed verifier plan |
+| 43 | ProgramV2 field hash | Yes: row-42 words |
+| 44 | native Tree0 field link | Yes: native verifier input and captured fixed root |
+| 45 | V3 metadata hash | Yes: canonical metadata preimage |
+| 46 | V3 link hash | Yes: canonical link preimage |
+
+The row-34 call roster has four ordered ranges: existing native-verifier
+calls, metadata hash, link hash and ProgramV2 hash. Its exact calls, not just
+their count, determine the provider main trace. The AIR must close every
+relation domain across all 47 rows, including the enlarged Poseidon caller
+bus. The first 39 rows cannot be copied from an already committed proof:
+their row-34 trace, manifest, claimed sums and interaction tree all belong to
+the new 47-row transaction.
+
+The direct ProgramV3 source schedule must omit the old provider-digest
+emitter and its projection/hash consumers. Its immutable schedule ID, typed
+AIR geometry, relation registry, q193/PCS-PoW16/fold4 and 10-bit interaction
+PoW belong in a new protocol and verification-key namespace. The verifier
+recomputes the preprocessed root and admits only an independently pinned
+native Tree0/program key; a prover-supplied root or mutable host snapshot is
+not a key.
+
+## Transcript and proof boundary
+
+1. Admit the native proof under its pinned q193 profile/key. Derive the V3
+   local-to-global witness and the 47-row fixed schedule from verifier-owned
+   data. All pre-main inputs must be independent of this wrapper's future
+   relation draws.
+2. Commit the pinned preprocessed tree and the complete main tree. Mix the
+   direct wrapper program/statement, grind the 10-bit interaction nonce, then
+   draw relations. Generate all 47 interaction components and their exact
+   claimed sums. Commit the interaction tree and prove at q193/PCS-PoW16.
+3. Serialize, destroy producer state, decode and freshly verify with a
+   separately reconstructed cohort, fixed key and preprocessed root. Publish
+   a V3 leaf only after all 47 rows and relation domains have verified. The
+   transaction and detached loader must reject changed proof bytes, key,
+   local proof identity, metadata, call order, claim or completion.
+
+This path still requires the public-I/O byte binding in issue #228. Without
+it, even a verified direct wrapper cannot claim that the guest processed the
+published application input or produced its output bytes. The temporal
+parent is a separate proof after direct leaf publication; its mixed-family
+child verifier and sparse-memory/finality joins remain open.
+
+## Qualification
+
+The first gate is a real two-leaf ELF: two independently pinned q193 native
+proofs, two freshly verified direct wrappers and one freshly verified temporal
+parent. Mutations must cover child order, proof/key/root, native transcript
+claim count, row-34 call omission/reorder, global cycle/segment arithmetic,
+CPU and sparse-memory boundary, completion and public I/O. A second gate
+crosses 2^24 total retired instructions with each local leaf under its cap.
+Measure native proof, wrapper preparation/proving/verification, parent proof,
+canonical proof bytes and peak memory separately. Compare the direct wrapper
+against the diagnostic native-plus-outer chain to quantify the removed work.
+
+All direct-wrapper publication flags remain false until these proof gates
+pass. The existing 49-row/PFD1 prototype stays labeled diagnostic and must
+not be used as an accepted recursive leaf.

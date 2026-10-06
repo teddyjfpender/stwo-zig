@@ -129,33 +129,28 @@ their active/limb schedule against independently admitted verifier rows, and
 close their transcript-word lookups; the host `BundleV3` cannot grant that
 authority on its own.
 
-The V3 leaf-wrapper roster fixes all 49 rows: the 39 local verifier rows,
-typed link source/projection/arithmetic at 39–41, ProgramV2 and provider
-word/hash rows at 42–45, the Tree0 link at 46, and metadata/link hash callers
-at 47–48. Row 34 must be rebuilt as one enlarged Poseidon provider for every
-caller; copying the 39-row V2 proof would leave the added rows outside its
-commitment and lookup closure. The roster and exact-row claim gate pin geometry
-and reject incomplete assemblies, but cannot themselves prove anything. The
-versioned ProgramV2 schedule now uses the verifier capture's 28 native
-transcript claims rather than the older 42-claim design assumption. A real
-ELF yields 794 row-39 source values and 1,093 row-40 projections. It emits
-the one authenticated provider digest consumed by both the projection and
-provider-hash rows; the old schedule's four orphan provider digests cannot
-serve as proof inputs. The distinct VPR4/VPK4 protocol/key identity includes
-that schedule, the roster, relation registry, strong
-security profile and preprocessed root; the future verifier must recompute that
-root from pinned sources rather than trust a caller-supplied digest. Publication
-remains disabled until the verifier-owned source/interaction cohort, combined
-hash-call witness, exact global lookup closure and PCS transaction are built
-and freshly verified. The separate partial manifests remain useful as focused
-typed-component tests; they are not proof publications.
-The transaction kernel stages the three-tree transcript and fresh-verifier
-boundary but is deliberately unreachable until a concrete 49-row cohort has
-been qualified. Its inactive ready branch is not evidence that such a proof
-works. The provider field digest does not itself bind the ordered row-34 call
-buffer or strong child proof ID; the new cohort must reconstruct and constrain
-both. The typed row-41–48 diagnostic currently closes only two local tuple
-domains and cannot substitute for the full 47-domain lookup audit.
+The staged 49-row wrapper clarified the geometry and exposed a transcript
+cycle. Its rows 0–38 already recursively verify the native SegmentV2 proof;
+host-verifying a separate strong 39-row outer proof does not make that outer
+proof a child of the 49-row AIR. The staged ProgramV2 uses the real capture's
+28 native transcript claims rather than the earlier 42-claim assumption. A
+real ELF yields 794 row-39 source values and 1,093 row-40 projections. But
+its provider digest comes from the separate outer proof's *post-challenge*
+claims, draws and partial sums. Deriving that digest from the new wrapper's
+own rows would require committing future transcript values in its main tree.
+Therefore the 49-row/PFD1 route is diagnostic and will not be activated.
+The fail-closed 49-row transaction kernel and five-range call roster are
+staging tools only; their inactive ready branch is not a working proof.
+
+The canonical path is the [direct leaf wrapper](direct-leaf-wrapper-v4.md):
+prove the native verifier and V3 global-position relation once in a new
+47-row transaction, omit the redundant provider digest source/hash rows,
+rebuild row 34 for its four exact call ranges, and freshly verify under a
+distinct pinned protocol/key namespace. ProgramV3 must contain only values
+available before the main commitment. Full AIR/lookup closure, independent
+key admission and public-I/O binding remain required before publication.
+The typed row-41–48 diagnostic currently closes only two local tuple domains
+and cannot substitute for the full relation audit.
 For the base RV32 leaf, the child verifier authority is the freshly verified
 native SegmentV2 capture inside `PreparedNativeV2LeafOuter`; the detached
 39-component recursive-child loader belongs to a later parent and cannot
@@ -167,7 +162,7 @@ programs, PCS plans and worker pools live across leaves or parent nodes, while
 allocating witness/proof data from request-local scratch that is reset after
 verification. The RISC-V detached-parent workspace already reuses PCS plans
 and bounded scratch; a future V3 campaign session should extend that pattern
-to its fixed wrapper roster and ProgramV2 without reusing a previous leaf's
+to its fixed direct-wrapper roster and ProgramV3 without reusing a previous leaf's
 input, transcript or public-I/O state.
 
 ## Proof path still required
@@ -183,7 +178,7 @@ input, transcript or public-I/O state.
    base span, directly equal boundary words, and redundant position/completion
    fields. Separate typed AIR constrains canonical continuation-root limbs,
    completion tags, and 64-bit position arithmetic. These pieces are not yet
-   one proof transaction: proof identity, verifier key, ProgramV2/provider
+   one proof transaction: proof identity, verifier key, direct ProgramV3
    authority and shared lookup closure still need integration. Make the
    wrapper available to the base RV32 profile as well.
 3. Prove global position and length arithmetic with canonical 16-bit limbs:
