@@ -93,6 +93,11 @@ pub const Plan = struct {
             if (count == 0 or count > self.leaf_budget) return error.InvalidCampaignPlan;
             total = std.math.add(u64, total, count) catch
                 return error.InvalidCampaignPlan;
+            for (record.entry_register_clocks) |clock|
+                if (clock != 0) return error.InvalidCampaignPlan;
+            if (record.entry_memory_clock_count != 0 or
+                !std.meta.eql(record.entry_memory_clock_id, segment_v2.memoryClockIdentity(&.{})))
+                return error.InvalidCampaignPlan;
             if (index + 1 == self.leaf_records.len) {
                 if (record.completion_reason != self.summary.completion_reason)
                     return error.InvalidCampaignPlan;

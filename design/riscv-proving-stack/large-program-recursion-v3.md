@@ -70,6 +70,12 @@ this stage as a verified recursive child.
 5. Publish a root only after all native leaves, leaf wrappers and temporal
    parents have been freshly verified. Detached loading must bind canonical
    proof bytes to verifier-owned metadata rather than accepting host assertions.
+6. Bind public input/output claims to canonical guest I/O bytes through a
+   versioned verifier-owned input and AIR relation. Existing SegmentV2 edge
+   digests and `MachineState.public_io_state` are copied from the span
+   statement, and custody checks only establish first/last placement; they do
+   not prove that those digests represent the runner's actual input/output.
+   The V3 wrapper must not inherit that unbound claim.
 
 The first normal gate should prove a real two-leaf program, verify both local
 proofs, both wrapper proofs and their parent, then reject mutations to global
@@ -77,3 +83,13 @@ position, local count, boundary clocks, memory snapshot, completion and child
 order. A separate large gate should cross 2^24 total retired instructions with
 each leaf below the V3 cap. Until those gates pass, no long-execution root is
 claimed.
+
+The public iadd256 experiment in [PR #223](https://github.com/teddyjfpender/stwo-zig/pull/223)
+is a useful large-program gate: its
+61-repetition first batch retired more than 2^24 instructions across bounded
+leaf-local segments, but that capture is execution-only. The same experiment
+shows that repeatedly regenerating earlier SHAKE inputs makes late batches
+much larger than early ones. A full quantum-circuit proof therefore needs the
+sound V3 leaf/parent path here **and** proof-bound SHAKE checkpoints and exact
+batch/repetition coverage; merely raising a row cap or adding more leaves is
+not sufficient.
