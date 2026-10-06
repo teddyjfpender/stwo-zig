@@ -20,6 +20,7 @@ pub const Program = struct {
     allocator: std.mem.Allocator,
     hash: [32]u8,
     width: usize,
+    repetitions: u32 = 1,
     challenge: Challenge,
     first_batch: [64]Challenge,
     gates: []Gate,
@@ -116,6 +117,7 @@ pub fn parse(allocator: std.mem.Allocator, text: []const u8) !Program {
         .allocator = allocator,
         .hash = hash,
         .width = register_sizes[0],
+        .repetitions = 1,
         .challenge = firstChallenge(text, register_sizes[0]),
         .first_batch = firstBatchChallenges(text, register_sizes[0]),
         .gates = try gates.toOwnedSlice(allocator),
@@ -157,9 +159,13 @@ pub fn firstBatchChallenges(text: []const u8, width: usize) [64]Challenge {
 }
 
 pub fn pinChallenge(challenge: Challenge, width: usize, qubit: usize, final: bool) M31 {
+    return pinChallengeRepetitions(challenge, width, qubit, final, 1);
+}
+
+pub fn pinChallengeRepetitions(challenge: Challenge, width: usize, qubit: usize, final: bool, repetitions: u32) M31 {
     const mask: u256 = if (width == 256) std.math.maxInt(u256) else (@as(u256, 1) << @intCast(width)) - 1;
     const value = if (qubit < width)
-        (if (final) (challenge.target +% challenge.offset) & mask else challenge.target)
+        (if (final) (challenge.target +% (challenge.offset *% @as(u256, repetitions))) & mask else challenge.target)
     else
         challenge.offset;
     const bit_index: u8 = @intCast(if (qubit < width) qubit else qubit - width);

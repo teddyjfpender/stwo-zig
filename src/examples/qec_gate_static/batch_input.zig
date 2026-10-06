@@ -10,6 +10,7 @@ pub const Statement = struct {
     circuit_hash: [32]u8,
     width: u16,
     gate_count: u32,
+    repetitions: u32,
     batch_index: u32 = 0,
     log_rows: u32 = 6,
 };
@@ -19,11 +20,13 @@ pub fn statement(program: *const input.Program) Statement {
         .circuit_hash = program.hash,
         .width = @intCast(program.width),
         .gate_count = @intCast(program.gates.len),
+        .repetitions = program.repetitions,
     };
 }
 
 pub fn validate(program: *const input.Program, s: Statement) !void {
     if (s.log_rows != 6 or s.batch_index != 0 or s.width != program.width or
+        s.repetitions != program.repetitions or s.repetitions == 0 or s.repetitions > 4 or
         s.gate_count != program.gates.len or
         !std.mem.eql(u8, &s.circuit_hash, &program.hash)) return error.InvalidStatement;
 }
@@ -36,8 +39,8 @@ pub fn generateFixed(allocator: std.mem.Allocator, program: *const input.Program
     for (0..64) |shot| {
         const storage = try core.air.utils.circleBitReversedIndex(s.log_rows, shot);
         for (0..qubits) |q| {
-            @constCast(columns[q].values)[storage] = input.pinChallenge(program.first_batch[shot], program.width, q, false);
-            @constCast(columns[qubits + q].values)[storage] = input.pinChallenge(program.first_batch[shot], program.width, q, true);
+            @constCast(columns[q].values)[storage] = input.pinChallengeRepetitions(program.first_batch[shot], program.width, q, false, s.repetitions);
+            @constCast(columns[qubits + q].values)[storage] = input.pinChallengeRepetitions(program.first_batch[shot], program.width, q, true, s.repetitions);
         }
     }
     return columns;

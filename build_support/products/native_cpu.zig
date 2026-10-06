@@ -148,6 +148,37 @@ pub fn addProduct(context: Context) void {
     context.b.step("test-qec-gate-static", "Test the experimental fixed-wiring QEC gate proof")
         .dependOn(&context.b.addRunArtifact(qec_tests).step);
 
+    const qec_benchmark_root = graph.create(context.b, .{
+        .product = product(.benchmark),
+        .root_source_file = "src/examples/qec_gate_static/benchmark.zig",
+        .target = context.target,
+        .optimize = context.optimize,
+    });
+    context.protocol.addImports(qec_benchmark_root);
+    _ = graph.addCpuBackendImport(
+        context.b,
+        context.protocol,
+        product(.benchmark),
+        context.target,
+        context.optimize,
+        qec_benchmark_root,
+    );
+    _ = graph.addProofWireImport(
+        context.b,
+        context.protocol,
+        product(.benchmark),
+        context.target,
+        context.optimize,
+        qec_benchmark_root,
+    );
+    _ = graph_install.executable(
+        context.b,
+        "stwo-zig-qec-gate-bench",
+        qec_benchmark_root,
+        "benchmark-qec-gate-batch",
+        "Build the isolated 64-shot QEC gate AIR benchmark",
+    );
+
     const tests = addProductTests(context);
     const facade_tests = context.b.addTest(.{
         .root_module = createStwoModule(context, .@"test"),

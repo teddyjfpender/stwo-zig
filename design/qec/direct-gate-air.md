@@ -1,31 +1,28 @@
 # Direct CX/CCX AIR experiment
 
-This is a focused proof route for the public `iadd256.kmx` fixture. It proves one application of the circuit to the first 64 distinct SHAKE-derived shots. It does not yet prove the benchmark's 8,000 applications or all 9,024 shots, and its timing is not a full QEC benchmark result.
+This is a focused proof route for the public `iadd256.kmx` fixture. It proves 1, 2, or 4 consecutive applications of the circuit to the first 64 distinct SHAKE-derived shots. It does not yet prove the benchmark's 8,000 applications or all 9,024 shots, and its timing is not a full QEC benchmark result.
 
 ## Proven statement
 
-The pinned fixture has 256 bits in each of two registers, 2,038 CX gates, and 509 CCX gates. For each of the first 64 consecutive 64-byte SHAKE256 outputs of the exact fixture bytes, the prover commits to 512 initial qubit bits and one output bit per gate. The AIR checks each gate's Boolean transition and that all 512 final bits equal the public target plus offset modulo 2^256, with the offset register unchanged. The same 64 physical rows represent 64 distinct shots; they are not repeated copies of one shot.
+The pinned fixture has 256 bits in each of two registers, 2,038 CX gates, and 509 CCX gates. For each of the first 64 consecutive 64-byte SHAKE256 outputs of the exact fixture bytes, the prover commits to 512 initial qubit bits and one output bit per gate application. Each repetition's gate inputs are linked to the preceding repetition's terminal qubit state by the statically unrolled gate graph. The AIR checks every gate's Boolean transition and that all 512 final bits equal the public target plus `repetitions * offset` modulo 2^256, with the offset register unchanged. The same 64 physical rows represent 64 distinct shots; they are not repeated copies of one shot.
 
-The verifier independently parses the public fixture, checks its SHA-256 digest and gate count against the proof statement, derives the 64 challenge pairs with SHAKE256, and recomputes the fixed input/output-column Merkle root. A changed challenge fails the fixed-root check. The gate topology is baked into the verifier-derived AIR. SHAKE execution, fixture parsing, and SHA-256 are host checks; they are **not** constraints within this AIR. The output bits are public through the SHAKE-derived challenge table and fixed-column root, rather than a separate proof-output object. The circuit is public, so this is a fixed-circuit statement; it does not establish a generic private-circuit parser or source proof.
+The verifier independently parses the public fixture, expands exactly the claimed repetition count, checks its SHA-256 digest and expanded gate count against the proof statement, derives the 64 challenge pairs with SHAKE256, and recomputes the fixed input/output-column Merkle root. A changed challenge or repetition count fails verification. The gate topology is baked into the verifier-derived AIR. SHAKE execution, fixture parsing, and SHA-256 are host checks; they are **not** constraints within this AIR. The output bits are public through the SHAKE-derived challenge table and fixed-column root, rather than a separate proof-output object. The circuit is public, so this is a fixed-circuit statement; it does not establish a generic private-circuit parser or source proof.
 
 The proof uses Stwo's Blake2s-prefixed commitment/channel profile, 70 FRI queries and 26 proof-of-work bits. Cubic CCX/XOR constraints need composition log degree `log_rows + 2` and a two-chunk composition split. With a one-chunk split, different-height trace columns are lifted at OODS and the prover correctly rejects the nonconstant 64-shot witness as inconsistent. The split-two proof decodes and verifies in a fresh verifier. The verifier also rejects a changed SHAKE challenge through the recomputed fixed root.
 
 ## Focused measurement
 
-One ReleaseFast run on an Apple M5 Max, 64 GiB host, with a CPU Stwo backend:
+Five isolated ReleaseFast process runs per rung on an Apple M5 Max, 64 GiB host, with a CPU Stwo backend. The table gives medians; [the TSV receipt](receipts/direct-gate-ladder-m5-max.tsv) retains all 15 observations and proof hashes.
 
-| Quantity | First 64 shots, one repetition |
-| --- | ---: |
-| Gate-output columns | 2,547 |
-| Public fixed columns | 1,024 |
-| Trace rows | 64 |
-| Total trace field cells | 228,544 |
-| Proving | 3.124 s |
-| Fresh decode and verification | 0.153 s |
-| JSON proof wire | 2,661,981 bytes |
-| Whole test process maximum RSS | 17,956,864 bytes |
+| Repetitions | Active gates / main columns | Trace cells | Prove median | Fresh decode + verify median | Whole-process maximum RSS | JSON proof wire |
+| ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| 1 | 2,547 | 228,544 | 22.006 ms | 35.377 ms | 12.501 MB | 2,620,841 B |
+| 2 | 5,094 | 391,552 | 60.369 ms | 62.046 ms | 16.564 MB | 4,197,110 B |
+| 4 | 10,188 | 717,568 | 80.929 ms | 112.036 ms | 25.510 MB | 7,639,652 B |
 
-RSS is the maximum of the focused nine-test executable, not an isolated proof-only allocation counter. The test process includes the one-shot diagnostic and small parser/AIR tests; it excludes compiler memory. The run can be repeated with `zig build test-qec-gate-static -Doptimize=ReleaseFast`. Timing numbers are observations, not a distribution. The one-shot diagnostic in that command is a separate, smaller statement and should not be compared with 64-shot Cairo or RV32 proofs.
+All three use 64 rows, 1,024 public fixed columns, 70 FRI queries and 26 proof-of-work bits. Each result was decoded and verified by a separately parsed verifier program. The proof hash was stable across the five runs for each rung. The prover timer includes fixed/main trace generation, commitments, FRI and proof-of-work; it excludes fixture parsing, graph expansion, wire encoding, and verification. The verifier timer includes wire decoding, fixed-root reconstruction and proof verification. RSS is `/usr/bin/time -l` maximum resident set size for the entire fresh process, including parsing and verifier work, not a proof-only allocation counter. Build with `zig build benchmark-qec-gate-batch -Doptimize=ReleaseFast`, then run `zig-out/bin/stwo-zig-qec-gate-bench 1` (or `2`, `4`) in an isolated process. `zig build test-qec-gate-static -Doptimize=ReleaseFast` runs the tamper tests; timings printed by that test use Zig's instrumented testing allocator and are not the benchmark measurements.
+
+The three statements draw different deterministic proof-of-work nonces. Their canonical search indices were 4,666,162, 23,894,005 and 26,551,329 for 1, 2 and 4 repetitions. The one-repetition challenge was especially lucky relative to an expected 67 million candidates for 26 bits. Repeated timings for one statement capture runtime variation with the **same** nonce; the prove-time differences across rungs are not a pure gate-scaling slope or a PoW difficulty distribution. The TSV records each nonce and search index.
 
 ## Scaling route
 

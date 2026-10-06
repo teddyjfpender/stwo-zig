@@ -6,6 +6,7 @@ const prover = @import("stwo_prover_engine");
 const CpuBackend = @import("stwo_cpu_backend").CpuBackend;
 const proof_wire = @import("stwo_proof_wire");
 const input = @import("input.zig");
+const repeat_program = @import("repeat_program.zig");
 const batch_input = @import("batch_input.zig");
 const component = @import("batch_component.zig");
 const Hasher = core.vcs_lifted.blake2_merkle.Blake2sPrefixedMerkleHasher;
@@ -102,7 +103,7 @@ fn expectedFixedRoot(allocator: std.mem.Allocator, config: core.pcs.PcsConfig, p
 }
 
 fn mixStatement(channel: *Channel, s: batch_input.Statement) void {
-    channel.mixU32s(&.{ s.log_rows, s.width, s.gate_count, s.batch_index });
+    channel.mixU32s(&.{ s.log_rows, s.width, s.gate_count, s.repetitions, s.batch_index });
     var words: [8]u32 = undefined;
     for (&words, 0..) |*word, i| word.* = std.mem.readInt(u32, s.circuit_hash[i * 4 ..][0..4], .little);
     channel.mixU32s(&words);
@@ -147,35 +148,55 @@ test "iadd8 first 64 distinct SHAKE shots prove and freshly verify" {
     try verify(std.testing.allocator, config, &source, s, try proof_wire.decodeProofBytes(std.testing.allocator, wire));
 }
 
-test "iadd256 first 64 distinct SHAKE shots prove and freshly verify" {
+test "iadd256 first 64 distinct SHAKE shots prove and freshly verify for 1, 2, and 4 repetitions" {
     if (@import("builtin").mode != .ReleaseFast) return error.SkipZigTest;
     const bytes = @embedFile("fixtures/iadd256.kmx");
     var source = try input.parse(std.testing.allocator, bytes);
     defer source.deinit();
-    const s = batch_input.statement(&source);
+    var verifier_source = try input.parse(std.testing.allocator, bytes);
+    defer verifier_source.deinit();
     const config = core.pcs.PcsConfig{
         .pow_bits = 26,
         .fri_config = try core.fri.FriConfig.init(0, 2, 70),
     };
-    var prove_timer = try std.time.Timer.start();
-    var output = try prove(std.testing.allocator, config, &source, s);
-    defer output.proof.deinit(std.testing.allocator);
-    const prove_ns = prove_timer.read();
-    const wire = try proof_wire.encodeProofBytes(std.testing.allocator, output.proof);
-    defer std.testing.allocator.free(wire);
-    var independent = try input.parse(std.testing.allocator, bytes);
-    defer independent.deinit();
-    var verify_timer = try std.time.Timer.start();
-    try verify(std.testing.allocator, config, &independent, s, try proof_wire.decodeProofBytes(std.testing.allocator, wire));
-    const verify_ns = verify_timer.read();
-    independent.first_batch[0].target ^= 1;
-    try std.testing.expectError(
-        error.FixedChallengeRootMismatch,
-        verify(std.testing.allocator, config, &independent, s, try proof_wire.decodeProofBytes(std.testing.allocator, wire)),
-    );
-    std.debug.print("QEC_GATE_BATCH_DIAGNOSTIC width=256 shots=64 repetitions=1 gates={d} trace_rows=64 fixed_columns={d} main_columns={d} trace_cells={d} prove_ns={d} verify_ns={d} json_wire_bytes={d} security=pow26_queries70\n", .{
-        source.gates.len,                                       source.final_columns.len * 2, source.gates.len,
-        (source.final_columns.len * 2 + source.gates.len) * 64, prove_ns,                     verify_ns,
-        wire.len,
-    });
+    for ([_]u32{ 1, 2, 4 }) |repetitions| {
+        var repeated = try repeat_program.repeatProgram(std.testing.allocator, &source, repetitions);
+        defer repeated.deinit();
+        var independent = try repeat_program.repeatProgram(std.testing.allocator, &verifier_source, repetitions);
+        defer independent.deinit();
+        const s = batch_input.statement(&repeated);
+        var prove_timer = try std.time.Timer.start();
+        var output = try prove(std.testing.allocator, config, &repeated, s);
+        defer output.proof.deinit(std.testing.allocator);
+        const prove_ns = prove_timer.read();
+        const wire = try proof_wire.encodeProofBytes(std.testing.allocator, output.proof);
+        defer std.testing.allocator.free(wire);
+        var verify_timer = try std.time.Timer.start();
+        try verify(std.testing.allocator, config, &independent, s, try proof_wire.decodeProofBytes(std.testing.allocator, wire));
+        const verify_ns = verify_timer.read();
+        var changed_statement = s;
+        changed_statement.repetitions = if (repetitions == 1) 2 else 1;
+        try std.testing.expectError(
+            error.InvalidStatement,
+            verify(std.testing.allocator, config, &independent, changed_statement, try proof_wire.decodeProofBytes(std.testing.allocator, wire)),
+        );
+        independent.first_batch[0].target ^= 1;
+        try std.testing.expectError(
+            error.FixedChallengeRootMismatch,
+            verify(std.testing.allocator, config, &independent, s, try proof_wire.decodeProofBytes(std.testing.allocator, wire)),
+        );
+        independent.first_batch[0].target ^= 1;
+        if (repetitions == 1) {
+            var wrong_count = try repeat_program.repeatProgram(std.testing.allocator, &verifier_source, 2);
+            defer wrong_count.deinit();
+            try std.testing.expectError(
+                error.FixedChallengeRootMismatch,
+                verify(std.testing.allocator, config, &wrong_count, batch_input.statement(&wrong_count), try proof_wire.decodeProofBytes(std.testing.allocator, wire)),
+            );
+        }
+        std.debug.print("QEC_GATE_BATCH_DIAGNOSTIC width=256 shots=64 repetitions={d} gates={d} trace_rows=64 fixed_columns={d} main_columns={d} trace_cells={d} prove_ns={d} verify_ns={d} json_wire_bytes={d} security=pow26_queries70\n", .{
+            repetitions,                                                repeated.gates.len, repeated.final_columns.len * 2, repeated.gates.len,
+            (repeated.final_columns.len * 2 + repeated.gates.len) * 64, prove_ns,           verify_ns,                      wire.len,
+        });
+    }
 }
