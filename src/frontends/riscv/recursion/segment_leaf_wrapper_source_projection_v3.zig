@@ -14,6 +14,7 @@ const field_witness = @import("segment_leaf_wrapper_field_witness_v3.zig");
 const field_hash = @import("segment_leaf_wrapper_field_hash_witness_v3.zig");
 const provider_authority = @import("segment_outer_shared_provider_field_authority_v1.zig");
 const manifest_mod = @import("air/segment_outer_adapter_manifest_v2.zig");
+const strong_outer = @import("segment_outer_transaction_v3.zig");
 const metadata_mod = @import("segment_leaf_local_authority_v3.zig");
 const link_mod = @import("segment_leaf_local_verified_link_v3.zig");
 const segment_v2 = @import("segment_statement_v2.zig");
@@ -53,13 +54,14 @@ pub const WitnessV3 = struct {
     /// snapshot minted *after* strong 39-row verification. This only prepares
     /// rows: the eventual 49-row verifier must prove those child facts.
     pub fn initFromVerifiedChildren(
+        comptime Backend: type,
         allocator: std.mem.Allocator,
         program: *const program_mod.ProgramV2,
         prepared: anytype,
         metadata: *const metadata_mod.MetadataV3,
         link: *const link_mod.VerifiedLinkV3,
         native_fields: *const field_witness.NativeV1,
-        strong: anytype,
+        strong: *const strong_outer.ForBackend(Backend).Verified,
         manifest: *const manifest_mod.Manifest,
     ) !WitnessV3 {
         try prepared.validate();

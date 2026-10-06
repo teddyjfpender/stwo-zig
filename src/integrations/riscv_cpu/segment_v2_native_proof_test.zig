@@ -1252,6 +1252,7 @@ test "native V2 proves a rebased leaf-local V3 segment without widening the AIR"
     try wrapper_plan_v2.validateAgainst(allocator, cohort.manifest(), &link_program_v2, hash_calls.shape());
     _ = try recursion.segment_leaf_wrapper_protocol_v3.protocolId(&wrapper_plan_v2);
     var link_rows = try recursion.segment_leaf_wrapper_source_projection_v3.WitnessV3.initFromVerifiedChildren(
+        CpuBackend,
         allocator,
         &link_program_v2,
         &prepared,
@@ -1268,6 +1269,7 @@ test "native V2 proves a rebased leaf-local V3 segment without widening the AIR"
     try std.testing.expectError(
         error.SharedProviderFieldAuthorityMismatch,
         recursion.segment_leaf_wrapper_source_projection_v3.WitnessV3.initFromVerifiedChildren(
+            CpuBackend,
             allocator,
             &link_program_v2,
             &prepared,
