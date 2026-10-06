@@ -31,10 +31,10 @@ Tree0, metadata, and link components, with these **versioned replacements**:
 | 47 | Route native statement/context words to local authority, wire, and receipt identities through the existing typed child-field router. |
 | 48–49 | Hash the authority and receipt preimages with typed `vm_public_claim_hash` AIR; produce the exact `LAI1` and `LRI1` tuples consumed by row 40. |
 
-Rows 47–49 are a proposed layout, not yet a committed manifest. The dormant
-router/hash AIR already defines the tuple equations; the final manifest must
-pin their geometry, schedule ID, semantic digests, ordered call counts, and a
-new protocol/key namespace. Row 47 must receive `S2WR`/`S2CX` values from
+Rows 47–49 now have a typed PlanV5 layout and VPR6/VPK6 namespace; a complete
+50-row cohort and proof do not yet exist. The dormant router/hash AIR defines
+their tuple equations and the manifest pins geometry, schedule ID, semantic
+digests, and six ordered call counts. Row 47 must receive `S2WR`/`S2CX` values from
 the *checked native base AIR*. Row 40's 24 `LAI1`/`LWI1`/`LRI1` consumers
 must close exactly with the router and hash rows. No second table of host
 labels counts as proof authority.
