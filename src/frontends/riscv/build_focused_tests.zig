@@ -580,6 +580,7 @@ pub const specs = [_]Spec{
         .step = "test-segment-statement-v2",
         .description = "Run only SegmentV2 boundary and continuation-root tests",
         .root = "segment_statement_v2_test_root.zig",
+        .imports_prover_engine = true,
         .filters = &.{ "segment statement V2", "V2 transcript layout", "native authority preimage", "access clock:" },
         .minimum = 23,
     },

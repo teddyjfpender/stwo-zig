@@ -9,6 +9,34 @@ const protocol = @import("../protocol.zig");
 const span = @import("../span_statement.zig");
 const segment_v2 = @import("../segment_statement_v2.zig");
 const io_binding = @import("../segment_public_io_binding_v1.zig");
+const io_ingress = @import("../segment_public_io_ingress_v2.zig");
+
+test "segment statement V2 verifier public-I/O policy owns external bytes and keeps recursive activation closed" {
+    const allocator = std.testing.allocator;
+    var request_input = [_]u8{ 1, 2, 3 };
+    var expected_output = [_]u8{ 4, 5 };
+    var policy = try io_ingress.VerifierExpectedIo.initOwned(allocator, .{
+        .input_start = 0x1000,
+        .input = &request_input,
+        .output_len_addr = 0x2000,
+        .output_data_addr = 0x2004,
+        .output = &expected_output,
+    });
+    defer policy.deinit();
+    request_input[0] = 99;
+    expected_output[0] = 98;
+    try std.testing.expectEqualSlices(u8, &.{ 1, 2, 3 }, policy.input);
+    try std.testing.expectEqualSlices(u8, &.{ 4, 5 }, policy.output);
+    try std.testing.expect(!io_ingress.RECURSIVE_PROOF_ACTIVATION);
+    try std.testing.expect(!io_ingress.PROOF_VISIBLE_IO_RELATION);
+    const TestEngine = struct {};
+    const Capture = @import("../../prover/verifier.zig").VerifiedSegmentV2CaptureForEngine(TestEngine);
+    const no_captures: []const *const Capture = &.{};
+    try std.testing.expectError(
+        error.IncompleteIoCoverage,
+        policy.admitVerifiedCampaign(TestEngine, allocator, no_captures),
+    );
+}
 
 test "segment statement V2 real adjacent runner segments authenticate as one canonical span" {
     const allocator = std.testing.allocator;
@@ -204,12 +232,16 @@ test "segment statement V2 experimental public-I/O binding rejects changed claim
     try std.testing.expectEqualSlices(u8, &.{ 42, 0, 0, 0 }, result.output.?);
 
     const expected = io_binding.Expected{
-        .input_start = result.input_start,
+        // This policy comes from the test's independent ELF/ABI and request,
+        // not from the runner result or the candidate statement.
+        .input_start = 0x0010_0100,
         .input = &input,
-        .output_len_addr = result.output_len_addr,
-        .output_data_addr = result.output_data_addr,
-        .output = result.output orelse &.{},
+        .output_len_addr = 0x0010_0004,
+        .output_data_addr = 0x0010_0008,
+        .output = &.{ 42, 0, 0, 0 },
     };
+    var verifier_expected = try io_ingress.VerifierExpectedIo.initOwned(allocator, expected);
+    defer verifier_expected.deinit();
     try io_binding.validateRunner(&result, expected);
     const zero_io: span.Digest = .{0} ** 8;
     const entry = try machineState(
@@ -242,11 +274,18 @@ test "segment statement V2 experimental public-I/O binding rejects changed claim
         try span.EdgeClaim.present(job.complete.public_input),
         try span.EdgeClaim.present(job.complete.public_output),
     );
+    const admitted_source = try verifier_expected.admitNativeSource(
+        digest("bound-session"),
+        statement,
+        &result,
+    );
+    try admitted_source.validate();
     const source = try segment_v2.SourceV2.fromSegmentResult(digest("bound-session"), statement, &result);
     const words = try encode(allocator, &source);
     defer allocator.free(words);
     const public = try public_data_v2.PublicDataV2.authenticate(words);
     const coverage = try io_binding.validateAuthenticatedWire(&public, expected);
+    _ = try verifier_expected.inspectAuthenticatedWire(&public);
     try std.testing.expect(coverage.input and coverage.output);
     try io_binding.requireComplete(&.{coverage});
     var first_coverage = coverage;
@@ -271,6 +310,9 @@ test "segment statement V2 experimental public-I/O binding rejects changed claim
     changed_expected.input = &changed_input;
     try std.testing.expectError(error.RunnerIoMismatch, io_binding.validateRunner(&result, changed_expected));
     try std.testing.expectError(error.InputDigestMismatch, io_binding.validateAuthenticatedWire(&public, changed_expected));
+    try std.testing.expectEqualSlices(u8, &input, verifier_expected.input);
+    // The verifier's owned expectation is unchanged after the request buffer
+    // changes. A claim rewritten to match attacker-selected bytes is rejected.
 
     var changed_job = job;
     changed_job.complete.public_input = try io_binding.inputDigest(changed_expected);
@@ -287,6 +329,11 @@ test "segment statement V2 experimental public-I/O binding rejects changed claim
     defer allocator.free(changed_words);
     const changed_public = try public_data_v2.PublicDataV2.authenticate(changed_words);
     try std.testing.expectError(error.InputMemoryMismatch, io_binding.validateAuthenticatedWire(&changed_public, changed_expected));
+    try std.testing.expectError(error.InputDigestMismatch, verifier_expected.inspectAuthenticatedWire(&changed_public));
+    try std.testing.expectError(
+        error.InputDigestMismatch,
+        verifier_expected.admitNativeSource(digest("bound-session"), changed_statement, &result),
+    );
 
     var changed_output = expected;
     changed_output.output = &.{9};
@@ -305,6 +352,13 @@ test "segment statement V2 experimental public-I/O binding rejects changed claim
     defer allocator.free(output_words);
     const output_public = try public_data_v2.PublicDataV2.authenticate(output_words);
     try std.testing.expectError(error.OutputLengthMismatch, io_binding.validateAuthenticatedWire(&output_public, changed_output));
+    try std.testing.expectError(error.OutputDigestMismatch, verifier_expected.inspectAuthenticatedWire(&output_public));
+    var changed_abi = expected;
+    changed_abi.output_data_addr += 4;
+    var wrong_abi_policy = try io_ingress.VerifierExpectedIo.initOwned(allocator, changed_abi);
+    defer wrong_abi_policy.deinit();
+    try std.testing.expectError(error.RunnerIoMismatch, wrong_abi_policy.admitNativeSource(digest("bound-session"), statement, &result));
+    try std.testing.expectError(error.OutputDigestMismatch, wrong_abi_policy.inspectAuthenticatedWire(&public));
 
     const changed_output_bytes = [_]u8{ 43, 0, 0, 0 };
     changed_output.output = &changed_output_bytes;
@@ -323,6 +377,7 @@ test "segment statement V2 experimental public-I/O binding rejects changed claim
     defer allocator.free(changed_output_words);
     const changed_output_public = try public_data_v2.PublicDataV2.authenticate(changed_output_words);
     try std.testing.expectError(error.OutputMemoryMismatch, io_binding.validateAuthenticatedWire(&changed_output_public, changed_output));
+    try std.testing.expectError(error.OutputDigestMismatch, verifier_expected.inspectAuthenticatedWire(&changed_output_public));
 
     changed_job = job;
     changed_job.complete.initial_state.public_io_state = digest("not-zero-io-state");
@@ -339,6 +394,11 @@ test "segment statement V2 experimental public-I/O binding rejects changed claim
     defer allocator.free(state_words);
     const state_public = try public_data_v2.PublicDataV2.authenticate(state_words);
     try std.testing.expectError(error.NonZeroPublicIoState, io_binding.validateAuthenticatedWire(&state_public, expected));
+    try std.testing.expectError(error.NonZeroPublicIoState, verifier_expected.inspectAuthenticatedWire(&state_public));
+    try std.testing.expectError(
+        error.NonZeroPublicIoState,
+        verifier_expected.admitNativeSource(digest("bound-session"), state_statement, &result),
+    );
 }
 
 fn leafStatement(
