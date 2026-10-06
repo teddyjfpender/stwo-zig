@@ -22,11 +22,6 @@ pub const source_closure = product_policy.SourceClosure{
         "src/frontends/riscv/refinement_ir_export_test.zig",
         "src/frontends/riscv/refinement_program_export_test.zig",
         "src/frontends/riscv/sail_oracle_test_root.zig",
-        "src/integrations/riscv_cpu/degree5_poseidon_proof_test.zig",
-        "src/integrations/riscv_cpu/degree5_provider_proof_v1_test.zig",
-        "src/integrations/riscv_cpu/degree_bounded_poseidon_proof_test.zig",
-        "src/integrations/riscv_cpu/memory_provider_shard_benchmark.zig",
-        "src/integrations/riscv_cpu/memory_provider_shard_proof_test.zig",
     },
     .named_imports = &([_]product_policy.NamedImport{
         .{ .name = "stwo", .source = "src/stwo_riscv_cpu.zig" },

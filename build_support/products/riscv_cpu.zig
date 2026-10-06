@@ -8,9 +8,6 @@ const riscv_cpu_modules = @import("riscv_cpu_modules.zig");
 const riscv_cpu_tests = @import("riscv_cpu_tests.zig");
 const riscv_refinement = @import("riscv_refinement.zig");
 const riscv_poseidon2_pair = @import("riscv_poseidon2_pair.zig");
-const degree_bounded_poseidon = @import("riscv_cpu_degree_bounded_poseidon.zig");
-const degree5_poseidon = @import("riscv_cpu_degree5_poseidon.zig");
-const memory_provider_shards = @import("riscv_cpu_memory_provider_shards.zig");
 const sail_oracle_tests = @import("riscv_sail_oracle_tests.zig");
 const test_filter = @import("riscv_test_filter.zig");
 const executables = @import("riscv_cpu_executables.zig");
@@ -93,9 +90,6 @@ pub fn addProduct(context: Context) void {
         "Build the exact RISC-V bulk-memcpy admission observer",
     ).dependOn(&install_memcpy_admission.step);
     riscv_poseidon2_pair.add(context, product);
-    degree_bounded_poseidon.add(context, product, testContext(context));
-    degree5_poseidon.add(context, product, testContext(context));
-    memory_provider_shards.add(context, product, testContext(context));
     const host_step = context.b.step(
         "stwo-zig-riscv-cpu",
         "Build the focused Sail RV32IM CPU/SIMD proof CLI",
@@ -157,41 +151,6 @@ pub fn addProduct(context: Context) void {
     static_step.dependOn(&install_static_trace.step);
 
     const test_context = testContext(context);
-
-    context.b.step(
-        "test-block-memory-range-v2",
-        "Check block-v2 range and RW initial-provider witnesses",
-    ).dependOn(test_filter.addSuites(context.b, &.{.{
-        .tests = riscv_cpu_tests.addFocusedTestRoot(
-            test_context,
-            "src/frontends/riscv/block_memory_range_v2_test_root.zig",
-            &.{ "block V2 range", "continuation first-touch provider", "RW typed AIR semantic digest" },
-        ),
-        .minimum = 4,
-    }}));
-    context.b.step(
-        "test-block-memory-size-plan",
-        "Check count-first sorted-memory AIR sizing and exact partition replay",
-    ).dependOn(test_filter.addSuites(context.b, &.{.{
-        .tests = riscv_cpu_tests.addFocusedTestRoot(
-            test_context,
-            "src/frontends/riscv/block_memory_size_plan_test_root.zig",
-            &.{ "mainnet memory sizing", "sizing validates the budget", "planned memory AIR sizes" },
-        ),
-        .minimum = 3,
-    }}));
-
-    context.b.step(
-        "test-block-rw-initial-joint-v2",
-        "Prove and freshly verify block-v2 RW initial source with shared BLAKE3 paths",
-    ).dependOn(test_filter.addSuites(context.b, &.{.{
-        .tests = riscv_cpu_tests.addFocusedTestRoot(
-            test_context,
-            "src/frontends/riscv/block_rw_initial_joint_v2_test_root.zig",
-            &.{"RW provider and shared BLAKE3 path close"},
-        ),
-        .minimum = 1,
-    }}));
 
     const core_prover_tests = riscv_cpu_tests.addCoreProverTests(test_context);
     const exhaustive_tests = riscv_cpu_tests.addExhaustiveTests(test_context);

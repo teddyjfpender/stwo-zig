@@ -5,6 +5,7 @@ The block-v5 Ethereum proof architecture is preserved at
 its block producer, provider/planning variants, Stage101 experiments, and
 their historical build commands. The current main-facing RISC-V product no
 longer exposes `riscv-ethereum-block-proof` or compiles those variants.
+Obsolete block-v2 and block-v4 research build targets are removed as well.
 
 The retained RISC-V path is typed RV32IM execution, native CPU and Metal
 proving, the canonical CSP guest/precompile benchmarks, shared SHA-256,
@@ -20,3 +21,12 @@ READMEs. A two-segment detached CPU tree can be run with
 `vectors/reports/recursive-product-20260918/canonical-ladder-2-v1/admission.json`.
 The gate produces and independently verifies both leaves and their parent.
 The repository's CSP fixture root is `vectors/riscv_csp`.
+
+Some retained modules still carry Ethereum or block names because the
+supported CSP guest profile and detached recursion import them. In particular,
+the product's BLAKE3 Ethereum guest profile reaches the shared
+`blake3_extension_proof` implementation, which still imports block-memory
+components; the generic detached FRI core uses
+`ethereum_statement_arithmetic_v4`. Their names do not make them independent
+block-v5 product paths. Removing them requires refactoring those shared
+contracts and repeating the CSP and detached proof gates.
