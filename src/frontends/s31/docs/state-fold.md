@@ -1,0 +1,176 @@
+# Recursion that computes one more source step
+
+The [fixed-key fold](recursion-fold.md) repeats verification of one S31
+claim. This chapter adds a state transition: each new proof verifies its
+predecessor **and** proves one more step of a function extracted from the
+S31 source. All proofs use one state-fold AIR and one sealed key `KS`.
+
+## The source and the claim
+
+```s31
+fn step(v: [m31; 4]) -> [m31; 4] {
+    v .* v + splat<4>(7_m31)
+}
+
+circuit arith4_m31(public x: [m31; 4]) -> public [m31; 4] {
+    let result = iterate<256>(step, x);
+    result
+}
+```
+
+The text frontend specializes `step` and lowers `iterate<256>` to a static
+`repeat` node. The compiler recognizes this exact four-lane `square` then
+`add_const` body, including its constant 7 and 256-round base length. It
+generates `state-fold-verification-key.json` only for sources with that typed
+shape and a power-of-two base count from 16 through 32,768. This is
+source-driven: changing 7 changes the step relation and key.
+
+The ordinary leaf proof `P0` proves the first 256 steps. Its eight public
+M31 words are the four inputs and four outputs. The latter become the
+initial state of the state fold:
+
+```text
+W0 = [1,2,3,65535, 1381993681,1163620247,833240539,2139095920]
+S0 = [1381993681,1163620247,833240539,2139095920]
+```
+
+The first wrapper `P1` proves that `P0` verified and exposes `D1`, the
+personalized BLAKE2s digest of `SHA256(K0)` and `W0`. The state fold begins
+with proof `SProof0`, which checks `P1` inside its circuit and binds `S0`.
+`SProof1` checks `SProof0` and proves one more `step`; `SProof2` checks
+`SProof1` and proves another. Thus `SProof3` attests to **259** recurrence
+steps from the original public `x`, assuming the soundness conditions below.
+
+| Fold step | State after original source program plus fold steps | First lane |
+| --- | --- | ---: |
+| 0 | `[1381993681,1163620247,833240539,2139095920]` | 1381993681 |
+| 1 | `[1771435623,294854840,521360168,252467169]` | 1771435623 |
+| 2 | `[371774827,166216213,712922489,990353809]` | 371774827 |
+| 3 | `[1261523235,1373840506,29423616,860202541]` | 1261523235 |
+
+For the first lane, the step-1 arithmetic is ordinary M31 arithmetic:
+
+```text
+1381993681² + 7 = 1909906534323929768
+                 = 889369535 · 2147483647 + 1771435623
+```
+
+The checked Python acceptance fixture independently repeats that calculation
+for all four lanes and compares every generated statement.
+
+## Exactly what the AIR constrains
+
+Let `R` be the fold root guessed by the circuit, `n` the guessed `u16`
+step, `S0` the initial four M31 words, `S` the current state, and `P` the
+previous state. Let `base` be a private Boolean and `recurse=1-base`:
+
+```text
+base · (base - 1) = 0
+n · base = 0
+(n + base) · inverse = 1
+previous_step = n - recurse, with previous_step ∈ u16
+
+for each lane i:
+    next_i = P_i · P_i + 7 mod (2³¹ - 1)
+    S_i = S0_i + recurse · (next_i - S0_i)
+
+child_root   = base ? root(K1) : R
+child_output = base ? D1 : G(R,previous_step,D1,S0,P)
+verify_STARK(child_proof, child_root, child_output)
+public_output = G(R,n,D1,S0,S)
+```
+
+`S0`, `S`, and `P` are individually range constrained to M31. The Boolean,
+product, and inverse equations force the base branch at step zero and the
+recursive branch at every positive step. The `u16` predecessor decreases by
+one, so a valid recursive proof must eventually reach the base case. At
+step zero the lane equation reduces to `S=S0`; at a positive step it reduces
+to `S=P²+7`. The child verifier constrains its commitments, transcript,
+LogUp, FRI and proof-of-work inputs, just as in the [recursion chapter](recursion.md).
+
+Each scalar equality, multiplication, range check and hash gate is lowered
+to the circuit AIR components. For one lane, the transition constraint
+polynomial is
+
+```text
+C = S - S0 - recurse · (P² + 7 - S0).
+```
+
+On a valid trace row, `C=0` in M31. The prover interpolates the trace
+columns into polynomials, commits to their evaluations, and proves the AIR
+identities using the same machinery explained in [AIR and polynomials](air.md).
+The transition is genuinely inside that proof; the host's independently
+computed `nextState` is only a witness-generation and cross-check step.
+
+## Public binding and the self-key
+
+The fold digest includes every item in a fixed-width slot:
+
+```text
+G(R,n,D1,S0,S) = Blake2s-256(person="S31STF1!",
+    R[32 bytes] || LE32(n) || LE32(D1[0..8]) ||
+    LE32(S0[0..4]) || LE32(S[0..4]))
+```
+
+That is a 100-byte message over two BLAKE2s blocks. The circuit guesses
+`R` to avoid putting its own preprocessed root into its own AIR. The native
+verifier uses the **actual sealed** root of `KS` when recomputing `G`.
+The statement also carries `W0`; the native verifier requires
+`S0=W0[4..8]`, recomputes `D1` from exact `K0` bytes and `W0`, and checks
+`G` before verifying the top STARK. In a recursive branch, the AIR binds
+the same `S0` into the previous proof's expected digest. This prevents a
+prover from swapping the initial state mid-chain under the hash assumption.
+
+The installed prover rejects supplied `K0`, `K1`, or `KS` bytes that differ
+from its sealed package. Key generation rederives `K1`, constructs the
+state-fold AIR, and checks that its padded child-proof geometry equals
+`K1`'s. Every wrap compares value-bearing and witness-free gate lists before
+and after padding, checks the circuit, checks its root against `KS`, and
+natively verifies the newly produced proof. The native top verifier needs
+only that proof and statement; earlier proof files can be deleted. The
+[acceptance fixture](../acceptance_state_fold.py) challenges repaired false
+state, step, leaf and initial-state claims; corrupt proof bytes; a changed
+step key; and nine or ten direct in-circuit mutations per branch. This is
+an engineering argument under STARK and BLAKE2s assumptions, not a formal
+cryptographic audit.
+
+## Reproduce it
+
+```sh
+python3 src/frontends/s31/s31.py build \
+  src/frontends/s31/examples/arith4_m31.s31 --out zig-out/s31/arith4-state-fold
+python3 src/frontends/s31/s31.py prove zig-out/s31/arith4-state-fold \
+  src/frontends/s31/examples/arith4.valid.json zig-out/s31/state-leaf.proof
+python3 src/frontends/s31/s31.py wrap zig-out/s31/arith4-state-fold \
+  zig-out/s31/state-leaf.proof zig-out/s31/state-base.proof
+python3 src/frontends/s31/s31.py state-fold-base zig-out/s31/arith4-state-fold \
+  zig-out/s31/state-base.proof zig-out/s31/state0.proof
+python3 src/frontends/s31/s31.py state-fold-next zig-out/s31/arith4-state-fold \
+  zig-out/s31/state0.proof zig-out/s31/state1.proof
+python3 src/frontends/s31/s31.py verify-state-fold zig-out/s31/arith4-state-fold \
+  zig-out/s31/state1.proof
+python3 src/frontends/s31/acceptance_state_fold.py
+```
+
+`audit-state-fold-base` and `audit-state-fold-next` test the base selector,
+zero-test inverse, predecessor counter, current state, selected root,
+child output, and transition input directly in the circuit. `--low-memory`
+on either wrap command trades some proving time for memory: one local step-3
+sample took 3.62 s and 9.31 GB peak RSS normally, versus 3.82 s and
+7.00 GB in low-memory mode. Both paths produced the same 550,173-byte
+proof. The native top verifier took 0.07 s wall and 205 MB in that local
+sample. These are single-machine observations, not speed guarantees.
+`inspect-state-fold PACKAGE` rebuilds the AIR and reports raw rows and
+padding headroom. Compared with `inspect-fold` on the same source, this
+state transition adds only 48 raw variables, 4 equality rows, 32 QM31
+operation rows, and 16 M31-to-u32 rows; its triple-XOR and Blake-G raw row
+counts do not change. Both AIRs occupy the same padded component sizes.
+The [measurement record](../../../../design/s31/measurements/state-fold-v1-2026-10-07.json)
+contains the exact geometry and sampled timings.
+
+The current step extractor covers a four-lane M31 `square` plus static
+constant recurrence. It does not yet compile an arbitrary S31 function into
+the fold or handle Bitcoin's 80-byte header state, SHA256d, target rule and
+sparse-wide proof profile. The state-fold AIR shows the interface those
+larger transitions need: a typed state, a constrained transition, and a
+public digest binding the initial and current states under one key.

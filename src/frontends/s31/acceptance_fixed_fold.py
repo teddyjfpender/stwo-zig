@@ -50,7 +50,9 @@ def main() -> None:
     with tempfile.TemporaryDirectory(prefix="s31-fixed-fold-") as temporary:
         work = Path(temporary)
         package = args.package.resolve() if args.package else s31.package_for(SOURCE)
-        s31.verify_package(package)
+        manifest = s31.verify_package(package)
+        if "state-fold-verification-key.json" in manifest["artifacts"]:
+            raise AssertionError("non-recurrence source unexpectedly received a state-fold key")
         child_key = package / "verification-key.json"
         first_key = package / "recursive-verification-key.json"
         fold_key = package / "fixed-fold-verification-key.json"
@@ -72,6 +74,8 @@ def main() -> None:
         first = work / "first.proof"
         run("python3", str(HERE / "s31.py"), "prove", str(package), str(ASSIGNMENT), str(leaf))
         run("python3", str(HERE / "s31.py"), "wrap", str(package), str(leaf), str(first))
+        run("python3", str(HERE / "s31.py"), "state-fold-base", str(package),
+            str(first), str(work / "unsupported-state.proof"), accept=False)
         run("python3", str(HERE / "s31.py"), "audit-fold-base", str(package), str(first))
 
         folds = [work / f"fold{step}.proof" for step in range(4)]

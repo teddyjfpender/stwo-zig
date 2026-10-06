@@ -166,3 +166,5 @@ This fold repeats the **same leaf claim**. It does not yet update Bitcoin
 chain state, enforce the next header's previous hash and target, or accept
 the sparse-wide header proof profile as its base child. Those require a
 constrained state-transition relation and a compatible recursive verifier.
+The [state-transition fold](state-fold.md) implements the first such relation
+for an S31 four-lane M31 recurrence while retaining one verification key.

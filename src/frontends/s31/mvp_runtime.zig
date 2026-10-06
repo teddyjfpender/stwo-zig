@@ -8,6 +8,7 @@ const s31 = @import("stwo_s31_prototype");
 const native = @import("native_verifier.zig");
 const recursion_gate = @import("recursion_gate.zig");
 const fixed_fold = @import("fixed_fold.zig");
+const state_fold = @import("state_fold.zig");
 const relation = s31.relation;
 
 const QM31 = core.fields.qm31.QM31;
@@ -21,6 +22,7 @@ const sealed_prover_key = @embedFile("s31_verification_key");
 const sealed_prover_recursive_key = @embedFile("s31_recursive_key");
 const sealed_prover_recursive_next_key = @embedFile("s31_recursive_next_key");
 const sealed_prover_fold_key = @embedFile("s31_fold_key");
+const sealed_prover_state_fold_key = @embedFile("s31_state_fold_key");
 const projection_sha256 = "ceea3c293a4fcd3ca8a20ba62f4845732f8725bdf610fe6367c83adcb8be7e09";
 const chip_mode = @import("s31_options").chip_mode;
 const sparse_mode = @import("s31_options").sparse_mode;
@@ -94,6 +96,32 @@ const FoldKey = struct {
     trace_log_size: u32,
 };
 
+const StateFoldKey = struct {
+    schema: []const u8,
+    base_recursive_key_sha256: []const u8,
+    projection_sha256: []const u8,
+    air_bundle_sha256: []const u8,
+    source_rounds: u32,
+    step_constant: u32,
+    fold_preprocessed_root: []const u8,
+    fold_circuit_hash: []const u8,
+    padded: Rows,
+    trace_log_size: u32,
+};
+
+const StateFoldStatement = struct {
+    schema: []const u8,
+    state_fold_key_sha256: []const u8,
+    step: u16,
+    leaf_public_words: [8]u32,
+    base_public_words: [8]u32,
+    initial_state: [4]u32,
+    current_state: [4]u32,
+    fold_public_words: [8]u32,
+    fold_preprocessed_root: []const u8,
+    fold_circuit_hash: []const u8,
+};
+
 const FoldStatement = struct {
     schema: []const u8,
     fold_key_sha256: []const u8,
@@ -147,6 +175,7 @@ const Report = struct {
     name: []const u8,
     profile: []const u8,
     chip: ?ChipKey,
+    repeated_step: ?relation.ChipSpec,
     program_sha256: []const u8,
     canonical_ir_sha256: []const u8,
     preprocessed_root: []const u8,
@@ -209,8 +238,20 @@ pub fn main() !void {
         try generateNextRecursiveKey(allocator, parsed.value, args[2], args[3], args[4]);
     } else if (std.mem.eql(u8, command, "fold-keygen") and args.len == 5 and !chip_mode and !sparse_mode and !direct_mode) {
         try generateFoldKey(allocator, parsed.value, args[2], args[3], args[4]);
+    } else if (std.mem.eql(u8, command, "state-fold-keygen") and args.len == 5 and !chip_mode and !sparse_mode and !direct_mode) {
+        try generateStateFoldKey(allocator, parsed.value, args[2], args[3], args[4]);
+    } else if (std.mem.eql(u8, command, "state-fold-wrap-base") and (args.len == 8 or (args.len == 9 and std.mem.eql(u8, args[8], "--low-memory"))) and !chip_mode and !sparse_mode and !direct_mode) {
+        try wrapStateFold(allocator, parsed.value, args[2], args[3], args[4], args[5], args[6], args[7], true, args.len == 9, false);
+    } else if (std.mem.eql(u8, command, "state-fold-wrap-next") and (args.len == 8 or (args.len == 9 and std.mem.eql(u8, args[8], "--low-memory"))) and !chip_mode and !sparse_mode and !direct_mode) {
+        try wrapStateFold(allocator, parsed.value, args[2], args[3], args[4], args[5], args[6], args[7], false, args.len == 9, false);
+    } else if (std.mem.eql(u8, command, "state-fold-audit-base") and args.len == 7 and !chip_mode and !sparse_mode and !direct_mode) {
+        try wrapStateFold(allocator, parsed.value, args[2], args[3], "", args[4], args[5], args[6], true, false, true);
+    } else if (std.mem.eql(u8, command, "state-fold-audit-next") and args.len == 7 and !chip_mode and !sparse_mode and !direct_mode) {
+        try wrapStateFold(allocator, parsed.value, args[2], args[3], "", args[4], args[5], args[6], false, false, true);
     } else if (std.mem.eql(u8, command, "fold-inspect") and args.len == 5 and !chip_mode and !sparse_mode and !direct_mode) {
         try inspectFold(allocator, parsed.value, args[2], args[3], args[4]);
+    } else if (std.mem.eql(u8, command, "state-fold-inspect") and args.len == 5 and !chip_mode and !sparse_mode and !direct_mode) {
+        try inspectStateFold(allocator, parsed.value, args[2], args[3], args[4]);
     } else if (std.mem.eql(u8, command, "fold-audit") and args.len == 7 and !chip_mode and !sparse_mode and !direct_mode) {
         try auditFoldBase(allocator, parsed.value, args[2], args[3], args[4], args[5], args[6]);
     } else if (std.mem.eql(u8, command, "fold-wrap-base") and (args.len == 8 or (args.len == 9 and std.mem.eql(u8, args[8], "--low-memory"))) and !chip_mode and !sparse_mode and !direct_mode) {
@@ -228,7 +269,7 @@ pub fn main() !void {
 
 /// Entry point of the separately installed verifier binary. Its accepted
 /// program is fixed by `embedded_source` at compile time.
-pub fn verifierMain(embedded_key: []const u8, embedded_recursive_key: []const u8, embedded_recursive_next_key: []const u8, embedded_fold_key: []const u8) !void {
+pub fn verifierMain(embedded_key: []const u8, embedded_recursive_key: []const u8, embedded_recursive_next_key: []const u8, embedded_fold_key: []const u8, embedded_state_fold_key: []const u8) !void {
     var gpa_state = std.heap.GeneralPurposeAllocator(.{}){};
     defer _ = gpa_state.deinit();
     const allocator = gpa_state.allocator();
@@ -240,6 +281,8 @@ pub fn verifierMain(embedded_key: []const u8, embedded_recursive_key: []const u8
         return verifyNextOuter(allocator, args[2], args[3], embedded_key, embedded_recursive_key, embedded_recursive_next_key);
     if (args.len == 4 and std.mem.eql(u8, args[1], "fold-verify"))
         return verifyFold(allocator, args[2], args[3], embedded_key, embedded_recursive_key, embedded_fold_key);
+    if (args.len == 4 and std.mem.eql(u8, args[1], "state-fold-verify"))
+        return verifyStateFold(allocator, args[2], args[3], embedded_key, embedded_recursive_key, embedded_state_fold_key);
     if (args.len != 4) {
         std.debug.print("usage: s31-PROGRAM-native-verifier PROOF PUBLIC-STATEMENT.json VERIFICATION-KEY.json\n       recurse-verify PROOF STATEMENT.json | recurse-verify-next PROOF CHAIN.json | fold-verify PROOF FOLD-STATEMENT.json\n", .{});
         return error.InvalidArguments;
@@ -498,6 +541,7 @@ fn inspect(allocator: std.mem.Allocator, source: relation.Program) !void {
             const spec = source.repeatedStepChip().?;
             break :blk .{ .rounds = spec.rounds, .constant = spec.constant, .relation_id = cpu.repeated_step_chip.relation_id };
         } else null,
+        .repeated_step = source.repeatedStepChip(),
         .program_sha256 = &source_hex,
         .canonical_ir_sha256 = &ir_hex,
         .preprocessed_root = &root_hex,
@@ -1376,6 +1420,99 @@ fn generateFoldKey(
     try std.fs.cwd().writeFile(.{ .sub_path = output_path, .data = encoded });
 }
 
+fn generateStateFoldKey(
+    allocator: std.mem.Allocator,
+    source: relation.Program,
+    child_key_path: []const u8,
+    recursive_key_path: []const u8,
+    output_path: []const u8,
+) !void {
+    const spec = source.repeatedStepChip() orelse return error.UnsupportedStateFoldSource;
+    const child_bytes = try std.fs.cwd().readFileAlloc(allocator, child_key_path, 4096);
+    defer allocator.free(child_bytes);
+    var parsed_child = try std.json.parseFromSlice(Key, allocator, child_bytes, .{ .ignore_unknown_fields = false });
+    defer parsed_child.deinit();
+    try validateKey(allocator, source, parsed_child.value);
+    const first_bytes = try std.fs.cwd().readFileAlloc(allocator, recursive_key_path, 4096);
+    defer allocator.free(first_bytes);
+    var parsed_first = try std.json.parseFromSlice(RecursiveKey, allocator, first_bytes, .{ .ignore_unknown_fields = false });
+    defer parsed_first.deinit();
+    const first = parsed_first.value;
+    var child_digest: [32]u8 = undefined;
+    std.crypto.hash.sha2.Sha256.hash(child_bytes, &child_digest, .{});
+    if (!std.mem.eql(u8, first.schema, "s31-recursive-verification-key-v2") or
+        !std.mem.eql(u8, first.child_key_sha256, &std.fmt.bytesToHex(child_digest, .lower)) or
+        !std.mem.eql(u8, first.projection_sha256, projection_sha256) or
+        !std.mem.eql(u8, first.air_bundle_sha256, cpu.air.bundle_sha256))
+        return error.InvalidRecursiveVerificationKey;
+    const child_layout = try preprocessed.ColumnLayout.fromComponentSizes(.{
+        .eq = parsed_child.value.padded.eq,
+        .qm31_ops = parsed_child.value.padded.qm31_ops,
+        .triple_xor = parsed_child.value.padded.triple_xor,
+        .m31_to_u32 = parsed_child.value.padded.m31_to_u32,
+        .blake_g_gate = parsed_child.value.padded.blake_g,
+    });
+    if (child_layout.traceLogSize() != parsed_child.value.trace_log_size) return error.InvalidVerificationKey;
+    var child_root: [32]u8 = undefined;
+    _ = try std.fmt.hexToBytes(&child_root, parsed_child.value.preprocessed_root);
+    const expected_first = try buildRecursiveGeometry(allocator, child_layout, try showcasePcsConfig(child_layout.traceLogSize()), child_digest, child_root);
+    if (!std.mem.eql(u8, first.outer_preprocessed_root, &std.fmt.bytesToHex(expected_first.root, .lower)) or
+        !std.mem.eql(u8, first.outer_circuit_hash, &std.fmt.bytesToHex(expected_first.hash, .lower)) or
+        !std.meta.eql(first.outer_padded, expected_first.padded) or
+        first.outer_trace_log_size != expected_first.trace_log_size)
+        return error.InvalidRecursiveVerificationKey;
+    const first_layout = try preprocessed.ColumnLayout.fromComponentSizes(.{
+        .eq = first.outer_padded.eq,
+        .qm31_ops = first.outer_padded.qm31_ops,
+        .triple_xor = first.outer_padded.triple_xor,
+        .m31_to_u32 = first.outer_padded.m31_to_u32,
+        .blake_g_gate = first.outer_padded.blake_g,
+    });
+    if (first_layout.traceLogSize() != first.outer_trace_log_size) return error.InvalidRecursiveVerificationKey;
+    var topology_ctx = try state_fold.topology(allocator, projection_bytes, first_layout, try showcasePcsConfig(first_layout.traceLogSize()), expected_first.root, spec.constant);
+    defer topology_ctx.deinit();
+    try circuit.common.finalize.padContext(circuit.builder.NoValue, &topology_ctx);
+    const padded = circuit.common.finalize.rawComponentSizes(preprocessed.CircuitView.fromBuilder(&topology_ctx.circuit));
+    var pp = try preprocessed.PreprocessedCircuit.fromBuilderCircuit(allocator, &topology_ctx.circuit);
+    defer pp.deinit(allocator);
+    const layout = pp.layout();
+    if (!layout.eql(&first_layout)) return error.UnsupportedStateFoldGeometry;
+    const pcs = try showcasePcsConfig(layout.traceLogSize());
+    const root = try pp.preprocessedRoot(allocator, pcs.fri_config.log_blowup_factor);
+    const hash = try circuit.common.circuit_hash.hostCircuitHash(
+        try circuit.common.component_list.circuitComponentLogSizes(&layout),
+        pcs.fri_config.log_blowup_factor,
+        root,
+    );
+    var first_digest: [32]u8 = undefined;
+    std.crypto.hash.sha2.Sha256.hash(first_bytes, &first_digest, .{});
+    const first_hex = std.fmt.bytesToHex(first_digest, .lower);
+    const root_hex = std.fmt.bytesToHex(root, .lower);
+    const hash_hex = std.fmt.bytesToHex(hash, .lower);
+    const state_key: StateFoldKey = .{
+        .schema = "s31-state-fold-verification-key-v1",
+        .base_recursive_key_sha256 = &first_hex,
+        .projection_sha256 = projection_sha256,
+        .air_bundle_sha256 = cpu.air.bundle_sha256,
+        .source_rounds = spec.rounds,
+        .step_constant = spec.constant,
+        .fold_preprocessed_root = &root_hex,
+        .fold_circuit_hash = &hash_hex,
+        .padded = .{
+            .eq = padded.eq,
+            .qm31_ops = padded.qm31_ops,
+            .triple_xor = padded.triple_xor,
+            .m31_to_u32 = padded.m31_to_u32,
+            .blake_g = padded.blake_g_gate,
+        },
+        .trace_log_size = layout.traceLogSize(),
+    };
+    const encoded = try std.json.Stringify.valueAlloc(allocator, state_key, .{});
+    defer allocator.free(encoded);
+    try std.fs.cwd().makePath(std.fs.path.dirname(output_path) orelse ".");
+    try std.fs.cwd().writeFile(.{ .sub_path = output_path, .data = encoded });
+}
+
 fn auditFoldBase(
     allocator: std.mem.Allocator,
     source: relation.Program,
@@ -1550,6 +1687,67 @@ fn validateFoldKey(child_bytes: []const u8, first_bytes: []const u8, first: Recu
     return .{ .layout = fold_layout, .pcs = pcs, .base_root = base_root, .root = root, .hash = hash };
 }
 
+fn validateStateFoldKey(
+    child_bytes: []const u8,
+    first_bytes: []const u8,
+    first: RecursiveKey,
+    key: StateFoldKey,
+    spec: relation.ChipSpec,
+) !VerifiedFoldKey {
+    if (!std.mem.eql(u8, key.schema, "s31-state-fold-verification-key-v1") or
+        key.source_rounds != spec.rounds or key.step_constant != spec.constant)
+        return error.InvalidStateFoldVerificationKey;
+    // Both fold keys have the same layout and identity fields; the key's
+    // domain, transition constant, and source rounds are checked above.
+    const common: FoldKey = .{
+        .schema = "s31-fixed-fold-verification-key-v2",
+        .base_recursive_key_sha256 = key.base_recursive_key_sha256,
+        .projection_sha256 = key.projection_sha256,
+        .air_bundle_sha256 = key.air_bundle_sha256,
+        .fold_preprocessed_root = key.fold_preprocessed_root,
+        .fold_circuit_hash = key.fold_circuit_hash,
+        .padded = key.padded,
+        .trace_log_size = key.trace_log_size,
+    };
+    return validateFoldKey(child_bytes, first_bytes, first, common);
+}
+
+fn validateStateFoldStatement(
+    statement: StateFoldStatement,
+    child_bytes: []const u8,
+    state_key_bytes: []const u8,
+    verified: VerifiedFoldKey,
+) !void {
+    var key_digest: [32]u8 = undefined;
+    std.crypto.hash.sha2.Sha256.hash(state_key_bytes, &key_digest, .{});
+    if (!std.mem.eql(u8, statement.schema, "s31-state-fold-statement-v1") or
+        !std.mem.eql(u8, statement.state_fold_key_sha256, &std.fmt.bytesToHex(key_digest, .lower)) or
+        !std.mem.eql(u8, statement.fold_preprocessed_root, &std.fmt.bytesToHex(verified.root, .lower)) or
+        !std.mem.eql(u8, statement.fold_circuit_hash, &std.fmt.bytesToHex(verified.hash, .lower)))
+        return error.InvalidStateFoldStatement;
+    for (statement.leaf_public_words) |word| if (word >= core.fields.m31.Modulus) {
+        return error.NoncanonicalPublicWord;
+    };
+    for (statement.initial_state, 0..) |word, i| {
+        if (word >= core.fields.m31.Modulus or word != statement.leaf_public_words[4 + i])
+            return error.InvalidStateFoldInitialState;
+    }
+    for (statement.current_state) |word| if (word >= core.fields.m31.Modulus) {
+        return error.NoncanonicalState;
+    };
+    var child_digest: [32]u8 = undefined;
+    std.crypto.hash.sha2.Sha256.hash(child_bytes, &child_digest, .{});
+    const base = recursion_gate.statementDigest(child_digest, statement.leaf_public_words);
+    if (!std.meta.eql(statement.base_public_words, base) or
+        !std.meta.eql(statement.fold_public_words, state_fold.statementDigest(
+            verified.root,
+            statement.step,
+            base,
+            statement.initial_state,
+            statement.current_state,
+        ))) return error.InvalidStateFoldStatement;
+}
+
 fn inspectFold(
     allocator: std.mem.Allocator,
     source: relation.Program,
@@ -1576,9 +1774,49 @@ fn inspectFold(
     const verified = try validateFoldKey(child_bytes, first_bytes, first.value, fold.value);
     var topology_ctx = try fixed_fold.topology(allocator, projection_bytes, verified.layout, verified.pcs, verified.base_root);
     defer topology_ctx.deinit();
+    try emitFoldGeometry(allocator, &topology_ctx, verified, fold.value.padded, "s31-fixed-fold-geometry-v1");
+}
+
+fn inspectStateFold(
+    allocator: std.mem.Allocator,
+    source: relation.Program,
+    child_key_path: []const u8,
+    first_key_path: []const u8,
+    state_key_path: []const u8,
+) !void {
+    const spec = source.repeatedStepChip() orelse return error.UnsupportedStateFoldSource;
+    const child_bytes = try std.fs.cwd().readFileAlloc(allocator, child_key_path, 4096);
+    defer allocator.free(child_bytes);
+    if (!std.mem.eql(u8, child_bytes, sealed_prover_key)) return error.UnsealedRecursiveKey;
+    var child = try std.json.parseFromSlice(Key, allocator, child_bytes, .{ .ignore_unknown_fields = false });
+    defer child.deinit();
+    try validateKey(allocator, source, child.value);
+    const first_bytes = try std.fs.cwd().readFileAlloc(allocator, first_key_path, 4096);
+    defer allocator.free(first_bytes);
+    if (!std.mem.eql(u8, first_bytes, sealed_prover_recursive_key)) return error.UnsealedRecursiveKey;
+    var first = try std.json.parseFromSlice(RecursiveKey, allocator, first_bytes, .{ .ignore_unknown_fields = false });
+    defer first.deinit();
+    const state_bytes = try std.fs.cwd().readFileAlloc(allocator, state_key_path, 4096);
+    defer allocator.free(state_bytes);
+    if (!std.mem.eql(u8, state_bytes, sealed_prover_state_fold_key)) return error.UnsealedStateFoldKey;
+    var state_key = try std.json.parseFromSlice(StateFoldKey, allocator, state_bytes, .{ .ignore_unknown_fields = false });
+    defer state_key.deinit();
+    const verified = try validateStateFoldKey(child_bytes, first_bytes, first.value, state_key.value, spec);
+    var topology_ctx = try state_fold.topology(allocator, projection_bytes, verified.layout, verified.pcs, verified.base_root, spec.constant);
+    defer topology_ctx.deinit();
+    try emitFoldGeometry(allocator, &topology_ctx, verified, state_key.value.padded, "s31-state-fold-geometry-v1");
+}
+
+fn emitFoldGeometry(
+    allocator: std.mem.Allocator,
+    topology_ctx: *circuit.builder.Context(circuit.builder.NoValue),
+    verified: VerifiedFoldKey,
+    padded: Rows,
+    schema: []const u8,
+) !void {
     const raw = circuit.common.finalize.rawComponentSizes(preprocessed.CircuitView.fromBuilder(&topology_ctx.circuit));
     const raw_vars = topology_ctx.circuit.n_vars;
-    try circuit.common.finalize.padContext(circuit.builder.NoValue, &topology_ctx);
+    try circuit.common.finalize.padContext(circuit.builder.NoValue, topology_ctx);
     var pp = try preprocessed.PreprocessedCircuit.fromBuilderCircuit(allocator, &topology_ctx.circuit);
     defer pp.deinit(allocator);
     const actual_root = try pp.preprocessedRoot(allocator, verified.pcs.fri_config.log_blowup_factor);
@@ -1591,7 +1829,6 @@ fn inspectFold(
         .m31_to_u32 = raw.m31_to_u32,
         .blake_g = raw.blake_g_gate,
     };
-    const padded = fold.value.padded;
     if (raw_rows.eq > padded.eq or raw_rows.qm31_ops > padded.qm31_ops or
         raw_rows.triple_xor > padded.triple_xor or raw_rows.m31_to_u32 > padded.m31_to_u32 or
         raw_rows.blake_g > padded.blake_g)
@@ -1603,11 +1840,13 @@ fn inspectFold(
         .m31_to_u32 = padded.m31_to_u32 - raw_rows.m31_to_u32,
         .blake_g = padded.blake_g - raw_rows.blake_g,
     };
+    const root_hex = std.fmt.bytesToHex(verified.root, .lower);
+    const hash_hex = std.fmt.bytesToHex(verified.hash, .lower);
     const report = .{
-        .schema = "s31-fixed-fold-geometry-v1",
-        .fold_preprocessed_root = fold.value.fold_preprocessed_root,
-        .fold_circuit_hash = fold.value.fold_circuit_hash,
-        .trace_log_size = fold.value.trace_log_size,
+        .schema = schema,
+        .fold_preprocessed_root = &root_hex,
+        .fold_circuit_hash = &hash_hex,
+        .trace_log_size = verified.layout.traceLogSize(),
         .raw_vars = raw_vars,
         .padded_vars = topology_ctx.circuit.n_vars,
         .raw_rows = raw_rows,
@@ -1848,6 +2087,270 @@ fn verifyFold(
     defer allocator.free(proof_bytes);
     try native.verify(allocator, &verified.layout, &bundle, verified.pcs, verified.root, verified.hash, statement.value.fold_public_words, proof_bytes);
     std.debug.print("S31 fixed-fold verification accepted: step={d} proof={s}\n", .{ statement.value.step, proof_path });
+}
+
+fn expectStateFoldCircuitRejection(
+    allocator: std.mem.Allocator,
+    verified: VerifiedFoldKey,
+    captured: *const cpu.verifier_proof.VerifierProof,
+    base_root: [32]u8,
+    self_root: [32]u8,
+    base_public_words: [8]u32,
+    initial_state: [4]u32,
+    current_state: [4]u32,
+    previous_state: [4]u32,
+    step: u16,
+    constant: u32,
+    mutation: ?state_fold.Mutation,
+) !void {
+    if (state_fold.verifyPreparedWithMutation(
+        allocator,
+        projection_bytes,
+        verified.layout,
+        verified.pcs,
+        captured,
+        base_root,
+        self_root,
+        base_public_words,
+        initial_state,
+        current_state,
+        previous_state,
+        step,
+        constant,
+        mutation,
+    )) |accepted| {
+        var invalid = accepted;
+        invalid.deinit();
+        return error.StateFoldAuditAcceptedMutation;
+    } else |err| switch (err) {
+        error.VerificationFailed, error.EqFailedOnEval => {},
+        else => return err,
+    }
+}
+
+fn wrapStateFold(
+    allocator: std.mem.Allocator,
+    source: relation.Program,
+    child_proof_path: []const u8,
+    child_statement_path: []const u8,
+    output_path: []const u8,
+    child_key_path: []const u8,
+    first_key_path: []const u8,
+    state_key_path: []const u8,
+    base_case: bool,
+    low_memory: bool,
+    audit_only: bool,
+) !void {
+    const spec = source.repeatedStepChip() orelse return error.UnsupportedStateFoldSource;
+    const child_bytes = try std.fs.cwd().readFileAlloc(allocator, child_key_path, 4096);
+    defer allocator.free(child_bytes);
+    if (!std.mem.eql(u8, child_bytes, sealed_prover_key)) return error.UnsealedRecursiveKey;
+    var child = try std.json.parseFromSlice(Key, allocator, child_bytes, .{ .ignore_unknown_fields = false });
+    defer child.deinit();
+    try validateKey(allocator, source, child.value);
+    const first_bytes = try std.fs.cwd().readFileAlloc(allocator, first_key_path, 4096);
+    defer allocator.free(first_bytes);
+    if (!std.mem.eql(u8, first_bytes, sealed_prover_recursive_key)) return error.UnsealedRecursiveKey;
+    var first = try std.json.parseFromSlice(RecursiveKey, allocator, first_bytes, .{ .ignore_unknown_fields = false });
+    defer first.deinit();
+    const state_bytes = try std.fs.cwd().readFileAlloc(allocator, state_key_path, 4096);
+    defer allocator.free(state_bytes);
+    if (!std.mem.eql(u8, state_bytes, sealed_prover_state_fold_key)) return error.UnsealedStateFoldKey;
+    var state_key = try std.json.parseFromSlice(StateFoldKey, allocator, state_bytes, .{ .ignore_unknown_fields = false });
+    defer state_key.deinit();
+    const verified = try validateStateFoldKey(child_bytes, first_bytes, first.value, state_key.value, spec);
+    const statement_bytes = try std.fs.cwd().readFileAlloc(allocator, child_statement_path, 8192);
+    defer allocator.free(statement_bytes);
+    var leaf_public_words: [8]u32 = undefined;
+    var base_public_words: [8]u32 = undefined;
+    var initial_state: [4]u32 = undefined;
+    var current_state: [4]u32 = undefined;
+    var previous_state: [4]u32 = .{ 0, 0, 0, 0 };
+    var step: u16 = undefined;
+    var child_root: [32]u8 = undefined;
+    var child_hash: [32]u8 = undefined;
+    var child_public_words: [8]u32 = undefined;
+    if (base_case) {
+        var first_statement = try std.json.parseFromSlice(RecursiveStatement, allocator, statement_bytes, .{ .ignore_unknown_fields = false });
+        defer first_statement.deinit();
+        var child_digest: [32]u8 = undefined;
+        std.crypto.hash.sha2.Sha256.hash(child_bytes, &child_digest, .{});
+        const parent = try validateRecursiveStatement(first_statement.value, child_digest, first.value, true);
+        if (!parent.layout.eql(&verified.layout) or !std.mem.eql(u8, &parent.root, &verified.base_root))
+            return error.InvalidStateFoldBaseKey;
+        leaf_public_words = first_statement.value.child_public_words;
+        base_public_words = first_statement.value.outer_public_words;
+        for (&initial_state, 0..) |*word, i| word.* = leaf_public_words[4 + i];
+        current_state = initial_state;
+        child_public_words = base_public_words;
+        child_root = parent.root;
+        child_hash = parent.hash;
+        step = 0;
+    } else {
+        var previous = try std.json.parseFromSlice(StateFoldStatement, allocator, statement_bytes, .{ .ignore_unknown_fields = false });
+        defer previous.deinit();
+        try validateStateFoldStatement(previous.value, child_bytes, state_bytes, verified);
+        if (previous.value.step == std.math.maxInt(u16)) return error.FoldStepOverflow;
+        leaf_public_words = previous.value.leaf_public_words;
+        base_public_words = previous.value.base_public_words;
+        initial_state = previous.value.initial_state;
+        previous_state = previous.value.current_state;
+        current_state = try state_fold.nextState(previous_state, spec.constant);
+        child_public_words = previous.value.fold_public_words;
+        child_root = verified.root;
+        child_hash = verified.hash;
+        step = previous.value.step + 1;
+    }
+    var bundle = try parseAirBundle(allocator);
+    defer bundle.deinit();
+    const proof_bytes = try std.fs.cwd().readFileAlloc(allocator, child_proof_path, 16 << 20);
+    defer allocator.free(proof_bytes);
+    var captured = try native.verifyAndCapture(allocator, &verified.layout, &bundle, verified.pcs, child_root, child_hash, child_public_words, proof_bytes);
+    defer captured.deinit();
+    var values = try state_fold.verifyPrepared(
+        allocator,
+        projection_bytes,
+        verified.layout,
+        verified.pcs,
+        &captured,
+        verified.base_root,
+        verified.root,
+        base_public_words,
+        initial_state,
+        current_state,
+        previous_state,
+        step,
+        spec.constant,
+    );
+    defer values.deinit();
+    if (audit_only) {
+        var wrong_leaf = base_public_words;
+        wrong_leaf[0] ^= 1;
+        try expectStateFoldCircuitRejection(allocator, verified, &captured, verified.base_root, verified.root, wrong_leaf, initial_state, current_state, previous_state, step, spec.constant, null);
+        var wrong_current = current_state;
+        wrong_current[0] = if (wrong_current[0] == 0) 1 else 0;
+        try expectStateFoldCircuitRejection(allocator, verified, &captured, verified.base_root, verified.root, base_public_words, initial_state, wrong_current, previous_state, step, spec.constant, null);
+        try expectStateFoldCircuitRejection(allocator, verified, &captured, verified.base_root, verified.root, base_public_words, initial_state, current_state, previous_state, if (step == 0) 1 else step - 1, spec.constant, null);
+        var wrong_initial = initial_state;
+        wrong_initial[0] = if (wrong_initial[0] == 0) 1 else 0;
+        try expectStateFoldCircuitRejection(allocator, verified, &captured, verified.base_root, verified.root, base_public_words, wrong_initial, current_state, previous_state, step, spec.constant, null);
+        if (base_case) {
+            var wrong_root = verified.base_root;
+            wrong_root[0] ^= 1;
+            try expectStateFoldCircuitRejection(allocator, verified, &captured, wrong_root, verified.root, base_public_words, initial_state, current_state, previous_state, step, spec.constant, null);
+        } else {
+            var wrong_root = verified.root;
+            wrong_root[0] ^= 1;
+            try expectStateFoldCircuitRejection(allocator, verified, &captured, verified.base_root, wrong_root, base_public_words, initial_state, current_state, previous_state, step, spec.constant, null);
+            var wrong_previous = previous_state;
+            wrong_previous[0] = if (wrong_previous[0] == 0) 1 else 0;
+            try expectStateFoldCircuitRejection(allocator, verified, &captured, verified.base_root, verified.root, base_public_words, initial_state, current_state, wrong_previous, step, spec.constant, null);
+        }
+        inline for (.{ .base_selector, .zero_test_inverse, .previous_counter, .current_state }) |mutation| {
+            try expectStateFoldCircuitRejection(allocator, verified, &captured, verified.base_root, verified.root, base_public_words, initial_state, current_state, previous_state, step, spec.constant, mutation);
+        }
+        std.debug.print("S31 state-fold circuit audit: step={d} valid=true rejected={d}\n", .{ step, if (base_case) @as(u32, 9) else 10 });
+        return;
+    }
+    var pp = blk: {
+        var topology_ctx = try state_fold.topology(allocator, projection_bytes, verified.layout, verified.pcs, verified.base_root, spec.constant);
+        defer topology_ctx.deinit();
+        if (!sameTopology(&values.circuit, &topology_ctx.circuit)) return error.StateFoldValueDependentTopology;
+        try circuit.common.finalize.padContext(QM31, &values);
+        try circuit.common.finalize.padContext(circuit.builder.NoValue, &topology_ctx);
+        if (!sameTopology(&values.circuit, &topology_ctx.circuit) or !try values.isCircuitValid())
+            return error.InvalidStateFoldCircuit;
+        break :blk try preprocessed.PreprocessedCircuit.fromBuilderCircuit(allocator, &topology_ctx.circuit);
+    };
+    defer pp.deinit(allocator);
+    values.circuit.deinit(allocator);
+    values.circuit = .{};
+    var committed = try cpu.prove.PreprocessedCommitment.build(allocator, &pp, verified.pcs, .{});
+    defer committed.deinit(allocator);
+    const actual_root = committed.root();
+    if (!std.mem.eql(u8, &actual_root, &verified.root) or !pp.layout().eql(&verified.layout))
+        return error.StateFoldKeyTopologyMismatch;
+    var timer = try std.time.Timer.start();
+    var proof = try cpu.Internal.prove(allocator, values.values(), &pp, &bundle, verified.pcs, .{
+        .preprocessed_commitment = &committed,
+        .evaluations_only = low_memory,
+    }, {});
+    defer proof.deinit();
+    const elapsed = timer.read();
+    if (proof.output_values.len != 8) return error.InvalidStateFoldPublicOutput;
+    var public_words: [8]u32 = undefined;
+    for (proof.output_values, &public_words) |value, *word| {
+        const limbs = value.toM31Array();
+        if (limbs[0].v > 65535 or limbs[1].v > 65535 or limbs[2].v != 0 or limbs[3].v != 0)
+            return error.InvalidStateFoldPublicOutput;
+        word.* = limbs[0].v | (limbs[1].v << 16);
+    }
+    if (!std.meta.eql(public_words, state_fold.statementDigest(verified.root, step, base_public_words, initial_state, current_state)))
+        return error.InvalidStateFoldPublicOutput;
+    const encoded = try native.serialize(allocator, &proof);
+    defer allocator.free(encoded);
+    try native.verify(allocator, &verified.layout, &bundle, verified.pcs, verified.root, verified.hash, public_words, encoded);
+    var key_digest: [32]u8 = undefined;
+    std.crypto.hash.sha2.Sha256.hash(state_bytes, &key_digest, .{});
+    const key_hex = std.fmt.bytesToHex(key_digest, .lower);
+    const root_hex = std.fmt.bytesToHex(verified.root, .lower);
+    const hash_hex = std.fmt.bytesToHex(verified.hash, .lower);
+    const statement: StateFoldStatement = .{
+        .schema = "s31-state-fold-statement-v1",
+        .state_fold_key_sha256 = &key_hex,
+        .step = step,
+        .leaf_public_words = leaf_public_words,
+        .base_public_words = base_public_words,
+        .initial_state = initial_state,
+        .current_state = current_state,
+        .fold_public_words = public_words,
+        .fold_preprocessed_root = &root_hex,
+        .fold_circuit_hash = &hash_hex,
+    };
+    try validateStateFoldStatement(statement, child_bytes, state_bytes, verified);
+    const encoded_statement = try std.json.Stringify.valueAlloc(allocator, statement, .{});
+    defer allocator.free(encoded_statement);
+    try std.fs.cwd().makePath(std.fs.path.dirname(output_path) orelse ".");
+    try std.fs.cwd().writeFile(.{ .sub_path = output_path, .data = encoded });
+    const statement_path = try std.fmt.allocPrint(allocator, "{s}.statement.json", .{output_path});
+    defer allocator.free(statement_path);
+    try std.fs.cwd().writeFile(.{ .sub_path = statement_path, .data = encoded_statement });
+    std.debug.print("S31 state-fold proof: step={d} bytes={d} prove={d:.3}s state={any}\n", .{
+        step, encoded.len, @as(f64, @floatFromInt(elapsed)) / std.time.ns_per_s, current_state,
+    });
+}
+
+fn verifyStateFold(
+    allocator: std.mem.Allocator,
+    proof_path: []const u8,
+    statement_path: []const u8,
+    child_bytes: []const u8,
+    first_bytes: []const u8,
+    state_bytes: []const u8,
+) !void {
+    if (chip_mode or sparse_mode or direct_mode) return error.UnsupportedRecursiveProfile;
+    var source = try parsedProgram(allocator);
+    defer source.deinit();
+    const spec = source.value.repeatedStepChip() orelse return error.UnsupportedStateFoldSource;
+    var child = try std.json.parseFromSlice(Key, allocator, child_bytes, .{ .ignore_unknown_fields = false });
+    defer child.deinit();
+    try validateKey(allocator, source.value, child.value);
+    var first = try std.json.parseFromSlice(RecursiveKey, allocator, first_bytes, .{ .ignore_unknown_fields = false });
+    defer first.deinit();
+    var state_key = try std.json.parseFromSlice(StateFoldKey, allocator, state_bytes, .{ .ignore_unknown_fields = false });
+    defer state_key.deinit();
+    const verified = try validateStateFoldKey(child_bytes, first_bytes, first.value, state_key.value, spec);
+    const statement_bytes = try std.fs.cwd().readFileAlloc(allocator, statement_path, 4096);
+    defer allocator.free(statement_bytes);
+    var statement = try std.json.parseFromSlice(StateFoldStatement, allocator, statement_bytes, .{ .ignore_unknown_fields = false });
+    defer statement.deinit();
+    try validateStateFoldStatement(statement.value, child_bytes, state_bytes, verified);
+    var bundle = try parseAirBundle(allocator);
+    defer bundle.deinit();
+    const proof_bytes = try std.fs.cwd().readFileAlloc(allocator, proof_path, 16 << 20);
+    defer allocator.free(proof_bytes);
+    try native.verify(allocator, &verified.layout, &bundle, verified.pcs, verified.root, verified.hash, statement.value.fold_public_words, proof_bytes);
+    std.debug.print("S31 state-fold verification accepted: step={d} state={any}\n", .{ statement.value.step, statement.value.current_state });
 }
 
 fn verifyOuter(

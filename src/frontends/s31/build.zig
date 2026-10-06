@@ -86,6 +86,10 @@ pub fn build(b: *std.Build) void {
             .{ .cwd_relative = path }
         else
             b.path("examples/placeholder-recursive-key.json");
+        const state_fold_key_asset: std.Build.LazyPath = if (b.option([]const u8, "s31-state-fold-key", "Absolute path to the sealed state-transition fold verification key")) |path|
+            .{ .cwd_relative = path }
+        else
+            b.path("examples/placeholder-recursive-key.json");
         const prover_root = b.createModule(.{
             .root_source_file = b.path("mvp_runtime.zig"),
             .target = target,
@@ -108,6 +112,7 @@ pub fn build(b: *std.Build) void {
         prover_root.addAnonymousImport("s31_recursive_key", .{ .root_source_file = recursive_key_asset });
         prover_root.addAnonymousImport("s31_recursive_next_key", .{ .root_source_file = recursive_next_key_asset });
         prover_root.addAnonymousImport("s31_fold_key", .{ .root_source_file = fold_key_asset });
+        prover_root.addAnonymousImport("s31_state_fold_key", .{ .root_source_file = state_fold_key_asset });
         const prover_exe = b.addExecutable(.{ .name = b.fmt("s31-{s}-prover", .{program_name}), .root_module = prover_root });
         b.installArtifact(prover_exe);
 
@@ -131,6 +136,7 @@ pub fn build(b: *std.Build) void {
         native_root.addAnonymousImport("s31_recursive_key", .{ .root_source_file = recursive_key_asset });
         native_root.addAnonymousImport("s31_recursive_next_key", .{ .root_source_file = recursive_next_key_asset });
         native_root.addAnonymousImport("s31_fold_key", .{ .root_source_file = fold_key_asset });
+        native_root.addAnonymousImport("s31_state_fold_key", .{ .root_source_file = state_fold_key_asset });
         const native_exe = b.addExecutable(.{ .name = b.fmt("s31-{s}-native-verifier", .{program_name}), .root_module = native_root });
         b.installArtifact(native_exe);
         const run = b.addRunArtifact(prover_exe);

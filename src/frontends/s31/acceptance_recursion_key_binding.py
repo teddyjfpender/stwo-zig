@@ -52,6 +52,10 @@ def main() -> None:
         clone_fold = json.loads((clone / "fixed-fold-verification-key.json").read_text())
         if original_fold["fold_preprocessed_root"] == clone_fold["fold_preprocessed_root"]:
             raise AssertionError("different base keys did not change the fixed-fold AIR")
+        original_state = json.loads((original / "state-fold-verification-key.json").read_text())
+        clone_state = json.loads((clone / "state-fold-verification-key.json").read_text())
+        if original_state["fold_preprocessed_root"] == clone_state["fold_preprocessed_root"]:
+            raise AssertionError("different base keys did not change the state-fold AIR")
 
         child = work / "child.proof"
         outer = work / "outer.proof"
@@ -100,13 +104,32 @@ def main() -> None:
         replay_fold_statement = work / "replay-fold.statement.json"
         s31.write_json(replay_fold_statement, fold_statement)
         run(str(clone_verifier), "fold-verify", str(fold0), str(replay_fold_statement), accept=False)
+        state0 = work / "state0.proof"
+        run("python3", str(HERE / "s31.py"), "state-fold-base", str(original), str(outer), str(state0))
+        run(str(original_verifier), "state-fold-verify", str(state0), f"{state0}.statement.json")
+        state_statement = json.loads(Path(f"{state0}.statement.json").read_text())
+        state_statement["state_fold_key_sha256"] = hashlib.sha256(
+            (clone / "state-fold-verification-key.json").read_bytes()).hexdigest()
+        state_statement["base_public_words"] = statement["outer_public_words"]
+        state_statement["fold_preprocessed_root"] = clone_state["fold_preprocessed_root"]
+        state_statement["fold_circuit_hash"] = clone_state["fold_circuit_hash"]
+        state_message = bytes.fromhex(clone_state["fold_preprocessed_root"]) + struct.pack(
+            "<I8I4I4I", 0, *state_statement["base_public_words"],
+            *state_statement["initial_state"], *state_statement["current_state"])
+        state_statement["fold_public_words"] = list(struct.unpack(
+            "<8I", hashlib.blake2s(state_message, person=b"S31STF1!").digest()))
+        replay_state_statement = work / "replay-state.statement.json"
+        s31.write_json(replay_state_statement, state_statement)
+        run(str(clone_verifier), "state-fold-verify", str(state0), str(replay_state_statement), accept=False)
         print(json.dumps({"schema": "s31-recursion-key-binding-acceptance-v1",
                           "same_child_air": True,
                           "distinct_outer_air": True,
                           "child_proof_accepted_under_clone_key": True,
                           "outer_proof_rejected_under_clone_key": True,
                           "distinct_fold_air": True,
-                          "fold_proof_rejected_under_clone_key_after_digest_repair": True}, indent=2, sort_keys=True))
+                          "fold_proof_rejected_under_clone_key_after_digest_repair": True,
+                          "distinct_state_fold_air": True,
+                          "state_fold_proof_rejected_under_clone_key_after_digest_repair": True}, indent=2, sort_keys=True))
 
 
 if __name__ == "__main__":

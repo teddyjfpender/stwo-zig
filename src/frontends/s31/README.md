@@ -135,15 +135,17 @@ again. Gate packages seal both recursive verification keys at build time, so
 routine outer verification does not rebuild the large verifier topology.
 The [fixed-key fold chapter](docs/recursion-fold.md) shows repeatable proof
 verification under one sealed key and a constrained `u16` step counter.
+The [state-fold chapter](docs/state-fold.md) extracts a typed four-lane
+recurrence from source and proves one more computation step in each fold.
 The v2 wrapper fixes the child AIR root with equality gates and embeds the
 SHA-256 digest of the exact child key as constants in its personalized
 one-block BLAKE2s public claim. A same-AIR, different-key replay fixture
 checks that this changes the outer AIR and rejects the old outer proof.
 `wrap --low-memory` trades some proving time for lower peak RAM while
 producing the same proof bytes.
-The fold currently repeats one leaf claim. The chapters state the remaining
-steps for a sparse-wide Bitcoin header proof and a constrained chain-state
-transition.
+The claim-only fold repeats one leaf claim; the state fold adds a constrained
+four-lane M31 transition. The chapters state the remaining steps for a
+sparse-wide Bitcoin header proof and a header-chain state transition.
 
 From the repository root:
 

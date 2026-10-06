@@ -54,6 +54,9 @@ text .s31 ──parse/typecheck/specialize──▶ normalized relation JSON
 - [Fixed-key recursive fold](recursion-fold.md): repeat proof verification
    under one AIR and key, with a constrained counter, handwritten branch
    equations, an isolated top verifier, and measured costs.
+- [State-transition fold](state-fold.md): extract a typed four-lane recurrence
+   from S31 source and prove one additional computation step per proof under
+   the same key, with hand-worked field arithmetic and circuit equations.
 - [Source language and relation](source.md): syntax, types, field semantics,
    static shapes, normalized JSON, and the public statement.
 - [Standard and math library](library.md): the pinned `std@1` package,

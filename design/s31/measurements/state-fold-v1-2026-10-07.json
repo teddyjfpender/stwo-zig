@@ -1,0 +1,70 @@
+{
+  "schema": "s31-state-fold-measurement-v1",
+  "date": "2026-10-07",
+  "machine": "local macOS host, /usr/bin/time -l, ReleaseFast",
+  "fixture": "src/frontends/s31/examples/arith4_m31.s31",
+  "source_step": {"lanes": 4, "operation": "square_add_const", "constant": 7, "base_rounds": 256},
+  "scope": "Single local samples; no warmup or cross-machine comparison",
+  "key": {
+    "schema": "s31-state-fold-verification-key-v1",
+    "root": "0f3993021eea21936689b157c46974bfe3a91a70ded6aec1d73b01c0df93c898",
+    "circuit_hash": "2c81f6acfac2cc48b7cc935f98a9f92fee56954da25f12bc08db22b7c791a5f6",
+    "trace_log_size": 22,
+    "raw_vars": 11823690,
+    "padded_vars": 19642180,
+    "raw_rows": {
+      "eq": 37527,
+      "qm31_ops": 1419422,
+      "triple_xor": 243880,
+      "m31_to_u32": 423808,
+      "blake_g": 2438800
+    },
+    "padded_rows": {
+      "eq": 65536,
+      "qm31_ops": 2097152,
+      "triple_xor": 262144,
+      "m31_to_u32": 524288,
+      "blake_g": 4194304
+    },
+    "generation_wall_seconds": 0.99,
+    "generation_peak_rss_bytes": 1605304320,
+    "reproduced_byte_for_byte": true
+  },
+  "increment_over_claim_only_fold_raw": {
+    "variables": 48,
+    "eq": 4,
+    "qm31_ops": 32,
+    "triple_xor": 0,
+    "m31_to_u32": 16,
+    "blake_g": 0,
+    "padded_geometry_changed": false
+  },
+  "steps": [
+    {"step": 0, "current_state": [1381993681, 1163620247, 833240539, 2139095920], "proof_bytes": 550398},
+    {"step": 1, "current_state": [1771435623, 294854840, 521360168, 252467169], "proof_bytes": 562035},
+    {"step": 2, "current_state": [371774827, 166216213, 712922489, 990353809], "proof_bytes": 562071},
+    {"step": 3, "current_state": [1261523235, 1373840506, 29423616, 860202541], "proof_bytes": 550173}
+  ],
+  "step_3_repeated_sample": {
+    "standard_wall_seconds": 3.62,
+    "standard_peak_rss_bytes": 9308815360,
+    "low_memory_wall_seconds": 3.82,
+    "low_memory_peak_rss_bytes": 7004602368,
+    "proof_bytes_identical": true,
+    "native_top_verify_wall_seconds": 0.07,
+    "native_top_verify_peak_rss_bytes": 204931072
+  },
+  "soundness_checks": {
+    "four_steps_same_key": true,
+    "independent_m31_reference": true,
+    "base_circuit_mutations_rejected": 9,
+    "recursive_circuit_mutations_rejected_per_step": 10,
+    "rehashed_wrong_state_step_leaf_rejected": true,
+    "source_key_replay_rejected_after_digest_repair": true,
+    "corrupt_child_and_top_proofs_rejected": true,
+    "top_accepts_after_lower_files_removed": true,
+    "low_memory_proof_bytes_identical": true,
+    "value_and_topology_gate_lists_match": true
+  },
+  "acceptance_command": "python3 src/frontends/s31/acceptance_state_fold.py"
+}
