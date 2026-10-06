@@ -14,6 +14,14 @@ pub const Spec = struct {
 
 pub const specs = [_]Spec{
     .{
+        .step = "test-recursion-v4-direct-rows",
+        .description = "Write and audit all eight appended direct-wrapper rows under one relation draw",
+        .root = "v3_cohort_direct_rows_test_root.zig",
+        .imports_prover_engine = true,
+        .filters = &.{"direct"},
+        .minimum = 15,
+    },
+    .{
         .step = "test-recursion-direct-wrapper-kernel",
         .description = "Reject unqualified direct 47-row wrapper proofs and validate fixed roster storage",
         .root = "direct_wrapper_kernel_test_root.zig",
