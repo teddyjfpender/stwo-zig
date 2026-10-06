@@ -58,6 +58,14 @@ pub const Coverage = struct {
     pub fn complete(self: Coverage) bool {
         return self.unlinked == 0 and self.fixed_row42_required == 0;
     }
+
+    /// The active direct cohort must call this before any authorization. Even
+    /// with a versioned fixed-word bridge, unlinked instruction/identity words
+    /// keep the entire ProgramV2 producer unqualified.
+    pub fn requireComplete(self: Coverage) !void {
+        if (self.fixed_row42_required != 0 or self.unlinked != 0)
+            return error.IncompleteNpv2ProgramCoverage;
+    }
 };
 
 pub const Map = struct {

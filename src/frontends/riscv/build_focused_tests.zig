@@ -39,11 +39,11 @@ pub const specs = [_]Spec{
     },
     .{
         .step = "test-recursion-direct-npv2-source",
-        .description = "Check the dormant proof-visible native ProgramV2 wire-ID export profile",
+        .description = "Audit dormant native ProgramV2 word sources and key-fixed bridge semantics",
         .root = "direct_npv2_source_test_root.zig",
         .imports_prover_engine = true,
         .filters = &.{"NPV2"},
-        .minimum = 9,
+        .minimum = 11,
     },
     .{
         .step = "test-recursion-direct-wrapper-kernel",

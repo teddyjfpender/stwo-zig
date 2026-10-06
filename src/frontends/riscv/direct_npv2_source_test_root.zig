@@ -1,5 +1,6 @@
 const std = @import("std");
 const payload = @import("recursion/air/transcript_payload.zig");
+const fixed_bridge = @import("recursion/air/transcript_program_v2_field_bridge_v5.zig");
 const field = @import("recursion/transcript_program_v2_field_authority_v1.zig");
 const origins = @import("recursion/transcript_program_v2_word_origins_v4.zig");
 const transcript = @import("recursion/transcript_program_v2.zig");
@@ -13,6 +14,7 @@ const native_source = @import("recursion/segment_transcript_outer_source_v2.zig"
 
 test {
     _ = payload;
+    _ = fixed_bridge;
 }
 
 test "NPV2 base payload export maps canonical ProgramV2 wire ID indices" {
@@ -75,6 +77,7 @@ test "NPV2 canonical index map covers fixed PCS and instruction descriptors" {
     try std.testing.expectEqual(@as(usize, 9), coverage.fixed_row42_required);
     try std.testing.expectEqual(@as(usize, 46), coverage.unlinked);
     try std.testing.expect(!coverage.complete());
+    try std.testing.expectError(error.IncompleteNpv2ProgramCoverage, coverage.requireComplete());
 
     const Preprocessed = struct {
         row_mask: u32 = 1,
@@ -99,6 +102,44 @@ test "NPV2 canonical index map covers fixed PCS and instruction descriptors" {
     rows[1].preprocessing.row_mask = 1;
     rows[1].preprocessing.args[0] += 1;
     try std.testing.expectError(error.InvalidNpv2Row4Descriptor, origins.Row4Audit.init(std.testing.allocator, &program, &rows));
+}
+
+test "NPV2 V5 fixed-word schedule exactly covers format schema and PCS high limbs" {
+    const instructions = try std.testing.allocator.alloc(transcript.Instruction, 0);
+    defer std.testing.allocator.free(instructions);
+    const program = transcript.Program{
+        .allocator = std.testing.allocator,
+        .plan_id = .{0} ** 8,
+        .wire_id = .{0} ** 8,
+        .statement_authority_id = .{0} ** 8,
+        .wire_word_count = 0,
+        .pcs_config = protocol.PCS_CONFIG,
+        .instructions = instructions,
+        .identity = .{0} ** 8,
+    };
+    const words = try field.canonicalWords(std.testing.allocator, &program);
+    defer std.testing.allocator.free(words);
+    var map = try origins.Map.init(std.testing.allocator, &program);
+    defer map.deinit();
+    const schedule = try fixed_bridge.FixedSchedule.init(words.len);
+    var fixed_count: usize = 0;
+    for (map.origins, words, 0..) |origin, word, index| {
+        const fixed = fixed_bridge.fixedValue(@intCast(index));
+        try std.testing.expectEqual(origin.kind == .format or origin.kind == .schema or
+            (origin.kind == .pcs_parameter and origins.route(origin) == .fixed_row42_required), fixed != null);
+        if (fixed) |expected| {
+            fixed_count += 1;
+            try std.testing.expectEqual(expected, word.toU32());
+            const pp = try schedule.preprocessedRow(index);
+            try std.testing.expectEqual(@as(u32, 1), pp[3].toU32());
+            try std.testing.expectEqual(expected, pp[4].toU32());
+        }
+    }
+    try std.testing.expectEqual(@as(usize, 9), fixed_count);
+    try std.testing.expect(!map.coverage().complete());
+    var wrong_profile = program;
+    wrong_profile.pcs_config.fri_config.n_queries += 1;
+    try std.testing.expectError(error.UnexpectedNpv2PcsProfile, origins.Map.init(std.testing.allocator, &wrong_profile));
 }
 
 test "NPV2 PCS payload coordinates equal six canonical ProgramV2 words" {
