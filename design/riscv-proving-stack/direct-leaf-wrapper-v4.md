@@ -82,6 +82,10 @@ table would merely move the gap. Active/index preprocessing may be fixed by
 shape, while word values remain main data. The proof must reject a missing,
 duplicated, reordered, or changed word through exact lookup closure and the
 ProgramV2 hash.
+The typed `transcript_program_v2_field_bridge_v4` AIR and an adversarial
+missing-producer/changed-word gate now exist. The current PlanV4 row 42 still
+uses the older self-consistent source; switching it to the bridge and adding
+the native producer are required before a direct proof can be qualified.
 
 An independent detached verifier may require an expected native identity and
 recompute the 47-row Tree0 root before checking proof bytes. That protects a

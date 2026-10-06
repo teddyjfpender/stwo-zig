@@ -14,6 +14,14 @@ pub const Spec = struct {
 
 pub const specs = [_]Spec{
     .{
+        .step = "test-recursion-v4-program-bridge",
+        .description = "Reject missing or changed native ProgramV2 word exports before direct hashing",
+        .root = "segment_leaf_wrapper_source_projection_v3_test_root.zig",
+        .imports_prover_engine = true,
+        .filters = &.{"direct ProgramV2 bridge requires an independent native producer"},
+        .minimum = 1,
+    },
+    .{
         .step = "test-recursion-v4-direct-rows",
         .description = "Write and audit all eight appended direct-wrapper rows under one relation draw",
         .root = "v3_cohort_direct_rows_test_root.zig",
