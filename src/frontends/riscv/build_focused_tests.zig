@@ -23,10 +23,10 @@ pub const specs = [_]Spec{
     },
     .{
         .step = "test-recursion-v3-public-io-bridge",
-        .description = "Check dormant verifier-owned V3 public-I/O bytes against native memory wires",
+        .description = "Check dormant V3 public-I/O byte, edge-digest, and expected-statement relation chain",
         .root = "v3_public_io_bridge_test_root.zig",
-        .filters = &.{"V3 public IO word bridge"},
-        .minimum = 3,
+        .filters = &.{ "V3 public IO word bridge", "V3 edge schedule" },
+        .minimum = 4,
     },
     .{
         .step = "test-recursion-v6-row17",
