@@ -295,6 +295,14 @@ pub fn addProduct(context: Context) void {
         &.{"V3 temporal row-11"},
     )));
     context.b.step(
+        "test-riscv-v3-temporal-parent-roster",
+        "Validate V3 parent child-source joins, typed input frame and fail-closed roster",
+    ).dependOn(test_filter.addRun(context.b, riscv_cpu_tests.addFocusedTestRoot(
+        test_context,
+        "src/frontends/riscv/temporal_pair_node_test_root.zig",
+        &.{"V3 temporal parent roster"},
+    )));
+    context.b.step(
         "test-riscv-recursion-typed-control",
         "Prove and independently verify the typed universal-control adapter",
     ).dependOn(test_filter.addSuites(context.b, &.{.{
