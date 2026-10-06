@@ -3,9 +3,11 @@
 ## Why the 47-row diagnostic is not publishable
 
 The real q193 native fixture generates all 47 rows of the V4 direct wrapper,
-but its relation audit has nonzero `range_check_8_8`,
+and its first relation audit had nonzero `range_check_8_8`,
 `recursion_transcript_frame_word`, `recursion_verifier_input_word`, and
-`recursion_statement_word` totals. An independently reviewed source audit also
+`recursion_statement_word` totals. Versioned row-35 and row-4 providers now
+close the first two domains on that same real fixture; verifier-input and
+statement/public authority remain open. An independently reviewed source audit also
 found that row 40 consumes 24 local authority, wire, and receipt identity
 tuples with no producer in that roster. Its row-42 ProgramV2 hash currently
 reads leaf-dependent preprocessing rather than words proved equal to the
