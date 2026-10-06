@@ -14,6 +14,14 @@ pub const Spec = struct {
 
 pub const specs = [_]Spec{
     .{
+        .step = "test-recursion-v4-direct-row34",
+        .description = "Check direct leaf ordered Poseidon calls and enlarged row-34 trace writer",
+        .root = "v3_cohort_calls_test_root.zig",
+        .imports_prover_engine = true,
+        .filters = &.{"direct leaf row34 writes exact ordered Poseidon calls"},
+        .minimum = 1,
+    },
+    .{
         .step = "test-recursion-v3-wrapper-kernel",
         .description = "Reject fake 49-row wrapper cohorts and detached artifacts before qualification",
         .root = "v3_wrapper_kernel_test_root.zig",
