@@ -5,6 +5,7 @@
 //! immutable preprocessing writer does not exist yet, so this module cannot
 //! admit a root, key, proof, or publication.
 const std = @import("std");
+const M31 = @import("stwo_core").fields.m31.M31;
 const catalog_mod = @import("segment_outer_typed_catalog_v2.zig");
 const geometry_mod = @import("universal_manifest_contract.zig");
 const v4 = @import("segment_leaf_wrapper_roster_direct_v4.zig");
@@ -21,6 +22,8 @@ const program_air = @import("transcript_program_v2_field_bridge_v5.zig");
 const typed = @import("universal_typed_component.zig");
 const native_schedule = @import("verifier_schedule.zig");
 const instruction_template = @import("../transcript_instruction_template_v6.zig");
+const word_template = @import("../transcript_program_v2_template_words_v6.zig");
+const wrapper_profile = @import("../segment_leaf_wrapper_protocol_direct_v4.zig");
 
 pub const FORMAT_VERSION: u16 = 6;
 pub const COMPONENT_COUNT: usize = 50;
@@ -47,6 +50,9 @@ pub const TemplateShapeV6 = struct {
     native_instruction_schedule_id: [32]u8,
     /// Independently rebuilt complete row-42 fixed columns, including padding.
     row42_preprocessed_id: [32]u8,
+    /// Full shape-compiled row42 fixed columns; unlike the currently active
+    /// V5 schedule this pins every proof-independent ProgramV2 word.
+    row42_shape_preprocessed_id: [32]u8,
 };
 
 pub const TemplateManifestV6 = struct {
@@ -160,6 +166,14 @@ pub const TemplateManifestV6 = struct {
                 .native_lookup_enabled = native_instructions.lookup_enabled,
                 .native_instruction_schedule_id = native_instructions.schedule_id,
                 .row42_preprocessed_id = try row42PreprocessedShaId(shape.program_words),
+                .row42_shape_preprocessed_id = try row42ShapePreprocessedShaId(
+                    allocator,
+                    native_plan,
+                    native_wire_word_count,
+                    component_descs,
+                    infra_descs,
+                    native_lookup_enabled,
+                ),
             },
             .placements = placements,
             .total_preprocessed_columns = pp,
@@ -255,6 +269,39 @@ pub fn row42PreprocessedShaId(word_count: usize) ![32]u8 {
     return hash.finalResult();
 }
 
+pub fn row42ShapePreprocessedShaId(
+    allocator: std.mem.Allocator,
+    native_plan: *const native_schedule.Plan,
+    native_wire_word_count: u32,
+    component_descs: []const statement.FamilyComponentDesc,
+    infra_descs: []const statement.InfraComponentDesc,
+    native_lookup_enabled: bool,
+) ![32]u8 {
+    var template = try word_template.Template.initFromShape(
+        allocator,
+        native_plan,
+        wrapper_profile.PCS_CONFIG,
+        native_wire_word_count,
+        component_descs,
+        infra_descs,
+        native_lookup_enabled,
+    );
+    defer template.deinit();
+    const geometry = try program_air.FixedSchedule.init(template.words.len);
+    var hash = std.crypto.hash.sha2.Sha256.init(.{});
+    hash.update("stwo-zig/riscv-v6-row42-shape-columns/v1\x00");
+    hashInt(&hash, u32, geometry.word_count);
+    hashInt(&hash, u8, geometry.log_size);
+    for (0..geometry.rowCapacity()) |row| {
+        const values = if (row < template.words.len)
+            try template.preprocessedRow(row)
+        else
+            [_]M31{M31.zero()} ** program_air.PREPROCESSED_COLUMN_COUNT;
+        for (values) |value| hashInt(&hash, u32, value.toU32());
+    }
+    return hash.finalResult();
+}
+
 fn templateSeal(value: *const TemplateManifestV6) [32]u8 {
     var hash = std.crypto.hash.sha2.Sha256.init(.{});
     hash.update(DOMAIN);
@@ -269,6 +316,7 @@ fn templateSeal(value: *const TemplateManifestV6) [32]u8 {
     hashInt(&hash, u8, @intFromBool(value.shape.native_lookup_enabled));
     hash.update(&value.shape.native_instruction_schedule_id);
     hash.update(&value.shape.row42_preprocessed_id);
+    hash.update(&value.shape.row42_shape_preprocessed_id);
     for (value.placements) |placement| {
         const g = placement.geometry;
         hashInt(&hash, u8, g.roster_row);

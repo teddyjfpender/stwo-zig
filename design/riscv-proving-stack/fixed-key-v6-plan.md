@@ -99,8 +99,15 @@ local-router, and native-instruction schedules. It takes no V2 manifest or
 leaf identity. The instruction compiler uses the verifier plan, exact strong
 PCS/interaction profile, canonical wire length, descriptor mix, and lookup
 mode. It checks that this schedule's canonical ProgramV2 word count equals the
-claimed row-42 size. It also rebuilds and fingerprints every fixed row-42
-column, including padding. `segment_leaf_wrapper_protocol_template_v7.zig`
+claimed row-42 size. It also rebuilds and fingerprints the current row-42
+fixed columns, including padding. A separate shape compiler now produces the
+candidate complete row-42 preprocessing from the native plan, PCS, canonical
+wire length, component mix, and lookup mode. Only ProgramV2 wire-ID words
+10–17 and statement-authority words 18–25 remain dynamic; all other canonical
+words are fixed by that shape. The candidate column digest is included in the
+template seal, but the active V5 row-42 writer still uses its narrower
+nine-word fixed schedule, and native `NPV2` producers remain incomplete.
+`segment_leaf_wrapper_protocol_template_v7.zig`
 derives domain-separated **candidate** VPR7/VPK7 identities from this template
 and a supplied test root. Both modules refuse proof/key admission.
 

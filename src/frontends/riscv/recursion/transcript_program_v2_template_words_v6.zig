@@ -13,6 +13,8 @@ const bridge = @import("air/transcript_program_v2_field_bridge_v5.zig");
 const schedule = @import("air/verifier_schedule.zig");
 const public_data = @import("../air/public_data_v2.zig");
 const statement = @import("../air/statement.zig");
+const program_contract = @import("transcript_program_v2_contract.zig");
+const lookup = @import("../air/lang/lookup_physical_manifest_v2.zig");
 
 const M31 = core.fields.m31.M31;
 
@@ -27,6 +29,63 @@ pub const Template = struct {
     allocator: std.mem.Allocator,
     words: []M31,
     key_digest: [32]u8,
+
+    /// Recompiles every fixed word from admitted geometry alone. Zero IDs
+    /// occupy the two dynamic slots only while constructing the canonical
+    /// word order; they are never asserted as proof values.
+    pub fn initFromShape(
+        allocator: std.mem.Allocator,
+        plan: *const schedule.Plan,
+        pcs: core.pcs.PcsConfig,
+        wire_word_count: u32,
+        component_descs: []const statement.FamilyComponentDesc,
+        infra_descs: []const statement.InfraComponentDesc,
+        authenticated_lookup_v2: bool,
+    ) !Template {
+        try plan.validate();
+        if (wire_word_count == 0 or component_descs.len > statement.MAX_COMPONENTS or
+            infra_descs.len > statement.MAX_INFRA_COMPONENTS)
+            return error.InvalidProgramTemplateShape;
+        var manifest = lookup.Manifest.native();
+        var core_statement: statement.RiscVStatement = undefined;
+        core_statement.n_components = @intCast(component_descs.len);
+        @memcpy(core_statement.component_descs[0..component_descs.len], component_descs);
+        core_statement.n_infra = @intCast(infra_descs.len);
+        @memcpy(core_statement.infra_descs[0..infra_descs.len], infra_descs);
+        const activation = if (authenticated_lookup_v2)
+            try lookup.AuthenticatedStatement.init(&core_statement, &manifest)
+        else
+            null;
+        var instructions: std.ArrayList(transcript.Instruction) = .empty;
+        defer instructions.deinit(allocator);
+        try program_contract.buildInstructions(
+            allocator,
+            &instructions,
+            plan,
+            pcs,
+            wire_word_count,
+            component_descs,
+            infra_descs,
+            activation,
+            if (authenticated_lookup_v2) &manifest else null,
+        );
+        const program = transcript.Program{
+            .allocator = allocator,
+            .plan_id = plan.authority_digest,
+            .wire_id = .{0} ** 8,
+            .statement_authority_id = .{0} ** 8,
+            .wire_word_count = wire_word_count,
+            .pcs_config = pcs,
+            .lookup_activation = activation,
+            .instructions = instructions.items,
+            .identity = .{0} ** 8,
+        };
+        const words = try field.canonicalWords(allocator, &program);
+        errdefer allocator.free(words);
+        if (words.len <= DYNAMIC_END or words.len >= core.fields.m31.Modulus)
+            return error.InvalidProgramTemplateWords;
+        return .{ .allocator = allocator, .words = words, .key_digest = keyDigest(words) };
+    }
 
     /// Rebuilds the canonical program rather than accepting the child's
     /// program or its identity as a verifier key.
@@ -119,6 +178,10 @@ test "ProgramV2 template changes only at its sixteen dynamic identity words" {
     const pcs = core.pcs.PcsConfig{ .pow_bits = 0, .fri_config = .{ .log_blowup_factor = 1, .log_last_layer_degree_bound = 0, .n_queries = 3, .fold_step = 1 } };
     var template = try Template.init(std.testing.allocator, &fixture.plan, pcs, &fixture.data, &components, &infra, false);
     defer template.deinit();
+    var from_shape = try Template.initFromShape(std.testing.allocator, &fixture.plan, pcs, @intCast(fixture.data.words().len), &components, &infra, false);
+    defer from_shape.deinit();
+    try std.testing.expectEqualSlices(M31, template.words, from_shape.words);
+    try std.testing.expectEqualDeep(template.key_digest, from_shape.key_digest);
     try std.testing.expect(template.words.len > DYNAMIC_END);
     var dynamic: usize = 0;
     for (template.words, 0..) |_, index| {
