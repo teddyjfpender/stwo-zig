@@ -8,7 +8,7 @@ ProgramV2 template-word schedule: exactly the 16 wire/statement identity words
 remain dynamic main values. The writer rejects every other row and refuses a
 complete preprocessed root. Production admission remains disabled.
 
-An independent base writer also covers **rows 0–3, 6–10, 12, 34 and 35**. It
+An independent base writer also covers **rows 0–3, 6–10, 12, 33–35**. It
 derives row 0's ten columns from the admitted native verifier plan; its rows
 match the executed V2 source control tuples. The transcript binding, state,
 relation-draw and randomness schedules in rows 2, 3, 8 and 9 are reconstructed
@@ -33,8 +33,9 @@ recompiled from the fixed publication ABI; the publication values stay main.
 | 12 | `segment_leaf_template_base_fixed_v6` | Deterministically written | All 27 header relay source coordinates, masks and default circuit fields derive from the fixed publication ABI. Values remain main. Compare physical columns across genuine captures in the full-root gate. |
 | 13–16 | `segment_public_outer_source_v2` | Unqualified | Recompile claim/hash, seal, boundary and challenge relays from independently admitted geometry and graph use counts; prove no identity-bearing constants remain fixed. |
 | 17 | `vm_public_logup_control_witness_v2` | Blocked on variable public term count | The frozen V2 witness and AIR fix 70 public terms and 71 active rows. `segment_profile.initPlans(16,16)` admits 102 public terms, so V2 `preflight` returns `InvalidPlanProfile`. A versioned variable-cardinality AIR/source or an independently justified fixed 70-term VM shape is required; do not force the V2 schedule into V6. |
-| 18–19, 22–33 | `detached_leaf_cohort_v2` core verifier tables | Unqualified | Rebuild composition, Merkle and FRI coordinate schedules from admitted verifier and PCS shape, without copying positions or proof data from a capture into preprocessing. |
+| 18–19, 22–32 | `detached_leaf_cohort_v2` core verifier tables | Unqualified | Rebuild composition, Merkle and FRI coordinate schedules from admitted verifier and PCS shape, without copying positions or proof data from a capture into preprocessing. |
 | 20–21 | Query-bit and query-mapping preprocessed references | Profile identity bound; physical columns unqualified | Their selectors derive from the exact VM and recursion lane PCS profiles: query counts, lifting sizes, tree heights and FRI widths. `TemplateManifestV6.build` now takes a verifier-selected, value-owned `CoreProfileV6` and the core query-mapping reference separately, requiring exact agreement. The V6 shape and seal bind the full profile and derived mapping/bit digests. Verifier admission must compare that selected profile against its expected template profile; complete-root qualification must compare physical columns to the core's actual reference. |
+| 33 | `segment_leaf_template_base_fixed_v6` | Zero-width fixed row | The Merkle-path AIR declares no preprocessed columns. Main and interaction proof work remain separate. |
 | 34–35 | `segment_leaf_template_base_fixed_v6` | Deterministically written | Marker and byte table match the V2 writers' exact committed-row formulas. The six ordered call ranges remain a separate main-trace/lookup obligation. |
 | 36–38 | V2 statement boundary, public LogUp and verifier-input provider | Unqualified | Rebuild source selectors/multiplicities and move any leaf-dependent constants to main with exact typed joins. |
 | 39–49 | `segment_leaf_template_preprocessed_v6.Writer` | Deterministically written | Validate all columns against the existing V5 cohort for genuine captures; derive the full template preprocessed root and pin it independently. |

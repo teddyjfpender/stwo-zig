@@ -23,9 +23,10 @@ const randomness_air = @import("air/verifier_randomness.zig");
 const public_source = @import("segment_public_outer_source_v2.zig");
 const public_components = @import("segment_public_outer_components_v2_contract.zig");
 const public_air = @import("air/segment_public_outer_air_v2.zig");
+const merkle_path_air = @import("air/merkle_path.zig");
 
 pub const PRODUCTION_PROOF_ACTIVATION = false;
-pub const QUALIFIED_ROWS = [_]u8{ 0, 1, 2, 3, 6, 7, 8, 9, 10, 12, 34, 35 };
+pub const QUALIFIED_ROWS = [_]u8{ 0, 1, 2, 3, 6, 7, 8, 9, 10, 12, 33, 34, 35 };
 
 pub const Writer = struct {
     allocator: std.mem.Allocator,
@@ -155,6 +156,8 @@ pub const Writer = struct {
                     put(columns, geometry.log_size, index, logical[public_air.PublicationHeader.PHYSICAL_MAIN_COLUMN_COUNT..][0..columns.len]);
                 }
             },
+            33 => if (columns.len != merkle_path_air.PREPROCESSED_COLUMN_COUNT)
+                return error.FixedBaseGeometryMismatchV6,
             34 => {
                 if (columns.len != 1)
                     return error.FixedBaseGeometryMismatchV6;
@@ -281,7 +284,7 @@ test "V6 base fixed rows reconstruct without a leaf" {
                         try std.testing.expectEqual(value.toU32(), column[committed].toU32());
                 }
             },
-            1, 6, 7 => try std.testing.expectEqual(@as(usize, 0), columns.len),
+            1, 6, 7, 33 => try std.testing.expectEqual(@as(usize, 0), columns.len),
             2 => try expectFixedRows(columns, geometry.log_size, writer.transcript_rows.bindings),
             3 => try expectFixedRows(columns, geometry.log_size, writer.transcript_rows.states),
             8 => try expectFixedRows(columns, geometry.log_size, writer.transcript_rows.relations),
