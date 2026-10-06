@@ -113,10 +113,10 @@ pub fn proveAndVerify(
     );
     errdefer capture.deinit(allocator);
     try capture.validate();
-    const link = try recursion.segment_leaf_local_verified_link_v3.VerifiedLinkV3.init(
+    const link = try recursion.segment_leaf_local_verified_link_v3.VerifiedLinkV3.fromVerifiedCapture(
+        Engine,
         &global_metadata,
-        &capture.public_data.data,
-        &capture.receipt,
+        &capture,
     );
     try projection.validateAgainst(source);
     const proof_bytes = try encoded.toOwnedSlice(allocator);

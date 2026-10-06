@@ -1014,10 +1014,10 @@ test "native V2 proves a rebased leaf-local V3 segment without widening the AIR"
     );
     defer capture.deinit(allocator);
     try capture.validate();
-    const link = try verified_link_v3.VerifiedLinkV3.init(
+    const link = try verified_link_v3.VerifiedLinkV3.fromVerifiedCapture(
+        Engine,
         &global_metadata,
-        &capture.public_data.data,
-        &capture.receipt,
+        &capture,
     );
     try link.validateAgainst(
         &global_metadata,
@@ -1044,7 +1044,7 @@ test "native V2 proves a rebased leaf-local V3 segment without widening the AIR"
         return err;
     };
     defer lease.deinit();
-    const leased_link = try verified_link_v3.VerifiedLinkV3.init(&global_metadata, lease.data(), &capture.receipt);
+    const leased_link = try verified_link_v3.VerifiedLinkV3.fromVerifiedCapture(Engine, &global_metadata, &capture);
     try std.testing.expectEqualDeep(link, leased_link);
     const before = counters.snapshot();
     for (0..8) |_| try leased_link.validateAgainst(&global_metadata, lease.data(), &capture.receipt);

@@ -41,6 +41,10 @@ projected V3 leaf, then bind its verifier publication to the host-checked V3
 link. The staged manifest has no V3 publication capability: the local proof
 still does not constrain global position, so a temporal candidate cannot use
 this stage as a verified recursive child.
+The current V2 outer-child profile is explicitly developmental: three FRI
+queries and zero interaction/PCS PoW bits. A production V3 wrapper must pin a
+distinct security profile and upgrade the local outer prover and its recursive
+verifier together; wrapping a weak local outer proof does not strengthen it.
 
 The base RV32 SegmentV2 transcript ProgramV2 has an exact canonical M31
 preimage with Poseidon identity parity and a pinned typed word-source AIR.
