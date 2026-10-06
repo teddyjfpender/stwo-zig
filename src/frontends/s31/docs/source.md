@@ -24,7 +24,8 @@ explicit conversion/range machinery where needed.
 
 ## Text syntax
 
-One file has zero or more pure `fn` declarations, then one `circuit`.
+One file has an optional leading `use std@1;`, zero or more pure `fn`
+declarations, then one `circuit`.
 Functions are specialized and inlined at calls; recursion is rejected.
 Circuit parameters say `public` or `private`, and the result is public.
 Bodies have immutable `let` statements, optional `assert_eq(a,b);` statements
@@ -47,17 +48,21 @@ compile-time uniform array; it is materialized only when a gate needs it.
 Bare integers are accepted only as compile-time arguments such as `N` in
 `splat<N>`, `iterate<N>`, or `std::math::pow<N>`. Parentheses, calls, `//`
 comments, and static array literals such as `[sibling_0, sibling_1]` work.
-These literal arrays group existing values for Merkle helpers; they are not
-general witness arrays that can be indexed or returned.
+These literal arrays group existing values for Merkle and static math helpers;
+they are not general witness arrays that can be indexed or returned.
 
 `iterate<R>(step, initial)` accepts a pure step of type `[m31; N] -> [m31; N]`
-made from a sequence of `state .* state`, addition of a uniform constant, and
-multiplication by a uniform constant. The relation has `1..32768` rounds and
+made from a sequence of `state .* state` (or `std::math::square(state)`),
+addition of a uniform constant, and multiplication by a uniform constant.
+The relation has `1..32768` rounds and
 `1..16` static body steps. The special AIR chip recognizes only four lanes,
 public endpoints, `square` then `add_const`, and power-of-two `R` from 16 to
 32768. Selecting an incompatible chip profile is an error.
 
-The current library is compiler-owned. It has no module loader or imports:
+The current library is compiler-owned. An optional `use std@1;` before the
+functions pins its version explicitly; older programs use version 1
+implicitly. There is no third-party module loader. The complete library
+contract and worked polynomial are in [the library chapter](library.md).
 
 | Text operation | Meaning |
 | --- | --- |
@@ -65,6 +70,9 @@ The current library is compiler-owned. It has no module loader or imports:
 | `std::math::sub(x,y)` | `x-y mod p`, equal M31 shapes. |
 | `std::math::square(x)` | `x.*x`. |
 | `std::math::pow<K>(x)` | Static binary exponentiation, `0 <= K < p`; `x^0=1`, including `0^0`. |
+| `std::math::sum([a,...])` | Balanced sum across 1..64 statically grouped, equally shaped M31 arrays. |
+| `std::math::dot([a,...],[b,...])` | Pairwise products and balanced sum across equal static groups. |
+| `std::math::poly_eval(x,[c0,...,cd])` | Horner evaluation, low-degree coefficient first, 1..64 coefficients. |
 | `std::field::from_u16(x)` | Value-preserving cast from `[u16; N]`. |
 | `std::field::select(bit,a,b)` | `a` if zero, `b` if one; same type/shape. |
 | `std::hash::poseidon2_leaf/pair`, `std::hash::blake2s_leaf/pair` | The [typed hash operations](hashes.md). |
@@ -159,4 +167,4 @@ then by `public_outputs` order, and zero-fill the eight-slot ABI. A changed
 public output must fail verification. A private assignment that violates the
 constraints cannot make a valid proof for that public statement.
 
-Next: [how the normalized relation becomes a circuit](circuits.md).
+Next: [the standard and math library](library.md).

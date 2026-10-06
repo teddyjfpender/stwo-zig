@@ -19,7 +19,7 @@ from text_frontend import compile_text  # noqa: E402
 
 
 def text_block(path: Path, prefix: str) -> str:
-    for block in re.findall(r"```(?:text|s31)\n(.*?)\n```", path.read_text(), re.S):
+    for block in re.findall(r"(?:```|~~~)(?:text|s31)\n(.*?)\n(?:```|~~~)", path.read_text(), re.S):
         if block.lstrip().startswith(prefix):
             return block
     raise AssertionError(f"{path}: missing {prefix!r} example")
@@ -40,6 +40,16 @@ def check_examples() -> None:
     )
     assert [node["op"] for node in hash_relation["nodes"]] == [
         "hash_poseidon2_leaf", "select", "select", "hash_poseidon2_pair"
+    ]
+    library_relation, _ = compile_text(
+        text_block(DOCS / "library.md", "use std@1;"), "library.md"
+    )
+    checked_library, _ = compile_text((S31 / "examples/mathlib4.s31").read_text())
+    assert library_relation == checked_library
+    library_assignment = json.loads((S31 / "examples/mathlib4.valid.json").read_text())
+    assert library_assignment["public_outputs"]["result"] == [
+        (2 * x + 3 * (2 * x**3 + 3 * x**2 + 5 * x + 7) + 11) % P
+        for x in library_assignment["public_inputs"]["x"]
     ]
     assignment = json.loads((S31 / "examples/math_polynomial4.valid.json").read_text())
     assert assignment["public_outputs"]["result"] == [

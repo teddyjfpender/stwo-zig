@@ -13,13 +13,13 @@ from pathlib import Path
 from typing import Any
 
 import s31_mathlib as mathlib
-from s31_stdlib import Builder, StaticGroup, StepState, Type, TypeErrorS31, Value, P
+from s31_stdlib import Builder, StaticGroup, StepState, Type, TypeErrorS31, Value, P, STDLIB_ABI_VERSION
 
 
 TOKEN_RE = re.compile(
     r"(?P<space>\s+)|(?P<comment>//[^\n]*)|(?P<field>[0-9]+_m31\b)|"
     r"(?P<number>[0-9]+)|(?P<ident>[A-Za-z_][A-Za-z_0-9]*)|"
-    r"(?P<symbol>->|::|\.\*|==|[\[\]{}();,:<>+=*])"
+    r"(?P<symbol>->|::|\.\*|==|[\[\]{}();,:<>+=*@])"
 )
 MAX_TOKENS = 100_000
 MAX_CALL_DEPTH = 32
@@ -116,6 +116,7 @@ class Parser:
         self.tokens = lex(source, filename)
         self.filename = filename
         self.at = 0
+        self.stdlib_explicit = False
 
     def peek(self) -> Token:
         return self.tokens[self.at]
@@ -139,7 +140,7 @@ class Parser:
 
     def identifier(self) -> str:
         token = self.peek()
-        if token.kind != "ident" or token.text in {"let", "fn", "circuit", "public", "private", "assert_eq"}:
+        if token.kind != "ident" or token.text in {"use", "let", "fn", "circuit", "public", "private", "assert_eq"}:
             raise self.error("expected identifier")
         self.at += 1
         return token.text
@@ -294,6 +295,14 @@ class Parser:
         return lhs
 
     def parse(self) -> tuple[dict[str, Function], Circuit]:
+        if self.accept("use"):
+            package = self.identifier()
+            self.expect("@")
+            version = self.number()
+            self.expect(";")
+            if package != "std" or version != STDLIB_ABI_VERSION:
+                raise self.error("only the compiler-owned standard library std@1 is supported")
+            self.stdlib_explicit = True
         functions: dict[str, Function] = {}
         while self.peek().text == "fn":
             fn = self.declaration()
@@ -422,6 +431,19 @@ class Compiler:
                                               wanted=wanted, span=self.span(expr))
                 if expr.generic is not None:
                     raise TypeErrorS31(f"{name} does not accept a static parameter")
+                if name in {"std::math::sum", "std::math::dot", "std::math::poly_eval"}:
+                    args = tuple(self.eval_expr(arg, env) for arg in expr.args)
+                    arity = 1 if name == "std::math::sum" else 2
+                    if len(args) != arity:
+                        raise TypeErrorS31(f"{name} expects {arity} arguments")
+                    if name == "std::math::sum":
+                        return mathlib.sum_static(self.builder, args[0], wanted=wanted,
+                                                  span=self.span(expr))
+                    if name == "std::math::dot":
+                        return mathlib.dot_static(self.builder, args[0], args[1],
+                                                  wanted=wanted, span=self.span(expr))
+                    return mathlib.poly_eval(self.builder, self.expect_value(args[0], expr), args[1],
+                                             wanted=wanted, span=self.span(expr))
                 values = tuple(self.expect_value(self.eval_expr(arg, env), arg) for arg in expr.args)
                 arity = 2 if name == "std::math::sub" else 1
                 if len(values) != arity:
@@ -511,6 +533,15 @@ class Compiler:
             if not isinstance(constant, int):
                 raise self.located(expr, "step splat requires a static constant")
             return self.builder.splat(constant, expr.generic)
+        if expr.kind == "call" and expr.value == "std::math::square":
+            if expr.generic is not None or len(expr.args) != 1:
+                raise self.located(expr, "std::math::square(step_state) expected")
+            value = self.step_expr(expr.args[0], env)
+            if not isinstance(value, StepState):
+                raise self.located(expr, "iterate can square only its current state")
+            if len(value.steps) >= 16:
+                raise self.located(expr, "iterate body exceeds sixteen steps")
+            return StepState(value.typ, value.steps + ({"op": "square"},))
         if expr.kind == "call" and expr.value in self.functions and expr.generic is None:
             fn = self.functions[expr.value]
             if len(fn.params) != len(expr.args):

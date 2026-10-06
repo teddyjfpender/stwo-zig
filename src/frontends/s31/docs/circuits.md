@@ -1,4 +1,4 @@
-# 2. Normalized relation to circuit gates
+# 3. Normalized relation to circuit gates
 
 The relation compiler first makes a canonical static single-assignment (SSA)
 graph. Each input and operation has an ID; dependencies point to earlier IDs.

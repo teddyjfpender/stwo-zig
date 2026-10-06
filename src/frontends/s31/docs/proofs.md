@@ -1,4 +1,4 @@
-# 5. Packages, native verification, and audit
+# 6. Packages, native verification, and audit
 
 ## Build, prove, verify
 
@@ -46,10 +46,12 @@ execute an in-circuit recursive verifier on the host.
 | `cost-report.json` | Raw/padded component rows, fixed columns/cells, source spans, input packing, public binding, selected profile and chip. |
 | `source.s31.json` | Exact normalized relation bytes compiled by Zig. |
 | `source.s31`, `source-map.json`, `typed-interface.json` | Text source, source locations, and nominal text types when the input was `.s31`. |
+| `stdlib-lock.json` | Text package's pinned `std@1` version, import mode, and library source hashes; its digest is also in the key. |
 | `manifest.json` | SHA-256 of every artifact above plus source/compiler identity and Zig version. |
 
 The text parser's qualified library calls disappear into normalized nodes.
-The package manifest hashes the original text; the native verifier's
+The package manifest hashes the original text and standard-library lock;
+the generated verifier checks the lock digest embedded in its key. The native verifier's
 program identity binds the normalized relation and selected proof profile.
 Text spellings or JSON whitespace can change source/package hashes and proof
 bytes even when the canonical arithmetic graph and cost geometry agree.

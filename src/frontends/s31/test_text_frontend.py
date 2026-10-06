@@ -8,7 +8,7 @@ import generate_merkle_path
 from s31_stdlib import (P, decode_m31_words_le, encode_m31_words_le, reference_digest,
                         reference_iterate, reference_m31_binary, reference_m31_from_u16,
                         reference_merkle_path, reference_select)
-from text_frontend import SourceError, compile_file, compile_text
+from text_frontend import Parser, SourceError, compile_file, compile_text
 
 
 EXAMPLES = Path(__file__).resolve().parent / "examples"
@@ -52,6 +52,60 @@ class TextFrontendTests(unittest.TestCase):
         self.assertEqual(assignment["public_outputs"]["result"],
                          [(pow(x, 5, P) + 3 * x - 7) % P
                           for x in assignment["public_inputs"]["x"]])
+
+    def test_versioned_static_math_lowers_to_existing_gates(self) -> None:
+        source = (EXAMPLES / "mathlib4.s31").read_text()
+        relation, _ = compile_text(source)
+        self.assertEqual([node["op"] for node in relation["nodes"]],
+                         ["mul_const", "add_const", "mul", "add_const", "mul",
+                          "add_const", "mul_const", "mul_const", "add", "add_const"])
+        self.assertEqual(compile_text(source.replace("use std@1;", ""))[0], relation)
+        assignment = json.loads((EXAMPLES / "mathlib4.valid.json").read_text())
+        values = assignment["public_inputs"]["x"]
+        polynomial = lambda x: (2 * x ** 3 + 3 * x ** 2 + 5 * x + 7) % P
+        self.assertEqual(assignment["public_outputs"]["result"],
+                         [(2 * x + 3 * polynomial(x) + 11) % P for x in values])
+        parser = Parser(source, "mathlib4.s31")
+        parser.parse()
+        self.assertTrue(parser.stdlib_explicit)
+
+    def test_static_math_checks_shapes_and_term_counts(self) -> None:
+        cases = (
+            ("std::math::sum(x)", "requires a static array"),
+            ("std::math::sum([x, splat<2>(1_m31)])", "equally shaped"),
+            ("std::math::dot([x, x], [x])", "equal static array lengths"),
+            ("std::math::poly_eval(x, [splat<2>(1_m31)])", "must match x"),
+        )
+        for expression, message in cases:
+            with self.subTest(expression=expression), self.assertRaisesRegex(SourceError, message):
+                compile_text(f"circuit bad(private x: [m31; 1]) -> public [m31; 1] {{ {expression} }}")
+        too_many = ", ".join(["x"] * 65)
+        with self.assertRaisesRegex(SourceError, "1..64 terms"):
+            compile_text(f"circuit bad(private x: [m31; 1]) -> public [m31; 1] {{ std::math::sum([{too_many}]) }}")
+
+    def test_static_sum_uses_balanced_dependencies(self) -> None:
+        relation, _ = compile_text("""
+circuit balanced(private a: [m31; 1], private b: [m31; 1],
+                 private c: [m31; 1], private d: [m31; 1]) -> public [m31; 1] {
+    std::math::sum([a, b, c, d])
+}
+""")
+        nodes = relation["nodes"]
+        self.assertEqual(len(nodes), 3)
+        self.assertEqual((nodes[0]["lhs"], nodes[0]["rhs"]), ("a", "b"))
+        self.assertEqual((nodes[1]["lhs"], nodes[1]["rhs"]), ("c", "d"))
+        self.assertEqual((nodes[2]["lhs"], nodes[2]["rhs"]), (nodes[0]["name"], nodes[1]["name"]))
+
+    def test_std_import_rejects_unsupported_versions_and_packages(self) -> None:
+        circuit = "circuit math(private x: [m31; 1]) -> public [m31; 1] { x }"
+        for import_line in ("use std@2;", "use other@1;"):
+            with self.subTest(import_line=import_line), self.assertRaisesRegex(SourceError, "std@1"):
+                compile_text(import_line + "\n" + circuit)
+
+    def test_math_square_is_valid_inside_iterate(self) -> None:
+        old = (EXAMPLES / "arith4_m31.s31").read_text()
+        new = "use std@1;\n" + old.replace("v .* v", "std::math::square(v)")
+        self.assertEqual(compile_text(new)[0], compile_text(old)[0])
 
     def test_math_identity_and_constant_folding(self) -> None:
         source = """circuit math(private x: [m31; 1]) -> public [m31; 1] {

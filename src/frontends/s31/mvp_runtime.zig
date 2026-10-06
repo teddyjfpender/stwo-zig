@@ -40,6 +40,7 @@ const Key = struct {
     trace_log_size: u32,
     projection_sha256: []const u8,
     air_bundle_sha256: []const u8,
+    stdlib_lock_sha256: ?[]const u8 = null,
     fri: struct {
         pow_bits: u32,
         log_blowup_factor: u32,
@@ -678,6 +679,13 @@ fn verify(allocator: std.mem.Allocator, path: []const u8, statement_path: []cons
 }
 
 fn validateKey(allocator: std.mem.Allocator, source: relation.Program, key: Key) !void {
+    const expected_stdlib = @import("s31_options").stdlib_lock_sha256;
+    if (expected_stdlib.len == 0) {
+        if (key.stdlib_lock_sha256 != null) return error.InvalidVerificationKey;
+    } else {
+        const pinned_stdlib = key.stdlib_lock_sha256 orelse return error.InvalidVerificationKey;
+        if (!std.mem.eql(u8, pinned_stdlib, expected_stdlib)) return error.InvalidVerificationKey;
+    }
     if (!std.mem.eql(u8, key.schema, if (direct_mode) "s31-verification-key-v4" else if (sparse_mode) "s31-verification-key-v3" else if (chip_mode) "s31-verification-key-v2" else "s31-verification-key-v1") or
         !std.mem.eql(u8, key.profile, if (direct_mode) "direct-m31-v4" else if (sparse_mode) "sparse-v3" else if (chip_mode) "hybrid-step-v2" else "circuit-v1") or
         !std.mem.eql(u8, key.name, source.name))

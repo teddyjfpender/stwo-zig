@@ -7,10 +7,14 @@ nodes a handwritten relation would use.
 
 from __future__ import annotations
 
-from s31_stdlib import Builder, P, TypeErrorS31, Value
+from s31_stdlib import Builder, P, StaticGroup, TypeErrorS31, Value
 
 
-BUILTINS = {"std::math::neg", "std::math::sub", "std::math::square", "std::math::pow"}
+BUILTINS = {
+    "std::math::neg", "std::math::sub", "std::math::square", "std::math::pow",
+    "std::math::sum", "std::math::dot", "std::math::poly_eval",
+}
+MAX_STATIC_TERMS = 64
 
 
 def _m31(value: Value) -> None:
@@ -61,4 +65,67 @@ def pow_static(builder: Builder, value: Value, exponent: int, *, wanted: str | N
         if bit == "1":
             result = builder.binary("mul", result, value,
                                     wanted=wanted if last else None, span=span)
+    return result
+
+
+def _group(value: StaticGroup, operation: str) -> tuple[Value, ...]:
+    if not isinstance(value, StaticGroup):
+        raise TypeErrorS31(f"std::math::{operation} requires a static array of [m31; N] values")
+    terms = value.elements
+    if not 1 <= len(terms) <= MAX_STATIC_TERMS:
+        raise TypeErrorS31(f"std::math::{operation} requires 1..{MAX_STATIC_TERMS} terms")
+    shape = terms[0].typ
+    _m31(terms[0])
+    if any(term.typ != shape for term in terms[1:]):
+        raise TypeErrorS31(f"std::math::{operation} requires equally shaped [m31; N] terms")
+    return terms
+
+
+def sum_static(builder: Builder, group: StaticGroup, *, wanted: str | None = None,
+               span: dict[str, int] | None = None) -> Value:
+    """Balanced static reduction; each output lane sums the same source lane."""
+    layer = list(_group(group, "sum"))
+    while len(layer) > 1:
+        next_layer: list[Value] = []
+        for index in range(0, len(layer), 2):
+            if index + 1 == len(layer):
+                next_layer.append(layer[index])
+            else:
+                next_layer.append(builder.binary(
+                    "add", layer[index], layer[index + 1],
+                    wanted=wanted if len(layer) == 2 else None, span=span))
+        layer = next_layer
+    return layer[0]
+
+
+def dot_static(builder: Builder, lhs: StaticGroup, rhs: StaticGroup,
+               *, wanted: str | None = None,
+               span: dict[str, int] | None = None) -> Value:
+    """Pointwise products followed by a balanced sum across static terms."""
+    left = _group(lhs, "dot")
+    right = _group(rhs, "dot")
+    if len(left) != len(right):
+        raise TypeErrorS31("std::math::dot requires equal static array lengths")
+    if left[0].typ != right[0].typ:
+        raise TypeErrorS31("std::math::dot requires equally shaped [m31; N] terms")
+    products = tuple(builder.binary(
+        "mul", a, b, wanted=wanted if len(left) == 1 else None, span=span)
+        for a, b in zip(left, right))
+    return sum_static(builder, StaticGroup(products),
+                      wanted=wanted if len(left) > 1 else None, span=span)
+
+
+def poly_eval(builder: Builder, x: Value, coefficients: StaticGroup,
+              *, wanted: str | None = None,
+              span: dict[str, int] | None = None) -> Value:
+    """Horner evaluation of c0 + c1*x + ... with low-to-high coefficients."""
+    _m31(x)
+    terms = _group(coefficients, "poly_eval")
+    if terms[0].typ != x.typ:
+        raise TypeErrorS31("std::math::poly_eval coefficients must match x's [m31; N] shape")
+    result = terms[-1]
+    for index in range(len(terms) - 2, -1, -1):
+        result = builder.binary("mul", result, x, span=span)
+        result = builder.binary("add", result, terms[index],
+                                wanted=wanted if index == 0 else None, span=span)
     return result

@@ -14,6 +14,7 @@ from typing import Any
 
 
 P = (1 << 31) - 1
+STDLIB_ABI_VERSION = 1
 MAX_NODES = 100_000
 
 

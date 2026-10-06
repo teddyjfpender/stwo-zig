@@ -23,10 +23,11 @@ DOCS = S31 / "docs"
 CHAPTERS = (
     ("README.md", "Start here"),
     ("source.md", "1. Source language"),
-    ("circuits.md", "2. Circuit gates"),
-    ("air.md", "3. AIR and polynomials"),
-    ("hashes.md", "4. Hashes and Merkle paths"),
-    ("proofs.md", "5. Proofs and audit"),
+    ("library.md", "2. Standard / math library"),
+    ("circuits.md", "3. Circuit gates"),
+    ("air.md", "4. AIR and polynomials"),
+    ("hashes.md", "5. Hashes and Merkle paths"),
+    ("proofs.md", "6. Proofs and audit"),
 )
 MATHJAX_URL = "https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-svg.js"
 MATHJAX_SHA256 = "d4295dc33744836935c1399feece5159577b34c5c8ffb9f1c6324cd82e03a882"
@@ -59,11 +60,11 @@ class S31Lexer(RegexLexer):
             (r"\s+", Text),
             (r"//[^\n]*", Comment.Single),
             (r'"(?:[^"\\]|\\.)*"', String),
-            (r"\b(?:fn|circuit|public|private|let|assert_eq)\b", Keyword),
+            (r"\b(?:use|fn|circuit|public|private|let|assert_eq)\b", Keyword),
             (r"\b(?:m31|u16|bit|Digest|Poseidon2|Blake2sReduced)\b", Keyword.Type),
             (r"\b(?:std::[A-Za-z_][A-Za-z0-9_:]*|iterate|splat|select|m31_from_u16|poseidon2_leaf|poseidon2_pair|blake2s_leaf|blake2s_pair|merkle_path_poseidon2|merkle_path_blake2s)(?=\s*[<(])", Name.Builtin),
             (r"\b\d+(?:_m31)?\b", Number.Integer),
-            (r"->|\.\*|::|[+*=<>-]", Operator),
+            (r"->|\.\*|::|[+*=<>@-]", Operator),
             (r"[{}\[\]();,:]", Punctuation),
             (r"[A-Za-z_][A-Za-z0-9_]*", Name),
             (r".", Text),
@@ -160,7 +161,7 @@ class Handler(SimpleHTTPRequestHandler):
 <script>{MATHJAX_CONFIG}</script><script defer src="/assets/tex-svg.js"></script>
 </head><body><div class="layout">
 <aside><a class="brand" href="/docs/">S31 Docs</a>
-<div class="sub">Source → circuits → AIR → proof</div><nav>{nav}</nav></aside>
+<div class="sub">Source → library → circuits → AIR → proof</div><nav>{nav}</nav></aside>
 <main><article>{body}
 <div class="footer">Live preview of {html.escape(str(source.relative_to(S31)))} · Refresh to see edits</div>
 </article></main></div></body></html>"""

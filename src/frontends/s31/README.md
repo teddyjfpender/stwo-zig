@@ -18,6 +18,12 @@ python3 src/frontends/s31/s31.py explain zig-out/s31/text-arith4
 
 The text package includes the original `.s31`, normalized JSON, and a source map; all are hashed in its manifest. `explain` joins source locations to the existing gate-row cost report. See [the text language guide](TEXT_LANGUAGE.md) for its implemented syntax, typed library functions, constraints, examples, and limits. The [standard/math library brief](../../../design/s31/STDLIB_MATHLIB.md) records the qualified library operations and the remaining work for a useful release.
 
+The [standard/math library chapter](docs/library.md) covers `use std@1;`,
+static `sum`/`dot`, Horner polynomial evaluation, hand calculations, and the
+source-hashed library lock embedded in text packages. The complete
+[`mathlib4.s31` example](examples/mathlib4.s31) builds under `direct-gate`
+and produces a native verifier.
+
 From the repository root:
 
 ```sh

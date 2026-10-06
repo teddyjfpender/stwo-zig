@@ -87,11 +87,31 @@ def write_json(path: Path, value: dict) -> None:
     path.write_text(json.dumps(value, indent=2, sort_keys=True) + "\n")
 
 
-def build_json(source_path: Path, output: Path, lowering: str = "gate") -> Path:
+def standard_library_lock(explicit_import: bool) -> dict:
+    from s31_stdlib import STDLIB_ABI_VERSION
+
+    return {
+        "schema": "s31-stdlib-lock-v1",
+        "package": "std",
+        "version": STDLIB_ABI_VERSION,
+        "explicit_import": explicit_import,
+        "sources": {
+            name: file_hash(S31_DIR / name)
+            for name in ("s31_stdlib.py", "s31_mathlib.py")
+        },
+    }
+
+
+def build_json(source_path: Path, output: Path, lowering: str = "gate",
+               library_lock: dict | None = None) -> Path:
     if lowering not in {"gate", "chip", "sparse-gate", "sparse-chip", "direct-gate", "direct-chip"}:
         raise ValueError("lowering must be gate, chip, sparse-gate, sparse-chip, direct-gate, or direct-chip")
     source_path = source_path.resolve()
     source, data = load_source(source_path)
+    lock_bytes = ((json.dumps(library_lock, indent=2, sort_keys=True) + "\n").encode()
+                  if library_lock is not None else None)
+    lock_digest = sha256(lock_bytes) if lock_bytes is not None else None
+    lock_option = (f"-Ds31-stdlib-sha256={lock_digest}",) if lock_digest is not None else ()
     compiler_sha256 = compiler_fingerprint()
     output = output.resolve()
     if output.exists():
@@ -102,6 +122,8 @@ def build_json(source_path: Path, output: Path, lowering: str = "gate") -> Path:
             raise FileExistsError(f"package was built with different compiler inputs: {output}")
         if manifest.get("lowering", "gate") != lowering:
             raise FileExistsError(f"package was built with different lowering: {output}")
+        if manifest.get("stdlib_lock_sha256") != lock_digest:
+            raise FileExistsError(f"package was built with a different standard library lock: {output}")
         return output
 
     output.parent.mkdir(parents=True, exist_ok=True)
@@ -113,6 +135,7 @@ def build_json(source_path: Path, output: Path, lowering: str = "gate") -> Path:
             "-Doptimize=ReleaseFast", "-Ds31-version=1",
             f"-Ds31-lowering={lowering}",
             f"-Ds31-source={source_path}", f"-Ds31-name={name}",
+            *lock_option,
             "--prefix", str(staging),
         )
         prover = staging / "bin" / f"s31-{name}-prover"
@@ -136,14 +159,19 @@ def build_json(source_path: Path, output: Path, lowering: str = "gate") -> Path:
             "air_bundle_sha256": AIR_BUNDLE_SHA256,
             "fri": inspection["fri"],
         }
+        if lock_digest is not None:
+            key["stdlib_lock_sha256"] = lock_digest
         (staging / "source.s31.json").write_bytes(data)
         write_json(staging / "verification-key.json", key)
+        if lock_bytes is not None:
+            (staging / "stdlib-lock.json").write_bytes(lock_bytes)
         invoke(
             "zig", "build", "--build-file", str(BUILD_FILE), "install",
             "-Doptimize=ReleaseFast", "-Ds31-version=1",
             f"-Ds31-lowering={lowering}",
             f"-Ds31-source={source_path}", f"-Ds31-name={name}",
             f"-Ds31-key={staging / 'verification-key.json'}",
+            *lock_option,
             "--prefix", str(staging),
         )
         write_json(staging / "public-abi.json", abi(source, lowering))
@@ -152,6 +180,8 @@ def build_json(source_path: Path, output: Path, lowering: str = "gate") -> Path:
             "source.s31.json", "verification-key.json", "public-abi.json",
             "cost-report.json", f"bin/{prover.name}", f"bin/{verifier.name}",
         ]
+        if lock_bytes is not None:
+            artifacts.append("stdlib-lock.json")
         manifest = {
             "schema": "s31-package-v1",
             "name": name,
@@ -163,6 +193,8 @@ def build_json(source_path: Path, output: Path, lowering: str = "gate") -> Path:
             "optimize": "ReleaseFast",
             "artifacts": {item: file_hash(staging / item) for item in artifacts},
         }
+        if lock_digest is not None:
+            manifest["stdlib_lock_sha256"] = lock_digest
         write_json(staging / "manifest.json", manifest)
         os.rename(staging, output)
         return output
@@ -186,7 +218,9 @@ def build_text(source_path: Path, output: Path, lowering: str = "gate") -> Path:
     output = output.resolve()
     text_data = source_path.read_bytes()
     _, normalized, source_map = lower_text(source_path)
-    _, circuit = Parser(text_data.decode(), str(source_path)).parse()
+    parser = Parser(text_data.decode(), str(source_path))
+    _, circuit = parser.parse()
+    library_lock = standard_library_lock(parser.stdlib_explicit)
     def type_entry(typ: object) -> dict:
         return {"kind": typ.kind, "length": typ.length, **({"family": typ.family} if typ.family else {})}
     typed_interface = {
@@ -194,6 +228,8 @@ def build_text(source_path: Path, output: Path, lowering: str = "gate") -> Path:
         "inputs": [{"name": name, "visibility": visibility, "type": type_entry(typ)}
                    for name, typ, visibility in circuit.params],
         "output": type_entry(circuit.result),
+        "stdlib": {"package": "std", "version": library_lock["version"],
+                   "explicit_import": parser.stdlib_explicit},
     }
     if output.exists():
         manifest = verify_package(output)
@@ -207,7 +243,7 @@ def build_text(source_path: Path, output: Path, lowering: str = "gate") -> Path:
         staging_root = Path(directory)
         normalized_path = staging_root / "normalized.s31.json"
         normalized_path.write_bytes(normalized)
-        package = build_json(normalized_path, staging_root / "package", lowering)
+        package = build_json(normalized_path, staging_root / "package", lowering, library_lock)
         (package / "source.s31").write_bytes(text_data)
         write_json(package / "source-map.json", {
             "schema": "s31-text-source-map-v1", "source_sha256": sha256(text_data),
@@ -241,6 +277,12 @@ def verify_package(package: Path) -> dict:
             raise ValueError(f"S31 package artifact changed: {name}")
     if file_hash(package / "source.s31.json") != manifest["program_sha256"]:
         raise ValueError("S31 package source changed")
+    if "stdlib_lock_sha256" in manifest:
+        if "stdlib-lock.json" not in manifest["artifacts"] or file_hash(package / "stdlib-lock.json") != manifest["stdlib_lock_sha256"]:
+            raise ValueError("S31 package standard library lock changed")
+        key = json.loads((package / "verification-key.json").read_text())
+        if key.get("stdlib_lock_sha256") != manifest["stdlib_lock_sha256"]:
+            raise ValueError("S31 verification key has the wrong standard library lock")
     if "source_text_sha256" in manifest:
         required = {"source.s31", "source-map.json"}
         if manifest.get("text_frontend_version") == 1:

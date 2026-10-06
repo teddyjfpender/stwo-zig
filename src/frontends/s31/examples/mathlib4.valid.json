@@ -1,0 +1,4 @@
+{
+  "public_inputs": {"x": [0, 1, 2, 7]},
+  "public_outputs": {"result": [32, 64, 150, 2650]}
+}

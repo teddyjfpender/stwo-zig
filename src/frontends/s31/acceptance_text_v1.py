@@ -14,6 +14,7 @@ CASES = (
     ("arith4_m31", "arith4", "direct-chip"),
     ("merkle_path1_poseidon", "merkle_path1_poseidon", "direct-gate"),
     ("math_polynomial4", "math_polynomial4", "direct-gate"),
+    ("mathlib4", "mathlib4", "direct-gate"),
 )
 EQUAL_FIELDS = (
     "canonical_ir_sha256", "profile", "chip", "raw", "padded",
@@ -79,9 +80,17 @@ def main() -> None:
             assignment = s31.S31_DIR / "examples" / f"{assignment_name}.valid.json"
             text_package = s31.build(text_source, work / f"{name}-text", lowering)
             json_package = s31.build(json_source, work / f"{name}-json", lowering)
+            lock = json.loads((text_package / "stdlib-lock.json").read_text())
+            if lock["package"] != "std" or lock["version"] != 1 or lock["explicit_import"] != (name == "mathlib4"):
+                raise AssertionError(f"{name}: unexpected standard library lock")
+            s31.verify_package(text_package)
             text_report = json.loads((text_package / "cost-report.json").read_text())
             json_report = json.loads((json_package / "cost-report.json").read_text())
-            mismatches = [field for field in EQUAL_FIELDS if text_report[field] != json_report[field]]
+            # The mathlib fixture deliberately gives handwritten relation nodes
+            # descriptive names, so its name-bearing source map differs.
+            compared = (field for field in EQUAL_FIELDS
+                        if name != "mathlib4" or field != "source_map")
+            mismatches = [field for field in compared if text_report[field] != json_report[field]]
             if mismatches:
                 raise AssertionError(f"{name}: text and JSON cost structures differ: {mismatches}")
             text_proof = work / f"{name}-text.proof"

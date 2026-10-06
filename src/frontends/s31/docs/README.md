@@ -32,14 +32,16 @@ text .s31 ──parse/typecheck/specialize──▶ normalized relation JSON
 
 1. [Source language and relation](source.md): syntax, types, field semantics,
    static shapes, normalized JSON, and the public statement.
-2. [Circuit lowering](circuits.md): a hand-drawn gate graph, packed M31 lanes,
+2. [Standard and math library](library.md): the pinned `std@1` package,
+   typed operations, static reductions, Horner evaluation, and a proof example.
+3. [Circuit lowering](circuits.md): a hand-drawn gate graph, packed M31 lanes,
    fixed/witness columns, address lookups, and the six proof profiles.
-3. [AIR and polynomials](air.md): a hand-filled trace, the **actual six
+4. [AIR and polynomials](air.md): a hand-filled trace, the **actual six
    repeated-step chip constraints**, lookup closure, quotient, and FRI.
-4. [Hashes and Merkle paths](hashes.md): complete input/output encodings,
+5. [Hashes and Merkle paths](hashes.md): complete input/output encodings,
    Poseidon2 permutation and constants, BLAKE2s framing, and a hand-drawn
    one-level path.
-5. [Packages, verification, and audit](proofs.md): build/prove/verify commands,
+6. [Packages, verification, and audit](proofs.md): build/prove/verify commands,
    what the key binds, artifact names, cost report fields, and current limits.
 
 The worked examples use checked-in sources under [`../examples`](../examples):
@@ -47,6 +49,7 @@ The worked examples use checked-in sources under [`../examples`](../examples):
 | Program | What it teaches | Recommended profile |
 | --- | --- | --- |
 | [`math_polynomial4.s31`](../examples/math_polynomial4.s31) | Static power, constants, four M31 lanes, circuit gates | `direct-gate` |
+| [`mathlib4.s31`](../examples/mathlib4.s31) | `use std@1`, Horner polynomial, static dot/sum, library lock | `direct-gate` |
 | [`arith4_m31.s31`](../examples/arith4_m31.s31) | `iterate`, gate unrolling versus one linked AIR chip | `direct-chip` |
 | [`merkle_path1_poseidon.s31`](../examples/merkle_path1_poseidon.s31) | Private leaf, constrained bit, ordered hashing, public root | `direct-gate` |
 | [`preimage4.s31`](../examples/preimage4.s31) | Private `u16` witness and an equality assertion | `gate` |
@@ -81,7 +84,7 @@ statement, proof, and pinned key. The documented program computes
 | Public statement | Named public inputs and outputs. Private input values are absent from it. |
 | Native verifier | The generated host binary that checks the STARK proof against its embedded program and key. |
 
-The current text frontend has no imports, user-defined modules, dynamic loops,
+The current text frontend has no general imports, user-defined modules, dynamic loops,
 computed-bit selectors, general reductions, or checked inversion. `explain`
 does **not** print every instantiated symbolic polynomial from the pinned
 circuit AIR bundle. This guide gives the semantic gate equations and the exact

@@ -1,0 +1,16 @@
+use std@1;
+
+fn polynomial(x: [m31; 4]) -> [m31; 4] {
+    std::math::poly_eval(x, [
+        splat<4>(7_m31), splat<4>(5_m31),
+        splat<4>(3_m31), splat<4>(2_m31)
+    ])
+}
+
+circuit mathlib4(public x: [m31; 4]) -> public [m31; 4] {
+    let poly = polynomial(x);
+    let weighted = std::math::dot(
+        [x, poly], [splat<4>(2_m31), splat<4>(3_m31)]);
+    let result = std::math::sum([weighted, splat<4>(11_m31)]);
+    result
+}

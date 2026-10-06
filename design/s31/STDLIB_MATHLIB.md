@@ -1,6 +1,7 @@
 # S31 standard and math library: current contract and remaining work
 
-Status: first qualified library surface, 2026-10-06. This document distinguishes
+Status: compiler-owned `std@1` package with an explicit source pin and static
+math helpers, 2026-10-06. This document distinguishes
 what is executable today from the work needed for a useful library release.
 The [text language guide](../../src/frontends/s31/TEXT_LANGUAGE.md) defines the
 implemented syntax; the [MVP roadmap](MVP_ROADMAP.md) tracks proof-backend work.
@@ -8,12 +9,15 @@ implemented syntax; the [MVP roadmap](MVP_ROADMAP.md) tracks proof-backend work.
 ## What works now
 
 The text frontend exposes compiler-owned qualified operations. They lower into
-the same normalized relation as the older unqualified primitives. There is no
-module loader or user-published package format yet.
+the same normalized relation as the older unqualified primitives. A leading
+`use std@1;` explicitly pins the package; old sources use version 1 implicitly.
+Text packages include a source-hashed `stdlib-lock.json`, and its digest is
+bound in the generated verification key and native verifier. There is no
+general module loader or user-published package format yet.
 
 | Namespace | Implemented operations | Backend relation |
 | --- | --- | --- |
-| `std::math` | `neg`, `sub`, `square`, static `pow<K>` | Existing M31 add/mul and constant gates. |
+| `std::math` | `neg`, `sub`, `square`, static `pow<K>`, static-group `sum`, `dot`, `poly_eval` | Existing M31 add/mul and constant gates. |
 | `std::field` | `from_u16`, `select` | Explicit conversion; direct input bit selector with `b²-b=0`. |
 | `std::hash` | Poseidon2 and BLAKE2s reduced leaf/pair hashes | Existing pinned hash nodes. |
 | `std::merkle` | Fixed-depth Poseidon2 and BLAKE2s paths | Hash nodes plus two constrained selects per level. |
@@ -46,6 +50,22 @@ nodes by hand. It is not a claim that the chosen exponentiation chain or the
 current gate profile is globally optimal. `pow<p-2>(x)` computes `0` when
 `x=0`; it is not a safe division or an asserted nonzero inverse.
 
+The [new `mathlib4` program](../../src/frontends/s31/examples/mathlib4.s31)
+uses Horner polynomial evaluation, static dot, and static sum in four M31
+lanes. Its [handwritten relation](../../src/frontends/s31/examples/mathlib4.s31.json)
+has the same canonical IR digest, preprocessed root, and row geometry.
+Canonicalization shares a repeated `2x` term: ten text relation nodes become
+nine unique arithmetic nodes. The complete direct arithmetic circuit uses
+334 raw rows, 512 padded rows, and 4,096 fixed cells. Both package forms
+produce proofs accepted by their generated native verifiers. The [library
+chapter](../../src/frontends/s31/docs/library.md) gives exact types,
+coefficient order, a hand calculation, and the lock format.
+
+The static groups are lists of existing arrays in source. `sum` and `dot`
+reduce across the list, **not across lanes of one `[m31; N]` array**. This
+distinction keeps the lowering within the current normalized relation and
+avoids claiming that array projection is implemented.
+
 ## Definition of a useful v1 library
 
 A useful v1 means programs can import a versioned library and build common
@@ -60,8 +80,8 @@ chip it activates.
 
 | Work package | Exit gate | Rough effort for one experienced engineer |
 | --- | --- | ---: |
-| Versioned modules and shape-polymorphic pure functions | Explicit `use`/imports, lockfile or embedded version, deterministic specialization, source maps through calls, compiler-bound library identity. | 2–4 weeks |
-| Field/vector core | `sum`, `dot`, fixed-array indexing, concatenation, vector/matrix kernels, and constant-folding checks; direct-gate proofs match independent oracles. | 2–4 weeks |
+| General modules and shape-polymorphic pure functions | Extend the current `use std@1` pin to named modules, deterministic external resolution, lockfiles for imported source, and source maps through those calls. | 2–4 weeks |
+| Field/vector core | Add reductions over lanes of one array, fixed-array indexing, concatenation, and vector/matrix kernels; direct-gate proofs match independent oracles. Static-group `sum`, `dot`, and Horner evaluation are implemented. | 2–4 weeks |
 | Nonzero inverse and checked division | Witness generation plus `x·inv=1`, a nonzero contract, zero rejection, batch inverse cost comparison, and native-verifier mutation tests. | 2–3 weeks |
 | Boolean/range/integer core | Computed bits, comparisons, range constraints and explicit integer/field casts; no host-only assertions or unconstrained hint outputs. | 3–6 weeks |
 | Library release discipline | API/version policy, corpus of positive and negative proofs, cost regression gates, and audit views from source to AIR polynomial. | 2–3 weeks |
@@ -77,13 +97,13 @@ still need the backend efficiency work in the [MVP roadmap](MVP_ROADMAP.md).
 
 ## Engineering order
 
-1. Freeze library identity and add explicit module imports before many more
-   source-level helpers. Otherwise packaged verifiers cannot state which
-   library implementation they bind.
-2. Add array projections and reductions with a direct arithmetic lowering.
-   Use matched source/JSON programs and independent scalar oracles to guard
-   semantics and cost. This unlocks `sum`, `dot`, polynomial evaluation, and
-   small linear algebra without a new AIR profile.
+1. Extend the existing `std@1` lock to named modules and imported source.
+   The current package key already binds the compiler-owned library source
+   digest; a user module needs the same deterministic resolution.
+2. Add array projections and reductions over lanes with a direct arithmetic
+   lowering. The implemented static-group reductions and Horner evaluation
+   already use matched source/JSON programs and independent scalar oracles.
+   True array reductions and small linear algebra remain.
 3. Add checked inversion with an explicit nonzero contract. A witness-supplied
    inverse is useful only when the AIR enforces `x·y-1=0`; the prover must reject
    zero input before committing. Compare this with static exponentiation on
@@ -97,7 +117,7 @@ still need the backend efficiency work in the [MVP roadmap](MVP_ROADMAP.md).
    selected profile.
 
 The principal blocker is therefore not a collection of function names: the
-normalized relation lacks projections, reductions, computed bits, and
-constrained witness hints, while the text frontend lacks versioned modules.
-The qualified surface and the polynomial example establish the library's
-semantics and audit pattern without changing the proof protocol.
+normalized relation lacks projections, reductions over array lanes, computed
+bits, and constrained witness hints, while the text frontend lacks general
+modules. The versioned compiler-owned package and matched math examples
+establish a source-to-AIR audit pattern without changing the proof protocol.

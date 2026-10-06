@@ -1,4 +1,4 @@
-# 3. AIR rows, lookup closure, and proof polynomials
+# 4. AIR rows, lookup closure, and proof polynomials
 
 An arithmetic circuit is a graph. An AIR is a table layout plus polynomial
 constraints on its rows. S31 compiles generic circuit gates into the pinned

@@ -1,4 +1,4 @@
-# 4. Hashes and Merkle paths
+# 5. Hashes and Merkle paths
 
 S31 currently offers two different hash families. `Digest<Poseidon2>` is eight
 canonical M31 words produced by the pinned field permutation. A
