@@ -186,8 +186,10 @@ python3 src/frontends/s31/acceptance_state_fold.py
 python3 src/frontends/s31/acceptance_state_fold_general.py
 ```
 
-`state-fold-advance` validates the package once, proves every step in order,
-and natively verifies the final proof. With `--checkpoint-dir`, each
+`state-fold-advance` validates the package once. Its v2 native batch path
+reuses the preprocessed circuit and commitment while checking each child
+proof and each fresh value circuit against the witness-free topology. It
+natively verifies the final proof. With `--checkpoint-dir`, each
 intermediate proof and statement is kept as `state-00002.proof` and so on;
 passing one of those proofs as the next input resumes from that step. The
 command checks the `u16` counter bound before starting and refuses to
@@ -204,7 +206,14 @@ sample. These are single-machine observations, not speed guarantees.
 That sample used the original v1 square/add key; v2 binds the ordered body
 and therefore has a different key and proof bytes.
 `inspect-state-fold PACKAGE` rebuilds the AIR and reports raw rows and
-padding headroom. Compared with `inspect-fold` on the same source, this
+padding headroom. It also reports cumulative gate counts at 24 points from
+proof-witness creation through Merkle and FRI checks to finalization. In the
+affine-square fixture, Merkle and FRI decommitments account for 91.97% of
+the fold's raw variables; the state digest itself adds 664. These are circuit
+counts, not direct time or memory measurements. The
+[cost map](../../../../design/s31/RECURSION_PERFORMANCE.md) records the
+next efficiency targets and their soundness conditions. Compared with
+`inspect-fold` on the same square/add source, this
 state transition adds only 48 raw variables, 4 equality rows, 32 QM31
 operation rows, and 16 M31-to-u32 rows; its triple-XOR and Blake-G raw row
 counts do not change. Both AIRs occupy the same padded component sizes.

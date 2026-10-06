@@ -33,12 +33,26 @@ def main() -> None:
     with tempfile.TemporaryDirectory(prefix="s31-general-state-fold-") as temporary:
         work = Path(temporary)
         package = args.package.resolve() if args.package else s31.package_for(SOURCE)
-        s31.verify_package(package)
+        manifest = s31.verify_package(package)
+        if "s31-state-fold-batch-v1" not in manifest.get("capabilities", []):
+            raise AssertionError("general state-fold package did not enable cached native batching")
         key_path = package / "state-fold-verification-key.json"
         key = json.loads(key_path.read_text())
         if (key["schema"] != "s31-state-fold-verification-key-v2" or
                 key["source_rounds"] != 3 or key["step_body"] != BODY):
             raise AssertionError("source step was not bound into the recursive key")
+        geometry = json.loads(run("python3", str(HERE / "s31.py"), "inspect-state-fold", str(package)))
+        stages = geometry["verifier_stages"]
+        if (geometry["schema"] != "s31-state-fold-geometry-v2" or len(stages) != 24 or
+                stages[0]["name"] != "proof_witness" or stages[-1]["name"] != "finalize" or
+                stages[-1]["raw_vars"] != geometry["raw_vars"] or
+                any(stages[-1][field] != geometry["raw_rows"][field]
+                    for field in ("eq", "qm31_ops", "triple_xor", "m31_to_u32", "blake_g"))):
+            raise AssertionError("stage profiler changed or omitted AIR rows")
+        for previous, current in zip(stages, stages[1:]):
+            if any(previous[field] > current[field] for field in
+                   ("raw_vars", "eq", "qm31_ops", "triple_xor", "m31_to_u32", "blake_g")):
+                raise AssertionError("stage profiler has nonmonotonic gate counts")
         cost = json.loads((package / "cost-report.json").read_text())
         if cost["repeated_step"] is not None or cost["state_fold_step"] != {"rounds": 3, "body": BODY}:
             raise AssertionError("general fold accidentally selected the narrow chip")
@@ -60,6 +74,15 @@ def main() -> None:
         folds = [checkpoints / "state-00000.proof", checkpoints / "state-00001.proof", top]
         for proof in folds[:2]:
             run("python3", str(HERE / "s31.py"), "audit-state-fold-next", str(package), str(proof))
+        direct_previous = first
+        for index, batched in enumerate(folds):
+            direct = work / f"direct-{index}.proof"
+            run("python3", str(HERE / "s31.py"),
+                "state-fold-base" if index == 0 else "state-fold-next",
+                str(package), str(direct_previous), str(direct))
+            if direct.read_bytes() != batched.read_bytes():
+                raise AssertionError(f"cached batch changed proof bytes at step {index}")
+            direct_previous = direct
         resumed = work / "resumed.proof"
         run("python3", str(HERE / "s31.py"), "state-fold-advance", str(package),
             str(folds[1]), str(resumed), "--steps", "1")
@@ -70,6 +93,19 @@ def main() -> None:
             str(folds[1]), str(low_memory), "--steps", "1", "--low-memory")
         if low_memory.read_bytes() != top.read_bytes():
             raise AssertionError("low-memory resume changed proof bytes")
+        batch_args = (str(package / "verification-key.json"),
+                      str(package / "recursive-verification-key.json"),
+                      str(key_path))
+        run(str(prover), "state-fold-wrap-batch", str(first), f"{first}.statement.json",
+            str(work / "invalid-batch.proof"), *batch_args, "1", str(work / "scratch"),
+            "2", "base", accept=False)
+        run(str(prover), "state-fold-wrap-batch", str(top), f"{top}.statement.json",
+            str(work / "invalid-batch.proof"), *batch_args, "1", str(work / "scratch"),
+            "2", "next", accept=False)
+        run(str(prover), "state-fold-wrap-batch", str(first), f"{first}.statement.json",
+            str(top), *batch_args, "1", str(work / "scratch"), "0", "base", accept=False)
+        if top.read_bytes() != resumed.read_bytes():
+            raise AssertionError("batch preflight modified an existing proof")
         overflow = run("python3", str(HERE / "s31.py"), "state-fold-advance", str(package),
                        str(top), str(work / "overflow.proof"), "--steps", "65535", accept=False)
         zero = run("python3", str(HERE / "s31.py"), "state-fold-advance", str(package),
@@ -109,7 +145,7 @@ def main() -> None:
             Path(f"{path}.statement.json").unlink()
         run(str(verifier), "state-fold-verify", str(folds[-1]), f"{folds[-1]}.statement.json")
         print("S31 general state-fold acceptance: three base rounds, square/multiply/add step, "
-              "independent M31 arithmetic, checkpoint and low-memory resume, hostile claims and key, isolated top proof")
+              "independent M31 arithmetic, byte-identical cached batch and resume, hostile claims and key, isolated top proof")
 
 
 if __name__ == "__main__":

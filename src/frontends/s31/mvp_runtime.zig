@@ -245,6 +245,8 @@ pub fn main() !void {
         try wrapStateFold(allocator, parsed.value, args[2], args[3], args[4], args[5], args[6], args[7], true, args.len == 9, false);
     } else if (std.mem.eql(u8, command, "state-fold-wrap-next") and (args.len == 8 or (args.len == 9 and std.mem.eql(u8, args[8], "--low-memory"))) and !chip_mode and !sparse_mode and !direct_mode) {
         try wrapStateFold(allocator, parsed.value, args[2], args[3], args[4], args[5], args[6], args[7], false, args.len == 9, false);
+    } else if (std.mem.eql(u8, command, "state-fold-wrap-batch") and (args.len == 12 or (args.len == 13 and std.mem.eql(u8, args[12], "--low-memory"))) and !chip_mode and !sparse_mode and !direct_mode) {
+        try wrapStateFoldBatch(allocator, parsed.value, args[2], args[3], args[4], args[5], args[6], args[7], args[8], args[9], args[10], args[11], args.len == 13);
     } else if (std.mem.eql(u8, command, "state-fold-audit-base") and args.len == 7 and !chip_mode and !sparse_mode and !direct_mode) {
         try wrapStateFold(allocator, parsed.value, args[2], args[3], "", args[4], args[5], args[6], true, false, true);
     } else if (std.mem.eql(u8, command, "state-fold-audit-next") and args.len == 7 and !chip_mode and !sparse_mode and !direct_mode) {
@@ -1780,7 +1782,7 @@ fn inspectFold(
     const verified = try validateFoldKey(child_bytes, first_bytes, first.value, fold.value);
     var topology_ctx = try fixed_fold.topology(allocator, projection_bytes, verified.layout, verified.pcs, verified.base_root);
     defer topology_ctx.deinit();
-    try emitFoldGeometry(allocator, &topology_ctx, verified, fold.value.padded, "s31-fixed-fold-geometry-v1");
+    try emitFoldGeometry(allocator, &topology_ctx, verified, fold.value.padded, "s31-fixed-fold-geometry-v1", null);
 }
 
 fn inspectStateFold(
@@ -1808,9 +1810,10 @@ fn inspectStateFold(
     var state_key = try std.json.parseFromSlice(StateFoldKey, allocator, state_bytes, .{ .ignore_unknown_fields = false });
     defer state_key.deinit();
     const verified = try validateStateFoldKey(child_bytes, first_bytes, first.value, state_key.value, spec);
-    var topology_ctx = try state_fold.topology(allocator, projection_bytes, verified.layout, verified.pcs, verified.base_root, spec.body);
+    var stages: state_fold.StageCapture = .{};
+    var topology_ctx = try state_fold.topologyWithStages(allocator, projection_bytes, verified.layout, verified.pcs, verified.base_root, spec.body, &stages);
     defer topology_ctx.deinit();
-    try emitFoldGeometry(allocator, &topology_ctx, verified, state_key.value.padded, "s31-state-fold-geometry-v1");
+    try emitFoldGeometry(allocator, &topology_ctx, verified, state_key.value.padded, "s31-state-fold-geometry-v2", stages.slice());
 }
 
 fn emitFoldGeometry(
@@ -1819,6 +1822,7 @@ fn emitFoldGeometry(
     verified: VerifiedFoldKey,
     padded: Rows,
     schema: []const u8,
+    stages: ?[]const state_fold.StageStats,
 ) !void {
     const raw = circuit.common.finalize.rawComponentSizes(preprocessed.CircuitView.fromBuilder(&topology_ctx.circuit));
     const raw_vars = topology_ctx.circuit.n_vars;
@@ -1858,6 +1862,7 @@ fn emitFoldGeometry(
         .raw_rows = raw_rows,
         .padded_rows = padded,
         .headroom_rows = headroom,
+        .verifier_stages = stages,
     };
     const encoded = try std.json.Stringify.valueAlloc(allocator, report, .{});
     defer allocator.free(encoded);
@@ -2147,6 +2152,108 @@ fn wrapStateFold(
     low_memory: bool,
     audit_only: bool,
 ) !void {
+    var cache: ?StateFoldCache = null;
+    defer if (cache) |*prepared| prepared.deinit(allocator);
+    return wrapStateFoldWithCache(allocator, source, child_proof_path, child_statement_path,
+        output_path, child_key_path, first_key_path, state_key_path, base_case,
+        low_memory, audit_only, &cache);
+}
+
+const StateFoldCache = struct {
+    pp: preprocessed.PreprocessedCircuit,
+    commitment: cpu.prove.PreprocessedCommitment,
+
+    fn deinit(self: *StateFoldCache, allocator: std.mem.Allocator) void {
+        self.commitment.deinit(allocator);
+        self.pp.deinit(allocator);
+    }
+};
+
+fn rejectExistingFoldOutput(path: []const u8) !void {
+    std.fs.cwd().access(path, .{}) catch |err| switch (err) {
+        error.FileNotFound => return,
+        else => return err,
+    };
+    return error.OutputAlreadyExists;
+}
+
+/// Reuse the sealed preprocessed circuit and commitment while every step
+/// independently checks its child proof and value/topology gate equality.
+fn wrapStateFoldBatch(
+    allocator: std.mem.Allocator,
+    source: relation.Program,
+    child_proof_path: []const u8,
+    child_statement_path: []const u8,
+    output_path: []const u8,
+    child_key_path: []const u8,
+    first_key_path: []const u8,
+    state_key_path: []const u8,
+    steps_text: []const u8,
+    checkpoint_dir: []const u8,
+    first_step_text: []const u8,
+    case_text: []const u8,
+    low_memory: bool,
+) !void {
+    const steps = try std.fmt.parseInt(u32, steps_text, 10);
+    const first_step = try std.fmt.parseInt(u32, first_step_text, 10);
+    const base_case = std.mem.eql(u8, case_text, "base");
+    if (!base_case and !std.mem.eql(u8, case_text, "next")) return error.InvalidFoldBranch;
+    if (steps == 0 or steps > 65536 or first_step > 65535 or
+        first_step + steps - 1 > 65535 or (base_case and first_step != 0) or
+        (!base_case and first_step == 0)) return error.InvalidFoldStepRange;
+    if (std.mem.eql(u8, child_proof_path, output_path)) return error.OutputAlreadyExists;
+    const initial_bytes = try std.fs.cwd().readFileAlloc(allocator, child_statement_path, 8192);
+    defer allocator.free(initial_bytes);
+    if (base_case) {
+        var initial = try std.json.parseFromSlice(RecursiveStatement, allocator, initial_bytes, .{ .ignore_unknown_fields = false });
+        defer initial.deinit();
+        if (!std.mem.eql(u8, initial.value.schema, "s31-recursive-gate-statement-v2")) return error.InvalidFoldBranch;
+    } else {
+        var initial = try std.json.parseFromSlice(StateFoldStatement, allocator, initial_bytes, .{ .ignore_unknown_fields = false });
+        defer initial.deinit();
+        if (!std.mem.eql(u8, initial.value.schema, "s31-state-fold-statement-v1") or
+            @as(u32, initial.value.step) + 1 != first_step) return error.InvalidFoldStepRange;
+    }
+    try std.fs.cwd().makePath(checkpoint_dir);
+    var paths = std.heap.ArenaAllocator.init(allocator);
+    defer paths.deinit();
+    const scratch = paths.allocator();
+    for (0..steps) |index| {
+        const target = if (index + 1 == steps) output_path else
+            try std.fmt.allocPrint(scratch, "{s}/state-{d:0>5}.proof", .{ checkpoint_dir, first_step + @as(u32, @intCast(index)) });
+        try rejectExistingFoldOutput(target);
+        const statement_path = try std.fmt.allocPrint(scratch, "{s}.statement.json", .{target});
+        try rejectExistingFoldOutput(statement_path);
+    }
+    var cache: ?StateFoldCache = null;
+    defer if (cache) |*prepared| prepared.deinit(allocator);
+    var current_proof = child_proof_path;
+    var current_statement = child_statement_path;
+    for (0..steps) |index| {
+        const target = if (index + 1 == steps) output_path else
+            try std.fmt.allocPrint(scratch, "{s}/state-{d:0>5}.proof", .{ checkpoint_dir, first_step + @as(u32, @intCast(index)) });
+        try wrapStateFoldWithCache(allocator, source, current_proof, current_statement,
+            target, child_key_path, first_key_path, state_key_path,
+            base_case and index == 0, low_memory, false, &cache);
+        current_proof = target;
+        current_statement = try std.fmt.allocPrint(scratch, "{s}.statement.json", .{target});
+    }
+}
+
+fn wrapStateFoldWithCache(
+    allocator: std.mem.Allocator,
+    source: relation.Program,
+    child_proof_path: []const u8,
+    child_statement_path: []const u8,
+    output_path: []const u8,
+    child_key_path: []const u8,
+    first_key_path: []const u8,
+    state_key_path: []const u8,
+    base_case: bool,
+    low_memory: bool,
+    audit_only: bool,
+    cache: *?StateFoldCache,
+) !void {
     const spec = source.stateFoldStep() orelse return error.UnsupportedStateFoldSource;
     const child_bytes = try std.fs.cwd().readFileAlloc(allocator, child_key_path, 4096);
     defer allocator.free(child_bytes);
@@ -2258,7 +2365,7 @@ fn wrapStateFold(
         std.debug.print("S31 state-fold circuit audit: step={d} valid=true rejected={d}\n", .{ step, if (base_case) @as(u32, 9) else 10 });
         return;
     }
-    var pp = blk: {
+    {
         var topology_ctx = try state_fold.topology(allocator, projection_bytes, verified.layout, verified.pcs, verified.base_root, spec.body);
         defer topology_ctx.deinit();
         if (!sameTopology(&values.circuit, &topology_ctx.circuit)) return error.StateFoldValueDependentTopology;
@@ -2266,19 +2373,26 @@ fn wrapStateFold(
         try circuit.common.finalize.padContext(circuit.builder.NoValue, &topology_ctx);
         if (!sameTopology(&values.circuit, &topology_ctx.circuit) or !try values.isCircuitValid())
             return error.InvalidStateFoldCircuit;
-        break :blk try preprocessed.PreprocessedCircuit.fromBuilderCircuit(allocator, &topology_ctx.circuit);
-    };
-    defer pp.deinit(allocator);
+        if (cache.* == null) {
+            var pp = try preprocessed.PreprocessedCircuit.fromBuilderCircuit(allocator, &topology_ctx.circuit);
+            errdefer pp.deinit(allocator);
+            var committed = try cpu.prove.PreprocessedCommitment.build(allocator, &pp, verified.pcs, .{});
+            errdefer committed.deinit(allocator);
+            const actual_root = committed.root();
+            if (!std.mem.eql(u8, &actual_root, &verified.root) or !pp.layout().eql(&verified.layout))
+                return error.StateFoldKeyTopologyMismatch;
+            cache.* = .{ .pp = pp, .commitment = committed };
+        }
+    }
+    const prepared = if (cache.*) |*item| item else unreachable;
+    const prepared_root = prepared.commitment.root();
+    if (!std.mem.eql(u8, &prepared_root, &verified.root) or
+        !prepared.pp.layout().eql(&verified.layout)) return error.StateFoldKeyTopologyMismatch;
     values.circuit.deinit(allocator);
     values.circuit = .{};
-    var committed = try cpu.prove.PreprocessedCommitment.build(allocator, &pp, verified.pcs, .{});
-    defer committed.deinit(allocator);
-    const actual_root = committed.root();
-    if (!std.mem.eql(u8, &actual_root, &verified.root) or !pp.layout().eql(&verified.layout))
-        return error.StateFoldKeyTopologyMismatch;
     var timer = try std.time.Timer.start();
-    var proof = try cpu.Internal.prove(allocator, values.values(), &pp, &bundle, verified.pcs, .{
-        .preprocessed_commitment = &committed,
+    var proof = try cpu.Internal.prove(allocator, values.values(), &prepared.pp, &bundle, verified.pcs, .{
+        .preprocessed_commitment = &prepared.commitment,
         .evaluations_only = low_memory,
     }, {});
     defer proof.deinit();

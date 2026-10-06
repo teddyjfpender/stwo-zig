@@ -139,6 +139,8 @@ The [state-fold chapter](docs/state-fold.md) extracts a typed four-lane
 recurrence with square, addition and multiplication by constants from source
 and proves one more computation step in each fold. `state-fold-advance` runs
 multiple steps with optional checkpoints for resume.
+The [recursive cost map](../../../design/s31/RECURSION_PERFORMANCE.md) breaks
+the verifier circuit down by stage and records the current proving bottleneck.
 The v2 wrapper fixes the child AIR root with equality gates and embeds the
 SHA-256 digest of the exact child key as constants in its personalized
 one-block BLAKE2s public claim. A same-AIR, different-key replay fixture

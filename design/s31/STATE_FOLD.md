@@ -92,10 +92,13 @@ steps; its independent [acceptance fixture](../../src/frontends/s31/acceptance_s
 checks the source-derived operation list, state values, and hostile key edits.
 The state-fold key schema is v2. Existing v1 packages remain readable through
 the Python package verifier and use their sealed v1 binaries.
-`state-fold-advance` validates a package once, derives a bounded sequence of
-proofs, optionally keeps intermediate checkpoints, and verifies the top proof.
-Resuming from a checkpoint gives the same proof bytes; the acceptance fixture
-checks both normal and low-memory resume.
+`state-fold-advance` validates a package once and uses a native v2 batch
+prover that reuses the preprocessed circuit and commitment across steps.
+It keeps optional intermediate checkpoints and verifies the top proof.
+Every step still checks child proof validity and compares the value circuit
+with a fresh witness-free topology. Resuming from a checkpoint gives the
+same proof bytes; the acceptance fixture compares batch proofs with separate
+one-step commands and checks both normal and low-memory resume.
 
 An arbitrary S31 function fold still needs typed state beyond four lanes and
 lowering for other operations with a sound circuit boundary. Bitcoin needs byte-exact SHA256d,

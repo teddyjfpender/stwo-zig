@@ -18,6 +18,41 @@ pub const personalization: [8]u8 = "S31STF1!".*;
 pub const Mutation = enum { base_selector, zero_test_inverse, previous_counter, current_state };
 const WitnessIndices = struct { base: usize, inverse: usize, previous_counter: usize, current_state: usize };
 
+pub const StageStats = struct {
+    name: []const u8,
+    raw_vars: u32,
+    eq: usize,
+    qm31_ops: usize,
+    triple_xor: usize,
+    m31_to_u32: usize,
+    blake_g: usize,
+};
+
+/// Records witness-free circuit growth at each verifier phase. The recorder
+/// changes no gate or proof value and is used only by AIR inspection.
+pub const StageCapture = struct {
+    entries: [32]StageStats = undefined,
+    len: usize = 0,
+
+    pub fn mark(self: *StageCapture, gates: *const circuit.builder.Circuit, stage: circuit.stark_verifier.verify.Stage) !void {
+        if (self.len == self.entries.len) return error.TooManyVerifierStages;
+        self.entries[self.len] = .{
+            .name = stage.name,
+            .raw_vars = gates.n_vars,
+            .eq = gates.eq.items.len,
+            .qm31_ops = gates.nQm31OpsRows(),
+            .triple_xor = gates.triple_xor.items.len,
+            .m31_to_u32 = gates.m31_to_u32.items.len,
+            .blake_g = gates.blake_g_gate.items.len,
+        };
+        self.len += 1;
+    }
+
+    pub fn slice(self: *const StageCapture) []const StageStats {
+        return self.entries[0..self.len];
+    }
+};
+
 fn wordsFromBytes(bytes: [32]u8) [8]u32 {
     var words: [8]u32 = undefined;
     for (&words, 0..) |*word, i| word.* = std.mem.readInt(u32, bytes[4 * i ..][0..4], .little);
@@ -105,6 +140,7 @@ pub fn buildCircuit(
     step_value: u16,
     input: *const circuit.stark_verifier.proof.Proof(V),
     witness_indices: ?*WitnessIndices,
+    stages: anytype,
 ) !circuit.builder.Context(V) {
     if (step_body.len == 0 or step_body.len > 16) return error.InvalidStepBody;
     var ctx = try circuit.builder.Context(V).init(allocator, circuit.common.component_list.N_RESERVED);
@@ -173,13 +209,16 @@ pub fn buildCircuit(
     var proof_config = try circuit.statements.circuit_statement.circuitVerifierProofConfig(allocator, &config.preprocessed_column_log_sizes, config.config);
     defer proof_config.deinit(allocator);
     const proof_vars = try circuit.stark_verifier.proof.guess(V, &ctx, input);
-    try circuit.stark_verifier.verify.verify(V, &ctx, &proof_vars, proof_config, &statement, circuit.stark_verifier.verify.NoStages{});
+    try stages.mark(&ctx.circuit, .{ .name = "proof_witness" });
+    try circuit.stark_verifier.verify.verify(V, &ctx, &proof_vars, proof_config, &statement, stages);
 
     const output_hash = try digestWires(V, &ctx, self_root, step.get(), leaf, initial, current);
     var outputs: [Blake.digest_n_words]Var = undefined;
     for (&outputs, output_hash.words) |*out, word| out.* = word.get();
     try ctx.setOutputs(&outputs);
+    try stages.mark(&ctx.circuit, .{ .name = "state_fold_digest" });
     try ctx.finalize(false);
+    try stages.mark(&ctx.circuit, .{ .name = "finalize" });
     return ctx;
 }
 
@@ -190,6 +229,18 @@ pub fn topology(
     child_pcs: core.pcs.config_v2.PcsConfigV2,
     base_root: [32]u8,
     step_body: []const relation.Step,
+) !circuit.builder.Context(NoValue) {
+    return topologyWithStages(allocator, projection_bytes, child_layout, child_pcs, base_root, step_body, circuit.stark_verifier.verify.NoStages{});
+}
+
+pub fn topologyWithStages(
+    allocator: std.mem.Allocator,
+    projection_bytes: []const u8,
+    child_layout: circuit.common.preprocessed.ColumnLayout,
+    child_pcs: core.pcs.config_v2.PcsConfigV2,
+    base_root: [32]u8,
+    step_body: []const relation.Step,
+    stages: anytype,
 ) !circuit.builder.Context(NoValue) {
     try recursion_gate.authenticateProjection(projection_bytes);
     var projection = try circuit.air_eval.projection.parse(allocator, projection_bytes);
@@ -205,7 +256,7 @@ pub fn topology(
     var scratch = std.heap.ArenaAllocator.init(allocator);
     defer scratch.deinit();
     const empty = try circuit.stark_verifier.proof.emptyProof(scratch.allocator(), proof_config);
-    return buildCircuit(NoValue, allocator, &table, &config, base_root, step_body, undefined, undefined, undefined, undefined, undefined, 0, &empty, null);
+    return buildCircuit(NoValue, allocator, &table, &config, base_root, step_body, undefined, undefined, undefined, undefined, undefined, 0, &empty, null, stages);
 }
 
 pub fn verifyPrepared(
@@ -288,6 +339,7 @@ pub fn verifyPreparedWithMutation(
         step,
         &proof_values,
         &indices,
+        circuit.stark_verifier.verify.NoStages{},
     );
     errdefer ctx.deinit();
     if (mutation) |kind| switch (kind) {

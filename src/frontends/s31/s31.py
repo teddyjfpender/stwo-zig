@@ -241,6 +241,8 @@ def build_json(source_path: Path, output: Path, lowering: str = "gate",
             "optimize": "ReleaseFast",
             "artifacts": {item: file_hash(staging / item) for item in artifacts},
         }
+        if state_fold_option:
+            manifest["capabilities"] = ["s31-state-fold-batch-v1"]
         if lock_digest is not None:
             manifest["stdlib_lock_sha256"] = lock_digest
         write_json(staging / "manifest.json", manifest)
@@ -329,6 +331,10 @@ def verify_package(package: Path) -> dict:
     artifacts = manifest.get("artifacts")
     if not isinstance(name, str) or not name or not isinstance(artifacts, dict):
         raise ValueError("incomplete S31 package manifest")
+    capabilities = manifest.get("capabilities", [])
+    if (not isinstance(capabilities, list) or any(not isinstance(item, str) for item in capabilities) or
+            ("s31-state-fold-batch-v1" in capabilities and "state-fold-verification-key.json" not in artifacts)):
+        raise ValueError("invalid S31 package capabilities")
     required_artifacts = {
         "source.s31.json", "verification-key.json", "public-abi.json",
         "cost-report.json", f"bin/s31-{name}-prover",
@@ -1183,13 +1189,32 @@ def main() -> None:
                 target_statement = Path(str(target) + ".statement.json")
                 if target.exists() or target_statement.exists():
                     raise ValueError(f"refusing to overwrite fold proof or statement: {target}")
-                command = "state-fold-wrap-base" if base_case and index == 0 else "state-fold-wrap-next"
-                print(invoke(str(executable), command, str(child), str(statement), str(target),
-                             str(package / "verification-key.json"),
+            state_key = json.loads((package / "state-fold-verification-key.json").read_text())
+            if (state_key["schema"] == "s31-state-fold-verification-key-v2" and
+                    "s31-state-fold-batch-v1" in manifest.get("capabilities", [])):
+                print(invoke(str(executable), "state-fold-wrap-batch", str(child), str(statement),
+                             str(outer), str(package / "verification-key.json"),
                              str(package / "recursive-verification-key.json"),
                              str(package / "state-fold-verification-key.json"),
+                             str(args.steps), str(checkpoints), str(first_step),
+                             "base" if base_case else "next",
                              *(("--low-memory",) if args.low_memory else ())), end="")
-                child, statement = target, target_statement
+                statement = Path(str(outer) + ".statement.json")
+            else:
+                # Old packages carry their own v1 binary, which only has the
+                # one-step command. Preserve their installed proof format.
+                for index in range(args.steps):
+                    step = first_step + index
+                    target = (outer if index == args.steps - 1 else
+                              checkpoints / f"state-{step:05d}.proof")
+                    target_statement = Path(str(target) + ".statement.json")
+                    command = "state-fold-wrap-base" if base_case and index == 0 else "state-fold-wrap-next"
+                    print(invoke(str(executable), command, str(child), str(statement), str(target),
+                                 str(package / "verification-key.json"),
+                                 str(package / "recursive-verification-key.json"),
+                                 str(package / "state-fold-verification-key.json"),
+                                 *(("--low-memory",) if args.low_memory else ())), end="")
+                    child, statement = target, target_statement
             print(invoke(str(verifier), "state-fold-verify", str(outer), str(statement)), end="")
         print(f"state-fold top proof: {outer}")
     elif args.command == "audit-recursive":
