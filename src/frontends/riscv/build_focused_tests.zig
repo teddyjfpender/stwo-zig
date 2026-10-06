@@ -14,6 +14,14 @@ pub const Spec = struct {
 
 pub const specs = [_]Spec{
     .{
+        .step = "test-recursion-v5-local-identities",
+        .description = "Prove exact local-ID router/hash tuples and ordered Poseidon calls",
+        .root = "segment_leaf_wrapper_source_projection_v3_test_root.zig",
+        .imports_prover_engine = true,
+        .filters = &.{"V5 local identity", "V5 keeps the existing row39 PPR1", "V5 router and two hashes"},
+        .minimum = 4,
+    },
+    .{
         .step = "test-recursion-v4-las2-boundary",
         .description = "Bind direct wrapper LAS2 words to verifier-owned expected public identities",
         .root = "segment_leaf_wrapper_source_projection_v3_test_root.zig",
