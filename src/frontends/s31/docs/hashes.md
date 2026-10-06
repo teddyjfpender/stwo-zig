@@ -17,6 +17,33 @@ The normalized-only `hash_blake2s` hashes 4/8/12/16 words with zero
 personalization. Leaf and pair personalization are distinct. All input words
 must be canonical (`0 <= word < p`, `p=2147483647`).
 
+## Check hash values without building a proof
+
+`s31 oracle` evaluates every current hash relation node as a separate Python
+value check. For BLAKE2s raw, leaf, and pair nodes, it serializes the M31
+words as four little-endian bytes each, calls Python's standard-library
+`hashlib.blake2s` with the framing below, then reduces each digest word
+modulo $p$. For Poseidon2 leaf and pair nodes, it uses a separate Python
+field-arithmetic implementation in [`poseidon2_oracle.py`](../poseidon2_oracle.py).
+That implementation reads the pinned round constants from this repository;
+it does not call the Zig circuit evaluator. Both paths compare their
+computed digest with the claimed public output.
+
+```sh
+python3 src/frontends/s31/s31.py oracle src/frontends/s31/examples/hash4.s31.json src/frontends/s31/examples/hash4.valid.json
+python3 src/frontends/s31/s31.py oracle src/frontends/s31/examples/merkle_path1_poseidon.s31 src/frontends/s31/examples/merkle_path1_poseidon.valid.json
+```
+
+Both checked-in assignments report `status: passed`. The Merkle example
+computes the eight-word root printed below. A changed claimed root fails
+this value check. `s31 trial` includes the same check in its
+`independent_value_oracle` report field alongside the native proof result.
+The value check helps catch a mismatch between the stated relation and
+an assignment; it does not prove that Zig compiled that relation correctly
+or that the STARK verifier is sound. For a `.s31` text source, the common
+text frontend still produces the normalized relation first. Unknown future
+operations fail explicitly instead of being reported as checked.
+
 ## Poseidon2-M31, completely specified for this frontend
 
 The permutation works on 16 M31 words. Its full pinned constants are included
@@ -165,8 +192,11 @@ direction=1:  sibling ─▶ [left ] ─┐
 
 For each digest word, a select proves
 `selected=(1-direction)*a+direction*b`; the bit is constrained by
-`direction²-direction=0`. Two selects precede the pair hash. With
-`leaf=[1..8]`, `sibling=[100,200,...,800]`, and `direction=1`, the
+`direction²-direction=0`. Two selects precede the pair hash. The
+[private-choice walkthrough](worked-choice.md) fills the selector wires
+with small numbers and shows why the Boolean equation rules out a third
+answer. For `leaf=[1..8]`, `sibling=[100,200,...,800]`, and
+`direction=1`, the
 public root is:
 
 ```text

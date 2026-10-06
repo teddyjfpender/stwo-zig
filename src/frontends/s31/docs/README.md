@@ -36,6 +36,10 @@ text .s31 ──parse/typecheck/specialize──▶ normalized relation JSON
 - [Two proofs worked by hand](worked-proofs.md): a private cross-lane sum
     and dot product from source through gate equations and public binding,
     followed by a 16-round recurrence with actual transition rows.
+- [A private choice worked by hand](worked-choice.md): a Boolean selector
+   chooses between two public square-plus-seven results. See the filled
+   circuit wires, gate equations, two-row polynomial factorization, and the
+   exact claim a proof makes.
 - [Source language and relation](source.md): syntax, types, field semantics,
    static shapes, normalized JSON, and the public statement.
 - [Standard and math library](library.md): the pinned `std@1` package,
@@ -78,9 +82,12 @@ python3 src/frontends/s31/s31.py prove zig-out/s31/docs-polynomial src/frontends
 python3 src/frontends/s31/s31.py verify zig-out/s31/docs-polynomial zig-out/s31/docs-polynomial.proof
 ```
 
-`lower` shows the exact relation consumed by Zig. `oracle` independently
-evaluates supported arithmetic relation nodes against the assignment, without
-proving; hash nodes are unsupported. `explain` joins text source
+`lower` shows the exact relation consumed by Zig. `oracle` checks the
+normalized relation against the assignment in Python, without proving. It
+now evaluates every current arithmetic and hash node: BLAKE2s uses Python's
+`hashlib`, and Poseidon2 uses a separate Python field-arithmetic reference
+with the repository's pinned constants. Unknown future operations fail
+explicitly. `explain` joins text source
 positions to canonical nodes and builder gate spans. `equations` shows each
 node's semantic field equation. `prove` writes a public-only
 statement beside the proof; `verify` runs the generated native verifier on that

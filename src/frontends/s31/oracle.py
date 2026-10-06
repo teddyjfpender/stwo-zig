@@ -1,4 +1,4 @@
-"""Independent value oracle for the arithmetic subset of S31 relation IR v1.
+"""Independent value oracle for S31 relation IR v1.
 
 This module deliberately does not import the S31 compiler, runtime, or standard
 library. It checks the author's normalized relation against an assignment using
@@ -6,12 +6,14 @@ ordinary Python integer arithmetic. Passing this check is useful evidence that
 the claimed values match the relation, but it does not establish that the
 compiled circuit constrains the same relation or that a proof is sound.
 
-Hash nodes are rejected until independently implemented here. A caller must
-not interpret UnsupportedOperation as a successful check.
+Poseidon2 uses a separate Python permutation implementation with the pinned
+constants from the repository; BLAKE2s uses Python's standard library.
+Unknown future operations raise UnsupportedOperation, never a success result.
 """
 
 from __future__ import annotations
 
+import hashlib
 import re
 from collections.abc import Mapping
 from typing import Any
@@ -120,8 +122,6 @@ def _validated_shapes(relation: Mapping[str, Any]) -> tuple[dict[str, tuple[str,
         op = node.get("op")
         if not isinstance(op, str) or op not in _OPS:
             raise UnsupportedOperation(f"{name}: unsupported relation operation {op!r}")
-        if op in _HASH_OPS:
-            raise UnsupportedOperation(f"{name}: {op} has no independent value oracle")
         lhs = _operand(node, "lhs", shapes)
         rhs = _operand(node, "rhs", shapes)
         selector = _operand(node, "selector", shapes)
@@ -159,6 +159,16 @@ def _validated_shapes(relation: Mapping[str, Any]) -> tuple[dict[str, tuple[str,
             shape = _same_m31(node, lhs, rhs)
             if selector != ("m31", 1):
                 raise OracleError(f"{name}: selector must be scalar m31")
+        elif op in _HASH_OPS:
+            _absent(node, "constant", "length", "rounds", "body")
+            if lhs is None or lhs[0] != "m31":
+                raise OracleError(f"{name}: {op} requires m31 words")
+            if op in ("hash_blake2s_pair", "hash_poseidon2_pair"):
+                if lhs[1] != 8 or rhs != ("m31", 8):
+                    raise OracleError(f"{name}: ordered pair hash requires two m31[8] digests")
+            elif rhs is not None or lhs[1] not in (4, 8, 12, 16):
+                raise OracleError(f"{name}: leaf hash requires 4, 8, 12, or 16 m31 words")
+            shape = ("m31", 8)
         else:  # repeat
             _absent(node, "rhs", "constant", "length")
             shape = _same_m31(node, lhs)
@@ -211,6 +221,14 @@ def _assigned(values: Mapping[str, Any], name: str, shape: tuple[str, int], path
     return [_uint(word, f"{path}.{name}[{index}]", bound) for index, word in enumerate(raw)]
 
 
+def _blake_words(words: list[int], personalization: bytes | None) -> list[int]:
+    message = b"".join(word.to_bytes(4, "little") for word in words)
+    options = {"person": personalization} if personalization is not None else {}
+    digest = hashlib.blake2s(message, digest_size=32, **options).digest()
+    return [int.from_bytes(digest[index:index + 4], "little") % P
+            for index in range(0, 32, 4)]
+
+
 def evaluate_relation(relation: Mapping[str, Any], assignment: Mapping[str, Any]) -> dict[str, list[int]]:
     """Check a relation and full assignment; return its computed public outputs.
 
@@ -260,6 +278,20 @@ def evaluate_relation(relation: Mapping[str, Any], assignment: Mapping[str, Any]
             if bit not in (0, 1):
                 raise OracleError(f"{name}: selector must be 0 or 1")
             result = (lhs if bit == 0 else rhs).copy()
+        elif op == "hash_blake2s":
+            result = _blake_words(lhs, None)
+        elif op == "hash_blake2s_leaf":
+            result = _blake_words(lhs, b"S31LEAF1")
+        elif op == "hash_blake2s_pair":
+            result = _blake_words(lhs + rhs, b"S31PAIR1")
+        elif op == "hash_poseidon2_leaf":
+            from poseidon2_oracle import leaf
+
+            result = leaf(lhs)
+        elif op == "hash_poseidon2_pair":
+            from poseidon2_oracle import pair
+
+            result = pair(lhs, rhs)
         else:  # repeat
             result = lhs.copy()
             for _ in range(node["rounds"]):

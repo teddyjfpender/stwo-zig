@@ -24,6 +24,7 @@ CHAPTERS = (
     ("README.md", "Start here"),
     ("walkthrough.md", "0a. One proof by hand"),
     ("worked-proofs.md", "0b. Reduction and recurrence"),
+    ("worked-choice.md", "0c. A private choice"),
     ("source.md", "1. Source language"),
     ("library.md", "2. Standard / math library"),
     ("circuits.md", "3. Circuit gates"),

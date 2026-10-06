@@ -59,6 +59,17 @@ bytes even when the canonical arithmetic graph and cost geometry agree.
 Consequently a cost comparison should use canonical IR, component geometry,
 and native-verifier acceptance, not require byte-identical proof files.
 
+Before `prove`, `verify`, or `inspect` uses a package, the Python wrapper
+checks its listed artifact hashes and required files, compares the key and
+cost report to the manifest, and for a text package re-lowers `source.s31`
+to compare the normalized relation, source map, and typed interface. This
+detects an internally inconsistent or accidentally edited package. A
+manifest can itself be replaced and rehashed; it is **not a signature**.
+To decide which program's claim to trust, obtain the native verifier and
+verification key through a trusted distribution path and check their
+identity. Re-lowering also does not prove that the compiler translated the
+source with the semantics the programmer intended.
+
 ## What the verifier checks
 
 The verifier is built with the source relation and sealed key. It checks the

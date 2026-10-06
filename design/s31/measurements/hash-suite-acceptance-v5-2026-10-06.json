@@ -9,17 +9,17 @@
       "native_verified": true,
       "preprocessed_cells": 4255616,
       "program_sha256": "4548cb41fb18a4a4a10037c9991f18cce97ff1ee9703c37ca7d0c608e121bdce",
-      "proof_bytes": 459523
+      "proof_bytes": 472027
     },
     "merkle_path1": {
       "boolean_selector_constrained": true,
       "native_verified_both_directions": true,
       "preprocessed_cells": 4255440,
       "program_sha256": "e85ed49fc2fdfe64194789bf542dd7fac60634a1632af03fead4afce49e509fc",
-      "proof_bytes": 472918
+      "proof_bytes": 467033
     }
   },
-  "compiler_sha256": "0f9054754b483cfb4c92e3331eef1a860a2c9c9d4c6a9096a50b40c0ca9cbe74",
+  "compiler_sha256": "034b746d1b4ab27789ceb0b233ab22d47ffa293285b853bee7ce6504ae633491",
   "independent_oracle": "Python hashlib.blake2s(person=...), little-endian M31 words, digest words mod p",
   "negative_checks": [
     "invalid_leaf_shape",

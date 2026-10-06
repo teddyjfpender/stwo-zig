@@ -139,12 +139,24 @@ class OracleTests(unittest.TestCase):
         with self.assertRaisesRegex(OracleError, "unknown fields"):
             evaluate_relation(bad_relation, assignment)
 
-    def test_hash_nodes_are_explicitly_unsupported(self) -> None:
-        for name in ("hash4", "merkle2_poseidon"):
+    def test_independent_hash_and_merkle_values(self) -> None:
+        for name in ("hash4", "merkle2", "merkle_path1",
+                     "merkle2_poseidon", "merkle_path1_poseidon"):
             with self.subTest(name=name):
                 relation, assignment = fixture(name)
-                with self.assertRaisesRegex(UnsupportedOperation, "no independent value oracle"):
-                    evaluate_relation(relation, assignment)
+                self.assertEqual(evaluate_relation(relation, assignment),
+                                 assignment["public_outputs"])
+                wrong = copy.deepcopy(assignment)
+                output = relation["public_outputs"][0]
+                wrong["public_outputs"][output][0] = (wrong["public_outputs"][output][0] + 1) % P
+                with self.assertRaisesRegex(OracleError, "does not match"):
+                    evaluate_relation(relation, wrong)
+
+    def test_unknown_hash_or_future_node_never_counts_as_a_check(self) -> None:
+        relation, assignment = fixture("hash4")
+        relation["nodes"][0]["op"] = "hash_unreviewed"
+        with self.assertRaisesRegex(UnsupportedOperation, "unsupported relation operation"):
+            evaluate_relation(relation, assignment)
 
 
 if __name__ == "__main__":

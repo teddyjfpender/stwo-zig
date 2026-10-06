@@ -1,0 +1,51 @@
+{
+  "schema": "s31-key-binding-verifier-overhead-v1",
+  "status": "exploratory whole-process comparison; not a controlled throughput benchmark",
+  "date": "2026-10-06",
+  "base_commit": "c42d8d2015ee18f9ccafb818f1f82ac4136c1ccb",
+  "working_tree_note": "Both binaries used the same uncommitted packed-input compiler; only the verifier's validateCompiledKey call differed.",
+  "machine": {
+    "cpu": "Apple M5 Max",
+    "architecture": "arm64",
+    "zig_version": "0.15.2"
+  },
+  "program": {
+    "source": "src/frontends/s31/examples/arith4_m31.s31.json",
+    "source_sha256": "b8f8ecef78defb76552573eb6c30061a3875ac569f627ccec861ae65170ace4a",
+    "profile": "gate / circuit-v1",
+    "relation": "four public M31 lanes; 256 rounds of x := x*x + 7",
+    "compiler_source_sha256": "4ec2518b5811bea2a3402d2b0fa55b8e4c69af3d8e6035ddcd47fc38b9dedb96"
+  },
+  "artifacts": {
+    "verification_key_sha256": "1db3c1d5a1b0a3cf7b55bed2787b1188aa82424ce625e3f8c6aa4b4f8d72e290",
+    "proof_sha256": "c654ef1656ca0f983d779c609459cbe62f4195fd6a9dcd3cbd1d309095d2cb59",
+    "proof_bytes": 438157,
+    "public_statement_sha256": "1c7c3b002846d8cae7d4f22a1b2b5a1b66483974ef7e8fea00fa045d8c35c9d7"
+  },
+  "build": {
+    "optimize": "ReleaseFast",
+    "current_runtime_sha256": "a25a2b3a0852f2900b8d4124b16549ee62a3ed32211d9167a8b3d5a112e6a0b5",
+    "current_verifier_sha256": "b059acb1d941a0134b10a2c099a59c116ca4a49a13fa0ce9c7b5d46e398a7ea9",
+    "baseline_runtime_sha256": "6d3650239005d931b357f3fa4f5db374f5d416b829442064739340d8b0117d56",
+    "baseline_verifier_sha256": "4c5f592aa19844f83c66dd25c9619a9085aed6876b010326a9642a5e37302c",
+    "baseline_change": "Copy mvp_runtime.zig and remove only `try validateCompiledKey(allocator, source, key, program_digest);` from validateKey. Copy build.zig and mvp_verifier_main.zig with their root imports pointed at that runtime copy. Compile with the same source, embedded verification key, gate lowering, Zig version, and ReleaseFast setting."
+  },
+  "method": {
+    "invocation": "native-verifier PROOF PUBLIC-STATEMENT.json VERIFICATION-KEY.json",
+    "clock": "Python time.perf_counter around subprocess.run; includes process startup, source-to-key validation, proof decoding, and STARK verification",
+    "trials_per_binary": 10,
+    "order": "current then baseline on even-indexed pairs; baseline then current on odd-indexed pairs",
+    "warmup": "No separate warmup. The first cold invocation for each binary is present in samples; the median is robust to it.",
+    "sample_precision_ms": 0.1,
+    "samples_ms": {
+      "current": [383.4, 83.9, 67.0, 72.0, 74.6, 69.6, 70.6, 72.4, 72.7, 68.8],
+      "baseline": [390.4, 16.6, 16.4, 16.7, 18.5, 15.2, 14.2, 14.1, 14.3, 14.1]
+    },
+    "median_ms_from_unrounded_samples": {
+      "current": 72.19,
+      "baseline": 15.80,
+      "difference": 56.39
+    }
+  },
+  "interpretation": "For this gate-heavy relation and one-proof-per-process CLI, recompiling the embedded source and recomputing its fixed circuit commitment added about 56 ms of verifier wall time. It does not change prover time. Absolute latency and overhead for other relations or machines are not established by this observation."
+}

@@ -12,7 +12,7 @@ Status: linked-chip, sparse-arithmetic, direct-M31, personalized BLAKE2s, pinned
 - `direct-gate` and `direct-chip` use `direct-m31-v4` (`S31NAT4G/C`) for all-M31 arithmetic programs. Public M31 values are bound directly and checked for canonical encoding by the native verifier. Only the QM31 arithmetic circuit component and eight preprocessed columns remain; the M31-to-u32 and range-16 components and the 65,536-row sequence table disappear. The [direct acceptance run](measurements/direct-acceptance-v4-2026-10-06.json) proves one M31 source under sparse-v3 and direct-v4, rejects cross-profile replay and public/key/proof changes, and rejects seven chip-witness mutations under both chip profiles.
 - The `gate` profile now has domain-separated BLAKE2s leaf and ordered-pair nodes plus a Boolean-constrained M31 array selector. The [hash suite acceptance record](measurements/hash-suite-acceptance-v5-2026-10-06.json) checks an independently computed two-leaf root and a one-level private Merkle path against generated native verifiers. A parent hash of two eight-word reduced digests uses one Blake2s block because domain separation lives in the personalization parameter. This is a functional extension, not a new efficient hash proof profile: the examples still commit about 4.26 million preprocessed cells and produce roughly 460–472 KB proofs.
 - `hash_poseidon2_leaf` and `hash_poseidon2_pair` reuse the repository's pinned Stark-V M31 permutation and recursion-channel Merkle framing. They lower through `direct-gate` into the single QM31 arithmetic AIR component. A private selector input is constrained by its sole producing gate `b²=b`, so one-level Merkle paths use no Eq or bitwise component. The [Poseidon2 acceptance run](measurements/poseidon-acceptance-v6-2026-10-06.json) verifies two-leaf and path proofs under generated native verifiers, both branch directions, an independent Python arithmetic oracle, and nine rejection cases. This is a generic arithmetic circuit path, not a dedicated Poseidon2 chip.
-- The compiler-owned `std@1` math layer now includes fixed-array lane sums and dot products. A constrained QM31 projection replaces per-coordinate unpacking in `sum_lanes`. On a private 64-lane reduction, [ten matched witnesses](measurements/packed-reduction-2026-10-06.json) reduced raw QM31 rows from 639 to 474, padded rows from 1,024 to 512, and median proof size from 73,567.5 to 55,578 bytes. Median prover time excluding logged PoW fell from 1.983 to 1.358 ms; whole-process medians were 117 and 111 ms with high PoW variance. Both versions' native verifiers checked the same relation and rejected changed public output. `s31 oracle` independently checks arithmetic values without a proof; `s31 trial` records source-to-proof geometry, the oracle status, native verification, and a changed-statement rejection. Hash nodes explicitly report no independent value check from this oracle. Package inspection re-lowers text to detect disagreement with its sealed relation, while key and verifier authenticity still require trusted distribution.
+- The compiler-owned `std@1` math layer includes fixed-array lane sums and dot products. A constrained QM31 projection replaced per-coordinate unpacking in `sum_lanes`; the [historical 64-lane comparison](measurements/packed-reduction-2026-10-06.json) records that step. Private M31 arrays now enter as packed QM31 witnesses. On a 128-lane reduction, [seven matched witnesses](measurements/packed-inputs-2026-10-06.json) reduced raw QM31 rows from 650 to 361, padded rows from 1,024 to 512, and median proof size from 72,944 to 55,719 bytes. Median prover time excluding logged PoW fell from 2.305 to 1.490 ms; whole-process timing did not improve in that noisy sample. The native verifiers accepted valid proofs and rejected changed public output. `s31 oracle` independently checks arithmetic, BLAKE2s, and Poseidon2 values without a proof; `s31 trial` records source-to-proof geometry, oracle status, native verification, and changed-statement rejection. Package inspection re-lowers text against its sealed relation. `s31 tune` compares explicit profiles on the same assignment corpus without auto-selecting one.
 
 The [three-trial hash baseline](measurements/hash-suite-benchmark-v5-2026-10-06.json) used distinct private inputs and native verification for every proof. The two-leaf tree used 240 Blake-G rows and had 0.632 s median proving, 0.051 s cold setup and a 464,630-byte median proof. The one-level path used 160 Blake-G rows plus two selector Eq rows and had 0.444 s median proving, 0.054 s cold setup and a 466,687-byte median proof. Proof-of-work is included in proving and was not separated in this full-circuit run; these numbers provide a baseline, not a statistically stable difference between functions.
 
@@ -55,6 +55,21 @@ The 256-round full circuit has 4,248,656 preprocessed cells; its sparse-chip ver
 
 Keep `circuit-v1` byte compatible with the pinned eleven-component Stwo circuit proof. `hybrid-step-v2` adds one repeated-step AIR chip to it; `sparse-v3` keeps the three arithmetic/range components; `direct-m31-v4` keeps only the QM31 arithmetic component and uses a canonical M31 public ABI. A verifier must reject an unknown profile before decoding its STARK proof. Each key pins the profile, source and canonical IR hashes, chip parameters, component geometry, public ABI, preprocessed root, PCS/FRI settings, channel and proof size limit. The profile tag, source digest and circuit identity enter the Fiat–Shamir transcript before the base commitment. A fully explicit generated component manifest remains a next step.
 
+The native verifier now recompiles its embedded source with the selected
+profile and requires the key's padded geometry, preprocessed root, circuit
+hash, and trace log to match. A [forged-key regression](../../src/frontends/s31/acceptance_key_binding.py)
+changes an affine constant and gives the source-A verifier source-B circuit
+commitments; the verifier rejects B's valid proof. Fresh proofs pass under all
+six profiles. Recomputing this binding costs verification time: for one
+256-round full-gate example, ten interleaved process runs had 72.19 ms
+median with the check and 15.80 ms with only that check removed. Proof
+generation is unaffected. The [exploratory measurement](measurements/key-binding-verifier-overhead-2026-10-06.json)
+records the ten interleaved samples, build differences, and artifact hashes.
+A future batch-verifier context can amortize
+source compilation when many proofs use one key. The package manifest is
+unsigned; verifier binary and key authenticity still require trusted
+distribution.
+
 The first chip is deliberately narrow: four public M31 inputs, four public M31 outputs, a power-of-two number of rounds from 16 through 32768, and `x[j] ← x[j]^2 + c` for each of the four lanes. This is exactly the workload in the existing [scaled comparison](README.md#scaled-circuit-comparison). `c` and the round count are compile-time constants in the verification key. No private chip boundary, arbitrary repeat body, or automatic extraction is needed to validate the hybrid proof architecture.
 
 ## Milestone A — one linked chip in one proof
@@ -87,7 +102,19 @@ The implemented sparse-v3 target removes the Blake-G, triple-XOR and all XOR tab
 
 ## Milestone C — promote into a useful MVP
 
-After A and B, add a cost model based on measured base/interaction/preprocessed cells, FRI work, lookup count, PoW variance, proof size and cache policy. `s31 inspect` reports why each region is a gate or chip; `s31 tune` measures both and records the machine profile. Promote automatic chip extraction only at a measured total-cost win, and include a fallback to gate lowering. Generalize the chip to multiple static step bodies and more than one instance only after its boundary argument is reviewed. Add private boundaries with an authenticated circuit-to-chip lookup; public endpoint sharing alone does not prove a private boundary.
+`s31 tune` now builds explicitly requested lowerings for one source and a
+shared assignment corpus, then records proof bytes, raw/padded geometry,
+native verifier results, wall time, logged non-PoW prover time, and the host
+profile. It does not select a lowering. The remaining cost model must account
+for measured base/interaction/preprocessed cells, FRI work, lookup count,
+PoW variance, proof size, verifier cost, and cache policy. `s31 inspect`
+reports profile geometry, while a richer per-region gate/chip decision report
+remains future work. Promote automatic chip extraction only at a measured
+total-cost win, with a fallback to gate lowering. Generalize the chip to
+multiple static step bodies and more than one instance only after its
+boundary argument is reviewed. Add private boundaries with an authenticated
+circuit-to-chip lookup; public endpoint sharing alone does not prove a
+private boundary.
 
 The deliverable deserving the name **MVP** is a single command that builds a sealed prover and independent native verifier, proves and verifies a mixed relation with a circuit region and at least one chip in one proof, handles sparse and direct arithmetic profiles, and reports a reproducible matched Cairo comparison. The present prototype satisfies the packaging, specialized linked chip, arithmetic sparse profile, direct-M31 ABI and one matched current-profile Cairo comparison. It still needs a reviewed private circuit-to-chip boundary for general mixed relations, a generated component manifest, broader adversarial evidence and a reliable cost model.
 

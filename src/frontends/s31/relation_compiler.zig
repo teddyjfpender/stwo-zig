@@ -215,6 +215,23 @@ fn compileWithSpansMode(comptime V: type, allocator: std.mem.Allocator, program:
                 const source_values: ?[]M31 = if (comptime V == QM31) try relation.inputValues(allocator, assignment.?, input) else null;
                 defer if (source_values) |owned| allocator.free(owned);
                 const boolean = direct_output and isSelectorInput(ir.nodes, id);
+                // A QM31 witness is already four M31 coordinates. For a
+                // private array, guessing the packed wire directly avoids
+                // four scalar guesses and their six packing gates. Public
+                // inputs retain scalar wires for their ABI bindings; direct
+                // selectors retain the self-product that proves b² = b.
+                if (node.kind == .m31 and node.visibility.? == .private and !boolean) {
+                    const packed_wires = try scratch.alloc(Var, (node.length + 3) / 4);
+                    for (packed_wires, 0..) |*wire, chunk| {
+                        var coordinates = [_]M31{M31.zero()} ** 4;
+                        for (&coordinates, 0..) |*coordinate, offset| {
+                            const lane = 4 * chunk + offset;
+                            if (lane < node.length and source_values != null) coordinate.* = source_values.?[lane];
+                        }
+                        wire.* = try ctx.guess(circuit.builder.ivalue.fromQm31(V, QM31.fromM31Array(coordinates)));
+                    }
+                    break :blk .{ .shape = .{ .kind = .m31, .length = node.length }, .lanes = Simd.fromPacked(packed_wires, node.length) };
+                }
                 const raw = try scratch.alloc(Var, node.length);
                 const wrappers = try scratch.alloc(circuit.builder.wrappers.M31Wrapper(Var), node.length);
                 for (raw, wrappers, 0..) |*wire, *wrapped, i| {
@@ -521,6 +538,9 @@ test "sum_lanes constrains partial and multiple packed wires" {
         var topology = try compile(circuit.builder.NoValue, allocator, program, null);
         defer topology.deinit();
         try std.testing.expect(try values.isCircuitValid());
+        // The private input needs exactly one QM31 witness per four lanes.
+        // The final partial wire is masked by sumLanes before projection.
+        try std.testing.expectEqual((length + 3) / 4, values.stats.guess);
         try std.testing.expectEqual(values.circuit.n_vars, topology.circuit.n_vars);
         try std.testing.expect(std.meta.eql(values.gate_counts, topology.gate_counts));
         var direct = try compileDirect(QM31, allocator, program, assignment.value, false);

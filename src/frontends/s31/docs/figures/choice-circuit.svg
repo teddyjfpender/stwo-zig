@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1120 380" role="img" aria-labelledby="title desc">
+  <title id="title">A private Boolean choice between two public square-plus-seven branches</title>
+  <desc id="desc">Public x equals 3 and public y equals 4. The left branch computes 16 and the right branch computes 23. Private direction equals 1; its bit constraint permits only zero or one. The selector outputs 23, bound to the public statement.</desc>
+  <defs>
+    <marker id="arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0 0 L8 4 L0 8 Z" fill="#66809a"/></marker>
+    <style>
+      .bg{fill:#101d29}.box{fill:#182d3e;stroke:#54758c;stroke-width:2}.gate{fill:#1a3840;stroke:#48b8a8;stroke-width:2}.bit{fill:#322943;stroke:#b592e8;stroke-width:2}.public{fill:#163d36;stroke:#55c8a4;stroke-width:2}.line{fill:none;stroke:#66809a;stroke-width:2.5;marker-end:url(#arrow)}.label{font:700 17px system-ui,sans-serif;fill:#edf5f8}.small{font:15px system-ui,sans-serif;fill:#b6cbd5}.math{font:700 18px ui-monospace,monospace;fill:#f5fafb}.hint{font:14px system-ui,sans-serif;fill:#d0b3ee}
+    </style>
+  </defs>
+  <rect class="bg" width="1120" height="380" rx="18"/>
+  <text class="label" x="28" y="37">One computation, two possible public answers</text>
+  <text class="small" x="28" y="61">Boxes show circuit rules; numbers show this witness. Arrows mean wires, not AIR row order.</text>
+
+  <rect class="box" x="32" y="96" width="120" height="76" rx="11"/><text class="small" x="48" y="123">public x</text><text class="math" x="48" y="151">3</text>
+  <rect class="box" x="32" y="216" width="120" height="76" rx="11"/><text class="small" x="48" y="243">public y</text><text class="math" x="48" y="271">4</text>
+  <rect class="gate" x="210" y="96" width="143" height="76" rx="11"/><text class="small" x="225" y="123">square + 7</text><text class="math" x="225" y="151">3²+7 = 16</text>
+  <rect class="gate" x="210" y="216" width="143" height="76" rx="11"/><text class="small" x="225" y="243">square + 7</text><text class="math" x="225" y="271">4²+7 = 23</text>
+  <path class="line" d="M152 134 H208"/><path class="line" d="M152 254 H208"/>
+
+  <rect class="bit" x="440" y="25" width="205" height="82" rx="11"/><text class="small" x="455" y="53">private direction b</text><text class="math" x="455" y="82">1; b² = b</text>
+  <path class="line" d="M353 134 H476 V188 H533"/><path class="line" d="M353 254 H476 V234 H533"/>
+  <path class="line" d="M542 107 V181"/>
+  <rect class="gate" x="535" y="161" width="257" height="102" rx="11"/><text class="label" x="552" y="191">select</text><text class="math" x="552" y="223">(1-b)·16 + b·23</text><text class="small" x="552" y="248">here: 0·16 + 1·23 = 23</text>
+  <path class="line" d="M792 212 H846"/>
+  <rect class="public" x="848" y="173" width="235" height="80" rx="11"/><text class="small" x="865" y="203">public result</text><text class="math" x="865" y="232">23</text>
+  <text class="hint" x="445" y="335">b = 0 would output 16.  b = 1 outputs 23.  No other b satisfies the bit rule.</text>
+</svg>

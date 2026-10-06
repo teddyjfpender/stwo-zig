@@ -6,7 +6,10 @@ import copy
 import hashlib
 import json
 import os
+import platform
+import re
 import shutil
+import statistics
 import subprocess
 import sys
 import tempfile
@@ -533,7 +536,7 @@ def equations(package: Path) -> dict:
 
 
 def independent_value_check(relation: dict, assignment: dict) -> dict:
-    """Check arithmetic values without calling the Zig runtime or circuit."""
+    """Check supported relation values without calling the Zig runtime or circuit."""
     from oracle import UnsupportedOperation, evaluate_relation
 
     try:
@@ -541,6 +544,45 @@ def independent_value_check(relation: dict, assignment: dict) -> dict:
     except UnsupportedOperation as exc:
         return {"status": "unsupported", "reason": str(exc)}
     return {"status": "passed", "computed_public_outputs": computed}
+
+
+def prover_stages(log: str) -> dict | None:
+    """Parse the runtime's stage timers without inventing unavailable PoW data."""
+    stages = re.search(r"witness=([\d.]+)s, setup=([\d.]+)s, prove=([\d.]+)s", log)
+    if stages is None:
+        return None
+    result = {
+        "witness_seconds": float(stages.group(1)),
+        "setup_seconds": float(stages.group(2)),
+        "prove_seconds": float(stages.group(3)),
+    }
+    pow_stages = re.search(r"interaction_pow=([\d.]+)s fri_pow=([\d.]+)s", log)
+    if pow_stages is not None:
+        interaction, fri = float(pow_stages.group(1)), float(pow_stages.group(2))
+        result["interaction_pow_seconds"] = interaction
+        result["fri_pow_seconds"] = fri
+        result["prove_excluding_pow_seconds"] = max(0.0, result["prove_seconds"] - interaction - fri)
+    return result
+
+
+def assignment_digest(path: Path) -> str:
+    """Hash assignment values, independent of JSON whitespace and key order."""
+    canonical = json.dumps(json.loads(path.read_text()), sort_keys=True,
+                           separators=(",", ":"), ensure_ascii=True).encode()
+    return sha256(canonical)
+
+
+def oracle_provenance() -> dict:
+    """Pin the independent oracle code and constants used by this run."""
+    sources = (
+        S31_DIR / "oracle.py",
+        S31_DIR / "poseidon2_oracle.py",
+        ROOT / "src/frontends/riscv/air/memory_commitment/poseidon2_constants.zig",
+    )
+    return {
+        "python_version": platform.python_version(),
+        "source_sha256": {str(path.relative_to(ROOT)): file_hash(path) for path in sources},
+    }
 
 
 def trial(source_or_package: Path, assignment_path: Path, output: Path,
@@ -579,7 +621,7 @@ def trial(source_or_package: Path, assignment_path: Path, output: Path,
         wrong_path = staging / "changed-statement.json"
         write_json(statement_path, statement)
         started = time.perf_counter()
-        invoke(str(prover), "prove", str(assignment_path), str(proof))
+        prover_log = invoke(str(prover), "prove", str(assignment_path), str(proof))
         prove_seconds = time.perf_counter() - started
         started = time.perf_counter()
         invoke(str(verifier), str(proof), str(statement_path), str(key))
@@ -631,8 +673,10 @@ def trial(source_or_package: Path, assignment_path: Path, output: Path,
         "changed_public_statement_rejected": changed_field,
         "text_source_relowered": "source_text_sha256" in manifest,
         "independent_value_oracle": value_check,
+        "independent_value_oracle_provenance": oracle_provenance(),
         "build_or_load_seconds": build_seconds,
         "prove_seconds": prove_seconds,
+        "prover_stages": prover_stages(prover_log),
         "verify_seconds": verify_seconds,
         "timing_note": "Single local observations; proof-of-work and cache state affect timings.",
         "artifacts": {
@@ -643,6 +687,91 @@ def trial(source_or_package: Path, assignment_path: Path, output: Path,
     }
     write_json(output / "trial-report.json", result)
     return result
+
+
+def tune(source: Path, assignments: list[Path], output: Path,
+         lowerings: list[str], warmup: Path | None = None) -> dict:
+    """Compare proof profiles on the same source and assignment corpus."""
+    if source.is_dir():
+        raise ValueError("tune expects a source file so every profile compiles the same relation")
+    if len(lowerings) < 2 or len(set(lowerings)) != len(lowerings):
+        raise ValueError("tune requires at least two distinct --lowering values")
+    if not assignments:
+        raise ValueError("tune requires at least one assignment")
+    source = source.resolve()
+    assignments = [path.resolve() for path in assignments]
+    warmup = warmup.resolve() if warmup is not None else None
+    output = output.resolve()
+    output.mkdir(parents=True, exist_ok=True)
+    (output / "tune-report.json").unlink(missing_ok=True)
+    assignment_hashes = [assignment_digest(path) for path in assignments]
+    packages = {}
+    build_seconds = {}
+    for lowering in lowerings:
+        started = time.perf_counter()
+        packages[lowering] = build(source, output / "packages" / lowering, lowering)
+        build_seconds[lowering] = time.perf_counter() - started
+    per_profile = {}
+    canonical_digests = set()
+    program_digests = set()
+    for lowering, package in packages.items():
+        manifest = verify_package(package)
+        canonical_digests.add(manifest["canonical_ir_sha256"])
+        program_digests.add(manifest["program_sha256"])
+        if warmup is not None:
+            trial(package, warmup, output / "warmup" / lowering)
+        trials = [trial(package, assignment, output / "runs" / lowering / f"{index:03d}")
+                  for index, assignment in enumerate(assignments)]
+        proof_sizes = [item["proof_bytes"] for item in trials]
+        wall_times = [item["prove_seconds"] for item in trials]
+        verify_times = [item["verify_seconds"] for item in trials]
+        non_pow_times = [item["prover_stages"]["prove_excluding_pow_seconds"]
+                         for item in trials if item["prover_stages"] is not None and
+                         "prove_excluding_pow_seconds" in item["prover_stages"]]
+        cost = json.loads((package / "cost-report.json").read_text())
+        per_profile[lowering] = {
+            "package": str(package),
+            "build_or_load_seconds": build_seconds[lowering],
+            "profile": cost["profile"],
+            "public_abi": json.loads((package / "public-abi.json").read_text()),
+            "raw": cost["raw"],
+            "padded": cost["padded"],
+            "preprocessed_cells": cost["preprocessed_cells"],
+            "proof_bytes_per_assignment": proof_sizes,
+            "median_proof_bytes": statistics.median(proof_sizes),
+            "wall_prove_seconds_per_assignment": wall_times,
+            "median_wall_prove_seconds": statistics.median(wall_times),
+            "native_verify_seconds_per_assignment": verify_times,
+            "median_native_verify_seconds": statistics.median(verify_times),
+            "prove_excluding_pow_seconds_per_assignment": non_pow_times,
+            "median_prove_excluding_pow_seconds": (
+                statistics.median(non_pow_times) if len(non_pow_times) == len(trials) else None),
+            "native_verifier_accepted_all": all(item["native_verifier_accepted"] for item in trials),
+            "changed_public_statement_rejected_all": all(
+                item["changed_public_statement_rejected"] for item in trials),
+            "independent_value_oracle_statuses": [
+                item["independent_value_oracle"]["status"] for item in trials],
+        }
+    if len(program_digests) != 1 or len(canonical_digests) != 1:
+        raise ValueError("tune profiles compiled different source or canonical relations")
+    report = {
+        "schema": "s31-tune-v1",
+        "source": str(source),
+        "program_sha256": next(iter(program_digests)),
+        "canonical_ir_sha256": next(iter(canonical_digests)),
+        "host": {"platform": platform.platform(), "machine": platform.machine(),
+                 "python": platform.python_version(), "zig": invoke("zig", "version").strip()},
+        "assignment_sha256": assignment_hashes,
+        "independent_value_oracle_provenance": oracle_provenance(),
+        "warmup_assignment_sha256": assignment_digest(warmup) if warmup is not None else None,
+        "distinct_assignments": len(set(assignment_hashes)) == len(assignment_hashes),
+        "profiles": per_profile,
+        "timing_note": ("Use --warmup for one unmeasured proof per profile. Transcript-dependent "
+                        "proof-of-work varies with the assignment; compare repeated distinct witnesses. "
+                        "No profile is selected automatically."),
+    }
+    write_json(output / "tune-report.json", report)
+    return report
 
 
 def main() -> None:
@@ -666,7 +795,14 @@ def main() -> None:
     sub.add_argument("assignment", type=Path)
     sub.add_argument("--out", type=Path, required=True)
     sub.add_argument("--lowering", choices=("gate", "chip", "sparse-gate", "sparse-chip", "direct-gate", "direct-chip"))
-    sub = commands.add_parser("oracle", help="check normalized arithmetic values without building a proof")
+    sub = commands.add_parser("tune", help="compare verified proof profiles on one source and assignment corpus")
+    sub.add_argument("source", type=Path)
+    sub.add_argument("assignments", type=Path, nargs="+")
+    sub.add_argument("--warmup", type=Path, help="valid assignment proved once per profile before measurement")
+    sub.add_argument("--out", type=Path, required=True)
+    sub.add_argument("--lowering", action="append", required=True,
+                     choices=("gate", "chip", "sparse-gate", "sparse-chip", "direct-gate", "direct-chip"))
+    sub = commands.add_parser("oracle", help="check normalized relation values without building a proof")
     sub.add_argument("source_or_package", type=Path)
     sub.add_argument("assignment", type=Path)
     sub = commands.add_parser("lower", help="lower .s31 text to normalized relation JSON")
@@ -698,6 +834,11 @@ def main() -> None:
         return
     if args.command == "trial":
         print(json.dumps(trial(args.source_or_package, args.assignment, args.out, args.lowering),
+                         indent=2, sort_keys=True))
+        return
+    if args.command == "tune":
+        print(json.dumps(tune(args.source, args.assignments, args.out, args.lowering,
+                              args.warmup),
                          indent=2, sort_keys=True))
         return
     if args.command == "oracle":

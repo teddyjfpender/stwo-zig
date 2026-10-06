@@ -14,7 +14,7 @@ ROOT = S31.parents[2]
 sys.path.insert(0, str(S31))
 
 import poseidon2_oracle as poseidon  # noqa: E402
-from oracle import evaluate_relation  # noqa: E402
+from oracle import OracleError, evaluate_relation  # noqa: E402
 from s31_stdlib import P, reference_iterate  # noqa: E402
 from text_frontend import compile_text  # noqa: E402
 
@@ -117,6 +117,35 @@ def check_examples() -> None:
     }
     assert evaluate_relation(recurrence, recurrence_assignment) == {"result": states[16]}
 
+    # This example crosses source, normalized relation, bit gate, two valid
+    # assignments, and a hand-factorized constraint polynomial.
+    choice_doc = DOCS / "worked-choice.md"
+    choice, _ = compile_text(
+        text_block(choice_doc, "circuit choose_square_plus_seven"), "worked-choice.md"
+    )
+    assert choice == json_block_containing(choice_doc, '"name": "choose_square_plus_seven"')
+    assert [node["op"] for node in choice["nodes"]] == [
+        "mul", "mul", "add_const", "add_const", "select"
+    ]
+    chosen = json_block_containing(choice_doc, '"public_inputs": {"x"')
+    assert chosen == {
+        "public_inputs": {"x": [3], "y": [4]},
+        "private_inputs": {"direction": [1]},
+        "public_outputs": {"result": [23]},
+    }
+    assert evaluate_relation(choice, chosen) == {"result": [23]}
+    for bit, result in [(0, 16), (1, 23)]:
+        alternative = {
+            **chosen, "private_inputs": {"direction": [bit]},
+            "public_outputs": {"result": [result]},
+        }
+        assert evaluate_relation(choice, alternative) == {"result": [result]}
+        assert (bit * bit - bit) % P == 0
+        assert (result - (1 - bit) * 16 - bit * 23) % P == 0
+    for t in range(5):
+        a, b, c = 3 + t, 3 + t, 9 + 7 * t
+        assert (c - a * b - (-t * (t - 1))) % P == 0
+
     # Check the packed-reduction witness values written in the teaching gate table.
     inverse_five = pow(5, -1, P)
     dual = (1, P - 1, inverse_five, (-3 * inverse_five) % P)
@@ -168,6 +197,21 @@ def check_hashes() -> None:
                     1562726555, 572367908, 1125001664, 1414944824]
     assignment = json.loads((S31 / "examples/merkle_path1_poseidon.valid.json").read_text())
     assert poseidon.pair(sibling, leaf) == assignment["public_outputs"]["root"]
+    merkle_relation, _ = compile_text(
+        (S31 / "examples/merkle_path1_poseidon.s31").read_text(), "merkle_path1_poseidon.s31"
+    )
+    assert evaluate_relation(merkle_relation, assignment) == assignment["public_outputs"]
+    changed_merkle = json.loads(json.dumps(assignment))
+    changed_merkle["public_outputs"]["root"][0] += 1
+    try:
+        evaluate_relation(merkle_relation, changed_merkle)
+    except OracleError:
+        pass
+    else:
+        raise AssertionError("changed Merkle root passed the independent oracle")
+    blake_relation = json.loads((S31 / "examples/hash4.s31.json").read_text())
+    blake_assignment = json.loads((S31 / "examples/hash4.valid.json").read_text())
+    assert evaluate_relation(blake_relation, blake_assignment) == blake_assignment["public_outputs"]
 
     chapter = (DOCS / "hashes.md").read_text()
     iv_text = re.search(r"IV words:\n\n```text\n(.*?)\n```", chapter, re.S)
@@ -203,6 +247,22 @@ def check_documented_measurement() -> None:
     assert round(after["median_wall_proving_seconds"] * 1000) == 111
     assert all(result["valid_proof_accepted"] and result["changed_public_output_rejected"]
                for result in (before, after))
+
+    input_report = json.loads((ROOT / "design/s31/measurements/packed-inputs-2026-10-06.json").read_text())
+    assert input_report["case"]["lowering"] == "direct-gate"
+    assert input_report["case"]["measured_proofs_per_version"] == 7
+    old, new = input_report["scalar_input"], input_report["packed_input"]
+    assert old["canonical_ir_sha256"] == new["canonical_ir_sha256"]
+    assert (old["raw"]["qm31_ops"], new["raw"]["qm31_ops"]) == (650, 361)
+    assert (old["padded"]["qm31_ops"], new["padded"]["qm31_ops"]) == (1024, 512)
+    assert (old["preprocessed_cells"], new["preprocessed_cells"]) == (8192, 4096)
+    assert (old["median_proof_bytes"], new["median_proof_bytes"]) == (72944, 55719)
+    assert round(old["median_prove_excluding_pow_seconds"] * 1000, 3) == 2.305
+    assert round(new["median_prove_excluding_pow_seconds"] * 1000, 3) == 1.490
+    assert round(old["median_wall_proving_seconds"] * 1000) == 94
+    assert round(new["median_wall_proving_seconds"] * 1000) == 152
+    assert all(result["valid_proof_accepted"] and result["changed_public_output_rejected"]
+               for result in (old, new))
 
 
 def check_links() -> None:

@@ -141,12 +141,17 @@ declared source lane.
 For this four-position example, each `sum_lanes` node needs **two** builder
 gates. One pointwise product and one final add make **six arithmetic builder
 gates** for the four normalized nodes. Input packing, public binding, wire
-accounting, and finalization add more gates. The measured `direct-gate`
-package has 323 raw QM31-operation rows, padded to 512. The prior
-per-coordinate lowering used 346 raw rows and also padded to 512. A smaller
-builder graph or raw count need not cross a padded trace-size boundary.
+accounting, and finalization add more gates. The current `direct-gate`
+package has 304 raw QM31-operation rows, padded to 512. Earlier builds had
+346 raw rows with per-coordinate reduction and individual private-input
+guesses, then 323 with the packed reduction but individual input guesses.
+Packing the private M31 input guesses gave the current 304. All three
+four-lane builds padded to 512, so a lower raw count did not move this
+trace-size boundary.
 
-At 64 private lanes, the padding boundary **does** move. A
+At 64 private lanes, the reduction-only change **did** move a padding
+boundary in an earlier, pinned comparison. This measurement predates the
+private-input packing described above. A
 [ten-witness local measurement](../../../../design/s31/measurements/packed-reduction-2026-10-06.json)
 on an Apple M5 Max, using `direct-gate` and the same canonical relation in
 both builds, found:
@@ -165,6 +170,28 @@ their proofs and rejected a changed public output. The whole-process time
 improves only slightly here because transcript-dependent proof of work
 dominates and varies with the witness. These numbers describe this host,
 program, and profile; they do not establish a general speedup over Cairo.
+
+A separate, later [128-lane private-input comparison](../../../../design/s31/measurements/packed-inputs-2026-10-06.json)
+kept the packed reducer on **both** sides and changed only how the private
+M31 input positions become circuit wires. Seven valid witnesses per version
+gave the following medians on the same host and `direct-gate` profile:
+
+| Measured quantity | Individual private-input guesses | Packed private-input guesses |
+| --- | ---: | ---: |
+| Raw QM31 rows | 650 | 361 |
+| Padded QM31 rows | 1024 | 512 |
+| Fixed cells | 8192 | 4096 |
+| Proof bytes | 72,944 | 55,719 |
+| Prover stage excluding proof of work | 2.305 ms | 1.490 ms |
+| Whole-process proving | 94 ms | 152 ms |
+
+The second run's wall-clock median was **slower** because proof of work
+varied substantially across witnesses. The non-proof-of-work stage and
+trace geometry isolate the computation saved by input packing more clearly.
+Each version's native verifier accepted its valid proofs and rejected a
+changed public output. This measured record and the earlier 64-lane record
+are separate comparisons; the current 64-lane geometry was not measured
+in these records.
 
 ### A3. Which AIR equations check those wires?
 
@@ -399,8 +426,8 @@ python3 src/frontends/s31/s31.py oracle src/frontends/s31/examples/lane_stats4.s
 python3 src/frontends/s31/s31.py trial src/frontends/s31/examples/lane_stats4.s31 src/frontends/s31/examples/lane_stats4.valid.json --lowering direct-gate --out zig-out/s31/docs-lane-trial
 ```
 
-`oracle` performs a separate Python integer calculation of the **normalized
-arithmetic relation** and checks the claimed output without building a proof.
+`oracle` performs a separate Python calculation of the **normalized
+relation** and checks the claimed output without building a proof.
 For this assignment it reports `status: passed` and
 `computed_public_outputs: {"result": [296]}`. It is independent of the Zig
 circuit witness evaluator, but a `.s31` input still passes through the text
@@ -411,11 +438,12 @@ Inspect `trial-report.json`, `equations.json`, `explain.json`, `proof.bin`,
 and the public `statement.json` in that output directory. The report records
 the assignment **path**, profile, canonical IR identity, geometry, proof
 size, verifier results, `independent_value_oracle`, and one local timing
-observation; it does not copy private assignment values. For arithmetic,
-the oracle field records `passed` and computed outputs. Hash relation nodes
-are currently `unsupported`: the report says so and still records the native
-proof result. Treat `unsupported` as **no independent value check**, not as
-success. Neither the report nor the semantic equations are a complete dump
+observation; it does not copy private assignment values. The oracle field
+records `passed` and computed outputs for all current arithmetic and hash
+relation nodes. BLAKE2s uses Python's `hashlib`; Poseidon2 uses separate
+Python field arithmetic with the repository's pinned constants. If a future
+node reports `unsupported`, treat that as **no independent value check**.
+Neither the report nor the semantic equations are a complete dump
 of the pinned circuit AIR. A single trial's time is not a reliable
 performance comparison because cache state and proof of work vary.
 

@@ -33,20 +33,46 @@ The output contains `proof.bin`, public and changed statements,
 `trial-report.json`, `explain.json`, and `equations.json`. The report records
 canonical IR, raw and padded geometry, proof bytes, hashes, and local timings;
 it does not copy the private assignment. It also runs an independent Python
-value oracle for arithmetic nodes before proving, checking the relation and
-claimed output without using the Zig runtime. `s31 oracle` runs that check
-without building a proof. Hash nodes are explicitly marked unsupported by
-this oracle; the proof and native verifier still run. The oracle checks
-values, not circuit equivalence or proof soundness. `equations` shows
-source-level field equations, not every term in the pinned circuit AIR.
+value oracle before proving, checking arithmetic and current hash/Merkle
+nodes against the relation and claimed output without using the Zig runtime.
+`s31 oracle` runs that check without building a proof. It uses Python's
+BLAKE2s and a separate Poseidon2 permutation implementation with the
+repository's pinned constants. Unknown future nodes fail explicitly. The
+oracle checks values, not circuit equivalence or proof soundness. `equations`
+shows source-level field equations, not every term in the pinned circuit AIR.
+Trial and tune reports record the oracle source and Poseidon2 constant hashes
+used for those checks.
 Timing is a single local observation, so use repeated measurements before
 making a speed claim.
+
+`s31 tune` compares explicit proof lowerings for **one source** against the
+same assignment files. It builds each package, proves and verifies every
+assignment, checks a changed public statement, and writes
+`tune-report.json` with per-profile trace geometry, proof sizes, wall time,
+and prover-reported time excluding logged proof-of-work. Supply distinct
+valid assignments for a useful timing sample; `--warmup ASSIGNMENT.json`
+adds an unmeasured proof per profile. The command records observations and
+does not choose a profile automatically:
+
+```sh
+python3 src/frontends/s31/s31.py tune \
+  src/frontends/s31/examples/arith4_m31.s31 \
+  src/frontends/s31/examples/arith4.valid.json \
+  --lowering direct-gate --lowering direct-chip \
+  --out zig-out/s31/arith4-tune
+```
+
+This one-assignment command exercises the workflow. Supply several distinct
+valid assignments before interpreting timing medians.
 
 The text package includes the original `.s31`, normalized JSON, typed
 interface, and source map. Package inspection re-lowers the text and checks
 that these files agree with the sealed relation; the manifest hashes package
-artifacts and the native verifier binds its key. The manifest is unsigned, so
-verifier and key authenticity still depend on a trusted distribution path.
+artifacts and the native verifier binds its key. The native verifier also
+recompiles its embedded source to check the key's fixed circuit commitment;
+this closes a source/circuit key mismatch and adds verifier work on every
+invocation. The manifest is unsigned, so verifier and key authenticity still
+depend on a trusted distribution path.
 `explain` joins source locations to the existing gate-row cost report. See
 [the text language guide](TEXT_LANGUAGE.md) for implemented syntax, typed
 library functions, constraints, examples, and limits. The [standard/math

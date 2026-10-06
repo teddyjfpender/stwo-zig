@@ -23,6 +23,11 @@ S31 does not presently promise that every aspect of its proofs is zero
 knowledge; “absent from the public statement” is the precise privacy claim
 here.
 
+For this tiny public computation, a verifier could simply recompute `x²+7`. We use
+this tiny case because every value fits on the page. The same proof path is
+useful when the computation is much larger or depends on private data the
+verifier cannot recompute from the public statement alone.
+
 | Thing | In this example | Job |
 | --- | --- | --- |
 | Computation | `x²+7` for each position of an array | The result we want to justify. |
@@ -117,6 +122,25 @@ connection. In the real circuit AIR, LogUp compares address-and-value tuples
 so the producer at address 11 and the consumer at address 11 agree. It also
 accounts for a wire used more than once; address 10 is used twice in the
 first gate.
+
+The same lane-2 calculation now has five views. Reading across
+this table follows **one computation**, rather than four different
+computations:
+
+| Layer | Square step for `x[2]=3` | Add step |
+| --- | --- | --- |
+| Source | `square = x .* x` | `result = square + splat<4>(7_m31)` |
+| Normalized relation | `square = mul(x,x)` | `result = add_const(square,7)` |
+| Circuit wire values | address 10 contains 3; address 11 contains 9 | address 11 must still contain 9; address 12 contains 16 |
+| Teaching AIR row | $9-3\cdot3=0$ | $16-9-7=0$ |
+| Public claim | input lane 2 is 3 | output lane 2 is 16 |
+
+There are three different ways a proposed worksheet can fail. A false
+square such as 10 fails the multiply equation. A true multiplication row
+whose output is 9 followed by an add row that uses an unrelated 12 fails
+the wire lookup. A connected computation ending at 16 with a public claim
+of 19 fails public binding. All three checks are needed to say that the
+claimed output came from this fixed circuit.
 
 One way to express the teaching table's **local** arithmetic in two AIR
 equations is to give each row fixed selectors `s_mul` and `s_add`:
@@ -231,6 +255,7 @@ and profile constraints extend beyond these equations. Use
 it when auditing a package.
 
 Next: [a private reduction and a recurrence worked by hand](worked-proofs.md),
-then [source syntax and field semantics](source.md), then
+then [a private choice worked by hand](worked-choice.md), then
+[source syntax and field semantics](source.md), followed by
 [the actual generic circuit layout](circuits.md) and
 [the repeated-step AIR by hand](air.md).

@@ -95,10 +95,11 @@ wire appear in [the worked proof](worked-proofs.md#example-a-a-private-cross-lan
 
 For this four-lane source under `direct-gate`, the two `sum_lanes` nodes,
 one pointwise product, and one final add make six source arithmetic builder
-gates. The **whole** circuit has 323 raw QM31-operation rows, padded to
+gates. The **whole** circuit now has 304 raw QM31-operation rows, padded to
 512, and 4,096 fixed cells. Input handling, wire lookup, public binding,
 and finalization contribute to that total; builder gate spans are not
-physical AIR row ownership. The checked-in
+physical AIR row ownership. The earlier 323-row measurement used the same
+packed reduction but guessed private M31 positions one at a time. The checked-in
 [handwritten relation](../examples/lane_stats4.s31.json) was separately
 compared with the text source under `direct-gate`: they have the same
 canonical graph and row geometry, and both native verifiers accepted proofs.

@@ -709,6 +709,95 @@ fn validateKey(allocator: std.mem.Allocator, source: relation.Program, key: Key)
         key.fri.pow_bits != 26 or key.fri.log_blowup_factor != 1 or
         key.fri.last_layer_degree_bound != 1 or key.fri.queries != 70 or
         key.fri.fold_step != 1) return error.InvalidVerificationKey;
+    try validateCompiledKey(allocator, source, key, program_digest);
+}
+
+/// The embedded source must determine the fixed circuit in the embedded key.
+/// A source digest alone cannot establish this: a key could carry a different
+/// circuit's commitment while retaining the expected source and IR digests.
+fn validateCompiledKey(allocator: std.mem.Allocator, source: relation.Program, key: Key, source_digest: [32]u8) !void {
+    var ctx = if (direct_mode)
+        try s31.relation_compiler.compileDirect(circuit.builder.NoValue, allocator, source, null, chip_mode)
+    else if (chip_mode)
+        try s31.relation_compiler.compileChip(circuit.builder.NoValue, allocator, source, null)
+    else
+        try s31.relation_compiler.compile(circuit.builder.NoValue, allocator, source, null);
+    defer ctx.deinit();
+    try padForProfile(circuit.builder.NoValue, &ctx);
+    const sizes = circuit.common.finalize.rawComponentSizes(preprocessed.CircuitView.fromBuilder(&ctx.circuit));
+    const padded: Rows = .{
+        .eq = sizes.eq,
+        .qm31_ops = sizes.qm31_ops,
+        .triple_xor = sizes.triple_xor,
+        .m31_to_u32 = sizes.m31_to_u32,
+        .blake_g = sizes.blake_g_gate,
+    };
+    if (!std.meta.eql(padded, key.padded)) return error.InvalidVerificationKey;
+
+    var expected_root: [32]u8 = undefined;
+    var expected_hash: [32]u8 = undefined;
+    var expected_trace_log: u32 = undefined;
+    if (direct_mode) {
+        var pp = try circuit.common.direct_arithmetic.Circuit.fromBuilderCircuit(allocator, &ctx.circuit);
+        defer pp.deinit(allocator);
+        expected_root = try pp.preprocessedRoot(allocator, 1);
+        const chip_request: ?cpu.prove.ChipRequest = if (chip_mode) blk: {
+            const spec = source.repeatedStepChip() orelse return error.UnsupportedChipRelation;
+            break :blk .{
+                .source_digest = source_digest,
+                .rounds = spec.rounds,
+                .constant = M31.fromCanonical(spec.constant),
+                .initial = @splat(M31.zero()),
+                .final = @splat(M31.zero()),
+            };
+        } else null;
+        expected_hash = cpu.direct_arithmetic.identityHash(
+            source_digest,
+            expected_root,
+            pp.traceLogSize(),
+            1,
+            chip_request,
+        );
+        expected_trace_log = @max(pp.traceLogSize(), if (chip_mode)
+            try cpu.repeated_step_chip.validateRounds(source.repeatedStepChip().?.rounds)
+        else
+            @as(u32, 0));
+    } else if (sparse_mode) {
+        var pp = try circuit.common.sparse_arithmetic.Circuit.fromBuilderCircuit(allocator, &ctx.circuit);
+        defer pp.deinit(allocator);
+        const layout = pp.layout();
+        expected_root = try pp.preprocessedRoot(allocator, 1);
+        const chip_request: ?cpu.prove.ChipRequest = if (chip_mode) blk: {
+            const spec = source.repeatedStepChip() orelse return error.UnsupportedChipRelation;
+            break :blk .{
+                .source_digest = source_digest,
+                .rounds = spec.rounds,
+                .constant = M31.fromCanonical(spec.constant),
+                .initial = @splat(M31.zero()),
+                .final = @splat(M31.zero()),
+            };
+        } else null;
+        expected_hash = cpu.sparse_arithmetic.identityHash(
+            source_digest,
+            expected_root,
+            .{ layout.logSize("qm31_ops_in0_address").?, layout.logSize("m31_to_u32_input_addr").?, 16 },
+            1,
+            chip_request,
+        );
+        expected_trace_log = pp.traceLogSize();
+    } else {
+        var pp = try preprocessed.PreprocessedCircuit.fromBuilderCircuit(allocator, &ctx.circuit);
+        defer pp.deinit(allocator);
+        const layout = pp.layout();
+        const component_logs = try circuit.common.component_list.circuitComponentLogSizes(&layout);
+        expected_root = try pp.preprocessedRoot(allocator, 1);
+        expected_hash = try circuit.common.circuit_hash.hostCircuitHash(component_logs, 1, expected_root);
+        expected_trace_log = pp.traceLogSize();
+    }
+    if (key.trace_log_size != expected_trace_log or
+        !std.mem.eql(u8, key.preprocessed_root, &std.fmt.bytesToHex(expected_root, .lower)) or
+        !std.mem.eql(u8, key.circuit_hash, &std.fmt.bytesToHex(expected_hash, .lower)))
+        return error.InvalidVerificationKey;
 }
 
 fn verifyBytes(allocator: std.mem.Allocator, source: relation.Program, pp: *const preprocessed.PreprocessedCircuit, assignment: relation.Assignment, encoded: []const u8) !void {
