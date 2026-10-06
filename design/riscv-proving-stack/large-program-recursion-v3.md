@@ -28,11 +28,12 @@ the global position.
    `JobContext` and global V3 span. Bind the two passes through input, program,
    execution and boundary identities. Do not treat a planning receipt as a
    proof.
-2. Extend the recursive leaf wrapper to constrain every V3 metadata word to
-   the verified local V2 wire. The existing Ethereum leaf-link schedule joins
-   only the base span; entry and exit snapshots, register clocks, memory clock
-   identities/counts, completion, proof identity and verifier key also need
-   exact joins. Make the wrapper available to the base RV32 profile as well.
+2. Complete the recursive leaf wrapper to constrain every V3 metadata word to
+   the verified local V2 wire. The existing Ethereum leaf-link schedule now
+   routes the base span and 168 directly equal boundary words, but it is not a
+   proof transaction. Continuation-root limb conversion, completion tags,
+   proof identity and verifier key still need exact AIR joins. Make the
+   wrapper available to the base RV32 profile as well.
 3. Prove global position and length arithmetic with canonical 16-bit limbs:
    `end = start + local_count`, no overflow, exact segment order and bounded
    local count. The transcript must commit the complete V3 statement, local
