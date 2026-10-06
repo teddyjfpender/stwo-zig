@@ -57,6 +57,8 @@ pub const segment_leaf_local_authority_v3 =
     @import("segment_leaf_local_authority_v3.zig");
 pub const segment_execution_campaign_v3 =
     @import("segment_execution_campaign_v3.zig");
+pub const segment_execution_plan_v3 =
+    @import("segment_execution_plan_v3.zig");
 pub const segment_leaf_local_projection_v3 =
     @import("segment_leaf_local_projection_v3.zig");
 pub const segment_leaf_local_verified_link_v3 =

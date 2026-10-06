@@ -20,14 +20,19 @@ decoded proof, and joins the verifier-owned receipt to the V3 metadata. Its
 `VerifiedLinkV3` is checked by the host. It is not yet a recursive proof of
 the global position.
 
+`recursion/segment_execution_plan_v3.zig` runs the ELF once to size every
+leaf, records the exact total, ELF/input hashes and guest policy, then checks
+those counts during replay. It rejects host callbacks until a host transcript
+has its own authority. Planning is advisory and does not authenticate a proof.
+
 ## Proof path still required
 
-1. Build a two-pass real-ELF campaign. The first pass establishes exact total
-   cycles, completion and canonical leaf boundaries without retaining traces;
-   the second replays the same ELF/input and gives each leaf its immutable
-   `JobContext` and global V3 span. Bind the two passes through input, program,
-   execution and boundary identities. Do not treat a planning receipt as a
-   proof.
+1. Connect the two-pass plan/replay to proof publication. The first pass now
+   establishes exact total cycles, completion and per-leaf sizes without
+   retaining traces; replay checks ELF/input identity and the leaf sizes.
+   Construct one immutable `JobContext` from that total, then bind each replay
+   leaf's actual execution and boundary identities to its V3 proof. Do not
+   treat the planning receipt as a proof.
 2. Complete the recursive leaf wrapper to constrain every V3 metadata word to
    the verified local V2 wire. The existing Ethereum leaf-link schedule now
    routes the base span and 168 directly equal boundary words, but it is not a

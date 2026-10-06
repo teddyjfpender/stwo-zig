@@ -4,6 +4,7 @@ const std = @import("std");
 const result_mod = @import("../result.zig");
 const segment_session = @import("../segment_session.zig");
 const segment_campaign = @import("../../recursion/segment_execution_campaign_v3.zig");
+const segment_plan = @import("../../recursion/segment_execution_plan_v3.zig");
 
 const CompletionReason = result_mod.CompletionReason;
 const ContinuationToken = result_mod.ContinuationToken;
@@ -382,6 +383,68 @@ test "runner: real ELF campaign releases each leaf and preserves global order" {
         &limited,
     ));
     try std.testing.expectEqual(@as(usize, 2), limited.count);
+}
+
+test "runner: V3 plan replays exact leaf sizes with guest policy and input" {
+    const instructions = [_]u32{
+        0x0010_0137, // LUI x2, 0x100.
+        0x0550_0093, // ADDI x1, x0, 0x55.
+        0x0011_2023, // SW x1, 0(x2).
+        0x0001_2183, // LW x3, 0(x2).
+        0x0000_0073, // ECALL.
+    };
+    const elf = makeTestElf(&instructions);
+    const options: segment_session.SessionOptions = .{
+        .stop_on_halt_flag = true,
+    };
+    var plan = try segment_plan.prepare(
+        .rv32im_zkvm_v1,
+        std.testing.allocator,
+        &elf,
+        options,
+        2,
+        3,
+    );
+    defer plan.deinit();
+    try std.testing.expectEqualSlices(u32, &.{ 2, 1 }, plan.cycle_counts);
+
+    const Consumer = struct {
+        count: usize = 0,
+        pub fn onSegment(self: *@This(), _: *const result_mod.SegmentResult) !void {
+            self.count += 1;
+        }
+    };
+    var consumer = Consumer{};
+    const summary = try segment_plan.replay(
+        .rv32im_zkvm_v1,
+        std.testing.allocator,
+        &elf,
+        options,
+        &plan,
+        &consumer,
+    );
+    try std.testing.expectEqual(@as(u32, 2), summary.leaf_count);
+    try std.testing.expectEqual(@as(usize, 2), consumer.count);
+
+    var altered = options;
+    altered.input = "changed-input";
+    try std.testing.expectError(error.CampaignPlanInputMismatch, segment_plan.replay(
+        .rv32im_zkvm_v1,
+        std.testing.allocator,
+        &elf,
+        altered,
+        &plan,
+        &consumer,
+    ));
+    plan.cycle_counts[0] += 1;
+    try std.testing.expectError(error.InvalidCampaignPlan, segment_plan.replay(
+        .rv32im_zkvm_v1,
+        std.testing.allocator,
+        &elf,
+        options,
+        &plan,
+        &consumer,
+    ));
 }
 
 test "runner: continuation capability binds the clock frame" {
