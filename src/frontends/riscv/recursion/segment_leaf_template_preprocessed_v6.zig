@@ -46,6 +46,7 @@ pub const Writer = struct {
         component_descs: []const statement.FamilyComponentDesc,
         infra_descs: []const statement.InfraComponentDesc,
         native_plan: *const native_schedule.Plan,
+        core_profile: *const template_mod.CoreProfileV6,
         core_query_mapping: *const @import("air/query_mapping_witness.zig").Reference,
         native_wire_word_count: u32,
         native_lookup_enabled: bool,
@@ -57,6 +58,7 @@ pub const Writer = struct {
             component_descs,
             infra_descs,
             native_plan,
+            core_profile,
             core_query_mapping,
             native_wire_word_count,
             native_lookup_enabled,
@@ -226,10 +228,11 @@ test "V6 appended rows rebuild fixed columns without either leaf source identity
         false,
     );
     const shape = roster.Shape{ .program_words = instructions.canonical_program_word_count, .base_poseidon_calls = 1193 };
-    const core_query_mapping = try template_mod.pinnedCoreQueryReference();
-    var first = try Writer.init(allocator, &base_catalog, shape, &child_fixture.components, &child_fixture.infra, &plans.vm, &core_query_mapping, 128, false);
+    const core_profile = try template_mod.testFrozenCoreProfileV6();
+    const core_query_mapping = try core_profile.reference();
+    var first = try Writer.init(allocator, &base_catalog, shape, &child_fixture.components, &child_fixture.infra, &plans.vm, &core_profile, &core_query_mapping, 128, false);
     defer first.deinit();
-    var second = try Writer.init(allocator, &base_catalog, shape, &child_fixture.components, &child_fixture.infra, &plans.vm, &core_query_mapping, 128, false);
+    var second = try Writer.init(allocator, &base_catalog, shape, &child_fixture.components, &child_fixture.infra, &plans.vm, &core_profile, &core_query_mapping, 128, false);
     defer second.deinit();
     const first_v2 = try v2_manifest.assemble(&base_catalog, fixture.authorityIds());
     var changed_ids = fixture.authorityIds();

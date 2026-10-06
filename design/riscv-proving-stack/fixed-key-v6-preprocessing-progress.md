@@ -34,7 +34,7 @@ recompiled from the fixed publication ABI; the publication values stay main.
 | 13–16 | `segment_public_outer_source_v2` | Unqualified | Recompile claim/hash, seal, boundary and challenge relays from independently admitted geometry and graph use counts; prove no identity-bearing constants remain fixed. |
 | 17 | `vm_public_logup_control_witness_v2` | Blocked on variable public term count | The frozen V2 witness and AIR fix 70 public terms and 71 active rows. `segment_profile.initPlans(16,16)` admits 102 public terms, so V2 `preflight` returns `InvalidPlanProfile`. A versioned variable-cardinality AIR/source or an independently justified fixed 70-term VM shape is required; do not force the V2 schedule into V6. |
 | 18–19, 22–33 | `detached_leaf_cohort_v2` core verifier tables | Unqualified | Rebuild composition, Merkle and FRI coordinate schedules from admitted verifier and PCS shape, without copying positions or proof data from a capture into preprocessing. |
-| 20–21 | Query-bit and query-mapping preprocessed references | Profile identity pinned; physical columns unqualified | Their selectors derive from the exact native, left and right lane PCS profiles: query counts, lifting sizes, tree heights and FRI widths. `TemplateManifestV6.build` now takes an explicit core query-mapping reference and rejects it unless it equals the verifier-side frozen profile. The V6 shape and seal bind both query-mapping and query-bit reference digests. Rebuild physical columns from that reference and compare them to the core's actual reference before enabling the root. |
+| 20–21 | Query-bit and query-mapping preprocessed references | Profile identity bound; physical columns unqualified | Their selectors derive from the exact VM and recursion lane PCS profiles: query counts, lifting sizes, tree heights and FRI widths. `TemplateManifestV6.build` now takes a verifier-selected, value-owned `CoreProfileV6` and the core query-mapping reference separately, requiring exact agreement. The V6 shape and seal bind the full profile and derived mapping/bit digests. Verifier admission must compare that selected profile against its expected template profile; complete-root qualification must compare physical columns to the core's actual reference. |
 | 34–35 | `segment_leaf_template_base_fixed_v6` | Deterministically written | Marker and byte table match the V2 writers' exact committed-row formulas. The six ordered call ranges remain a separate main-trace/lookup obligation. |
 | 36–38 | V2 statement boundary, public LogUp and verifier-input provider | Unqualified | Rebuild source selectors/multiplicities and move any leaf-dependent constants to main with exact typed joins. |
 | 39–49 | `segment_leaf_template_preprocessed_v6.Writer` | Deterministically written | Validate all columns against the existing V5 cohort for genuine captures; derive the full template preprocessed root and pin it independently. |
@@ -52,3 +52,14 @@ root limbs themselves remain main values. Rows 39–40 come from the exact
 versioned link schedule, rows 43/45/46/48/49 from hash chunk schedules, row 47
 from descriptor-derived router rows with the obsolete Tree0-forward rows
 removed, and row 41 from the four canonical arithmetic operation masks.
+
+`CoreProfileV6` is the template admission boundary for rows 20–21. The
+verifier selects its VM and recursion query counts, lifting sizes, trace-tree
+heights and FRI fold widths before reading the child proof. `TemplateManifestV6`
+stores a bounded value copy of both lanes and recomputes the query-mapping and
+query-bit reference digests from that copy. `build` requires the core's
+separately built reference to equal this expected profile, and
+`validateAgainst` repeats that comparison using verifier-selected inputs.
+The test-only frozen profile is a fixture, not the general V6 admission
+source. A complete-root gate must still compare the core's actual physical
+rows 20–21 against the template writer; this check is unavailable today.

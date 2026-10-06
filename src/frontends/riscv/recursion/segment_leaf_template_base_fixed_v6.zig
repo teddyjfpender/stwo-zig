@@ -40,6 +40,7 @@ pub const Writer = struct {
         component_descs: []const statement.FamilyComponentDesc,
         infra_descs: []const statement.InfraComponentDesc,
         native_plan: *const schedule.Plan,
+        core_profile: *const template_mod.CoreProfileV6,
         core_query_mapping: *const @import("air/query_mapping_witness.zig").Reference,
         native_wire_word_count: u32,
         lookup_enabled: bool,
@@ -51,6 +52,7 @@ pub const Writer = struct {
             component_descs,
             infra_descs,
             native_plan,
+            core_profile,
             core_query_mapping,
             native_wire_word_count,
             lookup_enabled,
@@ -255,8 +257,9 @@ test "V6 base fixed rows reconstruct without a leaf" {
         false,
     );
     const shape = shape_mod.Shape{ .program_words = instructions.canonical_program_word_count, .base_poseidon_calls = 1193 };
-    const core_query_mapping = try template_mod.pinnedCoreQueryReference();
-    var writer = try Writer.init(allocator, &catalog, shape, &child_fixture.components, &child_fixture.infra, &plans.vm, &core_query_mapping, 128, false);
+    const core_profile = try template_mod.testFrozenCoreProfileV6();
+    const core_query_mapping = try core_profile.reference();
+    var writer = try Writer.init(allocator, &catalog, shape, &child_fixture.components, &child_fixture.infra, &plans.vm, &core_profile, &core_query_mapping, 128, false);
     defer writer.deinit();
     for (QUALIFIED_ROWS) |row| {
         const geometry = writer.manifest.placements[row].geometry;
