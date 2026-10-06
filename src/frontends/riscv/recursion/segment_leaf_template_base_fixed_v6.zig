@@ -34,6 +34,7 @@ const query_bits_air = @import("air/query_bits.zig");
 const query_bits = @import("air/query_bits_witness.zig");
 const query_mapping_air = @import("air/query_mapping.zig");
 const query_mapping = @import("air/query_mapping_witness.zig");
+const root_fixed = @import("segment_core_root_row22_fixed_v6.zig");
 
 pub const PRODUCTION_PROOF_ACTIVATION = false;
 /// Rows 13--14 are fixed from the admitted descriptor and wire dimensions.
@@ -42,7 +43,7 @@ pub const PRODUCTION_PROOF_ACTIVATION = false;
 /// topology schedule (including sparse-address overlap and completion kind),
 /// or an AIR revision that authenticates these counts in main columns. The
 /// current template has neither, so these rows must never enter its key.
-pub const QUALIFIED_ROWS = [_]u8{ 0, 1, 2, 3, 4, 6, 7, 8, 9, 10, 12, 13, 14, 17, 20, 21, 33, 34, 35 };
+pub const QUALIFIED_ROWS = [_]u8{ 0, 1, 2, 3, 4, 6, 7, 8, 9, 10, 12, 13, 14, 17, 20, 21, 22, 33, 34, 35 };
 
 /// These are the precise dependencies of the row-15/16 use-count columns.
 /// The existing TemplateShapeV6 holds counts and transcript/core schedules,
@@ -71,6 +72,7 @@ pub const Writer = struct {
     public_logup_rows: public_logup.PreparedV6,
     query_bit_rows: query_bits.Preprocessed,
     query_mapping_rows: query_mapping.Preprocessed,
+    root_shape: root_fixed.Shape,
 
     pub fn init(
         allocator: std.mem.Allocator,
@@ -122,6 +124,8 @@ pub const Writer = struct {
         errdefer query_bit_rows.deinit();
         var query_mapping_rows = try query_mapping.Preprocessed.init(allocator, core_reference);
         errdefer query_mapping_rows.deinit();
+        const root_shape = try root_fixed.Shape.init(core_profile);
+        try root_shape.validatePlacement(manifest.placements[22].geometry);
         if (manifest.placements[0].geometry.preprocessed_columns != control_air.PREPROCESSED_COLUMN_COUNT or
             manifest.placements[0].geometry.log_size >= @bitSizeOf(usize) or
             control_rows.len > @as(usize, 1) << @intCast(manifest.placements[0].geometry.log_size))
@@ -136,7 +140,7 @@ pub const Writer = struct {
             frame_rows.rows.len > @as(usize, 1) << @intCast(manifest.placements[4].geometry.log_size) or
             !std.meta.eql(try frame_rows.preprocessedId(manifest.placements[4].geometry.log_size), manifest.shape.row4_preprocessed_id))
             return error.FixedFrameGeometryMismatchV6;
-        return .{ .allocator = allocator, .manifest = manifest, .control_rows = control_rows, .transcript_rows = transcript_rows, .frame_rows = frame_rows, .public_logup_rows = public_logup_rows, .query_bit_rows = query_bit_rows, .query_mapping_rows = query_mapping_rows };
+        return .{ .allocator = allocator, .manifest = manifest, .control_rows = control_rows, .transcript_rows = transcript_rows, .frame_rows = frame_rows, .public_logup_rows = public_logup_rows, .query_bit_rows = query_bit_rows, .query_mapping_rows = query_mapping_rows, .root_shape = root_shape };
     }
 
     pub fn deinit(self: *Writer) void {
@@ -297,6 +301,11 @@ pub const Writer = struct {
                     put(columns, geometry.log_size, index, &values);
                 }
             },
+            22 => {
+                try self.root_shape.validateAgainst(&self.manifest.shape.core_profile);
+                try self.root_shape.validatePlacement(geometry);
+                try self.root_shape.writePhysical(columns);
+            },
             33 => if (columns.len != merkle_path_air.PREPROCESSED_COLUMN_COUNT)
                 return error.FixedBaseGeometryMismatchV6,
             34 => {
@@ -443,6 +452,7 @@ test "V6 base fixed rows reconstruct without a leaf" {
     defer map_shape.deinit();
     logs[20] = bit_shape.log_size;
     logs[21] = map_shape.log_size;
+    logs[22] = (try root_fixed.Shape.init(&core_profile)).log_size;
     const catalog = try catalog_mod.build(logs, fixture.boundaryComponents());
     const instructions = try @import("transcript_instruction_template_v6.zig").InstructionTemplateV6.build(
         allocator,
@@ -482,6 +492,15 @@ test "V6 base fixed rows reconstruct without a leaf" {
                 }
             },
             1, 6, 7, 33 => try std.testing.expectEqual(@as(usize, 0), columns.len),
+            22 => {
+                const root_reference = try @import("air/merkle_root_witness.zig").Reference.seal(
+                    .{ .query_count = core_profile.vm.query_count, .trace_tree_count = core_profile.vm.tree_count, .fri_layer_count = core_profile.vm.fri_count },
+                    .{ .query_count = core_profile.recursion.query_count, .trace_tree_count = core_profile.recursion.tree_count, .fri_layer_count = core_profile.recursion.fri_count },
+                );
+                var native_roots = try @import("air/merkle_root_witness.zig").Preprocessed.init(allocator, root_reference);
+                defer native_roots.deinit();
+                try expectFixedRows(columns, geometry.log_size, native_roots.rows);
+            },
             2 => try expectFixedRows(columns, geometry.log_size, writer.transcript_rows.bindings),
             3 => try expectFixedRows(columns, geometry.log_size, writer.transcript_rows.states),
             4 => {
@@ -551,6 +570,24 @@ test "V6 base fixed rows reconstruct without a leaf" {
             else => unreachable,
         }
         if (row != 10 and columns.len > 0) try std.testing.expectError(error.FixedBaseDestinationNotFreshV6, writer.writeRow(row, columns));
+    }
+    {
+        const geometry = writer.manifest.placements[22].geometry;
+        const capacity = @as(usize, 1) << @intCast(geometry.log_size);
+        var arena = std.heap.ArenaAllocator.init(allocator);
+        defer arena.deinit();
+        const columns = try arena.allocator().alloc([]M31, geometry.preprocessed_columns);
+        for (columns) |*column| {
+            column.* = try arena.allocator().alloc(M31, capacity);
+            @memset(column.*, M31.zero());
+        }
+        writer.manifest.shape.core_profile.vm.query_count += 1;
+        try std.testing.expectError(error.MerkleRootShapeMismatchV6, writer.writeRow(22, columns));
+        writer.manifest.shape.core_profile.vm.query_count -= 1;
+        for (23..33) |row| {
+            try std.testing.expectError(error.UnqualifiedFixedRowV6, writer.writeRow(@intCast(row), columns));
+            for (columns) |column| for (column) |value| try std.testing.expect(value.isZero());
+        }
     }
     var mutation_arena = std.heap.ArenaAllocator.init(allocator);
     defer mutation_arena.deinit();

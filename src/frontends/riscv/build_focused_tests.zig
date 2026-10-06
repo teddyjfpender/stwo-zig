@@ -14,6 +14,13 @@ pub const Spec = struct {
 
 pub const specs = [_]Spec{
     .{
+        .step = "test-recursion-v6-row22-fixed",
+        .description = "Check verifier-owned row-22 fixed columns against native source across distinct root values",
+        .root = "v6_row22_fixed_test_root.zig",
+        .filters = &.{"row 22 fixed Tree0 columns"},
+        .minimum = 1,
+    },
+    .{
         .step = "test-recursion-v6-program-template",
         .description = "Pin proof-independent ProgramV2 words and leave leaf identities dynamic",
         .root = "v6_program_template_test_root.zig",
