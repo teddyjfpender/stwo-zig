@@ -98,7 +98,10 @@ test "real q193 native child feeds freshly verified q193 local outer" {
     const prepare_ns = timer.lap();
     try diagnoseDirect47(allocator, &prepared, &verified.native.global_metadata, &verified.native.link, &cohort);
     const direct47_ns = timer.lap();
-    try diagnoseDirect50(allocator, &prepared, &verified.native.global_metadata, &verified.native.link, &cohort);
+    diagnoseDirect50(allocator, &prepared, &verified.native.global_metadata, &verified.native.link, &cohort) catch |err| {
+        std.debug.print("DIRECT50_ERROR={s}\n", .{@errorName(err)});
+        return err;
+    };
     const direct50_ns = timer.lap();
     if (std.process.hasEnvVarConstant("STWO_V5_TUPLE_DIAG_ONLY")) {
         std.debug.print("DIRECT50_TIMING native_ingress_ns={d} recursive_prepare_ns={d} direct47_ns={d} direct50_ns={d} peak_rss_bytes={d} strong_outer_skipped=true\n", .{
@@ -380,12 +383,13 @@ fn diagnoseDirect50Tuples(
     }
     ledger.contributions.items = ledger.contributions.items[0..keep];
 
-    try cohort.noncore.transcript_owner.owners.transcript_payload.relation.appendPreparedTupleContributions(
-        &ledger,
-        5,
+    var row5_wire = try recursion.segment_leaf_wrapper_row5_wire_v6.Schedule.init(
+        allocator,
         row5_fanout.rows,
-        mask,
+        rows.base.native.program.words[10..18],
     );
+    defer row5_wire.deinit();
+    try appendDirectAirTuples(recursion.air.transcript_payload_direct_v6, allocator, &ledger, 5, row5_wire.rows, mask);
     try appendDirectAirTuples(recursion.segment_leaf_statement_source_direct_v6, allocator, &ledger, 36, statement_v6.rows, mask);
     try appendDirectAirTuples(recursion.ethereum_leaf_link_source_direct_v6, allocator, &ledger, 39, rows.base.source, mask);
     try appendDirectAirTuples(recursion.air.ethereum_leaf_link_projection_v1, allocator, &ledger, 40, rows.base.projection, mask);

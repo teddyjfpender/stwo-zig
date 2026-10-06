@@ -199,6 +199,24 @@ pub fn build(b: *std.Build) void {
     });
     b.step("test-v6-local-npv2", "Check the versioned proof-visible authority-word bridge")
         .dependOn(&b.addRunArtifact(v6_npv2_tests).step);
+    const v6_row5_identity_tests = b.addTest(.{
+        .root_module = v3_rows_root,
+        .filters = &.{"V6 direct row5 semantic identity"},
+    });
+    b.step("test-v6-row5-identity", "Pin the direct NPV2 native payload AIR identity")
+        .dependOn(&b.addRunArtifact(v6_row5_identity_tests).step);
+    const v6_row5_wire_tests = b.addTest(.{
+        .root_module = v3_rows_root,
+        .filters = &.{"V6 row5 exports exactly the eight transcript-bound wire IDs"},
+    });
+    b.step("test-v6-row5-wire", "Check exact native row5 NPV2 mask and wire-value custody")
+        .dependOn(&b.addRunArtifact(v6_row5_wire_tests).step);
+    const v6_local_witness_tests = b.addTest(.{
+        .root_module = v3_rows_root,
+        .filters = &.{"V6 authority export materializes a validated local witness"},
+    });
+    b.step("test-v6-local-witness", "Check schema-2 child schedule and witness compatibility")
+        .dependOn(&b.addRunArtifact(v6_local_witness_tests).step);
     const v6_transcript_fixed_tests = b.addTest(.{
         .root_module = v3_rows_root,
         .filters = &.{"V6 transcript fixed schedule matches executed V2"},

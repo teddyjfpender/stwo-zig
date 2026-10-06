@@ -489,6 +489,14 @@ pub fn buildNpv2WireExportArena(allocator: std.mem.Allocator) !ir.Arena {
     return result.arena;
 }
 
+/// Direct SegmentV2 wrapper profile. It extends the native row-5 AIR by only
+/// the eight wire-ID NPV2 outputs; unrelated Ethereum clock/raw exports stay
+/// out of this roster. The extra mask is key-owned preprocessing.
+pub fn buildDirectNpv2WireExportArena(allocator: std.mem.Allocator) !ir.Arena {
+    const result = try buildDefinitionForProfile(allocator, false, false, true, false);
+    return result.arena;
+}
+
 /// Adds the six PCS parameters that are actual row-5 Fiat--Shamir payload
 /// values under q193/fold-step-4. High u16 limbs, the absent-lifting flag,
 /// and all remaining ProgramV2 words still need other proof-visible routes.
