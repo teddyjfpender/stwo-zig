@@ -73,6 +73,12 @@ repetition adds about 101,403 steps. The last batch (`batch=140` of 9,024
 shots) exceeds the step cap even at one repetition when it regenerates its
 SHAKE prefix from the circuit seed.
 
+The first-batch secure proof was rerun after the Ethereum experiment cleanup
+landed on main. It still verified and produced the same canonical proof
+SHA-256 `b434b0d64d4164c76edf8d46526209a6832cd357cff531ce5c26c4046f200c46`.
+This is a regression check of the retained typed RISC-V path; its timing is
+not another controlled benchmark observation.
+
 The last-batch cost is measurable with the execution-only segmented runner:
 one repetition for batch 140 of 9,024 shots retired **83,892,949 RV32
 instructions** across 21 segments of at most 4,194,304 steps. Its validated
