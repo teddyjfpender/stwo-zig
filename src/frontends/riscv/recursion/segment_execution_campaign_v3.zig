@@ -5,9 +5,9 @@
 
 const std = @import("std");
 const profile_mod = @import("../isa/execution_profile.zig");
-const result = @import("result.zig");
-const session_mod = @import("segment_session.zig");
-const max_v3_leaf_cycles = @import("../recursion/segment_leaf_local_authority_v3.zig").MAX_LEAF_CYCLES;
+const result = @import("../runner/result.zig");
+const session_mod = @import("../runner/segment_session.zig");
+const max_v3_leaf_cycles = @import("segment_leaf_local_authority_v3.zig").MAX_LEAF_CYCLES;
 
 pub const Summary = struct {
     leaf_count: u32,

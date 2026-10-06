@@ -7,7 +7,7 @@ clocks and a recursively verified 64-bit global span.
 
 ## Implemented ingress
 
-`runner/segment_campaign.zig` executes a real ELF in leaf-local,
+`recursion/segment_execution_campaign_v3.zig` executes a real ELF in leaf-local,
 segment-owned chunks. A consumer receives the complete profile-specific leaf
 before that leaf's trace is released. Continuation capabilities, segment order,
 global cycle continuity, the V3 leaf budget, and a finite leaf limit are

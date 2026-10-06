@@ -3,7 +3,7 @@
 const std = @import("std");
 const result_mod = @import("../result.zig");
 const segment_session = @import("../segment_session.zig");
-const segment_campaign = @import("../segment_campaign.zig");
+const segment_campaign = @import("../../recursion/segment_execution_campaign_v3.zig");
 
 const CompletionReason = result_mod.CompletionReason;
 const ContinuationToken = result_mod.ContinuationToken;
