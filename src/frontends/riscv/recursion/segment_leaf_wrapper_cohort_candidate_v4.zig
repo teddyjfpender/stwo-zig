@@ -13,6 +13,7 @@ const provider_mod = @import("segment_leaf_wrapper_cohort_provider_v3.zig");
 const calls_mod = @import("segment_leaf_wrapper_cohort_calls_v3.zig");
 const rows_mod = @import("segment_leaf_wrapper_cohort_direct_rows_v4.zig");
 const range_provider = @import("segment_leaf_wrapper_range_provider_direct_v4.zig");
+const frame_provider = @import("segment_leaf_wrapper_frame_provider_direct_v4.zig");
 const closure = @import("segment_leaf_wrapper_cohort_closure_v4.zig");
 const universal = @import("air/universal_challenges.zig");
 const shared_mod = @import("air/universal_provider_relations.zig");
@@ -31,6 +32,9 @@ pub fn fillPreprocessed(
     var views = try views_mod.Views.initForPlan(allocator, base.manifest(), plan, destination, plan_mod.PREPROCESSED_TREE_INDEX);
     defer views.deinit();
     try views.fillPreprocessedFromV2(base);
+    var frame = try frameProvider(allocator, base, rows);
+    defer frame.deinit();
+    try frame.fillPreprocessed(plan, destination);
     const placement = plan.placements[34].?;
     if (placement.geometry.preprocessed_columns != 1 or
         placement.preprocessed_offset >= destination.len)
@@ -86,8 +90,20 @@ pub fn fillInteraction(
     var range = try range_provider.Provider.init(allocator, &base.noncore.range_prepared.range_check, rows.arithmetic);
     defer range.deinit();
     const row35 = try range.fillInteraction(plan, shared, destination);
+    var frame = try frameProvider(allocator, base, rows);
+    defer frame.deinit();
+    const row4 = try frame.fillInteraction(plan, relations, destination);
     const appended = try rows.fillInteraction(plan, relations, destination);
-    return closure.Claims47.fromGenerated(plan, &reused, writer, &row34, &row35, &appended, relations, shared);
+    return closure.Claims47.fromGenerated(plan, &reused, writer, &row34, &row35, &row4, &appended, relations, shared);
+}
+
+fn frameProvider(allocator: std.mem.Allocator, base: anytype, rows: *const rows_mod.Rows) !frame_provider.Provider {
+    return frame_provider.Provider.init(
+        allocator,
+        base.noncore.transcript_workspace.transcript_word_source,
+        rows.native.tree0_link.transcript_hash_id,
+        rows.native.tree0_link.transcript_root,
+    );
 }
 
 fn validateSources(

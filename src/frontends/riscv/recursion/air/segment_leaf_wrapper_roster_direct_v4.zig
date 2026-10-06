@@ -13,6 +13,7 @@ const link = @import("segment_leaf_wrapper_link_manifest_v3.zig");
 const word_air = @import("transcript_program_v2_field_source_v1.zig");
 const hash_air = @import("vm_public_claim_hash.zig");
 const tree0_air = @import("segment_v2_tree0_field_link_direct_v4.zig");
+const frame_air = @import("transcript_word_direct_v4.zig");
 const link_program = @import("../ethereum_leaf_link_program_v3.zig");
 const hash_witness = @import("vm_public_claim_hash_witness.zig");
 const typed = @import("universal_typed_component.zig");
@@ -167,6 +168,7 @@ pub const Plan = struct {
                 link_manifest.placements[index].?.geometry
             else
                 try extraGeometry(row, shape, program);
+            if (index == 4) item = frameGeometry(item.log_size);
             if (index == 34) item.log_size = provider_log;
             try item.validateForComponentCount(COMPONENT_COUNT);
             if (item.roster_row != row) return error.InvalidV3WrapperRoster;
@@ -229,7 +231,10 @@ pub const Plan = struct {
                 item.constraint_offset != constraints)
                 return error.InvalidV3WrapperRoster;
             try item.geometry.validateForComponentCount(COMPONENT_COUNT);
-            if (index >= link.V2_COMPONENT_COUNT and index < link.COMPONENT_COUNT) {
+            if (index == 4) {
+                if (!std.meta.eql(item.geometry, frameGeometry(item.geometry.log_size)))
+                    return error.InvalidV3WrapperRoster;
+            } else if (index >= link.V2_COMPONENT_COUNT and index < link.COMPONENT_COUNT) {
                 const expected = switch (index) {
                     39 => LinkSourceAdapter.manifestGeometry(.link_source, try hash_witness.traceLogSize(link_program.SOURCE_ROW_COUNT)),
                     40 => LinkProjectionAdapter.manifestGeometry(.link_projection, try hash_witness.traceLogSize(link_program.PROJECTION_ROW_COUNT)),
@@ -303,6 +308,21 @@ pub const Plan = struct {
         return error.V3WrapperProofUnavailable;
     }
 };
+
+fn frameGeometry(log_size: u32) Geometry {
+    return .{
+        .roster_row = 4,
+        .log_size = log_size,
+        .preprocessed_columns = frame_air.PREPROCESSED_COLUMN_COUNT,
+        .main_columns = frame_air.PHYSICAL_MAIN_COLUMN_COUNT,
+        .interaction_columns = frame_air.INTERACTION_COLUMN_COUNT,
+        .direct_constraints = frame_air.DIRECT_CONSTRAINT_COUNT,
+        .interaction_batches = frame_air.INTERACTION_BATCH_COUNT,
+        .protocol_constraint_degree = @intCast(typed.protocolMaximumConstraintDegree(frame_air)),
+        .profiled_constraint_degree = frame_air.MAXIMUM_CONSTRAINT_DEGREE,
+        .semantic_digest = frame_air.SEMANTIC_DIGEST,
+    };
+}
 
 fn extraGeometry(row: u8, shape: Shape, program: *const link_program.ProgramV3) !Geometry {
     const key: ComponentKey = @enumFromInt(row);

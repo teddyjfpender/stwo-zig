@@ -12,6 +12,7 @@ const views = @import("segment_leaf_wrapper_cohort_views_v3.zig");
 const extra = @import("segment_leaf_wrapper_cohort_direct_rows_v4.zig");
 const provider = @import("segment_leaf_wrapper_cohort_provider_v3.zig");
 const range_provider = @import("segment_leaf_wrapper_range_provider_direct_v4.zig");
+const frame_provider = @import("segment_leaf_wrapper_frame_provider_direct_v4.zig");
 const relation = @import("../air/lang/relation.zig");
 const universal = @import("air/universal_challenges.zig");
 const provider_relations = @import("air/universal_provider_relations.zig");
@@ -34,6 +35,7 @@ pub const Claims47 = struct {
         row34_writer: *const provider.Writer,
         row34: *const provider.Interaction,
         row35: *const range_provider.ClaimAudit,
+        row4: *const frame_provider.ClaimAudit,
         appended: *const extra.AuditedClaims,
         relations: *const universal.UniversalRelations,
         shared: *const provider_relations.SharedProviderRelations,
@@ -52,6 +54,9 @@ pub const Claims47 = struct {
         };
         @memcpy(result.claims[0..views.BASE_ROWS], &reused.claims);
         @memcpy(result.audits[0..views.BASE_ROWS], &reused.audits);
+        result.claims[4] = row4.claim;
+        result.audits[4] = row4.audit;
+        result.present_mask |= @as(u64, 1) << 4;
         result.claims[34] = row34.claims.total();
         var provider_audit = emptyAudit();
         provider_audit.values[@intFromEnum(relation.Domain.poseidon2)] = row34.claims.sums[0];
@@ -212,7 +217,8 @@ test "direct 47-row claims combine generated provider and audited appended rows"
         .audits = @splat(emptyAudit()),
     };
     const row35 = range_provider.ClaimAudit{ .claim = QM31.zero(), .audit = emptyAudit() };
-    const combined = try Claims47.fromGenerated(&plan, &reused, &writer, &generated, &row35, &appended, &relations, &shared);
+    const row4 = frame_provider.ClaimAudit{ .claim = QM31.zero(), .audit = emptyAudit() };
+    const combined = try Claims47.fromGenerated(&plan, &reused, &writer, &generated, &row35, &row4, &appended, &relations, &shared);
     try std.testing.expectEqual((@as(u64, 1) << ROW_COUNT) - 1, combined.present_mask);
     try std.testing.expect(combined.claims[34].eql(generated.claims.total()));
     try std.testing.expectEqual(buffer.calls.len, combined.audits[34].logical_rows);
@@ -221,8 +227,8 @@ test "direct 47-row claims combine generated provider and audited appended rows"
     const boundary = try PublicWireBoundaryV2.init(source_id, 1, QM31.zero());
     try std.testing.expectError(error.DirectLeafRelationNotClosed, combined.verifyAllDomains(&plan, &boundary));
     appended.claims[0] = QM31.one();
-    try std.testing.expectError(error.DirectLeafAuditGeometryMismatch, Claims47.fromGenerated(&plan, &reused, &writer, &generated, &row35, &appended, &relations, &shared));
+    try std.testing.expectError(error.DirectLeafAuditGeometryMismatch, Claims47.fromGenerated(&plan, &reused, &writer, &generated, &row35, &row4, &appended, &relations, &shared));
     appended.claims[0] = QM31.zero();
     reused.present_mask &= ~(@as(u64, 1) << 36);
-    try std.testing.expectError(error.DirectLeafClaimCoverageMismatch, Claims47.fromGenerated(&plan, &reused, &writer, &generated, &row35, &appended, &relations, &shared));
+    try std.testing.expectError(error.DirectLeafClaimCoverageMismatch, Claims47.fromGenerated(&plan, &reused, &writer, &generated, &row35, &row4, &appended, &relations, &shared));
 }

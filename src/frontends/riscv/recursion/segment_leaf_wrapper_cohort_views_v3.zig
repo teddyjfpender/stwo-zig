@@ -14,10 +14,12 @@ const DomainAudit = @import("air/relation_interaction.zig").DomainAudit;
 pub const PRODUCTION_PROOF_ACTIVATION = false;
 pub const BASE_ROWS: usize = manifest_mod.COMPONENT_COUNT;
 pub const REPLACED_ROW: usize = 34;
+pub const REPLACED_FRAME_ROW: usize = 4;
 pub const REPLACED_RANGE_ROW: usize = 35;
 pub const Placement = manifest_mod.Placement;
 pub const REUSED_MASK: u64 = (@as(u64, 1) << BASE_ROWS) - 1 -
-    (@as(u64, 1) << REPLACED_ROW) - (@as(u64, 1) << REPLACED_RANGE_ROW);
+    (@as(u64, 1) << REPLACED_ROW) - (@as(u64, 1) << REPLACED_RANGE_ROW) -
+    (@as(u64, 1) << REPLACED_FRAME_ROW);
 pub const NONCORE_MASK: u64 = ((@as(u64, 1) << 18) - 1) | (((@as(u64, 1) << 4) - 1) << 35);
 
 pub const ReusedClaims = struct {
@@ -43,6 +45,9 @@ pub fn collectReusedClaims(generated: anytype) !ReusedClaims {
     if (result.present_mask != NONCORE_MASK or
         generated.core.claims.len != 17 or generated.core.audits.len != 17)
         return error.V3ReusedClaimCoverageMismatch;
+    result.claims[REPLACED_FRAME_ROW] = QM31.zero();
+    result.audits[REPLACED_FRAME_ROW] = emptyAudit();
+    result.present_mask &= ~(@as(u64, 1) << REPLACED_FRAME_ROW);
     result.claims[REPLACED_RANGE_ROW] = QM31.zero();
     result.audits[REPLACED_RANGE_ROW] = emptyAudit();
     result.present_mask &= ~(@as(u64, 1) << REPLACED_RANGE_ROW);
@@ -55,10 +60,11 @@ pub fn collectReusedClaims(generated: anytype) !ReusedClaims {
     }
     if (result.present_mask != REUSED_MASK or
         !result.claims[REPLACED_ROW].eql(QM31.zero()) or
+        !result.claims[REPLACED_FRAME_ROW].eql(QM31.zero()) or
         !result.claims[REPLACED_RANGE_ROW].eql(QM31.zero()))
         return error.V3ReusedClaimCoverageMismatch;
     for (result.claims, result.audits, 0..) |claim, audit, row| {
-        if (row != REPLACED_ROW and row != REPLACED_RANGE_ROW and
+        if (row != REPLACED_ROW and row != REPLACED_RANGE_ROW and row != REPLACED_FRAME_ROW and
             !claim.eql(audit.total))
             return error.V3ReusedClaimAuditMismatch;
     }
@@ -80,6 +86,7 @@ pub const Views = struct {
     columns: [][]M31,
     old_provider_scratch: []M31,
     old_range_scratch: []M31,
+    old_frame_scratch: []M31,
 
     /// Both manifests must already be independently validated. This checks
     /// that every reused row has identical typed geometry and maps its V2
@@ -113,6 +120,7 @@ pub const Views = struct {
     pub fn deinit(self: *Views) void {
         self.allocator.free(self.old_provider_scratch);
         self.allocator.free(self.old_range_scratch);
+        self.allocator.free(self.old_frame_scratch);
         self.allocator.free(self.columns);
         self.* = undefined;
     }
@@ -174,6 +182,12 @@ fn initMapped(
     const range_scratch = try allocator.alloc(M31, try std.math.mul(usize, range_count, range_rows));
     errdefer allocator.free(range_scratch);
     @memset(range_scratch, M31.zero());
+    const old_frame = source[REPLACED_FRAME_ROW].?;
+    const frame_count = if (tree == manifest_mod.INTERACTION_TREE_INDEX) count(old_frame, tree) else 0;
+    const frame_rows = @as(usize, 1) << @intCast(old_frame.geometry.log_size);
+    const frame_scratch = try allocator.alloc(M31, try std.math.mul(usize, frame_count, frame_rows));
+    errdefer allocator.free(frame_scratch);
+    @memset(frame_scratch, M31.zero());
     for (source[0..BASE_ROWS], 0..) |maybe_old, row| {
         const old = maybe_old orelse return error.V3BaseViewShapeMismatch;
         const newer = target[row] orelse return error.V3BaseViewShapeMismatch;
@@ -189,7 +203,16 @@ fn initMapped(
             for (0..n) |i| columns[old_start + i] = range_scratch[i * range_rows ..][0..range_rows];
             continue;
         }
-        if (!std.meta.eql(old.geometry, newer.geometry))
+        if (row == REPLACED_FRAME_ROW and tree == manifest_mod.INTERACTION_TREE_INDEX) {
+            for (0..n) |i| columns[old_start + i] = frame_scratch[i * frame_rows ..][0..frame_rows];
+            continue;
+        }
+        if (row == REPLACED_FRAME_ROW) {
+            const expected_count = if (tree == manifest_mod.PREPROCESSED_TREE_INDEX) n + 1 else n;
+            if (newer.geometry.log_size != old.geometry.log_size or
+                count(newer, tree) != expected_count)
+                return error.V3BaseViewGeometryMismatch;
+        } else if (!std.meta.eql(old.geometry, newer.geometry))
             return error.V3BaseViewGeometryMismatch;
         const new_start = offset(newer, tree);
         if (new_start + n > destination.len) return error.V3BaseViewShapeMismatch;
@@ -206,6 +229,7 @@ fn initMapped(
         .columns = columns,
         .old_provider_scratch = scratch,
         .old_range_scratch = range_scratch,
+        .old_frame_scratch = frame_scratch,
     };
 }
 
@@ -289,19 +313,23 @@ test "direct leaf views reuse V2 rows without copying old row34" {
     try std.testing.expectError(error.WrongV3Tree, views.fillPreprocessedFromV2(&mock));
     try std.testing.expectError(error.WrongV3Tree, views.fillInteractionFromV2(&mock, @as(u8, 0), @as(u8, 0)));
 
-    const pp_destination = try allocator.alloc([]M31, BASE_ROWS);
+    var target_pp = target;
+    target_pp[REPLACED_FRAME_ROW].?.geometry.preprocessed_columns += 1;
+    for (REPLACED_FRAME_ROW + 1..BASE_ROWS) |row|
+        target_pp[row].?.preprocessed_offset += 1;
+    const pp_destination = try allocator.alloc([]M31, BASE_ROWS + 1);
     defer allocator.free(pp_destination);
     for (pp_destination, 0..) |*column, row| {
-        column.* = try allocator.alloc(M31, if (row == REPLACED_ROW) 64 else 16);
+        column.* = try allocator.alloc(M31, if (row == REPLACED_ROW + 1) 64 else 16);
         @memset(column.*, M31.zero());
     }
     defer for (pp_destination) |column| allocator.free(column);
-    var pp_views = try initMapped(allocator, &source, &target, pp_destination, manifest_mod.PREPROCESSED_TREE_INDEX);
+    var pp_views = try initMapped(allocator, &source, &target_pp, pp_destination, manifest_mod.PREPROCESSED_TREE_INDEX);
     defer pp_views.deinit();
     pp_views.columns[10][0] = M31.fromCanonical(31);
     pp_views.columns[REPLACED_ROW][0] = M31.fromCanonical(37);
-    try std.testing.expectEqual(@as(u32, 31), pp_destination[10][0].toU32());
-    try std.testing.expect(pp_destination[REPLACED_ROW][0].isZero());
+    try std.testing.expectEqual(@as(u32, 31), pp_destination[11][0].toU32());
+    try std.testing.expect(pp_destination[REPLACED_ROW + 1][0].isZero());
     try std.testing.expectEqual(@as(u32, 37), pp_views.old_provider_scratch[0].toU32());
 
     const io_destination = try allocator.alloc([]M31, BASE_ROWS * 4);
@@ -321,7 +349,7 @@ test "direct leaf views reuse V2 rows without copying old row34" {
     try std.testing.expectError(error.V3BaseViewGeometryMismatch, initMapped(allocator, &source, &target, destination, manifest_mod.MAIN_TREE_INDEX));
 }
 
-test "direct leaf retains 37 V2 claims and drops obsolete provider rows" {
+test "direct leaf retains 36 V2 claims and drops replaced rows" {
     const one = QM31.one();
     const Noncore = struct {
         omit_row35: bool = false,
