@@ -12,6 +12,7 @@ const prover_component = @import("stwo_prover_engine").air.component_prover;
 const prover_engine = @import("stwo_prover_engine").engine;
 const stage_profile = @import("stwo_prover_api").stage_profile;
 const prover_transaction = @import("stwo_prover_engine").transaction;
+const preprocessed_commitment = @import("preprocessed_commitment.zig");
 const CpuBackend = @import("stwo_cpu_backend").CpuBackend;
 
 pub const constants = @import("blake/constants.zig");
@@ -59,6 +60,7 @@ pub const prepareInput = exact_input.prepare;
 pub const Error = exact_input.Error || error{
     ClaimedSumMismatch,
     InvalidProofShape,
+    InvalidPreprocessedCommitment,
 };
 
 pub const ProveOutput = struct {
@@ -325,6 +327,16 @@ pub fn verify(
     var proof = proof_in;
     var proof_moved = false;
     defer if (!proof_moved) proof.deinit(allocator);
+    const preprocessed_columns = try xor_tables.generatePreprocessed(allocator);
+    defer preprocessed_commitment.freeColumns(allocator, preprocessed_columns);
+    const expected_root = try preprocessed_commitment.root(
+        allocator,
+        pcs_config,
+        preprocessed_columns,
+    );
+    if (!std.mem.eql(u8, &expected_root, &proof.commitment_scheme_proof.commitments.items[0]))
+        return error.InvalidPreprocessedCommitment;
+
     var channel = Channel{};
     var commitment_scheme = try pcs_verifier.CommitmentSchemeVerifier(
         Hasher,

@@ -11,4 +11,5 @@ test {
     _ = @import("state_machine/session_test.zig");
     _ = @import("wide_fibonacci/session_test.zig");
     _ = @import("xor/session_test.zig");
+    _ = @import("preprocessed_forgery_test.zig");
 }

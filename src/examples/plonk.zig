@@ -17,6 +17,7 @@ const stage_profile = @import("stwo_prover_api").stage_profile;
 const secure_column = @import("stwo_prover_engine").secure_column;
 const prover_transaction = @import("stwo_prover_engine").transaction;
 const trace_input = @import("plonk/input.zig");
+const preprocessed_commitment = @import("preprocessed_commitment.zig");
 const CpuBackend = @import("stwo_cpu_backend").CpuBackend;
 
 const M31 = m31.M31;
@@ -59,6 +60,7 @@ pub const ProveExOutput = prover_transaction.Output(Statement, ExtendedProof);
 
 pub const Error = trace_input.Error || error{
     InvalidProofShape,
+    InvalidPreprocessedCommitment,
 };
 
 pub fn prove(
@@ -344,6 +346,16 @@ pub fn verify(
     var proof = proof_in;
     var proof_moved = false;
     defer if (!proof_moved) proof.deinit(allocator);
+
+    const preprocessed_columns = try trace_input.generatePreprocessed(allocator, statement);
+    defer preprocessed_commitment.freeColumns(allocator, preprocessed_columns);
+    const expected_root = try preprocessed_commitment.root(
+        allocator,
+        pcs_config,
+        preprocessed_columns,
+    );
+    if (!std.mem.eql(u8, &expected_root, &proof.commitment_scheme_proof.commitments.items[0]))
+        return error.InvalidPreprocessedCommitment;
 
     var channel = Channel{};
     pcs_config.mixInto(&channel);
@@ -639,14 +651,8 @@ test "examples plonk: verify wrapper rejects statement mismatch" {
     var bad_statement = output.statement;
     bad_statement.log_n_rows += 1;
 
-    if (verify(std.testing.allocator, config, bad_statement, output.proof)) |_| {
-        try std.testing.expect(false);
-    } else |err| {
-        const verification_error = @import("stwo_core").verifier_types.VerificationError;
-        try std.testing.expect(
-            err == verification_error.OodsNotMatching or
-                err == verification_error.InvalidStructure or
-                err == verification_error.ShapeMismatch,
-        );
-    }
+    try std.testing.expectError(
+        error.InvalidPreprocessedCommitment,
+        verify(std.testing.allocator, config, bad_statement, output.proof),
+    );
 }
