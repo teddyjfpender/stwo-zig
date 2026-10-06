@@ -116,15 +116,49 @@ pub fn verifyChildWithMutation(
     const roots = child.stark_proof.proof.commitment_scheme_proof.commitments.items;
     if (roots.len != 4 or !std.mem.eql(u8, &roots[0], &expected.preprocessed_root))
         return error.ChildPreprocessedRootMismatch;
-    for (expected.public_words) |word| if (word >= core.fields.m31.Modulus) return error.NoncanonicalPublicWord;
+    var adapted = try cpu.verifier_proof.prepare(allocator, child);
+    defer adapted.deinit();
+    return verifyPreparedWithMutation(allocator, projection_bytes, layout, child.pcs_config, &adapted, expected, mutation);
+}
 
+/// Verify a proof reconstructed from an already accepted native S31NAT1
+/// proof. The caller must have verified that proof against this exact layout,
+/// PCS, preprocessed root, circuit hash, and eight public words.
+pub fn verifyPrepared(
+    allocator: std.mem.Allocator,
+    projection_bytes: []const u8,
+    layout: circuit.common.preprocessed.ColumnLayout,
+    pcs: core.pcs.config_v2.PcsConfigV2,
+    adapted: *const cpu.verifier_proof.VerifierProof,
+    expected: Expected,
+) !circuit.builder.Context(QM31) {
+    return verifyPreparedWithMutation(allocator, projection_bytes, layout, pcs, adapted, expected, null);
+}
+
+fn verifyPreparedWithMutation(
+    allocator: std.mem.Allocator,
+    projection_bytes: []const u8,
+    layout: circuit.common.preprocessed.ColumnLayout,
+    pcs: core.pcs.config_v2.PcsConfigV2,
+    adapted: *const cpu.verifier_proof.VerifierProof,
+    expected: Expected,
+    mutation: ?Mutation,
+) !circuit.builder.Context(QM31) {
+    const actual_hash = try circuit.common.circuit_hash.hostCircuitHash(
+        try circuit.common.component_list.circuitComponentLogSizes(&layout),
+        pcs.fri_config.log_blowup_factor,
+        expected.preprocessed_root,
+    );
+    if (!std.mem.eql(u8, &actual_hash, &expected.circuit_hash)) return error.ChildCircuitHashMismatch;
+    for (expected.public_words) |word| if (word >= core.fields.m31.Modulus) return error.NoncanonicalPublicWord;
+    if (adapted.config.n_preprocessed_columns != layout.entries.len or
+        adapted.config.log_trace_size != layout.traceLogSize() or
+        !std.meta.eql(adapted.config.fri, pcs.fri_config)) return error.ChildProofConfigMismatch;
     try authenticateProjection(projection_bytes);
     var projection = try circuit.air_eval.projection.parse(allocator, projection_bytes);
     defer projection.deinit();
     var table = try circuit.air_eval.circuit_components.build(allocator, &projection);
     defer table.deinit();
-    var adapted = try cpu.verifier_proof.prepare(allocator, child);
-    defer adapted.deinit();
     var scratch = std.heap.ArenaAllocator.init(allocator);
     defer scratch.deinit();
     var proof_values = try cpu.verifier_proof.circuitVerifierValues(scratch.allocator(), &adapted.proof, adapted.config);
@@ -134,7 +168,7 @@ pub fn verifyChildWithMutation(
         .fri_last_layer => proof_values.fri.last_layer_coefs[0] = proof_values.fri.last_layer_coefs[0].add(QM31.one()),
     };
     const config: circuit.statements.circuit_statement.CircuitConfig = .{
-        .config = child.pcs_config,
+        .config = pcs,
         .preprocessed_column_log_sizes = layout,
     };
     return circuit.statements.circuit_verifier.verifyCircuit(

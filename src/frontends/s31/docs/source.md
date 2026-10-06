@@ -74,6 +74,8 @@ contract and worked polynomial are in [the library chapter](library.md).
 | `std::math::neg(x)` | `-x mod p`, lane-wise. |
 | `std::math::sub(x,y)` | `x-y mod p`, equal M31 shapes. |
 | `std::math::square(x)` | `x.*x`. |
+| `std::math::inv(x)` | Checked lane-wise inverse; any zero lane makes the relation unsatisfiable. |
+| `std::math::div(x,y)` | Checked lane-wise division, lowered to a shared inverse and multiplication. |
 | `std::math::pow<K>(x)` | Static binary exponentiation, `0 <= K < p`; `x^0=1`, including `0^0`. |
 | `std::math::sum([a,...])` | Balanced sum across 1..64 statically grouped, equally shaped M31 arrays. |
 | `std::math::dot([a,...],[b,...])` | Pairwise products and balanced sum across equal static groups. |
@@ -102,6 +104,9 @@ and lower identically. `std::math::sub` with a constant right operand becomes
 one `add_const` with `p-c`; `pow<5>` becomes three multiplication nodes. This
 is source-level convenience over the same proof gates. `pow<p-2>(x)` is not a
 checked inverse: at zero it returns zero, and no nonzero assertion is added.
+Use `std::math::inv` or `std::math::div` when nonzero is required. They
+add a constrained inverse witness, with one pointwise multiplication gate
+per packed group of four lanes. A partial final group masks unused lanes.
 The [lane-reduction example](library.md#reduce-one-array-to-one-value) shows
 the difference between summing static groups of arrays and summing the
 positions inside one array.
@@ -159,6 +164,7 @@ semantics:
 | `constant` | `constant: c`, `length: N` gives `m31[N]` filled with canonical `c`. |
 | `cast_m31` | `lhs: u16[N]` gives the same values as `m31[N]`. |
 | `add`, `mul` | Two equally shaped `m31[N]` arrays, lane-wise modulo `p`. |
+| `inv` | One `m31[N]` array; returns its lane-wise inverses and constrains every active input lane nonzero. `std::math::div` lowers to `inv` followed by `mul`. |
 | `add_const`, `mul_const` | `m31[N]` and one canonical constant, lane-wise. |
 | `sum_lanes` | One `m31[N]` gives `m31[1]` containing the sum of its declared positions. `dot_lanes` first emits pointwise `mul`, then this node. |
 | `u256_add`, `u256_add_checked`, `u256_le` | Two `u16[16]` operands give a `u16[16]` sum or an `m31[1]` comparison. Digits are range checked; carries and borrows are Boolean. Checked addition also requires final carry zero. |

@@ -64,7 +64,10 @@ S31NAT1 outer proof ── separately built native verifier
 ```
 
 Expanded opening data is a witness, not an admission decision: the circuit
-checks it. The prover also builds a witness-independent `NoValue` topology,
+checks it. For a saved child proof, the native verifier reconstructs these
+openings while checking the exact child key and public statement. Conversion
+occurs only after that check succeeds; it does not trust a prover-supplied
+opening sidecar. The prover also builds a witness-independent `NoValue` topology,
 compares every gate with the value circuit before and after padding, checks
 circuit satisfaction, and natively verifies the outer proof before writing
 it. `recurse-check` runs a separate audit: it requires rejection for a changed
@@ -87,31 +90,37 @@ independent cryptographic audit.
 
 ## Reproduce
 
-From the repository root:
+From the repository root, first prove the child as an ordinary S31 program,
+then wrap its saved proof:
 
 ```sh
 python3 src/frontends/s31/s31.py build \
   src/frontends/s31/examples/arith4_m31.s31 \
   --lowering gate --out zig-out/s31/recursive-arith4
 
-zig-out/s31/recursive-arith4/bin/s31-arith4_m31-prover recurse-prove \
+python3 src/frontends/s31/s31.py prove \
+  zig-out/s31/recursive-arith4 \
   src/frontends/s31/examples/arith4.valid.json \
-  zig-out/s31/recursive-arith4/child.proof \
-  zig-out/s31/recursive-arith4/outer.proof \
-  zig-out/s31/recursive-arith4/verification-key.json
+  zig-out/s31/recursive-arith4/child.proof
 
-zig-out/s31/recursive-arith4/bin/s31-arith4_m31-native-verifier recurse-verify \
-  zig-out/s31/recursive-arith4/outer.proof \
-  zig-out/s31/recursive-arith4/outer.proof.statement.json
+python3 src/frontends/s31/s31.py wrap \
+  zig-out/s31/recursive-arith4 \
+  zig-out/s31/recursive-arith4/child.proof \
+  zig-out/s31/recursive-arith4/outer.proof
+
+python3 src/frontends/s31/s31.py verify-recursive \
+  zig-out/s31/recursive-arith4 \
+  zig-out/s31/recursive-arith4/outer.proof
 
 python3 src/frontends/s31/acceptance_recursion_gate.py \
   --package zig-out/s31/recursive-arith4
 ```
 
-The acceptance run checks valid leaf and outer proofs, then rejects changed
-child words, outer output, child key ID, outer root/hash, corrupted outer
-proof, and a wrong child key passed to the prover. Its separate
-`recurse-check` also exercises the four direct in-circuit corruptions above.
+`recurse-prove ASSIGNMENT CHILD-PROOF OUTER-PROOF CHILD-KEY` remains a one-shot
+prover command. The acceptance run checks both one-shot and saved-proof
+wrappers, rejects changed leaf and outer statements, altered proofs and
+keys, and runs `recurse-check` to exercise the four direct in-circuit
+corruptions above.
 
 One `ReleaseFast` run produced a 438,157-byte child proof. The verifier
 circuit had 10,277,308 variables and 1,139,003 arithmetic gates. After
@@ -128,11 +137,10 @@ one `time -l` run. It rebuilds the outer preprocessed circuit from the
 embedded child key on every invocation; a trusted cached outer key would
 reduce that repeated work.
 
-The command currently constructs the child proof from the S31 assignment and
-retains the prover's expanded opening data for conversion. The `S31NAT1`
-file alone does not contain that expanded witness; this CLI does not yet
-wrap a previously produced proof file. The final `recurse-verify` command
-only needs the outer proof and its statement.
+The saved `S31NAT1` file lacks the expanded opening witness, so `wrap`
+replays full native verification and captures the authenticated paths before
+conversion. It does not need the private assignment. The final
+`verify-recursive` command only needs the outer proof and its statement.
 
 ## Next boundary
 

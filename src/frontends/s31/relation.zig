@@ -21,7 +21,7 @@ pub const Step = struct {
     op: StepOp,
     constant: ?u32 = null,
 };
-pub const Op = enum { constant, cast_m31, add, mul, add_const, mul_const, repeat, hash_blake2s, hash_blake2s_leaf, hash_blake2s_pair, select, hash_poseidon2_leaf, hash_poseidon2_pair, sum_lanes, u256_add, u256_le, u256_add_checked, hash_sha256d_header, bitcoin_target_mainnet, bitcoin_prev_hash, bitcoin_header_bits, bitcoin_genesis_hash_mainnet, bitcoin_header_time, u32_lt };
+pub const Op = enum { constant, cast_m31, add, mul, add_const, mul_const, repeat, hash_blake2s, hash_blake2s_leaf, hash_blake2s_pair, select, hash_poseidon2_leaf, hash_poseidon2_pair, sum_lanes, u256_add, u256_le, u256_add_checked, hash_sha256d_header, bitcoin_target_mainnet, bitcoin_prev_hash, bitcoin_header_bits, bitcoin_genesis_hash_mainnet, bitcoin_header_time, u32_lt, inv };
 pub const mainnet_genesis_hash_raw: [32]u8 = .{ 0x6f, 0xe2, 0x8c, 0x0a, 0xb6, 0xf1, 0xb3, 0x72, 0xc1, 0xa6, 0xa2, 0x46, 0xae, 0x63, 0xf7, 0x4f, 0x93, 0x1e, 0x83, 0x65, 0xe1, 0x5a, 0x08, 0x9c, 0x68, 0xd6, 0x19, 0x00, 0x00, 0x00, 0x00, 0x00 };
 pub const leaf_personalization = [8]u8{ 'S', '3', '1', 'L', 'E', 'A', 'F', '1' };
 pub const pair_personalization = [8]u8{ 'S', '3', '1', 'P', 'A', 'I', 'R', '1' };
@@ -117,6 +117,10 @@ pub const Program = struct {
                 },
                 .add, .mul => {
                     if (lhs == null or rhs == null or lhs.?.kind != .m31 or rhs.?.kind != .m31 or lhs.?.length != rhs.?.length or node.constant != null or node.length != null or node.rounds != null or node.body != null) return error.InvalidNode;
+                    result = lhs.?;
+                },
+                .inv => {
+                    if (lhs == null or lhs.?.kind != .m31 or rhs != null or node.constant != null or node.length != null or node.rounds != null or node.body != null) return error.InvalidNode;
                     result = lhs.?;
                 },
                 .add_const, .mul_const => {
@@ -398,6 +402,7 @@ pub fn evaluate(allocator: std.mem.Allocator, program: Program, assignment: Assi
             .cast_m31 => lhs.?[i],
             .add => lhs.?[i].add(rhs.?[i]),
             .mul => lhs.?[i].mul(rhs.?[i]),
+            .inv => try lhs.?[i].inv(),
             .add_const => lhs.?[i].add(c),
             .mul_const => lhs.?[i].mul(c),
             .sum_lanes => blk: {

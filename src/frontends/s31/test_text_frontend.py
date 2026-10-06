@@ -17,6 +17,22 @@ EXAMPLES = Path(__file__).resolve().parent / "examples"
 
 
 class TextFrontendTests(unittest.TestCase):
+    def test_field_inverse_division_and_zero_rejection(self) -> None:
+        relation, _ = compile_file(EXAMPLES / "field_div4.s31")
+        self.assertEqual([node["op"] for node in relation["nodes"]],
+                         ["inv", "mul", "add"])
+        self.assertEqual(relation["nodes"][1]["rhs"], relation["nodes"][0]["name"])
+        assignment = json.loads((EXAMPLES / "field_div4.valid.json").read_text())
+        self.assertEqual(evaluate_relation(relation, assignment), assignment["public_outputs"])
+        invalid = copy.deepcopy(assignment)
+        invalid["private_inputs"]["denominator"][2] = 0
+        with self.assertRaisesRegex(OracleError, "division by zero"):
+            evaluate_relation(relation, invalid)
+        with self.assertRaisesRegex(SourceError, "inverse of zero"):
+            compile_text("circuit bad() -> public [m31; 1] { std::math::inv(splat<1>(0_m31)) }")
+        with self.assertRaisesRegex(SourceError, "equally shaped"):
+            compile_text("circuit bad(private x: [m31; 1]) -> public [m31; 1] { std::math::div(x, splat<2>(1_m31)) }")
+
     def test_bitcoin_header_sha256d_and_compact_pow(self) -> None:
         hash_relation, _ = compile_file(EXAMPLES / "bitcoin_header_hash.s31")
         pow_relation, _ = compile_file(EXAMPLES / "bitcoin_header_pow.s31")

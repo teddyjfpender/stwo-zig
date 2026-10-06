@@ -71,7 +71,25 @@ pub fn verify(
     public_words: [8]u32,
     raw: []const u8,
 ) !void {
-    return verifyProfile(allocator, layout, template, pcs, preprocessed_root, circuit_hash, public_words, raw, null);
+    return verifyProfile(allocator, layout, template, pcs, preprocessed_root, circuit_hash, public_words, raw, null, null);
+}
+
+/// Authenticate a full gate-profile proof and retain the verifier's expanded
+/// Merkle/FRI openings for the recursive circuit. No prover-side aux tree is
+/// needed; conversion only runs after the native verifier accepts the proof.
+pub fn verifyAndCapture(
+    allocator: std.mem.Allocator,
+    layout: *const circuit.common.preprocessed.ColumnLayout,
+    template: *const cpu.air.Bundle,
+    pcs: core.pcs.config_v2.PcsConfigV2,
+    preprocessed_root: H.Hash,
+    circuit_hash: H.Hash,
+    public_words: [8]u32,
+    raw: []const u8,
+) !cpu.verifier_proof.VerifierProof {
+    var converted: cpu.verifier_proof.VerifierProof = undefined;
+    try verifyProfile(allocator, layout, template, pcs, preprocessed_root, circuit_hash, public_words, raw, null, &converted);
+    return converted;
 }
 
 pub fn verifyHybrid(
@@ -85,7 +103,7 @@ pub fn verifyHybrid(
     raw: []const u8,
     spec: HybridSpec,
 ) !void {
-    return verifyProfile(allocator, layout, template, pcs, preprocessed_root, circuit_hash, public_words, raw, spec);
+    return verifyProfile(allocator, layout, template, pcs, preprocessed_root, circuit_hash, public_words, raw, spec, null);
 }
 
 fn verifyProfile(
@@ -98,6 +116,7 @@ fn verifyProfile(
     public_words: [8]u32,
     raw: []const u8,
     spec: ?HybridSpec,
+    converted_out: ?*cpu.verifier_proof.VerifierProof,
 ) !void {
     const hybrid = spec != null;
     const magic = if (hybrid) HYBRID_MAGIC else MAGIC;
@@ -231,6 +250,11 @@ fn verifyProfile(
         &capture,
     );
     defer capture.deinit(allocator);
+    if (converted_out) |out| {
+        if (spec != null) return error.UnsupportedRecursiveProfile;
+        const config = try cpu.verifier_proof.proofConfig(stark.commitment_scheme_proof.sampled_values.items[0].len, pcs);
+        out.* = try cpu.verifier_proof.fromVerifiedCapture(allocator, &stark, &capture, config, &sums, nonce, 0);
+    }
 }
 
 fn logsFor(

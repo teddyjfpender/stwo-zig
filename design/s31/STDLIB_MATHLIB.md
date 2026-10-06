@@ -1,7 +1,8 @@
 # S31 standard and math library: current contract and remaining work
 
 Status: compiler-owned `std@1` package with an explicit source pin, static
-math helpers, and constrained lane reductions, 2026-10-06. This document distinguishes
+math helpers, constrained lane reductions, and checked field inversion/division,
+2026-10-06. This document distinguishes
 what is executable today from the work needed for a useful library release.
 The [text language guide](../../src/frontends/s31/TEXT_LANGUAGE.md) defines the
 implemented syntax; the [MVP roadmap](MVP_ROADMAP.md) tracks proof-backend work.
@@ -17,7 +18,7 @@ general module loader or user-published package format yet.
 
 | Namespace | Implemented operations | Backend relation |
 | --- | --- | --- |
-| `std::math` | `neg`, `sub`, `square`, static `pow<K>`, static-group `sum`, `dot`, `poly_eval`, fixed-array `sum_lanes`, `dot_lanes`, `add_u256`, `add_u256_checked`, `le_u256` | M31 arithmetic and constrained packed reduction; wide operations use sixteen range-checked digits and Boolean carries/borrows. |
+| `std::math` | `neg`, `sub`, `square`, checked `inv`, `div`, static `pow<K>`, static-group `sum`, `dot`, `poly_eval`, fixed-array `sum_lanes`, `dot_lanes`, `add_u256`, `add_u256_checked`, `le_u256` | M31 arithmetic and constrained packed reduction; inversion uses one pointwise constraint per four active lanes, and division reuses the inverse; wide operations use sixteen range-checked digits and Boolean carries/borrows. |
 | `std::field` | `from_u16`, `select` | Explicit conversion; direct input bit selector with `b²-b=0`. |
 | `std::bytes` | `to_u256_le`, `from_u256_le`, `limbs_m31` | Explicit nominal byte/integer reinterpretation and value-preserving cast of sixteen `u16` limbs. |
 | `std::hash` | Poseidon2 and BLAKE2s reduced leaf/pair hashes; byte-exact SHA256d of `Bytes80` | Existing pinned hash nodes plus a constrained three-block SHA circuit. |
@@ -32,8 +33,9 @@ checked addition forbids overflow, and unsigned comparison returns one M31
 bit. It is a base for the
 [Bitcoin header light-client plan](BITCOIN_LIGHT_CLIENT.md), which also
 now has byte-exact SHA256d and compact-target rules for a single mainnet
-header. It still requires chain difficulty/linkage rules, a wider public
-statement, and an in-circuit S31 verifier.
+header. A one-level `gate` verifier exists, but the Bitcoin profile still
+requires broader chain policy, a wider public statement, and a sparse-wide
+in-circuit verifier.
 
 The compiler checks types and canonical field constants before relation emission.
 `pow<K>` requires a compile-time exponent `0 <= K < p`, where
@@ -60,7 +62,16 @@ verifier in `acceptance_text_v1.py`.
 This is a zero-overhead *source abstraction* relative to writing these same
 nodes by hand. It is not a claim that the chosen exponentiation chain or the
 current gate profile is globally optimal. `pow<p-2>(x)` computes `0` when
-`x=0`; it is not a safe division or an asserted nonzero inverse.
+`x=0`; it is not a safe division or an asserted nonzero inverse. The new
+`std::math::inv(x)` instead witnesses `r` and constrains `x·r=1` on every
+active lane; `std::math::div(a,x)` shares that inverse and multiplies by `a`.
+Zero is rejected before proving, and a partial final packed group has a
+circuit-validity test. The [field division example](../../src/frontends/s31/examples/field_div4.s31)
+has a 58,140-byte `direct-gate` proof with 325 raw rows (512 padded) in one
+`ReleaseFast` run; the [acceptance corpus](../../src/frontends/s31/acceptance_field_div_v1.py)
+checks nine native proofs (including boundary and seeded random inputs) and
+five negative cases. This is a single-program
+cost observation, not a batch-inverse performance comparison.
 
 The [new `mathlib4` program](../../src/frontends/s31/examples/mathlib4.s31)
 uses Horner polynomial evaluation, static dot, and static sum in four M31
@@ -124,7 +135,7 @@ chip it activates.
 | --- | --- | ---: |
 | General modules and shape-polymorphic pure functions | Extend the current `use std@1` pin to named modules, deterministic external resolution, lockfiles for imported source, and source maps through those calls. | 2–4 weeks |
 | Field/vector core | Add fixed-array indexing, concatenation, and vector/matrix kernels; direct-gate proofs match independent oracles. Static-group and lane reductions, dot products, and Horner evaluation are implemented. | 2–4 weeks |
-| Nonzero inverse and checked division | Witness generation plus `x·inv=1`, a nonzero contract, zero rejection, batch inverse cost comparison, and native-verifier mutation tests. | 2–3 weeks |
+| Nonzero inverse and checked division | **Core implemented:** witness generation, `x·inv=1`, zero rejection, direct-gate proof and native-verifier negative cases. Remaining: batch inverse cost comparison and wider random proof corpus. | Remaining effort depends on batching design. |
 | Boolean/range/integer core | Computed bits, comparisons, range constraints and explicit integer/field casts; no host-only assertions or unconstrained hint outputs. | 3–6 weeks |
 | Library release discipline | API/version policy, corpus of positive and negative proofs, cost regression gates, and audit views from source to AIR polynomial. | 2–3 weeks |
 
@@ -146,10 +157,10 @@ still need the backend efficiency work in the [MVP roadmap](MVP_ROADMAP.md).
    projection, indexing, concatenation, and small linear algebra remain.
    Compare their direct arithmetic cost and retain matched source/JSON
    programs and independent scalar oracles.
-3. Add checked inversion with an explicit nonzero contract. A witness-supplied
-   inverse is useful only when the AIR enforces `x·y-1=0`; the prover must reject
-   zero input before committing. Compare this with static exponentiation on
-   actual circuit cost.
+3. Extend the implemented checked inverse with randomized proof vectors and
+   compare batched inversion with static exponentiation on actual circuit
+   cost. Preserve the direct profile's one pointwise constraint per packed
+   group and the zero-input rejection gate.
 4. Add computed booleans and range/integer gadgets as typed values. Review
    lookup closure and boundary constraints before exposing comparisons or
    conditional arithmetic in the standard library.

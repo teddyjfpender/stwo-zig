@@ -89,6 +89,11 @@ and produces a native verifier. [`lane_stats4.s31`](examples/lane_stats4.s31)
 computes the sum and weighted dot product of private array lanes, returning
 one public M31 word. Its `sum_lanes` operations use constrained packed-lane
 projection; `dot_lanes` adds one pointwise multiplication.
+[`field_div4.s31`](examples/field_div4.s31) adds checked field inversion and
+division. `std::math::div` reuses the checked inverse and remains on the
+`direct-gate` profile; a zero denominator is unsatisfiable. Run
+`python3 src/frontends/s31/acceptance_field_div_v1.py` for the proof and
+adversarial checks.
 `equations` exposes semantic field equations and source positions, with the
 generic AIR's lookup and public-binding terms documented separately in
 [the guide](docs/walkthrough.md).
@@ -121,8 +126,8 @@ authenticated circuit-to-chip lookup before this AIR can replace the generic
 SHA circuit in the header example.
 
 The [recursion chapter](docs/recursion.md) demonstrates a one-level
-`gate`-profile wrapper: a real S31 proof is verified inside a circuit, the
-wrapper is proved, and its outer proof is checked by a generated native
+`gate`-profile wrapper: a saved S31 proof is natively authenticated, verified
+inside a circuit, and wrapped in an outer proof checked by a generated native
 verifier. The chapter states the remaining steps for the sparse-wide Bitcoin
 header proof and a repeatable fold.
 

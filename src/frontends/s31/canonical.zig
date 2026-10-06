@@ -7,7 +7,7 @@ const core = @import("stwo_core");
 const relation = @import("relation.zig");
 const M31 = core.fields.m31.M31;
 
-pub const Tag = enum { input, constant, cast_m31, add, mul, add_const, mul_const, repeat, hash_blake2s, hash_blake2s_leaf, hash_blake2s_pair, select, hash_poseidon2_leaf, hash_poseidon2_pair, sum_lanes, u256_add, u256_le, u256_add_checked, hash_sha256d_header, bitcoin_target_mainnet, bitcoin_prev_hash, bitcoin_header_bits, bitcoin_genesis_hash_mainnet, bitcoin_header_time, u32_lt };
+pub const Tag = enum { input, constant, cast_m31, add, mul, add_const, mul_const, repeat, hash_blake2s, hash_blake2s_leaf, hash_blake2s_pair, select, hash_poseidon2_leaf, hash_poseidon2_pair, sum_lanes, u256_add, u256_le, u256_add_checked, hash_sha256d_header, bitcoin_target_mainnet, bitcoin_prev_hash, bitcoin_header_bits, bitcoin_genesis_hash_mainnet, bitcoin_header_time, u32_lt, inv };
 pub const Node = struct {
     tag: Tag,
     kind: relation.Kind,
@@ -248,6 +248,13 @@ fn expressionKey(allocator: std.mem.Allocator, node: Node) ![]const u8 {
         node.lhs orelse std.math.maxInt(u32),      node.rhs orelse std.math.maxInt(u32), node.constant orelse std.math.maxInt(u32),
         node.selector orelse std.math.maxInt(u32), node.rounds orelse 0,                 body_json,
     });
+}
+
+test "inverse extends the opcode roster without renumbering existing circuit tags" {
+    try std.testing.expectEqual(@as(u8, 23), @intFromEnum(relation.Op.u32_lt));
+    try std.testing.expectEqual(@as(u8, 24), @intFromEnum(Tag.u32_lt));
+    try std.testing.expectEqual(@as(u8, 24), @intFromEnum(relation.Op.inv));
+    try std.testing.expectEqual(@as(u8, 25), @intFromEnum(Tag.inv));
 }
 
 test "canonical graph folds constants and shares repeated expressions" {

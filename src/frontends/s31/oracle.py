@@ -26,7 +26,7 @@ _HASH_OPS = frozenset({
     "hash_blake2s", "hash_blake2s_leaf", "hash_blake2s_pair",
     "hash_poseidon2_leaf", "hash_poseidon2_pair",
 })
-_OPS = frozenset({"constant", "cast_m31", "add", "mul", "add_const",
+_OPS = frozenset({"constant", "cast_m31", "add", "mul", "inv", "add_const",
                   "mul_const", "sum_lanes", "select", "repeat",
                   "u256_add", "u256_le", "u256_add_checked",
                   "hash_sha256d_header", "bitcoin_target_mainnet",
@@ -149,6 +149,9 @@ def _validated_shapes(relation: Mapping[str, Any]) -> tuple[dict[str, tuple[str,
             if rhs is None:
                 raise OracleError(f"{name}: missing rhs")
             shape = _same_m31(node, lhs, rhs)
+        elif op == "inv":
+            _absent(node, "rhs", "constant", "length", "rounds", "body")
+            shape = _same_m31(node, lhs)
         elif op in ("add_const", "mul_const"):
             _absent(node, "rhs", "length", "rounds", "body")
             _uint(node.get("constant"), f"{name}.constant", P)
@@ -290,6 +293,10 @@ def evaluate_relation(relation: Mapping[str, Any], assignment: Mapping[str, Any]
             result = [(a + b) % P for a, b in zip(lhs, rhs)]
         elif op == "mul":
             result = [(a * b) % P for a, b in zip(lhs, rhs)]
+        elif op == "inv":
+            if 0 in lhs:
+                raise OracleError(f"{name}: division by zero")
+            result = [pow(x, P - 2, P) for x in lhs]
         elif op == "add_const":
             result = [(a + node["constant"]) % P for a in lhs]
         elif op == "mul_const":

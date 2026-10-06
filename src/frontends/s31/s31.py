@@ -538,6 +538,9 @@ def equations(package: Path) -> dict:
                 field_equations.append(f"{name}[j] - {lhs} - {rhs} = 0")
             elif op == "mul":
                 field_equations.append(f"{name}[j] - {lhs} * {rhs} = 0")
+            elif op == "inv":
+                field_equations.append(f"{lhs} * {name}[j] - 1 = 0")
+                notes.append("A zero active lane has no satisfying inverse. One pointwise gate constrains each packed group of up to four lanes.")
             elif op == "add_const":
                 field_equations.append(f"{name}[j] - {lhs} - {constant} = 0")
             elif op == "mul_const":
@@ -872,7 +875,16 @@ def main() -> None:
     sub.add_argument("package", type=Path)
     sub.add_argument("assignment", type=Path)
     sub.add_argument("proof", type=Path)
+    sub = commands.add_parser("wrap", help="prove verification of a saved gate-profile S31 proof")
+    sub.add_argument("package", type=Path)
+    sub.add_argument("child_proof", type=Path)
+    sub.add_argument("outer_proof", type=Path)
+    sub.add_argument("--statement", type=Path)
     sub = commands.add_parser("verify")
+    sub.add_argument("package", type=Path)
+    sub.add_argument("proof", type=Path)
+    sub.add_argument("--statement", type=Path)
+    sub = commands.add_parser("verify-recursive", help="verify an outer proof against its embedded child key")
     sub.add_argument("package", type=Path)
     sub.add_argument("proof", type=Path)
     sub.add_argument("--statement", type=Path)
@@ -945,11 +957,29 @@ def main() -> None:
         statement_path = Path(str(proof) + ".statement.json")
         write_json(statement_path, statement)
         print(f"public statement: {statement_path}")
+    elif args.command == "wrap":
+        if manifest["lowering"] != "gate":
+            raise ValueError("wrap requires a gate-profile package")
+        child = args.child_proof.resolve()
+        statement = args.statement.resolve() if args.statement else Path(str(child) + ".statement.json")
+        outer = args.outer_proof.resolve()
+        outer.parent.mkdir(parents=True, exist_ok=True)
+        executable = package / "bin" / f"s31-{manifest['name']}-prover"
+        print(invoke(str(executable), "recurse-wrap", str(child), str(statement),
+                     str(outer), str(package / "verification-key.json")), end="")
+        print(f"recursive statement: {outer}.statement.json")
     elif args.command == "verify":
         proof = args.proof.resolve()
         statement = args.statement.resolve() if args.statement else Path(str(proof) + ".statement.json")
         executable = package / "bin" / f"s31-{manifest['name']}-native-verifier"
         print(invoke(str(executable), str(proof), str(statement), str(package / "verification-key.json")), end="")
+    elif args.command == "verify-recursive":
+        if manifest["lowering"] != "gate":
+            raise ValueError("verify-recursive requires a gate-profile package")
+        proof = args.proof.resolve()
+        statement = args.statement.resolve() if args.statement else Path(str(proof) + ".statement.json")
+        executable = package / "bin" / f"s31-{manifest['name']}-native-verifier"
+        print(invoke(str(executable), "recurse-verify", str(proof), str(statement)), end="")
 
 
 if __name__ == "__main__":

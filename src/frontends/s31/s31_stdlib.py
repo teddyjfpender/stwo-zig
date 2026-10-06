@@ -76,6 +76,7 @@ class Builder:
         self.source_map: dict[str, dict[str, int]] = {}
         self.bit_inputs: set[str] = set()
         self.constrained_bits: set[str] = set()
+        self.inverse_cache: dict[str, Value] = {}
         self.next_temp = 0
 
     def unique(self, wanted: str | None = None) -> str:
@@ -153,6 +154,29 @@ class Builder:
             return value
         return self.emit("sum_lanes", Type("m31", 1), wanted=wanted,
                          span=span, lhs=self.realize(value).ref)
+
+    def inverse(self, value: Value, *, wanted: str | None = None,
+                span: dict[str, int] | None = None) -> Value:
+        if value.typ.kind != "m31":
+            raise TypeErrorS31("inverse requires an [m31; N] value")
+        if value.constant is not None:
+            if value.constant == 0:
+                raise TypeErrorS31("inverse of zero is undefined")
+            return self.splat(pow(value.constant, P - 2, P), value.typ.length)
+        source = self.realize(value).ref
+        if source in self.inverse_cache:
+            return self.inverse_cache[source]
+        result = self.emit("inv", value.typ, wanted=wanted, span=span, lhs=source)
+        self.inverse_cache[source] = result
+        return result
+
+    def divide(self, lhs: Value, rhs: Value, *, wanted: str | None = None,
+               span: dict[str, int] | None = None) -> Value:
+        if lhs.typ != rhs.typ or lhs.typ.kind != "m31":
+            raise TypeErrorS31("division requires equally shaped [m31; N] values")
+        if rhs.constant is not None:
+            return self.binary("mul", lhs, self.inverse(rhs), wanted=wanted, span=span)
+        return self.binary("mul", lhs, self.inverse(rhs), wanted=wanted, span=span)
 
     def cast_m31(self, value: Value, *, wanted: str | None = None,
                  span: dict[str, int] | None = None) -> Value:

@@ -12,6 +12,7 @@ from s31_stdlib import Builder, P, StaticGroup, TypeErrorS31, Value
 
 BUILTINS = {
     "std::math::neg", "std::math::sub", "std::math::square", "std::math::pow",
+    "std::math::inv", "std::math::div",
     "std::math::sum", "std::math::dot", "std::math::poly_eval",
     "std::math::sum_lanes", "std::math::dot_lanes",
     "std::math::add_u256", "std::math::add_u256_checked", "std::math::le_u256",
@@ -64,6 +65,18 @@ def square(builder: Builder, value: Value, *, wanted: str | None = None,
            span: dict[str, int] | None = None) -> Value:
     _m31(value)
     return builder.binary("mul", value, value, wanted=wanted, span=span)
+
+
+def inv(builder: Builder, value: Value, *, wanted: str | None = None,
+        span: dict[str, int] | None = None) -> Value:
+    """Field inverse; a zero in any active lane makes the circuit unsatisfied."""
+    return builder.inverse(value, wanted=wanted, span=span)
+
+
+def div(builder: Builder, lhs: Value, rhs: Value, *, wanted: str | None = None,
+        span: dict[str, int] | None = None) -> Value:
+    """Field quotient with an explicit nonzero denominator constraint."""
+    return builder.divide(lhs, rhs, wanted=wanted, span=span)
 
 
 def pow_static(builder: Builder, value: Value, exponent: int, *, wanted: str | None = None,

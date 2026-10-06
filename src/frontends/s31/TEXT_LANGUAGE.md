@@ -138,6 +138,8 @@ There is no general module loader or third-party package system yet.
 | `std::math::neg(x)` | `mul_const(x, p-1)` | `[m31; N]`; compile-time constants fold. |
 | `std::math::sub(x,y)` | Negate `y`, then add; a constant `y` becomes one `add_const`. | Equally shaped `[m31; N]`. |
 | `std::math::square(x)` | `mul(x,x)` | `[m31; N]`. |
+| `std::math::inv(x)` | One `inv` node; `x·inverse=1` per active lane | `[m31; N]`; zero is rejected. |
+| `std::math::div(x,y)` | Shared checked `inv(y)` then `mul(x,inverse)` | Equal `[m31; N]` shapes; zero denominator is rejected. |
 | `std::math::pow<K>(x)` | Static square-and-multiply chain | `[m31; N]`, `0 <= K < p`; `x^0 = 1`. |
 | `std::math::sum([a,...])` | Balanced addition tree over statically grouped terms | 1–64 equally shaped `[m31; N]` values. |
 | `std::math::dot([a,...],[b,...])` | Pairwise products and balanced sum | Equal groups of 1–64 equally shaped `[m31; N]` values. |

@@ -93,6 +93,20 @@ def check_examples() -> None:
         (sum(xs) + sum(x * w for x, w in zip(xs, weights))) % P
     ]
     assert evaluate_relation(lane_relation, lane_assignment) == {"result": [296]}
+    division_relation, _ = compile_text(
+        text_block_containing(DOCS / "library.md", "circuit field_div4"), "library.md"
+    )
+    checked_division = json.loads((S31 / "examples/field_div4.s31.json").read_text())
+    assert division_relation == checked_division
+    division_assignment = json.loads((S31 / "examples/field_div4.valid.json").read_text())
+    assert evaluate_relation(division_relation, division_assignment) == division_assignment["public_outputs"]
+    division_assignment["private_inputs"]["denominator"][3] = 0
+    try:
+        evaluate_relation(division_relation, division_assignment)
+    except OracleError:
+        pass
+    else:
+        raise AssertionError("division by zero accepted by independent oracle")
     bitcoin_relation, _ = compile_text(
         text_block_containing(DOCS / "bitcoin-sha256d.md", "circuit bitcoin_header_pow"),
         "bitcoin-sha256d.md",

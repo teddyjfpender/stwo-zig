@@ -1,0 +1,5 @@
+{
+  "public_inputs": {"numerator": [10, 21, 0, 14]},
+  "private_inputs": {"denominator": [2, 3, 5, 7]},
+  "public_outputs": {"result": [1073741829, 1431655772, 858993459, 1840700271]}
+}

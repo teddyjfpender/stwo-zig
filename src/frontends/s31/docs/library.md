@@ -22,6 +22,8 @@ AIR. No helper is a host-only calculation or a new specialized AIR chip.
 | `std::math::neg(x)` | `-x mod p` | `x: [m31; N]`. |
 | `std::math::sub(x,y)` | `x-y mod p` | Equal `[m31; N]` shapes. |
 | `std::math::square(x)` | `x·x mod p` | `x: [m31; N]`; also recognized inside `iterate`. |
+| `std::math::inv(x)` | Lane-wise field inverse | Every active lane must be nonzero. |
+| `std::math::div(x,y)` | `x·y⁻¹ mod p` | Equal `[m31; N]` shapes; every denominator lane must be nonzero. |
 | `std::math::pow<K>(x)` | `x^K mod p` | Literal `0 <= K < p`; `x^0=1`, including zero. |
 | `std::math::sum([a,b,...])` | `a+b+... mod p` | 1..64 same-shaped arrays grouped in source. |
 | `std::math::dot([a,b,...],[u,v,...])` | `a·u+b·v+... mod p` | Equal groups of 1..64 same-shaped arrays. |
@@ -47,6 +49,46 @@ so `d+1` coefficients need at most `d` multiplications and `d`
 additions. Compile-time constant folding and canonical graph sharing can
 remove or merge nodes. These are transparent lowering bounds, not claims
 of globally optimal addition chains.
+
+## Checked field division
+
+The [field division example](../examples/field_div4.s31) uses both operations:
+
+~~~s31
+use std@1;
+
+// Four independent field divisions. Zero in any denominator lane is invalid.
+circuit field_div4(public numerator: [m31; 4], private denominator: [m31; 4])
+    -> public [m31; 4] {
+    let inverse = std::math::inv(denominator);
+    let quotient = std::math::div(numerator, denominator);
+    let result = quotient + inverse;
+    result
+}
+~~~
+
+`div` reuses `inverse`; its normalized relation has only `inv`, `mul`, and
+`add` nodes. For each lane, the inverse witness `r` must satisfy
+`denominator·r − 1 = 0`, then `quotient = numerator·r`. A zero denominator
+cannot satisfy the first equation. `pow<p−2>(denominator)` would return zero
+at zero and therefore would not prove nonzero.
+
+| Array position | Numerator | Private denominator | Constrained inverse | Quotient | Public result |
+| ---: | ---: | ---: | ---: | ---: | ---: |
+| 0 | 10 | 2 | 1073741824 | 5 | 1073741829 |
+| 1 | 21 | 3 | 1431655765 | 7 | 1431655772 |
+| 2 | 0 | 5 | 858993459 | 0 | 858993459 |
+| 3 | 14 | 7 | 1840700269 | 2 | 1840700271 |
+
+The compiler packs four M31 lanes per QM31 wire. Inversion adds one
+pointwise multiplication constraint per packed wire; division adds one more
+for the quotient. An independent oracle agrees with the table, and a
+five-lane circuit test checks that the final partial group rejects a zero.
+The `direct-gate` profile accepts this relation without an Eq AIR component.
+A `ReleaseFast` sample built 325 raw QM31-operation rows (512 padded), eight
+preprocessed columns, and a 58,140-byte proof. Proving took 0.086 seconds
+and the generated native verifier accepted it. These are single-run costs
+for this four-lane example, not general throughput measurements.
 
 ## Reduce one array to one value
 

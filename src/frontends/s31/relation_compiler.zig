@@ -68,6 +68,7 @@ pub fn compileRaw(comptime V: type, allocator: std.mem.Allocator, program: relat
             .cast_m31 => .{ .shape = .{ .kind = .m31, .length = length }, .lanes = lhs.?.lanes, .raw = lhs.?.raw },
             .add => .{ .shape = .{ .kind = .m31, .length = length }, .lanes = try circuit.builder.simd.add(V, &ctx, lhs.?.lanes, rhs.?.lanes) },
             .mul => .{ .shape = .{ .kind = .m31, .length = length }, .lanes = try circuit.builder.simd.mul(V, &ctx, lhs.?.lanes, rhs.?.lanes) },
+            .inv => .{ .shape = .{ .kind = .m31, .length = length }, .lanes = try inverseLanes(V, &ctx, lhs.?.lanes) },
             .add_const => .{ .shape = .{ .kind = .m31, .length = length }, .lanes = try circuit.builder.simd.add(V, &ctx, lhs.?.lanes, try circuit.builder.simd.repeat(V, &ctx, M31.fromCanonical(node.constant.?), length)) },
             .mul_const => .{ .shape = .{ .kind = .m31, .length = length }, .lanes = try circuit.builder.simd.mul(V, &ctx, lhs.?.lanes, try circuit.builder.simd.repeat(V, &ctx, M31.fromCanonical(node.constant.?), length)) },
             .sum_lanes => .{ .shape = .{ .kind = .m31, .length = 1 }, .lanes = try sumLanes(V, &ctx, lhs.?.lanes) },
@@ -269,6 +270,7 @@ fn compileWithSpansMode(comptime V: type, allocator: std.mem.Allocator, program:
             .cast_m31 => .{ .shape = .{ .kind = .m31, .length = node.length }, .lanes = entries[node.lhs.?].lanes, .raw = entries[node.lhs.?].raw, .boolean = entries[node.lhs.?].boolean },
             .add => .{ .shape = .{ .kind = .m31, .length = node.length }, .lanes = try circuit.builder.simd.add(V, &ctx, entries[node.lhs.?].lanes, entries[node.rhs.?].lanes) },
             .mul => .{ .shape = .{ .kind = .m31, .length = node.length }, .lanes = try circuit.builder.simd.mul(V, &ctx, entries[node.lhs.?].lanes, entries[node.rhs.?].lanes) },
+            .inv => .{ .shape = .{ .kind = .m31, .length = node.length }, .lanes = try inverseLanes(V, &ctx, entries[node.lhs.?].lanes) },
             .add_const => .{ .shape = .{ .kind = .m31, .length = node.length }, .lanes = try circuit.builder.simd.add(V, &ctx, entries[node.lhs.?].lanes, try circuit.builder.simd.repeat(V, &ctx, M31.fromCanonical(node.constant.?), node.length)) },
             .mul_const => .{ .shape = .{ .kind = .m31, .length = node.length }, .lanes = try circuit.builder.simd.mul(V, &ctx, entries[node.lhs.?].lanes, try circuit.builder.simd.repeat(V, &ctx, M31.fromCanonical(node.constant.?), node.length)) },
             .sum_lanes => .{ .shape = .{ .kind = .m31, .length = 1 }, .lanes = try sumLanes(V, &ctx, entries[node.lhs.?].lanes) },
@@ -541,6 +543,25 @@ fn u32Less(comptime V: type, ctx: *circuit.builder.Context(V), lhs: Entry, rhs: 
 ///
 /// The final wire can have arbitrary unused coordinates, so mask them before
 /// adding packed wires. The result is a one-lane base-field Simd.
+/// One pointwise gate per packed group proves x * x_inv = 1 on each active
+/// M31 lane. The final group's inactive coordinates are constrained to zero.
+/// This avoids an Eq AIR component, so inverse and division use the direct
+/// arithmetic profile as well as the full circuit profile.
+fn inverseLanes(comptime V: type, ctx: *circuit.builder.Context(V), input: Simd) !Simd {
+    const inverse = try circuit.builder.simd.guessInvOrZero(V, ctx, input);
+    for (input.data, inverse.data, 0..) |x, inv, group| {
+        const active = @min(@as(usize, 4), input.len - 4 * group);
+        const expected = try ctx.constant(QM31.fromU32Unchecked(
+            1,
+            if (active > 1) 1 else 0,
+            if (active > 2) 1 else 0,
+            if (active > 3) 1 else 0,
+        ));
+        try ctx.pointwiseMulInto(x, inv, expected);
+    }
+    return inverse;
+}
+
 fn sumLanes(comptime V: type, ctx: *circuit.builder.Context(V), input: Simd) !Simd {
     if (input.len == 1) return input;
     const wires = try ctx.scratch().dupe(Var, input.data);
@@ -787,6 +808,37 @@ test "sum_lanes packed linear functional masks unused coordinates and reduces ga
         try ctx.finalize(false);
         try std.testing.expect(try ctx.isCircuitValid());
     }
+}
+
+test "inverse constrains each active lane including a partial packed group" {
+    const source =
+        \\{"version":1,"name":"inverse5","inputs":[{"name":"denominator","kind":"m31","length":5,"visibility":"private"}],"nodes":[{"name":"inverse","op":"inv","lhs":"denominator"}],"assertions":[],"public_outputs":["inverse"]}
+    ;
+    const valid =
+        \\{"public_inputs":{},"private_inputs":{"denominator":[2,3,5,7,11]},"public_outputs":{"inverse":[1073741824,1431655765,858993459,1840700269,1952257861]}}
+    ;
+    const zero_last_lane =
+        \\{"public_inputs":{},"private_inputs":{"denominator":[2,3,5,7,0]},"public_outputs":{"inverse":[1073741824,1431655765,858993459,1840700269,1952257861]}}
+    ;
+    var program = try relation.parseProgram(std.testing.allocator, source);
+    defer program.deinit();
+    var assignment = try relation.parseAssignment(std.testing.allocator, valid);
+    defer assignment.deinit();
+    var values = try compileDirect(QM31, std.testing.allocator, program.value, assignment.value, false);
+    defer values.deinit();
+    var topology_ctx = try compileDirect(circuit.builder.NoValue, std.testing.allocator, program.value, null, false);
+    defer topology_ctx.deinit();
+    try std.testing.expect(try values.isCircuitValid());
+    try std.testing.expectEqual(@as(usize, 0), values.circuit.eq.items.len);
+    try std.testing.expectEqual(values.circuit.n_vars, topology_ctx.circuit.n_vars);
+    // Two packed inversion constraints plus five public-word bindings.
+    try std.testing.expectEqual(@as(usize, 7), values.stats.pointwise_mul);
+    var bad = try relation.parseAssignment(std.testing.allocator, zero_last_lane);
+    defer bad.deinit();
+    try std.testing.expectError(error.DivisionByZero, relation.evaluate(std.testing.allocator, program.value, bad.value));
+    var invalid = try compileDirect(QM31, std.testing.allocator, program.value, bad.value, false);
+    defer invalid.deinit();
+    try std.testing.expect(!try invalid.isCircuitValid());
 }
 
 test "Poseidon2 path direct circuit satisfies both branch directions" {

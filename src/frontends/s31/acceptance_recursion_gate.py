@@ -69,6 +69,31 @@ def main() -> None:
         })
         run(str(verifier), str(leaf), str(leaf_statement), str(key), accept=True)
 
+        # A separately loaded S31NAT1 proof is verified natively, expanded
+        # from the verifier's authenticated capture, then verified in-circuit.
+        saved_outer = work / "saved-outer.proof"
+        run("python3", str(HERE / "s31.py"), "wrap", str(package), str(leaf),
+            str(saved_outer), "--statement", str(leaf_statement), accept=True)
+        saved_statement_path = Path(f"{saved_outer}.statement.json")
+        saved_statement = json.loads(saved_statement_path.read_text())
+        if saved_statement != statement:
+            raise AssertionError("saved-proof wrapper changed the outer public statement")
+        run("python3", str(HERE / "s31.py"), "verify-recursive", str(package),
+            str(saved_outer), accept=True)
+
+        wrong_leaf_statement = copy.deepcopy(json.loads(leaf_statement.read_text()))
+        wrong_leaf_statement["public_outputs"]["result"][0] += 1
+        wrong_leaf_statement_path = work / "wrong-leaf-statement.json"
+        write_json(wrong_leaf_statement_path, wrong_leaf_statement)
+        run(str(prover), "recurse-wrap", str(leaf), str(wrong_leaf_statement_path),
+            str(work / "bad-saved-statement.proof"), str(key), accept=False)
+        corrupted_leaf = bytearray(leaf.read_bytes())
+        corrupted_leaf[-1] ^= 1
+        corrupted_leaf_path = work / "corrupted-leaf.proof"
+        corrupted_leaf_path.write_bytes(corrupted_leaf)
+        run(str(prover), "recurse-wrap", str(corrupted_leaf_path), str(leaf_statement),
+            str(work / "bad-saved-proof.proof"), str(key), accept=False)
+
         # Change the child claim and recompute the public wrapper digest.
         # The outer proof must still reject, establishing that its output
         # binds the original child words rather than a caller's replacement.
@@ -108,6 +133,8 @@ def main() -> None:
         write_json(wrong_key_path, wrong_key)
         run(str(prover), "recurse-prove", str(ASSIGNMENT), str(work / "bad-leaf.proof"),
             str(work / "bad-outer.proof"), str(wrong_key_path), accept=False)
+        run(str(prover), "recurse-wrap", str(leaf), str(leaf_statement),
+            str(work / "bad-saved-key.proof"), str(wrong_key_path), accept=False)
 
         print(json.dumps({
             "schema": "s31-recursive-gate-acceptance-v1",
@@ -115,8 +142,8 @@ def main() -> None:
             "leaf_proof_bytes": leaf.stat().st_size,
             "outer_proof_bytes": outer.stat().st_size,
             "outer_statement_sha256": hashlib.sha256(statement_path.read_bytes()).hexdigest(),
-            "accepted": 2,
-            "rejected": 7,
+            "accepted": 3,
+            "rejected": 10,
             "in_circuit_rejections": ["changed_public_word", "trace_root", "claimed_sum", "fri_last_layer"],
         }, indent=2, sort_keys=True))
 

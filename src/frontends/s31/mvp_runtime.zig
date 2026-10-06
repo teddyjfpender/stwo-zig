@@ -129,6 +129,8 @@ pub fn main() !void {
         try prove(allocator, parsed.value, args[2], args[3], null, true, null, null);
     } else if (std.mem.eql(u8, command, "recurse-prove") and args.len == 6 and !chip_mode and !sparse_mode and !direct_mode) {
         try prove(allocator, parsed.value, args[2], args[3], null, true, args[4], args[5]);
+    } else if (std.mem.eql(u8, command, "recurse-wrap") and args.len == 6 and !chip_mode and !sparse_mode and !direct_mode) {
+        try wrapExisting(allocator, parsed.value, args[2], args[3], args[4], args[5]);
     } else if (std.mem.eql(u8, command, "prove-adversarial") and args.len == 5 and (sparse_mode or direct_mode) and chip_mode) {
         const mutation = std.meta.stringToEnum(cpu.sparse_arithmetic.Mutation, args[4]) orelse
             return error.InvalidMutation;
@@ -154,7 +156,7 @@ pub fn verifierMain(embedded_key: []const u8) !void {
 }
 
 fn usage() error{InvalidArguments} {
-    std.debug.print("usage: s31-program check | inspect | run ASSIGNMENT.json | prove ASSIGNMENT.json PROOF | recurse-check ASSIGNMENT.json CHILD-PROOF | recurse-prove ASSIGNMENT.json CHILD-PROOF OUTER-PROOF CHILD-KEY.json\n", .{});
+    std.debug.print("usage: s31-program check | inspect | run ASSIGNMENT.json | prove ASSIGNMENT.json PROOF | recurse-check ASSIGNMENT.json CHILD-PROOF | recurse-prove ASSIGNMENT.json CHILD-PROOF OUTER-PROOF CHILD-KEY.json | recurse-wrap CHILD-PROOF CHILD-STATEMENT.json OUTER-PROOF CHILD-KEY.json\n", .{});
     return error.InvalidArguments;
 }
 
@@ -757,6 +759,57 @@ fn proveOuter(
         &std.fmt.bytesToHex(hash, .lower),
         public_words,
     });
+}
+
+fn wrapExisting(
+    allocator: std.mem.Allocator,
+    source: relation.Program,
+    child_proof_path: []const u8,
+    child_statement_path: []const u8,
+    outer_path: []const u8,
+    child_key_path: []const u8,
+) !void {
+    const key_bytes = try std.fs.cwd().readFileAlloc(allocator, child_key_path, 4096);
+    defer allocator.free(key_bytes);
+    var parsed_key = try std.json.parseFromSlice(Key, allocator, key_bytes, .{ .ignore_unknown_fields = false });
+    defer parsed_key.deinit();
+    const key = parsed_key.value;
+    try validateKey(allocator, source, key);
+    var parsed_statement = try readAssignment(allocator, child_statement_path);
+    defer parsed_statement.deinit();
+    if (parsed_statement.value.private_inputs != null) return error.InvalidPublicStatement;
+    const public_words = try relation.claimedWords(allocator, source, parsed_statement.value);
+    const layout = try preprocessed.ColumnLayout.fromComponentSizes(.{
+        .eq = key.padded.eq,
+        .qm31_ops = key.padded.qm31_ops,
+        .triple_xor = key.padded.triple_xor,
+        .m31_to_u32 = key.padded.m31_to_u32,
+        .blake_g_gate = key.padded.blake_g,
+    });
+    if (layout.traceLogSize() != key.trace_log_size) return error.InvalidVerificationKey;
+    const pcs = try showcasePcsConfig(key.trace_log_size);
+    var root: [32]u8 = undefined;
+    var hash: [32]u8 = undefined;
+    _ = try std.fmt.hexToBytes(&root, key.preprocessed_root);
+    _ = try std.fmt.hexToBytes(&hash, key.circuit_hash);
+    const expected: recursion_gate.Expected = .{
+        .preprocessed_root = root,
+        .circuit_hash = hash,
+        .public_words = public_words,
+    };
+    var bundle = try parseAirBundle(allocator);
+    defer bundle.deinit();
+    const child_bytes = try std.fs.cwd().readFileAlloc(allocator, child_proof_path, 16 << 20);
+    defer allocator.free(child_bytes);
+    var converted = try native.verifyAndCapture(allocator, &layout, &bundle, pcs, root, hash, public_words, child_bytes);
+    defer converted.deinit();
+    var recursive = try recursion_gate.verifyPrepared(allocator, projection_bytes, layout, pcs, &converted, expected);
+    defer recursive.deinit();
+    std.debug.print("S31 recursive saved child: vars={d} qm31_ops={d} valid=true\n", .{
+        recursive.circuit.n_vars,
+        recursive.circuit.mul.items.len + recursive.circuit.add.items.len + recursive.circuit.sub.items.len,
+    });
+    try proveOuter(allocator, source, &recursive, layout, pcs, &bundle, expected, outer_path, child_key_path);
 }
 
 fn verifyOuter(
