@@ -84,7 +84,7 @@ pub fn TreeStorageForManifest(comptime Engine: type, comptime Manifest: type) ty
         /// later expansion/commitment buffers. Reads admitted geometry only.
         pub fn evaluationBytes(manifest: *const Manifest.Manifest, tree: usize) !usize {
             var cells: usize = 0;
-            for (manifest.roster_rows[0..manifest.roster_count]) |row| {
+            for (try activeRosterRows(Manifest, manifest)) |row| {
                 const geometry = manifest.placements[row].?.geometry;
                 const count = treeGeometryColumns(Manifest, geometry, tree);
                 cells = try std.math.add(usize, cells, try std.math.mul(usize, count, @as(usize, 1) << @intCast(geometry.log_size)));
@@ -101,7 +101,7 @@ pub fn TreeStorageForManifest(comptime Engine: type, comptime Manifest: type) ty
             const count = treeColumnCount(Manifest, manifest, tree);
             const evaluations = try allocator.alloc(prover_pcs.ColumnEvaluation, count);
             errdefer allocator.free(evaluations);
-            for (manifest.roster_rows[0..manifest.roster_count]) |row| {
+            for (try activeRosterRows(Manifest, manifest)) |row| {
                 const placement = manifest.placements[row].?;
                 const offset = treeOffset(Manifest, placement, tree);
                 const local_count = treeGeometryColumns(Manifest, placement.geometry, tree);
@@ -161,6 +161,62 @@ pub fn TreeStorageForManifest(comptime Engine: type, comptime Manifest: type) ty
             );
         }
     };
+}
+
+/// V2 manifests carry a bounded active prefix; the direct wrapper PlanV4
+/// always commits its entire fixed roster. Validate the indexing before
+/// either prover or verifier uses an optional placement.
+pub fn activeRosterRows(comptime Manifest: type, manifest: *const Manifest.Manifest) ![]const u8 {
+    const count = if (@hasField(Manifest.Manifest, "roster_count"))
+        manifest.roster_count
+    else
+        manifest.roster_rows.len;
+    if (count > manifest.roster_rows.len or
+        manifest.placements.len != Manifest.COMPONENT_COUNT or
+        (!@hasField(Manifest.Manifest, "roster_count") and count != Manifest.COMPONENT_COUNT))
+        return error.InvalidManifestRoster;
+    const rows = manifest.roster_rows[0..count];
+    var seen = [_]bool{false} ** Manifest.COMPONENT_COUNT;
+    for (rows) |row| {
+        if (row >= manifest.placements.len or seen[row] or manifest.placements[row] == null)
+            return error.InvalidManifestRoster;
+        seen[row] = true;
+    }
+    for (manifest.placements, seen) |placement, expected| {
+        if ((placement != null) != expected)
+            return error.InvalidManifestRoster;
+    }
+    return rows;
+}
+
+test "direct fixed roster storage rejects missing and extra placement" {
+    const Direct = struct {
+        pub const COMPONENT_COUNT = 3;
+        pub const Manifest = struct {
+            roster_rows: [3]u8 = .{ 0, 1, 2 },
+            placements: [3]?u8 = .{ 1, 2, 3 },
+        };
+    };
+    var direct = Direct.Manifest{};
+    try std.testing.expectEqualSlices(u8, &.{ 0, 1, 2 }, try activeRosterRows(Direct, &direct));
+    direct.placements[1] = null;
+    try std.testing.expectError(error.InvalidManifestRoster, activeRosterRows(Direct, &direct));
+
+    const Prefix = struct {
+        pub const COMPONENT_COUNT = 3;
+        pub const Manifest = struct {
+            roster_count: u8 = 2,
+            roster_rows: [3]u8 = .{ 0, 1, 0 },
+            placements: [3]?u8 = .{ 1, 2, null },
+        };
+    };
+    var prefix = Prefix.Manifest{};
+    try std.testing.expectEqualSlices(u8, &.{ 0, 1 }, try activeRosterRows(Prefix, &prefix));
+    prefix.placements[2] = 3;
+    try std.testing.expectError(error.InvalidManifestRoster, activeRosterRows(Prefix, &prefix));
+    prefix.placements[2] = null;
+    prefix.roster_count = 4;
+    try std.testing.expectError(error.InvalidManifestRoster, activeRosterRows(Prefix, &prefix));
 }
 
 fn treeColumnCount(comptime Manifest: type, manifest: *const Manifest.Manifest, tree: usize) usize {

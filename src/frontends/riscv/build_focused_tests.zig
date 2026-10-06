@@ -14,6 +14,14 @@ pub const Spec = struct {
 
 pub const specs = [_]Spec{
     .{
+        .step = "test-recursion-direct-wrapper-kernel",
+        .description = "Reject unqualified direct 47-row wrapper proofs and validate fixed roster storage",
+        .root = "direct_wrapper_kernel_test_root.zig",
+        .imports_prover_engine = true,
+        .filters = &.{ "direct V3 wrapper kernel rejects fake cohort", "direct fixed roster storage" },
+        .minimum = 2,
+    },
+    .{
         .step = "test-recursion-v4-direct-roster",
         .description = "Pin the 47-row direct native verifier wrapper without PFD1 provider rows",
         .root = "direct_wrapper_roster_test_root.zig",
