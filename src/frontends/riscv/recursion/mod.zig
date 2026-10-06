@@ -208,6 +208,7 @@ pub const segment_outer_protocol_v3 = @import("segment_outer_protocol_v3.zig");
 pub const segment_outer_transaction_v3 = @import("segment_outer_transaction_v3.zig");
 pub const segment_leaf_wrapper_protocol_v3 = @import("segment_leaf_wrapper_protocol_v3.zig");
 pub const segment_leaf_wrapper_source_projection_v3 = @import("segment_leaf_wrapper_source_projection_v3.zig");
+pub const segment_leaf_wrapper_hash_call_roster_v3 = @import("segment_leaf_wrapper_hash_call_roster_v3.zig");
 pub const ethereum_leaf_link_program_v1 = @import("ethereum_leaf_link_program_v1.zig");
 pub const ethereum_leaf_link_program_v2 = @import("ethereum_leaf_link_program_v2.zig");
 pub const segment_public_wire_boundary_v2 = @import("segment_public_wire_boundary_v2.zig");

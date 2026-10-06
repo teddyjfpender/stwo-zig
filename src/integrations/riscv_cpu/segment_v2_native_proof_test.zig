@@ -1153,6 +1153,38 @@ test "native V2 proves a rebased leaf-local V3 segment without widening the AIR"
     try std.testing.expectEqualDeep(fields.provider.authority.digest, field_manifest.provider_input.digest);
     try std.testing.expectError(error.V3WrapperProofUnavailable, field_manifest.requireCompleteWrapperProof());
 
+    // Materialize the one enlarged row-34 call slice from source-owned calls
+    // and all four new hash preimages. The 49-row proof still needs to commit
+    // this slice and close the remaining typed lookup interactions.
+    var fixed_link_program = try recursion.ethereum_leaf_link_program_v1.ProgramV1.init(allocator);
+    defer fixed_link_program.deinit();
+    var hash_calls = try recursion.segment_leaf_wrapper_hash_call_roster_v3.BundleV3.init(
+        allocator,
+        &prepared,
+        &admitted.global_metadata,
+        &admitted.link,
+        &stage.capture,
+        &stage.publication,
+        &stage.recursive_witness,
+        &cohort,
+        &fixed_link_program,
+    );
+    defer hash_calls.deinit();
+    const wrapper_plan = try recursion.air.segment_leaf_wrapper_roster_v3.Plan.build(
+        allocator,
+        cohort.manifest(),
+        &fixed_link_program,
+        hash_calls.shape(),
+    );
+    try hash_calls.validateForPlan(&wrapper_plan, &cohort);
+    try std.testing.expectEqual(hash_calls.calls.len, wrapper_plan.poseidon_calls.total);
+    hash_calls.calls[hash_calls.ranges[1].start].input[0] ^= 1;
+    try std.testing.expectError(
+        error.V3PoseidonCallRosterMismatch,
+        hash_calls.validateForPlan(&wrapper_plan, &cohort),
+    );
+    hash_calls.calls[hash_calls.ranges[1].start].input[0] ^= 1;
+
     // A separate versioned outer transaction proves the same genuine leaf
     // cohort under q193/PCS-PoW16/fold4 and verifies its 10-bit interaction
     // nonce before reconstructing relation challenges. Its artifact is not a
