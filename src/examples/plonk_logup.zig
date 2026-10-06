@@ -17,6 +17,7 @@ const prover_transaction = @import("stwo_prover_engine").transaction;
 const component_mod = @import("plonk_logup/component.zig");
 const interaction = @import("plonk_logup/interaction.zig");
 const input = @import("plonk_logup/input.zig");
+const preprocessed_commitment = @import("preprocessed_commitment.zig");
 
 pub const protocol_name = "raw-stwo-plonk-logup-v1";
 
@@ -154,6 +155,19 @@ pub fn verify(
     var proof = proof_in;
     var proof_moved = false;
     defer if (!proof_moved) proof.deinit(allocator);
+
+    const preprocessed_columns = try input.generatePreprocessed(
+        allocator,
+        .{ .log_n_rows = statement.log_n_rows },
+    );
+    defer preprocessed_commitment.freeColumns(allocator, preprocessed_columns);
+    const expected_root = try preprocessed_commitment.root(
+        allocator,
+        pcs_config,
+        preprocessed_columns,
+    );
+    if (!std.mem.eql(u8, &expected_root, &proof.commitment_scheme_proof.commitments.items[0]))
+        return error.InvalidPreprocessedCommitment;
 
     var channel = Channel{};
     pcs_config.mixInto(&channel);

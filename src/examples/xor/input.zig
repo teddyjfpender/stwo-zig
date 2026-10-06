@@ -74,6 +74,43 @@ pub fn prepare(
     allocator: std.mem.Allocator,
     statement: Statement,
 ) (std.mem.Allocator.Error || Error)!PreparedInput {
+    const preprocessed_columns = try generatePreprocessed(allocator, statement);
+    var preprocessed = prover_transaction.OwnedColumns.init(preprocessed_columns);
+    errdefer preprocessed.deinit(allocator);
+
+    const main_values = try genMainColumns(
+        allocator,
+        statement.log_size,
+        preprocessed_columns,
+    );
+    var main_values_moved = false;
+    errdefer if (!main_values_moved) {
+        for (main_values) |column| allocator.free(column);
+        allocator.free(main_values);
+    };
+    const main_columns = try allocator.alloc(prover_pcs.ColumnEvaluation, MAIN_COLUMNS);
+    for (main_values, main_columns) |values, *column| {
+        column.* = .{ .log_size = statement.log_size, .values = values };
+    }
+    main_values_moved = true;
+    allocator.free(main_values);
+    var main = prover_transaction.OwnedColumns.init(main_columns);
+    errdefer main.deinit(allocator);
+
+    return .{
+        .request = statement,
+        .trace = try prover_transaction.PreparedTrace.initOwned(
+            allocator,
+            preprocessed.take(),
+            main.take(),
+        ),
+    };
+}
+
+pub fn generatePreprocessed(
+    allocator: std.mem.Allocator,
+    statement: Statement,
+) (std.mem.Allocator.Error || Error)![]prover_pcs.ColumnEvaluation {
     try validate(statement);
 
     const is_first = try genIsFirstColumn(allocator, statement.log_size);
@@ -117,36 +154,7 @@ pub fn prepare(
     is_step_moved = true;
     lookup_preprocessed_moved = true;
     allocator.free(lookup_preprocessed);
-    var preprocessed = prover_transaction.OwnedColumns.init(preprocessed_columns);
-    errdefer preprocessed.deinit(allocator);
-
-    const main_values = try genMainColumns(
-        allocator,
-        statement.log_size,
-        preprocessed_columns,
-    );
-    var main_values_moved = false;
-    errdefer if (!main_values_moved) {
-        for (main_values) |column| allocator.free(column);
-        allocator.free(main_values);
-    };
-    const main_columns = try allocator.alloc(prover_pcs.ColumnEvaluation, MAIN_COLUMNS);
-    for (main_values, main_columns) |values, *column| {
-        column.* = .{ .log_size = statement.log_size, .values = values };
-    }
-    main_values_moved = true;
-    allocator.free(main_values);
-    var main = prover_transaction.OwnedColumns.init(main_columns);
-    errdefer main.deinit(allocator);
-
-    return .{
-        .request = statement,
-        .trace = try prover_transaction.PreparedTrace.initOwned(
-            allocator,
-            preprocessed.take(),
-            main.take(),
-        ),
-    };
+    return preprocessed_columns;
 }
 
 fn genLookupPreprocessed(

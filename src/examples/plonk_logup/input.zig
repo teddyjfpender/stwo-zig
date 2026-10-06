@@ -68,7 +68,7 @@ pub fn genTrace(
     try validate(request);
     const n = @as(usize, 1) << @intCast(request.log_n_rows);
 
-    var preprocessed = try allocColumnSet(allocator, n);
+    const preprocessed = try genPreprocessedSet(allocator, n);
     errdefer freeColumnSet(allocator, preprocessed);
     var main = try allocColumnSet(allocator, n);
     errdefer freeColumnSet(allocator, main);
@@ -80,11 +80,6 @@ pub fn genTrace(
     for (2..fib.len) |i| fib[i] = fib[i - 1].add(fib[i - 2]);
 
     for (0..n) |i| {
-        preprocessed[0][i] = M31.fromU64(i);
-        preprocessed[1][i] = M31.fromU64(i + 1);
-        preprocessed[2][i] = M31.fromU64(i + 2);
-        preprocessed[3][i] = M31.one();
-
         main[0][i] = M31.fromCanonical(2);
         main[1][i] = fib[i];
         main[2][i] = fib[i + 1];
@@ -94,6 +89,28 @@ pub fn genTrace(
     main[0][n - 1] = M31.zero();
 
     return .{ .preprocessed = preprocessed, .main = main };
+}
+
+pub fn generatePreprocessed(
+    allocator: std.mem.Allocator,
+    request: Request,
+) (std.mem.Allocator.Error || Error)![]prover_pcs.ColumnEvaluation {
+    try validate(request);
+    const n = @as(usize, 1) << @intCast(request.log_n_rows);
+    const values = try genPreprocessedSet(allocator, n);
+    errdefer freeColumnSet(allocator, values);
+    return columnsFromSet(allocator, request.log_n_rows, values);
+}
+
+fn genPreprocessedSet(allocator: std.mem.Allocator, n: usize) ![4][]M31 {
+    const columns = try allocColumnSet(allocator, n);
+    for (0..n) |i| {
+        columns[0][i] = M31.fromU64(i);
+        columns[1][i] = M31.fromU64(i + 1);
+        columns[2][i] = M31.fromU64(i + 2);
+        columns[3][i] = M31.one();
+    }
+    return columns;
 }
 
 pub fn deinitTrace(allocator: std.mem.Allocator, trace: *Trace) void {
