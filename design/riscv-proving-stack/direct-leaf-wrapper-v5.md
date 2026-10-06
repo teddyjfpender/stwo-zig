@@ -60,6 +60,13 @@ the `NPV2` relation must connect row 42's canonical words to the native
 verifier components that actually execute them. The canonical ProgramV2 word
 coverage audit must fail closed until every active index has exactly one
 trusted origin or a semantically constrained fixed value.
+PlanV5/VPR6 currently inherit V4's leaf-specific V2 `base_manifest_seal`.
+Consequently VPR6 itself varies across honest leaves, before considering the
+preprocessed root. The present VPK6 is only a versioned diagnostic key, not
+the fixed-key template described here. Its replacement must derive protocol
+identity from shape and AIR semantics alone, with every removed authority
+field moved into a proof-visible main/public relation. Omitting leaf fields
+from a hash without those joins would create an arbitrary-program verifier.
 The staged native source currently covers 14 words from actual row-5 values
 (wire identity and selected PCS payloads). A dormant row-42 bridge constrains
 nine fixed format/PCS words in AIR under the pinned profile. On the focused
@@ -73,6 +80,11 @@ records instructions with no payload row. Verifier sequence and sub-index are
 absent from row 4, so the profile deliberately does not claim complete
 instruction authority. A versioned descriptor owner is required for those
 fields and zero-payload instructions.
+The fail-closed instruction-owner contract checks row-3 call geometry and
+enumerates the missing AIR equations. It emits no `NPV2` tuples: row 3 lacks
+the raw descriptor and ordinal, and the required one-per-instruction
+selector cannot be inferred from current coalesced calls. A host copy of
+ProgramV2 cannot fill this gap.
 
 The verifier-owned 24-word `LAS2` boundary consumes row 40's public link,
 ProgramV2, and Tree0 words and mixes its expected values and claimed sum
