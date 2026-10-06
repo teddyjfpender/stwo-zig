@@ -73,6 +73,14 @@ repetition adds about 101,403 steps. The last batch (`batch=140` of 9,024
 shots) exceeds the step cap even at one repetition when it regenerates its
 SHAKE prefix from the circuit seed.
 
+The last-batch cost is measurable with the execution-only segmented runner:
+one repetition for batch 140 of 9,024 shots retired **83,892,947 RV32
+instructions** across 21 segments of at most 4,194,304 steps. Its validated
+journal SHA-256 is
+`73655d0ac24fad1d342a223fe63f2e8d421f16366b92dc9f4c490b2fdd9388de`.
+Compared with 10,748,297 steps for batch 0, replaying the SHAKE prefix in
+every batch is already untenable before the 8,000 repetitions begin.
+
 The existing segmented runner did execute and capture 61 repetitions as
 five leaf-local segments: four of 4,194,304 steps and a final 55,321-step
 segment ending at the guest's halt flag, for 16,832,537 steps. Its validated
