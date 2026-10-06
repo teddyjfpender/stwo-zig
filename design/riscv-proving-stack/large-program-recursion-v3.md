@@ -142,13 +142,17 @@ Therefore the 49-row/PFD1 route is diagnostic and will not be activated.
 The fail-closed 49-row transaction kernel and five-range call roster are
 staging tools only; their inactive ready branch is not a working proof.
 
-The canonical path is the [direct leaf wrapper](direct-leaf-wrapper-v4.md):
-prove the native verifier and V3 global-position relation once in a new
-47-row transaction, omit the redundant provider digest source/hash rows,
-rebuild row 34 for its four exact call ranges, and freshly verify under a
-distinct pinned protocol/key namespace. ProgramV3 must contain only values
-available before the main commitment. Full AIR/lookup closure, independent
-key admission and public-I/O binding remain required before publication.
+The [47-row direct leaf wrapper](direct-leaf-wrapper-v4.md) now generates a
+real q193 native-derived witness and exact 47-claim audit without a proof.
+Its four nonzero relation domains exposed missing native identity sources,
+ProgramV2 authority, range/frame multiplicities, and a public LAS2 boundary.
+The [proof-complete 50-row target](direct-leaf-wrapper-v5.md) retains the
+single-transaction native verifier and global-position relation, omits the
+redundant provider digest, and adds the necessary typed local-identity router
+and hashes. It requires a fixed-key template or an independently proved key
+admission policy. ProgramV3 must contain only values available before the
+main commitment. Full AIR/lookup closure and public-I/O binding remain
+required before publication.
 The typed row-41–48 diagnostic currently closes only two local tuple domains
 and cannot substitute for the full relation audit.
 For the base RV32 leaf, the child verifier authority is the freshly verified

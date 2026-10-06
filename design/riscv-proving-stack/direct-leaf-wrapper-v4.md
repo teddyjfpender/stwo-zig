@@ -1,5 +1,12 @@
 # Direct RISC-V leaf wrapper proof
 
+**Status:** This 47-row roster is now a real q193 diagnostic witness, not the
+proof-complete target. Its closure exposes missing native identity producers,
+ProgramV2 word authority, range/frame multiplicities, and a public LAS2
+boundary. The [versioned 50-row target](direct-leaf-wrapper-v5.md) records the
+required additions. The architectural decision to avoid the 49-row/PFD1
+commitment cycle below remains valid.
+
 ## Decision
 
 The production leaf wrapper must prove the native SegmentV2 verifier and the
@@ -20,7 +27,7 @@ Host validation of a previously proved outer PFD1 does not fix it: the 49-row
 AIR does not verify that outer proof. No PFD1 field may be treated as
 pre-challenge proof authority in the direct wrapper.
 
-## Canonical direct roster
+## V4 direct diagnostic roster
 
 The next versioned roster has 47 components. Rows 0–33 and 35–38 retain the
 native-verifier owners; row 34 is rebuilt as the single enlarged Poseidon
