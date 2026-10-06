@@ -3,8 +3,8 @@
 The first [recursion chapter](recursion.md) wraps a leaf S31 proof once. S31
 can now wrap that **first wrapper proof** again. This chapter follows a
 private-witness `preimage4` example through two wrappers. It also states
-the current boundary: the two wrapper AIRs have distinct sealed keys, so
-this is a two-level chain, not yet an unbounded fixed-point fold.
+the key boundary: the two wrapper AIRs have distinct sealed keys. The
+[fixed-key fold](recursion-fold.md) now supplies one AIR for repeated steps.
 
 ## The three statements
 
@@ -181,10 +181,7 @@ on that `arith4_m31` proof.
 then deriving the second. The two wrapper layouts happened to have the
 same padded component sizes for the `arith4_m31` fixture, but their
 preprocessed roots differ because their embedded child identities differ.
-The current implementation supports two wrapper levels and the full
-eleven-component `circuit-v1` child profile. It does not yet accept the
-`sparse-wide-v5` Bitcoin header proof, enforce Bitcoin chain state, or
-provide a single fixed verification key for an indefinite fold. The
-[fixed-key fold design](../../../../design/s31/FIXED_KEY_FOLD.md) spells out
-the proposed counter, branch and root-binding constraints and the tests
-required before that claim can be made.
+This depth-specific chain supports the full eleven-component `circuit-v1`
+child profile. The [fixed-key fold](recursion-fold.md) repeats the same
+leaf claim under one key with a `u16` step counter. Neither route yet accepts
+the `sparse-wide-v5` Bitcoin header proof or enforces Bitcoin chain state.

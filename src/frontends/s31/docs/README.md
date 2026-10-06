@@ -51,6 +51,9 @@ text .s31 ──parse/typecheck/specialize──▶ normalized relation JSON
    statements, costs, and the precise boundary before a repeatable fold.
 - [Two-level recursive chain](recursion-chain.md): wrap an already recursive
    proof, track nested public digests, and verify from the top proof.
+- [Fixed-key recursive fold](recursion-fold.md): repeat proof verification
+   under one AIR and key, with a constrained counter, handwritten branch
+   equations, an isolated top verifier, and measured costs.
 - [Source language and relation](source.md): syntax, types, field semantics,
    static shapes, normalized JSON, and the public statement.
 - [Standard and math library](library.md): the pinned `std@1` package,

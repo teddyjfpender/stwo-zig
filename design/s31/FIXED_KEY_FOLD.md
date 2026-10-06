@@ -1,6 +1,6 @@
 # Fixed-key S31 fold: design and soundness obligations
 
-Status: design draft, 2026-10-07. The shipped [two-level chain](../../src/frontends/s31/docs/recursion-chain.md) uses distinct sealed keys `K1` and `K2`. This document specifies the next experiment: one wrapper key that can verify a base wrapper proof or an earlier proof made under **itself**. No command in the current package claims this behavior yet.
+Status: implemented for the `gate` profile, 2026-10-07. The shipped [two-level chain](../../src/frontends/s31/docs/recursion-chain.md) uses distinct sealed keys `K1` and `K2`. The [fixed-key fold](../../src/frontends/s31/docs/recursion-fold.md) uses one wrapper key to verify a base wrapper proof or an earlier proof made under **itself**. The automated acceptance fixture tests four steps; the counter supports at most step 65,535. This is an engineering soundness argument, not an independent cryptographic audit.
 
 ## Target relation
 
@@ -9,11 +9,11 @@ Let `P1` be a first-level S31 wrapper proof with public digest `D1` and sealed k
 The fold statement exposes a step count `n` in `[0, 65535]`, the original eight public leaf words `W0`, and `D1`. The native verifier checks `D1 = Blake2s(person="S31RCV2!", SHA256(K0) || LE32(W0))` and verifies the final fold proof against `KF`. The fold proof's eight public words are:
 
 ```text
-F(R, n, D1) = Blake2s-256(person="S31FOLD1",
-    LE32(R.word[0] XOR n) || LE32(R.word[1..8]) || LE32(D1[0..8]))
+F(R, n, D1) = Blake2s-256(person="S31FOL2!",
+    R[32 bytes] || LE32(n) || LE32(D1[0..8]))
 ```
 
-`F` uses one 64-byte Blake2s block. For a fixed `R`, the XOR encoding of the 16-bit `n` in the first root word is injective. `D1` remains eight raw `u32` words, including values above the M31 modulus. The native verifier computes `F(RF,n,D1)` with the **sealed actual** `RF`, never a root chosen by the proof statement.
+`F` uses 68 bytes and two Blake2s blocks. This length is necessary to encode all 32 root bytes, the step, and all 32 digest bytes without aliasing. An earlier 64-byte draft XORed `n` into the first root word; that was unsound because a private root could change to compensate for a different step, making a base proof appear to be a later fold without a hash collision. The v2 encoding gives each item its own fixed-width slot and changes the personalization. `D1` remains eight raw `u32` words, including values above the M31 modulus. The native verifier computes `F(RF,n,D1)` with the **sealed actual** `RF`, never a root chosen by the proof statement.
 
 The fold circuit guesses `R`, `n`, `D1`, a child proof and one branch bit `base`. Its constraints enforce:
 
@@ -42,7 +42,9 @@ This mechanism requires more than a root value in a JSON file. The native verifi
 
 For `n=0`, the fold AIR verifies a `P1` proof under the fixed `R1` and public `D1`; the existing first-level wrapper then verifies the S31 leaf. For `n>0`, it verifies a `KF` proof whose public output is `F(RF,n-1,D1)`. The range-constrained counter decreases, so induction reaches the base case. This argument depends on the soundness of the outer and child STARKs, correct in-circuit verifier and proof conversion, binding of the actual `RF` by the top native verifier, collision resistance of the public hash, and the integrity of the sealed build artifacts. It is an engineering argument, not a formal proof or independent audit. The base/inductive shape follows the classic [incrementally verifiable computation construction](https://iacr.org/archive/tcc2008/49480001/49480001.pdf), while the concrete hash/root relation here is S31-specific.
 
-The test gate must include: base step accepted; at least three repeated steps under exactly one `KF`; a `D1` containing `u32` words above the M31 modulus; wrong step and wrong leaf claim with all host digests recomputed rejected; wrong child root, child output, FRI opening, channel salt and proof bytes rejected; a forged branch bit or zero-test inverse rejected inside the circuit; key and projection substitutions rejected; identical NoValue/value topology; and a top proof that verifies after all lower proof files are removed. Measure key generation, per-step proving, top verification, proof bytes and peak RAM separately.
+The [acceptance fixture](../../src/frontends/s31/acceptance_fixed_fold.py) checks: base step and three repeated steps under exactly one `KF`; a private leaf and `D1` words above M31; wrong step and wrong leaf with host digests recomputed; wrong fold root and key digest; corrupt top and child proof bytes; changed supplied key; identical NoValue/value topology; branch-selector, zero-test inverse, and previous-counter witness mutations; and a top proof that verifies after all lower proof files are removed. The earlier wrapper's acceptance suite additionally challenges its child root, output, FRI opening, and channel salt. The fixed-fold circuit audit challenges its selected root, leaf, and step. The package pins the AIR projection bytes and embeds `K0`, `K1`, and `KF` in prover and verifier binaries.
+
+One local `arith4_m31` step-3 sample produced a 560,468-byte proof in 3.65 s wall and 9.31 GB peak RSS. `--low-memory` took 3.91 s and 7.00 GB, with byte-identical proof bytes. Standalone top native verification took 0.45 s and 205 MB. These are single-machine samples, not cross-system performance claims. The [worked chapter](../../src/frontends/s31/docs/recursion-fold.md) gives the precise command sequence and hand-filled counter values.
 
 ## Product boundary
 

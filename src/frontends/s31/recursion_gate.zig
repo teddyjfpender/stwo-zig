@@ -44,7 +44,7 @@ pub fn statementDigest(key_digest: [32]u8, child_words: [8]u32) [8]u32 {
     return hashWords(digest);
 }
 
-fn authenticateProjection(projection_bytes: []const u8) !void {
+pub fn authenticateProjection(projection_bytes: []const u8) !void {
     var digest: [32]u8 = undefined;
     std.crypto.hash.sha2.Sha256.hash(projection_bytes, &digest, .{});
     if (!std.mem.eql(u8, &std.fmt.bytesToHex(digest, .lower), projection_sha256))
