@@ -611,6 +611,7 @@ test {
     _ = @import("recursion/air/temporal_packed_relation_challenge_v2.zig");
     _ = @import("recursion/air/tests/vm_public_logup_control_v2_test.zig");
     _ = @import("recursion/air/tests/vm_public_logup_control_v6_test.zig");
+    _ = @import("recursion/air/tests/v3_public_io_word_bridge_v1_test.zig");
     _ = @import("recursion/tests/binary_global_closure_outer_source_test.zig");
     _ = @import("recursion/fixed_wire_fixed_stark_proof_wire.zig");
     _ = @import("recursion/tests/fri_profile_frontier_measurement_test.zig");
@@ -655,6 +656,7 @@ test {
     _ = @import("vm_public_claim_hash_authority_v2_test_root.zig");
     _ = @import("vm_public_logup_control_v2_test_root.zig");
     _ = @import("v6_row17_test_root.zig");
+    _ = @import("v3_public_io_bridge_test_root.zig");
     _ = @import("air/constraint_program.zig");
     _ = @import("air/extract/program.zig");
     _ = @import("air/extract/program_json.zig");

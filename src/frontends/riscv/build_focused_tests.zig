@@ -22,6 +22,13 @@ pub const specs = [_]Spec{
         .minimum = 1,
     },
     .{
+        .step = "test-recursion-v3-public-io-bridge",
+        .description = "Check dormant verifier-owned V3 public-I/O bytes against native memory wires",
+        .root = "v3_public_io_bridge_test_root.zig",
+        .filters = &.{"V3 public IO word bridge"},
+        .minimum = 3,
+    },
+    .{
         .step = "test-recursion-v6-row17",
         .description = "Validate variable-cardinality VM public LogUp row 17 without activating proofs",
         .root = "v6_row17_test_root.zig",

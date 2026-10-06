@@ -190,6 +190,7 @@ pub const vm_public_logup_control_witness_v2 =
     @import("vm_public_logup_control_witness_v2.zig");
 pub const vm_public_logup_control_v6 = @import("vm_public_logup_control_v6.zig");
 pub const vm_public_logup_control_witness_v6 = @import("vm_public_logup_control_witness_v6.zig");
+pub const v3_public_io_word_bridge_v1 = @import("v3_public_io_word_bridge_v1.zig");
 pub const universal_catalog = @import("universal_catalog.zig");
 pub const universal_adapter_manifest = @import("universal_adapter_manifest.zig");
 pub const universal_manifest = @import("universal_manifest.zig");
