@@ -30,6 +30,41 @@ pub fn run(
     max_leaves: u32,
     consumer: anytype,
 ) !Summary {
+    return runInternal(profile, allocator, elf, session_options, leaf_budget, max_leaves, null, consumer);
+}
+
+/// Replay a measured leaf schedule. The runner reserves only each leaf's
+/// actual budget, which matters when the terminal leaf is much smaller than
+/// the campaign's maximum. Each measured boundary remains exact.
+pub fn runPlanned(
+    comptime profile: profile_mod.ExecutionProfile,
+    allocator: std.mem.Allocator,
+    elf: []const u8,
+    session_options: session_mod.SessionOptions,
+    budgets: []const u32,
+    consumer: anytype,
+) !Summary {
+    if (budgets.len == 0 or budgets.len > std.math.maxInt(u32))
+        return error.InvalidCampaignBudgets;
+    var maximum: usize = 0;
+    for (budgets) |budget| {
+        if (budget == 0 or budget > max_v3_leaf_cycles)
+            return error.InvalidCampaignBudgets;
+        maximum = @max(maximum, budget);
+    }
+    return runInternal(profile, allocator, elf, session_options, maximum, @intCast(budgets.len), budgets, consumer);
+}
+
+fn runInternal(
+    comptime profile: profile_mod.ExecutionProfile,
+    allocator: std.mem.Allocator,
+    elf: []const u8,
+    session_options: session_mod.SessionOptions,
+    leaf_budget: usize,
+    max_leaves: u32,
+    planned_budgets: ?[]const u32,
+    consumer: anytype,
+) !Summary {
     if (leaf_budget == 0) return error.ZeroSegmentStepBudget;
     if (max_leaves == 0) return error.ZeroCampaignLeaves;
     if (leaf_budget > max_v3_leaf_cycles)
@@ -45,10 +80,14 @@ pub fn run(
     var total: u64 = 0;
     var count: u32 = 0;
     while (count < max_leaves) {
-        var segment = if (next) |token|
-            try session.resumeSegment(token, leaf_budget)
+        const budget: usize = if (planned_budgets) |budgets|
+            budgets[count]
         else
-            try session.startSegment(leaf_budget);
+            leaf_budget;
+        var segment = if (next) |token|
+            try session.resumeSegment(token, budget)
+        else
+            try session.startSegment(budget);
         defer segment.deinit();
 
         const base: *const result.SegmentResult = if (comptime profile == .rv32im_zkvm_v1)
@@ -61,7 +100,7 @@ pub fn run(
             base.segment_index != count or
             base.global_first_cycle != expected_first or
             base.cycle_count == 0 or
-            base.cycle_count > leaf_budget or
+            base.cycle_count > budget or
             (base.continuation == null) != base.isComplete())
         {
             return error.InvalidCampaignSegment;

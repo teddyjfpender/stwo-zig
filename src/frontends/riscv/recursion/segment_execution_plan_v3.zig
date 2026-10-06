@@ -179,13 +179,12 @@ pub fn replay(
         .plan = plan,
         .consumer = consumer,
     };
-    const summary = try campaign.run(
+    const summary = try campaign.runPlanned(
         profile,
         allocator,
         elf,
         options,
-        plan.leaf_budget,
-        @intCast(plan.cycle_counts.len),
+        plan.cycle_counts,
         &checked,
     );
     if (!std.meta.eql(plan.elf_sha256, digest(elf)) or

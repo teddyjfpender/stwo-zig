@@ -24,9 +24,16 @@ the global position.
 leaf, records the exact total, ELF/input hashes, guest policy, and compact
 per-leaf CPU, sparse-memory, clock and I/O boundary records. Replay checks
 these records before exposing a leaf to the proof consumer, so equal-sized but
-different executions cannot silently reuse a plan. It rejects host and
+different executions cannot silently reuse a plan. Replay also passes each
+measured leaf count as that leaf's reservation budget, avoiding an oversized
+terminal-leaf trace allocation. It rejects host and
 retirement callbacks until their behavior has an authenticated replay
 contract. Planning is advisory and does not authenticate a proof.
+
+`recursion/temporal_pair_candidate_v3.zig` checks the exact two-child V3
+metadata preimages and the folded parent statement, including 64-bit positions
+past the V2 clock cap. It is a native preflight for a future parent AIR, with
+mutation gates; it does not accept either child as a recursive proof.
 
 ## Proof path still required
 
