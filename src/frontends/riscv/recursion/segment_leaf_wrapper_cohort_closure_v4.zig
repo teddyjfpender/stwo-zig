@@ -17,6 +17,7 @@ const relation = @import("../air/lang/relation.zig");
 const universal = @import("air/universal_challenges.zig");
 const provider_relations = @import("air/universal_provider_relations.zig");
 const boundary_mod = @import("segment_public_wire_boundary_v2.zig");
+const las2_mod = @import("segment_leaf_wrapper_las2_boundary_v4.zig");
 
 pub const PRODUCTION_PROOF_ACTIVATION = false;
 pub const ROW_COUNT: usize = plan_mod.COMPONENT_COUNT;
@@ -141,6 +142,23 @@ pub const Claims47 = struct {
         totals[@intFromEnum(boundary.domain)] = totals[@intFromEnum(boundary.domain)].add(boundary.claimed_sum);
         return .{ .domain_totals = totals, .framework_total = framework_total, .logical_rows = logical_rows, .event_terms = event_terms };
     }
+
+    /// Diagnostic composition of both verifier-owned public boundaries.
+    /// The caller must supply independently expected LAS2 identities, never
+    /// deserialize them from a child artifact. A future proof transaction
+    /// must mix the same boundary on both prover and fresh verifier.
+    pub fn residualsWithLas2(
+        self: *const Claims47,
+        plan: *const plan_mod.Plan,
+        wire: *const PublicWireBoundaryV2,
+        las2: *const las2_mod.BoundaryV4,
+        expected: las2_mod.ExpectedPublic,
+        relations: *const universal.UniversalRelations,
+    ) !Summary {
+        var result = try self.residuals(plan, wire);
+        try las2.addToClosure(expected, relations, &result.domain_totals, &result.framework_total);
+        return result;
+    }
 };
 
 pub const Summary = struct {
@@ -226,6 +244,25 @@ test "direct 47-row claims combine generated provider and audited appended rows"
     source_id[0] = 1;
     const boundary = try PublicWireBoundaryV2.init(source_id, 1, QM31.zero());
     try std.testing.expectError(error.DirectLeafRelationNotClosed, combined.verifyAllDomains(&plan, &boundary));
+    const expected = las2_mod.ExpectedPublic{
+        .link = .{ 1, 2, 3, 4, 5, 6, 7, 8 },
+        .native_program = .{ 11, 12, 13, 14, 15, 16, 17, 18 },
+        .native_tree0 = .{ 21, 22, 23, 24, 25, 26, 27, 28 },
+    };
+    const las2 = try las2_mod.BoundaryV4.derive(expected, &relations);
+    const without_las2 = try combined.residuals(&plan, &boundary);
+    const with_las2 = try combined.residualsWithLas2(&plan, &boundary, &las2, expected, &relations);
+    const statement_domain = @intFromEnum(las2_mod.DOMAIN);
+    try std.testing.expect(with_las2.domain_totals[statement_domain].eql(
+        without_las2.domain_totals[statement_domain].add(las2.claimed_sum),
+    ));
+    try std.testing.expect(with_las2.framework_total.eql(without_las2.framework_total.add(las2.claimed_sum)));
+    var changed_expected = expected;
+    changed_expected.native_program[0] += 1;
+    try std.testing.expectError(
+        error.InvalidDirectLas2Boundary,
+        combined.residualsWithLas2(&plan, &boundary, &las2, changed_expected, &relations),
+    );
     appended.claims[0] = QM31.one();
     try std.testing.expectError(error.DirectLeafAuditGeometryMismatch, Claims47.fromGenerated(&plan, &reused, &writer, &generated, &row35, &row4, &appended, &relations, &shared));
     appended.claims[0] = QM31.zero();
