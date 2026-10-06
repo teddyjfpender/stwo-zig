@@ -17,6 +17,20 @@
       "m31_to_u32": 524288,
       "blake_g": 4194304
     },
+    "raw_rows": {
+      "eq": 37523,
+      "qm31_ops": 1419390,
+      "triple_xor": 243880,
+      "m31_to_u32": 423792,
+      "blake_g": 2438800
+    },
+    "headroom_rows": {
+      "eq": 28013,
+      "qm31_ops": 677762,
+      "triple_xor": 18264,
+      "m31_to_u32": 100496,
+      "blake_g": 1755504
+    },
     "generation_wall_seconds": 1.05,
     "generation_peak_rss_bytes": 1605287936,
     "reproduced_byte_for_byte": true

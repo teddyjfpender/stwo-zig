@@ -978,6 +978,8 @@ def main() -> None:
     sub.add_argument("package", type=Path)
     sub.add_argument("proof", type=Path)
     sub.add_argument("--statement", type=Path)
+    sub = commands.add_parser("inspect-fold", help="rebuild and report a sealed fold AIR's raw rows and padding headroom")
+    sub.add_argument("package", type=Path)
     args = parser.parse_args()
 
     if args.command == "lower":
@@ -1142,6 +1144,14 @@ def main() -> None:
         statement = args.statement.resolve() if args.statement else Path(str(proof) + ".statement.json")
         executable = package / "bin" / f"s31-{manifest['name']}-native-verifier"
         print(invoke(str(executable), "fold-verify", str(proof), str(statement)), end="")
+    elif args.command == "inspect-fold":
+        if manifest["lowering"] != "gate":
+            raise ValueError("inspect-fold requires a gate-profile package")
+        executable = package / "bin" / f"s31-{manifest['name']}-prover"
+        print(invoke(str(executable), "fold-inspect",
+                     str(package / "verification-key.json"),
+                     str(package / "recursive-verification-key.json"),
+                     str(package / "fixed-fold-verification-key.json")), end="")
 
 
 if __name__ == "__main__":

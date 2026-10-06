@@ -56,6 +56,13 @@ def main() -> None:
         fold_key = package / "fixed-fold-verification-key.json"
         prover = package / "bin/s31-preimage4-prover"
         verifier = package / "bin/s31-preimage4-native-verifier"
+        geometry = json.loads(run("python3", str(HERE / "s31.py"), "inspect-fold", str(package)))
+        sealed_fold = json.loads(fold_key.read_text())
+        if geometry["fold_preprocessed_root"] != sealed_fold["fold_preprocessed_root"]:
+            raise AssertionError("inspected fold topology did not match the sealed root")
+        for component, padded in geometry["padded_rows"].items():
+            if geometry["raw_rows"][component] + geometry["headroom_rows"][component] != padded:
+                raise AssertionError(f"incorrect fold headroom for {component}")
         reproduced = work / "fold-key.json"
         run(str(prover), "fold-keygen", str(child_key), str(first_key), str(reproduced))
         if reproduced.read_bytes() != fold_key.read_bytes():

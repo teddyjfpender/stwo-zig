@@ -209,6 +209,8 @@ pub fn main() !void {
         try generateNextRecursiveKey(allocator, parsed.value, args[2], args[3], args[4]);
     } else if (std.mem.eql(u8, command, "fold-keygen") and args.len == 5 and !chip_mode and !sparse_mode and !direct_mode) {
         try generateFoldKey(allocator, parsed.value, args[2], args[3], args[4]);
+    } else if (std.mem.eql(u8, command, "fold-inspect") and args.len == 5 and !chip_mode and !sparse_mode and !direct_mode) {
+        try inspectFold(allocator, parsed.value, args[2], args[3], args[4]);
     } else if (std.mem.eql(u8, command, "fold-audit") and args.len == 7 and !chip_mode and !sparse_mode and !direct_mode) {
         try auditFoldBase(allocator, parsed.value, args[2], args[3], args[4], args[5], args[6]);
     } else if (std.mem.eql(u8, command, "fold-wrap-base") and (args.len == 8 or (args.len == 9 and std.mem.eql(u8, args[8], "--low-memory"))) and !chip_mode and !sparse_mode and !direct_mode) {
@@ -252,7 +254,8 @@ fn usage() error{InvalidArguments} {
     std.debug.print("       recurse-wrap-next OUTER-PROOF OUTER-STATEMENT.json NEXT-PROOF CHILD-KEY.json RECURSIVE-KEY.json NEXT-KEY.json [--low-memory]\n", .{});
     std.debug.print("       recurse-audit CHILD-PROOF CHILD-STATEMENT.json CHILD-KEY.json | recurse-audit-next OUTER-PROOF OUTER-STATEMENT.json CHILD-KEY.json RECURSIVE-KEY.json\n", .{});
     std.debug.print("       recurse-keygen CHILD-KEY.json RECURSIVE-KEY.json | recurse-keygen-next CHILD-KEY.json RECURSIVE-KEY.json NEXT-KEY.json\n", .{});
-    std.debug.print("       fold-keygen CHILD-KEY.json RECURSIVE-KEY.json FOLD-KEY.json | fold-audit FIRST-PROOF FIRST-STATEMENT CHILD-KEY RECURSIVE-KEY FOLD-KEY\n", .{});
+    std.debug.print("       fold-keygen CHILD-KEY.json RECURSIVE-KEY.json FOLD-KEY.json | fold-inspect CHILD-KEY RECURSIVE-KEY FOLD-KEY\n", .{});
+    std.debug.print("       fold-audit FIRST-PROOF FIRST-STATEMENT CHILD-KEY RECURSIVE-KEY FOLD-KEY\n", .{});
     std.debug.print("       fold-wrap-base|fold-wrap-next CHILD-PROOF CHILD-STATEMENT OUT-PROOF CHILD-KEY RECURSIVE-KEY FOLD-KEY [--low-memory]\n", .{});
     std.debug.print("       fold-audit-next FOLD-PROOF FOLD-STATEMENT CHILD-KEY RECURSIVE-KEY FOLD-KEY\n", .{});
     return error.InvalidArguments;
@@ -1545,6 +1548,75 @@ fn validateFoldKey(child_bytes: []const u8, first_bytes: []const u8, first: Recu
     if (!std.mem.eql(u8, fold.fold_circuit_hash, &std.fmt.bytesToHex(hash, .lower)))
         return error.InvalidFoldVerificationKey;
     return .{ .layout = fold_layout, .pcs = pcs, .base_root = base_root, .root = root, .hash = hash };
+}
+
+fn inspectFold(
+    allocator: std.mem.Allocator,
+    source: relation.Program,
+    child_key_path: []const u8,
+    first_key_path: []const u8,
+    fold_key_path: []const u8,
+) !void {
+    const child_bytes = try std.fs.cwd().readFileAlloc(allocator, child_key_path, 4096);
+    defer allocator.free(child_bytes);
+    if (!std.mem.eql(u8, child_bytes, sealed_prover_key)) return error.UnsealedRecursiveKey;
+    var child = try std.json.parseFromSlice(Key, allocator, child_bytes, .{ .ignore_unknown_fields = false });
+    defer child.deinit();
+    try validateKey(allocator, source, child.value);
+    const first_bytes = try std.fs.cwd().readFileAlloc(allocator, first_key_path, 4096);
+    defer allocator.free(first_bytes);
+    if (!std.mem.eql(u8, first_bytes, sealed_prover_recursive_key)) return error.UnsealedRecursiveKey;
+    var first = try std.json.parseFromSlice(RecursiveKey, allocator, first_bytes, .{ .ignore_unknown_fields = false });
+    defer first.deinit();
+    const fold_bytes = try std.fs.cwd().readFileAlloc(allocator, fold_key_path, 4096);
+    defer allocator.free(fold_bytes);
+    if (!std.mem.eql(u8, fold_bytes, sealed_prover_fold_key)) return error.UnsealedFoldKey;
+    var fold = try std.json.parseFromSlice(FoldKey, allocator, fold_bytes, .{ .ignore_unknown_fields = false });
+    defer fold.deinit();
+    const verified = try validateFoldKey(child_bytes, first_bytes, first.value, fold.value);
+    var topology_ctx = try fixed_fold.topology(allocator, projection_bytes, verified.layout, verified.pcs, verified.base_root);
+    defer topology_ctx.deinit();
+    const raw = circuit.common.finalize.rawComponentSizes(preprocessed.CircuitView.fromBuilder(&topology_ctx.circuit));
+    const raw_vars = topology_ctx.circuit.n_vars;
+    try circuit.common.finalize.padContext(circuit.builder.NoValue, &topology_ctx);
+    var pp = try preprocessed.PreprocessedCircuit.fromBuilderCircuit(allocator, &topology_ctx.circuit);
+    defer pp.deinit(allocator);
+    const actual_root = try pp.preprocessedRoot(allocator, verified.pcs.fri_config.log_blowup_factor);
+    if (!std.mem.eql(u8, &actual_root, &verified.root) or !pp.layout().eql(&verified.layout))
+        return error.FoldKeyTopologyMismatch;
+    const raw_rows: Rows = .{
+        .eq = raw.eq,
+        .qm31_ops = raw.qm31_ops,
+        .triple_xor = raw.triple_xor,
+        .m31_to_u32 = raw.m31_to_u32,
+        .blake_g = raw.blake_g_gate,
+    };
+    const padded = fold.value.padded;
+    if (raw_rows.eq > padded.eq or raw_rows.qm31_ops > padded.qm31_ops or
+        raw_rows.triple_xor > padded.triple_xor or raw_rows.m31_to_u32 > padded.m31_to_u32 or
+        raw_rows.blake_g > padded.blake_g)
+        return error.FoldKeyTopologyMismatch;
+    const headroom: Rows = .{
+        .eq = padded.eq - raw_rows.eq,
+        .qm31_ops = padded.qm31_ops - raw_rows.qm31_ops,
+        .triple_xor = padded.triple_xor - raw_rows.triple_xor,
+        .m31_to_u32 = padded.m31_to_u32 - raw_rows.m31_to_u32,
+        .blake_g = padded.blake_g - raw_rows.blake_g,
+    };
+    const report = .{
+        .schema = "s31-fixed-fold-geometry-v1",
+        .fold_preprocessed_root = fold.value.fold_preprocessed_root,
+        .fold_circuit_hash = fold.value.fold_circuit_hash,
+        .trace_log_size = fold.value.trace_log_size,
+        .raw_vars = raw_vars,
+        .padded_vars = topology_ctx.circuit.n_vars,
+        .raw_rows = raw_rows,
+        .padded_rows = padded,
+        .headroom_rows = headroom,
+    };
+    const encoded = try std.json.Stringify.valueAlloc(allocator, report, .{});
+    defer allocator.free(encoded);
+    std.debug.print("{s}\n", .{encoded});
 }
 
 fn validateFoldStatement(statement: FoldStatement, child_bytes: []const u8, fold_bytes: []const u8, verified: VerifiedFoldKey) !void {

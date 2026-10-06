@@ -148,6 +148,12 @@ acceptance run. `audit-fold-base` tests a first wrapper proof against altered
 leaf words, base root, step, branch selector, inverse, and previous counter.
 `audit-fold-next` applies the same checks to a saved fold proof, including
 its selected recursive root.
+`inspect-fold PACKAGE` rebuilds the fold topology from the sealed keys and
+prints its raw rows, padded rows, and available headroom as JSON. For the
+`arith4_m31` fixture, the raw/padded `triple_xor` rows are
+`243880/262144`, leaving 18,264 rows before that component crosses its
+current power-of-two padding boundary. This matters when designing a
+stateful fold: a seemingly small gadget can double one trace component.
 
 In one local `arith4_m31` step-3 sample, proving took 3.65 s wall time and
 9.31 GB peak resident memory; `--low-memory` took 3.91 s and 7.00 GB. The
