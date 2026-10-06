@@ -103,6 +103,25 @@ pub fn build(b: *std.Build) void {
     b.step("test-segment-v3-native-ingress", "Prove a leaf-local V3 segment and freshly verify its global link")
         .dependOn(&b.addRunArtifact(leaf_local_v3_tests).step);
 
+    const v3_security_root = b.createModule(.{
+        .root_source_file = b.path("native_v3_security_smoke_test.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    v3_security_root.addImport("stwo_core", core);
+    v3_security_root.addImport("stwo_artifact_store", artifact_store);
+    v3_security_root.addImport("stwo_prover_engine", prover);
+    v3_security_root.addImport("stwo_prover_api", prover_api);
+    v3_security_root.addImport("stwo_cpu_backend", cpu_backend);
+    v3_security_root.addImport("stwo_riscv_frontend", frontend);
+    v3_security_root.addImport("interop_postcard", postcard);
+    const v3_security_tests = b.addTest(.{
+        .root_module = v3_security_root,
+        .filters = &.{"real SegmentV2 native proof verifies under V3 q193 security profile"},
+    });
+    b.step("test-segment-v3-native-security-smoke", "Prove and verify a real small SegmentV2 ELF under V3 q193 security")
+        .dependOn(&b.addRunArtifact(v3_security_tests).step);
+
     const universal_root = b.createModule(.{
         .root_source_file = b.path("universal_typed_component_proof_test.zig"),
         .target = target,
