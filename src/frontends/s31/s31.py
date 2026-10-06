@@ -23,6 +23,7 @@ PINNED_ASSETS = (
 TEXT_FRONTEND_SOURCES = (
     S31_DIR / "text_frontend.py",
     S31_DIR / "s31_stdlib.py",
+    S31_DIR / "s31_mathlib.py",
 )
 
 

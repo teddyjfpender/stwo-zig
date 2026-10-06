@@ -2,6 +2,10 @@
 
 Status: v0.1 circuit relation compiler plus specialized linked-chip, sparse-arithmetic and direct-M31 proof profiles, personalized BLAKE2s tree functions, pinned field-native Poseidon2 tree functions, and a limited typed text frontend, 2026-10-06. The implementation lives in [`src/frontends/s31`](../../src/frontends/s31). The [text language guide](../../src/frontends/s31/TEXT_LANGUAGE.md) and [language and AIR guide](../../src/frontends/s31/LANGUAGE_AND_AIR.md) explain the current syntax and constraints; the [MVP roadmap](MVP_ROADMAP.md) records the profiles, hash suite, measurements and remaining gates. General chip extraction, a private circuit-to-chip boundary, a dedicated batch hash AIR and recursion remain research milestones. The older slice-0 material below is preserved as its original design and comparison record.
 
+The [standard/math library brief](STDLIB_MATHLIB.md) records the first qualified
+field math operations and the work needed for versioned modules, reductions,
+checked inversion, and computed boolean/range values.
+
 The concrete post-v0.1 protocol sequence, chip boundary argument, sparse-profile requirements, and exit gates are in the [MVP roadmap](MVP_ROADMAP.md). Its implementation-status section supersedes older forward-looking statements below about the repeated-step chip and sparse arithmetic profile.
 
 The current direct-M31 experiment proves a 256-round four-lane recurrence with one circuit AIR component, 4,096 preprocessed cells and a 60,616-byte native proof. At 32,768 rounds, a [five-input matched Cairo run](measurements/direct-cairo-v4-2026-10-06.json) recorded median `prove` times of 0.161 s for direct-chip and 6.616 s for the equivalent Cairo executable. Both native verifiers accepted the same public outputs. The visible FRI settings align, but the protocols and full security analyses differ; the 41.1× ratio applies to this workload and these executables. The [profile measurement](measurements/profiles-direct-v4-2026-10-06.json) separates cold setup, interaction PoW, PCS/FRI PoW and non-PoW proving work.

@@ -12,13 +12,14 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+import s31_mathlib as mathlib
 from s31_stdlib import Builder, StaticGroup, StepState, Type, TypeErrorS31, Value, P
 
 
 TOKEN_RE = re.compile(
     r"(?P<space>\s+)|(?P<comment>//[^\n]*)|(?P<field>[0-9]+_m31\b)|"
     r"(?P<number>[0-9]+)|(?P<ident>[A-Za-z_][A-Za-z_0-9]*)|"
-    r"(?P<symbol>->|\.\*|==|[\[\]{}();,:<>+=*])"
+    r"(?P<symbol>->|::|\.\*|==|[\[\]{}();,:<>+=*])"
 )
 MAX_TOKENS = 100_000
 MAX_CALL_DEPTH = 32
@@ -26,7 +27,18 @@ BUILTINS = {
     "splat", "iterate", "m31_from_u16", "select", "poseidon2_leaf",
     "poseidon2_pair", "blake2s_leaf", "blake2s_pair",
     "merkle_path_poseidon2", "merkle_path_blake2s",
+} | mathlib.BUILTINS
+STANDARD_ALIASES = {
+    "std::field::from_u16": "m31_from_u16",
+    "std::field::select": "select",
+    "std::hash::poseidon2_leaf": "poseidon2_leaf",
+    "std::hash::poseidon2_pair": "poseidon2_pair",
+    "std::hash::blake2s_leaf": "blake2s_leaf",
+    "std::hash::blake2s_pair": "blake2s_pair",
+    "std::merkle::path_poseidon2": "merkle_path_poseidon2",
+    "std::merkle::path_blake2s": "merkle_path_blake2s",
 }
+BUILTINS |= STANDARD_ALIASES.keys()
 
 
 class SourceError(ValueError):
@@ -249,6 +261,9 @@ class Parser:
             lhs = Expr("field" if token.kind == "field" else "number", token.text, (), token)
         elif token.kind == "ident":
             self.at += 1
+            name = token.text
+            while self.accept("::"):
+                name += "::" + self.identifier()
             generic = None
             if self.accept("<"):
                 generic = self.number()
@@ -261,9 +276,9 @@ class Parser:
                         if self.accept(")"):
                             break
                         self.expect(",")
-                lhs = Expr("call", token.text, tuple(args), token, generic)
+                lhs = Expr("call", name, tuple(args), token, generic)
             elif generic is None:
-                lhs = Expr("name", token.text, (), token)
+                lhs = Expr("name", name, (), token)
             else:
                 raise self.error("type argument requires a call")
         else:
@@ -397,7 +412,23 @@ class Compiler:
                                            wanted=wanted, span=self.span(expr))
             if expr.kind != "call":
                 raise TypeErrorS31("invalid expression")
-            name = expr.value
+            name = STANDARD_ALIASES.get(expr.value, expr.value)
+            if name in mathlib.BUILTINS:
+                if name == "std::math::pow":
+                    if expr.generic is None or len(expr.args) != 1:
+                        raise TypeErrorS31("std::math::pow<N>(value) expected")
+                    value = self.expect_value(self.eval_expr(expr.args[0], env), expr.args[0])
+                    return mathlib.pow_static(self.builder, value, expr.generic,
+                                              wanted=wanted, span=self.span(expr))
+                if expr.generic is not None:
+                    raise TypeErrorS31(f"{name} does not accept a static parameter")
+                values = tuple(self.expect_value(self.eval_expr(arg, env), arg) for arg in expr.args)
+                arity = 2 if name == "std::math::sub" else 1
+                if len(values) != arity:
+                    raise TypeErrorS31(f"{name} expects {arity} arguments")
+                operation = {"std::math::neg": mathlib.neg, "std::math::sub": mathlib.sub,
+                             "std::math::square": mathlib.square}[name]
+                return operation(self.builder, *values, wanted=wanted, span=self.span(expr))
             if name == "iterate":
                 if expr.generic is None or len(expr.args) != 2 or expr.args[0].kind != "name":
                     raise TypeErrorS31("iterate<N>(step_function, initial_value) expected")

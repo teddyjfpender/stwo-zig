@@ -36,12 +36,50 @@ class TextFrontendTests(unittest.TestCase):
 
     def test_existing_relations_are_identical(self) -> None:
         for name in ("arith4_m31", "merkle_path1_poseidon", "merkle_path1",
-                     "affine4_v1", "preimage4"):
+                     "affine4_v1", "preimage4", "math_polynomial4"):
             with self.subTest(name=name):
                 relation, source_map = compile_file(EXAMPLES / f"{name}.s31")
                 reference = json.loads((EXAMPLES / f"{name}.s31.json").read_text())
                 self.assertEqual(relation, reference)
                 self.assertEqual(set(source_map), {node["name"] for node in relation["nodes"]})
+
+    def test_math_library_lowers_to_existing_field_gates(self) -> None:
+        relation, _ = compile_file(EXAMPLES / "math_polynomial4.s31")
+        self.assertEqual([node["op"] for node in relation["nodes"]],
+                         ["mul", "mul", "mul", "mul_const", "add", "add_const"])
+        self.assertEqual(relation["nodes"][-1]["constant"], P - 7)
+        assignment = json.loads((EXAMPLES / "math_polynomial4.valid.json").read_text())
+        self.assertEqual(assignment["public_outputs"]["result"],
+                         [(pow(x, 5, P) + 3 * x - 7) % P
+                          for x in assignment["public_inputs"]["x"]])
+
+    def test_math_identity_and_constant_folding(self) -> None:
+        source = """circuit math(private x: [m31; 1]) -> public [m31; 1] {
+    let a = std::math::pow<1>(x);
+    let b = std::math::pow<0>(a);
+    let c = std::math::neg(b);
+    std::math::sub(std::math::square(a), c)
+}"""
+        relation, _ = compile_text(source)
+        self.assertEqual([node["op"] for node in relation["nodes"]],
+                         ["mul", "add_const"])
+        self.assertEqual(relation["nodes"][1]["constant"], 1)
+
+    def test_standard_hash_alias_has_identical_relation(self) -> None:
+        source = (EXAMPLES / "merkle_path1_poseidon.s31").read_text()
+        qualified = source.replace("poseidon2_leaf(", "std::hash::poseidon2_leaf(")
+        qualified = qualified.replace("poseidon2_pair(", "std::hash::poseidon2_pair(")
+        self.assertEqual(compile_text(source)[0], compile_text(qualified)[0])
+
+    def test_math_rejects_unsupported_types_and_exponents(self) -> None:
+        cases = (
+            ("m31", "std::math::pow<2147483647>(x)", "exponent must be"),
+            ("u16", "std::math::square(x)", "std::math requires"),
+            ("m31", "std::math::sub(x, splat<2>(1_m31))", "equally shaped"),
+        )
+        for kind, body, expected in cases:
+            with self.subTest(body=body), self.assertRaisesRegex(SourceError, expected):
+                compile_text(f"circuit bad(private x: [{kind}; 1]) -> public [m31; 1] {{ {body} }}")
 
     def test_independent_recurrence_values(self) -> None:
         assignment = json.loads((EXAMPLES / "arith4.valid.json").read_text())

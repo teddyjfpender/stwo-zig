@@ -12,7 +12,7 @@ python3 src/frontends/s31/s31.py build src/frontends/s31/examples/arith4_m31.s31
 python3 src/frontends/s31/s31.py explain zig-out/s31/text-arith4
 ```
 
-The text package includes the original `.s31`, normalized JSON, and a source map; all are hashed in its manifest. `explain` joins source locations to the existing gate-row cost report. See [the text language guide](TEXT_LANGUAGE.md) for its implemented syntax, typed library functions, constraints, examples, and limits.
+The text package includes the original `.s31`, normalized JSON, and a source map; all are hashed in its manifest. `explain` joins source locations to the existing gate-row cost report. See [the text language guide](TEXT_LANGUAGE.md) for its implemented syntax, typed library functions, constraints, examples, and limits. The [standard/math library brief](../../../design/s31/STDLIB_MATHLIB.md) records the qualified library operations and the remaining work for a useful release.
 
 From the repository root:
 

@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "name": "math_polynomial4",
+  "inputs": [{"name": "x", "kind": "m31", "length": 4, "visibility": "public"}],
+  "nodes": [
+    {"name": "_s31_0", "op": "mul", "lhs": "x", "rhs": "x"},
+    {"name": "_s31_1", "op": "mul", "lhs": "_s31_0", "rhs": "_s31_0"},
+    {"name": "fifth", "op": "mul", "lhs": "_s31_1", "rhs": "x"},
+    {"name": "triple", "op": "mul_const", "lhs": "x", "constant": 3},
+    {"name": "combined", "op": "add", "lhs": "fifth", "rhs": "triple"},
+    {"name": "result", "op": "add_const", "lhs": "combined", "constant": 2147483640}
+  ],
+  "assertions": [],
+  "public_outputs": ["result"]
+}

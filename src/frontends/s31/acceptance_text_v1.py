@@ -13,6 +13,7 @@ from s31_stdlib import P
 CASES = (
     ("arith4_m31", "arith4", "direct-chip"),
     ("merkle_path1_poseidon", "merkle_path1_poseidon", "direct-gate"),
+    ("math_polynomial4", "math_polynomial4", "direct-gate"),
 )
 EQUAL_FIELDS = (
     "canonical_ir_sha256", "profile", "chip", "raw", "padded",

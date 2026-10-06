@@ -102,6 +102,26 @@ Raw BLAKE2s-256 bytes are distinct from its reduced M31-word digest.
 | `merkle_path_poseidon2(leaf, siblings, directions)` and `merkle_path_blake2s(...)` | Optional leaf hash, then two selects and one ordered pair per level | Raw M31 leaf or same-family digest; static arrays of 1–16 digest and bit inputs. |
 | `assert_eq(a,b);` | Relation assertion | Equally typed operands; checked as a proof constraint. |
 
+Qualified standard operations are compiler-owned and available without an
+import in this version. `std::field::from_u16`, `std::field::select`,
+`std::hash::{poseidon2_leaf,poseidon2_pair,blake2s_leaf,blake2s_pair}` and
+`std::merkle::{path_poseidon2,path_blake2s}` are aliases of the corresponding
+unqualified operations above. The aliases emit identical normalized relations.
+There is no module loader or third-party package system yet.
+
+| Math operation | Lowering | Preconditions |
+| --- | --- | --- |
+| `std::math::neg(x)` | `mul_const(x, p-1)` | `[m31; N]`; compile-time constants fold. |
+| `std::math::sub(x,y)` | Negate `y`, then add; a constant `y` becomes one `add_const`. | Equally shaped `[m31; N]`. |
+| `std::math::square(x)` | `mul(x,x)` | `[m31; N]`. |
+| `std::math::pow<K>(x)` | Static square-and-multiply chain | `[m31; N]`, `0 <= K < p`; `x^0 = 1`. |
+
+[`math_polynomial4.s31`](examples/math_polynomial4.s31) is a complete math
+example, with an equivalent [normalized relation](examples/math_polynomial4.s31.json)
+and a [valid assignment](examples/math_polynomial4.valid.json). The
+[library brief](../../../design/s31/STDLIB_MATHLIB.md) shows its six arithmetic
+nodes, AIR equations, and the remaining work for a full standard/math library.
+
 The BLAKE2s leaf and pair operations use `S31LEAF1` and `S31PAIR1`
 personalization and little-endian canonical M31 words. Their digest words are
 individually reduced modulo M31. Poseidon2 uses the pinned Stark-V constants
@@ -148,7 +168,7 @@ both forms through their generated native verifiers. It also requires rejection
 of a changed public output and a non-Boolean private direction. The Zig suite
 independently validates and compiles the emitted relation.
 
-This initial text language has no modules, macros, arbitrary recursion,
+This initial text language has no user-defined modules or imports, macros, arbitrary recursion,
 witness-dependent control flow, computed bit selectors, general `map`/`fold`,
 or private circuit-to-chip boundary. It reports source positions for emitted
 nodes and gate spans, but it does not yet render every symbolic AIR polynomial
