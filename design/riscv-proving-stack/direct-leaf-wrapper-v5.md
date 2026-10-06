@@ -116,10 +116,13 @@ fixed key. Activation needs either a verifier-selected, shape-only graph
 topology schedule with identical multiplicities across every leaf using the
 key, or a versioned AIR that authenticates variable multiplicities as main
 witness columns. The current writer rejects both rows before touching Tree0.
-Independent shape-derived writers now cover rows 11, 13, 14, 18, and 19;
+Independent shape-derived writers now cover rows 11, 13, 14, 18, 19, and 22;
 rows 11, 18, and 19 have not yet been admitted into the complete template
 key. The row-13/14 writer covers the public authority hash and seal, with
 physical fixed-column parity against the native graph and mutation gates.
+Row 22 rebuilds the core Merkle-root schedule from verifier-owned query,
+tree, and FRI counts; rows 23–32 still require admitted tree-column,
+recursion-plan, FRI-layout, and circuit-graph shape inputs.
 A further dormant row-4 profile can export kind and eight split argument limbs
 for instructions with an actual payload row, using that row's existing
 transcript-payload relation. Its coverage audit rejects duplicate origins and
