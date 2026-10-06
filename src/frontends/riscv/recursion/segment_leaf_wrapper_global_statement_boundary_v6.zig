@@ -22,6 +22,15 @@ pub const PRODUCTION_PROOF_ACTIVATION = false;
 
 pub const ExpectedPublic = struct {
     words: span.StatementWords,
+
+    /// Must be called with verifier-supplied words before relation challenges
+    /// are drawn. The challenge-dependent boundary claim is mixed later.
+    pub fn mixBeforeRelations(self: *const ExpectedPublic, channel: anytype) void {
+        channel.mixU32s(&.{ TRANSCRIPT_DOMAIN, FORMAT_VERSION, @intFromEnum(DOMAIN), WORD_COUNT, SCOPE });
+        var words: [WORD_COUNT]u32 = undefined;
+        for (&words, self.words) |*destination, word| destination.* = word.toU32();
+        channel.mixU32s(&words);
+    }
 };
 
 pub const BoundaryV6 = struct {
@@ -64,12 +73,9 @@ pub const BoundaryV6 = struct {
         }
     }
 
-    pub fn mixInto(self: *const BoundaryV6, channel: anytype, expected: ExpectedPublic, relations: *const universal.UniversalRelations) !void {
+    pub fn mixClaimAfterRelations(self: *const BoundaryV6, channel: anytype, expected: ExpectedPublic, relations: *const universal.UniversalRelations) !void {
         try self.validateAgainst(expected, relations);
-        channel.mixU32s(&.{ TRANSCRIPT_DOMAIN, FORMAT_VERSION, @intFromEnum(DOMAIN), WORD_COUNT, SCOPE });
-        var words: [WORD_COUNT]u32 = undefined;
-        for (&words, self.expected.words) |*destination, word| destination.* = word.toU32();
-        channel.mixU32s(&words);
+        channel.mixU32s(&.{ TRANSCRIPT_DOMAIN, FORMAT_VERSION });
         channel.mixFelts(&.{self.claimed_sum});
         var digest_words: [8]u32 = undefined;
         for (&digest_words, 0..) |*word, index|
@@ -115,4 +121,12 @@ test "global span boundary closes exactly 412 G3S1 words and rejects mutation" {
     try std.testing.expect(ledger.classify().isClosed());
     expected.words[17] = expected.words[17].add(M31.one());
     try std.testing.expectError(error.InvalidGlobalStatementBoundaryV6, boundary.validateAgainst(expected, &relations));
+    var first = @import("poseidon2_channel.zig").Channel{};
+    boundary.expected.mixBeforeRelations(&first);
+    var changed = @import("poseidon2_channel.zig").Channel{};
+    expected.mixBeforeRelations(&changed);
+    try std.testing.expect(!std.meta.eql(first.drawU32s(), changed.drawU32s()));
+    var claim_channel = @import("poseidon2_channel.zig").Channel{};
+    try boundary.mixClaimAfterRelations(&claim_channel, boundary.expected, &relations);
+    try std.testing.expectError(error.InvalidGlobalStatementBoundaryV6, boundary.mixClaimAfterRelations(&claim_channel, expected, &relations));
 }
