@@ -54,6 +54,12 @@ the `NPV2` relation must connect row 42's canonical words to the native
 verifier components that actually execute them. The canonical ProgramV2 word
 coverage audit must fail closed until every active index has exactly one
 trusted origin or a semantically constrained fixed value.
+The staged native source currently covers 14 words from actual row-5 values
+(wire identity and selected PCS payloads). A dormant row-42 bridge constrains
+nine fixed format/PCS words in AIR under the pinned profile. On the focused
+fixture, its machine-readable coverage audit still reports 46 unlinked words,
+including instruction descriptors and identity fields, and `requireComplete()`
+rejects it. Neither staged module is selected by the direct cohort yet.
 
 The verifier-owned 24-word `LAS2` boundary consumes row 40's public link,
 ProgramV2, and Tree0 words and mixes its expected values and claimed sum
