@@ -904,6 +904,12 @@ def main() -> None:
     sub.add_argument("child_proof", type=Path)
     sub.add_argument("outer_proof", type=Path)
     sub.add_argument("--statement", type=Path)
+    sub.add_argument("--low-memory", action="store_true",
+                     help="retain committed evaluations only; lower peak RAM with some extra proving time")
+    sub = commands.add_parser("audit-recursive", help="audit a saved child proof's in-circuit verifier inputs")
+    sub.add_argument("package", type=Path)
+    sub.add_argument("child_proof", type=Path)
+    sub.add_argument("--statement", type=Path)
     sub = commands.add_parser("verify")
     sub.add_argument("package", type=Path)
     sub.add_argument("proof", type=Path)
@@ -990,8 +996,17 @@ def main() -> None:
         outer.parent.mkdir(parents=True, exist_ok=True)
         executable = package / "bin" / f"s31-{manifest['name']}-prover"
         print(invoke(str(executable), "recurse-wrap", str(child), str(statement),
-                     str(outer), str(package / "verification-key.json")), end="")
+                     str(outer), str(package / "verification-key.json"),
+                     *(("--low-memory",) if args.low_memory else ())), end="")
         print(f"recursive statement: {outer}.statement.json")
+    elif args.command == "audit-recursive":
+        if manifest["lowering"] != "gate":
+            raise ValueError("audit-recursive requires a gate-profile package")
+        child = args.child_proof.resolve()
+        statement = args.statement.resolve() if args.statement else Path(str(child) + ".statement.json")
+        executable = package / "bin" / f"s31-{manifest['name']}-prover"
+        print(invoke(str(executable), "recurse-audit", str(child), str(statement),
+                     str(package / "verification-key.json")), end="")
     elif args.command == "verify":
         proof = args.proof.resolve()
         statement = args.statement.resolve() if args.statement else Path(str(proof) + ".statement.json")

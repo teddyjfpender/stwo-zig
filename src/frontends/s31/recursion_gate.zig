@@ -135,7 +135,7 @@ pub fn verifyPrepared(
     return verifyPreparedWithMutation(allocator, projection_bytes, layout, pcs, adapted, expected, null);
 }
 
-fn verifyPreparedWithMutation(
+pub fn verifyPreparedWithMutation(
     allocator: std.mem.Allocator,
     projection_bytes: []const u8,
     layout: circuit.common.preprocessed.ColumnLayout,

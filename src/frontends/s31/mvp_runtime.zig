@@ -135,19 +135,21 @@ pub fn main() !void {
     } else if (std.mem.eql(u8, command, "inspect") and args.len == 2) {
         try inspect(allocator, parsed.value);
     } else if (std.mem.eql(u8, command, "prove") and args.len == 4) {
-        try prove(allocator, parsed.value, args[2], args[3], null, false, null, null);
+        try prove(allocator, parsed.value, args[2], args[3], null, false, null, null, false);
     } else if (std.mem.eql(u8, command, "recurse-check") and args.len == 4 and !chip_mode and !sparse_mode and !direct_mode) {
-        try prove(allocator, parsed.value, args[2], args[3], null, true, null, null);
-    } else if (std.mem.eql(u8, command, "recurse-prove") and args.len == 6 and !chip_mode and !sparse_mode and !direct_mode) {
-        try prove(allocator, parsed.value, args[2], args[3], null, true, args[4], args[5]);
-    } else if (std.mem.eql(u8, command, "recurse-wrap") and args.len == 6 and !chip_mode and !sparse_mode and !direct_mode) {
-        try wrapExisting(allocator, parsed.value, args[2], args[3], args[4], args[5]);
+        try prove(allocator, parsed.value, args[2], args[3], null, true, null, null, false);
+    } else if (std.mem.eql(u8, command, "recurse-prove") and (args.len == 6 or (args.len == 7 and std.mem.eql(u8, args[6], "--low-memory"))) and !chip_mode and !sparse_mode and !direct_mode) {
+        try prove(allocator, parsed.value, args[2], args[3], null, true, args[4], args[5], args.len == 7);
+    } else if (std.mem.eql(u8, command, "recurse-wrap") and (args.len == 6 or (args.len == 7 and std.mem.eql(u8, args[6], "--low-memory"))) and !chip_mode and !sparse_mode and !direct_mode) {
+        try wrapExisting(allocator, parsed.value, args[2], args[3], args[4], args[5], false, args.len == 7);
+    } else if (std.mem.eql(u8, command, "recurse-audit") and args.len == 5 and !chip_mode and !sparse_mode and !direct_mode) {
+        try wrapExisting(allocator, parsed.value, args[2], args[3], null, args[4], true, false);
     } else if (std.mem.eql(u8, command, "recurse-keygen") and args.len == 4 and !chip_mode and !sparse_mode and !direct_mode) {
         try generateRecursiveKey(allocator, parsed.value, args[2], args[3]);
     } else if (std.mem.eql(u8, command, "prove-adversarial") and args.len == 5 and (sparse_mode or direct_mode) and chip_mode) {
         const mutation = std.meta.stringToEnum(cpu.sparse_arithmetic.Mutation, args[4]) orelse
             return error.InvalidMutation;
-        try prove(allocator, parsed.value, args[2], args[3], mutation, false, null, null);
+        try prove(allocator, parsed.value, args[2], args[3], mutation, false, null, null, false);
     } else return usage();
 }
 
@@ -169,7 +171,7 @@ pub fn verifierMain(embedded_key: []const u8, embedded_recursive_key: []const u8
 }
 
 fn usage() error{InvalidArguments} {
-    std.debug.print("usage: s31-program check | inspect | run ASSIGNMENT.json | prove ASSIGNMENT.json PROOF | recurse-check ASSIGNMENT.json CHILD-PROOF | recurse-prove ASSIGNMENT.json CHILD-PROOF OUTER-PROOF CHILD-KEY.json | recurse-wrap CHILD-PROOF CHILD-STATEMENT.json OUTER-PROOF CHILD-KEY.json | recurse-keygen CHILD-KEY.json RECURSIVE-KEY.json\n", .{});
+    std.debug.print("usage: s31-program check | inspect | run ASSIGNMENT.json | prove ASSIGNMENT.json PROOF | recurse-check ASSIGNMENT.json CHILD-PROOF | recurse-prove ASSIGNMENT.json CHILD-PROOF OUTER-PROOF CHILD-KEY.json [--low-memory] | recurse-wrap CHILD-PROOF CHILD-STATEMENT.json OUTER-PROOF CHILD-KEY.json [--low-memory] | recurse-audit CHILD-PROOF CHILD-STATEMENT.json CHILD-KEY.json | recurse-keygen CHILD-KEY.json RECURSIVE-KEY.json\n", .{});
     return error.InvalidArguments;
 }
 
@@ -420,7 +422,7 @@ fn inspect(allocator: std.mem.Allocator, source: relation.Program) !void {
     std.debug.print("{s}\n", .{encoded});
 }
 
-fn prove(allocator: std.mem.Allocator, source: relation.Program, assignment_path: []const u8, path: []const u8, mutation: ?cpu.sparse_arithmetic.Mutation, recurse_check: bool, outer_path: ?[]const u8, child_key_path: ?[]const u8) !void {
+fn prove(allocator: std.mem.Allocator, source: relation.Program, assignment_path: []const u8, path: []const u8, mutation: ?cpu.sparse_arithmetic.Mutation, recurse_check: bool, outer_path: ?[]const u8, child_key_path: ?[]const u8, low_memory: bool) !void {
     var total_timer = try std.time.Timer.start();
     var assignment = try readAssignment(allocator, assignment_path);
     defer assignment.deinit();
@@ -699,7 +701,7 @@ fn prove(allocator: std.mem.Allocator, source: relation.Program, assignment_path
                 recursive.circuit.n_vars,
                 recursive.circuit.mul.items.len + recursive.circuit.add.items.len + recursive.circuit.sub.items.len,
             });
-            if (outer_path) |destination| try proveOuter(allocator, source, &recursive, layout, pcs, &bundle, expected, destination, child_key_path.?);
+            if (outer_path) |destination| try proveOuter(allocator, source, &recursive, layout, pcs, &bundle, expected, destination, child_key_path.?, low_memory);
         }
     }
     defer allocator.free(encoded);
@@ -743,6 +745,7 @@ fn proveOuter(
     expected_child: recursion_gate.Expected,
     path: []const u8,
     child_key_path: []const u8,
+    low_memory: bool,
 ) !void {
     const key_bytes = try std.fs.cwd().readFileAlloc(allocator, child_key_path, 4096);
     defer allocator.free(key_bytes);
@@ -808,6 +811,7 @@ fn proveOuter(
     var timer = try std.time.Timer.start();
     var outer = try cpu.Internal.prove(allocator, values.values(), &pp, bundle, pcs, .{
         .preprocessed_commitment = &committed,
+        .evaluations_only = low_memory,
     }, {});
     defer outer.deinit();
     const prove_ns = timer.read();
@@ -856,8 +860,10 @@ fn wrapExisting(
     source: relation.Program,
     child_proof_path: []const u8,
     child_statement_path: []const u8,
-    outer_path: []const u8,
+    outer_path: ?[]const u8,
     child_key_path: []const u8,
+    audit_only: bool,
+    low_memory: bool,
 ) !void {
     const key_bytes = try std.fs.cwd().readFileAlloc(allocator, child_key_path, 4096);
     defer allocator.free(key_bytes);
@@ -895,11 +901,36 @@ fn wrapExisting(
     defer converted.deinit();
     var recursive = try recursion_gate.verifyPrepared(allocator, projection_bytes, layout, pcs, &converted, expected);
     defer recursive.deinit();
+    if (!try recursive.isCircuitValid()) return error.InvalidRecursiveCircuit;
+    if (audit_only) {
+        var wrong_statement = expected;
+        wrong_statement.public_words[0] = (wrong_statement.public_words[0] + 1) % core.fields.m31.Modulus;
+        if (recursion_gate.verifyPrepared(allocator, projection_bytes, layout, pcs, &converted, wrong_statement)) |accepted| {
+            var invalid = accepted;
+            invalid.deinit();
+            return error.RecursiveVerifierAcceptedWrongStatement;
+        } else |err| switch (err) {
+            error.VerificationFailed, error.EqFailedOnEval => {},
+            else => return err,
+        }
+        inline for (.{ .trace_root, .claimed_sum, .channel_salt, .fri_witness, .fri_last_layer }) |corruption| {
+            if (recursion_gate.verifyPreparedWithMutation(allocator, projection_bytes, layout, pcs, &converted, expected, corruption)) |accepted| {
+                var invalid = accepted;
+                invalid.deinit();
+                return error.RecursiveVerifierAcceptedCorruptProof;
+            } else |err| switch (err) {
+                error.VerificationFailed, error.EqFailedOnEval => {},
+                else => return err,
+            }
+        }
+        std.debug.print("S31 recursive saved child audit: valid=true rejected=6\n", .{});
+        return;
+    }
     std.debug.print("S31 recursive saved child: vars={d} qm31_ops={d} valid=true\n", .{
         recursive.circuit.n_vars,
         recursive.circuit.mul.items.len + recursive.circuit.add.items.len + recursive.circuit.sub.items.len,
     });
-    try proveOuter(allocator, source, &recursive, layout, pcs, &bundle, expected, outer_path, child_key_path);
+    try proveOuter(allocator, source, &recursive, layout, pcs, &bundle, expected, outer_path.?, child_key_path, low_memory);
 }
 
 fn generateRecursiveKey(

@@ -74,6 +74,8 @@ def main() -> None:
             "public_outputs": leaf_assignment["public_outputs"],
         })
         run(str(verifier), str(leaf), str(leaf_statement), str(key), accept=True)
+        run("python3", str(HERE / "s31.py"), "audit-recursive", str(package),
+            str(leaf), "--statement", str(leaf_statement), accept=True)
 
         # A separately loaded S31NAT1 proof is verified natively, expanded
         # from the verifier's authenticated capture, then verified in-circuit.
@@ -86,6 +88,14 @@ def main() -> None:
             raise AssertionError("saved-proof wrapper changed the outer public statement")
         run("python3", str(HERE / "s31.py"), "verify-recursive", str(package),
             str(saved_outer), accept=True)
+        low_memory_outer = work / "low-memory-outer.proof"
+        run("python3", str(HERE / "s31.py"), "wrap", str(package), str(leaf),
+            str(low_memory_outer), "--statement", str(leaf_statement),
+            "--low-memory", accept=True)
+        if low_memory_outer.read_bytes() != saved_outer.read_bytes():
+            raise AssertionError("low-memory policy changed recursive proof bytes")
+        run("python3", str(HERE / "s31.py"), "verify-recursive", str(package),
+            str(low_memory_outer), accept=True)
 
         wrong_leaf_statement = copy.deepcopy(json.loads(leaf_statement.read_text()))
         wrong_leaf_statement["public_outputs"]["result"][0] += 1
@@ -160,7 +170,7 @@ def main() -> None:
             "leaf_proof_bytes": leaf.stat().st_size,
             "outer_proof_bytes": outer.stat().st_size,
             "outer_statement_sha256": hashlib.sha256(statement_path.read_bytes()).hexdigest(),
-            "accepted": 3,
+            "accepted": 4,
             "rejected": 12,
             "in_circuit_rejections": [
                 "changed_public_word", "trace_root", "claimed_sum",

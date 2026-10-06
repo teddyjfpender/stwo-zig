@@ -91,13 +91,16 @@ opening capture, then requires the bytes to match exactly. It also requires
 rejection for a changed public word, trace commitment, claimed LogUp sum,
 channel salt, FRI opening witness, and FRI last-layer coefficient.
 `recurse-prove` avoids those extra audit builds.
+`audit-recursive` accepts a saved child proof and public statement, replays
+native verification, and tests the same six in-circuit mutations on the
+verifier-captured witness without needing the private assignment.
 For the documented fixture, the prover-side and verifier-captured in-circuit
 inputs serialized to the same 799,464 bytes. This equality checks conversion
 parity; it does not replace verification of either proof.
 
 The public outer statement contains the child key digest, eight child words,
 the outer digest, and the outer circuit's root and hash. The native outer
-verifier computes the last two from its embedded child key; the statement
+verifier checks the last two against its embedded recursive key; the statement
 cannot choose them. It rejects unsupported profiles before decoding.
 
 The security claim is conditional on the soundness of the child and outer
@@ -129,6 +132,10 @@ python3 src/frontends/s31/s31.py wrap \
   zig-out/s31/recursive-arith4/child.proof \
   zig-out/s31/recursive-arith4/outer.proof
 
+python3 src/frontends/s31/s31.py audit-recursive \
+  zig-out/s31/recursive-arith4 \
+  zig-out/s31/recursive-arith4/child.proof
+
 python3 src/frontends/s31/s31.py verify-recursive \
   zig-out/s31/recursive-arith4 \
   zig-out/s31/recursive-arith4/outer.proof
@@ -140,8 +147,8 @@ python3 src/frontends/s31/acceptance_recursion_gate.py \
 `recurse-prove ASSIGNMENT CHILD-PROOF OUTER-PROOF CHILD-KEY` remains a one-shot
 prover command. The acceptance run checks both one-shot and saved-proof
 wrappers, rejects changed leaf and outer statements, altered proofs and
-keys, and runs `recurse-check` to exercise the six direct in-circuit
-corruptions above.
+keys, and runs both audits to exercise the six direct in-circuit
+corruptions above using both prover metadata and authenticated capture.
 
 One `ReleaseFast` run produced a 438,157-byte child proof. The verifier
 circuit had 10,277,308 variables and 1,139,003 arithmetic gates. After
@@ -151,8 +158,25 @@ releasing both checked circuit graphs before proving, outer proving took
 macOS). Before that graph release, a separate run peaked at 9.70 GB and
 took 4.92 seconds. These are single observations, not controlled benchmark
 distributions or a Bitcoin-specific cost claim. The verifier circuit still
-dominates memory; caching its authenticated topology and preprocessed
-commitment, then reducing its gate count, are required for practical folding.
+dominates memory; reducing its gate count and the prover's trace storage
+are required for practical folding.
+
+`s31.py wrap ... --low-memory` retains committed evaluations without a
+second coefficient copy during outer proving. Three local runs of the same
+`arith4_m31` witness with `/usr/bin/time -l` gave these ranges:
+
+| Outer proving policy | Wall time | Peak resident memory | Outer proof |
+| --- | ---: | ---: | ---: |
+| Default, faster | 3.57–4.13 s | 9.31 GB | 547,655 bytes |
+| `--low-memory` | 4.38–4.54 s | 7.00–7.10 GB | 547,655 bytes |
+
+Both policies produced byte-identical proofs. These are local runs rather
+than controlled cross-machine benchmarks. The default favors speed; the
+explicit flag trades roughly 10% more wall time for about 2.3 GB less peak
+memory in this case. The low-level `recurse-prove` and `recurse-wrap`
+commands also accept `--low-memory` as their final argument. The
+[raw sample record](../../../../design/s31/measurements/recursion-memory-policy-v1-2026-10-06.json)
+contains the six wall-time and peak-memory observations and common proof hash.
 Before the sealed recursive key, a standalone outer verifier rebuilt the
 topology and took 0.55 seconds with 1.45 GB peak resident memory in one
 `time -l` run. With the key embedded, one run took 0.07 seconds and peaked

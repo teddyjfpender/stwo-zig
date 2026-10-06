@@ -132,6 +132,8 @@ The [recursion chapter](docs/recursion.md) demonstrates a one-level
 inside a circuit, and wrapped in an outer proof checked by a generated native
 verifier. Gate packages seal a recursive verification key at build time, so
 routine outer verification does not rebuild the large verifier topology.
+`wrap --low-memory` trades some proving time for lower peak RAM while
+producing the same proof bytes.
 The chapter states the remaining steps for the sparse-wide Bitcoin
 header proof and a repeatable fold.
 
