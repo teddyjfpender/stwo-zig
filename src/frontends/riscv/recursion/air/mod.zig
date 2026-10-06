@@ -168,6 +168,10 @@ pub const segment_leaf_wrapper_link_manifest_v3 =
     @import("segment_leaf_wrapper_link_manifest_v3.zig");
 pub const segment_leaf_wrapper_field_manifest_v3 =
     @import("segment_leaf_wrapper_field_manifest_v3.zig");
+pub const segment_leaf_wrapper_roster_v3 =
+    @import("segment_leaf_wrapper_roster_v3.zig");
+pub const segment_leaf_wrapper_proof_gate_v3 =
+    @import("segment_leaf_wrapper_proof_gate_v3.zig");
 pub const ethereum_leaf_child_field_router_v1 =
     @import("ethereum_leaf_child_field_router_v1.zig");
 pub const universal_challenges = @import("universal_challenges.zig");

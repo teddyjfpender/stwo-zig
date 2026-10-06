@@ -22,6 +22,14 @@ pub const specs = [_]Spec{
         .minimum = 1,
     },
     .{
+        .step = "test-recursion-v3-wrapper-roster",
+        .description = "Check complete 49-row V3 wrapper geometry and fail-closed proof boundary",
+        .root = "wrapper_roster_v3_test_root.zig",
+        .imports_prover_engine = true,
+        .filters = &.{ "V3 wrapper roster", "V3 production profile" },
+        .minimum = 3,
+    },
+    .{
         .step = "test-recursion-v3-field-manifest",
         .description = "Pin staged ProgramV2/provider source and hash typed adapters without V3 publication",
         .root = "field_manifest_v3_test_root.zig",

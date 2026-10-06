@@ -27,8 +27,15 @@ pub const DIRECT_CONSTRAINT_COUNT: usize = 6;
 pub const RELATION_EVENT_COUNT: usize = 3;
 pub const LOOKUP_BATCH_SIZE: u8 = 1;
 pub const INTERACTION_COLUMN_COUNT: usize = 12;
+pub const INTERACTION_BATCH_COUNT: usize = 3;
 pub const MAXIMUM_CONSTRAINT_DEGREE: u32 = 2;
 pub const SEMANTIC_DIGEST_HEX = "0e5b9a93756a1cccf37df7fc39f5977638c87f48ab6512cf0f657e6550eaeae5";
+pub const SEMANTIC_DIGEST: [32]u8 = blk: {
+    var result: [32]u8 = undefined;
+    _ = std.fmt.hexToBytes(&result, SEMANTIC_DIGEST_HEX) catch
+        @compileError("invalid Tree0 typed AIR digest");
+    break :blk result;
+};
 pub const Row = [LOGICAL_INPUT_COUNT]M31;
 pub const Runtime = relation_interaction.Runtime(
     LOGICAL_INPUT_COUNT,

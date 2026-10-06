@@ -200,6 +200,7 @@ pub const segment_verified_publication_v2 = @import("segment_verified_publicatio
 pub const segment_verified_artifact_v2 = @import("segment_verified_artifact_v2.zig");
 pub const segment_outer_transaction_support_v2 = @import("segment_outer_transaction_support_v2.zig");
 pub const segment_outer_transaction_v2 = @import("segment_outer_transaction_v2.zig");
+pub const segment_leaf_wrapper_protocol_v3 = @import("segment_leaf_wrapper_protocol_v3.zig");
 pub const segment_public_wire_boundary_v2 = @import("segment_public_wire_boundary_v2.zig");
 pub const engine_protocol = @import("engine_protocol.zig");
 pub const canonical_proof_identity_v1 = @import("canonical_proof_identity_v1.zig");
