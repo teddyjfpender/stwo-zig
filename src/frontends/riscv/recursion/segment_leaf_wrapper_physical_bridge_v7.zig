@@ -101,6 +101,16 @@ pub const Writer = struct {
             .row42 = try interactTyped(program, self.allocator, self.plan, 42, self.row42, relations, tree),
         };
     }
+
+    /// Audits the actual V7 physical AIR entries for the native half-word
+    /// scope. A zero result is necessary but not sufficient for a wrapper
+    /// proof: the other relation scopes and detached verifier remain separate.
+    pub fn wireHalfResidual(self: *const Writer, relations: *const relations_mod.UniversalRelations) !QM31 {
+        try relations.validate();
+        const source_claim = try scopedHalfClaim(payload, self.allocator, self.row5.rows, relations);
+        const consumer_claim = try scopedHalfClaim(program, self.allocator, self.row42, relations);
+        return source_claim.add(consumer_claim);
+    }
 };
 
 const Tree = enum { preprocessed, main };

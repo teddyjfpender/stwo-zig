@@ -106,6 +106,15 @@ template rather than a leaf-specific V2 manifest. Distinct leaves with the
 same admitted shape get the same candidate key. No verification key is
 admitted until the remaining base fixed tables and a fresh detached proof
 transaction are qualified.
+The first physical V7 bridge also runs on the real q193 capture: row 5 writes
+4,700 rows, row 42 writes a 4,096-row padded table, and the versioned row-35
+counter includes exactly 24 wire-byte requests. Its row-5/row-42 NPH2
+interaction claims cancel under the shared relation draw. This is a scoped
+physical claim check. Substituting the new physical row-5/35/42 audits into
+the real 50-row cohort closes the complete domain-30 residual exactly; this
+is now a regression gate, not just a printed diagnostic. Domains 25 and 29
+remain nonzero because their other rows still use the diagnostic V5 cohort.
+Neither the scoped check nor the domain-30 gate creates a proof.
 For the V6 base fixed schedule, rows 15 and 16 are deliberately unqualified.
 Their Tree0 columns include the exact dense input-use multiplicities of the
 native-public-sum arithmetic graph. Section lengths alone do not determine

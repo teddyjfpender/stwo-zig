@@ -128,6 +128,8 @@ pub const segment_v2_tree0_field_link_v3 =
 pub const segment_v2_tree0_field_link_direct_v4 =
     @import("segment_v2_tree0_field_link_direct_v4.zig");
 pub const segment_outer_typed_catalog_v2 = @import("segment_outer_typed_catalog_v2.zig");
+pub const segment_leaf_wrapper_template_v6 = @import("segment_leaf_wrapper_template_v6.zig");
+pub const segment_leaf_wrapper_template_v7 = @import("segment_leaf_wrapper_template_v7.zig");
 pub const segment_publication_input_provider_component_v2 =
     @import("segment_publication_input_provider_component_v2.zig");
 pub const segment_publication_input_provider_v2 =
