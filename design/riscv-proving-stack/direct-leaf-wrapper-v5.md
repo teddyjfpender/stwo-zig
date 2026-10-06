@@ -76,6 +76,15 @@ nine fixed format/PCS words in AIR under the pinned profile. On the focused
 fixture, its machine-readable coverage audit still reports 46 unlinked words,
 including instruction descriptors and identity fields, and `requireComplete()`
 rejects it. Neither staged module is selected by the direct cohort yet.
+The real q193 V6 audit exposed an additional representation boundary: the
+native transcript writes each 32-bit wire-ID word as two 16-bit field payloads.
+The first eight row-5 payloads are therefore **not** the eight canonical
+ProgramV2 wire words. The V6 eight-row direct export intentionally rejects
+this capture. A versioned proof-visible bridge must consume all 16 committed
+half-word payloads, range-constrain each half, and prove the eight 32-bit
+recompositions in row 42 before either the tuple ledger or a fixed key can be
+admitted. Host recomposition is only a diagnostic and does not close this
+soundness obligation.
 A further dormant row-4 profile can export kind and eight split argument limbs
 for instructions with an actual payload row, using that row's existing
 transcript-payload relation. Its coverage audit rejects duplicate origins and
