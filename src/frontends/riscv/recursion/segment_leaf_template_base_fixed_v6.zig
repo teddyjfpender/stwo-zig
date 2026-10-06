@@ -308,6 +308,7 @@ test "V6 base fixed rows reconstruct without a leaf" {
         if (row != 10 and columns.len > 0) try std.testing.expectError(error.FixedBaseDestinationNotFreshV6, writer.writeRow(row, columns));
     }
     try std.testing.expectError(error.UnqualifiedFixedRowV6, writer.writeRow(11, &.{}));
+    try std.testing.expectError(error.UnqualifiedFixedRowV6, writer.writeRow(17, &.{}));
     try std.testing.expectError(error.UnqualifiedFixedRowsV6, writer.requireCompletePreprocessing());
 }
 
