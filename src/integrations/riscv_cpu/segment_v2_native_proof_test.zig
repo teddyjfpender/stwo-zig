@@ -909,57 +909,9 @@ test "native V2 proves a rebased leaf-local V3 segment without widening the AIR"
     const left_result = &left_profile.base;
     const right_result = &right_profile.base;
 
-    var program = try frontend.air.program.commitment.buildDeclared(
+    const right_global = try @import("recursive_segment_v3_native_test_fixture.zig").rightGlobal(
         allocator,
-        right_result.execution_trace.rows.items,
-        right_result.rw_memory.program_words,
-        null,
-    );
-    defer program.deinit(allocator);
-    const public_input = digest("native-local-v3-input");
-    const public_output = digest("native-local-v3-output");
-    const initial_state = try machineState(
-        left_result.entry_cpu,
-        segment_v2.snapshotIdentity(left_result.rw_memory.words, .initial_word).id,
-        digest("native-local-v3-io-entry"),
-    );
-    const shared_state = try machineState(
-        left_result.exit_cpu,
-        segment_v2.snapshotIdentity(left_result.rw_memory.words, .final_word).id,
-        digest("native-local-v3-io-shared"),
-    );
-    const final_state = try machineState(
-        right_result.exit_cpu,
-        segment_v2.snapshotIdentity(right_result.rw_memory.words, .final_word).id,
-        digest("native-local-v3-io-exit"),
-    );
-    const total_cycles = try std.math.add(
-        u64,
-        @intCast(left_result.cycle_count),
-        @intCast(right_result.cycle_count),
-    );
-    const job = try span.JobContext.init(
-        try span.CompleteExecution.init(
-            protocol.PROTOCOL_ID_WORDS,
-            scalarDigest(program.tree.root),
-            initial_state,
-            final_state,
-            public_input,
-            public_output,
-            total_cycles,
-        ),
-        2,
-    );
-    const right_global_statement = try leafStatement(
-        job,
-        right_result,
-        shared_state,
-        final_state,
-        span.EdgeClaim.absent(),
-        try span.EdgeClaim.present(public_output),
-    );
-    const right_global = try global_v3.SourceV3.fromSegmentResult(
-        right_global_statement,
+        left_result,
         right_result,
     );
     var projection = try projection_v3.ProjectionV3.init(&right_global);
