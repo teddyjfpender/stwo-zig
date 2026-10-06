@@ -18,12 +18,14 @@ pub const Summary = struct {
 /// `consumer.onSegment(*const ConfiguredSegmentResult(profile))` may prove or
 /// persist the leaf, including any profile-specific precompile sidecars.
 /// Its error aborts the campaign before the next segment executes. The session
-/// and all trace ownership are released on every exit path.
+/// and all trace ownership are released on every exit path. Guest options such
+/// as input, host, and halt policy are preserved; the V3 clock and ownership
+/// modes are forced by this API.
 pub fn run(
     comptime profile: profile_mod.ExecutionProfile,
     allocator: std.mem.Allocator,
     elf: []const u8,
-    input: []const u8,
+    session_options: session_mod.SessionOptions,
     leaf_budget: usize,
     max_leaves: u32,
     consumer: anytype,
@@ -33,15 +35,10 @@ pub fn run(
     if (leaf_budget > max_v3_leaf_cycles)
         return error.LeafBudgetExceedsLocalClock;
 
-    var session = try session_mod.ExecutionSession(profile).init(
-        allocator,
-        elf,
-        .{
-            .input = input,
-            .clock_frame = .leaf_local,
-            .trace_retention = .segment_owned,
-        },
-    );
+    var options = session_options;
+    options.clock_frame = .leaf_local;
+    options.trace_retention = .segment_owned;
+    var session = try session_mod.ExecutionSession(profile).init(allocator, elf, options);
     defer session.deinit();
 
     var next: ?result.ContinuationToken = null;
