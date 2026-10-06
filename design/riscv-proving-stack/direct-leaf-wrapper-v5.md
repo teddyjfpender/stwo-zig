@@ -31,8 +31,11 @@ Tree0, metadata, and link components, with these **versioned replacements**:
 | 47 | Route native statement/context words to local authority, wire, and receipt identities through the existing typed child-field router. |
 | 48–49 | Hash the authority and receipt preimages with typed `vm_public_claim_hash` AIR; produce the exact `LAI1` and `LRI1` tuples consumed by row 40. |
 
-Rows 47–49 now have a typed PlanV5 layout and VPR6/VPK6 namespace; a complete
-50-row cohort and proof do not yet exist. The dormant router/hash AIR defines
+Rows 47–49 now have a typed PlanV5 layout and VPR6/VPK6 namespace. A
+diagnostic 50-row cohort now writes all three trees and accounts for all 50
+claims on a real q193 native leaf. This is not a wrapper proof: the real-leaf
+relation audit still has nonzero verifier-input, statement, and local
+public-claim-word domains (25, 29, and 30). The router/hash AIR defines
 their tuple equations and the manifest pins geometry, schedule ID, semantic
 digests, and six ordered call counts. Row 47 must receive `S2WR`/`S2CX` values from
 the *checked native base AIR*. Row 40's 24 `LAI1`/`LWI1`/`LRI1` consumers
