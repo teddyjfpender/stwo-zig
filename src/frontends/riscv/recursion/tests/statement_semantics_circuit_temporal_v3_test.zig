@@ -6,6 +6,7 @@ const interval = @import("../temporal_interval_v3.zig");
 const fixture = @import("temporal_interval_v3_test.zig");
 const span = @import("../span_statement.zig");
 const row11 = @import("../air/statement_semantics_input_witness.zig");
+const session_mod = @import("../temporal_parent_row11_session_v3.zig");
 
 test "V3 temporal row-11 graph pins a separate program" {
     var circuit = try temporal.build(std.testing.allocator);
@@ -109,4 +110,35 @@ test "V3 temporal row-11 preserves 64-bit cycles across the V2 cap" {
         inputs,
         values,
     ));
+}
+
+test "V3 temporal row-11 session reuses pinned graph and rejects self-rehashed rows" {
+    var session = try session_mod.SessionV3.init(std.testing.allocator);
+    defer session.deinit();
+    try session.validate();
+    try std.testing.expectEqual(session_mod.LOG_SIZE, session.preprocessed.log_size);
+    var workspace = try session_mod.WorkspaceV3.init(std.testing.allocator);
+    defer workspace.deinit();
+    var trace = try session_mod.TraceV3.init(std.testing.allocator);
+    defer trace.deinit();
+    const metadata = try fixture.threeLeaves();
+    const first = try interval.IntervalV3.fromLeaf(&metadata[0]);
+    const second = try interval.IntervalV3.fromLeaf(&metadata[1]);
+    const third = try interval.IntervalV3.fromLeaf(&metadata[2]);
+    const left = try interval.IntervalV3.fold(&first, &second);
+    const pair = try interval.PairPreflightV3.init(&left, &third);
+    try session.checkPair(&pair, &left, &third, &workspace);
+    try session.fillTrace(&pair, &left, &third, &workspace, &trace);
+    try std.testing.expectEqual(@as(usize, 1 << session_mod.LOG_SIZE), trace.main[0].len);
+    try std.testing.expectEqual(core.fields.m31.M31.one(), trace.preprocessed[0][0]);
+    try std.testing.expectEqual(core.fields.m31.M31.zero(), trace.preprocessed[0][temporal.INPUT_COUNT]);
+    try std.testing.expectError(error.ParentProofUnavailable, session.requireVerifiedParent());
+
+    var bad_pair = pair;
+    bad_pair.global_join_cycle += 1;
+    const prior_main = trace.main[0][0];
+    try std.testing.expectError(error.ParentChanged, session.fillTrace(&bad_pair, &left, &third, &workspace, &trace));
+    try std.testing.expectEqual(prior_main, trace.main[0][0]);
+    session.preprocessed.rows[0].circuit_id += 1;
+    try std.testing.expectError(error.AuthorityMismatch, session.validate());
 }

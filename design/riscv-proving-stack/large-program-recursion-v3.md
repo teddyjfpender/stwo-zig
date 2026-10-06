@@ -66,6 +66,16 @@ verified before a parent can be published. Host preflight alone cannot grant
 that authority.
 Its 2,244 input bindings require a 4,096-row (log-12) statement input trace;
 the legacy parent roster fixes this row at log 11 and cannot be reused for V3.
+`temporal_parent_row11_session_v3.zig` now initializes the pinned graph and
+log-12 preprocessed binding once, reuses fixed-size scratch across pairs, and
+materializes the actual typed row-11 preprocessed/main columns for each
+validated pair. It checks the complete binding against the pinned graph on
+session admission and rejects changed pair preimages before any trace write.
+These are staging columns, not a committed parent proof. The parent transaction
+still needs a genuine V3 wrapper proof for each leaf, a verified parent proof
+for each internal child, a typed join from those verifier publications to the
+pair words and boundaries, and a fresh parent PCS verifier. No host-only
+metadata or staged 39-row local V2 proof may fill that child-verifier slot.
 
 `integrations/riscv_cpu/recursive_segment_v3_outer_stage.zig` can now prove
 and freshly verify the actual 39-component local V2 outer transaction for a

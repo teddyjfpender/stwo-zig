@@ -116,6 +116,7 @@ pub const temporal_pair_node = @import("temporal_pair_node.zig");
 pub const temporal_pair_candidate_v3 = @import("temporal_pair_candidate_v3.zig");
 pub const temporal_interval_v3 = @import("temporal_interval_v3.zig");
 pub const statement_semantics_circuit_temporal_v3 = @import("statement_semantics_circuit_temporal_v3.zig");
+pub const temporal_parent_row11_session_v3 = @import("temporal_parent_row11_session_v3.zig");
 pub const transcript_program = @import("transcript_program.zig");
 pub const transcript_program_v2 = @import("transcript_program_v2.zig");
 pub const transcript_program_v2_field_authority_v1 =
