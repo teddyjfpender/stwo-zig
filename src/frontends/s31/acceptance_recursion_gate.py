@@ -40,10 +40,7 @@ def main() -> None:
     args = parser.parse_args()
     with tempfile.TemporaryDirectory(prefix="s31-recursion-") as tmp:
         work = Path(tmp)
-        package = args.package.resolve() if args.package else work / "package"
-        if args.package is None:
-            run("python3", str(HERE / "s31.py"), "build", str(SOURCE),
-                "--lowering", "gate", "--out", str(package), accept=True)
+        package = args.package.resolve() if args.package else s31.package_for(SOURCE)
         manifest = s31.verify_package(package)
         child_profile = json.loads((package / "verification-key.json").read_text())["profile"]
         if manifest["lowering"] != "gate" or child_profile != "circuit-v1":

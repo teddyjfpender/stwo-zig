@@ -32,12 +32,12 @@ def main() -> None:
     args = parser.parse_args()
     with tempfile.TemporaryDirectory(prefix="s31-recursion-key-binding-") as temporary:
         work = Path(temporary)
-        original = args.package.resolve() if args.package else s31.build(SOURCE, work / "original", "gate")
+        original = args.package.resolve() if args.package else s31.package_for(SOURCE)
         s31.verify_package(original)
         clone_source = work / "arith4_clone.s31"
         clone_source.write_text(SOURCE.read_text().replace("circuit arith4_m31(",
                                                            "circuit arith4_clone("))
-        clone = s31.build(clone_source, work / "clone", "gate")
+        clone = s31.package_for(clone_source)
         original_key = json.loads((original / "verification-key.json").read_text())
         clone_key = json.loads((clone / "verification-key.json").read_text())
         if original_key["preprocessed_root"] != clone_key["preprocessed_root"]:

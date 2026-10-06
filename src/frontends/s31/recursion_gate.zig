@@ -155,7 +155,9 @@ pub fn verifyPreparedWithMutation(
         expected.preprocessed_root,
     );
     if (!std.mem.eql(u8, &actual_hash, &expected.circuit_hash)) return error.ChildCircuitHashMismatch;
-    for (expected.public_words) |word| if (word >= core.fields.m31.Modulus) return error.NoncanonicalPublicWord;
+    // Circuit output wires are raw u32 words. S31 leaf statements enforce
+    // canonical M31 values at their own boundary; recursive outputs may use
+    // every bit pattern, including words above the M31 modulus.
     if (adapted.config.n_preprocessed_columns != layout.entries.len or
         adapted.config.log_trace_size != layout.traceLogSize() or
         !std.meta.eql(adapted.config.fri, pcs.fri_config)) return error.ChildProofConfigMismatch;

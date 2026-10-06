@@ -188,6 +188,9 @@ def build_json(source_path: Path, output: Path, lowering: str = "gate",
             recursive_key = staging / "recursive-verification-key.json"
             invoke(str(prover), "recurse-keygen", str(staging / "verification-key.json"),
                    str(recursive_key))
+            recursive_next_key = staging / "recursive-verification-key-level2.json"
+            invoke(str(prover), "recurse-keygen-next", str(staging / "verification-key.json"),
+                   str(recursive_key), str(recursive_next_key))
             recursive_option = (f"-Ds31-recursive-key={recursive_key}",)
         invoke(
             "zig", "build", "--build-file", str(BUILD_FILE), "install",
@@ -196,6 +199,7 @@ def build_json(source_path: Path, output: Path, lowering: str = "gate",
             f"-Ds31-source={source_path}", f"-Ds31-name={name}",
             f"-Ds31-key={staging / 'verification-key.json'}",
             *recursive_option,
+            *((f"-Ds31-recursive-next-key={recursive_next_key}",) if recursive_option else ()),
             *lock_option,
             "--prefix", str(staging),
         )
@@ -209,6 +213,7 @@ def build_json(source_path: Path, output: Path, lowering: str = "gate",
             artifacts.append("stdlib-lock.json")
         if recursive_option:
             artifacts.append("recursive-verification-key.json")
+            artifacts.append("recursive-verification-key-level2.json")
         manifest = {
             "schema": "s31-package-v1",
             "name": name,
@@ -316,14 +321,20 @@ def verify_package(package: Path) -> dict:
     if not required_artifacts.issubset(artifacts):
         raise ValueError("S31 package is missing required artifacts")
     if manifest.get("lowering") == "gate":
-        if "recursive-verification-key.json" not in artifacts:
-            raise ValueError("gate package is missing its recursive verification key")
+        if not {"recursive-verification-key.json", "recursive-verification-key-level2.json"}.issubset(artifacts):
+            raise ValueError("gate package is missing its recursive verification keys")
         recursive_key = json.loads((package / "recursive-verification-key.json").read_text())
+        recursive_next_key = json.loads((package / "recursive-verification-key-level2.json").read_text())
         if (recursive_key.get("schema") != "s31-recursive-verification-key-v2" or
                 recursive_key.get("child_key_sha256") != file_hash(package / "verification-key.json") or
                 recursive_key.get("projection_sha256") != PROJECTION_SHA256 or
                 recursive_key.get("air_bundle_sha256") != AIR_BUNDLE_SHA256):
             raise ValueError("S31 recursive key does not match the child key and pinned AIR")
+        if (recursive_next_key.get("schema") != "s31-recursive-verification-key-v2" or
+                recursive_next_key.get("child_key_sha256") != file_hash(package / "recursive-verification-key.json") or
+                recursive_next_key.get("projection_sha256") != PROJECTION_SHA256 or
+                recursive_next_key.get("air_bundle_sha256") != AIR_BUNDLE_SHA256):
+            raise ValueError("S31 level-2 recursive key does not match its child key and pinned AIR")
     for name, expected in artifacts.items():
         if not isinstance(name, str) or not isinstance(expected, str):
             raise ValueError("invalid S31 package artifact entry")
@@ -906,7 +917,17 @@ def main() -> None:
     sub.add_argument("--statement", type=Path)
     sub.add_argument("--low-memory", action="store_true",
                      help="retain committed evaluations only; lower peak RAM with some extra proving time")
+    sub = commands.add_parser("wrap-next", help="prove verification of an already recursive S31 proof")
+    sub.add_argument("package", type=Path)
+    sub.add_argument("child_proof", type=Path)
+    sub.add_argument("outer_proof", type=Path)
+    sub.add_argument("--statement", type=Path)
+    sub.add_argument("--low-memory", action="store_true")
     sub = commands.add_parser("audit-recursive", help="audit a saved child proof's in-circuit verifier inputs")
+    sub.add_argument("package", type=Path)
+    sub.add_argument("child_proof", type=Path)
+    sub.add_argument("--statement", type=Path)
+    sub = commands.add_parser("audit-recursive-next", help="audit the in-circuit verifier for a recursive child proof")
     sub.add_argument("package", type=Path)
     sub.add_argument("child_proof", type=Path)
     sub.add_argument("--statement", type=Path)
@@ -915,6 +936,10 @@ def main() -> None:
     sub.add_argument("proof", type=Path)
     sub.add_argument("--statement", type=Path)
     sub = commands.add_parser("verify-recursive", help="verify an outer proof against its embedded child key")
+    sub.add_argument("package", type=Path)
+    sub.add_argument("proof", type=Path)
+    sub.add_argument("--statement", type=Path)
+    sub = commands.add_parser("verify-recursive-next", help="verify a two-level recursive chain")
     sub.add_argument("package", type=Path)
     sub.add_argument("proof", type=Path)
     sub.add_argument("--statement", type=Path)
@@ -999,6 +1024,20 @@ def main() -> None:
                      str(outer), str(package / "verification-key.json"),
                      *(("--low-memory",) if args.low_memory else ())), end="")
         print(f"recursive statement: {outer}.statement.json")
+    elif args.command == "wrap-next":
+        if manifest["lowering"] != "gate":
+            raise ValueError("wrap-next requires a gate-profile package")
+        child = args.child_proof.resolve()
+        statement = args.statement.resolve() if args.statement else Path(str(child) + ".statement.json")
+        outer = args.outer_proof.resolve()
+        outer.parent.mkdir(parents=True, exist_ok=True)
+        executable = package / "bin" / f"s31-{manifest['name']}-prover"
+        print(invoke(str(executable), "recurse-wrap-next", str(child), str(statement),
+                     str(outer), str(package / "verification-key.json"),
+                     str(package / "recursive-verification-key.json"),
+                     str(package / "recursive-verification-key-level2.json"),
+                     *(("--low-memory",) if args.low_memory else ())), end="")
+        print(f"recursive chain statement: {outer}.statement.json")
     elif args.command == "audit-recursive":
         if manifest["lowering"] != "gate":
             raise ValueError("audit-recursive requires a gate-profile package")
@@ -1007,6 +1046,15 @@ def main() -> None:
         executable = package / "bin" / f"s31-{manifest['name']}-prover"
         print(invoke(str(executable), "recurse-audit", str(child), str(statement),
                      str(package / "verification-key.json")), end="")
+    elif args.command == "audit-recursive-next":
+        if manifest["lowering"] != "gate":
+            raise ValueError("audit-recursive-next requires a gate-profile package")
+        child = args.child_proof.resolve()
+        statement = args.statement.resolve() if args.statement else Path(str(child) + ".statement.json")
+        executable = package / "bin" / f"s31-{manifest['name']}-prover"
+        print(invoke(str(executable), "recurse-audit-next", str(child), str(statement),
+                     str(package / "verification-key.json"),
+                     str(package / "recursive-verification-key.json")), end="")
     elif args.command == "verify":
         proof = args.proof.resolve()
         statement = args.statement.resolve() if args.statement else Path(str(proof) + ".statement.json")
@@ -1019,6 +1067,13 @@ def main() -> None:
         statement = args.statement.resolve() if args.statement else Path(str(proof) + ".statement.json")
         executable = package / "bin" / f"s31-{manifest['name']}-native-verifier"
         print(invoke(str(executable), "recurse-verify", str(proof), str(statement)), end="")
+    elif args.command == "verify-recursive-next":
+        if manifest["lowering"] != "gate":
+            raise ValueError("verify-recursive-next requires a gate-profile package")
+        proof = args.proof.resolve()
+        statement = args.statement.resolve() if args.statement else Path(str(proof) + ".statement.json")
+        executable = package / "bin" / f"s31-{manifest['name']}-native-verifier"
+        print(invoke(str(executable), "recurse-verify-next", str(proof), str(statement)), end="")
 
 
 if __name__ == "__main__":

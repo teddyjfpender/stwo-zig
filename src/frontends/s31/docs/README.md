@@ -49,6 +49,8 @@ text .s31 ──parse/typecheck/specialize──▶ normalized relation JSON
 - [One-level proof recursion](recursion.md): a real S31 child proof verified
    inside a circuit, an independently verified outer proof, adversarial
    statements, costs, and the precise boundary before a repeatable fold.
+- [Two-level recursive chain](recursion-chain.md): wrap an already recursive
+   proof, track nested public digests, and verify from the top proof.
 - [Source language and relation](source.md): syntax, types, field semantics,
    static shapes, normalized JSON, and the public statement.
 - [Standard and math library](library.md): the pinned `std@1` package,

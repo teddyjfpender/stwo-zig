@@ -6,10 +6,12 @@ the child proof into the repository's in-circuit STARK verifier format,
 constrains verification, and proves that verifier circuit. The generated S31
 native verifier independently checks the outer proof through `recurse-verify`.
 
-This is **one level**, not yet a repeatable chain fold. The Bitcoin header
-example uses `sparse-wide-gate`; its different AIR roster is rejected by this
-adapter. An exact sparse-wide recursive verifier and a homogeneous wrapper
-key are needed before header proofs can be folded repeatedly.
+This chapter works through the first level. S31 can now wrap that outer
+proof once more; see the [two-level chain](recursion-chain.md). These are
+depth-specific sealed keys, not yet an unbounded fixed-key fold. The Bitcoin
+header example uses `sparse-wide-gate`; its different AIR roster is rejected
+by this adapter. An exact sparse-wide recursive verifier and a homogeneous
+wrapper key are needed before header proofs can be folded repeatedly.
 
 ## What the outer proof establishes
 

@@ -196,10 +196,11 @@ topology for each outer proof. The adversarial corpus also regenerates that
 key and compares it field-for-field. The v2 wrapper fixes the child AIR root
 in-circuit and binds the exact child key digest in its public claim. A
 same-AIR, different-key fixture confirms that child proof portability does
-not allow outer proof replay. These are
-differential checks. This does not yet admit the `sparse-wide-v5` Bitcoin
-header proof or make a homogeneous many-step fold. Those require an exact
-sparse-wide recursive verifier and one canonical wrapper shape.
+not allow outer proof replay. The [two-level chain](../../src/frontends/s31/docs/recursion-chain.md)
+wraps the first recursive proof again, including a private-witness leaf.
+These are differential checks. This does not yet admit the `sparse-wide-v5`
+Bitcoin header proof or make a homogeneous many-step fold. Those require
+an exact sparse-wide recursive verifier and one canonical wrapper shape.
 
 ## Engineering sequence and exit gates
 
@@ -209,7 +210,7 @@ sparse-wide recursive verifier and one canonical wrapper shape.
 | 2. Byte-exact header hash | **Generic circuit complete:** `Bytes80`, SHA256d relation, one native proof. **SHA AIR witness planner complete:** three call records and packed provider rows. Remaining: authenticated circuit-to-chip lookup, new proof roster and verifier, nominal `BlockHash`, broader Bitcoin Core differential vectors, and measured cost crossover. | Genesis and randomized byte checks; native proof and changed-root rejection currently pass. Chip substitution must fail until one-proof lookup closure is implemented. |
 | 3. Header policy | **Genesis-anchored two-header first step complete:** compact target, powLimit, unsigned comparison, exact previous-hash link, equal `nBits`, and strict first-step timestamp order. Remaining: retarget transitions, general eleven-block MTP and contextual future-time policy, work increment and versioned public state ABI. | Real genesis-to-block-one proof accepted; changed public claim rejected by native verifier; changed checkpoint, link, bits and equal time rejected by independent oracle; broader native adversarial corpus remains. |
 | 4. In-circuit S31 verifier | **One-level `circuit-v1` wrapper implemented:** native capture of saved and freshly produced child proofs, in-circuit child verifier, outer proof, build-time sealed recursive key, key-bound native outer verifier. Remaining: sparse-wide profile and broader transcript/FRI mutation coverage. | Valid leaf and both one-shot and saved-proof outer proofs; prover/native conversion inputs byte-identical; sealed outer key reproducible; same-AIR different-key outer replay rejected; changed key/statement/proof inputs rejected; changed child public word, preprocessed root, trace root, claimed sum, channel salt, FRI witness, and last-layer coefficient rejected inside the verifier circuit. |
-| 5. Recursive fold | Base and step wrappers; proof of a proof of a step | Two- and many-step folds; fixed-size outer statement/proof; checkpoint and fork-policy tests. |
+| 5. Recursive fold | **Two generic gate-wrapper levels demonstrated:** private leaf, two proofs of verification, depth-specific sealed keys, and top-only native verification. Remaining: Bitcoin state transition wrapper and one fixed key for unbounded folding. | Private leaf and two wrappers accepted; nested public digests linked; top proof verified after lower proof files removed; altered original claim with both digests recomputed, corrupted proofs and key, and seven second-level in-circuit mutations rejected. |
 
 Optimization should now focus on a dedicated SHA chip and the header-chain
 policy.

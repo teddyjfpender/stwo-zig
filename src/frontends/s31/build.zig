@@ -70,6 +70,18 @@ pub fn build(b: *std.Build) void {
         const cairo = cpu.import_table.get("stwo_cairo_frontend") orelse @panic("circuit CPU module is missing Cairo AIR runtime");
         const postcard = b.createModule(.{ .root_source_file = .{ .cwd_relative = b.pathFromRoot("../../interop/postcard.zig") }, .target = target, .optimize = optimize });
         postcard.addImport("stwo_core", core);
+        const key_asset: std.Build.LazyPath = if (b.option([]const u8, "s31-key", "Absolute path to the sealed verification key")) |path|
+            .{ .cwd_relative = path }
+        else
+            b.path("examples/placeholder-verification-key.json");
+        const recursive_key_asset: std.Build.LazyPath = if (b.option([]const u8, "s31-recursive-key", "Absolute path to the sealed recursive verification key")) |path|
+            .{ .cwd_relative = path }
+        else
+            b.path("examples/placeholder-recursive-key.json");
+        const recursive_next_key_asset: std.Build.LazyPath = if (b.option([]const u8, "s31-recursive-next-key", "Absolute path to the sealed second-level recursive verification key")) |path|
+            .{ .cwd_relative = path }
+        else
+            b.path("examples/placeholder-recursive-key.json");
         const prover_root = b.createModule(.{
             .root_source_file = b.path("mvp_runtime.zig"),
             .target = target,
@@ -88,6 +100,9 @@ pub fn build(b: *std.Build) void {
         const programs_asset: std.Build.LazyPath = .{ .cwd_relative = b.pathFromRoot("../../../vectors/circuit/official/circuit_air.air_programs_v1.bin") };
         prover_root.addAnonymousImport("s31_air_projection", .{ .root_source_file = projection_asset });
         prover_root.addAnonymousImport("s31_air_programs", .{ .root_source_file = programs_asset });
+        prover_root.addAnonymousImport("s31_verification_key", .{ .root_source_file = key_asset });
+        prover_root.addAnonymousImport("s31_recursive_key", .{ .root_source_file = recursive_key_asset });
+        prover_root.addAnonymousImport("s31_recursive_next_key", .{ .root_source_file = recursive_next_key_asset });
         const prover_exe = b.addExecutable(.{ .name = b.fmt("s31-{s}-prover", .{program_name}), .root_module = prover_root });
         b.installArtifact(prover_exe);
 
@@ -107,16 +122,9 @@ pub fn build(b: *std.Build) void {
         native_root.addAnonymousImport("s31_program_source", .{ .root_source_file = source_asset });
         native_root.addAnonymousImport("s31_air_projection", .{ .root_source_file = projection_asset });
         native_root.addAnonymousImport("s31_air_programs", .{ .root_source_file = programs_asset });
-        const key_asset: std.Build.LazyPath = if (b.option([]const u8, "s31-key", "Absolute path to the sealed verification key")) |path|
-            .{ .cwd_relative = path }
-        else
-            b.path("examples/placeholder-verification-key.json");
         native_root.addAnonymousImport("s31_verification_key", .{ .root_source_file = key_asset });
-        const recursive_key_asset: std.Build.LazyPath = if (b.option([]const u8, "s31-recursive-key", "Absolute path to the sealed recursive verification key")) |path|
-            .{ .cwd_relative = path }
-        else
-            b.path("examples/placeholder-recursive-key.json");
         native_root.addAnonymousImport("s31_recursive_key", .{ .root_source_file = recursive_key_asset });
+        native_root.addAnonymousImport("s31_recursive_next_key", .{ .root_source_file = recursive_next_key_asset });
         const native_exe = b.addExecutable(.{ .name = b.fmt("s31-{s}-native-verifier", .{program_name}), .root_module = native_root });
         b.installArtifact(native_exe);
         const run = b.addRunArtifact(prover_exe);

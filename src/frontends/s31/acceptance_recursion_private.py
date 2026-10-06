@@ -33,7 +33,7 @@ def main() -> None:
     args = parser.parse_args()
     with tempfile.TemporaryDirectory(prefix="s31-recursion-private-") as temporary:
         work = Path(temporary)
-        package = args.package.resolve() if args.package else s31.build(SOURCE, work / "package", "gate")
+        package = args.package.resolve() if args.package else s31.package_for(SOURCE)
         manifest = s31.verify_package(package)
         if manifest["lowering"] != "gate":
             raise AssertionError("private recursive fixture requires gate profile")
