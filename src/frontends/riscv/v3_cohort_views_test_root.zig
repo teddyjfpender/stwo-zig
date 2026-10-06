@@ -12,6 +12,15 @@ const program_mod = @import("recursion/ethereum_leaf_link_program_v3.zig");
 const fixture = @import("wrapper_roster_v3_test_root.zig");
 const call_buffer = @import("recursion/segment_leaf_wrapper_cohort_calls_v3.zig");
 const provider = @import("recursion/segment_leaf_wrapper_cohort_provider_v3.zig");
+const typed_rows = @import("recursion/segment_leaf_wrapper_cohort_typed_rows_v4.zig");
+const word_air = @import("recursion/air/transcript_program_v2_field_source_v1.zig");
+const word_witness = @import("recursion/transcript_program_v2_field_word_witness_v1.zig");
+const hash_witness = @import("recursion/segment_leaf_wrapper_field_hash_witness_v3.zig");
+const source_air = @import("recursion/air/ethereum_leaf_link_source_v1.zig");
+const program_field = @import("recursion/transcript_program_v2_field_authority_v1.zig");
+const channel = @import("recursion/poseidon2_channel.zig");
+const framework = @import("recursion/air/framework_interaction.zig");
+const universal = @import("recursion/air/universal_challenges.zig");
 
 test "direct 47-row PlanV4 maps V2 main columns with only old row34 scratch" {
     const allocator = std.testing.allocator;
@@ -67,4 +76,66 @@ test "direct 47-row PlanV4 maps V2 main columns with only old row34 scratch" {
         error.DirectProviderCallLayoutMismatch,
         provider.Writer.initForDirectPlan(allocator, &plan, &wrong_buffer, &wrong_parts),
     );
+
+    const pp = try allocator.alloc([]M31, plan.total_preprocessed_columns);
+    defer allocator.free(pp);
+    for (plan.placements) |maybe_item| {
+        const item = maybe_item.?;
+        const rows = @as(usize, 1) << @intCast(item.geometry.log_size);
+        for (pp[item.preprocessed_offset..][0..item.geometry.preprocessed_columns]) |*column| {
+            column.* = try allocator.alloc(M31, rows);
+            @memset(column.*, M31.zero());
+        }
+    }
+    defer for (pp) |column| allocator.free(column);
+    const words = [_]M31{M31.fromCanonical(17)} ** 100;
+    var word_rows = try word_witness.WordsV1.init(allocator, &words, word_air.PROGRAM_WORD_SCOPE);
+    defer word_rows.deinit();
+    try typed_rows.fillPreprocessed(word_air, &plan, .program_words, word_rows.rows, pp);
+    try typed_rows.fillMain(word_air, &plan, .program_words, word_rows.rows, destination);
+    const program_placement = plan.placements[42].?;
+    const first_word_row = framework.committedRow(0, program_placement.geometry.log_size);
+    try std.testing.expectEqual(@as(u32, 17), destination[program_placement.main_offset][first_word_row].toU32());
+    try std.testing.expectEqual(@as(u32, 17), pp[program_placement.preprocessed_offset + 1][first_word_row].toU32());
+    try std.testing.expectError(error.DirectTypedRowDestinationNotFresh, typed_rows.fillMain(word_air, &plan, .program_words, word_rows.rows, destination));
+    try std.testing.expectError(error.DirectTypedRowGeometryMismatch, typed_rows.fillMain(word_air, &plan, .program_hash, word_rows.rows, destination));
+
+    var hash_rows = try hash_witness.HashV1.init(
+        allocator,
+        &words,
+        program_field.PROGRAM_DOMAIN,
+        word_air.PROGRAM_WORD_SCOPE,
+        source_air.PROGRAM_AUTHORITY_KIND,
+        hash_witness.PROGRAM_STEP_BASE,
+        channel.hashCanonicalWords(&words, program_field.PROGRAM_DOMAIN),
+    );
+    defer hash_rows.deinit();
+    try typed_rows.fillHashPreprocessed(&plan, .program_hash, &hash_rows, pp);
+    try typed_rows.fillHashMain(&plan, .program_hash, &hash_rows, destination);
+    const hash_placement = plan.placements[43].?;
+    const first_hash_row = framework.committedRow(0, hash_placement.geometry.log_size);
+    try std.testing.expectEqual(@as(u32, 1), destination[hash_placement.main_offset][first_hash_row].toU32());
+
+    const io = try allocator.alloc([]M31, plan.total_interaction_columns);
+    defer allocator.free(io);
+    for (plan.placements) |maybe_item| {
+        const item = maybe_item.?;
+        const rows = @as(usize, 1) << @intCast(item.geometry.log_size);
+        for (io[item.interaction_offset..][0..item.geometry.interaction_columns]) |*column| {
+            column.* = try allocator.alloc(M31, rows);
+            @memset(column.*, M31.zero());
+        }
+    }
+    defer for (io) |column| allocator.free(column);
+    const relations = universal.UniversalRelations.dummy();
+    var word_interaction = try word_rows.generateInteraction(allocator, &relations);
+    defer word_interaction.deinit(allocator);
+    const word_claim = try typed_rows.fillInteraction(&plan, .program_words, &word_interaction, io);
+    try std.testing.expect(word_claim.eql(word_interaction.claims.total()));
+    try std.testing.expectEqualDeep(word_interaction.columns[0], io[program_placement.interaction_offset]);
+    var hash_interaction = try hash_rows.generateInteraction(allocator, &relations);
+    defer hash_interaction.deinit(allocator);
+    const hash_claim = try typed_rows.fillInteraction(&plan, .program_hash, &hash_interaction, io);
+    try std.testing.expect(hash_claim.eql(hash_interaction.claims.total()));
+    try std.testing.expectError(error.DirectTypedRowDestinationNotFresh, typed_rows.fillInteraction(&plan, .program_hash, &hash_interaction, io));
 }
