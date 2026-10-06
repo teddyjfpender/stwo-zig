@@ -9,6 +9,7 @@ const std = @import("std");
 const core = @import("stwo_core");
 const channel = @import("poseidon2_channel.zig");
 const frozen = @import("protocol.zig");
+const security_policy = @import("segment_v3_production_security_policy.zig");
 const roster = @import("air/segment_leaf_wrapper_roster_v3.zig");
 const relation = @import("../air/lang/relation.zig");
 
@@ -17,8 +18,8 @@ pub const FORMAT_VERSION: u32 = 3;
 pub const PROTOCOL_ID_DOMAIN: u32 = 0x5650_5233; // VPR3
 pub const VERIFICATION_KEY_ID_DOMAIN: u32 = 0x5650_4b33; // VPK3
 pub const TARGET_SECURITY_BITS: u32 = 120;
-pub const PCS_CONFIG = frozen.PCS_CONFIG;
-pub const INTERACTION_POW_BITS = frozen.INTERACTION_POW_BITS;
+pub const PCS_CONFIG = security_policy.REQUIRED_PCS_CONFIG;
+pub const INTERACTION_POW_BITS = security_policy.REQUIRED_INTERACTION_POW_BITS;
 pub const PRODUCTION_PROOF_ACTIVATION = false;
 
 comptime {
