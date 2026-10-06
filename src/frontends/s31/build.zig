@@ -14,14 +14,16 @@ pub fn build(b: *std.Build) void {
         b.path("examples/affine4.s31.json");
     const program_name = b.option([]const u8, "s31-name", "Build artifact name for the selected program") orelse "affine4";
     const source_version = b.option(u32, "s31-version", "Normalized source version (0 or 1)") orelse 0;
-    const lowering = b.option([]const u8, "s31-lowering", "gate, chip, sparse-gate, sparse-chip, direct-gate, or direct-chip proof lowering") orelse "gate";
+    const lowering = b.option([]const u8, "s31-lowering", "gate, chip, sparse-gate, sparse-chip, sparse-wide-gate, direct-gate, or direct-chip proof lowering") orelse "gate";
     if (!std.mem.eql(u8, lowering, "gate") and !std.mem.eql(u8, lowering, "chip") and
         !std.mem.eql(u8, lowering, "sparse-gate") and !std.mem.eql(u8, lowering, "sparse-chip") and
+        !std.mem.eql(u8, lowering, "sparse-wide-gate") and
         !std.mem.eql(u8, lowering, "direct-gate") and !std.mem.eql(u8, lowering, "direct-chip"))
         @panic("invalid s31-lowering");
     const s31_options = b.addOptions();
     s31_options.addOption(bool, "chip_mode", std.mem.eql(u8, lowering, "chip") or std.mem.eql(u8, lowering, "sparse-chip") or std.mem.eql(u8, lowering, "direct-chip"));
     s31_options.addOption(bool, "sparse_mode", std.mem.startsWith(u8, lowering, "sparse-"));
+    s31_options.addOption(bool, "wide_mode", std.mem.eql(u8, lowering, "sparse-wide-gate"));
     s31_options.addOption(bool, "direct_mode", std.mem.startsWith(u8, lowering, "direct-"));
     s31_options.addOption([]const u8, "stdlib_lock_sha256", b.option([]const u8, "s31-stdlib-sha256", "Pinned S31 standard library lock digest") orelse "");
 

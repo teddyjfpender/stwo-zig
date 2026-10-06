@@ -1,0 +1,55 @@
+{
+  "schema": "s31-wide-sparse-profile-v5",
+  "program": "src/frontends/s31/examples/wide_order.s31",
+  "assignment": "src/frontends/s31/examples/wide_order.valid.json",
+  "profile": "sparse-wide-v5",
+  "proof_magic": "S31NAT5W",
+  "active_air_components": [
+    "eq",
+    "qm31_ops",
+    "m31_to_u32",
+    "range_check_16"
+  ],
+  "fixed_columns": 14,
+  "raw": {
+    "blake_g": 0,
+    "eq": 69,
+    "m31_to_u32": 88,
+    "qm31_ops": 16422,
+    "triple_xor": 0
+  },
+  "padded": {
+    "blake_g": 0,
+    "eq": 128,
+    "m31_to_u32": 128,
+    "qm31_ops": 32768,
+    "triple_xor": 0
+  },
+  "preprocessed_cells": 328320,
+  "proof_bytes": 238047,
+  "native_verifier_accepted": true,
+  "changed_public_root_rejected": true,
+  "independent_value_oracle": "passed",
+  "single_observation_seconds": {
+    "prove": 0.43271049996837974,
+    "verify": 0.4084738749079406,
+    "fri_pow": 0.382588,
+    "prove_excluding_pow": 0.02911900000000006
+  },
+  "prior_gate_baseline": {
+    "preprocessed_cells": 4507264,
+    "proof_bytes": 427557,
+    "prove_seconds": 1.6877,
+    "verify_seconds": 0.4202
+  },
+  "checked_add_variant": {
+    "source_transform": "replace add_u256 with add_u256_checked",
+    "raw_eq_rows": 70,
+    "preprocessed_cells": 328320,
+    "proof_bytes": 231883,
+    "native_verifier_accepted": true,
+    "changed_public_root_rejected": true
+  },
+  "timing_note": "Single local observations; proof of work dominates elapsed proving and timings are stochastic. Gate baseline is from bitcoin-wide-v1-2026-10-06.json.",
+  "scope": "256-bit arithmetic and Poseidon2 root; no SHA256d computation or recursion"
+}

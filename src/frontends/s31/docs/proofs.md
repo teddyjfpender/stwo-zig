@@ -88,6 +88,7 @@ Profile-specific proof headers are:
 | `gate` | `S31NAT1` followed by a NUL byte. |
 | `chip` | `S31NAT2` followed by a NUL byte. |
 | `sparse-gate` / `sparse-chip` | `S31NAT3G` / `S31NAT3C`. |
+| `sparse-wide-gate` | `S31NAT5W`. |
 | `direct-gate` / `direct-chip` | `S31NAT4G` / `S31NAT4C`. |
 
 The envelope contains an interaction proof-of-work nonce, component LogUp

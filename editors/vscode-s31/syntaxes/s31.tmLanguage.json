@@ -1,0 +1,111 @@
+{
+  "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+  "name": "S31",
+  "scopeName": "source.s31",
+  "fileTypes": ["s31"],
+  "patterns": [
+    { "include": "#comments" },
+    { "include": "#declarations" },
+    { "include": "#field-literals" },
+    { "include": "#integers" },
+    { "include": "#types" },
+    { "include": "#keywords" },
+    { "include": "#stdlib" },
+    { "include": "#builtins" },
+    { "include": "#calls" },
+    { "include": "#operators" },
+    { "include": "#punctuation" }
+  ],
+  "repository": {
+    "comments": {
+      "patterns": [
+        { "name": "comment.line.double-slash.s31", "match": "//.*$" }
+      ]
+    },
+    "declarations": {
+      "patterns": [
+        {
+          "match": "\\b(fn|circuit)\\s+([A-Za-z_][A-Za-z_0-9]*)\\b",
+          "captures": {
+            "1": { "name": "keyword.declaration.function.s31" },
+            "2": { "name": "entity.name.function.s31" }
+          }
+        },
+        {
+          "match": "\\b(let)\\s+([A-Za-z_][A-Za-z_0-9]*)\\b",
+          "captures": {
+            "1": { "name": "keyword.declaration.variable.s31" },
+            "2": { "name": "variable.other.assignment.s31" }
+          }
+        },
+        {
+          "match": "\\b((?:public|private))\\s+([A-Za-z_][A-Za-z_0-9]*)(?=\\s*:)",
+          "captures": {
+            "1": { "name": "storage.modifier.visibility.s31" },
+            "2": { "name": "variable.parameter.s31" }
+          }
+        }
+      ]
+    },
+    "field-literals": {
+      "patterns": [
+        { "name": "constant.numeric.field.m31.s31", "match": "\\b[0-9]+_m31\\b" }
+      ]
+    },
+    "integers": {
+      "patterns": [
+        { "name": "constant.numeric.integer.s31", "match": "\\b[0-9]+\\b" }
+      ]
+    },
+    "types": {
+      "patterns": [
+        { "name": "support.type.primitive.s31", "match": "\\b(?:m31|u16|bit|UInt256|Bytes32)\\b" },
+        { "name": "entity.name.type.digest.s31", "match": "\\b(?:Digest|Poseidon2|Blake2sReduced)\\b" }
+      ]
+    },
+    "keywords": {
+      "patterns": [
+        { "name": "keyword.control.import.s31", "match": "\\buse\\b" },
+        { "name": "keyword.declaration.function.s31", "match": "\\b(?:fn|circuit)\\b" },
+        { "name": "keyword.declaration.variable.s31", "match": "\\blet\\b" },
+        { "name": "storage.modifier.visibility.s31", "match": "\\b(?:public|private)\\b" },
+        { "name": "keyword.other.assertion.s31", "match": "\\bassert_eq(?=\\s*\\()" }
+      ]
+    },
+    "stdlib": {
+      "patterns": [
+        { "name": "support.module.std.s31", "match": "\\bstd(?=\\s*(?:::|@))" },
+        { "name": "support.namespace.s31", "match": "\\b(?:math|bytes|field|hash|merkle)(?=\\s*::)" }
+      ]
+    },
+    "builtins": {
+      "patterns": [
+        {
+          "name": "support.function.builtin.s31",
+          "match": "\\b(?:splat|iterate|m31_from_u16|select|poseidon2_leaf|poseidon2_pair|blake2s_leaf|blake2s_pair|merkle_path_poseidon2|merkle_path_blake2s|neg|sub|square|pow|sum|dot|sum_lanes|dot_lanes|poly_eval|add_u256|add_u256_checked|le_u256|to_u256_le|from_u256_le|limbs_m31|from_u16|path_poseidon2|path_blake2s)(?=\\s*(?:<|\\())"
+        }
+      ]
+    },
+    "calls": {
+      "patterns": [
+        { "name": "entity.name.function.call.s31", "match": "\\b[A-Za-z_][A-Za-z_0-9]*(?=\\s*\\()" }
+      ]
+    },
+    "operators": {
+      "patterns": [
+        { "name": "keyword.operator.arithmetic.s31", "match": "\\.\\*|\\+|\\*" },
+        { "name": "keyword.operator.assignment.s31", "match": "=" },
+        { "name": "keyword.operator.return.s31", "match": "->" },
+        { "name": "punctuation.accessor.s31", "match": "::" },
+        { "name": "keyword.operator.version.s31", "match": "@" }
+      ]
+    },
+    "punctuation": {
+      "patterns": [
+        { "name": "punctuation.section.brackets.s31", "match": "[\\[\\]{}()]" },
+        { "name": "punctuation.definition.generic.s31", "match": "[<>]" },
+        { "name": "punctuation.separator.s31", "match": "[;,:]" }
+      ]
+    }
+  }
+}

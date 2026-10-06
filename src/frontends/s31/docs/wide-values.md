@@ -108,8 +108,10 @@ relation](../examples/wide_order.s31.json) are checked against this page.
 
 For a trusted program/key and this public root, verifier acceptance means
 that **some** private digest bytes and increment commit to that root through
-the pinned S31 Poseidon2 construction, and their 256-bit sum equals `target`
-without wrapping. The sum and comparison are both constrained. The root is
+the pinned S31 Poseidon2 construction, and their 256-bit sum modulo $2^{256}$
+equals `target`. The shown assignment does not wrap. Use
+`std::math::add_u256_checked` when the circuit must reject overflow. The sum
+and comparison are both constrained. The root is
 an auxiliary commitment. A verifier that knows the intended 32-byte digest
 and increment can calculate the same root outside the proof. This prototype
 has not established the security of Poseidon2 as a production Bitcoin bridge
@@ -117,11 +119,17 @@ commitment.
 
 ```sh
 python3 src/frontends/s31/s31.py oracle src/frontends/s31/examples/wide_order.s31 src/frontends/s31/examples/wide_order.valid.json
-python3 src/frontends/s31/s31.py trial src/frontends/s31/examples/wide_order.s31 src/frontends/s31/examples/wide_order.valid.json --lowering gate --out zig-out/s31/wide-order-trial
+python3 src/frontends/s31/s31.py trial src/frontends/s31/examples/wide_order.s31 src/frontends/s31/examples/wide_order.valid.json --lowering sparse-wide-gate --out zig-out/s31/wide-order-trial
 ```
 
-The current sparse profile rejects the equality rows used by these limb
-constraints, so this program uses the general `gate` profile.
+`sparse-wide-gate` keeps the equality, QM31 arithmetic, M31-to-`u32`, and
+`u16` range AIRs needed by this program. Its 14 fixed columns contain 328,320
+cells for this example, versus 4,507,264 cells in `gate`. In a single local
+run, the native proof was 238,047 bytes and proving took 0.433 s, versus
+427,557 bytes and 1.688 s for `gate`. Both native verifiers accepted the
+correct statement and rejected a changed public root. These timing samples
+include proof of work and are not a throughput estimate; the evidence is in
+[`design/s31/measurements/bitcoin-wide-sparse-v5-2026-10-06.json`](../../../../design/s31/measurements/bitcoin-wide-sparse-v5-2026-10-06.json).
 
 ## Boundary for a Bitcoin proof
 

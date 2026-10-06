@@ -18,6 +18,7 @@ const air_program_bytes = @embedFile("s31_air_programs");
 const projection_sha256 = "ceea3c293a4fcd3ca8a20ba62f4845732f8725bdf610fe6367c83adcb8be7e09";
 const chip_mode = @import("s31_options").chip_mode;
 const sparse_mode = @import("s31_options").sparse_mode;
+const wide_mode = @import("s31_options").wide_mode;
 const direct_mode = @import("s31_options").direct_mode;
 const M31 = core.fields.m31.M31;
 
@@ -206,11 +207,11 @@ fn topology(allocator: std.mem.Allocator, source: relation.Program) !preprocesse
 fn padForProfile(comptime V: type, ctx: *circuit.builder.Context(V)) !void {
     if (!sparse_mode and !direct_mode) return circuit.common.finalize.padContext(V, ctx);
     const raw = circuit.common.finalize.rawComponentSizes(preprocessed.CircuitView.fromBuilder(&ctx.circuit));
-    if (raw.eq != 0 or raw.triple_xor != 0 or raw.blake_g_gate != 0 or
+    if ((!wide_mode and raw.eq != 0) or raw.triple_xor != 0 or raw.blake_g_gate != 0 or
         (direct_mode and raw.m31_to_u32 != 0))
         return error.UnsupportedSparseCircuit;
     return circuit.common.finalize.padToTargets(V, ctx, .{
-        .eq = 0,
+        .eq = if (wide_mode) circuit.common.finalize.paddedSize(raw.eq) else 0,
         .qm31_ops = circuit.common.finalize.paddedSize(raw.qm31_ops),
         .m31_to_u32 = if (direct_mode) 0 else circuit.common.finalize.paddedSize(raw.m31_to_u32),
         .triple_xor = 0,
@@ -272,6 +273,23 @@ fn inspect(allocator: std.mem.Allocator, source: relation.Program) !void {
         else
             @as(u32, 0));
         preprocessed_columns = circuit.common.direct_arithmetic.N_COLUMNS;
+    } else if (wide_mode) {
+        var pp = try circuit.common.sparse_wide.Circuit.fromBuilderCircuit(allocator, &ctx.circuit);
+        defer pp.deinit(allocator);
+        const layout = pp.layout();
+        for (layout.entries) |entry| {
+            preprocessed_cells += @as(usize, 1) << @intCast(entry.log_size);
+            max_preprocessed_log = @max(max_preprocessed_log, entry.log_size);
+        }
+        root = try pp.preprocessedRoot(allocator, 1);
+        circuit_hash = cpu.sparse_wide.identityHash(source_digest, root, .{
+            layout.logSize("eq_in0_address").?,
+            layout.logSize("qm31_ops_in0_address").?,
+            layout.logSize("m31_to_u32_input_addr").?,
+            16,
+        }, 1);
+        trace_log = pp.traceLogSize();
+        preprocessed_columns = circuit.common.sparse_wide.N_COLUMNS;
     } else if (sparse_mode) {
         var pp = try circuit.common.sparse_arithmetic.Circuit.fromBuilderCircuit(allocator, &ctx.circuit);
         defer pp.deinit(allocator);
@@ -342,7 +360,7 @@ fn inspect(allocator: std.mem.Allocator, source: relation.Program) !void {
     for (source.inputs, packing) |input, *item| item.* = .{ .name = input.name, .lanes = input.length, .qm31_wires = (input.length + 3) / 4 };
     const report: Report = .{
         .name = source.name,
-        .profile = if (direct_mode) "direct-m31-v4" else if (sparse_mode) "sparse-v3" else if (chip_mode) "hybrid-step-v2" else "circuit-v1",
+        .profile = if (direct_mode) "direct-m31-v4" else if (wide_mode) "sparse-wide-v5" else if (sparse_mode) "sparse-v3" else if (chip_mode) "hybrid-step-v2" else "circuit-v1",
         .chip = if (chip_mode) blk: {
             const spec = source.repeatedStepChip().?;
             break :blk .{ .rounds = spec.rounds, .constant = spec.constant, .relation_id = cpu.repeated_step_chip.relation_id };
@@ -470,6 +488,32 @@ fn prove(allocator: std.mem.Allocator, source: relation.Program, assignment_path
                 .constant = item.constant,
             } else null,
         );
+    } else if (wide_mode) {
+        var pp = try circuit.common.sparse_wide.Circuit.fromBuilderCircuit(allocator, &topology_ctx.circuit);
+        defer pp.deinit(allocator);
+        const pcs = try showcasePcsConfig(pp.traceLogSize());
+        var committed = try cpu.sparse_wide.PreprocessedCommitment.build(allocator, &pp, pcs);
+        defer committed.deinit(allocator);
+        setup_ns = total_timer.read() - witness_ns;
+        var timer = try std.time.Timer.start();
+        var proof = try cpu.sparse_wide.prove(allocator, value_ctx.values(), &pp, &bundle, pcs, .{
+            .source_digest = source_digest,
+            .preprocessed_commitment = &committed,
+            .pow_time_ns = &sparse_pow_ns,
+            .fri_pow_time_ns = &sparse_fri_pow_ns,
+        });
+        defer proof.deinit();
+        prove_ns = timer.read();
+        encoded = try native.serializeSparseWide(allocator, &proof);
+        const layout = pp.layout();
+        const root = committed.root();
+        const hash = cpu.sparse_wide.identityHash(source_digest, root, .{
+            layout.logSize("eq_in0_address").?,
+            layout.logSize("qm31_ops_in0_address").?,
+            layout.logSize("m31_to_u32_input_addr").?,
+            16,
+        }, pcs.fri_config.log_blowup_factor);
+        try native.verifySparseWide(allocator, &layout, &bundle, pcs, root, hash, public_words, encoded, source_digest);
     } else if (sparse_mode) {
         var pp = try circuit.common.sparse_arithmetic.Circuit.fromBuilderCircuit(allocator, &topology_ctx.circuit);
         defer pp.deinit(allocator);
@@ -615,6 +659,14 @@ fn verify(allocator: std.mem.Allocator, path: []const u8, statement_path: []cons
             source_digest,
             spec,
         );
+    } else if (wide_mode) {
+        if (key.padded.eq < 16 or key.padded.triple_xor != 0 or key.padded.blake_g != 0)
+            return error.InvalidVerificationKey;
+        const layout = try circuit.common.sparse_wide.Layout.fromSizes(key.padded.eq, key.padded.qm31_ops, key.padded.m31_to_u32);
+        if (layout.traceLogSize() != key.trace_log_size) return error.InvalidVerificationKey;
+        var source_digest: [32]u8 = undefined;
+        std.crypto.hash.sha2.Sha256.hash(embedded_source, &source_digest, .{});
+        try native.verifySparseWide(allocator, &layout, &bundle, try showcasePcsConfig(key.trace_log_size), root, hash, public_words, encoded, source_digest);
     } else if (sparse_mode) {
         if (key.padded.eq != 0 or key.padded.triple_xor != 0 or key.padded.blake_g != 0)
             return error.InvalidVerificationKey;
@@ -686,8 +738,8 @@ fn validateKey(allocator: std.mem.Allocator, source: relation.Program, key: Key)
         const pinned_stdlib = key.stdlib_lock_sha256 orelse return error.InvalidVerificationKey;
         if (!std.mem.eql(u8, pinned_stdlib, expected_stdlib)) return error.InvalidVerificationKey;
     }
-    if (!std.mem.eql(u8, key.schema, if (direct_mode) "s31-verification-key-v4" else if (sparse_mode) "s31-verification-key-v3" else if (chip_mode) "s31-verification-key-v2" else "s31-verification-key-v1") or
-        !std.mem.eql(u8, key.profile, if (direct_mode) "direct-m31-v4" else if (sparse_mode) "sparse-v3" else if (chip_mode) "hybrid-step-v2" else "circuit-v1") or
+    if (!std.mem.eql(u8, key.schema, if (direct_mode) "s31-verification-key-v4" else if (wide_mode) "s31-verification-key-v5" else if (sparse_mode) "s31-verification-key-v3" else if (chip_mode) "s31-verification-key-v2" else "s31-verification-key-v1") or
+        !std.mem.eql(u8, key.profile, if (direct_mode) "direct-m31-v4" else if (wide_mode) "sparse-wide-v5" else if (sparse_mode) "sparse-v3" else if (chip_mode) "hybrid-step-v2" else "circuit-v1") or
         !std.mem.eql(u8, key.name, source.name))
         return error.InvalidVerificationKey;
     if (chip_mode) {
@@ -762,6 +814,18 @@ fn validateCompiledKey(allocator: std.mem.Allocator, source: relation.Program, k
             try cpu.repeated_step_chip.validateRounds(source.repeatedStepChip().?.rounds)
         else
             @as(u32, 0));
+    } else if (wide_mode) {
+        var pp = try circuit.common.sparse_wide.Circuit.fromBuilderCircuit(allocator, &ctx.circuit);
+        defer pp.deinit(allocator);
+        const layout = pp.layout();
+        expected_root = try pp.preprocessedRoot(allocator, 1);
+        expected_hash = cpu.sparse_wide.identityHash(source_digest, expected_root, .{
+            layout.logSize("eq_in0_address").?,
+            layout.logSize("qm31_ops_in0_address").?,
+            layout.logSize("m31_to_u32_input_addr").?,
+            16,
+        }, 1);
+        expected_trace_log = pp.traceLogSize();
     } else if (sparse_mode) {
         var pp = try circuit.common.sparse_arithmetic.Circuit.fromBuilderCircuit(allocator, &ctx.circuit);
         defer pp.deinit(allocator);

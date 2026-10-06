@@ -13,6 +13,7 @@ pub const verify = @import("verify.zig");
 pub const recursion = @import("recursion/mod.zig");
 pub const repeated_step_chip = @import("repeated_step_chip.zig");
 pub const sparse_arithmetic = @import("sparse_arithmetic.zig");
+pub const sparse_wide = @import("sparse_wide.zig");
 pub const direct_arithmetic = @import("direct_arithmetic.zig");
 
 pub const Internal = prove.Internal;
@@ -38,4 +39,5 @@ test {
     _ = recursion;
     _ = repeated_step_chip;
     _ = sparse_arithmetic;
+    _ = sparse_wide;
 }

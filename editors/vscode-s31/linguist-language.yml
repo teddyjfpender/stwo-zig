@@ -1,0 +1,10 @@
+# Proposal for github-linguist/linguist/lib/linguist/languages.yml.
+# This file is documentation; GitHub does not read language definitions from
+# individual repositories. Linguist generates language_id upstream.
+S31:
+  type: programming
+  color: "#FF00C8"
+  ace_mode: text
+  tm_scope: source.s31
+  extensions:
+    - ".s31"

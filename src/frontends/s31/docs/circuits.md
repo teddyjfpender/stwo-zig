@@ -208,11 +208,14 @@ the witness and constraints, but never appear in that public statement.
 | `chip` | 11 | 45 | one step AIR | Exact public four-lane square/add recurrence. |
 | `sparse-gate` | 3 | 12 | none | Arithmetic circuits with conversion/range machinery, no Eq/XOR/Blake. |
 | `sparse-chip` | 3 | 12 | one step AIR | Same arithmetic profile plus recognized recurrence. |
+| `sparse-wide-gate` | 4 | 14 | none | Arithmetic and equality, including wide integer limbs; no XOR/Blake. |
 | `direct-gate` | 1 | 8 | none | All-M31 arithmetic/Poseidon2 circuit, no Eq/XOR/Blake. |
 | `direct-chip` | 1 | 8 | one step AIR | All-M31 recognized recurrence. |
 
 The three sparse components are QM31 operations, M31-to-`u32` conversion,
-and the `u16` range table. The direct profile keeps only QM31 operations.
+and the `u16` range table. The wide profile also retains Eq so that limb
+arithmetic and checked comparisons can constrain their carries and borrows.
+The direct profile keeps only QM31 operations.
 Each profile has a different proof/key domain and native verification path.
 The chip does not prove an arbitrary `repeat`; it recognizes the exact shape
 specified in [the next chapter](air.md).

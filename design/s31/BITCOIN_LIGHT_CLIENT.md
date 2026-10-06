@@ -15,9 +15,12 @@ sixteen range-checked output digits and Boolean carries;
 `add_u256_checked` also constrains the final carry to zero. `le_u256` proves a
 Boolean unsigned comparison with sixteen borrows. `limbs_m31` allows the
 range-checked bytes to feed a field-native auxiliary commitment. The native
-verifier accepts the checked [wide-order example](../../src/frontends/s31/examples/wide_order.s31)
-and rejects a changed public root. Its [trial record](measurements/bitcoin-wide-v1-2026-10-06.json)
-is a cost baseline for this exact program, not a Bitcoin block proof.
+verifier accepts the [wide-order example](../../src/frontends/s31/examples/wide_order.s31)
+and rejects a changed public root. Its [full-profile baseline](measurements/bitcoin-wide-v1-2026-10-06.json)
+and [sparse-wide trial](measurements/bitcoin-wide-sparse-v5-2026-10-06.json)
+are cost records for this exact program, not Bitcoin block proofs. The source
+uses modular `add_u256`; a separately measured variant uses
+`add_u256_checked` to reject overflow.
 
 The next type layer should distinguish `BlockHash`, `Target`, `Work`, and
 `ChainWork` from generic bytes and integers. Each conversion must name byte
@@ -105,10 +108,13 @@ a fold while keeping the outer verifier and proof size bounded.
 | 4. In-circuit S31 verifier | One pinned `S31NAT*` profile and verification-key policy | Valid native/circuit parity; malformed proof, key, profile, transcript, FRI and statement mutations all reject. |
 | 5. Recursive fold | Base and step wrappers; proof of a proof of a step | Two- and many-step folds; fixed-size outer statement/proof; checkpoint and fork-policy tests. |
 
-Optimization should start with the byte-exact SHA256d and target operations.
-The current wide example takes 16,422 raw QM31 rows, 69 Eq rows, 88
-M31-to-u32 rows, 4,507,264 fixed cells, and a 427,557-byte proof under
-`gate`. That cost includes two Poseidon2 leaf hashes and a parent, not just
-wide arithmetic. `sparse-gate` rejects its Eq rows. A dedicated wide or hash
-chip should be promoted only after a same-statement trial shows end-to-end
-proof, time, memory, and verifier improvements without weakening constraints.
+Optimization should now start with byte-exact SHA256d and target operations.
+The current wide example takes 16,422 raw QM31 rows, 69 Eq rows, and 88
+M31-to-u32 rows. `sparse-wide-gate` retains only the four AIR components it
+needs, cutting fixed cells from 4,507,264 to 328,320 and the one-sample
+proof from 427,557 to 238,047 bytes. Its proving sample was 0.433 s versus
+1.688 s for `gate`; proof-of-work made those single timings stochastic. The
+cost includes two Poseidon2 leaf hashes and a parent, not just wide arithmetic.
+A dedicated hash chip should be promoted only after a same-statement trial
+shows end-to-end proof, time, memory, and verifier improvements without
+weakening constraints.

@@ -429,6 +429,110 @@ pub fn verifySparse(
     defer capture.deinit(allocator);
 }
 
+const SPARSE_WIDE_MAGIC = "S31NAT5W";
+
+pub fn serializeSparseWide(allocator: std.mem.Allocator, proof: *const cpu.Internal.CircuitProof) ![]u8 {
+    if (proof.chip_claimed_sum != null) return error.WrongProofProfile;
+    var bytes: std.ArrayList(u8) = .empty;
+    errdefer bytes.deinit(allocator);
+    try bytes.appendSlice(allocator, SPARSE_WIDE_MAGIC);
+    var nonce: [8]u8 = undefined;
+    std.mem.writeInt(u64, &nonce, proof.interaction_pow_nonce, .little);
+    try bytes.appendSlice(allocator, &nonce);
+    const all_sums = proof.claimed_sums.toArray();
+    for (circuit.common.sparse_wide.active_component_indices) |index|
+        try appendSum(allocator, &bytes, all_sums[index]);
+    try postcard.serializeProof(H, bytes.writer(allocator), proof.stark_proof.proof);
+    return bytes.toOwnedSlice(allocator);
+}
+
+pub fn verifySparseWide(
+    allocator: std.mem.Allocator,
+    layout: *const circuit.common.sparse_wide.Layout,
+    template: *const cpu.air.Bundle,
+    pcs: core.pcs.config_v2.PcsConfigV2,
+    preprocessed_root: H.Hash,
+    circuit_hash: H.Hash,
+    public_words: [8]u32,
+    raw: []const u8,
+    source_digest: [32]u8,
+) !void {
+    const header_len = SPARSE_WIDE_MAGIC.len + 8 + 4 * 16;
+    if (raw.len < header_len or raw.len > (16 << 20) or !std.mem.eql(u8, raw[0..SPARSE_WIDE_MAGIC.len], SPARSE_WIDE_MAGIC))
+        return error.InvalidNativeProof;
+    const nonce = std.mem.readInt(u64, raw[SPARSE_WIDE_MAGIC.len..][0..8], .little);
+    var sums: [4]QM31 = undefined;
+    for (&sums, 0..) |*sum, index| {
+        const start = SPARSE_WIDE_MAGIC.len + 8 + index * 16;
+        var limbs: [4]u32 = undefined;
+        for (&limbs, 0..) |*limb, j| {
+            limb.* = std.mem.readInt(u32, raw[start + 4 * j ..][0..4], .little);
+            if (limb.* >= core.fields.m31.Modulus) return error.InvalidNativeProof;
+        }
+        sum.* = QM31.fromU32Unchecked(limbs[0], limbs[1], limbs[2], limbs[3]);
+    }
+    const decode_memory = try allocator.alloc(u8, 64 << 20);
+    defer allocator.free(decode_memory);
+    var bounded = std.heap.FixedBufferAllocator.init(decode_memory);
+    var stream = std.io.fixedBufferStream(raw[header_len..]);
+    var stark = try postcard.deserializeProof(H, bounded.allocator(), stream.reader());
+    defer stark.deinit(bounded.allocator());
+    if (stream.pos != raw.len - header_len or stark.commitment_scheme_proof.commitments.items.len != 4)
+        return error.InvalidNativeProof;
+    if (!std.meta.eql(stark.commitment_scheme_proof.config, core.protocol_revision.Revision.proving_5a7c5ed.legacyView(pcs)))
+        return error.InvalidProofConfig;
+    const roots = stark.commitment_scheme_proof.commitments.items;
+    if (!std.mem.eql(u8, &preprocessed_root, &roots[0])) return error.InvalidPreprocessedRoot;
+
+    var outputs: [8]QM31 = undefined;
+    for (public_words, &outputs) |word, *output|
+        output.* = QM31.fromU32Unchecked(word & 0xffff, word >> 16, 0, 0);
+    const logs = [4]u32{
+        layout.logSize("eq_in0_address") orelse return error.InvalidSparseLayout,
+        layout.logSize("qm31_ops_in0_address") orelse return error.InvalidSparseLayout,
+        layout.logSize("m31_to_u32_input_addr") orelse return error.InvalidSparseLayout,
+        16,
+    };
+    const expected_hash = cpu.sparse_wide.identityHash(source_digest, preprocessed_root, logs, pcs.fri_config.log_blowup_factor);
+    if (!std.mem.eql(u8, &expected_hash, &circuit_hash)) return error.InvalidCircuitHash;
+    var channel = MC.Channel{};
+    cpu.sparse_wide.mixProfile(&channel, .{ .source_digest = source_digest });
+    core.channel.lookup_transcript.mixChannelSalt(&channel, 0);
+    pcs.fri_config.mixInto(&channel);
+    var scheme = try core.pcs.verifier.CommitmentSchemeVerifier(H, MC).init(allocator, pcs);
+    defer scheme.deinit(allocator);
+    var pp_logs: [circuit.common.sparse_wide.N_COLUMNS]u32 = undefined;
+    for (layout.entries, &pp_logs) |entry, *log| log.* = entry.log_size;
+    try scheme.commit(allocator, roots[0], &pp_logs, &channel);
+    MC.mixRoot(&channel, circuit_hash);
+    channel.mixFelts(&outputs);
+    const main_logs = try sparseLogs(allocator, logs, .{ 4, 12, 4, 1 }, null, 0);
+    defer allocator.free(main_logs);
+    const interaction_logs = try sparseLogs(allocator, logs, .{ 4, 8, 12, 4 }, null, 0);
+    defer allocator.free(interaction_logs);
+    try scheme.commit(allocator, roots[1], main_logs, &channel);
+    if (!channel.verifyPowNonce(circuit.common.component_list.INTERACTION_POW_BITS, nonce))
+        return error.InvalidInteractionNonce;
+    channel.mixU64(nonce);
+    const lookup = try core.channel.lookup_transcript.drawLookupElements(allocator, &channel);
+    if (!(try circuit.witness.sparse_wide.lookupSum(&outputs, sums, lookup.z, lookup.alpha)).isZero())
+        return error.InvalidLookupSum;
+    core.channel.lookup_transcript.mixInteractionClaim(&channel, &sums);
+    try scheme.commit(allocator, roots[2], interaction_logs, &channel);
+    var bound = try cpu.air.bindSparseWide(allocator, template, logs, layout);
+    defer bound.deinit();
+    const lifting_bound = pcs.trace_lifting_log_size - pcs.fri_config.log_blowup_factor + 1;
+    var captured: [4]cairo.proving.air.component.Component = undefined;
+    var handles: [4]core.air.components.Component = undefined;
+    for (bound.components, &captured, &handles, sums) |*source, *runtime, *handle, claimed| {
+        runtime.* = .init(allocator, source, &pp_logs, lifting_bound, lookup.z, lookup.alpha, claimed);
+        handle.* = runtime.asVerifierComponent();
+    }
+    var capture: core.verifier.ProofCapture(H) = undefined;
+    try core.verifier.verifyBorrowedExWithProofCapture(H, MC, allocator, &handles, &channel, &scheme, &stark, true, &capture);
+    defer capture.deinit(allocator);
+}
+
 const DIRECT_GATE_MAGIC = "S31NAT4G";
 const DIRECT_CHIP_MAGIC = "S31NAT4C";
 
@@ -587,17 +691,17 @@ pub fn verifyDirect(
 
 fn sparseLogs(
     allocator: std.mem.Allocator,
-    sizes: [3]u32,
-    widths: [3]usize,
+    sizes: anytype,
+    widths: anytype,
     chip_log: ?u32,
     chip_width: usize,
 ) ![]u32 {
     var count: usize = 0;
-    for (widths) |width| count += width;
+    inline for (widths) |width| count += width;
     const out = try allocator.alloc(u32, count + if (chip_log != null) chip_width else @as(usize, 0));
     var at: usize = 0;
-    for (sizes, widths) |size, width| {
-        @memset(out[at..][0..width], size);
+    inline for (widths, 0..) |width, index| {
+        @memset(out[at..][0..width], sizes[index]);
         at += width;
     }
     if (chip_log) |size| @memset(out[at..], size);

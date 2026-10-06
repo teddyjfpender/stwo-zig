@@ -9,3 +9,6 @@ third_party/bzip2/** whitespace=-trailing-space,-blank-at-eof
 vectors/riscv_csp/inputs/*.bin binary
 vectors/starknet/**/*.zip binary
 vectors/starknet/**/*.proof binary
+# GitHub Linguist has no S31 entry yet. Cairo is the closest built-in TextMate
+# grammar for S31's Rust-like declarations, types, and std:: paths.
+*.s31 linguist-language=Cairo

@@ -1,0 +1,37 @@
+{
+  "name": "s31-language",
+  "displayName": "S31 Language",
+  "description": "S31 source syntax, language configuration, and optional neon theme",
+  "version": "0.1.0",
+  "publisher": "s31",
+  "private": true,
+  "engines": {
+    "vscode": "^1.75.0"
+  },
+  "categories": ["Programming Languages", "Themes"],
+  "contributes": {
+    "languages": [{
+      "id": "s31",
+      "aliases": ["S31", "s31"],
+      "extensions": [".s31"],
+      "configuration": "./language-configuration.json"
+    }],
+    "grammars": [{
+      "language": "s31",
+      "scopeName": "source.s31",
+      "path": "./syntaxes/s31.tmLanguage.json"
+    }],
+    "themes": [{
+      "label": "S31 Neon",
+      "uiTheme": "vs-dark",
+      "path": "./themes/s31-neon-color-theme.json"
+    }]
+  },
+  "scripts": {
+    "test": "node test/test-grammar.mjs"
+  },
+  "devDependencies": {
+    "vscode-oniguruma": "^2.0.1",
+    "vscode-textmate": "^9.2.0"
+  }
+}

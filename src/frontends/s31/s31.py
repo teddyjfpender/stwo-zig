@@ -118,8 +118,8 @@ def standard_library_lock(explicit_import: bool) -> dict:
 
 def build_json(source_path: Path, output: Path, lowering: str = "gate",
                library_lock: dict | None = None) -> Path:
-    if lowering not in {"gate", "chip", "sparse-gate", "sparse-chip", "direct-gate", "direct-chip"}:
-        raise ValueError("lowering must be gate, chip, sparse-gate, sparse-chip, direct-gate, or direct-chip")
+    if lowering not in {"gate", "chip", "sparse-gate", "sparse-chip", "sparse-wide-gate", "direct-gate", "direct-chip"}:
+        raise ValueError("lowering must be gate, chip, sparse-gate, sparse-chip, sparse-wide-gate, direct-gate, or direct-chip")
     source_path = source_path.resolve()
     source, data = load_source(source_path)
     lock_bytes = ((json.dumps(library_lock, indent=2, sort_keys=True) + "\n").encode()
@@ -159,7 +159,7 @@ def build_json(source_path: Path, output: Path, lowering: str = "gate",
         if inspection["program_sha256"] != sha256(data):
             raise RuntimeError("compiled program does not match source")
         key = {
-            "schema": "s31-verification-key-v4" if lowering.startswith("direct-") else "s31-verification-key-v3" if lowering.startswith("sparse-") else "s31-verification-key-v2" if lowering == "chip" else "s31-verification-key-v1",
+            "schema": "s31-verification-key-v4" if lowering.startswith("direct-") else "s31-verification-key-v5" if lowering == "sparse-wide-gate" else "s31-verification-key-v3" if lowering.startswith("sparse-") else "s31-verification-key-v2" if lowering == "chip" else "s31-verification-key-v1",
             "profile": inspection["profile"],
             "chip": inspection["chip"],
             "name": name,
@@ -806,19 +806,19 @@ def main() -> None:
     sub = commands.add_parser("build")
     sub.add_argument("source", type=Path)
     sub.add_argument("--out", type=Path, required=True)
-    sub.add_argument("--lowering", choices=("gate", "chip", "sparse-gate", "sparse-chip", "direct-gate", "direct-chip"), default="gate")
+    sub.add_argument("--lowering", choices=("gate", "chip", "sparse-gate", "sparse-chip", "sparse-wide-gate", "direct-gate", "direct-chip"), default="gate")
     sub = commands.add_parser("trial", help="build, prove, verify, and record one trial")
     sub.add_argument("source_or_package", type=Path)
     sub.add_argument("assignment", type=Path)
     sub.add_argument("--out", type=Path, required=True)
-    sub.add_argument("--lowering", choices=("gate", "chip", "sparse-gate", "sparse-chip", "direct-gate", "direct-chip"))
+    sub.add_argument("--lowering", choices=("gate", "chip", "sparse-gate", "sparse-chip", "sparse-wide-gate", "direct-gate", "direct-chip"))
     sub = commands.add_parser("tune", help="compare verified proof profiles on one source and assignment corpus")
     sub.add_argument("source", type=Path)
     sub.add_argument("assignments", type=Path, nargs="+")
     sub.add_argument("--warmup", type=Path, help="valid assignment proved once per profile before measurement")
     sub.add_argument("--out", type=Path, required=True)
     sub.add_argument("--lowering", action="append", required=True,
-                     choices=("gate", "chip", "sparse-gate", "sparse-chip", "direct-gate", "direct-chip"))
+                     choices=("gate", "chip", "sparse-gate", "sparse-chip", "sparse-wide-gate", "direct-gate", "direct-chip"))
     sub = commands.add_parser("oracle", help="check normalized relation values without building a proof")
     sub.add_argument("source_or_package", type=Path)
     sub.add_argument("assignment", type=Path)

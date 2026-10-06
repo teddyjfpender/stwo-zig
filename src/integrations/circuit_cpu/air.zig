@@ -23,6 +23,7 @@ const composition = cairo.witness.composition_bundle;
 const component_list = circuit.common.component_list;
 const preprocessed = circuit.common.preprocessed;
 const sparse = circuit.common.sparse_arithmetic;
+const sparse_wide = circuit.common.sparse_wide;
 const direct = circuit.common.direct_arithmetic;
 const finalize = circuit.common.finalize;
 const PerComponent = component_list.PerComponent;
@@ -105,6 +106,16 @@ pub fn bindSparseArithmetic(
     layout: *const sparse.Layout,
 ) !Bundle {
     return bindSelectedArithmetic(allocator, template, &sparse.active_component_indices, &log_sizes, layout);
+}
+
+/// Equality and arithmetic, with only the four required AIR components.
+pub fn bindSparseWide(
+    allocator: std.mem.Allocator,
+    template: *const Bundle,
+    log_sizes: [4]u32,
+    layout: *const sparse_wide.Layout,
+) !Bundle {
+    return bindSelectedArithmetic(allocator, template, &sparse_wide.active_component_indices, &log_sizes, layout);
 }
 
 /// One-component, no-range specialization for direct-M31 public statements.
