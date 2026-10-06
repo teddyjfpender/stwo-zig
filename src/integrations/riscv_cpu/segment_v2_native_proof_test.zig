@@ -1162,6 +1162,19 @@ test "native V2 proves a rebased leaf-local V3 segment without widening the AIR"
     var strong = try StrongKernel.proveAndVerify(allocator, &prepared);
     defer strong.deinit(allocator);
     try strong.receipt.validate();
+    std.debug.print(
+        "SEGMENT_V3_STRONG_OUTER prepare_ns={d} prove_ns={d} serialize_ns={d} destroy_ns={d} fresh_verify_ns={d} transaction_ns={d} proof_bytes={d} producer_peak_bytes={d}\n",
+        .{
+            strong.receipt.producer_prepare_ns,
+            strong.receipt.prover_ns,
+            strong.receipt.serialize_ns,
+            strong.receipt.producer_destroy_ns,
+            strong.receipt.fresh_verifier_ns,
+            strong.receipt.transaction_ns,
+            strong.receipt.proof_bytes,
+            strong.receipt.producer_peak_bytes,
+        },
+    );
     try strong.artifact.validateEncoding();
     try std.testing.expect(strong.artifact.proof_bytes.len != 0);
     try std.testing.expect(strong.receipt.producer_peak_bytes > 0);
