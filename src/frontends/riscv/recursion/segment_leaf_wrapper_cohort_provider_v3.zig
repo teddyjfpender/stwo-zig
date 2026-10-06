@@ -7,6 +7,7 @@
 const std = @import("std");
 const core = @import("stwo_core");
 const poseidon = @import("../air/memory_commitment/poseidon2_air.zig");
+const poseidon_layout = @import("../air/memory_commitment/poseidon2_layout.zig");
 const calls_mod = @import("segment_leaf_wrapper_cohort_calls_v3.zig");
 const provider_relations = @import("air/universal_provider_relations.zig");
 
@@ -69,6 +70,49 @@ pub const Writer = struct {
         return poseidon.generateInteraction(
             self.allocator,
             self.buffer.calls,
+            log_size,
+            &relations.native,
+        );
+    }
+
+    /// Reuses outputs in the committed main trace instead of running every
+    /// Poseidon permutation again. The row-34 AIR constrains those outputs to
+    /// the input calls; this witness shortcut does not replace that check.
+    pub fn generateInteractionFromMain(
+        self: *const Writer,
+        columns: *const [MAIN_COLUMNS][]core.fields.m31.M31,
+        relations: *const provider_relations.SharedProviderRelations,
+    ) !Interaction {
+        const log_size = try self.logSize();
+        try relations.validate();
+        const size = @as(usize, 1) << @intCast(log_size);
+        for (columns) |column| if (column.len != size)
+            return error.PoseidonProviderTraceShapeMismatch;
+        const outputs = try self.allocator.alloc([poseidon.WIDTH]u32, self.buffer.calls.len);
+        defer self.allocator.free(outputs);
+        for (self.buffer.calls, outputs, 0..) |call, *output, logical_row| {
+            const committed = core.utils.bitReverseIndex(
+                core.utils.cosetIndexToCircleDomainIndex(logical_row, log_size),
+                log_size,
+            );
+            if (!columns[0][committed].isOne() or
+                !columns[poseidon_layout.WIDE_COLUMN][committed].isZero() or
+                !columns[poseidon_layout.IO_COLUMN][committed].isOne())
+                return error.PoseidonProviderMainMismatch;
+            for (call.input, 0..) |word, lane| {
+                if (columns[poseidon_layout.INPUT_START + lane][committed].toU32() != word)
+                    return error.PoseidonProviderMainMismatch;
+            }
+            for (output, 0..) |*word, lane| {
+                word.* = columns[poseidon_layout.OUTPUT_START + lane][committed].toU32();
+                if (word.* >= core.fields.m31.Modulus)
+                    return error.NonCanonicalPoseidonOutput;
+            }
+        }
+        return poseidon.generateIoInteractionFromOutputs(
+            self.allocator,
+            self.buffer.calls,
+            outputs,
             log_size,
             &relations.native,
         );
