@@ -11,7 +11,7 @@ not a speed ranking.
 | --- | --- | --- | --- | --- | --- |
 | RV32 guest | Hashes supplied KMX bytes, derives SHAKE inputs, executes every fixed gate, checks the result and returns the public commitment | 70 FRI queries, 26 PoW bits | 10,748,299 RV32 steps; 7.581 s prove, 0.256 s verify | 16.24 GB | 16,777,216-step native cap; later batches replay an ever-longer SHAKE prefix |
 | Cairo executable | Executes fixed gates and an independent addition check on host-derived public SHAKE inputs; all 512 result words are public | 70 FRI queries, 26 PoW bits; official Rust verifier accepted proof | 36,935,007 Cairo steps; 17.024 s prove, 0.010 s Zig verify | 29.46 GB | Host input derivation is outside the proof; the generated Cairo executable is not yet a wrap-ready Cairo 0 leaf |
-| Direct gate AIR | Constrains all CX/CCX transitions and 512 terminal bits for 64 distinct shots against verifier-reconstructed public fixture/challenge columns | 70 FRI queries, 26 PoW bits; fresh Zig verifier accepted proof | 228,544 trace cells; 3.124 s prove, 0.153 s decode/verify | 17.96 MB test-process RSS | Wide static columns grow with repetitions; SHAKE and parsing are trusted host verifier work |
+| Direct gate AIR | Constrains all CX/CCX transitions and 512 terminal bits for 64 distinct shots against verifier-reconstructed public fixture/challenge columns | 70 FRI queries, 26 PoW bits; fresh Zig verifier accepted proof | 228,544 trace cells; 22.006 ms prove, 35.377 ms decode/verify at one repetition | 12.501 MB whole-process RSS | Wide static columns grow with repetitions; SHAKE and parsing are trusted host verifier work |
 
 All three observations ran on the same Apple M5 Max with 64 GiB RAM. The Cairo
 receipt's `target.cpu_model=apple_m1` names its generic Zig compilation target,
@@ -19,10 +19,11 @@ not the physical host. They must not be divided into a route speedup because
 the proof boundaries differ. The RV32 and Cairo proof hashes and reproduction
 commands are recorded in their `vectors/riscv_guests/iadd256_kmx` and
 `vectors/cairo/qec_iadd256` READMEs and TSVs; the gate AIR's focused receipt
-is in `direct-gate-air.md`. Each timing is a single observation. All routes
-use the same fixed gate order, 64 SHAKE-derived test vectors, and one
-repetition, but only the
-RV32 guest currently checks the SHAKE derivation inside its proved execution.
+is in `direct-gate-air.md`. RV32 and Cairo timings are single observations;
+the AIR table shows the median of five isolated runs. The compared first rung
+uses the same fixed gate order, 64 SHAKE-derived test vectors, and one
+repetition, but only the RV32 guest currently checks SHAKE derivation inside
+its proved execution.
 The RV32 guest exposes the raw KMX as public input, whereas the upstream Rust
 challenge treats it as private and publishes its hash. None of these routes has
 produced a 141-batch recursive root.
@@ -30,11 +31,16 @@ produced a 141-batch recursive root.
 The direct AIR's verifier reparses the pinned public circuit, derives the 64
 SHAKE pairs, recomputes the fixed-column root and rejects a changed challenge.
 Its AIR proves the gates and terminal equalities, while SHAKE, SHA-256 and
-parsing execute as trusted verifier code. The direct AIR's 17.96 MB is the
-maximum RSS of the focused nine-test executable, whereas the RV32 value is a
-CLI maximum RSS and the Cairo value is a process-lifetime physical footprint.
-These memory boundaries differ. The direct AIR's full scope, tamper check and
-reproduction command are in [direct-gate-air.md](direct-gate-air.md).
+parsing execute as trusted verifier code. The direct AIR's 12.501 MB is the
+maximum RSS of a fresh benchmark process at one repetition, whereas the RV32
+value is a CLI maximum RSS and the Cairo value is a process-lifetime physical
+footprint.
+These memory boundaries differ. The direct AIR also proved and freshly
+verified two and four repetitions, with 60.369/80.929 ms median proving and
+16.564/25.510 MB whole-process maximum RSS. The proof-of-work candidate
+indices differ between rungs, so those times are not pure gate-scaling slopes.
+All 15 direct-AIR observations, tamper checks, timing boundaries and
+reproduction commands are in [direct-gate-air.md](direct-gate-air.md).
 
 ## What scaling already rules out
 
@@ -73,10 +79,10 @@ batches exactly once, the final 64-shot batch size, output/offset checks and
 checked resource totals. Inputs and commitments must be included in the
 transcript, not merely supplied as unverified host metadata.
 
-A dedicated gate AIR avoids generic guest instruction overhead in this first
-64-distinct-shot rung. Its wide static columns grow linearly with gate count
-and repetition count, so the next measurement must use a scalable segmented
-relation with increasing repetitions. A one-shot or
+A dedicated gate AIR avoids generic guest instruction overhead in the measured
+one-to-four-repetition, 64-distinct-shot ladder. Its wide static columns grow
+linearly with gate count and repetition count, so the next measurement must
+use a scalable segmented relation at larger repetition counts. A one-shot or
 fixed-fixture equivalence proof can validate the transition logic without
 establishing the cost of the full workload. A sparse, row-oriented gate AIR
 with authenticated state-access/permutation relations is the likely scalable
