@@ -82,3 +82,83 @@ adapter rejected its `memory.bin` size. The executable route above completed
 and proved the same generated Cairo program directly. A production PIE route
 would need separate adapter-capacity work; this diagnostic does not raise
 that cap implicitly.
+
+## Circuit leaf and two-batch fold diagnostic
+
+`--leaf` generates a separate, fixed-statement Cairo1 executable for one
+64-shot batch. The program checks every input word against the SHAKE-derived
+fixture values, repeats the 2,547 gates, checks all 512 output words against
+the independent addition oracle, and returns a two-cell SHA-256 commitment to
+the inputs, outputs, batch, total-shot count, repetitions, and fixture digest.
+The bridge independently regenerates all 512 inputs and outputs from the
+SHA-pinned KMX, checks the exact source and arguments, and fresh-compiles that
+source with Scarb 2.18.0 to rule out a substituted executable. The Cairo1
+executable alone does not expose the eleven public segments that
+the circuit leaf verifier requires. `prepare_leaf.py` therefore runs the task
+through the pinned two-output-cell Cairo bootloader. It checks the complete
+executed program memory, both output cells, the official Blake program hash,
+the bootloader's output preimage, and its Blake2s commitment before releasing
+the adapted CPI. The bootloader executes the Cairo1 task inside the proved
+trace; the bridge's host checks are additional fail-closed admission checks.
+
+From the repository root, for either batch `0` or `1`:
+
+```sh
+python3 vectors/cairo/qec_iadd256/generate.py \
+  --out /tmp/qec-leaf-b0 --total-shots 9024 --batch 0 \
+  --repetitions 1 --leaf
+(cd /tmp/qec-leaf-b0 && scarb build)
+cargo build --release --manifest-path tools/stwo-cairo-vm-adapter-rs/Cargo.toml
+python3 vectors/cairo/qec_iadd256/prepare_leaf.py \
+  --executable /tmp/qec-leaf-b0/target/dev/qec_iadd256.executable.json \
+  --arguments /tmp/qec-leaf-b0/args.json \
+  --statement /tmp/qec-leaf-b0/leaf-statement.json \
+  --adapter tools/stwo-cairo-vm-adapter-rs/target/release/stwo-cairo-vm-adapter \
+  --bootloader vectors/circuit/official/programs/leaf_simple_bootloader_compiled.json \
+  --out /tmp/qec-leaf-b0/bridge
+zig build stwo-circuit-recursion-cpu -Doptimize=ReleaseFast
+zig-out/bin/stwo-circuit-recursion-cpu leaf-wrap \
+  --registry vectors/circuit/official/registries/production.json \
+  --program /tmp/qec-leaf-b0/bridge/leaf-program.json \
+  --prover-input /tmp/qec-leaf-b0/bridge/leaf.cpi \
+  --output /tmp/qec-leaf-b0/bridge/wrapped-leaf.json --assets . --profile
+```
+
+Repeat with `--batch 1` and a distinct output directory. The leaf-wrap
+JSON's `proof` is base64 `CircuitSerialize`. Add the validated
+`leaf-preimage.json` values as its `output_preimage` to form each `LeafInput`;
+these values bind the pinned bootloader program hash and the two QEC result
+cells. Decode each leaf proof
+and verify it with `stwo-circuit-recursion-cpu verify` against the canonical
+leaf request from `vectors/circuit/r11/verify/leaf-none.json`, replacing its
+preprocessed root and output digest with the leaf's actual public values.
+The registry's leaf circuit hash must be `41aa3c1f…2bcafcd9` and its
+preprocessed root `3ee8cffb…22f2a2ca` at trace log 25. A two-leaf manifest
+`{"leaves":["/tmp/qec-leaf-b0/bridge/leaf-input.json",
+"/tmp/qec-leaf-b1/bridge/leaf-input.json"]}` can then be passed to
+`fold-tree --program_input ... --circuit_registry_json
+vectors/circuit/official/registries/production.json --proof_path root.proof
+--program_output root-outputs.json --packed_output_path root-packed.json`.
+The output's terminal `root.proof` is a Cairo circuit-verifier felt stream,
+not a `CircuitSerialize` proof. The current standalone `verify` command cannot
+independently verify that terminal format. The fold does reject invalid child
+proofs inside its multiverifier; this is a successful fold/proof-generation
+diagnostic, **not** an independently verified final root.
+
+The M5 Max, ReleaseFast run of distinct batches 0 and 1 used the same
+`total_shots=9024` and `repetitions=1`, so their leaf digests refer to the
+same 9,024-shot experiment. The strengthened bridge's preparation was
+10.524/10.808 s respectively: fresh compile 2.414/2.433 s, direct
+VM/adaptation 3.678/3.724 s, and bootloader VM/adaptation 4.069/4.264 s.
+The leaf-wrap calls were 40.24/37.10 s wall, split into Cairo proving
+27.18/23.35 s and circuit wrapping 12.79/13.49 s. Peak process RSS was
+40.12/41.82 GB. Both binary leaf proofs passed independent verification in
+0.09 s each. Folding them took 8.26 s and 13.81 GB peak RSS; the terminal
+proof SHA-256 was `84ce57c46b8ba0e832bad666e7b44e567873ccfd468a53ac8726e55497ea671d`.
+The exact hashes, stage times, security profile and verification status are
+in `leaf_pipeline_diagnostic.json`. Preparation timings came from rerunning
+only the bridge; both adapted CPI hashes matched the files used to prove.
+The two leaves cover 128 of 9,024 shots. Complete coverage would need 141
+leaves and an authenticated coverage/root statement. This fixed public KMX
+experiment also does not prove private KMX parsing or SHAKE derivation in the
+guest and does not establish an 8,000-repetition result.
