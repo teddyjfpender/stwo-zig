@@ -119,6 +119,8 @@ Raw BLAKE2s-256 bytes are distinct from its reduced M31-word digest.
 | `std::bitcoin::target_mainnet(header)` | `bitcoin_target_mainnet` | `Bytes80` to `UInt256`; decodes `nBits` at bytes 72–75 and constrains a nonzero target within mainnet `powLimit`. |
 | `std::bitcoin::prev_hash(header)` | `bitcoin_prev_hash` | `Bytes80` to `Bytes32`; fixed view of serialized bytes 4–35. |
 | `std::bitcoin::header_bits(header)` | `bitcoin_header_bits` | `Bytes80` to `[u16; 2]`; fixed view of serialized bytes 72–75. |
+| `std::bitcoin::header_time(header)` | `bitcoin_header_time` | `Bytes80` to `[u16; 2]`; fixed view of little-endian timestamp bytes 68–71. |
+| `std::math::lt_u32(a,b)` | `u32_lt` | Strict unsigned comparison of two little-endian `[u16; 2]` values; Boolean M31 result. |
 | `std::bitcoin::genesis_hash_mainnet()` | `bitcoin_genesis_hash_mainnet` | Zero-input `Bytes32` constant in raw digest byte order; pins an exact checkpoint when asserted. |
 
 Qualified standard operations are compiler-owned. An explicit `use std@1;`

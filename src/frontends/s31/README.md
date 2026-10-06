@@ -103,11 +103,22 @@ example. For an actual Bitcoin header proof, see
 compression blocks, mainnet `nBits` decoding, and a hash ≤ target assertion.
 [`bitcoin_header_pair.s31`](examples/bitcoin_header_pair.s31) extends this
 to two real, linked headers with a mainnet genesis checkpoint, both PoW
-checks, and equal `nBits` for a non-retarget step. It still uses the generic
+checks, equal `nBits`, and the strict first-step median-time-past rule. It still uses the generic
 SHA circuit. The
 [`sha_chip_plan.zig` boundary](sha_chip_plan.zig) prepares three SHA AIR calls
 per header and tests their byte-level linkage; proof-bound chip integration
 and an S31 recursive verifier remain future work.
+
+The packed SHA AIR has a focused six-call proof test for two SHA256d headers:
+
+```sh
+zig build --build-file src/frontends/s31/build.zig test-sha-batch -Doptimize=ReleaseSafe -j2
+```
+
+It proves one STARK against trusted public compression boundaries and rejects
+a substituted digest boundary. S31's private header witness still needs an
+authenticated circuit-to-chip lookup before this AIR can replace the generic
+SHA circuit in the header example.
 
 From the repository root:
 

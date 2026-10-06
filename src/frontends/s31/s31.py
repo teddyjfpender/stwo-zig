@@ -78,18 +78,18 @@ def abi(source: dict, lowering: str) -> dict:
         op = node["op"]
         if op == "constant":
             length = node["length"]
-        elif op in {"sum_lanes", "u256_le"}:
+        elif op in {"sum_lanes", "u256_le", "u32_lt"}:
             length = 1
         elif op in {"hash_sha256d_header", "bitcoin_target_mainnet", "bitcoin_prev_hash", "bitcoin_genesis_hash_mainnet"}:
             length = 16
-        elif op == "bitcoin_header_bits":
+        elif op in {"bitcoin_header_bits", "bitcoin_header_time"}:
             length = 2
         elif op in {"hash_blake2s", "hash_blake2s_leaf", "hash_blake2s_pair",
                     "hash_poseidon2_leaf", "hash_poseidon2_pair"}:
             length = 8
         else:
             length = shapes[node["lhs"]]["length"]
-        shapes[node["name"]] = {"kind": "u16" if op in {"u256_add", "u256_add_checked", "hash_sha256d_header", "bitcoin_target_mainnet", "bitcoin_prev_hash", "bitcoin_header_bits", "bitcoin_genesis_hash_mainnet"} else "m31", "length": length}
+        shapes[node["name"]] = {"kind": "u16" if op in {"u256_add", "u256_add_checked", "hash_sha256d_header", "bitcoin_target_mainnet", "bitcoin_prev_hash", "bitcoin_header_bits", "bitcoin_header_time", "bitcoin_genesis_hash_mainnet"} else "m31", "length": length}
     return {
         "schema": "s31-public-abi-v1",
         "encoding": "eight canonical M31 words, encoded little-endian u32; unused words are zero" if lowering.startswith("direct-") else "eight little-endian u32 words; unused words are zero",
@@ -482,6 +482,15 @@ def equations(package: Path) -> dict:
                     f"{name}[0] = 1 - b[16]",
                 ))
             notes.append("These are limb equations; the circuit also range checks each digit and constrains each carry/borrow Boolean.")
+        elif op == "u32_lt":
+            shape = ("m31", 1)
+            functional_spec = f"{name} = unsigned32({node['lhs']}) < unsigned32({node['rhs']})"
+            field_equations.extend((
+                "b[0] = 1; b[i] in {0,1}; d[i] in [0,65535]",
+                f"{node['rhs']}[i] + 65536*b[i+1] - {node['lhs']}[i] - b[i] - d[i] = 0, i=0..1",
+                f"{name}[0] = 1 - b[2]",
+            ))
+            notes.append("The initial borrow of one makes equality false; both limbs are range checked.")
         elif op == "hash_sha256d_header":
             shape = ("u16", 16)
             functional_spec = f"{name} = SHA256(SHA256(LE16_bytes({node['lhs']}[0..39])))"
@@ -503,8 +512,8 @@ def equations(package: Path) -> dict:
                 "mantissa sign bit = 0; target bytes[28..31] = 0; target != 0",
             ))
             notes.append("The high-byte zero rule is equivalent to target <= Bitcoin mainnet powLimit, whose highest nonzero byte is 27 and equals 255.")
-        elif op in {"bitcoin_prev_hash", "bitcoin_header_bits"}:
-            start, length = (2, 16) if op == "bitcoin_prev_hash" else (36, 2)
+        elif op in {"bitcoin_prev_hash", "bitcoin_header_bits", "bitcoin_header_time"}:
+            start, length = (2, 16) if op == "bitcoin_prev_hash" else (34, 2) if op == "bitcoin_header_time" else (36, 2)
             shape = ("u16", length)
             field_equations.append(f"{name}[j] = {node['lhs']}[{start}+j], 0 <= j < {length}")
             notes.append("This is a fixed view of already range-checked header limbs; assertions against the view reuse those same circuit wires.")

@@ -61,7 +61,7 @@ pub fn compileRaw(comptime V: type, allocator: std.mem.Allocator, program: relat
         const lhs: ?Entry = if (node.lhs) |name| values.get(name) orelse return error.UnknownOperand else null;
         const rhs: ?Entry = if (node.rhs) |name| values.get(name) orelse return error.UnknownOperand else null;
         const selector: ?Entry = if (node.selector) |name| values.get(name) orelse return error.UnknownOperand else null;
-        const length: usize = if (node.op == .constant) node.length.? else if (node.op == .bitcoin_genesis_hash_mainnet) 16 else if (node.op == .sum_lanes or node.op == .u256_le) 1 else if (node.op == .hash_blake2s or node.op == .hash_blake2s_leaf or node.op == .hash_blake2s_pair or node.op == .hash_poseidon2_leaf or node.op == .hash_poseidon2_pair) 8 else lhs.?.shape.length;
+        const length: usize = if (node.op == .constant) node.length.? else if (node.op == .bitcoin_genesis_hash_mainnet) 16 else if (node.op == .sum_lanes or node.op == .u256_le or node.op == .u32_lt) 1 else if (node.op == .hash_blake2s or node.op == .hash_blake2s_leaf or node.op == .hash_blake2s_pair or node.op == .hash_poseidon2_leaf or node.op == .hash_poseidon2_pair) 8 else lhs.?.shape.length;
         const entry: Entry = switch (node.op) {
             .constant => .{ .shape = .{ .kind = .m31, .length = length }, .lanes = try circuit.builder.simd.repeat(V, &ctx, M31.fromCanonical(node.constant.?), length) },
             .bitcoin_genesis_hash_mainnet => try mainnetGenesisHash(V, &ctx),
@@ -73,11 +73,13 @@ pub fn compileRaw(comptime V: type, allocator: std.mem.Allocator, program: relat
             .sum_lanes => .{ .shape = .{ .kind = .m31, .length = 1 }, .lanes = try sumLanes(V, &ctx, lhs.?.lanes) },
             .u256_add => try u256Binary(V, &ctx, lhs.?, rhs.?, false, false),
             .u256_le => try u256Binary(V, &ctx, lhs.?, rhs.?, true, false),
+            .u32_lt => try u32Less(V, &ctx, lhs.?, rhs.?),
             .u256_add_checked => try u256Binary(V, &ctx, lhs.?, rhs.?, false, true),
             .hash_sha256d_header => try sha256dHeader(V, &ctx, lhs.?),
             .bitcoin_target_mainnet => try mainnetTarget(V, &ctx, lhs.?),
             .bitcoin_prev_hash => try headerSlice(V, &ctx, lhs.?, 2, 16),
             .bitcoin_header_bits => try headerSlice(V, &ctx, lhs.?, 36, 2),
+            .bitcoin_header_time => try headerSlice(V, &ctx, lhs.?, 34, 2),
             .repeat => blk: {
                 const constants = try scratch.alloc(?Simd, node.body.?.len);
                 for (node.body.?, constants) |step, *slot| slot.* = if (step.constant) |value| try circuit.builder.simd.repeat(V, &ctx, M31.fromCanonical(value), length) else null;
@@ -272,11 +274,13 @@ fn compileWithSpansMode(comptime V: type, allocator: std.mem.Allocator, program:
             .sum_lanes => .{ .shape = .{ .kind = .m31, .length = 1 }, .lanes = try sumLanes(V, &ctx, entries[node.lhs.?].lanes) },
             .u256_add => try u256Binary(V, &ctx, entries[node.lhs.?], entries[node.rhs.?], false, false),
             .u256_le => try u256Binary(V, &ctx, entries[node.lhs.?], entries[node.rhs.?], true, false),
+            .u32_lt => try u32Less(V, &ctx, entries[node.lhs.?], entries[node.rhs.?]),
             .u256_add_checked => try u256Binary(V, &ctx, entries[node.lhs.?], entries[node.rhs.?], false, true),
             .hash_sha256d_header => try sha256dHeader(V, &ctx, entries[node.lhs.?]),
             .bitcoin_target_mainnet => try mainnetTarget(V, &ctx, entries[node.lhs.?]),
             .bitcoin_prev_hash => try headerSlice(V, &ctx, entries[node.lhs.?], 2, 16),
             .bitcoin_header_bits => try headerSlice(V, &ctx, entries[node.lhs.?], 36, 2),
+            .bitcoin_header_time => try headerSlice(V, &ctx, entries[node.lhs.?], 34, 2),
             .repeat => blk: {
                 if (chip_mode) {
                     const spec = program.repeatedStepChip().?;
@@ -501,6 +505,34 @@ fn u256Binary(comptime V: type, ctx: *circuit.builder.Context(V), lhs: Entry, rh
     return .{ .shape = .{ .kind = .u16, .length = 16 }, .lanes = try circuit.builder.simd.pack(V, ctx, wrappers), .raw = digits };
 }
 
+/// Strict unsigned comparison of little-endian u16 limbs. We subtract
+/// `lhs + 1` from `rhs`; a final borrow of zero is exactly `lhs < rhs`.
+/// All intermediate integer equations are smaller than the M31 modulus.
+fn u32Less(comptime V: type, ctx: *circuit.builder.Context(V), lhs: Entry, rhs: Entry) !Entry {
+    const left = lhs.raw orelse return error.InvalidU32Operand;
+    const right = rhs.raw orelse return error.InvalidU32Operand;
+    if (left.len != 2 or right.len != 2) return error.InvalidU32Operand;
+    const base = try ctx.constant(QM31.fromBase(M31.fromCanonical(1 << 16)));
+    var incoming = ctx.one();
+    var borrow_value: u32 = 1;
+    for (left, right) |a, b| {
+        const av: u32 = if (comptime V == QM31) ctx.get(a).toM31Array()[0].v else 0;
+        const bv: u32 = if (comptime V == QM31) ctx.get(b).toM31Array()[0].v else 0;
+        const digit_value = (bv + (1 << 16) - av - borrow_value) & 0xffff;
+        const next: u32 = @intFromBool(bv < av + borrow_value);
+        const digit = try ctx.guessU16(circuit.builder.ivalue.fromQm31(V, QM31.fromBase(M31.fromCanonical(digit_value))));
+        const outgoing = try ctx.guess(circuit.builder.ivalue.fromQm31(V, QM31.fromBase(M31.fromCanonical(next))));
+        try ctx.eq(try ctx.mul(outgoing, outgoing), outgoing);
+        try ctx.eq(try ctx.add(b, try ctx.mul(outgoing, base)), try ctx.add(try ctx.add(a, incoming), digit));
+        incoming = outgoing;
+        borrow_value = next;
+    }
+    const result = try ctx.sub(ctx.one(), incoming);
+    const wires = try ctx.scratch().alloc(Var, 1);
+    wires[0] = result;
+    return .{ .shape = .{ .kind = .m31, .length = 1 }, .lanes = Simd.fromPacked(wires, 1), .raw = wires, .boolean = true };
+}
+
 /// Sum packed M31 coordinates with a QM31 linear functional. In the basis
 /// (1, i, u, iu), where i² = -1 and u² = 2 + i, the base coordinate of
 /// x * (1 - i + u/5 - 3iu/5) is a + b + c + d for
@@ -603,6 +635,34 @@ test "private preimage relation has a constrained witness and static topology" {
         try std.testing.expect(!try bad.isCircuitValid());
     } else |err| {
         try std.testing.expectEqual(error.EqFailedOnEval, err);
+    }
+}
+
+test "strict u32 comparison constrains equality, borrow, and limb boundary" {
+    const source =
+        \\{"version":1,"name":"strict_u32","inputs":[{"name":"a","kind":"u16","length":2,"visibility":"private"},{"name":"b","kind":"u16","length":2,"visibility":"private"}],"nodes":[{"name":"less","op":"u32_lt","lhs":"a","rhs":"b"}],"assertions":[],"public_outputs":["less"]}
+    ;
+    var program = try relation.parseProgram(std.testing.allocator, source);
+    defer program.deinit();
+    const cases = [_]struct { a: [2]u32, b: [2]u32, less: u32 }{
+        .{ .a = .{ 0, 0 }, .b = .{ 1, 0 }, .less = 1 },
+        .{ .a = .{ 65535, 0 }, .b = .{ 0, 1 }, .less = 1 },
+        .{ .a = .{ 0, 1 }, .b = .{ 65535, 0 }, .less = 0 },
+        .{ .a = .{ 65535, 65535 }, .b = .{ 65535, 65535 }, .less = 0 },
+    };
+    var topology = try compile(circuit.builder.NoValue, std.testing.allocator, program.value, null);
+    defer topology.deinit();
+    for (cases) |case| {
+        const assignment_json = try std.fmt.allocPrint(std.testing.allocator, "{{\"public_inputs\":{{}},\"private_inputs\":{{\"a\":[{d},{d}],\"b\":[{d},{d}]}},\"public_outputs\":{{\"less\":[{d}]}}}}", .{ case.a[0], case.a[1], case.b[0], case.b[1], case.less });
+        defer std.testing.allocator.free(assignment_json);
+        var assignment = try relation.parseAssignment(std.testing.allocator, assignment_json);
+        defer assignment.deinit();
+        const words = try relation.evaluate(std.testing.allocator, program.value, assignment.value);
+        try std.testing.expectEqual(case.less, words[0]);
+        var values = try compile(QM31, std.testing.allocator, program.value, assignment.value);
+        defer values.deinit();
+        try std.testing.expectEqual(topology.circuit.n_vars, values.circuit.n_vars);
+        try std.testing.expect(try values.isCircuitValid());
     }
 }
 

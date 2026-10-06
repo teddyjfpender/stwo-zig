@@ -92,6 +92,8 @@ contract and worked polynomial are in [the library chapter](library.md).
 | `std::bitcoin::target_mainnet(header)` | Constrained decoding of header `nBits` into a mainnet-limited `UInt256` target. |
 | `std::bitcoin::prev_hash(header)` | `Bytes32` view of serialized header bytes 4–35; reuses the forty range-checked input limbs. |
 | `std::bitcoin::header_bits(header)` | `[u16; 2]` view of serialized header bytes 72–75; reuses the input limbs. |
+| `std::bitcoin::header_time(header)` | `[u16; 2]` view of serialized timestamp bytes 68–71; reuses the input limbs. |
+| `std::math::lt_u32(a,b)` | Strict unsigned comparison of two little-endian `[u16; 2]` values. |
 | `std::bitcoin::genesis_hash_mainnet()` | Compiler-owned raw `Bytes32` digest of mainnet genesis, suitable for an exact checkpoint assertion. |
 | `std::merkle::path_poseidon2`, `std::merkle::path_blake2s` | Fixed-depth path built from hashes and selects. |
 
@@ -165,7 +167,8 @@ semantics:
 | `hash_blake2s`, `hash_blake2s_leaf/pair`, `hash_poseidon2_leaf/pair` | The [exact encodings and framing](hashes.md); each returns `m31[8]`. |
 | `hash_sha256d_header` | `lhs: u16[40]` gives raw double-SHA digest as `u16[16]`; three compression blocks are constrained. |
 | `bitcoin_target_mainnet` | `lhs: u16[40]` gives a nonzero, mainnet-limited compact target as `u16[16]`. |
-| `bitcoin_prev_hash`, `bitcoin_header_bits` | `lhs: u16[40]` gives fixed views of limbs 2–17 or 36–37, respectively; no new independent witness. |
+| `bitcoin_prev_hash`, `bitcoin_header_bits`, `bitcoin_header_time` | `lhs: u16[40]` gives fixed views of limbs 2–17, 36–37, or 34–35; no new independent witness. |
+| `u32_lt` | Two `u16[2]` operands give `m31[1]`. Two checked borrow equations prove strict unsigned order, including equality rejection. |
 | `bitcoin_genesis_hash_mainnet` | No inputs; fixed raw mainnet genesis digest as `u16[16]` in serialized byte order. |
 
 An assertion names two values of equal type and length. It is part of the

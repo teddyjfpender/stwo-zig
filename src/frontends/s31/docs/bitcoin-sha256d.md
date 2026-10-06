@@ -168,6 +168,8 @@ circuit bitcoin_header_pair(private parent: Bytes80, private child: Bytes80)
     assert_eq(parent_hash, std::bitcoin::genesis_hash_mainnet());
     assert_eq(std::bitcoin::prev_hash(child), parent_hash);
     assert_eq(std::bitcoin::header_bits(child), std::bitcoin::header_bits(parent));
+    let later_time = std::math::lt_u32(std::bitcoin::header_time(parent), std::bitcoin::header_time(child));
+    assert_eq(later_time, splat<1>(1_m31));
     let parent_target = std::bitcoin::target_mainnet(parent);
     let child_target = std::bitcoin::target_mainnet(child);
     let parent_pow = std::math::le_u256(std::bytes::to_u256_le(parent_hash), parent_target);
@@ -187,7 +189,24 @@ genesis digest, with its displayed value pinned in
 The first assertion pins the private parent's computed digest
 to that network checkpoint. It adds no witness-controlled input. For this
 source, `prev_hash(child)` is a view of the already constrained
-`child` limbs 2–17. `header_bits(child)` is a view of limbs 36–37. The
+`child` limbs 2–17. `header_bits(child)` is a view of limbs 36–37, and
+`header_time` views limbs 34–35. For the genesis-to-block-one transition,
+the previous median-time-past is the genesis timestamp, so the strict
+`lt_u32` assertion proves the child's timestamp is later. Its two borrow
+digits and two Boolean borrows are constrained in M31; the initial borrow
+is one, making equal timestamps fail. For the actual headers, the parent time
+is `1231006505 = (43817, 18783)` and the child time is
+`1231469665 = (48225, 18790)` in little-endian `u16` limbs. The circuit
+uses `child[i] + 65536·borrow[i+1] = parent[i] + borrow[i] + digit[i]`:
+
+| Limb `i` | Parent | Child | Incoming borrow | Digit | Outgoing borrow |
+| ---: | ---: | ---: | ---: | ---: | ---: |
+| 0 | 43817 | 48225 | 1 | 4407 | 0 |
+| 1 | 18783 | 18790 | 0 | 7 | 0 |
+
+The result is `1 - borrow[2] = 1`. If the timestamps were equal, the
+initial borrow would propagate through both limbs, and the result would be
+zero. The
 assertions compare these same circuit wires with the SHA output wires and
 the parent's bits wires; the views introduce no new witness values. In the
 actual profile, each equality is packed into Eq component rows. Two SHA256d
@@ -204,21 +223,26 @@ python3 src/frontends/s31/s31.py trial \
   --out zig-out/s31/bitcoin-header-pair-trial
 ```
 
-One local trial accepted the real pair and rejected a changed public root.
-It used 714,595 raw QM31 rows, 9,523 Eq rows, and 7,320 conversion rows;
-the proof was 379,136 bytes. Proving took 0.702 s and native verification
-0.474 s in that run; 0.280 s of proving was a variable FRI nonce search.
-The raw SHA arithmetic is nearly twice the single-header
-cost; the QM31 trace pads to 1,048,576 rows. These are single stochastic-PoW
-observations. The [trial record](../../../../design/s31/measurements/bitcoin-header-pair-v1-2026-10-06.json)
-pins the source and proof digests.
+The current source passed an end-to-end proof and native verification trial,
+including rejection of a changed public root. It used 714,614 raw QM31 rows,
+9,528 Eq rows, and 7,322 conversion rows; the QM31 trace still pads to
+1,048,576 rows. Its proof was 372,904 bytes. In this one run, prove took
+0.517 s and verify 0.486 s, with 0.097 s of prover FRI proof of work.
+The [current trial record](../../../../design/s31/measurements/bitcoin-header-pair-time-v1-2026-10-06.json)
+pins source, proof and profile hashes. The
+[earlier record](../../../../design/s31/measurements/bitcoin-header-pair-v1-2026-10-06.json)
+without the timestamp check used 714,595 raw QM31 rows; timings and proof
+bytes from the two runs should not be read as a speed comparison.
 
 This program fixes the bits of adjacent headers equal, so it applies only
 inside a difficulty interval, matching Bitcoin Core's
 [ordinary mainnet step rule](https://github.com/bitcoin/bitcoin/blob/master/src/pow.cpp#L12-L43).
-It does not enforce retargeting, timestamps,
-median time past, version policy, height, accumulated chainwork, a trusted
-checkpoint, best-chain selection, or recursive verification. The
+It enforces the strict timestamp rule only for this first transition, where
+Bitcoin Core's [median-time-past rule](https://github.com/bitcoin/bitcoin/blob/master/src/validation.cpp#L4088-L4102)
+compares the child against the sole previous timestamp. It does not enforce
+retargeting, general eleven-block median time past, the contextual future-time
+limit, version policy, height, accumulated chainwork, best-chain selection,
+or recursive verification. The genesis hash is an explicit checkpoint. The
 [light-client brief](../../../../design/s31/BITCOIN_LIGHT_CLIENT.md) tracks
 those separate relations.
 

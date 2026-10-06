@@ -44,18 +44,23 @@ exactness and the target inequality inside one Stwo proof.
 [`bitcoin_header_pair.s31`](../../src/frontends/s31/examples/bitcoin_header_pair.s31)
 pins its parent SHA256d digest to the mainnet genesis checkpoint, then proves
 the child's exact previous-hash bytes, equal `nBits` for this non-retarget
-step, and PoW checks for both headers. Its generated native verifier accepted
+step, a strictly later timestamp for the first-step median-time-past rule,
+and PoW checks for both headers. Its generated native verifier accepted
 the real genesis-to-block-one witness and rejected a changed public pair root. The
-[single-trial record](measurements/bitcoin-header-pair-v1-2026-10-06.json)
-contains raw/padded geometry, proof bytes and timings. This is a two-header
+[current single-trial record](measurements/bitcoin-header-pair-time-v1-2026-10-06.json)
+contains geometry, proof bytes and timings with the timestamp check; the
+[earlier record](measurements/bitcoin-header-pair-v1-2026-10-06.json)
+predates it. This is a two-header
 segment proof, not a general chain-policy or recursive proof.
 
 ## Dedicated SHA chip: proof-bound integration contract
 
 The existing RISC-V packed SHA provider already expresses one compression
-call as fixed source, schedule, round and feed-forward AIRs. The standalone
-compression test closes 24 input and eight output word wires against trusted
-public boundary rows. S31's header witness is private, so those boundary
+call as fixed source, schedule, round and feed-forward AIRs. A focused test
+now proves six compression calls in one STARK and rejects a substituted
+output boundary. It checks the exact `recursion_wire` multiset before proving.
+Each call closes 24 input and eight output word wires against trusted public
+boundary rows. S31's header witness is private, so those boundary
 rows **cannot** be trusted or copied from the prover. The
 [`sha_chip_plan.zig`](../../src/frontends/s31/sha_chip_plan.zig) adapter
 constructs the three exact compression calls for one `Bytes80` header and
@@ -84,7 +89,12 @@ key version are required.
 
 For one header, the packed provider has 264 live source rows, 144 schedule
 rows, 192 round rows and 24 feed-forward rows before padding. The boundary
-adds 32 word rows per call. These row counts are *not* a proving-time or
+adds 32 word rows per call. The six-call test has 528 source, 288 schedule,
+384 round, 48 feed-forward and 192 boundary live rows. In one local run its
+prove phase took about 1.12 s and verify phase about 0.26 s; setup and a
+negative verifier check raised total test time to about 2.89 s. The public
+boundary test uses a different statement from private-header S31, so these
+numbers are *not* a proving-time or
 proof-size improvement claim: the SHA components are wide, use several
 lookup tables, and the full circuit/chip proof geometry and PoW must be
 measured. Promotion requires a same-statement, same-parameter comparison
@@ -189,7 +199,7 @@ a fold while keeping the outer verifier and proof size bounded.
 | --- | --- | --- |
 | 1. Wide arithmetic | Typed byte/int values, carry/borrow relations, independent oracle | Current example and native proof; add boundary and randomized adversarial vectors. |
 | 2. Byte-exact header hash | **Generic circuit complete:** `Bytes80`, SHA256d relation, one native proof. **SHA AIR witness planner complete:** three call records and packed provider rows. Remaining: authenticated circuit-to-chip lookup, new proof roster and verifier, nominal `BlockHash`, broader Bitcoin Core differential vectors, and measured cost crossover. | Genesis and randomized byte checks; native proof and changed-root rejection currently pass. Chip substitution must fail until one-proof lookup closure is implemented. |
-| 3. Header policy | **Genesis-anchored two-header same-bits segment complete:** compact target, powLimit, unsigned comparison, exact previous-hash link, equal `nBits` for a non-retarget step. Remaining: retarget transitions, timestamp/MTP policy, work increment and versioned public state ABI. | Real genesis-to-block-one proof accepted; changed checkpoint, link and bits rejected by independent oracle; invalid transitions need native adversarial corpus. |
+| 3. Header policy | **Genesis-anchored two-header first step complete:** compact target, powLimit, unsigned comparison, exact previous-hash link, equal `nBits`, and strict first-step timestamp order. Remaining: retarget transitions, general eleven-block MTP and contextual future-time policy, work increment and versioned public state ABI. | Real genesis-to-block-one proof accepted; changed public claim rejected by native verifier; changed checkpoint, link, bits and equal time rejected by independent oracle; broader native adversarial corpus remains. |
 | 4. In-circuit S31 verifier | One pinned `S31NAT*` profile and verification-key policy | Valid native/circuit parity; malformed proof, key, profile, transcript, FRI and statement mutations all reject. |
 | 5. Recursive fold | Base and step wrappers; proof of a proof of a step | Two- and many-step folds; fixed-size outer statement/proof; checkpoint and fork-policy tests. |
 

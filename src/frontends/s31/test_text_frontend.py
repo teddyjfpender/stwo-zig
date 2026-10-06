@@ -62,10 +62,33 @@ class TextFrontendTests(unittest.TestCase):
         changed_bits["private_inputs"]["child"][37] = 0x1c00
         with self.assertRaisesRegex(OracleError, r"assertions\[2\] failed"):
             evaluate_relation(relation, changed_bits)
+        equal_time = copy.deepcopy(assignment)
+        equal_time["private_inputs"]["child"][34:36] = equal_time["private_inputs"]["parent"][34:36]
+        with self.assertRaisesRegex(OracleError, r"assertions\[3\] failed"):
+            evaluate_relation(relation, equal_time)
         wrong_parent = copy.deepcopy(assignment)
         wrong_parent["private_inputs"]["parent"][39] ^= 1
         with self.assertRaisesRegex(OracleError, r"assertions\[0\] failed"):
             evaluate_relation(relation, wrong_parent)
+
+    def test_strict_u32_limb_comparison(self) -> None:
+        relation, _ = compile_text("""use std@1;
+circuit strict_time(private a: [u16; 2], private b: [u16; 2]) -> public [m31; 1] {
+    std::math::lt_u32(a, b)
+}""")
+        self.assertEqual(relation["nodes"][0]["op"], "u32_lt")
+        for left, right in ((0, 1), (0xffff, 0x10000), (0xffffffff, 0),
+                            (0xffffffff, 0xffffffff), (7, 3)):
+            with self.subTest(left=left, right=right):
+                assignment = {
+                    "public_inputs": {},
+                    "private_inputs": {
+                        "a": [left & 0xffff, left >> 16],
+                        "b": [right & 0xffff, right >> 16],
+                    },
+                    "public_outputs": {relation["public_outputs"][0]: [int(left < right)]},
+                }
+                self.assertEqual(evaluate_relation(relation, assignment), assignment["public_outputs"])
 
     def test_field_cast_arithmetic_and_selection(self) -> None:
         self.assertEqual(reference_m31_from_u16([0, 65535]), [0, 65535])

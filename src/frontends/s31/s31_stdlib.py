@@ -211,6 +211,20 @@ class Builder:
         return self.emit("bitcoin_header_bits", Type("u16", 2),
                          wanted=wanted, span=span, lhs=self.realize(value).ref)
 
+    def header_time(self, value: Value, *, wanted: str | None = None,
+                    span: dict[str, int] | None = None) -> Value:
+        if value.typ != Type("bytes80", 40):
+            raise TypeErrorS31("header_time requires a serialized Bytes80 header")
+        return self.emit("bitcoin_header_time", Type("u16", 2),
+                         wanted=wanted, span=span, lhs=self.realize(value).ref)
+
+    def lt_u32(self, lhs: Value, rhs: Value, *, wanted: str | None = None,
+               span: dict[str, int] | None = None) -> Value:
+        if lhs.typ != Type("u16", 2) or rhs.typ != lhs.typ:
+            raise TypeErrorS31("lt_u32 requires two little-endian [u16; 2] values")
+        return self.emit("u32_lt", Type("m31", 1), wanted=wanted, span=span,
+                         lhs=self.realize(lhs).ref, rhs=self.realize(rhs).ref)
+
     def genesis_hash_mainnet(self, *, wanted: str | None = None,
                              span: dict[str, int] | None = None) -> Value:
         return self.emit("bitcoin_genesis_hash_mainnet", Type("bytes32", 16),

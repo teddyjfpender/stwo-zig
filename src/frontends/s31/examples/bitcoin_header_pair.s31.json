@@ -13,12 +13,16 @@
       "rhs": "_s31_3"
     },
     {
+      "lhs": "later_time",
+      "rhs": "_s31_6"
+    },
+    {
       "lhs": "parent_pow",
-      "rhs": "_s31_4"
+      "rhs": "_s31_7"
     },
     {
       "lhs": "child_pow",
-      "rhs": "_s31_5"
+      "rhs": "_s31_8"
     }
   ],
   "inputs": [
@@ -68,6 +72,28 @@
     },
     {
       "lhs": "parent",
+      "name": "_s31_4",
+      "op": "bitcoin_header_time"
+    },
+    {
+      "lhs": "child",
+      "name": "_s31_5",
+      "op": "bitcoin_header_time"
+    },
+    {
+      "lhs": "_s31_4",
+      "name": "later_time",
+      "op": "u32_lt",
+      "rhs": "_s31_5"
+    },
+    {
+      "constant": 1,
+      "length": 1,
+      "name": "_s31_6",
+      "op": "constant"
+    },
+    {
+      "lhs": "parent",
       "name": "parent_target",
       "op": "bitcoin_target_mainnet"
     },
@@ -91,32 +117,32 @@
     {
       "constant": 1,
       "length": 1,
-      "name": "_s31_4",
+      "name": "_s31_7",
       "op": "constant"
     },
     {
       "constant": 1,
       "length": 1,
-      "name": "_s31_5",
+      "name": "_s31_8",
       "op": "constant"
     },
     {
       "lhs": "parent_hash",
-      "name": "_s31_6",
+      "name": "_s31_9",
       "op": "cast_m31"
     },
     {
-      "lhs": "_s31_6",
+      "lhs": "_s31_9",
       "name": "parent_root",
       "op": "hash_poseidon2_leaf"
     },
     {
       "lhs": "child_hash",
-      "name": "_s31_7",
+      "name": "_s31_10",
       "op": "cast_m31"
     },
     {
-      "lhs": "_s31_7",
+      "lhs": "_s31_10",
       "name": "child_root",
       "op": "hash_poseidon2_leaf"
     },

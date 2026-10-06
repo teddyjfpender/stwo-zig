@@ -1,0 +1,72 @@
+{
+  "artifacts": {
+    "changed_statement": "changed-statement.json",
+    "equations": "equations.json",
+    "explain": "explain.json",
+    "proof": "proof.bin",
+    "statement": "statement.json"
+  },
+  "assignment": "/Users/theodorepender/code/cryptography/stwo-zig/src/frontends/s31/examples/bitcoin_header_pair.valid.json",
+  "build_or_load_seconds": 36.347639250103384,
+  "canonical_ir_sha256": "6080c054d8fa2749bfe34b469690c607c890d32e727c27ba73b1b4f93fcb7ff8",
+  "changed_public_statement_rejected": "public_outputs.segment_root[0]",
+  "independent_value_oracle": {
+    "computed_public_outputs": {
+      "segment_root": [
+        928491885,
+        399009276,
+        910063533,
+        515587455,
+        1714177619,
+        700256356,
+        272818236,
+        1829149449
+      ]
+    },
+    "status": "passed"
+  },
+  "independent_value_oracle_provenance": {
+    "python_version": "3.14.6",
+    "source_sha256": {
+      "src/frontends/riscv/air/memory_commitment/poseidon2_constants.zig": "d02b32f2f5302d21a440fbace2112d3232603e759cd0b24691c32e81d2bd4cfd",
+      "src/frontends/s31/oracle.py": "d502c9ed3791e7e323510801ad15a457af42e87a2be9ab936590465a5840a83f",
+      "src/frontends/s31/poseidon2_oracle.py": "fa00052d40d0601f16e0c67150de4991436d662db8fcad027eb289f5c1423ba0"
+    }
+  },
+  "lowering": "sparse-wide-gate",
+  "native_verifier_accepted": true,
+  "package": "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/s31/bitcoin-header-pair-time-trial-final/package",
+  "padded": {
+    "blake_g": 0,
+    "eq": 16384,
+    "m31_to_u32": 8192,
+    "qm31_ops": 1048576,
+    "triple_xor": 0
+  },
+  "preprocessed_cells": 8511488,
+  "profile": "sparse-wide-v5",
+  "program": "bitcoin_header_pair",
+  "program_sha256": "b7072209530d16e4a604cac49890df9ebf823a68808ea9f293a599a80ed03618",
+  "proof_bytes": 372904,
+  "proof_sha256": "57174a36bdc51e3a72c33838d0aa5a6194df08a57d8314e25760f432dbd6140b",
+  "prove_seconds": 0.5166264579165727,
+  "prover_stages": {
+    "fri_pow_seconds": 0.096551,
+    "interaction_pow_seconds": 0.000955,
+    "prove_excluding_pow_seconds": 0.32161700000000004,
+    "prove_seconds": 0.419123,
+    "setup_seconds": 0.072049,
+    "witness_seconds": 0.01004
+  },
+  "raw": {
+    "blake_g": 0,
+    "eq": 9528,
+    "m31_to_u32": 7322,
+    "qm31_ops": 714614,
+    "triple_xor": 0
+  },
+  "schema": "s31-trial-v1",
+  "text_source_relowered": true,
+  "timing_note": "Single local observations; proof-of-work and cache state affect timings.",
+  "verify_seconds": 0.48638762498740107
+}

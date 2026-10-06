@@ -52,6 +52,20 @@ pub fn build(b: *std.Build) void {
     const tests = b.addRunArtifact(b.addTest(.{ .root_module = frontend }));
     b.step("test", "Test the S31 prototype parser, evaluator and circuit compiler").dependOn(&tests.step);
 
+    const sha_batch_root = b.createModule(.{
+        .root_source_file = b.path("../riscv/sha256_batch_test_root.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    sha_batch_root.addImport("stwo_core", core);
+    sha_batch_root.addImport("stwo_prover_engine", cpu.import_table.get("stwo_prover_engine") orelse @panic("missing prover engine"));
+    sha_batch_root.addImport("stwo_cpu_backend", cpu.import_table.get("stwo_cpu_backend") orelse @panic("missing CPU backend"));
+    const sha_batch_tests = b.addRunArtifact(b.addTest(.{
+        .root_module = sha_batch_root,
+        .filters = &.{ "SHA canonical compression STARK", "six linked SHA compression calls" },
+    }));
+    b.step("test-sha-batch", "Prove and verify a six-call SHA256d AIR batch").dependOn(&sha_batch_tests.step);
+
     if (source_version == 1) {
         const cairo = cpu.import_table.get("stwo_cairo_frontend") orelse @panic("circuit CPU module is missing Cairo AIR runtime");
         const postcard = b.createModule(.{ .root_source_file = .{ .cwd_relative = b.pathFromRoot("../../interop/postcard.zig") }, .target = target, .optimize = optimize });
