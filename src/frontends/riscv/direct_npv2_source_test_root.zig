@@ -1,6 +1,8 @@
 const std = @import("std");
 const payload = @import("recursion/air/transcript_payload.zig");
 const fixed_bridge = @import("recursion/air/transcript_program_v2_field_bridge_v5.zig");
+const descriptor_export = @import("recursion/air/transcript_word_descriptor_export_v4.zig");
+const descriptor_schedule = @import("recursion/transcript_program_v2_row4_descriptor_schedule_v4.zig");
 const field = @import("recursion/transcript_program_v2_field_authority_v1.zig");
 const origins = @import("recursion/transcript_program_v2_word_origins_v4.zig");
 const transcript = @import("recursion/transcript_program_v2.zig");
@@ -11,10 +13,130 @@ const relation = @import("air/lang/relation.zig");
 const M31 = @import("stwo_core").fields.m31.M31;
 const row5_schedule = @import("recursion/transcript_program_v2_row5_npv2_schedule_v4.zig");
 const native_source = @import("recursion/segment_transcript_outer_source_v2.zig");
+const native_contract = @import("recursion/segment_transcript_outer_source_v2_contract.zig");
 
 test {
     _ = payload;
     _ = fixed_bridge;
+    _ = descriptor_export;
+    _ = descriptor_schedule;
+}
+
+test "NPV2 row4 descriptor variant pins semantic identity" {
+    const digest = try descriptor_export.computeSemanticDigest(std.testing.allocator);
+    try std.testing.expectEqualDeep(descriptor_export.SEMANTIC_DIGEST, digest);
+}
+
+test "NPV2 row4 descriptor export uses native tag and canonical arg limbs" {
+    var definition = try descriptor_export.build(std.testing.allocator);
+    defer definition.deinit();
+    var row = [_]M31{M31.zero()} ** descriptor_export.LOGICAL_INPUT_COUNT;
+    row[0] = M31.one(); // native row4 enabler
+    row[1] = M31.fromCanonical(9); // executed payload
+    row[2] = M31.one(); // row mask
+    row[3] = M31.one(); // segment mask
+    row[7] = M31.fromCanonical(native_contract.typedTag(.statement_header));
+    row[8] = M31.fromCanonical(0x12345); // native row4 arg0
+    row[13] = M31.fromCanonical(8); // word index
+    row[14] = M31.one(); // payload row
+    row[17] = M31.one(); // segment active
+    const extra = 19;
+    row[extra] = M31.one(); // selected
+    row[extra + 1] = M31.fromCanonical(native_contract.typedTag(.statement_header) - @intFromEnum(transcript.Kind.statement_header));
+    row[extra + 2] = M31.fromCanonical(43); // canonical instruction base
+    row[extra + 3] = M31.fromCanonical(0x2345);
+    row[extra + 4] = M31.one();
+    try expectAllConstraints(&definition.base.arena, &row, true);
+    const values = try support.evaluateArena(std.testing.allocator, &definition.base.arena, &row);
+    defer std.testing.allocator.free(values);
+    const kind_tuple = definition.base.arena.effectValues(definition.events[0]).?;
+    const native_tuple = definition.base.arena.effectValues(definition.base.events.payload_word_consume).?;
+    try std.testing.expectEqual(values[types.idIndex(native_tuple[2])].toU32(), row[7].toU32());
+    try std.testing.expectEqual(values[types.idIndex(native_tuple[3])].toU32(), row[8].toU32());
+    try std.testing.expectEqual(payload.NPV2_SCOPE, values[types.idIndex(kind_tuple[0])].toU32());
+    try std.testing.expectEqual(@as(u32, 43), values[types.idIndex(kind_tuple[1])].toU32());
+    try std.testing.expectEqual(@as(u32, @intFromEnum(transcript.Kind.statement_header)), values[types.idIndex(kind_tuple[2])].toU32());
+    const arg_tuple = definition.base.arena.effectValues(definition.events[1]).?;
+    try std.testing.expectEqual(@as(u32, 48), values[types.idIndex(arg_tuple[1])].toU32());
+    try std.testing.expectEqual(@as(u32, 0x2345), values[types.idIndex(arg_tuple[2])].toU32());
+    row[extra + 3] = row[extra + 3].add(M31.one());
+    try expectAllConstraints(&definition.base.arena, &row, false);
+    row[extra + 3] = row[extra + 3].sub(M31.one());
+    row[14] = M31.zero();
+    try expectAllConstraints(&definition.base.arena, &row, false);
+    row[14] = M31.one();
+    row[extra] = M31.fromCanonical(2);
+    try expectAllConstraints(&definition.base.arena, &row, false);
+}
+
+test "NPV2 row4 schedule reports zero-payload instruction and absent descriptor fields" {
+    const instructions = try std.testing.allocator.alloc(transcript.Instruction, 2);
+    defer std.testing.allocator.free(instructions);
+    instructions[0] = .{ .kind = .statement_header, .verifier_sequence = 2, .sub_index = 3, .args = .{ 0x12345, 0, 0, 0 } };
+    instructions[1] = .{ .kind = .relation_draw, .verifier_sequence = 4, .sub_index = 5, .args = .{ 7, 8, 9, 10 } };
+    const program = transcript.Program{
+        .allocator = std.testing.allocator,
+        .plan_id = .{0} ** 8,
+        .wire_id = .{0} ** 8,
+        .statement_authority_id = .{0} ** 8,
+        .wire_word_count = 0,
+        .pcs_config = protocol.PCS_CONFIG,
+        .instructions = instructions,
+        .identity = .{0} ** 8,
+    };
+    const Preprocessed = struct {
+        row_mask: u32 = 1,
+        segment_mask: u32 = 1,
+        binary_mask: u32 = 0,
+        verifier_id: u32 = 0,
+        sequence: u32 = 0,
+        tag: u32 = native_contract.typedTag(.statement_header),
+        args: [4]u32 = .{ 0x12345, 0, 0, 0 },
+        word_index: u32 = 8,
+        is_payload: u32 = 1,
+        payload_index: u32 = 0,
+    };
+    const NativeRow = struct { preprocessing: Preprocessed };
+    var rows = [_]NativeRow{.{ .preprocessing = .{} }};
+    var schedule = try descriptor_schedule.Schedule.init(std.testing.allocator, &program, &rows);
+    defer schedule.deinit();
+    const coverage = schedule.coverage();
+    try std.testing.expectEqual(@as(usize, 2), coverage.total_instructions);
+    try std.testing.expectEqual(@as(usize, 1), coverage.selected_kind_arg_sources);
+    try std.testing.expectEqual(@as(usize, 1), coverage.missing_row4_payload);
+    try std.testing.expectEqual(@as(usize, 2), coverage.missing_verifier_sequence_source);
+    try std.testing.expectEqual(@as(usize, 2), coverage.missing_sub_index_source);
+    try std.testing.expectError(error.IncompleteInstructionDescriptorSource, coverage.requireComplete());
+    const draw_tag = M31.fromCanonical(native_contract.typedTag(.relation_draw));
+    const draw_kind = M31.fromCanonical(@intFromEnum(transcript.Kind.relation_draw));
+    try std.testing.expect(draw_tag.sub(M31.fromCanonical(schedule.entries[1].tag_offset)).eql(draw_kind));
+    const extra = schedule.extraRow(0);
+    try std.testing.expectEqual(@as(u32, 1), extra[0].toU32());
+    try std.testing.expectEqual(@as(u32, 43), extra[2].toU32());
+    try std.testing.expectEqual(@as(u32, 0x2345), extra[3].toU32());
+    try std.testing.expectEqual(@as(u32, 1), extra[4].toU32());
+    try schedule.validateExtraRow(0, extra);
+    var wrong_extra = extra;
+    wrong_extra[4] = wrong_extra[4].add(M31.one());
+    try std.testing.expectError(error.IncorrectNativeDescriptorPreprocessing, schedule.validateExtraRow(0, wrong_extra));
+    wrong_extra = extra;
+    wrong_extra[1] = wrong_extra[1].add(M31.one());
+    try std.testing.expectError(error.IncorrectNativeDescriptorPreprocessing, schedule.validateExtraRow(0, wrong_extra));
+    rows[0].preprocessing.args[0] += 1;
+    try std.testing.expectError(error.NativeInstructionDescriptorMismatch, descriptor_schedule.Schedule.init(std.testing.allocator, &program, &rows));
+    rows[0].preprocessing.args[0] -= 1;
+    rows[0].preprocessing.tag += 1;
+    try std.testing.expectError(error.NativeInstructionDescriptorMismatch, descriptor_schedule.Schedule.init(std.testing.allocator, &program, &rows));
+    rows[0].preprocessing.tag -= 1;
+    rows[0].preprocessing.word_index = 9;
+    try std.testing.expectError(error.InvalidNativeInstructionPayloadRow, descriptor_schedule.Schedule.init(std.testing.allocator, &program, &rows));
+    rows[0].preprocessing.word_index = 8;
+    const duplicated = [_]NativeRow{ rows[0], rows[0] };
+    try std.testing.expectError(error.DuplicateNativeInstructionPayloadOrigin, descriptor_schedule.Schedule.init(std.testing.allocator, &program, &duplicated));
+    rows[0].preprocessing.is_payload = 0;
+    var missing = try descriptor_schedule.Schedule.init(std.testing.allocator, &program, &rows);
+    defer missing.deinit();
+    try std.testing.expectEqual(@as(usize, 2), missing.coverage().missing_row4_payload);
 }
 
 test "NPV2 base payload export maps canonical ProgramV2 wire ID indices" {
