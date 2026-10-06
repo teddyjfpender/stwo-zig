@@ -68,6 +68,12 @@ complete-wrapper publication: the remaining child-field router, transcript
 root, hash and range providers, and global lookup/PCS closure need one new
 verified V3 transaction. The existing 39-row V2 proof cannot be treated as if
 the three new rows were already committed.
+Another partial manifest pins ProgramV2 words/hash and verified-outer provider
+words/hash at rows 42–45. Its adapter gate checks pinned domains, scopes,
+word counts, digest kinds and outputs, while the real small-ELF gate constructs
+the corresponding `BundleV3` only after both local proof transactions verify.
+Row 46 is reserved for the typed Tree0 link. These separate manifests describe
+candidate rows; neither defines a complete 47-row proof roster.
 For the base RV32 leaf, the child verifier authority is the freshly verified
 native SegmentV2 capture inside `PreparedNativeV2LeafOuter`; the detached
 39-component recursive-child loader belongs to a later parent and cannot

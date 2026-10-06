@@ -51,7 +51,14 @@ fn fixtureNative(a: std.mem.Allocator, input: []const M31) !field.NativeV1 {
     errdefer source.deinit();
     var hash = try hash_witness.HashV1.init(a, words, program_authority.PROGRAM_DOMAIN, field.PROGRAM_SCOPE, @import("recursion/air/ethereum_leaf_link_source_v1.zig").PROGRAM_AUTHORITY_KIND, hash_witness.PROGRAM_STEP_BASE, digest);
     errdefer hash.deinit();
-    return .{ .program = .{ .allocator = a, .words = words, .digest = digest }, .program_words = source, .program_hash = hash, .tree0_root = .{0} ** channel.RATE };
+    return .{
+        .program = .{ .allocator = a, .words = words, .digest = digest },
+        .program_words = source,
+        .program_hash = hash,
+        .tree0_root = .{0} ** channel.RATE,
+        // This fixture tests only the four field adapters; Tree0 has its own gate.
+        .tree0_link = std.mem.zeroes(@import("recursion/segment_v2_tree0_field_witness_v3.zig").WitnessV3),
+    };
 }
 
 fn fixtureProvider(a: std.mem.Allocator, input: []const M31) !field.ProviderV1 {
