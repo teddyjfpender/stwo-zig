@@ -64,15 +64,21 @@ for all four lanes and compares every generated statement.
 
 ## Exactly what the AIR constrains
 
-Let `R` be the fold root guessed by the circuit, `n` the guessed `u16`
+Let `R` be the fold root guessed by the circuit, `n` the guessed `u32`
 step, `S0` the initial four M31 words, `S` the current state, and `P` the
 previous state. Let `base` be a private Boolean and `recurse=1-base`:
 
 ```text
+lo,hi ∈ u16; n = lo + 65536·hi as an ordinary integer
 base · (base - 1) = 0
-n · base = 0
-(n + base) · inverse = 1
-previous_step = n - recurse, with previous_step ∈ u16
+z = lo + hi
+z · base = 0
+(z + base) · inverse = 1
+recurse = 1 - base
+borrow · (borrow - 1) = 0
+prev_lo = lo - recurse + 65536·borrow, with prev_lo ∈ u16
+prev_hi = hi - borrow, with prev_hi ∈ u16
+previous_step = prev_lo + 65536·prev_hi
 
 for each lane i:
     next_i = step(P_i) = P_i · P_i + 7 mod (2³¹ - 1)
@@ -84,13 +90,18 @@ verify_STARK(child_proof, child_root, child_output)
 public_output = G(R,n,D1,S0,S)
 ```
 
-`S0`, `S`, and `P` are individually range constrained to M31. The Boolean,
-product, and inverse equations force the base branch at step zero and the
-recursive branch at every positive step. The `u16` predecessor decreases by
-one, so a valid recursive proof must eventually reach the base case. At
+`S0`, `S`, and `P` are individually range constrained to M31. Since
+`z≤131070<p`, the product and inverse equations force the base branch at
+step zero and the recursive branch at every positive step. The two range
+checks force `borrow=1` exactly when a positive step crosses a zero low
+limb: at `n=65536`, the predecessor is `lo=65535, hi=0`. At zero the base
+branch is forced, so the `u32` predecessor always decreases by one and a
+valid recursive proof must eventually reach the base case. At
 step zero the lane equation reduces to `S=S0`; at a positive step it reduces
 to `S=step(P)`. The child verifier constrains its commitments, transcript,
 LogUp, FRI and proof-of-work inputs, just as in the [recursion chapter](recursion.md).
+The hash gadget packs the constrained low and high limbs as an exact `u32`
+word; it does not reduce the counter modulo M31 before hashing.
 
 Each scalar equality, multiplication, range check and hash gate is lowered
 to the circuit AIR components. For one lane, the transition constraint
@@ -127,7 +138,7 @@ general circuit, the per-lane transition is
 `C=S-S0-recurse·(3P²+5-S0)=0`. The base proof certifies three rounds;
 fold step 2 certifies five rounds in total. See the
 [general acceptance fixture](../acceptance_state_fold_general.py) for all
-four lanes and adversarial claims. The [local geometry and timing record](../../../../design/s31/measurements/state-fold-general-v2-2026-10-07.json)
+four lanes and adversarial claims. The [current u32 geometry record](../../../../design/s31/measurements/state-fold-u32-v3-2026-10-07.json)
 shows that this three-operation step stays within the original padded AIR
 sizes; the extra raw arithmetic rows are small compared with the embedded
 STARK verifier.
@@ -137,7 +148,7 @@ STARK verifier.
 The fold digest includes every item in a fixed-width slot:
 
 ```text
-G(R,n,D1,S0,S) = Blake2s-256(person="S31STF1!",
+G(R,n,D1,S0,S) = Blake2s-256(person="S31STF2!",
     R[32 bytes] || LE32(n) || LE32(D1[0..8]) ||
     LE32(S0[0..4]) || LE32(S[0..4]))
 ```
@@ -188,13 +199,14 @@ python3 src/frontends/s31/acceptance_state_fold.py
 python3 src/frontends/s31/acceptance_state_fold_general.py
 ```
 
-`state-fold-advance` validates the package once. Its v2 native batch path
+`state-fold-advance` validates the package once. Its native batch path
 reuses the preprocessed circuit and commitment while checking each child
 proof and each fresh value circuit against the witness-free topology. It
 natively verifies the final proof. With `--checkpoint-dir`, each
 intermediate proof and statement is kept as `state-00002.proof` and so on;
 passing one of those proofs as the next input resumes from that step. The
-command checks the `u16` counter bound before starting and refuses to
+command checks the `u32` counter bound before starting, limits one batch to
+65,536 proofs, and refuses to
 overwrite an existing proof or statement.
 
 `audit-state-fold-base` and `audit-state-fold-next` test the base selector,
@@ -206,8 +218,8 @@ sample took 3.62 s and 9.31 GB peak RSS normally, versus 3.82 s and
 7.00 GB in low-memory mode. Both paths produced the same 550,173-byte
 proof. The native top verifier took 0.07 s wall and 205 MB in that local
 sample. These are single-machine observations, not speed guarantees.
-That sample used the original v1 square/add key; v2 binds the ordered body
-and therefore has a different key and proof bytes.
+That sample used the original v1 square/add key; v2 bound the ordered body,
+and v3 widened the counter. Each version has different key and proof bytes.
 `inspect-state-fold PACKAGE` rebuilds the AIR and reports raw rows and
 padding headroom. It also reports cumulative gate counts at 24 points from
 proof-witness creation through Merkle and FRI checks to finalization. In the
@@ -220,8 +232,11 @@ next efficiency targets and their soundness conditions. Compared with
 state transition adds only 48 raw variables, 4 equality rows, 32 QM31
 operation rows, and 16 M31-to-u32 rows; its triple-XOR and Blake-G raw row
 counts do not change. Both AIRs occupy the same padded component sizes.
-The [measurement record](../../../../design/s31/measurements/state-fold-v1-2026-10-07.json)
-contains the exact geometry and sampled timings.
+The [v1 historical measurement](../../../../design/s31/measurements/state-fold-v1-2026-10-07.json)
+contains the original square/add geometry and sampled timings. The
+[v2 performance record](../../../../design/s31/measurements/state-fold-general-v2-2026-10-07.json)
+and [v3 counter record](../../../../design/s31/measurements/state-fold-u32-v3-2026-10-07.json)
+separate earlier local timing samples from the current counter geometry.
 
 The current step extractor covers a four-lane M31 recurrence composed from
 square, add-constant, and multiply-constant operations. It does not yet

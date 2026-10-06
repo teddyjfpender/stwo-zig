@@ -37,7 +37,7 @@ def digest(root: str, step: int, base: list[int], initial: list[int], current: l
     message = bytes.fromhex(root) + struct.pack("<I8I4I4I", step, *base, *initial, *current)
     if len(message) != 100:
         raise AssertionError("wrong state-fold digest preimage length")
-    return list(struct.unpack("<8I", hashlib.blake2s(message, person=b"S31STF1!").digest()))
+    return list(struct.unpack("<8I", hashlib.blake2s(message, person=b"S31STF2!").digest()))
 
 
 def main() -> None:
@@ -50,7 +50,7 @@ def main() -> None:
         s31.verify_package(package)
         key = package / "state-fold-verification-key.json"
         sealed = json.loads(key.read_text())
-        if sealed["schema"] != "s31-state-fold-verification-key-v2":
+        if sealed["schema"] != "s31-state-fold-verification-key-v3" or sealed["counter_bits"] != 32:
             raise AssertionError("state-fold key missing")
         step_body = sealed["step_body"]
         rounds = sealed["source_rounds"]

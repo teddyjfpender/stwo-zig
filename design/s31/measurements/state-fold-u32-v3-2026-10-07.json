@@ -1,0 +1,59 @@
+{
+  "schema": "s31-state-fold-u32-measurement-v3",
+  "date": "2026-10-07",
+  "fixture": "src/frontends/s31/examples/affine_square4.s31",
+  "key": {
+    "schema": "s31-state-fold-verification-key-v3",
+    "statement_schema": "s31-state-fold-statement-v2",
+    "counter_bits": 32,
+    "digest_personalization": "S31STF2!",
+    "root": "c411fb13c9f61a4381c247f6af6144cc299e88784ef1208adc3a25e105b04212",
+    "circuit_hash": "1af035258627b7181e9df6b8e7df2189d24016846aa44cb6c55116129be01e5a",
+    "trace_log_size": 22,
+    "raw_vars": 11823705,
+    "padded_vars": 19642180,
+    "raw_rows": {
+      "eq": 37529,
+      "qm31_ops": 1419435,
+      "triple_xor": 243880,
+      "m31_to_u32": 423810,
+      "blake_g": 2438800
+    },
+    "padded_rows": {
+      "eq": 65536,
+      "qm31_ops": 2097152,
+      "triple_xor": 262144,
+      "m31_to_u32": 524288,
+      "blake_g": 4194304
+    }
+  },
+  "increment_over_v2_raw": {
+    "variables": 13,
+    "eq": 2,
+    "qm31_ops": 11,
+    "triple_xor": 0,
+    "m31_to_u32": 2,
+    "blake_g": 0,
+    "padded_geometry_changed": false
+  },
+  "counter_boundary_cases": [0, 1, 65535, 65536, 65537, 2147483647, 2147483648, 4294967295],
+  "counter_mutations_rejected_per_case": ["previous_low", "base_selector", "borrow"],
+  "digest_counter_cases_checked_against_host": [0, 65536, 2147483648, 4294967295],
+  "proof_bytes": {"step_0": 559776, "step_1": 548456, "step_2": 554591},
+  "checks": {
+    "general_and_square_add_acceptance_pass": true,
+    "base_circuit_mutations_rejected": 18,
+    "recursive_circuit_mutations_rejected_per_step": 19,
+    "same_air_different_key_replay_rejected_after_digest_repair": true,
+    "all_32_step_bits_bound_by_in_circuit_digest": true,
+    "cached_batch_matches_separate_step_proof_bytes": true,
+    "v1_and_v2_packages_keep_their_sealed_binary_semantics": true
+  },
+  "scope": "Raw AIR geometry and proof byte lengths only; concurrent compilation made this run unsuitable for timing comparison",
+  "acceptance_commands": [
+    "zig build --build-file src/frontends/s31/build.zig test -Doptimize=ReleaseSafe -j2",
+    "python3 src/frontends/s31/acceptance_state_fold_general.py",
+    "python3 src/frontends/s31/acceptance_state_fold.py",
+    "python3 src/frontends/s31/acceptance_recursion_key_binding.py"
+  ]
+}

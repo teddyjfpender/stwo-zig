@@ -4,6 +4,8 @@ The state fold verifies one full S31 STARK proof inside a circuit. Its proof
 size is roughly constant across steps, but proving that verifier circuit is
 the main cost. This record uses the [affine-square source](../../src/frontends/s31/examples/affine_square4.s31)
 and the [v2 local measurement](measurements/state-fold-general-v2-2026-10-07.json).
+The [v3 counter record](measurements/state-fold-u32-v3-2026-10-07.json)
+shows the same padded geometry after widening the step counter.
 
 Run `s31.py inspect-state-fold PACKAGE` to rebuild the sealed AIR and get
 `verifier_stages`: cumulative raw gate and variable counts after each verifier
@@ -29,7 +31,7 @@ the witness and preprocessed commitment. The earlier square/add sample saw
 9.31 GB standard versus 7.00 GB low-memory peak RSS. These are isolated
 local observations.
 
-The native v2 `state-fold-advance` path now reuses the immutable preprocessed
+The native batch `state-fold-advance` path reuses the immutable preprocessed
 circuit and commitment across steps. It still rebuilds a witness-free
 topology and checks full gate equality at every step, then natively verifies
 each child and output proof. In one three-step local comparison, the cached
@@ -52,7 +54,9 @@ The next efficiency sequence is:
 Each optimization must keep the exact sealed child key, AIR root, PCS/FRI
 configuration, raw-u32 public digest, BLAKE2s domain, proof-of-work check,
 and the full native/in-circuit verification differential suite. It must also
-preserve the `u16` decreasing counter and source-derived transition. The
+preserve the source-derived transition and the well-founded decreasing
+counter. The state-fold key v3 widens that counter to `u32` with just 13
+more raw variables and unchanged padded AIR sizes. The
 current circuit's soundness still depends on the STARK system, the in-circuit
 verifier implementation, and BLAKE2s binding; this profiling is not a
 cryptographic audit.

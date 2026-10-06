@@ -103,6 +103,7 @@ const StateFoldKey = struct {
     air_bundle_sha256: []const u8,
     source_rounds: u32,
     step_body: []const relation.Step,
+    counter_bits: u8,
     fold_preprocessed_root: []const u8,
     fold_circuit_hash: []const u8,
     padded: Rows,
@@ -112,7 +113,7 @@ const StateFoldKey = struct {
 const StateFoldStatement = struct {
     schema: []const u8,
     state_fold_key_sha256: []const u8,
-    step: u16,
+    step: u32,
     leaf_public_words: [8]u32,
     base_public_words: [8]u32,
     initial_state: [4]u32,
@@ -1494,12 +1495,13 @@ fn generateStateFoldKey(
     const root_hex = std.fmt.bytesToHex(root, .lower);
     const hash_hex = std.fmt.bytesToHex(hash, .lower);
     const state_key: StateFoldKey = .{
-        .schema = "s31-state-fold-verification-key-v2",
+        .schema = "s31-state-fold-verification-key-v3",
         .base_recursive_key_sha256 = &first_hex,
         .projection_sha256 = projection_sha256,
         .air_bundle_sha256 = cpu.air.bundle_sha256,
         .source_rounds = spec.rounds,
         .step_body = spec.body,
+        .counter_bits = 32,
         .fold_preprocessed_root = &root_hex,
         .fold_circuit_hash = &hash_hex,
         .padded = .{
@@ -1698,7 +1700,8 @@ fn validateStateFoldKey(
     key: StateFoldKey,
     spec: relation.StateFoldSpec,
 ) !VerifiedFoldKey {
-    if (!std.mem.eql(u8, key.schema, "s31-state-fold-verification-key-v2") or
+    if (!std.mem.eql(u8, key.schema, "s31-state-fold-verification-key-v3") or
+        key.counter_bits != 32 or
         key.source_rounds != spec.rounds or key.step_body.len != spec.body.len)
         return error.InvalidStateFoldVerificationKey;
     for (key.step_body, spec.body) |sealed, source_step| {
@@ -1728,7 +1731,7 @@ fn validateStateFoldStatement(
 ) !void {
     var key_digest: [32]u8 = undefined;
     std.crypto.hash.sha2.Sha256.hash(state_key_bytes, &key_digest, .{});
-    if (!std.mem.eql(u8, statement.schema, "s31-state-fold-statement-v1") or
+    if (!std.mem.eql(u8, statement.schema, "s31-state-fold-statement-v2") or
         !std.mem.eql(u8, statement.state_fold_key_sha256, &std.fmt.bytesToHex(key_digest, .lower)) or
         !std.mem.eql(u8, statement.fold_preprocessed_root, &std.fmt.bytesToHex(verified.root, .lower)) or
         !std.mem.eql(u8, statement.fold_circuit_hash, &std.fmt.bytesToHex(verified.hash, .lower)))
@@ -2110,7 +2113,7 @@ fn expectStateFoldCircuitRejection(
     initial_state: [4]u32,
     current_state: [4]u32,
     previous_state: [4]u32,
-    step: u16,
+    step: u32,
     body: []const relation.Step,
     mutation: ?state_fold.Mutation,
 ) !void {
@@ -2198,8 +2201,9 @@ fn wrapStateFoldBatch(
     const first_step = try std.fmt.parseInt(u32, first_step_text, 10);
     const base_case = std.mem.eql(u8, case_text, "base");
     if (!base_case and !std.mem.eql(u8, case_text, "next")) return error.InvalidFoldBranch;
-    if (steps == 0 or steps > 65536 or first_step > 65535 or
-        first_step + steps - 1 > 65535 or (base_case and first_step != 0) or
+    if (steps == 0 or steps > 65536 or
+        @as(u64, first_step) + @as(u64, steps) - 1 > std.math.maxInt(u32) or
+        (base_case and first_step != 0) or
         (!base_case and first_step == 0)) return error.InvalidFoldStepRange;
     if (std.mem.eql(u8, child_proof_path, output_path)) return error.OutputAlreadyExists;
     const initial_bytes = try std.fs.cwd().readFileAlloc(allocator, child_statement_path, 8192);
@@ -2211,8 +2215,8 @@ fn wrapStateFoldBatch(
     } else {
         var initial = try std.json.parseFromSlice(StateFoldStatement, allocator, initial_bytes, .{ .ignore_unknown_fields = false });
         defer initial.deinit();
-        if (!std.mem.eql(u8, initial.value.schema, "s31-state-fold-statement-v1") or
-            @as(u32, initial.value.step) + 1 != first_step) return error.InvalidFoldStepRange;
+        if (!std.mem.eql(u8, initial.value.schema, "s31-state-fold-statement-v2") or
+            @as(u64, initial.value.step) + 1 != first_step) return error.InvalidFoldStepRange;
     }
     try std.fs.cwd().makePath(checkpoint_dir);
     var paths = std.heap.ArenaAllocator.init(allocator);
@@ -2279,7 +2283,7 @@ fn wrapStateFoldWithCache(
     var initial_state: [4]u32 = undefined;
     var current_state: [4]u32 = undefined;
     var previous_state: [4]u32 = .{ 0, 0, 0, 0 };
-    var step: u16 = undefined;
+    var step: u32 = undefined;
     var child_root: [32]u8 = undefined;
     var child_hash: [32]u8 = undefined;
     var child_public_words: [8]u32 = undefined;
@@ -2303,7 +2307,7 @@ fn wrapStateFoldWithCache(
         var previous = try std.json.parseFromSlice(StateFoldStatement, allocator, statement_bytes, .{ .ignore_unknown_fields = false });
         defer previous.deinit();
         try validateStateFoldStatement(previous.value, child_bytes, state_bytes, verified);
-        if (previous.value.step == std.math.maxInt(u16)) return error.FoldStepOverflow;
+        if (previous.value.step == std.math.maxInt(u32)) return error.FoldStepOverflow;
         leaf_public_words = previous.value.leaf_public_words;
         base_public_words = previous.value.base_public_words;
         initial_state = previous.value.initial_state;
@@ -2359,12 +2363,12 @@ fn wrapStateFoldWithCache(
             wrong_previous[0] = if (wrong_previous[0] == 0) 1 else 0;
             try expectStateFoldCircuitRejection(allocator, verified, &captured, verified.base_root, verified.root, base_public_words, initial_state, current_state, wrong_previous, step, spec.body, null);
         }
-        inline for (.{ .base_selector, .zero_test_inverse, .previous_counter, .current_state,
+        inline for (.{ .base_selector, .zero_test_inverse, .previous_counter, .borrow, .current_state,
             .trace_root, .claimed_sum, .channel_salt, .sampled_trace_value,
             .trace_auth_path, .fri_witness, .fri_auth_path, .fri_last_layer }) |mutation| {
             try expectStateFoldCircuitRejection(allocator, verified, &captured, verified.base_root, verified.root, base_public_words, initial_state, current_state, previous_state, step, spec.body, mutation);
         }
-        std.debug.print("S31 state-fold circuit audit: step={d} valid=true rejected={d}\n", .{ step, if (base_case) @as(u32, 17) else 18 });
+        std.debug.print("S31 state-fold circuit audit: step={d} valid=true rejected={d}\n", .{ step, if (base_case) @as(u32, 18) else 19 });
         return;
     }
     {
@@ -2418,7 +2422,7 @@ fn wrapStateFoldWithCache(
     const root_hex = std.fmt.bytesToHex(verified.root, .lower);
     const hash_hex = std.fmt.bytesToHex(verified.hash, .lower);
     const statement: StateFoldStatement = .{
-        .schema = "s31-state-fold-statement-v1",
+        .schema = "s31-state-fold-statement-v2",
         .state_fold_key_sha256 = &key_hex,
         .step = step,
         .leaf_public_words = leaf_public_words,

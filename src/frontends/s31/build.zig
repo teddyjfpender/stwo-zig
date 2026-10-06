@@ -50,7 +50,22 @@ pub fn build(b: *std.Build) void {
     frontend.addImport("s31_sha_provider", sha_provider);
 
     const tests = b.addRunArtifact(b.addTest(.{ .root_module = frontend }));
-    b.step("test", "Test the S31 prototype parser, evaluator and circuit compiler").dependOn(&tests.step);
+    const test_step = b.step("test", "Test the S31 prototype parser, evaluator and circuit compiler");
+    test_step.dependOn(&tests.step);
+    const fold_test_root = b.createModule(.{
+        .root_source_file = b.path("state_fold.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    fold_test_root.addImport("stwo_s31_prototype", frontend);
+    fold_test_root.addImport("stwo_core", core);
+    fold_test_root.addImport("stwo_circuit_frontend", circuit);
+    fold_test_root.addImport("stwo_circuit_cpu_integration", cpu);
+    const fold_tests = b.addRunArtifact(b.addTest(.{
+        .root_module = fold_test_root,
+        .filters = &.{ "state-fold counter spans u16 carry and u32 bounds", "state-fold digest binds all 32 counter bits in circuit" },
+    }));
+    test_step.dependOn(&fold_tests.step);
 
     const sha_batch_root = b.createModule(.{
         .root_source_file = b.path("../riscv/sha256_batch_test_root.zig"),

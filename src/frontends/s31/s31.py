@@ -242,7 +242,7 @@ def build_json(source_path: Path, output: Path, lowering: str = "gate",
             "artifacts": {item: file_hash(staging / item) for item in artifacts},
         }
         if state_fold_option:
-            manifest["capabilities"] = ["s31-state-fold-batch-v1"]
+            manifest["capabilities"] = ["s31-state-fold-batch-v2"]
         if lock_digest is not None:
             manifest["stdlib_lock_sha256"] = lock_digest
         write_json(staging / "manifest.json", manifest)
@@ -333,7 +333,8 @@ def verify_package(package: Path) -> dict:
         raise ValueError("incomplete S31 package manifest")
     capabilities = manifest.get("capabilities", [])
     if (not isinstance(capabilities, list) or any(not isinstance(item, str) for item in capabilities) or
-            ("s31-state-fold-batch-v1" in capabilities and "state-fold-verification-key.json" not in artifacts)):
+            (any(item in capabilities for item in ("s31-state-fold-batch-v1", "s31-state-fold-batch-v2")) and
+             "state-fold-verification-key.json" not in artifacts)):
         raise ValueError("invalid S31 package capabilities")
     required_artifacts = {
         "source.s31.json", "verification-key.json", "public-abi.json",
@@ -378,10 +379,13 @@ def verify_package(package: Path) -> dict:
                               state_fold_key.get("source_rounds") == old_step.get("rounds") and
                               state_fold_key.get("step_constant") == old_step.get("constant"))
             else:
-                valid_step = (state_fold_key.get("schema") == "s31-state-fold-verification-key-v2" and
+                valid_step = (state_fold_key.get("schema") in
+                              ("s31-state-fold-verification-key-v2", "s31-state-fold-verification-key-v3") and
                               isinstance(fold_step, dict) and
                               state_fold_key.get("source_rounds") == fold_step.get("rounds") and
-                              state_fold_key.get("step_body") == fold_step.get("body"))
+                              state_fold_key.get("step_body") == fold_step.get("body") and
+                              (state_fold_key.get("schema") != "s31-state-fold-verification-key-v3" or
+                               state_fold_key.get("counter_bits") == 32))
             if not common_valid or not valid_step:
                 raise ValueError("S31 state-fold key does not match its base key and pinned AIR")
         elif any(report.get(name) is not None for name in ("state_fold_step", "repeated_step")):
@@ -1165,17 +1169,23 @@ def main() -> None:
         outer = args.outer_proof.resolve()
         if child == outer or args.steps < 1:
             raise ValueError("state-fold-advance needs a distinct output and at least one step")
+        if args.steps > 65536:
+            raise ValueError("state-fold-advance accepts at most 65536 proofs per batch; resume from a checkpoint")
+        state_key = json.loads((package / "state-fold-verification-key.json").read_text())
+        new_counter = state_key["schema"] == "s31-state-fold-verification-key-v3"
+        expected_statement = "s31-state-fold-statement-v2" if new_counter else "s31-state-fold-statement-v1"
+        counter_max = (1 << 32) - 1 if new_counter else 65535
         initial = json.loads(statement.read_text())
         if initial.get("schema") == "s31-recursive-gate-statement-v2":
             first_step = 0
             base_case = True
-        elif initial.get("schema") == "s31-state-fold-statement-v1":
+        elif initial.get("schema") == expected_statement:
             first_step = initial["step"] + 1
             base_case = False
         else:
             raise ValueError("input must be a first-level recursive or state-fold proof")
-        if first_step + args.steps - 1 > 65535:
-            raise ValueError("state-fold u16 step counter would overflow")
+        if first_step + args.steps - 1 > counter_max:
+            raise ValueError("state-fold step counter would overflow")
         executable = package / "bin" / f"s31-{manifest['name']}-prover"
         verifier = package / "bin" / f"s31-{manifest['name']}-native-verifier"
         outer.parent.mkdir(parents=True, exist_ok=True)
@@ -1189,9 +1199,8 @@ def main() -> None:
                 target_statement = Path(str(target) + ".statement.json")
                 if target.exists() or target_statement.exists():
                     raise ValueError(f"refusing to overwrite fold proof or statement: {target}")
-            state_key = json.loads((package / "state-fold-verification-key.json").read_text())
-            if (state_key["schema"] == "s31-state-fold-verification-key-v2" and
-                    "s31-state-fold-batch-v1" in manifest.get("capabilities", [])):
+            batch_capability = ("s31-state-fold-batch-v2" if new_counter else "s31-state-fold-batch-v1")
+            if batch_capability in manifest.get("capabilities", []):
                 print(invoke(str(executable), "state-fold-wrap-batch", str(child), str(statement),
                              str(outer), str(package / "verification-key.json"),
                              str(package / "recursive-verification-key.json"),

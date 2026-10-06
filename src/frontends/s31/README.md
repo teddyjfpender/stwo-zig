@@ -137,7 +137,8 @@ The [fixed-key fold chapter](docs/recursion-fold.md) shows repeatable proof
 verification under one sealed key and a constrained `u16` step counter.
 The [state-fold chapter](docs/state-fold.md) extracts a typed four-lane
 recurrence with square, addition and multiplication by constants from source
-and proves one more computation step in each fold. `state-fold-advance` runs
+and proves one more computation step in each fold. Its `u32` step counter
+supports up to 2³²−1 added steps. `state-fold-advance` runs
 multiple steps with optional checkpoints for resume.
 The [recursive cost map](../../../design/s31/RECURSION_PERFORMANCE.md) breaks
 the verifier circuit down by stage and records the current proving bottleneck.

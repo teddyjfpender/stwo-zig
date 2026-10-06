@@ -34,11 +34,11 @@ def main() -> None:
         work = Path(temporary)
         package = args.package.resolve() if args.package else s31.package_for(SOURCE)
         manifest = s31.verify_package(package)
-        if "s31-state-fold-batch-v1" not in manifest.get("capabilities", []):
+        if "s31-state-fold-batch-v2" not in manifest.get("capabilities", []):
             raise AssertionError("general state-fold package did not enable cached native batching")
         key_path = package / "state-fold-verification-key.json"
         key = json.loads(key_path.read_text())
-        if (key["schema"] != "s31-state-fold-verification-key-v2" or
+        if (key["schema"] != "s31-state-fold-verification-key-v3" or key["counter_bits"] != 32 or
                 key["source_rounds"] != 3 or key["step_body"] != BODY):
             raise AssertionError("source step was not bound into the recursive key")
         geometry = json.loads(run("python3", str(HERE / "s31.py"), "inspect-state-fold", str(package)))
@@ -67,7 +67,7 @@ def main() -> None:
         if statement(first)["child_public_words"][4:8] != expected:
             raise AssertionError("source base proof computed the wrong three rounds")
         base_audit = run("python3", str(HERE / "s31.py"), "audit-state-fold-base", str(package), str(first))
-        if "rejected=17" not in base_audit:
+        if "rejected=18" not in base_audit:
             raise AssertionError("base audit did not challenge all child proof fields")
         checkpoints = work / "checkpoints"
         top = work / "top.proof"
@@ -76,7 +76,7 @@ def main() -> None:
         folds = [checkpoints / "state-00000.proof", checkpoints / "state-00001.proof", top]
         for proof in folds[:2]:
             recursive_audit = run("python3", str(HERE / "s31.py"), "audit-state-fold-next", str(package), str(proof))
-            if "rejected=18" not in recursive_audit:
+            if "rejected=19" not in recursive_audit:
                 raise AssertionError("recursive audit did not challenge all child proof fields")
         direct_previous = first
         for index, batched in enumerate(folds):
@@ -110,8 +110,13 @@ def main() -> None:
             str(top), *batch_args, "1", str(work / "scratch"), "0", "base", accept=False)
         if top.read_bytes() != resumed.read_bytes():
             raise AssertionError("batch preflight modified an existing proof")
+        last_step_claim = copy.deepcopy(statement(top))
+        last_step_claim["step"] = (1 << 32) - 1
+        last_step_path = work / "last-step-claim.json"
+        s31.write_json(last_step_path, last_step_claim)
         overflow = run("python3", str(HERE / "s31.py"), "state-fold-advance", str(package),
-                       str(top), str(work / "overflow.proof"), "--steps", "65535", accept=False)
+                       str(top), str(work / "overflow.proof"), "--statement", str(last_step_path),
+                       "--steps", "1", accept=False)
         zero = run("python3", str(HERE / "s31.py"), "state-fold-advance", str(package),
                    str(top), str(work / "zero.proof"), "--steps", "0", accept=False)
         if "counter would overflow" not in overflow or "at least one step" not in zero:
