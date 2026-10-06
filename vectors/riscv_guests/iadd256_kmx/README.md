@@ -49,7 +49,7 @@ current RISC-V proof statement. Build products and inputs are not committed.
 
 These are **single observations**, not ranked or cross-machine comparisons.
 Host: Apple M5 Max, 64 GiB RAM, macOS 26.7.1. Zig: 0.15.2 ReleaseFast.
-Guest ELF SHA-256: `b87305d50c02cc73693abebb06894406aa964725ba1681058e4b89539d988f85`.
+Guest ELF SHA-256: `cdaec455f39459f7fec99428e5dcee4eca4670a981b90f1146e81cafa120391e`.
 `prep` is the separate Python oracle check/input construction, around 0.05 s;
 the CLI's execution/proving/verification times exclude that step. Host peak
 is `/usr/bin/time -l` maximum resident set size. No Metal/CUDA acceleration
@@ -59,33 +59,33 @@ a security-qualified benchmark; `secure` uses the repository's published
 
 | Repetitions | Profile | Steps | Prep s | Execute s | Prove s | Verify s | Total CLI s | Host peak GB |
 |---:|---|---:|---:|---:|---:|---:|---:|---:|
-| 1 | functional | 10,748,297 | 0.05 | 0.648 | 7.358 | 0.218 | 8.226 | 16.241 |
-| 2 | functional | 10,849,701 | 0.05 | 0.675 | 7.371 | 0.236 | 8.285 | 16.354 |
-| 4 | functional | 11,052,509 | 0.05 | 0.677 | 11.822 | 0.392 | 12.895 | 16.589 |
-| 1 | secure | 10,748,297 | 0.05 | 1.109 | 13.393 | 0.386 | 14.917 | 16.241 |
+| 1 | functional | 10,748,299 | 0.05 | 0.647 | 7.037 | 0.213 | 7.900 | 16.241 |
+| 2 | functional | 10,849,703 | 0.05 | 0.635 | 7.171 | 0.213 | 8.021 | 16.353 |
+| 4 | functional | 11,052,511 | 0.05 | 0.640 | 7.289 | 0.253 | 8.184 | 16.589 |
+| 1 | secure | 10,748,299 | 0.05 | 0.638 | 7.581 | 0.256 | 8.497 | 16.244 |
 
 Runtime noise is visible in the proof times; these observations support
 geometry and cost composition, not a precise latency claim. Run-only checks
-on the same ELF gave 13,891,821 steps at 32 repetitions, 15,919,901 at 52,
-and 16,731,133 at 60. Sixty-one repetitions exceeds the current 16,777,216
+on the same ELF gave 13,891,823 steps at 32 repetitions, 15,919,903 at 52,
+and 16,731,135 at 60. Sixty-one repetitions exceeds the current 16,777,216
 step cap. After the roughly 10.65 million-step first-batch setup, each
 repetition adds about 101,403 steps. The last batch (`batch=140` of 9,024
 shots) exceeds the step cap even at one repetition when it regenerates its
 SHAKE prefix from the circuit seed.
 
 The last-batch cost is measurable with the execution-only segmented runner:
-one repetition for batch 140 of 9,024 shots retired **83,892,947 RV32
+one repetition for batch 140 of 9,024 shots retired **83,892,949 RV32
 instructions** across 21 segments of at most 4,194,304 steps. Its validated
 journal SHA-256 is
-`73655d0ac24fad1d342a223fe63f2e8d421f16366b92dc9f4c490b2fdd9388de`.
-Compared with 10,748,297 steps for batch 0, replaying the SHAKE prefix in
+`9d408dd394fe740fbfff08019ec7c0df78e99f3ad1ed340ef1851116bb5af804`.
+Compared with 10,748,299 steps for batch 0, replaying the SHAKE prefix in
 every batch is already untenable before the 8,000 repetitions begin.
 
 The existing segmented runner did execute and capture 61 repetitions as
 five leaf-local segments: four of 4,194,304 steps and a final 55,321-step
-segment ending at the guest's halt flag, for 16,832,537 steps. Its validated
+segment ending at the guest's halt flag, for 16,832,539 steps. Its validated
 capture receipt has journal SHA-256
-`0d2c6ae81198b12dd72cc7d5a22f6fb7d44750e4f0a4893c59c604028ad86955`
+`f7717c6ab099df2d1f9a7088a1705018b7596687d51ce0d199c0290826adcdcb`
 and reports `segment_statement_v2_admissible=false`. It explicitly says
 `claim_boundary=execution-only-not-a-proof`: this is evidence of segmented
 execution and continuity capture, **not** five verified segment proofs.

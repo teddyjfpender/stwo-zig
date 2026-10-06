@@ -26,6 +26,10 @@ class OracleTests(unittest.TestCase):
         circuit[-1] ^= 1
         self.assertNotEqual(hashlib.sha256(circuit).hexdigest(), oracle.EXPECTED_SHA256)
 
+    def test_partial_batch_is_rejected(self):
+        with self.assertRaises(ValueError):
+            oracle.test_vectors(oracle.fixture(), 65)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -54,8 +54,8 @@ def parse(circuit: bytes) -> list[tuple[str, tuple[int, ...]]]:
 
 
 def test_vectors(circuit: bytes, total_shots: int) -> list[tuple[int, int]]:
-    if not 1 <= total_shots <= 9024:
-        raise ValueError("shot count outside benchmark contract")
+    if not 1 <= total_shots <= 9024 or total_shots % 64:
+        raise ValueError("shot count must be complete 64-shot batches within the benchmark contract")
     stream = hashlib.shake_256(circuit).digest(64 * total_shots)
     return [
         (int.from_bytes(stream[64*i:64*i+32], "little"),

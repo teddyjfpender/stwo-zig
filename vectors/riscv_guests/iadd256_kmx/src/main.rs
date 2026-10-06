@@ -85,6 +85,10 @@ pub extern "C" fn __zkvm_start() -> ! {
     let circuit_len = word(input, 24) as usize;
     assert!(repetitions > 0 && repetitions <= 8_000);
     assert!(total_shots > 0 && total_shots <= 9_024);
+    // The upstream simulator counts unconditional gates on all 64 lanes even
+    // in a partial final batch. Restrict this experiment to complete batches
+    // so its fixed per-shot resource bound has identical meaning.
+    assert_eq!(total_shots % SHOTS_PER_BATCH, 0);
     assert!(batch < total_shots.div_ceil(SHOTS_PER_BATCH));
     assert_eq!(circuit_len, FIXTURE_LEN);
     assert!(qubit_cap >= QUBITS as u32);
