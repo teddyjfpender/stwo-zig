@@ -14,6 +14,14 @@ pub const Spec = struct {
 
 pub const specs = [_]Spec{
     .{
+        .step = "test-recursion-v5-statement-source",
+        .description = "Check exact extra source fan-out for local identity routing",
+        .root = "segment_leaf_wrapper_source_projection_v3_test_root.zig",
+        .imports_prover_engine = true,
+        .filters = &.{"direct V5 Statement"},
+        .minimum = 2,
+    },
+    .{
         .step = "test-recursion-v5-local-identities",
         .description = "Prove exact local-ID router/hash tuples and ordered Poseidon calls",
         .root = "segment_leaf_wrapper_source_projection_v3_test_root.zig",

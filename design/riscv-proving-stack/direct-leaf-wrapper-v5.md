@@ -26,6 +26,7 @@ Tree0, metadata, and link components, with these **versioned replacements**:
 | 5 | Export canonical native ProgramV2 words from the actual transcript payload; use explicit fixed-word equality for constants and proof-visible joins for dynamic words. |
 | 34 | Commit one ordered Poseidon provider over six call ranges: native verifier, metadata, link, ProgramV2, local authority, local receipt. |
 | 35 | Recompute byte-table multiplicities including authenticated row-41 arithmetic requests. |
+| 36 | Version the Statement source to emit one additional use at the exact 56 `S2WR`/`S2CX` words routed into local identities. |
 | 42 | Replace the self-consistent word source with the versioned `NPV2`-consuming bridge. |
 | 47 | Route native statement/context words to local authority, wire, and receipt identities through the existing typed child-field router. |
 | 48–49 | Hash the authority and receipt preimages with typed `vm_public_claim_hash` AIR; produce the exact `LAI1` and `LRI1` tuples consumed by row 40. |
@@ -41,6 +42,9 @@ The dormant router also forwards eight Tree0 words to `PPR1`. Direct V4
 already emits those words in row 39 and consumes them through row 44, so the
 V5 schedule must disable exactly those eight router forwards. Keeping them
 would over-emit `PPR1` even if the new identity tuples close.
+The versioned Statement source has a fourth fixed preprocessing column for
+the 56 extra-use selectors (the old row had three). Its semantic identity and
+geometry must be in VPR6/VPK6; the original V2 row 36 remains unchanged.
 
 ## Fixed-key and public boundary policy
 
@@ -62,6 +66,13 @@ nine fixed format/PCS words in AIR under the pinned profile. On the focused
 fixture, its machine-readable coverage audit still reports 46 unlinked words,
 including instruction descriptors and identity fields, and `requireComplete()`
 rejects it. Neither staged module is selected by the direct cohort yet.
+A further dormant row-4 profile can export kind and eight split argument limbs
+for instructions with an actual payload row, using that row's existing
+transcript-payload relation. Its coverage audit rejects duplicate origins and
+records instructions with no payload row. Verifier sequence and sub-index are
+absent from row 4, so the profile deliberately does not claim complete
+instruction authority. A versioned descriptor owner is required for those
+fields and zero-payload instructions.
 
 The verifier-owned 24-word `LAS2` boundary consumes row 40's public link,
 ProgramV2, and Tree0 words and mixes its expected values and claimed sum
