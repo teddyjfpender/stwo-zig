@@ -1,0 +1,89 @@
+# S31, from source to proof
+
+This is the guide to the **implemented S31 v1 relation and current `.s31` text
+subset**. It is meant to be read without knowing Cairo, Stwo internals, or the
+repository's design history. Run the commands from the repository root.
+
+S31 has two ways to describe a program: a typed text file (`.s31`) and a
+normalized JSON relation (`.s31.json`). Both reach the same Zig compiler. A
+build emits a program-specific prover, a native STARK verifier, a verification
+key, a public ABI, and a cost report. Values supplied when proving cannot
+change the program's types, graph, loop counts, or proof profile.
+
+```text
+text .s31 ──parse/typecheck/specialize──▶ normalized relation JSON
+                                          │
+                                          ▼
+                                canonical SSA graph
+                                          │
+                              ┌───────────┴───────────┐
+                              ▼                       ▼
+                       circuit gates        optional repeated-step chip
+                              └───────────┬───────────┘
+                                          ▼
+                         AIR columns, constraints, LogUp
+                                          ▼
+                         one Stwo commitment/FRI proof
+                                          ▼
+                    program-bound native verifier + key
+```
+
+## Read in order
+
+1. [Source language and relation](source.md): syntax, types, field semantics,
+   static shapes, normalized JSON, and the public statement.
+2. [Circuit lowering](circuits.md): a hand-drawn gate graph, packed M31 lanes,
+   fixed/witness columns, address lookups, and the six proof profiles.
+3. [AIR and polynomials](air.md): a hand-filled trace, the **actual six
+   repeated-step chip constraints**, lookup closure, quotient, and FRI.
+4. [Hashes and Merkle paths](hashes.md): complete input/output encodings,
+   Poseidon2 permutation and constants, BLAKE2s framing, and a hand-drawn
+   one-level path.
+5. [Packages, verification, and audit](proofs.md): build/prove/verify commands,
+   what the key binds, artifact names, cost report fields, and current limits.
+
+The worked examples use checked-in sources under [`../examples`](../examples):
+
+| Program | What it teaches | Recommended profile |
+| --- | --- | --- |
+| [`math_polynomial4.s31`](../examples/math_polynomial4.s31) | Static power, constants, four M31 lanes, circuit gates | `direct-gate` |
+| [`arith4_m31.s31`](../examples/arith4_m31.s31) | `iterate`, gate unrolling versus one linked AIR chip | `direct-chip` |
+| [`merkle_path1_poseidon.s31`](../examples/merkle_path1_poseidon.s31) | Private leaf, constrained bit, ordered hashing, public root | `direct-gate` |
+| [`preimage4.s31`](../examples/preimage4.s31) | Private `u16` witness and an equality assertion | `gate` |
+
+## Five-minute tour
+
+```sh
+python3 src/frontends/s31/s31.py lower src/frontends/s31/examples/math_polynomial4.s31
+python3 src/frontends/s31/s31.py build src/frontends/s31/examples/math_polynomial4.s31 --lowering direct-gate --out zig-out/s31/docs-polynomial
+python3 src/frontends/s31/s31.py explain zig-out/s31/docs-polynomial
+python3 src/frontends/s31/s31.py prove zig-out/s31/docs-polynomial src/frontends/s31/examples/math_polynomial4.valid.json zig-out/s31/docs-polynomial.proof
+python3 src/frontends/s31/s31.py verify zig-out/s31/docs-polynomial zig-out/s31/docs-polynomial.proof
+```
+
+`lower` shows the exact relation consumed by Zig. `explain` joins text source
+positions to canonical nodes and gate-row spans. `prove` writes a public-only
+statement beside the proof; `verify` runs the generated native verifier on that
+statement, proof, and pinned key. The documented program computes
+`x^5 + 3x - 7` over `p = 2^31 - 1`, independently in four lanes.
+
+## Terms used here
+
+| Term | Meaning in this implementation |
+| --- | --- |
+| Circuit | A fixed graph of wires and arithmetic/hash gates. A gate has named input/output wire addresses. |
+| AIR | Polynomial constraints on columns of a trace table, plus boundary and lookup checks. Stwo proves this representation. |
+| Chip | A specialized AIR component for one recognized recurrence. It shares the circuit's proof, transcript, and verifier. |
+| Trace | Field values assigned to AIR columns for a particular witness. |
+| Fixed/preprocessed columns | Program-dependent values such as opcode flags and wire addresses; committed in the verification key's geometry. |
+| Interaction columns | LogUp running values used to prove that separately constrained wire uses and outputs match. |
+| Public statement | Named public inputs and outputs. Private input values are absent from it. |
+| Native verifier | The generated host binary that checks the STARK proof against its embedded program and key. |
+
+The current text frontend has no imports, user-defined modules, dynamic loops,
+computed-bit selectors, general reductions, or checked inversion. `explain`
+does **not** print every instantiated symbolic polynomial from the pinned
+circuit AIR bundle. This guide gives the semantic gate equations and the exact
+specialized-chip equations; [the audit guide](proofs.md) explains the remaining
+symbolic-export gap. The root [frontend README](../README.md) lists benchmark
+scripts and older implementation notes.

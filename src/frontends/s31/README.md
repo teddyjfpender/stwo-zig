@@ -1,6 +1,10 @@
 # S31 circuit and chip relation compiler
 
-S31 compiles a fixed-size relation into Stwo circuit AIR and, for a supported recurrence, a repeated-step AIR chip. Every `s31 build` package contains a prover, an independently runnable native STARK verifier, a pinned verification key, the typed public ABI, and a cost report. The verifier checks all proof components through `core.verifier`; it does not execute the recursive verifier circuit on the host. The [source-to-AIR guide](LANGUAGE_AND_AIR.md) walks through syntax, circuit gates, chip rows, polynomial constraints, lookup closure, and a complete function.
+S31 compiles a fixed-size relation into Stwo circuit AIR and, for a supported recurrence, a repeated-step AIR chip. Every `s31 build` package contains a prover, an independently runnable native STARK verifier, a pinned verification key, the typed public ABI, and a cost report. The verifier checks all proof components through `core.verifier`; it does not execute the recursive verifier circuit on the host.
+
+**Start with the [S31 documentation](docs/README.md).** It follows handwritten programs through typed source, normalized relations, circuit gates, AIR rows and polynomials, hashes, proof artifacts, and native verification. Its examples and local links are checked by `python3 src/frontends/s31/docs/check.py`.
+
+The earlier [source-to-AIR implementation guide](LANGUAGE_AND_AIR.md) remains available for backend detail.
 
 The compiler accepts normalized JSON and a [limited typed `.s31` text language](TEXT_LANGUAGE.md) that lowers to the same relation. Inputs have `u16` or `m31` type, fixed length, and public or private visibility. Nodes are topologically ordered. Supported normalized operations are `constant`, `cast_m31`, lane-wise `add`/`mul`, `add_const`/`mul_const`, statically bounded `repeat` with `square` and constant steps, `select`, BLAKE2s raw/leaf/ordered-pair hashing, and pinned M31 Poseidon2 leaf/ordered-pair hashing. BLAKE2s hash inputs are canonical M31 words encoded little endian as 32-bit words; its eight digest words are reduced modulo M31. Poseidon2 outputs eight canonical M31 state words directly. Assertions constrain equal arrays. Public inputs and outputs occupy at most eight direct words: `u32` in the original profile, canonical M31 in direct-v4. Witnesses cannot change graph shape.
 
