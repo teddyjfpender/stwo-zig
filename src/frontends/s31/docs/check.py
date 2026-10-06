@@ -5,6 +5,7 @@ import json
 import re
 import sys
 from pathlib import Path
+from xml.etree import ElementTree
 
 
 DOCS = Path(__file__).resolve().parent
@@ -18,7 +19,7 @@ from text_frontend import compile_text  # noqa: E402
 
 
 def text_block(path: Path, prefix: str) -> str:
-    for block in re.findall(r"```text\n(.*?)\n```", path.read_text(), re.S):
+    for block in re.findall(r"```(?:text|s31)\n(.*?)\n```", path.read_text(), re.S):
         if block.lstrip().startswith(prefix):
             return block
     raise AssertionError(f"{path}: missing {prefix!r} example")
@@ -92,9 +93,14 @@ def check_links() -> None:
             path = (chapter.parent / target.split("#", 1)[0]).resolve()
             assert path.exists(), f"{chapter.name}: broken link {target}"
 
+    for figure in (DOCS / "figures").glob("*.svg"):
+        root = ElementTree.parse(figure).getroot()
+        assert root.tag.endswith("svg"), f"{figure.name}: invalid SVG root"
+        assert root.find("{http://www.w3.org/2000/svg}title") is not None
+
 
 if __name__ == "__main__":
     check_examples()
     check_hashes()
     check_links()
-    print("S31 docs: examples, hash constants, and local links agree")
+    print("S31 docs: examples, hash constants, links, and figures agree")

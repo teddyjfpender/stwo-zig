@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1080 310" role="img" aria-labelledby="title desc">
+  <title id="title">Circuit graph for x to the fifth plus three x minus seven</title>
+  <desc id="desc">The x input fans out into square and three-times-x branches. The square feeds fourth power, then fifth power. Fifth power and three-times-x join at an addition gate, then the result adds p minus seven.</desc>
+  <style>
+    .bg{fill:#f8fafc}.box{fill:#fff;stroke:#cbd5e1;stroke-width:2}.text{fill:#172033}.muted{fill:#526174}.line{fill:none;stroke:#55718b;stroke-width:2.5}.accent{fill:#dbeafe;stroke:#60a5fa}.green{fill:#dcfce7;stroke:#4ade80}.purple{fill:#ede9fe;stroke:#a78bfa}
+    text{font-family:system-ui,-apple-system,sans-serif;font-size:17px;text-anchor:middle}.small{font-size:14px}.label{font-size:18px;font-weight:700}.heading{font-size:22px;font-weight:750}
+    @media(prefers-color-scheme:dark){.bg{fill:#111b26}.box{fill:#1d2b3a;stroke:#496078}.text{fill:#edf3fa}.muted{fill:#adbdce}.line{stroke:#91a9c0}.accent{fill:#173653;stroke:#57a1ec}.green{fill:#164633;stroke:#51d58d}.purple{fill:#39305a;stroke:#ad94f1}}
+  </style>
+  <defs><marker id="arrow" markerWidth="9" markerHeight="9" refX="7.5" refY="4.5" orient="auto"><path d="M1 1 L8 4.5 L1 8" fill="none" stroke="#55718b" stroke-width="1.5"/></marker></defs>
+  <rect class="bg" x="1" y="1" width="1078" height="308" rx="16"/>
+  <text class="text heading" x="540" y="35">One arithmetic graph, applied independently to each lane j</text>
+  <path class="line" d="M145 130 H217" marker-end="url(#arrow)"/>
+  <path class="line" d="M337 130 H407" marker-end="url(#arrow)"/>
+  <path class="line" d="M527 130 H597" marker-end="url(#arrow)"/>
+  <path class="line" d="M717 130 H788" marker-end="url(#arrow)"/>
+  <path class="line" d="M145 130 H170 V237 H407" marker-end="url(#arrow)"/>
+  <path class="line" d="M527 237 H755 V151 H788" marker-end="url(#arrow)"/>
+  <path class="line" d="M908 130 H932" marker-end="url(#arrow)"/>
+  <rect class="box accent" x="35" y="96" width="110" height="68" rx="10"/><text class="text label" x="90" y="137">xⱼ</text>
+  <rect class="box" x="217" y="96" width="120" height="68" rx="10"/><text class="text label" x="277" y="137">xⱼ²</text>
+  <rect class="box" x="407" y="96" width="120" height="68" rx="10"/><text class="text label" x="467" y="137">xⱼ⁴</text>
+  <rect class="box" x="597" y="96" width="120" height="68" rx="10"/><text class="text label" x="657" y="137">xⱼ⁵</text>
+  <rect class="box green" x="407" y="203" width="120" height="68" rx="10"/><text class="text label" x="467" y="244">3xⱼ</text>
+  <rect class="box" x="788" y="96" width="120" height="68" rx="10"/><text class="text label" x="848" y="137">+</text>
+  <rect class="box purple" x="932" y="96" width="115" height="68" rx="10"/><text class="text label" x="989" y="137">f(xⱼ)</text>
+  <text class="muted small" x="277" y="185">xⱼ × xⱼ</text>
+  <text class="muted small" x="467" y="185">xⱼ² × xⱼ²</text>
+  <text class="muted small" x="657" y="185">xⱼ⁴ × xⱼ</text>
+  <text class="muted small" x="989" y="188">add p − 7</text>
+  <text class="muted small" x="540" y="292">The branch and arrows describe data dependencies; packed values and public bindings add backend rows.</text>
+</svg>

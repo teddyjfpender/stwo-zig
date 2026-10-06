@@ -8,7 +8,7 @@ Stwo proof**.
 
 ## The program the chip recognizes
 
-```text
+```s31
 fn step(v: [m31; 4]) -> [m31; 4] {
     v .* v + splat<4>(7_m31)
 }
@@ -31,6 +31,15 @@ square-then-add body, and a power-of-two round count from 16 to 32768.
 
 For each lane `j`, let `s[0,j]=x[j]` and
 `s[i+1,j]=s[i,j]^2+7 mod p`, where `p=2147483647`.
+The lane index `j` selects one of the four entries in the fixed array;
+the row index `i` selects one recurrence step. One row holds **all four**
+lane inputs and outputs. In mathematical notation:
+
+$$
+s_{0,j}=x_j,\qquad s_{i+1,j}=s_{i,j}^{2}+7\pmod p,
+\qquad i=0,\ldots,R-1,\quad j=0,1,2,3.
+$$
+
 The chip has **nine base columns** and one row per round:
 
 | Column | Meaning at logical row `i` |
@@ -50,6 +59,8 @@ logical row    index     in[0..3]          out[0..3]
     15          15       s[15,0..3]        y = s[16,0..3]
 ```
 
+![The repeated-step AIR has one row for each round. Four lane values move from each row's output tuple into the next row's input tuple, while the public endpoints bind the first and last tuples.](figures/recurrence-air.svg)
+
 For row zero, lane three: `23 - 4² - 7 = 0`. For row one, lane zero:
 `71 - 8² - 7 = 0`. These are hand calculations of the local AIR equation.
 Internally Stwo stores rows in a bit-reversed circle-domain order; `index`
@@ -65,6 +76,10 @@ Four constraints prove the transition, one per lane:
 ```text
 C[j] = out[j] - in[j]² - c = 0,       j = 0,1,2,3.
 ```
+
+Equivalently, the four constraints are instances of
+$C_j(i)=\operatorname{out}_{i,j}-\operatorname{in}_{i,j}^{2}-c=0$.
+For the first hand-filled row, $C_3(0)=23-4^2-7=0$.
 
 Here `c=7` is fixed in the program/key; a different build can pin another
 canonical M31 constant. A local transition check alone does not say that
@@ -123,6 +138,20 @@ of quotients `C_k/Z_H` on a larger evaluation domain. The actual Stwo
 implementation uses circle-domain vanishing factors and lifted component
 domains; `Z_H` is notation for that factor, **not** an assumption that
 the trace domain is an ordinary multiplicative subgroup with `X^R-1`.
+
+The schematic quotient identity for a local constraint is
+
+$$
+Q_j(X)=\frac{C_j(X)}{Z_{H_R}(X)},\qquad
+C_j(X)=O_j(X)-I_j(X)^2-c.
+$$
+
+Here $I_j$ and $O_j$ interpolate the committed input/output columns. If
+the trace values satisfy the recurrence, $C_j$ vanishes at every trace
+point, so division by the trace vanishing factor leaves a low-degree
+quotient. The actual Stwo circle-domain construction uses its own domain
+mapping and composition rules; this equation explains the algebraic test,
+not a serialized proof-polynomial format.
 
 ```text
 committed trace columns ─▶ evaluate C_0..C_5 ─▶ divide by trace vanishing factor

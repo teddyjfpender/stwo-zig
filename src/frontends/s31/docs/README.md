@@ -72,6 +72,7 @@ statement, proof, and pinned key. The documented program computes
 | Term | Meaning in this implementation |
 | --- | --- |
 | Circuit | A fixed graph of wires and arithmetic/hash gates. A gate has named input/output wire addresses. |
+| Lane | One position in a fixed-size array. For `x=[0,1,2,7]`, lane 2 holds `x[2]=2`. Four M31 lanes can be packed into one QM31 circuit wire, with pointwise arithmetic acting on each independently. |
 | AIR | Polynomial constraints on columns of a trace table, plus boundary and lookup checks. Stwo proves this representation. |
 | Chip | A specialized AIR component for one recognized recurrence. It shares the circuit's proof, transcript, and verifier. |
 | Trace | Field values assigned to AIR columns for a particular witness. |
@@ -87,3 +88,20 @@ circuit AIR bundle. This guide gives the semantic gate equations and the exact
 specialized-chip equations; [the audit guide](proofs.md) explains the remaining
 symbolic-export gap. The root [frontend README](../README.md) lists benchmark
 scripts and older implementation notes.
+
+## Read as a local site
+
+The Markdown is the source of truth. For syntax-colored code, diagrams, and
+rendered LaTeX, run the [local preview server](serve.py) from the repository
+root after installing its [Python dependencies](requirements.txt):
+
+```sh
+python3 -m venv zig-out/s31/docs-venv
+zig-out/s31/docs-venv/bin/pip install -r src/frontends/s31/docs/requirements.txt
+zig-out/s31/docs-venv/bin/python src/frontends/s31/docs/serve.py
+```
+
+Open `http://127.0.0.1:8765/docs/`. The server reads Markdown on each request;
+refresh the page after an edit. It listens only on localhost. The preview
+downloads one pinned MathJax bundle into a temporary cache on first run, then
+serves that bundle locally.

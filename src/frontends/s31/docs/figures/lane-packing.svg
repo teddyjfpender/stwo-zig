@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1040 350" role="img" aria-labelledby="title desc">
+  <title id="title">Four M31 lanes packed into a QM31 wire</title>
+  <desc id="desc">A four-element source array becomes a wire with coordinates 1, 2, 3, 4. One pointwise square gate produces a wire with coordinates 1, 4, 9, 16. Lane j uses only the matching input coordinate.</desc>
+  <style>
+    .bg{fill:#f8fafc}.card{fill:#fff;stroke:#cbd5e1;stroke-width:2}.text{fill:#172033}.muted{fill:#526174}.line{fill:none;stroke:#55718b;stroke-width:2.5}.gate{fill:#e8e1fc;stroke:#a78bfa;stroke-width:2}
+    .c0{fill:#dbeafe;stroke:#60a5fa}.c1{fill:#dcfce7;stroke:#4ade80}.c2{fill:#ffedd5;stroke:#fb923c}.c3{fill:#fce7f3;stroke:#f472b6}
+    text{font-family:system-ui,-apple-system,sans-serif;text-anchor:middle}.head{font-size:21px;font-weight:750}.label{font-size:18px;font-weight:700}.small{font-size:15px}.value{font-size:23px;font-weight:700}
+    @media(prefers-color-scheme:dark){.bg{fill:#111b26}.card{fill:#1d2b3a;stroke:#496078}.text{fill:#edf3fa}.muted{fill:#adbdce}.line{stroke:#91a9c0}.gate{fill:#3a315c;stroke:#a78bfa}.c0{fill:#173653;stroke:#57a1ec}.c1{fill:#164633;stroke:#51d58d}.c2{fill:#57351b;stroke:#ed9b50}.c3{fill:#542640;stroke:#f284b9}}
+  </style>
+  <defs><marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto"><path d="M1 1 L8 5 L1 9" fill="none" stroke="#55718b" stroke-width="1.5"/></marker></defs>
+  <rect class="bg" x="1" y="1" width="1038" height="348" rx="16"/>
+  <text class="text head" x="520" y="36">One logical pointwise gate acts on four independent array positions</text>
+  <rect class="card" x="35" y="79" width="355" height="185" rx="13"/>
+  <text class="text label" x="213" y="112">Input QM31 wire A</text>
+  <rect class="c0" x="54" y="134" width="75" height="84" rx="9"/><text class="muted small" x="91" y="158">lane 0</text><text class="text value" x="91" y="195">1</text>
+  <rect class="c1" x="135" y="134" width="75" height="84" rx="9"/><text class="muted small" x="172" y="158">lane 1</text><text class="text value" x="172" y="195">2</text>
+  <rect class="c2" x="216" y="134" width="75" height="84" rx="9"/><text class="muted small" x="253" y="158">lane 2</text><text class="text value" x="253" y="195">3</text>
+  <rect class="c3" x="297" y="134" width="75" height="84" rx="9"/><text class="muted small" x="334" y="158">lane 3</text><text class="text value" x="334" y="195">4</text>
+  <path class="line" d="M390 172 H438" marker-end="url(#arrow)"/>
+  <rect class="gate" x="444" y="120" width="154" height="105" rx="13"/><text class="text label" x="521" y="163">pointwise</text><text class="text label" x="521" y="189">square</text>
+  <path class="line" d="M598 172 H645" marker-end="url(#arrow)"/>
+  <rect class="card" x="650" y="79" width="355" height="185" rx="13"/>
+  <text class="text label" x="827" y="112">Output QM31 wire C</text>
+  <rect class="c0" x="669" y="134" width="75" height="84" rx="9"/><text class="muted small" x="706" y="158">lane 0</text><text class="text value" x="706" y="195">1</text>
+  <rect class="c1" x="750" y="134" width="75" height="84" rx="9"/><text class="muted small" x="787" y="158">lane 1</text><text class="text value" x="787" y="195">4</text>
+  <rect class="c2" x="831" y="134" width="75" height="84" rx="9"/><text class="muted small" x="868" y="158">lane 2</text><text class="text value" x="868" y="195">9</text>
+  <rect class="c3" x="912" y="134" width="75" height="84" rx="9"/><text class="muted small" x="949" y="158">lane 3</text><text class="text value" x="949" y="195">16</text>
+  <text class="muted small" x="520" y="300">C[j] = A[j] × A[j] mod p, independently for j = 0, 1, 2, 3</text>
+  <text class="muted small" x="520" y="324">This is not QM31 field multiplication, which can mix coordinates.</text>
+</svg>

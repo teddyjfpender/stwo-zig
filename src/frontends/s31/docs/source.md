@@ -30,7 +30,7 @@ Circuit parameters say `public` or `private`, and the result is public.
 Bodies have immutable `let` statements, optional `assert_eq(a,b);` statements
 in the circuit, and one final expression.
 
-```text
+```s31
 fn step(v: [m31; 4]) -> [m31; 4] {
     v .* v + splat<4>(7_m31)
 }
@@ -78,7 +78,7 @@ checked inverse: at zero it returns zero, and no nonzero assertion is added.
 
 ## A hand-written private-witness function
 
-```text
+```s31
 circuit preimage4(public target: [m31; 4], private secret: [u16; 4])
     -> public [m31; 4] {
     let secret_field = m31_from_u16(secret);

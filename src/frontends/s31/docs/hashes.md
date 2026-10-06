@@ -139,7 +139,7 @@ range, and arithmetic components, so BLAKE2s sources currently use the full
 
 ## A one-level Merkle opening, by hand
 
-```text
+```s31
 circuit merkle_path1_poseidon(
     private leaf: [m31; 8],
     private sibling: Digest<Poseidon2>,

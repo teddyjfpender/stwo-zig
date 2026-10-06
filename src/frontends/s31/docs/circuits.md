@@ -15,7 +15,15 @@ once. Its [assignment](../examples/math_polynomial4.valid.json) uses
 `x=[0,1,2,7]` and claims
 `f(x)=[2147483640,2147483644,31,16821]`.
 
-```text
+Here **lane** means an array position: lane 0 holds `x[0]=0`, lane 1 holds
+`x[1]=1`, and so on. The same formula is evaluated independently for each
+position. With `p=2147483647`, the claimed function is
+
+$$
+f(x_j)=x_j^5+3x_j-7\pmod p,\qquad j\in\lbrace 0,1,2,3\rbrace.
+$$
+
+```s31
 circuit math_polynomial4(public x: [m31; 4]) -> public [m31; 4] {
     let fifth = std::math::pow<5>(x);
     let triple = x .* splat<4>(3_m31);
@@ -33,6 +41,8 @@ x ─────┬─ [.* x] ── x² ── [.* x²] ── x⁴ ── [.*
        │                                                   [+] ── t ── [+ (p-7)] ── result
        └───────────────── [.* 3] ─────────────────── 3x ───┘
 ```
+
+![The polynomial source graph: x feeds square, fourth power, fifth power, and triple branches; the results join before adding p minus seven.](figures/polynomial-circuit.svg)
 
 The checked-in [handwritten normalized relation](../examples/math_polynomial4.s31.json)
 is:
@@ -62,22 +72,30 @@ acceptance suite measured 329 raw QM31-operation rows, padded to 512, and
 8 × 512 = 4096 fixed cells. Both text and handwritten JSON produced the same
 canonical IR digest and cost geometry; both native verifiers accepted proofs.
 
-Here is the arithmetic by hand. Each column is one independently constrained
-M31 lane; the last subtraction is addition by the canonical constant
-`p-7=2147483640`.
+Read **down a column** to follow one array position. For example, lane 2
+starts with `x[2]=2`, so its square is 4, fourth power is 16, fifth power is
+32, and result is `32+6-7=31`. The last subtraction is implemented as
+addition by the canonical field constant `p-7=2147483640`.
 
-| Value | Lane `x=0` | `x=1` | `x=2` | `x=7` |
-| --- | ---: | ---: | ---: | ---: |
-| `x²` | 0 | 1 | 4 | 49 |
-| `x⁴` | 0 | 1 | 16 | 2401 |
-| `x⁵` | 0 | 1 | 32 | 16807 |
-| `3x` | 0 | 3 | 6 | 21 |
-| `x⁵+3x-7 mod p` | 2147483640 | 2147483644 | 31 | 16821 |
+| Source value or operation | Formula for each lane `j` | Lane 0: `x[0]=0` | Lane 1: `x[1]=1` | Lane 2: `x[2]=2` | Lane 3: `x[3]=7` |
+| --- | --- | ---: | ---: | ---: | ---: |
+| Input `x` | `x[j]` | 0 | 1 | 2 | 7 |
+| `x²` | `x[j]·x[j]` | 0 | 1 | 4 | 49 |
+| `x⁴` | `x²[j]·x²[j]` | 0 | 1 | 16 | 2401 |
+| `x⁵` | `x⁴[j]·x[j]` | 0 | 1 | 32 | 16807 |
+| `3x` | `3·x[j]` | 0 | 3 | 6 | 21 |
+| Result | `(x⁵[j]+3x[j]-7) mod p` | 2147483640 | 2147483644 | 31 | 16821 |
+
+The four columns are **four values in one program**, not four separate
+programs or four consecutive AIR rows. The source has six arithmetic nodes;
+the backend can pack the four lane values for a node into one QM31 wire.
 
 ## Four M31 lanes in one circuit wire
 
 S31 packs four independent M31 values into the coordinates of one QM31
 circuit value:
+
+![Four fixed array positions are packed into one QM31 wire; a pointwise multiplication produces four squared values in one logical gate.](figures/lane-packing.svg)
 
 ```text
 wire A = (a0, a1, a2, a3)
