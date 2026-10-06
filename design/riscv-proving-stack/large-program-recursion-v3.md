@@ -47,6 +47,19 @@ preimage with Poseidon identity parity and a pinned typed word-source AIR.
 The 39-row outer shared providers have a field envelope over their sealed
 manifest, claims, challenges, geometry and split sums. These are inputs for a
 future wrapper cohort; neither field authority is yet consumed by a V3 proof.
+For the base RV32 leaf, the child verifier authority is the freshly verified
+native SegmentV2 capture inside `PreparedNativeV2LeafOuter`; the detached
+39-component recursive-child loader belongs to a later parent and cannot
+stand in for this native child.
+
+The Starknet circuit recursion session provides the right reuse boundary for
+eventual throughput: keep immutable, verifier-checked AIR tables, canonical
+programs, PCS plans and worker pools live across leaves or parent nodes, while
+allocating witness/proof data from request-local scratch that is reset after
+verification. The RISC-V detached-parent workspace already reuses PCS plans
+and bounded scratch; a future V3 campaign session should extend that pattern
+to its fixed wrapper roster and ProgramV2 without reusing a previous leaf's
+input, transcript or public-I/O state.
 
 ## Proof path still required
 
@@ -81,8 +94,15 @@ future wrapper cohort; neither field authority is yet consumed by a V3 proof.
    digests and `MachineState.public_io_state` are copied from the span
    statement, and custody checks only establish first/last placement; they do
    not prove that those digests represent the runner's actual input/output.
-   The V3 wrapper must not inherit that unbound claim. The minimal repro and
+   The V2 canonical wire retains sparse `(address, value)` snapshots but drops
+   the runner's I/O word-role bits and I/O address/length metadata, so the
+   verifier cannot reconstruct the byte relation from that wire alone. The V3
+   wrapper must not inherit that unbound claim. The minimal repro and
    acceptance criteria are tracked in [issue #228](https://github.com/teddyjfpender/stwo-zig/issues/228).
+   An opt-in native capture check now defines a versioned I/O digest and
+   compares trusted ABI bytes with authenticated sparse snapshots. It remains
+   experimental: the V3 wrapper still needs the corresponding verifier-input
+   and AIR relation before it can assert application I/O.
 
 The first normal gate should prove a real two-leaf program, verify both local
 proofs, both wrapper proofs and their parent, then reject mutations to global
@@ -100,3 +120,7 @@ much larger than early ones. A full quantum-circuit proof therefore needs the
 sound V3 leaf/parent path here **and** proof-bound SHAKE checkpoints and exact
 batch/repetition coverage; merely raising a row cap or adding more leaves is
 not sufficient.
+The experimental V2 I/O capture check accepts verifier-known public bytes;
+it does not meet the quantum fixture's private-circuit input contract. That
+route needs an in-proof private-input commitment and parsing relation rather
+than handing the circuit bytes to the verifier as an expected public value.
