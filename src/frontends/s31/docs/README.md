@@ -71,6 +71,7 @@ The worked examples use checked-in sources under [`../examples`](../examples):
 | [`mathlib4.s31`](../examples/mathlib4.s31) | `use std@1`, Horner polynomial, static dot/sum, library lock | `direct-gate` |
 | [`lane_stats4.s31`](../examples/lane_stats4.s31) | Private arrays, lane sum and dot, one public result | `direct-gate` |
 | [`field_div4.s31`](../examples/field_div4.s31) | Checked inverse and division, one inverse witness shared across calls | `direct-gate` |
+| [`computed_choice.s31`](../examples/computed_choice.s31) | Computed zero bit, two algebraic constraints, and conditional selection | `direct-gate` |
 | [`arith4_m31.s31`](../examples/arith4_m31.s31) | `iterate`, gate unrolling versus one linked AIR chip | `direct-chip` |
 | [`merkle_path1_poseidon.s31`](../examples/merkle_path1_poseidon.s31) | Private leaf, constrained bit, ordered hashing, public root | `direct-gate` |
 | [`preimage4.s31`](../examples/preimage4.s31) | Private `u16` witness and an equality assertion | `gate` |

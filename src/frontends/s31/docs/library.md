@@ -81,14 +81,53 @@ at zero and therefore would not prove nonzero.
 | 3 | 14 | 7 | 1840700269 | 2 | 1840700271 |
 
 The compiler packs four M31 lanes per QM31 wire. Inversion adds one
-pointwise multiplication constraint per packed wire; division adds one more
-for the quotient. An independent oracle agrees with the table, and a
+pointwise product, one difference, and one zero-assertion self-loop per
+packed wire; division adds one more pointwise product for the quotient.
+The self-loop `anchor + difference = anchor` forces the difference to zero
+while giving the anchor exactly one producing gate. This is required by the
+direct AIR's address lookup. The compiler checks every variable's producer
+count both before and after padding and fails if any count differs from one.
+An independent oracle agrees with the table, and a
 five-lane circuit test checks that the final partial group rejects a zero.
 The `direct-gate` profile accepts this relation without an Eq AIR component.
-A `ReleaseFast` sample built 325 raw QM31-operation rows (512 padded), eight
-preprocessed columns, and a 58,140-byte proof. Proving took 0.086 seconds
-and the generated native verifier accepted it. These are single-run costs
+A `ReleaseFast` sample built 327 raw QM31-operation rows (512 padded), eight
+preprocessed columns, and a 55,800-byte proof. The generated native verifier
+accepted it. These are single-run costs
 for this four-lane example, not general throughput measurements.
+
+## A computed bit
+
+This [checked-in program](../examples/computed_choice.s31) chooses the right
+value when `x` is zero and the left value otherwise:
+
+~~~s31
+use std@1;
+
+// A computed condition: choose right when x is zero, left otherwise.
+circuit computed_choice(public x: [m31; 1], public left: [m31; 1],
+                        public right: [m31; 1]) -> public [m31; 1] {
+    let zero = std::field::is_zero(x);
+    let result = std::field::select(zero, left, right);
+    result
+}
+~~~
+
+The compiler introduces a private inverse hint `r` and computed bit `z`.
+It constrains `x·r = 1-z` and `x·z = 0`. For `x=0`, the first equation forces
+`z=1`; for any nonzero `x`, the second forces `z=0` and the first fixes
+`r=x⁻¹`. Thus `z` is Boolean as a consequence of the two equations, without
+an extra bit gate. The select output is `(1-z)·left + z·right`.
+
+| `x` | `left` | `right` | `z=is_zero(x)` | Public result |
+| ---: | ---: | ---: | ---: | ---: |
+| 0 | 17 | 23 | 1 | 23 |
+| 1 | 17 | 23 | 0 | 17 |
+| $p-1$ | 17 | 23 | 0 | 17 |
+
+The direct profile uses arithmetic self-loops for both zero equations. The
+[acceptance corpus](../acceptance_computed_bit_v1.py) proves all three rows
+and rejects four mismatched claims. It has 288 raw QM31 rows (512 padded)
+and no Eq AIR component in this example.
 
 ## Reduce one array to one value
 

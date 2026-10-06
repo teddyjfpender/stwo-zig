@@ -18,8 +18,8 @@ general module loader or user-published package format yet.
 
 | Namespace | Implemented operations | Backend relation |
 | --- | --- | --- |
-| `std::math` | `neg`, `sub`, `square`, checked `inv`, `div`, static `pow<K>`, static-group `sum`, `dot`, `poly_eval`, fixed-array `sum_lanes`, `dot_lanes`, `add_u256`, `add_u256_checked`, `le_u256` | M31 arithmetic and constrained packed reduction; inversion uses one pointwise constraint per four active lanes, and division reuses the inverse; wide operations use sixteen range-checked digits and Boolean carries/borrows. |
-| `std::field` | `from_u16`, `select` | Explicit conversion; direct input bit selector with `b²-b=0`. |
+| `std::math` | `neg`, `sub`, `square`, checked `inv`, `div`, static `pow<K>`, static-group `sum`, `dot`, `poly_eval`, fixed-array `sum_lanes`, `dot_lanes`, `add_u256`, `add_u256_checked`, `le_u256` | M31 arithmetic and constrained packed reduction; inversion uses a pointwise product and arithmetic zero assertion per four active lanes, and division reuses the inverse; wide operations use sixteen range-checked digits and Boolean carries/borrows. |
+| `std::field` | `from_u16`, `is_zero`, `select` | Explicit conversion; direct input bits have `b²-b=0`, while computed zero bits use two algebraic constraints. |
 | `std::bytes` | `to_u256_le`, `from_u256_le`, `limbs_m31` | Explicit nominal byte/integer reinterpretation and value-preserving cast of sixteen `u16` limbs. |
 | `std::hash` | Poseidon2 and BLAKE2s reduced leaf/pair hashes; byte-exact SHA256d of `Bytes80` | Existing pinned hash nodes plus a constrained three-block SHA circuit. |
 | `std::bitcoin` | `target_mainnet(Bytes80)` | Constrained compact `nBits` decoder with mainnet powLimit. |
@@ -67,7 +67,7 @@ current gate profile is globally optimal. `pow<p-2>(x)` computes `0` when
 active lane; `std::math::div(a,x)` shares that inverse and multiplies by `a`.
 Zero is rejected before proving, and a partial final packed group has a
 circuit-validity test. The [field division example](../../src/frontends/s31/examples/field_div4.s31)
-has a 58,140-byte `direct-gate` proof with 325 raw rows (512 padded) in one
+has a 55,800-byte `direct-gate` proof with 327 raw rows (512 padded) in one
 `ReleaseFast` run; the [acceptance corpus](../../src/frontends/s31/acceptance_field_div_v1.py)
 checks nine native proofs (including boundary and seeded random inputs) and
 five negative cases. This is a single-program
@@ -159,9 +159,9 @@ still need the backend efficiency work in the [MVP roadmap](MVP_ROADMAP.md).
    programs and independent scalar oracles.
 3. Extend the implemented checked inverse with randomized proof vectors and
    compare batched inversion with static exponentiation on actual circuit
-   cost. Preserve the direct profile's one pointwise constraint per packed
-   group and the zero-input rejection gate.
-4. Add computed booleans and range/integer gadgets as typed values. Review
+   cost. Preserve the direct profile's one-producer lookup invariant and
+   the zero-input rejection constraint.
+4. Extend the implemented `is_zero` computed bit to range/integer gadgets as typed values. Review
    lookup closure and boundary constraints before exposing comparisons or
    conditional arithmetic in the standard library.
 5. Promote math kernels into chips only where measured end-to-end proving,

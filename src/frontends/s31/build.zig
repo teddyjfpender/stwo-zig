@@ -112,6 +112,11 @@ pub fn build(b: *std.Build) void {
         else
             b.path("examples/placeholder-verification-key.json");
         native_root.addAnonymousImport("s31_verification_key", .{ .root_source_file = key_asset });
+        const recursive_key_asset: std.Build.LazyPath = if (b.option([]const u8, "s31-recursive-key", "Absolute path to the sealed recursive verification key")) |path|
+            .{ .cwd_relative = path }
+        else
+            b.path("examples/placeholder-recursive-key.json");
+        native_root.addAnonymousImport("s31_recursive_key", .{ .root_source_file = recursive_key_asset });
         const native_exe = b.addExecutable(.{ .name = b.fmt("s31-{s}-native-verifier", .{program_name}), .root_module = native_root });
         b.installArtifact(native_exe);
         const run = b.addRunArtifact(prover_exe);

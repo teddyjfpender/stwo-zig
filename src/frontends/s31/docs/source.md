@@ -88,6 +88,7 @@ contract and worked polynomial are in [the library chapter](library.md).
 | `std::bytes::to_u256_le(x)`, `std::bytes::from_u256_le(x)` | Explicit, zero-row little-endian reinterpretation between `Bytes32` and `UInt256`. |
 | `std::bytes::limbs_m31(x)` | Cast each of sixteen range-checked limbs to M31 for field arithmetic or hashing. |
 | `std::field::from_u16(x)` | Value-preserving cast from `[u16; N]`. |
+| `std::field::is_zero(x)` | Constrained scalar `[m31; 1] -> bit`; result is one exactly at zero. |
 | `std::field::select(bit,a,b)` | `a` if zero, `b` if one; same type/shape. |
 | `std::hash::poseidon2_leaf/pair`, `std::hash::blake2s_leaf/pair` | The [typed hash operations](hashes.md). |
 | `std::hash::sha256d_header(header)` | Fully constrained double SHA-256 of an 80-byte header, returning `Bytes32`. |
@@ -105,8 +106,10 @@ one `add_const` with `p-c`; `pow<5>` becomes three multiplication nodes. This
 is source-level convenience over the same proof gates. `pow<p-2>(x)` is not a
 checked inverse: at zero it returns zero, and no nonzero assertion is added.
 Use `std::math::inv` or `std::math::div` when nonzero is required. They
-add a constrained inverse witness, with one pointwise multiplication gate
-per packed group of four lanes. A partial final group masks unused lanes.
+add a constrained inverse witness, with a pointwise product, a difference,
+and a zero-assertion arithmetic self-loop per packed group of four lanes.
+A partial final group masks unused lanes. The self-loop keeps exactly one
+producer for every variable address in the direct AIR lookup relation.
 The [lane-reduction example](library.md#reduce-one-array-to-one-value) shows
 the difference between summing static groups of arrays and summing the
 positions inside one array.

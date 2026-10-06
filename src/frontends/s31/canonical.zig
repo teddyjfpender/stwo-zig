@@ -7,7 +7,7 @@ const core = @import("stwo_core");
 const relation = @import("relation.zig");
 const M31 = core.fields.m31.M31;
 
-pub const Tag = enum { input, constant, cast_m31, add, mul, add_const, mul_const, repeat, hash_blake2s, hash_blake2s_leaf, hash_blake2s_pair, select, hash_poseidon2_leaf, hash_poseidon2_pair, sum_lanes, u256_add, u256_le, u256_add_checked, hash_sha256d_header, bitcoin_target_mainnet, bitcoin_prev_hash, bitcoin_header_bits, bitcoin_genesis_hash_mainnet, bitcoin_header_time, u32_lt, inv };
+pub const Tag = enum { input, constant, cast_m31, add, mul, add_const, mul_const, repeat, hash_blake2s, hash_blake2s_leaf, hash_blake2s_pair, select, hash_poseidon2_leaf, hash_poseidon2_pair, sum_lanes, u256_add, u256_le, u256_add_checked, hash_sha256d_header, bitcoin_target_mainnet, bitcoin_prev_hash, bitcoin_header_bits, bitcoin_genesis_hash_mainnet, bitcoin_header_time, u32_lt, inv, is_zero };
 pub const Node = struct {
     tag: Tag,
     kind: relation.Kind,
@@ -93,7 +93,7 @@ pub fn build(allocator: std.mem.Allocator, program: relation.Program) !IR {
         // operand rather than recursively rescanning the full source chain.
         const length: u32 = switch (raw.op) {
             .constant => raw.length.?,
-            .sum_lanes, .u256_le, .u32_lt => 1,
+            .sum_lanes, .u256_le, .u32_lt, .is_zero => 1,
             .hash_sha256d_header, .bitcoin_target_mainnet, .bitcoin_prev_hash, .bitcoin_genesis_hash_mainnet => 16,
             .bitcoin_header_bits, .bitcoin_header_time => 2,
             .hash_blake2s, .hash_blake2s_leaf, .hash_blake2s_pair, .hash_poseidon2_leaf, .hash_poseidon2_pair => 8,
@@ -232,6 +232,9 @@ fn simplify(node: *Node, nodes: []const Node) ?u32 {
                 node.* = constantNode(1, value.mul(M31.fromU64(lhs.?.length)).toU32());
             }
         },
+        .is_zero => {
+            if (lhs.?.tag == .constant) node.* = constantNode(1, @intFromBool(lhs.?.constant.? == 0));
+        },
         else => {},
     }
     return null;
@@ -255,6 +258,7 @@ test "inverse extends the opcode roster without renumbering existing circuit tag
     try std.testing.expectEqual(@as(u8, 24), @intFromEnum(Tag.u32_lt));
     try std.testing.expectEqual(@as(u8, 24), @intFromEnum(relation.Op.inv));
     try std.testing.expectEqual(@as(u8, 25), @intFromEnum(Tag.inv));
+    try std.testing.expectEqual(@as(u8, 26), @intFromEnum(Tag.is_zero));
 }
 
 test "canonical graph folds constants and shares repeated expressions" {

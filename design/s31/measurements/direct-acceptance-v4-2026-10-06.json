@@ -8,7 +8,7 @@
     "interaction_cell",
     "claimed_sum"
   ],
-  "compiler_sha256": "0f9054754b483cfb4c92e3331eef1a860a2c9c9d4c6a9096a50b40c0ca9cbe74",
+  "compiler_sha256": "80bf3a1dcf0bf090bffe4c0eab0b5c76b318777ae53b40ed2508c4e3a7d6b149",
   "negative_per_profile": [
     "changed_public_output",
     "changed_public_input",

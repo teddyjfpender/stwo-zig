@@ -93,7 +93,9 @@ projection; `dot_lanes` adds one pointwise multiplication.
 division. `std::math::div` reuses the checked inverse and remains on the
 `direct-gate` profile; a zero denominator is unsatisfiable. Run
 `python3 src/frontends/s31/acceptance_field_div_v1.py` for the proof and
-adversarial checks.
+native-verifier adversarial checks. [`computed_choice.s31`](examples/computed_choice.s31)
+uses a constrained `std::field::is_zero` bit to choose between two values;
+`python3 src/frontends/s31/acceptance_computed_bit_v1.py` proves both branches.
 `equations` exposes semantic field equations and source positions, with the
 generic AIR's lookup and public-binding terms documented separately in
 [the guide](docs/walkthrough.md).
@@ -128,7 +130,9 @@ SHA circuit in the header example.
 The [recursion chapter](docs/recursion.md) demonstrates a one-level
 `gate`-profile wrapper: a saved S31 proof is natively authenticated, verified
 inside a circuit, and wrapped in an outer proof checked by a generated native
-verifier. The chapter states the remaining steps for the sparse-wide Bitcoin
+verifier. Gate packages seal a recursive verification key at build time, so
+routine outer verification does not rebuild the large verifier topology.
+The chapter states the remaining steps for the sparse-wide Bitcoin
 header proof and a repeatable fold.
 
 From the repository root:

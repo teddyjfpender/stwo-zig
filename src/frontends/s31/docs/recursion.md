@@ -37,13 +37,26 @@ eight little-endian `u32` words, is:
  2769122967, 3174302306, 2521594207, 4164527659]
 ```
 
-The outer verifier embeds the child key. It rebuilds the verifier circuit
-topology from that key's fixed proof geometry, recomputes the outer
-preprocessed root and circuit hash, checks the statement's child-key SHA-256
-and digest, and verifies the outer STARK. It does not need the child proof
+The outer verifier embeds the child key and a sealed recursive key generated
+from that key's fixed proof geometry during package build. The recursive key
+contains the outer AIR component sizes, preprocessed root and circuit hash,
+and the SHA-256 of the exact child key. At verification time, the native
+verifier checks those bindings, recomputes the outer circuit hash from the
+cached root and layout, checks the statement digest, and verifies the outer
+STARK. It does not need the child proof
 file: the outer proof attests that a valid child proof exists for those
 public words. The caller must still interpret the words using the embedded
 S31 program's public ABI.
+
+`recurse-keygen` rebuilds the outer topology and creates
+`recursive-verification-key.json` once at package build. The key is embedded
+in the native verifier and hashed in the package manifest. The acceptance
+suite regenerates it and compares every field. A trusted build of that
+binary and key is part of the soundness assumption; a supplied JSON file
+cannot authorize a different outer circuit at verification time.
+The recursive prover independently rebuilds the outer topology and checks
+its layout, root and hash against the package's sealed recursive key before
+proving. A mismatched or altered package fails before an outer proof is made.
 
 ## Computation and soundness checks
 
@@ -67,12 +80,20 @@ Expanded opening data is a witness, not an admission decision: the circuit
 checks it. For a saved child proof, the native verifier reconstructs these
 openings while checking the exact child key and public statement. Conversion
 occurs only after that check succeeds; it does not trust a prover-supplied
-opening sidecar. The prover also builds a witness-independent `NoValue` topology,
+opening sidecar. The one-shot `recurse-prove` command now uses the same
+native-verifier capture from its serialized child proof. The prover also
+builds a witness-independent `NoValue` topology,
 compares every gate with the value circuit before and after padding, checks
 circuit satisfaction, and natively verifies the outer proof before writing
-it. `recurse-check` runs a separate audit: it requires rejection for a changed
-public word, trace commitment, claimed LogUp sum, and FRI last-layer
-coefficient. `recurse-prove` avoids those extra circuit builds.
+it. `recurse-check` runs a separate audit: it serializes the in-circuit proof
+input from both the prover's metadata and the native verifier's authenticated
+opening capture, then requires the bytes to match exactly. It also requires
+rejection for a changed public word, trace commitment, claimed LogUp sum,
+channel salt, FRI opening witness, and FRI last-layer coefficient.
+`recurse-prove` avoids those extra audit builds.
+For the documented fixture, the prover-side and verifier-captured in-circuit
+inputs serialized to the same 799,464 bytes. This equality checks conversion
+parity; it does not replace verification of either proof.
 
 The public outer statement contains the child key digest, eight child words,
 the outer digest, and the outer circuit's root and hash. The native outer
@@ -119,7 +140,7 @@ python3 src/frontends/s31/acceptance_recursion_gate.py \
 `recurse-prove ASSIGNMENT CHILD-PROOF OUTER-PROOF CHILD-KEY` remains a one-shot
 prover command. The acceptance run checks both one-shot and saved-proof
 wrappers, rejects changed leaf and outer statements, altered proofs and
-keys, and runs `recurse-check` to exercise the four direct in-circuit
+keys, and runs `recurse-check` to exercise the six direct in-circuit
 corruptions above.
 
 One `ReleaseFast` run produced a 438,157-byte child proof. The verifier
@@ -132,10 +153,13 @@ took 4.92 seconds. These are single observations, not controlled benchmark
 distributions or a Bitcoin-specific cost claim. The verifier circuit still
 dominates memory; caching its authenticated topology and preprocessed
 commitment, then reducing its gate count, are required for practical folding.
-The standalone outer verifier took 0.55 seconds and peaked at 1.45 GB in
-one `time -l` run. It rebuilds the outer preprocessed circuit from the
-embedded child key on every invocation; a trusted cached outer key would
-reduce that repeated work.
+Before the sealed recursive key, a standalone outer verifier rebuilt the
+topology and took 0.55 seconds with 1.45 GB peak resident memory in one
+`time -l` run. With the key embedded, one run took 0.07 seconds and peaked
+at 205 MB; key generation during package build took 0.52 seconds and peaked
+at 1.60 GB. These are single observations on the same `arith4_m31` outer
+proof, not a controlled distribution. The key moves topology construction
+out of routine verification; it does not shrink the outer proof or its prover.
 
 The saved `S31NAT1` file lacks the expanded opening witness, so `wrap`
 replays full native verification and captures the authenticated paths before

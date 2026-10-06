@@ -183,12 +183,19 @@ def build_json(source_path: Path, output: Path, lowering: str = "gate",
         write_json(staging / "verification-key.json", key)
         if lock_bytes is not None:
             (staging / "stdlib-lock.json").write_bytes(lock_bytes)
+        recursive_option: tuple[str, ...] = ()
+        if lowering == "gate":
+            recursive_key = staging / "recursive-verification-key.json"
+            invoke(str(prover), "recurse-keygen", str(staging / "verification-key.json"),
+                   str(recursive_key))
+            recursive_option = (f"-Ds31-recursive-key={recursive_key}",)
         invoke(
             "zig", "build", "--build-file", str(BUILD_FILE), "install",
             "-Doptimize=ReleaseFast", "-Ds31-version=1",
             f"-Ds31-lowering={lowering}",
             f"-Ds31-source={source_path}", f"-Ds31-name={name}",
             f"-Ds31-key={staging / 'verification-key.json'}",
+            *recursive_option,
             *lock_option,
             "--prefix", str(staging),
         )
@@ -200,6 +207,8 @@ def build_json(source_path: Path, output: Path, lowering: str = "gate",
         ]
         if lock_bytes is not None:
             artifacts.append("stdlib-lock.json")
+        if recursive_option:
+            artifacts.append("recursive-verification-key.json")
         manifest = {
             "schema": "s31-package-v1",
             "name": name,
@@ -306,6 +315,15 @@ def verify_package(package: Path) -> dict:
     }
     if not required_artifacts.issubset(artifacts):
         raise ValueError("S31 package is missing required artifacts")
+    if manifest.get("lowering") == "gate":
+        if "recursive-verification-key.json" not in artifacts:
+            raise ValueError("gate package is missing its recursive verification key")
+        recursive_key = json.loads((package / "recursive-verification-key.json").read_text())
+        if (recursive_key.get("schema") != "s31-recursive-verification-key-v1" or
+                recursive_key.get("child_key_sha256") != file_hash(package / "verification-key.json") or
+                recursive_key.get("projection_sha256") != PROJECTION_SHA256 or
+                recursive_key.get("air_bundle_sha256") != AIR_BUNDLE_SHA256):
+            raise ValueError("S31 recursive key does not match the child key and pinned AIR")
     for name, expected in artifacts.items():
         if not isinstance(name, str) or not isinstance(expected, str):
             raise ValueError("invalid S31 package artifact entry")
@@ -540,7 +558,13 @@ def equations(package: Path) -> dict:
                 field_equations.append(f"{name}[j] - {lhs} * {rhs} = 0")
             elif op == "inv":
                 field_equations.append(f"{lhs} * {name}[j] - 1 = 0")
-                notes.append("A zero active lane has no satisfying inverse. One pointwise gate constrains each packed group of up to four lanes.")
+                notes.append("A zero active lane has no satisfying inverse. Each packed group uses a pointwise product, difference, and arithmetic zero assertion; the assertion preserves one producer per lookup address.")
+            elif op == "is_zero":
+                field_equations.extend((
+                    f"{lhs} * inverse - (1 - {name}[0]) = 0",
+                    f"{lhs} * {name}[0] = 0",
+                ))
+                notes.append("These two equations force the output to be one exactly when the input is zero; the Boolean rule follows algebraically. Inverse is a private witness.")
             elif op == "add_const":
                 field_equations.append(f"{name}[j] - {lhs} - {constant} = 0")
             elif op == "mul_const":

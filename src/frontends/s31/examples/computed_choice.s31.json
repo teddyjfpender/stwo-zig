@@ -1,0 +1,42 @@
+{
+  "assertions": [],
+  "inputs": [
+    {
+      "kind": "m31",
+      "length": 1,
+      "name": "x",
+      "visibility": "public"
+    },
+    {
+      "kind": "m31",
+      "length": 1,
+      "name": "left",
+      "visibility": "public"
+    },
+    {
+      "kind": "m31",
+      "length": 1,
+      "name": "right",
+      "visibility": "public"
+    }
+  ],
+  "name": "computed_choice",
+  "nodes": [
+    {
+      "lhs": "x",
+      "name": "zero",
+      "op": "is_zero"
+    },
+    {
+      "lhs": "left",
+      "name": "result",
+      "op": "select",
+      "rhs": "right",
+      "selector": "zero"
+    }
+  ],
+  "public_outputs": [
+    "result"
+  ],
+  "version": 1
+}

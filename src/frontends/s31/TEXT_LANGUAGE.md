@@ -94,7 +94,7 @@ relation and canonical IR digest.
 | `Bytes32` | `u16[16]` | Thirty-two bytes packed into sixteen little-endian, range-checked limbs. |
 | `Bytes80` | `u16[40]` | Eighty serialized header bytes packed into forty little-endian, range-checked limbs. |
 | `UInt256` | `u16[16]` | Unsigned integer with the same limbs; arithmetic is explicit. |
-| `bit` | `m31[1]` | Must be a direct input used by `select`; the circuit constrains `b²=b`. |
+| `bit` | `m31[1]` | A direct input used by `select` has `b²=b`; `std::field::is_zero` also produces a constrained bit. |
 | `Digest<Poseidon2>` | `m31[8]` | Nominal type for the pinned field-native digest. |
 | `Digest<Blake2sReduced>` | `m31[8]` | Nominal type for eight reduced BLAKE2s words. |
 
@@ -108,7 +108,8 @@ Raw BLAKE2s-256 bytes are distinct from its reduced M31-word digest.
 | `a + b`, `a .* b` | Lane-wise `add`/`mul`, or constant variants | Equally shaped `[m31; N]`. |
 | `splat<N>(c_m31)` | Compile-time uniform constant | Canonical M31 literal; materialized only if needed. |
 | `m31_from_u16(x)` | `cast_m31` | Explicit value-preserving conversion. |
-| `select(bit, a, b)` | `select` | Same array/digest type; bit is a direct input and is constrained. |
+| `select(bit, a, b)` | `select` | Same array/digest type; bit is a constrained input or computed zero test. |
+| `std::field::is_zero(x)` | `is_zero` | Scalar `[m31; 1]`; two equations force the bit to be one exactly at zero. |
 | `poseidon2_leaf(x)`, `blake2s_leaf(x)` | Corresponding leaf hash node | 4, 8, 12, or 16 M31 words. |
 | `poseidon2_pair(a,b)`, `blake2s_pair(a,b)` | Ordered-pair hash node | Two digests of the selected family. |
 | `merkle_path_poseidon2(leaf, siblings, directions)` and `merkle_path_blake2s(...)` | Optional leaf hash, then two selects and one ordered pair per level | Raw M31 leaf or same-family digest; static arrays of 1–16 digest and bit inputs. |
@@ -219,7 +220,7 @@ of a changed public output and a non-Boolean private direction. The Zig suite
 independently validates and compiles the emitted relation.
 
 This initial text language has no user-defined modules or imports, macros, arbitrary recursion,
-witness-dependent control flow, computed bit selectors, general `map`/`fold`,
+witness-dependent control flow beyond the implemented computed zero selector, general `map`/`fold`,
 or private circuit-to-chip boundary. It reports source positions for emitted
 nodes and gate spans, but it does not yet render every symbolic AIR polynomial
 as source text. Expanding those features belongs after the backend has a

@@ -110,7 +110,7 @@ def main() -> None:
         corrupted_path.write_bytes(corrupted)
         run(str(verifier), str(corrupted_path), str(statement), str(key), accept=False)
         report = json.loads((package / "cost-report.json").read_text())
-        if report["raw"]["eq"] != 0 or report["raw"]["qm31_ops"] != 325:
+        if report["raw"]["eq"] != 0 or report["raw"]["qm31_ops"] != 327:
             raise AssertionError("checked inverse escaped the direct arithmetic profile")
         print(json.dumps({
             "schema": "s31-field-division-acceptance-v1",

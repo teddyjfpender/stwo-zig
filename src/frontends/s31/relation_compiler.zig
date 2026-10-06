@@ -69,6 +69,7 @@ pub fn compileRaw(comptime V: type, allocator: std.mem.Allocator, program: relat
             .add => .{ .shape = .{ .kind = .m31, .length = length }, .lanes = try circuit.builder.simd.add(V, &ctx, lhs.?.lanes, rhs.?.lanes) },
             .mul => .{ .shape = .{ .kind = .m31, .length = length }, .lanes = try circuit.builder.simd.mul(V, &ctx, lhs.?.lanes, rhs.?.lanes) },
             .inv => .{ .shape = .{ .kind = .m31, .length = length }, .lanes = try inverseLanes(V, &ctx, lhs.?.lanes) },
+            .is_zero => try isZeroWord(V, &ctx, lhs.?),
             .add_const => .{ .shape = .{ .kind = .m31, .length = length }, .lanes = try circuit.builder.simd.add(V, &ctx, lhs.?.lanes, try circuit.builder.simd.repeat(V, &ctx, M31.fromCanonical(node.constant.?), length)) },
             .mul_const => .{ .shape = .{ .kind = .m31, .length = length }, .lanes = try circuit.builder.simd.mul(V, &ctx, lhs.?.lanes, try circuit.builder.simd.repeat(V, &ctx, M31.fromCanonical(node.constant.?), length)) },
             .sum_lanes => .{ .shape = .{ .kind = .m31, .length = 1 }, .lanes = try sumLanes(V, &ctx, lhs.?.lanes) },
@@ -97,7 +98,7 @@ pub fn compileRaw(comptime V: type, allocator: std.mem.Allocator, program: relat
             .hash_blake2s => .{ .shape = .{ .kind = .m31, .length = 8 }, .lanes = try hashBlake2s(V, &ctx, lhs.?.lanes, lhs.?.shape.length) },
             .hash_blake2s_leaf => .{ .shape = .{ .kind = .m31, .length = 8 }, .lanes = try hashBlake2sPersonalized(V, &ctx, lhs.?.lanes, lhs.?.shape.length, relation.leaf_personalization) },
             .hash_blake2s_pair => .{ .shape = .{ .kind = .m31, .length = 8 }, .lanes = try hashBlake2sPair(V, &ctx, lhs.?.lanes, rhs.?.lanes) },
-            .select => .{ .shape = .{ .kind = .m31, .length = length }, .lanes = try selectByBit(V, &ctx, lhs.?.lanes, rhs.?.lanes, selector.?.lanes, null) },
+            .select => .{ .shape = .{ .kind = .m31, .length = length }, .lanes = try selectByBit(V, &ctx, lhs.?.lanes, rhs.?.lanes, selector.?.lanes, if (selector.?.boolean) selector.?.raw.?[0] else null) },
             .hash_poseidon2_leaf => .{ .shape = .{ .kind = .m31, .length = 8 }, .lanes = try poseidon2.leafCircuit(V, &ctx, lhs.?.lanes) },
             .hash_poseidon2_pair => .{ .shape = .{ .kind = .m31, .length = 8 }, .lanes = try poseidon2.pairCircuit(V, &ctx, lhs.?.lanes, rhs.?.lanes) },
         };
@@ -265,12 +266,20 @@ fn compileWithSpansMode(comptime V: type, allocator: std.mem.Allocator, program:
                 }
                 break :blk .{ .shape = .{ .kind = node.kind, .length = node.length }, .lanes = try circuit.builder.simd.pack(V, &ctx, wrappers), .raw = raw, .boolean = boolean };
             },
-            .constant => .{ .shape = .{ .kind = .m31, .length = node.length }, .lanes = try circuit.builder.simd.repeat(V, &ctx, M31.fromCanonical(node.constant.?), node.length) },
+            .constant => blk: {
+                if (direct_output and node.length == 1 and node.constant.? <= 1 and isSelectorInput(ir.nodes, id)) {
+                    const raw = try scratch.alloc(Var, 1);
+                    raw[0] = try ctx.constant(QM31.fromBase(M31.fromCanonical(node.constant.?)));
+                    break :blk .{ .shape = .{ .kind = .m31, .length = 1 }, .lanes = Simd.fromPacked(raw, 1), .raw = raw, .boolean = true };
+                }
+                break :blk .{ .shape = .{ .kind = .m31, .length = node.length }, .lanes = try circuit.builder.simd.repeat(V, &ctx, M31.fromCanonical(node.constant.?), node.length) };
+            },
             .bitcoin_genesis_hash_mainnet => try mainnetGenesisHash(V, &ctx),
             .cast_m31 => .{ .shape = .{ .kind = .m31, .length = node.length }, .lanes = entries[node.lhs.?].lanes, .raw = entries[node.lhs.?].raw, .boolean = entries[node.lhs.?].boolean },
             .add => .{ .shape = .{ .kind = .m31, .length = node.length }, .lanes = try circuit.builder.simd.add(V, &ctx, entries[node.lhs.?].lanes, entries[node.rhs.?].lanes) },
             .mul => .{ .shape = .{ .kind = .m31, .length = node.length }, .lanes = try circuit.builder.simd.mul(V, &ctx, entries[node.lhs.?].lanes, entries[node.rhs.?].lanes) },
             .inv => .{ .shape = .{ .kind = .m31, .length = node.length }, .lanes = try inverseLanes(V, &ctx, entries[node.lhs.?].lanes) },
+            .is_zero => try isZeroWord(V, &ctx, entries[node.lhs.?]),
             .add_const => .{ .shape = .{ .kind = .m31, .length = node.length }, .lanes = try circuit.builder.simd.add(V, &ctx, entries[node.lhs.?].lanes, try circuit.builder.simd.repeat(V, &ctx, M31.fromCanonical(node.constant.?), node.length)) },
             .mul_const => .{ .shape = .{ .kind = .m31, .length = node.length }, .lanes = try circuit.builder.simd.mul(V, &ctx, entries[node.lhs.?].lanes, try circuit.builder.simd.repeat(V, &ctx, M31.fromCanonical(node.constant.?), node.length)) },
             .sum_lanes => .{ .shape = .{ .kind = .m31, .length = 1 }, .lanes = try sumLanes(V, &ctx, entries[node.lhs.?].lanes) },
@@ -327,7 +336,7 @@ fn compileWithSpansMode(comptime V: type, allocator: std.mem.Allocator, program:
                     entries[node.lhs.?].lanes,
                     entries[node.rhs.?].lanes,
                     selector_entry.lanes,
-                    if (direct_output) selector_entry.raw.?[0] else null,
+                    if (selector_entry.boolean) selector_entry.raw.?[0] else null,
                 ) };
             },
             .hash_poseidon2_leaf => .{ .shape = .{ .kind = .m31, .length = 8 }, .lanes = try poseidon2.leafCircuit(V, &ctx, entries[node.lhs.?].lanes) },
@@ -409,6 +418,8 @@ fn compileWithSpansMode(comptime V: type, allocator: std.mem.Allocator, program:
     const finalize_qm31_start = ctx.circuit.nQm31OpsRows();
     const finalize_m31_start = ctx.circuit.m31_to_u32.items.len;
     try ctx.finalize(false);
+    if (direct_output and try ctx.circuit.firstYieldViolation(allocator) != null)
+        return error.InvalidDirectYieldTopology;
     if (maps) |out| out.finalization = .{
         .qm31_start = finalize_qm31_start,
         .qm31_end = ctx.circuit.nQm31OpsRows(),
@@ -535,18 +546,39 @@ fn u32Less(comptime V: type, ctx: *circuit.builder.Context(V), lhs: Entry, rhs: 
     return .{ .shape = .{ .kind = .m31, .length = 1 }, .lanes = Simd.fromPacked(wires, 1), .raw = wires, .boolean = true };
 }
 
-/// Sum packed M31 coordinates with a QM31 linear functional. In the basis
-/// (1, i, u, iu), where i² = -1 and u² = 2 + i, the base coordinate of
-/// x * (1 - i + u/5 - 3iu/5) is a + b + c + d for
-/// x = a + bi + cu + diu. A pointwise multiply by (1, 0, 0, 0) then extracts
-/// that coordinate. These are ordinary constrained multiplication gates.
-///
-/// The final wire can have arbitrary unused coordinates, so mask them before
-/// adding packed wires. The result is a one-lane base-field Simd.
-/// One pointwise gate per packed group proves x * x_inv = 1 on each active
-/// M31 lane. The final group's inactive coordinates are constrained to zero.
-/// This avoids an Eq AIR component, so inverse and division use the direct
-/// arithmetic profile as well as the full circuit profile.
+/// Enforce `value = 0` with one fresh self-loop: `anchor + value = anchor`.
+/// The anchor has exactly one producing gate and its address is used as both
+/// input and output of that gate. This preserves the direct AIR's LogUp
+/// single-producer invariant while making the equation non-optional.
+fn assertZeroArithmetic(comptime V: type, ctx: *circuit.builder.Context(V), value: Var) !void {
+    const anchor = try ctx.newVar(circuit.builder.ivalue.fromQm31(V, QM31.zero()));
+    try ctx.addInto(anchor, value, anchor);
+}
+
+/// A scalar zero test: x * inverse = 1 - z and x * z = 0. If x is zero,
+/// z must be one; otherwise z must be zero and inverse is uniquely fixed.
+/// Booleanity follows, without a separate bit AIR component.
+fn isZeroWord(comptime V: type, ctx: *circuit.builder.Context(V), input: Entry) !Entry {
+    if (input.shape.kind != .m31 or input.shape.length != 1) return error.InvalidZeroTestOperand;
+    const word = if (input.raw) |raw| raw[0] else try circuit.builder.simd.unpackIdx(V, ctx, input.lanes, 0);
+    const value = if (comptime V == QM31) try ctx.get(word).tryIntoM31() else M31.zero();
+    const zero = value.isZero();
+    const inverse_hint = if (zero) M31.zero() else try value.inv();
+    const z = try ctx.guess(circuit.builder.ivalue.fromQm31(V, QM31.fromBase(M31.fromCanonical(@intFromBool(zero)))));
+    const inverse = try ctx.guess(circuit.builder.ivalue.fromQm31(V, QM31.fromBase(inverse_hint)));
+    const product = try ctx.mul(word, inverse);
+    const one_minus_z = try ctx.sub(ctx.one(), z);
+    try assertZeroArithmetic(V, ctx, try ctx.sub(product, one_minus_z));
+    try assertZeroArithmetic(V, ctx, try ctx.mul(word, z));
+    const raw = try ctx.scratch().alloc(Var, 1);
+    raw[0] = z;
+    return .{ .shape = .{ .kind = .m31, .length = 1 }, .lanes = Simd.fromPacked(raw, 1), .raw = raw, .boolean = true };
+}
+
+/// Each packed group proves x * x_inv = 1 on active M31 lanes, while inactive
+/// coordinates are zero. The self-loop assertion is required for the direct
+/// profile's lookup closure; writing into the constant mask would give that
+/// variable two producers and would not safely constrain the product.
 fn inverseLanes(comptime V: type, ctx: *circuit.builder.Context(V), input: Simd) !Simd {
     const inverse = try circuit.builder.simd.guessInvOrZero(V, ctx, input);
     for (input.data, inverse.data, 0..) |x, inv, group| {
@@ -557,11 +589,20 @@ fn inverseLanes(comptime V: type, ctx: *circuit.builder.Context(V), input: Simd)
             if (active > 2) 1 else 0,
             if (active > 3) 1 else 0,
         ));
-        try ctx.pointwiseMulInto(x, inv, expected);
+        const product = try ctx.pointwiseMul(x, inv);
+        try assertZeroArithmetic(V, ctx, try ctx.sub(product, expected));
     }
     return inverse;
 }
 
+/// Sum packed M31 coordinates with a QM31 linear functional. In the basis
+/// (1, i, u, iu), where i² = -1 and u² = 2 + i, the base coordinate of
+/// x * (1 - i + u/5 - 3iu/5) is a + b + c + d for
+/// x = a + bi + cu + diu. A pointwise multiply by (1, 0, 0, 0) then extracts
+/// that coordinate. These are ordinary constrained multiplication gates.
+///
+/// The final wire can have arbitrary unused coordinates, so mask them before
+/// adding packed wires. The result is a one-lane base-field Simd.
 fn sumLanes(comptime V: type, ctx: *circuit.builder.Context(V), input: Simd) !Simd {
     if (input.len == 1) return input;
     const wires = try ctx.scratch().dupe(Var, input.data);
@@ -657,6 +698,58 @@ test "private preimage relation has a constrained witness and static topology" {
     } else |err| {
         try std.testing.expectEqual(error.EqFailedOnEval, err);
     }
+}
+
+test "computed zero test has single-yield direct circuit topology" {
+    var program = try relation.parseProgram(std.testing.allocator, @embedFile("examples/computed_choice.s31.json"));
+    defer program.deinit();
+    var assignment = try relation.parseAssignment(std.testing.allocator, @embedFile("examples/computed_choice.valid.json"));
+    defer assignment.deinit();
+    var value_ctx = try compileDirect(QM31, std.testing.allocator, program.value, assignment.value, false);
+    defer value_ctx.deinit();
+    try std.testing.expect(try value_ctx.isCircuitValid());
+    const violation = try value_ctx.circuit.firstYieldViolation(std.testing.allocator);
+    if (violation) |item| std.debug.print("computed zero yield violation: {any}\n", .{item});
+    try std.testing.expect(violation == null);
+}
+
+test "checked inverse has single-yield direct circuit topology" {
+    var program = try relation.parseProgram(std.testing.allocator, @embedFile("examples/field_div4.s31.json"));
+    defer program.deinit();
+    var assignment = try relation.parseAssignment(std.testing.allocator, @embedFile("examples/field_div4.valid.json"));
+    defer assignment.deinit();
+    var value_ctx = try compileDirect(QM31, std.testing.allocator, program.value, assignment.value, false);
+    defer value_ctx.deinit();
+    try std.testing.expect(try value_ctx.isCircuitValid());
+    try std.testing.expect((try value_ctx.circuit.firstYieldViolation(std.testing.allocator)) == null);
+}
+
+test "constant zero bit selects in the direct profile" {
+    const source =
+        \\{"version":1,"name":"constant_choice","inputs":[{"name":"left","kind":"m31","length":1,"visibility":"public"},{"name":"right","kind":"m31","length":1,"visibility":"public"}],"nodes":[{"name":"zero","op":"constant","constant":1,"length":1},{"name":"result","op":"select","lhs":"left","rhs":"right","selector":"zero"}],"assertions":[],"public_outputs":["result"]}
+    ;
+    const assigned =
+        \\{"public_inputs":{"left":[17],"right":[23]},"private_inputs":{},"public_outputs":{"result":[23]}}
+    ;
+    var program = try relation.parseProgram(std.testing.allocator, source);
+    defer program.deinit();
+    var assignment = try relation.parseAssignment(std.testing.allocator, assigned);
+    defer assignment.deinit();
+    var ctx = try compileDirect(QM31, std.testing.allocator, program.value, assignment.value, false);
+    defer ctx.deinit();
+    try std.testing.expect(try ctx.isCircuitValid());
+    try std.testing.expect((try ctx.circuit.firstYieldViolation(std.testing.allocator)) == null);
+}
+
+test "packed lane reductions retain single-yield direct topology" {
+    var program = try relation.parseProgram(std.testing.allocator, @embedFile("examples/lane_stats4.s31.json"));
+    defer program.deinit();
+    var assignment = try relation.parseAssignment(std.testing.allocator, @embedFile("examples/lane_stats4.valid.json"));
+    defer assignment.deinit();
+    var ctx = try compileDirect(QM31, std.testing.allocator, program.value, assignment.value, false);
+    defer ctx.deinit();
+    try std.testing.expect(try ctx.isCircuitValid());
+    try std.testing.expect((try ctx.circuit.firstYieldViolation(std.testing.allocator)) == null);
 }
 
 test "strict u32 comparison constrains equality, borrow, and limb boundary" {

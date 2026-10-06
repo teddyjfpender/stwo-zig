@@ -28,13 +28,14 @@ BUILTINS = {
     "poseidon2_pair", "blake2s_leaf", "blake2s_pair",
     "merkle_path_poseidon2", "merkle_path_blake2s",
     "std::bytes::to_u256_le", "std::bytes::from_u256_le", "std::bytes::limbs_m31",
-    "sha256d_header",
+    "sha256d_header", "is_zero",
     "target_mainnet",
     "prev_hash", "header_bits", "header_time", "genesis_hash_mainnet", "lt_u32",
 } | mathlib.BUILTINS
 STANDARD_ALIASES = {
     "std::field::from_u16": "m31_from_u16",
     "std::field::select": "select",
+    "std::field::is_zero": "is_zero",
     "std::hash::poseidon2_leaf": "poseidon2_leaf",
     "std::hash::poseidon2_pair": "poseidon2_pair",
     "std::hash::blake2s_leaf": "blake2s_leaf",
@@ -533,6 +534,9 @@ class Compiler:
             if name == "select" and len(args) == 3:
                 return self.builder.select(*(self.expect_value(arg, expr) for arg in args),
                                            wanted=wanted, span=self.span(expr))
+            if name == "is_zero" and len(args) == 1:
+                return self.builder.is_zero(self.expect_value(args[0], expr),
+                                            wanted=wanted, span=self.span(expr))
             if name in {"merkle_path_poseidon2", "merkle_path_blake2s"} and len(args) == 3:
                 family = "poseidon2" if name.endswith("poseidon2") else "blake2s_reduced"
                 if not isinstance(args[1], StaticGroup) or not isinstance(args[2], StaticGroup):

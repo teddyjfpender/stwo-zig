@@ -17,6 +17,28 @@ EXAMPLES = Path(__file__).resolve().parent / "examples"
 
 
 class TextFrontendTests(unittest.TestCase):
+    def test_computed_zero_bit_controls_selection(self) -> None:
+        relation, _ = compile_file(EXAMPLES / "computed_choice.s31")
+        self.assertEqual([node["op"] for node in relation["nodes"]],
+                         ["is_zero", "select"])
+        for x, expected in ((0, 23), (1, 17), (P - 1, 17)):
+            assignment = {
+                "public_inputs": {"x": [x], "left": [17], "right": [23]},
+                "private_inputs": {}, "public_outputs": {"result": [expected]},
+            }
+            with self.subTest(x=x):
+                self.assertEqual(evaluate_relation(relation, assignment),
+                                 assignment["public_outputs"])
+        with self.assertRaisesRegex(SourceError, "one \\[m31; 1\\]"):
+            compile_text("circuit bad(public x: [m31; 2]) -> public bit { std::field::is_zero(x) }")
+        constant_relation, _ = compile_text("""use std@1;
+circuit constant_choice(public left: [m31; 1], public right: [m31; 1]) -> public [m31; 1] {
+    let zero = std::field::is_zero(splat<1>(0_m31));
+    std::field::select(zero, left, right)
+}""")
+        self.assertEqual([node["op"] for node in constant_relation["nodes"]],
+                         ["constant", "select"])
+
     def test_field_inverse_division_and_zero_rejection(self) -> None:
         relation, _ = compile_file(EXAMPLES / "field_div4.s31")
         self.assertEqual([node["op"] for node in relation["nodes"]],

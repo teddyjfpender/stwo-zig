@@ -21,7 +21,7 @@ pub const Expected = struct {
 
 /// Audit-only corruption of distinct verifier inputs. These are applied
 /// after native proof conversion, so rejection exercises the circuit itself.
-pub const Mutation = enum { trace_root, claimed_sum, fri_last_layer };
+pub const Mutation = enum { trace_root, claimed_sum, channel_salt, fri_witness, fri_last_layer };
 
 fn hashWords(bytes: [32]u8) [8]u32 {
     var words: [8]u32 = undefined;
@@ -165,6 +165,8 @@ fn verifyPreparedWithMutation(
     if (mutation) |change| switch (change) {
         .trace_root => proof_values.trace_root = circuit.builder.blake.hashValue(QM31, @splat(0)),
         .claimed_sum => proof_values.claimed_sums[0] = proof_values.claimed_sums[0].add(QM31.one()),
+        .channel_salt => proof_values.channel_salt = proof_values.channel_salt.add(QM31.one()),
+        .fri_witness => proof_values.fri.witness[0][0] = proof_values.fri.witness[0][0].add(QM31.one()),
         .fri_last_layer => proof_values.fri.last_layer_coefs[0] = proof_values.fri.last_layer_coefs[0].add(QM31.one()),
     };
     const config: circuit.statements.circuit_statement.CircuitConfig = .{

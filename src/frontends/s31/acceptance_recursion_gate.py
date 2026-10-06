@@ -51,6 +51,12 @@ def main() -> None:
         prover = package / "bin/s31-arith4_m31-prover"
         verifier = package / "bin/s31-arith4_m31-native-verifier"
         key = package / "verification-key.json"
+        reproduced_recursive_key = work / "reproduced-recursive-key.json"
+        run(str(prover), "recurse-keygen", str(key), str(reproduced_recursive_key),
+            accept=True)
+        if json.loads(reproduced_recursive_key.read_text()) != json.loads(
+                (package / "recursive-verification-key.json").read_text()):
+            raise AssertionError("sealed recursive key is not reproducible")
         leaf = work / "leaf.proof"
         outer = work / "outer.proof"
         run(str(prover), "recurse-check", str(ASSIGNMENT),
@@ -131,10 +137,22 @@ def main() -> None:
         wrong_key["circuit_hash"] = "0" * 64
         wrong_key_path = work / "wrong-key.json"
         write_json(wrong_key_path, wrong_key)
+        run(str(prover), "recurse-keygen", str(wrong_key_path),
+            str(work / "wrong-recursive-key.json"), accept=False)
         run(str(prover), "recurse-prove", str(ASSIGNMENT), str(work / "bad-leaf.proof"),
             str(work / "bad-outer.proof"), str(wrong_key_path), accept=False)
         run(str(prover), "recurse-wrap", str(leaf), str(leaf_statement),
             str(work / "bad-saved-key.proof"), str(wrong_key_path), accept=False)
+
+        tampered_package = work / "tampered-package"
+        tampered_package.mkdir()
+        copied_key = tampered_package / "verification-key.json"
+        copied_key.write_bytes(key.read_bytes())
+        bad_recursive_key = json.loads((package / "recursive-verification-key.json").read_text())
+        bad_recursive_key["outer_preprocessed_root"] = "0" * 64
+        write_json(tampered_package / "recursive-verification-key.json", bad_recursive_key)
+        run(str(prover), "recurse-wrap", str(leaf), str(leaf_statement),
+            str(work / "bad-outer-key.proof"), str(copied_key), accept=False)
 
         print(json.dumps({
             "schema": "s31-recursive-gate-acceptance-v1",
@@ -143,8 +161,11 @@ def main() -> None:
             "outer_proof_bytes": outer.stat().st_size,
             "outer_statement_sha256": hashlib.sha256(statement_path.read_bytes()).hexdigest(),
             "accepted": 3,
-            "rejected": 10,
-            "in_circuit_rejections": ["changed_public_word", "trace_root", "claimed_sum", "fri_last_layer"],
+            "rejected": 12,
+            "in_circuit_rejections": [
+                "changed_public_word", "trace_root", "claimed_sum",
+                "channel_salt", "fri_witness", "fri_last_layer",
+            ],
         }, indent=2, sort_keys=True))
 
 

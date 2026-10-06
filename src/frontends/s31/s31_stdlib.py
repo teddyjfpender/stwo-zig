@@ -76,6 +76,7 @@ class Builder:
         self.source_map: dict[str, dict[str, int]] = {}
         self.bit_inputs: set[str] = set()
         self.constrained_bits: set[str] = set()
+        self.computed_bits: set[str] = set()
         self.inverse_cache: dict[str, Value] = {}
         self.next_temp = 0
 
@@ -178,6 +179,19 @@ class Builder:
             return self.binary("mul", lhs, self.inverse(rhs), wanted=wanted, span=span)
         return self.binary("mul", lhs, self.inverse(rhs), wanted=wanted, span=span)
 
+    def is_zero(self, value: Value, *, wanted: str | None = None,
+                span: dict[str, int] | None = None) -> Value:
+        if value.typ != Type("m31", 1):
+            raise TypeErrorS31("is_zero requires one [m31; 1] value")
+        if value.constant is not None:
+            result = self.emit("constant", Type("bit", 1), wanted=wanted,
+                               span=span, constant=int(value.constant == 0), length=1)
+        else:
+            result = self.emit("is_zero", Type("bit", 1), wanted=wanted,
+                               span=span, lhs=self.realize(value).ref)
+        self.computed_bits.add(result.ref)
+        return result
+
     def cast_m31(self, value: Value, *, wanted: str | None = None,
                  span: dict[str, int] | None = None) -> Value:
         if value.typ.kind not in {"u16", "uint256", "bytes32"}:
@@ -267,9 +281,10 @@ class Builder:
                span: dict[str, int] | None = None) -> Value:
         if bit.typ != Type("bit", 1) or lhs.typ != rhs.typ or lhs.typ.kind not in {"m31", "digest"}:
             raise TypeErrorS31("select requires a bit and two equally typed m31 values")
-        if bit.ref not in self.bit_inputs:
-            raise TypeErrorS31("current select backend requires a directly referenced bit input")
-        self.constrained_bits.add(bit.ref)
+        if bit.ref not in self.bit_inputs and bit.ref not in self.computed_bits:
+            raise TypeErrorS31("select requires a constrained bit value")
+        if bit.ref in self.bit_inputs:
+            self.constrained_bits.add(bit.ref)
         return self.emit("select", lhs.typ, wanted=wanted, span=span,
                          lhs=self.realize(lhs).ref, rhs=self.realize(rhs).ref, selector=bit.ref)
 

@@ -107,6 +107,12 @@ def check_examples() -> None:
         pass
     else:
         raise AssertionError("division by zero accepted by independent oracle")
+    zero_relation, _ = compile_text(
+        text_block_containing(DOCS / "library.md", "circuit computed_choice"), "library.md"
+    )
+    assert zero_relation == json.loads((S31 / "examples/computed_choice.s31.json").read_text())
+    zero_assignment = json.loads((S31 / "examples/computed_choice.valid.json").read_text())
+    assert evaluate_relation(zero_relation, zero_assignment) == zero_assignment["public_outputs"]
     bitcoin_relation, _ = compile_text(
         text_block_containing(DOCS / "bitcoin-sha256d.md", "circuit bitcoin_header_pow"),
         "bitcoin-sha256d.md",
