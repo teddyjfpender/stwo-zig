@@ -13,4 +13,5 @@ comptime {
     _ = @import("recursion/air/segment_leaf_statement_source_direct_v5.zig");
     _ = @import("recursion/air/segment_leaf_wrapper_template_v6.zig");
     _ = @import("recursion/segment_leaf_wrapper_protocol_template_v7.zig");
+    _ = @import("recursion/transcript_word_template_v6.zig");
 }
