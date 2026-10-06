@@ -149,6 +149,95 @@ arithmetic rows in a separate run, so compact-target decoding and comparison
 added 614 arithmetic rows. The [measurement record](../../../../design/s31/measurements/bitcoin-header-sha256d-v1-2026-10-06.json)
 contains both verified trials. A dedicated SHA chip is the next major cost target.
 
+## Two actual headers in one proof
+
+[`bitcoin_header_pair.s31`](../examples/bitcoin_header_pair.s31) proves a
+non-retarget step from Bitcoin mainnet genesis to block one. Its assignment
+contains both real serialized headers. The child's serialized bytes 4–35 are
+`6f e2 8c 0a … 00 00 00 00` in *raw digest order*: they equal the
+32 output bytes of `SHA256d(parent)`. The displayed parent block ID reverses
+those bytes. Both headers contain `ff ff 00 1d` at byte offsets 72–75.
+
+```s31
+use std@1;
+
+circuit bitcoin_header_pair(private parent: Bytes80, private child: Bytes80)
+    -> public Digest<Poseidon2> {
+    let parent_hash = std::hash::sha256d_header(parent);
+    let child_hash = std::hash::sha256d_header(child);
+    assert_eq(std::bitcoin::prev_hash(child), parent_hash);
+    assert_eq(std::bitcoin::header_bits(child), std::bitcoin::header_bits(parent));
+    let parent_target = std::bitcoin::target_mainnet(parent);
+    let child_target = std::bitcoin::target_mainnet(child);
+    let parent_pow = std::math::le_u256(std::bytes::to_u256_le(parent_hash), parent_target);
+    let child_pow = std::math::le_u256(std::bytes::to_u256_le(child_hash), child_target);
+    assert_eq(parent_pow, splat<1>(1_m31));
+    assert_eq(child_pow, splat<1>(1_m31));
+    let parent_root = std::hash::poseidon2_leaf(std::bytes::limbs_m31(parent_hash));
+    let child_root = std::hash::poseidon2_leaf(std::bytes::limbs_m31(child_hash));
+    let segment_root = std::hash::poseidon2_pair(parent_root, child_root);
+    segment_root
+}
+```
+
+For this source, `prev_hash(child)` is a view of the already constrained
+`child` limbs 2–17. `header_bits(child)` is a view of limbs 36–37. The
+assertions compare these same circuit wires with the SHA output wires and
+the parent's bits wires; the views introduce no new witness values. In the
+actual profile, each equality is packed into Eq component rows. Two SHA256d
+calls contribute six fixed compression blocks, and two target checks each
+prove a 256-bit inequality. The public value is a Poseidon2 commitment to
+the two hashes in their specified order; it must be anchored by the relying
+party before it identifies a particular chain segment.
+
+```sh
+python3 src/frontends/s31/s31.py trial \
+  src/frontends/s31/examples/bitcoin_header_pair.s31 \
+  src/frontends/s31/examples/bitcoin_header_pair.valid.json \
+  --lowering sparse-wide-gate \
+  --out zig-out/s31/bitcoin-header-pair-trial
+```
+
+One local trial accepted the real pair and rejected a changed public root.
+It used 714,559 raw QM31 rows, 9,519 Eq rows, and 7,320 conversion rows;
+the proof was 369,753 bytes. Proving took 0.422 s and native verification
+0.474 s in that run. The raw SHA arithmetic is nearly twice the single-header
+cost; the QM31 trace pads to 1,048,576 rows. These are single stochastic-PoW
+observations. The [trial record](../../../../design/s31/measurements/bitcoin-header-pair-v1-2026-10-06.json)
+pins the source and proof digests.
+
+This program fixes the bits of adjacent headers equal, so it applies only
+inside a difficulty interval, matching Bitcoin Core's
+[ordinary mainnet step rule](https://github.com/bitcoin/bitcoin/blob/master/src/pow.cpp#L12-L43).
+It does not enforce retargeting, timestamps,
+median time past, version policy, height, accumulated chainwork, a trusted
+checkpoint, best-chain selection, or recursive verification. The
+[light-client brief](../../../../design/s31/BITCOIN_LIGHT_CLIENT.md) tracks
+those separate relations.
+
+## Dedicated SHA AIR boundary under construction
+
+[`sha_chip_plan.zig`](../sha_chip_plan.zig) now constructs the exact three
+`(state, 64-byte block, output state)` calls for one header and checks every
+byte of the proposed chip boundary. It checks the fixed `0x80` padding,
+big-endian bit lengths `640` and `256`, the first-pass chaining state, the
+second-pass initial state, and the final raw digest bytes. Randomized tests
+compare the result with Zig's independent SHA256 implementation and corrupt
+each boundary. This is witness preparation and a native boundary check; the
+current proof still uses the generic circuit AIR.
+
+To replace the generic SHA circuit soundly, the SHA source, schedule, round,
+feed-forward and boundary components must join the S31 component roster in
+one STARK proof. For each call, the S31 circuit must emit an authenticated
+lookup for its exact input state, 64 input bytes and output state. The chip
+must consume the opposite lookup, including a call ID and operation domain.
+The verifier must require lookup-sum closure, reconstruct the fixed six-call
+geometry for this pair, and bind that manifest and public statement before
+the first commitment. The chip's three internal calls per header must obey
+the exact boundary equations above. The existing standalone SHA compression
+proof uses trusted public boundary data; it cannot directly authenticate a
+private S31 header. No `--lowering` option selects this chip yet.
+
 Verifier acceptance establishes that **some** private 80-byte header has a
 byte-exact double-SHA digest that meets the mainnet target encoded in that
 header and commits to the public root. A relying party must bind that root to

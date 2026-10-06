@@ -38,6 +38,26 @@ class TextFrontendTests(unittest.TestCase):
         with self.assertRaisesRegex(SourceError, "requires a serialized Bytes80"):
             compile_text("circuit bad(private x: Bytes32) -> public Bytes32 { std::hash::sha256d_header(x) }")
 
+    def test_two_real_headers_link_and_keep_nonretarget_bits(self) -> None:
+        relation, _ = compile_file(EXAMPLES / "bitcoin_header_pair.s31")
+        assignment = json.loads((EXAMPLES / "bitcoin_header_pair.valid.json").read_text())
+        self.assertEqual(evaluate_relation(relation, assignment), assignment["public_outputs"])
+        parent = encode_header80(assignment["private_inputs"]["parent"])
+        child = encode_header80(assignment["private_inputs"]["child"])
+        import hashlib
+        self.assertEqual(child[4:36], hashlib.sha256(hashlib.sha256(parent).digest()).digest())
+        self.assertEqual(hashlib.sha256(hashlib.sha256(child).digest()).digest()[::-1].hex(),
+                         "00000000839a8e6886ab5951d76f411475428afc90947ee320161bbf18eb6048")
+        swapped = copy.deepcopy(assignment)
+        swapped["private_inputs"]["parent"], swapped["private_inputs"]["child"] = (
+            swapped["private_inputs"]["child"], swapped["private_inputs"]["parent"])
+        with self.assertRaisesRegex(OracleError, r"assertions\[0\] failed"):
+            evaluate_relation(relation, swapped)
+        changed_bits = copy.deepcopy(assignment)
+        changed_bits["private_inputs"]["child"][37] = 0x1c00
+        with self.assertRaisesRegex(OracleError, r"assertions\[1\] failed"):
+            evaluate_relation(relation, changed_bits)
+
     def test_field_cast_arithmetic_and_selection(self) -> None:
         self.assertEqual(reference_m31_from_u16([0, 65535]), [0, 65535])
         with self.assertRaises(ValueError):

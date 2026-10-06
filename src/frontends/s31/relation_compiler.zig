@@ -75,6 +75,8 @@ pub fn compileRaw(comptime V: type, allocator: std.mem.Allocator, program: relat
             .u256_add_checked => try u256Binary(V, &ctx, lhs.?, rhs.?, false, true),
             .hash_sha256d_header => try sha256dHeader(V, &ctx, lhs.?),
             .bitcoin_target_mainnet => try mainnetTarget(V, &ctx, lhs.?),
+            .bitcoin_prev_hash => try headerSlice(V, &ctx, lhs.?, 2, 16),
+            .bitcoin_header_bits => try headerSlice(V, &ctx, lhs.?, 36, 2),
             .repeat => blk: {
                 const constants = try scratch.alloc(?Simd, node.body.?.len);
                 for (node.body.?, constants) |step, *slot| slot.* = if (step.constant) |value| try circuit.builder.simd.repeat(V, &ctx, M31.fromCanonical(value), length) else null;
@@ -271,6 +273,8 @@ fn compileWithSpansMode(comptime V: type, allocator: std.mem.Allocator, program:
             .u256_add_checked => try u256Binary(V, &ctx, entries[node.lhs.?], entries[node.rhs.?], false, true),
             .hash_sha256d_header => try sha256dHeader(V, &ctx, entries[node.lhs.?]),
             .bitcoin_target_mainnet => try mainnetTarget(V, &ctx, entries[node.lhs.?]),
+            .bitcoin_prev_hash => try headerSlice(V, &ctx, entries[node.lhs.?], 2, 16),
+            .bitcoin_header_bits => try headerSlice(V, &ctx, entries[node.lhs.?], 36, 2),
             .repeat => blk: {
                 if (chip_mode) {
                     const spec = program.repeatedStepChip().?;
@@ -427,6 +431,15 @@ fn mainnetTarget(comptime V: type, ctx: *circuit.builder.Context(V), input: Entr
     const wrappers = try ctx.scratch().alloc(circuit.builder.wrappers.M31Wrapper(Var), 16);
     for (raw, wrappers) |wire, *wrapped| wrapped.* = .newUnsafe(wire);
     return .{ .shape = .{ .kind = .u16, .length = 16 }, .lanes = try circuit.builder.simd.pack(V, ctx, wrappers), .raw = raw };
+}
+
+fn headerSlice(comptime V: type, ctx: *circuit.builder.Context(V), input: Entry, start: usize, length: usize) !Entry {
+    const header = input.raw orelse return error.InvalidHeaderOperand;
+    if (header.len != 40 or start + length > header.len) return error.InvalidHeaderOperand;
+    const raw = header[start .. start + length];
+    const wrappers = try ctx.scratch().alloc(circuit.builder.wrappers.M31Wrapper(Var), length);
+    for (raw, wrappers) |wire, *wrapped| wrapped.* = .newUnsafe(wire);
+    return .{ .shape = .{ .kind = .u16, .length = length }, .lanes = try circuit.builder.simd.pack(V, ctx, wrappers), .raw = raw };
 }
 
 /// Little-endian 16-bit limbs. Every output digit is range checked and every

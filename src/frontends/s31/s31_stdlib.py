@@ -197,6 +197,20 @@ class Builder:
         return self.emit("bitcoin_target_mainnet", Type("uint256", 16),
                          wanted=wanted, span=span, lhs=self.realize(value).ref)
 
+    def header_prev_hash(self, value: Value, *, wanted: str | None = None,
+                         span: dict[str, int] | None = None) -> Value:
+        if value.typ != Type("bytes80", 40):
+            raise TypeErrorS31("prev_hash requires a serialized Bytes80 header")
+        return self.emit("bitcoin_prev_hash", Type("bytes32", 16),
+                         wanted=wanted, span=span, lhs=self.realize(value).ref)
+
+    def header_bits(self, value: Value, *, wanted: str | None = None,
+                    span: dict[str, int] | None = None) -> Value:
+        if value.typ != Type("bytes80", 40):
+            raise TypeErrorS31("header_bits requires a serialized Bytes80 header")
+        return self.emit("bitcoin_header_bits", Type("u16", 2),
+                         wanted=wanted, span=span, lhs=self.realize(value).ref)
+
     def hash_pair(self, family: str, lhs: Value, rhs: Value, *, wanted: str | None = None,
                   span: dict[str, int] | None = None) -> Value:
         expected = Type("digest", 8, family)

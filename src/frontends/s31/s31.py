@@ -80,14 +80,16 @@ def abi(source: dict, lowering: str) -> dict:
             length = node["length"]
         elif op in {"sum_lanes", "u256_le"}:
             length = 1
-        elif op in {"hash_sha256d_header", "bitcoin_target_mainnet"}:
+        elif op in {"hash_sha256d_header", "bitcoin_target_mainnet", "bitcoin_prev_hash"}:
             length = 16
+        elif op == "bitcoin_header_bits":
+            length = 2
         elif op in {"hash_blake2s", "hash_blake2s_leaf", "hash_blake2s_pair",
                     "hash_poseidon2_leaf", "hash_poseidon2_pair"}:
             length = 8
         else:
             length = shapes[node["lhs"]]["length"]
-        shapes[node["name"]] = {"kind": "u16" if op in {"u256_add", "u256_add_checked", "hash_sha256d_header", "bitcoin_target_mainnet"} else "m31", "length": length}
+        shapes[node["name"]] = {"kind": "u16" if op in {"u256_add", "u256_add_checked", "hash_sha256d_header", "bitcoin_target_mainnet", "bitcoin_prev_hash", "bitcoin_header_bits"} else "m31", "length": length}
     return {
         "schema": "s31-public-abi-v1",
         "encoding": "eight canonical M31 words, encoded little-endian u32; unused words are zero" if lowering.startswith("direct-") else "eight little-endian u32 words; unused words are zero",
@@ -501,6 +503,11 @@ def equations(package: Path) -> dict:
                 "mantissa sign bit = 0; target bytes[28..31] = 0; target != 0",
             ))
             notes.append("The high-byte zero rule is equivalent to target <= Bitcoin mainnet powLimit, whose highest nonzero byte is 27 and equals 255.")
+        elif op in {"bitcoin_prev_hash", "bitcoin_header_bits"}:
+            start, length = (2, 16) if op == "bitcoin_prev_hash" else (36, 2)
+            shape = ("u16", length)
+            field_equations.append(f"{name}[j] = {node['lhs']}[{start}+j], 0 <= j < {length}")
+            notes.append("This is a fixed view of already range-checked header limbs; assertions against the view reuse those same circuit wires.")
         elif op in hashes:
             shape = ("m31", 8)
             arguments = ", ".join(node[key] for key in ("lhs", "rhs") if key in node)

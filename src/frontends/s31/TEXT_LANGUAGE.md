@@ -117,6 +117,8 @@ Raw BLAKE2s-256 bytes are distinct from its reduced M31-word digest.
 | `std::bytes::limbs_m31(x)` | `cast_m31` | `Bytes32` or `UInt256`; preserves all sixteen limb values. |
 | `std::hash::sha256d_header(header)` | `hash_sha256d_header` | `Bytes80` to byte-exact `Bytes32`; two first-pass and one second-pass SHA-256 blocks are fully constrained. |
 | `std::bitcoin::target_mainnet(header)` | `bitcoin_target_mainnet` | `Bytes80` to `UInt256`; decodes `nBits` at bytes 72–75 and constrains a nonzero target within mainnet `powLimit`. |
+| `std::bitcoin::prev_hash(header)` | `bitcoin_prev_hash` | `Bytes80` to `Bytes32`; fixed view of serialized bytes 4–35. |
+| `std::bitcoin::header_bits(header)` | `bitcoin_header_bits` | `Bytes80` to `[u16; 2]`; fixed view of serialized bytes 72–75. |
 
 Qualified standard operations are compiler-owned. An explicit `use std@1;`
 pin is recorded in `stdlib-lock.json`; the lock digest is embedded in the

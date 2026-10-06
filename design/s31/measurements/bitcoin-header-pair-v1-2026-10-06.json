@@ -1,0 +1,42 @@
+{
+  "schema": "s31-trial-v1",
+  "program": "bitcoin_header_pair",
+  "profile": "sparse-wide-v5",
+  "lowering": "sparse-wide-gate",
+  "program_sha256": "22e06fb4dbf48531d072fa3c563f771504f12b681794ae82b6e0b87dcfac3210",
+  "canonical_ir_sha256": "60f2e2e106c73563cfecf5648495b71c89783119c6770c0a6929357f029134f8",
+  "proof_sha256": "d3220125ef29f97442edc324ab837b698561f7e66334c5c4c5ad8eeb08af9f36",
+  "proof_bytes": 369753,
+  "raw": {
+    "blake_g": 0,
+    "eq": 9519,
+    "m31_to_u32": 7320,
+    "qm31_ops": 714559,
+    "triple_xor": 0
+  },
+  "padded": {
+    "blake_g": 0,
+    "eq": 16384,
+    "m31_to_u32": 8192,
+    "qm31_ops": 1048576,
+    "triple_xor": 0
+  },
+  "preprocessed_cells": 8511488,
+  "prove_seconds": 0.42170520802028477,
+  "verify_seconds": 0.473951332969591,
+  "prover_stages": {
+    "fri_pow_seconds": 0.006223,
+    "interaction_pow_seconds": 0.003531,
+    "prove_excluding_pow_seconds": 0.313714,
+    "prove_seconds": 0.323468,
+    "setup_seconds": 0.072833,
+    "witness_seconds": 0.009636
+  },
+  "native_verifier_accepted": true,
+  "changed_public_statement_rejected": "public_outputs.segment_root[0]",
+  "timing_note": "Single local observations; proof-of-work and cache state affect timings.",
+  "fixture": "src/frontends/s31/examples/bitcoin_header_pair.valid.json",
+  "source": "src/frontends/s31/examples/bitcoin_header_pair.s31",
+  "hash_calls": 2,
+  "sha_compressions": 6
+}

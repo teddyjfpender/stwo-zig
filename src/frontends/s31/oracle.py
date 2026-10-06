@@ -29,7 +29,8 @@ _HASH_OPS = frozenset({
 _OPS = frozenset({"constant", "cast_m31", "add", "mul", "add_const",
                   "mul_const", "sum_lanes", "select", "repeat",
                   "u256_add", "u256_le", "u256_add_checked",
-                  "hash_sha256d_header", "bitcoin_target_mainnet"}) | _HASH_OPS
+                  "hash_sha256d_header", "bitcoin_target_mainnet",
+                  "bitcoin_prev_hash", "bitcoin_header_bits"}) | _HASH_OPS
 _NODE_FIELDS = frozenset({"name", "op", "lhs", "rhs", "selector",
                           "constant", "length", "rounds", "body"})
 
@@ -160,11 +161,11 @@ def _validated_shapes(relation: Mapping[str, Any]) -> tuple[dict[str, tuple[str,
             if lhs != ("u16", 16) or rhs != ("u16", 16):
                 raise OracleError(f"{name}: {op} requires two 16-limb u256 operands")
             shape = ("u16", 16) if op in {"u256_add", "u256_add_checked"} else ("m31", 1)
-        elif op in ("hash_sha256d_header", "bitcoin_target_mainnet"):
+        elif op in ("hash_sha256d_header", "bitcoin_target_mainnet", "bitcoin_prev_hash", "bitcoin_header_bits"):
             _absent(node, "rhs", "constant", "length", "rounds", "body")
             if lhs != ("u16", 40):
                 raise OracleError(f"{name}: {op} requires forty u16 limbs")
-            shape = ("u16", 16)
+            shape = ("u16", 2 if op == "bitcoin_header_bits" else 16)
         elif op == "select":
             _absent(node, "constant", "length", "rounds", "body")
             if rhs is None:
@@ -308,6 +309,9 @@ def evaluate_relation(relation: Mapping[str, Any], assignment: Mapping[str, Any]
             if not 0 < target <= 0xffff << 208:
                 raise OracleError(f"{name}: target exceeds mainnet powLimit or is zero")
             result = [(target >> (16 * index)) & 0xffff for index in range(16)]
+        elif op in ("bitcoin_prev_hash", "bitcoin_header_bits"):
+            start = 2 if op == "bitcoin_prev_hash" else 36
+            result = lhs[start:start + (16 if op == "bitcoin_prev_hash" else 2)]
         elif op == "select":
             bit = values[node["selector"]][0]
             if bit not in (0, 1):

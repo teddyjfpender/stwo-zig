@@ -101,6 +101,12 @@ example. For an actual Bitcoin header proof, see
 [`bitcoin_header_pow.s31`](examples/bitcoin_header_pow.s31) and its
 [worked walkthrough](docs/bitcoin-sha256d.md): three constrained SHA-256
 compression blocks, mainnet `nBits` decoding, and a hash ≤ target assertion.
+[`bitcoin_header_pair.s31`](examples/bitcoin_header_pair.s31) extends this
+to two real, linked headers with both PoW checks and equal `nBits` for a
+non-retarget step. It still uses the generic SHA circuit. The
+[`sha_chip_plan.zig` boundary](sha_chip_plan.zig) prepares three SHA AIR calls
+per header and tests their byte-level linkage; proof-bound chip integration
+and an S31 recursive verifier remain future work.
 
 From the repository root:
 

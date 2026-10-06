@@ -90,6 +90,8 @@ contract and worked polynomial are in [the library chapter](library.md).
 | `std::hash::poseidon2_leaf/pair`, `std::hash::blake2s_leaf/pair` | The [typed hash operations](hashes.md). |
 | `std::hash::sha256d_header(header)` | Fully constrained double SHA-256 of an 80-byte header, returning `Bytes32`. |
 | `std::bitcoin::target_mainnet(header)` | Constrained decoding of header `nBits` into a mainnet-limited `UInt256` target. |
+| `std::bitcoin::prev_hash(header)` | `Bytes32` view of serialized header bytes 4–35; reuses the forty range-checked input limbs. |
+| `std::bitcoin::header_bits(header)` | `[u16; 2]` view of serialized header bytes 72–75; reuses the input limbs. |
 | `std::merkle::path_poseidon2`, `std::merkle::path_blake2s` | Fixed-depth path built from hashes and selects. |
 
 The older unqualified spellings (`select`, `poseidon2_leaf`, etc.) still work
@@ -162,6 +164,7 @@ semantics:
 | `hash_blake2s`, `hash_blake2s_leaf/pair`, `hash_poseidon2_leaf/pair` | The [exact encodings and framing](hashes.md); each returns `m31[8]`. |
 | `hash_sha256d_header` | `lhs: u16[40]` gives raw double-SHA digest as `u16[16]`; three compression blocks are constrained. |
 | `bitcoin_target_mainnet` | `lhs: u16[40]` gives a nonzero, mainnet-limited compact target as `u16[16]`. |
+| `bitcoin_prev_hash`, `bitcoin_header_bits` | `lhs: u16[40]` gives fixed views of limbs 2–17 or 36–37, respectively; no new independent witness. |
 
 An assertion names two values of equal type and length. It is part of the
 relation even if it is not used by the output expression. The JSON parser

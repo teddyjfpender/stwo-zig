@@ -101,6 +101,14 @@ def check_examples() -> None:
     assert bitcoin_relation == checked_bitcoin
     bitcoin_assignment = json.loads((S31 / "examples/bitcoin_header_hash.valid.json").read_text())
     assert evaluate_relation(bitcoin_relation, bitcoin_assignment) == bitcoin_assignment["public_outputs"]
+    pair_relation, _ = compile_text(
+        text_block_containing(DOCS / "bitcoin-sha256d.md", "circuit bitcoin_header_pair"),
+        "bitcoin-sha256d.md",
+    )
+    checked_pair, _ = compile_text((S31 / "examples/bitcoin_header_pair.s31").read_text())
+    assert pair_relation == checked_pair
+    pair_assignment = json.loads((S31 / "examples/bitcoin_header_pair.valid.json").read_text())
+    assert evaluate_relation(pair_relation, pair_assignment) == pair_assignment["public_outputs"]
     worked = DOCS / "worked-proofs.md"
     worked_lane, _ = compile_text(text_block(worked, "use std@1;"), "worked-proofs.md")
     assert worked_lane == lane_relation

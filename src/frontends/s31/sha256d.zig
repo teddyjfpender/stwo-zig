@@ -6,7 +6,7 @@
 const std = @import("std");
 const core = @import("stwo_core");
 const circuit = @import("stwo_circuit_frontend");
-const sha = @import("s31_sha256_ref");
+const sha = @import("s31_sha_provider").compression;
 
 const M31 = core.fields.m31.M31;
 const QM31 = core.fields.qm31.QM31;
