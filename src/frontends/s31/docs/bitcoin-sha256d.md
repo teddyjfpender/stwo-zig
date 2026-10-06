@@ -242,7 +242,10 @@ Bitcoin Core's [median-time-past rule](https://github.com/bitcoin/bitcoin/blob/m
 compares the child against the sole previous timestamp. It does not enforce
 retargeting, general eleven-block median time past, the contextual future-time
 limit, version policy, height, accumulated chainwork, best-chain selection,
-or recursive verification. The genesis hash is an explicit checkpoint. The
+or recursive header-chain state transitions. The
+[sparse-wide recursion wrapper](recursion-sparse-wide.md) can verify this
+proof profile inside an outer circuit, but it does not supply the missing
+consensus state transition. The genesis hash is an explicit checkpoint. The
 [light-client brief](../../../../design/s31/BITCOIN_LIGHT_CLIENT.md) tracks
 those separate relations.
 

@@ -481,6 +481,39 @@ pub fn verifySparseWide(
     raw: []const u8,
     source_digest: [32]u8,
 ) !void {
+    return verifySparseWideInternal(allocator, layout, template, pcs, preprocessed_root, circuit_hash, public_words, raw, source_digest, null);
+}
+
+/// Convert only after authenticating the entire native STARK, including its
+/// sparse-wide profile prefix, lookup closure, Merkle openings, and FRI.
+pub fn verifySparseWideAndCapture(
+    allocator: std.mem.Allocator,
+    layout: *const circuit.common.sparse_wide.Layout,
+    template: *const cpu.air.Bundle,
+    pcs: core.pcs.config_v2.PcsConfigV2,
+    preprocessed_root: H.Hash,
+    circuit_hash: H.Hash,
+    public_words: [8]u32,
+    raw: []const u8,
+    source_digest: [32]u8,
+) !cpu.verifier_proof.VerifierProof {
+    var converted: cpu.verifier_proof.VerifierProof = undefined;
+    try verifySparseWideInternal(allocator, layout, template, pcs, preprocessed_root, circuit_hash, public_words, raw, source_digest, &converted);
+    return converted;
+}
+
+fn verifySparseWideInternal(
+    allocator: std.mem.Allocator,
+    layout: *const circuit.common.sparse_wide.Layout,
+    template: *const cpu.air.Bundle,
+    pcs: core.pcs.config_v2.PcsConfigV2,
+    preprocessed_root: H.Hash,
+    circuit_hash: H.Hash,
+    public_words: [8]u32,
+    raw: []const u8,
+    source_digest: [32]u8,
+    converted_out: ?*cpu.verifier_proof.VerifierProof,
+) !void {
     const header_len = SPARSE_WIDE_MAGIC.len + 8 + 4 * 16;
     if (raw.len < header_len or raw.len > (16 << 20) or !std.mem.eql(u8, raw[0..SPARSE_WIDE_MAGIC.len], SPARSE_WIDE_MAGIC))
         return error.InvalidNativeProof;
@@ -555,6 +588,17 @@ pub fn verifySparseWide(
     var capture: core.verifier.ProofCapture(H) = undefined;
     try core.verifier.verifyBorrowedExWithProofCapture(H, MC, allocator, &handles, &channel, &scheme, &stark, true, &capture);
     defer capture.deinit(allocator);
+    if (converted_out) |out| {
+        const trace_log = std.math.sub(u32, pcs.trace_lifting_log_size, pcs.fri_config.log_blowup_factor) catch
+            return error.InvalidProofConfig;
+        const config: @import("stwo_circuit_recursion_wire").circuit_serialize.ProofConfig = .{
+            .n_preprocessed_columns = layout.entries.len,
+            .component_shapes = &circuit.statements.sparse_wide_statement.shapes,
+            .log_trace_size = trace_log,
+            .fri = pcs.fri_config,
+        };
+        out.* = try cpu.verifier_proof.fromVerifiedCapture(allocator, &stark, &capture, config, &sums, nonce, 0);
+    }
 }
 
 const DIRECT_GATE_MAGIC = "S31NAT4G";

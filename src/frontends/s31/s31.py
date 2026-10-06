@@ -188,16 +188,19 @@ def build_json(source_path: Path, output: Path, lowering: str = "gate",
         if lock_bytes is not None:
             (staging / "stdlib-lock.json").write_bytes(lock_bytes)
         recursive_option: tuple[str, ...] = ()
+        recursive_next_option: tuple[str, ...] = ()
         fold_option: tuple[str, ...] = ()
         state_fold_option: tuple[str, ...] = ()
-        if lowering == "gate":
+        if lowering in {"gate", "sparse-wide-gate"}:
             recursive_key = staging / "recursive-verification-key.json"
             invoke(str(prover), "recurse-keygen", str(staging / "verification-key.json"),
                    str(recursive_key))
+            recursive_option = (f"-Ds31-recursive-key={recursive_key}",)
             recursive_next_key = staging / "recursive-verification-key-level2.json"
             invoke(str(prover), "recurse-keygen-next", str(staging / "verification-key.json"),
                    str(recursive_key), str(recursive_next_key))
-            recursive_option = (f"-Ds31-recursive-key={recursive_key}",)
+            recursive_next_option = (f"-Ds31-recursive-next-key={recursive_next_key}",)
+        if lowering == "gate":
             fold_key = staging / "fixed-fold-verification-key.json"
             invoke(str(prover), "fold-keygen", str(staging / "verification-key.json"),
                    str(recursive_key), str(fold_key))
@@ -214,7 +217,7 @@ def build_json(source_path: Path, output: Path, lowering: str = "gate",
             f"-Ds31-source={source_path}", f"-Ds31-name={name}",
             f"-Ds31-key={staging / 'verification-key.json'}",
             *recursive_option,
-            *((f"-Ds31-recursive-next-key={recursive_next_key}",) if recursive_option else ()),
+            *recursive_next_option,
             *fold_option,
             *state_fold_option,
             *lock_option,
@@ -230,7 +233,9 @@ def build_json(source_path: Path, output: Path, lowering: str = "gate",
             artifacts.append("stdlib-lock.json")
         if recursive_option:
             artifacts.append("recursive-verification-key.json")
+        if recursive_next_option:
             artifacts.append("recursive-verification-key-level2.json")
+        if fold_option:
             artifacts.append("fixed-fold-verification-key.json")
             if state_fold_option:
                 artifacts.append("state-fold-verification-key.json")
@@ -354,12 +359,11 @@ def verify_package(package: Path) -> dict:
     if (type(fri_fold_step) is not int or fri_fold_step not in (1, 4) or
             (fri_fold_step == 4 and manifest.get("lowering") != "gate")):
         raise ValueError("invalid S31 package FRI fold step")
-    if manifest.get("lowering") == "gate":
-        if not {"recursive-verification-key.json", "recursive-verification-key-level2.json", "fixed-fold-verification-key.json"}.issubset(artifacts):
-            raise ValueError("gate package is missing its recursive verification keys")
+    if manifest.get("lowering") in {"gate", "sparse-wide-gate"}:
+        if not {"recursive-verification-key.json", "recursive-verification-key-level2.json"}.issubset(artifacts):
+            raise ValueError("recursive package is missing its verification keys")
         recursive_key = json.loads((package / "recursive-verification-key.json").read_text())
         recursive_next_key = json.loads((package / "recursive-verification-key-level2.json").read_text())
-        fold_key = json.loads((package / "fixed-fold-verification-key.json").read_text())
         if (recursive_key.get("schema") != "s31-recursive-verification-key-v2" or
                 recursive_key.get("child_key_sha256") != file_hash(package / "verification-key.json") or
                 recursive_key.get("projection_sha256") != PROJECTION_SHA256 or
@@ -370,6 +374,10 @@ def verify_package(package: Path) -> dict:
                 recursive_next_key.get("projection_sha256") != PROJECTION_SHA256 or
                 recursive_next_key.get("air_bundle_sha256") != AIR_BUNDLE_SHA256):
             raise ValueError("S31 level-2 recursive key does not match its child key and pinned AIR")
+    if manifest.get("lowering") == "gate":
+        if not {"recursive-verification-key.json", "recursive-verification-key-level2.json", "fixed-fold-verification-key.json"}.issubset(artifacts):
+            raise ValueError("gate package is missing its recursive verification keys")
+        fold_key = json.loads((package / "fixed-fold-verification-key.json").read_text())
         if (fold_key.get("schema") != "s31-fixed-fold-verification-key-v2" or
                 fold_key.get("base_recursive_key_sha256") != file_hash(package / "recursive-verification-key.json") or
                 fold_key.get("projection_sha256") != PROJECTION_SHA256 or
@@ -987,7 +995,7 @@ def main() -> None:
     sub.add_argument("package", type=Path)
     sub.add_argument("assignment", type=Path)
     sub.add_argument("proof", type=Path)
-    sub = commands.add_parser("wrap", help="prove verification of a saved gate-profile S31 proof")
+    sub = commands.add_parser("wrap", help="prove verification of a saved gate or sparse-wide S31 proof")
     sub.add_argument("package", type=Path)
     sub.add_argument("child_proof", type=Path)
     sub.add_argument("outer_proof", type=Path)
@@ -1135,20 +1143,21 @@ def main() -> None:
         write_json(statement_path, statement)
         print(f"public statement: {statement_path}")
     elif args.command == "wrap":
-        if manifest["lowering"] != "gate":
-            raise ValueError("wrap requires a gate-profile package")
+        if manifest["lowering"] not in {"gate", "sparse-wide-gate"}:
+            raise ValueError("wrap requires a gate or sparse-wide package")
         child = args.child_proof.resolve()
         statement = args.statement.resolve() if args.statement else Path(str(child) + ".statement.json")
         outer = args.outer_proof.resolve()
         outer.parent.mkdir(parents=True, exist_ok=True)
         executable = package / "bin" / f"s31-{manifest['name']}-prover"
-        print(invoke(str(executable), "recurse-wrap", str(child), str(statement),
+        command = "recurse-wide-wrap" if manifest["lowering"] == "sparse-wide-gate" else "recurse-wrap"
+        print(invoke(str(executable), command, str(child), str(statement),
                      str(outer), str(package / "verification-key.json"),
                      *(("--low-memory",) if args.low_memory else ())), end="")
         print(f"recursive statement: {outer}.statement.json")
     elif args.command == "wrap-next":
-        if manifest["lowering"] != "gate":
-            raise ValueError("wrap-next requires a gate-profile package")
+        if manifest["lowering"] not in {"gate", "sparse-wide-gate"}:
+            raise ValueError("wrap-next requires a gate or sparse-wide package")
         child = args.child_proof.resolve()
         statement = args.statement.resolve() if args.statement else Path(str(child) + ".statement.json")
         outer = args.outer_proof.resolve()
@@ -1257,16 +1266,17 @@ def main() -> None:
             print(invoke(str(verifier), "state-fold-verify", str(outer), str(statement)), end="")
         print(f"state-fold top proof: {outer}")
     elif args.command == "audit-recursive":
-        if manifest["lowering"] != "gate":
-            raise ValueError("audit-recursive requires a gate-profile package")
+        if manifest["lowering"] not in {"gate", "sparse-wide-gate"}:
+            raise ValueError("audit-recursive requires a gate or sparse-wide package")
         child = args.child_proof.resolve()
         statement = args.statement.resolve() if args.statement else Path(str(child) + ".statement.json")
         executable = package / "bin" / f"s31-{manifest['name']}-prover"
-        print(invoke(str(executable), "recurse-audit", str(child), str(statement),
+        command = "recurse-wide-audit" if manifest["lowering"] == "sparse-wide-gate" else "recurse-audit"
+        print(invoke(str(executable), command, str(child), str(statement),
                      str(package / "verification-key.json")), end="")
     elif args.command == "audit-recursive-next":
-        if manifest["lowering"] != "gate":
-            raise ValueError("audit-recursive-next requires a gate-profile package")
+        if manifest["lowering"] not in {"gate", "sparse-wide-gate"}:
+            raise ValueError("audit-recursive-next requires a gate or sparse-wide package")
         child = args.child_proof.resolve()
         statement = args.statement.resolve() if args.statement else Path(str(child) + ".statement.json")
         executable = package / "bin" / f"s31-{manifest['name']}-prover"
@@ -1299,15 +1309,15 @@ def main() -> None:
         executable = package / "bin" / f"s31-{manifest['name']}-native-verifier"
         print(invoke(str(executable), str(proof), str(statement), str(package / "verification-key.json")), end="")
     elif args.command == "verify-recursive":
-        if manifest["lowering"] != "gate":
-            raise ValueError("verify-recursive requires a gate-profile package")
+        if manifest["lowering"] not in {"gate", "sparse-wide-gate"}:
+            raise ValueError("verify-recursive requires a gate or sparse-wide package")
         proof = args.proof.resolve()
         statement = args.statement.resolve() if args.statement else Path(str(proof) + ".statement.json")
         executable = package / "bin" / f"s31-{manifest['name']}-native-verifier"
         print(invoke(str(executable), "recurse-verify", str(proof), str(statement)), end="")
     elif args.command == "verify-recursive-next":
-        if manifest["lowering"] != "gate":
-            raise ValueError("verify-recursive-next requires a gate-profile package")
+        if manifest["lowering"] not in {"gate", "sparse-wide-gate"}:
+            raise ValueError("verify-recursive-next requires a gate or sparse-wide package")
         proof = args.proof.resolve()
         statement = args.statement.resolve() if args.statement else Path(str(proof) + ".statement.json")
         executable = package / "bin" / f"s31-{manifest['name']}-native-verifier"

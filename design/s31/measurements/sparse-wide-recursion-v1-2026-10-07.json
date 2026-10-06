@@ -1,0 +1,34 @@
+{
+  "circuit_witness_mutations_rejected": 10,
+  "compiler_sha256": "016f87adaab7f2f8a2bdcdb28e846fa10f87615b0fd6e552cb6a0c5cd14c7a77",
+  "host_negative_checks": [
+    "corrupt_child_proof",
+    "unsealed_child_key",
+    "wrong_child_public_claim",
+    "wrong_first_child_public_words",
+    "wrong_first_outer_public_words",
+    "wrong_first_root",
+    "corrupt_first_proof",
+    "wrong_chain_leaf_child_public_words",
+    "wrong_chain_head_child_public_words",
+    "wrong_chain_head_outer_public_words",
+    "corrupt_second_proof"
+  ],
+  "profile": "sparse-wide-v5 child, two circuit-v1 wrappers",
+  "proof_bytes": [
+    238047,
+    507885,
+    554779
+  ],
+  "schema": "s31-sparse-wide-recursion-acceptance-v1",
+  "second_level_mutations_rejected": 7,
+  "source_name": "wide_order",
+  "source_sha256": "3529efb2ab6c15e862ded7d1c336f7f0f555b0aefcd407a689b308d1d9c7d16a",
+  "wall_seconds": {
+    "audit": 1.0066752909915522,
+    "build": 61.258096167002805,
+    "leaf": 1.0922517909202725,
+    "wrap_1": 2.2051265839254484,
+    "wrap_2": 4.246018083998933
+  }
+}

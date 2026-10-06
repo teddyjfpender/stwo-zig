@@ -11,6 +11,9 @@ const builder = @import("../builder/circuit.zig");
 const M31 = core.fields.m31.M31;
 pub const N_COLUMNS: usize = pp.EQ_COLUMN_IDS.len + sparse.N_COLUMNS;
 pub const active_component_indices = [_]usize{ 0, 1, 3, 10 };
+/// Transcript domain shared by the native prover and recursive statement.
+pub const profile_tag: u64 = 0x5333315350573501;
+pub const profile_zero_words = [_]u32{ 0, 0, 0 };
 
 pub const Layout = struct {
     entries: [N_COLUMNS]pp.LayoutEntry,

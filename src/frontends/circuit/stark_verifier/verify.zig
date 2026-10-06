@@ -162,6 +162,11 @@ pub fn verify(
     if (config.logEvaluationDomainSize() > 30) return error.EvaluationDomainTooLarge;
     const log_trace_size = config.log_trace_size;
     var channel = channel_mod.Channel.init(V, ctx);
+    // Profile-specific native provers mix their domain and source identity
+    // before the channel salt. A statement that supplies this hook must
+    // reproduce that exact prefix inside the verifier circuit.
+    if (comptime @hasDecl(@TypeOf(statement.*), "mixProfile"))
+        try statement.mixProfile(ctx, &channel);
 
     try channel.mixQm31s(V, ctx, &.{proof.channel_salt});
     try fri.mixFriConfig(V, ctx, &channel, config.fri);

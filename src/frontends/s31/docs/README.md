@@ -49,6 +49,9 @@ text .s31 ──parse/typecheck/specialize──▶ normalized relation JSON
 - [One-level proof recursion](recursion.md): a real S31 child proof verified
    inside a circuit, an independently verified outer proof, adversarial
    statements, costs, and the precise boundary before a repeatable fold.
+- [Sparse-wide recursion](recursion-sparse-wide.md): a four-component wide
+   arithmetic proof wrapped twice, with the profile transcript, fixed-key
+   binding, proof polynomials, and direct adversarial checks.
 - [Two-level recursive chain](recursion-chain.md): wrap an already recursive
    proof, track nested public digests, and verify from the top proof.
 - [Fixed-key recursive fold](recursion-fold.md): repeat proof verification

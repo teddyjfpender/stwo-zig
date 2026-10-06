@@ -114,7 +114,9 @@ checks, equal `nBits`, and the strict first-step median-time-past rule. It still
 SHA circuit. The
 [`sha_chip_plan.zig` boundary](sha_chip_plan.zig) prepares three SHA AIR calls
 per header and tests their byte-level linkage; proof-bound chip integration
-and a recursive verifier for the sparse-wide Bitcoin profile remain future work.
+remains future work. The [sparse-wide recursive verifier](docs/recursion-sparse-wide.md)
+now wraps this profile through two depth-specific gate proofs; a repeatable
+Bitcoin header-chain transition is still separate work.
 
 The packed SHA AIR has a focused six-call proof test for two SHA256d headers:
 
@@ -133,6 +135,9 @@ circuit, and wrapped in an outer proof checked by a generated native verifier.
 The [two-level chapter](docs/recursion-chain.md) wraps that first outer proof
 again. Gate packages seal both recursive verification keys at build time, so
 routine outer verification does not rebuild the large verifier topology.
+Sparse-wide packages also seal two wrapper keys, and the
+[sparse-wide chapter](docs/recursion-sparse-wide.md) shows this path with a
+256-bit arithmetic source, ten direct verifier mutations, and measured costs.
 The [fixed-key fold chapter](docs/recursion-fold.md) shows repeatable proof
 verification under one sealed key and a constrained `u16` step counter.
 The [state-fold chapter](docs/state-fold.md) extracts a typed four-lane

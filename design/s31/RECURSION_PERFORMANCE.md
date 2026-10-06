@@ -72,6 +72,42 @@ and the top proof shrank from 554,591 to 372,317 bytes (32.9% lower). The
 same source, assignment and visible PoW, blowup and query counts were used;
 these are local measurements, not a universal speedup or a soundness proof.
 
+## Sparse-wide leaf bridge
+
+The [sparse-wide acceptance record](measurements/sparse-wide-recursion-v1-2026-10-07.json)
+uses `wide_order.s31` as a four-component `S31NAT5W` leaf. Its verifier circuit
+has 6,972,423 raw variables. The first and second outer proofs use the
+ordinary circuit AIR, so they can be checked by the existing native gate
+verifier. The three proofs were 238,047, 507,885, and 554,779 bytes in that
+run. End-to-end command wall times were 1.09 s to prove the leaf, 2.21 s to
+wrap it, and 4.25 s to wrap the first wrapper; each command includes native
+verification and setup. Building and sealing both wrapper keys took 61.26 s.
+Those are single local samples and should not be extrapolated to larger
+Bitcoin header sources.
+
+The bridge adds a profile-specific transcript prefix and a four-component
+statement; the rest of the in-circuit STARK verifier is shared. The child
+source digest, root, circuit identity, component sizes, and PCS parameters
+are fixed by the sealed key. Native proof capture occurs only after full
+verification; the outer circuit independently checks the captured openings.
+Ten post-authentication circuit mutations and seven second-level mutations
+are rejected. Package and statement checks also reject changed proof bytes,
+public words, roots, and key bytes. These checks exercise implementation
+consistency; they are not a cryptographic soundness proof.
+The [cross-key fixture](../../src/frontends/s31/acceptance_sparse_wide_key_binding.py)
+also confirms that a same-AIR source rename changes the sparse-wide profile
+identity, rejects leaf proof replay, and changes the outer AIR root. A
+repaired clone statement still fails outer proof verification.
+
+This bridge still uses the generic verifier circuit and its Blake2s path
+checks. A homogeneous fold for changing Bitcoin header state and an
+authenticated SHA AIR chip remain efficiency and functionality targets.
+The [two-header Bitcoin acceptance record](measurements/bitcoin-sparse-wide-recursion-v1-2026-10-07.json)
+confirms the same two-wrapper path for the byte-exact SHA256d and PoW
+relation: 9,733,516 raw verifier variables, 372,904-byte leaf proof,
+521,838-byte first wrapper, and 560,419-byte second wrapper. The measured
+wrap command wall times were 2.51 s and 4.80 s in one local run.
+
 The next efficiency sequence is:
 
 1. Reduce remaining Merkle/FRI verifier work through exact common-path

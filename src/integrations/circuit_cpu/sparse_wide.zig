@@ -18,7 +18,7 @@ const sparse_pp = circuit.common.sparse_wide;
 const sparse_trace = circuit.witness.sparse_wide;
 const PerComponent = circuit.common.component_list.PerComponent;
 
-pub const profile_tag: u64 = 0x5333315350573501;
+pub const profile_tag: u64 = sparse_pp.profile_tag;
 pub const Proof = old.Internal.CircuitProof;
 
 /// A topology-owned sparse preprocessed commitment. A proof leases the tree,
@@ -84,7 +84,7 @@ pub fn mixProfile(channel: *Channel, request: Request) void {
     for (&words, 0..) |*word, i|
         word.* = std.mem.readInt(u32, request.source_digest[4 * i ..][0..4], .little);
     channel.mixU32s(&words);
-    channel.mixU32s(&.{ 0, 0, 0 });
+    channel.mixU32s(&sparse_pp.profile_zero_words);
 }
 
 pub fn identityHash(

@@ -1,0 +1,34 @@
+{
+  "circuit_witness_mutations_rejected": 10,
+  "compiler_sha256": "c238f4d4913977ce998e740357703a8858878eae89cc33ca6af4349153a80f3c",
+  "host_negative_checks": [
+    "corrupt_child_proof",
+    "unsealed_child_key",
+    "wrong_child_public_claim",
+    "wrong_first_child_public_words",
+    "wrong_first_outer_public_words",
+    "wrong_first_root",
+    "corrupt_first_proof",
+    "wrong_chain_leaf_child_public_words",
+    "wrong_chain_head_child_public_words",
+    "wrong_chain_head_outer_public_words",
+    "corrupt_second_proof"
+  ],
+  "profile": "sparse-wide-v5 child, two circuit-v1 wrappers",
+  "proof_bytes": [
+    372904,
+    521838,
+    560419
+  ],
+  "schema": "s31-sparse-wide-recursion-acceptance-v1",
+  "second_level_mutations_rejected": 7,
+  "source_name": "bitcoin_header_pair",
+  "source_sha256": "307fe5bc6c76cf4210837b10bba5eeb9dd4f288491b62ca01381eb66d29a6d0c",
+  "wall_seconds": {
+    "audit": 1.5924555829260498,
+    "build": 65.58371999999508,
+    "leaf": 1.1918998749461025,
+    "wrap_1": 2.5079612089321017,
+    "wrap_2": 4.802938417065889
+  }
+}

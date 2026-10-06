@@ -1,17 +1,18 @@
 # One-level S31 proof recursion
 
-S31 now proves that a proof of an S31 program verified. The first wrapper
-supports the full eleven-component `circuit-v1` (`gate`) profile. It converts
+S31 now proves that a proof of an S31 program verified. This chapter follows
+the full eleven-component `circuit-v1` (`gate`) profile. It converts
 the child proof into the repository's in-circuit STARK verifier format,
 constrains verification, and proves that verifier circuit. The generated S31
 native verifier independently checks the outer proof through `recurse-verify`.
 
 This chapter works through the first level. S31 can wrap that outer
 proof once more with a depth-specific key; see the [two-level chain](recursion-chain.md).
-It can also repeat a proof under [one fixed fold key](recursion-fold.md). The Bitcoin
-header example uses `sparse-wide-gate`; its different AIR roster is rejected
-by this adapter. An exact sparse-wide recursive verifier and a homogeneous
-wrapper key's sparse-wide counterpart is needed before header proofs can be folded repeatedly.
+It can also repeat a proof under [one fixed fold key](recursion-fold.md).
+The Bitcoin header examples use `sparse-wide-gate`. Their four-component
+verifier and two depth-specific wrappers are documented in
+[sparse-wide recursion](recursion-sparse-wide.md). A homogeneous
+sparse-wide header-chain fold remains separate work.
 
 ## What the outer proof establishes
 
