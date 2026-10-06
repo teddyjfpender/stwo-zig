@@ -20,7 +20,7 @@ const prover_types = @import("../prover/types.zig");
 const pcs = @import("stwo_core").pcs;
 const statement_v2 = @import("../air/statement_v2.zig");
 
-pub const NATIVE_ADMISSION_AVAILABLE = true;
+pub const VERIFIER_SIDE_ADMISSION_AVAILABLE = true;
 pub const RECURSIVE_PROOF_ACTIVATION = false;
 pub const PROOF_VISIBLE_IO_RELATION = false;
 
