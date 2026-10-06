@@ -144,14 +144,17 @@ python3 src/frontends/s31/acceptance_fixed_fold.py
 
 `fold-next` may be repeated until step 65,535. `--low-memory` applies to
 `fold-base` and `fold-next`; it produced byte-identical proof bytes in the
-acceptance run. `audit-fold-next` tests a saved fold proof against altered
-leaf words, step, root, branch selector, inverse, and previous counter.
+acceptance run. `audit-fold-base` tests a first wrapper proof against altered
+leaf words, base root, step, branch selector, inverse, and previous counter.
+`audit-fold-next` applies the same checks to a saved fold proof, including
+its selected recursive root.
 
 In one local `arith4_m31` step-3 sample, proving took 3.65 s wall time and
 9.31 GB peak resident memory; `--low-memory` took 3.91 s and 7.00 GB. The
 proof was 560,468 bytes. Native top verification took 0.45 s and 205 MB.
 These are single local measurements, not comparative benchmarks or promised
-performance across machines.
+performance across machines. The [raw measurement record](../../../../design/s31/measurements/fixed-fold-v2-2026-10-07.json)
+contains the key geometry, four proof sizes, and the tested negative cases.
 
 This fold repeats the **same leaf claim**. It does not yet update Bitcoin
 chain state, enforce the next header's previous hash and target, or accept

@@ -65,8 +65,7 @@ def main() -> None:
         first = work / "first.proof"
         run("python3", str(HERE / "s31.py"), "prove", str(package), str(ASSIGNMENT), str(leaf))
         run("python3", str(HERE / "s31.py"), "wrap", str(package), str(leaf), str(first))
-        run(str(prover), "fold-audit", str(first), f"{first}.statement.json",
-            str(child_key), str(first_key), str(fold_key))
+        run("python3", str(HERE / "s31.py"), "audit-fold-base", str(package), str(first))
 
         folds = [work / f"fold{step}.proof" for step in range(4)]
         run("python3", str(HERE / "s31.py"), "fold-base", str(package), str(first), str(folds[0]))

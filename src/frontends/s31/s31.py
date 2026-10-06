@@ -954,10 +954,14 @@ def main() -> None:
     sub.add_argument("package", type=Path)
     sub.add_argument("child_proof", type=Path)
     sub.add_argument("--statement", type=Path)
-    sub = commands.add_parser("audit-fold-next", help="challenge a fixed-key fold's recursive circuit inputs")
-    sub.add_argument("package", type=Path)
-    sub.add_argument("child_proof", type=Path)
-    sub.add_argument("--statement", type=Path)
+    for command, description in (
+        ("audit-fold-base", "challenge a fixed-key fold's base circuit inputs"),
+        ("audit-fold-next", "challenge a fixed-key fold's recursive circuit inputs"),
+    ):
+        sub = commands.add_parser(command, help=description)
+        sub.add_argument("package", type=Path)
+        sub.add_argument("child_proof", type=Path)
+        sub.add_argument("--statement", type=Path)
     sub = commands.add_parser("verify")
     sub.add_argument("package", type=Path)
     sub.add_argument("proof", type=Path)
@@ -1101,13 +1105,14 @@ def main() -> None:
         print(invoke(str(executable), "recurse-audit-next", str(child), str(statement),
                      str(package / "verification-key.json"),
                      str(package / "recursive-verification-key.json")), end="")
-    elif args.command == "audit-fold-next":
+    elif args.command in ("audit-fold-base", "audit-fold-next"):
         if manifest["lowering"] != "gate":
-            raise ValueError("audit-fold-next requires a gate-profile package")
+            raise ValueError(f"{args.command} requires a gate-profile package")
         child = args.child_proof.resolve()
         statement = args.statement.resolve() if args.statement else Path(str(child) + ".statement.json")
         executable = package / "bin" / f"s31-{manifest['name']}-prover"
-        print(invoke(str(executable), "fold-audit-next", str(child), str(statement),
+        command = "fold-audit" if args.command == "audit-fold-base" else "fold-audit-next"
+        print(invoke(str(executable), command, str(child), str(statement),
                      str(package / "verification-key.json"),
                      str(package / "recursive-verification-key.json"),
                      str(package / "fixed-fold-verification-key.json")), end="")

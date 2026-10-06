@@ -239,14 +239,22 @@ pub fn verifierMain(embedded_key: []const u8, embedded_recursive_key: []const u8
     if (args.len == 4 and std.mem.eql(u8, args[1], "fold-verify"))
         return verifyFold(allocator, args[2], args[3], embedded_key, embedded_recursive_key, embedded_fold_key);
     if (args.len != 4) {
-        std.debug.print("usage: s31-PROGRAM-native-verifier PROOF PUBLIC-STATEMENT.json VERIFICATION-KEY.json | recurse-verify OUTER-PROOF OUTER-STATEMENT.json\n", .{});
+        std.debug.print("usage: s31-PROGRAM-native-verifier PROOF PUBLIC-STATEMENT.json VERIFICATION-KEY.json\n       recurse-verify PROOF STATEMENT.json | recurse-verify-next PROOF CHAIN.json | fold-verify PROOF FOLD-STATEMENT.json\n", .{});
         return error.InvalidArguments;
     }
     try verify(allocator, args[1], args[2], args[3], embedded_key);
 }
 
 fn usage() error{InvalidArguments} {
-    std.debug.print("usage: s31-program check | inspect | run ASSIGNMENT.json | prove ASSIGNMENT.json PROOF | recurse-check ASSIGNMENT.json CHILD-PROOF CHILD-KEY.json | recurse-prove ASSIGNMENT.json CHILD-PROOF OUTER-PROOF CHILD-KEY.json [--low-memory] | recurse-wrap CHILD-PROOF CHILD-STATEMENT.json OUTER-PROOF CHILD-KEY.json [--low-memory] | recurse-wrap-next OUTER-PROOF OUTER-STATEMENT.json NEXT-PROOF CHILD-KEY.json RECURSIVE-KEY.json NEXT-KEY.json [--low-memory] | recurse-audit CHILD-PROOF CHILD-STATEMENT.json CHILD-KEY.json | recurse-audit-next OUTER-PROOF OUTER-STATEMENT.json CHILD-KEY.json RECURSIVE-KEY.json | recurse-keygen CHILD-KEY.json RECURSIVE-KEY.json | recurse-keygen-next CHILD-KEY.json RECURSIVE-KEY.json NEXT-KEY.json | fold-keygen CHILD-KEY.json RECURSIVE-KEY.json FOLD-KEY.json | fold-audit FIRST-PROOF FIRST-STATEMENT CHILD-KEY RECURSIVE-KEY FOLD-KEY\n", .{});
+    std.debug.print("usage: s31-program check | inspect | run ASSIGNMENT.json | prove ASSIGNMENT.json PROOF\n", .{});
+    std.debug.print("       recurse-check ASSIGNMENT.json CHILD-PROOF CHILD-KEY.json | recurse-prove ASSIGNMENT.json CHILD-PROOF OUTER-PROOF CHILD-KEY.json [--low-memory]\n", .{});
+    std.debug.print("       recurse-wrap CHILD-PROOF CHILD-STATEMENT.json OUTER-PROOF CHILD-KEY.json [--low-memory]\n", .{});
+    std.debug.print("       recurse-wrap-next OUTER-PROOF OUTER-STATEMENT.json NEXT-PROOF CHILD-KEY.json RECURSIVE-KEY.json NEXT-KEY.json [--low-memory]\n", .{});
+    std.debug.print("       recurse-audit CHILD-PROOF CHILD-STATEMENT.json CHILD-KEY.json | recurse-audit-next OUTER-PROOF OUTER-STATEMENT.json CHILD-KEY.json RECURSIVE-KEY.json\n", .{});
+    std.debug.print("       recurse-keygen CHILD-KEY.json RECURSIVE-KEY.json | recurse-keygen-next CHILD-KEY.json RECURSIVE-KEY.json NEXT-KEY.json\n", .{});
+    std.debug.print("       fold-keygen CHILD-KEY.json RECURSIVE-KEY.json FOLD-KEY.json | fold-audit FIRST-PROOF FIRST-STATEMENT CHILD-KEY RECURSIVE-KEY FOLD-KEY\n", .{});
+    std.debug.print("       fold-wrap-base|fold-wrap-next CHILD-PROOF CHILD-STATEMENT OUT-PROOF CHILD-KEY RECURSIVE-KEY FOLD-KEY [--low-memory]\n", .{});
+    std.debug.print("       fold-audit-next FOLD-PROOF FOLD-STATEMENT CHILD-KEY RECURSIVE-KEY FOLD-KEY\n", .{});
     return error.InvalidArguments;
 }
 
@@ -1430,6 +1438,44 @@ fn auditFoldBase(
     defer captured.deinit();
     var values = try fixed_fold.verifyPrepared(allocator, projection_bytes, verified.layout, verified.pcs, &captured, verified.root, fold_root, statement.value.outer_public_words, 0);
     defer values.deinit();
+    var wrong_words = statement.value.outer_public_words;
+    wrong_words[0] ^= 1;
+    if (fixed_fold.verifyPrepared(allocator, projection_bytes, verified.layout, verified.pcs, &captured, verified.root, fold_root, wrong_words, 0)) |accepted| {
+        var invalid = accepted;
+        invalid.deinit();
+        return error.FoldVerifierAcceptedWrongLeaf;
+    } else |err| switch (err) {
+        error.VerificationFailed, error.EqFailedOnEval => {},
+        else => return err,
+    }
+    var wrong_base_root = verified.root;
+    wrong_base_root[0] ^= 1;
+    if (fixed_fold.verifyPrepared(allocator, projection_bytes, verified.layout, verified.pcs, &captured, wrong_base_root, fold_root, statement.value.outer_public_words, 0)) |accepted| {
+        var invalid = accepted;
+        invalid.deinit();
+        return error.FoldVerifierAcceptedWrongBaseRoot;
+    } else |err| switch (err) {
+        error.VerificationFailed, error.EqFailedOnEval => {},
+        else => return err,
+    }
+    if (fixed_fold.verifyPrepared(allocator, projection_bytes, verified.layout, verified.pcs, &captured, verified.root, fold_root, statement.value.outer_public_words, 1)) |accepted| {
+        var invalid = accepted;
+        invalid.deinit();
+        return error.FoldVerifierAcceptedWrongStep;
+    } else |err| switch (err) {
+        error.VerificationFailed, error.EqFailedOnEval => {},
+        else => return err,
+    }
+    inline for (.{ .base_selector, .zero_test_inverse, .previous_counter }) |mutation| {
+        if (fixed_fold.verifyPreparedWithMutation(allocator, projection_bytes, verified.layout, verified.pcs, &captured, verified.root, fold_root, statement.value.outer_public_words, 0, mutation)) |accepted| {
+            var invalid = accepted;
+            invalid.deinit();
+            return error.FoldVerifierAcceptedForgedCounter;
+        } else |err| switch (err) {
+            error.VerificationFailed, error.EqFailedOnEval => {},
+            else => return err,
+        }
+    }
     var topology_ctx = try fixed_fold.topology(allocator, projection_bytes, verified.layout, verified.pcs, verified.root);
     defer topology_ctx.deinit();
     if (!sameTopology(&values.circuit, &topology_ctx.circuit)) return error.FoldValueDependentTopology;
@@ -1441,7 +1487,7 @@ fn auditFoldBase(
     defer pp.deinit(allocator);
     const actual_root = try pp.preprocessedRoot(allocator, fold_pcs.fri_config.log_blowup_factor);
     if (!std.mem.eql(u8, &actual_root, &fold_root)) return error.FoldKeyTopologyMismatch;
-    std.debug.print("S31 fixed-fold base audit: vars={d} qm31_ops={d} valid=true\n", .{
+    std.debug.print("S31 fixed-fold base audit: vars={d} qm31_ops={d} valid=true rejected=6\n", .{
         values.circuit.n_vars,
         values.circuit.mul.items.len + values.circuit.add.items.len + values.circuit.sub.items.len,
     });

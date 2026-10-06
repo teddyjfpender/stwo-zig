@@ -202,7 +202,7 @@ pub fn verifyPreparedWithMutation(
     if (mutation) |kind| switch (kind) {
         .base_selector => ctx.value_table.items[indices.base] = if (step == 0) QM31.zero() else QM31.one(),
         .zero_test_inverse => ctx.value_table.items[indices.inverse] = QM31.zero(),
-        .previous_counter => ctx.value_table.items[indices.previous] = QM31.fromBase(M31.fromCanonical(step)),
+        .previous_counter => ctx.value_table.items[indices.previous] = QM31.fromBase(M31.fromCanonical(if (step == 0) 1 else step)),
     };
     if (!try ctx.isCircuitValid()) return error.VerificationFailed;
     return ctx;
