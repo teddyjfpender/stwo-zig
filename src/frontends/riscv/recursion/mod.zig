@@ -63,6 +63,8 @@ pub const segment_leaf_local_projection_v3 =
     @import("segment_leaf_local_projection_v3.zig");
 pub const segment_leaf_local_verified_link_v3 =
     @import("segment_leaf_local_verified_link_v3.zig");
+pub const segment_leaf_wrapper_stage_manifest_v3 =
+    @import("segment_leaf_wrapper_stage_manifest_v3.zig");
 pub const segment_leaf_outer_air_v2 = @import("segment_leaf_outer_air_v2.zig");
 pub const segment_leaf_outer_authority_v2 = @import("segment_leaf_outer_authority_v2.zig");
 pub const segment_outer_cohort_v2 = @import("segment_outer_cohort_v2.zig");

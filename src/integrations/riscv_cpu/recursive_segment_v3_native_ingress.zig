@@ -17,7 +17,9 @@ pub fn Verified(comptime Engine: type) type {
         proof_bytes: []u8,
         global_metadata: recursion.segment_leaf_local_authority_v3.MetadataV3,
         link: recursion.segment_leaf_local_verified_link_v3.VerifiedLinkV3,
+        interaction_pow: u64,
         capture: prover.VerifiedSegmentV2CaptureForEngine(Engine),
+        capture_owned: bool = true,
 
         const Self = @This();
 
@@ -31,7 +33,7 @@ pub fn Verified(comptime Engine: type) type {
         }
 
         pub fn deinit(self: *Self) void {
-            self.capture.deinit(self.allocator);
+            if (self.capture_owned) self.capture.deinit(self.allocator);
             self.allocator.free(self.proof_bytes);
             self.* = undefined;
         }
@@ -124,6 +126,7 @@ pub fn proveAndVerify(
         .proof_bytes = proof_bytes,
         .global_metadata = global_metadata,
         .link = link,
+        .interaction_pow = native_claim.interaction_pow,
         .capture = capture,
     };
     try result.validate();

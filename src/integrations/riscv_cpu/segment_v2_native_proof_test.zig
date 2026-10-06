@@ -1067,6 +1067,80 @@ test "native V2 proves a rebased leaf-local V3 segment without widening the AIR"
         error.LocalBoundaryMismatch,
         admitted.link.validateAgainst(&wrong_clocks, &admitted.capture.public_data.data, &admitted.capture.receipt),
     );
+
+    // The real native capture can feed the existing 39-component V2 outer
+    // transaction. The resulting stage is deliberately not a V3 root.
+    const recursion = frontend.recursion;
+    var profile = try recursion.captured_fri.Owned.init(
+        allocator,
+        recursion.captured_fri.ProfileConfig.fromPcs(test_config),
+        &admitted.capture.proof,
+    );
+    defer profile.deinit();
+    var tree_heights: [recursion.fixed_profile.TREE_COUNT]u32 = undefined;
+    @memcpy(&tree_heights, profile.trace_tree_heights);
+    const shape = try recursion.transcript_shape.derive(
+        profile.circuit.profile(),
+        tree_heights,
+        .{
+            .sampled_value_count = profile.sampled_value_count,
+            .queried_values_per_query = profile.queried_values_per_query,
+            .claimed_sum_count = profile.claimed_sum_count,
+            .interaction_pow_bits = profile.interaction_pow_bits,
+            .pcs_pow_bits = profile.pcs_pow_bits,
+        },
+    );
+    const schedule = recursion.air.verifier_schedule;
+    var vm_plan = try schedule.Plan.initShape(allocator, try schedule.vmProgramSpec(0, 0), shape);
+    defer vm_plan.deinit();
+    var recursion_plan = try schedule.Plan.initShape(allocator, schedule.RECURSION_PROGRAM_SPEC_V1, shape);
+    defer recursion_plan.deinit();
+    const keys = try recursion.segment_leaf_authority_v2.VerifierKeyAuthorityV2.init(
+        digest("recursive-v3-local-segment-vk"),
+        digest("recursive-v3-local-parent-vk"),
+    );
+    const leaf_outer = @import("recursive_segment_v2_leaf_outer.zig");
+    var prepared = try leaf_outer.PreparedNativeV2LeafOuter.init(
+        allocator,
+        allocator,
+        &admitted.capture,
+        test_config,
+        admitted.interaction_pow,
+        keys,
+        recursion.air.universal_challenges.UniversalRelations.dummy(),
+        .{ .vm = &vm_plan, .recursion = &recursion_plan },
+    );
+    admitted.capture_owned = false;
+    defer prepared.deinit();
+    const outer_stage = @import("recursive_segment_v3_outer_stage.zig");
+    var stage = try outer_stage.proveAndVerifyPrepared(
+        allocator,
+        &prepared,
+        &admitted.global_metadata,
+        &admitted.link,
+        .{ .worker_count = 1 },
+    );
+    defer stage.deinit(allocator);
+    try stage.manifest.validateAgainst(
+        &admitted.global_metadata,
+        &admitted.link,
+        &prepared.capture.public_data.data,
+        &prepared.capture.receipt,
+        &stage.publication,
+    );
+    try std.testing.expectError(error.V3WrapperProofUnavailable, stage.requireRecursiveV3Publication());
+    var forged_manifest = stage.manifest;
+    forged_manifest.outer_publication_id[0] ^= 1;
+    try std.testing.expectError(
+        error.InvalidV3StageManifest,
+        forged_manifest.validateAgainst(
+            &admitted.global_metadata,
+            &admitted.link,
+            &prepared.capture.public_data.data,
+            &prepared.capture.receipt,
+            &stage.publication,
+        ),
+    );
 }
 
 fn leafStatement(

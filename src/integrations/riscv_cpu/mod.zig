@@ -28,6 +28,8 @@ pub const resource_usage = @import("stwo_prover_engine").measurement.resource_re
 pub const recursive_fri_outer = @import("recursive_fri_outer.zig");
 /// Native proof and fresh verified capture for a globally positioned V3 leaf.
 pub const recursive_segment_v3_native_ingress = @import("recursive_segment_v3_native_ingress.zig");
+/// Proof-bearing local outer stage for a globally positioned V3 leaf.
+pub const recursive_segment_v3_outer_stage = @import("recursive_segment_v3_outer_stage.zig");
 
 comptime {
     prover_mod.assertProverEngine(CpuProverEngine);
