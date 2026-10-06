@@ -1178,6 +1178,23 @@ test "native V2 proves a rebased leaf-local V3 segment without widening the AIR"
         error.InvalidV3OuterProfile,
         StrongKernel.verifyArtifact(allocator, &prepared, &wrong_profile, &rejected_capture),
     );
+    // Postcard starts with the proof's own PCS PoW varint. Its value must
+    // agree with the pinned V3 profile even when the proof-byte identities
+    // are correctly recomputed after the mutation.
+    var wrong_embedded_config = strong.artifact;
+    wrong_embedded_config.proof_bytes = try allocator.dupe(u8, strong.artifact.proof_bytes);
+    defer allocator.free(wrong_embedded_config.proof_bytes);
+    try std.testing.expectEqual(@as(u8, 16), wrong_embedded_config.proof_bytes[0]);
+    wrong_embedded_config.proof_bytes[0] = 0;
+    const altered_identity = try recursion.canonical_proof_identity_v1.CanonicalProofIdentityV1.fromBytes(
+        wrong_embedded_config.proof_bytes,
+    );
+    wrong_embedded_config.proof_id = altered_identity.proof_id;
+    wrong_embedded_config.proof_sha256 = altered_identity.canonical_proof_sha_id;
+    try std.testing.expectError(
+        error.InvalidV3OuterProofShape,
+        StrongKernel.verifyArtifact(allocator, &prepared, &wrong_embedded_config, &rejected_capture),
+    );
     var wrong_nonce = strong.artifact;
     var rejected = false;
     for (0..64) |_| {

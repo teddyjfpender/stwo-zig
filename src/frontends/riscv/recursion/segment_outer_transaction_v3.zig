@@ -283,6 +283,11 @@ pub fn ForBackend(comptime Backend: type) type {
                     var proof_owned = true;
                     defer if (proof_owned) proof.deinit(allocator);
                     if (stream.pos != artifact.proof_bytes.len) return error.InvalidV3OuterProofShape;
+                    // The STARK verifier uses the pinned configuration, while
+                    // postcard also carries a configuration in the proof. Do
+                    // not admit bytes that describe a different protocol.
+                    if (!std.meta.eql(proof.commitment_scheme_proof.config, protocol.PCS_CONFIG))
+                        return error.InvalidV3OuterProofShape;
                     const commitments = proof.commitment_scheme_proof.commitments.items;
                     if (commitments.len != manifest_mod.TREE_COUNT + 1 or
                         !std.meta.eql(commitments[manifest_mod.PREPROCESSED_TREE_INDEX], artifact.preprocessed_root))
