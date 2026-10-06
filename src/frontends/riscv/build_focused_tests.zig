@@ -30,6 +30,14 @@ pub const specs = [_]Spec{
         .minimum = 15,
     },
     .{
+        .step = "test-recursion-direct-npv2-source",
+        .description = "Check the dormant proof-visible native ProgramV2 wire-ID export profile",
+        .root = "direct_npv2_source_test_root.zig",
+        .imports_prover_engine = true,
+        .filters = &.{"NPV2 base payload export"},
+        .minimum = 3,
+    },
+    .{
         .step = "test-recursion-direct-wrapper-kernel",
         .description = "Reject unqualified direct 47-row wrapper proofs and validate fixed roster storage",
         .root = "direct_wrapper_kernel_test_root.zig",
