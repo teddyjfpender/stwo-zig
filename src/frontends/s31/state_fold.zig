@@ -15,7 +15,11 @@ const Blake = circuit.builder.blake;
 const U32 = circuit.builder.wrappers.U32Wrapper(Var);
 
 pub const personalization: [8]u8 = "S31STF1!".*;
-pub const Mutation = enum { base_selector, zero_test_inverse, previous_counter, current_state };
+pub const Mutation = enum {
+    base_selector, zero_test_inverse, previous_counter, current_state,
+    trace_root, claimed_sum, channel_salt, sampled_trace_value,
+    trace_auth_path, fri_witness, fri_auth_path, fri_last_layer,
+};
 const WitnessIndices = struct { base: usize, inverse: usize, previous_counter: usize, current_state: usize };
 
 pub const StageStats = struct {
@@ -318,7 +322,19 @@ pub fn verifyPreparedWithMutation(
     defer table.deinit();
     var scratch = std.heap.ArenaAllocator.init(allocator);
     defer scratch.deinit();
-    const proof_values = try cpu.verifier_proof.circuitVerifierValues(scratch.allocator(), &adapted.proof, adapted.config);
+    var proof_values = try cpu.verifier_proof.circuitVerifierValues(scratch.allocator(), &adapted.proof, adapted.config);
+    if (mutation) |kind| switch (kind) {
+        .trace_root => proof_values.trace_root = Blake.hashValue(QM31, @splat(0)),
+        .claimed_sum => proof_values.claimed_sums[0] = proof_values.claimed_sums[0].add(QM31.one()),
+        .channel_salt => proof_values.channel_salt = proof_values.channel_salt.add(QM31.one()),
+        .sampled_trace_value => proof_values.eval_domain_samples.data[0][0].inner =
+            proof_values.eval_domain_samples.data[0][0].inner.add(QM31.one()),
+        .trace_auth_path => proof_values.eval_domain_auth_paths.trees[0][0] = Blake.hashValue(QM31, @splat(0)),
+        .fri_witness => proof_values.fri.witness[0][0] = proof_values.fri.witness[0][0].add(QM31.one()),
+        .fri_auth_path => proof_values.fri.auth_paths.trees[0][0] = Blake.hashValue(QM31, @splat(0)),
+        .fri_last_layer => proof_values.fri.last_layer_coefs[0] = proof_values.fri.last_layer_coefs[0].add(QM31.one()),
+        else => {},
+    };
     const config: circuit.statements.circuit_statement.CircuitConfig = .{
         .config = child_pcs,
         .preprocessed_column_log_sizes = child_layout,
@@ -347,6 +363,7 @@ pub fn verifyPreparedWithMutation(
         .zero_test_inverse => ctx.value_table.items[indices.inverse] = QM31.zero(),
         .previous_counter => ctx.value_table.items[indices.previous_counter] = QM31.fromBase(M31.fromCanonical(if (step == 0) 1 else step)),
         .current_state => ctx.value_table.items[indices.current_state] = QM31.fromBase(M31.fromCanonical(if (current[0] == 0) 1 else 0)),
+        else => {},
     };
     if (!try ctx.isCircuitValid()) return error.VerificationFailed;
     return ctx;

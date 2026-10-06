@@ -2359,10 +2359,12 @@ fn wrapStateFoldWithCache(
             wrong_previous[0] = if (wrong_previous[0] == 0) 1 else 0;
             try expectStateFoldCircuitRejection(allocator, verified, &captured, verified.base_root, verified.root, base_public_words, initial_state, current_state, wrong_previous, step, spec.body, null);
         }
-        inline for (.{ .base_selector, .zero_test_inverse, .previous_counter, .current_state }) |mutation| {
+        inline for (.{ .base_selector, .zero_test_inverse, .previous_counter, .current_state,
+            .trace_root, .claimed_sum, .channel_salt, .sampled_trace_value,
+            .trace_auth_path, .fri_witness, .fri_auth_path, .fri_last_layer }) |mutation| {
             try expectStateFoldCircuitRejection(allocator, verified, &captured, verified.base_root, verified.root, base_public_words, initial_state, current_state, previous_state, step, spec.body, mutation);
         }
-        std.debug.print("S31 state-fold circuit audit: step={d} valid=true rejected={d}\n", .{ step, if (base_case) @as(u32, 9) else 10 });
+        std.debug.print("S31 state-fold circuit audit: step={d} valid=true rejected={d}\n", .{ step, if (base_case) @as(u32, 17) else 18 });
         return;
     }
     {

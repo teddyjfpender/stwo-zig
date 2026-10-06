@@ -160,7 +160,9 @@ natively verifies the newly produced proof. The native top verifier needs
 only that proof and statement; earlier proof files can be deleted. The
 [acceptance fixture](../acceptance_state_fold.py) challenges repaired false
 state, step, leaf and initial-state claims; corrupt proof bytes; a changed
-step key; and nine or ten direct in-circuit mutations per branch. This is
+step key; and 17 or 18 direct in-circuit mutations per branch, including
+child transcript roots, sampled trace values, Merkle paths, claimed sums
+and FRI data. This is
 an engineering argument under STARK and BLAKE2s assumptions, not a formal
 cryptographic audit.
 
@@ -197,7 +199,8 @@ overwrite an existing proof or statement.
 
 `audit-state-fold-base` and `audit-state-fold-next` test the base selector,
 zero-test inverse, predecessor counter, current state, selected root,
-child output, and transition input directly in the circuit. `--low-memory`
+child output, transition input, and eight captured child-proof fields directly
+in the circuit. `--low-memory`
 on either wrap command trades some proving time for memory: one local step-3
 sample took 3.62 s and 9.31 GB peak RSS normally, versus 3.82 s and
 7.00 GB in low-memory mode. Both paths produced the same 550,173-byte

@@ -78,7 +78,10 @@ independent cryptographic audit.
   verifies its own result before writing it.
 - Base and recursive audits mutate leaf words, state, step, selected root,
   branch selector, inverse and predecessor counter inside the circuit.
-  The recursive audit also mutates the previous state. The acceptance suite
+  They also mutate the captured child trace root, claimed sum, channel salt,
+  sampled trace value, trace and FRI Merkle authentication paths, FRI witness
+  and last layer after native proof authentication. The recursive
+  audit also mutates the previous state. The acceptance suite
   checks four successive states against an independent Python M31 recurrence,
   low-memory proof equality, hostile rehashed statements, corrupted proofs,
   key substitution and verification after lower files are removed.
