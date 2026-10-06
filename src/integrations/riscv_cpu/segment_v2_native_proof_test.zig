@@ -1049,6 +1049,24 @@ test "native V2 proves a rebased leaf-local V3 segment without widening the AIR"
         error.GlobalPositionMismatch,
         admitted.link.validateAgainst(&shifted, &admitted.capture.public_data.data, &admitted.capture.receipt),
     );
+    var wrong_entry = admitted.global_metadata;
+    wrong_entry.entry.snapshot_id[0] ^= 1;
+    try std.testing.expectError(
+        error.LocalBoundaryMismatch,
+        admitted.link.validateAgainst(&wrong_entry, &admitted.capture.public_data.data, &admitted.capture.receipt),
+    );
+    var wrong_exit = admitted.global_metadata;
+    wrong_exit.exit.snapshot_id[0] ^= 1;
+    try std.testing.expectError(
+        error.LocalBoundaryMismatch,
+        admitted.link.validateAgainst(&wrong_exit, &admitted.capture.public_data.data, &admitted.capture.receipt),
+    );
+    var wrong_clocks = admitted.global_metadata;
+    wrong_clocks.exit.memory_clock_id[0] ^= 1;
+    try std.testing.expectError(
+        error.LocalBoundaryMismatch,
+        admitted.link.validateAgainst(&wrong_clocks, &admitted.capture.public_data.data, &admitted.capture.receipt),
+    );
 }
 
 fn leafStatement(
