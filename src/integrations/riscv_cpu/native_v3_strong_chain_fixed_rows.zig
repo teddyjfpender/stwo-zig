@@ -3,6 +3,24 @@ const std = @import("std");
 const recursion = @import("stwo_riscv_frontend").recursion;
 const M31 = @import("stwo_core").fields.m31.M31;
 
+/// Test-only nonconstant challenge draw bound to the independently pinned
+/// native key and Tree0. The production wrapper must draw after committing
+/// its own complete physical Tree0 and main roots instead.
+pub fn diagnosticRelations(
+    allocator: std.mem.Allocator,
+    pinned_key_id: [32]u8,
+    pinned_tree0: [8]u32,
+) !recursion.air.universal_challenges.UniversalRelations {
+    var channel = recursion.poseidon2_channel.Channel{};
+    channel.mixU32s(&.{0x5235_3044}); // R50D: diagnostic only.
+    var key_limbs: [16]u32 = undefined;
+    for (&key_limbs, 0..) |*limb, index|
+        limb.* = std.mem.readInt(u16, pinned_key_id[index * 2 ..][0..2], .little);
+    channel.mixU32s(&key_limbs);
+    channel.mixU32s(&pinned_tree0);
+    return recursion.air.universal_challenges.UniversalRelations.draw(allocator, &channel);
+}
+
 pub fn allocateV8StatementColumns(allocator: std.mem.Allocator, count: usize) ![][]M31 {
     const columns = try allocator.alloc([]M31, count);
     var written: usize = 0;

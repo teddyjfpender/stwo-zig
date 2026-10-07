@@ -93,7 +93,7 @@ test "real q193 native child feeds freshly verified q193 local outer" {
         recursion.protocol.PCS_CONFIG,
         verified.native.interaction_pow,
         keys,
-        recursion.air.universal_challenges.UniversalRelations.dummy(),
+        try fixed_rows.diagnosticRelations(allocator, known_key_id, known_tree0),
         .{ .vm = &vm_plan, .recursion = &recursion_plan },
     );
     verified.native.capture_owned = false;
@@ -185,7 +185,7 @@ fn diagnoseDirect47(
     defer freeDirectTree(allocator, interaction);
     try candidate.fillPreprocessed(allocator, cohort, &plan, &writer, &rows, pp);
     try candidate.fillMain(allocator, cohort, &plan, &writer, &rows, main);
-    const relations = recursion.air.universal_challenges.UniversalRelations.dummy();
+    const relations = prepared.outer_relations;
     const shared = try recursion.air.universal_shared_provider.SharedProviderRelations.init(&relations);
     const claims = try candidate.fillInteraction(allocator, cohort, &plan, &writer, &rows, &relations, &shared, main, interaction);
     const boundary = try cohort.publicWireBoundary(&relations);
@@ -311,7 +311,7 @@ fn diagnoseDirect50(
     const preprocessed_ns = phase_timer.lap();
     try candidate.fillMain(allocator, cohort, &plan, &writer, &rows50, main);
     const main_ns = phase_timer.lap();
-    const relations = recursion.air.universal_challenges.UniversalRelations.dummy();
+    const relations = prepared.outer_relations;
     const shared = try recursion.air.universal_shared_provider.SharedProviderRelations.init(&relations);
     const claims = try candidate.fillInteraction(allocator, cohort, &plan, &writer, &rows50, &relations, &shared, main, interaction);
     const interaction_ns = phase_timer.lap();
@@ -391,8 +391,8 @@ fn diagnoseDirect50(
         if (v8_wire_parameters[0].toU32() != prepared.capture.public_data.data.words().len or
             v8_plan.placements[36].geometry.log_size != recursion.air.segment_leaf_statement_source_direct_v8.LOG_SIZE)
             return error.V8RealLeafRosterParameterMismatch;
-        // The public count and G3S1 words must affect the challenge transcript,
-        // even though this diagnostic still uses a dummy relation draw below.
+        // This prefix binds the eventual wrapper draw; the current algebraic
+        // gate uses a separate draw from pinned native fixture identities.
         const global_statement_expected = recursion.segment_leaf_wrapper_global_statement_boundary_v6.ExpectedPublic{ .words = metadata.base_statement_words };
         var v8_admission_channel = Engine.Channel{};
         try v8_plan.mixBeforeRelationDraw(

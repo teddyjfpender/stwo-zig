@@ -120,8 +120,9 @@ check nor these two domain gates creates a proof.
 The real q193 diagnostic now also replaces the V5 row-36 claim with the
 physical V8 claim and charges the 412 verifier-owned G3S1 global statement
 words through their public boundary. The complete 50-row diagnostic has zero
-residual in all 47 relation domains and in the framework sum under one dummy
-relation draw. The focused test fails if either total reopens. This is an
+residual in all 47 relation domains and in the framework sum under a
+nonconstant relation draw bound to the pinned native key and Tree0. The
+focused test fails if either total reopens. This is an
 algebraic source-and-claim check, **not** a committed V8 cohort, a detached
 verification, or a proof. In particular, the old V5 plan still supplies the
 other rows; it does not bind a complete V8 roster or fixed Tree0.
@@ -161,8 +162,9 @@ not the complete Tree0 or a publishable wrapper key.
 The V8 candidate transcript prefix also commits the verifier-derived exact
 statement count and the expected G3S1 words before relation challenges, then
 the challenge-dependent G3S1 claim afterward. The real-leaf diagnostic
-exercises this ordering but still evaluates its relations under a dummy draw;
-the final detached proof must use the resulting Fiat–Shamir draw.
+exercises this ordering but currently evaluates relations under a separate
+fixture-bound draw; the final detached proof must use the roster's resulting
+Fiat–Shamir draw after the complete physical commitments.
 For the V6 base fixed schedule, rows 15 and 16 are deliberately unqualified.
 Their Tree0 columns include the exact dense input-use multiplicities of the
 native-public-sum arithmetic graph. Section lengths alone do not determine
@@ -300,7 +302,7 @@ published.
    V8 50-row cohort. Every direct AIR constraint and all 47 relation domains
    close, including the V2 wire, LAS2, and G3S1 boundaries, with one shared
    transcript-derived challenge draw and no free residual. The current
-   diagnostic closure uses a dummy draw and V5 rows outside the physical
+   diagnostic closure uses a fixture-bound draw and V5 rows outside the physical
    V7/V8 replacements; it does not satisfy this gate.
 2. A canonical 50-row proof is produced, serialized, producer state is
    destroyed, and a separately reconstructed verifier checks its fixed key,
