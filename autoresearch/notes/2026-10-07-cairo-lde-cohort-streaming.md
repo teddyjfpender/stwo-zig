@@ -45,24 +45,3 @@ cohort input slices resident for each tile, and retire those slices before
 the next tile. It must also bound the earlier LDE cohort generation and
 later AIR reads. Merely host-prefetching whole cohorts after transforms
 would bring them all back during the existing single fused leaf launch.
-
-## Concrete tiled mixed-leaf mapping
-
-Use a power-of-two leaf tile of `2^18` rows for the first H100 experiment.
-The native `mixed_leaf_kernel` already computes each leaf independently from
-its global row index. A range launch changes only the grid-to-row mapping:
-`row = row_first + local_thread`, then writes the same `result[row]` or
-`prefix[row]`. Existing calls retain `row_first=0,row_count=size`.
-
-For an input segment with `log_ratio=log2(size/source_size)`, the current
-`lifted_column_index` maps any tile to a conservative contiguous source-row
-interval. At ratio zero it is `[row_first,row_end)`. Otherwise it is
-`[2*floor(row_first/2^(log_ratio+1)),
- 2*(floor((row_end-1)/2^(log_ratio+1))+1))`. For each column, prefetch only
-that interval to the GPU before launching and back to CPU after the launch,
-all on the proof stream. This bounds active source pages by tile rows rather
-than the full interaction LDE; it is a placement optimization over exactly
-the same evaluation values. The same range mechanism must cover compact
-prefix and final mixed-leaf launches. The trace transform must retire each
-completed cohort before leaf hashing starts. The kernel and host range logic
-must reject overflow, out-of-domain ranges, and non-managed capacity calls.

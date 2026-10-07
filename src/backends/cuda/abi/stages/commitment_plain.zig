@@ -24,21 +24,6 @@ pub extern "c" fn stwo_blake2s_mixed_seeded_plain_on(
     stream: *anyopaque,
 ) c_int;
 pub const stwo_blake2s_mixed_seeded_on = stwo_blake2s_mixed_seeded_plain_on;
-pub extern "c" fn stwo_blake2s_mixed_seeded_range_plain_on(
-    size: u32,
-    row_first: u32,
-    row_count: u32,
-    count: u32,
-    segments: [*]const MixedSegment,
-    absorbed_before: u32,
-    seed_size: u32,
-    seed: ?[*]const field.ProgressiveBlake2sState,
-    prefix: ?[*]field.ProgressiveBlake2sState,
-    result: ?[*]field.Blake2sHash,
-    stream: *anyopaque,
-) c_int;
-pub const stwo_blake2s_mixed_seeded_range_on =
-    stwo_blake2s_mixed_seeded_range_plain_on;
 
 pub extern "c" fn stwo_blake2s_contiguous_leaf_plain_on(
     size: u32,

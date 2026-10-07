@@ -27,44 +27,7 @@ pub fn BuilderFor(comptime Ops: type) type {
             hashes: common.Hashes,
             layers: []const field.MerkleLayerDescriptor,
         ) Error!common.Hashes {
-            return baseFieldMixedImpl(
-                session, stage, size, segments, prefixes, hashes, layers,
-                false, 0,
-            );
-        }
-
-        /// Same leaf messages and reduction as `baseFieldMixed`, with a
-        /// bounded source-page window for managed-capacity proofs.
-        pub fn baseFieldMixedTiled(
-            session: anytype,
-            stage: telemetry.Stage,
-            size: u32,
-            segments: []const LiftedSegment,
-            prefixes: ?[2]common.ProgressiveStates,
-            hashes: common.Hashes,
-            layers: []const field.MerkleLayerDescriptor,
-            tile_rows: u32,
-        ) Error!common.Hashes {
-            return baseFieldMixedImpl(
-                session, stage, size, segments, prefixes, hashes, layers,
-                true, tile_rows,
-            );
-        }
-
-        fn baseFieldMixedImpl(
-            session: anytype,
-            stage: telemetry.Stage,
-            size: u32,
-            segments: []const LiftedSegment,
-            prefixes: ?[2]common.ProgressiveStates,
-            hashes: common.Hashes,
-            layers: []const field.MerkleLayerDescriptor,
-            comptime tiled: bool,
-            tile_rows: u32,
-        ) Error!common.Hashes {
             if (segments.len == 0) return error.InvalidMerkleLayout;
-            if (tiled and (tile_rows == 0 or !std.math.isPowerOfTwo(tile_rows)))
-                return error.InvalidMerkleLayout;
             try validateLayout(size, hashes.len, layers);
             for (segments) |segment| {
                 if (!std.math.isPowerOfTwo(segment.source_size) or
@@ -88,13 +51,7 @@ pub fn BuilderFor(comptime Ops: type) type {
                         if (end == segments.len) break;
                         if (seed) |previous| if (previous.len > rows) return error.InvalidMerkleLayout;
                         const destination = try storage[bank].sub(0, rows);
-                        if (tiled) try mixedTiles(
-                            session, stage, rows, segments[start..end],
-                            absorbed, seed, destination, null, tile_rows,
-                        ) else try Ops.mixedPrefix(
-                            session, stage, rows, segments[start..end],
-                            absorbed, seed, destination,
-                        );
+                        try Ops.mixedPrefix(session, stage, rows, segments[start..end], absorbed, seed, destination);
                         for (segments[start..end]) |segment| {
                             absorbed = std.math.add(u32, absorbed, @intCast(segment.columns.storage.len / segment.columns.column_stride_words)) catch return error.SizeOverflow;
                         }
@@ -104,44 +61,10 @@ pub fn BuilderFor(comptime Ops: type) type {
                     }
                 }
                 if (seed) |previous| {
-                    if (tiled) try mixedTiles(
-                        session, stage, size, segments[start..], absorbed,
-                        previous, null, leaves, tile_rows,
-                    ) else try Ops.mixedLeavesFromPrefix(
-                        session, stage, size, segments[start..], absorbed,
-                        previous, leaves,
-                    );
-                } else if (tiled) try mixedTiles(
-                    session, stage, size, segments, 0, null, null, leaves,
-                    tile_rows,
-                ) else try Ops.mixedLeaves(session, stage, size, segments, leaves);
-            } else if (tiled) try mixedTiles(
-                session, stage, size, segments, 0, null, null, leaves,
-                tile_rows,
-            ) else try Ops.mixedLeaves(session, stage, size, segments, leaves);
+                    try Ops.mixedLeavesFromPrefix(session, stage, size, segments[start..], absorbed, previous, leaves);
+                } else try Ops.mixedLeaves(session, stage, size, segments, leaves);
+            } else try Ops.mixedLeaves(session, stage, size, segments, leaves);
             return reduce(session, stage, hashes, layers);
-        }
-
-        fn mixedTiles(
-            session: anytype,
-            stage: telemetry.Stage,
-            size: u32,
-            segments: []const LiftedSegment,
-            absorbed: u32,
-            seed: ?common.ProgressiveStates,
-            prefix: ?common.ProgressiveStates,
-            leaves: ?common.Hashes,
-            tile_rows: u32,
-        ) Error!void {
-            if (comptime !@hasDecl(Ops, "mixedRange"))
-                return error.InvalidMerkleLayout;
-            var row_first: u32 = 0;
-            while (row_first < size) {
-                const count = @min(tile_rows, size - row_first);
-                try Ops.mixedRange(session, stage, size, segments, absorbed,
-                    seed, prefix, leaves, row_first, count);
-                row_first += count;
-            }
         }
 
         pub fn baseField(

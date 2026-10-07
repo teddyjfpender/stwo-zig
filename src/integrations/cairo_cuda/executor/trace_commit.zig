@@ -457,18 +457,6 @@ pub const Bound = struct {
         return self.executeWith(NativeOps, session);
     }
 
-    /// Capacity-only interaction commitment. Keep completed LDE cohorts on
-    /// the host and stage one mixed-leaf row tile at a time.
-    pub fn executeManagedCapacity(
-        self: *Bound,
-        session: anytype,
-    ) !void {
-        if (self.progressive_states != null or
-            !requiresProgressive(self.prepared.cohorts, self.prepared.tree_size))
-            return self.execute(session);
-        return self.executeWithPolicy(NativeOps, session, true);
-    }
-
     /// Materializes compact base-domain evaluations before trace generation.
     /// Fixed-table writers consume these immutable preprocessed columns. The
     /// compact image occupies the front of each already allocated LDE cohort;
@@ -558,15 +546,6 @@ pub const Bound = struct {
         comptime Ops: type,
         session: anytype,
     ) !void {
-        return self.executeWithPolicy(Ops, session, false);
-    }
-
-    fn executeWithPolicy(
-        self: *Bound,
-        comptime Ops: type,
-        session: anytype,
-        comptime managed_capacity: bool,
-    ) !void {
         var phase: []const u8 = "transform";
         var active_log: u32 = 0;
         errdefer std.debug.print("cairo-cuda commitment tree={} phase={s} log={} failed\n", .{ self.prepared.tree_ordinal, phase, active_log });
@@ -610,12 +589,6 @@ pub const Bound = struct {
                 self.twiddles_forward,
                 false,
             );
-            if (managed_capacity)
-                try session.context.prefetchManagedSlice(
-                    u32,
-                    evaluations.storage,
-                    false,
-                );
         }
         phase = "merkle";
         const Builder = commit_tree.BuilderFor(Ops.Commitment);
@@ -631,18 +604,7 @@ pub const Bound = struct {
             )
         else if (requiresProgressive(self.prepared.cohorts, self.prepared.tree_size)) blk: {
             if (comptime @hasDecl(Ops.Commitment, "mixedLeaves")) {
-                if (managed_capacity) {
-                    break :blk try Builder.baseFieldMixedTiled(
-                        session,
-                        self.prepared.stage,
-                        self.prepared.tree_size,
-                        self.lifted_segments,
-                        self.compact_prefix_states,
-                        self.merkle_hashes,
-                        self.prepared.layers,
-                        1 << 18,
-                    );
-                } else break :blk try Builder.baseFieldMixed(
+                break :blk try Builder.baseFieldMixed(
                     session,
                     self.prepared.stage,
                     self.prepared.tree_size,

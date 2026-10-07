@@ -18,42 +18,22 @@ pub fn OpsFor(comptime Api: type) type {
     return struct {
         /// One register-resident leaf message across packed heterogeneous cohorts.
         pub fn mixedLeaves(session: anytype, stage: telemetry.Stage, size: u32, segments: anytype, output: common.Hashes) runtime_error.Error!void {
-            try mixedWithSeed(session, stage, size, segments, 0, null, null, output, false, 0, size);
+            try mixedWithSeed(session, stage, size, segments, 0, null, null, output);
         }
 
         pub fn mixedPrefix(session: anytype, stage: telemetry.Stage, size: u32, segments: anytype, absorbed: u32, seed: ?common.ProgressiveStates, output: common.ProgressiveStates) runtime_error.Error!void {
-            try mixedWithSeed(session, stage, size, segments, absorbed, seed, output, null, false, 0, size);
+            try mixedWithSeed(session, stage, size, segments, absorbed, seed, output, null);
         }
 
         pub fn mixedLeavesFromPrefix(session: anytype, stage: telemetry.Stage, size: u32, segments: anytype, absorbed: u32, seed: common.ProgressiveStates, output: common.Hashes) runtime_error.Error!void {
-            try mixedWithSeed(session, stage, size, segments, absorbed, seed, null, output, false, 0, size);
+            try mixedWithSeed(session, stage, size, segments, absorbed, seed, null, output);
         }
 
-        /// Exact mixed-message rows in one bounded range. Called only for a
-        /// managed arena; the native ABI stages touched source pages around
-        /// this range on the ordered proof stream.
-        pub fn mixedRange(
-            session: anytype,
-            stage: telemetry.Stage,
-            size: u32,
-            segments: anytype,
-            absorbed: u32,
-            seed: ?common.ProgressiveStates,
-            prefix: ?common.ProgressiveStates,
-            output: ?common.Hashes,
-            row_first: u32,
-            row_count: u32,
-        ) runtime_error.Error!void {
-            try mixedWithSeed(session, stage, size, segments, absorbed, seed,
-                prefix, output, true, row_first, row_count);
-        }
-
-        fn mixedWithSeed(session: anytype, stage: telemetry.Stage, size: u32, segments: anytype, absorbed: u32, seed: ?common.ProgressiveStates, prefix: ?common.ProgressiveStates, output: ?common.Hashes, comptime tiled: bool, row_first: u32, row_count: u32) runtime_error.Error!void {
+        fn mixedWithSeed(session: anytype, stage: telemetry.Stage, size: u32, segments: anytype, absorbed: u32, seed: ?common.ProgressiveStates, prefix: ?common.ProgressiveStates, output: ?common.Hashes) runtime_error.Error!void {
             try requireCommitStage(stage);
             try common.requireStage(session, stage);
             if (size < 2 or !std.math.isPowerOfTwo(size) or
                 segments.len == 0 or segments.len > max_mixed_segments or
-                row_count == 0 or row_first >= size or row_count > size - row_first or
                 (prefix == null) == (output == null)) return error.InvalidKernelDescriptor;
             const output_range = if (prefix) |value| blk: {
                 if (value.len != size) return error.SizeOverflow;
@@ -84,15 +64,7 @@ pub fn OpsFor(comptime Api: type) type {
                 total_columns = std.math.add(u32, total_columns, source.column_count) catch return error.SizeOverflow;
                 descriptor.* = .{ .columns = source.pointer, .stride_words = source.stride_words, .capacity_words = segment.columns.storage.len, .source_size = segment.source_size };
             }
-            const status = if (tiled)
-                Api.stwo_blake2s_mixed_seeded_range_on(
-                    size, row_first, row_count, @intCast(segments.len),
-                    &descriptors, absorbed,
-                    if (seed) |value| try common.count(value.len) else 0,
-                    seed_pointer, prefix_pointer, hashes_pointer,
-                    session.context.stream,
-                )
-            else if (output != null and seed == null and absorbed == 0)
+            const status = if (output != null and seed == null and absorbed == 0)
                 Api.stwo_blake2s_mixed_leaf_on(size, @intCast(segments.len), &descriptors, hashes_pointer.?, session.context.stream)
             else
                 Api.stwo_blake2s_mixed_seeded_on(size, @intCast(segments.len), &descriptors, absorbed, if (seed) |value| try common.count(value.len) else 0, seed_pointer, prefix_pointer, hashes_pointer, session.context.stream);
