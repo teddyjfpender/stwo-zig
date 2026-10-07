@@ -468,10 +468,18 @@ pub const Prepared = struct {
             self.bindings.relation_elements,
         );
         phase = "relation_trace";
-        try relation_stage.TraceCommitNative.execute(
-            session,
-            self.controllers.relation,
-        );
+        if (placement == .capacity and transaction.isManagedArena()) {
+            try relation_stage.TraceCommitNative.executeStreamed(
+                session,
+                self.controllers.relation,
+                LookupPrefetch{ .sources = self.controllers.relation_sources },
+            );
+        } else {
+            try relation_stage.TraceCommitNative.execute(
+                session,
+                self.controllers.relation,
+            );
+        }
         if (placement != .none) {
             phase = "release_host_lookup_policy";
             try preferManagedSlotHost(
@@ -913,6 +921,23 @@ fn managedPrefetchEnabled() bool {
 }
 
 const ManagedPlacement = enum { none, throughput, capacity };
+
+/// On the ordered proof stream, migration of a completed lookup view cannot
+/// race the following relation instance or the global claim reduction.
+const LookupPrefetch = struct {
+    sources: *const relation_binding.SourceRegistry,
+
+    pub fn afterInstance(
+        self: @This(),
+        session: anytype,
+        index: usize,
+    ) @import("stwo_cuda_backend").runtime.runtime_error.Error!void {
+        if (index >= self.sources.sources.len)
+            return error.InvalidKernelDescriptor;
+        if (self.sources.sources[index].lookup_words) |words|
+            try session.context.prefetchManagedSlice(u32, words, false);
+    }
+};
 
 fn managedPlacement() !ManagedPlacement {
     const value = std.posix.getenv("STWO_CUDA_MANAGED_PLACEMENT") orelse return .none;

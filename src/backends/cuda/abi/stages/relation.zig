@@ -399,3 +399,22 @@ pub extern "c" fn stwo_relation_fused_global_on(
     z: *const field.SecureField,
     stream: *anyopaque,
 ) c_int;
+
+/// Launch the same fused arithmetic for one authenticated global block range.
+/// The caller must supply the selected instance's validated topology offsets.
+pub extern "c" fn stwo_relation_fused_instance_on(
+    source_tables: [*]const u32,
+    descriptors: [*]const u32,
+    output_tables: [*]const u32,
+    geometry: [*]const Geometry,
+    instance_count: u32,
+    instance_index: u32,
+    pair_first: u32,
+    pair_blocks: u32,
+    row_first: u32,
+    row_blocks: u32,
+    alpha_powers: [*]const field.SecureField,
+    alpha_count: u32,
+    z: *const field.SecureField,
+    stream: *anyopaque,
+) c_int;

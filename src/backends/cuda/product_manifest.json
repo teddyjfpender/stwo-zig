@@ -144,6 +144,7 @@
       "stwo_relation_expand_challenges_on",
       "stwo_relation_fraction_chain_global_on",
       "stwo_relation_fused_global_on",
+      "stwo_relation_fused_instance_on",
       "stwo_relation_pairs_global_on",
       "stwo_relation_tail_global_on",
       "stwo_witness_casm_input_scatter_on",
