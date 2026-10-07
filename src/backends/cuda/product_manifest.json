@@ -37,6 +37,8 @@
       "stwo_blake2s_mixed_leaf_plain_on",
       "stwo_blake2s_mixed_seeded_on",
       "stwo_blake2s_mixed_seeded_plain_on",
+      "stwo_blake2s_mixed_seeded_range_on",
+      "stwo_blake2s_mixed_seeded_range_plain_on",
       "stwo_blake2s_pow_persistent_on",
       "stwo_blake2s_progressive_absorb_lifted_on",
       "stwo_blake2s_progressive_absorb_lifted_plain_on",

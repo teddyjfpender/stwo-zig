@@ -500,7 +500,10 @@ pub const Prepared = struct {
             try preferManagedSlotHost(transaction, plan, .trace_evaluations, 2, true);
         }
         phase = "interaction_commit";
-        try self.controllers.interaction_commit.execute(session);
+        if (placement == .capacity and transaction.isManagedArena())
+            try self.controllers.interaction_commit.executeManagedCapacity(session)
+        else
+            try self.controllers.interaction_commit.execute(session);
         memoryPhase(&memory_timer, "interaction_commit_end");
         if (placement != .none) {
             phase = "host_resident_interaction_coefficients";

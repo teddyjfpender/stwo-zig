@@ -375,12 +375,14 @@ static_assert(sizeof(MixedSegment) == 32);
 static_assert(sizeof(MixedInputs) + 32 < 4096);
 
 template <bool Prefixed>
-__global__ void mixed_leaf_kernel(uint32_t size, uint32_t count,
+__global__ void mixed_leaf_kernel(uint32_t size, uint32_t row_first,
+                                  uint32_t row_count, uint32_t count,
                                   MixedInputs inputs, uint32_t absorbed_before, uint32_t seed_size,
                                   const ProgressiveState *seed, ProgressiveState *prefix,
                                   Hash *result) {
-    const uint32_t row = blockIdx.x * blockDim.x + threadIdx.x;
-    if (row >= size) return;
+    const uint32_t local_row = blockIdx.x * blockDim.x + threadIdx.x;
+    if (local_row >= row_count) return;
+    const uint32_t row = row_first + local_row;
     ProgressiveState initial{};
     if (seed != nullptr) initial = seed[lifted_column_index(row, __ffs(size / seed_size) - 1)];
     else initialize_leaf_for<Prefixed>(initial.hash);
@@ -756,8 +758,39 @@ extern "C" int stwo_blake2s_contiguous_leaf_plain_on(
     return stwo_blake2s_contiguous_leaf_on_impl<false>(size, columns, column_stride_words, column_capacity_words, result, stream);
 }
 
+static cudaError_t prefetch_mixed_tile(
+    const stwo::cuda::blake2s::MixedInputs &inputs,
+    uint32_t count, uint32_t size, uint32_t row_first,
+    uint32_t row_count, int destination, cudaStream_t stream) {
+    const uint64_t row_end = static_cast<uint64_t>(row_first) + row_count;
+    for (uint32_t index = 0; index < count; ++index) {
+        const auto &segment = inputs.segments[index];
+        const uint32_t ratio_log = __builtin_ctz(size / segment.source_size);
+        uint64_t first = row_first, end = row_end;
+        if (ratio_log != 0) {
+            const uint64_t group = uint64_t{1} << (ratio_log + 1u);
+            first = (row_first / group) * 2u;
+            end = ((row_end - 1u) / group + 1u) * 2u;
+        }
+        if (end > segment.source_size || first >= end)
+            return cudaErrorInvalidValue;
+        const size_t columns = segment.capacity_words / segment.stride_words;
+        const size_t bytes = static_cast<size_t>(end - first) * sizeof(uint32_t);
+        for (size_t column = 0; column < columns; ++column) {
+            const uint32_t *source = segment.columns +
+                column * segment.stride_words + static_cast<size_t>(first);
+            const cudaError_t status = cudaMemPrefetchAsync(
+                source, bytes, destination, stream);
+            if (status != cudaSuccess) return status;
+        }
+    }
+    return cudaSuccess;
+}
+
 template <bool Prefixed>
-static int mixed_seeded_on(uint32_t size, uint32_t count,
+static int mixed_seeded_range_on(uint32_t size, uint32_t row_first,
+                         uint32_t row_count, bool migrate_tile,
+                         uint32_t count,
                          const stwo::cuda::blake2s::MixedSegment *segments,
                          uint32_t absorbed_before, uint32_t seed_size,
                          const stwo::cuda::blake2s::ProgressiveState *seed,
@@ -767,6 +800,7 @@ static int mixed_seeded_on(uint32_t size, uint32_t count,
     DeviceRange outputs{};
     if (stream == nullptr || segments == nullptr || size < 2 ||
         (size & (size - 1)) != 0 || count == 0 || count > kMaxMixedSegments ||
+        row_count == 0 || row_first >= size || row_count > size - row_first ||
         ((prefix == nullptr) == (result == nullptr)) ||
         !(prefix != nullptr ? element_range(prefix, size, &outputs) :
                               element_range(result, size, &outputs)))
@@ -799,9 +833,36 @@ static int mixed_seeded_on(uint32_t size, uint32_t count,
         if (words > UINT32_MAX) return static_cast<int>(cudaErrorInvalidValue);
         inputs.segments[i] = input;
     }
-    mixed_leaf_kernel<Prefixed><<<blocks_for(size), kBlockSize, 0,
-        reinterpret_cast<cudaStream_t>(stream)>>>(size, count, inputs, absorbed_before, seed_size, seed, prefix, result);
-    return static_cast<int>(cudaPeekAtLastError());
+    const cudaStream_t proof_stream = reinterpret_cast<cudaStream_t>(stream);
+    if (migrate_tile) {
+        int device = -1;
+        cudaError_t status = cudaGetDevice(&device);
+        if (status != cudaSuccess) return static_cast<int>(status);
+        status = prefetch_mixed_tile(inputs, count, size, row_first,
+                                    row_count, device, proof_stream);
+        if (status != cudaSuccess) return static_cast<int>(status);
+    }
+    mixed_leaf_kernel<Prefixed><<<blocks_for(row_count), kBlockSize, 0,
+        proof_stream>>>(size, row_first, row_count, count, inputs,
+                        absorbed_before, seed_size, seed, prefix, result);
+    cudaError_t status = cudaPeekAtLastError();
+    if (status != cudaSuccess) return static_cast<int>(status);
+    if (migrate_tile) {
+        status = prefetch_mixed_tile(inputs, count, size, row_first,
+                                    row_count, cudaCpuDeviceId, proof_stream);
+    }
+    return static_cast<int>(status);
+}
+
+template <bool Prefixed>
+static int mixed_seeded_on(uint32_t size, uint32_t count,
+                         const stwo::cuda::blake2s::MixedSegment *segments,
+                         uint32_t absorbed_before, uint32_t seed_size,
+                         const stwo::cuda::blake2s::ProgressiveState *seed,
+                         stwo::cuda::blake2s::ProgressiveState *prefix,
+                         stwo::cuda::blake2s::Hash *result, void *stream) {
+    return mixed_seeded_range_on<Prefixed>(size, 0, size, false, count,
+        segments, absorbed_before, seed_size, seed, prefix, result, stream);
 }
 
 extern "C" int stwo_blake2s_mixed_leaf_on(uint32_t size, uint32_t count,
@@ -832,4 +893,28 @@ extern "C" int stwo_blake2s_mixed_seeded_plain_on(uint32_t size, uint32_t count,
     stwo::cuda::blake2s::Hash *result, void *stream) {
     return mixed_seeded_on<false>(size, count, segments, absorbed_before,
                                   seed_size, seed, prefix, result, stream);
+}
+
+extern "C" int stwo_blake2s_mixed_seeded_range_on(
+    uint32_t size, uint32_t row_first, uint32_t row_count, uint32_t count,
+    const stwo::cuda::blake2s::MixedSegment *segments,
+    uint32_t absorbed_before, uint32_t seed_size,
+    const stwo::cuda::blake2s::ProgressiveState *seed,
+    stwo::cuda::blake2s::ProgressiveState *prefix,
+    stwo::cuda::blake2s::Hash *result, void *stream) {
+    return mixed_seeded_range_on<true>(
+        size, row_first, row_count, true, count, segments, absorbed_before,
+        seed_size, seed, prefix, result, stream);
+}
+
+extern "C" int stwo_blake2s_mixed_seeded_range_plain_on(
+    uint32_t size, uint32_t row_first, uint32_t row_count, uint32_t count,
+    const stwo::cuda::blake2s::MixedSegment *segments,
+    uint32_t absorbed_before, uint32_t seed_size,
+    const stwo::cuda::blake2s::ProgressiveState *seed,
+    stwo::cuda::blake2s::ProgressiveState *prefix,
+    stwo::cuda::blake2s::Hash *result, void *stream) {
+    return mixed_seeded_range_on<false>(
+        size, row_first, row_count, true, count, segments, absorbed_before,
+        seed_size, seed, prefix, result, stream);
 }

@@ -33,6 +33,22 @@ pub extern "c" fn stwo_blake2s_mixed_seeded_on(
     stream: *anyopaque,
 ) c_int;
 
+/// Capacity-mode mixed leaves for one authenticated global row interval.
+/// The native launch prefetches only the source rows touched by this tile.
+pub extern "c" fn stwo_blake2s_mixed_seeded_range_on(
+    size: u32,
+    row_first: u32,
+    row_count: u32,
+    count: u32,
+    segments: [*]const MixedSegment,
+    absorbed_before: u32,
+    seed_size: u32,
+    seed: ?[*]const field.ProgressiveBlake2sState,
+    prefix: ?[*]field.ProgressiveBlake2sState,
+    result: ?[*]field.Blake2sHash,
+    stream: *anyopaque,
+) c_int;
+
 pub extern "c" fn stwo_blake2s_contiguous_leaf_on(
     size: u32,
     columns: [*]const u32,
