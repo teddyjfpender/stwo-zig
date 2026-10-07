@@ -1,13 +1,8 @@
 const std = @import("std");
-const proof_steps = @import("build_proof_steps.zig");
-const segment_steps = @import("build_segment_steps.zig");
-const binary_steps = @import("build_binary_steps.zig");
-const artifact_steps = @import("build_artifact_steps.zig");
 
 pub fn build(b: *std.Build) void {
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
-    const ethereum_proof_strip = b.option(bool, "ethereum-proof-strip", "Omit selected Ethereum proof debug symbols while retaining runtime safety") orelse false;
     const dependency_options = .{ .target = target, .optimize = optimize };
 
     const artifact_store = b.dependency(
@@ -32,10 +27,6 @@ pub fn build(b: *std.Build) void {
         dependency_options,
     );
     const frontend = frontend_dependency.module("stwo_riscv_frontend");
-    const secp256k1_proof_harness =
-        frontend_dependency.module("secp256k1_proof_harness");
-    const keccakf_proof_harness =
-        frontend_dependency.module("keccakf_proof_harness");
     const postcard = frontend.import_table.get("interop_postcard") orelse
         @panic("canonical RISC-V frontend is missing interop_postcard");
     const integration = b.addModule("stwo_riscv_cpu_integration", .{
@@ -51,77 +42,157 @@ pub fn build(b: *std.Build) void {
     integration.addImport("stwo_riscv_frontend", frontend);
     integration.addImport("interop_postcard", postcard);
 
-    // Export the existing retained replay root without making CPU products
-    // depend on Metal. The Metal integration supplies its backend explicitly.
-    const tree0_probe = b.addModule("stwo_riscv_cpu_ethereum_tree0_probe", .{
-        .root_source_file = b.path("recursive_common_ethereum_incremental_leaf_universal_proof_v4_genuine_test.zig"),
+    const tests = b.addTest(.{ .root_module = integration });
+    b.step("test", "Test the focused RISC-V CPU integration")
+        .dependOn(&b.addRunArtifact(tests).step);
+
+    const secp_root = b.createModule(.{
+        .root_source_file = b.path("secp256k1_precompile_proof_test.zig"),
         .target = target,
         .optimize = optimize,
     });
-    tree0_probe.addImport("stwo_artifact_store", artifact_store);
-    tree0_probe.addImport("stwo_core", core);
-    tree0_probe.addImport("stwo_prover_api", prover_api);
-    tree0_probe.addImport("stwo_prover_engine", prover);
-    tree0_probe.addImport("stwo_cpu_backend", cpu_backend);
-    tree0_probe.addImport("stwo_riscv_frontend", frontend);
-    tree0_probe.addImport("stwo_riscv_cpu_integration", integration);
-    tree0_probe.addImport("interop_postcard", postcard);
+    secp_root.addImport("stwo_cpu_backend", cpu_backend);
+    secp_root.addImport("stwo_riscv_frontend", frontend);
+    secp_root.addImport("stwo_core", core);
+    secp_root.addImport("stwo_prover_engine", prover);
+    secp_root.addImport("secp256k1_proof_harness", frontend_dependency.module("secp256k1_proof_harness"));
+    const secp_tests = b.addTest(.{ .root_module = secp_root });
+    b.step("test-secp256k1-precompile-proof", "Prove and independently verify typed and canonical CSP ECDSA on CPU")
+        .dependOn(&b.addRunArtifact(secp_tests).step);
 
-    const stage101_metal_facade = b.addModule(
-        "stwo_riscv_cpu_stage101_metal",
-        .{
-            .root_source_file = b.path("stage101_metal_facade.zig"),
-            .target = target,
-            .optimize = optimize,
-        },
-    );
-    stage101_metal_facade.addImport("stwo_artifact_store", artifact_store);
-    stage101_metal_facade.addImport("stwo_core", core);
-    stage101_metal_facade.addImport("stwo_prover_api", prover_api);
-    stage101_metal_facade.addImport("stwo_prover_engine", prover);
-    stage101_metal_facade.addImport("stwo_cpu_backend", cpu_backend);
-    stage101_metal_facade.addImport("stwo_riscv_frontend", frontend);
-    stage101_metal_facade.addImport("interop_postcard", postcard);
-
-    const stage101_degree5_metal_facade = b.addModule(
-        "stwo_riscv_cpu_stage101_degree5_metal",
-        .{
-            .root_source_file = b.path("stage101_degree5_metal_facade.zig"),
-            .target = target,
-            .optimize = optimize,
-        },
-    );
-    stage101_degree5_metal_facade.addImport("stwo_artifact_store", artifact_store);
-    stage101_degree5_metal_facade.addImport("stwo_core", core);
-    stage101_degree5_metal_facade.addImport("stwo_prover_api", prover_api);
-    stage101_degree5_metal_facade.addImport("stwo_prover_engine", prover);
-    stage101_degree5_metal_facade.addImport("stwo_cpu_backend", cpu_backend);
-    stage101_degree5_metal_facade.addImport("stwo_riscv_frontend", frontend);
-    stage101_degree5_metal_facade.addImport("interop_postcard", postcard);
-
-    const test_step = b.step(
-        "test",
-        "Compile and test the stwo_riscv_cpu_integration package",
-    );
-    const context = .{
-        .b = b,
+    const keccak_root = b.createModule(.{
+        .root_source_file = b.path("keccakf_precompile_proof_test.zig"),
         .target = target,
         .optimize = optimize,
-        .artifact_store = artifact_store,
-        .core = core,
-        .prover = prover,
-        .prover_api = prover_api,
-        .cpu_backend = cpu_backend,
-        .frontend = frontend,
-        .secp256k1_proof_harness = secp256k1_proof_harness,
-        .keccakf_proof_harness = keccakf_proof_harness,
-        .postcard = postcard,
-        .integration = integration,
-        .ethereum_proof_strip = ethereum_proof_strip,
-        .test_step = test_step,
-    };
-    proof_steps.add(context);
-    segment_steps.add(context);
-    binary_steps.add(context);
-    artifact_steps.add(context);
+    });
+    keccak_root.addImport("stwo_cpu_backend", cpu_backend);
+    keccak_root.addImport("stwo_riscv_frontend", frontend);
+    keccak_root.addImport("stwo_core", core);
+    keccak_root.addImport("stwo_prover_engine", prover);
+    keccak_root.addImport("keccakf_proof_harness", frontend_dependency.module("keccakf_proof_harness"));
+    const keccak_tests = b.addTest(.{
+        .root_module = keccak_root,
+        .filters = &.{"Keccak-f typed shard and lookup tables prove and independently verify"},
+    });
+    b.step("test-keccakf-precompile-proof", "Prove and independently verify typed Keccak-f on CPU")
+        .dependOn(&b.addRunArtifact(keccak_tests).step);
+
+    const segment_root = b.createModule(.{
+        .root_source_file = b.path("segment_v2_native_proof_test.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    segment_root.addImport("stwo_core", core);
+    segment_root.addImport("stwo_artifact_store", artifact_store);
+    segment_root.addImport("stwo_prover_engine", prover);
+    segment_root.addImport("stwo_prover_api", prover_api);
+    segment_root.addImport("stwo_cpu_backend", cpu_backend);
+    segment_root.addImport("stwo_riscv_frontend", frontend);
+    segment_root.addImport("interop_postcard", postcard);
+    const segment_tests = b.addTest(.{
+        .root_module = segment_root,
+        .filters = &.{"native V2 proves and independently verifies real nonfinal and final segments"},
+    });
+    b.step("test-segment-v2-native-proof", "Prove and independently verify real nonfinal and final SegmentV2 shards")
+        .dependOn(&b.addRunArtifact(segment_tests).step);
+
+    const universal_root = b.createModule(.{
+        .root_source_file = b.path("universal_typed_component_proof_test.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    universal_root.addImport("stwo_core", core);
+    universal_root.addImport("stwo_cpu_backend", cpu_backend);
+    universal_root.addImport("stwo_riscv_frontend", frontend);
+    universal_root.addImport("stwo_prover_engine", prover);
+    const universal_tests = b.addTest(.{
+        .root_module = universal_root,
+        .filters = &.{"R-012 active FRI Merkle leaf adapter proves and independently verifies"},
+    });
+    b.step("test-universal-typed-proof", "Prove and independently verify the generic typed FRI adapter")
+        .dependOn(&b.addRunArtifact(universal_tests).step);
+
+    // Generic SegmentV2 detached tools remain available for the qualified
+    // continuation path. Ethereum block assembly is an archived experiment.
+    const leaf_verifier_root = b.createModule(.{
+        .root_source_file = b.path("../../frontends/riscv/leaf_verifier.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    leaf_verifier_root.addImport("stwo_core", core);
+    leaf_verifier_root.addImport("interop_postcard", postcard);
+    const leaf_verifier_runner = b.createModule(.{
+        .root_source_file = b.path("recursive_segment_v2_detached_verifier_runner.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    leaf_verifier_runner.addImport("stwo_leaf_verifier", leaf_verifier_root);
+    const leaf_verifier = b.addExecutable(.{
+        .name = "recursive-segment-v2-detached-verify",
+        .root_module = leaf_verifier_runner,
+    });
+    b.step("build-recursive-segment-v2-detached-verifier", "Build the detached SegmentV2 leaf verifier")
+        .dependOn(&b.addInstallArtifact(leaf_verifier, .{}).step);
+
+    const parent_verifier_root = b.createModule(.{
+        .root_source_file = b.path("../../frontends/riscv/parent_verifier.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    parent_verifier_root.addImport("stwo_core", core);
+    parent_verifier_root.addImport("interop_postcard", postcard);
+    const parent_verifier_runner = b.createModule(.{
+        .root_source_file = b.path("recursive_segment_v2_detached_parent_verifier_runner.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    parent_verifier_runner.addImport("stwo_parent_verifier", parent_verifier_root);
+    const parent_verifier = b.addExecutable(.{
+        .name = "recursive-segment-v2-detached-parent-verify",
+        .root_module = parent_verifier_runner,
+    });
+    b.step("build-recursive-segment-v2-detached-parent-verifier", "Build the detached SegmentV2 parent verifier")
+        .dependOn(&b.addInstallArtifact(parent_verifier, .{}).step);
+
+    const leaf_producer_root = b.addModule("stwo_riscv_detached_leaf_runner", .{
+        .root_source_file = b.path("recursive_segment_v2_detached_leaf_runner.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    leaf_producer_root.addImport("stwo_core", core);
+    leaf_producer_root.addImport("stwo_cpu_backend", cpu_backend);
+    leaf_producer_root.addImport("stwo_riscv_frontend", frontend);
+    leaf_producer_root.addImport("stwo_prover_api", prover_api);
+    leaf_producer_root.addImport("stwo_prover_engine", prover);
+    leaf_producer_root.addImport("interop_postcard", postcard);
+    const leaf_producer = b.addExecutable(.{
+        .name = "recursive-segment-v2-detached-leaf-prove",
+        .root_module = leaf_producer_root,
+    });
+    b.step("build-recursive-segment-v2-detached-leaf-producer", "Build the detached SegmentV2 leaf producer")
+        .dependOn(&b.addInstallArtifact(leaf_producer, .{}).step);
+
+    const parent_producer_owner = b.addModule("stwo_riscv_detached_parent_producer", .{
+        .root_source_file = b.path("recursive_segment_v2_detached_parent_producer.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    parent_producer_owner.addImport("stwo_core", core);
+    parent_producer_owner.addImport("stwo_cpu_backend", cpu_backend);
+    parent_producer_owner.addImport("stwo_riscv_frontend", frontend);
+    parent_producer_owner.addImport("stwo_prover_api", prover_api);
+    parent_producer_owner.addImport("stwo_prover_engine", prover);
+    parent_producer_owner.addImport("interop_postcard", postcard);
+    const parent_producer_runner = b.createModule(.{
+        .root_source_file = b.path("recursive_segment_v2_detached_parent_producer_runner.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    parent_producer_runner.addImport("stwo_riscv_detached_parent_producer", parent_producer_owner);
+    const parent_producer = b.addExecutable(.{
+        .name = "recursive-segment-v2-detached-parent-prove",
+        .root_module = parent_producer_runner,
+    });
+    b.step("build-recursive-segment-v2-detached-parent-producer", "Build the detached SegmentV2 parent producer")
+        .dependOn(&b.addInstallArtifact(parent_producer, .{}).step);
 }

@@ -21,6 +21,7 @@ const prover_transaction = @import("stwo_prover_engine").transaction;
 const component_mod = @import("xor/component.zig");
 const interaction = @import("xor/interaction.zig");
 const trace_input = @import("xor/input.zig");
+const preprocessed_commitment = @import("preprocessed_commitment.zig");
 const CpuBackend = @import("stwo_cpu_backend").CpuBackend;
 
 const M31 = m31.M31;
@@ -50,6 +51,7 @@ comptime {
 
 pub const Error = trace_input.Error || error{
     InvalidProofShape,
+    InvalidPreprocessedCommitment,
 };
 
 /// Generates `IsFirst` preprocessed column values in bit-reversed order.
@@ -377,6 +379,16 @@ pub fn verify(
     var proof_moved = false;
     defer if (!proof_moved) proof.deinit(allocator);
 
+    const preprocessed_columns = try trace_input.generatePreprocessed(allocator, statement);
+    defer preprocessed_commitment.freeColumns(allocator, preprocessed_columns);
+    const expected_root = try preprocessed_commitment.root(
+        allocator,
+        pcs_config,
+        preprocessed_columns,
+    );
+    if (!std.mem.eql(u8, &expected_root, &proof.commitment_scheme_proof.commitments.items[0]))
+        return error.InvalidPreprocessedCommitment;
+
     var channel = Channel{};
     pcs_config.mixInto(&channel);
 
@@ -625,16 +637,10 @@ test "examples xor: verify wrapper rejects statement mismatch" {
     var bad_statement = output.statement;
     bad_statement.offset += 1;
 
-    if (verify(std.testing.allocator, config, bad_statement, output.proof)) |_| {
-        try std.testing.expect(false);
-    } else |err| {
-        const verification_error = @import("stwo_core").verifier_types.VerificationError;
-        try std.testing.expect(
-            err == verification_error.OodsNotMatching or
-                err == verification_error.InvalidStructure or
-                err == verification_error.ShapeMismatch,
-        );
-    }
+    try std.testing.expectError(
+        error.InvalidPreprocessedCommitment,
+        verify(std.testing.allocator, config, bad_statement, output.proof),
+    );
 }
 
 test "examples xor: verifier rejects a mutated lookup claimed sum" {

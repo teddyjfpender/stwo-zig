@@ -576,7 +576,6 @@ pub const blake3_commitment_components = @import("prover/blake3_commitment_compo
 pub const blake3_execution_manifest = @import("prover/blake3_execution_manifest.zig");
 pub const blake3_execution_source = @import("prover/blake3_execution_source.zig");
 pub const blake3_execution_artifact = @import("prover/blake3_execution_artifact.zig");
-pub const blake3_execution_parent = @import("recursion/blake3_execution_parent_proof.zig");
 
 pub const blake3_verified_public = @import("prover/blake3_profile_artifact.zig").VerifiedPublic;
 pub const blake3_ethereum_artifact = @import("prover/blake3_profile_artifact.zig").ForProfile(true);
@@ -586,7 +585,6 @@ pub const blake3_commitment_sharing = @import("prover/blake3_commitment_sharing.
 pub const blake3_ethereum_witness = @import("prover/blake3_ethereum_witness.zig");
 pub const blake3_segment_execution = @import("prover/blake3_segment_execution.zig");
 pub const blake3_segment_statement = @import("prover/blake3_segment_statement.zig");
-pub const blake3_segment_parent = @import("prover/blake3_segment_parent.zig");
 
 pub const blake3_profile_artifact = @import("prover/blake3_profile_artifact.zig");
 pub const blake3_poseidon_proof = @import("prover/blake3_poseidon_proof.zig");

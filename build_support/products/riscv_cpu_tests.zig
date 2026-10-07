@@ -197,11 +197,6 @@ pub fn addFocusedTestRoot(
         .target = context.target,
         .optimize = context.optimize,
     });
-    // Large recursive circuits spend significant LLVM time emitting DWARF.
-    // Keep runtime safety; allow symbols explicitly when investigating a failure.
-    if (std.mem.eql(u8, root_source_file, "src/frontends/riscv/blake3_execution_commitment_test_root.zig")) {
-        root.strip = !(b.option(bool, "qualification-debug-info", "Emit debug symbols for BLAKE3 qualification tests") orelse false);
-    }
     context.protocol.addImports(root);
     _ = graph.addProofWireImport(
         b,

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Build and freshly verify the pinned four-segment experimental CPU/Metal tree.
+"""Build and freshly verify the pinned generic SegmentV2 CPU/Metal tree.
 
 All executables and (for Metal) the AOT bundle are built into a new output
 directory. No retained session binary is an input. The existing tree gate owns

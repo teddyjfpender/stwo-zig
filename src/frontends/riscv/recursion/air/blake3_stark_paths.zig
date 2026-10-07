@@ -251,12 +251,6 @@ pub const FixedShape = struct {
         if (lease) |owner| owner.destroy();
     }
 };
-/// Original trusted emitter, selected by independently admitted shape only.
-/// Query directions come from the REAL original DEEP binding graph, not a
-/// proof-carried index. Count storage never enters live/hash evaluation.
-pub fn compileFixedShape(backing: std.mem.Allocator, shape: *const @import("../block_v5_recursive_parent_shape_v1.zig").Shape, queries: *@import("blake3_query_links.zig").Prepared) !FixedShape {
-    return compileFixedProfile(4, backing, shape, queries);
-}
 /// Independently selected commitment inventory; the original parent stays four.
 /// Native PAGE supplies its actual ten-tree profile, never a parent Shape.
 pub fn compileFixedProfile(comptime commitments: usize, backing: std.mem.Allocator, shape: anytype, queries: *@import("blake3_query_links.zig").Prepared) !FixedShape {
