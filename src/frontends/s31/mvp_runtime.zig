@@ -29,6 +29,7 @@ const chip_mode = @import("s31_options").chip_mode;
 const sparse_mode = @import("s31_options").sparse_mode;
 const wide_mode = @import("s31_options").wide_mode;
 const direct_mode = @import("s31_options").direct_mode;
+const sha_joint_mode = @import("s31_options").sha_joint_mode;
 const M31 = core.fields.m31.M31;
 
 const ChipKey = struct {
@@ -215,6 +216,7 @@ const Report = struct {
 };
 
 pub fn main() !void {
+    if (sha_joint_mode) return @import("sha_package_runtime.zig").main();
     var gpa_state = std.heap.GeneralPurposeAllocator(.{}){};
     defer _ = gpa_state.deinit();
     const allocator = gpa_state.allocator();
@@ -314,6 +316,7 @@ pub fn main() !void {
 /// Entry point of the separately installed verifier binary. Its accepted
 /// program is fixed by `embedded_source` at compile time.
 pub fn verifierMain(embedded_key: []const u8, embedded_recursive_key: []const u8, embedded_recursive_next_key: []const u8, embedded_fold_key: []const u8, embedded_state_fold_key: []const u8) !void {
+    if (sha_joint_mode) return @import("sha_package_runtime.zig").verifierMain();
     var gpa_state = std.heap.GeneralPurposeAllocator(.{}){};
     defer _ = gpa_state.deinit();
     const allocator = gpa_state.allocator();
@@ -2296,9 +2299,7 @@ fn wrapFold(
 ) !void {
     var cache: ?FixedFoldCache = null;
     defer if (cache) |*prepared| prepared.deinit(allocator);
-    return wrapFoldWithCache(allocator, source, child_proof_path, child_statement_path,
-        output_path, child_key_path, first_key_path, second_key_path, fold_key_path,
-        base_case, low_memory, audit_only, &cache, false);
+    return wrapFoldWithCache(allocator, source, child_proof_path, child_statement_path, output_path, child_key_path, first_key_path, second_key_path, fold_key_path, base_case, low_memory, audit_only, &cache, false);
 }
 
 const FixedFoldCache = struct {
@@ -2364,8 +2365,7 @@ fn wrapFixedFoldBatch(
     defer paths.deinit();
     const scratch = paths.allocator();
     for (0..steps) |index| {
-        const target = if (index + 1 == steps) output_path else
-            try std.fmt.allocPrint(scratch, "{s}/fold-{d:0>5}.proof", .{ checkpoint_dir, first_step + @as(u32, @intCast(index)) });
+        const target = if (index + 1 == steps) output_path else try std.fmt.allocPrint(scratch, "{s}/fold-{d:0>5}.proof", .{ checkpoint_dir, first_step + @as(u32, @intCast(index)) });
         const statement_path = try std.fmt.allocPrint(scratch, "{s}.statement.json", .{target});
         if (index + 1 < steps and std.mem.eql(u8, target, output_path)) return error.OutputAlreadyExists;
         if (std.mem.eql(u8, target, child_proof_path) or std.mem.eql(u8, target, child_statement_path) or
@@ -2379,11 +2379,8 @@ fn wrapFixedFoldBatch(
     var current_proof = child_proof_path;
     var current_statement = child_statement_path;
     for (0..steps) |index| {
-        const target = if (index + 1 == steps) output_path else
-            try std.fmt.allocPrint(scratch, "{s}/fold-{d:0>5}.proof", .{ checkpoint_dir, first_step + @as(u32, @intCast(index)) });
-        try wrapFoldWithCache(allocator, source, current_proof, current_statement, target,
-            child_key_path, first_key_path, second_key_path, fold_key_path,
-            base_case and index == 0, low_memory, false, &cache, true);
+        const target = if (index + 1 == steps) output_path else try std.fmt.allocPrint(scratch, "{s}/fold-{d:0>5}.proof", .{ checkpoint_dir, first_step + @as(u32, @intCast(index)) });
+        try wrapFoldWithCache(allocator, source, current_proof, current_statement, target, child_key_path, first_key_path, second_key_path, fold_key_path, base_case and index == 0, low_memory, false, &cache, true);
         current_proof = target;
         current_statement = try std.fmt.allocPrint(scratch, "{s}.statement.json", .{target});
     }
@@ -2521,10 +2518,7 @@ fn wrapFoldWithCache(
         }
         var wrong_root = if (step == 0) verified.base_root else verified.root;
         wrong_root[0] ^= 1;
-        if (fixed_fold.verifyPrepared(allocator, projection_bytes, verified.layout, verified.pcs, &captured,
-            if (step == 0) wrong_root else verified.base_root,
-            if (step == 0) verified.root else wrong_root,
-            base_public_words, step)) |accepted| {
+        if (fixed_fold.verifyPrepared(allocator, projection_bytes, verified.layout, verified.pcs, &captured, if (step == 0) wrong_root else verified.base_root, if (step == 0) verified.root else wrong_root, base_public_words, step)) |accepted| {
             var invalid = accepted;
             invalid.deinit();
             return error.FoldVerifierAcceptedWrongRoot;
@@ -2724,9 +2718,7 @@ fn wrapStateFold(
 ) !void {
     var cache: ?StateFoldCache = null;
     defer if (cache) |*prepared| prepared.deinit(allocator);
-    return wrapStateFoldWithCache(allocator, source, child_proof_path, child_statement_path,
-        output_path, child_key_path, first_key_path, state_key_path, base_case,
-        low_memory, audit_only, &cache, false);
+    return wrapStateFoldWithCache(allocator, source, child_proof_path, child_statement_path, output_path, child_key_path, first_key_path, state_key_path, base_case, low_memory, audit_only, &cache, false);
 }
 
 const StateFoldCache = struct {
@@ -2792,8 +2784,7 @@ fn wrapStateFoldBatch(
     defer paths.deinit();
     const scratch = paths.allocator();
     for (0..steps) |index| {
-        const target = if (index + 1 == steps) output_path else
-            try std.fmt.allocPrint(scratch, "{s}/state-{d:0>5}.proof", .{ checkpoint_dir, first_step + @as(u32, @intCast(index)) });
+        const target = if (index + 1 == steps) output_path else try std.fmt.allocPrint(scratch, "{s}/state-{d:0>5}.proof", .{ checkpoint_dir, first_step + @as(u32, @intCast(index)) });
         try rejectExistingFoldOutput(target);
         const statement_path = try std.fmt.allocPrint(scratch, "{s}.statement.json", .{target});
         try rejectExistingFoldOutput(statement_path);
@@ -2803,11 +2794,8 @@ fn wrapStateFoldBatch(
     var current_proof = child_proof_path;
     var current_statement = child_statement_path;
     for (0..steps) |index| {
-        const target = if (index + 1 == steps) output_path else
-            try std.fmt.allocPrint(scratch, "{s}/state-{d:0>5}.proof", .{ checkpoint_dir, first_step + @as(u32, @intCast(index)) });
-        try wrapStateFoldWithCache(allocator, source, current_proof, current_statement,
-            target, child_key_path, first_key_path, state_key_path,
-            base_case and index == 0, low_memory, false, &cache, true);
+        const target = if (index + 1 == steps) output_path else try std.fmt.allocPrint(scratch, "{s}/state-{d:0>5}.proof", .{ checkpoint_dir, first_step + @as(u32, @intCast(index)) });
+        try wrapStateFoldWithCache(allocator, source, current_proof, current_statement, target, child_key_path, first_key_path, state_key_path, base_case and index == 0, low_memory, false, &cache, true);
         current_proof = target;
         current_statement = try std.fmt.allocPrint(scratch, "{s}.statement.json", .{target});
     }

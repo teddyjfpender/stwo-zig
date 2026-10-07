@@ -19,7 +19,7 @@ def fixture(name: str) -> tuple[dict, dict]:
 
 class OracleTests(unittest.TestCase):
     def test_repository_arithmetic_examples(self) -> None:
-        for name in ("arith4", "mathlib4", "math_polynomial4", "static_matvec", "array_views",
+        for name in ("arith4", "mathlib4", "math_polynomial4", "static_matvec", "static_matmul", "array_views",
                      "preimage4", "lane_stats4", "affine4_v1"):
             with self.subTest(name=name):
                 relation, assignment = fixture(name)
@@ -27,7 +27,7 @@ class OracleTests(unittest.TestCase):
                                  assignment["public_outputs"])
 
     def test_forgeries_fail_on_every_arithmetic_example(self) -> None:
-        for name in ("arith4", "mathlib4", "math_polynomial4", "static_matvec", "array_views", "preimage4",
+        for name in ("arith4", "mathlib4", "math_polynomial4", "static_matvec", "static_matmul", "array_views", "preimage4",
                      "lane_stats4", "affine4_v1"):
             with self.subTest(name=name):
                 relation, assignment = fixture(name)

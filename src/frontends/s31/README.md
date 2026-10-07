@@ -122,10 +122,20 @@ tape closes the SHA graph's lookups for one or two headers, and the
 [SHA chip profile](sha_chip_profile.zig) pins the corresponding AIR identities
 and row geometry. A focused [joint proof test](sha_joint_prover_test.zig) now
 connects one private header and digest through a caller AIR, two lookup buses,
-and one native STARK verifier. The normal `s31 build` path still uses generic
-SHA gates while this chip profile is measured and packaged. The
+and one native STARK verifier. `s31 build examples/bitcoin_header_pow.s31
+--lowering sha-joint --out zig-out/s31/bitcoin-sha-joint` packages this sealed
+one-header profile with a source and topology derived key, the eight-word
+public root ABI, a cost report, and an independently runnable native verifier.
+The verifier rebuilds the value-free circuit, including all 56 private SHA
+boundary addresses, before admitting a proof. The default lowering remains
+`gate`; the [matched measurement](../../../design/s31/measurements/bitcoin-sha-joint-v1-2026-10-07.json)
+shows a 721,880-byte joint proof versus 338,282 bytes for generic sparse-wide
+and a larger prover cost for one header. Run
+`python3 acceptance_sha_joint_package.py` to build both packages from the same
+normalized fixture, prove the same assignment, and test changed root, key,
+boundary, generic-proof replay, and proof corruption rejection. The
 [sparse-wide recursive verifier](docs/recursion-sparse-wide.md)
-now wraps this profile through two depth-specific gate proofs. The
+wraps the generic Bitcoin circuit profile through two depth-specific gate proofs. The
 [header-link acceptance gate](acceptance_header_link.py) also wraps one fresh
 header-link proof and checks its authenticated child statement. A direct
 [header-step circuit kernel](bitcoin_fold_step.zig) constrains a new header
@@ -246,7 +256,7 @@ python3 src/frontends/s31/s31.py prove zig-out/s31/arith4-sparse-chip src/fronte
 python3 src/frontends/s31/s31.py verify zig-out/s31/arith4-sparse-chip zig-out/s31/arith4-sparse-chip.proof
 ```
 
-The seven modes are `gate` (the original eleven-component circuit), `chip` (that circuit plus one linked step AIR), `sparse-gate`/`sparse-chip` (three arithmetic circuit components, optionally with the step AIR), `sparse-wide-gate` (Eq plus those three components for wide integers), and `direct-gate`/`direct-chip` (one QM31 arithmetic component, optionally with the step AIR). The chip modes accept only the exact four-lane square-then-add recurrence with a public boundary and 16–32768 power-of-two rounds. Sparse arithmetic retains M31-to-`u32` conversion and the 16-bit range table. Direct mode accepts all-M31 arithmetic relations, binds canonical public M31 words directly, and omits that converter and table. The chip and circuit share one STARK proof and one native verifier invocation.
+The eight modes are `gate` (the original eleven-component circuit), `chip` (that circuit plus one linked step AIR), `sparse-gate`/`sparse-chip` (three arithmetic circuit components, optionally with the step AIR), `sparse-wide-gate` (Eq plus those three components for wide integers), `direct-gate`/`direct-chip` (one QM31 arithmetic component, optionally with the step AIR), and `sha-joint` (one private Bitcoin header joined to three SHA compression calls). The repeated-step chip modes accept only the exact four-lane square-then-add recurrence with a public boundary and 16–32768 power-of-two rounds. Sparse arithmetic retains M31-to-`u32` conversion and the 16-bit range table. Direct mode accepts all-M31 arithmetic relations, binds canonical public M31 words directly, and omits that converter and table. Each selected chip and circuit share one STARK proof and one native verifier invocation.
 
 The direct-M31 example is [`examples/arith4_m31.s31.json`](examples/arith4_m31.s31.json). Build it with `--lowering direct-chip` and use [`examples/arith4.valid.json`](examples/arith4.valid.json) as the assignment. The [source-to-AIR guide](LANGUAGE_AND_AIR.md#direct-m31-public-values) explains the different public encoding and constraint profile.
 
@@ -303,4 +313,4 @@ The v1 acceptance suite proves arithmetic, Blake2s, mixed, three-lane, and priva
 
 The direct/Cairo comparison also requires the compiled Cairo executable and VM adapter input from `S31_TRIALS=1 src/frontends/s31/scale.sh 32768`, plus a direct profile benchmark including 32,768 rounds. It checks the same public values under both native verifiers; its recorded time ratio applies only to this recurrence and the selected proof implementations.
 
-The default v1 profile still pays for all eleven circuit AIR components and 45 preprocessed columns. The arithmetic-only sparse v3 profile uses three components and 12 preprocessed columns; direct-M31 v4 uses one and eight. The sparse-wide v5 profile adds equality rows for wide-integer and SHA gadgets. Each has a distinct verification key and native verifier. The public ABI is limited to eight words. Poseidon2 and SHA256d are currently lowered into the generic arithmetic circuit; there is no integrated SHA chip. There is no general control flow, automatic chip extraction, private circuit-to-chip boundary, or recursive verifier generation for arbitrary S31 profiles. The established fixed-key claim fold handles `gate` and `sparse-wide-gate` leaf claims. The Bitcoin chain-fold prototype updates a hash root across two proved headers and has a checkpoint-bound sealed key and standalone native verifier; full consensus state and an analyzed recursive depth bound remain. The older v0 `showcase`, `compare.sh`, and `scale.sh` paths remain available for the large repeated-arithmetic Cairo comparison. The [engineering brief](../../../design/s31/README.md) and [MVP roadmap](../../../design/s31/MVP_ROADMAP.md) describe the remaining work.
+The default v1 profile still pays for all eleven circuit AIR components and 45 preprocessed columns. The arithmetic-only sparse v3 profile uses three components and 12 preprocessed columns; direct-M31 v4 uses one and eight. The sparse-wide v5 profile adds equality rows for wide-integer and SHA gadgets. Each has a distinct verification key and native verifier. The public ABI is limited to eight words. Poseidon2 and, by default, SHA256d use the generic arithmetic circuit. The opt-in `sha-joint` profile joins one private Bitcoin header to three SHA compression calls in one proof. There is no general control flow, automatic chip extraction, or recursive verifier generation for arbitrary S31 profiles. The established fixed-key claim fold handles `gate` and `sparse-wide-gate` leaf claims. The Bitcoin chain-fold prototype updates a hash root across two proved headers and has a checkpoint-bound sealed key and standalone native verifier; full consensus state and an analyzed recursive depth bound remain. The older v0 `showcase`, `compare.sh`, and `scale.sh` paths remain available for the large repeated-arithmetic Cairo comparison. The [engineering brief](../../../design/s31/README.md) and [MVP roadmap](../../../design/s31/MVP_ROADMAP.md) describe the remaining work.

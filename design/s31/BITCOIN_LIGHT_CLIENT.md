@@ -260,7 +260,7 @@ QM31 rows stay at 524,288.
 The recorded Bitcoin sparse-wide claim fold has 259,481 spare QM31 rows before its
 next padding boundary. The complete witness-free
 [`bitcoin_chain_fold.zig`](../../src/frontends/s31/bitcoin_chain_fold.zig)
-candidate now measures 1,150,616 raw QM31 rows, padded to 2,097,152. Eq
+candidate now measures 1,152,060 raw QM31 rows, padded to 2,097,152. Eq
 rows fit in 32,768 padded. With the QM31 child size enlarged, all
 five AIR components reproduce the same padded child geometry; the
 preprocessed root is identical at counters `0`, `1`, `65536`, and
@@ -276,41 +276,47 @@ now proves that anchor and two successive header updates, natively verifies
 each proof, rejects changed public statements at both fold steps, and rejects
 a forged prior state in the full step-one circuit. The
 [historical generic-target proof record](measurements/bitcoin-chain-two-step-proof-v1-2026-10-07.json)
-pins the earlier source and fixture hashes. The new first-epoch AIR root
-requires new proofs. The [first-epoch proof record](measurements/bitcoin-chain-two-step-proof-v2-2026-10-07.json)
-reports one run: a 329,820-byte anchor, 376,291-byte step-zero proof and
-369,192-byte step-one proof, taking 29.005, 21.699 and 22.817 seconds.
-A
-matched end-to-end proving benchmark is required before claiming a time win. The
+pins the earlier source and fixture hashes. The
+[historical first-epoch record](measurements/bitcoin-chain-two-step-proof-v2-2026-10-07.json)
+predates the timestamp state. The [MTP proof record](measurements/bitcoin-chain-two-step-proof-v3-2026-10-07.json)
+reports one run: a 329,820-byte anchor, 373,035-byte step-zero proof and
+370,280-byte step-one proof, taking 27.064, 22.568 and 20.992 prover seconds.
+A matched end-to-end proving benchmark is required before claiming a time win. The
 [inspection record](measurements/bitcoin-direct-fold-step-v1-2026-10-07.json)
-pins the generic kernel counts; the [first-epoch topology record](measurements/bitcoin-chain-fold-topology-v2-2026-10-07.json)
+pins the generic kernel counts; the [MTP topology record](measurements/bitcoin-chain-fold-topology-v3-2026-10-07.json)
 pins the fixed-point geometry and key-parameter checks.
 
-For a first **hash-chain-only** fold, the eight-word ABI can hold one
-authenticated state root. The fold must open the previous output digest in
-its circuit, equate its authenticated root to the kernel's old-hash root,
-then publish a domain-separated digest binding the new root, `u32` counter,
-checkpoint, and sealed fold identity. At step zero, the base proof must bind
+For the current **header-chain** fold, the eight-word ABI holds a digest of
+the authenticated block-hash root and eleven-timestamp window. The fold opens
+the previous output digest in its circuit, equates its authenticated root to
+the kernel's old-hash root, then publishes a domain-separated digest binding
+the new root, shifted timestamps, `u32` counter, checkpoint, and sealed fold
+identity. At step zero, the base proof must bind
 the trusted checkpoint; the recursive branch must verify exactly step `n-1`.
 A host-side equality check cannot replace either circuit constraint.
 The candidate circuit now makes those equalities: at step zero a Boolean
 base selector forces the witnessed prior root to equal the key-pinned
 checkpoint, selects a base proof with that public output, and checks the
 first new header. At step `n>0`, it verifies a prior fold proof whose public
-output equals the digest of the witnessed prior root at step `n-1`, then
-checks one new header. Every proved header must also have
+output equals the digest of the witnessed prior root and times at step
+`n-1`, then checks one new header. Every proved header must also have
 `nBits = 0x1d00ffff`; these are two circuit equality rows. The sealed key
 pins the mainnet genesis checkpoint and caps the final fold at step 2014,
 which proves height 2015. The next step would prove height 2016 and needs the
-first difficulty-retarget relation. The child root switches between a key-pinned base
+first difficulty-retarget relation. The circuit initializes the window from
+the trusted genesis timestamp, checks `header.nTime` strictly exceeds the
+median of up to eleven authenticated ancestors, then shifts the new time
+into its next state. The [MTP constraint walkthrough](BITCOIN_MTP_FOLD.md)
+explains the early-height rule and integer comparator. The child root switches between a key-pinned base
 root and the fold's own root. The small branch test checks selection at
 `0`, `1`, and `65536` and rejects a changed prior root. The proof test now
 checks the first two real mainnet updates under one fold AIR root. Broader
 adversarial replay tests and a concrete recursive soundness bound remain.
 [`bitcoin_fold_digest.zig`](../../src/frontends/s31/bitcoin_fold_digest.zig)
-now pins the proposed 100-byte `S31BFD1!` digest preimage: 32 bytes of fold
+now pins the 144-byte `S31BFD2!` digest preimage: 32 bytes of fold
 AIR root, four bytes of little-endian counter, 32 bytes of canonical M31
-checkpoint root, and 32 bytes of canonical M31 current root. Host and circuit
+checkpoint root, 32 bytes of canonical M31 current root, and eleven
+little-endian `u32` timestamps. Host and circuit
 implementations agree at boundary counters including `0xffffffff`; the host
 rejects noncanonical root words. The two native fold proofs now authenticate
 this digest in their public statements. The
@@ -323,7 +329,7 @@ re-derives both AIR roots and checks the pinned layout, FRI schedule, and
 AIR bundle. The [CLI acceptance script](../../src/frontends/s31/acceptance_bitcoin_chain_cli.py)
 accepts both saved folds and rejects a different checkpoint, a key crossing
 the first retarget, wrong key
-digest, current hash, step replay, altered public words or proof bytes,
+digest, current hash or timestamp window, step replay, altered public words or proof bytes,
 and a step beyond the key limit. The `max_step` field
 is a native host policy cap, not a proved recursive security bound. The
 exact `nBits` equality is inside the fold circuit and is proof-bound.
@@ -339,16 +345,15 @@ bridge proves that each verified packed `u32` leaf word equals a canonical
 M31 word before Poseidon2 consumes it; it rejects `p` and is tested with the
 link kernel. No fold invokes either route yet.
 
-This two-step hash-only proof establishes linked, PoW-valid headers with the
-first-epoch difficulty bits against the genesis checkpoint for the tested
-sequence. Full mainnet policy
-additionally needs a versioned state
-commitment binding difficulty context, timestamps, height, and checked
-chainwork, plus a leaf or direct circuit relation updating that state. The
+This two-step proof establishes linked, PoW-valid headers with first-epoch
+difficulty bits and median-time-past against the genesis checkpoint for the
+tested sequence. Full mainnet policy additionally needs retarget context,
+checked chainwork, and best-chain selection. The
 new fold needs a versioned proof envelope and broader adversarial tests for
 changed old/new state, wrong prior key or checkpoint, omitted header work,
 wrong network parameters, and counter wraparound. The current statement
-encoding binds the key digest, step, and displayed current block hash. The
+encoding binds the key digest, step, displayed current block hash, and last
+eleven timestamps. The
 current four-lane `state_fold` proves only a fixed field recurrence and
 verifies one child proof; it cannot be relabeled as this Bitcoin transition.
 
@@ -358,7 +363,7 @@ verifies one child proof; it cannot be relabeled as this Bitcoin transition.
 | --- | --- | --- |
 | 1. Wide arithmetic | Typed byte/int values, carry/borrow relations, independent oracle | Current example and native proof; add boundary and randomized adversarial vectors. |
 | 2. Byte-exact header hash | **Generic circuit complete:** `Bytes80`, SHA256d relation, nominal `BlockHash`, one native proof. **SHA AIR witness planner complete:** three call records and packed provider rows. Remaining: authenticated circuit-to-chip lookup, new proof roster and verifier, broader Bitcoin Core differential vectors, and measured cost crossover. | Genesis and randomized byte checks; native proof and changed-root rejection currently pass. Chip substitution must fail until one-proof lookup closure is implemented. |
-| 3. Header policy | **Genesis-anchored two-header first step complete:** compact target, powLimit, unsigned comparison, exact previous-hash link, equal `nBits`, and strict first-step timestamp order. A one-new-header transition leaf now proves link and PoW against a claimed prior hash. Remaining: prior-state authentication, retarget transitions, general eleven-block MTP and contextual future-time policy, work increment and versioned public state ABI. | Real genesis-to-block-one proof accepted; changed public claim rejected by native verifier; changed checkpoint, link, bits and equal time rejected by independent oracle; transition leaf rejects a forged predecessor and changed root. |
+| 3. Header policy | **Genesis-anchored fold now includes:** exact previous-hash link, SHA256d, compact target, PoW, first-epoch `nBits`, and proof-bound median-time-past over up to eleven authenticated ancestors. The independent one-header leaf still proves only link and PoW. Remaining: retarget transitions, contextual future-time policy, checked chainwork and best-chain selection. | Native genesis-to-block-two fold proofs accepted; changed timestamp window, public claim, wrong-step replay and forged prior state rejected. |
 | 4. In-circuit S31 verifier | **Gate and sparse-wide wrappers implemented:** native capture of saved proofs, in-circuit child verifier, sealed recursive keys and native outer verifier. Fourfold FRI is supported for the sparse-wide leaf and wrappers. Remaining: independent end-to-end soundness review and proof-bound SHA chip integration. | Valid arithmetic/private-witness and Bitcoin two-header leaves, two wrapper levels, exact-key/FRI replay rejection and hostile proof-field mutations. |
 | 5. Recursive fold | **Fixed-key gate and sparse-wide claim folds implemented:** `u32` counter, one sealed fold key across steps, cached batch proving and top-only native verification. Gate-profile four-lane state transitions also fold under one key. **Bitcoin hash-chain prototype:** checkpoint anchor plus two changing-header fold proofs under one AIR root, a checkpoint-bound key, and standalone native verifier. Remaining: typed full-consensus state and analyzed depth/security bound. | Native anchor/F0/F1 proofs and verification; changed public claim and forged-prior-state rejection; same-root topology at boundary counters; standalone key/statement/replay acceptance checks. |
 

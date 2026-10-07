@@ -116,6 +116,7 @@ fn proveFoldStep(
     fold_hash: [32]u8,
     child: *const cpu.verifier_proof.VerifierProof,
     prior_root_words: [8]u32,
+    prior_times: [11]u32,
     old_hash_words: [16]u32,
     header_words: [40]u32,
     step: u32,
@@ -123,9 +124,11 @@ fn proveFoldStep(
     var old_hash: [16]QM31 = undefined;
     var header: [40]QM31 = undefined;
     var prior_root: [8]QM31 = undefined;
+    var prior_time_values: [11]QM31 = undefined;
     for (old_hash_words, &old_hash) |word, *value| value.* = QM31.fromBase(M31.fromCanonical(word));
     for (header_words, &header) |word, *value| value.* = QM31.fromBase(M31.fromCanonical(word));
     for (prior_root_words, &prior_root) |word, *value| value.* = QM31.fromBase(M31.fromCanonical(word));
+    for (prior_times, &prior_time_values) |word, *value| value.* = circuit.builder.ivalue.packU32(QM31, word);
     const config: circuit.statements.circuit_statement.CircuitConfig = .{
         .config = pcs,
         .preprocessed_column_log_sizes = layout,
@@ -142,6 +145,7 @@ fn proveFoldStep(
         checkpoint,
         circuit.builder.blake.hashValue(QM31, wordsFromBytes(fold_root)),
         prior_root,
+        prior_time_values,
         old_hash,
         header,
         step,
@@ -164,7 +168,9 @@ fn proveFoldStep(
     defer proof.deinit();
     const prove_ns = timer.read();
     const new_root = hashRoot(headerHash(header_words));
-    const expected = try s31.bitcoin_fold_digest.statementDigest(fold_root, step, checkpoint, new_root);
+    const timestamp = header_words[34] | (header_words[35] << 16);
+    const next_times = s31.bitcoin_fold_digest.advanceTimes(prior_times, timestamp);
+    const expected = try s31.bitcoin_fold_digest.statementDigest(fold_root, step, checkpoint, new_root, next_times);
     try std.testing.expectEqual(@as(usize, 8), proof.output_values.len);
     for (proof.output_values, expected) |value, word|
         try std.testing.expectEqual(word, circuit.builder.ivalue.unpackU32(QM31, value));
@@ -244,6 +250,7 @@ test "Bitcoin chain fold proves two changing headers over a verified checkpoint 
         fold_hash,
         &base.captured,
         checkpoint,
+        s31.bitcoin_fold_digest.initialTimes(),
         parsed.value.private_inputs.prior_hash,
         parsed.value.private_inputs.child,
         0,
@@ -278,6 +285,7 @@ test "Bitcoin chain fold proves two changing headers over a verified checkpoint 
         return error.InvalidBlockTwoDisplayHash;
     var block1_hash_words: [16]u32 = undefined;
     for (&block1_hash_words, 0..) |*word, i| word.* = std.mem.readInt(u16, block1_hash[2 * i ..][0..2], .little);
+    const first_times = s31.bitcoin_fold_digest.advanceTimes(s31.bitcoin_fold_digest.initialTimes(), parsed.value.private_inputs.child[34] | (parsed.value.private_inputs.child[35] << 16));
     var fold1 = try proveFoldStep(
         allocator,
         &bundle,
@@ -290,6 +298,7 @@ test "Bitcoin chain fold proves two changing headers over a verified checkpoint 
         fold_hash,
         &fold0.captured,
         new_root,
+        first_times,
         block1_hash_words,
         block2_words,
         1,
@@ -308,10 +317,8 @@ test "Bitcoin chain fold proves two changing headers over a verified checkpoint 
     const genesis_display = std.fmt.bytesToHex(genesis_raw, .lower);
     const key_bytes = try chain_verifier.generateKeyJson(allocator, &genesis_display, 1);
     defer allocator.free(key_bytes);
-    try std.testing.expectError(error.FirstEpochRetargetUnsupported,
-        chain_verifier.generateKeyJson(allocator, &genesis_display, 2015));
-    try std.testing.expectError(error.FirstEpochRequiresGenesisCheckpoint,
-        chain_verifier.generateKeyJson(allocator, block2.value.display_hash, 1));
+    try std.testing.expectError(error.FirstEpochRetargetUnsupported, chain_verifier.generateKeyJson(allocator, &genesis_display, 2015));
+    try std.testing.expectError(error.FirstEpochRequiresGenesisCheckpoint, chain_verifier.generateKeyJson(allocator, block2.value.display_hash, 1));
     const key_digest = chain_verifier.sha256(key_bytes);
     const key = try chain_verifier.validateKey(allocator, key_bytes, key_digest);
     try std.testing.expectEqualDeep(checkpoint, key.material.checkpoint_root);
@@ -320,10 +327,11 @@ test "Bitcoin chain fold proves two changing headers over a verified checkpoint 
     var wrong_digest = key_digest;
     wrong_digest[0] ^= 1;
     try std.testing.expectError(error.WrongVerificationKeyDigest, chain_verifier.validateKey(allocator, key_bytes, wrong_digest));
-    try std.testing.expectError(error.BitcoinChainStepExceedsKeyLimit, chain_verifier.generateStatementJson(allocator, key, 2, block2.value.display_hash));
-    const first_statement = try chain_verifier.generateStatementJson(allocator, key, 0, block2.value.previous_display_hash);
+    const second_times = s31.bitcoin_fold_digest.advanceTimes(first_times, block2_words[34] | (block2_words[35] << 16));
+    try std.testing.expectError(error.BitcoinChainStepExceedsKeyLimit, chain_verifier.generateStatementJson(allocator, key, 2, block2.value.display_hash, second_times));
+    const first_statement = try chain_verifier.generateStatementJson(allocator, key, 0, block2.value.previous_display_hash, first_times);
     defer allocator.free(first_statement);
-    const second_statement = try chain_verifier.generateStatementJson(allocator, key, 1, block2.value.display_hash);
+    const second_statement = try chain_verifier.generateStatementJson(allocator, key, 1, block2.value.display_hash, second_times);
     defer allocator.free(second_statement);
     try chain_verifier.verifyProof(allocator, key, first_statement, fold0.encoded);
     try chain_verifier.verifyProof(allocator, key, second_statement, fold1.encoded);
@@ -336,6 +344,11 @@ test "Bitcoin chain fold proves two changing headers over a verified checkpoint 
     const changed_statement = try std.json.Stringify.valueAlloc(allocator, parsed_statement.value, .{});
     defer allocator.free(changed_statement);
     try std.testing.expectError(error.InvalidBitcoinChainStatement, chain_verifier.verifyProof(allocator, key, changed_statement, fold1.encoded));
+    parsed_statement.value.public_words[0] ^= 1;
+    parsed_statement.value.last_timestamps[1] ^= 1;
+    const changed_time_statement = try std.json.Stringify.valueAlloc(allocator, parsed_statement.value, .{});
+    defer allocator.free(changed_time_statement);
+    try std.testing.expectError(error.InvalidBitcoinChainStatement, chain_verifier.verifyProof(allocator, key, changed_time_statement, fold1.encoded));
     std.debug.print("Bitcoin chain verifier: key_sha256={s} step_1_accepted=true replay_rejected=true\n", .{
         &std.fmt.bytesToHex(key_digest, .lower),
     });
@@ -357,9 +370,11 @@ test "Bitcoin chain fold proves two changing headers over a verified checkpoint 
     var forged_root_values: [8]QM31 = undefined;
     var old_hash_values: [16]QM31 = undefined;
     var block2_values: [40]QM31 = undefined;
+    var forged_time_values: [11]QM31 = undefined;
     for (forged_root, &forged_root_values) |word, *value| value.* = QM31.fromBase(M31.fromCanonical(word));
     for (block1_hash_words, &old_hash_values) |word, *value| value.* = QM31.fromBase(M31.fromCanonical(word));
     for (block2_words, &block2_values) |word, *value| value.* = QM31.fromBase(M31.fromCanonical(word));
+    for (first_times, &forged_time_values) |word, *value| value.* = circuit.builder.ivalue.packU32(QM31, word);
     const config: circuit.statements.circuit_statement.CircuitConfig = .{
         .config = base.pcs,
         .preprocessed_column_log_sizes = base.layout,
@@ -380,6 +395,7 @@ test "Bitcoin chain fold proves two changing headers over a verified checkpoint 
         checkpoint,
         circuit.builder.blake.hashValue(QM31, wordsFromBytes(fold_root)),
         forged_root_values,
+        forged_time_values,
         old_hash_values,
         block2_values,
         1,

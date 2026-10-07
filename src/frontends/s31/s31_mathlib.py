@@ -13,7 +13,7 @@ from s31_stdlib import Builder, P, StaticGroup, TypeErrorS31, Value
 BUILTINS = {
     "std::math::neg", "std::math::sub", "std::math::square", "std::math::pow",
     "std::math::inv", "std::math::div",
-    "std::math::sum", "std::math::dot", "std::math::poly_eval", "std::math::matvec",
+    "std::math::sum", "std::math::dot", "std::math::poly_eval", "std::math::matvec", "std::math::matmul",
     "std::math::sum_lanes", "std::math::dot_lanes",
     "std::math::add_u256", "std::math::add_u256_checked", "std::math::le_u256",
     "std::math::sub_u256", "std::math::sub_u256_checked",
@@ -149,6 +149,42 @@ def matvec(builder: Builder, matrix: StaticGroup, vector: StaticGroup, *,
         if any(term.typ != columns[0].typ for term in row.elements):
             raise TypeErrorS31("std::math::matvec requires equally shaped [m31; N] terms")
     return StaticGroup(tuple(dot_static(builder, row, vector, span=span) for row in rows))
+
+
+def _matrix(value: StaticGroup, operation: str) -> tuple[tuple[StaticGroup, ...], int]:
+    if not isinstance(value, StaticGroup) or not 1 <= len(value.elements) <= 16:
+        raise TypeErrorS31(f"std::math::{operation} requires 1..16 static matrix rows")
+    rows = value.elements
+    if not isinstance(rows[0], StaticGroup) or not 1 <= len(rows[0].elements) <= 16:
+        raise TypeErrorS31(f"std::math::{operation} requires 1..16 static matrix columns")
+    width = len(rows[0].elements)
+    shape = _group(rows[0], operation)[0].typ
+    for row in rows[1:]:
+        if not isinstance(row, StaticGroup) or len(row.elements) != width:
+            raise TypeErrorS31(f"std::math::{operation} requires rectangular static rows")
+        if _group(row, operation)[0].typ != shape:
+            raise TypeErrorS31(f"std::math::{operation} requires equally shaped [m31; N] terms")
+    return rows, width
+
+
+def matmul(builder: Builder, lhs: StaticGroup, rhs: StaticGroup, *,
+           span: dict[str, int] | None = None) -> StaticGroup:
+    """Multiply fixed matrices of lane-parallel M31 values in row-major order.
+
+    Every output is an ordinary static dot product; the returned matrix is a
+    nested group of references, not a new relation or witness operation.
+    """
+    left_rows, inner = _matrix(lhs, "matmul")
+    right_rows, columns = _matrix(rhs, "matmul")
+    if inner != len(right_rows):
+        raise TypeErrorS31("std::math::matmul inner matrix dimensions must agree")
+    if left_rows[0].elements[0].typ != right_rows[0].elements[0].typ:
+        raise TypeErrorS31("std::math::matmul requires equally shaped [m31; N] terms")
+    right_columns = tuple(StaticGroup(tuple(row.elements[j] for row in right_rows))
+                          for j in range(columns))
+    return StaticGroup(tuple(StaticGroup(tuple(dot_static(builder, row, column, span=span)
+                                              for column in right_columns))
+                             for row in left_rows))
 
 
 def sum_static(builder: Builder, group: StaticGroup, *, wanted: str | None = None,

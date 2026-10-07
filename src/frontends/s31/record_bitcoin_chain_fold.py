@@ -12,7 +12,7 @@ S31 = ROOT / "src/frontends/s31"
 MEASUREMENTS = ROOT / "design/s31/measurements"
 COMMAND = [
     "zig", "build", "--build-file", "src/frontends/s31/build.zig",
-    "inspect-bitcoin-chain-fold", "-Doptimize=ReleaseSafe", "-j2",
+    "inspect-bitcoin-chain-fold", "-Doptimize=ReleaseSafe", "-j1",
 ]
 
 
@@ -45,11 +45,11 @@ def main() -> None:
     assert base["padded"]["qm31_ops"] == base["child_qm31_rows"]
     paths = (
         "bitcoin_chain_anchor.zig", "bitcoin_chain_fold.zig", "bitcoin_fold_step.zig", "bitcoin_fold_digest.zig",
-        "sha256d.zig",
-        "inspect_bitcoin_chain_fold.zig",
+        "bitcoin_chain_verifier.zig", "bitcoin_chain_anchor_proof_test.zig", "bitcoin_chain_cli.zig",
+        "sha256d.zig", "inspect_bitcoin_chain_fold.zig",
     )
     record = {
-        "schema": "s31-bitcoin-chain-fold-topology-v2",
+        "schema": "s31-bitcoin-chain-fold-topology-v3",
         "command": " ".join(COMMAND),
         "cases": cases,
         "candidate_preprocessed_root": base["preprocessed_root"],
@@ -58,9 +58,9 @@ def main() -> None:
         "source_sha256": {path: sha256(S31 / path) for path in paths},
         "projection_sha256": sha256(ROOT / "vectors/circuit/official/compiled_air_constraints_v1.bin"),
         "reference_sha256": sha256(MEASUREMENTS / "bitcoin-sparse-wide-fold-stages-v1-2026-10-07.json"),
-        "scope": "Genesis first-epoch nBits-constrained witness-free topology and roots only; no Bitcoin chain-fold proof or timed benchmark. Steps above 2014 are topology invariance probes, not accepted by the key policy.",
+        "scope": "Genesis first-epoch SHA256d plus proof-bound median-time-past, witness-free topology and roots. Steps above 2014 are shape probes only; key policy rejects them.",
     }
-    output = MEASUREMENTS / "bitcoin-chain-fold-topology-v2-2026-10-07.json"
+    output = MEASUREMENTS / "bitcoin-chain-fold-topology-v3-2026-10-07.json"
     output.write_text(json.dumps(record, indent=2, sort_keys=True) + "\n")
     print(f"Recorded {len(cases)} fold geometries in {output.relative_to(ROOT)}")
 

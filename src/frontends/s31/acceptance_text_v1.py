@@ -17,6 +17,7 @@ CASES = (
     ("math_polynomial4", "math_polynomial4", "direct-gate"),
     ("mathlib4", "mathlib4", "direct-gate"),
     ("static_matvec", "static_matvec", "direct-gate"),
+    ("static_matmul", "static_matmul", "direct-gate"),
     ("lane_stats4", "lane_stats4", "direct-gate"),
 )
 EQUAL_FIELDS = (
@@ -57,6 +58,20 @@ def reject_bad_text_claims(package: Path, assignment_path: Path, proof: Path,
         pass
     else:
         raise AssertionError(f"{name}: native verifier accepted a changed public output")
+
+    if name == "static_matmul":
+        bad = json.loads(assignment_path.read_text())
+        bad["public_outputs"]["result"] = [465]
+        bad_assignment = work / "static-matmul-wrong-output.json"
+        s31.write_json(bad_assignment, bad)
+        prover = package / "bin" / f"s31-{manifest['name']}-prover"
+        try:
+            s31.invoke(str(prover), "prove", str(bad_assignment),
+                       str(work / "static-matmul-wrong-output.proof"))
+        except RuntimeError:
+            pass
+        else:
+            raise AssertionError("static_matmul: prover accepted a false matrix product")
 
     if name == "merkle_path1_poseidon":
         bad = json.loads(assignment_path.read_text())
@@ -144,7 +159,7 @@ def main() -> None:
             text_package = s31.build(text_source, work / f"{name}-text", lowering)
             json_package = s31.build(json_source, work / f"{name}-json", lowering)
             lock = json.loads((text_package / "stdlib-lock.json").read_text())
-            if lock["package"] != "std" or lock["version"] != 1 or lock["explicit_import"] != (name in {"mathlib4", "static_matvec", "lane_stats4"}):
+            if lock["package"] != "std" or lock["version"] != 1 or lock["explicit_import"] != (name in {"mathlib4", "static_matvec", "static_matmul", "lane_stats4"}):
                 raise AssertionError(f"{name}: unexpected standard library lock")
             s31.verify_package(text_package)
             if name == "mathlib4":
@@ -163,7 +178,7 @@ def main() -> None:
             # The handwritten math fixtures give relation nodes descriptive
             # names, so their name-bearing source maps differ.
             compared = (field for field in EQUAL_FIELDS
-                        if name not in {"mathlib4", "lane_stats4"} or field != "source_map")
+                        if name not in {"mathlib4", "static_matmul", "lane_stats4"} or field != "source_map")
             mismatches = [field for field in compared if text_report[field] != json_report[field]]
             if mismatches:
                 raise AssertionError(f"{name}: text and JSON cost structures differ: {mismatches}")

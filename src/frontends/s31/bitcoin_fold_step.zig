@@ -13,6 +13,9 @@ const M31 = core.fields.m31.M31;
 const QM31 = core.fields.qm31.QM31;
 const Var = circuit.builder.Var;
 const NoValue = circuit.builder.NoValue;
+const U32 = circuit.builder.wrappers.U32Wrapper(Var);
+
+pub const StepResult = struct { root: [8]Var, time: U32 };
 
 fn hint(comptime V: type, value: u32) V {
     return circuit.builder.ivalue.fromQm31(V, QM31.fromBase(M31.fromCanonical(value)));
@@ -54,7 +57,7 @@ pub fn constrainMainnetPowLinkStep(
     header_values: [40]V,
     authenticated_prior_root: [8]Var,
 ) ![8]Var {
-    return constrainPowLinkStep(V, ctx, prior_hash_values, header_values, authenticated_prior_root, false);
+    return (try constrainPowLinkStep(V, ctx, prior_hash_values, header_values, authenticated_prior_root, false)).root;
 }
 
 fn constrainPowLinkStep(
@@ -64,7 +67,7 @@ fn constrainPowLinkStep(
     header_values: [40]V,
     authenticated_prior_root: [8]Var,
     comptime genesis_epoch: bool,
-) ![8]Var {
+) !StepResult {
     var prior_hash: [16]Var = undefined;
     var header: [40]Var = undefined;
     for (prior_hash_values, &prior_hash) |value, *wire| wire.* = try ctx.guessU16(value);
@@ -79,7 +82,84 @@ fn constrainPowLinkStep(
     const child_hash = try sha256d.hashHeader(V, ctx, &header);
     const target = try bitcoin_target.mainnetTarget(V, ctx, &header);
     try ctx.eq(try lessEqualU256(V, ctx, child_hash, target), ctx.one());
-    return poseidon2.leafScalarCircuit(V, ctx, &child_hash);
+    const i = try ctx.constant(QM31.fromU32Unchecked(0, 1, 0, 0));
+    const time: U32 = .newUnsafe(try ctx.add(header[34], try ctx.mul(header[35], i)));
+    return .{ .root = try poseidon2.leafScalarCircuit(V, ctx, &child_hash), .time = time };
+}
+
+const TimeLimbs = struct { low: Var, high: Var };
+
+fn splitTime(comptime V: type, ctx: *circuit.builder.Context(V), word: U32) !TimeLimbs {
+    const value: u32 = if (comptime V == QM31) circuit.builder.ivalue.unpackU32(QM31, ctx.get(word.get())) else 0;
+    const low = try ctx.guessU16(hint(V, value & 0xffff));
+    const high = try ctx.guessU16(hint(V, value >> 16));
+    const i = try ctx.constant(QM31.fromU32Unchecked(0, 1, 0, 0));
+    try ctx.eq(word.get(), try ctx.add(low, try ctx.mul(high, i)));
+    return .{ .low = low, .high = high };
+}
+
+fn selectTime(comptime V: type, ctx: *circuit.builder.Context(V), choose_right: Var, left: U32, right: U32) !U32 {
+    return .newUnsafe(try ctx.add(left.get(), try ctx.mul(choose_right, try ctx.sub(right.get(), left.get()))));
+}
+
+/// Integer-sound strict u32 comparison. Every operand limb and result digit
+/// is range checked, and both borrows are Boolean. Each equality is below
+/// 2^18, so M31 arithmetic cannot hide an integer overflow.
+fn lessThanTime(comptime V: type, ctx: *circuit.builder.Context(V), lhs: U32, rhs: U32) !Var {
+    const a = try splitTime(V, ctx, lhs);
+    const b = try splitTime(V, ctx, rhs);
+    const base = try ctx.constant(QM31.fromBase(M31.fromCanonical(65536)));
+    var incoming = ctx.zero();
+    for ([_]Var{ a.low, a.high }, [_]Var{ b.low, b.high }) |av, bv| {
+        const a_value = valueOf(V, ctx, av);
+        const b_value = valueOf(V, ctx, bv);
+        const borrow_value = valueOf(V, ctx, incoming);
+        const digit_value = (a_value + 65536 - b_value - borrow_value) & 0xffff;
+        const next_value: u32 = @intFromBool(a_value < b_value + borrow_value);
+        const digit = try ctx.guessU16(hint(V, digit_value));
+        const next = try ctx.guessM31(hint(V, next_value));
+        try ctx.eq(try ctx.mul(next, try ctx.sub(next, ctx.one())), ctx.zero());
+        try ctx.eq(try ctx.add(av, try ctx.mul(next, base)), try ctx.add(try ctx.add(bv, incoming), digit));
+        incoming = next;
+    }
+    return incoming;
+}
+
+/// Bitcoin Core's GetMedianTimePast sorts the available one-to-eleven
+/// predecessor timestamps and picks index floor(count/2). The absent tail
+/// is authenticated as 0xffffffff in the base state and shifted out by the
+/// fold. The selector derives count from the constrained full u32 step.
+pub fn constrainMedianTimePast(
+    comptime V: type,
+    ctx: *circuit.builder.Context(V),
+    prior: [11]U32,
+    current: U32,
+    step: U32,
+    step_value: u32,
+) !void {
+    var sorted = prior;
+    for (1..11) |end| {
+        var j = end;
+        while (j > 0) : (j -= 1) {
+            const less = try lessThanTime(V, ctx, sorted[j - 1], sorted[j]);
+            const low = try selectTime(V, ctx, less, sorted[j], sorted[j - 1]);
+            const high = try selectTime(V, ctx, less, sorted[j - 1], sorted[j]);
+            sorted[j - 1] = low;
+            sorted[j] = high;
+        }
+    }
+    var median = sorted[5]; // steps >= 10 have eleven real ancestors.
+    for (0..10) |early_step| {
+        const selected_value: u32 = @intFromBool(step_value == early_step);
+        const selected = try ctx.guessM31(hint(V, selected_value));
+        try ctx.eq(try ctx.mul(selected, try ctx.sub(selected, ctx.one())), ctx.zero());
+        const fixed = try ctx.constant(circuit.builder.ivalue.packU32(QM31, @intCast(early_step)));
+        const difference = try ctx.sub(step.get(), fixed);
+        try ctx.eq(try ctx.mul(difference, selected), ctx.zero());
+        _ = try ctx.inv(try ctx.add(difference, selected));
+        median = try selectTime(V, ctx, selected, median, sorted[(early_step + 1) / 2]);
+    }
+    try ctx.eq(try lessThanTime(V, ctx, median, current), ctx.one());
 }
 
 /// Bitcoin mainnet keeps the genesis difficulty bits through block height
@@ -99,7 +179,52 @@ pub fn constrainGenesisEpochPowLinkStep(
     header_values: [40]V,
     authenticated_prior_root: [8]Var,
 ) ![8]Var {
-    return constrainPowLinkStep(V, ctx, prior_hash_values, header_values, authenticated_prior_root, true);
+    return (try constrainPowLinkStep(V, ctx, prior_hash_values, header_values, authenticated_prior_root, true)).root;
+}
+
+pub fn constrainGenesisEpochPowLinkStepWithTime(
+    comptime V: type,
+    ctx: *circuit.builder.Context(V),
+    prior_hash_values: [16]V,
+    header_values: [40]V,
+    authenticated_prior_root: [8]Var,
+    prior_times: [11]U32,
+    step: U32,
+    step_value: u32,
+) !StepResult {
+    const result = try constrainPowLinkStep(V, ctx, prior_hash_values, header_values, authenticated_prior_root, true);
+    try constrainMedianTimePast(V, ctx, prior_times, result.time, step, step_value);
+    return result;
+}
+
+test "median-time-past uses the available one-to-eleven ancestors and strict order" {
+    const history = [11]u32{ 200, 500, 100, 900, 400, 700, 300, 600, 800, 1000, 1100 };
+    for ([_]u32{ 0, 1, 2, 9, 10, 11, 65536 }) |step_value| {
+        const count: usize = @min(@as(usize, step_value) + 1, 11);
+        var prior_values = [_]u32{0xffffffff} ** 11;
+        @memcpy(prior_values[0..count], history[0..count]);
+        var sorted_values = prior_values;
+        std.mem.sort(u32, sorted_values[0..count], {}, std.sort.asc(u32));
+        const median = sorted_values[count / 2];
+        for ([_]struct { current: u32, valid: bool }{
+            .{ .current = median + 1, .valid = true },
+            .{ .current = median, .valid = false },
+            .{ .current = median - 1, .valid = false },
+        }) |case| {
+            var ctx = try circuit.builder.Context(QM31).init(std.testing.allocator, 1);
+            defer ctx.deinit();
+            var prior: [11]U32 = undefined;
+            for (prior_values, &prior) |word, *wire| wire.* = try circuit.builder.wrappers.guessU32(QM31, &ctx, circuit.builder.wrappers.u32Value(QM31, word));
+            const current = try circuit.builder.wrappers.guessU32(QM31, &ctx, circuit.builder.wrappers.u32Value(QM31, case.current));
+            const step = try circuit.builder.wrappers.guessU32(QM31, &ctx, circuit.builder.wrappers.u32Value(QM31, step_value));
+            try constrainMedianTimePast(QM31, &ctx, prior, current, step, step_value);
+            try ctx.setOutputs(&.{current.get()});
+            try ctx.finalize(false);
+            const actual = try ctx.isCircuitValid();
+            if (actual != case.valid) std.debug.print("MTP mismatch: step={d} count={d} median={d} current={d} actual={} expected={}\n", .{ step_value, count, median, case.current, actual, case.valid });
+            try std.testing.expectEqual(case.valid, actual);
+        }
+    }
 }
 
 test "genesis epoch bits equality rejects alternate compact targets" {

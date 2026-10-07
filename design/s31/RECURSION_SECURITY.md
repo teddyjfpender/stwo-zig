@@ -83,21 +83,28 @@ zero, the fold verifies that anchor under its fixed AIR root, forces the
 private prior-hash root to equal the checkpoint root, and checks a fresh
 header's exact previous-hash bytes, `nBits = 0x1d00ffff`, SHA256d and proof
 of work. At positive
-step `n`, it verifies a fold proof with public digest for step `n-1` and
-the witnessed prior-hash root, then checks the next header and the same
-exact `nBits`. The genesis and height limits are native key-policy checks;
-the header `nBits` equality is proof-bound. The current
-header-hash root enters `S31BFD1!`, a personalized BLAKE2s digest of the
-actual fold AIR root, full `u32` step, checkpoint root, and current root.
+step `n`, it verifies a fold proof with public digest for step `n-1`, the
+witnessed prior-hash root, and an eleven-timestamp window, then checks the
+next header and the same exact `nBits`. The genesis and height limits are
+native key-policy checks; the header `nBits` equality is proof-bound. The
+current header-hash root and shifted timestamp window enter `S31BFD2!`, a
+personalized BLAKE2s digest of the actual fold AIR root, full `u32` step,
+checkpoint root, current root, and eleven newest-first `u32` timestamps.
 The outer native verifier reconstructs that digest from the key, statement,
-and displayed current block hash. The fold AIR cannot contain its own root
+displayed current block hash, and timestamp window. The fold AIR cannot contain its own root
 as a constant without a hash fixed-point problem; its guessed self-root is
 bound by the outer public digest, subject to BLAKE2s collision resistance.
 The prior and current hash roots also depend on Poseidon2 collision
-resistance. This is an induction argument for a **checkpoint-relative hash
-chain** over the first difficulty epoch, not full Bitcoin consensus or proof
-of the most-work chain. Median-time-past, the first retarget, cumulative
-chainwork and best-chain selection remain absent. See the
+resistance. The base branch fixes the genesis time and ten missing-ancestor
+markers. Each recursive branch opens the window through the verified child
+digest, constrains the new header time to exceed the median of the available
+one-to-eleven ancestors, and shifts the time into the next state. The
+[MTP walkthrough](BITCOIN_MTP_FOLD.md) gives the integer comparator and
+Bitcoin Core source. This is an induction argument for a
+**checkpoint-relative header chain** over the first difficulty epoch, not
+full Bitcoin consensus or proof of the most-work chain. The first retarget,
+contextual future-time policy, cumulative chainwork and best-chain selection
+remain absent. See the
 [Bitcoin design](BITCOIN_LIGHT_CLIENT.md) and
 [standalone acceptance](../../src/frontends/s31/acceptance_bitcoin_chain_cli.py).
 
@@ -165,7 +172,7 @@ anchor and fold roots, checks the fixed AIR layout and FRI schedule, and
 enforces the key's `max_step` before verifying the proof. Its current
 two-header key permits steps zero and one. The acceptance script regenerates
 the key and statements byte for byte, accepts both saved fold proofs, and
-rejects a different checkpoint, key digest, current hash, step replay,
+rejects a different checkpoint, key digest, current hash, timestamp window, step replay,
 public words, proof bytes, and a step beyond the cap. The cap is a host
 policy choice; no per-proof `ε` has been established for this Bitcoin fold.
 
@@ -191,7 +198,7 @@ lanes.
 | Child verifier | Direct commitment, transcript, OODS, Merkle, FRI and nonce mutations; native capture parity | Independent verifier equivalence review |
 | Fixed-key closure | Witness-free/value topology equality, reproducible key, isolated top verification and induction argument | End-to-end recursive soundness theorem and depth bound |
 | Stateful relation | Source-bound step body, false-state rejection, independent replay | Typed state and transition support beyond four M31 lanes |
-| Bitcoin | Byte-exact SHA256d/target two-header leaf; two successive new-header fold proofs under one AIR root; checkpoint-bound key and standalone native verification | Chain work, consensus rules, independent soundness review and concrete depth bound |
+| Bitcoin | Byte-exact SHA256d/target two-header leaf; two successive new-header fold proofs under one AIR root; checkpoint-bound key, rolling eleven-timestamp MTP state and standalone native verification | Retarget, future-time context, chainwork, best-chain selection, independent soundness review and concrete depth bound |
 
 An additional graph audit checked the child-proof witness before
 `Context.finalize(false)` adds the gates that yield guessed values. In the

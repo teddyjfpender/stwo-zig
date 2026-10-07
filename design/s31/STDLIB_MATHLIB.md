@@ -18,8 +18,8 @@ general module loader or user-published package format yet.
 
 | Namespace | Implemented operations | Backend relation |
 | --- | --- | --- |
-| `std::math` | `neg`, `sub`, `square`, checked `inv`, `div`, static `pow<K>`, static-group `sum`, `dot`, `matvec`, `poly_eval`, fixed-array `sum_lanes`, `dot_lanes`, `add_u256`, `add_u256_checked`, `sub_u256`, `sub_u256_checked`, `le_u256` | M31 arithmetic and constrained packed reduction; `matvec` expands to ordinary dot and add nodes; inversion uses a pointwise product and arithmetic zero assertion per four active lanes, and division reuses the inverse; wide operations use sixteen range-checked digits and Boolean carries/borrows. |
-| `std::array` | Static-reference `get<K>`, `concat`; runtime-array `get<K>`, `concat` | Static forms erase to existing references. Runtime forms have explicit `array_get` and `array_concat` relation nodes that must preserve constrained source lanes. |
+| `std::math` | `neg`, `sub`, `square`, checked `inv`, `div`, static `pow<K>`, static-group `sum`, `dot`, `matvec`, `matmul`, `poly_eval`, fixed-array `sum_lanes`, `dot_lanes`, `add_u256`, `add_u256_checked`, `sub_u256`, `sub_u256_checked`, `le_u256` | M31 arithmetic and constrained packed reduction; `matvec` and `matmul` expand to ordinary dot and add nodes; inversion uses a pointwise product and arithmetic zero assertion per four active lanes, and division reuses the inverse; wide operations use sixteen range-checked digits and Boolean carries/borrows. |
+| `std::array` | Static-reference `get<K>`, `concat`, `take<K>`, `drop<K>`, `reshape<R>`, `flatten`; runtime-array `get<K>`, `concat` | Static forms erase to existing references. Runtime forms have explicit `array_get` and `array_concat` relation nodes that must preserve constrained source lanes. |
 | `std::field` | `from_u16`, `is_zero`, `select` | Explicit conversion; direct input bits have `b²-b=0`, while computed zero bits use two algebraic constraints. |
 | `std::bytes` | `to_u256_le`, `from_u256_le`, `limbs_m31` | Explicit nominal byte/integer reinterpretation and value-preserving cast of sixteen `u16` limbs. |
 | `std::hash` | Poseidon2 and BLAKE2s reduced leaf/pair hashes; byte-exact SHA256d of `Bytes80` | Existing pinned hash nodes plus a constrained three-block SHA circuit. |
@@ -85,8 +85,9 @@ produce proofs accepted by their generated native verifiers. The [library
 chapter](../../src/frontends/s31/docs/library.md) gives exact types,
 coefficient order, a hand calculation, and the lock format.
 
-The static groups are lists of existing arrays in source. `sum`, `dot`, and
-`matvec` operate on those groups; `get<K>` and `concat` rearrange references
+The static groups are lists of existing arrays in source. `sum`, `dot`,
+`matvec`, and `matmul` operate on those groups; `get<K>`, `concat`,
+`take<K>`, `drop<K>`, `reshape<R>`, and `flatten` rearrange references
 without adding gates. The [two-by-two matrix example](../../src/frontends/s31/examples/static_matvec.s31)
 has four multiply-by-constant and three addition nodes. Its handwritten
 [relation](../../src/frontends/s31/examples/static_matvec.s31.json) and
@@ -94,6 +95,20 @@ independent assignment evaluate $(2a+3b)+(5a+7b)=44$ for $(a,b)=(2,3)$.
 These operations are a partial step toward general arrays: the group is a
 compile-time list of whole values, whereas a runtime `[m31; N]` contains
 positions selected by an explicit `array_get` relation node.
+
+The [matrix product example](../../src/frontends/s31/examples/static_matmul.s31)
+multiplies two 2×2 static groups and then takes a weighted sum of all four
+output cells. Its `reshape`, `flatten`, `take`, and `drop` calls emit no
+relation nodes. The [handwritten relation](../../src/frontends/s31/examples/static_matmul.s31.json)
+lists the nineteen ordinary arithmetic nodes, and the
+[independent assignment](../../src/frontends/s31/examples/static_matmul.valid.json)
+checks `(19,27,45,64)` and public word `464` for input `(2,3,5,7)`.
+The text and handwritten packages have the same canonical IR digest and
+299 raw/512 padded QM31 rows under `direct-gate`. Their generated native
+verifiers accepted both proofs; the text verifier rejected a changed public
+word, and the prover rejected an assignment claiming `465`. The two proof
+files were 56,675 and 54,811 bytes in one `ReleaseFast` run; those sizes
+depend on proof randomness.
 
 The static groups are lists of existing arrays in source. `sum` and `dot`
 reduce across that list. In contrast, `sum_lanes(x)` sums the positions of
@@ -147,7 +162,7 @@ chip it activates.
 | Work package | Exit gate | Rough effort for one experienced engineer |
 | --- | --- | ---: |
 | General modules and shape-polymorphic pure functions | Extend the current `use std@1` pin to named modules, deterministic external resolution, lockfiles for imported source, and source maps through those calls. | 2–4 weeks |
-| Field/vector core | Finish runtime fixed-array indexing and concatenation in the relation compiler, prove the views bind to source lanes, and add broader vector/matrix kernels. Static-group reference indexing/concat and small `matvec` are implemented; runtime source/IR/oracle semantics are introduced but need backend proof acceptance. | 2–4 weeks |
+| Field/vector core | Finish runtime fixed-array indexing and concatenation in the relation compiler, prove the views bind to source lanes, and add broader vector kernels. Static-group reference views, small `matvec`, and `matmul` are implemented; runtime source/IR/oracle semantics are introduced but need backend proof acceptance. | 2–4 weeks |
 | Nonzero inverse and checked division | **Core implemented:** witness generation, `x·inv=1`, zero rejection, direct-gate proof and native-verifier negative cases. Remaining: batch inverse cost comparison and wider random proof corpus. | Remaining effort depends on batching design. |
 | Boolean/range/integer core | Computed bits, comparisons, range constraints and explicit integer/field casts; no host-only assertions or unconstrained hint outputs. | 3–6 weeks |
 | Library release discipline | API/version policy, corpus of positive and negative proofs, cost regression gates, and audit views from source to AIR polynomial. | 2–3 weeks |

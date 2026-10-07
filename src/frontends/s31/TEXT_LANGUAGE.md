@@ -135,6 +135,10 @@ zero-row view for byte and integer operations.
 | `std::math::lt_u32(a,b)` | `u32_lt` | Strict unsigned comparison of two little-endian `[u16; 2]` values; Boolean M31 result. |
 | `std::array::get<K>(array)` | Static reference selection, or `array_get` for a runtime array | Literal `K` lies inside the array; runtime element type is m31 or u16. |
 | `std::array::concat(a,b)` | Static reference concatenation, or `array_concat` for runtime arrays | Both arguments are static groups or both are arrays with the same m31/u16 element type; runtime result length at most 4096. |
+| `std::array::take<K>(group)` | No node; first `K` static references | Static group only; `1 <= K <= length`. |
+| `std::array::drop<K>(group)` | No node; static references after the first `K` | Static group only; `0 <= K < length`. |
+| `std::array::reshape<R>(group)` | No node; row-major grouping into `R` rows | Flat static group only; exact divisibility, 1–16 rows and columns. |
+| `std::array::flatten(rows)` | No node; row-major concatenation of rows | 1–16 rectangular static rows of 1–16 values. |
 | `std::bitcoin::genesis_hash_mainnet()` | `bitcoin_genesis_hash_mainnet` | Zero-input `Bytes32` constant in raw digest byte order; pins an exact checkpoint when asserted. |
 | `std::bitcoin::genesis_block_hash_mainnet()` | `bitcoin_genesis_hash_mainnet` | The same pinned constant, typed as `BlockHash`. |
 
@@ -160,6 +164,7 @@ There is no general module loader or third-party package system yet.
 | `std::math::sum([a,...])` | Balanced addition tree over statically grouped terms | 1–64 equally shaped `[m31; N]` values. |
 | `std::math::dot([a,...],[b,...])` | Pairwise products and balanced sum | Equal groups of 1–64 equally shaped `[m31; N]` values. |
 | `std::math::matvec(rows, vector)` | One static `dot` per matrix row; result is a static reference group | 1–16 rectangular rows and 1–16 columns of equally shaped `[m31; N]` values. |
+| `std::math::matmul(a,b)` | Static dot product for each output cell; result is a nested static reference group | Matrices of 1–16 rows and columns; inner dimensions equal; all cells equally shaped `[m31; N]`. |
 | `std::math::sum_lanes(x)` | Constrained extraction and balanced sum of every lane in one array | `[m31; N] -> [m31; 1]`, `1 <= N <= 4096`. |
 | `std::math::dot_lanes(a,b)` | One pointwise `mul` followed by `sum_lanes` | Equal `[m31; N]` shapes; returns `[m31; 1]`. |
 | `std::math::poly_eval(x,[c0,...,cd])` | Horner evaluation, low-degree coefficient first | 1–64 coefficients, each shaped like `x`. |
@@ -189,6 +194,11 @@ indexing, concatenation, and `matvec`; its seven arithmetic nodes match a
 [handwritten relation](examples/static_matvec.s31.json). Runtime array views
 have explicit `array_get` and `array_concat` relation nodes so that their
 semantics remain visible in the normalized source.
+The [matrix multiplication example](examples/static_matmul.s31) uses static
+reshape, flatten, take, and drop. Those four helpers only group references;
+the `matmul` cells lower to the existing dot-product arithmetic nodes. Its
+[handwritten relation](examples/static_matmul.s31.json) has the same canonical
+IR and direct-gate geometry as the text program.
 Unlike static-group `sum` and `dot`, the [lane statistics example](examples/lane_stats4.s31)
 reduces positions of one witness array. Its [handwritten relation](examples/lane_stats4.s31.json)
 uses a normalized `sum_lanes` node. Each extracted lane and addition is

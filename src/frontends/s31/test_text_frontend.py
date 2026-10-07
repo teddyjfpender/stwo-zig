@@ -325,6 +325,60 @@ circuit joined(private a: [m31; 3], private b: [m31; 2]) -> public [m31; 1] {
 }""")
         self.assertEqual(u16["nodes"][0]["op"], "array_get")
 
+    def test_static_matmul_views_lower_to_constrained_arithmetic(self) -> None:
+        relation, source_map = compile_file(EXAMPLES / "static_matmul.s31")
+        self.assertEqual(len(relation["nodes"]), 19)
+        self.assertEqual(set(source_map), {node["name"] for node in relation["nodes"]})
+        self.assertEqual({node["op"] for node in relation["nodes"]}, {"mul_const", "add"})
+        self.assertEqual(relation["nodes"][-1], {
+            "name": "result", "op": "add", "lhs": "weighted_front", "rhs": "weighted_back"})
+
+        lanes, _ = compile_text("""circuit lanes(private a: [m31; 4], private b: [m31; 4])
+            -> public [m31; 4] {
+            let product = std::math::matmul([[a,b]],
+                [[splat<4>(2_m31),splat<4>(3_m31)],
+                 [splat<4>(5_m31),splat<4>(7_m31)]]);
+            std::math::sum(std::array::flatten(product))
+        }""")
+        a, b = [0, 1, P - 1, 17], [7, 2, 3, P - 1]
+        expected = [(5 * x + 12 * y) % P for x, y in zip(a, b)]
+        output = lanes["public_outputs"][0]
+        self.assertEqual(evaluate_relation(lanes, {
+            "public_inputs": {}, "private_inputs": {"a": a, "b": b},
+            "public_outputs": {output: expected},
+        }), {output: expected})
+
+    def test_static_views_and_matmul_reject_bad_shapes(self) -> None:
+        cases = (
+            ("std::array::take<0>([a,b])", "take count"),
+            ("std::array::drop<2>([a,b])", "drop count"),
+            ("std::array::reshape<2>([a,b,a])", "exact divisibility"),
+            ("std::array::reshape<2>([[a],[b]])", "flat static array"),
+            ("std::array::flatten([[a,b],[a]])", "rectangular static rows"),
+            ("std::math::matmul([[a,b]], [[a]])", "inner matrix dimensions"),
+            ("std::math::matmul([[a,b],[a]], [[a],[b]])", "rectangular static rows"),
+            ("std::math::matmul([[a,b]], [[a],[c]])", "equally shaped"),
+            ("std::array::take<1>(a)", "requires a static array"),
+        )
+        for expression, message in cases:
+            with self.subTest(expression=expression), self.assertRaisesRegex(SourceError, message):
+                compile_text(f"""circuit invalid(private a: [m31; 1], private b: [m31; 1],
+                    private c: [m31; 2]) -> public [m31; 1] {{ {expression} }}""")
+
+    def test_static_views_only_reuse_existing_references(self) -> None:
+        relation, source_map = compile_text("""circuit views(public a: [m31; 1],
+            public b: [m31; 1], public c: [m31; 1], public d: [m31; 1])
+            -> public [m31; 1] {
+            let rows = std::array::reshape<2>([a,b,c,d]);
+            let flat = std::array::flatten(rows);
+            let first = std::array::take<3>(flat);
+            let last = std::array::drop<1>(first);
+            std::array::get<0>(last)
+        }""")
+        self.assertEqual(relation["nodes"], [])
+        self.assertEqual(relation["public_outputs"], ["b"])
+        self.assertEqual(source_map, {})
+
     def test_array_and_matrix_shapes_are_checked_before_relation_emission(self) -> None:
         cases = (
             ("std::array::get<2>([a, b])", "outside the static array"),

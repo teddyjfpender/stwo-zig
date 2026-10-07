@@ -14,11 +14,12 @@ pub fn build(b: *std.Build) void {
         b.path("examples/affine4.s31.json");
     const program_name = b.option([]const u8, "s31-name", "Build artifact name for the selected program") orelse "affine4";
     const source_version = b.option(u32, "s31-version", "Normalized source version (0 or 1)") orelse 0;
-    const lowering = b.option([]const u8, "s31-lowering", "gate, chip, sparse-gate, sparse-chip, sparse-wide-gate, direct-gate, or direct-chip proof lowering") orelse "gate";
+    const lowering = b.option([]const u8, "s31-lowering", "gate, chip, sparse-gate, sparse-chip, sparse-wide-gate, direct-gate, direct-chip, or sha-joint proof lowering") orelse "gate";
     if (!std.mem.eql(u8, lowering, "gate") and !std.mem.eql(u8, lowering, "chip") and
         !std.mem.eql(u8, lowering, "sparse-gate") and !std.mem.eql(u8, lowering, "sparse-chip") and
         !std.mem.eql(u8, lowering, "sparse-wide-gate") and
-        !std.mem.eql(u8, lowering, "direct-gate") and !std.mem.eql(u8, lowering, "direct-chip"))
+        !std.mem.eql(u8, lowering, "direct-gate") and !std.mem.eql(u8, lowering, "direct-chip") and
+        !std.mem.eql(u8, lowering, "sha-joint"))
         @panic("invalid s31-lowering");
     const fri_fold_step = b.option(u32, "s31-fri-fold-step", "FRI folds per commitment for gate or sparse-wide-gate (1 or 4)") orelse 1;
     if ((fri_fold_step != 1 and fri_fold_step != 4) or
@@ -29,9 +30,13 @@ pub fn build(b: *std.Build) void {
     s31_options.addOption(bool, "sparse_mode", std.mem.startsWith(u8, lowering, "sparse-"));
     s31_options.addOption(bool, "wide_mode", std.mem.eql(u8, lowering, "sparse-wide-gate"));
     s31_options.addOption(bool, "direct_mode", std.mem.startsWith(u8, lowering, "direct-"));
+    s31_options.addOption(bool, "sha_joint_mode", std.mem.eql(u8, lowering, "sha-joint"));
     s31_options.addOption(u32, "fri_fold_step", fri_fold_step);
     s31_options.addOption([]const u8, "stdlib_lock_sha256", b.option([]const u8, "s31-stdlib-sha256", "Pinned S31 standard library lock digest") orelse "");
 
+    const sha_postcard = b.createModule(.{ .root_source_file = .{ .cwd_relative = b.pathFromRoot("../../interop/postcard.zig") }, .target = target, .optimize = optimize });
+    sha_postcard.addImport("stwo_core", core);
+    const official_air = b.createModule(.{ .root_source_file = .{ .cwd_relative = b.pathFromRoot("../../../vectors/circuit/official/circuit_air.air_programs_v1.bin") } });
     const frontend = b.addModule("stwo_s31_prototype", .{
         .root_source_file = b.path("mod.zig"),
         .target = target,
@@ -40,6 +45,10 @@ pub fn build(b: *std.Build) void {
     frontend.addImport("stwo_core", core);
     frontend.addImport("stwo_prover_engine", cpu.import_table.get("stwo_prover_engine") orelse @panic("circuit CPU module is missing prover engine"));
     frontend.addImport("stwo_circuit_frontend", circuit);
+    frontend.addImport("stwo_circuit_cpu_integration", cpu);
+    frontend.addImport("stwo_cairo_frontend", cpu.import_table.get("stwo_cairo_frontend") orelse @panic("missing Cairo frontend"));
+    frontend.addImport("interop_postcard", sha_postcard);
+    frontend.addImport("s31_air_programs", official_air);
     const sha_provider = b.createModule(.{
         .root_source_file = b.path("../riscv/sha256_s31_provider.zig"),
         .target = target,
@@ -119,16 +128,8 @@ pub fn build(b: *std.Build) void {
     anchor_proof_test_root.addImport("stwo_circuit_cpu_integration", cpu);
     anchor_proof_test_root.addImport("stwo_s31_prototype", frontend);
     anchor_proof_test_root.addImport("stwo_cairo_frontend", cpu.import_table.get("stwo_cairo_frontend") orelse @panic("missing Cairo frontend"));
-    const anchor_postcard = b.createModule(.{
-        .root_source_file = .{ .cwd_relative = b.pathFromRoot("../../interop/postcard.zig") },
-        .target = target,
-        .optimize = optimize,
-    });
-    anchor_postcard.addImport("stwo_core", core);
-    anchor_proof_test_root.addImport("interop_postcard", anchor_postcard);
-    anchor_proof_test_root.addAnonymousImport("s31_air_programs", .{
-        .root_source_file = .{ .cwd_relative = b.pathFromRoot("../../../vectors/circuit/official/circuit_air.air_programs_v1.bin") },
-    });
+    anchor_proof_test_root.addImport("interop_postcard", sha_postcard);
+    anchor_proof_test_root.addImport("s31_air_programs", official_air);
     anchor_proof_test_root.addAnonymousImport("s31_air_projection", .{
         .root_source_file = .{ .cwd_relative = b.pathFromRoot("../../../vectors/circuit/official/compiled_air_constraints_v1.bin") },
     });
@@ -141,10 +142,8 @@ pub fn build(b: *std.Build) void {
     private_bridge_test_root.addImport("stwo_circuit_frontend", circuit);
     private_bridge_test_root.addImport("stwo_circuit_cpu_integration", cpu);
     private_bridge_test_root.addImport("stwo_cairo_frontend", cpu.import_table.get("stwo_cairo_frontend") orelse @panic("missing Cairo frontend"));
-    private_bridge_test_root.addImport("interop_postcard", anchor_postcard);
-    private_bridge_test_root.addAnonymousImport("s31_air_programs", .{
-        .root_source_file = .{ .cwd_relative = b.pathFromRoot("../../../vectors/circuit/official/circuit_air.air_programs_v1.bin") },
-    });
+    private_bridge_test_root.addImport("interop_postcard", sha_postcard);
+    private_bridge_test_root.addImport("s31_air_programs", official_air);
     const private_bridge_tests = b.addRunArtifact(b.addTest(.{ .root_module = private_bridge_test_root }));
     test_step.dependOn(&private_bridge_tests.step);
     const sha_joint_test_root = b.createModule(.{
@@ -159,10 +158,8 @@ pub fn build(b: *std.Build) void {
     sha_joint_test_root.addImport("stwo_cairo_frontend", cpu.import_table.get("stwo_cairo_frontend") orelse @panic("missing Cairo frontend"));
     sha_joint_test_root.addImport("s31_sha_provider", sha_provider);
     sha_joint_test_root.addImport("s31_poseidon_ref", sha_provider);
-    sha_joint_test_root.addImport("interop_postcard", anchor_postcard);
-    sha_joint_test_root.addAnonymousImport("s31_air_programs", .{
-        .root_source_file = .{ .cwd_relative = b.pathFromRoot("../../../vectors/circuit/official/circuit_air.air_programs_v1.bin") },
-    });
+    sha_joint_test_root.addImport("interop_postcard", sha_postcard);
+    sha_joint_test_root.addImport("s31_air_programs", official_air);
     const sha_joint_tests = b.addRunArtifact(b.addTest(.{ .root_module = sha_joint_test_root }));
     b.step("test-sha-joint", "Compile and test one-proof circuit plus packed SHA integration")
         .dependOn(&sha_joint_tests.step);
@@ -194,10 +191,8 @@ pub fn build(b: *std.Build) void {
     bitcoin_cli_root.addImport("stwo_circuit_cpu_integration", cpu);
     bitcoin_cli_root.addImport("stwo_s31_prototype", frontend);
     bitcoin_cli_root.addImport("stwo_cairo_frontend", cpu.import_table.get("stwo_cairo_frontend") orelse @panic("missing Cairo frontend"));
-    bitcoin_cli_root.addImport("interop_postcard", anchor_postcard);
-    bitcoin_cli_root.addAnonymousImport("s31_air_programs", .{
-        .root_source_file = .{ .cwd_relative = b.pathFromRoot("../../../vectors/circuit/official/circuit_air.air_programs_v1.bin") },
-    });
+    bitcoin_cli_root.addImport("interop_postcard", sha_postcard);
+    bitcoin_cli_root.addImport("s31_air_programs", official_air);
     bitcoin_cli_root.addAnonymousImport("s31_air_projection", .{
         .root_source_file = .{ .cwd_relative = b.pathFromRoot("../../../vectors/circuit/official/compiled_air_constraints_v1.bin") },
     });
@@ -248,8 +243,6 @@ pub fn build(b: *std.Build) void {
 
     if (source_version == 1) {
         const cairo = cpu.import_table.get("stwo_cairo_frontend") orelse @panic("circuit CPU module is missing Cairo AIR runtime");
-        const postcard = b.createModule(.{ .root_source_file = .{ .cwd_relative = b.pathFromRoot("../../interop/postcard.zig") }, .target = target, .optimize = optimize });
-        postcard.addImport("stwo_core", core);
         const key_asset: std.Build.LazyPath = if (b.option([]const u8, "s31-key", "Absolute path to the sealed verification key")) |path|
             .{ .cwd_relative = path }
         else
@@ -279,15 +272,16 @@ pub fn build(b: *std.Build) void {
         prover_root.addImport("stwo_core", core);
         prover_root.addImport("stwo_circuit_frontend", circuit);
         prover_root.addImport("stwo_circuit_cpu_integration", cpu);
+        prover_root.addImport("stwo_prover_engine", cpu.import_table.get("stwo_prover_engine") orelse @panic("missing prover engine"));
+        prover_root.addImport("s31_sha_provider", sha_provider);
         prover_root.addImport("stwo_cairo_frontend", cairo);
-        prover_root.addImport("interop_postcard", postcard);
+        prover_root.addImport("interop_postcard", sha_postcard);
         prover_root.addImport("stwo_circuit_recursion_wire", wire);
         prover_root.addOptions("s31_options", s31_options);
         prover_root.addAnonymousImport("s31_program_source", .{ .root_source_file = source_asset });
         const projection_asset: std.Build.LazyPath = .{ .cwd_relative = b.pathFromRoot("../../../vectors/circuit/official/compiled_air_constraints_v1.bin") };
-        const programs_asset: std.Build.LazyPath = .{ .cwd_relative = b.pathFromRoot("../../../vectors/circuit/official/circuit_air.air_programs_v1.bin") };
         prover_root.addAnonymousImport("s31_air_projection", .{ .root_source_file = projection_asset });
-        prover_root.addAnonymousImport("s31_air_programs", .{ .root_source_file = programs_asset });
+        prover_root.addImport("s31_air_programs", official_air);
         prover_root.addAnonymousImport("s31_verification_key", .{ .root_source_file = key_asset });
         prover_root.addAnonymousImport("s31_recursive_key", .{ .root_source_file = recursive_key_asset });
         prover_root.addAnonymousImport("s31_recursive_next_key", .{ .root_source_file = recursive_next_key_asset });
@@ -305,13 +299,15 @@ pub fn build(b: *std.Build) void {
         native_root.addImport("stwo_core", core);
         native_root.addImport("stwo_circuit_frontend", circuit);
         native_root.addImport("stwo_circuit_cpu_integration", cpu);
+        native_root.addImport("stwo_prover_engine", cpu.import_table.get("stwo_prover_engine") orelse @panic("missing prover engine"));
+        native_root.addImport("s31_sha_provider", sha_provider);
         native_root.addImport("stwo_cairo_frontend", cairo);
-        native_root.addImport("interop_postcard", postcard);
+        native_root.addImport("interop_postcard", sha_postcard);
         native_root.addImport("stwo_circuit_recursion_wire", wire);
         native_root.addOptions("s31_options", s31_options);
         native_root.addAnonymousImport("s31_program_source", .{ .root_source_file = source_asset });
         native_root.addAnonymousImport("s31_air_projection", .{ .root_source_file = projection_asset });
-        native_root.addAnonymousImport("s31_air_programs", .{ .root_source_file = programs_asset });
+        native_root.addImport("s31_air_programs", official_air);
         native_root.addAnonymousImport("s31_verification_key", .{ .root_source_file = key_asset });
         native_root.addAnonymousImport("s31_recursive_key", .{ .root_source_file = recursive_key_asset });
         native_root.addAnonymousImport("s31_recursive_next_key", .{ .root_source_file = recursive_next_key_asset });
@@ -338,9 +334,8 @@ pub fn build(b: *std.Build) void {
     showcase_root.addImport("stwo_circuit_recursion_wire", wire);
     showcase_root.addAnonymousImport("s31_program_source", .{ .root_source_file = source_asset });
     const projection_asset: std.Build.LazyPath = .{ .cwd_relative = b.pathFromRoot("../../../vectors/circuit/official/compiled_air_constraints_v1.bin") };
-    const programs_asset: std.Build.LazyPath = .{ .cwd_relative = b.pathFromRoot("../../../vectors/circuit/official/circuit_air.air_programs_v1.bin") };
     showcase_root.addAnonymousImport("s31_air_projection", .{ .root_source_file = projection_asset });
-    showcase_root.addAnonymousImport("s31_air_programs", .{ .root_source_file = programs_asset });
+    showcase_root.addImport("s31_air_programs", official_air);
     const executable = b.addExecutable(.{ .name = "s31-showcase", .root_module = showcase_root });
     b.installArtifact(executable);
 
@@ -356,7 +351,7 @@ pub fn build(b: *std.Build) void {
     verifier_root.addImport("stwo_circuit_recursion_wire", wire);
     verifier_root.addAnonymousImport("s31_program_source", .{ .root_source_file = source_asset });
     verifier_root.addAnonymousImport("s31_air_projection", .{ .root_source_file = projection_asset });
-    verifier_root.addAnonymousImport("s31_air_programs", .{ .root_source_file = programs_asset });
+    verifier_root.addImport("s31_air_programs", official_air);
     const verifier = b.addExecutable(.{ .name = b.fmt("s31-{s}-verifier", .{program_name}), .root_module = verifier_root });
     b.installArtifact(verifier);
 

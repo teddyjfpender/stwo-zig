@@ -915,6 +915,68 @@ test "SHA chip lowering identifies stable private wires and charges 56 Gate yiel
     try std.testing.expectEqual(@as(usize, 56), extra_yields);
 }
 
+test "two-header SHA chip lowering charges two disjoint private caller boundaries" {
+    const allocator = std.testing.allocator;
+    var program = try relation.parseProgram(allocator, @embedFile("examples/bitcoin_header_pair.s31.json"));
+    defer program.deinit();
+    var assignment = try relation.parseAssignment(allocator, @embedFile("examples/bitcoin_header_pair.valid.json"));
+    defer assignment.deinit();
+
+    var value_maps = Maps{};
+    defer value_maps.deinit(allocator);
+    var values = try compileShaChipWithSpans(QM31, allocator, program.value, assignment.value, &value_maps);
+    defer values.deinit();
+    try std.testing.expect(try values.isCircuitValid());
+    try std.testing.expectEqual(@as(usize, 2), value_maps.sha_boundaries.items.len);
+
+    var topology_maps = Maps{};
+    defer topology_maps.deinit(allocator);
+    var topology = try compileShaChipWithSpans(circuit.builder.NoValue, allocator, program.value, null, &topology_maps);
+    defer topology.deinit();
+    try std.testing.expectEqual(@as(usize, 2), topology_maps.sha_boundaries.items.len);
+    try std.testing.expectEqual(values.circuit.n_vars, topology.circuit.n_vars);
+    try std.testing.expect(std.meta.eql(values.gate_counts, topology.gate_counts));
+    const pair = circuit.common.sparse_arithmetic.ShaBoundaryPair{
+        .first = .{ .addresses = value_maps.sha_boundaries.items[0].addresses },
+        .second = .{ .addresses = value_maps.sha_boundaries.items[1].addresses },
+    };
+    for (value_maps.sha_boundaries.items, topology_maps.sha_boundaries.items) |value, shape|
+        try std.testing.expectEqualSlices(u32, &value.addresses, &shape.addresses);
+    const source = circuit.common.preprocessed.CircuitView.fromBuilder(&topology.circuit);
+    try pair.validate(source);
+    var alias = pair;
+    alias.second.addresses[0] = alias.first.addresses[0];
+    try std.testing.expectError(error.DuplicateShaPrivateBoundary, alias.validate(source));
+
+    const raw = circuit.common.finalize.rawComponentSizes(source);
+    try std.testing.expect(raw.qm31_ops < 20_000);
+    try circuit.common.finalize.padToTargets(circuit.builder.NoValue, &topology, .{
+        .eq = circuit.common.finalize.paddedSize(raw.eq),
+        .qm31_ops = circuit.common.finalize.paddedSize(raw.qm31_ops),
+        .m31_to_u32 = circuit.common.finalize.paddedSize(raw.m31_to_u32),
+        .triple_xor = 0,
+        .blake_g_gate = 0,
+    });
+    var ordinary = try circuit.common.sparse_wide.Circuit.fromBuilderCircuit(allocator, &topology.circuit);
+    defer ordinary.deinit(allocator);
+    var linked = try circuit.common.sparse_wide.Circuit.fromBuilderCircuitWithShaBoundaryPair(allocator, &topology.circuit, pair);
+    defer linked.deinit(allocator);
+    try std.testing.expect(linked.sha_boundary == null);
+    try std.testing.expect(linked.sha_boundary_pair != null);
+
+    var extra_yields: usize = 0;
+    inline for (.{ "qm31_ops_mults", "m31_to_u32_multiplicity" }) |id| {
+        const before = ordinary.columnValues(id).?;
+        const after = linked.columnValues(id).?;
+        for (before, after) |old, new| {
+            const delta = new.sub(old).toU32();
+            try std.testing.expect(delta <= 1);
+            extra_yields += delta;
+        }
+    }
+    try std.testing.expectEqual(@as(usize, 112), extra_yields);
+}
+
 test "computed zero test has single-yield direct circuit topology" {
     var program = try relation.parseProgram(std.testing.allocator, @embedFile("examples/computed_choice.s31.json"));
     defer program.deinit();

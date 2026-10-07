@@ -39,6 +39,23 @@ pub const ShaBoundary = struct {
     }
 };
 
+/// Two private header/digest boundaries in one circuit. Their 112 addresses
+/// must be disjoint so the batch profile has two distinct circuit inputs and
+/// neither caller can silently alias a value assigned to the other call.
+pub const ShaBoundaryPair = struct {
+    first: ShaBoundary,
+    second: ShaBoundary,
+
+    pub fn validate(self: ShaBoundaryPair, source: preprocessed.CircuitView) !void {
+        try self.first.validate(source);
+        try self.second.validate(source);
+        for (self.first.addresses) |address| {
+            for (self.second.addresses) |other|
+                if (address == other) return error.DuplicateShaPrivateBoundary;
+        }
+    }
+};
+
 pub const Layout = struct {
     entries: [N_COLUMNS]preprocessed.LayoutEntry,
 

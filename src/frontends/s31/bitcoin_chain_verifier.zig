@@ -13,9 +13,9 @@ const native = @import("native_verifier.zig");
 const M31 = core.fields.m31.M31;
 const projection_bytes = @embedFile("s31_air_projection");
 const air_bytes = @embedFile("s31_air_programs");
-const schema = "s31-bitcoin-chain-verification-key-v2";
-const statement_schema = "s31-bitcoin-chain-statement-v1";
-const profile = "bitcoin-mainnet-genesis-first-epoch-sha256d-v2";
+const schema = "s31-bitcoin-chain-verification-key-v3";
+const statement_schema = "s31-bitcoin-chain-statement-v2";
+const profile = "bitcoin-mainnet-genesis-first-epoch-sha256d-mtp-v3";
 pub const genesis_display_hash = "000000000019d6689c085ae165831e934ff763ae46a2a6c172b3f1b60a8ce26f";
 pub const first_epoch_last_step: u32 = 2014; // step 0 is block height 1.
 
@@ -77,6 +77,7 @@ pub const Statement = struct {
     verification_key_sha256: []const u8,
     step: u32,
     current_block_hash: []const u8,
+    last_timestamps: [11]u32,
     public_words: [8]u32,
 };
 pub const Material = struct {
@@ -226,6 +227,7 @@ pub fn generateStatementJson(
     key: VerifiedKey,
     step: u32,
     current_block_hash: []const u8,
+    last_timestamps: [11]u32,
 ) ![]u8 {
     if (step > key.max_step) return error.BitcoinChainStepExceedsKeyLimit;
     const current_root = try blockHashRoot(current_block_hash);
@@ -234,6 +236,7 @@ pub fn generateStatementJson(
         step,
         key.material.checkpoint_root,
         current_root,
+        last_timestamps,
     );
     const key_hex = std.fmt.bytesToHex(key.key_sha256, .lower);
     const statement: Statement = .{
@@ -241,6 +244,7 @@ pub fn generateStatementJson(
         .verification_key_sha256 = &key_hex,
         .step = step,
         .current_block_hash = current_block_hash,
+        .last_timestamps = last_timestamps,
         .public_words = words,
     };
     return std.json.Stringify.valueAlloc(allocator, statement, .{});
@@ -265,6 +269,7 @@ pub fn verifyProof(
         statement.step,
         key.material.checkpoint_root,
         current_root,
+        statement.last_timestamps,
     );
     if (!std.meta.eql(statement.public_words, expected)) return error.InvalidBitcoinChainStatement;
     var bundle = try cpu.air.parse(allocator, air_bytes);

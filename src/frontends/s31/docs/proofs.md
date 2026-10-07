@@ -90,8 +90,9 @@ provided key and program identity, proof envelope/profile, canonical public
 word encodings, preprocessed commitment root and circuit hash, component
 geometry, lookup sums and chip endpoints when present, and then the core
 STARK proof: commitments, out-of-domain AIR evaluations, openings, FRI, and
-proof-of-work. The current proof envelope has a 16 MiB input cap and a
-bounded 64 MiB decoding arena. A key or proof for another program/profile
+proof-of-work. Generic proof envelopes have a 16 MiB input cap and a
+bounded 64 MiB decoding arena; the `sha-joint` envelope has a 64 MiB cap.
+A key or proof for another program/profile
 is rejected; a changed public output changes the transcript and fails.
 
 Profile-specific proof headers are:
@@ -103,6 +104,7 @@ Profile-specific proof headers are:
 | `sparse-gate` / `sparse-chip` | `S31NAT3G` / `S31NAT3C`. |
 | `sparse-wide-gate` | `S31NAT5W`. |
 | `direct-gate` / `direct-chip` | `S31NAT4G` / `S31NAT4C`. |
+| `sha-joint` | `S31NAT6S`, a sealed key digest, interaction nonce, and twelve canonical LogUp sums. |
 
 The envelope contains an interaction proof-of-work nonce, component LogUp
 claimed sums, and a postcard-serialized Stwo proof. Circuit and chip

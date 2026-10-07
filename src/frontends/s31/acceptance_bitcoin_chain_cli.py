@@ -55,13 +55,23 @@ def main() -> None:
         assert hashlib.sha256(regenerated_key.read_bytes()).hexdigest() == digest
         regenerated_statement = temp / "regenerated.statement.json"
         original = json.loads(step1.read_text())
+        times_path = temp / "times.json"
+        times_path.write_text(json.dumps(original["last_timestamps"]))
         run("statement", key, digest, 1, original["current_block_hash"],
-            regenerated_statement, accepted=True)
+            times_path, regenerated_statement, accepted=True)
         assert regenerated_statement.read_bytes() == step1.read_bytes()
         changed_hash = ("0" if original["current_block_hash"][0] != "0" else "1") + original["current_block_hash"][1:]
         changed_hash_statement = temp / "changed-hash.statement.json"
-        run("statement", key, digest, 1, changed_hash, changed_hash_statement, accepted=True)
+        run("statement", key, digest, 1, changed_hash, times_path, changed_hash_statement, accepted=True)
         run("verify", key, digest, changed_hash_statement, proof1, accepted=False)
+        changed_times = list(original["last_timestamps"])
+        changed_times[1] ^= 1
+        times_path.write_text(json.dumps(changed_times))
+        changed_time_statement = temp / "changed-time.statement.json"
+        run("statement", key, digest, 1, original["current_block_hash"], times_path,
+            changed_time_statement, accepted=True)
+        run("verify", key, digest, changed_time_statement, proof1, accepted=False)
+        times_path.write_text(json.dumps(original["last_timestamps"]))
         alternate_key = temp / "alternate-checkpoint-key.json"
         run("keygen", original["current_block_hash"], 1, alternate_key, accepted=False)
         run("keygen", checkpoint, 2014, temp / "last-first-epoch-key.json", accepted=True)
@@ -86,8 +96,8 @@ def main() -> None:
         bad_proof.write_bytes(proof_bytes)
         run("verify", key, digest, step1, bad_proof, accepted=False)
         output = temp / "over-limit.statement.json"
-        run("statement", key, digest, 2, statement["current_block_hash"], output, accepted=False)
-    print("Bitcoin chain CLI: key and statement regeneration agree; valid steps accepted; wrong checkpoint, retarget boundary, key digest, current hash, replay, claim, proof, and step limit rejected")
+        run("statement", key, digest, 2, statement["current_block_hash"], times_path, output, accepted=False)
+    print("Bitcoin chain CLI: key and statement regeneration agree; valid steps accepted; wrong checkpoint, retarget boundary, key digest, current hash, timestamp window, replay, claim, proof, and step limit rejected")
 
 
 if __name__ == "__main__":

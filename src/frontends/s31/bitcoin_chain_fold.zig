@@ -18,6 +18,7 @@ const NoValue = circuit.builder.NoValue;
 const Var = circuit.builder.Var;
 const Blake = circuit.builder.blake;
 const U32 = circuit.builder.wrappers.U32Wrapper(Var);
+const wrappers = circuit.builder.wrappers;
 
 fn wordsFromBytes(bytes: [32]u8) [8]u32 {
     var words: [8]u32 = undefined;
@@ -33,6 +34,7 @@ const ChildClaim = struct {
     self_root: Blake.HashValue(Var),
     counter: recursion_counter.CounterRelation,
     prior_root: [8]Var,
+    prior_times: [11]U32,
     child_root: Blake.HashValue(Var),
     child_output: Blake.HashValue(Var),
 };
@@ -44,6 +46,7 @@ fn prepareChild(
     checkpoint: [8]u32,
     self_root_value: Blake.HashValue(V),
     prior_root_values: [8]V,
+    prior_time_values: [11]V,
     step_value: u32,
 ) !ChildClaim {
     for (checkpoint) |word| if (word >= core.fields.m31.Modulus) return error.NonCanonicalCheckpoint;
@@ -57,9 +60,15 @@ fn prepareChild(
         // prior fold's output digest through the verified child statement.
         try ctx.eq(try ctx.mul(counter.base, try ctx.sub(wire.*, checkpoint_word)), ctx.zero());
     }
+    var prior_times: [11]U32 = undefined;
+    for (prior_time_values, s31.bitcoin_fold_digest.initialTimes(), &prior_times) |value, fixed, *wire| {
+        wire.* = try wrappers.guessU32(V, ctx, .newUnsafe(value));
+        const initial = try wrappers.constU32(V, ctx, fixed);
+        try ctx.eq(try ctx.mul(counter.base, try ctx.sub(wire.get(), initial.get())), ctx.zero());
+    }
     const base_root_wire = try Blake.constantHash(V, ctx, Blake.hashValue(QM31, wordsFromBytes(base_root)));
     const base_output = try Blake.constantHash(V, ctx, Blake.hashValue(QM31, checkpoint));
-    const previous_output = try s31.bitcoin_fold_digest.digestWires(V, ctx, self_root, counter.previous, checkpoint, prior_root);
+    const previous_output = try s31.bitcoin_fold_digest.digestWires(V, ctx, self_root, counter.previous, checkpoint, prior_root, prior_times);
     var child_root: Blake.HashValue(Var) = undefined;
     var child_output: Blake.HashValue(Var) = undefined;
     for (0..Blake.digest_n_words) |i| {
@@ -70,6 +79,7 @@ fn prepareChild(
         .self_root = self_root,
         .counter = counter,
         .prior_root = prior_root,
+        .prior_times = prior_times,
         .child_root = child_root,
         .child_output = child_output,
     };
@@ -84,6 +94,7 @@ pub fn buildCircuit(
     checkpoint: [8]u32,
     self_root_value: Blake.HashValue(V),
     prior_root_values: [8]V,
+    prior_time_values: [11]V,
     prior_hash_values: [16]V,
     header_values: [40]V,
     step_value: u32,
@@ -92,7 +103,7 @@ pub fn buildCircuit(
 ) !circuit.builder.Context(V) {
     var ctx = try circuit.builder.Context(V).init(allocator, circuit.common.component_list.N_RESERVED);
     errdefer ctx.deinit();
-    const claim = try prepareChild(V, &ctx, base_root, checkpoint, self_root_value, prior_root_values, step_value);
+    const claim = try prepareChild(V, &ctx, base_root, checkpoint, self_root_value, prior_root_values, prior_time_values, step_value);
 
     const statement = try circuit.statements.circuit_statement.CircuitStatement(V).init(
         &ctx,
@@ -111,15 +122,21 @@ pub fn buildCircuit(
     try stages.mark(&ctx.circuit, .{ .name = "proof_witness" });
     try circuit.stark_verifier.verify.verify(V, &ctx, &proof_vars, proof_config, &statement, stages);
 
-    const new_root = try s31.bitcoin_fold_step.constrainGenesisEpochPowLinkStep(
+    const result = try s31.bitcoin_fold_step.constrainGenesisEpochPowLinkStepWithTime(
         V,
         &ctx,
         prior_hash_values,
         header_values,
         claim.prior_root,
+        claim.prior_times,
+        claim.counter.step,
+        step_value,
     );
     try stages.mark(&ctx.circuit, .{ .name = "bitcoin_header_step" });
-    const digest = try s31.bitcoin_fold_digest.digestWires(V, &ctx, claim.self_root, claim.counter.step, checkpoint, new_root);
+    var next_times: [11]U32 = undefined;
+    next_times[0] = result.time;
+    @memcpy(next_times[1..], claim.prior_times[0..10]);
+    const digest = try s31.bitcoin_fold_digest.digestWires(V, &ctx, claim.self_root, claim.counter.step, checkpoint, result.root, next_times);
     var outputs: [Blake.digest_n_words]Var = undefined;
     for (digest.words, &outputs) |word, *out| out.* = word.get();
     try ctx.setOutputs(&outputs);
@@ -160,6 +177,7 @@ pub fn topology(
         checkpoint,
         Blake.hashValue(NoValue, @splat(0)),
         [_]NoValue{.{}} ** 8,
+        [_]NoValue{.{}} ** 11,
         [_]NoValue{.{}} ** 16,
         [_]NoValue{.{}} ** 40,
         step,
@@ -177,6 +195,9 @@ test "Bitcoin fold chooses a trusted base or the authenticated previous digest" 
         const prior = if (step == 0) checkpoint else successor;
         var values: [8]QM31 = undefined;
         for (prior, &values) |word, *value| value.* = QM31.fromBase(M31.fromCanonical(word));
+        const times = if (step == 0) s31.bitcoin_fold_digest.initialTimes() else s31.bitcoin_fold_digest.advanceTimes(s31.bitcoin_fold_digest.initialTimes(), 1231469665);
+        var time_values: [11]QM31 = undefined;
+        for (times, &time_values) |word, *value| value.* = circuit.builder.ivalue.packU32(QM31, word);
         var ctx = try circuit.builder.Context(QM31).init(std.testing.allocator, 8);
         defer ctx.deinit();
         const claim = try prepareChild(
@@ -186,6 +207,7 @@ test "Bitcoin fold chooses a trusted base or the authenticated previous digest" 
             checkpoint,
             Blake.hashValue(QM31, wordsFromBytes(self_bytes)),
             values,
+            time_values,
             step,
         );
         var outputs: [8]Var = undefined;
@@ -194,7 +216,7 @@ test "Bitcoin fold chooses a trusted base or the authenticated previous digest" 
         try ctx.finalize(false);
         try std.testing.expect(try ctx.isCircuitValid());
         const expected_root = if (step == 0) wordsFromBytes(base_bytes) else wordsFromBytes(self_bytes);
-        const expected_output = if (step == 0) checkpoint else try s31.bitcoin_fold_digest.statementDigest(self_bytes, step - 1, checkpoint, prior);
+        const expected_output = if (step == 0) checkpoint else try s31.bitcoin_fold_digest.statementDigest(self_bytes, step - 1, checkpoint, prior, times);
         for (claim.child_root.words, expected_root) |wire, want|
             try std.testing.expectEqual(want, circuit.builder.ivalue.unpackU32(QM31, ctx.get(wire.get())));
         for (claim.child_output.words, expected_output) |wire, want|

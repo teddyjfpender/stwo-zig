@@ -32,13 +32,15 @@ pub fn main() !void {
         return;
     }
     if (std.mem.eql(u8, args[1], "statement")) {
-        if (args.len != 7) return error.ExpectedKeyDigestStepHashAndOutput;
+        if (args.len != 8) return error.ExpectedKeyDigestStepHashTimesAndOutput;
         const key_bytes = try std.fs.cwd().readFileAlloc(allocator, args[2], 8192);
         const key = try chain.validateKey(allocator, key_bytes, try expectedDigest(args[3]));
         const step = try std.fmt.parseInt(u32, args[4], 10);
-        const encoded = try chain.generateStatementJson(allocator, key, step, args[5]);
-        try writeFile(args[6], encoded);
-        std.debug.print("Bitcoin chain statement: step={d} path={s}\n", .{ step, args[6] });
+        const times_bytes = try std.fs.cwd().readFileAlloc(allocator, args[6], 8192);
+        const parsed_times = try std.json.parseFromSlice([11]u32, allocator, times_bytes, .{ .ignore_unknown_fields = false });
+        const encoded = try chain.generateStatementJson(allocator, key, step, args[5], parsed_times.value);
+        try writeFile(args[7], encoded);
+        std.debug.print("Bitcoin chain statement: step={d} path={s}\n", .{ step, args[7] });
         return;
     }
     if (std.mem.eql(u8, args[1], "verify")) {

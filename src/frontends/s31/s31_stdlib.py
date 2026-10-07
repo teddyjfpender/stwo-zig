@@ -233,6 +233,46 @@ class Builder:
         return self.emit("array_concat", Type(lhs.typ.kind, length), wanted=wanted,
                          span=span, lhs=self.realize(lhs).ref, rhs=self.realize(rhs).ref)
 
+    @staticmethod
+    def array_take(group: StaticGroup, count: int) -> StaticGroup:
+        if not isinstance(group, StaticGroup):
+            raise TypeErrorS31("std::array::take requires a static array")
+        if not 1 <= count <= len(group.elements):
+            raise TypeErrorS31("std::array::take count must leave 1..N static elements")
+        return StaticGroup(group.elements[:count])
+
+    @staticmethod
+    def array_drop(group: StaticGroup, count: int) -> StaticGroup:
+        if not isinstance(group, StaticGroup):
+            raise TypeErrorS31("std::array::drop requires a static array")
+        if not 0 <= count < len(group.elements):
+            raise TypeErrorS31("std::array::drop count must leave 1..N static elements")
+        return StaticGroup(group.elements[count:])
+
+    @staticmethod
+    def array_reshape(group: StaticGroup, rows: int) -> StaticGroup:
+        if not isinstance(group, StaticGroup) or not all(isinstance(item, Value) for item in group.elements):
+            raise TypeErrorS31("std::array::reshape requires a flat static array of values")
+        length = len(group.elements)
+        if not 1 <= rows <= 16 or length % rows or not 1 <= length // rows <= 16:
+            raise TypeErrorS31("std::array::reshape requires 1..16 rows and columns with exact divisibility")
+        columns = length // rows
+        return StaticGroup(tuple(StaticGroup(group.elements[i:i + columns])
+                                 for i in range(0, length, columns)))
+
+    @staticmethod
+    def array_flatten(matrix: StaticGroup) -> StaticGroup:
+        if not isinstance(matrix, StaticGroup) or not 1 <= len(matrix.elements) <= 16:
+            raise TypeErrorS31("std::array::flatten requires 1..16 rectangular static rows")
+        rows = matrix.elements
+        if not isinstance(rows[0], StaticGroup) or not 1 <= len(rows[0].elements) <= 16:
+            raise TypeErrorS31("std::array::flatten requires 1..16 rectangular static rows")
+        width = len(rows[0].elements)
+        if any(not isinstance(row, StaticGroup) or len(row.elements) != width or
+               not all(isinstance(item, Value) for item in row.elements) for row in rows):
+            raise TypeErrorS31("std::array::flatten requires rectangular static rows of values")
+        return StaticGroup(tuple(item for row in rows for item in row.elements))
+
     def u256_binary(self, op: str, lhs: Value, rhs: Value, *, wanted: str | None = None,
                     span: dict[str, int] | None = None) -> Value:
         if op not in {"u256_add", "u256_add_checked", "u256_sub", "u256_sub_checked", "u256_le"}:

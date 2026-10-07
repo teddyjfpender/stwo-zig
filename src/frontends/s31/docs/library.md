@@ -31,6 +31,7 @@ AIR. No helper is a host-only calculation or a new specialized AIR chip.
 | `std::math::sum_lanes(x)` | `Σⱼ x[j] mod p`, returned as `[m31; 1]` | One `[m31; N]`, `1 <= N <= 4096`. |
 | `std::math::dot_lanes(x,w)` | `Σⱼ x[j]·w[j] mod p`, returned as `[m31; 1]` | Two equally shaped `[m31; N]` arrays, `1 <= N <= 4096`. |
 | `std::math::matvec(rows, vector)` | Matrix–vector product; each output row is a static reference | 1..16 rectangular rows and 1..16 columns of equally shaped `[m31; N]` values. |
+| `std::math::matmul(a,b)` | Matrix product `(a·b)[i,j] = Σₖ a[i,k]·b[k,j] mod p` in every lane | Both matrices have 1..16 rows and columns; matching inner dimension and equally shaped `[m31; N]` cells. Returns nested static rows. |
 | `std::math::poly_eval(x,[c0,c1,...,cd])` | `c0+c1·x+...+cd·x^d mod p` | 1..64 coefficients, each the same shape as `x`; **low degree first**. |
 | `std::math::add_u256(a,b)` | `(a+b) mod 2^256` | Two `UInt256` values; sixteen little-endian limbs. |
 | `std::math::add_u256_checked(a,b)` | `a+b` with final carry zero | Two `UInt256` values; overflow makes the relation unsatisfiable. |
@@ -56,6 +57,16 @@ Those forms emit explicit `array_get` and `array_concat` relation nodes. They
 are views of already constrained lanes, not hints chosen by the prover; a
 verifier constrains any use of a selected output to the source position.
 The index is a literal checked against the source length at compile time.
+
+Four more operations work on **static groups only**. `take<K>(group)` keeps
+the first `K` entries (`1 <= K <= length`); `drop<K>(group)` skips `K`
+entries (`0 <= K < length`). Neither can produce an empty group.
+`reshape<R>(flat)` divides a flat group into `R` consecutive rows, and
+`flatten(rows)` joins rectangular rows in row-major order. Each shape
+dimension is 1..16. The flat length must divide by `R` exactly. These
+operations emit no relation nodes: every returned entry remains a reference
+to the same constrained value. They cannot slice or reshape the positions
+inside a runtime `[m31; N]` or `[u16; N]` value.
 
 ## A fixed matrix by hand
 
@@ -91,6 +102,31 @@ assignment](../examples/static_matvec.valid.json), while the native verifier
 checks a proof of the compiled relation. For a scalar element `a`, a runtime
 array `[m31; N]` is a different thing: its coordinates are witness values,
 and selecting one is represented explicitly by `array_get`.
+
+## A fixed matrix product by hand
+
+The [matrix multiplication program](../examples/static_matmul.s31) takes
+private scalar cells `a,b,c,d` and multiplies
+`[[a,b],[c,d]]` by `[[2,3],[5,7]]`. `reshape<2>` builds the right-hand
+matrix from a flat group. `matmul` returns nested rows; `flatten` exposes
+the four output cells in row-major order. `take<3>` selects the first three,
+and `drop<3>` selects the fourth. The final public word is
+`C[0,0] + 2·C[0,1] + 3·C[1,0] + 4·C[1,1]`.
+
+For the [sample assignment](../examples/static_matmul.valid.json),
+`(a,b,c,d)=(2,3,5,7)`, so the four cells are `(19,27,45,64)` and the
+public word is `19 + 2·27 + 3·45 + 4·64 = 464`. The
+[handwritten relation](../examples/static_matmul.s31.json) explicitly lists
+all nineteen arithmetic nodes: twelve `mul_const` and seven `add`. The
+static views add none. The text and handwritten packages have matching
+canonical IR and direct-gate row geometry. Each package produces a proof
+accepted by its generated native verifier; changing the claimed public word
+is rejected. The independent oracle checks the arithmetic assignment, while
+the native proof establishes the emitted relation. In one `ReleaseFast`
+direct-gate run, the circuit used 299 raw QM31 rows (512 padded). The text
+proof was 56,675 bytes; the handwritten relation proof was 54,811 bytes.
+Proof bytes vary with proof randomness. The verifier rejected a changed
+public result, and the prover rejected an assignment claiming `465`.
 
 The [runtime array example](../examples/array_views.s31) joins two public
 arrays, selects position four from the joined value and position three from

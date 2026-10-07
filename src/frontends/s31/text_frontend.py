@@ -25,7 +25,8 @@ MAX_TOKENS = 100_000
 MAX_CALL_DEPTH = 32
 BUILTINS = {
     "splat", "iterate", "m31_from_u16", "select", "poseidon2_leaf",
-    "std::array::get", "std::array::concat",
+    "std::array::get", "std::array::concat", "std::array::take",
+    "std::array::drop", "std::array::reshape", "std::array::flatten",
     "poseidon2_pair", "blake2s_leaf", "blake2s_pair",
     "merkle_path_poseidon2", "merkle_path_blake2s",
     "std::bytes::to_u256_le", "std::bytes::from_u256_le", "std::bytes::limbs_m31",
@@ -465,6 +466,18 @@ class Compiler:
                 if not all(isinstance(value, (Value, StaticGroup)) for value in values):
                     raise TypeErrorS31("std::array::concat requires arrays")
                 return self.builder.array_concat(*values, wanted=wanted, span=self.span(expr))
+            if name in {"std::array::take", "std::array::drop", "std::array::reshape"}:
+                if expr.generic is None or len(expr.args) != 1:
+                    raise TypeErrorS31(f"{name}<K>(static_array) expected")
+                group = self.eval_expr(expr.args[0], env)
+                operation = {"std::array::take": self.builder.array_take,
+                             "std::array::drop": self.builder.array_drop,
+                             "std::array::reshape": self.builder.array_reshape}[name]
+                return operation(group, expr.generic)
+            if name == "std::array::flatten":
+                if expr.generic is not None or len(expr.args) != 1:
+                    raise TypeErrorS31("std::array::flatten(matrix) expected")
+                return self.builder.array_flatten(self.eval_expr(expr.args[0], env))
             if name in mathlib.BUILTINS:
                 if name == "std::math::pow":
                     if expr.generic is None or len(expr.args) != 1:
@@ -479,6 +492,11 @@ class Compiler:
                         raise TypeErrorS31("std::math::matvec expects a matrix and vector")
                     matrix, vector = (self.eval_expr(arg, env) for arg in expr.args)
                     return mathlib.matvec(self.builder, matrix, vector, span=self.span(expr))
+                if name == "std::math::matmul":
+                    if len(expr.args) != 2:
+                        raise TypeErrorS31("std::math::matmul expects two matrices")
+                    lhs, rhs = (self.eval_expr(arg, env) for arg in expr.args)
+                    return mathlib.matmul(self.builder, lhs, rhs, span=self.span(expr))
                 if name in {"std::math::sum", "std::math::dot", "std::math::poly_eval"}:
                     args = tuple(self.eval_expr(arg, env) for arg in expr.args)
                     arity = 1 if name == "std::math::sum" else 2
