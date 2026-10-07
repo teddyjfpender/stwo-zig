@@ -151,7 +151,7 @@ contains both verified trials. A dedicated SHA chip is the next major cost targe
 
 ## Two actual headers in one proof
 
-[`bitcoin_header_pair.s31`](../examples/bitcoin_header_pair.s31) proves a
+[`bitcoin_header_pair_typed.s31`](../examples/bitcoin_header_pair_typed.s31) proves a
 non-retarget step from Bitcoin mainnet genesis to block one. Its assignment
 contains both real serialized headers. The child's serialized bytes 4–35 are
 `6f e2 8c 0a … 00 00 00 00` in *raw digest order*: they equal the
@@ -163,27 +163,36 @@ use std@1;
 
 circuit bitcoin_header_pair(private parent: Bytes80, private child: Bytes80)
     -> public Digest<Poseidon2> {
-    let parent_hash = std::hash::sha256d_header(parent);
-    let child_hash = std::hash::sha256d_header(child);
-    assert_eq(parent_hash, std::bitcoin::genesis_hash_mainnet());
-    assert_eq(std::bitcoin::prev_hash(child), parent_hash);
+    let parent_hash = std::bitcoin::block_hash(parent);
+    let child_hash = std::bitcoin::block_hash(child);
+    assert_eq(parent_hash, std::bitcoin::genesis_block_hash_mainnet());
+    assert_eq(std::bitcoin::parent_hash(child), parent_hash);
     assert_eq(std::bitcoin::header_bits(child), std::bitcoin::header_bits(parent));
     let later_time = std::math::lt_u32(std::bitcoin::header_time(parent), std::bitcoin::header_time(child));
     assert_eq(later_time, splat<1>(1_m31));
     let parent_target = std::bitcoin::target_mainnet(parent);
     let child_target = std::bitcoin::target_mainnet(child);
-    let parent_pow = std::math::le_u256(std::bytes::to_u256_le(parent_hash), parent_target);
-    let child_pow = std::math::le_u256(std::bytes::to_u256_le(child_hash), child_target);
+    let parent_pow = std::math::le_u256(std::bytes::to_u256_le(std::bitcoin::hash_bytes(parent_hash)), parent_target);
+    let child_pow = std::math::le_u256(std::bytes::to_u256_le(std::bitcoin::hash_bytes(child_hash)), child_target);
     assert_eq(parent_pow, splat<1>(1_m31));
     assert_eq(child_pow, splat<1>(1_m31));
-    let parent_root = std::hash::poseidon2_leaf(std::bytes::limbs_m31(parent_hash));
-    let child_root = std::hash::poseidon2_leaf(std::bytes::limbs_m31(child_hash));
+    let parent_root = std::hash::poseidon2_leaf(std::bytes::limbs_m31(std::bitcoin::hash_bytes(parent_hash)));
+    let child_root = std::hash::poseidon2_leaf(std::bytes::limbs_m31(std::bitcoin::hash_bytes(child_hash)));
     let segment_root = std::hash::poseidon2_pair(parent_root, child_root);
     segment_root
 }
 ```
 
-The fixed `genesis_hash_mainnet()` value is the raw byte order of mainnet's
+`BlockHash` is a source type for the sixteen raw SHA256d byte-pair limbs.
+`block_hash(parent)` emits the same byte-exact SHA circuit as
+`sha256d_header(parent)`; `hash_bytes` only changes the source view so the
+existing byte and unsigned-integer operations can consume it. Neither view
+adds gates. A standalone `BlockHash` input is a claim until a relation links it
+to a computed header digest or trusted checkpoint. This typed source and the
+[earlier untyped source](../examples/bitcoin_header_pair.s31) lower to
+byte-identical normalized relations and have the same AIR and verifier key.
+
+The fixed `genesis_block_hash_mainnet()` value is the raw byte order of mainnet's
 genesis digest, with its displayed value pinned in
 [Bitcoin Core's mainnet parameters](https://github.com/bitcoin/bitcoin/blob/master/src/kernel/chainparams.cpp#L145-L149).
 The first assertion pins the private parent's computed digest
@@ -217,7 +226,7 @@ expected public root to identify a particular child header or chain segment.
 
 ```sh
 python3 src/frontends/s31/s31.py trial \
-  src/frontends/s31/examples/bitcoin_header_pair.s31 \
+  src/frontends/s31/examples/bitcoin_header_pair_typed.s31 \
   src/frontends/s31/examples/bitcoin_header_pair.valid.json \
   --lowering sparse-wide-gate \
   --out zig-out/s31/bitcoin-header-pair-trial

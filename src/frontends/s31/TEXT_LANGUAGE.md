@@ -93,6 +93,7 @@ relation and canonical IR digest.
 | `[m31; N]` | `m31[N]` | Each word is canonical modulo `2^31-1`. |
 | `[u16; N]` | `u16[N]` | Input words are range checked by the selected proof profile. |
 | `Bytes32` | `u16[16]` | Thirty-two bytes packed into sixteen little-endian, range-checked limbs. |
+| `BlockHash` | `u16[16]` | Nominal Bitcoin block hash in raw SHA256d byte order. A parameter is a claimed hash; `block_hash(header)` constrains its origin. |
 | `Bytes80` | `u16[40]` | Eighty serialized header bytes packed into forty little-endian, range-checked limbs. |
 | `UInt256` | `u16[16]` | Unsigned integer with the same limbs; arithmetic is explicit. |
 | `bit` | `m31[1]` | A direct input used by `select` has `b²=b`; `std::field::is_zero` also produces a constrained bit. |
@@ -103,6 +104,10 @@ These digest types prevent text programs from mixing hash families even though
 both erase to `m31[8]` in relation v1. They do **not** claim that any arbitrary
 eight-word input was produced by hashing; a digest input is a claimed value.
 Raw BLAKE2s-256 bytes are distinct from its reduced M31-word digest.
+The same rule applies to a `BlockHash` input: the type prevents accidental
+comparison with arbitrary `Bytes32` in source, while a proof must still link
+it to a header or trusted checkpoint. `std::bitcoin::hash_bytes` is an explicit
+zero-row view for byte and integer operations.
 
 | Function/operator | Lowering | Preconditions |
 | --- | --- | --- |
@@ -118,12 +123,16 @@ Raw BLAKE2s-256 bytes are distinct from its reduced M31-word digest.
 | `std::bytes::to_u256_le(x)`, `from_u256_le(x)` | No node; change nominal type | Explicit little-endian interpretation of `Bytes32` or `UInt256`. |
 | `std::bytes::limbs_m31(x)` | `cast_m31` | `Bytes32` or `UInt256`; preserves all sixteen limb values. |
 | `std::hash::sha256d_header(header)` | `hash_sha256d_header` | `Bytes80` to byte-exact `Bytes32`; two first-pass and one second-pass SHA-256 blocks are fully constrained. |
+| `std::bitcoin::block_hash(header)` | `hash_sha256d_header` | `Bytes80` to `BlockHash`; the same constrained SHA256d relation as `sha256d_header`. |
+| `std::bitcoin::hash_bytes(hash)` | No node; change nominal type | `BlockHash` to `Bytes32` in raw digest byte order. |
+| `std::bitcoin::parent_hash(header)` | `bitcoin_prev_hash` | `Bytes80` to `BlockHash`; fixed view of serialized bytes 4–35, which must be equated with the claimed parent hash. |
 | `std::bitcoin::target_mainnet(header)` | `bitcoin_target_mainnet` | `Bytes80` to `UInt256`; decodes `nBits` at bytes 72–75 and constrains a nonzero target within mainnet `powLimit`. |
 | `std::bitcoin::prev_hash(header)` | `bitcoin_prev_hash` | `Bytes80` to `Bytes32`; fixed view of serialized bytes 4–35. |
 | `std::bitcoin::header_bits(header)` | `bitcoin_header_bits` | `Bytes80` to `[u16; 2]`; fixed view of serialized bytes 72–75. |
 | `std::bitcoin::header_time(header)` | `bitcoin_header_time` | `Bytes80` to `[u16; 2]`; fixed view of little-endian timestamp bytes 68–71. |
 | `std::math::lt_u32(a,b)` | `u32_lt` | Strict unsigned comparison of two little-endian `[u16; 2]` values; Boolean M31 result. |
 | `std::bitcoin::genesis_hash_mainnet()` | `bitcoin_genesis_hash_mainnet` | Zero-input `Bytes32` constant in raw digest byte order; pins an exact checkpoint when asserted. |
+| `std::bitcoin::genesis_block_hash_mainnet()` | `bitcoin_genesis_hash_mainnet` | The same pinned constant, typed as `BlockHash`. |
 
 Qualified standard operations are compiler-owned. An explicit `use std@1;`
 pin is recorded in `stdlib-lock.json`; the lock digest is embedded in the

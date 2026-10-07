@@ -120,10 +120,18 @@ generic two-header circuit currently has 714,595 raw QM31 rows, padded to
 1,048,576; these row counts cannot be converted into a speedup ratio without
 counting all column widths, lookup tables, interactions and verifier work.
 
-The next type layer should distinguish `BlockHash`, `Target`, `Work`, and
-`ChainWork` from generic bytes and integers. Each conversion must name byte
-order and prove its preconditions. A `BlockHash` should originate from a
-constrained SHA256d call, or be visibly an externally asserted value. A
+The source frontend now distinguishes `BlockHash` from `Bytes32`.
+`std::bitcoin::block_hash(header)` produces one from the existing constrained
+SHA256d relation; `parent_hash(header)` and `genesis_block_hash_mainnet()`
+produce matching typed views and a pinned constant. `hash_bytes` explicitly
+views its sixteen limbs as raw digest-order `Bytes32`. The typed two-header
+example lowers to the same relation as the prior source, so this type layer
+adds no AIR rows. A `BlockHash` parameter remains an externally claimed value;
+source typing alone does not prove its origin.
+
+The next type layer should distinguish `Target`, `Work`, and `ChainWork` from
+generic integers. Each conversion must name byte order and prove its
+preconditions. A
 `Target` can originate from the current mainnet compact decoder, but its type
 should prevent accidental use with another network or policy. A `ChainWork`
 update should use checked addition or another
@@ -210,12 +218,35 @@ same leaf claim; it does not consume or validate a new header per step.
 The current native verifier can enforce a caller-chosen `--max-step` cap,
 but a concrete accumulated soundness bound is still required.
 
+### Changing-header fold contract
+
+The next fold circuit needs two authenticated children per step: the prior
+fold proof under its sealed recursive key and a fresh header-transition proof
+under a sealed leaf key. The transition statement must bind its old and new
+state commitments. The outer circuit must check that its old commitment equals
+the prior fold's authenticated new commitment, then publish the new
+commitment with the incremented `u32` step. A host-side equality check cannot
+replace that circuit equality. The base step must bind an explicit trusted
+checkpoint and must use a different domain from a recursive step.
+
+The existing eight-word public ABI carries only one digest. The first
+implementation decision is therefore either a versioned wider ABI for the
+old and new commitments, or a single transition commitment whose two
+openings are checked inside the recursive circuit. Both choices require a
+versioned proof envelope, fixed statement encoding, and adversarial tests for
+swapped old/new states, altered child keys, omitted header proofs, wrong
+network parameters, and counter wraparound. The leaf must constrain header
+SHA256d, its previous-hash link, PoW, and the applicable header policy before
+the fold may treat the new state as valid. The current four-lane `state_fold`
+cannot be relabeled as this Bitcoin transition: it proves only a fixed field
+recurrence and verifies one child proof.
+
 ## Engineering sequence and exit gates
 
 | Stage | Deliverable | Required evidence |
 | --- | --- | --- |
 | 1. Wide arithmetic | Typed byte/int values, carry/borrow relations, independent oracle | Current example and native proof; add boundary and randomized adversarial vectors. |
-| 2. Byte-exact header hash | **Generic circuit complete:** `Bytes80`, SHA256d relation, one native proof. **SHA AIR witness planner complete:** three call records and packed provider rows. Remaining: authenticated circuit-to-chip lookup, new proof roster and verifier, nominal `BlockHash`, broader Bitcoin Core differential vectors, and measured cost crossover. | Genesis and randomized byte checks; native proof and changed-root rejection currently pass. Chip substitution must fail until one-proof lookup closure is implemented. |
+| 2. Byte-exact header hash | **Generic circuit complete:** `Bytes80`, SHA256d relation, nominal `BlockHash`, one native proof. **SHA AIR witness planner complete:** three call records and packed provider rows. Remaining: authenticated circuit-to-chip lookup, new proof roster and verifier, broader Bitcoin Core differential vectors, and measured cost crossover. | Genesis and randomized byte checks; native proof and changed-root rejection currently pass. Chip substitution must fail until one-proof lookup closure is implemented. |
 | 3. Header policy | **Genesis-anchored two-header first step complete:** compact target, powLimit, unsigned comparison, exact previous-hash link, equal `nBits`, and strict first-step timestamp order. Remaining: retarget transitions, general eleven-block MTP and contextual future-time policy, work increment and versioned public state ABI. | Real genesis-to-block-one proof accepted; changed public claim rejected by native verifier; changed checkpoint, link, bits and equal time rejected by independent oracle; broader native adversarial corpus remains. |
 | 4. In-circuit S31 verifier | **Gate and sparse-wide wrappers implemented:** native capture of saved proofs, in-circuit child verifier, sealed recursive keys and native outer verifier. Fourfold FRI is supported for the sparse-wide leaf and wrappers. Remaining: independent end-to-end soundness review and proof-bound SHA chip integration. | Valid arithmetic/private-witness and Bitcoin two-header leaves, two wrapper levels, exact-key/FRI replay rejection and hostile proof-field mutations. |
 | 5. Recursive fold | **Fixed-key gate and sparse-wide claim folds implemented:** `u32` counter, one sealed fold key across steps, cached batch proving and top-only native verification. Gate-profile four-lane state transitions also fold under one key. Remaining: a typed Bitcoin state and new-header-per-step transition, plus an analyzed depth/security bound. | Base and recursive branch mutation suites; byte-identical batch and separate proofs; high-counter adversarial statements; source-state replay; caller-supplied native `--max-step` cap. |

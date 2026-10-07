@@ -129,8 +129,10 @@ def check_examples() -> None:
         text_block_containing(DOCS / "bitcoin-sha256d.md", "circuit bitcoin_header_pair"),
         "bitcoin-sha256d.md",
     )
-    checked_pair, _ = compile_text((S31 / "examples/bitcoin_header_pair.s31").read_text())
+    checked_pair, _ = compile_text((S31 / "examples/bitcoin_header_pair_typed.s31").read_text())
     assert pair_relation == checked_pair
+    old_pair, _ = compile_text((S31 / "examples/bitcoin_header_pair.s31").read_text())
+    assert pair_relation == old_pair
     assert pair_relation == json.loads((S31 / "examples/bitcoin_header_pair.s31.json").read_text())
     pair_assignment = json.loads((S31 / "examples/bitcoin_header_pair.valid.json").read_text())
     assert evaluate_relation(pair_relation, pair_assignment) == pair_assignment["public_outputs"]

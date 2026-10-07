@@ -41,6 +41,10 @@ STANDARD_ALIASES = {
     "std::hash::blake2s_leaf": "blake2s_leaf",
     "std::hash::blake2s_pair": "blake2s_pair",
     "std::hash::sha256d_header": "sha256d_header",
+    "std::bitcoin::block_hash": "block_hash",
+    "std::bitcoin::hash_bytes": "hash_bytes",
+    "std::bitcoin::parent_hash": "parent_hash",
+    "std::bitcoin::genesis_block_hash_mainnet": "genesis_block_hash_mainnet",
     "std::bitcoin::target_mainnet": "target_mainnet",
     "std::bitcoin::prev_hash": "prev_hash",
     "std::bitcoin::header_bits": "header_bits",
@@ -183,6 +187,8 @@ class Parser:
             return Type("uint256", 16)
         if self.accept("Bytes32"):
             return Type("bytes32", 16)
+        if self.accept("BlockHash"):
+            return Type("blockhash", 16)
         if self.accept("Bytes80"):
             return Type("bytes80", 40)
         if self.accept("Digest"):
@@ -193,7 +199,7 @@ class Parser:
             if normalized is None:
                 raise self.error("digest family must be Poseidon2 or Blake2sReduced", token)
             return Type("digest", 8, normalized)
-        raise self.error("expected [m31; N], [u16; N], bit, UInt256, Bytes32, Bytes80, or Digest<Family>")
+        raise self.error("expected [m31; N], [u16; N], bit, UInt256, Bytes32, BlockHash, Bytes80, or Digest<Family>")
 
     def parameters(self, circuit: bool) -> tuple[Any, ...]:
         self.expect("(")
@@ -515,6 +521,12 @@ class Compiler:
                 return self.builder.hash_leaf(family, self.expect_value(args[0], expr), wanted=wanted, span=self.span(expr))
             if name == "sha256d_header" and len(args) == 1:
                 return self.builder.sha256d_header(self.expect_value(args[0], expr), wanted=wanted, span=self.span(expr))
+            if name == "block_hash" and len(args) == 1:
+                return self.builder.bitcoin_block_hash(self.expect_value(args[0], expr), wanted=wanted, span=self.span(expr))
+            if name == "hash_bytes" and len(args) == 1:
+                return self.builder.bitcoin_hash_bytes(self.expect_value(args[0], expr))
+            if name == "parent_hash" and len(args) == 1:
+                return self.builder.bitcoin_parent_hash(self.expect_value(args[0], expr), wanted=wanted, span=self.span(expr))
             if name == "target_mainnet" and len(args) == 1:
                 return self.builder.bitcoin_target_mainnet(self.expect_value(args[0], expr), wanted=wanted, span=self.span(expr))
             if name == "prev_hash" and len(args) == 1:
@@ -527,6 +539,8 @@ class Compiler:
                 return self.builder.lt_u32(*(self.expect_value(arg, expr) for arg in args), wanted=wanted, span=self.span(expr))
             if name == "genesis_hash_mainnet" and len(args) == 0:
                 return self.builder.genesis_hash_mainnet(wanted=wanted, span=self.span(expr))
+            if name == "genesis_block_hash_mainnet" and len(args) == 0:
+                return self.builder.genesis_block_hash_mainnet(wanted=wanted, span=self.span(expr))
             if name in {"poseidon2_pair", "blake2s_pair"} and len(args) == 2:
                 family = "poseidon2" if name.startswith("poseidon2") else "blake2s_reduced"
                 return self.builder.hash_pair(family, *(self.expect_value(arg, expr) for arg in args),

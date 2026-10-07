@@ -32,19 +32,19 @@ class Type:
     def __post_init__(self) -> None:
         if self.length < 1 or self.length > 4096:
             raise TypeErrorS31("array length must be 1..4096")
-        if self.kind not in {"m31", "u16", "bit", "digest", "uint256", "bytes32", "bytes80"}:
+        if self.kind not in {"m31", "u16", "bit", "digest", "uint256", "bytes32", "bytes80", "blockhash"}:
             raise TypeErrorS31(f"unsupported type {self.kind}")
         if self.kind == "bit" and self.length != 1:
             raise TypeErrorS31("bit is a single constrained field value")
         if self.kind == "digest" and (self.length != 8 or self.family not in {"poseidon2", "blake2s_reduced"}):
             raise TypeErrorS31("digest must name a supported eight-word hash family")
-        if self.kind in {"uint256", "bytes32"} and (self.length != 16 or self.family):
+        if self.kind in {"uint256", "bytes32", "blockhash"} and (self.length != 16 or self.family):
             raise TypeErrorS31("256-bit values require sixteen little-endian u16 limbs")
         if self.kind == "bytes80" and (self.length != 40 or self.family):
             raise TypeErrorS31("Bytes80 requires forty little-endian u16 limbs")
 
     def relation_shape(self) -> tuple[str, int]:
-        return ("u16" if self.kind in {"u16", "uint256", "bytes32", "bytes80"} else "m31", self.length)
+        return ("u16" if self.kind in {"u16", "uint256", "bytes32", "bytes80", "blockhash"} else "m31", self.length)
 
 
 @dataclass(frozen=True)
@@ -228,6 +228,16 @@ class Builder:
         return self.emit("hash_sha256d_header", Type("bytes32", 16),
                          wanted=wanted, span=span, lhs=self.realize(value).ref)
 
+    def bitcoin_block_hash(self, header: Value, *, wanted: str | None = None,
+                           span: dict[str, int] | None = None) -> Value:
+        digest = self.sha256d_header(header, wanted=wanted, span=span)
+        return Value(Type("blockhash", 16), ref=digest.ref)
+
+    def bitcoin_hash_bytes(self, value: Value) -> Value:
+        if value.typ != Type("blockhash", 16):
+            raise TypeErrorS31("hash_bytes requires a BlockHash")
+        return Value(Type("bytes32", 16), ref=self.realize(value).ref)
+
     def bitcoin_target_mainnet(self, value: Value, *, wanted: str | None = None,
                                span: dict[str, int] | None = None) -> Value:
         if value.typ != Type("bytes80", 40):
@@ -241,6 +251,11 @@ class Builder:
             raise TypeErrorS31("prev_hash requires a serialized Bytes80 header")
         return self.emit("bitcoin_prev_hash", Type("bytes32", 16),
                          wanted=wanted, span=span, lhs=self.realize(value).ref)
+
+    def bitcoin_parent_hash(self, header: Value, *, wanted: str | None = None,
+                            span: dict[str, int] | None = None) -> Value:
+        digest = self.header_prev_hash(header, wanted=wanted, span=span)
+        return Value(Type("blockhash", 16), ref=digest.ref)
 
     def header_bits(self, value: Value, *, wanted: str | None = None,
                     span: dict[str, int] | None = None) -> Value:
@@ -267,6 +282,11 @@ class Builder:
                              span: dict[str, int] | None = None) -> Value:
         return self.emit("bitcoin_genesis_hash_mainnet", Type("bytes32", 16),
                          wanted=wanted, span=span)
+
+    def genesis_block_hash_mainnet(self, *, wanted: str | None = None,
+                                   span: dict[str, int] | None = None) -> Value:
+        digest = self.genesis_hash_mainnet(wanted=wanted, span=span)
+        return Value(Type("blockhash", 16), ref=digest.ref)
 
     def hash_pair(self, family: str, lhs: Value, rhs: Value, *, wanted: str | None = None,
                   span: dict[str, int] | None = None) -> Value:
