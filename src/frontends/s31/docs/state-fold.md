@@ -261,7 +261,7 @@ python3 src/frontends/s31/s31.py state-fold-base zig-out/s31/arith4-state-fold \
 python3 src/frontends/s31/s31.py state-fold-next zig-out/s31/arith4-state-fold \
   zig-out/s31/state0.proof zig-out/s31/state1.proof
 python3 src/frontends/s31/s31.py verify-state-fold zig-out/s31/arith4-state-fold \
-  zig-out/s31/state1.proof
+  zig-out/s31/state1.proof --max-step 1
 python3 src/frontends/s31/inspect_state_fold_claim.py \
   zig-out/s31/arith4-state-fold zig-out/s31/state1.proof
 python3 src/frontends/s31/s31.py state-fold-advance zig-out/s31/arith4-state-fold \
@@ -270,6 +270,10 @@ python3 src/frontends/s31/s31.py state-fold-advance zig-out/s31/arith4-state-fol
 python3 src/frontends/s31/acceptance_state_fold.py
 python3 src/frontends/s31/acceptance_state_fold_general.py
 ```
+
+`--max-step` lets the relying party cap the top counter accepted by the
+native verifier. The limit is checked against the sealed statement before
+proof bytes are read and does not assign a concrete security level.
 
 `state-fold-advance` validates the package once. Its native batch path
 reuses the preprocessed circuit, commitment and sealed padded topology.

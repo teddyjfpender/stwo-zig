@@ -115,6 +115,17 @@ def main() -> None:
             if item["fold_public_words"] != fold_digest(root, step, item["base_public_words"]):
                 raise AssertionError("fold digest mismatch")
             run(str(verifier), "fold-verify", str(path), f"{path}.statement.json")
+        run("python3", str(HERE / "s31.py"), "verify-fold", str(package), str(folds[3]),
+            "--max-step", "3")
+        capped = run("python3", str(HERE / "s31.py"), "verify-fold", str(package),
+                     str(folds[3]), "--max-step", "2", accept=False)
+        if "FoldStepExceedsPolicy" not in capped:
+            raise AssertionError("fold depth policy did not reject before proof verification")
+        missing_proof = work / "missing-fold.proof"
+        before_read = run(str(verifier), "fold-verify", str(missing_proof),
+                          f"{folds[3]}.statement.json", "--max-step", "2", accept=False)
+        if "FoldStepExceedsPolicy" not in before_read or missing_proof.exists():
+            raise AssertionError("fold depth policy reached missing proof bytes")
         if not any(word >= M31_MODULUS for word in statement(folds[3])["base_public_words"]):
             raise AssertionError("recursive digest does not exercise raw u32 words")
 

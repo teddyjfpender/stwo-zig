@@ -1,0 +1,40 @@
+{
+  "cases": [
+    {
+      "fold_preprocessed_root": "5682495391e4b8d187470b4042244f2aa81ec1b4e70bafe2adc780068c20b305",
+      "max_step_accepted": 1,
+      "max_step_rejected": 0,
+      "profile": "gate-fixed",
+      "rejection": "FoldStepExceedsPolicy",
+      "source": "arith4_m31",
+      "top_proof_bytes": 555182,
+      "top_step": 1
+    },
+    {
+      "fold_preprocessed_root": "1abc503372e63ec4b06750ff381c1a4c05ec1faa8c61802e309d51043eae2ee6",
+      "max_step_accepted": 1,
+      "max_step_rejected": 0,
+      "profile": "gate-state",
+      "rejection": "FoldStepExceedsPolicy",
+      "source": "arith4_m31",
+      "top_proof_bytes": 547412,
+      "top_step": 1
+    },
+    {
+      "fold_preprocessed_root": "55f6ad104733f21d0b69fcbc604aeec4f02d0fb66291a3a8933d3a9fbe14402a",
+      "max_step_accepted": 2,
+      "max_step_rejected": 1,
+      "profile": "sparse-wide-fixed",
+      "rejection": "FoldStepExceedsPolicy",
+      "source": "wide_order",
+      "top_proof_bytes": 368602,
+      "top_step": 2
+    }
+  ],
+  "compiler_sha256": "1801cfdfd0f0df6f3266cf18c30a0676983bcc20d599516356c7512d41812419",
+  "gate_fixed_and_state_rejection_before_proof_read": true,
+  "native_top_verification_at_limit": true,
+  "policy": "A relying-party u32 max step is checked against a validated, key-bound statement before proof bytes are read.",
+  "schema": "s31-recursive-depth-policy-acceptance-v1",
+  "wide_acceptance_schema": "s31-sparse-wide-fixed-fold-acceptance-v1"
+}

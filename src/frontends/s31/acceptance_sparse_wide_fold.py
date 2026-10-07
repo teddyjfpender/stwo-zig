@@ -81,6 +81,11 @@ def main() -> None:
         _, fold1_seconds = call(*cli, "fold-next", str(package), str(folds[0]), str(folds[1]), "--low-memory")
         _, fold2_seconds = call(*cli, "fold-next", str(package), str(folds[1]), str(folds[2]), "--low-memory")
         _, verify_seconds = call(*cli, "verify-fold", str(package), str(folds[2]))
+        call(*cli, "verify-fold", str(package), str(folds[2]), "--max-step", "2")
+        capped, _ = call(*cli, "verify-fold", str(package), str(folds[2]),
+                         "--max-step", "1", accepted=False)
+        if "FoldStepExceedsPolicy" not in capped:
+            raise AssertionError("sparse-wide fold depth policy did not reject")
         if "s31-fixed-fold-batch-v1" not in manifest.get("capabilities", []):
             raise AssertionError("package did not advertise its fixed-fold batch path")
         batch_top = work / "batch-top.proof"

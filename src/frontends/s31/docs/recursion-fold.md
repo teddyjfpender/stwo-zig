@@ -154,13 +154,16 @@ python3 src/frontends/s31/s31.py fold-base zig-out/s31/arith4-fold \
 python3 src/frontends/s31/s31.py fold-next zig-out/s31/arith4-fold \
   zig-out/s31/fold0.proof zig-out/s31/fold1.proof
 python3 src/frontends/s31/s31.py verify-fold zig-out/s31/arith4-fold \
-  zig-out/s31/fold1.proof
+  zig-out/s31/fold1.proof --max-step 1
 python3 src/frontends/s31/acceptance_fixed_fold.py
 ```
 
 `fold-next` may be repeated until step 4,294,967,295. `--low-memory` applies to
 `fold-base` and `fold-next`; it produced byte-identical proof bytes in the
-acceptance run. `audit-fold-base` tests a first wrapper proof against altered
+acceptance run. `--max-step` is a relying-party limit on the accepted top
+counter. The native verifier checks it after validating the sealed statement
+and before reading proof bytes; it is not a cryptographic security estimate.
+`audit-fold-base` tests a first wrapper proof against altered
 leaf words, base root, step, branch selector, inverse, and previous counter.
 `audit-fold-next` applies the same checks to a saved fold proof, including
 its selected recursive root.

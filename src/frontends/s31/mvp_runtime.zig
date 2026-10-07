@@ -323,15 +323,21 @@ pub fn verifierMain(embedded_key: []const u8, embedded_recursive_key: []const u8
         return verifyOuter(allocator, args[2], args[3], embedded_key, embedded_recursive_key);
     if (args.len == 4 and std.mem.eql(u8, args[1], "recurse-verify-next"))
         return verifyNextOuter(allocator, args[2], args[3], embedded_key, embedded_recursive_key, embedded_recursive_next_key);
-    if (args.len == 4 and std.mem.eql(u8, args[1], "fold-verify"))
-        return verifyFold(allocator, args[2], args[3], embedded_key, embedded_recursive_key, embedded_recursive_next_key, embedded_fold_key);
-    if (args.len == 4 and std.mem.eql(u8, args[1], "state-fold-verify"))
-        return verifyStateFold(allocator, args[2], args[3], embedded_key, embedded_recursive_key, embedded_state_fold_key);
+    if ((args.len == 4 or args.len == 6) and std.mem.eql(u8, args[1], "fold-verify"))
+        return verifyFold(allocator, args[2], args[3], embedded_key, embedded_recursive_key, embedded_recursive_next_key, embedded_fold_key, try parseMaxFoldStep(args));
+    if ((args.len == 4 or args.len == 6) and std.mem.eql(u8, args[1], "state-fold-verify"))
+        return verifyStateFold(allocator, args[2], args[3], embedded_key, embedded_recursive_key, embedded_state_fold_key, try parseMaxFoldStep(args));
     if (args.len != 4) {
-        std.debug.print("usage: s31-PROGRAM-native-verifier PROOF PUBLIC-STATEMENT.json VERIFICATION-KEY.json\n       recurse-verify PROOF STATEMENT.json | recurse-verify-next PROOF CHAIN.json | fold-verify PROOF FOLD-STATEMENT.json\n", .{});
+        std.debug.print("usage: s31-PROGRAM-native-verifier PROOF PUBLIC-STATEMENT.json VERIFICATION-KEY.json\n       recurse-verify PROOF STATEMENT.json | recurse-verify-next PROOF CHAIN.json\n       fold-verify|state-fold-verify PROOF STATEMENT.json [--max-step N]\n", .{});
         return error.InvalidArguments;
     }
     try verify(allocator, args[1], args[2], args[3], embedded_key);
+}
+
+fn parseMaxFoldStep(args: []const []const u8) !?u32 {
+    if (args.len == 4) return null;
+    if (args.len != 6 or !std.mem.eql(u8, args[4], "--max-step")) return error.InvalidArguments;
+    return try std.fmt.parseInt(u32, args[5], 10);
 }
 
 fn usage() error{InvalidArguments} {
@@ -2614,6 +2620,7 @@ fn verifyFold(
     first_bytes: []const u8,
     second_bytes: []const u8,
     fold_bytes: []const u8,
+    max_step: ?u32,
 ) !void {
     if (chip_mode or (sparse_mode and !wide_mode) or direct_mode) return error.UnsupportedRecursiveProfile;
     var source = try parsedProgram(allocator);
@@ -2639,6 +2646,7 @@ fn verifyFold(
     var statement = try std.json.parseFromSlice(FoldStatement, allocator, statement_bytes, .{ .ignore_unknown_fields = false });
     defer statement.deinit();
     try validateFoldStatement(statement.value, child_bytes, first_bytes, fold_bytes, verified);
+    if (max_step) |limit| if (statement.value.step > limit) return error.FoldStepExceedsPolicy;
     var bundle = try parseAirBundle(allocator);
     defer bundle.deinit();
     const proof_bytes = try std.fs.cwd().readFileAlloc(allocator, proof_path, 16 << 20);
@@ -3007,6 +3015,7 @@ fn verifyStateFold(
     child_bytes: []const u8,
     first_bytes: []const u8,
     state_bytes: []const u8,
+    max_step: ?u32,
 ) !void {
     if (chip_mode or sparse_mode or direct_mode) return error.UnsupportedRecursiveProfile;
     var source = try parsedProgram(allocator);
@@ -3025,6 +3034,7 @@ fn verifyStateFold(
     var statement = try std.json.parseFromSlice(StateFoldStatement, allocator, statement_bytes, .{ .ignore_unknown_fields = false });
     defer statement.deinit();
     try validateStateFoldStatement(statement.value, child_bytes, state_bytes, verified);
+    if (max_step) |limit| if (statement.value.step > limit) return error.FoldStepExceedsPolicy;
     var bundle = try parseAirBundle(allocator);
     defer bundle.deinit();
     const proof_bytes = try std.fs.cwd().readFileAlloc(allocator, proof_path, 16 << 20);

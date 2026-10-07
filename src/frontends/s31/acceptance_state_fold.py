@@ -97,6 +97,17 @@ def main() -> None:
                                                    item["initial_state"], item["current_state"]):
                 raise AssertionError("wrong state-fold public digest")
             run(str(verifier), "state-fold-verify", str(path), f"{path}.statement.json")
+        run("python3", str(HERE / "s31.py"), "verify-state-fold", str(package),
+            str(folds[3]), "--max-step", "3")
+        capped = run("python3", str(HERE / "s31.py"), "verify-state-fold", str(package),
+                     str(folds[3]), "--max-step", "2", accept=False)
+        if "FoldStepExceedsPolicy" not in capped:
+            raise AssertionError("state-fold depth policy did not reject before proof verification")
+        missing_proof = work / "missing-state.proof"
+        before_read = run(str(verifier), "state-fold-verify", str(missing_proof),
+                          f"{folds[3]}.statement.json", "--max-step", "2", accept=False)
+        if "FoldStepExceedsPolicy" not in before_read or missing_proof.exists():
+            raise AssertionError("state-fold depth policy reached missing proof bytes")
 
         low_memory = work / "state3-low-memory.proof"
         run("python3", str(HERE / "s31.py"), "state-fold-next", str(package),

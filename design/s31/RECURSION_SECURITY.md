@@ -95,6 +95,17 @@ proof depth. Repeated verification can accumulate soundness error; this
 repository does not yet publish an acceptable maximum depth for a chosen
 security target.
 
+The native `fold-verify` and `state-fold-verify` commands and their `s31.py`
+wrappers accept `--max-step N`. The verifier validates the sealed key and
+statement, then rejects `step > N` before reading proof bytes. The limit is
+supplied by the relying party and is never taken from the prover's statement.
+It is an application policy bound; it does not by itself establish a
+soundness level. The acceptance suites prove a step-three top proof with
+limit three and reject the same proof with limit two. Omitting the option
+preserves the protocol's full `u32` counter range. The
+[policy acceptance record](measurements/fold-depth-policy-2026-10-07.json)
+covers gate fixed, gate state and sparse-wide fixed folds.
+
 ## Evidence and limits
 
 | Boundary | Evidence in this repository | Remaining obligation |

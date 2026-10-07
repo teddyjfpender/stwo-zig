@@ -1117,10 +1117,12 @@ def main() -> None:
     sub.add_argument("package", type=Path)
     sub.add_argument("proof", type=Path)
     sub.add_argument("--statement", type=Path)
+    sub.add_argument("--max-step", type=int, help="reject a top fold statement above this locally trusted recursion depth")
     sub = commands.add_parser("verify-state-fold", help="verify a recursive state-transition proof from its top proof")
     sub.add_argument("package", type=Path)
     sub.add_argument("proof", type=Path)
     sub.add_argument("--statement", type=Path)
+    sub.add_argument("--max-step", type=int, help="reject a top fold statement above this locally trusted recursion depth")
     sub = commands.add_parser("inspect-fold", help="rebuild and report a sealed fold AIR's raw rows and padding headroom")
     sub.add_argument("package", type=Path)
     sub = commands.add_parser("inspect-state-fold", help="rebuild and report a state-fold AIR's raw rows and padding headroom")
@@ -1439,14 +1441,20 @@ def main() -> None:
         proof = args.proof.resolve()
         statement = args.statement.resolve() if args.statement else Path(str(proof) + ".statement.json")
         executable = package / "bin" / f"s31-{manifest['name']}-native-verifier"
-        print(invoke(str(executable), "fold-verify", str(proof), str(statement)), end="")
+        if args.max_step is not None and not (0 <= args.max_step <= 0xffffffff):
+            raise ValueError("--max-step must fit u32")
+        max_step = ("--max-step", str(args.max_step)) if args.max_step is not None else ()
+        print(invoke(str(executable), "fold-verify", str(proof), str(statement), *max_step), end="")
     elif args.command == "verify-state-fold":
         if manifest["lowering"] != "gate" or "state-fold-verification-key.json" not in manifest["artifacts"]:
             raise ValueError("verify-state-fold requires a supported gate-profile recurrence package")
         proof = args.proof.resolve()
         statement = args.statement.resolve() if args.statement else Path(str(proof) + ".statement.json")
         executable = package / "bin" / f"s31-{manifest['name']}-native-verifier"
-        print(invoke(str(executable), "state-fold-verify", str(proof), str(statement)), end="")
+        if args.max_step is not None and not (0 <= args.max_step <= 0xffffffff):
+            raise ValueError("--max-step must fit u32")
+        max_step = ("--max-step", str(args.max_step)) if args.max_step is not None else ()
+        print(invoke(str(executable), "state-fold-verify", str(proof), str(statement), *max_step), end="")
     elif args.command == "inspect-fold":
         wide_fold = manifest["lowering"] == "sparse-wide-gate"
         if manifest["lowering"] != "gate" and not wide_fold:
