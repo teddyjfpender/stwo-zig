@@ -19,6 +19,7 @@ pub const Mutation = enum {
     base_selector, zero_test_inverse, previous_counter, borrow, current_state,
     trace_root, claimed_sum, channel_salt, sampled_trace_value,
     trace_auth_path, fri_witness, fri_auth_path, fri_last_layer,
+    interaction_pow_nonce, fri_pow_nonce,
 };
 const WitnessIndices = struct { base: usize, inverse: usize, previous_counter: usize, borrow: usize, current_state: usize };
 
@@ -380,6 +381,8 @@ pub fn verifyPreparedWithMutation(
         .fri_witness => proof_values.fri.witness[0][0] = proof_values.fri.witness[0][0].add(QM31.one()),
         .fri_auth_path => proof_values.fri.auth_paths.trees[0][0] = Blake.hashValue(QM31, @splat(0)),
         .fri_last_layer => proof_values.fri.last_layer_coefs[0] = proof_values.fri.last_layer_coefs[0].add(QM31.one()),
+        .interaction_pow_nonce => proof_values.interaction_pow_nonce = proof_values.interaction_pow_nonce.add(QM31.one()),
+        .fri_pow_nonce => proof_values.pow_nonce = proof_values.pow_nonce.add(QM31.one()),
         else => {},
     };
     const config: circuit.statements.circuit_statement.CircuitConfig = .{

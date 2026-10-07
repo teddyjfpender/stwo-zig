@@ -1,0 +1,286 @@
+{
+  "base_and_next_audit_rejections": [
+    16,
+    16
+  ],
+  "batch_matches_separate_proofs_and_statements": true,
+  "batch_resume_matches_separate_top": true,
+  "build_seconds": null,
+  "child_fri_fold_step": 4,
+  "compiler_sha256": "8b976ac7aca9f75d4a55b9deb10028948c25264fd44a6c90c5eba097f54f282c",
+  "fold_geometry": {
+    "headroom_rows": {
+      "blake_g": 971312,
+      "eq": 4428,
+      "m31_to_u32": 59008,
+      "qm31_ops": 259478,
+      "triple_xor": 18488
+    },
+    "padded_rows": {
+      "blake_g": 2097152,
+      "eq": 32768,
+      "m31_to_u32": 262144,
+      "qm31_ops": 1048576,
+      "triple_xor": 131072
+    },
+    "raw_vars": 5589558
+  },
+  "fold_key_reproduced": true,
+  "fold_steps": [
+    0,
+    1,
+    2
+  ],
+  "fold_verifier_stages": [
+    {
+      "blake_g": 240,
+      "eq": 4,
+      "m31_to_u32": 0,
+      "name": "proof_witness",
+      "qm31_ops": 155911,
+      "raw_vars": 341244,
+      "triple_xor": 24
+    },
+    {
+      "blake_g": 400,
+      "eq": 4,
+      "m31_to_u32": 28,
+      "name": "channel_salt_and_fri_config",
+      "qm31_ops": 156064,
+      "raw_vars": 342089,
+      "triple_xor": 40
+    },
+    {
+      "blake_g": 480,
+      "eq": 4,
+      "m31_to_u32": 36,
+      "name": "preprocessed_root",
+      "qm31_ops": 156130,
+      "raw_vars": 342491,
+      "triple_xor": 48
+    },
+    {
+      "blake_g": 480,
+      "eq": 100,
+      "m31_to_u32": 36,
+      "name": "component_sizes",
+      "qm31_ops": 156531,
+      "raw_vars": 342984,
+      "triple_xor": 48
+    },
+    {
+      "blake_g": 800,
+      "eq": 100,
+      "m31_to_u32": 84,
+      "name": "claims_mixed",
+      "qm31_ops": 156719,
+      "raw_vars": 344534,
+      "triple_xor": 80
+    },
+    {
+      "blake_g": 1120,
+      "eq": 153,
+      "m31_to_u32": 132,
+      "name": "trace_root_and_interaction_pow",
+      "qm31_ops": 157171,
+      "raw_vars": 346382,
+      "triple_xor": 112
+    },
+    {
+      "blake_g": 1200,
+      "eq": 153,
+      "m31_to_u32": 144,
+      "name": "interaction_elements",
+      "qm31_ops": 157244,
+      "raw_vars": 346796,
+      "triple_xor": 120
+    },
+    {
+      "blake_g": 1200,
+      "eq": 163,
+      "m31_to_u32": 144,
+      "name": "logup_sum",
+      "qm31_ops": 157434,
+      "raw_vars": 347003,
+      "triple_xor": 120
+    },
+    {
+      "blake_g": 1840,
+      "eq": 164,
+      "m31_to_u32": 236,
+      "name": "composition_coeff_and_oods_point",
+      "qm31_ops": 157862,
+      "raw_vars": 350150,
+      "triple_xor": 184
+    },
+    {
+      "blake_g": 1840,
+      "eq": 194,
+      "m31_to_u32": 236,
+      "name": "check_relation_uses",
+      "qm31_ops": 158018,
+      "raw_vars": 350334,
+      "triple_xor": 184
+    },
+    {
+      "blake_g": 1840,
+      "eq": 194,
+      "m31_to_u32": 236,
+      "name": "verify_claim",
+      "qm31_ops": 158037,
+      "raw_vars": 350353,
+      "triple_xor": 184
+    },
+    {
+      "blake_g": 9200,
+      "eq": 194,
+      "m31_to_u32": 1696,
+      "name": "oods_values_mixed",
+      "qm31_ops": 160644,
+      "raw_vars": 384685,
+      "triple_xor": 920
+    },
+    {
+      "blake_g": 9200,
+      "eq": 211,
+      "m31_to_u32": 1696,
+      "name": "composition_polynomial",
+      "qm31_ops": 162147,
+      "raw_vars": 386217,
+      "triple_xor": 920
+    },
+    {
+      "blake_g": 9200,
+      "eq": 212,
+      "m31_to_u32": 1696,
+      "name": "composition_check",
+      "qm31_ops": 162221,
+      "raw_vars": 386291,
+      "triple_xor": 920
+    },
+    {
+      "blake_g": 10320,
+      "eq": 212,
+      "m31_to_u32": 1840,
+      "name": "fri_commit",
+      "qm31_ops": 163201,
+      "raw_vars": 392007,
+      "triple_xor": 1032
+    },
+    {
+      "blake_g": 10560,
+      "eq": 271,
+      "m31_to_u32": 1880,
+      "name": "fri_pow",
+      "qm31_ops": 163587,
+      "raw_vars": 393449,
+      "triple_xor": 1056
+    },
+    {
+      "blake_g": 11280,
+      "eq": 847,
+      "m31_to_u32": 1988,
+      "name": "select_queries",
+      "qm31_ops": 170608,
+      "raw_vars": 404130,
+      "triple_xor": 1128
+    },
+    {
+      "blake_g": 11280,
+      "eq": 847,
+      "m31_to_u32": 1988,
+      "name": "query_bits",
+      "qm31_ops": 173311,
+      "raw_vars": 406833,
+      "triple_xor": 1128
+    },
+    {
+      "blake_g": 627280,
+      "eq": 22283,
+      "m31_to_u32": 24318,
+      "name": "merkle_decommit",
+      "qm31_ops": 467691,
+      "raw_vars": 3231439,
+      "triple_xor": 62728
+    },
+    {
+      "blake_g": 627280,
+      "eq": 22283,
+      "m31_to_u32": 24318,
+      "name": "oods_responses",
+      "qm31_ops": 468164,
+      "raw_vars": 3231915,
+      "triple_xor": 62728
+    },
+    {
+      "blake_g": 627280,
+      "eq": 23194,
+      "m31_to_u32": 24318,
+      "name": "fri_input",
+      "qm31_ops": 535537,
+      "raw_vars": 3300200,
+      "triple_xor": 62728
+    },
+    {
+      "blake_g": 1125680,
+      "eq": 28340,
+      "m31_to_u32": 47278,
+      "name": "fri_decommit",
+      "qm31_ops": 755910,
+      "raw_vars": 5588270,
+      "triple_xor": 112568
+    },
+    {
+      "blake_g": 1125840,
+      "eq": 28340,
+      "m31_to_u32": 47278,
+      "name": "fixed_fold_digest",
+      "qm31_ops": 755918,
+      "raw_vars": 5588926,
+      "triple_xor": 112584
+    },
+    {
+      "blake_g": 1125840,
+      "eq": 28340,
+      "m31_to_u32": 203136,
+      "name": "finalize",
+      "qm31_ops": 789098,
+      "raw_vars": 5589558,
+      "triple_xor": 112584
+    }
+  ],
+  "host_negative_checks": [
+    "first_wrapper_cannot_replace_second_wrapper_base",
+    "damaged_recursive_child_proof",
+    "wrong_nested_base_digest",
+    "repaired_leaf_claim_rejected_by_top_proof",
+    "repaired_step_rejected_by_top_proof",
+    "damaged_top_proof",
+    "wrong_second_key_fri_schedule"
+  ],
+  "inspector_verified_isolated_top": true,
+  "proof_bytes_leaf_first_second_fold0_fold1_fold2": [
+    182891,
+    345589,
+    373568,
+    374579,
+    372837,
+    373231
+  ],
+  "same_fold_root_for_all_steps": true,
+  "schema": "s31-sparse-wide-fixed-fold-acceptance-v1",
+  "source_name": "wide_order",
+  "source_sha256": "3529efb2ab6c15e862ded7d1c336f7f0f555b0aefcd407a689b308d1d9c7d16a",
+  "top_verified_without_lower_proofs": true,
+  "wall_seconds": {
+    "batch_three_steps": 5.888650833046995,
+    "first": 1.359238125034608,
+    "fold0": 2.1288166659651324,
+    "fold1": 2.1517140419455245,
+    "fold2": 2.30231870803982,
+    "leaf": 0.7026936670299619,
+    "second": 2.5489686250220984,
+    "top_verify": 0.08896345796529204
+  },
+  "wrapper_and_fold_fri_fold_step": 4
+}

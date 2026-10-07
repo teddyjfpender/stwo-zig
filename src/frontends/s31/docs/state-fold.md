@@ -264,8 +264,9 @@ analysis.
 
 `audit-state-fold-base` and `audit-state-fold-next` test the base selector,
 zero-test inverse, predecessor counter, current state, selected root,
-child output, transition input, and eight captured child-proof fields directly
-in the circuit. `--low-memory`
+child output, transition input, and ten captured child-proof fields directly
+in the circuit, including the interaction and FRI proof-of-work nonces.
+`--low-memory`
 on either wrap command trades some proving time for memory: one local step-3
 sample took 3.62 s and 9.31 GB peak RSS normally, versus 3.82 s and
 7.00 GB in low-memory mode. Both paths produced the same 550,173-byte

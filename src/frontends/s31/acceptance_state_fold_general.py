@@ -67,7 +67,7 @@ def main() -> None:
         if statement(first)["child_public_words"][4:8] != expected:
             raise AssertionError("source base proof computed the wrong three rounds")
         base_audit = run("python3", str(HERE / "s31.py"), "audit-state-fold-base", str(package), str(first))
-        if "rejected=18" not in base_audit:
+        if "rejected=20" not in base_audit:
             raise AssertionError("base audit did not challenge all child proof fields")
         checkpoints = work / "checkpoints"
         top = work / "top.proof"
@@ -76,7 +76,7 @@ def main() -> None:
         folds = [checkpoints / "state-00000.proof", checkpoints / "state-00001.proof", top]
         for proof in folds[:2]:
             recursive_audit = run("python3", str(HERE / "s31.py"), "audit-state-fold-next", str(package), str(proof))
-            if "rejected=19" not in recursive_audit:
+            if "rejected=21" not in recursive_audit:
                 raise AssertionError("recursive audit did not challenge all child proof fields")
         direct_previous = first
         for index, batched in enumerate(folds):

@@ -71,12 +71,12 @@ def main() -> None:
         _, second_seconds = call(*cli, "wrap-next", str(package), str(first), str(second), "--low-memory")
         call(*cli, "verify-recursive-next", str(package), str(second))
         base_audit, _ = call(*cli, "audit-fold-base", str(package), str(second))
-        if "valid=true rejected=14" not in base_audit:
+        if "valid=true rejected=16" not in base_audit:
             raise AssertionError(base_audit)
         _, fold0_seconds = call(*cli, "fold-base", str(package), str(second), str(folds[0]), "--low-memory")
         call(*cli, "verify-fold", str(package), str(folds[0]))
         next_audit, _ = call(*cli, "audit-fold-next", str(package), str(folds[0]))
-        if "valid=true rejected=14" not in next_audit:
+        if "valid=true rejected=16" not in next_audit:
             raise AssertionError(next_audit)
         _, fold1_seconds = call(*cli, "fold-next", str(package), str(folds[0]), str(folds[1]), "--low-memory")
         _, fold2_seconds = call(*cli, "fold-next", str(package), str(folds[1]), str(folds[2]), "--low-memory")
@@ -118,6 +118,18 @@ def main() -> None:
         if (geometry["schema"] != "s31-wide-fixed-fold-geometry-v1" or
                 geometry["fold_preprocessed_root"] != json.loads(keys[3].read_text())["fold_preprocessed_root"]):
             raise AssertionError("inspected fold geometry does not match its sealed key")
+        stages = geometry["verifier_stages"]
+        if (not isinstance(stages, list) or len(stages) < 20 or
+                stages[0]["name"] != "proof_witness" or
+                stages[-3]["name"] != "fri_decommit" or
+                stages[-2]["name"] != "fixed_fold_digest" or
+                stages[-1]["name"] != "finalize" or
+                stages[-1]["raw_vars"] != geometry["raw_vars"]):
+            raise AssertionError("fixed-fold verifier stage capture is incomplete")
+        for before, after in zip(stages, stages[1:]):
+            if any(after[key] < before[key] for key in
+                   ("raw_vars", "eq", "qm31_ops", "triple_xor", "m31_to_u32", "blake_g")):
+                raise AssertionError("fixed-fold verifier stages are not cumulative")
         chain = json.loads(Path(str(second) + ".statement.json").read_text())
         statements = [json.loads(Path(str(proof) + ".statement.json").read_text()) for proof in folds]
         leaf_words = chain["leaf"]["child_public_words"]
@@ -227,7 +239,8 @@ def main() -> None:
             "fold_steps": [0, 1, 2],
             "same_fold_root_for_all_steps": True,
             "fold_key_reproduced": True,
-            "base_and_next_audit_rejections": [14, 14],
+            "base_and_next_audit_rejections": [16, 16],
+            "fold_verifier_stages": stages,
             "top_verified_without_lower_proofs": True,
             "inspector_verified_isolated_top": True,
             "host_negative_checks": negatives,

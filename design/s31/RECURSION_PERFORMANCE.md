@@ -203,6 +203,29 @@ a concrete security level nor imply a useful Bitcoin light client. The
 counter is currently bounded to 65,535 steps, and no new header is
 consumed by a fold step.
 
+`inspect-fold` now records cumulative verifier phases for this same-key
+fold. The [wide-order stage record](measurements/sparse-wide-fold-stages-v1-2026-10-07.json)
+reproduces the original fold AIR root and all six proof sizes while rejecting
+16 direct base and recursive mutations, including both proof-of-work nonces.
+The [two-header Bitcoin stage record](measurements/bitcoin-sparse-wide-fold-stages-v1-2026-10-07.json)
+also rejects all 16 mutations at both branches and keeps its original six
+proof sizes.
+Subtracting consecutive `raw_vars` counts gives:
+
+| Fixed-fold phase | New raw variables | Share of 5,589,558 |
+| --- | ---: | ---: |
+| Guess child proof witness | 341,244 | 6.1% |
+| Merkle decommitments | 2,824,606 | 50.5% |
+| FRI decommitments | 2,288,070 | 40.9% |
+| Fold output digest | 656 | 0.012% |
+
+Merkle and FRI decommitments account for 5,112,676 raw variables, or
+91.5% of the circuit. Finalization adds 155,858 of the 203,136 raw
+`m31_to_u32` rows because witness range checks are deferred. Phase counts
+measure circuit geometry, not wall-time attribution. The witness-free
+instrumentation adds no gates; the sealed root remains
+`c262acf359f951f417267296f61dc6ce3bafbc411e4c807d05c0d13f801b619b`.
+
 `fold-advance` reuses the sealed preprocessed AIR, its commitment, and the
 padded witness-free topology across several steps. It still verifies every
 child proof, checks every value-bearing gate list, and verifies each newly

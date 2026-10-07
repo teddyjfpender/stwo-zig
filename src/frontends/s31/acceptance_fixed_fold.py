@@ -65,6 +65,12 @@ def main() -> None:
         for component, padded in geometry["padded_rows"].items():
             if geometry["raw_rows"][component] + geometry["headroom_rows"][component] != padded:
                 raise AssertionError(f"incorrect fold headroom for {component}")
+        stages = geometry["verifier_stages"]
+        if (not isinstance(stages, list) or len(stages) < 20 or
+                stages[0]["name"] != "proof_witness" or
+                stages[-1]["name"] != "finalize" or
+                stages[-1]["raw_vars"] != geometry["raw_vars"]):
+            raise AssertionError("gate fold stage capture is incomplete")
         reproduced = work / "fold-key.json"
         run(str(prover), "fold-keygen", str(child_key), str(first_key), str(reproduced))
         if reproduced.read_bytes() != fold_key.read_bytes():
@@ -76,15 +82,19 @@ def main() -> None:
         run("python3", str(HERE / "s31.py"), "wrap", str(package), str(leaf), str(first))
         run("python3", str(HERE / "s31.py"), "state-fold-base", str(package),
             str(first), str(work / "unsupported-state.proof"), accept=False)
-        run("python3", str(HERE / "s31.py"), "audit-fold-base", str(package), str(first))
+        base_audit = run("python3", str(HERE / "s31.py"), "audit-fold-base", str(package), str(first))
+        if "valid=true rejected=16" not in base_audit:
+            raise AssertionError(base_audit)
 
         folds = [work / f"fold{step}.proof" for step in range(4)]
         run("python3", str(HERE / "s31.py"), "fold-base", str(package), str(first), str(folds[0]))
         for step in range(1, 4):
             run("python3", str(HERE / "s31.py"), "fold-next", str(package),
                 str(folds[step - 1]), str(folds[step]))
-            run("python3", str(HERE / "s31.py"), "audit-fold-next", str(package),
-                str(folds[step - 1]))
+            next_audit = run("python3", str(HERE / "s31.py"), "audit-fold-next", str(package),
+                             str(folds[step - 1]))
+            if "valid=true rejected=16" not in next_audit:
+                raise AssertionError(next_audit)
         root = json.loads(fold_key.read_text())["fold_preprocessed_root"]
         first_statement = statement(first)
         # The discarded v1 preimage aliased (root, step) with

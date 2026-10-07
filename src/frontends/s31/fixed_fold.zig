@@ -21,6 +21,7 @@ pub const Mutation = enum {
     base_selector, zero_test_inverse, previous_counter,
     trace_root, claimed_sum, channel_salt, sampled_trace_value,
     trace_auth_path, fri_witness, fri_auth_path, fri_last_layer,
+    interaction_pow_nonce, fri_pow_nonce,
 };
 const WitnessIndices = struct { base: usize, inverse: usize, previous: usize };
 
@@ -72,6 +73,7 @@ pub fn buildCircuit(
     step_value: u16,
     input: *const circuit.stark_verifier.proof.Proof(V),
     witness_indices: ?*WitnessIndices,
+    stages: anytype,
 ) !circuit.builder.Context(V) {
     var ctx = try circuit.builder.Context(V).init(allocator, circuit.common.component_list.N_RESERVED);
     errdefer ctx.deinit();
@@ -114,13 +116,16 @@ pub fn buildCircuit(
     var proof_config = try circuit.statements.circuit_statement.circuitVerifierProofConfig(allocator, &config.preprocessed_column_log_sizes, config.config);
     defer proof_config.deinit(allocator);
     const proof_vars = try circuit.stark_verifier.proof.guess(V, &ctx, input);
-    try circuit.stark_verifier.verify.verify(V, &ctx, &proof_vars, proof_config, &statement, circuit.stark_verifier.verify.NoStages{});
+    try stages.mark(&ctx.circuit, .{ .name = "proof_witness" });
+    try circuit.stark_verifier.verify.verify(V, &ctx, &proof_vars, proof_config, &statement, stages);
 
     const output_hash = try digestWires(V, &ctx, self_root, step.get(), leaf);
     var outputs: [Blake.digest_n_words]Var = undefined;
     for (&outputs, output_hash.words) |*out, word| out.* = word.get();
     try ctx.setOutputs(&outputs);
+    try stages.mark(&ctx.circuit, .{ .name = "fixed_fold_digest" });
     try ctx.finalize(false);
+    try stages.mark(&ctx.circuit, .{ .name = "finalize" });
     return ctx;
 }
 
@@ -130,6 +135,17 @@ pub fn topology(
     child_layout: circuit.common.preprocessed.ColumnLayout,
     child_pcs: core.pcs.config_v2.PcsConfigV2,
     base_root: [32]u8,
+) !circuit.builder.Context(NoValue) {
+    return topologyWithStages(allocator, projection_bytes, child_layout, child_pcs, base_root, circuit.stark_verifier.verify.NoStages{});
+}
+
+pub fn topologyWithStages(
+    allocator: std.mem.Allocator,
+    projection_bytes: []const u8,
+    child_layout: circuit.common.preprocessed.ColumnLayout,
+    child_pcs: core.pcs.config_v2.PcsConfigV2,
+    base_root: [32]u8,
+    stages: anytype,
 ) !circuit.builder.Context(NoValue) {
     try recursion_gate.authenticateProjection(projection_bytes);
     var projection = try circuit.air_eval.projection.parse(allocator, projection_bytes);
@@ -145,7 +161,7 @@ pub fn topology(
     var scratch = std.heap.ArenaAllocator.init(allocator);
     defer scratch.deinit();
     const empty = try circuit.stark_verifier.proof.emptyProof(scratch.allocator(), proof_config);
-    return buildCircuit(NoValue, allocator, &table, &config, base_root, undefined, undefined, 0, &empty, null);
+    return buildCircuit(NoValue, allocator, &table, &config, base_root, undefined, undefined, 0, &empty, null, stages);
 }
 
 pub fn verifyPrepared(
@@ -195,6 +211,8 @@ pub fn verifyPreparedWithMutation(
         .fri_witness => proof_values.fri.witness[0][0] = proof_values.fri.witness[0][0].add(QM31.one()),
         .fri_auth_path => proof_values.fri.auth_paths.trees[0][0] = Blake.hashValue(QM31, @splat(0)),
         .fri_last_layer => proof_values.fri.last_layer_coefs[0] = proof_values.fri.last_layer_coefs[0].add(QM31.one()),
+        .interaction_pow_nonce => proof_values.interaction_pow_nonce = proof_values.interaction_pow_nonce.add(QM31.one()),
+        .fri_pow_nonce => proof_values.pow_nonce = proof_values.pow_nonce.add(QM31.one()),
         else => {},
     };
     const config: circuit.statements.circuit_statement.CircuitConfig = .{
@@ -213,6 +231,7 @@ pub fn verifyPreparedWithMutation(
         step,
         &proof_values,
         &indices,
+        circuit.stark_verifier.verify.NoStages{},
     );
     errdefer ctx.deinit();
     if (mutation) |kind| switch (kind) {

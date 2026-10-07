@@ -134,6 +134,17 @@ with 18,488 spare `triple_xor` rows before that component's next padding
 boundary. Each proof checks value-bearing versus witness-free gate lists
 before proving and checks its output proof natively before writing it.
 
+The inspection JSON also contains cumulative `verifier_stages`. They are
+counts of circuit variables and gates after each named phase, ending at
+`finalize`; they do not measure time. Subtract adjacent counts to see the
+cost of a phase. In the [recorded wide-fold
+inspection](../../../../design/s31/measurements/sparse-wide-fold-stages-v1-2026-10-07.json),
+Merkle decommitments add 2,824,606 raw variables and FRI decommitments add
+2,288,070. Together they make 91.5% of this verifier circuit's raw
+variables. This points to authenticated path work as the main circuit-size
+target; sharing paths requires proving that the queries have the same
+index, leaf, root, and transcript-derived challenge.
+
 The [source-key replay fixture](../acceptance_sparse_wide_fold_key_binding.py)
 builds a second valid package with the same leaf AIR rows but a different
 source identity. It repairs every public hash and fold-key field in the old
@@ -176,11 +187,17 @@ python3 src/frontends/s31/acceptance_sparse_wide_fold.py --bitcoin
 ```
 
 The acceptance fixture proves steps 0, 1, and 2, reproduces `KF` byte for
-byte, audits fourteen altered circuit values at both the base and recursive
+byte, audits sixteen altered circuit values at both the base and recursive
 branches, challenges repaired false public claims and a damaged top proof,
 then deletes lower proof files and verifies the top proof alone. The Bitcoin
 run uses [`bitcoin_header_pair.s31`](../examples/bitcoin_header_pair.s31),
 which checks two linked historical headers *within one leaf proof*.
+The audit includes separate changes to the interaction and FRI proof-of-work
+nonces. These tests catch local wiring errors; they do not calculate a
+security level.
+The [Bitcoin acceptance record](../../../../design/s31/measurements/bitcoin-sparse-wide-fold-stages-v1-2026-10-07.json)
+passes the same 16 base and 16 recursive challenges on the byte-exact
+two-header leaf.
 
 `fold-advance` accepts a base or existing fold proof, checks all output
 paths and the `u16` counter before starting, then retains the sealed

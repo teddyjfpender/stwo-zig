@@ -158,7 +158,10 @@ The [claim inspector](../inspect_recursive_claim.py) verifies a saved top
 proof and prints the exact sealed key hashes, original leaf words, base
 digest, counter, and previous/current public fold digests as JSON.
 `inspect-fold PACKAGE` rebuilds the fold topology from the sealed keys and
-prints its raw rows, padded rows, and available headroom as JSON. For the
+prints its raw rows, padded rows, available headroom, and cumulative
+`verifier_stages` as JSON. Subtract adjacent stage counts to see which
+verifier phases add variables and gates; inspection does not alter the AIR.
+For the
 `arith4_m31` fixture, the raw/padded `triple_xor` rows are
 `243880/262144`, leaving 18,264 rows before that component crosses its
 current power-of-two padding boundary. This matters when designing a

@@ -1934,7 +1934,7 @@ fn auditFoldBase(
         error.VerificationFailed, error.EqFailedOnEval => {},
         else => return err,
     }
-    inline for (.{ .base_selector, .zero_test_inverse, .previous_counter }) |mutation| {
+    inline for (std.meta.tags(fixed_fold.Mutation)) |mutation| {
         if (fixed_fold.verifyPreparedWithMutation(allocator, projection_bytes, verified.layout, verified.pcs, &captured, verified.root, fold_root, statement.value.outer_public_words, 0, mutation)) |accepted| {
             var invalid = accepted;
             invalid.deinit();
@@ -1955,7 +1955,7 @@ fn auditFoldBase(
     defer pp.deinit(allocator);
     const actual_root = try pp.preprocessedRoot(allocator, fold_pcs.fri_config.log_blowup_factor);
     if (!std.mem.eql(u8, &actual_root, &fold_root)) return error.FoldKeyTopologyMismatch;
-    std.debug.print("S31 fixed-fold base audit: vars={d} qm31_ops={d} valid=true rejected=6\n", .{
+    std.debug.print("S31 fixed-fold base audit: vars={d} qm31_ops={d} valid=true rejected=16\n", .{
         values.circuit.n_vars,
         values.circuit.mul.items.len + values.circuit.add.items.len + values.circuit.sub.items.len,
     });
@@ -2105,9 +2105,10 @@ fn inspectFold(
     var fold = try std.json.parseFromSlice(FoldKey, allocator, fold_bytes, .{ .ignore_unknown_fields = false });
     defer fold.deinit();
     const verified = try validateFoldKey(child_bytes, first_bytes, first.value, fold.value);
-    var topology_ctx = try fixed_fold.topology(allocator, projection_bytes, verified.layout, verified.pcs, verified.base_root);
+    var stages: state_fold.StageCapture = .{};
+    var topology_ctx = try fixed_fold.topologyWithStages(allocator, projection_bytes, verified.layout, verified.pcs, verified.base_root, &stages);
     defer topology_ctx.deinit();
-    try emitFoldGeometry(allocator, &topology_ctx, verified, fold.value.padded, "s31-fixed-fold-geometry-v1", null);
+    try emitFoldGeometry(allocator, &topology_ctx, verified, fold.value.padded, "s31-fixed-fold-geometry-v1", stages.slice());
 }
 
 fn inspectWideFold(
@@ -2140,9 +2141,10 @@ fn inspectWideFold(
     var fold = try std.json.parseFromSlice(WideFoldKey, allocator, fold_bytes, .{ .ignore_unknown_fields = false });
     defer fold.deinit();
     const verified = try validateWideFoldKey(child_bytes, first_bytes, second_bytes, first.value, second.value, fold.value);
-    var topology_ctx = try fixed_fold.topology(allocator, projection_bytes, verified.layout, verified.pcs, verified.base_root);
+    var stages: state_fold.StageCapture = .{};
+    var topology_ctx = try fixed_fold.topologyWithStages(allocator, projection_bytes, verified.layout, verified.pcs, verified.base_root, &stages);
     defer topology_ctx.deinit();
-    try emitFoldGeometry(allocator, &topology_ctx, verified, fold.value.padded, "s31-wide-fixed-fold-geometry-v1", null);
+    try emitFoldGeometry(allocator, &topology_ctx, verified, fold.value.padded, "s31-wide-fixed-fold-geometry-v1", stages.slice());
 }
 
 fn inspectStateFold(
@@ -2508,9 +2510,7 @@ fn wrapFoldWithCache(
             error.VerificationFailed, error.EqFailedOnEval => {},
             else => return err,
         }
-        inline for (.{ .base_selector, .zero_test_inverse, .previous_counter,
-            .trace_root, .claimed_sum, .channel_salt, .sampled_trace_value,
-            .trace_auth_path, .fri_witness, .fri_auth_path, .fri_last_layer }) |mutation| {
+        inline for (std.meta.tags(fixed_fold.Mutation)) |mutation| {
             if (fixed_fold.verifyPreparedWithMutation(allocator, projection_bytes, verified.layout, verified.pcs, &captured, verified.base_root, verified.root, base_public_words, step, mutation)) |accepted| {
                 var invalid = accepted;
                 invalid.deinit();
@@ -2520,7 +2520,7 @@ fn wrapFoldWithCache(
                 else => return err,
             }
         }
-        std.debug.print("S31 fixed-fold recursive circuit audit: valid=true rejected=14\n", .{});
+        std.debug.print("S31 fixed-fold recursive circuit audit: valid=true rejected=16\n", .{});
         return;
     }
     if (cache.*) |*prepared| {
@@ -2907,12 +2907,12 @@ fn wrapStateFoldWithCache(
             wrong_previous[0] = if (wrong_previous[0] == 0) 1 else 0;
             try expectStateFoldCircuitRejection(allocator, verified, &captured, verified.base_root, verified.root, base_public_words, initial_state, current_state, wrong_previous, step, spec.body, null);
         }
-        inline for (.{ .base_selector, .zero_test_inverse, .previous_counter, .borrow, .current_state,
-            .trace_root, .claimed_sum, .channel_salt, .sampled_trace_value,
-            .trace_auth_path, .fri_witness, .fri_auth_path, .fri_last_layer }) |mutation| {
+        inline for (std.meta.tags(state_fold.Mutation)) |mutation| {
             try expectStateFoldCircuitRejection(allocator, verified, &captured, verified.base_root, verified.root, base_public_words, initial_state, current_state, previous_state, step, spec.body, mutation);
         }
-        std.debug.print("S31 state-fold circuit audit: step={d} valid=true rejected={d}\n", .{ step, if (base_case) @as(u32, 18) else 19 });
+        std.debug.print("S31 state-fold circuit audit: step={d} valid=true rejected={d}\n", .{
+            step, std.meta.tags(state_fold.Mutation).len + @as(usize, if (base_case) 5 else 6),
+        });
         return;
     }
     if (cache.*) |*prepared| {
