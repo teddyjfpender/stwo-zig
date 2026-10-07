@@ -14,8 +14,8 @@ const shift_profile = @import("../../sha/config/sha_shift_private_join_profile.z
 
 const QM31 = core.fields.qm31.QM31;
 const M31 = core.fields.m31.M31;
-const source = @embedFile("../../examples/bitcoin_header_pow.s31.json");
-const assignment_source = @embedFile("../../examples/bitcoin_header_pow.valid.json");
+const source = @embedFile("../../examples/bitcoin/bitcoin_header_pow.s31.json");
+const assignment_source = @embedFile("../../examples/bitcoin/bitcoin_header_pow.valid.json");
 
 fn trials() !usize {
     const raw = std.posix.getenv("S31_BITCOIN_MATCHED_TRIALS") orelse return 3;

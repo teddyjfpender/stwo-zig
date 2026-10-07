@@ -144,9 +144,9 @@ cryptographic audit.
 
 ```sh
 python3 src/frontends/s31/python/s31.py build \
-  src/frontends/s31/examples/arith4_m31.s31 --out zig-out/s31/arith4-fold
+  src/frontends/s31/examples/arithmetic/arith4_m31.s31 --out zig-out/s31/arith4-fold
 python3 src/frontends/s31/python/s31.py prove zig-out/s31/arith4-fold \
-  src/frontends/s31/examples/arith4.valid.json zig-out/s31/leaf.proof
+  src/frontends/s31/examples/arithmetic/arith4.valid.json zig-out/s31/leaf.proof
 python3 src/frontends/s31/python/s31.py wrap zig-out/s31/arith4-fold \
   zig-out/s31/leaf.proof zig-out/s31/base.proof
 python3 src/frontends/s31/python/s31.py fold-base zig-out/s31/arith4-fold \

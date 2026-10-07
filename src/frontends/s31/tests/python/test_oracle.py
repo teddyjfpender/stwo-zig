@@ -4,6 +4,7 @@ import sys
 from pathlib import Path
 S31_SOURCE_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(S31_SOURCE_ROOT / "python"))
+from example_paths import example_path
 
 import copy
 import json
@@ -18,8 +19,8 @@ EXAMPLES = S31_SOURCE_ROOT / "examples"
 
 
 def fixture(name: str) -> tuple[dict, dict]:
-    return (json.loads((EXAMPLES / f"{name}.s31.json").read_text()),
-            json.loads((EXAMPLES / f"{name}.valid.json").read_text()))
+    return (json.loads((example_path(f"{name}.s31.json")).read_text()),
+            json.loads((example_path(f"{name}.valid.json")).read_text()))
 
 
 class OracleTests(unittest.TestCase):

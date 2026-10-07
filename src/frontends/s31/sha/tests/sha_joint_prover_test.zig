@@ -17,10 +17,10 @@ test "joint SHA prover exposes one sealed proof object" {
 
 test "one private Bitcoin header is proved by the joined circuit and SHA AIR" {
     const a = std.testing.allocator;
-    const source = @embedFile("../../examples/bitcoin_header_pow.s31.json");
+    const source = @embedFile("../../examples/bitcoin/bitcoin_header_pow.s31.json");
     var program = try relation.parseProgram(a, source);
     defer program.deinit();
-    var assignment = try relation.parseAssignment(a, @embedFile("../../examples/bitcoin_header_pow.valid.json"));
+    var assignment = try relation.parseAssignment(a, @embedFile("../../examples/bitcoin/bitcoin_header_pow.valid.json"));
     defer assignment.deinit();
     var value_maps = compiler.Maps{};
     defer value_maps.deinit(a);

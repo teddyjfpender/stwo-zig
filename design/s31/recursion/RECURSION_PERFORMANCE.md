@@ -2,7 +2,7 @@
 
 The state fold verifies one full S31 STARK proof inside a circuit. Its proof
 size is roughly constant across steps, but proving that verifier circuit is
-the main cost. This record uses the [affine-square source](../../../src/frontends/s31/examples/affine_square4.s31)
+the main cost. This record uses the [affine-square source](../../../src/frontends/s31/examples/arithmetic/affine_square4.s31)
 and the [v2 local measurement](../measurements/recursion/state-fold-general-v2-2026-10-07.json).
 The [v3 counter record](../measurements/recursion/state-fold-u32-v3-2026-10-07.json)
 shows the same padded geometry after widening the step counter.

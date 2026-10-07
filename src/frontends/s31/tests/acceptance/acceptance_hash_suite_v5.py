@@ -17,8 +17,8 @@ import s31
 
 
 HERE = S31_SOURCE_ROOT
-SOURCE = HERE / "examples/merkle2.s31.json"
-ASSIGNMENT = HERE / "examples/merkle2.valid.json"
+SOURCE = HERE / "examples/hashes/merkle2.s31.json"
+ASSIGNMENT = HERE / "examples/hashes/merkle2.valid.json"
 P = (1 << 31) - 1
 
 
@@ -59,7 +59,7 @@ def main() -> None:
         invalid_pair_path = work / "invalid-pair.s31.json"
         s31.write_json(invalid_pair_path, invalid_pair)
         call("python3", str(HERE / "python/s31.py"), "check", str(invalid_pair_path), accept=False)
-        invalid_selector = json.loads((HERE / "examples/merkle_path1.s31.json").read_text())
+        invalid_selector = json.loads((HERE / "examples/hashes/merkle_path1.s31.json").read_text())
         invalid_selector["inputs"][2]["length"] = 2
         invalid_selector_path = work / "invalid-selector.s31.json"
         s31.write_json(invalid_selector_path, invalid_selector)
@@ -99,8 +99,8 @@ def main() -> None:
         damaged_path.write_bytes(damaged)
         call(str(verifier), str(damaged_path), str(statement), str(key), accept=False)
 
-        path_source = HERE / "examples/merkle_path1.s31.json"
-        path_assignment_path = HERE / "examples/merkle_path1.valid.json"
+        path_source = HERE / "examples/hashes/merkle_path1.s31.json"
+        path_assignment_path = HERE / "examples/hashes/merkle_path1.valid.json"
         path_assignment = json.loads(path_assignment_path.read_text())
         path_inputs = path_assignment["private_inputs"]
         path_leaf = digest(path_inputs["leaf"], b"S31LEAF1")

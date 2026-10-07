@@ -20,8 +20,8 @@ from s31_stdlib import reference_iterate
 from text_frontend import SourceError, compile_text
 
 HERE = S31_SOURCE_ROOT
-SOURCE = HERE / "examples/mix4_square4.s31"
-ASSIGNMENT = HERE / "examples/mix4_square4.valid.json"
+SOURCE = HERE / "examples/arithmetic/mix4_square4.s31"
+ASSIGNMENT = HERE / "examples/arithmetic/mix4_square4.valid.json"
 P = (1 << 31) - 1
 BODY = [{"op": "square", "constant": None},
         {"op": "add_const", "constant": 7},

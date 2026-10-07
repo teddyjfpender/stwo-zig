@@ -17,8 +17,8 @@ from pathlib import Path
 import s31
 
 HERE = S31_SOURCE_ROOT
-SOURCE = HERE / "examples" / "wide_order.s31"
-ASSIGNMENT = HERE / "examples" / "wide_order.valid.json"
+SOURCE = HERE / "examples" / "wide" / "wide_order.s31"
+ASSIGNMENT = HERE / "examples" / "wide" / "wide_order.valid.json"
 
 
 def call(*args: str, accepted: bool = True) -> str:

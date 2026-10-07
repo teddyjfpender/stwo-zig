@@ -146,7 +146,7 @@ computed `nextState` is only a witness-generation and cross-check step.
 
 ## A different function by hand
 
-The [second source file](../examples/affine_square4.s31) defines
+The [second source file](../examples/arithmetic/affine_square4.s31) defines
 `step(v)=3v²+5` and `iterate<3>(step,x)`. The source step is the ordered
 list `[square, mul_const(3), add_const(5)]`. Its first lane starts at 1:
 
@@ -170,7 +170,7 @@ STARK verifier.
 
 ## A coupled four-lane transition
 
-[`mix4_square4.s31`](../examples/mix4_square4.s31) uses a source function
+[`mix4_square4.s31`](../examples/arithmetic/mix4_square4.s31) uses a source function
 that squares each lane, adds 7, then calls `std::math::mix4`. For a vector
 `q=[q0,q1,q2,q3]`, `mix4(q)` means `qj + (q0+q1+q2+q3)` in each lane,
 modulo \(p=2^{31}-1\). Unlike the earlier examples, changing one input lane
@@ -251,9 +251,9 @@ cryptographic audit.
 
 ```sh
 python3 src/frontends/s31/python/s31.py build \
-  src/frontends/s31/examples/arith4_m31.s31 --out zig-out/s31/arith4-state-fold
+  src/frontends/s31/examples/arithmetic/arith4_m31.s31 --out zig-out/s31/arith4-state-fold
 python3 src/frontends/s31/python/s31.py prove zig-out/s31/arith4-state-fold \
-  src/frontends/s31/examples/arith4.valid.json zig-out/s31/state-leaf.proof
+  src/frontends/s31/examples/arithmetic/arith4.valid.json zig-out/s31/state-leaf.proof
 python3 src/frontends/s31/python/s31.py wrap zig-out/s31/arith4-state-fold \
   zig-out/s31/state-leaf.proof zig-out/s31/state-base.proof
 python3 src/frontends/s31/python/s31.py state-fold-base zig-out/s31/arith4-state-fold \
@@ -311,7 +311,7 @@ package with four folds per commitment when recursively proving many steps:
 
 ```sh
 python3 src/frontends/s31/python/s31.py build \
-  src/frontends/s31/examples/affine_square4.s31 \
+  src/frontends/s31/examples/arithmetic/affine_square4.s31 \
   --out zig-out/s31/affine-square4-fri4 --fri-fold-step 4
 ```
 

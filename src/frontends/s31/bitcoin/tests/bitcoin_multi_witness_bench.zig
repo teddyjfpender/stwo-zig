@@ -17,10 +17,10 @@ const sha_profile = @import("../../sha/config/sha_fused_private_join_profile.zig
 
 const QM31 = core.fields.qm31.QM31;
 const M31 = core.fields.m31.M31;
-const source = @embedFile("../../examples/bitcoin_header_pow.s31.json");
-const genesis_assignment = @embedFile("../../examples/bitcoin_header_pow.valid.json");
-const block_one_fixture = @embedFile("../../examples/bitcoin_header_link.valid.json");
-const block_two_fixture = @embedFile("../../examples/bitcoin_block2_header.valid.json");
+const source = @embedFile("../../examples/bitcoin/bitcoin_header_pow.s31.json");
+const genesis_assignment = @embedFile("../../examples/bitcoin/bitcoin_header_pow.valid.json");
+const block_one_fixture = @embedFile("../../examples/bitcoin/bitcoin_header_link.valid.json");
+const block_two_fixture = @embedFile("../../examples/bitcoin/bitcoin_block2_header.valid.json");
 const n_headers = 3;
 const n_profiles = 3;
 const names = [_][]const u8{ "genesis", "height_1", "height_2" };

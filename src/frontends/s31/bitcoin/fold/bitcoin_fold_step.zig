@@ -521,11 +521,11 @@ fn fixtureHeaders(allocator: std.mem.Allocator) ![3][80]u8 {
     const Genesis = struct { private_inputs: struct { header: [40]u16 } };
     const BlockOne = struct { private_inputs: struct { child: [40]u16 } };
     const BlockTwo = struct { header_hex: []const u8 };
-    var genesis = try std.json.parseFromSlice(Genesis, allocator, @embedFile("../../examples/bitcoin_header_pow.valid.json"), .{ .ignore_unknown_fields = true });
+    var genesis = try std.json.parseFromSlice(Genesis, allocator, @embedFile("../../examples/bitcoin/bitcoin_header_pow.valid.json"), .{ .ignore_unknown_fields = true });
     defer genesis.deinit();
-    var block_one = try std.json.parseFromSlice(BlockOne, allocator, @embedFile("../../examples/bitcoin_header_pair.valid.json"), .{ .ignore_unknown_fields = true });
+    var block_one = try std.json.parseFromSlice(BlockOne, allocator, @embedFile("../../examples/bitcoin/bitcoin_header_pair.valid.json"), .{ .ignore_unknown_fields = true });
     defer block_one.deinit();
-    var block_two = try std.json.parseFromSlice(BlockTwo, allocator, @embedFile("../../examples/bitcoin_block2_header.valid.json"), .{ .ignore_unknown_fields = true });
+    var block_two = try std.json.parseFromSlice(BlockTwo, allocator, @embedFile("../../examples/bitcoin/bitcoin_block2_header.valid.json"), .{ .ignore_unknown_fields = true });
     defer block_two.deinit();
     if (block_two.value.header_hex.len != 160) return error.InvalidHeaderFixture;
     var headers: [3][80]u8 = undefined;

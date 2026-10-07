@@ -26,7 +26,7 @@ from text_frontend import compile_file
 S31 = S31_SOURCE_ROOT
 ROOT = S31.parents[2]
 TRIAL = ROOT / "zig-out/s31/u256-order-select-trial"
-SOURCE = S31 / "examples/u256_order_select.s31"
+SOURCE = S31 / "examples/wide/u256_order_select.s31"
 
 
 def run(*args: object, accept: bool) -> None:
@@ -57,7 +57,7 @@ def main() -> None:
     verifier = package / "bin/s31-u256_order_select-native-verifier"
     key = package / "verification-key.json"
     relation, _ = compile_file(SOURCE)
-    assert relation == json.loads((S31 / "examples/u256_order_select.s31.json").read_text())
+    assert relation == json.loads((S31 / "examples/wide/u256_order_select.s31.json").read_text())
     with tempfile.TemporaryDirectory() as directory:
         temp = Path(directory)
         for label, a, b in (

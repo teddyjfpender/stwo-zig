@@ -94,8 +94,8 @@ through eight limbs before limb 8 repays it:
 | 9–15 | 0 | 0 | 0 | 0 | 0 |
 
 Each equation stays below the M31 modulus, so a field equality cannot
-conceal an integer borrow. The [source](../examples/u256_sub_checked.s31)
-and [assignment](../examples/u256_sub_checked.valid.json) commit the
+conceal an integer borrow. The [source](../examples/wide/u256_sub_checked.s31)
+and [assignment](../examples/wide/u256_sub_checked.valid.json) commit the
 resulting sixteen limbs with a Poseidon2 leaf and expose its eight-word root:
 
 ```s31
@@ -119,14 +119,14 @@ does not reveal either private operand. A false final borrow makes the
 checked circuit unsatisfiable, including when the wrapping difference
 would otherwise be a valid `UInt256`.
 
-The companion [wrapping source](../examples/u256_sub_wrap.s31) proves
-$0-1=2^{256}-1$; its [assignment](../examples/u256_sub_wrap.valid.json)
+The companion [wrapping source](../examples/wide/u256_sub_wrap.s31) proves
+$0-1=2^{256}-1$; its [assignment](../examples/wide/u256_sub_wrap.valid.json)
 has sixteen `65535` difference limbs. Reproduce both native proofs and the
 negative checks with:
 
 ```sh
-python3 src/frontends/s31/python/s31.py trial src/frontends/s31/examples/u256_sub_checked.s31 src/frontends/s31/examples/u256_sub_checked.valid.json --lowering sparse-wide-gate --out zig-out/s31/u256-sub-checked-trial
-python3 src/frontends/s31/python/s31.py trial src/frontends/s31/examples/u256_sub_wrap.s31 src/frontends/s31/examples/u256_sub_wrap.valid.json --lowering sparse-wide-gate --out zig-out/s31/u256-sub-wrap-trial
+python3 src/frontends/s31/python/s31.py trial src/frontends/s31/examples/wide/u256_sub_checked.s31 src/frontends/s31/examples/wide/u256_sub_checked.valid.json --lowering sparse-wide-gate --out zig-out/s31/u256-sub-checked-trial
+python3 src/frontends/s31/python/s31.py trial src/frontends/s31/examples/wide/u256_sub_wrap.s31 src/frontends/s31/examples/wide/u256_sub_wrap.valid.json --lowering sparse-wide-gate --out zig-out/s31/u256-sub-wrap-trial
 python3 src/frontends/s31/tests/acceptance/acceptance_u256_sub.py
 ```
 
@@ -144,9 +144,9 @@ inferring a stable timing difference from these runs.
 
 ## Order and choose a 256-bit value by hand
 
-The [ordering program](../examples/u256_order_select.s31) compares two private
+The [ordering program](../examples/wide/u256_order_select.s31) compares two private
 integers, selects their minimum and maximum, and commits to the checked
-difference. Its [assignment](../examples/u256_order_select.valid.json) uses
+difference. Its [assignment](../examples/wide/u256_order_select.valid.json) uses
 $A=2^{128}-1$ and $B=2^{128}+7$. The table shows why their order is clear
 even though limb zero of $B$ is smaller:
 
@@ -185,8 +185,8 @@ relation shares repeated comparisons with identical operands. Inspect the
 lowered relation and the selected backend's gate cost with:
 
 ```sh
-python3 src/frontends/s31/python/s31.py lower src/frontends/s31/examples/u256_order_select.s31
-python3 src/frontends/s31/python/s31.py trial src/frontends/s31/examples/u256_order_select.s31 src/frontends/s31/examples/u256_order_select.valid.json --lowering sparse-wide-gate --out zig-out/s31/u256-order-select-trial
+python3 src/frontends/s31/python/s31.py lower src/frontends/s31/examples/wide/u256_order_select.s31
+python3 src/frontends/s31/python/s31.py trial src/frontends/s31/examples/wide/u256_order_select.s31 src/frontends/s31/examples/wide/u256_order_select.valid.json --lowering sparse-wide-gate --out zig-out/s31/u256-order-select-trial
 python3 src/frontends/s31/python/s31.py equations zig-out/s31/u256-order-select-trial/package
 python3 src/frontends/s31/tests/acceptance/acceptance_u256_select.py
 ```
@@ -235,8 +235,8 @@ The checked assignment has `digest_bytes=[65535,0,…,0,32768]`,
 `increment=[1,0,…,0]`, and `target=[0,1,0,…,0,32768]`. Its eight-word public
 root is
 `[1516562408,720678098,331586352,1266462312,857462184,360942592,889867968,271788129]`.
-The [full assignment](../examples/wide_order.valid.json) and [exact normalized
-relation](../examples/wide_order.s31.json) are checked against this page.
+The [full assignment](../examples/wide/wide_order.valid.json) and [exact normalized
+relation](../examples/wide/wide_order.s31.json) are checked against this page.
 
 For a trusted program/key and this public root, verifier acceptance means
 that **some** private digest bytes and increment commit to that root through
@@ -250,8 +250,8 @@ has not established the security of Poseidon2 as a production Bitcoin bridge
 commitment.
 
 ```sh
-python3 src/frontends/s31/python/s31.py oracle src/frontends/s31/examples/wide_order.s31 src/frontends/s31/examples/wide_order.valid.json
-python3 src/frontends/s31/python/s31.py trial src/frontends/s31/examples/wide_order.s31 src/frontends/s31/examples/wide_order.valid.json --lowering sparse-wide-gate --out zig-out/s31/wide-order-trial
+python3 src/frontends/s31/python/s31.py oracle src/frontends/s31/examples/wide/wide_order.s31 src/frontends/s31/examples/wide/wide_order.valid.json
+python3 src/frontends/s31/python/s31.py trial src/frontends/s31/examples/wide/wide_order.s31 src/frontends/s31/examples/wide/wide_order.valid.json --lowering sparse-wide-gate --out zig-out/s31/wide-order-trial
 ```
 
 `sparse-wide-gate` keeps the equality, QM31 arithmetic, M31-to-`u32`, and

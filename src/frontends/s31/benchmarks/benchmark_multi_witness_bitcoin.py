@@ -150,9 +150,9 @@ def main() -> None:
         for earlier, later in comparisons
     }
     fixtures = {
-        "genesis": HERE / "examples/bitcoin_header_pow.valid.json",
-        "height_1": HERE / "examples/bitcoin_header_link.valid.json",
-        "height_2": HERE / "examples/bitcoin_block2_header.valid.json",
+        "genesis": HERE / "examples/bitcoin/bitcoin_header_pow.valid.json",
+        "height_1": HERE / "examples/bitcoin/bitcoin_header_link.valid.json",
+        "height_2": HERE / "examples/bitcoin/bitcoin_block2_header.valid.json",
     }
     record = {
         "schema": "s31-bitcoin-multi-witness-generic-v3-v4-v1",
@@ -162,7 +162,7 @@ def main() -> None:
         "binary": str(binary),
         "binary_sha256": sha256(binary),
         "execution_mode": "production",
-        "source_sha256": sha256(HERE / "examples/bitcoin_header_pow.s31.json"),
+        "source_sha256": sha256(HERE / "examples/bitcoin/bitcoin_header_pow.s31.json"),
         "fixture_sha256": {name: sha256(path) for name, path in fixtures.items()},
         "proof_parameters": {
             "fri_pow_bits": setup["fri_pow_bits"],

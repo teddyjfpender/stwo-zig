@@ -1,7 +1,7 @@
 # Two private Bitcoin headers in one circuit plus SHA proof
 
 The [focused test](../../../src/frontends/s31/sha/tests/sha_joint_batch2_prover_test.zig)
-uses the existing [two-header relation](../../../src/frontends/s31/examples/bitcoin_header_pair.s31.json).
+uses the existing [two-header relation](../../../src/frontends/s31/examples/bitcoin/bitcoin_header_pair.s31.json).
 Its private inputs are the 80-byte genesis and block-one headers. The source
 asserts that the parent hash is genesis, that the child's previous-hash bytes
 equal the parent's SHA256d digest, that both headers satisfy their decoded

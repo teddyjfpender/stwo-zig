@@ -8,7 +8,7 @@ leaf execution. It does not add another Bitcoin header at each step.
 
 ## Follow one concrete execution
 
-[`wide_order.s31`](../examples/wide_order.s31) checks a private 256-bit sum,
+[`wide_order.s31`](../examples/wide/wide_order.s31) checks a private 256-bit sum,
 comparison, and Poseidon2 commitment. Its eight public ABI words in the
 checked fixture are
 
@@ -167,10 +167,10 @@ From the repository root:
 
 ```sh
 python3 src/frontends/s31/python/s31.py build \
-  src/frontends/s31/examples/wide_order.s31 \
+  src/frontends/s31/examples/wide/wide_order.s31 \
   --lowering sparse-wide-gate --fri-fold-step 4 --out zig-out/s31/wide-fold
 python3 src/frontends/s31/python/s31.py prove zig-out/s31/wide-fold \
-  src/frontends/s31/examples/wide_order.valid.json zig-out/s31/wide-fold/leaf.proof
+  src/frontends/s31/examples/wide/wide_order.valid.json zig-out/s31/wide-fold/leaf.proof
 python3 src/frontends/s31/python/s31.py wrap zig-out/s31/wide-fold \
   zig-out/s31/wide-fold/leaf.proof zig-out/s31/wide-fold/first.proof --low-memory
 python3 src/frontends/s31/python/s31.py wrap-next zig-out/s31/wide-fold \
@@ -198,7 +198,7 @@ The acceptance fixture proves steps 0, 1, and 2, reproduces `KF` byte for
 byte, audits twenty-four altered circuit values at both the base and recursive
 branches, challenges repaired false public claims and a damaged top proof,
 then deletes lower proof files and verifies the top proof alone. The Bitcoin
-run uses [`bitcoin_header_pair.s31`](../examples/bitcoin_header_pair.s31),
+run uses [`bitcoin_header_pair.s31`](../examples/bitcoin/bitcoin_header_pair.s31),
 which checks two linked historical headers *within one leaf proof*.
 The audit includes separate changes to the interaction and FRI proof-of-work
 nonces, the trace, interaction, composition, and FRI commitment roots,

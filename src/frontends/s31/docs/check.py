@@ -15,6 +15,7 @@ DOCS = Path(__file__).resolve().parent
 S31 = DOCS.parent
 ROOT = S31.parents[2]
 sys.path.insert(0, str(S31 / "python"))
+from example_paths import example_path
 
 import poseidon2_oracle as poseidon  # noqa: E402
 from oracle import OracleError, evaluate_relation  # noqa: E402
@@ -84,7 +85,7 @@ def check_examples() -> None:
         ("air.md", "fn step", "arith4_m31"),
     ):
         relation, _ = compile_text(text_block(DOCS / chapter, prefix), chapter)
-        expected = json.loads((S31 / "examples" / f"{fixture}.s31.json").read_text())
+        expected = json.loads((example_path(f"{fixture}.s31.json")).read_text())
         assert relation == expected, f"{chapter}: example differs from checked relation"
 
     hash_relation, _ = compile_text(
@@ -96,22 +97,22 @@ def check_examples() -> None:
     library_relation, _ = compile_text(
         text_block_containing(DOCS / "library.md", "circuit mathlib4"), "library.md"
     )
-    checked_library, _ = compile_text((S31 / "examples/mathlib4.s31").read_text())
+    checked_library, _ = compile_text((S31 / "examples/arithmetic/mathlib4.s31").read_text())
     assert library_relation == checked_library
-    library_assignment = json.loads((S31 / "examples/mathlib4.valid.json").read_text())
+    library_assignment = json.loads((S31 / "examples/arithmetic/mathlib4.valid.json").read_text())
     assert library_assignment["public_outputs"]["result"] == [
         (2 * x + 3 * (2 * x**3 + 3 * x**2 + 5 * x + 7) + 11) % P
         for x in library_assignment["public_inputs"]["x"]
     ]
     matrix_source = text_block_containing(DOCS / "library.md", "circuit static_matvec")
     matrix_relation, _ = compile_text(matrix_source, "library.md")
-    assert matrix_relation == json.loads((S31 / "examples/static_matvec.s31.json").read_text())
-    matrix_assignment = json.loads((S31 / "examples/static_matvec.valid.json").read_text())
+    assert matrix_relation == json.loads((S31 / "examples/arrays/static_matvec.s31.json").read_text())
+    matrix_assignment = json.loads((S31 / "examples/arrays/static_matvec.valid.json").read_text())
     assert evaluate_relation(matrix_relation, matrix_assignment) == {"total": [44]}
     views_source = text_block_containing(DOCS / "library.md", "circuit array_views")
     views_relation, _ = compile_text(views_source, "library.md")
-    assert views_relation == json.loads((S31 / "examples/array_views.s31.json").read_text())
-    views_assignment = json.loads((S31 / "examples/array_views.valid.json").read_text())
+    assert views_relation == json.loads((S31 / "examples/arrays/array_views.s31.json").read_text())
+    views_assignment = json.loads((S31 / "examples/arrays/array_views.valid.json").read_text())
     assert evaluate_relation(views_relation, views_assignment) == {"result": [18]}
     assert [node["op"] for node in views_relation["nodes"]] == [
         "array_concat", "array_get", "array_get", "add"]
@@ -121,19 +122,19 @@ def check_examples() -> None:
         ("array_matrix_runtime", [17]),
         ("array_slice_u16", [65535, 7]),
     ):
-        source = S31 / "examples" / f"{name}.s31"
+        source = example_path(f"{name}.s31")
         relation, _ = compile_text(source.read_text(), str(source))
         assert relation == json.loads(source.with_suffix(".s31.json").read_text())
         assignment = json.loads(source.with_suffix(".valid.json").read_text())
         assert evaluate_relation(relation, assignment) == {relation["public_outputs"][0]: expected}
     lane_source = text_block_containing(DOCS / "library.md", "circuit lane_stats4")
     lane_relation, _ = compile_text(lane_source, "library.md")
-    fixture_relation, _ = compile_text((S31 / "examples/lane_stats4.s31").read_text())
+    fixture_relation, _ = compile_text((S31 / "examples/arithmetic/lane_stats4.s31").read_text())
     assert lane_relation == fixture_relation
     assert [node["op"] for node in lane_relation["nodes"]] == [
         "sum_lanes", "mul", "sum_lanes", "add"
     ]
-    lane_assignment = json.loads((S31 / "examples/lane_stats4.valid.json").read_text())
+    lane_assignment = json.loads((S31 / "examples/arithmetic/lane_stats4.valid.json").read_text())
     xs = lane_assignment["private_inputs"]["x"]
     weights = lane_assignment["private_inputs"]["weights"]
     assert lane_assignment["public_outputs"]["result"] == [
@@ -143,9 +144,9 @@ def check_examples() -> None:
     division_relation, _ = compile_text(
         text_block_containing(DOCS / "library.md", "circuit field_div4"), "library.md"
     )
-    checked_division = json.loads((S31 / "examples/field_div4.s31.json").read_text())
+    checked_division = json.loads((S31 / "examples/arithmetic/field_div4.s31.json").read_text())
     assert division_relation == checked_division
-    division_assignment = json.loads((S31 / "examples/field_div4.valid.json").read_text())
+    division_assignment = json.loads((S31 / "examples/arithmetic/field_div4.valid.json").read_text())
     assert evaluate_relation(division_relation, division_assignment) == division_assignment["public_outputs"]
     division_assignment["private_inputs"]["denominator"][3] = 0
     try:
@@ -157,35 +158,35 @@ def check_examples() -> None:
     zero_relation, _ = compile_text(
         text_block_containing(DOCS / "library.md", "circuit computed_choice"), "library.md"
     )
-    assert zero_relation == json.loads((S31 / "examples/computed_choice.s31.json").read_text())
-    zero_assignment = json.loads((S31 / "examples/computed_choice.valid.json").read_text())
+    assert zero_relation == json.loads((S31 / "examples/control/computed_choice.s31.json").read_text())
+    zero_assignment = json.loads((S31 / "examples/control/computed_choice.valid.json").read_text())
     assert evaluate_relation(zero_relation, zero_assignment) == zero_assignment["public_outputs"]
     bitcoin_relation, _ = compile_text(
         text_block_containing(DOCS / "bitcoin-sha256d.md", "circuit bitcoin_header_pow"),
         "bitcoin-sha256d.md",
     )
-    checked_bitcoin, _ = compile_text((S31 / "examples/bitcoin_header_pow.s31").read_text())
+    checked_bitcoin, _ = compile_text((S31 / "examples/bitcoin/bitcoin_header_pow.s31").read_text())
     assert bitcoin_relation == checked_bitcoin
-    bitcoin_assignment = json.loads((S31 / "examples/bitcoin_header_hash.valid.json").read_text())
+    bitcoin_assignment = json.loads((S31 / "examples/bitcoin/bitcoin_header_hash.valid.json").read_text())
     assert evaluate_relation(bitcoin_relation, bitcoin_assignment) == bitcoin_assignment["public_outputs"]
     pair_relation, _ = compile_text(
         text_block_containing(DOCS / "bitcoin-sha256d.md", "circuit bitcoin_header_pair"),
         "bitcoin-sha256d.md",
     )
-    checked_pair, _ = compile_text((S31 / "examples/bitcoin_header_pair_typed.s31").read_text())
+    checked_pair, _ = compile_text((S31 / "examples/bitcoin/bitcoin_header_pair_typed.s31").read_text())
     assert pair_relation == checked_pair
-    old_pair, _ = compile_text((S31 / "examples/bitcoin_header_pair.s31").read_text())
+    old_pair, _ = compile_text((S31 / "examples/bitcoin/bitcoin_header_pair.s31").read_text())
     assert pair_relation == old_pair
-    assert pair_relation == json.loads((S31 / "examples/bitcoin_header_pair.s31.json").read_text())
-    pair_assignment = json.loads((S31 / "examples/bitcoin_header_pair.valid.json").read_text())
+    assert pair_relation == json.loads((S31 / "examples/bitcoin/bitcoin_header_pair.s31.json").read_text())
+    pair_assignment = json.loads((S31 / "examples/bitcoin/bitcoin_header_pair.valid.json").read_text())
     assert evaluate_relation(pair_relation, pair_assignment) == pair_assignment["public_outputs"]
     link_relation, _ = compile_text(
         text_block_containing(DOCS / "bitcoin-sha256d.md", "circuit bitcoin_header_link"),
         "bitcoin-sha256d.md",
     )
-    checked_link, _ = compile_text((S31 / "examples/bitcoin_header_link.s31").read_text())
+    checked_link, _ = compile_text((S31 / "examples/bitcoin/bitcoin_header_link.s31").read_text())
     assert link_relation == checked_link
-    link_assignment = json.loads((S31 / "examples/bitcoin_header_link.valid.json").read_text())
+    link_assignment = json.loads((S31 / "examples/bitcoin/bitcoin_header_link.valid.json").read_text())
     assert evaluate_relation(link_relation, link_assignment) == link_assignment["public_outputs"]
     worked = DOCS / "worked-proofs.md"
     worked_lane, _ = compile_text(text_block(worked, "use std@1;"), "worked-proofs.md")
@@ -244,8 +245,8 @@ def check_examples() -> None:
     wide_relation, _ = compile_text(
         text_block_containing(wide_doc, "circuit wide_order"), "wide-values.md"
     )
-    assert wide_relation == json.loads((S31 / "examples/wide_order.s31.json").read_text())
-    wide_assignment = json.loads((S31 / "examples/wide_order.valid.json").read_text())
+    assert wide_relation == json.loads((S31 / "examples/wide/wide_order.s31.json").read_text())
+    wide_assignment = json.loads((S31 / "examples/wide/wide_order.valid.json").read_text())
     wide_values = wide_assignment["private_inputs"]
     h = wide_values["digest_bytes"]
     target = wide_values["target"]
@@ -263,10 +264,10 @@ def check_examples() -> None:
         text_block_containing(wide_doc, "circuit u256_sub_checked"), "wide-values.md"
     )
     sub_source, _ = compile_text(
-        (S31 / "examples/u256_sub_checked.s31").read_text(), "u256_sub_checked.s31"
+        (S31 / "examples/wide/u256_sub_checked.s31").read_text(), "u256_sub_checked.s31"
     )
     assert sub_relation == sub_source
-    sub_assignment = json.loads((S31 / "examples/u256_sub_checked.valid.json").read_text())
+    sub_assignment = json.loads((S31 / "examples/wide/u256_sub_checked.valid.json").read_text())
     operands = sub_assignment["private_inputs"]
     assert int.from_bytes(encode_u256_le(operands["total"]), "little") - int.from_bytes(
         encode_u256_le(operands["previous"]), "little") == 8
@@ -276,10 +277,10 @@ def check_examples() -> None:
         529560134, 669980742, 1274389821, 1249346016,
     ]
     order_relation, _ = compile_text(
-        (S31 / "examples/u256_order_select.s31").read_text(), "u256_order_select.s31"
+        (S31 / "examples/wide/u256_order_select.s31").read_text(), "u256_order_select.s31"
     )
-    assert order_relation == json.loads((S31 / "examples/u256_order_select.s31.json").read_text())
-    order_assignment = json.loads((S31 / "examples/u256_order_select.valid.json").read_text())
+    assert order_relation == json.loads((S31 / "examples/wide/u256_order_select.s31.json").read_text())
+    order_assignment = json.loads((S31 / "examples/wide/u256_order_select.valid.json").read_text())
     a = int.from_bytes(encode_u256_le(order_assignment["private_inputs"]["a"]), "little")
     b = int.from_bytes(encode_u256_le(order_assignment["private_inputs"]["b"]), "little")
     assert (a, b, b - a) == (2**128 - 1, 2**128 + 7, 8)
@@ -288,9 +289,9 @@ def check_examples() -> None:
     assert "8,162 raw QM31 rows" in wide_doc.read_text()
     assert "python3 src/frontends/s31/tests/acceptance/acceptance_u256_select.py" in wide_doc.read_text()
     wrap_relation, _ = compile_text(
-        (S31 / "examples/u256_sub_wrap.s31").read_text(), "u256_sub_wrap.s31"
+        (S31 / "examples/wide/u256_sub_wrap.s31").read_text(), "u256_sub_wrap.s31"
     )
-    wrap_assignment = json.loads((S31 / "examples/u256_sub_wrap.valid.json").read_text())
+    wrap_assignment = json.loads((S31 / "examples/wide/u256_sub_wrap.valid.json").read_text())
     assert evaluate_relation(wrap_relation, wrap_assignment) == wrap_assignment["public_outputs"]
     assert int.from_bytes(encode_u256_le(wrap_assignment["private_inputs"]["total"]), "little") - int.from_bytes(
         encode_u256_le(wrap_assignment["private_inputs"]["previous"]), "little") == -1
@@ -309,7 +310,7 @@ def check_examples() -> None:
     check_historical_source_hashes(subtraction_record["source_sha256"])
     for filename, digest in subtraction_record["fixture_sha256"].items():
         mode, extension = filename.split(".", 1)
-        assert hashlib.sha256((S31 / "examples" / f"u256_sub_{mode}.{extension}").read_bytes()).hexdigest() == digest
+        assert hashlib.sha256((example_path(f"u256_sub_{mode}.{extension}")).read_bytes()).hexdigest() == digest
 
     # Check the packed-reduction witness values written in the teaching gate table.
     inverse_five = pow(5, -1, P)
@@ -338,7 +339,7 @@ def check_examples() -> None:
         z = t * (t - 1)
         assert ((1 - t) * (c - a * b) - z * (427 + 4020 * t)) % P == 0
         assert (t * (c - a - b) - z * (-9)) % P == 0
-    assignment = json.loads((S31 / "examples/math_polynomial4.valid.json").read_text())
+    assignment = json.loads((S31 / "examples/arithmetic/math_polynomial4.valid.json").read_text())
     assert assignment["public_outputs"]["result"] == [
         (pow(x, 5, P) + 3 * x - 7) % P for x in assignment["public_inputs"]["x"]
     ]
@@ -360,10 +361,10 @@ def check_hashes() -> None:
     sibling = [100 * x for x in range(1, 9)]
     assert leaf == [1028419626, 840344419, 441147974, 1658139767,
                     1562726555, 572367908, 1125001664, 1414944824]
-    assignment = json.loads((S31 / "examples/merkle_path1_poseidon.valid.json").read_text())
+    assignment = json.loads((S31 / "examples/hashes/merkle_path1_poseidon.valid.json").read_text())
     assert poseidon.pair(sibling, leaf) == assignment["public_outputs"]["root"]
     merkle_relation, _ = compile_text(
-        (S31 / "examples/merkle_path1_poseidon.s31").read_text(), "merkle_path1_poseidon.s31"
+        (S31 / "examples/hashes/merkle_path1_poseidon.s31").read_text(), "merkle_path1_poseidon.s31"
     )
     assert evaluate_relation(merkle_relation, assignment) == assignment["public_outputs"]
     changed_merkle = json.loads(json.dumps(assignment))
@@ -374,8 +375,8 @@ def check_hashes() -> None:
         pass
     else:
         raise AssertionError("changed Merkle root passed the independent oracle")
-    blake_relation = json.loads((S31 / "examples/hash4.s31.json").read_text())
-    blake_assignment = json.loads((S31 / "examples/hash4.valid.json").read_text())
+    blake_relation = json.loads((S31 / "examples/hashes/hash4.s31.json").read_text())
+    blake_assignment = json.loads((S31 / "examples/hashes/hash4.valid.json").read_text())
     assert evaluate_relation(blake_relation, blake_assignment) == blake_assignment["public_outputs"]
 
     chapter = (DOCS / "hashes.md").read_text()
@@ -444,7 +445,7 @@ def check_recursive_examples() -> None:
 
     gate = json.loads((records / "recursion/fixed-fold-u32-hand-example-2026-10-07.json").read_text())
     gate_doc = (DOCS / "recursion-fold.md").read_text()
-    gate_source = S31 / "examples/arith4_m31.s31"
+    gate_source = S31 / "examples/arithmetic/arith4_m31.s31"
     assert gate["source_sha256"] == hashlib.sha256(gate_source.read_bytes()).hexdigest()
     assert gate["first_wrapper_digest_d1"] == digest(
         bytes.fromhex(gate["leaf_key_sha256"]), gate["leaf_public_words_w0"], b"S31RCV2!"
@@ -465,7 +466,7 @@ def check_recursive_examples() -> None:
 
     chain = json.loads((records / "hash/preimage-chain-hand-example-2026-10-07.json").read_text())
     chain_doc = (DOCS / "recursion-chain.md").read_text()
-    assert chain["source_sha256"] == hashlib.sha256((S31 / "examples/preimage4.s31").read_bytes()).hexdigest()
+    assert chain["source_sha256"] == hashlib.sha256((S31 / "examples/hashes/preimage4.s31").read_bytes()).hexdigest()
     assert chain["first_wrapper_digest_d1"] == digest(
         bytes.fromhex(chain["leaf_key_sha256"]), chain["leaf_public_words_w0"], b"S31RCV2!"
     )
@@ -479,7 +480,7 @@ def check_recursive_examples() -> None:
     wide = json.loads((records / "recursion/sparse-wide-fold-u32-v1-2026-10-07.json").read_text())
     wide_doc = (DOCS / "recursion-wide-fold.md").read_text()
     assert gate["compiler_sha256"] == chain["compiler_sha256"] == wide["compiler_sha256"]
-    assert wide["source_sha256"] == hashlib.sha256((S31 / "examples/wide_order.s31").read_bytes()).hexdigest()
+    assert wide["source_sha256"] == hashlib.sha256((S31 / "examples/wide/wide_order.s31").read_bytes()).hexdigest()
     assert wide["fold_preprocessed_root"] in wide_doc
     wide_d2_match = re.search(r"The checked `D2` is\s*```text\n(.*?)\n```", wide_doc, re.S)
     assert wide_d2_match
@@ -492,7 +493,7 @@ def check_recursive_examples() -> None:
     assert [int(re.search(r"\| (\d+) \|$", line).group(1)) for line in wide_rows] == wide["fold_public_words_first_words"]
 
     bitcoin = json.loads((records / "bitcoin/bitcoin-sparse-wide-fold-u32-v1-2026-10-07.json").read_text())
-    assert bitcoin["source_sha256"] == hashlib.sha256((S31 / "examples/bitcoin_header_pair.s31").read_bytes()).hexdigest()
+    assert bitcoin["source_sha256"] == hashlib.sha256((S31 / "examples/bitcoin/bitcoin_header_pair.s31").read_bytes()).hexdigest()
     assert bitcoin["compiler_sha256"] == wide["compiler_sha256"]
     assert bitcoin["base_and_next_audit_rejections"] == [24, 24]
     assert "u32_counter_overflow_before_output" in bitcoin["host_negative_checks"]
@@ -554,7 +555,7 @@ def check_recursive_examples() -> None:
     sha_pair = json.loads((records / "sha/bitcoin-sha-joint-batch2-v1-2026-10-07.json").read_text())
     assert sha_pair["schema"] == "s31-bitcoin-sha-joint-batch2-v1"
     assert sha_pair["statement"]["canonical_program_sha256"] == hashlib.sha256(
-        (S31 / "examples/bitcoin_header_pair.s31.json").read_bytes()
+        (S31 / "examples/bitcoin/bitcoin_header_pair.s31.json").read_bytes()
     ).hexdigest()
     generic = sha_pair["generic_sparse_wide_gate"]
     joined = sha_pair["joined_sparse_wide_sha_batch2"]
@@ -620,11 +621,11 @@ def check_recursive_examples() -> None:
                for name in ("chain fold step 0", "chain fold step 1"))
     assert all(f"{item['proof_bytes']:,}" in bitcoin_doc and
                f"{item['prove_seconds']:.3f}" in bitcoin_doc for item in current_observations.values())
-    block2 = json.loads((S31 / "examples/bitcoin_block2_header.valid.json").read_text())
+    block2 = json.loads((S31 / "examples/bitcoin/bitcoin_block2_header.valid.json").read_text())
     block2_header = bytes.fromhex(block2["header_hex"])
     assert len(block2_header) == 80
     sha256d = lambda data: hashlib.sha256(hashlib.sha256(data).digest()).digest()
-    block1_fixture = json.loads((S31 / "examples/bitcoin_header_link.valid.json").read_text())
+    block1_fixture = json.loads((S31 / "examples/bitcoin/bitcoin_header_link.valid.json").read_text())
     block1_header = b"".join(struct.pack("<H", word) for word in block1_fixture["private_inputs"]["child"])
     assert block2_header[4:36] == sha256d(block1_header)
     assert sha256d(block1_header)[::-1].hex() == block2["previous_display_hash"]

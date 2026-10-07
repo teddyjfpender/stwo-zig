@@ -21,8 +21,8 @@ from text_frontend import compile_file
 
 
 HERE = S31_SOURCE_ROOT
-SOURCE = HERE / "examples/preimage4.s31"
-VALID = HERE / "examples/preimage4.valid.json"
+SOURCE = HERE / "examples/hashes/preimage4.s31"
+VALID = HERE / "examples/hashes/preimage4.valid.json"
 
 
 def run(*args: str, accept: bool) -> None:

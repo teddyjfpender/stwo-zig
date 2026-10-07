@@ -4,7 +4,7 @@ This guide describes the **implemented** normalized S31 relation format and proo
 
 ## A complete function
 
-[`examples/arith4.s31.json`](../../examples/arith4.s31.json) expresses four independent recurrences:
+[`examples/arithmetic/arith4.s31.json`](../../examples/arithmetic/arith4.s31.json) expresses four independent recurrences:
 
 ```json
 {
@@ -28,7 +28,7 @@ s[i+1,j] = (s[i,j]^2 + 7) mod p,   0 <= i < 256
 y[j] = s[256,j]
 ```
 
-The public statement contains eight `u32` words: `x[0..4]` followed by `y[0..4]`. The input words must fit `u16`; the output words encode canonical M31 elements. The `cast_m31` changes the type, not the value. For `x = [1,2,3,65535]`, the first state is `[8,11,16,2147352585]`; the final four values are computed by the recurrence. An assignment file supplies the same named public arrays under `public_inputs` and `public_outputs`; see [`examples/arith4.valid.json`](../../examples/arith4.valid.json). The compiler and verifier check the declared types and public word count. The reference evaluator independently recomputes the output during proving.
+The public statement contains eight `u32` words: `x[0..4]` followed by `y[0..4]`. The input words must fit `u16`; the output words encode canonical M31 elements. The `cast_m31` changes the type, not the value. For `x = [1,2,3,65535]`, the first state is `[8,11,16,2147352585]`; the final four values are computed by the recurrence. An assignment file supplies the same named public arrays under `public_inputs` and `public_outputs`; see [`examples/arithmetic/arith4.valid.json`](../../examples/arithmetic/arith4.valid.json). The compiler and verifier check the declared types and public word count. The reference evaluator independently recomputes the output during proving.
 
 The node list is topologically ordered. Other implemented nodes are `constant`, lane-wise `add` and `mul`, `add_const`, `mul_const`, `select`, and the BLAKE2s and Poseidon2 hash operations described below. A `repeat` body can contain `square`, `add_const`, `mul_const`, and four-lane `mix4`, with a compile-time round count. `mix4` adds the sum of all four lanes to each lane, modulo M31. The `assertions` array holds pairs such as `{"lhs":"a","rhs":"b"}` and constrains equal arrays. `u16` and `m31` inputs can be public or private; only public inputs and named public outputs enter the eight direct proof words.
 
@@ -83,7 +83,7 @@ The sparse-v3 profile **still uses the M31-to-`u32` converter and `seq_16` range
 
 ### Direct M31 public values
 
-The separately versioned `direct-gate` and `direct-chip` modes implement that direct ABI for arithmetic programs whose inputs are all `m31`. [`examples/arith4_m31.s31.json`](../../examples/arith4_m31.s31.json) expresses the same recurrence as the first example with an `m31[4]` input and no cast. Its eight public words encode canonical M31 values directly. The compiler binds each word as a base-field circuit value; the native verifier rejects any word `>= p`. No M31-to-`u32` conversion is generated, and the circuit has no `u16` range obligation.
+The separately versioned `direct-gate` and `direct-chip` modes implement that direct ABI for arithmetic programs whose inputs are all `m31`. [`examples/arithmetic/arith4_m31.s31.json`](../../examples/arithmetic/arith4_m31.s31.json) expresses the same recurrence as the first example with an `m31[4]` input and no cast. Its eight public words encode canonical M31 values directly. The compiler binds each word as a base-field circuit value; the native verifier rejects any word `>= p`. No M31-to-`u32` conversion is generated, and the circuit has no `u16` range obligation.
 
 The direct profile selects only the QM31 operation AIR component, with eight preprocessed columns. Each guessed M31 scalar is constrained in the circuit by a pointwise multiplication with the base-field unit, which forces its other QM31 coordinates to zero. Public binding gates then connect those scalars to the verifier's canonical M31 words. Its chip variant adds the same repeated-step component and indexed lookup closure described above. It has its own transcript tag, circuit identity, key schema and `S31NAT4G/C` proof envelopes. A direct proof cannot be decoded as a sparse-v3 proof. At 256 rounds, the direct chip has 4,096 preprocessed cells and a 60,616-byte proof for the example assignment. The equivalent sparse-v3 chip with `u32` public binding has 69,680 cells and a 245,493-byte proof for the same source and assignment; these figures are proof artifacts, not timing claims.
 
@@ -105,7 +105,7 @@ The chip's `C_step,j` is a direct example of a vanishing polynomial constraint. 
 
 ## A second function and the current boundary
 
-A small affine relation is available as [`examples/affine4_v1.s31.json`](../../examples/affine4_v1.s31.json):
+A small affine relation is available as [`examples/arithmetic/affine4_v1.s31.json`](../../examples/arithmetic/affine4_v1.s31.json):
 
 ```json
 {
@@ -120,9 +120,9 @@ A small affine relation is available as [`examples/affine4_v1.s31.json`](../../e
 }
 ```
 
-It computes `y[j] = 7*x[j] + 11 mod p`; [`examples/affine4_v1.valid.json`](../../examples/affine4_v1.valid.json) supplies one assignment. The multiplication and addition each become a four-lane arithmetic gate. It can use `gate` or `sparse-gate`; it does not match the specialized repeated-step chip.
+It computes `y[j] = 7*x[j] + 11 mod p`; [`examples/arithmetic/affine4_v1.valid.json`](../../examples/arithmetic/affine4_v1.valid.json) supplies one assignment. The multiplication and addition each become a four-lane arithmetic gate. It can use `gate` or `sparse-gate`; it does not match the specialized repeated-step chip.
 
-[`examples/preimage4.s31.json`](../../examples/preimage4.s31.json) uses a private `u16[4]` called `secret`, computes `square = secret²` and `offset = square + 7`, and asserts `offset == target` for a public `m31[4]` target. The assertion lowers to circuit equality gates and an Eq AIR component; it is a proof condition, not just an evaluator check. [`examples/hash4.s31.json`](../../examples/hash4.s31.json) instead hashes four private M31 words with `hash_blake2s` and exposes eight digest words. The builder lowers that node into its Blake2s/bitwise circuit gates and corresponding AIR components. Both examples require the full `gate` profile because the sparse arithmetic profile excludes Eq, Blake-G and XOR components.
+[`examples/hashes/preimage4.s31.json`](../../examples/hashes/preimage4.s31.json) uses a private `u16[4]` called `secret`, computes `square = secret²` and `offset = square + 7`, and asserts `offset == target` for a public `m31[4]` target. The assertion lowers to circuit equality gates and an Eq AIR component; it is a proof condition, not just an evaluator check. [`examples/hashes/hash4.s31.json`](../../examples/hashes/hash4.s31.json) instead hashes four private M31 words with `hash_blake2s` and exposes eight digest words. The builder lowers that node into its Blake2s/bitwise circuit gates and corresponding AIR components. Both examples require the full `gate` profile because the sparse arithmetic profile excludes Eq, Blake-G and XOR components.
 
 ## Hashes, tree nodes, and conditional paths
 
@@ -139,7 +139,7 @@ The hash functions operate on canonical M31 arrays. Each input element is encode
 
 The two eight-byte BLAKE2s personalization values enter the [BLAKE2s parameter block](https://www.blake2.net/blake2_20130129.pdf), so a 16-word parent input still uses one compression block. The parent order matters: `pair(left,right)` and `pair(right,left)` are different statements. The circuit's Blake-G, XOR, conversion and range components constrain all BLAKE2s rounds. `select` adds `b²-b=0` for its selector and constrains every output lane to `(1-b)·lhs+b·rhs`. BLAKE2s uses the full `gate` profile. Poseidon2 uses the arithmetic-only `direct-gate` profile when all inputs are M31.
 
-[`examples/merkle2.s31.json`](../../examples/merkle2.s31.json) hashes two private eight-word leaves and then hashes their ordered digests into one public root:
+[`examples/hashes/merkle2.s31.json`](../../examples/hashes/merkle2.s31.json) hashes two private eight-word leaves and then hashes their ordered digests into one public root:
 
 ```json
 {"name":"left_digest","op":"hash_blake2s_leaf","lhs":"left"}
@@ -147,7 +147,7 @@ The two eight-byte BLAKE2s personalization values enter the [BLAKE2s parameter b
 {"name":"root","op":"hash_blake2s_pair","lhs":"left_digest","rhs":"right_digest"}
 ```
 
-[`examples/merkle_path1.s31.json`](../../examples/merkle_path1.s31.json) proves a one-level inclusion path. Its private `direction` chooses where the leaf digest appears, while the circuit proves that the direction is a bit:
+[`examples/hashes/merkle_path1.s31.json`](../../examples/hashes/merkle_path1.s31.json) proves a one-level inclusion path. Its private `direction` chooses where the leaf digest appears, while the circuit proves that the direction is a bit:
 
 ```json
 {"name":"ordered_left","op":"select","lhs":"digest","rhs":"sibling","selector":"direction"}
@@ -159,7 +159,7 @@ Repeated parent nodes can express a static-depth path. The verifier binds the fi
 
 ### Poseidon2 source to arithmetic AIR
 
-[`examples/merkle2_poseidon.s31.json`](../../examples/merkle2_poseidon.s31.json) uses the same two-leaf tree shape with field-native hashes:
+[`examples/hashes/merkle2_poseidon.s31.json`](../../examples/hashes/merkle2_poseidon.s31.json) uses the same two-leaf tree shape with field-native hashes:
 
 ```json
 {"name":"left_digest","op":"hash_poseidon2_leaf","lhs":"left"}
@@ -171,20 +171,20 @@ All words are canonical elements of `F_p`, `p=2³¹−1`. S31 reuses the [pinned
 
 For each permutation, S31 emits an external linear layer, four full rounds, fourteen partial rounds, and four full rounds. A full round computes `t_i=s_i+c_{r,i}`, `y_i=t_i⁵` for all 16 lanes and then applies the external matrix. A partial round applies `y_0=(s_0+c_r)⁵`, leaves the other 15 lanes unchanged, then computes `s'_i=d_i·y_i+Σ_j y_j` with the pinned diagonal `d_i`. The external matrix uses the pinned four-word M4 followed by cross-block sums. Every `x⁵` is represented as `u=x·x`, `v=u·u`, `y=v·x`: three multiplication gates. Constants and linear layers become addition and multiplication gates. Each arithmetic gate has `out=in0+in1`, `out=in0−in1`, `out=in0·in1`, or coordinate-wise `out=in0.*in1` over QM31 as selected by its fixed opcode column; its operand and output addresses participate in the circuit lookup argument. Inputs and outputs are constrained to the M31 base-field coordinate. The public root is bound to eight canonical M31 proof words and checked by the generated native verifier.
 
-[`examples/merkle_path1_poseidon.s31.json`](../../examples/merkle_path1_poseidon.s31.json) adds a private `direction: m31[1]` and two `select` nodes before the parent hash. In direct mode, the selector must be a directly referenced `m31[1]` input. Its wire's single producing gate is `b·b=b`, forcing `b∈{0,1}` even when private; each chosen digest lane then follows `(1-b)·lhs+b·rhs`. The full `gate` profile uses its Eq component for the same Boolean predicate and can select from a computed M31 value. The [Python arithmetic oracle](../../python/poseidon2_oracle.py) checks the pinned `hashPair(1,2)=1975699496` vector and both example roots. The [Poseidon2 acceptance script](../../tests/acceptance/acceptance_poseidon_v6.py) proves both path directions and checks native-verifier rejection cases. This is arithmetic circuit lowering, not a dedicated Poseidon2 AIR chip.
+[`examples/hashes/merkle_path1_poseidon.s31.json`](../../examples/hashes/merkle_path1_poseidon.s31.json) adds a private `direction: m31[1]` and two `select` nodes before the parent hash. In direct mode, the selector must be a directly referenced `m31[1]` input. Its wire's single producing gate is `b·b=b`, forcing `b∈{0,1}` even when private; each chosen digest lane then follows `(1-b)·lhs+b·rhs`. The full `gate` profile uses its Eq component for the same Boolean predicate and can select from a computed M31 value. The [Python arithmetic oracle](../../python/poseidon2_oracle.py) checks the pinned `hashPair(1,2)=1975699496` vector and both example roots. The [Poseidon2 acceptance script](../../tests/acceptance/acceptance_poseidon_v6.py) proves both path directions and checks native-verifier rejection cases. This is arithmetic circuit lowering, not a dedicated Poseidon2 AIR chip.
 
 ## Build, inspect, prove, verify
 
 From the repository root:
 
 ```sh
-python3 src/frontends/s31/python/s31.py check src/frontends/s31/examples/arith4.s31.json
-python3 src/frontends/s31/python/s31.py build src/frontends/s31/examples/arith4.s31.json --lowering sparse-chip --out zig-out/s31/arith4-sparse-chip
+python3 src/frontends/s31/python/s31.py check src/frontends/s31/examples/arithmetic/arith4.s31.json
+python3 src/frontends/s31/python/s31.py build src/frontends/s31/examples/arithmetic/arith4.s31.json --lowering sparse-chip --out zig-out/s31/arith4-sparse-chip
 python3 src/frontends/s31/python/s31.py inspect zig-out/s31/arith4-sparse-chip
-python3 src/frontends/s31/python/s31.py prove zig-out/s31/arith4-sparse-chip src/frontends/s31/examples/arith4.valid.json zig-out/s31/arith4-sparse-chip.proof
+python3 src/frontends/s31/python/s31.py prove zig-out/s31/arith4-sparse-chip src/frontends/s31/examples/arithmetic/arith4.valid.json zig-out/s31/arith4-sparse-chip.proof
 python3 src/frontends/s31/python/s31.py verify zig-out/s31/arith4-sparse-chip zig-out/s31/arith4-sparse-chip.proof
 ```
 
 `inspect` reports component sizes, preprocessed cost, chip parameters, and source spans. `prove` writes a public-only statement beside the proof. The packaged native verifier can also be invoked directly with proof, statement, and verification-key paths. See the [S31 README](../../README.md) for the other profiles and test commands.
 
-To exercise the direct-M31 ABI, use the same commands with [`examples/arith4_m31.s31.json`](../../examples/arith4_m31.s31.json), `--lowering direct-chip`, and [`examples/arith4.valid.json`](../../examples/arith4.valid.json). The public values agree with the `u16` example because its selected inputs fit both types.
+To exercise the direct-M31 ABI, use the same commands with [`examples/arithmetic/arith4_m31.s31.json`](../../examples/arithmetic/arith4_m31.s31.json), `--lowering direct-chip`, and [`examples/arithmetic/arith4.valid.json`](../../examples/arithmetic/arith4.valid.json). The public values agree with the `u16` example because its selected inputs fit both types.

@@ -43,8 +43,8 @@ and commitment work described in the
 
 `std::bitcoin::pow_valid(header)` is now the source-level shorthand for
 `SHA256d(header) <= target_mainnet(header)`. The
-[standard](../../../src/frontends/s31/examples/bitcoin_pow_valid_std.s31) and
-[manual](../../../src/frontends/s31/examples/bitcoin_pow_valid_manual.s31)
+[standard](../../../src/frontends/s31/examples/bitcoin/bitcoin_pow_valid_std.s31) and
+[manual](../../../src/frontends/s31/examples/bitcoin/bitcoin_pow_valid_manual.s31)
 programs normalize to structurally identical relations and have the same
 cost geometry. The [acceptance script](../../../src/frontends/s31/tests/acceptance/acceptance_bitcoin_pow_valid.py)
 checks the genesis header with Python's independent SHA256 and compact-target
@@ -83,11 +83,11 @@ binary exponentiation: for nonconstant `x`, `K > 0` takes at most
 upper bound, not a proof of an optimal addition chain. Constant inputs fold at
 compile time.
 
-For example, [`math_polynomial4.s31`](../../../src/frontends/s31/examples/math_polynomial4.s31)
+For example, [`math_polynomial4.s31`](../../../src/frontends/s31/examples/arithmetic/math_polynomial4.s31)
 computes `f(x) = x^5 + 3x - 7` in four independent lanes. The source expression
 `std::math::pow<5>(x)` lowers to `x²`, `(x²)²`, then `x⁴·x`. Multiplication by
 three is one constant gate; subtraction of seven is one add-constant gate with
-coefficient `p-7`. The exact [normalized relation](../../../src/frontends/s31/examples/math_polynomial4.s31.json)
+coefficient `p-7`. The exact [normalized relation](../../../src/frontends/s31/examples/arithmetic/math_polynomial4.s31.json)
 has six arithmetic nodes. For each multiplication gate the AIR enforces
 `out - left·right = 0`; for an add-constant gate it enforces
 `out - left - c = 0`, all over M31. Four coordinate values share the existing
@@ -104,16 +104,16 @@ current gate profile is globally optimal. `pow<p-2>(x)` computes `0` when
 `std::math::inv(x)` instead witnesses `r` and constrains `x·r=1` on every
 active lane; `std::math::div(a,x)` shares that inverse and multiplies by `a`.
 Zero is rejected before proving, and a partial final packed group has a
-circuit-validity test. The [field division example](../../../src/frontends/s31/examples/field_div4.s31)
+circuit-validity test. The [field division example](../../../src/frontends/s31/examples/arithmetic/field_div4.s31)
 has a 55,800-byte `direct-gate` proof with 327 raw rows (512 padded) in one
 `ReleaseFast` run; the [acceptance corpus](../../../src/frontends/s31/tests/acceptance/acceptance_field_div_v1.py)
 checks nine native proofs (including boundary and seeded random inputs) and
 five negative cases. This is a single-program
 cost observation, not a batch-inverse performance comparison.
 
-The [new `mathlib4` program](../../../src/frontends/s31/examples/mathlib4.s31)
+The [new `mathlib4` program](../../../src/frontends/s31/examples/arithmetic/mathlib4.s31)
 uses Horner polynomial evaluation, static dot, and static sum in four M31
-lanes. Its [handwritten relation](../../../src/frontends/s31/examples/mathlib4.s31.json)
+lanes. Its [handwritten relation](../../../src/frontends/s31/examples/arithmetic/mathlib4.s31.json)
 has the same canonical IR digest, preprocessed root, and row geometry.
 Canonicalization shares a repeated `2x` term: ten text relation nodes become
 nine unique arithmetic nodes. The complete direct arithmetic circuit uses
@@ -125,9 +125,9 @@ coefficient order, a hand calculation, and the lock format.
 The static groups are lists of existing arrays in source. `sum`, `dot`,
 `matvec`, and `matmul` operate on those groups; `get<K>`, `concat`,
 `take<K>`, `drop<K>`, `reshape<R>`, and `flatten` rearrange references
-without adding gates. The [two-by-two matrix example](../../../src/frontends/s31/examples/static_matvec.s31)
+without adding gates. The [two-by-two matrix example](../../../src/frontends/s31/examples/arrays/static_matvec.s31)
 has four multiply-by-constant and three addition nodes. Its handwritten
-[relation](../../../src/frontends/s31/examples/static_matvec.s31.json) and
+[relation](../../../src/frontends/s31/examples/arrays/static_matvec.s31.json) and
 independent assignment evaluate $(2a+3b)+(5a+7b)=44$ for $(a,b)=(2,3)$.
 These operations are a partial step toward general arrays: the group is a
 compile-time list of whole values, whereas a runtime `[m31; N]` contains
@@ -135,10 +135,10 @@ positions selected by an explicit `array_get` relation node.
 
 Runtime `get<K>` and `concat` are now accepted by the native proof backend for
 public M31 arrays, private M31 arrays crossing a QM31 packing boundary, and
-private u16 arrays crossing that boundary. The [private M31 example](../../../src/frontends/s31/examples/array_views_private.s31)
+private u16 arrays crossing that boundary. The [private M31 example](../../../src/frontends/s31/examples/arrays/array_views_private.s31)
 uses `a=[2,3,5]` and `b=[7,11,p-2,17]`: positions 3 and 4 of the joined
 array are 7 and 11, while position 5 of the doubled joined array is `p-4`,
-so the claimed output is 14 modulo $p$. The [u16 example](../../../src/frontends/s31/examples/array_views_u16.s31)
+so the claimed output is 14 modulo $p$. The [u16 example](../../../src/frontends/s31/examples/arrays/array_views_u16.s31)
 selects 65535 from the right input after an unaligned concat. These examples
 have handwritten relations, independent oracle checks, matching text/JSON
 canonical IR and cost reports, and proofs accepted by generated native
@@ -156,10 +156,10 @@ costs, not a general view-cost benchmark.
 Runtime `take<K>` and `drop<K>` now lower to a checked `array_slice` with
 `out[j] = source[offset+j]`. `reshape<R>` exposes `R` row slices of a
 runtime array; `flatten` concatenates equal-shaped rows. The compiler rejects
-empty or escaping slices before proving. The [aligned](../../../src/frontends/s31/examples/array_slice_aligned.s31),
-[shifted](../../../src/frontends/s31/examples/array_slice_shifted.s31),
-[matrix](../../../src/frontends/s31/examples/array_matrix_runtime.s31), and
-[u16](../../../src/frontends/s31/examples/array_slice_u16.s31) programs have
+empty or escaping slices before proving. The [aligned](../../../src/frontends/s31/examples/arrays/array_slice_aligned.s31),
+[shifted](../../../src/frontends/s31/examples/arrays/array_slice_shifted.s31),
+[matrix](../../../src/frontends/s31/examples/arrays/array_matrix_runtime.s31), and
+[u16](../../../src/frontends/s31/examples/arrays/array_slice_u16.s31) programs have
 handwritten normalized relations and independent oracle assignments. A
 focused Zig test confirms that an aligned packed slice adds zero QM31 rows,
 while shifted M31 and u16 slices add constrained packing rows. The
@@ -175,12 +175,12 @@ regression gate. Run `python3 src/frontends/s31/tests/acceptance/acceptance_arra
 check it; `--record-baseline` deliberately rewrites the record after all
 native proof and rejection checks pass.
 
-The [matrix product example](../../../src/frontends/s31/examples/static_matmul.s31)
+The [matrix product example](../../../src/frontends/s31/examples/arrays/static_matmul.s31)
 multiplies two 2×2 static groups and then takes a weighted sum of all four
 output cells. Its `reshape`, `flatten`, `take`, and `drop` calls emit no
-relation nodes. The [handwritten relation](../../../src/frontends/s31/examples/static_matmul.s31.json)
+relation nodes. The [handwritten relation](../../../src/frontends/s31/examples/arrays/static_matmul.s31.json)
 lists the nineteen ordinary arithmetic nodes, and the
-[independent assignment](../../../src/frontends/s31/examples/static_matmul.valid.json)
+[independent assignment](../../../src/frontends/s31/examples/arrays/static_matmul.valid.json)
 checks `(19,27,45,64)` and public word `464` for input `(2,3,5,7)`.
 The text and handwritten packages have the same canonical IR digest and
 299 raw/512 padded QM31 rows under `direct-gate`. Their generated native
@@ -200,10 +200,10 @@ a constrained field-linear projection into the base coordinate. In the basis
 pointwise base mask isolates that coordinate. The projection uses circuit
 multiplication gates, so the sum is checked by the proof.
 
-[`lane_stats4.s31`](../../../src/frontends/s31/examples/lane_stats4.s31) is a
+[`lane_stats4.s31`](../../../src/frontends/s31/examples/arithmetic/lane_stats4.s31) is a
 private-witness example. With `x=[2,3,5,7]` and `weights=[11,13,17,19]`,
 the total is 17, the dot product is 279, and the public output is 296. Its
-[handwritten relation](../../../src/frontends/s31/examples/lane_stats4.s31.json)
+[handwritten relation](../../../src/frontends/s31/examples/arithmetic/lane_stats4.s31.json)
 has the same canonical IR, preprocessed root, and row geometry as the text
 form. Under `direct-gate`, the packed lowering has 323 raw QM31 rows, 512
 padded rows, and 4,096 fixed cells. The earlier unpack-and-add lowering had

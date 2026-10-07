@@ -114,7 +114,7 @@ def main() -> None:
         "source_sha256": {name: sha256(S31 / name) for name in source_files},
         "recursion_source_sha256": {name: sha256(ROOT / name) for name in recursion_sources},
         "projection_sha256": sha256(ROOT / "vectors/circuit/official/compiled_air_constraints_v1.bin"),
-        "fixture_sha256": sha256(S31 / "examples/bitcoin_header_link.valid.json"),
+        "fixture_sha256": sha256(S31 / "examples/bitcoin/bitcoin_header_link.valid.json"),
     }
     output.write_text(json.dumps(record, indent=2, sort_keys=True) + "\n")
     print(f"Recorded matched {'production' if args.production else 'test'}-FRI native proofs in {output.relative_to(ROOT)}")

@@ -71,9 +71,9 @@ This equals Bitcoin's $\lfloor 2^{256}/(t+1)\rfloor$. The first checked
 addition rejects $t=2^{256}-1$; the last rejects $t=0$. A mainnet target
 decoder already confines useful targets to $1\leq t\leq 2^{224}-1$.
 
-The [source example](../../../src/frontends/s31/examples/bitcoin_block_work.s31)
+The [source example](../../../src/frontends/s31/examples/bitcoin/bitcoin_block_work.s31)
 uses the genesis target $0xffff\ll208$ and commits to the computed work
-$0x100010001$ with Poseidon2. Its [handwritten relation](../../../src/frontends/s31/examples/bitcoin_block_work.s31.json)
+$0x100010001$ with Poseidon2. Its [handwritten relation](../../../src/frontends/s31/examples/bitcoin/bitcoin_block_work.s31.json)
 has one `bitcoin_block_work` node, a value-preserving `cast_m31`, and one hash
 node. The independent Python oracle and Zig relation evaluator use the
 integer formula, while the circuit compiler calls the constrained primitive.

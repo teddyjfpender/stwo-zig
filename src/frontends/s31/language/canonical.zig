@@ -355,7 +355,7 @@ test "deep source chain canonicalizes without recursive shape lookup" {
 }
 
 test "legacy arithmetic canonical digest remains stable after select extension" {
-    var parsed = try relation.parseProgram(std.testing.allocator, @embedFile("../examples/arith4.s31.json"));
+    var parsed = try relation.parseProgram(std.testing.allocator, @embedFile("../examples/arithmetic/arith4.s31.json"));
     defer parsed.deinit();
     var ir = try build(std.testing.allocator, parsed.value);
     defer ir.deinit();

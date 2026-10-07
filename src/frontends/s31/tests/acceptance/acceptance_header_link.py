@@ -36,11 +36,11 @@ def limbs(digest: bytes) -> list[int]:
 
 def main() -> None:
     examples = s31.S31_DIR / "examples"
-    source = examples / "bitcoin_header_link.s31"
-    assignment_path = examples / "bitcoin_header_link.valid.json"
+    source = examples / "bitcoin" / "bitcoin_header_link.s31"
+    assignment_path = examples / "bitcoin" / "bitcoin_header_link.valid.json"
     relation, _ = compile_file(source)
     assignment = json.loads(assignment_path.read_text())
-    pair = json.loads((examples / "bitcoin_header_pair.valid.json").read_text())
+    pair = json.loads((examples / "bitcoin" / "bitcoin_header_pair.valid.json").read_text())
     parent_bytes = bytes_of(pair["private_inputs"]["parent"])
     child_bytes = bytes_of(assignment["private_inputs"]["child"])
     prior_digest = sha256d(parent_bytes)

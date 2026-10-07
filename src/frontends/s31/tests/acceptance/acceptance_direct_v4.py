@@ -14,8 +14,8 @@ from pathlib import Path
 import s31
 
 HERE = S31_SOURCE_ROOT
-SOURCE = HERE / "examples" / "arith4_m31.s31.json"
-ASSIGNMENT = HERE / "examples" / "arith4.valid.json"
+SOURCE = HERE / "examples" / "arithmetic" / "arith4_m31.s31.json"
+ASSIGNMENT = HERE / "examples" / "arithmetic" / "arith4.valid.json"
 PROFILES = ("sparse-gate", "sparse-chip", "direct-gate", "direct-chip")
 MUTATIONS = (
     "first_input", "middle_output", "duplicate_index", "last_output",

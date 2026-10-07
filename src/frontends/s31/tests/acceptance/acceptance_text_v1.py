@@ -5,6 +5,7 @@ import sys
 from pathlib import Path
 S31_SOURCE_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(S31_SOURCE_ROOT / "python"))
+from example_paths import example_path
 
 import json
 import shutil
@@ -158,9 +159,9 @@ def main() -> None:
     with tempfile.TemporaryDirectory(prefix="s31-text-acceptance-") as directory:
         work = Path(directory)
         for name, assignment_name, lowering in CASES:
-            text_source = s31.S31_DIR / "examples" / f"{name}.s31"
-            json_source = s31.S31_DIR / "examples" / f"{name}.s31.json"
-            assignment = s31.S31_DIR / "examples" / f"{assignment_name}.valid.json"
+            text_source = example_path(f"{name}.s31")
+            json_source = example_path(f"{name}.s31.json")
+            assignment = example_path(f"{assignment_name}.valid.json")
             text_package = s31.build(text_source, work / f"{name}-text", lowering)
             json_package = s31.build(json_source, work / f"{name}-json", lowering)
             lock = json.loads((text_package / "stdlib-lock.json").read_text())

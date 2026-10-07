@@ -20,7 +20,7 @@ from text_frontend import compile_file
 
 
 HERE = S31_SOURCE_ROOT
-SOURCE = HERE / "examples/computed_choice.s31"
+SOURCE = HERE / "examples/control/computed_choice.s31"
 
 
 def run(*args: str, accept: bool) -> None:

@@ -16,8 +16,8 @@ from pathlib import Path
 import s31
 
 HERE = S31_SOURCE_ROOT
-SOURCE = HERE / "examples/bitcoin_header_pow.s31.json"
-ASSIGNMENT = HERE / "examples/bitcoin_header_pow.valid.json"
+SOURCE = HERE / "examples/bitcoin/bitcoin_header_pow.s31.json"
+ASSIGNMENT = HERE / "examples/bitcoin/bitcoin_header_pow.valid.json"
 
 
 def command(*args: object, accepted: bool = True) -> str:

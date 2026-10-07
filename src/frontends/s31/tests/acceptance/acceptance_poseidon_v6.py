@@ -5,6 +5,7 @@ import sys
 from pathlib import Path
 S31_SOURCE_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(S31_SOURCE_ROOT / "python"))
+from example_paths import example_path
 
 import json
 import subprocess
@@ -26,8 +27,8 @@ def call(*args: str, accept: bool = True) -> None:
 
 
 def fixture(name: str) -> tuple[Path, dict]:
-    source = EXAMPLES / f"{name}.s31.json"
-    assignment = json.loads((EXAMPLES / f"{name}.valid.json").read_text())
+    source = example_path(f"{name}.s31.json")
+    assignment = json.loads((example_path(f"{name}.valid.json")).read_text())
     return source, assignment
 
 

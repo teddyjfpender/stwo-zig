@@ -11,7 +11,7 @@ used to choose this graph.
 ## Hand-drawn polynomial circuit
 
 This complete text program computes `f(x)=x^5+3x-7` over M31, four lanes at
-once. Its [assignment](../examples/math_polynomial4.valid.json) uses
+once. Its [assignment](../examples/arithmetic/math_polynomial4.valid.json) uses
 `x=[0,1,2,7]` and claims
 `f(x)=[2147483640,2147483644,31,16821]`.
 
@@ -44,7 +44,7 @@ x ─────┬─ [.* x] ── x² ── [.* x²] ── x⁴ ── [.*
 
 ![The polynomial source graph: x feeds square, fourth power, fifth power, and triple branches; the results join before adding p minus seven.](figures/polynomial-circuit.svg)
 
-The checked-in [handwritten normalized relation](../examples/math_polynomial4.s31.json)
+The checked-in [handwritten normalized relation](../examples/arithmetic/math_polynomial4.s31.json)
 is:
 
 ```json

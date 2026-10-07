@@ -88,17 +88,17 @@ The worked examples use checked-in sources under [`../examples`](../examples):
 
 | Program | What it teaches | Recommended profile |
 | --- | --- | --- |
-| [`math_polynomial4.s31`](../examples/math_polynomial4.s31) | Static power, constants, four M31 lanes, circuit gates | `direct-gate` |
-| [`mathlib4.s31`](../examples/mathlib4.s31) | `use std@1`, Horner polynomial, static dot/sum, library lock | `direct-gate` |
-| [`lane_stats4.s31`](../examples/lane_stats4.s31) | Private arrays, lane sum and dot, one public result | `direct-gate` |
-| [`field_div4.s31`](../examples/field_div4.s31) | Checked inverse and division, one inverse witness shared across calls | `direct-gate` |
-| [`computed_choice.s31`](../examples/computed_choice.s31) | Computed zero bit, two algebraic constraints, and conditional selection | `direct-gate` |
-| [`arith4_m31.s31`](../examples/arith4_m31.s31) | `iterate`, gate unrolling versus one linked AIR chip | `direct-chip` |
-| [`merkle_path1_poseidon.s31`](../examples/merkle_path1_poseidon.s31) | Private leaf, constrained bit, ordered hashing, public root | `direct-gate` |
-| [`preimage4.s31`](../examples/preimage4.s31) | Private `u16` witness and an equality assertion | `gate` |
-| [`wide_order.s31`](../examples/wide_order.s31) | Sixteen-limb addition and comparison with an auxiliary public commitment | `gate` |
-| [`bitcoin_header_pow.s31`](../examples/bitcoin_header_pow.s31) | Byte-exact SHA256d and mainnet compact proof of work for one header | `sparse-wide-gate` |
-| [`bitcoin_header_pair.s31`](../examples/bitcoin_header_pair.s31) | Mainnet genesis checkpoint, block-one hash linkage, same bits, and both PoW checks | `sparse-wide-gate` |
+| [`math_polynomial4.s31`](../examples/arithmetic/math_polynomial4.s31) | Static power, constants, four M31 lanes, circuit gates | `direct-gate` |
+| [`mathlib4.s31`](../examples/arithmetic/mathlib4.s31) | `use std@1`, Horner polynomial, static dot/sum, library lock | `direct-gate` |
+| [`lane_stats4.s31`](../examples/arithmetic/lane_stats4.s31) | Private arrays, lane sum and dot, one public result | `direct-gate` |
+| [`field_div4.s31`](../examples/arithmetic/field_div4.s31) | Checked inverse and division, one inverse witness shared across calls | `direct-gate` |
+| [`computed_choice.s31`](../examples/control/computed_choice.s31) | Computed zero bit, two algebraic constraints, and conditional selection | `direct-gate` |
+| [`arith4_m31.s31`](../examples/arithmetic/arith4_m31.s31) | `iterate`, gate unrolling versus one linked AIR chip | `direct-chip` |
+| [`merkle_path1_poseidon.s31`](../examples/hashes/merkle_path1_poseidon.s31) | Private leaf, constrained bit, ordered hashing, public root | `direct-gate` |
+| [`preimage4.s31`](../examples/hashes/preimage4.s31) | Private `u16` witness and an equality assertion | `gate` |
+| [`wide_order.s31`](../examples/wide/wide_order.s31) | Sixteen-limb addition and comparison with an auxiliary public commitment | `gate` |
+| [`bitcoin_header_pow.s31`](../examples/bitcoin/bitcoin_header_pow.s31) | Byte-exact SHA256d and mainnet compact proof of work for one header | `sparse-wide-gate` |
+| [`bitcoin_header_pair.s31`](../examples/bitcoin/bitcoin_header_pair.s31) | Mainnet genesis checkpoint, block-one hash linkage, same bits, and both PoW checks | `sparse-wide-gate` |
 
 If this is your first STARK, read [the hand-worked walkthrough](walkthrough.md)
 before running the tour. It distinguishes the small teaching trace from the
@@ -108,12 +108,12 @@ means.
 ## Five-minute tour
 
 ```sh
-python3 src/frontends/s31/python/s31.py lower src/frontends/s31/examples/math_polynomial4.s31
-python3 src/frontends/s31/python/s31.py oracle src/frontends/s31/examples/math_polynomial4.s31 src/frontends/s31/examples/math_polynomial4.valid.json
-python3 src/frontends/s31/python/s31.py build src/frontends/s31/examples/math_polynomial4.s31 --lowering direct-gate --out zig-out/s31/docs-polynomial
+python3 src/frontends/s31/python/s31.py lower src/frontends/s31/examples/arithmetic/math_polynomial4.s31
+python3 src/frontends/s31/python/s31.py oracle src/frontends/s31/examples/arithmetic/math_polynomial4.s31 src/frontends/s31/examples/arithmetic/math_polynomial4.valid.json
+python3 src/frontends/s31/python/s31.py build src/frontends/s31/examples/arithmetic/math_polynomial4.s31 --lowering direct-gate --out zig-out/s31/docs-polynomial
 python3 src/frontends/s31/python/s31.py explain zig-out/s31/docs-polynomial
 python3 src/frontends/s31/python/s31.py equations zig-out/s31/docs-polynomial
-python3 src/frontends/s31/python/s31.py prove zig-out/s31/docs-polynomial src/frontends/s31/examples/math_polynomial4.valid.json zig-out/s31/docs-polynomial.proof
+python3 src/frontends/s31/python/s31.py prove zig-out/s31/docs-polynomial src/frontends/s31/examples/arithmetic/math_polynomial4.valid.json zig-out/s31/docs-polynomial.proof
 python3 src/frontends/s31/python/s31.py verify zig-out/s31/docs-polynomial zig-out/s31/docs-polynomial.proof
 ```
 

@@ -6,12 +6,12 @@ This sequence starts with a checked-in text program and assignment. Run it
 from the repository root:
 
 ```sh
-python3 src/frontends/s31/python/s31.py lower src/frontends/s31/examples/math_polynomial4.s31
-python3 src/frontends/s31/python/s31.py build src/frontends/s31/examples/math_polynomial4.s31 --lowering direct-gate --out zig-out/s31/docs-polynomial
+python3 src/frontends/s31/python/s31.py lower src/frontends/s31/examples/arithmetic/math_polynomial4.s31
+python3 src/frontends/s31/python/s31.py build src/frontends/s31/examples/arithmetic/math_polynomial4.s31 --lowering direct-gate --out zig-out/s31/docs-polynomial
 python3 src/frontends/s31/python/s31.py explain zig-out/s31/docs-polynomial
 python3 src/frontends/s31/python/s31.py equations zig-out/s31/docs-polynomial
 python3 src/frontends/s31/python/s31.py inspect zig-out/s31/docs-polynomial
-python3 src/frontends/s31/python/s31.py prove zig-out/s31/docs-polynomial src/frontends/s31/examples/math_polynomial4.valid.json zig-out/s31/docs-polynomial.proof
+python3 src/frontends/s31/python/s31.py prove zig-out/s31/docs-polynomial src/frontends/s31/examples/arithmetic/math_polynomial4.valid.json zig-out/s31/docs-polynomial.proof
 python3 src/frontends/s31/python/s31.py verify zig-out/s31/docs-polynomial zig-out/s31/docs-polynomial.proof
 ```
 

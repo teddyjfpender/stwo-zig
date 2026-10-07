@@ -60,7 +60,7 @@ The Bitcoin-oriented [wide-value slice](bitcoin/BITCOIN_LIGHT_CLIENT.md) adds no
 example passes an independent oracle and generated native verifier, which
 rejects a changed public root. The [single-trial record](measurements/bitcoin/bitcoin-wide-v1-2026-10-06.json)
 captures the general `gate` cost. The newer
-[`bitcoin_header_pow.s31`](../../src/frontends/s31/examples/bitcoin_header_pow.s31)
+[`bitcoin_header_pow.s31`](../../src/frontends/s31/examples/bitcoin/bitcoin_header_pow.s31)
 fully constrains SHA256d of an 80-byte header, decodes its mainnet compact
 target, and proves the hash inequality. It is not an in-circuit recursive
 verifier or a header-chain policy. The document gives the profile-specific

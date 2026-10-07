@@ -118,8 +118,8 @@ def main() -> None:
         "shift_over_generic_native_verify_time": summary["sha_shift_warm"]["verify_ns_median"] / summary["generic_warm"]["verify_ns_median"],
         "shift_over_generic_proof_bytes": summary["sha_shift_warm"]["proof_bytes"] / summary["generic_warm"]["proof_bytes"],
     }
-    source = HERE / "examples/bitcoin_header_pow.s31.json"
-    assignment = HERE / "examples/bitcoin_header_pow.valid.json"
+    source = HERE / "examples/bitcoin/bitcoin_header_pow.s31.json"
+    assignment = HERE / "examples/bitcoin/bitcoin_header_pow.valid.json"
     record = {
         "schema": "s31-bitcoin-generic-vs-sha-shift-matched-v1",
         "created_utc": dt.datetime.now(dt.timezone.utc).isoformat(),

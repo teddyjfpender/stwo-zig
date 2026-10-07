@@ -97,7 +97,7 @@ independent cryptographic audit.
   second package and still rejects cross-key replay.
 
 The current typed step is deliberately bounded to four lanes and three
-operation kinds. The [affine-square example](../../../src/frontends/s31/examples/affine_square4.s31)
+operation kinds. The [affine-square example](../../../src/frontends/s31/examples/arithmetic/affine_square4.s31)
 proves `f(x)=3x²+5` from a three-round base program and two more recursive
 steps; its independent [acceptance fixture](../../../src/frontends/s31/tests/acceptance/acceptance_state_fold_general.py)
 checks the source-derived operation list, state values, and hostile key edits.

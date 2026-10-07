@@ -9,6 +9,7 @@ import sys
 from pathlib import Path
 S31_SOURCE_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(S31_SOURCE_ROOT / "python"))
+from example_paths import example_path
 
 import hashlib
 import json
@@ -74,10 +75,10 @@ def main() -> None:
         temporary = Path(directory)
         underflow_proof = temporary / "underflow.proof"
         run(checked_pkg / "bin/s31-u256_sub_checked-prover", "prove",
-            S31 / "examples/u256_sub_wrap.valid.json", underflow_proof, accept=False)
+            S31 / "examples/wide/u256_sub_wrap.valid.json", underflow_proof, accept=False)
         same_claim_wrap_proof = temporary / "wrap-same-claim.proof"
         run(wrap_pkg / "bin/s31-u256_sub_wrap-prover", "prove",
-            S31 / "examples/u256_sub_checked.valid.json", same_claim_wrap_proof, accept=True)
+            S31 / "examples/wide/u256_sub_checked.valid.json", same_claim_wrap_proof, accept=True)
         run(wrap_verifier, same_claim_wrap_proof, checked / "statement.json",
             wrap_pkg / "verification-key.json", accept=True)
         run(checked_verifier, same_claim_wrap_proof, checked / "statement.json",
@@ -118,7 +119,7 @@ def main() -> None:
         "damaged_proofs_rejected": True,
         "changed_public_statements_rejected": True,
         "source_sha256": {name: sha(S31 / name) for name in sources},
-        "fixture_sha256": {f"{mode}.{extension}": sha(S31 / "examples" / f"u256_sub_{mode}.{extension}")
+        "fixture_sha256": {f"{mode}.{extension}": sha(example_path(f"u256_sub_{mode}.{extension}"))
                            for mode in trials for extension in ("s31", "valid.json")},
     }
     RECORD.write_text(json.dumps(record, indent=2, sort_keys=True) + "\n")

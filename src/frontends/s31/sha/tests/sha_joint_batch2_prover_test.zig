@@ -13,10 +13,10 @@ const M31 = core.fields.m31.M31;
 
 test "two private linked Bitcoin headers are proved by one circuit and six SHA calls" {
     const a = std.testing.allocator;
-    const source = @embedFile("../../examples/bitcoin_header_pair.s31.json");
+    const source = @embedFile("../../examples/bitcoin/bitcoin_header_pair.s31.json");
     var program = try relation.parseProgram(a, source);
     defer program.deinit();
-    var assignment = try relation.parseAssignment(a, @embedFile("../../examples/bitcoin_header_pair.valid.json"));
+    var assignment = try relation.parseAssignment(a, @embedFile("../../examples/bitcoin/bitcoin_header_pair.valid.json"));
     defer assignment.deinit();
     var value_maps = compiler.Maps{};
     defer value_maps.deinit(a);

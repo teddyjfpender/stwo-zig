@@ -958,15 +958,15 @@ test "direct Boolean operations constrain typed inputs and reject a field alias"
 
 test "Boolean library example has stable direct arithmetic geometry" {
     const allocator = std.testing.allocator;
-    var baseline_program = try relation.parseProgram(allocator, @embedFile("../examples/computed_choice.s31.json"));
+    var baseline_program = try relation.parseProgram(allocator, @embedFile("../examples/control/computed_choice.s31.json"));
     defer baseline_program.deinit();
-    var baseline_assignment = try relation.parseAssignment(allocator, @embedFile("../examples/computed_choice.valid.json"));
+    var baseline_assignment = try relation.parseAssignment(allocator, @embedFile("../examples/control/computed_choice.valid.json"));
     defer baseline_assignment.deinit();
     var baseline = try compileDirect(QM31, allocator, baseline_program.value, baseline_assignment.value, false);
     defer baseline.deinit();
-    var program = try relation.parseProgram(allocator, @embedFile("../examples/bool_computed_choice.s31.json"));
+    var program = try relation.parseProgram(allocator, @embedFile("../examples/control/bool_computed_choice.s31.json"));
     defer program.deinit();
-    var assignment = try relation.parseAssignment(allocator, @embedFile("../examples/bool_computed_choice.valid.json"));
+    var assignment = try relation.parseAssignment(allocator, @embedFile("../examples/control/bool_computed_choice.valid.json"));
     defer assignment.deinit();
     var boolean = try compileDirect(QM31, allocator, program.value, assignment.value, false);
     defer boolean.deinit();
@@ -979,11 +979,11 @@ test "Boolean library example has stable direct arithmetic geometry" {
 }
 
 test "private preimage relation has a constrained witness and static topology" {
-    var program = try relation.parseProgram(std.testing.allocator, @embedFile("../examples/preimage4.s31.json"));
+    var program = try relation.parseProgram(std.testing.allocator, @embedFile("../examples/hashes/preimage4.s31.json"));
     defer program.deinit();
-    var valid = try relation.parseAssignment(std.testing.allocator, @embedFile("../examples/preimage4.valid.json"));
+    var valid = try relation.parseAssignment(std.testing.allocator, @embedFile("../examples/hashes/preimage4.valid.json"));
     defer valid.deinit();
-    var invalid = try relation.parseAssignment(std.testing.allocator, @embedFile("../examples/preimage4.invalid.json"));
+    var invalid = try relation.parseAssignment(std.testing.allocator, @embedFile("../examples/hashes/preimage4.invalid.json"));
     defer invalid.deinit();
 
     const words = try relation.evaluate(std.testing.allocator, program.value, valid.value);
@@ -1010,9 +1010,9 @@ test "private preimage relation has a constrained witness and static topology" {
 
 test "SHA chip lowering identifies stable private wires and charges 56 Gate yields" {
     const allocator = std.testing.allocator;
-    var program = try relation.parseProgram(allocator, @embedFile("../examples/bitcoin_header_pow.s31.json"));
+    var program = try relation.parseProgram(allocator, @embedFile("../examples/bitcoin/bitcoin_header_pow.s31.json"));
     defer program.deinit();
-    var assignment = try relation.parseAssignment(allocator, @embedFile("../examples/bitcoin_header_pow.valid.json"));
+    var assignment = try relation.parseAssignment(allocator, @embedFile("../examples/bitcoin/bitcoin_header_pow.valid.json"));
     defer assignment.deinit();
 
     var value_maps = Maps{};
@@ -1089,9 +1089,9 @@ test "SHA chip lowering identifies stable private wires and charges 56 Gate yiel
 
 test "two-header SHA chip lowering charges two disjoint private caller boundaries" {
     const allocator = std.testing.allocator;
-    var program = try relation.parseProgram(allocator, @embedFile("../examples/bitcoin_header_pair.s31.json"));
+    var program = try relation.parseProgram(allocator, @embedFile("../examples/bitcoin/bitcoin_header_pair.s31.json"));
     defer program.deinit();
-    var assignment = try relation.parseAssignment(allocator, @embedFile("../examples/bitcoin_header_pair.valid.json"));
+    var assignment = try relation.parseAssignment(allocator, @embedFile("../examples/bitcoin/bitcoin_header_pair.valid.json"));
     defer assignment.deinit();
 
     var value_maps = Maps{};
@@ -1150,9 +1150,9 @@ test "two-header SHA chip lowering charges two disjoint private caller boundarie
 }
 
 test "computed zero test has single-yield direct circuit topology" {
-    var program = try relation.parseProgram(std.testing.allocator, @embedFile("../examples/computed_choice.s31.json"));
+    var program = try relation.parseProgram(std.testing.allocator, @embedFile("../examples/control/computed_choice.s31.json"));
     defer program.deinit();
-    var assignment = try relation.parseAssignment(std.testing.allocator, @embedFile("../examples/computed_choice.valid.json"));
+    var assignment = try relation.parseAssignment(std.testing.allocator, @embedFile("../examples/control/computed_choice.valid.json"));
     defer assignment.deinit();
     var value_ctx = try compileDirect(QM31, std.testing.allocator, program.value, assignment.value, false);
     defer value_ctx.deinit();
@@ -1163,9 +1163,9 @@ test "computed zero test has single-yield direct circuit topology" {
 }
 
 test "checked inverse has single-yield direct circuit topology" {
-    var program = try relation.parseProgram(std.testing.allocator, @embedFile("../examples/field_div4.s31.json"));
+    var program = try relation.parseProgram(std.testing.allocator, @embedFile("../examples/arithmetic/field_div4.s31.json"));
     defer program.deinit();
-    var assignment = try relation.parseAssignment(std.testing.allocator, @embedFile("../examples/field_div4.valid.json"));
+    var assignment = try relation.parseAssignment(std.testing.allocator, @embedFile("../examples/arithmetic/field_div4.valid.json"));
     defer assignment.deinit();
     var value_ctx = try compileDirect(QM31, std.testing.allocator, program.value, assignment.value, false);
     defer value_ctx.deinit();
@@ -1191,9 +1191,9 @@ test "constant zero bit selects in the direct profile" {
 }
 
 test "packed lane reductions retain single-yield direct topology" {
-    var program = try relation.parseProgram(std.testing.allocator, @embedFile("../examples/lane_stats4.s31.json"));
+    var program = try relation.parseProgram(std.testing.allocator, @embedFile("../examples/arithmetic/lane_stats4.s31.json"));
     defer program.deinit();
-    var assignment = try relation.parseAssignment(std.testing.allocator, @embedFile("../examples/lane_stats4.valid.json"));
+    var assignment = try relation.parseAssignment(std.testing.allocator, @embedFile("../examples/arithmetic/lane_stats4.valid.json"));
     defer assignment.deinit();
     var ctx = try compileDirect(QM31, std.testing.allocator, program.value, assignment.value, false);
     defer ctx.deinit();
@@ -1258,10 +1258,10 @@ test "array indexing and concatenation preserve packed alignment and constrain s
 
 test "runtime slices borrow aligned packed words and constrain shifted words" {
     const cases = .{
-        .{ "array_slice_aligned", @embedFile("../examples/array_slice_aligned.s31.json"), @embedFile("../examples/array_slice_aligned.valid.json") },
-        .{ "array_slice_shifted", @embedFile("../examples/array_slice_shifted.s31.json"), @embedFile("../examples/array_slice_shifted.valid.json") },
-        .{ "array_matrix_runtime", @embedFile("../examples/array_matrix_runtime.s31.json"), @embedFile("../examples/array_matrix_runtime.valid.json") },
-        .{ "array_slice_u16", @embedFile("../examples/array_slice_u16.s31.json"), @embedFile("../examples/array_slice_u16.valid.json") },
+        .{ "array_slice_aligned", @embedFile("../examples/arrays/array_slice_aligned.s31.json"), @embedFile("../examples/arrays/array_slice_aligned.valid.json") },
+        .{ "array_slice_shifted", @embedFile("../examples/arrays/array_slice_shifted.s31.json"), @embedFile("../examples/arrays/array_slice_shifted.valid.json") },
+        .{ "array_matrix_runtime", @embedFile("../examples/arrays/array_matrix_runtime.s31.json"), @embedFile("../examples/arrays/array_matrix_runtime.valid.json") },
+        .{ "array_slice_u16", @embedFile("../examples/arrays/array_slice_u16.s31.json"), @embedFile("../examples/arrays/array_slice_u16.valid.json") },
     };
     inline for (cases) |case| {
         var program = try relation.parseProgram(std.testing.allocator, case[1]);
@@ -1337,9 +1337,9 @@ test "strict u32 comparison constrains equality, borrow, and limb boundary" {
 }
 
 test "wide integer carries and borrows are constrained with stable topology" {
-    var program = try relation.parseProgram(std.testing.allocator, @embedFile("../examples/wide_order.s31.json"));
+    var program = try relation.parseProgram(std.testing.allocator, @embedFile("../examples/wide/wide_order.s31.json"));
     defer program.deinit();
-    var valid = try relation.parseAssignment(std.testing.allocator, @embedFile("../examples/wide_order.valid.json"));
+    var valid = try relation.parseAssignment(std.testing.allocator, @embedFile("../examples/wide/wide_order.valid.json"));
     defer valid.deinit();
 
     const words = try relation.evaluate(std.testing.allocator, program.value, valid.value);
@@ -1367,7 +1367,7 @@ test "wide integer carries and borrows are constrained with stable topology" {
     }
 
     program.value.nodes[0].op = .u256_add_checked;
-    var overflow = try relation.parseAssignment(std.testing.allocator, @embedFile("../examples/wide_order.valid.json"));
+    var overflow = try relation.parseAssignment(std.testing.allocator, @embedFile("../examples/wide/wide_order.valid.json"));
     defer overflow.deinit();
     var overflow_private = &overflow.value.private_inputs.?;
     for (overflow_private.object.getPtr("digest_bytes").?.array.items) |*limb| {
@@ -1567,9 +1567,9 @@ test "inverse constrains each active lane including a partial packed group" {
 }
 
 test "Poseidon2 path direct circuit satisfies both branch directions" {
-    var program = try relation.parseProgram(std.testing.allocator, @embedFile("../examples/merkle_path1_poseidon.s31.json"));
+    var program = try relation.parseProgram(std.testing.allocator, @embedFile("../examples/hashes/merkle_path1_poseidon.s31.json"));
     defer program.deinit();
-    var assignment = try relation.parseAssignment(std.testing.allocator, @embedFile("../examples/merkle_path1_poseidon.valid.json"));
+    var assignment = try relation.parseAssignment(std.testing.allocator, @embedFile("../examples/hashes/merkle_path1_poseidon.valid.json"));
     defer assignment.deinit();
     var with_values = try compileDirect(QM31, std.testing.allocator, program.value, assignment.value, false);
     defer with_values.deinit();
@@ -1631,9 +1631,9 @@ test "random fixed relations agree with reference and have identical value and t
 }
 
 test "Blake2s relation matches the reference evaluator" {
-    var program = try relation.parseProgram(std.testing.allocator, @embedFile("../examples/hash4.s31.json"));
+    var program = try relation.parseProgram(std.testing.allocator, @embedFile("../examples/hashes/hash4.s31.json"));
     defer program.deinit();
-    var assignment = try relation.parseAssignment(std.testing.allocator, @embedFile("../examples/hash4.valid.json"));
+    var assignment = try relation.parseAssignment(std.testing.allocator, @embedFile("../examples/hashes/hash4.valid.json"));
     defer assignment.deinit();
     _ = try relation.evaluate(std.testing.allocator, program.value, assignment.value);
     var ctx = try compile(QM31, std.testing.allocator, program.value, assignment.value);

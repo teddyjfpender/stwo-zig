@@ -30,8 +30,8 @@ it does not call the Zig circuit evaluator. Both paths compare their
 computed digest with the claimed public output.
 
 ```sh
-python3 src/frontends/s31/python/s31.py oracle src/frontends/s31/examples/hash4.s31.json src/frontends/s31/examples/hash4.valid.json
-python3 src/frontends/s31/python/s31.py oracle src/frontends/s31/examples/merkle_path1_poseidon.s31 src/frontends/s31/examples/merkle_path1_poseidon.valid.json
+python3 src/frontends/s31/python/s31.py oracle src/frontends/s31/examples/hashes/hash4.s31.json src/frontends/s31/examples/hashes/hash4.valid.json
+python3 src/frontends/s31/python/s31.py oracle src/frontends/s31/examples/hashes/merkle_path1_poseidon.s31 src/frontends/s31/examples/hashes/merkle_path1_poseidon.valid.json
 ```
 
 Both checked-in assignments report `status: passed`. The Merkle example
@@ -179,7 +179,7 @@ circuit merkle_path1_poseidon(
 }
 ```
 
-The implemented [example](../examples/merkle_path1_poseidon.s31) uses a
+The implemented [example](../examples/hashes/merkle_path1_poseidon.s31) uses a
 small `parent` helper but has the same graph. Direction zero places the
 leaf on the left; direction one places it on the right:
 

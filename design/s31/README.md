@@ -146,7 +146,7 @@ The benchmark suite should contain at least: a large independent M31 arithmetic 
 
 ## First-slice comparison and what it teaches
 
-The committed example computes `y[i] = 7*x[i] + 11` for four `u16` inputs. The Cairo function and the S31 graph both produce `(18, 25, 32, 458756)` for `(1, 2, 3, 65535)`; the public proof words are the four inputs followed by the four results. See the [S31 source](../../src/frontends/s31/examples/affine4.s31.json) and [Cairo function](../../src/frontends/s31/examples/cairo/src/lib.cairo). `scarb execute` reports 128 Cairo VM steps and eight output builtin words. Both the S31 native verifier and this repository's Cairo CPU verifier accepted their respective proofs. The S31 verifier rejected a changed public input and a flipped proof byte.
+The committed example computes `y[i] = 7*x[i] + 11` for four `u16` inputs. The Cairo function and the S31 graph both produce `(18, 25, 32, 458756)` for `(1, 2, 3, 65535)`; the public proof words are the four inputs followed by the four results. See the [S31 source](../../src/frontends/s31/examples/arithmetic/affine4.s31.json) and [Cairo function](../../src/frontends/s31/examples/cairo/src/lib.cairo). `scarb execute` reports 128 Cairo VM steps and eight output builtin words. Both the S31 native verifier and this repository's Cairo CPU verifier accepted their respective proofs. The S31 verifier rejected a changed public input and a flipped proof byte.
 
 One M5 Max `ReleaseFast` smoke run, with a separate S31 footprint measurement, used visible FRI settings aligned at 26 PoW bits, blowup 2, last-layer degree bound 1, 70 queries and fold step 1. The [recorded result](measurements/language/affine4-smoke-2026-10-05.json) is:
 
@@ -165,7 +165,7 @@ The stock Scarb 2.18 `scarb verify` command panicked with `ECDSA segment is not 
 
 ## Scaled circuit comparison
 
-The second slice adds a statically unrolled node for four independent M31 recurrences, `x <- x*x + 7 mod (2^31-1)`. The [256 round source](../../src/frontends/s31/examples/square256.s31.json) and [equivalent Cairo function](../../src/frontends/s31/examples/cairo_square/src/lib.cairo) establish the concrete semantics. [`generate_scale.py`](../../src/frontends/s31/tools/generate/generate_scale.py) produces both programs and the expected eight public words for any supported round count. The compiler lowers every round to one four-lane pointwise multiply gate and one four-lane add gate. Cairo uses a `u64` product and two explicit Mersenne folds. Its VM output and both native proof verifiers were checked for every size.
+The second slice adds a statically unrolled node for four independent M31 recurrences, `x <- x*x + 7 mod (2^31-1)`. The [256 round source](../../src/frontends/s31/examples/wide/square256.s31.json) and [equivalent Cairo function](../../src/frontends/s31/examples/cairo_square/src/lib.cairo) establish the concrete semantics. [`generate_scale.py`](../../src/frontends/s31/tools/generate/generate_scale.py) produces both programs and the expected eight public words for any supported round count. The compiler lowers every round to one four-lane pointwise multiply gate and one four-lane add gate. Cairo uses a `u64` product and two explicit Mersenne folds. Its VM output and both native proof verifiers were checked for every size.
 
 Five process runs per size on an Apple M5 Max, using the same visible FRI settings as the smoke comparison, produced the [full machine-readable record](measurements/language/square-scale-2026-10-05.json):
 

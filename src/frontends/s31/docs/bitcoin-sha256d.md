@@ -16,7 +16,7 @@ Bitcoin genesis header. Its four important byte ranges are:
 `Bytes80` is forty little-endian `u16` limbs. For example, the first two
 header bytes `01 00` become limb zero `1`; the `nBits` bytes become limbs
 36 and 37, `65535` and `7424`. Each limb is range checked. The exact source is
-[`bitcoin_header_pow.s31`](../examples/bitcoin_header_pow.s31):
+[`bitcoin_header_pow.s31`](../examples/bitcoin/bitcoin_header_pow.s31):
 
 ```s31
 use std@1;
@@ -45,7 +45,7 @@ commits the digest to the eight-word public ABI. It is an auxiliary S31
 commitment, not a Bitcoin block hash.
 
 For programs that only need the proof-of-work predicate, the standard library
-offers the [one-call version](../examples/bitcoin_pow_valid_std.s31):
+offers the [one-call version](../examples/bitcoin/bitcoin_pow_valid_std.s31):
 
 ```s31
 let valid = std::bitcoin::pow_valid(header);
@@ -54,7 +54,7 @@ assert_eq(valid, splat<1>(1_m31));
 
 Its type is `Bytes80 -> bit`. It expands to the same `hash_sha256d_header`,
 `bitcoin_target_mainnet`, and `u256_le` relation nodes as the explicit
-[manual version](../examples/bitcoin_pow_valid_manual.s31). The bytes from
+[manual version](../examples/bitcoin/bitcoin_pow_valid_manual.s31). The bytes from
 SHA256d are interpreted as a *little-endian* 256-bit integer; the familiar
 displayed block ID reverses those bytes. The helper does not reverse them.
 It returns a constrained bit; callers must assert that bit equals one when
@@ -179,8 +179,8 @@ are the reference semantics for this operation.
 
 ```sh
 python3 src/frontends/s31/python/s31.py trial \
-  src/frontends/s31/examples/bitcoin_header_pow.s31 \
-  src/frontends/s31/examples/bitcoin_header_hash.valid.json \
+  src/frontends/s31/examples/bitcoin/bitcoin_header_pow.s31 \
+  src/frontends/s31/examples/bitcoin/bitcoin_header_hash.valid.json \
   --lowering sparse-wide-gate \
   --out zig-out/s31/bitcoin-header-pow-trial
 ```
@@ -195,14 +195,14 @@ In one local `sparse-wide-gate` run, the complete program used 356,882 raw
 QM31 arithmetic rows, 4,757 equality rows, and 3,664 conversion rows. The
 proof was 338,687 bytes; proving took 0.335 seconds and verification 0.421
 seconds. These are single measurements, including stochastic proof of work.
-The [hash-only program](../examples/bitcoin_header_hash.s31) used 356,268
+The [hash-only program](../examples/bitcoin/bitcoin_header_hash.s31) used 356,268
 arithmetic rows in a separate run, so compact-target decoding and comparison
 added 614 arithmetic rows. The [measurement record](../../../../design/s31/measurements/sha/bitcoin-header-sha256d-v1-2026-10-06.json)
 contains both verified trials. A dedicated SHA chip is the next major cost target.
 
 ## Two actual headers in one proof
 
-[`bitcoin_header_pair_typed.s31`](../examples/bitcoin_header_pair_typed.s31) proves a
+[`bitcoin_header_pair_typed.s31`](../examples/bitcoin/bitcoin_header_pair_typed.s31) proves a
 non-retarget step from Bitcoin mainnet genesis to block one. Its assignment
 contains both real serialized headers. The child's serialized bytes 4–35 are
 `6f e2 8c 0a … 00 00 00 00` in *raw digest order*: they equal the
@@ -240,7 +240,7 @@ circuit bitcoin_header_pair(private parent: Bytes80, private child: Bytes80)
 existing byte and unsigned-integer operations can consume it. Neither view
 adds gates. A standalone `BlockHash` input is a claim until a relation links it
 to a computed header digest or trusted checkpoint. This typed source and the
-[earlier untyped source](../examples/bitcoin_header_pair.s31) lower to
+[earlier untyped source](../examples/bitcoin/bitcoin_header_pair.s31) lower to
 byte-identical normalized relations and have the same AIR and verifier key.
 
 The fixed `genesis_block_hash_mainnet()` value is the raw byte order of mainnet's
@@ -277,8 +277,8 @@ expected public root to identify a particular child header or chain segment.
 
 ```sh
 python3 src/frontends/s31/python/s31.py trial \
-  src/frontends/s31/examples/bitcoin_header_pair_typed.s31 \
-  src/frontends/s31/examples/bitcoin_header_pair.valid.json \
+  src/frontends/s31/examples/bitcoin/bitcoin_header_pair_typed.s31 \
+  src/frontends/s31/examples/bitcoin/bitcoin_header_pair.valid.json \
   --lowering sparse-wide-gate \
   --out zig-out/s31/bitcoin-header-pair-trial
 ```
@@ -311,7 +311,7 @@ those separate relations.
 
 ## One fresh header per transition proof
 
-The [header-link program](../examples/bitcoin_header_link.s31) is the smaller
+The [header-link program](../examples/bitcoin/bitcoin_header_link.s31) is the smaller
 leaf needed by a changing-header fold. It takes the previous block hash as a
 private, nominal `BlockHash` opening and hashes only the **new** 80-byte
 header. Here is the complete source:
@@ -499,7 +499,7 @@ python3 src/frontends/s31/tests/acceptance/acceptance_bitcoin_chain_cli.py
 ```
 
 The test proves a checkpoint anchor, the genesis-to-block-one update, and
-the block-one-to-block-two update. The [block-two header fixture](../examples/bitcoin_block2_header.valid.json)
+the block-one-to-block-two update. The [block-two header fixture](../examples/bitcoin/bitcoin_block2_header.valid.json)
 comes from the [Blockstream raw-header API](https://blockstream.info/api/block/000000006a625f06636b8bb6ac7b960a8d03705d1ace08b1a19da3fdcc99ddbd/header);
 the test independently checks SHA256d and the exact previous-hash bytes.
 Both fold proofs have the same preprocessed root. The native verifier accepts
@@ -638,7 +638,7 @@ shows why the generic circuit remains the default for one header: its median
 non-proof-of-work proving time was 154 ms and its proof was 338,282 bytes;
 the joint SHA proof took 689 ms excluding FRI proof of work and produced
 721,880 bytes. Build the sealed opt-in profile with
-`python3 src/frontends/s31/python/s31.py build src/frontends/s31/examples/bitcoin_header_pow.s31 --lowering sha-joint --out zig-out/s31/bitcoin-pow-sha-joint`.
+`python3 src/frontends/s31/python/s31.py build src/frontends/s31/examples/bitcoin/bitcoin_header_pow.s31 --lowering sha-joint --out zig-out/s31/bitcoin-pow-sha-joint`.
 The package includes a source and topology derived key, the eight-word public
 root ABI, a cost report that includes SHA and lookup-table columns, and an
 independently runnable native verifier. The

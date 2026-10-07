@@ -16,10 +16,10 @@ const M31 = core.fields.m31.M31;
 
 test "direct caller Gate claim closes against the sparse-wide Bitcoin circuit" {
     const a = std.testing.allocator;
-    const source = @embedFile("../../examples/bitcoin_header_pow.s31.json");
+    const source = @embedFile("../../examples/bitcoin/bitcoin_header_pow.s31.json");
     var program = try relation.parseProgram(a, source);
     defer program.deinit();
-    var assignment = try relation.parseAssignment(a, @embedFile("../../examples/bitcoin_header_pow.valid.json"));
+    var assignment = try relation.parseAssignment(a, @embedFile("../../examples/bitcoin/bitcoin_header_pow.valid.json"));
     defer assignment.deinit();
 
     var value_maps = compiler.Maps{};

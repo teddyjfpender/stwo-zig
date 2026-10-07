@@ -5,6 +5,7 @@ import sys
 from pathlib import Path
 S31_SOURCE_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(S31_SOURCE_ROOT / "python"))
+from example_paths import example_path
 
 import argparse
 import gzip
@@ -99,8 +100,8 @@ def main() -> None:
         raise RuntimeError("build stwo-cairo-cpu and the Cairo VM adapter before benchmarking")
     cases = {}
     for name, (cairo_dir_name, cairo_target) in CAIRO_CASES.items():
-        source_path = HERE / "examples" / f"{name}.s31.json"
-        assignment_path = HERE / "examples" / f"{name}.valid.json"
+        source_path = example_path(f"{name}.s31.json")
+        assignment_path = example_path(f"{name}.valid.json")
         source = json.loads(source_path.read_text())
         assignment = json.loads(assignment_path.read_text())
         expected = expected_words(source, assignment)
@@ -109,7 +110,7 @@ def main() -> None:
         prover = package / "bin" / f"s31-{name}-prover"
         verifier = package / "bin" / f"s31-{name}-native-verifier"
         key = package / "verification-key.json"
-        statement = HERE / "examples" / f"{name}.statement.json"
+        statement = example_path(f"{name}.statement.json")
         cost = json.loads((package / "cost-report.json").read_text())
         cairo_dir = HERE / "examples" / cairo_dir_name
         s31.invoke("scarb", "--manifest-path", str(cairo_dir / "Scarb.toml"), "build")

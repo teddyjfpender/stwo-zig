@@ -4,6 +4,7 @@ import sys
 from pathlib import Path
 S31_SOURCE_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(S31_SOURCE_ROOT / "python"))
+from example_paths import example_path
 sys.path.insert(0, str(S31_SOURCE_ROOT / "tools/generate"))
 
 import json
@@ -24,7 +25,7 @@ EXAMPLES = S31_SOURCE_ROOT / "examples"
 
 class TextFrontendTests(unittest.TestCase):
     def test_computed_boolean_algebra_and_field_selection(self) -> None:
-        relation, _ = compile_file(EXAMPLES / "bool_computed_choice.s31")
+        relation, _ = compile_file(EXAMPLES / "control" / "bool_computed_choice.s31")
         self.assertEqual([node["op"] for node in relation["nodes"]],
                          ["is_zero", "is_zero", "bool_not", "bool_and", "bool_or",
                           "bool_xor", "bool_select", "select"])
@@ -51,7 +52,7 @@ circuit bad(public x: [m31; 1]) -> public bit {
 }""")
 
     def test_computed_zero_bit_controls_selection(self) -> None:
-        relation, _ = compile_file(EXAMPLES / "computed_choice.s31")
+        relation, _ = compile_file(EXAMPLES / "control" / "computed_choice.s31")
         self.assertEqual([node["op"] for node in relation["nodes"]],
                          ["is_zero", "select"])
         for x, expected in ((0, 23), (1, 17), (P - 1, 17)):
@@ -73,11 +74,11 @@ circuit constant_choice(public left: [m31; 1], public right: [m31; 1]) -> public
                          ["constant", "select"])
 
     def test_field_inverse_division_and_zero_rejection(self) -> None:
-        relation, _ = compile_file(EXAMPLES / "field_div4.s31")
+        relation, _ = compile_file(EXAMPLES / "arithmetic" / "field_div4.s31")
         self.assertEqual([node["op"] for node in relation["nodes"]],
                          ["inv", "mul", "add"])
         self.assertEqual(relation["nodes"][1]["rhs"], relation["nodes"][0]["name"])
-        assignment = json.loads((EXAMPLES / "field_div4.valid.json").read_text())
+        assignment = json.loads((EXAMPLES / "arithmetic" / "field_div4.valid.json").read_text())
         self.assertEqual(evaluate_relation(relation, assignment), assignment["public_outputs"])
         invalid = copy.deepcopy(assignment)
         invalid["private_inputs"]["denominator"][2] = 0
@@ -89,9 +90,9 @@ circuit constant_choice(public left: [m31; 1], public right: [m31; 1]) -> public
             compile_text("circuit bad(private x: [m31; 1]) -> public [m31; 1] { std::math::div(x, splat<2>(1_m31)) }")
 
     def test_bitcoin_header_sha256d_and_compact_pow(self) -> None:
-        hash_relation, _ = compile_file(EXAMPLES / "bitcoin_header_hash.s31")
-        pow_relation, _ = compile_file(EXAMPLES / "bitcoin_header_pow.s31")
-        assignment = json.loads((EXAMPLES / "bitcoin_header_hash.valid.json").read_text())
+        hash_relation, _ = compile_file(EXAMPLES / "bitcoin" / "bitcoin_header_hash.s31")
+        pow_relation, _ = compile_file(EXAMPLES / "bitcoin" / "bitcoin_header_pow.s31")
+        assignment = json.loads((EXAMPLES / "bitcoin" / "bitcoin_header_hash.valid.json").read_text())
         header_bytes = encode_header80(assignment["private_inputs"]["header"])
         self.assertEqual(len(header_bytes), 80)
         self.assertEqual(header_bytes[72:76], bytes.fromhex("ffff001d"))
@@ -110,13 +111,13 @@ circuit constant_choice(public left: [m31; 1], public right: [m31; 1]) -> public
             compile_text("circuit bad(private x: Bytes32) -> public Bytes32 { std::hash::sha256d_header(x) }")
 
     def test_bitcoin_pow_valid_helper_matches_explicit_constraints(self) -> None:
-        helper, _ = compile_file(EXAMPLES / "bitcoin_pow_valid_std.s31")
-        manual, _ = compile_file(EXAMPLES / "bitcoin_pow_valid_manual.s31")
+        helper, _ = compile_file(EXAMPLES / "bitcoin" / "bitcoin_pow_valid_std.s31")
+        manual, _ = compile_file(EXAMPLES / "bitcoin" / "bitcoin_pow_valid_manual.s31")
         self.assertEqual([node["op"] for node in helper["nodes"]],
                          ["hash_sha256d_header", "bitcoin_target_mainnet", "u256_le", "constant"])
         self.assertEqual([node["op"] for node in helper["nodes"]],
                          [node["op"] for node in manual["nodes"]])
-        assignment = json.loads((EXAMPLES / "bitcoin_pow_valid.valid.json").read_text())
+        assignment = json.loads((EXAMPLES / "bitcoin" / "bitcoin_pow_valid.valid.json").read_text())
         self.assertEqual(evaluate_relation(helper, assignment), {"valid": [1]})
         self.assertEqual(evaluate_relation(manual, assignment), {"valid": [1]})
         changed = copy.deepcopy(assignment)
@@ -127,9 +128,9 @@ circuit constant_choice(public left: [m31; 1], public right: [m31; 1]) -> public
             compile_text("circuit bad(private x: Bytes32) -> public bit { std::bitcoin::pow_valid(x) }")
 
     def test_two_real_headers_link_and_keep_nonretarget_bits(self) -> None:
-        relation, _ = compile_file(EXAMPLES / "bitcoin_header_pair.s31")
-        self.assertEqual(relation, json.loads((EXAMPLES / "bitcoin_header_pair.s31.json").read_text()))
-        assignment = json.loads((EXAMPLES / "bitcoin_header_pair.valid.json").read_text())
+        relation, _ = compile_file(EXAMPLES / "bitcoin" / "bitcoin_header_pair.s31")
+        self.assertEqual(relation, json.loads((EXAMPLES / "bitcoin" / "bitcoin_header_pair.s31.json").read_text()))
+        assignment = json.loads((EXAMPLES / "bitcoin" / "bitcoin_header_pair.valid.json").read_text())
         self.assertEqual(evaluate_relation(relation, assignment), assignment["public_outputs"])
         parent = encode_header80(assignment["private_inputs"]["parent"])
         child = encode_header80(assignment["private_inputs"]["child"])
@@ -208,29 +209,29 @@ circuit strict_time(private a: [u16; 2], private b: [u16; 2]) -> public [m31; 1]
         for name in ("arith4_m31", "merkle_path1_poseidon", "merkle_path1",
                      "affine4_v1", "preimage4", "math_polynomial4"):
             with self.subTest(name=name):
-                relation, source_map = compile_file(EXAMPLES / f"{name}.s31")
-                reference = json.loads((EXAMPLES / f"{name}.s31.json").read_text())
+                relation, source_map = compile_file(example_path(f"{name}.s31"))
+                reference = json.loads((example_path(f"{name}.s31.json")).read_text())
                 self.assertEqual(relation, reference)
                 self.assertEqual(set(source_map), {node["name"] for node in relation["nodes"]})
 
     def test_math_library_lowers_to_existing_field_gates(self) -> None:
-        relation, _ = compile_file(EXAMPLES / "math_polynomial4.s31")
+        relation, _ = compile_file(EXAMPLES / "arithmetic" / "math_polynomial4.s31")
         self.assertEqual([node["op"] for node in relation["nodes"]],
                          ["mul", "mul", "mul", "mul_const", "add", "add_const"])
         self.assertEqual(relation["nodes"][-1]["constant"], P - 7)
-        assignment = json.loads((EXAMPLES / "math_polynomial4.valid.json").read_text())
+        assignment = json.loads((EXAMPLES / "arithmetic" / "math_polynomial4.valid.json").read_text())
         self.assertEqual(assignment["public_outputs"]["result"],
                          [(pow(x, 5, P) + 3 * x - 7) % P
                           for x in assignment["public_inputs"]["x"]])
 
     def test_versioned_static_math_lowers_to_existing_gates(self) -> None:
-        source = (EXAMPLES / "mathlib4.s31").read_text()
+        source = (EXAMPLES / "arithmetic" / "mathlib4.s31").read_text()
         relation, _ = compile_text(source)
         self.assertEqual([node["op"] for node in relation["nodes"]],
                          ["mul_const", "add_const", "mul", "add_const", "mul",
                           "add_const", "mul_const", "mul_const", "add", "add_const"])
         self.assertEqual(compile_text(source.replace("use std@1;", ""))[0], relation)
-        assignment = json.loads((EXAMPLES / "mathlib4.valid.json").read_text())
+        assignment = json.loads((EXAMPLES / "arithmetic" / "mathlib4.valid.json").read_text())
         values = assignment["public_inputs"]["x"]
         polynomial = lambda x: (2 * x ** 3 + 3 * x ** 2 + 5 * x + 7) % P
         self.assertEqual(assignment["public_outputs"]["result"],
@@ -254,12 +255,12 @@ circuit strict_time(private a: [u16; 2], private b: [u16; 2]) -> public [m31; 1]
             compile_text(f"circuit bad(private x: [m31; 1]) -> public [m31; 1] {{ std::math::sum([{too_many}]) }}")
 
     def test_lane_reductions_lower_to_constrained_relation_ops(self) -> None:
-        relation, _ = compile_file(EXAMPLES / "lane_stats4.s31")
+        relation, _ = compile_file(EXAMPLES / "arithmetic" / "lane_stats4.s31")
         self.assertEqual([node["op"] for node in relation["nodes"]],
                          ["sum_lanes", "mul", "sum_lanes", "add"])
         self.assertEqual(relation["nodes"][0]["lhs"], "x")
         self.assertEqual(relation["nodes"][2]["lhs"], relation["nodes"][1]["name"])
-        assignment = json.loads((EXAMPLES / "lane_stats4.valid.json").read_text())
+        assignment = json.loads((EXAMPLES / "arithmetic" / "lane_stats4.valid.json").read_text())
         x = assignment["private_inputs"]["x"]
         weights = assignment["private_inputs"]["weights"]
         self.assertEqual(assignment["public_outputs"]["result"],
@@ -276,8 +277,8 @@ circuit strict_time(private a: [u16; 2], private b: [u16; 2]) -> public [m31; 1]
             compile_text("circuit bad(private x: [m31; 1]) -> public [m31; 1] { std::math::dot_lanes(x, splat<2>(1_m31)) }")
 
     def test_u256_types_lower_to_range_checked_limbs_and_carry_nodes(self) -> None:
-        relation, _ = compile_file(EXAMPLES / "wide_order.s31")
-        self.assertEqual(relation, json.loads((EXAMPLES / "wide_order.s31.json").read_text()))
+        relation, _ = compile_file(EXAMPLES / "wide" / "wide_order.s31")
+        self.assertEqual(relation, json.loads((EXAMPLES / "wide" / "wide_order.s31.json").read_text()))
         self.assertEqual({item["kind"] for item in relation["inputs"]}, {"u16"})
         self.assertEqual([node["op"] for node in relation["nodes"][:2]],
                          ["u256_add", "u256_le"])
@@ -312,8 +313,8 @@ circuit checked(private a: UInt256, private b: UInt256) -> public [m31; 1] {
                          ["cast_m31", "hash_poseidon2_leaf"])
 
     def test_bitcoin_block_work_lowers_as_one_checked_integer_node(self) -> None:
-        relation, _ = compile_file(EXAMPLES / "bitcoin_block_work.s31")
-        self.assertEqual(relation, json.loads((EXAMPLES / "bitcoin_block_work.s31.json").read_text()))
+        relation, _ = compile_file(EXAMPLES / "bitcoin" / "bitcoin_block_work.s31")
+        self.assertEqual(relation, json.loads((EXAMPLES / "bitcoin" / "bitcoin_block_work.s31.json").read_text()))
         self.assertEqual([node["op"] for node in relation["nodes"]],
                          ["bitcoin_block_work", "cast_m31", "hash_poseidon2_leaf"])
         with self.assertRaisesRegex(SourceError, "block_work requires a UInt256 target"):
@@ -338,7 +339,7 @@ circuit subtract(private a: UInt256, private b: UInt256) -> public [m31; 1] {{
     def test_u256_ordering_selection_and_checked_distance(self) -> None:
         from poseidon2_oracle import leaf
 
-        relation, _ = compile_file(EXAMPLES / "u256_order_select.s31")
+        relation, _ = compile_file(EXAMPLES / "wide" / "u256_order_select.s31")
         self.assertEqual([node["op"] for node in relation["nodes"]].count("select"), 3)
         self.assertIn("u256_sub_checked", [node["op"] for node in relation["nodes"]])
         for a_number, b_number in ((2**128 - 1, 2**128 + 7),
@@ -376,8 +377,8 @@ circuit balanced(private a: [m31; 1], private b: [m31; 1],
         self.assertEqual((nodes[2]["lhs"], nodes[2]["rhs"]), (nodes[0]["name"], nodes[1]["name"]))
 
     def test_static_matrix_vector_lowers_to_existing_arithmetic(self) -> None:
-        self.assertEqual(compile_file(EXAMPLES / "static_matvec.s31")[0],
-                         json.loads((EXAMPLES / "static_matvec.s31.json").read_text()))
+        self.assertEqual(compile_file(EXAMPLES / "arrays" / "static_matvec.s31")[0],
+                         json.loads((EXAMPLES / "arrays" / "static_matvec.s31.json").read_text()))
         relation, source_map = compile_text("""use std@1;
 circuit matrix(private a: [m31; 1], private b: [m31; 1]) -> public [m31; 1] {
     let vector = [a, b];
@@ -397,12 +398,12 @@ circuit matrix(private a: [m31; 1], private b: [m31; 1]) -> public [m31; 1] {
         self.assertEqual(relation["public_outputs"], ["total"])
 
     def test_runtime_array_get_and_concat_have_explicit_relation_nodes(self) -> None:
-        self.assertEqual(compile_file(EXAMPLES / "array_views.s31")[0],
-                         json.loads((EXAMPLES / "array_views.s31.json").read_text()))
+        self.assertEqual(compile_file(EXAMPLES / "arrays" / "array_views.s31")[0],
+                         json.loads((EXAMPLES / "arrays" / "array_views.s31.json").read_text()))
         for name in ("array_views_private", "array_views_u16"):
             with self.subTest(name=name):
-                self.assertEqual(compile_file(EXAMPLES / f"{name}.s31")[0],
-                                 json.loads((EXAMPLES / f"{name}.s31.json").read_text()))
+                self.assertEqual(compile_file(example_path(f"{name}.s31"))[0],
+                                 json.loads((example_path(f"{name}.s31.json")).read_text()))
         relation, _ = compile_text("""use std@1;
 circuit joined(private a: [m31; 3], private b: [m31; 2]) -> public [m31; 1] {
     let both = std::array::concat(a, b);
@@ -416,14 +417,14 @@ circuit joined(private a: [m31; 3], private b: [m31; 2]) -> public [m31; 1] {
     std::array::get<1>(a)
 }""")
         self.assertEqual(u16["nodes"][0]["op"], "array_get")
-        shifted = compile_file(EXAMPLES / "array_views_private.s31")[0]
+        shifted = compile_file(EXAMPLES / "arrays" / "array_views_private.s31")[0]
         self.assertEqual([node["op"] for node in shifted["nodes"]],
                          ["array_concat", "add", "array_get", "array_get", "array_get", "add", "add"])
         self.assertEqual([node["index"] for node in shifted["nodes"] if node["op"] == "array_get"],
                          [3, 4, 5])
 
     def test_static_matmul_views_lower_to_constrained_arithmetic(self) -> None:
-        relation, source_map = compile_file(EXAMPLES / "static_matmul.s31")
+        relation, source_map = compile_file(EXAMPLES / "arrays" / "static_matmul.s31")
         self.assertEqual(len(relation["nodes"]), 19)
         self.assertEqual(set(source_map), {node["name"] for node in relation["nodes"]})
         self.assertEqual({node["op"] for node in relation["nodes"]}, {"mul_const", "add"})
@@ -482,11 +483,11 @@ circuit joined(private a: [m31; 3], private b: [m31; 2]) -> public [m31; 1] {
         for name in ("array_slice_aligned", "array_slice_shifted",
                      "array_matrix_runtime", "array_slice_u16"):
             with self.subTest(name=name):
-                source, source_map = compile_file(EXAMPLES / f"{name}.s31")
-                handwritten = json.loads((EXAMPLES / f"{name}.s31.json").read_text())
+                source, source_map = compile_file(example_path(f"{name}.s31"))
+                handwritten = json.loads((example_path(f"{name}.s31.json")).read_text())
                 self.assertEqual(source, handwritten)
                 self.assertEqual(set(source_map), {node["name"] for node in source["nodes"]})
-                assigned = json.loads((EXAMPLES / f"{name}.valid.json").read_text())
+                assigned = json.loads((example_path(f"{name}.valid.json")).read_text())
                 self.assertEqual(evaluate_relation(source, assigned), assigned["public_outputs"])
 
         full, _ = compile_text("""circuit identity(private x: [m31; 4]) -> public [m31; 4] {
@@ -514,7 +515,7 @@ circuit joined(private a: [m31; 3], private b: [m31; 2]) -> public [m31; 1] {
                 compile_text(import_line + "\n" + circuit)
 
     def test_math_square_is_valid_inside_iterate(self) -> None:
-        old = (EXAMPLES / "arith4_m31.s31").read_text()
+        old = (EXAMPLES / "arithmetic" / "arith4_m31.s31").read_text()
         new = "use std@1;\n" + old.replace("v .* v", "std::math::square(v)")
         self.assertEqual(compile_text(new)[0], compile_text(old)[0])
 
@@ -531,7 +532,7 @@ circuit joined(private a: [m31; 3], private b: [m31; 2]) -> public [m31; 1] {
         self.assertEqual(relation["nodes"][1]["constant"], 1)
 
     def test_standard_hash_alias_has_identical_relation(self) -> None:
-        source = (EXAMPLES / "merkle_path1_poseidon.s31").read_text()
+        source = (EXAMPLES / "hashes" / "merkle_path1_poseidon.s31").read_text()
         qualified = source.replace("poseidon2_leaf(", "std::hash::poseidon2_leaf(")
         qualified = qualified.replace("poseidon2_pair(", "std::hash::poseidon2_pair(")
         self.assertEqual(compile_text(source)[0], compile_text(qualified)[0])
@@ -547,7 +548,7 @@ circuit joined(private a: [m31; 3], private b: [m31; 2]) -> public [m31; 1] {
                 compile_text(f"circuit bad(private x: [{kind}; 1]) -> public [m31; 1] {{ {body} }}")
 
     def test_independent_recurrence_values(self) -> None:
-        assignment = json.loads((EXAMPLES / "arith4.valid.json").read_text())
+        assignment = json.loads((EXAMPLES / "arithmetic" / "arith4.valid.json").read_text())
         expected = reference_iterate(assignment["public_inputs"]["x"], 256,
                                      ({"op": "square"}, {"op": "add_const", "constant": 7}))
         self.assertEqual(expected, assignment["public_outputs"]["result"])
@@ -556,7 +557,7 @@ circuit joined(private a: [m31; 3], private b: [m31; 2]) -> public [m31; 1] {
                          [8, 11, 16, 2147352585])
 
     def test_independent_hash_and_path_values(self) -> None:
-        assignment = json.loads((EXAMPLES / "merkle_path1_poseidon.valid.json").read_text())
+        assignment = json.loads((EXAMPLES / "hashes" / "merkle_path1_poseidon.valid.json").read_text())
         private = assignment["private_inputs"]
         root = reference_merkle_path("poseidon2", private["leaf"],
                                      [private["sibling"]], private["direction"])
@@ -564,7 +565,7 @@ circuit joined(private a: [m31; 3], private b: [m31; 2]) -> public [m31; 1] {
         self.assertEqual(reference_merkle_path(
             "poseidon2", reference_digest("poseidon2", "leaf", private["leaf"]),
             [private["sibling"]], private["direction"], prehashed=True), root)
-        blake_assignment = json.loads((EXAMPLES / "merkle_path1.valid.json").read_text())
+        blake_assignment = json.loads((EXAMPLES / "hashes" / "merkle_path1.valid.json").read_text())
         blake_private = blake_assignment["private_inputs"]
         self.assertEqual(reference_merkle_path("blake2s_reduced", blake_private["leaf"],
                                               [blake_private["sibling"]], blake_private["direction"]),
@@ -579,7 +580,7 @@ circuit joined(private a: [m31; 3], private b: [m31; 2]) -> public [m31; 1] {
                                     reference_digest(family, "pair", b, a))
 
     def test_fixed_depth_merkle_builtin(self) -> None:
-        relation, _ = compile_file(EXAMPLES / "merkle_path2_poseidon.s31")
+        relation, _ = compile_file(EXAMPLES / "hashes" / "merkle_path2_poseidon.s31")
         self.assertEqual([node["op"] for node in relation["nodes"]],
                          ["hash_poseidon2_leaf", "select", "select", "hash_poseidon2_pair",
                           "select", "select", "hash_poseidon2_pair"])

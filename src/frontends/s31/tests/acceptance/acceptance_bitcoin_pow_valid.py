@@ -20,9 +20,9 @@ from text_frontend import compile_file
 
 
 EXAMPLES = S31_SOURCE_ROOT / "examples"
-STANDARD = EXAMPLES / "bitcoin_pow_valid_std.s31"
-MANUAL = EXAMPLES / "bitcoin_pow_valid_manual.s31"
-ASSIGNMENT = EXAMPLES / "bitcoin_pow_valid.valid.json"
+STANDARD = EXAMPLES / "bitcoin" / "bitcoin_pow_valid_std.s31"
+MANUAL = EXAMPLES / "bitcoin" / "bitcoin_pow_valid_manual.s31"
+ASSIGNMENT = EXAMPLES / "bitcoin" / "bitcoin_pow_valid.valid.json"
 
 
 def structural_relation(relation: dict) -> dict:

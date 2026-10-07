@@ -135,12 +135,12 @@ bytes and rebuilds only the second verifier topology needed for its proof.
 
 ```sh
 python3 src/frontends/s31/python/s31.py build \
-  src/frontends/s31/examples/preimage4.s31 \
+  src/frontends/s31/examples/hashes/preimage4.s31 \
   --lowering gate --out zig-out/s31/preimage-chain
 
 python3 src/frontends/s31/python/s31.py prove \
   zig-out/s31/preimage-chain \
-  src/frontends/s31/examples/preimage4.valid.json \
+  src/frontends/s31/examples/hashes/preimage4.valid.json \
   zig-out/s31/preimage-chain/leaf.proof
 
 python3 src/frontends/s31/python/s31.py wrap \

@@ -34,7 +34,7 @@ Stwo stores its evaluations in circle-domain order.
 
 ## Example A: a private cross-lane computation
 
-This is the checked-in [`lane_stats4.s31`](../examples/lane_stats4.s31):
+This is the checked-in [`lane_stats4.s31`](../examples/arithmetic/lane_stats4.s31):
 
 ```s31
 use std@1;
@@ -55,7 +55,7 @@ $$
 y=\sum_{j=0}^{3}x_j+\sum_{j=0}^{3}x_jw_j\pmod p.
 $$
 
-The [sample prover assignment](../examples/lane_stats4.valid.json) chooses
+The [sample prover assignment](../examples/arithmetic/lane_stats4.valid.json) chooses
 private `x=[2,3,5,7]`, private `weights=[11,13,17,19]`, and public
 `result=[296]`. Each row in this table is one **array position**, not a
 proof row:
@@ -422,8 +422,8 @@ build–prove–verify loop, rejects a one-word change to the public statement,
 and saves a compact report. Run this from the repository root:
 
 ```sh
-python3 src/frontends/s31/python/s31.py oracle src/frontends/s31/examples/lane_stats4.s31 src/frontends/s31/examples/lane_stats4.valid.json
-python3 src/frontends/s31/python/s31.py trial src/frontends/s31/examples/lane_stats4.s31 src/frontends/s31/examples/lane_stats4.valid.json --lowering direct-gate --out zig-out/s31/docs-lane-trial
+python3 src/frontends/s31/python/s31.py oracle src/frontends/s31/examples/arithmetic/lane_stats4.s31 src/frontends/s31/examples/arithmetic/lane_stats4.valid.json
+python3 src/frontends/s31/python/s31.py trial src/frontends/s31/examples/arithmetic/lane_stats4.s31 src/frontends/s31/examples/arithmetic/lane_stats4.valid.json --lowering direct-gate --out zig-out/s31/docs-lane-trial
 ```
 
 `oracle` performs a separate Python calculation of the **normalized
@@ -450,11 +450,11 @@ performance comparison because cache state and proof of work vary.
 To inspect each step manually, use the same checked-in reduction:
 
 ```sh
-python3 src/frontends/s31/python/s31.py lower src/frontends/s31/examples/lane_stats4.s31
-python3 src/frontends/s31/python/s31.py build src/frontends/s31/examples/lane_stats4.s31 --lowering direct-gate --out zig-out/s31/docs-lane-stats
+python3 src/frontends/s31/python/s31.py lower src/frontends/s31/examples/arithmetic/lane_stats4.s31
+python3 src/frontends/s31/python/s31.py build src/frontends/s31/examples/arithmetic/lane_stats4.s31 --lowering direct-gate --out zig-out/s31/docs-lane-stats
 python3 src/frontends/s31/python/s31.py equations zig-out/s31/docs-lane-stats
 python3 src/frontends/s31/python/s31.py explain zig-out/s31/docs-lane-stats
-python3 src/frontends/s31/python/s31.py prove zig-out/s31/docs-lane-stats src/frontends/s31/examples/lane_stats4.valid.json zig-out/s31/docs-lane-stats.proof
+python3 src/frontends/s31/python/s31.py prove zig-out/s31/docs-lane-stats src/frontends/s31/examples/arithmetic/lane_stats4.valid.json zig-out/s31/docs-lane-stats.proof
 python3 src/frontends/s31/python/s31.py verify zig-out/s31/docs-lane-stats zig-out/s31/docs-lane-stats.proof
 ```
 

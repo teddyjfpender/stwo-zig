@@ -21,8 +21,8 @@ import s31
 
 
 HERE = S31_SOURCE_ROOT
-SOURCE = HERE / "examples/preimage4.s31"
-ASSIGNMENT = HERE / "examples/preimage4.valid.json"
+SOURCE = HERE / "examples/hashes/preimage4.s31"
+ASSIGNMENT = HERE / "examples/hashes/preimage4.valid.json"
 M31_MODULUS = (1 << 31) - 1
 
 

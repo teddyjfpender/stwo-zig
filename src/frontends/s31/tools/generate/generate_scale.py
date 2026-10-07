@@ -45,7 +45,7 @@ def main() -> None:
     }
     (root / f"{name}.s31.json").write_text(json.dumps(program, indent=2) + "\n")
 
-    example = Path(__file__).parent / "examples" / "cairo_square"
+    example = S31_SOURCE_ROOT / "examples" / "cairo_square"
     manifest = (example / "Scarb.toml").read_text().replace(
         "s31_square256_cairo", f"s31_{name}_cairo"
     )

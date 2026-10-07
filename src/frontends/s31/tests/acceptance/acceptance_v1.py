@@ -5,6 +5,7 @@ import sys
 from pathlib import Path
 S31_SOURCE_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(S31_SOURCE_ROOT / "python"))
+from example_paths import example_path
 
 import argparse
 import importlib.util
@@ -40,7 +41,7 @@ def main() -> None:
     with tempfile.TemporaryDirectory(prefix="s31-accept-") as temporary:
         temp = Path(temporary)
         for name in cases:
-            source = HERE / "examples" / f"{name}.s31.json"
+            source = example_path(f"{name}.s31.json")
             package = s31.build(source, ROOT / "zig-out/s31/mvp-acceptance" / f"{name}-{compiler[:16]}")
             packages[name] = package
             s31.verify_package(package)
@@ -60,14 +61,14 @@ def main() -> None:
             verifier = package / "bin" / f"s31-{name}-native-verifier"
             proof = temp / f"{name}.proof"
             proofs[name] = proof
-            assignment = HERE / "examples" / f"{name}.valid.json"
-            statement = HERE / "examples" / f"{name}.statement.json"
+            assignment = example_path(f"{name}.valid.json")
+            statement = example_path(f"{name}.statement.json")
             key = package / "verification-key.json"
             run(str(prover), "run", str(assignment))
             run(str(prover), "prove", str(assignment), str(proof))
             run(str(verifier), str(proof), str(statement), str(key), cwd=temp)
             if name in ("preimage4", "hash4", "mixed4"):
-                invalid = HERE / "examples" / f"{name}.invalid.json"
+                invalid = example_path(f"{name}.invalid.json")
                 run(str(prover), "prove", str(invalid), str(temp / f"{name}.invalid.proof"), accept=False)
             changed = json.loads(statement.read_text())
             first = next(iter(changed["public_outputs"]))
@@ -79,7 +80,7 @@ def main() -> None:
 
         hash_package = packages["hash4"]
         verifier = hash_package / "bin/s31-hash4-native-verifier"
-        statement = HERE / "examples/hash4.statement.json"
+        statement = HERE / "examples/hashes/hash4.statement.json"
         key = hash_package / "verification-key.json"
         original = bytearray(proofs["hash4"].read_bytes())
         changed_proof = temp / "tampered.proof"

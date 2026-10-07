@@ -5,6 +5,7 @@ import sys
 from pathlib import Path
 S31_SOURCE_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(S31_SOURCE_ROOT / "python"))
+from example_paths import example_path
 
 import argparse
 import hashlib
@@ -80,7 +81,7 @@ def main() -> None:
         for shape in ("merkle2", "merkle_path1"):
             for algorithm, suffix, lowering in (("blake2s", "", "gate"), ("poseidon2", "_poseidon", "direct-gate")):
                 name = shape + suffix
-                source = HERE / "examples" / f"{name}.s31.json"
+                source = example_path(f"{name}.s31.json")
                 package = s31.build(source, work / f"{name}-package", lowering)
                 s31.verify_package(package)
                 cost = json.loads((package / "cost-report.json").read_text())

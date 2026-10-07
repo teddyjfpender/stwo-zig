@@ -20,8 +20,8 @@ from acceptance_state_fold import digest, run, statement
 
 HERE = S31_SOURCE_ROOT
 P = (1 << 31) - 1
-SOURCE = HERE / "examples/affine_square4.s31"
-ASSIGNMENT = HERE / "examples/affine_square4.valid.json"
+SOURCE = HERE / "examples/arithmetic/affine_square4.s31"
+ASSIGNMENT = HERE / "examples/arithmetic/affine_square4.valid.json"
 BODY = [{"op": "square", "constant": None},
         {"op": "mul_const", "constant": 3},
         {"op": "add_const", "constant": 5}]

@@ -93,8 +93,8 @@ pub fn main() !void {
     const a = gpa_state.allocator();
     const n = try countTrials();
     const cold_fixed = std.posix.getenv("S31_SHA_FUSED_MATCHED_COLD") != null;
-    const source = @embedFile("../../examples/bitcoin_header_pow.s31.json");
-    const assignment_source = @embedFile("../../examples/bitcoin_header_pow.valid.json");
+    const source = @embedFile("../../examples/bitcoin/bitcoin_header_pow.s31.json");
+    const assignment_source = @embedFile("../../examples/bitcoin/bitcoin_header_pow.valid.json");
     var program = try relation.parseProgram(a, source);
     defer program.deinit();
     var assignment = try relation.parseAssignment(a, assignment_source);

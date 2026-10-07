@@ -31,7 +31,7 @@ Boolean unsigned comparison with sixteen borrows. `limbs_m31` allows the
 range-checked bytes to feed a field-native auxiliary commitment.
 `sub_u256` and `sub_u256_checked` use sixteen Boolean borrows; the checked
 form rejects underflow, as shown by the [two proof trials](../measurements/language/u256-subtraction-v1-2026-10-07.json).
-The native verifier accepts the [wide-order example](../../../src/frontends/s31/examples/wide_order.s31)
+The native verifier accepts the [wide-order example](../../../src/frontends/s31/examples/wide/wide_order.s31)
 and rejects a changed public root. Its [full-profile baseline](../measurements/bitcoin/bitcoin-wide-v1-2026-10-06.json)
 and [sparse-wide trial](../measurements/bitcoin/bitcoin-wide-sparse-v5-2026-10-06.json)
 are cost records for this exact program, not Bitcoin block proofs. The source
@@ -43,7 +43,7 @@ constrains the two header compression blocks and one second-hash block.
 `std::bitcoin::target_mainnet` decodes bytes 72–75 with a constrained compact
 exponent and nonnegative mantissa, enforces a nonzero result within mainnet
 `powLimit`, and returns `UInt256`. The
-[`bitcoin_header_pow.s31`](../../../src/frontends/s31/examples/bitcoin_header_pow.s31)
+[`bitcoin_header_pow.s31`](../../../src/frontends/s31/examples/bitcoin/bitcoin_header_pow.s31)
 program compares the digest interpreted as a little-endian integer to that
 target and asserts success. Its generated native verifier accepted the
 genesis-header proof and rejected a changed public commitment. This is a
@@ -53,7 +53,7 @@ records hash-only and PoW versions of the same genesis witness. The latter
 adds 614 raw QM31 rows and uses the same padded trace size; it proves byte
 exactness and the target inequality inside one Stwo proof.
 
-[`bitcoin_header_pair.s31`](../../../src/frontends/s31/examples/bitcoin_header_pair.s31)
+[`bitcoin_header_pair.s31`](../../../src/frontends/s31/examples/bitcoin/bitcoin_header_pair.s31)
 pins its parent SHA256d digest to the mainnet genesis checkpoint, then proves
 the child's exact previous-hash bytes, equal `nBits` for this non-retarget
 step, a strictly later timestamp for the first-step median-time-past rule,
@@ -65,7 +65,7 @@ contains geometry, proof bytes and timings with the timestamp check; the
 predates it. This is a two-header
 segment proof, not a general chain-policy or recursive proof.
 
-[`bitcoin_header_link.s31`](../../../src/frontends/s31/examples/bitcoin_header_link.s31)
+[`bitcoin_header_link.s31`](../../../src/frontends/s31/examples/bitcoin/bitcoin_header_link.s31)
 is a reusable transition leaf. It takes a claimed `BlockHash` state opening,
 constrains the new header's exact previous-hash field to that opening, proves
 the new header's SHA256d and mainnet PoW, and publishes an ordered Poseidon2
@@ -365,7 +365,7 @@ clamp and compact boundaries; a standalone native proof verifies two boundary
 cases with one value-free circuit key. The current fold key still ends at
 height 2015; the gadget is not yet selected inside a recursive proof.
 
-The separately proved [`bitcoin_header_link.s31`](../../../src/frontends/s31/examples/bitcoin_header_link.s31)
+The separately proved [`bitcoin_header_link.s31`](../../../src/frontends/s31/examples/bitcoin/bitcoin_header_link.s31)
 leaf remains useful for independent proofs and for a future dedicated SHA
 chip. If a proof-bound chip makes verifying that leaf cheaper than direct
 header gates, a two-child fold can authenticate the prior fold and the new

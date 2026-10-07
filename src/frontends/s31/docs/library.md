@@ -92,7 +92,7 @@ flatten is functionally the identity, but the current compiler may still
 lower intermediate row slices and joins. The cost report shows those gates
 when they occur.
 
-For example, the [shifted runtime slice](../examples/array_slice_shifted.s31)
+For example, the [shifted runtime slice](../examples/arrays/array_slice_shifted.s31)
 starts from private `x=[2,3,5,7,11,13,17]`:
 
 ~~~s31
@@ -100,7 +100,7 @@ let tail = std::array::drop<1>(x); // [3,5,7,11,13,17]
 std::array::take<4>(tail)          // [3,5,7,11]
 ~~~
 
-The [handwritten relation](../examples/array_slice_shifted.s31.json) records
+The [handwritten relation](../examples/arrays/array_slice_shifted.s31.json) records
 two slice nodes: `tail[j]=x[1+j]` for six positions, followed by
 `result[j]=tail[j]` for four. In the circuit, the first slice packs the
 coordinates `(3,5,7,11)` into a QM31 wire. Because the source window starts
@@ -108,12 +108,12 @@ at coordinate 1, that word combines coordinates from two original packed
 wires. The unpack and pack gates constrain this combination. The second
 slice borrows that packed word. The native verifier checks the output copy
 against `[3,5,7,11]`; changing the public claim fails. The [aligned
-example](../examples/array_slice_aligned.s31) takes positions 4..7 from an
+example](../examples/arrays/array_slice_aligned.s31) takes positions 4..7 from an
 eight-lane private array and borrows its second packed word without adding
-slice gates. The [runtime matrix example](../examples/array_matrix_runtime.s31)
+slice gates. The [runtime matrix example](../examples/arrays/array_matrix_runtime.s31)
 reshapes eight private lanes into two four-lane rows, rejoins them, and
 selects position 6, which is 17 in the sample assignment. The
-[u16 example](../examples/array_slice_u16.s31) preserves the source's
+[u16 example](../examples/arrays/array_slice_u16.s31) preserves the source's
 range constraints while exposing the two-lane slice `[65535,7]`.
 
 The [native acceptance run](../tests/acceptance/acceptance_array_views.py) checks every text
@@ -144,7 +144,7 @@ is the useful measure of view cost.
 
 ## A fixed matrix by hand
 
-The [checked-in matrix program](../examples/static_matvec.s31) illustrates
+The [checked-in matrix program](../examples/arrays/static_matvec.s31) illustrates
 the distinction between static reference arrays and witness arrays:
 
 ~~~s31
@@ -167,19 +167,19 @@ circuit static_matvec(private a: [m31; 1], private b: [m31; 1])
 
 For private `a=2`, `b=3`, the first row is `2·2+3·3=13`, the second is
 `5·2+7·3=31`, and the claimed public result is `13+31=44` in M31. The
-[handwritten normalized relation](../examples/static_matvec.s31.json) has
+[handwritten normalized relation](../examples/arrays/static_matvec.s31.json) has
 four `mul_const` nodes and three `add` nodes. The `vector`, `rows`, `products`,
 `get`, and static `concat` expressions add no separate gates. In particular,
 `matvec` expands each row into a dot product; the proof checks both products
 and their sum. The independent value oracle checks the [sample
-assignment](../examples/static_matvec.valid.json), while the native verifier
+assignment](../examples/arrays/static_matvec.valid.json), while the native verifier
 checks a proof of the compiled relation. For a scalar element `a`, a runtime
 array `[m31; N]` is a different thing: its coordinates are witness values,
 and selecting one is represented explicitly by `array_get`.
 
 ## A fixed matrix product by hand
 
-The [matrix multiplication program](../examples/static_matmul.s31) takes
+The [matrix multiplication program](../examples/arrays/static_matmul.s31) takes
 private scalar cells `a,b,c,d` and multiplies
 `[[a,b],[c,d]]` by `[[2,3],[5,7]]`. `reshape<2>` builds the right-hand
 matrix from a flat group. `matmul` returns nested rows; `flatten` exposes
@@ -187,10 +187,10 @@ the four output cells in row-major order. `take<3>` selects the first three,
 and `drop<3>` selects the fourth. The final public word is
 `C[0,0] + 2·C[0,1] + 3·C[1,0] + 4·C[1,1]`.
 
-For the [sample assignment](../examples/static_matmul.valid.json),
+For the [sample assignment](../examples/arrays/static_matmul.valid.json),
 `(a,b,c,d)=(2,3,5,7)`, so the four cells are `(19,27,45,64)` and the
 public word is `19 + 2·27 + 3·45 + 4·64 = 464`. The
-[handwritten relation](../examples/static_matmul.s31.json) explicitly lists
+[handwritten relation](../examples/arrays/static_matmul.s31.json) explicitly lists
 all nineteen arithmetic nodes: twelve `mul_const` and seven `add`. The
 static views add none. The text and handwritten packages have matching
 canonical IR and direct-gate row geometry. Each package produces a proof
@@ -202,7 +202,7 @@ proof was 56,675 bytes; the handwritten relation proof was 54,811 bytes.
 Proof bytes vary with proof randomness. The verifier rejected a changed
 public result, and the prover rejected an assignment claiming `465`.
 
-The [runtime array example](../examples/array_views.s31) joins two public
+The [runtime array example](../examples/arrays/array_views.s31) joins two public
 arrays, selects position four from the joined value and position three from
 the first value, and adds them:
 
@@ -223,23 +223,23 @@ circuit array_views(public a: [m31; 4], public b: [m31; 3])
 
 For `a=[2,3,5,7]` and `b=[11,13,17]`, `joined=[2,3,5,7,11,13,17]`,
 so `boundary=[11]`, `prior=[7]`, and `result=[18]`. The
-[normalized relation](../examples/array_views.s31.json) records concat and
+[normalized relation](../examples/arrays/array_views.s31.json) records concat and
 both positions explicitly. Its only arithmetic node is the final addition.
 The independent oracle checks the same positions, and the compiler must
 preserve those references when mapping them to circuit wires. All eight
 public words (seven inputs and one output) are bound in the proof statement.
 
-The [private M31 example](../examples/array_views_private.s31) exercises the
+The [private M31 example](../examples/arrays/array_views_private.s31) exercises the
 packed boundary and a computed array. It joins three lanes of `a` and four of
 `b`, doubles the joined array, then returns positions 3 and 4 of the joined
 array plus position 5 of the doubled array. For
 `a=[2,3,5]`, `b=[7,11,p-2,17]`, those positions are `7`, `11`, and
 `2(p-2) mod p = p-4`; the public result is `14`. The
-[handwritten relation](../examples/array_views_private.s31.json) records the
+[handwritten relation](../examples/arrays/array_views_private.s31.json) records the
 concat, three selections, and three arithmetic nodes. The
-[u16 example](../examples/array_views_u16.s31) joins a three-word array with
+[u16 example](../examples/arrays/array_views_u16.s31) joins a three-word array with
 a two-word array and selects the first word of the second array, `65535`,
-across that same boundary. Its [handwritten relation](../examples/array_views_u16.s31.json)
+across that same boundary. Its [handwritten relation](../examples/arrays/array_views_u16.s31.json)
 has only `array_concat` and `array_get` nodes.
 
 Run `python3 acceptance_array_views.py` from the S31 frontend directory to
@@ -267,7 +267,7 @@ of globally optimal addition chains.
 
 ## Checked field division
 
-The [field division example](../examples/field_div4.s31) uses both operations:
+The [field division example](../examples/arithmetic/field_div4.s31) uses both operations:
 
 ~~~s31
 use std@1;
@@ -312,7 +312,7 @@ for this four-lane example, not general throughput measurements.
 
 ## A computed bit
 
-This [checked-in program](../examples/computed_choice.s31) chooses the right
+This [checked-in program](../examples/control/computed_choice.s31) chooses the right
 value when `x` is zero and the left value otherwise:
 
 ~~~s31
@@ -346,9 +346,9 @@ and no Eq AIR component in this example.
 
 ### Compute with bits
 
-The [Boolean example](../examples/bool_computed_choice.s31) computes two bits
+The [Boolean example](../examples/control/bool_computed_choice.s31) computes two bits
 from `is_zero`, applies every `std::bool` operation, then uses the final bit
-to select a field value. Its [normalized relation](../examples/bool_computed_choice.s31.json)
+to select a field value. Its [normalized relation](../examples/control/bool_computed_choice.s31.json)
 has explicit `bool_not`, `bool_and`, `bool_or`, `bool_xor`, and `bool_select`
 nodes. For field elements `a,b,s` known to be bits, their constraints are:
 
@@ -399,7 +399,7 @@ correctness samples, not throughput benchmarks.
 
 ## Reduce one array to one value
 
-This [checked-in program](../examples/lane_stats4.s31) has private data and
+This [checked-in program](../examples/arithmetic/lane_stats4.s31) has private data and
 one public result:
 
 ~~~s31
@@ -414,7 +414,7 @@ circuit lane_stats4(private x: [m31; 4], private weights: [m31; 4])
 }
 ~~~
 
-For the [sample assignment](../examples/lane_stats4.valid.json), fill the
+For the [sample assignment](../examples/arithmetic/lane_stats4.valid.json), fill the
 per-lane values by hand:
 
 | Lane, one array position | Private `x[j]` | Private `weights[j]` | Product `x[j]·weights[j]` |
@@ -453,7 +453,7 @@ gates. The **whole** circuit now has 304 raw QM31-operation rows, padded to
 and finalization contribute to that total; builder gate spans are not
 physical AIR row ownership. The earlier 323-row measurement used the same
 packed reduction but guessed private M31 positions one at a time. The checked-in
-[handwritten relation](../examples/lane_stats4.s31.json) was separately
+[handwritten relation](../examples/arithmetic/lane_stats4.s31.json) was separately
 compared with the text source under `direct-gate`: they have the same
 canonical graph and row geometry, and both native verifiers accepted proofs.
 
@@ -470,7 +470,7 @@ composes those two operations with the existing unsigned 256-bit comparison;
 it adds no AIR opcode or gate beyond spelling out the calls.
 `std::bitcoin::block_work(UInt256)` computes checked work from a target;
 the [division walkthrough](../../../../design/s31/bitcoin/BITCOIN_WORK_DIVISION.md)
-gives its integer and AIR equations and the [source example](../examples/bitcoin_block_work.s31).
+gives its integer and AIR equations and the [source example](../examples/bitcoin/bitcoin_block_work.s31).
 The [Bitcoin header chapter](bitcoin-sha256d.md)
 works through both operations and the proof-of-work comparison.
 Their field, bit, digest, and hash rules are in [source semantics](source.md)
@@ -478,7 +478,7 @@ and [hash semantics](hashes.md).
 
 ## One complete program
 
-This [checked-in program](../examples/mathlib4.s31) evaluates
+This [checked-in program](../examples/arithmetic/mathlib4.s31) evaluates
 `P(x)=2x³+3x²+5x+7`, then `2x+3P(x)+11`, independently in four lanes:
 
 ~~~s31
@@ -516,8 +516,8 @@ All four positions can be checked without a prover:
 | `2x+3P(x)` | 21 | 53 | 139 | 2639 |
 | `2x+3P(x)+11` | 32 | 64 | 150 | 2650 |
 
-The [assignment](../examples/mathlib4.valid.json) claims that last row.
-The [handwritten normalized relation](../examples/mathlib4.s31.json) names
+The [assignment](../examples/arithmetic/mathlib4.valid.json) claims that last row.
+The [handwritten normalized relation](../examples/arithmetic/mathlib4.s31.json) names
 the Horner and dot gates explicitly. The text frontend emits ten relation
 nodes, but canonicalization shares the repeated `2x` term, leaving nine
 unique arithmetic nodes. In the direct arithmetic profile, the full circuit
@@ -539,10 +539,10 @@ relation's AIR constraints, not the truth of Python code at verification time.
 Run from the repository root:
 
 ~~~sh
-python3 src/frontends/s31/python/s31.py lower src/frontends/s31/examples/mathlib4.s31
-python3 src/frontends/s31/python/s31.py build src/frontends/s31/examples/mathlib4.s31 --lowering direct-gate --out zig-out/s31/mathlib4-text
+python3 src/frontends/s31/python/s31.py lower src/frontends/s31/examples/arithmetic/mathlib4.s31
+python3 src/frontends/s31/python/s31.py build src/frontends/s31/examples/arithmetic/mathlib4.s31 --lowering direct-gate --out zig-out/s31/mathlib4-text
 python3 src/frontends/s31/python/s31.py explain zig-out/s31/mathlib4-text
-python3 src/frontends/s31/python/s31.py prove zig-out/s31/mathlib4-text src/frontends/s31/examples/mathlib4.valid.json zig-out/s31/mathlib4-text.proof
+python3 src/frontends/s31/python/s31.py prove zig-out/s31/mathlib4-text src/frontends/s31/examples/arithmetic/mathlib4.valid.json zig-out/s31/mathlib4-text.proof
 python3 src/frontends/s31/python/s31.py verify zig-out/s31/mathlib4-text zig-out/s31/mathlib4-text.proof
 ~~~
 

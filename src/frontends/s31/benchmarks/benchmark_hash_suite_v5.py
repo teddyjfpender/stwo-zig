@@ -5,6 +5,7 @@ import sys
 from pathlib import Path
 S31_SOURCE_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(S31_SOURCE_ROOT / "python"))
+from example_paths import example_path
 
 import argparse
 import hashlib
@@ -72,7 +73,7 @@ def main() -> None:
     with tempfile.TemporaryDirectory(prefix="s31-hash-bench-") as temporary:
         work = Path(temporary)
         for name in ("merkle2", "merkle_path1"):
-            source = HERE / "examples" / f"{name}.s31.json"
+            source = example_path(f"{name}.s31.json")
             package = s31.build(source, work / f"{name}-package", "gate")
             cost = json.loads((package / "cost-report.json").read_text())
             prover = package / "bin" / f"s31-{name}-prover"

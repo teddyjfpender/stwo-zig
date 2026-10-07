@@ -142,7 +142,7 @@ independent cryptographic audit.
 
 ## A private-witness child
 
-The [preimage example](../examples/preimage4.s31) has a different circuit
+The [preimage example](../examples/hashes/preimage4.s31) has a different circuit
 shape and a private four-word `u16` witness:
 
 ~~~s31
@@ -175,12 +175,12 @@ then wrap its saved proof:
 
 ```sh
 python3 src/frontends/s31/python/s31.py build \
-  src/frontends/s31/examples/arith4_m31.s31 \
+  src/frontends/s31/examples/arithmetic/arith4_m31.s31 \
   --lowering gate --out zig-out/s31/recursive-arith4
 
 python3 src/frontends/s31/python/s31.py prove \
   zig-out/s31/recursive-arith4 \
-  src/frontends/s31/examples/arith4.valid.json \
+  src/frontends/s31/examples/arithmetic/arith4.valid.json \
   zig-out/s31/recursive-arith4/child.proof
 
 python3 src/frontends/s31/python/s31.py wrap \

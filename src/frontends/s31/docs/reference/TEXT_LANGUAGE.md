@@ -10,11 +10,11 @@ then produce the same prover, AIR and sealed native verifier as a handwritten
 From the repository root:
 
 ```sh
-python3 src/frontends/s31/python/s31.py lower src/frontends/s31/examples/arith4_m31.s31
-python3 src/frontends/s31/python/s31.py build src/frontends/s31/examples/arith4_m31.s31 --lowering direct-chip --out zig-out/s31/text-arith4
+python3 src/frontends/s31/python/s31.py lower src/frontends/s31/examples/arithmetic/arith4_m31.s31
+python3 src/frontends/s31/python/s31.py build src/frontends/s31/examples/arithmetic/arith4_m31.s31 --lowering direct-chip --out zig-out/s31/text-arith4
 python3 src/frontends/s31/python/s31.py explain zig-out/s31/text-arith4
 python3 src/frontends/s31/python/s31.py equations zig-out/s31/text-arith4
-python3 src/frontends/s31/python/s31.py prove zig-out/s31/text-arith4 src/frontends/s31/examples/arith4.valid.json zig-out/s31/text-arith4.proof
+python3 src/frontends/s31/python/s31.py prove zig-out/s31/text-arith4 src/frontends/s31/examples/arithmetic/arith4.valid.json zig-out/s31/text-arith4.proof
 python3 src/frontends/s31/python/s31.py verify zig-out/s31/text-arith4 zig-out/s31/text-arith4.proof
 ```
 
@@ -85,7 +85,7 @@ body. With `--lowering direct-chip`, its chip rows constrain
 connects round outputs to round inputs and the public endpoints. See the
 [source-to-AIR guide](LANGUAGE_AND_AIR.md#the-repeated-step-chip) for the full
 lookup and polynomial explanation. The text form and
-[`arith4_m31.s31.json`](../../examples/arith4_m31.s31.json) have the same normalized
+[`arith4_m31.s31.json`](../../examples/arithmetic/arith4_m31.s31.json) have the same normalized
 relation and canonical IR digest.
 
 ## Types and library operations
@@ -186,38 +186,38 @@ operands use `sparse-wide-gate`, which includes the equality and range rows.
 The [Bitcoin header walkthrough](../bitcoin-sha256d.md) follows the
 byte-exact SHA256d and compact proof-of-work operations through the circuit.
 
-[`math_polynomial4.s31`](../../examples/math_polynomial4.s31) is a complete math
-example, with an equivalent [normalized relation](../../examples/math_polynomial4.s31.json)
-and a [valid assignment](../../examples/math_polynomial4.valid.json). The
+[`math_polynomial4.s31`](../../examples/arithmetic/math_polynomial4.s31) is a complete math
+example, with an equivalent [normalized relation](../../examples/arithmetic/math_polynomial4.s31.json)
+and a [valid assignment](../../examples/arithmetic/math_polynomial4.valid.json). The
 [library brief](../../../../../design/s31/language/STDLIB_MATHLIB.md) shows its six arithmetic
 nodes, AIR equations, and the remaining work for a full standard/math library.
-The [versioned library example](../../examples/mathlib4.s31) exercises the three
-static group helpers. Its [handwritten relation](../../examples/mathlib4.s31.json)
+The [versioned library example](../../examples/arithmetic/mathlib4.s31) exercises the three
+static group helpers. Its [handwritten relation](../../examples/arithmetic/mathlib4.s31.json)
 has the same canonical IR and AIR row geometry. The [library chapter](../library.md)
 works through the values, lowering, and package lock.
-The [matrix example](../../examples/static_matvec.s31) uses static reference
+The [matrix example](../../examples/arrays/static_matvec.s31) uses static reference
 indexing, concatenation, and `matvec`; its seven arithmetic nodes match a
-[handwritten relation](../../examples/static_matvec.s31.json). Runtime array views
+[handwritten relation](../../examples/arrays/static_matvec.s31.json). Runtime array views
 have explicit `array_get`, `array_concat`, and `array_slice` relation nodes so that their
 semantics remain visible in the normalized source. Raw input positions alias
 their existing constrained wires; shifted packed positions use constrained
-unpack and repack gates. The [private M31](../../examples/array_views_private.s31)
-and [private u16](../../examples/array_views_u16.s31) examples cross a four-lane
+unpack and repack gates. The [private M31](../../examples/arrays/array_views_private.s31)
+and [private u16](../../examples/arrays/array_views_u16.s31) examples cross a four-lane
 packing boundary. Their handwritten relations and native proof acceptance
 are exercised by `python3 acceptance_array_views.py`. Runtime
-[`take`/`drop`](../../examples/array_slice_shifted.s31) and
-[`reshape`/`flatten`](../../examples/array_matrix_runtime.s31) have corresponding
+[`take`/`drop`](../../examples/arrays/array_slice_shifted.s31) and
+[`reshape`/`flatten`](../../examples/arrays/array_matrix_runtime.s31) have corresponding
 handwritten relations and native proof tests. A runtime slice must be nonempty
 and stay within its source; its relation equation is
 `out[j] = source[offset+j]` for every selected lane. Aligned packed words
 borrow existing wires, while shifted words require constrained repacking.
-The [matrix multiplication example](../../examples/static_matmul.s31) uses static
+The [matrix multiplication example](../../examples/arrays/static_matmul.s31) uses static
 reshape, flatten, take, and drop. Those four helpers only group references;
 the `matmul` cells lower to the existing dot-product arithmetic nodes. Its
-[handwritten relation](../../examples/static_matmul.s31.json) has the same canonical
+[handwritten relation](../../examples/arrays/static_matmul.s31.json) has the same canonical
 IR and direct-gate geometry as the text program.
-Unlike static-group `sum` and `dot`, the [lane statistics example](../../examples/lane_stats4.s31)
-reduces positions of one witness array. Its [handwritten relation](../../examples/lane_stats4.s31.json)
+Unlike static-group `sum` and `dot`, the [lane statistics example](../../examples/arithmetic/lane_stats4.s31)
+reduces positions of one witness array. Its [handwritten relation](../../examples/arithmetic/lane_stats4.s31.json)
 uses a normalized `sum_lanes` node. Each extracted lane and addition is
 constrained by circuit gates; `dot_lanes` emits one pointwise multiplication
 followed by the same reduction.
@@ -243,12 +243,12 @@ The brackets group existing inputs at compile time. They create no witness
 array and must appear directly as Merkle arguments. They cannot be returned as
 a circuit value. The compiler emits one leaf node, then for each level two constrained
 select nodes and one ordered-pair hash node. The
-[`merkle_path2_poseidon.s31`](../../examples/merkle_path2_poseidon.s31) example is
+[`merkle_path2_poseidon.s31`](../../examples/hashes/merkle_path2_poseidon.s31) example is
 complete. A depth-one program written with ordinary pure functions and `let`
-is [`merkle_path1_poseidon.s31`](../../examples/merkle_path1_poseidon.s31); it lowers
+is [`merkle_path1_poseidon.s31`](../../examples/hashes/merkle_path1_poseidon.s31); it lowers
 exactly to the existing JSON example.
 
-[`preimage4.s31`](../../examples/preimage4.s31) shows an `assert_eq` over a private
+[`preimage4.s31`](../../examples/hashes/preimage4.s31) shows an `assert_eq` over a private
 `u16` witness and a public M31 target. It lowers exactly to the existing
 relation, including the equality assertion.
 

@@ -70,7 +70,7 @@ def main() -> None:
         "bitcoin_fold_digest.zig", "bitcoin_chain_anchor_proof_test.zig",
         "bitcoin_chain_verifier.zig", "bitcoin_chain_cli.zig",
         "bitcoin_target.zig", "sha256d.zig", "tests/acceptance/acceptance_bitcoin_chain_cli.py",
-        "examples/bitcoin_header_link.valid.json", "examples/bitcoin_block2_header.valid.json",
+        "examples/bitcoin/bitcoin_header_link.valid.json", "examples/bitcoin/bitcoin_block2_header.valid.json",
     )
     subprocess.run(CLI_BUILD, cwd=ROOT, check=True)
     subprocess.run(CLI_ACCEPTANCE, cwd=ROOT, check=True)

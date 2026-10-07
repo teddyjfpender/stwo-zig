@@ -5,6 +5,7 @@ import sys
 from pathlib import Path
 S31_SOURCE_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(S31_SOURCE_ROOT / "python"))
+from example_paths import example_path
 
 import argparse
 import json
@@ -38,8 +39,8 @@ def main() -> None:
                         help="sparse-wide child FRI folds per commitment")
     args = parser.parse_args()
     name = "bitcoin_header_pair" if args.bitcoin else "wide_order"
-    source = HERE / "examples" / f"{name}.s31"
-    assignment = HERE / "examples" / f"{name}.valid.json"
+    source = example_path(f"{name}.s31")
+    assignment = example_path(f"{name}.valid.json")
     cli = (sys.executable, str(HERE / "python/s31.py"))
     with tempfile.TemporaryDirectory(prefix="s31-wide-recursion-") as temporary:
         work = Path(temporary)
@@ -159,7 +160,7 @@ def main() -> None:
         checks.append("corrupt_second_proof")
 
         if not args.bitcoin:
-            alternate = HERE / "examples" / "wide_order.alternate.valid.json"
+            alternate = HERE / "examples" / "wide" / "wide_order.alternate.valid.json"
             alternate_child = work / "alternate-child.proof"
             alternate_first = work / "alternate-first.proof"
             alternate_second = work / "alternate-second.proof"

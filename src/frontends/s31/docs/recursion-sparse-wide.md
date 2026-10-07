@@ -1,7 +1,7 @@
 # Recursing over the sparse-wide proof profile
 
 This chapter follows a `sparse-wide-gate` proof through two real wrapper
-proofs. It uses [`wide_order.s31`](../examples/wide_order.s31), a small
+proofs. It uses [`wide_order.s31`](../examples/wide/wide_order.s31), a small
 256-bit arithmetic program. The same proof profile is used by the Bitcoin
 header examples. This is a proof of **one program execution** and then a
 proof that its STARK verifier accepted it. A recursive Bitcoin header-chain
@@ -173,11 +173,11 @@ From the repository root:
 
 ```sh
 python3 src/frontends/s31/python/s31.py build \
-  src/frontends/s31/examples/wide_order.s31 \
+  src/frontends/s31/examples/wide/wide_order.s31 \
   --lowering sparse-wide-gate --out zig-out/s31/wide-recursive
 python3 src/frontends/s31/python/s31.py prove \
   zig-out/s31/wide-recursive \
-  src/frontends/s31/examples/wide_order.valid.json \
+  src/frontends/s31/examples/wide/wide_order.valid.json \
   zig-out/s31/wide-recursive/child.proof
 python3 src/frontends/s31/python/s31.py audit-recursive \
   zig-out/s31/wide-recursive zig-out/s31/wide-recursive/child.proof
@@ -206,7 +206,7 @@ proof bytes, key bytes, the outer FRI schedule, public claims, and both chain
 statements.
 
 For `wide_order`, the fixture also proves and wraps a
-[second valid assignment](../examples/wide_order.alternate.valid.json) twice
+[second valid assignment](../examples/wide/wide_order.alternate.valid.json) twice
 under the same sealed keys. Its low limb has `65534 + 5 = 3 + 65536`, with a
 carry into limb 1; its public Poseidon2 root and all three proof files differ
 from the first assignment. This checks that the verifier circuit accepts
@@ -257,7 +257,7 @@ growing Bitcoin header chain, nor does it move SHA256d from the generic
 circuit to a proof-bound dedicated SHA AIR chip.
 
 The [onefold-child/fourfold-wrapper Bitcoin run](../../../../design/s31/measurements/bitcoin/bitcoin-sparse-wide-recursion-v2-2026-10-07.json)
-uses [`bitcoin_header_pair.s31`](../examples/bitcoin_header_pair.s31), which
+uses [`bitcoin_header_pair.s31`](../examples/bitcoin/bitcoin_header_pair.s31), which
 constrains two byte-exact SHA256d hashes, both mainnet proof-of-work checks,
 their previous-hash link, a genesis checkpoint, equal compact bits, and the
 strict first-step timestamp rule. It also passed two wrappers and the same

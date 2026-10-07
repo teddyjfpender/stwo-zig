@@ -27,10 +27,10 @@ def rejected(source: str, expected: str) -> None:
 
 def main() -> None:
     examples = s31.S31_DIR / "examples"
-    typed_source = (examples / "bitcoin_header_pair_typed.s31").read_text()
+    typed_source = (examples / "bitcoin" / "bitcoin_header_pair_typed.s31").read_text()
     typed_relation, _ = compile_text(typed_source)
-    old_relation, _ = compile_text((examples / "bitcoin_header_pair.s31").read_text())
-    pinned_relation = json.loads((examples / "bitcoin_header_pair.s31.json").read_text())
+    old_relation, _ = compile_text((examples / "bitcoin" / "bitcoin_header_pair.s31").read_text())
+    pinned_relation = json.loads((examples / "bitcoin" / "bitcoin_header_pair.s31.json").read_text())
     if typed_relation != old_relation or typed_relation != pinned_relation:
         raise AssertionError("nominal BlockHash changed the constrained relation")
 
@@ -45,10 +45,10 @@ def main() -> None:
 
     with tempfile.TemporaryDirectory(prefix="s31-blockhash-") as directory:
         work = Path(directory)
-        package = s31.build(examples / "bitcoin_header_pair_typed.s31",
+        package = s31.build(examples / "bitcoin" / "bitcoin_header_pair_typed.s31",
                             work / "package", "sparse-wide-gate", 4)
         manifest = s31.verify_package(package)
-        old_package = s31.build(examples / "bitcoin_header_pair.s31",
+        old_package = s31.build(examples / "bitcoin" / "bitcoin_header_pair.s31",
                                 work / "old-package", "sparse-wide-gate", 4)
         s31.verify_package(old_package)
         if ((package / "verification-key.json").read_bytes() !=
@@ -63,7 +63,7 @@ def main() -> None:
         packaged_relation = json.loads((package / "source.s31.json").read_text())
         if packaged_relation != pinned_relation:
             raise AssertionError("package lowered a different Bitcoin relation")
-        assignment_path = examples / "bitcoin_header_pair.valid.json"
+        assignment_path = examples / "bitcoin" / "bitcoin_header_pair.valid.json"
         assignment = json.loads(assignment_path.read_text())
         statement = work / "statement.json"
         s31.write_json(statement, {key: assignment[key] for key in

@@ -7,6 +7,7 @@ import sys
 from pathlib import Path
 S31_SOURCE_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(S31_SOURCE_ROOT / "python"))
+from example_paths import example_path
 
 import argparse
 import hashlib
@@ -56,8 +57,8 @@ def main() -> None:
     parser.add_argument("--record", type=Path, help="write the run's measurement JSON here")
     args = parser.parse_args()
     name = "bitcoin_header_pair" if args.bitcoin else "wide_order"
-    source = HERE / "examples" / f"{name}.s31"
-    assignment = HERE / "examples" / f"{name}.valid.json"
+    source = example_path(f"{name}.s31")
+    assignment = example_path(f"{name}.valid.json")
     cli = (sys.executable, str(HERE / "python/s31.py"))
     with tempfile.TemporaryDirectory(prefix="s31-wide-fold-") as temporary:
         work = Path(temporary)

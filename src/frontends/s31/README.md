@@ -19,7 +19,7 @@ The root contains the package build files and [`mod.zig`](mod.zig), the Zig modu
 | [`benchmarks/`](benchmarks/) | Repeatable comparison and measurement drivers. |
 | [`tools/`](tools/) | Source generators, inspectors, and record utilities. |
 | [`entry/`](entry/) | Small Zig build entry files; `build.zig` selects these while implementation stays in the domain folders. |
-| [`examples/`](examples/), [`docs/`](docs/) | Sample programs and reader-facing language documentation. |
+| [`examples/`](examples/README.md), [`docs/`](docs/) | Subject-grouped sample programs and reader-facing language documentation. |
 
 The matching [design dossier](../../../design/s31/README.md) keeps proposals and measurements separate from maintained source. Historical measurements remain pinned records; moved records retain their original contents.
 
@@ -34,9 +34,9 @@ The compiler accepts normalized JSON and a [limited typed `.s31` text language](
 To use the text frontend and inspect its exact lowering:
 
 ```sh
-python3 src/frontends/s31/python/s31.py lower src/frontends/s31/examples/arith4_m31.s31
-python3 src/frontends/s31/python/s31.py oracle src/frontends/s31/examples/lane_stats4.s31 src/frontends/s31/examples/lane_stats4.valid.json
-python3 src/frontends/s31/python/s31.py build src/frontends/s31/examples/arith4_m31.s31 --lowering direct-chip --out zig-out/s31/text-arith4
+python3 src/frontends/s31/python/s31.py lower src/frontends/s31/examples/arithmetic/arith4_m31.s31
+python3 src/frontends/s31/python/s31.py oracle src/frontends/s31/examples/arithmetic/lane_stats4.s31 src/frontends/s31/examples/arithmetic/lane_stats4.valid.json
+python3 src/frontends/s31/python/s31.py build src/frontends/s31/examples/arithmetic/arith4_m31.s31 --lowering direct-chip --out zig-out/s31/text-arith4
 python3 src/frontends/s31/python/s31.py explain zig-out/s31/text-arith4
 python3 src/frontends/s31/python/s31.py equations zig-out/s31/text-arith4
 ```
@@ -47,8 +47,8 @@ rejected, and writes a compact machine-readable report:
 
 ```sh
 python3 src/frontends/s31/python/s31.py trial \
-  src/frontends/s31/examples/lane_stats4.s31 \
-  src/frontends/s31/examples/lane_stats4.valid.json \
+  src/frontends/s31/examples/arithmetic/lane_stats4.s31 \
+  src/frontends/s31/examples/arithmetic/lane_stats4.valid.json \
   --lowering direct-gate --out zig-out/s31/lane-stats4-trial
 ```
 
@@ -82,8 +82,8 @@ does not choose a profile automatically:
 
 ```sh
 python3 src/frontends/s31/python/s31.py tune \
-  src/frontends/s31/examples/arith4_m31.s31 \
-  src/frontends/s31/examples/arith4.valid.json \
+  src/frontends/s31/examples/arithmetic/arith4_m31.s31 \
+  src/frontends/s31/examples/arithmetic/arith4.valid.json \
   --lowering direct-gate --lowering direct-chip \
   --out zig-out/s31/arith4-tune
 ```
@@ -108,34 +108,34 @@ library operations and the remaining work for a useful release.
 The [standard/math library chapter](docs/library.md) covers `use std@1;`,
 static `sum`/`dot`, Horner polynomial evaluation, hand calculations, and the
 source-hashed library lock embedded in text packages. The complete
-[`mathlib4.s31` example](examples/mathlib4.s31) builds under `direct-gate`
-and produces a native verifier. [`lane_stats4.s31`](examples/lane_stats4.s31)
+[`mathlib4.s31` example](examples/arithmetic/mathlib4.s31) builds under `direct-gate`
+and produces a native verifier. [`lane_stats4.s31`](examples/arithmetic/lane_stats4.s31)
 computes the sum and weighted dot product of private array lanes, returning
 one public M31 word. Its `sum_lanes` operations use constrained packed-lane
 projection; `dot_lanes` adds one pointwise multiplication.
-[`field_div4.s31`](examples/field_div4.s31) adds checked field inversion and
+[`field_div4.s31`](examples/arithmetic/field_div4.s31) adds checked field inversion and
 division. `std::math::div` reuses the checked inverse and remains on the
 `direct-gate` profile; a zero denominator is unsatisfiable. Run
 `python3 src/frontends/s31/tests/acceptance/acceptance_field_div_v1.py` for the proof and
-native-verifier adversarial checks. [`computed_choice.s31`](examples/computed_choice.s31)
+native-verifier adversarial checks. [`computed_choice.s31`](examples/control/computed_choice.s31)
 uses a constrained `std::field::is_zero` bit to choose between two values;
 `python3 src/frontends/s31/tests/acceptance/acceptance_computed_bit_v1.py` proves both branches.
 `equations` exposes semantic field equations and source positions, with the
 generic AIR's lookup and public-binding terms documented separately in
 [the guide](docs/walkthrough.md).
 
-The [`wide_order.s31` example](examples/wide_order.s31) uses typed 32-byte
+The [`wide_order.s31` example](examples/wide/wide_order.s31) uses typed 32-byte
 values, constrained 256-bit addition and comparison, and a Poseidon2 public
 commitment. The [worked wide-value chapter](docs/wide-values.md) derives its
 carry and borrow equations by hand. Use `--lowering sparse-wide-gate` for this
 example. For an actual Bitcoin header proof, see
-[`bitcoin_header_pow.s31`](examples/bitcoin_header_pow.s31) and its
+[`bitcoin_header_pow.s31`](examples/bitcoin/bitcoin_header_pow.s31) and its
 [worked walkthrough](docs/bitcoin-sha256d.md): three constrained SHA-256
 compression blocks, mainnet `nBits` decoding, and a hash ≤ target assertion.
-[`bitcoin_header_pair_typed.s31`](examples/bitcoin_header_pair_typed.s31) extends this
+[`bitcoin_header_pair_typed.s31`](examples/bitcoin/bitcoin_header_pair_typed.s31) extends this
 to two real, linked headers with a mainnet genesis checkpoint, both PoW
 checks, equal `nBits`, and the strict first-step median-time-past rule. It still uses the generic
-SHA circuit. The [header-link leaf](examples/bitcoin_header_link.s31) proves
+SHA circuit. The [header-link leaf](examples/bitcoin/bitcoin_header_link.s31) proves
 one fresh header's SHA256d, previous-hash link, and PoW against a claimed
 `BlockHash`, then commits to the ordered old/new hashes. Its proof does not
 authenticate the prior hash or enforce full chain policy; that linkage belongs
@@ -146,7 +146,7 @@ tape closes the SHA graph's lookups for one or two headers, and the
 [SHA chip profile](sha/config/sha_chip_profile.zig) pins the corresponding AIR identities
 and row geometry. A focused [joint proof test](sha/tests/sha_joint_prover_test.zig) now
 connects one private header and digest through a caller AIR, two lookup buses,
-and one native STARK verifier. `s31 build examples/bitcoin_header_pow.s31
+and one native STARK verifier. `s31 build examples/bitcoin/bitcoin_header_pow.s31
 --lowering sha-joint --out zig-out/s31/bitcoin-sha-joint` packages this sealed
 one-header profile with a source and topology derived key, the eight-word
 public root ABI, a cost report, and an independently runnable native verifier.
@@ -162,7 +162,7 @@ boundary, generic-proof replay, and proof corruption rejection. The
 source-bound format:
 
 ```sh
-python3 src/frontends/s31/python/s31.py build src/frontends/s31/examples/bitcoin_header_pow.s31.json --lowering sha-shift --out zig-out/s31/bitcoin-sha-shift
+python3 src/frontends/s31/python/s31.py build src/frontends/s31/examples/bitcoin/bitcoin_header_pow.s31.json --lowering sha-shift --out zig-out/s31/bitcoin-sha-shift
 python3 src/frontends/s31/tests/acceptance/acceptance_sha_shift_package.py
 ```
 
@@ -183,7 +183,7 @@ The `sha-fused` lowering packages the three-call fused schedule and round AIR
 with the same sealed source and value-free topology checks:
 
 ```sh
-python3 src/frontends/s31/python/s31.py build src/frontends/s31/examples/bitcoin_header_pow.s31.json --lowering sha-fused --out zig-out/s31/bitcoin-sha-fused
+python3 src/frontends/s31/python/s31.py build src/frontends/s31/examples/bitcoin/bitcoin_header_pow.s31.json --lowering sha-fused --out zig-out/s31/bitcoin-sha-fused
 python3 src/frontends/s31/tests/acceptance/acceptance_sha_fused_package.py
 ```
 
@@ -274,7 +274,7 @@ recurrence with square, addition and multiplication by constants from source
 and proves one more computation step in each fold. Its `u32` step counter
 supports up to 2³²−1 added steps. `state-fold-advance` runs
 multiple steps with optional checkpoints for resume.
-The [coupled `mix4` example](examples/mix4_square4.s31) adds a four-lane
+The [coupled `mix4` example](examples/arithmetic/mix4_square4.s31) adds a four-lane
 linear diffusion step to that source-derived recurrence while keeping the
 same padded verifier AIR size.
 `inspect_state_fold_claim.py PACKAGE TOP-PROOF` verifies an isolated top
@@ -304,11 +304,11 @@ From the repository root:
 
 ```sh
 zig build --build-file src/frontends/s31/build.zig test -Doptimize=ReleaseSafe
-python3 src/frontends/s31/python/s31.py check src/frontends/s31/examples/preimage4.s31.json
-python3 src/frontends/s31/python/s31.py build src/frontends/s31/examples/preimage4.s31.json --out zig-out/s31/preimage4
+python3 src/frontends/s31/python/s31.py check src/frontends/s31/examples/hashes/preimage4.s31.json
+python3 src/frontends/s31/python/s31.py build src/frontends/s31/examples/hashes/preimage4.s31.json --out zig-out/s31/preimage4
 python3 src/frontends/s31/python/s31.py inspect zig-out/s31/preimage4
-python3 src/frontends/s31/python/s31.py run zig-out/s31/preimage4 src/frontends/s31/examples/preimage4.valid.json
-python3 src/frontends/s31/python/s31.py prove zig-out/s31/preimage4 src/frontends/s31/examples/preimage4.valid.json zig-out/s31/preimage4.proof
+python3 src/frontends/s31/python/s31.py run zig-out/s31/preimage4 src/frontends/s31/examples/hashes/preimage4.valid.json
+python3 src/frontends/s31/python/s31.py prove zig-out/s31/preimage4 src/frontends/s31/examples/hashes/preimage4.valid.json zig-out/s31/preimage4.proof
 python3 src/frontends/s31/python/s31.py verify zig-out/s31/preimage4 zig-out/s31/preimage4.proof
 ```
 
@@ -317,30 +317,30 @@ python3 src/frontends/s31/python/s31.py verify zig-out/s31/preimage4 zig-out/s31
 For the 256-round recurrence, choose a lowering explicitly:
 
 ```sh
-python3 src/frontends/s31/python/s31.py build src/frontends/s31/examples/arith4.s31.json --lowering sparse-chip --out zig-out/s31/arith4-sparse-chip
+python3 src/frontends/s31/python/s31.py build src/frontends/s31/examples/arithmetic/arith4.s31.json --lowering sparse-chip --out zig-out/s31/arith4-sparse-chip
 python3 src/frontends/s31/python/s31.py inspect zig-out/s31/arith4-sparse-chip
-python3 src/frontends/s31/python/s31.py prove zig-out/s31/arith4-sparse-chip src/frontends/s31/examples/arith4.valid.json zig-out/s31/arith4-sparse-chip.proof
+python3 src/frontends/s31/python/s31.py prove zig-out/s31/arith4-sparse-chip src/frontends/s31/examples/arithmetic/arith4.valid.json zig-out/s31/arith4-sparse-chip.proof
 python3 src/frontends/s31/python/s31.py verify zig-out/s31/arith4-sparse-chip zig-out/s31/arith4-sparse-chip.proof
 ```
 
 The ten modes are `gate` (the original eleven-component circuit), `chip` (that circuit plus one linked step AIR), `sparse-gate`/`sparse-chip` (three arithmetic circuit components, optionally with the step AIR), `sparse-wide-gate` (Eq plus those three components for wide integers), `direct-gate`/`direct-chip` (one QM31 arithmetic component, optionally with the step AIR), and `sha-joint`, `sha-shift`, and `sha-fused` (one private Bitcoin header joined to three SHA compression calls). The repeated-step chip modes accept only the exact four-lane square-then-add recurrence with a public boundary and 16–32768 power-of-two rounds. Sparse arithmetic retains M31-to-`u32` conversion and the 16-bit range table. Direct mode accepts all-M31 arithmetic relations, binds canonical public M31 words directly, and omits that converter and table. Each selected chip and circuit share one STARK proof and one native verifier invocation.
 
-The direct-M31 example is [`examples/arith4_m31.s31.json`](examples/arith4_m31.s31.json). Build it with `--lowering direct-chip` and use [`examples/arith4.valid.json`](examples/arith4.valid.json) as the assignment. The [source-to-AIR guide](docs/reference/LANGUAGE_AND_AIR.md#direct-m31-public-values) explains the different public encoding and constraint profile.
+The direct-M31 example is [`examples/arithmetic/arith4_m31.s31.json`](examples/arithmetic/arith4_m31.s31.json). Build it with `--lowering direct-chip` and use [`examples/arithmetic/arith4.valid.json`](examples/arithmetic/arith4.valid.json) as the assignment. The [source-to-AIR guide](docs/reference/LANGUAGE_AND_AIR.md#direct-m31-public-values) explains the different public encoding and constraint profile.
 
-The hash suite includes [`examples/merkle2.s31.json`](examples/merkle2.s31.json), which hashes two private leaves into a public root, and [`examples/merkle_path1.s31.json`](examples/merkle_path1.s31.json), which proves a one-level path with a constrained direction bit. Use `--lowering gate` for both. The [hash section of the language guide](docs/reference/LANGUAGE_AND_AIR.md#hashes-tree-nodes-and-conditional-paths) specifies every byte and field conversion.
+The hash suite includes [`examples/hashes/merkle2.s31.json`](examples/hashes/merkle2.s31.json), which hashes two private leaves into a public root, and [`examples/hashes/merkle_path1.s31.json`](examples/hashes/merkle_path1.s31.json), which proves a one-level path with a constrained direction bit. Use `--lowering gate` for both. The [hash section of the language guide](docs/reference/LANGUAGE_AND_AIR.md#hashes-tree-nodes-and-conditional-paths) specifies every byte and field conversion.
 The [hash library brief](../../../design/s31/language/HASH_LIBRARY.md) records the cryptographic encoding, proof cost and next efficiency work.
 
-The field-native suite has matching tree and one-level-path examples: [`examples/merkle2_poseidon.s31.json`](examples/merkle2_poseidon.s31.json) and [`examples/merkle_path1_poseidon.s31.json`](examples/merkle_path1_poseidon.s31.json). Build them with `--lowering direct-gate`. This uses the repository's pinned Stark-V M31 Poseidon2 permutation and eight-column QM31 arithmetic AIR; each build still emits its own native verifier. Direct-mode `select` currently requires a directly referenced `m31[1]` input selector, constrained by `b²=b`. The two hash families produce different roots for the same leaves.
+The field-native suite has matching tree and one-level-path examples: [`examples/hashes/merkle2_poseidon.s31.json`](examples/hashes/merkle2_poseidon.s31.json) and [`examples/hashes/merkle_path1_poseidon.s31.json`](examples/hashes/merkle_path1_poseidon.s31.json). Build them with `--lowering direct-gate`. This uses the repository's pinned Stark-V M31 Poseidon2 permutation and eight-column QM31 arithmetic AIR; each build still emits its own native verifier. Direct-mode `select` currently requires a directly referenced `m31[1]` input selector, constrained by `b²=b`. The two hash families produce different roots for the same leaves.
 
 ```sh
-python3 src/frontends/s31/python/s31.py build src/frontends/s31/examples/merkle_path1_poseidon.s31.json --lowering direct-gate --out zig-out/s31/merkle-path1-poseidon
-python3 src/frontends/s31/python/s31.py prove zig-out/s31/merkle-path1-poseidon src/frontends/s31/examples/merkle_path1_poseidon.valid.json zig-out/s31/merkle-path1-poseidon.proof
+python3 src/frontends/s31/python/s31.py build src/frontends/s31/examples/hashes/merkle_path1_poseidon.s31.json --lowering direct-gate --out zig-out/s31/merkle-path1-poseidon
+python3 src/frontends/s31/python/s31.py prove zig-out/s31/merkle-path1-poseidon src/frontends/s31/examples/hashes/merkle_path1_poseidon.valid.json zig-out/s31/merkle-path1-poseidon.proof
 python3 src/frontends/s31/python/s31.py verify zig-out/s31/merkle-path1-poseidon zig-out/s31/merkle-path1-poseidon.proof
 ```
 
 ```sh
-python3 src/frontends/s31/python/s31.py build src/frontends/s31/examples/merkle_path1.s31.json --lowering gate --out zig-out/s31/merkle-path1
-python3 src/frontends/s31/python/s31.py prove zig-out/s31/merkle-path1 src/frontends/s31/examples/merkle_path1.valid.json zig-out/s31/merkle-path1.proof
+python3 src/frontends/s31/python/s31.py build src/frontends/s31/examples/hashes/merkle_path1.s31.json --lowering gate --out zig-out/s31/merkle-path1
+python3 src/frontends/s31/python/s31.py prove zig-out/s31/merkle-path1 src/frontends/s31/examples/hashes/merkle_path1.valid.json zig-out/s31/merkle-path1.proof
 python3 src/frontends/s31/python/s31.py verify zig-out/s31/merkle-path1 zig-out/s31/merkle-path1.proof
 ```
 

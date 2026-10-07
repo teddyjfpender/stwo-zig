@@ -94,7 +94,7 @@ def main() -> None:
     with tempfile.TemporaryDirectory(prefix="s31-array-views-") as directory:
         work = Path(directory)
         for name, profile, expected in CASES:
-            example = s31.S31_DIR / "examples" / name
+            example = s31.S31_DIR / "examples" / "arrays" / name
             source = example.with_suffix(".s31")
             relation_path = source.with_suffix(".s31.json")
             assignment_path = example.with_suffix(".valid.json")

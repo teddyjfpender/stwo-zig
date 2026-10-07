@@ -11,7 +11,7 @@ pub fn build(b: *std.Build) void {
     const source_asset: std.Build.LazyPath = if (b.option([]const u8, "s31-source", "Absolute path to a normalized S31 source file")) |path|
         .{ .cwd_relative = path }
     else
-        b.path("examples/affine4.s31.json");
+        b.path("examples/arithmetic/affine4.s31.json");
     const program_name = b.option([]const u8, "s31-name", "Build artifact name for the selected program") orelse "affine4";
     const source_version = b.option(u32, "s31-version", "Normalized source version (0 or 1)") orelse 0;
     const lowering = b.option([]const u8, "s31-lowering", "gate, chip, sparse-gate, sparse-chip, sparse-wide-gate, direct-gate, direct-chip, sha-joint, sha-shift, or sha-fused proof lowering") orelse "gate";
@@ -354,7 +354,7 @@ pub fn build(b: *std.Build) void {
         .root_source_file = .{ .cwd_relative = b.pathFromRoot("../../../vectors/circuit/official/compiled_air_constraints_v1.bin") },
     });
     sha_fused_fold_proof_root.addAnonymousImport("s31_bitcoin_fixture", .{
-        .root_source_file = b.path("examples/bitcoin_header_link.valid.json"),
+        .root_source_file = b.path("examples/bitcoin/bitcoin_header_link.valid.json"),
     });
     const sha_fused_fold_proof_tests = b.addTest(.{ .root_module = sha_fused_fold_proof_root });
     b.step("check-sha-fused-fold-proof", "Compile the opt-in fused SHA Bitcoin fold integration proof")
@@ -393,7 +393,7 @@ pub fn build(b: *std.Build) void {
         .root_source_file = .{ .cwd_relative = b.pathFromRoot("../../../vectors/circuit/official/compiled_air_constraints_v1.bin") },
     });
     sha_fused_fold_matched_root.addAnonymousImport("s31_bitcoin_fixture", .{
-        .root_source_file = b.path("examples/bitcoin_header_link.valid.json"),
+        .root_source_file = b.path("examples/bitcoin/bitcoin_header_link.valid.json"),
     });
     const sha_fused_fold_matched_tests = b.addTest(.{ .root_module = sha_fused_fold_matched_root });
     b.step("check-sha-fused-fold-matched-bench", "Compile the matched generic versus fused fold benchmark")
@@ -503,10 +503,10 @@ pub fn build(b: *std.Build) void {
     b.step("test-bitcoin-retarget-proof", "Prove and natively verify the first Bitcoin retarget relation")
         .dependOn(&retarget_proof_tests.step);
     anchor_proof_test_root.addAnonymousImport("s31_bitcoin_fixture", .{
-        .root_source_file = b.path("examples/bitcoin_header_link.valid.json"),
+        .root_source_file = b.path("examples/bitcoin/bitcoin_header_link.valid.json"),
     });
     anchor_proof_test_root.addAnonymousImport("s31_bitcoin_block2_fixture", .{
-        .root_source_file = b.path("examples/bitcoin_block2_header.valid.json"),
+        .root_source_file = b.path("examples/bitcoin/bitcoin_block2_header.valid.json"),
     });
     const anchor_proof_tests = b.addRunArtifact(b.addTest(.{
         .root_module = anchor_proof_test_root,
@@ -593,23 +593,23 @@ pub fn build(b: *std.Build) void {
         const key_asset: std.Build.LazyPath = if (b.option([]const u8, "s31-key", "Absolute path to the sealed verification key")) |path|
             .{ .cwd_relative = path }
         else
-            b.path("examples/placeholder-verification-key.json");
+            b.path("examples/keys/placeholder-verification-key.json");
         const recursive_key_asset: std.Build.LazyPath = if (b.option([]const u8, "s31-recursive-key", "Absolute path to the sealed recursive verification key")) |path|
             .{ .cwd_relative = path }
         else
-            b.path("examples/placeholder-recursive-key.json");
+            b.path("examples/keys/placeholder-recursive-key.json");
         const recursive_next_key_asset: std.Build.LazyPath = if (b.option([]const u8, "s31-recursive-next-key", "Absolute path to the sealed second-level recursive verification key")) |path|
             .{ .cwd_relative = path }
         else
-            b.path("examples/placeholder-recursive-key.json");
+            b.path("examples/keys/placeholder-recursive-key.json");
         const fold_key_asset: std.Build.LazyPath = if (b.option([]const u8, "s31-fold-key", "Absolute path to the sealed fixed-fold verification key")) |path|
             .{ .cwd_relative = path }
         else
-            b.path("examples/placeholder-recursive-key.json");
+            b.path("examples/keys/placeholder-recursive-key.json");
         const state_fold_key_asset: std.Build.LazyPath = if (b.option([]const u8, "s31-state-fold-key", "Absolute path to the sealed state-transition fold verification key")) |path|
             .{ .cwd_relative = path }
         else
-            b.path("examples/placeholder-recursive-key.json");
+            b.path("examples/keys/placeholder-recursive-key.json");
         const prover_root = localEntry(b, "runtime/mvp_runtime.zig", target, optimize);
         prover_root.addImport("stwo_s31_prototype", frontend);
         prover_root.addImport("stwo_core", core);

@@ -16,8 +16,8 @@ import s31
 
 
 HERE = S31_SOURCE_ROOT
-SOURCE = HERE / "examples" / "affine4_v1.s31.json"
-ASSIGNMENT = HERE / "examples" / "affine4_v1.valid.json"
+SOURCE = HERE / "examples" / "arithmetic" / "affine4_v1.s31.json"
+ASSIGNMENT = HERE / "examples" / "arithmetic" / "affine4_v1.valid.json"
 
 
 def run(*args: str, accepted: bool) -> str:

@@ -20,8 +20,8 @@ import s31
 
 
 HERE = S31_SOURCE_ROOT
-SOURCE = HERE / "examples/arith4_m31.s31"
-ASSIGNMENT = HERE / "examples/arith4.valid.json"
+SOURCE = HERE / "examples/arithmetic/arith4_m31.s31"
+ASSIGNMENT = HERE / "examples/arithmetic/arith4.valid.json"
 
 
 def run(*args: str, accept: bool = True) -> str:

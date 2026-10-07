@@ -30,9 +30,9 @@ backend order. The recorded five rounds produce 15 samples per profile.
 
 | Name | Fixture | Bitcoin block hash, display order |
 | --- | --- | --- |
-| Genesis | `examples/bitcoin_header_pow.valid.json` | `000000000019d6689c085ae165831e934ff763ae46a2a6c172b3f1b60a8ce26f` |
-| Height 1 | `examples/bitcoin_header_link.valid.json`, `private_inputs.child` | `00000000839a8e6886ab5951d76f411475428afc90947ee320161bbf18eb6048` |
-| Height 2 | `examples/bitcoin_block2_header.valid.json`, `header_hex` | `000000006a625f06636b8bb6ac7b960a8d03705d1ace08b1a19da3fdcc99ddbd` |
+| Genesis | `examples/bitcoin/bitcoin_header_pow.valid.json` | `000000000019d6689c085ae165831e934ff763ae46a2a6c172b3f1b60a8ce26f` |
+| Height 1 | `examples/bitcoin/bitcoin_header_link.valid.json`, `private_inputs.child` | `00000000839a8e6886ab5951d76f411475428afc90947ee320161bbf18eb6048` |
+| Height 2 | `examples/bitcoin/bitcoin_block2_header.valid.json`, `header_hex` | `000000006a625f06636b8bb6ac7b960a8d03705d1ace08b1a19da3fdcc99ddbd` |
 
 The executable independently hashes each 80-byte header twice with SHA-256,
 checks it against the compact target, computes the Poseidon2 leaf root, and

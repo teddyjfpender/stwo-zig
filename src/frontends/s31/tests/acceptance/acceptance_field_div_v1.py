@@ -22,8 +22,8 @@ from text_frontend import compile_file
 
 
 HERE = S31_SOURCE_ROOT
-SOURCE = HERE / "examples/field_div4.s31"
-ASSIGNMENT = HERE / "examples/field_div4.valid.json"
+SOURCE = HERE / "examples/arithmetic/field_div4.s31"
+ASSIGNMENT = HERE / "examples/arithmetic/field_div4.valid.json"
 
 
 def run(*args: str, accept: bool) -> None:

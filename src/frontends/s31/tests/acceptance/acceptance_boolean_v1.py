@@ -56,9 +56,9 @@ def proof_case(package: Path, work: Path, assignment: dict, name: str) -> int:
 def main() -> None:
     with tempfile.TemporaryDirectory(prefix="s31-boolean-") as temporary:
         work = Path(temporary)
-        computed_source = HERE / "examples/bool_computed_choice.s31"
+        computed_source = HERE / "examples/control/bool_computed_choice.s31"
         relation, _ = compile_file(computed_source)
-        handwritten = json.loads((HERE / "examples/bool_computed_choice.s31.json").read_text())
+        handwritten = json.loads((HERE / "examples/control/bool_computed_choice.s31.json").read_text())
         if relation != handwritten:
             raise AssertionError("handwritten Boolean relation differs from text lowering")
         computed = s31.build(computed_source, work / "computed", "direct-gate")
@@ -74,9 +74,9 @@ def main() -> None:
                                           "bool_computed_choice"))
             accepted += 1
             rejected += 1
-        input_source = HERE / "examples/bool_input_and.s31"
+        input_source = HERE / "examples/control/bool_input_and.s31"
         input_package = s31.build(input_source, work / "input", "direct-gate")
-        good = json.loads((HERE / "examples/bool_input_and.valid.json").read_text())
+        good = json.loads((HERE / "examples/control/bool_input_and.valid.json").read_text())
         proof_sizes.append(proof_case(input_package, work, good, "bool_input_and"))
         accepted += 1
         rejected += 1

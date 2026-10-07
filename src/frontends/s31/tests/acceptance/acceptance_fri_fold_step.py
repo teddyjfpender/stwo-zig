@@ -21,8 +21,8 @@ from acceptance_state_fold import run
 
 
 HERE = S31_SOURCE_ROOT
-SOURCE = HERE / "examples/affine_square4.s31"
-ASSIGNMENT = HERE / "examples/affine_square4.valid.json"
+SOURCE = HERE / "examples/arithmetic/affine_square4.s31"
+ASSIGNMENT = HERE / "examples/arithmetic/affine_square4.valid.json"
 
 
 def main() -> None:
