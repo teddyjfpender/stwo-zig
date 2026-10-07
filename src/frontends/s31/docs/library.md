@@ -35,6 +35,8 @@ AIR. No helper is a host-only calculation or a new specialized AIR chip.
 | `std::math::poly_eval(x,[c0,c1,...,cd])` | `c0+c1·x+...+cd·x^d mod p` | 1..64 coefficients, each the same shape as `x`; **low degree first**. |
 | `std::math::add_u256(a,b)` | `(a+b) mod 2^256` | Two `UInt256` values; sixteen little-endian limbs. |
 | `std::math::add_u256_checked(a,b)` | `a+b` with final carry zero | Two `UInt256` values; overflow makes the relation unsatisfiable. |
+| `std::math::sum_u256([a,b,...])` | Fixed reduction modulo `2^256` | 1..16 static `UInt256` references; a balanced tree of `u256_add` nodes. |
+| `std::math::sum_u256_checked([a,b,...])` | Fixed reduction with no overflow | 1..16 static `UInt256` references; every `u256_add_checked` node proves its final carry zero. |
 | `std::math::sub_u256(a,b)` | `(a-b) mod 2^256` | Two `UInt256` values; sixteen little-endian limbs. |
 | `std::math::sub_u256_checked(a,b)` | `a-b` with final borrow zero | Two `UInt256` values; underflow makes the relation unsatisfiable. |
 | `std::math::le_u256(a,b)` | `1` if `a <= b`, else `0` | Two `UInt256` values; constrained `bit` result, usable as `[m31; 1]` output. |
@@ -51,6 +53,17 @@ item has type `[m31; 4]`, `dot` returns four independent inner products:
 output lane `j` uses lane `j` from every term. It does **not** sum the four
 coordinates of one `[m31; 4]` value. Use `sum_lanes` or `dot_lanes` to reduce
 those coordinates to one word.
+
+For wide sums, the bracketed group contains whole `UInt256` values rather
+than limbs. With three inputs, `sum_u256_checked([a,b,c])` emits precisely
+`t = u256_add_checked(a,b)` and `out = u256_add_checked(t,c)`; the helper
+introduces no independent witness or AIR operation. Four inputs use two
+parallel pair sums followed by one final sum. One input aliases the existing
+value and emits no add node. The wrapping form uses `u256_add` at those same
+positions. Both forms reject empty groups, more than sixteen terms, and
+`Bytes32` values at compile time. The [wide-value walkthrough](wide-values.md#adding-several-256-bit-values)
+shows the carries by hand and links a checked source, an explicit add chain,
+and native proof acceptance.
 
 `std::array::get<K>(group)` selects one entry of a static reference group,
 and `std::array::concat(left,right)` joins two such groups, at most 64 entries

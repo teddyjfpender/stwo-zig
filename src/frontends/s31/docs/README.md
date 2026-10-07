@@ -73,6 +73,8 @@ text .s31 ──parse/typecheck/specialize──▶ normalized relation JSON
    typed operations, static reductions, Horner evaluation, and a proof example.
 - [Circuit lowering](circuits.md): a hand-drawn gate graph, packed M31 lanes,
    fixed/witness columns, address lookups, and the six proof profiles.
+- [Private circuit-to-chip boundary](private-boundary.md): eight source-derived
+   wire addresses, authenticated Gate and chip lookup closure, and the public ABI.
 - [AIR and polynomials](air.md): a hand-filled trace, the **actual six
    repeated-step chip constraints**, lookup closure, quotient, and FRI.
 - [Direct SHA AIR by hand](sha-direct-air.md): trace one padded block word
@@ -92,6 +94,7 @@ The worked examples use checked-in sources under [`../examples`](../examples):
 | [`mathlib4.s31`](../examples/arithmetic/mathlib4.s31) | `use std@1`, Horner polynomial, static dot/sum, library lock | `direct-gate` |
 | [`lane_stats4.s31`](../examples/arithmetic/lane_stats4.s31) | Private arrays, lane sum and dot, one public result | `direct-gate` |
 | [`field_div4.s31`](../examples/arithmetic/field_div4.s31) | Checked inverse and division, one inverse witness shared across calls | `direct-gate` |
+| [`private_step16.s31`](../examples/boundary/private_step16.s31) | Private chip endpoints and one public aggregate | `direct-chip` |
 | [`computed_choice.s31`](../examples/control/computed_choice.s31) | Computed zero bit, two algebraic constraints, and conditional selection | `direct-gate` |
 | [`arith4_m31.s31`](../examples/arithmetic/arith4_m31.s31) | `iterate`, gate unrolling versus one linked AIR chip | `direct-chip` |
 | [`merkle_path1_poseidon.s31`](../examples/hashes/merkle_path1_poseidon.s31) | Private leaf, constrained bit, ordered hashing, public root | `direct-gate` |

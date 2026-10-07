@@ -7,13 +7,12 @@ feed trace and feed word bus. Its 17 interaction claims include 11 circuit
 claims, one Gate claim, and five SHA word-bus claims.
 
 The native verifier authenticates this joined proof and its fixed root. The
-wire shape now records every SHA opening. The full joined proof still cannot
-be converted into that format: five trace-only SHA components have no
-interaction claim, while the caller bus has two (Gate and word), giving 17
-claims for 21 components. The generic converter currently requires one claim
-per component. The current recursive
-circuit also does **not** verify an `S31FCF01` child. A second block cannot
-currently use this proof as its recursively verified predecessor.
+wire shape records every SHA opening, all 17 claims across 21 components,
+and both previous-row caller-bus sums. An accepted proof now converts to the
+same wire bytes from either prover memory or a fresh proof file after native
+verification. The current recursive circuit still does **not** verify an
+`S31FCF01` child. A second block cannot currently use this proof as its
+recursively verified predecessor.
 
 ## The format mismatch
 
@@ -37,16 +36,15 @@ The joined column inventory and the static ordered masks live in
 schedule columns supplies five OODS values. The wire stores them in column
 order and mask order; `traceMaskRange(column)` locates each column's values.
 Focused format tests check that the extra openings retain their mask order.
-The full joined proof still needs the claim-count change before an
-accepted-proof wire roundtrip can pass.
+The joined proof test compares the full wire encoding made from prover
+auxiliary data with the encoding made from a freshly decoded and natively
+verified proof capture. A changed public output is rejected before the
+transport is returned. The default outer test uses reduced FRI 0/12;
+`S31_FUSED_FOLD_PRODUCTION=1` exercises the same path with FRI 26/70.
 
 ## Next implementation boundary
 
-First, the wire proof and converter need a verifier-owned mapping from 21
-components to 17 interaction claims. The caller bus also has two four-column
-cumulative sums, each opened at the previous and current row; the current
-generic shape assumes only the last four interaction columns of a component
-have a previous-row opening. Then the in-circuit statement must connect the caller, fused round, feed, and bus
+The next boundary is the in-circuit statement: it must connect the caller, fused round, feed, and bus
 equations to the shifted OODS values and the two independent lookup challenge
 pairs. It must then check Gate/word-bus closure, composition, Merkle openings,
 quotient, FRI, and public outputs under the admitted key. The isolated

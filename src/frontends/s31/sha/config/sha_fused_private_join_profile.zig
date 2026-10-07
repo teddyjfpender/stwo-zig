@@ -156,7 +156,7 @@ test "fused private layout is compact and prefix-stable" {
     const a = Layout.init(.{});
     try std.testing.expectEqual(@as(usize, 51), a.total_fixed);
     try std.testing.expectEqual(@as(usize, 270), a.total_main);
-    try std.testing.expectEqual(@as(usize, 64), a.total_interaction);
+    try std.testing.expectEqual(@as(usize, 60), a.total_interaction);
     const b = Layout.init(.{ .fixed = 7, .main = 13, .interaction = 17 });
     try std.testing.expectEqual(a.fused_fixed + 7, b.fused_fixed);
     try std.testing.expectEqual(a.fused_main + 13, b.fused_main);

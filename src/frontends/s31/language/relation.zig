@@ -122,6 +122,34 @@ pub const Program = struct {
         return .{ .rounds = rounds, .constant = body[1].constant.? };
     }
 
+    /// A direct-M31 chip may take its four endpoints from private circuit
+    /// wires. The repeat is the first source node; later nodes may compute a
+    /// public claim from the final state without publishing either endpoint.
+    pub fn privateRepeatedStepChip(self: Program) ?ChipSpec {
+        if (self.inputs.len != 1 or self.nodes.len < 2 or self.public_outputs.len == 0)
+            return null;
+        const input = self.inputs[0];
+        if (input.visibility != .private or input.kind != .m31 or input.length != 4)
+            return null;
+        const repeated = self.nodes[0];
+        if (repeated.op != .repeat or
+            !std.mem.eql(u8, repeated.lhs orelse return null, input.name) or
+            repeated.rounds == null or repeated.body == null)
+            return null;
+        const rounds = repeated.rounds.?;
+        const body = repeated.body.?;
+        if (rounds < 16 or rounds > 32768 or !std.math.isPowerOfTwo(rounds) or
+            body.len != 2 or body[0].op != .square or body[1].op != .add_const or
+            body[1].constant == null)
+            return null;
+        for (self.nodes[1..]) |node| if (node.op == .repeat) return null;
+        for (self.public_outputs) |name| {
+            if (std.mem.eql(u8, name, input.name) or std.mem.eql(u8, name, repeated.name))
+                return null;
+        }
+        return .{ .rounds = rounds, .constant = body[1].constant.? };
+    }
+
     pub fn validate(self: Program, allocator: std.mem.Allocator) !void {
         if (self.version != 1) return error.UnsupportedVersion;
         if (!validName(self.name)) return error.InvalidProgramName;

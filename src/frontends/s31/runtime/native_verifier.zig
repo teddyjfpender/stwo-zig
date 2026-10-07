@@ -718,8 +718,8 @@ fn verifyDirectProfile(
         if (word >= core.fields.m31.Modulus) return error.InvalidPublicStatement;
         output.* = QM31.fromBase(M31.fromCanonical(word));
     }
-    var initial: [4]M31 = undefined;
-    var final: [4]M31 = undefined;
+    var initial = [_]M31{M31.zero()} ** 4;
+    var final = [_]M31{M31.zero()} ** 4;
     if (has_chip and private_boundary == null) for (0..4) |i| {
         initial[i] = M31.fromCanonical(public_words[i]);
         final[i] = M31.fromCanonical(public_words[4 + i]);

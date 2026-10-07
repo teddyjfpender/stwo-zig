@@ -497,6 +497,13 @@ class Compiler:
                 return self.builder.array_flatten(self.eval_expr(expr.args[0], env),
                                                   wanted=wanted, span=self.span(expr))
             if name in mathlib.BUILTINS:
+                if name in {"std::math::sum_u256", "std::math::sum_u256_checked"}:
+                    if expr.generic is not None or len(expr.args) != 1:
+                        raise TypeErrorS31(f"{name} expects one static array")
+                    group = self.eval_expr(expr.args[0], env)
+                    return mathlib.sum_u256_static(
+                        self.builder, group, checked=name.endswith("_checked"),
+                        wanted=wanted, span=self.span(expr))
                 if name == "std::math::pow":
                     if expr.generic is None or len(expr.args) != 1:
                         raise TypeErrorS31("std::math::pow<N>(value) expected")

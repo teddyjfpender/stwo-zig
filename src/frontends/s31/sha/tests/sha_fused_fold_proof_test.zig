@@ -251,11 +251,10 @@ test "checkpoint anchor and fused SHA fold step zero share one native proof" {
         &proof.claims,
     );
     // The native proof has 21 components and split-two composition. Its SHA
-    // state and schedule columns open five shifted rows each; the current
-    // recursive wire format accepts only one trace opening per column.
+    // state and schedule columns open five shifted rows each.
     const sampled = proof.stark.proof.commitment_scheme_proof.sampled_values.items;
     try std.testing.expectEqual(@as(usize, 4), sampled.len);
-    try std.testing.expect(!fused_shape.supports_recursive_proof_transport);
+    try std.testing.expect(!fused_shape.supports_recursive_verification);
     try std.testing.expectEqual(@as(usize, 21), fused_shape.component_shapes.len);
     try std.testing.expectEqual(@as(usize, 17), proof.claims.len);
     try std.testing.expectEqual(@as(usize, 16), sampled[3].len);
@@ -275,6 +274,20 @@ test "checkpoint anchor and fused SHA fold step zero share one native proof" {
     defer transported.deinit();
     const wire_bytes = try transported.serialize(allocator);
     defer allocator.free(wire_bytes);
+    var admitted = try fused_native.verifyWithTopologyAndTransport(
+        allocator,
+        source_digest,
+        &pp,
+        n_vars,
+        statement,
+        outer_pcs,
+        &expected_outputs,
+        bytes,
+    );
+    defer admitted.deinit();
+    const admitted_wire_bytes = try admitted.serialize(allocator);
+    defer allocator.free(admitted_wire_bytes);
+    try std.testing.expectEqualSlices(u8, wire_bytes, admitted_wire_bytes);
     try std.testing.expectEqual(joined_shape.serializedLen(), wire_bytes.len);
     var decoded = try circuit_wire.deserializeProof(allocator, wire_bytes, joined_shape);
     defer decoded.deinit();
@@ -337,6 +350,11 @@ test "checkpoint anchor and fused SHA fold step zero share one native proof" {
     changed_words[0] ^= 1;
     const changed_outputs = packedWords(changed_words);
     if (fused_native.verifyBytes(allocator, .{ .key = key, .public_outputs = &changed_outputs }, bytes)) |_| return error.ChangedFusedFoldOutputAccepted else |_| {}
+    if (fused_native.verifyAndTransport(allocator, .{ .key = key, .public_outputs = &changed_outputs }, bytes)) |unexpected| {
+        var accepted = unexpected;
+        accepted.deinit();
+        return error.ChangedFusedFoldTransportOutputAccepted;
+    } else |_| {}
     var changed_key = key;
     changed_key.source_digest[0] ^= 1;
     try std.testing.expectError(error.UntrustedFusedFoldSourceDigest, fused_native.verifyBytes(allocator, .{ .key = changed_key, .public_outputs = &expected_outputs }, bytes));

@@ -1,0 +1,12 @@
+use std@1;
+
+// (2^256-1)+1+9 wraps to 9; the final carry is intentionally discarded.
+circuit u256_sum_wrap(
+    private a: UInt256,
+    private b: UInt256,
+    private c: UInt256
+) -> public Digest<Poseidon2> {
+    let total = std::math::sum_u256([a, b, c]);
+    let root = std::hash::poseidon2_leaf(std::bytes::limbs_m31(total));
+    root
+}

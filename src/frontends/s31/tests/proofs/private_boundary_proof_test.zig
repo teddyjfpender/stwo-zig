@@ -3,6 +3,7 @@ const std = @import("std");
 const core = @import("stwo_core");
 const circuit = @import("stwo_circuit_frontend");
 const cpu = @import("stwo_circuit_cpu_integration");
+const s31 = @import("stwo_s31_prototype");
 const native = @import("../../runtime/native_verifier.zig");
 
 const M31 = core.fields.m31.M31;
@@ -133,3 +134,90 @@ test "one native proof binds private circuit wires to repeated-step chip endpoin
 }
 
 const DIRECT_PRIVATE_HEADER_SUM_OFFSET: usize = "S31NAT5P".len + 8 + 2 * 16;
+
+test "private S31 source produces sealed chip wires with one public aggregate" {
+    const allocator = std.testing.allocator;
+    var parsed = try s31.relation.parseProgram(allocator, @embedFile("../../examples/boundary/private_step16.s31.json"));
+    defer parsed.deinit();
+    var assignment = try s31.relation.parseAssignment(allocator, @embedFile("../../examples/boundary/private_step16.valid.json"));
+    defer assignment.deinit();
+    const source = parsed.value;
+    const public_words = try s31.relation.evaluate(allocator, source, assignment.value);
+    try std.testing.expectEqual(@as(usize, 8), public_words.len);
+    try std.testing.expectEqual(@as(u32, 793187693), public_words[0]);
+    for (public_words[1..]) |word| try std.testing.expectEqual(@as(u32, 0), word);
+    try std.testing.expect(source.repeatedStepChip() == null);
+    const spec = source.privateRepeatedStepChip() orelse return error.UnsupportedChipRelation;
+
+    var values = try s31.relation_compiler.compileDirect(QM31, allocator, source, assignment.value, true);
+    defer values.deinit();
+    var maps = s31.relation_compiler.Maps{};
+    defer maps.deinit(allocator);
+    var topology = try s31.relation_compiler.compileDirectWithSpans(circuit.builder.NoValue, allocator, source, null, &maps, true);
+    defer topology.deinit();
+    const boundary = maps.private_boundary orelse return error.MissingPrivateBoundary;
+    try std.testing.expectEqual(values.circuit.n_vars, topology.circuit.n_vars);
+    const targets: circuit.common.finalize.ComponentSizes = .{
+        .eq = 0,
+        .qm31_ops = circuit.common.finalize.paddedSize(topology.circuit.nQm31OpsRows()),
+        .triple_xor = 0,
+        .m31_to_u32 = 0,
+        .blake_g_gate = 0,
+    };
+    try circuit.common.finalize.padToTargets(QM31, &values, targets);
+    try circuit.common.finalize.padToTargets(circuit.builder.NoValue, &topology, targets);
+    try std.testing.expect(try values.isCircuitValid());
+    var initial: [4]M31 = undefined;
+    var final: [4]M31 = undefined;
+    for (0..4) |lane| {
+        initial[lane] = try values.values()[boundary.input[lane]].tryIntoM31();
+        final[lane] = try values.values()[boundary.output[lane]].tryIntoM31();
+    }
+    try std.testing.expectEqualSlices(M31, &.{ M31.fromCanonical(3), M31.fromCanonical(5), M31.fromCanonical(7), M31.fromCanonical(11) }, &initial);
+    const expected_final = try chip.direct(initial, M31.fromCanonical(spec.constant), spec.rounds);
+    try std.testing.expectEqualSlices(M31, &expected_final, &final);
+    for (topology.circuit.output.items) |out| for (boundary.input ++ boundary.output) |address| {
+        try std.testing.expect(out != address);
+    };
+
+    var pp = try circuit.common.direct_arithmetic.Circuit.fromBuilderCircuitWithPrivateBoundary(allocator, &topology.circuit, boundary);
+    defer pp.deinit(allocator);
+    const fri = try core.pcs.config_v2.FriConfigV2.init(26, 0, 1, 70, 1);
+    var pcs = core.pcs.config_v2.PcsConfigV2.fromFriAndTraceSize(fri, @max(pp.traceLogSize(), @as(u32, 4)));
+    pcs.preprocessed_lifting_log_size = pp.traceLogSize() + fri.log_blowup_factor;
+    var source_digest: [32]u8 = undefined;
+    std.crypto.hash.sha2.Sha256.hash(@embedFile("../../examples/boundary/private_step16.s31.json"), &source_digest, .{});
+    const request = cpu.prove.ChipRequest{
+        .source_digest = source_digest,
+        .rounds = spec.rounds,
+        .constant = M31.fromCanonical(spec.constant),
+        .initial = initial,
+        .final = final,
+    };
+    var bundle = try cpu.air.parse(allocator, @embedFile("s31_air_programs"));
+    defer bundle.deinit();
+    var proof = try cpu.direct_arithmetic.prove(allocator, values.values(), &pp, &bundle, pcs, .{
+        .source_digest = source_digest,
+        .chip_request = request,
+        .private_boundary = boundary,
+    });
+    defer proof.deinit();
+    const encoded = try native.serializeDirectPrivate(allocator, &proof);
+    defer allocator.free(encoded);
+    const layout = pp.layout();
+    const root = try pp.preprocessedRoot(allocator, fri.log_blowup_factor);
+    const hash = cpu.direct_arithmetic.identityHashWithPrivateBoundary(source_digest, root, pp.traceLogSize(), fri.log_blowup_factor, request, boundary);
+    const hybrid = native.HybridSpec{ .source_digest = source_digest, .rounds = spec.rounds, .constant = request.constant };
+    try native.verifyDirectPrivate(allocator, &layout, &bundle, pcs, root, hash, public_words, encoded, source_digest, hybrid, boundary);
+    var wrong_words = public_words;
+    wrong_words[0] +%= 1;
+    try std.testing.expectError(error.InvalidInteractionNonce, native.verifyDirectPrivate(allocator, &layout, &bundle, pcs, root, hash, wrong_words, encoded, source_digest, hybrid, boundary));
+    var wrong_boundary = boundary;
+    wrong_boundary.output[0] = 12345;
+    try std.testing.expectError(error.InvalidCircuitHash, native.verifyDirectPrivate(allocator, &layout, &bundle, pcs, root, hash, public_words, encoded, source_digest, hybrid, wrong_boundary));
+    var wrong_source_digest = source_digest;
+    wrong_source_digest[0] ^= 1;
+    var wrong_source_spec = hybrid;
+    wrong_source_spec.source_digest = wrong_source_digest;
+    try std.testing.expectError(error.InvalidCircuitHash, native.verifyDirectPrivate(allocator, &layout, &bundle, pcs, root, hash, public_words, encoded, wrong_source_digest, wrong_source_spec, boundary));
+}

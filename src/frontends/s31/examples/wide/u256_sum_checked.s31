@@ -1,0 +1,13 @@
+use std@1;
+
+// Full sum must fit in 256 bits. The 2^128-1, 1, 7 fixture carries
+// through eight u16 limbs and ends at 2^128+7.
+circuit u256_sum_checked(
+    private a: UInt256,
+    private b: UInt256,
+    private c: UInt256
+) -> public Digest<Poseidon2> {
+    let total = std::math::sum_u256_checked([a, b, c]);
+    let root = std::hash::poseidon2_leaf(std::bytes::limbs_m31(total));
+    root
+}

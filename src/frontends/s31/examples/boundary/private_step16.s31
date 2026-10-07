@@ -1,0 +1,12 @@
+// The chip connects the private start and end state; only their sum is public.
+use std@1;
+
+fn step(v: [m31; 4]) -> [m31; 4] {
+    v .* v + splat<4>(13_m31)
+}
+
+circuit private_step16(private secret: [m31; 4]) -> public [m31; 1] {
+    let state = iterate<16>(step, secret);
+    let total = std::math::sum_lanes(state);
+    total
+}

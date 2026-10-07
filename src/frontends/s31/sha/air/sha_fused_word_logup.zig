@@ -19,7 +19,9 @@ const DomainEvaluationAccumulator = prover.air.accumulation.DomainEvaluationAccu
 const PointEvaluationAccumulator = core.air.accumulation.PointEvaluationAccumulator;
 const Adapter = core.air.derive.ComponentAdapter(Component, prover.air.component_prover.ComponentProver, Trace, DomainEvaluationAccumulator);
 
-pub const event_slots: usize = 3;
+// The simultaneous state-a and state-e events share one secure column:
+// a/d_a + e/d_e = (a*d_e + e*d_a)/(d_a*d_e).
+pub const event_slots: usize = 2;
 pub const interaction_width: usize = event_slots * 4;
 pub const n_constraints: usize = event_slots;
 pub const log_size: u32 = round.log_size;
@@ -67,10 +69,16 @@ const FillContext = struct {
         for (&main_values, self.main) |*value, column| value.* = column.values[row_index];
         const fixed = round.fixedAt(M31, fixed_values);
         const main = round.unflatten(M31, main_values);
-        for (fractions, 0..) |*fraction, slot| {
-            const expr = bus.eventExpr(M31, main, fixed, slot);
-            fraction.* = .{ .numerator = QM31.fromBase(expr.weight), .denominator = self.elements.denominator(M31, expr.values) };
-        }
+        const schedule = bus.eventExpr(M31, main, fixed, 0);
+        fractions[0] = .{ .numerator = QM31.fromBase(schedule.weight), .denominator = self.elements.denominator(M31, schedule.values) };
+        const state_a = bus.eventExpr(M31, main, fixed, 1);
+        const state_e = bus.eventExpr(M31, main, fixed, 2);
+        const d_a = self.elements.denominator(M31, state_a.values);
+        const d_e = self.elements.denominator(M31, state_e.values);
+        fractions[1] = .{
+            .numerator = QM31.fromBase(state_a.weight).mul(d_e).add(QM31.fromBase(state_e.weight).mul(d_a)),
+            .denominator = d_a.mul(d_e),
+        };
     }
 };
 
@@ -146,12 +154,19 @@ pub const Component = struct {
         var constraints: [n_constraints]QM31 = undefined;
         for (&constraints, 0..) |*constraint, slot| {
             const expr = bus.eventExpr(QM31, main, fixed, slot);
-            const denominator = self.elements.denominator(QM31, expr.values);
+            var denominator = self.elements.denominator(QM31, expr.values);
+            var numerator = expr.weight;
+            if (slot == 1) {
+                const state_e = bus.eventExpr(QM31, main, fixed, 2);
+                const d_e = self.elements.denominator(QM31, state_e.values);
+                numerator = numerator.mul(d_e).add(state_e.weight.mul(denominator));
+                denominator = denominator.mul(d_e);
+            }
             const delta = if (slot == 0) current[0] else if (slot == event_slots - 1)
                 current[slot].sub(current[slot - 1]).sub(previous).add(self.claimed_sum.mul(inv_rows))
             else
                 current[slot].sub(current[slot - 1]);
-            constraint.* = delta.mul(denominator).sub(expr.weight);
+            constraint.* = delta.mul(denominator).sub(numerator);
         }
         return constraints;
     }

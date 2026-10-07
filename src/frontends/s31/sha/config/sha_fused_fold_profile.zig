@@ -226,7 +226,7 @@ test "full fold profile has 11 circuit and 10 SHA components with canonical colu
     const widths = debugWidths();
     try std.testing.expectEqual(prefix.fixed + 51, widths[0]);
     try std.testing.expectEqual(prefix.main + 270, widths[1]);
-    try std.testing.expectEqual(prefix.interaction + 64, widths[2]);
+    try std.testing.expectEqual(prefix.interaction + 60, widths[2]);
 }
 
 test "fold outputs admit all packed raw u32 words and reject malformed QM31 encodings" {

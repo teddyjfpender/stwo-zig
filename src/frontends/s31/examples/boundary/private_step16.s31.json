@@ -1,0 +1,38 @@
+{
+  "assertions": [],
+  "inputs": [
+    {
+      "kind": "m31",
+      "length": 4,
+      "name": "secret",
+      "visibility": "private"
+    }
+  ],
+  "name": "private_step16",
+  "nodes": [
+    {
+      "body": [
+        {
+          "op": "square"
+        },
+        {
+          "constant": 13,
+          "op": "add_const"
+        }
+      ],
+      "lhs": "secret",
+      "name": "state",
+      "op": "repeat",
+      "rounds": 16
+    },
+    {
+      "lhs": "state",
+      "name": "total",
+      "op": "sum_lanes"
+    }
+  ],
+  "public_outputs": [
+    "total"
+  ],
+  "version": 1
+}

@@ -24,6 +24,7 @@ BUILTINS = {
     "std::math::sub_u256", "std::math::sub_u256_checked",
     "std::math::lt_u256", "std::math::gt_u256", "std::math::ge_u256",
     "std::math::eq_u256", "std::math::ne_u256", "std::math::min_u256", "std::math::max_u256",
+    "std::math::sum_u256", "std::math::sum_u256_checked",
 }
 MAX_STATIC_TERMS = 64
 
@@ -43,6 +44,36 @@ def add_u256_checked(builder: Builder, lhs: Value, rhs: Value, *, wanted: str | 
                      span: dict[str, int] | None = None) -> Value:
     """256-bit addition constrained to reject a final carry."""
     return builder.u256_binary("u256_add_checked", lhs, rhs, wanted=wanted, span=span)
+
+
+def sum_u256_static(builder: Builder, group: StaticGroup, *, checked: bool,
+                    wanted: str | None = None,
+                    span: dict[str, int] | None = None) -> Value:
+    """Balanced reduction of 1..16 UInt256 references using ordinary add nodes.
+
+    Checked mode constrains every carry out to zero. All operands are
+    nonnegative, so this is equivalent to requiring the full sum below 2^256.
+    Wrapping mode discards carries and computes the full sum modulo 2^256.
+    """
+    operation = "sum_u256_checked" if checked else "sum_u256"
+    if not isinstance(group, StaticGroup) or not 1 <= len(group.elements) <= 16 or any(
+        not isinstance(term, Value) or term.typ.kind != "uint256" or term.typ.length != 16
+        for term in group.elements
+    ):
+        raise TypeErrorS31(f"std::math::{operation} requires 1..16 static UInt256 values")
+    layer = list(group.elements)
+    op = "u256_add_checked" if checked else "u256_add"
+    while len(layer) > 1:
+        next_layer: list[Value] = []
+        for index in range(0, len(layer), 2):
+            if index + 1 == len(layer):
+                next_layer.append(layer[index])
+            else:
+                next_layer.append(builder.u256_binary(
+                    op, layer[index], layer[index + 1],
+                    wanted=wanted if len(layer) == 2 else None, span=span))
+        layer = next_layer
+    return layer[0]
 
 
 def le_u256(builder: Builder, lhs: Value, rhs: Value, *, wanted: str | None = None,

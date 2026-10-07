@@ -184,6 +184,7 @@ pub const Maps = struct {
     assertions: std.ArrayListUnmanaged(AssertionSpan) = .empty,
     bindings: std.ArrayListUnmanaged(BindingSpan) = .empty,
     sha_boundaries: std.ArrayListUnmanaged(ShaBoundaryMap) = .empty,
+    private_boundary: ?circuit.common.direct_arithmetic.PrivateBoundary = null,
     finalization: ?FinalizationSpan = null,
 
     pub fn deinit(self: *Maps, allocator: std.mem.Allocator) void {
@@ -227,7 +228,8 @@ pub fn compileShaChipWithSpans(comptime V: type, allocator: std.mem.Allocator, p
 }
 
 fn compileWithSpansMode(comptime V: type, allocator: std.mem.Allocator, program: relation.Program, assignment: ?relation.Assignment, maps: ?*Maps, chip_mode: bool, direct_output: bool, sha_chip_mode: bool) !circuit.builder.Context(V) {
-    if (chip_mode and program.repeatedStepChip() == null) return error.UnsupportedChipRelation;
+    const private_chip = chip_mode and direct_output and program.privateRepeatedStepChip() != null;
+    if (chip_mode and program.repeatedStepChip() == null and !private_chip) return error.UnsupportedChipRelation;
     if (sha_chip_mode and (chip_mode or direct_output or maps == null)) return error.InvalidShaChipCompilerMode;
     if (direct_output) for (program.inputs) |input| {
         if (input.kind != .m31) return error.UnsupportedDirectRelation;
@@ -272,7 +274,7 @@ fn compileWithSpansMode(comptime V: type, allocator: std.mem.Allocator, program:
                 // four scalar guesses and their six packing gates. Public
                 // inputs retain scalar wires for their ABI bindings; direct
                 // selectors retain the self-product that proves b² = b.
-                if (node.kind == .m31 and node.visibility.? == .private and !boolean) {
+                if (node.kind == .m31 and node.visibility.? == .private and !boolean and !private_chip) {
                     const packed_wires = try scratch.alloc(Var, (node.length + 3) / 4);
                     for (packed_wires, 0..) |*wire, chunk| {
                         var coordinates = [_]M31{M31.zero()} ** 4;
@@ -354,7 +356,7 @@ fn compileWithSpansMode(comptime V: type, allocator: std.mem.Allocator, program:
             .bitcoin_header_time => try headerSlice(V, &ctx, entries[node.lhs.?], 34, 2),
             .repeat => blk: {
                 if (chip_mode) {
-                    const spec = program.repeatedStepChip().?;
+                    const spec = if (private_chip) program.privateRepeatedStepChip().? else program.repeatedStepChip().?;
                     const input_raw = entries[node.lhs.?].raw orelse return error.UnsupportedChipRelation;
                     if (node.length != 4 or input_raw.len != 4) return error.UnsupportedChipRelation;
                     const raw = try scratch.alloc(Var, 4);
@@ -370,6 +372,14 @@ fn compileWithSpansMode(comptime V: type, allocator: std.mem.Allocator, program:
                         wire.* = (try circuit.builder.wrappers.guessM31(V, &ctx, .newUnsafe(hint))).get();
                         wrapped.* = .newUnsafe(wire.*);
                     }
+                    if (private_chip) if (maps) |out| {
+                        var boundary: circuit.common.direct_arithmetic.PrivateBoundary = undefined;
+                        for (0..4) |lane| {
+                            boundary.input[lane] = input_raw[lane].idx;
+                            boundary.output[lane] = raw[lane].idx;
+                        }
+                        out.private_boundary = boundary;
+                    };
                     break :blk .{ .shape = .{ .kind = .m31, .length = 4 }, .lanes = try circuit.builder.simd.pack(V, &ctx, wrappers), .raw = raw };
                 }
                 const constants = try scratch.alloc(?Simd, node.body.?.len);

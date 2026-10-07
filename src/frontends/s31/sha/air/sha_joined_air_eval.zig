@@ -387,18 +387,19 @@ fn wordBatchConstraints(
     return out;
 }
 
-/// Three fused round/schedule word LogUp constraints. `main` is the current
+/// Two fused round/schedule word LogUp constraints. The simultaneous a/e
+/// state events share one rational fraction. `main` is the current
 /// opening of each round column, selected from the shifted proof samples.
 pub fn fusedWordBusConstraints(
     comptime Ctx: type,
     ctx: *Ctx,
     fixed: [fused.fixed_width]Ctx.Var,
     main: [fused.main_width]Ctx.Var,
-    current: [3]Ctx.Var,
+    current: [fused_word_logup.event_slots]Ctx.Var,
     previous: Ctx.Var,
     claimed_sum: Ctx.Var,
     elements: [2]Ctx.Var,
-) ![3]Ctx.Var {
+) ![fused_word_logup.n_constraints]Ctx.Var {
     const id = try number(Ctx, ctx, word_bus.relation_id);
     const zero = ctx.zero();
     const row = fused.unflatten(Ctx.Var, main);
@@ -414,7 +415,15 @@ pub fn fusedWordBusConstraints(
         .{ id, fixed[9], fixed[10], a_lo, a_hi, zero },
         .{ id, fixed[9], try ctx.add(fixed[10], try number(Ctx, ctx, 4)), e_lo, e_hi, zero },
     };
-    return wordBatchConstraints(Ctx, ctx, fused_word_logup.rows, tuples, .{ try ctx.sub(zero, fixed[4]), weight, weight }, current, previous, claimed_sum, elements);
+    const d_schedule = try logup.combineTerm(Ctx, ctx, &tuples[0], elements);
+    const d_a = try logup.combineTerm(Ctx, ctx, &tuples[1], elements);
+    const d_e = try logup.combineTerm(Ctx, ctx, &tuples[2], elements);
+    const inv_rows = try ctx.constant(try QM31.fromBase(M31.fromCanonical(fused_word_logup.rows)).inv());
+    const delta = try ctx.add(try ctx.sub(try ctx.sub(current[1], current[0]), previous), try ctx.mul(claimed_sum, inv_rows));
+    return .{
+        try ctx.add(try ctx.mul(current[0], d_schedule), fixed[4]),
+        try ctx.sub(try ctx.mul(delta, try ctx.mul(d_a, d_e)), try ctx.add(try ctx.mul(weight, d_a), try ctx.mul(weight, d_e))),
+    };
 }
 
 pub fn evaluateFusedWordBus(
@@ -422,7 +431,7 @@ pub fn evaluateFusedWordBus(
     ctx: *Ctx,
     fixed: [fused.fixed_width]Ctx.Var,
     main: [fused.main_width]Ctx.Var,
-    current: [3]Ctx.Var,
+    current: [fused_word_logup.event_slots]Ctx.Var,
     previous: Ctx.Var,
     claimed_sum: Ctx.Var,
     elements: [2]Ctx.Var,
@@ -693,7 +702,7 @@ test "joined fused SHA word bus matches native signed tuple equations" {
     for (0..4) |_| {
         var fv: [fused.fixed_width]QM31 = undefined;
         var mv: [fused.main_width]QM31 = undefined;
-        var sums: [3]QM31 = undefined;
+        var sums: [fused_word_logup.event_slots]QM31 = undefined;
         for (&fv) |*slot| slot.* = randomSecure(rng.random());
         for (&mv) |*slot| slot.* = randomSecure(rng.random());
         for (&sums) |*slot| slot.* = randomSecure(rng.random());
@@ -708,7 +717,7 @@ test "joined fused SHA word bus matches native signed tuple equations" {
             &ctx,
             try vars(fused.fixed_width, &ctx, fv),
             try vars(fused.main_width, &ctx, mv),
-            try vars(3, &ctx, sums),
+            try vars(fused_word_logup.event_slots, &ctx, sums),
             try ctx.constant(previous),
             try ctx.constant(claim),
             .{ try ctx.constant(z), try ctx.constant(alpha) },
@@ -716,12 +725,16 @@ test "joined fused SHA word bus matches native signed tuple equations" {
         const inv_rows = try QM31.fromBase(M31.fromCanonical(fused_word_logup.rows)).inv();
         const elements = word_bus.Elements.init(z, alpha);
         for (actual, 0..) |variable, slot| {
-            const expr = fused_word_bus.eventExpr(QM31, fused.unflatten(QM31, mv), fused.fixedAt(QM31, fv), slot);
-            const delta = if (slot == 0) sums[0] else if (slot == 2)
-                sums[2].sub(sums[1]).sub(previous).add(claim.mul(inv_rows))
-            else
-                sums[1].sub(sums[0]);
-            const expected = delta.mul(elements.denominator(QM31, expr.values)).sub(expr.weight);
+            const row = fused.unflatten(QM31, mv);
+            const fixed = fused.fixedAt(QM31, fv);
+            const expr = fused_word_bus.eventExpr(QM31, row, fixed, slot);
+            const d = elements.denominator(QM31, expr.values);
+            const expected = if (slot == 0) sums[0].mul(d).sub(expr.weight) else blk: {
+                const state_e = fused_word_bus.eventExpr(QM31, row, fixed, 2);
+                const d_e = elements.denominator(QM31, state_e.values);
+                const delta = sums[1].sub(sums[0]).sub(previous).add(claim.mul(inv_rows));
+                break :blk delta.mul(d.mul(d_e)).sub(expr.weight.mul(d_e).add(state_e.weight.mul(d)));
+            };
             try std.testing.expect(varValue(&ctx, variable).eql(expected));
         }
     }

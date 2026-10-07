@@ -71,6 +71,57 @@ circuit AIR proves the gates, the `u16` range lookups, Boolean carry gates,
 and wire reuse. The displayed equations are the **semantic projection** of
 that AIR, not a complete dump of its fixed opcode and LogUp columns.
 
+## Adding several 256-bit values
+
+`std::math::sum_u256_checked([a,b,c])` expands to two ordinary checked
+addition nodes, first `a+b`, then `(a+b)+c`. Its wrapping counterpart
+`sum_u256([a,b,c])` uses the same tree with wrapping addition nodes. For four
+terms, the two pair additions are independent, then their results are added.
+Each node proves the sixteen limb equations shown above. There is no
+separate reduction chip, host-only sum, or extra relation opcode.
+
+For the [checked example](../examples/wide/u256_sum_checked.s31), take
+$a=2^{128}-1$, $b=1$, and $c=7$. The first addition carries through limbs
+0–7 and leaves limb 8 equal to one. The second sets limb 0 to seven:
+
+| Value | Limb 0 | Limbs 1–7 | Limb 8 | Limbs 9–15 |
+| --- | ---: | ---: | ---: | ---: |
+| $a$ | 65535 | 65535 each | 0 | 0 |
+| $b$ | 1 | 0 | 0 | 0 |
+| $a+b$ | 0 | 0 | 1 | 0 |
+| $c$ | 7 | 0 | 0 | 0 |
+| $a+b+c$ | 7 | 0 | 1 | 0 |
+
+The checked helper is structurally identical to the [explicit add
+chain](../examples/wide/u256_sum_checked_manual.s31). It constrains every final
+carry to zero, which is equivalent to requiring the full nonnegative sum
+below $2^{256}$. The [wrapping example](../examples/wide/u256_sum_wrap.s31) uses
+$a=2^{256}-1$, $b=1$, and $c=9$: its first node wraps to zero, so the
+result is nine. The checked version rejects those same input limbs even if
+a claimed wrapped result is nine. Both example circuits commit the resulting
+sixteen limbs with a Poseidon2 leaf; the eight public root words are an S31
+commitment to the arithmetic result, not Bitcoin's hash of that result.
+
+The [acceptance script](../tests/acceptance/acceptance_u256_sum.py) compares
+the helper with its handwritten chain, checks an independent Python integer
+oracle, proves and natively verifies both modes, and rejects overflow,
+changed public roots, damaged proofs, and a same-claim proof under the wrong
+key. Run it with:
+
+```sh
+python3 src/frontends/s31/tests/acceptance/acceptance_u256_sum.py
+```
+
+In the recorded `sparse-wide-gate` run, the checked helper and explicit
+chain had identical raw and padded component rows: 7,888 raw QM31-operation
+rows and 8,192 after padding, plus 88 raw/128 padded M31-to-u32 rows and
+64 equality rows. All three native proofs passed. The helper and manual
+proofs were 227,714 and 240,153 bytes in this run; transcript randomness
+and concurrent work make those sizes and proving times unsuitable as a
+speed comparison. The [measurement record](../../../../design/s31/measurements/language/u256-static-sum-v1-2026-10-07.json)
+pins source and fixture hashes, proof policy, the equal row geometry, and
+the negative checks.
+
 ## Subtraction and underflow by hand
 
 `sub_u256(A,B)` computes $(A-B)\bmod 2^{256}$; `sub_u256_checked(A,B)`

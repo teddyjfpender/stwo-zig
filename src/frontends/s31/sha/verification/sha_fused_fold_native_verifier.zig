@@ -11,6 +11,7 @@ const cpu = @import("stwo_circuit_cpu_integration");
 const cairo = @import("stwo_cairo_frontend");
 const postcard = @import("interop_postcard");
 const shared = @import("../config/sha_fused_fold_profile.zig");
+const joined_shape = @import("../config/sha_fused_fold_shape.zig");
 const direct = @import("../config/sha_fused_private_join_profile.zig");
 const caller = @import("../air/sha_caller_stream_air.zig");
 const caller_bus = @import("../air/sha_caller_stream_bus.zig");
@@ -135,6 +136,22 @@ pub fn verifyWithTopology(
     return verifyBytes(allocator, .{ .key = key, .public_outputs = public_outputs }, bytes);
 }
 
+/// Rebuild the fixed root and Gate addresses from a trusted value-free
+/// topology before admitting a proof as recursive witness material.
+pub fn verifyWithTopologyAndTransport(
+    allocator: std.mem.Allocator,
+    source_digest: [32]u8,
+    topology: *const pp.PreprocessedCircuit,
+    n_vars: u32,
+    statement: direct.PublicStatement,
+    pcs: core.pcs.config_v2.PcsConfigV2,
+    public_outputs: []const QM31,
+    bytes: []const u8,
+) !cpu.verifier_proof.VerifierProof {
+    const key = try deriveKey(allocator, source_digest, topology, n_vars, statement, pcs);
+    return verifyAndTransport(allocator, .{ .key = key, .public_outputs = public_outputs }, bytes);
+}
+
 fn decodeClaims(bytes: []const u8) ![shared.claim_count]QM31 {
     if (bytes.len < shared.prefix_bytes or bytes.len > shared.prefix_bytes + shared.max_proof_bytes or
         !std.mem.eql(u8, bytes[0..shared.magic.len], shared.magic)) return error.InvalidFusedFoldProofEnvelope;
@@ -153,6 +170,19 @@ fn decodeClaims(bytes: []const u8) ![shared.claim_count]QM31 {
 }
 
 pub fn verifyBytes(allocator: std.mem.Allocator, admission: Admission, bytes: []const u8) !void {
+    try verifyBytesInternal(allocator, admission, bytes, null);
+}
+
+/// Verify a freshly decoded joined proof, then convert the verifier's
+/// authenticated query capture into the fixed recursive wire format. The
+/// returned proof is transport only; a circuit must still verify it.
+pub fn verifyAndTransport(allocator: std.mem.Allocator, admission: Admission, bytes: []const u8) !cpu.verifier_proof.VerifierProof {
+    var transported: cpu.verifier_proof.VerifierProof = undefined;
+    try verifyBytesInternal(allocator, admission, bytes, &transported);
+    return transported;
+}
+
+fn verifyBytesInternal(allocator: std.mem.Allocator, admission: Admission, bytes: []const u8, transported: ?*cpu.verifier_proof.VerifierProof) !void {
     const key = admission.key;
     try key.validate();
     try shared.validatePublicOutputs(admission.public_outputs);
@@ -230,4 +260,8 @@ pub fn verifyBytes(allocator: std.mem.Allocator, admission: Admission, bytes: []
     var capture: core.verifier.ProofCapture(H) = undefined;
     try core.verifier.verifyBorrowedExWithProofCapture(H, shared.MC, allocator, &handles, &channel, &verifier, &proof, true, &capture);
     defer capture.deinit(allocator);
+    if (transported) |out| {
+        const shape = try joined_shape.proofShape(key);
+        out.* = try cpu.verifier_proof.fromVerifiedCapture(allocator, &proof, &capture, shape, &claims, nonce, 0);
+    }
 }

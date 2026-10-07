@@ -175,7 +175,7 @@ def build_json(source_path: Path, output: Path, lowering: str = "gate",
         if inspection["program_sha256"] != sha256(data):
             raise RuntimeError("compiled program does not match source")
         key = {
-            "schema": "s31-verification-key-sha-fused-v4" if lowering == "sha-fused" else "s31-verification-key-sha-shift-v3" if lowering == "sha-shift" else "s31-verification-key-sha-joint-v1" if lowering == "sha-joint" else "s31-verification-key-v4" if lowering.startswith("direct-") else "s31-verification-key-v5" if lowering == "sparse-wide-gate" else "s31-verification-key-v3" if lowering.startswith("sparse-") else "s31-verification-key-v2" if lowering == "chip" else "s31-verification-key-v1",
+            "schema": "s31-verification-key-v5p" if inspection["profile"] == "direct-m31-private-v5" else "s31-verification-key-sha-fused-v4" if lowering == "sha-fused" else "s31-verification-key-sha-shift-v3" if lowering == "sha-shift" else "s31-verification-key-sha-joint-v1" if lowering == "sha-joint" else "s31-verification-key-v4" if lowering.startswith("direct-") else "s31-verification-key-v5" if lowering == "sparse-wide-gate" else "s31-verification-key-v3" if lowering.startswith("sparse-") else "s31-verification-key-v2" if lowering == "chip" else "s31-verification-key-v1",
             "profile": inspection["profile"],
             "chip": inspection["chip"],
             "name": name,
@@ -197,6 +197,8 @@ def build_json(source_path: Path, output: Path, lowering: str = "gate",
             key["sha_shift"] = inspection["sha_shift"]
         if lowering == "sha-fused":
             key["sha_fused"] = inspection["sha_fused"]
+        if inspection["profile"] == "direct-m31-private-v5":
+            key["private_boundary"] = inspection["private_boundary"]
         (staging / "source.s31.json").write_bytes(data)
         write_json(staging / "verification-key.json", key)
         if lock_bytes is not None:
@@ -487,6 +489,19 @@ def verify_package(package: Path) -> dict:
     )
     if any(report.get(field) != key.get(field) for field in inspected_key_fields):
         raise ValueError("S31 package cost report does not match key")
+    if key.get("profile") == "direct-m31-private-v5":
+        boundary = key.get("private_boundary")
+        if (manifest.get("lowering") != "direct-chip" or
+                key.get("schema") != "s31-verification-key-v5p" or
+                not isinstance(boundary, dict) or
+                set(boundary) != {"input", "output"} or
+                any(not isinstance(boundary[name], list) or len(boundary[name]) != 4 or
+                    any(type(address) is not int or address < 3 for address in boundary[name])
+                    for name in ("input", "output")) or
+                report.get("private_boundary") != boundary):
+            raise ValueError("invalid direct M31 private boundary package key")
+    elif "private_boundary" in key:
+        raise ValueError("unexpected private boundary in S31 package key")
     if manifest.get("lowering") == "sha-joint":
         joint = key.get("sha_joint")
         if (key.get("schema") != "s31-verification-key-sha-joint-v1" or

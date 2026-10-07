@@ -15,9 +15,9 @@ const feed_bus = @import("../air/sha_feed_direct_word_logup.zig");
 const ComponentShape = core.circuit_proof_shape.ComponentShape;
 const circuit_shapes = circuit.statements.circuit_statement.circuit_component_shapes;
 
-/// A complete in-circuit joined SHA verifier is not present yet. This flag
-/// deliberately stays false even though the proof bytes now transport.
-pub const supports_recursive_proof_transport = false;
+/// Verified native proof bytes can be converted into this wire shape. A
+/// complete in-circuit joined SHA verifier is not present yet.
+pub const supports_recursive_verification = false;
 
 /// The committed interaction tree has no columns for trace-only SHA
 /// components. Bus components share their main columns with those trace
@@ -99,7 +99,7 @@ pub fn proofShape(key: profile.Key) !core.circuit_proof_shape.ProofShape {
 }
 
 test "joined SHA committed-column inventory has 21 components and split-two composition" {
-    try std.testing.expect(!supports_recursive_proof_transport);
+    try std.testing.expect(!supports_recursive_verification);
     const layout = try profile.pp.ColumnLayout.fromComponentSizes(.{
         .eq = 32768,
         .qm31_ops = 2097152,

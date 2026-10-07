@@ -6,6 +6,7 @@ const circuit = @import("stwo_circuit_frontend");
 const cpu = @import("stwo_circuit_cpu_integration");
 const relation = @import("../../language/relation.zig");
 const compiler = @import("../../language/relation_compiler.zig");
+const generic_native = @import("../../runtime/native_verifier.zig");
 const shift = @import("../proving/sha_shift_circuit_prover.zig");
 const shift_native = @import("../verification/sha_shift_circuit_native_verifier.zig");
 const fused = @import("../proving/sha_fused_circuit_prover.zig");
@@ -52,7 +53,7 @@ const Sample = struct {
     fri_pow: u64,
     verify: u64,
     proof_bytes: usize,
-    metrics: Stages,
+    metrics: ?Stages,
     fn net(self: Sample) !u64 {
         return std.math.sub(u64, try std.math.sub(u64, self.prove, self.interaction_pow), self.fri_pow);
     }
@@ -68,11 +69,12 @@ fn median(values: []u64) u64 {
     return values[values.len / 2];
 }
 fn printSample(name: []const u8, trial: usize, sample: Sample) !void {
-    const m = sample.metrics;
-    std.debug.print("S31_FUSED_MATCHED profile={s} trial={d} prove_ns={d} net_ns={d} verify_ns={d} interaction_pow_ns={d} fri_pow_ns={d} proof_bytes={d} witness_ns={d} fixed_commit_ns={d} main_commit_ns={d} interaction_ns={d} interaction_commit_ns={d} fri_ns={d} composition_eval_ns={d} composition_interpolate_ns={d} composition_commit_ns={d} sampled_value_eval_ns={d} quotient_commit_ns={d} fri_decommit_ns={d} trace_decommit_ns={d}\n", .{
-        name,                  trial,                        sample.prove,            try sample.net(),        sample.verify,            sample.interaction_pow,  sample.fri_pow,
-        sample.proof_bytes,    m.witness_ns,                 m.fixed_commit_ns,       m.main_commit_ns,        m.interaction_ns,         m.interaction_commit_ns, m.fri_ns,
-        m.composition_eval_ns, m.composition_interpolate_ns, m.composition_commit_ns, m.sampled_value_eval_ns, m.fri_quotient_commit_ns, m.fri_decommit_ns,       m.trace_decommit_ns,
+    std.debug.print("S31_FUSED_MATCHED profile={s} trial={d} prove_ns={d} net_ns={d} verify_ns={d} interaction_pow_ns={d} fri_pow_ns={d} proof_bytes={d}\n", .{
+        name, trial, sample.prove, try sample.net(), sample.verify, sample.interaction_pow, sample.fri_pow, sample.proof_bytes,
+    });
+    if (sample.metrics) |m| std.debug.print("S31_FUSED_MATCHED_STAGES profile={s} trial={d} witness_ns={d} fixed_commit_ns={d} main_commit_ns={d} interaction_ns={d} interaction_commit_ns={d} fri_ns={d} composition_eval_ns={d} composition_interpolate_ns={d} composition_commit_ns={d} sampled_value_eval_ns={d} quotient_commit_ns={d} fri_decommit_ns={d} trace_decommit_ns={d}\n", .{
+        name,                  trial,                        m.witness_ns,            m.fixed_commit_ns,       m.main_commit_ns,         m.interaction_ns,  m.interaction_commit_ns, m.fri_ns,
+        m.composition_eval_ns, m.composition_interpolate_ns, m.composition_commit_ns, m.sampled_value_eval_ns, m.fri_quotient_commit_ns, m.fri_decommit_ns, m.trace_decommit_ns,
     });
 }
 
@@ -99,6 +101,22 @@ pub fn main() !void {
     defer program.deinit();
     var assignment = try relation.parseAssignment(a, assignment_source);
     defer assignment.deinit();
+    var generic_values = try compiler.compileWithSpans(QM31, a, program.value, assignment.value, null);
+    defer generic_values.deinit();
+    var generic_topology = try compiler.compileWithSpans(circuit.builder.NoValue, a, program.value, null, null);
+    defer generic_topology.deinit();
+    const generic_raw = circuit.common.finalize.rawComponentSizes(.fromBuilder(&generic_topology.circuit));
+    const generic_targets: circuit.common.finalize.ComponentSizes = .{
+        .eq = circuit.common.finalize.paddedSize(generic_raw.eq),
+        .qm31_ops = circuit.common.finalize.paddedSize(generic_raw.qm31_ops),
+        .m31_to_u32 = circuit.common.finalize.paddedSize(generic_raw.m31_to_u32),
+        .triple_xor = 0,
+        .blake_g_gate = 0,
+    };
+    try circuit.common.finalize.padToTargets(QM31, &generic_values, generic_targets);
+    try circuit.common.finalize.padToTargets(circuit.builder.NoValue, &generic_topology, generic_targets);
+    var generic_pp = try circuit.common.sparse_wide.Circuit.fromBuilderCircuit(a, &generic_topology.circuit);
+    defer generic_pp.deinit(a);
     var value_maps = compiler.Maps{};
     defer value_maps.deinit(a);
     var values = try compiler.compileShaChipWithSpans(QM31, a, program.value, assignment.value, &value_maps);
@@ -137,6 +155,17 @@ pub fn main() !void {
     var outputs_digest: [32]u8 = undefined;
     std.crypto.hash.sha2.Sha256.hash(std.mem.asBytes(&words), &outputs_digest, .{});
     const fri = try core.pcs.config_v2.FriConfigV2.init(26, 0, 1, 70, 1);
+    const generic_pcs = core.pcs.config_v2.PcsConfigV2.fromFriAndTraceSize(fri, generic_pp.traceLogSize());
+    var generic_fixed = try cpu.sparse_wide.PreprocessedCommitment.build(a, &generic_pp, generic_pcs);
+    defer generic_fixed.deinit(a);
+    const generic_layout = generic_pp.layout();
+    const generic_root = generic_fixed.root();
+    const generic_hash = cpu.sparse_wide.identityHash(source_digest, generic_root, .{
+        generic_layout.logSize("eq_in0_address").?,
+        generic_layout.logSize("qm31_ops_in0_address").?,
+        generic_layout.logSize("m31_to_u32_input_addr").?,
+        16,
+    }, generic_pcs.fri_config.log_blowup_factor);
     const shift_pcs = core.pcs.config_v2.PcsConfigV2.fromFriAndTraceSize(fri, @max(pp.traceLogSize(), 7));
     const fused_pcs = core.pcs.config_v2.PcsConfigV2.fromFriAndTraceSize(fri, @max(pp.traceLogSize(), 8));
     try ensure(std.meta.eql(shift_pcs, fused_pcs));
@@ -154,10 +183,19 @@ pub fn main() !void {
     defer a.free(shift_samples);
     const fused_samples = try a.alloc(Sample, n);
     defer a.free(fused_samples);
-    std.debug.print("S31_FUSED_MATCHED_SETUP trials={d} fri_pow_bits=26 queries=70 interaction_pow_bits=20 warm_fixed={} shift_columns={any} fused_columns={any} source_sha256={s} assignment_sha256={s} outputs_u32le_sha256={s}\n", .{
+    const generic_samples = try a.alloc(Sample, n);
+    defer a.free(generic_samples);
+    std.debug.print("S31_FUSED_MATCHED_SETUP trials={d} fri_pow_bits=26 queries=70 interaction_pow_bits=20 sha_warm_fixed={} generic_warm_fixed=true shift_columns={any} fused_columns={any} source_sha256={s} assignment_sha256={s} outputs_u32le_sha256={s}\n", .{
         n,                                          !cold_fixed,                                    @import("../config/sha_shift_circuit_profile.zig").debugWidths(), @import("../config/sha_fused_circuit_profile.zig").debugWidths(),
         &std.fmt.bytesToHex(source_digest, .lower), &std.fmt.bytesToHex(assignment_digest, .lower), &std.fmt.bytesToHex(outputs_digest, .lower),
     });
+    std.debug.print("S31_FUSED_MATCHED_KEYS generic_identity={s} generic_fixed_root={s} shift_key={s} shift_fixed_root={s} fused_key={s} fused_fixed_root={s} fused_semantic={s}\n", .{
+        &std.fmt.bytesToHex(generic_hash, .lower),             &std.fmt.bytesToHex(generic_root, .lower),
+        &std.fmt.bytesToHex(shift_key.digest, .lower),         &std.fmt.bytesToHex(shift_key.fixed_root, .lower),
+        &std.fmt.bytesToHex(fused_key.digest, .lower),         &std.fmt.bytesToHex(fused_key.fixed_root, .lower),
+        &std.fmt.bytesToHex(profile.semanticDigest(), .lower),
+    });
+    if (std.posix.getenv("S31_SHA_FUSED_KEYS_ONLY") != null) return;
     for (0..n) |trial| {
         for (0..2) |position| {
             const run_shift = ((trial + position) & 1) == 0;
@@ -204,6 +242,24 @@ pub fn main() !void {
                 try printSample("fused_v4", trial, fused_samples[trial]);
             }
         }
+        var interaction_pow_ns: u64 = 0;
+        var fri_pow_ns: u64 = 0;
+        var timer = try std.time.Timer.start();
+        var generic_proof = try cpu.sparse_wide.prove(a, generic_values.values(), &generic_pp, &bundle, generic_pcs, .{
+            .source_digest = source_digest,
+            .preprocessed_commitment = &generic_fixed,
+            .pow_time_ns = &interaction_pow_ns,
+            .fri_pow_time_ns = &fri_pow_ns,
+        });
+        defer generic_proof.deinit();
+        const prove_ns = timer.read();
+        try ensure(equalOutputs(&outputs, generic_proof.output_values));
+        const bytes = try generic_native.serializeSparseWide(a, &generic_proof);
+        defer a.free(bytes);
+        timer.reset();
+        try generic_native.verifySparseWide(a, &generic_layout, &bundle, generic_pcs, generic_root, generic_hash, words, bytes, source_digest);
+        generic_samples[trial] = .{ .prove = prove_ns, .interaction_pow = interaction_pow_ns, .fri_pow = fri_pow_ns, .verify = timer.read(), .proof_bytes = bytes.len, .metrics = null };
+        try printSample("generic", trial, generic_samples[trial]);
     }
     const shift_net = try a.alloc(u64, n);
     defer a.free(shift_net);
@@ -213,14 +269,20 @@ pub fn main() !void {
     defer a.free(shift_verify);
     const fused_verify = try a.alloc(u64, n);
     defer a.free(fused_verify);
+    const generic_net = try a.alloc(u64, n);
+    defer a.free(generic_net);
+    const generic_verify = try a.alloc(u64, n);
+    defer a.free(generic_verify);
     for (0..n) |i| {
         shift_net[i] = try shift_samples[i].net();
         fused_net[i] = try fused_samples[i].net();
         shift_verify[i] = shift_samples[i].verify;
         fused_verify[i] = fused_samples[i].verify;
+        generic_net[i] = try generic_samples[i].net();
+        generic_verify[i] = generic_samples[i].verify;
     }
-    std.debug.print("S31_FUSED_MATCHED_MEDIAN trials={d} shift_net_ns={d} fused_net_ns={d} shift_verify_ns={d} fused_verify_ns={d} shift_proof_bytes={d} fused_proof_bytes={d}\n", .{
-        n,                            median(shift_net),            median(fused_net), median(shift_verify), median(fused_verify),
-        shift_samples[0].proof_bytes, fused_samples[0].proof_bytes,
+    std.debug.print("S31_FUSED_MATCHED_MEDIAN trials={d} generic_net_ns={d} shift_net_ns={d} fused_net_ns={d} generic_verify_ns={d} shift_verify_ns={d} fused_verify_ns={d} generic_proof_bytes={d} shift_proof_bytes={d} fused_proof_bytes={d}\n", .{
+        n,                              median(generic_net),          median(shift_net),            median(fused_net), median(generic_verify), median(shift_verify), median(fused_verify),
+        generic_samples[0].proof_bytes, shift_samples[0].proof_bytes, fused_samples[0].proof_bytes,
     });
 }

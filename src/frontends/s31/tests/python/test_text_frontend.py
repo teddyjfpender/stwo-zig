@@ -312,6 +312,49 @@ circuit checked(private a: UInt256, private b: UInt256) -> public [m31; 1] {
         self.assertEqual([node["op"] for node in retyped["nodes"]],
                          ["cast_m31", "hash_poseidon2_leaf"])
 
+    def test_static_u256_sum_has_checked_and_wrapping_semantics(self) -> None:
+        checked, _ = compile_file(EXAMPLES / "wide" / "u256_sum_checked.s31")
+        wrapping, _ = compile_file(EXAMPLES / "wide" / "u256_sum_wrap.s31")
+        manual, _ = compile_file(EXAMPLES / "wide" / "u256_sum_checked_manual.s31")
+        for name, relation, operation in (
+            ("u256_sum_checked", checked, "u256_add_checked"),
+            ("u256_sum_wrap", wrapping, "u256_add"),
+            ("u256_sum_checked_manual", manual, "u256_add_checked"),
+        ):
+            with self.subTest(name=name):
+                self.assertEqual(relation, json.loads((example_path(f"{name}.s31.json")).read_text()))
+                self.assertEqual([node["op"] for node in relation["nodes"]],
+                                 [operation, operation, "cast_m31", "hash_poseidon2_leaf"])
+                assignment = json.loads((example_path(f"{name}.valid.json")).read_text())
+                self.assertEqual(evaluate_relation(relation, assignment), assignment["public_outputs"])
+        self.assertEqual([(node["op"], node.get("lhs"), node.get("rhs"))
+                          for node in checked["nodes"][:2]],
+                         [("u256_add_checked", "a", "b"),
+                          ("u256_add_checked", "_s31_0", "c")])
+        one, _ = compile_text("""circuit one(private a: UInt256) -> public Digest<Poseidon2> {
+            let total = std::math::sum_u256_checked([a]);
+            std::hash::poseidon2_leaf(std::bytes::limbs_m31(total))
+        }""")
+        self.assertEqual([node["op"] for node in one["nodes"]],
+                         ["cast_m31", "hash_poseidon2_leaf"])
+        four, _ = compile_text("""circuit four(private a: UInt256, private b: UInt256,
+            private c: UInt256, private d: UInt256) -> public Digest<Poseidon2> {
+            let total = std::math::sum_u256_checked([a,b,c,d]);
+            std::hash::poseidon2_leaf(std::bytes::limbs_m31(total))
+        }""")
+        self.assertEqual([(node["lhs"], node["rhs"]) for node in four["nodes"][:3]],
+                         [("a", "b"), ("c", "d"), ("_s31_0", "_s31_1")])
+        for expression in ("std::math::sum_u256_checked(a)",
+                           "std::math::sum_u256([a, bytes])",
+                           "std::math::sum_u256_checked<2>([a,b])",
+                           "std::math::sum_u256([" + ",".join(["a"] * 17) + "])"):
+            with self.subTest(expression=expression), self.assertRaises(SourceError):
+                compile_text(f"""circuit bad(private a: UInt256, private b: UInt256,
+                    private bytes: Bytes32) -> public Digest<Poseidon2> {{
+                    let x = {expression};
+                    std::hash::poseidon2_leaf(std::bytes::limbs_m31(x))
+                }}""")
+
     def test_bitcoin_block_work_lowers_as_one_checked_integer_node(self) -> None:
         relation, _ = compile_file(EXAMPLES / "bitcoin" / "bitcoin_block_work.s31")
         self.assertEqual(relation, json.loads((EXAMPLES / "bitcoin" / "bitcoin_block_work.s31.json").read_text()))

@@ -151,13 +151,19 @@ pub fn build(b: *std.Build) void {
         .root_source_file = .{ .cwd_relative = b.pathFromRoot("../../../vectors/circuit/official/compiled_air_constraints_v1.bin") },
     });
     const private_bridge_test_root = localEntry(b, "tests/proofs/private_boundary_proof_test.zig", target, optimize);
+    private_bridge_test_root.addImport("stwo_s31_prototype", frontend);
     private_bridge_test_root.addImport("stwo_core", core);
     private_bridge_test_root.addImport("stwo_circuit_frontend", circuit);
     private_bridge_test_root.addImport("stwo_circuit_cpu_integration", cpu);
     private_bridge_test_root.addImport("stwo_cairo_frontend", cpu.import_table.get("stwo_cairo_frontend") orelse @panic("missing Cairo frontend"));
     private_bridge_test_root.addImport("interop_postcard", sha_postcard);
     private_bridge_test_root.addImport("s31_air_programs", official_air);
-    const private_bridge_tests = b.addRunArtifact(b.addTest(.{ .root_module = private_bridge_test_root }));
+    const private_bridge_test = b.addTest(.{ .root_module = private_bridge_test_root });
+    const private_bridge_tests = b.addRunArtifact(private_bridge_test);
+    b.step("check-private-boundary-proof", "Compile the private source-to-chip proof test")
+        .dependOn(&private_bridge_test.step);
+    b.step("test-private-boundary-proof", "Prove and verify the private source-to-chip boundary")
+        .dependOn(&private_bridge_tests.step);
     test_step.dependOn(&private_bridge_tests.step);
     const sha_joint_test_root = localEntry(b, "sha/tests/sha_joint_prover_test.zig", target, optimize);
     sha_joint_test_root.addImport("stwo_core", core);
@@ -431,6 +437,7 @@ pub fn build(b: *std.Build) void {
     sha_fused_bench_root.addImport("stwo_prover_engine", cpu.import_table.get("stwo_prover_engine") orelse @panic("missing prover engine"));
     sha_fused_bench_root.addImport("stwo_circuit_frontend", circuit);
     sha_fused_bench_root.addImport("stwo_circuit_cpu_integration", cpu);
+    sha_fused_bench_root.addImport("stwo_circuit_recursion_wire", wire);
     sha_fused_bench_root.addImport("stwo_cairo_frontend", cpu.import_table.get("stwo_cairo_frontend") orelse @panic("missing Cairo frontend"));
     sha_fused_bench_root.addImport("interop_postcard", sha_postcard);
     sha_fused_bench_root.addImport("s31_air_programs", official_air);

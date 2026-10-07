@@ -12,14 +12,14 @@ root; the digest field in the public statement is zero. The proof is not
 zero knowledge, so this ABI alone does not hide the header from a proof
 observer.
 
-The complete fused roster has 14 components and 65 fixed, 291 main, and 92
-interaction columns, compared with 24 and 93/521/140 for v3. A reduced
+The current complete fused roster has 14 components and 65 fixed, 291 main,
+and 88 interaction columns, compared with 24 and 93/521/140 for v3. A reduced
 FRI 0/12 native test produced a 95,966-byte proof and rejected changes to the
 header, public root, key, Gate claim, and word claim. Those numbers qualify
 the connection and circuit semantics. The full mutation corpus below remains
 an acceptance gate.
 
-In the [post-fix five-trial matched production run](../measurements/sha/bitcoin-sha-fused-vs-shift-fixed-policy-v1-2026-10-07.json),
+In the earlier [post-fix five-trial matched production run](../measurements/sha/bitcoin-sha-fused-vs-shift-fixed-policy-v1-2026-10-07.json),
 v4 reduced median proving work excluding both PoW grinds from 42.74 to
 39.47 ms with warm fixed commitments and from 47.36 to 42.89 ms when fixed
 setup was included. Native verification fell from 6.89 to 4.73 ms, and proof
@@ -36,6 +36,42 @@ v4: `64×5` state-bit openings, `32×5` schedule-bit openings, and `16×1`
 current-row carry openings. The three v3 schedule/round pairs requested
 1,542. This 68% reduction is an exact opening-count comparison for those
 components; the PCS runtime effect still needs measurement.
+
+## Two-slot boundary word bus
+
+The fused schedule/round word bus now uses two secure interaction columns
+(eight M31 columns) per row rather than three (twelve M31 columns). Slot zero
+contains the first-16 schedule word event. Slot one combines the simultaneous
+state `a` and `e` boundary events. With signed weights `w_a,w_e` and
+challenge denominators `d_a,d_e`, the slot-one fraction is
+
+```text
+(w_a*d_e + w_e*d_a) / (d_a*d_e) = w_a/d_a + w_e/d_e.
+```
+
+The verifier evaluates that same numerator and denominator polynomial at its
+QM31 opening. The fixed root still pins both boundary selectors, call IDs,
+addresses, and signs. A zero product denominator is rejected by the prover;
+the usual random-challenge bound covers denominator zeros at verification.
+The first round row carries both `W[0]` and one initial-state word, so the
+schedule and state events cannot simply share a slot by row selection.
+
+The [reverse-order, ten-sample matched production record](../measurements/sha/bitcoin-sha-rational-pair-matched-production-2026-10-07.json)
+compares this two-slot bus with the original three-slot bus, the shift chip,
+and the generic circuit. All serialized proofs passed their independent
+native verifiers under FRI 26/70/fold 1, 20-bit interaction PoW, and warm
+fixed commitments. Median proving time after subtracting both PoW grinds was
+153.65 ms generic, 44.30 ms shift, and 39.27 ms fused with two slots. The
+three-slot fused median in the same reverse-order windows was 40.08 ms.
+Thus the paired bus saved 0.80 ms (2.0%) on this host and witness. It reduced
+the full circuit interaction width from 92 to 88; proof size moved from
+376,881 to 376,675 bytes. Native verification median moved from 4.85 to
+4.72 ms. The generic circuit's proof was 338,282 bytes: the paired fused
+proof was about 11% larger even though its non-PoW proving work was about
+3.9× lower. These small pair-specific differences need more workloads before
+they can be treated as a general throughput gain. The fixed witness's FRI
+nonce search changed substantially with the new transcript and dominates raw
+wall time; this run does not establish universally faster wall time.
 
 ## Measured reason to try it
 

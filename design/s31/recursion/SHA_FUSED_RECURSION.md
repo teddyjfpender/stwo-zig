@@ -15,11 +15,12 @@ OODS and FRI checks can handle a different component count and fold schedule
 when the AIR uses the wire format's one OODS opening per trace column.
 The [proof conversion](../../../src/integrations/circuit_cpu/verifier_proof.zig)
 accepts verified captures for that format. Fused SHA uses shifted openings
-at five points for some trace columns, so its capture cannot yet be converted
-without extending the wire format and OODS replay. The
-[joined transport inventory](JOINED_SHA_RECURSION_TRANSPORT.md) records the
-exact mismatch. These are useful transport and cryptographic subroutines,
-not an in-circuit verifier for fused v4.
+at five points for some trace columns. The wire format now transports those
+openings, 17 claims over 21 components, and both caller-bus sums; a freshly
+decoded, natively verified proof converts to the same wire bytes as the
+prover-memory route. The [joined transport inventory](JOINED_SHA_RECURSION_TRANSPORT.md)
+records the remaining verifier work. These are useful transport and
+cryptographic subroutines, not an in-circuit verifier for fused v4.
 
 The current [generic statement](../../../src/frontends/circuit/statements/circuit_statement.zig)
 has exactly 11 circuit evaluators. The [sparse-wide statement](../../../src/frontends/circuit/statements/sparse_wide_statement.zig)

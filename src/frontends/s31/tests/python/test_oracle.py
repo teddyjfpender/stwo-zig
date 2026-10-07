@@ -271,6 +271,20 @@ class OracleTests(unittest.TestCase):
         assignment["public_outputs"]["less"] = [1]
         self.assertEqual(evaluate_relation(relation, assignment), {"less": [1]})
 
+    def test_u256_static_sum_checked_overflow_and_wrapping(self) -> None:
+        for name in ("u256_sum_checked", "u256_sum_wrap", "u256_sum_checked_manual"):
+            relation, assignment = fixture(name)
+            self.assertEqual(evaluate_relation(relation, assignment), assignment["public_outputs"])
+        checked, assignment = fixture("u256_sum_checked")
+        assignment["private_inputs"] = fixture("u256_sum_wrap")[1]["private_inputs"]
+        with self.assertRaisesRegex(OracleError, "256-bit addition overflow"):
+            evaluate_relation(checked, assignment)
+        wrap, wrap_assignment = fixture("u256_sum_wrap")
+        wrong = copy.deepcopy(wrap_assignment)
+        wrong["public_outputs"]["root"][0] += 1
+        with self.assertRaisesRegex(OracleError, "does not match"):
+            evaluate_relation(wrap, wrong)
+
     def test_bitcoin_block_work_reference_and_boundaries(self) -> None:
         relation, assignment = fixture("bitcoin_block_work")
         self.assertEqual(evaluate_relation(relation, assignment), assignment["public_outputs"])

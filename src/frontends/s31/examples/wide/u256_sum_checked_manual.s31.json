@@ -1,0 +1,52 @@
+{
+  "version": 1,
+  "name": "u256_sum_checked_manual",
+  "inputs": [
+    {
+      "name": "a",
+      "kind": "u16",
+      "length": 16,
+      "visibility": "private"
+    },
+    {
+      "name": "b",
+      "kind": "u16",
+      "length": 16,
+      "visibility": "private"
+    },
+    {
+      "name": "c",
+      "kind": "u16",
+      "length": 16,
+      "visibility": "private"
+    }
+  ],
+  "nodes": [
+    {
+      "name": "first",
+      "op": "u256_add_checked",
+      "lhs": "a",
+      "rhs": "b"
+    },
+    {
+      "name": "total",
+      "op": "u256_add_checked",
+      "lhs": "first",
+      "rhs": "c"
+    },
+    {
+      "name": "_s31_0",
+      "op": "cast_m31",
+      "lhs": "total"
+    },
+    {
+      "name": "root",
+      "op": "hash_poseidon2_leaf",
+      "lhs": "_s31_0"
+    }
+  ],
+  "assertions": [],
+  "public_outputs": [
+    "root"
+  ]
+}

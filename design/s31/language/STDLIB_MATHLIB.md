@@ -18,7 +18,7 @@ general module loader or user-published package format yet.
 
 | Namespace | Implemented operations | Backend relation |
 | --- | --- | --- |
-| `std::math` | `neg`, `sub`, `square`, checked `inv`, `div`, static `pow<K>`, static-group `sum`, `dot`, `matvec`, `matmul`, `poly_eval`, fixed-array `sum_lanes`, `dot_lanes`, `add_u256`, `add_u256_checked`, `sub_u256`, `sub_u256_checked`, `le_u256`, `lt_u256`, `gt_u256`, `ge_u256`, `eq_u256`, `ne_u256`, `min_u256`, `max_u256` | M31 arithmetic and constrained packed reduction; `matvec` and `matmul` expand to ordinary dot and add nodes; inversion uses a pointwise product and arithmetic zero assertion per four active lanes, and division reuses the inverse; wide operations use sixteen range-checked digits and Boolean carries/borrows. Ordering helpers reuse `u256_le`, Boolean logic, and a range-preserving wide select. |
+| `std::math` | `neg`, `sub`, `square`, checked `inv`, `div`, static `pow<K>`, static-group `sum`, `dot`, `matvec`, `matmul`, `poly_eval`, fixed-array `sum_lanes`, `dot_lanes`, `add_u256`, `add_u256_checked`, `sum_u256`, `sum_u256_checked`, `sub_u256`, `sub_u256_checked`, `le_u256`, `lt_u256`, `gt_u256`, `ge_u256`, `eq_u256`, `ne_u256`, `min_u256`, `max_u256` | M31 arithmetic and constrained packed reduction; `matvec` and `matmul` expand to ordinary dot and add nodes; inversion uses a pointwise product and arithmetic zero assertion per four active lanes, and division reuses the inverse; wide operations use sixteen range-checked digits and Boolean carries/borrows. Fixed wide sums expand to balanced trees of ordinary checked or wrapping additions. Ordering helpers reuse `u256_le`, Boolean logic, and a range-preserving wide select. |
 | `std::array` | Static-reference and runtime-array `get<K>`, `concat`, `take<K>`, `drop<K>`, `reshape<R>`, `flatten` | Static forms erase to references. Runtime forms use `array_get`, `array_concat`, and `array_slice` relation nodes. Aligned packed source words alias existing wires; shifted views use constrained unpack/repack gates. |
 | `std::field` | `from_u16`, `is_zero`, `select` | Explicit conversion; direct input bits have `b²-b=0`, while computed zero bits use two algebraic constraints. Selection also accepts `UInt256` and keeps each chosen limb equal to a range-checked input limb. |
 | `std::bool` | `not`, `and`, `or`, `xor`, `select` | Scalar typed bits; input bitness is constrained, and every result follows from Boolean field identities. |
@@ -74,6 +74,22 @@ bounded below the M31 modulus. The Zig API also has distinct `Target`,
 types have not yet been added to the S31 source language, and a general
 pair-returning division source operation remains open. A proof-level
 negative corpus and a specialized faster work chip are also open.
+
+The source math library now supports `sum_u256_checked([work0,work1,...])`
+for a fixed group of 1–16 `UInt256` values. It emits a balanced tree of
+`u256_add_checked` nodes, so accumulating several block-work values costs
+exactly one proved wide addition per extra term and rejects overflow. The
+wrapping `sum_u256` uses `u256_add` nodes at the same positions. The
+[checked fixture](../../../src/frontends/s31/examples/wide/u256_sum_checked.s31)
+and [manual chain](../../../src/frontends/s31/examples/wide/u256_sum_checked_manual.s31)
+have structurally identical normalized relations; the
+[wide-value chapter](../../../src/frontends/s31/docs/wide-values.md#adding-several-256-bit-values)
+shows the limb carries. This is source-level accumulation, not a nominal
+`ChainWork` type or a specialized chainwork chip. The
+[acceptance record](../measurements/language/u256-static-sum-v1-2026-10-07.json)
+pins three native proofs, checked overflow rejection, same-claim cross-key
+replay rejection, and equal helper/manual row geometry. Its one-run proof
+sizes and times do not establish a speed difference.
 
 The compiler checks types and canonical field constants before relation emission.
 `pow<K>` requires a compile-time exponent `0 <= K < p`, where

@@ -1,0 +1,13 @@
+use std@1;
+
+// This expands to the same two add relations as sum_u256_checked([a,b,c]).
+circuit u256_sum_checked_manual(
+    private a: UInt256,
+    private b: UInt256,
+    private c: UInt256
+) -> public Digest<Poseidon2> {
+    let first = std::math::add_u256_checked(a, b);
+    let total = std::math::add_u256_checked(first, c);
+    let root = std::hash::poseidon2_leaf(std::bytes::limbs_m31(total));
+    root
+}
