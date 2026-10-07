@@ -57,6 +57,19 @@ pub fn build(b: *std.Build) void {
     const tests = b.addRunArtifact(b.addTest(.{ .root_module = frontend }));
     const test_step = b.step("test", "Test the S31 prototype parser, evaluator and circuit compiler");
     test_step.dependOn(&tests.step);
+    const bitcoin_step_inspector_root = b.createModule(.{
+        .root_source_file = b.path("inspect_bitcoin_fold_step.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    bitcoin_step_inspector_root.addImport("stwo_s31_prototype", frontend);
+    bitcoin_step_inspector_root.addImport("stwo_circuit_frontend", circuit);
+    const bitcoin_step_inspector = b.addExecutable(.{
+        .name = "s31-inspect-bitcoin-fold-step",
+        .root_module = bitcoin_step_inspector_root,
+    });
+    b.step("inspect-bitcoin-fold-step", "Inspect witness-free Bitcoin fold-step circuit cost")
+        .dependOn(&b.addRunArtifact(bitcoin_step_inspector).step);
     const fold_test_root = b.createModule(.{
         .root_source_file = b.path("state_fold.zig"),
         .target = target,

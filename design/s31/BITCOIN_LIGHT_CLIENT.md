@@ -241,35 +241,59 @@ but a concrete accumulated soundness bound is still required.
 
 ### Changing-header fold contract
 
-The next fold circuit needs two authenticated children per step: the prior
-fold proof under its sealed recursive key and a fresh header-transition proof
-under a sealed leaf key. The transition statement must bind its old and new
-state commitments. The outer circuit must check that its old commitment equals
-the prior fold's authenticated new commitment, then publish the new
-commitment with the incremented `u32` step. A host-side equality check cannot
-replace that circuit equality. The base step must bind an explicit trusted
-checkpoint and must use a different domain from a recursive step.
+The preferred next fold verifies **one prior fold proof** under its sealed key
+and checks the new header directly in the same circuit. The
+[`bitcoin_fold_step.zig`](../../src/frontends/s31/bitcoin_fold_step.zig)
+kernel already range-checks the old hash and new 80-byte header, equates the
+header's previous-hash field to the old hash, constrains byte-exact SHA256d,
+decodes the mainnet target, proves PoW, equates the old Poseidon2 root to an
+authenticated prior-state root, and returns the new root. Its
+[witness-free inspector](../../src/frontends/s31/inspect_bitcoin_fold_step.zig)
+reports 366,721 variables and 363,049 QM31 arithmetic rows for this kernel.
+The recorded Bitcoin sparse-wide claim fold has 259,481 spare QM31 rows before its
+next padding boundary. Direct insertion will likely raise that component's
+padding from 1,048,576 to 2,097,152 rows, so the new key and base proof
+geometry need measurement. It is still much smaller at the circuit level
+than adding a second full in-circuit STARK verifier; a matched end-to-end
+proving benchmark is required before claiming a time win. The
+[inspection record](measurements/bitcoin-direct-fold-step-v1-2026-10-07.json)
+pins the exact kernel counts and makes the additive estimate explicit.
 
-For the first **hash-chain-only** fold, keep the eight-word ABI: the leaf
-publishes `R_link = Poseidon2_pair(Poseidon2_leaf(H_old),
-Poseidon2_leaf(H_new))`. The fold witnesses both sixteen-limb hashes, range
-checks them as `u16`, recomputes `R_link` and equates it to the new leaf's
-verified public output. It also equates `Poseidon2_leaf(H_old)` to the prior
-fold's authenticated state root. The new fold output must hash the new state
-root, counter, checkpoint, leaf-key identity, and fold-root opening under a
-new domain; the next step opens that output inside its circuit. The
-`poseidon2.constrainLinkedState` kernel already implements and adversarially
-tests the two essential root equalities, but no fold invokes it yet.
+For a first **hash-chain-only** fold, the eight-word ABI can hold one
+authenticated state root. The fold must open the previous output digest in
+its circuit, equate its authenticated root to the kernel's old-hash root,
+then publish a domain-separated digest binding the new root, `u32` counter,
+checkpoint, and sealed fold identity. At step zero, the base proof must bind
+the trusted checkpoint; the recursive branch must verify exactly step `n-1`.
+A host-side equality check cannot replace either circuit constraint.
+[`bitcoin_fold_digest.zig`](../../src/frontends/s31/bitcoin_fold_digest.zig)
+now pins the proposed 100-byte `S31BFD1!` digest preimage: 32 bytes of fold
+AIR root, four bytes of little-endian counter, 32 bytes of canonical M31
+checkpoint root, and 32 bytes of canonical M31 current root. Host and circuit
+implementations agree at boundary counters including `0xffffffff`; the host
+rejects noncanonical root words. This digest is not yet attached to a
+recursive proof or sealed key.
 
-This hash-only stage establishes linked, PoW-valid headers against a trusted
-checkpoint. Full mainnet policy needs a versioned state commitment that also
-binds difficulty context, timestamps, height, and checked chainwork, with a
-leaf relation that updates that state. The new fold needs a versioned proof
-envelope, a fixed two-verifier statement encoding, and adversarial tests for
-swapped old/new states, altered child keys, omitted header proofs, wrong
-network parameters, and counter wraparound. The current four-lane
-`state_fold` proves only a fixed field recurrence and verifies one child
-proof; it cannot be relabeled as this Bitcoin transition.
+The separately proved [`bitcoin_header_link.s31`](../../src/frontends/s31/examples/bitcoin_header_link.s31)
+leaf remains useful for independent proofs and for a future dedicated SHA
+chip. If a proof-bound chip makes verifying that leaf cheaper than direct
+header gates, a two-child fold can authenticate the prior fold and the new
+leaf instead. The `poseidon2.constrainLinkedState` kernel checks the two
+state-root equalities for that route. The
+[`recursive_public_words.zig`](../../src/frontends/s31/recursive_public_words.zig)
+bridge proves that each verified packed `u32` leaf word equals a canonical
+M31 word before Poseidon2 consumes it; it rejects `p` and is tested with the
+link kernel. No fold invokes either route yet.
+
+This hash-only stage would establish linked, PoW-valid headers against a
+trusted checkpoint. Full mainnet policy additionally needs a versioned state
+commitment binding difficulty context, timestamps, height, and checked
+chainwork, plus a leaf or direct circuit relation updating that state. The
+new fold needs a versioned proof envelope, fixed statement encoding, and
+adversarial tests for changed old/new state, wrong prior key or checkpoint,
+omitted header work, wrong network parameters, and counter wraparound. The
+current four-lane `state_fold` proves only a fixed field recurrence and
+verifies one child proof; it cannot be relabeled as this Bitcoin transition.
 
 ## Engineering sequence and exit gates
 

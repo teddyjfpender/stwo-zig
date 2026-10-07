@@ -1,0 +1,34 @@
+{
+  "command": "zig build --build-file src/frontends/s31/build.zig inspect-bitcoin-fold-step -Doptimize=ReleaseSafe -j2",
+  "direct_step": {
+    "padded": {
+      "blake_g": 16,
+      "eq": 8192,
+      "m31_to_u32": 4096,
+      "qm31_ops": 524288,
+      "triple_xor": 16
+    },
+    "raw": {
+      "blake_g": 0,
+      "eq": 4781,
+      "m31_to_u32": 3672,
+      "qm31_ops": 363049,
+      "triple_xor": 0
+    },
+    "raw_vars": 366721,
+    "schema": "s31-bitcoin-fold-step-inspection-v1"
+  },
+  "existing_bitcoin_claim_fold_reference": {
+    "headroom_qm31_ops": 259481,
+    "padded_qm31_ops": 1048576,
+    "qm31_ops": 789095,
+    "raw_vars": 5589555,
+    "record": "bitcoin-sparse-wide-fold-stages-v1-2026-10-07.json"
+  },
+  "inspector_sha256": "3ddddd7dbe0628dc40e106688a1f51059d93cc1ed6e62bc1c869ff5a1f916076",
+  "interpretation": "Kernel-only witness-free cost. Additive estimate is not a composed fold topology or timed proof.",
+  "naive_additive_qm31_ops": 1152144,
+  "next_power_of_two_qm31_rows": 2097152,
+  "schema": "s31-bitcoin-direct-fold-step-cost-v1",
+  "source_sha256": "3e493084a98c6801681566781981e47459f76cd14bd4062a03ada615e4ec35cd"
+}

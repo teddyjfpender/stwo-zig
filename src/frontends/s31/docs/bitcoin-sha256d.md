@@ -329,6 +329,54 @@ Removing the redundant parent SHA therefore cut raw arithmetic rows by
 recursive proof was 354,417 bytes. These counts do not establish a
 proving-time speedup; that needs repeated timed trials.
 
+The recursive verifier carries each public claim word as a packed `u32`:
+`(low_u16, high_u16, 0, 0)` in QM31. Poseidon2 uses one canonical M31 value
+per word. The two encodings are distinct circuit wires. For the first link
+root word, `928491885 = 43373 + 65536·14167`. The
+[`bindCanonicalM31Output`](../recursive_public_words.zig) gadget witnesses
+the M31 value, constrains it as a base-field element, decomposes it back to
+the packed `u32`, and equates that result to the word authenticated by the
+child proof. The circuit test also rejects the packed word
+`p = 2147483647`: it is a valid `u32` but has no equal canonical M31
+representation. The same test composes this boundary with the
+[`constrainLinkedState`](../poseidon2.zig) circuit equalities and rejects a
+changed prior-state root. These gates are available for a two-proof fold;
+the current one-level wrapper does not yet invoke them.
+
+The faster fold candidate computes the new header inside the fold circuit
+after verifying only the prior recursive proof. The
+[`constrainMainnetPowLinkStep`](../bitcoin_fold_step.zig) kernel consumes a
+trusted old hash root and private old-hash/header limbs. For the same fixture,
+it checks `child[2] = prior_hash[0] = 57967` (and the next fifteen limb
+equalities), recomputes SHA256d and the target comparison, and yields the new
+hash root `[1230097977, 338045265, 582454319, 1194138423, …]`.
+The trusted old root begins `[93892305, 397617766, …]`; changing it makes
+the circuit unsatisfied. A value-bearing and witness-free circuit produce
+identical gate lists in the Zig test.
+
+```sh
+zig build --build-file src/frontends/s31/build.zig inspect-bitcoin-fold-step -Doptimize=ReleaseSafe -j2
+```
+
+That inspector reports 366,721 raw variables and 363,049 QM31 arithmetic
+rows for the header-step kernel alone. The recorded Bitcoin claim fold has 259,481
+spare QM31 rows, so adding the kernel is expected to cross one padding
+boundary. This is a circuit cost estimate, not a completed recursive header
+proof or a timed proving comparison. The
+[measurement record](../../../../design/s31/measurements/bitcoin-direct-fold-step-v1-2026-10-07.json)
+pins the inspector command, source hashes, exact gate counts, and additive
+padding estimate.
+
+The proposed fold output uses a fixed 100-byte BLAKE2s preimage with the
+`S31BFD1!` domain: `fold_AIR_root[32] || LE32(step) ||
+LE32(checkpoint_root[0..8]) || LE32(current_root[0..8])`.
+[`bitcoin_fold_digest.zig`](../bitcoin_fold_digest.zig) computes it both on the
+host and with circuit gates. Each root word must be canonical M31 before
+four-byte encoding; raw digest bytes cannot be reduced into the field. The
+test checks that changing the checkpoint, current root, AIR root, or tested
+high-counter values changes the output. This statement digest is a
+building block; no generated verifier yet accepts it as a Bitcoin fold proof.
+
 ## Dedicated SHA AIR boundary under construction
 
 [`sha_chip_plan.zig`](../sha_chip_plan.zig) now constructs the exact three

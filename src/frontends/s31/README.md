@@ -122,7 +122,10 @@ remains future work. The [sparse-wide recursive verifier](docs/recursion-sparse-
 now wraps this profile through two depth-specific gate proofs; a repeatable
 Bitcoin header-chain transition is still separate work. The
 [header-link acceptance gate](acceptance_header_link.py) also wraps one fresh
-header-link proof and checks its authenticated child statement.
+header-link proof and checks its authenticated child statement. A direct
+[header-step circuit kernel](bitcoin_fold_step.zig) constrains a new header
+inside a future fold; its [worked chapter](docs/bitcoin-sha256d.md) gives the
+gate-inspection command and cost.
 
 The packed SHA AIR has a focused six-call proof test for two SHA256d headers:
 
