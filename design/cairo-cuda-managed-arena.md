@@ -40,6 +40,10 @@ reusing an aliased span, and those policy barriers are counted separately in
 the resident verdict. This is intended to bound actual HBM occupancy, not to
 reduce the logical arena. Its PCIe cost, observed GPU peak, and exact proof
 must be qualified on hardware before it is considered useful.
+Value `2` additionally places the committed main-tree LDE evaluations in
+host memory. That range is 28.0 GiB in the dense PIE and does not alias later
+request slots, but constraint evaluation, quotient and decommitment may pay
+substantial remote-read costs. Compare both values on identical inputs.
 
 Initial discriminating cases are the exact canonical inputs
 `15582797_15582797` (88.627 GB planned arena, 109,817 distinct Pedersen

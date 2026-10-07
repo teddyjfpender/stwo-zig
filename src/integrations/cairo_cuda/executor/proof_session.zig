@@ -398,6 +398,16 @@ pub const Prepared = struct {
                 true,
             );
         }
+        if (managedMainEvaluationHostEnabled()) {
+            phase = "host_resident_main_evaluations";
+            try preferManagedSlotHost(
+                transaction,
+                plan,
+                .trace_evaluations,
+                1,
+                true,
+            );
+        }
         phase = "transcript_bootstrap";
         try transcript_controller.initialize(
             runtime_stages.transcript.Native,
@@ -891,7 +901,12 @@ fn managedPrefetchEnabled() bool {
 
 fn managedHostPreferredEnabled() bool {
     const value = std.posix.getenv("STWO_CUDA_MANAGED_HOST_PREFERRED") orelse return false;
-    return std.mem.eql(u8, value, "1");
+    return std.mem.eql(u8, value, "1") or std.mem.eql(u8, value, "2");
+}
+
+fn managedMainEvaluationHostEnabled() bool {
+    const value = std.posix.getenv("STWO_CUDA_MANAGED_HOST_PREFERRED") orelse return false;
+    return std.mem.eql(u8, value, "2");
 }
 
 fn preferManagedSlotHost(
