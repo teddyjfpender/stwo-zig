@@ -37,3 +37,45 @@ The proof identity and verifier result do establish correctness for this
 input. The stage memory inventory is in `geometry-dense.txt`; the proposed
 bounded-memory pipeline is in
 [`design/cairo-cuda-bounded-memory-pipeline.md`](../../../design/cairo-cuda-bounded-memory-pipeline.md).
+
+## Host-placement follow-up
+
+The following are additional single cold-command diagnostics on an 80 GiB
+H100 SXM. They use the same canonical inputs and independent Rust verifier.
+`throughput` and `capacity` are the opt-in values of
+`STWO_CUDA_MANAGED_PLACEMENT` in the updated source. The `final-baseline` and
+`final-capacity` receipt directories hold a sequential same-pod pair from
+before evaluation placement moved to the pre-commit boundary. Every
+successful follow-up proof had the exact expected SHA-256
+listed above.
+
+| PIE | Placement | Adapted input to publication | Observed GPU peak | Observed process RSS peak | Independent verifier |
+| --- | --- | ---: | ---: | ---: | --- |
+| 15590913_15590913 | managed only (`final-baseline`) | 35.725 s | 79.177 GiB | 3.763 GiB | accepted |
+| 15590913_15590913 | post-commit placement (`final-capacity`) | 34.618 s | 69.614 GiB | 3.764 GiB | accepted |
+| 15590913_15590913 | pre-commit capacity (`early-evaluations`) | 34.310 s | 56.487 GiB | 3.764 GiB | accepted |
+| 15590913_15590913 | throughput (`host-evaluations`) | 22.835 s | 79.177 GiB | 3.770 GiB | accepted |
+| 15582797_15582797 | post-commit placement (`final-capacity-second`) | 24.408 s | 59.614 GiB | 3.693 GiB | accepted |
+| 15582797_15582797 | pre-commit capacity (`early-evaluations-second`) | 29.651 s | 48.362 GiB | 3.694 GiB | accepted |
+
+The capacity policy moves the lookup slab before trace writers execute and
+places both evaluation trees on the host before their commitments. The dense
+PIE saves 22.690 GiB (28.7%) of observed device memory versus the same-pod
+managed-only run; the second saves 30.815 GiB (38.9%) against its earlier
+managed-only reference. The planned
+arena sizes remain 103.367 GB and 88.627 GB; this is HBM placement, not a
+smaller logical proof plan. Publication time varied by several seconds across
+single runs, so there is no qualified speedup claim.
+Host RSS is not a reliable measure of all UVM-backed pages.
+The 48.362 GiB result does not establish that this PIE fits a nominal 48 GB
+card; the advertised capacity may be decimal and the device needs reserve.
+
+The discarded experiments are summarized in
+`host-placement/experiment-comparison.tsv`: late lookup
+placement did not lower the peak; whole-component lookup retirement was fast
+but left the 15.59 GiB `partial_ec_mul_window_bits_18` output on the GPU until
+its writer finished; moving only that large component before its writer was
+slower and still reached the H100 limit. Host-placing interaction coefficients
+before commitment also left the peak unchanged while adding substantial time.
+These observations motivate row-level
+lookup chunking and bounded LDE evaluation storage.

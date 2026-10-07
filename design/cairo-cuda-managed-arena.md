@@ -30,20 +30,37 @@ slots. They do not copy witness data into host application code or change the
 proof. Measure this separately from the plain managed fallback: on a dense
 PIE the extra transfers may outweigh avoided page faults.
 
-`STWO_CUDA_MANAGED_HOST_PREFERRED=1` is a separate research policy for
-oversubscribed managed arenas. After the writers finish, it places the lookup
-slab in host memory for main commitment and relation consumption. After each
-trace commitment, it places that tree's coefficients in host memory until
-OODS finishes. The GPU is explicitly allowed to map these ranges without
-migrating them. Every advice change synchronizes the proof stream before
-reusing an aliased span, and those policy barriers are counted separately in
-the resident verdict. This is intended to bound actual HBM occupancy, not to
-reduce the logical arena. Its PCIe cost, observed GPU peak, and exact proof
-must be qualified on hardware before it is considered useful.
-Value `2` additionally places the committed main-tree LDE evaluations in
-host memory. That range is 28.0 GiB in the dense PIE and does not alias later
-request slots, but constraint evaluation, quotient and decommitment may pay
-substantial remote-read costs. Compare both values on identical inputs.
+`STWO_CUDA_MANAGED_PLACEMENT=throughput` or `capacity` selects a separate
+research placement policy for an oversubscribed managed arena. Both place
+committed coefficients on the host until OODS. `throughput` moves lookup
+inputs after the writers finish and host-places the main evaluations after
+commitment. `capacity` places lookup inputs on the host **before** the writers
+begin and places both evaluation arrays on the host **before** their
+commitments. The latter can slow trace generation or commitment but lowers the
+observed device peak on Pedersen-dense PIEs. A policy cannot be combined with
+`STWO_CUDA_MANAGED_PREFETCH=1`. Every placement change synchronizes the proof
+stream before reusing an aliased span; the barriers appear in
+`managed_policy_sync_calls`. These policies do not change the 103.367 GB
+dense-PIE arena reservation, proof bytes, or source authority.
+
+On one 80 GiB H100 SXM, the `capacity` policy lowered the sampled GPU peak
+from 79.177 to 56.487 GiB for `15590913_15590913` and from 79.177 to
+48.362 GiB for `15582797_15582797`. Both proofs matched the managed baseline
+byte for byte and passed the independent Rust verifier. The observed peaks
+are 250 ms samples, and these are single diagnostic trials, not latency
+rankings. The selected receipts and full experiment comparison are under
+[`vectors/reports/cairo-cuda-h100-managed-20261007`](../vectors/reports/cairo-cuda-h100-managed-20261007/README.md).
+
+The dense PIE still exceeds a 48 GiB budget; the second case is also just
+above that line, before allowing for other device users or reserve. The
+dense PIE's lookup slab is 27.87 GiB,
+and `partial_ec_mul_window_bits_18` alone accounts for 15.59 GiB of lookup
+output. Retiring lookup data after each whole component did not lower the
+peak: that one writer still fills too much memory before it can be retired.
+Further reduction needs bounded row chunks in that writer, plus streaming or
+replaying the main and interaction LDE evaluations during constraint,
+quotient, and decommitment. Host placement is a useful capacity fallback,
+not a substitute for those shorter live ranges.
 
 Initial discriminating cases are the exact canonical inputs
 `15582797_15582797` (88.627 GB planned arena, 109,817 distinct Pedersen

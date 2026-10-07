@@ -21,6 +21,17 @@ These are planner live bytes, not sampled HBM usage. Merely enabling
 plan unchanged and causes expensive migration. Stage prefetch does not solve
 the allocation problem.
 
+An opt-in `capacity` placement policy now moves the lookup slab before the
+writers and host-places evaluation arrays before their commitments. On the
+H100 it lowered the sampled dense-PIE peak from 79.177 to 56.487 GiB and the
+second Pedersen-dense PIE from 79.177 to 48.362 GiB, with byte-identical verified
+proofs. This is a physical HBM reduction, but the logical plan and its live
+sets above remain unchanged. In the dense PIE,
+`partial_ec_mul_window_bits_18` produces 15.59 GiB of the 27.87 GiB lookup
+slab in one writer launch. Offloading after whole components therefore cannot
+bound its own peak; the lookup replay/chunking step below must split rows
+within that writer.
+
 ## Implementation sequence
 
 1. **Replay lookup inputs in bounded chunks.** The current writer emits a
@@ -30,7 +41,11 @@ the allocation problem.
    authenticated input. The main trace has already been transformed in place;
    replay must never overwrite it. First compare replayed lookup chunks against
    the current writer output, then compare full proof bytes and verifier
-   acceptance. This removes the slab from the trace-commit overlap.
+   acceptance. This removes the slab from the trace-commit overlap. The
+   recorded-witness launch ABI currently has one `row_count` and no row-start
+   argument; the largest partial-EC writer needs a chunk-aware kernel ABI and
+   a relation consumer that can read or replay the same canonical word-major
+   ranges without changing transcript order.
 
 2. **Keep coefficients and commitment hashes; stream LDE evaluations.**
    Build each column/cohort LDE and its Merkle contribution in bounded storage,

@@ -322,7 +322,8 @@ pub const Prepared = struct {
         var phase: []const u8 = "validate_session";
         errdefer std.debug.print("cairo-cuda proof phase={s} failed\n", .{phase});
         try self.validate(plan, protocol);
-        if (managedHostPreferredEnabled() and managedPrefetchEnabled())
+        const placement = try managedPlacement();
+        if (placement != .none and managedPrefetchEnabled())
             return error.ConflictingManagedPolicies;
         if (self.state != .prepared)
             return error.InvalidProofSessionState;
@@ -344,6 +345,10 @@ pub const Prepared = struct {
             );
             return err;
         };
+        if (placement == .capacity) {
+            phase = "host_resident_lookup_before_writers";
+            try preferManagedSlotHost(transaction, plan, .writer_lookup_inputs, 0, true);
+        }
         self.controllers.trace_writers.execute(session) catch |err| {
             std.debug.print(
                 "cairo-cuda proof trace-writers failed: {s}\n",
@@ -362,7 +367,7 @@ pub const Prepared = struct {
         try transaction.beginStage(.trace_commit);
         phase = "retain_relation_inputs";
         try self.controllers.relation_sources.captureBaseInputs(session);
-        if (managedHostPreferredEnabled()) {
+        if (placement == .throughput) {
             phase = "host_resident_lookup";
             try preferManagedSlotHost(
                 transaction,
@@ -374,6 +379,10 @@ pub const Prepared = struct {
         }
         phase = "preprocessed_commit";
         try self.controllers.preprocessed_commit.execute(session);
+        if (placement == .capacity) {
+            phase = "host_resident_main_evaluations_before_commit";
+            try preferManagedSlotHost(transaction, plan, .trace_evaluations, 1, true);
+        }
         phase = "main_commit";
         try self.controllers.main_commit.execute(session);
         try proof_capture.captureStaticTraceRoot(
@@ -388,7 +397,7 @@ pub const Prepared = struct {
             1,
             self.controllers.main_commit.root,
         );
-        if (managedHostPreferredEnabled()) {
+        if (placement != .none) {
             phase = "host_resident_main_coefficients";
             try preferManagedSlotHost(
                 transaction,
@@ -398,7 +407,7 @@ pub const Prepared = struct {
                 true,
             );
         }
-        if (managedMainEvaluationHostEnabled()) {
+        if (placement == .throughput) {
             phase = "host_resident_main_evaluations";
             try preferManagedSlotHost(
                 transaction,
@@ -463,7 +472,7 @@ pub const Prepared = struct {
             session,
             self.controllers.relation,
         );
-        if (managedHostPreferredEnabled()) {
+        if (placement != .none) {
             phase = "release_host_lookup_policy";
             try preferManagedSlotHost(
                 transaction,
@@ -480,9 +489,13 @@ pub const Prepared = struct {
                 self.controllers.relation,
             ),
         );
+        if (placement == .capacity) {
+            phase = "host_resident_interaction_evaluations_before_commit";
+            try preferManagedSlotHost(transaction, plan, .trace_evaluations, 2, true);
+        }
         phase = "interaction_commit";
         try self.controllers.interaction_commit.execute(session);
-        if (managedHostPreferredEnabled()) {
+        if (placement != .none) {
             phase = "host_resident_interaction_coefficients";
             try preferManagedSlotHost(
                 transaction,
@@ -585,7 +598,7 @@ pub const Prepared = struct {
             self.transcript,
             &cursor,
         );
-        if (managedHostPreferredEnabled()) {
+        if (placement != .none) {
             phase = "release_host_coefficient_policy";
             for ([_]u32{ 1, 2 }) |ordinal| {
                 try preferManagedSlotHost(
@@ -899,14 +912,13 @@ fn managedPrefetchEnabled() bool {
     return std.mem.eql(u8, value, "1");
 }
 
-fn managedHostPreferredEnabled() bool {
-    const value = std.posix.getenv("STWO_CUDA_MANAGED_HOST_PREFERRED") orelse return false;
-    return std.mem.eql(u8, value, "1") or std.mem.eql(u8, value, "2");
-}
+const ManagedPlacement = enum { none, throughput, capacity };
 
-fn managedMainEvaluationHostEnabled() bool {
-    const value = std.posix.getenv("STWO_CUDA_MANAGED_HOST_PREFERRED") orelse return false;
-    return std.mem.eql(u8, value, "2");
+fn managedPlacement() !ManagedPlacement {
+    const value = std.posix.getenv("STWO_CUDA_MANAGED_PLACEMENT") orelse return .none;
+    if (std.mem.eql(u8, value, "throughput")) return .throughput;
+    if (std.mem.eql(u8, value, "capacity")) return .capacity;
+    return error.InvalidManagedPlacementPolicy;
 }
 
 fn preferManagedSlotHost(
