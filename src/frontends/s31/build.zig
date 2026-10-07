@@ -14,12 +14,13 @@ pub fn build(b: *std.Build) void {
         b.path("examples/affine4.s31.json");
     const program_name = b.option([]const u8, "s31-name", "Build artifact name for the selected program") orelse "affine4";
     const source_version = b.option(u32, "s31-version", "Normalized source version (0 or 1)") orelse 0;
-    const lowering = b.option([]const u8, "s31-lowering", "gate, chip, sparse-gate, sparse-chip, sparse-wide-gate, direct-gate, direct-chip, sha-joint, or sha-shift proof lowering") orelse "gate";
+    const lowering = b.option([]const u8, "s31-lowering", "gate, chip, sparse-gate, sparse-chip, sparse-wide-gate, direct-gate, direct-chip, sha-joint, sha-shift, or sha-fused proof lowering") orelse "gate";
     if (!std.mem.eql(u8, lowering, "gate") and !std.mem.eql(u8, lowering, "chip") and
         !std.mem.eql(u8, lowering, "sparse-gate") and !std.mem.eql(u8, lowering, "sparse-chip") and
         !std.mem.eql(u8, lowering, "sparse-wide-gate") and
         !std.mem.eql(u8, lowering, "direct-gate") and !std.mem.eql(u8, lowering, "direct-chip") and
-        !std.mem.eql(u8, lowering, "sha-joint") and !std.mem.eql(u8, lowering, "sha-shift"))
+        !std.mem.eql(u8, lowering, "sha-joint") and !std.mem.eql(u8, lowering, "sha-shift") and
+        !std.mem.eql(u8, lowering, "sha-fused"))
         @panic("invalid s31-lowering");
     const fri_fold_step = b.option(u32, "s31-fri-fold-step", "FRI folds per commitment for gate or sparse-wide-gate (1 or 4)") orelse 1;
     if ((fri_fold_step != 1 and fri_fold_step != 4) or
@@ -32,6 +33,7 @@ pub fn build(b: *std.Build) void {
     s31_options.addOption(bool, "direct_mode", std.mem.startsWith(u8, lowering, "direct-"));
     s31_options.addOption(bool, "sha_joint_mode", std.mem.eql(u8, lowering, "sha-joint"));
     s31_options.addOption(bool, "sha_shift_mode", std.mem.eql(u8, lowering, "sha-shift"));
+    s31_options.addOption(bool, "sha_fused_mode", std.mem.eql(u8, lowering, "sha-fused"));
     s31_options.addOption(u32, "fri_fold_step", fri_fold_step);
     s31_options.addOption([]const u8, "stdlib_lock_sha256", b.option([]const u8, "s31-stdlib-sha256", "Pinned S31 standard library lock digest") orelse "");
 
@@ -270,6 +272,19 @@ pub fn build(b: *std.Build) void {
     const sha_round_shift_word_proof_tests = b.addRunArtifact(b.addTest(.{ .root_module = sha_round_shift_word_proof_root }));
     b.step("test-sha-round-shift-word-proof", "Prove shift-register SHA rounds and committed word lookup in one STARK")
         .dependOn(&sha_round_shift_word_proof_tests.step);
+    const sha_fused_word_proof_root = b.createModule(.{
+        .root_source_file = b.path("sha_fused_word_proof_test.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    sha_fused_word_proof_root.addImport("stwo_core", core);
+    sha_fused_word_proof_root.addImport("stwo_prover_engine", cpu.import_table.get("stwo_prover_engine") orelse @panic("missing prover engine"));
+    sha_fused_word_proof_root.addImport("stwo_circuit_cpu_integration", cpu);
+    sha_fused_word_proof_root.addImport("s31_sha_provider", sha_provider);
+    sha_fused_word_proof_root.addImport("interop_postcard", sha_postcard);
+    const sha_fused_word_proof_tests = b.addRunArtifact(b.addTest(.{ .root_module = sha_fused_word_proof_root }));
+    b.step("test-sha-fused-word-proof", "Prove three fused SHA schedules and rounds with committed word boundaries")
+        .dependOn(&sha_fused_word_proof_tests.step);
     const sha_schedule_word_proof_root = b.createModule(.{
         .root_source_file = b.path("sha_schedule_direct_word_proof_test.zig"),
         .target = target,
@@ -356,6 +371,20 @@ pub fn build(b: *std.Build) void {
     const sha_shift_private_join_tests = b.addRunArtifact(b.addTest(.{ .root_module = sha_shift_private_join_root }));
     b.step("test-sha-shift-private-join", "Prove one private SHA256d header with shift-register round AIRs")
         .dependOn(&sha_shift_private_join_tests.step);
+    const sha_fused_private_join_root = b.createModule(.{
+        .root_source_file = b.path("sha_fused_private_join_proof_test.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    sha_fused_private_join_root.addImport("stwo_core", core);
+    sha_fused_private_join_root.addImport("stwo_prover_engine", cpu.import_table.get("stwo_prover_engine") orelse @panic("missing prover engine"));
+    sha_fused_private_join_root.addImport("stwo_circuit_cpu_integration", cpu);
+    sha_fused_private_join_root.addImport("stwo_circuit_frontend", circuit);
+    sha_fused_private_join_root.addImport("s31_sha_provider", sha_provider);
+    sha_fused_private_join_root.addImport("interop_postcard", sha_postcard);
+    const sha_fused_private_join_tests = b.addRunArtifact(b.addTest(.{ .root_module = sha_fused_private_join_root }));
+    b.step("test-sha-fused-private-join", "Prove one private SHA256d header with fused schedule and rounds")
+        .dependOn(&sha_fused_private_join_tests.step);
     const sha_shift_circuit_root = b.createModule(.{
         .root_source_file = b.path("sha_shift_circuit_proof_test.zig"),
         .target = target,
@@ -373,6 +402,78 @@ pub fn build(b: *std.Build) void {
     const sha_shift_circuit_tests = b.addRunArtifact(b.addTest(.{ .root_module = sha_shift_circuit_root }));
     b.step("test-sha-shift-circuit", "Prove one Bitcoin circuit plus shift-register SHA256d in one STARK")
         .dependOn(&sha_shift_circuit_tests.step);
+    const sha_fused_circuit_root = b.createModule(.{
+        .root_source_file = b.path("sha_fused_circuit_proof_test.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    sha_fused_circuit_root.addImport("stwo_core", core);
+    sha_fused_circuit_root.addImport("stwo_prover_engine", cpu.import_table.get("stwo_prover_engine") orelse @panic("missing prover engine"));
+    sha_fused_circuit_root.addImport("stwo_circuit_frontend", circuit);
+    sha_fused_circuit_root.addImport("stwo_circuit_cpu_integration", cpu);
+    sha_fused_circuit_root.addImport("stwo_cairo_frontend", cpu.import_table.get("stwo_cairo_frontend") orelse @panic("missing Cairo frontend"));
+    sha_fused_circuit_root.addImport("interop_postcard", sha_postcard);
+    sha_fused_circuit_root.addImport("s31_air_programs", official_air);
+    sha_fused_circuit_root.addImport("s31_sha_provider", sha_provider);
+    sha_fused_circuit_root.addImport("s31_poseidon_ref", sha_provider);
+    const sha_fused_circuit_tests = b.addRunArtifact(b.addTest(.{ .root_module = sha_fused_circuit_root }));
+    b.step("test-sha-fused-circuit", "Prove one Bitcoin circuit plus fused SHA256d in one STARK")
+        .dependOn(&sha_fused_circuit_tests.step);
+    const sha_fused_bench_root = b.createModule(.{
+        .root_source_file = b.path("sha_fused_vs_shift_bench_test.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    sha_fused_bench_root.addImport("stwo_core", core);
+    sha_fused_bench_root.addImport("stwo_prover_engine", cpu.import_table.get("stwo_prover_engine") orelse @panic("missing prover engine"));
+    sha_fused_bench_root.addImport("stwo_circuit_frontend", circuit);
+    sha_fused_bench_root.addImport("stwo_circuit_cpu_integration", cpu);
+    sha_fused_bench_root.addImport("stwo_cairo_frontend", cpu.import_table.get("stwo_cairo_frontend") orelse @panic("missing Cairo frontend"));
+    sha_fused_bench_root.addImport("interop_postcard", sha_postcard);
+    sha_fused_bench_root.addImport("s31_air_programs", official_air);
+    sha_fused_bench_root.addImport("s31_sha_provider", sha_provider);
+    sha_fused_bench_root.addImport("s31_poseidon_ref", sha_provider);
+    const sha_fused_bench_exe = b.addExecutable(.{ .name = "s31-sha-fused-vs-shift-bench", .root_module = sha_fused_bench_root });
+    const sha_fused_bench_install = b.addInstallArtifact(sha_fused_bench_exe, .{});
+    b.step("bench-sha-fused-vs-shift", "Build production-mode fused versus shift SHA Bitcoin benchmark")
+        .dependOn(&sha_fused_bench_install.step);
+    const bitcoin_matched_bench_root = b.createModule(.{
+        .root_source_file = b.path("bitcoin_generic_vs_sha_shift_bench_test.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    bitcoin_matched_bench_root.addImport("stwo_core", core);
+    bitcoin_matched_bench_root.addImport("stwo_prover_engine", cpu.import_table.get("stwo_prover_engine") orelse @panic("missing prover engine"));
+    bitcoin_matched_bench_root.addImport("stwo_circuit_frontend", circuit);
+    bitcoin_matched_bench_root.addImport("stwo_circuit_cpu_integration", cpu);
+    bitcoin_matched_bench_root.addImport("stwo_circuit_recursion_wire", wire);
+    bitcoin_matched_bench_root.addImport("stwo_cairo_frontend", cpu.import_table.get("stwo_cairo_frontend") orelse @panic("missing Cairo frontend"));
+    bitcoin_matched_bench_root.addImport("interop_postcard", sha_postcard);
+    bitcoin_matched_bench_root.addImport("s31_air_programs", official_air);
+    bitcoin_matched_bench_root.addImport("s31_sha_provider", sha_provider);
+    bitcoin_matched_bench_root.addImport("s31_poseidon_ref", sha_provider);
+    const bitcoin_matched_bench_tests = b.addRunArtifact(b.addTest(.{ .root_module = bitcoin_matched_bench_root }));
+    b.step("test-bitcoin-generic-vs-sha-shift", "Compare generic and shift-SHA Bitcoin proof timing in one harness")
+        .dependOn(&bitcoin_matched_bench_tests.step);
+    const bitcoin_matched_bench_exe_root = b.createModule(.{
+        .root_source_file = b.path("bitcoin_generic_vs_sha_shift_bench_test.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    bitcoin_matched_bench_exe_root.addImport("stwo_core", core);
+    bitcoin_matched_bench_exe_root.addImport("stwo_prover_engine", cpu.import_table.get("stwo_prover_engine") orelse @panic("missing prover engine"));
+    bitcoin_matched_bench_exe_root.addImport("stwo_circuit_frontend", circuit);
+    bitcoin_matched_bench_exe_root.addImport("stwo_circuit_cpu_integration", cpu);
+    bitcoin_matched_bench_exe_root.addImport("stwo_circuit_recursion_wire", wire);
+    bitcoin_matched_bench_exe_root.addImport("stwo_cairo_frontend", cpu.import_table.get("stwo_cairo_frontend") orelse @panic("missing Cairo frontend"));
+    bitcoin_matched_bench_exe_root.addImport("interop_postcard", sha_postcard);
+    bitcoin_matched_bench_exe_root.addImport("s31_air_programs", official_air);
+    bitcoin_matched_bench_exe_root.addImport("s31_sha_provider", sha_provider);
+    bitcoin_matched_bench_exe_root.addImport("s31_poseidon_ref", sha_provider);
+    const bitcoin_matched_bench_exe = b.addExecutable(.{ .name = "s31-bitcoin-generic-vs-sha-shift-bench", .root_module = bitcoin_matched_bench_exe_root });
+    const bitcoin_matched_bench_install = b.addInstallArtifact(bitcoin_matched_bench_exe, .{});
+    b.step("bitcoin-generic-vs-sha-shift-bench", "Build production-mode generic and shift-SHA Bitcoin benchmark")
+        .dependOn(&bitcoin_matched_bench_install.step);
     const sha_feed_word_proof_root = b.createModule(.{
         .root_source_file = b.path("sha_feed_direct_word_proof_test.zig"),
         .target = target,

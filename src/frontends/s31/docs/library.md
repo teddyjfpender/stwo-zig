@@ -74,8 +74,11 @@ aliases the input and emits no relation node. For a proper slice, the
 coordinate rule is `slice[j] = source[offset+j]` for every
 `0 <= j < length`. A four-coordinate aligned slice borrows whole QM31
 wires; a shifted slice unpacks source coordinates and constrains their new
-packing. The source bytes, offset, and length are part of the canonical
-program bound by the generated verification key.
+packing. The offset and length are part of the compiled relation bound by
+the verifier's AIR geometry. The package manifest records and checks the
+source-file hash for artifact provenance. Byte-for-byte source identity is
+not a separate proof claim when two sources compile to the same canonical
+relation.
 
 `reshape<R>(flat)` divides a flat static group or runtime array into `R`
 consecutive rows. Static groups limit both dimensions to 1..16 and emit no
@@ -110,6 +113,32 @@ reshapes eight private lanes into two four-lane rows, rejoins them, and
 selects position 6, which is 17 in the sample assignment. The
 [u16 example](../examples/array_slice_u16.s31) preserves the source's
 range constraints while exposing the two-lane slice `[65535,7]`.
+
+The [native acceptance run](../acceptance_array_views.py) checks every text
+program against its handwritten JSON relation and an independent Python list
+calculation. It proves both versions, then changes a private input that
+affects the selected output and proves the new result. A stale public claim,
+damaged proof, or altered sealed key is rejected. Text and handwritten JSON
+sources may share a valid proof when their canonical relation and verifier
+geometry coincide; the package manifest checks raw source-file provenance,
+while the verifier checks the compiled relation and its AIR geometry. The
+[cost baseline](../../../../design/s31/measurements/array-view-cost-v1-2026-10-07.json)
+pins raw and padded rows, fixed-column geometry, and slice-specific QM31
+rows. Its proof-byte ceiling allows 10% measurement variation; a compiler
+change that adds gates to an aligned slice or greatly expands a proof fails
+the acceptance run until the new cost is reviewed.
+
+| Runtime view example | Slice-specific QM31 rows | Total raw QM31 rows | Native proof size in this run |
+| --- | ---: | ---: | ---: |
+| Aligned four-lane M31 slice | 0 | 312 | 56,406 bytes |
+| Shifted M31 slice, then take | 19 + 0 | 331 | 53,925 bytes |
+| Reshape two rows, then flatten | 0 + 0 | 290 | 58,705 bytes |
+| Shifted `u16` slice, then take | 6 + 0 | 284 | 431,832 bytes |
+
+The `u16` example uses the generic `gate` profile with range checking, while
+the M31 examples use `direct-gate`. Total rows include input encoding,
+public-output binding, and padding preparation, so the slice-specific column
+is the useful measure of view cost.
 
 ## A fixed matrix by hand
 

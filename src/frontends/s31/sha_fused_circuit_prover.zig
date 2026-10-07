@@ -1,5 +1,5 @@
-//! One PCS/FRI proof for a sparse-wide S31 circuit and private direct SHA256d.
-//! The Gate and ten SHA word claims close before the interaction commitment.
+//! One PCS/FRI proof for a sparse-wide S31 circuit and fused SHA256d AIR.
+//! The Gate and five SHA word claims close before the interaction commitment.
 const std = @import("std");
 const core = @import("stwo_core");
 const engine = @import("stwo_prover_engine");
@@ -7,10 +7,10 @@ const circuit = @import("stwo_circuit_frontend");
 const cpu = @import("stwo_circuit_cpu_integration");
 const cairo = @import("stwo_cairo_frontend");
 const postcard = @import("interop_postcard");
-const shared = @import("sha_shift_circuit_profile.zig");
-const direct = @import("sha_shift_private_join_profile.zig");
-const direct_prover = @import("sha_shift_private_join_prover.zig");
-const native_fixed = @import("sha_shift_circuit_native_verifier.zig");
+const shared = @import("sha_fused_circuit_profile.zig");
+const direct = @import("sha_fused_private_join_profile.zig");
+const direct_prover = @import("sha_fused_private_join_prover.zig");
+const native_fixed = @import("sha_fused_circuit_native_verifier.zig");
 const word_bus = @import("sha_direct_word_bus.zig");
 
 const QM31 = core.fields.qm31.QM31;
@@ -99,7 +99,7 @@ pub const PreparedFixed = struct {
 
     pub fn build(allocator: std.mem.Allocator, topology: *const shared.pp.Circuit, statement: direct.PublicStatement, pcs: core.pcs.config_v2.PcsConfigV2) !PreparedFixed {
         try statement.validate();
-        if (statement.digest_visibility != .private) return error.PublicDigestForbiddenInShiftCircuitV3;
+        if (statement.digest_visibility != .private) return error.PublicDigestForbiddenInFusedCircuitV4;
         const boundary = topology.sha_boundary orelse return error.MissingShaBoundary;
         if (!std.meta.eql(boundary.addresses, statement.config.gate_addresses) or topology.n_outputs != 8)
             return error.InvalidDirectCircuitTopology;
@@ -153,7 +153,7 @@ fn fixedColumnsDigest(columns: []const Column) [32]u8 {
 pub fn prove(allocator: std.mem.Allocator, values: []const QM31, topology: *const shared.pp.Circuit, template: *const cpu.air.Bundle, pcs: core.pcs.config_v2.PcsConfigV2, request: Request) !Proof {
     var stage_timer = try std.time.Timer.start();
     try request.statement.validate();
-    if (request.statement.digest_visibility != .private) return error.PublicDigestForbiddenInShiftCircuitV3;
+    if (request.statement.digest_visibility != .private) return error.PublicDigestForbiddenInFusedCircuitV4;
     if (values.len != request.n_vars) return error.InvalidDirectCircuitVariableCount;
     const boundary = topology.sha_boundary orelse return error.MissingShaBoundary;
     if (!std.meta.eql(boundary.addresses, request.statement.config.gate_addresses) or topology.n_outputs != 8)
@@ -280,7 +280,7 @@ pub fn prove(allocator: std.mem.Allocator, values: []const QM31, topology: *cons
         .max_constraint_log_degree_bound_delta = 0,
         .composition_log_split = 2,
     });
-    var recorder = engine.stage_profile.Recorder.initWithOptions(allocator, "s31_sha_shift_circuit", "prove", .{ .capture_tasks = false });
+    var recorder = engine.stage_profile.Recorder.initWithOptions(allocator, "s31_sha_fused_circuit", "prove", .{ .capture_tasks = false });
     defer recorder.deinit();
     scheme_owned = false;
     var stark = try Engine.prove(allocator, &handles, &channel, scheme, .{

@@ -2,6 +2,7 @@
   "schema": "s31-bitcoin-sha-shift-circuit-v3-private-digest-comparison",
   "date": "2026-10-07",
   "machine": "Apple M5 Max arm64 macOS; Zig 0.15.2; ReleaseFast",
+  "execution_mode": "Zig test binary with production FRI parameters; builtin.is_test disables the production global worker pool and uses one PoW worker. V2/v3 comparison shares this mode; packaged generic timing does not.",
   "base_commit": "af6a77f82 plus uncommitted v2/v3 working-tree changes",
   "source": "src/frontends/s31/examples/bitcoin_header_pow.s31.json",
   "assignment": "src/frontends/s31/examples/bitcoin_header_pow.valid.json",

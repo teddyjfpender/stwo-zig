@@ -1,0 +1,33 @@
+{
+  "schema": "s31-bitcoin-sha-shift-fri-fold4-experiment-v1",
+  "date": "2026-10-07",
+  "machine": "local Apple M5 Max arm64 macOS; Zig 0.15.2; ReleaseFast",
+  "execution_mode": "Zig test binary, which disables the production global worker pool and uses one PoW worker. Both fold steps share this mode; this is not a packaged-program throughput measurement.",
+  "source": "src/frontends/s31/examples/bitcoin_header_pow.s31.json",
+  "assignment": "src/frontends/s31/examples/bitcoin_header_pow.valid.json",
+  "profile": "sha-shift-v3 test harness; one private header, one joined native STARK proof, eight public Poseidon-root words",
+  "fri_common": {"pow_bits": 26, "queries": 70, "log_blowup_factor": 1, "log_last_layer_degree_bound": 0},
+  "interaction_pow_bits": 20,
+  "test_binary": "src/frontends/s31/sha_shift_circuit_proof_test.zig",
+  "fold_step_1": {
+    "proof_bytes": 502783,
+    "runs": [
+      {"prove_ms": 318, "interaction_pow_ms": 77, "fri_pow_ms": 64, "excluding_both_pow_ms": 177, "verify_ms": 52},
+      {"prove_ms": 322, "interaction_pow_ms": 83, "fri_pow_ms": 64, "excluding_both_pow_ms": 175, "verify_ms": 52},
+      {"prove_ms": 317, "interaction_pow_ms": 78, "fri_pow_ms": 65, "excluding_both_pow_ms": 174, "verify_ms": 52}
+    ],
+    "medians_ms": {"prove_excluding_both_pow": 175, "prove_including_pow": 318, "verify": 52}
+  },
+  "fold_step_4": {
+    "proof_bytes": 444933,
+    "runs": [
+      {"prove_ms": 5024, "interaction_pow_ms": 48, "fri_pow_ms": 4814, "excluding_both_pow_ms": 162, "verify_ms": 42},
+      {"prove_ms": 4991, "interaction_pow_ms": 48, "fri_pow_ms": 4781, "excluding_both_pow_ms": 162, "verify_ms": 44},
+      {"prove_ms": 5501, "interaction_pow_ms": 48, "fri_pow_ms": 5284, "excluding_both_pow_ms": 169, "verify_ms": 49}
+    ],
+    "medians_ms": {"prove_excluding_both_pow": 162, "prove_including_pow": 5024, "verify": 44}
+  },
+  "native_verification": "Both fold steps accepted their own production-FRI-parameter test proofs; the test also rejects changed root, key, Gate claim, SHA word claim and mismatched private header.",
+  "interpretation": "In this three-pair direct-binary run, fold step 4 reduced median non-PoW proving work by 13 ms (7.4%), proof size by 57,850 bytes (11.5%), and native verification by 8 ms. Its transcript found a much slower FRI PoW nonce, making actual wall proving much slower for this fixed input. PoW duration is transcript-dependent; these six runs repeat the same witness and therefore do not estimate throughput over distinct headers. The production package and non-test Key.validate still pin fold step 1. Fold step 4 is an experimental test configuration, not an admitted production profile.",
+  "reproduction": "Build `zig build --build-file src/frontends/s31/build.zig test-sha-shift-circuit -Doptimize=ReleaseFast --verbose`, locate the emitted test binary, then run it directly with S31_SHA_SHIFT_PRODUCTION_BENCH=1 and with/without S31_SHA_SHIFT_FRI_FOLD4_BENCH=1. Alternate run order; subtract the two printed PoW stage times from prove_ms. Zig build's run-step cache can replay old output."
+}

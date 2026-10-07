@@ -129,9 +129,15 @@ focused Zig test confirms that an aligned packed slice adds zero QM31 rows,
 while shifted M31 and u16 slices add constrained packing rows. The
 [library chapter](../../src/frontends/s31/docs/library.md) works through the
 hand calculation and the exact relation equations. Native proof acceptance
-for these new examples is run by `acceptance_array_views.py`; matched cost
-figures should be recorded from that script before treating the operations
-as a released library surface.
+for these new examples is run by `acceptance_array_views.py`. Its independent
+list evaluator and changed private-witness proofs exercise the semantics;
+stale claims, damaged proofs, and altered sealed keys must fail. Canonically
+equivalent text and handwritten JSON relations can share a proof. The
+[cost baseline](measurements/array-view-cost-v1-2026-10-07.json) pins matched
+text/JSON circuit rows and geometry, plus a proof-size ceiling, as a release
+regression gate. Run `python3 src/frontends/s31/acceptance_array_views.py` to
+check it; `--record-baseline` deliberately rewrites the record after all
+native proof and rejection checks pass.
 
 The [matrix product example](../../src/frontends/s31/examples/static_matmul.s31)
 multiplies two 2×2 static groups and then takes a weighted sum of all four
@@ -196,7 +202,7 @@ chip it activates.
 | Work package | Exit gate | Rough effort for one experienced engineer |
 | --- | --- | ---: |
 | General modules and shape-polymorphic pure functions | Extend the current `use std@1` pin to named modules, deterministic external resolution, lockfiles for imported source, and source maps through those calls. | 2–4 weeks |
-| Field/vector core | Runtime fixed-array indexing, concatenation, slicing, and reshape lower through explicit constrained relation nodes. Remaining: native acceptance and measured cost regression coverage for the new slices, plus broader vector kernels. | Remaining effort depends on kernel scope. |
+| Field/vector core | Runtime fixed-array indexing, concatenation, slicing, and reshape lower through explicit constrained relation nodes. New slices have native acceptance and measured cost regression coverage. Broader vector kernels remain. | Remaining effort depends on kernel scope. |
 | Nonzero inverse and checked division | **Core implemented:** witness generation, `x·inv=1`, zero rejection, direct-gate proof and native-verifier negative cases. Remaining: batch inverse cost comparison and wider random proof corpus. | Remaining effort depends on batching design. |
 | Boolean/range/integer core | Computed bits, comparisons, range constraints and explicit integer/field casts; no host-only assertions or unconstrained hint outputs. | 3–6 weeks |
 | Library release discipline | API/version policy, corpus of positive and negative proofs, cost regression gates, and audit views from source to AIR polynomial. | 2–3 weeks |

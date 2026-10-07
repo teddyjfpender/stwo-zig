@@ -1,5 +1,5 @@
-//! One private Bitcoin header, one sparse-wide circuit, one direct SHA AIR
-//! roster, one PCS/FRI proof. The v2 profile publishes only the Poseidon root;
+//! One private Bitcoin header, one sparse-wide circuit, one fused SHA AIR
+//! roster, one PCS/FRI proof. The v4 profile publishes only the Poseidon root;
 //! the SHA digest is a private witness connected through the Gate lookup.
 //! The low PoW/query config is test-only.
 const std = @import("std");
@@ -9,11 +9,11 @@ const cpu = @import("stwo_circuit_cpu_integration");
 const relation = @import("relation.zig");
 const compiler = @import("relation_compiler.zig");
 const sha_plan = @import("sha_chip_plan.zig");
-const joint = @import("sha_shift_circuit_prover.zig");
-const native = @import("sha_shift_circuit_native_verifier.zig");
-const profile = @import("sha_shift_circuit_profile.zig");
+const joint = @import("sha_fused_circuit_prover.zig");
+const native = @import("sha_fused_circuit_native_verifier.zig");
+const profile = @import("sha_fused_circuit_profile.zig");
 
-test "one private Bitcoin header has a single circuit and direct SHA proof" {
+test "one private Bitcoin header has a single circuit and fused SHA proof" {
     const a = std.testing.allocator;
     const source = @embedFile("examples/bitcoin_header_pow.s31.json");
     var program = try relation.parseProgram(a, source);
@@ -47,16 +47,16 @@ test "one private Bitcoin header has a single circuit and direct SHA proof" {
     var header: [80]u8 = undefined;
     for (input_words, 0..) |word, i|
         std.mem.writeInt(u16, header[2 * i ..][0..2], @intCast(word.toU32()), .little);
-    const statement = @import("sha_shift_private_join_profile.zig").PublicStatement{
+    const statement = @import("sha_fused_private_join_profile.zig").PublicStatement{
         .digest_visibility = .private,
         .config = .{ .gate_addresses = addresses, .first_call_id = 1 },
     };
     var source_digest: [32]u8 = undefined;
     std.crypto.hash.sha2.Sha256.hash(source, &source_digest, .{});
-    const production = std.posix.getenv("S31_SHA_SHIFT_PRODUCTION_BENCH") != null;
-    const experimental_fold4 = std.posix.getenv("S31_SHA_SHIFT_FRI_FOLD4_BENCH") != null;
+    const production = std.posix.getenv("S31_SHA_FUSED_PRODUCTION_BENCH") != null;
+    const experimental_fold4 = std.posix.getenv("S31_SHA_FUSED_FRI_FOLD4_BENCH") != null;
     const fri = try core.pcs.config_v2.FriConfigV2.init(if (production) 26 else 0, 0, 1, if (production) 70 else 12, if (experimental_fold4) 4 else 1);
-    const pcs = core.pcs.config_v2.PcsConfigV2.fromFriAndTraceSize(fri, @max(pp.traceLogSize(), 7));
+    const pcs = core.pcs.config_v2.PcsConfigV2.fromFriAndTraceSize(fri, @max(pp.traceLogSize(), 8));
     const key = try native.deriveKey(a, source_digest, &pp, @intCast(values.circuit.n_vars), statement, pcs);
     try std.testing.expect(std.mem.allEqual(u8, &key.statement.digest, 0));
     const canonical_fixed = try native.canonicalFixedColumns(a, &pp, statement);
@@ -97,12 +97,12 @@ test "one private Bitcoin header has a single circuit and direct SHA proof" {
     timer.reset();
     try native.verifyBytes(a, .{ .key = key, .public_outputs = &outputs }, bytes);
     const verify_ns = timer.read();
-    std.debug.print("S31_SHA_SHIFT_CIRCUIT verified=true digest_public=false calls=3 components={d} columns={any} prove_ms={d} verify_ms={d} proof_bytes={d} pow_bits={d} queries={d} fold_step={d}\n", .{
+    std.debug.print("S31_SHA_FUSED_CIRCUIT verified=true digest_public=false calls=3 components={d} columns={any} prove_ms={d} verify_ms={d} proof_bytes={d} pow_bits={d} queries={d} fold_step={d}\n", .{
         profile.component_count,        profile.debugWidths(), prove_ns / std.time.ns_per_ms,
         verify_ns / std.time.ns_per_ms, bytes.len,             fri.pow_bits,
         fri.n_queries,                  fri.fold_step,
     });
-    std.debug.print("S31_SHA_SHIFT_CIRCUIT_STAGES witness_ms={d} fixed_commit_ms={d} main_commit_ms={d} interaction_ms={d} interaction_pow_ms={d} interaction_commit_ms={d} fri_ms={d} fri_pow_ms={d} columns={d}/{d}/{d}\n", .{
+    std.debug.print("S31_SHA_FUSED_CIRCUIT_STAGES witness_ms={d} fixed_commit_ms={d} main_commit_ms={d} interaction_ms={d} interaction_pow_ms={d} interaction_commit_ms={d} fri_ms={d} fri_pow_ms={d} columns={d}/{d}/{d}\n", .{
         metrics.witness_ns / std.time.ns_per_ms,
         metrics.fixed_commit_ns / std.time.ns_per_ms,
         metrics.main_commit_ns / std.time.ns_per_ms,
@@ -115,7 +115,7 @@ test "one private Bitcoin header has a single circuit and direct SHA proof" {
         metrics.main_columns,
         metrics.interaction_columns,
     });
-    std.debug.print("S31_SHA_SHIFT_CIRCUIT_FRI composition_eval_ms={d} composition_interpolate_ms={d} composition_commit_ms={d} sampled_value_eval_ms={d} fri_quotient_commit_ms={d} fri_decommit_ms={d} trace_decommit_ms={d}\n", .{
+    std.debug.print("S31_SHA_FUSED_CIRCUIT_FRI composition_eval_ms={d} composition_interpolate_ms={d} composition_commit_ms={d} sampled_value_eval_ms={d} fri_quotient_commit_ms={d} fri_decommit_ms={d} trace_decommit_ms={d}\n", .{
         metrics.composition_eval_ns / std.time.ns_per_ms,
         metrics.composition_interpolate_ns / std.time.ns_per_ms,
         metrics.composition_commit_ns / std.time.ns_per_ms,
@@ -171,7 +171,7 @@ test "one private Bitcoin header has a single circuit and direct SHA proof" {
     try std.testing.expectError(error.PrivateShaDigestMustBeZero, native.verifyBytes(a, .{ .key = changed_key, .public_outputs = &outputs }, bytes));
     changed_key = key;
     changed_key.statement.digest_visibility = .public;
-    try std.testing.expectError(error.PublicDigestForbiddenInShiftCircuitV3, native.verifyBytes(a, .{ .key = changed_key, .public_outputs = &outputs }, bytes));
+    try std.testing.expectError(error.PublicDigestForbiddenInFusedCircuitV4, native.verifyBytes(a, .{ .key = changed_key, .public_outputs = &outputs }, bytes));
     const changed_bytes = try a.dupe(u8, bytes);
     defer a.free(changed_bytes);
     changed_bytes[profile.magic.len + 8 + 16 * 4] ^= 1;

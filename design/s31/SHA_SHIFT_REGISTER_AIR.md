@@ -95,12 +95,38 @@ roster, and public-output ABI; it cannot accept a proof-selected layout.
    verification time, and proof bytes over repeated runs. A width estimate
    is not a speed result.
 
-The expected round main width is 78 rather than 270 columns. Replacing three
-round tables would remove 576 main columns from the current joined layout;
-the smaller round bus may also remove interaction columns. This is a
-**hypothesis** until the combined proof and matched benchmark pass. The
-current working direct SHA path remains the correctness oracle for the new
-layout.
+The round main width is 78 rather than 270 columns. Replacing three round
+tables removed 576 main columns from the joined layout; the smaller round
+bus also reduced interaction width. The full private-digest circuit proof
+passed native verification. In the [matched v2/v3 SHA comparison](measurements/bitcoin-sha-shift-circuit-v3-private-digest-2026-10-07.json),
+v3 proved 16% faster after excluding both proof-of-work grinds, verified
+30% faster, and produced a 31% smaller proof. The v2 direct SHA path remains
+the correctness oracle for further changes.
+
+The generic circuit benchmark previously timed its prover *after* building
+a reusable fixed-column commitment. The v3 SHA test initially timed that
+commit inside proving. The SHA prover now accepts a `PreparedFixed` tree
+built from its canonical fixed columns and checks every column and PCS
+setting before leasing it. Its proof still uses the independently derived
+fixed root and native verifier. Report both warm proving and one-shot proving
+for **each** profile; subtracting a stage estimate is not a warm proof test.
+The earlier v2/v3 measurements also used Zig test mode, which disables the
+production worker pool, while the older generic package used a production
+executable. Their cross-profile times are not a matched speed comparison.
+The [five-trial production executable comparison](measurements/bitcoin-generic-vs-sha-shift-matched-v1-2026-10-07.json)
+now uses the same source, assignment, public output, FRI 26/70 settings,
+allocator, and native verification. Median warm proving after excluding both
+PoW grinds was 160.36 ms for generic and 42.62 ms for v3, a 3.76× ratio on
+this header. With each canonical fixed commitment built inside the timer,
+the medians were 175.69 and 46.76 ms. The v3 proof was larger (502,783 versus
+338,282 bytes) and native verification took longer (7.14 versus 4.08 ms).
+These are local latency measurements for one fixed witness, not a throughput
+or recursive-proof result.
+The [fold-step-4 experiment](measurements/bitcoin-sha-shift-fri-fold4-experiment-2026-10-07.json)
+passes native verification and reduces non-PoW work in three paired runs,
+but the production package remains pinned to fold step 1. Its fixed header
+had a much slower FRI nonce at fold step 4, so those paired runs do not
+establish lower wall time or throughput.
 
 ## Admission and privacy boundaries
 
