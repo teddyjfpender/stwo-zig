@@ -251,13 +251,18 @@ authenticated prior-state root, and returns the new root. Its
 [witness-free inspector](../../src/frontends/s31/inspect_bitcoin_fold_step.zig)
 reports 366,721 variables and 363,049 QM31 arithmetic rows for this kernel.
 The recorded Bitcoin sparse-wide claim fold has 259,481 spare QM31 rows before its
-next padding boundary. Direct insertion will likely raise that component's
-padding from 1,048,576 to 2,097,152 rows, so the new key and base proof
-geometry need measurement. It is still much smaller at the circuit level
-than adding a second full in-circuit STARK verifier; a matched end-to-end
-proving benchmark is required before claiming a time win. The
+next padding boundary. The complete witness-free
+[`bitcoin_chain_fold.zig`](../../src/frontends/s31/bitcoin_chain_fold.zig)
+candidate now measures 1,151,865 raw QM31 rows, padded to 2,097,152. Eq
+rows also rise to 65,536 padded. With those two child sizes enlarged, all
+five AIR components reproduce the same padded child geometry; the
+preprocessed root is identical at counters `0`, `1`, `65536`, and
+`0xffffffff`. Changing the checkpoint or base-proof root changes that root.
+This is a fixed-point **topology**, not a generated chain-fold proof. A
+matched end-to-end proving benchmark is required before claiming a time win. The
 [inspection record](measurements/bitcoin-direct-fold-step-v1-2026-10-07.json)
-pins the exact kernel counts and makes the additive estimate explicit.
+pins the kernel counts; the [composed topology record](measurements/bitcoin-chain-fold-topology-v1-2026-10-07.json)
+pins the fixed-point geometry and key-parameter checks.
 
 For a first **hash-chain-only** fold, the eight-word ABI can hold one
 authenticated state root. The fold must open the previous output digest in
@@ -266,13 +271,24 @@ then publish a domain-separated digest binding the new root, `u32` counter,
 checkpoint, and sealed fold identity. At step zero, the base proof must bind
 the trusted checkpoint; the recursive branch must verify exactly step `n-1`.
 A host-side equality check cannot replace either circuit constraint.
+The candidate circuit now makes those equalities: at step zero a Boolean
+base selector forces the witnessed prior root to equal the key-pinned
+checkpoint, selects a base proof with that public output, and checks the
+first new header. At step `n>0`, it verifies a prior fold proof whose public
+output equals the digest of the witnessed prior root at step `n-1`, then
+checks one new header. The child root switches between a key-pinned base
+root and the fold's own root. The small branch test checks selection at
+`0`, `1`, and `65536` and rejects a changed prior root. A base proof with the
+candidate geometry, a sealed key, value-bearing STARK proof, native verifier,
+and adversarial proof replay tests remain to be built.
 [`bitcoin_fold_digest.zig`](../../src/frontends/s31/bitcoin_fold_digest.zig)
 now pins the proposed 100-byte `S31BFD1!` digest preimage: 32 bytes of fold
 AIR root, four bytes of little-endian counter, 32 bytes of canonical M31
 checkpoint root, and 32 bytes of canonical M31 current root. Host and circuit
 implementations agree at boundary counters including `0xffffffff`; the host
-rejects noncanonical root words. This digest is not yet attached to a
-recursive proof or sealed key.
+rejects noncanonical root words. The candidate circuit uses this digest in
+its child and output statements; no Bitcoin chain-fold proof or sealed key
+yet authenticates it.
 
 The separately proved [`bitcoin_header_link.s31`](../../src/frontends/s31/examples/bitcoin_header_link.s31)
 leaf remains useful for independent proofs and for a future dedicated SHA

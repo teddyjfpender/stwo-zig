@@ -70,6 +70,37 @@ pub fn build(b: *std.Build) void {
     });
     b.step("inspect-bitcoin-fold-step", "Inspect witness-free Bitcoin fold-step circuit cost")
         .dependOn(&b.addRunArtifact(bitcoin_step_inspector).step);
+    const bitcoin_fold_inspector_root = b.createModule(.{
+        .root_source_file = b.path("inspect_bitcoin_chain_fold.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    bitcoin_fold_inspector_root.addImport("stwo_s31_prototype", frontend);
+    bitcoin_fold_inspector_root.addImport("stwo_core", core);
+    bitcoin_fold_inspector_root.addImport("stwo_circuit_frontend", circuit);
+    bitcoin_fold_inspector_root.addImport("stwo_circuit_cpu_integration", cpu);
+    bitcoin_fold_inspector_root.addAnonymousImport("s31_air_projection", .{ .root_source_file = .{ .cwd_relative = b.pathFromRoot("../../../vectors/circuit/official/compiled_air_constraints_v1.bin") } });
+    bitcoin_fold_inspector_root.addAnonymousImport("s31_fold_reference", .{ .root_source_file = .{ .cwd_relative = b.pathFromRoot("../../../design/s31/measurements/bitcoin-sparse-wide-fold-stages-v1-2026-10-07.json") } });
+    const bitcoin_fold_inspector = b.addExecutable(.{
+        .name = "s31-inspect-bitcoin-chain-fold",
+        .root_module = bitcoin_fold_inspector_root,
+    });
+    b.step("inspect-bitcoin-chain-fold", "Inspect complete candidate Bitcoin chain-fold topology")
+        .dependOn(&b.addRunArtifact(bitcoin_fold_inspector).step);
+    const bitcoin_fold_test_root = b.createModule(.{
+        .root_source_file = b.path("bitcoin_chain_fold.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    bitcoin_fold_test_root.addImport("stwo_s31_prototype", frontend);
+    bitcoin_fold_test_root.addImport("stwo_core", core);
+    bitcoin_fold_test_root.addImport("stwo_circuit_frontend", circuit);
+    bitcoin_fold_test_root.addImport("stwo_circuit_cpu_integration", cpu);
+    const bitcoin_fold_tests = b.addRunArtifact(b.addTest(.{
+        .root_module = bitcoin_fold_test_root,
+        .filters = &.{"Bitcoin fold chooses a trusted base or the authenticated previous digest"},
+    }));
+    test_step.dependOn(&bitcoin_fold_tests.step);
     const fold_test_root = b.createModule(.{
         .root_source_file = b.path("state_fold.zig"),
         .target = target,

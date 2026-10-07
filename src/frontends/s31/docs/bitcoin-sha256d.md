@@ -374,8 +374,45 @@ LE32(checkpoint_root[0..8]) || LE32(current_root[0..8])`.
 host and with circuit gates. Each root word must be canonical M31 before
 four-byte encoding; raw digest bytes cannot be reduced into the field. The
 test checks that changing the checkpoint, current root, AIR root, or tested
-high-counter values changes the output. This statement digest is a
-building block; no generated verifier yet accepts it as a Bitcoin fold proof.
+high-counter values changes the output.
+
+The [candidate chain-fold circuit](../bitcoin_chain_fold.zig) connects the
+pieces. Let `G = Poseidon2_leaf(genesis_hash)` be the trusted checkpoint,
+`H1` the hash of block 1, and `R1 = Poseidon2_leaf(H1)`:
+
+```text
+step 0: base proof publicly says G
+        witnessed old hash = genesis_hash; new header = block 1
+        circuit checks Poseidon2_leaf(old hash) = G
+        circuit checks header.prev_hash = old hash, SHA256d, target and PoW
+        public output D0 = BLAKE2s_S31BFD1!(fold_root || 0 || G || R1)
+
+step 1: verified child fold proof publicly says D0
+        witnessed previous root = R1; new header = block 2
+        circuit checks child output = BLAKE2s_S31BFD1!(fold_root || 0 || G || R1)
+        circuit checks block 2 extends the witnessed H1 and satisfies PoW
+        public output D1 = BLAKE2s_S31BFD1!(fold_root || 1 || G || R2)
+```
+
+The base selector and `u32` predecessor relation are circuit constraints.
+The branch test checks steps `0`, `1`, and `65536`; changing the witnessed
+previous root makes the selected claim unsatisfied. The full candidate
+topology is inspectable with:
+
+```sh
+zig build --build-file src/frontends/s31/build.zig inspect-bitcoin-chain-fold -Doptimize=ReleaseSafe -j2
+python3 src/frontends/s31/record_bitcoin_chain_fold.py
+```
+
+The [record](../../../../design/s31/measurements/bitcoin-chain-fold-topology-v1-2026-10-07.json)
+shows 5,956,015 raw variables, 1,151,865 raw QM31 rows, and 2,097,152
+padded QM31 rows for a representative nonzero base root. Eq needs 33,131
+raw rows and pads to 65,536. The candidate child layout reproduces all five
+padded component sizes, with one preprocessed root at steps `0`, `1`,
+`65536`, and `0xffffffff`; changing the checkpoint or base root changes the
+preprocessed root. This establishes a reusable AIR layout. A base proof,
+sealed verifier key, Bitcoin chain-fold proof, and timed proving comparison
+remain pending.
 
 ## Dedicated SHA AIR boundary under construction
 

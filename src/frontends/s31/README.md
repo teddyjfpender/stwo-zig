@@ -125,7 +125,10 @@ Bitcoin header-chain transition is still separate work. The
 header-link proof and checks its authenticated child statement. A direct
 [header-step circuit kernel](bitcoin_fold_step.zig) constrains a new header
 inside a future fold; its [worked chapter](docs/bitcoin-sha256d.md) gives the
-gate-inspection command and cost.
+gate-inspection command and cost. The [candidate chain-fold circuit](bitcoin_chain_fold.zig)
+combines one verified prior proof with that header step. Its
+[inspector](inspect_bitcoin_chain_fold.zig) checks same-key AIR geometry and
+checkpoint binding; generated chain-fold proofs remain work in progress.
 
 The packed SHA AIR has a focused six-call proof test for two SHA256d headers:
 

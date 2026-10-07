@@ -1,0 +1,223 @@
+{
+  "candidate_padded_rows": {
+    "blake_g": 2097152,
+    "eq": 65536,
+    "m31_to_u32": 262144,
+    "qm31_ops": 2097152,
+    "triple_xor": 131072
+  },
+  "candidate_preprocessed_root": "9f69e655599a947950664010300d6b07c53031a75a3d6696a9ad917be250b958",
+  "cases": [
+    {
+      "case": "baseline",
+      "child_eq_rows": 32768,
+      "child_qm31_rows": 1048576,
+      "child_trace_log_size": 21,
+      "fixed_point": false,
+      "padded": {
+        "blake_g": 2097152,
+        "eq": 65536,
+        "m31_to_u32": 262144,
+        "qm31_ops": 2097152,
+        "triple_xor": 131072
+      },
+      "preprocessed_root": null,
+      "raw": {
+        "blake_g": 1125840,
+        "eq": 33131,
+        "m31_to_u32": 206826,
+        "qm31_ops": 1151865,
+        "triple_xor": 112584
+      },
+      "raw_vars": 5956015,
+      "schema": "s31-bitcoin-chain-fold-inspection-v1",
+      "step": 0
+    },
+    {
+      "case": "qm31-expanded",
+      "child_eq_rows": 32768,
+      "child_qm31_rows": 2097152,
+      "child_trace_log_size": 21,
+      "fixed_point": false,
+      "padded": {
+        "blake_g": 2097152,
+        "eq": 65536,
+        "m31_to_u32": 262144,
+        "qm31_ops": 2097152,
+        "triple_xor": 131072
+      },
+      "preprocessed_root": null,
+      "raw": {
+        "blake_g": 1125840,
+        "eq": 33131,
+        "m31_to_u32": 206826,
+        "qm31_ops": 1151865,
+        "triple_xor": 112584
+      },
+      "raw_vars": 5956015,
+      "schema": "s31-bitcoin-chain-fold-inspection-v1",
+      "step": 0
+    },
+    {
+      "case": "candidate-base",
+      "child_eq_rows": 65536,
+      "child_qm31_rows": 2097152,
+      "child_trace_log_size": 21,
+      "fixed_point": true,
+      "padded": {
+        "blake_g": 2097152,
+        "eq": 65536,
+        "m31_to_u32": 262144,
+        "qm31_ops": 2097152,
+        "triple_xor": 131072
+      },
+      "preprocessed_root": "9f69e655599a947950664010300d6b07c53031a75a3d6696a9ad917be250b958",
+      "raw": {
+        "blake_g": 1125840,
+        "eq": 33131,
+        "m31_to_u32": 206826,
+        "qm31_ops": 1151865,
+        "triple_xor": 112584
+      },
+      "raw_vars": 5956015,
+      "schema": "s31-bitcoin-chain-fold-inspection-v1",
+      "step": 0
+    },
+    {
+      "case": "candidate-recursive",
+      "child_eq_rows": 65536,
+      "child_qm31_rows": 2097152,
+      "child_trace_log_size": 21,
+      "fixed_point": true,
+      "padded": {
+        "blake_g": 2097152,
+        "eq": 65536,
+        "m31_to_u32": 262144,
+        "qm31_ops": 2097152,
+        "triple_xor": 131072
+      },
+      "preprocessed_root": "9f69e655599a947950664010300d6b07c53031a75a3d6696a9ad917be250b958",
+      "raw": {
+        "blake_g": 1125840,
+        "eq": 33131,
+        "m31_to_u32": 206826,
+        "qm31_ops": 1151865,
+        "triple_xor": 112584
+      },
+      "raw_vars": 5956015,
+      "schema": "s31-bitcoin-chain-fold-inspection-v1",
+      "step": 1
+    },
+    {
+      "case": "candidate-u16-carry",
+      "child_eq_rows": 65536,
+      "child_qm31_rows": 2097152,
+      "child_trace_log_size": 21,
+      "fixed_point": true,
+      "padded": {
+        "blake_g": 2097152,
+        "eq": 65536,
+        "m31_to_u32": 262144,
+        "qm31_ops": 2097152,
+        "triple_xor": 131072
+      },
+      "preprocessed_root": "9f69e655599a947950664010300d6b07c53031a75a3d6696a9ad917be250b958",
+      "raw": {
+        "blake_g": 1125840,
+        "eq": 33131,
+        "m31_to_u32": 206826,
+        "qm31_ops": 1151865,
+        "triple_xor": 112584
+      },
+      "raw_vars": 5956015,
+      "schema": "s31-bitcoin-chain-fold-inspection-v1",
+      "step": 65536
+    },
+    {
+      "case": "candidate-u32-max",
+      "child_eq_rows": 65536,
+      "child_qm31_rows": 2097152,
+      "child_trace_log_size": 21,
+      "fixed_point": true,
+      "padded": {
+        "blake_g": 2097152,
+        "eq": 65536,
+        "m31_to_u32": 262144,
+        "qm31_ops": 2097152,
+        "triple_xor": 131072
+      },
+      "preprocessed_root": "9f69e655599a947950664010300d6b07c53031a75a3d6696a9ad917be250b958",
+      "raw": {
+        "blake_g": 1125840,
+        "eq": 33131,
+        "m31_to_u32": 206826,
+        "qm31_ops": 1151865,
+        "triple_xor": 112584
+      },
+      "raw_vars": 5956015,
+      "schema": "s31-bitcoin-chain-fold-inspection-v1",
+      "step": 4294967295
+    },
+    {
+      "case": "changed-checkpoint",
+      "child_eq_rows": 65536,
+      "child_qm31_rows": 2097152,
+      "child_trace_log_size": 21,
+      "fixed_point": true,
+      "padded": {
+        "blake_g": 2097152,
+        "eq": 65536,
+        "m31_to_u32": 262144,
+        "qm31_ops": 2097152,
+        "triple_xor": 131072
+      },
+      "preprocessed_root": "28c0dd3d097843f8af3114d28868524c3f2ee2de2f1c49898291461fba2f9cc7",
+      "raw": {
+        "blake_g": 1125840,
+        "eq": 33131,
+        "m31_to_u32": 206826,
+        "qm31_ops": 1151865,
+        "triple_xor": 112584
+      },
+      "raw_vars": 5956015,
+      "schema": "s31-bitcoin-chain-fold-inspection-v1",
+      "step": 0
+    },
+    {
+      "case": "changed-base-root",
+      "child_eq_rows": 65536,
+      "child_qm31_rows": 2097152,
+      "child_trace_log_size": 21,
+      "fixed_point": true,
+      "padded": {
+        "blake_g": 2097152,
+        "eq": 65536,
+        "m31_to_u32": 262144,
+        "qm31_ops": 2097152,
+        "triple_xor": 131072
+      },
+      "preprocessed_root": "4cd19475a7921a09bb40e3fa190174871a957fdf2b6757b6a5bbb40d329d7205",
+      "raw": {
+        "blake_g": 1125840,
+        "eq": 33131,
+        "m31_to_u32": 206826,
+        "qm31_ops": 1151865,
+        "triple_xor": 112584
+      },
+      "raw_vars": 5956015,
+      "schema": "s31-bitcoin-chain-fold-inspection-v1",
+      "step": 0
+    }
+  ],
+  "command": "zig build --build-file src/frontends/s31/build.zig inspect-bitcoin-chain-fold -Doptimize=ReleaseSafe -j2",
+  "projection_sha256": "ceea3c293a4fcd3ca8a20ba62f4845732f8725bdf610fe6367c83adcb8be7e09",
+  "reference_sha256": "5dd433168d062c4a442ea723f2e26a58baf5cf0462814d408fc8382fcf0fa15a",
+  "schema": "s31-bitcoin-chain-fold-topology-v1",
+  "scope": "Witness-free topology and preprocessed roots only; no Bitcoin chain-fold proof or timed proving benchmark.",
+  "source_sha256": {
+    "bitcoin_chain_fold.zig": "27216c21adab342cace459dc990cf60a91a6c9ee8ef214e22aba801a5e0a7c33",
+    "bitcoin_fold_digest.zig": "7197ce73c426108b846fc7f5fa4aecfac3b8aed8d0bbd2abb3ed88b871c0cb1f",
+    "bitcoin_fold_step.zig": "3e493084a98c6801681566781981e47459f76cd14bd4062a03ada615e4ec35cd",
+    "inspect_bitcoin_chain_fold.zig": "2edae45cccb988560af69e8c220fd1fb4262b8464226a397bb21613e36a61e85"
+  }
+}

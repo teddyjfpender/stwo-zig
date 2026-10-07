@@ -408,6 +408,32 @@ def check_recursive_examples() -> None:
     assert all(f"{size:,}" in wide_doc for size in
                bitcoin["proof_bytes_leaf_first_second_fold0_fold1_fold2"][3:])
 
+    bitcoin_fold = json.loads((records / "bitcoin-chain-fold-topology-v1-2026-10-07.json").read_text())
+    assert bitcoin_fold["schema"] == "s31-bitcoin-chain-fold-topology-v1"
+    assert bitcoin_fold["projection_sha256"] == hashlib.sha256(
+        (ROOT / "vectors/circuit/official/compiled_air_constraints_v1.bin").read_bytes()
+    ).hexdigest()
+    assert bitcoin_fold["reference_sha256"] == hashlib.sha256(
+        (records / "bitcoin-sparse-wide-fold-stages-v1-2026-10-07.json").read_bytes()
+    ).hexdigest()
+    for name, source_hash in bitcoin_fold["source_sha256"].items():
+        assert source_hash == hashlib.sha256((S31 / name).read_bytes()).hexdigest()
+    fold_cases = {case["case"]: case for case in bitcoin_fold["cases"]}
+    base_fold = fold_cases["candidate-base"]
+    assert len(fold_cases) == 8
+    assert base_fold["fixed_point"] is True
+    assert base_fold["raw"]["qm31_ops"] == 1151865
+    assert base_fold["padded"] == bitcoin_fold["candidate_padded_rows"]
+    assert base_fold["preprocessed_root"] == bitcoin_fold["candidate_preprocessed_root"]
+    assert all(fold_cases[name]["preprocessed_root"] == base_fold["preprocessed_root"]
+               for name in ("candidate-recursive", "candidate-u16-carry", "candidate-u32-max"))
+    assert all(fold_cases[name]["preprocessed_root"] != base_fold["preprocessed_root"]
+               for name in ("changed-checkpoint", "changed-base-root"))
+    bitcoin_doc = (DOCS / "bitcoin-sha256d.md").read_text()
+    assert all(f"{value:,}" in bitcoin_doc for value in
+               (base_fold["raw_vars"], base_fold["raw"]["qm31_ops"],
+                base_fold["padded"]["qm31_ops"], base_fold["padded"]["eq"]))
+
     benchmark = json.loads((records / "sparse-wide-fold-u32-batch-memory-2026-10-07.json").read_text())
     assert benchmark["compiler_sha256"] == wide["compiler_sha256"]
     assert benchmark["proofs_and_statements_byte_identical"] is True
