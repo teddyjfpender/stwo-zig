@@ -51,8 +51,16 @@ pub const SelectedV12 = struct {
     row11_shape: recursion.segment_statement_row11_fixed_v6.WireShapeV6,
     vm_graph: recursion.vm_air_preleaf_graph_pin_v8.Candidate,
     graph_pins: VmGraphPins,
+    preleaf_layout: recursion.segment_core_expected_layout_from_statement_v11.OwnedLayout,
+    preleaf_masks: recursion.segment_core_expected_pcs_masks_v12.OwnedMasks,
+    pcs_profile_id: [32]u8,
+    fri_profile_id: [32]u8,
+    pcs_circuit_id: [32]u8,
+    fri_circuit_id: [32]u8,
 
     pub fn deinit(self: *@This()) void {
+        self.preleaf_masks.deinit();
+        self.preleaf_layout.deinit();
         self.vm_graph.deinit();
         self.recursion_plan.deinit();
         self.vm_plan.deinit();
@@ -138,6 +146,45 @@ pub fn selectV12BeforeProof(
     if (!std.mem.eql(u8, &vm_graph.graph_id, &graph_pins.graph_id) or
         !std.mem.eql(u8, &vm_graph.circuit_id, &graph_pins.circuit_id))
         return error.V12PreleafVmGraphPinMismatch;
+    var preleaf_layout = try recursion.segment_core_expected_layout_from_statement_v11.OwnedLayout.buildSegmentV2FromCoreProfile(
+        allocator,
+        &statement.core,
+        selected_core,
+    );
+    errdefer preleaf_layout.deinit();
+    var preleaf_masks = try recursion.segment_core_expected_pcs_masks_v12.OwnedMasks.build(
+        allocator,
+        &statement.core,
+        selected_core,
+        &preleaf_layout,
+    );
+    errdefer preleaf_masks.deinit();
+    if (!std.mem.eql(u8, &preleaf_layout.statement_identity, &graph_pins.statement_id))
+        return error.V12PreleafStatementPinMismatch;
+    const pcs = recursion.air.pcs_deep_circuit;
+    const fri = recursion.air.fri_verifier_circuit;
+    var trees: [recursion.segment_core_expected_layout_from_statement_v11.TREE_COUNT]pcs.TreeProfile = undefined;
+    for (&trees, preleaf_layout.views) |*tree, logs| tree.* = .{ .column_log_sizes = logs };
+    const pcs_profile = pcs.Profile{
+        .trees = &trees,
+        .sample_layouts = preleaf_masks.layouts,
+        .lifting_log_size = selected_core.vm.lifting_log_size,
+        .log_blowup_factor = recursion.protocol.FRI_LOG_BLOWUP_FACTOR,
+        .query_count = recursion.protocol.FRI_QUERY_COUNT,
+    };
+    const fri_profile = fri.Profile{
+        .lifting_log_size = selected_core.vm.lifting_log_size,
+        .log_blowup_factor = recursion.protocol.FRI_LOG_BLOWUP_FACTOR,
+        .log_last_layer_degree_bound = recursion.protocol.FRI_LOG_LAST_LAYER_DEGREE_BOUND,
+        .fold_widths = selected_core.vm.fri_fold_widths[0..selected_core.vm.fri_count],
+        .query_count = recursion.protocol.FRI_QUERY_COUNT,
+    };
+    var pcs_circuit = try pcs.build(allocator, pcs_profile);
+    defer pcs_circuit.deinit();
+    var fri_circuit = try fri.build(allocator, fri_profile);
+    defer fri_circuit.deinit();
+    try pcs_circuit.validate();
+    try fri_circuit.validate();
     return .{
         .allocator = allocator,
         .words = words,
@@ -150,6 +197,12 @@ pub fn selectV12BeforeProof(
         .row11_shape = row11_shape,
         .vm_graph = vm_graph,
         .graph_pins = graph_pins,
+        .preleaf_layout = preleaf_layout,
+        .preleaf_masks = preleaf_masks,
+        .pcs_profile_id = pcs_profile.identityDigest(),
+        .fri_profile_id = fri_profile.identityDigest(),
+        .pcs_circuit_id = pcs_circuit.identity_digest,
+        .fri_circuit_id = fri_circuit.identity_digest,
     };
 }
 
@@ -245,6 +298,26 @@ pub fn checkV12CapturedVmGraph(
         .expected_statement_geometry_id = selected.graph_pins.statement_id,
         .expected_profile_id = selected.graph_pins.profile_id,
     }, &prepared);
+}
+
+pub fn checkV12CapturedPreleafLayout(selected: *const SelectedV12, capture: anytype) !void {
+    const logs = capture.proof.column_log_sizes;
+    if (logs.len != selected.preleaf_layout.views.len)
+        return error.V12PreleafLayoutMismatch;
+    for (selected.preleaf_layout.views, logs) |expected, actual|
+        if (!std.mem.eql(u32, expected, actual)) return error.V12PreleafLayoutMismatch;
+    // checkV12SelectedFixedWire compares every active statement/public field;
+    // comparing the raw struct here would read inactive descriptor tails.
+}
+
+pub fn checkV12CapturedCoreCircuits(selected: *const SelectedV12, prepared: anytype) !void {
+    const captured_pcs = &prepared.captured_fri.pcs_circuit;
+    const captured_fri = &prepared.captured_fri.circuit;
+    if (!std.mem.eql(u8, &selected.pcs_profile_id, &captured_pcs.profile().identityDigest()) or
+        !std.mem.eql(u8, &selected.fri_profile_id, &captured_fri.profile().identityDigest()) or
+        !std.mem.eql(u8, &selected.pcs_circuit_id, &captured_pcs.view().identity_digest) or
+        !std.mem.eql(u8, &selected.fri_circuit_id, &captured_fri.identity_digest))
+        return error.V12PreleafCoreCircuitMismatch;
 }
 
 pub fn checkV12Row11FixedParity(
@@ -383,50 +456,6 @@ pub fn allocateV8StatementColumns(allocator: std.mem.Allocator, count: usize) ![
 pub fn freeV8StatementColumns(allocator: std.mem.Allocator, columns: [][]M31) void {
     for (columns) |column| allocator.free(column);
     allocator.free(columns);
-}
-
-pub fn buildV11SegmentV2PreleafLayout(
-    allocator: std.mem.Allocator,
-    capture: anytype,
-    selected_core: *const recursion.air.segment_leaf_wrapper_template_v6.CoreProfileV6,
-) !recursion.segment_core_expected_layout_from_statement_v11.OwnedLayout {
-    const statement = try capture.vm_air.reconstructStatement(&capture.public_data.data);
-    const logs = capture.proof.column_log_sizes;
-    if (logs.len != recursion.segment_core_expected_layout_from_statement_v11.TREE_COUNT)
-        return error.V11PreleafLayoutMismatch;
-    var selected = try recursion.segment_core_expected_layout_from_statement_v11.OwnedLayout.buildSegmentV2FromCoreProfile(
-        allocator,
-        &statement.core,
-        selected_core,
-    );
-    errdefer selected.deinit();
-    for (selected.views, logs, 0..) |expected, actual, tree| {
-        if (!std.mem.eql(u32, expected, actual)) {
-            var first: usize = 0;
-            while (first < @min(expected.len, actual.len) and expected[first] == actual[first]) : (first += 1) {}
-            std.debug.print("V11_PRELEAF_LAYOUT_MISMATCH tree={d} expected_len={d} actual_len={d} first={d} expected={d} actual={d}\n", .{
-                tree,                                             expected.len,                                 actual.len, first,
-                if (first < expected.len) expected[first] else 0, if (first < actual.len) actual[first] else 0,
-            });
-            return error.V11PreleafLayoutMismatch;
-        }
-    }
-    return selected;
-}
-
-pub fn buildV12PreleafPcsMasks(
-    allocator: std.mem.Allocator,
-    capture: anytype,
-    selected_core: *const recursion.air.segment_leaf_wrapper_template_v6.CoreProfileV6,
-    tree_logs: *const recursion.segment_core_expected_layout_from_statement_v11.OwnedLayout,
-) !recursion.segment_core_expected_pcs_masks_v12.OwnedMasks {
-    const statement = try capture.vm_air.reconstructStatement(&capture.public_data.data);
-    return recursion.segment_core_expected_pcs_masks_v12.OwnedMasks.build(
-        allocator,
-        &statement.core,
-        selected_core,
-        tree_logs,
-    );
 }
 
 pub fn checkV9CoreFriControlFixedParity(
@@ -568,14 +597,14 @@ pub fn checkV11PcsInputFixedParity(
     allocator: std.mem.Allocator,
     key: *const recursion.air.segment_leaf_wrapper_template_v10.TemplateManifestV10,
     expected: recursion.segment_core_pcs_row24_fixed_v11.ExpectedProfile,
-    captured_circuit_id: [32]u8,
+    selected_circuit_id: [32]u8,
     old_plan: *const recursion.segment_leaf_wrapper_roster_direct_v5.Plan,
     old_tree: [][]M31,
 ) ![32]u8 {
     var writer = try recursion.segment_core_pcs_row24_fixed_v11.Writer.initFromExpectedProfile(allocator, key, expected);
     defer writer.deinit();
     const descriptor = try writer.descriptor(key);
-    if (!std.meta.eql(descriptor.circuit_identity, captured_circuit_id))
+    if (!std.meta.eql(descriptor.circuit_identity, selected_circuit_id))
         return error.V11PcsInputCircuitMismatch;
     const old = old_plan.placements[24].?;
     if (!std.meta.eql(old.geometry, descriptor.geometry)) return error.V11PcsInputFixedGeometryMismatch;

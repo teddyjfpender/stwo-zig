@@ -199,6 +199,23 @@ the later V7 template and authenticated transcript. It then requires the
 verified capture to match the selected statement and shape. A detached
 verifier still needs an independently admitted statement source; no complete
 wrapper proof or parent is created.
+The selector now also owns the ordered Tree0–3 column logs and PCS OODS mask
+tags before native proving. The q193 gate compares each captured column log
+against this selected layout, rejects a mutated Tree0 log, and compares the
+captured PCS mask order against selected tags. The two-row preleaf key in that
+gate is built from the selected statement rather than a statement reconstructed
+from the captured proof. These are proof-independent admission inputs, but
+the complete 50-row fixed key and proof-visible public-I/O relation remain
+publication blockers.
+The same pre-proof selection now builds and validates the complete PCS-DEEP
+and FRI arithmetic circuits from that layout, mask order, and pinned protocol
+profile. The q193 gate checks both selected profile IDs and both circuit IDs
+against the independently verified native capture; a changed selected PCS
+circuit ID is rejected. Row 24's diagnostic writer is also admitted against
+the selected circuit ID rather than a captured one. This qualifies the
+arithmetic graph identity used by rows 24 and 29, while the seven-lane direct
+transcript lowering still cannot
+be substituted for the current five-lane SegmentV2 cohort.
 The same selected canonical wire fixes row 11's four sparse-section counts
 before proof. Its reconstructed complete padded preprocessing columns now
 match the real q193 Tree0 row 11 cell by cell; changing the section shape

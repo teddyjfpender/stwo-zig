@@ -59,11 +59,13 @@ test "real q193 native child feeds freshly verified q193 local outer" {
         recursion.poseidon2_channel.hashBytes("strong-v3-local-segment-vk", 0x4b56_3353),
         recursion.poseidon2_channel.hashBytes("strong-v3-local-parent-vk", 0x4b56_3350),
     );
-    var preleaf_layout = try fixed_rows.buildV11SegmentV2PreleafLayout(allocator, &verified.native.capture, &preleaf_core);
-    defer preleaf_layout.deinit();
-    var preleaf_masks = try fixed_rows.buildV12PreleafPcsMasks(allocator, &verified.native.capture, &preleaf_core, &preleaf_layout);
-    defer preleaf_masks.deinit();
     try fixed_rows.checkV12SelectedFixedWire(allocator, &verified, &selected_wire);
+    try fixed_rows.checkV12CapturedPreleafLayout(&selected_wire, &verified.native.capture);
+    const original_tree0_log = verified.native.capture.proof.column_log_sizes[0][0];
+    verified.native.capture.proof.column_log_sizes[0][0] = original_tree0_log ^ 1;
+    const altered_layout_result = fixed_rows.checkV12CapturedPreleafLayout(&selected_wire, &verified.native.capture);
+    verified.native.capture.proof.column_log_sizes[0][0] = original_tree0_log;
+    try std.testing.expectError(error.V12PreleafLayoutMismatch, altered_layout_result);
     std.debug.print("DIRECT50_V12_FIXED_WIRE selected_shape=true native_capture_parity=true tamper_rejected=true proof_created=false\n", .{});
     std.debug.print("DIRECT50_V11_PRELEAF_LAYOUT trees0_2_from_statement=true tree3_from_pinned_core=true proof_created=false\n", .{});
     var prepared = try leaf_outer.PreparedNativeV2LeafOuter.init(
@@ -80,13 +82,19 @@ test "real q193 native child feeds freshly verified q193 local outer" {
     defer prepared.deinit();
     try pinned_ingress.admitPreparedNativeV2(&prepared, pinned_key);
     try fixed_rows.checkV12CapturedVmGraph(allocator, &selected_wire, &prepared.capture);
+    try fixed_rows.checkV12CapturedCoreCircuits(&selected_wire, &prepared);
+    selected_wire.pcs_circuit_id[0] ^= 1;
+    const altered_pcs_result = fixed_rows.checkV12CapturedCoreCircuits(&selected_wire, &prepared);
+    selected_wire.pcs_circuit_id[0] ^= 1;
+    try std.testing.expectError(error.V12PreleafCoreCircuitMismatch, altered_pcs_result);
     std.debug.print("DIRECT50_V12_VM_GRAPH selected_before_proof=true captured_graph_parity=true proof_created=false\n", .{});
+    std.debug.print("DIRECT50_V12_CORE_CIRCUITS selected_before_proof=true pcs_fri_capture_parity=true proof_created=false\n", .{});
     var cohort = try outer_cohort.Cohort.init(allocator, &prepared);
     defer cohort.deinit();
     const prepare_ns = timer.lap();
     try diagnoseDirect47(allocator, &prepared, &verified.native.global_metadata, &verified.native.link, &cohort);
     const direct47_ns = timer.lap();
-    diagnoseDirect50(allocator, &prepared, shape, &verified.native.global_metadata, &verified.native.link, &cohort, &preleaf_layout, &preleaf_masks, &selected_wire) catch |err| {
+    diagnoseDirect50(allocator, &prepared, shape, &verified.native.global_metadata, &verified.native.link, &cohort, &selected_wire.preleaf_layout, &selected_wire.preleaf_masks, &selected_wire) catch |err| {
         std.debug.print("DIRECT50_ERROR={s}\n", .{@errorName(err)});
         return err;
     };
@@ -440,7 +448,7 @@ fn diagnoseDirect50(
             allocator,
             &v10_template,
             row24_expected,
-            prepared.captured_fri.pcs_circuit.view().identity_digest,
+            selected.pcs_circuit_id,
             &plan,
             pp,
         );
@@ -448,8 +456,7 @@ fn diagnoseDirect50(
         if (!std.mem.eql(u8, &row24_circuit_hex, "01ffe0f7672b593a694f67bb5855c7b11773bbab76e4b2c9b02e2c25a8287f2e"))
             return error.V11RealLeafPcsCircuitPinMismatch;
         std.debug.print("DIRECT50_V11_ROW24_FIXED circuit={s} source_parity=true key_admitted=false proof_created=false\n", .{&row24_circuit_hex});
-        const selected_statement = try prepared.capture.vm_air.reconstructStatement(&prepared.capture.public_data.data);
-        const preleaf_key = try recursion.segment_core_preleaf_key_v12.buildForSegmentV2(allocator, &selected_statement.core, &v10_template);
+        const preleaf_key = try recursion.segment_core_preleaf_key_v12.buildForSegmentV2(allocator, &selected.statement.core, &v10_template);
         try fixed_rows.checkV11CandidateAdmission(allocator, &v10_template, &preleaf_key, row24_expected);
         std.debug.print("DIRECT50_V12_CANDIDATE rows23_24_admitted=true source=statement_and_pinned_core_diagnostic full_preprocessing=false proof_created=false\n", .{});
         try fixed_rows.checkV7CoreFriFixedParity(allocator, &core_profile, &v7_plan, &plan, pp);
