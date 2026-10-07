@@ -343,7 +343,7 @@ representation. The same test composes this boundary with the
 changed prior-state root. These gates are available for a two-proof fold;
 the current one-level wrapper does not yet invoke them.
 
-The faster fold candidate computes the new header inside the fold circuit
+The direct-header fold candidate computes the new header inside the fold circuit
 after verifying only the prior recursive proof. The
 [`constrainMainnetPowLinkStep`](../bitcoin_fold_step.zig) kernel consumes a
 trusted old hash root and private old-hash/header limbs. For the same fixture,
@@ -405,14 +405,39 @@ python3 src/frontends/s31/record_bitcoin_chain_fold.py
 ```
 
 The [record](../../../../design/s31/measurements/bitcoin-chain-fold-topology-v1-2026-10-07.json)
-shows 5,956,015 raw variables, 1,151,865 raw QM31 rows, and 2,097,152
-padded QM31 rows for a representative nonzero base root. Eq needs 33,131
+shows 5,956,014 raw variables, 1,151,864 raw QM31 rows, and 2,097,152
+padded QM31 rows with the real [checkpoint anchor circuit](../bitcoin_chain_anchor.zig)
+as the base layout. Eq needs 33,131
 raw rows and pads to 65,536. The candidate child layout reproduces all five
 padded component sizes, with one preprocessed root at steps `0`, `1`,
 `65536`, and `0xffffffff`; changing the checkpoint or base root changes the
-preprocessed root. This establishes a reusable AIR layout. A base proof,
-sealed verifier key, Bitcoin chain-fold proof, and timed proving comparison
-remain pending.
+preprocessed root. This establishes a reusable AIR layout. The opt-in test
+now produces the anchor and two chain-fold proofs; a sealed verifier key and
+matched proving comparison remain.
+
+```sh
+zig build --build-file src/frontends/s31/build.zig test-bitcoin-chain-fold-proof -Doptimize=ReleaseSafe -j2
+python3 src/frontends/s31/record_bitcoin_chain_proof.py
+```
+
+The test proves a checkpoint anchor, the genesis-to-block-one update, and
+the block-one-to-block-two update. The [block-two header fixture](../examples/bitcoin_block2_header.valid.json)
+comes from the [Blockstream raw-header API](https://blockstream.info/api/block/000000006a625f06636b8bb6ac7b960a8d03705d1ace08b1a19da3fdcc99ddbd/header);
+the test independently checks SHA256d and the exact previous-hash bytes.
+Both fold proofs have the same preprocessed root. The native verifier accepts
+the three proofs, rejects a changed public output at each fold step, and the
+full step-one circuit rejects a forged previous state with the valid child
+proof and header unchanged.
+
+The [recorded low-memory run](../../../../design/s31/measurements/bitcoin-chain-two-step-proof-v1-2026-10-07.json)
+used 334,403 bytes and 19.923 seconds for the anchor, 371,441 bytes and
+22.000 seconds for fold step zero, and 377,799 bytes and 23.623 seconds for
+fold step one. These are one-run measurements, so they do not establish a
+speedup. A sealed Bitcoin fold key and standalone native verifier interface
+are still pending. The proven statement covers linkage, SHA256d, target
+decoding, and PoW for these headers against the trusted checkpoint; it does
+not cover retarget rules, median-time-past, checked chainwork, or other full
+Bitcoin consensus context.
 
 ## Dedicated SHA AIR boundary under construction
 

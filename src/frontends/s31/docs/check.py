@@ -422,9 +422,12 @@ def check_recursive_examples() -> None:
     base_fold = fold_cases["candidate-base"]
     assert len(fold_cases) == 8
     assert base_fold["fixed_point"] is True
-    assert base_fold["raw"]["qm31_ops"] == 1151865
+    assert base_fold["raw"]["qm31_ops"] == 1151864
     assert base_fold["padded"] == bitcoin_fold["candidate_padded_rows"]
     assert base_fold["preprocessed_root"] == bitcoin_fold["candidate_preprocessed_root"]
+    assert base_fold["anchor_root"] == bitcoin_fold["anchor_preprocessed_root"]
+    assert all(case["anchor_root"] == bitcoin_fold["anchor_preprocessed_root"]
+               for case in bitcoin_fold["cases"])
     assert all(fold_cases[name]["preprocessed_root"] == base_fold["preprocessed_root"]
                for name in ("candidate-recursive", "candidate-u16-carry", "candidate-u32-max"))
     assert all(fold_cases[name]["preprocessed_root"] != base_fold["preprocessed_root"]
@@ -433,6 +436,39 @@ def check_recursive_examples() -> None:
     assert all(f"{value:,}" in bitcoin_doc for value in
                (base_fold["raw_vars"], base_fold["raw"]["qm31_ops"],
                 base_fold["padded"]["qm31_ops"], base_fold["padded"]["eq"]))
+
+    two_step = json.loads((records / "bitcoin-chain-two-step-proof-v1-2026-10-07.json").read_text())
+    assert two_step["schema"] == "s31-bitcoin-chain-two-step-proof-v1"
+    assert two_step["topology_record_sha256"] == hashlib.sha256(
+        (records / "bitcoin-chain-fold-topology-v1-2026-10-07.json").read_bytes()
+    ).hexdigest()
+    assert two_step["air_bundle_sha256"] == hashlib.sha256(
+        (ROOT / "vectors/circuit/official/circuit_air.air_programs_v1.bin").read_bytes()
+    ).hexdigest()
+    assert two_step["projection_sha256"] == bitcoin_fold["projection_sha256"]
+    for name, source_hash in two_step["source_sha256"].items():
+        assert source_hash == hashlib.sha256((S31 / name).read_bytes()).hexdigest()
+    assert two_step["native_verification_passed"] is True
+    assert two_step["changed_public_statement_rejected_at_both_fold_steps"] is True
+    assert two_step["forged_prior_state_rejected_by_full_circuit"] is True
+    observations = two_step["observations"]
+    assert observations["checkpoint anchor"]["preprocessed_root"] == bitcoin_fold["anchor_preprocessed_root"]
+    assert all(observations[name]["preprocessed_root"] == bitcoin_fold["candidate_preprocessed_root"]
+               for name in ("chain fold step 0", "chain fold step 1"))
+    assert [observations[name]["proof_bytes"] for name in
+            ("checkpoint anchor", "chain fold step 0", "chain fold step 1")] == [334403, 371441, 377799]
+    assert all(f"{item['proof_bytes']:,}" in bitcoin_doc and
+               f"{item['prove_seconds']:.3f}" in bitcoin_doc for item in observations.values())
+    block2 = json.loads((S31 / "examples/bitcoin_block2_header.valid.json").read_text())
+    block2_header = bytes.fromhex(block2["header_hex"])
+    assert len(block2_header) == 80
+    sha256d = lambda data: hashlib.sha256(hashlib.sha256(data).digest()).digest()
+    block1_fixture = json.loads((S31 / "examples/bitcoin_header_link.valid.json").read_text())
+    block1_header = b"".join(struct.pack("<H", word) for word in block1_fixture["private_inputs"]["child"])
+    assert block2_header[4:36] == sha256d(block1_header)
+    assert sha256d(block1_header)[::-1].hex() == block2["previous_display_hash"]
+    assert sha256d(block2_header)[::-1].hex() == block2["display_hash"]
+    assert block2["source"] in bitcoin_doc
 
     benchmark = json.loads((records / "sparse-wide-fold-u32-batch-memory-2026-10-07.json").read_text())
     assert benchmark["compiler_sha256"] == wide["compiler_sha256"]

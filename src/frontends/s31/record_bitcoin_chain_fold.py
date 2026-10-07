@@ -40,10 +40,11 @@ def main() -> None:
         by_name[name]["preprocessed_root"] != base["preprocessed_root"]
         for name in ("changed-checkpoint", "changed-base-root")
     )
+    assert len({case["anchor_root"] for case in cases}) == 1
     assert base["padded"]["eq"] == base["child_eq_rows"]
     assert base["padded"]["qm31_ops"] == base["child_qm31_rows"]
     paths = (
-        "bitcoin_chain_fold.zig", "bitcoin_fold_step.zig", "bitcoin_fold_digest.zig",
+        "bitcoin_chain_anchor.zig", "bitcoin_chain_fold.zig", "bitcoin_fold_step.zig", "bitcoin_fold_digest.zig",
         "inspect_bitcoin_chain_fold.zig",
     )
     record = {
@@ -51,6 +52,7 @@ def main() -> None:
         "command": " ".join(COMMAND),
         "cases": cases,
         "candidate_preprocessed_root": base["preprocessed_root"],
+        "anchor_preprocessed_root": base["anchor_root"],
         "candidate_padded_rows": base["padded"],
         "source_sha256": {path: sha256(S31 / path) for path in paths},
         "projection_sha256": sha256(ROOT / "vectors/circuit/official/compiled_air_constraints_v1.bin"),

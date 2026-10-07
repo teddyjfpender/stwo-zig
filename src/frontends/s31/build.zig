@@ -101,6 +101,59 @@ pub fn build(b: *std.Build) void {
         .filters = &.{"Bitcoin fold chooses a trusted base or the authenticated previous digest"},
     }));
     test_step.dependOn(&bitcoin_fold_tests.step);
+    const bitcoin_anchor_test_root = b.createModule(.{
+        .root_source_file = b.path("bitcoin_chain_anchor.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    bitcoin_anchor_test_root.addImport("stwo_core", core);
+    bitcoin_anchor_test_root.addImport("stwo_circuit_frontend", circuit);
+    const bitcoin_anchor_tests = b.addRunArtifact(b.addTest(.{
+        .root_module = bitcoin_anchor_test_root,
+        .filters = &.{"Bitcoin checkpoint anchor has the same AIR in value and topology modes"},
+    }));
+    test_step.dependOn(&bitcoin_anchor_tests.step);
+    const anchor_proof_test_root = b.createModule(.{
+        .root_source_file = b.path("bitcoin_chain_anchor_proof_test.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    anchor_proof_test_root.addImport("stwo_core", core);
+    anchor_proof_test_root.addImport("stwo_circuit_frontend", circuit);
+    anchor_proof_test_root.addImport("stwo_circuit_cpu_integration", cpu);
+    anchor_proof_test_root.addImport("stwo_s31_prototype", frontend);
+    anchor_proof_test_root.addImport("stwo_cairo_frontend", cpu.import_table.get("stwo_cairo_frontend") orelse @panic("missing Cairo frontend"));
+    const anchor_postcard = b.createModule(.{
+        .root_source_file = .{ .cwd_relative = b.pathFromRoot("../../interop/postcard.zig") },
+        .target = target,
+        .optimize = optimize,
+    });
+    anchor_postcard.addImport("stwo_core", core);
+    anchor_proof_test_root.addImport("interop_postcard", anchor_postcard);
+    anchor_proof_test_root.addAnonymousImport("s31_air_programs", .{
+        .root_source_file = .{ .cwd_relative = b.pathFromRoot("../../../vectors/circuit/official/circuit_air.air_programs_v1.bin") },
+    });
+    anchor_proof_test_root.addAnonymousImport("s31_air_projection", .{
+        .root_source_file = .{ .cwd_relative = b.pathFromRoot("../../../vectors/circuit/official/compiled_air_constraints_v1.bin") },
+    });
+    anchor_proof_test_root.addAnonymousImport("s31_bitcoin_fixture", .{
+        .root_source_file = b.path("examples/bitcoin_header_link.valid.json"),
+    });
+    anchor_proof_test_root.addAnonymousImport("s31_bitcoin_block2_fixture", .{
+        .root_source_file = b.path("examples/bitcoin_block2_header.valid.json"),
+    });
+    const anchor_proof_tests = b.addRunArtifact(b.addTest(.{
+        .root_module = anchor_proof_test_root,
+        .filters = &.{"Bitcoin checkpoint anchor proves and verifies under the fold child layout"},
+    }));
+    b.step("test-bitcoin-anchor-proof", "Prove and natively verify the full-layout Bitcoin checkpoint anchor")
+        .dependOn(&anchor_proof_tests.step);
+    const chain_fold_proof_tests = b.addRunArtifact(b.addTest(.{
+        .root_module = anchor_proof_test_root,
+        .filters = &.{"Bitcoin chain fold proves two changing headers over a verified checkpoint anchor"},
+    }));
+    b.step("test-bitcoin-chain-fold-proof", "Prove and natively verify a Bitcoin header update inside a recursive fold")
+        .dependOn(&chain_fold_proof_tests.step);
     const fold_test_root = b.createModule(.{
         .root_source_file = b.path("state_fold.zig"),
         .target = target,

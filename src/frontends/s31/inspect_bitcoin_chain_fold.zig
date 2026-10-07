@@ -3,6 +3,7 @@ const std = @import("std");
 const core = @import("stwo_core");
 const circuit = @import("stwo_circuit_frontend");
 const fold = @import("bitcoin_chain_fold.zig");
+const anchor = @import("bitcoin_chain_anchor.zig");
 
 const projection = @embedFile("s31_air_projection");
 const reference = @embedFile("s31_fold_reference");
@@ -19,6 +20,32 @@ pub fn main() !void {
     expanded.qm31_ops *= 2;
     var candidate = expanded;
     candidate.eq *= 2;
+    const candidate_layout = try circuit.common.preprocessed.ColumnLayout.fromComponentSizes(.{
+        .eq = candidate.eq,
+        .qm31_ops = candidate.qm31_ops,
+        .m31_to_u32 = candidate.m31_to_u32,
+        .triple_xor = candidate.triple_xor,
+        .blake_g_gate = candidate.blake_g,
+    });
+    const anchor_root = blk: {
+        var anchor_ctx = try anchor.build(circuit.builder.NoValue, allocator, checkpoint, .{
+            .eq = candidate.eq,
+            .qm31_ops = candidate.qm31_ops,
+            .m31_to_u32 = candidate.m31_to_u32,
+            .triple_xor = candidate.triple_xor,
+            .blake_g_gate = candidate.blake_g,
+        });
+        defer anchor_ctx.deinit();
+        var anchor_pp = try circuit.common.preprocessed.PreprocessedCircuit.fromBuilderCircuit(allocator, &anchor_ctx.circuit);
+        defer anchor_pp.deinit(allocator);
+        if (!anchor_pp.layout().eql(&candidate_layout)) return error.AnchorGeometryMismatch;
+        const anchor_pcs = core.pcs.config_v2.PcsConfigV2.fromFriAndTraceSize(
+            try core.pcs.config_v2.FriConfigV2.init(26, 0, 1, 70, 4),
+            candidate_layout.traceLogSize(),
+        );
+        break :blk try anchor_pp.preprocessedRoot(allocator, anchor_pcs.fri_config.log_blowup_factor);
+    };
+    const anchor_hex = std.fmt.bytesToHex(anchor_root, .lower);
     const Case = struct {
         name: []const u8,
         child: Sizes,
@@ -51,8 +78,7 @@ pub fn main() !void {
         );
         var case_checkpoint = checkpoint;
         if (case.change_checkpoint) case_checkpoint[0] ^= 1;
-        var base_root: [32]u8 = undefined;
-        for (&base_root, 0..) |*byte, i| byte.* = @intCast((i * 37 + 11) & 0xff);
+        var base_root = anchor_root;
         if (case.change_base_root) base_root[0] ^= 1;
         var ctx = try fold.topology(allocator, projection, child_layout, pcs, base_root, case_checkpoint, case.step);
         defer ctx.deinit();
@@ -86,8 +112,8 @@ pub fn main() !void {
             root_json = &root_field;
         }
         std.debug.print(
-            "{{\"schema\":\"s31-bitcoin-chain-fold-inspection-v1\",\"case\":\"{s}\",\"step\":{d},\"child_eq_rows\":{d},\"child_qm31_rows\":{d},\"child_trace_log_size\":{d},\"raw_vars\":{d},\"fixed_point\":{},\"preprocessed_root\":{s},\"raw\":{{\"eq\":{d},\"qm31_ops\":{d},\"m31_to_u32\":{d},\"triple_xor\":{d},\"blake_g\":{d}}},\"padded\":{{\"eq\":{d},\"qm31_ops\":{d},\"m31_to_u32\":{d},\"triple_xor\":{d},\"blake_g\":{d}}}}}\n",
-            .{ case.name, case.step, case.child.eq, case.child.qm31_ops, child_layout.traceLogSize(), raw_vars, fixed_point, root_json, raw.eq, raw.qm31_ops, raw.m31_to_u32, raw.triple_xor, raw.blake_g_gate, padded.eq, padded.qm31_ops, padded.m31_to_u32, padded.triple_xor, padded.blake_g_gate },
+            "{{\"schema\":\"s31-bitcoin-chain-fold-inspection-v1\",\"case\":\"{s}\",\"step\":{d},\"anchor_root\":\"{s}\",\"child_eq_rows\":{d},\"child_qm31_rows\":{d},\"child_trace_log_size\":{d},\"raw_vars\":{d},\"fixed_point\":{},\"preprocessed_root\":{s},\"raw\":{{\"eq\":{d},\"qm31_ops\":{d},\"m31_to_u32\":{d},\"triple_xor\":{d},\"blake_g\":{d}}},\"padded\":{{\"eq\":{d},\"qm31_ops\":{d},\"m31_to_u32\":{d},\"triple_xor\":{d},\"blake_g\":{d}}}}}\n",
+            .{ case.name, case.step, &anchor_hex, case.child.eq, case.child.qm31_ops, child_layout.traceLogSize(), raw_vars, fixed_point, root_json, raw.eq, raw.qm31_ops, raw.m31_to_u32, raw.triple_xor, raw.blake_g_gate, padded.eq, padded.qm31_ops, padded.m31_to_u32, padded.triple_xor, padded.blake_g_gate },
         );
     }
 }
