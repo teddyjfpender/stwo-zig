@@ -8,7 +8,7 @@ For `.s31` editor support, see the [S31 TextMate grammar and neon theme](../../.
 
 The earlier [source-to-AIR implementation guide](LANGUAGE_AND_AIR.md) remains available for backend detail.
 
-The compiler accepts normalized JSON and a [limited typed `.s31` text language](TEXT_LANGUAGE.md) that lowers to the same relation. Inputs have `u16` or `m31` relation type, fixed length, and public or private visibility. The text language has nominal `Bytes32` and `UInt256` values backed by sixteen `u16` limbs and `Bytes80` backed by forty. Nodes are topologically ordered. Supported normalized operations include arithmetic, constrained 256-bit addition/comparison, static repeats, selection, BLAKE2s and Poseidon2 hashes, byte-exact Bitcoin header SHA256d, and mainnet compact-target decoding. BLAKE2s hash inputs are canonical M31 words encoded little endian as 32-bit words; its eight digest words are reduced modulo M31. Poseidon2 outputs eight canonical M31 state words directly. Assertions constrain equal arrays. Public inputs and outputs occupy at most eight direct words: `u32` in the original profile, canonical M31 in direct-v4. Witnesses cannot change graph shape.
+The compiler accepts normalized JSON and a [limited typed `.s31` text language](TEXT_LANGUAGE.md) that lowers to the same relation. Inputs have `u16` or `m31` relation type, fixed length, and public or private visibility. The text language has nominal `Bytes32`, `UInt256`, and `BlockHash` values backed by sixteen `u16` limbs and `Bytes80` backed by forty. Nodes are topologically ordered. Supported normalized operations include arithmetic, constrained 256-bit addition/comparison, static repeats, selection, BLAKE2s and Poseidon2 hashes, byte-exact Bitcoin header SHA256d, and mainnet compact-target decoding. BLAKE2s hash inputs are canonical M31 words encoded little endian as 32-bit words; its eight digest words are reduced modulo M31. Poseidon2 outputs eight canonical M31 state words directly. Assertions constrain equal arrays. Public inputs and outputs occupy at most eight direct words: `u32` in the original profile, canonical M31 in direct-v4. Witnesses cannot change graph shape.
 
 To use the text frontend and inspect its exact lowering:
 
@@ -108,15 +108,21 @@ example. For an actual Bitcoin header proof, see
 [`bitcoin_header_pow.s31`](examples/bitcoin_header_pow.s31) and its
 [worked walkthrough](docs/bitcoin-sha256d.md): three constrained SHA-256
 compression blocks, mainnet `nBits` decoding, and a hash ≤ target assertion.
-[`bitcoin_header_pair.s31`](examples/bitcoin_header_pair.s31) extends this
+[`bitcoin_header_pair_typed.s31`](examples/bitcoin_header_pair_typed.s31) extends this
 to two real, linked headers with a mainnet genesis checkpoint, both PoW
 checks, equal `nBits`, and the strict first-step median-time-past rule. It still uses the generic
-SHA circuit. The
+SHA circuit. The [header-link leaf](examples/bitcoin_header_link.s31) proves
+one fresh header's SHA256d, previous-hash link, and PoW against a claimed
+`BlockHash`, then commits to the ordered old/new hashes. Its proof does not
+authenticate the prior hash or enforce full chain policy; that linkage belongs
+inside a changing-header fold. The
 [`sha_chip_plan.zig` boundary](sha_chip_plan.zig) prepares three SHA AIR calls
 per header and tests their byte-level linkage; proof-bound chip integration
 remains future work. The [sparse-wide recursive verifier](docs/recursion-sparse-wide.md)
 now wraps this profile through two depth-specific gate proofs; a repeatable
-Bitcoin header-chain transition is still separate work.
+Bitcoin header-chain transition is still separate work. The
+[header-link acceptance gate](acceptance_header_link.py) also wraps one fresh
+header-link proof and checks its authenticated child statement.
 
 The packed SHA AIR has a focused six-call proof test for two SHA256d headers:
 

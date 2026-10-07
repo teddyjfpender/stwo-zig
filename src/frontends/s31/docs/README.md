@@ -44,8 +44,8 @@ text .s31 ──parse/typecheck/specialize──▶ normalized relation JSON
    `Bytes32` and `UInt256` types, hand-filled carry and borrow tables,
    and constrained limb equations.
 - [Bitcoin header SHA256d and proof of work](bitcoin-sha256d.md): two actual
-   linked 80-byte headers, six SHA compression blocks, compact target decoding,
-   handwritten gate equations, verified proofs, and the SHA chip boundary.
+   linked 80-byte headers, a one-new-header transition leaf, compact target
+   decoding, handwritten gate equations, verified proofs, and the SHA chip boundary.
 - [One-level proof recursion](recursion.md): a real S31 child proof verified
    inside a circuit, an independently verified outer proof, adversarial
    statements, costs, and the precise boundary before a repeatable fold.

@@ -57,6 +57,27 @@ contains geometry, proof bytes and timings with the timestamp check; the
 predates it. This is a two-header
 segment proof, not a general chain-policy or recursive proof.
 
+[`bitcoin_header_link.s31`](../../src/frontends/s31/examples/bitcoin_header_link.s31)
+is a reusable transition leaf. It takes a claimed `BlockHash` state opening,
+constrains the new header's exact previous-hash field to that opening, proves
+the new header's SHA256d and mainnet PoW, and publishes an ordered Poseidon2
+commitment to the old and new hashes. The checked genesis-to-block-one
+assignment has the same public pair root as the two-header fixture, while
+performing only one SHA256d. Its [native acceptance
+gate](../../src/frontends/s31/acceptance_header_link.py) checks the independent
+SHA/Poseidon oracle, a valid proof, a forged predecessor, and a changed root.
+It also wraps the leaf in one sparse-wide recursive verifier proof and rejects
+a changed authenticated child statement.
+The opening is still private and unauthenticated by this leaf alone; the
+changing-header fold must bind it to the prior verified state.
+The leaf's local fourfold-FRI run used 365,487 raw QM31 rows and a
+236,523-byte proof, versus 714,614 rows and 266,285 bytes for the typed
+two-header fixture under the same profile. This halves the raw arithmetic
+trace without claiming a measured wall-clock speedup. The scalar
+`poseidon2.linkRootCircuit` helper can recompute this ordered commitment
+from range-checked hash openings inside a future fold; its value and
+witness-free topologies are tested against the pinned host hash.
+
 ## Dedicated SHA chip: proof-bound integration contract
 
 The existing RISC-V packed SHA provider already expresses one compression
@@ -229,17 +250,26 @@ commitment with the incremented `u32` step. A host-side equality check cannot
 replace that circuit equality. The base step must bind an explicit trusted
 checkpoint and must use a different domain from a recursive step.
 
-The existing eight-word public ABI carries only one digest. The first
-implementation decision is therefore either a versioned wider ABI for the
-old and new commitments, or a single transition commitment whose two
-openings are checked inside the recursive circuit. Both choices require a
-versioned proof envelope, fixed statement encoding, and adversarial tests for
+For the first **hash-chain-only** fold, keep the eight-word ABI: the leaf
+publishes `R_link = Poseidon2_pair(Poseidon2_leaf(H_old),
+Poseidon2_leaf(H_new))`. The fold witnesses both sixteen-limb hashes, range
+checks them as `u16`, recomputes `R_link` and equates it to the new leaf's
+verified public output. It also equates `Poseidon2_leaf(H_old)` to the prior
+fold's authenticated state root. The new fold output must hash the new state
+root, counter, checkpoint, leaf-key identity, and fold-root opening under a
+new domain; the next step opens that output inside its circuit. The
+`poseidon2.constrainLinkedState` kernel already implements and adversarially
+tests the two essential root equalities, but no fold invokes it yet.
+
+This hash-only stage establishes linked, PoW-valid headers against a trusted
+checkpoint. Full mainnet policy needs a versioned state commitment that also
+binds difficulty context, timestamps, height, and checked chainwork, with a
+leaf relation that updates that state. The new fold needs a versioned proof
+envelope, a fixed two-verifier statement encoding, and adversarial tests for
 swapped old/new states, altered child keys, omitted header proofs, wrong
-network parameters, and counter wraparound. The leaf must constrain header
-SHA256d, its previous-hash link, PoW, and the applicable header policy before
-the fold may treat the new state as valid. The current four-lane `state_fold`
-cannot be relabeled as this Bitcoin transition: it proves only a fixed field
-recurrence and verifies one child proof.
+network parameters, and counter wraparound. The current four-lane
+`state_fold` proves only a fixed field recurrence and verifies one child
+proof; it cannot be relabeled as this Bitcoin transition.
 
 ## Engineering sequence and exit gates
 
@@ -247,7 +277,7 @@ recurrence and verifies one child proof.
 | --- | --- | --- |
 | 1. Wide arithmetic | Typed byte/int values, carry/borrow relations, independent oracle | Current example and native proof; add boundary and randomized adversarial vectors. |
 | 2. Byte-exact header hash | **Generic circuit complete:** `Bytes80`, SHA256d relation, nominal `BlockHash`, one native proof. **SHA AIR witness planner complete:** three call records and packed provider rows. Remaining: authenticated circuit-to-chip lookup, new proof roster and verifier, broader Bitcoin Core differential vectors, and measured cost crossover. | Genesis and randomized byte checks; native proof and changed-root rejection currently pass. Chip substitution must fail until one-proof lookup closure is implemented. |
-| 3. Header policy | **Genesis-anchored two-header first step complete:** compact target, powLimit, unsigned comparison, exact previous-hash link, equal `nBits`, and strict first-step timestamp order. Remaining: retarget transitions, general eleven-block MTP and contextual future-time policy, work increment and versioned public state ABI. | Real genesis-to-block-one proof accepted; changed public claim rejected by native verifier; changed checkpoint, link, bits and equal time rejected by independent oracle; broader native adversarial corpus remains. |
+| 3. Header policy | **Genesis-anchored two-header first step complete:** compact target, powLimit, unsigned comparison, exact previous-hash link, equal `nBits`, and strict first-step timestamp order. A one-new-header transition leaf now proves link and PoW against a claimed prior hash. Remaining: prior-state authentication, retarget transitions, general eleven-block MTP and contextual future-time policy, work increment and versioned public state ABI. | Real genesis-to-block-one proof accepted; changed public claim rejected by native verifier; changed checkpoint, link, bits and equal time rejected by independent oracle; transition leaf rejects a forged predecessor and changed root. |
 | 4. In-circuit S31 verifier | **Gate and sparse-wide wrappers implemented:** native capture of saved proofs, in-circuit child verifier, sealed recursive keys and native outer verifier. Fourfold FRI is supported for the sparse-wide leaf and wrappers. Remaining: independent end-to-end soundness review and proof-bound SHA chip integration. | Valid arithmetic/private-witness and Bitcoin two-header leaves, two wrapper levels, exact-key/FRI replay rejection and hostile proof-field mutations. |
 | 5. Recursive fold | **Fixed-key gate and sparse-wide claim folds implemented:** `u32` counter, one sealed fold key across steps, cached batch proving and top-only native verification. Gate-profile four-lane state transitions also fold under one key. Remaining: a typed Bitcoin state and new-header-per-step transition, plus an analyzed depth/security bound. | Base and recursive branch mutation suites; byte-identical batch and separate proofs; high-counter adversarial statements; source-state replay; caller-supplied native `--max-step` cap. |
 

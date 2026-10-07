@@ -258,6 +258,77 @@ consensus state transition. The genesis hash is an explicit checkpoint. The
 [light-client brief](../../../../design/s31/BITCOIN_LIGHT_CLIENT.md) tracks
 those separate relations.
 
+## One fresh header per transition proof
+
+The [header-link program](../examples/bitcoin_header_link.s31) is the smaller
+leaf needed by a changing-header fold. It takes the previous block hash as a
+private, nominal `BlockHash` opening and hashes only the **new** 80-byte
+header. Here is the complete source:
+
+```s31
+use std@1;
+
+circuit bitcoin_header_link(
+    private prior_hash: BlockHash,
+    private child: Bytes80
+) -> public Digest<Poseidon2> {
+    let child_hash = std::bitcoin::block_hash(child);
+    assert_eq(std::bitcoin::parent_hash(child), prior_hash);
+
+    let target = std::bitcoin::target_mainnet(child);
+    let pow_ok = std::math::le_u256(
+        std::bytes::to_u256_le(std::bitcoin::hash_bytes(child_hash)), target
+    );
+    assert_eq(pow_ok, splat<1>(1_m31));
+
+    let old_root = std::hash::poseidon2_leaf(std::bytes::limbs_m31(std::bitcoin::hash_bytes(prior_hash)));
+    let new_root = std::hash::poseidon2_leaf(std::bytes::limbs_m31(std::bitcoin::hash_bytes(child_hash)));
+    let link_root = std::hash::poseidon2_pair(old_root, new_root);
+    link_root
+}
+```
+
+The `parent_hash(child)` view reads the child's byte pairs 2–17. Sixteen
+equalities enforce `child[i+2] - prior_hash[i] = 0` for `i=0..15`; both sides
+are canonical `u16` values. The SHA256d node constrains the three compression
+blocks of the child header. Target decoding and the 256-bit comparison then
+constrain `SHA256d(child) <= target(child.nBits)`. The output is
+`Poseidon2_pair(Poseidon2_leaf(prior_hash limbs), Poseidon2_leaf(child_hash limbs))`,
+so it commits to the *ordered* old/new hash pair. In the checked
+genesis-to-block-one fixture, the `prior_hash` limbs begin
+`[57967, 2700, 61878, 29363]`, and the public pair root begins
+`[928491885, 399009276, 910063533, 515587455]`. It equals the root of the
+two-header program above, but this program performs only one SHA256d.
+
+This leaf proves linkage and the child's PoW under its encoded mainnet target.
+It does **not** prove the private `prior_hash` belongs to an accepted parent.
+A recursive fold must authenticate its prior-state opening and check that it
+equals the old hash committed by this leaf **inside the fold circuit**. The
+leaf also omits retargeting, general median-time-past, height, accumulated
+work, and best-chain selection. Its pair root cannot be interpreted as an
+accepted chain tip until those checks and the state binding are added.
+
+```sh
+python3 src/frontends/s31/acceptance_header_link.py
+```
+
+This acceptance command derives the two hashes with independent `hashlib`
+SHA256d, checks the pair with the independent Poseidon2 oracle, proves the
+link, verifies it with the generated native verifier, and rejects a forged
+predecessor and a changed public root. It then proves verification of that
+leaf inside the sparse-wide recursive circuit, natively verifies the outer
+proof, and rejects a changed authenticated child statement. That wrapper
+authenticates one transition leaf; it does not yet join it to a previous fold.
+
+With `sparse-wide-gate` and FRI fold step 4, this leaf used 365,487 raw QM31
+arithmetic rows, padded to 524,288, and emitted a 236,523-byte proof in one
+local run. The typed two-header fixture has the same relation as the earlier
+714,614-row program and emitted a 266,285-byte proof under those settings.
+Removing the redundant parent SHA therefore cut raw arithmetic rows by
+48.9% and proof bytes by 11.2% in these matched configurations. The one-level
+recursive proof was 354,417 bytes. These counts do not establish a
+proving-time speedup; that needs repeated timed trials.
+
 ## Dedicated SHA AIR boundary under construction
 
 [`sha_chip_plan.zig`](../sha_chip_plan.zig) now constructs the exact three
