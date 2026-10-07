@@ -18,6 +18,7 @@ const relation_effect = @import("relation_effect.zig");
 const interaction = @import("relation_interaction.zig");
 const boundary = @import("../segment_leaf_statement_contract_v2.zig");
 const framework = @import("framework_interaction.zig");
+const PublicDataV2 = @import("../../air/public_data_v2.zig").PublicDataV2;
 
 pub const FORMAT_VERSION: u16 = 8;
 pub const STABLE_NAME = "recursion.segment_leaf_v8.statement_source.direct";
@@ -75,6 +76,48 @@ pub const Runtime = interaction.Runtime(LOGICAL_INPUT_COUNT, RELATION_EVENT_COUN
 pub const Plan = Runtime.Plan;
 pub const Row = Runtime.Row;
 
+/// Detached-verifier source for the V8 public parameter. The canonical wire
+/// length is checked against a freshly authenticated SegmentV2 view and the
+/// separately admitted source manifest. A child proof cannot supply this
+/// value as a witness column or as an unchecked scalar.
+///
+/// This boundary does not activate V8: the enclosing wrapper must instantiate
+/// its row-36 typed component with `parameters()` and verify its proof.
+pub const VerifierWireCount = struct {
+    count: u32,
+
+    pub fn derive(expected: *const PublicDataV2, admitted_manifest: *const boundary.ManifestV2) !VerifierWireCount {
+        const view = try expected.authenticatedView();
+        try admitted_manifest.validate();
+        const exact_manifest = try boundary.ManifestV2.init(view.words.len);
+        if (!std.meta.eql(exact_manifest, admitted_manifest.*))
+            return error.DirectStatementV8ManifestMismatch;
+        if (exact_manifest.trace_log_size != LOG_SIZE or
+            exact_manifest.wire_word_count < MIN_WIRE_WORDS or
+            exact_manifest.wire_word_count > MAX_WIRE_WORDS)
+            return error.DirectStatementV8UnsupportedWireGeometry;
+        return .{ .count = exact_manifest.wire_word_count };
+    }
+
+    pub fn parameters(self: VerifierWireCount) [PARAMETER_COUNT]M31 {
+        return .{M31.fromCanonical(self.count)};
+    }
+
+    /// Form the verifier's AIR row from committed openings and the admitted
+    /// count. The proof has no input slot for a competing count.
+    pub fn evaluationRow(
+        self: VerifierWireCount,
+        main: [PHYSICAL_MAIN_COLUMN_COUNT]M31,
+        preprocessed: [PREPROCESSED_COLUMN_COUNT]M31,
+    ) Row {
+        var row: Row = undefined;
+        @memcpy(row[0..PHYSICAL_MAIN_COLUMN_COUNT], &main);
+        @memcpy(row[PHYSICAL_MAIN_COLUMN_COUNT..][0..PREPROCESSED_COLUMN_COUNT], &preprocessed);
+        row[PHYSICAL_MAIN_COLUMN_COUNT + PREPROCESSED_COLUMN_COUNT] = self.parameters()[0];
+        return row;
+    }
+};
+
 pub const Definition = struct {
     arena: ir.Arena,
     event: types.EffectId,
@@ -83,6 +126,16 @@ pub const Definition = struct {
         self.arena.deinit();
         self.* = undefined;
     }
+
+    /// Required by the generic proof component on both prover and verifier.
+    pub fn validate(self: *const Definition) !void {
+        try validate_mod.validate(&self.arena);
+        const identity = try digest.computeIdentity(&self.arena);
+        if (self.arena.constraintsView().len != DIRECT_CONSTRAINT_COUNT or
+            self.arena.effectsView().len != RELATION_EVENT_COUNT or
+            !std.mem.eql(u8, &identity.bytes, &SEMANTIC_DIGEST))
+            return error.InvalidDirectStatementV8;
+    }
 };
 
 /// The candidate's semantic digest is pinned, but production activation also
@@ -90,11 +143,7 @@ pub const Definition = struct {
 pub fn build(allocator: std.mem.Allocator) !Definition {
     var definition = try buildRaw(allocator);
     errdefer definition.deinit();
-    try validate_mod.validate(&definition.arena);
-    const identity = try digest.computeIdentity(&definition.arena);
-    if (definition.arena.constraintsView().len != DIRECT_CONSTRAINT_COUNT or definition.arena.effectsView().len != RELATION_EVENT_COUNT or
-        !std.mem.eql(u8, &identity.bytes, &SEMANTIC_DIGEST))
-        return error.InvalidDirectStatementV8;
+    try definition.validate();
     return definition;
 }
 
@@ -105,9 +154,7 @@ pub fn computeSemanticDigest(allocator: std.mem.Allocator) !digest.Digest {
 }
 
 pub fn authenticate(definition: *const Definition) !Plan {
-    try validate_mod.validate(&definition.arena);
-    const identity = try digest.computeIdentity(&definition.arena);
-    if (!std.mem.eql(u8, &identity.bytes, &SEMANTIC_DIGEST)) return error.InvalidDirectStatementV8;
+    try definition.validate();
     return Runtime.authenticate(&definition.arena, SEMANTIC_DIGEST, .{definition.event});
 }
 
@@ -204,4 +251,65 @@ fn buildRaw(allocator: std.mem.Allocator) !Definition {
     const weight = try arena.add(active, main[EXTRA], span);
     const event = try relation_effect.append(&arena, .{ .domain = .recursion_statement_word, .role = .emit, .values = &.{ scope, index, main[VALUE] }, .weight = weight }, span);
     return .{ .arena = arena, .event = event };
+}
+
+fn testRowSatisfied(definition: *const Definition, row: Row) !bool {
+    const values = try @import("test_support.zig").evaluateArena(std.testing.allocator, &definition.arena, &row);
+    defer std.testing.allocator.free(values);
+    for (definition.arena.constraintsView()) |constraint|
+        if (!values[types.idIndex(constraint.root)].isZero()) return false;
+    return true;
+}
+
+test "V8 Statement verifier count comes from authenticated SegmentV2 wire" {
+    const fixture_mod = @import("../../air/public_data_v2_test_support.zig");
+    const fixture = try fixture_mod.Fixture.init();
+    const words = try fixture_mod.encode(std.testing.allocator, &fixture.leftSource());
+    defer std.testing.allocator.free(words);
+    const expected = try PublicDataV2.authenticate(words);
+    const manifest = try boundary.ManifestV2.init(words.len);
+    const binding = try VerifierWireCount.derive(&expected, &manifest);
+    try std.testing.expectEqual(@as(u32, @intCast(words.len)), binding.count);
+    try std.testing.expectEqual(binding.count, binding.parameters()[0].toU32());
+
+    const wrong_manifest = try boundary.ManifestV2.init(words.len + 4);
+    try std.testing.expectError(error.DirectStatementV8ManifestMismatch, VerifierWireCount.derive(&expected, &wrong_manifest));
+    const saved = words[0];
+    defer words[0] = saved;
+    words[0] = saved.add(M31.one());
+    if (VerifierWireCount.derive(&expected, &manifest)) |_| return error.TestExpectedError else |_| {}
+}
+
+test "V8 Statement verifier parameter defeats a forged boundary count" {
+    const fixture_mod = @import("../../air/public_data_v2_test_support.zig");
+    const fixture = try fixture_mod.Fixture.init();
+    const words = try fixture_mod.encode(std.testing.allocator, &fixture.leftSource());
+    defer std.testing.allocator.free(words);
+    const expected = try PublicDataV2.authenticate(words);
+    const manifest = try boundary.ManifestV2.init(words.len);
+    const binding = try VerifierWireCount.derive(&expected, &manifest);
+    const ordinal = words.len;
+    const value = M31.fromCanonical(17);
+    var definition = try build(std.testing.allocator);
+    defer definition.deinit();
+    const honest = try logicalRow(ordinal, binding.count, value, 0);
+    try std.testing.expect(try testRowSatisfied(&definition, binding.evaluationRow(
+        honest[0..PHYSICAL_MAIN_COLUMN_COUNT].*,
+        honest[PHYSICAL_MAIN_COLUMN_COUNT..][0..PREPROCESSED_COLUMN_COUNT].*,
+    )));
+    // At the real boundary this is a context word. A witness that moves the
+    // boundary four words later claims it is a wire word instead.
+    const forged = try logicalRow(ordinal, binding.count + 4, value, 0);
+    try std.testing.expect(!try testRowSatisfied(&definition, binding.evaluationRow(
+        forged[0..PHYSICAL_MAIN_COLUMN_COUNT].*,
+        forged[PHYSICAL_MAIN_COLUMN_COUNT..][0..PREPROCESSED_COLUMN_COUNT].*,
+    )));
+    // Reusing the honest committed openings cannot override the verifier's
+    // count even if a caller writes a different trailing logical parameter.
+    var supplied = honest;
+    supplied[PHYSICAL_MAIN_COLUMN_COUNT + PREPROCESSED_COLUMN_COUNT] = M31.fromCanonical(binding.count + 4);
+    try std.testing.expect(try testRowSatisfied(&definition, binding.evaluationRow(
+        supplied[0..PHYSICAL_MAIN_COLUMN_COUNT].*,
+        supplied[PHYSICAL_MAIN_COLUMN_COUNT..][0..PREPROCESSED_COLUMN_COUNT].*,
+    )));
 }

@@ -448,6 +448,37 @@ fn diagnoseDirect50(
             cohort.noncore.boundary_workspace.statement_rows,
         );
         defer statement_v6.deinit();
+        const statement_v8_key = try recursion.segment_leaf_wrapper_row36_direct_v8.FixedKey.compile(allocator);
+        var statement_v8 = try recursion.segment_leaf_wrapper_row36_direct_v8.Writer.init(
+            allocator,
+            &statement_v8_key,
+            &prepared.capture.public_data.data,
+            &prepared.authority_prepared.source.manifest,
+            &program,
+            &child_program,
+            cohort.noncore.boundary_workspace.statement_rows,
+            &statement_v6,
+        );
+        defer statement_v8.deinit();
+        const statement_pp = try allocateV8StatementColumns(allocator, recursion.air.segment_leaf_statement_source_direct_v8.PREPROCESSED_COLUMN_COUNT);
+        defer freeV8StatementColumns(allocator, statement_pp);
+        const statement_main = try allocateV8StatementColumns(allocator, recursion.air.segment_leaf_statement_source_direct_v8.PHYSICAL_MAIN_COLUMN_COUNT);
+        defer freeV8StatementColumns(allocator, statement_main);
+        const statement_interaction = try allocateV8StatementColumns(allocator, recursion.air.segment_leaf_statement_source_direct_v8.INTERACTION_COLUMN_COUNT);
+        defer freeV8StatementColumns(allocator, statement_interaction);
+        try statement_v8.fillPreprocessed(statement_pp);
+        try statement_v8.fillMain(statement_main);
+        const statement_claim = try statement_v8.fillInteraction(&relations, statement_interaction);
+        if (!statement_claim.audit.total.eql(statement_claim.total)) return error.V8StatementPhysicalClaimMismatch;
+        const statement_adjusted = residuals.domain_totals[29]
+            .sub(claims.audits[36].values[29])
+            .add(statement_claim.audit.values[29]);
+        const statement_limbs = statement_adjusted.toM31Array();
+        std.debug.print("DIRECT50_V8_STATEMENT_PHYSICAL rows={d} wire_count={d} domain29_zero={} limbs={d},{d},{d},{d} proof_created=false\n", .{
+            statement_v8.rows.len,      statement_v8.wire_count,    statement_adjusted.isZero(),
+            statement_limbs[0].toU32(), statement_limbs[1].toU32(), statement_limbs[2].toU32(),
+            statement_limbs[3].toU32(),
+        });
         std.debug.print("DIRECT50_V6_SCHEDULE row5_fanout={d} statement_link={d} statement_local={d} statement_arithmetic={d} overlaps={d}\n", .{
             row5_fanout.selected_count, statement_v6.link_uses, statement_v6.local_uses, statement_v6.arithmetic_uses, statement_v6.overlaps,
         });
@@ -679,6 +710,26 @@ fn allocateDirectTree(allocator: std.mem.Allocator, plan: anytype, tree: u8) ![]
 }
 
 fn freeDirectTree(allocator: std.mem.Allocator, columns: [][]M31) void {
+    for (columns) |column| allocator.free(column);
+    allocator.free(columns);
+}
+
+fn allocateV8StatementColumns(allocator: std.mem.Allocator, count: usize) ![][]M31 {
+    const columns = try allocator.alloc([]M31, count);
+    var written: usize = 0;
+    errdefer {
+        for (columns[0..written]) |column| allocator.free(column);
+        allocator.free(columns);
+    }
+    for (columns) |*column| {
+        column.* = try allocator.alloc(M31, recursion.air.segment_leaf_statement_source_direct_v8.CAPACITY);
+        @memset(column.*, M31.zero());
+        written += 1;
+    }
+    return columns;
+}
+
+fn freeV8StatementColumns(allocator: std.mem.Allocator, columns: [][]M31) void {
     for (columns) |column| allocator.free(column);
     allocator.free(columns);
 }

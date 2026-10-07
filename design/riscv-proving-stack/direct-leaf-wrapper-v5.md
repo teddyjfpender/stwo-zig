@@ -129,10 +129,20 @@ The bounded V8 row-36 AIR candidate implements the second option for a
 is constant across lengths; committed phase and bounded-distance columns
 constrain the exact wire/context/padding order, derive scope and index, and
 limit extra use to 0–2. Focused tests evaluate every row at 664, 668, and 887
-words and reject forged phase, ordinal, count, and fan-out. It remains dormant:
-its public wire-count parameter is not yet linked by a proof-visible relation
-to the authenticated SegmentV2 child geometry, and it has no physical writer
-or admitted V7 roster placement.
+words and reject forged phase, ordinal, count, and fan-out. It remains dormant
+until the public parameter and physical row are admitted by a detached V7
+verifier and the complete statement relation closes.
+The verifier-side parameter source now derives the exact count from an
+authenticated canonical SegmentV2 public wire and independently admitted
+source manifest. A dormant V8 physical writer re-derives that count, checks
+all wire values and the V6 fan-out schedule, and writes complete fixed, main,
+and interaction columns under one ordinal key; focused Debug and ReleaseSafe
+tests cover distinct wire lengths and hostile mutations. On the real q193
+leaf it accepted the 784-word canonical wire and produced 1,024 physical
+rows. Replacing only the V5 row-36 audit reduced but did not close domain 29:
+the adjusted residual was `(88766749,1708476026,1322968230,1106752563)`.
+The other statement consumers still need physical replacement under one
+admitted roster and a fresh detached proof transaction.
 For the V6 base fixed schedule, rows 15 and 16 are deliberately unqualified.
 Their Tree0 columns include the exact dense input-use multiplicities of the
 native-public-sum arithmetic graph. Section lengths alone do not determine

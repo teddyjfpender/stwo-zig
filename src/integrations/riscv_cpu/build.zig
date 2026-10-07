@@ -235,6 +235,12 @@ pub fn build(b: *std.Build) void {
     });
     b.step("test-v8-statement-air", "Check bounded fixed-key statement AIR schedule and adversarial mutations")
         .dependOn(&b.addRunArtifact(v8_statement_air_tests).step);
+    const v8_statement_physical_tests = b.addTest(.{
+        .root_module = v3_rows_root,
+        .filters = &.{"V8 row36"},
+    });
+    b.step("test-v8-statement-physical", "Check verifier-derived V8 row36 fixed, main and interaction columns")
+        .dependOn(&b.addRunArtifact(v8_statement_physical_tests).step);
     const v7_source_physical_tests = b.addTest(.{
         .root_module = v3_rows_root,
         .filters = &.{"V7 row39 physical source uses corrected AIR"},

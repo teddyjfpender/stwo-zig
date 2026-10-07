@@ -786,6 +786,7 @@ test {
     _ = @import("recursion/segment_leaf_wrapper_physical_bridge_v7.zig");
     _ = @import("recursion/segment_leaf_wrapper_source_physical_v7.zig");
     _ = @import("recursion/segment_core_fri_rows25_26_fixed_v7.zig");
+    _ = @import("recursion/segment_leaf_wrapper_row36_direct_v8.zig");
     _ = @import("segment_core_fri_rows25_26_fixed_v7_test_root.zig");
     _ = @import("recursion/vm_air_composition_circuit_parallel_v4.zig");
     _ = @import("recursion/vm_air_composition_circuit_prepared_fresh_v4.zig");
