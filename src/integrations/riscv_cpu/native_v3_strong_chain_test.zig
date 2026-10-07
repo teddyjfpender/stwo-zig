@@ -418,7 +418,7 @@ fn diagnoseDirect50(
         try v9_template.admitRow28Writer(allocator, &row28_fixed);
         try fixed_rows.checkV9CoreFriAnchorFixedParity(allocator, &v9_template, &plan, pp);
         try fixed_rows.checkV9CoreFriControlFixedParity(allocator, &v9_template, &row28_fixed, &plan, pp);
-        try fixed_rows.checkV9CoreFriInputFixedParity(allocator, &v9_template, &plan, pp);
+        try fixed_rows.checkV9CoreFriInputFixedParity(allocator, &v9_template, selected.fri_circuit_id, &plan, pp);
         std.debug.print("DIRECT50_V9_FRI_FIXED row27_source_parity=true row28_source_parity=true row29_source_parity=true recursion_plan_admitted=true proof_created=false\n", .{});
         const v10_template = try recursion.air.segment_leaf_wrapper_template_v10.TemplateManifestV10.fromVerifierTemplate(allocator, &v9_template);
         var row27_fixed = try recursion.segment_core_fri_row27_fixed_v9.Writer.initFromVerifierTemplate(allocator, &v9_template);

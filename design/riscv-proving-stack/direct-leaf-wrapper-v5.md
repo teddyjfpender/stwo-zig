@@ -211,8 +211,8 @@ The same pre-proof selection now builds and validates the complete PCS-DEEP
 and FRI arithmetic circuits from that layout, mask order, and pinned protocol
 profile. The q193 gate checks both selected profile IDs and both circuit IDs
 against the independently verified native capture; a changed selected PCS
-circuit ID is rejected. Row 24's diagnostic writer is also admitted against
-the selected circuit ID rather than a captured one. This qualifies the
+circuit ID is rejected. Rows 24 and 29's diagnostic writers are also admitted
+against their selected PCS and FRI circuit IDs. This qualifies the
 arithmetic graph identity used by rows 24 and 29, while the seven-lane direct
 transcript lowering still cannot
 be substituted for the current five-lane SegmentV2 cohort.

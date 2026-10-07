@@ -526,12 +526,15 @@ pub fn checkV9CoreFriAnchorFixedParity(
 pub fn checkV9CoreFriInputFixedParity(
     allocator: std.mem.Allocator,
     key: *const recursion.air.segment_leaf_wrapper_template_v9.TemplateManifestV9,
+    selected_circuit_id: [32]u8,
     old_plan: *const recursion.segment_leaf_wrapper_roster_direct_v5.Plan,
     old_tree: [][]M31,
 ) !void {
     var writer = try recursion.segment_core_fri_row29_fixed_v9.Writer.initFromVerifierTemplate(allocator, key);
     defer writer.deinit();
     const descriptor = try writer.descriptor(key);
+    if (!std.mem.eql(u8, &descriptor.graph_identity, &selected_circuit_id))
+        return error.V9CoreFriInputCircuitMismatch;
     const old = old_plan.placements[29].?;
     if (!std.meta.eql(old.geometry, descriptor.geometry)) return error.V9CoreFriInputFixedGeometryMismatch;
     const width = descriptor.geometry.preprocessed_columns;
