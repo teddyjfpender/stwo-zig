@@ -7,7 +7,6 @@ const runtime_error = @import("error.zig");
 const telemetry = @import("telemetry.zig");
 
 pub const prepared_capacity: usize = 4;
-const device_memory_safety_reserve_bytes: usize = 256 * 1024 * 1024;
 
 pub fn CacheFor(comptime Api: type, comptime Context: type) type {
     const Arena = arena_module.ArenaFor(Context);
@@ -62,6 +61,10 @@ pub fn CacheFor(comptime Api: type, comptime Context: type) type {
                 plan.total_words,
                 @sizeOf(u32),
             ) catch return error.SizeOverflow;
+            if (arena_module.compactDeviceProfileEnabled()) {
+                const memory = try context.memoryInfo();
+                try arena_module.requireCompactDeviceCapacity(memory.total, arena_bytes);
+            }
             var destination = self.emptyIndex();
             while (destination == null or
                 !try hasMemory(context, arena_bytes))
@@ -80,7 +83,13 @@ pub fn CacheFor(comptime Api: type, comptime Context: type) type {
 
             const last_used = self.nextTick() catch
                 return error.InvalidState;
-            const managed = !try hasMemory(context, arena_bytes);
+            const managed = arena_module.forceManagedArena() or
+                !try hasMemory(context, arena_bytes);
+            if (std.posix.getenv("STWO_CUDA_MEMORY_PHASES") != null)
+                std.debug.print("cuda prepared arena mode={s} bytes={}\n", .{
+                    if (managed) @as([]const u8, "managed") else "device",
+                    arena_bytes,
+                });
             const resident_arena = if (managed)
                 try Arena.initPersistentManaged(context, &plan)
             else
@@ -328,22 +337,28 @@ pub fn CacheFor(comptime Api: type, comptime Context: type) type {
                 if (pool.used > pool.reserved) return error.InvalidState;
                 break :blk pool.reserved - pool.used;
             } else 0;
-            const usable_free = usableMemory(memory.free, memory.total, reusable);
+            const usable_free = usableMemory(
+                memory.free,
+                memory.total,
+                reusable,
+                arena_module.deviceMemorySafetyReserveBytes(),
+            );
             return arena_bytes <= usable_free;
         }
     };
 }
 
-fn usableMemory(driver_free: usize, total: usize, pool_reusable: usize) usize {
+fn usableMemory(driver_free: usize, total: usize, pool_reusable: usize, reserve: usize) usize {
     const available = @min(total, std.math.add(usize, driver_free, pool_reusable) catch std.math.maxInt(usize));
-    return available - @min(available, device_memory_safety_reserve_bytes);
+    return available - @min(available, reserve);
 }
 
 test "arena admission counts reusable async pool pages" {
     const gib: usize = 1 << 30;
-    try std.testing.expect(usableMemory(45 * gib, 140 * gib, 93 * gib) >= 98 * gib);
-    try std.testing.expect(usableMemory(45 * gib, 140 * gib, 93 * gib) < 139 * gib);
-    try std.testing.expect(usableMemory(45 * gib, 140 * gib, 0) < 98 * gib);
+    const reserve = 256 * 1024 * 1024;
+    try std.testing.expect(usableMemory(45 * gib, 140 * gib, 93 * gib, reserve) >= 98 * gib);
+    try std.testing.expect(usableMemory(45 * gib, 140 * gib, 93 * gib, reserve) < 139 * gib);
+    try std.testing.expect(usableMemory(45 * gib, 140 * gib, 0, reserve) < 98 * gib);
 }
 
 fn increment(value: u64) error{Overflow}!u64 {

@@ -9,12 +9,34 @@ const telemetry = @import("telemetry.zig");
 
 pub const SlotId = u32;
 
-/// Explicit research mode: only an arena that would otherwise fail the
-/// device-capacity gate may use managed memory. Ordinary proofs keep the
-/// device-pool allocation and its performance characteristics.
+/// Explicit research mode: `1` permits managed memory only when the arena
+/// exceeds the device-capacity gate; `force` also covers near-capacity plans.
+/// The compact-device profile uses a larger gate reserve for later allocations.
 pub fn managedOversubscriptionEnabled() bool {
-    const value = std.posix.getenv("STWO_CUDA_MANAGED_ARENA") orelse return false;
+    const value = std.posix.getenv("STWO_CUDA_MANAGED_ARENA") orelse "";
+    return compactDeviceProfileEnabled() or std.mem.eql(u8, value, "1") or
+        std.mem.eql(u8, value, "force");
+}
+
+pub fn compactDeviceProfileEnabled() bool {
+    const value = std.posix.getenv("STWO_CUDA_COMPACT_DEVICE_PROFILE") orelse return false;
     return std.mem.eql(u8, value, "1");
+}
+
+pub fn deviceMemorySafetyReserveBytes() usize {
+    return if (compactDeviceProfileEnabled()) 2 * 1024 * 1024 * 1024 else 256 * 1024 * 1024;
+}
+
+pub fn requireCompactDeviceCapacity(device_total: usize, arena_bytes: usize) runtime_error.Error!void {
+    if (!compactDeviceProfileEnabled()) return;
+    const gib: usize = 1 << 30;
+    if (device_total < 30 * gib or device_total > 36 * gib or arena_bytes > 38 * gib)
+        return error.InsufficientDeviceMemory;
+}
+
+pub fn forceManagedArena() bool {
+    const value = std.posix.getenv("STWO_CUDA_MANAGED_ARENA") orelse return false;
+    return std.mem.eql(u8, value, "force");
 }
 
 pub const Requirement = struct {

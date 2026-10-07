@@ -312,8 +312,9 @@ fn addCircuitResidentBenchmark(context: Context, toolchain: cuda.Toolchain, cair
     cairo_app.addImport("stwo_cairo_cuda", stwo);
     cairo_app.addImport("stwo_circuit_recursion_wire", wire);
     const architectures = b.addOptions();
-    architectures.addOption([]const u8, "architectures", "80,90");
-    cairo_app.addImport("cuda_architectures", architectures.createModule());
+    architectures.addOption([]const u8, "architectures", toolchain.architectures);
+    const architecture_module = architectures.createModule();
+    cairo_app.addImport("cuda_architectures", architecture_module);
     const cairo_cpu = integration_graph.addCairoCpuImport(
         b,
         context.protocol,
@@ -346,6 +347,8 @@ fn addCircuitResidentBenchmark(context: Context, toolchain: cuda.Toolchain, cair
     pipeline_root.addImport("circuit_recursion_app", circuit_app);
     pipeline_root.addImport("stwo_circuit_cpu_integration", circuit_cpu);
     pipeline_root.addImport("stwo_circuit_cuda_integration", integration);
+    pipeline_root.addImport("stwo_cuda_backend", cuda_backend);
+    pipeline_root.addImport("cuda_architectures", architecture_module);
     pipeline_root.addImport("stwo_circuit_recursion_wire", wire);
     pipeline_root.addImport("stwo_cairo_cuda_integration", cairo_cuda);
     pipeline_root.addImport("stwo_cairo_frontend", cairo_frontend);

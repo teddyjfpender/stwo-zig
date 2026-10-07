@@ -1,0 +1,22 @@
+{
+  "schema": "stwo.cairo-cuda-memory-trial.v1",
+  "command": [
+    "/tmp/stwo-zig/zig-out/bin/stwo-cairo-cuda",
+    "prove",
+    "--backend",
+    "cuda",
+    "--input",
+    "/tmp/stwo-cuda-challenge/data/inputs/15574540_15574549.cpi",
+    "--input-sha256",
+    "d909067e76d12ca0943aac133be98457640210728155392ffe56d4c26fa6e58c",
+    "--output",
+    "/workspace/rtx5090-medium-selective-interaction-35-tail/15574540_15574549/proof.json",
+    "--report-out",
+    "/workspace/rtx5090-medium-selective-interaction-35-tail/15574540_15574549/report.json"
+  ],
+  "exit_code": 0,
+  "elapsed_ns": 13567454574,
+  "samples": 50,
+  "whole_device_peak_bytes": 33546043392,
+  "process_rss_peak_bytes": 4421431296
+}

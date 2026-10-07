@@ -1,0 +1,51 @@
+cairo-cuda arena reservation bytes=33501400016 slots=193
+cairo-cuda arena slot=1 bytes=88600768 offset=9482788864 lifetime=ingress..trace_generation
+cairo-cuda arena slot=3 bytes=342500716 offset=9140288000 lifetime=ingress..trace_generation
+cairo-cuda arena slot=6 bytes=6905153792 offset=0 lifetime=trace_generation..trace_commit
+cairo-cuda arena slot=7 bytes=2235134020 offset=6905153792 lifetime=trace_generation..trace_generation
+cairo-cuda arena slot=16 bytes=187170816 offset=33017209856 lifetime=trace_commit..trace_commit
+cairo-cuda arena slot=27 bytes=3825205248 offset=0 lifetime=constraint_evaluation..constraint_evaluation
+cairo-cuda arena slot=32 bytes=402651648 offset=5435817984 lifetime=constraint_evaluation..constraint_evaluation
+cairo-cuda arena slot=33 bytes=134217728 offset=33204380672 lifetime=ingress..proof_assembly
+cairo-cuda arena slot=34 bytes=134217728 offset=33338598400 lifetime=ingress..proof_assembly
+cairo-cuda arena slot=35 bytes=402653184 offset=32211903488 lifetime=trace_commit..trace_commit
+cairo-cuda arena slot=36 bytes=402653184 offset=32614556672 lifetime=trace_commit..trace_commit
+cairo-cuda arena slot=37 bytes=2172402112 offset=26048151296 lifetime=ingress..proof_assembly
+cairo-cuda arena slot=38 bytes=4344804224 offset=11448815872 lifetime=ingress..proof_assembly
+cairo-cuda arena slot=41 bytes=4294967264 offset=15793620224 lifetime=ingress..proof_assembly
+cairo-cuda arena slot=44 bytes=2271831040 offset=23776320256 lifetime=trace_generation..oods
+cairo-cuda arena slot=45 bytes=4543662080 offset=6905153792 lifetime=trace_commit..decommit
+cairo-cuda arena slot=48 bytes=1073741792 offset=30064419840 lifetime=trace_commit..decommit
+cairo-cuda arena slot=51 bytes=1843866368 offset=28220553472 lifetime=trace_commit..oods
+cairo-cuda arena slot=52 bytes=3687732736 offset=20088587520 lifetime=trace_commit..decommit
+cairo-cuda arena slot=55 bytes=1073741792 offset=3825205248 lifetime=trace_commit..decommit
+cairo-cuda arena slot=58 bytes=268435456 offset=5838469632 lifetime=constraint_evaluation..decommit
+cairo-cuda arena slot=59 bytes=536870912 offset=4898947072 lifetime=constraint_evaluation..decommit
+cairo-cuda arena slot=62 bytes=1073741792 offset=31138161664 lifetime=trace_commit..decommit
+cairo-cuda arena slot=77 bytes=513409024 offset=0 lifetime=oods..oods
+cairo-cuda arena slot=78 bytes=513409024 offset=513409024 lifetime=oods..oods
+cairo-cuda arena slot=93 bytes=335543552 offset=0 lifetime=quotient..quotient
+cairo-cuda arena slot=94 bytes=268435456 offset=1610612736 lifetime=quotient..decommit
+cairo-cuda arena slot=95 bytes=134217728 offset=335543552 lifetime=quotient..quotient
+cairo-cuda arena slot=99 bytes=1073741792 offset=0 lifetime=fri_commit..decommit
+cairo-cuda arena slot=101 bytes=134217728 offset=2147483648 lifetime=fri_commit..decommit
+cairo-cuda arena slot=102 bytes=536870880 offset=1073741824 lifetime=fri_commit..decommit
+cairo-cuda arena slot=104 bytes=67108864 offset=2415919104 lifetime=fri_commit..decommit
+cairo-cuda arena slot=105 bytes=268435424 offset=1879048192 lifetime=fri_commit..decommit
+cairo-cuda arena slot=108 bytes=134217696 offset=2281701376 lifetime=fri_commit..decommit
+cuda prepared arena mode=managed bytes=33501400016
+cairo-cuda static-phase initial_upload_ns=83890257 preprocessed_load_ns=573299724 materialize_ns=1290594 cached=false device_image_hit=false
+cairo-cuda-memory-phase phase=proof_begin elapsed_ns=820
+cairo-cuda-memory-phase phase=trace_generation_end elapsed_ns=1768372945
+cairo-cuda-memory-phase phase=preprocessed_commit_end elapsed_ns=3311884823
+cairo-cuda-memory-phase phase=main_commit_end elapsed_ns=3756864049
+cairo-cuda-memory-phase phase=relation_end elapsed_ns=4177869146
+cairo-cuda-memory-phase phase=interaction_commit_end elapsed_ns=4179042961
+cairo-cuda-memory-phase phase=trace_commit_end elapsed_ns=4179095981
+cairo-cuda-memory-phase phase=constraint_evaluation_end elapsed_ns=5057122447
+cairo-cuda-memory-phase phase=composition_commit_end elapsed_ns=5057254156
+cairo-cuda-memory-phase phase=constraint_stage_end elapsed_ns=5057315186
+cairo-cuda-memory-phase phase=oods_end elapsed_ns=5174827255
+cairo-cuda-memory-phase phase=quotient_end elapsed_ns=5204492886
+cairo-cuda-memory-phase phase=fri_commit_end elapsed_ns=5214818228
+cairo-cuda-memory-phase phase=decommit_end elapsed_ns=5265056113

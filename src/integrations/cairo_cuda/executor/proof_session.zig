@@ -12,6 +12,7 @@ const relation_stage = @import("stwo_cuda_backend").runtime.stages.relation;
 const runtime_stages = @import("stwo_cuda_backend").runtime.stages;
 const common = @import("stwo_cuda_backend").runtime.stages.common;
 const proof_transaction = @import("stwo_cuda_backend").runtime.proof_transaction;
+const cuda_arena = @import("stwo_cuda_backend").runtime.arena;
 const proof_capture = @import("stwo_native_cuda_integration").common.proof_assembly;
 const request_compiler = @import("../request_compiler.zig");
 const resident_plan = @import("resident_plan.zig");
@@ -325,7 +326,19 @@ pub const Prepared = struct {
         memoryPhase(&memory_timer, "proof_begin");
         try self.validate(plan, protocol);
         const placement = try managedPlacement();
+        const compact_profile = try compactDeviceProfile(transaction);
+        const capacity_hbm = if (placement == .capacity)
+            try capacityHbmSlot()
+        else
+            CapacityHbmSlot.none;
         if (placement != .none and managedPrefetchEnabled())
+            return error.ConflictingManagedPolicies;
+        if (compact_profile != .none and
+            (placement != .none or
+                std.posix.getenv("STWO_CUDA_HOST_MAIN_COEFF_PERCENT") != null or
+                std.posix.getenv("STWO_CUDA_HOST_PREPROCESSED_HASHES") != null or
+                std.posix.getenv("STWO_CUDA_HOST_TRACE_HASHES") != null or
+                managedPrefetchEnabled()))
             return error.ConflictingManagedPolicies;
         if (self.state != .prepared)
             return error.InvalidProofSessionState;
@@ -352,12 +365,53 @@ pub const Prepared = struct {
             try preferManagedSlotHost(transaction, plan, .writer_lookup_inputs, 0, true);
             // Once GPU-written, managed coefficient pages remain HBM-resident
             // despite a later host prefetch on H100. Set policy first.
-            phase = "host_resident_main_coefficients_before_writers";
-            try preferManagedSlotHost(transaction, plan, .trace_coefficients, 1, true);
+            if (capacity_hbm != .main_coefficients) {
+                phase = "host_resident_main_coefficients_before_writers";
+                try preferManagedSlotHost(transaction, plan, .trace_coefficients, 1, true);
+            }
             // Place trace-writer scratch before its first GPU write. A late
             // host hint cannot recover the HBM pages retained by this slot.
-            phase = "host_resident_writer_scratch_before_writers";
-            try preferManagedSlotHost(transaction, plan, .writer_scratch, 0, true);
+            if (capacity_hbm != .writer_scratch) {
+                phase = "host_resident_writer_scratch_before_writers";
+                try preferManagedSlotHost(transaction, plan, .writer_scratch, 0, true);
+            }
+        }
+        // Research policy for near-capacity devices: migrate only a bounded
+        // fraction of the main coefficients before their first GPU write.
+        // This keeps the interaction evaluations resident through constraint
+        // evaluation, where host faults proved much more expensive.
+        if (std.posix.getenv("STWO_CUDA_HOST_MAIN_COEFF_PERCENT") != null and
+            placement != .capacity)
+        {
+            phase = "host_resident_main_coefficients_fraction_before_writers";
+            try preferManagedSlotHostFraction(
+                transaction,
+                plan,
+                .trace_coefficients,
+                1,
+                "STWO_CUDA_HOST_MAIN_COEFF_PERCENT",
+            );
+        }
+        if (compact_profile == .large) {
+            phase = "compact_host_main_coefficients_before_writers";
+            const arena_words = try transaction.residentArenaWords();
+            const arena_bytes = std.math.mul(usize, arena_words.len, @sizeOf(u32)) catch
+                return error.SizeOverflow;
+            // Keep more coefficients resident for the qualified 35–37 GiB
+            // plans. Larger plans retain the conservative capacity policy.
+            const host_percent: u8 = if (arena_bytes <= 37 * (1 << 30)) 25 else 50;
+            std.debug.print(
+                "cairo-cuda compact main-coefficient host_percent={} arena_bytes={}\n",
+                .{ host_percent, arena_bytes },
+            );
+            try preferManagedSlotHostFractionPercent(
+                transaction,
+                plan,
+                .trace_coefficients,
+                1,
+                host_percent,
+                false,
+            );
         }
         self.controllers.trace_writers.execute(session) catch |err| {
             std.debug.print(
@@ -388,12 +442,72 @@ pub const Prepared = struct {
                 true,
             );
         }
+        if (compact_profile == .medium) {
+            phase = "compact_host_preprocessed_hashes_before_commit";
+            try preferManagedSlotHostFractionPercent(
+                transaction,
+                plan,
+                .trace_merkle_hashes,
+                0,
+                75,
+                false,
+            );
+        } else if (compact_profile == .large) {
+            phase = "compact_host_preprocessed_hashes_before_commit";
+            try preferManagedSlotHost(transaction, plan, .trace_merkle_hashes, 0, true);
+        } else if (std.posix.getenv("STWO_CUDA_HOST_PREPROCESSED_HASHES")) |value| {
+            if (std.mem.eql(u8, value, "1")) {
+                phase = "host_resident_preprocessed_hashes_before_commit";
+                if (std.posix.getenv("STWO_CUDA_HOST_PREPROCESSED_HASH_PERCENT") != null)
+                    try preferManagedSlotHostFraction(
+                        transaction,
+                        plan,
+                        .trace_merkle_hashes,
+                        0,
+                        "STWO_CUDA_HOST_PREPROCESSED_HASH_PERCENT",
+                    )
+                else
+                    try preferManagedSlotHost(
+                        transaction,
+                        plan,
+                        .trace_merkle_hashes,
+                        0,
+                        true,
+                    );
+            }
+        }
         phase = "preprocessed_commit";
         try self.controllers.preprocessed_commit.execute(session);
         memoryPhase(&memory_timer, "preprocessed_commit_end");
-        if (placement == .capacity) {
+        if (placement == .capacity or placement == .selective_main_evaluations or placement == .selective_both_evaluations) {
             phase = "host_resident_main_evaluations_before_commit";
-            try preferManagedSlotHost(transaction, plan, .trace_evaluations, 1, true);
+            if (placement == .capacity)
+                try preferManagedSlotHost(transaction, plan, .trace_evaluations, 1, true)
+            else if (placement == .selective_both_evaluations)
+                try preferManagedSlotHostFraction(
+                    transaction,
+                    plan,
+                    .trace_evaluations,
+                    1,
+                    "STWO_CUDA_SELECTIVE_MAIN_HOST_PERCENT",
+                )
+            else
+                try preferManagedSlotHostFraction(
+                    transaction,
+                    plan,
+                    .trace_evaluations,
+                    1,
+                    "STWO_CUDA_SELECTIVE_HOST_PERCENT",
+                );
+        }
+        if (compact_profile == .large) {
+            phase = "compact_host_main_hashes_before_commit";
+            try preferManagedSlotHost(transaction, plan, .trace_merkle_hashes, 1, true);
+        } else if (std.posix.getenv("STWO_CUDA_HOST_TRACE_HASHES")) |value| {
+            if (std.mem.eql(u8, value, "1")) {
+                phase = "host_resident_main_hashes_before_commit";
+                try preferManagedSlotHost(transaction, plan, .trace_merkle_hashes, 1, true);
+            }
         }
         phase = "main_commit";
         try self.controllers.main_commit.execute(session);
@@ -480,7 +594,7 @@ pub const Prepared = struct {
             1,
             self.bindings.relation_elements,
         );
-        if (placement == .capacity) {
+        if (placement == .capacity and capacity_hbm != .interaction_coefficients) {
             // Relation execution first writes this coefficient slot.
             phase = "host_resident_interaction_coefficients_before_relation";
             try preferManagedSlotHost(transaction, plan, .trace_coefficients, 2, true);
@@ -491,7 +605,7 @@ pub const Prepared = struct {
             self.controllers.relation,
         );
         memoryPhase(&memory_timer, "relation_end");
-        if (placement != .none) {
+        if (placement == .capacity or placement == .throughput) {
             phase = "release_host_lookup_policy";
             try preferManagedSlotHost(
                 transaction,
@@ -508,9 +622,27 @@ pub const Prepared = struct {
                 self.controllers.relation,
             ),
         );
-        if (placement == .capacity) {
+        if (placement == .capacity or placement == .selective_interaction_evaluations or placement == .selective_both_evaluations) {
             phase = "host_resident_interaction_evaluations_before_commit";
-            try preferManagedSlotHost(transaction, plan, .trace_evaluations, 2, true);
+            if (placement == .capacity)
+                try preferManagedSlotHost(transaction, plan, .trace_evaluations, 2, true)
+            else
+                try preferManagedSlotHostFraction(
+                    transaction,
+                    plan,
+                    .trace_evaluations,
+                    2,
+                    "STWO_CUDA_SELECTIVE_HOST_PERCENT",
+                );
+        }
+        if (compact_profile == .large) {
+            phase = "compact_host_interaction_hashes_before_commit";
+            try preferManagedSlotHost(transaction, plan, .trace_merkle_hashes, 2, true);
+        } else if (std.posix.getenv("STWO_CUDA_HOST_TRACE_HASHES")) |value| {
+            if (std.mem.eql(u8, value, "1")) {
+                phase = "host_resident_interaction_hashes_before_commit";
+                try preferManagedSlotHost(transaction, plan, .trace_merkle_hashes, 2, true);
+            }
         }
         phase = "interaction_commit";
         try self.controllers.interaction_commit.execute(session);
@@ -940,7 +1072,41 @@ fn managedPrefetchEnabled() bool {
     return std.mem.eql(u8, value, "1");
 }
 
-const ManagedPlacement = enum { none, throughput, capacity };
+const ManagedPlacement = enum {
+    none,
+    throughput,
+    capacity,
+    selective_main_evaluations,
+    selective_interaction_evaluations,
+    selective_both_evaluations,
+};
+
+const CompactDeviceProfile = enum { none, medium, large };
+
+fn compactDeviceProfile(transaction: anytype) !CompactDeviceProfile {
+    if (!cuda_arena.compactDeviceProfileEnabled()) return .none;
+    const gib: usize = 1 << 30;
+    const memory = try transaction.sessionContext().memoryInfo();
+    const arena_words = try transaction.residentArenaWords();
+    const arena_bytes = std.math.mul(usize, arena_words.len, @sizeOf(u32)) catch
+        return error.SizeOverflow;
+    try cuda_arena.requireCompactDeviceCapacity(memory.total, arena_bytes);
+    if (!transaction.isManagedArena()) return .none;
+    return if (arena_bytes > 34 * gib) .large else .medium;
+}
+
+/// Capacity research policy: retain exactly one measured hot slot in HBM.
+/// This is opt-in because the safe choice depends on device capacity and the
+/// request's geometry; the default retains the qualified low-HBM placement.
+const CapacityHbmSlot = enum { none, main_coefficients, interaction_coefficients, writer_scratch };
+
+fn capacityHbmSlot() !CapacityHbmSlot {
+    const value = std.posix.getenv("STWO_CUDA_CAPACITY_HBM_SLOT") orelse return .none;
+    if (std.mem.eql(u8, value, "main_coefficients")) return .main_coefficients;
+    if (std.mem.eql(u8, value, "interaction_coefficients")) return .interaction_coefficients;
+    if (std.mem.eql(u8, value, "writer_scratch")) return .writer_scratch;
+    return error.InvalidManagedPlacementPolicy;
+}
 
 fn memoryPhase(timer: *std.time.Timer, name: []const u8) void {
     if (std.posix.getenv("STWO_CUDA_MEMORY_PHASES") == null) return;
@@ -954,6 +1120,9 @@ fn managedPlacement() !ManagedPlacement {
     const value = std.posix.getenv("STWO_CUDA_MANAGED_PLACEMENT") orelse return .none;
     if (std.mem.eql(u8, value, "throughput")) return .throughput;
     if (std.mem.eql(u8, value, "capacity")) return .capacity;
+    if (std.mem.eql(u8, value, "selective_main_evaluations")) return .selective_main_evaluations;
+    if (std.mem.eql(u8, value, "selective_interaction_evaluations")) return .selective_interaction_evaluations;
+    if (std.mem.eql(u8, value, "selective_both_evaluations")) return .selective_both_evaluations;
     return error.InvalidManagedPlacementPolicy;
 }
 
@@ -969,6 +1138,50 @@ fn preferManagedSlotHost(
     if (comptime @hasDecl(@TypeOf(transaction.*), "adviseManagedSlotHost")) {
         try transaction.adviseManagedSlotHost(slot.id, prefer_host);
         if (prefer_host) try transaction.prefetchManagedSlot(slot.id, false);
+    } else return error.InvalidState;
+}
+
+fn preferManagedSlotHostFraction(
+    transaction: anytype,
+    plan: *const resident_plan.Plan,
+    kind: resident_plan.SlotKind,
+    ordinal: u32,
+    comptime percent_env: [:0]const u8,
+) !void {
+    const raw = std.posix.getenv(percent_env) orelse "100";
+    const percent = std.fmt.parseInt(u8, raw, 10) catch
+        return error.InvalidManagedPlacementPolicy;
+    return preferManagedSlotHostFractionPercent(
+        transaction,
+        plan,
+        kind,
+        ordinal,
+        percent,
+        std.posix.getenv("STWO_CUDA_SELECTIVE_HOST_TAIL") != null,
+    );
+}
+
+fn preferManagedSlotHostFractionPercent(
+    transaction: anytype,
+    plan: *const resident_plan.Plan,
+    kind: resident_plan.SlotKind,
+    ordinal: u32,
+    percent: u8,
+    tail: bool,
+) !void {
+    const slot = plan.slot(kind, ordinal) orelse
+        return error.InvalidProofSessionBindings;
+    const words = try transaction.slot(slot.id);
+    if (percent == 0 or percent > 100) return error.InvalidManagedPlacementPolicy;
+    const scaled = std.math.mul(usize, words.len, percent) catch
+        return error.SizeOverflow;
+    const raw_words = (scaled + 99) / 100;
+    const host_words = @min(words.len, std.mem.alignForward(usize, raw_words, 1024));
+    const first = if (tail) words.len - host_words else 0;
+    const section = try words.sub(first, host_words);
+    if (comptime @hasDecl(@TypeOf(transaction.*), "sessionContext")) {
+        try transaction.sessionContext().adviseManagedHost(u32, section, true);
+        try transaction.sessionContext().prefetchManagedSlice(u32, section, false);
     } else return error.InvalidState;
 }
 

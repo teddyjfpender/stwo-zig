@@ -1,0 +1,35 @@
+{
+  "schema": "stwo-zig-cuda-host-preflight-v1",
+  "hostname": "485ea547b0ae",
+  "device": {
+    "command": [
+      "nvidia-smi",
+      "--query-gpu=name,uuid,compute_cap,driver_version,memory.total",
+      "--format=csv,noheader"
+    ],
+    "returncode": 0,
+    "stdout": "NVIDIA GeForce RTX 5090, GPU-e4ccaf65-83d8-f428-a7a9-b20590837a40, 12.0, 580.65.06, 32607 MiB",
+    "stderr": ""
+  },
+  "build": {
+    "command": [
+      "/usr/local/cuda/bin/nvcc",
+      "-arch=sm_120",
+      "/tmp/cuda-host-preflight-6qxdqkox/preflight.cu",
+      "-o",
+      "/tmp/cuda-host-preflight-6qxdqkox/preflight"
+    ],
+    "returncode": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  "run": {
+    "command": [
+      "/tmp/cuda-host-preflight-6qxdqkox/preflight"
+    ],
+    "returncode": 0,
+    "stdout": "CUDA context, managed advice, prefetch, kernel, and synchronization passed",
+    "stderr": ""
+  },
+  "passed": true
+}

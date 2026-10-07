@@ -100,10 +100,11 @@ pub fn TransactionFor(comptime Session: type) type {
                 @sizeOf(u32),
             ) catch return error.SizeOverflow;
             const memory = try session.context.memoryInfo();
+            try arena_module.requireCompactDeviceCapacity(memory.total, arena_bytes);
             const usable_free = memory.free -
-                @min(memory.free, device_memory_safety_reserve_bytes);
-            const managed = arena_bytes > usable_free and
-                arena_module.managedOversubscriptionEnabled();
+                @min(memory.free, arena_module.deviceMemorySafetyReserveBytes());
+            const managed = arena_module.managedOversubscriptionEnabled() and
+                (arena_bytes > usable_free or arena_module.forceManagedArena());
             if (arena_bytes > usable_free and !managed)
                 return error.InsufficientDeviceMemory;
             try session.beginStage(.ingress);
@@ -133,10 +134,11 @@ pub fn TransactionFor(comptime Session: type) type {
                 @sizeOf(u32),
             ) catch return error.SizeOverflow;
             const memory = try session.context.memoryInfo();
+            try arena_module.requireCompactDeviceCapacity(memory.total, arena_bytes);
             const usable_free = memory.free -
-                @min(memory.free, device_memory_safety_reserve_bytes);
-            const managed = arena_bytes > usable_free and
-                arena_module.managedOversubscriptionEnabled();
+                @min(memory.free, arena_module.deviceMemorySafetyReserveBytes());
+            const managed = arena_module.managedOversubscriptionEnabled() and
+                (arena_bytes > usable_free or arena_module.forceManagedArena());
             if (arena_bytes > usable_free and !managed)
                 return error.InsufficientDeviceMemory;
             try session.beginStage(.ingress);
@@ -183,6 +185,10 @@ pub fn TransactionFor(comptime Session: type) type {
 
         pub fn sessionContext(self: *Self) *Context {
             return &self.proofSession().context;
+        }
+
+        pub fn isManagedArena(self: *const Self) bool {
+            return self.arena.managed;
         }
 
         fn retainsSession(self: *const Self) bool {

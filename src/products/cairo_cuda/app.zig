@@ -16,7 +16,7 @@ const CanonicalAssets = stwo.integration.canonical_source.Assets;
 /// the same Cairo execution again or serializing a large capture sidecar.
 pub const VerifiedLeafSink = struct {
     context: *anyopaque,
-    receive: *const fn (*anyopaque, *const CanonicalSource, *const Decoded, *const ProofCapture, u64) anyerror!void,
+    receive: *const fn (*anyopaque, *NativeRuntime, *const CanonicalSource, *const Decoded, *const ProofCapture, u64) anyerror!void,
 };
 pub const BatchItem = struct {
     request: cli.Prove,
@@ -156,7 +156,9 @@ fn runItems(allocator: std.mem.Allocator, items: []const BatchItem, mode: Mode, 
     // wrap. Keep the verified fixed coefficients on device across leaves;
     // an explicit setting can still disable this when capacity is tighter.
     const image_requested = image_setting != null and std.mem.eql(u8, image_setting.?, "1");
-    const image_default = image_setting == null and mode == .distinct and items.len > 1;
+    const compact_device = stwo.backend.runtime.arena.compactDeviceProfileEnabled();
+    if (compact_device and image_requested) return error.ConflictingCompactDeviceImage;
+    const image_default = image_setting == null and mode == .distinct and items.len > 1 and !compact_device;
     const use_device_image = external_runtime != null and (items.len > 1 or persistent != null) and
         (image_requested or image_default);
     // A verified leaf sink lends CUDA to the circuit prover. Its prepared
@@ -224,7 +226,7 @@ fn runItems(allocator: std.mem.Allocator, items: []const BatchItem, mode: Mode, 
             if (source_jobs[index + 1]) |*job| job else null
         else
             null;
-        const receipt = try proveOnce(allocator, runtime, static_slot, if (use_device_image) image_slot else null, item.request, executable_digest, @intCast(if (mode == .repeated) index + 1 else 1), if (index == 0) runtime_init_ns else 0, if (index == 0) asset_init_ns else 0, item.sink, external_runtime != null, assets, if (needs_prefetch) early_prefetch orelse &prefetch else null, current_source_job, next_source_job);
+        const receipt = try proveOnce(allocator, runtime, static_slot, if (use_device_image) image_slot else null, item.request, executable_digest, @intCast(if (mode == .repeated) index + 1 else 1), if (index == 0) runtime_init_ns else 0, if (index == 0) asset_init_ns else 0, item.sink, external_runtime != null or (item.sink != null and compact_device), assets, if (needs_prefetch) early_prefetch orelse &prefetch else null, current_source_job, next_source_job);
         if (mode == .repeated and item.sink == null) {
             // Repeated CLI proofs publish a canonical file. A verified sink
             // receives the decoded proof directly and has no file digest.
@@ -548,7 +550,7 @@ fn proveOnce(
             resident_static.* = null;
             std.debug.print("cairo-cuda handoff prepared_arena_release_ns={}\n", .{release_timer.read()});
         }
-        try receiver.receive(receiver.context, &diagnostic, &decoded, &capture, output.proof.structural.interactionNonce());
+        try receiver.receive(receiver.context, runtime, &diagnostic, &decoded, &capture, output.proof.structural.interactionNonce());
     }
     return receipt;
 }
