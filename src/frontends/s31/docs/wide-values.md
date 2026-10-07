@@ -71,6 +71,77 @@ circuit AIR proves the gates, the `u16` range lookups, Boolean carry gates,
 and wire reuse. The displayed equations are the **semantic projection** of
 that AIR, not a complete dump of its fixed opcode and LogUp columns.
 
+## Subtraction and underflow by hand
+
+`sub_u256(A,B)` computes $(A-B)\bmod 2^{256}$; `sub_u256_checked(A,B)`
+also proves $A\ge B$. Both use sixteen little-endian, range-checked output
+limbs $D_i$ and Boolean borrow bits $b_i$:
+
+$$
+A_i+65536b_{i+1}=B_i+b_i+D_i,\qquad
+0\le D_i<65536,\quad b_i\in\{0,1\},\quad b_0=0.
+$$
+
+The checked variant requires $b_{16}=0$. The wrapping variant discards that
+final bit. Here $A=2^{128}+7$ and $B=2^{128}-1$, so $D=8$. The borrow passes
+through eight limbs before limb 8 repays it:
+
+| Limb | $A_i$ | $B_i$ | Incoming $b_i$ | Difference $D_i$ | Outgoing $b_{i+1}$ |
+| ---: | ---: | ---: | ---: | ---: | ---: |
+| 0 | 7 | 65535 | 0 | 8 | 1 |
+| 1–7 | 0 | 65535 | 1 | 0 | 1 |
+| 8 | 1 | 0 | 1 | 0 | 0 |
+| 9–15 | 0 | 0 | 0 | 0 | 0 |
+
+Each equation stays below the M31 modulus, so a field equality cannot
+conceal an integer borrow. The [source](../examples/u256_sub_checked.s31)
+and [assignment](../examples/u256_sub_checked.valid.json) commit the
+resulting sixteen limbs with a Poseidon2 leaf and expose its eight-word root:
+
+```s31
+use std@1;
+
+circuit u256_sub_checked(
+    private total: UInt256,
+    private previous: UInt256
+) -> public Digest<Poseidon2> {
+    let delta = std::math::sub_u256_checked(total, previous);
+    let limbs = std::bytes::limbs_m31(delta);
+    let root = std::hash::poseidon2_leaf(limbs);
+    root
+}
+```
+
+The independent oracle computes root
+`[552785778,528026874,1337939194,1238002988,529560134,669980742,1274389821,1249346016]`.
+The verifier proves a valid checked subtraction and this exact root; it
+does not reveal either private operand. A false final borrow makes the
+checked circuit unsatisfiable, including when the wrapping difference
+would otherwise be a valid `UInt256`.
+
+The companion [wrapping source](../examples/u256_sub_wrap.s31) proves
+$0-1=2^{256}-1$; its [assignment](../examples/u256_sub_wrap.valid.json)
+has sixteen `65535` difference limbs. Reproduce both native proofs and the
+negative checks with:
+
+```sh
+python3 src/frontends/s31/s31.py trial src/frontends/s31/examples/u256_sub_checked.s31 src/frontends/s31/examples/u256_sub_checked.valid.json --lowering sparse-wide-gate --out zig-out/s31/u256-sub-checked-trial
+python3 src/frontends/s31/s31.py trial src/frontends/s31/examples/u256_sub_wrap.s31 src/frontends/s31/examples/u256_sub_wrap.valid.json --lowering sparse-wide-gate --out zig-out/s31/u256-sub-wrap-trial
+python3 src/frontends/s31/acceptance_u256_sub.py
+```
+
+The [one-run record](../../../../design/s31/measurements/u256-subtraction-v1-2026-10-07.json)
+reports 231,674 bytes for the checked proof and 238,493 for wrapping. They
+use 7,744 and 7,743 raw QM31 rows, respectively, including the Poseidon2
+leaf. Both pad to 32 Eq rows: checked subtraction constrains its final
+borrow with an arithmetic zero assertion, so it does not double the Eq
+component's padded length. The acceptance run
+rejects checked underflow and cross-key proof replay even when both proofs
+carry the same valid public root; it also rejects changed public roots and
+damaged proof bytes. These are local proof samples; the different final
+borrow constraint changes the AIR key, and stochastic proof of work prevents
+inferring a stable timing difference from these runs.
+
 ## A complete S31 program
 
 ```s31

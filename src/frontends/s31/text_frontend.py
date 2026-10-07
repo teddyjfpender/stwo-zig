@@ -477,7 +477,7 @@ class Compiler:
                     operation = (mathlib.sum_lanes if arity == 1 else mathlib.dot_lanes)
                     return operation(self.builder, *values, wanted=wanted, span=self.span(expr))
                 values = tuple(self.expect_value(self.eval_expr(arg, env), arg) for arg in expr.args)
-                arity = 2 if name in {"std::math::sub", "std::math::div", "std::math::add_u256", "std::math::add_u256_checked", "std::math::le_u256"} else 1
+                arity = 2 if name in {"std::math::sub", "std::math::div", "std::math::add_u256", "std::math::add_u256_checked", "std::math::sub_u256", "std::math::sub_u256_checked", "std::math::le_u256"} else 1
                 if len(values) != arity:
                     raise TypeErrorS31(f"{name} expects {arity} arguments")
                 operation = {"std::math::neg": mathlib.neg, "std::math::sub": mathlib.sub,
@@ -485,6 +485,8 @@ class Compiler:
                              "std::math::div": mathlib.div,
                              "std::math::add_u256": mathlib.add_u256,
                              "std::math::add_u256_checked": mathlib.add_u256_checked,
+                             "std::math::sub_u256": mathlib.sub_u256,
+                             "std::math::sub_u256_checked": mathlib.sub_u256_checked,
                              "std::math::le_u256": mathlib.le_u256}[name]
                 return operation(self.builder, *values, wanted=wanted, span=self.span(expr))
             if name == "iterate":

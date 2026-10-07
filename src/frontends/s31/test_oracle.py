@@ -191,6 +191,26 @@ class OracleTests(unittest.TestCase):
         with self.assertRaisesRegex(OracleError, "256-bit addition overflow"):
             evaluate_relation(relation, assignment)
 
+    def test_u256_subtraction_borrow_and_wrap(self) -> None:
+        relation = {
+            "version": 1, "name": "sub", "inputs": [
+                {"name": key, "kind": "u16", "length": 16, "visibility": "private"}
+                for key in ("a", "b")],
+            "nodes": [{"name": "difference", "op": "u256_sub", "lhs": "a", "rhs": "b"},
+                      {"name": "less", "op": "u256_le", "lhs": "difference", "rhs": "a"}],
+            "assertions": [], "public_outputs": ["less"],
+        }
+        assignment = {"public_inputs": {}, "private_inputs": {
+            "a": [0] * 16, "b": [1] + [0] * 15},
+            "public_outputs": {"less": [0]}}
+        self.assertEqual(evaluate_relation(relation, assignment), {"less": [0]})
+        relation["nodes"][0]["op"] = "u256_sub_checked"
+        with self.assertRaisesRegex(OracleError, "256-bit subtraction underflow"):
+            evaluate_relation(relation, assignment)
+        assignment["private_inputs"]["a"] = [0, 1] + [0] * 14
+        assignment["public_outputs"]["less"] = [1]
+        self.assertEqual(evaluate_relation(relation, assignment), {"less": [1]})
+
     def test_unknown_hash_or_future_node_never_counts_as_a_check(self) -> None:
         relation, assignment = fixture("hash4")
         relation["nodes"][0]["op"] = "hash_unreviewed"

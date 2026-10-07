@@ -216,6 +216,47 @@ def check_examples() -> None:
         857462184, 360942592, 889867968, 271788129,
     ]
 
+    sub_relation, _ = compile_text(
+        text_block_containing(wide_doc, "circuit u256_sub_checked"), "wide-values.md"
+    )
+    sub_source, _ = compile_text(
+        (S31 / "examples/u256_sub_checked.s31").read_text(), "u256_sub_checked.s31"
+    )
+    assert sub_relation == sub_source
+    sub_assignment = json.loads((S31 / "examples/u256_sub_checked.valid.json").read_text())
+    operands = sub_assignment["private_inputs"]
+    assert int.from_bytes(encode_u256_le(operands["total"]), "little") - int.from_bytes(
+        encode_u256_le(operands["previous"]), "little") == 8
+    assert evaluate_relation(sub_relation, sub_assignment) == sub_assignment["public_outputs"]
+    assert sub_assignment["public_outputs"]["root"] == [
+        552785778, 528026874, 1337939194, 1238002988,
+        529560134, 669980742, 1274389821, 1249346016,
+    ]
+    wrap_relation, _ = compile_text(
+        (S31 / "examples/u256_sub_wrap.s31").read_text(), "u256_sub_wrap.s31"
+    )
+    wrap_assignment = json.loads((S31 / "examples/u256_sub_wrap.valid.json").read_text())
+    assert evaluate_relation(wrap_relation, wrap_assignment) == wrap_assignment["public_outputs"]
+    assert int.from_bytes(encode_u256_le(wrap_assignment["private_inputs"]["total"]), "little") - int.from_bytes(
+        encode_u256_le(wrap_assignment["private_inputs"]["previous"]), "little") == -1
+    subtraction_record = json.loads((ROOT / "design/s31/measurements/u256-subtraction-v1-2026-10-07.json").read_text())
+    assert subtraction_record["schema"] == "s31-u256-subtraction-v1"
+    assert all(subtraction_record[name] is True for name in (
+        "checked_underflow_rejected", "cross_key_replay_rejected",
+        "same_claim_cross_key_replay_rejected", "damaged_proofs_rejected",
+        "changed_public_statements_rejected"))
+    assert [subtraction_record["profiles"][mode]["proof_bytes"]
+            for mode in ("checked", "wrap")] == [231674, 238493]
+    assert [subtraction_record["profiles"][mode]["raw"]["qm31_ops"]
+            for mode in ("checked", "wrap")] == [7744, 7743]
+    assert all(subtraction_record["profiles"][mode]["padded"]["eq"] == 32
+               for mode in ("checked", "wrap"))
+    for filename, digest in subtraction_record["source_sha256"].items():
+        assert hashlib.sha256((S31 / filename).read_bytes()).hexdigest() == digest
+    for filename, digest in subtraction_record["fixture_sha256"].items():
+        mode, extension = filename.split(".", 1)
+        assert hashlib.sha256((S31 / "examples" / f"u256_sub_{mode}.{extension}").read_bytes()).hexdigest() == digest
+
     # Check the packed-reduction witness values written in the teaching gate table.
     inverse_five = pow(5, -1, P)
     dual = (1, P - 1, inverse_five, (-3 * inverse_five) % P)

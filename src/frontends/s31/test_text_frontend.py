@@ -261,6 +261,19 @@ circuit checked(private a: UInt256, private b: UInt256) -> public [m31; 1] {
         self.assertEqual([node["op"] for node in retyped["nodes"]],
                          ["cast_m31", "hash_poseidon2_leaf"])
 
+    def test_u256_subtraction_has_explicit_underflow_modes(self) -> None:
+        for function, op in (("sub_u256", "u256_sub"),
+                             ("sub_u256_checked", "u256_sub_checked")):
+            relation, _ = compile_text(f"""use std@1;
+circuit subtract(private a: UInt256, private b: UInt256) -> public [m31; 1] {{
+    let difference = std::math::{function}(a, b);
+    std::math::le_u256(difference, a)
+}}""")
+            self.assertEqual([node["op"] for node in relation["nodes"]],
+                             [op, "u256_le"])
+        with self.assertRaisesRegex(SourceError, "requires two UInt256"):
+            compile_text("circuit bad(private a: Bytes32, private b: UInt256) -> public [m31; 1] { std::math::sub_u256(a, b) }")
+
     def test_static_sum_uses_balanced_dependencies(self) -> None:
         relation, _ = compile_text("""
 circuit balanced(private a: [m31; 1], private b: [m31; 1],

@@ -86,6 +86,8 @@ contract and worked polynomial are in [the library chapter](library.md).
 | `std::math::poly_eval(x,[c0,...,cd])` | Horner evaluation, low-degree coefficient first, 1..64 coefficients. |
 | `std::math::add_u256(a,b)` | Unsigned 256-bit addition modulo $2^{256}$, with constrained carries. |
 | `std::math::add_u256_checked(a,b)` | Unsigned 256-bit addition with the final carry constrained to zero. |
+| `std::math::sub_u256(a,b)` | Unsigned 256-bit subtraction modulo $2^{256}$, with constrained borrows. |
+| `std::math::sub_u256_checked(a,b)` | Unsigned 256-bit subtraction with the final borrow constrained to zero. |
 | `std::math::le_u256(a,b)` | Unsigned comparison `a <= b`, with constrained borrows; returns `[m31; 1]`. |
 | `std::bytes::to_u256_le(x)`, `std::bytes::from_u256_le(x)` | Explicit, zero-row little-endian reinterpretation between `Bytes32` and `UInt256`. |
 | `std::bytes::limbs_m31(x)` | Cast each of sixteen range-checked limbs to M31 for field arithmetic or hashing. |
@@ -172,7 +174,7 @@ semantics:
 | `inv` | One `m31[N]` array; returns its lane-wise inverses and constrains every active input lane nonzero. `std::math::div` lowers to `inv` followed by `mul`. |
 | `add_const`, `mul_const` | `m31[N]` and one canonical constant, lane-wise. |
 | `sum_lanes` | One `m31[N]` gives `m31[1]` containing the sum of its declared positions. `dot_lanes` first emits pointwise `mul`, then this node. |
-| `u256_add`, `u256_add_checked`, `u256_le` | Two `u16[16]` operands give a `u16[16]` sum or an `m31[1]` comparison. Digits are range checked; carries and borrows are Boolean. Checked addition also requires final carry zero. |
+| `u256_add`, `u256_add_checked`, `u256_sub`, `u256_sub_checked`, `u256_le` | Two `u16[16]` operands give a `u16[16]` sum/difference or an `m31[1]` comparison. Digits are range checked; carries and borrows are Boolean. Checked arithmetic also requires the final carry or borrow to be zero. |
 | `repeat` | `lhs: m31[N]`, `rounds`, and a static `body` of `square`, `add_const`, `mul_const`, or four-lane `mix4` steps. |
 | `select` | Equal `m31[N]` arrays `lhs`, `rhs`; `selector: m31[1]` constrained to a bit. |
 | `hash_blake2s`, `hash_blake2s_leaf/pair`, `hash_poseidon2_leaf/pair` | The [exact encodings and framing](hashes.md); each returns `m31[8]`. |

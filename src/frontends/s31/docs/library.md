@@ -33,6 +33,8 @@ AIR. No helper is a host-only calculation or a new specialized AIR chip.
 | `std::math::poly_eval(x,[c0,c1,...,cd])` | `c0+c1·x+...+cd·x^d mod p` | 1..64 coefficients, each the same shape as `x`; **low degree first**. |
 | `std::math::add_u256(a,b)` | `(a+b) mod 2^256` | Two `UInt256` values; sixteen little-endian limbs. |
 | `std::math::add_u256_checked(a,b)` | `a+b` with final carry zero | Two `UInt256` values; overflow makes the relation unsatisfiable. |
+| `std::math::sub_u256(a,b)` | `(a-b) mod 2^256` | Two `UInt256` values; sixteen little-endian limbs. |
+| `std::math::sub_u256_checked(a,b)` | `a-b` with final borrow zero | Two `UInt256` values; underflow makes the relation unsatisfiable. |
 | `std::math::le_u256(a,b)` | `1` if `a <= b`, else `0` | Two `UInt256` values; result `[m31; 1]`. |
 
 The group in brackets is a compile-time list of existing circuit values,

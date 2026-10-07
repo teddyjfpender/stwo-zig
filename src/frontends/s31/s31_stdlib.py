@@ -201,9 +201,13 @@ class Builder:
 
     def u256_binary(self, op: str, lhs: Value, rhs: Value, *, wanted: str | None = None,
                     span: dict[str, int] | None = None) -> Value:
+        if op not in {"u256_add", "u256_add_checked", "u256_sub", "u256_sub_checked", "u256_le"}:
+            raise TypeErrorS31(f"unsupported UInt256 operation {op}")
         if lhs.typ != Type("uint256", 16) or rhs.typ != lhs.typ:
             raise TypeErrorS31(f"{op} requires two UInt256 values")
-        result = Type("uint256", 16) if op in {"u256_add", "u256_add_checked"} else Type("m31", 1)
+        result = Type("uint256", 16) if op in {
+            "u256_add", "u256_add_checked", "u256_sub", "u256_sub_checked"
+        } else Type("m31", 1)
         return self.emit(op, result, wanted=wanted, span=span,
                          lhs=self.realize(lhs).ref, rhs=self.realize(rhs).ref)
 

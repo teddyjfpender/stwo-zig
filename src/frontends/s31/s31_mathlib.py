@@ -16,6 +16,7 @@ BUILTINS = {
     "std::math::sum", "std::math::dot", "std::math::poly_eval",
     "std::math::sum_lanes", "std::math::dot_lanes",
     "std::math::add_u256", "std::math::add_u256_checked", "std::math::le_u256",
+    "std::math::sub_u256", "std::math::sub_u256_checked",
 }
 MAX_STATIC_TERMS = 64
 
@@ -41,6 +42,18 @@ def le_u256(builder: Builder, lhs: Value, rhs: Value, *, wanted: str | None = No
             span: dict[str, int] | None = None) -> Value:
     """Return one field bit for unsigned lhs <= rhs."""
     return builder.u256_binary("u256_le", lhs, rhs, wanted=wanted, span=span)
+
+
+def sub_u256(builder: Builder, lhs: Value, rhs: Value, *, wanted: str | None = None,
+             span: dict[str, int] | None = None) -> Value:
+    """Wrapping 256-bit subtraction, with a Boolean borrow at every limb."""
+    return builder.u256_binary("u256_sub", lhs, rhs, wanted=wanted, span=span)
+
+
+def sub_u256_checked(builder: Builder, lhs: Value, rhs: Value, *, wanted: str | None = None,
+                     span: dict[str, int] | None = None) -> Value:
+    """256-bit subtraction constrained to reject a final borrow."""
+    return builder.u256_binary("u256_sub_checked", lhs, rhs, wanted=wanted, span=span)
 
 
 def neg(builder: Builder, value: Value, *, wanted: str | None = None,

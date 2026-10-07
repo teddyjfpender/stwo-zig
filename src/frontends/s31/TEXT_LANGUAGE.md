@@ -160,6 +160,8 @@ There is no general module loader or third-party package system yet.
 | `std::math::poly_eval(x,[c0,...,cd])` | Horner evaluation, low-degree coefficient first | 1–64 coefficients, each shaped like `x`. |
 | `std::math::add_u256(a,b)` | `u256_add` with sixteen constrained carries | Two `UInt256` values; modular sum. |
 | `std::math::add_u256_checked(a,b)` | `u256_add_checked` with final carry constrained to zero | Two `UInt256` values; overflow rejected. |
+| `std::math::sub_u256(a,b)` | `u256_sub` with sixteen constrained borrows | Two `UInt256` values; difference modulo $2^{256}$. |
+| `std::math::sub_u256_checked(a,b)` | `u256_sub_checked` with final borrow constrained to zero | Two `UInt256` values; underflow rejected. |
 | `std::math::le_u256(a,b)` | `u256_le` with sixteen constrained borrows | Two `UInt256` values; `[m31; 1]` Boolean result. |
 
 The [wide-value worked example](docs/wide-values.md) gives the exact integer

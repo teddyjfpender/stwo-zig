@@ -89,7 +89,7 @@ def abi(source: dict, lowering: str) -> dict:
             length = 8
         else:
             length = shapes[node["lhs"]]["length"]
-        shapes[node["name"]] = {"kind": "u16" if op in {"u256_add", "u256_add_checked", "hash_sha256d_header", "bitcoin_target_mainnet", "bitcoin_prev_hash", "bitcoin_header_bits", "bitcoin_header_time", "bitcoin_genesis_hash_mainnet"} else "m31", "length": length}
+        shapes[node["name"]] = {"kind": "u16" if op in {"u256_add", "u256_add_checked", "u256_sub", "u256_sub_checked", "hash_sha256d_header", "bitcoin_target_mainnet", "bitcoin_prev_hash", "bitcoin_header_bits", "bitcoin_header_time", "bitcoin_genesis_hash_mainnet"} else "m31", "length": length}
     return {
         "schema": "s31-public-abi-v1",
         "encoding": "eight canonical M31 words, encoded little-endian u32; unused words are zero" if lowering.startswith("direct-") else "eight little-endian u32 words; unused words are zero",
@@ -612,8 +612,8 @@ def equations(package: Path) -> dict:
             shape = ("m31", 1)
             length = shapes[node["lhs"]][1]
             field_equations.append(f"{name}[0] - sum({node['lhs']}[j] for j=0..{length - 1}) = 0")
-        elif op in {"u256_add", "u256_le", "u256_add_checked"}:
-            shape = ("u16", 16) if op in {"u256_add", "u256_add_checked"} else ("m31", 1)
+        elif op in {"u256_add", "u256_le", "u256_add_checked", "u256_sub", "u256_sub_checked"}:
+            shape = ("u16", 16) if op in {"u256_add", "u256_add_checked", "u256_sub", "u256_sub_checked"} else ("m31", 1)
             functional_spec = f"{name} = {op}({node['lhs']}, {node['rhs']})"
             if op in {"u256_add", "u256_add_checked"}:
                 field_equations.extend((
@@ -621,6 +621,13 @@ def equations(package: Path) -> dict:
                     f"{node['lhs']}[i] + {node['rhs']}[i] + c[i] - {name}[i] - 65536*c[i+1] = 0",
                     ("the final carry is zero (checked addition)" if op == "u256_add_checked"
                      else "the final carry is discarded (addition modulo 2^256)"),
+                ))
+            elif op in {"u256_sub", "u256_sub_checked"}:
+                field_equations.extend((
+                    f"b[0] = 0; b[i] in {{0,1}}; {name}[i] in [0,65535]",
+                    f"{node['lhs']}[i] + 65536*b[i+1] - {node['rhs']}[i] - b[i] - {name}[i] = 0",
+                    ("the final borrow is zero (checked subtraction)" if op == "u256_sub_checked"
+                     else "the final borrow is discarded (subtraction modulo 2^256)"),
                 ))
             else:
                 field_equations.extend((

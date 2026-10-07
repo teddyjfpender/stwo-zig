@@ -73,10 +73,12 @@ pub fn compileRaw(comptime V: type, allocator: std.mem.Allocator, program: relat
             .add_const => .{ .shape = .{ .kind = .m31, .length = length }, .lanes = try circuit.builder.simd.add(V, &ctx, lhs.?.lanes, try circuit.builder.simd.repeat(V, &ctx, M31.fromCanonical(node.constant.?), length)) },
             .mul_const => .{ .shape = .{ .kind = .m31, .length = length }, .lanes = try circuit.builder.simd.mul(V, &ctx, lhs.?.lanes, try circuit.builder.simd.repeat(V, &ctx, M31.fromCanonical(node.constant.?), length)) },
             .sum_lanes => .{ .shape = .{ .kind = .m31, .length = 1 }, .lanes = try sumLanes(V, &ctx, lhs.?.lanes) },
-            .u256_add => try u256Binary(V, &ctx, lhs.?, rhs.?, false, false),
-            .u256_le => try u256Binary(V, &ctx, lhs.?, rhs.?, true, false),
+            .u256_add => try u256Binary(V, &ctx, lhs.?, rhs.?, .add),
+            .u256_le => try u256Binary(V, &ctx, lhs.?, rhs.?, .le),
             .u32_lt => try u32Less(V, &ctx, lhs.?, rhs.?),
-            .u256_add_checked => try u256Binary(V, &ctx, lhs.?, rhs.?, false, true),
+            .u256_add_checked => try u256Binary(V, &ctx, lhs.?, rhs.?, .add_checked),
+            .u256_sub => try u256Binary(V, &ctx, lhs.?, rhs.?, .sub),
+            .u256_sub_checked => try u256Binary(V, &ctx, lhs.?, rhs.?, .sub_checked),
             .hash_sha256d_header => try sha256dHeader(V, &ctx, lhs.?),
             .bitcoin_target_mainnet => try mainnetTarget(V, &ctx, lhs.?),
             .bitcoin_prev_hash => try headerSlice(V, &ctx, lhs.?, 2, 16),
@@ -284,10 +286,12 @@ fn compileWithSpansMode(comptime V: type, allocator: std.mem.Allocator, program:
             .add_const => .{ .shape = .{ .kind = .m31, .length = node.length }, .lanes = try circuit.builder.simd.add(V, &ctx, entries[node.lhs.?].lanes, try circuit.builder.simd.repeat(V, &ctx, M31.fromCanonical(node.constant.?), node.length)) },
             .mul_const => .{ .shape = .{ .kind = .m31, .length = node.length }, .lanes = try circuit.builder.simd.mul(V, &ctx, entries[node.lhs.?].lanes, try circuit.builder.simd.repeat(V, &ctx, M31.fromCanonical(node.constant.?), node.length)) },
             .sum_lanes => .{ .shape = .{ .kind = .m31, .length = 1 }, .lanes = try sumLanes(V, &ctx, entries[node.lhs.?].lanes) },
-            .u256_add => try u256Binary(V, &ctx, entries[node.lhs.?], entries[node.rhs.?], false, false),
-            .u256_le => try u256Binary(V, &ctx, entries[node.lhs.?], entries[node.rhs.?], true, false),
+            .u256_add => try u256Binary(V, &ctx, entries[node.lhs.?], entries[node.rhs.?], .add),
+            .u256_le => try u256Binary(V, &ctx, entries[node.lhs.?], entries[node.rhs.?], .le),
             .u32_lt => try u32Less(V, &ctx, entries[node.lhs.?], entries[node.rhs.?]),
-            .u256_add_checked => try u256Binary(V, &ctx, entries[node.lhs.?], entries[node.rhs.?], false, true),
+            .u256_add_checked => try u256Binary(V, &ctx, entries[node.lhs.?], entries[node.rhs.?], .add_checked),
+            .u256_sub => try u256Binary(V, &ctx, entries[node.lhs.?], entries[node.rhs.?], .sub),
+            .u256_sub_checked => try u256Binary(V, &ctx, entries[node.lhs.?], entries[node.rhs.?], .sub_checked),
             .hash_sha256d_header => try sha256dHeader(V, &ctx, entries[node.lhs.?]),
             .bitcoin_target_mainnet => try mainnetTarget(V, &ctx, entries[node.lhs.?]),
             .bitcoin_prev_hash => try headerSlice(V, &ctx, entries[node.lhs.?], 2, 16),
@@ -477,7 +481,9 @@ fn mainnetGenesisHash(comptime V: type, ctx: *circuit.builder.Context(V)) !Entry
 /// Little-endian 16-bit limbs. Every output digit is range checked and every
 /// carry/borrow is Boolean. Since each integer equation has magnitude below
 /// 2^18 < p, equality in M31 is also equality over the integers.
-fn u256Binary(comptime V: type, ctx: *circuit.builder.Context(V), lhs: Entry, rhs: Entry, compare: bool, checked: bool) !Entry {
+const U256Mode = enum { add, add_checked, sub, sub_checked, le };
+
+fn u256Binary(comptime V: type, ctx: *circuit.builder.Context(V), lhs: Entry, rhs: Entry, mode: U256Mode) !Entry {
     const left = lhs.raw orelse return error.InvalidU256Operand;
     const right = rhs.raw orelse return error.InvalidU256Operand;
     if (left.len != 16 or right.len != 16) return error.InvalidU256Operand;
@@ -485,23 +491,29 @@ fn u256Binary(comptime V: type, ctx: *circuit.builder.Context(V), lhs: Entry, rh
     const digits = try ctx.scratch().alloc(Var, 16);
     var incoming = ctx.zero();
     var carry_value: u32 = 0;
+    const compare = mode == .le;
+    const borrowing = compare or mode == .sub or mode == .sub_checked;
     for (left, right, digits) |a, b, *digit| {
         const av: u32 = if (comptime V == QM31) ctx.get(a).toM31Array()[0].v else 0;
         const bv: u32 = if (comptime V == QM31) ctx.get(b).toM31Array()[0].v else 0;
-        const value: u32 = if (compare)
-            (bv + (1 << 16) - av - carry_value) & 0xffff
+        const first = if (compare) bv else av;
+        const second = if (compare) av else bv;
+        const value: u32 = if (borrowing)
+            (first + (1 << 16) - second - carry_value) & 0xffff
         else
             (av + bv + carry_value) & 0xffff;
-        const next: u32 = if (compare)
-            @intFromBool(bv < av + carry_value)
+        const next: u32 = if (borrowing)
+            @intFromBool(first < second + carry_value)
         else
             (av + bv + carry_value) >> 16;
         digit.* = try ctx.guessU16(circuit.builder.ivalue.fromQm31(V, QM31.fromBase(M31.fromCanonical(value))));
         const outgoing = try ctx.guess(circuit.builder.ivalue.fromQm31(V, QM31.fromBase(M31.fromCanonical(next))));
         try ctx.eq(try ctx.mul(outgoing, outgoing), outgoing);
         const scaled = try ctx.mul(outgoing, base);
-        if (compare) {
-            try ctx.eq(try ctx.add(b, scaled), try ctx.add(try ctx.add(a, incoming), digit.*));
+        if (borrowing) {
+            const first_wire = if (compare) b else a;
+            const second_wire = if (compare) a else b;
+            try ctx.eq(try ctx.add(first_wire, scaled), try ctx.add(try ctx.add(second_wire, incoming), digit.*));
         } else {
             try ctx.eq(try ctx.add(try ctx.add(a, b), incoming), try ctx.add(digit.*, scaled));
         }
@@ -514,7 +526,7 @@ fn u256Binary(comptime V: type, ctx: *circuit.builder.Context(V), lhs: Entry, rh
         output_wires[0] = result;
         return .{ .shape = .{ .kind = .m31, .length = 1 }, .lanes = Simd.fromPacked(output_wires, 1), .raw = output_wires };
     }
-    if (checked) try ctx.eq(incoming, ctx.zero());
+    if (mode == .add_checked or mode == .sub_checked) try assertZeroArithmetic(V, ctx, incoming);
     const wrappers = try ctx.scratch().alloc(circuit.builder.wrappers.M31Wrapper(Var), 16);
     for (wrappers, digits) |*wrapped, digit| wrapped.* = .newUnsafe(digit);
     return .{ .shape = .{ .kind = .u16, .length = 16 }, .lanes = try circuit.builder.simd.pack(V, ctx, wrappers), .raw = digits };
@@ -838,6 +850,56 @@ test "wide integer carries and borrows are constrained with stable topology" {
         try std.testing.expect(!try bad.isCircuitValid());
     } else |err| {
         try std.testing.expectEqual(error.EqFailedOnEval, err);
+    }
+}
+
+test "u256 subtraction constrains cross-limb borrows and checked underflow" {
+    const allocator = std.testing.allocator;
+    const source =
+        \\{"version":1,"name":"subtract256","inputs":[{"name":"a","kind":"u16","length":16,"visibility":"private"},{"name":"b","kind":"u16","length":16,"visibility":"private"}],"nodes":[{"name":"difference","op":"u256_sub","lhs":"a","rhs":"b"},{"name":"recovered","op":"u256_add","lhs":"difference","rhs":"b"},{"name":"less","op":"u256_le","lhs":"difference","rhs":"a"}],"assertions":[{"lhs":"recovered","rhs":"a"}],"public_outputs":["less"]}
+    ;
+    var program = try relation.parseProgram(allocator, source);
+    defer program.deinit();
+    var topology = try compile(circuit.builder.NoValue, allocator, program.value, null);
+    defer topology.deinit();
+    const zero = [_]u32{0} ** 16;
+    const one = [1]u32{1} ++ [_]u32{0} ** 15;
+    const across = [2]u32{ 0, 1 } ++ [_]u32{0} ** 14;
+    const near = [2]u32{ 65535, 0 } ++ [_]u32{0} ** 14;
+    const max = [_]u32{65535} ** 16;
+    const cases = [_]struct { a: [16]u32, b: [16]u32, less: u32 }{
+        .{ .a = zero, .b = one, .less = 0 },
+        .{ .a = across, .b = one, .less = 1 },
+        .{ .a = across, .b = near, .less = 1 },
+        .{ .a = max, .b = max, .less = 1 },
+    };
+    for (cases) |case| {
+        const a_json = try std.json.Stringify.valueAlloc(allocator, case.a, .{});
+        defer allocator.free(a_json);
+        const b_json = try std.json.Stringify.valueAlloc(allocator, case.b, .{});
+        defer allocator.free(b_json);
+        const assigned = try std.fmt.allocPrint(allocator, "{{\"public_inputs\":{{}},\"private_inputs\":{{\"a\":{s},\"b\":{s}}},\"public_outputs\":{{\"less\":[{d}]}}}}", .{ a_json, b_json, case.less });
+        defer allocator.free(assigned);
+        var assignment = try relation.parseAssignment(allocator, assigned);
+        defer assignment.deinit();
+        const result = try relation.evaluate(allocator, program.value, assignment.value);
+        try std.testing.expectEqual(case.less, result[0]);
+        var values = try compile(QM31, allocator, program.value, assignment.value);
+        defer values.deinit();
+        try std.testing.expectEqual(topology.circuit.n_vars, values.circuit.n_vars);
+        try std.testing.expect(std.meta.eql(topology.gate_counts, values.gate_counts));
+        try std.testing.expect(try values.isCircuitValid());
+        if (case.less == 0) {
+            program.value.nodes[0].op = .u256_sub_checked;
+            try std.testing.expectError(error.U256Underflow, relation.evaluate(allocator, program.value, assignment.value));
+            const checked = compile(QM31, allocator, program.value, assignment.value);
+            if (checked) |got| {
+                var invalid = got;
+                defer invalid.deinit();
+                try std.testing.expect(!try invalid.isCircuitValid());
+            } else |err| try std.testing.expectEqual(error.EqFailedOnEval, err);
+            program.value.nodes[0].op = .u256_sub;
+        }
     }
 }
 

@@ -7,7 +7,7 @@ const core = @import("stwo_core");
 const relation = @import("relation.zig");
 const M31 = core.fields.m31.M31;
 
-pub const Tag = enum { input, constant, cast_m31, add, mul, add_const, mul_const, repeat, hash_blake2s, hash_blake2s_leaf, hash_blake2s_pair, select, hash_poseidon2_leaf, hash_poseidon2_pair, sum_lanes, u256_add, u256_le, u256_add_checked, hash_sha256d_header, bitcoin_target_mainnet, bitcoin_prev_hash, bitcoin_header_bits, bitcoin_genesis_hash_mainnet, bitcoin_header_time, u32_lt, inv, is_zero };
+pub const Tag = enum { input, constant, cast_m31, add, mul, add_const, mul_const, repeat, hash_blake2s, hash_blake2s_leaf, hash_blake2s_pair, select, hash_poseidon2_leaf, hash_poseidon2_pair, sum_lanes, u256_add, u256_le, u256_add_checked, hash_sha256d_header, bitcoin_target_mainnet, bitcoin_prev_hash, bitcoin_header_bits, bitcoin_genesis_hash_mainnet, bitcoin_header_time, u32_lt, inv, is_zero, u256_sub, u256_sub_checked };
 pub const Node = struct {
     tag: Tag,
     kind: relation.Kind,
@@ -101,7 +101,7 @@ pub fn build(allocator: std.mem.Allocator, program: relation.Program) !IR {
         };
         var node: Node = .{
             .tag = @enumFromInt(@as(u8, @intFromEnum(raw.op)) + 1),
-            .kind = if (raw.op == .u256_add or raw.op == .u256_add_checked or raw.op == .hash_sha256d_header or raw.op == .bitcoin_target_mainnet or raw.op == .bitcoin_prev_hash or raw.op == .bitcoin_header_bits or raw.op == .bitcoin_header_time or raw.op == .bitcoin_genesis_hash_mainnet) .u16 else .m31,
+            .kind = if (raw.op == .u256_add or raw.op == .u256_add_checked or raw.op == .u256_sub or raw.op == .u256_sub_checked or raw.op == .hash_sha256d_header or raw.op == .bitcoin_target_mainnet or raw.op == .bitcoin_prev_hash or raw.op == .bitcoin_header_bits or raw.op == .bitcoin_header_time or raw.op == .bitcoin_genesis_hash_mainnet) .u16 else .m31,
             .length = length,
             .lhs = lhs,
             .rhs = rhs,

@@ -55,7 +55,7 @@ The 256-round full circuit has 4,248,656 preprocessed cells; its sparse-chip ver
 
 The Bitcoin-oriented [wide-value slice](BITCOIN_LIGHT_CLIENT.md) adds nominal
 `Bytes32` and `UInt256`, explicit little-endian conversion, and constrained
-256-bit modular addition and unsigned comparison to `std@1`. Its checked
+256-bit modular/checked addition and subtraction plus unsigned comparison to `std@1`. Its checked
 example passes an independent oracle and generated native verifier, which
 rejects a changed public root. The [single-trial record](measurements/bitcoin-wide-v1-2026-10-06.json)
 captures the general `gate` cost. The newer

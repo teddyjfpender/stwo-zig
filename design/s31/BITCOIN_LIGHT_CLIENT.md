@@ -22,8 +22,10 @@ reinterpretation. `std::math::add_u256` proves the modulo-$2^{256}$ sum with
 sixteen range-checked output digits and Boolean carries;
 `add_u256_checked` also constrains the final carry to zero. `le_u256` proves a
 Boolean unsigned comparison with sixteen borrows. `limbs_m31` allows the
-range-checked bytes to feed a field-native auxiliary commitment. The native
-verifier accepts the [wide-order example](../../src/frontends/s31/examples/wide_order.s31)
+range-checked bytes to feed a field-native auxiliary commitment.
+`sub_u256` and `sub_u256_checked` use sixteen Boolean borrows; the checked
+form rejects underflow, as shown by the [two proof trials](measurements/u256-subtraction-v1-2026-10-07.json).
+The native verifier accepts the [wide-order example](../../src/frontends/s31/examples/wide_order.s31)
 and rejects a changed public root. Its [full-profile baseline](measurements/bitcoin-wide-v1-2026-10-06.json)
 and [sparse-wide trial](measurements/bitcoin-wide-sparse-v5-2026-10-06.json)
 are cost records for this exact program, not Bitcoin block proofs. The source
