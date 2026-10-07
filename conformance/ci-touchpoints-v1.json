@@ -272,6 +272,31 @@
         ]
       ]
     },
+    "s31": {
+      "host": "linux",
+      "description": "S31 circuit DSL prototype: Zig compiler and verifier tests, Python text frontend and oracle tests, docs consistency. Builds from its own directory until S31 has a package contract.",
+      "commands": [
+        [
+          "bash",
+          "-ceu",
+          "cd src/frontends/s31\nzig build test -Doptimize=ReleaseSafe -j2"
+        ],
+        [
+          "python3",
+          "-m",
+          "unittest",
+          "discover",
+          "-s",
+          "src/frontends/s31/tests/python",
+          "-p",
+          "test_*.py"
+        ],
+        [
+          "python3",
+          "src/frontends/s31/docs/check.py"
+        ]
+      ]
+    },
     "cpu_backend": {
       "host": "linux",
       "description": "Independent CPU scalar/SIMD backend package",
@@ -1435,6 +1460,47 @@
         "script_contracts",
         "build_graph"
       ]
+    },
+    {
+      "prefixes": [
+        "src/frontends/s31",
+        "src/frontends/circuit",
+        "src/integrations/circuit_cpu",
+        "src/frontends/riscv",
+        "src/interop/postcard.zig",
+        "vectors/circuit",
+        "design/s31"
+      ],
+      "lanes": [
+        "s31"
+      ]
+    },
+    {
+      "prefixes": [
+        "vectors/reports"
+      ],
+      "lanes": [
+        "script_contracts",
+        "native_oracle"
+      ]
+    },
+    {
+      "prefixes": [
+        "vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1"
+      ],
+      "lanes": [
+        "riscv_frontend"
+      ]
+    },
+    {
+      "prefixes": [
+        "vectors/starknet",
+        "bench/site",
+        "SECURITY.md"
+      ],
+      "lanes": [
+        "script_contracts"
+      ]
     }
   ],
   "documentation_prefixes": [
@@ -1443,7 +1509,14 @@
     "LICENSE",
     "docs",
     "archive",
-    "conformance"
+    "conformance",
+    "design/README.md",
+    "design/riscv-proving-stack",
+    "design/starknet-proving-pipeline",
+    "editors",
+    "bench/README.md",
+    ".mailmap",
+    "vectors/.cairo_bench"
   ],
   "externally_validated_prefixes": [
     "autoresearch"
