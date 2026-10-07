@@ -1,7 +1,65 @@
 //! Focused fixed-column parity helpers for the real q193 recursion diagnostic.
 const std = @import("std");
-const recursion = @import("stwo_riscv_frontend").recursion;
+const frontend = @import("stwo_riscv_frontend");
+const recursion = frontend.recursion;
 const M31 = @import("stwo_core").fields.m31.M31;
+
+/// Test key geometry is fixed before the child proof exists. The older
+/// 871-column SegmentProfileV1 wire is a different proof profile.
+pub const Q193_DIMENSIONS = recursion.fixed_wire.Dimensions{
+    .commitment_count = 4,
+    .claimed_sum_count = 28,
+    .sampled_value_count = 754,
+    .queried_value_count = 654 * recursion.protocol.FRI_QUERY_COUNT,
+    .trace_path_count = 4 * recursion.protocol.FRI_QUERY_COUNT,
+    .fri_layer_count = 5,
+    .query_count = recursion.protocol.FRI_QUERY_COUNT,
+    .maximum_fold_width = 16,
+    .last_layer_coefficient_count = 1,
+    .maximum_merkle_depth = 21,
+};
+
+pub const SelectedV12 = struct {
+    allocator: std.mem.Allocator,
+    words: []M31,
+    statement: frontend.prover_mod.RiscVStatementV2,
+    shape: recursion.fixed_profile.ProofShapeV1,
+
+    pub fn deinit(self: *@This()) void {
+        self.allocator.free(self.words);
+        self.* = undefined;
+    }
+};
+
+/// Select the exact statement and wire profile from the runner source before
+/// generating or inspecting a native proof. Returned statements borrow words.
+pub fn selectV12BeforeProof(
+    allocator: std.mem.Allocator,
+    source: *const recursion.segment_leaf_local_authority_v3.SourceV3,
+    session_id: recursion.segment_statement_v2.Digest,
+    selected_core: *const recursion.air.segment_leaf_wrapper_template_v6.CoreProfileV6,
+    pinned_tree0: [8]u32,
+) !SelectedV12 {
+    var projection = try recursion.segment_leaf_local_projection_v3.ProjectionV3.init(source);
+    const local_source = try projection.sourceV2(source, session_id);
+    const words = try allocator.alloc(M31, try local_source.canonicalWordCount());
+    errdefer allocator.free(words);
+    _ = try local_source.encodeCanonical(words);
+    const public_data = try frontend.air.public_data_v2.PublicDataV2.authenticate(words);
+    const statement = try frontend.statement_shape_inspection.inspectExactV2(
+        allocator,
+        &projection.local_result,
+        public_data,
+    );
+    const shape = try recursion.leaf_profile_selected_v12.deriveSegmentV2(
+        Q193_DIMENSIONS,
+        allocator,
+        &statement.core,
+        selected_core,
+        pinned_tree0,
+    );
+    return .{ .allocator = allocator, .words = words, .statement = statement, .shape = shape };
+}
 
 /// Test-only nonconstant challenge draw bound to the independently pinned
 /// native key and Tree0. The production wrapper must draw after committing
@@ -24,38 +82,18 @@ pub fn diagnosticRelations(
 pub fn checkV12SelectedFixedWire(
     allocator: std.mem.Allocator,
     verified: anytype,
-    selected_core: *const recursion.air.segment_leaf_wrapper_template_v6.CoreProfileV6,
-    pinned_tree0: [8]u32,
+    selected: *const SelectedV12,
 ) !void {
-    // Exact q193 fixture geometry, selected before native proof inspection.
-    // The larger SegmentProfileV1 wire (871 columns) is a different key.
-    const dimensions = recursion.fixed_wire.Dimensions{
-        .commitment_count = 4,
-        .claimed_sum_count = 28,
-        .sampled_value_count = 754,
-        .queried_value_count = 654 * recursion.protocol.FRI_QUERY_COUNT,
-        .trace_path_count = 4 * recursion.protocol.FRI_QUERY_COUNT,
-        .fri_layer_count = 5,
-        .query_count = recursion.protocol.FRI_QUERY_COUNT,
-        .maximum_fold_width = 16,
-        .last_layer_coefficient_count = 1,
-        .maximum_merkle_depth = 21,
-    };
+    const dimensions = Q193_DIMENSIONS;
     const native = &verified.native.capture;
-    const statement = try native.vm_air.reconstructStatement(&native.public_data.data);
-    const selected_shape = try recursion.leaf_profile_selected_v12.deriveSegmentV2(
-        dimensions,
-        allocator,
-        &statement.core,
-        selected_core,
-        pinned_tree0,
-    );
-    const captured_shape = try recursion.leaf_profile.deriveShape(dimensions, &statement.core, &native.proof);
+    const captured_statement = try native.vm_air.reconstructStatement(&native.public_data.data);
+    const selected_shape = selected.shape;
+    const captured_shape = try recursion.leaf_profile.deriveShape(dimensions, &captured_statement.core, &native.proof);
     try std.testing.expectEqualDeep(captured_shape, selected_shape);
     const Wire = recursion.fixed_wire.FixedStarkProofWire(dimensions);
     const wire = try allocator.create(Wire);
     defer allocator.destroy(wire);
-    try recursion.fixed_wire_adapter.populateVerifiedSegmentV2(dimensions, wire, selected_shape, &statement.core, verified);
+    try recursion.fixed_wire_adapter.populateVerifiedSegmentV2(dimensions, wire, selected_shape, &selected.statement.core, verified);
     try wire.validateAgainstShape(selected_shape);
 
     var altered = selected_shape;
@@ -67,13 +105,13 @@ pub fn checkV12SelectedFixedWire(
         dimensions,
         wire,
         altered,
-        &statement.core,
+        &selected.statement.core,
         verified,
     ));
     var after: [32]u8 = undefined;
     std.crypto.hash.sha2.Sha256.hash(std.mem.asBytes(wire), &after, .{});
     try std.testing.expectEqual(before, after);
-    var altered_statement = statement.core;
+    var altered_statement = selected.statement.core;
     altered_statement.total_steps ^= 1;
     try std.testing.expectError(error.CaptureShapeMismatch, recursion.fixed_wire_adapter.populateVerifiedSegmentV2(
         dimensions,
@@ -84,7 +122,7 @@ pub fn checkV12SelectedFixedWire(
     ));
     std.crypto.hash.sha2.Sha256.hash(std.mem.asBytes(wire), &after, .{});
     try std.testing.expectEqual(before, after);
-    altered_statement = statement.core;
+    altered_statement = selected.statement.core;
     altered_statement.public_data.io_entries.input_start ^= 4;
     try std.testing.expectError(error.CaptureShapeMismatch, recursion.fixed_wire_adapter.populateVerifiedSegmentV2(
         dimensions,

@@ -190,9 +190,15 @@ dimension admission for q193. On a freshly verified q193 proof, the selected
 shape equals the capture-derived shape and populates one exact fixed wire.
 The adapter now compares every active statement descriptor and public
 execution/I/O field, not just table geometry; altered shape, step count, and
-I/O origin are rejected without changing destination bytes. This remains a
-diagnostic admission check: the test's selected statement still comes from
-the verified fixture, and no complete wrapper proof or parent is created.
+I/O origin are rejected without changing destination bytes. The q193 test now
+builds its selected SegmentV2 statement from the runner source before native
+proving, then requires the later verified capture to match it. A detached
+verifier still needs an independently admitted statement source; no complete
+wrapper proof or parent is created.
+The first pre-proof comparison caught an uninitialized legacy custody-version
+field in the statement geometry workspace (`0xaaaaaaaa` under the test
+allocator). The common V1/V2 builder now sets it explicitly to zero, while
+the separate BLAKE3 local-custody path still sets its own version.
 Independent shape-derived writers now cover rows 11, 13, 14, 18, 19, and 22;
 rows 11, 18, and 19 have not yet been admitted into the complete template
 key. The row-13/14 writer covers the public authority hash and seal, with

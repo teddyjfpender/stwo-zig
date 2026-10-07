@@ -9,7 +9,6 @@ const pinned_ingress = @import("recursive_segment_v3_native_security_ingress.zig
 const leaf_outer = @import("recursive_segment_v2_leaf_outer.zig");
 const outer_cohort = @import("recursive_segment_v2_outer_cohort.zig");
 const M31 = @import("stwo_core").fields.m31.M31;
-
 const recursion = frontend.recursion;
 const fixed_rows = @import("native_v3_strong_chain_fixed_rows.zig");
 const Engine = recursion.engine.ProverEngineForBackend(CpuBackend);
@@ -41,17 +40,20 @@ test "real q193 native child feeds freshly verified q193 local outer" {
     defer right.deinit();
     const source = try fixture.rightGlobal(allocator, &left.base, &right.base);
     const pinned_key = try pinned_ingress.PinnedKeyV1.admit(known_tree0, known_key_id);
+    const preleaf_core = try recursion.air.segment_leaf_wrapper_template_v6.testFrozenCoreProfileV6();
+    const session_id = recursion.poseidon2_channel.hashBytes("native-local-v3-session", 0x4e56_3250);
+    var selected_wire = try fixed_rows.selectV12BeforeProof(allocator, &source, session_id, &preleaf_core, known_tree0);
+    defer selected_wire.deinit();
     var timer = try std.time.Timer.start();
     var verified = try pinned_ingress.proveAndVerifyPinned(
         Engine,
         allocator,
         &source,
-        recursion.poseidon2_channel.hashBytes("native-local-v3-session", 0x4e56_3250),
+        session_id,
         pinned_key,
     );
     defer verified.deinit();
     const native_ns = timer.lap();
-
     var profile = try recursion.captured_fri.Owned.init(
         allocator,
         recursion.captured_fri.ProfileConfig.fromPcs(recursion.protocol.PCS_CONFIG),
@@ -80,12 +82,11 @@ test "real q193 native child feeds freshly verified q193 local outer" {
         recursion.poseidon2_channel.hashBytes("strong-v3-local-segment-vk", 0x4b56_3353),
         recursion.poseidon2_channel.hashBytes("strong-v3-local-parent-vk", 0x4b56_3350),
     );
-    const preleaf_core = try recursion.air.segment_leaf_wrapper_template_v6.testFrozenCoreProfileV6();
     var preleaf_layout = try fixed_rows.buildV11SegmentV2PreleafLayout(allocator, &verified.native.capture, &preleaf_core);
     defer preleaf_layout.deinit();
     var preleaf_masks = try fixed_rows.buildV12PreleafPcsMasks(allocator, &verified.native.capture, &preleaf_core, &preleaf_layout);
     defer preleaf_masks.deinit();
-    try fixed_rows.checkV12SelectedFixedWire(allocator, &verified, &preleaf_core, known_tree0);
+    try fixed_rows.checkV12SelectedFixedWire(allocator, &verified, &selected_wire);
     std.debug.print("DIRECT50_V12_FIXED_WIRE selected_shape=true native_capture_parity=true tamper_rejected=true proof_created=false\n", .{});
     std.debug.print("DIRECT50_V11_PRELEAF_LAYOUT trees0_2_from_statement=true tree3_from_pinned_core=true proof_created=false\n", .{});
     var prepared = try leaf_outer.PreparedNativeV2LeafOuter.init(
@@ -101,7 +102,6 @@ test "real q193 native child feeds freshly verified q193 local outer" {
     verified.native.capture_owned = false;
     defer prepared.deinit();
     try pinned_ingress.admitPreparedNativeV2(&prepared, pinned_key);
-
     var cohort = try outer_cohort.Cohort.init(allocator, &prepared);
     defer cohort.deinit();
     const prepare_ns = timer.lap();
