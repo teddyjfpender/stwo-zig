@@ -98,7 +98,7 @@ test "real q193 native child feeds freshly verified q193 local outer" {
     const prepare_ns = timer.lap();
     try diagnoseDirect47(allocator, &prepared, &verified.native.global_metadata, &verified.native.link, &cohort);
     const direct47_ns = timer.lap();
-    diagnoseDirect50(allocator, &prepared, &verified.native.global_metadata, &verified.native.link, &cohort) catch |err| {
+    diagnoseDirect50(allocator, &prepared, shape, &verified.native.global_metadata, &verified.native.link, &cohort) catch |err| {
         std.debug.print("DIRECT50_ERROR={s}\n", .{@errorName(err)});
         return err;
     };
@@ -205,6 +205,7 @@ fn diagnoseDirect47(
 fn diagnoseDirect50(
     allocator: std.mem.Allocator,
     prepared: *const leaf_outer.PreparedNativeV2LeafOuter,
+    admitted_shape: recursion.air.verifier_schedule.ScheduleShape,
     metadata: *const recursion.segment_leaf_local_authority_v3.MetadataV3,
     link: *const recursion.segment_leaf_local_verified_link_v3.VerifiedLinkV3,
     cohort: *outer_cohort.Cohort,
@@ -372,6 +373,32 @@ fn diagnoseDirect50(
             true,
         );
         const v7_plan = try recursion.segment_leaf_wrapper_roster_direct_v7.Plan.fromTemplate(&v7_template);
+        const v8_template = try recursion.air.segment_leaf_wrapper_template_v8.TemplateManifestV8.fromVerifierTemplate(allocator, &v7_template);
+        const v8_plan = try recursion.segment_leaf_wrapper_roster_direct_v8.Plan.fromTemplate(&v8_template);
+        const v8_wire_parameters = try v8_template.admitWireParameter(
+            &prepared.capture.public_data.data,
+            &prepared.authority_prepared.source.manifest,
+        );
+        if (v8_wire_parameters[0].toU32() != prepared.capture.public_data.data.words().len or
+            v8_plan.placements[36].geometry.log_size != recursion.air.segment_leaf_statement_source_direct_v8.LOG_SIZE)
+            return error.V8RealLeafRosterParameterMismatch;
+        std.debug.print("DIRECT50_V8_CANDIDATE_ROSTER row36_wire_count={d} shape_admitted=true proof_created=false\n", .{v8_wire_parameters[0].toU32()});
+        const v9_template = try recursion.air.segment_leaf_wrapper_template_v9.TemplateManifestV9.fromVerifierTemplate(
+            allocator,
+            &v8_template,
+            &prepared.vm_plan,
+            admitted_shape,
+        );
+        var row28_fixed = try recursion.segment_core_fri_row28_fixed_v8.Writer.init(
+            allocator,
+            &core_profile,
+            &prepared.vm_plan,
+            &prepared.recursion_plan,
+        );
+        defer row28_fixed.deinit();
+        try v9_template.admitRow28Writer(allocator, &row28_fixed);
+        try checkV9CoreFriControlFixedParity(allocator, &v9_template, &row28_fixed, &plan, pp);
+        std.debug.print("DIRECT50_V9_FRI_CONTROL_FIXED row28_source_parity=true recursion_plan_admitted=true proof_created=false\n", .{});
         try checkV7CoreFriFixedParity(allocator, &core_profile, &v7_plan, &plan, pp);
         std.debug.print("DIRECT50_V7_CORE_FRI_FIXED rows25_26_source_parity=true proof_created=false\n", .{});
         var physical = try recursion.segment_leaf_wrapper_physical_bridge_v7.Writer.init(
@@ -449,6 +476,8 @@ fn diagnoseDirect50(
         );
         defer statement_v6.deinit();
         const statement_v8_key = try recursion.segment_leaf_wrapper_row36_direct_v8.FixedKey.compile(allocator);
+        if (!std.meta.eql(statement_v8_key.column_digest, v8_template.row36_fixed_ordinal_id))
+            return error.V8RealLeafRosterFixedMismatch;
         var statement_v8 = try recursion.segment_leaf_wrapper_row36_direct_v8.Writer.init(
             allocator,
             &statement_v8_key,
@@ -775,6 +804,38 @@ fn allocateV8StatementColumns(allocator: std.mem.Allocator, count: usize) ![][]M
 fn freeV8StatementColumns(allocator: std.mem.Allocator, columns: [][]M31) void {
     for (columns) |column| allocator.free(column);
     allocator.free(columns);
+}
+
+fn checkV9CoreFriControlFixedParity(
+    allocator: std.mem.Allocator,
+    v9_template: *const recursion.air.segment_leaf_wrapper_template_v9.TemplateManifestV9,
+    writer: *const recursion.segment_core_fri_row28_fixed_v8.Writer,
+    old_plan: *const recursion.segment_leaf_wrapper_roster_direct_v5.Plan,
+    old_tree: [][]M31,
+) !void {
+    const old = old_plan.placements[28].?;
+    const current = v9_template.placements[28];
+    if (!std.meta.eql(old.geometry, current.geometry)) return error.V9CoreFriControlFixedGeometryMismatch;
+    const width = current.geometry.preprocessed_columns;
+    const capacity = @as(usize, 1) << @intCast(current.geometry.log_size);
+    const scratch = try allocator.alloc([]M31, width);
+    var initialized: usize = 0;
+    defer {
+        for (scratch[0..initialized]) |column| allocator.free(column);
+        allocator.free(scratch);
+    }
+    for (scratch) |*column| {
+        column.* = try allocator.alloc(M31, capacity);
+        @memset(column.*, M31.zero());
+        initialized += 1;
+    }
+    try writer.writePhysical(current.geometry, scratch);
+    if (old.preprocessed_offset > old_tree.len or width > old_tree.len - old.preprocessed_offset)
+        return error.V9CoreFriControlFixedSourceMismatch;
+    for (scratch, old_tree[old.preprocessed_offset..][0..width]) |expected, actual| {
+        if (actual.len != capacity) return error.V9CoreFriControlFixedSourceMismatch;
+        for (expected, actual) |a, b| if (!a.eql(b)) return error.V9CoreFriControlFixedSourceMismatch;
+    }
 }
 
 fn checkV7CoreFriFixedParity(

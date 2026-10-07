@@ -259,12 +259,24 @@ pub fn build(b: *std.Build) void {
     });
     b.step("test-v8-public-graph-fixed", "Check verifier-selected exact public graph fixed columns for rows 15 and 16")
         .dependOn(&b.addRunArtifact(v8_public_graph_tests).step);
+    const v8_public_lowering_tests = b.addTest(.{
+        .root_module = v3_rows_root,
+        .filters = &.{"V8 public graph key and lowering", "V8 statement and public graphs"},
+    });
+    b.step("test-v8-public-graph-lowering", "Check exact public graph lowering contribution and source parity")
+        .dependOn(&b.addRunArtifact(v8_public_lowering_tests).step);
     const v8_fri_control_tests = b.addTest(.{
         .root_module = v3_rows_root,
         .filters = &.{"V8 row28 fixed writer"},
     });
     b.step("test-v8-fri-control-fixed", "Check verifier-owned FRI-control row28 fixed columns and mutation rejection")
         .dependOn(&b.addRunArtifact(v8_fri_control_tests).step);
+    const v9_template_tests = b.addTest(.{
+        .root_module = v3_rows_root,
+        .filters = &.{"V9 candidate"},
+    });
+    b.step("test-v9-candidate-template", "Check recursion-plan and complete row28 fixed-column admission")
+        .dependOn(&b.addRunArtifact(v9_template_tests).step);
     const v7_source_physical_tests = b.addTest(.{
         .root_module = v3_rows_root,
         .filters = &.{"V7 row39 physical source uses corrected AIR"},

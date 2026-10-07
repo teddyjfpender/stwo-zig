@@ -192,6 +192,22 @@ cells match the native writer, including padding, in Debug and ReleaseSafe
 tests; altered plan, profile, geometry, and destination aliasing fail before
 writes. The V8 template does not yet seal the recursion plan's authority
 digest, so row 28 deliberately fails template admission.
+The V9 candidate template closes that isolated admission gap: it recompiles
+both VM and recursion schedules from one verifier-selected transcript shape,
+seals the recursion schedule digest and every padded row-28 fixed cell, and
+admits a physical writer only when its live plans and fixed table match.
+Distinct admitted shapes yield distinct keys; resealed digest and shape
+mutations fail. This does not seal the other missing Tree0 rows.
+On the real q193 leaf, the V8 roster admits the authenticated 784-word
+statement parameter and the V9 row-28 schedule and every committed fixed
+cell match the original Tree0 source. The diagnostic still creates no V9
+proof and does not admit the remaining fixed rows.
+For shared graph-lowering rows 30–32, a separate V8 candidate seals the
+statement, claim, and public-LogUp contribution from verifier-selected
+capacity and schedule. It matches an independently prepared outer source,
+but intentionally does not claim full row fixed IDs: VM, native-public-sum,
+PCS, segment, and binary graph lanes also occupy those physical columns.
+Their complete overlay must be derived under one verifier-owned profile.
 A further dormant row-4 profile can export kind and eight split argument limbs
 for instructions with an actual payload row, using that row's existing
 transcript-payload relation. Its coverage audit rejects duplicate origins and

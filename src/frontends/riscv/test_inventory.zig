@@ -790,7 +790,9 @@ test {
     _ = @import("recursion/segment_leaf_wrapper_cohort_closure_v8.zig");
     _ = @import("recursion/air/segment_leaf_wrapper_template_v8.zig");
     _ = @import("recursion/air/segment_leaf_wrapper_roster_direct_v8.zig");
+    _ = @import("recursion/air/segment_leaf_wrapper_template_v9.zig");
     _ = @import("recursion/segment_leaf_public_graph_fixed_v8.zig");
+    _ = @import("recursion/segment_leaf_public_graph_lowering_v8.zig");
     _ = @import("recursion/segment_core_fri_row28_fixed_v8.zig");
     _ = @import("segment_core_fri_rows25_26_fixed_v7_test_root.zig");
     _ = @import("recursion/vm_air_composition_circuit_parallel_v4.zig");

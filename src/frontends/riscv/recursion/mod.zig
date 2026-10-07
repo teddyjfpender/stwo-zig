@@ -231,6 +231,7 @@ pub const segment_core_fri_rows25_26_fixed_v7 = @import("segment_core_fri_rows25
 pub const segment_leaf_wrapper_row36_direct_v8 = @import("segment_leaf_wrapper_row36_direct_v8.zig");
 pub const segment_leaf_wrapper_cohort_closure_v8 = @import("segment_leaf_wrapper_cohort_closure_v8.zig");
 pub const segment_leaf_public_graph_fixed_v8 = @import("segment_leaf_public_graph_fixed_v8.zig");
+pub const segment_leaf_public_graph_lowering_v8 = @import("segment_leaf_public_graph_lowering_v8.zig");
 pub const segment_core_fri_row28_fixed_v8 = @import("segment_core_fri_row28_fixed_v8.zig");
 pub const segment_leaf_wrapper_protocol_direct_v5 = @import("segment_leaf_wrapper_protocol_direct_v5.zig");
 pub const segment_leaf_wrapper_protocol_direct_v6 = @import("segment_leaf_wrapper_protocol_direct_v6.zig");

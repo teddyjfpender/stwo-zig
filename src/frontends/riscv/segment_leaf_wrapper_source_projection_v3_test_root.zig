@@ -16,6 +16,7 @@ comptime {
     _ = @import("recursion/air/segment_leaf_wrapper_roster_direct_v7.zig");
     _ = @import("recursion/air/segment_leaf_wrapper_template_v8.zig");
     _ = @import("recursion/air/segment_leaf_wrapper_roster_direct_v8.zig");
+    _ = @import("recursion/air/segment_leaf_wrapper_template_v9.zig");
     _ = @import("recursion/segment_leaf_template_payload_fixed_v7.zig");
     _ = @import("recursion/tests/segment_leaf_statement_fixed_key_v7_test.zig");
     _ = @import("recursion/segment_leaf_wrapper_physical_bridge_v7.zig");
@@ -24,6 +25,7 @@ comptime {
     _ = @import("recursion/segment_leaf_wrapper_row36_direct_v8.zig");
     _ = @import("recursion/segment_leaf_wrapper_cohort_closure_v8.zig");
     _ = @import("recursion/segment_leaf_public_graph_fixed_v8.zig");
+    _ = @import("recursion/segment_leaf_public_graph_lowering_v8.zig");
     _ = @import("recursion/segment_core_fri_row28_fixed_v8.zig");
     _ = @import("recursion/segment_leaf_wrapper_protocol_template_v7.zig");
     _ = @import("recursion/transcript_word_template_v6.zig");
