@@ -4,8 +4,12 @@ Status: wide integers, byte-exact SHA256d, mainnet compact target decoding,
 proof of work, and a genesis-anchored two-header same-difficulty link are executable and have
 generated native verifiers. A dedicated SHA AIR witness planner feeds the
 existing packed SHA provider, but S31 proofs still use the generic SHA
-circuit. Full header-chain policy and recursive proof verification remain
-open. The [Bitcoin header chapter](../../src/frontends/s31/docs/bitcoin-sha256d.md)
+circuit. Sparse-wide proof wrappers and a homogeneous claim fold now verify
+the two-header leaf recursively. A **changing-header** recursive state
+transition and full header-chain policy remain open. The
+[recursion security brief](RECURSION_SECURITY.md) gives the current proof
+boundary, soundness limits, and verifier depth policy. The
+[Bitcoin header chapter](../../src/frontends/s31/docs/bitcoin-sha256d.md)
 shows the concrete program and handwritten constraints.
 This document specifies a **header-chain light client**. It does not claim
 transaction, UTXO, or script validity from headers alone.
@@ -153,7 +157,7 @@ mainnet and testnet boundary cases, invalid compact encodings, and historical
 headers. A header-only proof says the chain of headers obeys these rules; it
 does not establish the transactions beneath their Merkle roots.
 
-The current public ABI has eight M31 words. That is too narrow to expose a
+The current public ABI has eight direct words. That is too narrow to expose a
 raw 32-byte block hash plus height, work, network, and checkpoint in one
 statement. A versioned wider ABI, or a reviewed collision-resistant state
 commitment with precise opening rules, is required before that statement is
@@ -198,9 +202,13 @@ in-circuit and binds the exact child key digest in its public claim. A
 same-AIR, different-key fixture confirms that child proof portability does
 not allow outer proof replay. The [two-level chain](../../src/frontends/s31/docs/recursion-chain.md)
 wraps the first recursive proof again, including a private-witness leaf.
-These are differential checks. This does not yet admit the `sparse-wide-v5`
-Bitcoin header proof or make a homogeneous many-step fold. Those require
-an exact sparse-wide recursive verifier and one canonical wrapper shape.
+The [sparse-wide wrapper](../../src/frontends/s31/docs/recursion-sparse-wide.md)
+admits the two-header Bitcoin leaf, and the
+[homogeneous fold](../../src/frontends/s31/docs/recursion-wide-fold.md)
+keeps one sealed verifier key across subsequent steps. The fold repeats that
+same leaf claim; it does not consume or validate a new header per step.
+The current native verifier can enforce a caller-chosen `--max-step` cap,
+but a concrete accumulated soundness bound is still required.
 
 ## Engineering sequence and exit gates
 
@@ -209,8 +217,8 @@ an exact sparse-wide recursive verifier and one canonical wrapper shape.
 | 1. Wide arithmetic | Typed byte/int values, carry/borrow relations, independent oracle | Current example and native proof; add boundary and randomized adversarial vectors. |
 | 2. Byte-exact header hash | **Generic circuit complete:** `Bytes80`, SHA256d relation, one native proof. **SHA AIR witness planner complete:** three call records and packed provider rows. Remaining: authenticated circuit-to-chip lookup, new proof roster and verifier, nominal `BlockHash`, broader Bitcoin Core differential vectors, and measured cost crossover. | Genesis and randomized byte checks; native proof and changed-root rejection currently pass. Chip substitution must fail until one-proof lookup closure is implemented. |
 | 3. Header policy | **Genesis-anchored two-header first step complete:** compact target, powLimit, unsigned comparison, exact previous-hash link, equal `nBits`, and strict first-step timestamp order. Remaining: retarget transitions, general eleven-block MTP and contextual future-time policy, work increment and versioned public state ABI. | Real genesis-to-block-one proof accepted; changed public claim rejected by native verifier; changed checkpoint, link, bits and equal time rejected by independent oracle; broader native adversarial corpus remains. |
-| 4. In-circuit S31 verifier | **One-level `circuit-v1` wrapper implemented:** native capture of saved and freshly produced child proofs, in-circuit child verifier, outer proof, build-time sealed recursive key, key-bound native outer verifier. Remaining: sparse-wide profile and broader transcript/FRI mutation coverage. | Valid leaf and both one-shot and saved-proof outer proofs; prover/native conversion inputs byte-identical; sealed outer key reproducible; same-AIR different-key outer replay rejected; changed key/statement/proof inputs rejected; changed child public word, preprocessed root, trace root, claimed sum, channel salt, FRI witness, and last-layer coefficient rejected inside the verifier circuit. |
-| 5. Recursive fold | **Two generic gate-wrapper levels demonstrated:** private leaf, two proofs of verification, depth-specific sealed keys, and top-only native verification. Remaining: Bitcoin state transition wrapper and one fixed key for unbounded folding. | Private leaf and two wrappers accepted; nested public digests linked; top proof verified after lower proof files removed; altered original claim with both digests recomputed, corrupted proofs and key, and seven second-level in-circuit mutations rejected. |
+| 4. In-circuit S31 verifier | **Gate and sparse-wide wrappers implemented:** native capture of saved proofs, in-circuit child verifier, sealed recursive keys and native outer verifier. Fourfold FRI is supported for the sparse-wide leaf and wrappers. Remaining: independent end-to-end soundness review and proof-bound SHA chip integration. | Valid arithmetic/private-witness and Bitcoin two-header leaves, two wrapper levels, exact-key/FRI replay rejection and hostile proof-field mutations. |
+| 5. Recursive fold | **Fixed-key gate and sparse-wide claim folds implemented:** `u32` counter, one sealed fold key across steps, cached batch proving and top-only native verification. Gate-profile four-lane state transitions also fold under one key. Remaining: a typed Bitcoin state and new-header-per-step transition, plus an analyzed depth/security bound. | Base and recursive branch mutation suites; byte-identical batch and separate proofs; high-counter adversarial statements; source-state replay; caller-supplied native `--max-step` cap. |
 
 Optimization should now focus on a dedicated SHA chip and the header-chain
 policy.
