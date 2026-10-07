@@ -93,6 +93,19 @@ security target.
 | Stateful relation | Source-bound step body, false-state rejection, independent replay | Typed state and transition support beyond four M31 lanes |
 | Bitcoin | Byte-exact SHA256d/target two-header leaf and wide recursive fold | A new-header-per-step state transition, chain work, consensus rules and security analysis |
 
+An additional graph audit checked the child-proof witness before
+`Context.finalize(false)` adds the gates that yield guessed values. In the
+gate-profile fold, all 799,388 variables created while guessing the child
+proof had at least one use, and all 219,188 representative proof-field wires
+were used. In the sparse-wide fold the counts were 340,096 and 106,360,
+respectively, again with zero unused wires. The latter check includes every
+root word, claim, OODS value, sample, Merkle path word, nonce, FRI commitment,
+FRI path word, FRI witness value, and final-layer coefficient. Both audited
+circuits reproduced their sealed AIR roots and raw row counts. This is a
+structural dead-field check, not a proof that every field reaches an asserted
+equality or that the verifier implements the intended protocol. The mutation
+tests and independent verifier review address those stronger questions.
+
 The current fourfold sparse-wide fold has about 5.59 million raw circuit
 variables. In the measured verifier stages, Merkle plus FRI decommitment
 dominates raw variable count; the [stage record](measurements/sparse-wide-fold-u32-v1-2026-10-07.json)
