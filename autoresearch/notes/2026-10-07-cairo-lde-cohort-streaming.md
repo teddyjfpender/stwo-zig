@@ -86,5 +86,8 @@ free and the dense proof still completed exactly. The whole-arena mapped-host
 prototype failed in trace writers and was removed; late prefetch/placement
 and row tiling were also falsified. Raw receipts and limits are documented in
 `vectors/reports/cairo-cuda-h100-managed-20261007/memory-pipeline-followup.md`.
-Next profiling should target the late proof/decommit peak and prove an actual
-smaller-GPU card before asserting hardware compatibility.
+Phase-aligned profiling places the new sampled peak in constraint evaluation,
+where a 3.56 GiB evaluation tile is live; trace generation also retains a
+12.40 GiB writer-scratch slot. These are the next placement/geometry targets.
+An actual smaller-GPU card is still needed before asserting hardware
+compatibility.

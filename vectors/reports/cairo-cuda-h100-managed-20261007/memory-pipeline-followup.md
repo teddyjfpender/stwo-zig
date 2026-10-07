@@ -118,7 +118,13 @@ checked in a standalone 2 GiB CUDA experiment; after synchronization,
 comes from choosing host placement before first write, not from evicting
 already-resident pages.
 
-The new highest sampled peaks occur near late proof/decommit activity. Further
-capacity work should profile those live buffers and test selective first-write
-placement or sparse opening replay; no improvement is claimed for that work
-yet.
+Aligning the proof-session phase markers with the report's ingress duration
+places the new highest sampled peaks **inside constraint evaluation**, at
+46.48 s command time for the dense PIE and 33.11 s for the second. The dense
+peak is 30.860 GiB and remains at that level into FRI; it was not first
+created by decommitment. The geometry report shows a 12.40 GiB writer-scratch
+slot live during trace generation and a 3.56 GiB evaluation tile live during
+constraint evaluation. Further capacity work should measure the physical
+contribution and access pattern of these buffers before changing their
+placement or geometry. Sparse opening replay remains a separate longer-term
+opportunity, not an explanation for this measured peak.
