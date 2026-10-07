@@ -22,6 +22,9 @@ const Entry = struct {
     lanes: Simd,
     raw: ?[]Var = null,
     boolean: bool = false,
+    /// A preceding integer view/arithmetic node has already constrained the
+    /// byte bound. This avoids repeating the range gadget at every u8 use.
+    integer_spec: ?u32 = null,
 };
 
 pub fn compileRaw(comptime V: type, allocator: std.mem.Allocator, program: relation.Program, assignment: ?relation.Assignment) !circuit.builder.Context(V) {
@@ -62,7 +65,7 @@ pub fn compileRaw(comptime V: type, allocator: std.mem.Allocator, program: relat
         const lhs: ?Entry = if (node.lhs) |name| values.get(name) orelse return error.UnknownOperand else null;
         const rhs: ?Entry = if (node.rhs) |name| values.get(name) orelse return error.UnknownOperand else null;
         const selector: ?Entry = if (node.selector) |name| values.get(name) orelse return error.UnknownOperand else null;
-        const length: usize = if (node.op == .constant or node.op == .array_slice) node.length.? else if (node.op == .array_get or node.op == .sum_lanes or node.op == .u256_le or node.op == .u32_lt or node.op == .bool_not or node.op == .bool_and or node.op == .bool_or or node.op == .bool_xor or node.op == .bool_select) 1 else if (node.op == .array_concat) lhs.?.shape.length + rhs.?.shape.length else if (node.op == .bitcoin_genesis_hash_mainnet) 16 else if (node.op == .hash_blake2s or node.op == .hash_blake2s_leaf or node.op == .hash_blake2s_pair or node.op == .hash_poseidon2_leaf or node.op == .hash_poseidon2_pair) 8 else lhs.?.shape.length;
+        const length: usize = if (node.op == .constant or node.op == .array_slice) node.length.? else if (node.op == .array_get or node.op == .sum_lanes or node.op == .u256_le or node.op == .u32_lt or node.op == .int_le or node.op == .bool_not or node.op == .bool_and or node.op == .bool_or or node.op == .bool_xor or node.op == .bool_select) 1 else if (node.op == .array_concat) lhs.?.shape.length + rhs.?.shape.length else if (node.op == .bitcoin_genesis_hash_mainnet) 16 else if (node.op == .hash_blake2s or node.op == .hash_blake2s_leaf or node.op == .hash_blake2s_pair or node.op == .hash_poseidon2_leaf or node.op == .hash_poseidon2_pair) 8 else lhs.?.shape.length;
         const entry: Entry = switch (node.op) {
             .array_get => try arrayGet(V, &ctx, lhs.?, node.index.?),
             .array_slice => try arraySlice(V, &ctx, lhs.?, node.index.?, node.length.?),
@@ -88,6 +91,12 @@ pub fn compileRaw(comptime V: type, allocator: std.mem.Allocator, program: relat
             .u256_add_checked => try u256Binary(V, &ctx, lhs.?, rhs.?, .add_checked),
             .u256_sub => try u256Binary(V, &ctx, lhs.?, rhs.?, .sub),
             .u256_sub_checked => try u256Binary(V, &ctx, lhs.?, rhs.?, .sub_checked),
+            .int_view => try intView(V, &ctx, lhs.?, node.constant.?),
+            .int_add_checked => try intBinary(V, &ctx, lhs.?, rhs.?, node.constant.?, .add_checked),
+            .int_add_wrapping => try intBinary(V, &ctx, lhs.?, rhs.?, node.constant.?, .add),
+            .int_sub_checked => try intBinary(V, &ctx, lhs.?, rhs.?, node.constant.?, .sub_checked),
+            .int_sub_wrapping => try intBinary(V, &ctx, lhs.?, rhs.?, node.constant.?, .sub),
+            .int_le => try intBinary(V, &ctx, lhs.?, rhs.?, node.constant.?, .le),
             .hash_sha256d_header => try sha256dHeader(V, &ctx, lhs.?),
             .bitcoin_target_mainnet => try mainnetTarget(V, &ctx, lhs.?),
             .bitcoin_block_work => try blockWorkEntry(V, &ctx, lhs.?),
@@ -337,6 +346,12 @@ fn compileWithSpansMode(comptime V: type, allocator: std.mem.Allocator, program:
             .u256_add_checked => try u256Binary(V, &ctx, entries[node.lhs.?], entries[node.rhs.?], .add_checked),
             .u256_sub => try u256Binary(V, &ctx, entries[node.lhs.?], entries[node.rhs.?], .sub),
             .u256_sub_checked => try u256Binary(V, &ctx, entries[node.lhs.?], entries[node.rhs.?], .sub_checked),
+            .int_view => try intView(V, &ctx, entries[node.lhs.?], node.constant.?),
+            .int_add_checked => try intBinary(V, &ctx, entries[node.lhs.?], entries[node.rhs.?], node.constant.?, .add_checked),
+            .int_add_wrapping => try intBinary(V, &ctx, entries[node.lhs.?], entries[node.rhs.?], node.constant.?, .add),
+            .int_sub_checked => try intBinary(V, &ctx, entries[node.lhs.?], entries[node.rhs.?], node.constant.?, .sub_checked),
+            .int_sub_wrapping => try intBinary(V, &ctx, entries[node.lhs.?], entries[node.rhs.?], node.constant.?, .sub),
+            .int_le => try intBinary(V, &ctx, entries[node.lhs.?], entries[node.rhs.?], node.constant.?, .le),
             .hash_sha256d_header => blk: {
                 if (!sha_chip_mode) break :blk try sha256dHeader(V, &ctx, entries[node.lhs.?]);
                 const input = entries[node.lhs.?];
@@ -667,6 +682,120 @@ fn mainnetGenesisHash(comptime V: type, ctx: *circuit.builder.Context(V)) !Entry
 /// carry/borrow is Boolean. Since each integer equation has magnitude below
 /// 2^18 < p, equality in M31 is also equality over the integers.
 const U256Mode = enum { add, add_checked, sub, sub_checked, le };
+
+fn constrainByte(comptime V: type, ctx: *circuit.builder.Context(V), word: Var) !void {
+    // word is already u16. Both sides of 256*word = scaled are below p, and
+    // scaled is u16, so this proves word < 256 over the integers.
+    const value: u32 = if (comptime V == QM31) ctx.get(word).toM31Array()[0].v else 0;
+    const scaled = try ctx.guessU16(circuit.builder.ivalue.fromQm31(V, QM31.fromBase(M31.fromCanonical((value * 256) & 0xffff))));
+    const factor = try ctx.constant(QM31.fromBase(M31.fromCanonical(256)));
+    try ctx.eq(try ctx.mul(word, factor), scaled);
+}
+
+fn integerSign(comptime V: type, ctx: *circuit.builder.Context(V), word: Var, width: u32) !Var {
+    const half: u32 = if (width == 8) 128 else 32768;
+    const scale: u32 = if (width == 8) 512 else 2;
+    const value: u32 = if (comptime V == QM31) ctx.get(word).toM31Array()[0].v else 0;
+    const lower_value = value & (half - 1);
+    const lower = try ctx.guessU16(circuit.builder.ivalue.fromQm31(V, QM31.fromBase(M31.fromCanonical(lower_value))));
+    const bounded = try ctx.guessU16(circuit.builder.ivalue.fromQm31(V, QM31.fromBase(M31.fromCanonical(lower_value * scale))));
+    const scale_wire = try ctx.constant(QM31.fromBase(M31.fromCanonical(scale)));
+    try ctx.eq(try ctx.mul(lower, scale_wire), bounded);
+    const sign = try ctx.guess(circuit.builder.ivalue.fromQm31(V, QM31.fromBase(M31.fromCanonical(@intFromBool(value & half != 0)))));
+    try ctx.eq(try ctx.mul(sign, sign), sign);
+    const half_wire = try ctx.constant(QM31.fromBase(M31.fromCanonical(half)));
+    try ctx.eq(word, try ctx.add(lower, try ctx.mul(sign, half_wire)));
+    return sign;
+}
+
+fn intView(comptime V: type, ctx: *circuit.builder.Context(V), input: Entry, encoded: u32) !Entry {
+    const spec = relation.IntegerSpec.decode(encoded) orelse return error.InvalidIntegerSpec;
+    const raw = input.raw orelse return error.InvalidIntegerOperand;
+    if (input.shape.kind != .u16 or raw.len != spec.limbCount()) return error.InvalidIntegerOperand;
+    if (spec.width == 8 and (input.integer_spec == null or (input.integer_spec.? & 0xff) != 8))
+        try constrainByte(V, ctx, raw[0]);
+    var viewed = input;
+    viewed.integer_spec = encoded;
+    return viewed;
+}
+
+fn intBinary(comptime V: type, ctx: *circuit.builder.Context(V), lhs: Entry, rhs: Entry, encoded: u32, mode: U256Mode) !Entry {
+    const spec = relation.IntegerSpec.decode(encoded) orelse return error.InvalidIntegerSpec;
+    const left = lhs.raw orelse return error.InvalidIntegerOperand;
+    const right = rhs.raw orelse return error.InvalidIntegerOperand;
+    if (lhs.shape.kind != .u16 or rhs.shape.kind != .u16 or
+        left.len != spec.limbCount() or right.len != spec.limbCount()) return error.InvalidIntegerOperand;
+    if (spec.width == 8) {
+        if (lhs.integer_spec == null or (lhs.integer_spec.? & 0xff) != 8) try constrainByte(V, ctx, left[0]);
+        if (rhs.integer_spec == null or (rhs.integer_spec.? & 0xff) != 8) try constrainByte(V, ctx, right[0]);
+    }
+    const base_value: u32 = if (spec.width == 8) 256 else 65536;
+    const base = try ctx.constant(QM31.fromBase(M31.fromCanonical(base_value)));
+    const digits = try ctx.scratch().alloc(Var, left.len);
+    var incoming = ctx.zero();
+    var carry_value: u32 = 0;
+    const compare = mode == .le;
+    const borrowing = compare or mode == .sub or mode == .sub_checked;
+    for (left, right, digits) |a, b, *digit| {
+        const av: u32 = if (comptime V == QM31) ctx.get(a).toM31Array()[0].v else 0;
+        const bv: u32 = if (comptime V == QM31) ctx.get(b).toM31Array()[0].v else 0;
+        const first = if (compare) bv else av;
+        const second = if (compare) av else bv;
+        const value: u32 = if (borrowing)
+            (first +% base_value -% second -% carry_value) & (base_value - 1)
+        else
+            (av + bv + carry_value) & (base_value - 1);
+        const next: u32 = if (borrowing)
+            @intFromBool(first < second + carry_value)
+        else
+            (av + bv + carry_value) / base_value;
+        digit.* = try ctx.guessU16(circuit.builder.ivalue.fromQm31(V, QM31.fromBase(M31.fromCanonical(value))));
+        if (spec.width == 8) try constrainByte(V, ctx, digit.*);
+        const outgoing = try ctx.guess(circuit.builder.ivalue.fromQm31(V, QM31.fromBase(M31.fromCanonical(next))));
+        try ctx.eq(try ctx.mul(outgoing, outgoing), outgoing);
+        const scaled = try ctx.mul(outgoing, base);
+        if (borrowing) {
+            const first_wire = if (compare) b else a;
+            const second_wire = if (compare) a else b;
+            try ctx.eq(try ctx.add(first_wire, scaled), try ctx.add(try ctx.add(second_wire, incoming), digit.*));
+        } else {
+            try ctx.eq(try ctx.add(try ctx.add(a, b), incoming), try ctx.add(digit.*, scaled));
+        }
+        incoming = outgoing;
+        carry_value = next;
+    }
+    if (compare) {
+        const unsigned_le = try ctx.sub(ctx.one(), incoming);
+        const result = if (spec.signed) blk: {
+            const left_sign = try integerSign(V, ctx, left[left.len - 1], spec.width);
+            const right_sign = try integerSign(V, ctx, right[right.len - 1], spec.width);
+            const difference = try ctx.sub(left_sign, right_sign);
+            const different = try ctx.mul(difference, difference);
+            break :blk try ctx.add(try ctx.mul(different, left_sign), try ctx.mul(try ctx.sub(ctx.one(), different), unsigned_le));
+        } else unsigned_le;
+        const wires = try ctx.scratch().alloc(Var, 1);
+        wires[0] = result;
+        return .{ .shape = .{ .kind = .m31, .length = 1 }, .lanes = Simd.fromPacked(wires, 1), .raw = wires, .boolean = true };
+    }
+    if (mode == .add_checked or mode == .sub_checked) {
+        if (!spec.signed) {
+            try assertZeroArithmetic(V, ctx, incoming);
+        } else {
+            const sa = try integerSign(V, ctx, left[left.len - 1], spec.width);
+            const sb = try integerSign(V, ctx, right[right.len - 1], spec.width);
+            const sr = try integerSign(V, ctx, digits[digits.len - 1], spec.width);
+            const ab = try ctx.sub(sa, sb);
+            const ar = try ctx.sub(sa, sr);
+            const ab_different = try ctx.mul(ab, ab);
+            const ar_different = try ctx.mul(ar, ar);
+            const overflow = try ctx.mul(if (mode == .sub_checked) ab_different else try ctx.sub(ctx.one(), ab_different), ar_different);
+            try assertZeroArithmetic(V, ctx, overflow);
+        }
+    }
+    const wrappers = try ctx.scratch().alloc(circuit.builder.wrappers.M31Wrapper(Var), digits.len);
+    for (wrappers, digits) |*wrapped, digit| wrapped.* = .newUnsafe(digit);
+    return .{ .shape = .{ .kind = .u16, .length = digits.len }, .lanes = try circuit.builder.simd.pack(V, ctx, wrappers), .raw = digits, .integer_spec = encoded };
+}
 
 fn u256Binary(comptime V: type, ctx: *circuit.builder.Context(V), lhs: Entry, rhs: Entry, mode: U256Mode) !Entry {
     const left = lhs.raw orelse return error.InvalidU256Operand;
@@ -1649,4 +1778,114 @@ test "Blake2s relation matches the reference evaluator" {
     var ctx = try compile(QM31, std.testing.allocator, program.value, assignment.value);
     defer ctx.deinit();
     try std.testing.expect(try ctx.isCircuitValid());
+}
+
+test "fixed integer byte bounds, signed overflow and width-specific carry are circuit constraints" {
+    const allocator = std.testing.allocator;
+    const valid_cases = .{
+        .{
+            \\{"version":1,"name":"i8_wrapping","inputs":[{"name":"a","kind":"u16","length":1,"visibility":"private"},{"name":"b","kind":"u16","length":1,"visibility":"private"}],"nodes":[{"name":"av","op":"int_view","lhs":"a","constant":264},{"name":"bv","op":"int_view","lhs":"b","constant":264},{"name":"sum","op":"int_add_wrapping","lhs":"av","rhs":"bv","constant":264}],"assertions":[],"public_outputs":["sum"]}
+            ,
+            \\{"public_inputs":{},"private_inputs":{"a":[120],"b":[10]},"public_outputs":{"sum":[130]}}
+        },
+        .{
+            \\{"version":1,"name":"u32_carry","inputs":[{"name":"a","kind":"u16","length":2,"visibility":"private"},{"name":"b","kind":"u16","length":2,"visibility":"private"}],"nodes":[{"name":"av","op":"int_view","lhs":"a","constant":32},{"name":"bv","op":"int_view","lhs":"b","constant":32},{"name":"sum","op":"int_add_checked","lhs":"av","rhs":"bv","constant":32}],"assertions":[],"public_outputs":["sum"]}
+            ,
+            \\{"public_inputs":{},"private_inputs":{"a":[65535,0],"b":[1,0]},"public_outputs":{"sum":[0,1]}}
+        },
+        .{
+            \\{"version":1,"name":"i8_order","inputs":[{"name":"a","kind":"u16","length":1,"visibility":"private"},{"name":"b","kind":"u16","length":1,"visibility":"private"}],"nodes":[{"name":"less","op":"int_le","lhs":"a","rhs":"b","constant":264}],"assertions":[],"public_outputs":["less"]}
+            ,
+            \\{"public_inputs":{},"private_inputs":{"a":[255],"b":[0]},"public_outputs":{"less":[1]}}
+        },
+    };
+    inline for (valid_cases) |case| {
+        var program = try relation.parseProgram(allocator, case[0]);
+        defer program.deinit();
+        var assignment = try relation.parseAssignment(allocator, case[1]);
+        defer assignment.deinit();
+        _ = try relation.evaluate(allocator, program.value, assignment.value);
+        var optimized = try compile(QM31, allocator, program.value, assignment.value);
+        defer optimized.deinit();
+        var raw = try compileRaw(QM31, allocator, program.value, assignment.value);
+        defer raw.deinit();
+        try std.testing.expect(try optimized.isCircuitValid());
+        try std.testing.expect(try raw.isCircuitValid());
+        var topology = try compile(circuit.builder.NoValue, allocator, program.value, null);
+        defer topology.deinit();
+        try std.testing.expectEqual(optimized.circuit.n_vars, topology.circuit.n_vars);
+    }
+    const overflow_source =
+        \\{"version":1,"name":"i8_checked","inputs":[{"name":"a","kind":"u16","length":1,"visibility":"private"},{"name":"b","kind":"u16","length":1,"visibility":"private"}],"nodes":[{"name":"sum","op":"int_add_checked","lhs":"a","rhs":"b","constant":264}],"assertions":[],"public_outputs":["sum"]}
+    ;
+    const overflow_assignment =
+        \\{"public_inputs":{},"private_inputs":{"a":[120],"b":[10]},"public_outputs":{"sum":[130]}}
+    ;
+    var overflow_program = try relation.parseProgram(allocator, overflow_source);
+    defer overflow_program.deinit();
+    var overflow_values = try relation.parseAssignment(allocator, overflow_assignment);
+    defer overflow_values.deinit();
+    try std.testing.expectError(error.IntegerOverflow, relation.evaluate(allocator, overflow_program.value, overflow_values.value));
+    var invalid = try compile(QM31, allocator, overflow_program.value, overflow_values.value);
+    defer invalid.deinit();
+    try std.testing.expect(!try invalid.isCircuitValid());
+    const byte_source =
+        \\{"version":1,"name":"u8_range","inputs":[{"name":"a","kind":"u16","length":1,"visibility":"private"}],"nodes":[{"name":"view","op":"int_view","lhs":"a","constant":8}],"assertions":[],"public_outputs":["view"]}
+    ;
+    const byte_assignment =
+        \\{"public_inputs":{},"private_inputs":{"a":[256]},"public_outputs":{"view":[256]}}
+    ;
+    var byte_program = try relation.parseProgram(allocator, byte_source);
+    defer byte_program.deinit();
+    var byte_values = try relation.parseAssignment(allocator, byte_assignment);
+    defer byte_values.deinit();
+    try std.testing.expectError(error.IntegerOutOfRange, relation.evaluate(allocator, byte_program.value, byte_values.value));
+    var invalid_byte = try compile(QM31, allocator, byte_program.value, byte_values.value);
+    defer invalid_byte.deinit();
+    try std.testing.expect(!try invalid_byte.isCircuitValid());
+}
+
+test "signed i128 full carry is valid and signed overflow is rejected" {
+    const allocator = std.testing.allocator;
+    const source =
+        \\{"version":1,"name":"i128_checked","inputs":[{"name":"a","kind":"u16","length":8,"visibility":"private"},{"name":"b","kind":"u16","length":8,"visibility":"private"}],"nodes":[{"name":"sum","op":"int_add_checked","lhs":"a","rhs":"b","constant":384}],"assertions":[],"public_outputs":["sum"]}
+    ;
+    const valid_assignment =
+        \\{"public_inputs":{},"private_inputs":{"a":[65535,65535,65535,65535,65535,65535,65535,65535],"b":[2,0,0,0,0,0,0,0]},"public_outputs":{"sum":[1,0,0,0,0,0,0,0]}}
+    ;
+    const overflowing_assignment =
+        \\{"public_inputs":{},"private_inputs":{"a":[0,0,0,0,0,0,0,32768],"b":[65535,65535,65535,65535,65535,65535,65535,65535]},"public_outputs":{"sum":[65535,65535,65535,65535,65535,65535,65535,32767]}}
+    ;
+    var program = try relation.parseProgram(allocator, source);
+    defer program.deinit();
+    var valid = try relation.parseAssignment(allocator, valid_assignment);
+    defer valid.deinit();
+    _ = try relation.evaluate(allocator, program.value, valid.value);
+    var circuit_value = try compile(QM31, allocator, program.value, valid.value);
+    defer circuit_value.deinit();
+    try std.testing.expect(try circuit_value.isCircuitValid());
+    var overflowing = try relation.parseAssignment(allocator, overflowing_assignment);
+    defer overflowing.deinit();
+    try std.testing.expectError(error.IntegerOverflow, relation.evaluate(allocator, program.value, overflowing.value));
+    var invalid = try compile(QM31, allocator, program.value, overflowing.value);
+    defer invalid.deinit();
+    try std.testing.expect(!try invalid.isCircuitValid());
+}
+
+test "public u8 input above 255 cannot satisfy integer view" {
+    const allocator = std.testing.allocator;
+    const source =
+        \\{"version":1,"name":"public_u8","inputs":[{"name":"a","kind":"u16","length":1,"visibility":"public"}],"nodes":[{"name":"view","op":"int_view","lhs":"a","constant":8}],"assertions":[],"public_outputs":["view"]}
+    ;
+    const assignment_text =
+        \\{"public_inputs":{"a":[256]},"public_outputs":{"view":[256]}}
+    ;
+    var program = try relation.parseProgram(allocator, source);
+    defer program.deinit();
+    var assignment = try relation.parseAssignment(allocator, assignment_text);
+    defer assignment.deinit();
+    try std.testing.expectError(error.IntegerOutOfRange, relation.evaluate(allocator, program.value, assignment.value));
+    var ctx = try compile(QM31, allocator, program.value, assignment.value);
+    defer ctx.deinit();
+    try std.testing.expect(!try ctx.isCircuitValid());
 }

@@ -83,7 +83,7 @@ def abi(source: dict, lowering: str) -> dict:
         op = node["op"]
         if op in {"constant", "array_slice"}:
             length = node["length"]
-        elif op in {"sum_lanes", "u256_le", "u32_lt", "array_get"}:
+        elif op in {"sum_lanes", "u256_le", "u32_lt", "int_le", "array_get"}:
             length = 1
         elif op == "array_concat":
             length = shapes[node["lhs"]]["length"] + shapes[node["rhs"]]["length"]
@@ -97,7 +97,7 @@ def abi(source: dict, lowering: str) -> dict:
         else:
             length = shapes[node["lhs"]]["length"]
         shapes[node["name"]] = {"kind": (shapes[node["lhs"]]["kind"] if op in {"array_get", "array_concat", "array_slice", "select"} else
-                                         "u16" if op in {"u256_add", "u256_add_checked", "u256_sub", "u256_sub_checked", "hash_sha256d_header", "bitcoin_target_mainnet", "bitcoin_block_work", "bitcoin_prev_hash", "bitcoin_header_bits", "bitcoin_header_time", "bitcoin_genesis_hash_mainnet"} else "m31"), "length": length}
+                                         "u16" if op in {"int_view", "int_add_checked", "int_add_wrapping", "int_sub_checked", "int_sub_wrapping", "u256_add", "u256_add_checked", "u256_sub", "u256_sub_checked", "hash_sha256d_header", "bitcoin_target_mainnet", "bitcoin_block_work", "bitcoin_prev_hash", "bitcoin_header_bits", "bitcoin_header_time", "bitcoin_genesis_hash_mainnet"} else "m31"), "length": length}
     return {
         "schema": "s31-public-abi-v1",
         "encoding": "eight canonical M31 words, encoded little-endian u32; unused words are zero" if lowering.startswith("direct-") or lowering in {"sha-shift", "sha-fused"} else "eight little-endian u32 words; unused words are zero",
@@ -300,7 +300,8 @@ def lower_text(source_path: Path) -> tuple[dict, bytes, dict]:
 
 def text_interface(circuit: object, explicit_import: bool) -> dict:
     def type_entry(typ: object) -> dict:
-        return {"kind": typ.kind, "length": typ.length,
+        kind = typ.kind[4:] if typ.kind.startswith("int_") else typ.kind
+        return {"kind": kind, "length": typ.length,
                 **({"family": typ.family} if typ.family else {})}
 
     return {
@@ -688,6 +689,36 @@ def equations(package: Path) -> dict:
                 f"{name}[{left[1]}+j] - {node['rhs']}[j] = 0, 0 <= j < {right[1]}",
             ))
             notes.append("This is a concatenated view of constrained positions; it introduces no independent witness values.")
+        elif op in {"int_view", "int_add_checked", "int_add_wrapping", "int_sub_checked", "int_sub_wrapping", "int_le"}:
+            width = node["constant"] & 255
+            signed = bool(node["constant"] & 256)
+            limb_count = max(1, width // 16)
+            base = 256 if width == 8 else 65536
+            shape = ("m31", 1) if op == "int_le" else ("u16", limb_count)
+            functional_spec = f"{name} = {op}<{('i' if signed else 'u')}{width}>({node['lhs']}" + (")" if op == "int_view" else f", {node['rhs']})")
+            if width == 8:
+                if op == "int_view":
+                    field_equations.append(f"256*{node['lhs']}[0] is range checked as u16, proving 0 <= {node['lhs']}[0] < 256")
+                else:
+                    field_equations.append("Both operand bytes are proved below 256 by their producer or a local range gadget.")
+            if op == "int_view":
+                notes.append("The view binds width and signedness into the canonical relation. Its result aliases the input limbs.")
+            else:
+                field_equations.append(f"c[0] = 0; c[j] in {{0,1}}; each arithmetic digit is in [0,{base - 1}]")
+                if op.startswith("int_add"):
+                    field_equations.append(f"{node['lhs']}[j] + {node['rhs']}[j] + c[j] - {name}[j] - {base}*c[j+1] = 0")
+                else:
+                    dividend, divisor = (node["rhs"], node["lhs"]) if op == "int_le" else (node["lhs"], node["rhs"])
+                    digit = "d" if op == "int_le" else name
+                    field_equations.append(f"{dividend}[j] + {base}*c[j+1] - {divisor}[j] - c[j] - {digit}[j] = 0")
+                if op.endswith("checked"):
+                    field_equations.append("Equal operand signs for add, or opposite signs for sub, cannot produce a changed result sign." if signed else "The final carry/borrow is zero.")
+                elif op == "int_le":
+                    field_equations.append(f"Unsigned result = 1 - c[{limb_count}]; signed result chooses the left sign when signs differ, otherwise unsigned result")
+                else:
+                    notes.append(f"Wrapping discards c[{limb_count}] and returns the low {width} bits.")
+                if signed:
+                    notes.append("Top-limb sign bits are Boolean and extracted with a bounded low part: top = low + sign*2^(top_limb_bits-1).")
         elif op in {"u256_add", "u256_le", "u256_add_checked", "u256_sub", "u256_sub_checked"}:
             shape = ("u16", 16) if op in {"u256_add", "u256_add_checked", "u256_sub", "u256_sub_checked"} else ("m31", 1)
             functional_spec = f"{name} = {op}({node['lhs']}, {node['rhs']})"

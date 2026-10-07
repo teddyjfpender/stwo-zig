@@ -59,7 +59,7 @@
     },
     "types": {
       "patterns": [
-        { "name": "support.type.primitive.s31", "match": "\\b(?:m31|u16|bit|UInt256|Bytes32)\\b" },
+        { "name": "support.type.primitive.s31", "match": "\\b(?:m31|[ui](?:8|16|32|64|128)|bit|UInt256|Bytes32)\\b" },
         { "name": "entity.name.type.digest.s31", "match": "\\b(?:Digest|Poseidon2|Blake2sReduced)\\b" }
       ]
     },
@@ -74,8 +74,18 @@
     },
     "stdlib": {
       "patterns": [
+        {
+          "match": "\\b(std)(::)(int)(::)(add_checked|add_wrapping|sub_checked|sub_wrapping|le|lt|ge|gt|eq|ne|limbs|from_limbs_(?:u|i)(?:8|16|32|64|128)|reinterpret_(?:u|i)(?:8|16|32|64|128))(?=\\s*\\()",
+          "captures": {
+            "1": { "name": "support.module.std.s31" },
+            "2": { "name": "punctuation.accessor.s31" },
+            "3": { "name": "support.namespace.s31" },
+            "4": { "name": "punctuation.accessor.s31" },
+            "5": { "name": "support.function.builtin.s31" }
+          }
+        },
         { "name": "support.module.std.s31", "match": "\\bstd(?=\\s*(?:::|@))" },
-        { "name": "support.namespace.s31", "match": "\\b(?:math|bytes|field|hash|merkle)(?=\\s*::)" }
+        { "name": "support.namespace.s31", "match": "\\b(?:math|bytes|field|hash|merkle|int)(?=\\s*::)" }
       ]
     },
     "builtins": {

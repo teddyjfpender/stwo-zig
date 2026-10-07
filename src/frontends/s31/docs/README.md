@@ -43,6 +43,9 @@ text .s31 ──parse/typecheck/specialize──▶ normalized relation JSON
 - [Thirty-two bytes and 256-bit arithmetic](wide-values.md): distinct
    `Bytes32` and `UInt256` types, hand-filled carry and borrow tables,
    and constrained limb equations.
+- [Fixed-width integers from source to AIR](fixed-width-integers.md): all
+   ten unsigned and signed scalar types, a checked `u8` proof by hand,
+   byte range, carry, sign, and comparison constraints.
 - [Bitcoin header SHA256d and proof of work](bitcoin-sha256d.md): two actual
    linked 80-byte headers, a one-new-header transition leaf, compact target
    decoding, handwritten gate equations, verified proofs, and the SHA chip boundary.
@@ -106,6 +109,8 @@ The worked examples use checked-in sources under [`../examples`](../examples):
 | [`merkle_path1_poseidon.s31`](../examples/hashes/merkle_path1_poseidon.s31) | Private leaf, constrained bit, ordered hashing, public root | `direct-gate` |
 | [`preimage4.s31`](../examples/hashes/preimage4.s31) | Private `u16` witness and an equality assertion | `gate` |
 | [`wide_order.s31`](../examples/wide/wide_order.s31) | Sixteen-limb addition and comparison with an auxiliary public commitment | `gate` |
+| [`int_u8_checked.s31`](../examples/math/int_u8_checked.s31) | One-byte checked addition and a public result | `sparse-wide-gate` |
+| [`int_i128_signed_order.s31`](../examples/math/int_i128_signed_order.s31) | Signed 128-bit order at the negative boundary | `sparse-wide-gate` |
 | [`bitcoin_header_pow.s31`](../examples/bitcoin/bitcoin_header_pow.s31) | Byte-exact SHA256d and mainnet compact proof of work for one header | `sparse-wide-gate` |
 | [`bitcoin_header_pair.s31`](../examples/bitcoin/bitcoin_header_pair.s31) | Mainnet genesis checkpoint, block-one hash linkage, same bits, and both PoW checks | `sparse-wide-gate` |
 

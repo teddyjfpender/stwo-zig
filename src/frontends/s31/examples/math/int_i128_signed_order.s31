@@ -1,0 +1,8 @@
+use std@1;
+
+// Inputs use little-endian u16 limbs. The high bit of limb 7 is the sign.
+// The fixture compares -2^127 with zero, so the public bit must be one.
+circuit int_i128_signed_order(private a: i128, private b: i128) -> public bit {
+    let ordered = std::int::le(a, b);
+    ordered
+}

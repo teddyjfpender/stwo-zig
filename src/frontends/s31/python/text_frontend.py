@@ -18,7 +18,21 @@ from pathlib import Path
 from typing import Any
 
 import s31_mathlib as mathlib
-from s31_stdlib import Builder, StaticGroup, StepState, Type, TypeErrorS31, Value, P, STDLIB_ABI_VERSION
+from s31_stdlib import Builder, StaticGroup, StepState, Type, TypeErrorS31, Value, P, STDLIB_ABI_VERSION, INT_TYPES
+
+
+INT_SOURCE_TYPES = {kind[4:]: kind for kind in INT_TYPES}
+INT_BINARY_CALLS = {
+    "std::int::add_checked": "int_add_checked",
+    "std::int::add_wrapping": "int_add_wrapping",
+    "std::int::sub_checked": "int_sub_checked",
+    "std::int::sub_wrapping": "int_sub_wrapping",
+    "std::int::le": "int_le",
+}
+INT_COMPARE_CALLS = {"std::int::lt", "std::int::ge", "std::int::gt", "std::int::eq", "std::int::ne"}
+INT_CAST_CALLS = {f"std::int::from_limbs_{kind}" for kind in INT_SOURCE_TYPES} | {
+    f"std::int::reinterpret_{kind}" for kind in INT_SOURCE_TYPES
+}
 
 
 TOKEN_RE = re.compile(
@@ -81,6 +95,7 @@ STANDARD_ALIASES = {
     "std::merkle::path_blake2s": "merkle_path_blake2s",
 }
 BUILTINS |= STANDARD_ALIASES.keys()
+BUILTINS |= INT_BINARY_CALLS.keys() | INT_COMPARE_CALLS | INT_CAST_CALLS | {"std::int::limbs"}
 
 
 class SourceError(ValueError):
@@ -209,6 +224,10 @@ class Parser:
                 raise self.error(str(exc), token) from exc
         if self.accept("bit"):
             return Type("bit", 1)
+        if token.text in INT_SOURCE_TYPES:
+            self.at += 1
+            kind = INT_SOURCE_TYPES[token.text]
+            return Type(kind, max(1, INT_TYPES[kind][0] // 16))
         if self.accept("UInt256"):
             return Type("uint256", 16)
         if self.accept("Bytes32"):
@@ -231,7 +250,7 @@ class Parser:
             if normalized is None:
                 raise self.error("digest family must be Poseidon2 or Blake2sReduced", token)
             return Type("digest", 8, normalized)
-        raise self.error("expected [m31; N], [u16; N], bit, UInt256, Bytes32, BlockHash, Target, Work, ChainWork, Bytes80, or Digest<Family>")
+        raise self.error("expected [m31; N], [u16; N], bit, a fixed-width integer, UInt256, Bytes32, BlockHash, Target, Work, ChainWork, Bytes80, or Digest<Family>")
 
     def parameters(self, circuit: bool) -> tuple[Any, ...]:
         self.expect("(")
@@ -497,6 +516,38 @@ class Compiler:
             if expr.kind != "call":
                 raise TypeErrorS31("invalid expression")
             name = STANDARD_ALIASES.get(expr.value, expr.value)
+            if name in INT_BINARY_CALLS or name in INT_COMPARE_CALLS or name in INT_CAST_CALLS or name == "std::int::limbs":
+                if expr.generic is not None:
+                    raise TypeErrorS31(f"{name} does not accept a static parameter")
+                arity = 2 if name in INT_BINARY_CALLS or name in INT_COMPARE_CALLS else 1
+                if len(expr.args) != arity:
+                    raise TypeErrorS31(f"{name} expects {arity} arguments")
+                values = tuple(self.expect_value(self.eval_expr(arg, env), arg) for arg in expr.args)
+                if name in INT_BINARY_CALLS:
+                    return self.builder.int_binary(INT_BINARY_CALLS[name], *values,
+                                                   wanted=wanted, span=self.span(expr))
+                if name in INT_COMPARE_CALLS:
+                    lhs, rhs = values
+                    if name == "std::int::ge":
+                        return self.builder.int_binary("int_le", rhs, lhs, wanted=wanted, span=self.span(expr))
+                    if name in {"std::int::lt", "std::int::gt"}:
+                        left, right = (rhs, lhs) if name.endswith("lt") else (lhs, rhs)
+                        le = self.builder.int_binary("int_le", left, right, span=self.span(expr))
+                        return self.builder.boolean("bool_not", le, wanted=wanted, span=self.span(expr))
+                    le = self.builder.int_binary("int_le", lhs, rhs, span=self.span(expr))
+                    ge = self.builder.int_binary("int_le", rhs, lhs, span=self.span(expr))
+                    equal = self.builder.boolean("bool_and", le, ge,
+                                                 wanted=wanted if name.endswith("eq") else None,
+                                                 span=self.span(expr))
+                    return (equal if name.endswith("eq") else
+                            self.builder.boolean("bool_not", equal, wanted=wanted, span=self.span(expr)))
+                if name == "std::int::limbs":
+                    return self.builder.int_limbs(values[0])
+                if name.startswith("std::int::from_limbs_"):
+                    return self.builder.int_from_limbs(values[0], name.removeprefix("std::int::from_limbs_"),
+                                                       wanted=wanted, span=self.span(expr))
+                return self.builder.int_reinterpret(values[0], name.removeprefix("std::int::reinterpret_"),
+                                                    wanted=wanted, span=self.span(expr))
             if name == "std::array::get":
                 if expr.generic is None or len(expr.args) != 1:
                     raise TypeErrorS31("std::array::get<K>(array) expected")

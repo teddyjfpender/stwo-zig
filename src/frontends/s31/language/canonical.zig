@@ -7,7 +7,7 @@ const core = @import("stwo_core");
 const relation = @import("relation.zig");
 const M31 = core.fields.m31.M31;
 
-pub const Tag = enum { input, constant, cast_m31, add, mul, add_const, mul_const, repeat, hash_blake2s, hash_blake2s_leaf, hash_blake2s_pair, select, hash_poseidon2_leaf, hash_poseidon2_pair, sum_lanes, u256_add, u256_le, u256_add_checked, hash_sha256d_header, bitcoin_target_mainnet, bitcoin_prev_hash, bitcoin_header_bits, bitcoin_genesis_hash_mainnet, bitcoin_header_time, u32_lt, inv, is_zero, u256_sub, u256_sub_checked, array_get, array_concat, array_slice, bool_not, bool_and, bool_or, bool_xor, bool_select, bitcoin_block_work };
+pub const Tag = enum { input, constant, cast_m31, add, mul, add_const, mul_const, repeat, hash_blake2s, hash_blake2s_leaf, hash_blake2s_pair, select, hash_poseidon2_leaf, hash_poseidon2_pair, sum_lanes, u256_add, u256_le, u256_add_checked, hash_sha256d_header, bitcoin_target_mainnet, bitcoin_prev_hash, bitcoin_header_bits, bitcoin_genesis_hash_mainnet, bitcoin_header_time, u32_lt, inv, is_zero, u256_sub, u256_sub_checked, array_get, array_concat, array_slice, bool_not, bool_and, bool_or, bool_xor, bool_select, bitcoin_block_work, int_view, int_add_checked, int_add_wrapping, int_sub_checked, int_sub_wrapping, int_le };
 pub const Node = struct {
     tag: Tag,
     kind: relation.Kind,
@@ -111,7 +111,7 @@ pub fn build(allocator: std.mem.Allocator, program: relation.Program) !IR {
             .array_get => 1,
             .array_concat => nodes.items[lhs.?].length + nodes.items[rhs.?].length,
             .array_slice => raw.length.?,
-            .sum_lanes, .u256_le, .u32_lt, .is_zero, .bool_not, .bool_and, .bool_or, .bool_xor, .bool_select => 1,
+            .sum_lanes, .u256_le, .u32_lt, .int_le, .is_zero, .bool_not, .bool_and, .bool_or, .bool_xor, .bool_select => 1,
             .hash_sha256d_header, .bitcoin_target_mainnet, .bitcoin_prev_hash, .bitcoin_genesis_hash_mainnet, .bitcoin_block_work => 16,
             .bitcoin_header_bits, .bitcoin_header_time => 2,
             .hash_blake2s, .hash_blake2s_leaf, .hash_blake2s_pair, .hash_poseidon2_leaf, .hash_poseidon2_pair => 8,
@@ -121,7 +121,7 @@ pub fn build(allocator: std.mem.Allocator, program: relation.Program) !IR {
             .tag = @enumFromInt(@as(u8, @intFromEnum(raw.op)) + 1),
             .kind = if (raw.op == .array_get or raw.op == .array_concat or raw.op == .array_slice or raw.op == .select)
                 nodes.items[lhs.?].kind
-            else if (raw.op == .u256_add or raw.op == .u256_add_checked or raw.op == .u256_sub or raw.op == .u256_sub_checked or raw.op == .hash_sha256d_header or raw.op == .bitcoin_target_mainnet or raw.op == .bitcoin_prev_hash or raw.op == .bitcoin_header_bits or raw.op == .bitcoin_header_time or raw.op == .bitcoin_genesis_hash_mainnet or raw.op == .bitcoin_block_work) .u16 else .m31,
+            else if (raw.op == .int_view or raw.op == .int_add_checked or raw.op == .int_add_wrapping or raw.op == .int_sub_checked or raw.op == .int_sub_wrapping or raw.op == .u256_add or raw.op == .u256_add_checked or raw.op == .u256_sub or raw.op == .u256_sub_checked or raw.op == .hash_sha256d_header or raw.op == .bitcoin_target_mainnet or raw.op == .bitcoin_prev_hash or raw.op == .bitcoin_header_bits or raw.op == .bitcoin_header_time or raw.op == .bitcoin_genesis_hash_mainnet or raw.op == .bitcoin_block_work) .u16 else .m31,
             .length = length,
             .lhs = lhs,
             .rhs = rhs,
@@ -309,6 +309,32 @@ test "inverse extends the opcode roster without renumbering existing circuit tag
     try std.testing.expectEqual(@as(u8, 24), @intFromEnum(relation.Op.inv));
     try std.testing.expectEqual(@as(u8, 25), @intFromEnum(Tag.inv));
     try std.testing.expectEqual(@as(u8, 26), @intFromEnum(Tag.is_zero));
+}
+
+test "integer width and signedness are distinct canonical verifier identities" {
+    const unsigned_source =
+        \\{"version":1,"name":"integer_key","inputs":[{"name":"x","kind":"u16","length":1,"visibility":"private"}],"nodes":[{"name":"view","op":"int_view","lhs":"x","constant":8}],"assertions":[],"public_outputs":["view"]}
+    ;
+    const signed_source =
+        \\{"version":1,"name":"integer_key","inputs":[{"name":"x","kind":"u16","length":1,"visibility":"private"}],"nodes":[{"name":"view","op":"int_view","lhs":"x","constant":264}],"assertions":[],"public_outputs":["view"]}
+    ;
+    const wider_source =
+        \\{"version":1,"name":"integer_key","inputs":[{"name":"x","kind":"u16","length":1,"visibility":"private"}],"nodes":[{"name":"view","op":"int_view","lhs":"x","constant":16}],"assertions":[],"public_outputs":["view"]}
+    ;
+    var unsigned_program = try relation.parseProgram(std.testing.allocator, unsigned_source);
+    defer unsigned_program.deinit();
+    var signed_program = try relation.parseProgram(std.testing.allocator, signed_source);
+    defer signed_program.deinit();
+    var wider_program = try relation.parseProgram(std.testing.allocator, wider_source);
+    defer wider_program.deinit();
+    var unsigned_ir = try build(std.testing.allocator, unsigned_program.value);
+    defer unsigned_ir.deinit();
+    var signed_ir = try build(std.testing.allocator, signed_program.value);
+    defer signed_ir.deinit();
+    var wider_ir = try build(std.testing.allocator, wider_program.value);
+    defer wider_ir.deinit();
+    try std.testing.expect(!std.mem.eql(u8, &unsigned_ir.sha256, &signed_ir.sha256));
+    try std.testing.expect(!std.mem.eql(u8, &unsigned_ir.sha256, &wider_ir.sha256));
 }
 
 test "canonical graph folds constants and shares repeated expressions" {

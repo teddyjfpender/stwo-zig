@@ -1,0 +1,10 @@
+{
+  "public_inputs": {},
+  "private_inputs": {
+    "a": [250],
+    "b": [5]
+  },
+  "public_outputs": {
+    "sum": [255]
+  }
+}

@@ -1,0 +1,8 @@
+use std@1;
+
+// Both inputs are one-byte integers. A proof exists only if their exact sum
+// fits in u8; 250 + 5 = 255 is the largest accepted result.
+circuit int_u8_checked(private a: u8, private b: u8) -> public u8 {
+    let sum = std::int::add_checked(a, b);
+    sum
+}

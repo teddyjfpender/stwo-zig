@@ -22,6 +22,13 @@ from typing import Any
 P = (1 << 31) - 1
 STDLIB_ABI_VERSION = 1
 MAX_NODES = 100_000
+INT_TYPES = {f"int_{sign}{width}": (width, sign == "i")
+             for sign in ("u", "i") for width in (8, 16, 32, 64, 128)}
+
+
+def int_spec(typ: "Type") -> int:
+    width, signed = INT_TYPES[typ.kind]
+    return width | (256 if signed else 0)
 
 
 class TypeErrorS31(ValueError):
@@ -37,8 +44,10 @@ class Type:
     def __post_init__(self) -> None:
         if self.length < 1 or self.length > 4096:
             raise TypeErrorS31("array length must be 1..4096")
-        if self.kind not in {"m31", "u16", "bit", "digest", "uint256", "bytes32", "bytes80", "blockhash", "target", "work", "chainwork"}:
+        if self.kind not in {"m31", "u16", "bit", "digest", "uint256", "bytes32", "bytes80", "blockhash", "target", "work", "chainwork"} | INT_TYPES.keys():
             raise TypeErrorS31(f"unsupported type {self.kind}")
+        if self.kind in INT_TYPES and (self.length != max(1, INT_TYPES[self.kind][0] // 16) or self.family):
+            raise TypeErrorS31(f"{self.kind} requires {max(1, INT_TYPES[self.kind][0] // 16)} little-endian limb(s)")
         if self.kind == "bit" and self.length != 1:
             raise TypeErrorS31("bit is a single constrained field value")
         if self.kind == "digest" and (self.length != 8 or self.family not in {"poseidon2", "blake2s_reduced"}):
@@ -49,7 +58,7 @@ class Type:
             raise TypeErrorS31("Bytes80 requires forty little-endian u16 limbs")
 
     def relation_shape(self) -> tuple[str, int]:
-        return ("u16" if self.kind in {"u16", "uint256", "bytes32", "bytes80", "blockhash", "target", "work", "chainwork"} else "m31", self.length)
+        return ("u16" if self.kind in {"u16", "uint256", "bytes32", "bytes80", "blockhash", "target", "work", "chainwork"} | INT_TYPES.keys() else "m31", self.length)
 
 
 @dataclass(frozen=True)
@@ -108,7 +117,53 @@ class Builder:
         self.inputs.append({"name": name, "kind": kind, "length": length, "visibility": visibility})
         if typ.kind == "bit":
             self.bit_inputs.add(name)
-        return Value(typ, ref=name)
+        value = Value(typ, ref=name)
+        return self.int_view(value) if typ.kind in INT_TYPES else value
+
+    def int_view(self, value: Value, *, wanted: str | None = None,
+                 span: dict[str, int] | None = None) -> Value:
+        """Bind the nominal width/sign into the proof relation and check a byte's range."""
+        if value.typ.kind not in INT_TYPES:
+            raise TypeErrorS31("integer view requires a fixed-width scalar")
+        return self.emit("int_view", value.typ, wanted=wanted, span=span,
+                         lhs=self.realize(value).ref, constant=int_spec(value.typ))
+
+    def int_from_limbs(self, value: Value, target: str, *, wanted: str | None = None,
+                       span: dict[str, int] | None = None) -> Value:
+        target = f"int_{target}"
+        if target not in INT_TYPES:
+            raise TypeErrorS31("unknown fixed-width integer type")
+        typ = Type(target, max(1, INT_TYPES[target][0] // 16))
+        if value.typ != Type("u16", typ.length):
+            raise TypeErrorS31(f"from_limbs_{target[4:]} requires [u16; {typ.length}]")
+        return self.int_view(Value(typ, ref=self.realize(value).ref), wanted=wanted, span=span)
+
+    def int_limbs(self, value: Value) -> Value:
+        if value.typ.kind not in INT_TYPES:
+            raise TypeErrorS31("std::int::limbs requires a fixed-width scalar")
+        return Value(Type("u16", value.typ.length), ref=self.realize(value).ref)
+
+    def int_reinterpret(self, value: Value, target: str, *, wanted: str | None = None,
+                        span: dict[str, int] | None = None) -> Value:
+        target = f"int_{target}"
+        if value.typ.kind not in INT_TYPES or target not in INT_TYPES or INT_TYPES[value.typ.kind][0] != INT_TYPES[target][0]:
+            raise TypeErrorS31("integer reinterpret requires equal-width integer types")
+        return self.int_view(Value(Type(target, value.typ.length), ref=self.realize(value).ref),
+                             wanted=wanted, span=span)
+
+    def int_binary(self, op: str, lhs: Value, rhs: Value, *, wanted: str | None = None,
+                   span: dict[str, int] | None = None) -> Value:
+        if lhs.typ != rhs.typ or lhs.typ.kind not in INT_TYPES:
+            raise TypeErrorS31("std::int requires two equally typed fixed-width integers")
+        if op not in {"int_add_checked", "int_add_wrapping", "int_sub_checked", "int_sub_wrapping", "int_le"}:
+            raise TypeErrorS31(f"unsupported fixed-width integer operation {op}")
+        result = Type("bit", 1) if op == "int_le" else lhs.typ
+        value = self.emit(op, result, wanted=wanted, span=span,
+                          lhs=self.realize(lhs).ref, rhs=self.realize(rhs).ref,
+                          constant=int_spec(lhs.typ))
+        if op == "int_le":
+            self.computed_bits.add(value.ref)
+        return value
 
     def emit(self, op: str, typ: Type, *, wanted: str | None = None,
              span: dict[str, int] | None = None, **fields: Any) -> Value:
@@ -501,8 +556,8 @@ class Builder:
 
     def select(self, bit: Value, lhs: Value, rhs: Value, *, wanted: str | None = None,
                span: dict[str, int] | None = None) -> Value:
-        if bit.typ != Type("bit", 1) or lhs.typ != rhs.typ or lhs.typ.kind not in {"m31", "digest", "uint256", "target", "work", "chainwork"}:
-            raise TypeErrorS31("select requires a bit and two equally typed field or 256-bit values")
+        if bit.typ != Type("bit", 1) or lhs.typ != rhs.typ or lhs.typ.kind not in {"m31", "digest", "uint256", "target", "work", "chainwork"} | INT_TYPES.keys():
+            raise TypeErrorS31("select requires a bit and two equally typed field or 256-bit or fixed-width integer values")
         selector = self.bit_operand(bit)
         return self.emit("select", lhs.typ, wanted=wanted, span=span,
                          lhs=self.realize(lhs).ref, rhs=self.realize(rhs).ref, selector=selector)

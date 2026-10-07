@@ -1,6 +1,13 @@
 # Fixed-width integers for S31 math and standard libraries
 
-Status: **required next library family, not implemented in S31 source**, 2026-10-07. This is the engineering contract for `u8`, `u16`, `u32`, `u64`, `u128`, `i8`, `i16`, `i32`, `i64`, and `i128`. The current source language has M31 field values, `[u16; N]` range-checked limb arrays, and a separate `UInt256` type. An M31 value is a field element, not a fixed-width integer. A `[u16; N]` array does not by itself specify signedness, overflow, or an integer operation.
+Status: **core ten-type family implemented in S31 source**, 2026-10-07.
+The implemented slice has `u8`, `u16`, `u32`, `u64`, `u128` and signed peers;
+range-checked bit patterns; checked/wrapping addition and subtraction;
+signed/unsigned comparisons; and same-width reinterpretation and limb views.
+Multiplication, division, bitwise operations, shifts, and cross-width numeric
+casts remain design work. An M31 value is a field element, not a fixed-width
+integer. A `[u16; N]` array does not by itself specify signedness, overflow,
+or an integer operation.
 
 ## Source contract
 
@@ -14,9 +21,9 @@ Each width is a scalar nominal type. Its representation is little-endian base-$2
 | 64 | `u64` | `i64` | 4 | `0..2^64-1` |
 | 128 | `u128` | `i128` | 8 | `0..2^128-1` |
 
-For a signed `iW`, interpret its constrained bit pattern $b$ as $b$ when $b<2^{W-1}$ and $b-2^W$ otherwise. The source and public ABI must distinguish signed from unsigned values even though their AIR limbs have the same shape. A directly supplied nominal input remains a claim about a value; the proof must constrain its range and all operations that use it.
+For a signed `iW`, interpret its constrained bit pattern $b$ as $b$ when $b<2^{W-1}$ and $b-2^W$ otherwise. The source type and verifier key distinguish signed from unsigned values even though their AIR limbs and low-level public ABI word arrays have the same shape. The generated package also records source types in its typed interface. A directly supplied nominal input remains a claim about a value; the proof must constrain its range and all operations that use it.
 
-No implicit conversion is allowed between these types, `UInt256`, `Bytes32`, and M31. In particular, a field subtraction must never silently stand in for signed integer subtraction, and `u32` values at or above the M31 modulus cannot be silently converted to a field value. Explicit operations will cover zero/sign extension, checked narrowing, truncation, bit-pattern reinterpretation between `uW` and `iW`, and a separately named reduction modulo M31.
+No implicit conversion is allowed between these types, `UInt256`, `Bytes32`, and M31. In particular, a field subtraction must never silently stand in for signed integer subtraction, and `u32` values at or above the M31 modulus cannot be silently converted to a field value. Implemented explicit operations cover bit-pattern reinterpretation between equal-width `uW` and `iW`, plus conversion to and from exactly sized little-endian `[u16; N]` limbs. Zero/sign extension, checked narrowing, truncation, and reduction modulo M31 remain to be implemented.
 
 ## Arithmetic semantics
 
@@ -45,4 +52,11 @@ Use the existing generic circuit as the correctness baseline, then measure a lim
 3. Add checked/wrapping multiplication with a bounded full-width product relation, then division/remainder and bitwise/shift operations with their stated edge cases. Benchmark wide kernels and select chips only where they beat the generic circuit.
 4. Add independent Python big-integer oracles and positive/negative native proofs at zero, one, maximum, signed minimum, signed maximum, carries across every limb boundary, overflow, division by zero, and cast failures. Pin source-to-relation shape and AIR cost baselines for each width family. Reject changed public claims, proof bytes, keys, width tags, and signedness tags.
 
-The focused `std@1` library MVP gate covers the currently supported M31 and `UInt256` subset. These ten scalar integer types are the next math-library expansion and must pass their own release gate before they are advertised as implemented. General Bitcoin counters, timestamps, difficulty arithmetic, fixed-point algorithms, and broader math kernels can then use integer semantics without confusing them with M31 arithmetic.
+The focused `std@1` library MVP gate covers a representative M31 and
+`UInt256` subset. The ten scalar integer types have source, relation,
+circuit, and oracle tests for this operation slice; wider release still
+needs the edge-case, native negative-proof, and cost gate in item 4 for
+every width and signedness. The [worked source-to-AIR chapter](../../../src/frontends/s31/docs/fixed-width-integers.md)
+states the shipped subset. General Bitcoin counters, timestamps, difficulty
+arithmetic, fixed-point algorithms, and broader math kernels can then use
+integer semantics without confusing them with M31 arithmetic.

@@ -52,6 +52,19 @@ expectScope('    private digest_bytes: Bytes32,', 'Bytes32', 'support.type.primi
 expectScope('let x = std::math::add_u256(a, b);', 'std', 'support.module.std.s31');
 expectScope('let x = std::math::add_u256(a, b);', 'math', 'support.namespace.s31');
 expectScope('let x = std::math::add_u256(a, b);', 'add_u256', 'support.function.builtin.s31');
+for (const type of ['u8', 'u16', 'u32', 'u64', 'u128', 'i8', 'i16', 'i32', 'i64', 'i128']) {
+  expectScope(`private value: ${type},`, type, 'support.type.primitive.s31');
+}
+for (const builtin of [
+  'add_checked', 'add_wrapping', 'sub_checked', 'sub_wrapping',
+  'le', 'lt', 'ge', 'gt', 'eq', 'ne', 'limbs',
+  'from_limbs_u8', 'from_limbs_i128', 'reinterpret_u32', 'reinterpret_i64',
+]) {
+  const line = `let value = std::int::${builtin}(a, b);`;
+  expectScope(line, 'std', 'support.module.std.s31');
+  expectScope(line, 'int', 'support.namespace.s31');
+  expectScope(line, builtin, 'support.function.builtin.s31');
+}
 expectScope('let x = splat<4>(7_m31);', '7_m31', 'constant.numeric.field.m31.s31');
 expectScope('v .* v + splat<4>(7_m31)', '.*', 'keyword.operator.arithmetic.s31');
 expectScope('a - -b', '-', 'keyword.operator.arithmetic.s31');
@@ -60,14 +73,27 @@ expectScope('assert_eq(a, b);', 'assert_eq', 'keyword.other.assertion.s31');
 expectScope('// private is only a comment', '// private is only a comment', 'comment.line.double-slash.s31');
 
 const examples = path.join(repository, 'src/frontends/s31/examples');
+function* sourceFiles(directory) {
+  for (const entry of fs.readdirSync(directory, { withFileTypes: true }).sort((a, b) => a.name.localeCompare(b.name))) {
+    const file = path.join(directory, entry.name);
+    if (entry.isDirectory()) yield* sourceFiles(file);
+    else if (entry.isFile() && entry.name.endsWith('.s31')) yield file;
+  }
+}
+
 let count = 0;
-for (const name of fs.readdirSync(examples).filter((name) => name.endsWith('.s31'))) {
+let nested = false;
+for (const file of sourceFiles(examples)) {
+  const name = path.relative(examples, file);
+  nested ||= name.includes(path.sep);
   let stack = null;
-  for (const line of fs.readFileSync(path.join(examples, name), 'utf8').split('\n')) {
+  for (const line of fs.readFileSync(file, 'utf8').split('\n')) {
     const result = scopesForLine(line, stack);
     stack = result.stack;
     assert.ok(result.tokens.length > 0, `${name}: expected tokens for every line`);
   }
   count += 1;
 }
+assert.ok(count > 0, 'expected at least one shipped S31 example');
+assert.ok(nested, 'expected to tokenize examples in nested directories');
 console.log(`S31 TextMate grammar: representative scopes and ${count} examples passed`);

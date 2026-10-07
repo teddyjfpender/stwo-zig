@@ -1,0 +1,33 @@
+{
+  "schema": "s31-fixed-width-core-baseline-v1",
+  "date": "2026-10-07",
+  "profile": "sparse-wide-v5",
+  "lowering": "sparse-wide-gate",
+  "note": "Single local native trials on macOS with warm Zig caches. Proof-of-work and cache state affect elapsed times. These are generic-circuit baselines, not a dedicated integer chip benchmark.",
+  "cases": [
+    {
+      "source": "src/frontends/s31/examples/math/int_u8_checked.s31",
+      "operation": "u8 checked addition",
+      "raw": {"qm31_ops": 281, "eq": 5, "m31_to_u32": 6},
+      "padded": {"qm31_ops": 512, "eq": 16, "m31_to_u32": 16},
+      "proof_bytes": 231880,
+      "build_or_load_seconds": 67.216,
+      "prove_seconds": 0.476,
+      "verify_seconds": 0.740,
+      "native_verifier_accepted": true,
+      "changed_public_statement_rejected": true
+    },
+    {
+      "source": "src/frontends/s31/examples/math/int_i128_signed_order.s31",
+      "operation": "i128 signed less-than-or-equal at minimum negative value",
+      "raw": {"qm31_ops": 362, "eq": 22, "m31_to_u32": 29},
+      "padded": {"qm31_ops": 512, "eq": 32, "m31_to_u32": 32},
+      "proof_bytes": 224687,
+      "build_or_load_seconds": 64.983,
+      "prove_seconds": 1.014,
+      "verify_seconds": 0.407,
+      "native_verifier_accepted": true,
+      "changed_public_statement_rejected": true
+    }
+  ]
+}

@@ -11,7 +11,8 @@ Most `std::math` helpers below lower to normalized `add`, `mul`,
 have their own normalized relation nodes. The circuit compiler lowers
 `sum_lanes` to
 constrained packed-wire additions, a fixed QM31 multiplier, and a base mask.
-The wide operations use range-checked limbs and Boolean carries or borrows.
+The wide and fixed-width integer operations use range-checked limbs and
+Boolean carries or borrows.
 The native verifier proves all these operations through the ordinary circuit
 AIR. No helper is a host-only calculation or a new specialized AIR chip.
 
@@ -43,6 +44,12 @@ AIR. No helper is a host-only calculation or a new specialized AIR chip.
 | `std::math::lt_u256(a,b)`, `gt_u256(a,b)`, `ge_u256(a,b)` | Strict or reversed unsigned order | Two `UInt256` values; constrained `bit`. Each uses one `u256_le` and at most one Boolean negation. |
 | `std::math::eq_u256(a,b)`, `ne_u256(a,b)` | Equality or inequality | Two `UInt256` values; constrained `bit`. Two `u256_le` nodes and Boolean logic. |
 | `std::math::min_u256(a,b)`, `max_u256(a,b)` | Select the smaller or larger value | Two `UInt256` values; one `u256_le` and one range-preserving `select`. Equal inputs return the same value. |
+| `std::int::add_checked(a,b)`, `sub_checked(a,b)` | Exact fixed-width result, rejecting signed or unsigned overflow | Equally typed `u8`–`u128` or `i8`–`i128` operands. |
+| `std::int::add_wrapping(a,b)`, `sub_wrapping(a,b)` | Low $W$ bits of the result | Equally typed fixed-width operands. |
+| `std::int::{le,lt,ge,gt,eq,ne}(a,b)` | Typed ordering or equality; returns constrained `bit` | Equally typed fixed-width operands. |
+| `std::int::from_limbs_u8(raw)` through `from_limbs_i128(raw)` | Explicitly construct a fixed-width scalar from little-endian limbs | Exact `[u16; L]` shape; byte types gain an extra 8-bit proof constraint. |
+| `std::int::limbs(x)` | Explicit bit-pattern view as `[u16; L]` | One fixed-width scalar; no arithmetic node. |
+| `std::int::reinterpret_u8(x)` through `reinterpret_i128(x)` | Interpret the same bits with signed or unsigned meaning | Source and target widths must match. |
 | `std::bitcoin::pow_valid(header)` | `SHA256d(header)` as a little-endian `UInt256` is at most the canonical mainnet target encoded in `header` | One `Bytes80` value; returns a constrained `bit`. Assert it equals one to require valid work. |
 | `std::bitcoin::target_mainnet(header)` | Decode and constrain mainnet `nBits` | One `Bytes80` header; returns `Target`. This checks the target encoding, not the header's proof of work. |
 | `std::bitcoin::block_work(target)` | `floor(2^256/(target+1))` proved by byte-column integer multiplication and a strict remainder comparison | One `Target`; returns `Work`. A caller proving a valid block must also check its header hash against this target. |
@@ -596,10 +603,11 @@ for dedicated math chips. Checked field inversion and division, computed
 bits, checked wide addition and subtraction, and unsigned comparisons are
 implemented. `sum_lanes` and `dot_lanes` work on statically sized arrays;
 they do not expose a witness-selected lane as a source value.
-The next scalar-integer family is specified in the
-[fixed-width integer design](../../../../design/s31/language/FIXED_WIDTH_INTEGERS.md):
-`u8` through `u128` and `i8` through `i128`, with range, signedness, casts,
-and explicit overflow modes. Those types are not yet available in S31 source.
+The scalar-integer family is described with a handwritten circuit and AIR
+example in [fixed-width integers](fixed-width-integers.md). It includes all
+ten widths/signs, checked and wrapping addition and subtraction, ordering,
+and bit-pattern views. Fixed-width multiplication, division, bitwise
+operations, and cross-width numeric casts remain to be implemented.
 
 ## Library MVP release gate
 

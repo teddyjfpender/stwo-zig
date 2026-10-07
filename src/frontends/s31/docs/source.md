@@ -8,15 +8,20 @@ modulo `p`; `p` itself is **not** a canonical encoding of zero. A `u16` value
 is an integer from `0` through `65535`. `m31_from_u16` preserves its numeric
 value and changes its type. There are no implicit integer/field conversions.
 
-Text types are fixed-size `[m31; N]` and `[u16; N]`, `UInt256`, `Bytes32`, `Bytes80`, a
-single `bit`, and `Digest<Poseidon2>` or `Digest<Blake2sReduced>`. The two
+Text types include fixed-size `[m31; N]` and `[u16; N]`, scalar `u8`, `u16`,
+`u32`, `u64`, `u128` and their `i8` through `i128` signed peers, `UInt256`,
+`Bytes32`, `Bytes80`, a single `bit`, and `Digest<Poseidon2>` or
+`Digest<Blake2sReduced>`. The
 `UInt256` and `Bytes32` each erase to sixteen little-endian `u16` limbs;
 `Bytes80` erases to forty. Explicit conversion chooses the integer meaning of
 32 bytes. Their arithmetic and
 range constraints are worked by hand in [thirty-two bytes and 256-bit
-arithmetic](wide-values.md). `bit` erases to `m31[1]` in
-relation JSON and must be a directly declared input used by `select`. The
-circuit constrains `b²=b`, so it has only values zero and one. A digest erases
+arithmetic](wide-values.md). The [fixed-width integer chapter](fixed-width-integers.md)
+shows scalar byte and limb representations, overflow behavior, and the
+range, carry, borrow, and sign constraints by hand. A scalar `u16` and an
+array `[u16; 1]` share storage but have different source types.
+`bit` erases to `m31[1]` in relation JSON. The circuit constrains `b²=b`,
+so it has only values zero and one. A digest erases
 to `m31[8]`, but retains a nominal family in text so a Poseidon2 digest cannot
 be paired with a BLAKE2s reduced digest. Declaring a digest input makes a
 claim about eight words; it does not prove those words came from a hash.
