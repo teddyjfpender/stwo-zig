@@ -455,6 +455,18 @@ pub fn ContextFor(comptime Api: type) type {
             return buffer;
         }
 
+        pub fn allocateManaged(self: *Self, words: usize) runtime_error.Error!Buffer {
+            if (self.active_stage != .ingress)
+                return error.AllocationOutsideIngress;
+            const buffer = try persistent_allocation.allocateRegisteredManaged(
+                Api,
+                self,
+                words,
+            );
+            self.counters.allocation(self.active_stage, try buffer.bytes());
+            return buffer;
+        }
+
         /// Creates a fixed-address process allocation while the context is
         /// idle. Persistent allocations form a protected registry prefix.
         pub fn allocatePersistent(
@@ -463,6 +475,14 @@ pub fn ContextFor(comptime Api: type) type {
         ) runtime_error.Error!Buffer {
             _ = try self.requireHandle();
             return persistent_allocation.allocate(Api, self, words);
+        }
+
+        pub fn allocatePersistentManaged(
+            self: *Self,
+            words: usize,
+        ) runtime_error.Error!Buffer {
+            _ = try self.requireHandle();
+            return persistent_allocation.allocateManaged(Api, self, words);
         }
 
         pub fn allocateRaw(
@@ -475,6 +495,20 @@ pub fn ContextFor(comptime Api: type) type {
                 words,
                 out,
             ));
+        }
+
+        pub fn allocateRawManaged(
+            self: *Self,
+            words: usize,
+            out: *?[*]u32,
+        ) runtime_error.Error!void {
+            if (comptime @hasDecl(Api, "stwo_exec_context_alloc_managed_u32")) {
+                try runtime_error.check(Api.stwo_exec_context_alloc_managed_u32(
+                    try self.requireHandle(),
+                    words,
+                    out,
+                ));
+            } else return error.InvalidState;
         }
 
         pub fn freeRaw(self: *Self, pointer: [*]u32) c_int {
@@ -885,6 +919,7 @@ test "context owns buffers and accounts only explicit transfers" {
         var stream_word: u8 = 0;
         var device_words: [16]u32 = [_]u32{0} ** 16;
         var sync_calls: usize = 0;
+        var managed_allocations: usize = 0;
 
         fn stwo_exec_context_create(out: *?*anyopaque) c_int {
             out.* = &handle_word;
@@ -907,6 +942,11 @@ test "context owns buffers and accounts only explicit transfers" {
             return 0;
         }
         fn stwo_exec_context_alloc_u32(_: *anyopaque, _: usize, out: *?[*]u32) c_int {
+            out.* = &device_words;
+            return 0;
+        }
+        fn stwo_exec_context_alloc_managed_u32(_: *anyopaque, _: usize, out: *?[*]u32) c_int {
+            managed_allocations += 1;
             out.* = &device_words;
             return 0;
         }
@@ -966,6 +1006,9 @@ test "context owns buffers and accounts only explicit transfers" {
     const Context = ContextFor(Fake);
     var context = try Context.open();
     try context.beginStage(.ingress);
+    var managed = try context.allocateManaged(4);
+    try std.testing.expectEqual(@as(usize, 1), Fake.managed_allocations);
+    try context.free(&managed);
     var buffer = try context.allocate(16);
     try context.upload(buffer, &.{ 1, 2, 3, 4 });
     try context.fill(buffer, 7);

@@ -68,6 +68,8 @@ pub fn CacheFor(comptime Api: type, comptime Context: type) type {
             {
                 const victim = self.lruUnpinned() orelse {
                     if (self.anyPinned()) return error.PreparedCacheBusy;
+                    if (destination != null and
+                        arena_module.managedOversubscriptionEnabled()) break;
                     return error.InsufficientDeviceMemory;
                 };
                 try self.destroyEntry(context, victim);
@@ -78,7 +80,11 @@ pub fn CacheFor(comptime Api: type, comptime Context: type) type {
 
             const last_used = self.nextTick() catch
                 return error.InvalidState;
-            const resident_arena = try Arena.initPersistent(context, &plan);
+            const managed = !try hasMemory(context, arena_bytes);
+            const resident_arena = if (managed)
+                try Arena.initPersistentManaged(context, &plan)
+            else
+                try Arena.initPersistent(context, &plan);
             self.entries[destination.?] = .{
                 .allocator = allocator,
                 .cache_key = cache_key,

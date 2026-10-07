@@ -102,10 +102,15 @@ pub fn TransactionFor(comptime Session: type) type {
             const memory = try session.context.memoryInfo();
             const usable_free = memory.free -
                 @min(memory.free, device_memory_safety_reserve_bytes);
-            if (arena_bytes > usable_free)
+            const managed = arena_bytes > usable_free and
+                arena_module.managedOversubscriptionEnabled();
+            if (arena_bytes > usable_free and !managed)
                 return error.InsufficientDeviceMemory;
             try session.beginStage(.ingress);
-            const arena = try Arena.init(&session.context, &plan);
+            const arena = if (managed)
+                try Arena.initManaged(&session.context, &plan)
+            else
+                try Arena.init(&session.context, &plan);
             return .{
                 .allocator = allocator,
                 .plan = plan,
@@ -130,10 +135,15 @@ pub fn TransactionFor(comptime Session: type) type {
             const memory = try session.context.memoryInfo();
             const usable_free = memory.free -
                 @min(memory.free, device_memory_safety_reserve_bytes);
-            if (arena_bytes > usable_free)
+            const managed = arena_bytes > usable_free and
+                arena_module.managedOversubscriptionEnabled();
+            if (arena_bytes > usable_free and !managed)
                 return error.InsufficientDeviceMemory;
             try session.beginStage(.ingress);
-            const arena = try Arena.init(&session.context, &plan);
+            const arena = if (managed)
+                try Arena.initManaged(&session.context, &plan)
+            else
+                try Arena.init(&session.context, &plan);
             return .{
                 .allocator = allocator,
                 .plan = plan,

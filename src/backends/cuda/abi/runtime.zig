@@ -117,6 +117,11 @@ pub extern "c" fn stwo_exec_context_alloc_u32(
     count: usize,
     out_ptr: *?[*]u32,
 ) c_int;
+pub extern "c" fn stwo_exec_context_alloc_managed_u32(
+    handle: *anyopaque,
+    count: usize,
+    out_ptr: *?[*]u32,
+) c_int;
 pub extern "c" fn stwo_exec_context_free_u32(
     handle: *anyopaque,
     ptr: [*]u32,

@@ -9,6 +9,14 @@ const telemetry = @import("telemetry.zig");
 
 pub const SlotId = u32;
 
+/// Explicit research mode: only an arena that would otherwise fail the
+/// device-capacity gate may use managed memory. Ordinary proofs keep the
+/// device-pool allocation and its performance characteristics.
+pub fn managedOversubscriptionEnabled() bool {
+    const value = std.posix.getenv("STWO_CUDA_MANAGED_ARENA") orelse return false;
+    return std.mem.eql(u8, value, "1");
+}
+
 pub const Requirement = struct {
     id: SlotId,
     words: usize,
@@ -142,6 +150,19 @@ pub fn ArenaFor(comptime Context: type) type {
             };
         }
 
+        pub fn initManaged(
+            context: *Context,
+            plan: *const Plan,
+        ) runtime_error.Error!Self {
+            if (plan.total_words == 0) return error.EmptyArenaPlan;
+            if (comptime @hasDecl(Context, "allocateManaged")) {
+                return .{
+                    .backing = try context.allocateManaged(plan.total_words),
+                    .plan = plan.*,
+                };
+            } else return error.InvalidState;
+        }
+
         pub fn initPersistent(
             context: *Context,
             plan: *const Plan,
@@ -151,6 +172,19 @@ pub fn ArenaFor(comptime Context: type) type {
                 .backing = try context.allocatePersistent(plan.total_words),
                 .plan = plan.*,
             };
+        }
+
+        pub fn initPersistentManaged(
+            context: *Context,
+            plan: *const Plan,
+        ) runtime_error.Error!Self {
+            if (plan.total_words == 0) return error.EmptyArenaPlan;
+            if (comptime @hasDecl(Context, "allocatePersistentManaged")) {
+                return .{
+                    .backing = try context.allocatePersistentManaged(plan.total_words),
+                    .plan = plan.*,
+                };
+            } else return error.InvalidState;
         }
 
         pub fn slice(
