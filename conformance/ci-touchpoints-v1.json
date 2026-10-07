@@ -1468,10 +1468,38 @@
         "src/integrations/circuit_cpu",
         "src/frontends/riscv",
         "src/interop/postcard.zig",
-        "vectors/circuit"
+        "vectors/circuit",
+        "design/s31"
       ],
       "lanes": [
         "s31"
+      ]
+    },
+    {
+      "prefixes": [
+        "vectors/reports"
+      ],
+      "lanes": [
+        "script_contracts",
+        "native_oracle"
+      ]
+    },
+    {
+      "prefixes": [
+        "vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1"
+      ],
+      "lanes": [
+        "riscv_frontend"
+      ]
+    },
+    {
+      "prefixes": [
+        "vectors/starknet",
+        "bench/site",
+        "SECURITY.md"
+      ],
+      "lanes": [
+        "script_contracts"
       ]
     }
   ],
@@ -1481,7 +1509,14 @@
     "LICENSE",
     "docs",
     "archive",
-    "conformance"
+    "conformance",
+    "design/README.md",
+    "design/riscv-proving-stack",
+    "design/starknet-proving-pipeline",
+    "editors",
+    "bench/README.md",
+    ".mailmap",
+    "vectors/.cairo_bench"
   ],
   "externally_validated_prefixes": [
     "autoresearch"
