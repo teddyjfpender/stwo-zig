@@ -1,0 +1,108 @@
+{
+  "schema": "qec-cairo1-two-leaf-diagnostic-v1",
+  "scope": "fixed public KMX, SHAKE-derived 64-shot batches 0 and 1, total_shots=9024, repetitions=1; incomplete 141-leaf coverage",
+  "host": "Apple M5 Max, macOS, CPU, ReleaseFast",
+  "security": {
+    "cairo": {
+      "fri_queries": 70,
+      "pow_bits": 26,
+      "fold_step": 1
+    },
+    "circuit": {
+      "fri_queries": 70,
+      "pow_bits": 26,
+      "fold_step": 4
+    },
+    "registry": "production.json",
+    "leaf_circuit_hash": "41aa3c1f626986f7ce55cb4c896e58b2aac047ff4431c7241e0d9ef22bcafcd9",
+    "leaf_trace_log": 25
+  },
+  "leaves": [
+    {
+      "batch": 0,
+      "total_shots": 9024,
+      "repetitions": 1,
+      "shots_in_leaf": 64,
+      "bridge": {
+        "direct_adapter_s": 3.678,
+        "bootloader_adapter_s": 4.069,
+        "total_s": 10.524,
+        "adapted_cpi_sha256": "b2f10cbaafe0f2a205f5613e5501e1b7ab54298a1df98d17dafe94b7d70dda0a",
+        "executable_sha256": "d57d8b2d0064bbc6d5de8d1e633515b983b545318ea9db7dc6a3366db64985a3",
+        "arguments_sha256": "d92f66f71a5809683a4f99432e6fc5d76b8d7e9c2c7a0f4e436a44ca6997fe4b",
+        "program_hash_felt": "0x3cde336dc7c1493cd728aa5054e138b3d9c284883b8b044f55f4859be21cb20",
+        "source_compile_s": 2.414
+      },
+      "leaf_wrap": {
+        "wall_s": 40.24,
+        "cairo_prove_s": 27.18,
+        "circuit_wrap_s": 12.79,
+        "peak_rss_bytes": 40115716096,
+        "leaf_json_sha256": "41222073904523d683adc84f0df461395a7c00c70d1f385fcb535bf4cb805f74",
+        "circuit_binary_sha256": "3ffc50b06757e43b8a0bd85abbf8165ddf7cd49fc4c1eca4875abec35caa7cd2",
+        "output_digest": "b6f28bbb77dbd227f54222693c81dc41e18fc5964a7221d5ff81abac3ad7b14f"
+      },
+      "independent_leaf_verify": {
+        "accepted": true,
+        "wall_s": 0.09
+      },
+      "source_generation_s": 0.071,
+      "initial_scarb_compile_s": 3.247
+    },
+    {
+      "batch": 1,
+      "total_shots": 9024,
+      "repetitions": 1,
+      "shots_in_leaf": 64,
+      "bridge": {
+        "direct_adapter_s": 3.724,
+        "bootloader_adapter_s": 4.264,
+        "total_s": 10.808,
+        "adapted_cpi_sha256": "a095b39744965cfc268730acff6daa3f9c0fc65f133308f8cab55f3d637fa4d1",
+        "executable_sha256": "5ba59bfdfa30522ac5f342ca0b1bceccaeca486f3b69293155648d996f0ddb48",
+        "arguments_sha256": "296913b7404ace2f3e2a88e42e889a324d03497793919a889b9685ada03a0c48",
+        "program_hash_felt": "0x84a484bdce7289c3a8b2d028388696d9a6f7fb341d5e98301fd3ee158a9097",
+        "source_compile_s": 2.433
+      },
+      "leaf_wrap": {
+        "wall_s": 37.1,
+        "cairo_prove_s": 23.35,
+        "circuit_wrap_s": 13.49,
+        "peak_rss_bytes": 41817686016,
+        "leaf_json_sha256": "48c27e14f2d195695dc1e696529da2a3479500aedd7dca0a547ea267344bbf29",
+        "circuit_binary_sha256": "d0c819ab99b589fba370dc680c4cb20a6d865ec827faeef6a0ad0224cc874436",
+        "output_digest": "2ae118e195003e064a4385eba09043c65bd8c35e7ead5b11fafa5d70eb2012e6"
+      },
+      "independent_leaf_verify": {
+        "accepted": true,
+        "wall_s": 0.09
+      },
+      "source_generation_s": 0.071,
+      "initial_scarb_compile_s": 3.907
+    }
+  ],
+  "fold": {
+    "leaves": 2,
+    "layers": 1,
+    "reductions": 1,
+    "wall_s": 8.26,
+    "canonical_build_s": 1.608,
+    "reduce_root_s": 6.619,
+    "circuit_prove_s": 6.181,
+    "peak_rss_bytes": 13807026176,
+    "root_felt_proof_sha256": "84ce57c46b8ba0e832bad666e7b44e567873ccfd468a53ac8726e55497ea671d",
+    "root_output_sha256": "a1bba11f4188a1e91747027c62d5c284c4688bdb26ade8570ef1764fb80b5ff3",
+    "root_packed_sha256": "04b62bb677679b5939ed07bb2539d581a128e10b5cef8699b1d89e405582f953",
+    "terminal_root_independently_verified": true,
+    "terminal_verifier": "StarkWare proving@5a7c5ed stwo_circuit_verifier Cairo executable; tools/verify_terminal_root.py checks registry, packed tree and output binding",
+    "terminal_verifier_cairo_steps": 9747576,
+    "terminal_verifier_output_words": [2556026839, 4199023084, 1184413043, 572087286, 4291030969, 2593195461, 2790601923, 2040688564],
+    "terminal_negative_checks": "changed interior proof felt and output felt rejected by Cairo verifier; changed declared output word rejected by wrapper"
+  },
+  "negative_check": "Mutating one input word caused direct VM ASSERT_EQ failure. Independent fixture/source rederivation and fresh Scarb compilation reject mismatched statement digest or executable bytes before adaptation.",
+  "limitations": [
+    "Only 2 of 141 batches folded; no complete 9024-shot coverage or authenticated coverage root.",
+    "KMX bytes and SHAKE derivation are host-pinned/public; no private KMX or in-proof SHAKE derivation.",
+    "One repetition only; no 8000-repetition proving claim."
+  ]
+}

@@ -33,7 +33,7 @@ fn identity_binds_the_official_execution_stack() {
     assert_eq!(identity["cairo_language_version"], "2.20.0");
     assert_eq!(
         identity["program_types"],
-        serde_json::json!(["json", "executable", "pie"])
+        serde_json::json!(["json", "executable", "pie", "leaf-bootloader"])
     );
     assert_eq!(
         identity["stwo_cairo_revision"],

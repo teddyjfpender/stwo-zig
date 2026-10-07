@@ -5,9 +5,10 @@ pub const poseidon = @import("poseidon.zig");
 pub const state_machine = @import("state_machine.zig");
 pub const wide_fibonacci = @import("wide_fibonacci.zig");
 pub const xor = @import("xor.zig");
+pub const qec_gate_static = @import("qec_gate_static.zig");
 
 /// Narrow implementation hooks consumed by concrete accelerator integrations.
-/// Public application APIs remain the seven modules above; backend packages
+/// Public application APIs remain the modules above; backend packages
 /// depend on these named hooks instead of reaching through owner-relative paths.
 pub const backend_support = struct {
     pub const plonk = struct {
@@ -39,7 +40,7 @@ pub const backend_support = struct {
 
 test "api signature: Native example modules expose proving entry points" {
     comptime {
-        for (.{ blake, plonk, plonk_logup, poseidon, state_machine, wide_fibonacci, xor }) |example| {
+        for (.{ blake, plonk, plonk_logup, poseidon, state_machine, wide_fibonacci, xor, qec_gate_static }) |example| {
             if (!@hasDecl(example, "prove")) {
                 @compileError("Native example module is missing its prove entry point");
             }

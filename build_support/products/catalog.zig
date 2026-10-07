@@ -64,6 +64,8 @@ pub const Configure = struct {
 /// carried by a product descriptor. Root dispatch and closure validation both
 /// consume this exact list.
 pub const steps = [_]Step{
+    .{ .name = "test-qec-gate-static", .description = "Test the experimental fixed-wiring QEC gate proof", .scope = .native_cpu },
+    .{ .name = "benchmark-qec-gate-batch", .description = "Build the isolated 64-shot QEC gate AIR benchmark", .scope = .native_cpu },
     .{ .name = "benchmark-circuit-cuda-resident", .description = "Build the verified resident circuit recursion CUDA benchmark", .scope = .cairo_cuda },
     .{ .name = "circuit-recursion-cuda-resident", .description = "Build the fully resident PIE-to-root CUDA prover", .scope = .cairo_cuda },
     .{ .name = "check-cairo-cuda-local", .description = "Compile the full Cairo CUDA product without a GPU or CUDA runtime", .scope = .cairo_cuda },

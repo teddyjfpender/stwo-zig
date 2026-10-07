@@ -1,0 +1,2 @@
+case	repetitions	shots	backend	hardware	pow_bits	fri_queries	cairo_steps	prepare_s	execute_s	prove_s	verify_s	input_to_published_s	peak_host_bytes	proof_bytes	proof_sha256	verified_zig	verified_rust	public_output_matches_oracle
+fixed_iadd256_batch0	1	64	cpu	apple_m5_max	26	70	36935007	0.421376125	3.484694625	17.023772625	0.009758917	20.992917917	29464451152	3682553	f11d66edc89ceb1e4a8f35373572db65a88589c3c348a900117a5d6bfeaee465	true	true	true

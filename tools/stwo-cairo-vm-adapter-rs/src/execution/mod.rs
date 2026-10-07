@@ -1,6 +1,7 @@
 //! Typed execution boundary for admitted Cairo program artifacts.
 
 mod executable;
+mod leaf_bootloader;
 mod legacy_json;
 mod pie;
 mod pie_archive;
@@ -12,13 +13,14 @@ use cairo_vm::vm::runners::cairo_runner::CairoRunner;
 use stwo_cairo_adapter::PublicSegmentContext;
 
 pub const CAIRO_LANGUAGE_VERSION: &str = "2.20.0";
-pub const PROGRAM_TYPE_NAMES: [&str; 3] = ["json", "executable", "pie"];
+pub const PROGRAM_TYPE_NAMES: [&str; 4] = ["json", "executable", "pie", "leaf-bootloader"];
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum ProgramType {
     Json,
     Executable,
     Pie,
+    LeafBootloader,
 }
 
 impl ProgramType {
@@ -27,8 +29,9 @@ impl ProgramType {
             "json" => Ok(Self::Json),
             "executable" => Ok(Self::Executable),
             "pie" => Ok(Self::Pie),
+            "leaf-bootloader" => Ok(Self::LeafBootloader),
             _ => anyhow::bail!(
-                "unsupported program type {value:?}; expected json, executable or pie"
+                "unsupported program type {value:?}; expected json, executable, pie or leaf-bootloader"
             ),
         }
     }
@@ -60,6 +63,7 @@ pub fn run(
         }),
         ProgramType::Executable => executable::run(program_bytes, argument_bytes, &config),
         ProgramType::Pie => pie::run(program_bytes, argument_bytes, config),
+        ProgramType::LeafBootloader => leaf_bootloader::run(program_bytes, argument_bytes, config),
     }
 }
 
@@ -76,6 +80,7 @@ mod tests {
         );
         assert!(ProgramType::parse("sierra").is_err());
         assert_eq!(ProgramType::parse("pie").unwrap(), ProgramType::Pie);
-        assert_eq!(PROGRAM_TYPE_NAMES, ["json", "executable", "pie"]);
+        assert_eq!(ProgramType::parse("leaf-bootloader").unwrap(), ProgramType::LeafBootloader);
+        assert_eq!(PROGRAM_TYPE_NAMES, ["json", "executable", "pie", "leaf-bootloader"]);
     }
 }
