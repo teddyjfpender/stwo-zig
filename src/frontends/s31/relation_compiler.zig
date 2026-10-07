@@ -109,7 +109,10 @@ pub fn compileRaw(comptime V: type, allocator: std.mem.Allocator, program: relat
             .hash_blake2s => .{ .shape = .{ .kind = .m31, .length = 8 }, .lanes = try hashBlake2s(V, &ctx, lhs.?.lanes, lhs.?.shape.length) },
             .hash_blake2s_leaf => .{ .shape = .{ .kind = .m31, .length = 8 }, .lanes = try hashBlake2sPersonalized(V, &ctx, lhs.?.lanes, lhs.?.shape.length, relation.leaf_personalization) },
             .hash_blake2s_pair => .{ .shape = .{ .kind = .m31, .length = 8 }, .lanes = try hashBlake2sPair(V, &ctx, lhs.?.lanes, rhs.?.lanes) },
-            .select => .{ .shape = .{ .kind = .m31, .length = length }, .lanes = try selectByBit(V, &ctx, lhs.?.lanes, rhs.?.lanes, selector.?.lanes, if (selector.?.boolean) selector.?.raw.?[0] else null) },
+            .select => if (lhs.?.shape.kind == .u16)
+                try selectU16ByBit(V, &ctx, lhs.?, rhs.?, selector.?)
+            else
+                .{ .shape = .{ .kind = .m31, .length = length }, .lanes = try selectByBit(V, &ctx, lhs.?.lanes, rhs.?.lanes, selector.?.lanes, if (selector.?.boolean) selector.?.raw.?[0] else null) },
             .hash_poseidon2_leaf => .{ .shape = .{ .kind = .m31, .length = 8 }, .lanes = try poseidon2.leafCircuit(V, &ctx, lhs.?.lanes) },
             .hash_poseidon2_pair => .{ .shape = .{ .kind = .m31, .length = 8 }, .lanes = try poseidon2.pairCircuit(V, &ctx, lhs.?.lanes, rhs.?.lanes) },
         };
@@ -385,6 +388,13 @@ fn compileWithSpansMode(comptime V: type, allocator: std.mem.Allocator, program:
             .select => blk: {
                 const selector_entry = entries[node.selector.?];
                 if (direct_output and !selector_entry.boolean) return error.UnsupportedDirectSelector;
+                if (entries[node.lhs.?].shape.kind == .u16) break :blk try selectU16ByBit(
+                    V,
+                    &ctx,
+                    entries[node.lhs.?],
+                    entries[node.rhs.?],
+                    selector_entry,
+                );
                 break :blk .{ .shape = .{ .kind = .m31, .length = node.length }, .lanes = try selectByBit(
                     V,
                     &ctx,
@@ -674,7 +684,7 @@ fn u256Binary(comptime V: type, ctx: *circuit.builder.Context(V), lhs: Entry, rh
         const result = try ctx.sub(ctx.one(), incoming);
         const output_wires = try ctx.scratch().alloc(Var, 1);
         output_wires[0] = result;
-        return .{ .shape = .{ .kind = .m31, .length = 1 }, .lanes = Simd.fromPacked(output_wires, 1), .raw = output_wires };
+        return .{ .shape = .{ .kind = .m31, .length = 1 }, .lanes = Simd.fromPacked(output_wires, 1), .raw = output_wires, .boolean = true };
     }
     if (mode == .add_checked or mode == .sub_checked) try assertZeroArithmetic(V, ctx, incoming);
     const wrappers = try ctx.scratch().alloc(circuit.builder.wrappers.M31Wrapper(Var), 16);
@@ -869,6 +879,24 @@ fn selectByBit(comptime V: type, ctx: *circuit.builder.Context(V), lhs: Simd, rh
     const left = try circuit.builder.simd.scalarMul(V, ctx, lhs, .newUnsafe(try ctx.sub(ctx.one(), bit)));
     const right = try circuit.builder.simd.scalarMul(V, ctx, rhs, .newUnsafe(bit));
     return circuit.builder.simd.add(V, ctx, left, right);
+}
+
+/// A selected u16 is one of two range-checked input digits because the
+/// selector is Boolean. The same constrained output wires remain available to
+/// subsequent wide arithmetic; no fresh range witness is necessary.
+fn selectU16ByBit(comptime V: type, ctx: *circuit.builder.Context(V), lhs: Entry, rhs: Entry, selector: Entry) !Entry {
+    if (lhs.shape.length != rhs.shape.length) return error.InvalidU16Selection;
+    const bit = try checkedBitWord(V, ctx, selector);
+    const complement = try ctx.sub(ctx.one(), bit);
+    const raw = try ctx.scratch().alloc(Var, lhs.shape.length);
+    const wrappers = try ctx.scratch().alloc(circuit.builder.wrappers.M31Wrapper(Var), lhs.shape.length);
+    for (raw, wrappers, 0..) |*wire, *wrapped, i| {
+        const a = try arrayLane(V, ctx, lhs, i);
+        const b = try arrayLane(V, ctx, rhs, i);
+        wire.* = try ctx.add(try ctx.mul(complement, a), try ctx.mul(bit, b));
+        wrapped.* = .newUnsafe(wire.*);
+    }
+    return .{ .shape = lhs.shape, .lanes = try circuit.builder.simd.pack(V, ctx, wrappers), .raw = raw };
 }
 
 test "direct Boolean operations constrain typed inputs and reject a field alias" {

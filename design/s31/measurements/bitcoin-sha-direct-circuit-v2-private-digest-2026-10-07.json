@@ -1,0 +1,61 @@
+{
+  "schema": "s31-bitcoin-sha-direct-circuit-v2-private-digest",
+  "date": "2026-10-07",
+  "machine": "local Apple Silicon arm64 macOS; Zig 0.15.2",
+  "statement": {
+    "normalized_program": "src/frontends/s31/examples/bitcoin_header_pow.s31.json",
+    "assignment": "src/frontends/s31/examples/bitcoin_header_pow.valid.json",
+    "private_witness": "Bitcoin mainnet genesis header, 80 serialized bytes",
+    "public_poseidon2_root_m31": [93892305, 397617766, 1762064199, 2128125525, 211345822, 958247097, 595994426, 1074837273],
+    "public_sha256d_digest": false,
+    "source_abi_parity": "The sole public S31 program output is the eight-element Poseidon2 root. The SHA256d digest remains in committed caller main columns and circuit private wires; the v2 transcript does not mix a digest statement value."
+  },
+  "proof_system": {
+    "format_magic": "S31DCJ02",
+    "one_pcs_fri_proof": true,
+    "native_verifier_accepted": true,
+    "circuit_sha_gate_lookup_closure": true,
+    "sha_word_lookup_closure": true,
+    "verifier_derived_combined_fixed_root": true,
+    "private_digest_fixed_selector_and_halves_zero": true,
+    "circuit_components": 4,
+    "direct_sha_components": 20,
+    "calls": 3,
+    "fixed_main_interaction_columns": [93, 1097, 212],
+    "composition_split": 2,
+    "circuit_composition_extension": "reviewed q1-to-q2 polynomial extension",
+    "direct_sha_composition": "q2",
+    "tamper_checks": ["changed public Poseidon root", "changed source digest in key", "nonzero private digest statement", "public digest visibility in v2 key", "changed Gate lookup claim", "changed private header with original circuit witness (also changes SHA digest)"]
+  },
+  "test_only_run": {
+    "command": "zig build --build-file src/frontends/s31/build.zig test-sha-direct-circuit -Doptimize=ReleaseSafe -j2",
+    "fri_pow_bits": 0,
+    "fri_queries": 12,
+    "prove_ms": 291,
+    "verify_ms": 68,
+    "proof_bytes": 189879
+  },
+  "production_config_run": {
+    "command": "S31_SHA_DIRECT_PRODUCTION_BENCH=1 zig build --build-file src/frontends/s31/build.zig test-sha-direct-circuit -Doptimize=ReleaseSafe -j2",
+    "fri_pow_bits": 26,
+    "fri_queries": 70,
+    "fri_log_last_layer_degree_bound": 0,
+    "fri_log_blowup_factor": 1,
+    "fri_fold_step": 1,
+    "circuit_interaction_pow_bits": 20,
+    "proof_bytes": 731280,
+    "runs": [
+      {"prove_ms": 3768, "verify_ms": 149, "fri_pow_ms": 3339, "prove_excluding_fri_pow_ms": 429,
+       "stage_ms": {"witness": 6, "fixed_commit": 55, "main_commit": 25, "interaction_witness_including_interaction_grind": 30, "interaction_commit": 24, "stark_fri": 3620}},
+      {"prove_ms": 3897, "verify_ms": 152, "fri_pow_ms": 3443, "prove_excluding_fri_pow_ms": 454,
+       "stage_ms": {"witness": 6, "fixed_commit": 53, "main_commit": 25, "interaction_witness_including_interaction_grind": 30, "interaction_commit": 25, "stark_fri": 3750}}
+    ],
+    "sample_count": 2
+  },
+  "reference": {
+    "file": "design/s31/measurements/bitcoin-sha-joint-v1-2026-10-07.json",
+    "generic_sparse_wide_gate": {"proof_bytes": 338282, "median_prove_excluding_both_pow_ms": 153.626},
+    "packed_sha_joint": {"proof_bytes": 721880, "median_prove_excluding_fri_pow_ms": 689}
+  },
+  "interpretation": "The v2 direct profile has the same public output ABI as the earlier generic and packed-chip Bitcoin profiles, and all three natively verify a single private genesis header. The direct AIR is still slower than the generic sparse-wide circuit (429–454 ms excluding FRI PoW versus 153.626 ms median excluding both PoWs) and has a larger proof (731280 versus 338282 bytes). It is faster than the packed SHA joint's 689 ms non-FRI-PoW median, with similar proof size. The direct result still includes the small interaction grind whereas the generic reference excludes both grinds. These are two local runs under differing in-process versus CLI measurement paths and not a throughput claim."
+}

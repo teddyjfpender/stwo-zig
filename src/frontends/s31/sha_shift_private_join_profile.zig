@@ -8,8 +8,8 @@ const caller = @import("sha_caller_stream_air.zig");
 const caller_bus = @import("sha_caller_stream_bus.zig");
 const schedule = @import("sha_schedule_direct_air.zig");
 const schedule_bus = @import("sha_schedule_direct_word_logup.zig");
-const round = @import("sha_round_direct_air.zig");
-const round_bus = @import("sha_round_direct_word_logup.zig");
+const round = @import("sha_round_shift_air.zig");
+const round_bus = @import("sha_round_shift_word_logup.zig");
 const feed = @import("sha_feed_direct_air.zig");
 const feed_bus = @import("sha_feed_direct_word_logup.zig");
 const word_bus = @import("sha_direct_word_bus.zig");
@@ -132,7 +132,6 @@ pub const Components = struct {
             };
             result.round_components[call] = .{
                 .statement = empty_round,
-                .private_mode = true,
                 .fixed_offset = layout.round_fixed[call],
                 .main_offset = layout.round_main[call],
             };
@@ -203,19 +202,20 @@ pub const Components = struct {
 
 pub fn semanticDigest() [32]u8 {
     var hasher = std.crypto.hash.sha2.Sha256.init(.{});
-    hasher.update(@embedFile("sha_direct_private_join_profile.zig"));
+    hasher.update(@embedFile("sha_shift_private_join_profile.zig"));
     hasher.update(@embedFile("sha_caller_stream_air.zig"));
     hasher.update(@embedFile("sha_caller_stream_equations.zig"));
     hasher.update(@embedFile("sha_caller_stream_bus.zig"));
     hasher.update(@embedFile("sha_schedule_direct_air.zig"));
     hasher.update(@embedFile("sha_schedule_direct_equations.zig"));
     hasher.update(@embedFile("sha_schedule_direct_word_logup.zig"));
-    hasher.update(@embedFile("sha_round_direct_air.zig"));
-    hasher.update(@embedFile("sha_round_direct_word_logup.zig"));
+    hasher.update(@embedFile("sha_round_shift_air.zig"));
+    hasher.update(@embedFile("sha_round_shift_word_logup.zig"));
     hasher.update(@embedFile("sha_feed_direct_air.zig"));
     hasher.update(@embedFile("sha_feed_direct_equations.zig"));
     hasher.update(@embedFile("sha_feed_direct_word_logup.zig"));
     hasher.update(@embedFile("sha_direct_word_bus.zig"));
+    hasher.update(@embedFile("sha_round_shift_word_bus.zig"));
     var digest: [32]u8 = undefined;
     hasher.final(&digest);
     return digest;
@@ -224,8 +224,8 @@ pub fn semanticDigest() [32]u8 {
 test "private SHA join layout preserves all shared column offsets and three call namespaces" {
     const layout = Layout.init(.{});
     try std.testing.expectEqual(@as(usize, 79), layout.total_fixed);
-    try std.testing.expectEqual(@as(usize, 1076), layout.total_main);
-    try std.testing.expectEqual(@as(usize, 184), layout.total_interaction);
+    try std.testing.expectEqual(@as(usize, 500), layout.total_main);
+    try std.testing.expectEqual(@as(usize, 112), layout.total_interaction);
     const with_prefix = Layout.init(.{ .fixed = 17, .main = 23, .interaction = 29 });
     try std.testing.expectEqual(layout.total_fixed + 17, with_prefix.total_fixed);
     try std.testing.expectEqual(layout.total_main + 23, with_prefix.total_main);

@@ -1,6 +1,7 @@
-//! Native verifier for one sparse-wide circuit and the private direct SHA AIR
+//! Native verifier for one sparse-wide circuit and the shift-register SHA AIR
 //! in the same PCS/FRI proof. The Key is derived from value-free topology;
-//! the proof carries neither its fixed root nor its component roster.
+//! the proof carries neither its fixed root nor its component roster. The
+//! caller must obtain the Key from trusted source compilation.
 const std = @import("std");
 const core = @import("stwo_core");
 const engine = @import("stwo_prover_engine");
@@ -8,12 +9,12 @@ const circuit = @import("stwo_circuit_frontend");
 const cpu = @import("stwo_circuit_cpu_integration");
 const cairo = @import("stwo_cairo_frontend");
 const postcard = @import("interop_postcard");
-const shared = @import("sha_direct_circuit_profile.zig");
-const direct = @import("sha_direct_private_join_profile.zig");
+const shared = @import("sha_shift_circuit_profile.zig");
+const direct = @import("sha_shift_private_join_profile.zig");
 const caller = @import("sha_caller_stream_air.zig");
 const caller_bus = @import("sha_caller_stream_bus.zig");
 const schedule = @import("sha_schedule_direct_air.zig");
-const round = @import("sha_round_direct_air.zig");
+const round = @import("sha_round_shift_air.zig");
 const feed = @import("sha_feed_direct_air.zig");
 const word_bus = @import("sha_direct_word_bus.zig");
 
@@ -86,7 +87,7 @@ pub fn freeCanonicalFixedColumns(allocator: std.mem.Allocator, columns: []Column
 
 pub fn deriveKey(allocator: std.mem.Allocator, source_digest: [32]u8, topology: *const pp.Circuit, n_vars: u32, statement: direct.PublicStatement, pcs: core.pcs.config_v2.PcsConfigV2) !Key {
     try statement.validate();
-    if (statement.digest_visibility != .private) return error.PublicDigestForbiddenInDirectCircuitV2;
+    if (statement.digest_visibility != .private) return error.PublicDigestForbiddenInShiftCircuitV3;
     const boundary = topology.sha_boundary orelse return error.MissingShaBoundary;
     if (!std.meta.eql(boundary.addresses, statement.config.gate_addresses) or topology.n_outputs != 8)
         return error.InvalidDirectCircuitTopology;

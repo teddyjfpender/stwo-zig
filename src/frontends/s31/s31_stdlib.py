@@ -354,9 +354,12 @@ class Builder:
             raise TypeErrorS31(f"{op} requires two UInt256 values")
         result = Type("uint256", 16) if op in {
             "u256_add", "u256_add_checked", "u256_sub", "u256_sub_checked"
-        } else Type("m31", 1)
-        return self.emit(op, result, wanted=wanted, span=span,
-                         lhs=self.realize(lhs).ref, rhs=self.realize(rhs).ref)
+        } else Type("bit", 1)
+        value = self.emit(op, result, wanted=wanted, span=span,
+                          lhs=self.realize(lhs).ref, rhs=self.realize(rhs).ref)
+        if op == "u256_le":
+            self.computed_bits.add(value.ref)
+        return value
 
     def bytes32_reinterpret(self, value: Value, target: str) -> Value:
         expected = "bytes32" if target == "uint256" else "uint256"
@@ -450,8 +453,8 @@ class Builder:
 
     def select(self, bit: Value, lhs: Value, rhs: Value, *, wanted: str | None = None,
                span: dict[str, int] | None = None) -> Value:
-        if bit.typ != Type("bit", 1) or lhs.typ != rhs.typ or lhs.typ.kind not in {"m31", "digest"}:
-            raise TypeErrorS31("select requires a bit and two equally typed m31 values")
+        if bit.typ != Type("bit", 1) or lhs.typ != rhs.typ or lhs.typ.kind not in {"m31", "digest", "uint256"}:
+            raise TypeErrorS31("select requires a bit and two equally typed field or UInt256 values")
         selector = self.bit_operand(bit)
         return self.emit("select", lhs.typ, wanted=wanted, span=span,
                          lhs=self.realize(lhs).ref, rhs=self.realize(rhs).ref, selector=selector)
@@ -466,7 +469,8 @@ class Builder:
                          lhs=self.realize(start).ref, rounds=rounds, body=list(steps))
 
     def assert_equal(self, lhs: Value, rhs: Value) -> None:
-        if lhs.typ != rhs.typ:
+        bit_field = {lhs.typ.kind, rhs.typ.kind} == {"bit", "m31"} and lhs.typ.length == rhs.typ.length == 1
+        if lhs.typ != rhs.typ and not bit_field:
             raise TypeErrorS31("assert_eq requires two values of the same relation type")
         self.assertions.append({"lhs": self.realize(lhs).ref, "rhs": self.realize(rhs).ref})
 
@@ -492,7 +496,8 @@ class Builder:
 
     def finish(self, result: Value, output_type: Type,
                span: dict[str, int] | None = None) -> dict[str, Any]:
-        if result.typ != output_type:
+        bit_as_field = result.typ == Type("bit", 1) and output_type == Type("m31", 1)
+        if result.typ != output_type and not bit_as_field:
             raise TypeErrorS31("circuit result does not match declared public output type")
         if self.bit_inputs != self.constrained_bits:
             raise TypeErrorS31("every bit input must be constrained by a Boolean operation or select")

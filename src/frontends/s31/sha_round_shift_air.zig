@@ -1,5 +1,4 @@
-//! Table-free SHA-256 compression-round AIR. Public mode pins the schedule;
-//! private mode commits it in main and requires joined word-bus closure.
+//! SHA-256 round AIR with two-word shift-register state and private word bus.
 const std = @import("std");
 const core = @import("stwo_core");
 const prover = @import("stwo_prover_engine");
@@ -18,10 +17,11 @@ const Adapter = core.air.derive.ComponentAdapter(Component, prover.air.component
 pub const log_size: u32 = 7;
 pub const rows: usize = 1 << log_size;
 pub const active_rows: usize = 64;
-pub const terminal_row: usize = 64;
-pub const fixed_width: usize = 8; // active, first, terminal, W low/high, K low/high, round index.
-pub const main_width: usize = 8 * 32 + 12 + 2; // State bits, four 3-bit carries, private W halves.
-pub const n_constraints: usize = 8 * 32 + 4 + 12 + 12 + 16 + 16 + 16 + 4 + 4;
+pub const first_round_row: usize = 3;
+pub const final_row: usize = 67;
+pub const fixed_width: usize = 8; // active, input, terminal, padding, K halves, round index, state address.
+pub const main_width: usize = 2 * 32 + 12 + 2; // a/e bits, four 3-bit carries, private W halves.
+pub const n_constraints: usize = 64 + 4 + 12 + 4 + 4 + 2;
 pub const max_constraint_log_degree: u32 = log_size + 2;
 
 pub const Statement = struct {
@@ -32,7 +32,8 @@ pub const Statement = struct {
 
 pub fn Row(comptime F: type) type {
     return struct {
-        state: [8][32]F,
+        a: [32]F,
+        e: [32]F,
         carry_bits: [12]F,
         w_lo: F,
         w_hi: F,
@@ -40,7 +41,7 @@ pub fn Row(comptime F: type) type {
 }
 
 pub fn Fixed(comptime F: type) type {
-    return struct { active: F, first: F, terminal: F, w_lo: F, w_hi: F, k_lo: F, k_hi: F, round_index: F };
+    return struct { active: F, input: F, terminal: F, padding: F, k_lo: F, k_hi: F, round_index: F, state_address: F };
 }
 
 fn field(comptime F: type, n: u32) F {
@@ -51,10 +52,14 @@ fn field(comptime F: type, n: u32) F {
 pub fn flatten(comptime F: type, row: Row(F)) [main_width]F {
     var result: [main_width]F = undefined;
     var at: usize = 0;
-    for (row.state) |word| for (word) |bit| {
+    for (row.a) |bit| {
         result[at] = bit;
         at += 1;
-    };
+    }
+    for (row.e) |bit| {
+        result[at] = bit;
+        at += 1;
+    }
     for (row.carry_bits) |bit| {
         result[at] = bit;
         at += 1;
@@ -67,10 +72,14 @@ pub fn flatten(comptime F: type, row: Row(F)) [main_width]F {
 pub fn unflatten(comptime F: type, values: [main_width]F) Row(F) {
     var result: Row(F) = undefined;
     var at: usize = 0;
-    for (&result.state) |*word| for (word) |*bit| {
+    for (&result.a) |*bit| {
         bit.* = values[at];
         at += 1;
-    };
+    }
+    for (&result.e) |*bit| {
+        bit.* = values[at];
+        at += 1;
+    }
     for (&result.carry_bits) |*bit| {
         bit.* = values[at];
         at += 1;
@@ -81,7 +90,7 @@ pub fn unflatten(comptime F: type, values: [main_width]F) Row(F) {
 }
 
 pub fn fixedAt(comptime F: type, values: [fixed_width]F) Fixed(F) {
-    return .{ .active = values[0], .first = values[1], .terminal = values[2], .w_lo = values[3], .w_hi = values[4], .k_lo = values[5], .k_hi = values[6], .round_index = values[7] };
+    return .{ .active = values[0], .input = values[1], .terminal = values[2], .padding = values[3], .k_lo = values[4], .k_hi = values[5], .round_index = values[6], .state_address = values[7] };
 }
 
 fn half(comptime F: type, bits: [32]F, start: usize) F {
@@ -127,74 +136,47 @@ fn carryValue(comptime F: type, bits: [12]F, index: usize) F {
     return result;
 }
 
-/// The same polynomial list is used at trace, quotient-domain, and OODS
-/// points. Every 16-bit sum is below 2^19, so M31 cannot hide integer wrap.
-pub fn evaluate(comptime F: type, row: Row(F), next: Row(F), fixed: Fixed(F), statement: Statement, private_mode: bool) [n_constraints]F {
+/// Five openings of the same committed a/e columns reconstruct all eight
+/// SHA state words. Fixed active rows 3..66 guard every nonlocal offset.
+pub fn evaluate(comptime F: type, row: Row(F), prev1: Row(F), prev2: Row(F), prev3: Row(F), next: Row(F), fixed: Fixed(F)) [n_constraints]F {
     var out: [n_constraints]F = undefined;
     var at: usize = 0;
     const one = field(F, 1);
     const radix = field(F, 1 << 16);
-    for (flatten(F, row)[0 .. 8 * 32]) |value| {
+    for (flatten(F, row)[0..64]) |value| {
         out[at] = value.mul(value.sub(one));
         at += 1;
     }
     const active = fixed.active;
-    const pad = one.sub(active).sub(fixed.terminal);
-    const s0 = sig(F, row.state[0], 2, 13, 22);
-    const s1 = sig(F, row.state[4], 6, 11, 25);
-    const choose = ch(F, row.state[4], row.state[5], row.state[6]);
-    const majority = maj(F, row.state[0], row.state[1], row.state[2]);
-    const h = row.state[7];
-    const next_a = next.state[0];
-    const next_e = next.state[4];
-    // Eliminate T1 from the committed trace. Both outputs use the same
-    // algebraic SHA sum A = h + Sigma1(e) + Ch(e,f,g) + K + W (mod 2^32):
-    // next.e = d + A and next.a = A + Sigma0(a) + Maj(a,b,c).
-    // The two low/high limb pairs enforce those integer equalities modulo
-    // 2^32. All addends and output limbs are 16-bit Boolean reconstructions;
-    // even the largest seven-addend sum is below 2^19 << p, so field wrap
-    // cannot simulate a different 32-bit result.
-    const a_lo = half(F, h, 0).add(half(F, s1, 0)).add(half(F, choose, 0)).add(fixed.k_lo).add(row.w_lo);
-    const a_hi = half(F, h, 16).add(half(F, s1, 16)).add(half(F, choose, 16)).add(fixed.k_hi).add(row.w_hi);
-    out[at] = active.mul(a_lo.add(half(F, row.state[3], 0)).sub(half(F, next_e, 0)).sub(radix.mul(carryValue(F, row.carry_bits, 0))));
+    const s0 = sig(F, row.a, 2, 13, 22);
+    const s1 = sig(F, row.e, 6, 11, 25);
+    const choose = ch(F, row.e, prev1.e, prev2.e);
+    const majority = maj(F, row.a, prev1.a, prev2.a);
+    const a_lo = half(F, prev3.e, 0).add(half(F, s1, 0)).add(half(F, choose, 0)).add(fixed.k_lo).add(row.w_lo);
+    const a_hi = half(F, prev3.e, 16).add(half(F, s1, 16)).add(half(F, choose, 16)).add(fixed.k_hi).add(row.w_hi);
+    out[at] = active.mul(a_lo.add(half(F, prev3.a, 0)).sub(half(F, next.e, 0)).sub(radix.mul(carryValue(F, row.carry_bits, 0))));
     at += 1;
-    out[at] = active.mul(a_hi.add(half(F, row.state[3], 16)).add(carryValue(F, row.carry_bits, 0)).sub(half(F, next_e, 16)).sub(radix.mul(carryValue(F, row.carry_bits, 1))));
+    out[at] = active.mul(a_hi.add(half(F, prev3.a, 16)).add(carryValue(F, row.carry_bits, 0)).sub(half(F, next.e, 16)).sub(radix.mul(carryValue(F, row.carry_bits, 1))));
     at += 1;
-    out[at] = active.mul(a_lo.add(half(F, s0, 0)).add(half(F, majority, 0)).sub(half(F, next_a, 0)).sub(radix.mul(carryValue(F, row.carry_bits, 2))));
+    out[at] = active.mul(a_lo.add(half(F, s0, 0)).add(half(F, majority, 0)).sub(half(F, next.a, 0)).sub(radix.mul(carryValue(F, row.carry_bits, 2))));
     at += 1;
-    out[at] = active.mul(a_hi.add(half(F, s0, 16)).add(half(F, majority, 16)).add(carryValue(F, row.carry_bits, 2)).sub(half(F, next_a, 16)).sub(radix.mul(carryValue(F, row.carry_bits, 3))));
+    out[at] = active.mul(a_hi.add(half(F, s0, 16)).add(half(F, majority, 16)).add(carryValue(F, row.carry_bits, 2)).sub(half(F, next.a, 16)).sub(radix.mul(carryValue(F, row.carry_bits, 3))));
     at += 1;
     for (row.carry_bits) |bit| {
         out[at] = bit.mul(bit.sub(one));
         at += 1;
     }
-    const copied = [_]usize{ 0, 1, 2, 4, 5, 6 };
-    const destinations = [_]usize{ 1, 2, 3, 5, 6, 7 };
-    for (copied, destinations) |src, dst| for ([_]usize{ 0, 16 }) |start| {
-        out[at] = active.mul(half(F, next.state[dst], start).sub(half(F, row.state[src], start)));
+    for ([_]usize{ 0, 16 }) |start| {
+        out[at] = fixed.padding.mul(half(F, row.a, start));
         at += 1;
-    };
-    for ([_]usize{ 0, 16 }) |start| for (0..8) |i| {
-        out[at] = if (private_mode) field(F, 0) else fixed.first.mul(half(F, row.state[i], start).sub(field(F, (statement.initial[i] >> @intCast(start)) & 0xffff)));
+        out[at] = fixed.padding.mul(half(F, row.e, start));
         at += 1;
-    };
-    for ([_]usize{ 0, 16 }) |start| for (0..8) |i| {
-        out[at] = if (private_mode) field(F, 0) else fixed.terminal.mul(half(F, row.state[i], start).sub(field(F, (statement.final[i] >> @intCast(start)) & 0xffff)));
-        at += 1;
-    };
-    for ([_]usize{ 0, 16 }) |start| for (0..8) |i| {
-        out[at] = pad.mul(half(F, row.state[i], start));
-        at += 1;
-    };
+    }
     const no_round = one.sub(active);
     for (0..4) |i| {
         out[at] = no_round.mul(carryValue(F, row.carry_bits, i));
         at += 1;
     }
-    out[at] = if (private_mode) field(F, 0) else active.mul(row.w_lo.sub(fixed.w_lo));
-    at += 1;
-    out[at] = if (private_mode) field(F, 0) else active.mul(row.w_hi.sub(fixed.w_hi));
-    at += 1;
     out[at] = no_round.mul(row.w_lo);
     at += 1;
     out[at] = no_round.mul(row.w_hi);
@@ -232,18 +214,21 @@ fn allocateColumns(allocator: std.mem.Allocator, width: usize) !Columns {
 pub fn writeFixed(allocator: std.mem.Allocator, schedule: [64]u32) !Columns {
     const result = try allocateColumns(allocator, fixed_width);
     for (0..active_rows) |t| {
-        const i = storageIndex(t);
+        const i = storageIndex(t + first_round_row);
         @constCast(result.values[0].values)[i] = M31.one();
-        @constCast(result.values[1].values)[i] = M31.fromCanonical(@intFromBool(t == 0));
-        const w = schedule[t];
         const k = sha.round_constants[t];
-        @constCast(result.values[3].values)[i] = M31.fromCanonical(w & 0xffff);
-        @constCast(result.values[4].values)[i] = M31.fromCanonical(w >> 16);
-        @constCast(result.values[5].values)[i] = M31.fromCanonical(k & 0xffff);
-        @constCast(result.values[6].values)[i] = M31.fromCanonical(k >> 16);
-        @constCast(result.values[7].values)[i] = M31.fromCanonical(@intCast(t));
+        @constCast(result.values[4].values)[i] = M31.fromCanonical(k & 0xffff);
+        @constCast(result.values[5].values)[i] = M31.fromCanonical(k >> 16);
+        @constCast(result.values[6].values)[i] = M31.fromCanonical(@intCast(t));
     }
-    @constCast(result.values[2].values)[storageIndex(terminal_row)] = M31.one();
+    for (0..4) |i| {
+        @constCast(result.values[1].values)[storageIndex(i)] = M31.one();
+        @constCast(result.values[2].values)[storageIndex(64 + i)] = M31.one();
+        @constCast(result.values[7].values)[storageIndex(i)] = M31.fromCanonical(@intCast(3 - i));
+        @constCast(result.values[7].values)[storageIndex(64 + i)] = M31.fromCanonical(@intCast(@import("sha_direct_word_bus.zig").terminal_base + 3 - i));
+    }
+    for (68..rows) |i| @constCast(result.values[3].values)[storageIndex(i)] = M31.one();
+    _ = schedule;
     return result;
 }
 
@@ -260,11 +245,17 @@ fn setWord(bits: *[32]M31, value: u32) void {
 
 pub fn writeMain(allocator: std.mem.Allocator, statement: Statement) !Columns {
     const result = try allocateColumns(allocator, main_width);
-    var state = statement.initial;
-    for (0..terminal_row + 1) |t| {
-        var row: Row(M31) = .{ .state = @splat(@splat(M31.zero())), .carry_bits = @splat(M31.zero()), .w_lo = M31.zero(), .w_hi = M31.zero() };
-        for (&row.state, state) |*bits, value| setWord(bits, value);
-        if (t < active_rows) {
+    var states: [65]sha.State = undefined;
+    states[0] = statement.initial;
+    for (statement.schedule, 0..) |word, t| states[t + 1] = sha.round(states[t], word, sha.round_constants[t]);
+    if (!std.meta.eql(states[64], statement.final)) return error.InvalidShaRoundTerminal;
+    for (0..final_row + 1) |r| {
+        var row: Row(M31) = .{ .a = @splat(M31.zero()), .e = @splat(M31.zero()), .carry_bits = @splat(M31.zero()), .w_lo = M31.zero(), .w_hi = M31.zero() };
+        const state = if (r < first_round_row) statement.initial else states[r - first_round_row];
+        setWord(&row.a, if (r < first_round_row) statement.initial[3 - r] else state[0]);
+        setWord(&row.e, if (r < first_round_row) statement.initial[7 - r] else state[4]);
+        if (r >= first_round_row and r < first_round_row + active_rows) {
+            const t = r - first_round_row;
             row.w_lo = M31.fromCanonical(statement.schedule[t] & 0xffff);
             row.w_hi = M31.fromCanonical(statement.schedule[t] >> 16);
             const s1 = sha.sigmaBig1(state[4]);
@@ -285,19 +276,16 @@ pub fn writeMain(allocator: std.mem.Allocator, statement: Statement) !Columns {
                     bit_index += 1;
                 }
             }
-            state = sha.round(state, statement.schedule[t], sha.round_constants[t]);
         }
         const values = flatten(M31, row);
-        const i = storageIndex(t);
+        const i = storageIndex(r);
         for (result.values, values) |column, value| @constCast(column.values)[i] = value;
     }
-    if (!std.meta.eql(state, statement.final)) return error.InvalidShaRoundTerminal;
     return result;
 }
 
 pub const Component = struct {
     statement: Statement,
-    private_mode: bool = false,
     fixed_offset: usize = 0,
     main_offset: usize = 0,
     pub fn asVerifierComponent(self: *const @This()) core.air.components.Component {
@@ -325,7 +313,7 @@ pub const Component = struct {
         return .initOwned(try allocator.dupe([]u32, &.{ fixed, main }));
     }
     pub fn maskPoints(_: *const @This(), allocator: std.mem.Allocator, point: CirclePointQM31, max_log_degree_bound: u32) !core.air.components.MaskPoints {
-        if (max_log_degree_bound < log_size) return error.InvalidShaRoundTrace;
+        if (max_log_degree_bound < log_size) return error.InvalidShaShiftTrace;
         const fixed = try allocator.alloc([]CirclePointQM31, fixed_width);
         var ready: usize = 0;
         errdefer {
@@ -343,9 +331,16 @@ pub const Component = struct {
             allocator.free(main);
         }
         const step = canonic.CanonicCoset.new(max_log_degree_bound).coset_value.step;
-        const next = point.add(.{ .x = QM31.fromBase(step.x), .y = QM31.fromBase(step.y) });
-        for (main) |*column| {
-            column.* = try allocator.dupe(CirclePointQM31, &.{ point, next });
+        const shift = CirclePointQM31{ .x = QM31.fromBase(step.x), .y = QM31.fromBase(step.y) };
+        const prev1 = point.sub(shift);
+        const prev2 = prev1.sub(shift);
+        const prev3 = prev2.sub(shift);
+        const next = point.add(shift);
+        for (main, 0..) |*column, i| {
+            column.* = if (i < 64)
+                try allocator.dupe(CirclePointQM31, &.{ prev3, prev2, prev1, point, next })
+            else
+                try allocator.dupe(CirclePointQM31, &.{point});
             ready += 1;
         }
         return .initOwned(try allocator.dupe([][]CirclePointQM31, &.{ fixed, main }));
@@ -356,26 +351,37 @@ pub const Component = struct {
         return indices;
     }
     pub fn evaluateConstraintQuotientsAtPoint(self: *const @This(), point: CirclePointQM31, mask: *const core.air.components.MaskValues, accumulator: *PointEvaluationAccumulator, max_log_degree_bound: u32) !void {
-        if (mask.items.len < 2 or mask.items[0].len < self.fixed_offset + fixed_width or mask.items[1].len < self.main_offset + main_width or max_log_degree_bound < log_size) return error.InvalidShaRoundTrace;
+        if (mask.items.len < 2 or mask.items[0].len < self.fixed_offset + fixed_width or mask.items[1].len < self.main_offset + main_width or max_log_degree_bound < log_size) return error.InvalidShaShiftTrace;
         var fixed_values: [fixed_width]QM31 = undefined;
         for (&fixed_values, mask.items[0][self.fixed_offset..][0..fixed_width]) |*value, col| {
-            if (col.len != 1) return error.InvalidShaRoundTrace;
+            if (col.len != 1) return error.InvalidShaShiftTrace;
             value.* = col[0];
         }
         var current: [main_width]QM31 = undefined;
-        var next: [main_width]QM31 = undefined;
-        for (&current, &next, mask.items[1][self.main_offset..][0..main_width]) |*a, *b, col| {
-            if (col.len != 2) return error.InvalidShaRoundTrace;
-            a.* = col[0];
-            b.* = col[1];
+        var prev1: [main_width]QM31 = @splat(QM31.zero());
+        var prev2: [main_width]QM31 = @splat(QM31.zero());
+        var prev3: [main_width]QM31 = @splat(QM31.zero());
+        var next: [main_width]QM31 = @splat(QM31.zero());
+        for (mask.items[1][self.main_offset..][0..main_width], 0..) |col, i| {
+            if (i < 64) {
+                if (col.len != 5) return error.InvalidShaShiftTrace;
+                prev3[i] = col[0];
+                prev2[i] = col[1];
+                prev1[i] = col[2];
+                current[i] = col[3];
+                next[i] = col[4];
+            } else {
+                if (col.len != 1) return error.InvalidShaShiftTrace;
+                current[i] = col[0];
+            }
         }
-        const constraints = evaluate(QM31, unflatten(QM31, current), unflatten(QM31, next), fixedAt(QM31, fixed_values), self.statement, self.private_mode);
+        const constraints = evaluate(QM31, unflatten(QM31, current), unflatten(QM31, prev1), unflatten(QM31, prev2), unflatten(QM31, prev3), unflatten(QM31, next), fixedAt(QM31, fixed_values));
         const denominator = core.constraints.cosetVanishing(QM31, canonic.CanonicCoset.new(log_size).coset(), point.repeatedDouble(max_log_degree_bound - log_size));
         const inverse = try denominator.inv();
         for (constraints) |constraint| accumulator.accumulate(constraint.mul(inverse));
     }
     pub fn evaluateConstraintQuotientsOnDomain(self: *const @This(), trace: *const Trace, accumulator: *DomainEvaluationAccumulator) !void {
-        if (trace.polys.items.len < 2 or trace.polys.items[0].len < self.fixed_offset + fixed_width or trace.polys.items[1].len < self.main_offset + main_width) return error.InvalidShaRoundTrace;
+        if (trace.polys.items.len < 2 or trace.polys.items[0].len < self.fixed_offset + fixed_width or trace.polys.items[1].len < self.main_offset + main_width) return error.InvalidShaShiftTrace;
         const allocator = accumulator.allocator;
         const eval_log = max_constraint_log_degree;
         const domain = canonic.CanonicCoset.new(eval_log).circleDomain();
@@ -404,14 +410,20 @@ pub const Component = struct {
         for (0..n) |row_index| {
             var fixed_values: [fixed_width]QM31 = undefined;
             var current: [main_width]QM31 = undefined;
-            var next: [main_width]QM31 = undefined;
+            var prev1: [main_width]QM31 = @splat(QM31.zero());
+            var prev2: [main_width]QM31 = @splat(QM31.zero());
+            var prev3: [main_width]QM31 = @splat(QM31.zero());
+            var next: [main_width]QM31 = @splat(QM31.zero());
             for (&fixed_values, evaluations[0..fixed_width]) |*value, source| value.* = QM31.fromBase(source[row_index]);
-            const next_index = core.utils.offsetBitReversedCircleDomainIndex(row_index, log_size, eval_log, 1);
-            for (&current, &next, evaluations[fixed_width..]) |*a, *b, source| {
-                a.* = QM31.fromBase(source[row_index]);
-                b.* = QM31.fromBase(source[next_index]);
+            for (&current, evaluations[fixed_width..]) |*slot, source| slot.* = QM31.fromBase(source[row_index]);
+            for (0..64) |i| {
+                const source = evaluations[fixed_width + i];
+                prev1[i] = QM31.fromBase(source[core.utils.offsetBitReversedCircleDomainIndex(row_index, log_size, eval_log, -1)]);
+                prev2[i] = QM31.fromBase(source[core.utils.offsetBitReversedCircleDomainIndex(row_index, log_size, eval_log, -2)]);
+                prev3[i] = QM31.fromBase(source[core.utils.offsetBitReversedCircleDomainIndex(row_index, log_size, eval_log, -3)]);
+                next[i] = QM31.fromBase(source[core.utils.offsetBitReversedCircleDomainIndex(row_index, log_size, eval_log, 1)]);
             }
-            const constraints = evaluate(QM31, unflatten(QM31, current), unflatten(QM31, next), fixedAt(QM31, fixed_values), self.statement, self.private_mode);
+            const constraints = evaluate(QM31, unflatten(QM31, current), unflatten(QM31, prev1), unflatten(QM31, prev2), unflatten(QM31, prev3), unflatten(QM31, next), fixedAt(QM31, fixed_values));
             var sum = QM31.zero();
             for (constraints, 0..) |constraint, i| sum = sum.add(column.random_coeff_powers[n_constraints - 1 - i].mul(constraint));
             column.accumulate(row_index, sum.mulM31(inverse[row_index >> @intCast(log_size)]));
@@ -422,8 +434,8 @@ pub const Component = struct {
 fn evaluationOnDomain(allocator: std.mem.Allocator, poly: prover.air.component_prover.Poly, eval_log: u32, n: usize, buffers: *std.ArrayList([]M31)) ![]const M31 {
     try poly.validate();
     if (poly.log_size == eval_log) return poly.values;
-    const coefficients = poly.coefficients orelse return error.InvalidShaRoundTrace;
-    if (coefficients.logSize() != log_size) return error.InvalidShaRoundTrace;
+    const coefficients = poly.coefficients orelse return error.InvalidShaShiftTrace;
+    if (coefficients.logSize() != log_size) return error.InvalidShaShiftTrace;
     const values = try allocator.alloc(M31, n);
     errdefer allocator.free(values);
     const source = coefficients.coefficients();
@@ -434,22 +446,24 @@ fn evaluationOnDomain(allocator: std.mem.Allocator, poly: prover.air.component_p
 }
 
 pub fn validateCommittedTrace(statement: Statement, fixed: []const ColumnEvaluation, main: []const ColumnEvaluation) !void {
-    return validateCommittedTraceWithMode(statement, fixed, main, false);
-}
-
-pub fn validateCommittedTraceWithMode(statement: Statement, fixed: []const ColumnEvaluation, main: []const ColumnEvaluation, private_mode: bool) !void {
-    if (fixed.len != fixed_width or main.len != main_width) return error.InvalidShaRoundTrace;
+    _ = statement;
+    if (fixed.len != fixed_width or main.len != main_width) return error.InvalidShaShiftTrace;
     for (0..rows) |storage| {
-        const next_storage = core.utils.offsetBitReversedCircleDomainIndex(storage, log_size, log_size, 1);
         var fv: [fixed_width]M31 = undefined;
         var mv: [main_width]M31 = undefined;
-        var nv: [main_width]M31 = undefined;
+        var p1: [main_width]M31 = @splat(M31.zero());
+        var p2: [main_width]M31 = @splat(M31.zero());
+        var p3: [main_width]M31 = @splat(M31.zero());
+        var nv: [main_width]M31 = @splat(M31.zero());
         for (&fv, fixed) |*slot, col| slot.* = col.values[storage];
-        for (&mv, &nv, main) |*a, *b, col| {
-            a.* = col.values[storage];
-            b.* = col.values[next_storage];
+        for (&mv, main) |*slot, col| slot.* = col.values[storage];
+        for (0..64) |i| {
+            p1[i] = main[i].values[core.utils.offsetBitReversedCircleDomainIndex(storage, log_size, log_size, -1)];
+            p2[i] = main[i].values[core.utils.offsetBitReversedCircleDomainIndex(storage, log_size, log_size, -2)];
+            p3[i] = main[i].values[core.utils.offsetBitReversedCircleDomainIndex(storage, log_size, log_size, -3)];
+            nv[i] = main[i].values[core.utils.offsetBitReversedCircleDomainIndex(storage, log_size, log_size, 1)];
         }
-        for (evaluate(M31, unflatten(M31, mv), unflatten(M31, nv), fixedAt(M31, fv), statement, private_mode)) |constraint|
-            if (!constraint.isZero()) return error.InvalidShaRoundConstraint;
+        for (evaluate(M31, unflatten(M31, mv), unflatten(M31, p1), unflatten(M31, p2), unflatten(M31, p3), unflatten(M31, nv), fixedAt(M31, fv))) |constraint|
+            if (!constraint.isZero()) return error.InvalidShaShiftConstraint;
     }
 }

@@ -37,7 +37,10 @@ AIR. No helper is a host-only calculation or a new specialized AIR chip.
 | `std::math::add_u256_checked(a,b)` | `a+b` with final carry zero | Two `UInt256` values; overflow makes the relation unsatisfiable. |
 | `std::math::sub_u256(a,b)` | `(a-b) mod 2^256` | Two `UInt256` values; sixteen little-endian limbs. |
 | `std::math::sub_u256_checked(a,b)` | `a-b` with final borrow zero | Two `UInt256` values; underflow makes the relation unsatisfiable. |
-| `std::math::le_u256(a,b)` | `1` if `a <= b`, else `0` | Two `UInt256` values; result `[m31; 1]`. |
+| `std::math::le_u256(a,b)` | `1` if `a <= b`, else `0` | Two `UInt256` values; constrained `bit` result, usable as `[m31; 1]` output. |
+| `std::math::lt_u256(a,b)`, `gt_u256(a,b)`, `ge_u256(a,b)` | Strict or reversed unsigned order | Two `UInt256` values; constrained `bit`. Each uses one `u256_le` and at most one Boolean negation. |
+| `std::math::eq_u256(a,b)`, `ne_u256(a,b)` | Equality or inequality | Two `UInt256` values; constrained `bit`. Two `u256_le` nodes and Boolean logic. |
+| `std::math::min_u256(a,b)`, `max_u256(a,b)` | Select the smaller or larger value | Two `UInt256` values; one `u256_le` and one range-preserving `select`. Equal inputs return the same value. |
 
 The group in brackets is a compile-time list of existing circuit values,
 not a witness array that can be indexed. Each item may be an input,

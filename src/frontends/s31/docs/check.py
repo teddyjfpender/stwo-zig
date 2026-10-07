@@ -269,6 +269,18 @@ def check_examples() -> None:
         552785778, 528026874, 1337939194, 1238002988,
         529560134, 669980742, 1274389821, 1249346016,
     ]
+    order_relation, _ = compile_text(
+        (S31 / "examples/u256_order_select.s31").read_text(), "u256_order_select.s31"
+    )
+    assert order_relation == json.loads((S31 / "examples/u256_order_select.s31.json").read_text())
+    order_assignment = json.loads((S31 / "examples/u256_order_select.valid.json").read_text())
+    a = int.from_bytes(encode_u256_le(order_assignment["private_inputs"]["a"]), "little")
+    b = int.from_bytes(encode_u256_le(order_assignment["private_inputs"]["b"]), "little")
+    assert (a, b, b - a) == (2**128 - 1, 2**128 + 7, 8)
+    assert evaluate_relation(order_relation, order_assignment) == order_assignment["public_outputs"]
+    assert order_assignment["public_outputs"][order_relation["public_outputs"][0]] == sub_assignment["public_outputs"]["root"]
+    assert "8,162 raw QM31 rows" in wide_doc.read_text()
+    assert "python3 src/frontends/s31/acceptance_u256_select.py" in wide_doc.read_text()
     wrap_relation, _ = compile_text(
         (S31 / "examples/u256_sub_wrap.s31").read_text(), "u256_sub_wrap.s31"
     )

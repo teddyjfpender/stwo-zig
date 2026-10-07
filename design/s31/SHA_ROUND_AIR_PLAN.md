@@ -36,8 +36,8 @@ connects caller, schedule, round, and feed-forward. Every bus use needs a
 verifier-pinned address/call ID and a matching producer multiplicity. A local
 row equation alone does not establish cross-component custody.
 
-The round component has eight fixed, 302 main, and 36 word-lookup interaction
-columns, with 382 round constraints and nine LogUp constraints. The schedule
+The round component has eight fixed, 270 main, and 36 word-lookup interaction
+columns, with 340 round constraints and nine LogUp constraints. The schedule
 component has five fixed and 36 main columns; feed-forward has seven fixed
 and 40 main; caller has eight fixed and 38 main. Each has a native serialized
 proof test. Public modes pin local inputs in fixed columns. Private modes use
@@ -49,8 +49,8 @@ queries and zero proof-of-work bits; they are not a Bitcoin speed comparison.
 ## Round relation
 
 For each round `t`, the row contains the eight 32-bit state words
-`a,b,c,d,e,f,g,h`, schedule word `W[t]`, and intermediate `T1`. Every bit of
-the state and `T1` is Boolean. Boolean polynomials compute the functions
+`a,b,c,d,e,f,g,h` and schedule word `W[t]`. Every bit of the state is Boolean.
+Boolean polynomials compute the functions
 directly, with `0/1` inputs:
 
 ```text
@@ -58,16 +58,21 @@ xor3(x,y,z) = x+y+z-2(xy+xz+yz)+4xyz
 Ch(e,f,g)  = ef + (1-e)g
 Maj(a,b,c) = ab + ac + bc - 2abc
 
-T1 = h + Σ1(e) + Ch(e,f,g) + K[t] + W[t]  (mod 2^32)
-T2 = Σ0(a) + Maj(a,b,c)                    (mod 2^32)
-next = (T1+T2, a, b, c, d+T1, e, f, g)  (wordwise mod 2^32)
+A = h + Σ1(e) + Ch(e,f,g) + K[t] + W[t]  (mod 2^32)
+next.a = A + Σ0(a) + Maj(a,b,c)         (mod 2^32)
+next.e = d + A                          (mod 2^32)
+next.b,c,d,f,g,h = a,b,c,e,f,g
 ```
 
 `Σ0` and `Σ1` select rotated bit positions; no 32-bit rotation is a free
-field operation. Split each word sum into low/high 16-bit limbs. Constrain
-each limb with an explicit small carry and constrain carries to their integer
-range. All input words are reconstructed from Boolean bits, so each limb sum
-is far below the M31 modulus; field wrap cannot imitate an integer carry.
+field operation. `A` is not stored in the trace. Instead the AIR expands its
+five addends into both `next.a` and `next.e` limb equations, saving 32 Boolean
+columns. Split each output sum into low/high 16-bit limbs, with one three-bit
+Boolean carry per limb. The largest side has seven 16-bit addends plus a
+carry, below `2^19` and far below the M31 modulus. State words are Boolean
+reconstructions; `W` is range-constrained by the schedule chip through the
+closed word lookup, and `K` is verifier-fixed. Field wrap cannot imitate an
+integer carry in the joined proof.
 Fixed columns pin `K[t]`, round index, and first/last-row selectors. The
 private schedule word sits in the main trace. The caller-bus configuration
 pins call identity. Transition constraints copy/rotate the state into the next row, and
@@ -154,7 +159,7 @@ themselves do not authenticate private data across components.
 
 ## Cost hypothesis and acceptance gates
 
-The implemented one-header SHA-only layout totals 79 fixed, 1172 main, and
+The implemented one-header SHA-only layout totals 79 fixed, 1076 main, and
 184 interaction columns: one caller plus three schedule/round/feed groups.
 The earlier 52/485/76 estimate was too low because the round AIR stores
 Boolean state bits. The existing joined profile measured 57/739/780 columns
@@ -185,18 +190,21 @@ circuit component determine whether this is faster.
 
 All four direct AIRs and their local LogUps are implemented and natively
 verified. The three-call SHA-only join closes all ten word claims in one
-serialized native proof. One q2 ReleaseSafe functional run took 140 ms proving,
-56 ms verifying, and 149,321 bytes with zero proof-of-work bits and 12 FRI
-queries. The circuit-plus-SHA join closes the Gate claim and ten word claims
-in one serialized STARK proof. One ReleaseSafe production-config run took
-3,232 ms proving, 113 ms verifying, and 778,149 bytes, with 93 fixed, 1193
-main, and 212 interaction columns. FRI took 3,110 ms, including 2,908 ms of
-proof-of-work grinding, so proving excluding that grind was about 324 ms.
-These are single local runs. The v1 joined profile publishes the SHA digest in
-addition to the Poseidon root, whereas the current S31 Bitcoin source
-publishes only the root. This is therefore not an equivalent-ABI replacement
-for the generic lowering. Even with that qualification, the observed direct
-profile is slower and larger than the recorded generic baseline of 154 ms
-excluding proof of work and 338,282 bytes. Private-digest ABI parity, a
-soundness review, and substantial width and prover-cost reduction remain
-acceptance gates.
+serialized native proof. One q2 ReleaseSafe functional run after removing the
+`T1` bit columns took 138 ms proving, 77 ms verifying, and 141,016 bytes with
+zero proof-of-work bits and 12 FRI queries. The circuit-plus-SHA join closes
+the Gate claim and ten word claims in one serialized STARK proof. Its v2
+statement publishes only the Poseidon root, matching the existing S31 Bitcoin
+source ABI; the digest stays private in the caller and circuit, joined by the
+Gate lookup. Two ReleaseSafe production-config v2 runs took 429–454 ms
+proving excluding FRI proof-of-work, 149–152 ms verifying, and 731,280 proof
+bytes, with 93 fixed, 1097 main, and 212 interaction columns. The
+[measurement record](measurements/bitcoin-sha-direct-circuit-v2-private-digest-2026-10-07.json)
+includes total time, stage times, and the production FRI configuration.
+The comparable generic reference measured 154 ms excluding both proof-of-work
+grinds and 338,282 bytes; those runs used a different command path and the
+direct timing still includes its smaller interaction grind. The direct AIR is
+currently slower and larger. A soundness review and substantial width and
+prover-cost reduction remain acceptance gates. The proposed
+[shift-register round layout](SHA_SHIFT_REGISTER_AIR.md) targets the largest
+remaining committed trace cost.

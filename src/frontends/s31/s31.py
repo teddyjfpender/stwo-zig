@@ -91,11 +91,11 @@ def abi(source: dict, lowering: str) -> dict:
             length = 8
         else:
             length = shapes[node["lhs"]]["length"]
-        shapes[node["name"]] = {"kind": (shapes[node["lhs"]]["kind"] if op in {"array_get", "array_concat", "array_slice"} else
+        shapes[node["name"]] = {"kind": (shapes[node["lhs"]]["kind"] if op in {"array_get", "array_concat", "array_slice", "select"} else
                                          "u16" if op in {"u256_add", "u256_add_checked", "u256_sub", "u256_sub_checked", "hash_sha256d_header", "bitcoin_target_mainnet", "bitcoin_prev_hash", "bitcoin_header_bits", "bitcoin_header_time", "bitcoin_genesis_hash_mainnet"} else "m31"), "length": length}
     return {
         "schema": "s31-public-abi-v1",
-        "encoding": "eight canonical M31 words, encoded little-endian u32; unused words are zero" if lowering.startswith("direct-") else "eight little-endian u32 words; unused words are zero",
+        "encoding": "eight canonical M31 words, encoded little-endian u32; unused words are zero" if lowering.startswith("direct-") or lowering == "sha-shift" else "eight little-endian u32 words; unused words are zero",
         "public_inputs": [
             {"name": item["name"], "kind": item["kind"], "length": item["length"]}
             for item in source["inputs"] if item["visibility"] == "public"
@@ -125,7 +125,7 @@ def standard_library_lock(explicit_import: bool) -> dict:
 
 def build_json(source_path: Path, output: Path, lowering: str = "gate",
                library_lock: dict | None = None, fri_fold_step: int = 1) -> Path:
-    if lowering not in {"gate", "chip", "sparse-gate", "sparse-chip", "sparse-wide-gate", "direct-gate", "direct-chip", "sha-joint"}:
+    if lowering not in {"gate", "chip", "sparse-gate", "sparse-chip", "sparse-wide-gate", "direct-gate", "direct-chip", "sha-joint", "sha-shift"}:
         raise ValueError("invalid S31 lowering")
     if type(fri_fold_step) is not int or fri_fold_step not in (1, 4) or (fri_fold_step == 4 and lowering not in {"gate", "sparse-wide-gate"}):
         raise ValueError("FRI fold step 4 requires gate or sparse-wide-gate lowering; supported steps are 1 and 4")
@@ -170,7 +170,7 @@ def build_json(source_path: Path, output: Path, lowering: str = "gate",
         if inspection["program_sha256"] != sha256(data):
             raise RuntimeError("compiled program does not match source")
         key = {
-            "schema": "s31-verification-key-sha-joint-v1" if lowering == "sha-joint" else "s31-verification-key-v4" if lowering.startswith("direct-") else "s31-verification-key-v5" if lowering == "sparse-wide-gate" else "s31-verification-key-v3" if lowering.startswith("sparse-") else "s31-verification-key-v2" if lowering == "chip" else "s31-verification-key-v1",
+            "schema": "s31-verification-key-sha-shift-v3" if lowering == "sha-shift" else "s31-verification-key-sha-joint-v1" if lowering == "sha-joint" else "s31-verification-key-v4" if lowering.startswith("direct-") else "s31-verification-key-v5" if lowering == "sparse-wide-gate" else "s31-verification-key-v3" if lowering.startswith("sparse-") else "s31-verification-key-v2" if lowering == "chip" else "s31-verification-key-v1",
             "profile": inspection["profile"],
             "chip": inspection["chip"],
             "name": name,
@@ -188,6 +188,8 @@ def build_json(source_path: Path, output: Path, lowering: str = "gate",
             key["stdlib_lock_sha256"] = lock_digest
         if lowering == "sha-joint":
             key["sha_joint"] = inspection["sha_joint"]
+        if lowering == "sha-shift":
+            key["sha_shift"] = inspection["sha_shift"]
         (staging / "source.s31.json").write_bytes(data)
         write_json(staging / "verification-key.json", key)
         if lock_bytes is not None:
@@ -487,6 +489,16 @@ def verify_package(package: Path) -> dict:
                 joint.get("sha_calls") != 3 or joint.get("claimed_sums") != 12 or
                 len(joint.get("gate_addresses", [])) != 56):
             raise ValueError("invalid SHA joint package key")
+    if manifest.get("lowering") == "sha-shift":
+        shift = key.get("sha_shift")
+        if (key.get("schema") != "s31-verification-key-sha-shift-v3" or
+                key.get("profile") != "sha-shift-v3" or key.get("chip") is not None or
+                not isinstance(shift, dict) or report.get("sha_shift") != shift or
+                shift.get("proof_envelope") != "S31SCJ03" or
+                shift.get("sha_calls") != 3 or shift.get("component_count") != 24 or
+                shift.get("claimed_sums") != 15 or
+                len(shift.get("gate_addresses", [])) != 56):
+            raise ValueError("invalid SHA shift package key")
     manifest_lock = manifest.get("stdlib_lock_sha256")
     key_lock = key.get("stdlib_lock_sha256")
     has_lock_artifact = "stdlib-lock.json" in manifest["artifacts"]
@@ -757,11 +769,14 @@ def equations(package: Path) -> dict:
             elif op == "mul_const":
                 field_equations.append(f"{name}[j] - {lhs} * {constant} = 0")
             elif op == "select":
+                shape = shapes[node["lhs"]]
                 selector = f"{node['selector']}[0]"
                 field_equations.extend((
                     f"{selector} * ({selector} - 1) = 0",
                     f"{name}[j] - (1 - {selector}) * {lhs} - {selector} * {rhs} = 0",
                 ))
+                if shape[0] == "u16":
+                    notes.append("Every selected limb equals one of two range-checked u16 limbs because the selector is Boolean; no new range witness is needed.")
             elif op == "repeat":
                 mixes_lanes = any(step["op"] == "mix4" for step in node["body"])
                 functional_spec = (f"{name} = F^{node['rounds']}({lhs})" if mixes_lanes else
@@ -1156,14 +1171,14 @@ def main() -> None:
     sub = commands.add_parser("build")
     sub.add_argument("source", type=Path)
     sub.add_argument("--out", type=Path, required=True)
-    sub.add_argument("--lowering", choices=("gate", "chip", "sparse-gate", "sparse-chip", "sparse-wide-gate", "direct-gate", "direct-chip", "sha-joint"), default="gate")
+    sub.add_argument("--lowering", choices=("gate", "chip", "sparse-gate", "sparse-chip", "sparse-wide-gate", "direct-gate", "direct-chip", "sha-joint", "sha-shift"), default="gate")
     sub.add_argument("--fri-fold-step", type=int, choices=(1, 4), default=1,
                      help="FRI folds per commitment for gate or sparse-wide-gate proofs; 4 can shrink recursive verifier circuits")
     sub = commands.add_parser("trial", help="build, prove, verify, and record one trial")
     sub.add_argument("source_or_package", type=Path)
     sub.add_argument("assignment", type=Path)
     sub.add_argument("--out", type=Path, required=True)
-    sub.add_argument("--lowering", choices=("gate", "chip", "sparse-gate", "sparse-chip", "sparse-wide-gate", "direct-gate", "direct-chip", "sha-joint"))
+    sub.add_argument("--lowering", choices=("gate", "chip", "sparse-gate", "sparse-chip", "sparse-wide-gate", "direct-gate", "direct-chip", "sha-joint", "sha-shift"))
     sub.add_argument("--fri-fold-step", type=int, choices=(1, 4),
                      help="select a gate or sparse-wide-gate package's FRI schedule, or check a supplied package")
     sub = commands.add_parser("tune", help="compare verified proof profiles on one source and assignment corpus")
@@ -1172,7 +1187,7 @@ def main() -> None:
     sub.add_argument("--warmup", type=Path, help="valid assignment proved once per profile before measurement")
     sub.add_argument("--out", type=Path, required=True)
     sub.add_argument("--lowering", action="append", required=True,
-                     choices=("gate", "chip", "sparse-gate", "sparse-chip", "sparse-wide-gate", "direct-gate", "direct-chip", "sha-joint"))
+                     choices=("gate", "chip", "sparse-gate", "sparse-chip", "sparse-wide-gate", "direct-gate", "direct-chip", "sha-joint", "sha-shift"))
     sub = commands.add_parser("oracle", help="check normalized relation values without building a proof")
     sub.add_argument("source_or_package", type=Path)
     sub.add_argument("assignment", type=Path)

@@ -528,7 +528,7 @@ class Compiler:
                     operation = (mathlib.sum_lanes if arity == 1 else mathlib.dot_lanes)
                     return operation(self.builder, *values, wanted=wanted, span=self.span(expr))
                 values = tuple(self.expect_value(self.eval_expr(arg, env), arg) for arg in expr.args)
-                arity = 2 if name in {"std::math::sub", "std::math::div", "std::math::add_u256", "std::math::add_u256_checked", "std::math::sub_u256", "std::math::sub_u256_checked", "std::math::le_u256"} else 1
+                arity = 2 if name in {"std::math::sub", "std::math::div", "std::math::add_u256", "std::math::add_u256_checked", "std::math::sub_u256", "std::math::sub_u256_checked", "std::math::le_u256", "std::math::lt_u256", "std::math::gt_u256", "std::math::ge_u256", "std::math::eq_u256", "std::math::ne_u256", "std::math::min_u256", "std::math::max_u256"} else 1
                 if len(values) != arity:
                     raise TypeErrorS31(f"{name} expects {arity} arguments")
                 operation = {"std::math::neg": mathlib.neg, "std::math::sub": mathlib.sub,
@@ -538,7 +538,14 @@ class Compiler:
                              "std::math::add_u256_checked": mathlib.add_u256_checked,
                              "std::math::sub_u256": mathlib.sub_u256,
                              "std::math::sub_u256_checked": mathlib.sub_u256_checked,
-                             "std::math::le_u256": mathlib.le_u256}[name]
+                             "std::math::le_u256": mathlib.le_u256,
+                             "std::math::lt_u256": mathlib.lt_u256,
+                             "std::math::gt_u256": mathlib.gt_u256,
+                             "std::math::ge_u256": mathlib.ge_u256,
+                             "std::math::eq_u256": mathlib.eq_u256,
+                             "std::math::ne_u256": mathlib.ne_u256,
+                             "std::math::min_u256": mathlib.min_u256,
+                             "std::math::max_u256": mathlib.max_u256}[name]
                 return operation(self.builder, *values, wanted=wanted, span=self.span(expr))
             if name == "iterate":
                 if expr.generic is None or len(expr.args) != 2 or expr.args[0].kind != "name":

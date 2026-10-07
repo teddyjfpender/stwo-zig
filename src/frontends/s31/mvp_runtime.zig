@@ -30,6 +30,7 @@ const sparse_mode = @import("s31_options").sparse_mode;
 const wide_mode = @import("s31_options").wide_mode;
 const direct_mode = @import("s31_options").direct_mode;
 const sha_joint_mode = @import("s31_options").sha_joint_mode;
+const sha_shift_mode = @import("s31_options").sha_shift_mode;
 const M31 = core.fields.m31.M31;
 
 const ChipKey = struct {
@@ -217,6 +218,7 @@ const Report = struct {
 
 pub fn main() !void {
     if (sha_joint_mode) return @import("sha_package_runtime.zig").main();
+    if (sha_shift_mode) return @import("sha_shift_package_runtime.zig").main();
     var gpa_state = std.heap.GeneralPurposeAllocator(.{}){};
     defer _ = gpa_state.deinit();
     const allocator = gpa_state.allocator();
@@ -317,6 +319,7 @@ pub fn main() !void {
 /// program is fixed by `embedded_source` at compile time.
 pub fn verifierMain(embedded_key: []const u8, embedded_recursive_key: []const u8, embedded_recursive_next_key: []const u8, embedded_fold_key: []const u8, embedded_state_fold_key: []const u8) !void {
     if (sha_joint_mode) return @import("sha_package_runtime.zig").verifierMain();
+    if (sha_shift_mode) return @import("sha_shift_package_runtime.zig").verifierMain();
     var gpa_state = std.heap.GeneralPurposeAllocator(.{}){};
     defer _ = gpa_state.deinit();
     const allocator = gpa_state.allocator();

@@ -55,7 +55,7 @@ fn fixedRoot(allocator: std.mem.Allocator, s: air.Statement, pcs: core.pcs.confi
     return scheme.trees.items[0].commitment.root();
 }
 
-fn proveAndVerify(allocator: std.mem.Allocator, s: air.Statement, pcs: core.pcs.config_v2.PcsConfigV2, mutation: ?enum { state, carry, k, padding, terminal_state, terminal_t1, terminal_carry }) !void {
+fn proveAndVerify(allocator: std.mem.Allocator, s: air.Statement, pcs: core.pcs.config_v2.PcsConfigV2, mutation: ?enum { state, carry, k, padding, terminal_state, terminal_carry }) !void {
     const key_root = try fixedRoot(allocator, s, pcs);
     var fixed = try air.writeFixed(allocator, s.schedule);
     defer fixed.deinit();
@@ -63,12 +63,11 @@ fn proveAndVerify(allocator: std.mem.Allocator, s: air.Statement, pcs: core.pcs.
     defer main.deinit();
     if (mutation) |m| switch (m) {
         .state => @constCast(main.values[0].values)[air.storageIndex(19)] = M31.one().sub(main.values[0].values[air.storageIndex(19)]),
-        .carry => @constCast(main.values[8 * 32 + 32].values)[air.storageIndex(9)] = M31.fromCanonical(2),
+        .carry => @constCast(main.values[8 * 32].values)[air.storageIndex(9)] = M31.fromCanonical(2),
         .k => @constCast(fixed.values[5].values)[air.storageIndex(7)] = fixed.values[5].values[air.storageIndex(7)].add(M31.one()),
         .padding => @constCast(main.values[0].values)[air.storageIndex(120)] = M31.one(),
         .terminal_state => @constCast(main.values[0].values)[air.storageIndex(air.terminal_row)] = M31.one().sub(main.values[0].values[air.storageIndex(air.terminal_row)]),
-        .terminal_t1 => @constCast(main.values[8 * 32].values)[air.storageIndex(air.terminal_row)] = M31.one(),
-        .terminal_carry => @constCast(main.values[8 * 32 + 32].values)[air.storageIndex(air.terminal_row)] = M31.one(),
+        .terminal_carry => @constCast(main.values[8 * 32].values)[air.storageIndex(air.terminal_row)] = M31.one(),
     };
     if (mutation == null) try air.validateCommittedTrace(s, fixed.values, main.values);
     var channel = MC.Channel{};
@@ -161,29 +160,31 @@ test "SHA round AIR rejects state, carry, constant, schedule and padding changes
     @constCast(main.values[0].values)[air.storageIndex(19)] = M31.one().sub(initial);
     try std.testing.expectError(error.InvalidShaRoundConstraint, air.validateCommittedTrace(s, fixed.values, main.values));
     @constCast(main.values[0].values)[air.storageIndex(19)] = initial;
-    const old_carry = main.values[8 * 32 + 32].values[air.storageIndex(9)];
-    @constCast(main.values[8 * 32 + 32].values)[air.storageIndex(9)] = M31.fromCanonical(2);
+    const next_e_index = 4 * 32;
+    const e_bit = main.values[next_e_index].values[air.storageIndex(19)];
+    @constCast(main.values[next_e_index].values)[air.storageIndex(19)] = M31.one().sub(e_bit);
     try std.testing.expectError(error.InvalidShaRoundConstraint, air.validateCommittedTrace(s, fixed.values, main.values));
-    @constCast(main.values[8 * 32 + 32].values)[air.storageIndex(9)] = old_carry;
-    // All bits in these two encodings are Boolean, yet they represent 5 and
-    // 3. The quadratic range checks must reject them independently of the
-    // Boolean checks and SHA sum equations.
+    @constCast(main.values[next_e_index].values)[air.storageIndex(19)] = e_bit;
+    const old_carry = main.values[8 * 32].values[air.storageIndex(9)];
+    @constCast(main.values[8 * 32].values)[air.storageIndex(9)] = M31.fromCanonical(2);
+    try std.testing.expectError(error.InvalidShaRoundConstraint, air.validateCommittedTrace(s, fixed.values, main.values));
+    @constCast(main.values[8 * 32].values)[air.storageIndex(9)] = old_carry;
+    // A seven encoded with Boolean bits cannot satisfy either the six-addend
+    // or seven-addend 16-bit sum. These checks exercise the integer bound
+    // rather than a separate carry-range polynomial.
     const at = air.storageIndex(9);
     const original_three = [_]M31{
-        main.values[8 * 32 + 32 + 0].values[at],
-        main.values[8 * 32 + 32 + 1].values[at],
-        main.values[8 * 32 + 32 + 2].values[at],
+        main.values[8 * 32 + 0].values[at],
+        main.values[8 * 32 + 1].values[at],
+        main.values[8 * 32 + 2].values[at],
     };
-    @constCast(main.values[8 * 32 + 32 + 0].values)[at] = M31.one();
-    @constCast(main.values[8 * 32 + 32 + 1].values)[at] = M31.zero();
-    @constCast(main.values[8 * 32 + 32 + 2].values)[at] = M31.one();
+    for (0..3) |i| @constCast(main.values[8 * 32 + i].values)[at] = M31.one();
     try std.testing.expectError(error.InvalidShaRoundConstraint, air.validateCommittedTrace(s, fixed.values, main.values));
-    for (original_three, 0..) |value, i| @constCast(main.values[8 * 32 + 32 + i].values)[at] = value;
-    const original_two = [_]M31{ main.values[8 * 32 + 32 + 6].values[at], main.values[8 * 32 + 32 + 7].values[at] };
-    @constCast(main.values[8 * 32 + 32 + 6].values)[at] = M31.one();
-    @constCast(main.values[8 * 32 + 32 + 7].values)[at] = M31.one();
+    for (original_three, 0..) |value, i| @constCast(main.values[8 * 32 + i].values)[at] = value;
+    const original_next_a = [_]M31{ main.values[8 * 32 + 6].values[at], main.values[8 * 32 + 7].values[at], main.values[8 * 32 + 8].values[at] };
+    for (0..3) |i| @constCast(main.values[8 * 32 + 6 + i].values)[at] = M31.one();
     try std.testing.expectError(error.InvalidShaRoundConstraint, air.validateCommittedTrace(s, fixed.values, main.values));
-    for (original_two, 0..) |value, i| @constCast(main.values[8 * 32 + 32 + 6 + i].values)[at] = value;
+    for (original_next_a, 0..) |value, i| @constCast(main.values[8 * 32 + 6 + i].values)[at] = value;
     var changed = s;
     changed.schedule[7] ^= 1;
     var changed_fixed = try air.writeFixed(allocator, changed.schedule);
@@ -198,8 +199,36 @@ test "SHA round AIR rejects state, carry, constant, schedule and padding changes
     try proveAndVerify(allocator, s, pcs, .k);
     try proveAndVerify(allocator, s, pcs, .padding);
     try proveAndVerify(allocator, s, pcs, .terminal_state);
-    try proveAndVerify(allocator, s, pcs, .terminal_t1);
     try proveAndVerify(allocator, s, pcs, .terminal_carry);
+}
+
+test "eliminated T1 round relation matches independent SHA compression across varied states" {
+    const allocator = std.testing.allocator;
+    var seed: u32 = 0x92b7_a41d;
+    for (0..16) |_| {
+        var initial: sha.State = undefined;
+        for (&initial) |*word| {
+            seed = seed *% 1664525 +% 1013904223;
+            word.* = seed;
+        }
+        var block: [64]u8 = undefined;
+        for (&block) |*byte| {
+            seed = seed *% 1664525 +% 1013904223;
+            byte.* = @truncate(seed >> 16);
+        }
+        const s = statement(initial, block);
+        var oracle = std.crypto.hash.sha2.Sha256.init(.{});
+        oracle.s = initial;
+        oracle.update(&block);
+        var fed = s.final;
+        for (&fed, initial) |*word, previous| word.* +%= previous;
+        try std.testing.expectEqualDeep(oracle.s, fed);
+        var fixed = try air.writeFixed(allocator, s.schedule);
+        defer fixed.deinit();
+        var main = try air.writeMain(allocator, s);
+        defer main.deinit();
+        try air.validateCommittedTrace(s, fixed.values, main.values);
+    }
 }
 
 test "SHA quotient vanishing denominator is constant within bit-reversed blocks" {
@@ -236,6 +265,6 @@ test "private round mode keeps canonical K and row selectors while W and boundar
     try air.validateCommittedTraceWithMode(untrusted, fixed.values, main.values, true);
     try std.testing.expectError(error.InvalidShaRoundConstraint, air.validateCommittedTraceWithMode(untrusted, fixed.values, main.values, false));
     const w_storage = air.storageIndex(0);
-    @constCast(main.values[8 * 32 + 32 + 12].values)[w_storage] = main.values[8 * 32 + 32 + 12].values[w_storage].add(M31.one());
+    @constCast(main.values[8 * 32 + 12].values)[w_storage] = main.values[8 * 32 + 12].values[w_storage].add(M31.one());
     try std.testing.expectError(error.InvalidShaRoundConstraint, air.validateCommittedTraceWithMode(untrusted, fixed.values, main.values, true));
 }

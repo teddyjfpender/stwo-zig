@@ -5,8 +5,8 @@ compression calls. Each call uses a message-schedule AIR, a round AIR, and a
 feed-forward AIR. An 80-row caller AIR describes the header bytes, SHA padding,
 chaining between calls, and final digest. These are separate tables of field
 values in one proof. The three-call SHA-only proof passes native verification
-with a public digest; a separate joined proof adds the sparse-wide Bitcoin
-circuit and closes the Gate claim in that same proof.
+with a public digest. The v2 joined proof adds the sparse-wide Bitcoin circuit,
+keeps the SHA digest private, and closes the Gate claim in that same proof.
 
 ## One word by hand
 
@@ -34,6 +34,10 @@ The round's terminal word travels at address `2048`; feed-forward returns the
 sum at address `24`, which the caller consumes. That is how one word is traced
 from header or IV to digest without publishing the private header.
 
+“Private” here means absent from the public statement. This proof path does
+not currently provide zero-knowledge confidentiality: its unmasked trace
+openings may reveal information about the header or digest.
+
 ## What each AIR equation checks
 
 The schedule stores 32 Boolean bits for each word. A bit `b` is constrained by
@@ -45,9 +49,9 @@ Its five row openings are current, `t−2`, `t−7`, `t−15`, and `t−16` from
 For the padded `abc` block, a handwritten check gives `W[16]=0x61626380` and
 `W[17]=0x000f0000`; see the [full schedule derivation](../../../../design/s31/SHA_ROUND_AIR_PLAN.md).
 
-The round AIR stores eight 32-bit state words as Boolean bits, a Boolean `T1`,
-six small carries, and the two halves of `W[t]`. At round `t`, its main
-equations include:
+The round AIR stores eight 32-bit state words as Boolean bits, four three-bit
+carries, and the two halves of `W[t]`. It computes `T1` as an expression but
+does not store its 32 bits. At round `t`, its main equations include:
 
 ```text
 T1 = h + Σ1(e) + Ch(e,f,g) + K[t] + W[t]  mod 2^32
@@ -56,7 +60,11 @@ next.e = d + T1                         mod 2^32
 next.b,c,d,f,g,h = a,b,c,e,f,g
 ```
 
-The fixed columns pin the round constant `K[t]` and row selectors. The first
+The low and high 16-bit equations directly constrain `next.a` and `next.e`
+using the same `T1` expression. This removes 32 committed columns per SHA
+call. Each integer limb sum is below the M31 modulus, and Boolean state bits
+range constrain the result limbs. The fixed columns pin the round constant
+`K[t]` and row selectors. The first
 state and `W[t]` are private main values. The round's word lookup reads those
 *same* committed columns; it cannot substitute a different host-side value
 for its bus event. The feed-forward AIR uses two carried 16-bit additions per
@@ -68,6 +76,13 @@ little-endian circuit `u16`, while four serialized bytes become a big-endian
 SHA word. Thirty-two Boolean bits per row bind both views. The caller's Gate
 lookup reads its committed circuit limbs; its word lookup reads the committed
 SHA halves. This avoids accepting a field-valued fake byte decomposition.
+For the private-digest joined proof, the eight digest rows still enforce this
+byte packing, but their digest selector and digest constant columns are zero.
+The digest bytes live in the committed caller main trace. Its Gate events
+pair them with the circuit's private digest `u16` wires; its word events pair
+them with the third SHA compression output. The circuit computes the public
+Poseidon root from those same private wires. A native verifier derives the
+canonical fixed root from the source topology and the zero-digest statement.
 
 ## Why the lookup sum matters
 
@@ -91,20 +106,27 @@ indices. Header-derived words stay in main columns.
 Stwo interpolates each committed column as a low-degree circle-domain
 polynomial. It checks the AIR equations through quotient evaluations and
 sampled openings, and checks the lookup recurrence through interaction
-polynomials. The verifier sees commitments, claims, and a public digest;
-it does not read the private table. See [AIR and polynomials](air.md) for a
+polynomials. In the joined v2 profile, the verifier sees commitments, claims,
+and the public Poseidon root; it does not read the private header or SHA
+digest. See [AIR and polynomials](air.md) for a
 small complete trace and the quotient calculation.
 
 ## Current evidence and limit
 
 The schedule, round, feed-forward, and caller AIRs, plus their word or Gate
 LogUps, pass isolated proof tests. The SHA-only join proves all three calls in
-one serialized proof and closes the ten word claims. The one-header circuit
+one serialized proof and closes the ten word claims. The v2 one-header circuit
 join proves those SHA chips and the sparse-wide Bitcoin circuit in one STARK;
-its native verifier checks both global lookup sums. In one ReleaseSafe run
-using production FRI settings, proving took 3,232 ms including 2,908 ms of
-FRI proof-of-work grinding, native verification took 113 ms, and the proof
-was 778,149 bytes. These are single-run measurements. The profile publishes
-the digest alongside the Poseidon root, whereas the current Bitcoin S31 source
-publishes only the root. Private-digest ABI parity, a soundness review, and
-further performance work remain before it can replace the existing profile.
+its native verifier checks both global lookup sums. The proof publishes the
+same eight-element Poseidon root as the S31 Bitcoin source and no SHA digest.
+The [v1 measurement](../../../../design/s31/measurements/bitcoin-sha-direct-circuit-v1-2026-10-07.json)
+used a public digest and is retained as a historical reference. The
+[v2 measurement](../../../../design/s31/measurements/bitcoin-sha-direct-circuit-v2-private-digest-2026-10-07.json)
+records the matched public-output ABI and the 32-column-per-call round-width
+reduction. In two local runs under production FRI settings, proving took
+429–454 ms excluding FRI proof-of-work, native verification took 149–152 ms,
+and the proof was 731,280 bytes. The generic circuit reference took a 153.626 ms
+median excluding both grinds and produced a 338,282-byte proof. The direct
+result therefore still needs significant cost work; its reported non-FRI-PoW
+time includes the smaller interaction grind. A soundness review and further
+performance work remain.

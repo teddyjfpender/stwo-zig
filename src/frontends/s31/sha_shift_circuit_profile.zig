@@ -1,21 +1,22 @@
 //! Verifier-owned key and transcript for the sparse-wide circuit joined to
-//! three private direct SHA256 compression calls. The 80-byte header stays
-//! private; the v2 profile exposes only the circuit's public Poseidon root.
+//! three SHA256 compression calls. The 80-byte header is absent from the
+//! public statement; the v3 profile exposes only the circuit's Poseidon root.
 //! The SHA digest is a committed witness connected to the circuit through
 //! the Gate lookup. A Key is derived from independently compiled,
-//! value-free circuit topology.
+//! value-free circuit topology. This unmasked STARK does not promise
+//! zero-knowledge confidentiality for the header.
 const std = @import("std");
 const core = @import("stwo_core");
 const circuit = @import("stwo_circuit_frontend");
 const cpu = @import("stwo_circuit_cpu_integration");
-const direct = @import("sha_direct_private_join_profile.zig");
+const direct = @import("sha_shift_private_join_profile.zig");
 const caller = @import("sha_caller_stream_air.zig");
 const caller_bus = @import("sha_caller_stream_bus.zig");
 const schedule = @import("sha_schedule_direct_air.zig");
-const round = @import("sha_round_direct_air.zig");
+const round = @import("sha_round_shift_air.zig");
 const feed = @import("sha_feed_direct_air.zig");
 const schedule_bus = @import("sha_schedule_direct_word_logup.zig");
-const round_bus = @import("sha_round_direct_word_logup.zig");
+const round_bus = @import("sha_round_shift_word_logup.zig");
 const feed_bus = @import("sha_feed_direct_word_logup.zig");
 
 pub const MC = cpu.prove.profiles.Blake2sM31MerkleChannel;
@@ -25,7 +26,7 @@ pub const QM31 = core.fields.qm31.QM31;
 pub const circuit_components: usize = 4;
 pub const claim_count: usize = circuit_components + 1 + direct.word_claim_count;
 pub const component_count: usize = circuit_components + direct.component_count;
-pub const magic = "S31DCJ02";
+pub const magic = "S31SCJ03";
 pub const claim_bytes: usize = claim_count * 16;
 pub const prefix_bytes: usize = magic.len + 8 + claim_bytes + 32;
 pub const max_proof_bytes: usize = 1 << 26;
@@ -42,7 +43,7 @@ pub const Key = struct {
 
     pub fn validate(self: Key) !void {
         try self.statement.validate();
-        if (self.statement.digest_visibility != .private) return error.PublicDigestForbiddenInDirectCircuitV2;
+        if (self.statement.digest_visibility != .private) return error.PublicDigestForbiddenInShiftCircuitV3;
         if (self.n_vars <= 3 or self.n_vars >= core.fields.m31.Modulus) return error.InvalidDirectCircuitVariableCount;
         const expected = try pp.Layout.fromSizes(
             @as(usize, 1) << @intCast(self.circuit_logs[0]),
@@ -72,7 +73,7 @@ pub const Key = struct {
 
     pub fn identity(self: Key) [32]u8 {
         var hasher = std.crypto.hash.sha2.Sha256.init(.{});
-        hasher.update("S31-DIRECT-CIRCUIT-IDENTITY-V2\x00");
+        hasher.update("S31-SHIFT-CIRCUIT-IDENTITY-V3\x00");
         hasher.update(&self.digest);
         var result: [32]u8 = undefined;
         hasher.final(&result);
@@ -81,7 +82,7 @@ pub const Key = struct {
 };
 
 pub fn mixProfile(channel: *MC.Channel, key: Key) void {
-    channel.mixU64(0x5333_3144_434a_3032);
+    channel.mixU64(0x5333_3153_434a_3033);
     mixBytes(channel, key.source_digest);
     mixBytes(channel, direct.semanticDigest());
     mixBytes(channel, circuitAirDigest());
@@ -119,14 +120,14 @@ fn mixBytes(channel: *MC.Channel, bytes: [32]u8) void {
 }
 
 pub fn fixedLogs(allocator: std.mem.Allocator, key: Key) ![]u32 {
-    const sha_logs = @import("sha_direct_private_join_native_verifier.zig").fixedLogSizes();
+    const sha_logs = @import("sha_shift_private_join_native_verifier.zig").fixedLogSizes();
     const result = try allocator.alloc(u32, pp.N_COLUMNS + sha_logs.len);
     for (key.circuit_layout.entries, result[0..pp.N_COLUMNS]) |entry, *log| log.* = entry.log_size;
     @memcpy(result[pp.N_COLUMNS..], &sha_logs);
     return result;
 }
 pub fn mainLogs(allocator: std.mem.Allocator, key: Key) ![]u32 {
-    const sha_logs = @import("sha_direct_private_join_native_verifier.zig").mainLogSizes();
+    const sha_logs = @import("sha_shift_private_join_native_verifier.zig").mainLogSizes();
     const result = try allocator.alloc(u32, sparse_trace.main_width + sha_logs.len);
     // The explicit widths below are the canonical sparse-wide-v5 ordering.
     var at: usize = 0;
@@ -138,7 +139,7 @@ pub fn mainLogs(allocator: std.mem.Allocator, key: Key) ![]u32 {
     return result;
 }
 pub fn interactionLogs(allocator: std.mem.Allocator, key: Key) ![]u32 {
-    const sha_logs = @import("sha_direct_private_join_native_verifier.zig").interactionLogSizes();
+    const sha_logs = @import("sha_shift_private_join_native_verifier.zig").interactionLogSizes();
     const result = try allocator.alloc(u32, sparse_trace.interaction_width + sha_logs.len);
     var at: usize = 0;
     for (key.circuit_logs, [_]usize{ 4, 8, 12, 4 }) |log, width| {

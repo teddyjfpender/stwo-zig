@@ -253,7 +253,7 @@ pub const Program = struct {
                     result = .{ .kind = .m31, .length = 8 };
                 },
                 .select => {
-                    if (lhs == null or rhs == null or selector == null or lhs.?.kind != .m31 or rhs.?.kind != .m31 or selector.?.kind != .m31 or lhs.?.length != rhs.?.length or selector.?.length != 1 or node.constant != null or node.length != null or node.rounds != null or node.body != null) return error.InvalidNode;
+                    if (lhs == null or rhs == null or selector == null or lhs.?.kind != rhs.?.kind or selector.?.kind != .m31 or lhs.?.length != rhs.?.length or selector.?.length != 1 or node.constant != null or node.length != null or node.rounds != null or node.body != null) return error.InvalidNode;
                     result = lhs.?;
                 },
                 .hash_poseidon2_leaf => {
@@ -301,7 +301,7 @@ pub const Program = struct {
                 .hash_blake2s, .hash_blake2s_leaf, .hash_blake2s_pair, .hash_poseidon2_leaf, .hash_poseidon2_pair => 8,
                 else => (shapes.get(node.lhs orelse return error.InvalidNode) orelse return error.UnknownOperand).length,
             };
-            const shape: Shape = .{ .kind = if (node.op == .array_get or node.op == .array_concat or node.op == .array_slice)
+            const shape: Shape = .{ .kind = if (node.op == .array_get or node.op == .array_concat or node.op == .array_slice or node.op == .select)
                 (shapes.get(node.lhs.?) orelse return error.UnknownOperand).kind
             else if (node.op == .u256_add or node.op == .u256_add_checked or node.op == .u256_sub or node.op == .u256_sub_checked or node.op == .hash_sha256d_header or node.op == .bitcoin_target_mainnet or node.op == .bitcoin_prev_hash or node.op == .bitcoin_header_bits or node.op == .bitcoin_header_time or node.op == .bitcoin_genesis_hash_mainnet) .u16 else .m31, .length = length };
             if (std.mem.eql(u8, node.name, name)) return shape;

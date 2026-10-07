@@ -55,6 +55,13 @@ def main() -> None:
         statement = temp / "regenerated-statement.json"
         run("statement-retarget", key, digest, 1, source["current_block_hash"], times, statement, accepted=True)
         assert statement.read_bytes() == second.read_bytes()
+        relabeled_step = temp / "relabeled-step.json"
+        run("statement-retarget", key, digest, 0, source["current_block_hash"], times, relabeled_step, accepted=True)
+        run("verify-retarget", key, digest, relabeled_step, proof1, accepted=False)
+        first_tip = json.loads(first.read_text())["current_block_hash"]
+        relabeled_tip = temp / "relabeled-tip.json"
+        run("statement-retarget", key, digest, 1, first_tip, times, relabeled_tip, accepted=True)
+        run("verify-retarget", key, digest, relabeled_tip, proof1, accepted=False)
         changed_times = list(source["last_timestamps"])
         changed_times[0] ^= 1
         times.write_text(json.dumps(changed_times))
@@ -71,12 +78,17 @@ def main() -> None:
         overlong = temp / "altered-key.json"
         overlong.write_text(json.dumps(altered_key))
         run("verify-retarget", overlong, hashlib.sha256(overlong.read_bytes()).hexdigest(), second, proof1, accepted=False)
+        altered_key = dict(parsed_key)
+        altered_key["fold_preprocessed_root"] = ("0" if altered_key["fold_preprocessed_root"][0] != "0" else "1") + altered_key["fold_preprocessed_root"][1:]
+        wrong_air_root = temp / "wrong-air-root-key.json"
+        wrong_air_root.write_text(json.dumps(altered_key))
+        run("verify-retarget", wrong_air_root, hashlib.sha256(wrong_air_root.read_bytes()).hexdigest(), second, proof1, accepted=False)
         damaged = bytearray(proof1.read_bytes())
         damaged[len(damaged) // 2] ^= 1
         bad_proof = temp / "damaged.proof"
         bad_proof.write_bytes(damaged)
         run("verify-retarget", key, digest, second, bad_proof, accepted=False)
-    print("Bitcoin first-retarget CLI: two native proofs accepted; wrong v3 profile, key digest, step replay, authenticated timestamp, public claim, over-limit key, and damaged proof rejected")
+    print("Bitcoin first-retarget CLI: two native proofs accepted; wrong v3 profile, key digest, AIR root, step replay, relabeled step/tip, authenticated timestamp, public claim, over-limit key, and damaged proof rejected")
 
 
 if __name__ == "__main__":

@@ -14,12 +14,12 @@ pub fn build(b: *std.Build) void {
         b.path("examples/affine4.s31.json");
     const program_name = b.option([]const u8, "s31-name", "Build artifact name for the selected program") orelse "affine4";
     const source_version = b.option(u32, "s31-version", "Normalized source version (0 or 1)") orelse 0;
-    const lowering = b.option([]const u8, "s31-lowering", "gate, chip, sparse-gate, sparse-chip, sparse-wide-gate, direct-gate, direct-chip, or sha-joint proof lowering") orelse "gate";
+    const lowering = b.option([]const u8, "s31-lowering", "gate, chip, sparse-gate, sparse-chip, sparse-wide-gate, direct-gate, direct-chip, sha-joint, or sha-shift proof lowering") orelse "gate";
     if (!std.mem.eql(u8, lowering, "gate") and !std.mem.eql(u8, lowering, "chip") and
         !std.mem.eql(u8, lowering, "sparse-gate") and !std.mem.eql(u8, lowering, "sparse-chip") and
         !std.mem.eql(u8, lowering, "sparse-wide-gate") and
         !std.mem.eql(u8, lowering, "direct-gate") and !std.mem.eql(u8, lowering, "direct-chip") and
-        !std.mem.eql(u8, lowering, "sha-joint"))
+        !std.mem.eql(u8, lowering, "sha-joint") and !std.mem.eql(u8, lowering, "sha-shift"))
         @panic("invalid s31-lowering");
     const fri_fold_step = b.option(u32, "s31-fri-fold-step", "FRI folds per commitment for gate or sparse-wide-gate (1 or 4)") orelse 1;
     if ((fri_fold_step != 1 and fri_fold_step != 4) or
@@ -31,6 +31,7 @@ pub fn build(b: *std.Build) void {
     s31_options.addOption(bool, "wide_mode", std.mem.eql(u8, lowering, "sparse-wide-gate"));
     s31_options.addOption(bool, "direct_mode", std.mem.startsWith(u8, lowering, "direct-"));
     s31_options.addOption(bool, "sha_joint_mode", std.mem.eql(u8, lowering, "sha-joint"));
+    s31_options.addOption(bool, "sha_shift_mode", std.mem.eql(u8, lowering, "sha-shift"));
     s31_options.addOption(u32, "fri_fold_step", fri_fold_step);
     s31_options.addOption([]const u8, "stdlib_lock_sha256", b.option([]const u8, "s31-stdlib-sha256", "Pinned S31 standard library lock digest") orelse "");
 
@@ -256,6 +257,19 @@ pub fn build(b: *std.Build) void {
     const sha_round_word_proof_tests = b.addRunArtifact(b.addTest(.{ .root_module = sha_round_word_proof_root }));
     b.step("test-sha-round-word-proof", "Prove direct SHA rounds and their committed word lookup in one STARK")
         .dependOn(&sha_round_word_proof_tests.step);
+    const sha_round_shift_word_proof_root = b.createModule(.{
+        .root_source_file = b.path("sha_round_shift_word_proof_test.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    sha_round_shift_word_proof_root.addImport("stwo_core", core);
+    sha_round_shift_word_proof_root.addImport("stwo_prover_engine", cpu.import_table.get("stwo_prover_engine") orelse @panic("missing prover engine"));
+    sha_round_shift_word_proof_root.addImport("stwo_circuit_cpu_integration", cpu);
+    sha_round_shift_word_proof_root.addImport("s31_sha_provider", sha_provider);
+    sha_round_shift_word_proof_root.addImport("interop_postcard", sha_postcard);
+    const sha_round_shift_word_proof_tests = b.addRunArtifact(b.addTest(.{ .root_module = sha_round_shift_word_proof_root }));
+    b.step("test-sha-round-shift-word-proof", "Prove shift-register SHA rounds and committed word lookup in one STARK")
+        .dependOn(&sha_round_shift_word_proof_tests.step);
     const sha_schedule_word_proof_root = b.createModule(.{
         .root_source_file = b.path("sha_schedule_direct_word_proof_test.zig"),
         .target = target,
@@ -328,6 +342,37 @@ pub fn build(b: *std.Build) void {
     const sha_direct_circuit_tests = b.addRunArtifact(b.addTest(.{ .root_module = sha_direct_circuit_root }));
     b.step("test-sha-direct-circuit", "Prove one Bitcoin circuit plus private direct SHA256d in one STARK")
         .dependOn(&sha_direct_circuit_tests.step);
+    const sha_shift_private_join_root = b.createModule(.{
+        .root_source_file = b.path("sha_shift_private_join_proof_test.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    sha_shift_private_join_root.addImport("stwo_core", core);
+    sha_shift_private_join_root.addImport("stwo_prover_engine", cpu.import_table.get("stwo_prover_engine") orelse @panic("missing prover engine"));
+    sha_shift_private_join_root.addImport("stwo_circuit_cpu_integration", cpu);
+    sha_shift_private_join_root.addImport("stwo_circuit_frontend", circuit);
+    sha_shift_private_join_root.addImport("s31_sha_provider", sha_provider);
+    sha_shift_private_join_root.addImport("interop_postcard", sha_postcard);
+    const sha_shift_private_join_tests = b.addRunArtifact(b.addTest(.{ .root_module = sha_shift_private_join_root }));
+    b.step("test-sha-shift-private-join", "Prove one private SHA256d header with shift-register round AIRs")
+        .dependOn(&sha_shift_private_join_tests.step);
+    const sha_shift_circuit_root = b.createModule(.{
+        .root_source_file = b.path("sha_shift_circuit_proof_test.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    sha_shift_circuit_root.addImport("stwo_core", core);
+    sha_shift_circuit_root.addImport("stwo_prover_engine", cpu.import_table.get("stwo_prover_engine") orelse @panic("missing prover engine"));
+    sha_shift_circuit_root.addImport("stwo_circuit_frontend", circuit);
+    sha_shift_circuit_root.addImport("stwo_circuit_cpu_integration", cpu);
+    sha_shift_circuit_root.addImport("stwo_cairo_frontend", cpu.import_table.get("stwo_cairo_frontend") orelse @panic("missing Cairo frontend"));
+    sha_shift_circuit_root.addImport("interop_postcard", sha_postcard);
+    sha_shift_circuit_root.addImport("s31_air_programs", official_air);
+    sha_shift_circuit_root.addImport("s31_sha_provider", sha_provider);
+    sha_shift_circuit_root.addImport("s31_poseidon_ref", sha_provider);
+    const sha_shift_circuit_tests = b.addRunArtifact(b.addTest(.{ .root_module = sha_shift_circuit_root }));
+    b.step("test-sha-shift-circuit", "Prove one Bitcoin circuit plus shift-register SHA256d in one STARK")
+        .dependOn(&sha_shift_circuit_tests.step);
     const sha_feed_word_proof_root = b.createModule(.{
         .root_source_file = b.path("sha_feed_direct_word_proof_test.zig"),
         .target = target,

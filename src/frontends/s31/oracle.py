@@ -223,7 +223,9 @@ def _validated_shapes(relation: Mapping[str, Any]) -> tuple[dict[str, tuple[str,
             _absent(node, "constant", "length", "rounds", "body")
             if rhs is None:
                 raise OracleError(f"{name}: missing rhs")
-            shape = _same_m31(node, lhs, rhs)
+            if lhs is None or rhs != lhs or lhs[0] not in {"m31", "u16"}:
+                raise OracleError(f"{name}: select requires equally shaped m31 or u16 operands")
+            shape = lhs
             if selector != ("m31", 1):
                 raise OracleError(f"{name}: selector must be scalar m31")
         elif op in _HASH_OPS:

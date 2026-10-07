@@ -1,5 +1,5 @@
 //! Standalone 80-row SHA256d caller AIR. It proves local byte packing,
-//! chaining, canonical IV/padding, and equality to a public digest. The
+//! chaining, canonical IV/padding, and optional equality to a public digest. The
 //! circuit Gate and SHA word events are committed here but are authenticated
 //! only when a joint lookup argument closes both buses in the same proof.
 const std = @import("std");
@@ -29,11 +29,15 @@ pub const max_constraint_log_degree: u32 = log_size + 2;
 pub const word_relation_id: u32 = 0x5333_3103;
 
 pub const Statement = struct {
-    digest: [32]u8,
+    pub const DigestVisibility = enum { public, private };
+    digest: [32]u8 = @splat(0),
+    digest_visibility: DigestVisibility = .public,
     config: equations.Config,
 
     pub fn validate(self: Statement) !void {
         try self.config.validate();
+        if (self.digest_visibility == .private and !std.mem.allEqual(u8, &self.digest, 0))
+            return error.PrivateShaDigestMustBeZero;
     }
 };
 
@@ -107,7 +111,9 @@ fn swappedHalf(comptime F: type, bits: [32]F, low_byte: usize, high_byte: usize)
 
 /// One polynomial list at trace, quotient domain, and OODS points. The
 /// verifier-pinned fixed rows select all 80 semantic roles and 48 zero rows.
-/// The public digest fixes the last eight SHA output words byte-exactly.
+/// In public mode the digest fixes the last eight SHA output words. In
+/// private mode those words remain committed witness values and the joined
+/// Gate lookup binds their byte-packed u16 limbs to the circuit instead.
 pub fn evaluate(comptime F: type, row: equations.Row(F), fixed: Fixed(F)) [n_constraints]F {
     var result: [n_constraints]F = undefined;
     const one = field(F, 1);
@@ -139,7 +145,7 @@ fn fixedValues(statement: Statement, index: usize) [fixed_width]M31 {
     if (index >= active_rows) return values;
     if (index < 28) {
         values[0] = M31.one();
-        if (index >= 20) {
+        if (index >= 20 and statement.digest_visibility == .public) {
             values[3] = M31.one();
             const word = std.mem.readInt(u32, statement.digest[4 * (index - 20) ..][0..4], .big);
             values[6] = M31.fromCanonical(word & 0xffff);
@@ -395,4 +401,27 @@ pub fn validateCommittedTrace(statement: Statement, fixed: []const ColumnEvaluat
         for (evaluate(M31, unflatten(M31, mv), fixedAt(M31, fv))) |constraint|
             if (!constraint.isZero()) return error.InvalidShaCallerConstraint;
     }
+}
+
+test "private digest mode keeps digest bytes on the committed caller main trace" {
+    const allocator = std.testing.allocator;
+    var addresses: [equations.gate_count]u32 = undefined;
+    for (&addresses, 0..) |*address, i| address.* = @intCast(i + 3);
+    const statement = Statement{
+        .digest_visibility = .private,
+        .config = .{ .gate_addresses = addresses, .first_call_id = 1 },
+    };
+    var fixed = try writeFixed(allocator, statement);
+    defer fixed.deinit();
+    var main = try writeMain(allocator, [_]u8{0x39} ** 80);
+    defer main.deinit();
+    try validateCommittedTrace(statement, fixed.values, main.values);
+    for (20..28) |logical| {
+        const storage = storageIndex(logical);
+        for ([_]usize{ 3, 6, 7 }) |column| try std.testing.expect(fixed.values[column].values[storage].isZero());
+        try std.testing.expect(fixed.values[0].values[storage].eql(M31.one()));
+    }
+    var invalid = statement;
+    invalid.digest[0] = 1;
+    try std.testing.expectError(error.PrivateShaDigestMustBeZero, invalid.validate());
 }

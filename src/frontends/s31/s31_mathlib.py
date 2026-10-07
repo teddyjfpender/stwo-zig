@@ -17,6 +17,8 @@ BUILTINS = {
     "std::math::sum_lanes", "std::math::dot_lanes",
     "std::math::add_u256", "std::math::add_u256_checked", "std::math::le_u256",
     "std::math::sub_u256", "std::math::sub_u256_checked",
+    "std::math::lt_u256", "std::math::gt_u256", "std::math::ge_u256",
+    "std::math::eq_u256", "std::math::ne_u256", "std::math::min_u256", "std::math::max_u256",
 }
 MAX_STATIC_TERMS = 64
 
@@ -54,6 +56,48 @@ def sub_u256_checked(builder: Builder, lhs: Value, rhs: Value, *, wanted: str | 
                      span: dict[str, int] | None = None) -> Value:
     """256-bit subtraction constrained to reject a final borrow."""
     return builder.u256_binary("u256_sub_checked", lhs, rhs, wanted=wanted, span=span)
+
+
+def lt_u256(builder: Builder, lhs: Value, rhs: Value, *, wanted: str | None = None,
+            span: dict[str, int] | None = None) -> Value:
+    """One 256-bit comparison followed by a constrained Boolean negation."""
+    le_reverse = builder.u256_binary("u256_le", rhs, lhs, span=span)
+    return builder.boolean("bool_not", le_reverse, wanted=wanted, span=span)
+
+
+def gt_u256(builder: Builder, lhs: Value, rhs: Value, *, wanted: str | None = None,
+            span: dict[str, int] | None = None) -> Value:
+    return lt_u256(builder, rhs, lhs, wanted=wanted, span=span)
+
+
+def ge_u256(builder: Builder, lhs: Value, rhs: Value, *, wanted: str | None = None,
+            span: dict[str, int] | None = None) -> Value:
+    return builder.u256_binary("u256_le", rhs, lhs, wanted=wanted, span=span)
+
+
+def eq_u256(builder: Builder, lhs: Value, rhs: Value, *, wanted: str | None = None,
+            span: dict[str, int] | None = None) -> Value:
+    le = builder.u256_binary("u256_le", lhs, rhs, span=span)
+    ge = builder.u256_binary("u256_le", rhs, lhs, span=span)
+    return builder.boolean("bool_and", le, ge, wanted=wanted, span=span)
+
+
+def ne_u256(builder: Builder, lhs: Value, rhs: Value, *, wanted: str | None = None,
+            span: dict[str, int] | None = None) -> Value:
+    equal = eq_u256(builder, lhs, rhs, span=span)
+    return builder.boolean("bool_not", equal, wanted=wanted, span=span)
+
+
+def min_u256(builder: Builder, lhs: Value, rhs: Value, *, wanted: str | None = None,
+             span: dict[str, int] | None = None) -> Value:
+    le = builder.u256_binary("u256_le", lhs, rhs, span=span)
+    return builder.select(le, rhs, lhs, wanted=wanted, span=span)
+
+
+def max_u256(builder: Builder, lhs: Value, rhs: Value, *, wanted: str | None = None,
+             span: dict[str, int] | None = None) -> Value:
+    le = builder.u256_binary("u256_le", lhs, rhs, span=span)
+    return builder.select(le, lhs, rhs, wanted=wanted, span=span)
 
 
 def neg(builder: Builder, value: Value, *, wanted: str | None = None,

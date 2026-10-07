@@ -142,6 +142,67 @@ damaged proof bytes. These are local proof samples; the different final
 borrow constraint changes the AIR key, and stochastic proof of work prevents
 inferring a stable timing difference from these runs.
 
+## Order and choose a 256-bit value by hand
+
+The [ordering program](../examples/u256_order_select.s31) compares two private
+integers, selects their minimum and maximum, and commits to the checked
+difference. Its [assignment](../examples/u256_order_select.valid.json) uses
+$A=2^{128}-1$ and $B=2^{128}+7$. The table shows why their order is clear
+even though limb zero of $B$ is smaller:
+
+| Little-endian limb | $A_i$ | $B_i$ | Meaning |
+| ---: | ---: | ---: | --- |
+| 0 | 65535 | 7 | The low limb alone does not decide the order. |
+| 1–7 | 65535 | 0 | Borrow propagates across these limbs. |
+| 8 | 0 | 1 | This higher limb determines $A<B$. |
+| 9–15 | 0 | 0 | Equal high limbs. |
+
+`le_u256(A,B)` proves sixteen borrow equations as above and returns a typed
+`bit` equal to one. `lt_u256(A,B)` lowers to `not(le_u256(B,A))`, also one.
+`eq_u256` combines both non-strict comparisons with Boolean `and`; `ne_u256`
+negates that bit. There is no distinct comparison hint.
+
+The minimum uses `select(s,B,A)` with $s=\operatorname{le}(A,B)=1$; the
+maximum uses `select(s,A,B)`. For every limb, selection enforces
+
+$$
+s(s-1)=0,\qquad R_i=(1-s)L_i+sU_i.
+$$
+
+Because $s$ is Boolean and both inputs are already checked as `u16`, $R_i$
+equals an existing range-checked limb. No extra range witness is needed.
+The checked subtraction then proves $B-A=8$ with a final borrow of zero.
+The published Poseidon2 leaf of the sixteen difference limbs is
+`[552785778,528026874,1337939194,1238002988,529560134,669980742,1274389821,1249346016]`.
+Swapping $A$ and $B$ exercises the other selection branch and produces the
+same difference; equality produces a zero difference. The
+[`test_text_frontend.py` cases](../test_text_frontend.py) check all three
+assignments against an independent value oracle.
+
+The source operations expand into the existing `u256_le`, `bool_not`,
+`bool_and`, `select`, and checked subtraction relation nodes. The canonical
+relation shares repeated comparisons with identical operands. Inspect the
+lowered relation and the selected backend's gate cost with:
+
+```sh
+python3 src/frontends/s31/s31.py lower src/frontends/s31/examples/u256_order_select.s31
+python3 src/frontends/s31/s31.py trial src/frontends/s31/examples/u256_order_select.s31 src/frontends/s31/examples/u256_order_select.valid.json --lowering sparse-wide-gate --out zig-out/s31/u256-order-select-trial
+python3 src/frontends/s31/s31.py equations zig-out/s31/u256-order-select-trial/package
+python3 src/frontends/s31/acceptance_u256_select.py
+```
+
+The source comparison and select helpers add no new AIR opcode: the ordinary
+gate AIR checks their arithmetic equations and the lookup machinery ties
+every reused wire to its producer. The verifier receives only the eight-word
+commitment; the two operands remain private. One `sparse-wide-gate`
+`ReleaseFast` run used 8,162 raw QM31 rows (8,192 padded) and a 236,386-byte
+proof. Repeated source comparisons shared canonical IDs in the cost report.
+The acceptance script proved the $A<B$, $A>B$, and equality assignments with
+the same sealed key. For every case the native verifier accepted the correct
+statement and rejected both a changed public root and damaged proof bytes;
+the prover rejected a private-input change with the old root. These are
+functional proof checks and a one-run cost observation, not a speed claim.
+
 ## A complete S31 program
 
 ```s31

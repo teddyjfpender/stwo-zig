@@ -301,6 +301,33 @@ circuit subtract(private a: UInt256, private b: UInt256) -> public [m31; 1] {{
         with self.assertRaisesRegex(SourceError, "requires two UInt256"):
             compile_text("circuit bad(private a: Bytes32, private b: UInt256) -> public [m31; 1] { std::math::sub_u256(a, b) }")
 
+    def test_u256_ordering_selection_and_checked_distance(self) -> None:
+        from poseidon2_oracle import leaf
+
+        relation, _ = compile_file(EXAMPLES / "u256_order_select.s31")
+        self.assertEqual([node["op"] for node in relation["nodes"]].count("select"), 3)
+        self.assertIn("u256_sub_checked", [node["op"] for node in relation["nodes"]])
+        for a_number, b_number in ((2**128 - 1, 2**128 + 7),
+                                   (2**128 + 7, 2**128 - 1),
+                                   (2**256 - 1, 2**256 - 1)):
+            a = [(a_number >> (16 * index)) & 0xffff for index in range(16)]
+            b = [(b_number >> (16 * index)) & 0xffff for index in range(16)]
+            distance = abs(a_number - b_number)
+            words = [(distance >> (16 * index)) & 0xffff for index in range(16)]
+            assignment = {"public_inputs": {}, "private_inputs": {"a": a, "b": b},
+                          "public_outputs": {relation["public_outputs"][0]: leaf(words)}}
+            with self.subTest(a=a_number, b=b_number):
+                self.assertEqual(evaluate_relation(relation, assignment), assignment["public_outputs"])
+                changed = copy.deepcopy(assignment)
+                changed["public_outputs"][relation["public_outputs"][0]][0] = (
+                    changed["public_outputs"][relation["public_outputs"][0]][0] + 1) % P
+                with self.assertRaisesRegex(OracleError, "does not match"):
+                    evaluate_relation(relation, changed)
+        with self.assertRaisesRegex(SourceError, "equally typed field or UInt256"):
+            compile_text("circuit bad(private x: Bytes32, private y: Bytes32, private b: bit) -> public Bytes32 { std::field::select(b, x, y) }")
+        with self.assertRaisesRegex(SourceError, "requires a bit"):
+            compile_text("circuit bad(private x: UInt256, private y: UInt256, private b: [m31; 1]) -> public UInt256 { std::field::select(b, x, y) }")
+
     def test_static_sum_uses_balanced_dependencies(self) -> None:
         relation, _ = compile_text("""
 circuit balanced(private a: [m31; 1], private b: [m31; 1],

@@ -7,9 +7,9 @@ const anchor = @import("bitcoin_chain_anchor.zig");
 const fold = @import("bitcoin_chain_fold.zig");
 const chain_verifier = @import("bitcoin_chain_verifier.zig");
 const retarget_verifier = @import("bitcoin_chain_retarget_verifier.zig");
-const preprocessed_guard = @import("bitcoin_fold_preprocessed_guard.zig");
 const native = @import("native_verifier.zig");
 const s31 = @import("stwo_s31_prototype");
+const preprocessed_guard = s31.bitcoin_fold_preprocessed_guard;
 
 const QM31 = core.fields.qm31.QM31;
 const M31 = core.fields.m31.M31;
@@ -516,9 +516,21 @@ test "first-retarget fold profile proves and verifies a genesis-anchored header"
     const second_statement = try retarget_verifier.generateStatementJson(allocator, key, 1, block2.value.display_hash, second_times);
     defer allocator.free(second_statement);
     try retarget_verifier.verifyProof(allocator, key, second_statement, folded1.encoded);
+    // A valid proof for one header cannot be relabeled as the other step or
+    // current block, even when the statement is regenerated from the key.
+    if (retarget_verifier.verifyProof(allocator, key, second_statement, folded.encoded)) |_| return error.AcceptedReplayedFirstRetargetProof else |_| {}
+    const wrong_step_statement = try retarget_verifier.generateStatementJson(allocator, key, 0, block2.value.display_hash, second_times);
+    defer allocator.free(wrong_step_statement);
+    if (retarget_verifier.verifyProof(allocator, key, wrong_step_statement, folded1.encoded)) |_| return error.AcceptedRelabeledFirstRetargetStep else |_| {}
+    const wrong_tip_statement = try retarget_verifier.generateStatementJson(allocator, key, 1, &display_hex, second_times);
+    defer allocator.free(wrong_tip_statement);
+    if (retarget_verifier.verifyProof(allocator, key, wrong_tip_statement, folded1.encoded)) |_| return error.AcceptedRelabeledFirstRetargetTip else |_| {}
 
-    // The block-2 header and child proof are otherwise sound. Altering only
-    // the previous timestamp must break the child's authenticated digest.
+    // Keep the block-2 header and the verified block-1 child proof fixed.
+    // Each changed private input must invalidate the complete outer circuit.
+    // The timestamp and root are authenticated through the child statement;
+    // the previous hash also participates in the SHA link; the step selects
+    // which child statement is verified; the self root seals that verifier.
     var old_values: [16]QM31 = undefined;
     var header_values: [40]QM31 = undefined;
     var prior_values: [8]QM31 = undefined;
@@ -527,29 +539,48 @@ test "first-retarget fold profile proves and verifies a genesis-anchored header"
     for (block2_words, &header_values) |word, *value| value.* = QM31.fromBase(M31.fromCanonical(word));
     for (block1_root, &prior_values) |word, *value| value.* = QM31.fromBase(M31.fromCanonical(word));
     for (next_times, &changed_times) |word, *value| value.* = circuit.builder.ivalue.packU32(QM31, word);
-    changed_times[0] = circuit.builder.ivalue.packU32(QM31, next_times[0] + 1);
     const config: circuit.statements.circuit_statement.CircuitConfig = .{ .config = base.pcs, .preprocessed_column_log_sizes = base.layout };
     var scratch = std.heap.ArenaAllocator.init(allocator);
     defer scratch.deinit();
     const child_values = try cpu.verifier_proof.circuitVerifierValues(scratch.allocator(), &folded.captured.proof, folded.captured.config);
-    var false_fold = try fold.buildFirstRetargetCircuit(
-        QM31,
-        allocator,
-        &table,
-        &config,
-        base.root,
-        checkpoint,
-        circuit.builder.blake.hashValue(QM31, wordsFromBytes(material.fold_root)),
-        prior_values,
-        changed_times,
-        old_values,
-        header_values,
-        1,
-        &child_values,
-        circuit.stark_verifier.verify.NoStages{},
-    );
-    defer false_fold.deinit();
-    if (try false_fold.isCircuitValid()) return error.AcceptedChangedAuthenticatedRetargetTime;
+    const invalid_cases = [_]enum { prior_time, prior_root, prior_hash, wrong_step, wrong_self_root }{
+        .prior_time, .prior_root, .prior_hash, .wrong_step, .wrong_self_root,
+    };
+    for (invalid_cases) |case| {
+        var trial_times = changed_times;
+        var trial_root = prior_values;
+        var trial_hash = old_values;
+        var trial_step: u32 = 1;
+        var trial_self_root = material.fold_root;
+        switch (case) {
+            .prior_time => trial_times[0] = circuit.builder.ivalue.packU32(QM31, next_times[0] + 1),
+            .prior_root => trial_root[0] = QM31.fromBase(M31.fromCanonical(block1_root[0] + 1)),
+            .prior_hash => trial_hash[0] = QM31.fromBase(M31.fromCanonical(block1_words[0] ^ 1)),
+            .wrong_step => trial_step = 2,
+            .wrong_self_root => trial_self_root[0] ^= 1,
+        }
+        var invalid_fold = try fold.buildFirstRetargetCircuit(
+            QM31,
+            allocator,
+            &table,
+            &config,
+            base.root,
+            checkpoint,
+            circuit.builder.blake.hashValue(QM31, wordsFromBytes(trial_self_root)),
+            trial_root,
+            trial_times,
+            trial_hash,
+            header_values,
+            trial_step,
+            &child_values,
+            circuit.stark_verifier.verify.NoStages{},
+        );
+        defer invalid_fold.deinit();
+        if (try invalid_fold.isCircuitValid()) {
+            std.debug.print("Bitcoin first-retarget fold accepted invalid {s} input\n", .{@tagName(case)});
+            return error.AcceptedInvalidFirstRetargetFoldInput;
+        }
+    }
     const artifact_dir = "zig-out/s31/bitcoin-first-retarget-two-step";
     try std.fs.cwd().makePath(artifact_dir);
     try std.fs.cwd().writeFile(.{ .sub_path = artifact_dir ++ "/verification-key.json", .data = key_json });

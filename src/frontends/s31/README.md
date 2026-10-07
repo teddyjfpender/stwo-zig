@@ -134,7 +134,28 @@ and a larger prover cost for one header. Run
 `python3 acceptance_sha_joint_package.py` to build both packages from the same
 normalized fixture, prove the same assignment, and test changed root, key,
 boundary, generic-proof replay, and proof corruption rejection. The
-[sparse-wide recursive verifier](docs/recursion-sparse-wide.md)
+`sha-shift` lowering packages the newer shift-register SHA AIR in the same
+source-bound format:
+
+```sh
+python3 src/frontends/s31/s31.py build src/frontends/s31/examples/bitcoin_header_pow.s31.json --lowering sha-shift --out zig-out/s31/bitcoin-sha-shift
+python3 src/frontends/s31/acceptance_sha_shift_package.py
+```
+
+Its generated verifier recompiles the embedded source without witness values,
+derives the private-digest SHA boundary and fixed-column root, checks the
+embedded sealed key, then verifies the one-STARK circuit and SHA proof. The
+public statement contains only the eight-word Poseidon root. The package pins
+FRI to 26 proof-of-work bits, 70 queries, blowup 2, last-layer log-degree
+bound 0, and fold step 1. A local production-profile acceptance generated a 502,783-byte
+proof and rejected changed public roots, damaged proofs, altered keys, and
+proof replay under the same relation with different source bytes. Trust in the
+program identity requires a trusted verifier binary or independently
+authenticated package hash; an arbitrary package supplied by the prover does
+not establish which source the verifier intended to check. Private statement
+values are not guaranteed confidential by this unmasked proof.
+
+The [sparse-wide recursive verifier](docs/recursion-sparse-wide.md)
 wraps the generic Bitcoin circuit profile through two depth-specific gate proofs. The
 [header-link acceptance gate](acceptance_header_link.py) also wraps one fresh
 header-link proof and checks its authenticated child statement. A direct

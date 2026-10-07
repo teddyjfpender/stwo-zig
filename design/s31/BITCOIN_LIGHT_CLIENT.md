@@ -2,11 +2,14 @@
 
 Status: wide integers, byte-exact SHA256d, mainnet compact target decoding,
 proof of work, and a genesis-anchored two-header same-difficulty link are executable and have
-generated native verifiers. A dedicated SHA AIR witness planner feeds the
-existing packed SHA provider, but S31 proofs still use the generic SHA
-circuit. Sparse-wide proof wrappers and a homogeneous claim fold now verify
-the two-header leaf recursively. A **changing-header** recursive state
-transition and full header-chain policy remain open. The
+generated native verifiers. A dedicated direct SHA AIR now joins one private
+header's Bitcoin circuit in a single natively verified STARK; its v2 profile
+keeps the digest private and publishes the same Poseidon root as the generic
+source. This direct profile is currently slower and larger than the generic
+circuit in the recorded local comparison. Sparse-wide wrappers verify the
+two-header leaf, and a sealed-key changing-header fold has natively verified
+the first two real mainnet updates. First-retarget integration, accumulated
+chainwork, best-chain selection, and a full header-chain policy remain open. The
 [recursion security brief](RECURSION_SECURITY.md) gives the current proof
 boundary, soundness limits, and verifier depth policy. The
 [Bitcoin header chapter](../../src/frontends/s31/docs/bitcoin-sha256d.md)
@@ -80,7 +83,7 @@ trace without claiming a measured wall-clock speedup. The scalar
 from range-checked hash openings inside a future fold; its value and
 witness-free topologies are tested against the pinned host hash.
 
-## Dedicated SHA chip: proof-bound integration contract
+## Dedicated SHA chip: packed-provider history and direct AIR result
 
 The existing RISC-V packed SHA provider already expresses one compression
 call as fixed source, schedule, round and feed-forward AIRs. A focused test
@@ -96,7 +99,7 @@ lengths, state chaining, call order and digest bytes; independent randomized
 SHA256d checks and corrupted-boundary tests pass. It is witness preparation,
 not proof integration.
 
-The first integrated SHA profile must use one STARK transcript and one
+The packed-provider integration contract called for one STARK transcript and one
 PCS/FRI proof for the generic circuit and the SHA AIR components. For each
 compression call, the circuit emits the 24 input and consumes the eight
 output `recursion_wire` word tuples `(call_id, wire_id, byte0, byte1,
@@ -106,7 +109,7 @@ two-header program); the wire IDs and multiplicities come from the fixed
 SHA graph. The circuit constrains the tuple bytes to its `Bytes80` limbs,
 intermediate SHA states, fixed pads and final digest limbs. The shared LogUp
 sum must close only when every private circuit word matches the chip word.
-The verifier reconstructs a versioned component roster, all active lookup
+The verifier would reconstruct a versioned component roster, all active lookup
 tables, fixed topology, call count, row geometry and semantic digests from
 the sealed key. It mixes those and the public ABI into Fiat–Shamir before
 the base commitment. It rejects any missing call, duplicate ID, noncanonical
@@ -127,7 +130,19 @@ lookup tables, and the full circuit/chip proof geometry and PoW must be
 measured. Promotion requires a same-statement, same-parameter comparison
 against the generic circuit, including cold and cached setup, witness,
 non-PoW proving, total proving, native verification, bytes and peak memory.
-This is the major remaining efficiency gate.
+The direct table-free SHA AIR has since implemented a private circuit-to-chip
+connection for one header. Its caller constrains the 80 private header bytes,
+exact padding and chaining, and the private digest; the round, schedule, and
+feed-forward tables use a separate word bus. One STARK closes both the
+circuit Gate claim and ten SHA word claims. The native verifier reconstructs
+the combined fixed root from the sealed source topology. In the
+[private-digest v2 measurement](measurements/bitcoin-sha-direct-circuit-v2-private-digest-2026-10-07.json),
+two production-config runs took 429–454 ms proving excluding FRI proof of
+work and produced 731,280-byte proofs. The generic reference recorded about
+154 ms and 338,282 bytes under its own command path. A
+[shift-register round AIR](SHA_SHIFT_REGISTER_AIR.md) is the next measured
+efficiency experiment. The direct profile currently proves one header; the
+two-header recursive fold still uses the generic SHA circuit.
 
 | Six-call pair component | Live rows | Padded rows |
 | --- | ---: | ---: |
