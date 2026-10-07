@@ -29,6 +29,9 @@ def recurrence(values: list[int], body: list[dict]) -> list[int]:
         constant = operation.get("constant")
         if name == "square" and constant is None:
             result = [value * value % P for value in result]
+        elif name == "mix4" and constant is None and len(result) == 4:
+            total = sum(result) % P
+            result = [(value + total) % P for value in result]
         elif name in {"add_const", "mul_const"} and type(constant) is int and 0 <= constant < P:
             result = [((value + constant) if name == "add_const" else (value * constant)) % P
                       for value in result]

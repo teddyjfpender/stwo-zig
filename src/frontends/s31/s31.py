@@ -705,13 +705,17 @@ def equations(package: Path) -> dict:
                     f"{name}[j] - (1 - {selector}) * {lhs} - {selector} * {rhs} = 0",
                 ))
             elif op == "repeat":
-                functional_spec = f"{name}[j] = F^{node['rounds']}({lhs})"
+                mixes_lanes = any(step["op"] == "mix4" for step in node["body"])
+                functional_spec = (f"{name} = F^{node['rounds']}({lhs})" if mixes_lanes else
+                                   f"{name}[j] = F^{node['rounds']}({lhs})")
                 for index, step in enumerate(node["body"], start=1):
                     previous = f"v{index - 1}"
                     if step["op"] == "square":
                         expression = f"{previous} * {previous}"
                     elif step["op"] == "add_const":
                         expression = f"{previous} + {step['constant']}"
+                    elif step["op"] == "mix4":
+                        expression = f"{previous} + splat<4>(sum({previous}))"
                     else:
                         expression = f"{previous} * {step['constant']}"
                     notes.append(f"F step {index}: v{index} = {expression} (v0 is the current state)")

@@ -58,7 +58,8 @@ they are not general witness arrays that can be indexed or returned.
 
 `iterate<R>(step, initial)` accepts a pure step of type `[m31; N] -> [m31; N]`
 made from a sequence of `state .* state` (or `std::math::square(state)`),
-addition of a uniform constant, and multiplication by a uniform constant.
+addition of a uniform constant, multiplication by a uniform constant, and
+`std::math::mix4(state)` when the state has four lanes.
 The relation has `1..32768` rounds and
 `1..16` static body steps. The special AIR chip recognizes only four lanes,
 public endpoints, `square` then `add_const`, and power-of-two `R` from 16 to
@@ -74,6 +75,7 @@ contract and worked polynomial are in [the library chapter](library.md).
 | `std::math::neg(x)` | `-x mod p`, lane-wise. |
 | `std::math::sub(x,y)` | `x-y mod p`, equal M31 shapes. |
 | `std::math::square(x)` | `x.*x`. |
+| `std::math::mix4(x)` | Inside `iterate`, add the sum of all four lanes to each lane; requires `[m31; 4]`. |
 | `std::math::inv(x)` | Checked lane-wise inverse; any zero lane makes the relation unsatisfiable. |
 | `std::math::div(x,y)` | Checked lane-wise division, lowered to a shared inverse and multiplication. |
 | `std::math::pow<K>(x)` | Static binary exponentiation, `0 <= K < p`; `x^0=1`, including `0^0`. |
@@ -171,7 +173,7 @@ semantics:
 | `add_const`, `mul_const` | `m31[N]` and one canonical constant, lane-wise. |
 | `sum_lanes` | One `m31[N]` gives `m31[1]` containing the sum of its declared positions. `dot_lanes` first emits pointwise `mul`, then this node. |
 | `u256_add`, `u256_add_checked`, `u256_le` | Two `u16[16]` operands give a `u16[16]` sum or an `m31[1]` comparison. Digits are range checked; carries and borrows are Boolean. Checked addition also requires final carry zero. |
-| `repeat` | `lhs: m31[N]`, `rounds`, and a static `body` of `square`, `add_const`, `mul_const` steps. |
+| `repeat` | `lhs: m31[N]`, `rounds`, and a static `body` of `square`, `add_const`, `mul_const`, or four-lane `mix4` steps. |
 | `select` | Equal `m31[N]` arrays `lhs`, `rhs`; `selector: m31[1]` constrained to a bit. |
 | `hash_blake2s`, `hash_blake2s_leaf/pair`, `hash_poseidon2_leaf/pair` | The [exact encodings and framing](hashes.md); each returns `m31[8]`. |
 | `hash_sha256d_header` | `lhs: u16[40]` gives raw double-SHA digest as `u16[16]`; three compression blocks are constrained. |

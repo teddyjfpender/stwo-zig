@@ -292,6 +292,8 @@ class Builder:
                *, wanted: str | None = None, span: dict[str, int] | None = None) -> Value:
         if start.typ.kind != "m31" or not 1 <= rounds <= 32768 or not 1 <= len(steps) <= 16:
             raise TypeErrorS31("iterate requires an m31 array, 1..32768 rounds, and 1..16 static steps")
+        if any(step.get("op") == "mix4" for step in steps) and start.typ != Type("m31", 4):
+            raise TypeErrorS31("mix4 requires an [m31; 4] iterate state")
         return self.emit("repeat", start.typ, wanted=wanted, span=span,
                          lhs=self.realize(start).ref, rounds=rounds, body=list(steps))
 
@@ -410,6 +412,9 @@ def reference_iterate(words: list[int], rounds: int, steps: tuple[dict[str, Any]
                 state = [(x + step["constant"]) % P for x in state]
             elif op == "mul_const":
                 state = [x * step["constant"] % P for x in state]
+            elif op == "mix4" and len(state) == 4 and step.get("constant") is None:
+                total = sum(state) % P
+                state = [(x + total) % P for x in state]
             else:
                 raise ValueError(f"unknown step {op}")
     return state

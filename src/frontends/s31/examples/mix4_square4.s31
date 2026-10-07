@@ -1,0 +1,9 @@
+// Each recursive step depends on all four public M31 state lanes.
+fn step(v: [m31; 4]) -> [m31; 4] {
+    std::math::mix4((v .* v) + splat<4>(7_m31))
+}
+
+circuit mix4_square4(public x: [m31; 4]) -> public [m31; 4] {
+    let result = iterate<3>(step, x);
+    result
+}

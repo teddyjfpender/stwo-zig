@@ -91,6 +91,7 @@ pub fn compileRaw(comptime V: type, allocator: std.mem.Allocator, program: relat
                         .square => try circuit.builder.simd.mul(V, &ctx, current, current),
                         .add_const => try circuit.builder.simd.add(V, &ctx, current, constant.?),
                         .mul_const => try circuit.builder.simd.mul(V, &ctx, current, constant.?),
+                        .mix4 => try mix4(V, &ctx, current),
                     };
                 };
                 break :blk .{ .shape = .{ .kind = .m31, .length = length }, .lanes = current };
@@ -320,6 +321,7 @@ fn compileWithSpansMode(comptime V: type, allocator: std.mem.Allocator, program:
                         .square => try circuit.builder.simd.mul(V, &ctx, current, current),
                         .add_const => try circuit.builder.simd.add(V, &ctx, current, constant.?),
                         .mul_const => try circuit.builder.simd.mul(V, &ctx, current, constant.?),
+                        .mix4 => try mix4(V, &ctx, current),
                     };
                 };
                 break :blk .{ .shape = .{ .kind = .m31, .length = node.length }, .lanes = current };
@@ -593,6 +595,17 @@ fn inverseLanes(comptime V: type, ctx: *circuit.builder.Context(V), input: Simd)
         try assertZeroArithmetic(V, ctx, try ctx.sub(product, expected));
     }
     return inverse;
+}
+
+/// Add the sum of all four lanes to each lane using one packed broadcast.
+fn mix4(comptime V: type, ctx: *circuit.builder.Context(V), input: Simd) !Simd {
+    if (input.len != 4) return error.InvalidMix4Length;
+    const total = try sumLanes(V, ctx, input);
+    const broadcast_factor = try ctx.constant(QM31.fromU32Unchecked(1, 1, 1, 1));
+    const broadcast = try ctx.mul(total.data[0], broadcast_factor);
+    const words = try ctx.scratch().alloc(Var, 1);
+    words[0] = broadcast;
+    return circuit.builder.simd.add(V, ctx, input, Simd.fromPacked(words, 4));
 }
 
 /// Sum packed M31 coordinates with a QM31 linear functional. In the basis

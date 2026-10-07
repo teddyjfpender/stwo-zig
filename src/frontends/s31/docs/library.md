@@ -17,11 +17,12 @@ AIR. No helper is a host-only calculation or a new specialized AIR chip.
 
 ## The current API
 
-| Call | Meaning per M31 lane | Static restriction |
+| Call | Meaning | Static restriction |
 | --- | --- | --- |
 | `std::math::neg(x)` | `-x mod p` | `x: [m31; N]`. |
 | `std::math::sub(x,y)` | `x-y mod p` | Equal `[m31; N]` shapes. |
 | `std::math::square(x)` | `x·x mod p` | `x: [m31; N]`; also recognized inside `iterate`. |
+| `std::math::mix4(x)` | `x[j] + Σₖx[k] mod p` in each lane | `[m31; 4]`, inside an `iterate` step only. |
 | `std::math::inv(x)` | Lane-wise field inverse | Every active lane must be nonzero. |
 | `std::math::div(x,y)` | `x·y⁻¹ mod p` | Equal `[m31; N]` shapes; every denominator lane must be nonzero. |
 | `std::math::pow<K>(x)` | `x^K mod p` | Literal `0 <= K < p`; `x^0=1`, including zero. |

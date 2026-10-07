@@ -69,8 +69,9 @@ circuit arithmetic uses canonical field literals.
 Every array shape and iteration count is fixed in source. Pure functions are
 specialized at calls and cannot recurse. An `iterate` step is recognized before
 normal node emission and must be a composition of `state .* state` (or
-`std::math::square(state)`), addition of a uniform field constant, and
-multiplication by a uniform field constant. The
+`std::math::square(state)`), addition of a uniform field constant,
+multiplication by a uniform field constant, and the four-lane
+`std::math::mix4(state)` diffusion step. The
 existing relation permits 1–16 such steps and 1–32768 rounds. The current chip
 is narrower: only the four-lane, public, square-then-add form at power-of-two
 round counts 16–32768. Select the chip explicitly with `--lowering direct-chip`
@@ -139,6 +140,7 @@ There is no general module loader or third-party package system yet.
 | `std::math::neg(x)` | `mul_const(x, p-1)` | `[m31; N]`; compile-time constants fold. |
 | `std::math::sub(x,y)` | Negate `y`, then add; a constant `y` becomes one `add_const`. | Equally shaped `[m31; N]`. |
 | `std::math::square(x)` | `mul(x,x)` | `[m31; N]`. |
+| `std::math::mix4(x)` | `repeat` step `mix4`: each lane gains the sum of all four lanes | Only inside `iterate` step functions on `[m31; 4]`. |
 | `std::math::inv(x)` | One `inv` node; `x·inverse=1` per active lane | `[m31; N]`; zero is rejected. |
 | `std::math::div(x,y)` | Shared checked `inv(y)` then `mul(x,inverse)` | Equal `[m31; N]` shapes; zero denominator is rejected. |
 | `std::math::pow<K>(x)` | Static square-and-multiply chain | `[m31; N]`, `0 <= K < p`; `x^0 = 1`. |

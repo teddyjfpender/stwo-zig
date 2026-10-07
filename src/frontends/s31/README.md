@@ -159,6 +159,9 @@ recurrence with square, addition and multiplication by constants from source
 and proves one more computation step in each fold. Its `u32` step counter
 supports up to 2³²−1 added steps. `state-fold-advance` runs
 multiple steps with optional checkpoints for resume.
+The [coupled `mix4` example](examples/mix4_square4.s31) adds a four-lane
+linear diffusion step to that source-derived recurrence while keeping the
+same padded verifier AIR size.
 `inspect_state_fold_claim.py PACKAGE TOP-PROOF` verifies an isolated top
 proof and independently replays its public recurrence, subject to a bounded
 local step limit.

@@ -220,6 +220,7 @@ fn simplify(node: *Node, nodes: []const Node) ?u32 {
                         .square => value.mul(value),
                         .add_const => value.add(M31.fromCanonical(step.constant.?)),
                         .mul_const => value.mul(M31.fromCanonical(step.constant.?)),
+                        .mix4 => value.mul(M31.fromCanonical(5)),
                     };
                 };
                 node.* = constantNode(node.length, value.toU32());

@@ -600,6 +600,15 @@ class Compiler:
             if len(value.steps) >= 16:
                 raise self.located(expr, "iterate body exceeds sixteen steps")
             return StepState(value.typ, value.steps + ({"op": "square"},))
+        if expr.kind == "call" and expr.value == "std::math::mix4":
+            if expr.generic is not None or len(expr.args) != 1:
+                raise self.located(expr, "std::math::mix4(step_state) expected")
+            value = self.step_expr(expr.args[0], env)
+            if not isinstance(value, StepState) or value.typ != Type("m31", 4):
+                raise self.located(expr, "std::math::mix4 requires the current [m31; 4] state")
+            if len(value.steps) >= 16:
+                raise self.located(expr, "iterate body exceeds sixteen steps")
+            return StepState(value.typ, value.steps + ({"op": "mix4"},))
         if expr.kind == "call" and expr.value in self.functions and expr.generic is None:
             fn = self.functions[expr.value]
             if len(fn.params) != len(expr.args):
@@ -629,7 +638,7 @@ class Compiler:
                     raise self.located(expr, "iterate body exceeds sixteen steps")
                 op = "add_const" if expr.value == "+" else "mul_const"
                 return StepState(lhs.typ, lhs.steps + ({"op": op, "constant": rhs.constant},))
-        raise self.located(expr, "iterate step must use square, add_const, or mul_const operations")
+        raise self.located(expr, "iterate step must use square, add_const, mul_const, or mix4 operations")
 
     def compile(self) -> tuple[dict[str, Any], dict[str, dict[str, int]]]:
         env = {name: self.builder.input(name, typ, visibility)

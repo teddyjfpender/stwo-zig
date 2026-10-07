@@ -80,24 +80,14 @@ pub fn statementDigest(root: [32]u8, step: u32, leaf_words: [8]u32, initial: [4]
 
 pub fn nextState(previous: [4]u32, body: []const relation.Step) ![4]u32 {
     if (body.len == 0 or body.len > 16) return error.InvalidStepBody;
-    var result: [4]u32 = undefined;
-    for (previous, &result) |word, *out| {
+    var values: [4]M31 = undefined;
+    for (previous, &values) |word, *value| {
         if (word >= core.fields.m31.Modulus) return error.NoncanonicalState;
-        var x = M31.fromCanonical(word);
-        for (body) |step| switch (step.op) {
-            .square => {
-                if (step.constant != null) return error.InvalidStepBody;
-                x = x.mul(x);
-            },
-            .add_const, .mul_const => {
-                const constant = step.constant orelse return error.InvalidStepBody;
-                if (constant >= core.fields.m31.Modulus) return error.InvalidStepConstant;
-                const rhs = M31.fromCanonical(constant);
-                x = if (step.op == .add_const) x.add(rhs) else x.mul(rhs);
-            },
-        };
-        out.* = x.v;
+        value.* = M31.fromCanonical(word);
     }
+    for (body) |step| try relation.applyStep(&values, step);
+    var result: [4]u32 = undefined;
+    for (values, &result) |value, *out| out.* = value.v;
     return result;
 }
 
@@ -229,22 +219,32 @@ pub fn buildCircuit(
 
     var constants: [16]?Var = .{null} ** 16;
     for (step_body, 0..) |op, j| switch (op.op) {
-        .square => if (op.constant != null) return error.InvalidStepBody,
+        .square, .mix4 => if (op.constant != null) return error.InvalidStepBody,
         .add_const, .mul_const => {
             const constant = op.constant orelse return error.InvalidStepBody;
             if (constant >= core.fields.m31.Modulus) return error.InvalidStepConstant;
             constants[j] = try ctx.constant(QM31.fromBase(M31.fromCanonical(constant)));
         },
     };
-    for (0..4) |i| {
-        var next = previous[i];
-        for (step_body, 0..) |op, j| next = switch (op.op) {
-            .square => try ctx.mul(next, next),
-            .add_const => try ctx.add(next, constants[j].?),
-            .mul_const => try ctx.mul(next, constants[j].?),
-        };
-        try ctx.eq(current[i], try selectWord(V, &ctx, counter.recurse, initial[i], next));
-    }
+    var next = previous;
+    for (step_body, 0..) |op, j| switch (op.op) {
+        .square => {
+            for (&next) |*word| word.* = try ctx.mul(word.*, word.*);
+        },
+        .add_const => {
+            for (&next) |*word| word.* = try ctx.add(word.*, constants[j].?);
+        },
+        .mul_const => {
+            for (&next) |*word| word.* = try ctx.mul(word.*, constants[j].?);
+        },
+        .mix4 => {
+            var total = next[0];
+            for (next[1..]) |word| total = try ctx.add(total, word);
+            for (&next) |*word| word.* = try ctx.add(word.*, total);
+        },
+    };
+    for (0..4) |i|
+        try ctx.eq(current[i], try selectWord(V, &ctx, counter.recurse, initial[i], next[i]));
     const fixed_base_root = try Blake.constantHash(V, &ctx, Blake.hashValue(QM31, wordsFromBytes(base_root)));
     const previous_digest = try digestWires(V, &ctx, self_root, counter.previous, leaf, initial, previous);
     var child_root: Blake.HashValue(Var) = undefined;

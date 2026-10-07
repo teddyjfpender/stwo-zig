@@ -16,11 +16,33 @@ pub const Input = struct {
     length: u32,
     visibility: Visibility,
 };
-pub const StepOp = enum { square, add_const, mul_const };
+pub const StepOp = enum { square, add_const, mul_const, mix4 };
 pub const Step = struct {
     op: StepOp,
     constant: ?u32 = null,
 };
+/// A four-lane linear diffusion step: y_i = x_i + sum(x_0..x_3).
+/// Its matrix I + J is invertible in M31 (determinant 5).
+pub fn applyStep(values: []M31, step: Step) !void {
+    switch (step.op) {
+        .square => {
+            if (step.constant != null) return error.InvalidStep;
+            for (values) |*value| value.* = value.mul(value.*);
+        },
+        .add_const, .mul_const => {
+            const constant = step.constant orelse return error.InvalidStep;
+            if (constant >= P) return error.InvalidStep;
+            const operand = M31.fromCanonical(constant);
+            for (values) |*value| value.* = if (step.op == .add_const) value.add(operand) else value.mul(operand);
+        },
+        .mix4 => {
+            if (step.constant != null or values.len != 4) return error.InvalidStep;
+            var sum = M31.zero();
+            for (values) |value| sum = sum.add(value);
+            for (values) |*value| value.* = value.add(sum);
+        },
+    }
+}
 pub const Op = enum { constant, cast_m31, add, mul, add_const, mul_const, repeat, hash_blake2s, hash_blake2s_leaf, hash_blake2s_pair, select, hash_poseidon2_leaf, hash_poseidon2_pair, sum_lanes, u256_add, u256_le, u256_add_checked, hash_sha256d_header, bitcoin_target_mainnet, bitcoin_prev_hash, bitcoin_header_bits, bitcoin_genesis_hash_mainnet, bitcoin_header_time, u32_lt, inv, is_zero };
 pub const mainnet_genesis_hash_raw: [32]u8 = .{ 0x6f, 0xe2, 0x8c, 0x0a, 0xb6, 0xf1, 0xb3, 0x72, 0xc1, 0xa6, 0xa2, 0x46, 0xae, 0x63, 0xf7, 0x4f, 0x93, 0x1e, 0x83, 0x65, 0xe1, 0x5a, 0x08, 0x9c, 0x68, 0xd6, 0x19, 0x00, 0x00, 0x00, 0x00, 0x00 };
 pub const leaf_personalization = [8]u8{ 'S', '3', '1', 'L', 'E', 'A', 'F', '1' };
@@ -179,6 +201,7 @@ pub const Program = struct {
                     for (node.body.?) |step| switch (step.op) {
                         .square => if (step.constant != null) return error.InvalidNode,
                         .add_const, .mul_const => if (step.constant == null or step.constant.? >= P) return error.InvalidNode,
+                        .mix4 => if (step.constant != null or lhs.?.length != 4) return error.InvalidNode,
                     };
                     result = lhs.?;
                 },
@@ -412,6 +435,12 @@ pub fn evaluate(allocator: std.mem.Allocator, program: Program, assignment: Assi
             try values.put(allocator, node.name, out);
             continue;
         }
+        if (node.op == .repeat) {
+            @memcpy(out, lhs.?);
+            for (0..node.rounds.?) |_| for (node.body.?) |step| try applyStep(out, step);
+            try values.put(allocator, node.name, out);
+            continue;
+        }
         const c = M31.fromCanonical(node.constant orelse 0);
         for (out, 0..) |*slot, i| slot.* = switch (node.op) {
             .constant => c,
@@ -427,17 +456,7 @@ pub fn evaluate(allocator: std.mem.Allocator, program: Program, assignment: Assi
                 for (lhs.?) |word| sum = sum.add(word);
                 break :blk sum;
             },
-            .repeat => blk: {
-                var v = lhs.?[i];
-                for (0..node.rounds.?) |_| for (node.body.?) |step| {
-                    v = switch (step.op) {
-                        .square => v.mul(v),
-                        .add_const => v.add(M31.fromCanonical(step.constant.?)),
-                        .mul_const => v.mul(M31.fromCanonical(step.constant.?)),
-                    };
-                };
-                break :blk v;
-            },
+            .repeat => unreachable,
             .select => blk: {
                 const bit = selector.?[0].toU32();
                 if (bit > 1) return error.InvalidSelector;

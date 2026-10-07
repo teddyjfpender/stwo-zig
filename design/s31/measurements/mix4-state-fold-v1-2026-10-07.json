@@ -1,0 +1,157 @@
+{
+  "base_and_recursive_audit_rejections": [
+    27,
+    28
+  ],
+  "compiler_sha256": "681d759c6440be47640d5c9c874449bb11f3d957cf6b96dab8fe53c6e69ae14d",
+  "fold_geometry": {
+    "fold_preprocessed_root": "63587e26e3c8ddbcb8270b6a31797d69b95147646c3367d54228b142d96f2810",
+    "padded_rows": {
+      "blake_g": 2097152,
+      "eq": 32768,
+      "m31_to_u32": 262144,
+      "qm31_ops": 1048576,
+      "triple_xor": 131072
+    },
+    "padded_vars": 9811780,
+    "raw_rows": {
+      "blake_g": 1125840,
+      "eq": 28346,
+      "m31_to_u32": 203154,
+      "qm31_ops": 789142,
+      "triple_xor": 112584
+    },
+    "raw_vars": 5589620
+  },
+  "fri_fold_step": 4,
+  "proof_bytes_leaf_first_fold0_fold1_fold2": [
+    314653,
+    370583,
+    371071,
+    368803,
+    375654
+  ],
+  "schema": "s31-mix4-state-fold-acceptance-v1",
+  "source_rounds": 3,
+  "source_sha256": "7ad97fd78737327e91a014068e6a7a8307f0662ff73d7f5642e6889136d6b6c6",
+  "step_body": [
+    {
+      "constant": null,
+      "op": "square"
+    },
+    {
+      "constant": 7,
+      "op": "add_const"
+    },
+    {
+      "constant": null,
+      "op": "mix4"
+    }
+  ],
+  "top_claim": {
+    "base_public_words": [
+      434079287,
+      1959832515,
+      1350400648,
+      2186615527,
+      4130032612,
+      24537636,
+      511697075,
+      4184085722
+    ],
+    "current_state": [
+      1741405858,
+      1052405259,
+      1644381933,
+      326144481
+    ],
+    "expected_current_state": [
+      1741405858,
+      1052405259,
+      1644381933,
+      326144481
+    ],
+    "fold_preprocessed_root": "63587e26e3c8ddbcb8270b6a31797d69b95147646c3367d54228b142d96f2810",
+    "independent_state_replay": "matched",
+    "initial_state": [
+      1312097663,
+      1332953138,
+      1370572863,
+      1429613138
+    ],
+    "key_sha256": {
+      "first_wrapper_k1": "bad8818c9e8fdefe7ea886e5e9642fe0f24f88c33ce39fe04391d47716a02add",
+      "leaf_k0": "8931f7867833e4a3191f5a5d43d6aa6a6dec18eabd490f17baebc837da65cd69",
+      "state_fold_kf": "88876b623d9a9195e3a0972d6113cc5d359ffd5ff1af86f8bdacc94942de5c59"
+    },
+    "leaf_public_abi": {
+      "encoding": "eight little-endian u32 words; unused words are zero",
+      "public_inputs": [
+        {
+          "kind": "m31",
+          "length": 4,
+          "name": "x"
+        }
+      ],
+      "public_outputs": [
+        {
+          "kind": "m31",
+          "length": 4,
+          "name": "result"
+        }
+      ],
+      "schema": "s31-public-abi-v1"
+    },
+    "leaf_public_words": [
+      1,
+      2,
+      3,
+      4,
+      1312097663,
+      1332953138,
+      1370572863,
+      1429613138
+    ],
+    "lower_proof_files_required": false,
+    "native_top_verification": "accepted",
+    "previous_state": [
+      457532960,
+      186528061,
+      1315786992,
+      1327072730
+    ],
+    "program": "mix4_square4",
+    "program_sha256": "c08d29c6ee00894c453d7c679a33cf915258b8645f04aa65b20aafa1319f073e",
+    "replay_limit": 100000,
+    "schema": "s31-verified-state-fold-claim-v1",
+    "source_rounds": 3,
+    "statement_sha256": "1309c7517d68917b925d1309a420e5f4aeab8d74bcc7853e1da87db4c359dcdf",
+    "step": 2,
+    "step_body": [
+      {
+        "constant": null,
+        "op": "square"
+      },
+      {
+        "constant": 7,
+        "op": "add_const"
+      },
+      {
+        "constant": null,
+        "op": "mix4"
+      }
+    ],
+    "top_proof_bytes": 375654,
+    "top_proof_sha256": "b25ee11a9aa704b2fe65775f4737608eaee2c40ec0d8afa71254205a2472eb8c",
+    "top_public_words": [
+      3604182089,
+      480513580,
+      3449981649,
+      3441417660,
+      655368743,
+      4248500576,
+      1489505203,
+      4085072460
+    ]
+  }
+}

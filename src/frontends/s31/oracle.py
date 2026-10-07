@@ -215,6 +215,9 @@ def _validated_shapes(relation: Mapping[str, Any]) -> tuple[dict[str, tuple[str,
                 if step_op == "square":
                     if step.get("constant") is not None:
                         raise OracleError(f"{name}.body[{step_index}]: square has no constant")
+                elif step_op == "mix4":
+                    if step.get("constant") is not None or shape[1] != 4:
+                        raise OracleError(f"{name}.body[{step_index}]: mix4 requires four lanes and no constant")
                 elif step_op in ("add_const", "mul_const"):
                     _uint(step.get("constant"), f"{name}.body[{step_index}].constant", P)
                 else:
@@ -367,6 +370,9 @@ def evaluate_relation(relation: Mapping[str, Any], assignment: Mapping[str, Any]
                         result = [(v * v) % P for v in result]
                     elif step["op"] == "add_const":
                         result = [(v + step["constant"]) % P for v in result]
+                    elif step["op"] == "mix4":
+                        total = sum(result) % P
+                        result = [(v + total) % P for v in result]
                     else:
                         result = [(v * step["constant"]) % P for v in result]
         values[name] = result

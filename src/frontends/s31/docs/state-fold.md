@@ -161,6 +161,47 @@ shows that this three-operation step stays within the original padded AIR
 sizes; the extra raw arithmetic rows are small compared with the embedded
 STARK verifier.
 
+## A coupled four-lane transition
+
+[`mix4_square4.s31`](../examples/mix4_square4.s31) uses a source function
+that squares each lane, adds 7, then calls `std::math::mix4`. For a vector
+`q=[q0,q1,q2,q3]`, `mix4(q)` means `qj + (q0+q1+q2+q3)` in each lane,
+modulo \(p=2^{31}-1\). Unlike the earlier examples, changing one input lane
+changes all four output lanes. The fixed matrix is \(I+J\), with determinant
+5 modulo \(p\); this is a linear diffusion operation, not a claimed
+cryptographic hash.
+
+Starting from `[1,2,3,4]`, the three base rounds can be checked by hand:
+
+| Round | After `square` and `+7` | Sum modulo \(p\) | After `mix4` |
+| ---: | --- | ---: | --- |
+| 1 | `[8,11,16,23]` | 58 | `[66,69,74,81]` |
+| 2 | `[4363,4768,5483,6568]` | 21182 | `[25545,25950,26665,27750]` |
+| 3 | `[652547032,673402507,711022232,770062507]` | 659550631 | `[1312097663,1332953138,1370572863,1429613138]` |
+
+In a circuit, one step has the following field constraints for each lane
+`j` (the intermediate `q` and sum `t` are constrained wires):
+
+```text
+q[j] - x[j]·x[j] - 7 = 0
+t - q[0] - q[1] - q[2] - q[3] = 0
+y[j] - q[j] - t = 0
+```
+
+The leaf compiler extracts the packed four-lane sum with a constrained QM31
+linear functional and broadcasts it in one packed wire. The recursive state
+fold uses the same source-ordered step body to constrain `current_state` from
+`previous_state`. Both lower to the ordinary circuit AIR components, so the
+trace and polynomial meanings are the ones shown in [AIR and
+polynomials](air.md). A [three-step proof
+fixture](../acceptance_mix4_state_fold.py) checks the source oracle, 27 base
+and 28 recursive direct mutations, a repaired false state, and an isolated
+top proof. The [acceptance record](../../../../design/s31/measurements/mix4-state-fold-v1-2026-10-07.json)
+contains the proof sizes, sealed root, public claim, and component rows. Its
+fold has 5,589,620 raw variables and the same 9,811,780 padded variables as
+the other fourfold state-fold example. This is circuit geometry, not a
+measured latency improvement.
+
 ## Public binding and the self-key
 
 The fold digest includes every item in a fixed-width slot:
@@ -191,7 +232,7 @@ newly produced proof. The native top verifier needs
 only that proof and statement; earlier proof files can be deleted. The
 [acceptance fixture](../acceptance_state_fold.py) challenges repaired false
 state, step, leaf and initial-state claims; corrupt proof bytes; a changed
-step key; and 18 or 19 direct in-circuit mutations per branch, including
+step key; and 27 or 28 direct in-circuit mutations per branch, including
 child transcript roots, sampled trace values, Merkle paths, claimed sums
 and FRI data. This is
 an engineering argument under STARK and BLAKE2s assumptions, not a formal

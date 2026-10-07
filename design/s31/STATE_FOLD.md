@@ -8,10 +8,11 @@ and [acceptance fixture](../../src/frontends/s31/acceptance_state_fold.py).
 
 S31's normalized source must satisfy `Program.stateFoldStep()`: one public
 four-lane input; an optional `u16` to M31 cast; one static `repeat` node with
-1–32,768 base rounds; a body of 1–16 ordered `square`, `add_const`, or
-`mul_const` operations; no assertions; and one public four-lane output.
-The extractor returns the base round count `r` and exact body `b`. A normal
-leaf proof establishes `S0 = f_b^r(x)` lane by lane. The first
+1–32,768 base rounds; a body of 1–16 ordered `square`, `add_const`,
+`mul_const`, or `mix4` operations; no assertions; and one public four-lane
+output. `mix4` adds the four-lane sum to every lane, so the transition can
+couple all four state words. The extractor returns the base round count `r`
+and exact body `b`. A normal leaf proof establishes `S0 = f_b^r(x)`. The first
 wrapper proof attests to that leaf proof and exposes digest `D1`.
 
 The state-fold key `KS` includes the exact SHA-256 digest of `K1`, the
