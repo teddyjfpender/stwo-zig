@@ -20,6 +20,7 @@ comptime {
     _ = @import("recursion/segment_leaf_wrapper_source_physical_v7.zig");
     _ = @import("recursion/segment_core_fri_rows25_26_fixed_v7.zig");
     _ = @import("recursion/segment_leaf_wrapper_row36_direct_v8.zig");
+    _ = @import("recursion/segment_leaf_wrapper_cohort_closure_v8.zig");
     _ = @import("recursion/segment_leaf_wrapper_protocol_template_v7.zig");
     _ = @import("recursion/transcript_word_template_v6.zig");
     _ = @import("recursion/segment_leaf_template_preprocessed_v6.zig");

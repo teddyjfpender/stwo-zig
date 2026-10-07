@@ -117,6 +117,14 @@ complete domain-25 and domain-30 residuals exactly; both are regression
 gates, not just printed diagnostics. Domain 29 remains nonzero because its
 statement source still uses the diagnostic V5 cohort. Neither the scoped
 check nor these two domain gates creates a proof.
+The real q193 diagnostic now also replaces the V5 row-36 claim with the
+physical V8 claim and charges the 412 verifier-owned G3S1 global statement
+words through their public boundary. The complete 50-row diagnostic has zero
+residual in all 47 relation domains and in the framework sum under one dummy
+relation draw. The focused test fails if either total reopens. This is an
+algebraic source-and-claim check, **not** a committed V8 cohort, a detached
+verification, or a proof. In particular, the old V5 plan still supplies the
+other rows; it does not bind a complete V8 roster or fixed Tree0.
 Row 36 cannot simply be moved into the present fixed key: two valid SegmentV2
 statement wires with 664 and 668 words share the same 1,024-row geometry but
 require different fixed scope/index columns. The focused counterexample gate
@@ -139,10 +147,11 @@ all wire values and the V6 fan-out schedule, and writes complete fixed, main,
 and interaction columns under one ordinal key; focused Debug and ReleaseSafe
 tests cover distinct wire lengths and hostile mutations. On the real q193
 leaf it accepted the 784-word canonical wire and produced 1,024 physical
-rows. Replacing only the V5 row-36 audit reduced but did not close domain 29:
-the adjusted residual was `(88766749,1708476026,1322968230,1106752563)`.
-The other statement consumers still need physical replacement under one
-admitted roster and a fresh detached proof transaction.
+rows. Replacing only the V5 row-36 audit left domain 29 residual
+`(88766749,1708476026,1322968230,1106752563)`; the omitted G3S1 public
+boundary accounts for that residual exactly. Both the physical statement
+claim and the boundary still need admission under one roster and a fresh
+detached proof transaction.
 For the V6 base fixed schedule, rows 15 and 16 are deliberately unqualified.
 Their Tree0 columns include the exact dense input-use multiplicities of the
 native-public-sum arithmetic graph. Section lengths alone do not determine
@@ -190,9 +199,11 @@ published.
 ## Activation gates
 
 1. A real native q193/PCS-PoW16/interaction-PoW10 proof feeds a complete
-   50-row cohort. Every direct AIR constraint and all 47 relation domains
-   close, including the V2 wire boundary and LAS2 boundary, with one shared
-   challenge draw and no free residual.
+   V8 50-row cohort. Every direct AIR constraint and all 47 relation domains
+   close, including the V2 wire, LAS2, and G3S1 boundaries, with one shared
+   transcript-derived challenge draw and no free residual. The current
+   diagnostic closure uses a dummy draw and V5 rows outside the physical
+   V7/V8 replacements; it does not satisfy this gate.
 2. A canonical 50-row proof is produced, serialized, producer state is
    destroyed, and a separately reconstructed verifier checks its fixed key,
    Tree0, transcript, all claims, and proof bytes. Mutations to each native

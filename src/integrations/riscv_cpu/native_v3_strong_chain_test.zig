@@ -485,6 +485,49 @@ fn diagnoseDirect50(
         // Diagnostic only: production must receive these words as verifier public input.
         const global_statement_expected = recursion.segment_leaf_wrapper_global_statement_boundary_v6.ExpectedPublic{ .words = metadata.base_statement_words };
         const global_statement_boundary = try recursion.segment_leaf_wrapper_global_statement_boundary_v6.BoundaryV6.derive(global_statement_expected, &relations);
+        const statement_with_public = statement_adjusted.add(global_statement_boundary.claimed_sum);
+        const public_limbs = statement_with_public.toM31Array();
+        std.debug.print("DIRECT50_V8_STATEMENT_WITH_PUBLIC domain29_zero={} limbs={d},{d},{d},{d} proof_created=false\n", .{
+            statement_with_public.isZero(), public_limbs[0].toU32(), public_limbs[1].toU32(), public_limbs[2].toU32(), public_limbs[3].toU32(),
+        });
+        if (!statement_with_public.isZero()) return error.V8StatementPublicDomainUnclosed;
+        var full_closure = try recursion.segment_leaf_wrapper_cohort_closure_v8.residuals(
+            &claims,
+            &plan,
+            &boundary,
+            &las2,
+            expected,
+            &statement_v8_key,
+            statement_claim,
+            &global_statement_boundary,
+            global_statement_expected,
+            &relations,
+        );
+        const changed_claims = [_]@import("stwo_core").fields.qm31.QM31{
+            physical_claims.row5.claim, range_claim.claim, source39_claim.claim, physical_claims.row42.claim,
+        };
+        for (changed_rows, changed_claims, changed_audits) |row, claim, audit| {
+            for (audit.values, 0..) |value, domain|
+                full_closure.domain_totals[domain] = full_closure.domain_totals[domain]
+                    .sub(claims.audits[row].values[domain]).add(value);
+            full_closure.framework_total = full_closure.framework_total.sub(claims.claims[row]).add(claim);
+            full_closure.logical_rows = try std.math.add(u64, try std.math.sub(u64, full_closure.logical_rows, claims.audits[row].logical_rows), audit.logical_rows);
+            full_closure.event_terms = try std.math.add(u64, try std.math.sub(u64, full_closure.event_terms, claims.audits[row].event_terms), audit.event_terms);
+        }
+        var full_nonzero: usize = 0;
+        for (full_closure.domain_totals, 0..) |sum, domain| {
+            if (sum.isZero()) continue;
+            full_nonzero += 1;
+            const limbs = sum.toM31Array();
+            std.debug.print("DIRECT50_V8_FULL_RESIDUAL domain={d} limbs={d},{d},{d},{d}\n", .{
+                domain, limbs[0].toU32(), limbs[1].toU32(), limbs[2].toU32(), limbs[3].toU32(),
+            });
+        }
+        std.debug.print("DIRECT50_V8_FULL_CLOSURE nonzero_domains={d} framework_zero={} proof_created=false\n", .{
+            full_nonzero, full_closure.framework_total.isZero(),
+        });
+        if (full_nonzero != 0 or !full_closure.framework_total.isZero())
+            return error.V8FullPhysicalRelationNotClosed;
         try diagnoseDirect50Tuples(allocator, cohort, &rows50, &template, &child_witness, &las2, &row5_fanout, &statement_v6, &global_statement_boundary);
     }
     const tuple_ns = phase_timer.lap();

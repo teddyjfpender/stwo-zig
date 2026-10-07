@@ -241,6 +241,12 @@ pub fn build(b: *std.Build) void {
     });
     b.step("test-v8-statement-physical", "Check verifier-derived V8 row36 fixed, main and interaction columns")
         .dependOn(&b.addRunArtifact(v8_statement_physical_tests).step);
+    const v8_closure_tests = b.addTest(.{
+        .root_module = v3_rows_root,
+        .filters = &.{"V8 Statement closure"},
+    });
+    b.step("test-v8-cohort-closure", "Check V8 row36 and verifier-owned global Statement closure accounting")
+        .dependOn(&b.addRunArtifact(v8_closure_tests).step);
     const v7_source_physical_tests = b.addTest(.{
         .root_module = v3_rows_root,
         .filters = &.{"V7 row39 physical source uses corrected AIR"},
