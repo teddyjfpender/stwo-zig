@@ -99,6 +99,21 @@ const FoldKey = struct {
     trace_log_size: u32,
 };
 
+/// The wide base proof is the second gate wrapper, so its fold key binds K2
+/// and the wrapper PCS explicitly. Gate-profile fold keys retain their v2
+/// serialization and separate type.
+const WideFoldKey = struct {
+    schema: []const u8,
+    base_recursive_key_sha256: []const u8,
+    projection_sha256: []const u8,
+    air_bundle_sha256: []const u8,
+    fold_preprocessed_root: []const u8,
+    fold_circuit_hash: []const u8,
+    padded: Rows,
+    trace_log_size: u32,
+    outer_fri_fold_step: u32,
+};
+
 const StateFoldKey = struct {
     schema: []const u8,
     base_recursive_key_sha256: []const u8,
@@ -245,6 +260,10 @@ pub fn main() !void {
         try generateRecursiveKey(allocator, parsed.value, args[2], args[3]);
     } else if (std.mem.eql(u8, command, "recurse-keygen-next") and args.len == 5 and !chip_mode and (!sparse_mode or wide_mode) and !direct_mode) {
         try generateNextRecursiveKey(allocator, parsed.value, args[2], args[3], args[4]);
+    } else if (std.mem.eql(u8, command, "wide-fold-geometry") and args.len == 3 and wide_mode) {
+        try inspectWideFoldGeometry(allocator, args[2]);
+    } else if (std.mem.eql(u8, command, "wide-fold-keygen") and args.len == 6 and wide_mode) {
+        try generateWideFoldKey(allocator, parsed.value, args[2], args[3], args[4], args[5]);
     } else if (std.mem.eql(u8, command, "fold-keygen") and args.len == 5 and !chip_mode and !sparse_mode and !direct_mode) {
         try generateFoldKey(allocator, parsed.value, args[2], args[3], args[4]);
     } else if (std.mem.eql(u8, command, "state-fold-keygen") and args.len == 5 and !chip_mode and !sparse_mode and !direct_mode) {
@@ -261,16 +280,26 @@ pub fn main() !void {
         try wrapStateFold(allocator, parsed.value, args[2], args[3], "", args[4], args[5], args[6], false, false, true);
     } else if (std.mem.eql(u8, command, "fold-inspect") and args.len == 5 and !chip_mode and !sparse_mode and !direct_mode) {
         try inspectFold(allocator, parsed.value, args[2], args[3], args[4]);
+    } else if (std.mem.eql(u8, command, "wide-fold-inspect") and args.len == 6 and wide_mode) {
+        try inspectWideFold(allocator, parsed.value, args[2], args[3], args[4], args[5]);
     } else if (std.mem.eql(u8, command, "state-fold-inspect") and args.len == 5 and !chip_mode and !sparse_mode and !direct_mode) {
         try inspectStateFold(allocator, parsed.value, args[2], args[3], args[4]);
     } else if (std.mem.eql(u8, command, "fold-audit") and args.len == 7 and !chip_mode and !sparse_mode and !direct_mode) {
         try auditFoldBase(allocator, parsed.value, args[2], args[3], args[4], args[5], args[6]);
     } else if (std.mem.eql(u8, command, "fold-wrap-base") and (args.len == 8 or (args.len == 9 and std.mem.eql(u8, args[8], "--low-memory"))) and !chip_mode and !sparse_mode and !direct_mode) {
-        try wrapFold(allocator, parsed.value, args[2], args[3], args[4], args[5], args[6], args[7], true, args.len == 9, false);
+        try wrapFold(allocator, parsed.value, args[2], args[3], args[4], args[5], args[6], null, args[7], true, args.len == 9, false);
     } else if (std.mem.eql(u8, command, "fold-wrap-next") and (args.len == 8 or (args.len == 9 and std.mem.eql(u8, args[8], "--low-memory"))) and !chip_mode and !sparse_mode and !direct_mode) {
-        try wrapFold(allocator, parsed.value, args[2], args[3], args[4], args[5], args[6], args[7], false, args.len == 9, false);
+        try wrapFold(allocator, parsed.value, args[2], args[3], args[4], args[5], args[6], null, args[7], false, args.len == 9, false);
     } else if (std.mem.eql(u8, command, "fold-audit-next") and args.len == 7 and !chip_mode and !sparse_mode and !direct_mode) {
-        try wrapFold(allocator, parsed.value, args[2], args[3], "", args[4], args[5], args[6], false, false, true);
+        try wrapFold(allocator, parsed.value, args[2], args[3], "", args[4], args[5], null, args[6], false, false, true);
+    } else if (std.mem.eql(u8, command, "wide-fold-wrap-base") and (args.len == 9 or (args.len == 10 and std.mem.eql(u8, args[9], "--low-memory"))) and wide_mode) {
+        try wrapFold(allocator, parsed.value, args[2], args[3], args[4], args[5], args[6], args[7], args[8], true, args.len == 10, false);
+    } else if (std.mem.eql(u8, command, "wide-fold-wrap-next") and (args.len == 9 or (args.len == 10 and std.mem.eql(u8, args[9], "--low-memory"))) and wide_mode) {
+        try wrapFold(allocator, parsed.value, args[2], args[3], args[4], args[5], args[6], args[7], args[8], false, args.len == 10, false);
+    } else if (std.mem.eql(u8, command, "wide-fold-audit-base") and args.len == 8 and wide_mode) {
+        try wrapFold(allocator, parsed.value, args[2], args[3], "", args[4], args[5], args[6], args[7], true, false, true);
+    } else if (std.mem.eql(u8, command, "wide-fold-audit-next") and args.len == 8 and wide_mode) {
+        try wrapFold(allocator, parsed.value, args[2], args[3], "", args[4], args[5], args[6], args[7], false, false, true);
     } else if (std.mem.eql(u8, command, "prove-adversarial") and args.len == 5 and (sparse_mode or direct_mode) and chip_mode) {
         const mutation = std.meta.stringToEnum(cpu.sparse_arithmetic.Mutation, args[4]) orelse
             return error.InvalidMutation;
@@ -291,7 +320,7 @@ pub fn verifierMain(embedded_key: []const u8, embedded_recursive_key: []const u8
     if (args.len == 4 and std.mem.eql(u8, args[1], "recurse-verify-next"))
         return verifyNextOuter(allocator, args[2], args[3], embedded_key, embedded_recursive_key, embedded_recursive_next_key);
     if (args.len == 4 and std.mem.eql(u8, args[1], "fold-verify"))
-        return verifyFold(allocator, args[2], args[3], embedded_key, embedded_recursive_key, embedded_fold_key);
+        return verifyFold(allocator, args[2], args[3], embedded_key, embedded_recursive_key, embedded_recursive_next_key, embedded_fold_key);
     if (args.len == 4 and std.mem.eql(u8, args[1], "state-fold-verify"))
         return verifyStateFold(allocator, args[2], args[3], embedded_key, embedded_recursive_key, embedded_state_fold_key);
     if (args.len != 4) {
@@ -310,6 +339,10 @@ fn usage() error{InvalidArguments} {
     std.debug.print("       recurse-wide-audit CHILD-PROOF CHILD-STATEMENT.json CHILD-KEY.json (sparse-wide profile)\n", .{});
     std.debug.print("       recurse-wide-wrap CHILD-PROOF CHILD-STATEMENT.json OUTER-PROOF CHILD-KEY.json [--low-memory]\n", .{});
     std.debug.print("       recurse-keygen CHILD-KEY.json RECURSIVE-KEY.json | recurse-keygen-next CHILD-KEY.json RECURSIVE-KEY.json NEXT-KEY.json\n", .{});
+    std.debug.print("       wide-fold-geometry RECURSIVE-KEY.json (sealed sparse-wide key; inspect fold row capacity)\n", .{});
+    std.debug.print("       wide-fold-keygen CHILD-KEY.json FIRST-KEY.json SECOND-KEY.json FOLD-KEY.json\n", .{});
+    std.debug.print("       wide-fold-wrap-base|wide-fold-wrap-next CHILD-PROOF CHILD-STATEMENT OUT-PROOF CHILD-KEY FIRST-KEY SECOND-KEY FOLD-KEY [--low-memory]\n", .{});
+    std.debug.print("       wide-fold-inspect CHILD-KEY FIRST-KEY SECOND-KEY FOLD-KEY | wide-fold-audit-base|wide-fold-audit-next PROOF STATEMENT CHILD-KEY FIRST-KEY SECOND-KEY FOLD-KEY\n", .{});
     std.debug.print("       fold-keygen CHILD-KEY.json RECURSIVE-KEY.json FOLD-KEY.json | fold-inspect CHILD-KEY RECURSIVE-KEY FOLD-KEY\n", .{});
     std.debug.print("       fold-audit FIRST-PROOF FIRST-STATEMENT CHILD-KEY RECURSIVE-KEY FOLD-KEY\n", .{});
     std.debug.print("       fold-wrap-base|fold-wrap-next CHILD-PROOF CHILD-STATEMENT OUT-PROOF CHILD-KEY RECURSIVE-KEY FOLD-KEY [--low-memory]\n", .{});
@@ -1419,6 +1452,205 @@ fn generateNextRecursiveKey(
     try writeRecursiveKey(allocator, output_path, parent_digest, next);
 }
 
+/// Diagnose whether one sealed wide wrapper can serve as the base proof for
+/// the existing same-layout fixed fold. This does not generate a fold key or
+/// accept any proof: it measures witness-free circuit rows under the exact
+/// fourfold wrapper PCS and iterates the required padding capacity.
+fn inspectWideFoldGeometry(allocator: std.mem.Allocator, recursive_key_path: []const u8) !void {
+    const key_bytes = try std.fs.cwd().readFileAlloc(allocator, recursive_key_path, 4096);
+    defer allocator.free(key_bytes);
+    if (!std.mem.eql(u8, key_bytes, sealed_prover_recursive_key) and
+        !std.mem.eql(u8, key_bytes, sealed_prover_recursive_next_key))
+        return error.UnsealedRecursiveKey;
+    var parsed = try std.json.parseFromSlice(RecursiveKey, allocator, key_bytes, .{ .ignore_unknown_fields = false });
+    defer parsed.deinit();
+    const key = parsed.value;
+    if (!validRecursiveKeyProfile(key)) return error.InvalidRecursiveVerificationKey;
+    var base_root: [32]u8 = undefined;
+    _ = try std.fmt.hexToBytes(&base_root, key.outer_preprocessed_root);
+    var target: circuit.common.finalize.ComponentSizes = .{
+        .eq = key.outer_padded.eq,
+        .qm31_ops = key.outer_padded.qm31_ops,
+        .m31_to_u32 = key.outer_padded.m31_to_u32,
+        .triple_xor = key.outer_padded.triple_xor,
+        .blake_g_gate = key.outer_padded.blake_g,
+    };
+    for (0..8) |iteration| {
+        const layout = try preprocessed.ColumnLayout.fromComponentSizes(target);
+        const pcs = try recursivePcsConfig(layout.traceLogSize());
+        var ctx = try fixed_fold.topology(allocator, projection_bytes, layout, pcs, base_root);
+        defer ctx.deinit();
+        const raw = circuit.common.finalize.rawComponentSizes(preprocessed.CircuitView.fromBuilder(&ctx.circuit));
+        const next = target.elementwiseMax(raw.map(circuit.common.finalize.paddedSize));
+        const fits = std.meta.eql(next, target);
+        std.debug.print("S31 wide-fold geometry: iteration={d} trace_log={d} target=({f}) fold_raw=({f}) required=({f}) fits={s}\n", .{
+            iteration, layout.traceLogSize(), target, raw, next, if (fits) "true" else "false",
+        });
+        if (fits) return;
+        target = next;
+    }
+    return error.WideFoldGeometryDidNotConverge;
+}
+
+fn checkedWideRecursiveKey(key: RecursiveKey, expected_child_digest: [32]u8) !VerifiedRecursiveStatement {
+    if (!validRecursiveKeyProfile(key) or
+        !std.mem.eql(u8, key.child_key_sha256, &std.fmt.bytesToHex(expected_child_digest, .lower)) or
+        !std.mem.eql(u8, key.projection_sha256, projection_sha256) or
+        !std.mem.eql(u8, key.air_bundle_sha256, cpu.air.bundle_sha256))
+        return error.InvalidRecursiveVerificationKey;
+    const layout = try preprocessed.ColumnLayout.fromComponentSizes(.{
+        .eq = key.outer_padded.eq,
+        .qm31_ops = key.outer_padded.qm31_ops,
+        .triple_xor = key.outer_padded.triple_xor,
+        .m31_to_u32 = key.outer_padded.m31_to_u32,
+        .blake_g_gate = key.outer_padded.blake_g,
+    });
+    if (layout.traceLogSize() != key.outer_trace_log_size) return error.InvalidRecursiveVerificationKey;
+    const pcs = try recursivePcsConfig(layout.traceLogSize());
+    var root: [32]u8 = undefined;
+    _ = try std.fmt.hexToBytes(&root, key.outer_preprocessed_root);
+    const hash = try circuit.common.circuit_hash.hostCircuitHash(
+        try circuit.common.component_list.circuitComponentLogSizes(&layout),
+        pcs.fri_config.log_blowup_factor,
+        root,
+    );
+    if (!std.mem.eql(u8, key.outer_circuit_hash, &std.fmt.bytesToHex(hash, .lower)))
+        return error.InvalidRecursiveVerificationKey;
+    return .{ .layout = layout, .pcs = pcs, .root = root, .hash = hash };
+}
+
+fn checkedWideChain(child_bytes: []const u8, first_bytes: []const u8, first: RecursiveKey, second: RecursiveKey) !VerifiedRecursiveStatement {
+    var digest: [32]u8 = undefined;
+    std.crypto.hash.sha2.Sha256.hash(child_bytes, &digest, .{});
+    _ = try checkedWideRecursiveKey(first, digest);
+    std.crypto.hash.sha2.Sha256.hash(first_bytes, &digest, .{});
+    return checkedWideRecursiveKey(second, digest);
+}
+
+fn validateWideFoldKey(
+    child_bytes: []const u8,
+    first_bytes: []const u8,
+    second_bytes: []const u8,
+    first: RecursiveKey,
+    second: RecursiveKey,
+    fold: WideFoldKey,
+) !VerifiedFoldKey {
+    const base = try checkedWideChain(child_bytes, first_bytes, first, second);
+    var base_digest: [32]u8 = undefined;
+    std.crypto.hash.sha2.Sha256.hash(second_bytes, &base_digest, .{});
+    if (!std.mem.eql(u8, fold.schema, "s31-fixed-fold-verification-key-v3") or
+        fold.outer_fri_fold_step != 4 or
+        !std.mem.eql(u8, fold.base_recursive_key_sha256, &std.fmt.bytesToHex(base_digest, .lower)) or
+        !std.mem.eql(u8, fold.projection_sha256, projection_sha256) or
+        !std.mem.eql(u8, fold.air_bundle_sha256, cpu.air.bundle_sha256))
+        return error.InvalidFoldVerificationKey;
+    const layout = try preprocessed.ColumnLayout.fromComponentSizes(.{
+        .eq = fold.padded.eq,
+        .qm31_ops = fold.padded.qm31_ops,
+        .triple_xor = fold.padded.triple_xor,
+        .m31_to_u32 = fold.padded.m31_to_u32,
+        .blake_g_gate = fold.padded.blake_g,
+    });
+    if (!layout.eql(&base.layout) or layout.traceLogSize() != fold.trace_log_size)
+        return error.InvalidFoldVerificationKey;
+    var root: [32]u8 = undefined;
+    _ = try std.fmt.hexToBytes(&root, fold.fold_preprocessed_root);
+    const hash = try circuit.common.circuit_hash.hostCircuitHash(
+        try circuit.common.component_list.circuitComponentLogSizes(&layout),
+        base.pcs.fri_config.log_blowup_factor,
+        root,
+    );
+    if (!std.mem.eql(u8, fold.fold_circuit_hash, &std.fmt.bytesToHex(hash, .lower)))
+        return error.InvalidFoldVerificationKey;
+    return .{ .layout = layout, .pcs = base.pcs, .base_root = base.root, .root = root, .hash = hash };
+}
+
+fn generateWideFoldKey(
+    allocator: std.mem.Allocator,
+    source: relation.Program,
+    child_key_path: []const u8,
+    first_key_path: []const u8,
+    second_key_path: []const u8,
+    output_path: []const u8,
+) !void {
+    const child_bytes = try std.fs.cwd().readFileAlloc(allocator, child_key_path, 4096);
+    defer allocator.free(child_bytes);
+    var child = try std.json.parseFromSlice(Key, allocator, child_bytes, .{ .ignore_unknown_fields = false });
+    defer child.deinit();
+    try validateKey(allocator, source, child.value);
+    const first_bytes = try std.fs.cwd().readFileAlloc(allocator, first_key_path, 4096);
+    defer allocator.free(first_bytes);
+    var first = try std.json.parseFromSlice(RecursiveKey, allocator, first_bytes, .{ .ignore_unknown_fields = false });
+    defer first.deinit();
+    const second_bytes = try std.fs.cwd().readFileAlloc(allocator, second_key_path, 4096);
+    defer allocator.free(second_bytes);
+    var second = try std.json.parseFromSlice(RecursiveKey, allocator, second_bytes, .{ .ignore_unknown_fields = false });
+    defer second.deinit();
+    const base = try checkedWideChain(child_bytes, first_bytes, first.value, second.value);
+    var child_digest: [32]u8 = undefined;
+    std.crypto.hash.sha2.Sha256.hash(child_bytes, &child_digest, .{});
+    var child_root: [32]u8 = undefined;
+    var child_hash: [32]u8 = undefined;
+    _ = try std.fmt.hexToBytes(&child_root, child.value.preprocessed_root);
+    _ = try std.fmt.hexToBytes(&child_hash, child.value.circuit_hash);
+    const expected_first = try buildWideRecursiveGeometry(allocator, child.value, child_digest, child_root, child_hash);
+    if (!std.mem.eql(u8, first.value.outer_preprocessed_root, &std.fmt.bytesToHex(expected_first.root, .lower)) or
+        !std.mem.eql(u8, first.value.outer_circuit_hash, &std.fmt.bytesToHex(expected_first.hash, .lower)) or
+        !std.meta.eql(first.value.outer_padded, expected_first.padded) or
+        first.value.outer_trace_log_size != expected_first.trace_log_size)
+        return error.InvalidRecursiveVerificationKey;
+    const first_base = try checkedWideRecursiveKey(first.value, child_digest);
+    var first_digest: [32]u8 = undefined;
+    std.crypto.hash.sha2.Sha256.hash(first_bytes, &first_digest, .{});
+    const expected_second = try buildRecursiveGeometry(allocator, first_base.layout, first_base.pcs, first_digest, first_base.root);
+    if (!std.mem.eql(u8, second.value.outer_preprocessed_root, &std.fmt.bytesToHex(expected_second.root, .lower)) or
+        !std.mem.eql(u8, second.value.outer_circuit_hash, &std.fmt.bytesToHex(expected_second.hash, .lower)) or
+        !std.meta.eql(second.value.outer_padded, expected_second.padded) or
+        second.value.outer_trace_log_size != expected_second.trace_log_size)
+        return error.InvalidRecursiveVerificationKey;
+
+    var topology_ctx = try fixed_fold.topology(allocator, projection_bytes, base.layout, base.pcs, base.root);
+    defer topology_ctx.deinit();
+    try circuit.common.finalize.padContext(circuit.builder.NoValue, &topology_ctx);
+    const padded = circuit.common.finalize.rawComponentSizes(preprocessed.CircuitView.fromBuilder(&topology_ctx.circuit));
+    var pp = try preprocessed.PreprocessedCircuit.fromBuilderCircuit(allocator, &topology_ctx.circuit);
+    defer pp.deinit(allocator);
+    const layout = pp.layout();
+    if (!layout.eql(&base.layout)) return error.UnsupportedFixedFoldGeometry;
+    const root = try pp.preprocessedRoot(allocator, base.pcs.fri_config.log_blowup_factor);
+    const hash = try circuit.common.circuit_hash.hostCircuitHash(
+        try circuit.common.component_list.circuitComponentLogSizes(&layout),
+        base.pcs.fri_config.log_blowup_factor,
+        root,
+    );
+    var second_digest: [32]u8 = undefined;
+    std.crypto.hash.sha2.Sha256.hash(second_bytes, &second_digest, .{});
+    const key_hex = std.fmt.bytesToHex(second_digest, .lower);
+    const root_hex = std.fmt.bytesToHex(root, .lower);
+    const hash_hex = std.fmt.bytesToHex(hash, .lower);
+    const fold_key: WideFoldKey = .{
+        .schema = "s31-fixed-fold-verification-key-v3",
+        .base_recursive_key_sha256 = &key_hex,
+        .projection_sha256 = projection_sha256,
+        .air_bundle_sha256 = cpu.air.bundle_sha256,
+        .fold_preprocessed_root = &root_hex,
+        .fold_circuit_hash = &hash_hex,
+        .padded = .{
+            .eq = padded.eq,
+            .qm31_ops = padded.qm31_ops,
+            .triple_xor = padded.triple_xor,
+            .m31_to_u32 = padded.m31_to_u32,
+            .blake_g = padded.blake_g_gate,
+        },
+        .trace_log_size = layout.traceLogSize(),
+        .outer_fri_fold_step = 4,
+    };
+    const encoded = try std.json.Stringify.valueAlloc(allocator, fold_key, .{});
+    defer allocator.free(encoded);
+    try std.fs.cwd().makePath(std.fs.path.dirname(output_path) orelse ".");
+    try std.fs.cwd().writeFile(.{ .sub_path = output_path, .data = encoded });
+}
+
 fn generateFoldKey(
     allocator: std.mem.Allocator,
     source: relation.Program,
@@ -1872,6 +2104,41 @@ fn inspectFold(
     try emitFoldGeometry(allocator, &topology_ctx, verified, fold.value.padded, "s31-fixed-fold-geometry-v1", null);
 }
 
+fn inspectWideFold(
+    allocator: std.mem.Allocator,
+    source: relation.Program,
+    child_key_path: []const u8,
+    first_key_path: []const u8,
+    second_key_path: []const u8,
+    fold_key_path: []const u8,
+) !void {
+    const child_bytes = try std.fs.cwd().readFileAlloc(allocator, child_key_path, 4096);
+    defer allocator.free(child_bytes);
+    if (!std.mem.eql(u8, child_bytes, sealed_prover_key)) return error.UnsealedRecursiveKey;
+    var child = try std.json.parseFromSlice(Key, allocator, child_bytes, .{ .ignore_unknown_fields = false });
+    defer child.deinit();
+    try validateKey(allocator, source, child.value);
+    const first_bytes = try std.fs.cwd().readFileAlloc(allocator, first_key_path, 4096);
+    defer allocator.free(first_bytes);
+    if (!std.mem.eql(u8, first_bytes, sealed_prover_recursive_key)) return error.UnsealedRecursiveKey;
+    var first = try std.json.parseFromSlice(RecursiveKey, allocator, first_bytes, .{ .ignore_unknown_fields = false });
+    defer first.deinit();
+    const second_bytes = try std.fs.cwd().readFileAlloc(allocator, second_key_path, 4096);
+    defer allocator.free(second_bytes);
+    if (!std.mem.eql(u8, second_bytes, sealed_prover_recursive_next_key)) return error.UnsealedRecursiveKey;
+    var second = try std.json.parseFromSlice(RecursiveKey, allocator, second_bytes, .{ .ignore_unknown_fields = false });
+    defer second.deinit();
+    const fold_bytes = try std.fs.cwd().readFileAlloc(allocator, fold_key_path, 4096);
+    defer allocator.free(fold_bytes);
+    if (!std.mem.eql(u8, fold_bytes, sealed_prover_fold_key)) return error.UnsealedFoldKey;
+    var fold = try std.json.parseFromSlice(WideFoldKey, allocator, fold_bytes, .{ .ignore_unknown_fields = false });
+    defer fold.deinit();
+    const verified = try validateWideFoldKey(child_bytes, first_bytes, second_bytes, first.value, second.value, fold.value);
+    var topology_ctx = try fixed_fold.topology(allocator, projection_bytes, verified.layout, verified.pcs, verified.base_root);
+    defer topology_ctx.deinit();
+    try emitFoldGeometry(allocator, &topology_ctx, verified, fold.value.padded, "s31-wide-fixed-fold-geometry-v1", null);
+}
+
 fn inspectStateFold(
     allocator: std.mem.Allocator,
     source: relation.Program,
@@ -1956,20 +2223,28 @@ fn emitFoldGeometry(
     std.debug.print("{s}\n", .{encoded});
 }
 
-fn validateFoldStatement(statement: FoldStatement, child_bytes: []const u8, fold_bytes: []const u8, verified: VerifiedFoldKey) !void {
+fn foldBaseWords(child_bytes: []const u8, first_bytes: []const u8, leaf_words: [8]u32) [8]u32 {
+    var child_digest: [32]u8 = undefined;
+    std.crypto.hash.sha2.Sha256.hash(child_bytes, &child_digest, .{});
+    const first_words = recursion_gate.statementDigest(child_digest, leaf_words);
+    if (!wide_mode) return first_words;
+    var first_digest: [32]u8 = undefined;
+    std.crypto.hash.sha2.Sha256.hash(first_bytes, &first_digest, .{});
+    return recursion_gate.statementDigest(first_digest, first_words);
+}
+
+fn validateFoldStatement(statement: FoldStatement, child_bytes: []const u8, first_bytes: []const u8, fold_bytes: []const u8, verified: VerifiedFoldKey) !void {
     var fold_digest: [32]u8 = undefined;
     std.crypto.hash.sha2.Sha256.hash(fold_bytes, &fold_digest, .{});
-    if (!std.mem.eql(u8, statement.schema, "s31-fixed-fold-statement-v2") or
+    if (!std.mem.eql(u8, statement.schema, if (wide_mode) "s31-fixed-fold-statement-v3" else "s31-fixed-fold-statement-v2") or
         !std.mem.eql(u8, statement.fold_key_sha256, &std.fmt.bytesToHex(fold_digest, .lower)) or
         !std.mem.eql(u8, statement.fold_preprocessed_root, &std.fmt.bytesToHex(verified.root, .lower)) or
         !std.mem.eql(u8, statement.fold_circuit_hash, &std.fmt.bytesToHex(verified.hash, .lower)))
         return error.InvalidFoldStatement;
-    for (statement.leaf_public_words) |word| if (word >= core.fields.m31.Modulus) {
-        return error.NoncanonicalPublicWord;
+    if (!wide_mode) for (statement.leaf_public_words) |word| {
+        if (word >= core.fields.m31.Modulus) return error.NoncanonicalPublicWord;
     };
-    var child_digest: [32]u8 = undefined;
-    std.crypto.hash.sha2.Sha256.hash(child_bytes, &child_digest, .{});
-    const base = recursion_gate.statementDigest(child_digest, statement.leaf_public_words);
+    const base = foldBaseWords(child_bytes, first_bytes, statement.leaf_public_words);
     if (!std.meta.eql(statement.base_public_words, base) or
         !std.meta.eql(statement.fold_public_words, fixed_fold.statementDigest(verified.root, statement.step, base)))
         return error.InvalidFoldStatement;
@@ -1983,6 +2258,7 @@ fn wrapFold(
     output_path: []const u8,
     child_key_path: []const u8,
     first_key_path: []const u8,
+    second_key_path: ?[]const u8,
     fold_key_path: []const u8,
     base_case: bool,
     low_memory: bool,
@@ -1999,12 +2275,25 @@ fn wrapFold(
     if (!std.mem.eql(u8, first_bytes, sealed_prover_recursive_key)) return error.UnsealedRecursiveKey;
     var first = try std.json.parseFromSlice(RecursiveKey, allocator, first_bytes, .{ .ignore_unknown_fields = false });
     defer first.deinit();
+    var owned_second: ?[]u8 = null;
+    if (second_key_path) |path| owned_second = try std.fs.cwd().readFileAlloc(allocator, path, 4096);
+    defer if (owned_second) |bytes| allocator.free(bytes);
+    const second_bytes: []const u8 = owned_second orelse first_bytes;
+    if (wide_mode and !std.mem.eql(u8, second_bytes, sealed_prover_recursive_next_key)) return error.UnsealedRecursiveKey;
     const fold_bytes = try std.fs.cwd().readFileAlloc(allocator, fold_key_path, 4096);
     defer allocator.free(fold_bytes);
     if (!std.mem.eql(u8, fold_bytes, sealed_prover_fold_key)) return error.UnsealedFoldKey;
-    var fold = try std.json.parseFromSlice(FoldKey, allocator, fold_bytes, .{ .ignore_unknown_fields = false });
-    defer fold.deinit();
-    const verified = try validateFoldKey(child_bytes, first_bytes, first.value, fold.value);
+    const verified = if (wide_mode) blk: {
+        var second = try std.json.parseFromSlice(RecursiveKey, allocator, second_bytes, .{ .ignore_unknown_fields = false });
+        defer second.deinit();
+        var fold = try std.json.parseFromSlice(WideFoldKey, allocator, fold_bytes, .{ .ignore_unknown_fields = false });
+        defer fold.deinit();
+        break :blk try validateWideFoldKey(child_bytes, first_bytes, second_bytes, first.value, second.value, fold.value);
+    } else blk: {
+        var fold = try std.json.parseFromSlice(FoldKey, allocator, fold_bytes, .{ .ignore_unknown_fields = false });
+        defer fold.deinit();
+        break :blk try validateFoldKey(child_bytes, first_bytes, first.value, fold.value);
+    };
     const statement_bytes = try std.fs.cwd().readFileAlloc(allocator, child_statement_path, 8192);
     defer allocator.free(statement_bytes);
     var leaf_public_words: [8]u32 = undefined;
@@ -2014,23 +2303,45 @@ fn wrapFold(
     var child_hash: [32]u8 = undefined;
     var child_public_words: [8]u32 = undefined;
     if (base_case) {
-        var first_statement = try std.json.parseFromSlice(RecursiveStatement, allocator, statement_bytes, .{ .ignore_unknown_fields = false });
-        defer first_statement.deinit();
-        var child_digest: [32]u8 = undefined;
-        std.crypto.hash.sha2.Sha256.hash(child_bytes, &child_digest, .{});
-        const parent = try validateRecursiveStatement(first_statement.value, child_digest, first.value, true);
-        if (!parent.layout.eql(&verified.layout) or !std.mem.eql(u8, &parent.root, &verified.base_root))
-            return error.InvalidFoldBaseKey;
-        leaf_public_words = first_statement.value.child_public_words;
-        base_public_words = first_statement.value.outer_public_words;
-        child_public_words = base_public_words;
-        child_root = parent.root;
-        child_hash = parent.hash;
+        if (wide_mode) {
+            var chain = try std.json.parseFromSlice(RecursiveChainStatement, allocator, statement_bytes, .{ .ignore_unknown_fields = false });
+            defer chain.deinit();
+            if (!std.mem.eql(u8, chain.value.schema, "s31-recursive-chain-statement-v1")) return error.InvalidRecursiveStatement;
+            var second = try std.json.parseFromSlice(RecursiveKey, allocator, second_bytes, .{ .ignore_unknown_fields = false });
+            defer second.deinit();
+            var child_digest: [32]u8 = undefined;
+            std.crypto.hash.sha2.Sha256.hash(child_bytes, &child_digest, .{});
+            _ = try validateRecursiveStatement(chain.value.leaf, child_digest, first.value, false);
+            var first_digest: [32]u8 = undefined;
+            std.crypto.hash.sha2.Sha256.hash(first_bytes, &first_digest, .{});
+            const head = try validateRecursiveStatement(chain.value.head, first_digest, second.value, false);
+            if (!std.meta.eql(chain.value.head.child_public_words, chain.value.leaf.outer_public_words) or
+                !head.layout.eql(&verified.layout) or !std.mem.eql(u8, &head.root, &verified.base_root))
+                return error.InvalidFoldBaseKey;
+            leaf_public_words = chain.value.leaf.child_public_words;
+            base_public_words = chain.value.head.outer_public_words;
+            child_public_words = base_public_words;
+            child_root = head.root;
+            child_hash = head.hash;
+        } else {
+            var first_statement = try std.json.parseFromSlice(RecursiveStatement, allocator, statement_bytes, .{ .ignore_unknown_fields = false });
+            defer first_statement.deinit();
+            var child_digest: [32]u8 = undefined;
+            std.crypto.hash.sha2.Sha256.hash(child_bytes, &child_digest, .{});
+            const parent = try validateRecursiveStatement(first_statement.value, child_digest, first.value, true);
+            if (!parent.layout.eql(&verified.layout) or !std.mem.eql(u8, &parent.root, &verified.base_root))
+                return error.InvalidFoldBaseKey;
+            leaf_public_words = first_statement.value.child_public_words;
+            base_public_words = first_statement.value.outer_public_words;
+            child_public_words = base_public_words;
+            child_root = parent.root;
+            child_hash = parent.hash;
+        }
         step = 0;
     } else {
         var previous = try std.json.parseFromSlice(FoldStatement, allocator, statement_bytes, .{ .ignore_unknown_fields = false });
         defer previous.deinit();
-        try validateFoldStatement(previous.value, child_bytes, fold_bytes, verified);
+        try validateFoldStatement(previous.value, child_bytes, first_bytes, fold_bytes, verified);
         if (previous.value.step == std.math.maxInt(u16)) return error.FoldStepOverflow;
         leaf_public_words = previous.value.leaf_public_words;
         base_public_words = previous.value.base_public_words;
@@ -2058,7 +2369,8 @@ fn wrapFold(
             error.VerificationFailed, error.EqFailedOnEval => {},
             else => return err,
         }
-        if (fixed_fold.verifyPrepared(allocator, projection_bytes, verified.layout, verified.pcs, &captured, verified.base_root, verified.root, base_public_words, step - 1)) |accepted| {
+        const wrong_step: u16 = if (step == 0) 1 else step - 1;
+        if (fixed_fold.verifyPrepared(allocator, projection_bytes, verified.layout, verified.pcs, &captured, verified.base_root, verified.root, base_public_words, wrong_step)) |accepted| {
             var invalid = accepted;
             invalid.deinit();
             return error.FoldVerifierAcceptedWrongStep;
@@ -2066,9 +2378,12 @@ fn wrapFold(
             error.VerificationFailed, error.EqFailedOnEval => {},
             else => return err,
         }
-        var wrong_root = verified.root;
+        var wrong_root = if (step == 0) verified.base_root else verified.root;
         wrong_root[0] ^= 1;
-        if (fixed_fold.verifyPrepared(allocator, projection_bytes, verified.layout, verified.pcs, &captured, verified.base_root, wrong_root, base_public_words, step)) |accepted| {
+        if (fixed_fold.verifyPrepared(allocator, projection_bytes, verified.layout, verified.pcs, &captured,
+            if (step == 0) wrong_root else verified.base_root,
+            if (step == 0) verified.root else wrong_root,
+            base_public_words, step)) |accepted| {
             var invalid = accepted;
             invalid.deinit();
             return error.FoldVerifierAcceptedWrongRoot;
@@ -2076,7 +2391,9 @@ fn wrapFold(
             error.VerificationFailed, error.EqFailedOnEval => {},
             else => return err,
         }
-        inline for (.{ .base_selector, .zero_test_inverse, .previous_counter }) |mutation| {
+        inline for (.{ .base_selector, .zero_test_inverse, .previous_counter,
+            .trace_root, .claimed_sum, .channel_salt, .sampled_trace_value,
+            .trace_auth_path, .fri_witness, .fri_auth_path, .fri_last_layer }) |mutation| {
             if (fixed_fold.verifyPreparedWithMutation(allocator, projection_bytes, verified.layout, verified.pcs, &captured, verified.base_root, verified.root, base_public_words, step, mutation)) |accepted| {
                 var invalid = accepted;
                 invalid.deinit();
@@ -2086,7 +2403,7 @@ fn wrapFold(
                 else => return err,
             }
         }
-        std.debug.print("S31 fixed-fold recursive circuit audit: valid=true rejected=6\n", .{});
+        std.debug.print("S31 fixed-fold recursive circuit audit: valid=true rejected=14\n", .{});
         return;
     }
     var pp = blk: {
@@ -2133,7 +2450,7 @@ fn wrapFold(
     const root_hex = std.fmt.bytesToHex(verified.root, .lower);
     const hash_hex = std.fmt.bytesToHex(verified.hash, .lower);
     const statement: FoldStatement = .{
-        .schema = "s31-fixed-fold-statement-v2",
+        .schema = if (wide_mode) "s31-fixed-fold-statement-v3" else "s31-fixed-fold-statement-v2",
         .fold_key_sha256 = &key_hex,
         .step = step,
         .leaf_public_words = leaf_public_words,
@@ -2142,7 +2459,7 @@ fn wrapFold(
         .fold_preprocessed_root = &root_hex,
         .fold_circuit_hash = &hash_hex,
     };
-    try validateFoldStatement(statement, child_bytes, fold_bytes, verified);
+    try validateFoldStatement(statement, child_bytes, first_bytes, fold_bytes, verified);
     const encoded_statement = try std.json.Stringify.valueAlloc(allocator, statement, .{});
     defer allocator.free(encoded_statement);
     try std.fs.cwd().makePath(std.fs.path.dirname(output_path) orelse ".");
@@ -2161,9 +2478,10 @@ fn verifyFold(
     statement_path: []const u8,
     child_bytes: []const u8,
     first_bytes: []const u8,
+    second_bytes: []const u8,
     fold_bytes: []const u8,
 ) !void {
-    if (chip_mode or sparse_mode or direct_mode) return error.UnsupportedRecursiveProfile;
+    if (chip_mode or (sparse_mode and !wide_mode) or direct_mode) return error.UnsupportedRecursiveProfile;
     var source = try parsedProgram(allocator);
     defer source.deinit();
     var child = try std.json.parseFromSlice(Key, allocator, child_bytes, .{ .ignore_unknown_fields = false });
@@ -2171,14 +2489,22 @@ fn verifyFold(
     try validateKey(allocator, source.value, child.value);
     var first = try std.json.parseFromSlice(RecursiveKey, allocator, first_bytes, .{ .ignore_unknown_fields = false });
     defer first.deinit();
-    var fold = try std.json.parseFromSlice(FoldKey, allocator, fold_bytes, .{ .ignore_unknown_fields = false });
-    defer fold.deinit();
-    const verified = try validateFoldKey(child_bytes, first_bytes, first.value, fold.value);
+    const verified = if (wide_mode) blk: {
+        var second = try std.json.parseFromSlice(RecursiveKey, allocator, second_bytes, .{ .ignore_unknown_fields = false });
+        defer second.deinit();
+        var fold = try std.json.parseFromSlice(WideFoldKey, allocator, fold_bytes, .{ .ignore_unknown_fields = false });
+        defer fold.deinit();
+        break :blk try validateWideFoldKey(child_bytes, first_bytes, second_bytes, first.value, second.value, fold.value);
+    } else blk: {
+        var fold = try std.json.parseFromSlice(FoldKey, allocator, fold_bytes, .{ .ignore_unknown_fields = false });
+        defer fold.deinit();
+        break :blk try validateFoldKey(child_bytes, first_bytes, first.value, fold.value);
+    };
     const statement_bytes = try std.fs.cwd().readFileAlloc(allocator, statement_path, 4096);
     defer allocator.free(statement_bytes);
     var statement = try std.json.parseFromSlice(FoldStatement, allocator, statement_bytes, .{ .ignore_unknown_fields = false });
     defer statement.deinit();
-    try validateFoldStatement(statement.value, child_bytes, fold_bytes, verified);
+    try validateFoldStatement(statement.value, child_bytes, first_bytes, fold_bytes, verified);
     var bundle = try parseAirBundle(allocator);
     defer bundle.deinit();
     const proof_bytes = try std.fs.cwd().readFileAlloc(allocator, proof_path, 16 << 20);

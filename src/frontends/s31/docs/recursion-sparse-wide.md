@@ -5,8 +5,9 @@ proofs. It uses [`wide_order.s31`](../examples/wide_order.s31), a small
 256-bit arithmetic program. The same proof profile is used by the Bitcoin
 header examples. This is a proof of **one program execution** and then a
 proof that its STARK verifier accepted it. A recursive Bitcoin header-chain
-transition still needs a constrained header-state update and a repeatable
-fold key.
+transition still needs a constrained header-state update. A
+[repeatable fixed-key fold](recursion-wide-fold.md) now carries this one
+leaf claim through further proofs without adding headers.
 
 ## The computation before recursion
 
@@ -249,10 +250,11 @@ the installed native verifier. The value-bearing circuit must match the
 sealed topology gate for gate before proving. The package manifest detects
 edits to artifacts but is not a signature; obtain verifier binaries and
 keys through a trusted distribution path. Current sparse-wide recursion
-covers the four-component gate profile and two depth-specific wrappers.
-It does not yet provide a homogeneous fold for a Bitcoin header chain, nor
-does it move SHA256d from the generic circuit to a proof-bound dedicated SHA
-AIR chip.
+covers the four-component gate profile, two depth-specific wrappers, and a
+[same-key claim fold](recursion-wide-fold.md) based on the second wrapper's
+padded geometry. It does not yet provide a state-transition fold for a
+growing Bitcoin header chain, nor does it move SHA256d from the generic
+circuit to a proof-bound dedicated SHA AIR chip.
 
 The [onefold-child/fourfold-wrapper Bitcoin run](../../../../design/s31/measurements/bitcoin-sparse-wide-recursion-v2-2026-10-07.json)
 uses [`bitcoin_header_pair.s31`](../examples/bitcoin_header_pair.s31), which

@@ -128,8 +128,10 @@ child FRI step. It rejects leaf proof replay in both directions and a
 first-wrapper replay under a repaired public statement.
 
 This bridge still uses the generic verifier circuit and its Blake2s path
-checks. A homogeneous fold for changing Bitcoin header state and an
-authenticated SHA AIR chip remain efficiency and functionality targets.
+checks. A [homogeneous fixed-key claim fold](../../src/frontends/s31/docs/recursion-wide-fold.md)
+now starts at the second wrapper. A fold for **changing** Bitcoin header
+state and an authenticated SHA AIR chip remain efficiency and functionality
+targets.
 The [original two-header Bitcoin acceptance record](measurements/bitcoin-sparse-wide-recursion-v1-2026-10-07.json)
 confirms the same two-wrapper path for the byte-exact SHA256d and PoW
 relation: 9,733,516 raw verifier variables, 372,904-byte leaf proof,
@@ -167,6 +169,39 @@ wall seconds for each proof command:
 These runs were collected during development, with compiler changes and
 other work on the same host. The table shows bottlenecks and proof geometry;
 it is not a controlled benchmark or a basis for a security level.
+
+## Same-key sparse-wide claim fold
+
+The first wrapper's padded verifier layout cannot fit the fixed-fold
+circuit. The second wrapper's layout does fit: `eq=32768`,
+`qm31_ops=1048576`, `m31_to_u32=262144`, `triple_xor=131072`, and
+`blake_g=2097152` rows. The fold reuses those padded sizes without another
+power-of-two jump. `inspect-fold` rebuilds the topology to expose exact
+headroom; for the fourfold `wide_order` leaf it has 5,589,558 raw variables
+and 18,488 unused `triple_xor` rows. This is a **claim fold** over one leaf
+execution, not a Bitcoin state-transition fold.
+
+The [wide-integer record](measurements/sparse-wide-fold-v1-2026-10-07.json)
+and [two-header Bitcoin record](measurements/bitcoin-sparse-wide-fold-v1-2026-10-07.json)
+each prove three steps under one sealed `KF` and verify the top proof after
+deleting all lower proof files. They reproduce `KF` from sealed keys and
+challenge both base and recursive AIR witnesses plus repaired public
+claims. With fourfold child and wrapper FRI, the proof sizes are:
+
+| Leaf relation | Leaf | First wrapper | Second wrapper | Fold 0 | Fold 1 | Fold 2 |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| `wide_order` | 182,891 | 345,589 | 373,568 | 374,579 | 372,837 | 373,231 |
+| `bitcoin_header_pair` | 266,285 | 352,610 | 373,854 | 372,076 | 370,893 | 375,737 |
+
+The fold output is eight raw `u32` digest words; its public statement also
+carries the original eight-word leaf claim and a constrained `u16` step.
+Each fold proof is approximately the size of the second wrapper proof;
+proof size does not grow linearly with the number of folds. The recorded
+local fold commands took roughly 2–3 seconds each, and isolated top native
+verification about 0.1–0.15 seconds. These measurements neither establish
+a concrete security level nor imply a useful Bitcoin light client. The
+counter is currently bounded to 65,535 steps, and no new header is
+consumed by a fold step.
 
 The next efficiency sequence is:
 

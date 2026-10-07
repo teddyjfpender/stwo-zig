@@ -146,6 +146,9 @@ first-wrap wall time by about 40% relative to a onefold child in local runs. A s
 concrete-security analysis is still needed for each schedule.
 The [fixed-key fold chapter](docs/recursion-fold.md) shows repeatable proof
 verification under one sealed key and a constrained `u16` step counter.
+The [sparse-wide fixed-key fold](docs/recursion-wide-fold.md) extends this
+to wide-integer and two-header Bitcoin leaf proofs by using the second
+wrapper as its base; repeated fold proofs use the same sealed key.
 The [state-fold chapter](docs/state-fold.md) extracts a typed four-lane
 recurrence with square, addition and multiplication by constants from source
 and proves one more computation step in each fold. Its `u32` step counter
@@ -167,9 +170,9 @@ one-block BLAKE2s public claim. A same-AIR, different-key replay fixture
 checks that this changes the outer AIR and rejects the old outer proof.
 `wrap --low-memory` trades some proving time for lower peak RAM while
 producing the same proof bytes.
-The claim-only fold repeats one leaf claim; the state fold adds a constrained
-four-lane M31 transition. The chapters state the remaining steps for a
-sparse-wide Bitcoin header proof and a header-chain state transition.
+The claim-only fold repeats one leaf claim, including a sparse-wide Bitcoin
+pair when selected; the state fold adds a constrained four-lane M31
+transition. A Bitcoin header-chain state transition remains to be built.
 
 From the repository root:
 
@@ -251,4 +254,4 @@ The v1 acceptance suite proves arithmetic, Blake2s, mixed, three-lane, and priva
 
 The direct/Cairo comparison also requires the compiled Cairo executable and VM adapter input from `S31_TRIALS=1 src/frontends/s31/scale.sh 32768`, plus a direct profile benchmark including 32,768 rounds. It checks the same public values under both native verifiers; its recorded time ratio applies only to this recurrence and the selected proof implementations.
 
-The default v1 profile still pays for all eleven circuit AIR components and 45 preprocessed columns. The arithmetic-only sparse v3 profile uses three components and 12 preprocessed columns; direct-M31 v4 uses one and eight. The sparse-wide v5 profile adds equality rows for wide-integer and SHA gadgets. Each has a distinct verification key and native verifier. The public ABI is limited to eight words. Poseidon2 and SHA256d are currently lowered into the generic arithmetic circuit; there is no integrated SHA chip. There is no general control flow, automatic chip extraction, private circuit-to-chip boundary, or recursive verifier generation for arbitrary S31 profiles. The fixed-key fold handles the `gate` profile and a repeated leaf claim; it does not yet transition state or verify the sparse-wide header profile. The older v0 `showcase`, `compare.sh`, and `scale.sh` paths remain available for the large repeated-arithmetic Cairo comparison. The [engineering brief](../../../design/s31/README.md) and [MVP roadmap](../../../design/s31/MVP_ROADMAP.md) describe the remaining work.
+The default v1 profile still pays for all eleven circuit AIR components and 45 preprocessed columns. The arithmetic-only sparse v3 profile uses three components and 12 preprocessed columns; direct-M31 v4 uses one and eight. The sparse-wide v5 profile adds equality rows for wide-integer and SHA gadgets. Each has a distinct verification key and native verifier. The public ABI is limited to eight words. Poseidon2 and SHA256d are currently lowered into the generic arithmetic circuit; there is no integrated SHA chip. There is no general control flow, automatic chip extraction, private circuit-to-chip boundary, or recursive verifier generation for arbitrary S31 profiles. The fixed-key fold handles `gate` and `sparse-wide-gate` leaf claims; it does not yet transition Bitcoin chain state. The older v0 `showcase`, `compare.sh`, and `scale.sh` paths remain available for the large repeated-arithmetic Cairo comparison. The [engineering brief](../../../design/s31/README.md) and [MVP roadmap](../../../design/s31/MVP_ROADMAP.md) describe the remaining work.

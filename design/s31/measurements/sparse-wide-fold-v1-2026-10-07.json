@@ -1,0 +1,62 @@
+{
+  "base_and_next_audit_rejections": [
+    14,
+    14
+  ],
+  "build_seconds": 62.83136499999091,
+  "child_fri_fold_step": 4,
+  "compiler_sha256": "e009114da73ced2212bb01653e23cda9dae375806db7f5224c3bdb77a1f5605f",
+  "fold_geometry": {
+    "headroom_rows": {
+      "blake_g": 971312,
+      "eq": 4428,
+      "m31_to_u32": 59008,
+      "qm31_ops": 259478,
+      "triple_xor": 18488
+    },
+    "padded_rows": {
+      "blake_g": 2097152,
+      "eq": 32768,
+      "m31_to_u32": 262144,
+      "qm31_ops": 1048576,
+      "triple_xor": 131072
+    },
+    "raw_vars": 5589558
+  },
+  "fold_key_reproduced": true,
+  "fold_steps": [
+    0,
+    1,
+    2
+  ],
+  "host_negative_checks": [
+    "wrong_nested_base_digest",
+    "repaired_leaf_claim_rejected_by_top_proof",
+    "repaired_step_rejected_by_top_proof",
+    "damaged_top_proof",
+    "wrong_second_key_fri_schedule"
+  ],
+  "proof_bytes_leaf_first_second_fold0_fold1_fold2": [
+    182891,
+    345589,
+    373568,
+    374579,
+    372837,
+    373231
+  ],
+  "same_fold_root_for_all_steps": true,
+  "schema": "s31-sparse-wide-fixed-fold-acceptance-v1",
+  "source_name": "wide_order",
+  "source_sha256": "3529efb2ab6c15e862ded7d1c336f7f0f555b0aefcd407a689b308d1d9c7d16a",
+  "top_verified_without_lower_proofs": true,
+  "wall_seconds": {
+    "first": 1.3530852500116453,
+    "fold0": 2.2374532910762355,
+    "fold1": 2.299527042079717,
+    "fold2": 2.375298000057228,
+    "leaf": 0.7242665409576148,
+    "second": 2.509955958928913,
+    "top_verify": 0.08352616708725691
+  },
+  "wrapper_and_fold_fri_fold_step": 4
+}

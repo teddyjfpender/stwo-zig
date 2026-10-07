@@ -183,5 +183,6 @@ same padded component sizes for the `arith4_m31` fixture, but their
 preprocessed roots differ because their embedded child identities differ.
 This depth-specific chain supports the full eleven-component `circuit-v1`
 child profile. The [fixed-key fold](recursion-fold.md) repeats the same
-leaf claim under one key with a `u16` step counter. Neither route yet accepts
-the `sparse-wide-v5` Bitcoin header proof or enforces Bitcoin chain state.
+leaf claim under one key with a `u16` step counter. A
+[sparse-wide variant](recursion-wide-fold.md) accepts a Bitcoin two-header
+leaf proof after two wrappers. Neither fold updates Bitcoin chain state.

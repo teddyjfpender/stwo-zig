@@ -140,8 +140,9 @@ constrains both SHA-256 passes, decodes the header's compact target, and checks
 the resulting hash inequality. The current public ABI has eight M31 words,
 fewer than the sixteen `u16` slots needed to reveal the 32-byte hash directly;
 that example publishes an auxiliary Poseidon2 commitment. A dedicated SHA chip,
-header-chain rules, and an S31 verifier inside a circuit remain future work for
+complete header-chain rules, and a proof-bound SHA chip remain future work for
 an efficient recursive Bitcoin light client. A two-level verifier wrapper
-for this proof profile is now available; see
-[sparse-wide recursion](recursion-sparse-wide.md). A repeatable
-header-chain fold and proof-bound SHA chip remain to be built.
+for this proof profile is available in
+[sparse-wide recursion](recursion-sparse-wide.md), and a
+[fixed-key claim fold](recursion-wide-fold.md) repeats verification of its
+leaf claim. A state-transition header-chain fold remains to be built.

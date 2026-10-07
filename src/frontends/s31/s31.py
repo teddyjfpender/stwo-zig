@@ -200,6 +200,11 @@ def build_json(source_path: Path, output: Path, lowering: str = "gate",
             invoke(str(prover), "recurse-keygen-next", str(staging / "verification-key.json"),
                    str(recursive_key), str(recursive_next_key))
             recursive_next_option = (f"-Ds31-recursive-next-key={recursive_next_key}",)
+            if lowering == "sparse-wide-gate":
+                fold_key = staging / "fixed-fold-verification-key.json"
+                invoke(str(prover), "wide-fold-keygen", str(staging / "verification-key.json"),
+                       str(recursive_key), str(recursive_next_key), str(fold_key))
+                fold_option = (f"-Ds31-fold-key={fold_key}",)
         if lowering == "gate":
             fold_key = staging / "fixed-fold-verification-key.json"
             invoke(str(prover), "fold-keygen", str(staging / "verification-key.json"),
@@ -390,6 +395,17 @@ def verify_package(package: Path) -> dict:
                 recursive_next_key.get("projection_sha256") != PROJECTION_SHA256 or
                 recursive_next_key.get("air_bundle_sha256") != AIR_BUNDLE_SHA256):
             raise ValueError("S31 level-2 recursive key does not match its child key and pinned AIR")
+        if wide:
+            if "fixed-fold-verification-key.json" not in artifacts:
+                raise ValueError("sparse-wide package is missing its fixed-fold key")
+            fold_key = json.loads((package / "fixed-fold-verification-key.json").read_text())
+            if (fold_key.get("schema") != "s31-fixed-fold-verification-key-v3" or
+                    type(fold_key.get("outer_fri_fold_step")) is not int or
+                    fold_key["outer_fri_fold_step"] != 4 or
+                    fold_key.get("base_recursive_key_sha256") != file_hash(package / "recursive-verification-key-level2.json") or
+                    fold_key.get("projection_sha256") != PROJECTION_SHA256 or
+                    fold_key.get("air_bundle_sha256") != AIR_BUNDLE_SHA256):
+                raise ValueError("S31 wide fixed-fold key does not match its base key and pinned AIR")
     if manifest.get("lowering") == "gate":
         if not {"recursive-verification-key.json", "recursive-verification-key-level2.json", "fixed-fold-verification-key.json"}.issubset(artifacts):
             raise ValueError("gate package is missing its recursive verification keys")
@@ -1186,8 +1202,9 @@ def main() -> None:
                      *(("--low-memory",) if args.low_memory else ())), end="")
         print(f"recursive chain statement: {outer}.statement.json")
     elif args.command in ("fold-base", "fold-next", "state-fold-base", "state-fold-next"):
-        if manifest["lowering"] != "gate":
-            raise ValueError(f"{args.command} requires a gate-profile package")
+        wide_fold = manifest["lowering"] == "sparse-wide-gate" and args.command in ("fold-base", "fold-next")
+        if manifest["lowering"] != "gate" and not wide_fold:
+            raise ValueError(f"{args.command} requires a gate or supported sparse-wide package")
         if args.command.startswith("state-fold-") and "state-fold-verification-key.json" not in manifest["artifacts"]:
             raise ValueError("source does not expose a supported typed recurrence step")
         child = args.child_proof.resolve()
@@ -1201,11 +1218,14 @@ def main() -> None:
             "state-fold-base": "state-fold-wrap-base",
             "state-fold-next": "state-fold-wrap-next",
         }[args.command]
+        if wide_fold:
+            command = "wide-" + command
         key_name = ("state-fold-verification-key.json" if args.command.startswith("state-fold-")
                     else "fixed-fold-verification-key.json")
         print(invoke(str(executable), command, str(child), str(statement), str(outer),
                      str(package / "verification-key.json"),
                      str(package / "recursive-verification-key.json"),
+                     *((str(package / "recursive-verification-key-level2.json"),) if wide_fold else ()),
                      str(package / key_name),
                      *(("--low-memory",) if args.low_memory else ())), end="")
         print(f"fold statement: {outer}.statement.json")
@@ -1300,8 +1320,9 @@ def main() -> None:
                      str(package / "verification-key.json"),
                      str(package / "recursive-verification-key.json")), end="")
     elif args.command in ("audit-fold-base", "audit-fold-next", "audit-state-fold-base", "audit-state-fold-next"):
-        if manifest["lowering"] != "gate":
-            raise ValueError(f"{args.command} requires a gate-profile package")
+        wide_fold = manifest["lowering"] == "sparse-wide-gate" and args.command in ("audit-fold-base", "audit-fold-next")
+        if manifest["lowering"] != "gate" and not wide_fold:
+            raise ValueError(f"{args.command} requires a gate or supported sparse-wide package")
         if args.command.startswith("audit-state-fold-") and "state-fold-verification-key.json" not in manifest["artifacts"]:
             raise ValueError("source does not expose a supported typed recurrence step")
         child = args.child_proof.resolve()
@@ -1313,11 +1334,14 @@ def main() -> None:
             "audit-state-fold-base": "state-fold-audit-base",
             "audit-state-fold-next": "state-fold-audit-next",
         }[args.command]
+        if wide_fold:
+            command = "wide-fold-audit-base" if args.command == "audit-fold-base" else "wide-fold-audit-next"
         key_name = ("state-fold-verification-key.json" if args.command.startswith("audit-state-fold-")
                     else "fixed-fold-verification-key.json")
         print(invoke(str(executable), command, str(child), str(statement),
                      str(package / "verification-key.json"),
                      str(package / "recursive-verification-key.json"),
+                     *((str(package / "recursive-verification-key-level2.json"),) if wide_fold else ()),
                      str(package / key_name)), end="")
     elif args.command == "verify":
         proof = args.proof.resolve()
@@ -1339,8 +1363,8 @@ def main() -> None:
         executable = package / "bin" / f"s31-{manifest['name']}-native-verifier"
         print(invoke(str(executable), "recurse-verify-next", str(proof), str(statement)), end="")
     elif args.command == "verify-fold":
-        if manifest["lowering"] != "gate":
-            raise ValueError("verify-fold requires a gate-profile package")
+        if manifest["lowering"] not in {"gate", "sparse-wide-gate"}:
+            raise ValueError("verify-fold requires a gate or sparse-wide package")
         proof = args.proof.resolve()
         statement = args.statement.resolve() if args.statement else Path(str(proof) + ".statement.json")
         executable = package / "bin" / f"s31-{manifest['name']}-native-verifier"
@@ -1353,12 +1377,14 @@ def main() -> None:
         executable = package / "bin" / f"s31-{manifest['name']}-native-verifier"
         print(invoke(str(executable), "state-fold-verify", str(proof), str(statement)), end="")
     elif args.command == "inspect-fold":
-        if manifest["lowering"] != "gate":
-            raise ValueError("inspect-fold requires a gate-profile package")
+        wide_fold = manifest["lowering"] == "sparse-wide-gate"
+        if manifest["lowering"] != "gate" and not wide_fold:
+            raise ValueError("inspect-fold requires a gate or sparse-wide package")
         executable = package / "bin" / f"s31-{manifest['name']}-prover"
-        print(invoke(str(executable), "fold-inspect",
+        print(invoke(str(executable), "wide-fold-inspect" if wide_fold else "fold-inspect",
                      str(package / "verification-key.json"),
                      str(package / "recursive-verification-key.json"),
+                     *((str(package / "recursive-verification-key-level2.json"),) if wide_fold else ()),
                      str(package / "fixed-fold-verification-key.json")), end="")
     elif args.command == "inspect-state-fold":
         if manifest["lowering"] != "gate" or "state-fold-verification-key.json" not in manifest["artifacts"]:

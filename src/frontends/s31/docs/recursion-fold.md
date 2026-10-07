@@ -162,9 +162,10 @@ These are single local measurements, not comparative benchmarks or promised
 performance across machines. The [raw measurement record](../../../../design/s31/measurements/fixed-fold-v2-2026-10-07.json)
 contains the key geometry, four proof sizes, and the tested negative cases.
 
-This fold repeats the **same leaf claim**. It does not yet update Bitcoin
-chain state, enforce the next header's previous hash and target, or accept
-the sparse-wide header proof profile as its base child. Those require a
-constrained state-transition relation and a compatible recursive verifier.
+This fold repeats the **same leaf claim**. The
+[sparse-wide variant](recursion-wide-fold.md) now accepts a wide-integer or
+two-header Bitcoin leaf proof after two wrappers, under a separate fold key.
+Neither variant updates Bitcoin chain state or adds another header per step;
+that requires a constrained state-transition relation.
 The [state-transition fold](state-fold.md) implements the first such relation
 for an S31 four-lane M31 recurrence while retaining one verification key.
