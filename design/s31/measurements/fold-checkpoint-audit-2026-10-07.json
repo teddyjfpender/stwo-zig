@@ -4,6 +4,7 @@
     "proofs_verified": 4,
     "top_step": 3,
     "missing_base_rejected": true,
+    "changed_base_claim_rejected_before_proof_verification": true,
     "native_verification_per_checkpoint": true
   },
   "state_gate": {
@@ -11,6 +12,7 @@
     "top_step": 3,
     "source_step_replayed_in_m31": true,
     "missing_base_rejected": true,
+    "false_next_state_rejected_before_proof_verification": true,
     "native_verification_per_checkpoint": true
   },
   "state_mix4_gate": {

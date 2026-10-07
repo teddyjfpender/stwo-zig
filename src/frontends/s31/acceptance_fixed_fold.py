@@ -115,6 +115,17 @@ def main() -> None:
             raise AssertionError("fixed-fold checkpoint audit accepted a missing base")
         except ValueError:
             pass
+        false_checkpoint = work / "false-checkpoint.proof"
+        false_checkpoint.write_bytes(folds[1].read_bytes())
+        false_statement = statement(folds[1])
+        false_statement["base_public_words"][0] ^= 1
+        s31.write_json(Path(f"{false_checkpoint}.statement.json"), false_statement)
+        try:
+            s31.audit_fold_chain(package, manifest, [folds[0], false_checkpoint], False, 1)
+            raise AssertionError("fixed-fold checkpoint audit accepted a changed base claim")
+        except ValueError as error:
+            if "base_public_words" not in str(error):
+                raise
         root = json.loads(fold_key.read_text())["fold_preprocessed_root"]
         first_statement = statement(first)
         # The discarded v1 preimage aliased (root, step) with

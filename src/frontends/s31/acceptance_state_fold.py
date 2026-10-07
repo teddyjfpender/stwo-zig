@@ -99,6 +99,17 @@ def main() -> None:
             raise AssertionError("state-fold checkpoint audit accepted a missing base")
         except ValueError:
             pass
+        false_checkpoint = work / "false-checkpoint.proof"
+        false_checkpoint.write_bytes(folds[1].read_bytes())
+        false_statement = statement(folds[1])
+        false_statement["current_state"][0] = (false_statement["current_state"][0] + 1) % P
+        s31.write_json(Path(f"{false_checkpoint}.statement.json"), false_statement)
+        try:
+            s31.audit_fold_chain(package, manifest, [folds[0], false_checkpoint], True, 1)
+            raise AssertionError("state-fold checkpoint audit accepted a false transition")
+        except ValueError as error:
+            if "transition mismatch" not in str(error):
+                raise
         root = sealed["fold_preprocessed_root"]
         original = statement(first)
         expected = original["child_public_words"][4:8]
