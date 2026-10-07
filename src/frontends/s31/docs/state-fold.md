@@ -189,7 +189,9 @@ y[j] - q[j] - t = 0
 ```
 
 The leaf compiler extracts the packed four-lane sum with a constrained QM31
-linear functional and broadcasts it in one packed wire. The recursive state
+linear functional and broadcasts it in one packed wire. That `mix4` step
+adds four raw QM31 operation rows in the packed leaf circuit, checked against
+scalar M31 arithmetic at field boundaries. The recursive state
 fold uses the same source-ordered step body to constrain `current_state` from
 `previous_state`. Both lower to the ordinary circuit AIR components, so the
 trace and polynomial meanings are the ones shown in [AIR and

@@ -916,6 +916,32 @@ test "sum_lanes packed linear functional masks unused coordinates and reduces ga
     }
 }
 
+test "mix4 packed diffusion matches scalar M31 at field boundaries" {
+    const p = core.fields.m31.Modulus;
+    for ([_][4]u32{
+        .{ 0, 0, 0, 0 },
+        .{ 1, 2, 3, 4 },
+        .{ p - 1, 0, 1, p - 1 },
+        .{ p - 1, p - 1, p - 1, p - 1 },
+        .{ 1073741823, 1073741824, 2147483646, 17 },
+    }) |words| {
+        var ctx = try circuit.builder.Context(QM31).init(std.testing.allocator, 0);
+        defer ctx.deinit();
+        const input = try ctx.guess(QM31.fromU32Unchecked(words[0], words[1], words[2], words[3]));
+        const input_wires = [_]Var{input};
+        const before = ctx.circuit.nQm31OpsRows();
+        const output = try mix4(QM31, &ctx, Simd.fromPacked(&input_wires, 4));
+        try std.testing.expectEqual(@as(usize, 4), ctx.circuit.nQm31OpsRows() - before);
+        var expected: [4]M31 = undefined;
+        for (words, &expected) |word, *slot| slot.* = M31.fromCanonical(word);
+        try relation.applyStep(&expected, .{ .op = .mix4 });
+        for (ctx.get(output.data[0]).toM31Array(), expected) |actual, wanted|
+            try std.testing.expectEqual(wanted.v, actual.v);
+        try ctx.finalize(false);
+        try std.testing.expect(try ctx.isCircuitValid());
+    }
+}
+
 test "inverse constrains each active lane including a partial packed group" {
     const source =
         \\{"version":1,"name":"inverse5","inputs":[{"name":"denominator","kind":"m31","length":5,"visibility":"private"}],"nodes":[{"name":"inverse","op":"inv","lhs":"denominator"}],"assertions":[],"public_outputs":["inverse"]}
