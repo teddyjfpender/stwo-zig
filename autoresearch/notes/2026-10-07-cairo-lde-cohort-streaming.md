@@ -89,5 +89,27 @@ and row tiling were also falsified. Raw receipts and limits are documented in
 Phase-aligned profiling places the new sampled peak in constraint evaluation,
 where a 3.56 GiB evaluation tile is live; trace generation also retains a
 12.40 GiB writer-scratch slot. These are the next placement/geometry targets.
-An actual smaller-GPU card is still needed before asserting hardware
-compatibility.
+The L40S qualification below tests actual smaller-card compatibility.
+
+## Next capacity experiment: writer scratch before first write
+
+The dense geometry report assigns 13,317,680,068 bytes (12.40 GiB) to
+`writer_scratch`, live only during trace generation. The measured whole-device
+usage already reaches 27.59 GiB at the end of that stage, before the later
+30.86 GiB constraint peak. This scratch is reused by compact witness gathers,
+sorts, and multiplicity feeds. Its contents affect the exact trace, so the
+experiment may change physical placement only, not bounds, sorting, or value
+order. Set host preference in capacity mode before `trace_writers.execute`,
+then qualify exact proof bytes, Rust verification, stage times, HBM peak, and
+host RSS on the same two inputs. Reject the mode if it does not lower the peak
+or if the bandwidth penalty makes proving impractical. The current first-write
+coefficient result remains the control.
+
+The actual L40S qualification retained the candidate. The dense PIE's sampled
+whole-device peak fell from 30.73 to 19.47 GiB with publication changing from
+194.47 to 219.44 seconds. The second PIE fell from 26.85 to 17.35 GiB with
+publication changing from 207.82 to 221.07 seconds. Both proof files retained
+their pinned SHA-256 and passed the independent Rust verifier. This is an
+opt-in capacity policy and these are single runs, not throughput benchmarks.
+The exact receipts and caveats are in
+`vectors/reports/cairo-cuda-l40s-capacity-20261007/`.

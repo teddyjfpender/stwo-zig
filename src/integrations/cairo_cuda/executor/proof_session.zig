@@ -354,6 +354,10 @@ pub const Prepared = struct {
             // despite a later host prefetch on H100. Set policy first.
             phase = "host_resident_main_coefficients_before_writers";
             try preferManagedSlotHost(transaction, plan, .trace_coefficients, 1, true);
+            // Place trace-writer scratch before its first GPU write. A late
+            // host hint cannot recover the HBM pages retained by this slot.
+            phase = "host_resident_writer_scratch_before_writers";
+            try preferManagedSlotHost(transaction, plan, .writer_scratch, 0, true);
         }
         self.controllers.trace_writers.execute(session) catch |err| {
             std.debug.print(
