@@ -1,0 +1,22 @@
+{
+  "version": 1,
+  "name": "bool_computed_choice",
+  "inputs": [
+    {"name": "x", "kind": "m31", "length": 1, "visibility": "public"},
+    {"name": "y", "kind": "m31", "length": 1, "visibility": "public"},
+    {"name": "left", "kind": "m31", "length": 1, "visibility": "public"},
+    {"name": "right", "kind": "m31", "length": 1, "visibility": "public"}
+  ],
+  "nodes": [
+    {"name": "zx", "op": "is_zero", "lhs": "x"},
+    {"name": "zy", "op": "is_zero", "lhs": "y"},
+    {"name": "n", "op": "bool_not", "lhs": "zx"},
+    {"name": "a", "op": "bool_and", "lhs": "n", "rhs": "zy"},
+    {"name": "o", "op": "bool_or", "lhs": "a", "rhs": "zx"},
+    {"name": "q", "op": "bool_xor", "lhs": "o", "rhs": "zy"},
+    {"name": "chosen", "op": "bool_select", "selector": "zx", "lhs": "q", "rhs": "zy"},
+    {"name": "_s31_0", "op": "select", "selector": "chosen", "lhs": "left", "rhs": "right"}
+  ],
+  "assertions": [],
+  "public_outputs": ["_s31_0"]
+}

@@ -9,14 +9,17 @@ one shared SHA chip took 646 ms excluding FRI proof of work and 889,412 proof
 bytes; the generic lowering took 323 ms excluding both proof-of-work grinds and
 382,425 bytes. The shared chip is therefore an opt-in experiment. This plan
 replaces its operation graph with one row per SHA round and small direct
-constraints. All geometry and speed estimates below are design targets until
-native proofs and matched measurements exist.
+constraints. Local AIRs and their lookup arguments now have native proof
+tests. A digest-public private-header SHA-only join passes native verification.
+The direct SHA chips and sparse-wide Bitcoin circuit also pass a one-header,
+one-STARK native proof test, closing both Gate and word-bus claims. A
+production-config speed measurement is recorded below.
 
 The reference semantics are [NIST FIPS 180-4](https://csrc.nist.gov/pubs/fips/180-4/upd1/final).
 Stwo supports distinct component table heights and multiset bus consistency,
 as described in the [Stwo whitepaper](https://github.com/starkware-libs/stwo/blob/dev/.agents/papers/llm/Stwo_Whitepaper.llm.md).
 
-## Proposed components
+## Implemented components and pending join
 
 | Component | Live rows per compression | Witness purpose |
 | --- | ---: | --- |
@@ -25,24 +28,23 @@ as described in the [Stwo whitepaper](https://github.com/starkware-libs/stwo/blo
 | Feed-forward | 8 | Add final state to the incoming chaining state |
 | Private caller | 80 per 80-byte header | Bind header limbs, digest limbs, padding, IVs, and chaining across three calls |
 
-For one header, the planned padded heights are 256 schedule, 256 round, 32
-feed-forward, and 128 caller rows. For two headers they are 512, 512, 64, and
-256. The circuit AIR remains present and the private caller still consumes its
+The current one-header SHA-only layout has three calls, each with 128 padded
+schedule rows, 128 padded round rows, and eight feed-forward rows; the caller
+has 128 padded rows. The circuit AIR remains present and the private caller consumes its
 40 header limbs and 16 digest limbs through Gate lookups. A second word bus
 connects caller, schedule, round, and feed-forward. Every bus use needs a
 verifier-pinned address/call ID and a matching producer multiplicity. A local
 row equation alone does not establish cross-component custody.
 
-The first native implementation is the **round component**. Its harness
-supplies the 64 schedule words and IV as verifier-fixed inputs, then proves
-all 368 round constraints and verifies serialized proof bytes. This is an
-isolated test profile, not a private-header proof. The joint profile must
-replace those trusted inputs with authenticated schedule and caller bus events.
-Its 128-row layout has seven fixed and 294 main columns. Functional local
-runs used 12 FRI queries and zero proof-of-work bits; they produced roughly
-39 KB proofs in roughly 22 ms of core proving time. These settings and inputs
-do not match the Bitcoin benchmark, so these times cannot establish an end-to-end
-speedup.
+The round component has eight fixed, 302 main, and 36 word-lookup interaction
+columns, with 382 round constraints and nine LogUp constraints. The schedule
+component has five fixed and 36 main columns; feed-forward has seven fixed
+and 40 main; caller has eight fixed and 38 main. Each has a native serialized
+proof test. Public modes pin local inputs in fixed columns. Private modes use
+canonical fixed columns without header-derived words, while boundary values
+sit in committed main columns. Those private boundary values gain authority
+only after all word claims close in one proof. The isolated tests use 12 FRI
+queries and zero proof-of-work bits; they are not a Bitcoin speed comparison.
 
 ## Round relation
 
@@ -66,23 +68,24 @@ field operation. Split each word sum into low/high 16-bit limbs. Constrain
 each limb with an explicit small carry and constrain carries to their integer
 range. All input words are reconstructed from Boolean bits, so each limb sum
 is far below the M31 modulus; field wrap cannot imitate an integer carry.
-The fixed column pins `K[t]`, round index, first/last-row selectors and call
-identity. Transition constraints copy/rotate the state into the next row, and
+Fixed columns pin `K[t]`, round index, and first/last-row selectors. The
+private schedule word sits in the main trace. The caller-bus configuration
+pins call identity. Transition constraints copy/rotate the state into the next row, and
 first/last selectors prevent a transition crossing a compression boundary.
 The terminal row exposes the final state to feed-forward.
 
-The schedule component will enforce FIPS small-sigma bit functions and
+The schedule component enforces FIPS small-sigma bit functions and
 16-bit carried addition of `W[t-16]`, `σ0(W[t-15])`, `W[t-7]`, and
-`σ1(W[t-2])`. Those four inputs must come from already-produced schedule
-words via a call-and-index-bound bus. The first sixteen words must come from
+`σ1(W[t-2])`. Those four inputs are opened from earlier rows of the same
+schedule trace. The first sixteen words must come from
 the caller's exact 512-bit padded block. Feed-forward uses carried addition
 and must connect both the incoming and terminal states to the same call.
 The caller must bind the first hash's two blocks and the second hash's one
 block, including bit lengths 640 and 256, the exact IV and chaining, and
 digest byte order. Distinct call IDs prevent cross-header substitution.
 
-The [direct schedule equations](../../src/frontends/s31/sha_schedule_direct_equations.zig)
-are an executable first piece of that relation. Each of 64 rows has 32
+The [direct schedule AIR](../../src/frontends/s31/sha_schedule_direct_air.zig)
+constrains that relation. Each of 64 active rows has 32
 Boolean word bits and two 2-bit carries. For `t >= 16`, the two limb equations
 are, with `L` and `H` denoting 16-bit halves:
 
@@ -98,10 +101,10 @@ equations implement integer addition. The small-sigma bits are XOR
 polynomials on already-Boolean word bits. For the padded one-block `abc`
 message, `W[0]=0x61626380` and `W[15]=24`; hand substitution gives
 `W[16]=0x61626380`, `W[17]=0x000f0000`, `W[18]=0x7da86405`, and
-`W[19]=0x600003c6`. Those constants are checked in the unit test. The current
-equation module has field-parity and mutation tests; it is **not yet** a
-native AIR proof. A joined proof must authenticate the first sixteen words
-and enforce every referenced row opening.
+`W[19]=0x600003c6`. Those constants are checked in the unit test. The AIR
+opens its four predecessors directly from committed trace columns and has
+native proof tests in public and private fixed-column modes. A joined proof
+must authenticate the first sixteen words against the caller.
 
 The [streamed caller equations](../../src/frontends/s31/sha_caller_stream_equations.zig)
 are another executable piece. Eighty fixed-role rows cover exactly 20 header
@@ -115,20 +118,25 @@ necessary: linear byte-swap equations alone admit field-valued byte witnesses
 that connect an arbitrary Gate limb to a different 16-bit SHA word. The unit
 test constructs such an alias with all packing equations satisfied and shows
 that only Boolean bit constraints reject it. The remaining caller rows
-constrain chaining equality and exact IV/padding constants. This is a local
-equation and roster test, not yet a committed AIR or closed word bus.
+constrain chaining equality and exact IV/padding constants. The
+[caller AIR](../../src/frontends/s31/sha_caller_stream_air.zig) and
+[caller bus](../../src/frontends/s31/sha_caller_stream_bus.zig) natively prove
+the local equations and Gate/word LogUps over the same committed main trace.
+The two claims remain open until the circuit and SHA chips close them in one
+proof.
 
-The [feed-forward equations](../../src/frontends/s31/sha_feed_direct_equations.zig)
+The [feed-forward AIR](../../src/frontends/s31/sha_feed_direct_air.zig)
 add the incoming and terminal state words in eight rows. The output has 32
 Boolean bits; each 16-bit half uses one Boolean carry. The exact equation is
 `initial_lo + terminal_lo = output_lo + 65536·c0`, then
 `initial_hi + terminal_hi + c0 = output_hi + 65536·c1`. Local tests agree with
-complete SHA compression and reject output, carry, and input mutations. A
-future word bus must bind both input half-words to the round component; their
-range is an assumption of this local module, not yet a proved joint fact.
+complete SHA compression and reject output, carry, and input mutations. Its
+three-slot word LogUp natively proves events from the committed main trace.
+The global closure must bind both inputs to caller and round; their range is
+a global fact, not established by this local AIR alone.
 
-The [candidate word-bus roster](../../src/frontends/s31/sha_direct_word_bus.zig)
-uses the tuple `(relation_id, call_id, address, lo16, hi16)`. Within each
+The [word-bus roster](../../src/frontends/s31/sha_direct_word_bus.zig)
+uses the six-field tuple `(relation_id, call_id, address, lo16, hi16, 0)`. Within each
 compression call, addresses `0..7` carry incoming state, `8..23` carry block
 words, `24..31` carry output state, `1024..1087` carry schedule words, and
 `2048..2055` carry terminal state. Call IDs are distinct for all three
@@ -138,21 +146,22 @@ and emits each `W[t]`; round consumes each `W[t]` and emits terminal state;
 feed-forward consumes incoming and terminal state and emits output for the
 caller to consume. That gives 216 signed events per compression, or 648 per
 header. Host tests close the exact multiset and reject altered word, call ID,
-or multiplicity. The eventual joint proof must constrain every event in its
-component AIR, derive its addresses and call IDs from verifier-fixed row
-positions, and prove one challenge-derived LogUp closure. Host balance alone
-does not authenticate private data.
+or multiplicity. The local AIR components now constrain every event from
+their committed rows. The joined proof derives addresses and call IDs from
+verifier-fixed positions, enforces all ten word claims sum to zero, and closes
+the separate Gate claim with the circuit. Host balance and local proofs by
+themselves do not authenticate private data across components.
 
 ## Cost hypothesis and acceptance gates
 
-An early column budget was about 52 fixed, 485 main, and 76 interaction
-columns for one header, compared with the measured 57/739/780 in the
-existing joined profile. The caller's newly explicit Boolean byte binding
-raises that main-column estimate by at least 28 to about 513, before
-component integration and degree review. The current bitwise and byte-range tables alone
-commit roughly 2.82 million M31 cells. Removing them is the main expected
-gain. Column counts do **not** predict proof time by themselves; degree,
-quotient work, FRI domains, and the circuit component still matter.
+The implemented one-header SHA-only layout totals 79 fixed, 1172 main, and
+184 interaction columns: one caller plus three schedule/round/feed groups.
+The earlier 52/485/76 estimate was too low because the round AIR stores
+Boolean state bits. The existing joined profile measured 57/739/780 columns
+including circuit and table components, so raw widths alone are not
+comparable. The direct AIR removes large bitwise and byte-range tables but
+increases Boolean main width. Degree, quotient work, FRI domains, and the
+circuit component determine whether this is faster.
 
 1. Prove and natively verify the isolated round AIR against independent SHA
    vectors. Mutate `K`, `W`, IV, state transition, terminal state, each Boolean
@@ -174,8 +183,20 @@ quotient work, FRI domains, and the circuit component still matter.
    bytes**. Publish repeated stage times and proof sizes even if the design
    fails this gate.
 
-The round AIR is implemented and natively verified in isolation. Schedule,
-feed-forward, and caller remain local equations without a joined native AIR or
-word-bus proof. The two-header proof and retarget proof remain the current
-experimental artifacts; the generic lowering remains the measured faster
-choice for byte-exact SHA256d.
+All four direct AIRs and their local LogUps are implemented and natively
+verified. The three-call SHA-only join closes all ten word claims in one
+serialized native proof. One q2 ReleaseSafe functional run took 140 ms proving,
+56 ms verifying, and 149,321 bytes with zero proof-of-work bits and 12 FRI
+queries. The circuit-plus-SHA join closes the Gate claim and ten word claims
+in one serialized STARK proof. One ReleaseSafe production-config run took
+3,232 ms proving, 113 ms verifying, and 778,149 bytes, with 93 fixed, 1193
+main, and 212 interaction columns. FRI took 3,110 ms, including 2,908 ms of
+proof-of-work grinding, so proving excluding that grind was about 324 ms.
+These are single local runs. The v1 joined profile publishes the SHA digest in
+addition to the Poseidon root, whereas the current S31 Bitcoin source
+publishes only the root. This is therefore not an equivalent-ABI replacement
+for the generic lowering. Even with that qualification, the observed direct
+profile is slower and larger than the recorded generic baseline of 154 ms
+excluding proof of work and 338,282 bytes. Private-digest ABI parity, a
+soundness review, and substantial width and prover-cost reduction remain
+acceptance gates.

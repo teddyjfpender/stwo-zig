@@ -310,6 +310,59 @@ The direct profile uses arithmetic self-loops for both zero equations. The
 and rejects four mismatched claims. It has 288 raw QM31 rows (512 padded)
 and no Eq AIR component in this example.
 
+### Compute with bits
+
+The [Boolean example](../examples/bool_computed_choice.s31) computes two bits
+from `is_zero`, applies every `std::bool` operation, then uses the final bit
+to select a field value. Its [normalized relation](../examples/bool_computed_choice.s31.json)
+has explicit `bool_not`, `bool_and`, `bool_or`, `bool_xor`, and `bool_select`
+nodes. For field elements `a,b,s` known to be bits, their constraints are:
+
+| Operation | Constraint for result `r` | Values when `a,b` are bits |
+| --- | --- | --- |
+| `not(a)` | `r = 1-a` | `1,0` for `a=0,1` |
+| `and(a,b)` | `r = ab` | One only when both are one |
+| `or(a,b)` | `r = a+b-ab` | Zero only when both are zero |
+| `xor(a,b)` | `r = a+b-2ab` | One when they differ |
+| `select(s,a,b)` | `r = (1-s)a+sb` | `a` at zero, `b` at one |
+
+Every input bit also obeys `b(b-1)=0`. The compiler adds that condition to
+any scalar relation operand whose producer has not already proved it. An
+`is_zero` output already satisfies the condition because of its two equations
+above; a Boolean result satisfies it by the table. The output is an ordinary
+arithmetic wire, with no unconstrained output hint. A direct input bit uses a
+self-product `b²=b` as its producing gate, and an arbitrary relation scalar
+used as a bit gets an arithmetic zero assertion. A value of `2` cannot act as
+a selector: its bit equation evaluates to `2`, so the proof constraints fail.
+
+For the example, let `left=17` and `right=23`. Hand evaluation is:
+
+| `x` | `y` | `zx` | `zy` | `n` | `a` | `o` | `q` | `chosen` | Result |
+| ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| 0 | 0 | 1 | 1 | 0 | 0 | 1 | 0 | 1 | 23 |
+| 0 | 5 | 1 | 0 | 0 | 0 | 1 | 1 | 0 | 17 |
+| 9 | 0 | 0 | 1 | 1 | 1 | 1 | 0 | 0 | 17 |
+| 9 | 5 | 0 | 0 | 1 | 0 | 0 | 0 | 0 | 17 |
+
+Each table row is one possible assignment to the same fixed circuit, not a
+different branch of code generated at proof time. The verifier checks the
+claimed public inputs and result against the circuit's committed witness and
+AIR. The Boolean formulas are ordinary arithmetic gates inside that circuit;
+they do not introduce a separate Boolean AIR chip.
+
+The checked-in geometry test reports 310 raw QM31 arithmetic rows (512 after
+power-of-two padding) and zero Eq rows for this complete example. The simpler
+one-zero-test `computed_choice` above has 288 raw rows. The 22-row difference
+includes a second zero test as well as all Boolean operations, so it is not a
+per-operation price. The generated package's cost report remains the source of
+truth for a particular compiler version and lowering profile.
+The [native proof acceptance](../acceptance_boolean_v1.py) verifies five
+proofs across the truth table and a typed private bit input. It rejects five
+altered public claims and the private bit value `2`. In a ReleaseFast local
+run, the computed example's proofs were 54,030–56,098 bytes; the bit-input
+example used 275 raw QM31 rows and a 54,529-byte proof. Those are proof-level
+correctness samples, not throughput benchmarks.
+
 ## Reduce one array to one value
 
 This [checked-in program](../examples/lane_stats4.s31) has private data and

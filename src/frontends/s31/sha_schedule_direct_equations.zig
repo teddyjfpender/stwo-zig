@@ -35,7 +35,13 @@ fn xor2(comptime F: type, x: F, y: F) F {
 }
 
 fn xor3(comptime F: type, x: F, y: F, z: F) F {
-    return xor2(F, xor2(F, x, y), z);
+    // Exact on Boolean inputs and cubic instead of nested xor2's degree four.
+    // The AIR multiplies this by a row selector, so degree three is required
+    // to keep the complete recurrence within a degree-four q2 quotient.
+    const xy = x.mul(y);
+    return x.add(y).add(z)
+        .sub(constant(F, 2).mul(xy.add(x.mul(z)).add(y.mul(z))))
+        .add(constant(F, 4).mul(xy.mul(z)));
 }
 
 fn smallSigma0(comptime F: type, row: Row(F)) [32]F {

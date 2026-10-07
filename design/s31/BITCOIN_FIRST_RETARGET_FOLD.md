@@ -73,6 +73,17 @@ Eq rows. Other padded component counts stay the same. This makes the v4
 AIR costlier on early steps even though the retarget is selected only once.
 Proof times are single runs and do not support a speed claim.
 
+Repeated fold proving now compares every ordered preprocessed column and the
+structural metadata of each value-bearing circuit against the already sealed
+witness-free circuit. The prover uses that sealed circuit after the check. An
+earlier guard rebuilt its FFT/Merkle root for each step just to compare it
+with the root already in the key. In one local ReleaseSafe two-step run, the
+exact comparison took 11 ms per step; redundant recomputation took 898 and
+914 ms. This change leaves the AIR, key, transcript and proof encoding
+untouched. The [guard measurement](measurements/bitcoin-fold-preprocessed-guard-v4-2026-10-07.json)
+records the method and proof compatibility checks. These times are for this
+setup guard alone; the prover times above exclude it.
+
 ## Remaining chain proof and profile work
 
 The tested steps zero and one show that v4 recursively verifies its own

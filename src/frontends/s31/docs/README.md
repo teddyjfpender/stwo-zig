@@ -75,6 +75,9 @@ text .s31 ──parse/typecheck/specialize──▶ normalized relation JSON
    fixed/witness columns, address lookups, and the six proof profiles.
 - [AIR and polynomials](air.md): a hand-filled trace, the **actual six
    repeated-step chip constraints**, lookup closure, quotient, and FRI.
+- [Direct SHA AIR by hand](sha-direct-air.md): trace one padded block word
+   through caller, schedule, and round tables; see the actual word-bus tuples,
+   AIR equations, and the two global lookup closures.
 - [Hashes and Merkle paths](hashes.md): complete input/output encodings,
    Poseidon2 permutation and constants, BLAKE2s framing, and a hand-drawn
    one-level path.

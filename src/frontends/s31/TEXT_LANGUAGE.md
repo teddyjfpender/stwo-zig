@@ -98,7 +98,7 @@ relation and canonical IR digest.
 | `BlockHash` | `u16[16]` | Nominal Bitcoin block hash in raw SHA256d byte order. A parameter is a claimed hash; `block_hash(header)` constrains its origin. |
 | `Bytes80` | `u16[40]` | Eighty serialized header bytes packed into forty little-endian, range-checked limbs. |
 | `UInt256` | `u16[16]` | Unsigned integer with the same limbs; arithmetic is explicit. |
-| `bit` | `m31[1]` | A direct input used by `select` has `b²=b`; `std::field::is_zero` also produces a constrained bit. |
+| `bit` | `m31[1]` | An input used by a Boolean operation or `select` has `b²=b`; `std::field::is_zero` and Boolean operations produce constrained bits. |
 | `Digest<Poseidon2>` | `m31[8]` | Nominal type for the pinned field-native digest. |
 | `Digest<Blake2sReduced>` | `m31[8]` | Nominal type for eight reduced BLAKE2s words. |
 
@@ -118,6 +118,9 @@ zero-row view for byte and integer operations.
 | `m31_from_u16(x)` | `cast_m31` | Explicit value-preserving conversion. |
 | `select(bit, a, b)` | `select` | Same array/digest type; bit is a constrained input or computed zero test. |
 | `std::field::is_zero(x)` | `is_zero` | Scalar `[m31; 1]`; two equations force the bit to be one exactly at zero. |
+| `std::bool::not(a)`, `and(a,b)`, `or(a,b)`, `xor(a,b)` | `bool_not`, `bool_and`, `bool_or`, `bool_xor` | Typed `bit` operands and result; every operand is Boolean-constrained. |
+| `std::bool::select(s,a,b)` | `bool_select` | Three typed bits; returns `a` at `s=0` and `b` at `s=1`. |
+| `std::field::select(s,a,b)` | `select` | Scalar typed bit `s`; equal M31 array or digest operands; chooses `b` at `s=1`. |
 | `poseidon2_leaf(x)`, `blake2s_leaf(x)` | Corresponding leaf hash node | 4, 8, 12, or 16 M31 words. |
 | `poseidon2_pair(a,b)`, `blake2s_pair(a,b)` | Ordered-pair hash node | Two digests of the selected family. |
 | `merkle_path_poseidon2(leaf, siblings, directions)` and `merkle_path_blake2s(...)` | Optional leaf hash, then two selects and one ordered pair per level | Raw M31 leaf or same-family digest; static arrays of 1–16 digest and bit inputs. |

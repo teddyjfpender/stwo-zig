@@ -26,7 +26,7 @@ _HASH_OPS = frozenset({
     "hash_blake2s", "hash_blake2s_leaf", "hash_blake2s_pair",
     "hash_poseidon2_leaf", "hash_poseidon2_pair",
 })
-_OPS = frozenset({"constant", "cast_m31", "array_get", "array_concat", "array_slice", "add", "mul", "inv", "is_zero", "add_const",
+_OPS = frozenset({"constant", "cast_m31", "array_get", "array_concat", "array_slice", "add", "mul", "inv", "is_zero", "bool_not", "bool_and", "bool_or", "bool_xor", "bool_select", "add_const",
                   "mul_const", "sum_lanes", "select", "repeat",
                   "u256_add", "u256_le", "u256_add_checked", "u256_sub", "u256_sub_checked",
                   "hash_sha256d_header", "bitcoin_target_mainnet",
@@ -130,7 +130,7 @@ def _validated_shapes(relation: Mapping[str, Any]) -> tuple[dict[str, tuple[str,
         lhs = _operand(node, "lhs", shapes)
         rhs = _operand(node, "rhs", shapes)
         selector = _operand(node, "selector", shapes)
-        if op != "select":
+        if op not in {"select", "bool_select"}:
             _absent(node, "selector")
         if op not in {"array_get", "array_slice"}:
             _absent(node, "index")
@@ -180,6 +180,18 @@ def _validated_shapes(relation: Mapping[str, Any]) -> tuple[dict[str, tuple[str,
             _absent(node, "rhs", "constant", "length", "rounds", "body")
             if lhs != ("m31", 1):
                 raise OracleError(f"{name}: is_zero requires scalar m31")
+            shape = ("m31", 1)
+        elif op == "bool_not":
+            _absent(node, "rhs", "constant", "length", "rounds", "body")
+            if lhs != ("m31", 1):
+                raise OracleError(f"{name}: bool_not requires scalar m31")
+            shape = ("m31", 1)
+        elif op in {"bool_and", "bool_or", "bool_xor", "bool_select"}:
+            _absent(node, "constant", "length", "rounds", "body")
+            if lhs != ("m31", 1) or rhs != ("m31", 1):
+                raise OracleError(f"{name}: {op} requires two scalar m31 operands")
+            if op == "bool_select" and selector != ("m31", 1):
+                raise OracleError(f"{name}: bool_select requires a scalar m31 selector")
             shape = ("m31", 1)
         elif op in ("add_const", "mul_const"):
             _absent(node, "rhs", "length", "rounds", "body")
@@ -337,6 +349,16 @@ def evaluate_relation(relation: Mapping[str, Any], assignment: Mapping[str, Any]
             result = [pow(x, P - 2, P) for x in lhs]
         elif op == "is_zero":
             result = [int(lhs[0] == 0)]
+        elif op in {"bool_not", "bool_and", "bool_or", "bool_xor", "bool_select"}:
+            bits = [lhs[0]] + ([] if op == "bool_not" else [rhs[0]])
+            if op == "bool_select":
+                bits.append(values[node["selector"]][0])
+            if any(bit not in (0, 1) for bit in bits):
+                raise OracleError(f"{name}: Boolean operands must be 0 or 1")
+            a = bits[0]
+            b = bits[1] if len(bits) > 1 else 0
+            result = [{"bool_not": 1 - a, "bool_and": a & b, "bool_or": a | b,
+                       "bool_xor": a ^ b, "bool_select": (a if bits[-1] == 0 else b)}[op]]
         elif op == "add_const":
             result = [(a + node["constant"]) % P for a in lhs]
         elif op == "mul_const":

@@ -43,7 +43,7 @@ pub fn applyStep(values: []M31, step: Step) !void {
         },
     }
 }
-pub const Op = enum { constant, cast_m31, add, mul, add_const, mul_const, repeat, hash_blake2s, hash_blake2s_leaf, hash_blake2s_pair, select, hash_poseidon2_leaf, hash_poseidon2_pair, sum_lanes, u256_add, u256_le, u256_add_checked, hash_sha256d_header, bitcoin_target_mainnet, bitcoin_prev_hash, bitcoin_header_bits, bitcoin_genesis_hash_mainnet, bitcoin_header_time, u32_lt, inv, is_zero, u256_sub, u256_sub_checked, array_get, array_concat, array_slice };
+pub const Op = enum { constant, cast_m31, add, mul, add_const, mul_const, repeat, hash_blake2s, hash_blake2s_leaf, hash_blake2s_pair, select, hash_poseidon2_leaf, hash_poseidon2_pair, sum_lanes, u256_add, u256_le, u256_add_checked, hash_sha256d_header, bitcoin_target_mainnet, bitcoin_prev_hash, bitcoin_header_bits, bitcoin_genesis_hash_mainnet, bitcoin_header_time, u32_lt, inv, is_zero, u256_sub, u256_sub_checked, array_get, array_concat, array_slice, bool_not, bool_and, bool_or, bool_xor, bool_select };
 pub const mainnet_genesis_hash_raw: [32]u8 = .{ 0x6f, 0xe2, 0x8c, 0x0a, 0xb6, 0xf1, 0xb3, 0x72, 0xc1, 0xa6, 0xa2, 0x46, 0xae, 0x63, 0xf7, 0x4f, 0x93, 0x1e, 0x83, 0x65, 0xe1, 0x5a, 0x08, 0x9c, 0x68, 0xd6, 0x19, 0x00, 0x00, 0x00, 0x00, 0x00 };
 pub const leaf_personalization = [8]u8{ 'S', '3', '1', 'L', 'E', 'A', 'F', '1' };
 pub const pair_personalization = [8]u8{ 'S', '3', '1', 'P', 'A', 'I', 'R', '1' };
@@ -139,7 +139,7 @@ pub const Program = struct {
             const lhs: ?Shape = if (node.lhs) |name| shapes.get(name) orelse return error.UnknownOperand else null;
             const rhs: ?Shape = if (node.rhs) |name| shapes.get(name) orelse return error.UnknownOperand else null;
             const selector: ?Shape = if (node.selector) |name| shapes.get(name) orelse return error.UnknownOperand else null;
-            if (node.op != .select and selector != null) return error.InvalidNode;
+            if (node.op != .select and node.op != .bool_select and selector != null) return error.InvalidNode;
             if (node.op != .array_get and node.op != .array_slice and node.index != null) return error.InvalidNode;
             var result: Shape = undefined;
             switch (node.op) {
@@ -182,6 +182,18 @@ pub const Program = struct {
                 },
                 .is_zero => {
                     if (lhs == null or lhs.?.kind != .m31 or lhs.?.length != 1 or rhs != null or node.constant != null or node.length != null or node.rounds != null or node.body != null) return error.InvalidNode;
+                    result = .{ .kind = .m31, .length = 1 };
+                },
+                .bool_not => {
+                    if (lhs == null or lhs.?.kind != .m31 or lhs.?.length != 1 or rhs != null or node.constant != null or node.length != null or node.rounds != null or node.body != null) return error.InvalidNode;
+                    result = .{ .kind = .m31, .length = 1 };
+                },
+                .bool_and, .bool_or, .bool_xor => {
+                    if (lhs == null or rhs == null or lhs.?.kind != .m31 or rhs.?.kind != .m31 or lhs.?.length != 1 or rhs.?.length != 1 or node.constant != null or node.length != null or node.rounds != null or node.body != null) return error.InvalidNode;
+                    result = .{ .kind = .m31, .length = 1 };
+                },
+                .bool_select => {
+                    if (lhs == null or rhs == null or selector == null or lhs.?.kind != .m31 or rhs.?.kind != .m31 or selector.?.kind != .m31 or lhs.?.length != 1 or rhs.?.length != 1 or selector.?.length != 1 or node.constant != null or node.length != null or node.rounds != null or node.body != null) return error.InvalidNode;
                     result = .{ .kind = .m31, .length = 1 };
                 },
                 .add_const, .mul_const => {
@@ -282,7 +294,7 @@ pub const Program = struct {
                 .array_slice => node.length orelse return error.InvalidNode,
                 .array_concat => (shapes.get(node.lhs orelse return error.InvalidNode) orelse return error.UnknownOperand).length +
                     (shapes.get(node.rhs orelse return error.InvalidNode) orelse return error.UnknownOperand).length,
-                .sum_lanes, .u256_le, .u32_lt, .is_zero => 1,
+                .sum_lanes, .u256_le, .u32_lt, .is_zero, .bool_not, .bool_and, .bool_or, .bool_xor, .bool_select => 1,
                 .hash_sha256d_header, .bitcoin_target_mainnet, .bitcoin_genesis_hash_mainnet => 16,
                 .bitcoin_prev_hash => 16,
                 .bitcoin_header_bits, .bitcoin_header_time => 2,
@@ -375,7 +387,7 @@ pub fn evaluate(allocator: std.mem.Allocator, program: Program, assignment: Assi
     }
     for (program.inputs) |input| try values.put(allocator, input.name, try inputValues(allocator, assignment, input));
     for (program.nodes) |node| {
-        const length: usize = if (node.op == .constant or node.op == .array_slice) node.length.? else if (node.op == .array_get or node.op == .sum_lanes or node.op == .u256_le or node.op == .u32_lt or node.op == .is_zero) 1 else if (node.op == .array_concat) (values.get(node.lhs.?) orelse return error.UnknownOperand).len + (values.get(node.rhs.?) orelse return error.UnknownOperand).len else if (node.op == .hash_sha256d_header or node.op == .bitcoin_target_mainnet or node.op == .bitcoin_prev_hash or node.op == .bitcoin_genesis_hash_mainnet) 16 else if (node.op == .bitcoin_header_bits or node.op == .bitcoin_header_time) 2 else if (node.op == .hash_blake2s or node.op == .hash_blake2s_leaf or node.op == .hash_blake2s_pair or node.op == .hash_poseidon2_leaf or node.op == .hash_poseidon2_pair) 8 else (values.get(node.lhs.?) orelse return error.UnknownOperand).len;
+        const length: usize = if (node.op == .constant or node.op == .array_slice) node.length.? else if (node.op == .array_get or node.op == .sum_lanes or node.op == .u256_le or node.op == .u32_lt or node.op == .is_zero or node.op == .bool_not or node.op == .bool_and or node.op == .bool_or or node.op == .bool_xor or node.op == .bool_select) 1 else if (node.op == .array_concat) (values.get(node.lhs.?) orelse return error.UnknownOperand).len + (values.get(node.rhs.?) orelse return error.UnknownOperand).len else if (node.op == .hash_sha256d_header or node.op == .bitcoin_target_mainnet or node.op == .bitcoin_prev_hash or node.op == .bitcoin_genesis_hash_mainnet) 16 else if (node.op == .bitcoin_header_bits or node.op == .bitcoin_header_time) 2 else if (node.op == .hash_blake2s or node.op == .hash_blake2s_leaf or node.op == .hash_blake2s_pair or node.op == .hash_poseidon2_leaf or node.op == .hash_poseidon2_pair) 8 else (values.get(node.lhs.?) orelse return error.UnknownOperand).len;
         const out = try allocator.alloc(M31, length);
         errdefer allocator.free(out);
         const lhs = if (node.lhs) |name| values.get(name) orelse return error.UnknownOperand else null;
@@ -496,6 +508,23 @@ pub fn evaluate(allocator: std.mem.Allocator, program: Program, assignment: Assi
             .mul => lhs.?[i].mul(rhs.?[i]),
             .inv => try lhs.?[i].inv(),
             .is_zero => M31.fromCanonical(@intFromBool(lhs.?[i].isZero())),
+            .bool_not, .bool_and, .bool_or, .bool_xor, .bool_select => blk: {
+                const a = lhs.?[i].toU32();
+                if (a > 1) return error.InvalidBooleanOperand;
+                const b: u32 = if (node.op == .bool_not) 0 else rhs.?[i].toU32();
+                if (b > 1) return error.InvalidBooleanOperand;
+                const s: u32 = if (node.op == .bool_select) selector.?[0].toU32() else 0;
+                if (s > 1) return error.InvalidBooleanOperand;
+                const bit: u32 = switch (node.op) {
+                    .bool_not => 1 - a,
+                    .bool_and => a & b,
+                    .bool_or => a | b,
+                    .bool_xor => a ^ b,
+                    .bool_select => if (s == 0) a else b,
+                    else => unreachable,
+                };
+                break :blk M31.fromCanonical(bit);
+            },
             .add_const => lhs.?[i].add(c),
             .mul_const => lhs.?[i].mul(c),
             .sum_lanes => blk: {

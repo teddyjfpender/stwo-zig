@@ -17,6 +17,33 @@ EXAMPLES = Path(__file__).resolve().parent / "examples"
 
 
 class TextFrontendTests(unittest.TestCase):
+    def test_computed_boolean_algebra_and_field_selection(self) -> None:
+        relation, _ = compile_file(EXAMPLES / "bool_computed_choice.s31")
+        self.assertEqual([node["op"] for node in relation["nodes"]],
+                         ["is_zero", "is_zero", "bool_not", "bool_and", "bool_or",
+                          "bool_xor", "bool_select", "select"])
+        for x, y, expected in ((0, 0, 23), (0, 5, 17), (9, 0, 17), (9, 5, 17)):
+            assignment = {"public_inputs": {"x": [x], "y": [y],
+                                            "left": [17], "right": [23]},
+                          "private_inputs": {}, "public_outputs": {"_s31_0": [expected]}}
+            with self.subTest(x=x, y=y):
+                self.assertEqual(evaluate_relation(relation, assignment),
+                                 assignment["public_outputs"])
+        bit_relation, _ = compile_text("""use std@1;
+circuit bits(public a: bit, public b: bit) -> public bit {
+    std::bool::and(a, b)
+}""")
+        self.assertEqual(bit_relation["nodes"][0]["op"], "bool_and")
+        with self.assertRaisesRegex(OracleError, "Boolean operands must be 0 or 1"):
+            evaluate_relation(bit_relation, {"public_inputs": {"a": [2], "b": [1]},
+                                             "private_inputs": {},
+                                             "public_outputs": {"_s31_0": [0]}})
+        with self.assertRaisesRegex(SourceError, "constrained bit"):
+            compile_text("""use std@1;
+circuit bad(public x: [m31; 1]) -> public bit {
+    std::bool::not(x)
+}""")
+
     def test_computed_zero_bit_controls_selection(self) -> None:
         relation, _ = compile_file(EXAMPLES / "computed_choice.s31")
         self.assertEqual([node["op"] for node in relation["nodes"]],

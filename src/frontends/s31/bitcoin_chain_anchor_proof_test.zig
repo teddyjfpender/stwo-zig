@@ -7,6 +7,7 @@ const anchor = @import("bitcoin_chain_anchor.zig");
 const fold = @import("bitcoin_chain_fold.zig");
 const chain_verifier = @import("bitcoin_chain_verifier.zig");
 const retarget_verifier = @import("bitcoin_chain_retarget_verifier.zig");
+const preprocessed_guard = @import("bitcoin_fold_preprocessed_guard.zig");
 const native = @import("native_verifier.zig");
 const s31 = @import("stwo_s31_prototype");
 
@@ -161,8 +162,7 @@ fn proveFoldStep(
     if (!try values.isCircuitValid()) return error.InvalidPaddedBitcoinFoldCircuit;
     var value_pp = try circuit.common.preprocessed.PreprocessedCircuit.fromBuilderCircuit(allocator, &values.circuit);
     defer value_pp.deinit(allocator);
-    const value_root = try value_pp.preprocessedRoot(allocator, pcs.fri_config.log_blowup_factor);
-    if (!std.mem.eql(u8, &fold_root, &value_root)) return error.ValueDependentBitcoinFoldAir;
+    try preprocessed_guard.requireExact(pp, &value_pp);
     values.circuit.deinit(allocator);
     values.circuit = .{};
 

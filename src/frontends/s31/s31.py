@@ -733,6 +733,25 @@ def equations(package: Path) -> dict:
                     f"{lhs} * {name}[0] = 0",
                 ))
                 notes.append("These two equations force the output to be one exactly when the input is zero; the Boolean rule follows algebraically. Inverse is a private witness.")
+            elif op in {"bool_not", "bool_and", "bool_or", "bool_xor", "bool_select"}:
+                operands = [f"{node['lhs']}[0]"]
+                if op != "bool_not":
+                    operands.append(f"{node['rhs']}[0]")
+                if op == "bool_select":
+                    operands.append(f"{node['selector']}[0]")
+                for operand in operands:
+                    field_equations.append(f"{operand} * ({operand} - 1) = 0")
+                a = operands[0]
+                b = operands[1] if len(operands) > 1 else ""
+                formula = {
+                    "bool_not": f"1 - {a}",
+                    "bool_and": f"{a} * {b}",
+                    "bool_or": f"{a} + {b} - {a} * {b}",
+                    "bool_xor": f"{a} + {b} - 2 * {a} * {b}",
+                    "bool_select": f"(1 - {operands[-1]}) * {a} + {operands[-1]} * {b}",
+                }[op]
+                field_equations.append(f"{name}[0] - ({formula}) = 0")
+                notes.append("Boolean operands are constrained to 0 or 1; the output is Boolean by the formula, with no output hint.")
             elif op == "add_const":
                 field_equations.append(f"{name}[j] - {lhs} - {constant} = 0")
             elif op == "mul_const":

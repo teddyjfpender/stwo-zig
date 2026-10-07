@@ -193,6 +193,154 @@ pub fn build(b: *std.Build) void {
     const sha_round_direct_tests = b.addRunArtifact(b.addTest(.{ .root_module = sha_round_direct_test_root }));
     b.step("test-sha-round-direct", "Prove and natively verify the table-free SHA-256 round AIR")
         .dependOn(&sha_round_direct_tests.step);
+    const sha_schedule_direct_test_root = b.createModule(.{
+        .root_source_file = b.path("sha_schedule_direct_proof_test.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    sha_schedule_direct_test_root.addImport("stwo_core", core);
+    sha_schedule_direct_test_root.addImport("stwo_prover_engine", cpu.import_table.get("stwo_prover_engine") orelse @panic("missing prover engine"));
+    sha_schedule_direct_test_root.addImport("stwo_circuit_cpu_integration", cpu);
+    sha_schedule_direct_test_root.addImport("s31_sha_provider", sha_provider);
+    sha_schedule_direct_test_root.addImport("interop_postcard", sha_postcard);
+    const sha_schedule_direct_tests = b.addRunArtifact(b.addTest(.{ .root_module = sha_schedule_direct_test_root }));
+    b.step("test-sha-schedule-direct", "Prove and natively verify the table-free SHA-256 schedule AIR")
+        .dependOn(&sha_schedule_direct_tests.step);
+    const sha_feed_direct_test_root = b.createModule(.{
+        .root_source_file = b.path("sha_feed_direct_proof_test.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    sha_feed_direct_test_root.addImport("stwo_core", core);
+    sha_feed_direct_test_root.addImport("stwo_prover_engine", cpu.import_table.get("stwo_prover_engine") orelse @panic("missing prover engine"));
+    sha_feed_direct_test_root.addImport("stwo_circuit_cpu_integration", cpu);
+    sha_feed_direct_test_root.addImport("s31_sha_provider", sha_provider);
+    sha_feed_direct_test_root.addImport("interop_postcard", sha_postcard);
+    const sha_feed_direct_tests = b.addRunArtifact(b.addTest(.{ .root_module = sha_feed_direct_test_root }));
+    b.step("test-sha-feed-direct", "Prove and natively verify the table-free SHA-256 feed-forward AIR")
+        .dependOn(&sha_feed_direct_tests.step);
+    const sha_caller_stream_test_root = b.createModule(.{
+        .root_source_file = b.path("sha_caller_stream_proof_test.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    sha_caller_stream_test_root.addImport("stwo_core", core);
+    sha_caller_stream_test_root.addImport("stwo_prover_engine", cpu.import_table.get("stwo_prover_engine") orelse @panic("missing prover engine"));
+    sha_caller_stream_test_root.addImport("stwo_circuit_cpu_integration", cpu);
+    sha_caller_stream_test_root.addImport("s31_sha_provider", sha_provider);
+    sha_caller_stream_test_root.addImport("interop_postcard", sha_postcard);
+    const sha_caller_stream_tests = b.addRunArtifact(b.addTest(.{ .root_module = sha_caller_stream_test_root }));
+    b.step("test-sha-caller-stream", "Prove and natively verify the streamed SHA256d caller AIR")
+        .dependOn(&sha_caller_stream_tests.step);
+    const sha_round_word_logup_test_root = b.createModule(.{
+        .root_source_file = b.path("sha_round_direct_word_logup.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    sha_round_word_logup_test_root.addImport("stwo_core", core);
+    sha_round_word_logup_test_root.addImport("stwo_prover_engine", cpu.import_table.get("stwo_prover_engine") orelse @panic("missing prover engine"));
+    sha_round_word_logup_test_root.addImport("s31_sha_provider", sha_provider);
+    const sha_round_word_logup_tests = b.addRunArtifact(b.addTest(.{ .root_module = sha_round_word_logup_test_root }));
+    b.step("test-sha-round-word-logup", "Check committed direct SHA round word-bus interactions")
+        .dependOn(&sha_round_word_logup_tests.step);
+    const sha_round_word_proof_root = b.createModule(.{
+        .root_source_file = b.path("sha_round_direct_word_proof_test.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    sha_round_word_proof_root.addImport("stwo_core", core);
+    sha_round_word_proof_root.addImport("stwo_prover_engine", cpu.import_table.get("stwo_prover_engine") orelse @panic("missing prover engine"));
+    sha_round_word_proof_root.addImport("stwo_circuit_cpu_integration", cpu);
+    sha_round_word_proof_root.addImport("s31_sha_provider", sha_provider);
+    sha_round_word_proof_root.addImport("interop_postcard", sha_postcard);
+    const sha_round_word_proof_tests = b.addRunArtifact(b.addTest(.{ .root_module = sha_round_word_proof_root }));
+    b.step("test-sha-round-word-proof", "Prove direct SHA rounds and their committed word lookup in one STARK")
+        .dependOn(&sha_round_word_proof_tests.step);
+    const sha_schedule_word_proof_root = b.createModule(.{
+        .root_source_file = b.path("sha_schedule_direct_word_proof_test.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    sha_schedule_word_proof_root.addImport("stwo_core", core);
+    sha_schedule_word_proof_root.addImport("stwo_prover_engine", cpu.import_table.get("stwo_prover_engine") orelse @panic("missing prover engine"));
+    sha_schedule_word_proof_root.addImport("stwo_circuit_cpu_integration", cpu);
+    sha_schedule_word_proof_root.addImport("s31_sha_provider", sha_provider);
+    sha_schedule_word_proof_root.addImport("interop_postcard", sha_postcard);
+    const sha_schedule_word_proof_tests = b.addRunArtifact(b.addTest(.{ .root_module = sha_schedule_word_proof_root }));
+    b.step("test-sha-schedule-word", "Prove direct SHA schedule and its committed word lookup in one STARK")
+        .dependOn(&sha_schedule_word_proof_tests.step);
+    const sha_caller_bus_proof_root = b.createModule(.{
+        .root_source_file = b.path("sha_caller_stream_bus_proof_test.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    sha_caller_bus_proof_root.addImport("stwo_core", core);
+    sha_caller_bus_proof_root.addImport("stwo_circuit_frontend", circuit);
+    sha_caller_bus_proof_root.addImport("stwo_prover_engine", cpu.import_table.get("stwo_prover_engine") orelse @panic("missing prover engine"));
+    sha_caller_bus_proof_root.addImport("stwo_circuit_cpu_integration", cpu);
+    sha_caller_bus_proof_root.addImport("s31_sha_provider", sha_provider);
+    sha_caller_bus_proof_root.addImport("interop_postcard", sha_postcard);
+    const sha_caller_bus_proof_tests = b.addRunArtifact(b.addTest(.{ .root_module = sha_caller_bus_proof_root }));
+    b.step("test-sha-caller-stream-bus", "Prove the streamed SHA caller and its committed Gate/word lookups")
+        .dependOn(&sha_caller_bus_proof_tests.step);
+    const sha_direct_gate_closure_root = b.createModule(.{
+        .root_source_file = b.path("sha_direct_gate_closure_test.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    sha_direct_gate_closure_root.addImport("stwo_core", core);
+    sha_direct_gate_closure_root.addImport("stwo_circuit_frontend", circuit);
+    sha_direct_gate_closure_root.addImport("stwo_prover_engine", cpu.import_table.get("stwo_prover_engine") orelse @panic("missing prover engine"));
+    sha_direct_gate_closure_root.addImport("stwo_circuit_cpu_integration", cpu);
+    sha_direct_gate_closure_root.addImport("s31_sha_provider", sha_provider);
+    sha_direct_gate_closure_root.addImport("s31_poseidon_ref", sha_provider);
+    const sha_direct_gate_closure_tests = b.addRunArtifact(b.addTest(.{ .root_module = sha_direct_gate_closure_root }));
+    b.step("test-sha-direct-gate-closure", "Check direct caller Gate lookup against the Bitcoin sparse-wide circuit")
+        .dependOn(&sha_direct_gate_closure_tests.step);
+    const sha_direct_private_join_root = b.createModule(.{
+        .root_source_file = b.path("sha_direct_private_join_proof_test.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    sha_direct_private_join_root.addImport("stwo_core", core);
+    sha_direct_private_join_root.addImport("stwo_prover_engine", cpu.import_table.get("stwo_prover_engine") orelse @panic("missing prover engine"));
+    sha_direct_private_join_root.addImport("stwo_circuit_cpu_integration", cpu);
+    sha_direct_private_join_root.addImport("stwo_circuit_frontend", circuit);
+    sha_direct_private_join_root.addImport("s31_sha_provider", sha_provider);
+    sha_direct_private_join_root.addImport("interop_postcard", sha_postcard);
+    const sha_direct_private_join_tests = b.addRunArtifact(b.addTest(.{ .root_module = sha_direct_private_join_root }));
+    b.step("test-sha-direct-private-join", "Prove one private SHA256d header with all direct AIRs and word closure")
+        .dependOn(&sha_direct_private_join_tests.step);
+    const sha_direct_circuit_root = b.createModule(.{
+        .root_source_file = b.path("sha_direct_circuit_proof_test.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    sha_direct_circuit_root.addImport("stwo_core", core);
+    sha_direct_circuit_root.addImport("stwo_prover_engine", cpu.import_table.get("stwo_prover_engine") orelse @panic("missing prover engine"));
+    sha_direct_circuit_root.addImport("stwo_circuit_frontend", circuit);
+    sha_direct_circuit_root.addImport("stwo_circuit_cpu_integration", cpu);
+    sha_direct_circuit_root.addImport("stwo_cairo_frontend", cpu.import_table.get("stwo_cairo_frontend") orelse @panic("missing Cairo frontend"));
+    sha_direct_circuit_root.addImport("interop_postcard", sha_postcard);
+    sha_direct_circuit_root.addImport("s31_air_programs", official_air);
+    sha_direct_circuit_root.addImport("s31_sha_provider", sha_provider);
+    sha_direct_circuit_root.addImport("s31_poseidon_ref", sha_provider);
+    const sha_direct_circuit_tests = b.addRunArtifact(b.addTest(.{ .root_module = sha_direct_circuit_root }));
+    b.step("test-sha-direct-circuit", "Prove one Bitcoin circuit plus private direct SHA256d in one STARK")
+        .dependOn(&sha_direct_circuit_tests.step);
+    const sha_feed_word_proof_root = b.createModule(.{
+        .root_source_file = b.path("sha_feed_direct_word_proof_test.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    sha_feed_word_proof_root.addImport("stwo_core", core);
+    sha_feed_word_proof_root.addImport("stwo_prover_engine", cpu.import_table.get("stwo_prover_engine") orelse @panic("missing prover engine"));
+    sha_feed_word_proof_root.addImport("stwo_circuit_cpu_integration", cpu);
+    sha_feed_word_proof_root.addImport("s31_sha_provider", sha_provider);
+    sha_feed_word_proof_root.addImport("interop_postcard", sha_postcard);
+    const sha_feed_word_proof_tests = b.addRunArtifact(b.addTest(.{ .root_module = sha_feed_word_proof_root }));
+    b.step("test-sha-feed-word", "Prove SHA feed-forward and its committed word lookup in one STARK")
+        .dependOn(&sha_feed_word_proof_tests.step);
     const retarget_proof_test_root = b.createModule(.{
         .root_source_file = b.path("bitcoin_retarget_proof_test.zig"),
         .target = target,

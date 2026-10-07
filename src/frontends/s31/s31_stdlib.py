@@ -193,6 +193,35 @@ class Builder:
         self.computed_bits.add(result.ref)
         return result
 
+    def bit_operand(self, value: Value) -> str:
+        if value.typ != Type("bit", 1) or value.ref not in self.bit_inputs | self.computed_bits:
+            raise TypeErrorS31("Boolean operation requires a constrained bit")
+        if value.ref in self.bit_inputs:
+            self.constrained_bits.add(value.ref)
+        return value.ref
+
+    def boolean(self, op: str, lhs: Value, rhs: Value | None = None,
+                selector: Value | None = None, *, wanted: str | None = None,
+                span: dict[str, int] | None = None) -> Value:
+        if op not in {"bool_not", "bool_and", "bool_or", "bool_xor", "bool_select"}:
+            raise TypeErrorS31(f"unsupported Boolean operation {op}")
+        fields: dict[str, str] = {"lhs": self.bit_operand(lhs)}
+        if op != "bool_not":
+            if rhs is None:
+                raise TypeErrorS31(f"{op} requires two bit values")
+            fields["rhs"] = self.bit_operand(rhs)
+        elif rhs is not None:
+            raise TypeErrorS31("bool_not takes one bit")
+        if op == "bool_select":
+            if selector is None:
+                raise TypeErrorS31("bool_select requires a bit selector")
+            fields["selector"] = self.bit_operand(selector)
+        elif selector is not None:
+            raise TypeErrorS31(f"{op} has no selector")
+        result = self.emit(op, Type("bit", 1), wanted=wanted, span=span, **fields)
+        self.computed_bits.add(result.ref)
+        return result
+
     def cast_m31(self, value: Value, *, wanted: str | None = None,
                  span: dict[str, int] | None = None) -> Value:
         if value.typ.kind not in {"u16", "uint256", "bytes32"}:
@@ -423,12 +452,9 @@ class Builder:
                span: dict[str, int] | None = None) -> Value:
         if bit.typ != Type("bit", 1) or lhs.typ != rhs.typ or lhs.typ.kind not in {"m31", "digest"}:
             raise TypeErrorS31("select requires a bit and two equally typed m31 values")
-        if bit.ref not in self.bit_inputs and bit.ref not in self.computed_bits:
-            raise TypeErrorS31("select requires a constrained bit value")
-        if bit.ref in self.bit_inputs:
-            self.constrained_bits.add(bit.ref)
+        selector = self.bit_operand(bit)
         return self.emit("select", lhs.typ, wanted=wanted, span=span,
-                         lhs=self.realize(lhs).ref, rhs=self.realize(rhs).ref, selector=bit.ref)
+                         lhs=self.realize(lhs).ref, rhs=self.realize(rhs).ref, selector=selector)
 
     def repeat(self, rounds: int, start: Value, steps: tuple[dict[str, Any], ...],
                *, wanted: str | None = None, span: dict[str, int] | None = None) -> Value:
@@ -469,7 +495,7 @@ class Builder:
         if result.typ != output_type:
             raise TypeErrorS31("circuit result does not match declared public output type")
         if self.bit_inputs != self.constrained_bits:
-            raise TypeErrorS31("every bit input must be constrained by a select")
+            raise TypeErrorS31("every bit input must be constrained by a Boolean operation or select")
         if sum(item["length"] for item in self.inputs if item["visibility"] == "public") + result.typ.length > 8:
             raise TypeErrorS31("current public ABI allows at most eight words")
         value = self.realize(result, span=span)

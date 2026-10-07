@@ -1,0 +1,16 @@
+use std@1;
+
+// All Boolean values here are computed from field zero tests. The field
+// selection is right only when both x and y are zero.
+circuit bool_computed_choice(public x: [m31; 1], public y: [m31; 1],
+                             public left: [m31; 1], public right: [m31; 1])
+                             -> public [m31; 1] {
+    let zx = std::field::is_zero(x);
+    let zy = std::field::is_zero(y);
+    let n = std::bool::not(zx);
+    let a = std::bool::and(n, zy);
+    let o = std::bool::or(a, zx);
+    let q = std::bool::xor(o, zy);
+    let chosen = std::bool::select(zx, q, zy);
+    std::field::select(chosen, left, right)
+}

@@ -61,7 +61,7 @@ pub fn compileRaw(comptime V: type, allocator: std.mem.Allocator, program: relat
         const lhs: ?Entry = if (node.lhs) |name| values.get(name) orelse return error.UnknownOperand else null;
         const rhs: ?Entry = if (node.rhs) |name| values.get(name) orelse return error.UnknownOperand else null;
         const selector: ?Entry = if (node.selector) |name| values.get(name) orelse return error.UnknownOperand else null;
-        const length: usize = if (node.op == .constant or node.op == .array_slice) node.length.? else if (node.op == .array_get or node.op == .sum_lanes or node.op == .u256_le or node.op == .u32_lt) 1 else if (node.op == .array_concat) lhs.?.shape.length + rhs.?.shape.length else if (node.op == .bitcoin_genesis_hash_mainnet) 16 else if (node.op == .hash_blake2s or node.op == .hash_blake2s_leaf or node.op == .hash_blake2s_pair or node.op == .hash_poseidon2_leaf or node.op == .hash_poseidon2_pair) 8 else lhs.?.shape.length;
+        const length: usize = if (node.op == .constant or node.op == .array_slice) node.length.? else if (node.op == .array_get or node.op == .sum_lanes or node.op == .u256_le or node.op == .u32_lt or node.op == .bool_not or node.op == .bool_and or node.op == .bool_or or node.op == .bool_xor or node.op == .bool_select) 1 else if (node.op == .array_concat) lhs.?.shape.length + rhs.?.shape.length else if (node.op == .bitcoin_genesis_hash_mainnet) 16 else if (node.op == .hash_blake2s or node.op == .hash_blake2s_leaf or node.op == .hash_blake2s_pair or node.op == .hash_poseidon2_leaf or node.op == .hash_poseidon2_pair) 8 else lhs.?.shape.length;
         const entry: Entry = switch (node.op) {
             .array_get => try arrayGet(V, &ctx, lhs.?, node.index.?),
             .array_slice => try arraySlice(V, &ctx, lhs.?, node.index.?, node.length.?),
@@ -73,6 +73,11 @@ pub fn compileRaw(comptime V: type, allocator: std.mem.Allocator, program: relat
             .mul => .{ .shape = .{ .kind = .m31, .length = length }, .lanes = try circuit.builder.simd.mul(V, &ctx, lhs.?.lanes, rhs.?.lanes) },
             .inv => .{ .shape = .{ .kind = .m31, .length = length }, .lanes = try inverseLanes(V, &ctx, lhs.?.lanes) },
             .is_zero => try isZeroWord(V, &ctx, lhs.?),
+            .bool_not => try booleanNode(V, &ctx, .not, lhs.?, null, null),
+            .bool_and => try booleanNode(V, &ctx, .and_, lhs.?, rhs.?, null),
+            .bool_or => try booleanNode(V, &ctx, .or_, lhs.?, rhs.?, null),
+            .bool_xor => try booleanNode(V, &ctx, .xor_, lhs.?, rhs.?, null),
+            .bool_select => try booleanNode(V, &ctx, .select, lhs.?, rhs.?, selector.?),
             .add_const => .{ .shape = .{ .kind = .m31, .length = length }, .lanes = try circuit.builder.simd.add(V, &ctx, lhs.?.lanes, try circuit.builder.simd.repeat(V, &ctx, M31.fromCanonical(node.constant.?), length)) },
             .mul_const => .{ .shape = .{ .kind = .m31, .length = length }, .lanes = try circuit.builder.simd.mul(V, &ctx, lhs.?.lanes, try circuit.builder.simd.repeat(V, &ctx, M31.fromCanonical(node.constant.?), length)) },
             .sum_lanes => .{ .shape = .{ .kind = .m31, .length = 1 }, .lanes = try sumLanes(V, &ctx, lhs.?.lanes) },
@@ -231,6 +236,15 @@ fn compileWithSpansMode(comptime V: type, allocator: std.mem.Allocator, program:
     errdefer ctx.deinit();
     const scratch = ctx.scratch();
     const entries = try scratch.alloc(Entry, ir.nodes.len);
+    const bit_sources = try scratch.alloc(bool, ir.nodes.len);
+    @memset(bit_sources, false);
+    for (ir.nodes) |node| {
+        if (node.tag == .select or node.tag == .bool_select) bit_sources[node.selector.?] = true;
+        if (node.tag == .bool_not or node.tag == .bool_and or node.tag == .bool_or or node.tag == .bool_xor or node.tag == .bool_select) {
+            bit_sources[node.lhs.?] = true;
+            if (node.rhs) |rhs| bit_sources[rhs] = true;
+        }
+    }
     for (ir.nodes, entries, 0..) |node, *entry, id| {
         const qm31_start = ctx.circuit.nQm31OpsRows();
         const eq_start = ctx.circuit.eq.items.len;
@@ -247,7 +261,7 @@ fn compileWithSpansMode(comptime V: type, allocator: std.mem.Allocator, program:
                 };
                 const source_values: ?[]M31 = if (comptime V == QM31) try relation.inputValues(allocator, assignment.?, input) else null;
                 defer if (source_values) |owned| allocator.free(owned);
-                const boolean = direct_output and isSelectorInput(ir.nodes, id);
+                const boolean = direct_output and bit_sources[id];
                 // A QM31 witness is already four M31 coordinates. For a
                 // private array, guessing the packed wire directly avoids
                 // four scalar guesses and their six packing gates. Public
@@ -286,7 +300,7 @@ fn compileWithSpansMode(comptime V: type, allocator: std.mem.Allocator, program:
                 break :blk .{ .shape = .{ .kind = node.kind, .length = node.length }, .lanes = try circuit.builder.simd.pack(V, &ctx, wrappers), .raw = raw, .boolean = boolean };
             },
             .constant => blk: {
-                if (direct_output and node.length == 1 and node.constant.? <= 1 and isSelectorInput(ir.nodes, id)) {
+                if (direct_output and node.length == 1 and node.constant.? <= 1 and bit_sources[id]) {
                     const raw = try scratch.alloc(Var, 1);
                     raw[0] = try ctx.constant(QM31.fromBase(M31.fromCanonical(node.constant.?)));
                     break :blk .{ .shape = .{ .kind = .m31, .length = 1 }, .lanes = Simd.fromPacked(raw, 1), .raw = raw, .boolean = true };
@@ -302,6 +316,11 @@ fn compileWithSpansMode(comptime V: type, allocator: std.mem.Allocator, program:
             .mul => .{ .shape = .{ .kind = .m31, .length = node.length }, .lanes = try circuit.builder.simd.mul(V, &ctx, entries[node.lhs.?].lanes, entries[node.rhs.?].lanes) },
             .inv => .{ .shape = .{ .kind = .m31, .length = node.length }, .lanes = try inverseLanes(V, &ctx, entries[node.lhs.?].lanes) },
             .is_zero => try isZeroWord(V, &ctx, entries[node.lhs.?]),
+            .bool_not => try booleanNode(V, &ctx, .not, entries[node.lhs.?], null, null),
+            .bool_and => try booleanNode(V, &ctx, .and_, entries[node.lhs.?], entries[node.rhs.?], null),
+            .bool_or => try booleanNode(V, &ctx, .or_, entries[node.lhs.?], entries[node.rhs.?], null),
+            .bool_xor => try booleanNode(V, &ctx, .xor_, entries[node.lhs.?], entries[node.rhs.?], null),
+            .bool_select => try booleanNode(V, &ctx, .select, entries[node.lhs.?], entries[node.rhs.?], entries[node.selector.?]),
             .add_const => .{ .shape = .{ .kind = .m31, .length = node.length }, .lanes = try circuit.builder.simd.add(V, &ctx, entries[node.lhs.?].lanes, try circuit.builder.simd.repeat(V, &ctx, M31.fromCanonical(node.constant.?), node.length)) },
             .mul_const => .{ .shape = .{ .kind = .m31, .length = node.length }, .lanes = try circuit.builder.simd.mul(V, &ctx, entries[node.lhs.?].lanes, try circuit.builder.simd.repeat(V, &ctx, M31.fromCanonical(node.constant.?), node.length)) },
             .sum_lanes => .{ .shape = .{ .kind = .m31, .length = 1 }, .lanes = try sumLanes(V, &ctx, entries[node.lhs.?].lanes) },
@@ -720,6 +739,37 @@ fn isZeroWord(comptime V: type, ctx: *circuit.builder.Context(V), input: Entry) 
     return .{ .shape = .{ .kind = .m31, .length = 1 }, .lanes = Simd.fromPacked(raw, 1), .raw = raw, .boolean = true };
 }
 
+const BooleanKind = enum { not, and_, or_, xor_, select };
+
+/// An arbitrary normalized m31 scalar is not a typed bit. If its producer has
+/// not already proved Booleanity, bind b²-b=0 with an arithmetic self-loop.
+/// The self-loop keeps the direct profile's one-producer lookup invariant.
+fn checkedBitWord(comptime V: type, ctx: *circuit.builder.Context(V), input: Entry) !Var {
+    if (input.shape.kind != .m31 or input.shape.length != 1) return error.InvalidBooleanOperand;
+    const bit = if (input.raw) |raw| raw[0] else try circuit.builder.simd.unpackIdx(V, ctx, input.lanes, 0);
+    if (!input.boolean) try assertZeroArithmetic(V, ctx, try ctx.sub(try ctx.mul(bit, bit), bit));
+    return bit;
+}
+
+/// Boolean closure is algebraic once all operands are proved bits. The output
+/// wire itself is an ordinary gate result, so no extra Boolean witness is
+/// introduced and select can reuse it directly as a constrained selector.
+fn booleanNode(comptime V: type, ctx: *circuit.builder.Context(V), kind: BooleanKind, lhs: Entry, rhs: ?Entry, selector: ?Entry) !Entry {
+    const a = try checkedBitWord(V, ctx, lhs);
+    const b = if (rhs) |entry| try checkedBitWord(V, ctx, entry) else ctx.zero();
+    const s = if (selector) |entry| try checkedBitWord(V, ctx, entry) else ctx.zero();
+    const result = switch (kind) {
+        .not => try ctx.sub(ctx.one(), a),
+        .and_ => try ctx.mul(a, b),
+        .or_ => try ctx.sub(try ctx.add(a, b), try ctx.mul(a, b)),
+        .xor_ => try ctx.sub(try ctx.add(a, b), try ctx.mul(try ctx.constant(QM31.fromBase(M31.fromCanonical(2))), try ctx.mul(a, b))),
+        .select => try ctx.add(try ctx.mul(try ctx.sub(ctx.one(), s), a), try ctx.mul(s, b)),
+    };
+    const raw = try ctx.scratch().alloc(Var, 1);
+    raw[0] = result;
+    return .{ .shape = .{ .kind = .m31, .length = 1 }, .lanes = Simd.fromPacked(raw, 1), .raw = raw, .boolean = true };
+}
+
 /// Each packed group proves x * x_inv = 1 on active M31 lanes, while inactive
 /// coordinates are zero. The self-loop assertion is required for the direct
 /// profile's lookup closure; writing into the constant mask would give that
@@ -813,17 +863,76 @@ fn hashBlake2sPair(comptime V: type, ctx: *circuit.builder.Context(V), lhs: Simd
     return hashBlake2sPersonalized(V, ctx, Simd.fromPacked(input, 16), 16, relation.pair_personalization);
 }
 
-fn isSelectorInput(nodes: []const canonical.Node, input_id: usize) bool {
-    for (nodes) |node| if (node.tag == .select and node.selector.? == input_id) return true;
-    return false;
-}
-
 fn selectByBit(comptime V: type, ctx: *circuit.builder.Context(V), lhs: Simd, rhs: Simd, selector: Simd, direct_bit: ?Var) !Simd {
     const bit = if (direct_bit) |raw| raw else try circuit.builder.simd.unpackIdx(V, ctx, selector, 0);
     if (direct_bit == null) try circuit.builder.simd.assertBits(V, ctx, selector);
     const left = try circuit.builder.simd.scalarMul(V, ctx, lhs, .newUnsafe(try ctx.sub(ctx.one(), bit)));
     const right = try circuit.builder.simd.scalarMul(V, ctx, rhs, .newUnsafe(bit));
     return circuit.builder.simd.add(V, ctx, left, right);
+}
+
+test "direct Boolean operations constrain typed inputs and reject a field alias" {
+    const allocator = std.testing.allocator;
+    const source =
+        \\{"version":1,"name":"bool_alias","inputs":[{"name":"a","kind":"m31","length":1,"visibility":"public"},{"name":"b","kind":"m31","length":1,"visibility":"private"}],"nodes":[{"name":"both","op":"bool_and","lhs":"a","rhs":"b"},{"name":"opposite","op":"bool_not","lhs":"both"},{"name":"result","op":"bool_select","selector":"a","lhs":"both","rhs":"opposite"}],"assertions":[],"public_outputs":["result"]}
+    ;
+    const good_json =
+        \\{"public_inputs":{"a":[1]},"private_inputs":{"b":[1]},"public_outputs":{"result":[0]}}
+    ;
+    const alias_json =
+        \\{"public_inputs":{"a":[1]},"private_inputs":{"b":[2]},"public_outputs":{"result":[0]}}
+    ;
+    var program = try relation.parseProgram(allocator, source);
+    defer program.deinit();
+    var good = try relation.parseAssignment(allocator, good_json);
+    defer good.deinit();
+    var alias = try relation.parseAssignment(allocator, alias_json);
+    defer alias.deinit();
+    var circuit_values = try compileDirect(QM31, allocator, program.value, good.value, false);
+    defer circuit_values.deinit();
+    var generic = try compile(QM31, allocator, program.value, good.value);
+    defer generic.deinit();
+    var raw = try compileRaw(QM31, allocator, program.value, good.value);
+    defer raw.deinit();
+    var topology = try compileDirect(circuit.builder.NoValue, allocator, program.value, null, false);
+    defer topology.deinit();
+    try std.testing.expect(try circuit_values.isCircuitValid());
+    try std.testing.expect(try generic.isCircuitValid());
+    try std.testing.expect(try raw.isCircuitValid());
+    try std.testing.expectEqual(circuit_values.circuit.n_vars, topology.circuit.n_vars);
+    try std.testing.expect(std.meta.eql(circuit_values.gate_counts, topology.gate_counts));
+    try std.testing.expectEqual(@as(usize, 0), circuit_values.circuit.eq.items.len);
+    try std.testing.expectError(error.InvalidBooleanOperand, relation.evaluate(allocator, program.value, alias.value));
+    const bad_result = compileDirect(QM31, allocator, program.value, alias.value, false);
+    if (bad_result) |bad| {
+        var invalid = bad;
+        defer invalid.deinit();
+        try std.testing.expect(!try invalid.isCircuitValid());
+    } else |err| {
+        try std.testing.expect(err == error.EqFailedOnEval or err == error.MulFailedOnEval);
+    }
+}
+
+test "Boolean library example has stable direct arithmetic geometry" {
+    const allocator = std.testing.allocator;
+    var baseline_program = try relation.parseProgram(allocator, @embedFile("examples/computed_choice.s31.json"));
+    defer baseline_program.deinit();
+    var baseline_assignment = try relation.parseAssignment(allocator, @embedFile("examples/computed_choice.valid.json"));
+    defer baseline_assignment.deinit();
+    var baseline = try compileDirect(QM31, allocator, baseline_program.value, baseline_assignment.value, false);
+    defer baseline.deinit();
+    var program = try relation.parseProgram(allocator, @embedFile("examples/bool_computed_choice.s31.json"));
+    defer program.deinit();
+    var assignment = try relation.parseAssignment(allocator, @embedFile("examples/bool_computed_choice.valid.json"));
+    defer assignment.deinit();
+    var boolean = try compileDirect(QM31, allocator, program.value, assignment.value, false);
+    defer boolean.deinit();
+    try std.testing.expect(try baseline.isCircuitValid());
+    try std.testing.expect(try boolean.isCircuitValid());
+    try std.testing.expectEqual(@as(usize, 0), boolean.circuit.eq.items.len);
+    std.debug.print("S31_BOOLEAN_GEOMETRY baseline_qm31_rows={d} boolean_qm31_rows={d} boolean_eq_rows={d}\n", .{
+        baseline.circuit.nQm31OpsRows(), boolean.circuit.nQm31OpsRows(), boolean.circuit.eq.items.len,
+    });
 }
 
 test "private preimage relation has a constrained witness and static topology" {

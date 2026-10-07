@@ -8,18 +8,26 @@ pub const sha_chip_profile = @import("sha_chip_profile.zig");
 pub const sha_schedule_direct_equations = @import("sha_schedule_direct_equations.zig");
 pub const sha_feed_direct_equations = @import("sha_feed_direct_equations.zig");
 pub const sha_direct_word_bus = @import("sha_direct_word_bus.zig");
+pub const sha_round_direct_word_logup = @import("sha_round_direct_word_logup.zig");
 pub const sha_caller_equations = @import("sha_caller_equations.zig");
 pub const sha_caller_stream_equations = @import("sha_caller_stream_equations.zig");
 pub const sha_caller_air = @import("sha_caller_air.zig");
 pub const sha_joint_prover = @import("sha_joint_prover.zig");
 pub const sha_joint_native_verifier = @import("sha_joint_native_verifier.zig");
 pub const sha_joint_profile = @import("sha_joint_profile.zig");
+pub const sha_direct_private_join_profile = @import("sha_direct_private_join_profile.zig");
+pub const sha_direct_private_join_prover = @import("sha_direct_private_join_prover.zig");
+pub const sha_direct_private_join_native_verifier = @import("sha_direct_private_join_native_verifier.zig");
+pub const sha_direct_circuit_profile = @import("sha_direct_circuit_profile.zig");
+pub const sha_direct_circuit_prover = @import("sha_direct_circuit_prover.zig");
+pub const sha_direct_circuit_native_verifier = @import("sha_direct_circuit_native_verifier.zig");
 pub const bitcoin_target = @import("bitcoin_target.zig");
 pub const bitcoin_retarget = @import("bitcoin_retarget.zig");
 pub const poseidon2 = @import("poseidon2.zig");
 pub const recursive_public_words = @import("recursive_public_words.zig");
 pub const bitcoin_fold_step = @import("bitcoin_fold_step.zig");
 pub const bitcoin_fold_digest = @import("bitcoin_fold_digest.zig");
+pub const bitcoin_fold_preprocessed_guard = @import("bitcoin_fold_preprocessed_guard.zig");
 pub const canonical = @import("canonical.zig");
 
 test {
@@ -33,6 +41,13 @@ test {
     _ = sha_schedule_direct_equations;
     _ = sha_feed_direct_equations;
     _ = sha_direct_word_bus;
+    _ = sha_round_direct_word_logup;
+    _ = sha_direct_private_join_profile;
+    _ = sha_direct_private_join_prover;
+    _ = sha_direct_private_join_native_verifier;
+    _ = sha_direct_circuit_profile;
+    _ = sha_direct_circuit_prover;
+    _ = sha_direct_circuit_native_verifier;
     _ = sha_caller_equations;
     _ = sha_caller_stream_equations;
     _ = sha_caller_air;
@@ -42,5 +57,6 @@ test {
     _ = recursive_public_words;
     _ = bitcoin_fold_step;
     _ = bitcoin_fold_digest;
+    _ = bitcoin_fold_preprocessed_guard;
     _ = canonical;
 }

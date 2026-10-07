@@ -38,6 +38,11 @@ STANDARD_ALIASES = {
     "std::field::from_u16": "m31_from_u16",
     "std::field::select": "select",
     "std::field::is_zero": "is_zero",
+    "std::bool::not": "bool_not",
+    "std::bool::and": "bool_and",
+    "std::bool::or": "bool_or",
+    "std::bool::xor": "bool_xor",
+    "std::bool::select": "bool_select",
     "std::hash::poseidon2_leaf": "poseidon2_leaf",
     "std::hash::poseidon2_pair": "poseidon2_pair",
     "std::hash::blake2s_leaf": "blake2s_leaf",
@@ -598,6 +603,18 @@ class Compiler:
                                            wanted=wanted, span=self.span(expr))
             if name == "is_zero" and len(args) == 1:
                 return self.builder.is_zero(self.expect_value(args[0], expr),
+                                            wanted=wanted, span=self.span(expr))
+            if name == "bool_not" and len(args) == 1:
+                return self.builder.boolean(name, self.expect_value(args[0], expr),
+                                            wanted=wanted, span=self.span(expr))
+            if name in {"bool_and", "bool_or", "bool_xor"} and len(args) == 2:
+                return self.builder.boolean(name, self.expect_value(args[0], expr),
+                                            self.expect_value(args[1], expr),
+                                            wanted=wanted, span=self.span(expr))
+            if name == "bool_select" and len(args) == 3:
+                return self.builder.boolean(name, self.expect_value(args[1], expr),
+                                            self.expect_value(args[2], expr),
+                                            self.expect_value(args[0], expr),
                                             wanted=wanted, span=self.span(expr))
             if name in {"merkle_path_poseidon2", "merkle_path_blake2s"} and len(args) == 3:
                 family = "poseidon2" if name.endswith("poseidon2") else "blake2s_reduced"
