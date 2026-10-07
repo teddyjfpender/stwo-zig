@@ -1125,8 +1125,10 @@ def main() -> None:
     sub.add_argument("--max-step", type=int, help="reject a top fold statement above this locally trusted recursion depth")
     sub = commands.add_parser("inspect-fold", help="rebuild and report a sealed fold AIR's raw rows and padding headroom")
     sub.add_argument("package", type=Path)
+    sub.add_argument("--step", type=int, default=0, help="rebuild the witness-free AIR at this u32 counter value")
     sub = commands.add_parser("inspect-state-fold", help="rebuild and report a state-fold AIR's raw rows and padding headroom")
     sub.add_argument("package", type=Path)
+    sub.add_argument("--step", type=int, default=0, help="rebuild the witness-free AIR at this u32 counter value")
     args = parser.parse_args()
 
     if args.command == "lower":
@@ -1459,20 +1461,24 @@ def main() -> None:
         wide_fold = manifest["lowering"] == "sparse-wide-gate"
         if manifest["lowering"] != "gate" and not wide_fold:
             raise ValueError("inspect-fold requires a gate or sparse-wide package")
+        if not 0 <= args.step <= 0xffffffff:
+            raise ValueError("--step must fit u32")
         executable = package / "bin" / f"s31-{manifest['name']}-prover"
         print(invoke(str(executable), "wide-fold-inspect" if wide_fold else "fold-inspect",
                      str(package / "verification-key.json"),
                      str(package / "recursive-verification-key.json"),
                      *((str(package / "recursive-verification-key-level2.json"),) if wide_fold else ()),
-                     str(package / "fixed-fold-verification-key.json")), end="")
+                     str(package / "fixed-fold-verification-key.json"), "--step", str(args.step)), end="")
     elif args.command == "inspect-state-fold":
         if manifest["lowering"] != "gate" or "state-fold-verification-key.json" not in manifest["artifacts"]:
             raise ValueError("inspect-state-fold requires a supported gate-profile recurrence package")
+        if not 0 <= args.step <= 0xffffffff:
+            raise ValueError("--step must fit u32")
         executable = package / "bin" / f"s31-{manifest['name']}-prover"
         print(invoke(str(executable), "state-fold-inspect",
                      str(package / "verification-key.json"),
                      str(package / "recursive-verification-key.json"),
-                     str(package / "state-fold-verification-key.json")), end="")
+                     str(package / "state-fold-verification-key.json"), "--step", str(args.step)), end="")
 
 
 if __name__ == "__main__":

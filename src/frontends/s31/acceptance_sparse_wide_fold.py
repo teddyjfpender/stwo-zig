@@ -131,6 +131,13 @@ def main() -> None:
                 stages[-1]["name"] != "finalize" or
                 stages[-1]["raw_vars"] != geometry["raw_vars"]):
             raise AssertionError("fixed-fold verifier stage capture is incomplete")
+        baseline_geometry = {key: value for key, value in geometry.items() if key != "inspected_step"}
+        for step in (1, 65535, 65536, 0x80000000, 0xffffffff):
+            probe_output, _ = call(*cli, "inspect-fold", str(package), "--step", str(step))
+            probe = json.loads(probe_output)
+            if probe.get("inspected_step") != step or {
+                    key: value for key, value in probe.items() if key != "inspected_step"} != baseline_geometry:
+                raise AssertionError(f"sparse-wide fold AIR changed with counter {step}")
         for before, after in zip(stages, stages[1:]):
             if any(after[key] < before[key] for key in
                    ("raw_vars", "eq", "qm31_ops", "triple_xor", "m31_to_u32", "blake_g")):

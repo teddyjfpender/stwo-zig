@@ -61,6 +61,14 @@ def main() -> None:
         first_key = package / "recursive-verification-key.json"
         prover = package / "bin/s31-arith4_m31-prover"
         verifier = package / "bin/s31-arith4_m31-native-verifier"
+        geometry = json.loads(run("python3", str(HERE / "s31.py"), "inspect-state-fold", str(package)))
+        baseline_geometry = {key: value for key, value in geometry.items() if key != "inspected_step"}
+        for step in (1, 65535, 65536, 0x80000000, 0xffffffff):
+            probe = json.loads(run("python3", str(HERE / "s31.py"), "inspect-state-fold",
+                                   str(package), "--step", str(step)))
+            if probe.get("inspected_step") != step or {
+                    key: value for key, value in probe.items() if key != "inspected_step"} != baseline_geometry:
+                raise AssertionError(f"state-fold AIR changed with counter {step}")
         reproduced = work / "reproduced-key.json"
         run(str(prover), "state-fold-keygen", str(child_key), str(first_key), str(reproduced))
         if reproduced.read_bytes() != key.read_bytes():

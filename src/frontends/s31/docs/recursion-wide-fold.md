@@ -180,8 +180,9 @@ python3 src/frontends/s31/s31.py fold-base zig-out/s31/wide-fold \
 python3 src/frontends/s31/s31.py fold-next zig-out/s31/wide-fold \
   zig-out/s31/wide-fold/fold0.proof zig-out/s31/wide-fold/fold1.proof --low-memory
 python3 src/frontends/s31/s31.py verify-fold zig-out/s31/wide-fold \
-  zig-out/s31/wide-fold/fold1.proof
-python3 src/frontends/s31/s31.py inspect-fold zig-out/s31/wide-fold
+  zig-out/s31/wide-fold/fold1.proof --max-step 1
+python3 src/frontends/s31/s31.py inspect-fold zig-out/s31/wide-fold \
+  --step 65536
 python3 src/frontends/s31/s31.py fold-advance zig-out/s31/wide-fold \
   zig-out/s31/wide-fold/second.proof zig-out/s31/wide-fold/batch-top.proof \
   --steps 3 --checkpoint-dir zig-out/s31/wide-fold/checkpoints --low-memory

@@ -71,6 +71,13 @@ def main() -> None:
                 stages[-1]["name"] != "finalize" or
                 stages[-1]["raw_vars"] != geometry["raw_vars"]):
             raise AssertionError("gate fold stage capture is incomplete")
+        baseline_geometry = {key: value for key, value in geometry.items() if key != "inspected_step"}
+        for step in (1, 65535, 65536, 0x80000000, 0xffffffff):
+            probe = json.loads(run("python3", str(HERE / "s31.py"), "inspect-fold",
+                                   str(package), "--step", str(step)))
+            if probe.get("inspected_step") != step or {
+                    key: value for key, value in probe.items() if key != "inspected_step"} != baseline_geometry:
+                raise AssertionError(f"fixed-fold AIR changed with counter {step}")
         reproduced = work / "fold-key.json"
         run(str(prover), "fold-keygen", str(child_key), str(first_key), str(reproduced))
         if reproduced.read_bytes() != fold_key.read_bytes():

@@ -408,6 +408,18 @@ def check_recursive_examples() -> None:
     for label in ("median_separate_wall_seconds", "median_batch_wall_seconds"):
         assert f"{benchmark[label]:.3f}" in wide_doc
 
+    topology = json.loads((records / "fold-counter-topology-invariance-2026-10-07.json").read_text())
+    assert topology["schema"] == "s31-recursive-counter-topology-invariance-v1"
+    assert topology["steps"] == [0, 1, 65535, 65536, 0x80000000, 0xffffffff]
+    profiles = {profile["profile"]: profile for profile in topology["profiles"]}
+    assert set(profiles) == {"gate-fixed", "gate-state", "sparse-wide-fixed"}
+    assert profiles["gate-fixed"]["fold_preprocessed_root"] == gate["fold_preprocessed_root"]
+    assert profiles["sparse-wide-fixed"]["fold_preprocessed_root"] == wide["fold_preprocessed_root"]
+    assert profiles["sparse-wide-fixed"]["raw_vars"] == wide["fold_geometry"]["raw_vars"]
+    assert all(profile["all_report_fields_equal_excluding_step"] is True for profile in profiles.values())
+    assert "--step 65536" in gate_doc and "--step 65536" in wide_doc
+    assert "--step 65536" in (DOCS / "state-fold.md").read_text()
+
 
 def check_links() -> None:
     for chapter in DOCS.glob("*.md"):

@@ -278,12 +278,12 @@ pub fn main() !void {
         try wrapStateFold(allocator, parsed.value, args[2], args[3], "", args[4], args[5], args[6], true, false, true);
     } else if (std.mem.eql(u8, command, "state-fold-audit-next") and args.len == 7 and !chip_mode and !sparse_mode and !direct_mode) {
         try wrapStateFold(allocator, parsed.value, args[2], args[3], "", args[4], args[5], args[6], false, false, true);
-    } else if (std.mem.eql(u8, command, "fold-inspect") and args.len == 5 and !chip_mode and !sparse_mode and !direct_mode) {
-        try inspectFold(allocator, parsed.value, args[2], args[3], args[4]);
-    } else if (std.mem.eql(u8, command, "wide-fold-inspect") and args.len == 6 and wide_mode) {
-        try inspectWideFold(allocator, parsed.value, args[2], args[3], args[4], args[5]);
-    } else if (std.mem.eql(u8, command, "state-fold-inspect") and args.len == 5 and !chip_mode and !sparse_mode and !direct_mode) {
-        try inspectStateFold(allocator, parsed.value, args[2], args[3], args[4]);
+    } else if (std.mem.eql(u8, command, "fold-inspect") and (args.len == 5 or args.len == 7) and !chip_mode and !sparse_mode and !direct_mode) {
+        try inspectFold(allocator, parsed.value, args[2], args[3], args[4], try parseInspectStep(args, 5));
+    } else if (std.mem.eql(u8, command, "wide-fold-inspect") and (args.len == 6 or args.len == 8) and wide_mode) {
+        try inspectWideFold(allocator, parsed.value, args[2], args[3], args[4], args[5], try parseInspectStep(args, 6));
+    } else if (std.mem.eql(u8, command, "state-fold-inspect") and (args.len == 5 or args.len == 7) and !chip_mode and !sparse_mode and !direct_mode) {
+        try inspectStateFold(allocator, parsed.value, args[2], args[3], args[4], try parseInspectStep(args, 5));
     } else if (std.mem.eql(u8, command, "fold-audit") and args.len == 7 and !chip_mode and !sparse_mode and !direct_mode) {
         try auditFoldBase(allocator, parsed.value, args[2], args[3], args[4], args[5], args[6]);
     } else if (std.mem.eql(u8, command, "fold-wrap-base") and (args.len == 8 or (args.len == 9 and std.mem.eql(u8, args[8], "--low-memory"))) and !chip_mode and !sparse_mode and !direct_mode) {
@@ -338,6 +338,12 @@ fn parseMaxFoldStep(args: []const []const u8) !?u32 {
     if (args.len == 4) return null;
     if (args.len != 6 or !std.mem.eql(u8, args[4], "--max-step")) return error.InvalidArguments;
     return try std.fmt.parseInt(u32, args[5], 10);
+}
+
+fn parseInspectStep(args: []const []const u8, base_len: usize) !u32 {
+    if (args.len == base_len) return 0;
+    if (args.len != base_len + 2 or !std.mem.eql(u8, args[base_len], "--step")) return error.InvalidArguments;
+    return try std.fmt.parseInt(u32, args[base_len + 1], 10);
 }
 
 fn usage() error{InvalidArguments} {
@@ -2094,6 +2100,7 @@ fn inspectFold(
     child_key_path: []const u8,
     first_key_path: []const u8,
     fold_key_path: []const u8,
+    step: u32,
 ) !void {
     const child_bytes = try std.fs.cwd().readFileAlloc(allocator, child_key_path, 4096);
     defer allocator.free(child_bytes);
@@ -2113,9 +2120,9 @@ fn inspectFold(
     defer fold.deinit();
     const verified = try validateFoldKey(child_bytes, first_bytes, first.value, fold.value);
     var stages: state_fold.StageCapture = .{};
-    var topology_ctx = try fixed_fold.topologyWithStages(allocator, projection_bytes, verified.layout, verified.pcs, verified.base_root, &stages);
+    var topology_ctx = try fixed_fold.topologyAtStepWithStages(allocator, projection_bytes, verified.layout, verified.pcs, verified.base_root, step, &stages);
     defer topology_ctx.deinit();
-    try emitFoldGeometry(allocator, &topology_ctx, verified, fold.value.padded, "s31-fixed-fold-geometry-v1", stages.slice());
+    try emitFoldGeometry(allocator, &topology_ctx, verified, fold.value.padded, "s31-fixed-fold-geometry-v1", step, stages.slice());
 }
 
 fn inspectWideFold(
@@ -2125,6 +2132,7 @@ fn inspectWideFold(
     first_key_path: []const u8,
     second_key_path: []const u8,
     fold_key_path: []const u8,
+    step: u32,
 ) !void {
     const child_bytes = try std.fs.cwd().readFileAlloc(allocator, child_key_path, 4096);
     defer allocator.free(child_bytes);
@@ -2149,9 +2157,9 @@ fn inspectWideFold(
     defer fold.deinit();
     const verified = try validateWideFoldKey(child_bytes, first_bytes, second_bytes, first.value, second.value, fold.value);
     var stages: state_fold.StageCapture = .{};
-    var topology_ctx = try fixed_fold.topologyWithStages(allocator, projection_bytes, verified.layout, verified.pcs, verified.base_root, &stages);
+    var topology_ctx = try fixed_fold.topologyAtStepWithStages(allocator, projection_bytes, verified.layout, verified.pcs, verified.base_root, step, &stages);
     defer topology_ctx.deinit();
-    try emitFoldGeometry(allocator, &topology_ctx, verified, fold.value.padded, "s31-wide-fixed-fold-geometry-v1", stages.slice());
+    try emitFoldGeometry(allocator, &topology_ctx, verified, fold.value.padded, "s31-wide-fixed-fold-geometry-v1", step, stages.slice());
 }
 
 fn inspectStateFold(
@@ -2160,6 +2168,7 @@ fn inspectStateFold(
     child_key_path: []const u8,
     first_key_path: []const u8,
     state_key_path: []const u8,
+    step: u32,
 ) !void {
     const spec = source.stateFoldStep() orelse return error.UnsupportedStateFoldSource;
     const child_bytes = try std.fs.cwd().readFileAlloc(allocator, child_key_path, 4096);
@@ -2180,9 +2189,9 @@ fn inspectStateFold(
     defer state_key.deinit();
     const verified = try validateStateFoldKey(child_bytes, first_bytes, first.value, state_key.value, spec);
     var stages: state_fold.StageCapture = .{};
-    var topology_ctx = try state_fold.topologyWithStages(allocator, projection_bytes, verified.layout, verified.pcs, verified.base_root, spec.body, &stages);
+    var topology_ctx = try state_fold.topologyAtStepWithStages(allocator, projection_bytes, verified.layout, verified.pcs, verified.base_root, spec.body, step, &stages);
     defer topology_ctx.deinit();
-    try emitFoldGeometry(allocator, &topology_ctx, verified, state_key.value.padded, "s31-state-fold-geometry-v2", stages.slice());
+    try emitFoldGeometry(allocator, &topology_ctx, verified, state_key.value.padded, "s31-state-fold-geometry-v2", step, stages.slice());
 }
 
 fn emitFoldGeometry(
@@ -2191,6 +2200,7 @@ fn emitFoldGeometry(
     verified: VerifiedFoldKey,
     padded: Rows,
     schema: []const u8,
+    step: u32,
     stages: ?[]const state_fold.StageStats,
 ) !void {
     const raw = circuit.common.finalize.rawComponentSizes(preprocessed.CircuitView.fromBuilder(&topology_ctx.circuit));
@@ -2223,6 +2233,7 @@ fn emitFoldGeometry(
     const hash_hex = std.fmt.bytesToHex(verified.hash, .lower);
     const report = .{
         .schema = schema,
+        .inspected_step = step,
         .fold_preprocessed_root = &root_hex,
         .fold_circuit_hash = &hash_hex,
         .trace_log_size = verified.layout.traceLogSize(),

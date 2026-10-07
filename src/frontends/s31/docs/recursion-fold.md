@@ -155,6 +155,8 @@ python3 src/frontends/s31/s31.py fold-next zig-out/s31/arith4-fold \
   zig-out/s31/fold0.proof zig-out/s31/fold1.proof
 python3 src/frontends/s31/s31.py verify-fold zig-out/s31/arith4-fold \
   zig-out/s31/fold1.proof --max-step 1
+python3 src/frontends/s31/s31.py inspect-fold zig-out/s31/arith4-fold \
+  --step 65536
 python3 src/frontends/s31/acceptance_fixed_fold.py
 ```
 

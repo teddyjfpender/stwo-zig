@@ -255,6 +255,20 @@ pub fn topologyWithStages(
     step_body: []const relation.Step,
     stages: anytype,
 ) !circuit.builder.Context(NoValue) {
+    return topologyAtStepWithStages(allocator, projection_bytes, child_layout, child_pcs, base_root, step_body, 0, stages);
+}
+
+/// Audit the state-fold AIR at a chosen u32 step without a proof witness.
+pub fn topologyAtStepWithStages(
+    allocator: std.mem.Allocator,
+    projection_bytes: []const u8,
+    child_layout: circuit.common.preprocessed.ColumnLayout,
+    child_pcs: core.pcs.config_v2.PcsConfigV2,
+    base_root: [32]u8,
+    step_body: []const relation.Step,
+    step: u32,
+    stages: anytype,
+) !circuit.builder.Context(NoValue) {
     try recursion_gate.authenticateProjection(projection_bytes);
     var projection = try circuit.air_eval.projection.parse(allocator, projection_bytes);
     defer projection.deinit();
@@ -269,7 +283,7 @@ pub fn topologyWithStages(
     var scratch = std.heap.ArenaAllocator.init(allocator);
     defer scratch.deinit();
     const empty = try circuit.stark_verifier.proof.emptyProof(scratch.allocator(), proof_config);
-    return buildCircuit(NoValue, allocator, &table, &config, base_root, step_body, undefined, undefined, undefined, undefined, undefined, 0, &empty, null, stages);
+    return buildCircuit(NoValue, allocator, &table, &config, base_root, step_body, undefined, undefined, undefined, undefined, undefined, step, &empty, null, stages);
 }
 
 pub fn verifyPrepared(

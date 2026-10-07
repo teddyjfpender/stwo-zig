@@ -32,6 +32,14 @@ and [wide regression](measurements/sparse-wide-fold-u32-overflow-regression-2026
 check rehashed false high-step statements and output-free overflow rejection.
 The isolated circuit digest test compares the host and circuit at `0`,
 `65536`, `2³¹`, and `2³²−1`.
+`inspect-fold` and `inspect-state-fold` also accept `--step N` and rebuild the
+witness-free AIR at that counter. The
+[topology invariance record](measurements/fold-counter-topology-invariance-2026-10-07.json)
+compares all reported fields except the requested step at `0`, `1`,
+`65535`, `65536`, `2³¹`, and `2³²−1` for gate fixed, gate state and
+sparse-wide fixed folds. Each case reproduces its sealed AIR root, circuit
+hash and exact geometry. These boundary samples guard against a
+counter-dependent circuit shape; they do not enumerate all `u32` values.
 
 The proof-system argument then proceeds by induction on `n`: a valid top
 proof implies a valid child proof for the selected root and output, and the

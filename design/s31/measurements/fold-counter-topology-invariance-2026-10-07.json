@@ -1,0 +1,81 @@
+{
+  "compiler_sha256": "2e9d7626a3d8953d602450e56af59d1f08c8cba68164ccb895d3e408b2df9a9f",
+  "interpretation": "All three witness-free fold AIRs reproduce their sealed roots and exact geometry at every audited u32 counter boundary; this does not prove semantic correctness of the counter constraints.",
+  "profiles": [
+    {
+      "all_report_fields_equal_excluding_step": true,
+      "fold_circuit_hash": "cd0157eea08cf24a2e45169076f9ef4dd5dbe9a5797bee873829b81e937b3b8f",
+      "fold_preprocessed_root": "5682495391e4b8d187470b4042244f2aa81ec1b4e70bafe2adc780068c20b305",
+      "padded_rows": {
+        "blake_g": 4194304,
+        "eq": 65536,
+        "m31_to_u32": 524288,
+        "qm31_ops": 2097152,
+        "triple_xor": 262144
+      },
+      "padded_vars": 19642180,
+      "profile": "gate-fixed",
+      "raw_rows": {
+        "blake_g": 2438800,
+        "eq": 37525,
+        "m31_to_u32": 423794,
+        "qm31_ops": 1419398,
+        "triple_xor": 243880
+      },
+      "raw_vars": 11823652
+    },
+    {
+      "all_report_fields_equal_excluding_step": true,
+      "fold_circuit_hash": "7b90275487776d324a4904a62a6d5ea287b1d880428e527b090d543b748cfde6",
+      "fold_preprocessed_root": "1abc503372e63ec4b06750ff381c1a4c05ec1faa8c61802e309d51043eae2ee6",
+      "padded_rows": {
+        "blake_g": 4194304,
+        "eq": 65536,
+        "m31_to_u32": 524288,
+        "qm31_ops": 2097152,
+        "triple_xor": 262144
+      },
+      "padded_vars": 19642180,
+      "profile": "gate-state",
+      "raw_rows": {
+        "blake_g": 2438800,
+        "eq": 37529,
+        "m31_to_u32": 423810,
+        "qm31_ops": 1419430,
+        "triple_xor": 243880
+      },
+      "raw_vars": 11823700
+    },
+    {
+      "all_report_fields_equal_excluding_step": true,
+      "fold_circuit_hash": "d33897c16bae7abbc271ce8f4dda559933f9df00355425b253f4e110adc51bef",
+      "fold_preprocessed_root": "55f6ad104733f21d0b69fcbc604aeec4f02d0fb66291a3a8933d3a9fbe14402a",
+      "padded_rows": {
+        "blake_g": 2097152,
+        "eq": 32768,
+        "m31_to_u32": 262144,
+        "qm31_ops": 1048576,
+        "triple_xor": 131072
+      },
+      "padded_vars": 9811780,
+      "profile": "sparse-wide-fixed",
+      "raw_rows": {
+        "blake_g": 1125840,
+        "eq": 28342,
+        "m31_to_u32": 203138,
+        "qm31_ops": 789109,
+        "triple_xor": 112584
+      },
+      "raw_vars": 5589571
+    }
+  ],
+  "schema": "s31-recursive-counter-topology-invariance-v1",
+  "steps": [
+    0,
+    1,
+    65535,
+    65536,
+    2147483648,
+    4294967295
+  ]
+}

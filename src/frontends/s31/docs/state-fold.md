@@ -262,6 +262,8 @@ python3 src/frontends/s31/s31.py state-fold-next zig-out/s31/arith4-state-fold \
   zig-out/s31/state0.proof zig-out/s31/state1.proof
 python3 src/frontends/s31/s31.py verify-state-fold zig-out/s31/arith4-state-fold \
   zig-out/s31/state1.proof --max-step 1
+python3 src/frontends/s31/s31.py inspect-state-fold zig-out/s31/arith4-state-fold \
+  --step 65536
 python3 src/frontends/s31/inspect_state_fold_claim.py \
   zig-out/s31/arith4-state-fold zig-out/s31/state1.proof
 python3 src/frontends/s31/s31.py state-fold-advance zig-out/s31/arith4-state-fold \
