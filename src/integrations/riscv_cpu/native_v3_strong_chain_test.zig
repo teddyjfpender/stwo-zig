@@ -42,7 +42,7 @@ test "real q193 native child feeds freshly verified q193 local outer" {
     const pinned_key = try pinned_ingress.PinnedKeyV1.admit(known_tree0, known_key_id);
     const preleaf_core = try recursion.air.segment_leaf_wrapper_template_v6.testFrozenCoreProfileV6();
     const session_id = recursion.poseidon2_channel.hashBytes("native-local-v3-session", 0x4e56_3250);
-    var selected_wire = try fixed_rows.selectV12BeforeProof(allocator, &source, session_id, &preleaf_core, known_tree0);
+    var selected_wire = try fixed_rows.selectV12BeforeProof(allocator, &source, session_id, &preleaf_core, known_tree0, fixed_rows.Q193_GRAPH_PINS);
     defer selected_wire.deinit();
     var timer = try std.time.Timer.start();
     var verified = try pinned_ingress.proveAndVerifyPinned(
@@ -79,6 +79,8 @@ test "real q193 native child feeds freshly verified q193 local outer" {
     verified.native.capture_owned = false;
     defer prepared.deinit();
     try pinned_ingress.admitPreparedNativeV2(&prepared, pinned_key);
+    try fixed_rows.checkV12CapturedVmGraph(allocator, &selected_wire, &prepared.capture);
+    std.debug.print("DIRECT50_V12_VM_GRAPH selected_before_proof=true captured_graph_parity=true proof_created=false\n", .{});
     var cohort = try outer_cohort.Cohort.init(allocator, &prepared);
     defer cohort.deinit();
     const prepare_ns = timer.lap();
@@ -290,6 +292,8 @@ fn diagnoseDirect50(
     try candidate.fillPreprocessed(allocator, cohort, &plan, &writer, &rows50, pp);
     try fixed_rows.checkV12Row11FixedParity(allocator, selected, &plan, pp);
     std.debug.print("DIRECT50_V12_ROW11_FIXED selected_before_proof=true source_parity=true proof_created=false\n", .{});
+    try fixed_rows.checkV12Row18FixedParity(allocator, selected, &plan, pp);
+    std.debug.print("DIRECT50_V12_ROW18_FIXED graph_pinned_before_proof=true source_parity=true proof_created=false\n", .{});
     try fixed_rows.checkV12Row19FixedParity(allocator, selected, &plan, pp);
     std.debug.print("DIRECT50_V12_ROW19_FIXED plans_before_proof=true source_parity=true proof_created=false\n", .{});
     const preprocessed_ns = phase_timer.lap();

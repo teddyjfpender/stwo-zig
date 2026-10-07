@@ -19,6 +19,26 @@ pub const Q193_DIMENSIONS = recursion.fixed_wire.Dimensions{
     .maximum_merkle_depth = 21,
 };
 
+pub const VmGraphPins = struct {
+    statement_id: [32]u8,
+    profile_id: [32]u8,
+    graph_id: [32]u8,
+    circuit_id: [32]u8,
+};
+
+pub const Q193_GRAPH_PINS = VmGraphPins{
+    .statement_id = digestFromHex("96e162dc972c3d01c4183e8098b55506e328e35be852a279a4b9a1c2079daa2e"),
+    .profile_id = digestFromHex("ace5e8c145321ed632a467b17a4a2274d6700fe38b6b2c31d29506e396971737"),
+    .graph_id = digestFromHex("60fb2296f28f6bd654fd6291f23eac3fc57fe5dd71f4a9ad41f6bc2dec73b886"),
+    .circuit_id = digestFromHex("cf442fc364989c66d7ee55c0966360d487ac9de95569d88a93f994f69a348663"),
+};
+
+fn digestFromHex(comptime hex: []const u8) [32]u8 {
+    var bytes: [32]u8 = undefined;
+    _ = std.fmt.hexToBytes(&bytes, hex) catch @compileError("invalid pinned q193 digest");
+    return bytes;
+}
+
 pub const SelectedV12 = struct {
     allocator: std.mem.Allocator,
     words: []M31,
@@ -29,8 +49,11 @@ pub const SelectedV12 = struct {
     recursion_plan: recursion.air.verifier_schedule.Plan,
     instruction_template: recursion.transcript_instruction_template_v6.InstructionTemplateV6,
     row11_shape: recursion.segment_statement_row11_fixed_v6.WireShapeV6,
+    vm_graph: recursion.vm_air_preleaf_graph_pin_v8.Candidate,
+    graph_pins: VmGraphPins,
 
     pub fn deinit(self: *@This()) void {
+        self.vm_graph.deinit();
         self.recursion_plan.deinit();
         self.vm_plan.deinit();
         self.allocator.free(self.words);
@@ -46,6 +69,7 @@ pub fn selectV12BeforeProof(
     session_id: recursion.segment_statement_v2.Digest,
     selected_core: *const recursion.air.segment_leaf_wrapper_template_v6.CoreProfileV6,
     pinned_tree0: [8]u32,
+    graph_pins: VmGraphPins,
 ) !SelectedV12 {
     var projection = try recursion.segment_leaf_local_projection_v3.ProjectionV3.init(source);
     const local_source = try projection.sourceV2(source, session_id);
@@ -105,6 +129,15 @@ pub fn selectV12BeforeProof(
         statement.core.infra_descs[0..statement.core.n_infra],
         true,
     );
+    var vm_graph = try recursion.vm_air_preleaf_graph_pin_v8.Candidate.compile(allocator, .{
+        .statement = &statement.core,
+        .expected_statement_geometry_id = graph_pins.statement_id,
+        .expected_profile_id = graph_pins.profile_id,
+    });
+    errdefer vm_graph.deinit();
+    if (!std.mem.eql(u8, &vm_graph.graph_id, &graph_pins.graph_id) or
+        !std.mem.eql(u8, &vm_graph.circuit_id, &graph_pins.circuit_id))
+        return error.V12PreleafVmGraphPinMismatch;
     return .{
         .allocator = allocator,
         .words = words,
@@ -115,6 +148,8 @@ pub fn selectV12BeforeProof(
         .recursion_plan = recursion_plan,
         .instruction_template = instruction_template,
         .row11_shape = row11_shape,
+        .vm_graph = vm_graph,
+        .graph_pins = graph_pins,
     };
 }
 
@@ -194,6 +229,24 @@ pub fn checkV12SelectedFixedWire(
     try std.testing.expectEqual(before, after);
 }
 
+pub fn checkV12CapturedVmGraph(
+    allocator: std.mem.Allocator,
+    selected: *const SelectedV12,
+    capture: anytype,
+) !void {
+    var prepared = try recursion.vm_air_composition_prepared_v2.prepare(
+        allocator,
+        capture,
+        recursion.protocol.PCS_CONFIG,
+    );
+    defer prepared.deinit();
+    try selected.vm_graph.validateCapturedPrepared(allocator, .{
+        .statement = &selected.statement.core,
+        .expected_statement_geometry_id = selected.graph_pins.statement_id,
+        .expected_profile_id = selected.graph_pins.profile_id,
+    }, &prepared);
+}
+
 pub fn checkV12Row11FixedParity(
     allocator: std.mem.Allocator,
     selected: *const SelectedV12,
@@ -245,6 +298,50 @@ pub fn checkV12Row19FixedParity(
         if (actual.len != capacity) return error.V12Row19FixedSourceMismatch;
         for (expected, actual) |a, b|
             if (!a.eql(b)) return error.V12Row19FixedSourceMismatch;
+    }
+}
+
+/// Recompile the row-18 schedule solely from the graph selected before the
+/// child proof, then compare every committed fixed cell with the native owner.
+pub fn checkV12Row18FixedParity(
+    allocator: std.mem.Allocator,
+    selected: *const SelectedV12,
+    old_plan: *const recursion.segment_leaf_wrapper_roster_direct_v5.Plan,
+    old_tree: [][]M31,
+) !void {
+    const circuit = recursion.air.composition_circuit;
+    const witness = recursion.air.vm_air_composition_input_witness;
+    const candidate = &selected.vm_graph;
+    const lane = circuit.VmLane{
+        .circuit_id = recursion.vm_air_composition_circuit.CIRCUIT_ID,
+        .graph = try candidate.graphView(),
+        .profile = candidate.input_profile,
+        .bindings = candidate.bindings,
+    };
+    const reference = try circuit.Reference.authenticate(lane, &.{}, &.{}, candidate.reference_id);
+    var fixed = try witness.Preprocessed.initFromReference(allocator, &reference);
+    defer fixed.deinit();
+    if (!std.mem.eql(u8, &fixed.authority_digest, &candidate.schedule_id))
+        return error.V12Row18ScheduleMismatch;
+    const old = old_plan.placements[18].?;
+    const count = witness.PREPROCESSED_COLUMN_COUNT;
+    if (old.geometry.log_size != fixed.log_size or
+        old.geometry.preprocessed_columns != count or
+        old.preprocessed_offset > old_tree.len or
+        count > old_tree.len - old.preprocessed_offset)
+        return error.V12Row18FixedGeometryMismatch;
+    const capacity = @as(usize, 1) << @intCast(fixed.log_size);
+    const columns = try zeroColumns(allocator, count, capacity);
+    defer freeColumns(allocator, columns);
+    for (fixed.rows, 0..) |row, logical| {
+        const values = row.values();
+        const physical = recursion.air.framework_interaction.committedRow(logical, fixed.log_size);
+        for (values, columns) |value, column| column[physical] = value;
+    }
+    for (columns, old_tree[old.preprocessed_offset..][0..count]) |expected, actual| {
+        if (actual.len != capacity) return error.V12Row18FixedSourceMismatch;
+        for (expected, actual) |a, b|
+            if (!a.eql(b)) return error.V12Row18FixedSourceMismatch;
     }
 }
 

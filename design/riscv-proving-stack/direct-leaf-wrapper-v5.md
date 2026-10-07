@@ -205,8 +205,13 @@ match the real q193 Tree0 row 11 cell by cell; changing the section shape
 fails admission. This qualifies a fixed-column source, not the complete key.
 The preselected VM and recursion plans also rebuild all nine row-19 fixed
 control columns. Their padded physical values match the real q193 Tree0
-source cell by cell. Row 18's graph-derived columns and the other remaining
-rows still need the same key admission before any full Tree0 is authorized.
+source cell by cell. The pre-proof q193 selection now compiles the VM AIR graph
+from the selected statement with independently pinned statement, profile,
+graph, and circuit IDs. Its authenticated graph/reference schedule rebuilds
+row 18's complete padded physical fixed columns, which match the native Tree0
+source cell by cell. The freshly captured VM graph is checked against those
+pre-proof IDs. This still does not admit row 18 or the other remaining rows
+into one complete fixed key; no full Tree0 or wrapper proof is authorized.
 The first pre-proof comparison caught an uninitialized legacy custody-version
 field in the statement geometry workspace (`0xaaaaaaaa` under the test
 allocator). The common V1/V2 builder now sets it explicitly to zero, while
