@@ -40,6 +40,11 @@ def main() -> None:
     }
     assert set(observations) == {"checkpoint anchor", "chain fold step 0", "chain fold step 1"}
     assert "Bitcoin chain fold: forged prior state rejected" in result.stderr
+    key_match = re.search(
+        r"Bitcoin chain verifier: key_sha256=([0-9a-f]{64}) "
+        r"step_1_accepted=true replay_rejected=true", result.stderr,
+    )
+    assert key_match is not None
     topology = json.loads((MEASUREMENTS / "bitcoin-chain-fold-topology-v1-2026-10-07.json").read_text())
     assert observations["checkpoint anchor"]["preprocessed_root"] == topology["anchor_preprocessed_root"]
     assert all(
@@ -49,6 +54,7 @@ def main() -> None:
     files = (
         "bitcoin_chain_anchor.zig", "bitcoin_chain_fold.zig", "bitcoin_fold_step.zig",
         "bitcoin_fold_digest.zig", "bitcoin_chain_anchor_proof_test.zig",
+        "bitcoin_chain_verifier.zig", "bitcoin_chain_cli.zig",
         "bitcoin_target.zig", "sha256d.zig", "poseidon2.zig",
         "recursion_counter.zig", "recursion_gate.zig", "native_verifier.zig",
         "mod.zig", "build.zig",
@@ -60,6 +66,8 @@ def main() -> None:
         "observations": observations,
         "wall_seconds": round(wall_seconds, 3),
         "native_verification_passed": True,
+        "sealed_key_sha256": key_match.group(1),
+        "standalone_key_statement_and_replay_checks_passed": True,
         "changed_public_statement_rejected_at_both_fold_steps": True,
         "forged_prior_state_rejected_by_full_circuit": True,
         "source_sha256": {name: sha256(S31 / name) for name in files},

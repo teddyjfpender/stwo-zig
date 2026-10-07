@@ -451,6 +451,9 @@ def check_recursive_examples() -> None:
     assert two_step["native_verification_passed"] is True
     assert two_step["changed_public_statement_rejected_at_both_fold_steps"] is True
     assert two_step["forged_prior_state_rejected_by_full_circuit"] is True
+    assert two_step["standalone_key_statement_and_replay_checks_passed"] is True
+    assert len(bytes.fromhex(two_step["sealed_key_sha256"])) == 32
+    assert two_step["sealed_key_sha256"] in bitcoin_doc
     observations = two_step["observations"]
     assert observations["checkpoint anchor"]["preprocessed_root"] == bitcoin_fold["anchor_preprocessed_root"]
     assert all(observations[name]["preprocessed_root"] == bitcoin_fold["candidate_preprocessed_root"]

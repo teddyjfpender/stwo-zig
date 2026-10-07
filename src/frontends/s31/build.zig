@@ -154,6 +154,26 @@ pub fn build(b: *std.Build) void {
     }));
     b.step("test-bitcoin-chain-fold-proof", "Prove and natively verify a Bitcoin header update inside a recursive fold")
         .dependOn(&chain_fold_proof_tests.step);
+    const bitcoin_cli_root = b.createModule(.{
+        .root_source_file = b.path("bitcoin_chain_cli.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    bitcoin_cli_root.addImport("stwo_core", core);
+    bitcoin_cli_root.addImport("stwo_circuit_frontend", circuit);
+    bitcoin_cli_root.addImport("stwo_circuit_cpu_integration", cpu);
+    bitcoin_cli_root.addImport("stwo_s31_prototype", frontend);
+    bitcoin_cli_root.addImport("stwo_cairo_frontend", cpu.import_table.get("stwo_cairo_frontend") orelse @panic("missing Cairo frontend"));
+    bitcoin_cli_root.addImport("interop_postcard", anchor_postcard);
+    bitcoin_cli_root.addAnonymousImport("s31_air_programs", .{
+        .root_source_file = .{ .cwd_relative = b.pathFromRoot("../../../vectors/circuit/official/circuit_air.air_programs_v1.bin") },
+    });
+    bitcoin_cli_root.addAnonymousImport("s31_air_projection", .{
+        .root_source_file = .{ .cwd_relative = b.pathFromRoot("../../../vectors/circuit/official/compiled_air_constraints_v1.bin") },
+    });
+    const bitcoin_cli = b.addExecutable(.{ .name = "s31-bitcoin-chain", .root_module = bitcoin_cli_root });
+    b.step("bitcoin-chain-cli", "Build the standalone Bitcoin chain key and native verifier CLI")
+        .dependOn(&b.addInstallArtifact(bitcoin_cli, .{}).step);
     const fold_test_root = b.createModule(.{
         .root_source_file = b.path("state_fold.zig"),
         .target = target,

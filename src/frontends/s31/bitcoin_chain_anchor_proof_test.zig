@@ -5,6 +5,7 @@ const circuit = @import("stwo_circuit_frontend");
 const cpu = @import("stwo_circuit_cpu_integration");
 const anchor = @import("bitcoin_chain_anchor.zig");
 const fold = @import("bitcoin_chain_fold.zig");
+const chain_verifier = @import("bitcoin_chain_verifier.zig");
 const native = @import("native_verifier.zig");
 const s31 = @import("stwo_s31_prototype");
 
@@ -93,8 +94,14 @@ fn hashRoot(hash: [32]u8) [8]u32 {
 const FoldResult = struct {
     captured: cpu.verifier_proof.VerifierProof,
     public_words: [8]u32,
+    encoded: []u8,
     proof_bytes: usize,
     prove_ns: u64,
+
+    fn deinit(self: *FoldResult, allocator: std.mem.Allocator) void {
+        self.captured.deinit();
+        allocator.free(self.encoded);
+    }
 };
 
 fn proveFoldStep(
@@ -162,14 +169,14 @@ fn proveFoldStep(
     for (proof.output_values, expected) |value, word|
         try std.testing.expectEqual(word, circuit.builder.ivalue.unpackU32(QM31, value));
     const bytes = try native.serialize(allocator, &proof);
-    defer allocator.free(bytes);
+    errdefer allocator.free(bytes);
     const captured = try native.verifyAndCapture(allocator, &layout, bundle, pcs, fold_root, fold_hash, expected, bytes);
     var changed = expected;
     changed[0] ^= 1;
     if (native.verify(allocator, &layout, bundle, pcs, fold_root, fold_hash, changed, bytes)) |_| {
         return error.AcceptedChangedBitcoinFoldStatement;
     } else |_| {}
-    return .{ .captured = captured, .public_words = expected, .proof_bytes = bytes.len, .prove_ns = prove_ns };
+    return .{ .captured = captured, .public_words = expected, .encoded = bytes, .proof_bytes = bytes.len, .prove_ns = prove_ns };
 }
 
 test "Bitcoin checkpoint anchor proves and verifies under the fold child layout" {
@@ -241,7 +248,7 @@ test "Bitcoin chain fold proves two changing headers over a verified checkpoint 
         parsed.value.private_inputs.child,
         0,
     );
-    defer fold0.captured.deinit();
+    defer fold0.deinit(allocator);
     std.debug.print("Bitcoin chain fold step 0: proof_bytes={d} prove_seconds={d:.3} root={s}\n", .{
         fold0.proof_bytes,                      @as(f64, @floatFromInt(fold0.prove_ns)) / std.time.ns_per_s,
         &std.fmt.bytesToHex(fold_root, .lower),
@@ -287,12 +294,57 @@ test "Bitcoin chain fold proves two changing headers over a verified checkpoint 
         block2_words,
         1,
     );
-    defer fold1.captured.deinit();
+    defer fold1.deinit(allocator);
     if (std.meta.eql(fold0.public_words, fold1.public_words)) return error.FoldDidNotAdvance;
     std.debug.print("Bitcoin chain fold step 1: proof_bytes={d} prove_seconds={d:.3} root={s}\n", .{
         fold1.proof_bytes,                      @as(f64, @floatFromInt(fold1.prove_ns)) / std.time.ns_per_s,
         &std.fmt.bytesToHex(fold_root, .lower),
     });
+
+    var genesis_raw: [32]u8 = undefined;
+    for (parsed.value.private_inputs.prior_hash, 0..) |word, i|
+        std.mem.writeInt(u16, genesis_raw[2 * i ..][0..2], @intCast(word), .little);
+    std.mem.reverse(u8, &genesis_raw);
+    const genesis_display = std.fmt.bytesToHex(genesis_raw, .lower);
+    const key_bytes = try chain_verifier.generateKeyJson(allocator, &genesis_display, 1);
+    defer allocator.free(key_bytes);
+    const key_digest = chain_verifier.sha256(key_bytes);
+    const key = try chain_verifier.validateKey(allocator, key_bytes, key_digest);
+    try std.testing.expectEqualDeep(checkpoint, key.material.checkpoint_root);
+    try std.testing.expectEqualDeep(base.root, key.material.anchor_root);
+    try std.testing.expectEqualDeep(fold_root, key.material.fold_root);
+    var wrong_digest = key_digest;
+    wrong_digest[0] ^= 1;
+    try std.testing.expectError(error.WrongVerificationKeyDigest, chain_verifier.validateKey(allocator, key_bytes, wrong_digest));
+    try std.testing.expectError(error.BitcoinChainStepExceedsKeyLimit, chain_verifier.generateStatementJson(allocator, key, 2, block2.value.display_hash));
+    const first_statement = try chain_verifier.generateStatementJson(allocator, key, 0, block2.value.previous_display_hash);
+    defer allocator.free(first_statement);
+    const second_statement = try chain_verifier.generateStatementJson(allocator, key, 1, block2.value.display_hash);
+    defer allocator.free(second_statement);
+    try chain_verifier.verifyProof(allocator, key, first_statement, fold0.encoded);
+    try chain_verifier.verifyProof(allocator, key, second_statement, fold1.encoded);
+    if (chain_verifier.verifyProof(allocator, key, second_statement, fold0.encoded)) |_| {
+        return error.BitcoinChainVerifierAcceptedWrongStepProof;
+    } else |_| {}
+    var parsed_statement = try std.json.parseFromSlice(chain_verifier.Statement, allocator, second_statement, .{ .ignore_unknown_fields = false });
+    defer parsed_statement.deinit();
+    parsed_statement.value.public_words[0] ^= 1;
+    const changed_statement = try std.json.Stringify.valueAlloc(allocator, parsed_statement.value, .{});
+    defer allocator.free(changed_statement);
+    try std.testing.expectError(error.InvalidBitcoinChainStatement, chain_verifier.verifyProof(allocator, key, changed_statement, fold1.encoded));
+    std.debug.print("Bitcoin chain verifier: key_sha256={s} step_1_accepted=true replay_rejected=true\n", .{
+        &std.fmt.bytesToHex(key_digest, .lower),
+    });
+    const artifact_dir = "zig-out/s31/bitcoin-chain-two-step";
+    try std.fs.cwd().makePath(artifact_dir);
+    try std.fs.cwd().writeFile(.{ .sub_path = artifact_dir ++ "/verification-key.json", .data = key_bytes });
+    try std.fs.cwd().writeFile(.{ .sub_path = artifact_dir ++ "/fold0.statement.json", .data = first_statement });
+    try std.fs.cwd().writeFile(.{ .sub_path = artifact_dir ++ "/fold0.proof", .data = fold0.encoded });
+    try std.fs.cwd().writeFile(.{ .sub_path = artifact_dir ++ "/fold1.statement.json", .data = second_statement });
+    try std.fs.cwd().writeFile(.{ .sub_path = artifact_dir ++ "/fold1.proof", .data = fold1.encoded });
+    const digest_line = try std.fmt.allocPrint(allocator, "{s}\n", .{&std.fmt.bytesToHex(key_digest, .lower)});
+    defer allocator.free(digest_line);
+    try std.fs.cwd().writeFile(.{ .sub_path = artifact_dir ++ "/verification-key.sha256", .data = digest_line });
 
     // The child proof and header remain valid; only the claimed prior state
     // changes. The child-output digest must make the outer circuit invalid.

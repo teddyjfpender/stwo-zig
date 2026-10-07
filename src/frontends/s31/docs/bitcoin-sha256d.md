@@ -412,12 +412,14 @@ raw rows and pads to 65,536. The candidate child layout reproduces all five
 padded component sizes, with one preprocessed root at steps `0`, `1`,
 `65536`, and `0xffffffff`; changing the checkpoint or base root changes the
 preprocessed root. This establishes a reusable AIR layout. The opt-in test
-now produces the anchor and two chain-fold proofs; a sealed verifier key and
-matched proving comparison remain.
+now produces the anchor and two chain-fold proofs. A matched proving
+comparison remains.
 
 ```sh
 zig build --build-file src/frontends/s31/build.zig test-bitcoin-chain-fold-proof -Doptimize=ReleaseSafe -j2
 python3 src/frontends/s31/record_bitcoin_chain_proof.py
+zig build --build-file src/frontends/s31/build.zig bitcoin-chain-cli -Doptimize=ReleaseSafe -j2
+python3 src/frontends/s31/acceptance_bitcoin_chain_cli.py
 ```
 
 The test proves a checkpoint anchor, the genesis-to-block-one update, and
@@ -430,14 +432,38 @@ full step-one circuit rejects a forged previous state with the valid child
 proof and header unchanged.
 
 The [recorded low-memory run](../../../../design/s31/measurements/bitcoin-chain-two-step-proof-v1-2026-10-07.json)
-used 334,403 bytes and 19.923 seconds for the anchor, 371,441 bytes and
-22.000 seconds for fold step zero, and 377,799 bytes and 23.623 seconds for
+used 334,403 bytes and 20.063 seconds for the anchor, 371,441 bytes and
+22.234 seconds for fold step zero, and 377,799 bytes and 23.799 seconds for
 fold step one. These are one-run measurements, so they do not establish a
-speedup. A sealed Bitcoin fold key and standalone native verifier interface
-are still pending. The proven statement covers linkage, SHA256d, target
+speedup. The proven statement covers linkage, SHA256d, target
 decoding, and PoW for these headers against the trusted checkpoint; it does
 not cover retarget rules, median-time-past, checked chainwork, or other full
 Bitcoin consensus context.
+
+The standalone [`s31-bitcoin-chain`](../bitcoin_chain_cli.zig) CLI accepts
+saved fold proofs through [`bitcoin_chain_verifier.zig`](../bitcoin_chain_verifier.zig).
+The caller pins the SHA-256 digest of the **exact verification-key file**.
+The verifier re-derives the anchor and fold AIR roots from the checkpoint,
+checks the pinned AIR bundle and FRI schedule, reconstructs the public digest
+from the step and displayed current block hash, then invokes the native STARK
+verifier. The key's `max_step` is a host acceptance limit; it is not a
+cryptographic analysis of safe recursive depth. For the recorded fixture:
+
+```sh
+src/frontends/s31/zig-out/bin/s31-bitcoin-chain verify \
+  zig-out/s31/bitcoin-chain-two-step/verification-key.json \
+  a81d4321b9873dcfcb8b9b581863bb206e704e26c9a1234a6347587edc24d5d8 \
+  zig-out/s31/bitcoin-chain-two-step/fold1.statement.json \
+  zig-out/s31/bitcoin-chain-two-step/fold1.proof
+```
+
+`keygen CHECKPOINT_HASH MAX_STEP KEY_PATH` writes a new key and prints its
+digest; `statement KEY_PATH EXPECTED_KEY_SHA256 STEP CURRENT_HASH OUTPUT_PATH`
+writes a statement. The [CLI acceptance script](../acceptance_bitcoin_chain_cli.py)
+checks both valid proofs and rejects a wrong key digest, step replay, changed
+public claim, and step beyond the key limit. A relying party must obtain the
+expected key digest from a trusted channel and decide which checkpoint and
+chain policy it trusts.
 
 ## Dedicated SHA AIR boundary under construction
 
