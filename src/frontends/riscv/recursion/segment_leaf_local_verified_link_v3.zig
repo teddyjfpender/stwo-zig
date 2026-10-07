@@ -3,10 +3,11 @@
 //!
 //! `VerifiedReceipt` is transactionally published only after the native AIR,
 //! PCS, Merkle, and FRI verifier succeeds. This module does not rerun that
-//! verifier; callers must pass the receipt and verifier-owned public data from
-//! one validated `VerifiedSegmentV2CaptureForEngine`. It then proves natively
-//! that the local V2 span is the unique projection of the advertised global
-//! V3 metadata and seals that relation in a Poseidon2-M31 identity.
+//! verifier; its public constructor accepts one validated verifier capture,
+//! never a detached receipt and wire. It checks natively that the local V2
+//! span is the unique projection of the advertised global V3 metadata and
+//! seals that relation in a Poseidon2-M31 identity. The identity is not a
+//! recursive proof of the projection.
 
 const std = @import("std");
 const m31 = @import("stwo_core").fields.m31;
@@ -56,7 +57,16 @@ pub const VerifiedLinkV3 = struct {
     exit_continuation_root: u32,
     identity: channel.Digest,
 
-    pub fn init(
+    pub fn fromVerifiedCapture(
+        comptime Engine: type,
+        global: *const global_v3.MetadataV3,
+        capture: *const @import("../prover/verifier.zig").VerifiedSegmentV2CaptureForEngine(Engine),
+    ) !VerifiedLinkV3 {
+        try capture.validate();
+        return initFromSources(global, &capture.public_data.data, &capture.receipt);
+    }
+
+    fn initFromSources(
         global: *const global_v3.MetadataV3,
         local: *const public_data_v2.PublicDataV2,
         receipt: *const statement_v2.VerifiedReceipt,
@@ -88,7 +98,7 @@ pub const VerifiedLinkV3 = struct {
         receipt: *const statement_v2.VerifiedReceipt,
     ) Error!void {
         try self.validateHeader();
-        const expected = try VerifiedLinkV3.init(global, local, receipt);
+        const expected = try initFromSources(global, local, receipt);
         if (!std.meta.eql(self.*, expected)) return error.InvalidVerifiedLink;
     }
 

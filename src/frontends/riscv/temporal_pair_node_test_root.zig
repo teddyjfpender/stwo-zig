@@ -1,5 +1,9 @@
 test {
     _ = @import("recursion/tests/temporal_pair_node_test.zig");
+    _ = @import("recursion/tests/temporal_pair_candidate_v3_test.zig");
+    _ = @import("recursion/tests/temporal_interval_v3_test.zig");
+    _ = @import("recursion/tests/statement_semantics_circuit_temporal_v3_test.zig");
+    _ = @import("recursion/tests/temporal_parent_roster_v3_test.zig");
     _ = @import("recursion/tests/segment_statement_v2_test.zig");
     _ = @import("recursion/tests/segment_statement_v2_runner_e2e_test.zig");
     _ = @import("recursion/tests/segment_leaf_local_authority_v3_test.zig");

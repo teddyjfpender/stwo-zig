@@ -8,8 +8,38 @@ const channel = @import("../poseidon2_channel.zig");
 const protocol = @import("../protocol.zig");
 const span = @import("../span_statement.zig");
 const segment_v2 = @import("../segment_statement_v2.zig");
+const io_binding = @import("../segment_public_io_binding_v1.zig");
+const io_ingress = @import("../segment_public_io_ingress_v2.zig");
+const io_custody_v3 = @import("../segment_public_io_memory_custody_v3.zig");
 
-test "real adjacent runner segments authenticate as one canonical V2 span" {
+test "segment statement V2 verifier public-I/O policy owns external bytes and keeps recursive activation closed" {
+    const allocator = std.testing.allocator;
+    var request_input = [_]u8{ 1, 2, 3 };
+    var expected_output = [_]u8{ 4, 5 };
+    var policy = try io_ingress.VerifierExpectedIo.initOwned(allocator, .{
+        .input_start = 0x1000,
+        .input = &request_input,
+        .output_len_addr = 0x2000,
+        .output_data_addr = 0x2004,
+        .output = &expected_output,
+    });
+    defer policy.deinit();
+    request_input[0] = 99;
+    expected_output[0] = 98;
+    try std.testing.expectEqualSlices(u8, &.{ 1, 2, 3 }, policy.input);
+    try std.testing.expectEqualSlices(u8, &.{ 4, 5 }, policy.output);
+    try std.testing.expect(!io_ingress.RECURSIVE_PROOF_ACTIVATION);
+    try std.testing.expect(!io_ingress.PROOF_VISIBLE_IO_RELATION);
+    const TestEngine = struct {};
+    const Capture = @import("../../prover/verifier.zig").VerifiedSegmentV2CaptureForEngine(TestEngine);
+    const no_captures: []const *const Capture = &.{};
+    try std.testing.expectError(
+        error.IncompleteIoCoverage,
+        policy.admitVerifiedCampaign(TestEngine, allocator, no_captures),
+    );
+}
+
+test "segment statement V2 real adjacent runner segments authenticate as one canonical span" {
     const allocator = std.testing.allocator;
     const instructions = [_]u32{
         0x0010_0093, // ADDI x1, x0, 1.
@@ -135,6 +165,277 @@ test "real adjacent runner segments authenticate as one canonical V2 span" {
     try std.testing.expectEqual(@as(u32, 1), right_metadata.segment_index);
     try std.testing.expect(!left_metadata.is_final);
     try std.testing.expect(right_metadata.is_final);
+
+    // Diagnostic of a known protocol limitation: these are the same runner
+    // results, yet changing only the advertised public-I/O digests and the
+    // otherwise unused public-I/O machine state still authenticates as a V2
+    // wire. This exercises statement custody, not proof verification. The
+    // verifier needs a versioned relation to actual input/output bytes before
+    // these fields can be trusted as application claims.
+    var changed_left = left_statement;
+    changed_left.job.complete.public_input = digest("different-input-claim");
+    changed_left.body.executed.input = try span.EdgeClaim.present(changed_left.job.complete.public_input);
+    changed_left.job.complete.initial_state.public_io_state = digest("different-io-entry");
+    changed_left.body.executed.entry.public_io_state = changed_left.job.complete.initial_state.public_io_state;
+    const changed_left_source = try segment_v2.SourceV2.fromSegmentResult(
+        session_id,
+        changed_left,
+        &left_result,
+    );
+    const changed_left_words = try encode(allocator, &changed_left_source);
+    defer allocator.free(changed_left_words);
+    const changed_left_public = try public_data_v2.PublicDataV2.authenticate(changed_left_words);
+    const changed_left_metadata = try changed_left_public.metadata();
+    try std.testing.expect(!std.meta.eql(left_metadata.public_input, changed_left_metadata.public_input));
+    try std.testing.expect(!std.meta.eql(left_statement.body.executed.entry.public_io_state, changed_left.body.executed.entry.public_io_state));
+
+    var changed_right = right_statement;
+    changed_right.job.complete.public_output = digest("different-output-claim");
+    changed_right.body.executed.output = try span.EdgeClaim.present(changed_right.job.complete.public_output);
+    changed_right.job.complete.final_state.public_io_state = digest("different-io-exit");
+    changed_right.body.executed.exit.public_io_state = changed_right.job.complete.final_state.public_io_state;
+    const changed_right_source = try segment_v2.SourceV2.fromSegmentResult(
+        session_id,
+        changed_right,
+        &right_result,
+    );
+    const changed_right_words = try encode(allocator, &changed_right_source);
+    defer allocator.free(changed_right_words);
+    const changed_right_public = try public_data_v2.PublicDataV2.authenticate(changed_right_words);
+    const changed_right_metadata = try changed_right_public.metadata();
+    try std.testing.expect(!std.meta.eql(right_metadata.public_output, changed_right_metadata.public_output));
+    try std.testing.expect(!std.meta.eql(right_statement.body.executed.exit.public_io_state, changed_right.body.executed.exit.public_io_state));
+}
+
+test "segment statement V2 experimental public-I/O binding rejects changed claims and bytes" {
+    const allocator = std.testing.allocator;
+    const instructions = [_]u32{
+        0x0010_00b7, // LUI x1, 0x100: output MMIO base.
+        0x0040_0113, // ADDI x2, x0, 4.
+        0x0020_a223, // SW x2, 4(x1): output length.
+        0x02a0_0193, // ADDI x3, x0, 42.
+        0x0030_a423, // SW x3, 8(x1): output data.
+        0x0000_006f, // JAL x0, 0: self-loop completion.
+    };
+    var elf = @import("../../runner/guest_precompile/test_elf.zig").buildProgram(
+        instructions.len,
+        &instructions,
+        8,
+        .rv32im_zkvm_v1,
+    );
+    declareInput(&elf);
+    const input = [_]u8{ 1, 2, 3, 4, 5 };
+    var session = try runner.BaseExecutionSession.init(allocator, &elf, .{ .input = &input });
+    defer session.deinit();
+    var result = try session.startSegment(16);
+    defer result.deinit();
+    try std.testing.expect(result.segment_role.is_first and result.segment_role.is_last);
+    try std.testing.expectEqualSlices(u8, &.{ 42, 0, 0, 0 }, result.output.?);
+
+    const expected = io_binding.Expected{
+        // This policy comes from the test's independent ELF/ABI and request,
+        // not from the runner result or the candidate statement.
+        .input_start = 0x0010_0100,
+        .input = &input,
+        .output_len_addr = 0x0010_0004,
+        .output_data_addr = 0x0010_0008,
+        .output = &.{ 42, 0, 0, 0 },
+    };
+    var verifier_expected = try io_ingress.VerifierExpectedIo.initOwned(allocator, expected);
+    defer verifier_expected.deinit();
+    try io_binding.validateRunner(&result, expected);
+    const zero_io: span.Digest = .{0} ** 8;
+    const entry = try machineState(
+        result.entry_cpu,
+        segment_v2.snapshotDigest(result.rw_memory.words, .initial_word).id,
+        zero_io,
+    );
+    const exit = try machineState(
+        result.exit_cpu,
+        segment_v2.snapshotDigest(result.rw_memory.words, .final_word).id,
+        zero_io,
+    );
+    const job = try span.JobContext.init(
+        try span.CompleteExecution.init(
+            protocol.PROTOCOL_ID_WORDS,
+            scalarDigest(17),
+            entry,
+            exit,
+            try io_binding.inputDigest(expected),
+            try io_binding.outputDigest(expected),
+            @intCast(result.cycle_count),
+        ),
+        1,
+    );
+    const statement = try leafStatement(
+        job,
+        &result,
+        entry,
+        exit,
+        try span.EdgeClaim.present(job.complete.public_input),
+        try span.EdgeClaim.present(job.complete.public_output),
+    );
+    const admitted_source = try verifier_expected.admitNativeSource(
+        digest("bound-session"),
+        statement,
+        &result,
+    );
+    try admitted_source.validate();
+    const source = try segment_v2.SourceV2.fromSegmentResult(digest("bound-session"), statement, &result);
+    const words = try encode(allocator, &source);
+    defer allocator.free(words);
+    const public = try public_data_v2.PublicDataV2.authenticate(words);
+    const coverage = try io_binding.validateAuthenticatedWire(&public, expected);
+    _ = try verifier_expected.inspectAuthenticatedWire(&public);
+    var projection = try io_custody_v3.projectAuthenticatedWire(allocator, &public, &verifier_expected, 7);
+    defer projection.deinit();
+    try std.testing.expectEqualDeep(coverage, projection.coverage);
+    try std.testing.expectEqual(@as(usize, 4), projection.words.len);
+    try std.testing.expectEqualDeep([_]u32{ 0x0010_0100, 0x0010_0104, 0x0010_0004, 0x0010_0008 }, [_]u32{ projection.words[0].address, projection.words[1].address, projection.words[2].address, projection.words[3].address });
+    try std.testing.expectEqual(@as(u32, 1), projection.words[0].bridge_row[0].toU32());
+    try std.testing.expectEqual(@as(u32, 5), projection.words[1].bridge_row[0].toU32());
+    try std.testing.expectEqual(@as(u32, 4), projection.words[2].bridge_row[0].toU32());
+    try std.testing.expectEqual(@as(u32, 42), projection.words[3].bridge_row[0].toU32());
+    const projected_view = try public.authenticatedView();
+    for (projection.words) |item| {
+        const offset = item.retained_wire_offset;
+        const address = @as(u32, projected_view.words[offset].toU32()) |
+            (@as(u32, projected_view.words[offset + 1].toU32()) << 16);
+        const value = @as(u32, projected_view.words[offset + 2].toU32()) |
+            (@as(u32, projected_view.words[offset + 3].toU32()) << 16);
+        try std.testing.expectEqual(item.address, address);
+        for (0..4) |byte| try std.testing.expectEqual(
+            (value >> @as(u5, @intCast(byte * 8))) & 0xff,
+            item.bridge_row[byte].toU32(),
+        );
+    }
+    try std.testing.expectError(error.V3MemorySourceAirUnavailable, projection.requireProofVisibleSource());
+    try std.testing.expectError(error.InvalidPublicIoWordAddress, io_custody_v3.projectAuthenticatedWire(allocator, &public, &verifier_expected, 0));
+    try std.testing.expect(coverage.input and coverage.output);
+    try io_binding.requireComplete(&.{coverage});
+    var first_coverage = coverage;
+    first_coverage.segment_count = 2;
+    first_coverage.output = false;
+    var last_coverage = first_coverage;
+    last_coverage.segment_index = 1;
+    last_coverage.input = false;
+    last_coverage.output = true;
+    last_coverage.global_cycle_start = first_coverage.global_cycle_end;
+    last_coverage.global_cycle_end += 1;
+    try io_binding.requireComplete(&.{ first_coverage, last_coverage });
+    last_coverage.job_id[0] ^= 1;
+    try std.testing.expectError(error.MixedIoCampaign, io_binding.requireComplete(&.{ first_coverage, last_coverage }));
+    last_coverage.job_id[0] ^= 1;
+    last_coverage.global_cycle_start += 1;
+    try std.testing.expectError(error.DiscontinuousIoCampaign, io_binding.requireComplete(&.{ first_coverage, last_coverage }));
+
+    var changed_input = input;
+    changed_input[0] ^= 0xff;
+    var changed_expected = expected;
+    changed_expected.input = &changed_input;
+    try std.testing.expectError(error.RunnerIoMismatch, io_binding.validateRunner(&result, changed_expected));
+    try std.testing.expectError(error.InputDigestMismatch, io_binding.validateAuthenticatedWire(&public, changed_expected));
+    try std.testing.expectEqualSlices(u8, &input, verifier_expected.input);
+    // The verifier's owned expectation is unchanged after the request buffer
+    // changes. A claim rewritten to match attacker-selected bytes is rejected.
+
+    var changed_job = job;
+    changed_job.complete.public_input = try io_binding.inputDigest(changed_expected);
+    const changed_statement = try leafStatement(
+        changed_job,
+        &result,
+        entry,
+        exit,
+        try span.EdgeClaim.present(changed_job.complete.public_input),
+        try span.EdgeClaim.present(changed_job.complete.public_output),
+    );
+    const changed_source = try segment_v2.SourceV2.fromSegmentResult(digest("bound-session"), changed_statement, &result);
+    const changed_words = try encode(allocator, &changed_source);
+    defer allocator.free(changed_words);
+    const changed_public = try public_data_v2.PublicDataV2.authenticate(changed_words);
+    try std.testing.expectError(error.InputMemoryMismatch, io_binding.validateAuthenticatedWire(&changed_public, changed_expected));
+    var changed_policy = try io_ingress.VerifierExpectedIo.initOwned(allocator, changed_expected);
+    defer changed_policy.deinit();
+    try std.testing.expectError(error.InputMemoryMismatch, io_custody_v3.projectAuthenticatedWire(allocator, &changed_public, &changed_policy, 7));
+    try std.testing.expectError(error.InputDigestMismatch, verifier_expected.inspectAuthenticatedWire(&changed_public));
+    try std.testing.expectError(
+        error.InputDigestMismatch,
+        verifier_expected.admitNativeSource(digest("bound-session"), changed_statement, &result),
+    );
+
+    var changed_output = expected;
+    changed_output.output = &.{9};
+    changed_job = job;
+    changed_job.complete.public_output = try io_binding.outputDigest(changed_output);
+    const output_statement = try leafStatement(
+        changed_job,
+        &result,
+        entry,
+        exit,
+        try span.EdgeClaim.present(changed_job.complete.public_input),
+        try span.EdgeClaim.present(changed_job.complete.public_output),
+    );
+    const output_source = try segment_v2.SourceV2.fromSegmentResult(digest("bound-session"), output_statement, &result);
+    const output_words = try encode(allocator, &output_source);
+    defer allocator.free(output_words);
+    const output_public = try public_data_v2.PublicDataV2.authenticate(output_words);
+    try std.testing.expectError(error.OutputLengthMismatch, io_binding.validateAuthenticatedWire(&output_public, changed_output));
+    try std.testing.expectError(error.OutputDigestMismatch, verifier_expected.inspectAuthenticatedWire(&output_public));
+    var changed_abi = expected;
+    changed_abi.output_data_addr += 4;
+    var wrong_abi_policy = try io_ingress.VerifierExpectedIo.initOwned(allocator, changed_abi);
+    defer wrong_abi_policy.deinit();
+    try std.testing.expectError(error.RunnerIoMismatch, wrong_abi_policy.admitNativeSource(digest("bound-session"), statement, &result));
+    try std.testing.expectError(error.OutputDigestMismatch, wrong_abi_policy.inspectAuthenticatedWire(&public));
+
+    const changed_output_bytes = [_]u8{ 43, 0, 0, 0 };
+    changed_output.output = &changed_output_bytes;
+    changed_job = job;
+    changed_job.complete.public_output = try io_binding.outputDigest(changed_output);
+    const changed_output_statement = try leafStatement(
+        changed_job,
+        &result,
+        entry,
+        exit,
+        try span.EdgeClaim.present(changed_job.complete.public_input),
+        try span.EdgeClaim.present(changed_job.complete.public_output),
+    );
+    const changed_output_source = try segment_v2.SourceV2.fromSegmentResult(digest("bound-session"), changed_output_statement, &result);
+    const changed_output_words = try encode(allocator, &changed_output_source);
+    defer allocator.free(changed_output_words);
+    const changed_output_public = try public_data_v2.PublicDataV2.authenticate(changed_output_words);
+    try std.testing.expectError(error.OutputMemoryMismatch, io_binding.validateAuthenticatedWire(&changed_output_public, changed_output));
+    var changed_output_policy = try io_ingress.VerifierExpectedIo.initOwned(allocator, changed_output);
+    defer changed_output_policy.deinit();
+    try std.testing.expectError(error.OutputMemoryMismatch, io_custody_v3.projectAuthenticatedWire(allocator, &changed_output_public, &changed_output_policy, 7));
+    try std.testing.expectError(error.OutputDigestMismatch, verifier_expected.inspectAuthenticatedWire(&changed_output_public));
+
+    changed_job = job;
+    changed_job.complete.initial_state.public_io_state = digest("not-zero-io-state");
+    const state_statement = try leafStatement(
+        changed_job,
+        &result,
+        changed_job.complete.initial_state,
+        exit,
+        try span.EdgeClaim.present(changed_job.complete.public_input),
+        try span.EdgeClaim.present(changed_job.complete.public_output),
+    );
+    const state_source = try segment_v2.SourceV2.fromSegmentResult(digest("bound-session"), state_statement, &result);
+    const state_words = try encode(allocator, &state_source);
+    defer allocator.free(state_words);
+    const state_public = try public_data_v2.PublicDataV2.authenticate(state_words);
+    try std.testing.expectError(error.NonZeroPublicIoState, io_binding.validateAuthenticatedWire(&state_public, expected));
+    try std.testing.expectError(error.NonZeroPublicIoState, verifier_expected.inspectAuthenticatedWire(&state_public));
+    try std.testing.expectError(
+        error.NonZeroPublicIoState,
+        verifier_expected.admitNativeSource(digest("bound-session"), state_statement, &result),
+    );
+    // The diagnostic projection must reauthenticate borrowed wire bytes; an
+    // earlier successful PublicDataV2.authenticate is not a reusable lease.
+    const original_tag = words[0];
+    words[0] = @import("stwo_core").fields.m31.M31.zero();
+    try std.testing.expectError(error.CanonicalTagMismatch, io_custody_v3.projectAuthenticatedWire(allocator, &public, &verifier_expected, 7));
+    words[0] = original_tag;
 }
 
 fn leafStatement(
@@ -196,4 +497,15 @@ fn scalarDigest(value: u32) span.Digest {
     var result: span.Digest = .{0} ** channel.RATE;
     result[0] = value;
     return result;
+}
+
+fn declareInput(elf: []u8) void {
+    const names = "\x00__text_start\x00__text_len\x00__input_start\x00__input_end\x00";
+    @memcpy(elf[480..][0..names.len], names);
+    std.mem.writeInt(u32, elf[308..312], names.len, .little);
+    std.mem.writeInt(u32, elf[268..272], 5 * 16, .little);
+    std.mem.writeInt(u32, elf[608..612], @intCast(std.mem.indexOf(u8, names, "__input_start").?), .little);
+    std.mem.writeInt(u32, elf[612..616], 0x00100100, .little);
+    std.mem.writeInt(u32, elf[624..628], @intCast(std.mem.indexOf(u8, names, "__input_end").?), .little);
+    std.mem.writeInt(u32, elf[628..632], 0x00100108, .little);
 }

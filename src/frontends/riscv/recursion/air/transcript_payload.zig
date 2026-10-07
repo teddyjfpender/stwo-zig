@@ -34,6 +34,30 @@ pub const RELATION_EVENT_COUNT: usize = 2;
 pub const ETHEREUM_RAW_WIRE_SCOPE = ethereum_routing.RAW_WIRE_HASH_SCOPE;
 pub const ETHEREUM_RAW_ROOT_SOURCE_SCOPE = ethereum_routing.STATEMENT_SCOPE;
 pub const ETHEREUM_RAW_ROOT_SOURCE_BASE = ethereum_routing.RAW_V2_SOURCE_BASE;
+/// The earlier NPV2 direct profile is retained as an inactive diagnostic.
+/// Native row5 stores sixteen u16 payload halves, while canonical ProgramV2
+/// words 10..17 are eight full field words; V7 uses NPH2 plus recomposition.
+pub const NPV2_SCOPE: u32 = 0x4e50_5632;
+pub const WIRE_HALF_SCOPE: u32 = 0x4e50_4832; // NPH2
+pub const NPV2_WIRE_WORD_BASE: u32 = 10;
+pub const NPV2_WIRE_WORD_COUNT: usize = 8;
+pub const NPV2_COMPLETE_EXPORT_AVAILABLE = false;
+/// Still require proof-visible base sources: format/schema, plan ID,
+/// statement authority ID, wire length, PCS, lookup activation, instruction
+/// count, and every instruction descriptor. This row-5 profile proves only
+/// canonical wire-ID words 10..17.
+pub const NPV2_UNLINKED_CLASS_COUNT: usize = 8;
+pub const NPV2_WIRE_SEMANTIC_DIGEST_HEX = "c51db5b3c6f017ce64d79e73987335e484361560055ec93a405f3021d45a5e37";
+pub const NPV2_WIRE_SEMANTIC_DIGEST = hexDigest(
+    NPV2_WIRE_SEMANTIC_DIGEST_HEX,
+    "invalid NPV2 row-5 semantic digest",
+);
+pub const NPV2_PCS_CANONICAL_INDICES = [_]u32{ 28, 30, 32, 34, 36, 39 };
+pub const NPV2_WIRE_PCS_SEMANTIC_DIGEST_HEX = "666efc04275521f0486b9b6f12c3536d9655d2caa09f454ab1357629a989d26c";
+pub const NPV2_WIRE_PCS_SEMANTIC_DIGEST = hexDigest(
+    NPV2_WIRE_PCS_SEMANTIC_DIGEST_HEX,
+    "invalid NPV2 wire/PCS semantic digest",
+);
 pub const LOOKUP_BATCH_SIZE: u8 = 2;
 pub const INTERACTION_BATCH_COUNT: usize = 1;
 pub const INTERACTION_COLUMN_COUNT: usize = 4;
@@ -439,24 +463,74 @@ pub fn identity(allocator: std.mem.Allocator) !digest.Identity {
 }
 
 fn buildDefinition(allocator: std.mem.Allocator) !Definition {
-    return buildDefinitionForProfile(allocator, false, false);
+    return buildDefinitionForProfile(allocator, false, false, false, false, false);
 }
 
 /// Ethereum-only extension; the default arena and its semantic seal remain
 /// byte-for-byte unchanged.
 pub fn buildClockRoutingArena(allocator: std.mem.Allocator) !ir.Arena {
-    const result = try buildDefinitionForProfile(allocator, true, false);
+    const result = try buildDefinitionForProfile(allocator, true, false, false, false, false);
     return result.arena;
 }
 
 /// Explicit Ethereum schema4 raw-wire export. Neither existing profile selects
 /// this additional relation or changes its arena input/event ordering.
 pub fn buildRawWireRoutingArena(allocator: std.mem.Allocator) !ir.Arena {
-    const result = try buildDefinitionForProfile(allocator, true, true);
+    const result = try buildDefinitionForProfile(allocator, true, true, false, false, false);
     return result.arena;
 }
 
-fn buildDefinitionForProfile(allocator: std.mem.Allocator, comptime clock_routing: bool, comptime raw_wire_routing: bool) !Definition {
+/// Inactive, versioned direct-leaf extension to the existing native row 5.
+/// Its eight NPV2 emitters are tied to row-5 Fiat--Shamir payload values.
+/// The direct cohort must still schedule the eight masks and bind every
+/// other canonical ProgramV2 word. The existing verifier-input relation
+/// keeps its single use: this new event reads the same committed main value.
+pub fn buildNpv2WireExportArena(allocator: std.mem.Allocator) !ir.Arena {
+    const result = try buildDefinitionForProfile(allocator, true, true, true, false, false);
+    return result.arena;
+}
+
+/// Earlier direct diagnostic. It cannot bind full wire words because the
+/// committed row5 values are u16 halves. Use the V7 NPH2 profile instead.
+pub fn buildDirectNpv2WireExportArena(allocator: std.mem.Allocator) !ir.Arena {
+    const result = try buildDefinitionForProfile(allocator, false, false, true, false, false);
+    return result.arena;
+}
+
+/// Direct V7 profile: export all sixteen transcript u16 halves under NPH2.
+/// Row42 must range-check and recompose each pair before publishing a word.
+pub fn buildDirectWireHalfExportArena(allocator: std.mem.Allocator) !ir.Arena {
+    const result = try buildDefinitionForProfile(allocator, false, false, true, false, true);
+    return result.arena;
+}
+
+/// Adds the six PCS parameters that are actual row-5 Fiat--Shamir payload
+/// values under q193/fold-step-4. High u16 limbs, the absent-lifting flag,
+/// and all remaining ProgramV2 words still need other proof-visible routes.
+pub fn buildNpv2WirePcsExportArena(allocator: std.mem.Allocator) !ir.Arena {
+    const result = try buildDefinitionForProfile(allocator, true, true, true, true, false);
+    return result.arena;
+}
+
+test "NPV2 base payload export has distinct typed AIR identity" {
+    try std.testing.expect(!NPV2_COMPLETE_EXPORT_AVAILABLE);
+    var arena = try buildNpv2WireExportArena(std.testing.allocator);
+    defer arena.deinit();
+    try validate_mod.validate(&arena);
+    const actual = (try digest.computeIdentity(&arena)).bytes;
+    try std.testing.expectEqualSlices(u8, &NPV2_WIRE_SEMANTIC_DIGEST, &actual);
+    try std.testing.expect(!std.meta.eql(actual, SEMANTIC_DIGEST));
+}
+
+test "NPV2 PCS row-5 profile has pinned typed AIR identity" {
+    var arena = try buildNpv2WirePcsExportArena(std.testing.allocator);
+    defer arena.deinit();
+    try validate_mod.validate(&arena);
+    const actual = (try digest.computeIdentity(&arena)).bytes;
+    try std.testing.expectEqualSlices(u8, &NPV2_WIRE_PCS_SEMANTIC_DIGEST, &actual);
+}
+
+fn buildDefinitionForProfile(allocator: std.mem.Allocator, comptime clock_routing: bool, comptime raw_wire_routing: bool, comptime npv2_wire_export: bool, comptime npv2_pcs_export: bool, comptime wire_half_export: bool) !Definition {
     var arena = ir.Arena.init(allocator);
     errdefer arena.deinit();
     const span = source.SourceSpan.generated();
@@ -500,6 +574,9 @@ fn buildDefinitionForProfile(allocator: std.mem.Allocator, comptime clock_routin
     const publication_uses: ?types.ValueId = if (clock_routing) try arena.input("preprocessed.publication_uses", .felt, span) else null;
     const raw_wire_mask: ?types.ValueId = if (raw_wire_routing) try arena.input("preprocessed.raw_wire_mask", .selector, span) else null;
     const raw_root_mask: ?types.ValueId = if (raw_wire_routing) try arena.input("preprocessed.raw_root_mask", .selector, span) else null;
+    const npv2_wire_mask: ?types.ValueId = if (npv2_wire_export) try arena.input(if (wire_half_export) "preprocessed.wire_half_mask" else "preprocessed.npv2_wire_mask", .selector, span) else null;
+    const npv2_pcs_mask: ?types.ValueId = if (npv2_pcs_export) try arena.input("preprocessed.npv2_pcs_mask", .selector, span) else null;
+    const npv2_pcs_index: ?types.ValueId = if (npv2_pcs_export) try arena.input("preprocessed.npv2_pcs_index", .felt, span) else null;
     const parameters = Parameters{
         .segment_active = try arena.input(PARAMETER_NAMES[0], .selector, span),
         .binary_active = try arena.input(PARAMETER_NAMES[1], .selector, span),
@@ -590,6 +667,64 @@ fn buildDefinitionForProfile(allocator: std.mem.Allocator, comptime clock_routin
             .role = .emit,
             .values = &raw_tuple,
             .weight = try arena.mul(active, try arena.add(mask, root_mask, span), span),
+        }}, span);
+    }
+    if (npv2_wire_mask) |mask| {
+        const statement_kind = try arena.constantField(@intFromEnum(VerifierInputKind.statement), span);
+        const wire_item = try arena.constantField(1, span);
+        const one_use = try arena.constantField(1, span);
+        const wire_index_base = try arena.constantField(if (wire_half_export) 0 else NPV2_WIRE_WORD_BASE, span);
+        _ = try arena.assertZero(
+            "direct.npv2_wire_source_kind",
+            try arena.mul(mask, try arena.sub(preprocessed.source_kind, statement_kind, span), span),
+            null,
+            .semantic,
+            span,
+        );
+        _ = try arena.assertZero(
+            "direct.npv2_wire_item",
+            try arena.mul(mask, try arena.sub(preprocessed.item_index, wire_item, span), span),
+            null,
+            .semantic,
+            span,
+        );
+        _ = try arena.assertZero(
+            "direct.npv2_wire_uses",
+            try arena.mul(mask, try arena.sub(preprocessed.input_use_count, one_use, span), span),
+            null,
+            .semantic,
+            span,
+        );
+        if (wire_half_export) _ = try arena.assertZero(
+            "direct.wire_half_dynamic",
+            try arena.mul(mask, preprocessed.constant_mask, span),
+            null,
+            .semantic,
+            span,
+        );
+        const npv2_index = try arena.add(wire_index_base, preprocessed.limb_index, span);
+        const npv2_scope = try arena.constantField(if (wire_half_export) WIRE_HALF_SCOPE else NPV2_SCOPE, span);
+        _ = try relation_effect.appendGroup(1, &arena, .{.{
+            .domain = .recursion_vm_public_claim_word,
+            .role = .emit,
+            .values = &.{ npv2_scope, npv2_index, main.value },
+            .weight = try arena.mul(active, mask, span),
+        }}, span);
+    }
+    if (npv2_pcs_mask) |mask| {
+        const pcs_kind = try arena.constantField(@intFromEnum(VerifierInputKind.pcs_parameters), span);
+        const zero = try arena.constantField(0, span);
+        const one = try arena.constantField(1, span);
+        _ = try arena.assertZero("direct.npv2_pcs_source_kind", try arena.mul(mask, try arena.sub(preprocessed.source_kind, pcs_kind, span), span), null, .semantic, span);
+        _ = try arena.assertZero("direct.npv2_pcs_item", try arena.mul(mask, try arena.sub(preprocessed.item_index, zero, span), span), null, .semantic, span);
+        _ = try arena.assertZero("direct.npv2_pcs_constant", try arena.mul(mask, try arena.sub(preprocessed.constant_mask, one, span), span), null, .semantic, span);
+        _ = try arena.assertZero("direct.npv2_pcs_no_input_use", try arena.mul(mask, preprocessed.input_use_count, span), null, .semantic, span);
+        const scope = try arena.constantField(NPV2_SCOPE, span);
+        _ = try relation_effect.appendGroup(1, &arena, .{.{
+            .domain = .recursion_vm_public_claim_word,
+            .role = .emit,
+            .values = &.{ scope, npv2_pcs_index.?, main.value },
+            .weight = try arena.mul(active, mask, span),
         }}, span);
     }
     return .{

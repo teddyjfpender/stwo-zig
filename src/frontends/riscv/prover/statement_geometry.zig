@@ -262,6 +262,9 @@ fn populate(
     statement.final_pc = exec_trace.final_pc;
     statement.total_steps = total_steps;
     statement.public_data = public_data;
+    // Legacy typed/V2 statements have no local-zero custody. Explicitly
+    // initialize this field because proof workspaces may contain poison bytes.
+    statement.x0_local_custody_version = 0;
 
     try describeOpcodeShards(statement, counts);
     if (statement.n_components == 0 and !allow_empty_opcode)

@@ -271,6 +271,38 @@ pub fn addProduct(context: Context) void {
         &.{"recursive public ingress accepts production-derived self-loop guest"},
     )));
     context.b.step(
+        "test-riscv-v3-link-schedule",
+        "Validate leaf-local V3 projection and exact typed boundary routing",
+    ).dependOn(test_filter.addRun(context.b, riscv_cpu_tests.addFocusedTestRoot(
+        test_context,
+        "src/frontends/riscv/temporal_pair_node_test_root.zig",
+        &.{"leaf-local V3"},
+    )));
+    context.b.step(
+        "test-riscv-v3-temporal-interval",
+        "Validate V3 arbitrary-span temporal reduction and odd carries",
+    ).dependOn(test_filter.addRun(context.b, riscv_cpu_tests.addFocusedTestRoot(
+        test_context,
+        "src/frontends/riscv/temporal_pair_node_test_root.zig",
+        &.{"V3 interval"},
+    )));
+    context.b.step(
+        "test-riscv-v3-temporal-row11",
+        "Validate the separately pinned unequal-height temporal statement graph",
+    ).dependOn(test_filter.addRun(context.b, riscv_cpu_tests.addFocusedTestRoot(
+        test_context,
+        "src/frontends/riscv/temporal_pair_node_test_root.zig",
+        &.{"V3 temporal row-11"},
+    )));
+    context.b.step(
+        "test-riscv-v3-temporal-parent-roster",
+        "Validate V3 parent child-source joins, typed input frame and fail-closed roster",
+    ).dependOn(test_filter.addRun(context.b, riscv_cpu_tests.addFocusedTestRoot(
+        test_context,
+        "src/frontends/riscv/temporal_pair_node_test_root.zig",
+        &.{"V3 temporal parent roster"},
+    )));
+    context.b.step(
         "test-riscv-recursion-typed-control",
         "Prove and independently verify the typed universal-control adapter",
     ).dependOn(test_filter.addSuites(context.b, &.{.{

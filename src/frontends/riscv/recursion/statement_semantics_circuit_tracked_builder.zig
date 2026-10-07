@@ -23,6 +23,7 @@ pub fn Builder(comptime dependency_0: type) type {
         const row11 = dependency_0.row11;
         const statement = dependency_0.statement;
         const std = dependency_0.std;
+        const temporal_v3 = dependency_0.TEMPORAL_V3;
 
         pub const TrackedBuilder = struct {
             allocator: std.mem.Allocator,
@@ -195,6 +196,9 @@ pub fn Builder(comptime dependency_0: type) type {
             right: *const ScopedWords,
             parent: *const ScopedWords,
         ) Error!void {
+            if (comptime temporal_v3) {
+                return constrainTemporalSlotFold(builder, gate, left, right, parent);
+            }
             try constrainEqual(builder, gate, left.value(layout.slot_tag), right.value(layout.slot_tag));
             try constrainEqual(builder, gate, parent.value(layout.slot_tag), left.value(layout.slot_tag));
             try constrainEqual(
@@ -231,6 +235,123 @@ pub fn Builder(comptime dependency_0: type) type {
                 left_node[0..4],
                 .slot_parent,
             );
+        }
+
+        /// V3 derives each slot from its executed interval independently.
+        /// Consequently two children with unequal heights may fold without
+        /// manufacturing an empty proof. All shifts use bit-constrained
+        /// canonical u16 statement limbs; no host-computed quotient is trusted.
+        fn constrainTemporalSlotFold(
+            builder: *TrackedBuilder,
+            gate: Value,
+            left: *const ScopedWords,
+            right: *const ScopedWords,
+            parent: *const ScopedWords,
+        ) Error!void {
+            inline for (.{ left, right, parent }) |words| {
+                try constrainTag(builder, gate, words, layout.slot_tag, .slot_span);
+                try constrainTag(builder, gate, words, layout.body_tag, .executed_body);
+                try constrainTemporalSlot(builder, gate, words);
+            }
+        }
+
+        fn constrainTemporalSlot(
+            builder: *TrackedBuilder,
+            gate: Value,
+            words: *const ScopedWords,
+        ) Error!void {
+            const count = try temporalBits(builder, gate, words, layout.executed_segment_count_start, 2);
+            const first = try temporalBits(builder, gate, words, layout.first_segment_start, 2);
+            const node = try temporalBits(builder, gate, words, layout.slot_node_index_start, 2);
+            // A slot for a u32 segment index has zero upper node-index limbs.
+            try builder.constrain(gate, words.value(layout.slot_node_index_start + 2));
+            try builder.constrain(gate, words.value(layout.slot_node_index_start + 3));
+
+            var minus_one: [32]Value = undefined;
+            var borrow = constant(1);
+            for (count.slice(), &minus_one) |bit, *out| {
+                // bit - borrow over GF(2), with borrow propagated only when
+                // this bit was zero. A final borrow proves count != 0.
+                out.* = try builder.sub(
+                    try builder.add(bit, borrow),
+                    try builder.mul(constant(2), try builder.mul(bit, borrow)),
+                );
+                borrow = try builder.mul(borrow, try builder.sub(constant(1), bit));
+            }
+            try builder.constrain(gate, borrow);
+            const heights = try temporalHeightFlags(builder, &minus_one);
+            var encoded_height = constant(0);
+            for (heights.slice(), 0..) |flag, height| {
+                encoded_height = try builder.add(encoded_height, try builder.mul(flag, constant(@intCast(height))));
+            }
+            try constrainEqual(builder, gate, words.value(layout.slot_height), encoded_height);
+
+            // first_segment = node_index << height, with no high-bit loss.
+            for (0..32) |bit_index| {
+                var selected = constant(0);
+                for (heights.slice(), 0..) |flag, height| {
+                    if (height <= bit_index) {
+                        selected = try builder.add(
+                            selected,
+                            try builder.mul(flag, node.values[bit_index - height]),
+                        );
+                    }
+                }
+                try constrainEqual(builder, gate, first.values[bit_index], selected);
+            }
+            for (0..32) |bit_index| {
+                var high_forbidden = constant(0);
+                for (heights.slice(), 0..) |flag, height| {
+                    if (bit_index + height >= 32)
+                        high_forbidden = try builder.add(high_forbidden, flag);
+                }
+                try builder.constrain(gate, try builder.mul(node.values[bit_index], high_forbidden));
+            }
+        }
+
+        fn temporalBits(
+            builder: *TrackedBuilder,
+            gate: Value,
+            words: *const ScopedWords,
+            start: usize,
+            width: usize,
+        ) Error!Bits {
+            var result = Bits{};
+            for (0..width) |limb_index| {
+                var reconstructed = constant(0);
+                for (0..16) |bit_index| {
+                    const bit = try builder.private(row11.ProofKindSet.BINARY, .{
+                        .statement_bit = .{
+                            .scope = words.scope,
+                            .index = @intCast(start + limb_index),
+                            .bit = @intCast(bit_index),
+                        },
+                    });
+                    try constrainBoolean(builder, gate, bit);
+                    reconstructed = try builder.add(
+                        reconstructed,
+                        try builder.mul(bit, constant(@as(u32, 1) << @intCast(bit_index))),
+                    );
+                    result.values[result.len] = bit;
+                    result.len += 1;
+                }
+                try builder.constrain(gate, try builder.sub(words.value(start + limb_index), reconstructed));
+            }
+            return result;
+        }
+
+        fn temporalHeightFlags(builder: *TrackedBuilder, bits: []const Value) Error!Bits {
+            var result = Bits{ .len = bits.len + 1 };
+            for (result.values[0..result.len]) |*flag| flag.* = constant(0);
+            var seen = constant(0);
+            var index = bits.len;
+            while (index != 0) {
+                index -= 1;
+                result.values[index + 1] = try builder.mul(bits[index], try builder.sub(constant(1), seen));
+                seen = try builder.sub(try builder.add(seen, bits[index]), try builder.mul(seen, bits[index]));
+            }
+            result.values[0] = try builder.sub(constant(1), seen);
+            return result;
         }
 
         pub fn constrainBodyFold(

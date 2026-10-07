@@ -24,6 +24,11 @@ const m31 = core.fields.m31;
 
 pub const FORMAT_VERSION: u16 = 1;
 pub const SCHEMA_VERSION: u16 = 1;
+/// The V6 direct leaf reuses the same typed router AIR with eight additional
+/// fixed raw-B sinks. Its schedule version is distinct from the V5 fixture.
+pub const NPV2_SCHEMA_VERSION: u16 = 2;
+pub const NPV2_SCOPE: u32 = 0x4e50_5632;
+pub const NPV2_AUTHORITY_WORD_BASE: u32 = 18;
 pub const AUTHORITY_PREIMAGE_SCOPE: u32 = 0x4c41_5731; // "LAW1"
 pub const RECEIPT_PREIMAGE_SCOPE: u32 = 0x4c52_5731; // "LRW1"
 pub const AUTHORITY_HASH_STEP_BASE: u32 = 256;
@@ -167,7 +172,21 @@ pub const ProgramV1 = struct {
         component_descs: []const statement_v1.FamilyComponentDesc,
         infra_descs: []const statement_v1.InfraComponentDesc,
     ) !ProgramV1 {
-        var result = try buildUnchecked(allocator, component_descs, infra_descs);
+        var result = try buildUnchecked(allocator, component_descs, infra_descs, false);
+        errdefer result.deinit();
+        try result.validateAgainst(component_descs, infra_descs);
+        return result;
+    }
+
+    /// Versioned schedule for the direct V6 ProgramV2 bridge. The eight
+    /// authority words are emitted by the same committed router values that
+    /// enter the receipt preimage and the verifier-input relation.
+    pub fn initWithNativeProgramBridge(
+        allocator: std.mem.Allocator,
+        component_descs: []const statement_v1.FamilyComponentDesc,
+        infra_descs: []const statement_v1.InfraComponentDesc,
+    ) !ProgramV1 {
+        var result = try buildUnchecked(allocator, component_descs, infra_descs, true);
         errdefer result.deinit();
         try result.validateAgainst(component_descs, infra_descs);
         return result;
@@ -186,7 +205,7 @@ pub const ProgramV1 = struct {
         infra_descs: []const statement_v1.InfraComponentDesc,
     ) !void {
         if (self.format_version != FORMAT_VERSION or
-            self.schema_version != SCHEMA_VERSION or
+            (self.schema_version != SCHEMA_VERSION and self.schema_version != NPV2_SCHEMA_VERSION) or
             self.component_count != component_descs.len or
             self.infra_count != infra_descs.len or
             self.router_log_size != try traceLogSize(self.router_rows.len))
@@ -198,6 +217,7 @@ pub const ProgramV1 = struct {
             self.allocator,
             component_descs,
             infra_descs,
+            self.schema_version == NPV2_SCHEMA_VERSION,
         );
         defer expected.deinit();
         if (!metaSliceEqual(
@@ -224,6 +244,7 @@ fn buildUnchecked(
     allocator: std.mem.Allocator,
     component_descs: []const statement_v1.FamilyComponentDesc,
     infra_descs: []const statement_v1.InfraComponentDesc,
+    native_program_bridge: bool,
 ) !ProgramV1 {
     if (component_descs.len > statement_v1.MAX_COMPONENTS or
         infra_descs.len > statement_v1.MAX_INFRA_COMPONENTS)
@@ -244,6 +265,7 @@ fn buildUnchecked(
     const router_rows = try allocator.alloc(RouterScheduleRowV1, router_count);
     errdefer allocator.free(router_rows);
     fillRouterRows(router_rows, component_descs, infra_descs);
+    if (native_program_bridge) try addNativeProgramAuthorityExports(router_rows);
 
     const authority_words = authorityWordCount(descriptor_count) catch
         return error.InvalidEthereumChildFieldProgram;
@@ -267,6 +289,7 @@ fn buildUnchecked(
     errdefer receipt_hash.deinit(allocator);
     return .{
         .allocator = allocator,
+        .schema_version = if (native_program_bridge) NPV2_SCHEMA_VERSION else SCHEMA_VERSION,
         .component_count = @intCast(component_descs.len),
         .infra_count = @intCast(infra_descs.len),
         .router_log_size = try traceLogSize(router_count),
@@ -274,6 +297,70 @@ fn buildUnchecked(
         .authority_hash = authority_hash,
         .receipt_hash = receipt_hash,
     };
+}
+
+fn addNativeProgramAuthorityExports(rows: []RouterScheduleRowV1) !void {
+    var seen = [_]bool{false} ** DIGEST_WORD_COUNT;
+    for (rows) |*row| {
+        if (row.derived_source_mask != 1 or row.sink_verifier_kind != leaf_source.LOCAL_AUTHORITY_DIGEST_KIND)
+            continue;
+        if (row.sink_index_0 != 0 or row.sink_index_1 >= DIGEST_WORD_COUNT or
+            row.raw_a_sink_mask != 1 or row.raw_b_sink_mask != 0 or
+            row.verifier_sink_mask != 1 or seen[row.sink_index_1])
+            return error.InvalidNativeProgramAuthorityExport;
+        seen[row.sink_index_1] = true;
+        row.raw_b_sink_mask = 1;
+        row.raw_b_scope = NPV2_SCOPE;
+        row.raw_b_index = NPV2_AUTHORITY_WORD_BASE + row.sink_index_1;
+    }
+    for (seen) |present| if (!present) return error.IncompleteNativeProgramAuthorityExport;
+}
+
+test "V6 local router exports exactly eight hash-bound authority words to NPV2" {
+    const allocator = std.testing.allocator;
+    const components = [_]statement_v1.FamilyComponentDesc{.{
+        .family = .base_alu_imm,
+        .log_size = 4,
+        .n_rows = 3,
+        .n_columns = 10,
+    }};
+    const infra = [_]statement_v1.InfraComponentDesc{.{
+        .kind = .program,
+        .log_size = 4,
+        .n_rows = 3,
+        .n_columns = 4,
+    }};
+    var legacy = try ProgramV1.init(allocator, &components, &infra);
+    defer legacy.deinit();
+    var bridged = try ProgramV1.initWithNativeProgramBridge(allocator, &components, &infra);
+    defer bridged.deinit();
+    try std.testing.expectEqual(SCHEMA_VERSION, legacy.schema_version);
+    try std.testing.expectEqual(NPV2_SCHEMA_VERSION, bridged.schema_version);
+    try std.testing.expectEqual(legacy.router_rows.len, bridged.router_rows.len);
+    var seen = [_]bool{false} ** DIGEST_WORD_COUNT;
+    var changed: usize = 0;
+    for (legacy.router_rows, bridged.router_rows) |old, new| {
+        if (std.meta.eql(old, new)) continue;
+        try std.testing.expectEqual(@as(u32, 1), old.derived_source_mask);
+        try std.testing.expectEqual(leaf_source.LOCAL_AUTHORITY_DIGEST_KIND, old.sink_verifier_kind);
+        try std.testing.expectEqual(@as(u32, 0), old.raw_b_sink_mask);
+        try std.testing.expectEqual(@as(u32, 1), new.raw_b_sink_mask);
+        try std.testing.expectEqual(NPV2_SCOPE, new.raw_b_scope);
+        try std.testing.expectEqual(NPV2_AUTHORITY_WORD_BASE + old.sink_index_1, new.raw_b_index);
+        try std.testing.expect(!seen[old.sink_index_1]);
+        seen[old.sink_index_1] = true;
+        changed += 1;
+    }
+    try std.testing.expectEqual(DIGEST_WORD_COUNT, changed);
+    for (seen) |present| try std.testing.expect(present);
+    try bridged.validateAgainst(&components, &infra);
+    for (bridged.router_rows) |*row| {
+        if (row.raw_b_scope != NPV2_SCOPE) continue;
+        row.raw_b_index += 1;
+        try std.testing.expectError(error.InvalidEthereumChildFieldProgram, bridged.validateAgainst(&components, &infra));
+        row.raw_b_index -= 1;
+        break;
+    }
 }
 
 fn fillRouterRows(

@@ -3,6 +3,7 @@
 
 const std = @import("std");
 const Hasher = @import("poseidon2_channel.zig").MerkleHasher;
+const storage = @import("transaction_storage_v2.zig");
 
 pub fn moveOwnedForVerifier(
     comptime T: type,
@@ -30,7 +31,7 @@ pub fn commitVerifierTreeForManifest(
         treeColumnCount(manifest_contract, manifest, tree),
     );
     defer allocator.free(logs);
-    for (manifest.roster_rows[0..manifest.roster_count]) |row| {
+    for (try storage.activeRosterRows(manifest_contract, manifest)) |row| {
         const placement = manifest.placements[row].?;
         const offset = treeOffset(manifest_contract, placement, tree);
         const count = treeGeometryColumns(

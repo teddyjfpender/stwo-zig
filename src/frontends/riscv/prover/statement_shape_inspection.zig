@@ -8,7 +8,10 @@
 
 const std = @import("std");
 const public_data_mod = @import("../air/public_data.zig");
+const public_data_v2 = @import("../air/public_data_v2.zig");
+const statement_v2 = @import("../air/statement_v2.zig");
 const trace_mod = @import("../runner/trace.zig");
+const runner_result = @import("../runner/result.zig");
 const memory_state = @import("../runner/memory_state.zig");
 const state_chain = @import("../runner/state_chain.zig");
 const segment_profile = @import("../recursion/segment_profile.zig");
@@ -37,6 +40,37 @@ pub const Facts = struct {
     admission: Admission,
     fixed_profile_admissible: bool,
 };
+
+/// Build the exact SegmentV2 statement before generating a proof. The returned
+/// statement borrows `public_data`'s canonical words; its caller retains that
+/// buffer through admission. This is deliberately the same witness/geometry
+/// construction as native proving, without proof-selected capture inputs.
+pub fn inspectExactV2(
+    allocator: std.mem.Allocator,
+    result: *const runner_result.SegmentResult,
+    public_data: public_data_v2.PublicDataV2,
+) !statement_v2.RiscVStatementV2 {
+    var witness = try commitment_witness.CommitmentWitness.buildV2(
+        allocator,
+        &result.execution_trace,
+        &result.rw_memory,
+        &public_data,
+    );
+    defer witness.deinit(allocator);
+    const workspace = try proof_workspace.ProofWorkspace.create(allocator);
+    defer workspace.destroy(allocator);
+    const built = try statement_geometry.buildV2(
+        allocator,
+        workspace,
+        &result.execution_trace,
+        &witness,
+        &result.state_chain_tracker,
+        public_data,
+        .proof,
+    );
+    try built.statement.validateSegmentResult(result);
+    return built.statement;
+}
 
 pub fn inspect(
     allocator: std.mem.Allocator,

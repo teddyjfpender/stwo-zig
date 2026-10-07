@@ -19,6 +19,81 @@ const boundary_air = @import("../segment_leaf_outer_air_v2.zig");
 const boundary_manifest = @import("../segment_leaf_outer_authority_v2.zig");
 const input_provider_authority =
     @import("../segment_publication_input_provider_authority_v2.zig");
+const shared_provider_field =
+    @import("../segment_outer_shared_provider_field_authority_v1.zig");
+const universal_challenges = @import("../air/universal_challenges.zig");
+const field_word_witness = @import("../transcript_program_v2_field_word_witness_v1.zig");
+const field_word_source = @import("../air/transcript_program_v2_field_source_v1.zig");
+const field_hash_witness = @import("../segment_leaf_wrapper_field_hash_witness_v3.zig");
+
+test "shared providers have a canonical field envelope tied to 39-row claims" {
+    const manifest = try fixtureManifest();
+    var claims = try manifest_mod.ClaimVector.init(&manifest);
+    for (0..subject.COMPONENT_COUNT) |row|
+        try claims.bind(@enumFromInt(row), QM31.zero());
+    try claims.sealClaims(&manifest);
+    const relations = universal_challenges.UniversalRelations.dummy();
+    const partials = [2]QM31{ QM31.zero(), QM31.zero() };
+    var authority = try shared_provider_field.AuthorityV1.init(
+        std.testing.allocator,
+        &manifest,
+        &claims,
+        &relations,
+        partials,
+    );
+    defer authority.deinit();
+    try authority.validateAgainst(&manifest, &claims, &relations, partials);
+    var source_words = try field_word_witness.WordsV1.init(
+        std.testing.allocator,
+        authority.words,
+        field_word_source.PROVIDER_WORD_SCOPE,
+    );
+    defer source_words.deinit();
+    try source_words.validateAgainst(authority.words, field_word_source.PROVIDER_WORD_SCOPE);
+    var lookup = try source_words.generateInteraction(std.testing.allocator, &relations);
+    defer lookup.deinit(std.testing.allocator);
+    try std.testing.expectEqual(
+        field_word_source.PROVIDER_WORD_SCOPE,
+        source_words.rows[0][3].toU32(),
+    );
+    var hash = try field_hash_witness.HashV1.init(
+        std.testing.allocator,
+        authority.words,
+        shared_provider_field.DOMAIN,
+        field_word_source.PROVIDER_WORD_SCOPE,
+        field_hash_witness.PROVIDER_FIELD_DIGEST_KIND,
+        field_hash_witness.PROVIDER_STEP_BASE,
+        authority.digest,
+    );
+    defer hash.deinit();
+    try hash.validateAgainst(
+        authority.words,
+        shared_provider_field.DOMAIN,
+        field_word_source.PROVIDER_WORD_SCOPE,
+        field_hash_witness.PROVIDER_FIELD_DIGEST_KIND,
+        field_hash_witness.PROVIDER_STEP_BASE,
+        authority.digest,
+    );
+
+    authority.words[2] = authority.words[2].add(M31.one());
+    try std.testing.expectError(
+        error.SharedProviderFieldAuthorityMismatch,
+        authority.validateAgainst(&manifest, &claims, &relations, partials),
+    );
+    authority.words[2] = authority.words[2].sub(M31.one());
+    var wrong_partials = partials;
+    wrong_partials[0] = QM31.one();
+    try std.testing.expectError(
+        error.SharedProviderClaimMismatch,
+        authority.validateAgainst(&manifest, &claims, &relations, wrong_partials),
+    );
+    var wrong_relations = relations;
+    wrong_relations.elements[@intFromEnum(relation.Domain.poseidon2)].alpha_powers[0] = QM31.zero();
+    try std.testing.expectError(
+        error.ChallengeBindingMismatch,
+        authority.validateAgainst(&manifest, &claims, &wrong_relations, partials),
+    );
+}
 
 test "cohort plan binds the exact 39-row roster trees and shared row-34 order" {
     const manifest = try fixtureManifest();

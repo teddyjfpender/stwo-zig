@@ -18,6 +18,155 @@ const schedule = @import("../air/verifier_schedule.zig");
 const segment_v2 = @import("../segment_statement_v2.zig");
 const scheduled = @import("../scheduled_channel_v2.zig");
 const transcript = @import("../transcript_program_v2.zig");
+const field_authority = @import("../transcript_program_v2_field_authority_v1.zig");
+const field_source = @import("../air/transcript_program_v2_field_source_v1.zig");
+const wrapper_field_witness = @import("../segment_leaf_wrapper_field_witness_v3.zig");
+
+test "native V3 field witness binds ProgramV2 words and Tree0 capture root" {
+    var fixture = try Fixture.init(std.testing.allocator);
+    defer fixture.deinit();
+    const MockPrepared = struct {
+        transcript_program: transcript.Program,
+        transcript_execution: transcript.Execution,
+        vm_plan: schedule.Plan,
+        pcs_config: PcsConfig,
+        capture: struct {
+            public_data: struct { data: public_data_v2.PublicDataV2 },
+            vm_air: struct {
+                component_descs: []const statement_v1.FamilyComponentDesc,
+                infra_descs: []const statement_v1.InfraComponentDesc,
+            },
+            proof: struct { commitments: []const channel.Digest },
+        },
+        captured_fri: struct { trace_roots: []const channel.Digest },
+
+        pub fn validate(self: *const @This()) !void {
+            try self.transcript_program.validateAgainst(
+                &self.vm_plan,
+                self.pcs_config,
+                &self.capture.public_data.data,
+                self.capture.vm_air.component_descs,
+                self.capture.vm_air.infra_descs,
+            );
+            try self.transcript_execution.validateAgainst(&self.transcript_program);
+        }
+    };
+    const prepared = MockPrepared{
+        .transcript_program = fixture.program,
+        .transcript_execution = fixture.execution,
+        .vm_plan = fixture.plan,
+        .pcs_config = config,
+        .capture = .{
+            .public_data = .{ .data = fixture.data },
+            .vm_air = .{ .component_descs = &component_descs, .infra_descs = &infra_descs },
+            .proof = .{ .commitments = &fixture.trace_commitments },
+        },
+        .captured_fri = .{ .trace_roots = &fixture.trace_commitments },
+    };
+    var witness = try wrapper_field_witness.NativeV1.initFromPrepared(std.testing.allocator, &prepared);
+    defer witness.deinit();
+    try witness.validateAgainst(&prepared);
+    try std.testing.expectEqualDeep(fixture.trace_commitments[0], witness.tree0_root);
+    try std.testing.expectEqualDeep(fixture.trace_commitments[0], witness.tree0_link.transcript_root);
+    witness.tree0_link.rows[3][1] = witness.tree0_link.rows[3][1].add(M31.one());
+    try std.testing.expectError(error.Tree0FieldWitnessMismatch, witness.validateAgainst(&prepared));
+    witness.tree0_link.rows[3][1] = witness.tree0_link.rows[3][1].sub(M31.one());
+    witness.tree0_link.rows[3][5] = witness.tree0_link.rows[3][5].add(M31.one());
+    try std.testing.expectError(error.Tree0FieldWitnessMismatch, witness.validateAgainst(&prepared));
+    witness.tree0_link.rows[3][5] = witness.tree0_link.rows[3][5].sub(M31.one());
+    witness.program_words.rows[0][0] = witness.program_words.rows[0][0].add(M31.one());
+    try std.testing.expectError(error.InvalidFieldWordWitness, witness.validateAgainst(&prepared));
+    witness.program_words.rows[0][0] = witness.program_words.rows[0][0].sub(M31.one());
+    witness.program_hash.main[0].output[0] = witness.program_hash.main[0].output[0].add(M31.one());
+    try std.testing.expectError(error.FieldHashWitnessMismatch, witness.validateAgainst(&prepared));
+    witness.program_hash.main[0].output[0] = witness.program_hash.main[0].output[0].sub(M31.one());
+    witness.tree0_root[0] ^= 1;
+    try std.testing.expectError(error.Tree0FieldRootMismatch, witness.validateAgainst(&prepared));
+}
+
+test "V2 transcript program field preimage is exact and rejects changed words" {
+    const source_digest = try field_source.computeSemanticDigest(std.testing.allocator);
+    try std.testing.expectEqualStrings(
+        field_source.SEMANTIC_DIGEST_HEX,
+        &std.fmt.bytesToHex(source_digest, .lower),
+    );
+    var fixture = try Fixture.init(std.testing.allocator);
+    defer fixture.deinit();
+    var authority = try field_authority.AuthorityV1.init(
+        std.testing.allocator,
+        &fixture.program,
+        &fixture.plan,
+        config,
+        &fixture.data,
+        &component_descs,
+        &infra_descs,
+    );
+    defer authority.deinit();
+    try std.testing.expectEqualDeep(fixture.program.identity, authority.digest);
+    try authority.validateAgainst(
+        &fixture.program,
+        &fixture.plan,
+        config,
+        &fixture.data,
+        &component_descs,
+        &infra_descs,
+    );
+
+    authority.words[1] = authority.words[1].add(M31.one());
+    try std.testing.expectError(
+        error.ProgramFieldIdentityMismatch,
+        authority.validateAgainst(
+            &fixture.program,
+            &fixture.plan,
+            config,
+            &fixture.data,
+            &component_descs,
+            &infra_descs,
+        ),
+    );
+    authority.words[1] = authority.words[1].sub(M31.one());
+    authority.digest[0] ^= 1;
+    try std.testing.expectError(
+        error.ProgramFieldIdentityMismatch,
+        authority.validateAgainst(
+            &fixture.program,
+            &fixture.plan,
+            config,
+            &fixture.data,
+            &component_descs,
+            &infra_descs,
+        ),
+    );
+    authority.digest[0] ^= 1;
+    try authority.validateAgainst(
+        &fixture.program,
+        &fixture.plan,
+        config,
+        &fixture.data,
+        &component_descs,
+        &infra_descs,
+    );
+}
+
+test "V2 transcript program typed word source rejects witness mutation" {
+    const lang = @import("../../air/lang/mod.zig");
+    const support_air = @import("../air/test_support.zig");
+    var definition = try field_source.build(std.testing.allocator);
+    defer definition.deinit();
+    _ = try field_source.authenticate(&definition);
+    var row = field_source.logicalRow(M31.fromCanonical(17), 1, M31.fromCanonical(17), 3);
+    const values = try support_air.evaluateArena(std.testing.allocator, &definition.arena, &row);
+    defer std.testing.allocator.free(values);
+    for (definition.arena.constraintsView()) |constraint|
+        try std.testing.expect(values[lang.types.idIndex(constraint.root)].isZero());
+    row[0] = row[0].add(M31.one());
+    const mutated = try support_air.evaluateArena(std.testing.allocator, &definition.arena, &row);
+    defer std.testing.allocator.free(mutated);
+    var rejected = false;
+    for (definition.arena.constraintsView()) |constraint|
+        rejected = rejected or !mutated[lang.types.idIndex(constraint.root)].isZero();
+    try std.testing.expect(rejected);
+}
 
 test "recording channel preserves native transcript and rejects corrupt trace coordinates" {
     const recording = @import("../recording_poseidon_channel_v4.zig");

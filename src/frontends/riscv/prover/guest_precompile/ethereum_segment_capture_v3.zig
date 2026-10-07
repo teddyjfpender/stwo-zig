@@ -48,10 +48,10 @@ pub fn VerifiedEthereumSegmentV3CaptureForEngine(
             extension_context: ethereum_context.ContextV1,
             global: global_v3.MetadataV3,
         ) !Self {
-            const link = try verified_link_v3.VerifiedLinkV3.init(
+            const link = try verified_link_v3.VerifiedLinkV3.fromVerifiedCapture(
+                Engine,
                 &global,
-                &base.public_data.data,
-                &base.receipt,
+                &base,
             );
             const owned_statement = try statement_v2.RiscVStatementV2.init(
                 core,

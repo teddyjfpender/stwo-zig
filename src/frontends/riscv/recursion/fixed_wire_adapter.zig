@@ -12,6 +12,7 @@ const statement_mod = @import("../air/statement.zig");
 const engine = @import("engine.zig");
 const fixed_profile = @import("fixed_profile.zig");
 const fixed_wire = @import("fixed_wire.zig");
+const leaf_profile = @import("leaf_profile.zig");
 const protocol = @import("protocol.zig");
 
 const M31 = stwo_core.fields.m31.M31;
@@ -36,7 +37,86 @@ pub fn populate(
     claim: *const statement_mod.RiscVInteractionClaim,
     capture: *const ProofCapture,
 ) Error!void {
-    try validateCapture(dimensions, shape, statement, claim, capture);
+    const canonical = claim.canonical(statement) catch return error.InvalidInteractionClaim;
+    return populateCanonical(dimensions, destination, shape, statement, &canonical.claimed_sums, claim.interaction_pow, capture);
+}
+
+/// SegmentV2 ingress uses the canonical claims retained by a freshly
+/// verified native context. The selected fixed-wire shape and statement
+/// identity are checked before any destination byte is changed.
+pub fn populateVerifiedSegmentV2(
+    comptime dimensions: fixed_wire.Dimensions,
+    destination: *fixed_wire.FixedStarkProofWire(dimensions),
+    selected_shape: fixed_profile.ProofShapeV1,
+    selected_statement: *const statement_mod.RiscVStatement,
+    verified_bundle: anytype,
+) !void {
+    try verified_bundle.validate();
+    const verified = &verified_bundle.native.capture;
+    const reconstructed = try verified.vm_air.reconstructStatement(&verified.public_data.data);
+    if (!std.meta.eql(selected_shape.air_program_id, leaf_profile.airProgramId()) or
+        !sameStatement(selected_statement, &reconstructed.core) or
+        !std.meta.eql(selected_shape.table_layout_id, leaf_profile.tableLayoutId(selected_statement)) or
+        !std.meta.eql(selected_shape.table_layout_id, leaf_profile.tableLayoutId(&reconstructed.core)) or
+        verified.proof.commitments.len == 0 or
+        !std.meta.eql(selected_shape.preprocessing_id, verified.proof.commitments[0]))
+        return error.CaptureShapeMismatch;
+    return populateCanonical(
+        dimensions,
+        destination,
+        selected_shape,
+        selected_statement,
+        &verified.vm_air.canonical_claims,
+        verified_bundle.native.interaction_pow,
+        &verified.proof,
+    );
+}
+
+/// Compare active canonical fields, never undefined descriptor tails or slice
+/// addresses. Equal table geometry alone does not bind execution/public I/O.
+fn sameStatement(a: *const statement_mod.RiscVStatement, b: *const statement_mod.RiscVStatement) bool {
+    if (a.n_components > a.component_descs.len or b.n_components > b.component_descs.len or
+        a.n_infra > a.infra_descs.len or b.n_infra > b.infra_descs.len) return false;
+    if (a.n_components != b.n_components or a.n_infra != b.n_infra or
+        a.initial_pc != b.initial_pc or a.final_pc != b.final_pc or
+        a.total_steps != b.total_steps or a.x0_local_custody_version != b.x0_local_custody_version)
+        return false;
+    for (a.component_descs[0..a.n_components], b.component_descs[0..b.n_components]) |left, right|
+        if (!std.meta.eql(left, right)) return false;
+    for (a.infra_descs[0..a.n_infra], b.infra_descs[0..b.n_infra]) |left, right|
+        if (!std.meta.eql(left, right)) return false;
+    const x = &a.public_data;
+    const y = &b.public_data;
+    if (x.initial_pc != y.initial_pc or x.final_pc != y.final_pc or x.clock != y.clock or
+        !std.meta.eql(x.initial_regs, y.initial_regs) or
+        !std.meta.eql(x.final_regs, y.final_regs) or
+        !std.meta.eql(x.reg_last_clock, y.reg_last_clock) or
+        !std.meta.eql(x.program_root, y.program_root) or
+        !std.meta.eql(x.initial_rw_root, y.initial_rw_root) or
+        !std.meta.eql(x.final_rw_root, y.final_rw_root) or
+        !std.meta.eql(x.completion, y.completion)) return false;
+    const i = &x.io_entries;
+    const j = &y.io_entries;
+    if (i.input_start != j.input_start or i.input_len != j.input_len or
+        i.output_len != j.output_len or i.output_len_addr != j.output_len_addr or
+        i.output_data_addr != j.output_data_addr or
+        !std.mem.eql(u32, i.input_words, j.input_words) or
+        i.output_words.len != j.output_words.len) return false;
+    for (i.output_words, j.output_words) |left, right|
+        if (!std.meta.eql(left, right)) return false;
+    return true;
+}
+
+fn populateCanonical(
+    comptime dimensions: fixed_wire.Dimensions,
+    destination: *fixed_wire.FixedStarkProofWire(dimensions),
+    shape: fixed_profile.ProofShapeV1,
+    statement: *const statement_mod.RiscVStatement,
+    canonical_claims: []const QM31,
+    interaction_pow: u64,
+    capture: *const ProofCapture,
+) Error!void {
+    try validateCapture(dimensions, shape, statement, canonical_claims, capture);
 
     // Everything below is infallible. A single publication phase preserves
     // failure atomicity without allocating a multi-megabyte temporary wire.
@@ -45,8 +125,7 @@ pub fn populate(
         destination.commitments[index] = commitment;
     }
 
-    const canonical_claim = claim.canonical(statement) catch unreachable;
-    for (canonical_claim.claimed_sums, 0..) |value, index| {
+    for (canonical_claims, 0..) |value, index| {
         destination.claimed_sums[index] = qm31Wire(value);
     }
     for (capture.sampled_values, 0..) |value, index| {
@@ -86,7 +165,7 @@ pub fn populate(
     for (capture.last_layer_coefficients, 0..) |value, index| {
         destination.last_layer_coefficients[index] = qm31Wire(value);
     }
-    destination.interaction_pow = claim.interaction_pow;
+    destination.interaction_pow = interaction_pow;
     destination.pcs_pow = capture.proof_of_work;
 
     destination.validateAgainstShape(shape) catch unreachable;
@@ -96,7 +175,7 @@ fn validateCapture(
     comptime dimensions: fixed_wire.Dimensions,
     shape: fixed_profile.ProofShapeV1,
     statement: *const statement_mod.RiscVStatement,
-    claim: *const statement_mod.RiscVInteractionClaim,
+    canonical_claims: []const QM31,
     capture: *const ProofCapture,
 ) Error!void {
     try shape.validate();
@@ -104,10 +183,9 @@ fn validateCapture(
     if (shape.proof_wire_bytes != fixed_wire.serializedByteCount(dimensions))
         return error.WireByteCountMismatch;
 
-    const canonical_claim = claim.canonical(statement) catch
-        return error.InvalidInteractionClaim;
-    if (canonical_claim.claimed_sums.len != dimensions.claimed_sum_count)
+    if (canonical_claims.len != dimensions.claimed_sum_count)
         return error.CaptureShapeMismatch;
+    for (canonical_claims) |value| try validateQm31(value);
 
     const composition_columns = stwo_core.verifier_types.compositionColumnCount(
         stwo_core.verifier_types.COMPOSITION_LOG_SPLIT,

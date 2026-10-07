@@ -11,6 +11,10 @@ pub const detached_leaf_cohort_v2 = @import("detached_leaf_cohort_v2.zig");
 pub const detached_parent_preparation_v1 = @import("detached_parent_preparation_v1.zig");
 
 pub const segment_public_claim_hash_authority_v2 = @import("segment_public_claim_hash_authority_v2.zig");
+/// Opt-in native proof-capture check; recursive AIR activation remains closed.
+pub const segment_public_io_binding_v1 = @import("segment_public_io_binding_v1.zig");
+/// Opt-in verifier-owned I/O policy for native and recursive ingress.
+pub const segment_public_io_ingress_v2 = @import("segment_public_io_ingress_v2.zig");
 pub const arithmetic_circuit = @import("arithmetic_circuit.zig");
 pub const binary_arithmetic_rows_heterogeneous_v2 =
     @import("binary_arithmetic_rows_heterogeneous_v2.zig");
@@ -41,6 +45,7 @@ pub const fixed_wire = @import("fixed_wire.zig");
 pub const fixed_wire_adapter = @import("fixed_wire_adapter.zig");
 pub const fri_profile_frontier = @import("fri_profile_frontier.zig");
 pub const leaf_profile = @import("leaf_profile.zig");
+pub const leaf_profile_selected_v12 = @import("leaf_profile_selected_v12.zig");
 pub const pair_node = @import("pair_node.zig");
 pub const poseidon2_channel = @import("poseidon2_channel.zig");
 pub const proof_ingress = @import("proof_ingress.zig");
@@ -55,14 +60,30 @@ pub const segment_leaf_authority = @import("segment_leaf_authority.zig");
 pub const segment_leaf_authority_v2 = @import("segment_leaf_authority_v2.zig");
 pub const segment_leaf_local_authority_v3 =
     @import("segment_leaf_local_authority_v3.zig");
+pub const segment_execution_campaign_v3 =
+    @import("segment_execution_campaign_v3.zig");
+pub const segment_execution_plan_v3 =
+    @import("segment_execution_plan_v3.zig");
 pub const segment_leaf_local_projection_v3 =
     @import("segment_leaf_local_projection_v3.zig");
 pub const segment_leaf_local_verified_link_v3 =
     @import("segment_leaf_local_verified_link_v3.zig");
+pub const segment_leaf_wrapper_stage_manifest_v3 =
+    @import("segment_leaf_wrapper_stage_manifest_v3.zig");
 pub const segment_leaf_outer_air_v2 = @import("segment_leaf_outer_air_v2.zig");
 pub const segment_leaf_outer_authority_v2 = @import("segment_leaf_outer_authority_v2.zig");
 pub const segment_outer_cohort_v2 = @import("segment_outer_cohort_v2.zig");
 pub const segment_outer_noncore_audits_v2 = @import("segment_outer_noncore_audits_v2.zig");
+pub const segment_outer_shared_provider_field_authority_v1 =
+    @import("segment_outer_shared_provider_field_authority_v1.zig");
+pub const segment_leaf_wrapper_field_witness_v3 =
+    @import("segment_leaf_wrapper_field_witness_v3.zig");
+pub const segment_leaf_wrapper_field_hash_witness_v3 =
+    @import("segment_leaf_wrapper_field_hash_witness_v3.zig");
+pub const segment_leaf_wrapper_field_lookup_v3 =
+    @import("segment_leaf_wrapper_field_lookup_v3.zig");
+pub const segment_v2_tree0_field_witness_v3 =
+    @import("segment_v2_tree0_field_witness_v3.zig");
 pub const segment_publication_input_provider_authority_v2 =
     @import("segment_publication_input_provider_authority_v2.zig");
 pub const segment_profile = @import("segment_profile.zig");
@@ -95,8 +116,18 @@ pub const span_continuation_v1 = @import("span_continuation_v1.zig");
 pub const statement_semantics_circuit = @import("statement_semantics_circuit.zig");
 pub const statement_semantics_circuit_blake3 = @import("statement_semantics_circuit_blake3.zig");
 pub const temporal_pair_node = @import("temporal_pair_node.zig");
+pub const temporal_pair_candidate_v3 = @import("temporal_pair_candidate_v3.zig");
+pub const temporal_interval_v3 = @import("temporal_interval_v3.zig");
+pub const statement_semantics_circuit_temporal_v3 = @import("statement_semantics_circuit_temporal_v3.zig");
+pub const temporal_parent_row11_session_v3 = @import("temporal_parent_row11_session_v3.zig");
+pub const temporal_parent_inputs_v3 = @import("temporal_parent_inputs_v3.zig");
+pub const temporal_parent_roster_v3 = @import("temporal_parent_roster_v3.zig");
 pub const transcript_program = @import("transcript_program.zig");
 pub const transcript_program_v2 = @import("transcript_program_v2.zig");
+pub const transcript_program_v2_field_authority_v1 =
+    @import("transcript_program_v2_field_authority_v1.zig");
+pub const transcript_program_v2_field_word_witness_v1 =
+    @import("transcript_program_v2_field_word_witness_v1.zig");
 pub const transcript_shape = @import("transcript_shape.zig");
 pub const vm_public_claim = @import("vm_public_claim.zig");
 pub const vm_public_semantics_circuit = @import("vm_public_semantics_circuit.zig");
@@ -176,6 +207,71 @@ pub const segment_verified_publication_v2 = @import("segment_verified_publicatio
 pub const segment_verified_artifact_v2 = @import("segment_verified_artifact_v2.zig");
 pub const segment_outer_transaction_support_v2 = @import("segment_outer_transaction_support_v2.zig");
 pub const segment_outer_transaction_v2 = @import("segment_outer_transaction_v2.zig");
+pub const segment_outer_protocol_v3 = @import("segment_outer_protocol_v3.zig");
+pub const segment_outer_transaction_v3 = @import("segment_outer_transaction_v3.zig");
+pub const segment_leaf_wrapper_protocol_v3 = @import("segment_leaf_wrapper_protocol_v3.zig");
+pub const segment_leaf_wrapper_source_projection_v3 = @import("segment_leaf_wrapper_source_projection_v3.zig");
+pub const segment_leaf_wrapper_hash_call_roster_v3 = @import("segment_leaf_wrapper_hash_call_roster_v3.zig");
+pub const segment_leaf_wrapper_source_projection_direct_v3 = @import("segment_leaf_wrapper_source_projection_direct_v3.zig");
+pub const segment_leaf_wrapper_cohort_calls_v3 = @import("segment_leaf_wrapper_cohort_calls_v3.zig");
+pub const segment_leaf_wrapper_cohort_provider_v3 = @import("segment_leaf_wrapper_cohort_provider_v3.zig");
+pub const segment_leaf_wrapper_cohort_direct_rows_v4 = @import("segment_leaf_wrapper_cohort_direct_rows_v4.zig");
+pub const segment_leaf_wrapper_cohort_closure_v4 = @import("segment_leaf_wrapper_cohort_closure_v4.zig");
+pub const segment_leaf_wrapper_cohort_candidate_v4 = @import("segment_leaf_wrapper_cohort_candidate_v4.zig");
+pub const segment_leaf_wrapper_range_provider_direct_v4 = @import("segment_leaf_wrapper_range_provider_direct_v4.zig");
+pub const segment_leaf_wrapper_range_provider_v7 = @import("segment_leaf_wrapper_range_provider_v7.zig");
+pub const segment_leaf_wrapper_roster_direct_v4 = @import("air/segment_leaf_wrapper_roster_direct_v4.zig");
+pub const segment_leaf_wrapper_roster_direct_v5 = @import("air/segment_leaf_wrapper_roster_direct_v5.zig");
+pub const segment_leaf_wrapper_roster_direct_v6 = @import("air/segment_leaf_wrapper_roster_direct_v6.zig");
+pub const segment_leaf_wrapper_roster_direct_v7 = @import("air/segment_leaf_wrapper_roster_direct_v7.zig");
+pub const segment_leaf_wrapper_roster_direct_v8 = @import("air/segment_leaf_wrapper_roster_direct_v8.zig");
+pub const segment_leaf_template_payload_fixed_v7 = @import("segment_leaf_template_payload_fixed_v7.zig");
+pub const segment_leaf_wrapper_physical_bridge_v7 = @import("segment_leaf_wrapper_physical_bridge_v7.zig");
+pub const segment_leaf_wrapper_source_physical_v7 = @import("segment_leaf_wrapper_source_physical_v7.zig");
+pub const segment_core_fri_rows25_26_fixed_v7 = @import("segment_core_fri_rows25_26_fixed_v7.zig");
+pub const segment_leaf_wrapper_row36_direct_v8 = @import("segment_leaf_wrapper_row36_direct_v8.zig");
+pub const segment_leaf_wrapper_cohort_closure_v8 = @import("segment_leaf_wrapper_cohort_closure_v8.zig");
+pub const segment_leaf_public_graph_fixed_v8 = @import("segment_leaf_public_graph_fixed_v8.zig");
+pub const segment_leaf_public_graph_lowering_v8 = @import("segment_leaf_public_graph_lowering_v8.zig");
+pub const segment_direct_transcript_lowering_fixed_v8 = @import("segment_direct_transcript_lowering_fixed_v8.zig");
+pub const vm_air_preleaf_graph_pin_v8 = @import("vm_air_preleaf_graph_pin_v8.zig");
+pub const segment_core_fri_row28_fixed_v8 = @import("segment_core_fri_row28_fixed_v8.zig");
+pub const segment_core_fri_row27_fixed_v9 = @import("segment_core_fri_row27_fixed_v9.zig");
+pub const segment_core_fri_row29_fixed_v9 = @import("segment_core_fri_row29_fixed_v9.zig");
+pub const segment_core_rows23_24_authority_gap_v10 = @import("segment_core_rows23_24_authority_gap_v10.zig");
+pub const segment_core_trace_row23_fixed_v11 = @import("segment_core_trace_row23_fixed_v11.zig");
+pub const segment_core_expected_layout_from_statement_v11 = @import("segment_core_expected_layout_from_statement_v11.zig");
+pub const segment_core_expected_pcs_masks_v12 = @import("segment_core_expected_pcs_masks_v12.zig");
+pub const segment_core_preleaf_key_v12 = @import("segment_core_preleaf_key_v12.zig");
+pub const segment_core_pcs_row24_fixed_v11 = @import("segment_core_pcs_row24_fixed_v11.zig");
+pub const segment_leaf_wrapper_protocol_direct_v5 = @import("segment_leaf_wrapper_protocol_direct_v5.zig");
+pub const segment_leaf_wrapper_protocol_direct_v6 = @import("segment_leaf_wrapper_protocol_direct_v6.zig");
+pub const segment_leaf_wrapper_cohort_rows_v5 = @import("segment_leaf_wrapper_cohort_rows_v5.zig");
+pub const segment_leaf_wrapper_cohort_closure_v5 = @import("segment_leaf_wrapper_cohort_closure_v5.zig");
+pub const segment_leaf_wrapper_cohort_closure_v6 = @import("segment_leaf_wrapper_cohort_closure_v6.zig");
+pub const segment_leaf_wrapper_row36_direct_v6 = @import("segment_leaf_wrapper_row36_direct_v6.zig");
+pub const segment_leaf_wrapper_cohort_candidate_v5 = @import("segment_leaf_wrapper_cohort_candidate_v5.zig");
+pub const transcript_program_v2_field_bridge_v5 = @import("air/transcript_program_v2_field_bridge_v5.zig");
+pub const transcript_program_v2_template_words_v6 = @import("transcript_program_v2_template_words_v6.zig");
+pub const transcript_instruction_template_v6 = @import("transcript_instruction_template_v6.zig");
+pub const segment_statement_row11_fixed_v6 = @import("segment_statement_row11_fixed_v6.zig");
+pub const vm_air_composition_control_fixed_v6 = @import("vm_air_composition_control_fixed_v6.zig");
+pub const segment_leaf_wrapper_row5_fanout_v6 = @import("segment_leaf_wrapper_row5_fanout_v6.zig");
+pub const ethereum_leaf_link_source_direct_v6 = @import("air/ethereum_leaf_link_source_direct_v6.zig");
+pub const segment_leaf_statement_source_direct_v6 = @import("air/segment_leaf_statement_source_direct_v6.zig");
+pub const segment_leaf_wrapper_local_identity_v5 = @import("segment_leaf_wrapper_local_identity_v5.zig");
+pub const segment_leaf_statement_source_direct_v5 = @import("air/segment_leaf_statement_source_direct_v5.zig");
+pub const ethereum_leaf_child_field_program_v1 = @import("ethereum_leaf_child_field_program_v1.zig");
+pub const segment_leaf_wrapper_row5_wire_v6 = @import("segment_leaf_wrapper_row5_wire_v6.zig");
+pub const segment_leaf_wrapper_row5_halves_v7 = @import("segment_leaf_wrapper_row5_halves_v7.zig");
+pub const segment_leaf_wrapper_wire_half_witness_v7 = @import("segment_leaf_wrapper_wire_half_witness_v7.zig");
+pub const ethereum_leaf_child_field_witness_v1 = @import("ethereum_leaf_child_field_witness_v1.zig");
+pub const segment_leaf_wrapper_las2_boundary_v4 = @import("segment_leaf_wrapper_las2_boundary_v4.zig");
+pub const segment_leaf_wrapper_global_statement_boundary_v6 = @import("segment_leaf_wrapper_global_statement_boundary_v6.zig");
+pub const ethereum_leaf_link_program_v1 = @import("ethereum_leaf_link_program_v1.zig");
+pub const ethereum_leaf_link_program_v2 = @import("ethereum_leaf_link_program_v2.zig");
+pub const ethereum_leaf_link_program_v3 = @import("ethereum_leaf_link_program_v3.zig");
+pub const ethereum_leaf_direct_public_authority_v3 = @import("ethereum_leaf_direct_public_authority_v3.zig");
 pub const segment_public_wire_boundary_v2 = @import("segment_public_wire_boundary_v2.zig");
 pub const engine_protocol = @import("engine_protocol.zig");
 pub const canonical_proof_identity_v1 = @import("canonical_proof_identity_v1.zig");
