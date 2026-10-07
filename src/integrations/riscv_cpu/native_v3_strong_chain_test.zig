@@ -288,6 +288,8 @@ fn diagnoseDirect50(
     defer freeDirectTree(allocator, interaction);
     const setup_ns = phase_timer.lap();
     try candidate.fillPreprocessed(allocator, cohort, &plan, &writer, &rows50, pp);
+    try fixed_rows.checkV12Row11FixedParity(allocator, selected, &plan, pp);
+    std.debug.print("DIRECT50_V12_ROW11_FIXED selected_before_proof=true source_parity=true proof_created=false\n", .{});
     const preprocessed_ns = phase_timer.lap();
     try candidate.fillMain(allocator, cohort, &plan, &writer, &rows50, main);
     const main_ns = phase_timer.lap();

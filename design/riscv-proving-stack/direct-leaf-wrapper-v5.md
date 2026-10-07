@@ -199,6 +199,10 @@ the later V7 template and authenticated transcript. It then requires the
 verified capture to match the selected statement and shape. A detached
 verifier still needs an independently admitted statement source; no complete
 wrapper proof or parent is created.
+The same selected canonical wire fixes row 11's four sparse-section counts
+before proof. Its reconstructed complete padded preprocessing columns now
+match the real q193 Tree0 row 11 cell by cell; changing the section shape
+fails admission. This qualifies a fixed-column source, not the complete key.
 The first pre-proof comparison caught an uninitialized legacy custody-version
 field in the statement geometry workspace (`0xaaaaaaaa` under the test
 allocator). The common V1/V2 builder now sets it explicitly to zero, while

@@ -28,6 +28,7 @@ pub const SelectedV12 = struct {
     vm_plan: recursion.air.verifier_schedule.Plan,
     recursion_plan: recursion.air.verifier_schedule.Plan,
     instruction_template: recursion.transcript_instruction_template_v6.InstructionTemplateV6,
+    row11_shape: recursion.segment_statement_row11_fixed_v6.WireShapeV6,
 
     pub fn deinit(self: *@This()) void {
         self.recursion_plan.deinit();
@@ -52,6 +53,14 @@ pub fn selectV12BeforeProof(
     errdefer allocator.free(words);
     _ = try local_source.encodeCanonical(words);
     const public_data = try frontend.air.public_data_v2.PublicDataV2.authenticate(words);
+    const view = try recursion.segment_statement_v2.authenticateCanonicalWire(words);
+    const row11_shape = try recursion.segment_statement_row11_fixed_v6.WireShapeV6.init(.{
+        view.entry_snapshot.count,
+        view.exit_snapshot.count,
+        view.entry_memory_clocks.count,
+        view.exit_memory_clocks.count,
+    });
+    try row11_shape.validateAgainstView(&view);
     const statement = try frontend.statement_shape_inspection.inspectExactV2(
         allocator,
         &projection.local_result,
@@ -105,6 +114,7 @@ pub fn selectV12BeforeProof(
         .vm_plan = vm_plan,
         .recursion_plan = recursion_plan,
         .instruction_template = instruction_template,
+        .row11_shape = row11_shape,
     };
 }
 
@@ -133,6 +143,8 @@ pub fn checkV12SelectedFixedWire(
 ) !void {
     const dimensions = Q193_DIMENSIONS;
     const native = &verified.native.capture;
+    const captured_view = try recursion.segment_statement_v2.authenticateCanonicalWire(native.public_data.data.words());
+    try selected.row11_shape.validateAgainstView(&captured_view);
     const captured_statement = try native.vm_air.reconstructStatement(&native.public_data.data);
     const selected_shape = selected.shape;
     const captured_shape = try recursion.leaf_profile.deriveShape(dimensions, &captured_statement.core, &native.proof);
@@ -180,6 +192,39 @@ pub fn checkV12SelectedFixedWire(
     ));
     std.crypto.hash.sha2.Sha256.hash(std.mem.asBytes(wire), &after, .{});
     try std.testing.expectEqual(before, after);
+}
+
+pub fn checkV12Row11FixedParity(
+    allocator: std.mem.Allocator,
+    selected: *const SelectedV12,
+    old_plan: *const recursion.segment_leaf_wrapper_roster_direct_v5.Plan,
+    old_tree: [][]M31,
+) !void {
+    const old = old_plan.placements[11].?;
+    const count = recursion.segment_statement_row11_fixed_v6.COLUMN_COUNT;
+    if (old.geometry.log_size != selected.row11_shape.log_size or
+        old.geometry.preprocessed_columns != count or
+        old.preprocessed_offset > old_tree.len or
+        count > old_tree.len - old.preprocessed_offset)
+        return error.V12Row11FixedGeometryMismatch;
+    const capacity = @as(usize, 1) << @intCast(selected.row11_shape.log_size);
+    const columns = try allocator.alloc([]M31, count);
+    var initialized: usize = 0;
+    defer {
+        for (columns[0..initialized]) |column| allocator.free(column);
+        allocator.free(columns);
+    }
+    for (columns) |*column| {
+        column.* = try allocator.alloc(M31, capacity);
+        @memset(column.*, M31.zero());
+        initialized += 1;
+    }
+    try selected.row11_shape.writePhysical(columns);
+    for (columns, old_tree[old.preprocessed_offset..][0..count]) |expected, actual| {
+        if (actual.len != capacity) return error.V12Row11FixedSourceMismatch;
+        for (expected, actual) |a, b|
+            if (!a.eql(b)) return error.V12Row11FixedSourceMismatch;
+    }
 }
 
 pub fn allocateV8StatementColumns(allocator: std.mem.Allocator, count: usize) ![][]M31 {
