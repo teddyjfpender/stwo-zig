@@ -29,7 +29,7 @@ _HASH_OPS = frozenset({
 _OPS = frozenset({"constant", "cast_m31", "array_get", "array_concat", "array_slice", "add", "mul", "inv", "is_zero", "bool_not", "bool_and", "bool_or", "bool_xor", "bool_select", "add_const",
                   "mul_const", "sum_lanes", "select", "repeat",
                   "u256_add", "u256_le", "u256_add_checked", "u256_sub", "u256_sub_checked",
-                  "hash_sha256d_header", "bitcoin_target_mainnet",
+                  "hash_sha256d_header", "bitcoin_target_mainnet", "bitcoin_block_work",
                   "bitcoin_prev_hash", "bitcoin_header_bits", "bitcoin_header_time", "u32_lt",
                   "bitcoin_genesis_hash_mainnet"}) | _HASH_OPS
 _NODE_FIELDS = frozenset({"name", "op", "lhs", "rhs", "selector",
@@ -206,6 +206,11 @@ def _validated_shapes(relation: Mapping[str, Any]) -> tuple[dict[str, tuple[str,
             if lhs != ("u16", 16) or rhs != ("u16", 16):
                 raise OracleError(f"{name}: {op} requires two 16-limb u256 operands")
             shape = ("u16", 16) if op in {"u256_add", "u256_add_checked", "u256_sub", "u256_sub_checked"} else ("m31", 1)
+        elif op == "bitcoin_block_work":
+            _absent(node, "rhs", "selector", "constant", "length", "rounds", "body")
+            if lhs != ("u16", 16):
+                raise OracleError(f"{name}: block_work requires a 16-limb u256 target")
+            shape = ("u16", 16)
         elif op == "u32_lt":
             _absent(node, "constant", "length", "rounds", "body")
             if lhs != ("u16", 2) or rhs != ("u16", 2):
@@ -392,6 +397,12 @@ def evaluate_relation(relation: Mapping[str, Any], assignment: Mapping[str, Any]
             if not 0 < target <= 0xffff << 208:
                 raise OracleError(f"{name}: target exceeds mainnet powLimit or is zero")
             result = [(target >> (16 * index)) & 0xffff for index in range(16)]
+        elif op == "bitcoin_block_work":
+            target = sum(word << (16 * index) for index, word in enumerate(lhs))
+            if not 0 < target < (1 << 256) - 1:
+                raise OracleError(f"{name}: block_work target must be in 1..2^256-2")
+            work = (1 << 256) // (target + 1)
+            result = [(work >> (16 * index)) & 0xffff for index in range(16)]
         elif op == "u32_lt":
             result = [int(lhs[0] + (lhs[1] << 16) < rhs[0] + (rhs[1] << 16))]
         elif op in ("bitcoin_prev_hash", "bitcoin_header_bits", "bitcoin_header_time"):

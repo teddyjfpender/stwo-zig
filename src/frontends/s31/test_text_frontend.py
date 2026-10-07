@@ -305,6 +305,17 @@ circuit checked(private a: UInt256, private b: UInt256) -> public [m31; 1] {
         self.assertEqual([node["op"] for node in retyped["nodes"]],
                          ["cast_m31", "hash_poseidon2_leaf"])
 
+    def test_bitcoin_block_work_lowers_as_one_checked_integer_node(self) -> None:
+        relation, _ = compile_file(EXAMPLES / "bitcoin_block_work.s31")
+        self.assertEqual(relation, json.loads((EXAMPLES / "bitcoin_block_work.s31.json").read_text()))
+        self.assertEqual([node["op"] for node in relation["nodes"]],
+                         ["bitcoin_block_work", "cast_m31", "hash_poseidon2_leaf"])
+        with self.assertRaisesRegex(SourceError, "block_work requires a UInt256 target"):
+            compile_text("""circuit bad(private target: Bytes32) -> public Digest<Poseidon2> {
+                let work = std::bitcoin::block_work(target);
+                std::hash::poseidon2_leaf(std::bytes::limbs_m31(work))
+            }""")
+
     def test_u256_subtraction_has_explicit_underflow_modes(self) -> None:
         for function, op in (("sub_u256", "u256_sub"),
                              ("sub_u256_checked", "u256_sub_checked")):

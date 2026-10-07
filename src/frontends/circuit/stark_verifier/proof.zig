@@ -54,6 +54,7 @@ pub const ProofConfig = struct {
     cumulative_sum_columns: []const bool,
     log_trace_size: usize,
     fri: FriConfigV2,
+    composition_log_split: u32,
 
     /// `ProofConfig::new`. Copies `component_shapes`; free with `deinit`.
     pub fn init(
@@ -66,7 +67,7 @@ pub const ProofConfig = struct {
         var n_trace_columns: usize = 0;
         var n_interaction_columns: usize = 0;
         for (component_shapes) |component| {
-            if (component.interaction_columns < SECURE_EXTENSION_DEGREE) return error.TooFewInteractionColumns;
+            if (component.interaction_columns != 0 and component.interaction_columns < SECURE_EXTENSION_DEGREE) return error.TooFewInteractionColumns;
             n_trace_columns += component.trace_columns;
             n_interaction_columns += component.interaction_columns;
         }
@@ -85,6 +86,7 @@ pub const ProofConfig = struct {
         for (component_shapes) |component| {
             // The last SECURE_EXTENSION_DEGREE interaction columns of every
             // component are its cumulative sum.
+            if (component.interaction_columns == 0) continue;
             const plain = component.interaction_columns - SECURE_EXTENSION_DEGREE;
             @memset(cumulative[at..][0..plain], false);
             @memset(cumulative[at + plain ..][0..SECURE_EXTENSION_DEGREE], true);
@@ -99,6 +101,7 @@ pub const ProofConfig = struct {
             .cumulative_sum_columns = cumulative,
             .log_trace_size = log_trace_size,
             .fri = pcs_config.fri_config,
+            .composition_log_split = 1,
         };
     }
 
@@ -126,7 +129,7 @@ pub const ProofConfig = struct {
             self.n_preprocessed_columns,
             self.n_trace_columns,
             self.n_interaction_columns,
-            oods.N_COMPOSITION_COLUMNS,
+            self.shape().nCompositionColumns(),
         };
     }
 
@@ -137,6 +140,7 @@ pub const ProofConfig = struct {
             .component_shapes = self.component_shapes,
             .log_trace_size = @intCast(self.log_trace_size),
             .fri = self.fri,
+            .composition_log_split = self.composition_log_split,
         };
     }
 
@@ -241,7 +245,7 @@ pub fn Proof(comptime T: type) type {
         preprocessed_columns_at_oods: []T,
         trace_at_oods: []T,
         interaction_at_oods: []InteractionAtOods(T),
-        composition_eval_at_oods: [oods.N_COMPOSITION_COLUMNS]T,
+        composition_eval_at_oods: []T,
         eval_domain_samples: EvalDomainSamples(T),
         eval_domain_auth_paths: AuthPaths(T),
         pow_nonce: T,
@@ -260,6 +264,7 @@ pub fn Proof(comptime T: type) type {
             try expectLen(self.preprocessed_columns_at_oods.len, config.n_preprocessed_columns);
             try expectLen(self.trace_at_oods.len, config.n_trace_columns);
             try expectLen(self.interaction_at_oods.len, config.n_interaction_columns);
+            try expectLen(self.composition_eval_at_oods.len, config.shape().nCompositionColumns());
             for (self.interaction_at_oods, config.cumulative_sum_columns) |column, is_cumulative_sum| {
                 if ((column.at_prev != null) != is_cumulative_sum) return error.ProofShapeMismatch;
             }
@@ -331,7 +336,7 @@ pub fn emptyProof(allocator: std.mem.Allocator, config: ProofConfig) std.mem.All
         .preprocessed_columns_at_oods = try allocator.alloc(NoValue, config.n_preprocessed_columns),
         .trace_at_oods = try allocator.alloc(NoValue, config.n_trace_columns),
         .interaction_at_oods = interaction,
-        .composition_eval_at_oods = @splat(.{}),
+        .composition_eval_at_oods = try allocator.alloc(NoValue, config.shape().nCompositionColumns()),
         .eval_domain_samples = .{ .n_queries = n_queries, .data = samples },
         .eval_domain_auth_paths = .{ .n_queries = n_queries, .trees = eval_trees },
         .pow_nonce = .{},
@@ -363,7 +368,7 @@ pub fn guess(comptime V: type, ctx: *builder.Context(V), proof: *const Proof(V))
         const at_oods = try ctx.guess(column.at_oods);
         wire.* = .{ .at_oods = at_oods, .at_prev = if (column.at_prev) |at_prev| try ctx.guess(at_prev) else null };
     }
-    for (&out.composition_eval_at_oods, proof.composition_eval_at_oods) |*wire, value| wire.* = try ctx.guess(value);
+    out.composition_eval_at_oods = try guessValues(V, ctx, proof.composition_eval_at_oods);
 
     out.eval_domain_samples.n_queries = proof.eval_domain_samples.n_queries;
     for (&out.eval_domain_samples.data, proof.eval_domain_samples.data) |*wires, values| {

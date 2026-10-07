@@ -15,7 +15,8 @@ const FriConfigV2 = @import("pcs/config_v2.zig").FriConfigV2;
 
 /// Committed trees: preprocessed, trace, interaction, composition.
 pub const n_traces: usize = 4;
-/// `N_COMPOSITION_COLUMNS = COMPOSITION_SPLIT (2) * EXTENSION_DEGREE (4)`.
+/// Legacy split-one composition width. A proof shape may request a larger
+/// split through `composition_log_split`.
 pub const n_composition_columns: usize = 8;
 /// The trailing interaction columns of every component that hold its
 /// cumulative sum, also sampled at the previous point.
@@ -47,15 +48,17 @@ pub const ProofShape = struct {
     component_shapes: []const ComponentShape,
     log_trace_size: u32,
     fri: FriConfigV2,
+    composition_log_split: u32 = 1,
 
     /// Rejects a shape upstream would assert on or that has no proof: a
     /// component with fewer interaction columns than its cumulative sum, a
     /// zero FRI fold step, a last layer larger than the trace, or an
     /// evaluation domain past 2^31.
     pub fn validate(self: ProofShape) Error!void {
-        for (self.component_shapes) |shape| {
-            if (shape.interaction_columns < n_cumulative_sum_columns_per_component) return error.InvalidProofShape;
-        }
+        for (self.component_shapes) |shape| if (shape.interaction_columns != 0 and
+            shape.interaction_columns < n_cumulative_sum_columns_per_component) return error.InvalidProofShape;
+        if (@import("verifier_types.zig").compositionColumnCount(self.composition_log_split, 4) == null)
+            return error.InvalidProofShape;
         if (self.fri.fold_step == 0) return error.InvalidProofShape;
         if (self.fri.log_last_layer_degree_bound > self.log_trace_size) return error.InvalidProofShape;
         if (self.logEvaluationDomainSize() > 31) return error.InvalidProofShape;
@@ -78,12 +81,20 @@ pub const ProofShape = struct {
     }
 
     pub fn nCumulativeSumColumns(self: ProofShape) usize {
-        return self.component_shapes.len * n_cumulative_sum_columns_per_component;
+        var total: usize = 0;
+        for (self.component_shapes) |component| {
+            if (component.interaction_columns != 0) total += n_cumulative_sum_columns_per_component;
+        }
+        return total;
+    }
+
+    pub fn nCompositionColumns(self: ProofShape) usize {
+        return @import("verifier_types.zig").compositionColumnCount(self.composition_log_split, 4).?;
     }
 
     /// `[preprocessed, trace, interaction, composition]` column counts.
     pub fn nColumnsPerTrace(self: ProofShape) [n_traces]usize {
-        return .{ self.n_preprocessed_columns, self.nTraceColumns(), self.nInteractionColumns(), n_composition_columns };
+        return .{ self.n_preprocessed_columns, self.nTraceColumns(), self.nInteractionColumns(), self.nCompositionColumns() };
     }
 
     pub fn nQueries(self: ProofShape) usize {
@@ -193,4 +204,23 @@ test "circuit proof shape: validation" {
     bad = test_shape;
     bad.component_shapes = &thin;
     try std.testing.expectError(error.InvalidProofShape, bad.validate());
+}
+
+test "circuit proof shape: split-two composition and trace-only components" {
+    const shapes = [_]ComponentShape{
+        .{ .trace_columns = 3, .interaction_columns = 0 },
+        .{ .trace_columns = 0, .interaction_columns = 8 },
+    };
+    var shape = test_shape;
+    shape.component_shapes = &shapes;
+    shape.composition_log_split = 2;
+    try shape.validate();
+    try std.testing.expectEqual(@as(usize, 16), shape.nCompositionColumns());
+    try std.testing.expectEqual(@as(usize, 4), shape.nCumulativeSumColumns());
+    const columns = shape.nColumnsPerTrace();
+    try std.testing.expectEqualSlices(usize, &.{ 3, 3, 8, 16 }, &columns);
+    try std.testing.expect(!shape.isCumulativeSumColumn(3));
+    try std.testing.expect(shape.isCumulativeSumColumn(4));
+    const expected_delta = 4 * (qm31_bytes + shape.nQueries() * m31_bytes) - 4 * qm31_bytes;
+    try std.testing.expectEqual(test_shape.serializedLen() + expected_delta, shape.serializedLen());
 }

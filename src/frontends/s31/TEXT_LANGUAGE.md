@@ -132,6 +132,7 @@ zero-row view for byte and integer operations.
 | `std::bitcoin::hash_bytes(hash)` | No node; change nominal type | `BlockHash` to `Bytes32` in raw digest byte order. |
 | `std::bitcoin::parent_hash(header)` | `bitcoin_prev_hash` | `Bytes80` to `BlockHash`; fixed view of serialized bytes 4–35, which must be equated with the claimed parent hash. |
 | `std::bitcoin::target_mainnet(header)` | `bitcoin_target_mainnet` | `Bytes80` to `UInt256`; decodes `nBits` at bytes 72–75 and constrains a nonzero target within mainnet `powLimit`. |
+| `std::bitcoin::block_work(target)` | `bitcoin_block_work` | `UInt256` to `UInt256`; proves Bitcoin's `floor(2^256/(target+1))` with checked 256-bit division, strict remainder bound, and overflow rejection. |
 | `std::bitcoin::prev_hash(header)` | `bitcoin_prev_hash` | `Bytes80` to `Bytes32`; fixed view of serialized bytes 4–35. |
 | `std::bitcoin::header_bits(header)` | `bitcoin_header_bits` | `Bytes80` to `[u16; 2]`; fixed view of serialized bytes 72–75. |
 | `std::bitcoin::header_time(header)` | `bitcoin_header_time` | `Bytes80` to `[u16; 2]`; fixed view of little-endian timestamp bytes 68–71. |

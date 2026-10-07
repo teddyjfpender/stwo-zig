@@ -24,7 +24,7 @@ general module loader or user-published package format yet.
 | `std::bool` | `not`, `and`, `or`, `xor`, `select` | Scalar typed bits; input bitness is constrained, and every result follows from Boolean field identities. |
 | `std::bytes` | `to_u256_le`, `from_u256_le`, `limbs_m31` | Explicit nominal byte/integer reinterpretation and value-preserving cast of sixteen `u16` limbs. |
 | `std::hash` | Poseidon2 and BLAKE2s reduced leaf/pair hashes; byte-exact SHA256d of `Bytes80` | Existing pinned hash nodes plus a constrained three-block SHA circuit. |
-| `std::bitcoin` | `target_mainnet(Bytes80)`, `pow_valid(Bytes80)` | Constrained compact `nBits` decoder with mainnet powLimit. `pow_valid` expands to the existing byte-exact SHA256d, little-endian `UInt256` view, target decode, and unsigned comparison; it introduces no new relation operation. |
+| `std::bitcoin` | `target_mainnet(Bytes80)`, `pow_valid(Bytes80)`, `block_work(UInt256)` | Constrained compact `nBits` decoder with mainnet powLimit. `pow_valid` expands to byte-exact SHA256d, little-endian `UInt256` view, target decode, and unsigned comparison. `block_work` lowers to checked 256-bit division with a 512-bit product relation and strict remainder bound. |
 | `std::merkle` | Fixed-depth Poseidon2 and BLAKE2s paths | Hash nodes plus two constrained selects per level. |
 
 All math operations have fixed shapes. Most operate independently on the lanes
@@ -52,12 +52,13 @@ calculation, generated native proofs, a changed public bit, and invalid nonce
 and compact-target witnesses. The helper returns a constrained bit; callers
 that require a valid header must assert that it equals one.
 
-### Next Bitcoin mathlib feature: checked work division
+### Checked Bitcoin work division
 
-The next high-value integer primitive is a checked unsigned
-`div_rem_u256(numerator, nonzero_denominator) -> (quotient, remainder)`.
-For Bitcoin's nonzero decoded target `t`, a `block_work(t)` helper can then
-compute Core's `floor(2^256 / (t+1))` without relying on host arithmetic:
+The Zig circuit API now has checked unsigned
+`divRemU256(numerator, nonzero_denominator) -> (quotient, remainder)`.
+The source language exposes the complete Bitcoin calculation as
+`std::bitcoin::block_work(t: UInt256) -> UInt256`. For a nonzero target `t`,
+it computes Core's `floor(2^256 / (t+1))` through proved constraints:
 
 ```text
 d = checked_add_u256(t, 1)
@@ -65,17 +66,14 @@ d = checked_add_u256(t, 1)
 work = checked_add_u256(q, 1)
 ```
 
-The division relation must prove `q*d + r = bitwise_not_256(t)` as an
-**integer**, with a checked 512-bit product, zero upper product limbs,
-`0 <= r < d`, and `d != 0`. A direct sum of 16-bit limb products can wrap in
-M31; a sound first implementation can use 8-bit product digits, bounded
-carries, and a verified unsigned remainder comparison. The existing
-`add_u256_checked` then updates accumulated `ChainWork` and rejects overflow.
-`Target`, `Work`, and `ChainWork` should remain distinct nominal types, with
-the target tied to the selected network policy. Differential tests should
-cover Bitcoin Core's block-proof calculation, target boundaries, zero and
-overflow rejection, and changed quotient/remainder witnesses. This division
-and typed chainwork functionality is **proposed, not implemented**.
+The [division design and measured circuit geometry](BITCOIN_WORK_DIVISION.md)
+show the exact byte-column equations and tests. The circuit proves `q*d+r`
+as a 512-bit integer equality, `0 <= r < d`, and `d != 0`; every column is
+bounded below the M31 modulus. The Zig API also has distinct `Target`,
+`Work`, and `ChainWork` wrappers and checked accumulation. These nominal
+types have not yet been added to the S31 source language, and a general
+pair-returning division source operation remains open. A proof-level
+negative corpus and a specialized faster work chip are also open.
 
 The compiler checks types and canonical field constants before relation emission.
 `pow<K>` requires a compile-time exponent `0 <= K < p`, where

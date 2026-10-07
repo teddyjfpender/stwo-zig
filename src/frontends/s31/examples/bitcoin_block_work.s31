@@ -1,0 +1,9 @@
+use std@1;
+
+// Genesis target is 0xffff << 208. Bitcoin block work is 0x100010001.
+// UInt256 limbs and the output commitment use little-endian u16 digits.
+circuit bitcoin_block_work(private target: UInt256) -> public Digest<Poseidon2> {
+    let work = std::bitcoin::block_work(target);
+    let limbs = std::bytes::limbs_m31(work);
+    std::hash::poseidon2_leaf(limbs)
+}

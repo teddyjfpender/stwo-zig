@@ -462,6 +462,28 @@ pub fn build(b: *std.Build) void {
         .dependOn(&sha_fused_fold_proof_tests.step);
     b.step("test-sha-fused-fold-proof", "Prove and verify a checkpoint-anchored fused SHA Bitcoin fold")
         .dependOn(&b.addRunArtifact(sha_fused_fold_proof_tests).step);
+    const fused_chain_verifier_root = b.createModule(.{
+        .root_source_file = b.path("bitcoin_fused_chain_verifier_test.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    fused_chain_verifier_root.addImport("stwo_core", core);
+    fused_chain_verifier_root.addImport("stwo_prover_engine", cpu.import_table.get("stwo_prover_engine") orelse @panic("missing prover engine"));
+    fused_chain_verifier_root.addImport("stwo_circuit_frontend", circuit);
+    fused_chain_verifier_root.addImport("stwo_circuit_cpu_integration", cpu);
+    fused_chain_verifier_root.addImport("stwo_s31_prototype", frontend);
+    fused_chain_verifier_root.addImport("stwo_cairo_frontend", cpu.import_table.get("stwo_cairo_frontend") orelse @panic("missing Cairo frontend"));
+    fused_chain_verifier_root.addImport("interop_postcard", sha_postcard);
+    fused_chain_verifier_root.addImport("s31_air_programs", official_air);
+    fused_chain_verifier_root.addImport("s31_sha_provider", sha_provider);
+    fused_chain_verifier_root.addAnonymousImport("s31_air_projection", .{
+        .root_source_file = .{ .cwd_relative = b.pathFromRoot("../../../vectors/circuit/official/compiled_air_constraints_v1.bin") },
+    });
+    const fused_chain_verifier_tests = b.addTest(.{ .root_module = fused_chain_verifier_root });
+    b.step("check-bitcoin-fused-chain-verifier", "Compile the sealed one-header fused Bitcoin verifier")
+        .dependOn(&fused_chain_verifier_tests.step);
+    b.step("test-bitcoin-fused-chain-verifier", "Validate the sealed fused Bitcoin key and statement")
+        .dependOn(&b.addRunArtifact(fused_chain_verifier_tests).step);
     const sha_fused_fold_matched_root = b.createModule(.{
         .root_source_file = b.path("sha_fused_fold_matched_bench_test.zig"),
         .target = target,

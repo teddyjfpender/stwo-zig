@@ -1,0 +1,81 @@
+{
+  "command": "S31_FOLD_MATCHED_PRODUCTION=1 zig build --build-file src/frontends/s31/build.zig test-sha-fused-fold-matched-bench -Doptimize=ReleaseFast -j1",
+  "compiler": {
+    "optimization": "ReleaseFast",
+    "zig_version": "0.15.2"
+  },
+  "fixture_sha256": "31321d8d976c52b773eef92db2d4bb8f13ada2556d24d2c8e5bf8f56e852fa1a",
+  "machine": {
+    "architecture": "arm64",
+    "platform": "macOS-26.7.1-arm64-arm-64bit-Mach-O",
+    "processor": "arm"
+  },
+  "measurement_limit": "Single sequential sample, generic then fused SHA. Both outer proofs use FRI26/70/fold1 production parameters; this is not a security audit or a repeatability claim.",
+  "native_verification": "both proof byte streams accepted by their native verifiers after independent key and public output derivation",
+  "projection_sha256": "ceea3c293a4fcd3ca8a20ba62f4845732f8725bdf610fe6367c83adcb8be7e09",
+  "proofs": [
+    {
+      "composition_commit_ns": 248663000,
+      "composition_eval_ns": 1211679000,
+      "composition_interpolate_ns": 40788000,
+      "fixed_ns": 834303000,
+      "fri_decommit_ns": 7208000,
+      "fri_quotient_ns": 1040199000,
+      "interaction_commit_ns": 1391245000,
+      "interaction_ns": 1891771000,
+      "main_commit_ns": 2416943000,
+      "profile": "generic",
+      "proof_bytes": 519597,
+      "prove_ns": 16661083250,
+      "verify_ns": 11666625,
+      "witness_ns": 734244000
+    },
+    {
+      "composition_commit_ns": 347877000,
+      "composition_eval_ns": 1578661000,
+      "composition_interpolate_ns": 80439000,
+      "fixed_ns": 1283063125,
+      "fri_decommit_ns": 4864000,
+      "fri_quotient_ns": 1220510000,
+      "interaction_commit_ns": 1443141833,
+      "interaction_ns": 1931150000,
+      "main_commit_ns": 1311202959,
+      "profile": "fused_sha",
+      "proof_bytes": 659942,
+      "prove_ns": 12452941334,
+      "verify_ns": 16399542,
+      "witness_ns": 725654416
+    }
+  ],
+  "recursion_source_sha256": {
+    "src/core/circuit_proof_shape.zig": "34ed5c75ef8aa041e4dbdca5f0aef26b6f7230a13d31e4e82b5ddaeb02eadd19",
+    "src/frontends/circuit/stark_verifier/channel.zig": "d8e6eb8a621d24e1e2620db3d19b52352fa2bd6018f1714cd628fd2116aa50ec",
+    "src/frontends/circuit/stark_verifier/oods.zig": "6f291bc770bd1f6591b21854c4d436069db043e8f1b1929895614cbf0476ba1f",
+    "src/frontends/circuit/stark_verifier/proof.zig": "0112fea06836601dbd280161ae88ae66add9b813d316f016cab780cd7dbb5585",
+    "src/frontends/circuit/stark_verifier/verify.zig": "f690e0270cf472f4e1da00674b3ef071db1ec01be684f258c7ec019fac11b972",
+    "src/integrations/circuit_cpu/verifier_proof.zig": "2b40eb20b341effc3a6a41289ce4e27f920dd04dbd003a8855535730f6e8167d"
+  },
+  "schema": "s31-bitcoin-fold-generic-vs-fused-sha-production-fri-v1",
+  "setup": {
+    "child_fold": 4,
+    "child_pow": 26,
+    "child_queries": 70,
+    "fixed_policy": "cold",
+    "outer_fold": 1,
+    "outer_pow": 26,
+    "outer_queries": 70,
+    "outer_security": "production_parameters"
+  },
+  "source_sha256": {
+    "bitcoin_chain_anchor.zig": "b7020879754f970fe71e21b3ddec1229f4a8ff80e4507e0800edf29f999d368e",
+    "bitcoin_chain_fold.zig": "354b17196fd7d33d8d69bdfd87bdda2028cd27df9ccb5b920fa68bcf6e836f14",
+    "bitcoin_fold_digest.zig": "0c241efdde0bb822d077b68dad8d7baef0e01ae83a52c9e1d82ce328d2012e1a",
+    "bitcoin_fold_step.zig": "eee1ce8d65f60e0067b47456ac8a10a52bde913eb3ab5616ff244809967e0488",
+    "sha_fused_fold_matched_bench_test.zig": "76ba00c9244b5399b502ad049aa52aab19d687bb9bca793bdb933bb7ce217e6a",
+    "sha_fused_fold_native_verifier.zig": "26cdf9214cad2265320811bf0e688fd0d13f18c4bcdd8e85ea9deed3d138ff69",
+    "sha_fused_fold_profile.zig": "5a9a1fafa99c01cb8e65198fe6c23850572d5d6d608502ae93eea3af11143d6c",
+    "sha_fused_fold_prover.zig": "940164942e135a2dfb921d440aa4588f8eb468fd499b04b6cf226127b9f29f2a"
+  },
+  "stage_coverage": "The six base stage fields are captured in all samples. Base witness and interaction fields are captured by benchmark versions that emit them; missing fields were not measured.",
+  "timing_scope": "outer prove only, with one shared production child proof, parsed witness, circuit topology, preprocessed columns, and independent keys prepared before each timed prove call; both fixed commitments are cold and inside the respective prove call"
+}

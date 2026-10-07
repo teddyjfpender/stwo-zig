@@ -399,6 +399,13 @@ class Builder:
         return self.emit("bitcoin_target_mainnet", Type("uint256", 16),
                          wanted=wanted, span=span, lhs=self.realize(value).ref)
 
+    def bitcoin_block_work(self, target: Value, *, wanted: str | None = None,
+                           span: dict[str, int] | None = None) -> Value:
+        if target.typ != Type("uint256", 16):
+            raise TypeErrorS31("block_work requires a UInt256 target")
+        return self.emit("bitcoin_block_work", Type("uint256", 16),
+                         wanted=wanted, span=span, lhs=self.realize(target).ref)
+
     def bitcoin_pow_valid(self, header: Value, *, wanted: str | None = None,
                           span: dict[str, int] | None = None) -> Value:
         """Byte-exact SHA256d <= canonical mainnet target, with no new AIR op."""

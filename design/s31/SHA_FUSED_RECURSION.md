@@ -11,10 +11,14 @@ inside a circuit.
 The [in-circuit STARK verifier](../../src/frontends/circuit/stark_verifier/verify.zig)
 accepts a statement duck type and a shape-driven
 [`ProofConfig`](../../src/frontends/circuit/stark_verifier/proof.zig). Its Merkle,
-OODS and FRI checks can handle a different component count and fold schedule.
+OODS and FRI checks can handle a different component count and fold schedule
+when the AIR uses the wire format's one OODS opening per trace column.
 The [proof conversion](../../src/integrations/circuit_cpu/verifier_proof.zig)
-also accepts arbitrary component shapes when supplied with a fully verified
-native capture. These are useful transport and cryptographic subroutines,
+accepts verified captures for that format. Fused SHA uses shifted openings
+at five points for some trace columns, so its capture cannot yet be converted
+without extending the wire format and OODS replay. The
+[joined transport inventory](JOINED_SHA_RECURSION_TRANSPORT.md) records the
+exact mismatch. These are useful transport and cryptographic subroutines,
 not an in-circuit verifier for fused v4.
 
 The current [generic statement](../../src/frontends/circuit/statements/circuit_statement.zig)
@@ -32,9 +36,18 @@ SHA equations nor the word-bus closure.
 The first safe reusable primitive is now
 [`addToRelationWithElements`](../../src/frontends/circuit/stark_verifier/constraint_eval.zig):
 one LogUp accumulator can append a term under an explicitly chosen challenge
-pair while retaining the old common-pair API. Further verifier hooks and
-the SHA AIR evaluators remain to be implemented and proved equivalent to the
-native v4 verifier.
+pair while retaining the old common-pair API. The SHA AIR evaluators and the
+joined statement remain to be implemented and proved equivalent to the native
+v4 verifier.
+
+The in-circuit channel now also has native-parity `mixU64`, `mixFelts`,
+`mixChannelSalt`, and `drawLookupElements` operations. A regression test
+compares a profile tag, reduced salt, field claims, and two consecutive lookup
+draws against the native Blake2sM31 channel. The generic verifier accepts
+optional statement hooks for the profile prelude, public claims, challenge
+draws, and interaction-claim mixing. These hooks preserve existing generic
+statements, but a fused statement must still implement them and translate
+every SHA component equation before a recursive fused proof can be accepted.
 
 ## Chosen stable topology: a generic outer fold with two child proofs
 

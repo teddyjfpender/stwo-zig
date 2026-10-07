@@ -34,6 +34,22 @@ digest, header, statement, source key, and address order. With production
 ReleaseFast run produced a 659,942-byte proof in 12.5 seconds and verified
 it in 16 ms. The generic child used its production 26-bit/70-query/fold-four
 settings. These are single-run measurements, not a matched speed comparison.
+The [matched production-parameter run](../../../../design/s31/measurements/bitcoin-fold-generic-vs-fused-sha-production-fri-2026-10-07.json)
+used the same verified child anchor and FRI26/70/fold1 settings for both outer
+proofs. Generic proving took 16.66 seconds and produced 519,597 bytes;
+joined proving took 12.45 seconds and produced 659,942 bytes. Native
+verification took 11.7 ms and 16.4 ms, respectively. This one sequential
+sample shows about 25% less proving time and 27% more proof bytes for the
+joined path on the recorded machine; it is not a repeatability or security
+assessment.
+The [sealed one-header verifier](../bitcoin_fused_chain_verifier.zig) now
+rebuilds the value-free topology and fixed root from the mainnet genesis
+checkpoint. It requires production child and outer FRI settings and binds
+the eight proof outputs to a named block hash, timestamp, and step-zero
+history. The production integration test accepts a proof through this wrapper
+and rejects a changed named timestamp. Its
+[key and statement format](../../../../design/s31/BITCOIN_FUSED_SEALED_VERIFIER.md)
+is limited to one header after genesis.
 The [matched test-FRI run](../../../../design/s31/measurements/bitcoin-fold-generic-vs-fused-sha-test-fri-2026-10-07.json)
 used one production child and identical outer test settings for both paths:
 generic proving took 12.52 seconds and 116,993 proof bytes; joined proving
@@ -76,10 +92,8 @@ genesis-anchor proof. The circuit enforces the new header's link, target,
 time, counter, and next-state rules, while its private header and SHA256d
 digest wires join to three SHA compression calls through the caller and
 Gate lookup. The circuit and SHA AIRs share one STARK transcript and one
-fixed root. Its native verifier accepts one trusted key and eight public
-state words. A sealed Bitcoin statement wrapper that checks a named step,
-block hash, timestamp window, and first-epoch height limit against those
-words is still required before exposing this as a light-client interface.
+fixed root. The sealed native verifier now checks a named step-zero Bitcoin
+statement and independently rebuilds the trusted key and fixed commitment.
 The [topology record](../../../../design/s31/BITCOIN_FUSED_FOLD_TOPOLOGY.md)
 describes the 21-component roster and padded geometry.
 
@@ -93,20 +107,24 @@ at the base and a joined fold proof thereafter. How to gate or otherwise
 support those two different child proof profiles under one fixed fold
 topology, while binding the fold's own derived root, is **unsolved here**.
 No same-key block-two proof or recursive light-client claim follows from the
-one-step milestone.
+one-step milestone. The [joined proof transport inventory](../../../../design/s31/JOINED_SHA_RECURSION_TRANSPORT.md)
+also shows why the existing recursive proof witness cannot yet carry this
+child: some SHA trace columns need five shifted OODS openings, while the
+current wire format carries one.
 
 Keep the current public state ABI for the first version:
 
 ```text
-statement = (key_sha256, step, current_block_hash[32], last_timestamps[11],
+statement = (key_sha256, step, current_block_hash[32], current_block_timestamp,
+             last_timestamps[11],
              public_words[8])
 public_words = BLAKE2s_S31BFD2!(fold_root || LE32(step) || checkpoint_hash
                                  || current_block_hash || last_timestamps)
 ```
 
 The eight public words are raw little-endian `u32` BLAKE2s words. The existing
-generic Bitcoin verifier recomputes them from the named public fields; the
-joined native verifier currently takes those words directly. In the first-step
+generic and sealed fused Bitcoin verifiers recompute them from the named
+public fields. In the first-step
 circuit, the
 generic anchor proof authenticates the checkpoint; the prior hash and
 timestamps are private openings constrained to the genesis state. A later

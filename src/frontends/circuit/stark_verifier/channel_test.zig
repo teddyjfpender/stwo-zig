@@ -234,3 +234,43 @@ test "channel: unpack_qm31s_to_u32_words then mix_u32s matches stwo mix_felts" {
     }
     try expectValid(&ctx);
 }
+
+test "channel: fused transcript salt, profile tag, field claims and independent lookup draws match native" {
+    const m = core.fields.m31.M31.fromCanonical;
+    const felts = [_]QM31{
+        QM31.fromM31(m(42), m(1337), m(0), m(0)),
+        QM31.fromM31(m(1), m(2), m(3), m(4)),
+    };
+    var ctx = try Context.init(std.testing.allocator, 0);
+    defer ctx.deinit();
+    var channel = Channel.init(QM31, &ctx);
+    var host: HostChannel = .{};
+
+    const tag: u64 = 0x5333_3146_4346_3031;
+    try channel.mixU64(QM31, &ctx, tag);
+    host.mixU64(tag);
+    try expectHostDigest(&ctx, channel, host);
+
+    const salt = core.fields.m31.Modulus + 5;
+    try channel.mixChannelSalt(QM31, &ctx, salt);
+    core.channel.lookup_transcript.mixChannelSalt(&host, salt);
+    try expectHostDigest(&ctx, channel, host);
+
+    var vars: [felts.len]builder.Var = undefined;
+    for (&vars, felts) |*v, value| v.* = try ctx.newVar(value);
+    try channel.mixFelts(QM31, &ctx, &vars);
+    host.mixFelts(&felts);
+    try expectHostDigest(&ctx, channel, host);
+
+    const first = try channel.drawLookupElements(QM31, &ctx);
+    const host_first = try core.channel.lookup_transcript.drawLookupElements(std.testing.allocator, &host);
+    try expectValue(&ctx, first[0], host_first.z);
+    try expectValue(&ctx, first[1], host_first.alpha);
+    const second = try channel.drawLookupElements(QM31, &ctx);
+    const host_second = try core.channel.lookup_transcript.drawLookupElements(std.testing.allocator, &host);
+    try expectValue(&ctx, second[0], host_second.z);
+    try expectValue(&ctx, second[1], host_second.alpha);
+    try std.testing.expect(!ctx.get(first[0]).eql(ctx.get(second[0])));
+    try expectHostDigest(&ctx, channel, host);
+    try expectValid(&ctx);
+}

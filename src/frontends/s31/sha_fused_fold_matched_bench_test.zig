@@ -1,7 +1,7 @@
-//! Test-only, matched one-step Bitcoin fold comparison. One independently
+//! Matched one-step Bitcoin fold comparison. One independently
 //! verified production child anchor is shared by the generic and fused-SHA
-//! outer proofs. Outer FRI0/12 is deliberately diagnostic, not a production
-//! speed or security measurement.
+//! outer proofs. The default outer FRI0/12 is diagnostic; set
+//! S31_FOLD_MATCHED_PRODUCTION=1 for matching production FRI26/70 proofs.
 const std = @import("std");
 const core = @import("stwo_core");
 const circuit = @import("stwo_circuit_frontend");
@@ -87,12 +87,19 @@ fn stageNs(nodes: []const prover.stage_profile.StageNode, id: []const u8) u64 {
     return 0;
 }
 
-test "matched generic and joined SHA fold step zero, test FRI only" {
+test "matched generic and joined SHA fold step zero" {
     const allocator = std.heap.page_allocator;
     var bundle = try cpu.air.parse(allocator, @embedFile("s31_air_programs"));
     defer bundle.deinit();
     const child_fri = try core.pcs.config_v2.FriConfigV2.init(26, 0, 1, 70, 4);
-    const outer_fri = try core.pcs.config_v2.FriConfigV2.init(0, 0, 1, 12, 1);
+    const production_outer = std.posix.getenv("S31_FOLD_MATCHED_PRODUCTION") != null;
+    const outer_fri = try core.pcs.config_v2.FriConfigV2.init(
+        if (production_outer) 26 else 0,
+        0,
+        1,
+        if (production_outer) 70 else 12,
+        1,
+    );
 
     var anchor_topology = try anchor.build(circuit.builder.NoValue, allocator, checkpoint, child_rows);
     defer anchor_topology.deinit();
@@ -119,7 +126,11 @@ test "matched generic and joined SHA fold step zero, test FRI only" {
     defer allocator.free(child_bytes);
     var child_capture = try generic_native.verifyAndCapture(allocator, &child_layout, &bundle, child_pcs, anchor_root, anchor_hash, checkpoint, child_bytes);
     defer child_capture.deinit();
-    std.debug.print("S31_FOLD_MATCHED_SETUP child_pow=26 child_queries=70 child_fold=4 outer_pow=0 outer_queries=12 outer_fold=1 fixed_policy=cold outer_security=test_only\n", .{});
+    std.debug.print("S31_FOLD_MATCHED_SETUP child_pow=26 child_queries=70 child_fold=4 outer_pow={d} outer_queries={d} outer_fold=1 fixed_policy=cold outer_security={s}\n", .{
+        outer_fri.pow_bits,
+        outer_fri.n_queries,
+        if (production_outer) "production_parameters" else "test_only",
+    });
 
     const Fixture = struct { private_inputs: struct { prior_hash: [16]u32, child: [40]u32 } };
     var fixture = try std.json.parseFromSlice(Fixture, allocator, @embedFile("s31_bitcoin_fixture"), .{ .ignore_unknown_fields = true });

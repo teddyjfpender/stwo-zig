@@ -64,15 +64,30 @@ fn periodGenerators(comptime V: type, ctx: *Context(V), trace_gen: core.circle.C
 pub fn extractExpectedCompositionEval(
     comptime V: type,
     ctx: *Context(V),
-    composition_eval_at_oods: *const [N_COMPOSITION_COLUMNS]Var,
+    composition_eval_at_oods: []const Var,
     oods_point: Point(Var),
     max_log_degree_bound: usize,
-) Error!Var {
-    const left = try ops.fromPartialEvals(V, ctx, composition_eval_at_oods[0..4].*);
-    const right = try ops.fromPartialEvals(V, ctx, composition_eval_at_oods[4..8].*);
-    var x = oods_point.x;
-    for (0..max_log_degree_bound - 2) |_| x = try circle.doubleX(V, ctx, x);
-    return ctx.add(left, try ctx.mul(x, right));
+    composition_log_split: u32,
+) (Error || error{InvalidCompositionShape})!Var {
+    const count = core.verifier_types.compositionChunkCount(composition_log_split) orelse return error.InvalidCompositionShape;
+    if (composition_eval_at_oods.len != count * core.fields.qm31.SECURE_EXTENSION_DEGREE or
+        max_log_degree_bound <= composition_log_split) return error.InvalidCompositionShape;
+    var chunks: [@as(usize, 1) << core.verifier_types.MAX_COMPOSITION_LOG_SPLIT]Var = undefined;
+    for (chunks[0..count], 0..) |*chunk, i| {
+        chunk.* = try ops.fromPartialEvals(V, ctx, composition_eval_at_oods[4 * i ..][0..4].*);
+    }
+    var active = count;
+    var parent_log = max_log_degree_bound - composition_log_split + 1;
+    while (active > 1) {
+        var factor = oods_point.x;
+        for (0..parent_log - 2) |_| factor = try circle.doubleX(V, ctx, factor);
+        for (0..active / 2) |i| {
+            chunks[i] = try ctx.add(chunks[2 * i], try ctx.mul(factor, chunks[2 * i + 1]));
+        }
+        active /= 2;
+        parent_log += 1;
+    }
+    return chunks[0];
 }
 
 /// `OodsResponse`: column `column_idx` of tree `trace_idx` claims `value`
@@ -111,7 +126,7 @@ pub fn collectOodsResponses(
     for (config.cumulative_sum_columns) |is_cumulative_sum| n_cumulative += @intFromBool(is_cumulative_sum);
     const responses = try ctx.scratch().alloc(
         OodsResponse,
-        config.n_preprocessed_columns + config.n_trace_columns + config.n_interaction_columns + 2 * n_cumulative + N_COMPOSITION_COLUMNS,
+        config.n_preprocessed_columns + config.n_trace_columns + config.n_interaction_columns + 2 * n_cumulative + config.shape().nCompositionColumns(),
     );
     var at: usize = 0;
     for (proof.preprocessed_columns_at_oods, 0..) |value, column_idx| {

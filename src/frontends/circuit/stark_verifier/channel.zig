@@ -75,6 +75,37 @@ pub const Channel = struct {
         self.updateDigest(try blake.reduceHashValue(V, ctx, hash));
     }
 
+    /// The native Blake2sM31 channel mixes an unsigned 64-bit integer as two
+    /// little-endian u32 words. Keep that encoding explicit for profile tags.
+    pub fn mixU64(self: *Channel, comptime V: type, ctx: *Context(V), value: u64) Error!void {
+        const words = [_]U32Wrapper(Var){
+            try builder.wrappers.constU32(V, ctx, @truncate(value)),
+            try builder.wrappers.constU32(V, ctx, @truncate(value >> 32)),
+        };
+        try self.mixU32s(V, ctx, &words);
+    }
+
+    /// Native `mixFelts`: each secure-field element is serialized as four
+    /// canonical M31 words before hashing. This differs from `mixQm31s`,
+    /// which hashes the packed circuit-field representation.
+    pub fn mixFelts(self: *Channel, comptime V: type, ctx: *Context(V), values: []const Var) Error!void {
+        const words = try blake.unpackQm31sToU32Words(V, ctx, values);
+        try self.mixU32s(V, ctx, words);
+    }
+
+    /// Native `mixChannelSalt`: one reduced M31 element in a QM31 felt.
+    pub fn mixChannelSalt(self: *Channel, comptime V: type, ctx: *Context(V), salt: u32) Error!void {
+        const reduced = core.fields.m31.M31.fromU64(salt);
+        const value = try ctx.constant(QM31.fromBase(reduced));
+        try self.mixFelts(V, ctx, &.{value});
+    }
+
+    /// One LogUp challenge pair, in `(z, alpha)` order. Calling it twice
+    /// reproduces the independent Gate and SHA word-bus draws.
+    pub fn drawLookupElements(self: *Channel, comptime V: type, ctx: *Context(V)) Error![2]Var {
+        return self.drawTwoQm31s(V, ctx);
+    }
+
     /// `draw_qm31`: the first of two drawn values; the second is marked unused.
     pub fn drawQm31(self: *Channel, comptime V: type, ctx: *Context(V)) Error!Var {
         const drawn = try self.drawTwoQm31s(V, ctx);

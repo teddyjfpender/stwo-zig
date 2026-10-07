@@ -14,7 +14,7 @@
 //! channel_salt QM31 · trace_root · interaction_root · composition_root
 //! claimed_sums[n_components] · preprocessed_at_oods[n_pp] · trace_at_oods[n_trace]
 //! interaction_at_oods (at_oods, then at_prev for cumulative-sum columns)
-//! composition_eval_at_oods[8] · eval_domain_samples (per trace, per column, per query)
+//! composition_eval_at_oods[4 * 2^composition_log_split] · eval_domain_samples (per trace, per column, per query)
 //! eval_domain_auth_paths (per tree, per query, per level) · pow_nonce QM31
 //! interaction_pow_nonce QM31 · FRI (layer commitments, last-layer coefficients,
 //! auth paths per layer/query/level, witnesses per layer/query of 2^step QM31)
@@ -97,7 +97,7 @@ pub const Proof = struct {
     preprocessed_columns_at_oods: []QM31,
     trace_at_oods: []QM31,
     interaction_at_oods: []InteractionAtOods,
-    composition_eval_at_oods: [n_composition_columns]QM31,
+    composition_eval_at_oods: []QM31,
     /// Per tree, column-major: the sample of column `c` at query `q` is at
     /// `[c * n_queries + q]`.
     eval_domain_samples: [n_traces][]M31,
@@ -117,6 +117,7 @@ pub const Proof = struct {
         try expectLen(self.preprocessed_columns_at_oods.len, columns[0]);
         try expectLen(self.trace_at_oods.len, columns[1]);
         try expectLen(self.interaction_at_oods.len, columns[2]);
+        try expectLen(self.composition_eval_at_oods.len, columns[3]);
         for (self.interaction_at_oods, 0..) |value, column| {
             if ((value.at_prev != null) != config.isCumulativeSumColumn(column)) {
                 return error.ShapeMismatch;
@@ -185,7 +186,7 @@ pub fn deserializeProof(
         value.at_oods = try reader.qm31();
         value.at_prev = if (config.isCumulativeSumColumn(column)) try reader.qm31() else null;
     }
-    for (&proof.composition_eval_at_oods) |*value| value.* = try reader.qm31();
+    proof.composition_eval_at_oods = try reader.qm31s(allocator, columns[3]);
     for (0..n_traces) |tree| {
         proof.eval_domain_samples[tree] = try reader.m31s(allocator, columns[tree] * n_queries);
     }
@@ -234,7 +235,7 @@ pub fn serializeProof(
         try writeQm31(writer, value.at_oods);
         if (value.at_prev) |at_prev| try writeQm31(writer, at_prev);
     }
-    try writeQm31s(writer, &proof.composition_eval_at_oods);
+    try writeQm31s(writer, proof.composition_eval_at_oods);
     for (proof.eval_domain_samples) |samples| {
         for (samples) |value| try writer.writeInt(u32, value.v, .little);
     }
@@ -396,4 +397,28 @@ test "circuit serialize: encoding rejects a proof whose shape differs from the c
     var bad_config = test_config;
     bad_config.fri.fold_step = 0;
     try std.testing.expectError(error.InvalidProofShape, deserializeProof(allocator, bytes, bad_config));
+}
+
+test "circuit serialize: split-two trace-only proof roundtrips and rejects wrong split" {
+    const allocator = std.testing.allocator;
+    const shapes = [_]ComponentShape{
+        .{ .trace_columns = 2, .interaction_columns = 0 },
+        .{ .trace_columns = 0, .interaction_columns = 8 },
+    };
+    var config = test_config;
+    config.component_shapes = &shapes;
+    config.composition_log_split = 2;
+    const bytes = try patternBytes(allocator, config.serializedLen());
+    defer allocator.free(bytes);
+    var decoded = try deserializeProof(allocator, bytes, config);
+    defer decoded.deinit();
+    try std.testing.expectEqual(@as(usize, 16), decoded.proof.composition_eval_at_oods.len);
+    try std.testing.expect(decoded.proof.interaction_at_oods[0].at_prev == null);
+    try std.testing.expect(decoded.proof.interaction_at_oods[4].at_prev != null);
+    const encoded = try serializeProofAlloc(allocator, &decoded.proof, config);
+    defer allocator.free(encoded);
+    try std.testing.expectEqualSlices(u8, bytes, encoded);
+    var wrong_split = config;
+    wrong_split.composition_log_split = 1;
+    try std.testing.expectError(error.ShapeMismatch, serializeProofAlloc(allocator, &decoded.proof, wrong_split));
 }

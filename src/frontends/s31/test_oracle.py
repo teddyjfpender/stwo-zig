@@ -265,6 +265,26 @@ class OracleTests(unittest.TestCase):
         assignment["public_outputs"]["less"] = [1]
         self.assertEqual(evaluate_relation(relation, assignment), {"less": [1]})
 
+    def test_bitcoin_block_work_reference_and_boundaries(self) -> None:
+        relation, assignment = fixture("bitcoin_block_work")
+        self.assertEqual(evaluate_relation(relation, assignment), assignment["public_outputs"])
+        from poseidon2_oracle import leaf
+        for target in (1, 2, (1 << 224) - 1, (1 << 255) + 123):
+            work = (1 << 256) // (target + 1)
+            changed = copy.deepcopy(assignment)
+            changed["private_inputs"]["target"] = [(target >> (16 * i)) & 0xffff for i in range(16)]
+            changed["public_outputs"]["_s31_0"] = leaf([(work >> (16 * i)) & 0xffff for i in range(16)])
+            self.assertEqual(evaluate_relation(relation, changed), changed["public_outputs"])
+        for target in (0, (1 << 256) - 1):
+            changed = copy.deepcopy(assignment)
+            changed["private_inputs"]["target"] = [(target >> (16 * i)) & 0xffff for i in range(16)]
+            with self.assertRaisesRegex(OracleError, "block_work target"):
+                evaluate_relation(relation, changed)
+        forged = copy.deepcopy(assignment)
+        forged["public_outputs"]["_s31_0"][0] += 1
+        with self.assertRaisesRegex(OracleError, "does not match"):
+            evaluate_relation(relation, forged)
+
     def test_unknown_hash_or_future_node_never_counts_as_a_check(self) -> None:
         relation, assignment = fixture("hash4")
         relation["nodes"][0]["op"] = "hash_unreviewed"

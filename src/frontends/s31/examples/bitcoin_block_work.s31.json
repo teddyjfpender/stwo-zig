@@ -1,0 +1,14 @@
+{
+  "version": 1,
+  "name": "bitcoin_block_work",
+  "inputs": [
+    {"name": "target", "kind": "u16", "length": 16, "visibility": "private"}
+  ],
+  "nodes": [
+    {"name": "work", "op": "bitcoin_block_work", "lhs": "target"},
+    {"name": "limbs", "op": "cast_m31", "lhs": "work"},
+    {"name": "_s31_0", "op": "hash_poseidon2_leaf", "lhs": "limbs"}
+  ],
+  "assertions": [],
+  "public_outputs": ["_s31_0"]
+}

@@ -82,7 +82,7 @@ def abi(source: dict, lowering: str) -> dict:
             length = 1
         elif op == "array_concat":
             length = shapes[node["lhs"]]["length"] + shapes[node["rhs"]]["length"]
-        elif op in {"hash_sha256d_header", "bitcoin_target_mainnet", "bitcoin_prev_hash", "bitcoin_genesis_hash_mainnet"}:
+        elif op in {"hash_sha256d_header", "bitcoin_target_mainnet", "bitcoin_block_work", "bitcoin_prev_hash", "bitcoin_genesis_hash_mainnet"}:
             length = 16
         elif op in {"bitcoin_header_bits", "bitcoin_header_time"}:
             length = 2
@@ -92,7 +92,7 @@ def abi(source: dict, lowering: str) -> dict:
         else:
             length = shapes[node["lhs"]]["length"]
         shapes[node["name"]] = {"kind": (shapes[node["lhs"]]["kind"] if op in {"array_get", "array_concat", "array_slice", "select"} else
-                                         "u16" if op in {"u256_add", "u256_add_checked", "u256_sub", "u256_sub_checked", "hash_sha256d_header", "bitcoin_target_mainnet", "bitcoin_prev_hash", "bitcoin_header_bits", "bitcoin_header_time", "bitcoin_genesis_hash_mainnet"} else "m31"), "length": length}
+                                         "u16" if op in {"u256_add", "u256_add_checked", "u256_sub", "u256_sub_checked", "hash_sha256d_header", "bitcoin_target_mainnet", "bitcoin_block_work", "bitcoin_prev_hash", "bitcoin_header_bits", "bitcoin_header_time", "bitcoin_genesis_hash_mainnet"} else "m31"), "length": length}
     return {
         "schema": "s31-public-abi-v1",
         "encoding": "eight canonical M31 words, encoded little-endian u32; unused words are zero" if lowering.startswith("direct-") or lowering in {"sha-shift", "sha-fused"} else "eight little-endian u32 words; unused words are zero",
@@ -722,6 +722,15 @@ def equations(package: Path) -> dict:
                 "mantissa sign bit = 0; target bytes[28..31] = 0; target != 0",
             ))
             notes.append("The high-byte zero rule is equivalent to target <= Bitcoin mainnet powLimit, whose highest nonzero byte is 27 and equals 255.")
+        elif op == "bitcoin_block_work":
+            shape = ("u16", 16)
+            functional_spec = f"{name} = floor(2^256 / ({node['lhs']} + 1))"
+            field_equations.extend((
+                "target + 1 and quotient + 1 are checked 256-bit additions",
+                "q*d + r = (2^256-1)-target across 64 base-256 columns, with c[0]=c[64]=0",
+                "0 <= r < d via sixteen base-65536 subtract-and-borrow equations",
+            ))
+            notes.append("Each byte convolution column and carry equation stays below M31, so field equality is integer equality. Zero target and maximum target are rejected.")
         elif op in {"bitcoin_prev_hash", "bitcoin_header_bits", "bitcoin_header_time"}:
             start, length = (2, 16) if op == "bitcoin_prev_hash" else (34, 2) if op == "bitcoin_header_time" else (36, 2)
             shape = ("u16", length)

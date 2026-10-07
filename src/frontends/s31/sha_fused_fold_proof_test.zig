@@ -8,9 +8,11 @@ const s31 = @import("stwo_s31_prototype");
 const anchor = @import("bitcoin_chain_anchor.zig");
 const fold = @import("bitcoin_chain_fold.zig");
 const generic_native = @import("native_verifier.zig");
+const sealed = @import("bitcoin_fused_chain_verifier.zig");
 const fused_profile = s31.sha_fused_fold_profile;
 const fused_prover = s31.sha_fused_fold_prover;
 const fused_native = s31.sha_fused_fold_native_verifier;
+const fused_shape = s31.sha_fused_fold_shape;
 const pp_guard = s31.bitcoin_fold_preprocessed_guard;
 
 const QM31 = core.fields.qm31.QM31;
@@ -239,6 +241,46 @@ test "checkpoint anchor and fused SHA fold step zero share one native proof" {
     timer.reset();
     try fused_native.verifyBytes(allocator, .{ .key = key, .public_outputs = &expected_outputs }, bytes);
     const verify_ns = timer.read();
+    // The native proof has 21 components and split-two composition. Its SHA
+    // state and schedule columns open five shifted rows each; the current
+    // recursive wire format accepts only one trace opening per column.
+    const sampled = proof.stark.proof.commitment_scheme_proof.sampled_values.items;
+    try std.testing.expectEqual(@as(usize, 4), sampled.len);
+    try std.testing.expect(!fused_shape.supports_recursive_proof_transport);
+    try std.testing.expectEqual(@as(usize, 21), fused_shape.component_shapes.len);
+    try std.testing.expectEqual(@as(usize, 17), proof.claims.len);
+    try std.testing.expectEqual(@as(usize, 16), sampled[3].len);
+    const fused_main = fused_shape.fusedMainOffset();
+    try std.testing.expectEqual(@as(usize, 5), sampled[1][fused_main].len);
+    try std.testing.expectEqual(@as(usize, 1), sampled[1][fused_main + 64].len);
+    try std.testing.expectEqual(@as(usize, 5), sampled[1][fused_main + 76].len);
+    if (production_outer) {
+        // Reuse the production-parameter proof to test the application-facing
+        // sealed boundary. Its key and Gate addresses are rebuilt independently.
+        const sealed_key_bytes = try sealed.generateKeyJson(allocator, sealed.genesis_display_hash);
+        defer allocator.free(sealed_key_bytes);
+        const sealed_key = try sealed.validateKey(allocator, sealed_key_bytes, @import("bitcoin_chain_verifier.zig").sha256(sealed_key_bytes));
+        try std.testing.expectEqualDeep(key.fixed_root, sealed_key.material.fused_key.fixed_root);
+        try std.testing.expectEqualDeep(key.digest, sealed_key.material.fused_key.digest);
+        var display_hash = hash;
+        std.mem.reverse(u8, &display_hash);
+        const display_hex = std.fmt.bytesToHex(display_hash, .lower);
+        const sealed_statement = try sealed.generateStatementJson(allocator, sealed_key, &display_hex, timestamp);
+        defer allocator.free(sealed_statement);
+        const sealed_outputs = try sealed.validateStatement(allocator, sealed_key, sealed_statement);
+        try std.testing.expectEqualSlices(QM31, &expected_outputs, &sealed_outputs);
+        try sealed.verifyProof(allocator, sealed_key, sealed_statement, bytes);
+        var parsed_sealed = try std.json.parseFromSlice(sealed.Statement, allocator, sealed_statement, .{ .ignore_unknown_fields = false });
+        defer parsed_sealed.deinit();
+        parsed_sealed.value.current_block_timestamp += 1;
+        const changed_sealed = try std.json.Stringify.valueAlloc(allocator, parsed_sealed.value, .{});
+        defer allocator.free(changed_sealed);
+        try std.testing.expectError(error.InvalidFusedBitcoinTimestamps, sealed.verifyProof(allocator, sealed_key, changed_sealed, bytes));
+        parsed_sealed.value.last_timestamps[0] += 1;
+        const consistent_changed_time = try std.json.Stringify.valueAlloc(allocator, parsed_sealed.value, .{});
+        defer allocator.free(consistent_changed_time);
+        try std.testing.expectError(error.InvalidFusedBitcoinStatement, sealed.verifyProof(allocator, sealed_key, consistent_changed_time, bytes));
+    }
     std.debug.print("S31_SHA_FUSED_FOLD anchor_bytes={d} anchor_prove_ms={d} proof_bytes={d} prove_ms={d} verify_ms={d} components={d} columns={d}/{d}/{d} child_pow={d} child_queries={d} child_fold={d} outer_pow={d} outer_queries={d} outer_fold={d} anchor_root={s} circuit_root={s} joined_fixed_root={s}\n", .{
         anchor_bytes.len,                           anchor_prove_ns / std.time.ns_per_ms,        bytes.len,             prove_ns / std.time.ns_per_ms,
         verify_ns / std.time.ns_per_ms,             fused_profile.component_count,               metrics.fixed_columns, metrics.main_columns,

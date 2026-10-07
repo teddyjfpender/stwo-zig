@@ -42,6 +42,7 @@ AIR. No helper is a host-only calculation or a new specialized AIR chip.
 | `std::math::eq_u256(a,b)`, `ne_u256(a,b)` | Equality or inequality | Two `UInt256` values; constrained `bit`. Two `u256_le` nodes and Boolean logic. |
 | `std::math::min_u256(a,b)`, `max_u256(a,b)` | Select the smaller or larger value | Two `UInt256` values; one `u256_le` and one range-preserving `select`. Equal inputs return the same value. |
 | `std::bitcoin::pow_valid(header)` | `SHA256d(header)` as a little-endian `UInt256` is at most the canonical mainnet target encoded in `header` | One `Bytes80` value; returns a constrained `bit`. Assert it equals one to require valid work. |
+| `std::bitcoin::block_work(target)` | `floor(2^256/(target+1))` proved by byte-column integer multiplication and a strict remainder comparison | One nonzero `UInt256` target below `2^256-1`; returns `UInt256` block work. |
 
 The group in brackets is a compile-time list of existing circuit values,
 not a witness array that can be indexed. Each item may be an input,
@@ -466,7 +467,11 @@ source example. `std::hash::sha256d_header(Bytes80)` now computes and proves
 byte-exact Bitcoin header hashing; `std::bitcoin::target_mainnet(Bytes80)`
 constrains the mainnet compact target. `std::bitcoin::pow_valid(Bytes80)`
 composes those two operations with the existing unsigned 256-bit comparison;
-it adds no AIR opcode or gate beyond spelling out the calls. The [Bitcoin header chapter](bitcoin-sha256d.md)
+it adds no AIR opcode or gate beyond spelling out the calls.
+`std::bitcoin::block_work(UInt256)` computes checked work from a target;
+the [division walkthrough](../../../../design/s31/BITCOIN_WORK_DIVISION.md)
+gives its integer and AIR equations and the [source example](../examples/bitcoin_block_work.s31).
+The [Bitcoin header chapter](bitcoin-sha256d.md)
 works through both operations and the proof-of-work comparison.
 Their field, bit, digest, and hash rules are in [source semantics](source.md)
 and [hash semantics](hashes.md).

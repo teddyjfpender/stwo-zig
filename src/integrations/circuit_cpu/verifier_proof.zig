@@ -173,7 +173,7 @@ fn fromProofMaterial(
         else => return error.InvalidCircuitProof,
     };
     const composition = try singleRow(a, stark.sampled_values.items[3]);
-    if (composition.len != wire.n_composition_columns) return error.InvalidCircuitProof;
+    if (composition.len != config.nCompositionColumns()) return error.InvalidCircuitProof;
 
     var out = wire.Proof{
         .channel_salt = QM31.fromU32Unchecked(channel_salt % core.fields.m31.Modulus, 0, 0, 0),
@@ -184,7 +184,7 @@ fn fromProofMaterial(
         .preprocessed_columns_at_oods = try singleRow(a, stark.sampled_values.items[0]),
         .trace_at_oods = try singleRow(a, stark.sampled_values.items[1]),
         .interaction_at_oods = interaction_at_oods,
-        .composition_eval_at_oods = composition[0..wire.n_composition_columns].*,
+        .composition_eval_at_oods = composition,
         .eval_domain_samples = undefined,
         .eval_domain_auth_paths = undefined,
         .pow_nonce = nonceQm31(stark.proof_of_work),
@@ -337,7 +337,7 @@ pub fn circuitVerifierValues(
         .preprocessed_columns_at_oods = try allocator.dupe(QM31, proof.preprocessed_columns_at_oods),
         .trace_at_oods = try allocator.dupe(QM31, proof.trace_at_oods),
         .interaction_at_oods = interaction,
-        .composition_eval_at_oods = proof.composition_eval_at_oods,
+        .composition_eval_at_oods = try allocator.dupe(QM31, proof.composition_eval_at_oods),
         .eval_domain_samples = .{ .n_queries = config.nQueries(), .data = samples },
         .eval_domain_auth_paths = .{ .n_queries = config.nQueries(), .trees = eval_trees },
         .pow_nonce = proof.pow_nonce,

@@ -9,6 +9,7 @@ const canonical = @import("canonical.zig");
 const poseidon2 = @import("poseidon2.zig");
 const sha256d = @import("sha256d.zig");
 const bitcoin_target = @import("bitcoin_target.zig");
+const bitcoin_work = @import("bitcoin_work.zig");
 
 const M31 = core.fields.m31.M31;
 const QM31 = core.fields.qm31.QM31;
@@ -89,6 +90,7 @@ pub fn compileRaw(comptime V: type, allocator: std.mem.Allocator, program: relat
             .u256_sub_checked => try u256Binary(V, &ctx, lhs.?, rhs.?, .sub_checked),
             .hash_sha256d_header => try sha256dHeader(V, &ctx, lhs.?),
             .bitcoin_target_mainnet => try mainnetTarget(V, &ctx, lhs.?),
+            .bitcoin_block_work => try blockWorkEntry(V, &ctx, lhs.?),
             .bitcoin_prev_hash => try headerSlice(V, &ctx, lhs.?, 2, 16),
             .bitcoin_header_bits => try headerSlice(V, &ctx, lhs.?, 36, 2),
             .bitcoin_header_time => try headerSlice(V, &ctx, lhs.?, 34, 2),
@@ -346,6 +348,7 @@ fn compileWithSpansMode(comptime V: type, allocator: std.mem.Allocator, program:
                 break :blk digest;
             },
             .bitcoin_target_mainnet => try mainnetTarget(V, &ctx, entries[node.lhs.?]),
+            .bitcoin_block_work => try blockWorkEntry(V, &ctx, entries[node.lhs.?]),
             .bitcoin_prev_hash => try headerSlice(V, &ctx, entries[node.lhs.?], 2, 16),
             .bitcoin_header_bits => try headerSlice(V, &ctx, entries[node.lhs.?], 36, 2),
             .bitcoin_header_time => try headerSlice(V, &ctx, entries[node.lhs.?], 34, 2),
@@ -613,6 +616,18 @@ fn mainnetTarget(comptime V: type, ctx: *circuit.builder.Context(V), input: Entr
     const header = input.raw orelse return error.InvalidHeaderOperand;
     const target = try bitcoin_target.mainnetTarget(V, ctx, header);
     const raw = try ctx.scratch().dupe(Var, &target);
+    const wrappers = try ctx.scratch().alloc(circuit.builder.wrappers.M31Wrapper(Var), 16);
+    for (raw, wrappers) |wire, *wrapped| wrapped.* = .newUnsafe(wire);
+    return .{ .shape = .{ .kind = .u16, .length = 16 }, .lanes = try circuit.builder.simd.pack(V, ctx, wrappers), .raw = raw };
+}
+
+fn blockWorkEntry(comptime V: type, ctx: *circuit.builder.Context(V), input: Entry) !Entry {
+    const raw_input = input.raw orelse return error.InvalidBlockWorkOperand;
+    if (raw_input.len != 16) return error.InvalidBlockWorkOperand;
+    var target: bitcoin_work.Words = undefined;
+    @memcpy(&target, raw_input);
+    const work = try bitcoin_work.blockWork(V, ctx, target);
+    const raw = try ctx.scratch().dupe(Var, &work);
     const wrappers = try ctx.scratch().alloc(circuit.builder.wrappers.M31Wrapper(Var), 16);
     for (raw, wrappers) |wire, *wrapped| wrapped.* = .newUnsafe(wire);
     return .{ .shape = .{ .kind = .u16, .length = 16 }, .lanes = try circuit.builder.simd.pack(V, ctx, wrappers), .raw = raw };
