@@ -192,7 +192,11 @@ The adapter now compares every active statement descriptor and public
 execution/I/O field, not just table geometry; altered shape, step count, and
 I/O origin are rejected without changing destination bytes. The q193 test now
 builds its selected SegmentV2 statement from the runner source before native
-proving, then requires the later verified capture to match it. A detached
+proving, derives both verifier schedules from that selected shape, and feeds
+those plans to recursive preparation. The pre-proof selector also compiles
+the native ProgramV2 instruction schedule and compares its ID and count with
+the later V7 template and authenticated transcript. It then requires the
+verified capture to match the selected statement and shape. A detached
 verifier still needs an independently admitted statement source; no complete
 wrapper proof or parent is created.
 The first pre-proof comparison caught an uninitialized legacy custody-version

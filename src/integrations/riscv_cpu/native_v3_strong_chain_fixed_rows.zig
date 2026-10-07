@@ -24,8 +24,14 @@ pub const SelectedV12 = struct {
     words: []M31,
     statement: frontend.prover_mod.RiscVStatementV2,
     shape: recursion.fixed_profile.ProofShapeV1,
+    schedule_shape: recursion.air.verifier_schedule.ScheduleShape,
+    vm_plan: recursion.air.verifier_schedule.Plan,
+    recursion_plan: recursion.air.verifier_schedule.Plan,
+    instruction_template: recursion.transcript_instruction_template_v6.InstructionTemplateV6,
 
     pub fn deinit(self: *@This()) void {
+        self.recursion_plan.deinit();
+        self.vm_plan.deinit();
         self.allocator.free(self.words);
         self.* = undefined;
     }
@@ -58,7 +64,48 @@ pub fn selectV12BeforeProof(
         selected_core,
         pinned_tree0,
     );
-    return .{ .allocator = allocator, .words = words, .statement = statement, .shape = shape };
+    var tree_heights: [recursion.fixed_profile.TREE_COUNT]u32 = undefined;
+    @memcpy(&tree_heights, selected_core.vm.tree_heights[0..recursion.fixed_profile.TREE_COUNT]);
+    const schedule_shape = try recursion.transcript_shape.derive(
+        .{
+            .lifting_log_size = selected_core.vm.lifting_log_size,
+            .log_blowup_factor = recursion.protocol.FRI_LOG_BLOWUP_FACTOR,
+            .log_last_layer_degree_bound = recursion.protocol.FRI_LOG_LAST_LAYER_DEGREE_BOUND,
+            .fold_widths = selected_core.vm.fri_fold_widths[0..selected_core.vm.fri_count],
+            .query_count = recursion.protocol.FRI_QUERY_COUNT,
+        },
+        tree_heights,
+        .{
+            .sampled_value_count = shape.sampled_value_count,
+            .queried_values_per_query = shape.table_count,
+            .claimed_sum_count = shape.claimed_sum_count,
+            .interaction_pow_bits = recursion.protocol.INTERACTION_POW_BITS,
+            .pcs_pow_bits = recursion.protocol.PCS_POW_BITS,
+        },
+    );
+    const schedule = recursion.air.verifier_schedule;
+    var vm_plan = try schedule.Plan.initShape(allocator, try schedule.vmProgramSpec(0, 0), schedule_shape);
+    errdefer vm_plan.deinit();
+    var recursion_plan = try schedule.Plan.initShape(allocator, schedule.RECURSION_PROGRAM_SPEC_V1, schedule_shape);
+    errdefer recursion_plan.deinit();
+    const instruction_template = try recursion.transcript_instruction_template_v6.InstructionTemplateV6.build(
+        allocator,
+        &vm_plan,
+        @intCast(public_data.words().len),
+        statement.core.component_descs[0..statement.core.n_components],
+        statement.core.infra_descs[0..statement.core.n_infra],
+        true,
+    );
+    return .{
+        .allocator = allocator,
+        .words = words,
+        .statement = statement,
+        .shape = shape,
+        .schedule_shape = schedule_shape,
+        .vm_plan = vm_plan,
+        .recursion_plan = recursion_plan,
+        .instruction_template = instruction_template,
+    };
 }
 
 /// Test-only nonconstant challenge draw bound to the independently pinned

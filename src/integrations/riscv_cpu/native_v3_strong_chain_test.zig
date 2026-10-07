@@ -54,30 +54,7 @@ test "real q193 native child feeds freshly verified q193 local outer" {
     );
     defer verified.deinit();
     const native_ns = timer.lap();
-    var profile = try recursion.captured_fri.Owned.init(
-        allocator,
-        recursion.captured_fri.ProfileConfig.fromPcs(recursion.protocol.PCS_CONFIG),
-        &verified.native.capture.proof,
-    );
-    defer profile.deinit();
-    var tree_heights: [recursion.fixed_profile.TREE_COUNT]u32 = undefined;
-    @memcpy(&tree_heights, profile.trace_tree_heights);
-    const shape = try recursion.transcript_shape.derive(
-        profile.circuit.profile(),
-        tree_heights,
-        .{
-            .sampled_value_count = profile.sampled_value_count,
-            .queried_values_per_query = profile.queried_values_per_query,
-            .claimed_sum_count = profile.claimed_sum_count,
-            .interaction_pow_bits = profile.interaction_pow_bits,
-            .pcs_pow_bits = profile.pcs_pow_bits,
-        },
-    );
-    const schedule = recursion.air.verifier_schedule;
-    var vm_plan = try schedule.Plan.initShape(allocator, try schedule.vmProgramSpec(0, 0), shape);
-    defer vm_plan.deinit();
-    var recursion_plan = try schedule.Plan.initShape(allocator, schedule.RECURSION_PROGRAM_SPEC_V1, shape);
-    defer recursion_plan.deinit();
+    const shape = selected_wire.schedule_shape;
     const keys = try recursion.segment_leaf_authority_v2.VerifierKeyAuthorityV2.init(
         recursion.poseidon2_channel.hashBytes("strong-v3-local-segment-vk", 0x4b56_3353),
         recursion.poseidon2_channel.hashBytes("strong-v3-local-parent-vk", 0x4b56_3350),
@@ -97,7 +74,7 @@ test "real q193 native child feeds freshly verified q193 local outer" {
         verified.native.interaction_pow,
         keys,
         try fixed_rows.diagnosticRelations(allocator, known_key_id, known_tree0),
-        .{ .vm = &vm_plan, .recursion = &recursion_plan },
+        .{ .vm = &selected_wire.vm_plan, .recursion = &selected_wire.recursion_plan },
     );
     verified.native.capture_owned = false;
     defer prepared.deinit();
@@ -107,7 +84,7 @@ test "real q193 native child feeds freshly verified q193 local outer" {
     const prepare_ns = timer.lap();
     try diagnoseDirect47(allocator, &prepared, &verified.native.global_metadata, &verified.native.link, &cohort);
     const direct47_ns = timer.lap();
-    diagnoseDirect50(allocator, &prepared, shape, &verified.native.global_metadata, &verified.native.link, &cohort, &preleaf_layout, &preleaf_masks) catch |err| {
+    diagnoseDirect50(allocator, &prepared, shape, &verified.native.global_metadata, &verified.native.link, &cohort, &preleaf_layout, &preleaf_masks, &selected_wire) catch |err| {
         std.debug.print("DIRECT50_ERROR={s}\n", .{@errorName(err)});
         return err;
     };
@@ -220,6 +197,7 @@ fn diagnoseDirect50(
     cohort: *outer_cohort.Cohort,
     preleaf_layout: *const recursion.segment_core_expected_layout_from_statement_v11.OwnedLayout,
     preleaf_masks: *const recursion.segment_core_expected_pcs_masks_v12.OwnedMasks,
+    selected: *const fixed_rows.SelectedV12,
 ) !void {
     var phase_timer = try std.time.Timer.start();
     const link_program = recursion.ethereum_leaf_link_program_v3;
@@ -383,6 +361,10 @@ fn diagnoseDirect50(
             @intCast(prepared.capture.public_data.data.words().len),
             true,
         );
+        if (!std.meta.eql(v7_template.v6_template.shape.native_instruction_schedule_id, selected.instruction_template.schedule_id) or
+            selected.instruction_template.instruction_count != prepared.transcript_program.instructions.len)
+            return error.PreselectedNativeInstructionScheduleMismatch;
+        std.debug.print("DIRECT50_V12_PRESELECT plans_before_proof=true instruction_count={d} schedule_bound=true proof_created=false\n", .{selected.instruction_template.instruction_count});
         const v7_plan = try recursion.segment_leaf_wrapper_roster_direct_v7.Plan.fromTemplate(&v7_template);
         const v8_template = try recursion.air.segment_leaf_wrapper_template_v8.TemplateManifestV8.fromVerifierTemplate(allocator, &v7_template);
         const v8_plan = try recursion.segment_leaf_wrapper_roster_direct_v8.Plan.fromTemplate(&v8_template);
