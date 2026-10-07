@@ -23,6 +23,34 @@ pub fn freeV8StatementColumns(allocator: std.mem.Allocator, columns: [][]M31) vo
     allocator.free(columns);
 }
 
+pub fn buildV11SegmentV2PreleafLayout(
+    allocator: std.mem.Allocator,
+    capture: anytype,
+) !recursion.segment_core_expected_layout_from_statement_v11.OwnedLayout {
+    const statement = try capture.vm_air.reconstructStatement(&capture.public_data.data);
+    const logs = capture.proof.column_log_sizes;
+    if (logs.len != recursion.segment_core_expected_layout_from_statement_v11.TREE_COUNT)
+        return error.V11PreleafLayoutMismatch;
+    var selected = try recursion.segment_core_expected_layout_from_statement_v11.OwnedLayout.buildSegmentV2(
+        allocator,
+        &statement.core,
+        logs[3],
+    );
+    errdefer selected.deinit();
+    for (selected.views, logs, 0..) |expected, actual, tree| {
+        if (!std.mem.eql(u32, expected, actual)) {
+            var first: usize = 0;
+            while (first < @min(expected.len, actual.len) and expected[first] == actual[first]) : (first += 1) {}
+            std.debug.print("V11_PRELEAF_LAYOUT_MISMATCH tree={d} expected_len={d} actual_len={d} first={d} expected={d} actual={d}\n", .{
+                tree,                                             expected.len,                                 actual.len, first,
+                if (first < expected.len) expected[first] else 0, if (first < actual.len) actual[first] else 0,
+            });
+            return error.V11PreleafLayoutMismatch;
+        }
+    }
+    return selected;
+}
+
 pub fn checkV9CoreFriControlFixedParity(
     allocator: std.mem.Allocator,
     v9_template: *const recursion.air.segment_leaf_wrapper_template_v9.TemplateManifestV9,

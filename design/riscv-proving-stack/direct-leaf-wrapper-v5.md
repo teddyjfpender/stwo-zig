@@ -197,12 +197,14 @@ the native writer cell by cell and distinguish a 20/21 column permutation at
 identical geometry. The real q193 diagnostic now also matches every row-23
 Tree0 cell and pins the observed ordered-layout digest
 `7f2265220644e9bde63d10ef1286b6b4ddf3360186e01b1246b0a0239e8e54e1`.
-This is a fixture guard: the diagnostic obtains the layout from a verified
-capture, so it is not yet an independently selected production key. A separate
-V11 builder now derives ordered Trees 0–2 from the admitted statement, pinned
-lookup manifest and validated bridge geometry; Tree 3 remains an explicit
-verifier-selected parameter. Focused tests compare those outputs with the
-native verifier's column ordering.
+This is a fixture guard, not yet an independently selected production key.
+A V11 builder derives ordered Trees 0–2 from the admitted statement and pinned
+lookup manifest, with optional validated bridge geometry for V3. It adds the
+FRI blowup factor because PCS proof captures record extended, rather than raw
+AIR, column log sizes. The real q193 SegmentV2 diagnostic now compares that
+statement-derived layout to the native capture and uses it for rows 23 and 24.
+Tree 3 remains an explicit verifier-selected parameter, supplied by the
+verified capture only in this diagnostic.
 An isolated V11 row-24 writer recompiles the PCS graph from ordered tree
 logs, exact sample-point tags and physical mask logs. Focused tests match all
 native fixed cells and reject a sample-tag permutation with the same aggregate
