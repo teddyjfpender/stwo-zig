@@ -72,8 +72,8 @@ contract and worked polynomial are in [the library chapter](library.md).
 
 | Text operation | Meaning |
 | --- | --- |
-| `std::math::neg(x)` | `-x mod p`, lane-wise. |
-| `std::math::sub(x,y)` | `x-y mod p`, equal M31 shapes. |
+| `std::math::neg(x)` or `-x` | `-x mod p`, lane-wise. |
+| `std::math::sub(x,y)` or `x - y` | `x-y mod p`, equal M31 shapes. |
 | `std::math::square(x)` | `x.*x`. |
 | `std::math::mix4(x)` | Inside `iterate`, add the sum of all four lanes to each lane; requires `[m31; 4]`. |
 | `std::math::inv(x)` | Checked lane-wise inverse; any zero lane makes the relation unsatisfiable. |

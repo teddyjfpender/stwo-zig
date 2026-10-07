@@ -59,7 +59,7 @@ the same compiler-owned standard library version implicitly. Other packages
 and versions are rejected.
 Functions and circuit bodies contain immutable `let` statements, optional
 `assert_eq(a, b);` statements, and a final expression. Supported expressions
-are names, `_m31` field literals, `+`, lane-wise `.*`, calls, parentheses, and
+are names, `_m31` field literals, `+`, `-`, unary `-`, lane-wise `.*`, calls, parentheses, and
 static array literals such as `[sibling_0, sibling_1]` and nested fixed
 reference arrays such as `[[a, b], [c, d]]`. A `let` can bind a static array;
 it becomes a compile-time reference group, not a witness array. Comments start with
@@ -67,6 +67,11 @@ it becomes a compile-time reference group, not a witness array. Comments start w
 integers are used only as the compile-time `N` in `splat<N>`, `iterate<N>`,
 and `std::math::pow<N>`;
 circuit arithmetic uses canonical field literals.
+Unary `-` binds tighter than `.*`, which binds tighter than `+` and `-`; binary
+operators associate left, so `-a .* b - c - d` is `((-a) .* b - c) - d`.
+`a - b` and `-a` are spellings of `std::math::sub(a, b)` and
+`std::math::neg(a)` with identical lowering. A negated literal folds to its
+canonical value, so `splat<4>(-7_m31)` is `splat<4>(2147483640_m31)`.
 
 Every array shape and iteration count is fixed in source. Pure functions are
 specialized at calls and cannot recurse. An `iterate` step is recognized before
@@ -114,6 +119,7 @@ zero-row view for byte and integer operations.
 | Function/operator | Lowering | Preconditions |
 | --- | --- | --- |
 | `a + b`, `a .* b` | Lane-wise `add`/`mul`, or constant variants | Equally shaped `[m31; N]`. |
+| `a - b`, `-a` | Same as `std::math::sub(a, b)` and `std::math::neg(a)` | `[m31; N]`; binary form needs equal shapes. |
 | `splat<N>(c_m31)` | Compile-time uniform constant | Canonical M31 literal; materialized only if needed. |
 | `m31_from_u16(x)` | `cast_m31` | Explicit value-preserving conversion. |
 | `select(bit, a, b)` | `select` | Same M31 array, digest, or `UInt256` type; bit is a constrained input or computed bit. |

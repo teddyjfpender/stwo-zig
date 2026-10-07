@@ -531,6 +531,46 @@ circuit joined(private a: [m31; 3], private b: [m31; 2]) -> public [m31; 1] {
                          ["mul", "add_const"])
         self.assertEqual(relation["nodes"][1]["constant"], 1)
 
+    def test_minus_operator_matches_math_library(self) -> None:
+        def relation(body: str) -> dict:
+            return compile_text(f"""circuit minus(public a: [m31; 2], private b: [m31; 2],
+                         private c: [m31; 2], private d: [m31; 2]) -> public [m31; 2] {{
+    {body}
+}}""")[0]
+        cases = (
+            ("a - b", "std::math::sub(a, b)"),
+            ("-a", "std::math::neg(a)"),
+            ("--a", "std::math::neg(std::math::neg(a))"),
+            ("a - b - c", "std::math::sub(std::math::sub(a, b), c)"),
+            ("a + b - c .* d", "std::math::sub(a + b, c .* d)"),
+            ("-a .* b", "std::math::neg(a) .* b"),
+            ("a - -b", "std::math::sub(a, std::math::neg(b))"),
+            ("a - splat<2>(-7_m31)", "std::math::sub(a, splat<2>(2147483640_m31))"),
+            ("a + splat<2>(-0_m31)", "a + splat<2>(0_m31)"),
+        )
+        for operator_form, library_form in cases:
+            with self.subTest(source=operator_form):
+                self.assertEqual(relation(operator_form), relation(library_form))
+
+    def test_minus_operator_values_and_errors(self) -> None:
+        relation, _ = compile_text("""circuit minus(public a: [m31; 2], private b: [m31; 2]) -> public [m31; 2] {
+    a - b .* b - splat<2>(-3_m31)
+}""")
+        a, b = [5, 1], [3, P - 1]
+        expected = [(x - y * y + 3) % P for x, y in zip(a, b)]
+        assignment = {"public_inputs": {"a": a}, "private_inputs": {"b": b},
+                      "public_outputs": {relation["public_outputs"][0]: expected}}
+        self.assertEqual(evaluate_relation(relation, assignment), assignment["public_outputs"])
+        cases = (
+            ("public x: [m31; 1]", "x - splat<2>(1_m31)", "equally shaped"),
+            ("public x: [u16; 1]", "-x", "std::math requires"),
+            ("public x: [m31; 1]", "x + splat<1>(-2147483647_m31)", "canonical"),
+        )
+        for param, body, message in cases:
+            with self.subTest(body=body):
+                with self.assertRaisesRegex((SourceError, ValueError), message):
+                    compile_text(f"circuit bad({param}) -> public [m31; 1] {{ {body} }}")
+
     def test_standard_hash_alias_has_identical_relation(self) -> None:
         source = (EXAMPLES / "hashes" / "merkle_path1_poseidon.s31").read_text()
         qualified = source.replace("poseidon2_leaf(", "std::hash::poseidon2_leaf(")
