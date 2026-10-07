@@ -321,6 +321,8 @@ pub const Prepared = struct {
     ) !decommit_controller.TerminalRoute {
         var phase: []const u8 = "validate_session";
         errdefer std.debug.print("cairo-cuda proof phase={s} failed\n", .{phase});
+        var memory_timer = try std.time.Timer.start();
+        memoryPhase(&memory_timer, "proof_begin");
         try self.validate(plan, protocol);
         const placement = try managedPlacement();
         if (placement != .none and managedPrefetchEnabled())
@@ -363,6 +365,7 @@ pub const Prepared = struct {
             );
             return err;
         };
+        memoryPhase(&memory_timer, "trace_generation_end");
 
         try transaction.beginStage(.trace_commit);
         phase = "retain_relation_inputs";
@@ -379,6 +382,7 @@ pub const Prepared = struct {
         }
         phase = "preprocessed_commit";
         try self.controllers.preprocessed_commit.execute(session);
+        memoryPhase(&memory_timer, "preprocessed_commit_end");
         if (placement == .capacity) {
             phase = "host_resident_preprocessed_tree_after_commit";
             try preferManagedSlotHost(transaction, plan, .trace_merkle_hashes, 0, true);
@@ -389,6 +393,7 @@ pub const Prepared = struct {
         }
         phase = "main_commit";
         try self.controllers.main_commit.execute(session);
+        memoryPhase(&memory_timer, "main_commit_end");
         if (placement == .capacity) {
             phase = "host_resident_main_tree_after_commit";
             try preferManagedSlotHost(transaction, plan, .trace_merkle_hashes, 1, true);
@@ -488,6 +493,7 @@ pub const Prepared = struct {
                 self.controllers.relation,
             );
         }
+        memoryPhase(&memory_timer, "relation_end");
         if (placement != .none) {
             phase = "release_host_lookup_policy";
             try preferManagedSlotHost(
@@ -511,6 +517,7 @@ pub const Prepared = struct {
         }
         phase = "interaction_commit";
         try self.controllers.interaction_commit.execute(session);
+        memoryPhase(&memory_timer, "interaction_commit_end");
         if (placement == .capacity) {
             phase = "host_resident_interaction_tree_after_commit";
             try preferManagedSlotHost(transaction, plan, .trace_merkle_hashes, 2, true);
@@ -568,6 +575,7 @@ pub const Prepared = struct {
             self.bindings.composition_alpha,
         );
         try transaction.endStage(.trace_commit);
+        memoryPhase(&memory_timer, "trace_commit_end");
 
         try transaction.beginStage(.constraint_evaluation);
         if (managedPrefetchEnabled()) {
@@ -580,9 +588,11 @@ pub const Prepared = struct {
             self.controllers.pcs_bindings,
             self.bindings.composition_alpha,
         );
+        memoryPhase(&memory_timer, "constraint_evaluation_end");
         try common.requireStage(session, .constraint_evaluation);
         phase = "composition_commit";
         try self.controllers.composition_commit.execute(session);
+        memoryPhase(&memory_timer, "composition_commit_end");
         if (placement == .capacity) {
             phase = "host_resident_composition_tree_after_commit";
             try preferManagedSlotHost(transaction, plan, .trace_merkle_hashes, 3, true);
@@ -609,6 +619,7 @@ pub const Prepared = struct {
             &cursor,
         );
         try transaction.endStage(.constraint_evaluation);
+        memoryPhase(&memory_timer, "constraint_stage_end");
 
         try transaction.beginStage(.oods);
         if (managedPrefetchEnabled()) {
@@ -635,6 +646,7 @@ pub const Prepared = struct {
             }
         }
         try transaction.endStage(.oods);
+        memoryPhase(&memory_timer, "oods_end");
 
         try transaction.beginStage(.quotient);
         if (managedPrefetchEnabled()) {
@@ -645,6 +657,7 @@ pub const Prepared = struct {
         phase = "quotient";
         try self.controllers.quotient.execute(session);
         try transaction.endStage(.quotient);
+        memoryPhase(&memory_timer, "quotient_end");
 
         try transaction.beginStage(.fri_commit);
         phase = "fri";
@@ -665,6 +678,7 @@ pub const Prepared = struct {
                 );
         }
         try transaction.endStage(.fri_commit);
+        memoryPhase(&memory_timer, "fri_commit_end");
 
         try transaction.beginStage(.pow);
         try transcript_controller.executePow(
@@ -695,6 +709,7 @@ pub const Prepared = struct {
             &cursor,
         );
         try transaction.endStage(.decommit);
+        memoryPhase(&memory_timer, "decommit_end");
         // The graph and transcript are complete, but no proof is accepted
         // until proof_assembly performs its sole D2H, strict terminal decode,
         // resident/AOT evidence validation, and pinned-oracle verification.
@@ -948,6 +963,14 @@ fn managedPrefetchEnabled() bool {
 }
 
 const ManagedPlacement = enum { none, throughput, capacity };
+
+fn memoryPhase(timer: *std.time.Timer, name: []const u8) void {
+    if (std.posix.getenv("STWO_CUDA_MEMORY_PHASES") == null) return;
+    std.debug.print(
+        "cairo-cuda-memory-phase phase={s} elapsed_ns={}\n",
+        .{ name, timer.read() },
+    );
+}
 
 /// On the ordered proof stream, migration of a completed lookup view cannot
 /// race the following relation instance or the global claim reduction.
