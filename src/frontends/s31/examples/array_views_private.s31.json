@@ -1,0 +1,19 @@
+{
+  "version": 1,
+  "name": "array_views_private",
+  "inputs": [
+    {"name": "a", "kind": "m31", "length": 3, "visibility": "private"},
+    {"name": "b", "kind": "m31", "length": 4, "visibility": "private"}
+  ],
+  "nodes": [
+    {"name": "joined", "op": "array_concat", "lhs": "a", "rhs": "b"},
+    {"name": "doubled", "op": "add", "lhs": "joined", "rhs": "joined"},
+    {"name": "left", "op": "array_get", "lhs": "joined", "index": 3},
+    {"name": "middle", "op": "array_get", "lhs": "joined", "index": 4},
+    {"name": "tail", "op": "array_get", "lhs": "doubled", "index": 5},
+    {"name": "pair", "op": "add", "lhs": "left", "rhs": "middle"},
+    {"name": "result", "op": "add", "lhs": "pair", "rhs": "tail"}
+  ],
+  "assertions": [],
+  "public_outputs": ["result"]
+}

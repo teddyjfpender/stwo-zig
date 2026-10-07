@@ -163,6 +163,37 @@ pub fn build(b: *std.Build) void {
     const sha_joint_tests = b.addRunArtifact(b.addTest(.{ .root_module = sha_joint_test_root }));
     b.step("test-sha-joint", "Compile and test one-proof circuit plus packed SHA integration")
         .dependOn(&sha_joint_tests.step);
+    const sha_joint_batch2_test_root = b.createModule(.{
+        .root_source_file = b.path("sha_joint_batch2_prover_test.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    sha_joint_batch2_test_root.addImport("stwo_core", core);
+    sha_joint_batch2_test_root.addImport("stwo_prover_engine", cpu.import_table.get("stwo_prover_engine") orelse @panic("missing prover engine"));
+    sha_joint_batch2_test_root.addImport("stwo_circuit_frontend", circuit);
+    sha_joint_batch2_test_root.addImport("stwo_circuit_cpu_integration", cpu);
+    sha_joint_batch2_test_root.addImport("stwo_cairo_frontend", cpu.import_table.get("stwo_cairo_frontend") orelse @panic("missing Cairo frontend"));
+    sha_joint_batch2_test_root.addImport("s31_sha_provider", sha_provider);
+    sha_joint_batch2_test_root.addImport("s31_poseidon_ref", sha_provider);
+    sha_joint_batch2_test_root.addImport("interop_postcard", sha_postcard);
+    sha_joint_batch2_test_root.addImport("s31_air_programs", official_air);
+    const sha_joint_batch2_tests = b.addRunArtifact(b.addTest(.{ .root_module = sha_joint_batch2_test_root }));
+    b.step("test-sha-joint-batch2", "Prove and verify two private Bitcoin headers with one SHA AIR proof")
+        .dependOn(&sha_joint_batch2_tests.step);
+    const retarget_proof_test_root = b.createModule(.{
+        .root_source_file = b.path("bitcoin_retarget_proof_test.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    retarget_proof_test_root.addImport("stwo_core", core);
+    retarget_proof_test_root.addImport("stwo_circuit_frontend", circuit);
+    retarget_proof_test_root.addImport("stwo_circuit_cpu_integration", cpu);
+    retarget_proof_test_root.addImport("stwo_cairo_frontend", cpu.import_table.get("stwo_cairo_frontend") orelse @panic("missing Cairo frontend"));
+    retarget_proof_test_root.addImport("interop_postcard", sha_postcard);
+    retarget_proof_test_root.addImport("s31_air_programs", official_air);
+    const retarget_proof_tests = b.addRunArtifact(b.addTest(.{ .root_module = retarget_proof_test_root }));
+    b.step("test-bitcoin-retarget-proof", "Prove and natively verify the first Bitcoin retarget relation")
+        .dependOn(&retarget_proof_tests.step);
     anchor_proof_test_root.addAnonymousImport("s31_bitcoin_fixture", .{
         .root_source_file = b.path("examples/bitcoin_header_link.valid.json"),
     });

@@ -19,7 +19,8 @@ def fixture(name: str) -> tuple[dict, dict]:
 
 class OracleTests(unittest.TestCase):
     def test_repository_arithmetic_examples(self) -> None:
-        for name in ("arith4", "mathlib4", "math_polynomial4", "static_matvec", "static_matmul", "array_views",
+        for name in ("arith4", "mathlib4", "math_polynomial4", "static_matvec", "static_matmul",
+                     "array_views", "array_views_private", "array_views_u16",
                      "preimage4", "lane_stats4", "affine4_v1"):
             with self.subTest(name=name):
                 relation, assignment = fixture(name)
@@ -27,13 +28,15 @@ class OracleTests(unittest.TestCase):
                                  assignment["public_outputs"])
 
     def test_forgeries_fail_on_every_arithmetic_example(self) -> None:
-        for name in ("arith4", "mathlib4", "math_polynomial4", "static_matvec", "static_matmul", "array_views", "preimage4",
+        for name in ("arith4", "mathlib4", "math_polynomial4", "static_matvec", "static_matmul",
+                     "array_views", "array_views_private", "array_views_u16", "preimage4",
                      "lane_stats4", "affine4_v1"):
             with self.subTest(name=name):
                 relation, assignment = fixture(name)
                 wrong = copy.deepcopy(assignment)
                 first = relation["public_outputs"][0]
-                wrong["public_outputs"][first][0] = (wrong["public_outputs"][first][0] + 1) % P
+                modulus = 1 << 16 if name == "array_views_u16" else P
+                wrong["public_outputs"][first][0] = (wrong["public_outputs"][first][0] + 1) % modulus
                 with self.assertRaisesRegex(OracleError, "does not match"):
                     evaluate_relation(relation, wrong)
 
@@ -87,6 +90,10 @@ class OracleTests(unittest.TestCase):
                                             "private_inputs": {"bytes": [7, 65535]},
                                             "public_outputs": {"word": [65535]}}),
                          {"word": [65535]})
+        with self.assertRaises(OracleError):
+            evaluate_relation(u16, {"public_inputs": {},
+                                    "private_inputs": {"bytes": [7, 65536]},
+                                    "public_outputs": {"word": [65536]}})
 
     def test_randomized_arithmetic_mix(self) -> None:
         rng = random.Random(0x531)

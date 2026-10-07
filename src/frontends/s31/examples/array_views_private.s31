@@ -1,0 +1,15 @@
+use std@1;
+
+// Shift a three-lane private array across the packed QM31 boundary, then
+// select both a shifted source lane and a lane from a computed array.
+circuit array_views_private(private a: [m31; 3], private b: [m31; 4])
+    -> public [m31; 1] {
+    let joined = std::array::concat(a, b);
+    let doubled = joined + joined;
+    let left = std::array::get<3>(joined);
+    let middle = std::array::get<4>(joined);
+    let tail = std::array::get<5>(doubled);
+    let pair = left + middle;
+    let result = pair + tail;
+    result
+}

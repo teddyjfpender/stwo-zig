@@ -1,0 +1,5 @@
+{
+  "public_inputs": {},
+  "private_inputs": {"a": [0, 32768, 65535], "b": [65535, 7]},
+  "public_outputs": {"picked": [65535]}
+}

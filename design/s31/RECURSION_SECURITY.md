@@ -107,6 +107,9 @@ contextual future-time policy, cumulative chainwork and best-chain selection
 remain absent. See the
 [Bitcoin design](BITCOIN_LIGHT_CLIENT.md) and
 [standalone acceptance](../../src/frontends/s31/acceptance_bitcoin_chain_cli.py).
+An [exact first-retarget circuit gadget](BITCOIN_RETARGET.md) exists for a
+future height-2016 profile, but the current fold does not call it and its
+key continues to reject that height.
 
 ## Sealed parameters and what they mean
 

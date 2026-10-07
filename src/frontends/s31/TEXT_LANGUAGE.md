@@ -193,7 +193,12 @@ The [matrix example](examples/static_matvec.s31) uses static reference
 indexing, concatenation, and `matvec`; its seven arithmetic nodes match a
 [handwritten relation](examples/static_matvec.s31.json). Runtime array views
 have explicit `array_get` and `array_concat` relation nodes so that their
-semantics remain visible in the normalized source.
+semantics remain visible in the normalized source. Raw input positions alias
+their existing constrained wires; shifted packed positions use constrained
+unpack and repack gates. The [private M31](examples/array_views_private.s31)
+and [private u16](examples/array_views_u16.s31) examples cross a four-lane
+packing boundary. Their handwritten relations and native proof acceptance
+are exercised by `python3 acceptance_array_views.py`.
 The [matrix multiplication example](examples/static_matmul.s31) uses static
 reshape, flatten, take, and drop. Those four helpers only group references;
 the `matmul` cells lower to the existing dot-product arithmetic nodes. Its

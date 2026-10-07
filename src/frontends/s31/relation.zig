@@ -517,6 +517,10 @@ pub fn evaluate(allocator: std.mem.Allocator, program: Program, assignment: Assi
     return claimed;
 }
 
+/// Bitcoin Core's mainnet powLimit is 2^224 - 1. Its compact encoding
+/// `0x1d00ffff` decodes to the slightly smaller genesis target.
+pub const mainnet_pow_limit: u256 = (@as(u256, 1) << 224) - 1;
+
 pub fn mainnetTarget(compact: u32) !u256 {
     const exponent: u8 = @intCast(compact >> 24);
     const mantissa: u32 = compact & 0x007f_ffff;
@@ -526,8 +530,16 @@ pub fn mainnetTarget(compact: u32) !u256 {
         @as(u256, mantissa) >> @as(u8, @intCast(8 * (3 - @as(u32, exponent))))
     else
         @as(u256, mantissa) << @as(u8, @intCast(8 * (@as(u32, exponent) - 3)));
-    if (target == 0 or target > (@as(u256, 0xffff) << 208)) return error.InvalidCompactTarget;
+    if (target == 0 or target > mainnet_pow_limit) return error.InvalidCompactTarget;
     return target;
+}
+
+test "mainnet powLimit and compact genesis target are distinct Core values" {
+    const genesis_target = try mainnetTarget(0x1d00ffff);
+    try std.testing.expectEqual(@as(u256, 0xffff) << 208, genesis_target);
+    try std.testing.expectEqual((@as(u256, 1) << 208) - 1, mainnet_pow_limit - genesis_target);
+    try std.testing.expectEqual(@as(u256, 0x7fffff) << 200, try mainnetTarget(0x1c7fffff));
+    try std.testing.expectError(error.InvalidCompactTarget, mainnetTarget(0x1d010000));
 }
 
 fn arrayValues(allocator: std.mem.Allocator, object: std.json.Value, name: []const u8, shape: Shape) ![]M31 {

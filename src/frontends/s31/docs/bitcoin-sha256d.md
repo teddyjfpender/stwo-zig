@@ -429,7 +429,11 @@ The fold adds two equality constraints on the already range-checked header
 limbs: serialized bytes 72–73 must be `ff ff` and bytes 74–75 must be
 `00 1d`. The standalone key generator and verifier require the genesis hash
 and cap `max_step` at 2014, because step 0 proves block height 1. Step 2015
-would prove height 2016 and needs the retarget relation, which is not present.
+would prove height 2016 and needs a retarget relation in the fold. The
+[first-retarget gadget](../../../../design/s31/BITCOIN_RETARGET.md) now has
+its own natively verified proof, including clamp and compact-encoding
+boundary checks, but the fold does not yet authenticate its timestamp input
+or call it. The key stays capped before this boundary.
 These key checks are native policy checks; the exact header `nBits` check is
 inside the proof relation.
 
@@ -484,7 +488,7 @@ claim. The proven statement covers linkage, SHA256d, exact first-epoch
 `nBits`, target decoding, PoW, and the eleven-ancestor median-time-past rule
 against the pinned genesis checkpoint. The [constraint walkthrough](../../../../design/s31/BITCOIN_MTP_FOLD.md)
 shows the early-height median and authenticated rolling state. Future-time
-limits, the first retarget, cumulative work, best-chain selection, and
+limits, integration of the separately proved first retarget, cumulative work, best-chain selection, and
 transactions remain outside this proof. The recorded MTP key file has SHA-256
 `18905623123396e8372ac137431c72acaa9197b9d565685d64be4796b93b6667`.
 
@@ -554,8 +558,15 @@ before lookup challenges are drawn. The [joint proof test](../sha_joint_prover_t
 derives a key from value-free circuit topology, proves the private genesis
 header with circuit and SHA components in one STARK, and checks a standalone
 native verifier plus public, key, boundary, AIR and proof mutations. It has
-one caller and three SHA compression calls. The six-call, two-header private
-connection remains to be implemented. The
+one caller and three SHA compression calls. A separate
+[two-header joint profile](../../../../design/s31/SHA_BATCH2_PRIVATE.md)
+now joins two disjoint private caller boundaries to six SHA compression calls
+in one proof; its native verifier and adversarial proof test pass. It remains
+an opt-in focused profile rather than a generated package. A
+[matched two-header cost record](../../../../design/s31/measurements/bitcoin-sha-joint-batch2-v1-2026-10-07.json)
+puts it at 646 ms excluding FRI proof of work and 889,412 proof bytes, versus
+323 ms excluding proof of work and 382,425 bytes for the generic lowering.
+The generic lowering stays the default. The
 [integration contract](../../../../design/s31/SHA_CHIP_INTEGRATION.md) gives
 the Gate and SHA lookup signs, transcript binding and soundness assumptions.
 

@@ -57,6 +57,12 @@ Those forms emit explicit `array_get` and `array_concat` relation nodes. They
 are views of already constrained lanes, not hints chosen by the prover; a
 verifier constrains any use of a selected output to the source position.
 The index is a literal checked against the source length at compile time.
+The relation compiler aliases existing source wires for raw inputs and aligned
+packed words. When concatenation crosses a four-lane QM31 boundary, it
+unpacks the source positions and repacks them with circuit gates. Selecting a
+nonaligned position from a packed result also uses a constrained unpack.
+The public-output copy gate binds the selected wire to the claimed word;
+`u16` inputs and outputs retain their range checks.
 
 Four more operations work on **static groups only**. `take<K>(group)` keeps
 the first `K` entries (`1 <= K <= length`); `drop<K>(group)` skips `K`
@@ -154,6 +160,34 @@ both positions explicitly. Its only arithmetic node is the final addition.
 The independent oracle checks the same positions, and the compiler must
 preserve those references when mapping them to circuit wires. All eight
 public words (seven inputs and one output) are bound in the proof statement.
+
+The [private M31 example](../examples/array_views_private.s31) exercises the
+packed boundary and a computed array. It joins three lanes of `a` and four of
+`b`, doubles the joined array, then returns positions 3 and 4 of the joined
+array plus position 5 of the doubled array. For
+`a=[2,3,5]`, `b=[7,11,p-2,17]`, those positions are `7`, `11`, and
+`2(p-2) mod p = p-4`; the public result is `14`. The
+[handwritten relation](../examples/array_views_private.s31.json) records the
+concat, three selections, and three arithmetic nodes. The
+[u16 example](../examples/array_views_u16.s31) joins a three-word array with
+a two-word array and selects the first word of the second array, `65535`,
+across that same boundary. Its [handwritten relation](../examples/array_views_u16.s31.json)
+has only `array_concat` and `array_get` nodes.
+
+Run `python3 acceptance_array_views.py` from the S31 frontend directory to
+compile the text and handwritten JSON versions, compare their canonical IR
+and circuit cost, check the assignments with the independent oracle, and
+prove both versions. Each generated native verifier accepts the correct
+public statement and rejects a changed one. The oracle and prover also
+reject a changed output assignment. In one `ReleaseFast` run, the public
+M31 example used 291 raw QM31-operation rows, the private shifted M31
+example used 336, and the private u16 example used 284 plus five
+M31-to-u32 rows. Each had 512 padded QM31-operation rows. The M31 examples
+used `direct-gate`; the u16 example used `gate`, whose range-check components
+also had 16 padded rows each. These are costs of three different programs,
+not a comparison of view overhead in isolation. The native proofs, including
+negative-claim checks, establish the compiled relation beyond the oracle's
+host-side evaluation.
 
 `sum` uses a balanced addition tree. `dot` multiplies corresponding
 terms, then uses that tree; before constant folding, `n` terms need

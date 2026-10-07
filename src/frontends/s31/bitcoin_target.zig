@@ -1,6 +1,7 @@
 //! Bitcoin mainnet compact target decoder for an 80-byte serialized header.
-//! The compact field occupies bytes 72..75. Valid nonzero targets must be at
-//! most 0x00000000ffff0000... (mainnet powLimit).
+//! The compact field occupies bytes 72..75. Mainnet's actual powLimit is
+//! 0x00000000ffffffff... (2^224-1); the genesis compact target is the
+//! slightly smaller 0x00000000ffff0000....
 const core = @import("stwo_core");
 const circuit = @import("stwo_circuit_frontend");
 const std = @import("std");
@@ -74,10 +75,8 @@ pub fn mainnetTarget(comptime V: type, ctx: *circuit.builder.Context(V), header:
             target_bytes[at] = try ctx.add(target_bytes[at], try ctx.mul(selector, bytes[mantissa_index]));
         }
     }
-    // For a compact target with a nonnegative 23-bit mantissa, this is exactly
-    // the mainnet powLimit check. At exponent 29, bytes 26..27 can be ff/ff
-    // only with every lower byte zero. At 28 the top byte is at most 0x7f;
-    // at 30 only byte 27 survives. Smaller exponents are below the limit.
+    // Bitcoin Core's mainnet powLimit is 2^224-1: exactly the targets with
+    // bytes 28..31 zero. This is larger than the genesis compact target.
     for (target_bytes[28..32]) |wire| try ctx.eq(wire, ctx.zero());
     var byte_sum = ctx.zero();
     for (target_bytes) |wire| byte_sum = try ctx.add(byte_sum, wire);

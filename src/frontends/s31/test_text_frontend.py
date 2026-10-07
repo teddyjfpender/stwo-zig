@@ -311,6 +311,10 @@ circuit matrix(private a: [m31; 1], private b: [m31; 1]) -> public [m31; 1] {
     def test_runtime_array_get_and_concat_have_explicit_relation_nodes(self) -> None:
         self.assertEqual(compile_file(EXAMPLES / "array_views.s31")[0],
                          json.loads((EXAMPLES / "array_views.s31.json").read_text()))
+        for name in ("array_views_private", "array_views_u16"):
+            with self.subTest(name=name):
+                self.assertEqual(compile_file(EXAMPLES / f"{name}.s31")[0],
+                                 json.loads((EXAMPLES / f"{name}.s31.json").read_text()))
         relation, _ = compile_text("""use std@1;
 circuit joined(private a: [m31; 3], private b: [m31; 2]) -> public [m31; 1] {
     let both = std::array::concat(a, b);
@@ -324,6 +328,11 @@ circuit joined(private a: [m31; 3], private b: [m31; 2]) -> public [m31; 1] {
     std::array::get<1>(a)
 }""")
         self.assertEqual(u16["nodes"][0]["op"], "array_get")
+        shifted = compile_file(EXAMPLES / "array_views_private.s31")[0]
+        self.assertEqual([node["op"] for node in shifted["nodes"]],
+                         ["array_concat", "add", "array_get", "array_get", "array_get", "add", "add"])
+        self.assertEqual([node["index"] for node in shifted["nodes"] if node["op"] == "array_get"],
+                         [3, 4, 5])
 
     def test_static_matmul_views_lower_to_constrained_arithmetic(self) -> None:
         relation, source_map = compile_file(EXAMPLES / "static_matmul.s31")

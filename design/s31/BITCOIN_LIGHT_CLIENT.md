@@ -334,6 +334,13 @@ and a step beyond the key limit. The `max_step` field
 is a native host policy cap, not a proved recursive security bound. The
 exact `nBits` equality is inside the fold circuit and is proof-bound.
 
+The [first-retarget gadget](BITCOIN_RETARGET.md) now constrains Core's
+height-2016 timespan clamp, 256-bit target multiplication and division,
+mainnet `powLimit`, and compact re-encoding. Focused circuit tests cover the
+clamp and compact boundaries; a standalone native proof verifies two boundary
+cases with one value-free circuit key. The current fold key still ends at
+height 2015; the gadget is not yet selected inside a recursive proof.
+
 The separately proved [`bitcoin_header_link.s31`](../../src/frontends/s31/examples/bitcoin_header_link.s31)
 leaf remains useful for independent proofs and for a future dedicated SHA
 chip. If a proof-bound chip makes verifying that leaf cheaper than direct

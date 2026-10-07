@@ -1,0 +1,14 @@
+{
+  "version": 1,
+  "name": "array_views_u16",
+  "inputs": [
+    {"name": "a", "kind": "u16", "length": 3, "visibility": "private"},
+    {"name": "b", "kind": "u16", "length": 2, "visibility": "private"}
+  ],
+  "nodes": [
+    {"name": "joined", "op": "array_concat", "lhs": "a", "rhs": "b"},
+    {"name": "picked", "op": "array_get", "lhs": "joined", "index": 3}
+  ],
+  "assertions": [],
+  "public_outputs": ["picked"]
+}

@@ -11,6 +11,7 @@ pub const sha_joint_prover = @import("sha_joint_prover.zig");
 pub const sha_joint_native_verifier = @import("sha_joint_native_verifier.zig");
 pub const sha_joint_profile = @import("sha_joint_profile.zig");
 pub const bitcoin_target = @import("bitcoin_target.zig");
+pub const bitcoin_retarget = @import("bitcoin_retarget.zig");
 pub const poseidon2 = @import("poseidon2.zig");
 pub const recursive_public_words = @import("recursive_public_words.zig");
 pub const bitcoin_fold_step = @import("bitcoin_fold_step.zig");
@@ -28,6 +29,7 @@ test {
     _ = sha_caller_equations;
     _ = sha_caller_air;
     _ = bitcoin_target;
+    _ = bitcoin_retarget;
     _ = poseidon2;
     _ = recursive_public_words;
     _ = bitcoin_fold_step;

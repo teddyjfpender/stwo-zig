@@ -1066,6 +1066,21 @@ test "array indexing and concatenation preserve packed alignment and constrain s
             try std.testing.expect(concat.qm31_end > concat.qm31_start);
             try std.testing.expect(get.qm31_end > get.qm31_start);
         }
+        // The selected value is copied into the public output from a wire
+        // produced by the source-lane extraction. Corrupt that intermediate
+        // witness while retaining the original source and output values.
+        const public_wire = ctx.circuit.output.items[ctx.circuit.output.items.len - 1];
+        var selected_wire: ?u32 = null;
+        for (ctx.circuit.add.items) |gate| if (gate.out == public_wire) {
+            selected_wire = gate.in0;
+            break;
+        };
+        const selected = selected_wire orelse return error.MissingArrayOutputBinding;
+        const original = ctx.value_table.items[selected];
+        ctx.value_table.items[selected] = original.add(core.fields.qm31.QM31.one());
+        try std.testing.expect(!try ctx.isCircuitValid());
+        ctx.value_table.items[selected] = original;
+        try std.testing.expect(try ctx.isCircuitValid());
     }
 }
 

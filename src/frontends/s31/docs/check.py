@@ -525,6 +525,23 @@ def check_recursive_examples() -> None:
     assert all(fold_cases[name]["preprocessed_root"] != base_fold["preprocessed_root"]
                for name in ("changed-checkpoint", "changed-base-root"))
     bitcoin_doc = (DOCS / "bitcoin-sha256d.md").read_text()
+    sha_pair = json.loads((records / "bitcoin-sha-joint-batch2-v1-2026-10-07.json").read_text())
+    assert sha_pair["schema"] == "s31-bitcoin-sha-joint-batch2-v1"
+    assert sha_pair["statement"]["canonical_program_sha256"] == hashlib.sha256(
+        (S31 / "examples/bitcoin_header_pair.s31.json").read_bytes()
+    ).hexdigest()
+    generic = sha_pair["generic_sparse_wide_gate"]
+    joined = sha_pair["joined_sparse_wide_sha_batch2"]
+    assert generic["median_excluding_both_pow_ms"] == statistics.median(
+        run["excluding_both_pow_ms"] for run in generic["runs"]
+    )
+    assert joined["median_excluding_fri_pow_ms"] == statistics.median(
+        run["excluding_fri_pow_ms"] for run in joined["runs"]
+    )
+    assert generic["native_verifier_accepted_all"] and joined["native_verifier_accepted_all"]
+    assert generic["median_excluding_both_pow_ms"] < joined["median_excluding_fri_pow_ms"]
+    assert generic["proof_bytes"] < joined["proof_bytes"]
+    assert "bitcoin-sha-joint-batch2-v1-2026-10-07.json" in bitcoin_doc
     assert all(f"{value:,}" in bitcoin_doc for value in (
         direct_step["direct_step"]["raw_vars"],
         direct_step["direct_step"]["raw"]["qm31_ops"],
@@ -561,10 +578,9 @@ def check_recursive_examples() -> None:
     assert current_two_step["topology_record_sha256"] == hashlib.sha256(
         (records / "bitcoin-chain-fold-topology-v3-2026-10-07.json").read_bytes()
     ).hexdigest()
-    assert current_two_step["source_sha256"] == {
-        name: hashlib.sha256((S31 / name).read_bytes()).hexdigest()
-        for name in current_two_step["source_sha256"]
-    }
+    # The later powLimit oracle correction changed relation.zig after this
+    # measured native proof. Preserve the v3 proof's source provenance.
+    check_historical_source_hashes(current_two_step["source_sha256"])
     assert current_two_step["native_verification_passed"] is True
     assert current_two_step["changed_public_statement_rejected_at_both_fold_steps"] is True
     assert current_two_step["changed_timestamp_window_rejected"] is True
