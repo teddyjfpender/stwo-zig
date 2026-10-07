@@ -208,9 +208,50 @@ pub fn checkV12Row11FixedParity(
         count > old_tree.len - old.preprocessed_offset)
         return error.V12Row11FixedGeometryMismatch;
     const capacity = @as(usize, 1) << @intCast(selected.row11_shape.log_size);
+    const columns = try zeroColumns(allocator, count, capacity);
+    defer freeColumns(allocator, columns);
+    try selected.row11_shape.writePhysical(columns);
+    for (columns, old_tree[old.preprocessed_offset..][0..count]) |expected, actual| {
+        if (actual.len != capacity) return error.V12Row11FixedSourceMismatch;
+        for (expected, actual) |a, b|
+            if (!a.eql(b)) return error.V12Row11FixedSourceMismatch;
+    }
+}
+
+pub fn checkV12Row19FixedParity(
+    allocator: std.mem.Allocator,
+    selected: *const SelectedV12,
+    old_plan: *const recursion.segment_leaf_wrapper_roster_direct_v5.Plan,
+    old_tree: [][]M31,
+) !void {
+    var fixed = try recursion.vm_air_composition_control_fixed_v6.Fixed.init(
+        allocator,
+        &selected.vm_plan,
+        &selected.recursion_plan,
+    );
+    defer fixed.deinit();
+    const old = old_plan.placements[19].?;
+    const count = recursion.vm_air_composition_control_fixed_v6.COLUMN_COUNT;
+    if (old.geometry.log_size != fixed.rows.log_size or
+        old.geometry.preprocessed_columns != count or
+        old.preprocessed_offset > old_tree.len or
+        count > old_tree.len - old.preprocessed_offset)
+        return error.V12Row19FixedGeometryMismatch;
+    const capacity = @as(usize, 1) << @intCast(fixed.rows.log_size);
+    const columns = try zeroColumns(allocator, count, capacity);
+    defer freeColumns(allocator, columns);
+    try fixed.writePhysical(&selected.vm_plan, &selected.recursion_plan, columns);
+    for (columns, old_tree[old.preprocessed_offset..][0..count]) |expected, actual| {
+        if (actual.len != capacity) return error.V12Row19FixedSourceMismatch;
+        for (expected, actual) |a, b|
+            if (!a.eql(b)) return error.V12Row19FixedSourceMismatch;
+    }
+}
+
+fn zeroColumns(allocator: std.mem.Allocator, count: usize, capacity: usize) ![][]M31 {
     const columns = try allocator.alloc([]M31, count);
     var initialized: usize = 0;
-    defer {
+    errdefer {
         for (columns[0..initialized]) |column| allocator.free(column);
         allocator.free(columns);
     }
@@ -219,12 +260,12 @@ pub fn checkV12Row11FixedParity(
         @memset(column.*, M31.zero());
         initialized += 1;
     }
-    try selected.row11_shape.writePhysical(columns);
-    for (columns, old_tree[old.preprocessed_offset..][0..count]) |expected, actual| {
-        if (actual.len != capacity) return error.V12Row11FixedSourceMismatch;
-        for (expected, actual) |a, b|
-            if (!a.eql(b)) return error.V12Row11FixedSourceMismatch;
-    }
+    return columns;
+}
+
+fn freeColumns(allocator: std.mem.Allocator, columns: [][]M31) void {
+    for (columns) |column| allocator.free(column);
+    allocator.free(columns);
 }
 
 pub fn allocateV8StatementColumns(allocator: std.mem.Allocator, count: usize) ![][]M31 {

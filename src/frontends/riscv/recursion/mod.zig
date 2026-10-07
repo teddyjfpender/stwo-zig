@@ -255,6 +255,7 @@ pub const transcript_program_v2_field_bridge_v5 = @import("air/transcript_progra
 pub const transcript_program_v2_template_words_v6 = @import("transcript_program_v2_template_words_v6.zig");
 pub const transcript_instruction_template_v6 = @import("transcript_instruction_template_v6.zig");
 pub const segment_statement_row11_fixed_v6 = @import("segment_statement_row11_fixed_v6.zig");
+pub const vm_air_composition_control_fixed_v6 = @import("vm_air_composition_control_fixed_v6.zig");
 pub const segment_leaf_wrapper_row5_fanout_v6 = @import("segment_leaf_wrapper_row5_fanout_v6.zig");
 pub const ethereum_leaf_link_source_direct_v6 = @import("air/ethereum_leaf_link_source_direct_v6.zig");
 pub const segment_leaf_statement_source_direct_v6 = @import("air/segment_leaf_statement_source_direct_v6.zig");
