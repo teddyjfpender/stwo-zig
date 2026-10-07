@@ -1,12 +1,12 @@
 # S31 recursion: soundness boundary and audit ledger
 
 This is the security claim supported by the current code and fixtures, not a
-claim of a measured security level. It covers two distinct constructions:
+claim of a measured security level. It covers three distinct constructions:
 the fixed-claim fold repeats verification of **one unchanged leaf claim**;
 the gate-profile state fold also constrains a four-lane M31 transition
-extracted from S31 source. The sparse-wide Bitcoin fixture verifies two
-linked headers **inside one leaf proof**. No current fold consumes a new
-Bitcoin header per step.
+extracted from S31 source; and the Bitcoin hash-chain fold checks a new
+80-byte header at each step. The earlier sparse-wide Bitcoin fixture verifies
+two linked headers **inside one leaf proof**.
 
 ## What an accepted top proof needs
 
@@ -74,6 +74,25 @@ sixteen operations and values near the M31 modulus. Extracting this gate
 builder for the test preserved the sealed arith4 state-fold AIR root and
 raw/padded geometry.
 
+The Bitcoin fold has a different base case. A key-pinned checkpoint anchor
+proof publishes the Poseidon2 root of a trusted 32-byte block hash. At step
+zero, the fold verifies that anchor under its fixed AIR root, forces the
+private prior-hash root to equal the checkpoint root, and checks a fresh
+header's exact previous-hash bytes, SHA256d and proof of work. At positive
+step `n`, it verifies a fold proof with public digest for step `n-1` and
+the witnessed prior-hash root, then checks the next header. The current
+header-hash root enters `S31BFD1!`, a personalized BLAKE2s digest of the
+actual fold AIR root, full `u32` step, checkpoint root, and current root.
+The outer native verifier reconstructs that digest from the key, statement,
+and displayed current block hash. The fold AIR cannot contain its own root
+as a constant without a hash fixed-point problem; its guessed self-root is
+bound by the outer public digest, subject to BLAKE2s collision resistance.
+The prior and current hash roots also depend on Poseidon2 collision
+resistance. This is an induction argument for a **checkpoint-relative hash
+chain**, not full Bitcoin consensus or proof of the most-work chain. See the
+[Bitcoin design](BITCOIN_LIGHT_CLIENT.md) and
+[standalone acceptance](../../src/frontends/s31/acceptance_bitcoin_chain_cli.py).
+
 ## Sealed parameters and what they mean
 
 `showcasePcsConfig` and `recursivePcsConfig` in
@@ -112,6 +131,9 @@ all these keys, a conservative union-bound term would be at most
 `(n+3)ε` or `(n+4)ε`, respectively. Hash binding failures and any protocol
 composition loss must be added separately. This equation is a budgeting
 template, **not** a soundness theorem for the current implementation. For
+the Bitcoin fold, there are `n+1` fold proofs and one anchor proof, or
+`n+2` proofs; the analogous conditional term is `(n+2)ε`, plus BLAKE2s,
+Poseidon2, and proof-system composition losses. For
 scale only, inserting a hypothetical `ε = 2⁻⁹⁶` and allowing around `2³²`
 proofs leaves a term around `2⁻⁶⁴`; the 96-bit premise has not been
 established for S31. Neither the `securityBits()` helper nor a matching
@@ -128,6 +150,16 @@ limit three and reject the same proof with limit two. Omitting the option
 preserves the protocol's full `u32` counter range. The
 [policy acceptance record](measurements/fold-depth-policy-2026-10-07.json)
 covers gate fixed, gate state and sparse-wide fixed folds.
+
+The standalone Bitcoin verifier instead requires the caller to pin the
+SHA-256 digest of the exact key file. It re-derives the checkpoint-bound
+anchor and fold roots, checks the fixed AIR layout and FRI schedule, and
+enforces the key's `max_step` before verifying the proof. Its current
+two-header key permits steps zero and one. The acceptance script regenerates
+the key and statements byte for byte, accepts both saved fold proofs, and
+rejects a different checkpoint, key digest, current hash, step replay,
+public words, proof bytes, and a step beyond the cap. The cap is a host
+policy choice; no per-proof `ε` has been established for this Bitcoin fold.
 
 The optional `audit-fold-chain` and `audit-state-fold-chain` commands inspect
 saved checkpoints starting at step zero. They run the sealed native verifier
@@ -151,7 +183,7 @@ lanes.
 | Child verifier | Direct commitment, transcript, OODS, Merkle, FRI and nonce mutations; native capture parity | Independent verifier equivalence review |
 | Fixed-key closure | Witness-free/value topology equality, reproducible key, isolated top verification and induction argument | End-to-end recursive soundness theorem and depth bound |
 | Stateful relation | Source-bound step body, false-state rejection, independent replay | Typed state and transition support beyond four M31 lanes |
-| Bitcoin | Byte-exact SHA256d/target two-header leaf and wide recursive fold | A new-header-per-step state transition, chain work, consensus rules and security analysis |
+| Bitcoin | Byte-exact SHA256d/target two-header leaf; two successive new-header fold proofs under one AIR root; checkpoint-bound key and standalone native verification | Chain work, consensus rules, independent soundness review and concrete depth bound |
 
 An additional graph audit checked the child-proof witness before
 `Context.finalize(false)` adds the gates that yield guessed values. In the

@@ -58,6 +58,17 @@ def main() -> None:
         run("statement", key, digest, 1, original["current_block_hash"],
             regenerated_statement, accepted=True)
         assert regenerated_statement.read_bytes() == step1.read_bytes()
+        changed_hash = ("0" if original["current_block_hash"][0] != "0" else "1") + original["current_block_hash"][1:]
+        changed_hash_statement = temp / "changed-hash.statement.json"
+        run("statement", key, digest, 1, changed_hash, changed_hash_statement, accepted=True)
+        run("verify", key, digest, changed_hash_statement, proof1, accepted=False)
+        alternate_key = temp / "alternate-checkpoint-key.json"
+        run("keygen", original["current_block_hash"], 1, alternate_key, accepted=True)
+        alternate_digest = hashlib.sha256(alternate_key.read_bytes()).hexdigest()
+        alternate_statement = temp / "alternate-checkpoint.statement.json"
+        run("statement", alternate_key, alternate_digest, 1,
+            original["current_block_hash"], alternate_statement, accepted=True)
+        run("verify", alternate_key, alternate_digest, alternate_statement, proof1, accepted=False)
         changed = temp / "changed.statement.json"
         statement["public_words"][0] ^= 1
         changed.write_text(json.dumps(statement))
@@ -73,7 +84,7 @@ def main() -> None:
         run("verify", key, digest, step1, bad_proof, accepted=False)
         output = temp / "over-limit.statement.json"
         run("statement", key, digest, 2, statement["current_block_hash"], output, accepted=False)
-    print("Bitcoin chain CLI: key and statement regeneration agree; valid steps accepted; wrong key, replay, changed claim, proof, and step limit rejected")
+    print("Bitcoin chain CLI: key and statement regeneration agree; valid steps accepted; wrong checkpoint, key digest, current hash, replay, claim, proof, and step limit rejected")
 
 
 if __name__ == "__main__":

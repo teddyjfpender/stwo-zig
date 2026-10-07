@@ -460,8 +460,10 @@ src/frontends/s31/zig-out/bin/s31-bitcoin-chain verify \
 `keygen CHECKPOINT_HASH MAX_STEP KEY_PATH` writes a new key and prints its
 digest; `statement KEY_PATH EXPECTED_KEY_SHA256 STEP CURRENT_HASH OUTPUT_PATH`
 writes a statement. The [CLI acceptance script](../acceptance_bitcoin_chain_cli.py)
-checks both valid proofs and rejects a wrong key digest, step replay, changed
-public claim, and step beyond the key limit. A relying party must obtain the
+checks both valid proofs, byte-for-byte key and statement regeneration, and
+rejects a different checkpoint, wrong key digest, changed current hash,
+step replay, changed public claim or proof bytes, and a step beyond the key
+limit. A relying party must obtain the
 expected key digest from a trusted channel and decide which checkpoint and
 chain policy it trusts.
 

@@ -307,8 +307,9 @@ digest, and calls the native proof verifier. Its standalone
 accepts an exact key-file SHA-256 supplied by the caller. The verifier
 re-derives both AIR roots and checks the pinned layout, FRI schedule, and
 AIR bundle. The [CLI acceptance script](../../src/frontends/s31/acceptance_bitcoin_chain_cli.py)
-accepts both saved folds and rejects a wrong key digest, step replay,
-altered public words, and a step beyond the key limit. The `max_step` field
+accepts both saved folds and rejects a different checkpoint, wrong key
+digest, current hash, step replay, altered public words or proof bytes,
+and a step beyond the key limit. The `max_step` field
 is a host policy cap, not a proved recursive security bound.
 
 The separately proved [`bitcoin_header_link.s31`](../../src/frontends/s31/examples/bitcoin_header_link.s31)
