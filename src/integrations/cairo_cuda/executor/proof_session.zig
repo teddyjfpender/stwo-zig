@@ -380,11 +380,19 @@ pub const Prepared = struct {
         phase = "preprocessed_commit";
         try self.controllers.preprocessed_commit.execute(session);
         if (placement == .capacity) {
+            phase = "host_resident_preprocessed_tree_after_commit";
+            try preferManagedSlotHost(transaction, plan, .trace_merkle_hashes, 0, true);
+        }
+        if (placement == .capacity) {
             phase = "host_resident_main_evaluations_before_commit";
             try preferManagedSlotHost(transaction, plan, .trace_evaluations, 1, true);
         }
         phase = "main_commit";
         try self.controllers.main_commit.execute(session);
+        if (placement == .capacity) {
+            phase = "host_resident_main_tree_after_commit";
+            try preferManagedSlotHost(transaction, plan, .trace_merkle_hashes, 1, true);
+        }
         try proof_capture.captureStaticTraceRoot(
             session,
             .{ .proof = self.controllers.oods.proof },
@@ -503,6 +511,10 @@ pub const Prepared = struct {
         }
         phase = "interaction_commit";
         try self.controllers.interaction_commit.execute(session);
+        if (placement == .capacity) {
+            phase = "host_resident_interaction_tree_after_commit";
+            try preferManagedSlotHost(transaction, plan, .trace_merkle_hashes, 2, true);
+        }
         if (placement != .none) {
             phase = "host_resident_interaction_coefficients";
             try preferManagedSlotHost(
@@ -571,6 +583,10 @@ pub const Prepared = struct {
         try common.requireStage(session, .constraint_evaluation);
         phase = "composition_commit";
         try self.controllers.composition_commit.execute(session);
+        if (placement == .capacity) {
+            phase = "host_resident_composition_tree_after_commit";
+            try preferManagedSlotHost(transaction, plan, .trace_merkle_hashes, 3, true);
+        }
         try proof_capture.captureTraceRoot(
             session,
             .{ .proof = self.controllers.oods.proof },
@@ -637,6 +653,17 @@ pub const Prepared = struct {
             self.transcript,
             &cursor,
         );
+        if (placement == .capacity) {
+            phase = "host_resident_fri_trees_after_commit";
+            for (0..@min(protocol.fri_tree_count, 4)) |ordinal|
+                try preferManagedSlotHost(
+                    transaction,
+                    plan,
+                    .fri_merkle_hashes,
+                    @intCast(ordinal),
+                    true,
+                );
+        }
         try transaction.endStage(.fri_commit);
 
         try transaction.beginStage(.pow);
