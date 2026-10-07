@@ -25,8 +25,13 @@
     "Root",
     "air",
     "cairo_verifier_proof",
+    "direct_arithmetic",
+    "private_boundary_bridge",
     "prove",
     "recursion",
+    "repeated_step_chip",
+    "sparse_arithmetic",
+    "sparse_wide",
     "verifier_proof",
     "verify"
   ],

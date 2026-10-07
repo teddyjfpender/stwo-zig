@@ -86,6 +86,11 @@ const bytes = try verifier_proof.serialize(allocator);
 | `cairo_verifier_proof` | `prepare_circuit_proof_for_cairo_verifier`: a root proof as the Cairo circuit verifier's felt stream (`root.proof`) |
 | `verify` | `verify_circuit` on a `CircuitSerialize` proof and a `wire.verify_request` request: decode, convert, build the verification circuit with values; a `Verdict` (accepted with the output digest, or the rejecting stage) |
 | `recursion` | Orchestration (design §7): `leaf_wrap` (`prove_leaf` steps 4-8), `topology_key` (design §3.5), `topology_cache` (the byte-bounded per-topology LRU), `canonical` (`CanonicalCircuit::build`), `fold` (`LayerEntry`, `reduce_pair`, `reduce_root_single`), `tree` (`fold_entries`, `foldLeaves`, `write_root_outputs`) and `circuit_params` (registry generation) |
+| `repeated_step_chip` | S31's four-lane indexed repeated-step AIR (`out = in² + c`), linked to the circuit by LogUp in the same proof |
+| `private_boundary_bridge` | S31's private four-lane circuit/chip boundary: chip endpoints joined to private Gate wires in one LogUp closure |
+| `sparse_arithmetic` | S31 sparse-v3 prover: QM31, M31-to-u32 and range-16 circuit AIRs, optionally with the step chip, in one transcript |
+| `sparse_wide` | S31 sparse-wide-v5 prover: Eq, QM31, M31-to-u32 and range-16 circuit AIRs |
+| `direct_arithmetic` | S31 direct-M31 v4 prover: one QM31 circuit component and an optional step chip |
 
 `prove` takes an optional observer (`onStep`, `onLookupElements`,
 `onTraces`) for conformance tests and an `Options` value whose fields change
