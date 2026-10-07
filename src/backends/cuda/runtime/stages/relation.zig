@@ -315,24 +315,6 @@ pub fn OpsForAt(
             session: anytype,
             prepared: *const PreparedPlan,
         ) runtime_error.Error!void {
-            return executeImpl(session, prepared, null);
-        }
-
-        /// Capacity path: retire each instance's lookup pages after its
-        /// fractions and prefixes, before the next instance begins.
-        pub fn executeStreamed(
-            session: anytype,
-            prepared: *const PreparedPlan,
-            progress: anytype,
-        ) runtime_error.Error!void {
-            return executeImpl(session, prepared, progress);
-        }
-
-        fn executeImpl(
-            session: anytype,
-            prepared: *const PreparedPlan,
-            progress: anytype,
-        ) runtime_error.Error!void {
             try common.requireStage(session, stage);
             const state = planStateConst(prepared);
             const topology = state.topology;
@@ -435,46 +417,21 @@ pub fn OpsForAt(
             try common.record(session, stage, status);
 
             if (topology.fused_fractions) {
-                if (comptime @TypeOf(progress) == @TypeOf(null)) {
-                    status = Api.stwo_relation_fused_global_on(
-                        sources.pointer,
-                        descriptors.pointer,
-                        outputs.pointer,
-                        geometry.pointer,
-                        instance_count,
-                        topology.total_pair_blocks,
-                        topology.total_chain_blocks,
-                        alphas.pointer,
-                        topology.max_alpha_powers,
-                        @ptrCast(z.pointer),
-                        session.context.stream,
-                    );
-                    try common.recordMany(session, stage, status, 2);
-                } else {
-                    for (topology.geometry, 0..) |item, index| {
-                        status = Api.stwo_relation_fused_instance_on(
-                            sources.pointer,
-                            descriptors.pointer,
-                            outputs.pointer,
-                            geometry.pointer,
-                            instance_count,
-                            @intCast(index),
-                            item.pair_first,
-                            item.pair_blocks,
-                            item.row_first,
-                            item.row_blocks,
-                            alphas.pointer,
-                            topology.max_alpha_powers,
-                            @ptrCast(z.pointer),
-                            session.context.stream,
-                        );
-                        try common.recordMany(session, stage, status, 2);
-                        try progress.afterInstance(session, index);
-                    }
-                }
+                status = Api.stwo_relation_fused_global_on(
+                    sources.pointer,
+                    descriptors.pointer,
+                    outputs.pointer,
+                    geometry.pointer,
+                    instance_count,
+                    topology.total_pair_blocks,
+                    topology.total_chain_blocks,
+                    alphas.pointer,
+                    topology.max_alpha_powers,
+                    @ptrCast(z.pointer),
+                    session.context.stream,
+                );
+                try common.recordMany(session, stage, status, 2);
             } else {
-                if (comptime @TypeOf(progress) != @TypeOf(null))
-                    return error.InvalidKernelDescriptor;
                 status = Api.stwo_relation_pairs_global_on(
                     sources.pointer,
                     descriptors.pointer,

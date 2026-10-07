@@ -41,3 +41,13 @@ References: Current Merkle slot lifetimes are in
 `src/integrations/cairo_cuda/executor/proof_session.zig`. NVIDIA documents
 managed-memory preferred placement as a policy hint, not a hard residency
 bound: <https://docs.nvidia.com/cuda/cuda-programming-guide/04-special-topics/unified-memory.html>.
+
+## Result
+
+Rejected for peak-memory reduction. The opt-in post-root host placement
+produced byte-identical, independently verified proofs on both dense PIEs.
+Peaks stayed **56.487 GiB** and **48.362 GiB**, while dense publication time
+rose from 29.135 to 33.241 seconds on this pod. Raw receipts are in
+`vectors/reports/cairo-cuda-h100-managed-20261007/tree-host-placement/`.
+The production calls were removed. The phase-aligned run shows the main rise
+occurs within interaction commitment, before tree retirement can help.

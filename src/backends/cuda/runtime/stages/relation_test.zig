@@ -47,28 +47,6 @@ const TestApi = struct {
         return accept(stream);
     }
 
-    pub fn stwo_relation_fused_instance_on(
-        _: [*]const u32,
-        _: [*]const u32,
-        _: [*]const u32,
-        _: [*]const relation.Geometry,
-        instances: u32,
-        index: u32,
-        pair_first: u32,
-        pair_blocks: u32,
-        row_first: u32,
-        row_blocks: u32,
-        _: [*]const field.SecureField,
-        alpha_count: u32,
-        _: *const field.SecureField,
-        stream: *anyopaque,
-    ) c_int {
-        if (instances != 1 or index != 0 or pair_first != 0 or
-            pair_blocks != 2 or row_first != 0 or row_blocks != 1 or
-            alpha_count != 2) return 1;
-        return accept(stream);
-    }
-
     pub fn stwo_relation_pairs_global_on(
         _: [*]const u32,
         _: [*]const u32,
@@ -305,43 +283,6 @@ test "tiled relation graph admits bounded scratch and records its exact launch c
         .buffers = buffers(),
         .instances = &.{tiled_instance},
     }));
-}
-
-test "streamed relation completes each authenticated instance before its callback" {
-    TestApi.calls = 0;
-    var session = TestSession{};
-    TestApi.expected_stream = session.context.stream;
-    var tiled_topology = topology;
-    tiled_topology.fused_fractions = true;
-    var tiled_instance = instance();
-    tiled_instance.denominator_slab.len = 1;
-    const prepared = try relation.prepare(std.testing.allocator, .{
-        .topology = tiled_topology,
-        .buffers = buffers(),
-        .instances = &.{tiled_instance},
-    });
-    defer relation.deinit(std.testing.allocator, prepared);
-    var completed: usize = 0;
-    const Progress = struct {
-        completed: *usize,
-        pub fn afterInstance(
-            self: @This(),
-            _: anytype,
-            index: usize,
-        ) runtime_error.Error!void {
-            if (index != self.completed.* or TestApi.calls != 2)
-                return error.InvalidKernelDescriptor;
-            self.completed.* += 1;
-        }
-    };
-    try relation.OpsFor(TestApi).executeStreamed(
-        &session,
-        prepared,
-        Progress{ .completed = &completed },
-    );
-    try std.testing.expectEqual(@as(usize, 1), completed);
-    try std.testing.expectEqual(@as(u32, 3), TestApi.calls);
-    try std.testing.expectEqual(@as(u64, relation.fused_launch_count), session.launches);
 }
 
 test "relation transcript binding seals challenges and canonical claims" {

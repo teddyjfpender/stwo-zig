@@ -205,10 +205,6 @@ pub fn TransactionFor(comptime Session: type) type {
             return self.arena.slice(id);
         }
 
-        pub fn isManagedArena(self: *const Self) bool {
-            return self.arena_live and self.arena.managed;
-        }
-
         /// Hint the managed-memory driver about an authenticated arena slot.
         /// This moves pages but never exposes their contents to host code.
         pub fn prefetchManagedSlot(

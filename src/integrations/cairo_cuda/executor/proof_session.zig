@@ -384,20 +384,12 @@ pub const Prepared = struct {
         try self.controllers.preprocessed_commit.execute(session);
         memoryPhase(&memory_timer, "preprocessed_commit_end");
         if (placement == .capacity) {
-            phase = "host_resident_preprocessed_tree_after_commit";
-            try preferManagedSlotHost(transaction, plan, .trace_merkle_hashes, 0, true);
-        }
-        if (placement == .capacity) {
             phase = "host_resident_main_evaluations_before_commit";
             try preferManagedSlotHost(transaction, plan, .trace_evaluations, 1, true);
         }
         phase = "main_commit";
         try self.controllers.main_commit.execute(session);
         memoryPhase(&memory_timer, "main_commit_end");
-        if (placement == .capacity) {
-            phase = "host_resident_main_tree_after_commit";
-            try preferManagedSlotHost(transaction, plan, .trace_merkle_hashes, 1, true);
-        }
         try proof_capture.captureStaticTraceRoot(
             session,
             .{ .proof = self.controllers.oods.proof },
@@ -481,18 +473,10 @@ pub const Prepared = struct {
             self.bindings.relation_elements,
         );
         phase = "relation_trace";
-        if (placement == .capacity and transaction.isManagedArena()) {
-            try relation_stage.TraceCommitNative.executeStreamed(
-                session,
-                self.controllers.relation,
-                LookupPrefetch{ .sources = self.controllers.relation_sources },
-            );
-        } else {
-            try relation_stage.TraceCommitNative.execute(
-                session,
-                self.controllers.relation,
-            );
-        }
+        try relation_stage.TraceCommitNative.execute(
+            session,
+            self.controllers.relation,
+        );
         memoryPhase(&memory_timer, "relation_end");
         if (placement != .none) {
             phase = "release_host_lookup_policy";
@@ -518,10 +502,6 @@ pub const Prepared = struct {
         phase = "interaction_commit";
         try self.controllers.interaction_commit.execute(session);
         memoryPhase(&memory_timer, "interaction_commit_end");
-        if (placement == .capacity) {
-            phase = "host_resident_interaction_tree_after_commit";
-            try preferManagedSlotHost(transaction, plan, .trace_merkle_hashes, 2, true);
-        }
         if (placement != .none) {
             phase = "host_resident_interaction_coefficients";
             try preferManagedSlotHost(
@@ -593,10 +573,6 @@ pub const Prepared = struct {
         phase = "composition_commit";
         try self.controllers.composition_commit.execute(session);
         memoryPhase(&memory_timer, "composition_commit_end");
-        if (placement == .capacity) {
-            phase = "host_resident_composition_tree_after_commit";
-            try preferManagedSlotHost(transaction, plan, .trace_merkle_hashes, 3, true);
-        }
         try proof_capture.captureTraceRoot(
             session,
             .{ .proof = self.controllers.oods.proof },
@@ -666,17 +642,6 @@ pub const Prepared = struct {
             self.transcript,
             &cursor,
         );
-        if (placement == .capacity) {
-            phase = "host_resident_fri_trees_after_commit";
-            for (0..@min(protocol.fri_tree_count, 4)) |ordinal|
-                try preferManagedSlotHost(
-                    transaction,
-                    plan,
-                    .fri_merkle_hashes,
-                    @intCast(ordinal),
-                    true,
-                );
-        }
         try transaction.endStage(.fri_commit);
         memoryPhase(&memory_timer, "fri_commit_end");
 
@@ -971,23 +936,6 @@ fn memoryPhase(timer: *std.time.Timer, name: []const u8) void {
         .{ name, timer.read() },
     );
 }
-
-/// On the ordered proof stream, migration of a completed lookup view cannot
-/// race the following relation instance or the global claim reduction.
-const LookupPrefetch = struct {
-    sources: *const relation_binding.SourceRegistry,
-
-    pub fn afterInstance(
-        self: @This(),
-        session: anytype,
-        index: usize,
-    ) @import("stwo_cuda_backend").runtime.runtime_error.Error!void {
-        if (index >= self.sources.sources.len)
-            return error.InvalidKernelDescriptor;
-        if (self.sources.sources[index].lookup_words) |words|
-            try session.context.prefetchManagedSlice(u32, words, false);
-    }
-};
 
 fn managedPlacement() !ManagedPlacement {
     const value = std.posix.getenv("STWO_CUDA_MANAGED_PLACEMENT") orelse return .none;

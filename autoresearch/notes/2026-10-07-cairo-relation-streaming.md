@@ -79,3 +79,14 @@ Open uncertainty: The 250 ms memory sampler does not identify the exact
 subphase of the 56.487 GiB peak. If it belongs to commitment rather than
 relation lookup reads, this decomposition will have little effect; add
 timestamped subphase markers before committing to row-level kernel work.
+
+## Result
+
+Rejected for peak-memory reduction. On H100 the opt-in per-instance path
+produced byte-identical proofs and passed the pinned independent Rust
+verifier for both dense PIEs, but whole-device peaks stayed **56.487 GiB**
+and **48.362 GiB**, exactly matching capacity-placement references.
+Receipts are in `vectors/reports/cairo-cuda-h100-managed-20261007/relation-streaming/`.
+The implementation was removed from production after this falsifier.
+Phase-aligned sampling subsequently placed the decisive rise during
+interaction commitment, after relation work.

@@ -161,11 +161,10 @@ __global__ void relation_fractions_tiled_kernel(
     const std::uint32_t *geometry,
     std::uint32_t instance_count,
     const QM31 *alphas,
-    const QM31 *z,
-    std::uint32_t block_offset) {
+    const QM31 *z) {
     std::uint32_t local_block = 0u;
     const std::uint32_t instance = relation_instance_for_block(
-        geometry, instance_count, blockIdx.x + block_offset, kPairFirst, kPairBlocks,
+        geometry, instance_count, blockIdx.x, kPairFirst, kPairBlocks,
         &local_block);
     if (instance == instance_count) return;
     const std::uint32_t *record = geometry + instance * kGeometryWords;
@@ -214,11 +213,10 @@ __global__ void relation_fractions_tiled_kernel(
 __global__ void fraction_prefix_global_kernel(
     M31 *const *const *output_tables,
     const std::uint32_t *geometry,
-    std::uint32_t instance_count,
-    std::uint32_t block_offset) {
+    std::uint32_t instance_count) {
     std::uint32_t block = 0;
     const unsigned instance = relation_instance_for_block(
-        geometry, instance_count, blockIdx.x + block_offset, kRowFirst, kRowBlocks, &block);
+        geometry, instance_count, blockIdx.x, kRowFirst, kRowBlocks, &block);
     if (instance == instance_count) return;
     const std::uint32_t *record = geometry + instance * kGeometryWords;
     const unsigned row = block * kLaunchBlock + threadIdx.x;
@@ -578,52 +576,12 @@ extern "C" int stwo_relation_fused_global_on(
         source_tables, descriptors,
         reinterpret_cast<M31 *const *const *>(output_tables), geometry,
         instance_count, reinterpret_cast<const QM31 *>(alpha_powers),
-        reinterpret_cast<const QM31 *>(z), 0u);
+        reinterpret_cast<const QM31 *>(z));
     cudaError_t status = cudaGetLastError();
     if (status != cudaSuccess) return static_cast<int>(status);
     fraction_prefix_global_kernel<<<chain_blocks, kLaunchBlock, 0, stream>>>(
         reinterpret_cast<M31 *const *const *>(output_tables), geometry,
-        instance_count, 0u);
-    return static_cast<int>(cudaGetLastError());
-}
-
-// The host passes ranges from a validated immutable relation topology. A
-// single stream orders the two kernels and the caller's subsequent page
-// migration before the next instance. Global block coordinates keep the same
-// column, row and batch-inversion grouping as the all-instance launch.
-extern "C" int stwo_relation_fused_instance_on(
-    const std::uint32_t *const *const *source_tables,
-    const std::uint32_t *const *descriptors,
-    std::uint32_t *const *const *output_tables,
-    const std::uint32_t *geometry,
-    std::uint32_t instance_count,
-    std::uint32_t instance_index,
-    std::uint32_t pair_first,
-    std::uint32_t pair_blocks,
-    std::uint32_t row_first,
-    std::uint32_t row_blocks,
-    const std::uint32_t *alpha_powers,
-    std::uint32_t alpha_count,
-    const std::uint32_t *z,
-    void *stream_raw) {
-    using namespace stwo::cuda::relation;
-    if (!source_tables || !descriptors || !output_tables || !geometry ||
-        !instance_count || instance_index >= instance_count || !pair_blocks ||
-        !row_blocks || !alpha_powers || !alpha_count || !z || !stream_raw ||
-        pair_first > 0x7fffffffu || pair_blocks > 0x7fffffffu - pair_first ||
-        row_first > 0x7fffffffu || row_blocks > 0x7fffffffu - row_first)
-        return static_cast<int>(cudaErrorInvalidValue);
-    const cudaStream_t stream = reinterpret_cast<cudaStream_t>(stream_raw);
-    relation_fractions_tiled_kernel<<<pair_blocks, kLaunchBlock, 0, stream>>>(
-        source_tables, descriptors,
-        reinterpret_cast<M31 *const *const *>(output_tables), geometry,
-        instance_count, reinterpret_cast<const QM31 *>(alpha_powers),
-        reinterpret_cast<const QM31 *>(z), pair_first);
-    cudaError_t status = cudaGetLastError();
-    if (status != cudaSuccess) return static_cast<int>(status);
-    fraction_prefix_global_kernel<<<row_blocks, kLaunchBlock, 0, stream>>>(
-        reinterpret_cast<M31 *const *const *>(output_tables), geometry,
-        instance_count, row_first);
+        instance_count);
     return static_cast<int>(cudaGetLastError());
 }
 
