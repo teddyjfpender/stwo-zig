@@ -350,6 +350,10 @@ pub const Prepared = struct {
         if (placement == .capacity) {
             phase = "host_resident_lookup_before_writers";
             try preferManagedSlotHost(transaction, plan, .writer_lookup_inputs, 0, true);
+            // Once GPU-written, managed coefficient pages remain HBM-resident
+            // despite a later host prefetch on H100. Set policy first.
+            phase = "host_resident_main_coefficients_before_writers";
+            try preferManagedSlotHost(transaction, plan, .trace_coefficients, 1, true);
         }
         self.controllers.trace_writers.execute(session) catch |err| {
             std.debug.print(
@@ -402,7 +406,7 @@ pub const Prepared = struct {
             1,
             self.controllers.main_commit.root,
         );
-        if (placement != .none) {
+        if (placement == .throughput) {
             phase = "host_resident_main_coefficients";
             try preferManagedSlotHost(
                 transaction,
@@ -472,6 +476,11 @@ pub const Prepared = struct {
             1,
             self.bindings.relation_elements,
         );
+        if (placement == .capacity) {
+            // Relation execution first writes this coefficient slot.
+            phase = "host_resident_interaction_coefficients_before_relation";
+            try preferManagedSlotHost(transaction, plan, .trace_coefficients, 2, true);
+        }
         phase = "relation_trace";
         try relation_stage.TraceCommitNative.execute(
             session,
@@ -502,7 +511,7 @@ pub const Prepared = struct {
         phase = "interaction_commit";
         try self.controllers.interaction_commit.execute(session);
         memoryPhase(&memory_timer, "interaction_commit_end");
-        if (placement != .none) {
+        if (placement == .throughput) {
             phase = "host_resident_interaction_coefficients";
             try preferManagedSlotHost(
                 transaction,
