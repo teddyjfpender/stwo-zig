@@ -90,6 +90,13 @@ verify_STARK(child_proof, child_root, child_output)
 public_output = G(R,n,D1,S0,S)
 ```
 
+The fixed-claim fold now uses this same counter gadget. Extracting it into
+`recursion_counter.zig` did not change the state-fold AIR: the mix4 fixture's
+preprocessed root, raw rows, and padded rows match the earlier build exactly.
+The [shared-counter acceptance record](../../../../design/s31/measurements/mix4-state-fold-shared-counter-2026-10-07.json)
+includes three accepted recursive steps, both mutation audits, and an
+independent replay of the final source state.
+
 `S0`, `S`, and `P` are individually range constrained to M31. Since
 `z≤131070<p`, the product and inverse equations force the base branch at
 step zero and the recursive branch at every positive step. The two range

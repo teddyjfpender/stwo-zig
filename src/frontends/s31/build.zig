@@ -71,6 +71,19 @@ pub fn build(b: *std.Build) void {
         .filters = &.{ "state-fold counter spans u16 carry and u32 bounds", "state-fold digest binds all 32 counter bits in circuit" },
     }));
     test_step.dependOn(&fold_tests.step);
+    const fixed_fold_test_root = b.createModule(.{
+        .root_source_file = b.path("fixed_fold.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    fixed_fold_test_root.addImport("stwo_core", core);
+    fixed_fold_test_root.addImport("stwo_circuit_frontend", circuit);
+    fixed_fold_test_root.addImport("stwo_circuit_cpu_integration", cpu);
+    const fixed_fold_tests = b.addRunArtifact(b.addTest(.{
+        .root_module = fixed_fold_test_root,
+        .filters = &.{"fixed-fold digest binds the full u32 counter"},
+    }));
+    test_step.dependOn(&fixed_fold_tests.step);
 
     const sha_batch_root = b.createModule(.{
         .root_source_file = b.path("../riscv/sha256_batch_test_root.zig"),

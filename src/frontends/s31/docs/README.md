@@ -58,6 +58,9 @@ text .s31 ──parse/typecheck/specialize──▶ normalized relation JSON
 - [Fixed-key recursive fold](recursion-fold.md): repeat proof verification
    under one AIR and key, with a constrained counter, handwritten branch
    equations, an isolated top verifier, and measured costs.
+- [Recursion soundness ledger](../../../../design/s31/RECURSION_SECURITY.md):
+   exact proof parameters, the counter and key-binding argument, adversarial
+   evidence, and the analysis still required before deployment.
 - [Sparse-wide fixed-key fold](recursion-wide-fold.md): carry a 256-bit or
    two-header Bitcoin leaf claim through repeated proofs under one sealed
    key, with hand-worked digest words, AIR equations, and adversarial checks.

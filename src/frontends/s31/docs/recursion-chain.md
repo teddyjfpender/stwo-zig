@@ -29,8 +29,8 @@ D1 = Blake2s-256(person="S31RCV2!", SHA256(K0) || LE32(W0))
 For the compiled `preimage4` package in the acceptance fixture, this is:
 
 ```text
-D1 = [484035661, 3967107872, 1583918632, 208384955,
-      1743820433, 1394763440, 544743227, 1701913460]
+D1 = [114393851, 3697851308, 811829754, 1234097880,
+      1149239534, 237789166, 2377151022, 2124025211]
 ```
 
 Let `K1` be the exact bytes of `recursive-verification-key.json`. The
@@ -45,9 +45,12 @@ D2 = Blake2s-256(person="S31RCV2!", SHA256(K1) || LE32(D1))
 The same fixture produces:
 
 ```text
-D2 = [3120826959, 4137044485, 3889452396, 2867040265,
-      3333694795, 1641928790, 1666252243, 1114394462]
+D2 = [3261532993, 4216833817, 3540888548, 444438926,
+      1344647726, 3496049993, 1965291402, 1057682655]
 ```
+
+The [worked-value record](../../../../design/s31/measurements/preimage-chain-hand-example-2026-10-07.json)
+pins the source and exact key hashes used for these numbers.
 
 Each preimage is exactly 64 bytes, so each binding uses one Blake2s block.
 `D1` and `D2` are raw hash words. A word may be greater than the M31
@@ -183,6 +186,6 @@ same padded component sizes for the `arith4_m31` fixture, but their
 preprocessed roots differ because their embedded child identities differ.
 This depth-specific chain supports the full eleven-component `circuit-v1`
 child profile. The [fixed-key fold](recursion-fold.md) repeats the same
-leaf claim under one key with a `u16` step counter. A
+leaf claim under one key with a `u32` step counter. A
 [sparse-wide variant](recursion-wide-fold.md) accepts a Bitcoin two-header
 leaf proof after two wrappers. Neither fold updates Bitcoin chain state.

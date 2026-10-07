@@ -2,6 +2,11 @@
 
 Status: v0.1 circuit relation compiler plus specialized linked-chip, sparse-arithmetic and direct-M31 proof profiles, personalized BLAKE2s tree functions, pinned field-native Poseidon2 tree functions, a limited typed text frontend, two-level recursive chains, and bounded same-key claim folds for gate and sparse-wide proofs, 2026-10-07. The implementation lives in [`src/frontends/s31`](../../src/frontends/s31). The [text language guide](../../src/frontends/s31/TEXT_LANGUAGE.md), [language and AIR guide](../../src/frontends/s31/LANGUAGE_AND_AIR.md), and [sparse-wide fold walkthrough](../../src/frontends/s31/docs/recursion-wide-fold.md) explain the current syntax, constraints and proof composition; the [MVP roadmap](MVP_ROADMAP.md) records the profiles, hash suite, measurements and remaining gates. General chip extraction, a private circuit-to-chip boundary, authenticated batch SHA integration and a Bitcoin header-chain state fold remain research milestones. The older slice-0 material below is preserved as its original design and comparison record.
 
+The [recursion security ledger](RECURSION_SECURITY.md) records exact
+parameter choices, counter and key-binding arguments, adversarial evidence,
+and the missing concrete recursive security analysis. The `u32` fixed-fold
+counter does not turn the two-header Bitcoin leaf into a growing chain.
+
 The [standard/math library brief](STDLIB_MATHLIB.md) records the first qualified
 field math operations and the work needed for versioned modules, reductions,
 checked inversion, and computed boolean/range values.

@@ -408,7 +408,7 @@ def verify_package(package: Path) -> dict:
             if "fixed-fold-verification-key.json" not in artifacts:
                 raise ValueError("sparse-wide package is missing its fixed-fold key")
             fold_key = json.loads((package / "fixed-fold-verification-key.json").read_text())
-            if (fold_key.get("schema") != "s31-fixed-fold-verification-key-v3" or
+            if (fold_key.get("schema") != "s31-fixed-fold-verification-key-v4" or
                     type(fold_key.get("outer_fri_fold_step")) is not int or
                     fold_key["outer_fri_fold_step"] != 4 or
                     fold_key.get("base_recursive_key_sha256") != file_hash(package / "recursive-verification-key-level2.json") or
@@ -419,7 +419,7 @@ def verify_package(package: Path) -> dict:
         if not {"recursive-verification-key.json", "recursive-verification-key-level2.json", "fixed-fold-verification-key.json"}.issubset(artifacts):
             raise ValueError("gate package is missing its recursive verification keys")
         fold_key = json.loads((package / "fixed-fold-verification-key.json").read_text())
-        if (fold_key.get("schema") != "s31-fixed-fold-verification-key-v2" or
+        if (fold_key.get("schema") != "s31-fixed-fold-verification-key-v3" or
                 fold_key.get("base_recursive_key_sha256") != file_hash(package / "recursive-verification-key.json") or
                 fold_key.get("projection_sha256") != PROJECTION_SHA256 or
                 fold_key.get("air_bundle_sha256") != AIR_BUNDLE_SHA256):
@@ -1261,19 +1261,19 @@ def main() -> None:
         wide_fold = manifest["lowering"] == "sparse-wide-gate"
         initial = json.loads(statement.read_text())
         base_schema = "s31-recursive-chain-statement-v1" if wide_fold else "s31-recursive-gate-statement-v2"
-        fold_schema = "s31-fixed-fold-statement-v3" if wide_fold else "s31-fixed-fold-statement-v2"
+        fold_schema = "s31-fixed-fold-statement-v4" if wide_fold else "s31-fixed-fold-statement-v3"
         if initial.get("schema") == base_schema:
             first_step = 0
             base_case = True
         elif initial.get("schema") == fold_schema:
             prior_step = initial.get("step")
-            if type(prior_step) is not int or prior_step < 0 or prior_step > 65535:
+            if type(prior_step) is not int or prior_step < 0 or prior_step > 0xffffffff:
                 raise ValueError("input fixed-fold statement has an invalid step counter")
             first_step = prior_step + 1
             base_case = False
         else:
             raise ValueError("input must be a recursive base or fixed-fold proof")
-        if first_step + args.steps - 1 > 65535:
+        if first_step + args.steps - 1 > 0xffffffff:
             raise ValueError("fixed-fold step counter would overflow")
         executable = package / "bin" / f"s31-{manifest['name']}-prover"
         outer.parent.mkdir(parents=True, exist_ok=True)

@@ -71,12 +71,12 @@ def main() -> None:
         _, second_seconds = call(*cli, "wrap-next", str(package), str(first), str(second), "--low-memory")
         call(*cli, "verify-recursive-next", str(package), str(second))
         base_audit, _ = call(*cli, "audit-fold-base", str(package), str(second))
-        if "valid=true rejected=23" not in base_audit:
+        if "valid=true rejected=24" not in base_audit:
             raise AssertionError(base_audit)
         _, fold0_seconds = call(*cli, "fold-base", str(package), str(second), str(folds[0]), "--low-memory")
         call(*cli, "verify-fold", str(package), str(folds[0]))
         next_audit, _ = call(*cli, "audit-fold-next", str(package), str(folds[0]))
-        if "valid=true rejected=23" not in next_audit:
+        if "valid=true rejected=24" not in next_audit:
             raise AssertionError(next_audit)
         _, fold1_seconds = call(*cli, "fold-next", str(package), str(folds[0]), str(folds[1]), "--low-memory")
         _, fold2_seconds = call(*cli, "fold-next", str(package), str(folds[1]), str(folds[2]), "--low-memory")
@@ -98,7 +98,7 @@ def main() -> None:
         if resumed.read_bytes() != folds[2].read_bytes():
             raise AssertionError("resumed fold changed the top proof")
         call(*cli, "fold-advance", str(package), str(folds[2]), str(work / "overflow.proof"),
-             "--steps", "65535", accepted=False)
+             "--steps", "65537", accepted=False)
         collision_dir = work / "collision-checkpoints"
         call(*cli, "fold-advance", str(package), str(second),
              str(collision_dir / "fold-00000.proof"), "--steps", "2",
@@ -138,7 +138,7 @@ def main() -> None:
         if not any(word >= M31 for word in expected_base):
             raise AssertionError("fixture does not exercise raw high-bit recursive words")
         for step, statement in enumerate(statements):
-            if (statement["schema"] != "s31-fixed-fold-statement-v3" or
+            if (statement["schema"] != "s31-fixed-fold-statement-v4" or
                     statement["step"] != step or statement["leaf_public_words"] != leaf_words or
                     statement["base_public_words"] != expected_base or
                     statement["fold_preprocessed_root"] != root or
@@ -149,6 +149,28 @@ def main() -> None:
 
         negatives = []
         top = statements[2]
+        for high_step in (65536, 0x80000000, 0xffffffff):
+            high_claim = dict(top)
+            high_claim["step"] = high_step
+            high_claim["fold_public_words"] = fold_digest(root, high_step, expected_base)
+            high_claim_path = work / f"high-step-{high_step}.statement.json"
+            write(high_claim_path, high_claim)
+            rejection, _ = call(*cli, "verify-fold", str(package), str(folds[2]),
+                                "--statement", str(high_claim_path), accepted=False)
+            if "InvalidFoldStatement" in rejection:
+                raise AssertionError("rehashed high counter failed before checking the top proof")
+        negatives.append("rehashed_high_u32_steps_rejected_by_top_proof")
+        max_counter = dict(top)
+        max_counter["step"] = 0xffffffff
+        max_counter["fold_public_words"] = fold_digest(root, max_counter["step"], expected_base)
+        max_counter_path = work / "max-counter.statement.json"
+        write(max_counter_path, max_counter)
+        overflow_target = work / "overflow-counter.proof"
+        call(*cli, "fold-advance", str(package), str(folds[2]), str(overflow_target),
+             "--statement", str(max_counter_path), "--steps", "1", accepted=False)
+        if overflow_target.exists():
+            raise AssertionError("u32 counter overflow preflight wrote a proof")
+        negatives.append("u32_counter_overflow_before_output")
         rejection, _ = call(*cli, "fold-base", str(package), str(first),
                             str(work / "wrong-base-proof.proof"), "--statement",
                             str(Path(str(second) + ".statement.json")), accepted=False)
@@ -237,9 +259,13 @@ def main() -> None:
             "fold_geometry": {"raw_vars": geometry["raw_vars"], "padded_rows": geometry["padded_rows"],
                               "headroom_rows": geometry["headroom_rows"]},
             "fold_steps": [0, 1, 2],
+            "fold_preprocessed_root": root,
+            "base_public_words_d2": expected_base,
+            "fold_public_words_first_words": [fold_digest(root, step, expected_base)[0]
+                                                for step in range(3)],
             "same_fold_root_for_all_steps": True,
             "fold_key_reproduced": True,
-            "base_and_next_audit_rejections": [23, 23],
+            "base_and_next_audit_rejections": [24, 24],
             "fold_verifier_stages": stages,
             "top_verified_without_lower_proofs": True,
             "inspector_verified_isolated_top": True,

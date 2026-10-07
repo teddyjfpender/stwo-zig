@@ -31,11 +31,11 @@ D2 = H(K1,D1)
 byte order. The preimage to each `H` is 64 bytes. The checked `D2` is
 
 ```text
-[688750252, 4201526075, 1455165893, 523156567,
- 1197271172, 173808460, 1837880353, 1126895954]
+[457208348, 1247901063, 767674165, 3112557881,
+ 1726662163, 4029416804, 1572387984, 1474813041]
 ```
 
-Its second word exceeds \(p=2^{31}-1\). These are **raw 32-bit hash words**,
+Its fourth word exceeds \(p=2^{31}-1\). These are **raw 32-bit hash words**,
 not M31 public inputs. Truncating them to field elements would change the
 verified statement.
 
@@ -50,17 +50,17 @@ F(RF,n,D2) = BLAKE2s-256(person="S31FOL2!",
 ```
 
 The 68-byte preimage gives the root, step, and eight base words separate
-fixed-width slots. For this fixture `RF` is
-`c262acf359f951f417267296f61dc6ce3bafbc411e4c807d05c0d13f801b619b`.
+fixed-width slots. For the current `u32` fixture, `RF` is
+`55f6ad104733f21d0b69fcbc604aeec4f02d0fb66291a3a8933d3a9fbe14402a`.
 Here are the actual first words of the three consecutive public outputs:
 
 | Proof | Counter | Child checked by its AIR | First word of public `F` |
 | --- | ---: | --- | ---: |
-| `F0` | 0 | `P2`, with `K2` root and `D2` | 1591833951 |
-| `F1` | 1 | `F0`, with `KF` root and `F(RF,0,D2)` | 1732274959 |
-| `F2` | 2 | `F1`, with `KF` root and `F(RF,1,D2)` | 3966118775 |
+| `F0` | 0 | `P2`, with `K2` root and `D2` | 4248392905 |
+| `F1` | 1 | `F0`, with `KF` root and `F(RF,0,D2)` | 3812889008 |
+| `F2` | 2 | `F1`, with `KF` root and `F(RF,1,D2)` | 1324434581 |
 
-All three are proved against `KF`. The top verifier checks `F2` and a
+All three were proved against the current `KF`. The top verifier checks `F2` and a
 statement containing `W0`, `D2`, the counter, and `F(RF,2,D2)`; it
 recomputes `D1` and `D2` from `K0`, `K1`, and `W0`. It needs no lower proof
 files. The eight-word digest is a binding of this statement under the hash
@@ -72,19 +72,24 @@ The fold circuit has a private Boolean `base`. For step `n`, it enforces
 
 ```text
 base · (base - 1) = 0
-n · base = 0
-(n + base) · inverse = 1
 recurse = 1 - base
-previous = n - recurse, with n and previous range-checked as u16
+lo,hi,prev_lo,prev_hi range-checked as u16
+n = lo + 65536·hi
+(lo + hi) · base = 0
+(lo + hi + base) · inverse = 1
+prev_lo = lo - recurse + 65536·borrow
+prev_hi = hi - borrow, with borrow Boolean
+previous = prev_lo + 65536·prev_hi
 ```
 
 When `n=0`, `base=0` makes the inverse equation impossible, so the circuit
-must choose `base=1` and `previous=0`. When `n>0`, `n·base=0` forces
-`base=0`, and `previous=n-1`. For example, at `n=2`, the M31 inverse of 2
+must choose `base=1` and `previous=0`. When `n>0`, the nonzero limb sum forces
+`base=0`, and the borrow equations force `previous=n-1`. For example, at `n=2`, the M31 inverse of 2
 is `1073741824`, so `(2+0)·1073741824 = 1 mod p`. At `n=1`, the selected
-previous counter is 0; at `n=0`, the base branch terminates. The `u16`
-range prevents underflow and bounds this implementation to steps
-0 through 65,535.
+previous counter is 0; at `n=0`, the base branch terminates. The range
+checks prevent underflow and bound this implementation to steps
+0 through 4,294,967,295. At `n=65536`, borrow carries into the low limb and
+produces predecessor 65535.
 
 The circuit selects the child verifier's root and output word by word:
 
@@ -187,7 +192,7 @@ python3 src/frontends/s31/acceptance_sparse_wide_fold.py --bitcoin
 ```
 
 The acceptance fixture proves steps 0, 1, and 2, reproduces `KF` byte for
-byte, audits twenty-three altered circuit values at both the base and recursive
+byte, audits twenty-four altered circuit values at both the base and recursive
 branches, challenges repaired false public claims and a damaged top proof,
 then deletes lower proof files and verifies the top proof alone. The Bitcoin
 run uses [`bitcoin_header_pair.s31`](../examples/bitcoin_header_pair.s31),
@@ -197,12 +202,25 @@ nonces, the trace, interaction, composition, and FRI commitment roots,
 and representative OODS and Merkle/FRI openings. These tests catch local
 wiring errors; they do not calculate a security level or exhaust every word
 of a proof.
-The [Bitcoin acceptance record](../../../../design/s31/measurements/bitcoin-sparse-wide-fold-stages-v1-2026-10-07.json)
-passes the same 23 base and 23 recursive challenges on the byte-exact
-two-header leaf.
+The [current overflow regression](../../../../design/s31/measurements/sparse-wide-fold-u32-overflow-regression-2026-10-07.json)
+also checks that rehashed claims at steps 65,536, 2³¹, and 2³²−1 reach the
+top proof check and are rejected, and that resuming past step `2³²−1` is
+refused before an output proof is written. The [cross-key record](../../../../design/s31/measurements/sparse-wide-fold-u32-key-binding-2026-10-07.json)
+shows that repairing every public digest under another valid source key does
+not make a proof for the first key verify under the second.
+The [FRI-key record](../../../../design/s31/measurements/sparse-wide-fold-u32-fri-key-binding-2026-10-07.json)
+repeats that check when only the leaf's FRI schedule changes; the leaf AIR
+root stays the same, but the sealed recursive key and fold root differ.
+The earlier [Bitcoin acceptance record](../../../../design/s31/measurements/bitcoin-sparse-wide-fold-stages-v1-2026-10-07.json)
+passed 23 base and 23 recursive challenges on the byte-exact two-header
+leaf before the `u32` borrow mutation was added.
+The [current Bitcoin record](../../../../design/s31/measurements/bitcoin-sparse-wide-fold-u32-v1-2026-10-07.json)
+passes 24 challenges in each branch, verifies the isolated top proof, and
+rejects `u32` counter overflow before writing output. Its fold proofs are
+373,899, 373,975, and 371,088 bytes in this local run.
 
 `fold-advance` accepts a base or existing fold proof, checks all output
-paths and the `u16` counter before starting, then retains the sealed
+paths and the `u32` counter before starting, then retains the sealed
 preprocessed AIR, commitment, and padded witness-free topology across steps.
 It still natively verifies each child proof and compares every new
 value-bearing gate list to that topology before proving. Checkpoints permit
@@ -217,20 +235,24 @@ schedules, key hashes, and proof size. It works after the lower proof files
 are removed, making the verified public claim inspectable without
 pretending to recover the private leaf witness.
 
-The [wide-order measurement](../../../../design/s31/measurements/sparse-wide-fold-v1-2026-10-07.json)
+The [current `u32` wide-order measurement](../../../../design/s31/measurements/sparse-wide-fold-u32-v1-2026-10-07.json)
 records leaf/first/second/fold0/fold1/fold2 proof sizes of
-182,891/345,589/373,568/374,579/372,837/373,231 bytes. Each fold proof
-therefore stays close to the second wrapper's size. Measurements are local
-samples, not guaranteed latency or a concrete-security estimate.
-The [cached batch run](../../../../design/s31/measurements/sparse-wide-fold-batch-v1-2026-10-07.json)
+182,891/352,117/372,578/379,573/376,778/368,602 bytes. The counter
+adds 13 raw variables over the earlier `u16` fold, with the same padded row
+sizes and no new trace-size jump. Each fold proof stays close to the second
+wrapper's size. Measurements are local samples, not guaranteed latency or a
+concrete-security estimate.
+The earlier [cached batch run](../../../../design/s31/measurements/sparse-wide-fold-batch-v1-2026-10-07.json)
 took 5.786 seconds for three steps versus 6.578 seconds summed across
 separate commands in one local sample. Its output bytes match exactly;
 the timing includes command and package setup as well as proving.
-The [three-trial memory record](../../../../design/s31/measurements/sparse-wide-fold-batch-memory-v1-2026-10-07.json)
-measured 5.573 seconds median for the batch versus 6.420 seconds for
-separate commands. Peak resident size rose from 3.736 to 3.814 GB because
-the batch keeps its topology in memory. These are local macOS process
-measurements, not a universal speed or memory estimate.
+The [current `u32` three-trial memory record](../../../../design/s31/measurements/sparse-wide-fold-u32-batch-memory-2026-10-07.json)
+measured 5.753 seconds median for the batch versus 6.596 seconds for
+separate commands, a 12.8% lower wall time in this run. Peak resident size
+rose from 3.736 to 3.814 GB because the batch keeps its topology in memory.
+The current record checks byte-identical proofs and statements in all three
+trials. These are local macOS process measurements, not a universal speed or
+memory estimate.
 Reproduce that comparison with
 [`benchmark_fixed_fold_batch.py`](../benchmark_fixed_fold_batch.py), passing
 the built package and its valid assignment; it alternates execution order,

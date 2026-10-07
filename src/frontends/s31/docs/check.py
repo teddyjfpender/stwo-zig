@@ -1,8 +1,11 @@
 #!/usr/bin/env python3
 """Check copied S31 examples, hash constants, and local documentation links."""
 
+import hashlib
 import json
 import re
+import statistics
+import struct
 import sys
 from pathlib import Path
 from xml.etree import ElementTree
@@ -322,6 +325,90 @@ def check_documented_measurement() -> None:
                for result in (old, new))
 
 
+def check_recursive_examples() -> None:
+    records = ROOT / "design/s31/measurements"
+
+    def documented_words(chapter: str, label: str) -> list[int]:
+        match = re.search(rf"{label} = \[([^]]+)\]", chapter, re.S)
+        assert match, f"missing documented {label} words"
+        return [int(word) for word in re.findall(r"\d+", match.group(1))]
+
+    def digest(prefix: bytes, words: list[int], person: bytes) -> list[int]:
+        message = prefix + struct.pack("<8I", *words)
+        return list(struct.unpack("<8I", hashlib.blake2s(message, person=person).digest()))
+
+    gate = json.loads((records / "fixed-fold-u32-hand-example-2026-10-07.json").read_text())
+    gate_doc = (DOCS / "recursion-fold.md").read_text()
+    gate_source = S31 / "examples/arith4_m31.s31"
+    assert gate["source_sha256"] == hashlib.sha256(gate_source.read_bytes()).hexdigest()
+    assert gate["first_wrapper_digest_d1"] == digest(
+        bytes.fromhex(gate["leaf_key_sha256"]), gate["leaf_public_words_w0"], b"S31RCV2!"
+    )
+    assert documented_words(gate_doc, "D1") == gate["first_wrapper_digest_d1"]
+    outer_doc = (DOCS / "recursion.md").read_text()
+    outer_match = re.search(r"For this fixture the outer digest.*?```text\n(.*?)\n```", outer_doc, re.S)
+    assert outer_match
+    assert [int(word) for word in re.findall(r"\d+", outer_match.group(1))] == gate["first_wrapper_digest_d1"]
+    assert gate["fold_preprocessed_root"] in gate_doc
+    for step, words in gate["fold_public_words_by_step"].items():
+        assert words == digest(bytes.fromhex(gate["fold_preprocessed_root"]) +
+                               struct.pack("<I", int(step)),
+                               gate["first_wrapper_digest_d1"], b"S31FOL2!")
+    for step in ("0", "1", "2", "3", "65536"):
+        assert str(gate["fold_public_words_by_step"][step][0]) in gate_doc
+    assert gate["native_fold0_verified"] is True
+
+    chain = json.loads((records / "preimage-chain-hand-example-2026-10-07.json").read_text())
+    chain_doc = (DOCS / "recursion-chain.md").read_text()
+    assert chain["source_sha256"] == hashlib.sha256((S31 / "examples/preimage4.s31").read_bytes()).hexdigest()
+    assert chain["first_wrapper_digest_d1"] == digest(
+        bytes.fromhex(chain["leaf_key_sha256"]), chain["leaf_public_words_w0"], b"S31RCV2!"
+    )
+    assert chain["second_wrapper_digest_d2"] == digest(
+        bytes.fromhex(chain["first_key_sha256"]), chain["first_wrapper_digest_d1"], b"S31RCV2!"
+    )
+    assert documented_words(chain_doc, "D1") == chain["first_wrapper_digest_d1"]
+    assert documented_words(chain_doc, "D2") == chain["second_wrapper_digest_d2"]
+    assert chain["native_two_level_verified"] is True
+
+    wide = json.loads((records / "sparse-wide-fold-u32-v1-2026-10-07.json").read_text())
+    wide_doc = (DOCS / "recursion-wide-fold.md").read_text()
+    assert gate["compiler_sha256"] == chain["compiler_sha256"] == wide["compiler_sha256"]
+    assert wide["source_sha256"] == hashlib.sha256((S31 / "examples/wide_order.s31").read_bytes()).hexdigest()
+    assert wide["fold_preprocessed_root"] in wide_doc
+    wide_d2_match = re.search(r"The checked `D2` is\s*```text\n(.*?)\n```", wide_doc, re.S)
+    assert wide_d2_match
+    assert [int(word) for word in re.findall(r"\d+", wide_d2_match.group(1))] == wide["base_public_words_d2"]
+    assert wide["fold_public_words_first_words"] == [
+        digest(bytes.fromhex(wide["fold_preprocessed_root"]) + struct.pack("<I", step),
+               wide["base_public_words_d2"], b"S31FOL2!")[0] for step in range(3)
+    ]
+    wide_rows = [line for line in wide_doc.splitlines() if line.startswith("| `F")]
+    assert [int(re.search(r"\| (\d+) \|$", line).group(1)) for line in wide_rows] == wide["fold_public_words_first_words"]
+
+    bitcoin = json.loads((records / "bitcoin-sparse-wide-fold-u32-v1-2026-10-07.json").read_text())
+    assert bitcoin["source_sha256"] == hashlib.sha256((S31 / "examples/bitcoin_header_pair.s31").read_bytes()).hexdigest()
+    assert bitcoin["compiler_sha256"] == wide["compiler_sha256"]
+    assert bitcoin["base_and_next_audit_rejections"] == [24, 24]
+    assert "u32_counter_overflow_before_output" in bitcoin["host_negative_checks"]
+    assert bitcoin["fold_geometry"]["padded_rows"] == wide["fold_geometry"]["padded_rows"]
+    for step, first_word in enumerate(bitcoin["fold_public_words_first_words"]):
+        assert digest(bytes.fromhex(bitcoin["fold_preprocessed_root"]) + struct.pack("<I", step),
+                      bitcoin["base_public_words_d2"], b"S31FOL2!")[0] == first_word
+    assert all(f"{size:,}" in wide_doc for size in
+               bitcoin["proof_bytes_leaf_first_second_fold0_fold1_fold2"][3:])
+
+    benchmark = json.loads((records / "sparse-wide-fold-u32-batch-memory-2026-10-07.json").read_text())
+    assert benchmark["compiler_sha256"] == wide["compiler_sha256"]
+    assert benchmark["proofs_and_statements_byte_identical"] is True
+    assert benchmark["median_separate_wall_seconds"] == statistics.median(
+        trial["separate"]["wall_seconds"] for trial in benchmark["trials"])
+    assert benchmark["median_batch_wall_seconds"] == statistics.median(
+        trial["batch"]["wall_seconds"] for trial in benchmark["trials"])
+    for label in ("median_separate_wall_seconds", "median_batch_wall_seconds"):
+        assert f"{benchmark[label]:.3f}" in wide_doc
+
+
 def check_links() -> None:
     for chapter in DOCS.glob("*.md"):
         for target in re.findall(r"\]\(([^)]+)\)", chapter.read_text()):
@@ -340,5 +427,6 @@ if __name__ == "__main__":
     check_examples()
     check_hashes()
     check_documented_measurement()
+    check_recursive_examples()
     check_links()
     print("S31 docs: examples, hash constants, links, and figures agree")

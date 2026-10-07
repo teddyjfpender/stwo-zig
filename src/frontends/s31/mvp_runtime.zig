@@ -144,7 +144,7 @@ const StateFoldStatement = struct {
 const FoldStatement = struct {
     schema: []const u8,
     fold_key_sha256: []const u8,
-    step: u16,
+    step: u32,
     leaf_public_words: [8]u32,
     base_public_words: [8]u32,
     fold_public_words: [8]u32,
@@ -1544,7 +1544,7 @@ fn validateWideFoldKey(
     const base = try checkedWideChain(child_bytes, first_bytes, first, second);
     var base_digest: [32]u8 = undefined;
     std.crypto.hash.sha2.Sha256.hash(second_bytes, &base_digest, .{});
-    if (!std.mem.eql(u8, fold.schema, "s31-fixed-fold-verification-key-v3") or
+    if (!std.mem.eql(u8, fold.schema, "s31-fixed-fold-verification-key-v4") or
         fold.outer_fri_fold_step != 4 or
         !std.mem.eql(u8, fold.base_recursive_key_sha256, &std.fmt.bytesToHex(base_digest, .lower)) or
         !std.mem.eql(u8, fold.projection_sha256, projection_sha256) or
@@ -1635,7 +1635,7 @@ fn generateWideFoldKey(
     const root_hex = std.fmt.bytesToHex(root, .lower);
     const hash_hex = std.fmt.bytesToHex(hash, .lower);
     const fold_key: WideFoldKey = .{
-        .schema = "s31-fixed-fold-verification-key-v3",
+        .schema = "s31-fixed-fold-verification-key-v4",
         .base_recursive_key_sha256 = &key_hex,
         .projection_sha256 = projection_sha256,
         .air_bundle_sha256 = cpu.air.bundle_sha256,
@@ -1726,7 +1726,7 @@ fn generateFoldKey(
     const root_hex = std.fmt.bytesToHex(root, .lower);
     const hash_hex = std.fmt.bytesToHex(hash, .lower);
     const fold_key: FoldKey = .{
-        .schema = "s31-fixed-fold-verification-key-v2",
+        .schema = "s31-fixed-fold-verification-key-v3",
         .base_recursive_key_sha256 = &first_hex,
         .projection_sha256 = projection_sha256,
         .air_bundle_sha256 = cpu.air.bundle_sha256,
@@ -1874,7 +1874,7 @@ fn auditFoldBase(
     defer fold.deinit();
     var first_digest: [32]u8 = undefined;
     std.crypto.hash.sha2.Sha256.hash(first_bytes, &first_digest, .{});
-    if (!std.mem.eql(u8, fold.value.schema, "s31-fixed-fold-verification-key-v2") or
+    if (!std.mem.eql(u8, fold.value.schema, "s31-fixed-fold-verification-key-v3") or
         !std.mem.eql(u8, fold.value.base_recursive_key_sha256, &std.fmt.bytesToHex(first_digest, .lower)) or
         !std.mem.eql(u8, fold.value.projection_sha256, projection_sha256) or
         !std.mem.eql(u8, fold.value.air_bundle_sha256, cpu.air.bundle_sha256))
@@ -1972,7 +1972,7 @@ fn validateFoldKey(child_bytes: []const u8, first_bytes: []const u8, first: Recu
         return error.InvalidRecursiveVerificationKey;
     var first_digest: [32]u8 = undefined;
     std.crypto.hash.sha2.Sha256.hash(first_bytes, &first_digest, .{});
-    if (!std.mem.eql(u8, fold.schema, "s31-fixed-fold-verification-key-v2") or
+    if (!std.mem.eql(u8, fold.schema, "s31-fixed-fold-verification-key-v3") or
         !std.mem.eql(u8, fold.base_recursive_key_sha256, &std.fmt.bytesToHex(first_digest, .lower)) or
         !std.mem.eql(u8, fold.projection_sha256, projection_sha256) or
         !std.mem.eql(u8, fold.air_bundle_sha256, cpu.air.bundle_sha256))
@@ -2034,7 +2034,7 @@ fn validateStateFoldKey(
     // Both fold keys have the same layout and identity fields; the key's
     // domain, ordered transition body, and source rounds are checked above.
     const common: FoldKey = .{
-        .schema = "s31-fixed-fold-verification-key-v2",
+        .schema = "s31-fixed-fold-verification-key-v3",
         .base_recursive_key_sha256 = key.base_recursive_key_sha256,
         .projection_sha256 = key.projection_sha256,
         .air_bundle_sha256 = key.air_bundle_sha256,
@@ -2245,7 +2245,7 @@ fn foldBaseWords(child_bytes: []const u8, first_bytes: []const u8, leaf_words: [
 fn validateFoldStatement(statement: FoldStatement, child_bytes: []const u8, first_bytes: []const u8, fold_bytes: []const u8, verified: VerifiedFoldKey) !void {
     var fold_digest: [32]u8 = undefined;
     std.crypto.hash.sha2.Sha256.hash(fold_bytes, &fold_digest, .{});
-    if (!std.mem.eql(u8, statement.schema, if (wide_mode) "s31-fixed-fold-statement-v3" else "s31-fixed-fold-statement-v2") or
+    if (!std.mem.eql(u8, statement.schema, if (wide_mode) "s31-fixed-fold-statement-v4" else "s31-fixed-fold-statement-v3") or
         !std.mem.eql(u8, statement.fold_key_sha256, &std.fmt.bytesToHex(fold_digest, .lower)) or
         !std.mem.eql(u8, statement.fold_preprocessed_root, &std.fmt.bytesToHex(verified.root, .lower)) or
         !std.mem.eql(u8, statement.fold_circuit_hash, &std.fmt.bytesToHex(verified.hash, .lower)))
@@ -2315,8 +2315,8 @@ fn wrapFixedFoldBatch(
     const first_step = try std.fmt.parseInt(u32, first_step_text, 10);
     const base_case = std.mem.eql(u8, case_text, "base");
     if (!base_case and !std.mem.eql(u8, case_text, "next")) return error.InvalidFoldBranch;
-    if (steps == 0 or steps > 65536 or first_step > std.math.maxInt(u16) or
-        @as(u64, first_step) + @as(u64, steps) - 1 > std.math.maxInt(u16) or
+    if (steps == 0 or steps > 65536 or first_step > std.math.maxInt(u32) or
+        @as(u64, first_step) + @as(u64, steps) - 1 > std.math.maxInt(u32) or
         (base_case and first_step != 0) or (!base_case and first_step == 0))
         return error.InvalidFoldStepRange;
     if (std.mem.eql(u8, child_proof_path, output_path)) return error.OutputAlreadyExists;
@@ -2335,8 +2335,8 @@ fn wrapFixedFoldBatch(
     } else {
         var initial = try std.json.parseFromSlice(FoldStatement, allocator, initial_bytes, .{ .ignore_unknown_fields = false });
         defer initial.deinit();
-        if (!std.mem.eql(u8, initial.value.schema, if (wide_mode) "s31-fixed-fold-statement-v3" else "s31-fixed-fold-statement-v2") or
-            @as(u32, initial.value.step) + 1 != first_step) return error.InvalidFoldStepRange;
+        if (!std.mem.eql(u8, initial.value.schema, if (wide_mode) "s31-fixed-fold-statement-v4" else "s31-fixed-fold-statement-v3") or
+            @as(u64, initial.value.step) + 1 != first_step) return error.InvalidFoldStepRange;
     }
     try std.fs.cwd().makePath(checkpoint_dir);
     var paths = std.heap.ArenaAllocator.init(allocator);
@@ -2418,7 +2418,7 @@ fn wrapFoldWithCache(
     defer allocator.free(statement_bytes);
     var leaf_public_words: [8]u32 = undefined;
     var base_public_words: [8]u32 = undefined;
-    var step: u16 = undefined;
+    var step: u32 = undefined;
     var child_root: [32]u8 = undefined;
     var child_hash: [32]u8 = undefined;
     var child_public_words: [8]u32 = undefined;
@@ -2462,7 +2462,7 @@ fn wrapFoldWithCache(
         var previous = try std.json.parseFromSlice(FoldStatement, allocator, statement_bytes, .{ .ignore_unknown_fields = false });
         defer previous.deinit();
         try validateFoldStatement(previous.value, child_bytes, first_bytes, fold_bytes, verified);
-        if (previous.value.step == std.math.maxInt(u16)) return error.FoldStepOverflow;
+        if (previous.value.step == std.math.maxInt(u32)) return error.FoldStepOverflow;
         leaf_public_words = previous.value.leaf_public_words;
         base_public_words = previous.value.base_public_words;
         child_public_words = previous.value.fold_public_words;
@@ -2489,7 +2489,7 @@ fn wrapFoldWithCache(
             error.VerificationFailed, error.EqFailedOnEval => {},
             else => return err,
         }
-        const wrong_step: u16 = if (step == 0) 1 else step - 1;
+        const wrong_step: u32 = if (step == 0) 1 else step - 1;
         if (fixed_fold.verifyPrepared(allocator, projection_bytes, verified.layout, verified.pcs, &captured, verified.base_root, verified.root, base_public_words, wrong_step)) |accepted| {
             var invalid = accepted;
             invalid.deinit();
@@ -2584,7 +2584,7 @@ fn wrapFoldWithCache(
     const root_hex = std.fmt.bytesToHex(verified.root, .lower);
     const hash_hex = std.fmt.bytesToHex(verified.hash, .lower);
     const statement: FoldStatement = .{
-        .schema = if (wide_mode) "s31-fixed-fold-statement-v3" else "s31-fixed-fold-statement-v2",
+        .schema = if (wide_mode) "s31-fixed-fold-statement-v4" else "s31-fixed-fold-statement-v3",
         .fold_key_sha256 = &key_hex,
         .step = step,
         .leaf_public_words = leaf_public_words,

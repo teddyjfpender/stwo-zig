@@ -145,7 +145,7 @@ fourfold child FRI halved the first verifier circuit's raw variables and cut
 first-wrap wall time by about 40% relative to a onefold child in local runs. A separate
 concrete-security analysis is still needed for each schedule.
 The [fixed-key fold chapter](docs/recursion-fold.md) shows repeatable proof
-verification under one sealed key and a constrained `u16` step counter.
+verification under one sealed key and a constrained `u32` step counter.
 The [sparse-wide fixed-key fold](docs/recursion-wide-fold.md) extends this
 to wide-integer and two-header Bitcoin leaf proofs by using the second
 wrapper as its base; repeated fold proofs use the same sealed key.

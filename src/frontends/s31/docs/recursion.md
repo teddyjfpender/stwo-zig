@@ -49,8 +49,8 @@ For this fixture the outer digest, interpreted as eight little-endian `u32`
 words, is:
 
 ```text
-[1165332741, 1691151829, 1726621965, 1268399239,
- 691784874, 833490328, 1935791649, 1134705563]
+[3093557552, 2965838155, 2753976554, 486232688,
+ 3300667518, 3444298827, 547066196, 2739038157]
 ```
 
 The outer verifier embeds the child key and a sealed recursive key generated

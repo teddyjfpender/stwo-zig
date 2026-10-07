@@ -1,12 +1,13 @@
 //! Experimental fixed-key recursive verifier circuit. The root of the fold
 //! circuit is supplied as a witness and bound by its public output; the
-//! topology therefore does not need a cryptographic fixed point. A u16 step
-//! counter and a constrained base selector make the recursion well founded.
+//! topology therefore does not need a cryptographic fixed point. A constrained
+//! u32 step counter and base selector make the recursion well founded.
 const std = @import("std");
 const core = @import("stwo_core");
 const circuit = @import("stwo_circuit_frontend");
 const cpu = @import("stwo_circuit_cpu_integration");
 const recursion_gate = @import("recursion_gate.zig");
+const recursion_counter = @import("recursion_counter.zig");
 
 const QM31 = core.fields.qm31.QM31;
 const M31 = core.fields.m31.M31;
@@ -18,14 +19,14 @@ const U32 = circuit.builder.wrappers.U32Wrapper(Var);
 pub const personalization: [8]u8 = "S31FOL2!".*;
 
 pub const Mutation = enum {
-    base_selector, zero_test_inverse, previous_counter,
+    base_selector, zero_test_inverse, previous_counter, borrow,
     trace_root, interaction_root, composition_root, claimed_sum, channel_salt,
     preprocessed_oods, trace_oods, interaction_oods, composition_oods,
     sampled_trace_value, trace_auth_path, fri_commitment,
     fri_witness, fri_auth_path, fri_last_layer,
     interaction_pow_nonce, fri_pow_nonce,
 };
-const WitnessIndices = struct { base: usize, inverse: usize, previous: usize };
+const WitnessIndices = struct { base: usize, inverse: usize, previous: usize, borrow: usize };
 
 fn wordsFromBytes(bytes: [32]u8) [8]u32 {
     var words: [8]u32 = undefined;
@@ -33,7 +34,7 @@ fn wordsFromBytes(bytes: [32]u8) [8]u32 {
     return words;
 }
 
-pub fn statementDigest(root: [32]u8, step: u16, leaf_words: [8]u32) [8]u32 {
+pub fn statementDigest(root: [32]u8, step: u32, leaf_words: [8]u32) [8]u32 {
     var preimage: [68]u8 = undefined;
     @memcpy(preimage[0..32], &root);
     std.mem.writeInt(u32, preimage[32..36], step, .little);
@@ -54,12 +55,12 @@ fn digestWires(
     comptime V: type,
     ctx: *circuit.builder.Context(V),
     root: Blake.HashValue(Var),
-    step: Var,
+    step: U32,
     leaf: Blake.HashValue(Var),
 ) !Blake.HashValue(Var) {
     var message: [17]U32 = undefined;
     @memcpy(message[0..8], &root.words);
-    message[8] = .newUnsafe(step);
+    message[8] = step;
     @memcpy(message[9..17], &leaf.words);
     return Blake.blake2sU32sPersonalized(V, ctx, &message, 68, personalization);
 }
@@ -72,7 +73,7 @@ pub fn buildCircuit(
     base_root: [32]u8,
     self_root_value: Blake.HashValue(V),
     leaf_value: Blake.HashValue(V),
-    step_value: u16,
+    step_value: u32,
     input: *const circuit.stark_verifier.proof.Proof(V),
     witness_indices: ?*WitnessIndices,
     stages: anytype,
@@ -81,32 +82,21 @@ pub fn buildCircuit(
     errdefer ctx.deinit();
     const self_root = try Blake.guessHash(V, &ctx, self_root_value);
     const leaf = try Blake.guessHash(V, &ctx, leaf_value);
-    const step_qm31 = QM31.fromBase(M31.fromCanonical(step_value));
-    const step = try circuit.builder.wrappers.guessU16(V, &ctx, .newUnsafe(circuit.builder.ivalue.fromQm31(V, step_qm31)));
-    const base_value = QM31.fromBase(M31.fromCanonical(if (step_value == 0) 1 else 0));
-    const base = try ctx.guessM31(circuit.builder.ivalue.fromQm31(V, base_value));
-    const base_minus_one = try ctx.sub(base, ctx.one());
-    try ctx.eq(try ctx.mul(base, base_minus_one), ctx.zero());
-    try ctx.eq(try ctx.mul(step.get(), base), ctx.zero());
-    const denominator = try ctx.add(step.get(), base);
-    const inverse = try ctx.inv(denominator);
-    const recurse = try ctx.sub(ctx.one(), base);
-    const prev_difference = try ctx.sub(step.get(), recurse);
-    const prev = try circuit.builder.wrappers.guessU16(V, &ctx, .newUnsafe(ctx.get(prev_difference)));
-    try ctx.eq(prev.get(), prev_difference);
+    const counter = try recursion_counter.constrainStepCounter(V, &ctx, step_value);
     if (witness_indices) |indices| indices.* = .{
-        .base = base.idx,
-        .inverse = inverse.idx,
-        .previous = prev.get().idx,
+        .base = counter.base.idx,
+        .inverse = counter.inverse.idx,
+        .previous = counter.previous_low.idx,
+        .borrow = counter.borrow.idx,
     };
 
     const fixed_base_root = try Blake.constantHash(V, &ctx, Blake.hashValue(QM31, wordsFromBytes(base_root)));
-    const previous_digest = try digestWires(V, &ctx, self_root, prev.get(), leaf);
+    const previous_digest = try digestWires(V, &ctx, self_root, counter.previous, leaf);
     var child_root: Blake.HashValue(Var) = undefined;
     var child_output: Blake.HashValue(Var) = undefined;
     for (0..Blake.digest_n_words) |i| {
-        child_root.words[i] = try selectU32(V, &ctx, recurse, fixed_base_root.words[i], self_root.words[i]);
-        child_output.words[i] = try selectU32(V, &ctx, recurse, leaf.words[i], previous_digest.words[i]);
+        child_root.words[i] = try selectU32(V, &ctx, counter.recurse, fixed_base_root.words[i], self_root.words[i]);
+        child_output.words[i] = try selectU32(V, &ctx, counter.recurse, leaf.words[i], previous_digest.words[i]);
     }
     const statement = try circuit.statements.circuit_statement.CircuitStatement(V).init(
         &ctx,
@@ -121,7 +111,7 @@ pub fn buildCircuit(
     try stages.mark(&ctx.circuit, .{ .name = "proof_witness" });
     try circuit.stark_verifier.verify.verify(V, &ctx, &proof_vars, proof_config, &statement, stages);
 
-    const output_hash = try digestWires(V, &ctx, self_root, step.get(), leaf);
+    const output_hash = try digestWires(V, &ctx, self_root, counter.step, leaf);
     var outputs: [Blake.digest_n_words]Var = undefined;
     for (&outputs, output_hash.words) |*out, word| out.* = word.get();
     try ctx.setOutputs(&outputs);
@@ -175,7 +165,7 @@ pub fn verifyPrepared(
     base_root: [32]u8,
     self_root: [32]u8,
     leaf_words: [8]u32,
-    step: u16,
+    step: u32,
 ) !circuit.builder.Context(QM31) {
     return verifyPreparedWithMutation(allocator, projection_bytes, child_layout, child_pcs, adapted, base_root, self_root, leaf_words, step, null);
 }
@@ -189,7 +179,7 @@ pub fn verifyPreparedWithMutation(
     base_root: [32]u8,
     self_root: [32]u8,
     leaf_words: [8]u32,
-    step: u16,
+    step: u32,
     mutation: ?Mutation,
 ) !circuit.builder.Context(QM31) {
     if (adapted.config.n_preprocessed_columns != child_layout.entries.len or
@@ -246,9 +236,31 @@ pub fn verifyPreparedWithMutation(
     if (mutation) |kind| switch (kind) {
         .base_selector => ctx.value_table.items[indices.base] = if (step == 0) QM31.zero() else QM31.one(),
         .zero_test_inverse => ctx.value_table.items[indices.inverse] = QM31.zero(),
-        .previous_counter => ctx.value_table.items[indices.previous] = QM31.fromBase(M31.fromCanonical(if (step == 0) 1 else step)),
+        .previous_counter => ctx.value_table.items[indices.previous] = QM31.fromBase(M31.fromCanonical(if (step == 0) 1 else step & 0xffff)),
+        .borrow => ctx.value_table.items[indices.borrow] = QM31.fromBase(M31.fromCanonical(if (step != 0 and (step & 0xffff) == 0) 0 else 1)),
         else => {},
     };
     if (!try ctx.isCircuitValid()) return error.VerificationFailed;
     return ctx;
+}
+
+test "fixed-fold digest binds the full u32 counter" {
+    const root = [_]u8{0x42} ** 32;
+    const leaf = [8]u32{ 0, 1, 0xffffffff, 3, 4, 5, 6, 7 };
+    for ([_]u32{ 0, 1, 65535, 65536, 65537, 0x80000000, 0xffffffff }) |step| {
+        var ctx = try circuit.builder.Context(QM31).init(std.testing.allocator, circuit.common.component_list.N_RESERVED);
+        defer ctx.deinit();
+        const root_wires = try Blake.guessHash(QM31, &ctx, Blake.hashValue(QM31, wordsFromBytes(root)));
+        const leaf_wires = try Blake.guessHash(QM31, &ctx, Blake.hashValue(QM31, leaf));
+        const counter = try recursion_counter.constrainStepCounter(QM31, &ctx, step);
+        const hash = try digestWires(QM31, &ctx, root_wires, counter.step, leaf_wires);
+        var outputs: [8]Var = undefined;
+        for (&outputs, hash.words) |*out, word| out.* = word.get();
+        try ctx.setOutputs(&outputs);
+        try ctx.finalize(false);
+        try std.testing.expect(try ctx.isCircuitValid());
+        const expected = statementDigest(root, step, leaf);
+        for (hash.words, expected) |word, expected_word|
+            try std.testing.expectEqual(expected_word, circuit.builder.ivalue.unpackU32(QM31, ctx.get(word.get())));
+    }
 }

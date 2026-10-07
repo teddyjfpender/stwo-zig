@@ -83,7 +83,7 @@ def main() -> None:
         run("python3", str(HERE / "s31.py"), "state-fold-base", str(package),
             str(first), str(work / "unsupported-state.proof"), accept=False)
         base_audit = run("python3", str(HERE / "s31.py"), "audit-fold-base", str(package), str(first))
-        if "valid=true rejected=23" not in base_audit:
+        if "valid=true rejected=24" not in base_audit:
             raise AssertionError(base_audit)
 
         folds = [work / f"fold{step}.proof" for step in range(4)]
@@ -93,7 +93,7 @@ def main() -> None:
                 str(folds[step - 1]), str(folds[step]))
             next_audit = run("python3", str(HERE / "s31.py"), "audit-fold-next", str(package),
                              str(folds[step - 1]))
-            if "valid=true rejected=23" not in next_audit:
+            if "valid=true rejected=24" not in next_audit:
                 raise AssertionError(next_audit)
         root = json.loads(fold_key.read_text())["fold_preprocessed_root"]
         first_statement = statement(first)
@@ -137,15 +137,36 @@ def main() -> None:
 
         top = folds[3]
         top_statement = statement(top)
-        def rejected(changed: dict, label: str) -> None:
+        def rejected(changed: dict, label: str) -> str:
             path = work / f"{label}.json"
             s31.write_json(path, changed)
-            run(str(verifier), "fold-verify", str(top), str(path), accept=False)
+            return run(str(verifier), "fold-verify", str(top), str(path), accept=False)
 
         changed = copy.deepcopy(top_statement)
         changed["step"] = 2
         changed["fold_public_words"] = fold_digest(root, 2, changed["base_public_words"])
         rejected(changed, "wrong-step-rehashed")
+        for high_step in (65536, 0x80000000, 0xffffffff):
+            changed = copy.deepcopy(top_statement)
+            changed["step"] = high_step
+            changed["fold_public_words"] = fold_digest(root, high_step, changed["base_public_words"])
+            rejection = rejected(changed, f"wrong-high-step-{high_step}-rehashed")
+            if "InvalidFoldStatement" in rejection:
+                raise AssertionError("rehashed high step failed before top proof verification")
+        changed = copy.deepcopy(top_statement)
+        changed["step"] = 0x100000000
+        rejected(changed, "counter-overflow")
+        max_statement = copy.deepcopy(top_statement)
+        max_statement["step"] = 0xffffffff
+        max_statement["fold_public_words"] = fold_digest(root, max_statement["step"],
+                                                          max_statement["base_public_words"])
+        max_statement_path = work / "max-step.statement.json"
+        s31.write_json(max_statement_path, max_statement)
+        run("python3", str(HERE / "s31.py"), "fold-advance", str(package), str(top),
+            str(work / "overflow-batch.proof"), "--statement", str(max_statement_path),
+            "--steps", "1", accept=False)
+        if (work / "overflow-batch.proof").exists():
+            raise AssertionError("overflow preflight wrote a proof")
         changed = copy.deepcopy(top_statement)
         changed["leaf_public_words"][0] += 1
         changed["base_public_words"] = recursive_digest(child_key.read_bytes(), changed["leaf_public_words"])

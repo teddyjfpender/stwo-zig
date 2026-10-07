@@ -1,0 +1,303 @@
+{
+  "base_and_next_audit_rejections": [
+    24,
+    24
+  ],
+  "base_public_words_d2": [
+    986043147,
+    1180781016,
+    3922395061,
+    3081947971,
+    1967485040,
+    1118934472,
+    3748024982,
+    3435266406
+  ],
+  "batch_matches_separate_proofs_and_statements": true,
+  "batch_resume_matches_separate_top": true,
+  "build_seconds": 64.60418395802844,
+  "child_fri_fold_step": 4,
+  "compiler_sha256": "270df33f1f588be53fe9fc700f5123f99ae6c39452c800e15ddea0d2d50d6ed4",
+  "fold_geometry": {
+    "headroom_rows": {
+      "blake_g": 971312,
+      "eq": 4426,
+      "m31_to_u32": 59006,
+      "qm31_ops": 259468,
+      "triple_xor": 18488
+    },
+    "padded_rows": {
+      "blake_g": 2097152,
+      "eq": 32768,
+      "m31_to_u32": 262144,
+      "qm31_ops": 1048576,
+      "triple_xor": 131072
+    },
+    "raw_vars": 5589570
+  },
+  "fold_key_reproduced": true,
+  "fold_preprocessed_root": "6cfaef960eda34592000dc3821aa4105774dcf7d32e42a0f84c1f41e0fdeb462",
+  "fold_public_words_first_words": [
+    1393681492,
+    2798648874,
+    4037562601
+  ],
+  "fold_steps": [
+    0,
+    1,
+    2
+  ],
+  "fold_verifier_stages": [
+    {
+      "blake_g": 240,
+      "eq": 6,
+      "m31_to_u32": 0,
+      "name": "proof_witness",
+      "qm31_ops": 155921,
+      "raw_vars": 341258,
+      "triple_xor": 24
+    },
+    {
+      "blake_g": 400,
+      "eq": 6,
+      "m31_to_u32": 28,
+      "name": "channel_salt_and_fri_config",
+      "qm31_ops": 156074,
+      "raw_vars": 342102,
+      "triple_xor": 40
+    },
+    {
+      "blake_g": 480,
+      "eq": 6,
+      "m31_to_u32": 36,
+      "name": "preprocessed_root",
+      "qm31_ops": 156140,
+      "raw_vars": 342504,
+      "triple_xor": 48
+    },
+    {
+      "blake_g": 480,
+      "eq": 102,
+      "m31_to_u32": 36,
+      "name": "component_sizes",
+      "qm31_ops": 156541,
+      "raw_vars": 342997,
+      "triple_xor": 48
+    },
+    {
+      "blake_g": 800,
+      "eq": 102,
+      "m31_to_u32": 84,
+      "name": "claims_mixed",
+      "qm31_ops": 156729,
+      "raw_vars": 344547,
+      "triple_xor": 80
+    },
+    {
+      "blake_g": 1120,
+      "eq": 155,
+      "m31_to_u32": 132,
+      "name": "trace_root_and_interaction_pow",
+      "qm31_ops": 157181,
+      "raw_vars": 346395,
+      "triple_xor": 112
+    },
+    {
+      "blake_g": 1200,
+      "eq": 155,
+      "m31_to_u32": 144,
+      "name": "interaction_elements",
+      "qm31_ops": 157254,
+      "raw_vars": 346809,
+      "triple_xor": 120
+    },
+    {
+      "blake_g": 1200,
+      "eq": 165,
+      "m31_to_u32": 144,
+      "name": "logup_sum",
+      "qm31_ops": 157444,
+      "raw_vars": 347016,
+      "triple_xor": 120
+    },
+    {
+      "blake_g": 1840,
+      "eq": 166,
+      "m31_to_u32": 236,
+      "name": "composition_coeff_and_oods_point",
+      "qm31_ops": 157872,
+      "raw_vars": 350163,
+      "triple_xor": 184
+    },
+    {
+      "blake_g": 1840,
+      "eq": 196,
+      "m31_to_u32": 236,
+      "name": "check_relation_uses",
+      "qm31_ops": 158028,
+      "raw_vars": 350347,
+      "triple_xor": 184
+    },
+    {
+      "blake_g": 1840,
+      "eq": 196,
+      "m31_to_u32": 236,
+      "name": "verify_claim",
+      "qm31_ops": 158047,
+      "raw_vars": 350366,
+      "triple_xor": 184
+    },
+    {
+      "blake_g": 9200,
+      "eq": 196,
+      "m31_to_u32": 1696,
+      "name": "oods_values_mixed",
+      "qm31_ops": 160654,
+      "raw_vars": 384698,
+      "triple_xor": 920
+    },
+    {
+      "blake_g": 9200,
+      "eq": 213,
+      "m31_to_u32": 1696,
+      "name": "composition_polynomial",
+      "qm31_ops": 162157,
+      "raw_vars": 386230,
+      "triple_xor": 920
+    },
+    {
+      "blake_g": 9200,
+      "eq": 214,
+      "m31_to_u32": 1696,
+      "name": "composition_check",
+      "qm31_ops": 162231,
+      "raw_vars": 386304,
+      "triple_xor": 920
+    },
+    {
+      "blake_g": 10320,
+      "eq": 214,
+      "m31_to_u32": 1840,
+      "name": "fri_commit",
+      "qm31_ops": 163211,
+      "raw_vars": 392020,
+      "triple_xor": 1032
+    },
+    {
+      "blake_g": 10560,
+      "eq": 273,
+      "m31_to_u32": 1880,
+      "name": "fri_pow",
+      "qm31_ops": 163597,
+      "raw_vars": 393462,
+      "triple_xor": 1056
+    },
+    {
+      "blake_g": 11280,
+      "eq": 849,
+      "m31_to_u32": 1988,
+      "name": "select_queries",
+      "qm31_ops": 170618,
+      "raw_vars": 404143,
+      "triple_xor": 1128
+    },
+    {
+      "blake_g": 11280,
+      "eq": 849,
+      "m31_to_u32": 1988,
+      "name": "query_bits",
+      "qm31_ops": 173321,
+      "raw_vars": 406846,
+      "triple_xor": 1128
+    },
+    {
+      "blake_g": 627280,
+      "eq": 22285,
+      "m31_to_u32": 24318,
+      "name": "merkle_decommit",
+      "qm31_ops": 467701,
+      "raw_vars": 3231452,
+      "triple_xor": 62728
+    },
+    {
+      "blake_g": 627280,
+      "eq": 22285,
+      "m31_to_u32": 24318,
+      "name": "oods_responses",
+      "qm31_ops": 468174,
+      "raw_vars": 3231928,
+      "triple_xor": 62728
+    },
+    {
+      "blake_g": 627280,
+      "eq": 23196,
+      "m31_to_u32": 24318,
+      "name": "fri_input",
+      "qm31_ops": 535547,
+      "raw_vars": 3300213,
+      "triple_xor": 62728
+    },
+    {
+      "blake_g": 1125680,
+      "eq": 28342,
+      "m31_to_u32": 47278,
+      "name": "fri_decommit",
+      "qm31_ops": 755920,
+      "raw_vars": 5588283,
+      "triple_xor": 112568
+    },
+    {
+      "blake_g": 1125840,
+      "eq": 28342,
+      "m31_to_u32": 47278,
+      "name": "fixed_fold_digest",
+      "qm31_ops": 755928,
+      "raw_vars": 5588939,
+      "triple_xor": 112584
+    },
+    {
+      "blake_g": 1125840,
+      "eq": 28342,
+      "m31_to_u32": 203138,
+      "name": "finalize",
+      "qm31_ops": 789108,
+      "raw_vars": 5589570,
+      "triple_xor": 112584
+    }
+  ],
+  "host_negative_checks": [
+    "u32_counter_overflow_before_output",
+    "first_wrapper_cannot_replace_second_wrapper_base",
+    "damaged_recursive_child_proof",
+    "wrong_nested_base_digest",
+    "repaired_leaf_claim_rejected_by_top_proof",
+    "repaired_step_rejected_by_top_proof",
+    "damaged_top_proof",
+    "wrong_second_key_fri_schedule"
+  ],
+  "inspector_verified_isolated_top": true,
+  "proof_bytes_leaf_first_second_fold0_fold1_fold2": [
+    266285,
+    352987,
+    376650,
+    373899,
+    373975,
+    371088
+  ],
+  "same_fold_root_for_all_steps": true,
+  "schema": "s31-sparse-wide-fixed-fold-acceptance-v1",
+  "source_name": "bitcoin_header_pair",
+  "source_sha256": "307fe5bc6c76cf4210837b10bba5eeb9dd4f288491b62ca01381eb66d29a6d0c",
+  "top_verified_without_lower_proofs": true,
+  "wall_seconds": {
+    "batch_three_steps": 6.067501207930036,
+    "first": 1.3247893749503419,
+    "fold0": 2.308294792077504,
+    "fold1": 2.2763137919828296,
+    "fold2": 2.225640916964039,
+    "leaf": 1.2277205410646275,
+    "second": 2.5918257500743493,
+    "top_verify": 0.13854637497570366
+  },
+  "wrapper_and_fold_fri_fold_step": 4
+}

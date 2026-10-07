@@ -5,6 +5,7 @@ const core = @import("stwo_core");
 const circuit = @import("stwo_circuit_frontend");
 const cpu = @import("stwo_circuit_cpu_integration");
 const recursion_gate = @import("recursion_gate.zig");
+const recursion_counter = @import("recursion_counter.zig");
 const relation = @import("stwo_s31_prototype").relation;
 
 const QM31 = core.fields.qm31.QM31;
@@ -104,62 +105,6 @@ fn selectU32(comptime V: type, ctx: *circuit.builder.Context(V), choose_right: V
     return .newUnsafe(try selectWord(V, ctx, choose_right, left.get(), right.get()));
 }
 
-const CounterWires = struct { low: Var, high: Var, packed_word: U32 };
-const CounterRelation = struct {
-    step: U32,
-    previous: U32,
-    base: Var,
-    recurse: Var,
-    inverse: Var,
-    borrow: Var,
-    previous_low: Var,
-};
-
-fn guessCounter(comptime V: type, ctx: *circuit.builder.Context(V), value: u32) !CounterWires {
-    const low_value = QM31.fromBase(M31.fromCanonical(value & 0xffff));
-    const high_value = QM31.fromBase(M31.fromCanonical(value >> 16));
-    const low = try circuit.builder.wrappers.guessU16(V, ctx,
-        .newUnsafe(circuit.builder.ivalue.fromQm31(V, low_value)));
-    const high = try circuit.builder.wrappers.guessU16(V, ctx,
-        .newUnsafe(circuit.builder.ivalue.fromQm31(V, high_value)));
-    const i = try ctx.constant(QM31.fromU32Unchecked(0, 1, 0, 0));
-    return .{
-        .low = low.get(),
-        .high = high.get(),
-        .packed_word = .newUnsafe(try ctx.add(low.get(), try ctx.mul(high.get(), i))),
-    };
-}
-
-/// The step is two constrained u16 limbs. Integer predecessor equations use
-/// an explicitly Boolean borrow, avoiding M31 wraparound at 65536 and zero.
-fn constrainStepCounter(comptime V: type, ctx: *circuit.builder.Context(V), step_value: u32) !CounterRelation {
-    const step = try guessCounter(V, ctx, step_value);
-    const base_value = QM31.fromBase(M31.fromCanonical(if (step_value == 0) 1 else 0));
-    const base = try ctx.guessM31(circuit.builder.ivalue.fromQm31(V, base_value));
-    try ctx.eq(try ctx.mul(base, try ctx.sub(base, ctx.one())), ctx.zero());
-    const nonzero_sum = try ctx.add(step.low, step.high);
-    try ctx.eq(try ctx.mul(nonzero_sum, base), ctx.zero());
-    const inverse = try ctx.inv(try ctx.add(nonzero_sum, base));
-    const recurse = try ctx.sub(ctx.one(), base);
-    const borrow_value = QM31.fromBase(M31.fromCanonical(if (step_value != 0 and (step_value & 0xffff) == 0) 1 else 0));
-    const borrow = try ctx.guessM31(circuit.builder.ivalue.fromQm31(V, borrow_value));
-    try ctx.eq(try ctx.mul(borrow, try ctx.sub(borrow, ctx.one())), ctx.zero());
-    const previous = try guessCounter(V, ctx, if (step_value == 0) 0 else step_value - 1);
-    const two_to_sixteen = try ctx.constant(QM31.fromBase(M31.fromCanonical(65536)));
-    const expected_low = try ctx.add(try ctx.sub(step.low, recurse), try ctx.mul(borrow, two_to_sixteen));
-    try ctx.eq(previous.low, expected_low);
-    try ctx.eq(previous.high, try ctx.sub(step.high, borrow));
-    return .{
-        .step = step.packed_word,
-        .previous = previous.packed_word,
-        .base = base,
-        .recurse = recurse,
-        .inverse = inverse,
-        .borrow = borrow,
-        .previous_low = previous.low,
-    };
-}
-
 fn digestWires(
     comptime V: type,
     ctx: *circuit.builder.Context(V),
@@ -208,7 +153,7 @@ pub fn buildCircuit(
         current[i] = try ctx.guessM31(stateValue(V, current_value[i]));
         previous[i] = try ctx.guessM31(stateValue(V, previous_value[i]));
     }
-    const counter = try constrainStepCounter(V, &ctx, step_value);
+    const counter = try recursion_counter.constrainStepCounter(V, &ctx, step_value);
     if (witness_indices) |indices| indices.* = .{
         .base = counter.base.idx,
         .inverse = counter.inverse.idx,
@@ -434,7 +379,7 @@ test "state-fold counter spans u16 carry and u32 bounds" {
     for (values) |step| {
         var ctx = try circuit.builder.Context(QM31).init(std.testing.allocator, 0);
         defer ctx.deinit();
-        const counter = try constrainStepCounter(QM31, &ctx, step);
+        const counter = try recursion_counter.constrainStepCounter(QM31, &ctx, step);
         try ctx.finalize(false);
         try std.testing.expect(try ctx.isCircuitValid());
         const previous = circuit.builder.ivalue.unpackU32(QM31, ctx.get(counter.previous.get()));
@@ -463,7 +408,7 @@ test "state-fold digest binds all 32 counter bits in circuit" {
         defer ctx.deinit();
         const root_wires = try Blake.guessHash(QM31, &ctx, Blake.hashValue(QM31, wordsFromBytes(root)));
         const leaf_wires = try Blake.guessHash(QM31, &ctx, Blake.hashValue(QM31, leaf));
-        const counter = try constrainStepCounter(QM31, &ctx, step);
+        const counter = try recursion_counter.constrainStepCounter(QM31, &ctx, step);
         var initial_wires: [4]Var = undefined;
         var current_wires: [4]Var = undefined;
         for (0..4) |lane| {

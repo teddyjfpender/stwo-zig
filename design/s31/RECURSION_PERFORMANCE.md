@@ -177,11 +177,25 @@ circuit. The second wrapper's layout does fit: `eq=32768`,
 `qm31_ops=1048576`, `m31_to_u32=262144`, `triple_xor=131072`, and
 `blake_g=2097152` rows. The fold reuses those padded sizes without another
 power-of-two jump. `inspect-fold` rebuilds the topology to expose exact
-headroom; for the fourfold `wide_order` leaf it has 5,589,558 raw variables
+headroom; for the fourfold `wide_order` leaf it has 5,589,571 raw variables
 and 18,488 unused `triple_xor` rows. This is a **claim fold** over one leaf
 execution, not a Bitcoin state-transition fold.
+The `u32` counter adds 13 raw variables over the earlier `u16` fold while
+leaving all five padded component row counts unchanged. The
+[current wide-order record](measurements/sparse-wide-fold-u32-v1-2026-10-07.json)
+contains its geometry, 24 direct mutations per branch, proof sizes, and
+byte-identical separate/batch checks.
+The [current three-trial batch record](measurements/sparse-wide-fold-u32-batch-memory-2026-10-07.json)
+reports median wall times of 6.596 s for three separate commands and
+5.753 s for one cached batch, with identical proof and statement bytes.
+Median peak RSS increased from 3.736 to 3.814 GB. These are local macOS
+measurements with alternating order, not a cross-system speed claim.
+The [current two-header Bitcoin record](measurements/bitcoin-sparse-wide-fold-u32-v1-2026-10-07.json)
+also passes the 24 direct mutations per branch and the `u32` overflow
+preflight. Its three fold proofs are 373,899, 373,975, and 371,088 bytes;
+the padded AIR geometry is unchanged from the wide-order fold.
 
-The [wide-integer record](measurements/sparse-wide-fold-v1-2026-10-07.json)
+The earlier `u16` [wide-integer record](measurements/sparse-wide-fold-v1-2026-10-07.json)
 and [two-header Bitcoin record](measurements/bitcoin-sparse-wide-fold-v1-2026-10-07.json)
 each prove three steps under one sealed `KF` and verify the top proof after
 deleting all lower proof files. They reproduce `KF` from sealed keys and
@@ -194,17 +208,17 @@ claims. With fourfold child and wrapper FRI, the proof sizes are:
 | `bitcoin_header_pair` | 266,285 | 352,610 | 373,854 | 372,076 | 370,893 | 375,737 |
 
 The fold output is eight raw `u32` digest words; its public statement also
-carries the original eight-word leaf claim and a constrained `u16` step.
+carries the original eight-word leaf claim and a constrained `u32` step.
 Each fold proof is approximately the size of the second wrapper proof;
 proof size does not grow linearly with the number of folds. The recorded
 local fold commands took roughly 2–3 seconds each, and isolated top native
 verification about 0.1–0.15 seconds. These measurements neither establish
 a concrete security level nor imply a useful Bitcoin light client. The
-counter is currently bounded to 65,535 steps, and no new header is
+counter is now bounded to 4,294,967,295 steps, and no new header is
 consumed by a fold step.
 
-`inspect-fold` now records cumulative verifier phases for this same-key
-fold. The [wide-order stage record](measurements/sparse-wide-fold-stages-v1-2026-10-07.json)
+`inspect-fold` records cumulative verifier phases for this same-key
+fold. The earlier `u16` [wide-order stage record](measurements/sparse-wide-fold-stages-v1-2026-10-07.json)
 reproduces the original fold AIR root and all six proof sizes while rejecting
 23 direct base and recursive mutations, including both proof-of-work nonces,
 all three commitment roots, representative OODS openings, and a FRI

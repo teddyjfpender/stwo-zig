@@ -21,8 +21,8 @@ def recursive_digest(key_bytes: bytes, words: list[int]) -> list[int]:
 
 
 def fold_digest(root: str, step: int, words: list[int]) -> list[int]:
-    if type(step) is not int or not 0 <= step <= 65535:
-        raise ValueError("fixed-fold step is outside the constrained u16 range")
+    if type(step) is not int or not 0 <= step <= 0xffffffff:
+        raise ValueError("fixed-fold step is outside the constrained u32 range")
     preimage = bytes.fromhex(root) + struct.pack("<I8I", step, *words)
     return list(struct.unpack("<8I", hashlib.blake2s(preimage, person=b"S31FOL2!").digest()))
 
@@ -33,7 +33,7 @@ def inspect(package: Path, proof: Path, statement_path: Path) -> dict:
     if profile not in {"gate", "sparse-wide-gate"}:
         raise ValueError("fixed-fold inspection requires a gate or sparse-wide package")
     statement = json.loads(statement_path.read_text())
-    expected_schema = "s31-fixed-fold-statement-v3" if profile == "sparse-wide-gate" else "s31-fixed-fold-statement-v2"
+    expected_schema = "s31-fixed-fold-statement-v4" if profile == "sparse-wide-gate" else "s31-fixed-fold-statement-v3"
     if statement.get("schema") != expected_schema:
         raise ValueError("fixed-fold statement has the wrong schema for this package")
     leaf_key = (package / "verification-key.json").read_bytes()
