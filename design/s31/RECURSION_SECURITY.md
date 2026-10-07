@@ -103,12 +103,27 @@ proof depth. Repeated verification can accumulate soundness error; this
 repository does not yet publish an acceptable maximum depth for a chosen
 security target.
 
+For a top counter `n`, the gate construction contains `n+1` fold proofs,
+one first-wrapper proof, and one leaf proof: `n+3` STARK proofs in the
+inductive chain. The sparse-wide construction has two wrappers and a leaf,
+so its count is `n+4`. If a separate analysis established a uniform
+per-proof error bound `ε` against adaptively selected false statements under
+all these keys, a conservative union-bound term would be at most
+`(n+3)ε` or `(n+4)ε`, respectively. Hash binding failures and any protocol
+composition loss must be added separately. This equation is a budgeting
+template, **not** a soundness theorem for the current implementation. For
+scale only, inserting a hypothetical `ε = 2⁻⁹⁶` and allowing around `2³²`
+proofs leaves a term around `2⁻⁶⁴`; the 96-bit premise has not been
+established for S31. Neither the `securityBits()` helper nor a matching
+Stwo-Cairo parameter tuple supplies it.
+
 The native `fold-verify` and `state-fold-verify` commands and their `s31.py`
 wrappers accept `--max-step N`. The verifier validates the sealed key and
 statement, then rejects `step > N` before reading proof bytes. The limit is
 supplied by the relying party and is never taken from the prover's statement.
 It is an application policy bound; it does not by itself establish a
-soundness level. The acceptance suites prove a step-three top proof with
+soundness level. Step zero already contains one fold proof. The acceptance
+suites prove a step-three top proof with
 limit three and reject the same proof with limit two. Omitting the option
 preserves the protocol's full `u32` counter range. The
 [policy acceptance record](measurements/fold-depth-policy-2026-10-07.json)
