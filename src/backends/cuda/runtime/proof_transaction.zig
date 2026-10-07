@@ -205,6 +205,23 @@ pub fn TransactionFor(comptime Session: type) type {
             return self.arena.slice(id);
         }
 
+        /// Hint the managed-memory driver about an authenticated arena slot.
+        /// This moves pages but never exposes their contents to host code.
+        pub fn prefetchManagedSlot(
+            self: *Self,
+            id: arena_module.SlotId,
+            to_device: bool,
+        ) runtime_error.Error!void {
+            if (!self.arena.managed) return;
+            if (comptime @hasDecl(Context, "prefetchManagedSlice")) {
+                try self.sessionContext().prefetchManagedSlice(
+                    u32,
+                    try self.slot(id),
+                    to_device,
+                );
+            } else return error.InvalidState;
+        }
+
         pub fn slotAs(
             self: *const Self,
             comptime F: type,

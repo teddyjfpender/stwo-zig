@@ -869,6 +869,31 @@ extern "C" int stwo_exec_context_alloc_managed_u32(
     return static_cast<int>(status);
 }
 
+extern "C" int stwo_exec_context_prefetch_managed(
+    void *handle,
+    const void *pointer,
+    size_t bytes,
+    int to_device) {
+    if (pointer == nullptr || bytes == 0 || (to_device != 0 && to_device != 1))
+        return static_cast<int>(cudaErrorInvalidValue);
+    StwoNativeCudaContext *context = nullptr;
+    cudaError_t status = require_context(handle, &context);
+    if (status != cudaSuccess) return static_cast<int>(status);
+    const uintptr_t address = reinterpret_cast<uintptr_t>(pointer);
+    for (size_t index = 0; index < context->allocation_count; ++index) {
+        const StwoNativeCudaAllocation allocation = context->allocations[index];
+        if (!allocation.managed || address < allocation.address) continue;
+        const size_t offset = static_cast<size_t>(address - allocation.address);
+        if (offset <= allocation.bytes && bytes <= allocation.bytes - offset) {
+            return static_cast<int>(cudaMemPrefetchAsync(
+                pointer, bytes,
+                to_device ? context->device : cudaCpuDeviceId,
+                context->stream));
+        }
+    }
+    return static_cast<int>(cudaErrorInvalidDevicePointer);
+}
+
 extern "C" int stwo_exec_context_free_u32(
     void *handle,
     uint32_t *pointer) {

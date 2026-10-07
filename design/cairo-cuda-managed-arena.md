@@ -22,6 +22,14 @@ planner's `allocated_bytes` and `peak_live_bytes` remain unchanged. Report
 sampled whole-device peak, host RSS, page migration (where available), proof
 time, full-command time, proof hash, and independent verification separately.
 
+`STWO_CUDA_MANAGED_PREFETCH=1` additionally tests an ordered residency policy
+for managed arenas. It moves main/interaction coefficients toward the host at
+constraint evaluation, then prefers coefficients for OODS and evaluations for
+quotient. These are stream-ordered migration hints on the authenticated arena
+slots. They do not copy witness data into host application code or change the
+proof. Measure this separately from the plain managed fallback: on a dense
+PIE the extra transfers may outweigh avoided page faults.
+
 Initial discriminating cases are the exact canonical inputs
 `15582797_15582797` (88.627 GB planned arena, 109,817 distinct Pedersen
 keys) and `15590913_15590913` (103.367 GB, 193,076 keys). On an 80 GB H100,

@@ -135,6 +135,7 @@ pub fn ArenaFor(comptime Context: type) type {
 
         backing: Context.Buffer,
         plan: Plan,
+        managed: bool = false,
 
         pub fn init(
             context: *Context,
@@ -159,6 +160,7 @@ pub fn ArenaFor(comptime Context: type) type {
                 return .{
                     .backing = try context.allocateManaged(plan.total_words),
                     .plan = plan.*,
+                    .managed = true,
                 };
             } else return error.InvalidState;
         }
@@ -183,6 +185,7 @@ pub fn ArenaFor(comptime Context: type) type {
                 return .{
                     .backing = try context.allocatePersistentManaged(plan.total_words),
                     .plan = plan.*,
+                    .managed = true,
                 };
             } else return error.InvalidState;
         }

@@ -511,6 +511,28 @@ pub fn ContextFor(comptime Api: type) type {
             } else return error.InvalidState;
         }
 
+        pub fn prefetchManagedSlice(
+            self: *Self,
+            comptime F: type,
+            source: anytype,
+            to_device: bool,
+        ) runtime_error.Error!void {
+            if (self.active_stage == null) return error.StageNotActive;
+            if (source.len == 0) return error.SizeOverflow;
+            const pointer = try self.deviceSlicePointer(F, source, source.len);
+            const bytes = std.math.mul(usize, source.len, @sizeOf(F)) catch
+                return error.SizeOverflow;
+            if (comptime @hasDecl(Api, "stwo_exec_context_prefetch_managed")) {
+                try runtime_error.check(Api.stwo_exec_context_prefetch_managed(
+                    try self.requireHandle(),
+                    pointer,
+                    bytes,
+                    @intFromBool(to_device),
+                ));
+                self.synchronized = false;
+            } else return error.InvalidState;
+        }
+
         pub fn freeRaw(self: *Self, pointer: [*]u32) c_int {
             const handle = self.requireHandle() catch return -1;
             return Api.stwo_exec_context_free_u32(handle, pointer);
@@ -920,6 +942,7 @@ test "context owns buffers and accounts only explicit transfers" {
         var device_words: [16]u32 = [_]u32{0} ** 16;
         var sync_calls: usize = 0;
         var managed_allocations: usize = 0;
+        var managed_prefetches: usize = 0;
 
         fn stwo_exec_context_create(out: *?*anyopaque) c_int {
             out.* = &handle_word;
@@ -948,6 +971,10 @@ test "context owns buffers and accounts only explicit transfers" {
         fn stwo_exec_context_alloc_managed_u32(_: *anyopaque, _: usize, out: *?[*]u32) c_int {
             managed_allocations += 1;
             out.* = &device_words;
+            return 0;
+        }
+        fn stwo_exec_context_prefetch_managed(_: *anyopaque, _: *const anyopaque, _: usize, _: c_int) c_int {
+            managed_prefetches += 1;
             return 0;
         }
         fn stwo_exec_context_free_u32(_: *anyopaque, _: [*]u32) c_int {
@@ -1008,6 +1035,13 @@ test "context owns buffers and accounts only explicit transfers" {
     try context.beginStage(.ingress);
     var managed = try context.allocateManaged(4);
     try std.testing.expectEqual(@as(usize, 1), Fake.managed_allocations);
+    try context.prefetchManagedSlice(u32, .{
+        .address = @intFromPtr(managed.pointer),
+        .len = managed.words,
+        .owner = managed.owner,
+        .generation = managed.generation,
+    }, false);
+    try std.testing.expectEqual(@as(usize, 1), Fake.managed_prefetches);
     try context.free(&managed);
     var buffer = try context.allocate(16);
     try context.upload(buffer, &.{ 1, 2, 3, 4 });

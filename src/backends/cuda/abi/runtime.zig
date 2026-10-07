@@ -122,6 +122,12 @@ pub extern "c" fn stwo_exec_context_alloc_managed_u32(
     count: usize,
     out_ptr: *?[*]u32,
 ) c_int;
+pub extern "c" fn stwo_exec_context_prefetch_managed(
+    handle: *anyopaque,
+    pointer: *const anyopaque,
+    bytes: usize,
+    to_device: c_int,
+) c_int;
 pub extern "c" fn stwo_exec_context_free_u32(
     handle: *anyopaque,
     ptr: [*]u32,

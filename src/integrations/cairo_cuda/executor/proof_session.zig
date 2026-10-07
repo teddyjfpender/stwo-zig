@@ -485,6 +485,10 @@ pub const Prepared = struct {
         try transaction.endStage(.trace_commit);
 
         try transaction.beginStage(.constraint_evaluation);
+        if (managedPrefetchEnabled()) {
+            phase = "managed_prefetch_coefficients_to_host";
+            try prefetchTraceSlots(transaction, plan, .trace_coefficients, false);
+        }
         phase = "constraint_evaluation";
         try self.controllers.evaluation.execute(
             transaction,
@@ -518,6 +522,11 @@ pub const Prepared = struct {
         try transaction.endStage(.constraint_evaluation);
 
         try transaction.beginStage(.oods);
+        if (managedPrefetchEnabled()) {
+            phase = "managed_prefetch_oods";
+            try prefetchTraceSlots(transaction, plan, .trace_evaluations, false);
+            try prefetchTraceSlots(transaction, plan, .trace_coefficients, true);
+        }
         phase = "oods";
         try self.controllers.oods.execute(
             session,
@@ -527,6 +536,11 @@ pub const Prepared = struct {
         try transaction.endStage(.oods);
 
         try transaction.beginStage(.quotient);
+        if (managedPrefetchEnabled()) {
+            phase = "managed_prefetch_quotient";
+            try prefetchTraceSlots(transaction, plan, .trace_coefficients, false);
+            try prefetchTraceSlots(transaction, plan, .trace_evaluations, true);
+        }
         phase = "quotient";
         try self.controllers.quotient.execute(session);
         try transaction.endStage(.quotient);
@@ -814,6 +828,26 @@ fn hashInt(
     var bytes: [@sizeOf(T)]u8 = undefined;
     std.mem.writeInt(T, &bytes, @intCast(value), .little);
     hash.update(&bytes);
+}
+
+fn managedPrefetchEnabled() bool {
+    const value = std.posix.getenv("STWO_CUDA_MANAGED_PREFETCH") orelse return false;
+    return std.mem.eql(u8, value, "1");
+}
+
+fn prefetchTraceSlots(
+    transaction: anytype,
+    plan: *const resident_plan.Plan,
+    kind: resident_plan.SlotKind,
+    to_device: bool,
+) !void {
+    // The canonical four-tree inventory binds main and interaction to these
+    // ordinals. Slot lookup remains checked against the authenticated plan.
+    for ([_]u32{ 1, 2 }) |ordinal| {
+        const slot = plan.slot(kind, ordinal) orelse
+            return error.InvalidProofSessionBindings;
+        try transaction.prefetchManagedSlot(slot.id, to_device);
+    }
 }
 
 fn compileConcreteExecution(
