@@ -230,6 +230,12 @@ executable. Focused product tests additionally require deterministic
 missing-device failure, repeated authenticated sessions, allocation rollback,
 and resident-buffer-safe teardown.
 
+For Starknet OS PIE production on CUDA, the [PIE construction and geometry
+guide](design/cairo-pie-construction.md) explains the H200 workload, the
+Pedersen memory cliff, and the registry-bound `cairo-trace-geometry` and
+`cairo-pie-construction-plan` tools. Their output selects and admits already
+baked candidates; the resulting proofs still require normal verification.
+
 ## RISC-V frontend
 
 The release-gated frontend accepts an `rv32im-zkvm-v1` ELF, executes it, builds
