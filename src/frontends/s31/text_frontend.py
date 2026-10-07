@@ -468,16 +468,20 @@ class Compiler:
                 return self.builder.array_concat(*values, wanted=wanted, span=self.span(expr))
             if name in {"std::array::take", "std::array::drop", "std::array::reshape"}:
                 if expr.generic is None or len(expr.args) != 1:
-                    raise TypeErrorS31(f"{name}<K>(static_array) expected")
+                    raise TypeErrorS31(f"{name}<K>(array) expected")
                 group = self.eval_expr(expr.args[0], env)
                 operation = {"std::array::take": self.builder.array_take,
                              "std::array::drop": self.builder.array_drop,
                              "std::array::reshape": self.builder.array_reshape}[name]
-                return operation(group, expr.generic)
+                if name == "std::array::reshape":
+                    return operation(group, expr.generic, span=self.span(expr))
+                return operation(group, expr.generic, wanted=wanted,
+                                 span=self.span(expr))
             if name == "std::array::flatten":
                 if expr.generic is not None or len(expr.args) != 1:
                     raise TypeErrorS31("std::array::flatten(matrix) expected")
-                return self.builder.array_flatten(self.eval_expr(expr.args[0], env))
+                return self.builder.array_flatten(self.eval_expr(expr.args[0], env),
+                                                  wanted=wanted, span=self.span(expr))
             if name in mathlib.BUILTINS:
                 if name == "std::math::pow":
                     if expr.generic is None or len(expr.args) != 1:

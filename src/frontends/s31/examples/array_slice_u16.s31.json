@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "name": "array_slice_u16",
+  "inputs": [{"name": "x", "kind": "u16", "length": 5, "visibility": "private"}],
+  "nodes": [
+    {"name": "tail", "op": "array_slice", "lhs": "x", "index": 1, "length": 4},
+    {"name": "_s31_0", "op": "array_slice", "lhs": "tail", "index": 0, "length": 2}
+  ],
+  "assertions": [],
+  "public_outputs": ["_s31_0"]
+}

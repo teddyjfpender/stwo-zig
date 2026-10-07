@@ -135,10 +135,10 @@ zero-row view for byte and integer operations.
 | `std::math::lt_u32(a,b)` | `u32_lt` | Strict unsigned comparison of two little-endian `[u16; 2]` values; Boolean M31 result. |
 | `std::array::get<K>(array)` | Static reference selection, or `array_get` for a runtime array | Literal `K` lies inside the array; runtime element type is m31 or u16. |
 | `std::array::concat(a,b)` | Static reference concatenation, or `array_concat` for runtime arrays | Both arguments are static groups or both are arrays with the same m31/u16 element type; runtime result length at most 4096. |
-| `std::array::take<K>(group)` | No node; first `K` static references | Static group only; `1 <= K <= length`. |
-| `std::array::drop<K>(group)` | No node; static references after the first `K` | Static group only; `0 <= K < length`. |
-| `std::array::reshape<R>(group)` | No node; row-major grouping into `R` rows | Flat static group only; exact divisibility, 1–16 rows and columns. |
-| `std::array::flatten(rows)` | No node; row-major concatenation of rows | 1–16 rectangular static rows of 1–16 values. |
+| `std::array::take<K>(array)` | Static reference prefix, or runtime `array_slice` with offset 0 and length `K` | Leaves 1..N elements; a full runtime prefix aliases the input. |
+| `std::array::drop<K>(array)` | Static reference suffix, or runtime `array_slice` with offset `K` and length `N-K` | Leaves 1..N elements; dropping zero aliases the input. |
+| `std::array::reshape<R>(array)` | Static row grouping, or `R` checked runtime slices | Exact divisibility and 1–16 rows; static groups also limit columns to 1–16. Runtime rows have shape `[m31; N/R]` or `[u16; N/R]`. |
+| `std::array::flatten(rows)` | Static row-major reference concatenation, or runtime `array_concat` of equal-shaped rows | 1–16 rows; runtime rows must have identical M31 or u16 element types and lengths. |
 | `std::bitcoin::genesis_hash_mainnet()` | `bitcoin_genesis_hash_mainnet` | Zero-input `Bytes32` constant in raw digest byte order; pins an exact checkpoint when asserted. |
 | `std::bitcoin::genesis_block_hash_mainnet()` | `bitcoin_genesis_hash_mainnet` | The same pinned constant, typed as `BlockHash`. |
 
@@ -192,13 +192,19 @@ works through the values, lowering, and package lock.
 The [matrix example](examples/static_matvec.s31) uses static reference
 indexing, concatenation, and `matvec`; its seven arithmetic nodes match a
 [handwritten relation](examples/static_matvec.s31.json). Runtime array views
-have explicit `array_get` and `array_concat` relation nodes so that their
+have explicit `array_get`, `array_concat`, and `array_slice` relation nodes so that their
 semantics remain visible in the normalized source. Raw input positions alias
 their existing constrained wires; shifted packed positions use constrained
 unpack and repack gates. The [private M31](examples/array_views_private.s31)
 and [private u16](examples/array_views_u16.s31) examples cross a four-lane
 packing boundary. Their handwritten relations and native proof acceptance
-are exercised by `python3 acceptance_array_views.py`.
+are exercised by `python3 acceptance_array_views.py`. Runtime
+[`take`/`drop`](examples/array_slice_shifted.s31) and
+[`reshape`/`flatten`](examples/array_matrix_runtime.s31) have corresponding
+handwritten relations and native proof tests. A runtime slice must be nonempty
+and stay within its source; its relation equation is
+`out[j] = source[offset+j]` for every selected lane. Aligned packed words
+borrow existing wires, while shifted words require constrained repacking.
 The [matrix multiplication example](examples/static_matmul.s31) uses static
 reshape, flatten, take, and drop. Those four helpers only group references;
 the `matmul` cells lower to the existing dot-product arithmetic nodes. Its

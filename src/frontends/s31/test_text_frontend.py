@@ -367,7 +367,9 @@ circuit joined(private a: [m31; 3], private b: [m31; 2]) -> public [m31; 1] {
             ("std::math::matmul([[a,b]], [[a]])", "inner matrix dimensions"),
             ("std::math::matmul([[a,b],[a]], [[a],[b]])", "rectangular static rows"),
             ("std::math::matmul([[a,b]], [[a],[c]])", "equally shaped"),
-            ("std::array::take<1>(a)", "requires a static array"),
+            ("std::array::take<0>(a)", "take count"),
+            ("std::array::drop<1>(a)", "drop count"),
+            ("std::array::reshape<2>(a)", "exact divisibility"),
         )
         for expression, message in cases:
             with self.subTest(expression=expression), self.assertRaisesRegex(SourceError, message):
@@ -387,6 +389,23 @@ circuit joined(private a: [m31; 3], private b: [m31; 2]) -> public [m31; 1] {
         self.assertEqual(relation["nodes"], [])
         self.assertEqual(relation["public_outputs"], ["b"])
         self.assertEqual(source_map, {})
+
+    def test_runtime_slicing_and_matrix_views_match_handwritten_relations(self) -> None:
+        for name in ("array_slice_aligned", "array_slice_shifted",
+                     "array_matrix_runtime", "array_slice_u16"):
+            with self.subTest(name=name):
+                source, source_map = compile_file(EXAMPLES / f"{name}.s31")
+                handwritten = json.loads((EXAMPLES / f"{name}.s31.json").read_text())
+                self.assertEqual(source, handwritten)
+                self.assertEqual(set(source_map), {node["name"] for node in source["nodes"]})
+                assigned = json.loads((EXAMPLES / f"{name}.valid.json").read_text())
+                self.assertEqual(evaluate_relation(source, assigned), assigned["public_outputs"])
+
+        full, _ = compile_text("""circuit identity(private x: [m31; 4]) -> public [m31; 4] {
+            std::array::take<4>(std::array::drop<0>(x))
+        }""")
+        self.assertEqual(full["nodes"], [])
+        self.assertEqual(full["public_outputs"], ["x"])
 
     def test_array_and_matrix_shapes_are_checked_before_relation_emission(self) -> None:
         cases = (

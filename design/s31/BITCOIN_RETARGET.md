@@ -3,10 +3,12 @@
 The [first-retarget gadget](../../src/frontends/s31/bitcoin_retarget.zig)
 computes the required mainnet `nBits` for block height 2016 from block
 2015's timestamp. The [standalone native proof test](../../src/frontends/s31/bitcoin_retarget_proof_test.zig)
-proves this relation and publishes the input timestamp. It is **not yet
-called by the recursive fold**. The current fold key still ends at height
-2015. A future caller must bind the input time to the verified child state
-and establish height 2016 before using this gadget as a chain consensus claim.
+proves this relation and publishes the input timestamp. The distinct
+[v4 recursive fold](BITCOIN_FIRST_RETARGET_FOLD.md) now calls the gadget with
+the child-authenticated block-2015 timestamp and selects its bits at height
+2016. The earlier v3 key still ends at height 2015. The v4 proof test has
+verified blocks one and two; a complete chain proof reaching height 2016
+has not yet been generated.
 
 ## The Core calculation
 
@@ -94,15 +96,15 @@ case, 318,726 bytes in 16.351 s for the sign-byte case, and 317,009 bytes in
 preprocessed root `f5869e55a919b2e9f3e706b47f9220cc5f3c6f7e7b3a517bad513b666b7c7519`,
 FRI PoW 26, 70 queries, and fold factor 1. These sequential single-trial
 times are test observations, not comparative benchmarks.
-Neither proof authenticates a 2015-header chain. The input time is a public
-claim in this standalone profile; its test derives the verification root from
-the value-free circuit topology and does not publish a sealed deployment key.
-A height-2016 recursive proof remains to be produced.
+The standalone proofs do not authenticate a 2015-header chain. Their input
+time is a public claim; the standalone test derives the verification root
+from the value-free circuit topology and does not publish a sealed deployment
+key. The v4 recursive fold instead binds the input time to a verified child
+digest. A height-2016 recursive proof remains to be produced.
 
-Integrating this first boundary requires a new fixed-key fold profile that
-selects first-epoch bits at steps 0–2014 and this retarget relation at step
-2015 without changing AIR topology. The current timestamp window already
-authenticates block 2015's time, and genesis time is key-pinned. Later
+The v4 fixed-key profile selects first-epoch bits at steps 0–2014 and this
+retarget relation at step 2015 without changing AIR topology. Its timestamp
+window authenticates block 2015's time, and genesis time is key-pinned. Later
 retargets need additional authenticated state: the first timestamp of each
 2016-block period and the previous period's `nBits`. Checked accumulated
 work, contextual future-time policy, and best-chain selection are separate

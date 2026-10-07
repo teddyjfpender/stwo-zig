@@ -1,10 +1,10 @@
 //! Exact Bitcoin mainnet first-retarget relation for height 2016.
 //!
-//! This is a standalone circuit gadget. The caller must authenticate the
-//! previous block's timestamp and prove that this is height 2016. The
-//! preceding 2015 headers must already have used 0x1d00ffff. These inputs
-//! are available to the genesis-anchored fold, but that fold currently caps
-//! its key at height 2015; this gadget is not yet wired into that profile.
+//! The caller must authenticate the previous block's timestamp and prove
+//! that this is height 2016. The preceding 2015 headers must already have
+//! used 0x1d00ffff. The standalone API checks claimed bits; the expected
+//! bits API allows a fixed-topology fold to select the first retarget only
+//! at the authenticated boundary step.
 const std = @import("std");
 const core = @import("stwo_core");
 const circuit = @import("stwo_circuit_frontend");
@@ -158,6 +158,19 @@ pub fn constrainFirstMainnetRetarget(
     authenticated_last_time: U32,
     claimed_bits: [2]Var,
 ) ![2]Var {
+    const expected = try expectedFirstMainnetRetarget(V, ctx, authenticated_last_time);
+    for (claimed_bits, expected) |claimed, want| try ctx.eq(claimed, want);
+    return expected;
+}
+
+/// Return the exact compact bits without binding a caller's header. A fold
+/// can gate the header equality by a constrained height selector while
+/// retaining this arithmetic in every step's value-free circuit topology.
+pub fn expectedFirstMainnetRetarget(
+    comptime V: type,
+    ctx: *circuit.builder.Context(V),
+    authenticated_last_time: U32,
+) ![2]Var {
     const span = try constrainedTimespan(V, ctx, authenticated_last_time);
     const span_value = valueOf(V, ctx, span);
     const product_value: u256 = genesis_target * @as(u256, span_value);
@@ -238,7 +251,6 @@ pub fn constrainFirstMainnetRetarget(
         try ctx.add(first, try ctx.mul(radix, second)),
         try ctx.add(third, try ctx.mul(radix, exponent)),
     };
-    for (claimed_bits, expected) |claimed, want| try ctx.eq(claimed, want);
     return expected;
 }
 

@@ -1,0 +1,7 @@
+use std@1;
+
+// A whole packed word can be borrowed from the private input unchanged.
+circuit array_slice_aligned(private x: [m31; 8]) -> public [m31; 4] {
+    let tail = std::array::drop<4>(x);
+    std::array::take<4>(tail)
+}

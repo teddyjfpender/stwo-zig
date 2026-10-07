@@ -421,7 +421,7 @@ step 1: verified child fold proof publicly says D0
         public output D1 = BLAKE2s_S31BFD2!(fold_root || 1 || G || R2 || T2)
 ```
 
-This sealed profile starts at the [Bitcoin Core mainnet genesis hash](https://github.com/bitcoin/bitcoin/blob/master/src/kernel/chainparams.cpp)
+This v3 sealed profile starts at the [Bitcoin Core mainnet genesis hash](https://github.com/bitcoin/bitcoin/blob/master/src/kernel/chainparams.cpp)
 and covers only block heights 1 through 2015. Bitcoin Core's
 [`GetNextWorkRequired`](https://github.com/bitcoin/bitcoin/blob/master/src/pow.cpp)
 keeps the previous compact target until the first 2016-block adjustment.
@@ -429,17 +429,16 @@ The fold adds two equality constraints on the already range-checked header
 limbs: serialized bytes 72–73 must be `ff ff` and bytes 74–75 must be
 `00 1d`. The standalone key generator and verifier require the genesis hash
 and cap `max_step` at 2014, because step 0 proves block height 1. Step 2015
-would prove height 2016 and needs a retarget relation in the fold. The
-[first-retarget gadget](../../../../design/s31/BITCOIN_RETARGET.md) now has
-its own natively verified proof, including clamp and compact-encoding
-boundary checks, but the fold does not yet authenticate its timestamp input
-or call it. The key stays capped before this boundary.
+would prove height 2016 and needs a retarget relation in the fold. The v3
+key stays capped before this boundary. A separate v4 key and fold now include
+the [first-retarget gadget](../../../../design/s31/BITCOIN_RETARGET.md).
 These key checks are native policy checks; the exact header `nBits` check is
 inside the proof relation.
 
 The base selector and `u32` predecessor relation are circuit constraints.
-The branch test checks steps `0`, `1`, and `65536`; changing the witnessed
-previous root makes the selected claim unsatisfied. The full candidate
+The branch test checks steps `0`, `1`, `2015`, and `65536`; changing the
+witnessed previous root or newest prior timestamp makes the selected claim
+unsatisfied. The full candidate
 topology is inspectable with:
 
 ```sh
@@ -488,7 +487,7 @@ claim. The proven statement covers linkage, SHA256d, exact first-epoch
 `nBits`, target decoding, PoW, and the eleven-ancestor median-time-past rule
 against the pinned genesis checkpoint. The [constraint walkthrough](../../../../design/s31/BITCOIN_MTP_FOLD.md)
 shows the early-height median and authenticated rolling state. Future-time
-limits, integration of the separately proved first retarget, cumulative work, best-chain selection, and
+limits, a full height-2016 chain proof, cumulative work, best-chain selection, and
 transactions remain outside this proof. The recorded MTP key file has SHA-256
 `18905623123396e8372ac137431c72acaa9197b9d565685d64be4796b93b6667`.
 
@@ -519,6 +518,37 @@ digest, changed current hash or timestamp window, step replay, changed public cl
 bytes, and a step beyond the key limit. A relying party must obtain the
 expected key digest from a trusted channel. This key asserts a bounded
 header-PoW chain, not a full Bitcoin-consensus or best-chain decision.
+
+### First-retarget v4 fold
+
+The [v4 design and measurement](../../../../design/s31/BITCOIN_FIRST_RETARGET_FOLD.md)
+give a separate key with maximum step `2015`, where that step proves block
+height 2016. It retains the same rolling eleven-timestamp state. At the
+boundary, `prior_times[0]` is block 2015's time because the verified child
+statement binds the previous state. A constrained equality-to-2015 selector
+chooses between genesis `nBits` at steps `0–2014` and the exact first
+retarget value at step `2015`. The latter is computed from the authenticated
+time inside the proof. The selector and arithmetic have one AIR shape at
+every step; v4's fold root differs from v3's. A v3 proof therefore cannot be
+replayed as a v4 child.
+
+```sh
+zig build --build-file src/frontends/s31/build.zig test-bitcoin-retarget-fold-key -Doptimize=ReleaseSafe -j2
+zig build --build-file src/frontends/s31/build.zig test-bitcoin-retarget-fold-proof -Doptimize=ReleaseSafe -j2
+zig build --build-file src/frontends/s31/build.zig bitcoin-chain-cli -Doptimize=ReleaseSafe -j2
+python3 src/frontends/s31/acceptance_bitcoin_retarget_chain_cli.py
+```
+
+The native test proves real blocks one and two recursively under one v4 key
+and rejects a forged newest predecessor timestamp while keeping the child
+proof and new header unchanged. The standalone CLI uses `keygen-retarget`,
+`statement-retarget`, and `verify-retarget` for this profile. Its acceptance
+script rejects v3/v4 key confusion, replay, changed timestamps or public
+claims, over-limit keys, and damaged proofs. The test has **not** generated
+the preceding 2015 proof steps needed to prove a real block at height 2016.
+The v4 AIR computes the retarget arithmetic on every early step to keep its
+fixed root; Eq padding doubles from 32,768 to 65,536 rows. Practical full
+chain proving still needs faster SHA work.
 
 ## Dedicated SHA AIR boundary and its measured cost
 

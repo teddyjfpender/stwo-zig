@@ -1,0 +1,8 @@
+{
+  "version": 1,
+  "name": "array_slice_aligned",
+  "inputs": [{"name": "x", "kind": "m31", "length": 8, "visibility": "private"}],
+  "nodes": [{"name": "tail", "op": "array_slice", "lhs": "x", "index": 4, "length": 4}],
+  "assertions": [],
+  "public_outputs": ["tail"]
+}

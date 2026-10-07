@@ -76,7 +76,7 @@ def abi(source: dict, lowering: str) -> dict:
     shapes = {item["name"]: {"kind": item["kind"], "length": item["length"]} for item in source["inputs"]}
     for node in source["nodes"]:
         op = node["op"]
-        if op == "constant":
+        if op in {"constant", "array_slice"}:
             length = node["length"]
         elif op in {"sum_lanes", "u256_le", "u32_lt", "array_get"}:
             length = 1
@@ -91,7 +91,7 @@ def abi(source: dict, lowering: str) -> dict:
             length = 8
         else:
             length = shapes[node["lhs"]]["length"]
-        shapes[node["name"]] = {"kind": (shapes[node["lhs"]]["kind"] if op in {"array_get", "array_concat"} else
+        shapes[node["name"]] = {"kind": (shapes[node["lhs"]]["kind"] if op in {"array_get", "array_concat", "array_slice"} else
                                          "u16" if op in {"u256_add", "u256_add_checked", "u256_sub", "u256_sub_checked", "hash_sha256d_header", "bitcoin_target_mainnet", "bitcoin_prev_hash", "bitcoin_header_bits", "bitcoin_header_time", "bitcoin_genesis_hash_mainnet"} else "m31"), "length": length}
     return {
         "schema": "s31-public-abi-v1",
@@ -630,6 +630,11 @@ def equations(package: Path) -> dict:
             shape = (shapes[node["lhs"]][0], 1)
             field_equations.append(f"{name}[0] - {node['lhs']}[{node['index']}] = 0")
             notes.append("This is a view of an already constrained array position; it introduces no independent witness value.")
+        elif op == "array_slice":
+            shape = (shapes[node["lhs"]][0], node["length"])
+            field_equations.append(
+                f"{name}[j] - {node['lhs']}[{node['index']}+j] = 0, 0 <= j < {node['length']}")
+            notes.append("Aligned packed words can alias source wires; shifted views use constrained coordinate unpacking and repacking.")
         elif op == "array_concat":
             left = shapes[node["lhs"]]
             right = shapes[node["rhs"]]

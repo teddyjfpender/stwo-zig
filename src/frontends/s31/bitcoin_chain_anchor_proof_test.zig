@@ -6,6 +6,7 @@ const cpu = @import("stwo_circuit_cpu_integration");
 const anchor = @import("bitcoin_chain_anchor.zig");
 const fold = @import("bitcoin_chain_fold.zig");
 const chain_verifier = @import("bitcoin_chain_verifier.zig");
+const retarget_verifier = @import("bitcoin_chain_retarget_verifier.zig");
 const native = @import("native_verifier.zig");
 const s31 = @import("stwo_s31_prototype");
 
@@ -36,11 +37,11 @@ fn wordsFromBytes(bytes: [32]u8) [8]u32 {
     return words;
 }
 
-fn proveAnchor(allocator: std.mem.Allocator, bundle: *const cpu.air.Bundle) !AnchorResult {
-    var values = try anchor.build(core.fields.qm31.QM31, allocator, checkpoint, targets);
+fn proveAnchor(allocator: std.mem.Allocator, bundle: *const cpu.air.Bundle, rows: circuit.common.finalize.ComponentSizes) !AnchorResult {
+    var values = try anchor.build(core.fields.qm31.QM31, allocator, checkpoint, rows);
     defer values.deinit();
     try std.testing.expect(try values.isCircuitValid());
-    var topology = try anchor.build(circuit.builder.NoValue, allocator, checkpoint, targets);
+    var topology = try anchor.build(circuit.builder.NoValue, allocator, checkpoint, rows);
     defer topology.deinit();
     var pp = try circuit.common.preprocessed.PreprocessedCircuit.fromBuilderCircuit(allocator, &topology.circuit);
     defer pp.deinit(allocator);
@@ -105,6 +106,7 @@ const FoldResult = struct {
 };
 
 fn proveFoldStep(
+    comptime retarget: bool,
     allocator: std.mem.Allocator,
     bundle: *const cpu.air.Bundle,
     pp: *const circuit.common.preprocessed.PreprocessedCircuit,
@@ -136,7 +138,8 @@ fn proveFoldStep(
     var scratch = std.heap.ArenaAllocator.init(allocator);
     defer scratch.deinit();
     const proof_values = try cpu.verifier_proof.circuitVerifierValues(scratch.allocator(), &child.proof, child.config);
-    var values = try fold.buildCircuit(
+    const build = if (retarget) fold.buildFirstRetargetCircuit else fold.buildCircuit;
+    var values = try build(
         QM31,
         allocator,
         table,
@@ -189,7 +192,7 @@ test "Bitcoin checkpoint anchor proves and verifies under the fold child layout"
     const allocator = std.heap.page_allocator;
     var bundle = try cpu.air.parse(allocator, @embedFile("s31_air_programs"));
     defer bundle.deinit();
-    var base = try proveAnchor(allocator, &bundle);
+    var base = try proveAnchor(allocator, &bundle, targets);
     defer base.captured.deinit();
     std.debug.print("Bitcoin checkpoint anchor: proof_bytes={d} prove_seconds={d:.3} root={s}\n", .{
         base.proof_bytes,                       @as(f64, @floatFromInt(base.prove_ns)) / std.time.ns_per_s,
@@ -201,7 +204,7 @@ test "Bitcoin chain fold proves two changing headers over a verified checkpoint 
     const allocator = std.heap.page_allocator;
     var bundle = try cpu.air.parse(allocator, @embedFile("s31_air_programs"));
     defer bundle.deinit();
-    var base = try proveAnchor(allocator, &bundle);
+    var base = try proveAnchor(allocator, &bundle, targets);
     defer base.captured.deinit();
     std.debug.print("Bitcoin checkpoint anchor: proof_bytes={d} prove_seconds={d:.3} root={s}\n", .{
         base.proof_bytes,                       @as(f64, @floatFromInt(base.prove_ns)) / std.time.ns_per_s,
@@ -239,6 +242,7 @@ test "Bitcoin chain fold proves two changing headers over a verified checkpoint 
     const new_root = [8]u32{ 1230097977, 338045265, 582454319, 1194138423, 159136005, 2049036807, 17165835, 883545160 };
     try std.testing.expectEqualDeep(new_root, hashRoot(headerHash(parsed.value.private_inputs.child)));
     var fold0 = try proveFoldStep(
+        false,
         allocator,
         &bundle,
         &pp,
@@ -287,6 +291,7 @@ test "Bitcoin chain fold proves two changing headers over a verified checkpoint 
     for (&block1_hash_words, 0..) |*word, i| word.* = std.mem.readInt(u16, block1_hash[2 * i ..][0..2], .little);
     const first_times = s31.bitcoin_fold_digest.advanceTimes(s31.bitcoin_fold_digest.initialTimes(), parsed.value.private_inputs.child[34] | (parsed.value.private_inputs.child[35] << 16));
     var fold1 = try proveFoldStep(
+        false,
         allocator,
         &bundle,
         &pp,
@@ -405,4 +410,162 @@ test "Bitcoin chain fold proves two changing headers over a verified checkpoint 
     defer forged.deinit();
     if (try forged.isCircuitValid()) return error.AcceptedForgedPriorBitcoinState;
     std.debug.print("Bitcoin chain fold: forged prior state rejected\n", .{});
+}
+
+test "first-retarget fold profile proves and verifies a genesis-anchored header" {
+    const allocator = std.heap.page_allocator;
+    var bundle = try cpu.air.parse(allocator, @embedFile("s31_air_programs"));
+    defer bundle.deinit();
+    const rows = retarget_verifier.expected_rows.componentSizes();
+    var base = try proveAnchor(allocator, &bundle, rows);
+    defer base.captured.deinit();
+    const material = try retarget_verifier.deriveMaterial(allocator, retarget_verifier.genesis_display_hash);
+    try std.testing.expectEqualDeep(material.checkpoint_root, checkpoint);
+    try std.testing.expectEqualDeep(material.anchor_root, base.root);
+    try std.testing.expect(material.layout.eql(&base.layout));
+    var topology = try fold.firstRetargetTopology(
+        allocator,
+        @embedFile("s31_air_projection"),
+        base.layout,
+        base.pcs,
+        base.root,
+        checkpoint,
+        0,
+    );
+    defer topology.deinit();
+    try circuit.common.finalize.padContext(circuit.builder.NoValue, &topology);
+    var pp = try circuit.common.preprocessed.PreprocessedCircuit.fromBuilderCircuit(allocator, &topology.circuit);
+    defer pp.deinit(allocator);
+    try std.testing.expectEqualDeep(material.fold_root, try pp.preprocessedRoot(allocator, base.pcs.fri_config.log_blowup_factor));
+    var projection = try circuit.air_eval.projection.parse(allocator, @embedFile("s31_air_projection"));
+    defer projection.deinit();
+    var table = try circuit.air_eval.circuit_components.build(allocator, &projection);
+    defer table.deinit();
+    const Fixture = struct { private_inputs: struct { prior_hash: [16]u32, child: [40]u32 } };
+    var parsed = try std.json.parseFromSlice(Fixture, allocator, @embedFile("s31_bitcoin_fixture"), .{ .ignore_unknown_fields = true });
+    defer parsed.deinit();
+    var folded = try proveFoldStep(
+        true,
+        allocator,
+        &bundle,
+        &pp,
+        &table,
+        base.layout,
+        base.pcs,
+        base.root,
+        material.fold_root,
+        material.fold_hash,
+        &base.captured,
+        checkpoint,
+        s31.bitcoin_fold_digest.initialTimes(),
+        parsed.value.private_inputs.prior_hash,
+        parsed.value.private_inputs.child,
+        0,
+    );
+    defer folded.deinit(allocator);
+    const key_json = try retarget_verifier.generateKeyJson(allocator, retarget_verifier.genesis_display_hash, retarget_verifier.first_retarget_last_step);
+    defer allocator.free(key_json);
+    const key = try retarget_verifier.validateKey(allocator, key_json, retarget_verifier.sha256(key_json));
+    const block_hash = headerHash(parsed.value.private_inputs.child);
+    var display = block_hash;
+    std.mem.reverse(u8, &display);
+    const display_hex = std.fmt.bytesToHex(display, .lower);
+    const header_time = parsed.value.private_inputs.child[34] | (parsed.value.private_inputs.child[35] << 16);
+    const next_times = s31.bitcoin_fold_digest.advanceTimes(s31.bitcoin_fold_digest.initialTimes(), header_time);
+    const statement = try retarget_verifier.generateStatementJson(allocator, key, 0, &display_hex, next_times);
+    defer allocator.free(statement);
+    try retarget_verifier.verifyProof(allocator, key, statement, folded.encoded);
+    var changed_time = next_times;
+    changed_time[0] ^= 1;
+    const forged = try retarget_verifier.generateStatementJson(allocator, key, 0, &display_hex, changed_time);
+    defer allocator.free(forged);
+    if (retarget_verifier.verifyProof(allocator, key, forged, folded.encoded)) |_| return error.AcceptedChangedFirstRetargetFoldTime else |_| {}
+    const Block2 = struct { header_hex: []const u8, display_hash: []const u8 };
+    var block2 = try std.json.parseFromSlice(Block2, allocator, @embedFile("s31_bitcoin_block2_fixture"), .{ .ignore_unknown_fields = true });
+    defer block2.deinit();
+    var block2_bytes: [80]u8 = undefined;
+    _ = try std.fmt.hexToBytes(&block2_bytes, block2.value.header_hex);
+    if (!std.mem.eql(u8, block2_bytes[4..36], &block_hash)) return error.InvalidBlockTwoPreviousHash;
+    var block2_words: [40]u32 = undefined;
+    for (&block2_words, 0..) |*word, i| word.* = std.mem.readInt(u16, block2_bytes[2 * i ..][0..2], .little);
+    var block1_words: [16]u32 = undefined;
+    for (&block1_words, 0..) |*word, i| word.* = std.mem.readInt(u16, block_hash[2 * i ..][0..2], .little);
+    const block1_root = hashRoot(block_hash);
+    var folded1 = try proveFoldStep(
+        true,
+        allocator,
+        &bundle,
+        &pp,
+        &table,
+        base.layout,
+        base.pcs,
+        base.root,
+        material.fold_root,
+        material.fold_hash,
+        &folded.captured,
+        block1_root,
+        next_times,
+        block1_words,
+        block2_words,
+        1,
+    );
+    defer folded1.deinit(allocator);
+    const block2_time = block2_words[34] | (block2_words[35] << 16);
+    try std.testing.expect(block2_time > next_times[0] + 1);
+    const second_times = s31.bitcoin_fold_digest.advanceTimes(next_times, block2_time);
+    const second_statement = try retarget_verifier.generateStatementJson(allocator, key, 1, block2.value.display_hash, second_times);
+    defer allocator.free(second_statement);
+    try retarget_verifier.verifyProof(allocator, key, second_statement, folded1.encoded);
+
+    // The block-2 header and child proof are otherwise sound. Altering only
+    // the previous timestamp must break the child's authenticated digest.
+    var old_values: [16]QM31 = undefined;
+    var header_values: [40]QM31 = undefined;
+    var prior_values: [8]QM31 = undefined;
+    var changed_times: [11]QM31 = undefined;
+    for (block1_words, &old_values) |word, *value| value.* = QM31.fromBase(M31.fromCanonical(word));
+    for (block2_words, &header_values) |word, *value| value.* = QM31.fromBase(M31.fromCanonical(word));
+    for (block1_root, &prior_values) |word, *value| value.* = QM31.fromBase(M31.fromCanonical(word));
+    for (next_times, &changed_times) |word, *value| value.* = circuit.builder.ivalue.packU32(QM31, word);
+    changed_times[0] = circuit.builder.ivalue.packU32(QM31, next_times[0] + 1);
+    const config: circuit.statements.circuit_statement.CircuitConfig = .{ .config = base.pcs, .preprocessed_column_log_sizes = base.layout };
+    var scratch = std.heap.ArenaAllocator.init(allocator);
+    defer scratch.deinit();
+    const child_values = try cpu.verifier_proof.circuitVerifierValues(scratch.allocator(), &folded.captured.proof, folded.captured.config);
+    var false_fold = try fold.buildFirstRetargetCircuit(
+        QM31,
+        allocator,
+        &table,
+        &config,
+        base.root,
+        checkpoint,
+        circuit.builder.blake.hashValue(QM31, wordsFromBytes(material.fold_root)),
+        prior_values,
+        changed_times,
+        old_values,
+        header_values,
+        1,
+        &child_values,
+        circuit.stark_verifier.verify.NoStages{},
+    );
+    defer false_fold.deinit();
+    if (try false_fold.isCircuitValid()) return error.AcceptedChangedAuthenticatedRetargetTime;
+    const artifact_dir = "zig-out/s31/bitcoin-first-retarget-two-step";
+    try std.fs.cwd().makePath(artifact_dir);
+    try std.fs.cwd().writeFile(.{ .sub_path = artifact_dir ++ "/verification-key.json", .data = key_json });
+    try std.fs.cwd().writeFile(.{ .sub_path = artifact_dir ++ "/fold0.statement.json", .data = statement });
+    try std.fs.cwd().writeFile(.{ .sub_path = artifact_dir ++ "/fold0.proof", .data = folded.encoded });
+    try std.fs.cwd().writeFile(.{ .sub_path = artifact_dir ++ "/fold1.statement.json", .data = second_statement });
+    try std.fs.cwd().writeFile(.{ .sub_path = artifact_dir ++ "/fold1.proof", .data = folded1.encoded });
+    const digest_line = try std.fmt.allocPrint(allocator, "{s}\n", .{&std.fmt.bytesToHex(retarget_verifier.sha256(key_json), .lower)});
+    defer allocator.free(digest_line);
+    try std.fs.cwd().writeFile(.{ .sub_path = artifact_dir ++ "/verification-key.sha256", .data = digest_line });
+    std.debug.print("Bitcoin first-retarget fold steps 0/1: anchor_bytes={d} proof_bytes={d}/{d} prove_seconds={d:.3}/{d:.3} root={s}\n", .{
+        base.proof_bytes,
+        folded.proof_bytes,
+        folded1.proof_bytes,
+        @as(f64, @floatFromInt(folded.prove_ns)) / std.time.ns_per_s,
+        @as(f64, @floatFromInt(folded1.prove_ns)) / std.time.ns_per_s,
+        &std.fmt.bytesToHex(material.fold_root, .lower),
+    });
 }

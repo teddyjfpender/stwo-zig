@@ -61,9 +61,10 @@ pub fn compileRaw(comptime V: type, allocator: std.mem.Allocator, program: relat
         const lhs: ?Entry = if (node.lhs) |name| values.get(name) orelse return error.UnknownOperand else null;
         const rhs: ?Entry = if (node.rhs) |name| values.get(name) orelse return error.UnknownOperand else null;
         const selector: ?Entry = if (node.selector) |name| values.get(name) orelse return error.UnknownOperand else null;
-        const length: usize = if (node.op == .constant) node.length.? else if (node.op == .array_get or node.op == .sum_lanes or node.op == .u256_le or node.op == .u32_lt) 1 else if (node.op == .array_concat) lhs.?.shape.length + rhs.?.shape.length else if (node.op == .bitcoin_genesis_hash_mainnet) 16 else if (node.op == .hash_blake2s or node.op == .hash_blake2s_leaf or node.op == .hash_blake2s_pair or node.op == .hash_poseidon2_leaf or node.op == .hash_poseidon2_pair) 8 else lhs.?.shape.length;
+        const length: usize = if (node.op == .constant or node.op == .array_slice) node.length.? else if (node.op == .array_get or node.op == .sum_lanes or node.op == .u256_le or node.op == .u32_lt) 1 else if (node.op == .array_concat) lhs.?.shape.length + rhs.?.shape.length else if (node.op == .bitcoin_genesis_hash_mainnet) 16 else if (node.op == .hash_blake2s or node.op == .hash_blake2s_leaf or node.op == .hash_blake2s_pair or node.op == .hash_poseidon2_leaf or node.op == .hash_poseidon2_pair) 8 else lhs.?.shape.length;
         const entry: Entry = switch (node.op) {
             .array_get => try arrayGet(V, &ctx, lhs.?, node.index.?),
+            .array_slice => try arraySlice(V, &ctx, lhs.?, node.index.?, node.length.?),
             .array_concat => try arrayConcat(V, &ctx, lhs.?, rhs.?),
             .constant => .{ .shape = .{ .kind = .m31, .length = length }, .lanes = try circuit.builder.simd.repeat(V, &ctx, M31.fromCanonical(node.constant.?), length) },
             .bitcoin_genesis_hash_mainnet => try mainnetGenesisHash(V, &ctx),
@@ -294,6 +295,7 @@ fn compileWithSpansMode(comptime V: type, allocator: std.mem.Allocator, program:
             },
             .bitcoin_genesis_hash_mainnet => try mainnetGenesisHash(V, &ctx),
             .array_get => try arrayGet(V, &ctx, entries[node.lhs.?], node.index.?),
+            .array_slice => try arraySlice(V, &ctx, entries[node.lhs.?], node.index.?, node.length),
             .array_concat => try arrayConcat(V, &ctx, entries[node.lhs.?], entries[node.rhs.?]),
             .cast_m31 => .{ .shape = .{ .kind = .m31, .length = node.length }, .lanes = entries[node.lhs.?].lanes, .raw = entries[node.lhs.?].raw, .boolean = entries[node.lhs.?].boolean },
             .add => .{ .shape = .{ .kind = .m31, .length = node.length }, .lanes = try circuit.builder.simd.add(V, &ctx, entries[node.lhs.?].lanes, entries[node.rhs.?].lanes) },
@@ -482,6 +484,24 @@ fn arrayGet(comptime V: type, ctx: *circuit.builder.Context(V), entry: Entry, in
     const raw = try ctx.scratch().alloc(Var, 1);
     raw[0] = try arrayLane(V, ctx, entry, index);
     return .{ .shape = .{ .kind = entry.shape.kind, .length = 1 }, .lanes = Simd.fromPacked(raw, 1), .raw = raw };
+}
+
+fn arraySlice(comptime V: type, ctx: *circuit.builder.Context(V), entry: Entry, start: usize, length: usize) !Entry {
+    const raw: ?[]Var = if (entry.raw) |words| words[start..][0..length] else null;
+    if (start % 4 == 0) {
+        const packed_wires = entry.lanes.data[start / 4 ..][0 .. (length + 3) / 4];
+        return .{ .shape = .{ .kind = entry.shape.kind, .length = length }, .lanes = Simd.fromPacked(packed_wires, length), .raw = raw, .boolean = entry.boolean and length == 1 };
+    }
+    // A shifted view cannot borrow QM31 coordinates as a packed word. Unpack
+    // the selected source coordinates and constrain their new packing.
+    const wrappers = try ctx.scratch().alloc(circuit.builder.wrappers.M31Wrapper(Var), length);
+    for (wrappers, 0..) |*wrapped, i| wrapped.* = .newUnsafe(try arrayLane(V, ctx, entry, start + i));
+    return .{
+        .shape = .{ .kind = entry.shape.kind, .length = length },
+        .lanes = try circuit.builder.simd.pack(V, ctx, wrappers),
+        .raw = raw,
+        .boolean = entry.boolean and length == 1,
+    };
 }
 
 fn arrayConcat(comptime V: type, ctx: *circuit.builder.Context(V), lhs: Entry, rhs: Entry) !Entry {
@@ -1081,6 +1101,37 @@ test "array indexing and concatenation preserve packed alignment and constrain s
         try std.testing.expect(!try ctx.isCircuitValid());
         ctx.value_table.items[selected] = original;
         try std.testing.expect(try ctx.isCircuitValid());
+    }
+}
+
+test "runtime slices borrow aligned packed words and constrain shifted words" {
+    const cases = .{
+        .{ "array_slice_aligned", @embedFile("examples/array_slice_aligned.s31.json"), @embedFile("examples/array_slice_aligned.valid.json") },
+        .{ "array_slice_shifted", @embedFile("examples/array_slice_shifted.s31.json"), @embedFile("examples/array_slice_shifted.valid.json") },
+        .{ "array_matrix_runtime", @embedFile("examples/array_matrix_runtime.s31.json"), @embedFile("examples/array_matrix_runtime.valid.json") },
+        .{ "array_slice_u16", @embedFile("examples/array_slice_u16.s31.json"), @embedFile("examples/array_slice_u16.valid.json") },
+    };
+    inline for (cases) |case| {
+        var program = try relation.parseProgram(std.testing.allocator, case[1]);
+        defer program.deinit();
+        var assignment = try relation.parseAssignment(std.testing.allocator, case[2]);
+        defer assignment.deinit();
+        _ = try relation.evaluate(std.testing.allocator, program.value, assignment.value);
+        var maps = Maps{};
+        defer maps.deinit(std.testing.allocator);
+        var ctx = if (std.mem.eql(u8, case[0], "array_slice_u16"))
+            try compileWithSpansMode(QM31, std.testing.allocator, program.value, assignment.value, &maps, false, false, false)
+        else
+            try compileDirectWithSpans(QM31, std.testing.allocator, program.value, assignment.value, &maps, false);
+        defer ctx.deinit();
+        try std.testing.expect(try ctx.isCircuitValid());
+        try std.testing.expect((try ctx.circuit.firstYieldViolation(std.testing.allocator)) == null);
+        const source_span = maps.nodes.items[1];
+        if (std.mem.eql(u8, case[0], "array_slice_shifted") or std.mem.eql(u8, case[0], "array_slice_u16")) {
+            try std.testing.expect(source_span.qm31_end > source_span.qm31_start);
+        } else {
+            try std.testing.expectEqual(source_span.qm31_start, source_span.qm31_end);
+        }
     }
 }
 

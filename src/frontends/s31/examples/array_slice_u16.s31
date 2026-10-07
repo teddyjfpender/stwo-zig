@@ -1,0 +1,7 @@
+use std@1;
+
+// u16 values retain their range constraints across a shifted view.
+circuit array_slice_u16(private x: [u16; 5]) -> public [u16; 2] {
+    let tail = std::array::drop<1>(x);
+    std::array::take<2>(tail)
+}

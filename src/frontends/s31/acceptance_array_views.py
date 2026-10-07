@@ -12,9 +12,13 @@ from text_frontend import compile_file
 
 
 CASES = (
-    ("array_views", "direct-gate", 18),
-    ("array_views_private", "direct-gate", 14),
-    ("array_views_u16", "gate", 65535),
+    ("array_views", "direct-gate", [18]),
+    ("array_views_private", "direct-gate", [14]),
+    ("array_views_u16", "gate", [65535]),
+    ("array_slice_aligned", "direct-gate", [11, 13, 17, 19]),
+    ("array_slice_shifted", "direct-gate", [3, 5, 7, 11]),
+    ("array_matrix_runtime", "direct-gate", [17]),
+    ("array_slice_u16", "gate", [65535, 7]),
 )
 MATCHED_COST = (
     "canonical_ir_sha256", "profile", "chip", "raw", "padded",
@@ -55,7 +59,7 @@ def main() -> None:
             assignment = json.loads(assignment_path.read_text())
             assert relation == handwritten, f"{name}: text and handwritten relations differ"
             output_name = relation["public_outputs"][0]
-            assert assignment["public_outputs"] == {output_name: [expected]}
+            assert assignment["public_outputs"] == {output_name: expected}
             assert evaluate_relation(relation, assignment) == assignment["public_outputs"]
 
             text_package = s31.build(source, work / f"{name}-text", profile)
@@ -65,6 +69,14 @@ def main() -> None:
             mismatch = [field for field in MATCHED_COST
                         if text_report[field] != json_report[field]]
             assert not mismatch, f"{name}: text/JSON circuit cost differs: {mismatch}"
+            spans = {item["name"]: item for item in text_report["source_map"]}
+            slices = [{"name": node["name"],
+                       "qm31_rows": spans[node["name"]]["qm31_end"] - spans[node["name"]]["qm31_start"]}
+                      for node in relation["nodes"] if node["op"] == "array_slice"]
+            if name in {"array_slice_aligned", "array_matrix_runtime"}:
+                assert all(item["qm31_rows"] == 0 for item in slices)
+            if name in {"array_slice_shifted", "array_slice_u16"}:
+                assert slices[0]["qm31_rows"] > 0
 
             statement = {"public_inputs": assignment["public_inputs"],
                          "public_outputs": assignment["public_outputs"]}
@@ -78,7 +90,7 @@ def main() -> None:
             verifier = text_package / "bin" / f"s31-{name}-native-verifier"
             key = text_package / "verification-key.json"
             changed_statement = copy.deepcopy(statement)
-            changed_statement["public_outputs"][output_name][0] = expected - 1
+            changed_statement["public_outputs"][output_name][0] = expected[0] - 1
             bad_statement_path = work / f"{name}-wrong-statement.json"
             s31.write_json(bad_statement_path, changed_statement)
             rejects(lambda: s31.invoke(str(verifier), str(text_proof),
@@ -86,7 +98,7 @@ def main() -> None:
                     f"{name} wrong public claim")
 
             wrong_assignment = copy.deepcopy(assignment)
-            wrong_assignment["public_outputs"][output_name][0] = expected - 1
+            wrong_assignment["public_outputs"][output_name][0] = expected[0] - 1
             bad_assignment_path = work / f"{name}-wrong-assignment.json"
             s31.write_json(bad_assignment_path, wrong_assignment)
             rejects(lambda: evaluate_relation(relation, wrong_assignment),
@@ -99,6 +111,7 @@ def main() -> None:
             reports.append({"name": name, "profile": profile,
                             "canonical_ir_sha256": text_report["canonical_ir_sha256"],
                             "raw": text_report["raw"], "padded": text_report["padded"],
+                            "slice_gate_rows": slices,
                             "text_proof_bytes": text_proof.stat().st_size,
                             "json_proof_bytes": json_proof.stat().st_size,
                             "native_verifier_accepted_both": True,

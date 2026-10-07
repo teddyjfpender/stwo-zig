@@ -2,9 +2,10 @@
 //! child STARK authenticates the previous state; the fresh 80-byte header,
 //! including the exact 0x1d00ffff compact target, is checked directly here.
 //! This module builds the circuit and its witness-free topology. Native proof
-//! Key policy caps the final fold step at 2014 (block height 2015), before
-//! the first retarget. Native proof generation and a sealed key live in the
-//! adjacent verifier and proof-test modules.
+//! The v3 key caps the final fold step at 2014 (block height 2015). The
+//! separate first-retarget topology includes step 2015 and derives its nBits
+//! from the child-authenticated timestamp. Native proof generation and a
+//! sealed v3 key live in the adjacent verifier and proof-test modules.
 const std = @import("std");
 const core = @import("stwo_core");
 const circuit = @import("stwo_circuit_frontend");
@@ -101,6 +102,45 @@ pub fn buildCircuit(
     input: *const circuit.stark_verifier.proof.Proof(V),
     stages: anytype,
 ) !circuit.builder.Context(V) {
+    return buildCircuitMode(V, allocator, table, config, base_root, checkpoint, self_root_value, prior_root_values, prior_time_values, prior_hash_values, header_values, step_value, input, stages, false);
+}
+
+pub fn buildFirstRetargetCircuit(
+    comptime V: type,
+    allocator: std.mem.Allocator,
+    table: *const circuit.air_eval.component_table.Table,
+    config: *const circuit.statements.circuit_statement.CircuitConfig,
+    base_root: [32]u8,
+    checkpoint: [8]u32,
+    self_root_value: Blake.HashValue(V),
+    prior_root_values: [8]V,
+    prior_time_values: [11]V,
+    prior_hash_values: [16]V,
+    header_values: [40]V,
+    step_value: u32,
+    input: *const circuit.stark_verifier.proof.Proof(V),
+    stages: anytype,
+) !circuit.builder.Context(V) {
+    return buildCircuitMode(V, allocator, table, config, base_root, checkpoint, self_root_value, prior_root_values, prior_time_values, prior_hash_values, header_values, step_value, input, stages, true);
+}
+
+fn buildCircuitMode(
+    comptime V: type,
+    allocator: std.mem.Allocator,
+    table: *const circuit.air_eval.component_table.Table,
+    config: *const circuit.statements.circuit_statement.CircuitConfig,
+    base_root: [32]u8,
+    checkpoint: [8]u32,
+    self_root_value: Blake.HashValue(V),
+    prior_root_values: [8]V,
+    prior_time_values: [11]V,
+    prior_hash_values: [16]V,
+    header_values: [40]V,
+    step_value: u32,
+    input: *const circuit.stark_verifier.proof.Proof(V),
+    stages: anytype,
+    comptime first_retarget: bool,
+) !circuit.builder.Context(V) {
     var ctx = try circuit.builder.Context(V).init(allocator, circuit.common.component_list.N_RESERVED);
     errdefer ctx.deinit();
     const claim = try prepareChild(V, &ctx, base_root, checkpoint, self_root_value, prior_root_values, prior_time_values, step_value);
@@ -122,7 +162,11 @@ pub fn buildCircuit(
     try stages.mark(&ctx.circuit, .{ .name = "proof_witness" });
     try circuit.stark_verifier.verify.verify(V, &ctx, &proof_vars, proof_config, &statement, stages);
 
-    const result = try s31.bitcoin_fold_step.constrainGenesisEpochPowLinkStepWithTime(
+    const step_kernel = if (first_retarget)
+        s31.bitcoin_fold_step.constrainFirstRetargetPowLinkStepWithTime
+    else
+        s31.bitcoin_fold_step.constrainGenesisEpochPowLinkStepWithTime;
+    const result = try step_kernel(
         V,
         &ctx,
         prior_hash_values,
@@ -154,6 +198,31 @@ pub fn topology(
     checkpoint: [8]u32,
     step: u32,
 ) !circuit.builder.Context(NoValue) {
+    return topologyMode(allocator, projection_bytes, child_layout, child_pcs, base_root, checkpoint, step, false);
+}
+
+pub fn firstRetargetTopology(
+    allocator: std.mem.Allocator,
+    projection_bytes: []const u8,
+    child_layout: circuit.common.preprocessed.ColumnLayout,
+    child_pcs: core.pcs.config_v2.PcsConfigV2,
+    base_root: [32]u8,
+    checkpoint: [8]u32,
+    step: u32,
+) !circuit.builder.Context(NoValue) {
+    return topologyMode(allocator, projection_bytes, child_layout, child_pcs, base_root, checkpoint, step, true);
+}
+
+fn topologyMode(
+    allocator: std.mem.Allocator,
+    projection_bytes: []const u8,
+    child_layout: circuit.common.preprocessed.ColumnLayout,
+    child_pcs: core.pcs.config_v2.PcsConfigV2,
+    base_root: [32]u8,
+    checkpoint: [8]u32,
+    step: u32,
+    comptime first_retarget: bool,
+) !circuit.builder.Context(NoValue) {
     try recursion_gate.authenticateProjection(projection_bytes);
     var projection = try circuit.air_eval.projection.parse(allocator, projection_bytes);
     defer projection.deinit();
@@ -168,7 +237,8 @@ pub fn topology(
     var scratch = std.heap.ArenaAllocator.init(allocator);
     defer scratch.deinit();
     const empty = try circuit.stark_verifier.proof.emptyProof(scratch.allocator(), proof_config);
-    return buildCircuit(
+    const build = if (first_retarget) buildFirstRetargetCircuit else buildCircuit;
+    return build(
         NoValue,
         allocator,
         &table,
@@ -191,7 +261,7 @@ test "Bitcoin fold chooses a trusted base or the authenticated previous digest" 
     const self_bytes = [_]u8{0x57} ** 32;
     const checkpoint = [8]u32{ 93892305, 397617766, 1762064199, 2128125525, 211345822, 958247097, 595994426, 1074837273 };
     const successor = [8]u32{ 1230097977, 338045265, 582454319, 1194138423, 159136005, 2049036807, 17165835, 883545160 };
-    for ([_]u32{ 0, 1, 65536 }) |step| {
+    for ([_]u32{ 0, 1, 2015, 65536 }) |step| {
         const prior = if (step == 0) checkpoint else successor;
         var values: [8]QM31 = undefined;
         for (prior, &values) |word, *value| value.* = QM31.fromBase(M31.fromCanonical(word));
@@ -227,5 +297,16 @@ test "Bitcoin fold chooses a trusted base or the authenticated previous digest" 
         try std.testing.expect(!try ctx.isCircuitValid());
         ctx.value_table.items[claim.prior_root[0].idx] = original;
         try std.testing.expect(try ctx.isCircuitValid());
+        const authenticated_time = claim.prior_times[0].get();
+        const prior_time_original = ctx.value_table.items[authenticated_time.idx];
+        ctx.value_table.items[authenticated_time.idx] = circuit.builder.ivalue.packU32(QM31, times[0] + 1);
+        try std.testing.expect(!try ctx.isCircuitValid());
+        ctx.value_table.items[authenticated_time.idx] = prior_time_original;
+        try std.testing.expect(try ctx.isCircuitValid());
+        if (step == 2015) {
+            var different_times = times;
+            different_times[0] += 1;
+            try std.testing.expect(!std.meta.eql(expected_output, try s31.bitcoin_fold_digest.statementDigest(self_bytes, step - 1, checkpoint, prior, different_times)));
+        }
     }
 }

@@ -19,7 +19,7 @@ general module loader or user-published package format yet.
 | Namespace | Implemented operations | Backend relation |
 | --- | --- | --- |
 | `std::math` | `neg`, `sub`, `square`, checked `inv`, `div`, static `pow<K>`, static-group `sum`, `dot`, `matvec`, `matmul`, `poly_eval`, fixed-array `sum_lanes`, `dot_lanes`, `add_u256`, `add_u256_checked`, `sub_u256`, `sub_u256_checked`, `le_u256` | M31 arithmetic and constrained packed reduction; `matvec` and `matmul` expand to ordinary dot and add nodes; inversion uses a pointwise product and arithmetic zero assertion per four active lanes, and division reuses the inverse; wide operations use sixteen range-checked digits and Boolean carries/borrows. |
-| `std::array` | Static-reference `get<K>`, `concat`, `take<K>`, `drop<K>`, `reshape<R>`, `flatten`; runtime-array `get<K>`, `concat` | Static forms erase to existing references. Runtime forms have explicit `array_get` and `array_concat` relation nodes. Raw source wires are reused; shifted packed views use constrained unpack/repack gates. |
+| `std::array` | Static-reference and runtime-array `get<K>`, `concat`, `take<K>`, `drop<K>`, `reshape<R>`, `flatten` | Static forms erase to references. Runtime forms use `array_get`, `array_concat`, and `array_slice` relation nodes. Aligned packed source words alias existing wires; shifted views use constrained unpack/repack gates. |
 | `std::field` | `from_u16`, `is_zero`, `select` | Explicit conversion; direct input bits have `b²-b=0`, while computed zero bits use two algebraic constraints. |
 | `std::bytes` | `to_u256_le`, `from_u256_le`, `limbs_m31` | Explicit nominal byte/integer reinterpretation and value-preserving cast of sixteen `u16` limbs. |
 | `std::hash` | Poseidon2 and BLAKE2s reduced leaf/pair hashes; byte-exact SHA256d of `Bytes80` | Existing pinned hash nodes plus a constrained three-block SHA circuit. |
@@ -116,6 +116,22 @@ M31-to-u32 rows. The [acceptance script](../../src/frontends/s31/acceptance_arra
 reproduces the positive and negative proofs. These are program-specific
 costs, not a general view-cost benchmark.
 
+Runtime `take<K>` and `drop<K>` now lower to a checked `array_slice` with
+`out[j] = source[offset+j]`. `reshape<R>` exposes `R` row slices of a
+runtime array; `flatten` concatenates equal-shaped rows. The compiler rejects
+empty or escaping slices before proving. The [aligned](../../src/frontends/s31/examples/array_slice_aligned.s31),
+[shifted](../../src/frontends/s31/examples/array_slice_shifted.s31),
+[matrix](../../src/frontends/s31/examples/array_matrix_runtime.s31), and
+[u16](../../src/frontends/s31/examples/array_slice_u16.s31) programs have
+handwritten normalized relations and independent oracle assignments. A
+focused Zig test confirms that an aligned packed slice adds zero QM31 rows,
+while shifted M31 and u16 slices add constrained packing rows. The
+[library chapter](../../src/frontends/s31/docs/library.md) works through the
+hand calculation and the exact relation equations. Native proof acceptance
+for these new examples is run by `acceptance_array_views.py`; matched cost
+figures should be recorded from that script before treating the operations
+as a released library surface.
+
 The [matrix product example](../../src/frontends/s31/examples/static_matmul.s31)
 multiplies two 2×2 static groups and then takes a weighted sum of all four
 output cells. Its `reshape`, `flatten`, `take`, and `drop` calls emit no
@@ -179,7 +195,7 @@ chip it activates.
 | Work package | Exit gate | Rough effort for one experienced engineer |
 | --- | --- | ---: |
 | General modules and shape-polymorphic pure functions | Extend the current `use std@1` pin to named modules, deterministic external resolution, lockfiles for imported source, and source maps through those calls. | 2–4 weeks |
-| Field/vector core | Runtime fixed-array indexing and concatenation now have backend proof acceptance, with positive and changed-claim native tests. Remaining: broader vector kernels, generalized slicing/reshape inside runtime arrays, and cost regression coverage. | Remaining effort depends on kernel scope. |
+| Field/vector core | Runtime fixed-array indexing, concatenation, slicing, and reshape lower through explicit constrained relation nodes. Remaining: native acceptance and measured cost regression coverage for the new slices, plus broader vector kernels. | Remaining effort depends on kernel scope. |
 | Nonzero inverse and checked division | **Core implemented:** witness generation, `x·inv=1`, zero rejection, direct-gate proof and native-verifier negative cases. Remaining: batch inverse cost comparison and wider random proof corpus. | Remaining effort depends on batching design. |
 | Boolean/range/integer core | Computed bits, comparisons, range constraints and explicit integer/field casts; no host-only assertions or unconstrained hint outputs. | 3–6 weeks |
 | Library release discipline | API/version policy, corpus of positive and negative proofs, cost regression gates, and audit views from source to AIR polynomial. | 2–3 weeks |
@@ -198,8 +214,8 @@ still need the backend efficiency work in the [MVP roadmap](MVP_ROADMAP.md).
 1. Extend the existing `std@1` lock to named modules and imported source.
    The current package key already binds the compiler-owned library source
    digest; a user module needs the same deterministic resolution.
-2. Extend the proved runtime `get<K>` and `concat` views with broader vector
-   kernels and typed runtime slicing/reshape. Retain matched source/JSON
+2. Extend the proved runtime views with broader vector
+   kernels and cost regression gates for typed runtime slicing/reshape. Retain matched source/JSON
    programs, independent oracles, native negative proofs, and measured
    circuit cost for each new constraint shape.
 3. Extend the implemented checked inverse with randomized proof vectors and
@@ -214,7 +230,7 @@ still need the backend efficiency work in the [MVP roadmap](MVP_ROADMAP.md).
    correctness oracle and preserve the generated native verifier for each
    selected profile.
 
-The principal remaining gaps are general runtime slicing and reshape,
-additional vector kernels, constrained witness hints, and general modules.
+The principal remaining gaps are additional vector kernels, native cost
+regression coverage for runtime slicing, constrained witness hints, and general modules.
 The versioned compiler-owned package and matched math examples establish a
 source-to-AIR audit pattern without changing the proof protocol.

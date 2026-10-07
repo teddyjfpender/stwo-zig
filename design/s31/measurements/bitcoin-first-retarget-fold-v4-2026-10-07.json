@@ -1,0 +1,65 @@
+{
+  "schema": "s31-bitcoin-first-retarget-fold-proof-v4",
+  "base_commit": "c0892914c0cd9f49988f3a6a76a77fa6fe38440b",
+  "scope": "A distinct genesis-anchored recursive fold key with an authenticated first-retarget relation at step 2015. Native proofs in this record cover steps 0 and 1 only; no block-2016 chain proof was generated. Timings are one local ReleaseSafe run, include prover-internal work, and exclude setup and native verification. They are not a comparative benchmark.",
+  "commands": {
+    "key_and_topology": "zig build --build-file src/frontends/s31/build.zig test-bitcoin-retarget-fold-key -Doptimize=ReleaseSafe -j2",
+    "native_proof": "zig build --build-file src/frontends/s31/build.zig test-bitcoin-retarget-fold-proof -Doptimize=ReleaseSafe -j2",
+    "cli": "zig build --build-file src/frontends/s31/build.zig bitcoin-chain-cli -Doptimize=ReleaseSafe -j2",
+    "cli_acceptance": "python3 src/frontends/s31/acceptance_bitcoin_retarget_chain_cli.py"
+  },
+  "key": {
+    "sha256": "6abe49fc87e0afa2cbf178e29869d98f5cdde80585765681a8f03fef7a5e8fcc",
+    "anchor_preprocessed_root": "bca794dbdaa0278d5b3124db72cad8a81c933c025c95f1affceae993da1da44f",
+    "fold_preprocessed_root": "567b9fe288f52a6f08857e049921563e945c7330fcdda25e915bb0716d42873f",
+    "fold_circuit_hash": "c19bdd02007edce75fcffa63204ce4fb372045483112b0459bbb1b9feaf044fc",
+    "max_step": 2015,
+    "trace_log_size": 21,
+    "fri": {"pow_bits": 26, "log_blowup_factor": 1, "queries": 70, "fold_step": 4}
+  },
+  "topology": {
+    "v3_raw_under_v3_child_config": {"eq": 32455, "qm31_ops": 1152060, "m31_to_u32": 205456, "triple_xor": 112600, "blake_g": 1126000},
+    "v4_raw_step_2015_under_v4_child_config": {"eq": 33844, "qm31_ops": 1158056, "m31_to_u32": 205659, "triple_xor": 112600, "blake_g": 1126000},
+    "v3_padded": {"eq": 32768, "qm31_ops": 2097152, "m31_to_u32": 262144, "triple_xor": 131072, "blake_g": 2097152},
+    "v4_padded": {"eq": 65536, "qm31_ops": 2097152, "m31_to_u32": 262144, "triple_xor": 131072, "blake_g": 2097152},
+    "step_0_and_step_2015_preprocessed_root_identical": true,
+    "v3_and_v4_fold_roots_distinct": true
+  },
+  "native_proof_observations": {
+    "anchor": {"proof_bytes": 334403},
+    "step_0": {
+      "height": 1,
+      "proof_bytes": 370266,
+      "proof_sha256": "1faa85658761637ed1c500f65b0c889f970bf5f22d0099c4df0952191e16918c",
+      "statement_sha256": "8c49a97b580df35de5b932c84e0e6a0020dfc2e9019636fd320aeec97fbdd996",
+      "prove_seconds": 27.604,
+      "native_verified": true
+    },
+    "step_1": {
+      "height": 2,
+      "proof_bytes": 374501,
+      "proof_sha256": "333a2dedecf371464f5a473b01dfb89fb28c46a29d342277eb5242141608417f",
+      "statement_sha256": "e06f58a9deaa4d242962b48b6da10092df806e589f1dc1df4907ed58c6a6b196",
+      "prove_seconds": 21.427,
+      "native_verified": true
+    }
+  },
+  "adversarial_checks": {
+    "wrong_epoch_nbits_at_steps_2014_and_2015_rejected": true,
+    "changed_mantissa_or_exponent_rejected": true,
+    "changed_child_authenticated_prior_times_0_rejected_by_full_circuit": true,
+    "changed_public_timestamp_rejected": true,
+    "v3_verifier_rejects_v4_key": true,
+    "over_limit_key_rejected": true,
+    "wrong_key_digest_or_replayed_step_or_damaged_proof_rejected": true
+  },
+  "source_sha256": {
+    "bitcoin_chain_retarget_verifier.zig": "0de493ac5721c8f06c963e958c881430a758631ee3626ed93a23065da8719536",
+    "bitcoin_chain_fold.zig": "547c78627fadd959998f9787dac765bb8837994484d3b03c3f9f4e70f52c875f",
+    "bitcoin_fold_step.zig": "6d4c61623da8e4bc8b7a9aa8c14febf2e8bf2c062e5dd802629eec11d9dfaaec",
+    "bitcoin_retarget.zig": "ebcdf349c9e62dbfa44484e2052c136f31f0fc2c22a9b3faa8875069b3e299f2",
+    "bitcoin_chain_cli.zig": "f5599a757ad8db0e2e5736095405deb16d0698b0c838f69013b1a6a376ba6c67",
+    "bitcoin_chain_anchor_proof_test.zig": "6ac947a18d540bf4d076a8cfd36efbe6417d67bc4d823f8aa48f74405278e97c",
+    "acceptance_bitcoin_retarget_chain_cli.py": "0a2e4893a489472e0f823da8a98d9aae55ef60466d5aea5707b21d9baa90c51f"
+  }
+}

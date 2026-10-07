@@ -43,7 +43,7 @@ pub fn applyStep(values: []M31, step: Step) !void {
         },
     }
 }
-pub const Op = enum { constant, cast_m31, add, mul, add_const, mul_const, repeat, hash_blake2s, hash_blake2s_leaf, hash_blake2s_pair, select, hash_poseidon2_leaf, hash_poseidon2_pair, sum_lanes, u256_add, u256_le, u256_add_checked, hash_sha256d_header, bitcoin_target_mainnet, bitcoin_prev_hash, bitcoin_header_bits, bitcoin_genesis_hash_mainnet, bitcoin_header_time, u32_lt, inv, is_zero, u256_sub, u256_sub_checked, array_get, array_concat };
+pub const Op = enum { constant, cast_m31, add, mul, add_const, mul_const, repeat, hash_blake2s, hash_blake2s_leaf, hash_blake2s_pair, select, hash_poseidon2_leaf, hash_poseidon2_pair, sum_lanes, u256_add, u256_le, u256_add_checked, hash_sha256d_header, bitcoin_target_mainnet, bitcoin_prev_hash, bitcoin_header_bits, bitcoin_genesis_hash_mainnet, bitcoin_header_time, u32_lt, inv, is_zero, u256_sub, u256_sub_checked, array_get, array_concat, array_slice };
 pub const mainnet_genesis_hash_raw: [32]u8 = .{ 0x6f, 0xe2, 0x8c, 0x0a, 0xb6, 0xf1, 0xb3, 0x72, 0xc1, 0xa6, 0xa2, 0x46, 0xae, 0x63, 0xf7, 0x4f, 0x93, 0x1e, 0x83, 0x65, 0xe1, 0x5a, 0x08, 0x9c, 0x68, 0xd6, 0x19, 0x00, 0x00, 0x00, 0x00, 0x00 };
 pub const leaf_personalization = [8]u8{ 'S', '3', '1', 'L', 'E', 'A', 'F', '1' };
 pub const pair_personalization = [8]u8{ 'S', '3', '1', 'P', 'A', 'I', 'R', '1' };
@@ -140,7 +140,7 @@ pub const Program = struct {
             const rhs: ?Shape = if (node.rhs) |name| shapes.get(name) orelse return error.UnknownOperand else null;
             const selector: ?Shape = if (node.selector) |name| shapes.get(name) orelse return error.UnknownOperand else null;
             if (node.op != .select and selector != null) return error.InvalidNode;
-            if (node.op != .array_get and node.index != null) return error.InvalidNode;
+            if (node.op != .array_get and node.op != .array_slice and node.index != null) return error.InvalidNode;
             var result: Shape = undefined;
             switch (node.op) {
                 .array_get => {
@@ -155,6 +155,14 @@ pub const Program = struct {
                         node.length != null or node.rounds != null or node.body != null)
                         return error.InvalidNode;
                     result = .{ .kind = lhs.?.kind, .length = lhs.?.length + rhs.?.length };
+                },
+                .array_slice => {
+                    if (lhs == null or rhs != null or node.index == null or node.length == null or
+                        node.length.? == 0 or node.index.? > lhs.?.length or
+                        node.length.? > lhs.?.length - node.index.? or node.constant != null or
+                        node.rounds != null or node.body != null)
+                        return error.InvalidNode;
+                    result = .{ .kind = lhs.?.kind, .length = node.length.? };
                 },
                 .constant => {
                     if (lhs != null or rhs != null or node.constant == null or node.constant.? >= P or node.length == null or node.length.? == 0 or node.length.? > 4096 or node.rounds != null or node.body != null) return error.InvalidNode;
@@ -271,6 +279,7 @@ pub const Program = struct {
             const length: usize = switch (node.op) {
                 .constant => node.length orelse return error.InvalidNode,
                 .array_get => 1,
+                .array_slice => node.length orelse return error.InvalidNode,
                 .array_concat => (shapes.get(node.lhs orelse return error.InvalidNode) orelse return error.UnknownOperand).length +
                     (shapes.get(node.rhs orelse return error.InvalidNode) orelse return error.UnknownOperand).length,
                 .sum_lanes, .u256_le, .u32_lt, .is_zero => 1,
@@ -280,7 +289,7 @@ pub const Program = struct {
                 .hash_blake2s, .hash_blake2s_leaf, .hash_blake2s_pair, .hash_poseidon2_leaf, .hash_poseidon2_pair => 8,
                 else => (shapes.get(node.lhs orelse return error.InvalidNode) orelse return error.UnknownOperand).length,
             };
-            const shape: Shape = .{ .kind = if (node.op == .array_get or node.op == .array_concat)
+            const shape: Shape = .{ .kind = if (node.op == .array_get or node.op == .array_concat or node.op == .array_slice)
                 (shapes.get(node.lhs.?) orelse return error.UnknownOperand).kind
             else if (node.op == .u256_add or node.op == .u256_add_checked or node.op == .u256_sub or node.op == .u256_sub_checked or node.op == .hash_sha256d_header or node.op == .bitcoin_target_mainnet or node.op == .bitcoin_prev_hash or node.op == .bitcoin_header_bits or node.op == .bitcoin_header_time or node.op == .bitcoin_genesis_hash_mainnet) .u16 else .m31, .length = length };
             if (std.mem.eql(u8, node.name, name)) return shape;
@@ -366,7 +375,7 @@ pub fn evaluate(allocator: std.mem.Allocator, program: Program, assignment: Assi
     }
     for (program.inputs) |input| try values.put(allocator, input.name, try inputValues(allocator, assignment, input));
     for (program.nodes) |node| {
-        const length: usize = if (node.op == .constant) node.length.? else if (node.op == .array_get or node.op == .sum_lanes or node.op == .u256_le or node.op == .u32_lt or node.op == .is_zero) 1 else if (node.op == .array_concat) (values.get(node.lhs.?) orelse return error.UnknownOperand).len + (values.get(node.rhs.?) orelse return error.UnknownOperand).len else if (node.op == .hash_sha256d_header or node.op == .bitcoin_target_mainnet or node.op == .bitcoin_prev_hash or node.op == .bitcoin_genesis_hash_mainnet) 16 else if (node.op == .bitcoin_header_bits or node.op == .bitcoin_header_time) 2 else if (node.op == .hash_blake2s or node.op == .hash_blake2s_leaf or node.op == .hash_blake2s_pair or node.op == .hash_poseidon2_leaf or node.op == .hash_poseidon2_pair) 8 else (values.get(node.lhs.?) orelse return error.UnknownOperand).len;
+        const length: usize = if (node.op == .constant or node.op == .array_slice) node.length.? else if (node.op == .array_get or node.op == .sum_lanes or node.op == .u256_le or node.op == .u32_lt or node.op == .is_zero) 1 else if (node.op == .array_concat) (values.get(node.lhs.?) orelse return error.UnknownOperand).len + (values.get(node.rhs.?) orelse return error.UnknownOperand).len else if (node.op == .hash_sha256d_header or node.op == .bitcoin_target_mainnet or node.op == .bitcoin_prev_hash or node.op == .bitcoin_genesis_hash_mainnet) 16 else if (node.op == .bitcoin_header_bits or node.op == .bitcoin_header_time) 2 else if (node.op == .hash_blake2s or node.op == .hash_blake2s_leaf or node.op == .hash_blake2s_pair or node.op == .hash_poseidon2_leaf or node.op == .hash_poseidon2_pair) 8 else (values.get(node.lhs.?) orelse return error.UnknownOperand).len;
         const out = try allocator.alloc(M31, length);
         errdefer allocator.free(out);
         const lhs = if (node.lhs) |name| values.get(name) orelse return error.UnknownOperand else null;
@@ -377,9 +386,11 @@ pub fn evaluate(allocator: std.mem.Allocator, program: Program, assignment: Assi
             continue;
         }
         const selector = if (node.selector) |name| values.get(name) orelse return error.UnknownOperand else null;
-        if (node.op == .array_get or node.op == .array_concat) {
+        if (node.op == .array_get or node.op == .array_concat or node.op == .array_slice) {
             if (node.op == .array_get) {
                 out[0] = lhs.?[node.index.?];
+            } else if (node.op == .array_slice) {
+                @memcpy(out, lhs.?[node.index.?..][0..length]);
             } else {
                 @memcpy(out[0..lhs.?.len], lhs.?);
                 @memcpy(out[lhs.?.len..], rhs.?);
@@ -498,7 +509,7 @@ pub fn evaluate(allocator: std.mem.Allocator, program: Program, assignment: Assi
                 if (bit > 1) return error.InvalidSelector;
                 break :blk if (bit == 0) lhs.?[i] else rhs.?[i];
             },
-            .hash_blake2s, .hash_blake2s_leaf, .hash_blake2s_pair, .hash_poseidon2_leaf, .hash_poseidon2_pair, .u256_add, .u256_le, .u256_add_checked, .u256_sub, .u256_sub_checked, .u32_lt, .hash_sha256d_header, .bitcoin_target_mainnet, .bitcoin_prev_hash, .bitcoin_header_bits, .bitcoin_header_time, .bitcoin_genesis_hash_mainnet, .array_get, .array_concat => unreachable,
+            .hash_blake2s, .hash_blake2s_leaf, .hash_blake2s_pair, .hash_poseidon2_leaf, .hash_poseidon2_pair, .u256_add, .u256_le, .u256_add_checked, .u256_sub, .u256_sub_checked, .u32_lt, .hash_sha256d_header, .bitcoin_target_mainnet, .bitcoin_prev_hash, .bitcoin_header_bits, .bitcoin_header_time, .bitcoin_genesis_hash_mainnet, .array_get, .array_concat, .array_slice => unreachable,
         };
         try values.put(allocator, node.name, out);
     }
@@ -613,6 +624,13 @@ test "malformed relation nodes cannot introduce unconstrained operands or metada
         ,
         // Concatenation cannot silently cast a bounded limb to an M31 word.
         \\{"version":1,"name":"bad","inputs":[{"name":"x","kind":"m31","length":1,"visibility":"public"},{"name":"z","kind":"u16","length":1,"visibility":"public"}],"nodes":[{"name":"y","op":"array_concat","lhs":"x","rhs":"z"}],"assertions":[],"public_outputs":["y"]}
+        ,
+        // A slice must name a nonempty interval inside one source array.
+        \\{"version":1,"name":"bad","inputs":[{"name":"x","kind":"m31","length":4,"visibility":"private"}],"nodes":[{"name":"y","op":"array_slice","lhs":"x","index":2,"length":3}],"assertions":[],"public_outputs":["y"]}
+        ,
+        \\{"version":1,"name":"bad","inputs":[{"name":"x","kind":"m31","length":4,"visibility":"private"}],"nodes":[{"name":"y","op":"array_slice","lhs":"x","index":0,"length":0}],"assertions":[],"public_outputs":["y"]}
+        ,
+        \\{"version":1,"name":"bad","inputs":[{"name":"x","kind":"m31","length":4,"visibility":"private"}],"nodes":[{"name":"y","op":"array_slice","lhs":"x","index":0,"length":1,"rhs":"x"}],"assertions":[],"public_outputs":["y"]}
         ,
     };
     for (malformed) |source| {

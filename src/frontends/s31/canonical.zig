@@ -7,7 +7,7 @@ const core = @import("stwo_core");
 const relation = @import("relation.zig");
 const M31 = core.fields.m31.M31;
 
-pub const Tag = enum { input, constant, cast_m31, add, mul, add_const, mul_const, repeat, hash_blake2s, hash_blake2s_leaf, hash_blake2s_pair, select, hash_poseidon2_leaf, hash_poseidon2_pair, sum_lanes, u256_add, u256_le, u256_add_checked, hash_sha256d_header, bitcoin_target_mainnet, bitcoin_prev_hash, bitcoin_header_bits, bitcoin_genesis_hash_mainnet, bitcoin_header_time, u32_lt, inv, is_zero, u256_sub, u256_sub_checked, array_get, array_concat };
+pub const Tag = enum { input, constant, cast_m31, add, mul, add_const, mul_const, repeat, hash_blake2s, hash_blake2s_leaf, hash_blake2s_pair, select, hash_poseidon2_leaf, hash_poseidon2_pair, sum_lanes, u256_add, u256_le, u256_add_checked, hash_sha256d_header, bitcoin_target_mainnet, bitcoin_prev_hash, bitcoin_header_bits, bitcoin_genesis_hash_mainnet, bitcoin_header_time, u32_lt, inv, is_zero, u256_sub, u256_sub_checked, array_get, array_concat, array_slice };
 pub const Node = struct {
     tag: Tag,
     kind: relation.Kind,
@@ -110,6 +110,7 @@ pub fn build(allocator: std.mem.Allocator, program: relation.Program) !IR {
             .constant => raw.length.?,
             .array_get => 1,
             .array_concat => nodes.items[lhs.?].length + nodes.items[rhs.?].length,
+            .array_slice => raw.length.?,
             .sum_lanes, .u256_le, .u32_lt, .is_zero => 1,
             .hash_sha256d_header, .bitcoin_target_mainnet, .bitcoin_prev_hash, .bitcoin_genesis_hash_mainnet => 16,
             .bitcoin_header_bits, .bitcoin_header_time => 2,
@@ -118,7 +119,7 @@ pub fn build(allocator: std.mem.Allocator, program: relation.Program) !IR {
         };
         var node: Node = .{
             .tag = @enumFromInt(@as(u8, @intFromEnum(raw.op)) + 1),
-            .kind = if (raw.op == .array_get or raw.op == .array_concat)
+            .kind = if (raw.op == .array_get or raw.op == .array_concat or raw.op == .array_slice)
                 nodes.items[lhs.?].kind
             else if (raw.op == .u256_add or raw.op == .u256_add_checked or raw.op == .u256_sub or raw.op == .u256_sub_checked or raw.op == .hash_sha256d_header or raw.op == .bitcoin_target_mainnet or raw.op == .bitcoin_prev_hash or raw.op == .bitcoin_header_bits or raw.op == .bitcoin_header_time or raw.op == .bitcoin_genesis_hash_mainnet) .u16 else .m31,
             .length = length,
@@ -160,7 +161,7 @@ pub fn build(allocator: std.mem.Allocator, program: relation.Program) !IR {
         break;
     };
     var uses_index = false;
-    for (nodes.items) |node| if (node.tag == .array_get or node.tag == .array_concat) {
+    for (nodes.items) |node| if (node.tag == .array_get or node.tag == .array_concat or node.tag == .array_slice) {
         uses_index = true;
         break;
     };

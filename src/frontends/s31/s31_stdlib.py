@@ -233,24 +233,58 @@ class Builder:
         return self.emit("array_concat", Type(lhs.typ.kind, length), wanted=wanted,
                          span=span, lhs=self.realize(lhs).ref, rhs=self.realize(rhs).ref)
 
-    @staticmethod
-    def array_take(group: StaticGroup, count: int) -> StaticGroup:
+    def array_slice(self, value: Value, start: int, length: int, *,
+                    wanted: str | None = None,
+                    span: dict[str, int] | None = None) -> Value:
+        if value.typ.kind not in {"m31", "u16"}:
+            raise TypeErrorS31("runtime slicing requires [m31; N] or [u16; N]")
+        if not 0 <= start < value.typ.length or not 1 <= length <= value.typ.length - start:
+            raise TypeErrorS31("runtime slice must stay inside the array and be nonempty")
+        if start == 0 and length == value.typ.length:
+            return value
+        if value.constant is not None:
+            return self.splat(value.constant, length)
+        return self.emit("array_slice", Type(value.typ.kind, length), wanted=wanted,
+                         span=span, lhs=self.realize(value).ref, index=start, length=length)
+
+    def array_take(self, group: Value | StaticGroup, count: int, *,
+                   wanted: str | None = None,
+                   span: dict[str, int] | None = None) -> Value | StaticGroup:
+        if isinstance(group, Value):
+            if not 1 <= count <= group.typ.length:
+                raise TypeErrorS31("std::array::take count must leave 1..N runtime elements")
+            return self.array_slice(group, 0, count, wanted=wanted, span=span)
         if not isinstance(group, StaticGroup):
-            raise TypeErrorS31("std::array::take requires a static array")
+            raise TypeErrorS31("std::array::take requires a static group or runtime array")
         if not 1 <= count <= len(group.elements):
             raise TypeErrorS31("std::array::take count must leave 1..N static elements")
         return StaticGroup(group.elements[:count])
 
-    @staticmethod
-    def array_drop(group: StaticGroup, count: int) -> StaticGroup:
+    def array_drop(self, group: Value | StaticGroup, count: int, *,
+                   wanted: str | None = None,
+                   span: dict[str, int] | None = None) -> Value | StaticGroup:
+        if isinstance(group, Value):
+            if not 0 <= count < group.typ.length:
+                raise TypeErrorS31("std::array::drop count must leave 1..N runtime elements")
+            return self.array_slice(group, count, group.typ.length - count,
+                                    wanted=wanted, span=span)
         if not isinstance(group, StaticGroup):
-            raise TypeErrorS31("std::array::drop requires a static array")
+            raise TypeErrorS31("std::array::drop requires a static group or runtime array")
         if not 0 <= count < len(group.elements):
             raise TypeErrorS31("std::array::drop count must leave 1..N static elements")
         return StaticGroup(group.elements[count:])
 
-    @staticmethod
-    def array_reshape(group: StaticGroup, rows: int) -> StaticGroup:
+    def array_reshape(self, group: Value | StaticGroup, rows: int, *,
+                      span: dict[str, int] | None = None) -> StaticGroup:
+        if isinstance(group, Value):
+            length = group.typ.length
+            if group.typ.kind not in {"m31", "u16"}:
+                raise TypeErrorS31("std::array::reshape requires an m31 or u16 array")
+            if not 1 <= rows <= 16 or length % rows:
+                raise TypeErrorS31("std::array::reshape requires 1..16 rows with exact divisibility")
+            width = length // rows
+            return StaticGroup(tuple(self.array_slice(group, row * width, width, span=span)
+                                     for row in range(rows)))
         if not isinstance(group, StaticGroup) or not all(isinstance(item, Value) for item in group.elements):
             raise TypeErrorS31("std::array::reshape requires a flat static array of values")
         length = len(group.elements)
@@ -260,11 +294,21 @@ class Builder:
         return StaticGroup(tuple(StaticGroup(group.elements[i:i + columns])
                                  for i in range(0, length, columns)))
 
-    @staticmethod
-    def array_flatten(matrix: StaticGroup) -> StaticGroup:
+    def array_flatten(self, matrix: StaticGroup, *, wanted: str | None = None,
+                      span: dict[str, int] | None = None) -> Value | StaticGroup:
         if not isinstance(matrix, StaticGroup) or not 1 <= len(matrix.elements) <= 16:
             raise TypeErrorS31("std::array::flatten requires 1..16 rectangular static rows")
         rows = matrix.elements
+        if all(isinstance(row, Value) for row in rows):
+            first = rows[0]
+            if first.typ.kind not in {"m31", "u16"} or any(row.typ != first.typ for row in rows):
+                raise TypeErrorS31("std::array::flatten requires equal runtime row shapes")
+            result = first
+            for index, row in enumerate(rows[1:], 1):
+                result = self.array_concat(result, row,
+                                           wanted=wanted if index == len(rows) - 1 else None,
+                                           span=span)
+            return result
         if not isinstance(rows[0], StaticGroup) or not 1 <= len(rows[0].elements) <= 16:
             raise TypeErrorS31("std::array::flatten requires 1..16 rectangular static rows")
         width = len(rows[0].elements)

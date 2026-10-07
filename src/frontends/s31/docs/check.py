@@ -109,6 +109,17 @@ def check_examples() -> None:
     assert evaluate_relation(views_relation, views_assignment) == {"result": [18]}
     assert [node["op"] for node in views_relation["nodes"]] == [
         "array_concat", "array_get", "array_get", "add"]
+    for name, expected in (
+        ("array_slice_aligned", [11, 13, 17, 19]),
+        ("array_slice_shifted", [3, 5, 7, 11]),
+        ("array_matrix_runtime", [17]),
+        ("array_slice_u16", [65535, 7]),
+    ):
+        source = S31 / "examples" / f"{name}.s31"
+        relation, _ = compile_text(source.read_text(), str(source))
+        assert relation == json.loads(source.with_suffix(".s31.json").read_text())
+        assignment = json.loads(source.with_suffix(".valid.json").read_text())
+        assert evaluate_relation(relation, assignment) == {relation["public_outputs"][0]: expected}
     lane_source = text_block_containing(DOCS / "library.md", "circuit lane_stats4")
     lane_relation, _ = compile_text(lane_source, "library.md")
     fixture_relation, _ = compile_text((S31 / "examples/lane_stats4.s31").read_text())
@@ -507,10 +518,7 @@ def check_recursive_examples() -> None:
                for case in bitcoin_fold["cases"])
     current_bitcoin_fold = json.loads((records / "bitcoin-chain-fold-topology-v3-2026-10-07.json").read_text())
     assert current_bitcoin_fold["schema"] == "s31-bitcoin-chain-fold-topology-v3"
-    assert current_bitcoin_fold["source_sha256"] == {
-        name: hashlib.sha256((S31 / name).read_bytes()).hexdigest()
-        for name in current_bitcoin_fold["source_sha256"]
-    }
+    check_historical_source_hashes(current_bitcoin_fold["source_sha256"])
     current_cases = {case["case"]: case for case in current_bitcoin_fold["cases"]}
     assert len(current_cases) == 8
     assert current_cases["candidate-base"]["fixed_point"] is True

@@ -151,6 +151,13 @@ SHA-256-pinned Bitcoin fold key and a step-specific statement; its
 [acceptance script](acceptance_bitcoin_chain_cli.py) checks replay and changed
 claims. The [proof chapter](docs/bitcoin-sha256d.md) gives the commands,
 trust boundary, and measured cost.
+The distinct [first-retarget v4 fold](../../../design/s31/BITCOIN_FIRST_RETARGET_FOLD.md)
+constrains height-2016 nBits from the verified child timestamp and has a
+sealed key capped at step 2015. Its opt-in test proves the first two real
+headers recursively; a height-2016 chain proof has not yet been generated.
+The [`verify-retarget` CLI](bitcoin_chain_cli.zig) and
+[acceptance script](acceptance_bitcoin_retarget_chain_cli.py) check this
+profile separately from the earlier first-epoch key.
 
 The packed SHA AIR has a focused six-call proof test for two SHA256d headers:
 

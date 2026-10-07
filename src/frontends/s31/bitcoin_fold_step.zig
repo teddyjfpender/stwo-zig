@@ -7,6 +7,7 @@ const core = @import("stwo_core");
 const circuit = @import("stwo_circuit_frontend");
 const sha256d = @import("sha256d.zig");
 const bitcoin_target = @import("bitcoin_target.zig");
+const bitcoin_retarget = @import("bitcoin_retarget.zig");
 const poseidon2 = @import("poseidon2.zig");
 
 const M31 = core.fields.m31.M31;
@@ -16,6 +17,8 @@ const NoValue = circuit.builder.NoValue;
 const U32 = circuit.builder.wrappers.U32Wrapper(Var);
 
 pub const StepResult = struct { root: [8]Var, time: U32 };
+const DifficultyMode = enum { unrestricted, genesis_epoch, first_retarget };
+const RetargetContext = struct { last_time: U32, step: U32, step_value: u32 };
 
 fn hint(comptime V: type, value: u32) V {
     return circuit.builder.ivalue.fromQm31(V, QM31.fromBase(M31.fromCanonical(value)));
@@ -57,7 +60,7 @@ pub fn constrainMainnetPowLinkStep(
     header_values: [40]V,
     authenticated_prior_root: [8]Var,
 ) ![8]Var {
-    return (try constrainPowLinkStep(V, ctx, prior_hash_values, header_values, authenticated_prior_root, false)).root;
+    return (try constrainPowLinkStep(V, ctx, prior_hash_values, header_values, authenticated_prior_root, .unrestricted, null)).root;
 }
 
 fn constrainPowLinkStep(
@@ -66,7 +69,8 @@ fn constrainPowLinkStep(
     prior_hash_values: [16]V,
     header_values: [40]V,
     authenticated_prior_root: [8]Var,
-    comptime genesis_epoch: bool,
+    comptime difficulty: DifficultyMode,
+    retarget: ?RetargetContext,
 ) !StepResult {
     var prior_hash: [16]Var = undefined;
     var header: [40]Var = undefined;
@@ -77,7 +81,11 @@ fn constrainPowLinkStep(
     for (computed_prior_root, authenticated_prior_root) |computed, claimed|
         try ctx.eq(computed, claimed);
     for (prior_hash, 0..) |word, i| try ctx.eq(header[i + 2], word);
-    if (genesis_epoch) try constrainGenesisEpochBits(V, ctx, &header);
+    if (difficulty == .genesis_epoch) try constrainGenesisEpochBits(V, ctx, &header);
+    if (difficulty == .first_retarget) {
+        const state = retarget orelse return error.MissingAuthenticatedRetargetState;
+        try constrainFirstRetargetEpochBits(V, ctx, &header, state.last_time, state.step, state.step_value);
+    }
 
     const child_hash = try sha256d.hashHeader(V, ctx, &header);
     const target = try bitcoin_target.mainnetTarget(V, ctx, &header);
@@ -172,6 +180,34 @@ pub fn constrainGenesisEpochBits(comptime V: type, ctx: *circuit.builder.Context
     try ctx.eq(header[37], try ctx.constant(QM31.fromBase(M31.fromCanonical(0x1d00))));
 }
 
+/// The full expected-bit arithmetic is always in the AIR. The constrained
+/// selector is one exactly when the authenticated u32 step equals 2015;
+/// sealed keys for this profile must cap the step there. Thus steps 0–2014
+/// require genesis bits and step 2015 requires the first retarget. The
+/// previous timestamp is the newest entry of the child-authenticated window.
+pub fn constrainFirstRetargetEpochBits(
+    comptime V: type,
+    ctx: *circuit.builder.Context(V),
+    header: []const Var,
+    authenticated_last_time: U32,
+    step: U32,
+    step_value: u32,
+) !void {
+    if (header.len != 40) return error.InvalidHeaderLength;
+    const boundary = try ctx.constant(circuit.builder.ivalue.packU32(QM31, 2015));
+    const difference = try ctx.sub(step.get(), boundary);
+    const selected = try ctx.guessM31(hint(V, @intFromBool(step_value == 2015)));
+    try ctx.eq(try ctx.mul(selected, try ctx.sub(selected, ctx.one())), ctx.zero());
+    try ctx.eq(try ctx.mul(selected, difference), ctx.zero());
+    _ = try ctx.inv(try ctx.add(difference, selected));
+    const expected = try bitcoin_retarget.expectedFirstMainnetRetarget(V, ctx, authenticated_last_time);
+    const genesis: [2]u32 = .{ 0xffff, 0x1d00 };
+    for ([_]Var{ header[36], header[37] }, expected, genesis) |claimed, changed, old| {
+        const old_wire = try ctx.constant(QM31.fromBase(M31.fromCanonical(old)));
+        try ctx.eq(claimed, try ctx.add(old_wire, try ctx.mul(selected, try ctx.sub(changed, old_wire))));
+    }
+}
+
 pub fn constrainGenesisEpochPowLinkStep(
     comptime V: type,
     ctx: *circuit.builder.Context(V),
@@ -179,7 +215,7 @@ pub fn constrainGenesisEpochPowLinkStep(
     header_values: [40]V,
     authenticated_prior_root: [8]Var,
 ) ![8]Var {
-    return (try constrainPowLinkStep(V, ctx, prior_hash_values, header_values, authenticated_prior_root, true)).root;
+    return (try constrainPowLinkStep(V, ctx, prior_hash_values, header_values, authenticated_prior_root, .genesis_epoch, null)).root;
 }
 
 pub fn constrainGenesisEpochPowLinkStepWithTime(
@@ -192,9 +228,82 @@ pub fn constrainGenesisEpochPowLinkStepWithTime(
     step: U32,
     step_value: u32,
 ) !StepResult {
-    const result = try constrainPowLinkStep(V, ctx, prior_hash_values, header_values, authenticated_prior_root, true);
+    const result = try constrainPowLinkStep(V, ctx, prior_hash_values, header_values, authenticated_prior_root, .genesis_epoch, null);
     try constrainMedianTimePast(V, ctx, prior_times, result.time, step, step_value);
     return result;
+}
+
+pub fn constrainFirstRetargetPowLinkStepWithTime(
+    comptime V: type,
+    ctx: *circuit.builder.Context(V),
+    prior_hash_values: [16]V,
+    header_values: [40]V,
+    authenticated_prior_root: [8]Var,
+    prior_times: [11]U32,
+    step: U32,
+    step_value: u32,
+) !StepResult {
+    const result = try constrainPowLinkStep(V, ctx, prior_hash_values, header_values, authenticated_prior_root, .first_retarget, .{
+        .last_time = prior_times[0],
+        .step = step,
+        .step_value = step_value,
+    });
+    try constrainMedianTimePast(V, ctx, prior_times, result.time, step, step_value);
+    return result;
+}
+
+fn testRetargetEpochBits(
+    comptime V: type,
+    allocator: std.mem.Allocator,
+    step_value: u32,
+    last_time: u32,
+    claimed_bits: u32,
+) !circuit.builder.Context(V) {
+    var ctx = try circuit.builder.Context(V).init(allocator, 1);
+    errdefer ctx.deinit();
+    var header = [_]Var{ctx.zero()} ** 40;
+    header[36] = try ctx.guessU16(hint(V, claimed_bits & 0xffff));
+    header[37] = try ctx.guessU16(hint(V, claimed_bits >> 16));
+    const last = try circuit.builder.wrappers.guessU32(V, &ctx, circuit.builder.wrappers.u32Value(V, last_time));
+    const step = try circuit.builder.wrappers.guessU32(V, &ctx, circuit.builder.wrappers.u32Value(V, step_value));
+    try constrainFirstRetargetEpochBits(V, &ctx, &header, last, step, step_value);
+    try ctx.setOutputs(&.{header[36]});
+    try ctx.finalize(false);
+    return ctx;
+}
+
+test "first retarget fold selects exact boundary bits from authenticated time" {
+    const last = bitcoin_retarget.genesis_time + 604810;
+    const changed = bitcoin_retarget.hostFirstRetargetBits(last);
+    for ([_]struct { step: u32, bits: u32, valid: bool }{
+        .{ .step = 0, .bits = 0x1d00ffff, .valid = true },
+        .{ .step = 2014, .bits = 0x1d00ffff, .valid = true },
+        .{ .step = 2014, .bits = changed, .valid = false },
+        .{ .step = 2015, .bits = changed, .valid = true },
+        .{ .step = 2015, .bits = 0x1d00ffff, .valid = false },
+        .{ .step = 2015, .bits = changed ^ 1, .valid = false },
+        .{ .step = 2015, .bits = changed ^ 0x01000000, .valid = false },
+    }) |case| {
+        var ctx = try testRetargetEpochBits(QM31, std.testing.allocator, case.step, last, case.bits);
+        defer ctx.deinit();
+        const actual = try ctx.isCircuitValid();
+        if (actual != case.valid) std.debug.print("first retarget selector mismatch: step={d} bits={x} actual={} expected={}\n", .{ case.step, case.bits, actual, case.valid });
+        try std.testing.expectEqual(case.valid, actual);
+    }
+    var base = try testRetargetEpochBits(QM31, std.testing.allocator, 2014, last, 0x1d00ffff);
+    defer base.deinit();
+    var boundary = try testRetargetEpochBits(QM31, std.testing.allocator, 2015, last, changed);
+    defer boundary.deinit();
+    var topology = try testRetargetEpochBits(NoValue, std.testing.allocator, 0, 0, 0);
+    defer topology.deinit();
+    for ([_]*circuit.builder.Context(QM31){ &base, &boundary }) |values| {
+        try std.testing.expectEqual(values.circuit.n_vars, topology.circuit.n_vars);
+        try std.testing.expectEqualDeep(values.circuit.add.items, topology.circuit.add.items);
+        try std.testing.expectEqualDeep(values.circuit.mul.items, topology.circuit.mul.items);
+        try std.testing.expectEqualDeep(values.circuit.eq.items, topology.circuit.eq.items);
+        try std.testing.expectEqualDeep(values.circuit.m31_to_u32.items, topology.circuit.m31_to_u32.items);
+        try std.testing.expectEqualDeep(values.circuit.output.items, topology.circuit.output.items);
+    }
 }
 
 test "median-time-past uses the available one-to-eleven ancestors and strict order" {

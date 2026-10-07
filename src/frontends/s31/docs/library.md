@@ -64,15 +64,49 @@ nonaligned position from a packed result also uses a constrained unpack.
 The public-output copy gate binds the selected wire to the claimed word;
 `u16` inputs and outputs retain their range checks.
 
-Four more operations work on **static groups only**. `take<K>(group)` keeps
-the first `K` entries (`1 <= K <= length`); `drop<K>(group)` skips `K`
-entries (`0 <= K < length`). Neither can produce an empty group.
-`reshape<R>(flat)` divides a flat group into `R` consecutive rows, and
-`flatten(rows)` joins rectangular rows in row-major order. Each shape
-dimension is 1..16. The flat length must divide by `R` exactly. These
-operations emit no relation nodes: every returned entry remains a reference
-to the same constrained value. They cannot slice or reshape the positions
-inside a runtime `[m31; N]` or `[u16; N]` value.
+`take<K>` and `drop<K>` also accept runtime `[m31; N]` and `[u16; N]`
+values. They emit an `array_slice` relation carrying a checked starting
+offset and a nonzero result length. Taking all `N` values or dropping zero
+aliases the input and emits no relation node. For a proper slice, the
+coordinate rule is `slice[j] = source[offset+j]` for every
+`0 <= j < length`. A four-coordinate aligned slice borrows whole QM31
+wires; a shifted slice unpacks source coordinates and constrains their new
+packing. The source bytes, offset, and length are part of the canonical
+program bound by the generated verification key.
+
+`reshape<R>(flat)` divides a flat static group or runtime array into `R`
+consecutive rows. Static groups limit both dimensions to 1..16 and emit no
+relation nodes. Runtime arrays require 1..16 rows and exact divisibility;
+each row is an `array_slice` of `[m31; N/R]` or `[u16; N/R]`. A runtime
+`flatten(rows)` joins equal-shaped rows with `array_concat`; static
+rectangular groups still flatten by reference alone. Reshape followed by
+flatten is functionally the identity, but the current compiler may still
+lower intermediate row slices and joins. The cost report shows those gates
+when they occur.
+
+For example, the [shifted runtime slice](../examples/array_slice_shifted.s31)
+starts from private `x=[2,3,5,7,11,13,17]`:
+
+~~~s31
+let tail = std::array::drop<1>(x); // [3,5,7,11,13,17]
+std::array::take<4>(tail)          // [3,5,7,11]
+~~~
+
+The [handwritten relation](../examples/array_slice_shifted.s31.json) records
+two slice nodes: `tail[j]=x[1+j]` for six positions, followed by
+`result[j]=tail[j]` for four. In the circuit, the first slice packs the
+coordinates `(3,5,7,11)` into a QM31 wire. Because the source window starts
+at coordinate 1, that word combines coordinates from two original packed
+wires. The unpack and pack gates constrain this combination. The second
+slice borrows that packed word. The native verifier checks the output copy
+against `[3,5,7,11]`; changing the public claim fails. The [aligned
+example](../examples/array_slice_aligned.s31) takes positions 4..7 from an
+eight-lane private array and borrows its second packed word without adding
+slice gates. The [runtime matrix example](../examples/array_matrix_runtime.s31)
+reshapes eight private lanes into two four-lane rows, rejoins them, and
+selects position 6, which is 17 in the sample assignment. The
+[u16 example](../examples/array_slice_u16.s31) preserves the source's
+range constraints while exposing the two-lane slice `[65535,7]`.
 
 ## A fixed matrix by hand
 

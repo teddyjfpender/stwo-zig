@@ -180,6 +180,19 @@ pub fn build(b: *std.Build) void {
     const sha_joint_batch2_tests = b.addRunArtifact(b.addTest(.{ .root_module = sha_joint_batch2_test_root }));
     b.step("test-sha-joint-batch2", "Prove and verify two private Bitcoin headers with one SHA AIR proof")
         .dependOn(&sha_joint_batch2_tests.step);
+    const sha_round_direct_test_root = b.createModule(.{
+        .root_source_file = b.path("sha_round_direct_proof_test.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    sha_round_direct_test_root.addImport("stwo_core", core);
+    sha_round_direct_test_root.addImport("stwo_prover_engine", cpu.import_table.get("stwo_prover_engine") orelse @panic("missing prover engine"));
+    sha_round_direct_test_root.addImport("stwo_circuit_cpu_integration", cpu);
+    sha_round_direct_test_root.addImport("s31_sha_provider", sha_provider);
+    sha_round_direct_test_root.addImport("interop_postcard", sha_postcard);
+    const sha_round_direct_tests = b.addRunArtifact(b.addTest(.{ .root_module = sha_round_direct_test_root }));
+    b.step("test-sha-round-direct", "Prove and natively verify the table-free SHA-256 round AIR")
+        .dependOn(&sha_round_direct_tests.step);
     const retarget_proof_test_root = b.createModule(.{
         .root_source_file = b.path("bitcoin_retarget_proof_test.zig"),
         .target = target,
@@ -212,6 +225,30 @@ pub fn build(b: *std.Build) void {
     }));
     b.step("test-bitcoin-chain-fold-proof", "Prove and natively verify a Bitcoin header update inside a recursive fold")
         .dependOn(&chain_fold_proof_tests.step);
+    const retarget_chain_proof_tests = b.addRunArtifact(b.addTest(.{
+        .root_module = anchor_proof_test_root,
+        .filters = &.{"first-retarget fold profile proves and verifies a genesis-anchored header"},
+    }));
+    b.step("test-bitcoin-retarget-fold-proof", "Prove and natively verify the first-retarget fold profile at step zero")
+        .dependOn(&retarget_chain_proof_tests.step);
+    const retarget_chain_key_root = b.createModule(.{
+        .root_source_file = b.path("bitcoin_chain_retarget_verifier.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    retarget_chain_key_root.addImport("stwo_core", core);
+    retarget_chain_key_root.addImport("stwo_circuit_frontend", circuit);
+    retarget_chain_key_root.addImport("stwo_circuit_cpu_integration", cpu);
+    retarget_chain_key_root.addImport("stwo_s31_prototype", frontend);
+    retarget_chain_key_root.addImport("stwo_cairo_frontend", cpu.import_table.get("stwo_cairo_frontend") orelse @panic("missing Cairo frontend"));
+    retarget_chain_key_root.addImport("interop_postcard", sha_postcard);
+    retarget_chain_key_root.addImport("s31_air_programs", official_air);
+    retarget_chain_key_root.addAnonymousImport("s31_air_projection", .{
+        .root_source_file = .{ .cwd_relative = b.pathFromRoot("../../../vectors/circuit/official/compiled_air_constraints_v1.bin") },
+    });
+    const retarget_chain_key_tests = b.addRunArtifact(b.addTest(.{ .root_module = retarget_chain_key_root }));
+    b.step("test-bitcoin-retarget-fold-key", "Derive and validate the distinct first-retarget recursive fold key")
+        .dependOn(&retarget_chain_key_tests.step);
     const bitcoin_cli_root = b.createModule(.{
         .root_source_file = b.path("bitcoin_chain_cli.zig"),
         .target = target,

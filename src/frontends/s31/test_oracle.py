@@ -21,6 +21,7 @@ class OracleTests(unittest.TestCase):
     def test_repository_arithmetic_examples(self) -> None:
         for name in ("arith4", "mathlib4", "math_polynomial4", "static_matvec", "static_matmul",
                      "array_views", "array_views_private", "array_views_u16",
+                     "array_slice_aligned", "array_slice_shifted", "array_matrix_runtime", "array_slice_u16",
                      "preimage4", "lane_stats4", "affine4_v1"):
             with self.subTest(name=name):
                 relation, assignment = fixture(name)
@@ -29,13 +30,14 @@ class OracleTests(unittest.TestCase):
 
     def test_forgeries_fail_on_every_arithmetic_example(self) -> None:
         for name in ("arith4", "mathlib4", "math_polynomial4", "static_matvec", "static_matmul",
-                     "array_views", "array_views_private", "array_views_u16", "preimage4",
+                     "array_views", "array_views_private", "array_views_u16",
+                     "array_slice_aligned", "array_slice_shifted", "array_matrix_runtime", "array_slice_u16", "preimage4",
                      "lane_stats4", "affine4_v1"):
             with self.subTest(name=name):
                 relation, assignment = fixture(name)
                 wrong = copy.deepcopy(assignment)
                 first = relation["public_outputs"][0]
-                modulus = 1 << 16 if name == "array_views_u16" else P
+                modulus = 1 << 16 if name in {"array_views_u16", "array_slice_u16"} else P
                 wrong["public_outputs"][first][0] = (wrong["public_outputs"][first][0] + 1) % modulus
                 with self.assertRaisesRegex(OracleError, "does not match"):
                     evaluate_relation(relation, wrong)
@@ -94,6 +96,15 @@ class OracleTests(unittest.TestCase):
             evaluate_relation(u16, {"public_inputs": {},
                                     "private_inputs": {"bytes": [7, 65536]},
                                     "public_outputs": {"word": [65536]}})
+
+    def test_array_slice_rejects_zero_length_and_escape(self) -> None:
+        relation, assignment = fixture("array_slice_aligned")
+        for start, length in ((8, 1), (4, 5), (0, 0), (-1, 1), (True, 1)):
+            altered = copy.deepcopy(relation)
+            altered["nodes"][0]["index"] = start
+            altered["nodes"][0]["length"] = length
+            with self.subTest(start=start, length=length), self.assertRaises(OracleError):
+                evaluate_relation(altered, assignment)
 
     def test_randomized_arithmetic_mix(self) -> None:
         rng = random.Random(0x531)

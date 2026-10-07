@@ -1,0 +1,7 @@
+use std@1;
+
+// Moving by one coordinate crosses the QM31 packing boundary.
+circuit array_slice_shifted(private x: [m31; 7]) -> public [m31; 4] {
+    let tail = std::array::drop<1>(x);
+    std::array::take<4>(tail)
+}

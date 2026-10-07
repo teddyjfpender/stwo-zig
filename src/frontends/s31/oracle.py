@@ -26,7 +26,7 @@ _HASH_OPS = frozenset({
     "hash_blake2s", "hash_blake2s_leaf", "hash_blake2s_pair",
     "hash_poseidon2_leaf", "hash_poseidon2_pair",
 })
-_OPS = frozenset({"constant", "cast_m31", "array_get", "array_concat", "add", "mul", "inv", "is_zero", "add_const",
+_OPS = frozenset({"constant", "cast_m31", "array_get", "array_concat", "array_slice", "add", "mul", "inv", "is_zero", "add_const",
                   "mul_const", "sum_lanes", "select", "repeat",
                   "u256_add", "u256_le", "u256_add_checked", "u256_sub", "u256_sub_checked",
                   "hash_sha256d_header", "bitcoin_target_mainnet",
@@ -132,7 +132,7 @@ def _validated_shapes(relation: Mapping[str, Any]) -> tuple[dict[str, tuple[str,
         selector = _operand(node, "selector", shapes)
         if op != "select":
             _absent(node, "selector")
-        if op != "array_get":
+        if op not in {"array_get", "array_slice"}:
             _absent(node, "index")
         if op == "constant":
             _absent(node, "lhs", "rhs", "rounds", "body")
@@ -152,6 +152,15 @@ def _validated_shapes(relation: Mapping[str, Any]) -> tuple[dict[str, tuple[str,
                 raise OracleError(f"{name}: array_get requires an m31 or u16 array")
             _uint(node.get("index"), f"{name}.index", lhs[1])
             shape = (lhs[0], 1)
+        elif op == "array_slice":
+            _absent(node, "rhs", "constant", "rounds", "body")
+            if lhs is None or lhs[0] not in {"m31", "u16"}:
+                raise OracleError(f"{name}: array_slice requires an m31 or u16 array")
+            start = _uint(node.get("index"), f"{name}.index", lhs[1])
+            length = _uint(node.get("length"), f"{name}.length", lhs[1] + 1)
+            if length == 0 or start + length > lhs[1]:
+                raise OracleError(f"{name}: array_slice must be nonempty and inside the source")
+            shape = (lhs[0], length)
         elif op == "array_concat":
             _absent(node, "constant", "length", "rounds", "body")
             if lhs is None or rhs is None or lhs[0] != rhs[0] or lhs[0] not in {"m31", "u16"}:
@@ -314,6 +323,8 @@ def evaluate_relation(relation: Mapping[str, Any], assignment: Mapping[str, Any]
             result = lhs.copy()
         elif op == "array_get":
             result = [lhs[node["index"]]]
+        elif op == "array_slice":
+            result = lhs[node["index"]:node["index"] + node["length"]]
         elif op == "array_concat":
             result = lhs + rhs
         elif op == "add":
