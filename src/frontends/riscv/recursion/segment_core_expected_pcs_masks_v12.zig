@@ -102,7 +102,9 @@ pub const OwnedMasks = struct {
         const point = try core.circle.secureFieldPointFromRandomSeedChecked(
             core.fields.qm31.QM31.fromU32Unchecked(1, 2, 3, 4),
         );
-        const step = core.poly.circle.canonic.CanonicCoset.new(mask_log).step();
+        // `maskPoints` receives `max_log`; its previous-row offset is the
+        // maximal coset step, even when the selected FRI lifting is smaller.
+        const step = core.poly.circle.canonic.CanonicCoset.new(max_log).step();
         const previous = point.sub(.{
             .x = core.fields.qm31.QM31.fromBase(step.x),
             .y = core.fields.qm31.QM31.fromBase(step.y),
