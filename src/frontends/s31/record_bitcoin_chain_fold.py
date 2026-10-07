@@ -45,6 +45,7 @@ def main() -> None:
     assert base["padded"]["qm31_ops"] == base["child_qm31_rows"]
     paths = (
         "bitcoin_chain_anchor.zig", "bitcoin_chain_fold.zig", "bitcoin_fold_step.zig", "bitcoin_fold_digest.zig",
+        "sha256d.zig",
         "inspect_bitcoin_chain_fold.zig",
     )
     record = {

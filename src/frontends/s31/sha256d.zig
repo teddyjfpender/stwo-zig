@@ -112,6 +112,53 @@ fn add(comptime V: type, ctx: *circuit.builder.Context(V), a: Word, b: Word) !Wo
     return .{ .low = low, .high = high, .value = value };
 }
 
+/// One modular sum for a fixed collection of words. The two equations are
+/// integer-sound because each half-word sum is below 2^19, each result half
+/// is range checked, and both carry witnesses are constrained to 0..N-1.
+/// This avoids materializing intermediate 32-bit sums in SHA schedules and
+/// round T1, where those values are never used independently.
+fn addMany(comptime V: type, ctx: *circuit.builder.Context(V), comptime N: usize, words: [N]Word) !Word {
+    comptime std.debug.assert(N >= 3 and N <= 5);
+    var value: u32 = 0;
+    var all_constant = true;
+    var low_sum_value: u32 = 0;
+    var high_sum_value: u32 = 0;
+    for (words) |word| {
+        value +%= word.value;
+        all_constant = all_constant and word.constant;
+        low_sum_value += word.value & 0xffff;
+        high_sum_value += word.value >> 16;
+    }
+    if (all_constant) return constWord(V, ctx, value);
+    const low = (try circuit.builder.wrappers.guessU16(V, ctx, .newUnsafe(hint(V, value & 0xffff)))).get();
+    const high = (try circuit.builder.wrappers.guessU16(V, ctx, .newUnsafe(hint(V, value >> 16)))).get();
+    const low_carry_value = low_sum_value >> 16;
+    const high_carry_value = (high_sum_value + low_carry_value) >> 16;
+    const low_carry = try smallCarry(V, ctx, N, low_carry_value);
+    const high_carry = try smallCarry(V, ctx, N, high_carry_value);
+    const base = try ctx.constant(QM31.fromBase(M31.fromCanonical(1 << 16)));
+    var low_sum = words[0].low;
+    var high_sum = words[0].high;
+    for (words[1..]) |word| {
+        low_sum = try ctx.add(low_sum, word.low);
+        high_sum = try ctx.add(high_sum, word.high);
+    }
+    try ctx.eq(low_sum, try ctx.add(low, try ctx.mul(base, low_carry)));
+    try ctx.eq(try ctx.add(high_sum, low_carry), try ctx.add(high, try ctx.mul(base, high_carry)));
+    return .{ .low = low, .high = high, .value = value };
+}
+
+fn smallCarry(comptime V: type, ctx: *circuit.builder.Context(V), comptime N: usize, value: u32) !Var {
+    const carry = try ctx.guessM31(hint(V, value));
+    var vanishing = carry;
+    for (1..N) |digit| {
+        const fixed = try ctx.constant(QM31.fromBase(M31.fromCanonical(@intCast(digit))));
+        vanishing = try ctx.mul(vanishing, try ctx.sub(carry, fixed));
+    }
+    try ctx.eq(vanishing, ctx.zero());
+    return carry;
+}
+
 fn xorBit(comptime V: type, ctx: *circuit.builder.Context(V), a: Var, b: Var) !Var {
     const ab = try ctx.mul(a, b);
     return ctx.sub(try ctx.add(a, b), try ctx.add(ab, ab));
@@ -171,13 +218,13 @@ fn compress(comptime V: type, ctx: *circuit.builder.Context(V), initial: [8]Word
     for (16..64) |t| {
         const s1 = try sigma(V, ctx, &words[t - 2], .small1);
         const s0 = try sigma(V, ctx, &words[t - 15], .small0);
-        words[t] = try add(V, ctx, try add(V, ctx, try add(V, ctx, s1, words[t - 7]), s0), words[t - 16]);
+        words[t] = try addMany(V, ctx, 4, .{ s1, words[t - 7], s0, words[t - 16] });
     }
     var state = initial;
     for (0..64) |t| {
         const s1 = try sigma(V, ctx, &state[4], .big1);
         const choice = try choose(V, ctx, &state[4], &state[5], &state[6]);
-        const t1 = try add(V, ctx, try add(V, ctx, try add(V, ctx, try add(V, ctx, state[7], s1), choice), try constWord(V, ctx, sha.round_constants[t])), words[t]);
+        const t1 = try addMany(V, ctx, 5, .{ state[7], s1, choice, try constWord(V, ctx, sha.round_constants[t]), words[t] });
         const s0 = try sigma(V, ctx, &state[0], .big0);
         const majority_word = try majority(V, ctx, &state[0], &state[1], &state[2]);
         const t2 = try add(V, ctx, s0, majority_word);
@@ -248,4 +295,40 @@ test "byte-exact double SHA of an eighty-byte header" {
     try ctx.finalize(false);
     try std.testing.expect(try ctx.isCircuitValid());
     try std.testing.expectEqualDeep(expected, actual);
+}
+
+test "multiword SHA addition constrains all carry values and both result halves" {
+    inline for (.{ 4, 5 }) |count| {
+        var ctx = try circuit.builder.Context(QM31).init(std.testing.allocator, 2);
+        defer ctx.deinit();
+        var words: [count]Word = undefined;
+        for (&words) |*word| {
+            const low = (try circuit.builder.wrappers.guessU16(QM31, &ctx, .newUnsafe(hint(QM31, 65535)))).get();
+            const high = (try circuit.builder.wrappers.guessU16(QM31, &ctx, .newUnsafe(hint(QM31, 65535)))).get();
+            word.* = fromInput(QM31, &ctx, low, high);
+        }
+        const result = try addMany(QM31, &ctx, count, words);
+        const expected: u32 = @truncate(@as(u64, count) * 0xffff_ffff);
+        try std.testing.expectEqual(expected, result.value);
+        try std.testing.expectEqual(expected & 0xffff, ctx.get(result.low).toM31Array()[0].toU32());
+        try std.testing.expectEqual(expected >> 16, ctx.get(result.high).toM31Array()[0].toU32());
+        try ctx.setOutputs(&.{ result.low, result.high });
+        try ctx.finalize(true);
+        try std.testing.expectEqual(null, try ctx.circuit.firstYieldViolation(std.testing.allocator));
+        try std.testing.expect(try ctx.isCircuitValid());
+        const original = ctx.value_table.items[result.low.idx];
+        ctx.value_table.items[result.low.idx] = hint(QM31, 0);
+        try std.testing.expect(!try ctx.isCircuitValid());
+        ctx.value_table.items[result.low.idx] = original;
+        try std.testing.expect(try ctx.isCircuitValid());
+    }
+    var ctx = try circuit.builder.Context(QM31).init(std.testing.allocator, 1);
+    defer ctx.deinit();
+    const carry = try smallCarry(QM31, &ctx, 5, 4);
+    try ctx.setOutputs(&.{carry});
+    try ctx.finalize(true);
+    try std.testing.expectEqual(null, try ctx.circuit.firstYieldViolation(std.testing.allocator));
+    try std.testing.expect(try ctx.isCircuitValid());
+    ctx.value_table.items[carry.idx] = hint(QM31, 5);
+    try std.testing.expect(!try ctx.isCircuitValid());
 }

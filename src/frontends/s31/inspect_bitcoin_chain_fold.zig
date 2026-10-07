@@ -18,8 +18,7 @@ pub fn main() !void {
     const checkpoint = [8]u32{ 93892305, 397617766, 1762064199, 2128125525, 211345822, 958247097, 595994426, 1074837273 };
     var expanded = baseline;
     expanded.qm31_ops *= 2;
-    var candidate = expanded;
-    candidate.eq *= 2;
+    const candidate = expanded;
     const candidate_layout = try circuit.common.preprocessed.ColumnLayout.fromComponentSizes(.{
         .eq = candidate.eq,
         .qm31_ops = candidate.qm31_ops,

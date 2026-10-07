@@ -251,12 +251,17 @@ header's previous-hash field to the old hash, constrains byte-exact SHA256d,
 decodes the mainnet target, proves PoW, equates the old Poseidon2 root to an
 authenticated prior-state root, and returns the new root. Its
 [witness-free inspector](../../src/frontends/s31/inspect_bitcoin_fold_step.zig)
-reports 366,721 variables and 363,049 QM31 arithmetic rows for this kernel.
+reports 363,745 variables and 361,801 QM31 arithmetic rows for this kernel.
+The SHA schedule and round sums now use one constrained four- or five-word
+addition each. Two `u16` result limbs and bounded carries replace the
+intermediate 32-bit sums. This cuts the direct step's padded Eq rows from
+8,192 to 4,096 and padded M31-to-u32 rows from 4,096 to 2,048; its padded
+QM31 rows stay at 524,288.
 The recorded Bitcoin sparse-wide claim fold has 259,481 spare QM31 rows before its
 next padding boundary. The complete witness-free
 [`bitcoin_chain_fold.zig`](../../src/frontends/s31/bitcoin_chain_fold.zig)
-candidate now measures 1,151,864 raw QM31 rows, padded to 2,097,152. Eq
-rows also rise to 65,536 padded. With those two child sizes enlarged, all
+candidate now measures 1,150,615 raw QM31 rows, padded to 2,097,152. Eq
+rows fit in 32,768 padded. With the QM31 child size enlarged, all
 five AIR components reproduce the same padded child geometry; the
 preprocessed root is identical at counters `0`, `1`, `65536`, and
 `0xffffffff`. Changing the checkpoint or base-proof root changes that root.
@@ -270,9 +275,9 @@ now proves that anchor and two successive header updates, natively verifies
 each proof, rejects changed public statements at both fold steps, and rejects
 a forged prior state in the full step-one circuit. The
 [two-step proof record](measurements/bitcoin-chain-two-step-proof-v1-2026-10-07.json)
-pins source and fixture hashes. One low-memory run produced 334,403-byte
-anchor, 371,441-byte step-zero, and 377,799-byte step-one proofs. Proving
-took 20.063, 22.234, and 23.799 seconds, respectively. A
+pins source and fixture hashes. One low-memory run produced 329,820-byte
+anchor, 371,197-byte step-zero, and 372,797-byte step-one proofs. Proving
+took 27.073, 21.698, and 21.655 seconds, respectively. A
 matched end-to-end proving benchmark is required before claiming a time win. The
 [inspection record](measurements/bitcoin-direct-fold-step-v1-2026-10-07.json)
 pins the kernel counts; the [composed topology record](measurements/bitcoin-chain-fold-topology-v1-2026-10-07.json)

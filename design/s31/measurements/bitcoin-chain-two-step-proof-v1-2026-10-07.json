@@ -6,31 +6,31 @@
   "native_verification_passed": true,
   "observations": {
     "chain fold step 0": {
-      "preprocessed_root": "75eed42c452a0d11e49966cc5ccb72407369a853b02a9af16bb9837c4392f907",
-      "proof_bytes": 371441,
-      "prove_seconds": 22.234
+      "preprocessed_root": "4d8a9c0b71d42185d41a699aa1571850a80623d2e6e0d70c00c73ec93904bce2",
+      "proof_bytes": 371197,
+      "prove_seconds": 21.698
     },
     "chain fold step 1": {
-      "preprocessed_root": "75eed42c452a0d11e49966cc5ccb72407369a853b02a9af16bb9837c4392f907",
-      "proof_bytes": 377799,
-      "prove_seconds": 23.799
+      "preprocessed_root": "4d8a9c0b71d42185d41a699aa1571850a80623d2e6e0d70c00c73ec93904bce2",
+      "proof_bytes": 372797,
+      "prove_seconds": 21.655
     },
     "checkpoint anchor": {
-      "preprocessed_root": "bca794dbdaa0278d5b3124db72cad8a81c933c025c95f1affceae993da1da44f",
-      "proof_bytes": 334403,
-      "prove_seconds": 20.063
+      "preprocessed_root": "05b924eed15a3c54f42f6c4c92343ceef0b6495acccdc557ab3f594b8d69b093",
+      "proof_bytes": 329820,
+      "prove_seconds": 27.073
     }
   },
   "projection_sha256": "ceea3c293a4fcd3ca8a20ba62f4845732f8725bdf610fe6367c83adcb8be7e09",
   "schema": "s31-bitcoin-chain-two-step-proof-v1",
   "scope": "One local low-memory proving run; no comparative speed or security bound claim.",
-  "sealed_key_sha256": "a81d4321b9873dcfcb8b9b581863bb206e704e26c9a1234a6347587edc24d5d8",
+  "sealed_key_sha256": "bebee383515a3b8bedc79172196697b9da8366ea628a779b6d1a77ebef1e4e08",
   "source_sha256": {
     "bitcoin_chain_anchor.zig": "b7020879754f970fe71e21b3ddec1229f4a8ff80e4507e0800edf29f999d368e",
-    "bitcoin_chain_anchor_proof_test.zig": "c6cd42955607522ff3fd014ad944f45be88de1ab6363428ddc7a505a55a162b4",
+    "bitcoin_chain_anchor_proof_test.zig": "a4d9caba09c7ba63ece870af072e7f85983af43f2b95f8ce7c1d0cbdc5fbc8cb",
     "bitcoin_chain_cli.zig": "0f7097b0d7c0a711a44571923c70279ac3988e2f9d3c747ff7b47e03b06e951b",
     "bitcoin_chain_fold.zig": "27216c21adab342cace459dc990cf60a91a6c9ee8ef214e22aba801a5e0a7c33",
-    "bitcoin_chain_verifier.zig": "c88a81fcb768d0de3e722638f5332c8c615e8963d47e5ce8b0f062e257fe60e8",
+    "bitcoin_chain_verifier.zig": "3443b55561294bce199d27c3317bbd65c64a56f008a483d65f56b8c91dedef5d",
     "bitcoin_fold_digest.zig": "7197ce73c426108b846fc7f5fa4aecfac3b8aed8d0bbd2abb3ed88b871c0cb1f",
     "bitcoin_fold_step.zig": "3e493084a98c6801681566781981e47459f76cd14bd4062a03ada615e4ec35cd",
     "bitcoin_target.zig": "4e479d30b7000025e2d9c1a12280820a0e10c2d32f74cbe559976b405f39e4d5",
@@ -42,9 +42,9 @@
     "poseidon2.zig": "8843429f1d9b6da7a895ccf474d421cad5098e9de1fa6df566b2acb7edc4ad34",
     "recursion_counter.zig": "c21a4d25ca86422663e5c8d90ec64425ddf0f0b5b314233963778df0831ed03d",
     "recursion_gate.zig": "8fa1796e2505a3870375a6653ccc36025a6954ce96d86a6368a50844fc9ee7fc",
-    "sha256d.zig": "3725e7e95603d2537942a0c703b89e290b522fb5f40546deae2bc69f23913898"
+    "sha256d.zig": "64d68cf5e7a74876a593ef8babb5abee545b2d49a25c4ddddbc1c69615ce0350"
   },
   "standalone_key_statement_and_replay_checks_passed": true,
-  "topology_record_sha256": "feab5d5c1750d3bbcfeb63869c725609a4bb7c6934efb0167fecdeb7aadcaa08",
-  "wall_seconds": 101.506
+  "topology_record_sha256": "c912d50fba7a54c0930485bdeb83d9760bdd7426af718b3e16a1498775762a4c",
+  "wall_seconds": 106.887
 }

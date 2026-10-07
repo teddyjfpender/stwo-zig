@@ -35,7 +35,7 @@ pub const Rows = struct {
     }
 };
 pub const expected_rows: Rows = .{
-    .eq = 65536,
+    .eq = 32768,
     .qm31_ops = 2097152,
     .m31_to_u32 = 262144,
     .triple_xor = 131072,

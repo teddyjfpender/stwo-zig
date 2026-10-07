@@ -6,6 +6,7 @@ import json
 from pathlib import Path
 import re
 import subprocess
+import sys
 import time
 
 
@@ -28,7 +29,12 @@ def sha256(path: Path) -> str:
 
 def main() -> None:
     started = time.monotonic()
-    result = subprocess.run(COMMAND, cwd=ROOT, capture_output=True, text=True, check=True)
+    try:
+        result = subprocess.run(COMMAND, cwd=ROOT, capture_output=True, text=True, check=True)
+    except subprocess.CalledProcessError as exc:
+        sys.stderr.write(exc.stdout or "")
+        sys.stderr.write(exc.stderr or "")
+        raise
     wall_seconds = time.monotonic() - started
     observations = {
         match.group(1): {

@@ -85,8 +85,25 @@ a_{hi}+b_{hi}+c_{lo}=r_{hi}+Bc_{hi},
 $$
 
 where each result limb is `u16` and each carry is Boolean. The last carry is
-discarded, giving addition modulo $2^{32}$. The word-level SHA operations
-are assembled from bits: a rotate rewires bit positions;
+discarded, giving addition modulo $2^{32}$.
+
+For a four-word message-schedule sum or five-word round sum, the circuit
+uses one pair of equations instead of materializing each intermediate word:
+
+$$
+\sum_{j=1}^{N}a_{j,lo}=r_{lo}+Bc_{lo},\qquad
+\sum_{j=1}^{N}a_{j,hi}+c_{lo}=r_{hi}+Bc_{hi},\quad N\in\{4,5\}.
+$$
+
+Each carry is constrained by $\prod_{k=0}^{N-1}(c-k)=0$. All limbs are
+range checked as `u16`, so both sides of each equation are below the M31
+modulus as integers. This rules out field-wrap solutions and preserves
+addition modulo $2^{32}$. The final carry is discarded. For five words all
+equal to `0xffffffff`, the output is `0xfffffffb`, the low carry is four,
+and the high carry is four; the circuit test also rejects an out-of-range
+carry and a changed result limb.
+
+The word-level SHA operations are assembled from bits: a rotate rewires bit positions;
 `XOR(x,y)=x+y-2xy`; `Ch(e,f,g)=g+e(f-g)`; and
 `Maj(a,b,c)=ab+c(a\operatorname{XOR}b)`. These identities agree with the
 Boolean truth tables when the inputs are bits. Message schedule words, round
@@ -358,8 +375,10 @@ identical gate lists in the Zig test.
 zig build --build-file src/frontends/s31/build.zig inspect-bitcoin-fold-step -Doptimize=ReleaseSafe -j2
 ```
 
-That inspector reports 366,721 raw variables and 363,049 QM31 arithmetic
-rows for the header-step kernel alone. The recorded Bitcoin claim fold has 259,481
+That inspector reports 363,745 raw variables and 361,801 QM31 arithmetic
+rows for the header-step kernel alone. Its Eq and M31-to-u32 components pad
+to 4,096 and 2,048 rows; the QM31 component still pads to 524,288. The
+recorded Bitcoin claim fold has 259,481
 spare QM31 rows, so adding the kernel is expected to cross one padding
 boundary. This is a circuit cost estimate, not a completed recursive header
 proof or a timed proving comparison. The
@@ -405,10 +424,10 @@ python3 src/frontends/s31/record_bitcoin_chain_fold.py
 ```
 
 The [record](../../../../design/s31/measurements/bitcoin-chain-fold-topology-v1-2026-10-07.json)
-shows 5,956,014 raw variables, 1,151,864 raw QM31 rows, and 2,097,152
+shows 5,953,037 raw variables, 1,150,615 raw QM31 rows, and 2,097,152
 padded QM31 rows with the real [checkpoint anchor circuit](../bitcoin_chain_anchor.zig)
-as the base layout. Eq needs 33,131
-raw rows and pads to 65,536. The candidate child layout reproduces all five
+as the base layout. Eq needs 32,075
+raw rows and pads to 32,768. The candidate child layout reproduces all five
 padded component sizes, with one preprocessed root at steps `0`, `1`,
 `65536`, and `0xffffffff`; changing the checkpoint or base root changes the
 preprocessed root. This establishes a reusable AIR layout. The opt-in test
@@ -432,8 +451,8 @@ full step-one circuit rejects a forged previous state with the valid child
 proof and header unchanged.
 
 The [recorded low-memory run](../../../../design/s31/measurements/bitcoin-chain-two-step-proof-v1-2026-10-07.json)
-used 334,403 bytes and 20.063 seconds for the anchor, 371,441 bytes and
-22.234 seconds for fold step zero, and 377,799 bytes and 23.799 seconds for
+used 329,820 bytes and 27.073 seconds for the anchor, 371,197 bytes and
+21.698 seconds for fold step zero, and 372,797 bytes and 21.655 seconds for
 fold step one. These are one-run measurements, so they do not establish a
 speedup. The proven statement covers linkage, SHA256d, target
 decoding, and PoW for these headers against the trusted checkpoint; it does
@@ -452,7 +471,7 @@ cryptographic analysis of safe recursive depth. For the recorded fixture:
 ```sh
 src/frontends/s31/zig-out/bin/s31-bitcoin-chain verify \
   zig-out/s31/bitcoin-chain-two-step/verification-key.json \
-  a81d4321b9873dcfcb8b9b581863bb206e704e26c9a1234a6347587edc24d5d8 \
+  bebee383515a3b8bedc79172196697b9da8366ea628a779b6d1a77ebef1e4e08 \
   zig-out/s31/bitcoin-chain-two-step/fold1.statement.json \
   zig-out/s31/bitcoin-chain-two-step/fold1.proof
 ```

@@ -3,19 +3,19 @@
   "direct_step": {
     "padded": {
       "blake_g": 16,
-      "eq": 8192,
-      "m31_to_u32": 4096,
+      "eq": 4096,
+      "m31_to_u32": 2048,
       "qm31_ops": 524288,
       "triple_xor": 16
     },
     "raw": {
       "blake_g": 0,
-      "eq": 4781,
-      "m31_to_u32": 3672,
-      "qm31_ops": 363049,
+      "eq": 3725,
+      "m31_to_u32": 1944,
+      "qm31_ops": 361801,
       "triple_xor": 0
     },
-    "raw_vars": 366721,
+    "raw_vars": 363745,
     "schema": "s31-bitcoin-fold-step-inspection-v1"
   },
   "existing_bitcoin_claim_fold_reference": {
@@ -27,8 +27,9 @@
   },
   "inspector_sha256": "3ddddd7dbe0628dc40e106688a1f51059d93cc1ed6e62bc1c869ff5a1f916076",
   "interpretation": "Kernel-only witness-free cost. Additive estimate is not a composed fold topology or timed proof.",
-  "naive_additive_qm31_ops": 1152144,
+  "naive_additive_qm31_ops": 1150896,
   "next_power_of_two_qm31_rows": 2097152,
   "schema": "s31-bitcoin-direct-fold-step-cost-v1",
+  "sha256d_sha256": "64d68cf5e7a74876a593ef8babb5abee545b2d49a25c4ddddbc1c69615ce0350",
   "source_sha256": "3e493084a98c6801681566781981e47459f76cd14bd4062a03ada615e4ec35cd"
 }

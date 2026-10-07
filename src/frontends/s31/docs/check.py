@@ -449,6 +449,13 @@ def check_recursive_examples() -> None:
     assert all(f"{size:,}" in wide_doc for size in
                bitcoin["proof_bytes_leaf_first_second_fold0_fold1_fold2"][3:])
 
+    direct_step = json.loads((records / "bitcoin-direct-fold-step-v1-2026-10-07.json").read_text())
+    assert direct_step["sha256d_sha256"] == hashlib.sha256((S31 / "sha256d.zig").read_bytes()).hexdigest()
+    assert direct_step["source_sha256"] == hashlib.sha256((S31 / "bitcoin_fold_step.zig").read_bytes()).hexdigest()
+    assert direct_step["naive_additive_qm31_ops"] == (
+        direct_step["existing_bitcoin_claim_fold_reference"]["qm31_ops"]
+        + direct_step["direct_step"]["raw"]["qm31_ops"]
+    )
     bitcoin_fold = json.loads((records / "bitcoin-chain-fold-topology-v1-2026-10-07.json").read_text())
     assert bitcoin_fold["schema"] == "s31-bitcoin-chain-fold-topology-v1"
     assert bitcoin_fold["projection_sha256"] == hashlib.sha256(
@@ -463,7 +470,7 @@ def check_recursive_examples() -> None:
     base_fold = fold_cases["candidate-base"]
     assert len(fold_cases) == 8
     assert base_fold["fixed_point"] is True
-    assert base_fold["raw"]["qm31_ops"] == 1151864
+    assert base_fold["raw"]["qm31_ops"] == 1150615
     assert base_fold["padded"] == bitcoin_fold["candidate_padded_rows"]
     assert base_fold["preprocessed_root"] == bitcoin_fold["candidate_preprocessed_root"]
     assert base_fold["anchor_root"] == bitcoin_fold["anchor_preprocessed_root"]
@@ -474,6 +481,10 @@ def check_recursive_examples() -> None:
     assert all(fold_cases[name]["preprocessed_root"] != base_fold["preprocessed_root"]
                for name in ("changed-checkpoint", "changed-base-root"))
     bitcoin_doc = (DOCS / "bitcoin-sha256d.md").read_text()
+    assert all(f"{value:,}" in bitcoin_doc for value in (
+        direct_step["direct_step"]["raw_vars"],
+        direct_step["direct_step"]["raw"]["qm31_ops"],
+    ))
     assert all(f"{value:,}" in bitcoin_doc for value in
                (base_fold["raw_vars"], base_fold["raw"]["qm31_ops"],
                 base_fold["padded"]["qm31_ops"], base_fold["padded"]["eq"]))
@@ -500,7 +511,7 @@ def check_recursive_examples() -> None:
     assert all(observations[name]["preprocessed_root"] == bitcoin_fold["candidate_preprocessed_root"]
                for name in ("chain fold step 0", "chain fold step 1"))
     assert [observations[name]["proof_bytes"] for name in
-            ("checkpoint anchor", "chain fold step 0", "chain fold step 1")] == [334403, 371441, 377799]
+            ("checkpoint anchor", "chain fold step 0", "chain fold step 1")] == [329820, 371197, 372797]
     assert all(f"{item['proof_bytes']:,}" in bitcoin_doc and
                f"{item['prove_seconds']:.3f}" in bitcoin_doc for item in observations.values())
     block2 = json.loads((S31 / "examples/bitcoin_block2_header.valid.json").read_text())
