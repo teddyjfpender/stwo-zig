@@ -1,10 +1,12 @@
 # S31 SHA256d chip integration contract
 
-Status: SHA witness planning, a pinned SHA-side component profile, and caller
-equations are implemented. A private circuit-to-chip SHA proof is **not yet
-implemented**. Bitcoin proofs still use `sha256d.zig` in the generic circuit.
-The existing six-call SHA STARK uses public boundary rows and is not a proof of
-a private S31 header.
+Status: a one-header private circuit-plus-SHA proof has now been generated and
+natively verified with the committed caller AIR and both lookup closures.
+Its current matched cost is recorded below; it is slower than the generic
+circuit. Existing
+Bitcoin fold proofs still use `sha256d.zig` in the generic circuit. The
+earlier six-call SHA STARK uses public boundary rows and is not a proof of a
+private S31 header.
 
 ## The statement and the minimum private boundary
 
@@ -61,10 +63,80 @@ byte-constrained SHA words. Tests intentionally replace `7 + 256×3` with
 wire multiset no longer closes. The range tables and every lookup sum are
 therefore mandatory parts of the verifier, not optional witness checks.
 
-## One-proof construction required for promotion
+## The committed caller AIR, by hand
 
-The first joined profile should use one Fiat–Shamir transcript, one base/main
-commitment sequence, one interaction commitment, and one PCS/FRI proof for:
+[`sha_caller_air.zig`](../../src/frontends/s31/sha_caller_air.zig) places one
+header in a 16-row circle trace, the minimum size supported by the current
+component. Every honest row repeats the same 440 M31 values: 56 circuit `u16`
+limbs plus `3 × (8 state + 16 block + 8 output) × 4 = 384` SHA byte
+coordinates. Those are **main trace columns**, committed before the Gate and
+SHA lookup challenges are sampled. The verifier never reads the private
+header from a public input.
+
+At every row, the AIR evaluates all 264 equations from
+`sha_caller_equations.zig` over the committed columns. For example, if the
+first two serialized bytes are `0x07` and `0x03`, the first circuit limb must
+be `7 + 256 × 3 = 775`. The SHA input tuple for the first big-endian word
+holds these as `byte3 = 7` and `byte2 = 3`; the AIR checks
+`limb0 − byte3 − 256 × byte2 = 0`. At a verifier opening, the **same**
+polynomial is evaluated over QM31. The other equations tie the remaining
+header and digest limbs, the initial states, the two inter-call links, every
+padding byte, and both bit lengths.
+
+The caller makes 152 signed lookup uses per header:
+
+| Bus | Caller use per header | Matching use elsewhere |
+| --- | ---: | --- |
+| Circuit Gate | 56 positive `(Gate,address,limb,0,0,0)` tuples | 56 negative uses at verifier-fixed addresses in circuit preprocessing |
+| SHA `recursion_wire` | 72 positive input tuples: three calls × 24 words | SHA source/schedule/round/feed-forward consume them |
+| SHA `recursion_wire` | 24 negative output tuples: three calls × 8 words | SHA source/schedule/round/feed-forward emit them |
+
+Each tuple has a denominator `d = Σ alpha^i × tuple[i] − z`. The caller uses
+**separate transcript-drawn** `(z, alpha)` pairs for Gate and SHA wires. It
+contributes `(+1/16)/d` or `(−1/16)/d` on each of its 16 rows. Repeating a
+tuple across all rows therefore contributes exactly `+1/d` or `−1/d`, which
+cancels the matching circuit or SHA use. Two independent LogUp chains keep
+the Gate and SHA claims separate. Pairing two uses per interaction batch gives
+28 Gate batches and 48 SHA batches, represented by `76 × 4 = 304` M31
+interaction columns. The component imposes 76 LogUp recurrence equations in
+addition to the 264 caller equations, for **340 constraints** in all. The
+largest expression has degree three, from a running sum times two affine
+tuple denominators.
+
+The security dependency is exact: a relying party must pin the 56 distinct
+Gate addresses, call IDs, component shape, source and AIR identities, and
+preprocessed root before commitments. The circuit AIR must prove one
+producer for each Gate value; the packed SHA AIR and its bitwise/range tables
+must prove that every joined wire byte is a byte and that each compression is
+correct. The common verifier must enforce **both** Gate and SHA lookup
+closures and verify all AIR constraints and FRI openings. The prover rejects
+a zero lookup denominator; soundness at verification uses the usual
+Fiat–Shamir random-challenge bound against denominator zeros and compressed
+tuple collisions. The caller equations or a host SHA computation alone do not
+establish the hash.
+
+For the current Bitcoin PoW profile, the public statement is exactly eight
+M31 words: the Poseidon leaf commitment to the 32-byte SHA256d digest. The
+native verifier rejects any other output count. Its verification key is
+derived from the value-free compiled topology **before proving**, including
+the 56 Gate addresses and the root of the canonical fixed circuit, SHA, and
+table columns. The verifier also hashes and parses the pinned official circuit
+AIR bundle and checks the sparse-wide fixed-column layout against the sealed
+profile. A proof's own metadata is never authority for that key.
+
+The one-header roster includes the `bitwise` and `range_check_8_8` tables.
+Its four fixed SHA AIR builders emit no `range_check_8_8_4` or
+`range_check_20` requests: source rows range-check each input byte pair;
+arithmetic `word()` range-checks produced byte pairs; bitwise operations
+request the bitwise table. Relation domains are fixed when each AIR definition
+is built and checked against its semantic digest, so a private header cannot
+select a different lookup table. The full RISC-V SHA memory-caller profile
+still retains the larger table roster it needs.
+
+## One-proof construction and admission
+
+The joined profile uses one Fiat–Shamir transcript, one base/main commitment
+sequence, one interaction commitment, and one PCS/FRI proof for:
 
 1. The S31 circuit AIR, with one additional authenticated Gate producer use
    at each of the 56 fixed private limb addresses.
@@ -75,22 +147,50 @@ commitment sequence, one interaction commitment, and one PCS/FRI proof for:
    range lookup tables. Their signed `recursion_wire` sums must cancel the
    caller's sums. Every table relation must also close.
 
-The verifier must reconstruct fixed call IDs, wire IDs, component order,
+The verifier reconstructs fixed call IDs, wire IDs, component order,
 semantic digests, row logs, table identities, challenge order, and the
 fixed Gate addresses from a sealed key **before the first witness
-commitment**. It must check Gate, SHA-wire, and table sums separately. The
-existing `direct_arithmetic` private bridge proves this pattern for eight
+commitment**. It checks the Gate sum separately from the aggregate SHA-wire
+and table sum. The table relations have independent transcript challenges,
+so a nonzero relation imbalance can cancel another only with the usual
+random-challenge failure probability. The existing `direct_arithmetic`
+private bridge proves this pattern for eight
 repeated-step endpoints in one proof, but it is fixed to that chip and its
 direct-M31 circuit profile. The SHA caller has 56 Gate limbs and 96 word
-tuples and belongs initially to a new proof profile. The Bitcoin fold uses
-the sparse-wide circuit and additionally needs its bridge generalized to
-that profile. RISC-V SHA currently uses per-relation challenge elements,
-whereas the S31 circuit uses one Gate challenge pair; the joined proof must
-define and authenticate their complete draw schedule.
+tuples in a separate sparse-wide profile. Bitcoin fold adoption still needs
+the dedicated SHA path wired into that fold's proof API. RISC-V SHA uses
+per-relation challenge elements, whereas the S31 circuit uses one Gate
+challenge pair; the joined proof authenticates their complete draw schedule.
 
 No prover-side equality check, matching host SHA computation, separate SHA
 proof, or public-boundary row substitutes for those commitments and lookup
-closures. Performance comparison becomes meaningful only after the same
-private-header statement is proved and natively verified in both the generic
-circuit and the joined chip profile, with setup, witness, proving, PoW,
-verification, proof bytes, and memory recorded separately.
+closures.
+
+## Matched local cost
+
+The [machine-readable measurement](measurements/bitcoin-sha-joint-v1-2026-10-07.json)
+uses the genesis 80-byte private header, the same normalized PoW program,
+assignment, and eight-word public Poseidon root in both paths. Both use
+26-bit FRI proof of work, blowup log 1, 70 queries, and fold step 1. The
+generic run uses `sparse-wide-gate`; the joined run uses the circuit, three
+packed SHA compression calls, committed caller, and two live lookup tables
+in **one** STARK proof. Both native verifiers accepted the honest proof and
+rejected a changed public root. The joined verifier's key was independently
+derived from value-free topology before proving.
+
+| Three-run local median | Generic circuit | Joined SHA chip |
+| --- | ---: | ---: |
+| Internal proving time | 378 ms | 2,567 ms |
+| Proving time excluding FRI PoW | 154 ms, also excludes interaction PoW | 689 ms, includes interaction PoW |
+| Proof bytes | 338,282 | 721,880 |
+
+The joined profile is currently about **4.5× slower outside FRI PoW** and
+its proof is about **2.13× larger**. The joined proof's final STARK stage
+took 2,245 ms in the last run, of which 1,886 ms was transcript-dependent
+PoW; composition evaluation took 111 ms and FRI quotient construction
+took 133 ms. The chip saves generic SHA circuit operations, but the
+log-18 bitwise table and its openings still impose a larger proof and
+more non-PoW work. These are one-header local measurements, not a
+throughput or recursive-light-client result. Generic verifier timings
+were measured in separate processes; joined verifier timings were measured
+in process, so the two verifier numbers are not directly comparable.

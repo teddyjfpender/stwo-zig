@@ -55,6 +55,7 @@ pub const Circuit = struct {
     columns: [N_COLUMNS]pp.Column,
     first_permutation_row: usize,
     n_outputs: usize,
+    sha_boundary: ?sparse.ShaBoundary = null,
 
     pub fn deinit(self: *Circuit, allocator: std.mem.Allocator) void {
         for (self.columns) |column| allocator.free(column.values);
@@ -65,7 +66,19 @@ pub const Circuit = struct {
         return fromCircuit(allocator, .fromBuilder(source));
     }
 
+    pub fn fromBuilderCircuitWithShaBoundary(allocator: std.mem.Allocator, source: *const builder.Circuit, boundary: sparse.ShaBoundary) !Circuit {
+        return fromCircuitWithShaBoundary(allocator, .fromBuilder(source), boundary);
+    }
+
     pub fn fromCircuit(allocator: std.mem.Allocator, source: pp.CircuitView) !Circuit {
+        return fromCircuitOptionalBoundary(allocator, source, null);
+    }
+
+    pub fn fromCircuitWithShaBoundary(allocator: std.mem.Allocator, source: pp.CircuitView, boundary: sparse.ShaBoundary) !Circuit {
+        return fromCircuitOptionalBoundary(allocator, source, boundary);
+    }
+
+    fn fromCircuitOptionalBoundary(allocator: std.mem.Allocator, source: pp.CircuitView, boundary: ?sparse.ShaBoundary) !Circuit {
         try source.validate();
         if (source.output.len == 0 or source.triple_xor.len != 0 or source.blake_g_gate.len != 0 or
             source.eq.len < 16 or !std.math.isPowerOfTwo(source.eq.len)) return error.UnsupportedSparseWideCircuit;
@@ -76,6 +89,10 @@ pub const Circuit = struct {
         const uses = try source.computeUses(allocator);
         defer allocator.free(uses);
         uses[0] += @intCast(source.permutationRows());
+        if (boundary) |sha| {
+            try sha.validate(source);
+            for (sha.addresses) |address| uses[address] += 1;
+        }
 
         const eq_in0 = try allocator.alloc(M31, source.eq.len);
         errdefer allocator.free(eq_in0);
@@ -102,6 +119,7 @@ pub const Circuit = struct {
             .columns = columns,
             .first_permutation_row = old.first_permutation_row,
             .n_outputs = old.n_outputs,
+            .sha_boundary = boundary,
         };
         const q_out = result.mutableColumn("qm31_ops_out_address") orelse unreachable;
         const q_mults = result.mutableColumn("qm31_ops_mults") orelse unreachable;
@@ -153,6 +171,7 @@ pub const Circuit = struct {
         std.debug.assert(at == sparse.N_COLUMNS);
         out.first_permutation_row = self.first_permutation_row;
         out.n_outputs = self.n_outputs;
+        out.sha_boundary = self.sha_boundary;
         return out; // Borrowed columns: never call `deinit` on this view.
     }
 

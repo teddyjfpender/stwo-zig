@@ -1,0 +1,61 @@
+{
+  "schema": "s31-bitcoin-sha-joint-v1",
+  "date": "2026-10-07",
+  "machine": "local Apple Silicon arm64 macOS; Zig 0.15.2; Python 3.14.6",
+  "statement": {
+    "source": "src/frontends/s31/examples/bitcoin_header_pow.s31",
+    "normalized_program": "src/frontends/s31/examples/bitcoin_header_pow.s31.json",
+    "canonical_program_sha256": "5aa1c6ad4a0eaeddff2369be17297593c3a058504edc3717db6af630760d77f9",
+    "assignment": "src/frontends/s31/examples/bitcoin_header_pow.valid.json",
+    "private_witness": "Bitcoin mainnet genesis header, 80 serialized bytes",
+    "public_poseidon2_root_m31": [93892305, 397617766, 1762064199, 2128125525, 211345822, 958247097, 595994426, 1074837273],
+    "description": "SHA256d of the private header, mainnet proof-of-work bound, and public Poseidon2 digest root. Both profiles use the same normalized program and assignment."
+  },
+  "security_configuration": {
+    "fri_pow_bits": 26,
+    "fri_log_last_layer_degree_bound": 0,
+    "fri_log_blowup_factor": 1,
+    "fri_queries": 70,
+    "fri_fold_step": 1,
+    "circuit_interaction_pow_bits": 20
+  },
+  "generic_sparse_wide_gate": {
+    "command": "python3 s31.py trial examples/bitcoin_header_pow.s31 examples/bitcoin_header_pow.valid.json --lowering sparse-wide-gate --out zig-out/s31/bitcoin-pow-generic-matched; repeat with the resulting package path",
+    "profile": "sparse-wide-v5",
+    "native_verifier_accepted_all": true,
+    "changed_public_root_rejected_all": true,
+    "proof_bytes": 338282,
+    "proof_sha256": "812d04106bc37923717d6457bcefc36efcef9e36838bf543b09ae2dfcfe2d511",
+    "runs": [
+      {"internal_prove_ms": 405.733, "fri_pow_ms": 233.564, "interaction_pow_ms": 3.637, "excluding_both_pow_ms": 168.532, "cli_wall_prove_ms": 869.999625, "cli_wall_verify_ms": 425.677},
+      {"internal_prove_ms": 369.574, "fri_pow_ms": 214.725, "interaction_pow_ms": 2.266, "excluding_both_pow_ms": 152.583, "cli_wall_prove_ms": 429.490875, "cli_wall_verify_ms": 50.692208},
+      {"internal_prove_ms": 378.174, "fri_pow_ms": 222.463, "interaction_pow_ms": 2.085, "excluding_both_pow_ms": 153.626, "cli_wall_prove_ms": 430.684625, "cli_wall_verify_ms": 42.500584}
+    ],
+    "median_internal_prove_ms": 378.174,
+    "median_excluding_both_pow_ms": 153.626,
+    "raw_rows": {"eq": 3701, "qm31_ops": 355634, "m31_to_u32": 1936},
+    "padded_rows": {"eq": 4096, "qm31_ops": 524288, "m31_to_u32": 2048}
+  },
+  "joined_sparse_wide_sha_chip": {
+    "command": "zig build --build-file src/frontends/s31/build.zig test-sha-joint -Doptimize=ReleaseSafe",
+    "components": 11,
+    "claimed_sums": 12,
+    "lookup_tables": ["bitwise", "range_check_8_8"],
+    "fixed_main_interaction_columns": [57, 739, 780],
+    "nonzero_lookup_table_rows": {"bitwise": 9508, "range_check_8_8": 9933},
+    "proof_bytes": 721880,
+    "proof_sha256": "5771f2e241540865634af48503e8b391ae3a75a30f4cab9f1c53add8bf5a11dd",
+    "native_verifier_accepted_all": true,
+    "independently_derived_verification_key": true,
+    "adversarial_key_public_output_layout_air_proof_and_boundary_tests_passed": true,
+    "runs": [
+      {"prove_ms": 2567, "fri_pow_ms": 1874, "excluding_fri_pow_ms": 693, "in_process_verify_ms": 103},
+      {"prove_ms": 2551, "fri_pow_ms": 1864, "excluding_fri_pow_ms": 687, "in_process_verify_ms": 103},
+      {"prove_ms": 2575, "fri_pow_ms": 1886, "excluding_fri_pow_ms": 689, "in_process_verify_ms": 102}
+    ],
+    "median_prove_ms": 2567,
+    "median_excluding_fri_pow_ms": 689,
+    "last_run_stage_ms": {"setup": 5, "fixed_commit": 99, "main_witness": 2, "main_commit": 33, "interaction_witness": 148, "interaction_commit": 41, "component_bind": 0, "stark_prove": 2245, "stark_fri_pow": 1886, "composition_evaluation": 110.66, "fri_quotient_build_and_commit": 133.29}
+  },
+  "interpretation": "The joined SHA chip is currently about 4.5 times slower excluding FRI proof-of-work (689 ms versus 153.626 ms) and its proof is about 2.13 times larger. Joined excluding-PoW still includes its unmeasured small interaction grind, while generic excludes both grinds. Proof-of-work is transcript dependent; use the non-PoW and stage numbers to guide optimization. The generic CLI times include process startup whereas joined verification was measured in process, so those verifier times are not a direct comparison. This is a one-header matched local trial, not throughput, recursion, or a light client."
+}

@@ -533,10 +533,7 @@ def check_recursive_examples() -> None:
         (ROOT / "vectors/circuit/official/circuit_air.air_programs_v1.bin").read_bytes()
     ).hexdigest()
     assert two_step["projection_sha256"] == bitcoin_fold["projection_sha256"]
-    assert two_step["source_sha256"] == {
-        name: hashlib.sha256((S31 / name).read_bytes()).hexdigest()
-        for name in two_step["source_sha256"]
-    }
+    check_historical_source_hashes(two_step["source_sha256"])
     assert two_step["native_verification_passed"] is True
     assert two_step["changed_public_statement_rejected_at_both_fold_steps"] is True
     assert two_step["forged_prior_state_rejected_by_full_circuit"] is True

@@ -12,6 +12,33 @@ pub const N_COLUMNS: usize = preprocessed.QM31_OPS_COLUMN_IDS.len +
     preprocessed.M31_TO_U32_COLUMN_IDS.len + 1;
 pub const active_component_indices = [_]usize{ 1, 3, 10 };
 
+/// Fixed circuit Gate addresses for one private 80-byte header and its
+/// 32-byte SHA256d digest. The first 40 are little-endian u16 header limbs;
+/// the final 16 are little-endian u16 digest limbs. The caller AIR consumes
+/// exactly one extra Gate yield at every address.
+pub const ShaBoundary = struct {
+    addresses: [56]u32,
+
+    pub fn validate(self: ShaBoundary, source: preprocessed.CircuitView) !void {
+        for (self.addresses, 0..) |address, index| {
+            if (address <= 2 or address >= source.n_vars or address >= core.fields.m31.Modulus)
+                return error.InvalidShaPrivateBoundary;
+            if (std.mem.indexOfScalar(u32, source.output, address) != null)
+                return error.PublicShaPrivateBoundary;
+            for (self.addresses[0..index]) |earlier|
+                if (earlier == address) return error.DuplicateShaPrivateBoundary;
+            var producers: u32 = 0;
+            inline for (.{ source.add, source.sub, source.mul, source.pointwise_mul }) |gates|
+                for (gates) |gate| {
+                    producers += @intFromBool(gate.out == address);
+                };
+            for (source.m31_to_u32) |gate| producers += @intFromBool(gate.out == address);
+            for (source.permutation_outputs) |out| producers += @intFromBool(out == address);
+            if (producers != 1) return error.InvalidShaBoundaryProducer;
+        }
+    }
+};
+
 pub const Layout = struct {
     entries: [N_COLUMNS]preprocessed.LayoutEntry,
 
@@ -54,6 +81,7 @@ pub const Circuit = struct {
     columns: [N_COLUMNS]preprocessed.Column,
     first_permutation_row: usize,
     n_outputs: usize,
+    sha_boundary: ?ShaBoundary = null,
 
     pub fn deinit(self: *Circuit, allocator: std.mem.Allocator) void {
         for (self.columns) |column| allocator.free(column.values);
@@ -64,7 +92,19 @@ pub const Circuit = struct {
         return fromCircuit(allocator, .fromBuilder(source));
     }
 
+    pub fn fromBuilderCircuitWithShaBoundary(allocator: std.mem.Allocator, source: *const builder_circuit.Circuit, boundary: ShaBoundary) !Circuit {
+        return fromCircuitWithShaBoundary(allocator, .fromBuilder(source), boundary);
+    }
+
     pub fn fromCircuit(allocator: std.mem.Allocator, source: preprocessed.CircuitView) !Circuit {
+        return fromCircuitOptionalBoundary(allocator, source, null);
+    }
+
+    pub fn fromCircuitWithShaBoundary(allocator: std.mem.Allocator, source: preprocessed.CircuitView, boundary: ShaBoundary) !Circuit {
+        return fromCircuitOptionalBoundary(allocator, source, boundary);
+    }
+
+    fn fromCircuitOptionalBoundary(allocator: std.mem.Allocator, source: preprocessed.CircuitView, boundary: ?ShaBoundary) !Circuit {
         try source.validate();
         if (source.output.len == 0 or source.eq.len != 0 or
             source.triple_xor.len != 0 or source.blake_g_gate.len != 0)
@@ -77,6 +117,10 @@ pub const Circuit = struct {
         defer allocator.free(multiplicities);
         if (multiplicities.len == 0) return error.InvalidSparseTraceShape;
         multiplicities[0] += @intCast(source.permutationRows());
+        if (boundary) |sha| {
+            try sha.validate(source);
+            for (sha.addresses) |address| multiplicities[address] += 1;
+        }
 
         var columns: [N_COLUMNS]preprocessed.Column = undefined;
         var count: usize = 0;
@@ -147,6 +191,7 @@ pub const Circuit = struct {
             .columns = columns,
             .first_permutation_row = first_permutation_row,
             .n_outputs = source.output.len - 1,
+            .sha_boundary = boundary,
         };
     }
 

@@ -120,8 +120,10 @@ inside a changing-header fold. The
 per header and tests their byte-level linkage. Its 96-word private caller
 tape closes the SHA graph's lookups for one or two headers, and the
 [SHA chip profile](sha_chip_profile.zig) pins the corresponding AIR identities
-and row geometry. The circuit-to-chip lookup and one-proof verifier are still
-required before this chip can replace SHA circuit gates. The
+and row geometry. A focused [joint proof test](sha_joint_prover_test.zig) now
+connects one private header and digest through a caller AIR, two lookup buses,
+and one native STARK verifier. The normal `s31 build` path still uses generic
+SHA gates while this chip profile is measured and packaged. The
 [sparse-wide recursive verifier](docs/recursion-sparse-wide.md)
 now wraps this profile through two depth-specific gate proofs. The
 [header-link acceptance gate](acceptance_header_link.py) also wraps one fresh
@@ -147,9 +149,20 @@ zig build --build-file src/frontends/s31/build.zig test-sha-batch -Doptimize=Rel
 ```
 
 It proves one STARK against trusted public compression boundaries and rejects
-a substituted digest boundary. S31's private header witness still needs an
-authenticated circuit-to-chip lookup before this AIR can replace the generic
-SHA circuit in the header example.
+a substituted digest boundary. The separate private-header joint proof can be
+exercised with:
+
+```sh
+zig build --build-file src/frontends/s31/build.zig test-sha-joint -Doptimize=ReleaseSafe -j2
+```
+
+That test derives the verifier key from value-free circuit topology, proves
+one genesis-header PoW statement with the circuit and SHA AIR in one proof,
+and checks native verification and adversarial changes. The
+[integration contract](../../../design/s31/SHA_CHIP_INTEGRATION.md) explains the
+56-wire boundary, lookup signs, soundness assumptions, and measured cost.
+For one header, the current chip is slower and produces a larger proof than
+the existing generic circuit; chip lowering is not selected automatically.
 
 The [recursion chapter](docs/recursion.md) demonstrates a `gate`-profile
 wrapper: a saved S31 proof is natively authenticated, verified inside a

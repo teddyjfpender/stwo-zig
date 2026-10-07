@@ -1,0 +1,55 @@
+{
+  "assertions": [
+    {
+      "lhs": "within_target",
+      "rhs": "_s31_0"
+    }
+  ],
+  "inputs": [
+    {
+      "kind": "u16",
+      "length": 40,
+      "name": "header",
+      "visibility": "private"
+    }
+  ],
+  "name": "bitcoin_header_pow",
+  "nodes": [
+    {
+      "lhs": "header",
+      "name": "hash_bytes",
+      "op": "hash_sha256d_header"
+    },
+    {
+      "lhs": "header",
+      "name": "target",
+      "op": "bitcoin_target_mainnet"
+    },
+    {
+      "lhs": "hash_bytes",
+      "name": "within_target",
+      "op": "u256_le",
+      "rhs": "target"
+    },
+    {
+      "constant": 1,
+      "length": 1,
+      "name": "_s31_0",
+      "op": "constant"
+    },
+    {
+      "lhs": "hash_bytes",
+      "name": "hash_limbs",
+      "op": "cast_m31"
+    },
+    {
+      "lhs": "hash_limbs",
+      "name": "root",
+      "op": "hash_poseidon2_leaf"
+    }
+  ],
+  "public_outputs": [
+    "root"
+  ],
+  "version": 1
+}

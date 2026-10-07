@@ -38,20 +38,16 @@ pub fn build(b: *std.Build) void {
         .optimize = optimize,
     });
     frontend.addImport("stwo_core", core);
+    frontend.addImport("stwo_prover_engine", cpu.import_table.get("stwo_prover_engine") orelse @panic("circuit CPU module is missing prover engine"));
     frontend.addImport("stwo_circuit_frontend", circuit);
-    const poseidon_ref = b.createModule(.{
-        .root_source_file = b.path("../riscv/s31_poseidon_ref.zig"),
-        .target = target,
-        .optimize = optimize,
-    });
-    poseidon_ref.addImport("stwo_core", core);
-    frontend.addImport("s31_poseidon_ref", poseidon_ref);
     const sha_provider = b.createModule(.{
         .root_source_file = b.path("../riscv/sha256_s31_provider.zig"),
         .target = target,
         .optimize = optimize,
     });
     sha_provider.addImport("stwo_core", core);
+    sha_provider.addImport("stwo_prover_engine", cpu.import_table.get("stwo_prover_engine") orelse @panic("missing prover engine"));
+    frontend.addImport("s31_poseidon_ref", sha_provider);
     frontend.addImport("s31_sha_provider", sha_provider);
 
     const tests = b.addRunArtifact(b.addTest(.{ .root_module = frontend }));
@@ -151,6 +147,25 @@ pub fn build(b: *std.Build) void {
     });
     const private_bridge_tests = b.addRunArtifact(b.addTest(.{ .root_module = private_bridge_test_root }));
     test_step.dependOn(&private_bridge_tests.step);
+    const sha_joint_test_root = b.createModule(.{
+        .root_source_file = b.path("sha_joint_prover_test.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    sha_joint_test_root.addImport("stwo_core", core);
+    sha_joint_test_root.addImport("stwo_prover_engine", cpu.import_table.get("stwo_prover_engine") orelse @panic("missing prover engine"));
+    sha_joint_test_root.addImport("stwo_circuit_frontend", circuit);
+    sha_joint_test_root.addImport("stwo_circuit_cpu_integration", cpu);
+    sha_joint_test_root.addImport("stwo_cairo_frontend", cpu.import_table.get("stwo_cairo_frontend") orelse @panic("missing Cairo frontend"));
+    sha_joint_test_root.addImport("s31_sha_provider", sha_provider);
+    sha_joint_test_root.addImport("s31_poseidon_ref", sha_provider);
+    sha_joint_test_root.addImport("interop_postcard", anchor_postcard);
+    sha_joint_test_root.addAnonymousImport("s31_air_programs", .{
+        .root_source_file = .{ .cwd_relative = b.pathFromRoot("../../../vectors/circuit/official/circuit_air.air_programs_v1.bin") },
+    });
+    const sha_joint_tests = b.addRunArtifact(b.addTest(.{ .root_module = sha_joint_test_root }));
+    b.step("test-sha-joint", "Compile and test one-proof circuit plus packed SHA integration")
+        .dependOn(&sha_joint_tests.step);
     anchor_proof_test_root.addAnonymousImport("s31_bitcoin_fixture", .{
         .root_source_file = b.path("examples/bitcoin_header_link.valid.json"),
     });

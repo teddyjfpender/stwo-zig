@@ -165,16 +165,21 @@ pub const BindingSpan = struct {
     binding_qm31_end: usize = 0,
 };
 pub const FinalizationSpan = struct { qm31_start: usize, qm31_end: usize, m31_to_u32_start: usize, m31_to_u32_end: usize };
+/// Canonical circuit Gate addresses consumed by one SHA caller AIR instance.
+/// The first 40 belong to the byte-exact header, the final 16 to its digest.
+pub const ShaBoundaryMap = struct { node_id: u32, addresses: [56]u32 };
 pub const Maps = struct {
     nodes: std.ArrayListUnmanaged(Span) = .empty,
     assertions: std.ArrayListUnmanaged(AssertionSpan) = .empty,
     bindings: std.ArrayListUnmanaged(BindingSpan) = .empty,
+    sha_boundaries: std.ArrayListUnmanaged(ShaBoundaryMap) = .empty,
     finalization: ?FinalizationSpan = null,
 
     pub fn deinit(self: *Maps, allocator: std.mem.Allocator) void {
         self.nodes.deinit(allocator);
         self.assertions.deinit(allocator);
         self.bindings.deinit(allocator);
+        self.sha_boundaries.deinit(allocator);
         self.* = undefined;
     }
 };
@@ -184,27 +189,35 @@ pub fn compile(comptime V: type, allocator: std.mem.Allocator, program: relation
 }
 
 pub fn compileWithSpans(comptime V: type, allocator: std.mem.Allocator, program: relation.Program, assignment: ?relation.Assignment, maps: ?*Maps) !circuit.builder.Context(V) {
-    return compileWithSpansMode(V, allocator, program, assignment, maps, false, false);
+    return compileWithSpansMode(V, allocator, program, assignment, maps, false, false, false);
 }
 
 pub fn compileChip(comptime V: type, allocator: std.mem.Allocator, program: relation.Program, assignment: ?relation.Assignment) !circuit.builder.Context(V) {
-    return compileWithSpansMode(V, allocator, program, assignment, null, true, false);
+    return compileWithSpansMode(V, allocator, program, assignment, null, true, false, false);
 }
 
 pub fn compileChipWithSpans(comptime V: type, allocator: std.mem.Allocator, program: relation.Program, assignment: ?relation.Assignment, maps: ?*Maps) !circuit.builder.Context(V) {
-    return compileWithSpansMode(V, allocator, program, assignment, maps, true, false);
+    return compileWithSpansMode(V, allocator, program, assignment, maps, true, false, false);
 }
 
 pub fn compileDirect(comptime V: type, allocator: std.mem.Allocator, program: relation.Program, assignment: ?relation.Assignment, chip_mode: bool) !circuit.builder.Context(V) {
-    return compileWithSpansMode(V, allocator, program, assignment, null, chip_mode, true);
+    return compileWithSpansMode(V, allocator, program, assignment, null, chip_mode, true, false);
 }
 
 pub fn compileDirectWithSpans(comptime V: type, allocator: std.mem.Allocator, program: relation.Program, assignment: ?relation.Assignment, maps: ?*Maps, chip_mode: bool) !circuit.builder.Context(V) {
-    return compileWithSpansMode(V, allocator, program, assignment, maps, chip_mode, true);
+    return compileWithSpansMode(V, allocator, program, assignment, maps, chip_mode, true, false);
 }
 
-fn compileWithSpansMode(comptime V: type, allocator: std.mem.Allocator, program: relation.Program, assignment: ?relation.Assignment, maps: ?*Maps, chip_mode: bool, direct_output: bool) !circuit.builder.Context(V) {
+/// Replace generic SHA gates with 16 range-constrained digest witnesses and
+/// report the exact private circuit addresses for an external SHA caller AIR.
+/// This circuit is sound only as one component of the joint SHA proof.
+pub fn compileShaChipWithSpans(comptime V: type, allocator: std.mem.Allocator, program: relation.Program, assignment: ?relation.Assignment, maps: *Maps) !circuit.builder.Context(V) {
+    return compileWithSpansMode(V, allocator, program, assignment, maps, false, false, true);
+}
+
+fn compileWithSpansMode(comptime V: type, allocator: std.mem.Allocator, program: relation.Program, assignment: ?relation.Assignment, maps: ?*Maps, chip_mode: bool, direct_output: bool, sha_chip_mode: bool) !circuit.builder.Context(V) {
     if (chip_mode and program.repeatedStepChip() == null) return error.UnsupportedChipRelation;
+    if (sha_chip_mode and (chip_mode or direct_output or maps == null)) return error.InvalidShaChipCompilerMode;
     if (direct_output) for (program.inputs) |input| {
         if (input.kind != .m31) return error.UnsupportedDirectRelation;
     };
@@ -296,7 +309,18 @@ fn compileWithSpansMode(comptime V: type, allocator: std.mem.Allocator, program:
             .u256_add_checked => try u256Binary(V, &ctx, entries[node.lhs.?], entries[node.rhs.?], .add_checked),
             .u256_sub => try u256Binary(V, &ctx, entries[node.lhs.?], entries[node.rhs.?], .sub),
             .u256_sub_checked => try u256Binary(V, &ctx, entries[node.lhs.?], entries[node.rhs.?], .sub_checked),
-            .hash_sha256d_header => try sha256dHeader(V, &ctx, entries[node.lhs.?]),
+            .hash_sha256d_header => blk: {
+                if (!sha_chip_mode) break :blk try sha256dHeader(V, &ctx, entries[node.lhs.?]);
+                const input = entries[node.lhs.?];
+                const digest = try shaChipHeaderHint(V, &ctx, input);
+                const header_raw = input.raw orelse return error.InvalidHeaderOperand;
+                const digest_raw = digest.raw orelse unreachable;
+                var addresses: [56]u32 = undefined;
+                for (header_raw, 0..) |wire, i| addresses[i] = wire.idx;
+                for (digest_raw, 0..) |wire, i| addresses[40 + i] = wire.idx;
+                try maps.?.sha_boundaries.append(allocator, .{ .node_id = @intCast(id), .addresses = addresses });
+                break :blk digest;
+            },
             .bitcoin_target_mainnet => try mainnetTarget(V, &ctx, entries[node.lhs.?]),
             .bitcoin_prev_hash => try headerSlice(V, &ctx, entries[node.lhs.?], 2, 16),
             .bitcoin_header_bits => try headerSlice(V, &ctx, entries[node.lhs.?], 36, 2),
@@ -428,6 +452,8 @@ fn compileWithSpansMode(comptime V: type, allocator: std.mem.Allocator, program:
     const finalize_qm31_start = ctx.circuit.nQm31OpsRows();
     const finalize_m31_start = ctx.circuit.m31_to_u32.items.len;
     try ctx.finalize(false);
+    if (sha_chip_mode and (maps.?.sha_boundaries.items.len == 0 or maps.?.sha_boundaries.items.len > 2))
+        return error.UnsupportedShaChipRelation;
     if (direct_output and try ctx.circuit.firstYieldViolation(allocator) != null)
         return error.InvalidDirectYieldTopology;
     if (maps) |out| out.finalization = .{
@@ -504,6 +530,33 @@ fn sha256dHeader(comptime V: type, ctx: *circuit.builder.Context(V), input: Entr
     const raw = try ctx.scratch().dupe(Var, &digest);
     const wrappers = try ctx.scratch().alloc(circuit.builder.wrappers.M31Wrapper(Var), 16);
     for (raw, wrappers) |wire, *wrapped| wrapped.* = .newUnsafe(wire);
+    return .{ .shape = .{ .kind = .u16, .length = 16 }, .lanes = try circuit.builder.simd.pack(V, ctx, wrappers), .raw = raw };
+}
+
+fn shaChipHeaderHint(comptime V: type, ctx: *circuit.builder.Context(V), input: Entry) !Entry {
+    if (input.shape.kind != .u16 or input.shape.length != 40) return error.InvalidHeaderOperand;
+    const header_raw = input.raw orelse return error.InvalidHeaderOperand;
+    var digest: [32]u8 = @splat(0);
+    if (comptime V == QM31) {
+        var header: [80]u8 = undefined;
+        for (header_raw, 0..) |wire, i| {
+            const limbs = ctx.get(wire).toM31Array();
+            if (!limbs[1].isZero() or !limbs[2].isZero() or !limbs[3].isZero() or limbs[0].toU32() >= 65536)
+                return error.InvalidHeaderWitness;
+            std.mem.writeInt(u16, header[2 * i ..][0..2], @intCast(limbs[0].toU32()), .little);
+        }
+        var first: [32]u8 = undefined;
+        std.crypto.hash.sha2.Sha256.hash(&header, &first, .{});
+        std.crypto.hash.sha2.Sha256.hash(&first, &digest, .{});
+    }
+    const raw = try ctx.scratch().alloc(Var, 16);
+    const wrappers = try ctx.scratch().alloc(circuit.builder.wrappers.M31Wrapper(Var), 16);
+    for (raw, wrappers, 0..) |*wire, *wrapped, i| {
+        const word = std.mem.readInt(u16, digest[2 * i ..][0..2], .little);
+        const hint = circuit.builder.ivalue.fromQm31(V, QM31.fromBase(M31.fromCanonical(word)));
+        wire.* = (try circuit.builder.wrappers.guessU16(V, ctx, .newUnsafe(hint))).get();
+        wrapped.* = .newUnsafe(wire.*);
+    }
     return .{ .shape = .{ .kind = .u16, .length = 16 }, .lanes = try circuit.builder.simd.pack(V, ctx, wrappers), .raw = raw };
 }
 
@@ -781,6 +834,85 @@ test "private preimage relation has a constrained witness and static topology" {
     } else |err| {
         try std.testing.expectEqual(error.EqFailedOnEval, err);
     }
+}
+
+test "SHA chip lowering identifies stable private wires and charges 56 Gate yields" {
+    const allocator = std.testing.allocator;
+    var program = try relation.parseProgram(allocator, @embedFile("examples/bitcoin_header_pow.s31.json"));
+    defer program.deinit();
+    var assignment = try relation.parseAssignment(allocator, @embedFile("examples/bitcoin_header_pow.valid.json"));
+    defer assignment.deinit();
+
+    var value_maps = Maps{};
+    defer value_maps.deinit(allocator);
+    var values = try compileShaChipWithSpans(QM31, allocator, program.value, assignment.value, &value_maps);
+    defer values.deinit();
+    try std.testing.expect(try values.isCircuitValid());
+    try std.testing.expectEqual(@as(usize, 1), value_maps.sha_boundaries.items.len);
+
+    var topology_maps = Maps{};
+    defer topology_maps.deinit(allocator);
+    var topology = try compileShaChipWithSpans(circuit.builder.NoValue, allocator, program.value, null, &topology_maps);
+    defer topology.deinit();
+    try std.testing.expectEqual(@as(usize, 1), topology_maps.sha_boundaries.items.len);
+    const addresses = value_maps.sha_boundaries.items[0].addresses;
+    try std.testing.expectEqualSlices(u32, &addresses, &topology_maps.sha_boundaries.items[0].addresses);
+    try std.testing.expectEqual(values.circuit.n_vars, topology.circuit.n_vars);
+    try std.testing.expect(std.meta.eql(values.gate_counts, topology.gate_counts));
+
+    const source = circuit.common.preprocessed.CircuitView.fromBuilder(&topology.circuit);
+    try (circuit.common.sparse_arithmetic.ShaBoundary{ .addresses = addresses }).validate(source);
+    var duplicate = addresses;
+    duplicate[1] = duplicate[0];
+    try std.testing.expectError(
+        error.DuplicateShaPrivateBoundary,
+        (circuit.common.sparse_arithmetic.ShaBoundary{ .addresses = duplicate }).validate(source),
+    );
+    var public_address = addresses;
+    var found_public: ?u32 = null;
+    for (source.output) |address| {
+        if (address > 2 and address < source.n_vars) {
+            found_public = address;
+            break;
+        }
+    }
+    public_address[0] = found_public orelse return error.MissingPublicOutputForTest;
+    try std.testing.expectError(
+        error.PublicShaPrivateBoundary,
+        (circuit.common.sparse_arithmetic.ShaBoundary{ .addresses = public_address }).validate(source),
+    );
+    const raw = circuit.common.finalize.rawComponentSizes(source);
+    // The generic genesis-header circuit uses 356,882 raw QM31 rows. This
+    // bound catches an accidental fallback to generic SHA during chip lowering.
+    try std.testing.expect(raw.qm31_ops < 10_000);
+    try circuit.common.finalize.padToTargets(circuit.builder.NoValue, &topology, .{
+        .eq = circuit.common.finalize.paddedSize(raw.eq),
+        .qm31_ops = circuit.common.finalize.paddedSize(raw.qm31_ops),
+        .m31_to_u32 = circuit.common.finalize.paddedSize(raw.m31_to_u32),
+        .triple_xor = 0,
+        .blake_g_gate = 0,
+    });
+    var ordinary = try circuit.common.sparse_wide.Circuit.fromBuilderCircuit(allocator, &topology.circuit);
+    defer ordinary.deinit(allocator);
+    var linked = try circuit.common.sparse_wide.Circuit.fromBuilderCircuitWithShaBoundary(
+        allocator,
+        &topology.circuit,
+        .{ .addresses = addresses },
+    );
+    defer linked.deinit(allocator);
+    try std.testing.expect(linked.sha_boundary != null);
+
+    var extra_yields: usize = 0;
+    inline for (.{ "qm31_ops_mults", "m31_to_u32_multiplicity" }) |id| {
+        const before = ordinary.columnValues(id).?;
+        const after = linked.columnValues(id).?;
+        for (before, after) |old, new| {
+            const delta = new.sub(old).toU32();
+            try std.testing.expect(delta <= 1);
+            extra_yields += delta;
+        }
+    }
+    try std.testing.expectEqual(@as(usize, 56), extra_yields);
 }
 
 test "computed zero test has single-yield direct circuit topology" {
