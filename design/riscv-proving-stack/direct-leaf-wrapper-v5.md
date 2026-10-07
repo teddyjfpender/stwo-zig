@@ -152,16 +152,27 @@ rows. Replacing only the V5 row-36 audit left domain 29 residual
 boundary accounts for that residual exactly. Both the physical statement
 claim and the boundary still need admission under one roster and a fresh
 detached proof transaction.
+The proof-inactive V8 candidate template and roster now replace row 36's
+placement, seal its fixed ordinal column and AIR identity, and specify a
+verifier-derived public wire-count parameter. The same candidate key covers
+valid 664- and 668-word statements; focused tests reject altered source,
+manifest, geometry, and parameter contracts. This seals one row's contract,
+not the complete Tree0 or a publishable wrapper key.
 For the V6 base fixed schedule, rows 15 and 16 are deliberately unqualified.
 Their Tree0 columns include the exact dense input-use multiplicities of the
 native-public-sum arithmetic graph. Section lengths alone do not determine
 that graph: merging the four sorted sparse-memory address lists changes the
 input wiring, and the completion path can add a program-access term. A
 per-leaf graph digest or use-count array cannot be imported into a reusable
-fixed key. Activation needs either a verifier-selected, shape-only graph
-topology schedule with identical multiplicities across every leaf using the
-key, or a versioned AIR that authenticates variable multiplicities as main
-witness columns. The current writer rejects both rows before touching Tree0.
+fixed key. A proof-inactive V8 candidate now recompiles the exact public
+claim/logup graphs from verifier-selected capacity and claimed-sum count,
+seals both graph identities and all padded fixed columns, and matches the
+native row-15/16 witness writer cellwise in focused tests. The complete
+roster must still seal this profile together with graph-lowering rows 30–32;
+the existing production writer rejects these rows before Tree0 publication.
+The current legacy-zero machine-I/O graph is consistent with q193's admitted
+zero-state policy; nonzero machine I/O needs a separately versioned graph and
+statement relation.
 Independent shape-derived writers now cover rows 11, 13, 14, 18, 19, and 22;
 rows 11, 18, and 19 have not yet been admitted into the complete template
 key. The row-13/14 writer covers the public authority hash and seal, with
@@ -175,6 +186,12 @@ padding, match the native witness writer in focused tests and the real q193
 Tree0 source. These rows are qualified as standalone fixed-column sources;
 they are not yet admitted into the complete V7 fixed key. Rows 23–24 and
 27–32 still require more shape authority.
+An isolated V8 row-28 FRI-control writer now derives its entire padded fixed
+table from verifier-owned VM/recursion plans and CoreProfileV6. Its committed
+cells match the native writer, including padding, in Debug and ReleaseSafe
+tests; altered plan, profile, geometry, and destination aliasing fail before
+writes. The V8 template does not yet seal the recursion plan's authority
+digest, so row 28 deliberately fails template admission.
 A further dormant row-4 profile can export kind and eight split argument limbs
 for instructions with an actual payload row, using that row's existing
 transcript-payload relation. Its coverage audit rejects duplicate origins and
