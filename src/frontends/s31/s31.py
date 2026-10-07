@@ -971,6 +971,7 @@ def trial(source_or_package: Path, assignment_path: Path, output: Path,
         "lowering": manifest["lowering"],
         "fri_fold_step": manifest.get("fri_fold_step", 1),
         "profile": cost["profile"],
+        "visible_fri": visible_fri(cost, manifest["lowering"]),
         "canonical_ir_sha256": cost["canonical_ir_sha256"],
         "program_sha256": manifest["program_sha256"],
         "raw": cost["raw"],
@@ -996,6 +997,25 @@ def trial(source_or_package: Path, assignment_path: Path, output: Path,
     }
     write_json(output / "trial-report.json", result)
     return result
+
+
+def visible_fri(cost: dict, lowering: str) -> dict:
+    """Give every lowering the same units for the visible FRI settings.
+
+    The SHA shift/fused cost reports store log2(last-layer degree bound),
+    whereas the older package reports store the degree bound itself.
+    """
+    raw = cost["fri"]
+    last_layer = raw["last_layer_degree_bound"]
+    if lowering in {"sha-shift", "sha-fused"}:
+        last_layer = 1 << last_layer
+    return {
+        "pow_bits": raw["pow_bits"],
+        "blowup_factor": 1 << raw["log_blowup_factor"],
+        "last_layer_degree_bound": last_layer,
+        "queries": raw["queries"],
+        "fold_step": raw["fold_step"],
+    }
 
 
 def tune(source: Path, assignments: list[Path], output: Path,
@@ -1042,6 +1062,7 @@ def tune(source: Path, assignments: list[Path], output: Path,
             "package": str(package),
             "build_or_load_seconds": build_seconds[lowering],
             "profile": cost["profile"],
+            "visible_fri": visible_fri(cost, lowering),
             "public_abi": json.loads((package / "public-abi.json").read_text()),
             "raw": cost["raw"],
             "padded": cost["padded"],
@@ -1063,6 +1084,8 @@ def tune(source: Path, assignments: list[Path], output: Path,
         }
     if len(program_digests) != 1 or len(canonical_digests) != 1:
         raise ValueError("tune profiles compiled different source or canonical relations")
+    fri_settings = {json.dumps(item["visible_fri"], sort_keys=True)
+                    for item in per_profile.values()}
     report = {
         "schema": "s31-tune-v1",
         "source": str(source),
@@ -1074,9 +1097,11 @@ def tune(source: Path, assignments: list[Path], output: Path,
         "independent_value_oracle_provenance": oracle_provenance(),
         "warmup_assignment_sha256": assignment_digest(warmup) if warmup is not None else None,
         "distinct_assignments": len(set(assignment_hashes)) == len(assignment_hashes),
+        "same_visible_fri_settings": len(fri_settings) == 1,
         "profiles": per_profile,
         "timing_note": ("Use --warmup for one unmeasured proof per profile. Transcript-dependent "
                         "proof-of-work varies with the assignment; compare repeated distinct witnesses. "
+                        "Visible FRI settings alone do not establish equal soundness across AIRs. "
                         "No profile is selected automatically."),
     }
     write_json(output / "tune-report.json", report)

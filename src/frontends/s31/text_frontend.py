@@ -32,6 +32,7 @@ BUILTINS = {
     "std::bytes::to_u256_le", "std::bytes::from_u256_le", "std::bytes::limbs_m31",
     "sha256d_header", "is_zero",
     "target_mainnet",
+    "pow_valid",
     "prev_hash", "header_bits", "header_time", "genesis_hash_mainnet", "lt_u32",
 } | mathlib.BUILTINS
 STANDARD_ALIASES = {
@@ -53,6 +54,7 @@ STANDARD_ALIASES = {
     "std::bitcoin::parent_hash": "parent_hash",
     "std::bitcoin::genesis_block_hash_mainnet": "genesis_block_hash_mainnet",
     "std::bitcoin::target_mainnet": "target_mainnet",
+    "std::bitcoin::pow_valid": "pow_valid",
     "std::bitcoin::prev_hash": "prev_hash",
     "std::bitcoin::header_bits": "header_bits",
     "std::bitcoin::header_time": "header_time",
@@ -589,6 +591,8 @@ class Compiler:
                 return self.builder.bitcoin_parent_hash(self.expect_value(args[0], expr), wanted=wanted, span=self.span(expr))
             if name == "target_mainnet" and len(args) == 1:
                 return self.builder.bitcoin_target_mainnet(self.expect_value(args[0], expr), wanted=wanted, span=self.span(expr))
+            if name == "pow_valid" and len(args) == 1:
+                return self.builder.bitcoin_pow_valid(self.expect_value(args[0], expr), wanted=wanted, span=self.span(expr))
             if name == "prev_hash" and len(args) == 1:
                 return self.builder.header_prev_hash(self.expect_value(args[0], expr), wanted=wanted, span=self.span(expr))
             if name == "header_bits" and len(args) == 1:

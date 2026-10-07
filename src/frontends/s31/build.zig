@@ -474,6 +474,24 @@ pub fn build(b: *std.Build) void {
     const bitcoin_matched_bench_install = b.addInstallArtifact(bitcoin_matched_bench_exe, .{});
     b.step("bitcoin-generic-vs-sha-shift-bench", "Build production-mode generic and shift-SHA Bitcoin benchmark")
         .dependOn(&bitcoin_matched_bench_install.step);
+    const bitcoin_multi_witness_root = b.createModule(.{
+        .root_source_file = b.path("bitcoin_multi_witness_bench.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    bitcoin_multi_witness_root.addImport("stwo_core", core);
+    bitcoin_multi_witness_root.addImport("stwo_prover_engine", cpu.import_table.get("stwo_prover_engine") orelse @panic("missing prover engine"));
+    bitcoin_multi_witness_root.addImport("stwo_circuit_frontend", circuit);
+    bitcoin_multi_witness_root.addImport("stwo_circuit_cpu_integration", cpu);
+    bitcoin_multi_witness_root.addImport("stwo_circuit_recursion_wire", wire);
+    bitcoin_multi_witness_root.addImport("stwo_cairo_frontend", cpu.import_table.get("stwo_cairo_frontend") orelse @panic("missing Cairo frontend"));
+    bitcoin_multi_witness_root.addImport("interop_postcard", sha_postcard);
+    bitcoin_multi_witness_root.addImport("s31_air_programs", official_air);
+    bitcoin_multi_witness_root.addImport("s31_sha_provider", sha_provider);
+    bitcoin_multi_witness_root.addImport("s31_poseidon_ref", sha_provider);
+    const bitcoin_multi_witness_exe = b.addExecutable(.{ .name = "s31-bitcoin-multi-witness-bench", .root_module = bitcoin_multi_witness_root });
+    b.step("bench-bitcoin-multi-witness", "Build production-mode matched Bitcoin proof benchmark across distinct headers")
+        .dependOn(&b.addInstallArtifact(bitcoin_multi_witness_exe, .{}).step);
     const sha_feed_word_proof_root = b.createModule(.{
         .root_source_file = b.path("sha_feed_direct_word_proof_test.zig"),
         .target = target,

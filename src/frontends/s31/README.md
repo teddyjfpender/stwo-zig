@@ -51,7 +51,10 @@ making a speed claim.
 same assignment files. It builds each package, proves and verifies every
 assignment, checks a changed public statement, and writes
 `tune-report.json` with per-profile trace geometry, proof sizes, wall time,
-and prover-reported time excluding logged proof-of-work. Supply distinct
+prover-reported time excluding logged proof-of-work, and normalized visible
+FRI settings. It flags whether the compared profiles use the same visible
+FRI settings; matching values alone do not establish equal soundness across
+different AIRs. Supply distinct
 valid assignments for a useful timing sample; `--warmup ASSIGNMENT.json`
 adds an unmeasured proof per profile. The command records observations and
 does not choose a profile automatically:

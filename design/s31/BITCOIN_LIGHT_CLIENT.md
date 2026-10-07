@@ -2,11 +2,14 @@
 
 Status: wide integers, byte-exact SHA256d, mainnet compact target decoding,
 proof of work, and a genesis-anchored two-header same-difficulty link are executable and have
-generated native verifiers. A dedicated direct SHA AIR now joins one private
-header's Bitcoin circuit in a single natively verified STARK; its v2 profile
-keeps the digest private and publishes the same Poseidon root as the generic
-source. This direct profile is currently slower and larger than the generic
-circuit in the recorded local comparison. Sparse-wide wrappers verify the
+generated native verifiers. Dedicated SHA AIR profiles now join one private
+header's Bitcoin circuit in a single natively verified STARK. The v3
+shift-register profile and v4 fused profile keep the digest private and
+publish the same Poseidon root as the generic source. The v3 profile measured
+less proving work after excluding proof-of-work grinds than the generic
+circuit on one fixed header; the v4 profile reduced that work and proof size
+again, while a longer nonce search made its total proving slower on that
+header. Sparse-wide wrappers verify the
 two-header leaf, and a sealed-key changing-header fold has natively verified
 the first two real mainnet updates. First-retarget integration, accumulated
 chainwork, best-chain selection, and a full header-chain policy remain open. The
@@ -140,9 +143,15 @@ the combined fixed root from the sealed source topology. In the
 two production-config runs took 429–454 ms proving excluding FRI proof of
 work and produced 731,280-byte proofs. The generic reference recorded about
 154 ms and 338,282 bytes under its own command path. A
-[shift-register round AIR](SHA_SHIFT_REGISTER_AIR.md) is the next measured
-efficiency experiment. The direct profile currently proves one header; the
-two-header recursive fold still uses the generic SHA circuit.
+[shift-register round AIR](SHA_SHIFT_REGISTER_AIR.md) and the
+[fused schedule/round AIR](SHA_FUSED_AIR_PLAN.md) have since replaced that
+performance path for one header. The
+[matched production results](measurements/bitcoin-generic-vs-sha-shift-matched-v1-2026-10-07.json)
+record the v3 comparison, and the
+[v4 comparison](measurements/bitcoin-sha-fused-vs-shift-fixed-policy-v1-2026-10-07.json)
+records its further cost reduction and slower total proving on the fixed
+witness. The two-header recursive fold still computes SHA in its generic
+circuit; it does not verify a v4 fused child proof.
 
 | Six-call pair component | Live rows | Padded rows |
 | --- | ---: | ---: |

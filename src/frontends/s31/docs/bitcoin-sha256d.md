@@ -44,6 +44,39 @@ becomes `u256_le`, and `assert_eq` forces its result to one. The Poseidon2 call
 commits the digest to the eight-word public ABI. It is an auxiliary S31
 commitment, not a Bitcoin block hash.
 
+For programs that only need the proof-of-work predicate, the standard library
+offers the [one-call version](../examples/bitcoin_pow_valid_std.s31):
+
+```s31
+let valid = std::bitcoin::pow_valid(header);
+assert_eq(valid, splat<1>(1_m31));
+```
+
+Its type is `Bytes80 -> bit`. It expands to the same `hash_sha256d_header`,
+`bitcoin_target_mainnet`, and `u256_le` relation nodes as the explicit
+[manual version](../examples/bitcoin_pow_valid_manual.s31). The bytes from
+SHA256d are interpreted as a *little-endian* 256-bit integer; the familiar
+displayed block ID reverses those bytes. The helper does not reverse them.
+It returns a constrained bit; callers must assert that bit equals one when
+valid proof of work is required. The compact decoder rejects negative, zero,
+overflowing, and above-mainnet-limit targets before that comparison.
+
+For genesis, the raw SHA256d bytes begin `6f e2 8c 0a`. Their little-endian
+integer is `0x000000000019d668...`, and `0x1d00ffff` decodes to
+`0x00000000ffff0000...`. In the sixteen-limb comparison, limbs 15 and 14
+are zero on both sides; at limb 13 the hash has `25` and the target has
+`65535`. That highest unequal limb makes the hash smaller even though its
+lowest limb, `57967`, exceeds the target's zero lowest limb. The AIR's
+borrow chain proves the full comparison, not this abbreviated inspection.
+The [acceptance run](../acceptance_bitcoin_pow_valid.py) checks the result
+against independent `hashlib` double SHA, proves both source forms with
+generated native verifiers, and rejects a changed nonce, invalid compact
+sign bit, and altered public claim. Both forms have exactly the same circuit
+geometry: 348,375 raw QM31-operation rows, 3,701 Eq rows, and 1,929
+M31-to-u32 rows in one `sparse-wide-gate` run. This is source-level
+convenience with zero *additional* relation cost; it is not a dedicated SHA
+chip or a speed claim.
+
 ## The three SHA-256 compression blocks
 
 SHA256d means `SHA256(SHA256(header))`. An 80-byte first message spans two
@@ -623,4 +656,7 @@ the header or hash it cares about. This program does not prove that the header
 belongs to the best chain, that the previous hash links to an accepted parent,
 that a block's transactions match the Merkle root, or that difficulty and
 timestamp rules hold across headers. Recursive verification and a full light
-client require those separate relations.
+client require those separate relations. The
+[SHA-fused recursion integration brief](sha-fused-recursion.md) specifies the
+one-proof chain-fold profile needed to use the fused chip in those relations,
+including its public state ABI and key-binding requirements.

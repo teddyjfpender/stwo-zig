@@ -103,6 +103,23 @@ circuit constant_choice(public left: [m31; 1], public right: [m31; 1]) -> public
         with self.assertRaisesRegex(SourceError, "requires a serialized Bytes80"):
             compile_text("circuit bad(private x: Bytes32) -> public Bytes32 { std::hash::sha256d_header(x) }")
 
+    def test_bitcoin_pow_valid_helper_matches_explicit_constraints(self) -> None:
+        helper, _ = compile_file(EXAMPLES / "bitcoin_pow_valid_std.s31")
+        manual, _ = compile_file(EXAMPLES / "bitcoin_pow_valid_manual.s31")
+        self.assertEqual([node["op"] for node in helper["nodes"]],
+                         ["hash_sha256d_header", "bitcoin_target_mainnet", "u256_le", "constant"])
+        self.assertEqual([node["op"] for node in helper["nodes"]],
+                         [node["op"] for node in manual["nodes"]])
+        assignment = json.loads((EXAMPLES / "bitcoin_pow_valid.valid.json").read_text())
+        self.assertEqual(evaluate_relation(helper, assignment), {"valid": [1]})
+        self.assertEqual(evaluate_relation(manual, assignment), {"valid": [1]})
+        changed = copy.deepcopy(assignment)
+        changed["private_inputs"]["header"][39] += 1
+        with self.assertRaises(OracleError):
+            evaluate_relation(helper, changed)
+        with self.assertRaisesRegex(SourceError, "pow_valid requires a serialized Bytes80"):
+            compile_text("circuit bad(private x: Bytes32) -> public bit { std::bitcoin::pow_valid(x) }")
+
     def test_two_real_headers_link_and_keep_nonretarget_bits(self) -> None:
         relation, _ = compile_file(EXAMPLES / "bitcoin_header_pair.s31")
         self.assertEqual(relation, json.loads((EXAMPLES / "bitcoin_header_pair.s31.json").read_text()))

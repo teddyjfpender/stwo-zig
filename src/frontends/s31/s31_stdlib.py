@@ -399,6 +399,17 @@ class Builder:
         return self.emit("bitcoin_target_mainnet", Type("uint256", 16),
                          wanted=wanted, span=span, lhs=self.realize(value).ref)
 
+    def bitcoin_pow_valid(self, header: Value, *, wanted: str | None = None,
+                          span: dict[str, int] | None = None) -> Value:
+        """Byte-exact SHA256d <= canonical mainnet target, with no new AIR op."""
+        if header.typ != Type("bytes80", 40):
+            raise TypeErrorS31("pow_valid requires a serialized Bytes80 header")
+        digest = self.sha256d_header(header, span=span)
+        hash_number = self.bytes32_reinterpret(digest, "uint256")
+        target = self.bitcoin_target_mainnet(header, span=span)
+        return self.u256_binary("u256_le", hash_number, target,
+                                wanted=wanted, span=span)
+
     def header_prev_hash(self, value: Value, *, wanted: str | None = None,
                          span: dict[str, int] | None = None) -> Value:
         if value.typ != Type("bytes80", 40):
