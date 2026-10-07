@@ -19,6 +19,30 @@ own FRI schedule with fold step 4. A single accepted fold proof can therefore
 attest to the earlier chain steps. The SHA256d work for the new header is still
 performed by generic circuit gates.
 
+The experimental [joined fold prover](../sha_fused_fold_prover.zig) and
+[native verifier](../sha_fused_fold_native_verifier.zig) now prove **one**
+checkpoint-anchored header update with the generic child verifier and the
+fused SHA256d chip in one STARK. Its `S31FCF01` profile has eleven circuit
+components, ten SHA components, seventeen lookup claims, and eight packed
+raw-`u32` public state words. The verifier derives its key from value-free
+topology and binds the ordered forty header and sixteen digest wires, the
+combined fixed-column root, and the Gate and SHA word lookup closures.
+The [integration test](../sha_fused_fold_proof_test.zig) compares value and
+value-free topology, natively proves and verifies, and rejects changed
+digest, header, statement, source key, and address order. With production
+26-bit PoW, 70-query, fold-one settings for the outer proof, one local
+ReleaseFast run produced a 659,942-byte proof in 12.5 seconds and verified
+it in 16 ms. The generic child used its production 26-bit/70-query/fold-four
+settings. These are single-run measurements, not a matched speed comparison.
+The [matched test-FRI run](../../../../design/s31/measurements/bitcoin-fold-generic-vs-fused-sha-test-fri-2026-10-07.json)
+used one production child and identical outer test settings for both paths:
+generic proving took 12.52 seconds and 116,993 proof bytes; joined proving
+took 10.14 seconds and 152,499 proof bytes. This is one machine run, with a
+19% prover-time reduction and a 30% larger proof under test-only outer FRI.
+Run the opt-in check with `zig build --build-file src/frontends/s31/build.zig
+test-sha-fused-fold-proof -Doptimize=ReleaseFast`; set
+`S31_FUSED_FOLD_PRODUCTION=1` for the production-parameter outer proof.
+
 The [sparse-wide wrapper](../recursion_sparse_wide.zig) verifies a third
 profile: four sparse-wide circuit components with its own statement and
 identity hash. Its fixed-key fold is separate from the Bitcoin chain fold.
@@ -47,17 +71,17 @@ cannot be substituted for that chain-state digest.
 
 ## One-step joined profile and the recursion blocker
 
-The first useful milestone is a **new joined one-step proof profile**. Its
-circuit verifies the existing generic genesis-anchor proof. Split the
-new-header step so that the circuit enforces the link, target, time, counter,
-and next-state rules, while its private header and SHA256d digest wires are
-joined to three SHA compression calls through the fused caller and Gate
-lookup. Remove the generic SHA gates for that header. The circuit and SHA
-AIRs share one STARK transcript and one fixed root. A native verifier can
-accept one proof, one trusted key, and one public chain-state statement for
-this **first step**. The AIR roster and column geometry must be measured from
-the actual joined topology; the single-header package's 14-component count
-does not specify them.
+The **joined one-step proof profile** now verifies an existing generic
+genesis-anchor proof. The circuit enforces the new header's link, target,
+time, counter, and next-state rules, while its private header and SHA256d
+digest wires join to three SHA compression calls through the caller and
+Gate lookup. The circuit and SHA AIRs share one STARK transcript and one
+fixed root. Its native verifier accepts one trusted key and eight public
+state words. A sealed Bitcoin statement wrapper that checks a named step,
+block hash, timestamp window, and first-epoch height limit against those
+words is still required before exposing this as a light-client interface.
+The [topology record](../../../../design/s31/BITCOIN_FUSED_FOLD_TOPOLOGY.md)
+describes the 21-component roster and padded geometry.
 
 That first-step proof cannot be used as the child of the same circuit on the
 next step. The circuit still contains a generic 11-component child verifier,
@@ -80,8 +104,10 @@ public_words = BLAKE2s_S31BFD2!(fold_root || LE32(step) || checkpoint_hash
                                  || current_block_hash || last_timestamps)
 ```
 
-The eight public words are raw little-endian `u32` BLAKE2s words. The verifier
-recomputes them from the named public fields. In the first-step circuit, the
+The eight public words are raw little-endian `u32` BLAKE2s words. The existing
+generic Bitcoin verifier recomputes them from the named public fields; the
+joined native verifier currently takes those words directly. In the first-step
+circuit, the
 generic anchor proof authenticates the checkpoint; the prior hash and
 timestamps are private openings constrained to the genesis state. A later
 stable fold must instead authenticate those openings against its verified
@@ -141,5 +167,14 @@ single-header key cannot be reused as either key.
 This is not a package-dispatch edit. The current `sha-fused` package compiles
 exactly one private `Bytes80` input and one eight-M31 public output, while the
 fold circuit has a recursive verifier, BLAKE2s state digest, and additional
-private state. The joined fold needs a new profile and measured geometry
-before it is safe to expose as a recursive package.
+private state. The joined fold now has its own profile and measured geometry;
+the missing in-circuit verifier and base/recursive child switch still prevent
+it from becoming a recursive package.
+
+There is a second stable architecture: keep the outer fold a generic circuit
+proof, verify one fused header proof **and** the prior generic fold proof
+inside it on every step, and bind both children to a commitment over the
+entire current header and its SHA digest. This avoids self-recursion over a
+new fused outer profile, but needs a complete in-circuit v4 verifier and has
+two verifier costs per step. The [technical design](../../../../design/s31/SHA_FUSED_RECURSION.md)
+specifies its key, base case, proof transport, and rejection tests.

@@ -102,7 +102,31 @@ pub fn buildCircuit(
     input: *const circuit.stark_verifier.proof.Proof(V),
     stages: anytype,
 ) !circuit.builder.Context(V) {
-    return buildCircuitMode(V, allocator, table, config, base_root, checkpoint, self_root_value, prior_root_values, prior_time_values, prior_hash_values, header_values, step_value, input, stages, false);
+    return buildCircuitMode(V, allocator, table, config, base_root, checkpoint, self_root_value, prior_root_values, prior_time_values, prior_hash_values, header_values, step_value, input, stages, false, false, undefined, null);
+}
+
+/// The same recursive chain transition with SHA256d supplied by one joined
+/// caller AIR. `boundary_out` identifies the exact 40 header and 16 digest
+/// producer wires whose Gate lookups must close in that same STARK proof.
+pub fn buildFusedCircuit(
+    comptime V: type,
+    allocator: std.mem.Allocator,
+    table: *const circuit.air_eval.component_table.Table,
+    config: *const circuit.statements.circuit_statement.CircuitConfig,
+    base_root: [32]u8,
+    checkpoint: [8]u32,
+    self_root_value: Blake.HashValue(V),
+    prior_root_values: [8]V,
+    prior_time_values: [11]V,
+    prior_hash_values: [16]V,
+    header_values: [40]V,
+    digest_values: [16]V,
+    step_value: u32,
+    input: *const circuit.stark_verifier.proof.Proof(V),
+    stages: anytype,
+    boundary_out: *s31.bitcoin_fold_step.ShaBoundaryWires,
+) !circuit.builder.Context(V) {
+    return buildCircuitMode(V, allocator, table, config, base_root, checkpoint, self_root_value, prior_root_values, prior_time_values, prior_hash_values, header_values, step_value, input, stages, false, true, digest_values, boundary_out);
 }
 
 pub fn buildFirstRetargetCircuit(
@@ -121,7 +145,7 @@ pub fn buildFirstRetargetCircuit(
     input: *const circuit.stark_verifier.proof.Proof(V),
     stages: anytype,
 ) !circuit.builder.Context(V) {
-    return buildCircuitMode(V, allocator, table, config, base_root, checkpoint, self_root_value, prior_root_values, prior_time_values, prior_hash_values, header_values, step_value, input, stages, true);
+    return buildCircuitMode(V, allocator, table, config, base_root, checkpoint, self_root_value, prior_root_values, prior_time_values, prior_hash_values, header_values, step_value, input, stages, true, false, undefined, null);
 }
 
 fn buildCircuitMode(
@@ -140,6 +164,9 @@ fn buildCircuitMode(
     input: *const circuit.stark_verifier.proof.Proof(V),
     stages: anytype,
     comptime first_retarget: bool,
+    comptime fused_sha: bool,
+    digest_values: [16]V,
+    boundary_out: ?*s31.bitcoin_fold_step.ShaBoundaryWires,
 ) !circuit.builder.Context(V) {
     var ctx = try circuit.builder.Context(V).init(allocator, circuit.common.component_list.N_RESERVED);
     errdefer ctx.deinit();
@@ -162,20 +189,37 @@ fn buildCircuitMode(
     try stages.mark(&ctx.circuit, .{ .name = "proof_witness" });
     try circuit.stark_verifier.verify.verify(V, &ctx, &proof_vars, proof_config, &statement, stages);
 
-    const step_kernel = if (first_retarget)
-        s31.bitcoin_fold_step.constrainFirstRetargetPowLinkStepWithTime
-    else
-        s31.bitcoin_fold_step.constrainGenesisEpochPowLinkStepWithTime;
-    const result = try step_kernel(
-        V,
-        &ctx,
-        prior_hash_values,
-        header_values,
-        claim.prior_root,
-        claim.prior_times,
-        claim.counter.step,
-        step_value,
-    );
+    const result = if (comptime fused_sha) blk: {
+        var digest_wires: [16]Var = undefined;
+        for (digest_values, &digest_wires) |value, *wire| wire.* = try ctx.guessU16(value);
+        break :blk try s31.bitcoin_fold_step.constrainGenesisEpochPowLinkStepWithTimeFromDigestWires(
+            V,
+            &ctx,
+            prior_hash_values,
+            header_values,
+            digest_wires,
+            claim.prior_root,
+            claim.prior_times,
+            claim.counter.step,
+            step_value,
+            boundary_out orelse return error.MissingFusedShaBoundary,
+        );
+    } else blk: {
+        const step_kernel = if (first_retarget)
+            s31.bitcoin_fold_step.constrainFirstRetargetPowLinkStepWithTime
+        else
+            s31.bitcoin_fold_step.constrainGenesisEpochPowLinkStepWithTime;
+        break :blk try step_kernel(
+            V,
+            &ctx,
+            prior_hash_values,
+            header_values,
+            claim.prior_root,
+            claim.prior_times,
+            claim.counter.step,
+            step_value,
+        );
+    };
     try stages.mark(&ctx.circuit, .{ .name = "bitcoin_header_step" });
     var next_times: [11]U32 = undefined;
     next_times[0] = result.time;
@@ -198,7 +242,20 @@ pub fn topology(
     checkpoint: [8]u32,
     step: u32,
 ) !circuit.builder.Context(NoValue) {
-    return topologyMode(allocator, projection_bytes, child_layout, child_pcs, base_root, checkpoint, step, false);
+    return topologyMode(allocator, projection_bytes, child_layout, child_pcs, base_root, checkpoint, step, false, false, null);
+}
+
+pub fn fusedTopology(
+    allocator: std.mem.Allocator,
+    projection_bytes: []const u8,
+    child_layout: circuit.common.preprocessed.ColumnLayout,
+    child_pcs: core.pcs.config_v2.PcsConfigV2,
+    base_root: [32]u8,
+    checkpoint: [8]u32,
+    step: u32,
+    boundary_out: *s31.bitcoin_fold_step.ShaBoundaryWires,
+) !circuit.builder.Context(NoValue) {
+    return topologyMode(allocator, projection_bytes, child_layout, child_pcs, base_root, checkpoint, step, false, true, boundary_out);
 }
 
 pub fn firstRetargetTopology(
@@ -210,7 +267,7 @@ pub fn firstRetargetTopology(
     checkpoint: [8]u32,
     step: u32,
 ) !circuit.builder.Context(NoValue) {
-    return topologyMode(allocator, projection_bytes, child_layout, child_pcs, base_root, checkpoint, step, true);
+    return topologyMode(allocator, projection_bytes, child_layout, child_pcs, base_root, checkpoint, step, true, false, null);
 }
 
 fn topologyMode(
@@ -222,6 +279,8 @@ fn topologyMode(
     checkpoint: [8]u32,
     step: u32,
     comptime first_retarget: bool,
+    comptime fused_sha: bool,
+    boundary_out: ?*s31.bitcoin_fold_step.ShaBoundaryWires,
 ) !circuit.builder.Context(NoValue) {
     try recursion_gate.authenticateProjection(projection_bytes);
     var projection = try circuit.air_eval.projection.parse(allocator, projection_bytes);
@@ -237,6 +296,24 @@ fn topologyMode(
     var scratch = std.heap.ArenaAllocator.init(allocator);
     defer scratch.deinit();
     const empty = try circuit.stark_verifier.proof.emptyProof(scratch.allocator(), proof_config);
+    if (comptime fused_sha) return buildFusedCircuit(
+        NoValue,
+        allocator,
+        &table,
+        &config,
+        base_root,
+        checkpoint,
+        Blake.hashValue(NoValue, @splat(0)),
+        [_]NoValue{.{}} ** 8,
+        [_]NoValue{.{}} ** 11,
+        [_]NoValue{.{}} ** 16,
+        [_]NoValue{.{}} ** 40,
+        [_]NoValue{.{}} ** 16,
+        step,
+        &empty,
+        circuit.stark_verifier.verify.NoStages{},
+        boundary_out orelse return error.MissingFusedShaBoundary,
+    );
     const build = if (first_retarget) buildFirstRetargetCircuit else buildCircuit;
     return build(
         NoValue,

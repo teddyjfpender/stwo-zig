@@ -1,0 +1,78 @@
+{
+  "anchor_preprocessed_root": "05b924eed15a3c54f42f6c4c92343ceef0b6495acccdc557ab3f594b8d69b093",
+  "canonical_sha_boundary_addresses_sha256": "c50b24b098be11a3a029785b79756e638c67972eb7057cc364226d2afc7591fa",
+  "cases": [
+    {
+      "anchor_root": "05b924eed15a3c54f42f6c4c92343ceef0b6495acccdc557ab3f594b8d69b093",
+      "blake": 1126000,
+      "boundary_first": 5588735,
+      "boundary_last": 5588718,
+      "boundary_sha256": "c50b24b098be11a3a029785b79756e638c67972eb7057cc364226d2afc7591fa",
+      "eq": 28797,
+      "fixed_root": "806b26778fc040fea62b9538b82bd7d88dc9a1c07759280a98940756bdb84e04",
+      "qm31": 804740,
+      "raw_vars": 5606320,
+      "step": 0,
+      "u32": 203600,
+      "xor": 112600
+    },
+    {
+      "anchor_root": "05b924eed15a3c54f42f6c4c92343ceef0b6495acccdc557ab3f594b8d69b093",
+      "blake": 1126000,
+      "boundary_first": 5588735,
+      "boundary_last": 5588718,
+      "boundary_sha256": "c50b24b098be11a3a029785b79756e638c67972eb7057cc364226d2afc7591fa",
+      "eq": 28797,
+      "fixed_root": "806b26778fc040fea62b9538b82bd7d88dc9a1c07759280a98940756bdb84e04",
+      "qm31": 804740,
+      "raw_vars": 5606320,
+      "step": 1,
+      "u32": 203600,
+      "xor": 112600
+    }
+  ],
+  "child_padded_rows": {
+    "blake_g": 2097152,
+    "eq": 32768,
+    "m31_to_u32": 262144,
+    "qm31_ops": 2097152,
+    "triple_xor": 131072
+  },
+  "command": "zig build --build-file src/frontends/s31/build.zig inspect-bitcoin-chain-fold-fused -Doptimize=ReleaseSafe -j1",
+  "fused_preprocessed_root": "806b26778fc040fea62b9538b82bd7d88dc9a1c07759280a98940756bdb84e04",
+  "fused_raw_rows": {
+    "blake_g": 1126000,
+    "eq": 28797,
+    "m31_to_u32": 203600,
+    "qm31_ops": 804740,
+    "triple_xor": 112600
+  },
+  "fused_raw_vars": 5606320,
+  "generic_raw_rows": {
+    "blake_g": 1126000,
+    "eq": 32455,
+    "m31_to_u32": 205456,
+    "qm31_ops": 1152060,
+    "triple_xor": 112600
+  },
+  "generic_raw_vars": 5955496,
+  "generic_topology_sha256": "28ccaf8e06a451cfdc814de1bba26a5fc44858a5a176e30d6123f035d23a00da",
+  "projection_sha256": "ceea3c293a4fcd3ca8a20ba62f4845732f8725bdf610fe6367c83adcb8be7e09",
+  "raw_row_difference_fused_minus_generic": {
+    "blake_g": 0,
+    "eq": -3658,
+    "m31_to_u32": -1856,
+    "qm31_ops": -347320,
+    "triple_xor": 0
+  },
+  "reference_sha256": "5dd433168d062c4a442ea723f2e26a58baf5cf0462814d408fc8382fcf0fa15a",
+  "schema": "s31-bitcoin-chain-fold-fused-topology-v1",
+  "scope": "Value-free one-header SHA-external fold topology. Fixed root and 56-address Gate boundary are stable at steps 0 and 1. The inspector rejects duplicate/public boundary addresses. This is not a joined native proof or a speed measurement.",
+  "source_sha256": {
+    "bitcoin_chain_anchor.zig": "b7020879754f970fe71e21b3ddec1229f4a8ff80e4507e0800edf29f999d368e",
+    "bitcoin_chain_fold.zig": "354b17196fd7d33d8d69bdfd87bdda2028cd27df9ccb5b920fa68bcf6e836f14",
+    "bitcoin_fold_digest.zig": "0c241efdde0bb822d077b68dad8d7baef0e01ae83a52c9e1d82ce328d2012e1a",
+    "bitcoin_fold_step.zig": "eee1ce8d65f60e0067b47456ac8a10a52bde913eb3ab5616ff244809967e0488",
+    "inspect_bitcoin_chain_fold_fused.zig": "faaa767f0dd633c5b6b49a926e78fa7d4f154e2a7c0c08c49a6519d490486bec"
+  }
+}

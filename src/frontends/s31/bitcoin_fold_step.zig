@@ -17,6 +17,12 @@ const NoValue = circuit.builder.NoValue;
 const U32 = circuit.builder.wrappers.U32Wrapper(Var);
 
 pub const StepResult = struct { root: [8]Var, time: U32 };
+/// Wires that a joined SHA AIR must authenticate in the same proof. The
+/// header is guessed as forty range-checked little-endian u16 limbs by this
+/// step. Callers must supply sixteen range-checked little-endian u16 digest
+/// wires and bind all 56 limbs to the SHA caller in header-then-digest order;
+/// this kernel alone does not establish SHA256d.
+pub const ShaBoundaryWires = struct { header: [40]Var, digest: [16]Var };
 const DifficultyMode = enum { unrestricted, genesis_epoch, first_retarget };
 const RetargetContext = struct { last_time: U32, step: U32, step_value: u32 };
 
@@ -60,7 +66,23 @@ pub fn constrainMainnetPowLinkStep(
     header_values: [40]V,
     authenticated_prior_root: [8]Var,
 ) ![8]Var {
-    return (try constrainPowLinkStep(V, ctx, prior_hash_values, header_values, authenticated_prior_root, .unrestricted, null)).root;
+    return (try constrainPowLinkStep(V, ctx, prior_hash_values, header_values, authenticated_prior_root, .unrestricted, null, null, null)).root;
+}
+
+/// External-digest variant for a joined SHA proof. `digest_wires` must be
+/// range-checked u16 limbs, and the caller must authenticate the returned
+/// boundary through the same-proof SHA Gate/lookup relation. The digest is
+/// otherwise an unconstrained claim and can be chosen to fake proof of work.
+pub fn constrainMainnetPowLinkStepFromDigestWires(
+    comptime V: type,
+    ctx: *circuit.builder.Context(V),
+    prior_hash_values: [16]V,
+    header_values: [40]V,
+    digest_wires: [16]Var,
+    authenticated_prior_root: [8]Var,
+    boundary_out: *ShaBoundaryWires,
+) ![8]Var {
+    return (try constrainPowLinkStep(V, ctx, prior_hash_values, header_values, authenticated_prior_root, .unrestricted, null, digest_wires, boundary_out)).root;
 }
 
 fn constrainPowLinkStep(
@@ -71,6 +93,8 @@ fn constrainPowLinkStep(
     authenticated_prior_root: [8]Var,
     comptime difficulty: DifficultyMode,
     retarget: ?RetargetContext,
+    external_digest: ?[16]Var,
+    boundary_out: ?*ShaBoundaryWires,
 ) !StepResult {
     var prior_hash: [16]Var = undefined;
     var header: [40]Var = undefined;
@@ -87,7 +111,8 @@ fn constrainPowLinkStep(
         try constrainFirstRetargetEpochBits(V, ctx, &header, state.last_time, state.step, state.step_value);
     }
 
-    const child_hash = try sha256d.hashHeader(V, ctx, &header);
+    const child_hash = external_digest orelse try sha256d.hashHeader(V, ctx, &header);
+    if (boundary_out) |boundary| boundary.* = .{ .header = header, .digest = child_hash };
     const target = try bitcoin_target.mainnetTarget(V, ctx, &header);
     try ctx.eq(try lessEqualU256(V, ctx, child_hash, target), ctx.one());
     const i = try ctx.constant(QM31.fromU32Unchecked(0, 1, 0, 0));
@@ -215,7 +240,19 @@ pub fn constrainGenesisEpochPowLinkStep(
     header_values: [40]V,
     authenticated_prior_root: [8]Var,
 ) ![8]Var {
-    return (try constrainPowLinkStep(V, ctx, prior_hash_values, header_values, authenticated_prior_root, .genesis_epoch, null)).root;
+    return (try constrainPowLinkStep(V, ctx, prior_hash_values, header_values, authenticated_prior_root, .genesis_epoch, null, null, null)).root;
+}
+
+pub fn constrainGenesisEpochPowLinkStepFromDigestWires(
+    comptime V: type,
+    ctx: *circuit.builder.Context(V),
+    prior_hash_values: [16]V,
+    header_values: [40]V,
+    digest_wires: [16]Var,
+    authenticated_prior_root: [8]Var,
+    boundary_out: *ShaBoundaryWires,
+) ![8]Var {
+    return (try constrainPowLinkStep(V, ctx, prior_hash_values, header_values, authenticated_prior_root, .genesis_epoch, null, digest_wires, boundary_out)).root;
 }
 
 pub fn constrainGenesisEpochPowLinkStepWithTime(
@@ -228,7 +265,24 @@ pub fn constrainGenesisEpochPowLinkStepWithTime(
     step: U32,
     step_value: u32,
 ) !StepResult {
-    const result = try constrainPowLinkStep(V, ctx, prior_hash_values, header_values, authenticated_prior_root, .genesis_epoch, null);
+    const result = try constrainPowLinkStep(V, ctx, prior_hash_values, header_values, authenticated_prior_root, .genesis_epoch, null, null, null);
+    try constrainMedianTimePast(V, ctx, prior_times, result.time, step, step_value);
+    return result;
+}
+
+pub fn constrainGenesisEpochPowLinkStepWithTimeFromDigestWires(
+    comptime V: type,
+    ctx: *circuit.builder.Context(V),
+    prior_hash_values: [16]V,
+    header_values: [40]V,
+    digest_wires: [16]Var,
+    authenticated_prior_root: [8]Var,
+    prior_times: [11]U32,
+    step: U32,
+    step_value: u32,
+    boundary_out: *ShaBoundaryWires,
+) !StepResult {
+    const result = try constrainPowLinkStep(V, ctx, prior_hash_values, header_values, authenticated_prior_root, .genesis_epoch, null, digest_wires, boundary_out);
     try constrainMedianTimePast(V, ctx, prior_times, result.time, step, step_value);
     return result;
 }
@@ -247,7 +301,28 @@ pub fn constrainFirstRetargetPowLinkStepWithTime(
         .last_time = prior_times[0],
         .step = step,
         .step_value = step_value,
-    });
+    }, null, null);
+    try constrainMedianTimePast(V, ctx, prior_times, result.time, step, step_value);
+    return result;
+}
+
+pub fn constrainFirstRetargetPowLinkStepWithTimeFromDigestWires(
+    comptime V: type,
+    ctx: *circuit.builder.Context(V),
+    prior_hash_values: [16]V,
+    header_values: [40]V,
+    digest_wires: [16]Var,
+    authenticated_prior_root: [8]Var,
+    prior_times: [11]U32,
+    step: U32,
+    step_value: u32,
+    boundary_out: *ShaBoundaryWires,
+) !StepResult {
+    const result = try constrainPowLinkStep(V, ctx, prior_hash_values, header_values, authenticated_prior_root, .first_retarget, .{
+        .last_time = prior_times[0],
+        .step = step,
+        .step_value = step_value,
+    }, digest_wires, boundary_out);
     try constrainMedianTimePast(V, ctx, prior_times, result.time, step, step_value);
     return result;
 }
@@ -440,4 +515,192 @@ test "direct recursive header kernel proves genesis-to-block-one link and PoW" {
     try std.testing.expectEqualDeep(ctx.circuit.pointwise_mul.items, topology.circuit.pointwise_mul.items);
     try std.testing.expectEqual(@as(usize, 0), ctx.circuit.triple_xor.items.len);
     try std.testing.expectEqual(@as(usize, 0), ctx.circuit.blake_g_gate.items.len);
+}
+
+fn fixtureHeaders(allocator: std.mem.Allocator) ![3][80]u8 {
+    const Genesis = struct { private_inputs: struct { header: [40]u16 } };
+    const BlockOne = struct { private_inputs: struct { child: [40]u16 } };
+    const BlockTwo = struct { header_hex: []const u8 };
+    var genesis = try std.json.parseFromSlice(Genesis, allocator, @embedFile("examples/bitcoin_header_pow.valid.json"), .{ .ignore_unknown_fields = true });
+    defer genesis.deinit();
+    var block_one = try std.json.parseFromSlice(BlockOne, allocator, @embedFile("examples/bitcoin_header_pair.valid.json"), .{ .ignore_unknown_fields = true });
+    defer block_one.deinit();
+    var block_two = try std.json.parseFromSlice(BlockTwo, allocator, @embedFile("examples/bitcoin_block2_header.valid.json"), .{ .ignore_unknown_fields = true });
+    defer block_two.deinit();
+    if (block_two.value.header_hex.len != 160) return error.InvalidHeaderFixture;
+    var headers: [3][80]u8 = undefined;
+    for (genesis.value.private_inputs.header, 0..) |word, i| std.mem.writeInt(u16, headers[0][2 * i ..][0..2], word, .little);
+    for (block_one.value.private_inputs.child, 0..) |word, i| std.mem.writeInt(u16, headers[1][2 * i ..][0..2], word, .little);
+    _ = try std.fmt.hexToBytes(&headers[2], block_two.value.header_hex);
+    return headers;
+}
+
+fn hostDigest(header: [80]u8) [32]u8 {
+    var first: [32]u8 = undefined;
+    var second: [32]u8 = undefined;
+    std.crypto.hash.sha2.Sha256.hash(&header, &first, .{});
+    std.crypto.hash.sha2.Sha256.hash(&first, &second, .{});
+    return second;
+}
+
+fn hostRoot(digest: [32]u8) [8]u32 {
+    var limbs: [16]M31 = undefined;
+    for (&limbs, 0..) |*limb, i| limb.* = M31.fromCanonical(std.mem.readInt(u16, digest[2 * i ..][0..2], .little));
+    const fields = poseidon2.leafWords(&limbs);
+    var result: [8]u32 = undefined;
+    for (fields, &result) |field, *word| word.* = field.toU32();
+    return result;
+}
+
+fn TestStep(comptime V: type) type {
+    return struct {
+        ctx: circuit.builder.Context(V),
+        root: [8]Var,
+        time: ?U32,
+        boundary: ?ShaBoundaryWires,
+
+        fn deinit(self: *@This()) void {
+            self.ctx.deinit();
+        }
+    };
+}
+
+/// `authenticate_sha` models the same-proof Gate join in a small circuit by
+/// constraining the external digest against direct SHA. It is only a test
+/// oracle; production callers must use the fused SHA AIR's Gate lookup.
+fn buildFixtureStep(
+    comptime V: type,
+    allocator: std.mem.Allocator,
+    header: [80]u8,
+    prior_digest: [32]u8,
+    digest: [32]u8,
+    prior_times: [11]u32,
+    index: usize,
+    comptime external: bool,
+    comptime authenticate_sha: bool,
+) !TestStep(V) {
+    var ctx = try circuit.builder.Context(V).init(allocator, 8);
+    errdefer ctx.deinit();
+    var prior_root: [8]Var = undefined;
+    for (hostRoot(prior_digest), &prior_root) |word, *wire| wire.* = try ctx.guessM31(hint(V, word));
+    var prior_values: [16]V = undefined;
+    var header_values: [40]V = undefined;
+    for (&prior_values, 0..) |*value, i| value.* = hint(V, std.mem.readInt(u16, prior_digest[2 * i ..][0..2], .little));
+    for (&header_values, 0..) |*value, i| value.* = hint(V, std.mem.readInt(u16, header[2 * i ..][0..2], .little));
+
+    var digest_wires: [16]Var = undefined;
+    if (external) {
+        for (&digest_wires, 0..) |*wire, i| wire.* = try ctx.guessU16(hint(V, std.mem.readInt(u16, digest[2 * i ..][0..2], .little)));
+    }
+    var boundary: ShaBoundaryWires = undefined;
+    var root: [8]Var = undefined;
+    var time: ?U32 = null;
+    if (index == 0) {
+        root = if (external)
+            try constrainMainnetPowLinkStepFromDigestWires(V, &ctx, prior_values, header_values, digest_wires, prior_root, &boundary)
+        else
+            try constrainMainnetPowLinkStep(V, &ctx, prior_values, header_values, prior_root);
+    } else {
+        var times: [11]U32 = undefined;
+        for (prior_times, &times) |word, *wire| wire.* = try circuit.builder.wrappers.guessU32(V, &ctx, circuit.builder.wrappers.u32Value(V, word));
+        const step_value: u32 = @intCast(index - 1);
+        const step = try circuit.builder.wrappers.guessU32(V, &ctx, circuit.builder.wrappers.u32Value(V, step_value));
+        const result = if (external)
+            try constrainGenesisEpochPowLinkStepWithTimeFromDigestWires(V, &ctx, prior_values, header_values, digest_wires, prior_root, times, step, step_value, &boundary)
+        else
+            try constrainGenesisEpochPowLinkStepWithTime(V, &ctx, prior_values, header_values, prior_root, times, step, step_value);
+        root = result.root;
+        time = result.time;
+    }
+    if (authenticate_sha) {
+        const computed = try sha256d.hashHeader(V, &ctx, &boundary.header);
+        for (computed, boundary.digest) |actual, claimed| try ctx.eq(actual, claimed);
+    }
+    try ctx.setOutputs(&root);
+    try ctx.finalize(false);
+    return .{ .ctx = ctx, .root = root, .time = time, .boundary = if (external) boundary else null };
+}
+
+fn expectSameTopology(a: anytype, b: anytype) !void {
+    try std.testing.expectEqual(a.circuit.n_vars, b.circuit.n_vars);
+    try std.testing.expectEqualDeep(a.circuit.add.items, b.circuit.add.items);
+    try std.testing.expectEqualDeep(a.circuit.sub.items, b.circuit.sub.items);
+    try std.testing.expectEqualDeep(a.circuit.mul.items, b.circuit.mul.items);
+    try std.testing.expectEqualDeep(a.circuit.eq.items, b.circuit.eq.items);
+    try std.testing.expectEqualDeep(a.circuit.triple_xor.items, b.circuit.triple_xor.items);
+    try std.testing.expectEqualDeep(a.circuit.m31_to_u32.items, b.circuit.m31_to_u32.items);
+    try std.testing.expectEqualDeep(a.circuit.blake_g_gate.items, b.circuit.blake_g_gate.items);
+    try std.testing.expectEqualDeep(a.circuit.pointwise_mul.items, b.circuit.pointwise_mul.items);
+    try std.testing.expectEqualDeep(a.circuit.permutation.ends.items, b.circuit.permutation.ends.items);
+    try std.testing.expectEqualDeep(a.circuit.permutation.inputs.items, b.circuit.permutation.inputs.items);
+    try std.testing.expectEqualDeep(a.circuit.permutation.outputs.items, b.circuit.permutation.outputs.items);
+    try std.testing.expectEqualDeep(a.circuit.output.items, b.circuit.output.items);
+}
+
+test "external digest step matches direct SHA on genesis, block one and block two" {
+    const headers = try fixtureHeaders(std.testing.allocator);
+    var prior_digest = [_]u8{0} ** 32;
+    var prior_times = @import("bitcoin_fold_digest.zig").initialTimes();
+    for (headers, 0..) |header, index| {
+        const digest = hostDigest(header);
+        var direct = try buildFixtureStep(QM31, std.testing.allocator, header, prior_digest, digest, prior_times, index, false, false);
+        defer direct.deinit();
+        var external = try buildFixtureStep(QM31, std.testing.allocator, header, prior_digest, digest, prior_times, index, true, false);
+        defer external.deinit();
+        var topology = try buildFixtureStep(NoValue, std.testing.allocator, header, prior_digest, digest, prior_times, index, true, false);
+        defer topology.deinit();
+        try std.testing.expect(try direct.ctx.isCircuitValid());
+        try std.testing.expect(try external.ctx.isCircuitValid());
+        try expectSameTopology(&external.ctx, &topology.ctx);
+        for (hostRoot(digest), direct.root, external.root) |word, direct_wire, external_wire| {
+            const expected = hint(QM31, word);
+            try std.testing.expectEqual(expected, direct.ctx.value_table.items[direct_wire.idx]);
+            try std.testing.expectEqual(expected, external.ctx.value_table.items[external_wire.idx]);
+        }
+        if (index > 0) {
+            const expected_time = std.mem.readInt(u32, header[68..72], .little);
+            const direct_time = direct.time orelse unreachable;
+            const external_time = external.time orelse unreachable;
+            try std.testing.expectEqual(expected_time, circuit.builder.ivalue.unpackU32(QM31, direct.ctx.get(direct_time.get())));
+            try std.testing.expectEqual(expected_time, circuit.builder.ivalue.unpackU32(QM31, external.ctx.get(external_time.get())));
+            prior_times = @import("bitcoin_fold_digest.zig").advanceTimes(prior_times, expected_time);
+        }
+        const actual_boundary = external.boundary orelse unreachable;
+        for (actual_boundary.header, 0..) |wire, i| try std.testing.expectEqual(hint(QM31, std.mem.readInt(u16, header[2 * i ..][0..2], .little)), external.ctx.get(wire));
+        for (actual_boundary.digest, 0..) |wire, i| try std.testing.expectEqual(hint(QM31, std.mem.readInt(u16, digest[2 * i ..][0..2], .little)), external.ctx.get(wire));
+        prior_digest = digest;
+    }
+}
+
+test "external digest substitution requires same-proof SHA authentication" {
+    const headers = try fixtureHeaders(std.testing.allocator);
+    const prior_digest = hostDigest(headers[0]);
+    const correct_digest = hostDigest(headers[1]);
+    var changed_digest = correct_digest;
+    changed_digest[0] ^= 1;
+    const prior_times = @import("bitcoin_fold_digest.zig").initialTimes();
+    var unchecked = try buildFixtureStep(QM31, std.testing.allocator, headers[1], prior_digest, changed_digest, prior_times, 1, true, false);
+    defer unchecked.deinit();
+    // This acceptance is intentional: the step alone cannot establish SHA.
+    try std.testing.expect(try unchecked.ctx.isCircuitValid());
+    var checked = try buildFixtureStep(QM31, std.testing.allocator, headers[1], prior_digest, changed_digest, prior_times, 1, true, true);
+    defer checked.deinit();
+    try std.testing.expect(!try checked.ctx.isCircuitValid());
+    var checked_topology = try buildFixtureStep(NoValue, std.testing.allocator, headers[1], prior_digest, changed_digest, prior_times, 1, true, true);
+    defer checked_topology.deinit();
+    try expectSameTopology(&checked.ctx, &checked_topology.ctx);
+
+    var changed_header = headers[1];
+    changed_header[4] ^= 1; // First previous-hash byte: exact link must fail.
+    var wrong_link = try buildFixtureStep(QM31, std.testing.allocator, changed_header, prior_digest, hostDigest(changed_header), prior_times, 1, true, false);
+    defer wrong_link.deinit();
+    try std.testing.expect(!try wrong_link.ctx.isCircuitValid());
+    var direct_wrong_link = try buildFixtureStep(QM31, std.testing.allocator, changed_header, prior_digest, hostDigest(changed_header), prior_times, 1, false, false);
+    defer direct_wrong_link.deinit();
+    try std.testing.expect(!try direct_wrong_link.ctx.isCircuitValid());
+    for (wrong_link.root, direct_wrong_link.root) |external_wire, direct_wire|
+        try std.testing.expectEqual(wrong_link.ctx.get(external_wire), direct_wrong_link.ctx.get(direct_wire));
+    var wrong_link_topology = try buildFixtureStep(NoValue, std.testing.allocator, changed_header, prior_digest, hostDigest(changed_header), prior_times, 1, true, false);
+    defer wrong_link_topology.deinit();
+    try expectSameTopology(&wrong_link.ctx, &wrong_link_topology.ctx);
 }

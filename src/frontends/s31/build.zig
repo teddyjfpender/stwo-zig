@@ -95,6 +95,27 @@ pub fn build(b: *std.Build) void {
     });
     b.step("inspect-bitcoin-chain-fold", "Inspect complete candidate Bitcoin chain-fold topology")
         .dependOn(&b.addRunArtifact(bitcoin_fold_inspector).step);
+    const fused_fold_inspector_root = b.createModule(.{
+        .root_source_file = b.path("inspect_bitcoin_chain_fold_fused.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    fused_fold_inspector_root.addImport("stwo_s31_prototype", frontend);
+    fused_fold_inspector_root.addImport("stwo_core", core);
+    fused_fold_inspector_root.addImport("stwo_circuit_frontend", circuit);
+    fused_fold_inspector_root.addImport("stwo_circuit_cpu_integration", cpu);
+    fused_fold_inspector_root.addAnonymousImport("s31_air_projection", .{
+        .root_source_file = .{ .cwd_relative = b.pathFromRoot("../../../vectors/circuit/official/compiled_air_constraints_v1.bin") },
+    });
+    fused_fold_inspector_root.addAnonymousImport("s31_fold_reference", .{
+        .root_source_file = .{ .cwd_relative = b.pathFromRoot("../../../design/s31/measurements/bitcoin-sparse-wide-fold-stages-v1-2026-10-07.json") },
+    });
+    const fused_fold_inspector = b.addExecutable(.{
+        .name = "s31-inspect-bitcoin-chain-fold-fused",
+        .root_module = fused_fold_inspector_root,
+    });
+    b.step("inspect-bitcoin-chain-fold-fused", "Inspect fused-SHA Bitcoin chain-fold topology and private boundary")
+        .dependOn(&b.addRunArtifact(fused_fold_inspector).step);
     const bitcoin_fold_test_root = b.createModule(.{
         .root_source_file = b.path("bitcoin_chain_fold.zig"),
         .target = target,
@@ -109,6 +130,21 @@ pub fn build(b: *std.Build) void {
         .filters = &.{"Bitcoin fold chooses a trusted base or the authenticated previous digest"},
     }));
     test_step.dependOn(&bitcoin_fold_tests.step);
+    const external_sha_step_root = b.createModule(.{
+        .root_source_file = b.path("bitcoin_fold_step.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    external_sha_step_root.addImport("stwo_core", core);
+    external_sha_step_root.addImport("stwo_circuit_frontend", circuit);
+    external_sha_step_root.addImport("s31_sha_provider", sha_provider);
+    external_sha_step_root.addImport("s31_poseidon_ref", sha_provider);
+    const external_sha_step_tests = b.addRunArtifact(b.addTest(.{
+        .root_module = external_sha_step_root,
+        .filters = &.{ "external digest step matches", "external digest substitution", "direct recursive header kernel proves genesis-to-block-one link and PoW" },
+    }));
+    b.step("test-bitcoin-fold-step-external", "Test the external SHA digest Bitcoin fold-step constraints")
+        .dependOn(&external_sha_step_tests.step);
     const bitcoin_anchor_test_root = b.createModule(.{
         .root_source_file = b.path("bitcoin_chain_anchor.zig"),
         .target = target,
@@ -385,6 +421,72 @@ pub fn build(b: *std.Build) void {
     const sha_fused_private_join_tests = b.addRunArtifact(b.addTest(.{ .root_module = sha_fused_private_join_root }));
     b.step("test-sha-fused-private-join", "Prove one private SHA256d header with fused schedule and rounds")
         .dependOn(&sha_fused_private_join_tests.step);
+    const sha_fused_fold_profile_root = b.createModule(.{
+        .root_source_file = b.path("sha_fused_fold_profile.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    sha_fused_fold_profile_root.addImport("stwo_core", core);
+    sha_fused_fold_profile_root.addImport("stwo_prover_engine", cpu.import_table.get("stwo_prover_engine") orelse @panic("missing prover engine"));
+    sha_fused_fold_profile_root.addImport("stwo_circuit_frontend", circuit);
+    sha_fused_fold_profile_root.addImport("stwo_circuit_cpu_integration", cpu);
+    sha_fused_fold_profile_root.addImport("stwo_cairo_frontend", cpu.import_table.get("stwo_cairo_frontend") orelse @panic("missing Cairo frontend"));
+    sha_fused_fold_profile_root.addImport("interop_postcard", sha_postcard);
+    sha_fused_fold_profile_root.addImport("s31_air_programs", official_air);
+    sha_fused_fold_profile_root.addImport("s31_sha_provider", sha_provider);
+    const sha_fused_fold_profile_tests = b.addRunArtifact(b.addTest(.{ .root_module = sha_fused_fold_profile_root }));
+    b.step("test-sha-fused-fold-profile", "Check the full-circuit fused SHA fold profile and ABI")
+        .dependOn(&sha_fused_fold_profile_tests.step);
+    const sha_fused_fold_proof_root = b.createModule(.{
+        .root_source_file = b.path("sha_fused_fold_proof_test.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    sha_fused_fold_proof_root.addImport("stwo_core", core);
+    sha_fused_fold_proof_root.addImport("stwo_prover_engine", cpu.import_table.get("stwo_prover_engine") orelse @panic("missing prover engine"));
+    sha_fused_fold_proof_root.addImport("stwo_circuit_frontend", circuit);
+    sha_fused_fold_proof_root.addImport("stwo_circuit_cpu_integration", cpu);
+    sha_fused_fold_proof_root.addImport("stwo_s31_prototype", frontend);
+    sha_fused_fold_proof_root.addImport("stwo_cairo_frontend", cpu.import_table.get("stwo_cairo_frontend") orelse @panic("missing Cairo frontend"));
+    sha_fused_fold_proof_root.addImport("interop_postcard", sha_postcard);
+    sha_fused_fold_proof_root.addImport("s31_air_programs", official_air);
+    sha_fused_fold_proof_root.addImport("s31_sha_provider", sha_provider);
+    sha_fused_fold_proof_root.addAnonymousImport("s31_air_projection", .{
+        .root_source_file = .{ .cwd_relative = b.pathFromRoot("../../../vectors/circuit/official/compiled_air_constraints_v1.bin") },
+    });
+    sha_fused_fold_proof_root.addAnonymousImport("s31_bitcoin_fixture", .{
+        .root_source_file = b.path("examples/bitcoin_header_link.valid.json"),
+    });
+    const sha_fused_fold_proof_tests = b.addTest(.{ .root_module = sha_fused_fold_proof_root });
+    b.step("check-sha-fused-fold-proof", "Compile the opt-in fused SHA Bitcoin fold integration proof")
+        .dependOn(&sha_fused_fold_proof_tests.step);
+    b.step("test-sha-fused-fold-proof", "Prove and verify a checkpoint-anchored fused SHA Bitcoin fold")
+        .dependOn(&b.addRunArtifact(sha_fused_fold_proof_tests).step);
+    const sha_fused_fold_matched_root = b.createModule(.{
+        .root_source_file = b.path("sha_fused_fold_matched_bench_test.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    sha_fused_fold_matched_root.addImport("stwo_core", core);
+    sha_fused_fold_matched_root.addImport("stwo_prover_engine", cpu.import_table.get("stwo_prover_engine") orelse @panic("missing prover engine"));
+    sha_fused_fold_matched_root.addImport("stwo_circuit_frontend", circuit);
+    sha_fused_fold_matched_root.addImport("stwo_circuit_cpu_integration", cpu);
+    sha_fused_fold_matched_root.addImport("stwo_s31_prototype", frontend);
+    sha_fused_fold_matched_root.addImport("stwo_cairo_frontend", cpu.import_table.get("stwo_cairo_frontend") orelse @panic("missing Cairo frontend"));
+    sha_fused_fold_matched_root.addImport("interop_postcard", sha_postcard);
+    sha_fused_fold_matched_root.addImport("s31_air_programs", official_air);
+    sha_fused_fold_matched_root.addImport("s31_sha_provider", sha_provider);
+    sha_fused_fold_matched_root.addAnonymousImport("s31_air_projection", .{
+        .root_source_file = .{ .cwd_relative = b.pathFromRoot("../../../vectors/circuit/official/compiled_air_constraints_v1.bin") },
+    });
+    sha_fused_fold_matched_root.addAnonymousImport("s31_bitcoin_fixture", .{
+        .root_source_file = b.path("examples/bitcoin_header_link.valid.json"),
+    });
+    const sha_fused_fold_matched_tests = b.addTest(.{ .root_module = sha_fused_fold_matched_root });
+    b.step("check-sha-fused-fold-matched-bench", "Compile the matched generic versus fused fold benchmark")
+        .dependOn(&sha_fused_fold_matched_tests.step);
+    b.step("test-sha-fused-fold-matched-bench", "Compare generic and fused SHA Bitcoin fold proofs")
+        .dependOn(&b.addRunArtifact(sha_fused_fold_matched_tests).step);
     const sha_shift_circuit_root = b.createModule(.{
         .root_source_file = b.path("sha_shift_circuit_proof_test.zig"),
         .target = target,

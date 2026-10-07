@@ -126,6 +126,10 @@ pub const Error = error{
     VariableOutOfRange,
     AddressOutOfField,
     MissingOutputGate,
+    InvalidShaPrivateBoundary,
+    PublicShaPrivateBoundary,
+    DuplicateShaPrivateBoundary,
+    InvalidShaBoundaryProducer,
 } || tables.Error || tables.RowError;
 
 /// One `(id, log_size)` entry of a preprocessed-trace layout.
@@ -335,6 +339,33 @@ pub const CircuitView = struct {
     }
 };
 
+/// Fixed Gate addresses for one private 80-byte Bitcoin header and its
+/// 32-byte SHA256d digest. The caller AIR consumes one extra Gate yield at
+/// each address. The verifier derives these addresses from value-free
+/// topology; they are never chosen by the proof witness.
+pub const ShaBoundary = struct {
+    addresses: [56]u32,
+
+    pub fn validate(self: ShaBoundary, source: CircuitView) !void {
+        for (self.addresses, 0..) |address, index| {
+            if (address <= 2 or address >= source.n_vars or address >= core.fields.m31.Modulus)
+                return error.InvalidShaPrivateBoundary;
+            if (std.mem.indexOfScalar(u32, source.output, address) != null)
+                return error.PublicShaPrivateBoundary;
+            for (self.addresses[0..index]) |earlier|
+                if (earlier == address) return error.DuplicateShaPrivateBoundary;
+            var producers: u32 = 0;
+            inline for (.{ source.add, source.sub, source.mul, source.pointwise_mul }) |gates|
+                for (gates) |gate| {
+                    producers += @intFromBool(gate.out == address);
+                };
+            for (source.m31_to_u32) |gate| producers += @intFromBool(gate.out == address);
+            for (source.permutation_outputs) |out| producers += @intFromBool(out == address);
+            if (producers != 1) return error.InvalidShaBoundaryProducer;
+        }
+    }
+};
+
 /// One owned preprocessed column.
 pub const Column = struct {
     id: []const u8,
@@ -353,6 +384,7 @@ pub const PreprocessedCircuit = struct {
     first_permutation_row: usize,
     /// Public outputs, excluding the output gate of the `u` wire.
     n_outputs: usize,
+    sha_boundary: ?ShaBoundary = null,
 
     pub fn deinit(self: *PreprocessedCircuit, allocator: std.mem.Allocator) void {
         for (self.columns) |column| allocator.free(column.values);
@@ -361,6 +393,14 @@ pub const PreprocessedCircuit = struct {
 
     /// `PreprocessedCircuit::from_finalized_circuit`.
     pub fn fromCircuit(allocator: std.mem.Allocator, circuit: CircuitView) (Error || std.mem.Allocator.Error)!PreprocessedCircuit {
+        return fromCircuitOptionalBoundary(allocator, circuit, null);
+    }
+
+    pub fn fromCircuitWithShaBoundary(allocator: std.mem.Allocator, circuit: CircuitView, boundary: ShaBoundary) !PreprocessedCircuit {
+        return fromCircuitOptionalBoundary(allocator, circuit, boundary);
+    }
+
+    fn fromCircuitOptionalBoundary(allocator: std.mem.Allocator, circuit: CircuitView, boundary: ?ShaBoundary) !PreprocessedCircuit {
         if (circuit.output.len == 0) return error.MissingOutputGate;
         try circuit.validate();
         const multiplicities = try circuit.computeUses(allocator);
@@ -368,6 +408,10 @@ pub const PreprocessedCircuit = struct {
         // The permutation rows read the constant 0 once per input and output.
         if (multiplicities.len == 0) return error.VariableOutOfRange;
         multiplicities[0] += @intCast(circuit.permutationRows());
+        if (boundary) |sha| {
+            try sha.validate(circuit);
+            for (sha.addresses) |address| multiplicities[address] += 1;
+        }
 
         var builder = TraceBuilder{ .allocator = allocator };
         errdefer builder.deinit();
@@ -480,6 +524,7 @@ pub const PreprocessedCircuit = struct {
             .columns = columns,
             .first_permutation_row = first_permutation_row,
             .n_outputs = circuit.output.len - 1,
+            .sha_boundary = boundary,
         };
     }
 
@@ -498,6 +543,10 @@ pub const PreprocessedCircuit = struct {
     /// circuit, read in place (`CircuitView.fromBuilder`).
     pub fn fromBuilderCircuit(allocator: std.mem.Allocator, circuit: *const builder_circuit.Circuit) (Error || std.mem.Allocator.Error)!PreprocessedCircuit {
         return fromCircuit(allocator, .fromBuilder(circuit));
+    }
+
+    pub fn fromBuilderCircuitWithShaBoundary(allocator: std.mem.Allocator, circuit: *const builder_circuit.Circuit, boundary: ShaBoundary) !PreprocessedCircuit {
+        return fromCircuitWithShaBoundary(allocator, .fromBuilder(circuit), boundary);
     }
 
     /// `PreProcessedTrace::log_sizes`.

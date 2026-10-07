@@ -24,7 +24,7 @@ general module loader or user-published package format yet.
 | `std::bool` | `not`, `and`, `or`, `xor`, `select` | Scalar typed bits; input bitness is constrained, and every result follows from Boolean field identities. |
 | `std::bytes` | `to_u256_le`, `from_u256_le`, `limbs_m31` | Explicit nominal byte/integer reinterpretation and value-preserving cast of sixteen `u16` limbs. |
 | `std::hash` | Poseidon2 and BLAKE2s reduced leaf/pair hashes; byte-exact SHA256d of `Bytes80` | Existing pinned hash nodes plus a constrained three-block SHA circuit. |
-| `std::bitcoin` | `target_mainnet(Bytes80)` | Constrained compact `nBits` decoder with mainnet powLimit. |
+| `std::bitcoin` | `target_mainnet(Bytes80)`, `pow_valid(Bytes80)` | Constrained compact `nBits` decoder with mainnet powLimit. `pow_valid` expands to the existing byte-exact SHA256d, little-endian `UInt256` view, target decode, and unsigned comparison; it introduces no new relation operation. |
 | `std::merkle` | Fixed-depth Poseidon2 and BLAKE2s paths | Hash nodes plus two constrained selects per level. |
 
 All math operations have fixed shapes. Most operate independently on the lanes
@@ -35,9 +35,47 @@ checked addition forbids overflow, and unsigned comparison returns one M31
 bit. It is a base for the
 [Bitcoin header light-client plan](BITCOIN_LIGHT_CLIENT.md), which also
 now has byte-exact SHA256d and compact-target rules for a single mainnet
-header. A one-level `gate` verifier exists, but the Bitcoin profile still
-requires broader chain policy, a wider public statement, and a sparse-wide
-in-circuit verifier.
+header. The generic Bitcoin chain fold verifies its prior circuit proof and
+checks another header; the fused SHA package has a separate native verifier.
+Joining that fused proof to a stable recursive fold still needs the verifier
+and commitment work described in the
+[recursion integration brief](../../src/frontends/s31/docs/sha-fused-recursion.md).
+
+`std::bitcoin::pow_valid(header)` is now the source-level shorthand for
+`SHA256d(header) <= target_mainnet(header)`. The
+[standard](../../src/frontends/s31/examples/bitcoin_pow_valid_std.s31) and
+[manual](../../src/frontends/s31/examples/bitcoin_pow_valid_manual.s31)
+programs normalize to structurally identical relations and have the same
+cost geometry. The [acceptance script](../../src/frontends/s31/acceptance_bitcoin_pow_valid.py)
+checks the genesis header with Python's independent SHA256 and compact-target
+calculation, generated native proofs, a changed public bit, and invalid nonce
+and compact-target witnesses. The helper returns a constrained bit; callers
+that require a valid header must assert that it equals one.
+
+### Next Bitcoin mathlib feature: checked work division
+
+The next high-value integer primitive is a checked unsigned
+`div_rem_u256(numerator, nonzero_denominator) -> (quotient, remainder)`.
+For Bitcoin's nonzero decoded target `t`, a `block_work(t)` helper can then
+compute Core's `floor(2^256 / (t+1))` without relying on host arithmetic:
+
+```text
+d = checked_add_u256(t, 1)
+(q, r) = div_rem_u256(bitwise_not_256(t), d)
+work = checked_add_u256(q, 1)
+```
+
+The division relation must prove `q*d + r = bitwise_not_256(t)` as an
+**integer**, with a checked 512-bit product, zero upper product limbs,
+`0 <= r < d`, and `d != 0`. A direct sum of 16-bit limb products can wrap in
+M31; a sound first implementation can use 8-bit product digits, bounded
+carries, and a verified unsigned remainder comparison. The existing
+`add_u256_checked` then updates accumulated `ChainWork` and rejects overflow.
+`Target`, `Work`, and `ChainWork` should remain distinct nominal types, with
+the target tied to the selected network policy. Differential tests should
+cover Bitcoin Core's block-proof calculation, target boundaries, zero and
+overflow rejection, and changed quotient/remainder witnesses. This division
+and typed chainwork functionality is **proposed, not implemented**.
 
 The compiler checks types and canonical field constants before relation emission.
 `pow<K>` requires a compile-time exponent `0 <= K < p`, where
@@ -205,6 +243,7 @@ chip it activates.
 | Field/vector core | Runtime fixed-array indexing, concatenation, slicing, and reshape lower through explicit constrained relation nodes. New slices have native acceptance and measured cost regression coverage. Broader vector kernels remain. | Remaining effort depends on kernel scope. |
 | Nonzero inverse and checked division | **Core implemented:** witness generation, `x·inv=1`, zero rejection, direct-gate proof and native-verifier negative cases. Remaining: batch inverse cost comparison and wider random proof corpus. | Remaining effort depends on batching design. |
 | Boolean/range/integer core | Computed bits, comparisons, range constraints and explicit integer/field casts; no host-only assertions or unconstrained hint outputs. | 3–6 weeks |
+| Checked wide division and chainwork | Constrain a 512-bit `q*d+r` identity, nonzero divisor and canonical remainder; derive per-header work and checked accumulation from network-bound targets. | Requires a measured byte-radix circuit or dedicated arithmetic chip. |
 | Library release discipline | API/version policy, corpus of positive and negative proofs, cost regression gates, and audit views from source to AIR polynomial. | 2–3 weeks |
 
 These are overlapping work packages, not additive calendar promises. A focused
