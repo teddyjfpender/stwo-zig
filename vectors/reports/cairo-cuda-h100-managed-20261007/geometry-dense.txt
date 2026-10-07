@@ -1,0 +1,432 @@
+resident pie=15590913_15590913 logical_bytes=155077348516 peak_live_bytes=102323539144 allocated_bytes=103366794272 request_arena_bytes=103366794244 coefficient_cells=7512602816 evaluation_cells=15025205632
+stage pie=15590913_15590913 stage=ingress phase=0 live_bytes=14932034088
+stage pie=15590913_15590913 stage=ingress phase=1 live_bytes=14932034088
+stage pie=15590913_15590913 stage=trace_generation phase=0 live_bytes=73218523820
+stage pie=15590913_15590913 stage=trace_generation phase=1 live_bytes=73218523820
+stage pie=15590913_15590913 stage=trace_commit phase=0 live_bytes=102293052420
+stage pie=15590913_15590913 stage=trace_commit phase=1 live_bytes=98577702500
+stage pie=15590913_15590913 stage=constraint_evaluation phase=0 live_bytes=102323539144
+stage pie=15590913_15590913 stage=constraint_evaluation phase=1 live_bytes=102323539144
+stage pie=15590913_15590913 stage=oods phase=0 live_bytes=98991098348
+stage pie=15590913_15590913 stage=oods phase=1 live_bytes=98991098348
+stage pie=15590913_15590913 stage=quotient phase=0 live_bytes=68985625548
+stage pie=15590913_15590913 stage=quotient phase=1 live_bytes=68985625548
+stage pie=15590913_15590913 stage=fri_commit phase=0 live_bytes=70846329172
+stage pie=15590913_15590913 stage=fri_commit phase=1 live_bytes=70846329172
+stage pie=15590913_15590913 stage=pow phase=0 live_bytes=70577893704
+stage pie=15590913_15590913 stage=pow phase=1 live_bytes=70577893704
+stage pie=15590913_15590913 stage=decommit phase=0 live_bytes=70585602696
+stage pie=15590913_15590913 stage=decommit phase=1 live_bytes=70585602696
+stage pie=15590913_15590913 stage=proof_assembly phase=0 live_bytes=15667596
+stage pie=15590913_15590913 stage=proof_assembly phase=1 live_bytes=15667596
+slot pie=15590913_15590913 kind=adapted_input ordinal=0 bytes=443939388 from=ingress/0 through=trace_generation/1 storage=request_local
+slot pie=15590913_15590913 kind=statement_bootstrap ordinal=0 bytes=12592 from=ingress/0 through=trace_commit/1 storage=request_local
+slot pie=15590913_15590913 kind=writer_inputs ordinal=0 bytes=3381670436 from=ingress/0 through=trace_generation/1 storage=request_local
+slot pie=15590913_15590913 kind=writer_pointer_tables ordinal=0 bytes=50488 from=ingress/0 through=trace_generation/1 storage=request_local
+slot pie=15590913_15590913 kind=writer_descriptors ordinal=0 bytes=70216 from=ingress/0 through=trace_generation/1 storage=request_local
+slot pie=15590913_15590913 kind=writer_lookup_inputs ordinal=0 bytes=29929380224 from=trace_generation/0 through=trace_commit/0 storage=request_local
+slot pie=15590913_15590913 kind=writer_scratch ordinal=0 bytes=13317680068 from=trace_generation/0 through=trace_generation/1 storage=request_local
+slot pie=15590913_15590913 kind=fixed_writer_tables ordinal=0 bytes=9992 from=ingress/0 through=trace_generation/1 storage=request_local
+slot pie=15590913_15590913 kind=memory_writer_tables ordinal=0 bytes=944 from=ingress/0 through=trace_generation/1 storage=request_local
+slot pie=15590913_15590913 kind=relation_top_level_tables ordinal=0 bytes=2560 from=ingress/0 through=trace_commit/1 storage=request_local
+slot pie=15590913_15590913 kind=relation_source_pointer_tables ordinal=0 bytes=1168 from=ingress/0 through=trace_commit/1 storage=request_local
+slot pie=15590913_15590913 kind=relation_descriptors ordinal=0 bytes=46912 from=ingress/0 through=trace_commit/1 storage=request_local
+slot pie=15590913_15590913 kind=relation_geometry ordinal=0 bytes=2816 from=ingress/0 through=trace_commit/1 storage=request_local
+slot pie=15590913_15590913 kind=relation_challenges ordinal=0 bytes=32 from=trace_commit/0 through=constraint_evaluation/1 storage=request_local
+slot pie=15590913_15590913 kind=relation_z ordinal=0 bytes=16 from=trace_commit/0 through=constraint_evaluation/1 storage=request_local
+slot pie=15590913_15590913 kind=relation_base_inputs ordinal=0 bytes=608174080 from=trace_commit/0 through=trace_commit/1 storage=request_local
+slot pie=15590913_15590913 kind=relation_alpha_powers ordinal=0 bytes=2016 from=trace_commit/0 through=constraint_evaluation/1 storage=request_local
+slot pie=15590913_15590913 kind=relation_denominators ordinal=0 bytes=1024 from=trace_commit/0 through=trace_commit/1 storage=request_local
+slot pie=15590913_15590913 kind=relation_claimed_sums ordinal=0 bytes=1024 from=trace_commit/0 through=proof_assembly/1 storage=request_local
+slot pie=15590913_15590913 kind=relation_output_graph ordinal=0 bytes=23456 from=ingress/0 through=trace_commit/1 storage=request_local
+slot pie=15590913_15590913 kind=relation_reduction_scratch ordinal=0 bytes=3976848 from=trace_commit/0 through=trace_commit/1 storage=request_local
+slot pie=15590913_15590913 kind=relation_scan_scratch ordinal=0 bytes=3976848 from=trace_commit/0 through=trace_commit/1 storage=request_local
+slot pie=15590913_15590913 kind=eval_arguments ordinal=0 bytes=6144 from=ingress/0 through=constraint_evaluation/1 storage=request_local
+slot pie=15590913_15590913 kind=eval_trace_offsets ordinal=0 bytes=60624 from=ingress/0 through=constraint_evaluation/1 storage=request_local
+slot pie=15590913_15590913 kind=eval_interaction_offsets ordinal=0 bytes=768 from=ingress/0 through=constraint_evaluation/1 storage=request_local
+slot pie=15590913_15590913 kind=eval_lde_descriptors ordinal=0 bytes=181872 from=ingress/0 through=constraint_evaluation/1 storage=request_local
+slot pie=15590913_15590913 kind=eval_lde_tile ordinal=0 bytes=3825205248 from=constraint_evaluation/0 through=constraint_evaluation/1 storage=request_local
+slot pie=15590913_15590913 kind=eval_base_parameters ordinal=0 bytes=18780 from=ingress/0 through=constraint_evaluation/1 storage=request_local
+slot pie=15590913_15590913 kind=eval_extended_parameter_descriptors ordinal=0 bytes=47872 from=ingress/0 through=constraint_evaluation/1 storage=request_local
+slot pie=15590913_15590913 kind=eval_extended_parameters ordinal=0 bytes=23936 from=trace_commit/0 through=constraint_evaluation/1 storage=request_local
+slot pie=15590913_15590913 kind=eval_composition_offsets ordinal=0 bytes=144 from=ingress/0 through=constraint_evaluation/1 storage=request_local
+slot pie=15590913_15590913 kind=constraint_composition_accumulator ordinal=0 bytes=536820224 from=constraint_evaluation/0 through=constraint_evaluation/1 storage=request_local
+slot pie=15590913_15590913 kind=twiddles_forward ordinal=0 bytes=134217728 from=ingress/0 through=fri_commit/1 storage=process_cache
+slot pie=15590913_15590913 kind=twiddles_inverse ordinal=0 bytes=134217728 from=ingress/0 through=fri_commit/1 storage=process_cache
+slot pie=15590913_15590913 kind=trace_progressive_states ordinal=2 bytes=402653184 from=trace_commit/0 through=trace_commit/1 storage=request_local
+slot pie=15590913_15590913 kind=trace_progressive_states ordinal=3 bytes=402653184 from=trace_commit/0 through=trace_commit/1 storage=request_local
+slot pie=15590913_15590913 kind=trace_coefficients ordinal=0 bytes=2172402112 from=ingress/0 through=oods/1 storage=process_cache
+slot pie=15590913_15590913 kind=trace_evaluations ordinal=0 bytes=4344804224 from=ingress/0 through=decommit/1 storage=process_cache
+slot pie=15590913_15590913 kind=trace_column_logs ordinal=0 bytes=644 from=ingress/0 through=decommit/1 storage=process_cache
+slot pie=15590913_15590913 kind=trace_column_offsets ordinal=0 bytes=1296 from=ingress/0 through=decommit/1 storage=process_cache
+slot pie=15590913_15590913 kind=trace_merkle_hashes ordinal=0 bytes=4294967264 from=ingress/0 through=decommit/1 storage=process_cache
+slot pie=15590913_15590913 kind=trace_merkle_layers ordinal=0 bytes=432 from=ingress/0 through=decommit/1 storage=process_cache
+slot pie=15590913_15590913 kind=trace_root ordinal=0 bytes=32 from=trace_commit/0 through=proof_assembly/1 storage=request_local
+slot pie=15590913_15590913 kind=trace_coefficients ordinal=1 bytes=15039429440 from=trace_generation/0 through=oods/1 storage=request_local
+slot pie=15590913_15590913 kind=trace_evaluations ordinal=1 bytes=30078858880 from=trace_commit/0 through=decommit/1 storage=request_local
+slot pie=15590913_15590913 kind=trace_column_logs ordinal=1 bytes=17936 from=ingress/0 through=decommit/1 storage=request_local
+slot pie=15590913_15590913 kind=trace_column_offsets ordinal=1 bytes=35880 from=ingress/0 through=decommit/1 storage=request_local
+slot pie=15590913_15590913 kind=trace_merkle_hashes ordinal=1 bytes=1073741792 from=trace_commit/0 through=decommit/1 storage=request_local
+slot pie=15590913_15590913 kind=trace_merkle_layers ordinal=1 bytes=400 from=ingress/0 through=decommit/1 storage=request_local
+slot pie=15590913_15590913 kind=trace_root ordinal=1 bytes=32 from=trace_commit/0 through=proof_assembly/1 storage=request_local
+slot pie=15590913_15590913 kind=trace_coefficients ordinal=2 bytes=12570144256 from=trace_commit/0 through=oods/1 storage=request_local
+slot pie=15590913_15590913 kind=trace_evaluations ordinal=2 bytes=25140288512 from=trace_commit/1 through=decommit/1 storage=request_local
+slot pie=15590913_15590913 kind=trace_column_logs ordinal=2 bytes=11728 from=ingress/0 through=decommit/1 storage=request_local
+slot pie=15590913_15590913 kind=trace_column_offsets ordinal=2 bytes=23464 from=ingress/0 through=decommit/1 storage=request_local
+slot pie=15590913_15590913 kind=trace_merkle_hashes ordinal=2 bytes=1073741792 from=trace_commit/1 through=decommit/1 storage=request_local
+slot pie=15590913_15590913 kind=trace_merkle_layers ordinal=2 bytes=400 from=ingress/0 through=decommit/1 storage=request_local
+slot pie=15590913_15590913 kind=trace_root ordinal=2 bytes=32 from=trace_commit/0 through=proof_assembly/1 storage=request_local
+slot pie=15590913_15590913 kind=constraint_composition_output ordinal=3 bytes=268435456 from=constraint_evaluation/0 through=decommit/1 storage=request_local
+slot pie=15590913_15590913 kind=trace_evaluations ordinal=3 bytes=536870912 from=constraint_evaluation/0 through=decommit/1 storage=request_local
+slot pie=15590913_15590913 kind=trace_column_logs ordinal=3 bytes=32 from=ingress/0 through=decommit/1 storage=request_local
+slot pie=15590913_15590913 kind=trace_column_offsets ordinal=3 bytes=72 from=ingress/0 through=decommit/1 storage=request_local
+slot pie=15590913_15590913 kind=trace_merkle_hashes ordinal=3 bytes=1073741792 from=trace_commit/0 through=decommit/1 storage=request_local
+slot pie=15590913_15590913 kind=trace_merkle_layers ordinal=3 bytes=400 from=ingress/0 through=decommit/1 storage=request_local
+slot pie=15590913_15590913 kind=trace_root ordinal=3 bytes=32 from=trace_commit/0 through=proof_assembly/1 storage=request_local
+slot pie=15590913_15590913 kind=transcript ordinal=0 bytes=256 from=ingress/0 through=proof_assembly/1 storage=request_local
+slot pie=15590913_15590913 kind=interaction_claims ordinal=0 bytes=1024 from=trace_commit/0 through=proof_assembly/1 storage=request_local
+slot pie=15590913_15590913 kind=composition_alpha ordinal=0 bytes=16 from=trace_commit/0 through=constraint_evaluation/1 storage=request_local
+slot pie=15590913_15590913 kind=constraint_random_powers ordinal=0 bytes=29504 from=constraint_evaluation/0 through=quotient/1 storage=request_local
+slot pie=15590913_15590913 kind=constraint_denominators ordinal=0 bytes=512 from=ingress/0 through=quotient/1 storage=request_local
+slot pie=15590913_15590913 kind=oods_parameter ordinal=0 bytes=16 from=constraint_evaluation/0 through=quotient/1 storage=request_local
+slot pie=15590913_15590913 kind=oods_offset_points ordinal=0 bytes=62640 from=ingress/0 through=oods/1 storage=request_local
+slot pie=15590913_15590913 kind=oods_fold_counts ordinal=0 bytes=31320 from=ingress/0 through=oods/1 storage=request_local
+slot pie=15590913_15590913 kind=oods_output_indices ordinal=0 bytes=31320 from=ingress/0 through=oods/1 storage=request_local
+slot pie=15590913_15590913 kind=oods_sample_points ordinal=0 bytes=250560 from=oods/0 through=quotient/1 storage=request_local
+slot pie=15590913_15590913 kind=oods_evaluation_points ordinal=0 bytes=250560 from=oods/0 through=quotient/1 storage=request_local
+slot pie=15590913_15590913 kind=oods_folding_factors ordinal=0 bytes=3006720 from=oods/0 through=oods/1 storage=request_local
+slot pie=15590913_15590913 kind=oods_reduce_a ordinal=0 bytes=513146880 from=oods/0 through=oods/1 storage=request_local
+slot pie=15590913_15590913 kind=oods_reduce_b ordinal=0 bytes=513146880 from=oods/0 through=oods/1 storage=request_local
+slot pie=15590913_15590913 kind=oods_sampled_values ordinal=0 bytes=125280 from=oods/0 through=proof_assembly/1 storage=request_local
+slot pie=15590913_15590913 kind=quotient_challenge ordinal=0 bytes=16 from=oods/0 through=fri_commit/1 storage=request_local
+slot pie=15590913_15590913 kind=quotient_prepared_terms ordinal=0 bytes=161720 from=ingress/0 through=quotient/1 storage=request_local
+slot pie=15590913_15590913 kind=quotient_group_offsets ordinal=0 bytes=76 from=ingress/0 through=quotient/1 storage=request_local
+slot pie=15590913_15590913 kind=quotient_group_term_indices ordinal=0 bytes=32344 from=ingress/0 through=quotient/1 storage=request_local
+slot pie=15590913_15590913 kind=quotient_batch_terms ordinal=0 bytes=97032 from=ingress/0 through=quotient/1 storage=request_local
+slot pie=15590913_15590913 kind=quotient_source_descriptors ordinal=0 bytes=121360 from=ingress/0 through=quotient/1 storage=request_local
+slot pie=15590913_15590913 kind=quotient_group_logs ordinal=0 bytes=72 from=ingress/0 through=quotient/1 storage=request_local
+slot pie=15590913_15590913 kind=quotient_partial_logs ordinal=0 bytes=72 from=ingress/0 through=quotient/1 storage=request_local
+slot pie=15590913_15590913 kind=quotient_partial_offsets ordinal=0 bytes=152 from=ingress/0 through=quotient/1 storage=request_local
+slot pie=15590913_15590913 kind=quotient_term_points ordinal=0 bytes=258752 from=quotient/0 through=quotient/1 storage=request_local
+slot pie=15590913_15590913 kind=quotient_line_coefficients ordinal=0 bytes=388128 from=quotient/0 through=quotient/1 storage=request_local
+slot pie=15590913_15590913 kind=quotient_group_points ordinal=0 bytes=576 from=quotient/0 through=quotient/1 storage=request_local
+slot pie=15590913_15590913 kind=quotient_first_linear_terms ordinal=0 bytes=288 from=quotient/0 through=quotient/1 storage=request_local
+slot pie=15590913_15590913 kind=quotient_partial_coordinates ordinal=0 bytes=402627840 from=quotient/0 through=quotient/1 storage=request_local
+slot pie=15590913_15590913 kind=quotient_result_coordinates ordinal=0 bytes=268435456 from=quotient/0 through=decommit/1 storage=request_local
+slot pie=15590913_15590913 kind=quotient_subdomain_coordinates ordinal=0 bytes=134217728 from=quotient/0 through=quotient/1 storage=request_local
+slot pie=15590913_15590913 kind=quotient_subdomain_inverse_twiddles ordinal=0 bytes=16777216 from=ingress/0 through=quotient/1 storage=request_local
+slot pie=15590913_15590913 kind=quotient_coefficient_logs ordinal=0 bytes=16 from=ingress/0 through=quotient/1 storage=request_local
+slot pie=15590913_15590913 kind=fri_alpha ordinal=0 bytes=16 from=fri_commit/0 through=fri_commit/1 storage=request_local
+slot pie=15590913_15590913 kind=fri_merkle_hashes ordinal=0 bytes=1073741792 from=fri_commit/0 through=decommit/1 storage=request_local
+slot pie=15590913_15590913 kind=fri_merkle_layers ordinal=0 bytes=400 from=ingress/0 through=decommit/1 storage=request_local
+slot pie=15590913_15590913 kind=fri_coordinates ordinal=1 bytes=134217728 from=fri_commit/0 through=decommit/1 storage=request_local
+slot pie=15590913_15590913 kind=fri_merkle_hashes ordinal=1 bytes=536870880 from=fri_commit/0 through=decommit/1 storage=request_local
+slot pie=15590913_15590913 kind=fri_merkle_layers ordinal=1 bytes=384 from=ingress/0 through=decommit/1 storage=request_local
+slot pie=15590913_15590913 kind=fri_coordinates ordinal=2 bytes=67108864 from=fri_commit/0 through=decommit/1 storage=request_local
+slot pie=15590913_15590913 kind=fri_merkle_hashes ordinal=2 bytes=268435424 from=fri_commit/0 through=decommit/1 storage=request_local
+slot pie=15590913_15590913 kind=fri_merkle_layers ordinal=2 bytes=368 from=ingress/0 through=decommit/1 storage=request_local
+slot pie=15590913_15590913 kind=fri_coordinates ordinal=3 bytes=33554432 from=fri_commit/0 through=decommit/1 storage=request_local
+slot pie=15590913_15590913 kind=fri_merkle_hashes ordinal=3 bytes=134217696 from=fri_commit/0 through=decommit/1 storage=request_local
+slot pie=15590913_15590913 kind=fri_merkle_layers ordinal=3 bytes=352 from=ingress/0 through=decommit/1 storage=request_local
+slot pie=15590913_15590913 kind=fri_coordinates ordinal=4 bytes=16777216 from=fri_commit/0 through=decommit/1 storage=request_local
+slot pie=15590913_15590913 kind=fri_merkle_hashes ordinal=4 bytes=67108832 from=fri_commit/0 through=decommit/1 storage=request_local
+slot pie=15590913_15590913 kind=fri_merkle_layers ordinal=4 bytes=336 from=ingress/0 through=decommit/1 storage=request_local
+slot pie=15590913_15590913 kind=fri_coordinates ordinal=5 bytes=8388608 from=fri_commit/0 through=decommit/1 storage=request_local
+slot pie=15590913_15590913 kind=fri_merkle_hashes ordinal=5 bytes=33554400 from=fri_commit/0 through=decommit/1 storage=request_local
+slot pie=15590913_15590913 kind=fri_merkle_layers ordinal=5 bytes=320 from=ingress/0 through=decommit/1 storage=request_local
+slot pie=15590913_15590913 kind=fri_coordinates ordinal=6 bytes=4194304 from=fri_commit/0 through=decommit/1 storage=request_local
+slot pie=15590913_15590913 kind=fri_merkle_hashes ordinal=6 bytes=16777184 from=fri_commit/0 through=decommit/1 storage=request_local
+slot pie=15590913_15590913 kind=fri_merkle_layers ordinal=6 bytes=304 from=ingress/0 through=decommit/1 storage=request_local
+slot pie=15590913_15590913 kind=fri_coordinates ordinal=7 bytes=2097152 from=fri_commit/0 through=decommit/1 storage=request_local
+slot pie=15590913_15590913 kind=fri_merkle_hashes ordinal=7 bytes=8388576 from=fri_commit/0 through=decommit/1 storage=request_local
+slot pie=15590913_15590913 kind=fri_merkle_layers ordinal=7 bytes=288 from=ingress/0 through=decommit/1 storage=request_local
+slot pie=15590913_15590913 kind=fri_coordinates ordinal=8 bytes=1048576 from=fri_commit/0 through=decommit/1 storage=request_local
+slot pie=15590913_15590913 kind=fri_merkle_hashes ordinal=8 bytes=4194272 from=fri_commit/0 through=decommit/1 storage=request_local
+slot pie=15590913_15590913 kind=fri_merkle_layers ordinal=8 bytes=272 from=ingress/0 through=decommit/1 storage=request_local
+slot pie=15590913_15590913 kind=fri_coordinates ordinal=9 bytes=524288 from=fri_commit/0 through=decommit/1 storage=request_local
+slot pie=15590913_15590913 kind=fri_merkle_hashes ordinal=9 bytes=2097120 from=fri_commit/0 through=decommit/1 storage=request_local
+slot pie=15590913_15590913 kind=fri_merkle_layers ordinal=9 bytes=256 from=ingress/0 through=decommit/1 storage=request_local
+slot pie=15590913_15590913 kind=fri_coordinates ordinal=10 bytes=262144 from=fri_commit/0 through=decommit/1 storage=request_local
+slot pie=15590913_15590913 kind=fri_merkle_hashes ordinal=10 bytes=1048544 from=fri_commit/0 through=decommit/1 storage=request_local
+slot pie=15590913_15590913 kind=fri_merkle_layers ordinal=10 bytes=240 from=ingress/0 through=decommit/1 storage=request_local
+slot pie=15590913_15590913 kind=fri_coordinates ordinal=11 bytes=131072 from=fri_commit/0 through=decommit/1 storage=request_local
+slot pie=15590913_15590913 kind=fri_merkle_hashes ordinal=11 bytes=524256 from=fri_commit/0 through=decommit/1 storage=request_local
+slot pie=15590913_15590913 kind=fri_merkle_layers ordinal=11 bytes=224 from=ingress/0 through=decommit/1 storage=request_local
+slot pie=15590913_15590913 kind=fri_coordinates ordinal=12 bytes=65536 from=fri_commit/0 through=decommit/1 storage=request_local
+slot pie=15590913_15590913 kind=fri_merkle_hashes ordinal=12 bytes=262112 from=fri_commit/0 through=decommit/1 storage=request_local
+slot pie=15590913_15590913 kind=fri_merkle_layers ordinal=12 bytes=208 from=ingress/0 through=decommit/1 storage=request_local
+slot pie=15590913_15590913 kind=fri_coordinates ordinal=13 bytes=32768 from=fri_commit/0 through=decommit/1 storage=request_local
+slot pie=15590913_15590913 kind=fri_merkle_hashes ordinal=13 bytes=131040 from=fri_commit/0 through=decommit/1 storage=request_local
+slot pie=15590913_15590913 kind=fri_merkle_layers ordinal=13 bytes=192 from=ingress/0 through=decommit/1 storage=request_local
+slot pie=15590913_15590913 kind=fri_coordinates ordinal=14 bytes=16384 from=fri_commit/0 through=decommit/1 storage=request_local
+slot pie=15590913_15590913 kind=fri_merkle_hashes ordinal=14 bytes=65504 from=fri_commit/0 through=decommit/1 storage=request_local
+slot pie=15590913_15590913 kind=fri_merkle_layers ordinal=14 bytes=176 from=ingress/0 through=decommit/1 storage=request_local
+slot pie=15590913_15590913 kind=fri_coordinates ordinal=15 bytes=8192 from=fri_commit/0 through=decommit/1 storage=request_local
+slot pie=15590913_15590913 kind=fri_merkle_hashes ordinal=15 bytes=32736 from=fri_commit/0 through=decommit/1 storage=request_local
+slot pie=15590913_15590913 kind=fri_merkle_layers ordinal=15 bytes=160 from=ingress/0 through=decommit/1 storage=request_local
+slot pie=15590913_15590913 kind=fri_coordinates ordinal=16 bytes=4096 from=fri_commit/0 through=decommit/1 storage=request_local
+slot pie=15590913_15590913 kind=fri_merkle_hashes ordinal=16 bytes=16352 from=fri_commit/0 through=decommit/1 storage=request_local
+slot pie=15590913_15590913 kind=fri_merkle_layers ordinal=16 bytes=144 from=ingress/0 through=decommit/1 storage=request_local
+slot pie=15590913_15590913 kind=fri_coordinates ordinal=17 bytes=2048 from=fri_commit/0 through=decommit/1 storage=request_local
+slot pie=15590913_15590913 kind=fri_merkle_hashes ordinal=17 bytes=8160 from=fri_commit/0 through=decommit/1 storage=request_local
+slot pie=15590913_15590913 kind=fri_merkle_layers ordinal=17 bytes=128 from=ingress/0 through=decommit/1 storage=request_local
+slot pie=15590913_15590913 kind=fri_coordinates ordinal=18 bytes=1024 from=fri_commit/0 through=decommit/1 storage=request_local
+slot pie=15590913_15590913 kind=fri_merkle_hashes ordinal=18 bytes=4064 from=fri_commit/0 through=decommit/1 storage=request_local
+slot pie=15590913_15590913 kind=fri_merkle_layers ordinal=18 bytes=112 from=ingress/0 through=decommit/1 storage=request_local
+slot pie=15590913_15590913 kind=fri_coordinates ordinal=19 bytes=512 from=fri_commit/0 through=decommit/1 storage=request_local
+slot pie=15590913_15590913 kind=fri_merkle_hashes ordinal=19 bytes=2016 from=fri_commit/0 through=decommit/1 storage=request_local
+slot pie=15590913_15590913 kind=fri_merkle_layers ordinal=19 bytes=96 from=ingress/0 through=decommit/1 storage=request_local
+slot pie=15590913_15590913 kind=fri_coordinates ordinal=20 bytes=256 from=fri_commit/0 through=decommit/1 storage=request_local
+slot pie=15590913_15590913 kind=fri_merkle_hashes ordinal=20 bytes=992 from=fri_commit/0 through=decommit/1 storage=request_local
+slot pie=15590913_15590913 kind=fri_merkle_layers ordinal=20 bytes=80 from=ingress/0 through=decommit/1 storage=request_local
+slot pie=15590913_15590913 kind=fri_coordinates ordinal=21 bytes=128 from=fri_commit/0 through=decommit/1 storage=request_local
+slot pie=15590913_15590913 kind=fri_merkle_hashes ordinal=21 bytes=480 from=fri_commit/0 through=decommit/1 storage=request_local
+slot pie=15590913_15590913 kind=fri_merkle_layers ordinal=21 bytes=64 from=ingress/0 through=decommit/1 storage=request_local
+slot pie=15590913_15590913 kind=fri_coordinates ordinal=22 bytes=64 from=fri_commit/0 through=decommit/1 storage=request_local
+slot pie=15590913_15590913 kind=fri_merkle_hashes ordinal=22 bytes=224 from=fri_commit/0 through=decommit/1 storage=request_local
+slot pie=15590913_15590913 kind=fri_merkle_layers ordinal=22 bytes=48 from=ingress/0 through=decommit/1 storage=request_local
+slot pie=15590913_15590913 kind=fri_last_evaluation ordinal=0 bytes=32 from=fri_commit/0 through=fri_commit/1 storage=request_local
+slot pie=15590913_15590913 kind=fri_last_coefficients ordinal=0 bytes=32 from=fri_commit/0 through=proof_assembly/1 storage=request_local
+slot pie=15590913_15590913 kind=fri_last_degree_error ordinal=0 bytes=4 from=fri_commit/0 through=proof_assembly/1 storage=request_local
+slot pie=15590913_15590913 kind=fri_last_transcript ordinal=0 bytes=16 from=fri_commit/0 through=proof_assembly/1 storage=request_local
+slot pie=15590913_15590913 kind=pow_prefix ordinal=0 bytes=32 from=trace_commit/0 through=trace_commit/1 storage=request_local
+slot pie=15590913_15590913 kind=pow_best_nonce ordinal=0 bytes=8 from=trace_commit/0 through=trace_commit/1 storage=request_local
+slot pie=15590913_15590913 kind=pow_completed_blocks ordinal=0 bytes=4 from=trace_commit/0 through=trace_commit/1 storage=request_local
+slot pie=15590913_15590913 kind=pow_transcript_nonce ordinal=0 bytes=8 from=trace_commit/0 through=proof_assembly/1 storage=request_local
+slot pie=15590913_15590913 kind=pow_prefix ordinal=1 bytes=32 from=pow/0 through=pow/1 storage=request_local
+slot pie=15590913_15590913 kind=pow_best_nonce ordinal=1 bytes=8 from=pow/0 through=pow/1 storage=request_local
+slot pie=15590913_15590913 kind=pow_completed_blocks ordinal=1 bytes=4 from=pow/0 through=pow/1 storage=request_local
+slot pie=15590913_15590913 kind=pow_transcript_nonce ordinal=1 bytes=8 from=pow/0 through=proof_assembly/1 storage=request_local
+slot pie=15590913_15590913 kind=decommit_raw_queries ordinal=0 bytes=280 from=decommit/0 through=decommit/1 storage=request_local
+slot pie=15590913_15590913 kind=decommit_unique_queries ordinal=0 bytes=280 from=decommit/0 through=decommit/1 storage=request_local
+slot pie=15590913_15590913 kind=decommit_mapped_queries ordinal=0 bytes=280 from=decommit/0 through=decommit/1 storage=request_local
+slot pie=15590913_15590913 kind=decommit_walk_queries ordinal=0 bytes=560 from=decommit/0 through=decommit/1 storage=request_local
+slot pie=15590913_15590913 kind=decommit_walk_scratch ordinal=0 bytes=560 from=decommit/0 through=decommit/1 storage=request_local
+slot pie=15590913_15590913 kind=decommit_leaf_indices ordinal=0 bytes=4 from=decommit/0 through=decommit/1 storage=request_local
+slot pie=15590913_15590913 kind=decommit_expanded_positions ordinal=0 bytes=560 from=decommit/0 through=decommit/1 storage=request_local
+slot pie=15590913_15590913 kind=decommit_sparse_indices ordinal=0 bytes=4 from=decommit/0 through=decommit/1 storage=request_local
+slot pie=15590913_15590913 kind=decommit_sparse_hashes ordinal=0 bytes=32 from=decommit/0 through=decommit/1 storage=request_local
+slot pie=15590913_15590913 kind=decommit_counts ordinal=0 bytes=20 from=decommit/0 through=decommit/1 storage=request_local
+slot pie=15590913_15590913 kind=decommit_level_offsets ordinal=0 bytes=108 from=decommit/0 through=decommit/1 storage=request_local
+slot pie=15590913_15590913 kind=decommit_level_counts ordinal=0 bytes=108 from=decommit/0 through=decommit/1 storage=request_local
+slot pie=15590913_15590913 kind=decommit_column_logs ordinal=0 bytes=30340 from=ingress/0 through=decommit/1 storage=request_local
+slot pie=15590913_15590913 kind=decommit_assembly ordinal=0 bytes=7706240 from=decommit/0 through=proof_assembly/1 storage=request_local
+slot pie=15590913_15590913 kind=terminal_bundle ordinal=0 bytes=7833576 from=ingress/0 through=proof_assembly/1 storage=request_local
+lookup pie=15590913_15590913 component=add_opcode instance=0 rows=1048576 words_per_row=116 bytes=486539264
+lookup pie=15590913_15590913 component=add_opcode_small instance=0 rows=4194304 words_per_row=116 bytes=1946157056
+lookup pie=15590913_15590913 component=add_ap_opcode instance=0 rows=1048576 words_per_row=54 bytes=226492416
+lookup pie=15590913_15590913 component=assert_eq_opcode instance=0 rows=8388608 words_per_row=23 bytes=771751936
+lookup pie=15590913_15590913 component=assert_eq_opcode_imm instance=0 rows=1048576 words_per_row=23 bytes=96468992
+lookup pie=15590913_15590913 component=assert_eq_opcode_double_deref instance=0 rows=8388608 words_per_row=56 bytes=1879048192
+lookup pie=15590913_15590913 component=blake_compress_opcode instance=0 rows=8192 words_per_row=905 bytes=29655040
+lookup pie=15590913_15590913 component=call_opcode_abs instance=0 rows=64 words_per_row=116 bytes=29696
+lookup pie=15590913_15590913 component=call_opcode_rel_imm instance=0 rows=2097152 words_per_row=116 bytes=973078528
+lookup pie=15590913_15590913 component=generic_opcode instance=0 rows=16 words_per_row=260 bytes=16640
+lookup pie=15590913_15590913 component=jnz_opcode_non_taken instance=0 rows=1048576 words_per_row=50 bytes=209715200
+lookup pie=15590913_15590913 component=jnz_opcode_taken instance=0 rows=2097152 words_per_row=83 bytes=696254464
+lookup pie=15590913_15590913 component=jump_opcode_abs instance=0 rows=16 words_per_row=50 bytes=3200
+lookup pie=15590913_15590913 component=jump_opcode_double_deref instance=0 rows=64 words_per_row=83 bytes=21248
+lookup pie=15590913_15590913 component=jump_opcode_rel instance=0 rows=4096 words_per_row=50 bytes=819200
+lookup pie=15590913_15590913 component=jump_opcode_rel_imm instance=0 rows=131072 words_per_row=50 bytes=26214400
+lookup pie=15590913_15590913 component=mul_opcode instance=0 rows=524288 words_per_row=172 bytes=360710144
+lookup pie=15590913_15590913 component=mul_opcode_small instance=0 rows=524288 words_per_row=122 bytes=255852544
+lookup pie=15590913_15590913 component=qm_31_add_mul_opcode instance=0 rows=16 words_per_row=131 bytes=8384
+lookup pie=15590913_15590913 component=ret_opcode instance=0 rows=2097152 words_per_row=83 bytes=696254464
+lookup pie=15590913_15590913 component=verify_instruction instance=0 rows=16384 words_per_row=50 bytes=3276800
+lookup pie=15590913_15590913 component=blake_round instance=0 rows=131072 words_per_row=851 bytes=446169088
+lookup pie=15590913_15590913 component=blake_g instance=0 rows=1048576 words_per_row=86 bytes=360710144
+lookup pie=15590913_15590913 component=blake_round_sigma instance=0 rows=16 words_per_row=19 bytes=1216
+lookup pie=15590913_15590913 component=triple_xor_32 instance=0 rows=65536 words_per_row=42 bytes=11010048
+lookup pie=15590913_15590913 component=add_mod_builtin instance=0 rows=16 words_per_row=808 bytes=51712
+lookup pie=15590913_15590913 component=bitwise_builtin instance=0 rows=16 words_per_row=278 bytes=17792
+lookup pie=15590913_15590913 component=mul_mod_builtin instance=0 rows=16 words_per_row=1196 bytes=76544
+lookup pie=15590913_15590913 component=pedersen_builtin instance=0 rows=262144 words_per_row=14 bytes=14680064
+lookup pie=15590913_15590913 component=poseidon_builtin instance=0 rows=2048 words_per_row=26 bytes=212992
+lookup pie=15590913_15590913 component=range_check96_builtin instance=0 rows=16 words_per_row=36 bytes=2304
+lookup pie=15590913_15590913 component=range_check_builtin instance=0 rows=1048576 words_per_row=34 bytes=142606336
+lookup pie=15590913_15590913 component=ec_op_builtin instance=0 rows=256 words_per_row=488 bytes=499712
+lookup pie=15590913_15590913 component=partial_ec_mul_generic instance=0 rows=65536 words_per_row=989 bytes=259260416
+lookup pie=15590913_15590913 component=pedersen_aggregator_window_bits_18 instance=0 rows=262144 words_per_row=396 bytes=415236096
+lookup pie=15590913_15590913 component=partial_ec_mul_window_bits_18 instance=0 rows=8388608 words_per_row=499 bytes=16743661568
+lookup pie=15590913_15590913 component=pedersen_points_table_window_bits_18 instance=0 rows=8388608 words_per_row=59 bytes=1979711488
+lookup pie=15590913_15590913 component=poseidon_aggregator instance=0 rows=2048 words_per_row=522 bytes=4276224
+lookup pie=15590913_15590913 component=poseidon_3_partial_rounds_chain instance=0 rows=65536 words_per_row=254 bytes=66584576
+lookup pie=15590913_15590913 component=poseidon_full_round_chain instance=0 rows=16384 words_per_row=198 bytes=12976128
+lookup pie=15590913_15590913 component=cube_252 instance=0 rows=262144 words_per_row=260 bytes=272629760
+lookup pie=15590913_15590913 component=poseidon_round_keys instance=0 rows=64 words_per_row=33 bytes=8448
+lookup pie=15590913_15590913 component=range_check_252_width_27 instance=0 rows=262144 words_per_row=45 bytes=47185920
+lookup pie=15590913_15590913 component=range_check_6 instance=0 rows=64 words_per_row=3 bytes=768
+lookup pie=15590913_15590913 component=range_check_8 instance=0 rows=256 words_per_row=3 bytes=3072
+lookup pie=15590913_15590913 component=range_check_11 instance=0 rows=2048 words_per_row=3 bytes=24576
+lookup pie=15590913_15590913 component=range_check_12 instance=0 rows=4096 words_per_row=3 bytes=49152
+lookup pie=15590913_15590913 component=range_check_18 instance=0 rows=262144 words_per_row=6 bytes=6291456
+lookup pie=15590913_15590913 component=range_check_20 instance=0 rows=1048576 words_per_row=24 bytes=100663296
+lookup pie=15590913_15590913 component=range_check_4_3 instance=0 rows=128 words_per_row=4 bytes=2048
+lookup pie=15590913_15590913 component=range_check_4_4 instance=0 rows=256 words_per_row=4 bytes=4096
+lookup pie=15590913_15590913 component=range_check_9_9 instance=0 rows=262144 words_per_row=32 bytes=33554432
+lookup pie=15590913_15590913 component=range_check_7_2_5 instance=0 rows=16384 words_per_row=5 bytes=327680
+lookup pie=15590913_15590913 component=range_check_3_6_6_3 instance=0 rows=262144 words_per_row=6 bytes=6291456
+lookup pie=15590913_15590913 component=range_check_4_4_4_4 instance=0 rows=65536 words_per_row=6 bytes=1572864
+lookup pie=15590913_15590913 component=range_check_3_3_3_3_3 instance=0 rows=32768 words_per_row=7 bytes=917504
+lookup pie=15590913_15590913 component=verify_bitwise_xor_4 instance=0 rows=256 words_per_row=5 bytes=5120
+lookup pie=15590913_15590913 component=verify_bitwise_xor_7 instance=0 rows=16384 words_per_row=5 bytes=327680
+lookup pie=15590913_15590913 component=verify_bitwise_xor_8 instance=0 rows=65536 words_per_row=10 bytes=2621440
+lookup pie=15590913_15590913 component=verify_bitwise_xor_9 instance=0 rows=262144 words_per_row=5 bytes=5242880
+extent pie=15590913_15590913 label=pedersen_builtin active_rows=262144 padded_rows=262144 distinct_rows=null
+extent pie=15590913_15590913 label=pedersen_aggregator_window_bits_18 active_rows=262144 padded_rows=262144 distinct_rows=193076
+extent pie=15590913_15590913 label=partial_ec_mul_window_bits_18 active_rows=7340032 padded_rows=8388608 distinct_rows=null
+tree pie=15590913_15590913 role=preprocessed columns=161 words=543100528 max_log=25 evaluation_log=26 excess_u32=0
+component pie=15590913_15590913 role=preprocessed index=4294967295 label=preprocessed columns=17 log_rows=4 words=272
+component pie=15590913_15590913 role=preprocessed index=4294967295 label=preprocessed columns=1 log_rows=5 words=32
+component pie=15590913_15590913 role=preprocessed index=4294967295 label=preprocessed columns=31 log_rows=6 words=1984
+component pie=15590913_15590913 role=preprocessed index=4294967295 label=preprocessed columns=3 log_rows=7 words=384
+component pie=15590913_15590913 role=preprocessed index=4294967295 label=preprocessed columns=6 log_rows=8 words=1536
+component pie=15590913_15590913 role=preprocessed index=4294967295 label=preprocessed columns=1 log_rows=9 words=512
+component pie=15590913_15590913 role=preprocessed index=4294967295 label=preprocessed columns=1 log_rows=10 words=1024
+component pie=15590913_15590913 role=preprocessed index=4294967295 label=preprocessed columns=1 log_rows=11 words=2048
+component pie=15590913_15590913 role=preprocessed index=4294967295 label=preprocessed columns=1 log_rows=12 words=4096
+component pie=15590913_15590913 role=preprocessed index=4294967295 label=preprocessed columns=1 log_rows=13 words=8192
+component pie=15590913_15590913 role=preprocessed index=4294967295 label=preprocessed columns=7 log_rows=14 words=114688
+component pie=15590913_15590913 role=preprocessed index=4294967295 label=preprocessed columns=6 log_rows=15 words=196608
+component pie=15590913_15590913 role=preprocessed index=4294967295 label=preprocessed columns=8 log_rows=16 words=524288
+component pie=15590913_15590913 role=preprocessed index=4294967295 label=preprocessed columns=1 log_rows=17 words=131072
+component pie=15590913_15590913 role=preprocessed index=4294967295 label=preprocessed columns=10 log_rows=18 words=2621440
+component pie=15590913_15590913 role=preprocessed index=4294967295 label=preprocessed columns=1 log_rows=19 words=524288
+component pie=15590913_15590913 role=preprocessed index=4294967295 label=preprocessed columns=4 log_rows=20 words=4194304
+component pie=15590913_15590913 role=preprocessed index=4294967295 label=preprocessed columns=1 log_rows=21 words=2097152
+component pie=15590913_15590913 role=preprocessed index=4294967295 label=preprocessed columns=1 log_rows=22 words=4194304
+component pie=15590913_15590913 role=preprocessed index=4294967295 label=preprocessed columns=57 log_rows=23 words=478150656
+component pie=15590913_15590913 role=preprocessed index=4294967295 label=preprocessed columns=1 log_rows=24 words=16777216
+component pie=15590913_15590913 role=preprocessed index=4294967295 label=preprocessed columns=1 log_rows=25 words=33554432
+tree pie=15590913_15590913 role=main columns=4484 words=3759857360 max_log=23 evaluation_log=24 excess_u32=0
+component pie=15590913_15590913 role=main index=0 label=add_opcode columns=103 log_rows=20 words=108003328
+component pie=15590913_15590913 role=main index=1 label=add_opcode_small columns=39 log_rows=22 words=163577856
+component pie=15590913_15590913 role=main index=2 label=add_ap_opcode columns=17 log_rows=20 words=17825792
+component pie=15590913_15590913 role=main index=3 label=assert_eq_opcode columns=12 log_rows=23 words=100663296
+component pie=15590913_15590913 role=main index=4 label=assert_eq_opcode_imm columns=9 log_rows=20 words=9437184
+component pie=15590913_15590913 role=main index=5 label=assert_eq_opcode_double_deref columns=19 log_rows=23 words=159383552
+component pie=15590913_15590913 role=main index=6 label=blake_compress_opcode columns=174 log_rows=13 words=1425408
+component pie=15590913_15590913 role=main index=7 label=call_opcode_abs columns=25 log_rows=6 words=1600
+component pie=15590913_15590913 role=main index=8 label=call_opcode_rel_imm columns=24 log_rows=21 words=50331648
+component pie=15590913_15590913 role=main index=9 label=generic_opcode columns=243 log_rows=4 words=3888
+component pie=15590913_15590913 role=main index=10 label=jnz_opcode_non_taken columns=9 log_rows=20 words=9437184
+component pie=15590913_15590913 role=main index=11 label=jnz_opcode_taken columns=47 log_rows=21 words=98566144
+component pie=15590913_15590913 role=main index=12 label=jump_opcode_abs columns=14 log_rows=4 words=224
+component pie=15590913_15590913 role=main index=13 label=jump_opcode_double_deref columns=21 log_rows=6 words=1344
+component pie=15590913_15590913 role=main index=14 label=jump_opcode_rel columns=16 log_rows=12 words=65536
+component pie=15590913_15590913 role=main index=15 label=jump_opcode_rel_imm columns=13 log_rows=17 words=1703936
+component pie=15590913_15590913 role=main index=16 label=mul_opcode columns=130 log_rows=19 words=68157440
+component pie=15590913_15590913 role=main index=17 label=mul_opcode_small columns=37 log_rows=19 words=19398656
+component pie=15590913_15590913 role=main index=18 label=qm_31_add_mul_opcode columns=73 log_rows=4 words=1168
+component pie=15590913_15590913 role=main index=19 label=ret_opcode columns=16 log_rows=21 words=33554432
+component pie=15590913_15590913 role=main index=20 label=verify_instruction columns=17 log_rows=14 words=278528
+component pie=15590913_15590913 role=main index=21 label=blake_round columns=212 log_rows=17 words=27787264
+component pie=15590913_15590913 role=main index=22 label=blake_g columns=53 log_rows=20 words=55574528
+component pie=15590913_15590913 role=main index=23 label=blake_round_sigma columns=1 log_rows=4 words=16
+component pie=15590913_15590913 role=main index=24 label=triple_xor_32 columns=21 log_rows=16 words=1376256
+component pie=15590913_15590913 role=main index=25 label=verify_bitwise_xor_12 columns=16 log_rows=20 words=16777216
+component pie=15590913_15590913 role=main index=26 label=add_mod_builtin columns=267 log_rows=4 words=4272
+component pie=15590913_15590913 role=main index=27 label=bitwise_builtin columns=89 log_rows=4 words=1424
+component pie=15590913_15590913 role=main index=28 label=mul_mod_builtin columns=426 log_rows=4 words=6816
+component pie=15590913_15590913 role=main index=29 label=pedersen_builtin columns=3 log_rows=18 words=786432
+component pie=15590913_15590913 role=main index=30 label=poseidon_builtin columns=6 log_rows=11 words=12288
+component pie=15590913_15590913 role=main index=31 label=range_check96_builtin columns=12 log_rows=4 words=192
+component pie=15590913_15590913 role=main index=32 label=range_check_builtin columns=17 log_rows=20 words=17825792
+component pie=15590913_15590913 role=main index=33 label=ec_op_builtin columns=273 log_rows=8 words=69888
+component pie=15590913_15590913 role=main index=34 label=partial_ec_mul_generic columns=624 log_rows=16 words=40894464
+component pie=15590913_15590913 role=main index=35 label=pedersen_aggregator_window_bits_18 columns=206 log_rows=18 words=54001664
+component pie=15590913_15590913 role=main index=36 label=partial_ec_mul_window_bits_18 columns=297 log_rows=23 words=2491416576
+component pie=15590913_15590913 role=main index=37 label=pedersen_points_table_window_bits_18 columns=1 log_rows=23 words=8388608
+component pie=15590913_15590913 role=main index=38 label=poseidon_aggregator columns=342 log_rows=11 words=700416
+component pie=15590913_15590913 role=main index=39 label=poseidon_3_partial_rounds_chain columns=169 log_rows=16 words=11075584
+component pie=15590913_15590913 role=main index=40 label=poseidon_full_round_chain columns=126 log_rows=14 words=2064384
+component pie=15590913_15590913 role=main index=41 label=cube_252 columns=141 log_rows=18 words=36962304
+component pie=15590913_15590913 role=main index=42 label=poseidon_round_keys columns=1 log_rows=6 words=64
+component pie=15590913_15590913 role=main index=43 label=range_check_252_width_27 columns=20 log_rows=18 words=5242880
+component pie=15590913_15590913 role=main index=44 label=memory_address_to_id columns=32 log_rows=21 words=67108864
+component pie=15590913_15590913 role=main index=45 label=memory_id_to_big[0] columns=29 log_rows=20 words=30408704
+component pie=15590913_15590913 role=main index=46 label=memory_id_to_small columns=9 log_rows=22 words=37748736
+component pie=15590913_15590913 role=main index=47 label=range_check_6 columns=1 log_rows=6 words=64
+component pie=15590913_15590913 role=main index=48 label=range_check_8 columns=1 log_rows=8 words=256
+component pie=15590913_15590913 role=main index=49 label=range_check_11 columns=1 log_rows=11 words=2048
+component pie=15590913_15590913 role=main index=50 label=range_check_12 columns=1 log_rows=12 words=4096
+component pie=15590913_15590913 role=main index=51 label=range_check_18 columns=2 log_rows=18 words=524288
+component pie=15590913_15590913 role=main index=52 label=range_check_20 columns=8 log_rows=20 words=8388608
+component pie=15590913_15590913 role=main index=53 label=range_check_4_3 columns=1 log_rows=7 words=128
+component pie=15590913_15590913 role=main index=54 label=range_check_4_4 columns=1 log_rows=8 words=256
+component pie=15590913_15590913 role=main index=55 label=range_check_9_9 columns=8 log_rows=18 words=2097152
+component pie=15590913_15590913 role=main index=56 label=range_check_7_2_5 columns=1 log_rows=14 words=16384
+component pie=15590913_15590913 role=main index=57 label=range_check_3_6_6_3 columns=1 log_rows=18 words=262144
+component pie=15590913_15590913 role=main index=58 label=range_check_4_4_4_4 columns=1 log_rows=16 words=65536
+component pie=15590913_15590913 role=main index=59 label=range_check_3_3_3_3_3 columns=1 log_rows=15 words=32768
+component pie=15590913_15590913 role=main index=60 label=verify_bitwise_xor_4 columns=1 log_rows=8 words=256
+component pie=15590913_15590913 role=main index=61 label=verify_bitwise_xor_7 columns=1 log_rows=14 words=16384
+component pie=15590913_15590913 role=main index=62 label=verify_bitwise_xor_8 columns=2 log_rows=16 words=131072
+component pie=15590913_15590913 role=main index=63 label=verify_bitwise_xor_9 columns=1 log_rows=18 words=262144
+tree pie=15590913_15590913 role=interaction columns=2932 words=3142536064 max_log=23 evaluation_log=24 excess_u32=0
+component pie=15590913_15590913 role=interaction index=0 label=add_opcode columns=20 log_rows=20 words=20971520
+component pie=15590913_15590913 role=interaction index=1 label=add_opcode_small columns=20 log_rows=22 words=83886080
+component pie=15590913_15590913 role=interaction index=2 label=add_ap_opcode columns=16 log_rows=20 words=16777216
+component pie=15590913_15590913 role=interaction index=3 label=assert_eq_opcode columns=12 log_rows=23 words=100663296
+component pie=15590913_15590913 role=interaction index=4 label=assert_eq_opcode_imm columns=12 log_rows=20 words=12582912
+component pie=15590913_15590913 role=interaction index=5 label=assert_eq_opcode_double_deref columns=16 log_rows=23 words=134217728
+component pie=15590913_15590913 role=interaction index=6 label=blake_compress_opcode columns=148 log_rows=13 words=1212416
+component pie=15590913_15590913 role=interaction index=7 label=call_opcode_abs columns=20 log_rows=6 words=1280
+component pie=15590913_15590913 role=interaction index=8 label=call_opcode_rel_imm columns=20 log_rows=21 words=41943040
+component pie=15590913_15590913 role=interaction index=9 label=generic_opcode columns=136 log_rows=4 words=2176
+component pie=15590913_15590913 role=interaction index=10 label=jnz_opcode_non_taken columns=12 log_rows=20 words=12582912
+component pie=15590913_15590913 role=interaction index=11 label=jnz_opcode_taken columns=16 log_rows=21 words=33554432
+component pie=15590913_15590913 role=interaction index=12 label=jump_opcode_abs columns=12 log_rows=4 words=192
+component pie=15590913_15590913 role=interaction index=13 label=jump_opcode_double_deref columns=16 log_rows=6 words=1024
+component pie=15590913_15590913 role=interaction index=14 label=jump_opcode_rel columns=12 log_rows=12 words=49152
+component pie=15590913_15590913 role=interaction index=15 label=jump_opcode_rel_imm columns=12 log_rows=17 words=1572864
+component pie=15590913_15590913 role=interaction index=16 label=mul_opcode columns=76 log_rows=19 words=39845888
+component pie=15590913_15590913 role=interaction index=17 label=mul_opcode_small columns=24 log_rows=19 words=12582912
+component pie=15590913_15590913 role=interaction index=18 label=qm_31_add_mul_opcode columns=24 log_rows=4 words=384
+component pie=15590913_15590913 role=interaction index=19 label=ret_opcode columns=16 log_rows=21 words=33554432
+component pie=15590913_15590913 role=interaction index=20 label=verify_instruction columns=12 log_rows=14 words=196608
+component pie=15590913_15590913 role=interaction index=21 label=blake_round columns=120 log_rows=17 words=15728640
+component pie=15590913_15590913 role=interaction index=22 label=blake_g columns=36 log_rows=20 words=37748736
+component pie=15590913_15590913 role=interaction index=23 label=blake_round_sigma columns=4 log_rows=4 words=64
+component pie=15590913_15590913 role=interaction index=24 label=triple_xor_32 columns=20 log_rows=16 words=1310720
+component pie=15590913_15590913 role=interaction index=25 label=verify_bitwise_xor_12 columns=32 log_rows=20 words=33554432
+component pie=15590913_15590913 role=interaction index=26 label=add_mod_builtin columns=108 log_rows=4 words=1728
+component pie=15590913_15590913 role=interaction index=27 label=bitwise_builtin columns=76 log_rows=4 words=1216
+component pie=15590913_15590913 role=interaction index=28 label=mul_mod_builtin columns=376 log_rows=4 words=6016
+component pie=15590913_15590913 role=interaction index=29 label=pedersen_builtin columns=8 log_rows=18 words=2097152
+component pie=15590913_15590913 role=interaction index=30 label=poseidon_builtin columns=16 log_rows=11 words=32768
+component pie=15590913_15590913 role=interaction index=31 label=range_check96_builtin columns=8 log_rows=4 words=128
+component pie=15590913_15590913 role=interaction index=32 label=range_check_builtin columns=4 log_rows=20 words=4194304
+component pie=15590913_15590913 role=interaction index=33 label=ec_op_builtin columns=36 log_rows=8 words=9216
+component pie=15590913_15590913 role=interaction index=34 label=partial_ec_mul_generic columns=628 log_rows=16 words=41156608
+component pie=15590913_15590913 role=interaction index=35 label=pedersen_aggregator_window_bits_18 columns=24 log_rows=18 words=6291456
+component pie=15590913_15590913 role=interaction index=36 label=partial_ec_mul_window_bits_18 columns=260 log_rows=23 words=2181038080
+component pie=15590913_15590913 role=interaction index=37 label=pedersen_points_table_window_bits_18 columns=4 log_rows=23 words=33554432
+component pie=15590913_15590913 role=interaction index=38 label=poseidon_aggregator columns=56 log_rows=11 words=114688
+component pie=15590913_15590913 role=interaction index=39 label=poseidon_3_partial_rounds_chain columns=36 log_rows=16 words=2359296
+component pie=15590913_15590913 role=interaction index=40 label=poseidon_full_round_chain columns=24 log_rows=14 words=393216
+component pie=15590913_15590913 role=interaction index=41 label=cube_252 columns=200 log_rows=18 words=52428800
+component pie=15590913_15590913 role=interaction index=42 label=poseidon_round_keys columns=4 log_rows=6 words=256
+component pie=15590913_15590913 role=interaction index=43 label=range_check_252_width_27 columns=32 log_rows=18 words=8388608
+component pie=15590913_15590913 role=interaction index=44 label=memory_address_to_id columns=32 log_rows=21 words=67108864
+component pie=15590913_15590913 role=interaction index=45 label=memory_id_to_big[0] columns=32 log_rows=20 words=33554432
+component pie=15590913_15590913 role=interaction index=46 label=memory_id_to_small columns=12 log_rows=22 words=50331648
+component pie=15590913_15590913 role=interaction index=47 label=range_check_6 columns=4 log_rows=6 words=256
+component pie=15590913_15590913 role=interaction index=48 label=range_check_8 columns=4 log_rows=8 words=1024
+component pie=15590913_15590913 role=interaction index=49 label=range_check_11 columns=4 log_rows=11 words=8192
+component pie=15590913_15590913 role=interaction index=50 label=range_check_12 columns=4 log_rows=12 words=16384
+component pie=15590913_15590913 role=interaction index=51 label=range_check_18 columns=4 log_rows=18 words=1048576
+component pie=15590913_15590913 role=interaction index=52 label=range_check_20 columns=16 log_rows=20 words=16777216
+component pie=15590913_15590913 role=interaction index=53 label=range_check_4_3 columns=4 log_rows=7 words=512
+component pie=15590913_15590913 role=interaction index=54 label=range_check_4_4 columns=4 log_rows=8 words=1024
+component pie=15590913_15590913 role=interaction index=55 label=range_check_9_9 columns=16 log_rows=18 words=4194304
+component pie=15590913_15590913 role=interaction index=56 label=range_check_7_2_5 columns=4 log_rows=14 words=65536
+component pie=15590913_15590913 role=interaction index=57 label=range_check_3_6_6_3 columns=4 log_rows=18 words=1048576
+component pie=15590913_15590913 role=interaction index=58 label=range_check_4_4_4_4 columns=4 log_rows=16 words=262144
+component pie=15590913_15590913 role=interaction index=59 label=range_check_3_3_3_3_3 columns=4 log_rows=15 words=131072
+component pie=15590913_15590913 role=interaction index=60 label=verify_bitwise_xor_4 columns=4 log_rows=8 words=1024
+component pie=15590913_15590913 role=interaction index=61 label=verify_bitwise_xor_7 columns=4 log_rows=14 words=65536
+component pie=15590913_15590913 role=interaction index=62 label=verify_bitwise_xor_8 columns=4 log_rows=16 words=262144
+component pie=15590913_15590913 role=interaction index=63 label=verify_bitwise_xor_9 columns=4 log_rows=18 words=1048576
+tree pie=15590913_15590913 role=composition columns=8 words=67108864 max_log=23 evaluation_log=24 excess_u32=0
+component pie=15590913_15590913 role=composition index=4294967294 label=composition columns=8 log_rows=23 words=67108864
