@@ -533,6 +533,32 @@ pub fn ContextFor(comptime Api: type) type {
             } else return error.InvalidState;
         }
 
+        pub fn adviseManagedHost(
+            self: *Self,
+            comptime F: type,
+            source: anytype,
+            prefer_host: bool,
+        ) runtime_error.Error!void {
+            if (self.active_stage == null) return error.StageNotActive;
+            if (source.len == 0) return error.SizeOverflow;
+            const pointer = try self.deviceSlicePointer(F, source, source.len);
+            const bytes = std.math.mul(usize, source.len, @sizeOf(F)) catch
+                return error.SizeOverflow;
+            if (comptime @hasDecl(Api, "stwo_exec_context_advise_managed_host")) {
+                // A reused physical arena span may be written by the prior
+                // stage. Drain the stream before changing its placement
+                // policy, and account for this deliberate policy barrier.
+                try self.sync();
+                self.counters.managed_policy_sync_calls += 1;
+                try runtime_error.check(Api.stwo_exec_context_advise_managed_host(
+                    try self.requireHandle(),
+                    pointer,
+                    bytes,
+                    @intFromBool(prefer_host),
+                ));
+            } else return error.InvalidState;
+        }
+
         pub fn freeRaw(self: *Self, pointer: [*]u32) c_int {
             const handle = self.requireHandle() catch return -1;
             return Api.stwo_exec_context_free_u32(handle, pointer);
@@ -943,6 +969,7 @@ test "context owns buffers and accounts only explicit transfers" {
         var sync_calls: usize = 0;
         var managed_allocations: usize = 0;
         var managed_prefetches: usize = 0;
+        var managed_advice: usize = 0;
 
         fn stwo_exec_context_create(out: *?*anyopaque) c_int {
             out.* = &handle_word;
@@ -975,6 +1002,10 @@ test "context owns buffers and accounts only explicit transfers" {
         }
         fn stwo_exec_context_prefetch_managed(_: *anyopaque, _: *const anyopaque, _: usize, _: c_int) c_int {
             managed_prefetches += 1;
+            return 0;
+        }
+        fn stwo_exec_context_advise_managed_host(_: *anyopaque, _: *const anyopaque, _: usize, _: c_int) c_int {
+            managed_advice += 1;
             return 0;
         }
         fn stwo_exec_context_free_u32(_: *anyopaque, _: [*]u32) c_int {
@@ -1035,13 +1066,17 @@ test "context owns buffers and accounts only explicit transfers" {
     try context.beginStage(.ingress);
     var managed = try context.allocateManaged(4);
     try std.testing.expectEqual(@as(usize, 1), Fake.managed_allocations);
-    try context.prefetchManagedSlice(u32, .{
+    const managed_slice = @import("column.zig").DeviceSlice(u32){
         .address = @intFromPtr(managed.pointer),
         .len = managed.words,
         .owner = managed.owner,
         .generation = managed.generation,
-    }, false);
+    };
+    try context.prefetchManagedSlice(u32, managed_slice, false);
     try std.testing.expectEqual(@as(usize, 1), Fake.managed_prefetches);
+    try context.adviseManagedHost(u32, managed_slice, true);
+    try context.adviseManagedHost(u32, managed_slice, false);
+    try std.testing.expectEqual(@as(usize, 2), Fake.managed_advice);
     try context.free(&managed);
     var buffer = try context.allocate(16);
     try context.upload(buffer, &.{ 1, 2, 3, 4 });
@@ -1132,8 +1167,9 @@ test "context owns buffers and accounts only explicit transfers" {
     try std.testing.expectEqual(@as(u64, 16), context.counters.d2d_bytes);
     try std.testing.expectEqual(@as(u64, 16), context.counters.d2h_proof_bytes);
     try std.testing.expectEqual(@as(u64, 1), context.counters.d2h_proof_operations);
-    try std.testing.expectEqual(@as(usize, 1), Fake.sync_calls);
-    try std.testing.expectEqual(@as(u64, 1), context.counters.sync_calls);
+    try std.testing.expectEqual(@as(usize, 3), Fake.sync_calls);
+    try std.testing.expectEqual(@as(u64, 3), context.counters.sync_calls);
+    try std.testing.expectEqual(@as(u64, 2), context.counters.managed_policy_sync_calls);
     try std.testing.expect(context.counters.isResident());
     try std.testing.expect(context.counters.stagesCompleteExactlyOnce());
 }

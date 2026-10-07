@@ -30,6 +30,17 @@ slots. They do not copy witness data into host application code or change the
 proof. Measure this separately from the plain managed fallback: on a dense
 PIE the extra transfers may outweigh avoided page faults.
 
+`STWO_CUDA_MANAGED_HOST_PREFERRED=1` is a separate research policy for
+oversubscribed managed arenas. After the writers finish, it places the lookup
+slab in host memory for main commitment and relation consumption. After each
+trace commitment, it places that tree's coefficients in host memory until
+OODS finishes. The GPU is explicitly allowed to map these ranges without
+migrating them. Every advice change synchronizes the proof stream before
+reusing an aliased span, and those policy barriers are counted separately in
+the resident verdict. This is intended to bound actual HBM occupancy, not to
+reduce the logical arena. Its PCIe cost, observed GPU peak, and exact proof
+must be qualified on hardware before it is considered useful.
+
 Initial discriminating cases are the exact canonical inputs
 `15582797_15582797` (88.627 GB planned arena, 109,817 distinct Pedersen
 keys) and `15590913_15590913` (103.367 GB, 193,076 keys). On an 80 GB H100,

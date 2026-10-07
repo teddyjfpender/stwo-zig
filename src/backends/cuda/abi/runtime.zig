@@ -128,6 +128,12 @@ pub extern "c" fn stwo_exec_context_prefetch_managed(
     bytes: usize,
     to_device: c_int,
 ) c_int;
+pub extern "c" fn stwo_exec_context_advise_managed_host(
+    handle: *anyopaque,
+    pointer: *const anyopaque,
+    bytes: usize,
+    prefer_host: c_int,
+) c_int;
 pub extern "c" fn stwo_exec_context_free_u32(
     handle: *anyopaque,
     ptr: [*]u32,

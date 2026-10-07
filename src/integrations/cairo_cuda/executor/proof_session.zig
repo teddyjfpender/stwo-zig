@@ -322,6 +322,8 @@ pub const Prepared = struct {
         var phase: []const u8 = "validate_session";
         errdefer std.debug.print("cairo-cuda proof phase={s} failed\n", .{phase});
         try self.validate(plan, protocol);
+        if (managedHostPreferredEnabled() and managedPrefetchEnabled())
+            return error.ConflictingManagedPolicies;
         if (self.state != .prepared)
             return error.InvalidProofSessionState;
         self.state = .poisoned;
@@ -360,6 +362,16 @@ pub const Prepared = struct {
         try transaction.beginStage(.trace_commit);
         phase = "retain_relation_inputs";
         try self.controllers.relation_sources.captureBaseInputs(session);
+        if (managedHostPreferredEnabled()) {
+            phase = "host_resident_lookup";
+            try preferManagedSlotHost(
+                transaction,
+                plan,
+                .writer_lookup_inputs,
+                0,
+                true,
+            );
+        }
         phase = "preprocessed_commit";
         try self.controllers.preprocessed_commit.execute(session);
         phase = "main_commit";
@@ -376,6 +388,16 @@ pub const Prepared = struct {
             1,
             self.controllers.main_commit.root,
         );
+        if (managedHostPreferredEnabled()) {
+            phase = "host_resident_main_coefficients";
+            try preferManagedSlotHost(
+                transaction,
+                plan,
+                .trace_coefficients,
+                1,
+                true,
+            );
+        }
         phase = "transcript_bootstrap";
         try transcript_controller.initialize(
             runtime_stages.transcript.Native,
@@ -431,6 +453,16 @@ pub const Prepared = struct {
             session,
             self.controllers.relation,
         );
+        if (managedHostPreferredEnabled()) {
+            phase = "release_host_lookup_policy";
+            try preferManagedSlotHost(
+                transaction,
+                plan,
+                .writer_lookup_inputs,
+                0,
+                false,
+            );
+        }
         try session.context.copyDeviceSlice(
             u32,
             self.bindings.interaction_claims,
@@ -440,6 +472,16 @@ pub const Prepared = struct {
         );
         phase = "interaction_commit";
         try self.controllers.interaction_commit.execute(session);
+        if (managedHostPreferredEnabled()) {
+            phase = "host_resident_interaction_coefficients";
+            try preferManagedSlotHost(
+                transaction,
+                plan,
+                .trace_coefficients,
+                2,
+                true,
+            );
+        }
         try proof_capture.captureTraceRoot(
             session,
             .{ .proof = self.controllers.oods.proof },
@@ -533,6 +575,18 @@ pub const Prepared = struct {
             self.transcript,
             &cursor,
         );
+        if (managedHostPreferredEnabled()) {
+            phase = "release_host_coefficient_policy";
+            for ([_]u32{ 1, 2 }) |ordinal| {
+                try preferManagedSlotHost(
+                    transaction,
+                    plan,
+                    .trace_coefficients,
+                    ordinal,
+                    false,
+                );
+            }
+        }
         try transaction.endStage(.oods);
 
         try transaction.beginStage(.quotient);
@@ -833,6 +887,26 @@ fn hashInt(
 fn managedPrefetchEnabled() bool {
     const value = std.posix.getenv("STWO_CUDA_MANAGED_PREFETCH") orelse return false;
     return std.mem.eql(u8, value, "1");
+}
+
+fn managedHostPreferredEnabled() bool {
+    const value = std.posix.getenv("STWO_CUDA_MANAGED_HOST_PREFERRED") orelse return false;
+    return std.mem.eql(u8, value, "1");
+}
+
+fn preferManagedSlotHost(
+    transaction: anytype,
+    plan: *const resident_plan.Plan,
+    kind: resident_plan.SlotKind,
+    ordinal: u32,
+    prefer_host: bool,
+) !void {
+    const slot = plan.slot(kind, ordinal) orelse
+        return error.InvalidProofSessionBindings;
+    if (comptime @hasDecl(@TypeOf(transaction.*), "adviseManagedSlotHost")) {
+        try transaction.adviseManagedSlotHost(slot.id, prefer_host);
+        if (prefer_host) try transaction.prefetchManagedSlot(slot.id, false);
+    } else return error.InvalidState;
 }
 
 fn prefetchTraceSlots(

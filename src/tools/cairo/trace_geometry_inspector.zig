@@ -145,9 +145,10 @@ pub fn main() !void {
                 }
             }
             for (prepared.request.resident.slots) |slot| {
-                std.debug.print("slot pie={s} kind={s} ordinal={} bytes={} from={s}/{} through={s}/{} storage={s}\n", .{
+                const placement = try controllers.resident.combined_arena.placement(slot.id);
+                std.debug.print("slot pie={s} kind={s} ordinal={} bytes={} offset_bytes={} from={s}/{} through={s}/{} storage={s}\n", .{
                     pie,                      @tagName(slot.kind),  slot.ordinal,                slot.words * 4,
-                    @tagName(slot.live_from), slot.live_from_phase, @tagName(slot.live_through), slot.live_through_phase,
+                    placement.offset_words * 4, @tagName(slot.live_from), slot.live_from_phase, @tagName(slot.live_through), slot.live_through_phase,
                     @tagName(slot.storage),
                 });
             }
@@ -158,6 +159,15 @@ pub fn main() !void {
                 if (lookup_bytes == 0) continue;
                 std.debug.print("lookup pie={s} component={s} instance={} rows={} words_per_row={} bytes={}\n", .{
                     pie, planned.name, planned.instance, rows, witness.program.n_lookup_words, lookup_bytes,
+                });
+            }
+            for (prepared.request.proof.components, prepared.composition.components) |planned, component| {
+                const witness = prepared.witnesses.find(planned.name) orelse continue;
+                const rows: u64 = @as(u64, 1) << @intCast(component.trace_log_size);
+                const scratch_bytes = rows * witness.program.n_sub_words * 4;
+                if (scratch_bytes == 0) continue;
+                std.debug.print("subscratch pie={s} component={s} instance={} rows={} words_per_row={} bytes={} producer_edges={}\n", .{
+                    pie, planned.name, planned.instance, rows, witness.program.n_sub_words, scratch_bytes, planned.producer_edges.len,
                 });
             }
         }

@@ -222,6 +222,21 @@ pub fn TransactionFor(comptime Session: type) type {
             } else return error.InvalidState;
         }
 
+        pub fn adviseManagedSlotHost(
+            self: *Self,
+            id: arena_module.SlotId,
+            prefer_host: bool,
+        ) runtime_error.Error!void {
+            if (!self.arena.managed) return;
+            if (comptime @hasDecl(Context, "adviseManagedHost")) {
+                try self.sessionContext().adviseManagedHost(
+                    u32,
+                    try self.slot(id),
+                    prefer_host,
+                );
+            } else return error.InvalidState;
+        }
+
         pub fn slotAs(
             self: *const Self,
             comptime F: type,
