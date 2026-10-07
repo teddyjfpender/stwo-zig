@@ -12,7 +12,7 @@
 //!
 //! ```text
 //! channel_salt QM31 · trace_root · interaction_root · composition_root
-//! claimed_sums[n_components] · preprocessed_at_oods[n_pp] ·
+//! claimed_sums[sum of verifier-owned component claim arities] · preprocessed_at_oods[n_pp] ·
 //! trace_at_oods[sum of verifier-owned main-column mask lengths]
 //! interaction_at_oods (at_oods, then at_prev for cumulative-sum columns)
 //! composition_eval_at_oods[4 * 2^composition_log_split] · eval_domain_samples (per trace, per column, per query)
@@ -115,7 +115,7 @@ pub const Proof = struct {
         try config.validate();
         const n_queries = config.nQueries();
         const columns = config.nColumnsPerTrace();
-        try expectLen(self.claimed_sums.len, config.nComponents());
+        try expectLen(self.claimed_sums.len, config.nClaimedSums());
         try expectLen(self.preprocessed_columns_at_oods.len, columns[0]);
         try expectLen(self.trace_at_oods.len, config.nTraceOodsValues());
         try expectLen(self.interaction_at_oods.len, columns[2]);
@@ -180,7 +180,7 @@ pub fn deserializeProof(
     proof.trace_root = try reader.hash();
     proof.interaction_root = try reader.hash();
     proof.composition_polynomial_root = try reader.hash();
-    proof.claimed_sums = try reader.qm31s(allocator, config.nComponents());
+    proof.claimed_sums = try reader.qm31s(allocator, config.nClaimedSums());
     proof.preprocessed_columns_at_oods = try reader.qm31s(allocator, columns[0]);
     proof.trace_at_oods = try reader.qm31s(allocator, config.nTraceOodsValues());
     proof.interaction_at_oods = try allocator.alloc(InteractionAtOods, columns[2]);

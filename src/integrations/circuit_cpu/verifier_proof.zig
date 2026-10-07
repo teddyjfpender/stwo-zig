@@ -153,7 +153,7 @@ fn fromProofMaterial(
     if (stark.commitments.items.len != wire.n_traces or stark.sampled_values.items.len != wire.n_traces)
         return error.InvalidCircuitProof;
     proof_config.validate() catch return error.InvalidCircuitProof;
-    if (claimed_sums_in.len != proof_config.nComponents()) return error.InvalidCircuitProof;
+    if (claimed_sums_in.len != proof_config.nClaimedSums()) return error.InvalidCircuitProof;
 
     var arena = std.heap.ArenaAllocator.init(allocator);
     errdefer arena.deinit();
@@ -167,11 +167,15 @@ fn fromProofMaterial(
     const claimed_sums = try a.dupe(QM31, claimed_sums_in);
     const interaction = stark.sampled_values.items[2];
     const interaction_at_oods = try a.alloc(wire.InteractionAtOods, interaction.len);
-    for (interaction, interaction_at_oods) |samples, *out| out.* = switch (samples.len) {
-        2 => .{ .at_oods = samples[1], .at_prev = samples[0] },
-        1 => .{ .at_oods = samples[0], .at_prev = null },
-        else => return error.InvalidCircuitProof,
-    };
+    if (interaction.len != config.nInteractionColumns()) return error.InvalidCircuitProof;
+    for (interaction, interaction_at_oods, 0..) |samples, *out, column| {
+        if (samples.len != config.columnMaskOffsets(2, column).len) return error.InvalidCircuitProof;
+        out.* = switch (samples.len) {
+            2 => .{ .at_oods = samples[1], .at_prev = samples[0] },
+            1 => .{ .at_oods = samples[0], .at_prev = null },
+            else => return error.InvalidCircuitProof,
+        };
+    }
     const composition = try singleRow(a, stark.sampled_values.items[3]);
     if (composition.len != config.nCompositionColumns()) return error.InvalidCircuitProof;
 

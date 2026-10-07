@@ -152,7 +152,7 @@ trace-size boundary.
 At 64 private lanes, the reduction-only change **did** move a padding
 boundary in an earlier, pinned comparison. This measurement predates the
 private-input packing described above. A
-[ten-witness local measurement](../../../../design/s31/measurements/packed-reduction-2026-10-06.json)
+[ten-witness local measurement](../../../../design/s31/measurements/language/packed-reduction-2026-10-06.json)
 on an Apple M5 Max, using `direct-gate` and the same canonical relation in
 both builds, found:
 
@@ -164,14 +164,14 @@ both builds, found:
 | Median prover stage excluding proof of work | 1.983 ms | 1.358 ms |
 | Median whole-process proving | 117 ms | 111 ms |
 
-The [benchmark script](../benchmark_packed_reduction.py) uses one warmup
+The [benchmark script](../benchmarks/benchmark_packed_reduction.py) uses one warmup
 and ten distinct valid witnesses per version; both native verifiers accepted
 their proofs and rejected a changed public output. The whole-process time
 improves only slightly here because transcript-dependent proof of work
 dominates and varies with the witness. These numbers describe this host,
 program, and profile; they do not establish a general speedup over Cairo.
 
-A separate, later [128-lane private-input comparison](../../../../design/s31/measurements/packed-inputs-2026-10-06.json)
+A separate, later [128-lane private-input comparison](../../../../design/s31/measurements/language/packed-inputs-2026-10-06.json)
 kept the packed reducer on **both** sides and changed only how the private
 M31 input positions become circuit wires. Seven valid witnesses per version
 gave the following medians on the same host and `direct-gate` profile:
@@ -422,8 +422,8 @@ build–prove–verify loop, rejects a one-word change to the public statement,
 and saves a compact report. Run this from the repository root:
 
 ```sh
-python3 src/frontends/s31/s31.py oracle src/frontends/s31/examples/lane_stats4.s31 src/frontends/s31/examples/lane_stats4.valid.json
-python3 src/frontends/s31/s31.py trial src/frontends/s31/examples/lane_stats4.s31 src/frontends/s31/examples/lane_stats4.valid.json --lowering direct-gate --out zig-out/s31/docs-lane-trial
+python3 src/frontends/s31/python/s31.py oracle src/frontends/s31/examples/lane_stats4.s31 src/frontends/s31/examples/lane_stats4.valid.json
+python3 src/frontends/s31/python/s31.py trial src/frontends/s31/examples/lane_stats4.s31 src/frontends/s31/examples/lane_stats4.valid.json --lowering direct-gate --out zig-out/s31/docs-lane-trial
 ```
 
 `oracle` performs a separate Python calculation of the **normalized
@@ -450,12 +450,12 @@ performance comparison because cache state and proof of work vary.
 To inspect each step manually, use the same checked-in reduction:
 
 ```sh
-python3 src/frontends/s31/s31.py lower src/frontends/s31/examples/lane_stats4.s31
-python3 src/frontends/s31/s31.py build src/frontends/s31/examples/lane_stats4.s31 --lowering direct-gate --out zig-out/s31/docs-lane-stats
-python3 src/frontends/s31/s31.py equations zig-out/s31/docs-lane-stats
-python3 src/frontends/s31/s31.py explain zig-out/s31/docs-lane-stats
-python3 src/frontends/s31/s31.py prove zig-out/s31/docs-lane-stats src/frontends/s31/examples/lane_stats4.valid.json zig-out/s31/docs-lane-stats.proof
-python3 src/frontends/s31/s31.py verify zig-out/s31/docs-lane-stats zig-out/s31/docs-lane-stats.proof
+python3 src/frontends/s31/python/s31.py lower src/frontends/s31/examples/lane_stats4.s31
+python3 src/frontends/s31/python/s31.py build src/frontends/s31/examples/lane_stats4.s31 --lowering direct-gate --out zig-out/s31/docs-lane-stats
+python3 src/frontends/s31/python/s31.py equations zig-out/s31/docs-lane-stats
+python3 src/frontends/s31/python/s31.py explain zig-out/s31/docs-lane-stats
+python3 src/frontends/s31/python/s31.py prove zig-out/s31/docs-lane-stats src/frontends/s31/examples/lane_stats4.valid.json zig-out/s31/docs-lane-stats.proof
+python3 src/frontends/s31/python/s31.py verify zig-out/s31/docs-lane-stats zig-out/s31/docs-lane-stats.proof
 ```
 
 For the recurrence, put the `square7_16` source above in a `.s31` file and

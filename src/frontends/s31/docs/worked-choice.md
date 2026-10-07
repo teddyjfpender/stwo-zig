@@ -210,8 +210,8 @@ builds the package, makes and verifies a proof, checks that a changed public
 statement is rejected, and writes an inspection report:
 
 ```sh
-python3 src/frontends/s31/s31.py lower choose_square_plus_seven.s31
-python3 src/frontends/s31/s31.py trial choose_square_plus_seven.s31 choice.valid.json --lowering direct-gate --out zig-out/s31/docs-choice-trial
+python3 src/frontends/s31/python/s31.py lower choose_square_plus_seven.s31
+python3 src/frontends/s31/python/s31.py trial choose_square_plus_seven.s31 choice.valid.json --lowering direct-gate --out zig-out/s31/docs-choice-trial
 ```
 
 You can also use `s31 equations` and `s31 explain` on the resulting package

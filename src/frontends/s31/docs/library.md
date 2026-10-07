@@ -116,7 +116,7 @@ selects position 6, which is 17 in the sample assignment. The
 [u16 example](../examples/array_slice_u16.s31) preserves the source's
 range constraints while exposing the two-lane slice `[65535,7]`.
 
-The [native acceptance run](../acceptance_array_views.py) checks every text
+The [native acceptance run](../tests/acceptance/acceptance_array_views.py) checks every text
 program against its handwritten JSON relation and an independent Python list
 calculation. It proves both versions, then changes a private input that
 affects the selected output and proves the new result. A stale public claim,
@@ -124,7 +124,7 @@ damaged proof, or altered sealed key is rejected. Text and handwritten JSON
 sources may share a valid proof when their canonical relation and verifier
 geometry coincide; the package manifest checks raw source-file provenance,
 while the verifier checks the compiled relation and its AIR geometry. The
-[cost baseline](../../../../design/s31/measurements/array-view-cost-v1-2026-10-07.json)
+[cost baseline](../../../../design/s31/measurements/language/array-view-cost-v1-2026-10-07.json)
 pins raw and padded rows, fixed-column geometry, and slice-specific QM31
 rows. Its proof-byte ceiling allows 10% measurement variation; a compiler
 change that adds gates to an aligned slice or greatly expands a proof fails
@@ -340,7 +340,7 @@ an extra bit gate. The select output is `(1-z)·left + z·right`.
 | $p-1$ | 17 | 23 | 0 | 17 |
 
 The direct profile uses arithmetic self-loops for both zero equations. The
-[acceptance corpus](../acceptance_computed_bit_v1.py) proves all three rows
+[acceptance corpus](../tests/acceptance/acceptance_computed_bit_v1.py) proves all three rows
 and rejects four mismatched claims. It has 288 raw QM31 rows (512 padded)
 and no Eq AIR component in this example.
 
@@ -390,7 +390,7 @@ one-zero-test `computed_choice` above has 288 raw rows. The 22-row difference
 includes a second zero test as well as all Boolean operations, so it is not a
 per-operation price. The generated package's cost report remains the source of
 truth for a particular compiler version and lowering profile.
-The [native proof acceptance](../acceptance_boolean_v1.py) verifies five
+The [native proof acceptance](../tests/acceptance/acceptance_boolean_v1.py) verifies five
 proofs across the truth table and a typed private bit input. It rejects five
 altered public claims and the private bit value `2`. In a ReleaseFast local
 run, the computed example's proofs were 54,030–56,098 bytes; the bit-input
@@ -469,7 +469,7 @@ constrains the mainnet compact target. `std::bitcoin::pow_valid(Bytes80)`
 composes those two operations with the existing unsigned 256-bit comparison;
 it adds no AIR opcode or gate beyond spelling out the calls.
 `std::bitcoin::block_work(UInt256)` computes checked work from a target;
-the [division walkthrough](../../../../design/s31/BITCOIN_WORK_DIVISION.md)
+the [division walkthrough](../../../../design/s31/bitcoin/BITCOIN_WORK_DIVISION.md)
 gives its integer and AIR equations and the [source example](../examples/bitcoin_block_work.s31).
 The [Bitcoin header chapter](bitcoin-sha256d.md)
 works through both operations and the proof-of-work comparison.
@@ -539,11 +539,11 @@ relation's AIR constraints, not the truth of Python code at verification time.
 Run from the repository root:
 
 ~~~sh
-python3 src/frontends/s31/s31.py lower src/frontends/s31/examples/mathlib4.s31
-python3 src/frontends/s31/s31.py build src/frontends/s31/examples/mathlib4.s31 --lowering direct-gate --out zig-out/s31/mathlib4-text
-python3 src/frontends/s31/s31.py explain zig-out/s31/mathlib4-text
-python3 src/frontends/s31/s31.py prove zig-out/s31/mathlib4-text src/frontends/s31/examples/mathlib4.valid.json zig-out/s31/mathlib4-text.proof
-python3 src/frontends/s31/s31.py verify zig-out/s31/mathlib4-text zig-out/s31/mathlib4-text.proof
+python3 src/frontends/s31/python/s31.py lower src/frontends/s31/examples/mathlib4.s31
+python3 src/frontends/s31/python/s31.py build src/frontends/s31/examples/mathlib4.s31 --lowering direct-gate --out zig-out/s31/mathlib4-text
+python3 src/frontends/s31/python/s31.py explain zig-out/s31/mathlib4-text
+python3 src/frontends/s31/python/s31.py prove zig-out/s31/mathlib4-text src/frontends/s31/examples/mathlib4.valid.json zig-out/s31/mathlib4-text.proof
+python3 src/frontends/s31/python/s31.py verify zig-out/s31/mathlib4-text zig-out/s31/mathlib4-text.proof
 ~~~
 
 The remaining math gaps are dynamic indexing of one `[m31; N]`, checked

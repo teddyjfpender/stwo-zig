@@ -55,6 +55,13 @@ pub const ProofShape = struct {
     /// value order. Null is the original singleton mask at the OODS point.
     /// This layout is verifier-owned; proof bytes never select openings.
     trace_mask_offsets: ?[]const []const i8 = null,
+    /// Ordered interaction masks. Null retains the legacy last-four
+    /// previous/current cumulative-sum columns of each component.
+    interaction_mask_offsets: ?[]const []const i8 = null,
+    /// Number of transcript claims contributed by each AIR component.
+    /// Null means one claim for an interaction component, none for a
+    /// trace-only component. The caller word bus contributes two claims.
+    claim_arities: ?[]const u8 = null,
 
     /// Rejects a shape upstream would assert on or that has no proof: a
     /// component with fewer interaction columns than its cumulative sum, a
@@ -80,10 +87,49 @@ pub const ProofShape = struct {
                 if (!has_current) return error.InvalidProofShape;
             }
         }
+        if (self.interaction_mask_offsets) |masks| {
+            if (masks.len != self.nInteractionColumns()) return error.InvalidProofShape;
+            for (masks) |offsets| {
+                if (!std.mem.eql(i8, offsets, &current_offsets) and
+                    !std.mem.eql(i8, offsets, &cumulative_offsets)) return error.InvalidProofShape;
+            }
+        }
+        if (self.claim_arities) |arities| {
+            if (arities.len != self.nComponents()) return error.InvalidProofShape;
+        }
+        var interaction_start: usize = 0;
+        for (self.component_shapes, 0..) |component, index| {
+            const claims = self.claimArity(index);
+            if ((component.interaction_columns == 0) != (claims == 0)) return error.InvalidProofShape;
+            var cumulative: usize = 0;
+            for (interaction_start..interaction_start + component.interaction_columns) |column|
+                cumulative += @intFromBool(self.isCumulativeSumColumn(column));
+            if (cumulative != @as(usize, claims) * n_cumulative_sum_columns_per_component)
+                return error.InvalidProofShape;
+            interaction_start += component.interaction_columns;
+        }
     }
 
     pub fn nComponents(self: ProofShape) usize {
         return self.component_shapes.len;
+    }
+
+    pub fn claimArity(self: ProofShape, component: usize) u8 {
+        std.debug.assert(component < self.nComponents());
+        return if (self.claim_arities) |arities| arities[component] else @intFromBool(self.component_shapes[component].interaction_columns != 0);
+    }
+
+    pub fn nClaimedSums(self: ProofShape) usize {
+        var total: usize = 0;
+        for (self.component_shapes, 0..) |_, index| total += self.claimArity(index);
+        return total;
+    }
+
+    pub fn claimRange(self: ProofShape, component: usize) struct { start: usize, end: usize } {
+        std.debug.assert(component < self.nComponents());
+        var start: usize = 0;
+        for (0..component) |index| start += self.claimArity(index);
+        return .{ .start = start, .end = start + self.claimArity(component) };
     }
 
     pub fn nTraceColumns(self: ProofShape) usize {
@@ -99,6 +145,11 @@ pub const ProofShape = struct {
     }
 
     pub fn nCumulativeSumColumns(self: ProofShape) usize {
+        if (self.interaction_mask_offsets) |masks| {
+            var total: usize = 0;
+            for (masks) |offsets| total += @intFromBool(offsets.len == 2);
+            return total;
+        }
         var total: usize = 0;
         for (self.component_shapes) |component| {
             if (component.interaction_columns != 0) total += n_cumulative_sum_columns_per_component;
@@ -116,7 +167,12 @@ pub const ProofShape = struct {
         const columns = self.nColumnsPerTrace();
         std.debug.assert(tree < n_traces and column < columns[tree]);
         if (tree == 1) return if (self.trace_mask_offsets) |masks| masks[column] else &current_offsets;
-        if (tree == 2 and self.isCumulativeSumColumn(column)) return &cumulative_offsets;
+        if (tree == 2) return if (self.interaction_mask_offsets) |masks|
+            masks[column]
+        else if (self.isCumulativeSumColumn(column))
+            &cumulative_offsets
+        else
+            &current_offsets;
         return &current_offsets;
     }
 
@@ -167,6 +223,10 @@ pub const ProofShape = struct {
     /// Whether interaction column `column` also carries its value at the
     /// previous point: the last four interaction columns of each component.
     pub fn isCumulativeSumColumn(self: ProofShape, column: usize) bool {
+        if (self.interaction_mask_offsets) |masks| {
+            std.debug.assert(column < masks.len);
+            return masks[column].len == 2;
+        }
         var start: usize = 0;
         for (self.component_shapes) |shape| {
             const end = start + shape.interaction_columns;
@@ -184,7 +244,7 @@ pub const ProofShape = struct {
         // channel_salt, three roots (two QM31 words each), pow_nonce and
         // interaction_pow_nonce.
         const fixed = (1 + 3 * 2 + 1 + 1) * qm31_bytes;
-        const claim = self.nComponents() * qm31_bytes;
+        const claim = self.nClaimedSums() * qm31_bytes;
         const oods = (total_columns + self.nCumulativeSumColumns() + self.nTraceOodsValues() - columns[1]) * qm31_bytes;
         const fri_last_layer = (@as(usize, 1) << @intCast(self.fri.log_last_layer_degree_bound)) * qm31_bytes;
 
@@ -269,7 +329,9 @@ test "circuit proof shape: split-two composition and trace-only components" {
     try std.testing.expectEqualSlices(usize, &.{ 3, 3, 8, 16 }, &columns);
     try std.testing.expect(!shape.isCumulativeSumColumn(3));
     try std.testing.expect(shape.isCumulativeSumColumn(4));
-    const expected_delta = 4 * (qm31_bytes + shape.nQueries() * m31_bytes) - 4 * qm31_bytes;
+    // Four wider composition columns, four fewer cumulative openings, and
+    // one fewer claim because the first component is trace-only.
+    const expected_delta = 4 * (qm31_bytes + shape.nQueries() * m31_bytes) - 5 * qm31_bytes;
     try std.testing.expectEqual(test_shape.serializedLen() + expected_delta, shape.serializedLen());
 }
 

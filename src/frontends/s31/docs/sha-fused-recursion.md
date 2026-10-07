@@ -10,31 +10,31 @@ private SHA digest, and a production FRI schedule of 26 proof-of-work bits,
 70 queries, blowup log 1, and fold step 1. The public eight words are
 canonical M31 values. This is a **header proof**, not a header-chain proof.
 
-The [Bitcoin chain fold](../bitcoin_chain_fold.zig) instead verifies a prior
+The [Bitcoin chain fold](../bitcoin/fold/bitcoin_chain_fold.zig) instead verifies a prior
 **11-component generic circuit** proof inside its circuit, checks the next
 80-byte header there, and publishes a BLAKE2s chain-state digest. Its trusted
-[native verifier](../bitcoin_chain_verifier.zig) derives the anchor and fold
+[native verifier](../bitcoin/verification/bitcoin_chain_verifier.zig) derives the anchor and fold
 roots from the checkpoint and a value-free topology. The fold proof uses its
 own FRI schedule with fold step 4. A single accepted fold proof can therefore
 attest to the earlier chain steps. The SHA256d work for the new header is still
 performed by generic circuit gates.
 
-The experimental [joined fold prover](../sha_fused_fold_prover.zig) and
-[native verifier](../sha_fused_fold_native_verifier.zig) now prove **one**
+The experimental [joined fold prover](../sha/proving/sha_fused_fold_prover.zig) and
+[native verifier](../sha/verification/sha_fused_fold_native_verifier.zig) now prove **one**
 checkpoint-anchored header update with the generic child verifier and the
 fused SHA256d chip in one STARK. Its `S31FCF01` profile has eleven circuit
 components, ten SHA components, seventeen lookup claims, and eight packed
 raw-`u32` public state words. The verifier derives its key from value-free
 topology and binds the ordered forty header and sixteen digest wires, the
 combined fixed-column root, and the Gate and SHA word lookup closures.
-The [integration test](../sha_fused_fold_proof_test.zig) compares value and
+The [integration test](../sha/tests/sha_fused_fold_proof_test.zig) compares value and
 value-free topology, natively proves and verifies, and rejects changed
 digest, header, statement, source key, and address order. With production
 26-bit PoW, 70-query, fold-one settings for the outer proof, one local
 ReleaseFast run produced a 659,942-byte proof in 12.5 seconds and verified
 it in 16 ms. The generic child used its production 26-bit/70-query/fold-four
 settings. These are single-run measurements, not a matched speed comparison.
-The [matched production-parameter run](../../../../design/s31/measurements/bitcoin-fold-generic-vs-fused-sha-production-fri-2026-10-07.json)
+The [matched production-parameter run](../../../../design/s31/measurements/sha/bitcoin-fold-generic-vs-fused-sha-production-fri-2026-10-07.json)
 used the same verified child anchor and FRI26/70/fold1 settings for both outer
 proofs. Generic proving took 16.66 seconds and produced 519,597 bytes;
 joined proving took 12.45 seconds and produced 659,942 bytes. Native
@@ -42,15 +42,15 @@ verification took 11.7 ms and 16.4 ms, respectively. This one sequential
 sample shows about 25% less proving time and 27% more proof bytes for the
 joined path on the recorded machine; it is not a repeatability or security
 assessment.
-The [sealed one-header verifier](../bitcoin_fused_chain_verifier.zig) now
+The [sealed one-header verifier](../bitcoin/verification/bitcoin_fused_chain_verifier.zig) now
 rebuilds the value-free topology and fixed root from the mainnet genesis
 checkpoint. It requires production child and outer FRI settings and binds
 the eight proof outputs to a named block hash, timestamp, and step-zero
 history. The production integration test accepts a proof through this wrapper
 and rejects a changed named timestamp. Its
-[key and statement format](../../../../design/s31/BITCOIN_FUSED_SEALED_VERIFIER.md)
+[key and statement format](../../../../design/s31/bitcoin/BITCOIN_FUSED_SEALED_VERIFIER.md)
 is limited to one header after genesis.
-The [matched test-FRI run](../../../../design/s31/measurements/bitcoin-fold-generic-vs-fused-sha-test-fri-2026-10-07.json)
+The [matched test-FRI run](../../../../design/s31/measurements/sha/bitcoin-fold-generic-vs-fused-sha-test-fri-2026-10-07.json)
 used one production child and identical outer test settings for both paths:
 generic proving took 12.52 seconds and 116,993 proof bytes; joined proving
 took 10.14 seconds and 152,499 proof bytes. This is one machine run, with a
@@ -59,11 +59,11 @@ Run the opt-in check with `zig build --build-file src/frontends/s31/build.zig
 test-sha-fused-fold-proof -Doptimize=ReleaseFast`; set
 `S31_FUSED_FOLD_PRODUCTION=1` for the production-parameter outer proof.
 
-The [sparse-wide wrapper](../recursion_sparse_wide.zig) verifies a third
+The [sparse-wide wrapper](../recursion/recursion_sparse_wide.zig) verifies a third
 profile: four sparse-wide circuit components with its own statement and
 identity hash. Its fixed-key fold is separate from the Bitcoin chain fold.
 Changing a package's lowering flag cannot turn either in-circuit verifier
-into a `sha-fused` verifier. The [package CLI](../s31.py) currently refuses
+into a `sha-fused` verifier. The [package CLI](../python/s31.py) currently refuses
 recursive commands for `sha-fused`; that is the correct admission rule.
 
 ## Why direct leaf replacement is unsound
@@ -94,7 +94,7 @@ digest wires join to three SHA compression calls through the caller and
 Gate lookup. The circuit and SHA AIRs share one STARK transcript and one
 fixed root. The sealed native verifier now checks a named step-zero Bitcoin
 statement and independently rebuilds the trusted key and fixed commitment.
-The [topology record](../../../../design/s31/BITCOIN_FUSED_FOLD_TOPOLOGY.md)
+The [topology record](../../../../design/s31/bitcoin/BITCOIN_FUSED_FOLD_TOPOLOGY.md)
 describes the 21-component roster and padded geometry.
 
 That first-step proof cannot be used as the child of the same circuit on the
@@ -107,7 +107,7 @@ at the base and a joined fold proof thereafter. How to gate or otherwise
 support those two different child proof profiles under one fixed fold
 topology, while binding the fold's own derived root, is **unsolved here**.
 No same-key block-two proof or recursive light-client claim follows from the
-one-step milestone. The [joined proof transport inventory](../../../../design/s31/JOINED_SHA_RECURSION_TRANSPORT.md)
+one-step milestone. The [joined proof transport inventory](../../../../design/s31/recursion/JOINED_SHA_RECURSION_TRANSPORT.md)
 also shows why the existing recursive proof witness cannot yet carry this
 child: some SHA trace columns need five shifted OODS openings, while the
 current wire format carries one.
@@ -194,5 +194,5 @@ proof, verify one fused header proof **and** the prior generic fold proof
 inside it on every step, and bind both children to a commitment over the
 entire current header and its SHA digest. This avoids self-recursion over a
 new fused outer profile, but needs a complete in-circuit v4 verifier and has
-two verifier costs per step. The [technical design](../../../../design/s31/SHA_FUSED_RECURSION.md)
+two verifier costs per step. The [technical design](../../../../design/s31/recursion/SHA_FUSED_RECURSION.md)
 specifies its key, base case, proof transport, and rejection tests.

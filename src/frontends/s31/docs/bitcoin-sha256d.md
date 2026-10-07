@@ -68,7 +68,7 @@ are zero on both sides; at limb 13 the hash has `25` and the target has
 `65535`. That highest unequal limb makes the hash smaller even though its
 lowest limb, `57967`, exceeds the target's zero lowest limb. The AIR's
 borrow chain proves the full comparison, not this abbreviated inspection.
-The [acceptance run](../acceptance_bitcoin_pow_valid.py) checks the result
+The [acceptance run](../tests/acceptance/acceptance_bitcoin_pow_valid.py) checks the result
 against independent `hashlib` double SHA, proves both source forms with
 generated native verifiers, and rejects a changed nonce, invalid compact
 sign bit, and altered public claim. Both forms have exactly the same circuit
@@ -178,7 +178,7 @@ are the reference semantics for this operation.
 ## Run and interpret the proof
 
 ```sh
-python3 src/frontends/s31/s31.py trial \
+python3 src/frontends/s31/python/s31.py trial \
   src/frontends/s31/examples/bitcoin_header_pow.s31 \
   src/frontends/s31/examples/bitcoin_header_hash.valid.json \
   --lowering sparse-wide-gate \
@@ -197,7 +197,7 @@ proof was 338,687 bytes; proving took 0.335 seconds and verification 0.421
 seconds. These are single measurements, including stochastic proof of work.
 The [hash-only program](../examples/bitcoin_header_hash.s31) used 356,268
 arithmetic rows in a separate run, so compact-target decoding and comparison
-added 614 arithmetic rows. The [measurement record](../../../../design/s31/measurements/bitcoin-header-sha256d-v1-2026-10-06.json)
+added 614 arithmetic rows. The [measurement record](../../../../design/s31/measurements/sha/bitcoin-header-sha256d-v1-2026-10-06.json)
 contains both verified trials. A dedicated SHA chip is the next major cost target.
 
 ## Two actual headers in one proof
@@ -276,7 +276,7 @@ the two hashes in their specified order. A relying party must still check the
 expected public root to identify a particular child header or chain segment.
 
 ```sh
-python3 src/frontends/s31/s31.py trial \
+python3 src/frontends/s31/python/s31.py trial \
   src/frontends/s31/examples/bitcoin_header_pair_typed.s31 \
   src/frontends/s31/examples/bitcoin_header_pair.valid.json \
   --lowering sparse-wide-gate \
@@ -288,9 +288,9 @@ including rejection of a changed public root. It used 714,614 raw QM31 rows,
 9,528 Eq rows, and 7,322 conversion rows; the QM31 trace still pads to
 1,048,576 rows. Its proof was 372,904 bytes. In this one run, prove took
 0.517 s and verify 0.486 s, with 0.097 s of prover FRI proof of work.
-The [current trial record](../../../../design/s31/measurements/bitcoin-header-pair-time-v1-2026-10-06.json)
+The [current trial record](../../../../design/s31/measurements/bitcoin/bitcoin-header-pair-time-v1-2026-10-06.json)
 pins source, proof and profile hashes. The
-[earlier record](../../../../design/s31/measurements/bitcoin-header-pair-v1-2026-10-06.json)
+[earlier record](../../../../design/s31/measurements/bitcoin/bitcoin-header-pair-v1-2026-10-06.json)
 without the timestamp check used 714,595 raw QM31 rows; timings and proof
 bytes from the two runs should not be read as a speed comparison.
 
@@ -306,7 +306,7 @@ or recursive header-chain state transitions. The
 [sparse-wide recursion wrapper](recursion-sparse-wide.md) can verify this
 proof profile inside an outer circuit, but it does not supply the missing
 consensus state transition. The genesis hash is an explicit checkpoint. The
-[light-client brief](../../../../design/s31/BITCOIN_LIGHT_CLIENT.md) tracks
+[light-client brief](../../../../design/s31/bitcoin/BITCOIN_LIGHT_CLIENT.md) tracks
 those separate relations.
 
 ## One fresh header per transition proof
@@ -360,7 +360,7 @@ work, and best-chain selection. Its pair root cannot be interpreted as an
 accepted chain tip until those checks and the state binding are added.
 
 ```sh
-python3 src/frontends/s31/acceptance_header_link.py
+python3 src/frontends/s31/tests/acceptance/acceptance_header_link.py
 ```
 
 This acceptance command derives the two hashes with independent `hashlib`
@@ -384,19 +384,19 @@ The recursive verifier carries each public claim word as a packed `u32`:
 `(low_u16, high_u16, 0, 0)` in QM31. Poseidon2 uses one canonical M31 value
 per word. The two encodings are distinct circuit wires. For the first link
 root word, `928491885 = 43373 + 65536·14167`. The
-[`bindCanonicalM31Output`](../recursive_public_words.zig) gadget witnesses
+[`bindCanonicalM31Output`](../recursion/recursive_public_words.zig) gadget witnesses
 the M31 value, constrains it as a base-field element, decomposes it back to
 the packed `u32`, and equates that result to the word authenticated by the
 child proof. The circuit test also rejects the packed word
 `p = 2147483647`: it is a valid `u32` but has no equal canonical M31
 representation. The same test composes this boundary with the
-[`constrainLinkedState`](../poseidon2.zig) circuit equalities and rejects a
+[`constrainLinkedState`](../library/hash/poseidon2.zig) circuit equalities and rejects a
 changed prior-state root. These gates are available for a two-proof fold;
 the current one-level wrapper does not yet invoke them.
 
 The direct-header fold candidate computes the new header inside the fold circuit
 after verifying only the prior recursive proof. The
-[`constrainMainnetPowLinkStep`](../bitcoin_fold_step.zig) kernel consumes a
+[`constrainMainnetPowLinkStep`](../bitcoin/fold/bitcoin_fold_step.zig) kernel consumes a
 trusted old hash root and private old-hash/header limbs. For the same fixture,
 it checks `child[2] = prior_hash[0] = 57967` (and the next fifteen limb
 equalities), recomputes SHA256d and the target comparison, and yields the new
@@ -416,7 +416,7 @@ recorded Bitcoin claim fold has 259,481
 spare QM31 rows, so adding the kernel is expected to cross one padding
 boundary. This is a circuit cost estimate, not a completed recursive header
 proof or a timed proving comparison. The
-[measurement record](../../../../design/s31/measurements/bitcoin-direct-fold-step-v1-2026-10-07.json)
+[measurement record](../../../../design/s31/measurements/bitcoin/bitcoin-direct-fold-step-v1-2026-10-07.json)
 pins the inspector command, source hashes, exact gate counts, and additive
 padding estimate.
 
@@ -424,13 +424,13 @@ The current fold output uses a fixed 144-byte BLAKE2s preimage with the
 `S31BFD2!` domain: `fold_AIR_root[32] || LE32(step) ||
 LE32(checkpoint_root[0..8]) || LE32(current_root[0..8]) ||
 LE32(last_timestamps[0..11])`. The timestamps are newest first.
-[`bitcoin_fold_digest.zig`](../bitcoin_fold_digest.zig) computes it both on the
+[`bitcoin_fold_digest.zig`](../bitcoin/fold/bitcoin_fold_digest.zig) computes it both on the
 host and with circuit gates. Each root word must be canonical M31 before
 four-byte encoding; raw digest bytes cannot be reduced into the field. The
 test checks that changing the checkpoint, current root, AIR root, timestamp
 window, or tested high-counter values changes the output.
 
-The [candidate chain-fold circuit](../bitcoin_chain_fold.zig) connects the
+The [candidate chain-fold circuit](../bitcoin/fold/bitcoin_chain_fold.zig) connects the
 pieces. Let `G = Poseidon2_leaf(genesis_hash)` be the trusted checkpoint,
 `H1` the hash of block 1, and `R1 = Poseidon2_leaf(H1)`:
 
@@ -464,7 +464,7 @@ limbs: serialized bytes 72–73 must be `ff ff` and bytes 74–75 must be
 and cap `max_step` at 2014, because step 0 proves block height 1. Step 2015
 would prove height 2016 and needs a retarget relation in the fold. The v3
 key stays capped before this boundary. A separate v4 key and fold now include
-the [first-retarget gadget](../../../../design/s31/BITCOIN_RETARGET.md).
+the [first-retarget gadget](../../../../design/s31/bitcoin/BITCOIN_RETARGET.md).
 These key checks are native policy checks; the exact header `nBits` check is
 inside the proof relation.
 
@@ -476,12 +476,12 @@ topology is inspectable with:
 
 ```sh
 zig build --build-file src/frontends/s31/build.zig inspect-bitcoin-chain-fold -Doptimize=ReleaseSafe -j2
-python3 src/frontends/s31/record_bitcoin_chain_fold.py
+python3 src/frontends/s31/tools/record/record_bitcoin_chain_fold.py
 ```
 
-The [current MTP topology record](../../../../design/s31/measurements/bitcoin-chain-fold-topology-v3-2026-10-07.json)
+The [current MTP topology record](../../../../design/s31/measurements/bitcoin/bitcoin-chain-fold-topology-v3-2026-10-07.json)
 shows 5,955,496 raw variables, 1,152,060 raw QM31 rows, and 2,097,152
-padded QM31 rows with the real [checkpoint anchor circuit](../bitcoin_chain_anchor.zig)
+padded QM31 rows with the real [checkpoint anchor circuit](../bitcoin/fold/bitcoin_chain_anchor.zig)
 as the base layout. Eq needs 32,455
 raw rows and pads to 32,768. The candidate child layout reproduces all five
 padded component sizes, with one preprocessed root at steps `0`, `1`,
@@ -493,9 +493,9 @@ comparison remains.
 
 ```sh
 zig build --build-file src/frontends/s31/build.zig test-bitcoin-chain-fold-proof -Doptimize=ReleaseSafe -j2
-python3 src/frontends/s31/record_bitcoin_chain_proof.py
+python3 src/frontends/s31/tools/record/record_bitcoin_chain_proof.py
 zig build --build-file src/frontends/s31/build.zig bitcoin-chain-cli -Doptimize=ReleaseSafe -j2
-python3 src/frontends/s31/acceptance_bitcoin_chain_cli.py
+python3 src/frontends/s31/tests/acceptance/acceptance_bitcoin_chain_cli.py
 ```
 
 The test proves a checkpoint anchor, the genesis-to-block-one update, and
@@ -507,25 +507,25 @@ the three proofs, rejects a changed public output at each fold step, and the
 full step-one circuit rejects a forged previous state with the valid child
 proof and header unchanged.
 
-The [historical generic-target run](../../../../design/s31/measurements/bitcoin-chain-two-step-proof-v1-2026-10-07.json)
+The [historical generic-target run](../../../../design/s31/measurements/bitcoin/bitcoin-chain-two-step-proof-v1-2026-10-07.json)
 used 329,820 bytes and 27.073 seconds for the anchor, 371,197 bytes and
 21.698 seconds for fold step zero, and 372,797 bytes and 21.655 seconds for
 fold step one. The first-epoch profile changes the AIR root, so those proofs
-do not verify under its key. The [historical first-epoch proof record](../../../../design/s31/measurements/bitcoin-chain-two-step-proof-v2-2026-10-07.json)
-predates the timestamp-window state. The [MTP proof record](../../../../design/s31/measurements/bitcoin-chain-two-step-proof-v3-2026-10-07.json)
+do not verify under its key. The [historical first-epoch proof record](../../../../design/s31/measurements/bitcoin/bitcoin-chain-two-step-proof-v2-2026-10-07.json)
+predates the timestamp-window state. The [MTP proof record](../../../../design/s31/measurements/bitcoin/bitcoin-chain-two-step-proof-v3-2026-10-07.json)
 contains a 329,820-byte anchor, 373,035-byte step-zero proof and
 370,280-byte step-one proof, with prover-internal times 27.064, 22.568 and
 20.992 seconds in one local run. These are one-run measurements, not a speedup
 claim. The proven statement covers linkage, SHA256d, exact first-epoch
 `nBits`, target decoding, PoW, and the eleven-ancestor median-time-past rule
-against the pinned genesis checkpoint. The [constraint walkthrough](../../../../design/s31/BITCOIN_MTP_FOLD.md)
+against the pinned genesis checkpoint. The [constraint walkthrough](../../../../design/s31/bitcoin/BITCOIN_MTP_FOLD.md)
 shows the early-height median and authenticated rolling state. Future-time
 limits, a full height-2016 chain proof, cumulative work, best-chain selection, and
 transactions remain outside this proof. The recorded MTP key file has SHA-256
 `18905623123396e8372ac137431c72acaa9197b9d565685d64be4796b93b6667`.
 
-The standalone [`s31-bitcoin-chain`](../bitcoin_chain_cli.zig) CLI accepts
-saved fold proofs through [`bitcoin_chain_verifier.zig`](../bitcoin_chain_verifier.zig).
+The standalone [`s31-bitcoin-chain`](../bitcoin/cli/bitcoin_chain_cli.zig) CLI accepts
+saved fold proofs through [`bitcoin_chain_verifier.zig`](../bitcoin/verification/bitcoin_chain_verifier.zig).
 The caller pins the SHA-256 digest of the **exact verification-key file**.
 The verifier re-derives the anchor and fold AIR roots from the checkpoint,
 checks the pinned AIR bundle and FRI schedule, reconstructs the public digest
@@ -544,7 +544,7 @@ src/frontends/s31/zig-out/bin/s31-bitcoin-chain verify \
 `keygen CHECKPOINT_HASH MAX_STEP KEY_PATH` writes a new key and prints its
 digest only for the exact mainnet genesis hash and `MAX_STEP <= 2014`;
 `statement KEY_PATH EXPECTED_KEY_SHA256 STEP CURRENT_HASH TIMES_JSON OUTPUT_PATH`
-writes a statement. The [CLI acceptance script](../acceptance_bitcoin_chain_cli.py)
+writes a statement. The [CLI acceptance script](../tests/acceptance/acceptance_bitcoin_chain_cli.py)
 checks both valid proofs, byte-for-byte key and statement regeneration, and
 rejects a different checkpoint, a key beyond the first retarget, wrong key
 digest, changed current hash or timestamp window, step replay, changed public claim or proof
@@ -554,7 +554,7 @@ header-PoW chain, not a full Bitcoin-consensus or best-chain decision.
 
 ### First-retarget v4 fold
 
-The [v4 design and measurement](../../../../design/s31/BITCOIN_FIRST_RETARGET_FOLD.md)
+The [v4 design and measurement](../../../../design/s31/bitcoin/BITCOIN_FIRST_RETARGET_FOLD.md)
 give a separate key with maximum step `2015`, where that step proves block
 height 2016. It retains the same rolling eleven-timestamp state. At the
 boundary, `prior_times[0]` is block 2015's time because the verified child
@@ -569,7 +569,7 @@ replayed as a v4 child.
 zig build --build-file src/frontends/s31/build.zig test-bitcoin-retarget-fold-key -Doptimize=ReleaseSafe -j2
 zig build --build-file src/frontends/s31/build.zig test-bitcoin-retarget-fold-proof -Doptimize=ReleaseSafe -j2
 zig build --build-file src/frontends/s31/build.zig bitcoin-chain-cli -Doptimize=ReleaseSafe -j2
-python3 src/frontends/s31/acceptance_bitcoin_retarget_chain_cli.py
+python3 src/frontends/s31/tests/acceptance/acceptance_bitcoin_retarget_chain_cli.py
 ```
 
 The native test proves real blocks one and two recursively under one v4 key
@@ -585,7 +585,7 @@ chain proving still needs faster SHA work.
 
 ## Dedicated SHA AIR boundary and its measured cost
 
-[`sha_chip_plan.zig`](../sha_chip_plan.zig) now constructs the exact three
+[`sha_chip_plan.zig`](../sha/config/sha_chip_plan.zig) now constructs the exact three
 `(state, 64-byte block, output state)` calls for one header and checks every
 byte of the proposed chip boundary. It checks the fixed `0x80` padding,
 big-endian bit lengths `640` and `256`, the first-pass chaining state, the
@@ -604,45 +604,45 @@ big-endian integers, while the tuple's byte coordinates run from the least
 significant byte to the most significant byte. Tests visit the actual SHA AIR
 lookup events and confirm that the three-call and six-call tuple multisets
 cancel exactly. Changing an input byte, output byte, call ID, or tuple
-multiplicity leaves an unmatched lookup. [`sha_chip_profile.zig`](../sha_chip_profile.zig)
+multiplicity leaves an unmatched lookup. [`sha_chip_profile.zig`](../sha/config/sha_chip_profile.zig)
 pins the five SHA-side AIR identities, row geometry, and component placement
 for those two batch sizes. The one-header private proof also commits a caller
 AIR that authenticates the 40 header limbs and 16 digest limbs against the
 circuit's Gate bus.
 
-The [caller equation contract](../sha_caller_equations.zig) now gives 264
+The [caller equation contract](../sha/air/sha_caller_equations.zig) now gives 264
 explicit degree-one constraints connecting 40 header limbs and 16 digest
 limbs to all three SHA calls, including the IVs, padding, bit lengths and
 inter-call chaining. One adversarial example changes a byte decomposition
 from `7 + 256×3` to `263 + 256×2`. The limb equation still holds, but the
 packed SHA `range_check_8_8` lookup and exact word lookup reject the changed
-coordinate. The [caller AIR](../sha_caller_air.zig) commits these equations
-before lookup challenges are drawn. The [joint proof test](../sha_joint_prover_test.zig)
+coordinate. The [caller AIR](../sha/air/sha_caller_air.zig) commits these equations
+before lookup challenges are drawn. The [joint proof test](../sha/tests/sha_joint_prover_test.zig)
 derives a key from value-free circuit topology, proves the private genesis
 header with circuit and SHA components in one STARK, and checks a standalone
 native verifier plus public, key, boundary, AIR and proof mutations. It has
 one caller and three SHA compression calls. A separate
-[two-header joint profile](../../../../design/s31/SHA_BATCH2_PRIVATE.md)
+[two-header joint profile](../../../../design/s31/sha/SHA_BATCH2_PRIVATE.md)
 now joins two disjoint private caller boundaries to six SHA compression calls
 in one proof; its native verifier and adversarial proof test pass. It remains
 an opt-in focused profile rather than a generated package. A
-[matched two-header cost record](../../../../design/s31/measurements/bitcoin-sha-joint-batch2-v1-2026-10-07.json)
+[matched two-header cost record](../../../../design/s31/measurements/sha/bitcoin-sha-joint-batch2-v1-2026-10-07.json)
 puts it at 646 ms excluding FRI proof of work and 889,412 proof bytes, versus
 323 ms excluding proof of work and 382,425 bytes for the generic lowering.
 The generic lowering stays the default. The
-[integration contract](../../../../design/s31/SHA_CHIP_INTEGRATION.md) gives
+[integration contract](../../../../design/s31/sha/SHA_CHIP_INTEGRATION.md) gives
 the Gate and SHA lookup signs, transcript binding and soundness assumptions.
 
-The [three-run matched record](../../../../design/s31/measurements/bitcoin-sha-joint-v1-2026-10-07.json)
+The [three-run matched record](../../../../design/s31/measurements/sha/bitcoin-sha-joint-v1-2026-10-07.json)
 shows why the generic circuit remains the default for one header: its median
 non-proof-of-work proving time was 154 ms and its proof was 338,282 bytes;
 the joint SHA proof took 689 ms excluding FRI proof of work and produced
 721,880 bytes. Build the sealed opt-in profile with
-`python3 src/frontends/s31/s31.py build src/frontends/s31/examples/bitcoin_header_pow.s31 --lowering sha-joint --out zig-out/s31/bitcoin-pow-sha-joint`.
+`python3 src/frontends/s31/python/s31.py build src/frontends/s31/examples/bitcoin_header_pow.s31 --lowering sha-joint --out zig-out/s31/bitcoin-pow-sha-joint`.
 The package includes a source and topology derived key, the eight-word public
 root ABI, a cost report that includes SHA and lookup-table columns, and an
 independently runnable native verifier. The
-[`acceptance_sha_joint_package.py`](../acceptance_sha_joint_package.py) script
+[`acceptance_sha_joint_package.py`](../tests/acceptance/acceptance_sha_joint_package.py) script
 compares package proofs on the same genesis-header assignment and rejects a
 changed root, generic-proof replay, changed key, and damaged proof. The
 generic circuit remains the default because its measured one-header cost is

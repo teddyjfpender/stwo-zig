@@ -93,7 +93,7 @@ public_output = G(R,n,D1,S0,S)
 The fixed-claim fold now uses this same counter gadget. Extracting it into
 `recursion_counter.zig` did not change the state-fold AIR: the mix4 fixture's
 preprocessed root, raw rows, and padded rows match the earlier build exactly.
-The [shared-counter acceptance record](../../../../design/s31/measurements/mix4-state-fold-shared-counter-2026-10-07.json)
+The [shared-counter acceptance record](../../../../design/s31/measurements/recursion/mix4-state-fold-shared-counter-2026-10-07.json)
 includes three accepted recursive steps, both mutation audits, and an
 independent replay of the final source state.
 
@@ -162,8 +162,8 @@ A fifth application is carried by the next proof. In the
 general circuit, the per-lane transition is
 `C=S-S0-recurse·(3P²+5-S0)=0`. The base proof certifies three rounds;
 fold step 2 certifies five rounds in total. See the
-[general acceptance fixture](../acceptance_state_fold_general.py) for all
-four lanes and adversarial claims. The [current u32 geometry record](../../../../design/s31/measurements/state-fold-u32-v3-2026-10-07.json)
+[general acceptance fixture](../tests/acceptance/acceptance_state_fold_general.py) for all
+four lanes and adversarial claims. The [current u32 geometry record](../../../../design/s31/measurements/recursion/state-fold-u32-v3-2026-10-07.json)
 shows that this three-operation step stays within the original padded AIR
 sizes; the extra raw arithmetic rows are small compared with the embedded
 STARK verifier.
@@ -203,9 +203,9 @@ fold uses the same source-ordered step body to constrain `current_state` from
 `previous_state`. Both lower to the ordinary circuit AIR components, so the
 trace and polynomial meanings are the ones shown in [AIR and
 polynomials](air.md). A [three-step proof
-fixture](../acceptance_mix4_state_fold.py) checks the source oracle, 27 base
+fixture](../tests/acceptance/acceptance_mix4_state_fold.py) checks the source oracle, 27 base
 and 28 recursive direct mutations, a repaired false state, and an isolated
-top proof. The [acceptance record](../../../../design/s31/measurements/mix4-state-fold-v1-2026-10-07.json)
+top proof. The [acceptance record](../../../../design/s31/measurements/recursion/mix4-state-fold-v1-2026-10-07.json)
 contains the proof sizes, sealed root, public claim, and component rows. Its
 fold has 5,589,620 raw variables and the same 9,811,780 padded variables as
 the other fourfold state-fold example. This is circuit geometry, not a
@@ -239,7 +239,7 @@ topology and compares every later padded value circuit gate by gate. Both
 paths check circuit satisfaction and the key root, then natively verify the
 newly produced proof. The native top verifier needs
 only that proof and statement; earlier proof files can be deleted. The
-[acceptance fixture](../acceptance_state_fold.py) challenges repaired false
+[acceptance fixture](../tests/acceptance/acceptance_state_fold.py) challenges repaired false
 state, step, leaf and initial-state claims; corrupt proof bytes; a changed
 step key; and 27 or 28 direct in-circuit mutations per branch, including
 child transcript roots, sampled trace values, Merkle paths, claimed sums
@@ -250,29 +250,29 @@ cryptographic audit.
 ## Reproduce it
 
 ```sh
-python3 src/frontends/s31/s31.py build \
+python3 src/frontends/s31/python/s31.py build \
   src/frontends/s31/examples/arith4_m31.s31 --out zig-out/s31/arith4-state-fold
-python3 src/frontends/s31/s31.py prove zig-out/s31/arith4-state-fold \
+python3 src/frontends/s31/python/s31.py prove zig-out/s31/arith4-state-fold \
   src/frontends/s31/examples/arith4.valid.json zig-out/s31/state-leaf.proof
-python3 src/frontends/s31/s31.py wrap zig-out/s31/arith4-state-fold \
+python3 src/frontends/s31/python/s31.py wrap zig-out/s31/arith4-state-fold \
   zig-out/s31/state-leaf.proof zig-out/s31/state-base.proof
-python3 src/frontends/s31/s31.py state-fold-base zig-out/s31/arith4-state-fold \
+python3 src/frontends/s31/python/s31.py state-fold-base zig-out/s31/arith4-state-fold \
   zig-out/s31/state-base.proof zig-out/s31/state0.proof
-python3 src/frontends/s31/s31.py state-fold-next zig-out/s31/arith4-state-fold \
+python3 src/frontends/s31/python/s31.py state-fold-next zig-out/s31/arith4-state-fold \
   zig-out/s31/state0.proof zig-out/s31/state1.proof
-python3 src/frontends/s31/s31.py verify-state-fold zig-out/s31/arith4-state-fold \
+python3 src/frontends/s31/python/s31.py verify-state-fold zig-out/s31/arith4-state-fold \
   zig-out/s31/state1.proof --max-step 1
-python3 src/frontends/s31/s31.py audit-state-fold-chain zig-out/s31/arith4-state-fold \
+python3 src/frontends/s31/python/s31.py audit-state-fold-chain zig-out/s31/arith4-state-fold \
   zig-out/s31/state0.proof zig-out/s31/state1.proof --max-step 1
-python3 src/frontends/s31/s31.py inspect-state-fold zig-out/s31/arith4-state-fold \
+python3 src/frontends/s31/python/s31.py inspect-state-fold zig-out/s31/arith4-state-fold \
   --step 65536
-python3 src/frontends/s31/inspect_state_fold_claim.py \
+python3 src/frontends/s31/tools/inspect/inspect_state_fold_claim.py \
   zig-out/s31/arith4-state-fold zig-out/s31/state1.proof
-python3 src/frontends/s31/s31.py state-fold-advance zig-out/s31/arith4-state-fold \
+python3 src/frontends/s31/python/s31.py state-fold-advance zig-out/s31/arith4-state-fold \
   zig-out/s31/state1.proof zig-out/s31/state4.proof --steps 3 \
   --checkpoint-dir zig-out/s31/state-checkpoints
-python3 src/frontends/s31/acceptance_state_fold.py
-python3 src/frontends/s31/acceptance_state_fold_general.py
+python3 src/frontends/s31/tests/acceptance/acceptance_state_fold.py
+python3 src/frontends/s31/tests/acceptance/acceptance_state_fold_general.py
 ```
 
 `--max-step` lets the relying party cap the top counter accepted by the
@@ -310,7 +310,7 @@ The default gate package uses one FRI fold per commitment. Build a separate
 package with four folds per commitment when recursively proving many steps:
 
 ```sh
-python3 src/frontends/s31/s31.py build \
+python3 src/frontends/s31/python/s31.py build \
   src/frontends/s31/examples/affine_square4.s31 \
   --out zig-out/s31/affine-square4-fri4 --fri-fold-step 4
 ```
@@ -322,14 +322,14 @@ be verified under the other. The leaf AIR can have the same preprocessed root
 in both packages, while the recursive AIR and all recursive keys differ.
 This is a protocol choice made at build time, not an optimization a verifier
 may silently apply to an existing proof. The [FRI schedule acceptance
-fixture](../acceptance_fri_fold_step.py) checks both leaf verifiers,
+fixture](../tests/acceptance/acceptance_fri_fold_step.py) checks both leaf verifiers,
 cross-schedule rejection, and the manifest binding.
 
 For the affine-square source, the four-fold verifier circuit has 5,589,622
 raw variables and 9,811,780 padded variables, versus 11,823,705 and
-19,642,180 with one fold. The exact [cost map](../../../../design/s31/RECURSION_PERFORMANCE.md)
+19,642,180 with one fold. The exact [cost map](../../../../design/s31/recursion/RECURSION_PERFORMANCE.md)
 shows which verifier phase shrinks. These are circuit sizes; the local timing
-and memory comparison is in the [measurement record](../../../../design/s31/measurements/fri-fold-step-v1-2026-10-07.json):
+and memory comparison is in the [measurement record](../../../../design/s31/measurements/recursion/fri-fold-step-v1-2026-10-07.json):
 the three-step batch's local median wall time fell from 10.819 to 6.457
 seconds and median peak RSS from 9.46 to 5.09 GB across four runs per
 schedule. The retained PoW, blowup, and
@@ -354,16 +354,16 @@ proof-witness creation through Merkle and FRI checks to finalization. In the
 affine-square fixture, Merkle and FRI decommitments account for 91.97% of
 the fold's raw variables; the state digest itself adds 664. These are circuit
 counts, not direct time or memory measurements. The
-[cost map](../../../../design/s31/RECURSION_PERFORMANCE.md) records the
+[cost map](../../../../design/s31/recursion/RECURSION_PERFORMANCE.md) records the
 next efficiency targets and their soundness conditions. Compared with
 `inspect-fold` on the same square/add source, this
 state transition adds only 48 raw variables, 4 equality rows, 32 QM31
 operation rows, and 16 M31-to-u32 rows; its triple-XOR and Blake-G raw row
 counts do not change. Both AIRs occupy the same padded component sizes.
-The [v1 historical measurement](../../../../design/s31/measurements/state-fold-v1-2026-10-07.json)
+The [v1 historical measurement](../../../../design/s31/measurements/recursion/state-fold-v1-2026-10-07.json)
 contains the original square/add geometry and sampled timings. The
-[v2 performance record](../../../../design/s31/measurements/state-fold-general-v2-2026-10-07.json)
-and [v3 counter record](../../../../design/s31/measurements/state-fold-u32-v3-2026-10-07.json)
+[v2 performance record](../../../../design/s31/measurements/recursion/state-fold-general-v2-2026-10-07.json)
+and [v3 counter record](../../../../design/s31/measurements/recursion/state-fold-u32-v3-2026-10-07.json)
 separate earlier local timing samples from the current counter geometry.
 
 The current step extractor covers a four-lane M31 recurrence composed from

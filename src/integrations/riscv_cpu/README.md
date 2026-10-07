@@ -66,7 +66,7 @@ defer statement.deinit(allocator);
 
 The supported detached recursion commands use dedicated leaf/parent producer and
 verifier modules, rather than exports from this broad integration namespace.
-See the [canonical typed RISC-V and recursion route](../../../design/riscv-proving-stack/canonical-typed-recursion.md)
+See the [canonical typed RISC-V and recursion route](../../../design/riscv-proving-stack/recursion/canonical-typed-recursion.md)
 for the complete-proof command, module owners and verification boundary.
 
 Historical binary-composition, temporal and segment-outer facades are no longer

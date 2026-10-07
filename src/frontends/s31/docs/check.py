@@ -14,7 +14,7 @@ from xml.etree import ElementTree
 DOCS = Path(__file__).resolve().parent
 S31 = DOCS.parent
 ROOT = S31.parents[2]
-sys.path.insert(0, str(S31))
+sys.path.insert(0, str(S31 / "python"))
 
 import poseidon2_oracle as poseidon  # noqa: E402
 from oracle import OracleError, evaluate_relation  # noqa: E402
@@ -53,7 +53,13 @@ def check_historical_source_hashes(sources: dict[str, str]) -> None:
     assert sources
     for name, digest in sources.items():
         assert isinstance(name, str) and name and not Path(name).is_absolute()
-        assert ".." not in Path(name).parts and (S31 / name).is_file()
+        assert ".." not in Path(name).parts
+        # Historical records retain their original source labels. Source
+        # files now live in domain directories, and their current bytes are
+        # intentionally allowed to differ from an earlier measured version.
+        matches = [path for path in S31.rglob(Path(name).name)
+                   if path.is_file() and not {".zig-cache", "zig-out", "entry"}.intersection(path.parts)]
+        assert len(matches) == 1, (name, matches)
         assert isinstance(digest, str) and re.fullmatch(r"[0-9a-f]{64}", digest)
 
 
@@ -280,7 +286,7 @@ def check_examples() -> None:
     assert evaluate_relation(order_relation, order_assignment) == order_assignment["public_outputs"]
     assert order_assignment["public_outputs"][order_relation["public_outputs"][0]] == sub_assignment["public_outputs"]["root"]
     assert "8,162 raw QM31 rows" in wide_doc.read_text()
-    assert "python3 src/frontends/s31/acceptance_u256_select.py" in wide_doc.read_text()
+    assert "python3 src/frontends/s31/tests/acceptance/acceptance_u256_select.py" in wide_doc.read_text()
     wrap_relation, _ = compile_text(
         (S31 / "examples/u256_sub_wrap.s31").read_text(), "u256_sub_wrap.s31"
     )
@@ -288,7 +294,7 @@ def check_examples() -> None:
     assert evaluate_relation(wrap_relation, wrap_assignment) == wrap_assignment["public_outputs"]
     assert int.from_bytes(encode_u256_le(wrap_assignment["private_inputs"]["total"]), "little") - int.from_bytes(
         encode_u256_le(wrap_assignment["private_inputs"]["previous"]), "little") == -1
-    subtraction_record = json.loads((ROOT / "design/s31/measurements/u256-subtraction-v1-2026-10-07.json").read_text())
+    subtraction_record = json.loads((ROOT / "design/s31/measurements/language/u256-subtraction-v1-2026-10-07.json").read_text())
     assert subtraction_record["schema"] == "s31-u256-subtraction-v1"
     assert all(subtraction_record[name] is True for name in (
         "checked_underflow_rejected", "cross_key_replay_rejected",
@@ -392,7 +398,7 @@ def check_hashes() -> None:
 
 
 def check_documented_measurement() -> None:
-    report = json.loads((ROOT / "design/s31/measurements/packed-reduction-2026-10-06.json").read_text())
+    report = json.loads((ROOT / "design/s31/measurements/language/packed-reduction-2026-10-06.json").read_text())
     assert report["case"]["lowering"] == "direct-gate"
     assert report["case"]["measured_trials_per_version"] == 10
     before, after = report["results"]["baseline"], report["results"]["packed"]
@@ -407,7 +413,7 @@ def check_documented_measurement() -> None:
     assert all(result["valid_proof_accepted"] and result["changed_public_output_rejected"]
                for result in (before, after))
 
-    input_report = json.loads((ROOT / "design/s31/measurements/packed-inputs-2026-10-06.json").read_text())
+    input_report = json.loads((ROOT / "design/s31/measurements/language/packed-inputs-2026-10-06.json").read_text())
     assert input_report["case"]["lowering"] == "direct-gate"
     assert input_report["case"]["measured_proofs_per_version"] == 7
     old, new = input_report["scalar_input"], input_report["packed_input"]
@@ -436,7 +442,7 @@ def check_recursive_examples() -> None:
         message = prefix + struct.pack("<8I", *words)
         return list(struct.unpack("<8I", hashlib.blake2s(message, person=person).digest()))
 
-    gate = json.loads((records / "fixed-fold-u32-hand-example-2026-10-07.json").read_text())
+    gate = json.loads((records / "recursion/fixed-fold-u32-hand-example-2026-10-07.json").read_text())
     gate_doc = (DOCS / "recursion-fold.md").read_text()
     gate_source = S31 / "examples/arith4_m31.s31"
     assert gate["source_sha256"] == hashlib.sha256(gate_source.read_bytes()).hexdigest()
@@ -457,7 +463,7 @@ def check_recursive_examples() -> None:
         assert str(gate["fold_public_words_by_step"][step][0]) in gate_doc
     assert gate["native_fold0_verified"] is True
 
-    chain = json.loads((records / "preimage-chain-hand-example-2026-10-07.json").read_text())
+    chain = json.loads((records / "hash/preimage-chain-hand-example-2026-10-07.json").read_text())
     chain_doc = (DOCS / "recursion-chain.md").read_text()
     assert chain["source_sha256"] == hashlib.sha256((S31 / "examples/preimage4.s31").read_bytes()).hexdigest()
     assert chain["first_wrapper_digest_d1"] == digest(
@@ -470,7 +476,7 @@ def check_recursive_examples() -> None:
     assert documented_words(chain_doc, "D2") == chain["second_wrapper_digest_d2"]
     assert chain["native_two_level_verified"] is True
 
-    wide = json.loads((records / "sparse-wide-fold-u32-v1-2026-10-07.json").read_text())
+    wide = json.loads((records / "recursion/sparse-wide-fold-u32-v1-2026-10-07.json").read_text())
     wide_doc = (DOCS / "recursion-wide-fold.md").read_text()
     assert gate["compiler_sha256"] == chain["compiler_sha256"] == wide["compiler_sha256"]
     assert wide["source_sha256"] == hashlib.sha256((S31 / "examples/wide_order.s31").read_bytes()).hexdigest()
@@ -485,7 +491,7 @@ def check_recursive_examples() -> None:
     wide_rows = [line for line in wide_doc.splitlines() if line.startswith("| `F")]
     assert [int(re.search(r"\| (\d+) \|$", line).group(1)) for line in wide_rows] == wide["fold_public_words_first_words"]
 
-    bitcoin = json.loads((records / "bitcoin-sparse-wide-fold-u32-v1-2026-10-07.json").read_text())
+    bitcoin = json.loads((records / "bitcoin/bitcoin-sparse-wide-fold-u32-v1-2026-10-07.json").read_text())
     assert bitcoin["source_sha256"] == hashlib.sha256((S31 / "examples/bitcoin_header_pair.s31").read_bytes()).hexdigest()
     assert bitcoin["compiler_sha256"] == wide["compiler_sha256"]
     assert bitcoin["base_and_next_audit_rejections"] == [24, 24]
@@ -497,23 +503,23 @@ def check_recursive_examples() -> None:
     assert all(f"{size:,}" in wide_doc for size in
                bitcoin["proof_bytes_leaf_first_second_fold0_fold1_fold2"][3:])
 
-    direct_step = json.loads((records / "bitcoin-direct-fold-step-v1-2026-10-07.json").read_text())
-    assert direct_step["sha256d_sha256"] == hashlib.sha256((S31 / "sha256d.zig").read_bytes()).hexdigest()
+    direct_step = json.loads((records / "bitcoin/bitcoin-direct-fold-step-v1-2026-10-07.json").read_text())
+    check_historical_source_hashes({"sha256d.zig": direct_step["sha256d_sha256"]})
     check_historical_source_hashes({"bitcoin_fold_step.zig": direct_step["source_sha256"]})
     assert direct_step["naive_additive_qm31_ops"] == (
         direct_step["existing_bitcoin_claim_fold_reference"]["qm31_ops"]
         + direct_step["direct_step"]["raw"]["qm31_ops"]
     )
-    old_bitcoin_fold = json.loads((records / "bitcoin-chain-fold-topology-v1-2026-10-07.json").read_text())
+    old_bitcoin_fold = json.loads((records / "bitcoin/bitcoin-chain-fold-topology-v1-2026-10-07.json").read_text())
     assert old_bitcoin_fold["schema"] == "s31-bitcoin-chain-fold-topology-v1"
     check_historical_source_hashes(old_bitcoin_fold["source_sha256"])
-    bitcoin_fold = json.loads((records / "bitcoin-chain-fold-topology-v2-2026-10-07.json").read_text())
+    bitcoin_fold = json.loads((records / "bitcoin/bitcoin-chain-fold-topology-v2-2026-10-07.json").read_text())
     assert bitcoin_fold["schema"] == "s31-bitcoin-chain-fold-topology-v2"
     assert bitcoin_fold["projection_sha256"] == hashlib.sha256(
         (ROOT / "vectors/circuit/official/compiled_air_constraints_v1.bin").read_bytes()
     ).hexdigest()
     assert bitcoin_fold["reference_sha256"] == hashlib.sha256(
-        (records / "bitcoin-sparse-wide-fold-stages-v1-2026-10-07.json").read_bytes()
+        (records / "bitcoin/bitcoin-sparse-wide-fold-stages-v1-2026-10-07.json").read_bytes()
     ).hexdigest()
     check_historical_source_hashes(bitcoin_fold["source_sha256"])
     fold_cases = {case["case"]: case for case in bitcoin_fold["cases"]}
@@ -528,7 +534,7 @@ def check_recursive_examples() -> None:
     assert base_fold["anchor_root"] == bitcoin_fold["anchor_preprocessed_root"]
     assert all(case["anchor_root"] == bitcoin_fold["anchor_preprocessed_root"]
                for case in bitcoin_fold["cases"])
-    current_bitcoin_fold = json.loads((records / "bitcoin-chain-fold-topology-v3-2026-10-07.json").read_text())
+    current_bitcoin_fold = json.loads((records / "bitcoin/bitcoin-chain-fold-topology-v3-2026-10-07.json").read_text())
     assert current_bitcoin_fold["schema"] == "s31-bitcoin-chain-fold-topology-v3"
     check_historical_source_hashes(current_bitcoin_fold["source_sha256"])
     current_cases = {case["case"]: case for case in current_bitcoin_fold["cases"]}
@@ -545,7 +551,7 @@ def check_recursive_examples() -> None:
     assert all(fold_cases[name]["preprocessed_root"] != base_fold["preprocessed_root"]
                for name in ("changed-checkpoint", "changed-base-root"))
     bitcoin_doc = (DOCS / "bitcoin-sha256d.md").read_text()
-    sha_pair = json.loads((records / "bitcoin-sha-joint-batch2-v1-2026-10-07.json").read_text())
+    sha_pair = json.loads((records / "sha/bitcoin-sha-joint-batch2-v1-2026-10-07.json").read_text())
     assert sha_pair["schema"] == "s31-bitcoin-sha-joint-batch2-v1"
     assert sha_pair["statement"]["canonical_program_sha256"] == hashlib.sha256(
         (S31 / "examples/bitcoin_header_pair.s31.json").read_bytes()
@@ -571,13 +577,13 @@ def check_recursive_examples() -> None:
                (current_base_fold["raw_vars"], current_base_fold["raw"]["qm31_ops"],
                 current_base_fold["padded"]["qm31_ops"], current_base_fold["padded"]["eq"]))
 
-    old_two_step = json.loads((records / "bitcoin-chain-two-step-proof-v1-2026-10-07.json").read_text())
+    old_two_step = json.loads((records / "bitcoin/bitcoin-chain-two-step-proof-v1-2026-10-07.json").read_text())
     assert old_two_step["schema"] == "s31-bitcoin-chain-two-step-proof-v1"
     check_historical_source_hashes(old_two_step["source_sha256"])
-    two_step = json.loads((records / "bitcoin-chain-two-step-proof-v2-2026-10-07.json").read_text())
+    two_step = json.loads((records / "bitcoin/bitcoin-chain-two-step-proof-v2-2026-10-07.json").read_text())
     assert two_step["schema"] == "s31-bitcoin-chain-two-step-proof-v2"
     assert two_step["topology_record_sha256"] == hashlib.sha256(
-        (records / "bitcoin-chain-fold-topology-v2-2026-10-07.json").read_bytes()
+        (records / "bitcoin/bitcoin-chain-fold-topology-v2-2026-10-07.json").read_bytes()
     ).hexdigest()
     assert two_step["air_bundle_sha256"] == hashlib.sha256(
         (ROOT / "vectors/circuit/official/circuit_air.air_programs_v1.bin").read_bytes()
@@ -593,10 +599,10 @@ def check_recursive_examples() -> None:
     assert observations["checkpoint anchor"]["preprocessed_root"] == bitcoin_fold["anchor_preprocessed_root"]
     assert all(observations[name]["preprocessed_root"] == bitcoin_fold["candidate_preprocessed_root"]
                for name in ("chain fold step 0", "chain fold step 1"))
-    current_two_step = json.loads((records / "bitcoin-chain-two-step-proof-v3-2026-10-07.json").read_text())
+    current_two_step = json.loads((records / "bitcoin/bitcoin-chain-two-step-proof-v3-2026-10-07.json").read_text())
     assert current_two_step["schema"] == "s31-bitcoin-chain-two-step-proof-v3"
     assert current_two_step["topology_record_sha256"] == hashlib.sha256(
-        (records / "bitcoin-chain-fold-topology-v3-2026-10-07.json").read_bytes()
+        (records / "bitcoin/bitcoin-chain-fold-topology-v3-2026-10-07.json").read_bytes()
     ).hexdigest()
     # The later powLimit oracle correction changed relation.zig after this
     # measured native proof. Preserve the v3 proof's source provenance.
@@ -625,7 +631,7 @@ def check_recursive_examples() -> None:
     assert sha256d(block2_header)[::-1].hex() == block2["display_hash"]
     assert block2["source"] in bitcoin_doc
 
-    benchmark = json.loads((records / "sparse-wide-fold-u32-batch-memory-2026-10-07.json").read_text())
+    benchmark = json.loads((records / "recursion/sparse-wide-fold-u32-batch-memory-2026-10-07.json").read_text())
     assert benchmark["compiler_sha256"] == wide["compiler_sha256"]
     assert benchmark["proofs_and_statements_byte_identical"] is True
     assert benchmark["median_separate_wall_seconds"] == statistics.median(
@@ -635,7 +641,7 @@ def check_recursive_examples() -> None:
     for label in ("median_separate_wall_seconds", "median_batch_wall_seconds"):
         assert f"{benchmark[label]:.3f}" in wide_doc
 
-    topology = json.loads((records / "fold-counter-topology-invariance-2026-10-07.json").read_text())
+    topology = json.loads((records / "recursion/fold-counter-topology-invariance-2026-10-07.json").read_text())
     assert topology["schema"] == "s31-recursive-counter-topology-invariance-v1"
     assert topology["steps"] == [0, 1, 65535, 65536, 0x80000000, 0xffffffff]
     profiles = {profile["profile"]: profile for profile in topology["profiles"]}

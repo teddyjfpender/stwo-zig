@@ -49,7 +49,7 @@ produce `.address`, and accepting an arbitrary address input would leave
 alignment and the 22-bit byte-domain bound as an informal promise.
 
 The audited authorities are
-[`load_store.zig`](../../../src/frontends/riscv/air/semantics/load_store.zig),
+[`typed_load_store.zig`](../../../src/frontends/riscv/air/lang/typed_load_store.zig),
 [`constraint_program.zig`](../../../src/frontends/riscv/air/constraint_program.zig),
 [`common.zig`](../../../src/frontends/riscv/air/semantics/common.zig),
 [`access_clock.zig`](../../../src/frontends/riscv/access_clock.zig), and

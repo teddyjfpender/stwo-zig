@@ -47,7 +47,7 @@ The schedule stores 32 Boolean bits for each word. A bit `b` is constrained by
 Its five row openings are current, `t−2`, `t−7`, `t−15`, and `t−16` from the
 *same committed trace*. It constrains low and high carries to `0..3`.
 For the padded `abc` block, a handwritten check gives `W[16]=0x61626380` and
-`W[17]=0x000f0000`; see the [full schedule derivation](../../../../design/s31/SHA_ROUND_AIR_PLAN.md).
+`W[17]=0x000f0000`; see the [full schedule derivation](../../../../design/s31/sha/SHA_ROUND_AIR_PLAN.md).
 
 The round AIR stores eight 32-bit state words as Boolean bits, four three-bit
 carries, and the two halves of `W[t]`. It computes `T1` as an expression but
@@ -119,9 +119,9 @@ one serialized proof and closes the ten word claims. The v2 one-header circuit
 join proves those SHA chips and the sparse-wide Bitcoin circuit in one STARK;
 its native verifier checks both global lookup sums. The proof publishes the
 same eight-element Poseidon root as the S31 Bitcoin source and no SHA digest.
-The [v1 measurement](../../../../design/s31/measurements/bitcoin-sha-direct-circuit-v1-2026-10-07.json)
+The [v1 measurement](../../../../design/s31/measurements/sha/bitcoin-sha-direct-circuit-v1-2026-10-07.json)
 used a public digest and is retained as a historical reference. The
-[v2 measurement](../../../../design/s31/measurements/bitcoin-sha-direct-circuit-v2-private-digest-2026-10-07.json)
+[v2 measurement](../../../../design/s31/measurements/sha/bitcoin-sha-direct-circuit-v2-private-digest-2026-10-07.json)
 records the matched public-output ABI and the 32-column-per-call round-width
 reduction. In two local runs under production FRI settings, proving took
 429–454 ms excluding FRI proof-of-work, native verification took 149–152 ms,

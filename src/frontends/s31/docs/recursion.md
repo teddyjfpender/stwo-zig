@@ -126,7 +126,7 @@ child root, so an outer proof for one compiled child key cannot be replayed
 under a different compiled key even if both keys describe the same gate
 topology. `recurse-check` takes the child key path so this binding is also
 tested by its audit circuit.
-The [cross-key acceptance fixture](../acceptance_recursion_key_binding.py)
+The [cross-key acceptance fixture](../tests/acceptance/acceptance_recursion_key_binding.py)
 builds two differently named programs with identical child AIR roots. It
 shows that the child proof verifies under either key, while the outer AIR
 roots differ and an attempted outer-proof replay is rejected.
@@ -163,7 +163,7 @@ each `secret[j]` is in the `u16` range and satisfies
 constraint. The outer circuit verifies that child
 STARK. Its statement contains the eight public `target || square` words
 and the digest binding those words to the exact child key. It contains no
-private `secret` value or child proof. The [second acceptance fixture](../acceptance_recursion_private.py)
+private `secret` value or child proof. The [second acceptance fixture](../tests/acceptance/acceptance_recursion_private.py)
 proves and audits this route, and rejects changed public claims and an
 incorrect private assignment. This shows proof-of-proof composition for a
 private witness; it does not yet implement a many-step fold.
@@ -174,32 +174,32 @@ From the repository root, first prove the child as an ordinary S31 program,
 then wrap its saved proof:
 
 ```sh
-python3 src/frontends/s31/s31.py build \
+python3 src/frontends/s31/python/s31.py build \
   src/frontends/s31/examples/arith4_m31.s31 \
   --lowering gate --out zig-out/s31/recursive-arith4
 
-python3 src/frontends/s31/s31.py prove \
+python3 src/frontends/s31/python/s31.py prove \
   zig-out/s31/recursive-arith4 \
   src/frontends/s31/examples/arith4.valid.json \
   zig-out/s31/recursive-arith4/child.proof
 
-python3 src/frontends/s31/s31.py wrap \
+python3 src/frontends/s31/python/s31.py wrap \
   zig-out/s31/recursive-arith4 \
   zig-out/s31/recursive-arith4/child.proof \
   zig-out/s31/recursive-arith4/outer.proof
 
-python3 src/frontends/s31/s31.py audit-recursive \
+python3 src/frontends/s31/python/s31.py audit-recursive \
   zig-out/s31/recursive-arith4 \
   zig-out/s31/recursive-arith4/child.proof
 
-python3 src/frontends/s31/s31.py verify-recursive \
+python3 src/frontends/s31/python/s31.py verify-recursive \
   zig-out/s31/recursive-arith4 \
   zig-out/s31/recursive-arith4/outer.proof
 
-python3 src/frontends/s31/acceptance_recursion_gate.py \
+python3 src/frontends/s31/tests/acceptance/acceptance_recursion_gate.py \
   --package zig-out/s31/recursive-arith4
 
-python3 src/frontends/s31/acceptance_recursion_key_binding.py \
+python3 src/frontends/s31/tests/acceptance/acceptance_recursion_key_binding.py \
   --package zig-out/s31/recursive-arith4
 ```
 
@@ -235,7 +235,7 @@ than controlled cross-machine benchmarks. The default favors speed; the
 explicit flag trades roughly 10% more wall time for about 2.3 GB less peak
 memory in this case. The low-level `recurse-prove` and `recurse-wrap`
 commands also accept `--low-memory` as their final argument. The
-[raw sample record](../../../../design/s31/measurements/recursion-memory-policy-v1-2026-10-06.json)
+[raw sample record](../../../../design/s31/measurements/recursion/recursion-memory-policy-v1-2026-10-06.json)
 contains the six wall-time and peak-memory observations and common proof hash.
 Before the sealed recursive key, a standalone outer verifier rebuilt the
 topology and took 0.55 seconds with 1.45 GB peak resident memory in one

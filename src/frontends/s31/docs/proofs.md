@@ -6,13 +6,13 @@ This sequence starts with a checked-in text program and assignment. Run it
 from the repository root:
 
 ```sh
-python3 src/frontends/s31/s31.py lower src/frontends/s31/examples/math_polynomial4.s31
-python3 src/frontends/s31/s31.py build src/frontends/s31/examples/math_polynomial4.s31 --lowering direct-gate --out zig-out/s31/docs-polynomial
-python3 src/frontends/s31/s31.py explain zig-out/s31/docs-polynomial
-python3 src/frontends/s31/s31.py equations zig-out/s31/docs-polynomial
-python3 src/frontends/s31/s31.py inspect zig-out/s31/docs-polynomial
-python3 src/frontends/s31/s31.py prove zig-out/s31/docs-polynomial src/frontends/s31/examples/math_polynomial4.valid.json zig-out/s31/docs-polynomial.proof
-python3 src/frontends/s31/s31.py verify zig-out/s31/docs-polynomial zig-out/s31/docs-polynomial.proof
+python3 src/frontends/s31/python/s31.py lower src/frontends/s31/examples/math_polynomial4.s31
+python3 src/frontends/s31/python/s31.py build src/frontends/s31/examples/math_polynomial4.s31 --lowering direct-gate --out zig-out/s31/docs-polynomial
+python3 src/frontends/s31/python/s31.py explain zig-out/s31/docs-polynomial
+python3 src/frontends/s31/python/s31.py equations zig-out/s31/docs-polynomial
+python3 src/frontends/s31/python/s31.py inspect zig-out/s31/docs-polynomial
+python3 src/frontends/s31/python/s31.py prove zig-out/s31/docs-polynomial src/frontends/s31/examples/math_polynomial4.valid.json zig-out/s31/docs-polynomial.proof
+python3 src/frontends/s31/python/s31.py verify zig-out/s31/docs-polynomial zig-out/s31/docs-polynomial.proof
 ```
 
 `build` compiles a prover and a separate native verifier for the selected
@@ -40,7 +40,7 @@ the core Stwo verifier on the program's circuit/AIR components; it does not
 execute an in-circuit recursive verifier on the host.
 
 For a fixed-key recursive proof, the
-[claim inspector](../inspect_recursive_claim.py) invokes that package's
+[claim inspector](../tools/inspect/inspect_recursive_claim.py) invokes that package's
 native top verifier and prints the leaf words, intermediate public digests,
 key hashes, counter, and expected fold output as JSON. Its digest
 calculation is an independent Python check of the public statement; the
@@ -149,7 +149,7 @@ varies across trials.
 ```sh
 python3 -m unittest discover -s src/frontends/s31 -p 'test_text_frontend.py' -q
 zig build --build-file src/frontends/s31/build.zig test -Doptimize=ReleaseSafe
-python3 src/frontends/s31/acceptance_text_v1.py
+python3 src/frontends/s31/tests/acceptance/acceptance_text_v1.py
 ```
 
 The acceptance script builds both text and handwritten JSON for the

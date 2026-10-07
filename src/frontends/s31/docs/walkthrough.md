@@ -242,7 +242,7 @@ After the [five-minute build](README.md#five-minute-tour), ask S31 for its
 source-level field equations:
 
 ```sh
-python3 src/frontends/s31/s31.py equations zig-out/s31/docs-polynomial
+python3 src/frontends/s31/python/s31.py equations zig-out/s31/docs-polynomial
 ```
 
 For the checked-in polynomial program, the first multiply node reports

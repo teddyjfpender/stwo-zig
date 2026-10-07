@@ -24,14 +24,14 @@ value check. For BLAKE2s raw, leaf, and pair nodes, it serializes the M31
 words as four little-endian bytes each, calls Python's standard-library
 `hashlib.blake2s` with the framing below, then reduces each digest word
 modulo $p$. For Poseidon2 leaf and pair nodes, it uses a separate Python
-field-arithmetic implementation in [`poseidon2_oracle.py`](../poseidon2_oracle.py).
+field-arithmetic implementation in [`poseidon2_oracle.py`](../python/poseidon2_oracle.py).
 That implementation reads the pinned round constants from this repository;
 it does not call the Zig circuit evaluator. Both paths compare their
 computed digest with the claimed public output.
 
 ```sh
-python3 src/frontends/s31/s31.py oracle src/frontends/s31/examples/hash4.s31.json src/frontends/s31/examples/hash4.valid.json
-python3 src/frontends/s31/s31.py oracle src/frontends/s31/examples/merkle_path1_poseidon.s31 src/frontends/s31/examples/merkle_path1_poseidon.valid.json
+python3 src/frontends/s31/python/s31.py oracle src/frontends/s31/examples/hash4.s31.json src/frontends/s31/examples/hash4.valid.json
+python3 src/frontends/s31/python/s31.py oracle src/frontends/s31/examples/merkle_path1_poseidon.s31 src/frontends/s31/examples/merkle_path1_poseidon.valid.json
 ```
 
 Both checked-in assignments report `status: passed`. The Merkle example

@@ -491,7 +491,7 @@ it. The existing `PreparedSessionV1.challenge` and proof roots are unchanged.
 ### Original-scope acceptance mapping
 
 This tranche advances, but does not close, three clauses in
-[`ORIGINAL-SCOPE.md`](../ORIGINAL-SCOPE.md):
+[`ORIGINAL-SCOPE.md`](../project/ORIGINAL-SCOPE.md):
 
 | Original production exit | Evidence added here | Still required for acceptance |
 | --- | --- | --- |

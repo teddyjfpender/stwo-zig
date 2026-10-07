@@ -29,6 +29,9 @@
 //! A joined AIR can use the hooks to draw and retain its second lookup pair
 //! before composition evaluation, while still returning the Gate pair used
 //! by the common circuit components.
+//! Joined AIRs with trace-only components or multiple claims per component
+//! also provide `verifyLogupSums` and `computeCompositionPolynomial`. Those
+//! hooks own the exact closure equations and ordered constraint accumulation.
 
 const std = @import("std");
 const core = @import("stwo_core");
@@ -165,11 +168,10 @@ pub fn verify(
     stages: anytype,
 ) !void {
     try proof.validateStructure(config);
-    // The generic circuit statement consumes one main-trace value per
-    // column. The transport and quotient replay can carry extra openings,
-    // but accepting one here before a joined SHA evaluator exists would
-    // silently omit its transition constraints.
-    if (config.shape().nTraceOodsValues() != config.n_trace_columns)
+    // Extra OODS openings require a statement-specific accumulator that
+    // consumes every shifted value in the verifier-owned mask order.
+    if (config.shape().nTraceOodsValues() != config.n_trace_columns and
+        !@hasDecl(@TypeOf(statement.*), "computeCompositionPolynomial"))
         return error.MaskedTraceRequiresConstraintEvaluator;
     // The largest canonical coset, and so evaluation domain, is 2^30.
     if (config.logEvaluationDomainSize() > 30) return error.EvaluationDomainTooLarge;
@@ -216,7 +218,11 @@ pub fn verify(
     try stages.mark(&ctx.circuit, .{ .name = "interaction_elements" });
 
     const public_logup_sum = try statement.publicLogupSum(ctx, interaction_elements);
-    try validateLogupSum(V, ctx, public_logup_sum, proof.claimed_sums);
+    if (comptime @hasDecl(@TypeOf(statement.*), "verifyLogupSums")) {
+        try statement.verifyLogupSums(ctx, public_logup_sum, proof.claimed_sums);
+    } else {
+        try validateLogupSum(V, ctx, public_logup_sum, proof.claimed_sums);
+    }
     try stages.mark(&ctx.circuit, .{ .name = "logup_sum" });
 
     if (comptime @hasDecl(@TypeOf(statement.*), "mixClaimedSums")) {
@@ -239,7 +245,7 @@ pub fn verify(
     try mixOodsValues(V, ctx, &channel, proof);
     try stages.mark(&ctx.circuit, .{ .name = "oods_values_mixed" });
 
-    const composition_eval = try constraint_eval.computeCompositionPolynomial(V, ctx, config.component_shapes, statement, .{
+    const composition_args: constraint_eval.EvaluateArgs = .{
         .preprocessed_columns = proof.preprocessed_columns_at_oods,
         .trace = proof.trace_at_oods,
         .interaction = proof.interaction_at_oods,
@@ -250,7 +256,11 @@ pub fn verify(
         .claimed_sums = proof.claimed_sums,
         .component_sizes = unpacked_component_sizes,
         .n_instances_bits = component_sizes_bits,
-    });
+    };
+    const composition_eval = if (comptime @hasDecl(@TypeOf(statement.*), "computeCompositionPolynomial"))
+        try statement.computeCompositionPolynomial(ctx, config.component_shapes, composition_args)
+    else
+        try constraint_eval.computeCompositionPolynomial(V, ctx, config.component_shapes, statement, composition_args);
     try stages.mark(&ctx.circuit, .{ .name = "composition_polynomial" });
     const expected_composition_eval = try oods.extractExpectedCompositionEval(
         V,

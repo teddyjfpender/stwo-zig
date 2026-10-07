@@ -65,11 +65,7 @@ pub fn build(b: *std.Build) void {
     const tests = b.addRunArtifact(b.addTest(.{ .root_module = frontend }));
     const test_step = b.step("test", "Test the S31 prototype parser, evaluator and circuit compiler");
     test_step.dependOn(&tests.step);
-    const bitcoin_step_inspector_root = b.createModule(.{
-        .root_source_file = b.path("inspect_bitcoin_fold_step.zig"),
-        .target = target,
-        .optimize = optimize,
-    });
+    const bitcoin_step_inspector_root = localEntry(b, "tools/inspect/inspect_bitcoin_fold_step.zig", target, optimize);
     bitcoin_step_inspector_root.addImport("stwo_s31_prototype", frontend);
     bitcoin_step_inspector_root.addImport("stwo_circuit_frontend", circuit);
     const bitcoin_step_inspector = b.addExecutable(.{
@@ -78,28 +74,20 @@ pub fn build(b: *std.Build) void {
     });
     b.step("inspect-bitcoin-fold-step", "Inspect witness-free Bitcoin fold-step circuit cost")
         .dependOn(&b.addRunArtifact(bitcoin_step_inspector).step);
-    const bitcoin_fold_inspector_root = b.createModule(.{
-        .root_source_file = b.path("inspect_bitcoin_chain_fold.zig"),
-        .target = target,
-        .optimize = optimize,
-    });
+    const bitcoin_fold_inspector_root = localEntry(b, "tools/inspect/inspect_bitcoin_chain_fold.zig", target, optimize);
     bitcoin_fold_inspector_root.addImport("stwo_s31_prototype", frontend);
     bitcoin_fold_inspector_root.addImport("stwo_core", core);
     bitcoin_fold_inspector_root.addImport("stwo_circuit_frontend", circuit);
     bitcoin_fold_inspector_root.addImport("stwo_circuit_cpu_integration", cpu);
     bitcoin_fold_inspector_root.addAnonymousImport("s31_air_projection", .{ .root_source_file = .{ .cwd_relative = b.pathFromRoot("../../../vectors/circuit/official/compiled_air_constraints_v1.bin") } });
-    bitcoin_fold_inspector_root.addAnonymousImport("s31_fold_reference", .{ .root_source_file = .{ .cwd_relative = b.pathFromRoot("../../../design/s31/measurements/bitcoin-sparse-wide-fold-stages-v1-2026-10-07.json") } });
+    bitcoin_fold_inspector_root.addAnonymousImport("s31_fold_reference", .{ .root_source_file = .{ .cwd_relative = b.pathFromRoot("../../../design/s31/measurements/bitcoin/bitcoin-sparse-wide-fold-stages-v1-2026-10-07.json") } });
     const bitcoin_fold_inspector = b.addExecutable(.{
         .name = "s31-inspect-bitcoin-chain-fold",
         .root_module = bitcoin_fold_inspector_root,
     });
     b.step("inspect-bitcoin-chain-fold", "Inspect complete candidate Bitcoin chain-fold topology")
         .dependOn(&b.addRunArtifact(bitcoin_fold_inspector).step);
-    const fused_fold_inspector_root = b.createModule(.{
-        .root_source_file = b.path("inspect_bitcoin_chain_fold_fused.zig"),
-        .target = target,
-        .optimize = optimize,
-    });
+    const fused_fold_inspector_root = localEntry(b, "tools/inspect/inspect_bitcoin_chain_fold_fused.zig", target, optimize);
     fused_fold_inspector_root.addImport("stwo_s31_prototype", frontend);
     fused_fold_inspector_root.addImport("stwo_core", core);
     fused_fold_inspector_root.addImport("stwo_circuit_frontend", circuit);
@@ -108,7 +96,7 @@ pub fn build(b: *std.Build) void {
         .root_source_file = .{ .cwd_relative = b.pathFromRoot("../../../vectors/circuit/official/compiled_air_constraints_v1.bin") },
     });
     fused_fold_inspector_root.addAnonymousImport("s31_fold_reference", .{
-        .root_source_file = .{ .cwd_relative = b.pathFromRoot("../../../design/s31/measurements/bitcoin-sparse-wide-fold-stages-v1-2026-10-07.json") },
+        .root_source_file = .{ .cwd_relative = b.pathFromRoot("../../../design/s31/measurements/bitcoin/bitcoin-sparse-wide-fold-stages-v1-2026-10-07.json") },
     });
     const fused_fold_inspector = b.addExecutable(.{
         .name = "s31-inspect-bitcoin-chain-fold-fused",
@@ -116,11 +104,13 @@ pub fn build(b: *std.Build) void {
     });
     b.step("inspect-bitcoin-chain-fold-fused", "Inspect fused-SHA Bitcoin chain-fold topology and private boundary")
         .dependOn(&b.addRunArtifact(fused_fold_inspector).step);
-    const bitcoin_fold_test_root = b.createModule(.{
-        .root_source_file = b.path("bitcoin_chain_fold.zig"),
-        .target = target,
-        .optimize = optimize,
-    });
+    const bitcoin_work_test_root = localEntry(b, "bitcoin/consensus/bitcoin_work.zig", target, optimize);
+    bitcoin_work_test_root.addImport("stwo_core", core);
+    bitcoin_work_test_root.addImport("stwo_circuit_frontend", circuit);
+    const bitcoin_work_tests = b.addRunArtifact(b.addTest(.{ .root_module = bitcoin_work_test_root }));
+    b.step("test-bitcoin-work", "Test checked Bitcoin work arithmetic")
+        .dependOn(&bitcoin_work_tests.step);
+    const bitcoin_fold_test_root = localEntry(b, "bitcoin/fold/bitcoin_chain_fold.zig", target, optimize);
     bitcoin_fold_test_root.addImport("stwo_s31_prototype", frontend);
     bitcoin_fold_test_root.addImport("stwo_core", core);
     bitcoin_fold_test_root.addImport("stwo_circuit_frontend", circuit);
@@ -130,11 +120,7 @@ pub fn build(b: *std.Build) void {
         .filters = &.{"Bitcoin fold chooses a trusted base or the authenticated previous digest"},
     }));
     test_step.dependOn(&bitcoin_fold_tests.step);
-    const external_sha_step_root = b.createModule(.{
-        .root_source_file = b.path("bitcoin_fold_step.zig"),
-        .target = target,
-        .optimize = optimize,
-    });
+    const external_sha_step_root = localEntry(b, "bitcoin/fold/bitcoin_fold_step.zig", target, optimize);
     external_sha_step_root.addImport("stwo_core", core);
     external_sha_step_root.addImport("stwo_circuit_frontend", circuit);
     external_sha_step_root.addImport("s31_sha_provider", sha_provider);
@@ -145,11 +131,7 @@ pub fn build(b: *std.Build) void {
     }));
     b.step("test-bitcoin-fold-step-external", "Test the external SHA digest Bitcoin fold-step constraints")
         .dependOn(&external_sha_step_tests.step);
-    const bitcoin_anchor_test_root = b.createModule(.{
-        .root_source_file = b.path("bitcoin_chain_anchor.zig"),
-        .target = target,
-        .optimize = optimize,
-    });
+    const bitcoin_anchor_test_root = localEntry(b, "bitcoin/fold/bitcoin_chain_anchor.zig", target, optimize);
     bitcoin_anchor_test_root.addImport("stwo_core", core);
     bitcoin_anchor_test_root.addImport("stwo_circuit_frontend", circuit);
     const bitcoin_anchor_tests = b.addRunArtifact(b.addTest(.{
@@ -157,11 +139,7 @@ pub fn build(b: *std.Build) void {
         .filters = &.{"Bitcoin checkpoint anchor has the same AIR in value and topology modes"},
     }));
     test_step.dependOn(&bitcoin_anchor_tests.step);
-    const anchor_proof_test_root = b.createModule(.{
-        .root_source_file = b.path("bitcoin_chain_anchor_proof_test.zig"),
-        .target = target,
-        .optimize = optimize,
-    });
+    const anchor_proof_test_root = localEntry(b, "bitcoin/tests/bitcoin_chain_anchor_proof_test.zig", target, optimize);
     anchor_proof_test_root.addImport("stwo_core", core);
     anchor_proof_test_root.addImport("stwo_circuit_frontend", circuit);
     anchor_proof_test_root.addImport("stwo_circuit_cpu_integration", cpu);
@@ -172,11 +150,7 @@ pub fn build(b: *std.Build) void {
     anchor_proof_test_root.addAnonymousImport("s31_air_projection", .{
         .root_source_file = .{ .cwd_relative = b.pathFromRoot("../../../vectors/circuit/official/compiled_air_constraints_v1.bin") },
     });
-    const private_bridge_test_root = b.createModule(.{
-        .root_source_file = b.path("private_boundary_proof_test.zig"),
-        .target = target,
-        .optimize = optimize,
-    });
+    const private_bridge_test_root = localEntry(b, "tests/proofs/private_boundary_proof_test.zig", target, optimize);
     private_bridge_test_root.addImport("stwo_core", core);
     private_bridge_test_root.addImport("stwo_circuit_frontend", circuit);
     private_bridge_test_root.addImport("stwo_circuit_cpu_integration", cpu);
@@ -185,11 +159,7 @@ pub fn build(b: *std.Build) void {
     private_bridge_test_root.addImport("s31_air_programs", official_air);
     const private_bridge_tests = b.addRunArtifact(b.addTest(.{ .root_module = private_bridge_test_root }));
     test_step.dependOn(&private_bridge_tests.step);
-    const sha_joint_test_root = b.createModule(.{
-        .root_source_file = b.path("sha_joint_prover_test.zig"),
-        .target = target,
-        .optimize = optimize,
-    });
+    const sha_joint_test_root = localEntry(b, "sha/tests/sha_joint_prover_test.zig", target, optimize);
     sha_joint_test_root.addImport("stwo_core", core);
     sha_joint_test_root.addImport("stwo_prover_engine", cpu.import_table.get("stwo_prover_engine") orelse @panic("missing prover engine"));
     sha_joint_test_root.addImport("stwo_circuit_frontend", circuit);
@@ -202,11 +172,7 @@ pub fn build(b: *std.Build) void {
     const sha_joint_tests = b.addRunArtifact(b.addTest(.{ .root_module = sha_joint_test_root }));
     b.step("test-sha-joint", "Compile and test one-proof circuit plus packed SHA integration")
         .dependOn(&sha_joint_tests.step);
-    const sha_joint_batch2_test_root = b.createModule(.{
-        .root_source_file = b.path("sha_joint_batch2_prover_test.zig"),
-        .target = target,
-        .optimize = optimize,
-    });
+    const sha_joint_batch2_test_root = localEntry(b, "sha/tests/sha_joint_batch2_prover_test.zig", target, optimize);
     sha_joint_batch2_test_root.addImport("stwo_core", core);
     sha_joint_batch2_test_root.addImport("stwo_prover_engine", cpu.import_table.get("stwo_prover_engine") orelse @panic("missing prover engine"));
     sha_joint_batch2_test_root.addImport("stwo_circuit_frontend", circuit);
@@ -219,11 +185,7 @@ pub fn build(b: *std.Build) void {
     const sha_joint_batch2_tests = b.addRunArtifact(b.addTest(.{ .root_module = sha_joint_batch2_test_root }));
     b.step("test-sha-joint-batch2", "Prove and verify two private Bitcoin headers with one SHA AIR proof")
         .dependOn(&sha_joint_batch2_tests.step);
-    const sha_round_direct_test_root = b.createModule(.{
-        .root_source_file = b.path("sha_round_direct_proof_test.zig"),
-        .target = target,
-        .optimize = optimize,
-    });
+    const sha_round_direct_test_root = localEntry(b, "sha/tests/sha_round_direct_proof_test.zig", target, optimize);
     sha_round_direct_test_root.addImport("stwo_core", core);
     sha_round_direct_test_root.addImport("stwo_prover_engine", cpu.import_table.get("stwo_prover_engine") orelse @panic("missing prover engine"));
     sha_round_direct_test_root.addImport("stwo_circuit_cpu_integration", cpu);
@@ -232,11 +194,7 @@ pub fn build(b: *std.Build) void {
     const sha_round_direct_tests = b.addRunArtifact(b.addTest(.{ .root_module = sha_round_direct_test_root }));
     b.step("test-sha-round-direct", "Prove and natively verify the table-free SHA-256 round AIR")
         .dependOn(&sha_round_direct_tests.step);
-    const sha_schedule_direct_test_root = b.createModule(.{
-        .root_source_file = b.path("sha_schedule_direct_proof_test.zig"),
-        .target = target,
-        .optimize = optimize,
-    });
+    const sha_schedule_direct_test_root = localEntry(b, "sha/tests/sha_schedule_direct_proof_test.zig", target, optimize);
     sha_schedule_direct_test_root.addImport("stwo_core", core);
     sha_schedule_direct_test_root.addImport("stwo_prover_engine", cpu.import_table.get("stwo_prover_engine") orelse @panic("missing prover engine"));
     sha_schedule_direct_test_root.addImport("stwo_circuit_cpu_integration", cpu);
@@ -245,11 +203,7 @@ pub fn build(b: *std.Build) void {
     const sha_schedule_direct_tests = b.addRunArtifact(b.addTest(.{ .root_module = sha_schedule_direct_test_root }));
     b.step("test-sha-schedule-direct", "Prove and natively verify the table-free SHA-256 schedule AIR")
         .dependOn(&sha_schedule_direct_tests.step);
-    const sha_feed_direct_test_root = b.createModule(.{
-        .root_source_file = b.path("sha_feed_direct_proof_test.zig"),
-        .target = target,
-        .optimize = optimize,
-    });
+    const sha_feed_direct_test_root = localEntry(b, "sha/tests/sha_feed_direct_proof_test.zig", target, optimize);
     sha_feed_direct_test_root.addImport("stwo_core", core);
     sha_feed_direct_test_root.addImport("stwo_prover_engine", cpu.import_table.get("stwo_prover_engine") orelse @panic("missing prover engine"));
     sha_feed_direct_test_root.addImport("stwo_circuit_cpu_integration", cpu);
@@ -258,11 +212,7 @@ pub fn build(b: *std.Build) void {
     const sha_feed_direct_tests = b.addRunArtifact(b.addTest(.{ .root_module = sha_feed_direct_test_root }));
     b.step("test-sha-feed-direct", "Prove and natively verify the table-free SHA-256 feed-forward AIR")
         .dependOn(&sha_feed_direct_tests.step);
-    const sha_caller_stream_test_root = b.createModule(.{
-        .root_source_file = b.path("sha_caller_stream_proof_test.zig"),
-        .target = target,
-        .optimize = optimize,
-    });
+    const sha_caller_stream_test_root = localEntry(b, "sha/tests/sha_caller_stream_proof_test.zig", target, optimize);
     sha_caller_stream_test_root.addImport("stwo_core", core);
     sha_caller_stream_test_root.addImport("stwo_prover_engine", cpu.import_table.get("stwo_prover_engine") orelse @panic("missing prover engine"));
     sha_caller_stream_test_root.addImport("stwo_circuit_cpu_integration", cpu);
@@ -271,22 +221,14 @@ pub fn build(b: *std.Build) void {
     const sha_caller_stream_tests = b.addRunArtifact(b.addTest(.{ .root_module = sha_caller_stream_test_root }));
     b.step("test-sha-caller-stream", "Prove and natively verify the streamed SHA256d caller AIR")
         .dependOn(&sha_caller_stream_tests.step);
-    const sha_round_word_logup_test_root = b.createModule(.{
-        .root_source_file = b.path("sha_round_direct_word_logup.zig"),
-        .target = target,
-        .optimize = optimize,
-    });
+    const sha_round_word_logup_test_root = localEntry(b, "sha/air/sha_round_direct_word_logup.zig", target, optimize);
     sha_round_word_logup_test_root.addImport("stwo_core", core);
     sha_round_word_logup_test_root.addImport("stwo_prover_engine", cpu.import_table.get("stwo_prover_engine") orelse @panic("missing prover engine"));
     sha_round_word_logup_test_root.addImport("s31_sha_provider", sha_provider);
     const sha_round_word_logup_tests = b.addRunArtifact(b.addTest(.{ .root_module = sha_round_word_logup_test_root }));
     b.step("test-sha-round-word-logup", "Check committed direct SHA round word-bus interactions")
         .dependOn(&sha_round_word_logup_tests.step);
-    const sha_round_word_proof_root = b.createModule(.{
-        .root_source_file = b.path("sha_round_direct_word_proof_test.zig"),
-        .target = target,
-        .optimize = optimize,
-    });
+    const sha_round_word_proof_root = localEntry(b, "sha/tests/sha_round_direct_word_proof_test.zig", target, optimize);
     sha_round_word_proof_root.addImport("stwo_core", core);
     sha_round_word_proof_root.addImport("stwo_prover_engine", cpu.import_table.get("stwo_prover_engine") orelse @panic("missing prover engine"));
     sha_round_word_proof_root.addImport("stwo_circuit_cpu_integration", cpu);
@@ -295,11 +237,7 @@ pub fn build(b: *std.Build) void {
     const sha_round_word_proof_tests = b.addRunArtifact(b.addTest(.{ .root_module = sha_round_word_proof_root }));
     b.step("test-sha-round-word-proof", "Prove direct SHA rounds and their committed word lookup in one STARK")
         .dependOn(&sha_round_word_proof_tests.step);
-    const sha_round_shift_word_proof_root = b.createModule(.{
-        .root_source_file = b.path("sha_round_shift_word_proof_test.zig"),
-        .target = target,
-        .optimize = optimize,
-    });
+    const sha_round_shift_word_proof_root = localEntry(b, "sha/tests/sha_round_shift_word_proof_test.zig", target, optimize);
     sha_round_shift_word_proof_root.addImport("stwo_core", core);
     sha_round_shift_word_proof_root.addImport("stwo_prover_engine", cpu.import_table.get("stwo_prover_engine") orelse @panic("missing prover engine"));
     sha_round_shift_word_proof_root.addImport("stwo_circuit_cpu_integration", cpu);
@@ -308,11 +246,7 @@ pub fn build(b: *std.Build) void {
     const sha_round_shift_word_proof_tests = b.addRunArtifact(b.addTest(.{ .root_module = sha_round_shift_word_proof_root }));
     b.step("test-sha-round-shift-word-proof", "Prove shift-register SHA rounds and committed word lookup in one STARK")
         .dependOn(&sha_round_shift_word_proof_tests.step);
-    const sha_fused_word_proof_root = b.createModule(.{
-        .root_source_file = b.path("sha_fused_word_proof_test.zig"),
-        .target = target,
-        .optimize = optimize,
-    });
+    const sha_fused_word_proof_root = localEntry(b, "sha/tests/sha_fused_word_proof_test.zig", target, optimize);
     sha_fused_word_proof_root.addImport("stwo_core", core);
     sha_fused_word_proof_root.addImport("stwo_prover_engine", cpu.import_table.get("stwo_prover_engine") orelse @panic("missing prover engine"));
     sha_fused_word_proof_root.addImport("stwo_circuit_cpu_integration", cpu);
@@ -321,11 +255,7 @@ pub fn build(b: *std.Build) void {
     const sha_fused_word_proof_tests = b.addRunArtifact(b.addTest(.{ .root_module = sha_fused_word_proof_root }));
     b.step("test-sha-fused-word-proof", "Prove three fused SHA schedules and rounds with committed word boundaries")
         .dependOn(&sha_fused_word_proof_tests.step);
-    const sha_schedule_word_proof_root = b.createModule(.{
-        .root_source_file = b.path("sha_schedule_direct_word_proof_test.zig"),
-        .target = target,
-        .optimize = optimize,
-    });
+    const sha_schedule_word_proof_root = localEntry(b, "sha/tests/sha_schedule_direct_word_proof_test.zig", target, optimize);
     sha_schedule_word_proof_root.addImport("stwo_core", core);
     sha_schedule_word_proof_root.addImport("stwo_prover_engine", cpu.import_table.get("stwo_prover_engine") orelse @panic("missing prover engine"));
     sha_schedule_word_proof_root.addImport("stwo_circuit_cpu_integration", cpu);
@@ -334,11 +264,7 @@ pub fn build(b: *std.Build) void {
     const sha_schedule_word_proof_tests = b.addRunArtifact(b.addTest(.{ .root_module = sha_schedule_word_proof_root }));
     b.step("test-sha-schedule-word", "Prove direct SHA schedule and its committed word lookup in one STARK")
         .dependOn(&sha_schedule_word_proof_tests.step);
-    const sha_caller_bus_proof_root = b.createModule(.{
-        .root_source_file = b.path("sha_caller_stream_bus_proof_test.zig"),
-        .target = target,
-        .optimize = optimize,
-    });
+    const sha_caller_bus_proof_root = localEntry(b, "sha/tests/sha_caller_stream_bus_proof_test.zig", target, optimize);
     sha_caller_bus_proof_root.addImport("stwo_core", core);
     sha_caller_bus_proof_root.addImport("stwo_circuit_frontend", circuit);
     sha_caller_bus_proof_root.addImport("stwo_prover_engine", cpu.import_table.get("stwo_prover_engine") orelse @panic("missing prover engine"));
@@ -348,11 +274,7 @@ pub fn build(b: *std.Build) void {
     const sha_caller_bus_proof_tests = b.addRunArtifact(b.addTest(.{ .root_module = sha_caller_bus_proof_root }));
     b.step("test-sha-caller-stream-bus", "Prove the streamed SHA caller and its committed Gate/word lookups")
         .dependOn(&sha_caller_bus_proof_tests.step);
-    const sha_direct_gate_closure_root = b.createModule(.{
-        .root_source_file = b.path("sha_direct_gate_closure_test.zig"),
-        .target = target,
-        .optimize = optimize,
-    });
+    const sha_direct_gate_closure_root = localEntry(b, "sha/tests/sha_direct_gate_closure_test.zig", target, optimize);
     sha_direct_gate_closure_root.addImport("stwo_core", core);
     sha_direct_gate_closure_root.addImport("stwo_circuit_frontend", circuit);
     sha_direct_gate_closure_root.addImport("stwo_prover_engine", cpu.import_table.get("stwo_prover_engine") orelse @panic("missing prover engine"));
@@ -362,11 +284,7 @@ pub fn build(b: *std.Build) void {
     const sha_direct_gate_closure_tests = b.addRunArtifact(b.addTest(.{ .root_module = sha_direct_gate_closure_root }));
     b.step("test-sha-direct-gate-closure", "Check direct caller Gate lookup against the Bitcoin sparse-wide circuit")
         .dependOn(&sha_direct_gate_closure_tests.step);
-    const sha_direct_private_join_root = b.createModule(.{
-        .root_source_file = b.path("sha_direct_private_join_proof_test.zig"),
-        .target = target,
-        .optimize = optimize,
-    });
+    const sha_direct_private_join_root = localEntry(b, "sha/tests/sha_direct_private_join_proof_test.zig", target, optimize);
     sha_direct_private_join_root.addImport("stwo_core", core);
     sha_direct_private_join_root.addImport("stwo_prover_engine", cpu.import_table.get("stwo_prover_engine") orelse @panic("missing prover engine"));
     sha_direct_private_join_root.addImport("stwo_circuit_cpu_integration", cpu);
@@ -376,11 +294,7 @@ pub fn build(b: *std.Build) void {
     const sha_direct_private_join_tests = b.addRunArtifact(b.addTest(.{ .root_module = sha_direct_private_join_root }));
     b.step("test-sha-direct-private-join", "Prove one private SHA256d header with all direct AIRs and word closure")
         .dependOn(&sha_direct_private_join_tests.step);
-    const sha_direct_circuit_root = b.createModule(.{
-        .root_source_file = b.path("sha_direct_circuit_proof_test.zig"),
-        .target = target,
-        .optimize = optimize,
-    });
+    const sha_direct_circuit_root = localEntry(b, "sha/tests/sha_direct_circuit_proof_test.zig", target, optimize);
     sha_direct_circuit_root.addImport("stwo_core", core);
     sha_direct_circuit_root.addImport("stwo_prover_engine", cpu.import_table.get("stwo_prover_engine") orelse @panic("missing prover engine"));
     sha_direct_circuit_root.addImport("stwo_circuit_frontend", circuit);
@@ -393,11 +307,7 @@ pub fn build(b: *std.Build) void {
     const sha_direct_circuit_tests = b.addRunArtifact(b.addTest(.{ .root_module = sha_direct_circuit_root }));
     b.step("test-sha-direct-circuit", "Prove one Bitcoin circuit plus private direct SHA256d in one STARK")
         .dependOn(&sha_direct_circuit_tests.step);
-    const sha_shift_private_join_root = b.createModule(.{
-        .root_source_file = b.path("sha_shift_private_join_proof_test.zig"),
-        .target = target,
-        .optimize = optimize,
-    });
+    const sha_shift_private_join_root = localEntry(b, "sha/tests/sha_shift_private_join_proof_test.zig", target, optimize);
     sha_shift_private_join_root.addImport("stwo_core", core);
     sha_shift_private_join_root.addImport("stwo_prover_engine", cpu.import_table.get("stwo_prover_engine") orelse @panic("missing prover engine"));
     sha_shift_private_join_root.addImport("stwo_circuit_cpu_integration", cpu);
@@ -407,11 +317,7 @@ pub fn build(b: *std.Build) void {
     const sha_shift_private_join_tests = b.addRunArtifact(b.addTest(.{ .root_module = sha_shift_private_join_root }));
     b.step("test-sha-shift-private-join", "Prove one private SHA256d header with shift-register round AIRs")
         .dependOn(&sha_shift_private_join_tests.step);
-    const sha_fused_private_join_root = b.createModule(.{
-        .root_source_file = b.path("sha_fused_private_join_proof_test.zig"),
-        .target = target,
-        .optimize = optimize,
-    });
+    const sha_fused_private_join_root = localEntry(b, "sha/tests/sha_fused_private_join_proof_test.zig", target, optimize);
     sha_fused_private_join_root.addImport("stwo_core", core);
     sha_fused_private_join_root.addImport("stwo_prover_engine", cpu.import_table.get("stwo_prover_engine") orelse @panic("missing prover engine"));
     sha_fused_private_join_root.addImport("stwo_circuit_cpu_integration", cpu);
@@ -421,11 +327,7 @@ pub fn build(b: *std.Build) void {
     const sha_fused_private_join_tests = b.addRunArtifact(b.addTest(.{ .root_module = sha_fused_private_join_root }));
     b.step("test-sha-fused-private-join", "Prove one private SHA256d header with fused schedule and rounds")
         .dependOn(&sha_fused_private_join_tests.step);
-    const sha_fused_fold_profile_root = b.createModule(.{
-        .root_source_file = b.path("sha_fused_fold_profile.zig"),
-        .target = target,
-        .optimize = optimize,
-    });
+    const sha_fused_fold_profile_root = localEntry(b, "sha/config/sha_fused_fold_profile.zig", target, optimize);
     sha_fused_fold_profile_root.addImport("stwo_core", core);
     sha_fused_fold_profile_root.addImport("stwo_prover_engine", cpu.import_table.get("stwo_prover_engine") orelse @panic("missing prover engine"));
     sha_fused_fold_profile_root.addImport("stwo_circuit_frontend", circuit);
@@ -437,15 +339,12 @@ pub fn build(b: *std.Build) void {
     const sha_fused_fold_profile_tests = b.addRunArtifact(b.addTest(.{ .root_module = sha_fused_fold_profile_root }));
     b.step("test-sha-fused-fold-profile", "Check the full-circuit fused SHA fold profile and ABI")
         .dependOn(&sha_fused_fold_profile_tests.step);
-    const sha_fused_fold_proof_root = b.createModule(.{
-        .root_source_file = b.path("sha_fused_fold_proof_test.zig"),
-        .target = target,
-        .optimize = optimize,
-    });
+    const sha_fused_fold_proof_root = localEntry(b, "sha/tests/sha_fused_fold_proof_test.zig", target, optimize);
     sha_fused_fold_proof_root.addImport("stwo_core", core);
     sha_fused_fold_proof_root.addImport("stwo_prover_engine", cpu.import_table.get("stwo_prover_engine") orelse @panic("missing prover engine"));
     sha_fused_fold_proof_root.addImport("stwo_circuit_frontend", circuit);
     sha_fused_fold_proof_root.addImport("stwo_circuit_cpu_integration", cpu);
+    sha_fused_fold_proof_root.addImport("stwo_circuit_recursion_wire", wire);
     sha_fused_fold_proof_root.addImport("stwo_s31_prototype", frontend);
     sha_fused_fold_proof_root.addImport("stwo_cairo_frontend", cpu.import_table.get("stwo_cairo_frontend") orelse @panic("missing Cairo frontend"));
     sha_fused_fold_proof_root.addImport("interop_postcard", sha_postcard);
@@ -462,11 +361,7 @@ pub fn build(b: *std.Build) void {
         .dependOn(&sha_fused_fold_proof_tests.step);
     b.step("test-sha-fused-fold-proof", "Prove and verify a checkpoint-anchored fused SHA Bitcoin fold")
         .dependOn(&b.addRunArtifact(sha_fused_fold_proof_tests).step);
-    const fused_chain_verifier_root = b.createModule(.{
-        .root_source_file = b.path("bitcoin_fused_chain_verifier_test.zig"),
-        .target = target,
-        .optimize = optimize,
-    });
+    const fused_chain_verifier_root = localEntry(b, "bitcoin/tests/bitcoin_fused_chain_verifier_test.zig", target, optimize);
     fused_chain_verifier_root.addImport("stwo_core", core);
     fused_chain_verifier_root.addImport("stwo_prover_engine", cpu.import_table.get("stwo_prover_engine") orelse @panic("missing prover engine"));
     fused_chain_verifier_root.addImport("stwo_circuit_frontend", circuit);
@@ -484,11 +379,7 @@ pub fn build(b: *std.Build) void {
         .dependOn(&fused_chain_verifier_tests.step);
     b.step("test-bitcoin-fused-chain-verifier", "Validate the sealed fused Bitcoin key and statement")
         .dependOn(&b.addRunArtifact(fused_chain_verifier_tests).step);
-    const sha_fused_fold_matched_root = b.createModule(.{
-        .root_source_file = b.path("sha_fused_fold_matched_bench_test.zig"),
-        .target = target,
-        .optimize = optimize,
-    });
+    const sha_fused_fold_matched_root = localEntry(b, "sha/tests/sha_fused_fold_matched_bench_test.zig", target, optimize);
     sha_fused_fold_matched_root.addImport("stwo_core", core);
     sha_fused_fold_matched_root.addImport("stwo_prover_engine", cpu.import_table.get("stwo_prover_engine") orelse @panic("missing prover engine"));
     sha_fused_fold_matched_root.addImport("stwo_circuit_frontend", circuit);
@@ -509,11 +400,7 @@ pub fn build(b: *std.Build) void {
         .dependOn(&sha_fused_fold_matched_tests.step);
     b.step("test-sha-fused-fold-matched-bench", "Compare generic and fused SHA Bitcoin fold proofs")
         .dependOn(&b.addRunArtifact(sha_fused_fold_matched_tests).step);
-    const sha_shift_circuit_root = b.createModule(.{
-        .root_source_file = b.path("sha_shift_circuit_proof_test.zig"),
-        .target = target,
-        .optimize = optimize,
-    });
+    const sha_shift_circuit_root = localEntry(b, "sha/tests/sha_shift_circuit_proof_test.zig", target, optimize);
     sha_shift_circuit_root.addImport("stwo_core", core);
     sha_shift_circuit_root.addImport("stwo_prover_engine", cpu.import_table.get("stwo_prover_engine") orelse @panic("missing prover engine"));
     sha_shift_circuit_root.addImport("stwo_circuit_frontend", circuit);
@@ -526,11 +413,7 @@ pub fn build(b: *std.Build) void {
     const sha_shift_circuit_tests = b.addRunArtifact(b.addTest(.{ .root_module = sha_shift_circuit_root }));
     b.step("test-sha-shift-circuit", "Prove one Bitcoin circuit plus shift-register SHA256d in one STARK")
         .dependOn(&sha_shift_circuit_tests.step);
-    const sha_fused_circuit_root = b.createModule(.{
-        .root_source_file = b.path("sha_fused_circuit_proof_test.zig"),
-        .target = target,
-        .optimize = optimize,
-    });
+    const sha_fused_circuit_root = localEntry(b, "sha/tests/sha_fused_circuit_proof_test.zig", target, optimize);
     sha_fused_circuit_root.addImport("stwo_core", core);
     sha_fused_circuit_root.addImport("stwo_prover_engine", cpu.import_table.get("stwo_prover_engine") orelse @panic("missing prover engine"));
     sha_fused_circuit_root.addImport("stwo_circuit_frontend", circuit);
@@ -543,11 +426,7 @@ pub fn build(b: *std.Build) void {
     const sha_fused_circuit_tests = b.addRunArtifact(b.addTest(.{ .root_module = sha_fused_circuit_root }));
     b.step("test-sha-fused-circuit", "Prove one Bitcoin circuit plus fused SHA256d in one STARK")
         .dependOn(&sha_fused_circuit_tests.step);
-    const sha_fused_bench_root = b.createModule(.{
-        .root_source_file = b.path("sha_fused_vs_shift_bench_test.zig"),
-        .target = target,
-        .optimize = optimize,
-    });
+    const sha_fused_bench_root = localEntry(b, "sha/tests/sha_fused_vs_shift_bench_test.zig", target, optimize);
     sha_fused_bench_root.addImport("stwo_core", core);
     sha_fused_bench_root.addImport("stwo_prover_engine", cpu.import_table.get("stwo_prover_engine") orelse @panic("missing prover engine"));
     sha_fused_bench_root.addImport("stwo_circuit_frontend", circuit);
@@ -561,11 +440,7 @@ pub fn build(b: *std.Build) void {
     const sha_fused_bench_install = b.addInstallArtifact(sha_fused_bench_exe, .{});
     b.step("bench-sha-fused-vs-shift", "Build production-mode fused versus shift SHA Bitcoin benchmark")
         .dependOn(&sha_fused_bench_install.step);
-    const bitcoin_matched_bench_root = b.createModule(.{
-        .root_source_file = b.path("bitcoin_generic_vs_sha_shift_bench_test.zig"),
-        .target = target,
-        .optimize = optimize,
-    });
+    const bitcoin_matched_bench_root = localEntry(b, "bitcoin/tests/bitcoin_generic_vs_sha_shift_bench_test.zig", target, optimize);
     bitcoin_matched_bench_root.addImport("stwo_core", core);
     bitcoin_matched_bench_root.addImport("stwo_prover_engine", cpu.import_table.get("stwo_prover_engine") orelse @panic("missing prover engine"));
     bitcoin_matched_bench_root.addImport("stwo_circuit_frontend", circuit);
@@ -579,11 +454,7 @@ pub fn build(b: *std.Build) void {
     const bitcoin_matched_bench_tests = b.addRunArtifact(b.addTest(.{ .root_module = bitcoin_matched_bench_root }));
     b.step("test-bitcoin-generic-vs-sha-shift", "Compare generic and shift-SHA Bitcoin proof timing in one harness")
         .dependOn(&bitcoin_matched_bench_tests.step);
-    const bitcoin_matched_bench_exe_root = b.createModule(.{
-        .root_source_file = b.path("bitcoin_generic_vs_sha_shift_bench_test.zig"),
-        .target = target,
-        .optimize = optimize,
-    });
+    const bitcoin_matched_bench_exe_root = localEntry(b, "bitcoin/tests/bitcoin_generic_vs_sha_shift_bench_test.zig", target, optimize);
     bitcoin_matched_bench_exe_root.addImport("stwo_core", core);
     bitcoin_matched_bench_exe_root.addImport("stwo_prover_engine", cpu.import_table.get("stwo_prover_engine") orelse @panic("missing prover engine"));
     bitcoin_matched_bench_exe_root.addImport("stwo_circuit_frontend", circuit);
@@ -598,11 +469,7 @@ pub fn build(b: *std.Build) void {
     const bitcoin_matched_bench_install = b.addInstallArtifact(bitcoin_matched_bench_exe, .{});
     b.step("bitcoin-generic-vs-sha-shift-bench", "Build production-mode generic and shift-SHA Bitcoin benchmark")
         .dependOn(&bitcoin_matched_bench_install.step);
-    const bitcoin_multi_witness_root = b.createModule(.{
-        .root_source_file = b.path("bitcoin_multi_witness_bench.zig"),
-        .target = target,
-        .optimize = optimize,
-    });
+    const bitcoin_multi_witness_root = localEntry(b, "bitcoin/tests/bitcoin_multi_witness_bench.zig", target, optimize);
     bitcoin_multi_witness_root.addImport("stwo_core", core);
     bitcoin_multi_witness_root.addImport("stwo_prover_engine", cpu.import_table.get("stwo_prover_engine") orelse @panic("missing prover engine"));
     bitcoin_multi_witness_root.addImport("stwo_circuit_frontend", circuit);
@@ -616,11 +483,7 @@ pub fn build(b: *std.Build) void {
     const bitcoin_multi_witness_exe = b.addExecutable(.{ .name = "s31-bitcoin-multi-witness-bench", .root_module = bitcoin_multi_witness_root });
     b.step("bench-bitcoin-multi-witness", "Build production-mode matched Bitcoin proof benchmark across distinct headers")
         .dependOn(&b.addInstallArtifact(bitcoin_multi_witness_exe, .{}).step);
-    const sha_feed_word_proof_root = b.createModule(.{
-        .root_source_file = b.path("sha_feed_direct_word_proof_test.zig"),
-        .target = target,
-        .optimize = optimize,
-    });
+    const sha_feed_word_proof_root = localEntry(b, "sha/tests/sha_feed_direct_word_proof_test.zig", target, optimize);
     sha_feed_word_proof_root.addImport("stwo_core", core);
     sha_feed_word_proof_root.addImport("stwo_prover_engine", cpu.import_table.get("stwo_prover_engine") orelse @panic("missing prover engine"));
     sha_feed_word_proof_root.addImport("stwo_circuit_cpu_integration", cpu);
@@ -629,11 +492,7 @@ pub fn build(b: *std.Build) void {
     const sha_feed_word_proof_tests = b.addRunArtifact(b.addTest(.{ .root_module = sha_feed_word_proof_root }));
     b.step("test-sha-feed-word", "Prove SHA feed-forward and its committed word lookup in one STARK")
         .dependOn(&sha_feed_word_proof_tests.step);
-    const retarget_proof_test_root = b.createModule(.{
-        .root_source_file = b.path("bitcoin_retarget_proof_test.zig"),
-        .target = target,
-        .optimize = optimize,
-    });
+    const retarget_proof_test_root = localEntry(b, "bitcoin/tests/bitcoin_retarget_proof_test.zig", target, optimize);
     retarget_proof_test_root.addImport("stwo_core", core);
     retarget_proof_test_root.addImport("stwo_circuit_frontend", circuit);
     retarget_proof_test_root.addImport("stwo_circuit_cpu_integration", cpu);
@@ -667,11 +526,7 @@ pub fn build(b: *std.Build) void {
     }));
     b.step("test-bitcoin-retarget-fold-proof", "Prove and natively verify the first-retarget fold profile at step zero")
         .dependOn(&retarget_chain_proof_tests.step);
-    const retarget_chain_key_root = b.createModule(.{
-        .root_source_file = b.path("bitcoin_chain_retarget_verifier.zig"),
-        .target = target,
-        .optimize = optimize,
-    });
+    const retarget_chain_key_root = localEntry(b, "bitcoin/verification/bitcoin_chain_retarget_verifier.zig", target, optimize);
     retarget_chain_key_root.addImport("stwo_core", core);
     retarget_chain_key_root.addImport("stwo_circuit_frontend", circuit);
     retarget_chain_key_root.addImport("stwo_circuit_cpu_integration", cpu);
@@ -685,11 +540,7 @@ pub fn build(b: *std.Build) void {
     const retarget_chain_key_tests = b.addRunArtifact(b.addTest(.{ .root_module = retarget_chain_key_root }));
     b.step("test-bitcoin-retarget-fold-key", "Derive and validate the distinct first-retarget recursive fold key")
         .dependOn(&retarget_chain_key_tests.step);
-    const bitcoin_cli_root = b.createModule(.{
-        .root_source_file = b.path("bitcoin_chain_cli.zig"),
-        .target = target,
-        .optimize = optimize,
-    });
+    const bitcoin_cli_root = localEntry(b, "bitcoin/cli/bitcoin_chain_cli.zig", target, optimize);
     bitcoin_cli_root.addImport("stwo_core", core);
     bitcoin_cli_root.addImport("stwo_circuit_frontend", circuit);
     bitcoin_cli_root.addImport("stwo_circuit_cpu_integration", cpu);
@@ -703,11 +554,7 @@ pub fn build(b: *std.Build) void {
     const bitcoin_cli = b.addExecutable(.{ .name = "s31-bitcoin-chain", .root_module = bitcoin_cli_root });
     b.step("bitcoin-chain-cli", "Build the standalone Bitcoin chain key and native verifier CLI")
         .dependOn(&b.addInstallArtifact(bitcoin_cli, .{}).step);
-    const fold_test_root = b.createModule(.{
-        .root_source_file = b.path("state_fold.zig"),
-        .target = target,
-        .optimize = optimize,
-    });
+    const fold_test_root = localEntry(b, "recursion/state_fold.zig", target, optimize);
     fold_test_root.addImport("stwo_s31_prototype", frontend);
     fold_test_root.addImport("stwo_core", core);
     fold_test_root.addImport("stwo_circuit_frontend", circuit);
@@ -717,11 +564,7 @@ pub fn build(b: *std.Build) void {
         .filters = &.{ "state-fold counter spans u16 carry and u32 bounds", "state-fold source step body matches constrained circuit across mixed programs", "state-fold digest binds all 32 counter bits in circuit" },
     }));
     test_step.dependOn(&fold_tests.step);
-    const fixed_fold_test_root = b.createModule(.{
-        .root_source_file = b.path("fixed_fold.zig"),
-        .target = target,
-        .optimize = optimize,
-    });
+    const fixed_fold_test_root = localEntry(b, "recursion/fixed_fold.zig", target, optimize);
     fixed_fold_test_root.addImport("stwo_core", core);
     fixed_fold_test_root.addImport("stwo_circuit_frontend", circuit);
     fixed_fold_test_root.addImport("stwo_circuit_cpu_integration", cpu);
@@ -767,11 +610,7 @@ pub fn build(b: *std.Build) void {
             .{ .cwd_relative = path }
         else
             b.path("examples/placeholder-recursive-key.json");
-        const prover_root = b.createModule(.{
-            .root_source_file = b.path("mvp_runtime.zig"),
-            .target = target,
-            .optimize = optimize,
-        });
+        const prover_root = localEntry(b, "runtime/mvp_runtime.zig", target, optimize);
         prover_root.addImport("stwo_s31_prototype", frontend);
         prover_root.addImport("stwo_core", core);
         prover_root.addImport("stwo_circuit_frontend", circuit);
@@ -794,11 +633,7 @@ pub fn build(b: *std.Build) void {
         const prover_exe = b.addExecutable(.{ .name = b.fmt("s31-{s}-prover", .{program_name}), .root_module = prover_root });
         b.installArtifact(prover_exe);
 
-        const native_root = b.createModule(.{
-            .root_source_file = b.path("mvp_verifier_main.zig"),
-            .target = target,
-            .optimize = optimize,
-        });
+        const native_root = localEntry(b, "runtime/mvp_verifier_main.zig", target, optimize);
         native_root.addImport("stwo_s31_prototype", frontend);
         native_root.addImport("stwo_core", core);
         native_root.addImport("stwo_circuit_frontend", circuit);
@@ -826,11 +661,7 @@ pub fn build(b: *std.Build) void {
     }
     if (source_version != 0) @panic("unsupported S31 source version");
 
-    const showcase_root = b.createModule(.{
-        .root_source_file = b.path("showcase.zig"),
-        .target = target,
-        .optimize = optimize,
-    });
+    const showcase_root = localEntry(b, "runtime/showcase.zig", target, optimize);
     showcase_root.addImport("stwo_s31_prototype", frontend);
     showcase_root.addImport("stwo_core", core);
     showcase_root.addImport("stwo_circuit_frontend", circuit);
@@ -843,11 +674,7 @@ pub fn build(b: *std.Build) void {
     const executable = b.addExecutable(.{ .name = "s31-showcase", .root_module = showcase_root });
     b.installArtifact(executable);
 
-    const verifier_root = b.createModule(.{
-        .root_source_file = b.path("verifier_main.zig"),
-        .target = target,
-        .optimize = optimize,
-    });
+    const verifier_root = localEntry(b, "runtime/verifier_main.zig", target, optimize);
     verifier_root.addImport("stwo_s31_prototype", frontend);
     verifier_root.addImport("stwo_core", core);
     verifier_root.addImport("stwo_circuit_frontend", circuit);
@@ -865,4 +692,15 @@ pub fn build(b: *std.Build) void {
     const showcase_step = b.step("showcase", "Prove and natively verify the S31 affine-four example");
     showcase_step.dependOn(&showcase.step);
     showcase_step.dependOn(b.getInstallStep());
+}
+
+/// Keep the Zig module root at S31 while individual test and executable
+/// sources live in their domain directories. This permits imports across
+/// sibling directories without widening module access outside S31.
+fn localEntry(b: *std.Build, source: []const u8, target: std.Build.ResolvedTarget, optimize: std.builtin.OptimizeMode) *std.Build.Module {
+    return b.createModule(.{
+        .root_source_file = b.path(b.fmt("entry/{s}", .{std.fs.path.basename(source)})),
+        .target = target,
+        .optimize = optimize,
+    });
 }

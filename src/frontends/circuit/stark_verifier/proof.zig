@@ -51,12 +51,14 @@ pub const ProofConfig = struct {
     component_shapes: []const ComponentShape,
     /// Per interaction column: whether it is a cumulative-sum column (and so
     /// also sampled at the previous point).
-    cumulative_sum_columns: []const bool,
+    cumulative_sum_columns: []bool,
     log_trace_size: usize,
     fri: FriConfigV2,
     composition_log_split: u32,
     /// Verifier-owned main-tree mask, or the legacy singleton mask.
     trace_mask_offsets: ?[]const []const i8 = null,
+    interaction_mask_offsets: ?[]const []const i8 = null,
+    claim_arities: ?[]const u8 = null,
 
     /// `ProofConfig::new`. Copies `component_shapes`; free with `deinit`.
     pub fn init(
@@ -105,6 +107,8 @@ pub const ProofConfig = struct {
             .fri = pcs_config.fri_config,
             .composition_log_split = 1,
             .trace_mask_offsets = null,
+            .interaction_mask_offsets = null,
+            .claim_arities = null,
         };
     }
 
@@ -112,6 +116,30 @@ pub const ProofConfig = struct {
         allocator.free(self.component_shapes);
         allocator.free(self.cumulative_sum_columns);
         self.* = undefined;
+    }
+
+    /// Attach a receiver-owned mask/claim inventory after `init`. The slices
+    /// in `trusted` must outlive this config. Its committed widths and PCS
+    /// schedule must match the already allocated component config.
+    pub fn adoptTrustedShape(self: *ProofConfig, trusted: proof_shape.ProofShape) !void {
+        try trusted.validate();
+        if (trusted.n_preprocessed_columns != self.n_preprocessed_columns or
+            trusted.nTraceColumns() != self.n_trace_columns or
+            trusted.nInteractionColumns() != self.n_interaction_columns or
+            trusted.log_trace_size != self.log_trace_size or
+            !std.meta.eql(trusted.fri, self.fri) or
+            trusted.component_shapes.len != self.component_shapes.len)
+            return error.ProfileShapeMismatch;
+        for (trusted.component_shapes, self.component_shapes) |expected, actual| {
+            if (expected.trace_columns != actual.trace_columns or
+                expected.interaction_columns != actual.interaction_columns)
+                return error.ProfileShapeMismatch;
+        }
+        self.composition_log_split = trusted.composition_log_split;
+        self.trace_mask_offsets = trusted.trace_mask_offsets;
+        self.interaction_mask_offsets = trusted.interaction_mask_offsets;
+        self.claim_arities = trusted.claim_arities;
+        for (self.cumulative_sum_columns, 0..) |*flag, column| flag.* = trusted.isCumulativeSumColumn(column);
     }
 
     pub fn nComponents(self: ProofConfig) usize {
@@ -145,6 +173,8 @@ pub const ProofConfig = struct {
             .fri = self.fri,
             .composition_log_split = self.composition_log_split,
             .trace_mask_offsets = self.trace_mask_offsets,
+            .interaction_mask_offsets = self.interaction_mask_offsets,
+            .claim_arities = self.claim_arities,
         };
     }
 
@@ -264,7 +294,7 @@ pub fn Proof(comptime T: type) type {
         /// `Proof::validate_structure`.
         pub fn validateStructure(self: *const Self, config: ProofConfig) StructureError!void {
             const n_queries = config.nQueries();
-            try expectLen(self.claimed_sums.len, config.nComponents());
+            try expectLen(self.claimed_sums.len, config.shape().nClaimedSums());
             try expectLen(self.preprocessed_columns_at_oods.len, config.n_preprocessed_columns);
             try expectLen(self.trace_at_oods.len, config.shape().nTraceOodsValues());
             try expectLen(self.interaction_at_oods.len, config.n_interaction_columns);
@@ -272,6 +302,8 @@ pub fn Proof(comptime T: type) type {
             for (self.interaction_at_oods, config.cumulative_sum_columns) |column, is_cumulative_sum| {
                 if ((column.at_prev != null) != is_cumulative_sum) return error.ProofShapeMismatch;
             }
+            for (config.cumulative_sum_columns, 0..) |flag, column|
+                if (flag != config.shape().isCumulativeSumColumn(column)) return error.ProofShapeMismatch;
             const columns = config.nColumnsPerTrace();
             const eval_depth = config.logEvaluationDomainSize();
             try expectLen(self.eval_domain_samples.n_queries, n_queries);
@@ -336,7 +368,7 @@ pub fn emptyProof(allocator: std.mem.Allocator, config: ProofConfig) std.mem.All
         .trace_root = undefined,
         .interaction_root = undefined,
         .composition_polynomial_root = undefined,
-        .claimed_sums = try allocator.alloc(NoValue, config.nComponents()),
+        .claimed_sums = try allocator.alloc(NoValue, config.shape().nClaimedSums()),
         .preprocessed_columns_at_oods = try allocator.alloc(NoValue, config.n_preprocessed_columns),
         .trace_at_oods = try allocator.alloc(NoValue, config.shape().nTraceOodsValues()),
         .interaction_at_oods = interaction,

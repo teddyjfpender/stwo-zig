@@ -125,12 +125,12 @@ has sixteen `65535` difference limbs. Reproduce both native proofs and the
 negative checks with:
 
 ```sh
-python3 src/frontends/s31/s31.py trial src/frontends/s31/examples/u256_sub_checked.s31 src/frontends/s31/examples/u256_sub_checked.valid.json --lowering sparse-wide-gate --out zig-out/s31/u256-sub-checked-trial
-python3 src/frontends/s31/s31.py trial src/frontends/s31/examples/u256_sub_wrap.s31 src/frontends/s31/examples/u256_sub_wrap.valid.json --lowering sparse-wide-gate --out zig-out/s31/u256-sub-wrap-trial
-python3 src/frontends/s31/acceptance_u256_sub.py
+python3 src/frontends/s31/python/s31.py trial src/frontends/s31/examples/u256_sub_checked.s31 src/frontends/s31/examples/u256_sub_checked.valid.json --lowering sparse-wide-gate --out zig-out/s31/u256-sub-checked-trial
+python3 src/frontends/s31/python/s31.py trial src/frontends/s31/examples/u256_sub_wrap.s31 src/frontends/s31/examples/u256_sub_wrap.valid.json --lowering sparse-wide-gate --out zig-out/s31/u256-sub-wrap-trial
+python3 src/frontends/s31/tests/acceptance/acceptance_u256_sub.py
 ```
 
-The [one-run record](../../../../design/s31/measurements/u256-subtraction-v1-2026-10-07.json)
+The [one-run record](../../../../design/s31/measurements/language/u256-subtraction-v1-2026-10-07.json)
 reports 231,674 bytes for the checked proof and 238,493 for wrapping. They
 use 7,744 and 7,743 raw QM31 rows, respectively, including the Poseidon2
 leaf. Both pad to 32 Eq rows: checked subtraction constrains its final
@@ -176,7 +176,7 @@ The published Poseidon2 leaf of the sixteen difference limbs is
 `[552785778,528026874,1337939194,1238002988,529560134,669980742,1274389821,1249346016]`.
 Swapping $A$ and $B$ exercises the other selection branch and produces the
 same difference; equality produces a zero difference. The
-[`test_text_frontend.py` cases](../test_text_frontend.py) check all three
+[`test_text_frontend.py` cases](../tests/python/test_text_frontend.py) check all three
 assignments against an independent value oracle.
 
 The source operations expand into the existing `u256_le`, `bool_not`,
@@ -185,10 +185,10 @@ relation shares repeated comparisons with identical operands. Inspect the
 lowered relation and the selected backend's gate cost with:
 
 ```sh
-python3 src/frontends/s31/s31.py lower src/frontends/s31/examples/u256_order_select.s31
-python3 src/frontends/s31/s31.py trial src/frontends/s31/examples/u256_order_select.s31 src/frontends/s31/examples/u256_order_select.valid.json --lowering sparse-wide-gate --out zig-out/s31/u256-order-select-trial
-python3 src/frontends/s31/s31.py equations zig-out/s31/u256-order-select-trial/package
-python3 src/frontends/s31/acceptance_u256_select.py
+python3 src/frontends/s31/python/s31.py lower src/frontends/s31/examples/u256_order_select.s31
+python3 src/frontends/s31/python/s31.py trial src/frontends/s31/examples/u256_order_select.s31 src/frontends/s31/examples/u256_order_select.valid.json --lowering sparse-wide-gate --out zig-out/s31/u256-order-select-trial
+python3 src/frontends/s31/python/s31.py equations zig-out/s31/u256-order-select-trial/package
+python3 src/frontends/s31/tests/acceptance/acceptance_u256_select.py
 ```
 
 The source comparison and select helpers add no new AIR opcode: the ordinary
@@ -250,8 +250,8 @@ has not established the security of Poseidon2 as a production Bitcoin bridge
 commitment.
 
 ```sh
-python3 src/frontends/s31/s31.py oracle src/frontends/s31/examples/wide_order.s31 src/frontends/s31/examples/wide_order.valid.json
-python3 src/frontends/s31/s31.py trial src/frontends/s31/examples/wide_order.s31 src/frontends/s31/examples/wide_order.valid.json --lowering sparse-wide-gate --out zig-out/s31/wide-order-trial
+python3 src/frontends/s31/python/s31.py oracle src/frontends/s31/examples/wide_order.s31 src/frontends/s31/examples/wide_order.valid.json
+python3 src/frontends/s31/python/s31.py trial src/frontends/s31/examples/wide_order.s31 src/frontends/s31/examples/wide_order.valid.json --lowering sparse-wide-gate --out zig-out/s31/wide-order-trial
 ```
 
 `sparse-wide-gate` keeps the equality, QM31 arithmetic, M31-to-`u32`, and
@@ -261,7 +261,7 @@ run, the native proof was 238,047 bytes and proving took 0.433 s, versus
 427,557 bytes and 1.688 s for `gate`. Both native verifiers accepted the
 correct statement and rejected a changed public root. These timing samples
 include proof of work and are not a throughput estimate; the evidence is in
-[`design/s31/measurements/bitcoin-wide-sparse-v5-2026-10-06.json`](../../../../design/s31/measurements/bitcoin-wide-sparse-v5-2026-10-06.json).
+[`design/s31/measurements/bitcoin/bitcoin-wide-sparse-v5-2026-10-06.json`](../../../../design/s31/measurements/bitcoin/bitcoin-wide-sparse-v5-2026-10-06.json).
 
 ## Boundary for a Bitcoin proof
 

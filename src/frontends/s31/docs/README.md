@@ -58,7 +58,7 @@ text .s31 ──parse/typecheck/specialize──▶ normalized relation JSON
 - [Fixed-key recursive fold](recursion-fold.md): repeat proof verification
    under one AIR and key, with a constrained counter, handwritten branch
    equations, an isolated top verifier, and measured costs.
-- [Recursion soundness ledger](../../../../design/s31/RECURSION_SECURITY.md):
+- [Recursion soundness ledger](../../../../design/s31/recursion/RECURSION_SECURITY.md):
    exact proof parameters, the counter and key-binding argument, adversarial
    evidence, and the analysis still required before deployment.
 - [Sparse-wide fixed-key fold](recursion-wide-fold.md): carry a 256-bit or
@@ -108,13 +108,13 @@ means.
 ## Five-minute tour
 
 ```sh
-python3 src/frontends/s31/s31.py lower src/frontends/s31/examples/math_polynomial4.s31
-python3 src/frontends/s31/s31.py oracle src/frontends/s31/examples/math_polynomial4.s31 src/frontends/s31/examples/math_polynomial4.valid.json
-python3 src/frontends/s31/s31.py build src/frontends/s31/examples/math_polynomial4.s31 --lowering direct-gate --out zig-out/s31/docs-polynomial
-python3 src/frontends/s31/s31.py explain zig-out/s31/docs-polynomial
-python3 src/frontends/s31/s31.py equations zig-out/s31/docs-polynomial
-python3 src/frontends/s31/s31.py prove zig-out/s31/docs-polynomial src/frontends/s31/examples/math_polynomial4.valid.json zig-out/s31/docs-polynomial.proof
-python3 src/frontends/s31/s31.py verify zig-out/s31/docs-polynomial zig-out/s31/docs-polynomial.proof
+python3 src/frontends/s31/python/s31.py lower src/frontends/s31/examples/math_polynomial4.s31
+python3 src/frontends/s31/python/s31.py oracle src/frontends/s31/examples/math_polynomial4.s31 src/frontends/s31/examples/math_polynomial4.valid.json
+python3 src/frontends/s31/python/s31.py build src/frontends/s31/examples/math_polynomial4.s31 --lowering direct-gate --out zig-out/s31/docs-polynomial
+python3 src/frontends/s31/python/s31.py explain zig-out/s31/docs-polynomial
+python3 src/frontends/s31/python/s31.py equations zig-out/s31/docs-polynomial
+python3 src/frontends/s31/python/s31.py prove zig-out/s31/docs-polynomial src/frontends/s31/examples/math_polynomial4.valid.json zig-out/s31/docs-polynomial.proof
+python3 src/frontends/s31/python/s31.py verify zig-out/s31/docs-polynomial zig-out/s31/docs-polynomial.proof
 ```
 
 `lower` shows the exact relation consumed by Zig. `oracle` checks the

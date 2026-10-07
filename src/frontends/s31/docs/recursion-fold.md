@@ -59,7 +59,7 @@ The first word of `F` at steps 0, 1, 2 and 3 is respectively
 `1101848050`, `1955705351`, `2532963129`, and `2945726935`. The first
 word at step 65,536 is `2301011972`, showing the high counter limb enters
 the digest. Every proved step's eight words are in its generated
-`.statement.json`. The [worked-value record](../../../../design/s31/measurements/fixed-fold-u32-hand-example-2026-10-07.json)
+`.statement.json`. The [worked-value record](../../../../design/s31/measurements/recursion/fixed-fold-u32-hand-example-2026-10-07.json)
 pins the source and key hashes, gives all eight output words at these steps,
 and records a natively verified step-0 proof.
 
@@ -143,23 +143,23 @@ cryptographic audit.
 ## Reproduce the chain
 
 ```sh
-python3 src/frontends/s31/s31.py build \
+python3 src/frontends/s31/python/s31.py build \
   src/frontends/s31/examples/arith4_m31.s31 --out zig-out/s31/arith4-fold
-python3 src/frontends/s31/s31.py prove zig-out/s31/arith4-fold \
+python3 src/frontends/s31/python/s31.py prove zig-out/s31/arith4-fold \
   src/frontends/s31/examples/arith4.valid.json zig-out/s31/leaf.proof
-python3 src/frontends/s31/s31.py wrap zig-out/s31/arith4-fold \
+python3 src/frontends/s31/python/s31.py wrap zig-out/s31/arith4-fold \
   zig-out/s31/leaf.proof zig-out/s31/base.proof
-python3 src/frontends/s31/s31.py fold-base zig-out/s31/arith4-fold \
+python3 src/frontends/s31/python/s31.py fold-base zig-out/s31/arith4-fold \
   zig-out/s31/base.proof zig-out/s31/fold0.proof
-python3 src/frontends/s31/s31.py fold-next zig-out/s31/arith4-fold \
+python3 src/frontends/s31/python/s31.py fold-next zig-out/s31/arith4-fold \
   zig-out/s31/fold0.proof zig-out/s31/fold1.proof
-python3 src/frontends/s31/s31.py verify-fold zig-out/s31/arith4-fold \
+python3 src/frontends/s31/python/s31.py verify-fold zig-out/s31/arith4-fold \
   zig-out/s31/fold1.proof --max-step 1
-python3 src/frontends/s31/s31.py audit-fold-chain zig-out/s31/arith4-fold \
+python3 src/frontends/s31/python/s31.py audit-fold-chain zig-out/s31/arith4-fold \
   zig-out/s31/fold0.proof zig-out/s31/fold1.proof --max-step 1
-python3 src/frontends/s31/s31.py inspect-fold zig-out/s31/arith4-fold \
+python3 src/frontends/s31/python/s31.py inspect-fold zig-out/s31/arith4-fold \
   --step 65536
-python3 src/frontends/s31/acceptance_fixed_fold.py
+python3 src/frontends/s31/tests/acceptance/acceptance_fixed_fold.py
 ```
 
 `fold-next` may be repeated until step 4,294,967,295. `--low-memory` applies to
@@ -177,7 +177,7 @@ An optional `--checkpoint-dir DIR` keeps intermediate proofs for resume.
 Every step still checks the complete value-bearing gate list and natively
 verifies its child. The acceptance fixture compares batch output byte for
 byte against separate proof commands.
-The [claim inspector](../inspect_recursive_claim.py) verifies a saved top
+The [claim inspector](../tools/inspect/inspect_recursive_claim.py) verifies a saved top
 proof and prints the exact sealed key hashes, original leaf words, base
 digest, counter, and previous/current public fold digests as JSON.
 `audit-fold-chain PACKAGE FOLD0 ... FOLDN` is a development audit for saved
@@ -205,7 +205,7 @@ In one local sample of the earlier u16 `arith4_m31` step-3 fold, proving took 3.
 9.31 GB peak resident memory; `--low-memory` took 3.91 s and 7.00 GB. The
 proof was 560,468 bytes. Native top verification took 0.45 s and 205 MB.
 These are single local measurements, not comparative benchmarks or promised
-performance across machines. The [raw measurement record](../../../../design/s31/measurements/fixed-fold-v2-2026-10-07.json)
+performance across machines. The [raw measurement record](../../../../design/s31/measurements/recursion/fixed-fold-v2-2026-10-07.json)
 contains the key geometry, four proof sizes, and the tested negative cases.
 
 This fold repeats the **same leaf claim**. The

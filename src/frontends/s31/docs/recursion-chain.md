@@ -49,7 +49,7 @@ D2 = [3261532993, 4216833817, 3540888548, 444438926,
       1344647726, 3496049993, 1965291402, 1057682655]
 ```
 
-The [worked-value record](../../../../design/s31/measurements/preimage-chain-hand-example-2026-10-07.json)
+The [worked-value record](../../../../design/s31/measurements/hash/preimage-chain-hand-example-2026-10-07.json)
 pins the source and exact key hashes used for these numbers.
 
 Each preimage is exactly 64 bytes, so each binding uses one Blake2s block.
@@ -123,7 +123,7 @@ The native top verifier embeds `K0`, `K1` and `K2`. It checks the nested
 chain statement, including `P2`'s child words equalling `P1`'s output
 words. Altering the original leaf claim and recomputing **both** public
 digests still causes the top proof to fail. The
-[acceptance fixture](../acceptance_recursion_chain.py) checks that attack,
+[acceptance fixture](../tests/acceptance/acceptance_recursion_chain.py) checks that attack,
 corrupted proofs and keys, and the low-memory proof policy. It also audits
 seven direct mutations inside the second-level verifier circuit.
 The packaged prover embeds the same three exact key byte strings and
@@ -134,34 +134,34 @@ bytes and rebuilds only the second verifier topology needed for its proof.
 ## Reproduce
 
 ```sh
-python3 src/frontends/s31/s31.py build \
+python3 src/frontends/s31/python/s31.py build \
   src/frontends/s31/examples/preimage4.s31 \
   --lowering gate --out zig-out/s31/preimage-chain
 
-python3 src/frontends/s31/s31.py prove \
+python3 src/frontends/s31/python/s31.py prove \
   zig-out/s31/preimage-chain \
   src/frontends/s31/examples/preimage4.valid.json \
   zig-out/s31/preimage-chain/leaf.proof
 
-python3 src/frontends/s31/s31.py wrap \
+python3 src/frontends/s31/python/s31.py wrap \
   zig-out/s31/preimage-chain \
   zig-out/s31/preimage-chain/leaf.proof \
   zig-out/s31/preimage-chain/first.proof
 
-python3 src/frontends/s31/s31.py audit-recursive-next \
+python3 src/frontends/s31/python/s31.py audit-recursive-next \
   zig-out/s31/preimage-chain \
   zig-out/s31/preimage-chain/first.proof
 
-python3 src/frontends/s31/s31.py wrap-next \
+python3 src/frontends/s31/python/s31.py wrap-next \
   zig-out/s31/preimage-chain \
   zig-out/s31/preimage-chain/first.proof \
   zig-out/s31/preimage-chain/second.proof
 
-python3 src/frontends/s31/s31.py verify-recursive-next \
+python3 src/frontends/s31/python/s31.py verify-recursive-next \
   zig-out/s31/preimage-chain \
   zig-out/s31/preimage-chain/second.proof
 
-python3 src/frontends/s31/acceptance_recursion_chain.py \
+python3 src/frontends/s31/tests/acceptance/acceptance_recursion_chain.py \
   --package zig-out/s31/preimage-chain
 ```
 
@@ -174,7 +174,7 @@ The `--low-memory` run took 4.38 seconds and peaked at 7.00 GB, producing
 the same proof bytes. The
 private-witness fixture produced a 560,563-byte top proof. These are
 single-machine observations, not stable cross-machine benchmarks. The
-[raw record](../../../../design/s31/measurements/recursion-chain-v1-2026-10-07.json)
+[raw record](../../../../design/s31/measurements/recursion/recursion-chain-v1-2026-10-07.json)
 also reports 0.07 seconds and 205 MB for the standalone native top verifier
 on that `arith4_m31` proof.
 

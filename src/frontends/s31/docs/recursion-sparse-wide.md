@@ -172,22 +172,22 @@ the inner native verifier again.
 From the repository root:
 
 ```sh
-python3 src/frontends/s31/s31.py build \
+python3 src/frontends/s31/python/s31.py build \
   src/frontends/s31/examples/wide_order.s31 \
   --lowering sparse-wide-gate --out zig-out/s31/wide-recursive
-python3 src/frontends/s31/s31.py prove \
+python3 src/frontends/s31/python/s31.py prove \
   zig-out/s31/wide-recursive \
   src/frontends/s31/examples/wide_order.valid.json \
   zig-out/s31/wide-recursive/child.proof
-python3 src/frontends/s31/s31.py audit-recursive \
+python3 src/frontends/s31/python/s31.py audit-recursive \
   zig-out/s31/wide-recursive zig-out/s31/wide-recursive/child.proof
-python3 src/frontends/s31/s31.py wrap \
+python3 src/frontends/s31/python/s31.py wrap \
   zig-out/s31/wide-recursive zig-out/s31/wide-recursive/child.proof \
   zig-out/s31/wide-recursive/first.proof --low-memory
-python3 src/frontends/s31/s31.py wrap-next \
+python3 src/frontends/s31/python/s31.py wrap-next \
   zig-out/s31/wide-recursive zig-out/s31/wide-recursive/first.proof \
   zig-out/s31/wide-recursive/second.proof --low-memory
-python3 src/frontends/s31/s31.py verify-recursive-next \
+python3 src/frontends/s31/python/s31.py verify-recursive-next \
   zig-out/s31/wide-recursive zig-out/s31/wide-recursive/second.proof
 ```
 
@@ -201,7 +201,7 @@ independent fields after native proof authentication, including the profile
 prefix, circuit identity, public word, LogUp sum, Merkle paths, FRI witness,
 and FRI last layer. `audit-recursive-next` challenges seven fields of the
 second-level gate verifier. The
-[acceptance fixture](../acceptance_sparse_wide_recursion.py) also changes
+[acceptance fixture](../tests/acceptance/acceptance_sparse_wide_recursion.py) also changes
 proof bytes, key bytes, the outer FRI schedule, public claims, and both chain
 statements.
 
@@ -212,7 +212,7 @@ carry into limb 1; its public Poseidon2 root and all three proof files differ
 from the first assignment. This checks that the verifier circuit accepts
 different transcripts and witness values under one program key.
 
-The [cross-key fixture](../acceptance_sparse_wide_key_binding.py) rebuilds
+The [cross-key fixture](../tests/acceptance/acceptance_sparse_wide_key_binding.py) rebuilds
 the same arithmetic under a different source name. The preprocessed AIR
 root stays the same, but the sparse-wide profile identity and wrapper AIR
 roots change. Each leaf proof is rejected by the other source's native
@@ -224,19 +224,19 @@ identity is also equal, yet their keys and wrapper AIR roots differ. Both
 cross-schedule leaf replays fail; the outer replay fails even after repairing
 the public statement for the other key. This checks binding at both levels.
 
-The [onefold-child/fourfold-wrapper acceptance run](../../../../design/s31/measurements/sparse-wide-recursion-v2-2026-10-07.json)
+The [onefold-child/fourfold-wrapper acceptance run](../../../../design/s31/measurements/recursion/sparse-wide-recursion-v2-2026-10-07.json)
 measured the three proofs at 238,047, 372,615, and 372,181 bytes. The first
 verifier circuit has 6,972,423 raw variables. The proof commands took 1.19,
 2.25, and 2.32 seconds wall time; package build took about 61 seconds, mostly
 constructing and sealing two verifier topologies. For comparison, the
-[step-1 wrapper baseline](../../../../design/s31/measurements/sparse-wide-recursion-v1-2026-10-07.json)
+[step-1 wrapper baseline](../../../../design/s31/measurements/recursion/sparse-wide-recursion-v1-2026-10-07.json)
 measured 238,047, 507,885, and 554,779 bytes and 4.25 seconds for the
 second wrap. The child proof is byte-identical. Fourfold FRI cuts the second
 outer proof by about 33% and its command wall time by about 45% in these
 single local runs. Command times include setup and native verification; they
 are measurements, not a soundness calculation or a general speedup claim.
 
-With [fourfold FRI on the child as well](../../../../design/s31/measurements/sparse-wide-recursion-v3-2026-10-07.json),
+With [fourfold FRI on the child as well](../../../../design/s31/measurements/recursion/sparse-wide-recursion-v3-2026-10-07.json),
 the leaf, first wrapper, and second wrapper measured 182,891, 345,589, and
 373,568 bytes. The first verifier circuit fell to 3,601,643 raw variables,
 about 48% below the step-1 child. The first wrap took 1.27 seconds in that
@@ -256,7 +256,7 @@ padded geometry. It does not yet provide a state-transition fold for a
 growing Bitcoin header chain, nor does it move SHA256d from the generic
 circuit to a proof-bound dedicated SHA AIR chip.
 
-The [onefold-child/fourfold-wrapper Bitcoin run](../../../../design/s31/measurements/bitcoin-sparse-wide-recursion-v2-2026-10-07.json)
+The [onefold-child/fourfold-wrapper Bitcoin run](../../../../design/s31/measurements/bitcoin/bitcoin-sparse-wide-recursion-v2-2026-10-07.json)
 uses [`bitcoin_header_pair.s31`](../examples/bitcoin_header_pair.s31), which
 constrains two byte-exact SHA256d hashes, both mainnet proof-of-work checks,
 their previous-hash link, a genesis checkpoint, equal compact bits, and the
@@ -264,12 +264,12 @@ strict first-step timestamp rule. It also passed two wrappers and the same
 mutation suite. Its verifier circuit had 9,733,516 raw variables; proof sizes
 were 372,904, 370,088, and 369,616 bytes. The first and second wrap commands
 took about 2.37 s and 2.45 s wall time in that local run. The
-[step-1 wrapper baseline](../../../../design/s31/measurements/bitcoin-sparse-wide-recursion-v1-2026-10-07.json)
+[step-1 wrapper baseline](../../../../design/s31/measurements/bitcoin/bitcoin-sparse-wide-recursion-v1-2026-10-07.json)
 had 521,838- and 560,419-byte wrappers and a 4.80-second second wrap. This
 is a fixed two-header relation, not an indefinitely extensible Bitcoin light
 client.
 
-The [fourfold-child Bitcoin run](../../../../design/s31/measurements/bitcoin-sparse-wide-recursion-v3-2026-10-07.json)
+The [fourfold-child Bitcoin run](../../../../design/s31/measurements/bitcoin/bitcoin-sparse-wide-recursion-v3-2026-10-07.json)
 reduced the first verifier circuit from 9,733,516 to 4,697,100 raw
 variables. The three proofs measured 266,285, 352,610, and 373,854 bytes;
 the first wrap took 1.33 seconds and the second 2.15 seconds. Relative to the
