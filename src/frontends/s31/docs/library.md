@@ -44,7 +44,36 @@ AIR. No helper is a host-only calculation or a new specialized AIR chip.
 | `std::math::eq_u256(a,b)`, `ne_u256(a,b)` | Equality or inequality | Two `UInt256` values; constrained `bit`. Two `u256_le` nodes and Boolean logic. |
 | `std::math::min_u256(a,b)`, `max_u256(a,b)` | Select the smaller or larger value | Two `UInt256` values; one `u256_le` and one range-preserving `select`. Equal inputs return the same value. |
 | `std::bitcoin::pow_valid(header)` | `SHA256d(header)` as a little-endian `UInt256` is at most the canonical mainnet target encoded in `header` | One `Bytes80` value; returns a constrained `bit`. Assert it equals one to require valid work. |
-| `std::bitcoin::block_work(target)` | `floor(2^256/(target+1))` proved by byte-column integer multiplication and a strict remainder comparison | One nonzero `UInt256` target below `2^256-1`; returns `UInt256` block work. |
+| `std::bitcoin::target_mainnet(header)` | Decode and constrain mainnet `nBits` | One `Bytes80` header; returns `Target`. This checks the target encoding, not the header's proof of work. |
+| `std::bitcoin::block_work(target)` | `floor(2^256/(target+1))` proved by byte-column integer multiplication and a strict remainder comparison | One `Target`; returns `Work`. A caller proving a valid block must also check its header hash against this target. |
+| `std::bitcoin::chainwork_from_work(work)` | Use one block's work as initial accumulated work | One `Work`; returns `ChainWork` with no added gate. |
+| `std::bitcoin::accumulate_chainwork(previous, work)` | Add block work to prior chainwork without wraparound | `ChainWork` and `Work`; returns `ChainWork` through one proved `u256_add_checked` node. |
+| `std::bitcoin::target_u256`, `work_u256`, `chainwork_u256` | Explicitly view the sixteen limbs as `UInt256` for arithmetic or hashing | Each accepts only its named nominal type and emits no relation node. There is no implicit `UInt256` conversion back to `Target` or `Work`. |
+
+`Target`, `Work`, and `ChainWork` are source-level nominal types backed by
+sixteen little-endian `u16` limbs. The type checker prevents accidental
+mixing; the proof guarantees a value's origin only when the program includes
+the relevant constraints. A `Target` parameter, for example, is a claimed
+value, whereas `target_mainnet(header)` checks the header's compact encoding.
+A `ChainWork` input is a claimed prior state until a trusted checkpoint or a
+recursive proof authenticates it. The complete
+[chainwork step](../examples/bitcoin/bitcoin_chainwork_step.s31) derives work
+from a private header, checks its hash against the target, adds work without
+overflow, and commits the before and after values in one public digest.
+
+The worked fixture starts with prior work $2^{128}-1$ and a mainnet genesis
+header whose block work is $0x100010001$. The checked addition proves
+$2^{128}+0x100010000$ as the next work. At the low 16-bit limb,
+$65535+1=0+65536\cdot1$; that carry passes through the remaining occupied
+prior-work limbs and enters limb 8. Every limb follows
+$a_i+b_i+c_i=r_i+65536c_{i+1}$, with Boolean carries and a final carry
+of zero. The source emits exactly one `u256_add_checked` relation node for
+this transition. The public output is a Poseidon2 commitment to the prior
+work, next work, and header hash, since this source profile exposes at most
+eight public field words. The [native acceptance](../tests/acceptance/acceptance_bitcoin_chainwork_step.py)
+recomputes SHA256d, compact target, work, addition, and Poseidon2 separately;
+it rejects overflow, invalid proof of work, changed claims, and proof/key
+tampering.
 
 The group in brackets is a compile-time list of existing circuit values,
 not a witness array that can be indexed. Each item may be an input,
@@ -481,7 +510,7 @@ byte-exact Bitcoin header hashing; `std::bitcoin::target_mainnet(Bytes80)`
 constrains the mainnet compact target. `std::bitcoin::pow_valid(Bytes80)`
 composes those two operations with the existing unsigned 256-bit comparison;
 it adds no AIR opcode or gate beyond spelling out the calls.
-`std::bitcoin::block_work(UInt256)` computes checked work from a target;
+`std::bitcoin::block_work(Target)` computes checked `Work` from a target;
 the [division walkthrough](../../../../design/s31/bitcoin/BITCOIN_WORK_DIVISION.md)
 gives its integer and AIR equations and the [source example](../examples/bitcoin/bitcoin_block_work.s31).
 The [Bitcoin header chapter](bitcoin-sha256d.md)
@@ -559,11 +588,34 @@ python3 src/frontends/s31/python/s31.py prove zig-out/s31/mathlib4-text src/fron
 python3 src/frontends/s31/python/s31.py verify zig-out/s31/mathlib4-text zig-out/s31/mathlib4-text.proof
 ~~~
 
-The remaining math gaps are dynamic indexing of one `[m31; N]`, checked
-inversion/division, computed bits, wider integer operations beyond addition
-and unsigned comparison, general module loading, and dedicated math chips.
-`sum_lanes` and `dot_lanes` work on
-statically sized arrays; they do not expose an arbitrary lane as a source
-value.
+The remaining math gaps are witness-dependent indexing of one `[m31; N]`,
+general source-level `UInt256` multiplication and quotient/remainder (the
+Bitcoin-specific `block_work` operation already proves its own division),
+broader vector kernels, general module loading, and measured cost crossovers
+for dedicated math chips. Checked field inversion and division, computed
+bits, checked wide addition and subtraction, and unsigned comparisons are
+implemented. `sum_lanes` and `dot_lanes` work on statically sized arrays;
+they do not expose a witness-selected lane as a source value.
+The next scalar-integer family is specified in the
+[fixed-width integer design](../../../../design/s31/language/FIXED_WIDTH_INTEGERS.md):
+`u8` through `u128` and `i8` through `i128`, with range, signedness, casts,
+and explicit overflow modes. Those types are not yet available in S31 source.
+
+## Library MVP release gate
+
+From the repository root, run:
+
+```sh
+python3 src/frontends/s31/tests/acceptance/library_mvp_gate.py
+```
+
+The default gate checks representative field and static math, checked wide
+addition, a hash tree, an array view, and a computed bit. It compares text
+lowering with handwritten relations, checks independent Python values and
+inspectable equation reports, verifies native proofs, rejects altered claims
+and proof bytes, and enforces the checked-in AIR geometry baseline. It then
+runs the complete one-header ChainWork acceptance. The gate covers this
+supported `std@1` subset; it does not constitute a formal soundness audit or
+promise efficient proofs for every possible composition.
 
 Next: [circuit lowering](circuits.md).

@@ -98,6 +98,9 @@ relation and canonical IR digest.
 | `BlockHash` | `u16[16]` | Nominal Bitcoin block hash in raw SHA256d byte order. A parameter is a claimed hash; `block_hash(header)` constrains its origin. |
 | `Bytes80` | `u16[40]` | Eighty serialized header bytes packed into forty little-endian, range-checked limbs. |
 | `UInt256` | `u16[16]` | Unsigned integer with the same limbs; arithmetic is explicit. |
+| `Target` | `u16[16]` | Nominal mainnet target. A source input is only a claimed value; `target_mainnet(header)` constrains its derivation. |
+| `Work` | `u16[16]` | Nominal per-block work. `block_work(target)` constrains its calculation. |
+| `ChainWork` | `u16[16]` | Nominal accumulated work. `accumulate_chainwork` uses checked addition; an input still needs a trusted checkpoint or recursive linkage. |
 | `bit` | `m31[1]` | An input used by a Boolean operation or `select` has `b²=b`; `std::field::is_zero`, Boolean operations, and `std::math::le_u256` produce constrained bits. A computed bit can be returned as `[m31; 1]`. |
 | `Digest<Poseidon2>` | `m31[8]` | Nominal type for the pinned field-native digest. |
 | `Digest<Blake2sReduced>` | `m31[8]` | Nominal type for eight reduced BLAKE2s words. |
@@ -131,8 +134,13 @@ zero-row view for byte and integer operations.
 | `std::bitcoin::block_hash(header)` | `hash_sha256d_header` | `Bytes80` to `BlockHash`; the same constrained SHA256d relation as `sha256d_header`. |
 | `std::bitcoin::hash_bytes(hash)` | No node; change nominal type | `BlockHash` to `Bytes32` in raw digest byte order. |
 | `std::bitcoin::parent_hash(header)` | `bitcoin_prev_hash` | `Bytes80` to `BlockHash`; fixed view of serialized bytes 4–35, which must be equated with the claimed parent hash. |
-| `std::bitcoin::target_mainnet(header)` | `bitcoin_target_mainnet` | `Bytes80` to `UInt256`; decodes `nBits` at bytes 72–75 and constrains a nonzero target within mainnet `powLimit`. |
-| `std::bitcoin::block_work(target)` | `bitcoin_block_work` | `UInt256` to `UInt256`; proves Bitcoin's `floor(2^256/(target+1))` with checked 256-bit division, strict remainder bound, and overflow rejection. |
+| `std::bitcoin::target_mainnet(header)` | `bitcoin_target_mainnet` | `Bytes80` to `Target`; decodes `nBits` at bytes 72–75 and constrains a nonzero target within mainnet `powLimit`. |
+| `std::bitcoin::target_u256(target)` | Zero-row nominal view | `Target` to `UInt256` for explicit comparison or hashing. |
+| `std::bitcoin::block_work(target)` | `bitcoin_block_work` | `Target` to `Work`; proves Bitcoin's `floor(2^256/(target+1))` with checked 256-bit division, strict remainder bound, and overflow rejection. |
+| `std::bitcoin::work_u256(work)` | Zero-row nominal view | `Work` to `UInt256`. |
+| `std::bitcoin::chainwork_from_work(work)` | Zero-row nominal view | `Work` to `ChainWork` for a one-block chain. |
+| `std::bitcoin::accumulate_chainwork(previous, work)` | `u256_add_checked` | `ChainWork` and `Work` to `ChainWork`; final carry must be zero. |
+| `std::bitcoin::chainwork_u256(chainwork)` | Zero-row nominal view | `ChainWork` to `UInt256` for an explicit commitment or comparison. |
 | `std::bitcoin::prev_hash(header)` | `bitcoin_prev_hash` | `Bytes80` to `Bytes32`; fixed view of serialized bytes 4–35. |
 | `std::bitcoin::header_bits(header)` | `bitcoin_header_bits` | `Bytes80` to `[u16; 2]`; fixed view of serialized bytes 72–75. |
 | `std::bitcoin::header_time(header)` | `bitcoin_header_time` | `Bytes80` to `[u16; 2]`; fixed view of little-endian timestamp bytes 68–71. |

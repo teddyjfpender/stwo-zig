@@ -176,14 +176,22 @@ example lowers to the same relation as the prior source, so this type layer
 adds no AIR rows. A `BlockHash` parameter remains an externally claimed value;
 source typing alone does not prove its origin.
 
-The next type layer should distinguish `Target`, `Work`, and `ChainWork` from
-generic integers. Each conversion must name byte order and prove its
-preconditions. A
-`Target` can originate from the current mainnet compact decoder, but its type
-should prevent accidental use with another network or policy. A `ChainWork`
-update should use checked addition or another
-reviewed overflow contract; modular `add_u256` would hide overflow if the
-statement intends mathematical accumulated work.
+The source type layer now distinguishes `Target`, `Work`, and `ChainWork`
+from generic integers. `target_mainnet(header)` derives a `Target` from the
+constrained mainnet compact decoder; `block_work(target)` derives `Work` by
+the checked division circuit. `accumulate_chainwork(previous, work)` emits
+checked 256-bit addition and rejects overflow. Explicit `target_u256`,
+`work_u256`, and `chainwork_u256` views identify each conversion; there is no
+implicit generic-integer-to-target or work conversion. A nominal input is
+still a claim until its origin is proved or externally authenticated.
+The [one-header ChainWork step](../../../src/frontends/s31/examples/bitcoin/bitcoin_chainwork_step.s31)
+also checks SHA256d against its target and commits to the prior and next
+ChainWork values. Its [native proof acceptance](../../../src/frontends/s31/tests/acceptance/acceptance_bitcoin_chainwork_step.py)
+uses an independent Bitcoin/Poseidon oracle and rejects overflow, invalid
+proof of work, changed claims, changed prior work, damaged proofs, and key
+tampering. The [cost record](../measurements/bitcoin/bitcoin-chainwork-step-mvp-2026-10-07.json)
+reports the current generic circuit geometry. It does not authenticate the
+prior checkpoint or recursively link multiple header transitions.
 
 ## The first Bitcoin statement
 

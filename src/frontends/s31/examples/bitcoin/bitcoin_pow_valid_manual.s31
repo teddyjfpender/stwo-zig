@@ -5,7 +5,7 @@ circuit bitcoin_pow_valid_manual(private header: Bytes80) -> public bit {
     let digest = std::hash::sha256d_header(header);
     let hash_number = std::bytes::to_u256_le(digest);
     let target = std::bitcoin::target_mainnet(header);
-    let valid = std::math::le_u256(hash_number, target);
+    let valid = std::math::le_u256(hash_number, std::bitcoin::target_u256(target));
     assert_eq(valid, splat<1>(1_m31));
     valid
 }

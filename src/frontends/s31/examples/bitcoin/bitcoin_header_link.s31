@@ -11,7 +11,7 @@ circuit bitcoin_header_link(
 
     let target = std::bitcoin::target_mainnet(child);
     let pow_ok = std::math::le_u256(
-        std::bytes::to_u256_le(std::bitcoin::hash_bytes(child_hash)), target
+        std::bytes::to_u256_le(std::bitcoin::hash_bytes(child_hash)), std::bitcoin::target_u256(target)
     );
     assert_eq(pow_ok, splat<1>(1_m31));
 

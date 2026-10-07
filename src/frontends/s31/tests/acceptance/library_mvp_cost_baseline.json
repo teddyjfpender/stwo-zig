@@ -1,0 +1,138 @@
+{
+  "cases": {
+    "array_slice_aligned": {
+      "canonical_ir_sha256": "eb06184f6fa01e913eb0bdbbb5b95b19959c3bd8bdad91e6e9ef79aeb4c5e1e1",
+      "lowering": "direct-gate",
+      "padded": {
+        "blake_g": 0,
+        "eq": 0,
+        "m31_to_u32": 0,
+        "qm31_ops": 512,
+        "triple_xor": 0
+      },
+      "preprocessed_cells": 4096,
+      "preprocessed_columns": 8,
+      "profile": "direct-m31-v4",
+      "raw": {
+        "blake_g": 0,
+        "eq": 0,
+        "m31_to_u32": 0,
+        "qm31_ops": 312,
+        "triple_xor": 0
+      },
+      "source_sha256": "fd3214f88dd41a019c0eccbf4a8c04917d78e15205d4ffc038a36bf745f04dcd"
+    },
+    "bool_computed_choice": {
+      "canonical_ir_sha256": "074ebfbf57bcdb4a4e0c78d3940fd42a31f9ad98fb5896d1ef9318a521042953",
+      "lowering": "direct-gate",
+      "padded": {
+        "blake_g": 0,
+        "eq": 0,
+        "m31_to_u32": 0,
+        "qm31_ops": 512,
+        "triple_xor": 0
+      },
+      "preprocessed_cells": 4096,
+      "preprocessed_columns": 8,
+      "profile": "direct-m31-v4",
+      "raw": {
+        "blake_g": 0,
+        "eq": 0,
+        "m31_to_u32": 0,
+        "qm31_ops": 310,
+        "triple_xor": 0
+      },
+      "source_sha256": "47857c24fa6602573562b262006cae8cd8eda4715fa2732045b516d2341beea8"
+    },
+    "field_div4": {
+      "canonical_ir_sha256": "71584bf9d0c6f51d07fa5e69304c30b8245fb166120baedc2ee23d777f5d14db",
+      "lowering": "direct-gate",
+      "padded": {
+        "blake_g": 0,
+        "eq": 0,
+        "m31_to_u32": 0,
+        "qm31_ops": 512,
+        "triple_xor": 0
+      },
+      "preprocessed_cells": 4096,
+      "preprocessed_columns": 8,
+      "profile": "direct-m31-v4",
+      "raw": {
+        "blake_g": 0,
+        "eq": 0,
+        "m31_to_u32": 0,
+        "qm31_ops": 327,
+        "triple_xor": 0
+      },
+      "source_sha256": "eff9478cf4f7d7f0c9b2b75992ed83f1b93277291f6d2d1a8747bb47709847d1"
+    },
+    "mathlib4": {
+      "canonical_ir_sha256": "f0faedda906c2ceba5ea68188f36eee0058baa52087e616d450283b1d21b128d",
+      "lowering": "direct-gate",
+      "padded": {
+        "blake_g": 0,
+        "eq": 0,
+        "m31_to_u32": 0,
+        "qm31_ops": 512,
+        "triple_xor": 0
+      },
+      "preprocessed_cells": 4096,
+      "preprocessed_columns": 8,
+      "profile": "direct-m31-v4",
+      "raw": {
+        "blake_g": 0,
+        "eq": 0,
+        "m31_to_u32": 0,
+        "qm31_ops": 334,
+        "triple_xor": 0
+      },
+      "source_sha256": "eed0e875088985cca2b8b8cf9e7e0d24ef4ffa0a2d569b2d2636ddd29cb2bf43"
+    },
+    "merkle2": {
+      "canonical_ir_sha256": "a5e8cc4963a53ac82dfcb49d1935962d1a97e87cd6022e343c18ba4d6df34345",
+      "lowering": "gate",
+      "padded": {
+        "blake_g": 256,
+        "eq": 16,
+        "m31_to_u32": 64,
+        "qm31_ops": 1024,
+        "triple_xor": 32
+      },
+      "preprocessed_cells": 4255616,
+      "preprocessed_columns": 45,
+      "profile": "circuit-v1",
+      "raw": {
+        "blake_g": 240,
+        "eq": 0,
+        "m31_to_u32": 40,
+        "qm31_ops": 611,
+        "triple_xor": 24
+      },
+      "source_sha256": "4548cb41fb18a4a4a10037c9991f18cce97ff1ee9703c37ca7d0c608e121bdce"
+    },
+    "u256_sum_checked": {
+      "canonical_ir_sha256": "6d3202f16b091a7d311015ff62ef710d0eda7505e844bdeaf461ecea13839a7f",
+      "lowering": "sparse-wide-gate",
+      "padded": {
+        "blake_g": 0,
+        "eq": 64,
+        "m31_to_u32": 128,
+        "qm31_ops": 8192,
+        "triple_xor": 0
+      },
+      "preprocessed_cells": 131584,
+      "preprocessed_columns": 14,
+      "profile": "sparse-wide-v5",
+      "raw": {
+        "blake_g": 0,
+        "eq": 64,
+        "m31_to_u32": 88,
+        "qm31_ops": 7888,
+        "triple_xor": 0
+      },
+      "source_sha256": "9ffcb07b8736bc4790194fe3dc8b65572a9e5d23cd93ae9147af16681b0165a4"
+    }
+  },
+  "policy": "Exact source digest and AIR geometry; proof-size ceiling is in the gate script.",
+  "schema": "s31-library-mvp-cost-baseline-v1"
+}

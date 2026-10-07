@@ -37,6 +37,8 @@ BUILTINS = {
     "std::bytes::to_u256_le", "std::bytes::from_u256_le", "std::bytes::limbs_m31",
     "sha256d_header", "is_zero",
     "target_mainnet",
+    "target_u256", "work_u256", "chainwork_from_work", "chainwork_u256",
+    "accumulate_chainwork",
     "block_work",
     "pow_valid",
     "prev_hash", "header_bits", "header_time", "genesis_hash_mainnet", "lt_u32",
@@ -60,6 +62,11 @@ STANDARD_ALIASES = {
     "std::bitcoin::parent_hash": "parent_hash",
     "std::bitcoin::genesis_block_hash_mainnet": "genesis_block_hash_mainnet",
     "std::bitcoin::target_mainnet": "target_mainnet",
+    "std::bitcoin::target_u256": "target_u256",
+    "std::bitcoin::work_u256": "work_u256",
+    "std::bitcoin::chainwork_from_work": "chainwork_from_work",
+    "std::bitcoin::chainwork_u256": "chainwork_u256",
+    "std::bitcoin::accumulate_chainwork": "accumulate_chainwork",
     "std::bitcoin::block_work": "block_work",
     "std::bitcoin::pow_valid": "pow_valid",
     "std::bitcoin::prev_hash": "prev_hash",
@@ -205,6 +212,12 @@ class Parser:
             return Type("bytes32", 16)
         if self.accept("BlockHash"):
             return Type("blockhash", 16)
+        if self.accept("Target"):
+            return Type("target", 16)
+        if self.accept("Work"):
+            return Type("work", 16)
+        if self.accept("ChainWork"):
+            return Type("chainwork", 16)
         if self.accept("Bytes80"):
             return Type("bytes80", 40)
         if self.accept("Digest"):
@@ -215,7 +228,7 @@ class Parser:
             if normalized is None:
                 raise self.error("digest family must be Poseidon2 or Blake2sReduced", token)
             return Type("digest", 8, normalized)
-        raise self.error("expected [m31; N], [u16; N], bit, UInt256, Bytes32, BlockHash, Bytes80, or Digest<Family>")
+        raise self.error("expected [m31; N], [u16; N], bit, UInt256, Bytes32, BlockHash, Target, Work, ChainWork, Bytes80, or Digest<Family>")
 
     def parameters(self, circuit: bool) -> tuple[Any, ...]:
         self.expect("(")
@@ -406,7 +419,10 @@ class Compiler:
                     raise self.located(statement.args[0], "pure functions cannot contain assertions")
                 lhs = self.expect_value(self.eval_expr(statement.args[0], local), statement.args[0])
                 rhs = self.expect_value(self.eval_expr(statement.args[1], local), statement.args[1])
-                self.builder.assert_equal(lhs, rhs)
+                try:
+                    self.builder.assert_equal(lhs, rhs)
+                except TypeErrorS31 as exc:
+                    raise self.located(statement.args[0], exc) from exc
         return self.expect_value(self.eval_expr(body, local, wanted=wanted), body)
 
     def call_function(self, name: str, args: tuple[Any, ...], wanted: str | None, expr: Expr) -> Value:
@@ -605,8 +621,19 @@ class Compiler:
                 return self.builder.bitcoin_parent_hash(self.expect_value(args[0], expr), wanted=wanted, span=self.span(expr))
             if name == "target_mainnet" and len(args) == 1:
                 return self.builder.bitcoin_target_mainnet(self.expect_value(args[0], expr), wanted=wanted, span=self.span(expr))
+            if name in {"target_u256", "work_u256", "chainwork_u256", "chainwork_from_work"} and len(args) == 1:
+                source, target = {
+                    "target_u256": ("target", "uint256"),
+                    "work_u256": ("work", "uint256"),
+                    "chainwork_u256": ("chainwork", "uint256"),
+                    "chainwork_from_work": ("work", "chainwork"),
+                }[name]
+                return self.builder.bitcoin_nominal_view(self.expect_value(args[0], expr), source, target)
             if name == "block_work" and len(args) == 1:
                 return self.builder.bitcoin_block_work(self.expect_value(args[0], expr), wanted=wanted, span=self.span(expr))
+            if name == "accumulate_chainwork" and len(args) == 2:
+                values = tuple(self.expect_value(arg, expr) for arg in args)
+                return self.builder.bitcoin_accumulate_chainwork(*values, wanted=wanted, span=self.span(expr))
             if name == "pow_valid" and len(args) == 1:
                 return self.builder.bitcoin_pow_valid(self.expect_value(args[0], expr), wanted=wanted, span=self.span(expr))
             if name == "prev_hash" and len(args) == 1:

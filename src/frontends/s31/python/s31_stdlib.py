@@ -2,8 +2,8 @@
 
 This module only constructs the existing normalized relation. The Zig validator,
 witness evaluator, AIR compiler, and generated native verifier remain authoritative.
-Types erased by that relation (bit, digest families, and 256-bit values) are
-checked here first. UInt256 and Bytes32 use sixteen little-endian u16 limbs.
+Types erased by that relation (bit, digest families, and nominal 256-bit values)
+are checked here first. All 256-bit values use sixteen little-endian u16 limbs.
 """
 
 from __future__ import annotations
@@ -37,19 +37,19 @@ class Type:
     def __post_init__(self) -> None:
         if self.length < 1 or self.length > 4096:
             raise TypeErrorS31("array length must be 1..4096")
-        if self.kind not in {"m31", "u16", "bit", "digest", "uint256", "bytes32", "bytes80", "blockhash"}:
+        if self.kind not in {"m31", "u16", "bit", "digest", "uint256", "bytes32", "bytes80", "blockhash", "target", "work", "chainwork"}:
             raise TypeErrorS31(f"unsupported type {self.kind}")
         if self.kind == "bit" and self.length != 1:
             raise TypeErrorS31("bit is a single constrained field value")
         if self.kind == "digest" and (self.length != 8 or self.family not in {"poseidon2", "blake2s_reduced"}):
             raise TypeErrorS31("digest must name a supported eight-word hash family")
-        if self.kind in {"uint256", "bytes32", "blockhash"} and (self.length != 16 or self.family):
+        if self.kind in {"uint256", "bytes32", "blockhash", "target", "work", "chainwork"} and (self.length != 16 or self.family):
             raise TypeErrorS31("256-bit values require sixteen little-endian u16 limbs")
         if self.kind == "bytes80" and (self.length != 40 or self.family):
             raise TypeErrorS31("Bytes80 requires forty little-endian u16 limbs")
 
     def relation_shape(self) -> tuple[str, int]:
-        return ("u16" if self.kind in {"u16", "uint256", "bytes32", "bytes80", "blockhash"} else "m31", self.length)
+        return ("u16" if self.kind in {"u16", "uint256", "bytes32", "bytes80", "blockhash", "target", "work", "chainwork"} else "m31", self.length)
 
 
 @dataclass(frozen=True)
@@ -401,15 +401,39 @@ class Builder:
                                span: dict[str, int] | None = None) -> Value:
         if value.typ != Type("bytes80", 40):
             raise TypeErrorS31("target_mainnet requires a serialized Bytes80 header")
-        return self.emit("bitcoin_target_mainnet", Type("uint256", 16),
+        return self.emit("bitcoin_target_mainnet", Type("target", 16),
                          wanted=wanted, span=span, lhs=self.realize(value).ref)
+
+    def bitcoin_nominal_view(self, value: Value, source: str, target: str) -> Value:
+        """Explicit source-type view; the normalized relation already uses u16[16]."""
+        if (source, target) not in {
+            ("target", "uint256"), ("work", "uint256"),
+            ("chainwork", "uint256"), ("work", "chainwork"),
+        }:
+            raise TypeErrorS31(f"unsupported Bitcoin conversion from {source} to {target}")
+        if value.typ != Type(source, 16):
+            raise TypeErrorS31(f"{source} to {target} conversion requires a {source} value")
+        return Value(Type(target, 16), ref=self.realize(value).ref)
 
     def bitcoin_block_work(self, target: Value, *, wanted: str | None = None,
                            span: dict[str, int] | None = None) -> Value:
-        if target.typ != Type("uint256", 16):
-            raise TypeErrorS31("block_work requires a UInt256 target")
-        return self.emit("bitcoin_block_work", Type("uint256", 16),
+        if target.typ != Type("target", 16):
+            raise TypeErrorS31("block_work requires a Target")
+        return self.emit("bitcoin_block_work", Type("work", 16),
                          wanted=wanted, span=span, lhs=self.realize(target).ref)
+
+    def bitcoin_accumulate_chainwork(self, chainwork: Value, work: Value, *,
+                                     wanted: str | None = None,
+                                     span: dict[str, int] | None = None) -> Value:
+        if chainwork.typ != Type("chainwork", 16) or work.typ != Type("work", 16):
+            raise TypeErrorS31("accumulate_chainwork requires ChainWork and Work")
+        result = self.u256_binary(
+            "u256_add_checked",
+            self.bitcoin_nominal_view(chainwork, "chainwork", "uint256"),
+            self.bitcoin_nominal_view(work, "work", "uint256"),
+            wanted=wanted, span=span,
+        )
+        return Value(Type("chainwork", 16), ref=result.ref)
 
     def bitcoin_pow_valid(self, header: Value, *, wanted: str | None = None,
                           span: dict[str, int] | None = None) -> Value:
@@ -418,7 +442,8 @@ class Builder:
             raise TypeErrorS31("pow_valid requires a serialized Bytes80 header")
         digest = self.sha256d_header(header, span=span)
         hash_number = self.bytes32_reinterpret(digest, "uint256")
-        target = self.bitcoin_target_mainnet(header, span=span)
+        target = self.bitcoin_nominal_view(
+            self.bitcoin_target_mainnet(header, span=span), "target", "uint256")
         return self.u256_binary("u256_le", hash_number, target,
                                 wanted=wanted, span=span)
 
@@ -476,8 +501,8 @@ class Builder:
 
     def select(self, bit: Value, lhs: Value, rhs: Value, *, wanted: str | None = None,
                span: dict[str, int] | None = None) -> Value:
-        if bit.typ != Type("bit", 1) or lhs.typ != rhs.typ or lhs.typ.kind not in {"m31", "digest", "uint256"}:
-            raise TypeErrorS31("select requires a bit and two equally typed field or UInt256 values")
+        if bit.typ != Type("bit", 1) or lhs.typ != rhs.typ or lhs.typ.kind not in {"m31", "digest", "uint256", "target", "work", "chainwork"}:
+            raise TypeErrorS31("select requires a bit and two equally typed field or 256-bit values")
         selector = self.bit_operand(bit)
         return self.emit("select", lhs.typ, wanted=wanted, span=span,
                          lhs=self.realize(lhs).ref, rhs=self.realize(rhs).ref, selector=selector)

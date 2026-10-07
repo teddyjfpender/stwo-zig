@@ -6,7 +6,7 @@ circuit bitcoin_header_pow(private header: Bytes80) -> public Digest<Poseidon2> 
     let hash_bytes = std::hash::sha256d_header(header);
     let hash_number = std::bytes::to_u256_le(hash_bytes);
     let target = std::bitcoin::target_mainnet(header);
-    let within_target = std::math::le_u256(hash_number, target);
+    let within_target = std::math::le_u256(hash_number, std::bitcoin::target_u256(target));
     assert_eq(within_target, splat<1>(1_m31));
 
     let hash_limbs = std::bytes::limbs_m31(hash_bytes);

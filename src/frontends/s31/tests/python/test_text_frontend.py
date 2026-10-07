@@ -360,10 +360,85 @@ circuit checked(private a: UInt256, private b: UInt256) -> public [m31; 1] {
         self.assertEqual(relation, json.loads((EXAMPLES / "bitcoin" / "bitcoin_block_work.s31.json").read_text()))
         self.assertEqual([node["op"] for node in relation["nodes"]],
                          ["bitcoin_block_work", "cast_m31", "hash_poseidon2_leaf"])
-        with self.assertRaisesRegex(SourceError, "block_work requires a UInt256 target"):
+        with self.assertRaisesRegex(SourceError, "block_work requires a Target"):
             compile_text("""circuit bad(private target: Bytes32) -> public Digest<Poseidon2> {
                 let work = std::bitcoin::block_work(target);
-                std::hash::poseidon2_leaf(std::bytes::limbs_m31(work))
+                std::hash::poseidon2_leaf(std::bytes::limbs_m31(std::bitcoin::work_u256(work)))
+            }""")
+
+    def test_bitcoin_nominal_chainwork_has_explicit_views_and_checked_add(self) -> None:
+        relation, _ = compile_text("""use std@1;
+circuit chainwork(private previous: ChainWork, private header: Bytes80)
+    -> public Digest<Poseidon2> {
+    let target = std::bitcoin::target_mainnet(header);
+    let work = std::bitcoin::block_work(target);
+    let next = std::bitcoin::accumulate_chainwork(previous, work);
+    std::hash::poseidon2_leaf(std::bytes::limbs_m31(std::bitcoin::chainwork_u256(next)))
+}""")
+        self.assertEqual([node["op"] for node in relation["nodes"]],
+                         ["bitcoin_target_mainnet", "bitcoin_block_work",
+                          "u256_add_checked", "cast_m31", "hash_poseidon2_leaf"])
+        self.assertEqual(relation["nodes"][2]["lhs"], "previous")
+        self.assertEqual(relation["nodes"][2]["rhs"], "work")
+        self.assertEqual(relation["nodes"][2]["name"], "next")
+
+        first, _ = compile_text("""circuit first(private header: Bytes80)
+    -> public Digest<Poseidon2> {
+    let work = std::bitcoin::block_work(std::bitcoin::target_mainnet(header));
+    let total = std::bitcoin::chainwork_from_work(work);
+    std::hash::poseidon2_leaf(std::bytes::limbs_m31(std::bitcoin::chainwork_u256(total)))
+}""")
+        self.assertEqual([node["op"] for node in first["nodes"]],
+                         ["bitcoin_target_mainnet", "bitcoin_block_work",
+                          "cast_m31", "hash_poseidon2_leaf"])
+
+        # A typed Work input is still an untrusted claim, but overflow can never
+        # be hidden by the ChainWork constructor or the relation lowering.
+        from poseidon2_oracle import leaf
+
+        addition, _ = compile_text("""circuit add(private previous: ChainWork,
+            private increment: Work) -> public Digest<Poseidon2> {
+            let total = std::bitcoin::accumulate_chainwork(previous, increment);
+            std::hash::poseidon2_leaf(std::bytes::limbs_m31(std::bitcoin::chainwork_u256(total)))
+        }""")
+        maximum = [0xffff] * 16
+        nearly_maximum = [0xfffe] + [0xffff] * 15
+        one = [1] + [0] * 15
+        assignment = {"public_inputs": {},
+                      "private_inputs": {"previous": nearly_maximum, "increment": one},
+                      "public_outputs": {addition["public_outputs"][0]: leaf(maximum)}}
+        self.assertEqual(evaluate_relation(addition, assignment), assignment["public_outputs"])
+        assignment["private_inputs"]["previous"] = maximum
+        with self.assertRaises(OracleError):
+            evaluate_relation(addition, assignment)
+
+    def test_bitcoin_nominal_types_reject_implicit_reinterpretation(self) -> None:
+        invalid = (
+            ("std::bitcoin::block_work(raw)", "block_work requires a Target"),
+            ("std::bitcoin::target_u256(raw)", "target to uint256 conversion requires a target value"),
+            ("std::bitcoin::work_u256(raw)", "work to uint256 conversion requires a work value"),
+            ("std::bitcoin::chainwork_from_work(raw)", "work to chainwork conversion requires a work value"),
+            ("std::bitcoin::accumulate_chainwork(raw, raw)", "requires ChainWork and Work"),
+        )
+        for expression, message in invalid:
+            with self.subTest(expression=expression), self.assertRaisesRegex(SourceError, message):
+                compile_text(f"""circuit bad(private raw: UInt256)
+                    -> public Digest<Poseidon2> {{
+                    let x = {expression};
+                    std::hash::poseidon2_leaf(std::bytes::limbs_m31(std::bitcoin::chainwork_u256(x)))
+                }}""")
+        with self.assertRaisesRegex(SourceError, "requires two UInt256"):
+            compile_text("""circuit bad(private a: Target, private b: UInt256)
+                -> public bit { std::math::le_u256(a, b) }""")
+        with self.assertRaisesRegex(SourceError, "requires UInt256 or Bytes32"):
+            compile_text("""circuit bad(private x: Work) -> public Digest<Poseidon2> {
+                std::hash::poseidon2_leaf(std::bytes::limbs_m31(x))
+            }""")
+        with self.assertRaisesRegex(SourceError, "same relation type"):
+            compile_text("""circuit bad(private a: Work, private b: ChainWork)
+                -> public Digest<Poseidon2> {
+                assert_eq(a, b);
+                std::hash::poseidon2_leaf(std::bytes::limbs_m31(std::bitcoin::work_u256(a)))
             }""")
 
     def test_u256_subtraction_has_explicit_underflow_modes(self) -> None:
@@ -401,7 +476,7 @@ circuit subtract(private a: UInt256, private b: UInt256) -> public [m31; 1] {{
                     changed["public_outputs"][relation["public_outputs"][0]][0] + 1) % P
                 with self.assertRaisesRegex(OracleError, "does not match"):
                     evaluate_relation(relation, changed)
-        with self.assertRaisesRegex(SourceError, "equally typed field or UInt256"):
+        with self.assertRaisesRegex(SourceError, "equally typed field or 256-bit"):
             compile_text("circuit bad(private x: Bytes32, private y: Bytes32, private b: bit) -> public Bytes32 { std::field::select(b, x, y) }")
         with self.assertRaisesRegex(SourceError, "requires a bit"):
             compile_text("circuit bad(private x: UInt256, private y: UInt256, private b: [m31; 1]) -> public UInt256 { std::field::select(b, x, y) }")

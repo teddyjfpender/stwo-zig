@@ -1,7 +1,7 @@
 # Checked 256-bit division and block work circuit
 
 `src/frontends/s31/bitcoin/consensus/bitcoin_work.zig` is a reusable circuit primitive. S31
-source exposes `std::bitcoin::block_work(target: UInt256) -> UInt256`, which
+source exposes `std::bitcoin::block_work(target: Target) -> Work`, which
 lowers to that primitive. A general source `std::math::div_rem_u256` is not
 yet available because the source language has no pair return type; the Zig
 API has `divRemU256`. Its input

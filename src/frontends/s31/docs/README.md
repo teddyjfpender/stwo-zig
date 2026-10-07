@@ -46,6 +46,11 @@ text .s31 ──parse/typecheck/specialize──▶ normalized relation JSON
 - [Bitcoin header SHA256d and proof of work](bitcoin-sha256d.md): two actual
    linked 80-byte headers, a one-new-header transition leaf, compact target
    decoding, handwritten gate equations, verified proofs, and the SHA chip boundary.
+- [Bitcoin ChainWork step](../examples/bitcoin/bitcoin_chainwork_step.s31):
+   one valid header, source-level `Target`/`Work`/`ChainWork`, checked work
+   addition, and a public commitment to the prior and next values. The
+   [acceptance script](../tests/acceptance/acceptance_bitcoin_chainwork_step.py)
+   runs an independent Bitcoin/Poseidon oracle and a native proof.
 - [One-level proof recursion](recursion.md): a real S31 child proof verified
    inside a circuit, an independently verified outer proof, adversarial
    statements, costs, and the precise boundary before a repeatable fold.
@@ -94,6 +99,7 @@ The worked examples use checked-in sources under [`../examples`](../examples):
 | [`mathlib4.s31`](../examples/arithmetic/mathlib4.s31) | `use std@1`, Horner polynomial, static dot/sum, library lock | `direct-gate` |
 | [`lane_stats4.s31`](../examples/arithmetic/lane_stats4.s31) | Private arrays, lane sum and dot, one public result | `direct-gate` |
 | [`field_div4.s31`](../examples/arithmetic/field_div4.s31) | Checked inverse and division, one inverse witness shared across calls | `direct-gate` |
+| [`bitcoin_chainwork_step.s31`](../examples/bitcoin/bitcoin_chainwork_step.s31) | Header proof of work, checked block work, and a committed ChainWork transition | `sparse-wide-gate` |
 | [`private_step16.s31`](../examples/boundary/private_step16.s31) | Private chip endpoints and one public aggregate | `direct-chip` |
 | [`computed_choice.s31`](../examples/control/computed_choice.s31) | Computed zero bit, two algebraic constraints, and conditional selection | `direct-gate` |
 | [`arith4_m31.s31`](../examples/arithmetic/arith4_m31.s31) | `iterate`, gate unrolling versus one linked AIR chip | `direct-chip` |

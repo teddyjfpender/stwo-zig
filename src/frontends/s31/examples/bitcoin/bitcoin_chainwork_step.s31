@@ -1,0 +1,27 @@
+use std@1;
+
+// One mainnet header extends a trusted ChainWork checkpoint. The public
+// Poseidon2 digest commits to (previous ChainWork, next ChainWork, header hash)
+// in that order. A caller must authenticate the previous checkpoint separately.
+circuit bitcoin_chainwork_step(
+    private previous: ChainWork,
+    private header: Bytes80
+) -> public Digest<Poseidon2> {
+    let block_hash = std::bitcoin::block_hash(header);
+    let target = std::bitcoin::target_mainnet(header);
+    let hash_number = std::bytes::to_u256_le(std::bitcoin::hash_bytes(block_hash));
+    let valid_pow = std::math::le_u256(hash_number, std::bitcoin::target_u256(target));
+    assert_eq(valid_pow, splat<1>(1_m31));
+
+    let work = std::bitcoin::block_work(target);
+    let next = std::bitcoin::accumulate_chainwork(previous, work);
+    let before_root = std::hash::poseidon2_leaf(
+        std::bytes::limbs_m31(std::bitcoin::chainwork_u256(previous)));
+    let after_root = std::hash::poseidon2_leaf(
+        std::bytes::limbs_m31(std::bitcoin::chainwork_u256(next)));
+    let block_root = std::hash::poseidon2_leaf(
+        std::bytes::limbs_m31(std::bitcoin::hash_bytes(block_hash)));
+    let work_transition = std::hash::poseidon2_pair(before_root, after_root);
+    let claim = std::hash::poseidon2_pair(work_transition, block_root);
+    claim
+}

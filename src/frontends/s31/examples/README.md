@@ -12,7 +12,7 @@ beside its checked normalized `.s31.json` relation and matching assignment
 | [`control/`](control/) | Boolean values, selection, and mixed computations. |
 | [`hashes/`](hashes/) | Preimages, Merkle trees, BLAKE2s, and Poseidon2. |
 | [`wide/`](wide/) | Checked and wrapping 256-bit operations. |
-| [`bitcoin/`](bitcoin/) | Header hashing, proof of work, and linked headers. |
+| [`bitcoin/`](bitcoin/) | Header hashing, proof of work, linked headers, and a checked ChainWork transition. |
 | [`keys/`](keys/) | Placeholder keys for build-time examples. |
 
 The `cairo*` directories contain comparison programs. Test and benchmark

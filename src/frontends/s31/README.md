@@ -29,7 +29,7 @@ For `.s31` editor support, see the [S31 TextMate grammar and neon theme](../../.
 
 The earlier [source-to-AIR implementation guide](docs/reference/LANGUAGE_AND_AIR.md) remains available for backend detail.
 
-The compiler accepts normalized JSON and a [limited typed `.s31` text language](docs/reference/TEXT_LANGUAGE.md) that lowers to the same relation. Inputs have `u16` or `m31` relation type, fixed length, and public or private visibility. The text language has nominal `Bytes32`, `UInt256`, and `BlockHash` values backed by sixteen `u16` limbs and `Bytes80` backed by forty. Nodes are topologically ordered. Supported normalized operations include arithmetic, constrained 256-bit addition/subtraction/comparison, static repeats, selection, BLAKE2s and Poseidon2 hashes, byte-exact Bitcoin header SHA256d, and mainnet compact-target decoding. BLAKE2s hash inputs are canonical M31 words encoded little endian as 32-bit words; its eight digest words are reduced modulo M31. Poseidon2 outputs eight canonical M31 state words directly. Assertions constrain equal arrays. Public inputs and outputs occupy at most eight direct words: `u32` in the original profile, canonical M31 in direct-v4. Witnesses cannot change graph shape.
+The compiler accepts normalized JSON and a [limited typed `.s31` text language](docs/reference/TEXT_LANGUAGE.md) that lowers to the same relation. Inputs have `u16` or `m31` relation type, fixed length, and public or private visibility. The text language has nominal `Bytes32`, `UInt256`, `BlockHash`, `Target`, `Work`, and `ChainWork` values backed by sixteen `u16` limbs and `Bytes80` backed by forty. Nodes are topologically ordered. Supported normalized operations include arithmetic, constrained 256-bit addition/subtraction/comparison, static repeats, selection, BLAKE2s and Poseidon2 hashes, byte-exact Bitcoin header SHA256d, and mainnet compact-target decoding. BLAKE2s hash inputs are canonical M31 words encoded little endian as 32-bit words; its eight digest words are reduced modulo M31. Poseidon2 outputs eight canonical M31 state words directly. Assertions constrain equal arrays. Public inputs and outputs occupy at most eight direct words: `u32` in the original profile, canonical M31 in direct-v4. Witnesses cannot change graph shape.
 
 To use the text frontend and inspect its exact lowering:
 
@@ -67,6 +67,28 @@ Trial and tune reports record the oracle source and Poseidon2 constant hashes
 used for those checks.
 Timing is a single local observation, so use repeated measurements before
 making a speed claim.
+
+The library MVP release gate runs five `std@1` text programs and one pinned
+BLAKE2s relation. It checks independent Python calculations, text-to-relation
+and equation reports, native proof acceptance, altered-claim and damaged-proof
+rejection, and pinned AIR row geometry. It covers M31 math, checked division,
+checked `UInt256` sums, BLAKE2s hashing, array views, and computed Boolean
+selection. The full gate
+also proves and rejects invalid Bitcoin chain-work claims. Run it from the
+repository root:
+
+```sh
+python3 src/frontends/s31/tests/acceptance/library_mvp_gate.py
+```
+
+Use `--core` to iterate on the six smaller examples. The checked-in
+[`library_mvp_cost_baseline.json`](tests/acceptance/library_mvp_cost_baseline.json)
+pins source digests and exact raw/padded rows and fixed preprocessing, while
+the gate has generous proof-size ceilings. It does not set timing thresholds.
+If a source or AIR cost intentionally changes, run
+`python3 src/frontends/s31/tests/acceptance/library_mvp_gate.py --core --record-baseline`
+after reviewing the code, then review the generated baseline diff before
+committing it.
 
 `s31 tune` compares explicit proof lowerings for **one source** against the
 same assignment files. It builds each package, proves and verifies every

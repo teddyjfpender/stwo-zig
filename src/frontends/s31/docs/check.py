@@ -493,7 +493,10 @@ def check_recursive_examples() -> None:
     assert [int(re.search(r"\| (\d+) \|$", line).group(1)) for line in wide_rows] == wide["fold_public_words_first_words"]
 
     bitcoin = json.loads((records / "bitcoin/bitcoin-sparse-wide-fold-u32-v1-2026-10-07.json").read_text())
-    assert bitcoin["source_sha256"] == hashlib.sha256((S31 / "examples/bitcoin/bitcoin_header_pair.s31").read_bytes()).hexdigest()
+    # The nominal Target view was added after this measured proof. Keep the
+    # recorded digest as historical evidence; current source lowering is
+    # checked against its normalized relation in check_examples().
+    check_historical_source_hashes({"bitcoin_header_pair.s31": bitcoin["source_sha256"]})
     assert bitcoin["compiler_sha256"] == wide["compiler_sha256"]
     assert bitcoin["base_and_next_audit_rejections"] == [24, 24]
     assert "u32_counter_overflow_before_output" in bitcoin["host_negative_checks"]

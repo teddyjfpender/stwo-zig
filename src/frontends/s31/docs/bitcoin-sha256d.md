@@ -25,7 +25,7 @@ circuit bitcoin_header_pow(private header: Bytes80) -> public Digest<Poseidon2> 
     let hash_bytes = std::hash::sha256d_header(header);
     let hash_number = std::bytes::to_u256_le(hash_bytes);
     let target = std::bitcoin::target_mainnet(header);
-    let within_target = std::math::le_u256(hash_number, target);
+    let within_target = std::math::le_u256(hash_number, std::bitcoin::target_u256(target));
     assert_eq(within_target, splat<1>(1_m31));
 
     let hash_limbs = std::bytes::limbs_m31(hash_bytes);
@@ -223,8 +223,8 @@ circuit bitcoin_header_pair(private parent: Bytes80, private child: Bytes80)
     assert_eq(later_time, splat<1>(1_m31));
     let parent_target = std::bitcoin::target_mainnet(parent);
     let child_target = std::bitcoin::target_mainnet(child);
-    let parent_pow = std::math::le_u256(std::bytes::to_u256_le(std::bitcoin::hash_bytes(parent_hash)), parent_target);
-    let child_pow = std::math::le_u256(std::bytes::to_u256_le(std::bitcoin::hash_bytes(child_hash)), child_target);
+    let parent_pow = std::math::le_u256(std::bytes::to_u256_le(std::bitcoin::hash_bytes(parent_hash)), std::bitcoin::target_u256(parent_target));
+    let child_pow = std::math::le_u256(std::bytes::to_u256_le(std::bitcoin::hash_bytes(child_hash)), std::bitcoin::target_u256(child_target));
     assert_eq(parent_pow, splat<1>(1_m31));
     assert_eq(child_pow, splat<1>(1_m31));
     let parent_root = std::hash::poseidon2_leaf(std::bytes::limbs_m31(std::bitcoin::hash_bytes(parent_hash)));
@@ -328,7 +328,7 @@ circuit bitcoin_header_link(
 
     let target = std::bitcoin::target_mainnet(child);
     let pow_ok = std::math::le_u256(
-        std::bytes::to_u256_le(std::bitcoin::hash_bytes(child_hash)), target
+        std::bytes::to_u256_le(std::bitcoin::hash_bytes(child_hash)), std::bitcoin::target_u256(target)
     );
     assert_eq(pow_ok, splat<1>(1_m31));
 

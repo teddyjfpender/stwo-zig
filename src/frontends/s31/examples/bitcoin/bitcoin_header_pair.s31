@@ -17,8 +17,8 @@ circuit bitcoin_header_pair(
 
     let parent_target = std::bitcoin::target_mainnet(parent);
     let child_target = std::bitcoin::target_mainnet(child);
-    let parent_pow = std::math::le_u256(std::bytes::to_u256_le(parent_hash), parent_target);
-    let child_pow = std::math::le_u256(std::bytes::to_u256_le(child_hash), child_target);
+    let parent_pow = std::math::le_u256(std::bytes::to_u256_le(parent_hash), std::bitcoin::target_u256(parent_target));
+    let child_pow = std::math::le_u256(std::bytes::to_u256_le(child_hash), std::bitcoin::target_u256(child_target));
     assert_eq(parent_pow, splat<1>(1_m31));
     assert_eq(child_pow, splat<1>(1_m31));
 

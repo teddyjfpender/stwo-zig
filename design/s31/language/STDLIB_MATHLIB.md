@@ -2,7 +2,8 @@
 
 Status: compiler-owned `std@1` package with an explicit source pin, static
 math helpers, constrained lane reductions, checked field inversion/division,
-and proved fixed-array views, 2026-10-07. This document distinguishes
+proved fixed-array views, and source-level `Target`, `Work`, and `ChainWork`
+types, 2026-10-07. This document distinguishes
 what is executable today from the work needed for a useful library release.
 The [text language guide](../../../src/frontends/s31/docs/reference/TEXT_LANGUAGE.md) defines the
 implemented syntax; the [MVP roadmap](../MVP_ROADMAP.md) tracks proof-backend work.
@@ -24,7 +25,7 @@ general module loader or user-published package format yet.
 | `std::bool` | `not`, `and`, `or`, `xor`, `select` | Scalar typed bits; input bitness is constrained, and every result follows from Boolean field identities. |
 | `std::bytes` | `to_u256_le`, `from_u256_le`, `limbs_m31` | Explicit nominal byte/integer reinterpretation and value-preserving cast of sixteen `u16` limbs. |
 | `std::hash` | Poseidon2 and BLAKE2s reduced leaf/pair hashes; byte-exact SHA256d of `Bytes80` | Existing pinned hash nodes plus a constrained three-block SHA circuit. |
-| `std::bitcoin` | `target_mainnet(Bytes80)`, `pow_valid(Bytes80)`, `block_work(UInt256)` | Constrained compact `nBits` decoder with mainnet powLimit. `pow_valid` expands to byte-exact SHA256d, little-endian `UInt256` view, target decode, and unsigned comparison. `block_work` lowers to checked 256-bit division with a 512-bit product relation and strict remainder bound. |
+| `std::bitcoin` | `target_mainnet(Bytes80) -> Target`, `pow_valid(Bytes80)`, `block_work(Target) -> Work`, `chainwork_from_work(Work) -> ChainWork`, `accumulate_chainwork(ChainWork, Work) -> ChainWork`, explicit `target_u256`, `work_u256`, `chainwork_u256` views | Constrained compact `nBits` decoder with mainnet powLimit. `pow_valid` expands to byte-exact SHA256d, an explicit little-endian target view, and unsigned comparison. `block_work` lowers to checked 256-bit division with a 512-bit product relation and strict remainder bound; chainwork addition has a constrained final carry. |
 | `std::merkle` | Fixed-depth Poseidon2 and BLAKE2s paths | Hash nodes plus two constrained selects per level. |
 
 All math operations have fixed shapes. Most operate independently on the lanes
@@ -57,7 +58,7 @@ that require a valid header must assert that it equals one.
 The Zig circuit API now has checked unsigned
 `divRemU256(numerator, nonzero_denominator) -> (quotient, remainder)`.
 The source language exposes the complete Bitcoin calculation as
-`std::bitcoin::block_work(t: UInt256) -> UInt256`. For a nonzero target `t`,
+`std::bitcoin::block_work(t: Target) -> Work`. For a nonzero target `t`,
 it computes Core's `floor(2^256 / (t+1))` through proved constraints:
 
 ```text
@@ -69,23 +70,29 @@ work = checked_add_u256(q, 1)
 The [division design and measured circuit geometry](../bitcoin/BITCOIN_WORK_DIVISION.md)
 show the exact byte-column equations and tests. The circuit proves `q*d+r`
 as a 512-bit integer equality, `0 <= r < d`, and `d != 0`; every column is
-bounded below the M31 modulus. The Zig API also has distinct `Target`,
-`Work`, and `ChainWork` wrappers and checked accumulation. These nominal
-types have not yet been added to the S31 source language, and a general
-pair-returning division source operation remains open. A proof-level
-negative corpus and a specialized faster work chip are also open.
+bounded below the M31 modulus. The Zig API and S31 source now distinguish
+`Target`, `Work`, and `ChainWork`. They erase to the same sixteen `u16` limbs
+only after source type checking; a direct nominal input is a claim, not proof
+of origin. The target is constrained to the header when produced by
+`target_mainnet(header)`. `accumulate_chainwork` adds a `Work` to a prior
+`ChainWork` through `u256_add_checked`, so a final carry makes the relation
+unsatisfiable. A general pair-returning division source operation, broader
+adversarial proof corpus, and a specialized faster work chip remain open.
 
-The source math library now supports `sum_u256_checked([work0,work1,...])`
-for a fixed group of 1–16 `UInt256` values. It emits a balanced tree of
-`u256_add_checked` nodes, so accumulating several block-work values costs
-exactly one proved wide addition per extra term and rejects overflow. The
-wrapping `sum_u256` uses `u256_add` nodes at the same positions. The
+The source math library supports `sum_u256_checked([a,b,...])` for a fixed
+group of 1–16 generic `UInt256` values. It emits a balanced tree of
+`u256_add_checked` nodes, so the sum costs one proved wide addition per
+extra term and rejects overflow. A `Work` value requires an explicit
+`work_u256` view before entering this generic helper; use
+`chainwork_from_work` and `accumulate_chainwork` to keep nominal ChainWork
+semantics. The wrapping `sum_u256` uses `u256_add` nodes at the same positions. The
 [checked fixture](../../../src/frontends/s31/examples/wide/u256_sum_checked.s31)
 and [manual chain](../../../src/frontends/s31/examples/wide/u256_sum_checked_manual.s31)
 have structurally identical normalized relations; the
 [wide-value chapter](../../../src/frontends/s31/docs/wide-values.md#adding-several-256-bit-values)
 shows the limb carries. This is source-level accumulation, not a nominal
-`ChainWork` type or a specialized chainwork chip. The
+specialized chainwork chip; source-level `accumulate_chainwork` now provides
+the checked nominal transition. The
 [acceptance record](../measurements/language/u256-static-sum-v1-2026-10-07.json)
 pins three native proofs, checked overflow rejection, same-claim cross-key
 replay rejection, and equal helper/manual row geometry. Its one-run proof
@@ -239,58 +246,50 @@ fell from 1.983 to 1.358 ms (1.46×); whole-process median prove time was
 117 to 111 ms. The transcript-dependent proof-of-work time ranged widely,
 so this short run does not establish a stable end-to-end proving speedup.
 
-## Definition of a useful v1 library
+## Focused library MVP contract
 
-A useful v1 means programs can import a versioned library and build common
-field, vector, boolean/range, hash, and commitment relations while receiving a
-program-bound native verifier. Every helper needs a documented type and field
-semantics, an inspectable lowering, an independent value oracle, and at least
-one positive and negative proof test when it introduces a new constraint shape.
-Library source and compiler version must be bound in the package manifest and
-verification key; resolution may not depend on an unpinned local file at prove
-time. A helper's cost report must expose both its own gates and any table or
-chip it activates.
+The supported package is the compiler-owned `std@1` API listed above.
+`use std@1;` selects it explicitly; packages pin hashes of its implementation
+and the compiler, and native verifiers recheck the sealed key and relation.
+Changing the compiler-owned implementation requires rebuilding a package and
+rerunning its proofs. This is not yet an external-module compatibility promise.
 
-| Work package | Exit gate | Rough effort for one experienced engineer |
-| --- | --- | ---: |
-| General modules and shape-polymorphic pure functions | Extend the current `use std@1` pin to named modules, deterministic external resolution, lockfiles for imported source, and source maps through those calls. | 2–4 weeks |
-| Field/vector core | Runtime fixed-array indexing, concatenation, slicing, and reshape lower through explicit constrained relation nodes. New slices have native acceptance and measured cost regression coverage. Broader vector kernels remain. | Remaining effort depends on kernel scope. |
-| Nonzero inverse and checked division | **Core implemented:** witness generation, `x·inv=1`, zero rejection, direct-gate proof and native-verifier negative cases. Remaining: batch inverse cost comparison and wider random proof corpus. | Remaining effort depends on batching design. |
-| Boolean/range/integer core | Computed bits, comparisons, range constraints and explicit integer/field casts; no host-only assertions or unconstrained hint outputs. | 3–6 weeks |
-| Checked wide division and chainwork | Constrain a 512-bit `q*d+r` identity, nonzero divisor and canonical remainder; derive per-header work and checked accumulation from network-bound targets. | Requires a measured byte-radix circuit or dedicated arithmetic chip. |
-| Library release discipline | API/version policy, corpus of positive and negative proofs, cost regression gates, and audit views from source to AIR polynomial. | 2–3 weeks |
+For this focused MVP, each represented family needs a documented type and
+field meaning, inspectable source-to-relation and equation output, an
+independent value calculation, a native proof, a changed-statement or
+damaged-proof rejection, and a pinned circuit geometry ceiling. A helper that
+introduces a new constraint shape also needs a direct adversarial witness
+case. The [library MVP gate](../../../src/frontends/s31/tests/acceptance/library_mvp_gate.py)
+is the single command for this supported surface. Its default mode includes
+the [one-header ChainWork transition](../../../src/frontends/s31/examples/bitcoin/bitcoin_chainwork_step.s31):
+SHA256d, mainnet target and proof-of-work check, proved block work, checked
+accumulation, and a Poseidon2 commitment to the previous and next work values.
+The previous work is a claimed checkpoint; this program does not prove a
+whole chain from genesis.
 
-These are overlapping work packages, not additive calendar promises. A focused
-field-and-hash library with modules, reductions, and checked inversion is
-roughly **6–10 engineer-weeks** from this prototype. A broader v1 with robust
-integer/boolean primitives and release gates is roughly **10–16 engineer-weeks**.
-Those estimates exclude a dedicated Poseidon2 chip, general private
-circuit-to-chip boundaries, recursion, and a formal soundness review. The
-existing Merkle and hash operations are useful now, but larger hash workloads
-still need the backend efficiency work in the [MVP roadmap](../MVP_ROADMAP.md).
+The package supports useful field, static vector, bit, byte, hash, Merkle,
+and Bitcoin work programs today. The library MVP is a **supported subset**,
+not a general-purpose mathematical package or a production light client.
+The next math-library family is the ten
+[fixed-width unsigned and signed scalar types](FIXED_WIDTH_INTEGERS.md):
+`u8` through `u128` and `i8` through `i128`, with explicit range, cast,
+ordering, and overflow contracts. They are designed but not implemented;
+the current `[u16; N]` limbs and M31 values do not supply those semantics.
+The main additions beyond this bar are:
 
-## Engineering order
-
-1. Extend the existing `std@1` lock to named modules and imported source.
-   The current package key already binds the compiler-owned library source
-   digest; a user module needs the same deterministic resolution.
-2. Extend the proved runtime views with broader vector
-   kernels and cost regression gates for typed runtime slicing/reshape. Retain matched source/JSON
-   programs, independent oracles, native negative proofs, and measured
-   circuit cost for each new constraint shape.
-3. Extend the implemented checked inverse with randomized proof vectors and
-   compare batched inversion with static exponentiation on actual circuit
-   cost. Preserve the direct profile's one-producer lookup invariant and
-   the zero-input rejection constraint.
-4. Extend the implemented `is_zero` computed bit to range/integer gadgets as typed values. Review
-   lookup closure and boundary constraints before exposing comparisons or
-   conditional arithmetic in the standard library.
-5. Promote math kernels into chips only where measured end-to-end proving,
-   verification, memory, and proof size improve. Keep the direct circuit as a
-   correctness oracle and preserve the generated native verifier for each
-   selected profile.
-
-The principal remaining gaps are additional vector kernels, native cost
-regression coverage for runtime slicing, constrained witness hints, and general modules.
-The versioned compiler-owned package and matched math examples establish a
-source-to-AIR audit pattern without changing the proof protocol.
+1. Deterministic named-module imports and a version policy for third-party
+   libraries. The current source-hashed `std@1` lock covers only the
+   compiler-owned package.
+2. Witness-dependent indexing and broader vector kernels, each with measured
+   costs and negative proof cases. Current `get<K>` and slices have static
+   indices and lengths.
+3. The fixed-width integer family above, plus general source-level `UInt256`
+   multiplication and quotient/remainder beyond the special proved
+   `block_work` calculation. A faster wide-arithmetic chip needs a measured
+   crossover and sound private boundary.
+4. Larger independent proof corpora and a formal review of the chip, lookup,
+   and polynomial degree bounds. Native acceptance tests are evidence of
+   implementation behavior, not a complete cryptographic security proof.
+5. Automatic cost-based choice between generic circuits and purpose-built
+   hash/math AIRs. The SHA-specific proof profiles already exist, while the
+   source library's generic lowering remains the correctness baseline.

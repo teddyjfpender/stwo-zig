@@ -61,9 +61,12 @@ made from a sequence of `state .* state` (or `std::math::square(state)`),
 addition of a uniform constant, multiplication by a uniform constant, and
 `std::math::mix4(state)` when the state has four lanes.
 The relation has `1..32768` rounds and
-`1..16` static body steps. The special AIR chip recognizes only four lanes,
-public endpoints, `square` then `add_const`, and power-of-two `R` from 16 to
-32768. Selecting an incompatible chip profile is an error.
+`1..16` static body steps. The special AIR chip recognizes four lanes,
+`square` then `add_const`, and power-of-two `R` from 16 to 32768. The original
+profiles share public endpoints; `direct-chip` also accepts one private
+`m31[4]` first-node repeat whose endpoints are authenticated through the
+[private boundary](private-boundary.md). Selecting an incompatible chip
+profile is an error.
 
 The current library is compiler-owned. An optional `use std@1;` before the
 functions pins its version explicitly; older programs use version 1
@@ -96,7 +99,9 @@ contract and worked polynomial are in [the library chapter](library.md).
 | `std::field::select(bit,a,b)` | `a` if zero, `b` if one; same type/shape. |
 | `std::hash::poseidon2_leaf/pair`, `std::hash::blake2s_leaf/pair` | The [typed hash operations](hashes.md). |
 | `std::hash::sha256d_header(header)` | Fully constrained double SHA-256 of an 80-byte header, returning `Bytes32`. |
-| `std::bitcoin::target_mainnet(header)` | Constrained decoding of header `nBits` into a mainnet-limited `UInt256` target. |
+| `std::bitcoin::target_mainnet(header)` | Constrained decoding of header `nBits` into a mainnet-limited nominal `Target`; use `target_u256` for an explicit integer view. |
+| `std::bitcoin::block_work(target)` | Proved Bitcoin work division from `Target` to nominal `Work`. |
+| `std::bitcoin::accumulate_chainwork(previous, work)` | Checked `ChainWork + Work` with no 256-bit wraparound. |
 | `std::bitcoin::prev_hash(header)` | `Bytes32` view of serialized header bytes 4–35; reuses the forty range-checked input limbs. |
 | `std::bitcoin::header_bits(header)` | `[u16; 2]` view of serialized header bytes 72–75; reuses the input limbs. |
 | `std::bitcoin::header_time(header)` | `[u16; 2]` view of serialized timestamp bytes 68–71; reuses the input limbs. |
