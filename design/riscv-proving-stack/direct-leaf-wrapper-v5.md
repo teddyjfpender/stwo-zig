@@ -158,6 +158,11 @@ verifier-derived public wire-count parameter. The same candidate key covers
 valid 664- and 668-word statements; focused tests reject altered source,
 manifest, geometry, and parameter contracts. This seals one row's contract,
 not the complete Tree0 or a publishable wrapper key.
+The V8 candidate transcript prefix also commits the verifier-derived exact
+statement count and the expected G3S1 words before relation challenges, then
+the challenge-dependent G3S1 claim afterward. The real-leaf diagnostic
+exercises this ordering but still evaluates its relations under a dummy draw;
+the final detached proof must use the resulting Fiat–Shamir draw.
 For the V6 base fixed schedule, rows 15 and 16 are deliberately unqualified.
 Their Tree0 columns include the exact dense input-use multiplicities of the
 native-public-sum arithmetic graph. Section lengths alone do not determine
@@ -178,14 +183,39 @@ rows 11, 18, and 19 have not yet been admitted into the complete template
 key. The row-13/14 writer covers the public authority hash and seal, with
 physical fixed-column parity against the native graph and mutation gates.
 Row 22 rebuilds the core Merkle-root schedule from verifier-owned query,
-tree, and FRI counts; rows 23–32 still require admitted tree-column,
-recursion-plan, FRI-layout, and circuit-graph shape inputs.
+tree, and FRI counts. An isolated rows-23/24 ambiguity test shows why the
+remaining coarse counts are insufficient: two ordered tree-column layouts
+produce different row-23 fixed keys, and two PCS sample-layout orders with
+equal counts produce different row-24 circuit identities. A later template
+must select the ordered per-tree column logs, sample-layout tags and mask logs,
+PCS graph/bindings/use counts, and both complete fixed digests before accepting
+a child. The captured leaf must not choose these verifier-key inputs.
+An isolated proof-inactive V11 row-23 writer now takes caller-selected ordered
+VM/recursion column logs, copies them into owned storage, rebuilds the exact
+trace-Merkle schedule, and hashes every padded fixed cell. Focused tests match
+the native writer cell by cell and distinguish a 20/21 column permutation at
+identical geometry. The real q193 diagnostic now also matches every row-23
+Tree0 cell and pins the observed ordered-layout digest
+`7f2265220644e9bde63d10ef1286b6b4ddf3360186e01b1246b0a0239e8e54e1`.
+This is a fixture guard: the diagnostic obtains the layout from a verified
+capture, so it is not yet an independently selected production key. A separate
+V11 builder now derives ordered Trees 0–2 from the admitted statement, pinned
+lookup manifest and validated bridge geometry; Tree 3 remains an explicit
+verifier-selected parameter. Focused tests compare those outputs with the
+native verifier's column ordering.
+An isolated V11 row-24 writer recompiles the PCS graph from ordered tree
+logs, exact sample-point tags and physical mask logs. Focused tests match all
+native fixed cells and reject a sample-tag permutation with the same aggregate
+sample count. The real q193 Tree0 comparison also matches every row-24 fixed
+cell and its captured PCS circuit identity, now pinned as fixture vector
+`01ffe0f7672b593a694f67bb5855c7b11773bbab76e4b2c9b02e2c25a8287f2e`.
+The diagnostic still reads the PCS profile from the verified capture; a
+production V11 key must select or derive the exact profile before the leaf.
 The verifier-owned FRI leaf and node fixed schedules for rows 25 and 26 now
 have an independent writer. Its complete committed-order columns, including
 padding, match the native witness writer in focused tests and the real q193
 Tree0 source. These rows are qualified as standalone fixed-column sources;
-they are not yet admitted into the complete V7 fixed key. Rows 23–24 and
-27–32 still require more shape authority.
+they are not yet admitted into the complete V7 fixed key.
 An isolated V8 row-28 FRI-control writer now derives its entire padded fixed
 table from verifier-owned VM/recursion plans and CoreProfileV6. Its committed
 cells match the native writer, including padding, in Debug and ReleaseSafe
@@ -199,15 +229,39 @@ admits a physical writer only when its live plans and fixed table match.
 Distinct admitted shapes yield distinct keys; resealed digest and shape
 mutations fail. This does not seal the other missing Tree0 rows.
 On the real q193 leaf, the V8 roster admits the authenticated 784-word
-statement parameter and the V9 row-28 schedule and every committed fixed
-cell match the original Tree0 source. The diagnostic still creates no V9
-proof and does not admit the remaining fixed rows.
+statement parameter. Independent writers for rows 27 and 29 now rebuild the
+complete padded FRI-Merkle anchor and FRI-circuit input fixed columns. The
+real q193 Tree0 comparison checks rows 27, 28, and 29 cell by cell; the
+row-29 comparison caught a mistaken binary-outer circuit-ID namespace, now
+corrected to the direct-leaf IDs 301–303. A proof-inactive V10 template seals
+and admits the exact row-27/29 fixed digests and placements on top of V9's
+row-28 key. This still does not admit the complete 50-row Tree0 or create a
+wrapper proof.
+The proof-inactive V11 candidate extends that key with exact padded row-23
+trace-Merkle and row-24 PCS-DEEP fixed tables. It seals their ordered trace
+layout, PCS sample/mask profile, arithmetic circuit identity, fixed digests,
+and corrected placements. A real q193 diagnostic checks every Tree0 cell of
+both writers against the native source, then admits both writers to a V11 key;
+that profile is still read from a freshly verified capture, not selected by a
+production verifier before the child arrives. The candidate explicitly
+rejects complete preprocessing and proof activation.
 For shared graph-lowering rows 30–32, a separate V8 candidate seals the
 statement, claim, and public-LogUp contribution from verifier-selected
 capacity and schedule. It matches an independently prepared outer source,
-but intentionally does not claim full row fixed IDs: VM, native-public-sum,
-PCS, segment, and binary graph lanes also occupy those physical columns.
-Their complete overlay must be derived under one verifier-owned profile.
+but intentionally does not claim full row fixed IDs. The proposed direct
+segment-transcript wrapper has seven ordered arithmetic lanes: VM AIR,
+statement, claim, public LogUp, PCS, FRI, and VM binary. Its candidate key
+checks that exact lane order and rejects the current q193 SegmentV2 cohort,
+which instead has five lanes including native-public-sum. The direct key
+requires a verifier-selected VM graph pin before accepting the leaf. An
+isolated compiler reconstructs that graph from admitted public statement
+geometry and the lookup manifest. In a real q193 differential, its 14,729-node
+graph, reference, schedule, profile and circuit IDs match the freshly verified
+capture, with the expected IDs pinned as test vectors. The test's statement
+admission callback still obtains those IDs from the producer before proof
+generation; a production verifier key must select them independently before
+the leaf arrives. Neither candidate has been connected to a complete fixed
+Tree0 or a detached wrapper proof.
 A further dormant row-4 profile can export kind and eight split argument limbs
 for instructions with an actual payload row, using that row's existing
 transcript-payload relation. Its coverage audit rejects duplicate origins and

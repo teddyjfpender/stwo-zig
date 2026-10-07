@@ -11,6 +11,7 @@ const outer_cohort = @import("recursive_segment_v2_outer_cohort.zig");
 const M31 = @import("stwo_core").fields.m31.M31;
 
 const recursion = frontend.recursion;
+const fixed_rows = @import("native_v3_strong_chain_fixed_rows.zig");
 const Engine = recursion.engine.ProverEngineForBackend(CpuBackend);
 
 // Independently recorded for this ELF and local V2 projection, as in the
@@ -382,7 +383,17 @@ fn diagnoseDirect50(
         if (v8_wire_parameters[0].toU32() != prepared.capture.public_data.data.words().len or
             v8_plan.placements[36].geometry.log_size != recursion.air.segment_leaf_statement_source_direct_v8.LOG_SIZE)
             return error.V8RealLeafRosterParameterMismatch;
-        std.debug.print("DIRECT50_V8_CANDIDATE_ROSTER row36_wire_count={d} shape_admitted=true proof_created=false\n", .{v8_wire_parameters[0].toU32()});
+        // The public count and G3S1 words must affect the challenge transcript,
+        // even though this diagnostic still uses a dummy relation draw below.
+        const global_statement_expected = recursion.segment_leaf_wrapper_global_statement_boundary_v6.ExpectedPublic{ .words = metadata.base_statement_words };
+        var v8_admission_channel = Engine.Channel{};
+        try v8_plan.mixBeforeRelationDraw(
+            &v8_admission_channel,
+            global_statement_expected,
+            &prepared.capture.public_data.data,
+            &prepared.authority_prepared.source.manifest,
+        );
+        std.debug.print("DIRECT50_V8_CANDIDATE_ROSTER row36_wire_count={d} shape_admitted=true transcript_bound=true proof_created=false\n", .{v8_wire_parameters[0].toU32()});
         const v9_template = try recursion.air.segment_leaf_wrapper_template_v9.TemplateManifestV9.fromVerifierTemplate(
             allocator,
             &v8_template,
@@ -397,9 +408,51 @@ fn diagnoseDirect50(
         );
         defer row28_fixed.deinit();
         try v9_template.admitRow28Writer(allocator, &row28_fixed);
-        try checkV9CoreFriControlFixedParity(allocator, &v9_template, &row28_fixed, &plan, pp);
-        std.debug.print("DIRECT50_V9_FRI_CONTROL_FIXED row28_source_parity=true recursion_plan_admitted=true proof_created=false\n", .{});
-        try checkV7CoreFriFixedParity(allocator, &core_profile, &v7_plan, &plan, pp);
+        try fixed_rows.checkV9CoreFriAnchorFixedParity(allocator, &v9_template, &plan, pp);
+        try fixed_rows.checkV9CoreFriControlFixedParity(allocator, &v9_template, &row28_fixed, &plan, pp);
+        try fixed_rows.checkV9CoreFriInputFixedParity(allocator, &v9_template, &plan, pp);
+        std.debug.print("DIRECT50_V9_FRI_FIXED row27_source_parity=true row28_source_parity=true row29_source_parity=true recursion_plan_admitted=true proof_created=false\n", .{});
+        const v10_template = try recursion.air.segment_leaf_wrapper_template_v10.TemplateManifestV10.fromVerifierTemplate(allocator, &v9_template);
+        var row27_fixed = try recursion.segment_core_fri_row27_fixed_v9.Writer.initFromVerifierTemplate(allocator, &v9_template);
+        defer row27_fixed.deinit();
+        var row29_fixed = try recursion.segment_core_fri_row29_fixed_v9.Writer.initFromVerifierTemplate(allocator, &v9_template);
+        defer row29_fixed.deinit();
+        try v10_template.admitRow27Writer(allocator, &row27_fixed);
+        try v10_template.admitRow29Writer(allocator, &row29_fixed);
+        std.debug.print("DIRECT50_V10_FRI_KEY rows27_29_admitted=true full_preprocessing=false proof_created=false\n", .{});
+        // The captured column layout is diagnostic input here. A separately
+        // selected V11 key must pin it before any proof can use row 23.
+        const row23_expected = recursion.segment_core_trace_row23_fixed_v11.ExpectedLayout{
+            .vm_trees = prepared.captured_fri.column_log_sizes,
+            .recursion_trees = prepared.captured_fri.column_log_sizes,
+        };
+        const row23_layout_hex = std.fmt.bytesToHex(row23_expected.identityDigest(), .lower);
+        if (!std.mem.eql(u8, &row23_layout_hex, "7f2265220644e9bde63d10ef1286b6b4ddf3360186e01b1246b0a0239e8e54e1"))
+            return error.V11RealLeafLayoutPinMismatch;
+        std.debug.print("DIRECT50_V11_ROW23_LAYOUT id={s} source=fixture_pinned_capture_diagnostic\n", .{&row23_layout_hex});
+        try fixed_rows.checkV11TraceMerkleFixedParity(allocator, &v10_template, row23_expected, &plan, pp);
+        std.debug.print("DIRECT50_V11_ROW23_FIXED source_parity=true key_admitted=false proof_created=false\n", .{});
+        const captured_pcs_profile = prepared.captured_fri.pcs_circuit.profile();
+        const row24_expected = recursion.segment_core_pcs_row24_fixed_v11.ExpectedProfile{
+            .ordered_tree_logs = prepared.captured_fri.column_log_sizes,
+            .sample_layouts = captured_pcs_profile.sample_layouts,
+            .mask_log_sizes = captured_pcs_profile.mask_log_sizes,
+        };
+        const row24_circuit_id = try fixed_rows.checkV11PcsInputFixedParity(
+            allocator,
+            &v10_template,
+            row24_expected,
+            prepared.captured_fri.pcs_circuit.view().identity_digest,
+            &plan,
+            pp,
+        );
+        const row24_circuit_hex = std.fmt.bytesToHex(row24_circuit_id, .lower);
+        if (!std.mem.eql(u8, &row24_circuit_hex, "01ffe0f7672b593a694f67bb5855c7b11773bbab76e4b2c9b02e2c25a8287f2e"))
+            return error.V11RealLeafPcsCircuitPinMismatch;
+        std.debug.print("DIRECT50_V11_ROW24_FIXED circuit={s} source_parity=true key_admitted=false proof_created=false\n", .{&row24_circuit_hex});
+        try fixed_rows.checkV11CandidateAdmission(allocator, &v10_template, row24_expected);
+        std.debug.print("DIRECT50_V11_CANDIDATE rows23_24_admitted=true source=captured_diagnostic full_preprocessing=false proof_created=false\n", .{});
+        try fixed_rows.checkV7CoreFriFixedParity(allocator, &core_profile, &v7_plan, &plan, pp);
         std.debug.print("DIRECT50_V7_CORE_FRI_FIXED rows25_26_source_parity=true proof_created=false\n", .{});
         var physical = try recursion.segment_leaf_wrapper_physical_bridge_v7.Writer.init(
             allocator,
@@ -426,11 +479,11 @@ fn diagnoseDirect50(
             native.program.words[10..18],
         );
         defer range_v7.deinit();
-        var v7_pp = try V7ChangedTree.init(allocator, &v7_plan, .preprocessed);
+        var v7_pp = try fixed_rows.V7ChangedTree.init(allocator, &v7_plan, .preprocessed);
         defer v7_pp.deinit();
-        var v7_main = try V7ChangedTree.init(allocator, &v7_plan, .main);
+        var v7_main = try fixed_rows.V7ChangedTree.init(allocator, &v7_plan, .main);
         defer v7_main.deinit();
-        var v7_interaction = try V7ChangedTree.init(allocator, &v7_plan, .interaction);
+        var v7_interaction = try fixed_rows.V7ChangedTree.init(allocator, &v7_plan, .interaction);
         defer v7_interaction.deinit();
         try physical.fillPreprocessed(v7_pp.columns);
         try source39.fillPreprocessed(v7_pp.columns);
@@ -489,12 +542,12 @@ fn diagnoseDirect50(
             &statement_v6,
         );
         defer statement_v8.deinit();
-        const statement_pp = try allocateV8StatementColumns(allocator, recursion.air.segment_leaf_statement_source_direct_v8.PREPROCESSED_COLUMN_COUNT);
-        defer freeV8StatementColumns(allocator, statement_pp);
-        const statement_main = try allocateV8StatementColumns(allocator, recursion.air.segment_leaf_statement_source_direct_v8.PHYSICAL_MAIN_COLUMN_COUNT);
-        defer freeV8StatementColumns(allocator, statement_main);
-        const statement_interaction = try allocateV8StatementColumns(allocator, recursion.air.segment_leaf_statement_source_direct_v8.INTERACTION_COLUMN_COUNT);
-        defer freeV8StatementColumns(allocator, statement_interaction);
+        const statement_pp = try fixed_rows.allocateV8StatementColumns(allocator, recursion.air.segment_leaf_statement_source_direct_v8.PREPROCESSED_COLUMN_COUNT);
+        defer fixed_rows.freeV8StatementColumns(allocator, statement_pp);
+        const statement_main = try fixed_rows.allocateV8StatementColumns(allocator, recursion.air.segment_leaf_statement_source_direct_v8.PHYSICAL_MAIN_COLUMN_COUNT);
+        defer fixed_rows.freeV8StatementColumns(allocator, statement_main);
+        const statement_interaction = try fixed_rows.allocateV8StatementColumns(allocator, recursion.air.segment_leaf_statement_source_direct_v8.INTERACTION_COLUMN_COUNT);
+        defer fixed_rows.freeV8StatementColumns(allocator, statement_interaction);
         try statement_v8.fillPreprocessed(statement_pp);
         try statement_v8.fillMain(statement_main);
         const statement_claim = try statement_v8.fillInteraction(&relations, statement_interaction);
@@ -512,8 +565,8 @@ fn diagnoseDirect50(
             row5_fanout.selected_count, statement_v6.link_uses, statement_v6.local_uses, statement_v6.arithmetic_uses, statement_v6.overlaps,
         });
         // Diagnostic only: production must receive these words as verifier public input.
-        const global_statement_expected = recursion.segment_leaf_wrapper_global_statement_boundary_v6.ExpectedPublic{ .words = metadata.base_statement_words };
         const global_statement_boundary = try recursion.segment_leaf_wrapper_global_statement_boundary_v6.BoundaryV6.derive(global_statement_expected, &relations);
+        try global_statement_boundary.mixClaimAfterRelations(&v8_admission_channel, global_statement_expected, &relations);
         const statement_with_public = statement_adjusted.add(global_statement_boundary.claimed_sum);
         const public_limbs = statement_with_public.toM31Array();
         std.debug.print("DIRECT50_V8_STATEMENT_WITH_PUBLIC domain29_zero={} limbs={d},{d},{d},{d} proof_created=false\n", .{
@@ -785,140 +838,3 @@ fn freeDirectTree(allocator: std.mem.Allocator, columns: [][]M31) void {
     for (columns) |column| allocator.free(column);
     allocator.free(columns);
 }
-
-fn allocateV8StatementColumns(allocator: std.mem.Allocator, count: usize) ![][]M31 {
-    const columns = try allocator.alloc([]M31, count);
-    var written: usize = 0;
-    errdefer {
-        for (columns[0..written]) |column| allocator.free(column);
-        allocator.free(columns);
-    }
-    for (columns) |*column| {
-        column.* = try allocator.alloc(M31, recursion.air.segment_leaf_statement_source_direct_v8.CAPACITY);
-        @memset(column.*, M31.zero());
-        written += 1;
-    }
-    return columns;
-}
-
-fn freeV8StatementColumns(allocator: std.mem.Allocator, columns: [][]M31) void {
-    for (columns) |column| allocator.free(column);
-    allocator.free(columns);
-}
-
-fn checkV9CoreFriControlFixedParity(
-    allocator: std.mem.Allocator,
-    v9_template: *const recursion.air.segment_leaf_wrapper_template_v9.TemplateManifestV9,
-    writer: *const recursion.segment_core_fri_row28_fixed_v8.Writer,
-    old_plan: *const recursion.segment_leaf_wrapper_roster_direct_v5.Plan,
-    old_tree: [][]M31,
-) !void {
-    const old = old_plan.placements[28].?;
-    const current = v9_template.placements[28];
-    if (!std.meta.eql(old.geometry, current.geometry)) return error.V9CoreFriControlFixedGeometryMismatch;
-    const width = current.geometry.preprocessed_columns;
-    const capacity = @as(usize, 1) << @intCast(current.geometry.log_size);
-    const scratch = try allocator.alloc([]M31, width);
-    var initialized: usize = 0;
-    defer {
-        for (scratch[0..initialized]) |column| allocator.free(column);
-        allocator.free(scratch);
-    }
-    for (scratch) |*column| {
-        column.* = try allocator.alloc(M31, capacity);
-        @memset(column.*, M31.zero());
-        initialized += 1;
-    }
-    try writer.writePhysical(current.geometry, scratch);
-    if (old.preprocessed_offset > old_tree.len or width > old_tree.len - old.preprocessed_offset)
-        return error.V9CoreFriControlFixedSourceMismatch;
-    for (scratch, old_tree[old.preprocessed_offset..][0..width]) |expected, actual| {
-        if (actual.len != capacity) return error.V9CoreFriControlFixedSourceMismatch;
-        for (expected, actual) |a, b| if (!a.eql(b)) return error.V9CoreFriControlFixedSourceMismatch;
-    }
-}
-
-fn checkV7CoreFriFixedParity(
-    allocator: std.mem.Allocator,
-    profile: *const recursion.air.segment_leaf_wrapper_template_v6.CoreProfileV6,
-    v7_plan: *const recursion.segment_leaf_wrapper_roster_direct_v7.Plan,
-    old_plan: *const recursion.segment_leaf_wrapper_roster_direct_v5.Plan,
-    old_tree: [][]M31,
-) !void {
-    var writer = try recursion.segment_core_fri_rows25_26_fixed_v7.Writer.init(allocator, profile);
-    defer writer.deinit();
-    for ([_]u8{ 25, 26 }) |row| {
-        const old = old_plan.placements[row].?;
-        const current = v7_plan.placements[row];
-        if (!std.meta.eql(old.geometry, current.geometry)) return error.V7CoreFriFixedGeometryMismatch;
-        const width = current.geometry.preprocessed_columns;
-        const capacity = @as(usize, 1) << @intCast(current.geometry.log_size);
-        const scratch = try allocator.alloc([]M31, width);
-        var initialized: usize = 0;
-        defer {
-            for (scratch[0..initialized]) |column| allocator.free(column);
-            allocator.free(scratch);
-        }
-        for (scratch) |*column| {
-            column.* = try allocator.alloc(M31, capacity);
-            @memset(column.*, M31.zero());
-            initialized += 1;
-        }
-        try writer.writeRow(row, current.geometry, scratch);
-        if (old.preprocessed_offset > old_tree.len or width > old_tree.len - old.preprocessed_offset)
-            return error.V7CoreFriFixedSourceMismatch;
-        for (scratch, old_tree[old.preprocessed_offset..][0..width]) |expected, actual| {
-            if (actual.len != capacity) return error.V7CoreFriFixedSourceMismatch;
-            for (expected, actual) |a, b| if (!a.eql(b)) return error.V7CoreFriFixedSourceMismatch;
-        }
-    }
-}
-
-/// The real-leaf V7 diagnostic materializes only its four changed rows;
-/// the remaining columns stay absent until the complete V7 cohort exists.
-const V7ChangedTree = struct {
-    allocator: std.mem.Allocator,
-    columns: [][]M31,
-    allocations: [4][]M31,
-
-    fn init(allocator: std.mem.Allocator, plan: *const recursion.segment_leaf_wrapper_roster_direct_v7.Plan, comptime kind: enum { preprocessed, main, interaction }) !V7ChangedTree {
-        const count = switch (kind) {
-            .preprocessed => plan.total_preprocessed_columns,
-            .main => plan.total_main_columns,
-            .interaction => plan.total_interaction_columns,
-        };
-        const columns = try allocator.alloc([]M31, count);
-        errdefer allocator.free(columns);
-        @memset(columns, &.{});
-        var allocations: [4][]M31 = undefined;
-        var written: usize = 0;
-        errdefer for (allocations[0..written]) |allocation| allocator.free(allocation);
-        inline for (.{ @as(usize, 5), @as(usize, 35), @as(usize, 39), @as(usize, 42) }, 0..) |row, slot| {
-            const placement = plan.placements[row];
-            const offset = switch (kind) {
-                .preprocessed => placement.preprocessed_offset,
-                .main => placement.main_offset,
-                .interaction => placement.interaction_offset,
-            };
-            const n = switch (kind) {
-                .preprocessed => placement.geometry.preprocessed_columns,
-                .main => placement.geometry.main_columns,
-                .interaction => placement.geometry.interaction_columns,
-            };
-            const size = @as(usize, 1) << @intCast(placement.geometry.log_size);
-            const backing = try allocator.alloc(M31, n * size);
-            @memset(backing, M31.zero());
-            allocations[slot] = backing;
-            written += 1;
-            for (columns[offset..][0..n], 0..) |*column, index|
-                column.* = backing[index * size ..][0..size];
-        }
-        return .{ .allocator = allocator, .columns = columns, .allocations = allocations };
-    }
-
-    fn deinit(self: *V7ChangedTree) void {
-        for (self.allocations) |allocation| self.allocator.free(allocation);
-        self.allocator.free(self.columns);
-        self.* = undefined;
-    }
-};

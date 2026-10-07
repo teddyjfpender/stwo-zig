@@ -158,6 +158,25 @@ pub fn build(b: *std.Build) void {
     });
     b.step("test-segment-v3-strong-chain", "Freshly verify pinned q193 native and strong q193 local outer proofs for one real V3 leaf")
         .dependOn(&b.addRunArtifact(v3_strong_chain_tests).step);
+    const v8_vm_pin_root = b.createModule(.{
+        .root_source_file = b.path("v8_q193_vm_pin_parity_test.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    v8_vm_pin_root.addImport("stwo_core", core);
+    v8_vm_pin_root.addImport("stwo_prover_engine", prover);
+    v8_vm_pin_root.addImport("stwo_prover_api", prover_api);
+    v8_vm_pin_root.addImport("stwo_cpu_backend", cpu_backend);
+    v8_vm_pin_root.addImport("stwo_riscv_frontend", frontend);
+    v8_vm_pin_root.addImport("interop_postcard", postcard);
+    const v8_vm_pin_tests = b.addTest(.{
+        .root_module = v8_vm_pin_root,
+        .filters = &.{"diagnostic real q193 VM AIR graph matches pre-proof statement compiler"},
+    });
+    b.step("check-v8-vm-preleaf-real", "Compile the pinned q193 VM graph differential without proving")
+        .dependOn(&v8_vm_pin_tests.step);
+    b.step("test-v8-vm-preleaf-real", "Compare pre-proof VM graph key with a freshly verified q193 capture")
+        .dependOn(&b.addRunArtifact(v8_vm_pin_tests).step);
     const v3_rows_root = b.createModule(.{
         .root_source_file = b.path("../../frontends/riscv/segment_leaf_wrapper_source_projection_v3_test_root.zig"),
         .target = target,
@@ -261,10 +280,16 @@ pub fn build(b: *std.Build) void {
         .dependOn(&b.addRunArtifact(v8_public_graph_tests).step);
     const v8_public_lowering_tests = b.addTest(.{
         .root_module = v3_rows_root,
-        .filters = &.{"V8 public graph key and lowering", "V8 statement and public graphs"},
+        .filters = &.{ "V8 public graph key and lowering", "V8 statement and public graphs" },
     });
     b.step("test-v8-public-graph-lowering", "Check exact public graph lowering contribution and source parity")
         .dependOn(&b.addRunArtifact(v8_public_lowering_tests).step);
+    const v8_full_lowering_tests = b.addTest(.{
+        .root_module = v3_rows_root,
+        .filters = &.{"V8 complete lowering key"},
+    });
+    b.step("test-v8-full-lowering-fixed", "Check conditional seven-lane graph key and fail-closed VM pin")
+        .dependOn(&b.addRunArtifact(v8_full_lowering_tests).step);
     const v8_fri_control_tests = b.addTest(.{
         .root_module = v3_rows_root,
         .filters = &.{"V8 row28 fixed writer"},
@@ -277,6 +302,39 @@ pub fn build(b: *std.Build) void {
     });
     b.step("test-v9-candidate-template", "Check recursion-plan and complete row28 fixed-column admission")
         .dependOn(&b.addRunArtifact(v9_template_tests).step);
+    const v10_template_tests = b.addTest(.{
+        .root_module = v3_rows_root,
+        .filters = &.{"V10 candidate"},
+    });
+    b.step("test-v10-candidate-template", "Check exact FRI rows 27 and 29 fixed-key admission")
+        .dependOn(&b.addRunArtifact(v10_template_tests).step);
+    const v10_authority_gap_tests = b.addTest(.{
+        .root_module = v3_rows_root,
+        .filters = &.{ "row23 has distinct", "row24 PCS sample-point" },
+    });
+    b.step("test-v10-authority-gap", "Reject coarse geometry as row23/24 fixed-key authority")
+        .dependOn(&b.addRunArtifact(v10_authority_gap_tests).step);
+    const v11_row23_tests = b.addTest(.{ .root_module = v3_rows_root, .filters = &.{"V11 row23"} });
+    b.step("test-v11-row23-fixed", "Check verifier-selected ordered row23 columns and mutation rejection")
+        .dependOn(&b.addRunArtifact(v11_row23_tests).step);
+    const v11_layout_tests = b.addTest(.{ .root_module = v3_rows_root, .filters = &.{"V11 statement-derived"} });
+    b.step("test-v11-layout", "Derive ordered fixed-column geometry from admitted statement")
+        .dependOn(&b.addRunArtifact(v11_layout_tests).step);
+    const v11_row24_tests = b.addTest(.{ .root_module = v3_rows_root, .filters = &.{ "V11 row24", "V11 candidate" } });
+    b.step("test-v11-row24-fixed", "Check PCS row24 fixed cells and exact V11 key admission")
+        .dependOn(&b.addRunArtifact(v11_row24_tests).step);
+    const v9_fri_anchor_tests = b.addTest(.{
+        .root_module = v3_rows_root,
+        .filters = &.{"V9 row27"},
+    });
+    b.step("test-v9-fri-anchor-fixed", "Check verifier-owned FRI anchor row27 fixed columns and mutation rejection")
+        .dependOn(&b.addRunArtifact(v9_fri_anchor_tests).step);
+    const v9_fri_input_tests = b.addTest(.{
+        .root_module = v3_rows_root,
+        .filters = &.{"V9 row29"},
+    });
+    b.step("test-v9-fri-input-fixed", "Check verifier-owned FRI input row29 fixed columns and mutation rejection")
+        .dependOn(&b.addRunArtifact(v9_fri_input_tests).step);
     const v7_source_physical_tests = b.addTest(.{
         .root_module = v3_rows_root,
         .filters = &.{"V7 row39 physical source uses corrected AIR"},

@@ -132,6 +132,8 @@ pub const segment_leaf_wrapper_template_v6 = @import("segment_leaf_wrapper_templ
 pub const segment_leaf_wrapper_template_v7 = @import("segment_leaf_wrapper_template_v7.zig");
 pub const segment_leaf_wrapper_template_v8 = @import("segment_leaf_wrapper_template_v8.zig");
 pub const segment_leaf_wrapper_template_v9 = @import("segment_leaf_wrapper_template_v9.zig");
+pub const segment_leaf_wrapper_template_v10 = @import("segment_leaf_wrapper_template_v10.zig");
+pub const segment_leaf_wrapper_template_v11 = @import("segment_leaf_wrapper_template_v11.zig");
 pub const segment_publication_input_provider_component_v2 =
     @import("segment_publication_input_provider_component_v2.zig");
 pub const segment_publication_input_provider_v2 =

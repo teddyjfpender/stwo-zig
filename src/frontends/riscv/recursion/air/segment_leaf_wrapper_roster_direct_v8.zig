@@ -8,11 +8,14 @@ const std = @import("std");
 const template_mod = @import("segment_leaf_wrapper_template_v8.zig");
 const statement_air = @import("segment_leaf_statement_source_direct_v8.zig");
 const global_statement = @import("../segment_leaf_wrapper_global_statement_boundary_v6.zig");
+const public_data = @import("../../air/public_data_v2.zig");
+const statement_contract = @import("../segment_leaf_statement_contract_v2.zig");
 
 pub const FORMAT_VERSION: u16 = 8;
 pub const COMPONENT_COUNT = template_mod.COMPONENT_COUNT;
 pub const DOMAIN = "stwo-zig/riscv-direct-leaf-wrapper-roster/v8\x00";
 pub const TRANSCRIPT_DOMAIN: u32 = 0x5256_3857; // RV8W
+pub const PARAMETER_TRANSCRIPT_DOMAIN: u32 = 0x5256_3850; // RV8P
 pub const PRODUCTION_PROOF_ACTIVATION = false;
 pub const Placement = template_mod.Placement;
 
@@ -44,13 +47,21 @@ pub const Plan = struct {
 
     /// This cannot be used as a production transcript until complete fixed
     /// preprocessing and a detached proof/verifier are independently admitted.
-    pub fn mixBeforeRelationDraw(self: *const Plan, channel: anytype, expected: global_statement.ExpectedPublic) !void {
+    pub fn mixBeforeRelationDraw(
+        self: *const Plan,
+        channel: anytype,
+        expected: global_statement.ExpectedPublic,
+        native_public: *const public_data.PublicDataV2,
+        admitted_manifest: *const statement_contract.ManifestV2,
+    ) !void {
         try self.validate();
+        const parameters = try self.template.admitWireParameter(native_public, admitted_manifest);
         channel.mixU32s(&.{ TRANSCRIPT_DOMAIN, FORMAT_VERSION, COMPONENT_COUNT, self.total_preprocessed_columns, self.total_main_columns, self.total_interaction_columns, self.total_constraints });
         var words: [8]u32 = undefined;
         for (&words, 0..) |*word, index|
             word.* = std.mem.readInt(u32, self.seal[index * 4 ..][0..4], .little);
         channel.mixU32s(&words);
+        mixWireParameter(channel, parameters[0].toU32());
         expected.mixBeforeRelations(channel);
     }
 
@@ -98,6 +109,10 @@ pub const Plan = struct {
         return hash.finalResult();
     }
 };
+
+fn mixWireParameter(channel: anytype, word_count: u32) void {
+    channel.mixU32s(&.{ PARAMETER_TRANSCRIPT_DOMAIN, FORMAT_VERSION, word_count });
+}
 
 fn hashInt(hash: *std.crypto.hash.sha2.Sha256, comptime T: type, value: T) void {
     var bytes: [@sizeOf(T)]u8 = undefined;
@@ -149,4 +164,13 @@ test "V8 candidate roster binds row36 fixed key and public contract" {
     plan.placements[36].geometry.main_columns += 1;
     plan.seal = plan.computeSeal();
     try std.testing.expectError(error.InvalidDirectV8WrapperRoster, plan.validate());
+}
+
+test "V8 candidate roster transcript binds exact statement word count" {
+    const Channel = @import("../poseidon2_channel.zig").Channel;
+    var first = Channel{};
+    mixWireParameter(&first, 664);
+    var second = Channel{};
+    mixWireParameter(&second, 668);
+    try std.testing.expect(!std.meta.eql(first.drawU32s(), second.drawU32s()));
 }
