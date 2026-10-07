@@ -143,6 +143,48 @@ test "channel: pow accepts exactly the valid nonce and bit count" {
 /// The core `Blake2sM31Channel` of the circuit proofs' channel profile.
 const HostChannel = core.vcs_lifted.channel_profile.proving_5a7c5ed.Blake2sM31MerkleChannel.Channel;
 
+test "channel: PoW checks reduced M31 digest words like the native verifier" {
+    const digest = [2]QM31{
+        qm31(968886948, 725376924, 836084817, 484428276),
+        qm31(1805658819, 300032261, 172116750, 994058243),
+    };
+    var digest_bytes: [32]u8 = undefined;
+    for (digest, 0..) |felt, half| {
+        for (felt.toM31Array(), 0..) |word, i|
+            std.mem.writeInt(u32, digest_bytes[(half * 4 + i) * 4 ..][0..4], word.v, .little);
+    }
+    var host = HostChannel{};
+    host.updateDigest(digest_bytes);
+    const pow_bits: u32 = 10;
+    const prefix = host.computePowPrefix(pow_bits);
+
+    // The first raw BLAKE2s word crosses the M31 modulus in both cases.
+    // Nonce 2392 is valid only after the mandated M31 reduction; nonce 866
+    // has ten zero raw bits but becomes invalid after that reduction.
+    for ([_]struct { nonce: u64, accepted: bool }{
+        .{ .nonce = 2392, .accepted = true },
+        .{ .nonce = 866, .accepted = false },
+    }) |case| {
+        var message: [40]u8 = undefined;
+        @memcpy(message[0..32], &prefix);
+        std.mem.writeInt(u64, message[32..40], case.nonce, .little);
+        var raw_hash: [32]u8 = undefined;
+        std.crypto.hash.blake2.Blake2s256.hash(&message, &raw_hash, .{});
+        const raw_first = std.mem.readInt(u32, raw_hash[0..4], .little);
+        try std.testing.expect(raw_first >= core.fields.m31.Modulus);
+        const raw_accepts = (raw_first & ((@as(u32, 1) << pow_bits) - 1)) == 0;
+        try std.testing.expectEqual(!case.accepted, raw_accepts);
+        try std.testing.expectEqual(case.accepted, host.verifyPowNonce(pow_bits, case.nonce));
+
+        var ctx = try Context.init(std.testing.allocator, 0);
+        defer ctx.deinit();
+        var circuit_channel = try fromDigest(&ctx, digest);
+        const nonce = try ctx.newVar(qm31(@intCast(case.nonce), 0, 0, 0));
+        try circuit_channel.pow(QM31, &ctx, pow_bits, nonce);
+        try std.testing.expectEqual(case.accepted, try ctx.isCircuitValid());
+    }
+}
+
 fn expectHostDigest(ctx: *const Context, channel: Channel, host: HostChannel) !void {
     const expected = builder.blake.reducedHashValueFromDigest(host.digestBytes());
     try expectValue(ctx, channel.digest.low, expected.low);

@@ -45,6 +45,14 @@ constraints. The value-bearing gate graph must match the witness-free graph
 before and after padding, and the generated proof is natively checked before
 being returned.
 
+The child transcript uses the M31-output BLAKE2s channel. Its proof-of-work
+predicate checks low bits **after reducing each 32-bit digest word modulo
+M31**. The [channel regression](../../src/frontends/circuit/stark_verifier/channel_test.zig)
+uses two nonces whose raw first digest word exceeds the modulus: one passes
+only after reduction and the other passes only before it. The in-circuit
+predicate and native verifier agree on both. A raw-digest PoW check would
+silently change the protocol.
+
 The state fold adds a separately constrained source-defined transition
 between predecessor and current state. Its initial/current state is also
 included in the public fold digest. Extracting the shared counter left the
