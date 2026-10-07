@@ -152,6 +152,9 @@ wrapper as its base; repeated fold proofs use the same sealed key.
 `fold-advance` runs several steps in one process, reusing the sealed
 preprocessed circuit and commitment while checking each child proof and
 each value-bearing gate topology. Checkpoints support resume.
+`audit-fold-chain` natively verifies a saved checkpoint sequence from step
+zero and checks its public claim continuity. `audit-state-fold-chain` also
+replays each sealed four-lane M31 transition. Both accept `--max-step`.
 `inspect_recursive_claim.py PACKAGE TOP-PROOF` verifies the top proof and
 prints its complete public digest/key chain as JSON for review.
 The [state-fold chapter](docs/state-fold.md) extracts a typed four-lane

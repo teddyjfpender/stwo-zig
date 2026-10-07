@@ -47,7 +47,7 @@ def main() -> None:
     with tempfile.TemporaryDirectory(prefix="s31-state-fold-") as temporary:
         work = Path(temporary)
         package = args.package.resolve() if args.package else s31.package_for(SOURCE)
-        s31.verify_package(package)
+        manifest = s31.verify_package(package)
         key = package / "state-fold-verification-key.json"
         sealed = json.loads(key.read_text())
         if sealed["schema"] != "s31-state-fold-verification-key-v3" or sealed["counter_bits"] != 32:
@@ -91,6 +91,14 @@ def main() -> None:
                 str(folds[step - 1]))
             run("python3", str(HERE / "s31.py"), "state-fold-next", str(package),
                 str(folds[step - 1]), str(folds[step]))
+        chain_audit = s31.audit_fold_chain(package, manifest, folds, True, 3)
+        if chain_audit["proofs_verified"] != 4 or chain_audit["top_step"] != 3:
+            raise AssertionError("state-fold checkpoint audit did not cover the chain")
+        try:
+            s31.audit_fold_chain(package, manifest, folds[1:], True, None)
+            raise AssertionError("state-fold checkpoint audit accepted a missing base")
+        except ValueError:
+            pass
         root = sealed["fold_preprocessed_root"]
         original = statement(first)
         expected = original["child_public_words"][4:8]

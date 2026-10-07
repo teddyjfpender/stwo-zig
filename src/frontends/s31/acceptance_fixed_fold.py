@@ -107,6 +107,14 @@ def main() -> None:
                              str(folds[step - 1]))
             if "valid=true rejected=24" not in next_audit:
                 raise AssertionError(next_audit)
+        chain_audit = s31.audit_fold_chain(package, manifest, folds, False, 3)
+        if chain_audit["proofs_verified"] != 4 or chain_audit["top_step"] != 3:
+            raise AssertionError("fixed-fold checkpoint audit did not cover the chain")
+        try:
+            s31.audit_fold_chain(package, manifest, folds[1:], False, None)
+            raise AssertionError("fixed-fold checkpoint audit accepted a missing base")
+        except ValueError:
+            pass
         root = json.loads(fold_key.read_text())["fold_preprocessed_root"]
         first_statement = statement(first)
         # The discarded v1 preimage aliased (root, step) with

@@ -155,6 +155,8 @@ python3 src/frontends/s31/s31.py fold-next zig-out/s31/arith4-fold \
   zig-out/s31/fold0.proof zig-out/s31/fold1.proof
 python3 src/frontends/s31/s31.py verify-fold zig-out/s31/arith4-fold \
   zig-out/s31/fold1.proof --max-step 1
+python3 src/frontends/s31/s31.py audit-fold-chain zig-out/s31/arith4-fold \
+  zig-out/s31/fold0.proof zig-out/s31/fold1.proof --max-step 1
 python3 src/frontends/s31/s31.py inspect-fold zig-out/s31/arith4-fold \
   --step 65536
 python3 src/frontends/s31/acceptance_fixed_fold.py
@@ -178,6 +180,12 @@ byte against separate proof commands.
 The [claim inspector](../inspect_recursive_claim.py) verifies a saved top
 proof and prints the exact sealed key hashes, original leaf words, base
 digest, counter, and previous/current public fold digests as JSON.
+`audit-fold-chain PACKAGE FOLD0 ... FOLDN` is a development audit for saved
+checkpoints. It natively verifies every supplied proof, requires contiguous
+steps starting at zero, and checks that the leaf claim, base digest, key and
+AIR identity stay fixed. Its `--max-step` is the same local depth policy as
+`verify-fold`. The top proof alone remains sufficient for native
+verification; a checkpoint audit makes the intermediate artifacts inspectable.
 `inspect-fold PACKAGE` rebuilds the fold topology from the sealed keys and
 prints its raw rows, padded rows, available headroom, and cumulative
 `verifier_stages` as JSON. Subtract adjacent stage counts to see which

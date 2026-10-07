@@ -1,0 +1,30 @@
+{
+  "schema": "s31-fold-checkpoint-audit-acceptance-v1",
+  "fixed_gate": {
+    "proofs_verified": 4,
+    "top_step": 3,
+    "missing_base_rejected": true,
+    "native_verification_per_checkpoint": true
+  },
+  "state_gate": {
+    "proofs_verified": 4,
+    "top_step": 3,
+    "source_step_replayed_in_m31": true,
+    "missing_base_rejected": true,
+    "native_verification_per_checkpoint": true
+  },
+  "fixed_sparse_wide": {
+    "proofs_verified": 3,
+    "top_step": 2,
+    "native_verification_per_checkpoint": true
+  },
+  "direct_cli": {
+    "fixed_gate_top_step": 1,
+    "state_gate_top_step": 1,
+    "state_gate_current_state": [1771435623, 294854840, 521360168, 252467169],
+    "missing_base_rejected": true,
+    "max_step_zero_rejected_step_one": true
+  },
+  "top_proof_remains_independently_verifiable": true,
+  "security_scope": "Developer artifact audit; no additional cryptographic soundness claim"
+}

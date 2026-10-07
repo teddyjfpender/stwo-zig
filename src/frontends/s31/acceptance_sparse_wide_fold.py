@@ -80,6 +80,9 @@ def main() -> None:
             raise AssertionError(next_audit)
         _, fold1_seconds = call(*cli, "fold-next", str(package), str(folds[0]), str(folds[1]), "--low-memory")
         _, fold2_seconds = call(*cli, "fold-next", str(package), str(folds[1]), str(folds[2]), "--low-memory")
+        chain_audit = s31.audit_fold_chain(package, manifest, folds, False, 2)
+        if chain_audit["proofs_verified"] != 3 or chain_audit["top_step"] != 2:
+            raise AssertionError("wide-fold checkpoint audit did not cover the chain")
         _, verify_seconds = call(*cli, "verify-fold", str(package), str(folds[2]))
         call(*cli, "verify-fold", str(package), str(folds[2]), "--max-step", "2")
         capped, _ = call(*cli, "verify-fold", str(package), str(folds[2]),

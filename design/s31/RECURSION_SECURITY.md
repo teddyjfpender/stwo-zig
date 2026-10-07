@@ -129,6 +129,16 @@ preserves the protocol's full `u32` counter range. The
 [policy acceptance record](measurements/fold-depth-policy-2026-10-07.json)
 covers gate fixed, gate state and sparse-wide fixed folds.
 
+The optional `audit-fold-chain` and `audit-state-fold-chain` commands inspect
+saved checkpoints starting at step zero. They run the sealed native verifier
+on every proof, require contiguous counters and unchanged public leaf/base
+claims and key identity, and, for the state fold, independently replay each
+sealed four-lane source transition over M31. They reject a missing base
+checkpoint or a caller-supplied depth cap below the top step. This is an
+artifact and implementation audit; it does not improve the top proof's
+cryptographic soundness bound. The [checkpoint audit record](measurements/fold-checkpoint-audit-2026-10-07.json)
+covers gate fixed, gate state and sparse-wide fixed chains.
+
 ## Evidence and limits
 
 | Boundary | Evidence in this repository | Remaining obligation |
