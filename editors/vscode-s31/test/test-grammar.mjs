@@ -54,6 +54,8 @@ expectScope('let x = std::math::add_u256(a, b);', 'math', 'support.namespace.s31
 expectScope('let x = std::math::add_u256(a, b);', 'add_u256', 'support.function.builtin.s31');
 expectScope('let x = splat<4>(7_m31);', '7_m31', 'constant.numeric.field.m31.s31');
 expectScope('v .* v + splat<4>(7_m31)', '.*', 'keyword.operator.arithmetic.s31');
+expectScope('a - -b', '-', 'keyword.operator.arithmetic.s31');
+expectScope('fn step(v: [m31; 4]) -> [m31; 4] {', '->', 'keyword.operator.return.s31');
 expectScope('assert_eq(a, b);', 'assert_eq', 'keyword.other.assertion.s31');
 expectScope('// private is only a comment', '// private is only a comment', 'comment.line.double-slash.s31');
 

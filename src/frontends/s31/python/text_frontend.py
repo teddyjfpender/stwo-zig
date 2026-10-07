@@ -24,8 +24,11 @@ from s31_stdlib import Builder, StaticGroup, StepState, Type, TypeErrorS31, Valu
 TOKEN_RE = re.compile(
     r"(?P<space>\s+)|(?P<comment>//[^\n]*)|(?P<field>[0-9]+_m31\b)|"
     r"(?P<number>[0-9]+)|(?P<ident>[A-Za-z_][A-Za-z_0-9]*)|"
-    r"(?P<symbol>->|::|\.\*|==|[\[\]{}();,:<>+=*@])"
+    r"(?P<symbol>->|::|\.\*|==|[\[\]{}();,:<>+\-=*@])"
 )
+# Binary operator binding power; unary minus binds tighter than all of them.
+BINARY_POWER = {"+": 10, "-": 10, ".*": 20}
+UNARY_POWER = 30
 MAX_TOKENS = 100_000
 MAX_CALL_DEPTH = 32
 BUILTINS = {
@@ -298,7 +301,15 @@ class Parser:
 
     def expression(self, min_power: int = 0) -> Expr:
         token = self.peek()
-        if self.accept("("):
+        if self.accept("-"):
+            operand = self.peek()
+            if operand.kind == "field" and int(operand.text[:-4]) < P:
+                # Fold a negated canonical literal so `splat<N>(-7_m31)` works.
+                self.at += 1
+                lhs = Expr("field", f"{-int(operand.text[:-4]) % P}_m31", (), token)
+            else:
+                lhs = Expr("call", "std::math::neg", (self.expression(UNARY_POWER),), token)
+        elif self.accept("("):
             lhs = self.expression()
             self.expect(")")
         elif self.accept("["):
@@ -339,12 +350,16 @@ class Parser:
             raise self.error(f"expected expression, found {token.text!r}")
         while True:
             operator = self.peek()
-            power = {"+": 10, ".*": 20}.get(operator.text)
+            power = BINARY_POWER.get(operator.text)
             if power is None or power < min_power:
                 break
             self.at += 1
             rhs = self.expression(power + 1)
-            lhs = Expr("binary", operator.text, (lhs, rhs), operator)
+            if operator.text == "-":
+                # Same lowering, types and errors as the library call.
+                lhs = Expr("call", "std::math::sub", (lhs, rhs), operator)
+            else:
+                lhs = Expr("binary", operator.text, (lhs, rhs), operator)
         return lhs
 
     def parse(self) -> tuple[dict[str, Function], Circuit]:
