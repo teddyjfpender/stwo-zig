@@ -1,6 +1,6 @@
-//! Committed-column inventory of S31FCF01. It deliberately does not offer a
-//! proof transport config: SHA state/schedule columns have five shifted OODS
-//! openings, which the current recursion wire format cannot represent.
+//! Verifier-owned committed-column and OODS-mask inventory of S31FCF01.
+//! Transport of the five shifted SHA openings is supported; the recursive
+//! statement and SHA constraint evaluator are still separate work.
 const std = @import("std");
 const core = @import("stwo_core");
 const circuit = @import("stwo_circuit_frontend");
@@ -15,9 +15,8 @@ const feed_bus = @import("sha_feed_direct_word_logup.zig");
 const ComponentShape = core.circuit_proof_shape.ComponentShape;
 const circuit_shapes = circuit.statements.circuit_statement.circuit_component_shapes;
 
-/// The joined native proof has shifted OODS openings that the recursive wire
-/// format does not encode. Do not construct a recursion verifier from this
-/// committed-column inventory alone.
+/// A complete in-circuit joined SHA verifier is not present yet. This flag
+/// deliberately stays false even though the proof bytes now transport.
 pub const supports_recursive_proof_transport = false;
 
 /// The committed interaction tree has no columns for trace-only SHA
@@ -39,6 +38,36 @@ pub fn fusedMainOffset() usize {
     return profile.main_width + caller.main_width;
 }
 
+pub const state_offsets = [_]i8{ -3, -2, -1, 0, 1 };
+pub const word_offsets = [_]i8{ -16, -15, -7, -2, 0 };
+
+/// Fused round mask order from `sha_fused_air.Component.maskPoints`:
+/// state limbs 0..63, schedule limbs 76..107, then singleton columns.
+pub const trace_mask_offsets = blk: {
+    var masks: [profile.main_width + caller.main_width + fused.main_width + 3 * feed.main_width][]const i8 = undefined;
+    for (&masks) |*entry| entry.* = &.{0};
+    const start = fusedMainOffset();
+    for (0..64) |i| masks[start + i] = &state_offsets;
+    for (0..32) |i| masks[start + 76 + i] = &word_offsets;
+    break :blk masks;
+};
+
+/// The transport shape is derived from an independently admitted joined
+/// proof key. Proof bytes cannot choose the column masks or FRI parameters.
+pub fn proofShape(key: profile.Key) !core.circuit_proof_shape.ProofShape {
+    try key.validate();
+    const shape: core.circuit_proof_shape.ProofShape = .{
+        .n_preprocessed_columns = profile.debugWidths()[0],
+        .component_shapes = &component_shapes,
+        .log_trace_size = key.pcs.trace_lifting_log_size - key.pcs.fri_config.log_blowup_factor,
+        .fri = key.pcs.fri_config,
+        .composition_log_split = 2,
+        .trace_mask_offsets = &trace_mask_offsets,
+    };
+    try shape.validate();
+    return shape;
+}
+
 test "joined SHA committed-column inventory has 21 components and split-two composition" {
     try std.testing.expect(!supports_recursive_proof_transport);
     const layout = try profile.pp.ColumnLayout.fromComponentSizes(.{
@@ -49,14 +78,14 @@ test "joined SHA committed-column inventory has 21 components and split-two comp
         .blake_g_gate = 2097152,
     });
     const fri = try core.pcs.config_v2.FriConfigV2.init(26, 0, 1, 70, 1);
-    // ProofShape models committed widths here only. Its byte count assumes
-    // one OODS point per main column and is not the S31FCF01 wire length.
+    // A transport shape includes all five shifted state/schedule openings.
     const shape: core.circuit_proof_shape.ProofShape = .{
         .n_preprocessed_columns = profile.debugWidths()[0],
         .component_shapes = &component_shapes,
         .log_trace_size = layout.traceLogSize(),
         .fri = fri,
         .composition_log_split = 2,
+        .trace_mask_offsets = &trace_mask_offsets,
     };
     try shape.validate();
     try std.testing.expectEqual(@as(usize, 21), shape.nComponents());
@@ -66,4 +95,7 @@ test "joined SHA committed-column inventory has 21 components and split-two comp
     const trees = shape.nColumnsPerTrace();
     try std.testing.expectEqualSlices(usize, &.{ widths[0], widths[1], widths[2], 16 }, &trees);
     try std.testing.expectEqual(profile.main_width + caller.main_width, fusedMainOffset());
+    try std.testing.expectEqual(trees[1] + 4 * (64 + 32), shape.nTraceOodsValues());
+    try std.testing.expectEqualSlices(i8, &state_offsets, shape.columnMaskOffsets(1, fusedMainOffset()));
+    try std.testing.expectEqualSlices(i8, &word_offsets, shape.columnMaskOffsets(1, fusedMainOffset() + 76));
 }

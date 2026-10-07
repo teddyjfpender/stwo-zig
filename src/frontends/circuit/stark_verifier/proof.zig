@@ -55,6 +55,8 @@ pub const ProofConfig = struct {
     log_trace_size: usize,
     fri: FriConfigV2,
     composition_log_split: u32,
+    /// Verifier-owned main-tree mask, or the legacy singleton mask.
+    trace_mask_offsets: ?[]const []const i8 = null,
 
     /// `ProofConfig::new`. Copies `component_shapes`; free with `deinit`.
     pub fn init(
@@ -102,6 +104,7 @@ pub const ProofConfig = struct {
             .log_trace_size = log_trace_size,
             .fri = pcs_config.fri_config,
             .composition_log_split = 1,
+            .trace_mask_offsets = null,
         };
     }
 
@@ -141,6 +144,7 @@ pub const ProofConfig = struct {
             .log_trace_size = @intCast(self.log_trace_size),
             .fri = self.fri,
             .composition_log_split = self.composition_log_split,
+            .trace_mask_offsets = self.trace_mask_offsets,
         };
     }
 
@@ -262,7 +266,7 @@ pub fn Proof(comptime T: type) type {
             const n_queries = config.nQueries();
             try expectLen(self.claimed_sums.len, config.nComponents());
             try expectLen(self.preprocessed_columns_at_oods.len, config.n_preprocessed_columns);
-            try expectLen(self.trace_at_oods.len, config.n_trace_columns);
+            try expectLen(self.trace_at_oods.len, config.shape().nTraceOodsValues());
             try expectLen(self.interaction_at_oods.len, config.n_interaction_columns);
             try expectLen(self.composition_eval_at_oods.len, config.shape().nCompositionColumns());
             for (self.interaction_at_oods, config.cumulative_sum_columns) |column, is_cumulative_sum| {
@@ -334,7 +338,7 @@ pub fn emptyProof(allocator: std.mem.Allocator, config: ProofConfig) std.mem.All
         .composition_polynomial_root = undefined,
         .claimed_sums = try allocator.alloc(NoValue, config.nComponents()),
         .preprocessed_columns_at_oods = try allocator.alloc(NoValue, config.n_preprocessed_columns),
-        .trace_at_oods = try allocator.alloc(NoValue, config.n_trace_columns),
+        .trace_at_oods = try allocator.alloc(NoValue, config.shape().nTraceOodsValues()),
         .interaction_at_oods = interaction,
         .composition_eval_at_oods = try allocator.alloc(NoValue, config.shape().nCompositionColumns()),
         .eval_domain_samples = .{ .n_queries = n_queries, .data = samples },

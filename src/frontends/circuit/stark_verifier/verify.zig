@@ -165,6 +165,12 @@ pub fn verify(
     stages: anytype,
 ) !void {
     try proof.validateStructure(config);
+    // The generic circuit statement consumes one main-trace value per
+    // column. The transport and quotient replay can carry extra openings,
+    // but accepting one here before a joined SHA evaluator exists would
+    // silently omit its transition constraints.
+    if (config.shape().nTraceOodsValues() != config.n_trace_columns)
+        return error.MaskedTraceRequiresConstraintEvaluator;
     // The largest canonical coset, and so evaluation domain, is 2^30.
     if (config.logEvaluationDomainSize() > 30) return error.EvaluationDomainTooLarge;
     const log_trace_size = config.log_trace_size;

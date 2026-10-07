@@ -182,7 +182,7 @@ fn fromProofMaterial(
         .composition_polynomial_root = stark.commitments.items[3],
         .claimed_sums = claimed_sums,
         .preprocessed_columns_at_oods = try singleRow(a, stark.sampled_values.items[0]),
-        .trace_at_oods = try singleRow(a, stark.sampled_values.items[1]),
+        .trace_at_oods = try flattenTraceMask(a, stark.sampled_values.items[1], config),
         .interaction_at_oods = interaction_at_oods,
         .composition_eval_at_oods = composition,
         .eval_domain_samples = undefined,
@@ -300,6 +300,23 @@ fn singleRow(a: std.mem.Allocator, samples: []const []const QM31) ![]QM31 {
         value.* = column[0];
     }
     return row;
+}
+
+/// Preserve native PCS sampled-value order exactly: column first, then the
+/// mask points owned by the verification key. A missing shifted opening is a
+/// shape error, never an implicit zero or a skipped SHA equation.
+fn flattenTraceMask(a: std.mem.Allocator, samples: []const []const QM31, config: wire.ProofConfig) ![]QM31 {
+    if (samples.len != config.nTraceColumns()) return error.InvalidCircuitProof;
+    const values = try a.alloc(QM31, config.nTraceOodsValues());
+    var at: usize = 0;
+    for (samples, 0..) |column, index| {
+        const expected = config.columnMaskOffsets(1, index).len;
+        if (column.len != expected) return error.InvalidCircuitProof;
+        @memcpy(values[at..][0..expected], column);
+        at += expected;
+    }
+    std.debug.assert(at == values.len);
+    return values;
 }
 
 /// The in-circuit verifier's proof values (`Proof<QM31>` of

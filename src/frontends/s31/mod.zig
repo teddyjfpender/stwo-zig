@@ -33,6 +33,7 @@ pub const sha_fused_circuit_prover = @import("sha_fused_circuit_prover.zig");
 pub const sha_fused_circuit_native_verifier = @import("sha_fused_circuit_native_verifier.zig");
 pub const sha_fused_fold_profile = @import("sha_fused_fold_profile.zig");
 pub const sha_fused_fold_shape = @import("sha_fused_fold_shape.zig");
+pub const sha_fused_fold_recursive_transcript = @import("sha_fused_fold_recursive_transcript.zig");
 pub const sha_fused_fold_prover = @import("sha_fused_fold_prover.zig");
 pub const sha_fused_fold_native_verifier = @import("sha_fused_fold_native_verifier.zig");
 pub const bitcoin_target = @import("bitcoin_target.zig");
@@ -74,6 +75,7 @@ test {
     _ = sha_fused_circuit_prover;
     _ = sha_fused_circuit_native_verifier;
     _ = sha_fused_fold_profile;
+    _ = sha_fused_fold_recursive_transcript;
     _ = sha_fused_fold_prover;
     _ = sha_fused_fold_native_verifier;
     _ = sha_caller_equations;

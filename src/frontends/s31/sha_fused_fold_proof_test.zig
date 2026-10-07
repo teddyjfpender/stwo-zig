@@ -13,6 +13,7 @@ const fused_profile = s31.sha_fused_fold_profile;
 const fused_prover = s31.sha_fused_fold_prover;
 const fused_native = s31.sha_fused_fold_native_verifier;
 const fused_shape = s31.sha_fused_fold_shape;
+const fused_transcript = s31.sha_fused_fold_recursive_transcript;
 const pp_guard = s31.bitcoin_fold_preprocessed_guard;
 
 const QM31 = core.fields.qm31.QM31;
@@ -241,6 +242,13 @@ test "checkpoint anchor and fused SHA fold step zero share one native proof" {
     timer.reset();
     try fused_native.verifyBytes(allocator, .{ .key = key, .public_outputs = &expected_outputs }, bytes);
     const verify_ns = timer.read();
+    try fused_transcript.expectAcceptedProofPrefix(
+        key,
+        proof.outputs,
+        proof.stark.proof.commitment_scheme_proof.commitments.items,
+        proof.nonce,
+        &proof.claims,
+    );
     // The native proof has 21 components and split-two composition. Its SHA
     // state and schedule columns open five shifted rows each; the current
     // recursive wire format accepts only one trace opening per column.
