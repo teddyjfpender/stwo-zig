@@ -1,13 +1,13 @@
 {
   "base_and_next_audit_rejections": [
-    16,
-    16
+    23,
+    23
   ],
   "batch_matches_separate_proofs_and_statements": true,
   "batch_resume_matches_separate_top": true,
   "build_seconds": null,
   "child_fri_fold_step": 4,
-  "compiler_sha256": "944a1310b180aebfe261c604ea8011c53f8270f5317c64e78bae5dd469fd76d7",
+  "compiler_sha256": "3e73028469e740a61781967fda6276a865d751724a84aa59df7475d72e0d19cd",
   "fold_geometry": {
     "headroom_rows": {
       "blake_g": 971312,
@@ -273,14 +273,14 @@
   "source_sha256": "307fe5bc6c76cf4210837b10bba5eeb9dd4f288491b62ca01381eb66d29a6d0c",
   "top_verified_without_lower_proofs": true,
   "wall_seconds": {
-    "batch_three_steps": 6.563949917093851,
-    "first": 1.3408419580664486,
-    "fold0": 2.606356875039637,
-    "fold1": 2.2879399589728564,
-    "fold2": 2.312367375008762,
-    "leaf": 1.2303464580327272,
-    "second": 2.2071291250176728,
-    "top_verify": 0.14958125003613532
+    "batch_three_steps": 7.154044582974166,
+    "first": 1.7778471659403294,
+    "fold0": 3.7570107500068843,
+    "fold1": 3.529660541913472,
+    "fold2": 3.0988615840906277,
+    "leaf": 1.2509126249933615,
+    "second": 3.181087250006385,
+    "top_verify": 0.1631367920199409
   },
   "wrapper_and_fold_fri_fold_step": 4
 }

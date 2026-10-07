@@ -159,6 +159,9 @@ recurrence with square, addition and multiplication by constants from source
 and proves one more computation step in each fold. Its `u32` step counter
 supports up to 2³²−1 added steps. `state-fold-advance` runs
 multiple steps with optional checkpoints for resume.
+`inspect_state_fold_claim.py PACKAGE TOP-PROOF` verifies an isolated top
+proof and independently replays its public recurrence, subject to a bounded
+local step limit.
 For recursive packages, `s31 build SOURCE --out PACKAGE --fri-fold-step 4`
 uses four FRI folds per commitment with the same 26 PoW bits, blowup factor 2,
 and 70 queries. For `gate` packages it selects leaf, wrapper, and fold FRI;

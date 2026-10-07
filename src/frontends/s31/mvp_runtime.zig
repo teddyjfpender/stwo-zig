@@ -1955,9 +1955,10 @@ fn auditFoldBase(
     defer pp.deinit(allocator);
     const actual_root = try pp.preprocessedRoot(allocator, fold_pcs.fri_config.log_blowup_factor);
     if (!std.mem.eql(u8, &actual_root, &fold_root)) return error.FoldKeyTopologyMismatch;
-    std.debug.print("S31 fixed-fold base audit: vars={d} qm31_ops={d} valid=true rejected=16\n", .{
+    std.debug.print("S31 fixed-fold base audit: vars={d} qm31_ops={d} valid=true rejected={d}\n", .{
         values.circuit.n_vars,
         values.circuit.mul.items.len + values.circuit.add.items.len + values.circuit.sub.items.len,
+        std.meta.tags(fixed_fold.Mutation).len + 3,
     });
 }
 
@@ -2520,7 +2521,9 @@ fn wrapFoldWithCache(
                 else => return err,
             }
         }
-        std.debug.print("S31 fixed-fold recursive circuit audit: valid=true rejected=16\n", .{});
+        std.debug.print("S31 fixed-fold recursive circuit audit: valid=true rejected={d}\n", .{
+            std.meta.tags(fixed_fold.Mutation).len + 3,
+        });
         return;
     }
     if (cache.*) |*prepared| {

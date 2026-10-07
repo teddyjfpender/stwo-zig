@@ -19,8 +19,10 @@ pub const personalization: [8]u8 = "S31FOL2!".*;
 
 pub const Mutation = enum {
     base_selector, zero_test_inverse, previous_counter,
-    trace_root, claimed_sum, channel_salt, sampled_trace_value,
-    trace_auth_path, fri_witness, fri_auth_path, fri_last_layer,
+    trace_root, interaction_root, composition_root, claimed_sum, channel_salt,
+    preprocessed_oods, trace_oods, interaction_oods, composition_oods,
+    sampled_trace_value, trace_auth_path, fri_commitment,
+    fri_witness, fri_auth_path, fri_last_layer,
     interaction_pow_nonce, fri_pow_nonce,
 };
 const WitnessIndices = struct { base: usize, inverse: usize, previous: usize };
@@ -203,11 +205,18 @@ pub fn verifyPreparedWithMutation(
     var proof_values = try cpu.verifier_proof.circuitVerifierValues(scratch.allocator(), &adapted.proof, adapted.config);
     if (mutation) |kind| switch (kind) {
         .trace_root => proof_values.trace_root = Blake.hashValue(QM31, @splat(0)),
+        .interaction_root => proof_values.interaction_root = Blake.hashValue(QM31, @splat(0)),
+        .composition_root => proof_values.composition_polynomial_root = Blake.hashValue(QM31, @splat(0)),
         .claimed_sum => proof_values.claimed_sums[0] = proof_values.claimed_sums[0].add(QM31.one()),
         .channel_salt => proof_values.channel_salt = proof_values.channel_salt.add(QM31.one()),
+        .preprocessed_oods => proof_values.preprocessed_columns_at_oods[0] = proof_values.preprocessed_columns_at_oods[0].add(QM31.one()),
+        .trace_oods => proof_values.trace_at_oods[0] = proof_values.trace_at_oods[0].add(QM31.one()),
+        .interaction_oods => proof_values.interaction_at_oods[0].at_oods = proof_values.interaction_at_oods[0].at_oods.add(QM31.one()),
+        .composition_oods => proof_values.composition_eval_at_oods[0] = proof_values.composition_eval_at_oods[0].add(QM31.one()),
         .sampled_trace_value => proof_values.eval_domain_samples.data[0][0].inner =
             proof_values.eval_domain_samples.data[0][0].inner.add(QM31.one()),
         .trace_auth_path => proof_values.eval_domain_auth_paths.trees[0][0] = Blake.hashValue(QM31, @splat(0)),
+        .fri_commitment => proof_values.fri.layer_commitments[0] = Blake.hashValue(QM31, @splat(0)),
         .fri_witness => proof_values.fri.witness[0][0] = proof_values.fri.witness[0][0].add(QM31.one()),
         .fri_auth_path => proof_values.fri.auth_paths.trees[0][0] = Blake.hashValue(QM31, @splat(0)),
         .fri_last_layer => proof_values.fri.last_layer_coefs[0] = proof_values.fri.last_layer_coefs[0].add(QM31.one()),

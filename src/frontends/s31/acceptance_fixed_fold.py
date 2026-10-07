@@ -83,7 +83,7 @@ def main() -> None:
         run("python3", str(HERE / "s31.py"), "state-fold-base", str(package),
             str(first), str(work / "unsupported-state.proof"), accept=False)
         base_audit = run("python3", str(HERE / "s31.py"), "audit-fold-base", str(package), str(first))
-        if "valid=true rejected=16" not in base_audit:
+        if "valid=true rejected=23" not in base_audit:
             raise AssertionError(base_audit)
 
         folds = [work / f"fold{step}.proof" for step in range(4)]
@@ -93,7 +93,7 @@ def main() -> None:
                 str(folds[step - 1]), str(folds[step]))
             next_audit = run("python3", str(HERE / "s31.py"), "audit-fold-next", str(package),
                              str(folds[step - 1]))
-            if "valid=true rejected=16" not in next_audit:
+            if "valid=true rejected=23" not in next_audit:
                 raise AssertionError(next_audit)
         root = json.loads(fold_key.read_text())["fold_preprocessed_root"]
         first_statement = statement(first)

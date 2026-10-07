@@ -212,6 +212,8 @@ python3 src/frontends/s31/s31.py state-fold-next zig-out/s31/arith4-state-fold \
   zig-out/s31/state0.proof zig-out/s31/state1.proof
 python3 src/frontends/s31/s31.py verify-state-fold zig-out/s31/arith4-state-fold \
   zig-out/s31/state1.proof
+python3 src/frontends/s31/inspect_state_fold_claim.py \
+  zig-out/s31/arith4-state-fold zig-out/s31/state1.proof
 python3 src/frontends/s31/s31.py state-fold-advance zig-out/s31/arith4-state-fold \
   zig-out/s31/state1.proof zig-out/s31/state4.proof --steps 3 \
   --checkpoint-dir zig-out/s31/state-checkpoints
@@ -229,6 +231,16 @@ passing one of those proofs as the next input resumes from that step. The
 command checks the `u32` counter bound before starting, limits one batch to
 65,536 proofs, and refuses to
 overwrite an existing proof or statement.
+
+`inspect_state_fold_claim.py PACKAGE TOP-PROOF` first runs the generated
+native verifier. It then reads the sealed transition body, independently
+replays the source's base rounds from the public input, recomputes the
+wrapper and fold digests, and replays exactly `step` state transitions from the
+initial state. It reports the expected and claimed current states as JSON.
+The top proof and statement suffice after lower proof files are deleted.
+The default replay limit is 100,000 transitions; `--max-replay-steps` changes
+that local work bound. Above the bound, native proof verification still runs
+and the report labels independent state replay as skipped.
 
 ## Choose the FRI schedule
 
@@ -264,7 +276,7 @@ analysis.
 
 `audit-state-fold-base` and `audit-state-fold-next` test the base selector,
 zero-test inverse, predecessor counter, current state, selected root,
-child output, transition input, and ten captured child-proof fields directly
+child output, transition input, and seventeen captured child-proof fields directly
 in the circuit, including the interaction and FRI proof-of-work nonces.
 `--low-memory`
 on either wrap command trades some proving time for memory: one local step-3

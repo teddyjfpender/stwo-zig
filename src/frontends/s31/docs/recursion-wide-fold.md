@@ -187,16 +187,18 @@ python3 src/frontends/s31/acceptance_sparse_wide_fold.py --bitcoin
 ```
 
 The acceptance fixture proves steps 0, 1, and 2, reproduces `KF` byte for
-byte, audits sixteen altered circuit values at both the base and recursive
+byte, audits twenty-three altered circuit values at both the base and recursive
 branches, challenges repaired false public claims and a damaged top proof,
 then deletes lower proof files and verifies the top proof alone. The Bitcoin
 run uses [`bitcoin_header_pair.s31`](../examples/bitcoin_header_pair.s31),
 which checks two linked historical headers *within one leaf proof*.
 The audit includes separate changes to the interaction and FRI proof-of-work
-nonces. These tests catch local wiring errors; they do not calculate a
-security level.
+nonces, the trace, interaction, composition, and FRI commitment roots,
+and representative OODS and Merkle/FRI openings. These tests catch local
+wiring errors; they do not calculate a security level or exhaust every word
+of a proof.
 The [Bitcoin acceptance record](../../../../design/s31/measurements/bitcoin-sparse-wide-fold-stages-v1-2026-10-07.json)
-passes the same 16 base and 16 recursive challenges on the byte-exact
+passes the same 23 base and 23 recursive challenges on the byte-exact
 two-header leaf.
 
 `fold-advance` accepts a base or existing fold proof, checks all output

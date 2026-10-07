@@ -206,9 +206,11 @@ consumed by a fold step.
 `inspect-fold` now records cumulative verifier phases for this same-key
 fold. The [wide-order stage record](measurements/sparse-wide-fold-stages-v1-2026-10-07.json)
 reproduces the original fold AIR root and all six proof sizes while rejecting
-16 direct base and recursive mutations, including both proof-of-work nonces.
+23 direct base and recursive mutations, including both proof-of-work nonces,
+all three commitment roots, representative OODS openings, and a FRI
+commitment.
 The [two-header Bitcoin stage record](measurements/bitcoin-sparse-wide-fold-stages-v1-2026-10-07.json)
-also rejects all 16 mutations at both branches and keeps its original six
+also rejects all 23 mutations at both branches and keeps its original six
 proof sizes.
 Subtracting consecutive `raw_vars` counts gives:
 

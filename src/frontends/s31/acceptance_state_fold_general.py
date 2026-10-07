@@ -67,7 +67,7 @@ def main() -> None:
         if statement(first)["child_public_words"][4:8] != expected:
             raise AssertionError("source base proof computed the wrong three rounds")
         base_audit = run("python3", str(HERE / "s31.py"), "audit-state-fold-base", str(package), str(first))
-        if "rejected=20" not in base_audit:
+        if "rejected=27" not in base_audit:
             raise AssertionError("base audit did not challenge all child proof fields")
         checkpoints = work / "checkpoints"
         top = work / "top.proof"
@@ -76,7 +76,7 @@ def main() -> None:
         folds = [checkpoints / "state-00000.proof", checkpoints / "state-00001.proof", top]
         for proof in folds[:2]:
             recursive_audit = run("python3", str(HERE / "s31.py"), "audit-state-fold-next", str(package), str(proof))
-            if "rejected=21" not in recursive_audit:
+            if "rejected=28" not in recursive_audit:
                 raise AssertionError("recursive audit did not challenge all child proof fields")
         direct_previous = first
         for index, batched in enumerate(folds):
@@ -168,8 +168,21 @@ def main() -> None:
             path.unlink()
             Path(f"{path}.statement.json").unlink()
         run(str(verifier), "state-fold-verify", str(folds[-1]), f"{folds[-1]}.statement.json")
+        inspected = json.loads(run("python3", str(HERE / "inspect_state_fold_claim.py"),
+                                   str(package), str(folds[-1])))
+        if (inspected["native_top_verification"] != "accepted" or
+                inspected["independent_state_replay"] != "matched" or
+                inspected["source_rounds"] != 3 or inspected["step_body"] != BODY or
+                inspected["expected_current_state"] != expected or
+                inspected["current_state"] != expected or
+                inspected["step"] != 2 or inspected["lower_proof_files_required"] is not False):
+            raise AssertionError("isolated state-fold claim inspector disagreed with the source")
+        bounded = json.loads(run("python3", str(HERE / "inspect_state_fold_claim.py"),
+                                 str(package), str(folds[-1]), "--max-replay-steps", "1"))
+        if bounded["independent_state_replay"] != "skipped_step_limit" or bounded["native_top_verification"] != "accepted":
+            raise AssertionError("bounded state replay changed top proof verification")
         print("S31 general state-fold acceptance: three base rounds, square/multiply/add step, "
-              "independent M31 arithmetic, byte-identical cached batch and resume, hostile claims and key, isolated top proof")
+              "independent M31 arithmetic, byte-identical cached batch and resume, hostile claims and key, isolated top proof and source replay")
 
 
 if __name__ == "__main__":

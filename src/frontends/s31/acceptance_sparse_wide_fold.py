@@ -71,12 +71,12 @@ def main() -> None:
         _, second_seconds = call(*cli, "wrap-next", str(package), str(first), str(second), "--low-memory")
         call(*cli, "verify-recursive-next", str(package), str(second))
         base_audit, _ = call(*cli, "audit-fold-base", str(package), str(second))
-        if "valid=true rejected=16" not in base_audit:
+        if "valid=true rejected=23" not in base_audit:
             raise AssertionError(base_audit)
         _, fold0_seconds = call(*cli, "fold-base", str(package), str(second), str(folds[0]), "--low-memory")
         call(*cli, "verify-fold", str(package), str(folds[0]))
         next_audit, _ = call(*cli, "audit-fold-next", str(package), str(folds[0]))
-        if "valid=true rejected=16" not in next_audit:
+        if "valid=true rejected=23" not in next_audit:
             raise AssertionError(next_audit)
         _, fold1_seconds = call(*cli, "fold-next", str(package), str(folds[0]), str(folds[1]), "--low-memory")
         _, fold2_seconds = call(*cli, "fold-next", str(package), str(folds[1]), str(folds[2]), "--low-memory")
@@ -239,7 +239,7 @@ def main() -> None:
             "fold_steps": [0, 1, 2],
             "same_fold_root_for_all_steps": True,
             "fold_key_reproduced": True,
-            "base_and_next_audit_rejections": [16, 16],
+            "base_and_next_audit_rejections": [23, 23],
             "fold_verifier_stages": stages,
             "top_verified_without_lower_proofs": True,
             "inspector_verified_isolated_top": True,
