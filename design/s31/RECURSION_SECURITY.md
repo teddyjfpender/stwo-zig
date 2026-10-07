@@ -138,6 +138,9 @@ checkpoint or a caller-supplied depth cap below the top step. This is an
 artifact and implementation audit; it does not improve the top proof's
 cryptographic soundness bound. The [checkpoint audit record](measurements/fold-checkpoint-audit-2026-10-07.json)
 covers gate fixed, gate state and sparse-wide fixed chains.
+The coupled `mix4` state-fold acceptance also exercises the scalar replay
+against a transition in which every output lane depends on all four previous
+lanes.
 
 ## Evidence and limits
 

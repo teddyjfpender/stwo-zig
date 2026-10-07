@@ -13,6 +13,12 @@
     "missing_base_rejected": true,
     "native_verification_per_checkpoint": true
   },
+  "state_mix4_gate": {
+    "proofs_verified": 3,
+    "top_step": 2,
+    "coupled_four_lane_transition_replayed": true,
+    "native_verification_per_checkpoint": true
+  },
   "fixed_sparse_wide": {
     "proofs_verified": 3,
     "top_step": 2,

@@ -76,6 +76,9 @@ circuit bad(public x: [m31; 3]) -> public [m31; 3] { iterate<1>(step, x) }
         run("python3", str(HERE / "s31.py"), "state-fold-advance", str(package), str(first),
             str(top), "--steps", "3", "--checkpoint-dir", str(checkpoints), "--low-memory")
         folds = [checkpoints / "state-00000.proof", checkpoints / "state-00001.proof", top]
+        chain_audit = s31.audit_fold_chain(package, manifest, folds, True, 2)
+        if chain_audit["proofs_verified"] != 3 or chain_audit["top_step"] != 2:
+            raise AssertionError("coupled checkpoint audit did not cover all source steps")
         proof_sizes = [proof.stat().st_size for proof in (leaf, first, *folds)]
         if "rejected=28" not in run("python3", str(HERE / "s31.py"), "audit-state-fold-next", str(package), str(folds[0])):
             raise AssertionError("coupled fold recursive audit missed a challenge")
