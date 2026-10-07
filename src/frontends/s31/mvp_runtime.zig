@@ -290,12 +290,16 @@ pub fn main() !void {
         try wrapFold(allocator, parsed.value, args[2], args[3], args[4], args[5], args[6], null, args[7], true, args.len == 9, false);
     } else if (std.mem.eql(u8, command, "fold-wrap-next") and (args.len == 8 or (args.len == 9 and std.mem.eql(u8, args[8], "--low-memory"))) and !chip_mode and !sparse_mode and !direct_mode) {
         try wrapFold(allocator, parsed.value, args[2], args[3], args[4], args[5], args[6], null, args[7], false, args.len == 9, false);
+    } else if (std.mem.eql(u8, command, "fold-wrap-batch") and (args.len == 12 or (args.len == 13 and std.mem.eql(u8, args[12], "--low-memory"))) and !chip_mode and !sparse_mode and !direct_mode) {
+        try wrapFixedFoldBatch(allocator, parsed.value, args[2], args[3], args[4], args[5], args[6], null, args[7], args[8], args[9], args[10], args[11], args.len == 13);
     } else if (std.mem.eql(u8, command, "fold-audit-next") and args.len == 7 and !chip_mode and !sparse_mode and !direct_mode) {
         try wrapFold(allocator, parsed.value, args[2], args[3], "", args[4], args[5], null, args[6], false, false, true);
     } else if (std.mem.eql(u8, command, "wide-fold-wrap-base") and (args.len == 9 or (args.len == 10 and std.mem.eql(u8, args[9], "--low-memory"))) and wide_mode) {
         try wrapFold(allocator, parsed.value, args[2], args[3], args[4], args[5], args[6], args[7], args[8], true, args.len == 10, false);
     } else if (std.mem.eql(u8, command, "wide-fold-wrap-next") and (args.len == 9 or (args.len == 10 and std.mem.eql(u8, args[9], "--low-memory"))) and wide_mode) {
         try wrapFold(allocator, parsed.value, args[2], args[3], args[4], args[5], args[6], args[7], args[8], false, args.len == 10, false);
+    } else if (std.mem.eql(u8, command, "wide-fold-wrap-batch") and (args.len == 13 or (args.len == 14 and std.mem.eql(u8, args[13], "--low-memory"))) and wide_mode) {
+        try wrapFixedFoldBatch(allocator, parsed.value, args[2], args[3], args[4], args[5], args[6], args[7], args[8], args[9], args[10], args[11], args[12], args.len == 14);
     } else if (std.mem.eql(u8, command, "wide-fold-audit-base") and args.len == 8 and wide_mode) {
         try wrapFold(allocator, parsed.value, args[2], args[3], "", args[4], args[5], args[6], args[7], true, false, true);
     } else if (std.mem.eql(u8, command, "wide-fold-audit-next") and args.len == 8 and wide_mode) {
@@ -342,10 +346,12 @@ fn usage() error{InvalidArguments} {
     std.debug.print("       wide-fold-geometry RECURSIVE-KEY.json (sealed sparse-wide key; inspect fold row capacity)\n", .{});
     std.debug.print("       wide-fold-keygen CHILD-KEY.json FIRST-KEY.json SECOND-KEY.json FOLD-KEY.json\n", .{});
     std.debug.print("       wide-fold-wrap-base|wide-fold-wrap-next CHILD-PROOF CHILD-STATEMENT OUT-PROOF CHILD-KEY FIRST-KEY SECOND-KEY FOLD-KEY [--low-memory]\n", .{});
+    std.debug.print("       wide-fold-wrap-batch CHILD-PROOF CHILD-STATEMENT OUT-PROOF CHILD-KEY FIRST-KEY SECOND-KEY FOLD-KEY STEPS CHECKPOINT-DIR FIRST-STEP base|next [--low-memory]\n", .{});
     std.debug.print("       wide-fold-inspect CHILD-KEY FIRST-KEY SECOND-KEY FOLD-KEY | wide-fold-audit-base|wide-fold-audit-next PROOF STATEMENT CHILD-KEY FIRST-KEY SECOND-KEY FOLD-KEY\n", .{});
     std.debug.print("       fold-keygen CHILD-KEY.json RECURSIVE-KEY.json FOLD-KEY.json | fold-inspect CHILD-KEY RECURSIVE-KEY FOLD-KEY\n", .{});
     std.debug.print("       fold-audit FIRST-PROOF FIRST-STATEMENT CHILD-KEY RECURSIVE-KEY FOLD-KEY\n", .{});
     std.debug.print("       fold-wrap-base|fold-wrap-next CHILD-PROOF CHILD-STATEMENT OUT-PROOF CHILD-KEY RECURSIVE-KEY FOLD-KEY [--low-memory]\n", .{});
+    std.debug.print("       fold-wrap-batch CHILD-PROOF CHILD-STATEMENT OUT-PROOF CHILD-KEY RECURSIVE-KEY FOLD-KEY STEPS CHECKPOINT-DIR FIRST-STEP base|next [--low-memory]\n", .{});
     std.debug.print("       fold-audit-next FOLD-PROOF FOLD-STATEMENT CHILD-KEY RECURSIVE-KEY FOLD-KEY\n", .{});
     return error.InvalidArguments;
 }
@@ -2264,6 +2270,117 @@ fn wrapFold(
     low_memory: bool,
     audit_only: bool,
 ) !void {
+    var cache: ?FixedFoldCache = null;
+    defer if (cache) |*prepared| prepared.deinit(allocator);
+    return wrapFoldWithCache(allocator, source, child_proof_path, child_statement_path,
+        output_path, child_key_path, first_key_path, second_key_path, fold_key_path,
+        base_case, low_memory, audit_only, &cache, false);
+}
+
+const FixedFoldCache = struct {
+    pp: preprocessed.PreprocessedCircuit,
+    commitment: cpu.prove.PreprocessedCommitment,
+    topology: ?circuit.builder.Circuit = null,
+
+    fn deinit(self: *FixedFoldCache, allocator: std.mem.Allocator) void {
+        if (self.topology) |*trusted| trusted.deinit(allocator);
+        self.commitment.deinit(allocator);
+        self.pp.deinit(allocator);
+    }
+};
+
+/// The batch path retains the fixed preprocessed circuit and commitment. It
+/// still authenticates each child proof and checks the complete value gate
+/// list against the retained witness-free topology before every proof.
+fn wrapFixedFoldBatch(
+    allocator: std.mem.Allocator,
+    source: relation.Program,
+    child_proof_path: []const u8,
+    child_statement_path: []const u8,
+    output_path: []const u8,
+    child_key_path: []const u8,
+    first_key_path: []const u8,
+    second_key_path: ?[]const u8,
+    fold_key_path: []const u8,
+    steps_text: []const u8,
+    checkpoint_dir: []const u8,
+    first_step_text: []const u8,
+    case_text: []const u8,
+    low_memory: bool,
+) !void {
+    const steps = try std.fmt.parseInt(u32, steps_text, 10);
+    const first_step = try std.fmt.parseInt(u32, first_step_text, 10);
+    const base_case = std.mem.eql(u8, case_text, "base");
+    if (!base_case and !std.mem.eql(u8, case_text, "next")) return error.InvalidFoldBranch;
+    if (steps == 0 or steps > 65536 or first_step > std.math.maxInt(u16) or
+        @as(u64, first_step) + @as(u64, steps) - 1 > std.math.maxInt(u16) or
+        (base_case and first_step != 0) or (!base_case and first_step == 0))
+        return error.InvalidFoldStepRange;
+    if (std.mem.eql(u8, child_proof_path, output_path)) return error.OutputAlreadyExists;
+    const initial_bytes = try std.fs.cwd().readFileAlloc(allocator, child_statement_path, 8192);
+    defer allocator.free(initial_bytes);
+    if (base_case) {
+        if (wide_mode) {
+            var initial = try std.json.parseFromSlice(RecursiveChainStatement, allocator, initial_bytes, .{ .ignore_unknown_fields = false });
+            defer initial.deinit();
+            if (!std.mem.eql(u8, initial.value.schema, "s31-recursive-chain-statement-v1")) return error.InvalidFoldBranch;
+        } else {
+            var initial = try std.json.parseFromSlice(RecursiveStatement, allocator, initial_bytes, .{ .ignore_unknown_fields = false });
+            defer initial.deinit();
+            if (!std.mem.eql(u8, initial.value.schema, "s31-recursive-gate-statement-v2")) return error.InvalidFoldBranch;
+        }
+    } else {
+        var initial = try std.json.parseFromSlice(FoldStatement, allocator, initial_bytes, .{ .ignore_unknown_fields = false });
+        defer initial.deinit();
+        if (!std.mem.eql(u8, initial.value.schema, if (wide_mode) "s31-fixed-fold-statement-v3" else "s31-fixed-fold-statement-v2") or
+            @as(u32, initial.value.step) + 1 != first_step) return error.InvalidFoldStepRange;
+    }
+    try std.fs.cwd().makePath(checkpoint_dir);
+    var paths = std.heap.ArenaAllocator.init(allocator);
+    defer paths.deinit();
+    const scratch = paths.allocator();
+    for (0..steps) |index| {
+        const target = if (index + 1 == steps) output_path else
+            try std.fmt.allocPrint(scratch, "{s}/fold-{d:0>5}.proof", .{ checkpoint_dir, first_step + @as(u32, @intCast(index)) });
+        const statement_path = try std.fmt.allocPrint(scratch, "{s}.statement.json", .{target});
+        if (index + 1 < steps and std.mem.eql(u8, target, output_path)) return error.OutputAlreadyExists;
+        if (std.mem.eql(u8, target, child_proof_path) or std.mem.eql(u8, target, child_statement_path) or
+            std.mem.eql(u8, statement_path, child_proof_path) or std.mem.eql(u8, statement_path, child_statement_path))
+            return error.OutputAlreadyExists;
+        try rejectExistingFoldOutput(target);
+        try rejectExistingFoldOutput(statement_path);
+    }
+    var cache: ?FixedFoldCache = null;
+    defer if (cache) |*prepared| prepared.deinit(allocator);
+    var current_proof = child_proof_path;
+    var current_statement = child_statement_path;
+    for (0..steps) |index| {
+        const target = if (index + 1 == steps) output_path else
+            try std.fmt.allocPrint(scratch, "{s}/fold-{d:0>5}.proof", .{ checkpoint_dir, first_step + @as(u32, @intCast(index)) });
+        try wrapFoldWithCache(allocator, source, current_proof, current_statement, target,
+            child_key_path, first_key_path, second_key_path, fold_key_path,
+            base_case and index == 0, low_memory, false, &cache, true);
+        current_proof = target;
+        current_statement = try std.fmt.allocPrint(scratch, "{s}.statement.json", .{target});
+    }
+}
+
+fn wrapFoldWithCache(
+    allocator: std.mem.Allocator,
+    source: relation.Program,
+    child_proof_path: []const u8,
+    child_statement_path: []const u8,
+    output_path: []const u8,
+    child_key_path: []const u8,
+    first_key_path: []const u8,
+    second_key_path: ?[]const u8,
+    fold_key_path: []const u8,
+    base_case: bool,
+    low_memory: bool,
+    audit_only: bool,
+    cache: *?FixedFoldCache,
+    retain_topology: bool,
+) !void {
     const child_bytes = try std.fs.cwd().readFileAlloc(allocator, child_key_path, 4096);
     defer allocator.free(child_bytes);
     if (!std.mem.eql(u8, child_bytes, sealed_prover_key)) return error.UnsealedRecursiveKey;
@@ -2406,7 +2523,12 @@ fn wrapFold(
         std.debug.print("S31 fixed-fold recursive circuit audit: valid=true rejected=14\n", .{});
         return;
     }
-    var pp = blk: {
+    if (cache.*) |*prepared| {
+        const trusted = if (prepared.topology) |*topology_circuit| topology_circuit else return error.MissingFixedFoldTopology;
+        try circuit.common.finalize.padContext(QM31, &values);
+        if (!sameTopology(&values.circuit, trusted) or !try values.isCircuitValid())
+            return error.InvalidFoldCircuit;
+    } else {
         var topology_ctx = try fixed_fold.topology(allocator, projection_bytes, verified.layout, verified.pcs, verified.base_root);
         defer topology_ctx.deinit();
         if (!sameTopology(&values.circuit, &topology_ctx.circuit)) return error.FoldValueDependentTopology;
@@ -2414,19 +2536,28 @@ fn wrapFold(
         try circuit.common.finalize.padContext(circuit.builder.NoValue, &topology_ctx);
         if (!sameTopology(&values.circuit, &topology_ctx.circuit) or !try values.isCircuitValid())
             return error.InvalidFoldCircuit;
-        break :blk try preprocessed.PreprocessedCircuit.fromBuilderCircuit(allocator, &topology_ctx.circuit);
-    };
-    defer pp.deinit(allocator);
+        var pp = try preprocessed.PreprocessedCircuit.fromBuilderCircuit(allocator, &topology_ctx.circuit);
+        errdefer pp.deinit(allocator);
+        var committed = try cpu.prove.PreprocessedCommitment.build(allocator, &pp, verified.pcs, .{});
+        errdefer committed.deinit(allocator);
+        const actual_root = committed.root();
+        if (!std.mem.eql(u8, &actual_root, &verified.root) or !pp.layout().eql(&verified.layout))
+            return error.FoldKeyTopologyMismatch;
+        cache.* = .{ .pp = pp, .commitment = committed };
+        if (retain_topology) {
+            cache.*.?.topology = topology_ctx.circuit;
+            topology_ctx.circuit = .{};
+        }
+    }
+    const prepared = if (cache.*) |*item| item else unreachable;
+    const prepared_root = prepared.commitment.root();
+    if (!std.mem.eql(u8, &prepared_root, &verified.root) or
+        !prepared.pp.layout().eql(&verified.layout)) return error.FoldKeyTopologyMismatch;
     values.circuit.deinit(allocator);
     values.circuit = .{};
-    var committed = try cpu.prove.PreprocessedCommitment.build(allocator, &pp, verified.pcs, .{});
-    defer committed.deinit(allocator);
-    const actual_root = committed.root();
-    if (!std.mem.eql(u8, &actual_root, &verified.root) or !pp.layout().eql(&verified.layout))
-        return error.FoldKeyTopologyMismatch;
     var timer = try std.time.Timer.start();
-    var proof = try cpu.Internal.prove(allocator, values.values(), &pp, &bundle, verified.pcs, .{
-        .preprocessed_commitment = &committed,
+    var proof = try cpu.Internal.prove(allocator, values.values(), &prepared.pp, &bundle, verified.pcs, .{
+        .preprocessed_commitment = &prepared.commitment,
         .evaluations_only = low_memory,
     }, {});
     defer proof.deinit();

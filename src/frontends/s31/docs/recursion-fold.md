@@ -148,6 +148,15 @@ acceptance run. `audit-fold-base` tests a first wrapper proof against altered
 leaf words, base root, step, branch selector, inverse, and previous counter.
 `audit-fold-next` applies the same checks to a saved fold proof, including
 its selected recursive root.
+`fold-advance PACKAGE CHILD-PROOF OUT-PROOF --steps N` runs multiple steps
+in one process and caches the sealed AIR, commitment, and padded topology.
+An optional `--checkpoint-dir DIR` keeps intermediate proofs for resume.
+Every step still checks the complete value-bearing gate list and natively
+verifies its child. The acceptance fixture compares batch output byte for
+byte against separate proof commands.
+The [claim inspector](../inspect_recursive_claim.py) verifies a saved top
+proof and prints the exact sealed key hashes, original leaf words, base
+digest, counter, and previous/current public fold digests as JSON.
 `inspect-fold PACKAGE` rebuilds the fold topology from the sealed keys and
 prints its raw rows, padded rows, and available headroom as JSON. For the
 `arith4_m31` fixture, the raw/padded `triple_xor` rows are

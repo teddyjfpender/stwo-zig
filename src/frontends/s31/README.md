@@ -149,6 +149,11 @@ verification under one sealed key and a constrained `u16` step counter.
 The [sparse-wide fixed-key fold](docs/recursion-wide-fold.md) extends this
 to wide-integer and two-header Bitcoin leaf proofs by using the second
 wrapper as its base; repeated fold proofs use the same sealed key.
+`fold-advance` runs several steps in one process, reusing the sealed
+preprocessed circuit and commitment while checking each child proof and
+each value-bearing gate topology. Checkpoints support resume.
+`inspect_recursive_claim.py PACKAGE TOP-PROOF` verifies the top proof and
+prints its complete public digest/key chain as JSON for review.
 The [state-fold chapter](docs/state-fold.md) extracts a typed four-lane
 recurrence with square, addition and multiplication by constants from source
 and proves one more computation step in each fold. Its `u32` step counter

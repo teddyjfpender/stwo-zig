@@ -113,6 +113,17 @@ def main() -> None:
             str(folds[1]), str(low_memory), "--low-memory")
         if low_memory.read_bytes() != folds[2].read_bytes():
             raise AssertionError("low-memory policy changed fold proof bytes")
+        if "s31-fixed-fold-batch-v1" not in manifest.get("capabilities", []):
+            raise AssertionError("fixed-fold batch capability was not sealed")
+        batch_top = work / "batch-top.proof"
+        checkpoints = work / "batch-checkpoints"
+        run("python3", str(HERE / "s31.py"), "fold-advance", str(package), str(first),
+            str(batch_top), "--steps", "4", "--checkpoint-dir", str(checkpoints), "--low-memory")
+        batch_paths = [*(checkpoints / f"fold-{step:05d}.proof" for step in range(3)), batch_top]
+        for one, batched in zip(folds, batch_paths, strict=True):
+            if one.read_bytes() != batched.read_bytes() or Path(f"{one}.statement.json").read_bytes() != Path(f"{batched}.statement.json").read_bytes():
+                raise AssertionError("fixed-fold batch changed proof or statement bytes")
+        run(str(verifier), "fold-verify", str(batch_top), f"{batch_top}.statement.json")
 
         top = folds[3]
         top_statement = statement(top)
@@ -165,8 +176,16 @@ def main() -> None:
             path.unlink()
             Path(f"{path}.statement.json").unlink()
         run(str(verifier), "fold-verify", str(top), f"{top}.statement.json")
+        inspected = json.loads(run("python3", str(HERE / "inspect_recursive_claim.py"),
+                                   str(package), str(top)))
+        if (inspected["native_top_verification"] != "accepted" or
+                inspected["first_wrapper_public_words_d1"] != first_statement["outer_public_words"] or
+                inspected["base_public_words"] != top_statement["base_public_words"] or
+                inspected["top_public_words"] != top_statement["fold_public_words"] or
+                inspected["step"] != 3 or inspected["lower_proof_files_required"] is not False):
+            raise AssertionError("claim inspector did not explain the isolated gate fold")
         print("S31 fixed-fold acceptance: four steps, one key, isolated top verifier, "
-              "private leaf, raw u32 digest, low-memory equality, hostile statements and proof bytes")
+              "private leaf, raw u32 digest, byte-identical batch, inspected claim, low-memory equality, hostile statements and proof bytes")
 
 
 if __name__ == "__main__":

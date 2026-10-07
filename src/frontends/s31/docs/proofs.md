@@ -17,6 +17,9 @@ python3 src/frontends/s31/s31.py verify zig-out/s31/docs-polynomial zig-out/s31/
 
 `build` compiles a prover and a separate native verifier for the selected
 source and proof profile. It stages the package and publishes it atomically.
+Before publishing, it rechecks the source bytes and compiler fingerprint;
+an edit detected during the build aborts instead of stamping the package
+with an earlier compiler hash.
 Reusing an output directory with a different source, profile, compiler
 fingerprint, or artifact hash fails. `prove` reads private and public values
 from the assignment and writes a binary proof. The wrapper also writes
@@ -36,6 +39,13 @@ It reads no private assignment. It is a **native STARK verifier** that calls
 the core Stwo verifier on the program's circuit/AIR components; it does not
 execute an in-circuit recursive verifier on the host.
 
+For a fixed-key recursive proof, the
+[claim inspector](../inspect_recursive_claim.py) invokes that package's
+native top verifier and prints the leaf words, intermediate public digests,
+key hashes, counter, and expected fold output as JSON. Its digest
+calculation is an independent Python check of the public statement; the
+native verifier still decides proof acceptance.
+
 ## What is in a package?
 
 | Artifact | Purpose |
@@ -51,7 +61,7 @@ execute an in-circuit recursive verifier on the host.
 | `source.s31.json` | Exact normalized relation bytes compiled by Zig. |
 | `source.s31`, `source-map.json`, `typed-interface.json` | Text source, source locations, and nominal text types when the input was `.s31`. |
 | `stdlib-lock.json` | Text package's pinned `std@1` version, import mode, and library source hashes; its digest is also in the key. |
-| `manifest.json` | SHA-256 of every artifact above plus source/compiler identity and Zig version. |
+| `manifest.json` | SHA-256 of every artifact above plus source/compiler identity, Zig version, and any sealed batch-proving capabilities. |
 
 The text parser's qualified library calls disappear into normalized nodes.
 The package manifest hashes the original text and standard-library lock;

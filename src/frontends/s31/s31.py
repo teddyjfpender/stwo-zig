@@ -258,10 +258,14 @@ def build_json(source_path: Path, output: Path, lowering: str = "gate",
         }
         if recursive_option:
             manifest["recursive_fri_fold_step"] = 4 if lowering == "sparse-wide-gate" else fri_fold_step
+        if fold_option:
+            manifest["capabilities"] = ["s31-fixed-fold-batch-v1"]
         if state_fold_option:
-            manifest["capabilities"] = ["s31-state-fold-batch-v2"]
+            manifest.setdefault("capabilities", []).append("s31-state-fold-batch-v2")
         if lock_digest is not None:
             manifest["stdlib_lock_sha256"] = lock_digest
+        if source_path.read_bytes() != data or compiler_fingerprint() != compiler_sha256:
+            raise RuntimeError("S31 source or compiler inputs changed during package build")
         write_json(staging / "manifest.json", manifest)
         os.rename(staging, output)
         return output
@@ -331,6 +335,8 @@ def build_text(source_path: Path, output: Path, lowering: str = "gate", fri_fold
         manifest["text_frontend_version"] = 1
         for name in ("source.s31", "source-map.json", "typed-interface.json"):
             manifest["artifacts"][name] = file_hash(package / name)
+        if source_path.read_bytes() != text_data or manifest["compiler_sha256"] != compiler_fingerprint():
+            raise RuntimeError("S31 text source or compiler inputs changed during package build")
         write_json(manifest_path, manifest)
         os.rename(package, output)
     return output
@@ -353,7 +359,10 @@ def verify_package(package: Path) -> dict:
     capabilities = manifest.get("capabilities", [])
     if (not isinstance(capabilities, list) or any(not isinstance(item, str) for item in capabilities) or
             (any(item in capabilities for item in ("s31-state-fold-batch-v1", "s31-state-fold-batch-v2")) and
-             "state-fold-verification-key.json" not in artifacts)):
+             "state-fold-verification-key.json" not in artifacts) or
+            ("s31-fixed-fold-batch-v1" in capabilities and
+             (manifest.get("lowering") not in {"gate", "sparse-wide-gate"} or
+              "fixed-fold-verification-key.json" not in artifacts))):
         raise ValueError("invalid S31 package capabilities")
     required_artifacts = {
         "source.s31.json", "verification-key.json", "public-abi.json",
@@ -1052,6 +1061,14 @@ def main() -> None:
         sub.add_argument("outer_proof", type=Path)
         sub.add_argument("--statement", type=Path)
         sub.add_argument("--low-memory", action="store_true")
+    sub = commands.add_parser("fold-advance", help="prove several fixed-key folds while reusing the sealed AIR")
+    sub.add_argument("package", type=Path)
+    sub.add_argument("child_proof", type=Path)
+    sub.add_argument("outer_proof", type=Path)
+    sub.add_argument("--steps", type=int, required=True)
+    sub.add_argument("--statement", type=Path)
+    sub.add_argument("--checkpoint-dir", type=Path, help="keep intermediate proofs for resume")
+    sub.add_argument("--low-memory", action="store_true")
     sub = commands.add_parser("state-fold-advance", help="prove several source steps, with optional resumable checkpoints")
     sub.add_argument("package", type=Path)
     sub.add_argument("child_proof", type=Path)
@@ -1228,6 +1245,56 @@ def main() -> None:
                      *((str(package / "recursive-verification-key-level2.json"),) if wide_fold else ()),
                      str(package / key_name),
                      *(("--low-memory",) if args.low_memory else ())), end="")
+        print(f"fold statement: {outer}.statement.json")
+    elif args.command == "fold-advance":
+        if manifest["lowering"] not in {"gate", "sparse-wide-gate"} or "s31-fixed-fold-batch-v1" not in manifest.get("capabilities", []):
+            raise ValueError("fold-advance requires a package with the fixed-fold batch capability")
+        child = args.child_proof.resolve()
+        statement = args.statement.resolve() if args.statement else Path(str(child) + ".statement.json")
+        outer = args.outer_proof.resolve()
+        if child == outer or args.steps < 1 or args.steps > 65536:
+            raise ValueError("fold-advance needs a distinct output and 1..65536 steps")
+        wide_fold = manifest["lowering"] == "sparse-wide-gate"
+        initial = json.loads(statement.read_text())
+        base_schema = "s31-recursive-chain-statement-v1" if wide_fold else "s31-recursive-gate-statement-v2"
+        fold_schema = "s31-fixed-fold-statement-v3" if wide_fold else "s31-fixed-fold-statement-v2"
+        if initial.get("schema") == base_schema:
+            first_step = 0
+            base_case = True
+        elif initial.get("schema") == fold_schema:
+            prior_step = initial.get("step")
+            if type(prior_step) is not int or prior_step < 0 or prior_step > 65535:
+                raise ValueError("input fixed-fold statement has an invalid step counter")
+            first_step = prior_step + 1
+            base_case = False
+        else:
+            raise ValueError("input must be a recursive base or fixed-fold proof")
+        if first_step + args.steps - 1 > 65535:
+            raise ValueError("fixed-fold step counter would overflow")
+        executable = package / "bin" / f"s31-{manifest['name']}-prover"
+        outer.parent.mkdir(parents=True, exist_ok=True)
+        with tempfile.TemporaryDirectory(prefix="s31-fixed-fold-advance-") as temporary:
+            checkpoints = args.checkpoint_dir.resolve() if args.checkpoint_dir else Path(temporary)
+            checkpoints.mkdir(parents=True, exist_ok=True)
+            planned_paths: set[Path] = set()
+            for index in range(args.steps):
+                step = first_step + index
+                target = outer if index == args.steps - 1 else checkpoints / f"fold-{step:05d}.proof"
+                target_statement = Path(str(target) + ".statement.json")
+                if target in planned_paths or target_statement in planned_paths or target in {child, statement} or target_statement in {child, statement}:
+                    raise ValueError(f"fold batch paths collide: {target}")
+                planned_paths.update((target, target_statement))
+                if target.exists() or target_statement.exists():
+                    raise ValueError(f"refusing to overwrite fold proof or statement: {target}")
+            print(invoke(str(executable), "wide-fold-wrap-batch" if wide_fold else "fold-wrap-batch",
+                         str(child), str(statement), str(outer),
+                         str(package / "verification-key.json"),
+                         str(package / "recursive-verification-key.json"),
+                         *((str(package / "recursive-verification-key-level2.json"),) if wide_fold else ()),
+                         str(package / "fixed-fold-verification-key.json"),
+                         str(args.steps), str(checkpoints), str(first_step),
+                         "base" if base_case else "next",
+                         *(("--low-memory",) if args.low_memory else ())), end="")
         print(f"fold statement: {outer}.statement.json")
     elif args.command == "state-fold-advance":
         if manifest["lowering"] != "gate" or "state-fold-verification-key.json" not in manifest["artifacts"]:

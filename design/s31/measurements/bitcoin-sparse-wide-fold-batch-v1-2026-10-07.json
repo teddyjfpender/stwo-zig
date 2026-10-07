@@ -1,0 +1,65 @@
+{
+  "base_and_next_audit_rejections": [
+    14,
+    14
+  ],
+  "batch_matches_separate_proofs_and_statements": true,
+  "batch_resume_matches_separate_top": true,
+  "build_seconds": 63.256163083948195,
+  "child_fri_fold_step": 4,
+  "compiler_sha256": "0920b9ea1a280ebf99c04e055efc9c2a1d1aff9d11b241c353073a4542cb0042",
+  "fold_geometry": {
+    "headroom_rows": {
+      "blake_g": 971312,
+      "eq": 4428,
+      "m31_to_u32": 59008,
+      "qm31_ops": 259481,
+      "triple_xor": 18488
+    },
+    "padded_rows": {
+      "blake_g": 2097152,
+      "eq": 32768,
+      "m31_to_u32": 262144,
+      "qm31_ops": 1048576,
+      "triple_xor": 131072
+    },
+    "raw_vars": 5589555
+  },
+  "fold_key_reproduced": true,
+  "fold_steps": [
+    0,
+    1,
+    2
+  ],
+  "host_negative_checks": [
+    "wrong_nested_base_digest",
+    "repaired_leaf_claim_rejected_by_top_proof",
+    "repaired_step_rejected_by_top_proof",
+    "damaged_top_proof",
+    "wrong_second_key_fri_schedule"
+  ],
+  "proof_bytes_leaf_first_second_fold0_fold1_fold2": [
+    266285,
+    352610,
+    373854,
+    372076,
+    370893,
+    375737
+  ],
+  "same_fold_root_for_all_steps": true,
+  "schema": "s31-sparse-wide-fixed-fold-acceptance-v1",
+  "source_name": "bitcoin_header_pair",
+  "source_sha256": "307fe5bc6c76cf4210837b10bba5eeb9dd4f288491b62ca01381eb66d29a6d0c",
+  "top_verified_without_lower_proofs": true,
+  "wall_seconds": {
+    "batch_three_steps": 6.650384708074853,
+    "first": 1.4115989579586312,
+    "fold0": 2.6404517920454964,
+    "fold1": 2.3521445830119774,
+    "fold2": 2.3594920000759885,
+    "leaf": 1.2601382499560714,
+    "second": 2.274193916004151,
+    "top_verify": 0.15084104205016047
+  },
+  "wrapper_and_fold_fri_fold_step": 4
+}

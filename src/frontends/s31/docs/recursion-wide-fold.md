@@ -134,6 +134,17 @@ with 18,488 spare `triple_xor` rows before that component's next padding
 boundary. Each proof checks value-bearing versus witness-free gate lists
 before proving and checks its output proof natively before writing it.
 
+The [source-key replay fixture](../acceptance_sparse_wide_fold_key_binding.py)
+builds a second valid package with the same leaf AIR rows but a different
+source identity. It repairs every public hash and fold-key field in the old
+top statement under the second package's exact bytes. The second native
+verifier rejects the old top proof **after** accepting that repaired
+statement. Its [record](../../../../design/s31/measurements/sparse-wide-fold-key-binding-source-v1-2026-10-07.json)
+shows distinct fold roots. The
+[FRI-only record](../../../../design/s31/measurements/sparse-wide-fold-key-binding-fri-v1-2026-10-07.json)
+repeats this test with identical source and leaf AIR identity but a
+different child FRI schedule; top proof replay still fails.
+
 ## Reproduce and challenge it
 
 From the repository root:
@@ -155,6 +166,11 @@ python3 src/frontends/s31/s31.py fold-next zig-out/s31/wide-fold \
 python3 src/frontends/s31/s31.py verify-fold zig-out/s31/wide-fold \
   zig-out/s31/wide-fold/fold1.proof
 python3 src/frontends/s31/s31.py inspect-fold zig-out/s31/wide-fold
+python3 src/frontends/s31/s31.py fold-advance zig-out/s31/wide-fold \
+  zig-out/s31/wide-fold/second.proof zig-out/s31/wide-fold/batch-top.proof \
+  --steps 3 --checkpoint-dir zig-out/s31/wide-fold/checkpoints --low-memory
+python3 src/frontends/s31/inspect_recursive_claim.py \
+  zig-out/s31/wide-fold zig-out/s31/wide-fold/batch-top.proof
 python3 src/frontends/s31/acceptance_sparse_wide_fold.py
 python3 src/frontends/s31/acceptance_sparse_wide_fold.py --bitcoin
 ```
@@ -166,11 +182,47 @@ then deletes lower proof files and verifies the top proof alone. The Bitcoin
 run uses [`bitcoin_header_pair.s31`](../examples/bitcoin_header_pair.s31),
 which checks two linked historical headers *within one leaf proof*.
 
+`fold-advance` accepts a base or existing fold proof, checks all output
+paths and the `u16` counter before starting, then retains the sealed
+preprocessed AIR, commitment, and padded witness-free topology across steps.
+It still natively verifies each child proof and compares every new
+value-bearing gate list to that topology before proving. Checkpoints permit
+resuming. The acceptance fixture requires byte-identical proofs and
+statements versus separate commands, including a resumed run.
+
+`inspect_recursive_claim.py` first runs the package's native top verifier,
+then independently recomputes `D1`, `D2`, and the fold digest from the exact
+sealed key bytes. Its JSON report names `W0`, the two wrapper digests, the
+previous and current fold outputs, the leaf's typed public ABI, the FRI
+schedules, key hashes, and proof size. It works after the lower proof files
+are removed, making the verified public claim inspectable without
+pretending to recover the private leaf witness.
+
 The [wide-order measurement](../../../../design/s31/measurements/sparse-wide-fold-v1-2026-10-07.json)
 records leaf/first/second/fold0/fold1/fold2 proof sizes of
 182,891/345,589/373,568/374,579/372,837/373,231 bytes. Each fold proof
 therefore stays close to the second wrapper's size. Measurements are local
 samples, not guaranteed latency or a concrete-security estimate.
+The [cached batch run](../../../../design/s31/measurements/sparse-wide-fold-batch-v1-2026-10-07.json)
+took 5.786 seconds for three steps versus 6.578 seconds summed across
+separate commands in one local sample. Its output bytes match exactly;
+the timing includes command and package setup as well as proving.
+The [three-trial memory record](../../../../design/s31/measurements/sparse-wide-fold-batch-memory-v1-2026-10-07.json)
+measured 5.573 seconds median for the batch versus 6.420 seconds for
+separate commands. Peak resident size rose from 3.736 to 3.814 GB because
+the batch keeps its topology in memory. These are local macOS process
+measurements, not a universal speed or memory estimate.
+Reproduce that comparison with
+[`benchmark_fixed_fold_batch.py`](../benchmark_fixed_fold_batch.py), passing
+the built package and its valid assignment; it alternates execution order,
+checks proof and statement byte equality, and records per-process peak RSS.
+The [two-header Bitcoin batch](../../../../design/s31/measurements/bitcoin-sparse-wide-fold-batch-v1-2026-10-07.json)
+also matches all separate proof bytes; it took 6.650 seconds versus
+7.352 seconds summed across its three commands in one local run.
+The [onefold child schedule](../../../../design/s31/measurements/sparse-wide-fold-fri1-batch-v1-2026-10-07.json)
+also passes the same-key fold and batch checks. Its wrapper and fold
+verifiers still use the sealed fourfold schedule; the leaf and first
+wrapper proofs are larger than with a fourfold leaf.
 
 ## Exact claim and next boundary
 

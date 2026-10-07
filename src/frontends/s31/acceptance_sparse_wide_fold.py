@@ -48,6 +48,7 @@ def main() -> None:
     parser.add_argument("--bitcoin", action="store_true", help="fold the two-header SHA256d/PoW proof")
     parser.add_argument("--fri-fold-step", type=int, choices=(1, 4), default=4)
     parser.add_argument("--package", type=Path, help="reuse a sealed sparse-wide package")
+    parser.add_argument("--record", type=Path, help="write the run's measurement JSON here")
     args = parser.parse_args()
     name = "bitcoin_header_pair" if args.bitcoin else "wide_order"
     source = HERE / "examples" / f"{name}.s31"
@@ -80,6 +81,30 @@ def main() -> None:
         _, fold1_seconds = call(*cli, "fold-next", str(package), str(folds[0]), str(folds[1]), "--low-memory")
         _, fold2_seconds = call(*cli, "fold-next", str(package), str(folds[1]), str(folds[2]), "--low-memory")
         _, verify_seconds = call(*cli, "verify-fold", str(package), str(folds[2]))
+        if "s31-fixed-fold-batch-v1" not in manifest.get("capabilities", []):
+            raise AssertionError("package did not advertise its fixed-fold batch path")
+        batch_top = work / "batch-top.proof"
+        checkpoints = work / "batch-checkpoints"
+        _, batch_seconds = call(*cli, "fold-advance", str(package), str(second), str(batch_top),
+                                "--steps", "3", "--checkpoint-dir", str(checkpoints), "--low-memory")
+        batch_paths = [checkpoints / "fold-00000.proof", checkpoints / "fold-00001.proof", batch_top]
+        for step, (one, batched) in enumerate(zip(folds, batch_paths, strict=True)):
+            if one.read_bytes() != batched.read_bytes() or Path(str(one) + ".statement.json").read_bytes() != Path(str(batched) + ".statement.json").read_bytes():
+                raise AssertionError(f"batch fold step {step} changed proof or statement bytes")
+        call(*cli, "verify-fold", str(package), str(batch_top))
+        resumed = work / "resumed-top.proof"
+        call(*cli, "fold-advance", str(package), str(folds[0]), str(resumed),
+             "--steps", "2", "--low-memory")
+        if resumed.read_bytes() != folds[2].read_bytes():
+            raise AssertionError("resumed fold changed the top proof")
+        call(*cli, "fold-advance", str(package), str(folds[2]), str(work / "overflow.proof"),
+             "--steps", "65535", accepted=False)
+        collision_dir = work / "collision-checkpoints"
+        call(*cli, "fold-advance", str(package), str(second),
+             str(collision_dir / "fold-00000.proof"), "--steps", "2",
+             "--checkpoint-dir", str(collision_dir), accepted=False)
+        if any(collision_dir.iterdir()):
+            raise AssertionError("batch output collision left a proof behind")
 
         keys = [package / "verification-key.json", package / "recursive-verification-key.json",
                 package / "recursive-verification-key-level2.json", package / "fixed-fold-verification-key.json"]
@@ -112,6 +137,20 @@ def main() -> None:
 
         negatives = []
         top = statements[2]
+        rejection, _ = call(*cli, "fold-base", str(package), str(first),
+                            str(work / "wrong-base-proof.proof"), "--statement",
+                            str(Path(str(second) + ".statement.json")), accepted=False)
+        if "VerificationFailed" not in rejection and "Invalid" not in rejection:
+            raise AssertionError(f"first wrapper failed for an unexpected reason: {rejection}")
+        negatives.append("first_wrapper_cannot_replace_second_wrapper_base")
+        damaged_child = bytearray(folds[0].read_bytes())
+        damaged_child[-1] ^= 1
+        damaged_child_path = work / "damaged-fold-child.proof"
+        damaged_child_path.write_bytes(damaged_child)
+        call(*cli, "fold-next", str(package), str(damaged_child_path),
+             str(work / "should-not-exist.proof"), "--statement",
+             str(Path(str(folds[0]) + ".statement.json")), accepted=False)
+        negatives.append("damaged_recursive_child_proof")
         changed = json.loads(json.dumps(top))
         changed["base_public_words"][0] ^= 1
         path = work / "wrong-base.json"
@@ -159,18 +198,30 @@ def main() -> None:
             proof.unlink()
             Path(str(proof) + ".statement.json").unlink()
         call(*cli, "verify-fold", str(package), str(folds[2]))
+        inspected_output, _ = call(sys.executable, str(HERE / "inspect_recursive_claim.py"),
+                                   str(package), str(folds[2]))
+        inspected = json.loads(inspected_output)
+        if (inspected["native_top_verification"] != "accepted" or
+                inspected["leaf_public_words_w0"] != leaf_words or
+                inspected["first_wrapper_public_words_d1"] != digest(keys[0].read_bytes(), leaf_words) or
+                inspected["base_public_words"] != expected_base or
+                inspected["top_public_words"] != fold_digest(root, 2, expected_base) or
+                inspected["step"] != 2 or inspected["lower_proof_files_required"] is not False):
+            raise AssertionError("claim inspector did not explain the isolated top proof")
         record = {
             "schema": "s31-sparse-wide-fixed-fold-acceptance-v1",
             "source_name": name,
             "source_sha256": s31.file_hash(source),
-            "compiler_sha256": s31.compiler_fingerprint(),
+            "compiler_sha256": manifest["compiler_sha256"],
             "child_fri_fold_step": args.fri_fold_step,
             "wrapper_and_fold_fri_fold_step": 4,
             "build_seconds": build_seconds,
             "proof_bytes_leaf_first_second_fold0_fold1_fold2": sizes,
             "wall_seconds": {"leaf": leaf_seconds, "first": first_seconds, "second": second_seconds,
                              "fold0": fold0_seconds, "fold1": fold1_seconds, "fold2": fold2_seconds,
-                             "top_verify": verify_seconds},
+                             "batch_three_steps": batch_seconds, "top_verify": verify_seconds},
+            "batch_matches_separate_proofs_and_statements": True,
+            "batch_resume_matches_separate_top": True,
             "fold_geometry": {"raw_vars": geometry["raw_vars"], "padded_rows": geometry["padded_rows"],
                               "headroom_rows": geometry["headroom_rows"]},
             "fold_steps": [0, 1, 2],
@@ -178,10 +229,11 @@ def main() -> None:
             "fold_key_reproduced": True,
             "base_and_next_audit_rejections": [14, 14],
             "top_verified_without_lower_proofs": True,
+            "inspector_verified_isolated_top": True,
             "host_negative_checks": negatives,
         }
-        if not args.package:
-            output = s31.ROOT / "design" / "s31" / "measurements" / f"{('bitcoin-' if args.bitcoin else '')}sparse-wide-fold-v1-2026-10-07.json"
+        if args.record or not args.package:
+            output = args.record.resolve() if args.record else s31.ROOT / "design" / "s31" / "measurements" / f"{('bitcoin-' if args.bitcoin else '')}sparse-wide-fold-v1-2026-10-07.json"
             s31.write_json(output, record)
             print(output)
         print(json.dumps(record, indent=2, sort_keys=True))

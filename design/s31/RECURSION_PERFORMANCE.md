@@ -203,6 +203,45 @@ a concrete security level nor imply a useful Bitcoin light client. The
 counter is currently bounded to 65,535 steps, and no new header is
 consumed by a fold step.
 
+`fold-advance` reuses the sealed preprocessed AIR, its commitment, and the
+padded witness-free topology across several steps. It still verifies every
+child proof, checks every value-bearing gate list, and verifies each newly
+produced proof before writing it. The
+[fourfold wide-order batch record](measurements/sparse-wide-fold-batch-v1-2026-10-07.json)
+compares three separate low-memory fold commands (6.578 s summed wall time)
+with one three-step batch command (5.786 s wall time), a 12.0% reduction in
+this one local sample. Every proof and statement byte matches, including a
+batch resumed from step 0. This comparison includes different numbers of
+CLI/package checks; it does not isolate the cache's contribution or promise
+the same improvement on another host.
+In a [separate three-trial macOS run](measurements/sparse-wide-fold-batch-memory-v1-2026-10-07.json)
+that alternated command order, median three-step wall time was 6.420 s for
+separate commands and 5.573 s for one batch, 13.2% lower. Median peak
+resident size was 3.736 GB for the largest separate command and 3.814 GB
+for the batch, about 74 MiB higher. The batch retains a padded topology;
+this is a measured memory-for-time tradeoff. Every compared proof and
+statement was byte identical, and each top proof passed the native
+verifier. The measurement includes process startup, package checks and
+proof-of-work, so the cache alone cannot be credited with the full change.
+The [Bitcoin two-header batch record](measurements/bitcoin-sparse-wide-fold-batch-v1-2026-10-07.json)
+also matches every separate proof byte. Its three fold commands summed to
+7.352 s; the batch took 6.650 s, 9.5% less in that local sample. The
+Bitcoin source is still a fixed two-header leaf, and these fold steps do
+not append headers.
+The [onefold-child wide-order record](measurements/sparse-wide-fold-fri1-batch-v1-2026-10-07.json)
+passes the same three-step batch and mutation checks. Its leaf and first
+wrapper are larger (238,047 and 372,615 bytes), while the fixed fold still
+fits the second wrapper's padded AIR layout and produces a 370,522-byte
+step-2 proof. This confirms support for both sealed child FRI schedules;
+the fold's own verifier schedule remains fourfold.
+The [source-key](measurements/sparse-wide-fold-key-binding-source-v1-2026-10-07.json)
+and [FRI-only](measurements/sparse-wide-fold-key-binding-fri-v1-2026-10-07.json)
+replay fixtures rebuild a valid second package, repair the entire top
+statement under its keys, and still reject the original fold proof at
+native STARK verification. The source-key comparison holds the leaf's
+preprocessed AIR root fixed; the FRI comparison also holds the leaf source
+and circuit identity fixed.
+
 The next efficiency sequence is:
 
 1. Reduce remaining Merkle/FRI verifier work through exact common-path

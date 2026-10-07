@@ -1,0 +1,16 @@
+{
+  "clone_fold_root": "92008ac0a5995d6815955fd2b82493d89828d7158ecc64d255fb8855011703e3",
+  "clone_leaf_native_accepted": true,
+  "clone_public_claim_repaired_under_exact_key_bytes": true,
+  "clone_source_sha256": "4e333cca2aec8f14ce154ff1efb17c39325b7d18d1fb094a75787e8e460e1907",
+  "cross_key_fold_replay_rejected_by_top_stark": true,
+  "different_fold_air_roots": true,
+  "mode": "fri",
+  "original_fold_root": "c262acf359f951f417267296f61dc6ce3bafbc411e4c807d05c0d13f801b619b",
+  "original_source_sha256": "4e333cca2aec8f14ce154ff1efb17c39325b7d18d1fb094a75787e8e460e1907",
+  "original_top_native_accepted": true,
+  "same_leaf_circuit_identity": true,
+  "same_leaf_preprocessed_air_root": true,
+  "schema": "s31-sparse-wide-fold-key-binding-v1",
+  "top_proof_bytes": 372837
+}

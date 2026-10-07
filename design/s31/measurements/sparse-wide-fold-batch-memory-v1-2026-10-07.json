@@ -1,0 +1,112 @@
+{
+  "child_fri_fold_step": 4,
+  "compiler_sha256": "bafa76696ba7fdef962a7565ac622e88475d3d8b63fd6b479a424a63b70a7262",
+  "low_memory": true,
+  "median_batch_peak_resident_bytes": 3813539840,
+  "median_batch_wall_seconds": 5.573468666989356,
+  "median_separate_peak_resident_bytes": 3735863296,
+  "median_separate_wall_seconds": 6.419855956919491,
+  "median_wall_reduction_percent": 13.183898448965609,
+  "package": "wide_order",
+  "platform": "macOS-26.7.1-arm64-arm-64bit-Mach-O",
+  "profile": "sparse-wide-gate",
+  "proofs_and_statements_byte_identical": true,
+  "schema": "s31-fixed-fold-batch-benchmark-v1",
+  "step_count": 3,
+  "trials": [
+    {
+      "batch": {
+        "peak_resident_bytes": 3813539840,
+        "wall_seconds": 5.50913533300627
+      },
+      "order": [
+        "separate",
+        "batch"
+      ],
+      "separate": {
+        "commands": [
+          {
+            "peak_resident_bytes": 3735846912,
+            "wall_seconds": 2.027206667000428
+          },
+          {
+            "peak_resident_bytes": 3735846912,
+            "wall_seconds": 2.01371479104273
+          },
+          {
+            "peak_resident_bytes": 3735830528,
+            "wall_seconds": 2.1374365829396993
+          }
+        ],
+        "peak_resident_bytes": 3735846912,
+        "wall_seconds": 6.178358040982857
+      },
+      "top_proof_bytes": 373231,
+      "top_proof_sha256": "6b0510c2244015143fa12580d8cb5daf370e34ca0ea10a8f5f2619a3231850c6",
+      "trial": 0
+    },
+    {
+      "batch": {
+        "peak_resident_bytes": 3813523456,
+        "wall_seconds": 5.573468666989356
+      },
+      "order": [
+        "batch",
+        "separate"
+      ],
+      "separate": {
+        "commands": [
+          {
+            "peak_resident_bytes": 3735863296,
+            "wall_seconds": 2.0919531249674037
+          },
+          {
+            "peak_resident_bytes": 3735846912,
+            "wall_seconds": 2.0941977909533307
+          },
+          {
+            "peak_resident_bytes": 3735846912,
+            "wall_seconds": 2.233705040998757
+          }
+        ],
+        "peak_resident_bytes": 3735863296,
+        "wall_seconds": 6.419855956919491
+      },
+      "top_proof_bytes": 373231,
+      "top_proof_sha256": "6b0510c2244015143fa12580d8cb5daf370e34ca0ea10a8f5f2619a3231850c6",
+      "trial": 1
+    },
+    {
+      "batch": {
+        "peak_resident_bytes": 3813539840,
+        "wall_seconds": 5.73318741703406
+      },
+      "order": [
+        "separate",
+        "batch"
+      ],
+      "separate": {
+        "commands": [
+          {
+            "peak_resident_bytes": 3735846912,
+            "wall_seconds": 2.131783291930333
+          },
+          {
+            "peak_resident_bytes": 3735863296,
+            "wall_seconds": 2.0874815409770235
+          },
+          {
+            "peak_resident_bytes": 3735863296,
+            "wall_seconds": 2.21651033393573
+          }
+        ],
+        "peak_resident_bytes": 3735863296,
+        "wall_seconds": 6.4357751668430865
+      },
+      "top_proof_bytes": 373231,
+      "top_proof_sha256": "6b0510c2244015143fa12580d8cb5daf370e34ca0ea10a8f5f2619a3231850c6",
+      "trial": 2
+    }
+  ],
+  "wrapper_fri_fold_step": 4
+}
