@@ -43,7 +43,7 @@ execute an in-circuit recursive verifier on the host.
 | `bin/s31-NAME-prover` | Program-specific witness construction and proving. |
 | `bin/s31-NAME-native-verifier` | Program-specific native proof checker. |
 | `verification-key.json` | Profile, program/canonical-IR hashes, circuit hash, preprocessed root, padded geometry, pinned AIR asset hashes, FRI parameters, optional chip parameters. |
-| `recursive-verification-key.json` | For `gate` and `sparse-wide-gate` packages: sealed outer verifier layout, root, hash, child-key digest and pinned AIR asset hashes. The native verifier embeds it. |
+| `recursive-verification-key.json` | For `gate` and `sparse-wide-gate` packages: sealed outer verifier layout, root, hash, child-key digest and pinned AIR asset hashes. Sparse-wide key v3 also binds outer FRI fold step 4; its leaf defaults to step 1 and can be built with step 4. The native verifier embeds this key. |
 | `public-abi.json` | Named public inputs/outputs, kinds, lengths, eight-slot encoding. |
 | `cost-report.json` | Raw/padded component rows, fixed columns/cells, source spans, input packing, public binding, selected profile and chip. |
 | `source.s31.json` | Exact normalized relation bytes compiled by Zig. |

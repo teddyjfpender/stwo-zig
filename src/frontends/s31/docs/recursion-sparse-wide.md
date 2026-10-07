@@ -72,6 +72,18 @@ lookup challenges, and the remaining STARK transcript. The circuit uses the
 same three separate hash updates. Combining those words into one hash would
 produce different challenges and reject a valid proof.
 
+The default sparse-wide child uses FRI fold step 1; `s31 build
+--fri-fold-step 4` selects a separately keyed fourfold child proof. Both
+gate-profile wrapper proofs use fold step 4. The sealed sparse-wide recursive key has schema v3 and
+records `outer_fri_fold_step: 4`; the package manifest records the child and
+outer schedules separately. The second wrapper's circuit checks the first
+wrapper using that fourfold schedule. A key claiming step 1 is rejected
+before building the next wrapper. The schedule changes proof geometry and
+Fiat–Shamir challenges, so it is part of the verification key, not a prover
+hint. A package built with a different child schedule has different key
+bytes even when the preprocessed AIR root is unchanged. The visible
+parameters remain 26 proof-of-work bits, blowup factor 2, and 70 queries.
+
 After verifying `P0`, the circuit outputs
 
 ```text
@@ -100,6 +112,46 @@ top proof establishes that a valid first wrapper proof and a valid
 sparse-wide child proof exist for the chained claims, under the two sealed
 keys. It does not prove that the published child words have a Bitcoin
 consensus meaning beyond the compiled S31 relation and its public ABI.
+
+## Verification contract and security limits
+
+For fixed trusted keys `K0`, `K1`, and `K2`, accepting the top proof means
+there is an outer AIR witness satisfying the second wrapper circuit. That
+circuit checks a first-wrapper STARK proof under `K1` and binds its eight
+public words. The first-wrapper circuit checks a sparse-wide child STARK
+proof under `K0` and binds its eight raw `u32` public words. Subject to the
+soundness of the two outer STARKs and child STARK, correctness of the
+in-circuit verifier and compiler, and collision resistance of the hashes,
+the chained public statement therefore has an S31 witness satisfying the
+compiled leaf relation. Private S31 inputs are absent from the public
+statement; this construction makes no zero-knowledge claim.
+
+| Attempt | Binding checked before acceptance |
+| --- | --- |
+| Swap in a different source with the same AIR shape | The sparse-wide transcript mixes the source digest; `K0` also enters the wrapper public digest and sealed topology. |
+| Change a child or outer FRI schedule | The leaf key and v3 recursive key pin their respective fold steps; FRI configuration enters the transcript and proof shape. |
+| Change one 32-bit public word | The circuit constrains the word and its personalized Blake2s digest; the native verifier checks the public digest. |
+| Replace a Merkle opening or FRI value | The in-circuit verifier checks the path and fold equations against transcript-derived challenges. |
+| Replace the verifier circuit | The native verifier uses its embedded key and checks the preprocessed root and circuit hash. |
+
+Native verification before proof capture lets the prover obtain a correctly
+expanded witness. It is **not** a premise that the outer verifier trusts: an
+arbitrary prover can supply arbitrary circuit witness values, and the outer
+AIR must reject invalid ones. The mutation suites check representative
+failures, but they do not prove equivalence of native and in-circuit
+verification for every byte string. The package manifest detects local file
+changes; a trusted verifier binary and keys are still required.
+
+These packages fix 26 proof-of-work bits, blowup factor 2, 70 FRI queries,
+and degree-one final layer for both fold schedules. That tuple alone is
+**not** a claimed number of soundness bits. A fourfold step changes the
+number and shape of FRI rounds, and its folding error must be evaluated with
+the full parameter analysis, including hash queries and proof depth. The
+[S-two whitepaper](https://eprint.iacr.org/2026/532)
+separates folding, query, and noninteractive errors. S31 has not published
+an independent concrete-security calculation or a formal audit of this
+recursive verifier. Treat the measured packages as research artifacts, not
+production security parameters.
 
 ## Where polynomials enter
 
@@ -138,27 +190,59 @@ python3 src/frontends/s31/s31.py verify-recursive-next \
   zig-out/s31/wide-recursive zig-out/s31/wide-recursive/second.proof
 ```
 
+To compare the fourfold child, add `--fri-fold-step 4` to the build command
+and use a different output directory. The child key, child proof, and both
+wrapper keys and proofs belong to that package; they cannot be mixed with
+the step-1 package.
+
 `audit-recursive` checks the valid in-circuit witness and challenges ten
 independent fields after native proof authentication, including the profile
 prefix, circuit identity, public word, LogUp sum, Merkle paths, FRI witness,
 and FRI last layer. `audit-recursive-next` challenges seven fields of the
 second-level gate verifier. The
 [acceptance fixture](../acceptance_sparse_wide_recursion.py) also changes
-proof bytes, key bytes, public claims, and both chain statements.
+proof bytes, key bytes, the outer FRI schedule, public claims, and both chain
+statements.
+
+For `wide_order`, the fixture also proves and wraps a
+[second valid assignment](../examples/wide_order.alternate.valid.json) twice
+under the same sealed keys. Its low limb has `65534 + 5 = 3 + 65536`, with a
+carry into limb 1; its public Poseidon2 root and all three proof files differ
+from the first assignment. This checks that the verifier circuit accepts
+different transcripts and witness values under one program key.
+
 The [cross-key fixture](../acceptance_sparse_wide_key_binding.py) rebuilds
 the same arithmetic under a different source name. The preprocessed AIR
 root stays the same, but the sparse-wide profile identity and wrapper AIR
 roots change. Each leaf proof is rejected by the other source's native
 verifier. The original outer proof is rejected under the clone's key even
 after its public digest and statement roots are repaired for that key.
+Running the fixture with `--compare-fri-schedules` uses the same source and
+preprocessed AIR root at child fold steps 1 and 4. Their sparse-wide circuit
+identity is also equal, yet their keys and wrapper AIR roots differ. Both
+cross-schedule leaf replays fail; the outer replay fails even after repairing
+the public statement for the other key. This checks binding at both levels.
 
-In [one local acceptance run](../../../../design/s31/measurements/sparse-wide-recursion-v1-2026-10-07.json),
-the leaf, first wrapper, and second wrapper proofs were 238,047, 507,885,
-and 554,779 bytes. The first verifier circuit had 6,972,423 raw variables.
-Measured command wall times were about 1.09 s, 2.21 s, and 4.25 s for the
-three proof commands. These are single local observations; package setup and
-the native verification inside each command are included. The package build
-took about 61 s, primarily to construct and seal two verifier topologies.
+The [onefold-child/fourfold-wrapper acceptance run](../../../../design/s31/measurements/sparse-wide-recursion-v2-2026-10-07.json)
+measured the three proofs at 238,047, 372,615, and 372,181 bytes. The first
+verifier circuit has 6,972,423 raw variables. The proof commands took 1.19,
+2.25, and 2.32 seconds wall time; package build took about 61 seconds, mostly
+constructing and sealing two verifier topologies. For comparison, the
+[step-1 wrapper baseline](../../../../design/s31/measurements/sparse-wide-recursion-v1-2026-10-07.json)
+measured 238,047, 507,885, and 554,779 bytes and 4.25 seconds for the
+second wrap. The child proof is byte-identical. Fourfold FRI cuts the second
+outer proof by about 33% and its command wall time by about 45% in these
+single local runs. Command times include setup and native verification; they
+are measurements, not a soundness calculation or a general speedup claim.
+
+With [fourfold FRI on the child as well](../../../../design/s31/measurements/sparse-wide-recursion-v3-2026-10-07.json),
+the leaf, first wrapper, and second wrapper measured 182,891, 345,589, and
+373,568 bytes. The first verifier circuit fell to 3,601,643 raw variables,
+about 48% below the step-1 child. The first wrap took 1.27 seconds in that
+run versus 2.25 seconds with a step-1 child. The second proof was slightly
+larger; its wrap was 2.36 versus 2.32 seconds. The schedule therefore helps
+most when the leaf proof or first wrapper dominates the workload; it is not a monotone improvement at
+every depth.
 
 The outer keys are generated from witness-free topologies and embedded in
 the installed native verifier. The value-bearing circuit must match the
@@ -170,12 +254,23 @@ It does not yet provide a homogeneous fold for a Bitcoin header chain, nor
 does it move SHA256d from the generic circuit to a proof-bound dedicated SHA
 AIR chip.
 
-The [two-header Bitcoin acceptance run](../../../../design/s31/measurements/bitcoin-sparse-wide-recursion-v1-2026-10-07.json)
+The [onefold-child/fourfold-wrapper Bitcoin run](../../../../design/s31/measurements/bitcoin-sparse-wide-recursion-v2-2026-10-07.json)
 uses [`bitcoin_header_pair.s31`](../examples/bitcoin_header_pair.s31), which
 constrains two byte-exact SHA256d hashes, both mainnet proof-of-work checks,
 their previous-hash link, a genesis checkpoint, equal compact bits, and the
 strict first-step timestamp rule. It also passed two wrappers and the same
 mutation suite. Its verifier circuit had 9,733,516 raw variables; proof sizes
-were 372,904, 521,838, and 560,419 bytes. The first and second wrap commands
-took about 2.51 s and 4.80 s wall time in that local run. This is a fixed
-two-header relation, not an indefinitely extensible Bitcoin light client.
+were 372,904, 370,088, and 369,616 bytes. The first and second wrap commands
+took about 2.37 s and 2.45 s wall time in that local run. The
+[step-1 wrapper baseline](../../../../design/s31/measurements/bitcoin-sparse-wide-recursion-v1-2026-10-07.json)
+had 521,838- and 560,419-byte wrappers and a 4.80-second second wrap. This
+is a fixed two-header relation, not an indefinitely extensible Bitcoin light
+client.
+
+The [fourfold-child Bitcoin run](../../../../design/s31/measurements/bitcoin-sparse-wide-recursion-v3-2026-10-07.json)
+reduced the first verifier circuit from 9,733,516 to 4,697,100 raw
+variables. The three proofs measured 266,285, 352,610, and 373,854 bytes;
+the first wrap took 1.33 seconds and the second 2.15 seconds. Relative to the
+step-1 child with fourfold wrappers, first-wrap time fell about 44% in these
+single local runs. The distinct FRI schedules need a separate
+concrete-security analysis.

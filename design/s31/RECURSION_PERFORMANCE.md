@@ -44,8 +44,10 @@ does not address the main verifier-circuit cost.
 
 ## Four FRI folds per commitment
 
-The gate package now permits `--fri-fold-step 4` as an explicit build-time
-choice. The PoW, blowup and query counts remain 26, 1 and 70. The FRI
+Gate and sparse-wide-gate packages permit `--fri-fold-step 4` as an explicit
+build-time choice. For gate packages it also selects the wrapper and fold
+schedule; sparse-wide wrappers are always fourfold. The PoW, blowup and query
+counts remain 26, 1 and 70. The FRI
 configuration is mixed into the transcript and pinned by the package key;
 cross-schedule leaf proofs are rejected even when the leaf AIR root and
 circuit hash are identical. The wrapper and fold keys acquire distinct roots.
@@ -74,7 +76,7 @@ these are local measurements, not a universal speedup or a soundness proof.
 
 ## Sparse-wide leaf bridge
 
-The [sparse-wide acceptance record](measurements/sparse-wide-recursion-v1-2026-10-07.json)
+The [original sparse-wide acceptance record](measurements/sparse-wide-recursion-v1-2026-10-07.json)
 uses `wide_order.s31` as a four-component `S31NAT5W` leaf. Its verifier circuit
 has 6,972,423 raw variables. The first and second outer proofs use the
 ordinary circuit AIR, so they can be checked by the existing native gate
@@ -84,6 +86,28 @@ wrap it, and 4.25 s to wrap the first wrapper; each command includes native
 verification and setup. Building and sealing both wrapper keys took 61.26 s.
 Those are single local samples and should not be extrapolated to larger
 Bitcoin header sources.
+
+The [onefold-child/fourfold-wrapper record](measurements/sparse-wide-recursion-v2-2026-10-07.json)
+keeps the sparse-wide leaf at FRI fold step 1 and fixes the gate wrappers at
+fold step 4. The wide recursive key v3 records this outer schedule, which the
+second-level verifier must use; an altered schedule key is rejected. The
+visible 26 proof-of-work bits, blowup factor 2, and 70 queries are unchanged.
+Leaf, first-wrapper, and second-wrapper proofs are now 238,047, 372,615, and
+372,181 bytes. The second wrap took 2.32 s wall time in this local run versus
+4.25 s in the earlier step-1 wrapper run (about 45% lower). The second proof
+is about 33% smaller. The leaf proof is byte-identical. Package build still
+took about 61 s; the first verifier circuit remains 6,972,423 raw variables.
+These are separate single runs, not a controlled performance study or an
+independent calculation of cryptographic soundness.
+
+The child proof can also use fourfold FRI with `--fri-fold-step 4`. In the
+[wide-order record](measurements/sparse-wide-recursion-v3-2026-10-07.json),
+leaf/first/second proof sizes were 182,891/345,589/373,568 bytes. The first
+verifier circuit fell from 6,972,423 to 3,601,643 raw variables, about 48%.
+First-wrap wall time fell from 2.25 s in the onefold-child record to 1.27 s;
+second-wrap time was 2.32 s versus 2.36 s. This option changes the child key,
+proof transcript, and the first verifier circuit. It is useful for reducing
+the first recursion layer, but the top layer needs its own cost comparison.
 
 The bridge adds a profile-specific transcript prefix and a four-component
 statement; the rest of the in-circuit STARK verifier is shared. The child
@@ -98,15 +122,51 @@ The [cross-key fixture](../../src/frontends/s31/acceptance_sparse_wide_key_bindi
 also confirms that a same-AIR source rename changes the sparse-wide profile
 identity, rejects leaf proof replay, and changes the outer AIR root. A
 repaired clone statement still fails outer proof verification.
+The same fixture's `--compare-fri-schedules` mode holds source, preprocessed
+AIR root, and sparse-wide circuit identity fixed while changing only the
+child FRI step. It rejects leaf proof replay in both directions and a
+first-wrapper replay under a repaired public statement.
 
 This bridge still uses the generic verifier circuit and its Blake2s path
 checks. A homogeneous fold for changing Bitcoin header state and an
 authenticated SHA AIR chip remain efficiency and functionality targets.
-The [two-header Bitcoin acceptance record](measurements/bitcoin-sparse-wide-recursion-v1-2026-10-07.json)
+The [original two-header Bitcoin acceptance record](measurements/bitcoin-sparse-wide-recursion-v1-2026-10-07.json)
 confirms the same two-wrapper path for the byte-exact SHA256d and PoW
 relation: 9,733,516 raw verifier variables, 372,904-byte leaf proof,
 521,838-byte first wrapper, and 560,419-byte second wrapper. The measured
 wrap command wall times were 2.51 s and 4.80 s in one local run.
+With fourfold wrapper FRI, the [onefold-child Bitcoin record](measurements/bitcoin-sparse-wide-recursion-v2-2026-10-07.json)
+has the same 372,904-byte leaf, a 370,088-byte first wrapper, and a
+369,616-byte second wrapper. The wrap commands took 2.37 s and 2.45 s in
+one local run. Relative to the step-1 wrapper record, the second proof is
+about 34% smaller and the second command about 52% faster.
+
+The [fourfold-child Bitcoin record](measurements/bitcoin-sparse-wide-recursion-v3-2026-10-07.json)
+measured 4,697,100 first-verifier variables versus 9,733,516 with a onefold
+child, a 51.7% reduction. Its leaf/first/second proof sizes were
+266,285/352,610/373,854 bytes; wrap times were 1.33 s and 2.15 s. The
+first wrap was about 44% faster than the onefold-child/fourfold-wrapper run;
+the second was about 12% faster in these runs. The first proof became smaller but the second
+grew 1.1%. All figures are single local runs; the same visible query and
+proof-of-work counts do not establish equal concrete soundness for different
+FRI schedules.
+
+The local records can be compared directly by recursion depth. `1/4` means
+onefold child FRI and fourfold wrapper FRI; sizes are bytes and times are
+wall seconds for each proof command:
+
+| Source | Child/wrapper fold steps | First verifier variables | Leaf | First wrap | Second wrap | Leaf time | First time | Second time |
+| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| `wide_order` | `1/1` | 6,972,423 | 238,047 | 507,885 | 554,779 | 1.09 | 2.21 | 4.25 |
+| `wide_order` | `1/4` | 6,972,423 | 238,047 | 372,615 | 372,181 | 1.19 | 2.25 | 2.32 |
+| `wide_order` | `4/4` | 3,601,643 | 182,891 | 345,589 | 373,568 | 0.65 | 1.27 | 2.36 |
+| `bitcoin_header_pair` | `1/1` | 9,733,516 | 372,904 | 521,838 | 560,419 | 1.19 | 2.51 | 4.80 |
+| `bitcoin_header_pair` | `1/4` | 9,733,516 | 372,904 | 370,088 | 369,616 | 1.13 | 2.37 | 2.45 |
+| `bitcoin_header_pair` | `4/4` | 4,697,100 | 266,285 | 352,610 | 373,854 | 1.21 | 1.33 | 2.15 |
+
+These runs were collected during development, with compiler changes and
+other work on the same host. The table shows bottlenecks and proof geometry;
+it is not a controlled benchmark or a basis for a security level.
 
 The next efficiency sequence is:
 

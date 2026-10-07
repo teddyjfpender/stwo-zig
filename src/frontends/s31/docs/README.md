@@ -51,7 +51,8 @@ text .s31 ──parse/typecheck/specialize──▶ normalized relation JSON
    statements, costs, and the precise boundary before a repeatable fold.
 - [Sparse-wide recursion](recursion-sparse-wide.md): a four-component wide
    arithmetic proof wrapped twice, with the profile transcript, fixed-key
-   binding, proof polynomials, and direct adversarial checks.
+   binding, proof polynomials, adversarial checks, and an explicit security
+   claim with its assumptions.
 - [Two-level recursive chain](recursion-chain.md): wrap an already recursive
    proof, track nested public digests, and verify from the top proof.
 - [Fixed-key recursive fold](recursion-fold.md): repeat proof verification

@@ -124,8 +124,8 @@ def build_json(source_path: Path, output: Path, lowering: str = "gate",
                library_lock: dict | None = None, fri_fold_step: int = 1) -> Path:
     if lowering not in {"gate", "chip", "sparse-gate", "sparse-chip", "sparse-wide-gate", "direct-gate", "direct-chip"}:
         raise ValueError("lowering must be gate, chip, sparse-gate, sparse-chip, sparse-wide-gate, direct-gate, or direct-chip")
-    if type(fri_fold_step) is not int or fri_fold_step not in (1, 4) or (fri_fold_step == 4 and lowering != "gate"):
-        raise ValueError("FRI fold step 4 requires gate lowering; supported steps are 1 and 4")
+    if type(fri_fold_step) is not int or fri_fold_step not in (1, 4) or (fri_fold_step == 4 and lowering not in {"gate", "sparse-wide-gate"}):
+        raise ValueError("FRI fold step 4 requires gate or sparse-wide-gate lowering; supported steps are 1 and 4")
     source_path = source_path.resolve()
     source, data = load_source(source_path)
     lock_bytes = ((json.dumps(library_lock, indent=2, sort_keys=True) + "\n").encode()
@@ -251,6 +251,8 @@ def build_json(source_path: Path, output: Path, lowering: str = "gate",
             "optimize": "ReleaseFast",
             "artifacts": {item: file_hash(staging / item) for item in artifacts},
         }
+        if recursive_option:
+            manifest["recursive_fri_fold_step"] = 4 if lowering == "sparse-wide-gate" else fri_fold_step
         if state_fold_option:
             manifest["capabilities"] = ["s31-state-fold-batch-v2"]
         if lock_digest is not None:
@@ -357,19 +359,33 @@ def verify_package(package: Path) -> dict:
         raise ValueError("S31 package is missing required artifacts")
     fri_fold_step = manifest.get("fri_fold_step", 1)
     if (type(fri_fold_step) is not int or fri_fold_step not in (1, 4) or
-            (fri_fold_step == 4 and manifest.get("lowering") != "gate")):
+            (fri_fold_step == 4 and manifest.get("lowering") not in {"gate", "sparse-wide-gate"})):
         raise ValueError("invalid S31 package FRI fold step")
     if manifest.get("lowering") in {"gate", "sparse-wide-gate"}:
         if not {"recursive-verification-key.json", "recursive-verification-key-level2.json"}.issubset(artifacts):
             raise ValueError("recursive package is missing its verification keys")
         recursive_key = json.loads((package / "recursive-verification-key.json").read_text())
         recursive_next_key = json.loads((package / "recursive-verification-key-level2.json").read_text())
-        if (recursive_key.get("schema") != "s31-recursive-verification-key-v2" or
+        wide = manifest["lowering"] == "sparse-wide-gate"
+        expected_schema = "s31-recursive-verification-key-v3" if wide else "s31-recursive-verification-key-v2"
+        expected_recursive_step = 4 if wide else fri_fold_step
+        actual_recursive_step = manifest.get("recursive_fri_fold_step")
+        if (wide and (type(actual_recursive_step) is not int or actual_recursive_step != 4)) or (
+                not wide and actual_recursive_step is not None and
+                (type(actual_recursive_step) is not int or actual_recursive_step != expected_recursive_step)):
+            raise ValueError("S31 recursive FRI schedule does not match the package profile")
+        first_outer_step = recursive_key.get("outer_fri_fold_step")
+        second_outer_step = recursive_next_key.get("outer_fri_fold_step")
+        if (wide and (type(first_outer_step) is not int or first_outer_step != 4 or
+                      type(second_outer_step) is not int or second_outer_step != 4)) or (
+                not wide and (first_outer_step is not None or second_outer_step is not None)):
+            raise ValueError("S31 recursive keys have an invalid FRI schedule")
+        if (recursive_key.get("schema") != expected_schema or
                 recursive_key.get("child_key_sha256") != file_hash(package / "verification-key.json") or
                 recursive_key.get("projection_sha256") != PROJECTION_SHA256 or
                 recursive_key.get("air_bundle_sha256") != AIR_BUNDLE_SHA256):
             raise ValueError("S31 recursive key does not match the child key and pinned AIR")
-        if (recursive_next_key.get("schema") != "s31-recursive-verification-key-v2" or
+        if (recursive_next_key.get("schema") != expected_schema or
                 recursive_next_key.get("child_key_sha256") != file_hash(package / "recursive-verification-key.json") or
                 recursive_next_key.get("projection_sha256") != PROJECTION_SHA256 or
                 recursive_next_key.get("air_bundle_sha256") != AIR_BUNDLE_SHA256):
@@ -970,14 +986,14 @@ def main() -> None:
     sub.add_argument("--out", type=Path, required=True)
     sub.add_argument("--lowering", choices=("gate", "chip", "sparse-gate", "sparse-chip", "sparse-wide-gate", "direct-gate", "direct-chip"), default="gate")
     sub.add_argument("--fri-fold-step", type=int, choices=(1, 4), default=1,
-                     help="FRI folds per commitment for gate proofs; 4 can shrink recursive verifier circuits")
+                     help="FRI folds per commitment for gate or sparse-wide-gate proofs; 4 can shrink recursive verifier circuits")
     sub = commands.add_parser("trial", help="build, prove, verify, and record one trial")
     sub.add_argument("source_or_package", type=Path)
     sub.add_argument("assignment", type=Path)
     sub.add_argument("--out", type=Path, required=True)
     sub.add_argument("--lowering", choices=("gate", "chip", "sparse-gate", "sparse-chip", "sparse-wide-gate", "direct-gate", "direct-chip"))
     sub.add_argument("--fri-fold-step", type=int, choices=(1, 4),
-                     help="select a gate package's FRI schedule, or check a supplied package")
+                     help="select a gate or sparse-wide-gate package's FRI schedule, or check a supplied package")
     sub = commands.add_parser("tune", help="compare verified proof profiles on one source and assignment corpus")
     sub.add_argument("source", type=Path)
     sub.add_argument("assignments", type=Path, nargs="+")

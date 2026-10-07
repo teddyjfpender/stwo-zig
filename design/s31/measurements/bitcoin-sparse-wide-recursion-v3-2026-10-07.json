@@ -1,0 +1,40 @@
+{
+  "child_fri_fold_step": 4,
+  "circuit_witness_mutations_rejected": 10,
+  "compiler_sha256": "5fbb76c17240f75bd12c1ee33a06286ffc1aec14d9ba187122820bd4b5badd58",
+  "first_verifier_variables": 4697100,
+  "host_negative_checks": [
+    "missing_outer_fri_schedule_manifest",
+    "corrupt_child_proof",
+    "unsealed_child_key",
+    "wrong_outer_fri_schedule_key",
+    "wrong_child_public_claim",
+    "wrong_first_child_public_words",
+    "wrong_first_outer_public_words",
+    "wrong_first_root",
+    "corrupt_first_proof",
+    "wrong_chain_leaf_child_public_words",
+    "wrong_chain_head_child_public_words",
+    "wrong_chain_head_outer_public_words",
+    "corrupt_second_proof"
+  ],
+  "outer_fri_fold_step": 4,
+  "profile": "sparse-wide-v5 child, two circuit-v1 wrappers",
+  "proof_bytes": [
+    266285,
+    352610,
+    373854
+  ],
+  "recursive_keys_reproduced": true,
+  "schema": "s31-sparse-wide-recursion-acceptance-v2",
+  "second_level_mutations_rejected": 7,
+  "source_name": "bitcoin_header_pair",
+  "source_sha256": "307fe5bc6c76cf4210837b10bba5eeb9dd4f288491b62ca01381eb66d29a6d0c",
+  "wall_seconds": {
+    "audit": 0.7931851249886677,
+    "build": 60.08681470900774,
+    "leaf": 1.2097379999468103,
+    "wrap_1": 1.3252719170413911,
+    "wrap_2": 2.152224374935031
+  }
+}

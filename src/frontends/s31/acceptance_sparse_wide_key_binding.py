@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Same gate AIR, different source key: sparse-wide leaf and outer replay fail."""
+"""Sparse-wide leaf and outer replay fail across source or FRI key changes."""
 
 import argparse
 import hashlib
@@ -27,19 +27,32 @@ def call(*args: str, accepted: bool = True) -> str:
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--package", type=Path, help="reuse the original wide_order package")
+    parser.add_argument("--compare-fri-schedules", action="store_true",
+                        help="compare the same source under child fold steps 1 and 4")
     args = parser.parse_args()
     with tempfile.TemporaryDirectory(prefix="s31-wide-key-binding-") as temporary:
         work = Path(temporary)
         original = args.package.resolve() if args.package else s31.build(SOURCE, work / "original", "sparse-wide-gate")
         s31.verify_package(original)
-        clone_source = work / "wide_order_clone.s31"
-        clone_source.write_text(SOURCE.read_text().replace("circuit wide_order(", "circuit wide_order_clone("))
-        clone = s31.build(clone_source, work / "clone", "sparse-wide-gate")
+        if args.compare_fri_schedules:
+            clone_source = SOURCE
+            clone_name = "wide_order"
+            clone = s31.build(clone_source, work / "clone", "sparse-wide-gate", 4)
+        else:
+            clone_source = work / "wide_order_clone.s31"
+            clone_source.write_text(SOURCE.read_text().replace("circuit wide_order(", "circuit wide_order_clone("))
+            clone_name = "wide_order_clone"
+            clone = s31.build(clone_source, work / "clone", "sparse-wide-gate")
         original_key = json.loads((original / "verification-key.json").read_text())
         clone_key = json.loads((clone / "verification-key.json").read_text())
         if original_key["preprocessed_root"] != clone_key["preprocessed_root"]:
             raise AssertionError("same arithmetic changed the preprocessed AIR root")
-        if original_key["circuit_hash"] == clone_key["circuit_hash"]:
+        if args.compare_fri_schedules:
+            if original_key["circuit_hash"] != clone_key["circuit_hash"]:
+                raise AssertionError("FRI-only change changed the source/AIR identity")
+            if (original_key["fri"]["fold_step"], clone_key["fri"]["fold_step"]) != (1, 4):
+                raise AssertionError("comparison did not build both child FRI schedules")
+        elif original_key["circuit_hash"] == clone_key["circuit_hash"]:
             raise AssertionError("different source did not change sparse-wide circuit identity")
         original_recursive = json.loads((original / "recursive-verification-key.json").read_text())
         clone_recursive = json.loads((clone / "recursive-verification-key.json").read_text())
@@ -48,8 +61,8 @@ def main() -> None:
 
         original_prover = original / "bin" / "s31-wide_order-prover"
         original_verifier = original / "bin" / "s31-wide_order-native-verifier"
-        clone_prover = clone / "bin" / "s31-wide_order_clone-prover"
-        clone_verifier = clone / "bin" / "s31-wide_order_clone-native-verifier"
+        clone_prover = clone / "bin" / f"s31-{clone_name}-prover"
+        clone_verifier = clone / "bin" / f"s31-{clone_name}-native-verifier"
         original_leaf = work / "original-leaf.proof"
         original_outer = work / "original-outer.proof"
         clone_leaf = work / "clone-leaf.proof"
@@ -80,10 +93,11 @@ def main() -> None:
         if "InvalidRecursiveStatement" in rejection or "InvalidRecursiveVerificationKey" in rejection:
             raise AssertionError("repaired clone statement failed before outer proof verification")
         print(json.dumps({
-            "schema": "s31-sparse-wide-key-binding-v1",
+            "schema": "s31-sparse-wide-key-binding-v2",
+            "comparison": "fri-schedules" if args.compare_fri_schedules else "source-names",
             "same_preprocessed_air_root": True,
-            "different_profile_identity": True,
-            "cross_source_leaf_replay_rejected": True,
+            "same_profile_identity": args.compare_fri_schedules,
+            "cross_key_leaf_replay_rejected": True,
             "different_outer_air_root": True,
             "cross_key_outer_replay_rejected_after_statement_repair": True,
         }, indent=2))

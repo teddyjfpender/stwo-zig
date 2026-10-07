@@ -138,6 +138,12 @@ routine outer verification does not rebuild the large verifier topology.
 Sparse-wide packages also seal two wrapper keys, and the
 [sparse-wide chapter](docs/recursion-sparse-wide.md) shows this path with a
 256-bit arithmetic source, ten direct verifier mutations, and measured costs.
+The sparse-wide child defaults to FRI fold step 1 and also supports
+`--fri-fold-step 4`; its two gate wrappers use step 4. The leaf key and v3
+recursive keys bind their schedules. In the local two-header Bitcoin fixture,
+fourfold child FRI halved the first verifier circuit's raw variables and cut
+first-wrap wall time by about 40% relative to a onefold child in local runs. A separate
+concrete-security analysis is still needed for each schedule.
 The [fixed-key fold chapter](docs/recursion-fold.md) shows repeatable proof
 verification under one sealed key and a constrained `u16` step counter.
 The [state-fold chapter](docs/state-fold.md) extracts a typed four-lane
@@ -147,7 +153,9 @@ supports up to 2³²−1 added steps. `state-fold-advance` runs
 multiple steps with optional checkpoints for resume.
 For recursive packages, `s31 build SOURCE --out PACKAGE --fri-fold-step 4`
 uses four FRI folds per commitment with the same 26 PoW bits, blowup factor 2,
-and 70 queries. It is a distinct, key-bound proof schedule: the affine-square
+and 70 queries. For `gate` packages it selects leaf, wrapper, and fold FRI;
+for `sparse-wide-gate` it selects the leaf while wrappers already use step 4.
+It is a distinct, key-bound proof schedule: the affine-square
 state-fold circuit has 5.59 million raw variables versus 11.82 million at the
 default fold step 1. The [state-fold chapter](docs/state-fold.md#choose-the-fri-schedule)
 explains the proof and verifier boundary.

@@ -32,10 +32,10 @@ def main() -> None:
         try:
             s31.build(SOURCE, work / "unsupported-profile", lowering="direct-gate", fri_fold_step=4)
         except ValueError as exc:
-            if "requires gate lowering" not in str(exc):
+            if "requires gate or sparse-wide-gate lowering" not in str(exc):
                 raise AssertionError("unsupported FRI setting failed for the wrong reason") from exc
         else:
-            raise AssertionError("FRI fold step 4 was offered without a recursive gate verifier")
+            raise AssertionError("FRI fold step 4 was offered for an unsupported proof profile")
         for package, expected_step in ((one, 1), (four, 4)):
             manifest = s31.verify_package(package)
             key = json.loads((package / "verification-key.json").read_text())
@@ -81,7 +81,7 @@ def main() -> None:
         try:
             s31.verify_package(copied)
         except ValueError as exc:
-            if "key does not match manifest" not in str(exc):
+            if "recursive FRI schedule does not match the package profile" not in str(exc):
                 raise AssertionError("tampered FRI schedule failed for the wrong reason") from exc
         else:
             raise AssertionError("tampered manifest selected a different FRI schedule")

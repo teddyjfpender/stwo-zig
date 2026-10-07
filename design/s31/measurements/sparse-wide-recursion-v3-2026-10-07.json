@@ -1,0 +1,41 @@
+{
+  "child_fri_fold_step": 4,
+  "circuit_witness_mutations_rejected": 10,
+  "compiler_sha256": "5fbb76c17240f75bd12c1ee33a06286ffc1aec14d9ba187122820bd4b5badd58",
+  "first_verifier_variables": 3601643,
+  "host_negative_checks": [
+    "missing_outer_fri_schedule_manifest",
+    "corrupt_child_proof",
+    "unsealed_child_key",
+    "wrong_outer_fri_schedule_key",
+    "wrong_child_public_claim",
+    "wrong_first_child_public_words",
+    "wrong_first_outer_public_words",
+    "wrong_first_root",
+    "corrupt_first_proof",
+    "wrong_chain_leaf_child_public_words",
+    "wrong_chain_head_child_public_words",
+    "wrong_chain_head_outer_public_words",
+    "corrupt_second_proof"
+  ],
+  "outer_fri_fold_step": 4,
+  "profile": "sparse-wide-v5 child, two circuit-v1 wrappers",
+  "proof_bytes": [
+    182891,
+    345589,
+    373568
+  ],
+  "recursive_keys_reproduced": true,
+  "schema": "s31-sparse-wide-recursion-acceptance-v2",
+  "second_distinct_witness_wrapped_twice": true,
+  "second_level_mutations_rejected": 7,
+  "source_name": "wide_order",
+  "source_sha256": "3529efb2ab6c15e862ded7d1c336f7f0f555b0aefcd407a689b308d1d9c7d16a",
+  "wall_seconds": {
+    "audit": 0.5804395419545472,
+    "build": 60.875578250037506,
+    "leaf": 0.6533962499815971,
+    "wrap_1": 1.2701377080520615,
+    "wrap_2": 2.3573778750142083
+  }
+}
