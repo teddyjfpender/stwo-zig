@@ -85,6 +85,8 @@ test "real q193 native child feeds freshly verified q193 local outer" {
     defer preleaf_layout.deinit();
     var preleaf_masks = try fixed_rows.buildV12PreleafPcsMasks(allocator, &verified.native.capture, &preleaf_core, &preleaf_layout);
     defer preleaf_masks.deinit();
+    try fixed_rows.checkV12SelectedFixedWire(allocator, &verified, &preleaf_core, known_tree0);
+    std.debug.print("DIRECT50_V12_FIXED_WIRE selected_shape=true native_capture_parity=true tamper_rejected=true proof_created=false\n", .{});
     std.debug.print("DIRECT50_V11_PRELEAF_LAYOUT trees0_2_from_statement=true tree3_from_pinned_core=true proof_created=false\n", .{});
     var prepared = try leaf_outer.PreparedNativeV2LeafOuter.init(
         allocator,

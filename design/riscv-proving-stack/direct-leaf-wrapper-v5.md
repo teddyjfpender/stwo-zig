@@ -180,6 +180,19 @@ the existing production writer rejects these rows before Tree0 publication.
 The current legacy-zero machine-I/O graph is consistent with q193's admitted
 zero-state policy; nonzero machine I/O needs a separately versioned graph and
 statement relation.
+The V12 fixed-wire selector now derives all four commitment-tree column
+counts, ordered PCS sample count, FRI schedule, heights, and shape identities
+from the selected SegmentV2 statement, core profile, and pinned Tree0 before
+accepting a child capture. Its q193 test key has 654 committed columns
+(30/516/100/8), 754 sampled values, five FRI layers, and depth 21. This
+differs from the older frozen 871-column SegmentProfileV1 wire, which fails
+dimension admission for q193. On a freshly verified q193 proof, the selected
+shape equals the capture-derived shape and populates one exact fixed wire.
+The adapter now compares every active statement descriptor and public
+execution/I/O field, not just table geometry; altered shape, step count, and
+I/O origin are rejected without changing destination bytes. This remains a
+diagnostic admission check: the test's selected statement still comes from
+the verified fixture, and no complete wrapper proof or parent is created.
 Independent shape-derived writers now cover rows 11, 13, 14, 18, 19, and 22;
 rows 11, 18, and 19 have not yet been admitted into the complete template
 key. The row-13/14 writer covers the public authority hash and seal, with

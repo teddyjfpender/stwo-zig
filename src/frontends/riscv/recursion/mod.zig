@@ -45,6 +45,7 @@ pub const fixed_wire = @import("fixed_wire.zig");
 pub const fixed_wire_adapter = @import("fixed_wire_adapter.zig");
 pub const fri_profile_frontier = @import("fri_profile_frontier.zig");
 pub const leaf_profile = @import("leaf_profile.zig");
+pub const leaf_profile_selected_v12 = @import("leaf_profile_selected_v12.zig");
 pub const pair_node = @import("pair_node.zig");
 pub const poseidon2_channel = @import("poseidon2_channel.zig");
 pub const proof_ingress = @import("proof_ingress.zig");

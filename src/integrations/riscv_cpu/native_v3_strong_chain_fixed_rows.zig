@@ -21,6 +21,82 @@ pub fn diagnosticRelations(
     return recursion.air.universal_challenges.UniversalRelations.draw(allocator, &channel);
 }
 
+pub fn checkV12SelectedFixedWire(
+    allocator: std.mem.Allocator,
+    verified: anytype,
+    selected_core: *const recursion.air.segment_leaf_wrapper_template_v6.CoreProfileV6,
+    pinned_tree0: [8]u32,
+) !void {
+    // Exact q193 fixture geometry, selected before native proof inspection.
+    // The larger SegmentProfileV1 wire (871 columns) is a different key.
+    const dimensions = recursion.fixed_wire.Dimensions{
+        .commitment_count = 4,
+        .claimed_sum_count = 28,
+        .sampled_value_count = 754,
+        .queried_value_count = 654 * recursion.protocol.FRI_QUERY_COUNT,
+        .trace_path_count = 4 * recursion.protocol.FRI_QUERY_COUNT,
+        .fri_layer_count = 5,
+        .query_count = recursion.protocol.FRI_QUERY_COUNT,
+        .maximum_fold_width = 16,
+        .last_layer_coefficient_count = 1,
+        .maximum_merkle_depth = 21,
+    };
+    const native = &verified.native.capture;
+    const statement = try native.vm_air.reconstructStatement(&native.public_data.data);
+    const selected_shape = try recursion.leaf_profile_selected_v12.deriveSegmentV2(
+        dimensions,
+        allocator,
+        &statement.core,
+        selected_core,
+        pinned_tree0,
+    );
+    const captured_shape = try recursion.leaf_profile.deriveShape(dimensions, &statement.core, &native.proof);
+    try std.testing.expectEqualDeep(captured_shape, selected_shape);
+    const Wire = recursion.fixed_wire.FixedStarkProofWire(dimensions);
+    const wire = try allocator.create(Wire);
+    defer allocator.destroy(wire);
+    try recursion.fixed_wire_adapter.populateVerifiedSegmentV2(dimensions, wire, selected_shape, &statement.core, verified);
+    try wire.validateAgainstShape(selected_shape);
+
+    var altered = selected_shape;
+    altered.table_layout_id[0] ^= 1;
+    @memset(std.mem.asBytes(wire), 0xa5);
+    var before: [32]u8 = undefined;
+    std.crypto.hash.sha2.Sha256.hash(std.mem.asBytes(wire), &before, .{});
+    try std.testing.expectError(error.CaptureShapeMismatch, recursion.fixed_wire_adapter.populateVerifiedSegmentV2(
+        dimensions,
+        wire,
+        altered,
+        &statement.core,
+        verified,
+    ));
+    var after: [32]u8 = undefined;
+    std.crypto.hash.sha2.Sha256.hash(std.mem.asBytes(wire), &after, .{});
+    try std.testing.expectEqual(before, after);
+    var altered_statement = statement.core;
+    altered_statement.total_steps ^= 1;
+    try std.testing.expectError(error.CaptureShapeMismatch, recursion.fixed_wire_adapter.populateVerifiedSegmentV2(
+        dimensions,
+        wire,
+        selected_shape,
+        &altered_statement,
+        verified,
+    ));
+    std.crypto.hash.sha2.Sha256.hash(std.mem.asBytes(wire), &after, .{});
+    try std.testing.expectEqual(before, after);
+    altered_statement = statement.core;
+    altered_statement.public_data.io_entries.input_start ^= 4;
+    try std.testing.expectError(error.CaptureShapeMismatch, recursion.fixed_wire_adapter.populateVerifiedSegmentV2(
+        dimensions,
+        wire,
+        selected_shape,
+        &altered_statement,
+        verified,
+    ));
+    std.crypto.hash.sha2.Sha256.hash(std.mem.asBytes(wire), &after, .{});
+    try std.testing.expectEqual(before, after);
+}
+
 pub fn allocateV8StatementColumns(allocator: std.mem.Allocator, count: usize) ![][]M31 {
     const columns = try allocator.alloc([]M31, count);
     var written: usize = 0;
