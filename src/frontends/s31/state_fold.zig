@@ -6,6 +6,7 @@ const circuit = @import("stwo_circuit_frontend");
 const cpu = @import("stwo_circuit_cpu_integration");
 const recursion_gate = @import("recursion_gate.zig");
 const recursion_counter = @import("recursion_counter.zig");
+const proof_witness_connectivity = @import("proof_witness_connectivity.zig");
 const relation = @import("stwo_s31_prototype").relation;
 
 const QM31 = core.fields.qm31.QM31;
@@ -41,6 +42,11 @@ pub const StageStats = struct {
 pub const StageCapture = struct {
     entries: [32]StageStats = undefined,
     len: usize = 0,
+    proof_connectivity: ?proof_witness_connectivity.Stats = null,
+
+    pub fn auditProofWitness(self: *StageCapture, allocator: std.mem.Allocator, gates: *const circuit.builder.Circuit, constants: []const Var, start: u32, end: u32) !void {
+        self.proof_connectivity = try proof_witness_connectivity.audit(allocator, gates, constants, start, end);
+    }
 
     pub fn mark(self: *StageCapture, gates: *const circuit.builder.Circuit, stage: circuit.stark_verifier.verify.Stage) !void {
         if (self.len == self.entries.len) return error.TooManyVerifierStages;
@@ -221,7 +227,9 @@ pub fn buildCircuit(
     );
     var proof_config = try circuit.statements.circuit_statement.circuitVerifierProofConfig(allocator, &config.preprocessed_column_log_sizes, config.config);
     defer proof_config.deinit(allocator);
+    const proof_start = ctx.circuit.n_vars;
     const proof_vars = try circuit.stark_verifier.proof.guess(V, &ctx, input);
+    const proof_end = ctx.circuit.n_vars;
     try stages.mark(&ctx.circuit, .{ .name = "proof_witness" });
     try circuit.stark_verifier.verify.verify(V, &ctx, &proof_vars, proof_config, &statement, stages);
 
@@ -230,6 +238,12 @@ pub fn buildCircuit(
     for (&outputs, output_hash.words) |*out, word| out.* = word.get();
     try ctx.setOutputs(&outputs);
     try stages.mark(&ctx.circuit, .{ .name = "state_fold_digest" });
+    const StageType = switch (@typeInfo(@TypeOf(stages))) {
+        .pointer => |pointer| pointer.child,
+        else => @TypeOf(stages),
+    };
+    if (comptime @hasDecl(StageType, "auditProofWitness"))
+        try stages.auditProofWitness(allocator, &ctx.circuit, ctx.constants.values(), proof_start, proof_end);
     try ctx.finalize(false);
     try stages.mark(&ctx.circuit, .{ .name = "finalize" });
     return ctx;

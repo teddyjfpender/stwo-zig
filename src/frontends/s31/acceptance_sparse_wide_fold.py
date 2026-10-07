@@ -123,6 +123,11 @@ def main() -> None:
         if (geometry["schema"] != "s31-wide-fixed-fold-geometry-v1" or
                 geometry["fold_preprocessed_root"] != json.loads(keys[3].read_text())["fold_preprocessed_root"]):
             raise AssertionError("inspected fold geometry does not match its sealed key")
+        connectivity = geometry["proof_witness_connectivity"]
+        if (connectivity["proof_vars"] <= 0 or connectivity["reaches_neither"] != 0 or
+                connectivity["reaches_output"] != connectivity["proof_vars"] or
+                connectivity["reaches_equality"] != connectivity["proof_vars"]):
+            raise AssertionError("child-proof witness is disconnected from the wide fold claim")
         stages = geometry["verifier_stages"]
         if (not isinstance(stages, list) or len(stages) < 20 or
                 stages[0]["name"] != "proof_witness" or

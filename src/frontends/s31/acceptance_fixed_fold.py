@@ -62,6 +62,11 @@ def main() -> None:
         sealed_fold = json.loads(fold_key.read_text())
         if geometry["fold_preprocessed_root"] != sealed_fold["fold_preprocessed_root"]:
             raise AssertionError("inspected fold topology did not match the sealed root")
+        connectivity = geometry["proof_witness_connectivity"]
+        if (connectivity["proof_vars"] <= 0 or connectivity["reaches_neither"] != 0 or
+                connectivity["reaches_output"] != connectivity["proof_vars"] or
+                connectivity["reaches_equality"] != connectivity["proof_vars"]):
+            raise AssertionError("child-proof witness is disconnected from the fold claim")
         for component, padded in geometry["padded_rows"].items():
             if geometry["raw_rows"][component] + geometry["headroom_rows"][component] != padded:
                 raise AssertionError(f"incorrect fold headroom for {component}")

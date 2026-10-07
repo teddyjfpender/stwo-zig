@@ -153,6 +153,21 @@ structural dead-field check, not a proof that every field reaches an asserted
 equality or that the verifier implements the intended protocol. The mutation
 tests and independent verifier review address those stronger questions.
 
+`inspect-fold` and `inspect-state-fold` now also report
+`proof_witness_connectivity` for the exact child-proof guess range. The
+inspector builds an undirected graph from the pre-finalization gates, excludes
+all interned constant wires as bridges, and counts proof variables in a
+component containing a public output or a nontrivial equality. Inspection
+fails if any proof variable lacks a path to a public output; the equality
+count is an additional diagnostic. In the [connectivity record](measurements/fold-proof-witness-connectivity-2026-10-07.json),
+all 799,388 default gate fold proof variables and all 340,096 fourfold gate,
+state-fold, and sparse-wide proof variables reach **both** kinds of anchor.
+The unit test includes a disconnected witness that shares a constant with a
+connected witness and confirms it remains disconnected. This is stronger
+than a use-count check but remains a structural audit: paths through other
+shared variables or algebraic cancellation could still make a field
+semantically irrelevant. The native/circuit mutation tests remain necessary.
+
 The current fourfold sparse-wide fold has about 5.59 million raw circuit
 variables. In the measured verifier stages, Merkle plus FRI decommitment
 dominates raw variable count; the [stage record](measurements/sparse-wide-fold-u32-v1-2026-10-07.json)

@@ -62,6 +62,11 @@ def main() -> None:
         prover = package / "bin/s31-arith4_m31-prover"
         verifier = package / "bin/s31-arith4_m31-native-verifier"
         geometry = json.loads(run("python3", str(HERE / "s31.py"), "inspect-state-fold", str(package)))
+        connectivity = geometry["proof_witness_connectivity"]
+        if (connectivity["proof_vars"] <= 0 or connectivity["reaches_neither"] != 0 or
+                connectivity["reaches_output"] != connectivity["proof_vars"] or
+                connectivity["reaches_equality"] != connectivity["proof_vars"]):
+            raise AssertionError("child-proof witness is disconnected from the state-fold claim")
         baseline_geometry = {key: value for key, value in geometry.items() if key != "inspected_step"}
         for step in (1, 65535, 65536, 0x80000000, 0xffffffff):
             probe = json.loads(run("python3", str(HERE / "s31.py"), "inspect-state-fold",

@@ -2122,7 +2122,7 @@ fn inspectFold(
     var stages: state_fold.StageCapture = .{};
     var topology_ctx = try fixed_fold.topologyAtStepWithStages(allocator, projection_bytes, verified.layout, verified.pcs, verified.base_root, step, &stages);
     defer topology_ctx.deinit();
-    try emitFoldGeometry(allocator, &topology_ctx, verified, fold.value.padded, "s31-fixed-fold-geometry-v1", step, stages.slice());
+    try emitFoldGeometry(allocator, &topology_ctx, verified, fold.value.padded, "s31-fixed-fold-geometry-v1", step, stages.slice(), stages.proof_connectivity);
 }
 
 fn inspectWideFold(
@@ -2159,7 +2159,7 @@ fn inspectWideFold(
     var stages: state_fold.StageCapture = .{};
     var topology_ctx = try fixed_fold.topologyAtStepWithStages(allocator, projection_bytes, verified.layout, verified.pcs, verified.base_root, step, &stages);
     defer topology_ctx.deinit();
-    try emitFoldGeometry(allocator, &topology_ctx, verified, fold.value.padded, "s31-wide-fixed-fold-geometry-v1", step, stages.slice());
+    try emitFoldGeometry(allocator, &topology_ctx, verified, fold.value.padded, "s31-wide-fixed-fold-geometry-v1", step, stages.slice(), stages.proof_connectivity);
 }
 
 fn inspectStateFold(
@@ -2191,7 +2191,7 @@ fn inspectStateFold(
     var stages: state_fold.StageCapture = .{};
     var topology_ctx = try state_fold.topologyAtStepWithStages(allocator, projection_bytes, verified.layout, verified.pcs, verified.base_root, spec.body, step, &stages);
     defer topology_ctx.deinit();
-    try emitFoldGeometry(allocator, &topology_ctx, verified, state_key.value.padded, "s31-state-fold-geometry-v2", step, stages.slice());
+    try emitFoldGeometry(allocator, &topology_ctx, verified, state_key.value.padded, "s31-state-fold-geometry-v2", step, stages.slice(), stages.proof_connectivity);
 }
 
 fn emitFoldGeometry(
@@ -2202,7 +2202,10 @@ fn emitFoldGeometry(
     schema: []const u8,
     step: u32,
     stages: ?[]const state_fold.StageStats,
+    proof_connectivity: ?@import("proof_witness_connectivity.zig").Stats,
 ) !void {
+    const connectivity = proof_connectivity orelse return error.MissingProofWitnessAudit;
+    if (connectivity.reaches_output != connectivity.proof_vars) return error.ProofWitnessNotClaimConnected;
     const raw = circuit.common.finalize.rawComponentSizes(preprocessed.CircuitView.fromBuilder(&topology_ctx.circuit));
     const raw_vars = topology_ctx.circuit.n_vars;
     try circuit.common.finalize.padContext(circuit.builder.NoValue, topology_ctx);
@@ -2243,6 +2246,7 @@ fn emitFoldGeometry(
         .padded_rows = padded,
         .headroom_rows = headroom,
         .verifier_stages = stages,
+        .proof_witness_connectivity = connectivity,
     };
     const encoded = try std.json.Stringify.valueAlloc(allocator, report, .{});
     defer allocator.free(encoded);

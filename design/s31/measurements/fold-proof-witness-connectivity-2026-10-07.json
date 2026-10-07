@@ -1,0 +1,49 @@
+{
+  "schema": "s31-fold-proof-witness-connectivity-v1",
+  "audit": "Undirected pre-finalization gate graph; interned constants cannot bridge components; each proof witness must reach a public output; equality reachability is also reported",
+  "profiles": [
+    {
+      "name": "gate fixed fold, onefold FRI",
+      "fold_preprocessed_root": "c0f96dbfa5ad37611a75add7ba38d348bf4f550d2df4fe740111aca8676ccb82",
+      "raw_vars": 11823654,
+      "proof_vars": 799388,
+      "reaches_output": 799388,
+      "reaches_equality": 799388,
+      "reaches_neither": 0
+    },
+    {
+      "name": "gate fixed fold, fourfold FRI",
+      "fold_preprocessed_root": "d9761db1b3f8c85d7bfe4aeb0edd67d673c3020286697ea7c6f8948ec21b2950",
+      "raw_vars": 5589569,
+      "proof_vars": 340096,
+      "reaches_output": 340096,
+      "reaches_equality": 340096,
+      "reaches_neither": 0
+    },
+    {
+      "name": "gate state fold, fourfold FRI",
+      "fold_preprocessed_root": "b1af7e848220a7a110184d74854d4a9d9e5182d76c79548fa8a8529683e8b99a",
+      "raw_vars": 5589617,
+      "proof_vars": 340096,
+      "reaches_output": 340096,
+      "reaches_equality": 340096,
+      "reaches_neither": 0
+    },
+    {
+      "name": "sparse-wide fixed fold, fourfold FRI",
+      "fold_preprocessed_root": "55f6ad104733f21d0b69fcbc604aeec4f02d0fb66291a3a8933d3a9fbe14402a",
+      "raw_vars": 5589571,
+      "proof_vars": 340096,
+      "reaches_output": 340096,
+      "reaches_equality": 340096,
+      "reaches_neither": 0
+    }
+  ],
+  "regressions": [
+    "A disconnected proof witness is reported even when it shares an interned constant with a connected witness",
+    "Gate fixed-fold acceptance passed",
+    "Gate state-fold acceptance passed",
+    "Sparse-wide fixed-fold acceptance passed"
+  ],
+  "limit": "Graph connectivity does not prove semantic influence or end-to-end STARK soundness"
+}

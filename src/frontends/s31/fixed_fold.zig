@@ -107,7 +107,9 @@ pub fn buildCircuit(
     );
     var proof_config = try circuit.statements.circuit_statement.circuitVerifierProofConfig(allocator, &config.preprocessed_column_log_sizes, config.config);
     defer proof_config.deinit(allocator);
+    const proof_start = ctx.circuit.n_vars;
     const proof_vars = try circuit.stark_verifier.proof.guess(V, &ctx, input);
+    const proof_end = ctx.circuit.n_vars;
     try stages.mark(&ctx.circuit, .{ .name = "proof_witness" });
     try circuit.stark_verifier.verify.verify(V, &ctx, &proof_vars, proof_config, &statement, stages);
 
@@ -116,6 +118,12 @@ pub fn buildCircuit(
     for (&outputs, output_hash.words) |*out, word| out.* = word.get();
     try ctx.setOutputs(&outputs);
     try stages.mark(&ctx.circuit, .{ .name = "fixed_fold_digest" });
+    const StageType = switch (@typeInfo(@TypeOf(stages))) {
+        .pointer => |pointer| pointer.child,
+        else => @TypeOf(stages),
+    };
+    if (comptime @hasDecl(StageType, "auditProofWitness"))
+        try stages.auditProofWitness(allocator, &ctx.circuit, ctx.constants.values(), proof_start, proof_end);
     try ctx.finalize(false);
     try stages.mark(&ctx.circuit, .{ .name = "finalize" });
     return ctx;

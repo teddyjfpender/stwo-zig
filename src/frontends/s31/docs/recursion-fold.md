@@ -182,6 +182,12 @@ digest, counter, and previous/current public fold digests as JSON.
 prints its raw rows, padded rows, available headroom, and cumulative
 `verifier_stages` as JSON. Subtract adjacent stage counts to see which
 verifier phases add variables and gates; inspection does not alter the AIR.
+The `proof_witness_connectivity` object counts child-proof wires connected
+to a public output or an asserted equality before guessed-variable yield
+gates are added. Interned constants cannot act as graph bridges. Inspection
+fails if a proof wire cannot reach a public output. This catches disconnected
+witness calculations; it does not prove that every connected value affects
+the claim algebraically.
 The earlier u16 fold's `arith4_m31` fixture had raw/padded `triple_xor` rows
 `243880/262144`. Its recorded geometry remains historical because the u32
 counter changes the AIR root and several raw row counts. This matters when
