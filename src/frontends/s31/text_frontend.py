@@ -25,6 +25,7 @@ MAX_TOKENS = 100_000
 MAX_CALL_DEPTH = 32
 BUILTINS = {
     "splat", "iterate", "m31_from_u16", "select", "poseidon2_leaf",
+    "std::array::get", "std::array::concat",
     "poseidon2_pair", "blake2s_leaf", "blake2s_pair",
     "merkle_path_poseidon2", "merkle_path_blake2s",
     "std::bytes::to_u256_le", "std::bytes::from_u256_le", "std::bytes::limbs_m31",
@@ -368,7 +369,7 @@ class Compiler:
         return thing
 
     def eval_block(self, statements: tuple[Statement, ...], body: Expr,
-                   env: dict[str, Value], wanted: str | None = None,
+                   env: dict[str, Any], wanted: str | None = None,
                    inline_prefix: str = "", allow_assert: bool = True) -> Value:
         local = env.copy()
         for statement_index, statement in enumerate(statements):
@@ -381,8 +382,10 @@ class Compiler:
                     target = f"{inline_prefix}{statement_index}"
                 else:
                     target = statement.name
-                local[statement.name] = self.expect_value(
-                    self.eval_expr(statement.args[0], local, wanted=target), statement.args[0])
+                value = self.eval_expr(statement.args[0], local, wanted=target)
+                if not isinstance(value, (Value, StaticGroup)):
+                    raise self.located(statement.args[0], "let requires a circuit value or static array")
+                local[statement.name] = value
             else:
                 if not allow_assert:
                     raise self.located(statement.args[0], "pure functions cannot contain assertions")
@@ -420,7 +423,7 @@ class Compiler:
             raise self.located(expr, f"{name} result does not match its declared type")
         return result
 
-    def eval_expr(self, expr: Expr, env: dict[str, Value], wanted: str | None = None) -> Any:
+    def eval_expr(self, expr: Expr, env: dict[str, Any], wanted: str | None = None) -> Any:
         try:
             if expr.kind == "name":
                 if expr.value not in env:
@@ -434,9 +437,11 @@ class Compiler:
                     raise TypeErrorS31("m31 literal must be canonical")
                 return number
             if expr.kind == "array":
-                values = tuple(self.expect_value(self.eval_expr(item, env), item) for item in expr.args)
+                values = tuple(self.eval_expr(item, env) for item in expr.args)
                 if not values:
                     raise TypeErrorS31("static array cannot be empty")
+                if not all(isinstance(value, (Value, StaticGroup)) for value in values):
+                    raise TypeErrorS31("static array elements must be circuit values or static arrays")
                 return StaticGroup(values)
             if expr.kind == "binary":
                 lhs = self.expect_value(self.eval_expr(expr.args[0], env), expr.args[0])
@@ -446,6 +451,20 @@ class Compiler:
             if expr.kind != "call":
                 raise TypeErrorS31("invalid expression")
             name = STANDARD_ALIASES.get(expr.value, expr.value)
+            if name == "std::array::get":
+                if expr.generic is None or len(expr.args) != 1:
+                    raise TypeErrorS31("std::array::get<K>(array) expected")
+                value = self.eval_expr(expr.args[0], env)
+                if not isinstance(value, (Value, StaticGroup)):
+                    raise TypeErrorS31("std::array::get requires an array")
+                return self.builder.array_get(value, expr.generic, wanted=wanted, span=self.span(expr))
+            if name == "std::array::concat":
+                if expr.generic is not None or len(expr.args) != 2:
+                    raise TypeErrorS31("std::array::concat(a,b) expected")
+                values = tuple(self.eval_expr(arg, env) for arg in expr.args)
+                if not all(isinstance(value, (Value, StaticGroup)) for value in values):
+                    raise TypeErrorS31("std::array::concat requires arrays")
+                return self.builder.array_concat(*values, wanted=wanted, span=self.span(expr))
             if name in mathlib.BUILTINS:
                 if name == "std::math::pow":
                     if expr.generic is None or len(expr.args) != 1:
@@ -455,6 +474,11 @@ class Compiler:
                                               wanted=wanted, span=self.span(expr))
                 if expr.generic is not None:
                     raise TypeErrorS31(f"{name} does not accept a static parameter")
+                if name == "std::math::matvec":
+                    if len(expr.args) != 2:
+                        raise TypeErrorS31("std::math::matvec expects a matrix and vector")
+                    matrix, vector = (self.eval_expr(arg, env) for arg in expr.args)
+                    return mathlib.matvec(self.builder, matrix, vector, span=self.span(expr))
                 if name in {"std::math::sum", "std::math::dot", "std::math::poly_eval"}:
                     args = tuple(self.eval_expr(arg, env) for arg in expr.args)
                     arity = 1 if name == "std::math::sum" else 2

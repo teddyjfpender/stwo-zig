@@ -60,7 +60,9 @@ and versions are rejected.
 Functions and circuit bodies contain immutable `let` statements, optional
 `assert_eq(a, b);` statements, and a final expression. Supported expressions
 are names, `_m31` field literals, `+`, lane-wise `.*`, calls, parentheses, and
-static array literals such as `[sibling_0, sibling_1]`. Comments start with
+static array literals such as `[sibling_0, sibling_1]` and nested fixed
+reference arrays such as `[[a, b], [c, d]]`. A `let` can bind a static array;
+it becomes a compile-time reference group, not a witness array. Comments start with
 `//`. A scalar literal enters a circuit through `splat<N>(7_m31)`. Bare
 integers are used only as the compile-time `N` in `splat<N>`, `iterate<N>`,
 and `std::math::pow<N>`;
@@ -131,6 +133,8 @@ zero-row view for byte and integer operations.
 | `std::bitcoin::header_bits(header)` | `bitcoin_header_bits` | `Bytes80` to `[u16; 2]`; fixed view of serialized bytes 72–75. |
 | `std::bitcoin::header_time(header)` | `bitcoin_header_time` | `Bytes80` to `[u16; 2]`; fixed view of little-endian timestamp bytes 68–71. |
 | `std::math::lt_u32(a,b)` | `u32_lt` | Strict unsigned comparison of two little-endian `[u16; 2]` values; Boolean M31 result. |
+| `std::array::get<K>(array)` | Static reference selection, or `array_get` for a runtime array | Literal `K` lies inside the array; runtime element type is m31 or u16. |
+| `std::array::concat(a,b)` | Static reference concatenation, or `array_concat` for runtime arrays | Both arguments are static groups or both are arrays with the same m31/u16 element type; runtime result length at most 4096. |
 | `std::bitcoin::genesis_hash_mainnet()` | `bitcoin_genesis_hash_mainnet` | Zero-input `Bytes32` constant in raw digest byte order; pins an exact checkpoint when asserted. |
 | `std::bitcoin::genesis_block_hash_mainnet()` | `bitcoin_genesis_hash_mainnet` | The same pinned constant, typed as `BlockHash`. |
 
@@ -155,6 +159,7 @@ There is no general module loader or third-party package system yet.
 | `std::math::pow<K>(x)` | Static square-and-multiply chain | `[m31; N]`, `0 <= K < p`; `x^0 = 1`. |
 | `std::math::sum([a,...])` | Balanced addition tree over statically grouped terms | 1–64 equally shaped `[m31; N]` values. |
 | `std::math::dot([a,...],[b,...])` | Pairwise products and balanced sum | Equal groups of 1–64 equally shaped `[m31; N]` values. |
+| `std::math::matvec(rows, vector)` | One static `dot` per matrix row; result is a static reference group | 1–16 rectangular rows and 1–16 columns of equally shaped `[m31; N]` values. |
 | `std::math::sum_lanes(x)` | Constrained extraction and balanced sum of every lane in one array | `[m31; N] -> [m31; 1]`, `1 <= N <= 4096`. |
 | `std::math::dot_lanes(a,b)` | One pointwise `mul` followed by `sum_lanes` | Equal `[m31; N]` shapes; returns `[m31; 1]`. |
 | `std::math::poly_eval(x,[c0,...,cd])` | Horner evaluation, low-degree coefficient first | 1–64 coefficients, each shaped like `x`. |
@@ -179,6 +184,11 @@ The [versioned library example](examples/mathlib4.s31) exercises the three
 static group helpers. Its [handwritten relation](examples/mathlib4.s31.json)
 has the same canonical IR and AIR row geometry. The [library chapter](docs/library.md)
 works through the values, lowering, and package lock.
+The [matrix example](examples/static_matvec.s31) uses static reference
+indexing, concatenation, and `matvec`; its seven arithmetic nodes match a
+[handwritten relation](examples/static_matvec.s31.json). Runtime array views
+have explicit `array_get` and `array_concat` relation nodes so that their
+semantics remain visible in the normalized source.
 Unlike static-group `sum` and `dot`, the [lane statistics example](examples/lane_stats4.s31)
 reduces positions of one witness array. Its [handwritten relation](examples/lane_stats4.s31.json)
 uses a normalized `sum_lanes` node. Each extracted lane and addition is

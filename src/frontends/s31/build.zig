@@ -136,6 +136,21 @@ pub fn build(b: *std.Build) void {
     anchor_proof_test_root.addAnonymousImport("s31_air_projection", .{
         .root_source_file = .{ .cwd_relative = b.pathFromRoot("../../../vectors/circuit/official/compiled_air_constraints_v1.bin") },
     });
+    const private_bridge_test_root = b.createModule(.{
+        .root_source_file = b.path("private_boundary_proof_test.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    private_bridge_test_root.addImport("stwo_core", core);
+    private_bridge_test_root.addImport("stwo_circuit_frontend", circuit);
+    private_bridge_test_root.addImport("stwo_circuit_cpu_integration", cpu);
+    private_bridge_test_root.addImport("stwo_cairo_frontend", cpu.import_table.get("stwo_cairo_frontend") orelse @panic("missing Cairo frontend"));
+    private_bridge_test_root.addImport("interop_postcard", anchor_postcard);
+    private_bridge_test_root.addAnonymousImport("s31_air_programs", .{
+        .root_source_file = .{ .cwd_relative = b.pathFromRoot("../../../vectors/circuit/official/circuit_air.air_programs_v1.bin") },
+    });
+    const private_bridge_tests = b.addRunArtifact(b.addTest(.{ .root_module = private_bridge_test_root }));
+    test_step.dependOn(&private_bridge_tests.step);
     anchor_proof_test_root.addAnonymousImport("s31_bitcoin_fixture", .{
         .root_source_file = b.path("examples/bitcoin_header_link.valid.json"),
     });

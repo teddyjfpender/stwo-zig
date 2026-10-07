@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "name": "runtime_array",
+  "inputs": [
+    { "name": "left", "kind": "m31", "length": 3, "visibility": "private" },
+    { "name": "right", "kind": "m31", "length": 4, "visibility": "private" }
+  ],
+  "nodes": [
+    { "name": "joined", "op": "array_concat", "lhs": "left", "rhs": "right" },
+    { "name": "picked", "op": "array_get", "lhs": "joined", "index": 5 },
+    { "name": "total", "op": "sum_lanes", "lhs": "joined" }
+  ],
+  "assertions": [],
+  "public_outputs": ["picked", "total"]
+}

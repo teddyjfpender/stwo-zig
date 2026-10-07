@@ -19,6 +19,70 @@ pub const Plan = struct {
     digest: [32]u8,
 };
 
+/// One signed SHA graph boundary word. The byte coordinates are little-endian
+/// within the SHA word, as required by the recursion_wire relation. For the
+/// first 16 message words this reverses each four-byte span of the serialized
+/// header: SHA reads those spans as big-endian u32 words.
+pub const BoundaryWord = struct {
+    call_id: u32,
+    wire_id: u32,
+    bytes: [4]u8,
+    direction: enum { emit_input, consume_output },
+};
+
+pub const boundary_words_per_call: usize = 32;
+pub const boundary_words_per_header: usize = 3 * boundary_words_per_call;
+
+fn wordBytes(value: u32) [4]u8 {
+    return .{ @truncate(value), @truncate(value >> 8), @truncate(value >> 16), @truncate(value >> 24) };
+}
+
+/// Produce exactly the 24 input and eight output recursion_wire tuples per
+/// compression call. This is a witness/caller plan, not proof authentication:
+/// a joined circuit and SHA proof must constrain these bytes to circuit wires
+/// and close the signed lookup multiset before accepting a private header.
+pub fn boundaryWords(header: [80]u8, plan: Plan, first_call_id: u32) ![boundary_words_per_header]BoundaryWord {
+    const records = try providerCalls(header, plan, first_call_id);
+    var words: [boundary_words_per_header]BoundaryWord = undefined;
+    for (records, plan.calls, 0..) |record, call, call_index| {
+        const source_words = provider.graph.sources(record.state, record.block);
+        for (source_words[0..24], 0..) |value, index| {
+            words[call_index * boundary_words_per_call + index] = .{
+                .call_id = record.execution_clock,
+                .wire_id = provider.graph.input_boundary_offset + @as(u32, @intCast(index)),
+                .bytes = wordBytes(value),
+                .direction = .emit_input,
+            };
+        }
+        for (call.output, 0..) |value, index| {
+            words[call_index * boundary_words_per_call + 24 + index] = .{
+                .call_id = record.execution_clock,
+                .wire_id = provider.topology.output[index],
+                .bytes = wordBytes(value),
+                .direction = .consume_output,
+            };
+        }
+    }
+    return words;
+}
+
+/// RISC-V SHA proof roster rows for the private tuple witness. These rows close
+/// the SHA graph's boundary lookups but do not connect to an S31 circuit by
+/// themselves. The joined profile must add circuit-side events for the same
+/// tuples, otherwise the private header/digest could float independently.
+pub fn privateBoundaryRows(header: [80]u8, plan: Plan, first_call_id: u32) ![boundary_words_per_header]provider.Boundary.Row {
+    const words = try boundaryWords(header, plan, first_call_id);
+    const M31 = @import("stwo_core").fields.m31.M31;
+    var rows: [boundary_words_per_header]provider.Boundary.Row = undefined;
+    for (words, &rows) |word, *row| {
+        var coordinates: [4]M31 = undefined;
+        for (word.bytes, &coordinates) |byte, *coordinate| coordinate.* = M31.fromCanonical(byte);
+        const weight = if (word.direction == .emit_input) M31.one() else M31.one().neg();
+        row.* = try provider.Boundary.privateCoordinates(word.call_id, word.wire_id, weight, coordinates);
+    }
+    return rows;
+}
+
 pub fn prepare(header: [80]u8) Plan {
     var first_block: [64]u8 = undefined;
     @memcpy(&first_block, header[0..64]);
@@ -147,4 +211,131 @@ test "two header plans feed six exact packed SHA provider calls" {
     corrupt.calls[0].output[0] ^= 1;
     corrupt.calls[1].state = corrupt.calls[0].output;
     try std.testing.expectError(error.InvalidShaCompressionWitness, providerCalls(parent, corrupt, 1));
+}
+
+test "SHA private caller tape has exact word IDs, byte order and directions" {
+    var header: [80]u8 = undefined;
+    for (&header, 0..) |*byte, i| byte.* = @truncate(i * 37 + 11);
+    const plan = prepare(header);
+    const words = try boundaryWords(header, plan, 7);
+    const graph = provider.graph;
+    const sources = graph.sources(plan.calls[0].state, plan.calls[0].block);
+    for (0..3) |call_index| {
+        for (0..boundary_words_per_call) |index| {
+            const word = words[call_index * boundary_words_per_call + index];
+            try std.testing.expectEqual(@as(u32, @intCast(7 + call_index)), word.call_id);
+            if (index < 24) {
+                try std.testing.expectEqual(@as(u32, @intCast(graph.input_boundary_offset + index)), word.wire_id);
+                try std.testing.expectEqual(.emit_input, word.direction);
+            } else {
+                try std.testing.expectEqual(provider.topology.output[index - 24], word.wire_id);
+                try std.testing.expectEqual(.consume_output, word.direction);
+            }
+        }
+    }
+    try std.testing.expectEqualDeep(wordBytes(sources[0]), words[0].bytes);
+    try std.testing.expectEqualDeep([4]u8{ header[3], header[2], header[1], header[0] }, words[8].bytes);
+    try std.testing.expectEqualDeep([4]u8{ 0, 0, 0, 0x80 }, words[boundary_words_per_call + 12].bytes);
+    try std.testing.expectEqualDeep([4]u8{ 0, 0, 0, 0x80 }, words[2 * boundary_words_per_call + 16].bytes);
+    for (0..8) |index| {
+        const offset = index * 4;
+        try std.testing.expectEqualDeep(
+            [4]u8{ plan.digest[offset + 3], plan.digest[offset + 2], plan.digest[offset + 1], plan.digest[offset] },
+            words[2 * boundary_words_per_call + 24 + index].bytes,
+        );
+    }
+    try std.testing.expectError(error.InvalidShaCallId, boundaryWords(header, plan, 0));
+    var corrupted = plan;
+    corrupted.calls[1].block[16] ^= 1;
+    try std.testing.expectError(error.InvalidShaBoundary, boundaryWords(header, corrupted, 7));
+    corrupted = plan;
+    corrupted.calls[2].output[0] ^= 1;
+    corrupted.digest = sha.stateBytes(corrupted.calls[2].output);
+    try std.testing.expectError(error.InvalidShaCompressionWitness, boundaryWords(header, corrupted, 7));
+}
+
+/// Audit helper over authenticated SHA AIR definitions. It is not a proof
+/// verifier: it checks the current row multiset before a STARK is produced.
+pub fn wireImbalanceCount(
+    allocator: std.mem.Allocator,
+    prepared: *const provider.Rows,
+    boundary_rows: []const provider.Boundary.Row,
+) !usize {
+    const M31 = @import("stwo_core").fields.m31.M31;
+    const Sums = std.AutoHashMap([6]u32, M31);
+    var sums = Sums.init(allocator);
+    defer sums.deinit();
+    const Visitor = struct {
+        sums: *Sums,
+        pub fn accepts(_: *@This(), id: anytype) bool {
+            return id == provider.wire_relation_id;
+        }
+        pub fn visit(self: *@This(), _: anytype, numerator: M31, tuple: []const M31) !void {
+            if (tuple.len != 6) return error.InvalidShaWireTuple;
+            var key: [6]u32 = undefined;
+            for (tuple, &key) |value, *coordinate| coordinate.* = value.toU32();
+            const entry = try self.sums.getOrPut(key);
+            if (!entry.found_existing) entry.value_ptr.* = M31.zero();
+            entry.value_ptr.* = entry.value_ptr.add(numerator);
+        }
+    };
+    var visitor = Visitor{ .sums = &sums };
+    const rows = prepared.tuple() ++ .{boundary_rows};
+    inline for (.{ provider.Source, provider.Schedule, provider.Round, provider.FeedForward, provider.Boundary }, 0..) |Air, index| {
+        var definition = try Air.build(allocator);
+        defer definition.deinit();
+        const binding = try provider.Binding.Binding(Air).authenticate(&definition);
+        for (rows[index]) |row| try binding.visitPreparedBaseEntries(row, &visitor);
+    }
+    var failures: usize = 0;
+    var it = sums.iterator();
+    while (it.next()) |entry| if (!entry.value_ptr.isZero()) {
+        failures += 1;
+    };
+    return failures;
+}
+
+test "three SHA calls close graph wires only with the exact private caller tape" {
+    const allocator = std.testing.allocator;
+    var header: [80]u8 = undefined;
+    for (&header, 0..) |*byte, i| byte.* = @truncate(i * 13 + 41);
+    const plan = prepare(header);
+    const records = try providerCalls(header, plan, 1);
+    var prepared = try provider.prepare(allocator, &records);
+    defer prepared.deinit();
+    const rows = try privateBoundaryRows(header, plan, 1);
+    try std.testing.expectEqual(@as(usize, 0), try wireImbalanceCount(allocator, &prepared, &rows));
+
+    var changed = rows;
+    changed[0][0] = changed[0][0].add(@import("stwo_core").fields.m31.M31.one());
+    try std.testing.expect((try wireImbalanceCount(allocator, &prepared, &changed)) != 0);
+    changed = rows;
+    changed[boundary_words_per_header - 1][3] = changed[boundary_words_per_header - 1][3].add(@import("stwo_core").fields.m31.M31.one());
+    try std.testing.expect((try wireImbalanceCount(allocator, &prepared, &changed)) != 0);
+    changed = rows;
+    changed[1] = changed[0]; // omit one input, duplicate another
+    try std.testing.expect((try wireImbalanceCount(allocator, &prepared, &changed)) != 0);
+}
+
+test "six SHA calls keep two private headers in distinct call namespaces" {
+    const allocator = std.testing.allocator;
+    var first: [80]u8 = undefined;
+    var second: [80]u8 = undefined;
+    for (&first, &second, 0..) |*a, *b, i| {
+        a.* = @truncate(i * 17 + 3);
+        b.* = @truncate(i * 29 + 7);
+    }
+    const first_plan = prepare(first);
+    const second_plan = prepare(second);
+    const records = (try providerCalls(first, first_plan, 1)) ++ (try providerCalls(second, second_plan, 4));
+    var prepared = try provider.prepare(allocator, &records);
+    defer prepared.deinit();
+    const rows = (try privateBoundaryRows(first, first_plan, 1)) ++ (try privateBoundaryRows(second, second_plan, 4));
+    try std.testing.expectEqual(@as(usize, 0), try wireImbalanceCount(allocator, &prepared, &rows));
+    try std.testing.expectEqualSlices(u32, &.{ 10, 9, 9, 6 }, &prepared.geometry.logs);
+    var changed = rows;
+    // Copying a second-header call ID into the first header cannot cross-link
+    // two otherwise byte-identical words: every tuple includes its namespace.
+    changed[boundary_words_per_header][5] = changed[0][5];
+    try std.testing.expect((try wireImbalanceCount(allocator, &prepared, &changed)) != 0);
 }

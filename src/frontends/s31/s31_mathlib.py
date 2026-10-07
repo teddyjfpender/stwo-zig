@@ -13,7 +13,7 @@ from s31_stdlib import Builder, P, StaticGroup, TypeErrorS31, Value
 BUILTINS = {
     "std::math::neg", "std::math::sub", "std::math::square", "std::math::pow",
     "std::math::inv", "std::math::div",
-    "std::math::sum", "std::math::dot", "std::math::poly_eval",
+    "std::math::sum", "std::math::dot", "std::math::poly_eval", "std::math::matvec",
     "std::math::sum_lanes", "std::math::dot_lanes",
     "std::math::add_u256", "std::math::add_u256_checked", "std::math::le_u256",
     "std::math::sub_u256", "std::math::sub_u256_checked",
@@ -120,11 +120,35 @@ def _group(value: StaticGroup, operation: str) -> tuple[Value, ...]:
     terms = value.elements
     if not 1 <= len(terms) <= MAX_STATIC_TERMS:
         raise TypeErrorS31(f"std::math::{operation} requires 1..{MAX_STATIC_TERMS} terms")
+    if not all(isinstance(term, Value) for term in terms):
+        raise TypeErrorS31(f"std::math::{operation} requires a static array of [m31; N] values")
     shape = terms[0].typ
     _m31(terms[0])
     if any(term.typ != shape for term in terms[1:]):
         raise TypeErrorS31(f"std::math::{operation} requires equally shaped [m31; N] terms")
     return terms
+
+
+def matvec(builder: Builder, matrix: StaticGroup, vector: StaticGroup, *,
+           span: dict[str, int] | None = None) -> StaticGroup:
+    """A small fixed matrix times a vector of lane-parallel M31 values.
+
+    The result remains a static group of circuit values. Each row uses the
+    ordinary constrained dot product; matrix shape does not enter the AIR.
+    """
+    if not isinstance(matrix, StaticGroup) or not 1 <= len(matrix.elements) <= 16:
+        raise TypeErrorS31("std::math::matvec requires 1..16 static matrix rows")
+    columns = _group(vector, "matvec")
+    if len(columns) > 16:
+        raise TypeErrorS31("std::math::matvec requires at most 16 columns")
+    rows = matrix.elements
+    for row in rows:
+        if not isinstance(row, StaticGroup) or len(row.elements) != len(columns):
+            raise TypeErrorS31("std::math::matvec requires rectangular rows matching the vector")
+        _group(row, "matvec")
+        if any(term.typ != columns[0].typ for term in row.elements):
+            raise TypeErrorS31("std::math::matvec requires equally shaped [m31; N] terms")
+    return StaticGroup(tuple(dot_static(builder, row, vector, span=span) for row in rows))
 
 
 def sum_static(builder: Builder, group: StaticGroup, *, wanted: str | None = None,

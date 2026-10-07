@@ -51,7 +51,7 @@ def main() -> None:
         r"step_1_accepted=true replay_rejected=true", result.stderr,
     )
     assert key_match is not None
-    topology = json.loads((MEASUREMENTS / "bitcoin-chain-fold-topology-v1-2026-10-07.json").read_text())
+    topology = json.loads((MEASUREMENTS / "bitcoin-chain-fold-topology-v2-2026-10-07.json").read_text())
     assert observations["checkpoint anchor"]["preprocessed_root"] == topology["anchor_preprocessed_root"]
     assert all(
         observations[name]["preprocessed_root"] == topology["candidate_preprocessed_root"]
@@ -67,7 +67,7 @@ def main() -> None:
         "examples/bitcoin_header_link.valid.json", "examples/bitcoin_block2_header.valid.json",
     )
     record = {
-        "schema": "s31-bitcoin-chain-two-step-proof-v1",
+        "schema": "s31-bitcoin-chain-two-step-proof-v2",
         "command": " ".join(COMMAND),
         "observations": observations,
         "wall_seconds": round(wall_seconds, 3),
@@ -79,10 +79,10 @@ def main() -> None:
         "source_sha256": {name: sha256(S31 / name) for name in files},
         "air_bundle_sha256": sha256(ROOT / "vectors/circuit/official/circuit_air.air_programs_v1.bin"),
         "projection_sha256": sha256(ROOT / "vectors/circuit/official/compiled_air_constraints_v1.bin"),
-        "topology_record_sha256": sha256(MEASUREMENTS / "bitcoin-chain-fold-topology-v1-2026-10-07.json"),
-        "scope": "One local low-memory proving run; no comparative speed or security bound claim.",
+        "topology_record_sha256": sha256(MEASUREMENTS / "bitcoin-chain-fold-topology-v2-2026-10-07.json"),
+        "scope": "Genesis first-epoch fixed-nBits profile; one local low-memory proving run. No comparative speed, full-consensus, or security-bound claim.",
     }
-    output = MEASUREMENTS / "bitcoin-chain-two-step-proof-v1-2026-10-07.json"
+    output = MEASUREMENTS / "bitcoin-chain-two-step-proof-v2-2026-10-07.json"
     output.write_text(json.dumps(record, indent=2, sort_keys=True) + "\n")
     print(f"Recorded native Bitcoin chain proofs in {output.relative_to(ROOT)}")
 

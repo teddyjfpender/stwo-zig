@@ -4,6 +4,8 @@ pub const relation = @import("relation.zig");
 pub const relation_compiler = @import("relation_compiler.zig");
 pub const sha256d = @import("sha256d.zig");
 pub const sha_chip_plan = @import("sha_chip_plan.zig");
+pub const sha_chip_profile = @import("sha_chip_profile.zig");
+pub const sha_caller_equations = @import("sha_caller_equations.zig");
 pub const bitcoin_target = @import("bitcoin_target.zig");
 pub const poseidon2 = @import("poseidon2.zig");
 pub const recursive_public_words = @import("recursive_public_words.zig");
@@ -18,6 +20,8 @@ test {
     _ = relation_compiler;
     _ = sha256d;
     _ = sha_chip_plan;
+    _ = sha_chip_profile;
+    _ = sha_caller_equations;
     _ = bitcoin_target;
     _ = poseidon2;
     _ = recursive_public_words;

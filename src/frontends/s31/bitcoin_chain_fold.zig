@@ -1,7 +1,10 @@
-//! Candidate fixed-key Bitcoin hash-chain fold. One child STARK authenticates
-//! the previous state; the fresh 80-byte header is checked directly here.
+//! Genesis-anchored, first-difficulty-epoch Bitcoin hash-chain fold. One
+//! child STARK authenticates the previous state; the fresh 80-byte header,
+//! including the exact 0x1d00ffff compact target, is checked directly here.
 //! This module builds the circuit and its witness-free topology. Native proof
-//! generation, a sealed key, and a base proof are separate integration work.
+//! Key policy caps the final fold step at 2014 (block height 2015), before
+//! the first retarget. Native proof generation and a sealed key live in the
+//! adjacent verifier and proof-test modules.
 const std = @import("std");
 const core = @import("stwo_core");
 const circuit = @import("stwo_circuit_frontend");
@@ -108,7 +111,7 @@ pub fn buildCircuit(
     try stages.mark(&ctx.circuit, .{ .name = "proof_witness" });
     try circuit.stark_verifier.verify.verify(V, &ctx, &proof_vars, proof_config, &statement, stages);
 
-    const new_root = try s31.bitcoin_fold_step.constrainMainnetPowLinkStep(
+    const new_root = try s31.bitcoin_fold_step.constrainGenesisEpochPowLinkStep(
         V,
         &ctx,
         prior_hash_values,

@@ -1,0 +1,12 @@
+use std@1;
+
+// Public arrays make both selected coordinates part of the verifier's claim.
+// Index 4 crosses from `a` into the first position of `b`.
+circuit array_views(public a: [m31; 4], public b: [m31; 3])
+    -> public [m31; 1] {
+    let joined = std::array::concat(a, b);
+    let boundary = std::array::get<4>(joined);
+    let prior = std::array::get<3>(a);
+    let result = boundary + prior;
+    result
+}

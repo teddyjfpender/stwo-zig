@@ -61,8 +61,10 @@ pub fn compileRaw(comptime V: type, allocator: std.mem.Allocator, program: relat
         const lhs: ?Entry = if (node.lhs) |name| values.get(name) orelse return error.UnknownOperand else null;
         const rhs: ?Entry = if (node.rhs) |name| values.get(name) orelse return error.UnknownOperand else null;
         const selector: ?Entry = if (node.selector) |name| values.get(name) orelse return error.UnknownOperand else null;
-        const length: usize = if (node.op == .constant) node.length.? else if (node.op == .bitcoin_genesis_hash_mainnet) 16 else if (node.op == .sum_lanes or node.op == .u256_le or node.op == .u32_lt) 1 else if (node.op == .hash_blake2s or node.op == .hash_blake2s_leaf or node.op == .hash_blake2s_pair or node.op == .hash_poseidon2_leaf or node.op == .hash_poseidon2_pair) 8 else lhs.?.shape.length;
+        const length: usize = if (node.op == .constant) node.length.? else if (node.op == .array_get or node.op == .sum_lanes or node.op == .u256_le or node.op == .u32_lt) 1 else if (node.op == .array_concat) lhs.?.shape.length + rhs.?.shape.length else if (node.op == .bitcoin_genesis_hash_mainnet) 16 else if (node.op == .hash_blake2s or node.op == .hash_blake2s_leaf or node.op == .hash_blake2s_pair or node.op == .hash_poseidon2_leaf or node.op == .hash_poseidon2_pair) 8 else lhs.?.shape.length;
         const entry: Entry = switch (node.op) {
+            .array_get => try arrayGet(V, &ctx, lhs.?, node.index.?),
+            .array_concat => try arrayConcat(V, &ctx, lhs.?, rhs.?),
             .constant => .{ .shape = .{ .kind = .m31, .length = length }, .lanes = try circuit.builder.simd.repeat(V, &ctx, M31.fromCanonical(node.constant.?), length) },
             .bitcoin_genesis_hash_mainnet => try mainnetGenesisHash(V, &ctx),
             .cast_m31 => .{ .shape = .{ .kind = .m31, .length = length }, .lanes = lhs.?.lanes, .raw = lhs.?.raw },
@@ -278,6 +280,8 @@ fn compileWithSpansMode(comptime V: type, allocator: std.mem.Allocator, program:
                 break :blk .{ .shape = .{ .kind = .m31, .length = node.length }, .lanes = try circuit.builder.simd.repeat(V, &ctx, M31.fromCanonical(node.constant.?), node.length) };
             },
             .bitcoin_genesis_hash_mainnet => try mainnetGenesisHash(V, &ctx),
+            .array_get => try arrayGet(V, &ctx, entries[node.lhs.?], node.index.?),
+            .array_concat => try arrayConcat(V, &ctx, entries[node.lhs.?], entries[node.rhs.?]),
             .cast_m31 => .{ .shape = .{ .kind = .m31, .length = node.length }, .lanes = entries[node.lhs.?].lanes, .raw = entries[node.lhs.?].raw, .boolean = entries[node.lhs.?].boolean },
             .add => .{ .shape = .{ .kind = .m31, .length = node.length }, .lanes = try circuit.builder.simd.add(V, &ctx, entries[node.lhs.?].lanes, entries[node.rhs.?].lanes) },
             .mul => .{ .shape = .{ .kind = .m31, .length = node.length }, .lanes = try circuit.builder.simd.mul(V, &ctx, entries[node.lhs.?].lanes, entries[node.rhs.?].lanes) },
@@ -433,6 +437,60 @@ fn compileWithSpansMode(comptime V: type, allocator: std.mem.Allocator, program:
         .m31_to_u32_end = ctx.circuit.m31_to_u32.items.len,
     };
     return ctx;
+}
+
+fn arrayLane(comptime V: type, ctx: *circuit.builder.Context(V), entry: Entry, index: usize) !Var {
+    if (entry.raw) |raw| return raw[index];
+    return circuit.builder.simd.unpackIdx(V, ctx, entry.lanes, index);
+}
+
+fn arrayGet(comptime V: type, ctx: *circuit.builder.Context(V), entry: Entry, index: u32) !Entry {
+    if (entry.raw) |raw| {
+        const one = raw[index..][0..1];
+        return .{ .shape = .{ .kind = entry.shape.kind, .length = 1 }, .lanes = Simd.fromPacked(one, 1), .raw = one, .boolean = entry.boolean };
+    }
+    if (index % 4 == 0) {
+        const one = entry.lanes.data[index / 4 ..][0..1];
+        return .{ .shape = .{ .kind = entry.shape.kind, .length = 1 }, .lanes = Simd.fromPacked(one, 1) };
+    }
+    const raw = try ctx.scratch().alloc(Var, 1);
+    raw[0] = try arrayLane(V, ctx, entry, index);
+    return .{ .shape = .{ .kind = entry.shape.kind, .length = 1 }, .lanes = Simd.fromPacked(raw, 1), .raw = raw };
+}
+
+fn arrayConcat(comptime V: type, ctx: *circuit.builder.Context(V), lhs: Entry, rhs: Entry) !Entry {
+    const len = lhs.shape.length + rhs.shape.length;
+    const raw: ?[]Var = if (lhs.raw != null and rhs.raw != null) blk: {
+        const words = try ctx.scratch().alloc(Var, len);
+        @memcpy(words[0..lhs.shape.length], lhs.raw.?);
+        @memcpy(words[lhs.shape.length..], rhs.raw.?);
+        break :blk words;
+    } else null;
+    if (lhs.shape.length % 4 == 0) {
+        const packed_wires = try ctx.scratch().alloc(Var, lhs.lanes.data.len + rhs.lanes.data.len);
+        @memcpy(packed_wires[0..lhs.lanes.data.len], lhs.lanes.data);
+        @memcpy(packed_wires[lhs.lanes.data.len..], rhs.lanes.data);
+        return .{ .shape = .{ .kind = lhs.shape.kind, .length = len }, .lanes = Simd.fromPacked(packed_wires, len), .raw = raw };
+    }
+    // Complete left-hand QM31 words are already in the right position. Only
+    // the partial boundary word and the shifted right side need repacking.
+    const prefix_wires = lhs.shape.length / 4;
+    const prefix_lanes = prefix_wires * 4;
+    const suffix_len = len - prefix_lanes;
+    const wrappers = try ctx.scratch().alloc(circuit.builder.wrappers.M31Wrapper(Var), suffix_len);
+    for (wrappers, 0..) |*wrapped, i| {
+        const source_index = prefix_lanes + i;
+        const lane = if (source_index < lhs.shape.length)
+            try arrayLane(V, ctx, lhs, source_index)
+        else
+            try arrayLane(V, ctx, rhs, source_index - lhs.shape.length);
+        wrapped.* = .newUnsafe(lane);
+    }
+    const suffix = try circuit.builder.simd.pack(V, ctx, wrappers);
+    const packed_wires = try ctx.scratch().alloc(Var, prefix_wires + suffix.data.len);
+    @memcpy(packed_wires[0..prefix_wires], lhs.lanes.data[0..prefix_wires]);
+    @memcpy(packed_wires[prefix_wires..], suffix.data);
+    return .{ .shape = .{ .kind = lhs.shape.kind, .length = len }, .lanes = Simd.fromPacked(packed_wires, len), .raw = raw };
 }
 
 fn outputWord(comptime V: type, ctx: *circuit.builder.Context(V), entry: Entry, index: usize, direct_output: bool) !Var {
@@ -775,6 +833,67 @@ test "packed lane reductions retain single-yield direct topology" {
     defer ctx.deinit();
     try std.testing.expect(try ctx.isCircuitValid());
     try std.testing.expect((try ctx.circuit.firstYieldViolation(std.testing.allocator)) == null);
+}
+
+test "array indexing and concatenation preserve packed alignment and constrain shifted lanes" {
+    const aligned_source =
+        \\{"version":1,"name":"aligned_array","inputs":[{"name":"a","kind":"m31","length":4,"visibility":"private"},{"name":"b","kind":"m31","length":4,"visibility":"private"}],"nodes":[{"name":"joined","op":"array_concat","lhs":"a","rhs":"b"},{"name":"chosen","op":"array_get","lhs":"joined","index":4}],"assertions":[],"public_outputs":["chosen"]}
+    ;
+    const shifted_source =
+        \\{"version":1,"name":"shifted_array","inputs":[{"name":"a","kind":"m31","length":3,"visibility":"private"},{"name":"b","kind":"m31","length":4,"visibility":"private"}],"nodes":[{"name":"joined","op":"array_concat","lhs":"a","rhs":"b"},{"name":"chosen","op":"array_get","lhs":"joined","index":5}],"assertions":[],"public_outputs":["chosen"]}
+    ;
+    const aligned_assignment =
+        \\{"public_inputs":{},"private_inputs":{"a":[1,2,3,4],"b":[5,6,7,8]},"public_outputs":{"chosen":[5]}}
+    ;
+    const shifted_assignment =
+        \\{"public_inputs":{},"private_inputs":{"a":[1,2,3],"b":[4,5,6,7]},"public_outputs":{"chosen":[6]}}
+    ;
+    for ([_][]const u8{ aligned_source, shifted_source }, [_][]const u8{ aligned_assignment, shifted_assignment }, 0..) |source, assigned, case_index| {
+        var program = try relation.parseProgram(std.testing.allocator, source);
+        defer program.deinit();
+        var assignment = try relation.parseAssignment(std.testing.allocator, assigned);
+        defer assignment.deinit();
+        _ = try relation.evaluate(std.testing.allocator, program.value, assignment.value);
+        var maps = Maps{};
+        defer maps.deinit(std.testing.allocator);
+        var ctx = try compileDirectWithSpans(QM31, std.testing.allocator, program.value, assignment.value, &maps, false);
+        defer ctx.deinit();
+        try std.testing.expect(try ctx.isCircuitValid());
+        try std.testing.expect((try ctx.circuit.firstYieldViolation(std.testing.allocator)) == null);
+        // Two input spans precede concat and get. Aligned operations borrow
+        // existing packed wires; the shifted case must constrain extraction.
+        try std.testing.expectEqual(@as(usize, 4), maps.nodes.items.len);
+        const concat = maps.nodes.items[2];
+        const get = maps.nodes.items[3];
+        if (case_index == 0) {
+            try std.testing.expectEqual(concat.qm31_start, concat.qm31_end);
+            try std.testing.expectEqual(get.qm31_start, get.qm31_end);
+        } else {
+            try std.testing.expect(concat.qm31_end > concat.qm31_start);
+            try std.testing.expect(get.qm31_end > get.qm31_start);
+        }
+    }
+}
+
+test "u16 array views keep bounded words in the generic circuit" {
+    const source =
+        \\{"version":1,"name":"u16_array","inputs":[{"name":"a","kind":"u16","length":2,"visibility":"private"},{"name":"b","kind":"u16","length":2,"visibility":"private"}],"nodes":[{"name":"joined","op":"array_concat","lhs":"a","rhs":"b"},{"name":"picked","op":"array_get","lhs":"joined","index":2}],"assertions":[],"public_outputs":["picked"]}
+    ;
+    const assigned =
+        \\{"public_inputs":{},"private_inputs":{"a":[1,65535],"b":[32768,7]},"public_outputs":{"picked":[32768]}}
+    ;
+    var program = try relation.parseProgram(std.testing.allocator, source);
+    defer program.deinit();
+    var assignment = try relation.parseAssignment(std.testing.allocator, assigned);
+    defer assignment.deinit();
+    _ = try relation.evaluate(std.testing.allocator, program.value, assignment.value);
+    var values = try compile(QM31, std.testing.allocator, program.value, assignment.value);
+    defer values.deinit();
+    var topology = try compile(circuit.builder.NoValue, std.testing.allocator, program.value, null);
+    defer topology.deinit();
+    try std.testing.expect(try values.isCircuitValid());
+    try std.testing.expectEqual(values.circuit.n_vars, topology.circuit.n_vars);
+    try std.testing.expect(std.meta.eql(values.gate_counts, topology.gate_counts));
 }
 
 test "strict u32 comparison constrains equality, borrow, and limb boundary" {

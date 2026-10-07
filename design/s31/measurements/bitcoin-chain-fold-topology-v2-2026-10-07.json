@@ -1,0 +1,234 @@
+{
+  "anchor_preprocessed_root": "05b924eed15a3c54f42f6c4c92343ceef0b6495acccdc557ab3f594b8d69b093",
+  "candidate_padded_rows": {
+    "blake_g": 2097152,
+    "eq": 32768,
+    "m31_to_u32": 262144,
+    "qm31_ops": 2097152,
+    "triple_xor": 131072
+  },
+  "candidate_preprocessed_root": "05dba6a57b5418acba42b80096e2ddcb4d7d6dd8a5c440c36c57ca7bd88981bf",
+  "cases": [
+    {
+      "anchor_root": "05b924eed15a3c54f42f6c4c92343ceef0b6495acccdc557ab3f594b8d69b093",
+      "case": "baseline",
+      "child_eq_rows": 32768,
+      "child_qm31_rows": 1048576,
+      "child_trace_log_size": 21,
+      "fixed_point": false,
+      "padded": {
+        "blake_g": 2097152,
+        "eq": 32768,
+        "m31_to_u32": 262144,
+        "qm31_ops": 2097152,
+        "triple_xor": 131072
+      },
+      "preprocessed_root": null,
+      "raw": {
+        "blake_g": 1125840,
+        "eq": 32077,
+        "m31_to_u32": 205098,
+        "qm31_ops": 1150616,
+        "triple_xor": 112584
+      },
+      "raw_vars": 5953038,
+      "schema": "s31-bitcoin-chain-fold-inspection-v1",
+      "step": 0
+    },
+    {
+      "anchor_root": "05b924eed15a3c54f42f6c4c92343ceef0b6495acccdc557ab3f594b8d69b093",
+      "case": "qm31-expanded",
+      "child_eq_rows": 32768,
+      "child_qm31_rows": 2097152,
+      "child_trace_log_size": 21,
+      "fixed_point": true,
+      "padded": {
+        "blake_g": 2097152,
+        "eq": 32768,
+        "m31_to_u32": 262144,
+        "qm31_ops": 2097152,
+        "triple_xor": 131072
+      },
+      "preprocessed_root": "05dba6a57b5418acba42b80096e2ddcb4d7d6dd8a5c440c36c57ca7bd88981bf",
+      "raw": {
+        "blake_g": 1125840,
+        "eq": 32077,
+        "m31_to_u32": 205098,
+        "qm31_ops": 1150616,
+        "triple_xor": 112584
+      },
+      "raw_vars": 5953038,
+      "schema": "s31-bitcoin-chain-fold-inspection-v1",
+      "step": 0
+    },
+    {
+      "anchor_root": "05b924eed15a3c54f42f6c4c92343ceef0b6495acccdc557ab3f594b8d69b093",
+      "case": "candidate-base",
+      "child_eq_rows": 32768,
+      "child_qm31_rows": 2097152,
+      "child_trace_log_size": 21,
+      "fixed_point": true,
+      "padded": {
+        "blake_g": 2097152,
+        "eq": 32768,
+        "m31_to_u32": 262144,
+        "qm31_ops": 2097152,
+        "triple_xor": 131072
+      },
+      "preprocessed_root": "05dba6a57b5418acba42b80096e2ddcb4d7d6dd8a5c440c36c57ca7bd88981bf",
+      "raw": {
+        "blake_g": 1125840,
+        "eq": 32077,
+        "m31_to_u32": 205098,
+        "qm31_ops": 1150616,
+        "triple_xor": 112584
+      },
+      "raw_vars": 5953038,
+      "schema": "s31-bitcoin-chain-fold-inspection-v1",
+      "step": 0
+    },
+    {
+      "anchor_root": "05b924eed15a3c54f42f6c4c92343ceef0b6495acccdc557ab3f594b8d69b093",
+      "case": "candidate-recursive",
+      "child_eq_rows": 32768,
+      "child_qm31_rows": 2097152,
+      "child_trace_log_size": 21,
+      "fixed_point": true,
+      "padded": {
+        "blake_g": 2097152,
+        "eq": 32768,
+        "m31_to_u32": 262144,
+        "qm31_ops": 2097152,
+        "triple_xor": 131072
+      },
+      "preprocessed_root": "05dba6a57b5418acba42b80096e2ddcb4d7d6dd8a5c440c36c57ca7bd88981bf",
+      "raw": {
+        "blake_g": 1125840,
+        "eq": 32077,
+        "m31_to_u32": 205098,
+        "qm31_ops": 1150616,
+        "triple_xor": 112584
+      },
+      "raw_vars": 5953038,
+      "schema": "s31-bitcoin-chain-fold-inspection-v1",
+      "step": 1
+    },
+    {
+      "anchor_root": "05b924eed15a3c54f42f6c4c92343ceef0b6495acccdc557ab3f594b8d69b093",
+      "case": "candidate-u16-carry",
+      "child_eq_rows": 32768,
+      "child_qm31_rows": 2097152,
+      "child_trace_log_size": 21,
+      "fixed_point": true,
+      "padded": {
+        "blake_g": 2097152,
+        "eq": 32768,
+        "m31_to_u32": 262144,
+        "qm31_ops": 2097152,
+        "triple_xor": 131072
+      },
+      "preprocessed_root": "05dba6a57b5418acba42b80096e2ddcb4d7d6dd8a5c440c36c57ca7bd88981bf",
+      "raw": {
+        "blake_g": 1125840,
+        "eq": 32077,
+        "m31_to_u32": 205098,
+        "qm31_ops": 1150616,
+        "triple_xor": 112584
+      },
+      "raw_vars": 5953038,
+      "schema": "s31-bitcoin-chain-fold-inspection-v1",
+      "step": 65536
+    },
+    {
+      "anchor_root": "05b924eed15a3c54f42f6c4c92343ceef0b6495acccdc557ab3f594b8d69b093",
+      "case": "candidate-u32-max",
+      "child_eq_rows": 32768,
+      "child_qm31_rows": 2097152,
+      "child_trace_log_size": 21,
+      "fixed_point": true,
+      "padded": {
+        "blake_g": 2097152,
+        "eq": 32768,
+        "m31_to_u32": 262144,
+        "qm31_ops": 2097152,
+        "triple_xor": 131072
+      },
+      "preprocessed_root": "05dba6a57b5418acba42b80096e2ddcb4d7d6dd8a5c440c36c57ca7bd88981bf",
+      "raw": {
+        "blake_g": 1125840,
+        "eq": 32077,
+        "m31_to_u32": 205098,
+        "qm31_ops": 1150616,
+        "triple_xor": 112584
+      },
+      "raw_vars": 5953038,
+      "schema": "s31-bitcoin-chain-fold-inspection-v1",
+      "step": 4294967295
+    },
+    {
+      "anchor_root": "05b924eed15a3c54f42f6c4c92343ceef0b6495acccdc557ab3f594b8d69b093",
+      "case": "changed-checkpoint",
+      "child_eq_rows": 32768,
+      "child_qm31_rows": 2097152,
+      "child_trace_log_size": 21,
+      "fixed_point": true,
+      "padded": {
+        "blake_g": 2097152,
+        "eq": 32768,
+        "m31_to_u32": 262144,
+        "qm31_ops": 2097152,
+        "triple_xor": 131072
+      },
+      "preprocessed_root": "a60a613777928d1f3d0aac86e2eab09f5b50654bf9e7a942066269c0ebfaabf5",
+      "raw": {
+        "blake_g": 1125840,
+        "eq": 32077,
+        "m31_to_u32": 205098,
+        "qm31_ops": 1150616,
+        "triple_xor": 112584
+      },
+      "raw_vars": 5953038,
+      "schema": "s31-bitcoin-chain-fold-inspection-v1",
+      "step": 0
+    },
+    {
+      "anchor_root": "05b924eed15a3c54f42f6c4c92343ceef0b6495acccdc557ab3f594b8d69b093",
+      "case": "changed-base-root",
+      "child_eq_rows": 32768,
+      "child_qm31_rows": 2097152,
+      "child_trace_log_size": 21,
+      "fixed_point": true,
+      "padded": {
+        "blake_g": 2097152,
+        "eq": 32768,
+        "m31_to_u32": 262144,
+        "qm31_ops": 2097152,
+        "triple_xor": 131072
+      },
+      "preprocessed_root": "6f27744a12e566f1986993a926edcd0b1a0fcfcbfec85c759a636efa1dc7d6ab",
+      "raw": {
+        "blake_g": 1125840,
+        "eq": 32077,
+        "m31_to_u32": 205098,
+        "qm31_ops": 1150616,
+        "triple_xor": 112584
+      },
+      "raw_vars": 5953038,
+      "schema": "s31-bitcoin-chain-fold-inspection-v1",
+      "step": 0
+    }
+  ],
+  "command": "zig build --build-file src/frontends/s31/build.zig inspect-bitcoin-chain-fold -Doptimize=ReleaseSafe -j2",
+  "projection_sha256": "ceea3c293a4fcd3ca8a20ba62f4845732f8725bdf610fe6367c83adcb8be7e09",
+  "reference_sha256": "5dd433168d062c4a442ea723f2e26a58baf5cf0462814d408fc8382fcf0fa15a",
+  "schema": "s31-bitcoin-chain-fold-topology-v2",
+  "scope": "Genesis first-epoch nBits-constrained witness-free topology and roots only; no Bitcoin chain-fold proof or timed benchmark. Steps above 2014 are topology invariance probes, not accepted by the key policy.",
+  "source_sha256": {
+    "bitcoin_chain_anchor.zig": "b7020879754f970fe71e21b3ddec1229f4a8ff80e4507e0800edf29f999d368e",
+    "bitcoin_chain_fold.zig": "655707d3f273d9a9b9379e6da2ae052d01075fd2bb07f538d3b523da07920473",
+    "bitcoin_fold_digest.zig": "7197ce73c426108b846fc7f5fa4aecfac3b8aed8d0bbd2abb3ed88b871c0cb1f",
+    "bitcoin_fold_step.zig": "28f96889a8b138b12d280267a7ce740f1c731fa0febe2369169ba8ca795ac362",
+    "inspect_bitcoin_chain_fold.zig": "e5f154b811e5cddb2c22bf017ab4df2277e00d0af7064bbde200d6d0697bab9d",
+    "sha256d.zig": "64d68cf5e7a74876a593ef8babb5abee545b2d49a25c4ddddbc1c69615ce0350"
+  }
+}

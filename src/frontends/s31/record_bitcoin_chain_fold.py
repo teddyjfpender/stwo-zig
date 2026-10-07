@@ -49,7 +49,7 @@ def main() -> None:
         "inspect_bitcoin_chain_fold.zig",
     )
     record = {
-        "schema": "s31-bitcoin-chain-fold-topology-v1",
+        "schema": "s31-bitcoin-chain-fold-topology-v2",
         "command": " ".join(COMMAND),
         "cases": cases,
         "candidate_preprocessed_root": base["preprocessed_root"],
@@ -58,9 +58,9 @@ def main() -> None:
         "source_sha256": {path: sha256(S31 / path) for path in paths},
         "projection_sha256": sha256(ROOT / "vectors/circuit/official/compiled_air_constraints_v1.bin"),
         "reference_sha256": sha256(MEASUREMENTS / "bitcoin-sparse-wide-fold-stages-v1-2026-10-07.json"),
-        "scope": "Witness-free topology and preprocessed roots only; no Bitcoin chain-fold proof or timed proving benchmark.",
+        "scope": "Genesis first-epoch nBits-constrained witness-free topology and roots only; no Bitcoin chain-fold proof or timed benchmark. Steps above 2014 are topology invariance probes, not accepted by the key policy.",
     }
-    output = MEASUREMENTS / "bitcoin-chain-fold-topology-v1-2026-10-07.json"
+    output = MEASUREMENTS / "bitcoin-chain-fold-topology-v2-2026-10-07.json"
     output.write_text(json.dumps(record, indent=2, sort_keys=True) + "\n")
     print(f"Recorded {len(cases)} fold geometries in {output.relative_to(ROOT)}")
 

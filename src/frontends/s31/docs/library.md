@@ -30,6 +30,7 @@ AIR. No helper is a host-only calculation or a new specialized AIR chip.
 | `std::math::dot([a,b,...],[u,v,...])` | `a·u+b·v+... mod p` | Equal groups of 1..64 same-shaped arrays. |
 | `std::math::sum_lanes(x)` | `Σⱼ x[j] mod p`, returned as `[m31; 1]` | One `[m31; N]`, `1 <= N <= 4096`. |
 | `std::math::dot_lanes(x,w)` | `Σⱼ x[j]·w[j] mod p`, returned as `[m31; 1]` | Two equally shaped `[m31; N]` arrays, `1 <= N <= 4096`. |
+| `std::math::matvec(rows, vector)` | Matrix–vector product; each output row is a static reference | 1..16 rectangular rows and 1..16 columns of equally shaped `[m31; N]` values. |
 | `std::math::poly_eval(x,[c0,c1,...,cd])` | `c0+c1·x+...+cd·x^d mod p` | 1..64 coefficients, each the same shape as `x`; **low degree first**. |
 | `std::math::add_u256(a,b)` | `(a+b) mod 2^256` | Two `UInt256` values; sixteen little-endian limbs. |
 | `std::math::add_u256_checked(a,b)` | `a+b` with final carry zero | Two `UInt256` values; overflow makes the relation unsatisfiable. |
@@ -44,6 +45,79 @@ item has type `[m31; 4]`, `dot` returns four independent inner products:
 output lane `j` uses lane `j` from every term. It does **not** sum the four
 coordinates of one `[m31; 4]` value. Use `sum_lanes` or `dot_lanes` to reduce
 those coordinates to one word.
+
+`std::array::get<K>(group)` selects one entry of a static reference group,
+and `std::array::concat(left,right)` joins two such groups, at most 64 entries
+total. These forms emit **zero relation nodes**: they reorder references to
+values that already exist. The same functions accept runtime `[m31; N]` and
+`[u16; N]` values. Then `get<K>` produces a one-element array and `concat`
+produces an array whose length is the sum of the input lengths, at most 4096.
+Those forms emit explicit `array_get` and `array_concat` relation nodes. They
+are views of already constrained lanes, not hints chosen by the prover; a
+verifier constrains any use of a selected output to the source position.
+The index is a literal checked against the source length at compile time.
+
+## A fixed matrix by hand
+
+The [checked-in matrix program](../examples/static_matvec.s31) illustrates
+the distinction between static reference arrays and witness arrays:
+
+~~~s31
+use std@1;
+
+// A two-by-two matrix of fixed coefficients acts on two private scalars.
+// Static arrays group references; every arithmetic result is still proved.
+circuit static_matvec(private a: [m31; 1], private b: [m31; 1])
+    -> public [m31; 1] {
+    let vector = [a, b];
+    let rows = [[splat<1>(2_m31), splat<1>(3_m31)],
+                [splat<1>(5_m31), splat<1>(7_m31)]];
+    let products = std::math::matvec(rows, vector);
+    let first = std::array::get<0>(products);
+    let second = std::array::get<1>(products);
+    let total = std::math::sum(std::array::concat([first], [second]));
+    total
+}
+~~~
+
+For private `a=2`, `b=3`, the first row is `2·2+3·3=13`, the second is
+`5·2+7·3=31`, and the claimed public result is `13+31=44` in M31. The
+[handwritten normalized relation](../examples/static_matvec.s31.json) has
+four `mul_const` nodes and three `add` nodes. The `vector`, `rows`, `products`,
+`get`, and static `concat` expressions add no separate gates. In particular,
+`matvec` expands each row into a dot product; the proof checks both products
+and their sum. The independent value oracle checks the [sample
+assignment](../examples/static_matvec.valid.json), while the native verifier
+checks a proof of the compiled relation. For a scalar element `a`, a runtime
+array `[m31; N]` is a different thing: its coordinates are witness values,
+and selecting one is represented explicitly by `array_get`.
+
+The [runtime array example](../examples/array_views.s31) joins two public
+arrays, selects position four from the joined value and position three from
+the first value, and adds them:
+
+~~~s31
+use std@1;
+
+// Public arrays make both selected coordinates part of the verifier's claim.
+// Index 4 crosses from `a` into the first position of `b`.
+circuit array_views(public a: [m31; 4], public b: [m31; 3])
+    -> public [m31; 1] {
+    let joined = std::array::concat(a, b);
+    let boundary = std::array::get<4>(joined);
+    let prior = std::array::get<3>(a);
+    let result = boundary + prior;
+    result
+}
+~~~
+
+For `a=[2,3,5,7]` and `b=[11,13,17]`, `joined=[2,3,5,7,11,13,17]`,
+so `boundary=[11]`, `prior=[7]`, and `result=[18]`. The
+[normalized relation](../examples/array_views.s31.json) records concat and
+both positions explicitly. Its only arithmetic node is the final addition.
+The independent oracle checks the same positions, and the compiler must
+preserve those references when mapping them to circuit wires. All eight
+public words (seven inputs and one output) are bound in the proof statement.
 
 `sum` uses a balanced addition tree. `dot` multiplies corresponding
 terms, then uses that tree; before constant folding, `n` terms need

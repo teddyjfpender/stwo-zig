@@ -13,9 +13,11 @@ const native = @import("native_verifier.zig");
 const M31 = core.fields.m31.M31;
 const projection_bytes = @embedFile("s31_air_projection");
 const air_bytes = @embedFile("s31_air_programs");
-const schema = "s31-bitcoin-chain-verification-key-v1";
+const schema = "s31-bitcoin-chain-verification-key-v2";
 const statement_schema = "s31-bitcoin-chain-statement-v1";
-const profile = "bitcoin-mainnet-hash-chain-sha256d-v1";
+const profile = "bitcoin-mainnet-genesis-first-epoch-sha256d-v2";
+pub const genesis_display_hash = "000000000019d6689c085ae165831e934ff763ae46a2a6c172b3f1b60a8ce26f";
+pub const first_epoch_last_step: u32 = 2014; // step 0 is block height 1.
 
 pub const Rows = struct {
     eq: usize,
@@ -166,6 +168,8 @@ pub fn generateKeyJson(
     checkpoint_display_hex: []const u8,
     max_step: u32,
 ) ![]u8 {
+    if (!std.mem.eql(u8, checkpoint_display_hex, genesis_display_hash)) return error.FirstEpochRequiresGenesisCheckpoint;
+    if (max_step > first_epoch_last_step) return error.FirstEpochRetargetUnsupported;
     const material = try deriveMaterial(allocator, checkpoint_display_hex);
     const anchor_hex = std.fmt.bytesToHex(material.anchor_root, .lower);
     const fold_hex = std.fmt.bytesToHex(material.fold_root, .lower);
@@ -203,6 +207,8 @@ pub fn validateKey(
     if (!std.mem.eql(u8, key.schema, schema) or !std.mem.eql(u8, key.profile, profile) or
         !std.meta.eql(key.padded, expected_rows) or !std.meta.eql(key.fri, expected_fri))
         return error.InvalidBitcoinChainKeyProfile;
+    if (!std.mem.eql(u8, key.checkpoint_block_hash, genesis_display_hash)) return error.FirstEpochRequiresGenesisCheckpoint;
+    if (key.max_step > first_epoch_last_step) return error.FirstEpochRetargetUnsupported;
     const material = try deriveMaterial(allocator, key.checkpoint_block_hash);
     if (!std.meta.eql(key.checkpoint_root, material.checkpoint_root) or
         key.trace_log_size != material.layout.traceLogSize() or

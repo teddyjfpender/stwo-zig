@@ -19,7 +19,7 @@ def fixture(name: str) -> tuple[dict, dict]:
 
 class OracleTests(unittest.TestCase):
     def test_repository_arithmetic_examples(self) -> None:
-        for name in ("arith4", "mathlib4", "math_polynomial4",
+        for name in ("arith4", "mathlib4", "math_polynomial4", "static_matvec", "array_views",
                      "preimage4", "lane_stats4", "affine4_v1"):
             with self.subTest(name=name):
                 relation, assignment = fixture(name)
@@ -27,7 +27,7 @@ class OracleTests(unittest.TestCase):
                                  assignment["public_outputs"])
 
     def test_forgeries_fail_on_every_arithmetic_example(self) -> None:
-        for name in ("arith4", "mathlib4", "math_polynomial4", "preimage4",
+        for name in ("arith4", "mathlib4", "math_polynomial4", "static_matvec", "array_views", "preimage4",
                      "lane_stats4", "affine4_v1"):
             with self.subTest(name=name):
                 relation, assignment = fixture(name)
@@ -51,6 +51,42 @@ class OracleTests(unittest.TestCase):
                               "public_outputs": {"total": [sum(values) % P]}}
                 self.assertEqual(evaluate_relation(relation, assignment),
                                  assignment["public_outputs"])
+
+    def test_array_views_preserve_exact_position_and_kind(self) -> None:
+        relation = {
+            "version": 1, "name": "arrays", "inputs": [
+                {"name": "left", "kind": "m31", "length": 3, "visibility": "private"},
+                {"name": "right", "kind": "m31", "length": 2, "visibility": "private"}],
+            "nodes": [
+                {"name": "both", "op": "array_concat", "lhs": "left", "rhs": "right"},
+                {"name": "edge", "op": "array_get", "lhs": "both", "index": 3}],
+            "assertions": [], "public_outputs": ["edge"],
+        }
+        assignment = {"public_inputs": {}, "private_inputs": {
+            "left": [1, 2, 3], "right": [P - 1, 5]}, "public_outputs": {"edge": [P - 1]}}
+        self.assertEqual(evaluate_relation(relation, assignment), {"edge": [P - 1]})
+        bad_claim = copy.deepcopy(assignment)
+        bad_claim["public_outputs"]["edge"] = [3]
+        with self.assertRaisesRegex(OracleError, "does not match"):
+            evaluate_relation(relation, bad_claim)
+        for bad_index in (-1, 5, True):
+            forged = copy.deepcopy(relation)
+            forged["nodes"][1]["index"] = bad_index
+            with self.subTest(bad_index=bad_index), self.assertRaises(OracleError):
+                evaluate_relation(forged, assignment)
+        forged = copy.deepcopy(relation)
+        forged["nodes"][0]["index"] = 0
+        with self.assertRaisesRegex(OracleError, "unexpected index"):
+            evaluate_relation(forged, assignment)
+
+        u16 = {"version": 1, "name": "bytes", "inputs": [
+            {"name": "bytes", "kind": "u16", "length": 2, "visibility": "private"}],
+            "nodes": [{"name": "word", "op": "array_get", "lhs": "bytes", "index": 1}],
+            "assertions": [], "public_outputs": ["word"]}
+        self.assertEqual(evaluate_relation(u16, {"public_inputs": {},
+                                            "private_inputs": {"bytes": [7, 65535]},
+                                            "public_outputs": {"word": [65535]}}),
+                         {"word": [65535]})
 
     def test_randomized_arithmetic_mix(self) -> None:
         rng = random.Random(0x531)

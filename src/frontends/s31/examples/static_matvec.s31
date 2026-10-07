@@ -1,0 +1,15 @@
+use std@1;
+
+// A two-by-two matrix of fixed coefficients acts on two private scalars.
+// Static arrays group references; every arithmetic result is still proved.
+circuit static_matvec(private a: [m31; 1], private b: [m31; 1])
+    -> public [m31; 1] {
+    let vector = [a, b];
+    let rows = [[splat<1>(2_m31), splat<1>(3_m31)],
+                [splat<1>(5_m31), splat<1>(7_m31)]];
+    let products = std::math::matvec(rows, vector);
+    let first = std::array::get<0>(products);
+    let second = std::array::get<1>(products);
+    let total = std::math::sum(std::array::concat([first], [second]));
+    total
+}

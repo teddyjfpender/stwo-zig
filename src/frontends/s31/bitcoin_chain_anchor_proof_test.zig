@@ -308,6 +308,10 @@ test "Bitcoin chain fold proves two changing headers over a verified checkpoint 
     const genesis_display = std.fmt.bytesToHex(genesis_raw, .lower);
     const key_bytes = try chain_verifier.generateKeyJson(allocator, &genesis_display, 1);
     defer allocator.free(key_bytes);
+    try std.testing.expectError(error.FirstEpochRetargetUnsupported,
+        chain_verifier.generateKeyJson(allocator, &genesis_display, 2015));
+    try std.testing.expectError(error.FirstEpochRequiresGenesisCheckpoint,
+        chain_verifier.generateKeyJson(allocator, block2.value.display_hash, 1));
     const key_digest = chain_verifier.sha256(key_bytes);
     const key = try chain_verifier.validateKey(allocator, key_bytes, key_digest);
     try std.testing.expectEqualDeep(checkpoint, key.material.checkpoint_root);

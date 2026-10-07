@@ -12,6 +12,7 @@ pub const cairo_verifier_proof = @import("cairo_verifier_proof.zig");
 pub const verify = @import("verify.zig");
 pub const recursion = @import("recursion/mod.zig");
 pub const repeated_step_chip = @import("repeated_step_chip.zig");
+pub const private_boundary_bridge = @import("private_boundary_bridge.zig");
 pub const sparse_arithmetic = @import("sparse_arithmetic.zig");
 pub const sparse_wide = @import("sparse_wide.zig");
 pub const direct_arithmetic = @import("direct_arithmetic.zig");
@@ -38,6 +39,7 @@ test {
     _ = verify;
     _ = recursion;
     _ = repeated_step_chip;
+    _ = private_boundary_bridge;
     _ = sparse_arithmetic;
     _ = sparse_wide;
 }

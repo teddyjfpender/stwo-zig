@@ -7,6 +7,7 @@ const cairo = @import("stwo_cairo_frontend");
 const old = @import("prove.zig");
 const air = @import("air.zig");
 const chip = @import("repeated_step_chip.zig");
+const bridge = @import("private_boundary_bridge.zig");
 
 const M31 = core.fields.m31.M31;
 const QM31 = core.fields.qm31.QM31;
@@ -20,6 +21,7 @@ const direct_trace = circuit.witness.direct_arithmetic;
 const PerComponent = circuit.common.component_list.PerComponent;
 
 pub const profile_tag: u64 = 0x5333314449523401;
+pub const private_profile_tag: u64 = 0x5333314449523501;
 pub const Proof = old.Internal.CircuitProof;
 
 pub const PreprocessedCommitment = struct {
@@ -59,6 +61,7 @@ pub const PreprocessedCommitment = struct {
 pub const Request = struct {
     source_digest: [32]u8,
     chip_request: ?old.ChipRequest = null,
+    private_boundary: ?bridge.Boundary = null,
     preprocessed_commitment: ?*const PreprocessedCommitment = null,
     test_mutation: ?@import("sparse_arithmetic.zig").Mutation = null,
     interaction_pow_time_ns: ?*u64 = null,
@@ -66,7 +69,7 @@ pub const Request = struct {
 };
 
 pub fn mixProfile(channel: *Channel, request: Request) void {
-    channel.mixU64(profile_tag);
+    channel.mixU64(if (request.private_boundary != null) private_profile_tag else profile_tag);
     var words: [8]u32 = undefined;
     for (&words, 0..) |*word, i|
         word.* = std.mem.readInt(u32, request.source_digest[4 * i ..][0..4], .little);
@@ -75,6 +78,8 @@ pub fn mixProfile(channel: *Channel, request: Request) void {
         channel.mixU32s(&.{ 1, item.rounds, item.constant.toU32() })
     else
         channel.mixU32s(&.{ 0, 0, 0 });
+    if (request.private_boundary) |boundary|
+        channel.mixU32s(&(boundary.input ++ boundary.output));
 }
 
 pub fn identityHash(
@@ -84,8 +89,19 @@ pub fn identityHash(
     blowup: u32,
     chip_request: ?old.ChipRequest,
 ) [32]u8 {
+    return identityHashWithPrivateBoundary(source_digest, preprocessed_root, log_size, blowup, chip_request, null);
+}
+
+pub fn identityHashWithPrivateBoundary(
+    source_digest: [32]u8,
+    preprocessed_root: [32]u8,
+    log_size: u32,
+    blowup: u32,
+    chip_request: ?old.ChipRequest,
+    private_boundary: ?bridge.Boundary,
+) [32]u8 {
     var hash = std.crypto.hash.sha2.Sha256.init(.{});
-    hash.update("S31-DIRECT-M31-V4\x00");
+    hash.update(if (private_boundary != null) "S31-DIRECT-M31-PRIVATE-V5\x00" else "S31-DIRECT-M31-V4\x00");
     hash.update(&source_digest);
     hash.update(&preprocessed_root);
     var word: [4]u8 = undefined;
@@ -95,6 +111,10 @@ pub fn identityHash(
     }
     if (chip_request) |item| for ([_]u32{ item.rounds, item.constant.toU32() }) |value| {
         std.mem.writeInt(u32, &word, value, .little);
+        hash.update(&word);
+    };
+    if (private_boundary) |boundary| for (boundary.input ++ boundary.output) |address| {
+        std.mem.writeInt(u32, &word, address, .little);
         hash.update(&word);
     };
     var digest: [32]u8 = undefined;
@@ -110,6 +130,10 @@ pub fn prove(
     pcs: core.pcs.config_v2.PcsConfigV2,
     request: Request,
 ) !Proof {
+    if ((request.private_boundary == null) != (pp.private_boundary == null) or
+        (request.private_boundary != null and !std.meta.eql(request.private_boundary.?, pp.private_boundary.?)) or
+        (request.private_boundary != null and request.chip_request == null))
+        return error.InvalidPrivateBoundaryProfile;
     if (request.chip_request) |item|
         if (!std.mem.eql(u8, &item.source_digest, &request.source_digest))
             return error.InvalidDirectChipSource;
@@ -137,15 +161,19 @@ pub fn prove(
     defer base.deinit();
     var chip_base: ?chip.Base = null;
     defer if (chip_base) |*owned| owned.deinit();
+    var bridge_base: ?bridge.Base = null;
+    defer if (bridge_base) |*owned| owned.deinit();
+    if (request.private_boundary) |boundary|
+        bridge_base = try bridge.writeBase(allocator, values, boundary);
     if (request.chip_request) |item| {
         chip_base = try chip.writeBase(allocator, item.initial, item.constant, item.rounds);
         if (!std.meta.eql(chip_base.?.final, item.final) or base.output_values.len != 8)
             return error.InvalidChipBoundary;
-        for (0..4) |lane| {
+        if (request.private_boundary == null) for (0..4) |lane| {
             if (!base.output_values[lane].eql(QM31.fromBase(item.initial[lane])) or
                 !base.output_values[4 + lane].eql(QM31.fromBase(item.final[lane])))
                 return error.InvalidChipBoundary;
-        }
+        };
     }
     if (request.test_mutation) |mutation| {
         const extra = if (chip_base) |*owned| owned else return error.MutationRequiresChip;
@@ -164,19 +192,24 @@ pub fn prove(
             .wrong_constant, .interaction_cell, .claimed_sum => {},
         }
     }
-    const hash = identityHash(
+    const hash = identityHashWithPrivateBoundary(
         request.source_digest,
         root,
         base.log_size,
         pcs.fri_config.log_blowup_factor,
         request.chip_request,
+        request.private_boundary,
     );
     MC.mixRoot(&channel, hash);
     channel.mixFelts(base.output_values);
     if (chip_base) |*extra| {
         const joined = try joinedViews(allocator, base.columns, extra.columns);
         defer allocator.free(joined);
-        try commit(&scheme, allocator, try cloneColumns(allocator, joined), &channel);
+        if (bridge_base) |*boundary| {
+            const all = try joinedViews(allocator, joined, boundary.columns);
+            defer allocator.free(all);
+            try commit(&scheme, allocator, try cloneColumns(allocator, all), &channel);
+        } else try commit(&scheme, allocator, try cloneColumns(allocator, joined), &channel);
     } else try commit(&scheme, allocator, try cloneColumns(allocator, base.columns), &channel);
     var interaction_pow_timer = try std.time.Timer.start();
     const nonce = channel.grind(circuit.common.component_list.INTERACTION_POW_BITS);
@@ -185,8 +218,8 @@ pub fn prove(
     const lookup = try core.channel.lookup_transcript.drawLookupElements(allocator, &channel);
     var interaction = try direct_trace.writeInteraction(allocator, &base, pp, lookup.z, lookup.alpha);
     defer interaction.deinit();
-    if (!(try direct_trace.lookupSum(base.output_values, interaction.claimed_sum, lookup.z, lookup.alpha)).isZero())
-        return error.InvalidLookupSum;
+    const circuit_sum = try direct_trace.lookupSum(base.output_values, interaction.claimed_sum, lookup.z, lookup.alpha);
+    if (request.private_boundary == null and !circuit_sum.isZero()) return error.InvalidLookupSum;
     var chip_interaction: ?chip.Interaction = null;
     defer if (chip_interaction) |*owned| owned.deinit();
     if (chip_base) |*extra| {
@@ -198,7 +231,7 @@ pub fn prove(
             else => {},
         };
         const item = request.chip_request.?;
-        if (!(try chip.endpointSum(
+        if (request.private_boundary == null and !(try chip.endpointSum(
             chip_interaction.?.claimed_sum,
             .init(lookup.z, lookup.alpha),
             item.rounds,
@@ -206,13 +239,25 @@ pub fn prove(
             item.final,
         )).isZero()) return error.InvalidChipLookupSum;
     }
-    var sums = [2]QM31{ interaction.claimed_sum, QM31.zero() };
+    var bridge_interaction: ?bridge.Interaction = null;
+    defer if (bridge_interaction) |*owned| owned.deinit();
+    if (bridge_base) |*boundary| {
+        bridge_interaction = try bridge.writeInteraction(allocator, boundary.columns, request.private_boundary.?, request.chip_request.?.rounds, lookup.z, lookup.alpha);
+        if (!circuit_sum.add(chip_interaction.?.claimed_sum).add(bridge_interaction.?.claimed_sum).isZero())
+            return error.InvalidPrivateBoundaryLookupSum;
+    }
+    var sums = [3]QM31{ interaction.claimed_sum, QM31.zero(), QM31.zero() };
     if (chip_interaction) |extra| sums[1] = extra.claimed_sum;
-    core.channel.lookup_transcript.mixInteractionClaim(&channel, sums[0..if (chip_interaction != null) 2 else 1]);
+    if (bridge_interaction) |extra| sums[2] = extra.claimed_sum;
+    core.channel.lookup_transcript.mixInteractionClaim(&channel, sums[0..if (bridge_interaction != null) 3 else if (chip_interaction != null) 2 else 1]);
     if (chip_interaction) |*extra| {
         const joined = try joinedViews(allocator, interaction.columns, extra.columns);
         defer allocator.free(joined);
-        try commit(&scheme, allocator, try cloneColumns(allocator, joined), &channel);
+        if (bridge_interaction) |*boundary| {
+            const all = try joinedViews(allocator, joined, boundary.columns);
+            defer allocator.free(all);
+            try commit(&scheme, allocator, try cloneColumns(allocator, all), &channel);
+        } else try commit(&scheme, allocator, try cloneColumns(allocator, joined), &channel);
     } else try commit(&scheme, allocator, try cloneColumns(allocator, interaction.columns), &channel);
 
     const layout = pp.layout();
@@ -222,7 +267,7 @@ pub fn prove(
     const lifting_bound = pcs.trace_lifting_log_size - pcs.fri_config.log_blowup_factor + 1;
     var captured: [1]cairo.proving.air.component.Component = undefined;
     captured[0] = .init(allocator, &bound.components[0], &pp_logs, lifting_bound, lookup.z, lookup.alpha, interaction.claimed_sum);
-    var handles: [2]prover.air.component_prover.ComponentProver = undefined;
+    var handles: [3]prover.air.component_prover.ComponentProver = undefined;
     handles[0] = captured[0].asProverComponent();
     var chip_component: chip.Component = undefined;
     var component_count: usize = 1;
@@ -240,6 +285,19 @@ pub fn prove(
             chip_component.constant = chip_component.constant.add(M31.one());
         handles[1] = chip_component.asProverComponent();
         component_count = 2;
+    }
+    var bridge_component: bridge.Component = undefined;
+    if (bridge_interaction) |extra| {
+        bridge_component = .{
+            .main_offset = direct_trace.main_width + chip.main_width,
+            .interaction_offset = direct_trace.interaction_width + chip.interaction_width,
+            .boundary = request.private_boundary.?,
+            .rounds = request.chip_request.?.rounds,
+            .elements = .init(lookup.z, lookup.alpha),
+            .claimed_sum = extra.claimed_sum,
+        };
+        handles[2] = bridge_component.asProverComponent();
+        component_count = 3;
     }
     var recorder = prover.stage_profile.Recorder.initWithOptions(allocator, "s31_direct", "prove", .{ .capture_tasks = false });
     defer recorder.deinit();
@@ -274,6 +332,7 @@ pub fn prove(
         .circuit_hash = hash,
         .component_log_sizes = PerComponent(u32).fromArray(all_logs),
         .chip_claimed_sum = if (chip_interaction) |extra| extra.claimed_sum else null,
+        .bridge_claimed_sum = if (bridge_interaction) |extra| extra.claimed_sum else null,
     };
 }
 

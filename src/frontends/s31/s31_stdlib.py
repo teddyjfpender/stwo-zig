@@ -56,7 +56,8 @@ class Value:
 
 @dataclass(frozen=True)
 class StaticGroup:
-    elements: tuple[Value, ...]
+    # A compile-time list of references. Nested groups describe fixed matrices.
+    elements: tuple[Value | StaticGroup, ...]
 
 
 @dataclass(frozen=True)
@@ -198,6 +199,39 @@ class Builder:
             raise TypeErrorS31("m31 limb conversion requires u16-backed values")
         return self.emit("cast_m31", Type("m31", value.typ.length), wanted=wanted,
                          span=span, lhs=self.realize(value).ref)
+
+    def array_get(self, value: Value | StaticGroup, index: int, *,
+                  wanted: str | None = None,
+                  span: dict[str, int] | None = None) -> Value | StaticGroup:
+        if isinstance(value, StaticGroup):
+            if not 0 <= index < len(value.elements):
+                raise TypeErrorS31("std::array::get index is outside the static array")
+            return value.elements[index]
+        if value.typ.kind not in {"m31", "u16"}:
+            raise TypeErrorS31("std::array::get requires [m31; N] or [u16; N]")
+        if not 0 <= index < value.typ.length:
+            raise TypeErrorS31("std::array::get index is outside the runtime array")
+        if value.constant is not None:
+            return self.splat(value.constant, 1)
+        return self.emit("array_get", Type(value.typ.kind, 1), wanted=wanted,
+                         span=span, lhs=self.realize(value).ref, index=index)
+
+    def array_concat(self, lhs: Value | StaticGroup, rhs: Value | StaticGroup, *,
+                     wanted: str | None = None,
+                     span: dict[str, int] | None = None) -> Value | StaticGroup:
+        if isinstance(lhs, StaticGroup) and isinstance(rhs, StaticGroup):
+            if len(lhs.elements) + len(rhs.elements) > 64:
+                raise TypeErrorS31("std::array::concat static result exceeds 64 terms")
+            return StaticGroup(lhs.elements + rhs.elements)
+        if not isinstance(lhs, Value) or not isinstance(rhs, Value):
+            raise TypeErrorS31("std::array::concat requires two static groups or two runtime arrays")
+        if lhs.typ.kind != rhs.typ.kind or lhs.typ.kind not in {"m31", "u16"}:
+            raise TypeErrorS31("std::array::concat requires arrays with the same m31 or u16 element type")
+        length = lhs.typ.length + rhs.typ.length
+        if length > 4096:
+            raise TypeErrorS31("std::array::concat result exceeds 4096 elements")
+        return self.emit("array_concat", Type(lhs.typ.kind, length), wanted=wanted,
+                         span=span, lhs=self.realize(lhs).ref, rhs=self.realize(rhs).ref)
 
     def u256_binary(self, op: str, lhs: Value, rhs: Value, *, wanted: str | None = None,
                     span: dict[str, int] | None = None) -> Value:

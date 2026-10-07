@@ -1,0 +1,19 @@
+{
+  "schema": "s31-runtime-array-direct-proof-v1",
+  "command": "python3 src/frontends/s31/s31.py trial src/frontends/s31/examples/runtime_array.s31.json src/frontends/s31/examples/runtime_array.valid.json --lowering direct-gate --out /tmp/s31-runtime-array-trial-final",
+  "program_sha256": "40cb6d81e84ddcc75cdd63701d119cca9621bd522b150cf383d9ddf7ba833c37",
+  "canonical_ir_sha256": "5e7eecc53275acf7d8ba46dbf88740889072512997fe3f96a0e72ccfaaab0a96",
+  "compiler_sha256": "5b30c9ee3a88342dad800180994226559c296fa2d7823e558110907207d89523",
+  "profile": "direct-m31-v4",
+  "independent_oracle_passed": true,
+  "native_verifier_accepted": true,
+  "changed_public_statement_rejected": true,
+  "raw_qm31_rows": 347,
+  "padded_qm31_rows": 512,
+  "preprocessed_cells": 4096,
+  "proof_bytes": 55868,
+  "proof_sha256": "d8175c933dc19b9f39fb155951b25ade32edf65102efb643bb0a6f3e9210e452",
+  "prove_wall_seconds": 0.45970662508625537,
+  "verify_wall_seconds": 0.3825868339044973,
+  "scope": "One local trial. Source build time, proof of work variance and cache state make this a correctness record rather than a speed comparison."
+}

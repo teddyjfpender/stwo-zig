@@ -74,13 +74,19 @@ sixteen operations and values near the M31 modulus. Extracting this gate
 builder for the test preserved the sealed arith4 state-fold AIR root and
 raw/padded geometry.
 
-The Bitcoin fold has a different base case. A key-pinned checkpoint anchor
-proof publishes the Poseidon2 root of a trusted 32-byte block hash. At step
+The Bitcoin fold has a different base case. Its current key profile pins the
+Bitcoin mainnet genesis hash and accepts final steps at most 2014, so step
+2014 proves block height 2015 and the first retarget at height 2016 is out
+of scope. A key-pinned checkpoint anchor proof publishes the Poseidon2 root
+of that 32-byte genesis hash. At step
 zero, the fold verifies that anchor under its fixed AIR root, forces the
 private prior-hash root to equal the checkpoint root, and checks a fresh
-header's exact previous-hash bytes, SHA256d and proof of work. At positive
+header's exact previous-hash bytes, `nBits = 0x1d00ffff`, SHA256d and proof
+of work. At positive
 step `n`, it verifies a fold proof with public digest for step `n-1` and
-the witnessed prior-hash root, then checks the next header. The current
+the witnessed prior-hash root, then checks the next header and the same
+exact `nBits`. The genesis and height limits are native key-policy checks;
+the header `nBits` equality is proof-bound. The current
 header-hash root enters `S31BFD1!`, a personalized BLAKE2s digest of the
 actual fold AIR root, full `u32` step, checkpoint root, and current root.
 The outer native verifier reconstructs that digest from the key, statement,
@@ -89,7 +95,9 @@ as a constant without a hash fixed-point problem; its guessed self-root is
 bound by the outer public digest, subject to BLAKE2s collision resistance.
 The prior and current hash roots also depend on Poseidon2 collision
 resistance. This is an induction argument for a **checkpoint-relative hash
-chain**, not full Bitcoin consensus or proof of the most-work chain. See the
+chain** over the first difficulty epoch, not full Bitcoin consensus or proof
+of the most-work chain. Median-time-past, the first retarget, cumulative
+chainwork and best-chain selection remain absent. See the
 [Bitcoin design](BITCOIN_LIGHT_CLIENT.md) and
 [standalone acceptance](../../src/frontends/s31/acceptance_bitcoin_chain_cli.py).
 

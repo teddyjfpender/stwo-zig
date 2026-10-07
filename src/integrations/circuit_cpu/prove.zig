@@ -271,6 +271,8 @@ pub fn CircuitProofOf(comptime MC: type) type {
         /// Present only for the hybrid-step-v2 profile. The v1 serializer
         /// ignores this field and retains its original byte format.
         chip_claimed_sum: ?QM31 = null,
+        /// Present only for the direct-M31 private circuit/chip bridge.
+        bridge_claimed_sum: ?QM31 = null,
 
         pub fn deinit(self: *@This()) void {
             self.stark_proof.deinit(self.allocator);

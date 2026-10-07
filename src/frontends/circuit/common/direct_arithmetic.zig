@@ -11,6 +11,21 @@ const M31 = core.fields.m31.M31;
 pub const N_COLUMNS: usize = preprocessed.QM31_OPS_COLUMN_IDS.len;
 pub const active_component_indices = [_]usize{1};
 
+/// Circuit Gate addresses whose private M31 values cross into a chip.  The
+/// addresses are fixed by the compiled circuit, never supplied by the proof.
+pub const PrivateBoundary = struct {
+    input: [4]u32,
+    output: [4]u32,
+
+    pub fn validate(self: PrivateBoundary, n_vars: usize) !void {
+        const all = self.input ++ self.output;
+        for (all, 0..) |address, index| {
+            if (address <= 2 or address >= n_vars) return error.InvalidPrivateBoundary;
+            for (all[0..index]) |earlier| if (earlier == address) return error.InvalidPrivateBoundary;
+        }
+    }
+};
+
 pub const Layout = struct {
     entries: [N_COLUMNS]preprocessed.LayoutEntry,
 
@@ -37,6 +52,7 @@ pub const Circuit = struct {
     columns: [N_COLUMNS]preprocessed.Column,
     first_permutation_row: usize,
     n_outputs: usize,
+    private_boundary: ?PrivateBoundary = null,
 
     pub fn deinit(self: *Circuit, allocator: std.mem.Allocator) void {
         for (self.columns) |column| allocator.free(column.values);
@@ -47,7 +63,19 @@ pub const Circuit = struct {
         return fromCircuit(allocator, .fromBuilder(source));
     }
 
+    pub fn fromBuilderCircuitWithPrivateBoundary(allocator: std.mem.Allocator, source: *const builder_circuit.Circuit, boundary: PrivateBoundary) !Circuit {
+        return fromCircuitWithPrivateBoundary(allocator, .fromBuilder(source), boundary);
+    }
+
     pub fn fromCircuit(allocator: std.mem.Allocator, source: preprocessed.CircuitView) !Circuit {
+        return fromCircuitOptionalBoundary(allocator, source, null);
+    }
+
+    pub fn fromCircuitWithPrivateBoundary(allocator: std.mem.Allocator, source: preprocessed.CircuitView, boundary: PrivateBoundary) !Circuit {
+        return fromCircuitOptionalBoundary(allocator, source, boundary);
+    }
+
+    fn fromCircuitOptionalBoundary(allocator: std.mem.Allocator, source: preprocessed.CircuitView, boundary: ?PrivateBoundary) !Circuit {
         try source.validate();
         if (source.output.len == 0 or source.eq.len != 0 or source.triple_xor.len != 0 or
             source.m31_to_u32.len != 0 or source.blake_g_gate.len != 0)
@@ -58,6 +86,27 @@ pub const Circuit = struct {
         defer allocator.free(multiplicities);
         if (multiplicities.len == 0) return error.InvalidDirectTraceShape;
         multiplicities[0] += @intCast(source.permutationRows());
+        if (boundary) |item| {
+            try item.validate(source.n_vars);
+            // One extra Gate yield for each word consumed by the bridge AIR.
+            // The bridge's committed value column supplies the matching use.
+            for (item.input ++ item.output) |address| {
+                // A private bridge may consume only a genuine, uniquely
+                // produced circuit wire, never a public output reservation.
+                for (source.output) |public_address| if (public_address == address)
+                    return error.InvalidPrivateBoundary;
+                var producers: usize = 0;
+                inline for (.{ source.add, source.sub, source.mul, source.pointwise_mul }) |gates|
+                    for (gates) |gate| {
+                        if (gate.out == address) producers += 1;
+                    };
+                for (source.permutation_outputs) |output| if (output == address) {
+                    producers += 1;
+                };
+                if (producers != 1) return error.InvalidPrivateBoundary;
+                multiplicities[address] += 1;
+            }
+        }
 
         var columns: [N_COLUMNS]preprocessed.Column = undefined;
         var count: usize = 0;
@@ -106,6 +155,7 @@ pub const Circuit = struct {
             .columns = columns,
             .first_permutation_row = first_permutation_row,
             .n_outputs = source.output.len - 1,
+            .private_boundary = boundary,
         };
     }
 

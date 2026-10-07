@@ -117,8 +117,12 @@ one fresh header's SHA256d, previous-hash link, and PoW against a claimed
 authenticate the prior hash or enforce full chain policy; that linkage belongs
 inside a changing-header fold. The
 [`sha_chip_plan.zig` boundary](sha_chip_plan.zig) prepares three SHA AIR calls
-per header and tests their byte-level linkage; proof-bound chip integration
-remains future work. The [sparse-wide recursive verifier](docs/recursion-sparse-wide.md)
+per header and tests their byte-level linkage. Its 96-word private caller
+tape closes the SHA graph's lookups for one or two headers, and the
+[SHA chip profile](sha_chip_profile.zig) pins the corresponding AIR identities
+and row geometry. The circuit-to-chip lookup and one-proof verifier are still
+required before this chip can replace SHA circuit gates. The
+[sparse-wide recursive verifier](docs/recursion-sparse-wide.md)
 now wraps this profile through two depth-specific gate proofs. The
 [header-link acceptance gate](acceptance_header_link.py) also wraps one fresh
 header-link proof and checks its authenticated child statement. A direct

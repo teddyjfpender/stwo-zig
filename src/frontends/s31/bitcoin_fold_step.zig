@@ -54,6 +54,17 @@ pub fn constrainMainnetPowLinkStep(
     header_values: [40]V,
     authenticated_prior_root: [8]Var,
 ) ![8]Var {
+    return constrainPowLinkStep(V, ctx, prior_hash_values, header_values, authenticated_prior_root, false);
+}
+
+fn constrainPowLinkStep(
+    comptime V: type,
+    ctx: *circuit.builder.Context(V),
+    prior_hash_values: [16]V,
+    header_values: [40]V,
+    authenticated_prior_root: [8]Var,
+    comptime genesis_epoch: bool,
+) ![8]Var {
     var prior_hash: [16]Var = undefined;
     var header: [40]Var = undefined;
     for (prior_hash_values, &prior_hash) |value, *wire| wire.* = try ctx.guessU16(value);
@@ -63,11 +74,51 @@ pub fn constrainMainnetPowLinkStep(
     for (computed_prior_root, authenticated_prior_root) |computed, claimed|
         try ctx.eq(computed, claimed);
     for (prior_hash, 0..) |word, i| try ctx.eq(header[i + 2], word);
+    if (genesis_epoch) try constrainGenesisEpochBits(V, ctx, &header);
 
     const child_hash = try sha256d.hashHeader(V, ctx, &header);
     const target = try bitcoin_target.mainnetTarget(V, ctx, &header);
     try ctx.eq(try lessEqualU256(V, ctx, child_hash, target), ctx.one());
     return poseidon2.leafScalarCircuit(V, ctx, &child_hash);
+}
+
+/// Bitcoin mainnet keeps the genesis difficulty bits through block height
+/// 2015. A fold starting at genesis can use this cheaper exact-field check
+/// until the first retarget boundary at height 2016. The caller must enforce
+/// the supported height bound in its sealed verification key.
+pub fn constrainGenesisEpochBits(comptime V: type, ctx: *circuit.builder.Context(V), header: []const Var) !void {
+    if (header.len != 40) return error.InvalidHeaderLength;
+    try ctx.eq(header[36], try ctx.constant(QM31.fromBase(M31.fromCanonical(0xffff))));
+    try ctx.eq(header[37], try ctx.constant(QM31.fromBase(M31.fromCanonical(0x1d00))));
+}
+
+pub fn constrainGenesisEpochPowLinkStep(
+    comptime V: type,
+    ctx: *circuit.builder.Context(V),
+    prior_hash_values: [16]V,
+    header_values: [40]V,
+    authenticated_prior_root: [8]Var,
+) ![8]Var {
+    return constrainPowLinkStep(V, ctx, prior_hash_values, header_values, authenticated_prior_root, true);
+}
+
+test "genesis epoch bits equality rejects alternate compact targets" {
+    for ([_]struct { bits: u32, valid: bool }{
+        .{ .bits = 0x1d00ffff, .valid = true },
+        .{ .bits = 0x1d00fffe, .valid = false },
+        .{ .bits = 0x1c7fffff, .valid = false },
+        .{ .bits = 0x1d010000, .valid = false },
+    }) |case| {
+        var ctx = try circuit.builder.Context(QM31).init(std.testing.allocator, 1);
+        defer ctx.deinit();
+        var header = [_]Var{ctx.zero()} ** 40;
+        header[36] = try ctx.guessU16(hint(QM31, case.bits & 0xffff));
+        header[37] = try ctx.guessU16(hint(QM31, case.bits >> 16));
+        try constrainGenesisEpochBits(QM31, &ctx, &header);
+        try ctx.setOutputs(&.{header[36]});
+        try ctx.finalize(false);
+        try std.testing.expectEqual(case.valid, try ctx.isCircuitValid());
+    }
 }
 
 test "direct fold unsigned comparison handles equality and limb borrows" {

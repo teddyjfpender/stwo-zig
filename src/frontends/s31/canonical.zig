@@ -7,7 +7,7 @@ const core = @import("stwo_core");
 const relation = @import("relation.zig");
 const M31 = core.fields.m31.M31;
 
-pub const Tag = enum { input, constant, cast_m31, add, mul, add_const, mul_const, repeat, hash_blake2s, hash_blake2s_leaf, hash_blake2s_pair, select, hash_poseidon2_leaf, hash_poseidon2_pair, sum_lanes, u256_add, u256_le, u256_add_checked, hash_sha256d_header, bitcoin_target_mainnet, bitcoin_prev_hash, bitcoin_header_bits, bitcoin_genesis_hash_mainnet, bitcoin_header_time, u32_lt, inv, is_zero, u256_sub, u256_sub_checked };
+pub const Tag = enum { input, constant, cast_m31, add, mul, add_const, mul_const, repeat, hash_blake2s, hash_blake2s_leaf, hash_blake2s_pair, select, hash_poseidon2_leaf, hash_poseidon2_pair, sum_lanes, u256_add, u256_le, u256_add_checked, hash_sha256d_header, bitcoin_target_mainnet, bitcoin_prev_hash, bitcoin_header_bits, bitcoin_genesis_hash_mainnet, bitcoin_header_time, u32_lt, inv, is_zero, u256_sub, u256_sub_checked, array_get, array_concat };
 pub const Node = struct {
     tag: Tag,
     kind: relation.Kind,
@@ -15,6 +15,7 @@ pub const Node = struct {
     lhs: ?u32 = null,
     rhs: ?u32 = null,
     selector: ?u32 = null,
+    index: ?u32 = null,
     constant: ?u32 = null,
     rounds: ?u32 = null,
     body: ?[]const relation.Step = null,
@@ -35,6 +36,20 @@ const LegacyNode = struct {
     visibility: ?relation.Visibility = null,
 };
 pub const Source = struct { name: []const u8, id: u32 };
+/// The pre-index encoding of selector programs stays byte-for-byte stable.
+const SelectorNode = struct {
+    tag: Tag,
+    kind: relation.Kind,
+    length: u32,
+    lhs: ?u32 = null,
+    rhs: ?u32 = null,
+    selector: ?u32 = null,
+    constant: ?u32 = null,
+    rounds: ?u32 = null,
+    body: ?[]const relation.Step = null,
+    input_name: ?[]const u8 = null,
+    visibility: ?relation.Visibility = null,
+};
 pub const Assertion = struct { lhs: u32, rhs: u32 };
 pub const Output = struct { name: []const u8, id: u32 };
 pub const IR = struct {
@@ -93,6 +108,8 @@ pub fn build(allocator: std.mem.Allocator, program: relation.Program) !IR {
         // operand rather than recursively rescanning the full source chain.
         const length: u32 = switch (raw.op) {
             .constant => raw.length.?,
+            .array_get => 1,
+            .array_concat => nodes.items[lhs.?].length + nodes.items[rhs.?].length,
             .sum_lanes, .u256_le, .u32_lt, .is_zero => 1,
             .hash_sha256d_header, .bitcoin_target_mainnet, .bitcoin_prev_hash, .bitcoin_genesis_hash_mainnet => 16,
             .bitcoin_header_bits, .bitcoin_header_time => 2,
@@ -101,11 +118,14 @@ pub fn build(allocator: std.mem.Allocator, program: relation.Program) !IR {
         };
         var node: Node = .{
             .tag = @enumFromInt(@as(u8, @intFromEnum(raw.op)) + 1),
-            .kind = if (raw.op == .u256_add or raw.op == .u256_add_checked or raw.op == .u256_sub or raw.op == .u256_sub_checked or raw.op == .hash_sha256d_header or raw.op == .bitcoin_target_mainnet or raw.op == .bitcoin_prev_hash or raw.op == .bitcoin_header_bits or raw.op == .bitcoin_header_time or raw.op == .bitcoin_genesis_hash_mainnet) .u16 else .m31,
+            .kind = if (raw.op == .array_get or raw.op == .array_concat)
+                nodes.items[lhs.?].kind
+            else if (raw.op == .u256_add or raw.op == .u256_add_checked or raw.op == .u256_sub or raw.op == .u256_sub_checked or raw.op == .hash_sha256d_header or raw.op == .bitcoin_target_mainnet or raw.op == .bitcoin_prev_hash or raw.op == .bitcoin_header_bits or raw.op == .bitcoin_header_time or raw.op == .bitcoin_genesis_hash_mainnet) .u16 else .m31,
             .length = length,
             .lhs = lhs,
             .rhs = rhs,
             .selector = selector,
+            .index = raw.index,
             .constant = raw.constant,
             .rounds = raw.rounds,
             .body = raw.body,
@@ -139,12 +159,39 @@ pub fn build(allocator: std.mem.Allocator, program: relation.Program) !IR {
         uses_selector = true;
         break;
     };
-    const encoded = if (uses_selector) try std.json.Stringify.valueAlloc(allocator, .{
+    var uses_index = false;
+    for (nodes.items) |node| if (node.tag == .array_get or node.tag == .array_concat) {
+        uses_index = true;
+        break;
+    };
+    const encoded = if (uses_index) try std.json.Stringify.valueAlloc(allocator, .{
         .version = @as(u32, 1),
         .nodes = nodes.items,
         .assertions = assertions.items,
         .public_outputs = outputs.items,
-    }, .{}) else blk: {
+    }, .{}) else if (uses_selector) blk: {
+        const selector_nodes = try allocator.alloc(SelectorNode, nodes.items.len);
+        defer allocator.free(selector_nodes);
+        for (nodes.items, selector_nodes) |node, *previous| previous.* = .{
+            .tag = node.tag,
+            .kind = node.kind,
+            .length = node.length,
+            .lhs = node.lhs,
+            .rhs = node.rhs,
+            .selector = node.selector,
+            .constant = node.constant,
+            .rounds = node.rounds,
+            .body = node.body,
+            .input_name = node.input_name,
+            .visibility = node.visibility,
+        };
+        break :blk try std.json.Stringify.valueAlloc(allocator, .{
+            .version = @as(u32, 1),
+            .nodes = selector_nodes,
+            .assertions = assertions.items,
+            .public_outputs = outputs.items,
+        }, .{});
+    } else blk: {
         const legacy_nodes = try allocator.alloc(LegacyNode, nodes.items.len);
         defer allocator.free(legacy_nodes);
         for (nodes.items, legacy_nodes) |node, *legacy| legacy.* = .{
@@ -247,10 +294,11 @@ fn constantNode(length: u32, value: u32) Node {
 
 fn expressionKey(allocator: std.mem.Allocator, node: Node) ![]const u8 {
     const body_json = if (node.body) |body| try std.json.Stringify.valueAlloc(allocator, body, .{}) else "";
-    return std.fmt.allocPrint(allocator, "{d}|{d}|{d}|{d}|{d}|{d}|{d}|{d}|{s}", .{
+    return std.fmt.allocPrint(allocator, "{d}|{d}|{d}|{d}|{d}|{d}|{d}|{d}|{d}|{s}", .{
         @intFromEnum(node.tag),                    @intFromEnum(node.kind),              node.length,
         node.lhs orelse std.math.maxInt(u32),      node.rhs orelse std.math.maxInt(u32), node.constant orelse std.math.maxInt(u32),
-        node.selector orelse std.math.maxInt(u32), node.rounds orelse 0,                 body_json,
+        node.selector orelse std.math.maxInt(u32), node.rounds orelse 0,                 node.index orelse std.math.maxInt(u32),
+        body_json,
     });
 }
 

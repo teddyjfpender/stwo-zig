@@ -26,14 +26,14 @@ _HASH_OPS = frozenset({
     "hash_blake2s", "hash_blake2s_leaf", "hash_blake2s_pair",
     "hash_poseidon2_leaf", "hash_poseidon2_pair",
 })
-_OPS = frozenset({"constant", "cast_m31", "add", "mul", "inv", "is_zero", "add_const",
+_OPS = frozenset({"constant", "cast_m31", "array_get", "array_concat", "add", "mul", "inv", "is_zero", "add_const",
                   "mul_const", "sum_lanes", "select", "repeat",
                   "u256_add", "u256_le", "u256_add_checked", "u256_sub", "u256_sub_checked",
                   "hash_sha256d_header", "bitcoin_target_mainnet",
                   "bitcoin_prev_hash", "bitcoin_header_bits", "bitcoin_header_time", "u32_lt",
                   "bitcoin_genesis_hash_mainnet"}) | _HASH_OPS
 _NODE_FIELDS = frozenset({"name", "op", "lhs", "rhs", "selector",
-                          "constant", "length", "rounds", "body"})
+                          "constant", "length", "rounds", "body", "index"})
 
 
 class OracleError(ValueError):
@@ -132,6 +132,8 @@ def _validated_shapes(relation: Mapping[str, Any]) -> tuple[dict[str, tuple[str,
         selector = _operand(node, "selector", shapes)
         if op != "select":
             _absent(node, "selector")
+        if op != "array_get":
+            _absent(node, "index")
         if op == "constant":
             _absent(node, "lhs", "rhs", "rounds", "body")
             _uint(node.get("constant"), f"{name}.constant", P)
@@ -144,6 +146,19 @@ def _validated_shapes(relation: Mapping[str, Any]) -> tuple[dict[str, tuple[str,
             if lhs is None or lhs[0] != "u16":
                 raise OracleError(f"{name}: cast_m31 requires a u16 operand")
             shape = ("m31", lhs[1])
+        elif op == "array_get":
+            _absent(node, "rhs", "constant", "length", "rounds", "body")
+            if lhs is None or lhs[0] not in {"m31", "u16"}:
+                raise OracleError(f"{name}: array_get requires an m31 or u16 array")
+            _uint(node.get("index"), f"{name}.index", lhs[1])
+            shape = (lhs[0], 1)
+        elif op == "array_concat":
+            _absent(node, "constant", "length", "rounds", "body")
+            if lhs is None or rhs is None or lhs[0] != rhs[0] or lhs[0] not in {"m31", "u16"}:
+                raise OracleError(f"{name}: array_concat requires equal m31 or u16 element types")
+            if lhs[1] + rhs[1] > 4096:
+                raise OracleError(f"{name}: array_concat exceeds 4096 elements")
+            shape = (lhs[0], lhs[1] + rhs[1])
         elif op in ("add", "mul"):
             _absent(node, "constant", "length", "rounds", "body")
             if rhs is None:
@@ -297,6 +312,10 @@ def evaluate_relation(relation: Mapping[str, Any], assignment: Mapping[str, Any]
             result = [node["constant"]] * node["length"]
         elif op == "cast_m31":
             result = lhs.copy()
+        elif op == "array_get":
+            result = [lhs[node["index"]]]
+        elif op == "array_concat":
+            result = lhs + rhs
         elif op == "add":
             result = [(a + b) % P for a, b in zip(lhs, rhs)]
         elif op == "mul":

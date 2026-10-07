@@ -1,0 +1,16 @@
+{
+  "version": 1,
+  "name": "array_views",
+  "inputs": [
+    {"name": "a", "kind": "m31", "length": 4, "visibility": "public"},
+    {"name": "b", "kind": "m31", "length": 3, "visibility": "public"}
+  ],
+  "nodes": [
+    {"name": "joined", "op": "array_concat", "lhs": "a", "rhs": "b"},
+    {"name": "boundary", "op": "array_get", "lhs": "joined", "index": 4},
+    {"name": "prior", "op": "array_get", "lhs": "a", "index": 3},
+    {"name": "result", "op": "add", "lhs": "boundary", "rhs": "prior"}
+  ],
+  "assertions": [],
+  "public_outputs": ["result"]
+}

@@ -63,12 +63,15 @@ def main() -> None:
         run("statement", key, digest, 1, changed_hash, changed_hash_statement, accepted=True)
         run("verify", key, digest, changed_hash_statement, proof1, accepted=False)
         alternate_key = temp / "alternate-checkpoint-key.json"
-        run("keygen", original["current_block_hash"], 1, alternate_key, accepted=True)
-        alternate_digest = hashlib.sha256(alternate_key.read_bytes()).hexdigest()
-        alternate_statement = temp / "alternate-checkpoint.statement.json"
-        run("statement", alternate_key, alternate_digest, 1,
-            original["current_block_hash"], alternate_statement, accepted=True)
-        run("verify", alternate_key, alternate_digest, alternate_statement, proof1, accepted=False)
+        run("keygen", original["current_block_hash"], 1, alternate_key, accepted=False)
+        run("keygen", checkpoint, 2014, temp / "last-first-epoch-key.json", accepted=True)
+        run("keygen", checkpoint, 2015, temp / "retarget-key.json", accepted=False)
+        overlong_key = json.loads(key.read_text())
+        overlong_key["max_step"] = 2015
+        overlong_path = temp / "overlong-key.json"
+        overlong_path.write_text(json.dumps(overlong_key))
+        overlong_digest = hashlib.sha256(overlong_path.read_bytes()).hexdigest()
+        run("verify", overlong_path, overlong_digest, step1, proof1, accepted=False)
         changed = temp / "changed.statement.json"
         statement["public_words"][0] ^= 1
         changed.write_text(json.dumps(statement))
@@ -84,7 +87,7 @@ def main() -> None:
         run("verify", key, digest, step1, bad_proof, accepted=False)
         output = temp / "over-limit.statement.json"
         run("statement", key, digest, 2, statement["current_block_hash"], output, accepted=False)
-    print("Bitcoin chain CLI: key and statement regeneration agree; valid steps accepted; wrong checkpoint, key digest, current hash, replay, claim, proof, and step limit rejected")
+    print("Bitcoin chain CLI: key and statement regeneration agree; valid steps accepted; wrong checkpoint, retarget boundary, key digest, current hash, replay, claim, proof, and step limit rejected")
 
 
 if __name__ == "__main__":

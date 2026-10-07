@@ -78,8 +78,10 @@ def abi(source: dict, lowering: str) -> dict:
         op = node["op"]
         if op == "constant":
             length = node["length"]
-        elif op in {"sum_lanes", "u256_le", "u32_lt"}:
+        elif op in {"sum_lanes", "u256_le", "u32_lt", "array_get"}:
             length = 1
+        elif op == "array_concat":
+            length = shapes[node["lhs"]]["length"] + shapes[node["rhs"]]["length"]
         elif op in {"hash_sha256d_header", "bitcoin_target_mainnet", "bitcoin_prev_hash", "bitcoin_genesis_hash_mainnet"}:
             length = 16
         elif op in {"bitcoin_header_bits", "bitcoin_header_time"}:
@@ -89,7 +91,8 @@ def abi(source: dict, lowering: str) -> dict:
             length = 8
         else:
             length = shapes[node["lhs"]]["length"]
-        shapes[node["name"]] = {"kind": "u16" if op in {"u256_add", "u256_add_checked", "u256_sub", "u256_sub_checked", "hash_sha256d_header", "bitcoin_target_mainnet", "bitcoin_prev_hash", "bitcoin_header_bits", "bitcoin_header_time", "bitcoin_genesis_hash_mainnet"} else "m31", "length": length}
+        shapes[node["name"]] = {"kind": (shapes[node["lhs"]]["kind"] if op in {"array_get", "array_concat"} else
+                                         "u16" if op in {"u256_add", "u256_add_checked", "u256_sub", "u256_sub_checked", "hash_sha256d_header", "bitcoin_target_mainnet", "bitcoin_prev_hash", "bitcoin_header_bits", "bitcoin_header_time", "bitcoin_genesis_hash_mainnet"} else "m31"), "length": length}
     return {
         "schema": "s31-public-abi-v1",
         "encoding": "eight canonical M31 words, encoded little-endian u32; unused words are zero" if lowering.startswith("direct-") else "eight little-endian u32 words; unused words are zero",
@@ -612,6 +615,19 @@ def equations(package: Path) -> dict:
             shape = ("m31", 1)
             length = shapes[node["lhs"]][1]
             field_equations.append(f"{name}[0] - sum({node['lhs']}[j] for j=0..{length - 1}) = 0")
+        elif op == "array_get":
+            shape = (shapes[node["lhs"]][0], 1)
+            field_equations.append(f"{name}[0] - {node['lhs']}[{node['index']}] = 0")
+            notes.append("This is a view of an already constrained array position; it introduces no independent witness value.")
+        elif op == "array_concat":
+            left = shapes[node["lhs"]]
+            right = shapes[node["rhs"]]
+            shape = (left[0], left[1] + right[1])
+            field_equations.extend((
+                f"{name}[j] - {node['lhs']}[j] = 0, 0 <= j < {left[1]}",
+                f"{name}[{left[1]}+j] - {node['rhs']}[j] = 0, 0 <= j < {right[1]}",
+            ))
+            notes.append("This is a concatenated view of constrained positions; it introduces no independent witness values.")
         elif op in {"u256_add", "u256_le", "u256_add_checked", "u256_sub", "u256_sub_checked"}:
             shape = ("u16", 16) if op in {"u256_add", "u256_add_checked", "u256_sub", "u256_sub_checked"} else ("m31", 1)
             functional_spec = f"{name} = {op}({node['lhs']}, {node['rhs']})"

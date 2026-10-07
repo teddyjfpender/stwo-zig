@@ -287,6 +287,56 @@ circuit balanced(private a: [m31; 1], private b: [m31; 1],
         self.assertEqual((nodes[1]["lhs"], nodes[1]["rhs"]), ("c", "d"))
         self.assertEqual((nodes[2]["lhs"], nodes[2]["rhs"]), (nodes[0]["name"], nodes[1]["name"]))
 
+    def test_static_matrix_vector_lowers_to_existing_arithmetic(self) -> None:
+        self.assertEqual(compile_file(EXAMPLES / "static_matvec.s31")[0],
+                         json.loads((EXAMPLES / "static_matvec.s31.json").read_text()))
+        relation, source_map = compile_text("""use std@1;
+circuit matrix(private a: [m31; 1], private b: [m31; 1]) -> public [m31; 1] {
+    let vector = [a, b];
+    let rows = [[splat<1>(2_m31), splat<1>(3_m31)],
+                [splat<1>(5_m31), splat<1>(7_m31)]];
+    let products = std::math::matvec(rows, vector);
+    let first = std::array::get<0>(products);
+    let second = std::array::get<1>(products);
+    let total = std::math::sum(std::array::concat([first], [second]));
+    total
+}""")
+        nodes = relation["nodes"]
+        self.assertEqual([node["op"] for node in nodes],
+                         ["mul_const", "mul_const", "add", "mul_const", "mul_const", "add", "add"])
+        self.assertEqual(nodes[-1]["name"], "total")
+        self.assertEqual(set(source_map), {node["name"] for node in nodes})
+        self.assertEqual(relation["public_outputs"], ["total"])
+
+    def test_runtime_array_get_and_concat_have_explicit_relation_nodes(self) -> None:
+        self.assertEqual(compile_file(EXAMPLES / "array_views.s31")[0],
+                         json.loads((EXAMPLES / "array_views.s31.json").read_text()))
+        relation, _ = compile_text("""use std@1;
+circuit joined(private a: [m31; 3], private b: [m31; 2]) -> public [m31; 1] {
+    let both = std::array::concat(a, b);
+    std::array::get<4>(both)
+}""")
+        self.assertEqual(relation["nodes"], [
+            {"name": "both", "op": "array_concat", "lhs": "a", "rhs": "b"},
+            {"name": "_s31_0", "op": "array_get", "lhs": "both", "index": 4},
+        ])
+        u16, _ = compile_text("""circuit byte(private a: [u16; 2]) -> public [u16; 1] {
+    std::array::get<1>(a)
+}""")
+        self.assertEqual(u16["nodes"][0]["op"], "array_get")
+
+    def test_array_and_matrix_shapes_are_checked_before_relation_emission(self) -> None:
+        cases = (
+            ("std::array::get<2>([a, b])", "outside the static array"),
+            ("std::array::get<2>(a)", "outside the runtime array"),
+            ("std::array::concat(a, b)", "same m31 or u16 element type"),
+            ("std::math::matvec([[a]], [a, a])", "rectangular rows"),
+            ("std::math::sum([[a]])", "static array of"),
+        )
+        for expression, message in cases:
+            with self.subTest(expression=expression), self.assertRaisesRegex(SourceError, message):
+                compile_text(f"circuit invalid(private a: [m31; 1], private b: [u16; 1]) -> public [m31; 1] {{ {expression} }}")
+
     def test_std_import_rejects_unsupported_versions_and_packages(self) -> None:
         circuit = "circuit math(private x: [m31; 1]) -> public [m31; 1] { x }"
         for import_line in ("use std@2;", "use other@1;"):

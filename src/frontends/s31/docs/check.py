@@ -43,6 +43,20 @@ def json_block_containing(path: Path, marker: str) -> dict:
     raise AssertionError(f"{path}: missing JSON example containing {marker!r}")
 
 
+def check_historical_source_hashes(sources: dict[str, str]) -> None:
+    """Validate historical measurement provenance without rewriting its date.
+
+    A measurement's source digests describe the files used for that run. New
+    source revisions do not make old proof sizes or row counts current. Current
+    compiler behavior is checked separately by the text/oracle/proof corpus.
+    """
+    assert sources
+    for name, digest in sources.items():
+        assert isinstance(name, str) and name and not Path(name).is_absolute()
+        assert ".." not in Path(name).parts and (S31 / name).is_file()
+        assert isinstance(digest, str) and re.fullmatch(r"[0-9a-f]{64}", digest)
+
+
 def check_examples() -> None:
     walkthrough, _ = compile_text(
         text_block(DOCS / "walkthrough.md", "circuit square_plus_seven"), "walkthrough.md"
@@ -83,6 +97,18 @@ def check_examples() -> None:
         (2 * x + 3 * (2 * x**3 + 3 * x**2 + 5 * x + 7) + 11) % P
         for x in library_assignment["public_inputs"]["x"]
     ]
+    matrix_source = text_block_containing(DOCS / "library.md", "circuit static_matvec")
+    matrix_relation, _ = compile_text(matrix_source, "library.md")
+    assert matrix_relation == json.loads((S31 / "examples/static_matvec.s31.json").read_text())
+    matrix_assignment = json.loads((S31 / "examples/static_matvec.valid.json").read_text())
+    assert evaluate_relation(matrix_relation, matrix_assignment) == {"total": [44]}
+    views_source = text_block_containing(DOCS / "library.md", "circuit array_views")
+    views_relation, _ = compile_text(views_source, "library.md")
+    assert views_relation == json.loads((S31 / "examples/array_views.s31.json").read_text())
+    views_assignment = json.loads((S31 / "examples/array_views.valid.json").read_text())
+    assert evaluate_relation(views_relation, views_assignment) == {"result": [18]}
+    assert [node["op"] for node in views_relation["nodes"]] == [
+        "array_concat", "array_get", "array_get", "add"]
     lane_source = text_block_containing(DOCS / "library.md", "circuit lane_stats4")
     lane_relation, _ = compile_text(lane_source, "library.md")
     fixture_relation, _ = compile_text((S31 / "examples/lane_stats4.s31").read_text())
@@ -251,8 +277,7 @@ def check_examples() -> None:
             for mode in ("checked", "wrap")] == [7744, 7743]
     assert all(subtraction_record["profiles"][mode]["padded"]["eq"] == 32
                for mode in ("checked", "wrap"))
-    for filename, digest in subtraction_record["source_sha256"].items():
-        assert hashlib.sha256((S31 / filename).read_bytes()).hexdigest() == digest
+    check_historical_source_hashes(subtraction_record["source_sha256"])
     for filename, digest in subtraction_record["fixture_sha256"].items():
         mode, extension = filename.split(".", 1)
         assert hashlib.sha256((S31 / "examples" / f"u256_sub_{mode}.{extension}").read_bytes()).hexdigest() == digest
@@ -451,26 +476,33 @@ def check_recursive_examples() -> None:
 
     direct_step = json.loads((records / "bitcoin-direct-fold-step-v1-2026-10-07.json").read_text())
     assert direct_step["sha256d_sha256"] == hashlib.sha256((S31 / "sha256d.zig").read_bytes()).hexdigest()
-    assert direct_step["source_sha256"] == hashlib.sha256((S31 / "bitcoin_fold_step.zig").read_bytes()).hexdigest()
+    check_historical_source_hashes({"bitcoin_fold_step.zig": direct_step["source_sha256"]})
     assert direct_step["naive_additive_qm31_ops"] == (
         direct_step["existing_bitcoin_claim_fold_reference"]["qm31_ops"]
         + direct_step["direct_step"]["raw"]["qm31_ops"]
     )
-    bitcoin_fold = json.loads((records / "bitcoin-chain-fold-topology-v1-2026-10-07.json").read_text())
-    assert bitcoin_fold["schema"] == "s31-bitcoin-chain-fold-topology-v1"
+    old_bitcoin_fold = json.loads((records / "bitcoin-chain-fold-topology-v1-2026-10-07.json").read_text())
+    assert old_bitcoin_fold["schema"] == "s31-bitcoin-chain-fold-topology-v1"
+    check_historical_source_hashes(old_bitcoin_fold["source_sha256"])
+    bitcoin_fold = json.loads((records / "bitcoin-chain-fold-topology-v2-2026-10-07.json").read_text())
+    assert bitcoin_fold["schema"] == "s31-bitcoin-chain-fold-topology-v2"
     assert bitcoin_fold["projection_sha256"] == hashlib.sha256(
         (ROOT / "vectors/circuit/official/compiled_air_constraints_v1.bin").read_bytes()
     ).hexdigest()
     assert bitcoin_fold["reference_sha256"] == hashlib.sha256(
         (records / "bitcoin-sparse-wide-fold-stages-v1-2026-10-07.json").read_bytes()
     ).hexdigest()
-    for name, source_hash in bitcoin_fold["source_sha256"].items():
-        assert source_hash == hashlib.sha256((S31 / name).read_bytes()).hexdigest()
+    assert bitcoin_fold["source_sha256"] == {
+        name: hashlib.sha256((S31 / name).read_bytes()).hexdigest()
+        for name in bitcoin_fold["source_sha256"]
+    }
     fold_cases = {case["case"]: case for case in bitcoin_fold["cases"]}
     base_fold = fold_cases["candidate-base"]
     assert len(fold_cases) == 8
     assert base_fold["fixed_point"] is True
-    assert base_fold["raw"]["qm31_ops"] == 1150615
+    assert base_fold["raw"]["qm31_ops"] == 1150616
+    assert base_fold["raw"]["eq"] == 32077
+    assert base_fold["raw_vars"] == 5953038
     assert base_fold["padded"] == bitcoin_fold["candidate_padded_rows"]
     assert base_fold["preprocessed_root"] == bitcoin_fold["candidate_preprocessed_root"]
     assert base_fold["anchor_root"] == bitcoin_fold["anchor_preprocessed_root"]
@@ -489,17 +521,22 @@ def check_recursive_examples() -> None:
                (base_fold["raw_vars"], base_fold["raw"]["qm31_ops"],
                 base_fold["padded"]["qm31_ops"], base_fold["padded"]["eq"]))
 
-    two_step = json.loads((records / "bitcoin-chain-two-step-proof-v1-2026-10-07.json").read_text())
-    assert two_step["schema"] == "s31-bitcoin-chain-two-step-proof-v1"
+    old_two_step = json.loads((records / "bitcoin-chain-two-step-proof-v1-2026-10-07.json").read_text())
+    assert old_two_step["schema"] == "s31-bitcoin-chain-two-step-proof-v1"
+    check_historical_source_hashes(old_two_step["source_sha256"])
+    two_step = json.loads((records / "bitcoin-chain-two-step-proof-v2-2026-10-07.json").read_text())
+    assert two_step["schema"] == "s31-bitcoin-chain-two-step-proof-v2"
     assert two_step["topology_record_sha256"] == hashlib.sha256(
-        (records / "bitcoin-chain-fold-topology-v1-2026-10-07.json").read_bytes()
+        (records / "bitcoin-chain-fold-topology-v2-2026-10-07.json").read_bytes()
     ).hexdigest()
     assert two_step["air_bundle_sha256"] == hashlib.sha256(
         (ROOT / "vectors/circuit/official/circuit_air.air_programs_v1.bin").read_bytes()
     ).hexdigest()
     assert two_step["projection_sha256"] == bitcoin_fold["projection_sha256"]
-    for name, source_hash in two_step["source_sha256"].items():
-        assert source_hash == hashlib.sha256((S31 / name).read_bytes()).hexdigest()
+    assert two_step["source_sha256"] == {
+        name: hashlib.sha256((S31 / name).read_bytes()).hexdigest()
+        for name in two_step["source_sha256"]
+    }
     assert two_step["native_verification_passed"] is True
     assert two_step["changed_public_statement_rejected_at_both_fold_steps"] is True
     assert two_step["forged_prior_state_rejected_by_full_circuit"] is True
@@ -510,8 +547,6 @@ def check_recursive_examples() -> None:
     assert observations["checkpoint anchor"]["preprocessed_root"] == bitcoin_fold["anchor_preprocessed_root"]
     assert all(observations[name]["preprocessed_root"] == bitcoin_fold["candidate_preprocessed_root"]
                for name in ("chain fold step 0", "chain fold step 1"))
-    assert [observations[name]["proof_bytes"] for name in
-            ("checkpoint anchor", "chain fold step 0", "chain fold step 1")] == [329820, 371197, 372797]
     assert all(f"{item['proof_bytes']:,}" in bitcoin_doc and
                f"{item['prove_seconds']:.3f}" in bitcoin_doc for item in observations.values())
     block2 = json.loads((S31 / "examples/bitcoin_block2_header.valid.json").read_text())

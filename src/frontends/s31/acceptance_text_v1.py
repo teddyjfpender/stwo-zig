@@ -16,6 +16,7 @@ CASES = (
     ("merkle_path1_poseidon", "merkle_path1_poseidon", "direct-gate"),
     ("math_polynomial4", "math_polynomial4", "direct-gate"),
     ("mathlib4", "mathlib4", "direct-gate"),
+    ("static_matvec", "static_matvec", "direct-gate"),
     ("lane_stats4", "lane_stats4", "direct-gate"),
 )
 EQUAL_FIELDS = (
@@ -143,7 +144,7 @@ def main() -> None:
             text_package = s31.build(text_source, work / f"{name}-text", lowering)
             json_package = s31.build(json_source, work / f"{name}-json", lowering)
             lock = json.loads((text_package / "stdlib-lock.json").read_text())
-            if lock["package"] != "std" or lock["version"] != 1 or lock["explicit_import"] != (name in {"mathlib4", "lane_stats4"}):
+            if lock["package"] != "std" or lock["version"] != 1 or lock["explicit_import"] != (name in {"mathlib4", "static_matvec", "lane_stats4"}):
                 raise AssertionError(f"{name}: unexpected standard library lock")
             s31.verify_package(text_package)
             if name == "mathlib4":

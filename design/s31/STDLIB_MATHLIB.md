@@ -18,7 +18,8 @@ general module loader or user-published package format yet.
 
 | Namespace | Implemented operations | Backend relation |
 | --- | --- | --- |
-| `std::math` | `neg`, `sub`, `square`, checked `inv`, `div`, static `pow<K>`, static-group `sum`, `dot`, `poly_eval`, fixed-array `sum_lanes`, `dot_lanes`, `add_u256`, `add_u256_checked`, `sub_u256`, `sub_u256_checked`, `le_u256` | M31 arithmetic and constrained packed reduction; inversion uses a pointwise product and arithmetic zero assertion per four active lanes, and division reuses the inverse; wide operations use sixteen range-checked digits and Boolean carries/borrows. |
+| `std::math` | `neg`, `sub`, `square`, checked `inv`, `div`, static `pow<K>`, static-group `sum`, `dot`, `matvec`, `poly_eval`, fixed-array `sum_lanes`, `dot_lanes`, `add_u256`, `add_u256_checked`, `sub_u256`, `sub_u256_checked`, `le_u256` | M31 arithmetic and constrained packed reduction; `matvec` expands to ordinary dot and add nodes; inversion uses a pointwise product and arithmetic zero assertion per four active lanes, and division reuses the inverse; wide operations use sixteen range-checked digits and Boolean carries/borrows. |
+| `std::array` | Static-reference `get<K>`, `concat`; runtime-array `get<K>`, `concat` | Static forms erase to existing references. Runtime forms have explicit `array_get` and `array_concat` relation nodes that must preserve constrained source lanes. |
 | `std::field` | `from_u16`, `is_zero`, `select` | Explicit conversion; direct input bits have `b²-b=0`, while computed zero bits use two algebraic constraints. |
 | `std::bytes` | `to_u256_le`, `from_u256_le`, `limbs_m31` | Explicit nominal byte/integer reinterpretation and value-preserving cast of sixteen `u16` limbs. |
 | `std::hash` | Poseidon2 and BLAKE2s reduced leaf/pair hashes; byte-exact SHA256d of `Bytes80` | Existing pinned hash nodes plus a constrained three-block SHA circuit. |
@@ -84,6 +85,16 @@ produce proofs accepted by their generated native verifiers. The [library
 chapter](../../src/frontends/s31/docs/library.md) gives exact types,
 coefficient order, a hand calculation, and the lock format.
 
+The static groups are lists of existing arrays in source. `sum`, `dot`, and
+`matvec` operate on those groups; `get<K>` and `concat` rearrange references
+without adding gates. The [two-by-two matrix example](../../src/frontends/s31/examples/static_matvec.s31)
+has four multiply-by-constant and three addition nodes. Its handwritten
+[relation](../../src/frontends/s31/examples/static_matvec.s31.json) and
+independent assignment evaluate $(2a+3b)+(5a+7b)=44$ for $(a,b)=(2,3)$.
+These operations are a partial step toward general arrays: the group is a
+compile-time list of whole values, whereas a runtime `[m31; N]` contains
+positions selected by an explicit `array_get` relation node.
+
 The static groups are lists of existing arrays in source. `sum` and `dot`
 reduce across that list. In contrast, `sum_lanes(x)` sums the positions of
 one `[m31; N]` value, and `dot_lanes(x,w)` multiplies matching positions then
@@ -93,8 +104,10 @@ a constrained field-linear projection into the base coordinate. In the basis
 `(1, i, u, iu)` with `i² = -1` and `u² = 2 + i`, the base coordinate of
 `(a + bi + cu + diu) * (1 - i + u/5 - 3iu/5)` is `a+b+c+d` in M31. A
 pointwise base mask isolates that coordinate. The projection uses circuit
-multiplication gates, so the sum is checked by the proof. It does not expose
-general indexing.
+multiplication gates, so the sum is checked by the proof. Runtime indexing
+needs a sound view implementation in the relation compiler and positive and
+negative native proof tests; frontend/oracle semantics alone do not close
+this gate.
 
 [`lane_stats4.s31`](../../src/frontends/s31/examples/lane_stats4.s31) is a
 private-witness example. With `x=[2,3,5,7]` and `weights=[11,13,17,19]`,
@@ -134,7 +147,7 @@ chip it activates.
 | Work package | Exit gate | Rough effort for one experienced engineer |
 | --- | --- | ---: |
 | General modules and shape-polymorphic pure functions | Extend the current `use std@1` pin to named modules, deterministic external resolution, lockfiles for imported source, and source maps through those calls. | 2–4 weeks |
-| Field/vector core | Add fixed-array indexing, concatenation, and vector/matrix kernels; direct-gate proofs match independent oracles. Static-group and lane reductions, dot products, and Horner evaluation are implemented. | 2–4 weeks |
+| Field/vector core | Finish runtime fixed-array indexing and concatenation in the relation compiler, prove the views bind to source lanes, and add broader vector/matrix kernels. Static-group reference indexing/concat and small `matvec` are implemented; runtime source/IR/oracle semantics are introduced but need backend proof acceptance. | 2–4 weeks |
 | Nonzero inverse and checked division | **Core implemented:** witness generation, `x·inv=1`, zero rejection, direct-gate proof and native-verifier negative cases. Remaining: batch inverse cost comparison and wider random proof corpus. | Remaining effort depends on batching design. |
 | Boolean/range/integer core | Computed bits, comparisons, range constraints and explicit integer/field casts; no host-only assertions or unconstrained hint outputs. | 3–6 weeks |
 | Library release discipline | API/version policy, corpus of positive and negative proofs, cost regression gates, and audit views from source to AIR polynomial. | 2–3 weeks |
@@ -153,8 +166,9 @@ still need the backend efficiency work in the [MVP roadmap](MVP_ROADMAP.md).
 1. Extend the existing `std@1` lock to named modules and imported source.
    The current package key already binds the compiler-owned library source
    digest; a user module needs the same deterministic resolution.
-2. Extend array operations past the implemented lane reductions. Fixed-array
-   projection, indexing, concatenation, and small linear algebra remain.
+2. Extend array operations past the implemented lane reductions. Small static
+   `matvec` and source-level array views now exist; implement and audit the
+   runtime projection/concatenation backend before calling them proved.
    Compare their direct arithmetic cost and retain matched source/JSON
    programs and independent scalar oracles.
 3. Extend the implemented checked inverse with randomized proof vectors and
