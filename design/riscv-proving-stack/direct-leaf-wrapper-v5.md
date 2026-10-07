@@ -201,18 +201,27 @@ This is a fixture guard, not yet an independently selected production key.
 A V11 builder derives ordered Trees 0–2 from the admitted statement and pinned
 lookup manifest, with optional validated bridge geometry for V3. It adds the
 FRI blowup factor because PCS proof captures record extended, rather than raw
-AIR, column log sizes. The real q193 SegmentV2 diagnostic now compares that
-statement-derived layout to the native capture and uses it for rows 23 and 24.
-Tree 3 remains an explicit verifier-selected parameter, supplied by the
-verified capture only in this diagnostic.
+AIR, column log sizes. For SegmentV2, Tree 3's column count comes from the
+native composition split and its lifted height comes from the selected core
+profile. Every derived tree height must equal that profile's corresponding
+height. The real q193 diagnostic checks all four derived trees against the
+freshly verified native capture.
 An isolated V11 row-24 writer recompiles the PCS graph from ordered tree
 logs, exact sample-point tags and physical mask logs. Focused tests match all
 native fixed cells and reject a sample-tag permutation with the same aggregate
 sample count. The real q193 Tree0 comparison also matches every row-24 fixed
 cell and its captured PCS circuit identity, now pinned as fixture vector
 `01ffe0f7672b593a694f67bb5855c7b11773bbab76e4b2c9b02e2c25a8287f2e`.
-The diagnostic still reads the PCS profile from the verified capture; a
-production V11 key must select or derive the exact profile before the leaf.
+The V12 preleaf builder now asks the native verifier component owners for
+their ordered masks at a fixed proof-independent OODS point. It classifies
+those masks into PCS sample tags, then builds a V11 rows-23/24 key from the
+selected statement and V10 core profile without accepting a child capture.
+The q193 diagnostic compares the derived tags with the freshly verified
+capture, checks the pinned row-24 circuit ID, and admits both fixed writers.
+Its selected statement is reconstructed from a separately verified native
+fixture, however; a production verifier must obtain statement and core
+profile from independent admission before receiving the child. The V12 key
+still covers only two rows and cannot authorize wrapper proof publication.
 The verifier-owned FRI leaf and node fixed schedules for rows 25 and 26 now
 have an independent writer. Its complete committed-order columns, including
 padding, match the native witness writer in focused tests and the real q193
@@ -243,10 +252,10 @@ The proof-inactive V11 candidate extends that key with exact padded row-23
 trace-Merkle and row-24 PCS-DEEP fixed tables. It seals their ordered trace
 layout, PCS sample/mask profile, arithmetic circuit identity, fixed digests,
 and corrected placements. A real q193 diagnostic checks every Tree0 cell of
-both writers against the native source, then admits both writers to a V11 key;
-that profile is still read from a freshly verified capture, not selected by a
-production verifier before the child arrives. The candidate explicitly
-rejects complete preprocessing and proof activation.
+both writers against the native source, then admits both writers to a V11 key
+built by the V12 child-independent constructor. A production verifier still
+needs an independent statement/core selection and a complete fixed Tree0.
+The candidate explicitly rejects complete preprocessing and proof activation.
 For shared graph-lowering rows 30–32, a separate V8 candidate seals the
 statement, claim, and public-LogUp contribution from verifier-selected
 capacity and schedule. It matches an independently prepared outer source,

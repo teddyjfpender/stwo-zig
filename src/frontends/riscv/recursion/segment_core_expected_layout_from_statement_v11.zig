@@ -14,6 +14,8 @@ const bridge_mod = @import("../prover/incremental_bridge_external_v3.zig");
 const row23 = @import("segment_core_trace_row23_fixed_v11.zig");
 const template = @import("air/segment_leaf_wrapper_template_v10.zig");
 const protocol = @import("protocol.zig");
+const core_profile = @import("air/segment_leaf_wrapper_template_v6.zig");
+const stwo_core = @import("stwo_core");
 
 pub const PRODUCTION_PROOF_ACTIVATION = false;
 pub const TREE_COUNT: usize = 4;
@@ -44,6 +46,40 @@ pub const OwnedLayout = struct {
         selected_tree3_logs: []const u32,
     ) !OwnedLayout {
         return buildWithBridge(allocator, statement, null, selected_tree3_logs);
+    }
+
+    /// The direct SegmentV2 profile uses one composition split for every
+    /// leaf. A verifier-selected core profile fixes the fourth tree's lifted
+    /// height; the protocol fixes its column count. Neither value is read
+    /// from the child capture.
+    pub fn buildSegmentV2FromCoreProfile(
+        allocator: std.mem.Allocator,
+        statement: *const statement_mod.RiscVStatement,
+        selected: *const core_profile.CoreProfileV6,
+    ) !OwnedLayout {
+        _ = try selected.reference();
+        if (!std.meta.eql(selected.vm, selected.recursion) or
+            selected.vm.tree_count != TREE_COUNT or
+            selected.vm.tree_heights[3] != selected.vm.lifting_log_size)
+            return error.InvalidExpectedCoreProfileV11;
+        const column_count = stwo_core.verifier_types.compositionColumnCount(
+            stwo_core.verifier_types.COMPOSITION_LOG_SPLIT,
+            stwo_core.fields.qm31.SECURE_EXTENSION_DEGREE,
+        ) orelse return error.InvalidExpectedCoreProfileV11;
+        if (column_count != 8) return error.InvalidExpectedCoreProfileV11;
+        const tree3 = [_]u32{selected.vm.tree_heights[3]} ** 8;
+        var result = try buildSegmentV2(allocator, statement, &tree3);
+        errdefer result.deinit();
+        for (result.views, selected.vm.tree_heights[0..TREE_COUNT]) |logs, height| {
+            if (logs.len == 0) return error.InvalidExpectedCoreProfileV11;
+            var maximum: u32 = 0;
+            for (logs) |log_size| {
+                if (log_size == 0 or log_size > height) return error.InvalidExpectedCoreProfileV11;
+                maximum = @max(maximum, log_size);
+            }
+            if (maximum != height) return error.InvalidExpectedCoreProfileV11;
+        }
+        return result;
     }
 
     fn buildWithBridge(

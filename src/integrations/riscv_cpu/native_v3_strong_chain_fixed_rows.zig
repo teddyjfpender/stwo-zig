@@ -26,15 +26,16 @@ pub fn freeV8StatementColumns(allocator: std.mem.Allocator, columns: [][]M31) vo
 pub fn buildV11SegmentV2PreleafLayout(
     allocator: std.mem.Allocator,
     capture: anytype,
+    selected_core: *const recursion.air.segment_leaf_wrapper_template_v6.CoreProfileV6,
 ) !recursion.segment_core_expected_layout_from_statement_v11.OwnedLayout {
     const statement = try capture.vm_air.reconstructStatement(&capture.public_data.data);
     const logs = capture.proof.column_log_sizes;
     if (logs.len != recursion.segment_core_expected_layout_from_statement_v11.TREE_COUNT)
         return error.V11PreleafLayoutMismatch;
-    var selected = try recursion.segment_core_expected_layout_from_statement_v11.OwnedLayout.buildSegmentV2(
+    var selected = try recursion.segment_core_expected_layout_from_statement_v11.OwnedLayout.buildSegmentV2FromCoreProfile(
         allocator,
         &statement.core,
-        logs[3],
+        selected_core,
     );
     errdefer selected.deinit();
     for (selected.views, logs, 0..) |expected, actual, tree| {
@@ -49,6 +50,21 @@ pub fn buildV11SegmentV2PreleafLayout(
         }
     }
     return selected;
+}
+
+pub fn buildV12PreleafPcsMasks(
+    allocator: std.mem.Allocator,
+    capture: anytype,
+    selected_core: *const recursion.air.segment_leaf_wrapper_template_v6.CoreProfileV6,
+    tree_logs: *const recursion.segment_core_expected_layout_from_statement_v11.OwnedLayout,
+) !recursion.segment_core_expected_pcs_masks_v12.OwnedMasks {
+    const statement = try capture.vm_air.reconstructStatement(&capture.public_data.data);
+    return recursion.segment_core_expected_pcs_masks_v12.OwnedMasks.build(
+        allocator,
+        &statement.core,
+        selected_core,
+        tree_logs,
+    );
 }
 
 pub fn checkV9CoreFriControlFixedParity(
@@ -227,9 +243,9 @@ pub fn checkV11PcsInputFixedParity(
 pub fn checkV11CandidateAdmission(
     allocator: std.mem.Allocator,
     prior: *const recursion.air.segment_leaf_wrapper_template_v10.TemplateManifestV10,
+    key: *const recursion.air.segment_leaf_wrapper_template_v11.TemplateManifestV11,
     expected: recursion.segment_core_pcs_row24_fixed_v11.ExpectedProfile,
 ) !void {
-    const key = try recursion.air.segment_leaf_wrapper_template_v11.TemplateManifestV11.buildFromVerifierProfile(allocator, prior, expected);
     const layout = recursion.segment_core_trace_row23_fixed_v11.ExpectedLayout{
         .vm_trees = expected.ordered_tree_logs,
         .recursion_trees = expected.ordered_tree_logs,

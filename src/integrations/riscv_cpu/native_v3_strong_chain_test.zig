@@ -80,9 +80,12 @@ test "real q193 native child feeds freshly verified q193 local outer" {
         recursion.poseidon2_channel.hashBytes("strong-v3-local-segment-vk", 0x4b56_3353),
         recursion.poseidon2_channel.hashBytes("strong-v3-local-parent-vk", 0x4b56_3350),
     );
-    var preleaf_layout = try fixed_rows.buildV11SegmentV2PreleafLayout(allocator, &verified.native.capture);
+    const preleaf_core = try recursion.air.segment_leaf_wrapper_template_v6.testFrozenCoreProfileV6();
+    var preleaf_layout = try fixed_rows.buildV11SegmentV2PreleafLayout(allocator, &verified.native.capture, &preleaf_core);
     defer preleaf_layout.deinit();
-    std.debug.print("DIRECT50_V11_PRELEAF_LAYOUT trees0_2_from_statement=true tree3_from_capture_diagnostic=true proof_created=false\n", .{});
+    var preleaf_masks = try fixed_rows.buildV12PreleafPcsMasks(allocator, &verified.native.capture, &preleaf_core, &preleaf_layout);
+    defer preleaf_masks.deinit();
+    std.debug.print("DIRECT50_V11_PRELEAF_LAYOUT trees0_2_from_statement=true tree3_from_pinned_core=true proof_created=false\n", .{});
     var prepared = try leaf_outer.PreparedNativeV2LeafOuter.init(
         allocator,
         allocator,
@@ -102,7 +105,7 @@ test "real q193 native child feeds freshly verified q193 local outer" {
     const prepare_ns = timer.lap();
     try diagnoseDirect47(allocator, &prepared, &verified.native.global_metadata, &verified.native.link, &cohort);
     const direct47_ns = timer.lap();
-    diagnoseDirect50(allocator, &prepared, shape, &verified.native.global_metadata, &verified.native.link, &cohort, &preleaf_layout) catch |err| {
+    diagnoseDirect50(allocator, &prepared, shape, &verified.native.global_metadata, &verified.native.link, &cohort, &preleaf_layout, &preleaf_masks) catch |err| {
         std.debug.print("DIRECT50_ERROR={s}\n", .{@errorName(err)});
         return err;
     };
@@ -214,6 +217,7 @@ fn diagnoseDirect50(
     link: *const recursion.segment_leaf_local_verified_link_v3.VerifiedLinkV3,
     cohort: *outer_cohort.Cohort,
     preleaf_layout: *const recursion.segment_core_expected_layout_from_statement_v11.OwnedLayout,
+    preleaf_masks: *const recursion.segment_core_expected_pcs_masks_v12.OwnedMasks,
 ) !void {
     var phase_timer = try std.time.Timer.start();
     const link_program = recursion.ethereum_leaf_link_program_v3;
@@ -424,20 +428,21 @@ fn diagnoseDirect50(
         try v10_template.admitRow27Writer(allocator, &row27_fixed);
         try v10_template.admitRow29Writer(allocator, &row29_fixed);
         std.debug.print("DIRECT50_V10_FRI_KEY rows27_29_admitted=true full_preprocessing=false proof_created=false\n", .{});
-        // Trees 0--2 come from the authenticated statement; Tree 3 and the
-        // PCS sample layout still require independent verifier selection.
+        // All four tree layouts and PCS masks come from verifier-selected
+        // inputs; this diagnostic still lacks a complete physical roster.
         const row23_expected = preleaf_layout.expected();
         const row23_layout_hex = std.fmt.bytesToHex(row23_expected.identityDigest(), .lower);
         if (!std.mem.eql(u8, &row23_layout_hex, "7f2265220644e9bde63d10ef1286b6b4ddf3360186e01b1246b0a0239e8e54e1"))
             return error.V11RealLeafLayoutPinMismatch;
-        std.debug.print("DIRECT50_V11_ROW23_LAYOUT id={s} source=statement_derived_tree0_2_capture_tree3_diagnostic\n", .{&row23_layout_hex});
+        std.debug.print("DIRECT50_V11_ROW23_LAYOUT id={s} source=statement_and_pinned_core_diagnostic\n", .{&row23_layout_hex});
         try fixed_rows.checkV11TraceMerkleFixedParity(allocator, &v10_template, row23_expected, &plan, pp);
         std.debug.print("DIRECT50_V11_ROW23_FIXED source_parity=true key_admitted=false proof_created=false\n", .{});
         const captured_pcs_profile = prepared.captured_fri.pcs_circuit.profile();
+        if (!std.mem.eql(recursion.air.pcs_deep_circuit.SamplePointLayout, preleaf_masks.layouts, captured_pcs_profile.sample_layouts) or
+            captured_pcs_profile.mask_log_sizes.len != 0) return error.V12PreleafPcsMaskMismatch;
         const row24_expected = recursion.segment_core_pcs_row24_fixed_v11.ExpectedProfile{
             .ordered_tree_logs = &preleaf_layout.views,
-            .sample_layouts = captured_pcs_profile.sample_layouts,
-            .mask_log_sizes = captured_pcs_profile.mask_log_sizes,
+            .sample_layouts = preleaf_masks.layouts,
         };
         const row24_circuit_id = try fixed_rows.checkV11PcsInputFixedParity(
             allocator,
@@ -451,8 +456,10 @@ fn diagnoseDirect50(
         if (!std.mem.eql(u8, &row24_circuit_hex, "01ffe0f7672b593a694f67bb5855c7b11773bbab76e4b2c9b02e2c25a8287f2e"))
             return error.V11RealLeafPcsCircuitPinMismatch;
         std.debug.print("DIRECT50_V11_ROW24_FIXED circuit={s} source_parity=true key_admitted=false proof_created=false\n", .{&row24_circuit_hex});
-        try fixed_rows.checkV11CandidateAdmission(allocator, &v10_template, row24_expected);
-        std.debug.print("DIRECT50_V11_CANDIDATE rows23_24_admitted=true source=partial_preleaf_diagnostic full_preprocessing=false proof_created=false\n", .{});
+        const selected_statement = try prepared.capture.vm_air.reconstructStatement(&prepared.capture.public_data.data);
+        const preleaf_key = try recursion.segment_core_preleaf_key_v12.buildForSegmentV2(allocator, &selected_statement.core, &v10_template);
+        try fixed_rows.checkV11CandidateAdmission(allocator, &v10_template, &preleaf_key, row24_expected);
+        std.debug.print("DIRECT50_V12_CANDIDATE rows23_24_admitted=true source=statement_and_pinned_core_diagnostic full_preprocessing=false proof_created=false\n", .{});
         try fixed_rows.checkV7CoreFriFixedParity(allocator, &core_profile, &v7_plan, &plan, pp);
         std.debug.print("DIRECT50_V7_CORE_FRI_FIXED rows25_26_source_parity=true proof_created=false\n", .{});
         var physical = try recursion.segment_leaf_wrapper_physical_bridge_v7.Writer.init(
