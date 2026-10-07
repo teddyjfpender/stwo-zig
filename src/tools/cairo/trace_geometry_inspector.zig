@@ -8,26 +8,90 @@ const controller_bundle = stwo.integrations.cairo_cuda.executor.ingress.controll
 const CompileOptions = stwo.backends.cuda.runtime.execution_plan.CompileOptions;
 const Stage = stwo.backends.cuda.runtime.telemetry.Stage;
 const Variant = stwo.frontends.cairo.preprocessed.trace.Variant;
+const Lane = stwo.frontends.cairo.proving.leaf_lane.Lane;
+const wire = @import("stwo_circuit_recursion_wire");
+const report = @import("trace_geometry_report.zig");
 
 pub fn main() !void {
     const allocator = std.heap.smp_allocator;
     const args = try std.process.argsAlloc(allocator);
     defer std.process.argsFree(allocator, args);
-    const breakdown = args.len > 1 and std.mem.eql(u8, args[1], "--memory-breakdown");
-    const first_path: usize = if (breakdown) 2 else 1;
-    if (args.len <= first_path) {
-        std.debug.print("usage: cairo-trace-geometry [--memory-breakdown] <adapted-input.cpi>...\n", .{});
-        return error.InvalidArgument;
+    var breakdown = false;
+    var jsonl = false;
+    var registry_path: ?[]const u8 = null;
+    var artifact_dir: ?[]const u8 = null;
+    var inputs: std.ArrayList([]const u8) = .empty;
+    defer inputs.deinit(allocator);
+    var cursor: usize = 1;
+    while (cursor < args.len) : (cursor += 1) {
+        const arg = args[cursor];
+        if (std.mem.eql(u8, arg, "--memory-breakdown")) {
+            breakdown = true;
+        } else if (std.mem.eql(u8, arg, "--jsonl")) {
+            jsonl = true;
+        } else if (std.mem.eql(u8, arg, "--circuit-registry")) {
+            cursor += 1;
+            if (cursor >= args.len or registry_path != null) return error.InvalidArgument;
+            registry_path = args[cursor];
+        } else if (std.mem.eql(u8, arg, "--artifact-dir")) {
+            cursor += 1;
+            if (cursor >= args.len or artifact_dir != null) return error.InvalidArgument;
+            artifact_dir = args[cursor];
+        } else if (std.mem.eql(u8, arg, "--help")) {
+            std.debug.print("usage: cairo-trace-geometry [--circuit-registry registry.json] [--artifact-dir vectors/cairo] [--jsonl | --memory-breakdown] <adapted-input.cpi>...\n", .{});
+            return;
+        } else if (std.mem.startsWith(u8, arg, "-")) {
+            return error.InvalidArgument;
+        } else {
+            try inputs.append(allocator, arg);
+        }
+    }
+    if (inputs.items.len == 0 or (jsonl and breakdown)) return error.InvalidArgument;
+    var leaf_lane: ?Lane = null;
+    var registry_sha: ?[32]u8 = null;
+    if (registry_path) |path| {
+        const bytes = try std.fs.cwd().readFileAlloc(allocator, path, 16 << 20);
+        defer allocator.free(bytes);
+        var registry = try wire.registry.parseRegistry(allocator, bytes);
+        defer registry.deinit();
+        leaf_lane = try Lane.fromParameters(registry.registry.cairo_prover_params);
+        var digest: [32]u8 = undefined;
+        std.crypto.hash.sha2.Sha256.hash(bytes, &digest, .{});
+        registry_sha = digest;
     }
     const forced_variant = std.posix.getenv("STWO_CAIRO_CUDA_PREPROCESSED_VARIANT");
     const variant = if (forced_variant) |name|
         std.meta.stringToEnum(Variant, name) orelse return error.InvalidPreprocessedVariant
     else
         Variant.canonical_small;
+    if (leaf_lane) |lane| {
+        if (forced_variant != null and variant != @as(Variant, @enumFromInt(@intFromEnum(lane.variant))))
+            return error.RegistryVariantMismatch;
+    }
+    const asset_root = artifact_dir orelse if (std.posix.getenv("STWO_CAIRO_CUDA_ARTIFACT_DIR")) |value|
+        value
+    else
+        "vectors/cairo";
+    const library = try std.fs.path.join(allocator, &.{ asset_root, "official/air_template_library_v1.json" });
+    defer allocator.free(library);
+    const witnesses = try std.fs.path.join(allocator, &.{ asset_root, "official/witness_programs_v1.bin" });
+    defer allocator.free(witnesses);
+    const topology = try std.fs.path.join(allocator, &.{ asset_root, "official/witness_feed_topology_v1.json" });
+    defer allocator.free(topology);
+    const fixed = try std.fs.path.join(allocator, &.{ asset_root, "cairo_fixed_tables.bin" });
+    defer allocator.free(fixed);
+    const relations = try std.fs.path.join(allocator, &.{ asset_root, "cairo_relation_templates.bin" });
+    defer allocator.free(relations);
     const paths = source.Paths{
-        .input = args[first_path],
+        .input = inputs.items[0],
+        .leaf_lane = leaf_lane,
         .variant = variant,
-        .automatic_variant = forced_variant == null,
+        .automatic_variant = forced_variant == null and leaf_lane == null,
+        .library = library,
+        .witnesses = witnesses,
+        .topology = topology,
+        .fixed = fixed,
+        .relations = relations,
     };
     var assets = try source.Assets.load(allocator, paths);
     defer assets.deinit();
@@ -43,12 +107,10 @@ pub fn main() !void {
         .lane_streams = 0,
         .enable_graphs = true,
     };
-    for (args[first_path..]) |path| {
-        var prepared = try source.prepareWithAssets(allocator, .{
-            .input = path,
-            .variant = variant,
-            .automatic_variant = forced_variant == null,
-        }, target, &assets);
+    for (inputs.items) |path| {
+        var candidate_paths = paths;
+        candidate_paths.input = path;
+        var prepared = try source.prepareWithAssets(allocator, candidate_paths, target, &assets);
         defer prepared.deinit();
         var controllers = try controller_bundle.Prepared.init(
             allocator,
@@ -59,6 +121,10 @@ pub fn main() !void {
         );
         defer controllers.deinit();
         const summary = prepared.request.resident.summary;
+        if (jsonl) {
+            try report.writeJsonReport(allocator, path, &assets, &prepared, &controllers, registry_sha);
+            continue;
+        }
         std.debug.print("resident pie={s} logical_bytes={} peak_live_bytes={} allocated_bytes={} request_arena_bytes={} coefficient_cells={} evaluation_cells={}\n", .{
             std.fs.path.stem(path),                              summary.logicalBytes(),           summary.peak_live_words * 4,
             controllers.resident.combined_arena.total_words * 4, summary.allocatedResidentBytes(), summary.coefficient_cells,
@@ -132,13 +198,13 @@ pub fn main() !void {
                 std.fs.path.stem(path),   @tagName(tree.role),                                                             columns.len, words, max_log,
                 tree.evaluation_log_rows, if (words > std.math.maxInt(u32)) words - std.math.maxInt(u32) else @as(u64, 0),
             });
-            var cursor: usize = 0;
-            while (cursor < columns.len) {
-                const component = columns[cursor].component;
-                const log_rows = columns[cursor].log_rows;
-                var end = cursor + 1;
+            var component_cursor: usize = 0;
+            while (component_cursor < columns.len) {
+                const component = columns[component_cursor].component;
+                const log_rows = columns[component_cursor].log_rows;
+                var end = component_cursor + 1;
                 while (end < columns.len and columns[end].component == component and columns[end].log_rows == log_rows) : (end += 1) {}
-                const count = end - cursor;
+                const count = end - component_cursor;
                 const component_words = try std.math.mul(u64, @intCast(count), @as(u64, 1) << @intCast(log_rows));
                 const label = if (component < prepared.composition.components.len)
                     prepared.composition.components[component].label
@@ -147,7 +213,7 @@ pub fn main() !void {
                 std.debug.print("component pie={s} role={s} index={} label={s} columns={} log_rows={} words={}\n", .{
                     std.fs.path.stem(path), @tagName(tree.role), component, label, count, log_rows, component_words,
                 });
-                cursor = end;
+                component_cursor = end;
             }
         }
     }
