@@ -60,6 +60,11 @@ mix4 state-fold AIR root and every raw/padded component row count unchanged;
 the [current acceptance record](measurements/mix4-state-fold-shared-counter-2026-10-07.json)
 checks three steps, 27 base and 28 recursive mutations, a repaired false
 state, and independent replay of the final state from source semantics.
+The transition gates also pass 48 deterministic mixed-body differential
+cases against the host source evaluator, covering bodies of one through
+sixteen operations and values near the M31 modulus. Extracting this gate
+builder for the test preserved the sealed arith4 state-fold AIR root and
+raw/padded geometry.
 
 ## Sealed parameters and what they mean
 

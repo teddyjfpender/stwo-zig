@@ -68,7 +68,7 @@ pub fn build(b: *std.Build) void {
     fold_test_root.addImport("stwo_circuit_cpu_integration", cpu);
     const fold_tests = b.addRunArtifact(b.addTest(.{
         .root_module = fold_test_root,
-        .filters = &.{ "state-fold counter spans u16 carry and u32 bounds", "state-fold digest binds all 32 counter bits in circuit" },
+        .filters = &.{ "state-fold counter spans u16 carry and u32 bounds", "state-fold source step body matches constrained circuit across mixed programs", "state-fold digest binds all 32 counter bits in circuit" },
     }));
     test_step.dependOn(&fold_tests.step);
     const fixed_fold_test_root = b.createModule(.{

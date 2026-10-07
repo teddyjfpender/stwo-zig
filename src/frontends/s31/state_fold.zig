@@ -123,6 +123,45 @@ fn digestWires(
     return Blake.blake2sU32sPersonalized(V, ctx, &message, 100, personalization);
 }
 
+/// Apply one source step body to the four state wires. Keeping this separate
+/// from child-proof verification makes the host/circuit transition parity
+/// test exercise the exact gates used by the fold.
+fn applyStepWires(
+    comptime V: type,
+    ctx: *circuit.builder.Context(V),
+    previous: [4]Var,
+    step_body: []const relation.Step,
+) ![4]Var {
+    if (step_body.len == 0 or step_body.len > 16) return error.InvalidStepBody;
+    var constants: [16]?Var = .{null} ** 16;
+    for (step_body, 0..) |op, j| switch (op.op) {
+        .square, .mix4 => if (op.constant != null) return error.InvalidStepBody,
+        .add_const, .mul_const => {
+            const constant = op.constant orelse return error.InvalidStepBody;
+            if (constant >= core.fields.m31.Modulus) return error.InvalidStepConstant;
+            constants[j] = try ctx.constant(QM31.fromBase(M31.fromCanonical(constant)));
+        },
+    };
+    var next = previous;
+    for (step_body, 0..) |op, j| switch (op.op) {
+        .square => {
+            for (&next) |*word| word.* = try ctx.mul(word.*, word.*);
+        },
+        .add_const => {
+            for (&next) |*word| word.* = try ctx.add(word.*, constants[j].?);
+        },
+        .mul_const => {
+            for (&next) |*word| word.* = try ctx.mul(word.*, constants[j].?);
+        },
+        .mix4 => {
+            var total = next[0];
+            for (next[1..]) |word| total = try ctx.add(total, word);
+            for (&next) |*word| word.* = try ctx.add(word.*, total);
+        },
+    };
+    return next;
+}
+
 pub fn buildCircuit(
     comptime V: type,
     allocator: std.mem.Allocator,
@@ -162,32 +201,7 @@ pub fn buildCircuit(
         .current_state = current[0].idx,
     };
 
-    var constants: [16]?Var = .{null} ** 16;
-    for (step_body, 0..) |op, j| switch (op.op) {
-        .square, .mix4 => if (op.constant != null) return error.InvalidStepBody,
-        .add_const, .mul_const => {
-            const constant = op.constant orelse return error.InvalidStepBody;
-            if (constant >= core.fields.m31.Modulus) return error.InvalidStepConstant;
-            constants[j] = try ctx.constant(QM31.fromBase(M31.fromCanonical(constant)));
-        },
-    };
-    var next = previous;
-    for (step_body, 0..) |op, j| switch (op.op) {
-        .square => {
-            for (&next) |*word| word.* = try ctx.mul(word.*, word.*);
-        },
-        .add_const => {
-            for (&next) |*word| word.* = try ctx.add(word.*, constants[j].?);
-        },
-        .mul_const => {
-            for (&next) |*word| word.* = try ctx.mul(word.*, constants[j].?);
-        },
-        .mix4 => {
-            var total = next[0];
-            for (next[1..]) |word| total = try ctx.add(total, word);
-            for (&next) |*word| word.* = try ctx.add(word.*, total);
-        },
-    };
+    const next = try applyStepWires(V, &ctx, previous, step_body);
     for (0..4) |i|
         try ctx.eq(current[i], try selectWord(V, &ctx, counter.recurse, initial[i], next[i]));
     const fixed_base_root = try Blake.constantHash(V, &ctx, Blake.hashValue(QM31, wordsFromBytes(base_root)));
@@ -395,6 +409,46 @@ test "state-fold counter spans u16 carry and u32 bounds" {
         const wrong_borrow: u32 = if (step != 0 and (step & 0xffff) == 0) 0 else 1;
         ctx.value_table.items[counter.borrow.idx] = QM31.fromBase(M31.fromCanonical(wrong_borrow));
         try std.testing.expect(!try ctx.isCircuitValid());
+    }
+}
+
+test "state-fold source step body matches constrained circuit across mixed programs" {
+    const p = core.fields.m31.Modulus;
+    for (0..48) |case_idx| {
+        var body: [16]relation.Step = undefined;
+        const n_steps = 1 + case_idx % body.len;
+        for (body[0..n_steps], 0..) |*step, j| {
+            const op: relation.StepOp = switch ((case_idx * 13 + j * 7) % 4) {
+                0 => .square,
+                1 => .add_const,
+                2 => .mul_const,
+                else => .mix4,
+            };
+            const constant: ?u32 = switch (op) {
+                .add_const, .mul_const => if (case_idx % 5 == 0)
+                    0
+                else if (case_idx % 7 == 0)
+                    p - 1
+                else
+                    @intCast((case_idx * 104729 + j * 65537) % p),
+                else => null,
+            };
+            step.* = .{ .op = op, .constant = constant };
+        }
+        var previous: [4]u32 = undefined;
+        for (&previous, 0..) |*word, lane| {
+            word.* = if (case_idx == 0) p - 1 else @intCast((case_idx * 23456789 + lane * 34567891) % p);
+        }
+        const expected = try nextState(previous, body[0..n_steps]);
+        var ctx = try circuit.builder.Context(QM31).init(std.testing.allocator, 0);
+        defer ctx.deinit();
+        var input: [4]Var = undefined;
+        for (&input, previous) |*wire, word| wire.* = try ctx.guessM31(stateValue(QM31, word));
+        const actual = try applyStepWires(QM31, &ctx, input, body[0..n_steps]);
+        try ctx.finalize(false);
+        try std.testing.expect(try ctx.isCircuitValid());
+        for (actual, expected) |wire, word|
+            try std.testing.expect(ctx.get(wire).eql(QM31.fromBase(M31.fromCanonical(word))));
     }
 }
 
