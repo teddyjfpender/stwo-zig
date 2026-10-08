@@ -36,10 +36,17 @@ def main() -> None:
     args = parser.parse_args()
     args.out.mkdir(parents=True, exist_ok=True)
     env = os.environ.copy()
+    cuda_library = env.get("STWO_CUDA_LIBRARY_DIR", "/usr/local/cuda/lib64")
+    library_path = ":".join(filter(None, (cuda_library, env.get("LD_LIBRARY_PATH"))))
     common_env = {
-        "LD_LIBRARY_PATH": "/usr/local/cuda-13.0/targets/x86_64-linux/lib",
-        "STWO_CAIRO_CUDA_PREPROCESSED_COEFFICIENTS": "/tmp/stwo-cuda-challenge/.cache/preprocessed-canonical.bin",
-        "STWO_CAIRO_CUDA_ARTIFACT_DIR": "/tmp/stwo-cuda-challenge/.cache/cuda-artifacts",
+        "LD_LIBRARY_PATH": library_path,
+        "STWO_CAIRO_CUDA_PREPROCESSED_COEFFICIENTS": env.get(
+            "STWO_CAIRO_CUDA_PREPROCESSED_COEFFICIENTS",
+            "/tmp/stwo-cuda-challenge/.cache/preprocessed-canonical.bin",
+        ),
+        "STWO_CAIRO_CUDA_ARTIFACT_DIR": env.get(
+            "STWO_CAIRO_CUDA_ARTIFACT_DIR", str(args.source / "vectors/cairo")
+        ),
         "STWO_CAIRO_CUDA_PREPROCESSED_VARIANT": "canonical",
         "STWO_CUDA_MEMORY_PHASES": "1",
     }

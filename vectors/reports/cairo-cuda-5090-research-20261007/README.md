@@ -91,6 +91,40 @@ dense samples remains unmeasured on L40S, so this data does not rule out an
 economical middle tier there. Nor does it establish full service or recursive
 tree economics: those need matched warm-service and root measurements.
 
+## A100 qualification on the heaviest campaign PIEs
+
+Seven further PIEs from the exact H200 512-PIE campaign were run on one
+80 GiB A100 SXM4. They include the **three largest PIEs by OS steps**, the
+sixth-largest, a 900-EC-op case, and two component-heavy arenas larger than
+device memory. The [manifest](a100-heavy-manifest.json) pins each adapted CPI
+hash and the previously verified proof hash. Every run used the clean source
+commit above, the canonical 2.17 GB fixed asset (SHA-256
+`4d4fda06dfa3bca19554510a158f6c50abad06a74d29c17885ed4cbb88ada34d`),
+ReleaseFast SM80, and the capacity policy. **All seven proofs matched their
+reference hashes and passed the independent Rust verifier.** The
+[CSV](a100-heavy-h200512-comparison.csv), [builder](build_a100_heavy_comparison.py),
+and `a100-heavy-h200512-sample/` receipts retain exact times and memory.
+
+| PIE | Steps | EC / Pedersen ops | Planned arena | Mode | Ingress | Proof | Input→proof | Device peak |
+| --- | ---: | ---: | ---: | --- | ---: | ---: | ---: | ---: |
+| `15656867_15656867` | 24.974M | 633 / 158,030 | 74.87 GiB | device | 4.76 s | 1.95 s | 6.78 s | 75.84 GiB |
+| `15656711_15656711` | 24.863M | 867 / 181,093 | 75.16 GiB | device | 4.25 s | 2.00 s | 6.31 s | 76.16 GiB |
+| `15654336_15654336` | 24.802M | 510 / 160,514 | 73.24 GiB | device | 4.96 s | 1.90 s | 6.94 s | 74.22 GiB |
+| `15653272_15653272` | 24.637M | 747 / 178,034 | 74.87 GiB | device | 6.07 s | 2.04 s | 8.17 s | 75.84 GiB |
+| `15656866_15656866` | 22.506M | 900 / 171,008 | 75.39 GiB | device | 5.26 s | 2.01 s | 7.33 s | 76.38 GiB |
+| `15656520_15656520` | 23.060M | 834 / 183,686 | 100.71 GiB | managed | 7.12 s | 79.97 s | 87.15 s | 19.35 GiB |
+| `15654763_15654763` | 19.892M | 21 / 193,820 | 92.48 GiB | managed | 5.05 s | 74.88 s | 79.99 s | 19.22 GiB |
+
+These are one-run cold adapted-input-to-Cairo-proof measurements, excluding
+downloads, build, verifier, and circuit wrap/fold. The A100 pod cost $1.59/h:
+the five resident proofs used approximately **$0.0028–$0.0036** of GPU
+rental each; the two managed proofs used **$0.035–$0.038** each. The planned
+arena, rather than step count alone, determines the sharp performance change.
+The managed cases sampled only about 19 GiB of the 80 GiB card while proving;
+improving placement is a promising experiment, not a measured speedup. These
+seven PIEs have no source-matched cold H200 run, so their rental-cost ratios
+against H200 are not claimed here.
+
 ## Current outcome
 
 The final compact policy proves the qualified 2.81M–5.34M-step cohort at
