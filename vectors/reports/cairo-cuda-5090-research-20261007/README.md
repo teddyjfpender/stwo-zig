@@ -903,8 +903,8 @@ in constraint evaluation. The saved H200 publication time for the same PIE
 is **8.755 s**, a historical-source comparison of about **48.4×**; the
 requested 4.5× ceiling would be **39.398 s**. One-block geometry rules out
 repacking at block boundaries. This run establishes correctness and capacity,
-not economic viability. A partially resident interaction-coefficient policy
-is the next same-input trial.
+not economic viability. The following same-input trials test partially
+resident interaction coefficients.
 
 Hosting only 25% of the 12.57 GB interaction-coefficient slot before its
 first write produced the same exact proof and passed the Rust verifier. It
