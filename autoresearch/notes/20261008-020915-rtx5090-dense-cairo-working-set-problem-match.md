@@ -148,3 +148,46 @@ interaction-coefficient residency reduced publication from 423.597 to
 verification. Relation still consumed about 173.652 s, compared with the
 39.398 s total 4.5× H200 publication ceiling. This second component mix
 confirms that the large-PIE bottleneck survives substantial placement gains.
+
+**Actual H200-campaign cohort.** The first six completed PIEs in the pinned
+15-case sample span 3.47–15.64M steps and planned arenas of 30.81–72.76 GiB.
+The two arenas near 31 GiB proved in 7.24–7.31 s input-to-Cairo-proof, whereas
+the four larger arenas took 203.76–390.76 s. All six matched their exact
+adapted-input SHA-256 and passed the independent Rust verifier. The 11.93M
+case spent 96.47 s in relation, 78.68 s in constraints, and **140.58 s after
+FRI**, while its whole-device peak was only 16.12 GiB. This is a targeted
+opportunity: bringing its retained trace hash trees back into the free HBM
+before random Merkle openings may remove much of that last interval. It cannot
+by itself fix relation or constraint paging.
+
+The next isolated 5090 experiment uses the same 11.93M CPI and the exact
+saved proof hash: turn on `STWO_CUDA_DECOMMIT_PREFETCH_HASHES=1` with the
+managed-capacity policy, record per-tree mapping/packing/assembly time under
+`STWO_CUDA_DECOMMIT_TIMELINE=1`, and accept the change only if the proof bytes
+and Rust verdict remain identical, publication falls substantially, and
+whole-device peak leaves a capacity reserve. A separate 8.53M trial will
+profile fused fractions versus tail scan and test bounded per-component
+constraint-source prefetch. These experiments are opt-in, not qualified
+defaults; the sequential 15-case baseline was paused for the isolated test
+and resumed from its last verified case afterward.
+
+**Merkle prefetch rejected.** The isolated 11.93M-step trial restored the four
+trace-hash slots before decommitment and still emitted the exact baseline proof
+SHA-256 `c82aea032b1a477003a3ca188bcf1c112fc0ed9a96a962f3fc74d386fce9528d`;
+the pinned Rust verifier accepted it. Publication increased from **379.164 s**
+to **386.288 s**, while sampled device peak increased from **17.304 GB** to
+**18.377 GB**. The new event boundary shows query PoW took less than a
+millisecond and the decommit interval itself took **142.485 s**. Moving whole
+hash trees into HBM therefore does not address this particular late-stage
+stall. The opt-in is not promoted. A per-tree timeline is needed to determine
+whether mapping, query packing, assembly, or another source traversal causes
+the interval before changing the opening algorithm.
+
+**Broader campaign sample.** A reproducible 33-case extension adds 18
+position-stratified PIEs to the original 15. Eleven are within the exact first
+64 campaign entries and 17 within the first 128; the full sample covers
+543,311,115 OS steps and 10,799,968,060 authenticated CPI bytes. Its median
+PIE is about 19.48M steps, close to the 512-campaign median of 20.27M. This
+is a better screen for the actual service workload than the initial dense
+outlier sample, but a sample of noncontiguous leaves cannot itself yield a
+64/128/512 root. Full replay still requires the ordered, complete prefixes.

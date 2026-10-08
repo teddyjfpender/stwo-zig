@@ -8,9 +8,9 @@ import re
 
 
 ROOT = Path(__file__).resolve().parent
-CAMPAIGN_INPUTS = {
-    row["pie"]: row["input_sha256"]
-    for row in json.loads((ROOT / "h200-512-stratified-sample.json").read_text())
+CAMPAIGN_ROWS = {
+    row["pie"]: row
+    for row in json.loads((ROOT / "h200-512-extended-sample.json").read_text())
 }
 EXPECTED = {
     "15627902-15627904.prover_input": "980841d3e5dda240bfc88a28aa5a757d3d8418c4562678832af3079b7446c4d1",
@@ -42,7 +42,7 @@ PHASE_COLUMNS = (
     ("tail_s", "constraint_evaluation_end", "decommit_end"),
 )
 FIELDS = (
-    "variant", "pie", "status", "binary_sha256", "source_head", "source_diff_sha256",
+    "variant", "pie", "campaign_position", "status", "binary_sha256", "source_head", "source_diff_sha256",
     "policy_env_json", "full_command_s", "ingress_s", "proof_s",
     "adapted_to_publication_s", "device_peak_gib", "host_rss_peak_gib",
     *(entry[0] for entry in PHASE_COLUMNS), "proof_sha256", "rust_verified",
@@ -88,21 +88,29 @@ def one(directory: Path) -> dict:
     )} if (directory / "process.log").is_file() else {}
     exact = bool(proof_sha and proof_sha == EXPECTED.get(pie))
     campaign = (variant == "rtx5090-h200512-sample" and
-                pie in CAMPAIGN_INPUTS and
+                pie in CAMPAIGN_ROWS and
                 campaign_result.get("status") == "verified" and
-                campaign_result.get("input_sha256") == CAMPAIGN_INPUTS[pie] and
-                input_sha == CAMPAIGN_INPUTS[pie] and
+                campaign_result.get("input_sha256") == CAMPAIGN_ROWS[pie]["input_sha256"] and
+                input_sha == CAMPAIGN_ROWS[pie]["input_sha256"] and
                 campaign_result.get("proof_sha256") == proof_sha)
+    rejected_candidate = (variant == "rtx5090-decommit-prefetch-11m" and
+                          pie in CAMPAIGN_ROWS and
+                          campaign_result.get("status") == "verified" and
+                          input_sha == CAMPAIGN_ROWS[pie]["input_sha256"] and
+                          campaign_result.get("proof_sha256") == proof_sha and
+                          campaign_result.get("baseline_proof_sha256") == proof_sha)
     verified = verdict.get("verified") is True
     status = ("invalid_source" if variant in INVALID_SOURCE else
               "invalid_policy" if variant in INVALID_POLICY else
               "verified" if summary.get("exit_code") == 0 and exact and verified else
-              "verified_independent" if summary.get("exit_code") == 0 and campaign and verified else
+              "verified_independent" if summary.get("exit_code") == 0 and (campaign or rejected_candidate) and verified else
               "failed" if summary.get("exit_code") != 0 else "unqualified")
     log = (directory / "process.log").read_text(errors="replace") if (directory / "process.log").is_file() else ""
     errors = [line for line in log.splitlines() if "failed" in line or line.startswith("error:")]
     row = {
-        "variant": variant, "pie": pie, "status": status,
+        "variant": variant, "pie": pie,
+        "campaign_position": CAMPAIGN_ROWS.get(pie, {}).get("campaign_position", ""),
+        "status": status,
         "binary_sha256": summary.get("binary_sha256") or "",
         "source_head": summary.get("source", {}).get("git_head") or "",
         "source_diff_sha256": summary.get("source", {}).get("git_diff_sha256") or "",
