@@ -455,6 +455,21 @@ extern "C" int stwo_exec_context_pool_current(
     return 0;
 }
 
+// A compact-device worker alternates Cairo and circuit arenas. Returning
+// freed async-pool pages between those families prevents a retired circuit
+// arena from occupying HBM while the next managed Cairo arena is touched.
+extern "C" int stwo_exec_context_pool_trim_to(void *handle, size_t bytes) {
+    StwoNativeCudaContext *context = nullptr;
+    cudaError_t status = require_context(handle, &context);
+    if (status != cudaSuccess) return static_cast<int>(status);
+#if defined(STWO_CUMETAL)
+    (void)bytes;
+    return static_cast<int>(cudaErrorInvalidValue);
+#else
+    return static_cast<int>(cudaMemPoolTrimTo(context->pool, bytes));
+#endif
+}
+
 extern "C" int stwo_exec_context_stream(
     void *handle,
     void **out_stream) {

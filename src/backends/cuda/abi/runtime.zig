@@ -70,6 +70,10 @@ pub extern "c" fn stwo_exec_context_pool_current(
     used_current: *usize,
     reserved_current: *usize,
 ) c_int;
+pub extern "c" fn stwo_exec_context_pool_trim_to(
+    handle: *anyopaque,
+    bytes: usize,
+) c_int;
 pub extern "c" fn stwo_exec_context_stream(
     handle: *anyopaque,
     out_stream: *?*anyopaque,

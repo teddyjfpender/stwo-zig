@@ -368,7 +368,8 @@ GPU peak. The full two-PIE serial pipeline also reproduced the exact root in
 reused setup but took **51.598 s** and reached the GPU's 31.36 GiB usable
 limit; its second Cairo proof and decode rose to 24.817 s. Disabling circuit
 arena reuse in that batch took **86.809 s**. All modes yielded the same root;
-for a single 5090, process-separated serial leaves are the measured winner.
+at this stage, process-separated serial leaves were faster. The pool-trimming
+change documented below subsequently made the integrated batch faster.
 The compact single-leaf handoff is being restricted to the compact-device
 profile so larger GPUs retain their existing handoff behavior.
 
@@ -454,9 +455,61 @@ receipts are in the corresponding `rtx5090-five-m-all-hashes-maincoeff*-tail/`
 directories. H200 ratios remain indicative because its saved receipt used an
 older source build.
 
+Two more idle-host repeats of the 5% point published in **11.759** and
+**11.816 s**, with the same exact proof, passing Rust verdict, and **31.242 GiB**
+sampled peak in both. The three-run publication median is **11.816 s**. This
+supports repeatability on the tested host, but still leaves only about
+0.12 GiB of sampled HBM headroom for that one geometry.
+
 On the 4.00M-step PIE, reducing the hosted preprocessed-tree fraction from
 the profile's 75% to 25% yielded **8.234 s** publication with the same exact
 proof and Rust verdict, versus 8.776 s for the profile. But sampled GPU use
 rose to **31.355 GiB**, essentially the entire 31.36 GiB usable device. The
 0.54 s gain does not justify that capacity risk as a default. The receipt is
 under `rtx5090-medium-merkle-head25/`.
+
+## Reclaiming the CUDA pool between proof families
+
+The integrated two-leaf batch originally took 51.598 s because the second
+Cairo proof-and-decode phase rose to 24.817 s. The context's async pool has a
+high release threshold, so freed circuit arena pages stayed reserved. The
+compact profile now synchronizes completed frees and trims the pool when it
+evicts a prepared arena between Cairo and circuit proof families. The measured
+transition returned **28.15 GB** of unused pool reservation; the second Cairo
+proof-and-decode phase fell to **11.586 s**. CUDA's [stream-ordered allocator
+contract](https://docs.nvidia.com/cuda/cuda-runtime-api/cuda_runtime_api/group__CUDART__MEMORY__POOLS.html)
+specifies that a trim releases safely unused pool pages after asynchronous
+frees are observed by the host. This change is limited to the opt-in compact
+device profile; larger GPU paths keep their existing reuse policy.
+
+| Complete two-PIE→root mode | Full command | GPU peak | Root proof, outputs and packed tree |
+|---|---:|---:|---|
+| Integrated batch before pool trim | 51.598 s | 31.36 GiB | exact H200 match |
+| Integrated batch with pool trim, run 1 | **38.082 s** | **30.742 GiB** | exact H200 match |
+| Integrated batch with pool trim, run 2 | **38.848 s** | **30.742 GiB** | exact H200 match |
+| Integrated batch, cleaned final source | **38.381 s** | **30.742 GiB** | exact H200 match |
+| Separate processes with pool trim | 42.194 s | 30.742 GiB | exact H200 match |
+
+The batch median of the three runs is **38.381 s**, about **2.52×** the saved
+H200 15.252 s full command, subject to the historical-source caveat. It is
+about **25% faster** than the old 51.598 s batch and **10% faster** than the
+separate-process 42.563 s result. The exact final root hashes remain
+`9093f941c4a9144fd653441c582cc0921bac8431df8df46bdd556b8e661af724`
+for the proof, `abaefd94d716e2e4f07b5a2fcd521764e5d4c0f8dd04ec60e095bf74d0e1349b`
+for outputs, and `72f17bf582e5438defd30e2f3c52f87ff47e5d6f0d1223b98d37bac8007c54a2`
+for the packed tree. Receipts and phase logs are under
+`pipeline5090-two/pool-trim/`.
+
+A four-leaf **synthetic stress case** repeated the two distinct small PIEs in
+the order `[A, B, A, B]`. This is not a contiguous block chain or a new
+four-PIE production claim. The cleaned final source completed all four Cairo
+proofs, four leaf wraps, and three recursive reductions to one root in
+**71.769 s** full command, with **30.744 GiB** sampled whole-device peak.
+Each transition released about **28.15 GB** of unused pool reservation; the
+four Cairo proof-and-decode stages were **12.526, 11.666, 12.399, and
+11.575 s**. The three fold reductions took **2.801 s** total. This tests
+bounded memory across repeated Cairo/circuit transitions, not equivalence to
+an independent H200 root for this synthetic input. The case definition,
+receipt, phase logs, and memory samples are retained under
+`pipeline5090-four-synthetic/`; the generated proof files remain on the
+benchmark host and are excluded from the repository.

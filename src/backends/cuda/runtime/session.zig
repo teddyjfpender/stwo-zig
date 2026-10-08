@@ -752,6 +752,19 @@ pub fn SessionForProvider(
             try self.requireOwner();
             if (self.state != .idle) return error.InvalidState;
             try self.execution_cache.deinit(&self.context);
+            if (comptime provider == .nvidia_cuda) {
+                if (arena_module.compactDeviceProfileEnabled()) {
+                    try self.context.sync();
+                    const before = try self.context.poolCurrent();
+                    try self.context.trimPoolTo(0);
+                    const after = try self.context.poolCurrent();
+                    if (std.posix.getenv("STWO_CUDA_MEMORY_PHASES") != null)
+                        std.debug.print(
+                            "cuda compact pool trim used_before={} reserved_before={} used_after={} reserved_after={}\n",
+                            .{ before.used, before.reserved, after.used, after.reserved },
+                        );
+                }
+            }
         }
 
         fn releaseActiveExecution(self: *Self) runtime_error.Error!void {

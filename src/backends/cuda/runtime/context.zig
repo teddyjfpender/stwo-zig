@@ -876,6 +876,15 @@ pub fn ContextFor(comptime Api: type) type {
             return .{ .used = used, .reserved = reserved };
         }
 
+        pub fn trimPoolTo(self: *Self, bytes: usize) runtime_error.Error!void {
+            if (comptime @hasDecl(Api, "stwo_exec_context_pool_trim_to")) {
+                try runtime_error.check(Api.stwo_exec_context_pool_trim_to(
+                    try self.requireHandle(),
+                    bytes,
+                ));
+            } else return error.InvalidState;
+        }
+
         pub fn memoryInfo(self: *Self) runtime_error.Error!struct {
             free: usize,
             total: usize,
