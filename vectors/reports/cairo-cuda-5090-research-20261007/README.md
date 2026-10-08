@@ -1043,6 +1043,18 @@ volume: it can stage the 64 and 128 prefixes with room for artifacts, but a
 full 512 replay requires a larger durable object store. This storage limit is
 separate from the GPU memory and runtime problems measured below.
 
+The complete first-64 prefix has now been freshly fetched and adapted for a
+5090 service replay. All **64 archive, compact-input, and public-preimage
+hashes and sizes** match the saved H200 preparation record. The newly emitted
+service campaign is **byte-for-byte identical** to the pinned
+[64-leaf manifest](campaign-prefixes/campaign-64.json), SHA-256
+`3f44a32b64ff430caedc89aaa06c32b8b5fb3513f8ad47bef95d5bafd9142f1a`.
+The deep [preflight receipt](h200-prefix64-preflight.json) rehashed all 64
+adapted inputs, confirming **1,130,634,143 OS steps** across 22,236,736,264
+adapted bytes. The [preparation match](h200-prefix64-preparation-match.json)
+records the other exact checks. These receipts qualify the *input* for a
+complete service replay; they do not claim a 5090 root proof has run yet.
+
 The [15-PIE sample](h200-512-stratified-sample.json) is drawn from that exact
 512 run and spans **3.47–24.97M steps**, **167 blocks**, and **254.8M total
 steps**; eight cases are dense single-block PIEs. It includes two inputs from
