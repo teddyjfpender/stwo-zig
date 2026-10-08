@@ -642,7 +642,13 @@ pub const Prepared = struct {
         if (placement == .capacity and capacity_hbm != .interaction_coefficients) {
             // Relation execution first writes this coefficient slot.
             phase = "host_resident_interaction_coefficients_before_relation";
-            try preferManagedSlotHost(transaction, plan, .trace_coefficients, 2, true);
+            try preferCapacitySlotHost(
+                transaction,
+                plan,
+                .trace_coefficients,
+                2,
+                "STWO_CUDA_CAPACITY_INTERACTION_COEFF_HOST_PERCENT",
+            );
         }
         phase = "relation_trace";
         try relation_stage.TraceCommitNative.execute(
