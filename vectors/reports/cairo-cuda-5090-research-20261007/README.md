@@ -399,3 +399,64 @@ from 52.876 to 41.725 s, but left relation time essentially unchanged
 usable capacity. The failed receipt is retained under
 `rtx5090-capacity-interactioncoeff-lookup/`; the opt-in flag was removed from
 source. It produced no proof and is not a performance improvement.
+
+## Further placement and arena search
+
+For the 5.34M-step PIE, hosting the *tail* 25% of main coefficients instead of
+the head produced the same exact proof and passed the independent Rust
+verifier. Input-to-publication fell from the integrated head-placement result
+of 17.772 s to **16.135 s**, with **30.617 GiB** peak. Relation generation fell
+from 7.320 s in the head-placement receipt to **5.719 s**. This is a useful
+opt-in Pareto point; `STWO_CUDA_SELECTIVE_HOST_TAIL=1` applies it to the manual
+fractional policy. Applying the tail choice to the compact profile for the
+two-leaf recursive pipeline yielded the same exact root, but full time rose
+from 42.563 to **42.998 s** and both Cairo leaves were slightly slower. The
+default therefore retains the broadly qualified head placement rather than
+making a geometry-specific change from one standalone result. Receipts are
+under `rtx5090-five-m-all-hashes-maincoeff25-tail/` and
+`pipeline5090-two/tail-policy/`.
+
+Substituting host-preferred trace-writer scratch for the main-coefficient
+spill also matched the exact proof and passed Rust verification, but raised
+input-to-publication to **31.480 s**. Trace generation grew from about 2.2 s
+to 9.7 s, so that option was removed from source. Its receipt remains under
+`rtx5090-five-m-all-hashes-writer-host/`.
+
+A bounded 64-ordering arena-packing search was briefly enabled for the
+6.00M-step geometry. Its 193-slot plan shrank by only **32 bytes**, from
+44,229,177,920 to 44,229,177,888 bytes. The phase-overlap lower bound is
+43,711,489,616 bytes, so alternative packing cannot bring this geometry
+below the compact profile's 38 GiB planning envelope. The search experiment
+was removed; the failed-admission receipt is under
+`rtx5090-six-m-arena-search/`. Reducing this class needs shorter live ranges
+or a different allocation/streaming architecture, not a new ordering of the
+same buffers.
+
+With all three trace hash trees host-preferred, a sweep of the main-coefficient
+tail on the same 5.34M PIE found the following exact, independently
+Rust-verified points. Each is one run on an otherwise idle 5090. The
+CUDA-reported usable capacity was 31.36 GiB; the last rows have too little
+headroom for an admission default.
+
+| Hosted coefficient tail | Input→publication | Full command | Sampled GPU peak | Historical H200 publication ratio |
+|---:|---:|---:|---:|---:|
+| 25% | 16.135 s | 17.265 s | 30.617 GiB | 3.16× |
+| 22% | 15.625 s | 17.027 s | 30.742 GiB | 3.06× |
+| 20% | 15.074 s | 16.401 s | 30.867 GiB | 2.95× |
+| 15% | 13.674 s | 14.836 s | 30.992 GiB | 2.68× |
+| 10% | 13.501 s | 14.705 s | 31.117 GiB | 2.65× |
+| 5% | **11.938 s** | **13.406 s** | **31.242 GiB** | **2.34×** |
+
+This is a material speed frontier over the broad compact profile's 17.772 s
+for this PIE, but the 5% point has only about 0.12 GiB sampled headroom. It
+is a research result, not a safe setting for arbitrary PIE geometry. The
+receipts are in the corresponding `rtx5090-five-m-all-hashes-maincoeff*-tail/`
+directories. H200 ratios remain indicative because its saved receipt used an
+older source build.
+
+On the 4.00M-step PIE, reducing the hosted preprocessed-tree fraction from
+the profile's 75% to 25% yielded **8.234 s** publication with the same exact
+proof and Rust verdict, versus 8.776 s for the profile. But sampled GPU use
+rose to **31.355 GiB**, essentially the entire 31.36 GiB usable device. The
+0.54 s gain does not justify that capacity risk as a default. The receipt is
+under `rtx5090-medium-merkle-head25/`.
