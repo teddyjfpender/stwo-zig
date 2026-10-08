@@ -9,21 +9,38 @@ import re
 
 
 PHASE = re.compile(r"cairo-cuda-memory-phase phase=([^ ]+) elapsed_ns=(\d+)")
+ARENA = re.compile(r"cairo-cuda arena reservation bytes=(\d+)")
 
 
-def phase_seconds(path: Path) -> dict[str, float]:
+def log_metrics(path: Path) -> dict[str, float | int]:
     if not path.exists():
         return {}
-    events = {name: int(ns) / 1e9 for name, ns in PHASE.findall(path.read_text())}
+    log = path.read_text()
+    events = {name: int(ns) / 1e9 for name, ns in PHASE.findall(log)}
     pairs = {
         "trace_s": ("proof_begin", "trace_generation_end"),
+        "preprocessed_commit_s": ("trace_generation_end", "preprocessed_commit_end"),
+        "main_commit_s": ("preprocessed_commit_end", "main_commit_end"),
         "relation_s": ("main_commit_end", "relation_end"),
+        "interaction_commit_s": ("relation_end", "interaction_commit_end"),
         "constraint_s": ("trace_commit_end", "constraint_evaluation_end"),
-        "fri_s": ("constraint_stage_end", "fri_commit_end"),
-        "decommit_s": ("fri_commit_end", "decommit_end"),
+        "composition_commit_s": ("constraint_evaluation_end", "composition_commit_end"),
+        "oods_s": ("constraint_stage_end", "oods_end"),
+        "quotient_s": ("oods_end", "quotient_end"),
+        "fri_s": ("quotient_end", "fri_commit_end"),
+        "query_pow_s": ("fri_commit_end", "query_pow_end"),
+        "decommit_s": ("query_pow_end", "decommit_end"),
+        # Existing receipts have no query-PoW-end event, so this interval
+        # includes query PoW as well as opening/decommitment work.
+        "post_fri_to_decommit_s": ("fri_commit_end", "decommit_end"),
     }
-    return {key: round(events[end] - events[start], 6)
-            for key, (start, end) in pairs.items() if start in events and end in events}
+    metrics: dict[str, float | int] = {
+        key: round(events[end] - events[start], 6)
+        for key, (start, end) in pairs.items() if start in events and end in events
+    }
+    if match := ARENA.search(log):
+        metrics["rtx5090_planned_arena_bytes"] = int(match.group(1))
+    return metrics
 
 
 def main() -> None:
@@ -73,7 +90,7 @@ def main() -> None:
             "rtx5090_process_tree_rss_peak_bytes": result.get("host_rss_peak_bytes", ""),
             "rtx5090_cairo_proof_sha256": result.get("proof_sha256", ""),
         }
-        row.update(phase_seconds(target / "process.log"))
+        row.update(log_metrics(target / "process.log"))
         rows.append(row)
     keys = list(rows[0])
     for row in rows:

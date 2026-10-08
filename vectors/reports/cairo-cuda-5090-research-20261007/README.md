@@ -21,8 +21,9 @@ make the historical H200 comparison indicative until a source-matched pair runs.
   5090 pod had 167 GB host RAM and driver 580.65.06. All final pipeline and
   capacity-boundary results below are from the latter pod.
 - `measurements.csv` is rebuilt from the retained receipts by
-  `summarize_trials.py`. It records 133 trials, including 102 exact-hash,
-  independently verified successes, 28 failures, and three deliberately
+  `summarize_trials.py`. It records 139 trials, including 102 exact-hash
+  successes, six additional authenticated-input proofs accepted by the
+  independent Rust verifier, 28 failures, and three deliberately
   disqualified source/policy trials. The verifier receipt supplies the proof
   digest when an older trial has no separate `proof.sha256` sidecar.
 - `pareto.csv` selects verified trials for which no same-PIE trial is no worse
@@ -1027,13 +1028,20 @@ writes ready-to-stage [64](campaign-prefixes/campaign-64.json),
 ordered state roots, adapted-input digests, and public-output preimage digests
 come from the saved H200 source manifest and preparation record; the Go
 service accepts their schema and rejects submission until the corresponding
-authenticated objects are staged.
+authenticated objects are staged. The current checkout's production registry
+and leaf bootloader program SHA-256 values match the saved H200 worker
+capabilities exactly.
 
 | Prefix | OS steps | Adapted input | One-block PIEs | Saved H200 root |
 | --- | ---: | ---: | ---: | --- |
 | 64 | 1.131B | 20.71 GiB | 43 | No |
 | 128 | 2.278B | 41.80 GiB | 79 | Yes |
 | 512 | 8.856B | 162.94 GiB | 300 | Yes |
+
+These are input bytes alone. The current 5090 pod has a 90 GB workspace
+volume: it can stage the 64 and 128 prefixes with room for artifacts, but a
+full 512 replay requires a larger durable object store. This storage limit is
+separate from the GPU memory and runtime problems measured below.
 
 The [15-PIE sample](h200-512-stratified-sample.json) is drawn from that exact
 512 run and spans **3.47–24.97M steps**, **167 blocks**, and **254.8M total
@@ -1050,6 +1058,27 @@ and the 5090 cold standalone command. Sampling tests coverage and exposes
 geometry bottlenecks; reproducing a campaign **root** requires proving and
 wrapping *every* input in the exact prefix and executing its ordered circuit
 folds. A noncontiguous sample cannot substitute for that root run.
+
+The [comparison CSV](h200-512-sample-comparison.csv) has all 15 cohort rows;
+six had completed exact-input, independent-Rust-verified 5090 proofs at this
+checkpoint and nine were still pending. These are cold standalone **Cairo
+proofs**, with no circuit wrap. H200's service Cairo-proof stage is shown for
+context and has a different warm/batched execution boundary.
+
+| PIE | Steps | Planned arena | 5090 ingress | 5090 Cairo proof | 5090 input→proof | Device peak |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| `15653256_15653263` | 4.17M | 31.24 GiB | 3.60 s | 3.59 s | 7.24 s | 29.49 GiB |
+| `15655795_15655807` | 3.47M | 30.81 GiB | 3.64 s | 3.62 s | 7.31 s | 28.87 GiB |
+| `15654701_15654719` | 8.53M | 54.26 GiB | 3.64 s | 214.65 s | 218.34 s | 18.49 GiB |
+| `15657380_15657414` | 9.91M | 44.78 GiB | 3.68 s | 200.02 s | 203.76 s | 16.74 GiB |
+| `15659077_15659106` | 11.93M | 49.78 GiB | 3.81 s | 375.29 s | 379.16 s | 16.12 GiB |
+| `15658121_15658145` | 15.64M | 72.76 GiB | 3.96 s | 386.75 s | 390.76 s | 17.37 GiB |
+
+On the 11.93M-step case, the post-FRI interval alone was **140.58 s**;
+it includes query PoW because the current build has no event between FRI and
+decommitment. That is why the next candidate explicitly tests restoring the
+retained Merkle hash trees to HBM before openings. The relation and constraint
+phases dominate the other out-of-core cases, and need bounded working sets.
 
 ## Final-source regression
 

@@ -8,6 +8,10 @@ import re
 
 
 ROOT = Path(__file__).resolve().parent
+CAMPAIGN_INPUTS = {
+    row["pie"]: row["input_sha256"]
+    for row in json.loads((ROOT / "h200-512-stratified-sample.json").read_text())
+}
 EXPECTED = {
     "15627902-15627904.prover_input": "980841d3e5dda240bfc88a28aa5a757d3d8418c4562678832af3079b7446c4d1",
     "15627905-15627907.prover_input": "02c0356818f99c29d169cbe984c7ba99a2af4552534798c764c5e8f15e656d05",
@@ -67,6 +71,7 @@ def one(directory: Path) -> dict:
     report = read_json(directory / "report.json")
     trial = (report.get("completed_trials") or [{}])[0]
     verdict = read_json(directory / "official-verdict.json")
+    campaign_result = read_json(directory / "result.json")
     proof_file = directory / "proof.sha256"
     file_sha = proof_file.read_text().split()[0] if proof_file.is_file() else ""
     verdict_sha = verdict.get("proof_sha256") or ""
@@ -77,16 +82,23 @@ def one(directory: Path) -> dict:
     variant = directory.parent.name
     pie = (Path(command[command.index("--input") + 1]).stem
            if "--input" in command else directory.name)
+    input_sha = command[command.index("--input-sha256") + 1] if "--input-sha256" in command else ""
     phases = {name: int(value) for name, value in PHASE.findall(
         (directory / "process.log").read_text(errors="replace")
     )} if (directory / "process.log").is_file() else {}
     exact = bool(proof_sha and proof_sha == EXPECTED.get(pie))
+    campaign = (variant == "rtx5090-h200512-sample" and
+                pie in CAMPAIGN_INPUTS and
+                campaign_result.get("status") == "verified" and
+                campaign_result.get("input_sha256") == CAMPAIGN_INPUTS[pie] and
+                input_sha == CAMPAIGN_INPUTS[pie] and
+                campaign_result.get("proof_sha256") == proof_sha)
     verified = verdict.get("verified") is True
     status = ("invalid_source" if variant in INVALID_SOURCE else
               "invalid_policy" if variant in INVALID_POLICY else
               "verified" if summary.get("exit_code") == 0 and exact and verified else
+              "verified_independent" if summary.get("exit_code") == 0 and campaign and verified else
               "failed" if summary.get("exit_code") != 0 else "unqualified")
-    input_sha = command[command.index("--input-sha256") + 1] if "--input-sha256" in command else ""
     log = (directory / "process.log").read_text(errors="replace") if (directory / "process.log").is_file() else ""
     errors = [line for line in log.splitlines() if "failed" in line or line.startswith("error:")]
     row = {
@@ -116,7 +128,7 @@ def main() -> None:
         writer = csv.DictWriter(sink, fieldnames=FIELDS, lineterminator="\n")
         writer.writeheader()
         writer.writerows(rows)
-    qualified = [row for row in rows if row["status"] == "verified" and
+    qualified = [row for row in rows if row["status"] in {"verified", "verified_independent"} and
                  row["adapted_to_publication_s"] and row["device_peak_gib"]]
     frontier = []
     for row in qualified:
