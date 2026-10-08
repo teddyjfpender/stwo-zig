@@ -18,6 +18,7 @@ pub fn main() !void {
     defer std.process.argsFree(allocator, args);
     var breakdown = false;
     var jsonl = false;
+    var transient_static = false;
     var registry_path: ?[]const u8 = null;
     var artifact_dir: ?[]const u8 = null;
     var inputs: std.ArrayList([]const u8) = .empty;
@@ -29,6 +30,8 @@ pub fn main() !void {
             breakdown = true;
         } else if (std.mem.eql(u8, arg, "--jsonl")) {
             jsonl = true;
+        } else if (std.mem.eql(u8, arg, "--transient-static")) {
+            transient_static = true;
         } else if (std.mem.eql(u8, arg, "--circuit-registry")) {
             cursor += 1;
             if (cursor >= args.len or registry_path != null) return error.InvalidArgument;
@@ -38,7 +41,7 @@ pub fn main() !void {
             if (cursor >= args.len or artifact_dir != null) return error.InvalidArgument;
             artifact_dir = args[cursor];
         } else if (std.mem.eql(u8, arg, "--help")) {
-            std.debug.print("usage: cairo-trace-geometry [--circuit-registry registry.json] [--artifact-dir vectors/cairo] [--jsonl | --memory-breakdown] <adapted-input.cpi>...\n", .{});
+            std.debug.print("usage: cairo-trace-geometry [--circuit-registry registry.json] [--artifact-dir vectors/cairo] [--transient-static] [--jsonl | --memory-breakdown] <adapted-input.cpi>...\n", .{});
             return;
         } else if (std.mem.startsWith(u8, arg, "-")) {
             return error.InvalidArgument;
@@ -112,23 +115,25 @@ pub fn main() !void {
         candidate_paths.input = path;
         var prepared = try source.prepareWithAssets(allocator, candidate_paths, target, &assets);
         defer prepared.deinit();
-        var controllers = try controller_bundle.Prepared.init(
+        var controllers = try controller_bundle.Prepared.initWithTransientStatic(
             allocator,
             &prepared.request,
             prepared.protocol,
             prepared.composition,
             prepared.preprocessed_logs,
+            transient_static,
         );
         defer controllers.deinit();
         const summary = prepared.request.resident.summary;
         if (jsonl) {
-            try report.writeJsonReport(allocator, path, &assets, &prepared, &controllers, registry_sha);
+            try report.writeJsonReport(allocator, path, &assets, &prepared, &controllers, registry_sha, transient_static);
             continue;
         }
-        std.debug.print("resident pie={s} logical_bytes={} peak_live_bytes={} allocated_bytes={} request_arena_bytes={} coefficient_cells={} evaluation_cells={}\n", .{
-            std.fs.path.stem(path),                              summary.logicalBytes(),           summary.peak_live_words * 4,
-            controllers.resident.combined_arena.total_words * 4, summary.allocatedResidentBytes(), summary.coefficient_cells,
-            summary.evaluation_cells,
+        std.debug.print("resident pie={s} static_lifetime={s} logical_bytes={} peak_live_bytes={} allocated_bytes={} request_arena_bytes={} coefficient_cells={} evaluation_cells={}\n", .{
+            std.fs.path.stem(path),                              if (transient_static) "transient" else "process_cache",
+            summary.logicalBytes(),                              summary.peak_live_words * 4,
+            controllers.resident.combined_arena.total_words * 4, summary.allocatedResidentBytes(),
+            summary.coefficient_cells,                           summary.evaluation_cells,
         });
         if (breakdown) {
             const pie = std.fs.path.stem(path);
@@ -147,9 +152,9 @@ pub fn main() !void {
             for (prepared.request.resident.slots) |slot| {
                 const placement = try controllers.resident.combined_arena.placement(slot.id);
                 std.debug.print("slot pie={s} kind={s} ordinal={} bytes={} offset_bytes={} from={s}/{} through={s}/{} storage={s}\n", .{
-                    pie,                      @tagName(slot.kind),  slot.ordinal,                slot.words * 4,
-                    placement.offset_words * 4, @tagName(slot.live_from), slot.live_from_phase, @tagName(slot.live_through), slot.live_through_phase,
-                    @tagName(slot.storage),
+                    pie,                        @tagName(slot.kind),      slot.ordinal,         slot.words * 4,
+                    placement.offset_words * 4, @tagName(slot.live_from), slot.live_from_phase, @tagName(slot.live_through),
+                    slot.live_through_phase,    @tagName(slot.storage),
                 });
             }
             for (prepared.request.proof.components, prepared.composition.components) |planned, component| {

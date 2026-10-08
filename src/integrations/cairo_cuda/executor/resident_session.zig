@@ -30,6 +30,19 @@ pub const Prepared = struct {
         plan: resident_plan.Plan,
         schedule: trace_schedule.Schedule,
     ) !Prepared {
+        return initWithTransientStatic(allocator, plan, schedule, false);
+    }
+
+    /// The compact leaf sink retires its entire Cairo arena before handing
+    /// CUDA to a circuit wrap. Static columns cannot survive that boundary,
+    /// so their authenticated in-request last-use stages may be used for
+    /// storage aliasing. Other sessions retain process-cache lifetimes.
+    pub fn initWithTransientStatic(
+        allocator: std.mem.Allocator,
+        plan: resident_plan.Plan,
+        schedule: trace_schedule.Schedule,
+        transient_static: bool,
+    ) !Prepared {
         if (std.mem.allEqual(u8, &plan.identity, 0) or
             std.mem.allEqual(u8, &schedule.identity, 0) or
             schedule.entries.len == 0 or
@@ -38,7 +51,7 @@ pub const Prepared = struct {
         {
             return error.InvalidResidentSession;
         }
-        const requirements = try processRequirements(allocator, plan.slots);
+        const requirements = try processRequirements(allocator, plan.slots, transient_static);
         errdefer allocator.free(requirements);
         var process_arena = try arena.Plan.init(allocator, requirements);
         errdefer process_arena.deinit(allocator);
@@ -172,6 +185,7 @@ pub fn ProviderFor(
 fn processRequirements(
     allocator: std.mem.Allocator,
     slots: []const resident_plan.Slot,
+    transient_static: bool,
 ) ![]arena.Requirement {
     var count: usize = 0;
     for (slots) |slot| {
@@ -187,11 +201,13 @@ fn processRequirements(
             .id = slot.id,
             .words = slot.words,
             .alignment_words = slot.alignment_words,
-            // Process-cache values survive request boundaries. They cannot
-            // reuse storage merely because their in-request use intervals do
-            // not overlap.
-            .live_from = .ingress,
-            .live_through = .proof_assembly,
+            // A retained cache survives request boundaries; a compact leaf
+            // sink evicts its arena, so its values only need their actual
+            // authenticated in-request intervals.
+            .live_from = if (transient_static) slot.live_from else .ingress,
+            .live_through = if (transient_static) slot.live_through else .proof_assembly,
+            .live_from_phase = if (transient_static) slot.live_from_phase else 0,
+            .live_through_phase = if (transient_static) slot.live_through_phase else 1,
         };
         cursor += 1;
     }
@@ -374,6 +390,7 @@ test "process cache slots never alias across request-stage lifetimes" {
     const requirements = try processRequirements(
         std.testing.allocator,
         &slots,
+        false,
     );
     defer std.testing.allocator.free(requirements);
     try std.testing.expectEqual(@as(usize, 2), requirements.len);
@@ -390,4 +407,12 @@ test "process cache slots never alias across request-stage lifetimes" {
     var placed = try arena.Plan.init(std.testing.allocator, requirements);
     defer placed.deinit(std.testing.allocator);
     try std.testing.expectEqual(@as(usize, 128), placed.total_words);
+
+    const transient = try processRequirements(std.testing.allocator, &slots, true);
+    defer std.testing.allocator.free(transient);
+    try std.testing.expectEqual(telemetry.Stage.trace_commit, transient[0].live_through);
+    try std.testing.expectEqual(telemetry.Stage.constraint_evaluation, transient[1].live_from);
+    var compact = try arena.Plan.init(std.testing.allocator, transient);
+    defer compact.deinit(std.testing.allocator);
+    try std.testing.expectEqual(@as(usize, 64), compact.total_words);
 }

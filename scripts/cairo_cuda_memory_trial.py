@@ -3,6 +3,7 @@
 
 import argparse
 import csv
+from datetime import datetime, timezone
 import hashlib
 import json
 import os
@@ -15,9 +16,18 @@ POLICY_ENV = (
     "STWO_CAIRO_CUDA_PREPROCESSED_VARIANT",
     "STWO_CUDA_MANAGED_ARENA",
     "STWO_CUDA_COMPACT_DEVICE_PROFILE",
+    "STWO_CUDA_COMPACT_MAIN_COEFF_PERCENT",
+    "STWO_CUDA_COMPACT_MAIN_COEFF_TAIL",
+    "STWO_CUDA_COMPACT_TRACE_HASH_PERCENT",
+    "STWO_CUDA_ARENA_SLOT_DIAGNOSTIC",
     "STWO_CUDA_MANAGED_PLACEMENT",
     "STWO_CUDA_CAPACITY_HBM_SLOT",
-    "STWO_CUDA_CAPACITY_KEEP_LOOKUP",
+    "STWO_CUDA_CAPACITY_LOOKUP_HOST_PERCENT",
+    "STWO_CUDA_CAPACITY_WRITER_SCRATCH_HOST_PERCENT",
+    "STWO_CUDA_CAPACITY_MAIN_COEFF_HOST_PERCENT",
+    "STWO_CUDA_CAPACITY_MAIN_EVAL_HOST_PERCENT",
+    "STWO_CUDA_CAPACITY_INTERACTION_EVAL_HOST_PERCENT",
+    "STWO_CUDA_CAPACITY_PREFETCH_EVAL_REMAINDER",
     "STWO_CUDA_SELECTIVE_HOST_PERCENT",
     "STWO_CUDA_SELECTIVE_MAIN_HOST_PERCENT",
     "STWO_CUDA_SELECTIVE_HOST_TAIL",
@@ -59,6 +69,29 @@ def resident_bytes(pid: int) -> int | None:
     return None
 
 
+def process_tree_resident_bytes(pid: int) -> int | None:
+    """Include the proof process when the measured command is a launcher."""
+    pending = [pid]
+    seen = set()
+    total = 0
+    found = False
+    while pending:
+        current = pending.pop()
+        if current in seen:
+            continue
+        seen.add(current)
+        try:
+            children = Path(f"/proc/{current}/task/{current}/children").read_text()
+        except FileNotFoundError:
+            children = ""
+        pending.extend(int(child) for child in children.split())
+        rss = resident_bytes(current)
+        if rss is not None:
+            total += rss
+            found = True
+    return total if found else None
+
+
 def gpu_used_bytes() -> int | None:
     try:
         result = subprocess.run(
@@ -92,17 +125,19 @@ def main() -> None:
     source = source_receipt()
     policy = {name: os.environ[name] for name in POLICY_ENV if name in os.environ}
     started_ns = time.monotonic_ns()
+    started_wall_utc = datetime.now(timezone.utc).isoformat()
     with (args.out / "process.log").open("wb") as log, \
             (args.out / "memory.csv").open("w", newline="") as memory_file:
         writer = csv.writer(memory_file, lineterminator="\n")
         writer.writerow(("elapsed_ns", "gpu_used_bytes", "process_rss_bytes"))
         process = subprocess.Popen(command, stdout=log, stderr=subprocess.STDOUT)
+        process_spawn_wall_utc = datetime.now(timezone.utc).isoformat()
         gpu_peak = 0
         rss_peak = 0
         samples = 0
         while True:
             gpu = gpu_used_bytes()
-            rss = resident_bytes(process.pid)
+            rss = process_tree_resident_bytes(process.pid)
             writer.writerow((time.monotonic_ns() - started_ns, gpu, rss))
             if gpu is not None:
                 gpu_peak = max(gpu_peak, gpu)
@@ -121,9 +156,13 @@ def main() -> None:
         "policy_env": policy,
         "exit_code": exit_code,
         "elapsed_ns": time.monotonic_ns() - started_ns,
+        "started_wall_utc": started_wall_utc,
+        "process_spawn_wall_utc": process_spawn_wall_utc,
+        "finished_wall_utc": datetime.now(timezone.utc).isoformat(),
         "samples": samples,
         "whole_device_peak_bytes": gpu_peak,
         "process_rss_peak_bytes": rss_peak,
+        "process_rss_scope": "process_tree",
     }
     (args.out / "summary.json").write_text(json.dumps(summary, indent=2) + "\n")
     print(json.dumps(summary))

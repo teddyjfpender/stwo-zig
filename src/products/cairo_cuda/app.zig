@@ -226,7 +226,26 @@ fn runItems(allocator: std.mem.Allocator, items: []const BatchItem, mode: Mode, 
             if (source_jobs[index + 1]) |*job| job else null
         else
             null;
-        const receipt = try proveOnce(allocator, runtime, static_slot, if (use_device_image) image_slot else null, item.request, executable_digest, @intCast(if (mode == .repeated) index + 1 else 1), if (index == 0) runtime_init_ns else 0, if (index == 0) asset_init_ns else 0, item.sink, external_runtime != null or (item.sink != null and compact_device), assets, if (needs_prefetch) early_prefetch orelse &prefetch else null, current_source_job, next_source_job);
+        const one_shot_static = compact_device and items.len == 1 and
+            external_runtime == null and persistent == null;
+        const receipt = try proveOnce(
+            allocator,
+            runtime,
+            static_slot,
+            if (use_device_image) image_slot else null,
+            item.request,
+            executable_digest,
+            @intCast(if (mode == .repeated) index + 1 else 1),
+            if (index == 0) runtime_init_ns else 0,
+            if (index == 0) asset_init_ns else 0,
+            item.sink,
+            external_runtime != null or (item.sink != null and compact_device),
+            one_shot_static,
+            assets,
+            if (needs_prefetch) early_prefetch orelse &prefetch else null,
+            current_source_job,
+            next_source_job,
+        );
         if (mode == .repeated and item.sink == null) {
             // Repeated CLI proofs publish a canonical file. A verified sink
             // receives the decoded proof directly and has no file digest.
@@ -270,6 +289,7 @@ fn proveOnce(
     asset_init_ns: u64,
     sink: ?VerifiedLeafSink,
     release_arena_for_sink: bool,
+    one_shot_static: bool,
     assets: ?*const CanonicalAssets,
     prefetch: ?*PrefetchJob,
     source_job: ?*SourcePrepareJob,
@@ -297,13 +317,16 @@ fn proveOnce(
     const source_end_ns = timer.read();
 
     phase = "prepare_controllers";
+    const transient_static = stwo.backend.runtime.arena.compactDeviceProfileEnabled() and
+        ((sink != null and release_arena_for_sink) or one_shot_static);
     var controllers_prepared = try stwo.executor.ingress.controller_bundle
-        .Prepared.init(
+        .Prepared.initWithTransientStatic(
         allocator,
         &diagnostic.request,
         diagnostic.protocol,
         diagnostic.composition,
         diagnostic.preprocessed_logs,
+        transient_static,
     );
     defer controllers_prepared.deinit();
     const controllers_end_ns = timer.read();
@@ -336,8 +359,15 @@ fn proveOnce(
 
     const arena_plan = controllers_prepared.resident.combined_arena;
     std.debug.print("cairo-cuda arena reservation bytes={} slots={}\n", .{ arena_plan.total_words * 4, arena_plan.placements.len });
-    for (arena_plan.placements) |placement| {
-        if (placement.requirement.words >= 1 << 24) std.debug.print("cairo-cuda arena slot={} bytes={} offset={} lifetime={s}..{s}\n", .{ placement.requirement.id, placement.requirement.words * 4, placement.offset_words * 4, @tagName(placement.requirement.live_from), @tagName(placement.requirement.live_through) });
+    if (std.posix.getenv("STWO_CUDA_ARENA_SLOT_DIAGNOSTIC") != null) {
+        for (arena_plan.placements) |placement| {
+            if (placement.requirement.words >= 1 << 24) {
+                const slot = for (diagnostic.request.resident.slots) |candidate| {
+                    if (candidate.id == placement.requirement.id) break candidate;
+                } else return error.InvalidCairoCudaArenaPlan;
+                std.debug.print("cairo-cuda arena slot={} kind={s} ordinal={} bytes={} offset={} lifetime={s}..{s}\n", .{ placement.requirement.id, @tagName(slot.kind), slot.ordinal, placement.requirement.words * 4, placement.offset_words * 4, @tagName(placement.requirement.live_from), @tagName(placement.requirement.live_through) });
+            }
+        }
     }
     phase = "allocate_arena";
     var arena_key_hash = std.crypto.hash.sha2.Sha256.init(.{});
@@ -346,6 +376,7 @@ fn proveOnce(
     arena_key_hash.update(&controllers_prepared.resident.identity);
     const arena_key = arena_key_hash.finalResult();
     const arena_reused = runtime.hasPreparedExecution(arena_key);
+    if (transient_static and arena_reused) return error.TransientCairoArenaRetained;
     if (!arena_reused) {
         resident_static.* = null;
         // A preceding leaf wrap may have left its circuit arena prepared.
@@ -468,6 +499,7 @@ fn proveOnce(
             &writers.relation_sources,
         ),
         transcript,
+        transient_static,
     );
     const ingress_ns = timer.read();
     phase = "execute_proof";
