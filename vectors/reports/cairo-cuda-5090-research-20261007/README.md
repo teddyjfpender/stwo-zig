@@ -1009,6 +1009,41 @@ Block-boundary repacking cannot make the 300 single-block PIEs smaller. The
 economic large-PIE path needs a genuinely bounded working set or a different
 segmentation boundary with its own proof soundness argument.
 
+## Exact 64/128/512 campaign cohort
+
+The [prefix inventory](h200-campaign-prefix-inventory.csv) records every one
+of the 512 campaign PIEs in service order with its block range, transaction
+count, step count, builtins, archive hash, exact adapted-input hash, and
+public-output preimage hash. The
+[prefix targets](h200-campaign-prefix-targets.json) pin the first 64, 128,
+and 512 inputs. The first 128 entries are byte-for-byte the PIE order of the
+saved 128 campaign. The saved H200 root proof and final-root hashes are
+available for 128 and 512; the 64-prefix root has no saved reference receipt.
+The inventory can be regenerated from the proving-service campaign archive
+with [the inventory builder](build_campaign_prefix_inventory.py).
+
+| Prefix | OS steps | Adapted input | One-block PIEs | Saved H200 root |
+| --- | ---: | ---: | ---: | --- |
+| 64 | 1.131B | 20.71 GiB | 43 | No |
+| 128 | 2.278B | 41.80 GiB | 79 | Yes |
+| 512 | 8.856B | 162.94 GiB | 300 | Yes |
+
+The [15-PIE sample](h200-512-stratified-sample.json) is drawn from that exact
+512 run and spans **3.47–24.97M steps**, **167 blocks**, and **254.8M total
+steps**; eight cases are dense single-block PIEs. It includes two inputs from
+the first 64 and three from the first 128, plus cases chosen for high EC-op
+and Pedersen counts. Each of its **5,053,714,116 adapted-input bytes** was
+rehash-checked against the H200 preparation record before GPU execution.
+The [sample runner](run_campaign_sample.py) authenticates each CPI again,
+records cold ingress, Cairo proof work, full-command time and whole-device
+peak, then runs the independent Rust proof verifier. The
+[comparison builder](build_campaign_comparison.py) joins those receipts to
+the saved H200 stage CSV without conflating service Cairo time, circuit wrap,
+and the 5090 cold standalone command. Sampling tests coverage and exposes
+geometry bottlenecks; reproducing a campaign **root** requires proving and
+wrapping *every* input in the exact prefix and executing its ordered circuit
+folds. A noncontiguous sample cannot substitute for that root run.
+
 ## Final-source regression
 
 After the transient-arena policy was included in the prepared proof-session
