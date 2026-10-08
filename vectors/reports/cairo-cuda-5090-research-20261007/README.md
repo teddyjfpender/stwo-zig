@@ -4,7 +4,8 @@ This report tracks an RTX 5090 proof-time and memory Pareto search against the
 historical H200 PIE receipts. The qualification rule is an exact proof hash plus
 an independent Rust verifier verdict, with full-command, adapted-input-to-proof,
 and proof-execution times reported separately. Hardware and source differences
-make the historical H200 comparison indicative until a source-matched pair runs.
+make the historical H200 comparison indicative. The four-card source-matched
+comparison below is the controlled rental-cost result for its four inputs.
 
 ## Environment
 
@@ -32,6 +33,63 @@ make the historical H200 comparison indicative until a source-matched pair runs.
   an exploratory frontier across source revisions and pod conditions, not a
   controlled or production-qualified benchmark ranking. Close points need
   idle-host repeats because device sampling and timings have noise.
+
+## Source-matched GPU rental economics
+
+Four exact adapted inputs from the H200 512-PIE campaign were proved on a
+RTX 5090, L40S, A100 80 GB, and H200. Every run used clean source commit
+`271debb91b4ad08954bac9d6c9ff3de1720d529a`, the same canonical fixed
+asset and security settings, and the same planned arena for each input. All
+four GPU tiers produced the **same proof SHA-256 per PIE**, and every proof
+passed the independent Rust verifier. The [builder](build_gpu_economics.py)
+enforces those conditions; the [CSV](h200-5090-l40s-a100-economics.csv) has
+the exact input hashes, times, memory peaks, rental rates, costs, and verdicts.
+The per-card receipts are in `rtx5090-matched-h200512-sample/`,
+`l40s-h200512-sample/`, `a100-h200512-sample/`, and
+`h200-direct-h200512-sample/`.
+
+These are **cold adapted-input-to-Cairo-proof** times, measured in the same
+standalone command boundary. They include input loading, ingress, proof
+execution, and proof serialization; they exclude fixture downloads, building,
+the independent verifier, and circuit wrap/fold. They must not be compared as
+though they were the earlier warm H200 service timings. Each cell is one
+verified run on an otherwise idle GPU, not a repeated-run latency percentile.
+Runpod quoted hourly rates for these pods were $0.69 for the community 5090,
+$1.09 for secure L40S, $1.59 for secure A100, and $4.59 for secure H200.
+Community and secure hosting are different service tiers; this calculation
+isolates GPU rental charges and assumes exclusive use during each proof.
+An initial community L40S pod failed CUDA initialization before any proof;
+its [host diagnostic](l40s-host-initialization-failure/) was excluded from
+performance comparisons.
+
+| PIE | OS steps | Arena | H200 | A100 time / cost ratio | L40S time / cost ratio | 5090 time / cost ratio |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| `15655795_15655807` | 3.47M | 30.81 GiB | 4.02 s | 4.11 s / 0.35× | 5.11 s / 0.30× | 9.31 s / 0.35× |
+| `15654701_15654719` | 8.53M | 54.26 GiB | 4.49 s | 4.76 s / 0.37× | 295.01 s / 15.60× | 234.98 s / 7.87× |
+| `15657380_15657414` | 9.91M | 44.78 GiB | 4.39 s | 4.49 s / 0.35× | 308.84 s / 16.72× | 161.87 s / 5.55× |
+| `15659077_15659106` | 11.93M | 49.78 GiB | 4.64 s | 4.62 s / 0.35× | 391.18 s / 20.04× | 331.23 s / 10.74× |
+
+For a given PIE, rental cost is `input_to_proof_seconds × hourly_rate / 3600`.
+A card beats the H200 cost only if its time ratio is at most the H200/card
+hourly-rate ratio: **6.65× for the $0.69 5090, 4.21× for the $1.09 L40S,
+and 2.89× for the $1.59 A100**. At the user's round $1/$4.50 rates, the
+5090 limit is **4.5×**. The measured 5090 small case passes both thresholds;
+all three dense cases fail both. The A100 passes the cost rule on all four
+measured PIEs while staying within 6% of H200's cold time. That result does
+not establish A100 suitability for larger arenas beyond its 80 GB capacity.
+
+The large-PIE gap is in proof execution, not primarily ingress. For the
+9.91M-step PIE, 5090 spent **156.77 s** proving and **5.05 s** in ingress;
+H200 spent **0.64 s** proving and **3.65 s** in ingress. The 5090 and L40S
+dense cases used managed arenas because the full arena plus other device
+allocations did not fit; A100 and H200 used resident device arenas. Even the
+44.78 GiB plan did not fit on the nominal 48 GB L40S once other allocations
+were included. A single attempted L40S HBM-slot placement was stopped after
+its relation stage regressed; its [rejected receipt](l40s-interaction-hbm-rejected/)
+is not a completed proof. The 32–43 GiB arena window between the small and
+dense samples remains unmeasured on L40S, so this data does not rule out an
+economical middle tier there. Nor does it establish full service or recursive
+tree economics: those need matched warm-service and root measurements.
 
 ## Current outcome
 
@@ -1072,10 +1130,11 @@ wrapping *every* input in the exact prefix and executing its ordered circuit
 folds. A noncontiguous sample cannot substitute for that root run.
 
 The [comparison CSV](h200-512-sample-comparison.csv) has all 15 cohort rows;
-seven had completed exact-input, independent-Rust-verified 5090 proofs at this
-checkpoint and eight were still pending. These are cold standalone **Cairo
-proofs**, with no circuit wrap. H200's service Cairo-proof stage is shown for
-context and has a different warm/batched execution boundary.
+**all 15** completed exact-input, independent-Rust-verified 5090 proofs.
+These are cold standalone **Cairo proofs**, with no circuit wrap. H200's
+earlier service Cairo-proof stage is shown for context and has a different
+warm/batched execution boundary. The table below selects seven cases; the CSV
+contains every measured row.
 
 | PIE | Steps | Planned arena | 5090 ingress | 5090 Cairo proof | 5090 input→proof | Device peak |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
@@ -1107,7 +1166,10 @@ position-stratified inputs to cover more of the exact service workload:
 11 cases lie in the first 64, 17 in the first 128, and all 33 in the 512
 campaign. It represents **543.31M OS steps**, **10.80 GB adapted input**, and
 17 one-block PIEs. Its median is **19.48M steps**, close to the complete
-campaign's 20.27M-step median. The
+campaign's 20.27M-step median. Across the 33 cases, EC ops per million steps
+are **22.62** versus **20.86** in the full 512, and Pedersen ops per million
+steps are **6,565.5** versus **6,371.1**. This retains a modest density bias
+while covering the early prefixes and later campaign. The
 [selection script](build_extended_campaign_sample.py) rebuilds it from the
 saved H200 inventory, archive sizes, and stage CSV. The
 [preparation script](prepare_campaign_sample.py) fetches every ZIP and checks

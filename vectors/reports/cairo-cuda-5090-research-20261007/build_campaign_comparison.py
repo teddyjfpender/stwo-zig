@@ -91,6 +91,21 @@ def main() -> None:
             "rtx5090_cairo_proof_sha256": result.get("proof_sha256", ""),
         }
         row.update(log_metrics(target / "process.log"))
+        if result.get("status") == "verified":
+            h200_cairo = float(h200["cairo_prove_s"])
+            h200_ingress_cairo = float(h200["ingress_s"]) + h200_cairo
+            if h200_cairo > 0:
+                row["rtx5090_to_h200_cairo_proof_ratio"] = round(
+                    result["proof_s"] / h200_cairo, 3
+                )
+            if h200_ingress_cairo > 0:
+                row["rtx5090_to_h200_ingress_plus_cairo_ratio"] = round(
+                    result["publication_s"] / h200_ingress_cairo, 3
+                )
+            if row.get("relation_s") and row.get("constraint_s") and result["proof_s"] > 0:
+                row["rtx5090_relation_plus_constraint_share"] = round(
+                    (row["relation_s"] + row["constraint_s"]) / result["proof_s"], 3
+                )
         rows.append(row)
     keys = list(rows[0])
     for row in rows:

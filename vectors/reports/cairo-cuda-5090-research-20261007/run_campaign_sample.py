@@ -32,6 +32,7 @@ def main() -> None:
     parser.add_argument("--out", type=Path, required=True)
     parser.add_argument("--verifier", type=Path, required=True)
     parser.add_argument("--limit", type=int)
+    parser.add_argument("--device-profile", choices=("rtx5090", "capacity", "resident"), default="rtx5090")
     args = parser.parse_args()
     args.out.mkdir(parents=True, exist_ok=True)
     env = os.environ.copy()
@@ -53,17 +54,22 @@ def main() -> None:
         source = args.inputs / (name + ".cpi")
         if digest(source) != row["input_sha256"]:
             raise ValueError(f"{name}: adapted input hash differs")
-        # The compact profile intentionally rejects arenas above 38 GiB.
-        # Larger campaign inputs use the verified managed-capacity baseline
-        # until a bounded working-set implementation can replace it.
-        policy = ({"STWO_CUDA_COMPACT_DEVICE_PROFILE": "1"}
-                  if row["steps"] <= 5_340_000 else
-                  {"STWO_CUDA_MANAGED_ARENA": "1", "STWO_CUDA_MANAGED_PLACEMENT": "capacity"})
+        # The 5090 uses the compact policy for small PIEs and capacity placement
+        # for larger ones. Capacity placement keeps resident device arenas when
+        # they fit; the resident profile uses the backend's default policy.
+        capacity_policy = {"STWO_CUDA_MANAGED_ARENA": "1", "STWO_CUDA_MANAGED_PLACEMENT": "capacity"}
+        policy = ({} if args.device_profile == "resident" else
+                  {"STWO_CUDA_COMPACT_DEVICE_PROFILE": "1"}
+                  if args.device_profile == "rtx5090" and row["steps"] <= 5_340_000
+                  else capacity_policy)
         proof_env = env.copy()
         proof_env.update(common_env)
         for key in ("STWO_CUDA_COMPACT_DEVICE_PROFILE", "STWO_CUDA_MANAGED_ARENA", "STWO_CUDA_MANAGED_PLACEMENT"):
             proof_env.pop(key, None)
         proof_env.update(policy)
+        effective_policy = dict(policy)
+        effective_policy.update({key: value for key, value in proof_env.items()
+                                 if key.startswith("STWO_CUDA_CAPACITY_")})
         proof = target / "proof.json"
         command = [sys.executable, str(args.source / "scripts/cairo_cuda_memory_trial.py"),
                    "--out", str(target), "--", str(args.source / "zig-out/bin/stwo-cairo-cuda"),
@@ -78,7 +84,7 @@ def main() -> None:
                   "h200_cairo_prove_s": row.get("h200_cairo_prove_s"),
                   "h200_wrap_s": row.get("h200_wrap_s"),
                   "expected_proof_sha256": row.get("expected_proof_sha256"),
-                  "input_sha256": row["input_sha256"], "policy_env": policy,
+                  "input_sha256": row["input_sha256"], "policy_env": effective_policy,
                   "exit_code": outcome.returncode}
         if outcome.returncode == 0 and proof.exists():
             result["proof_sha256"] = digest(proof)
