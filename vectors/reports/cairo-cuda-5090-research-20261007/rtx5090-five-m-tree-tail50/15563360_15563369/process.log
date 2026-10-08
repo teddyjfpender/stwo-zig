@@ -1,0 +1,17 @@
+cairo-cuda arena reservation bytes=37702335200 slots=193
+cuda compact pool trim used_before=0 reserved_before=0 used_after=0 reserved_after=0
+cuda prepared arena mode=managed bytes=37702335200
+cairo-cuda static-phase initial_upload_ns=85252514 preprocessed_load_ns=576655905 materialize_ns=1213844 cached=false device_image_hit=false
+cairo-cuda-memory-phase phase=proof_begin elapsed_ns=950
+cairo-cuda compact main-coefficient host_percent=25 host_tail=true arena_bytes=37702335200
+cairo-cuda-memory-phase phase=trace_generation_end elapsed_ns=2284053381
+cairo-cuda-memory-phase phase=preprocessed_commit_end elapsed_ns=3378699155
+cairo-cuda-memory-phase phase=main_commit_end elapsed_ns=4160779361
+cairo-cuda-memory-phase phase=relation_end elapsed_ns=10103199191
+cairo-cuda-memory-phase phase=interaction_commit_end elapsed_ns=10769549757
+cairo-cuda-memory-phase phase=trace_commit_end elapsed_ns=10769592526
+cuda runtime call failed status=2
+cairo-cuda proof phase=constraint_evaluation failed
+cairo-cuda phase=execute_proof failed: CudaFailure
+cuda compact pool trim used_before=0 reserved_before=0 used_after=0 reserved_after=0
+error: CudaFailure

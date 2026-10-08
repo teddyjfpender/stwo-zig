@@ -21,8 +21,8 @@ make the historical H200 comparison indicative until a source-matched pair runs.
   5090 pod had 167 GB host RAM and driver 580.65.06. All final pipeline and
   capacity-boundary results below are from the latter pod.
 - `measurements.csv` is rebuilt from the retained receipts by
-  `summarize_trials.py`. It records 113 trials, including 87 exact-hash,
-  independently verified successes, 23 failures, and three deliberately
+  `summarize_trials.py`. It records 114 trials, including 87 exact-hash,
+  independently verified successes, 24 failures, and three deliberately
   disqualified source/policy trials. The verifier receipt supplies the proof
   digest when an older trial has no separate `proof.sha256` sidecar.
 - `pareto.csv` selects verified trials for which no same-PIE trial is no worse
@@ -59,6 +59,27 @@ relation and constraint staging, not another global managed-memory hint.
 These exact-proof observations establish that no ingress or late-opening
 optimization alone can satisfy the large-PIE cost rule. The relation stage
 must be redesigned to keep a bounded source working set on device.
+
+The subsequent **1.5× H200 target** is stricter than the original 4.5×
+screen. On the comparable historical adapted-input-to-publication boundary,
+the current best verified 5090 points are:
+
+| PIE | H200 publication | 1.5× ceiling | Best verified 5090 publication | Ratio |
+|---|---:|---:|---:|---:|
+| 2.81M EC-heavy | 4.200 s | 6.300 s | 8.668 s opt-in, 8.848 s final default | 2.06× opt-in |
+| 3.60M Pedersen-heavy | 4.995 s | 7.493 s | 9.100 s opt-in, 9.227 s final default | 1.82× opt-in |
+| 4.00M | 4.635 s | 6.953 s | 8.234 s opt-in, 9.028 s final default | 1.78× opt-in |
+| 5.34M | 5.103 s | 7.655 s | 11.816 s opt-in three-run median | 2.32× |
+| 6.00M | 5.018 s | 7.527 s | 87.431 s opt-in | 17.42× |
+| 20.85M | 15.314 s | 22.971 s | 274.577 s opt-in | 17.93× |
+| 22.67M single-block Pedersen | 8.755 s | 13.133 s | 320.338 s opt-in | 36.59× |
+
+None meets 1.5× yet. The 2.81–4M rows have about 3.7 s of cold ingress and
+approximately 5.1–5.5 s of proof/decode; a warm service may improve the full
+boundary, but cannot by itself satisfy a **proof-only** 1.5× comparison.
+The large rows require an algorithmic working-set change: their measured
+relation stage alone exceeds the new total publication ceiling. The H200
+source/timing caveat above still applies.
 
 ## Verified small PIE
 
@@ -551,6 +572,14 @@ device use. The lookup slab shares physical arena space with later work; this
 policy did not create usable headroom at the critical phase. The opt-in code
 was discarded and the failed receipt is under
 `rtx5090-lookup-host-coeff5/`.
+
+A later opt-in trial kept the fixed preprocessed tree's leaf half on device
+and hosted its upper half. It reduced preprocessed commitment from **1.72 s**
+to **1.09 s**, but the 5.34M-step PIE then failed in constraint evaluation at
+**31.356 GiB** sampled device use. Its receipt is under
+`rtx5090-five-m-tree-tail50/`. The failed policy code was removed; a bounded
+commitment/tree representation is needed to obtain this hashing gain without
+spending the scarce HBM at the later constraint stage.
 
 Spilling the last **5% of interaction evaluations** in addition to the 5%
 coefficient tail produced the same exact proof and passed the independent
