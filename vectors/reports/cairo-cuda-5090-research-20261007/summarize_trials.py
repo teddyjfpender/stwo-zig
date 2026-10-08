@@ -55,6 +55,14 @@ def read_json(path: Path) -> dict:
 
 def one(directory: Path) -> dict:
     summary = read_json(directory / "summary.json")
+    policy_env = dict(summary.get("policy_env", {}))
+    # The first writer-scratch trial predated adding its key to the recorder's
+    # allowlist. Keep the original receipt and its operator-command supplement.
+    supplement = read_json(directory / "policy-env-supplement.json")
+    if any(key in policy_env and policy_env[key] != value
+           for key, value in supplement.items()):
+        raise ValueError(f"conflicting policy supplement: {directory}")
+    policy_env.update(supplement)
     report = read_json(directory / "report.json")
     trial = (report.get("completed_trials") or [{}])[0]
     verdict = read_json(directory / "official-verdict.json")
@@ -81,7 +89,7 @@ def one(directory: Path) -> dict:
         "binary_sha256": summary.get("binary_sha256") or "",
         "source_head": summary.get("source", {}).get("git_head") or "",
         "source_diff_sha256": summary.get("source", {}).get("git_diff_sha256") or "",
-        "policy_env_json": json.dumps(summary.get("policy_env", {}), sort_keys=True),
+        "policy_env_json": json.dumps(policy_env, sort_keys=True),
         "full_command_s": seconds(summary.get("elapsed_ns")),
         "ingress_s": seconds(trial.get("ingress_ns")),
         "proof_s": seconds(trial.get("proof_execute_and_decode_ns")),

@@ -21,6 +21,34 @@ make the historical H200 comparison indicative until a source-matched pair runs.
   5090 pod had 167 GB host RAM and driver 580.65.06. All final pipeline and
   capacity-boundary results below are from the latter pod.
 
+## Current outcome
+
+The final compact policy proves the qualified 2.81M–5.34M-step cohort at
+**1.85–3.20×** historical H200 adapted-input-to-publication time, below the
+requested **4.5×** economic screen. The latest-source two-distinct-PIE recursive
+pipeline takes **33.197 s**, or **2.18×** the historical H200 full command,
+with the exact saved root. These are different timing boundaries; the
+[final-default table](#final-default-compact-policy-and-two-leaf-pipeline)
+keeps them separate. Hardware and source builds are not matched, so the
+ratios are routing evidence rather than a controlled GPU comparison.
+
+The 20.85M-step dense PIE also produces the exact verified proof on a 5090,
+but even the best research placement is still many times slower than the
+4.5× screen. This matters for real workloads: the H200 512-PIE campaign's
+median input is **20.266M steps**, and only **21 of 512** inputs fall within
+the qualified ≤5.34M-step range. The next architecture target is bounded
+relation and constraint staging, not another global managed-memory hint.
+
+| Large PIE | Historical H200 publication | 4.5× ceiling | Measured 5090 relation stage alone |
+|---|---:|---:|---:|
+| 6.00M steps | 5.018 s | 22.581 s | 40.864 s |
+| 20.85M steps | 15.314 s | 68.913 s | 138.168 s |
+| 22.67M Pedersen-heavy steps | 8.755 s | 39.398 s | 177.835 s |
+
+These exact-proof observations establish that no ingress or late-opening
+optimization alone can satisfy the large-PIE cost rule. The relation stage
+must be redesigned to keep a bounded source working set on device.
+
 ## Verified small PIE
 
 Input `15627902-15627904.prover_input.cpi` has 1,224,007 OS steps and SHA-256
@@ -58,8 +86,8 @@ On the 167 GB host, a same-source build with the new relation-window kernel
 path proved the first small PIE in 0.347 s proof execution, versus 0.341 s for
 its ordinary global-kernel path. Both produced the same exact proof SHA-256
 and passed the independent verifier. This qualifies the instance grid
-partition for a small PIE; the ongoing dense trial checks the larger geometry
-and whether its changed launch order affects performance.
+partition for a small PIE; the later dense trial found no material speedup
+from instance-window launches alone.
 
 ## Dense PIE and memory limit
 
@@ -361,6 +389,48 @@ coefficients. Those failed receipts are retained. Merely changing this
 fraction does not establish a viable 6M-step path; it likely needs a different
 memory layout or more substantial phase-aware streaming.
 
+A later **managed-capacity** trial of the same 6M-step PIE did complete with
+the exact expected proof and a passing independent Rust verdict. With half of
+writer scratch host-preferred, all trace trees hosted, and 20% of interaction
+evaluations prefetched to GPU, it took **150.146 s** to publish, **152.667 s**
+full command, used **16.490 GiB** sampled device memory and **33.90 GB**
+process-tree RSS. Its large relation (**66.510 s**) and late opening work
+show that this is a capacity result, not a viable 4.5× economic result. The
+receipt is under `rtx5090-six-m-capacity-writer50-eval80/`. It also shows why
+the compact-profile failures above must not be interpreted as a physical
+impossibility on the 5090.
+
+On the same source and PIE, leaving the trace trees on device reduced
+publication to **147.544 s**, at **22.490 GiB** peak. Then retaining nearly
+all main coefficients in HBM reduced relation generation from **66.674 to
+40.769 s**, yielding **115.620 s** publication at **26.739 GiB** peak. Both
+proofs matched the expected SHA-256 and passed the pinned Rust verifier;
+receipts are under `rtx5090-six-m-capacity-treesdevice-*/`. The latter is a
+**23.0%** improvement over the first completed capacity proof, but still
+about **23×** the historical H200 publication time. This geometry has a
+different hot-set balance from the 20.85M-step PIE; copying its placement
+policy wholesale wasted device capacity and PCIe bandwidth.
+Prefetching 30% of main evaluations into that remaining capacity then reduced
+relation generation to **29.615 s** and publication to **106.272 s** at
+**29.241 GiB** peak. This third point again matched the exact proof SHA-256
+and passed Rust verification; its receipt is under
+`rtx5090-six-m-capacity-treesdevice-maincoeff1-maineval70-writer50-eval80/`.
+It is **29.2% faster** than the first completed 6M capacity proof, still
+roughly **21.2×** the historical H200 publication time. The measured gain
+justifies geometry-aware stage placement, while the remaining ratio requires
+bounded source staging rather than another static global hint.
+An independent opt-in trial kept 30% of the writer lookup-input slot on the
+device while returning main evaluations to the fully hosted capacity policy.
+Relation stayed at **40.864 s**, but trace fell to **6.050 s** and the measured
+decommit phase fell from about **18.85 s to 0.021 s**. Its exact proof and
+independent Rust verdict matched, with **87.431 s** publication and
+**29.990 GiB** whole-device peak. See
+`rtx5090-six-m-capacity-lookup70-maincoeff1-writer50-eval80/`. This is a
+real complete-proof gain, though the phase effect likely depends on later
+managed-page residency and must be checked across other component mixes.
+The 4.5× screen for this PIE is **22.581 s**, so even this best 6M point is
+about **17.4×** the historical H200 publication time.
+
 The one-flag compact profile reproduced the 5.34M exact proof and independent
 Rust verdict in **17.772 s input-to-publication**, with **30.62 GiB** sampled
 GPU peak. The full two-PIE serial pipeline also reproduced the exact root in
@@ -423,12 +493,14 @@ input-to-publication to **31.480 s**. Trace generation grew from about 2.2 s
 to 9.7 s, so that option was removed from source. Its receipt remains under
 `rtx5090-five-m-all-hashes-writer-host/`.
 
-A bounded 64-ordering arena-packing search was briefly enabled for the
-6.00M-step geometry. Its 193-slot plan shrank by only **32 bytes**, from
+A more aggressive ordering experiment was tried against the existing bounded
+arena packer for the 6.00M-step geometry. Its 193-slot plan shrank by only
+**32 bytes**, from
 44,229,177,920 to 44,229,177,888 bytes. The phase-overlap lower bound is
 43,711,489,616 bytes, so alternative packing cannot bring this geometry
-below the compact profile's 38 GiB planning envelope. The search experiment
-was removed; the failed-admission receipt is under
+below the compact profile's 38 GiB planning envelope. The additional search
+experiment was removed; the existing packer remains. The failed-admission
+receipt is under
 `rtx5090-six-m-arena-search/`. Reducing this class needs shorter live ranges
 or a different allocation/streaming architecture, not a new ordering of the
 same buffers.
@@ -460,6 +532,21 @@ Two more idle-host repeats of the 5% point published in **11.759** and
 sampled peak in both. The three-run publication median is **11.816 s**. This
 supports repeatability on the tested host, but still leaves only about
 0.12 GiB of sampled HBM headroom for that one geometry.
+
+An attempt to move the writer lookup-input slab to host memory before its
+first write, while retaining the 5% coefficient-tail policy, failed during
+constraint evaluation with CUDA allocation status 2 at **31.355 GiB** sampled
+device use. The lookup slab shares physical arena space with later work; this
+policy did not create usable headroom at the critical phase. The opt-in code
+was discarded and the failed receipt is under
+`rtx5090-lookup-host-coeff5/`.
+
+Spilling the last **5% of interaction evaluations** in addition to the 5%
+coefficient tail produced the same exact proof and passed the independent
+Rust verifier, but took **12.880 s** input-to-publication and still peaked at
+**31.242 GiB**. It is dominated by the simpler 11.816 s median policy: the
+extra host placement slowed the proof without reducing its sampled peak.
+The receipt is under `rtx5090-eval-tail5-coeff5/`.
 
 On the 4.00M-step PIE, reducing the hosted preprocessed-tree fraction from
 the profile's 75% to 25% yielded **8.234 s** publication with the same exact
@@ -500,6 +587,128 @@ for outputs, and `72f17bf582e5438defd30e2f3c52f87ff47e5d6f0d1223b98d37bac8007c54
 for the packed tree. Receipts and phase logs are under
 `pipeline5090-two/pool-trim/`.
 
+The compact batch now retires verified fixed-storage slots at their actual
+last use because its Cairo arena is explicitly evicted before the circuit
+leaf. This removed 2.17 GB from each small-leaf arena plan without changing
+the root. With the prior 25% main-coefficient spill, the full batch took
+**38.918 s** at **28.615 GiB** sampled peak. Reducing that spill to 5% for
+these smaller plans then gave **34.779** and **34.855 s** on two otherwise idle
+5090 runs, with **28.865 GiB** peak in both. Their Cairo leaf proof-and-decode
+times were 10.525/10.128 s and 10.508/10.214 s respectively. All three root
+hashes match the saved H200 root exactly. The new two-run median is
+**34.817 s**, **2.28×** the historical H200 full command and **9.3% faster**
+than the prior pool-trim median while using **1.877 GiB less** sampled HBM.
+These are still cross-source hardware ratios. Receipts, leaf stage reports,
+and complete logs are under `pipeline5090-two/transient-static/` and
+`pipeline5090-two/transient-static-coeff5/`.
+
+The next same-binary experiment kept a progressively larger upper portion of
+each trace Merkle tree on the GPU. The hosted fraction applies to the head of
+each tree. Every successful run below has the same wrapped-leaf hashes and the
+same exact root proof, outputs, and packed-tree digests. The CUDA-reported
+usable memory was 31.36 GiB.
+
+| Hosted trace-tree fraction | Full two-PIE→root command | GPU peak | Measured headroom |
+|---:|---:|---:|---:|
+| 100% | 34.779, 34.855 s | 28.865 GiB | 2.49 GiB |
+| 90% | 33.184 s | 29.615 GiB | 1.74 GiB |
+| 85% | 32.592, 32.981 s | 30.117 GiB | 1.24 GiB |
+| 80% | 32.133 s | 30.492 GiB | 0.87 GiB |
+| 75% | 31.558, 31.524 s | 30.867 GiB | 0.49 GiB |
+
+The 85% two-run median is **32.786 s**, or **2.15×** the historical H200
+15.252 s command, and leaves materially more room than the 75% fast edge.
+The 75% median is **31.541 s** but is a narrow-capacity research point. The
+compact profile selects 85% by default only for the tested sub-35-GiB arena
+range with transient static storage; retained-cache sessions keep the earlier
+conservative placement. Larger plans retain the fully hosted trace-tree
+policy. Detailed
+receipts are under `pipeline5090-two/measure-transient-hash*/` and
+`pipeline5090-two/output-transient-hash*/`.
+
+Building the entire hash tree on the GPU and moving it to host memory *after*
+each commitment produced the exact root in **31.009 s**, but reached
+**31.355 GiB**, essentially the card's entire reported capacity. A hybrid
+that hosted 25% before commitment and migrated the rest afterward also
+matched the root, but took **33.731 s** and hit the same capacity limit.
+Late managed-memory migration did not provide usable headroom here. Both
+opt-in variants were removed from the implementation; their receipts remain
+under `pipeline5090-two/*postcommit*/` and `pipeline5090-two/*hybrid25*/`.
+
+Early pipeline `process_rss_peak_bytes` values sampled only the Python
+launcher, so they must not be read as prover host-memory measurements. The
+measurement script now sums the launched process tree and labels that scope
+in new receipts. For the second 85% run this measured **14.72 GB** peak RSS;
+its **30.117 GiB** whole-device GPU peak is independently sampled by NVML.
+
+The registry-bound geometry tool now has `--transient-static`, which plans the
+same shortened fixed-slot lifetimes as an integrated compact leaf. For the
+first pipeline PIE it reports **37,257,364,800 bytes**, exactly matching the
+prover receipt, instead of the retained-cache **39,429,769,536-byte** plan.
+The partition planner accepts `--managed-arena-limit-bytes` with these
+explicitly marked transient receipts; it no longer has to pretend a managed
+arena must fit under `device_bytes - reserve_bytes`. For example:
+
+```sh
+zig build cairo-trace-geometry cairo-pie-construction-plan -Doptimize=ReleaseFast
+STWO_CAIRO_CUDA_PREPROCESSED_VARIANT=canonical zig-out/bin/cairo-trace-geometry \
+  --circuit-registry vectors/circuit/official/registries/production.json \
+  --artifact-dir vectors/cairo --transient-static --jsonl input-a.cpi input-b.cpi \
+  > geometry.jsonl
+zig-out/bin/cairo-pie-construction-plan \
+  --candidates candidates.json --geometry geometry.jsonl \
+  --circuit-registry vectors/circuit/official/registries/production.json \
+  --device-bytes 33668988928 --managed-arena-limit-bytes 37580963840
+```
+
+The example 35-GiB managed-arena limit is a conservative planning screen for
+the observed small-leaf cohort, not a proof that every PIE below it will fit
+or meet the time target. The planner still marks its result
+`proof_qualified: false`; measured whole-device peaks and exact proofs remain
+the admission evidence. The two test PIEs generated matching geometry
+receipts locally, and a one-candidate planner smoke check selected the
+transient receipt under this limit; non-transient geometry was rejected by
+the managed planner.
+
+### Final default compact policy and two-leaf pipeline
+
+The cleaned final-source default was then built in ReleaseFast for SM 120
+and measured on the otherwise idle 5090. Each standalone proof below had
+its expected exact SHA-256 and passed the pinned independent Rust verifier.
+The two-PIE pipeline matched the saved wrapped-leaf and final-root hashes.
+
+| Final default workload | Input→proof publication | Proof and decode | Full command | Whole-device peak | Historical H200 input→publication ratio |
+|---|---:|---:|---:|---:|---:|
+| EC-heavy 2.81M-step PIE | 8.848 s | 5.109 s | 9.786 s | 28.365 GiB | 2.11× |
+| Pedersen-heavy 3.60M-step PIE | 9.227 s | 5.487 s | 10.344 s | 29.992 GiB | 1.85× |
+| 4.00M-step PIE | 9.028 s | 5.242 s | 10.053 s | 29.490 GiB | 1.95× |
+| 5.34M-step PIE | 16.351 s | 12.610 s | 17.560 s | 30.617 GiB | 3.20× |
+| Two distinct small PIEs → one root | — | 9.374 / 9.389 s Cairo leaves | **32.688 s** | **30.117 GiB** | **2.14× full command** |
+
+The 4M standalone still selected a managed arena; shortening static slot
+lifetimes did not make that geometry a device-only proof. The pipeline's
+corrected process-tree peak RSS was **14.72 GB**. Its two Cairo leaf ingresses
+were 3.252 and 1.681 s, while the circuit wraps and fold were included in
+the 32.688 s full command. Receipts are under `rtx5090-*-final-default/`
+and `pipeline5090-two/measure-final-default-r1/`. The historical H200
+source/timing caveat applies to every ratio in this table.
+
+The small pipeline's arena inventory still holds four 4.295 GB trace Merkle
+trees through decommitment. A sparse authenticated-tree representation is
+therefore a larger potential memory and speed change than another percentage
+adjustment to managed placement; its opening paths must be reconstructed and
+verified exactly before adoption.
+
+For the standalone 5.34M-step PIE, the transient plan is 35.11 GiB. With
+all trace trees hosted, a 15% coefficient-tail spill published in **14.110 s**
+at **30.992 GiB** peak; the 5% tail published in **11.881 s** at
+**31.242 GiB** peak. Both match the expected proof SHA-256 and pass the pinned
+Rust verifier. The faster 5% point has only about 0.12 GiB of sampled HBM
+headroom. The default in the 35–37 GiB plan range keeps its 25% spill while
+placing it at the tail, which improved the earlier same-geometry receipt
+without consuming additional HBM. The optional percentage and placement
+controls retain the faster research points for explicit use.
+
 A four-leaf **synthetic stress case** repeated the two distinct small PIEs in
 the order `[A, B, A, B]`. This is not a contiguous block chain or a new
 four-PIE production claim. The cleaned final source completed all four Cairo
@@ -513,3 +722,242 @@ an independent H200 root for this synthetic input. The case definition,
 receipt, phase logs, and memory samples are retained under
 `pipeline5090-four-synthetic/`; the generated proof files remain on the
 benchmark host and are excluded from the repository.
+
+The same synthetic pattern extended to **eight leaves** (`[A, B]` repeated
+four times) completed in **138.773 s**, with **30.744 GiB** sampled peak. All
+eight Cairo proofs and wraps completed; seven recursive reductions took
+**6.327 s** and produced one root. This is a longer memory-lifetime test,
+not a contiguous eight-PIE workload or an H200-relative speed measurement.
+Its case and receipts are under `pipeline5090-eight-synthetic/`.
+
+## Static-cache lifetime experiment
+
+A labeled arena inventory on the 5.34M-step PIE confirmed that the following
+immutable process-cache slots were reserved through proof assembly, although
+the authenticated plan gives shorter in-request last-use stages:
+
+| Slot | Bytes | In-request last use | Previous physical lifetime |
+|---|---:|---|---|
+| Fixed coefficients | 2.172 GB | OODS | proof assembly |
+| Fixed evaluations | 4.345 GB | decommit | proof assembly |
+| Fixed Merkle hashes | 4.295 GB | decommit | proof assembly |
+| Forward and inverse twiddles | 0.268 GB total | FRI commit | proof assembly |
+
+The inventory proof still matched its exact reference SHA-256 and passed the
+independent Rust verifier. Its receipt is under `rtx5090-slot-kind-diagnostic/`.
+The large-slot dump is now opt-in via `STWO_CUDA_ARENA_SLOT_DIAGNOSTIC=1`,
+so routine proving does not print that inventory for every PIE.
+The [problem-match brief](../../../autoresearch/notes/20261008-005303-rtx-5090-compact-cairo-static-liveness-problem-match.md) explains
+why only the compact recursive leaf boundary can shorten these physical
+lifetimes: it explicitly evicts the Cairo arena before every circuit wrap.
+Other sessions must retain the process-cache contract. The compact-leaf
+implementation passed the complete two-leaf exact-root check: planned arenas
+fell from **39.430 and 39.021 GB** to **37.257 and 36.849 GB**. Full time was
+**38.918 s** and sampled whole-device peak **28.615 GiB**, versus **38.381 s**
+and **30.742 GiB** for the preceding final-source pool-trim run. The proof,
+outputs, and packed tree matched the H200 reference byte for byte. This is a
+**2.127 GiB device-peak reduction** with essentially unchanged time; receipts
+are under `pipeline5090-two/transient-static/`. The next experiment uses the
+recovered capacity to keep more main coefficients in HBM.
+
+## Dense final-source profile and remaining architecture gap
+
+The cleaned final source also reproduced the 20.85M-step dense PIE on the
+167 GB host. Its proof SHA-256 was again
+`fcc457fee3bcaca85efd97d308daa1a16e849c633b4571144417543158eb1eeb`,
+and the pinned independent Rust verifier returned `verified: true`. It took
+**314.100 s** for proof execution and decode, **318.230 s** from adapted
+input to publication, and **322.715 s** for the full command. The measured
+whole-device peak was **27.242 GiB**; the process-tree host RSS peak was
+**67.548 GB**. This is about **20.8×** the historical H200
+input-to-publication result, well outside the 4.5× economics target. The
+H200 receipt uses earlier source, so this ratio is a research screen rather
+than a controlled hardware comparison.
+
+| GPU proof stage | Elapsed time |
+|---|---:|
+| Trace generation | 54.872 s |
+| Preprocessed and main commitments | 7.027 s |
+| Relation generation | 137.092 s |
+| Interaction commitment | 4.626 s |
+| Constraint evaluation | 93.961 s |
+| OODS, quotient, FRI, and decommit | 16.523 s |
+
+The receipt includes a one-second `nvidia-smi dmon` timeline. Approximate
+stage-aligned windows show mean PCIe receive/transmit rates of **1.43/2.02
+GB/s** during relation generation and **2.87/2.19 GB/s** during constraint
+evaluation. The alignment is within a few seconds because the device samples
+and proof-stage timer use separate clocks. This is strong evidence that
+managed-memory traffic dominates the two long stages; it is not a kernel-level
+attribution. The proof report's explicit host-to-device copy counter covers
+only commanded copies, so it does not account for the managed-memory traffic
+visible in the device timeline. The exact receipt and sampled timeline are
+under `rtx5090-dense-final-profile/`.
+
+The retained full Merkle-tree hashes are an actionable architecture target.
+`resident_plan.zig` keeps every trace tree from commitment through
+decommitment. At the dense geometry, the fixed tree reserves **4.295 GB** and
+each of the three request-dependent trace trees reserves **1.074 GB**. The
+generic CUDA decommit API already supports unretained bottom
+layers and sparse parent assembly, but Cairo's `openTrace` currently passes
+zero unretained layers and empty sparse buffers. A correct sparse-retention
+implementation would keep authenticated upper layers, regenerate only sampled
+lower subtrees from the still-retained evaluations after query sampling, and
+assemble the same opening paths. It requires a sampled mixed-height leaf-hash
+kernel, bounded sparse buffers, revised arena lifetimes, and exact-root/proof
+tests across all tree roles. No sparse-retention speedup is claimed here;
+discarding hashes without that reconstruction would break verification.
+The [dense working-set problem match](../../../autoresearch/notes/20261008-020915-rtx5090-dense-cairo-working-set-problem-match.md)
+sets out the full time budget and the bounded-stage redesign implied by it.
+
+The following same-input, same-device placement trials all produced the exact
+proof hash above and passed the pinned Rust verifier. `eval host` is the
+preferred-host fraction of the 20.864 GB interaction-evaluation slot; the
+remaining pages were left to the driver's ordinary placement policy. These
+are one-shot research points, not qualified production defaults.
+
+| Placement | Input→publication | Relation | Constraint | Device peak |
+|---|---:|---:|---:|---:|
+| Interaction coefficients in HBM, other capacity slots hosted | 318.230 s | 137.092 s | 93.961 s | 27.242 GiB |
+| Same, 85% eval host | 316.911 s | 135.893 s | 94.668 s | 27.242 GiB |
+| Fixed tree host, 85% eval host | 314.517 s | 134.508 s | 93.236 s | 23.240 GiB |
+| Fixed tree host, 50% eval host | 317.121 s | 135.865 s | 93.645 s | 23.240 GiB |
+| Fixed tree host, 70% eval host, prefetch remaining 30% to GPU | **298.134 s** | 138.238 s | **71.264 s** | 29.117 GiB |
+| All three trace trees host, 60% eval host, prefetch remaining 40% to GPU | **287.082 s** | 137.177 s | **60.808 s** | 30.115 GiB |
+| Same policy, independent repeat | **287.166 s** | 135.646 s | **62.588 s** | 30.115 GiB |
+| Half of writer scratch hosted, all trees hosted, 90% eval hosted, 10% prefetched | **278.038 s** | 135.921 s | 85.753 s | **28.367 GiB** |
+| Half of writer scratch hosted, all trees hosted, 80% eval hosted, 20% prefetched | **274.577 s** | 138.168 s | **79.629 s** | 30.362 GiB |
+
+Hosting the fixed tree saved exactly **4.002 GiB** of sampled GPU peak at a
+roughly one-second fixed-commitment cost. It raised host RSS by about 4.3 GB.
+Changing the unhinted evaluation fraction from 15% to 50% did not increase
+sampled HBM use or improve constraint time, so hints alone did not keep
+those pages resident. Explicit prefetch was then tested before the
+interaction commitment. The first four receipts are in
+`rtx5090-dense-final-profile/`,
+`rtx5090-capacity-eval85/`, `rtx5090-capacity-tree-eval85/`, and
+`rtx5090-capacity-tree-eval50/`, respectively.
+
+Explicitly prefetching the 50% remainder filled the card to **31.355 GiB**
+and failed during constraint evaluation with CUDA allocation status 2. The
+30% remainder avoided that failure, matched the exact proof SHA-256, passed
+the pinned Rust verifier, and reduced input-to-publication time by **6.3%**
+against the dense baseline. Its receipt is under
+`rtx5090-capacity-tree-eval70-prefetch/`; the failed 50% receipt is under
+`rtx5090-capacity-tree-eval50-prefetch/`. This still leaves the dense case
+about **19.5×** the historical H200 publication time, so it is a research
+Pareto point, not a claim that the 5090 economics target is met.
+Its measured process-tree host RSS peak was **71.79 GB**, so a 64 GB host
+would not qualify this out-of-core dense policy even though the device peak
+fits. The earlier 62 GB-cgroup pod failure is consistent with that limit.
+
+The composed all-tree-host policy traded the two additional 1.074 GB trace
+trees for another 2.086 GB of interaction evaluations in HBM. It reduced
+constraint evaluation to **60.808 s** and publication to **287.082 s**, an
+overall **9.8%** reduction from the dense baseline, with an independently
+verified exact proof. Its peak was **30.115 GiB** of device memory and
+**72.86 GB** process-tree RSS, leaving only about 1.24 GiB of measured HBM
+headroom. The receipt is under `rtx5090-capacity-alltrees-eval60-prefetch/`.
+The independent repeat under `rtx5090-capacity-alltrees-eval60-prefetch-r2/`
+produced the same proof SHA-256, passed the pinned Rust verifier, and measured
+287.166 s from input to publication. The two-run median is **287.124 s**;
+sampled GPU peaks were both 30.115 GiB, and process-tree RSS was 72.86 GB
+in both runs. This confirms the narrow Pareto gain without resolving the
+large remaining H200 gap.
+The half-hosted writer-scratch point under
+`rtx5090-capacity-writer50-alltrees-eval90prefetch/` cut trace generation
+from 55.404 to **21.757 s**. Its constraint stage rose from 60.808 to
+85.753 s, but total publication still fell to **278.038 s** while sampled
+HBM use fell by **1.748 GiB**. Its proof SHA-256 matched exactly and Rust
+verification passed. The recorder omitted the new writer-scratch policy key
+from this first run's summary; the exact operator-specified value is preserved
+in its `policy-env-supplement.json`, and later trials record it directly.
+This point is opt-in pending a repeat and other-geometry qualification.
+Keeping the same writer placement and prefetching 20% of the interaction
+evaluations passed the pinned Rust verifier with the same proof SHA-256. It
+published in **274.577 s**, another 3.461 s faster, with a **30.362 GiB**
+sampled device peak; see `rtx5090-capacity-writer50-alltrees-eval80prefetch/`.
+Prefetching 30% with the same writer placement reached **31.189 GiB** sampled
+device use and failed in constraint evaluation with CUDA allocation status 2;
+its receipt is under `rtx5090-capacity-writer50-alltrees-eval70prefetch/`.
+There is no proof or time result for that failed point.
+The best of these points still takes about **17.9×** the historical H200
+publication time; the
+large-PIE working-set redesign described above is still required.
+
+## Pedersen-heavy 22.67M-step single-block stress
+
+The pre-existing H200 extreme-PIE fixture `15590913_15590913` contains
+**22,673,315 OS steps** in one block and **217,608 Pedersen operations**.
+Its adapted CPI is 443,939,388 bytes with SHA-256
+`9d503fa0c6c818d8de84d3d71208df641bb62ec93e480687252128f698294bc3`.
+The first, conservative 5090 capacity run produced the exact expected proof
+SHA-256 `23ef11f1f7bbf0b31d6ede197bd67d2548975b951283c4cedc0fb6148e443af9`
+and passed the pinned Rust verifier. It took **423.597 s** from adapted input
+to publication, **429.487 s** full command, and peaked at **18.740 GiB**
+whole-device GPU memory and **98.11 GB** process-tree RSS. Its receipt is
+under `rtx5090-pedersen22m-capacity-safe/`.
+
+The safe placement took **177.835 s** in relation generation and **137.326 s**
+in constraint evaluation. The saved H200 publication time for the same PIE
+is **8.755 s**, a historical-source comparison of about **48.4×**; the
+requested 4.5× ceiling would be **39.398 s**. One-block geometry rules out
+repacking at block boundaries. This run establishes correctness and capacity,
+not economic viability. A partially resident interaction-coefficient policy
+is the next same-input trial.
+
+Hosting only 25% of the 12.57 GB interaction-coefficient slot before its
+first write produced the same exact proof and passed the Rust verifier. It
+reduced interaction commitment from **26.661 to 15.591 s** and constraint
+evaluation from **137.326 to 76.527 s**. Publication fell to **347.795 s**,
+or **17.9%** below the safe baseline, with **27.492 GiB** device peak and
+**88.68 GB** process-tree RSS. The complete receipt is under
+`rtx5090-pedersen22m-interactioncoeff25/`. This is a verified, opt-in Pareto
+point, still about **39.7×** the saved H200 publication time.
+Hosting only 1% of the slot improved the same exact proof again: interaction
+commitment **6.633 s**, constraint evaluation **61.504 s**, publication
+**320.338 s**, and full command **325.932 s**. The peak rose to
+**30.362 GiB** of GPU memory with **85.66 GB** process-tree RSS. The proof
+SHA-256 matched and the pinned Rust verifier passed; see
+`rtx5090-pedersen22m-interactioncoeff1/`. This is **24.4%** faster than the
+safe 5090 baseline but still **36.6×** the historical H200 publication time.
+Its roughly 1 GiB sampled device headroom and large host requirement make it
+a research Pareto point, not a production default.
+
+The [512-PIE campaign step inventory](h200-campaign-512-pie-step-sizes.csv)
+was extracted from the H200 proving-service campaign's `pie_analysis.csv`
+(source SHA-256
+`2731237cccb1b1375d66f6c1cd2c632e37b3945d624861b0b928db0006679d68`).
+Only **21/512 PIEs (4.1%)** have at most 5.34M OS steps, and **75/512
+(14.6%)** have at most 10M. All **300 single-block PIEs** in that campaign
+have at least 10M steps. The median is **20.266M steps** and the largest is
+**24.974M**; thus the measured 20.85M-step dense PIE is close to the campaign
+median rather than an outlier. The 21 small PIEs represent only **0.74% of the
+campaign's 8.856 billion OS steps**. Step count is only one feature of geometry, so
+these are upper bounds on coverage by the currently qualified small-PIE
+5090 regime, not an admission classification for those exact 512 inputs.
+Block-boundary repacking cannot make the 300 single-block PIEs smaller. The
+economic large-PIE path needs a genuinely bounded working set or a different
+segmentation boundary with its own proof soundness argument.
+
+## Final-source regression
+
+After the transient-arena policy was included in the prepared proof-session
+identity, a fresh CUDA build again proved the first 1.22M-step PIE with the
+exact expected proof SHA-256 and a passing independent Rust verifier verdict.
+Its adapted-input-to-publication time was **3.481 s**, proof execution and
+decode **0.353 s**, full command **4.083 s**, and whole-device peak
+**24.926 GiB**. The receipt is under `rtx5090-final-source-smoke-small2/`.
+The same build proved both distinct Cairo leaves, wrapped them, and produced
+the exact saved two-leaf root proof, outputs, and packed hashes in **32.675 s**
+full command with **30.117 GiB** whole-device peak and **14.73 GB** process-tree
+RSS. Its receipts are under `pipeline5090-two/*final-source-v2/`. The root is
+the actual recursive proof produced by the circuit product, and its proof,
+outputs, and packed-byte hashes match the saved reference fixture exactly.
+After the final opt-in capacity controls were added, the same default
+two-leaf pipeline was rerun once more: **33.197 s** full command,
+**30.117 GiB** whole-device peak, **14.73 GB** process-tree RSS, and the
+same leaf/root/output/packed hashes. Its latest-source receipts are under
+`pipeline5090-two/*final-source-v3/`. This is the final default-path
+regression check; the opt-in dense placement trials above use separate
+policies.
