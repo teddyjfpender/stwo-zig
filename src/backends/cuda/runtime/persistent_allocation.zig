@@ -8,6 +8,23 @@ pub fn allocate(
     context: anytype,
     words: usize,
 ) runtime_error.Error!@TypeOf(context.*).Buffer {
+    return allocateWith(Api, context, words, false);
+}
+
+pub fn allocateManaged(
+    comptime Api: type,
+    context: anytype,
+    words: usize,
+) runtime_error.Error!@TypeOf(context.*).Buffer {
+    return allocateWith(Api, context, words, true);
+}
+
+fn allocateWith(
+    comptime Api: type,
+    context: anytype,
+    words: usize,
+    managed: bool,
+) runtime_error.Error!@TypeOf(context.*).Buffer {
     if (context.active_stage != null or
         context.live_buffers != context.persistent_buffers or
         !context.synchronized or context.capture_active)
@@ -21,7 +38,7 @@ pub fn allocate(
         context.persistent_bytes,
         bytes,
     ) catch return error.SizeOverflow;
-    const buffer = try allocateRegistered(Api, context, words);
+    const buffer = try allocateRegisteredWith(Api, context, words, managed);
     context.persistent_buffers += 1;
     context.persistent_bytes = next_bytes;
     try context.sync();
@@ -33,13 +50,34 @@ pub fn allocateRegistered(
     context: anytype,
     words: usize,
 ) runtime_error.Error!@TypeOf(context.*).Buffer {
+    return allocateRegisteredWith(Api, context, words, false);
+}
+
+pub fn allocateRegisteredManaged(
+    comptime Api: type,
+    context: anytype,
+    words: usize,
+) runtime_error.Error!@TypeOf(context.*).Buffer {
+    return allocateRegisteredWith(Api, context, words, true);
+}
+
+fn allocateRegisteredWith(
+    comptime Api: type,
+    context: anytype,
+    words: usize,
+    managed: bool,
+) runtime_error.Error!@TypeOf(context.*).Buffer {
     if (words == 0) return error.EmptyAllocation;
     _ = Api;
     const handle = context.handle orelse return error.ContextClosed;
     const bytes = std.math.mul(usize, words, @sizeOf(u32)) catch
         return error.SizeOverflow;
     var raw: ?[*]u32 = null;
-    try context.allocateRaw(words, &raw);
+    if (managed) {
+        try context.allocateRawManaged(words, &raw);
+    } else {
+        try context.allocateRaw(words, &raw);
+    }
     context.synchronized = false;
     const pointer = raw orelse return error.NullDevicePointer;
     if (context.live_buffers == context.allocations.len) {

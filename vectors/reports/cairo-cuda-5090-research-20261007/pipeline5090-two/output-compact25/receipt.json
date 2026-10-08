@@ -1,0 +1,42 @@
+{
+  "schema": "stwo-cuda-external-pipeline-v1",
+  "backend": "cuda-resident",
+  "mode": "serial",
+  "registry_sha256": "a2503220947f161185a4f5160fd5953db92f6aec0055367830ebc8a65187eabf",
+  "inputs": [
+    {
+      "path": "15627902-15627904.prover_input.cpi",
+      "sha256": "c92a1ecd5baf8651e88c6d96f016cfa2646bbda2cf646fec9bc0558c200a6f81"
+    },
+    {
+      "path": "15627905-15627907.prover_input.cpi",
+      "sha256": "3c898538af071069385e5deae70a086a31e8ab87198fa198cd6fcf0f3e3d1557"
+    }
+  ],
+  "leaves": [
+    {
+      "sha256": "dcf3ed4214790cfef602766f4edbfbaa03dab2fa05ebc3fba88d082f566677d8"
+    },
+    {
+      "sha256": "7cda055e4bf0fcda6debab8c137aaa794176922ba4efb528994b1fd324aa22db"
+    }
+  ],
+  "cairo_proofs": [
+    "/workspace/pipeline5090-two/output-compact25/leaf-0.cairo_proof.json",
+    "/workspace/pipeline5090-two/output-compact25/leaf-1.cairo_proof.json"
+  ],
+  "cairo_reports": [
+    "/workspace/pipeline5090-two/output-compact25/leaf-0.cairo_report.json",
+    "/workspace/pipeline5090-two/output-compact25/leaf-1.cairo_report.json"
+  ],
+  "logs": [
+    "/workspace/pipeline5090-two/output-compact25/leaf-0.log",
+    "/workspace/pipeline5090-two/output-compact25/leaf-1.log",
+    "/workspace/pipeline5090-two/output-compact25/fold.log"
+  ],
+  "root": {
+    "proof_sha256": "9093f941c4a9144fd653441c582cc0921bac8431df8df46bdd556b8e661af724",
+    "outputs_sha256": "abaefd94d716e2e4f07b5a2fcd521764e5d4c0f8dd04ec60e095bf74d0e1349b",
+    "packed_sha256": "72f17bf582e5438defd30e2f3c52f87ff47e5d6f0d1223b98d37bac8007c54a2"
+  }
+}

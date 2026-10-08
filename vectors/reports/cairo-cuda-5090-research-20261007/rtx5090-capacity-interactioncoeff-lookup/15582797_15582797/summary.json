@@ -1,0 +1,33 @@
+{
+  "schema": "stwo.cairo-cuda-memory-trial.v1",
+  "command": [
+    "/tmp/stwo-zig/zig-out/bin/stwo-cairo-cuda",
+    "prove",
+    "--backend",
+    "cuda",
+    "--input",
+    "/tmp/stwo-cuda-challenge/data/inputs/15582797_15582797.cpi",
+    "--input-sha256",
+    "319b538ff50ad8e04735886a7844de300198194a4cc2128dcb57bc625ec4e4cb",
+    "--output",
+    "/workspace/rtx5090-capacity-interactioncoeff-lookup/15582797_15582797/proof.json",
+    "--report-out",
+    "/workspace/rtx5090-capacity-interactioncoeff-lookup/15582797_15582797/report.json"
+  ],
+  "binary_sha256": "2b57e831c1e25b7df8b77de4b0383d10d427f14102571406659affd85e1a2584",
+  "source": {
+    "git_head": "dc5dcf5402367d6ff2829d4339b460b97ea21a14",
+    "git_diff_sha256": "3dacdc50e0df8632ec7b08bc095de705a2690e915d8636c8dd346c65352b7cfc"
+  },
+  "policy_env": {
+    "STWO_CAIRO_CUDA_PREPROCESSED_VARIANT": "canonical",
+    "STWO_CUDA_MANAGED_ARENA": "1",
+    "STWO_CUDA_MANAGED_PLACEMENT": "capacity",
+    "STWO_CUDA_CAPACITY_HBM_SLOT": "interaction_coefficients"
+  },
+  "exit_code": 1,
+  "elapsed_ns": 291804892901,
+  "samples": 1037,
+  "whole_device_peak_bytes": 33667678208,
+  "process_rss_peak_bytes": 62433304576
+}

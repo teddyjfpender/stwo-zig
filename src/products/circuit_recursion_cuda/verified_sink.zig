@@ -9,6 +9,7 @@ pub const Context = struct {
     allocator: std.mem.Allocator,
     request: circuit_app.LeafWrapRequest,
     output_path: []const u8,
+    runtime_slot: ?*?*cairo_app.NativeRuntime = null,
     shared_session: ?*circuit_app.VerifiedLeafSession = null,
     delivered: bool = false,
     wrap_ns: u64 = 0,
@@ -19,6 +20,7 @@ pub const Context = struct {
 
     fn receive(
         context: *anyopaque,
+        runtime: *cairo_app.NativeRuntime,
         prepared: *const @import("stwo_cairo_cuda_integration").canonical_source.Prepared,
         decoded: *const @import("stwo_cairo_cuda_integration").canonical_verify.Decoded,
         capture: *const @import("stwo_cairo_frontend").witness.resident_verifier.ProofCapture,
@@ -26,6 +28,7 @@ pub const Context = struct {
     ) anyerror!void {
         const self: *Context = @ptrCast(@alignCast(context));
         if (self.delivered) return error.DuplicateVerifiedLeaf;
+        if (self.runtime_slot) |slot| slot.* = runtime;
         const verified = circuit_cpu.recursion.leaf_wrap.VerifiedCairoLeaf{
             .proof = &decoded.proof,
             .composition = &prepared.composition,

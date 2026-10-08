@@ -100,12 +100,18 @@ pub fn TransactionFor(comptime Session: type) type {
                 @sizeOf(u32),
             ) catch return error.SizeOverflow;
             const memory = try session.context.memoryInfo();
+            try arena_module.requireCompactDeviceCapacity(memory.total, arena_bytes);
             const usable_free = memory.free -
-                @min(memory.free, device_memory_safety_reserve_bytes);
-            if (arena_bytes > usable_free)
+                @min(memory.free, arena_module.deviceMemorySafetyReserveBytes());
+            const managed = arena_module.managedOversubscriptionEnabled() and
+                (arena_bytes > usable_free or arena_module.forceManagedArena());
+            if (arena_bytes > usable_free and !managed)
                 return error.InsufficientDeviceMemory;
             try session.beginStage(.ingress);
-            const arena = try Arena.init(&session.context, &plan);
+            const arena = if (managed)
+                try Arena.initManaged(&session.context, &plan)
+            else
+                try Arena.init(&session.context, &plan);
             return .{
                 .allocator = allocator,
                 .plan = plan,
@@ -128,12 +134,18 @@ pub fn TransactionFor(comptime Session: type) type {
                 @sizeOf(u32),
             ) catch return error.SizeOverflow;
             const memory = try session.context.memoryInfo();
+            try arena_module.requireCompactDeviceCapacity(memory.total, arena_bytes);
             const usable_free = memory.free -
-                @min(memory.free, device_memory_safety_reserve_bytes);
-            if (arena_bytes > usable_free)
+                @min(memory.free, arena_module.deviceMemorySafetyReserveBytes());
+            const managed = arena_module.managedOversubscriptionEnabled() and
+                (arena_bytes > usable_free or arena_module.forceManagedArena());
+            if (arena_bytes > usable_free and !managed)
                 return error.InsufficientDeviceMemory;
             try session.beginStage(.ingress);
-            const arena = try Arena.init(&session.context, &plan);
+            const arena = if (managed)
+                try Arena.initManaged(&session.context, &plan)
+            else
+                try Arena.init(&session.context, &plan);
             return .{
                 .allocator = allocator,
                 .plan = plan,
@@ -175,6 +187,10 @@ pub fn TransactionFor(comptime Session: type) type {
             return &self.proofSession().context;
         }
 
+        pub fn isManagedArena(self: *const Self) bool {
+            return self.arena.managed;
+        }
+
         fn retainsSession(self: *const Self) bool {
             return switch (self.session_owner) {
                 .owned => false,
@@ -193,6 +209,38 @@ pub fn TransactionFor(comptime Session: type) type {
                 return error.InvalidState;
             }
             return self.arena.slice(id);
+        }
+
+        /// Hint the managed-memory driver about an authenticated arena slot.
+        /// This moves pages but never exposes their contents to host code.
+        pub fn prefetchManagedSlot(
+            self: *Self,
+            id: arena_module.SlotId,
+            to_device: bool,
+        ) runtime_error.Error!void {
+            if (!self.arena.managed) return;
+            if (comptime @hasDecl(Context, "prefetchManagedSlice")) {
+                try self.sessionContext().prefetchManagedSlice(
+                    u32,
+                    try self.slot(id),
+                    to_device,
+                );
+            } else return error.InvalidState;
+        }
+
+        pub fn adviseManagedSlotHost(
+            self: *Self,
+            id: arena_module.SlotId,
+            prefer_host: bool,
+        ) runtime_error.Error!void {
+            if (!self.arena.managed) return;
+            if (comptime @hasDecl(Context, "adviseManagedHost")) {
+                try self.sessionContext().adviseManagedHost(
+                    u32,
+                    try self.slot(id),
+                    prefer_host,
+                );
+            } else return error.InvalidState;
         }
 
         pub fn slotAs(

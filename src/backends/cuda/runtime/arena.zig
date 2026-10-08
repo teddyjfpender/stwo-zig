@@ -9,6 +9,36 @@ const telemetry = @import("telemetry.zig");
 
 pub const SlotId = u32;
 
+/// Explicit research mode: `1` permits managed memory only when the arena
+/// exceeds the device-capacity gate; `force` also covers near-capacity plans.
+/// The compact-device profile uses a larger gate reserve for later allocations.
+pub fn managedOversubscriptionEnabled() bool {
+    const value = std.posix.getenv("STWO_CUDA_MANAGED_ARENA") orelse "";
+    return compactDeviceProfileEnabled() or std.mem.eql(u8, value, "1") or
+        std.mem.eql(u8, value, "force");
+}
+
+pub fn compactDeviceProfileEnabled() bool {
+    const value = std.posix.getenv("STWO_CUDA_COMPACT_DEVICE_PROFILE") orelse return false;
+    return std.mem.eql(u8, value, "1");
+}
+
+pub fn deviceMemorySafetyReserveBytes() usize {
+    return if (compactDeviceProfileEnabled()) 2 * 1024 * 1024 * 1024 else 256 * 1024 * 1024;
+}
+
+pub fn requireCompactDeviceCapacity(device_total: usize, arena_bytes: usize) runtime_error.Error!void {
+    if (!compactDeviceProfileEnabled()) return;
+    const gib: usize = 1 << 30;
+    if (device_total < 30 * gib or device_total > 36 * gib or arena_bytes > 38 * gib)
+        return error.InsufficientDeviceMemory;
+}
+
+pub fn forceManagedArena() bool {
+    const value = std.posix.getenv("STWO_CUDA_MANAGED_ARENA") orelse return false;
+    return std.mem.eql(u8, value, "force");
+}
+
 pub const Requirement = struct {
     id: SlotId,
     words: usize,
@@ -127,6 +157,7 @@ pub fn ArenaFor(comptime Context: type) type {
 
         backing: Context.Buffer,
         plan: Plan,
+        managed: bool = false,
 
         pub fn init(
             context: *Context,
@@ -142,6 +173,20 @@ pub fn ArenaFor(comptime Context: type) type {
             };
         }
 
+        pub fn initManaged(
+            context: *Context,
+            plan: *const Plan,
+        ) runtime_error.Error!Self {
+            if (plan.total_words == 0) return error.EmptyArenaPlan;
+            if (comptime @hasDecl(Context, "allocateManaged")) {
+                return .{
+                    .backing = try context.allocateManaged(plan.total_words),
+                    .plan = plan.*,
+                    .managed = true,
+                };
+            } else return error.InvalidState;
+        }
+
         pub fn initPersistent(
             context: *Context,
             plan: *const Plan,
@@ -151,6 +196,20 @@ pub fn ArenaFor(comptime Context: type) type {
                 .backing = try context.allocatePersistent(plan.total_words),
                 .plan = plan.*,
             };
+        }
+
+        pub fn initPersistentManaged(
+            context: *Context,
+            plan: *const Plan,
+        ) runtime_error.Error!Self {
+            if (plan.total_words == 0) return error.EmptyArenaPlan;
+            if (comptime @hasDecl(Context, "allocatePersistentManaged")) {
+                return .{
+                    .backing = try context.allocatePersistentManaged(plan.total_words),
+                    .plan = plan.*,
+                    .managed = true,
+                };
+            } else return error.InvalidState;
         }
 
         pub fn slice(

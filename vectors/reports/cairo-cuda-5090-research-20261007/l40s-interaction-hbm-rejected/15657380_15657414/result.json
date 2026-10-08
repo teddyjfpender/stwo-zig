@@ -1,0 +1,16 @@
+{
+  "exit_code": 241,
+  "expected_proof_sha256": null,
+  "h200_cairo_prove_s": 0.627267389,
+  "h200_ingress_s": 0.68784733,
+  "h200_wrap_s": 0.962448738,
+  "input_sha256": "fcdecc19022e86a8288c7f5b2b6dd5faef12cae53ee1771f207f47d976a5111e",
+  "pie": "15657380_15657414",
+  "policy_env": {
+    "STWO_CUDA_CAPACITY_HBM_SLOT": "interaction_coefficients",
+    "STWO_CUDA_MANAGED_ARENA": "1",
+    "STWO_CUDA_MANAGED_PLACEMENT": "capacity"
+  },
+  "status": "proof_failed",
+  "steps": 9911711
+}

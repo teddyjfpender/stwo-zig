@@ -1,0 +1,11 @@
+{
+  "status": "verified",
+  "baseline_proof_sha256": "c82aea032b1a477003a3ca188bcf1c112fc0ed9a96a962f3fc74d386fce9528d",
+  "proof_sha256": "c82aea032b1a477003a3ca188bcf1c112fc0ed9a96a962f3fc74d386fce9528d",
+  "publication_s": 386.287977191,
+  "proof_s": 381.785671604,
+  "ingress_s": 4.449294338,
+  "device_peak_bytes": 18377342976,
+  "baseline_publication_s": 379.163927276,
+  "baseline_device_peak_bytes": 17303601152
+}

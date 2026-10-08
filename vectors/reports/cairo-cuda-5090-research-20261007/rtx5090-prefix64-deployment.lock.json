@@ -1,0 +1,9 @@
+{
+  "schema": "stwo.proving-service.deployment-lock.v1",
+  "source_commit": "271debb91b4ad08954bac9d6c9ff3de1720d529a",
+  "registry_sha256": "a2503220947f161185a4f5160fd5953db92f6aec0055367830ebc8a65187eabf",
+  "program_sha256": "5e2befae48dcdea8d19dc655e40ac236285d049d12573bfb341bec9ce39182f5",
+  "preprocessed_coefficients_sha256": "4d4fda06dfa3bca19554510a158f6c50abad06a74d29c17885ed4cbb88ada34d",
+  "cairo_verifier_executable_sha256": "1453cfbe841451c49750d873babc2dd6e8a63f3e4194a4f1108d1273d21403ff",
+  "prover_sha256": "2ea41f0d7599eab2fc16481c826a852be705dbbb9cdd90836642b329d53a73e9"
+}

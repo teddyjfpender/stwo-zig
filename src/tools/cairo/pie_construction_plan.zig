@@ -30,6 +30,7 @@ const GeometryReport = struct {
     relation_sha256: []const u8,
     proof_program_sha256: []const u8,
     variant: []const u8,
+    transient_static: bool = false,
     allocated_bytes: u64,
     peak_live_bytes: u64,
 };
@@ -50,6 +51,8 @@ const Options = struct {
     registry_path: ?[]const u8 = null,
     device_bytes: ?u64 = null,
     reserve_bytes: u64 = 6_000_000_000,
+    reserve_explicit: bool = false,
+    managed_arena_limit_bytes: ?u64 = null,
     leaf_wrap_ms: ?u64 = null,
     fold_ms: ?u64 = null,
     objective: partition.Objective = .leaves,
@@ -101,6 +104,8 @@ pub fn main() !void {
         try validHash(report.proof_program_sha256);
         if (report.allocated_bytes == 0 or report.peak_live_bytes == 0)
             return error.InvalidGeometryReceipt;
+        if (options.managed_arena_limit_bytes != null and !report.transient_static)
+            return error.ManagedArenaRequiresTransientGeometry;
         if (reports.items.len != 0) {
             const first = reports.items[0].value;
             if (!std.ascii.eqlIgnoreCase(report.witness_sha256, first.witness_sha256) or
@@ -138,8 +143,13 @@ pub fn main() !void {
         };
     }
     const device_bytes = options.device_bytes.?;
-    if (options.reserve_bytes >= device_bytes) return error.InvalidDeviceReserve;
-    const limit = device_bytes - options.reserve_bytes;
+    const limit = if (options.managed_arena_limit_bytes) |managed_limit| blk: {
+        if (managed_limit == 0) return error.InvalidManagedArenaLimit;
+        break :blk managed_limit;
+    } else blk: {
+        if (options.reserve_bytes >= device_bytes) return error.InvalidDeviceReserve;
+        break :blk device_bytes - options.reserve_bytes;
+    };
     var selected = try partition.choose(allocator, manifest.blocks, candidates, .{
         .admission_limit_bytes = limit,
         .leaf_wrap_ms = options.leaf_wrap_ms orelse 0,
@@ -165,11 +175,13 @@ pub fn main() !void {
         .schema = "stwo.cairo-pie-construction-plan.v1",
         .objective = @tagName(options.objective),
         .proof_qualified = false,
+        .admission_mode = if (options.managed_arena_limit_bytes != null) "managed_arena_model" else "device_arena",
         .registry_sha256 = &registry_hex,
         .candidate_manifest_sha256 = &manifest_hex,
         .geometry_receipts_sha256 = &geometry_hex,
         .device_bytes = device_bytes,
-        .reserve_bytes = options.reserve_bytes,
+        .reserve_bytes = if (options.managed_arena_limit_bytes != null) @as(u64, 0) else options.reserve_bytes,
+        .managed_arena_limit_bytes = options.managed_arena_limit_bytes,
         .admission_limit_bytes = limit,
         .block_count = manifest.blocks.len,
         .candidate_count = manifest.candidates.len,
@@ -197,17 +209,42 @@ fn parseOptions(args: []const []const u8) !Options {
     while (index < args.len) : (index += 2) {
         const flag = args[index];
         if (std.mem.eql(u8, flag, "--help")) {
-            std.debug.print("usage: cairo-pie-construction-plan --candidates manifest.json --geometry geometry.jsonl --circuit-registry registry.json --device-bytes N [--reserve-bytes N] [--objective leaves|estimated-time] [--leaf-wrap-ms N] [--fold-ms N]\n", .{});
+            std.debug.print("usage: cairo-pie-construction-plan --candidates manifest.json --geometry geometry.jsonl --circuit-registry registry.json --device-bytes N [--reserve-bytes N | --managed-arena-limit-bytes N] [--objective leaves|estimated-time] [--leaf-wrap-ms N] [--fold-ms N]\n", .{});
             std.process.exit(0);
         }
         if (index + 1 >= args.len) return error.InvalidArgument;
         const value = args[index + 1];
-        if (std.mem.eql(u8, flag, "--candidates")) options.manifest_path = value else if (std.mem.eql(u8, flag, "--geometry")) options.geometry_path = value else if (std.mem.eql(u8, flag, "--circuit-registry")) options.registry_path = value else if (std.mem.eql(u8, flag, "--device-bytes")) options.device_bytes = try std.fmt.parseUnsigned(u64, value, 10) else if (std.mem.eql(u8, flag, "--reserve-bytes")) options.reserve_bytes = try std.fmt.parseUnsigned(u64, value, 10) else if (std.mem.eql(u8, flag, "--leaf-wrap-ms")) options.leaf_wrap_ms = try std.fmt.parseUnsigned(u64, value, 10) else if (std.mem.eql(u8, flag, "--fold-ms")) options.fold_ms = try std.fmt.parseUnsigned(u64, value, 10) else if (std.mem.eql(u8, flag, "--objective")) options.objective =
-            if (std.mem.eql(u8, value, "leaves")) .leaves else if (std.mem.eql(u8, value, "estimated-time")) .estimated_time else return error.InvalidObjective else return error.InvalidArgument;
+        if (std.mem.eql(u8, flag, "--candidates")) {
+            options.manifest_path = value;
+        } else if (std.mem.eql(u8, flag, "--geometry")) {
+            options.geometry_path = value;
+        } else if (std.mem.eql(u8, flag, "--circuit-registry")) {
+            options.registry_path = value;
+        } else if (std.mem.eql(u8, flag, "--device-bytes")) {
+            options.device_bytes = try std.fmt.parseUnsigned(u64, value, 10);
+        } else if (std.mem.eql(u8, flag, "--reserve-bytes")) {
+            options.reserve_bytes = try std.fmt.parseUnsigned(u64, value, 10);
+            options.reserve_explicit = true;
+        } else if (std.mem.eql(u8, flag, "--managed-arena-limit-bytes")) {
+            options.managed_arena_limit_bytes = try std.fmt.parseUnsigned(u64, value, 10);
+        } else if (std.mem.eql(u8, flag, "--leaf-wrap-ms")) {
+            options.leaf_wrap_ms = try std.fmt.parseUnsigned(u64, value, 10);
+        } else if (std.mem.eql(u8, flag, "--fold-ms")) {
+            options.fold_ms = try std.fmt.parseUnsigned(u64, value, 10);
+        } else if (std.mem.eql(u8, flag, "--objective")) {
+            options.objective = if (std.mem.eql(u8, value, "leaves"))
+                .leaves
+            else if (std.mem.eql(u8, value, "estimated-time"))
+                .estimated_time
+            else
+                return error.InvalidObjective;
+        } else return error.InvalidArgument;
     }
     if (options.manifest_path == null or options.geometry_path == null or
         options.registry_path == null or options.device_bytes == null or options.device_bytes.? == 0)
         return error.MissingArgument;
+    if (options.managed_arena_limit_bytes != null and options.reserve_explicit)
+        return error.ConflictingAdmissionLimits;
     if (options.objective == .estimated_time and
         (options.leaf_wrap_ms == null or options.fold_ms == null))
         return error.MissingCostModel;
