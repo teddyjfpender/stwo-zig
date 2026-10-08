@@ -1020,7 +1020,14 @@ and 512 inputs. The first 128 entries are byte-for-byte the PIE order of the
 saved 128 campaign. The saved H200 root proof and final-root hashes are
 available for 128 and 512; the 64-prefix root has no saved reference receipt.
 The inventory can be regenerated from the proving-service campaign archive
-with [the inventory builder](build_campaign_prefix_inventory.py).
+with [the inventory builder](build_campaign_prefix_inventory.py). It also
+writes ready-to-stage [64](campaign-prefixes/campaign-64.json),
+[128](campaign-prefixes/campaign-128.json), and
+[512](campaign-prefixes/campaign-512.json) service campaign manifests. Their
+ordered state roots, adapted-input digests, and public-output preimage digests
+come from the saved H200 source manifest and preparation record; the Go
+service accepts their schema and rejects submission until the corresponding
+authenticated objects are staged.
 
 | Prefix | OS steps | Adapted input | One-block PIEs | Saved H200 root |
 | --- | ---: | ---: | ---: | --- |

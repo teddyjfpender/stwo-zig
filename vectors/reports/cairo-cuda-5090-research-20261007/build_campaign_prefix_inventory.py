@@ -25,6 +25,11 @@ def main() -> None:
         first_128 = list(csv.DictReader(source))
     prepared = {row["name"]: row for row in json.loads((base / "preparation.json").read_text())}
     metadata = read_csv(base / "pie_metadata.csv", "pie")
+    manifest = {
+        Path(row["file"]).stem: row
+        for row in json.loads((base / "manifest.json").read_text())["pies"]
+    }
+    capabilities = json.loads((base / "worker-capabilities.json").read_text())
     assert len(analysis) == 512 and len(first_128) == 128
     assert [row["pie_name"] for row in analysis[:128]] == [row["pie_name"] for row in first_128]
     rows = []
@@ -32,11 +37,17 @@ def main() -> None:
         name = row["pie_name"]
         prep = prepared[name]
         meta = metadata[name]
+        source = manifest[name]
         if position > 1:
             assert int(rows[-1]["last_block"]) + 1 == int(row["first_block"])
         assert int(row["steps"]) == int(meta["os_steps"])
         assert row["archive_sha256"] == prep["archive_sha256"]
         assert int(row["adapted_bytes"]) == int(prep["adapted_bytes"])
+        assert source["sha256"] == prep["archive_sha256"]
+        assert source["blocks"] == [int(row["first_block"]), int(row["last_block"])]
+        assert source["n_steps"] == int(row["steps"])
+        if position > 1:
+            assert manifest[rows[-1]["pie"]]["final_root"] == source["initial_root"]
         rows.append({
             "position": position,
             "pie": name,
@@ -60,8 +71,31 @@ def main() -> None:
         writer.writeheader()
         writer.writerows(rows)
     targets = {}
+    campaigns = args.out / "campaign-prefixes"
+    campaigns.mkdir(exist_ok=True)
     for count in (64, 128, 512):
         subset = rows[:count]
+        campaign = {
+            "schema": "stwo.proving-service.campaign.v1",
+            "registry_sha256": capabilities["registry_sha256"],
+            "program_sha256": capabilities["program_sha256"],
+            "step_basis": "os_steps",
+            "leaves": [
+                {
+                    "name": item["pie"],
+                    "first_block": int(item["first_block"]),
+                    "last_block": int(item["last_block"]),
+                    "initial_root": manifest[item["pie"]]["initial_root"],
+                    "final_root": manifest[item["pie"]]["final_root"],
+                    "adapted_sha256": item["adapted_sha256"],
+                    "preimage_sha256": item["preimage_sha256"],
+                    "steps": int(item["steps"]),
+                }
+                for item in subset
+            ],
+        }
+        (campaigns / f"campaign-{count}.json").write_text(
+            json.dumps(campaign, indent=2) + "\n")
         reference = None
         if count in (128, 512):
             name = f"h200-api-{count}-001"
