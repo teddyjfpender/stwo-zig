@@ -1254,9 +1254,11 @@ fn preferCapacitySlotHost(
         percent,
         false,
     );
-    if (kind == .trace_evaluations and
-        std.posix.getenv("STWO_CUDA_CAPACITY_PREFETCH_EVAL_REMAINDER") != null)
-    {
+    const prefetch_remainder = if (std.posix.getenv("STWO_CUDA_CAPACITY_PREFETCH_EVAL_REMAINDER")) |value|
+        if (std.mem.eql(u8, value, "1")) true else if (std.mem.eql(u8, value, "0")) false else return error.InvalidManagedPlacementPolicy
+    else
+        false;
+    if (kind == .trace_evaluations and prefetch_remainder) {
         const slot = plan.slot(kind, ordinal) orelse
             return error.InvalidProofSessionBindings;
         const words = try transaction.slot(slot.id);
