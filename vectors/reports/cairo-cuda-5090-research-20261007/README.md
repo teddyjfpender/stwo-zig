@@ -21,8 +21,8 @@ make the historical H200 comparison indicative until a source-matched pair runs.
   5090 pod had 167 GB host RAM and driver 580.65.06. All final pipeline and
   capacity-boundary results below are from the latter pod.
 - `measurements.csv` is rebuilt from the retained receipts by
-  `summarize_trials.py`. It records 114 trials, including 87 exact-hash,
-  independently verified successes, 24 failures, and three deliberately
+  `summarize_trials.py`. It records 133 trials, including 102 exact-hash,
+  independently verified successes, 28 failures, and three deliberately
   disqualified source/policy trials. The verifier receipt supplies the proof
   digest when an older trial has no separate `proof.sha256` sidecar.
 - `pareto.csv` selects verified trials for which no same-PIE trial is no worse
@@ -35,9 +35,9 @@ make the historical H200 comparison indicative until a source-matched pair runs.
 ## Current outcome
 
 The final compact policy proves the qualified 2.81M–5.34M-step cohort at
-**1.85–3.20×** historical H200 adapted-input-to-publication time, below the
+**1.56–3.20×** historical H200 adapted-input-to-publication time, below the
 requested **4.5×** economic screen. The latest-source two-distinct-PIE recursive
-pipeline takes **33.197 s**, or **2.18×** the historical H200 full command,
+pipeline takes **32.405 s**, or **2.13×** the historical H200 full command,
 with the exact saved root. These are different timing boundaries; the
 [final-default table](#final-default-compact-policy-and-two-leaf-pipeline)
 keeps them separate. Hardware and source builds are not matched, so the
@@ -66,16 +66,16 @@ the current best verified 5090 points are:
 
 | PIE | H200 publication | 1.5× ceiling | Best verified 5090 publication | Ratio |
 |---|---:|---:|---:|---:|
-| 2.81M EC-heavy | 4.200 s | 6.300 s | 8.668 s opt-in, 8.848 s final default | 2.06× opt-in |
-| 3.60M Pedersen-heavy | 4.995 s | 7.493 s | 9.100 s opt-in, 9.227 s final default | 1.82× opt-in |
-| 4.00M | 4.635 s | 6.953 s | 8.234 s opt-in, 9.028 s final default | 1.78× opt-in |
+| 2.81M EC-heavy | 4.200 s | 6.300 s | 7.247 s three-run median, 7.240 s final default | 1.73× median |
+| 3.60M Pedersen-heavy | 4.995 s | 7.493 s | 7.768 s three-run median, 7.359 s final default | 1.56× median |
+| 4.00M | 4.635 s | 6.953 s | 7.363 s three-run median, 7.226 s final default | 1.59× median |
 | 5.34M | 5.103 s | 7.655 s | 11.816 s opt-in three-run median | 2.32× |
 | 6.00M | 5.018 s | 7.527 s | 87.431 s opt-in | 17.42× |
 | 20.85M | 15.314 s | 22.971 s | 274.577 s opt-in | 17.93× |
 | 22.67M single-block Pedersen | 8.755 s | 13.133 s | 320.338 s opt-in | 36.59× |
 
-None meets 1.5× yet. The 2.81–4M rows have about 3.7 s of cold ingress and
-approximately 5.1–5.5 s of proof/decode; a warm service may improve the full
+None meets 1.5× on repeated medians yet. The 2.81–4M rows have about 3.6 s of cold ingress and
+approximately 3.5–3.8 s of proof/decode after trace prefetch; a warm service may improve the full
 boundary, but cannot by itself satisfy a **proof-only** 1.5× comparison.
 The large rows require an algorithmic working-set change: their measured
 relation stage alone exceeds the new total publication ceiling. The H200
@@ -719,18 +719,19 @@ The two-PIE pipeline matched the saved wrapped-leaf and final-root hashes.
 
 | Final default workload | Input→proof publication | Proof and decode | Full command | Whole-device peak | Historical H200 input→publication ratio |
 |---|---:|---:|---:|---:|---:|
-| EC-heavy 2.81M-step PIE | 8.848 s | 5.109 s | 9.786 s | 28.365 GiB | 2.11× |
-| Pedersen-heavy 3.60M-step PIE | 9.227 s | 5.487 s | 10.344 s | 29.992 GiB | 1.85× |
-| 4.00M-step PIE | 9.028 s | 5.242 s | 10.053 s | 29.490 GiB | 1.95× |
+| EC-heavy 2.81M-step PIE | 7.240 s | 3.587 s | 8.158 s | 28.365 GiB | 1.72× |
+| Pedersen-heavy 3.60M-step PIE | 7.359 s | 3.749 s | 8.423 s | 29.990 GiB | 1.47× single run |
+| 4.00M-step PIE | 7.226 s | 3.591 s | 8.154 s | 29.490 GiB | 1.56× |
 | 5.34M-step PIE | 16.351 s | 12.610 s | 17.560 s | 30.617 GiB | 3.20× |
-| Two distinct small PIEs → one root | — | 9.374 / 9.389 s Cairo leaves | **32.688 s** | **30.117 GiB** | **2.14× full command** |
+| Two distinct small PIEs → one root | — | see leaf receipts | **32.405 s** | **30.117 GiB** | **2.13× full command** |
 
-The 4M standalone still selected a managed arena; shortening static slot
+The 3.60M final-source single run falls under 1.5×, but its three-run median
+is 1.56×; it does not qualify the target. The 4M standalone still selected a managed arena; shortening static slot
 lifetimes did not make that geometry a device-only proof. The pipeline's
 corrected process-tree peak RSS was **14.72 GB**. Its two Cairo leaf ingresses
 were 3.252 and 1.681 s, while the circuit wraps and fold were included in
-the 32.688 s full command. Receipts are under `rtx5090-*-final-default/`
-and `pipeline5090-two/measure-final-default-r1/`. The historical H200
+the 32.405 s full command. Receipts are under `rtx5090-*-final-default-prefetch*/`
+and `pipeline5090-two/measure-final-prefetch-default/`. The historical H200
 source/timing caveat applies to every ratio in this table.
 
 The small pipeline's arena inventory still holds four 4.295 GB trace Merkle
@@ -738,6 +739,34 @@ trees through decommitment. A sparse authenticated-tree representation is
 therefore a larger potential memory and speed change than another percentage
 adjustment to managed placement; its opening paths must be reconstructed and
 verified exactly before adoption.
+
+### Early trace prefetch on medium compact arenas
+
+The compact medium arena previously let managed-memory faults occur in the
+first trace-writer launches. Prefetching the authenticated writer-input,
+lookup-input, scratch, and main coefficient slots immediately before trace
+generation reduced that stage from roughly 1.6 seconds to 0.13 seconds. This
+is now the default for medium compact plans; `STWO_CUDA_COMPACT_PREFETCH_TRACE=0`
+provides an opt-out. It does not alter transcript inputs, proof bytes, or the
+larger capacity policy. Three idle-host runs per PIE produced these exact-hash,
+independently verified results; the final-source default was then rebuilt and
+verified again without setting the prefetch flag:
+
+| PIE | Three-run publication median | Final-source default publication | Final-source proof/decode | Final-source GPU peak |
+|---|---:|---:|---:|---:|
+| EC-heavy 2.81M | 7.247 s | 7.240 s | 3.587 s | 28.365 GiB |
+| 4.00M | 7.363 s | 7.226 s | 3.591 s | 29.490 GiB |
+| Pedersen-heavy 3.60M | 7.768 s | 7.359 s | 3.749 s | 29.990 GiB |
+
+The final-source receipts are under `rtx5090-*-final-default-prefetch*/`; the
+repeated receipts are under `rtx5090-*-prefetch-trace*/`. The final-source
+Pedersen run was faster than its repeated-run median, so the median remains
+the conservative comparison with H200. Earlier late Merkle-hosting variants
+gave only a narrow additional gain and raised whole-device peaks above 31 GiB;
+the 4M variant failed in constraint evaluation. A device-only EC arena reached
+constraint evaluation quickly but failed allocation there. A physical-lifetime
+change did not shrink that arena. These experiments are retained as failed or
+research receipts, without changing the default.
 
 For the standalone 5.34M-step PIE, the transient plan is 35.11 GiB. With
 all trace trees hosted, a 15% coefficient-tail spill published in **14.110 s**

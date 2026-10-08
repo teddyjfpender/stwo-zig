@@ -452,6 +452,31 @@ pub const Prepared = struct {
                 host_tail,
             );
         }
+        // The compact medium plan fits the writer working set in device
+        // memory. Prefetching the authenticated writer slots before their
+        // first GPU write avoids managed-memory page faults in trace
+        // generation; later commitment and constraint slots remain governed
+        // by their existing placement policy.
+        const prefetch_trace = if (compact_profile == .medium)
+            if (std.posix.getenv("STWO_CUDA_COMPACT_PREFETCH_TRACE")) |raw|
+                if (std.mem.eql(u8, raw, "1")) true else if (std.mem.eql(u8, raw, "0")) false else return error.InvalidManagedPlacementPolicy
+            else
+                true
+        else
+            false;
+        if (prefetch_trace) {
+            phase = "compact_prefetch_trace_inputs";
+            for ([_]struct { kind: resident_plan.SlotKind, ordinal: u32 }{
+                .{ .kind = .writer_inputs, .ordinal = 0 },
+                .{ .kind = .writer_lookup_inputs, .ordinal = 0 },
+                .{ .kind = .writer_scratch, .ordinal = 0 },
+                .{ .kind = .trace_coefficients, .ordinal = 1 },
+            }) |target| {
+                const slot = plan.slot(target.kind, target.ordinal) orelse
+                    return error.InvalidProofSessionBindings;
+                try transaction.prefetchManagedSlot(slot.id, true);
+            }
+        }
         self.controllers.trace_writers.execute(session) catch |err| {
             std.debug.print(
                 "cairo-cuda proof trace-writers failed: {s}\n",
