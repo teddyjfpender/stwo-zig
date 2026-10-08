@@ -20,6 +20,11 @@ make the historical H200 comparison indicative until a source-matched pair runs.
 - The first pod had a 62 GB host-memory limit; the later, better provisioned
   5090 pod had 167 GB host RAM and driver 580.65.06. All final pipeline and
   capacity-boundary results below are from the latter pod.
+- `measurements.csv` is rebuilt from the retained receipts by
+  `summarize_trials.py`. It records 113 trials, including 87 exact-hash,
+  independently verified successes, 23 failures, and three deliberately
+  disqualified source/policy trials. The verifier receipt supplies the proof
+  digest when an older trial has no separate `proof.sha256` sidecar.
 
 ## Current outcome
 

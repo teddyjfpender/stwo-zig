@@ -19,6 +19,7 @@ EXPECTED = {
     "15608951_15608963": "76e224838a6b74695aab566f5a5de6391568cd9e8c82acda63039133ca23ffb5",
     "15574910_15574919": "2157ac5287878e82ab29d16539897b6abeba162c6db6ee1827fdc8944106a632",
     "15563360_15563369": "7ddd6f9ce107c224f5823f4ee7535533c96327e61778118cfe74c39400b56f81",
+    "15590913_15590913": "23ef11f1f7bbf0b31d6ede197bd67d2548975b951283c4cedc0fb6148e443af9",
 }
 INVALID_SOURCE = {
     "rtx5090-phased-writer-interaction",
@@ -67,7 +68,11 @@ def one(directory: Path) -> dict:
     trial = (report.get("completed_trials") or [{}])[0]
     verdict = read_json(directory / "official-verdict.json")
     proof_file = directory / "proof.sha256"
-    proof_sha = proof_file.read_text().split()[0] if proof_file.is_file() else ""
+    file_sha = proof_file.read_text().split()[0] if proof_file.is_file() else ""
+    verdict_sha = verdict.get("proof_sha256") or ""
+    if file_sha and verdict_sha and file_sha != verdict_sha:
+        raise ValueError(f"proof digest disagrees with verifier receipt: {directory}")
+    proof_sha = file_sha or verdict_sha
     command = summary.get("command") or []
     variant = directory.parent.name
     pie = (Path(command[command.index("--input") + 1]).stem
