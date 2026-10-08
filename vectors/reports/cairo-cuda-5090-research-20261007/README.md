@@ -25,6 +25,12 @@ make the historical H200 comparison indicative until a source-matched pair runs.
   independently verified successes, 23 failures, and three deliberately
   disqualified source/policy trials. The verifier receipt supplies the proof
   digest when an older trial has no separate `proof.sha256` sidecar.
+- `pareto.csv` selects verified trials for which no same-PIE trial is no worse
+  on both adapted-input-to-publication time and sampled device peak, and
+  strictly better on at least one. It is
+  an exploratory frontier across source revisions and pod conditions, not a
+  controlled or production-qualified benchmark ranking. Close points need
+  idle-host repeats because device sampling and timings have noise.
 
 ## Current outcome
 

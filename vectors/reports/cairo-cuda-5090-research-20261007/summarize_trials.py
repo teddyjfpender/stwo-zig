@@ -116,7 +116,27 @@ def main() -> None:
         writer = csv.DictWriter(sink, fieldnames=FIELDS, lineterminator="\n")
         writer.writeheader()
         writer.writerows(rows)
-    print(f"wrote {len(rows)} trials")
+    qualified = [row for row in rows if row["status"] == "verified" and
+                 row["adapted_to_publication_s"] and row["device_peak_gib"]]
+    frontier = []
+    for row in qualified:
+        time = float(row["adapted_to_publication_s"])
+        memory = float(row["device_peak_gib"])
+        dominated = any(
+            other["pie"] == row["pie"] and
+            float(other["adapted_to_publication_s"]) <= time and
+            float(other["device_peak_gib"]) <= memory and
+            (float(other["adapted_to_publication_s"]) < time or
+             float(other["device_peak_gib"]) < memory)
+            for other in qualified
+        )
+        if not dominated:
+            frontier.append(row)
+    with (ROOT / "pareto.csv").open("w", newline="") as sink:
+        writer = csv.DictWriter(sink, fieldnames=FIELDS, lineterminator="\n")
+        writer.writeheader()
+        writer.writerows(frontier)
+    print(f"wrote {len(rows)} trials and {len(frontier)} exploratory Pareto points")
 
 
 if __name__ == "__main__":
