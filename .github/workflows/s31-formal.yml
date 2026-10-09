@@ -57,8 +57,10 @@ jobs:
           python-version: '3.13'
       - name: Source bindings, coverage, and proof-escape checks
         run: |
-          python3 scripts/s31_formal.py
-          python3 -m unittest scripts.tests.test_s31_formal
+          set -euo pipefail
+          mkdir -p zig-out/s31/formal
+          python3 scripts/s31_formal.py | tee zig-out/s31/formal/source-checks.log
+          python3 -m unittest scripts.tests.test_s31_formal 2>&1 | tee -a zig-out/s31/formal/source-checks.log
       - name: Pinned Lean
         uses: leanprover/lean-action@38fbc41a8c28c4cbaec22d7f7de508ec2e7c0dd9 # v1.5.0
         with:
@@ -66,12 +68,13 @@ jobs:
           build: false
           test: false
           lint: false
+          use-mathlib-cache: false
       - name: Verify toolchain and fetch pinned Mathlib cache
         working-directory: formal/s31
         run: |
           set -euo pipefail
           test "$(cat lean-toolchain)" = 'leanprover/lean4:v4.29.0'
-          lake env lean --version | rg '^Lean \(version 4\.29\.0,'
+          lake env lean --version | grep -E '^Lean \(version 4\.29\.0,'
           lake exe cache get Mathlib.Data.ZMod.Basic Mathlib.Tactic
       - name: Build every proof source and executable semantics
         working-directory: formal/s31
