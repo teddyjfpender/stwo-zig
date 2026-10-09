@@ -1,0 +1,99 @@
+name: S31 Lean semantics and gadget proofs
+
+on:
+  pull_request:
+    paths:
+      - 'formal/s31/**'
+      - 'formal/riscv-refinement/lakefile.toml'
+      - 'formal/riscv-refinement/RiscvRefinement/Field/M31.lean'
+      - 'formal/riscv-refinement/RiscvRefinement/Recursion/CompactPoseidon.lean'
+      - 'src/frontends/s31/**'
+      - 'src/frontends/circuit/**'
+      - 'src/core/fields/**'
+      - 'src/core/crypto/**'
+      - 'src/frontends/riscv/air/memory_commitment/poseidon2_constants.zig'
+      - 'src/frontends/riscv/air/guest_precompile/sha256_compression.zig'
+      - 'scripts/s31_formal*'
+      - 'scripts/s31_formal_lib/**'
+      - 'scripts/tests/test_s31_formal.py'
+      - 'scripts/riscv_refinement*'
+      - 'scripts/riscv_refinement_lib/**'
+      - '.github/workflows/s31-formal.yml'
+  push:
+    branches: [main, feature/s31-circuit-dsl]
+    paths:
+      - 'formal/**'
+      - 'src/frontends/s31/**'
+      - 'src/frontends/circuit/**'
+      - 'src/core/fields/**'
+      - 'src/core/crypto/**'
+      - 'src/frontends/riscv/air/memory_commitment/poseidon2_constants.zig'
+      - 'src/frontends/riscv/air/guest_precompile/sha256_compression.zig'
+      - 'scripts/**'
+      - '.github/workflows/s31-formal.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: s31-formal-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  semantics-and-gadgets:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      # leanchecker otherwise imports a Mathlib environment per concurrent
+      # module. One worker preserves the same kernel checks with bounded RAM.
+      LEAN_NUM_THREADS: '1'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - name: Python
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: '3.13'
+      - name: Source bindings, coverage, and proof-escape checks
+        run: |
+          python3 scripts/s31_formal.py
+          python3 -m unittest scripts.tests.test_s31_formal
+      - name: Pinned Lean
+        uses: leanprover/lean-action@38fbc41a8c28c4cbaec22d7f7de508ec2e7c0dd9 # v1.5.0
+        with:
+          lake-package-directory: formal/s31
+          build: false
+          test: false
+          lint: false
+      - name: Verify toolchain and fetch pinned Mathlib cache
+        working-directory: formal/s31
+        run: |
+          set -euo pipefail
+          test "$(cat lean-toolchain)" = 'leanprover/lean4:v4.29.0'
+          lake env lean --version | rg '^Lean \(version 4\.29\.0,'
+          lake exe cache get Mathlib.Data.ZMod.Basic Mathlib.Tactic
+      - name: Build every proof source and executable semantics
+        working-directory: formal/s31
+        run: lake build S31 s31-check
+      - name: Audit all theorem axioms and replay all package modules in the kernel
+        working-directory: formal/s31
+        run: |
+          set -euo pipefail
+          mkdir -p ../../zig-out/s31/formal
+          lake env lean S31/Evidence/AxiomAudit.lean > ../../zig-out/s31/formal/axioms.log
+          lake env leanchecker -v S31 RiscvRefinement.Field.M31 RiscvRefinement.Recursion.CompactPoseidon > ../../zig-out/s31/formal/kernel.log
+      - name: Independent semantics, false witnesses, and real gadget mutations
+        run: |
+          python3 scripts/s31_formal.py \
+            --audit zig-out/s31/formal/axioms.log \
+            --kernel-log zig-out/s31/formal/kernel.log \
+            --parity formal/s31/.lake/build/bin/s31-check \
+            --controls --report zig-out/s31/formal/evidence.json
+      - name: Preserve live formal evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: s31-formal-evidence
+          path: zig-out/s31/formal/
+          if-no-files-found: error

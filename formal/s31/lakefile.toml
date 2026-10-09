@@ -1,0 +1,20 @@
+name = "s31-formal"
+version = "0.1.0"
+defaultTargets = ["S31"]
+
+[[require]]
+name = "riscv-refinement"
+path = "../riscv-refinement"
+
+[[require]]
+name = "mathlib"
+git = "https://github.com/leanprover-community/mathlib4.git"
+rev = "8a178386ffc0f5fef0b77738bb5449d50efeea95"
+
+[[lean_lib]]
+name = "S31"
+globs = ["S31", "S31.+"]
+
+[[lean_exe]]
+name = "s31-check"
+root = "S31.Check"

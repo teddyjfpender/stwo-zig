@@ -1,0 +1,539 @@
+{
+  "schema": "s31-operation-coverage-v1",
+  "boundary": "normalized relation IR v1 and local constraint models",
+  "production_compiler_correctness_proved": false,
+  "operations": [
+    {
+      "op": "constant",
+      "semantics": "S31.evaluateNode",
+      "gadget_theorems": [
+        "S31.Gadgets.Bindings.constant_wires"
+      ],
+      "source": {
+        "path": "src/frontends/s31/language/relation_compiler.zig",
+        "function": "compileWithSpansMode"
+      }
+    },
+    {
+      "op": "cast_m31",
+      "semantics": "S31.evaluateNode",
+      "gadget_theorems": [
+        "S31.Gadgets.Bindings.cast_wire_identity"
+      ],
+      "source": {
+        "path": "src/frontends/s31/language/relation_compiler.zig",
+        "function": "compileWithSpansMode"
+      }
+    },
+    {
+      "op": "add",
+      "semantics": "S31.evaluateNode",
+      "gadget_theorems": [
+        "S31.Gadgets.add_sound_complete",
+        "S31.Gadgets.Packed.add_sound_complete",
+        "S31.Gadgets.Sequence.pointwise_sound_complete"
+      ],
+      "source": {
+        "path": "src/frontends/s31/language/relation_compiler.zig",
+        "function": "compileWithSpansMode"
+      }
+    },
+    {
+      "op": "mul",
+      "semantics": "S31.evaluateNode",
+      "gadget_theorems": [
+        "S31.Gadgets.mul_sound_complete",
+        "S31.Gadgets.Packed.pointwise_sound_complete",
+        "S31.Gadgets.Sequence.pointwise_sound_complete"
+      ],
+      "source": {
+        "path": "src/frontends/s31/language/relation_compiler.zig",
+        "function": "compileWithSpansMode"
+      }
+    },
+    {
+      "op": "add_const",
+      "semantics": "S31.evaluateNode",
+      "gadget_theorems": [
+        "S31.Gadgets.add_sound_complete",
+        "S31.Gadgets.Sequence.step_sound_complete"
+      ],
+      "source": {
+        "path": "src/frontends/s31/language/relation_compiler.zig",
+        "function": "compileWithSpansMode"
+      }
+    },
+    {
+      "op": "mul_const",
+      "semantics": "S31.evaluateNode",
+      "gadget_theorems": [
+        "S31.Gadgets.mul_sound_complete",
+        "S31.Gadgets.Packed.scalar_mul",
+        "S31.Gadgets.Sequence.step_sound_complete"
+      ],
+      "source": {
+        "path": "src/frontends/s31/language/relation_compiler.zig",
+        "function": "compileWithSpansMode"
+      }
+    },
+    {
+      "op": "repeat",
+      "semantics": "S31.repeatBody",
+      "gadget_theorems": [
+        "S31.Gadgets.Sequence.repeat_sound_complete",
+        "S31.Gadgets.Sequence.step_sound_complete",
+        "S31.Gadgets.Packed.mix4_broadcast"
+      ],
+      "source": {
+        "path": "src/frontends/s31/language/relation_compiler.zig",
+        "function": "compileWithSpansMode"
+      }
+    },
+    {
+      "op": "hash_blake2s",
+      "semantics": "S31.Blake2s.hash",
+      "gadget_theorems": [
+        "S31.Gadgets.HashEncoding.blake_hash_sound_complete",
+        "S31.Gadgets.Word.primitive_sound_complete",
+        "S31.Gadgets.Packing.digest_reduction_sound_complete"
+      ],
+      "source": {
+        "path": "src/frontends/s31/language/relation_compiler.zig",
+        "function": "hashBlake2s"
+      }
+    },
+    {
+      "op": "hash_blake2s_leaf",
+      "semantics": "S31.Blake2s.hash",
+      "gadget_theorems": [
+        "S31.Gadgets.HashEncoding.blake_hash_sound_complete",
+        "S31.Gadgets.Word.primitive_sound_complete",
+        "S31.Gadgets.Packing.digest_reduction_sound_complete"
+      ],
+      "source": {
+        "path": "src/frontends/s31/language/relation_compiler.zig",
+        "function": "hashBlake2sPersonalized"
+      }
+    },
+    {
+      "op": "hash_blake2s_pair",
+      "semantics": "S31.Blake2s.hash",
+      "gadget_theorems": [
+        "S31.Gadgets.HashEncoding.blake_hash_sound_complete",
+        "S31.Gadgets.Bindings.array_concat_wires"
+      ],
+      "source": {
+        "path": "src/frontends/s31/language/relation_compiler.zig",
+        "function": "hashBlake2sPair"
+      }
+    },
+    {
+      "op": "select",
+      "semantics": "S31.evaluateNode",
+      "gadget_theorems": [
+        "S31.Gadgets.bit_sound_complete",
+        "S31.Gadgets.select_sound_complete",
+        "S31.Gadgets.Sequence.pointwise_sound_complete"
+      ],
+      "source": {
+        "path": "src/frontends/s31/language/relation_compiler.zig",
+        "function": "selectByBit"
+      }
+    },
+    {
+      "op": "hash_poseidon2_leaf",
+      "semantics": "S31.Poseidon2.leaf",
+      "gadget_theorems": [
+        "S31.Gadgets.Hash.poseidon_leaf_sound_complete",
+        "S31.Gadgets.Hash.sbox_sound_complete"
+      ],
+      "source": {
+        "path": "src/frontends/s31/language/relation_compiler.zig",
+        "function": "compileWithSpansMode"
+      }
+    },
+    {
+      "op": "hash_poseidon2_pair",
+      "semantics": "S31.Poseidon2.pair",
+      "gadget_theorems": [
+        "S31.Gadgets.Hash.poseidon_pair_sound_complete",
+        "S31.Gadgets.Hash.sbox_sound_complete"
+      ],
+      "source": {
+        "path": "src/frontends/s31/language/relation_compiler.zig",
+        "function": "compileWithSpansMode"
+      }
+    },
+    {
+      "op": "sum_lanes",
+      "semantics": "S31.evaluateNode",
+      "gadget_theorems": [
+        "S31.Gadgets.Sequence.sum_sound_complete",
+        "S31.Gadgets.Packed.mask_active_lanes",
+        "S31.Gadgets.Packed.sum_projection",
+        "S31.Gadgets.Packed.dual_literal"
+      ],
+      "source": {
+        "path": "src/frontends/s31/language/relation_compiler.zig",
+        "function": "sumLanes"
+      }
+    },
+    {
+      "op": "u256_add",
+      "semantics": "S31.Integers.u256",
+      "gadget_theorems": [
+        "S31.Gadgets.Radix.add_chain_wrapping_sound_complete"
+      ],
+      "source": {
+        "path": "src/frontends/s31/language/relation_compiler.zig",
+        "function": "u256Binary"
+      }
+    },
+    {
+      "op": "u256_le",
+      "semantics": "S31.Integers.u256",
+      "gadget_theorems": [
+        "S31.Gadgets.Arithmetic.comparison_sound_complete",
+        "S31.Gadgets.Radix.sub_chain_comparison",
+        "S31.Gadgets.not_sound_complete"
+      ],
+      "source": {
+        "path": "src/frontends/s31/language/relation_compiler.zig",
+        "function": "u256Binary"
+      }
+    },
+    {
+      "op": "u256_add_checked",
+      "semantics": "S31.Integers.u256",
+      "gadget_theorems": [
+        "S31.Gadgets.Radix.add_chain_checked_sound_complete"
+      ],
+      "source": {
+        "path": "src/frontends/s31/language/relation_compiler.zig",
+        "function": "u256Binary"
+      }
+    },
+    {
+      "op": "hash_sha256d_header",
+      "semantics": "S31.Sha256.header",
+      "gadget_theorems": [
+        "S31.Gadgets.HashEncoding.header_hash_sound_complete",
+        "S31.Gadgets.HashEncoding.sha_hash_sound_complete",
+        "S31.Gadgets.Packing.byte_pair_m31_sound_complete"
+      ],
+      "source": {
+        "path": "src/frontends/s31/language/relation_compiler.zig",
+        "function": "sha256dHeader"
+      }
+    },
+    {
+      "op": "bitcoin_target_mainnet",
+      "semantics": "S31.Bitcoin.headerTarget",
+      "gadget_theorems": [
+        "S31.Gadgets.CompactTarget.target_sound_complete",
+        "S31.Gadgets.Bitcoin.target_byte_placement",
+        "S31.Gadgets.Bitcoin.exponent_sound_complete",
+        "S31.Gadgets.Packing.bits_sound_complete",
+        "S31.Gadgets.Packing.byte_pair_sound_complete"
+      ],
+      "source": {
+        "path": "src/frontends/s31/language/relation_compiler.zig",
+        "function": "mainnetTarget"
+      }
+    },
+    {
+      "op": "bitcoin_prev_hash",
+      "semantics": "S31.evaluateNode",
+      "gadget_theorems": [
+        "S31.Gadgets.Bindings.array_slice_wires"
+      ],
+      "source": {
+        "path": "src/frontends/s31/language/relation_compiler.zig",
+        "function": "headerSlice"
+      }
+    },
+    {
+      "op": "bitcoin_header_bits",
+      "semantics": "S31.evaluateNode",
+      "gadget_theorems": [
+        "S31.Gadgets.Bindings.array_slice_wires"
+      ],
+      "source": {
+        "path": "src/frontends/s31/language/relation_compiler.zig",
+        "function": "headerSlice"
+      }
+    },
+    {
+      "op": "bitcoin_genesis_hash_mainnet",
+      "semantics": "S31.Bitcoin.genesis",
+      "gadget_theorems": [
+        "S31.Gadgets.Bindings.constant_wires",
+        "S31.Gadgets.Packing.bytes_le_roundtrip"
+      ],
+      "source": {
+        "path": "src/frontends/s31/language/relation_compiler.zig",
+        "function": "mainnetGenesisHash"
+      }
+    },
+    {
+      "op": "bitcoin_header_time",
+      "semantics": "S31.evaluateNode",
+      "gadget_theorems": [
+        "S31.Gadgets.Bindings.array_slice_wires"
+      ],
+      "source": {
+        "path": "src/frontends/s31/language/relation_compiler.zig",
+        "function": "headerSlice"
+      }
+    },
+    {
+      "op": "u32_lt",
+      "semantics": "S31.evaluateNode",
+      "gadget_theorems": [
+        "S31.Gadgets.Arithmetic.comparison_sound_complete",
+        "S31.Gadgets.Radix.sub_chain_comparison"
+      ],
+      "source": {
+        "path": "src/frontends/s31/language/relation_compiler.zig",
+        "function": "u32Less"
+      }
+    },
+    {
+      "op": "inv",
+      "semantics": "S31.Field.inverse",
+      "gadget_theorems": [
+        "S31.Gadgets.Packed.inverse_sound_complete",
+        "S31.Field.inverse_sound_complete",
+        "S31.Gadgets.inverse_sound_complete"
+      ],
+      "source": {
+        "path": "src/frontends/s31/language/relation_compiler.zig",
+        "function": "inverseLanes"
+      }
+    },
+    {
+      "op": "is_zero",
+      "semantics": "S31.evaluateNode",
+      "gadget_theorems": [
+        "S31.Gadgets.is_zero_sound_complete",
+        "S31.Gadgets.zero_anchor_sound_complete"
+      ],
+      "source": {
+        "path": "src/frontends/s31/language/relation_compiler.zig",
+        "function": "isZeroWord"
+      }
+    },
+    {
+      "op": "u256_sub",
+      "semantics": "S31.Integers.u256",
+      "gadget_theorems": [
+        "S31.Gadgets.Radix.sub_chain_wrapping_sound_complete"
+      ],
+      "source": {
+        "path": "src/frontends/s31/language/relation_compiler.zig",
+        "function": "u256Binary"
+      }
+    },
+    {
+      "op": "u256_sub_checked",
+      "semantics": "S31.Integers.u256",
+      "gadget_theorems": [
+        "S31.Gadgets.Radix.sub_chain_checked_sound_complete"
+      ],
+      "source": {
+        "path": "src/frontends/s31/language/relation_compiler.zig",
+        "function": "u256Binary"
+      }
+    },
+    {
+      "op": "array_get",
+      "semantics": "S31.evaluateNode",
+      "gadget_theorems": [
+        "S31.Gadgets.Bindings.array_get_wire",
+        "S31.Gadgets.Packed.unpack_coordinate"
+      ],
+      "source": {
+        "path": "src/frontends/s31/language/relation_compiler.zig",
+        "function": "arrayGet"
+      }
+    },
+    {
+      "op": "array_concat",
+      "semantics": "S31.evaluateNode",
+      "gadget_theorems": [
+        "S31.Gadgets.Bindings.array_concat_wires"
+      ],
+      "source": {
+        "path": "src/frontends/s31/language/relation_compiler.zig",
+        "function": "arrayConcat"
+      }
+    },
+    {
+      "op": "array_slice",
+      "semantics": "S31.evaluateNode",
+      "gadget_theorems": [
+        "S31.Gadgets.Bindings.array_slice_wires"
+      ],
+      "source": {
+        "path": "src/frontends/s31/language/relation_compiler.zig",
+        "function": "arraySlice"
+      }
+    },
+    {
+      "op": "bool_not",
+      "semantics": "S31.evaluateNode",
+      "gadget_theorems": [
+        "S31.Gadgets.bit_sound_complete",
+        "S31.Gadgets.not_sound_complete"
+      ],
+      "source": {
+        "path": "src/frontends/s31/language/relation_compiler.zig",
+        "function": "booleanNode"
+      }
+    },
+    {
+      "op": "bool_and",
+      "semantics": "S31.evaluateNode",
+      "gadget_theorems": [
+        "S31.Gadgets.bit_sound_complete",
+        "S31.Gadgets.and_sound_complete"
+      ],
+      "source": {
+        "path": "src/frontends/s31/language/relation_compiler.zig",
+        "function": "booleanNode"
+      }
+    },
+    {
+      "op": "bool_or",
+      "semantics": "S31.evaluateNode",
+      "gadget_theorems": [
+        "S31.Gadgets.bit_sound_complete",
+        "S31.Gadgets.or_sound_complete"
+      ],
+      "source": {
+        "path": "src/frontends/s31/language/relation_compiler.zig",
+        "function": "booleanNode"
+      }
+    },
+    {
+      "op": "bool_xor",
+      "semantics": "S31.evaluateNode",
+      "gadget_theorems": [
+        "S31.Gadgets.bit_sound_complete",
+        "S31.Gadgets.xor_sound_complete"
+      ],
+      "source": {
+        "path": "src/frontends/s31/language/relation_compiler.zig",
+        "function": "booleanNode"
+      }
+    },
+    {
+      "op": "bool_select",
+      "semantics": "S31.evaluateNode",
+      "gadget_theorems": [
+        "S31.Gadgets.bit_sound_complete",
+        "S31.Gadgets.boolean_select_sound_complete"
+      ],
+      "source": {
+        "path": "src/frontends/s31/language/relation_compiler.zig",
+        "function": "booleanNode"
+      }
+    },
+    {
+      "op": "bitcoin_block_work",
+      "semantics": "S31.Bitcoin.blockWork",
+      "gadget_theorems": [
+        "S31.Gadgets.Bitcoin.work_sound_complete",
+        "S31.Gadgets.Bitcoin.division_sound_complete",
+        "S31.Gadgets.Schoolbook.schoolbook_product_sound_complete",
+        "S31.Gadgets.Schoolbook.product_coefficients_bounded",
+        "S31.Gadgets.Arithmetic.comparison_sound_complete"
+      ],
+      "source": {
+        "path": "src/frontends/s31/language/relation_compiler.zig",
+        "function": "blockWorkEntry"
+      }
+    },
+    {
+      "op": "int_view",
+      "semantics": "S31.Integers.evaluate",
+      "gadget_theorems": [
+        "S31.Gadgets.Bindings.cast_wire_identity",
+        "S31.Gadgets.Radix.byte_sound_complete",
+        "S31.Gadgets.Packing.integer_layout"
+      ],
+      "source": {
+        "path": "src/frontends/s31/language/relation_compiler.zig",
+        "function": "intView"
+      }
+    },
+    {
+      "op": "int_add_checked",
+      "semantics": "S31.Integers.evaluate",
+      "gadget_theorems": [
+        "S31.Gadgets.Radix.add_chain_checked_sound_complete",
+        "S31.Gadgets.Arithmetic.signed_add_sound_complete",
+        "S31.Gadgets.Signed.sign_sound_complete",
+        "S31.Gadgets.Packing.top_limb_sign"
+      ],
+      "source": {
+        "path": "src/frontends/s31/language/relation_compiler.zig",
+        "function": "intBinary"
+      }
+    },
+    {
+      "op": "int_add_wrapping",
+      "semantics": "S31.Integers.evaluate",
+      "gadget_theorems": [
+        "S31.Gadgets.Radix.add_chain_wrapping_sound_complete",
+        "S31.Gadgets.Arithmetic.twos_emod",
+        "S31.Gadgets.Packing.integer_layout"
+      ],
+      "source": {
+        "path": "src/frontends/s31/language/relation_compiler.zig",
+        "function": "intBinary"
+      }
+    },
+    {
+      "op": "int_sub_checked",
+      "semantics": "S31.Integers.evaluate",
+      "gadget_theorems": [
+        "S31.Gadgets.Radix.sub_chain_checked_sound_complete",
+        "S31.Gadgets.Arithmetic.signed_sub_sound_complete",
+        "S31.Gadgets.Signed.sign_sound_complete",
+        "S31.Gadgets.Packing.top_limb_sign"
+      ],
+      "source": {
+        "path": "src/frontends/s31/language/relation_compiler.zig",
+        "function": "intBinary"
+      }
+    },
+    {
+      "op": "int_sub_wrapping",
+      "semantics": "S31.Integers.evaluate",
+      "gadget_theorems": [
+        "S31.Gadgets.Radix.sub_chain_wrapping_sound_complete",
+        "S31.Gadgets.Arithmetic.twos_emod",
+        "S31.Gadgets.Packing.integer_layout"
+      ],
+      "source": {
+        "path": "src/frontends/s31/language/relation_compiler.zig",
+        "function": "intBinary"
+      }
+    },
+    {
+      "op": "int_le",
+      "semantics": "S31.Integers.evaluate",
+      "gadget_theorems": [
+        "S31.Gadgets.Arithmetic.comparison_sound_complete",
+        "S31.Gadgets.Signed.signed_le",
+        "S31.Gadgets.Signed.le_sound_complete",
+        "S31.Gadgets.Signed.sign_sound_complete"
+      ],
+      "source": {
+        "path": "src/frontends/s31/language/relation_compiler.zig",
+        "function": "intBinary"
+      }
+    }
+  ]
+}

@@ -23,6 +23,13 @@ The root contains the package build files and [`mod.zig`](mod.zig), the Zig modu
 
 The matching [design dossier](../../../design/s31/README.md) keeps proposals and measurements separate from maintained source. Historical measurements remain pinned records; moved records retain their original contents.
 
+The [Lean package](../../../formal/s31/README.md) provides executable semantics
+for all 43 normalized operations and soundness/completeness proofs for their
+local constraint models, reusing the repository's M31 and Poseidon S-box
+semantics. Its operation map, source bindings and CI audit keep the claim
+bounded: production compiler/AIR correspondence and zero knowledge remain
+separate formal obligations.
+
 **Start with the [S31 documentation](docs/README.md).** It follows handwritten programs through typed source, normalized relations, circuit gates, AIR rows and polynomials, hashes, proof artifacts, and native verification. Its examples and local links are checked by `python3 src/frontends/s31/docs/check.py`.
 
 For `.s31` editor support, see the [S31 TextMate grammar and neon theme](../../../editors/vscode-s31/README.md). GitHub currently highlights `.s31` files through a Cairo language override; a distinct S31 name and pink language color require upstream Linguist registration.
