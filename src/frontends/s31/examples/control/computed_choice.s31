@@ -1,9 +1,0 @@
-use std@1;
-
-// A computed condition: choose right when x is zero, left otherwise.
-circuit computed_choice(public x: [m31; 1], public left: [m31; 1],
-                        public right: [m31; 1]) -> public [m31; 1] {
-    let zero = std::field::is_zero(x);
-    let result = std::field::select(zero, left, right);
-    result
-}

@@ -1,8 +1,0 @@
-use std@1;
-
-// Runtime reshape yields two fixed rows; flatten rejoins those rows.
-circuit array_matrix_runtime(private x: [m31; 8]) -> public [m31; 1] {
-    let rows = std::array::reshape<2>(x);
-    let flat = std::array::flatten(rows);
-    std::array::get<6>(flat)
-}

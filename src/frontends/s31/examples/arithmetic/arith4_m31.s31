@@ -1,9 +1,0 @@
-// Four independent M31 recurrences. The function disappears into one repeat node.
-fn step(v: [m31; 4]) -> [m31; 4] {
-    v .* v + splat<4>(7_m31)
-}
-
-circuit arith4_m31(public x: [m31; 4]) -> public [m31; 4] {
-    let result = iterate<256>(step, x);
-    result
-}

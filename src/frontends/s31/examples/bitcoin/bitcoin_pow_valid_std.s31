@@ -1,9 +1,0 @@
-use std@1;
-
-// Exact SHA256d of the serialized header, interpreted as a little-endian
-// 256-bit integer, must be at most the decoded mainnet compact target.
-circuit bitcoin_pow_valid_std(private header: Bytes80) -> public bit {
-    let valid = std::bitcoin::pow_valid(header);
-    assert_eq(valid, splat<1>(1_m31));
-    valid
-}

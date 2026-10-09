@@ -1,6 +1,0 @@
-use std@1;
-
-// The private typed input is range constrained to {0,1} by its use in and.
-circuit bool_input_and(public a: bit, private b: bit) -> public bit {
-    std::bool::and(a, b)
-}

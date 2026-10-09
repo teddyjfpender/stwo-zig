@@ -1,9 +1,0 @@
-.{
-    .fingerprint = 0x96ee2e4f4a191ac0,
-    .name = .stwo_s31_prototype,
-    .version = "0.1.0",
-    .paths = .{"."},
-    .dependencies = .{
-        .stwo_circuit_cpu_integration = .{ .path = "../../integrations/circuit_cpu" },
-    },
-}

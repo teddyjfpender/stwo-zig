@@ -1,6 +1,0 @@
-circuit affine4_v1(public x: [u16; 4]) -> public [m31; 4] {
-    let field = m31_from_u16(x);
-    let scaled = field .* splat<4>(7_m31);
-    let y = scaled + splat<4>(11_m31);
-    y
-}

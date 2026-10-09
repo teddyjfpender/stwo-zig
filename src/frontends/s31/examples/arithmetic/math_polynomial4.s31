@@ -1,8 +1,0 @@
-// f(x) = x^5 + 3x - 7 over M31, independently in four lanes.
-circuit math_polynomial4(public x: [m31; 4]) -> public [m31; 4] {
-    let fifth = std::math::pow<5>(x);
-    let triple = x .* splat<4>(3_m31);
-    let combined = fifth + triple;
-    let result = std::math::sub(combined, splat<4>(7_m31));
-    result
-}

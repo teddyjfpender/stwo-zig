@@ -1,9 +1,0 @@
-use std@1;
-
-// The first element of b crosses an unaligned u16 concatenation boundary.
-circuit array_views_u16(private a: [u16; 3], private b: [u16; 2])
-    -> public [u16; 1] {
-    let joined = std::array::concat(a, b);
-    let picked = std::array::get<3>(joined);
-    picked
-}

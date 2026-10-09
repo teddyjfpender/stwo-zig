@@ -1,9 +1,0 @@
-// A three-round base proof, followed by arbitrarily many recursively proven steps.
-fn step(v: [m31; 4]) -> [m31; 4] {
-    (v .* v) .* splat<4>(3_m31) + splat<4>(5_m31)
-}
-
-circuit affine_square4(public x: [m31; 4]) -> public [m31; 4] {
-    let result = iterate<3>(step, x);
-    result
-}
