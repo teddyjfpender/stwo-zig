@@ -531,6 +531,7 @@
       "rhs": "_s31_42"
     }
   ],
+  "proof_mode": "blinded",
   "public_outputs": [
     "receipt"
   ],

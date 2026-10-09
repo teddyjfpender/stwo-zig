@@ -111,7 +111,9 @@ def _int_spec(node: Mapping[str, Any]) -> tuple[int, bool, int]:
 
 
 def _validated_shapes(relation: Mapping[str, Any]) -> tuple[dict[str, tuple[str, int]], int]:
-    _object(relation, "relation", {"version", "name", "inputs", "nodes", "assertions", "public_outputs"})
+    _object(relation, "relation", {"version", "name", "proof_mode", "inputs", "nodes", "assertions", "public_outputs"})
+    if relation.get("proof_mode", "transparent") not in ("transparent", "blinded"):
+        raise OracleError("relation.proof_mode must be transparent or blinded")
     if relation.get("version") != 1 or type(relation.get("version")) is not int:
         raise OracleError("relation.version must be 1")
     _name(relation.get("name"), "relation.name")

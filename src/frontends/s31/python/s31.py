@@ -21,6 +21,8 @@ import tempfile
 import time
 from pathlib import Path
 
+import proof_privacy
+
 S31_DIR = S31_SOURCE_ROOT
 ROOT = S31_DIR.parents[2]
 BUILD_FILE = S31_DIR / "build.zig"
@@ -34,6 +36,7 @@ TEXT_FRONTEND_SOURCES = (
     S31_DIR / "python/text_frontend.py",
     S31_DIR / "python/s31_stdlib.py",
     S31_DIR / "python/s31_mathlib.py",
+    S31_DIR / "python/proof_privacy.py",
 )
 
 
@@ -136,6 +139,7 @@ def build_json(source_path: Path, output: Path, lowering: str = "gate",
         raise ValueError("FRI fold step 4 requires gate or sparse-wide-gate lowering; supported steps are 1 and 4")
     source_path = source_path.resolve()
     source, data = load_source(source_path)
+    privacy = proof_privacy.policy_for(source, lowering, fri_fold_step)
     lock_bytes = ((json.dumps(library_lock, indent=2, sort_keys=True) + "\n").encode()
                   if library_lock is not None else None)
     lock_digest = sha256(lock_bytes) if lock_bytes is not None else None
@@ -175,7 +179,7 @@ def build_json(source_path: Path, output: Path, lowering: str = "gate",
         if inspection["program_sha256"] != sha256(data):
             raise RuntimeError("compiled program does not match source")
         key = {
-            "schema": "s31-verification-key-v5p" if inspection["profile"] == "direct-m31-private-v5" else "s31-verification-key-sha-fused-v4" if lowering == "sha-fused" else "s31-verification-key-sha-shift-v3" if lowering == "sha-shift" else "s31-verification-key-sha-joint-v1" if lowering == "sha-joint" else "s31-verification-key-v4" if lowering.startswith("direct-") else "s31-verification-key-v5" if lowering == "sparse-wide-gate" else "s31-verification-key-v3" if lowering.startswith("sparse-") else "s31-verification-key-v2" if lowering == "chip" else "s31-verification-key-v1",
+            "schema": proof_privacy.KEY_SCHEMA if privacy else "s31-verification-key-v5p" if inspection["profile"] == "direct-m31-private-v5" else "s31-verification-key-sha-fused-v4" if lowering == "sha-fused" else "s31-verification-key-sha-shift-v3" if lowering == "sha-shift" else "s31-verification-key-sha-joint-v1" if lowering == "sha-joint" else "s31-verification-key-v4" if lowering.startswith("direct-") else "s31-verification-key-v5" if lowering == "sparse-wide-gate" else "s31-verification-key-v3" if lowering.startswith("sparse-") else "s31-verification-key-v2" if lowering == "chip" else "s31-verification-key-v1",
             "profile": inspection["profile"],
             "chip": inspection["chip"],
             "name": name,
@@ -189,6 +193,10 @@ def build_json(source_path: Path, output: Path, lowering: str = "gate",
             "air_bundle_sha256": AIR_BUNDLE_SHA256,
             "fri": inspection["fri"],
         }
+        if privacy is not None:
+            if not proof_privacy.matches_policy(inspection.get("proof_privacy"), privacy):
+                raise RuntimeError("compiled blinding policy does not match source")
+            key["proof_privacy"] = privacy
         if lock_digest is not None:
             key["stdlib_lock_sha256"] = lock_digest
         if lowering == "sha-joint":
@@ -207,7 +215,7 @@ def build_json(source_path: Path, output: Path, lowering: str = "gate",
         recursive_next_option: tuple[str, ...] = ()
         fold_option: tuple[str, ...] = ()
         state_fold_option: tuple[str, ...] = ()
-        if lowering in {"gate", "sparse-wide-gate"}:
+        if privacy is None and lowering in {"gate", "sparse-wide-gate"}:
             recursive_key = staging / "recursive-verification-key.json"
             invoke(str(prover), "recurse-keygen", str(staging / "verification-key.json"),
                    str(recursive_key))
@@ -221,7 +229,7 @@ def build_json(source_path: Path, output: Path, lowering: str = "gate",
                 invoke(str(prover), "wide-fold-keygen", str(staging / "verification-key.json"),
                        str(recursive_key), str(recursive_next_key), str(fold_key))
                 fold_option = (f"-Ds31-fold-key={fold_key}",)
-        if lowering == "gate":
+        if privacy is None and lowering == "gate":
             fold_key = staging / "fixed-fold-verification-key.json"
             invoke(str(prover), "fold-keygen", str(staging / "verification-key.json"),
                    str(recursive_key), str(fold_key))
@@ -274,6 +282,9 @@ def build_json(source_path: Path, output: Path, lowering: str = "gate",
         }
         if recursive_option:
             manifest["recursive_fri_fold_step"] = 4 if lowering == "sparse-wide-gate" else fri_fold_step
+        if privacy is not None:
+            manifest["proof_mode"] = "blinded"
+            manifest["proof_privacy"] = privacy
         if fold_option:
             manifest["capabilities"] = ["s31-fixed-fold-batch-v1"]
         if state_fold_option:
@@ -309,6 +320,7 @@ def text_interface(circuit: object, explicit_import: bool) -> dict:
         "inputs": [{"name": name, "visibility": visibility, "type": type_entry(typ)}
                    for name, typ, visibility in circuit.params],
         "output": type_entry(circuit.result),
+        **({"proof_mode": "blinded"} if circuit.proof_mode == "blinded" else {}),
         "stdlib": {"package": "std", "version": standard_library_lock(explicit_import)["version"],
                    "explicit_import": explicit_import},
     }
@@ -388,11 +400,13 @@ def verify_package(package: Path) -> dict:
     }
     if not required_artifacts.issubset(artifacts):
         raise ValueError("S31 package is missing required artifacts")
+    source = json.loads((package / "source.s31.json").read_text())
+    privacy = proof_privacy.policy_for(source, manifest.get("lowering"), manifest.get("fri_fold_step", 1))
     fri_fold_step = manifest.get("fri_fold_step", 1)
     if (type(fri_fold_step) is not int or fri_fold_step not in (1, 4) or
             (fri_fold_step == 4 and manifest.get("lowering") not in {"gate", "sparse-wide-gate"})):
         raise ValueError("invalid S31 package FRI fold step")
-    if manifest.get("lowering") in {"gate", "sparse-wide-gate"}:
+    if privacy is None and manifest.get("lowering") in {"gate", "sparse-wide-gate"}:
         if not {"recursive-verification-key.json", "recursive-verification-key-level2.json"}.issubset(artifacts):
             raise ValueError("recursive package is missing its verification keys")
         recursive_key = json.loads((package / "recursive-verification-key.json").read_text())
@@ -432,7 +446,7 @@ def verify_package(package: Path) -> dict:
                     fold_key.get("projection_sha256") != PROJECTION_SHA256 or
                     fold_key.get("air_bundle_sha256") != AIR_BUNDLE_SHA256):
                 raise ValueError("S31 wide fixed-fold key does not match its base key and pinned AIR")
-    if manifest.get("lowering") == "gate":
+    if privacy is None and manifest.get("lowering") == "gate":
         if not {"recursive-verification-key.json", "recursive-verification-key-level2.json", "fixed-fold-verification-key.json"}.issubset(artifacts):
             raise ValueError("gate package is missing its recursive verification keys")
         fold_key = json.loads((package / "fixed-fold-verification-key.json").read_text())
@@ -484,6 +498,7 @@ def verify_package(package: Path) -> dict:
             fri_config.get("fold_step") != fri_fold_step):
         raise ValueError("S31 package key does not match manifest")
     report = json.loads((package / "cost-report.json").read_text())
+    proof_privacy.validate_package(source, manifest, key, report)
     inspected_key_fields = (
         "program_sha256", "canonical_ir_sha256", "profile", "chip",
         "preprocessed_root", "circuit_hash", "padded", "trace_log_size", "fri",

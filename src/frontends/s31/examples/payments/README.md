@@ -5,10 +5,12 @@ deployment. It replaces [Tongo's EC/ElGamal encrypted accounts](https://docs.ton
 notes. One S31 relation spends one note and creates a recipient note and change.
 No EC operations, new AIR, or new proof protocol are introduced.
 
-**S31's current proof profiles do not provide a general zero-knowledge
-guarantee. `private` removes a witness from the public ABI; it does not establish
-confidentiality of the proof. Do not publish real payment witnesses or use this
-example for real funds.**
+This example declares `blinded circuit` and uses the full gate profile with
+fresh random-row blinding. [Proof privacy](../../docs/proof-privacy.md) explains
+the mode and verifier binding. **This remains experimental: neither `private`
+nor the new blinding mode establishes a reviewed, general zero-knowledge
+guarantee. Do not publish real payment witnesses or use this example for real
+funds.**
 
 ## Contract before implementation
 
@@ -44,9 +46,11 @@ code is an educational construction, not an audited encryption protocol.
 Encrypted memo correctness is checked by the receiving wallet; the circuit
 binds its hash but does not prove that its plaintext opens the output note.
 
-The native verifier remains the existing `sparse-wide-gate` verifier. This
-example changes neither its transcript nor its security parameters and makes
-no new Rust interoperability or post-quantum security-level claim.
+The native verifier uses the existing full circuit AIR and PCS with a distinct
+blinded profile/key and source-bound blinding geometry. Sparse-wide lowering
+is rejected for this source. The FRI settings stay at 70 queries, log blowup 1,
+PoW 26 and fold step 1. There is no new full-proof Rust interoperability or
+post-quantum security-level claim.
 
 ## Files and validation
 
@@ -77,8 +81,8 @@ times and sizes are diagnostics, not an apples-to-apples Tongo benchmark.
 
 ## Required next slices
 
-1. Specify and implement witness hiding for the exact S31 proof profile, with a
-   soundness/zero-knowledge analysis and independent verifier evidence.
+1. Establish a reviewed zero-knowledge argument for the complete blinded proof
+   transcript and complete pinned Rust proof interoperability evidence.
 2. Audit commitment, nullifier, receipt and hash parameters, including quantum
    margins. Eight M31 words are about 248 output bits; that alone does not imply
    128-bit quantum collision security.

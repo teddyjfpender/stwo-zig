@@ -84,6 +84,7 @@ class PaymentTests(unittest.TestCase):
         self.assertEqual(witness, json.loads((PAYMENTS / "tongo_transfer.valid.json").read_text()))
         self.assertEqual(evaluate_relation(self.relation, witness), witness["public_outputs"])
         self.assertTrue(all(x["visibility"] == "private" for x in self.relation["inputs"]))
+        self.assertEqual(self.relation["proof_mode"], "blinded")
         self.assertEqual(self.relation["public_outputs"], ["receipt"])
         allowed = {"array_concat", "cast_m31", "constant", "hash_poseidon2_leaf",
                    "hash_poseidon2_pair", "int_add_checked", "int_view", "is_zero",

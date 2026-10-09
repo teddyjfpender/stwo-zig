@@ -30,6 +30,7 @@ from reference import (P, U64, Ledger, Note, PaymentError, assignment, context_f
                        fixture, owner, random_words)
 from test_tongo import invalid_witnesses
 from text_frontend import compile_file
+from acceptance_proof_privacy import commitments
 
 
 def run(*args: object, accept: bool) -> subprocess.CompletedProcess:
@@ -45,7 +46,7 @@ def main() -> None:
     work.mkdir(parents=True, exist_ok=True)
     source = PAYMENTS / "tongo_transfer.s31"
     relation, _ = compile_file(source)
-    package = s31.build(source, work / "package", "sparse-wide-gate")
+    package = s31.build(source, work / "blinded-package", "gate")
     s31.verify_package(package)
     prover = package / "bin/s31-tongo_transfer-prover"
     verifier = package / "bin/s31-tongo_transfer-native-verifier"
@@ -87,6 +88,10 @@ def main() -> None:
     memo = seal_note(recipient, invoice_key, ledger.context)
     first, good = assignment(ledger, 0, original, alice, recipient, change, 5, memo)
     proof = prove(good, "alice-to-bob")
+    repeated = prove(good, "alice-to-bob-repeat")
+    # Non-determinism is a regression check for fresh entropy, not a ZK proof.
+    if commitments(proof)[0] != commitments(repeated)[0] or commitments(proof)[1] == commitments(repeated)[1]:
+        raise AssertionError("repeated payment must have different trace commitments")
 
     for field in ("context", "anchor", "nullifier", "recipient", "change", "delivery", "fee"):
         value = getattr(first, field)
@@ -147,7 +152,7 @@ def main() -> None:
     _, large_witness = assignment(boundary, 0, large, secret, payment, zero_change, 1, b"boundary test memo")
     prove(large_witness, "u64-max-zero-change")
 
-    report = {"schema": "s31-hash-payment-acceptance-v1", "lowering": "sparse-wide-gate",
+    report = {"schema": "s31-hash-payment-acceptance-v1", "lowering": "gate", "proof_mode": "blinded",
               "source_sha256": hashlib.sha256(source.read_bytes()).hexdigest(),
               "compiler_sha256": s31.verify_package(package)["compiler_sha256"],
               "host": {"platform": platform.platform(), "machine": platform.machine(),

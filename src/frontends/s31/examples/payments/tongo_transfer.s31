@@ -16,7 +16,8 @@ fn note(context: Digest<Poseidon2>, who: Digest<Poseidon2>,
 
 // Only the receipt is in the public ABI. The ledger recomputes it from the
 // public transaction envelope and supplies it to the native verifier.
-circuit tongo_transfer(
+// Experimental full-profile random-row blinding; see the privacy contract.
+blinded circuit tongo_transfer(
     private context: Digest<Poseidon2>,
     private anchor: Digest<Poseidon2>,
     private delivery: Digest<Poseidon2>,

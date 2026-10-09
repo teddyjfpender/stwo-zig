@@ -216,7 +216,12 @@ pub fn build(allocator: std.mem.Allocator, program: relation.Program) !IR {
     };
     defer allocator.free(encoded);
     var digest: [32]u8 = undefined;
-    std.crypto.hash.sha2.Sha256.hash(encoded, &digest, .{});
+    var hasher = std.crypto.hash.sha2.Sha256.init(.{});
+    // Keep legacy transparent digests byte-for-byte stable. A privacy request
+    // must change the verifier identity even when the arithmetic graph agrees.
+    if (program.proof_mode == .blinded) hasher.update("S31-PROOF-MODE:blinded-v1\x00");
+    hasher.update(encoded);
+    hasher.final(&digest);
     const owned_nodes = try nodes.toOwnedSlice(allocator);
     errdefer allocator.free(owned_nodes);
     const owned_source = try source.toOwnedSlice(allocator);
@@ -387,4 +392,16 @@ test "legacy arithmetic canonical digest remains stable after select extension" 
     defer ir.deinit();
     const actual = std.fmt.bytesToHex(ir.sha256, .lower);
     try std.testing.expectEqualStrings("afdd4467b3e476e55b583f0f570d0ecbf71687fb4bdf6d3935b1d130ce57cfad", &actual);
+}
+
+test "proof mode is bound independently of ABI visibility" {
+    var parsed = try relation.parseProgram(std.testing.allocator, @embedFile("../examples/arithmetic/arith4.s31.json"));
+    defer parsed.deinit();
+    var transparent = try build(std.testing.allocator, parsed.value);
+    defer transparent.deinit();
+    parsed.value.proof_mode = .blinded;
+    var blinded = try build(std.testing.allocator, parsed.value);
+    defer blinded.deinit();
+    try std.testing.expectEqual(transparent.nodes.len, blinded.nodes.len);
+    try std.testing.expect(!std.mem.eql(u8, &transparent.sha256, &blinded.sha256));
 }

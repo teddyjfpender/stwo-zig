@@ -46,6 +46,7 @@ pub const bitcoin_fold_step = @import("bitcoin/fold/bitcoin_fold_step.zig");
 pub const bitcoin_fold_digest = @import("bitcoin/fold/bitcoin_fold_digest.zig");
 pub const bitcoin_fold_preprocessed_guard = @import("bitcoin/fold/bitcoin_fold_preprocessed_guard.zig");
 pub const canonical = @import("language/canonical.zig");
+pub const proof_privacy = @import("runtime/proof_privacy.zig");
 
 test {
     _ = program;
@@ -92,4 +93,5 @@ test {
     _ = bitcoin_fold_digest;
     _ = bitcoin_fold_preprocessed_guard;
     _ = canonical;
+    _ = proof_privacy;
 }

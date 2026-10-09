@@ -10,6 +10,18 @@ const poseidon2 = @import("../library/hash/poseidon2.zig");
 
 pub const Kind = enum { u16, m31 };
 pub const Visibility = enum { public, private };
+/// ABI visibility and proof blinding are independent. `blinded` is the
+/// experimental pinned random-row construction, not a general ZK guarantee.
+pub const ProofMode = enum {
+    transparent,
+    blinded,
+
+    pub fn jsonParse(allocator: std.mem.Allocator, source: anytype, options: std.json.ParseOptions) !@This() {
+        if (try source.peekNextTokenType() != .string) return error.UnexpectedToken;
+        const name = try std.json.innerParse([]const u8, allocator, source, options);
+        return std.meta.stringToEnum(@This(), name) orelse error.InvalidEnumTag;
+    }
+};
 pub const Input = struct {
     name: []const u8,
     kind: Kind,
@@ -91,6 +103,7 @@ pub const StateFoldSpec = struct { rounds: u32, body: []const Step };
 pub const Program = struct {
     version: u32,
     name: []const u8,
+    proof_mode: ProofMode = .transparent,
     inputs: []Input,
     nodes: []Node,
     assertions: []Assertion,
@@ -390,6 +403,14 @@ pub fn parseProgram(allocator: std.mem.Allocator, source: []const u8) !ParsedPro
     errdefer parsed.deinit();
     try parsed.value.validate(allocator);
     return parsed;
+}
+
+test "unknown proof mode is rejected rather than downgraded" {
+    const source =
+        \\{"version":1,"name":"bad_mode","proof_mode":"zk","inputs":[],"nodes":[],"assertions":[],"public_outputs":[]}
+    ;
+    try std.testing.expectError(error.InvalidEnumTag, parseProgram(std.testing.allocator, source));
+    try std.testing.expectError(error.UnexpectedToken, parseProgram(std.testing.allocator, "{\"version\":1,\"name\":\"bad_mode\",\"proof_mode\":1,\"inputs\":[],\"nodes\":[],\"assertions\":[],\"public_outputs\":[]}"));
 }
 
 pub fn parseAssignment(allocator: std.mem.Allocator, source: []const u8) !ParsedAssignment {

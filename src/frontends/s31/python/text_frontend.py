@@ -143,6 +143,7 @@ class Circuit:
     result: Type
     statements: tuple[Statement, ...]
     body: Expr
+    proof_mode: str = "transparent"
 
 
 def lex(source: str, filename: str = "<source>") -> list[Token]:
@@ -197,7 +198,7 @@ class Parser:
 
     def identifier(self) -> str:
         token = self.peek()
-        if token.kind != "ident" or token.text in {"use", "let", "fn", "circuit", "public", "private", "assert_eq"}:
+        if token.kind != "ident" or token.text in {"use", "let", "fn", "circuit", "blinded", "public", "private", "assert_eq"}:
             raise self.error("expected identifier")
         self.at += 1
         return token.text
@@ -309,6 +310,7 @@ class Parser:
             result = self.parse_type()
             statements, body = self.block()
             return Function(name, params, result, statements, body)
+        proof_mode = "blinded" if self.accept("blinded") else "transparent"
         self.expect("circuit")
         name = self.identifier()
         params = self.parameters(True)
@@ -316,7 +318,7 @@ class Parser:
         self.expect("public")
         result = self.parse_type()
         statements, body = self.block()
-        return Circuit(name, params, result, statements, body)
+        return Circuit(name, params, result, statements, body, proof_mode)
 
     def expression(self, min_power: int = 0) -> Expr:
         token = self.peek()
@@ -843,8 +845,11 @@ class Compiler:
         env = {name: self.builder.input(name, typ, visibility)
                for name, typ, visibility in self.circuit.params}
         result = self.eval_block(self.circuit.statements, self.circuit.body, env)
-        return self.builder.finish(result, self.circuit.result,
-                                   span=self.span(self.circuit.body)), self.builder.source_map
+        relation = self.builder.finish(result, self.circuit.result,
+                                       span=self.span(self.circuit.body))
+        if self.circuit.proof_mode == "blinded":
+            relation["proof_mode"] = "blinded"
+        return relation, self.builder.source_map
 
 
 def compile_text(source: str, filename: str = "<source>") -> tuple[dict[str, Any], dict[str, dict[str, int]]]:

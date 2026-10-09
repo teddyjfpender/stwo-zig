@@ -11,6 +11,7 @@ const fixed_fold = @import("../recursion/fixed_fold.zig");
 const state_fold = @import("../recursion/state_fold.zig");
 const recursion_sparse_wide = @import("../recursion/recursion_sparse_wide.zig");
 const relation = s31.relation;
+const privacy = s31.proof_privacy;
 
 const QM31 = core.fields.qm31.QM31;
 const PcsConfigV2 = core.pcs.config_v2.PcsConfigV2;
@@ -43,6 +44,7 @@ const ChipKey = struct {
 const Key = struct {
     schema: []const u8,
     profile: []const u8 = "circuit-v1",
+    proof_privacy: ?privacy.Policy = null,
     chip: ?ChipKey = null,
     private_boundary: ?circuit.common.direct_arithmetic.PrivateBoundary = null,
     name: []const u8,
@@ -197,6 +199,7 @@ const InputPacking = struct { name: []const u8, lanes: u32, qm31_wires: usize };
 const Report = struct {
     name: []const u8,
     profile: []const u8,
+    proof_privacy: ?privacy.Policy,
     chip: ?ChipKey,
     private_boundary: ?circuit.common.direct_arithmetic.PrivateBoundary,
     repeated_step: ?relation.ChipSpec,
@@ -220,6 +223,9 @@ const Report = struct {
 };
 
 pub fn main() !void {
+    // Check the source request before dispatching to specialized runtimes.
+    var source_guard = try parsedProgram(std.heap.page_allocator);
+    defer source_guard.deinit();
     if (sha_joint_mode) return @import("../sha/package/sha_package_runtime.zig").main();
     if (sha_shift_mode) return @import("../sha/package/sha_shift_package_runtime.zig").main();
     if (sha_fused_mode) return @import("../sha/package/sha_fused_package_runtime.zig").main();
@@ -232,6 +238,10 @@ pub fn main() !void {
     const command = args[1];
     var parsed = try parsedProgram(allocator);
     defer parsed.deinit();
+    if (parsed.value.proof_mode == .blinded and
+        !std.mem.eql(u8, command, "check") and !std.mem.eql(u8, command, "run") and
+        !std.mem.eql(u8, command, "inspect") and !std.mem.eql(u8, command, "prove"))
+        return error.UnsupportedBlindingCommand;
     if (chip_mode and sourceChipSpec(parsed.value) == null)
         return error.UnsupportedChipRelation;
     if (direct_mode) for (parsed.value.inputs) |input| {
@@ -330,6 +340,8 @@ fn sourceChipSpec(source: relation.Program) ?relation.ChipSpec {
 /// Entry point of the separately installed verifier binary. Its accepted
 /// program is fixed by `embedded_source` at compile time.
 pub fn verifierMain(embedded_key: []const u8, embedded_recursive_key: []const u8, embedded_recursive_next_key: []const u8, embedded_fold_key: []const u8, embedded_state_fold_key: []const u8) !void {
+    var source_guard = try parsedProgram(std.heap.page_allocator);
+    defer source_guard.deinit();
     if (sha_joint_mode) return @import("../sha/package/sha_package_runtime.zig").verifierMain();
     if (sha_shift_mode) return @import("../sha/package/sha_shift_package_runtime.zig").verifierMain();
     if (sha_fused_mode) return @import("../sha/package/sha_fused_package_runtime.zig").verifierMain();
@@ -338,6 +350,10 @@ pub fn verifierMain(embedded_key: []const u8, embedded_recursive_key: []const u8
     const allocator = gpa_state.allocator();
     const args = try std.process.argsAlloc(allocator);
     defer std.process.argsFree(allocator, args);
+    if (source_guard.value.proof_mode == .blinded and args.len > 1 and
+        (std.mem.startsWith(u8, args[1], "recurse-") or
+            std.mem.eql(u8, args[1], "fold-verify") or std.mem.eql(u8, args[1], "state-fold-verify")))
+        return error.UnsupportedBlindingCommand;
     if (args.len == 4 and std.mem.eql(u8, args[1], "recurse-verify"))
         return verifyOuter(allocator, args[2], args[3], embedded_key, embedded_recursive_key);
     if (args.len == 4 and std.mem.eql(u8, args[1], "recurse-verify-next"))
@@ -388,7 +404,15 @@ fn usage() error{InvalidArguments} {
 }
 
 fn parsedProgram(allocator: std.mem.Allocator) !relation.ParsedProgram {
-    return relation.parseProgram(allocator, embedded_source);
+    var parsed = try relation.parseProgram(allocator, embedded_source);
+    errdefer parsed.deinit();
+    _ = try proofPrivacy(parsed.value);
+    return parsed;
+}
+
+fn proofPrivacy(source: relation.Program) !?privacy.Policy {
+    return privacy.forMode(source.proof_mode, !chip_mode and !sparse_mode and !direct_mode and
+        !sha_joint_mode and !sha_shift_mode and !sha_fused_mode, fri_fold_step);
 }
 
 fn readAssignment(allocator: std.mem.Allocator, path: []const u8) !relation.ParsedAssignment {
@@ -472,6 +496,7 @@ fn sameItems(a: anytype, b: @TypeOf(a)) bool {
 fn topology(allocator: std.mem.Allocator, source: relation.Program) !preprocessed.PreprocessedCircuit {
     var ctx = try s31.relation_compiler.compile(circuit.builder.NoValue, allocator, source, null);
     defer ctx.deinit();
+    try privacy.blindTopology(&ctx, try proofPrivacy(source));
     try circuit.common.finalize.padContext(circuit.builder.NoValue, &ctx);
     try preprocessed.CircuitView.fromBuilder(&ctx.circuit).validate();
     return preprocessed.PreprocessedCircuit.fromBuilderCircuit(allocator, &ctx.circuit);
@@ -507,6 +532,7 @@ fn inspect(allocator: std.mem.Allocator, source: relation.Program) !void {
         try s31.relation_compiler.compileWithSpans(circuit.builder.NoValue, allocator, source, null, &maps);
     defer ctx.deinit();
     const raw = circuit.common.finalize.rawComponentSizes(preprocessed.CircuitView.fromBuilder(&ctx.circuit));
+    try privacy.blindTopology(&ctx, try proofPrivacy(source));
     try padForProfile(circuit.builder.NoValue, &ctx);
     const padded = circuit.common.finalize.rawComponentSizes(preprocessed.CircuitView.fromBuilder(&ctx.circuit));
     var preprocessed_cells: usize = 0;
@@ -644,7 +670,8 @@ fn inspect(allocator: std.mem.Allocator, source: relation.Program) !void {
     };
     const report: Report = .{
         .name = source.name,
-        .profile = if (privateChip(source)) "direct-m31-private-v5" else if (direct_mode) "direct-m31-v4" else if (wide_mode) "sparse-wide-v5" else if (sparse_mode) "sparse-v3" else if (chip_mode) "hybrid-step-v2" else "circuit-v1",
+        .profile = if (source.proof_mode == .blinded) "circuit-blinded-v1" else if (privateChip(source)) "direct-m31-private-v5" else if (direct_mode) "direct-m31-v4" else if (wide_mode) "sparse-wide-v5" else if (sparse_mode) "sparse-v3" else if (chip_mode) "hybrid-step-v2" else "circuit-v1",
+        .proof_privacy = try proofPrivacy(source),
         .chip = if (chip_mode) blk: {
             const spec = sourceChipSpec(source).?;
             break :blk .{ .rounds = spec.rounds, .constant = spec.constant, .relation_id = cpu.repeated_step_chip.relation_id };
@@ -698,6 +725,10 @@ fn prove(allocator: std.mem.Allocator, source: relation.Program, assignment_path
     defer topology_ctx.deinit();
     if (!sameTopology(&value_ctx.circuit, &topology_ctx.circuit)) return error.ValueDependentTopology;
     const raw = circuit.common.finalize.rawComponentSizes(preprocessed.CircuitView.fromBuilder(&topology_ctx.circuit));
+    const policy = try proofPrivacy(source);
+    try privacy.blindWitness(&value_ctx, policy);
+    try privacy.blindTopology(&topology_ctx, policy);
+    if (!sameTopology(&value_ctx.circuit, &topology_ctx.circuit)) return error.ValueDependentTopology;
     try padForProfile(QM31, &value_ctx);
     try padForProfile(circuit.builder.NoValue, &topology_ctx);
     if (!sameTopology(&value_ctx.circuit, &topology_ctx.circuit)) return error.ValueDependentTopology;
@@ -3410,6 +3441,7 @@ fn verify(allocator: std.mem.Allocator, path: []const u8, statement_path: []cons
 }
 
 fn validateKey(allocator: std.mem.Allocator, source: relation.Program, key: Key) !void {
+    if (!std.meta.eql(try proofPrivacy(source), key.proof_privacy)) return error.InvalidVerificationKey;
     const expected_stdlib = @import("s31_options").stdlib_lock_sha256;
     if (expected_stdlib.len == 0) {
         if (key.stdlib_lock_sha256 != null) return error.InvalidVerificationKey;
@@ -3417,8 +3449,8 @@ fn validateKey(allocator: std.mem.Allocator, source: relation.Program, key: Key)
         const pinned_stdlib = key.stdlib_lock_sha256 orelse return error.InvalidVerificationKey;
         if (!std.mem.eql(u8, pinned_stdlib, expected_stdlib)) return error.InvalidVerificationKey;
     }
-    if (!std.mem.eql(u8, key.schema, if (privateChip(source)) "s31-verification-key-v5p" else if (direct_mode) "s31-verification-key-v4" else if (wide_mode) "s31-verification-key-v5" else if (sparse_mode) "s31-verification-key-v3" else if (chip_mode) "s31-verification-key-v2" else "s31-verification-key-v1") or
-        !std.mem.eql(u8, key.profile, if (privateChip(source)) "direct-m31-private-v5" else if (direct_mode) "direct-m31-v4" else if (wide_mode) "sparse-wide-v5" else if (sparse_mode) "sparse-v3" else if (chip_mode) "hybrid-step-v2" else "circuit-v1") or
+    if (!std.mem.eql(u8, key.schema, if (source.proof_mode == .blinded) "s31-verification-key-blinded-v1" else if (privateChip(source)) "s31-verification-key-v5p" else if (direct_mode) "s31-verification-key-v4" else if (wide_mode) "s31-verification-key-v5" else if (sparse_mode) "s31-verification-key-v3" else if (chip_mode) "s31-verification-key-v2" else "s31-verification-key-v1") or
+        !std.mem.eql(u8, key.profile, if (source.proof_mode == .blinded) "circuit-blinded-v1" else if (privateChip(source)) "direct-m31-private-v5" else if (direct_mode) "direct-m31-v4" else if (wide_mode) "sparse-wide-v5" else if (sparse_mode) "sparse-v3" else if (chip_mode) "hybrid-step-v2" else "circuit-v1") or
         !std.mem.eql(u8, key.name, source.name))
         return error.InvalidVerificationKey;
     if (chip_mode) {
@@ -3457,6 +3489,7 @@ fn validateCompiledKey(allocator: std.mem.Allocator, source: relation.Program, k
     else
         try s31.relation_compiler.compile(circuit.builder.NoValue, allocator, source, null);
     defer ctx.deinit();
+    try privacy.blindTopology(&ctx, try proofPrivacy(source));
     try padForProfile(circuit.builder.NoValue, &ctx);
     const sizes = circuit.common.finalize.rawComponentSizes(preprocessed.CircuitView.fromBuilder(&ctx.circuit));
     const padded: Rows = .{
