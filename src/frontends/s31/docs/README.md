@@ -46,6 +46,9 @@ text .s31 ──parse/typecheck/specialize──▶ normalized relation JSON
 - [Fixed-width integers from source to AIR](fixed-width-integers.md): all
    ten unsigned and signed scalar types, a checked `u8` proof by hand,
    byte range, carry, sign, and comparison constraints.
+- [Hash-based Tongo-style payments](../examples/payments/README.md): a complete
+   note-spend relation, checked 64-bit amounts, an envelope-bound receipt,
+   native proof acceptance and the zero-knowledge work required for confidentiality.
 - [Bitcoin header SHA256d and proof of work](bitcoin-sha256d.md): two actual
    linked 80-byte headers, a one-new-header transition leaf, compact target
    decoding, handwritten gate equations, verified proofs, and the SHA chip boundary.

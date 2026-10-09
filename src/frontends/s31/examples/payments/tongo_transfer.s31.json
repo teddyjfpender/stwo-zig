@@ -1,0 +1,538 @@
+{
+  "assertions": [
+    {
+      "lhs": "root",
+      "rhs": "anchor"
+    },
+    {
+      "lhs": "_s31_0",
+      "rhs": "total"
+    },
+    {
+      "lhs": "_s31_21",
+      "rhs": "_s31_22"
+    }
+  ],
+  "inputs": [
+    {
+      "kind": "m31",
+      "length": 8,
+      "name": "context",
+      "visibility": "private"
+    },
+    {
+      "kind": "m31",
+      "length": 8,
+      "name": "anchor",
+      "visibility": "private"
+    },
+    {
+      "kind": "m31",
+      "length": 8,
+      "name": "delivery",
+      "visibility": "private"
+    },
+    {
+      "kind": "m31",
+      "length": 8,
+      "name": "secret",
+      "visibility": "private"
+    },
+    {
+      "kind": "u16",
+      "length": 4,
+      "name": "input_amount",
+      "visibility": "private"
+    },
+    {
+      "kind": "m31",
+      "length": 8,
+      "name": "input_salt",
+      "visibility": "private"
+    },
+    {
+      "kind": "m31",
+      "length": 8,
+      "name": "recipient_owner",
+      "visibility": "private"
+    },
+    {
+      "kind": "u16",
+      "length": 4,
+      "name": "recipient_amount",
+      "visibility": "private"
+    },
+    {
+      "kind": "m31",
+      "length": 8,
+      "name": "recipient_salt",
+      "visibility": "private"
+    },
+    {
+      "kind": "u16",
+      "length": 4,
+      "name": "change_amount",
+      "visibility": "private"
+    },
+    {
+      "kind": "m31",
+      "length": 8,
+      "name": "change_salt",
+      "visibility": "private"
+    },
+    {
+      "kind": "u16",
+      "length": 4,
+      "name": "fee",
+      "visibility": "private"
+    },
+    {
+      "kind": "m31",
+      "length": 8,
+      "name": "sibling_0",
+      "visibility": "private"
+    },
+    {
+      "kind": "m31",
+      "length": 1,
+      "name": "direction_0",
+      "visibility": "private"
+    },
+    {
+      "kind": "m31",
+      "length": 8,
+      "name": "sibling_1",
+      "visibility": "private"
+    },
+    {
+      "kind": "m31",
+      "length": 1,
+      "name": "direction_1",
+      "visibility": "private"
+    },
+    {
+      "kind": "m31",
+      "length": 8,
+      "name": "sibling_2",
+      "visibility": "private"
+    },
+    {
+      "kind": "m31",
+      "length": 1,
+      "name": "direction_2",
+      "visibility": "private"
+    }
+  ],
+  "name": "tongo_transfer",
+  "nodes": [
+    {
+      "constant": 64,
+      "lhs": "input_amount",
+      "name": "_s31_0",
+      "op": "int_view"
+    },
+    {
+      "constant": 64,
+      "lhs": "recipient_amount",
+      "name": "_s31_1",
+      "op": "int_view"
+    },
+    {
+      "constant": 64,
+      "lhs": "change_amount",
+      "name": "_s31_2",
+      "op": "int_view"
+    },
+    {
+      "constant": 64,
+      "lhs": "fee",
+      "name": "_s31_3",
+      "op": "int_view"
+    },
+    {
+      "constant": 73101,
+      "length": 4,
+      "name": "_s31_4",
+      "op": "constant"
+    },
+    {
+      "lhs": "_s31_4",
+      "name": "_s31_5",
+      "op": "array_concat",
+      "rhs": "secret"
+    },
+    {
+      "lhs": "_s31_5",
+      "name": "who",
+      "op": "hash_poseidon2_leaf"
+    },
+    {
+      "lhs": "_s31_0",
+      "name": "_s31_i2_0",
+      "op": "cast_m31"
+    },
+    {
+      "constant": 73103,
+      "length": 4,
+      "name": "_s31_6",
+      "op": "constant"
+    },
+    {
+      "lhs": "_s31_6",
+      "name": "_s31_7",
+      "op": "array_concat",
+      "rhs": "_s31_i2_0"
+    },
+    {
+      "lhs": "_s31_7",
+      "name": "_s31_i2_1",
+      "op": "hash_poseidon2_leaf"
+    },
+    {
+      "constant": 73102,
+      "length": 4,
+      "name": "_s31_8",
+      "op": "constant"
+    },
+    {
+      "lhs": "_s31_8",
+      "name": "_s31_9",
+      "op": "array_concat",
+      "rhs": "input_salt"
+    },
+    {
+      "lhs": "_s31_9",
+      "name": "_s31_i2_2",
+      "op": "hash_poseidon2_leaf"
+    },
+    {
+      "lhs": "_s31_i2_1",
+      "name": "_s31_10",
+      "op": "hash_poseidon2_pair",
+      "rhs": "context"
+    },
+    {
+      "lhs": "who",
+      "name": "_s31_11",
+      "op": "hash_poseidon2_pair",
+      "rhs": "_s31_i2_2"
+    },
+    {
+      "lhs": "_s31_10",
+      "name": "input",
+      "op": "hash_poseidon2_pair",
+      "rhs": "_s31_11"
+    },
+    {
+      "lhs": "input",
+      "name": "_s31_12",
+      "op": "select",
+      "rhs": "sibling_0",
+      "selector": "direction_0"
+    },
+    {
+      "lhs": "sibling_0",
+      "name": "_s31_13",
+      "op": "select",
+      "rhs": "input",
+      "selector": "direction_0"
+    },
+    {
+      "lhs": "_s31_12",
+      "name": "_s31_14",
+      "op": "hash_poseidon2_pair",
+      "rhs": "_s31_13"
+    },
+    {
+      "lhs": "_s31_14",
+      "name": "_s31_15",
+      "op": "select",
+      "rhs": "sibling_1",
+      "selector": "direction_1"
+    },
+    {
+      "lhs": "sibling_1",
+      "name": "_s31_16",
+      "op": "select",
+      "rhs": "_s31_14",
+      "selector": "direction_1"
+    },
+    {
+      "lhs": "_s31_15",
+      "name": "_s31_17",
+      "op": "hash_poseidon2_pair",
+      "rhs": "_s31_16"
+    },
+    {
+      "lhs": "_s31_17",
+      "name": "_s31_18",
+      "op": "select",
+      "rhs": "sibling_2",
+      "selector": "direction_2"
+    },
+    {
+      "lhs": "sibling_2",
+      "name": "_s31_19",
+      "op": "select",
+      "rhs": "_s31_17",
+      "selector": "direction_2"
+    },
+    {
+      "lhs": "_s31_18",
+      "name": "root",
+      "op": "hash_poseidon2_pair",
+      "rhs": "_s31_19"
+    },
+    {
+      "constant": 64,
+      "lhs": "_s31_1",
+      "name": "outputs",
+      "op": "int_add_checked",
+      "rhs": "_s31_2"
+    },
+    {
+      "constant": 64,
+      "lhs": "outputs",
+      "name": "total",
+      "op": "int_add_checked",
+      "rhs": "_s31_3"
+    },
+    {
+      "lhs": "_s31_1",
+      "name": "_s31_20",
+      "op": "cast_m31"
+    },
+    {
+      "lhs": "_s31_20",
+      "name": "recipient_sum",
+      "op": "sum_lanes"
+    },
+    {
+      "lhs": "recipient_sum",
+      "name": "_s31_21",
+      "op": "is_zero"
+    },
+    {
+      "constant": 0,
+      "length": 1,
+      "name": "_s31_22",
+      "op": "constant"
+    },
+    {
+      "lhs": "_s31_1",
+      "name": "_s31_i3_0",
+      "op": "cast_m31"
+    },
+    {
+      "constant": 73103,
+      "length": 4,
+      "name": "_s31_23",
+      "op": "constant"
+    },
+    {
+      "lhs": "_s31_23",
+      "name": "_s31_24",
+      "op": "array_concat",
+      "rhs": "_s31_i3_0"
+    },
+    {
+      "lhs": "_s31_24",
+      "name": "_s31_i3_1",
+      "op": "hash_poseidon2_leaf"
+    },
+    {
+      "constant": 73102,
+      "length": 4,
+      "name": "_s31_25",
+      "op": "constant"
+    },
+    {
+      "lhs": "_s31_25",
+      "name": "_s31_26",
+      "op": "array_concat",
+      "rhs": "recipient_salt"
+    },
+    {
+      "lhs": "_s31_26",
+      "name": "_s31_i3_2",
+      "op": "hash_poseidon2_leaf"
+    },
+    {
+      "lhs": "_s31_i3_1",
+      "name": "_s31_27",
+      "op": "hash_poseidon2_pair",
+      "rhs": "context"
+    },
+    {
+      "lhs": "recipient_owner",
+      "name": "_s31_28",
+      "op": "hash_poseidon2_pair",
+      "rhs": "_s31_i3_2"
+    },
+    {
+      "lhs": "_s31_27",
+      "name": "recipient",
+      "op": "hash_poseidon2_pair",
+      "rhs": "_s31_28"
+    },
+    {
+      "lhs": "_s31_2",
+      "name": "_s31_i4_0",
+      "op": "cast_m31"
+    },
+    {
+      "constant": 73103,
+      "length": 4,
+      "name": "_s31_29",
+      "op": "constant"
+    },
+    {
+      "lhs": "_s31_29",
+      "name": "_s31_30",
+      "op": "array_concat",
+      "rhs": "_s31_i4_0"
+    },
+    {
+      "lhs": "_s31_30",
+      "name": "_s31_i4_1",
+      "op": "hash_poseidon2_leaf"
+    },
+    {
+      "constant": 73102,
+      "length": 4,
+      "name": "_s31_31",
+      "op": "constant"
+    },
+    {
+      "lhs": "_s31_31",
+      "name": "_s31_32",
+      "op": "array_concat",
+      "rhs": "change_salt"
+    },
+    {
+      "lhs": "_s31_32",
+      "name": "_s31_i4_2",
+      "op": "hash_poseidon2_leaf"
+    },
+    {
+      "lhs": "_s31_i4_1",
+      "name": "_s31_33",
+      "op": "hash_poseidon2_pair",
+      "rhs": "context"
+    },
+    {
+      "lhs": "who",
+      "name": "_s31_34",
+      "op": "hash_poseidon2_pair",
+      "rhs": "_s31_i4_2"
+    },
+    {
+      "lhs": "_s31_33",
+      "name": "change",
+      "op": "hash_poseidon2_pair",
+      "rhs": "_s31_34"
+    },
+    {
+      "constant": 73104,
+      "length": 4,
+      "name": "_s31_35",
+      "op": "constant"
+    },
+    {
+      "lhs": "_s31_35",
+      "name": "_s31_36",
+      "op": "array_concat",
+      "rhs": "secret"
+    },
+    {
+      "lhs": "_s31_36",
+      "name": "spend_key",
+      "op": "hash_poseidon2_leaf"
+    },
+    {
+      "lhs": "spend_key",
+      "name": "nullifier",
+      "op": "hash_poseidon2_pair",
+      "rhs": "input"
+    },
+    {
+      "lhs": "_s31_3",
+      "name": "_s31_37",
+      "op": "cast_m31"
+    },
+    {
+      "constant": 73105,
+      "length": 4,
+      "name": "_s31_38",
+      "op": "constant"
+    },
+    {
+      "lhs": "_s31_38",
+      "name": "_s31_39",
+      "op": "array_concat",
+      "rhs": "_s31_37"
+    },
+    {
+      "lhs": "_s31_39",
+      "name": "fee_hash",
+      "op": "hash_poseidon2_leaf"
+    },
+    {
+      "constant": 73107,
+      "length": 4,
+      "name": "_s31_40",
+      "op": "constant"
+    },
+    {
+      "lhs": "_s31_40",
+      "name": "version",
+      "op": "hash_poseidon2_leaf"
+    },
+    {
+      "lhs": "version",
+      "name": "scope",
+      "op": "hash_poseidon2_pair",
+      "rhs": "context"
+    },
+    {
+      "lhs": "anchor",
+      "name": "spent",
+      "op": "hash_poseidon2_pair",
+      "rhs": "nullifier"
+    },
+    {
+      "lhs": "recipient",
+      "name": "created",
+      "op": "hash_poseidon2_pair",
+      "rhs": "change"
+    },
+    {
+      "lhs": "fee_hash",
+      "name": "extras",
+      "op": "hash_poseidon2_pair",
+      "rhs": "delivery"
+    },
+    {
+      "lhs": "scope",
+      "name": "_s31_41",
+      "op": "hash_poseidon2_pair",
+      "rhs": "spent"
+    },
+    {
+      "lhs": "created",
+      "name": "_s31_42",
+      "op": "hash_poseidon2_pair",
+      "rhs": "extras"
+    },
+    {
+      "lhs": "_s31_41",
+      "name": "receipt",
+      "op": "hash_poseidon2_pair",
+      "rhs": "_s31_42"
+    }
+  ],
+  "public_outputs": [
+    "receipt"
+  ],
+  "version": 1
+}

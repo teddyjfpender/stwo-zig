@@ -13,6 +13,7 @@ beside its checked normalized `.s31.json` relation and matching assignment
 | [`hashes/`](hashes/) | Preimages, Merkle trees, BLAKE2s, and Poseidon2. |
 | [`wide/`](wide/) | Checked and wrapping 256-bit operations. |
 | [`math/`](math/) | Fixed-width scalar integer operations and typed overflow modes. |
+| [`payments/`](payments/) | Hash-based Tongo-style note ownership, checked value conservation, delivery and replay protection; validity prototype, without a proof confidentiality guarantee. |
 | [`bitcoin/`](bitcoin/) | Header hashing, proof of work, linked headers, and a checked ChainWork transition. |
 | [`keys/`](keys/) | Placeholder keys for build-time examples. |
 

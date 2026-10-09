@@ -1,0 +1,65 @@
+use std@1;
+
+// v1 hash tags: owner=73101, salt=73102, note=73103, nullifier=73104,
+// fee=73105, transaction=73107. These are protocol constants, not EC points.
+fn owner(secret: [m31; 8]) -> Digest<Poseidon2> {
+    poseidon2_leaf(std::array::concat(splat<4>(73101_m31), secret))
+}
+
+fn note(context: Digest<Poseidon2>, who: Digest<Poseidon2>,
+        amount: u64, salt: [m31; 8]) -> Digest<Poseidon2> {
+    let limbs = m31_from_u16(std::int::limbs(amount));
+    let value = poseidon2_leaf(std::array::concat(splat<4>(73103_m31), limbs));
+    let blind = poseidon2_leaf(std::array::concat(splat<4>(73102_m31), salt));
+    poseidon2_pair(poseidon2_pair(value, context), poseidon2_pair(who, blind))
+}
+
+// Only the receipt is in the public ABI. The ledger recomputes it from the
+// public transaction envelope and supplies it to the native verifier.
+circuit tongo_transfer(
+    private context: Digest<Poseidon2>,
+    private anchor: Digest<Poseidon2>,
+    private delivery: Digest<Poseidon2>,
+    private secret: [m31; 8],
+    private input_amount: u64,
+    private input_salt: [m31; 8],
+    private recipient_owner: Digest<Poseidon2>,
+    private recipient_amount: u64,
+    private recipient_salt: [m31; 8],
+    private change_amount: u64,
+    private change_salt: [m31; 8],
+    private fee: u64,
+    private sibling_0: Digest<Poseidon2>, private direction_0: bit,
+    private sibling_1: Digest<Poseidon2>, private direction_1: bit,
+    private sibling_2: Digest<Poseidon2>, private direction_2: bit
+) -> public Digest<Poseidon2> {
+    let who = owner(secret);
+    let input = note(context, who, input_amount, input_salt);
+    let root = merkle_path_poseidon2(input,
+        [sibling_0, sibling_1, sibling_2],
+        [direction_0, direction_1, direction_2]);
+    assert_eq(root, anchor);
+
+    let outputs = std::int::add_checked(recipient_amount, change_amount);
+    let total = std::int::add_checked(outputs, fee);
+    assert_eq(input_amount, total);
+    // Every limb is nonnegative and their sum is below M31, so zero sum
+    // means the u64 value is zero. This is not a field-based amount bound.
+    let recipient_sum = std::math::sum_lanes(m31_from_u16(std::int::limbs(recipient_amount)));
+    assert_eq(std::field::is_zero(recipient_sum), splat<1>(0_m31));
+
+    let recipient = note(context, recipient_owner, recipient_amount, recipient_salt);
+    let change = note(context, who, change_amount, change_salt);
+    let spend_key = poseidon2_leaf(std::array::concat(splat<4>(73104_m31), secret));
+    let nullifier = poseidon2_pair(spend_key, input);
+
+    let fee_hash = poseidon2_leaf(std::array::concat(splat<4>(73105_m31),
+        m31_from_u16(std::int::limbs(fee))));
+    let version = poseidon2_leaf(splat<4>(73107_m31));
+    let scope = poseidon2_pair(version, context);
+    let spent = poseidon2_pair(anchor, nullifier);
+    let created = poseidon2_pair(recipient, change);
+    let extras = poseidon2_pair(fee_hash, delivery);
+    let receipt = poseidon2_pair(poseidon2_pair(scope, spent), poseidon2_pair(created, extras));
+    receipt
+}
