@@ -123,6 +123,7 @@ pub const Error = error{
     ColumnLengthNotPowerOfTwo,
     DuplicateColumnId,
     MultiplicityMismatch,
+    MultiplicityOutOfField,
     VariableOutOfRange,
     AddressOutOfField,
     MissingOutputGate,
@@ -131,6 +132,31 @@ pub const Error = error{
     DuplicateShaPrivateBoundary,
     InvalidShaBoundaryProducer,
 } || tables.Error || tables.RowError;
+
+/// Gate lookup multiplicities are M31 values. Reject a count that would
+/// become zero or alias a smaller count after field conversion.
+fn addCanonicalMultiplicity(counter: *u32, increment: usize) Error!void {
+    const modulus: u32 = core.fields.m31.Modulus;
+    if (increment >= @as(usize, modulus)) return error.MultiplicityOutOfField;
+    const addend: u32 = @intCast(increment);
+    if (counter.* >= modulus - addend) return error.MultiplicityOutOfField;
+    counter.* += addend;
+}
+
+test "Gate multiplicities reject characteristic wrap" {
+    const modulus: u32 = core.fields.m31.Modulus;
+    var count: u32 = modulus - 2;
+    try addCanonicalMultiplicity(&count, 1);
+    try std.testing.expectEqual(modulus - 1, count);
+    try std.testing.expectError(error.MultiplicityOutOfField, addCanonicalMultiplicity(&count, 1));
+    try std.testing.expectEqual(modulus - 1, count);
+
+    var empty: u32 = 0;
+    try std.testing.expectError(error.MultiplicityOutOfField, addCanonicalMultiplicity(&empty, modulus));
+    try std.testing.expectEqual(@as(u32, 0), empty);
+    var invalid: u32 = std.math.maxInt(u32);
+    try std.testing.expectError(error.MultiplicityOutOfField, addCanonicalMultiplicity(&invalid, 0));
+}
 
 /// One `(id, log_size)` entry of a preprocessed-trace layout.
 pub const LayoutEntry = struct {
@@ -310,7 +336,7 @@ pub const CircuitView = struct {
         const bump = struct {
             fn at(counts: []u32, variable: u32) Error!void {
                 if (variable >= counts.len) return error.VariableOutOfRange;
-                counts[variable] += 1;
+                try addCanonicalMultiplicity(&counts[variable], 1);
             }
         }.at;
         inline for (.{ self.add, self.sub, self.mul, self.pointwise_mul }) |gates| {
@@ -407,10 +433,10 @@ pub const PreprocessedCircuit = struct {
         defer allocator.free(multiplicities);
         // The permutation rows read the constant 0 once per input and output.
         if (multiplicities.len == 0) return error.VariableOutOfRange;
-        multiplicities[0] += @intCast(circuit.permutationRows());
+        try addCanonicalMultiplicity(&multiplicities[0], circuit.permutationRows());
         if (boundary) |sha| {
             try sha.validate(circuit);
-            for (sha.addresses) |address| multiplicities[address] += 1;
+            for (sha.addresses) |address| try addCanonicalMultiplicity(&multiplicities[address], 1);
         }
 
         var builder = TraceBuilder{ .allocator = allocator };
