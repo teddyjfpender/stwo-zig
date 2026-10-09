@@ -70,6 +70,11 @@ pub fn build(b: *std.Build) void {
         .description = "Run proving@5a7c5ed revision, channel-profile and recursion primitive tests",
         .root = "revision_test_root.zig",
     });
+    const channel_step = addFocusedTests(b, target, optimize, check_only, .{
+        .step = "test-channels",
+        .description = "Run channel transcripts, full-hash PoW predicates and pinned Rust nonce regressions",
+        .root = "channel_test_root.zig",
+    });
     const geometry_root = b.createModule(.{
         .root_source_file = b.path("air_components_test_root.zig"),
         .target = target,
@@ -104,6 +109,7 @@ pub fn build(b: *std.Build) void {
     test_step.dependOn(fri_step);
     test_step.dependOn(pcs_step);
     test_step.dependOn(revision_step);
+    test_step.dependOn(channel_step);
     test_step.dependOn(geometry_step);
 }
 
