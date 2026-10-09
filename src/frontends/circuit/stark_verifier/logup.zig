@@ -118,8 +118,8 @@ test "Gate tuple Horner order and LogUp residual equations" {
     const five = QM31.fromBase(M31.fromCanonical(5));
     const left = LogupTerm(QM31){ .numerator = three, .denominator = two };
     const right = LogupTerm(QM31){ .numerator = two, .denominator = five };
-    const single_diff = three.mul(two.inv());
-    const pair_diff = single_diff.add(two.mul(five.inv()));
+    const single_diff = three.mul(try two.inv());
+    const pair_diff = single_diff.add(two.mul(try five.inv()));
     try std.testing.expect((try singleLogupConstraint(Context, &ctx, left, single_diff)).eql(QM31.zero()));
     try std.testing.expect((try pairLogupConstraint(Context, &ctx, left, right, pair_diff)).eql(QM31.zero()));
     try std.testing.expect(!(try pairLogupConstraint(Context, &ctx, left, right, pair_diff.add(QM31.one()))).eql(QM31.zero()));

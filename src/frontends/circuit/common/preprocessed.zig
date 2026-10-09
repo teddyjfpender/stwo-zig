@@ -125,6 +125,7 @@ pub const Error = error{
     MultiplicityMismatch,
     MultiplicityOutOfField,
     VariableOutOfRange,
+    DuplicateProducerAddress,
     AddressOutOfField,
     MissingOutputGate,
     InvalidShaPrivateBoundary,
@@ -328,6 +329,29 @@ pub const CircuitView = struct {
             return error.VariableOutOfRange;
     }
 
+    /// A Gate address must have at most one producing row. This validates
+    /// caller-supplied views as well as builder-owned circuits, so the Gate
+    /// lookup's address join cannot mix two producer values at one address.
+    pub fn validateUniqueProducers(self: CircuitView, allocator: std.mem.Allocator) (Error || std.mem.Allocator.Error)!void {
+        const seen = try allocator.alloc(bool, self.n_vars);
+        defer allocator.free(seen);
+        @memset(seen, false);
+        const mark = struct {
+            fn at(flags: []bool, address: u32) Error!void {
+                if (address >= flags.len) return error.VariableOutOfRange;
+                if (flags[address]) return error.DuplicateProducerAddress;
+                flags[address] = true;
+            }
+        }.at;
+        inline for (.{ self.add, self.sub, self.mul, self.pointwise_mul }) |gates|
+            for (gates) |gate| try mark(seen, gate.out);
+        for (self.triple_xor) |gate| try mark(seen, gate.out);
+        for (self.m31_to_u32) |gate| try mark(seen, gate.out);
+        for (self.blake_g_gate) |gate|
+            for (gate.outputs()) |address| try mark(seen, address);
+        for (self.permutation_outputs) |address| try mark(seen, address);
+    }
+
     /// `Circuit::compute_multiplicities().0`: uses of every variable.
     pub fn computeUses(self: CircuitView, allocator: std.mem.Allocator) (Error || std.mem.Allocator.Error)![]u32 {
         const uses = try allocator.alloc(u32, self.n_vars);
@@ -429,6 +453,7 @@ pub const PreprocessedCircuit = struct {
     fn fromCircuitOptionalBoundary(allocator: std.mem.Allocator, circuit: CircuitView, boundary: ?ShaBoundary) !PreprocessedCircuit {
         if (circuit.output.len == 0) return error.MissingOutputGate;
         try circuit.validate();
+        try circuit.validateUniqueProducers(allocator);
         const multiplicities = try circuit.computeUses(allocator);
         defer allocator.free(multiplicities);
         // The permutation rows read the constant 0 once per input and output.
