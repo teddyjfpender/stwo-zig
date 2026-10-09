@@ -6,6 +6,7 @@ const circuit = @import("stwo_circuit_frontend");
 const cpu = @import("stwo_circuit_cpu_integration");
 const s31 = @import("stwo_s31_prototype");
 const native = @import("native_verifier.zig");
+const proof_execution = @import("proof_execution.zig");
 const recursion_gate = @import("../recursion/recursion_gate.zig");
 const fixed_fold = @import("../recursion/fixed_fold.zig");
 const state_fold = @import("../recursion/state_fold.zig");
@@ -733,10 +734,7 @@ fn prove(allocator: std.mem.Allocator, source: relation.Program, assignment_path
     try padForProfile(circuit.builder.NoValue, &topology_ctx);
     if (!sameTopology(&value_ctx.circuit, &topology_ctx.circuit)) return error.ValueDependentTopology;
     if (!try value_ctx.isCircuitValid()) return error.UnsatisfiedCircuit;
-    var air_digest: [32]u8 = undefined;
-    std.crypto.hash.sha2.Sha256.hash(air_program_bytes, &air_digest, .{});
-    if (!std.mem.eql(u8, &std.fmt.bytesToHex(air_digest, .lower), cpu.air.bundle_sha256)) return error.AirBundleMismatch;
-    var bundle = try cpu.air.parse(allocator, air_program_bytes);
+    var bundle = try parseAirBundle(allocator);
     defer bundle.deinit();
 
     const chip_request: ?cpu.prove.ChipRequest = if (chip_mode) blk: {
@@ -913,12 +911,14 @@ fn prove(allocator: std.mem.Allocator, source: relation.Program, assignment_path
         defer committed.deinit(allocator);
         setup_ns = total_timer.read() - witness_ns;
         var timer = try std.time.Timer.start();
+        var observer = try proof_execution.PhaseObserver.init();
         var proof = try cpu.Internal.prove(allocator, value_ctx.values(), &pp, &bundle, pcs, .{
             .preprocessed_commitment = &committed,
             .chip = chip_request,
-        }, {});
+        }, &observer);
         defer proof.deinit();
         prove_ns = timer.read();
+        observer.print();
         encoded = if (chip_mode)
             try native.serializeHybrid(allocator, &proof)
         else
@@ -950,7 +950,11 @@ fn prove(allocator: std.mem.Allocator, source: relation.Program, assignment_path
                 public_words,
                 encoded,
             );
-        } else try verifyBytes(allocator, source, &pp, assignment.value, encoded);
+        } else try proof_execution.verifyCommitted(allocator, &pp, &bundle, pcs, committed.root(), public_words, encoded, if (chip_request) |item| native.HybridSpec{
+            .source_digest = item.source_digest,
+            .rounds = item.rounds,
+            .constant = item.constant,
+        } else null);
         if (recurse_check) {
             const layout = pp.layout();
             const root = committed.root();
@@ -3583,27 +3587,6 @@ fn validateCompiledKey(allocator: std.mem.Allocator, source: relation.Program, k
         !std.mem.eql(u8, key.preprocessed_root, &std.fmt.bytesToHex(expected_root, .lower)) or
         !std.mem.eql(u8, key.circuit_hash, &std.fmt.bytesToHex(expected_hash, .lower)))
         return error.InvalidVerificationKey;
-}
-
-fn verifyBytes(allocator: std.mem.Allocator, source: relation.Program, pp: *const preprocessed.PreprocessedCircuit, assignment: relation.Assignment, encoded: []const u8) !void {
-    const public_words = try relation.claimedWords(allocator, source, assignment);
-    var bundle = try parseAirBundle(allocator);
-    defer bundle.deinit();
-    const pcs = try showcasePcsConfig(pp.traceLogSize());
-    const layout = pp.layout();
-    const logs = try circuit.common.component_list.circuitComponentLogSizes(&layout);
-    const root = try pp.preprocessedRoot(allocator, pcs.fri_config.log_blowup_factor);
-    const hash = try circuit.common.circuit_hash.hostCircuitHash(logs, pcs.fri_config.log_blowup_factor, root);
-    if (chip_mode) {
-        var digest: [32]u8 = undefined;
-        std.crypto.hash.sha2.Sha256.hash(embedded_source, &digest, .{});
-        const spec = sourceChipSpec(source) orelse return error.UnsupportedChipRelation;
-        try native.verifyHybrid(allocator, &layout, &bundle, pcs, root, hash, public_words, encoded, .{
-            .source_digest = digest,
-            .rounds = spec.rounds,
-            .constant = M31.fromCanonical(spec.constant),
-        });
-    } else try native.verify(allocator, &layout, &bundle, pcs, root, hash, public_words, encoded);
 }
 
 fn parseAirBundle(allocator: std.mem.Allocator) !cpu.air.Bundle {

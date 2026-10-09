@@ -78,6 +78,8 @@ python3 src/frontends/s31/tests/acceptance/acceptance_tongo_transfer.py
 The acceptance driver retains its packages, proof receipts and report under
 `zig-out/s31/tongo-acceptance/`. It uses synthetic witnesses only. Local proof
 times and sizes are diagnostics, not an apples-to-apples Tongo benchmark.
+The [performance guide](../../docs/payments-performance.md) documents measured
+execution changes and a matched, independently verified comparison driver.
 
 ## Required next slices
 

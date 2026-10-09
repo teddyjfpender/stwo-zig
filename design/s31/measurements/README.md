@@ -7,5 +7,6 @@ These are retained records of specific experiments, not current performance clai
 | [bitcoin/](bitcoin/) | Bitcoin header, chain, work, and fold profiles. |
 | [sha/](sha/) | SHA AIR and circuit profiles. |
 | [hash/](hash/) | General hash and Poseidon/BLAKE comparisons. |
+| [payments/](payments/) | Blinded hash-note payment proving audit and matched runtime measurements. |
 | [recursion/](recursion/) | Recursive proof and verifier costs. |
 | [language/](language/) | Language lowering and Cairo comparisons. |
