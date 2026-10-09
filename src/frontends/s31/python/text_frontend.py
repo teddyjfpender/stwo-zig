@@ -604,14 +604,14 @@ class Compiler:
                         raise TypeErrorS31("std::math::matmul expects two matrices")
                     lhs, rhs = (self.eval_expr(arg, env) for arg in expr.args)
                     return mathlib.matmul(self.builder, lhs, rhs, span=self.span(expr))
-                if name in {"std::math::sum", "std::math::dot", "std::math::poly_eval"}:
+                if name in {"std::math::sum", "std::math::prod", "std::math::dot", "std::math::poly_eval"}:
                     args = tuple(self.eval_expr(arg, env) for arg in expr.args)
-                    arity = 1 if name == "std::math::sum" else 2
+                    arity = 1 if name in {"std::math::sum", "std::math::prod"} else 2
                     if len(args) != arity:
                         raise TypeErrorS31(f"{name} expects {arity} arguments")
-                    if name == "std::math::sum":
-                        return mathlib.sum_static(self.builder, args[0], wanted=wanted,
-                                                  span=self.span(expr))
+                    if name in {"std::math::sum", "std::math::prod"}:
+                        reduce = mathlib.sum_static if name == "std::math::sum" else mathlib.prod_static
+                        return reduce(self.builder, args[0], wanted=wanted, span=self.span(expr))
                     if name == "std::math::dot":
                         return mathlib.dot_static(self.builder, args[0], args[1],
                                                   wanted=wanted, span=self.span(expr))
@@ -626,12 +626,13 @@ class Compiler:
                     operation = (mathlib.sum_lanes if arity == 1 else mathlib.dot_lanes)
                     return operation(self.builder, *values, wanted=wanted, span=self.span(expr))
                 values = tuple(self.expect_value(self.eval_expr(arg, env), arg) for arg in expr.args)
-                arity = 2 if name in {"std::math::sub", "std::math::div", "std::math::add_u256", "std::math::add_u256_checked", "std::math::sub_u256", "std::math::sub_u256_checked", "std::math::le_u256", "std::math::lt_u256", "std::math::gt_u256", "std::math::ge_u256", "std::math::eq_u256", "std::math::ne_u256", "std::math::min_u256", "std::math::max_u256"} else 1
+                arity = 2 if name in {"std::math::sub", "std::math::div", "std::math::eq", "std::math::ne", "std::math::add_u256", "std::math::add_u256_checked", "std::math::sub_u256", "std::math::sub_u256_checked", "std::math::le_u256", "std::math::lt_u256", "std::math::gt_u256", "std::math::ge_u256", "std::math::eq_u256", "std::math::ne_u256", "std::math::min_u256", "std::math::max_u256"} else 1
                 if len(values) != arity:
                     raise TypeErrorS31(f"{name} expects {arity} arguments")
                 operation = {"std::math::neg": mathlib.neg, "std::math::sub": mathlib.sub,
                              "std::math::square": mathlib.square, "std::math::inv": mathlib.inv,
                              "std::math::div": mathlib.div,
+                             "std::math::eq": mathlib.eq, "std::math::ne": mathlib.ne,
                              "std::math::add_u256": mathlib.add_u256,
                              "std::math::add_u256_checked": mathlib.add_u256_checked,
                              "std::math::sub_u256": mathlib.sub_u256,

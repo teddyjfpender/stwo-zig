@@ -28,6 +28,8 @@ AIR. No helper is a host-only calculation or a new specialized AIR chip.
 | `std::math::div(x,y)` | `x·y⁻¹ mod p` | Equal `[m31; N]` shapes; every denominator lane must be nonzero. |
 | `std::math::pow<K>(x)` | `x^K mod p` | Literal `0 <= K < p`; `x^0=1`, including zero. |
 | `std::math::sum([a,b,...])` | `a+b+... mod p` | 1..64 same-shaped arrays grouped in source. |
+| `std::math::prod([a,b,...])` | `a·b·... mod p` | 1..64 same-shaped arrays grouped in source; a balanced tree of `mul` nodes. |
+| `std::math::eq(x,y)`, `ne(x,y)` | Field equality or inequality | Two `[m31; 1]` values; constrained `bit` from `is_zero(x-y)`, plus `bool_not` for `ne`. |
 | `std::math::dot([a,b,...],[u,v,...])` | `a·u+b·v+... mod p` | Equal groups of 1..64 same-shaped arrays. |
 | `std::math::sum_lanes(x)` | `Σⱼ x[j] mod p`, returned as `[m31; 1]` | One `[m31; N]`, `1 <= N <= 4096`. |
 | `std::math::dot_lanes(x,w)` | `Σⱼ x[j]·w[j] mod p`, returned as `[m31; 1]` | Two equally shaped `[m31; N]` arrays, `1 <= N <= 4096`. |
