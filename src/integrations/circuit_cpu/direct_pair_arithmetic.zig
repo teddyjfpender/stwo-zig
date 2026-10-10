@@ -29,6 +29,13 @@ const CircuitView = circuit.common.preprocessed.CircuitView;
 const direct_pp = circuit.common.direct_arithmetic;
 const direct_trace = circuit.witness.direct_arithmetic;
 
+pub const Plan = pair.Plan;
+pub const Bundle = air.Bundle;
+
+pub fn parseBundle(allocator: std.mem.Allocator, bytes: []const u8) !Bundle {
+    return air.parse(allocator, bytes);
+}
+
 pub const Request = struct {
     /// This digest is recomputed from the sealed source by the S31 wrapper.
     source_digest: [32]u8,
@@ -238,17 +245,47 @@ pub fn verify(
     public_words: [8]u32,
     proof: *const Proof,
 ) !void {
-    try validatePublicOutputShape(source);
     if (!std.meta.eql(pcs, proof.pcs_config)) return error.InvalidPairPcsConfig;
+    return verifyBorrowed(allocator, source, template, pcs, request, public_words, .{
+        .output_values = proof.output_values,
+        .interaction_pow_nonce = proof.interaction_pow_nonce,
+        .claimed_sums = proof.claimed_sums,
+        .stark_proof = &proof.stark_proof.proof,
+        .circuit_hash = proof.circuit_hash,
+    });
+}
+
+/// Decoded native envelopes own only the postcard StarkProof, not the
+/// prover-only PCS auxiliary state. This is the exact same verifier schedule
+/// as `verify`; the S31 wrapper must reconstruct `request` from sealed source
+/// and compare its generated V3 key before calling this experimental adapter.
+pub const BorrowedProof = struct {
+    output_values: []const QM31,
+    interaction_pow_nonce: u64,
+    claimed_sums: [pair.roster.len]QM31,
+    stark_proof: *const core.proof.StarkProof(H),
+    circuit_hash: [32]u8,
+};
+
+pub fn verifyBorrowed(
+    allocator: std.mem.Allocator,
+    source: CircuitView,
+    template: *const air.Bundle,
+    pcs: core.pcs.config_v2.PcsConfigV2,
+    request: Request,
+    public_words: [8]u32,
+    proof: BorrowedProof,
+) !void {
+    try validatePublicOutputShape(source);
     var pp = try request.plan.preprocessed(allocator, source);
     defer pp.deinit(allocator);
     var committed = try direct.PreprocessedCommitment.build(allocator, &pp, pcs);
     defer committed.deinit(allocator);
-    const roots = proof.stark_proof.proof.commitment_scheme_proof.commitments.items;
+    const roots = proof.stark_proof.commitment_scheme_proof.commitments.items;
     if (roots.len != 4 or !std.mem.eql(u8, &roots[0], &committed.root()))
         return error.InvalidPairPreprocessedRoot;
     if (!std.meta.eql(
-        proof.stark_proof.proof.commitment_scheme_proof.config,
+        proof.stark_proof.commitment_scheme_proof.config,
         core.protocol_revision.Revision.proving_5a7c5ed.legacyView(pcs),
     )) return error.InvalidPairPcsConfig;
     var outputs: [8]QM31 = undefined;
@@ -326,7 +363,7 @@ pub fn verify(
         &handles,
         &channel,
         &scheme,
-        &proof.stark_proof.proof,
+        proof.stark_proof,
         true,
         &capture,
     );
