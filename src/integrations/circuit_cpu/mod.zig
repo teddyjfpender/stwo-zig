@@ -18,6 +18,7 @@ pub const private_pair_boundary = @import("private_pair_boundary.zig");
 pub const private_many_boundary = @import("private_many_boundary.zig");
 /// V4 AIR and live verifier-handle geometry, with no proof-byte admission.
 pub const direct_many_preflight = @import("direct_many_preflight.zig");
+pub const direct_many_schedule = @import("direct_many_schedule.zig");
 pub const tagged_many_chip = @import("tagged_many_chip.zig");
 pub const tagged_many_bridge = @import("tagged_many_bridge.zig");
 pub const tagged_pair_chip = @import("tagged_pair_chip.zig");
@@ -58,6 +59,7 @@ test {
     _ = private_pair_boundary;
     _ = private_many_boundary;
     _ = direct_many_preflight;
+    _ = direct_many_schedule;
     _ = tagged_many_chip;
     _ = tagged_many_bridge;
     _ = tagged_pair_chip;
