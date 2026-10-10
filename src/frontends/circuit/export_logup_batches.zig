@@ -1,5 +1,7 @@
 //! Symbolically execute the production verifier's LogUp batch finalizer for
 //! the three Gate terms emitted by qm31_ops: two reads, then one write.
+//! Export both an isolated zero accumulator and an arbitrary prior
+//! accumulator; production adds the component's arithmetic constraints first.
 const std = @import("std");
 const fields = @import("stwo_core").fields;
 const QM31 = fields.qm31.QM31;
@@ -60,18 +62,12 @@ pub fn main() !void {
         .{ "z", "alpha" },
     );
     defer acc.deinit();
-    try acc.terms.append(allocator, logup.LogupTerm(Symbolic.Var){
-        .numerator = "a.numerator",
-        .denominator = "a.denominator",
-    });
-    try acc.terms.append(allocator, logup.LogupTerm(Symbolic.Var){
-        .numerator = "b.numerator",
-        .denominator = "b.denominator",
-    });
-    try acc.terms.append(allocator, logup.LogupTerm(Symbolic.Var){
-        .numerator = "c.numerator",
-        .denominator = "c.denominator",
-    });
+    const terms = [_]logup.LogupTerm(Symbolic.Var){
+        .{ .numerator = "a.numerator", .denominator = "a.denominator" },
+        .{ .numerator = "b.numerator", .denominator = "b.denominator" },
+        .{ .numerator = "c.numerator", .denominator = "c.denominator" },
+    };
+    for (terms) |term| try acc.terms.append(allocator, term);
 
     const Column = evaluation.InteractionAtOods(Symbolic.Var);
     const columns = [_]Column{
@@ -81,6 +77,18 @@ pub fn main() !void {
         .{ .at_oods = "last 2", .at_prev = "prev 2" }, .{ .at_oods = "last 3", .at_prev = "prev 3" },
     };
     try acc.finalizeLogupInPairs(&ctx, &columns, Data{}, "claimed");
+    var prefixed = evaluation.CompositionConstraintAccumulator(Symbolic).init(
+        allocator,
+        &ctx,
+        &preprocessed,
+        &public_params,
+        "rho",
+        .{ "z", "alpha" },
+    );
+    defer prefixed.deinit();
+    prefixed.accumulation = "prior";
+    for (terms) |term| try prefixed.terms.append(allocator, term);
+    try prefixed.finalizeLogupInPairs(&ctx, &columns, Data{}, "claimed");
 
     var buffer: [8192]u8 = undefined;
     var stdout = std.fs.File.stdout().writer(&buffer);
@@ -100,6 +108,12 @@ pub fn main() !void {
             "    (first prev last : Fin 4 → GateSecure)\n" ++
             "    (rho claimed nInstances : GateSecure) : GateSecure :=\n  {s}\n\n",
         .{acc.finalize()},
+    );
+    try writer.print(
+        "def threeTermWithPrefix (prior : GateSecure) (a b c : Term GateSecure)\n" ++
+            "    (first prev last : Fin 4 → GateSecure)\n" ++
+            "    (rho claimed nInstances : GateSecure) : GateSecure :=\n  {s}\n\n",
+        .{prefixed.finalize()},
     );
     try writer.writeAll("end S31.Gadgets.Air.NativeLogUpBatches\n");
     try writer.flush();
