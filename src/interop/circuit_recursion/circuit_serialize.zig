@@ -12,9 +12,10 @@
 //!
 //! ```text
 //! channel_salt QM31 · trace_root · interaction_root · composition_root
-//! claimed_sums[n_components] · preprocessed_at_oods[n_pp] · trace_at_oods[n_trace]
+//! claimed_sums[sum of verifier-owned component claim arities] · preprocessed_at_oods[n_pp] ·
+//! trace_at_oods[sum of verifier-owned main-column mask lengths]
 //! interaction_at_oods (at_oods, then at_prev for cumulative-sum columns)
-//! composition_eval_at_oods[8] · eval_domain_samples (per trace, per column, per query)
+//! composition_eval_at_oods[4 * 2^composition_log_split] · eval_domain_samples (per trace, per column, per query)
 //! eval_domain_auth_paths (per tree, per query, per level) · pow_nonce QM31
 //! interaction_pow_nonce QM31 · FRI (layer commitments, last-layer coefficients,
 //! auth paths per layer/query/level, witnesses per layer/query of 2^step QM31)
@@ -95,9 +96,10 @@ pub const Proof = struct {
     composition_polynomial_root: Hash,
     claimed_sums: []QM31,
     preprocessed_columns_at_oods: []QM31,
+    /// Column-major, then in the mask offset order of `ProofConfig`.
     trace_at_oods: []QM31,
     interaction_at_oods: []InteractionAtOods,
-    composition_eval_at_oods: [n_composition_columns]QM31,
+    composition_eval_at_oods: []QM31,
     /// Per tree, column-major: the sample of column `c` at query `q` is at
     /// `[c * n_queries + q]`.
     eval_domain_samples: [n_traces][]M31,
@@ -113,10 +115,11 @@ pub const Proof = struct {
         try config.validate();
         const n_queries = config.nQueries();
         const columns = config.nColumnsPerTrace();
-        try expectLen(self.claimed_sums.len, config.nComponents());
+        try expectLen(self.claimed_sums.len, config.nClaimedSums());
         try expectLen(self.preprocessed_columns_at_oods.len, columns[0]);
-        try expectLen(self.trace_at_oods.len, columns[1]);
+        try expectLen(self.trace_at_oods.len, config.nTraceOodsValues());
         try expectLen(self.interaction_at_oods.len, columns[2]);
+        try expectLen(self.composition_eval_at_oods.len, columns[3]);
         for (self.interaction_at_oods, 0..) |value, column| {
             if ((value.at_prev != null) != config.isCumulativeSumColumn(column)) {
                 return error.ShapeMismatch;
@@ -177,15 +180,15 @@ pub fn deserializeProof(
     proof.trace_root = try reader.hash();
     proof.interaction_root = try reader.hash();
     proof.composition_polynomial_root = try reader.hash();
-    proof.claimed_sums = try reader.qm31s(allocator, config.nComponents());
+    proof.claimed_sums = try reader.qm31s(allocator, config.nClaimedSums());
     proof.preprocessed_columns_at_oods = try reader.qm31s(allocator, columns[0]);
-    proof.trace_at_oods = try reader.qm31s(allocator, columns[1]);
+    proof.trace_at_oods = try reader.qm31s(allocator, config.nTraceOodsValues());
     proof.interaction_at_oods = try allocator.alloc(InteractionAtOods, columns[2]);
     for (proof.interaction_at_oods, 0..) |*value, column| {
         value.at_oods = try reader.qm31();
         value.at_prev = if (config.isCumulativeSumColumn(column)) try reader.qm31() else null;
     }
-    for (&proof.composition_eval_at_oods) |*value| value.* = try reader.qm31();
+    proof.composition_eval_at_oods = try reader.qm31s(allocator, columns[3]);
     for (0..n_traces) |tree| {
         proof.eval_domain_samples[tree] = try reader.m31s(allocator, columns[tree] * n_queries);
     }
@@ -234,7 +237,7 @@ pub fn serializeProof(
         try writeQm31(writer, value.at_oods);
         if (value.at_prev) |at_prev| try writeQm31(writer, at_prev);
     }
-    try writeQm31s(writer, &proof.composition_eval_at_oods);
+    try writeQm31s(writer, proof.composition_eval_at_oods);
     for (proof.eval_domain_samples) |samples| {
         for (samples) |value| try writer.writeInt(u32, value.v, .little);
     }
@@ -396,4 +399,49 @@ test "circuit serialize: encoding rejects a proof whose shape differs from the c
     var bad_config = test_config;
     bad_config.fri.fold_step = 0;
     try std.testing.expectError(error.InvalidProofShape, deserializeProof(allocator, bytes, bad_config));
+}
+
+test "circuit serialize: split-two trace-only proof roundtrips and rejects wrong split" {
+    const allocator = std.testing.allocator;
+    const shapes = [_]ComponentShape{
+        .{ .trace_columns = 2, .interaction_columns = 0 },
+        .{ .trace_columns = 0, .interaction_columns = 8 },
+    };
+    var config = test_config;
+    config.component_shapes = &shapes;
+    config.composition_log_split = 2;
+    const bytes = try patternBytes(allocator, config.serializedLen());
+    defer allocator.free(bytes);
+    var decoded = try deserializeProof(allocator, bytes, config);
+    defer decoded.deinit();
+    try std.testing.expectEqual(@as(usize, 16), decoded.proof.composition_eval_at_oods.len);
+    try std.testing.expect(decoded.proof.interaction_at_oods[0].at_prev == null);
+    try std.testing.expect(decoded.proof.interaction_at_oods[4].at_prev != null);
+    const encoded = try serializeProofAlloc(allocator, &decoded.proof, config);
+    defer allocator.free(encoded);
+    try std.testing.expectEqualSlices(u8, bytes, encoded);
+    var wrong_split = config;
+    wrong_split.composition_log_split = 1;
+    try std.testing.expectError(error.ShapeMismatch, serializeProofAlloc(allocator, &decoded.proof, wrong_split));
+}
+
+test "circuit serialize: ordered main-tree masks roundtrip and reject legacy truncation" {
+    const allocator = std.testing.allocator;
+    const masks = [_][]const i8{ &.{0}, &.{ -3, -2, -1, 0, 1 }, &.{ -16, -15, -7, -2, 0 } };
+    var config = test_config;
+    config.trace_mask_offsets = &masks;
+    const bytes = try patternBytes(allocator, config.serializedLen());
+    defer allocator.free(bytes);
+    var decoded = try deserializeProof(allocator, bytes, config);
+    defer decoded.deinit();
+    try std.testing.expectEqual(@as(usize, 11), decoded.proof.trace_at_oods.len);
+    try std.testing.expectEqual(config.serializedLen(), decoded.consumed);
+    const encoded = try serializeProofAlloc(allocator, &decoded.proof, config);
+    defer allocator.free(encoded);
+    try std.testing.expectEqualSlices(u8, bytes, encoded);
+    try std.testing.expectError(error.ShapeMismatch, serializeProofAlloc(allocator, &decoded.proof, test_config));
+    try std.testing.expectError(error.NotEnoughData, deserializeProof(allocator, bytes[0 .. bytes.len - 1], config));
+    var missing = decoded.proof;
+    missing.trace_at_oods = missing.trace_at_oods[0 .. missing.trace_at_oods.len - 1];
+    try std.testing.expectError(error.ShapeMismatch, serializeProofAlloc(allocator, &missing, config));
 }

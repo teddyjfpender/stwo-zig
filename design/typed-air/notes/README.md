@@ -5,8 +5,8 @@ interpretations, and implementation handoffs.
 
 Notes are evidence, not authority. Durable decisions move into
 [`decisions/`](../decisions/README.md); executable work moves into
-[`TASKS.md`](../TASKS.md); current status moves into
-[`PROGRESS.md`](../PROGRESS.md).
+[`TASKS.md`](../project/TASKS.md); current status moves into
+[`PROGRESS.md`](../project/PROGRESS.md).
 
 ## Index
 

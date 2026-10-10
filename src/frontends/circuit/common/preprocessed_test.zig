@@ -4,6 +4,7 @@
 //! same circuits computed by upstream `PreprocessedCircuit::preprocessed_root`.
 
 const std = @import("std");
+const core = @import("stwo_core");
 const preprocessed = @import("preprocessed.zig");
 const finalize = @import("finalize.zig");
 
@@ -235,4 +236,64 @@ test "preprocessed: malformed circuit views fail closed" {
         malformed.permutation_outputs = case[1];
         try std.testing.expectError(error.VariableOutOfRange, preprocessed.PreprocessedCircuit.fromCircuit(allocator, malformed));
     }
+}
+
+test "preprocessed: duplicate producer addresses fail closed" {
+    const allocator = std.testing.allocator;
+    var sample = SampleCircuit.init();
+
+    sample.sub[0].out = sample.add[0].out;
+    try std.testing.expectError(error.DuplicateProducerAddress, preprocessed.PreprocessedCircuit.fromCircuit(allocator, sample.view()));
+
+    sample = SampleCircuit.init();
+    sample.blake_g_gate[0].out_base = sample.triple_xor[0].out;
+    try std.testing.expectError(error.DuplicateProducerAddress, preprocessed.PreprocessedCircuit.fromCircuit(allocator, sample.view()));
+
+    sample = SampleCircuit.init();
+    const repeated = [_]u32{ 30, 30 };
+    var view = permutationView(&sample);
+    view.permutation_outputs = &repeated;
+    try std.testing.expectError(error.DuplicateProducerAddress, preprocessed.PreprocessedCircuit.fromCircuit(allocator, view));
+}
+
+test "preprocessed: private SHA boundary adds one canonical Gate yield per limb" {
+    const allocator = std.testing.allocator;
+    const sample = SampleCircuit.init();
+    var add: [58]BinaryGate = undefined;
+    var boundary = preprocessed.ShaBoundary{ .addresses = undefined };
+    for (&add, 0..) |*gate, index| {
+        gate.* = .{ .in0 = 0, .in1 = 1, .out = @intCast(152 + index) };
+        if (index < boundary.addresses.len) boundary.addresses[index] = gate.out;
+    }
+    var view = sample.view();
+    view.add = &add;
+    view.n_vars = 210;
+    var ordinary = try preprocessed.PreprocessedCircuit.fromCircuit(allocator, view);
+    defer ordinary.deinit(allocator);
+    var joined = try preprocessed.PreprocessedCircuit.fromCircuitWithShaBoundary(allocator, view, boundary);
+    defer joined.deinit(allocator);
+    try std.testing.expect(joined.sha_boundary != null);
+    try std.testing.expectEqualDeep(boundary, joined.sha_boundary.?);
+    const output_addresses = joined.columnValues("qm31_ops_out_address").?;
+    const old_mult = ordinary.columnValues("qm31_ops_mults").?;
+    const new_mult = joined.columnValues("qm31_ops_mults").?;
+    for (output_addresses, old_mult, new_mult) |address, before, after| {
+        const consumed = std.mem.indexOfScalar(u32, &boundary.addresses, address.toU32()) != null;
+        try std.testing.expectEqual(before.toU32() + @as(u32, @intFromBool(consumed)), after.toU32());
+    }
+    for (ordinary.columns, joined.columns) |left, right| {
+        if (std.mem.eql(u8, left.id, "qm31_ops_mults")) continue;
+        try std.testing.expectEqualSlices(core.fields.m31.M31, left.values, right.values);
+    }
+
+    var duplicate = boundary;
+    duplicate.addresses[1] = duplicate.addresses[0];
+    try std.testing.expectError(error.DuplicateShaPrivateBoundary, preprocessed.PreprocessedCircuit.fromCircuitWithShaBoundary(allocator, view, duplicate));
+    const public_output = [_]u32{boundary.addresses[0]};
+    var public_view = view;
+    public_view.output = &public_output;
+    try std.testing.expectError(error.PublicShaPrivateBoundary, preprocessed.PreprocessedCircuit.fromCircuitWithShaBoundary(allocator, public_view, boundary));
+    var missing = boundary;
+    missing.addresses[0] = 3;
+    try std.testing.expectError(error.InvalidShaBoundaryProducer, preprocessed.PreprocessedCircuit.fromCircuitWithShaBoundary(allocator, view, missing));
 }

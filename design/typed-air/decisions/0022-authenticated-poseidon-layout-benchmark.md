@@ -420,7 +420,7 @@ Implementation proceeds in fail-closed stages:
    means the boundary was measured correctly; it does not select or activate a
    layout. Any proposed promotion requires a new accepted ADR, production
    implementation, full proof-path equivalence, and the complete
-   [performance contract](../PERFORMANCE.md).
+   [performance contract](../performance/PERFORMANCE.md).
 
 ## Consequences
 

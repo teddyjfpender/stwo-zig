@@ -22,6 +22,9 @@ const cairo = @import("stwo_cairo_frontend");
 const composition = cairo.witness.composition_bundle;
 const component_list = circuit.common.component_list;
 const preprocessed = circuit.common.preprocessed;
+const sparse = circuit.common.sparse_arithmetic;
+const sparse_wide = circuit.common.sparse_wide;
+const direct = circuit.common.direct_arithmetic;
 const finalize = circuit.common.finalize;
 const PerComponent = component_list.PerComponent;
 
@@ -91,12 +94,103 @@ pub fn bind(
     };
 }
 
+/// Rebind only the three arithmetic components for sparse-v3. The component
+/// programs are unchanged, but their preprocessed and trace indices are
+/// rebased onto the sparse trees and their random-coefficient schedule is
+/// compacted. The selected set is a closed dependency profile: QM31 Gate
+/// relation, M31 conversion/range requests, and the range-16 table.
+pub fn bindSparseArithmetic(
+    allocator: std.mem.Allocator,
+    template: *const Bundle,
+    log_sizes: [3]u32,
+    layout: *const sparse.Layout,
+) !Bundle {
+    return bindSelectedArithmetic(allocator, template, &sparse.active_component_indices, &log_sizes, layout);
+}
+
+/// Equality and arithmetic, with only the four required AIR components.
+pub fn bindSparseWide(
+    allocator: std.mem.Allocator,
+    template: *const Bundle,
+    log_sizes: [4]u32,
+    layout: *const sparse_wide.Layout,
+) !Bundle {
+    return bindSelectedArithmetic(allocator, template, &sparse_wide.active_component_indices, &log_sizes, layout);
+}
+
+/// One-component, no-range specialization for direct-M31 public statements.
+pub fn bindDirectArithmetic(
+    allocator: std.mem.Allocator,
+    template: *const Bundle,
+    log_size: u32,
+    layout: *const direct.Layout,
+) !Bundle {
+    return bindSelectedArithmetic(allocator, template, &direct.active_component_indices, &.{log_size}, layout);
+}
+
+fn bindSelectedArithmetic(
+    allocator: std.mem.Allocator,
+    template: *const Bundle,
+    selected: []const usize,
+    log_sizes: []const u32,
+    layout: anytype,
+) !Bundle {
+    if (selected.len != log_sizes.len) return error.InvalidCircuitBundle;
+    const recorded_layout = try preprocessed.ColumnLayout.fromComponentSizes(recorded_sizes);
+    const components = try allocator.alloc(composition.Component, selected.len);
+    errdefer allocator.free(components);
+    var initialized: usize = 0;
+    errdefer for (components[0..initialized]) |*component| composition.deinitComponent(allocator, component);
+    const facts = component_list.component_facts.toArray();
+    var new_base_offset: usize = 0;
+    var new_interaction_offset: usize = 0;
+    var next_constraint: u32 = 0;
+    var max_evaluation_log: u32 = 0;
+    for (selected, components, log_sizes) |source_index, *component, trace_log| {
+        const source = &template.components[source_index];
+        component.* = try bindComponent(allocator, source, trace_log, &recorded_layout, layout);
+        initialized += 1;
+        var old_base_offset: usize = 0;
+        var old_interaction_offset: usize = 0;
+        for (facts[0..source_index]) |earlier| {
+            old_base_offset += earlier.trace_columns;
+            old_interaction_offset += earlier.interaction_columns;
+        }
+        for (component.trace_spans) |*span| {
+            const old_offset, const new_offset, const width = switch (span.tree) {
+                0 => continue,
+                1 => .{ old_base_offset, new_base_offset, facts[source_index].trace_columns },
+                2 => .{ old_interaction_offset, new_interaction_offset, facts[source_index].interaction_columns },
+                else => return error.InvalidCircuitBundle,
+            };
+            if (span.start < old_offset or span.end > old_offset + width)
+                return error.InvalidCircuitBundle;
+            span.start = @intCast(span.start - old_offset + new_offset);
+            span.end = @intCast(span.end - old_offset + new_offset);
+        }
+        component.random_coefficient_offset = next_constraint;
+        next_constraint += component.n_constraints;
+        new_base_offset += facts[source_index].trace_columns;
+        new_interaction_offset += facts[source_index].interaction_columns;
+        max_evaluation_log = @max(max_evaluation_log, component.evaluation_log_size);
+    }
+    return .{
+        .allocator = allocator,
+        .format_version = template.format_version,
+        .max_kernel_instructions = template.max_kernel_instructions,
+        .total_constraints = next_constraint,
+        .max_evaluation_log_size = max_evaluation_log,
+        .plan_hash = composition.scheduleHash(components),
+        .components = components,
+    };
+}
+
 fn bindComponent(
     allocator: std.mem.Allocator,
     source: *const composition.Component,
     trace_log: u32,
     recorded_layout: *const preprocessed.ColumnLayout,
-    layout: *const preprocessed.ColumnLayout,
+    layout: anytype,
 ) !composition.Component {
     const evaluation_delta = std.math.sub(u32, source.evaluation_log_size, source.trace_log_size) catch
         return error.InvalidCircuitBundle;

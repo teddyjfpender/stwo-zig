@@ -64,7 +64,7 @@ test "oods: extract_expected_composition_eval regression" {
         .x = try ctx.guess(qm31(1343313724, 1951183646, 1685075959, 888698585)),
         .y = try ctx.guess(qm31(674655034, 1516640953, 569857337, 1549701521)),
     };
-    const expected = try oods.extractExpectedCompositionEval(QM31, &ctx, &composition, point, 5);
+    const expected = try oods.extractExpectedCompositionEval(QM31, &ctx, &composition, point, 5, 1);
     try expectValue(&ctx, expected, qm31(443798542, 633915785, 595028408, 165661052));
     try expectValid(&ctx);
 }

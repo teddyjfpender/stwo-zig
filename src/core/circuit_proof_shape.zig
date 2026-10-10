@@ -15,7 +15,8 @@ const FriConfigV2 = @import("pcs/config_v2.zig").FriConfigV2;
 
 /// Committed trees: preprocessed, trace, interaction, composition.
 pub const n_traces: usize = 4;
-/// `N_COMPOSITION_COLUMNS = COMPOSITION_SPLIT (2) * EXTENSION_DEGREE (4)`.
+/// Legacy split-one composition width. A proof shape may request a larger
+/// split through `composition_log_split`.
 pub const n_composition_columns: usize = 8;
 /// The trailing interaction columns of every component that hold its
 /// cumulative sum, also sampled at the previous point.
@@ -26,6 +27,8 @@ pub const max_fri_layers: usize = 32;
 pub const hash_bytes: usize = 32;
 pub const m31_bytes: usize = 4;
 pub const qm31_bytes: usize = 4 * m31_bytes;
+const current_offsets = [_]i8{0};
+const cumulative_offsets = [_]i8{ -1, 0 };
 
 /// Trace and interaction column counts of one AIR component.
 pub const ComponentShape = struct {
@@ -47,22 +50,86 @@ pub const ProofShape = struct {
     component_shapes: []const ComponentShape,
     log_trace_size: u32,
     fri: FriConfigV2,
+    composition_log_split: u32 = 1,
+    /// Native PCS mask-point offsets for each main-trace column, in sampled
+    /// value order. Null is the original singleton mask at the OODS point.
+    /// This layout is verifier-owned; proof bytes never select openings.
+    trace_mask_offsets: ?[]const []const i8 = null,
+    /// Ordered interaction masks. Null retains the legacy last-four
+    /// previous/current cumulative-sum columns of each component.
+    interaction_mask_offsets: ?[]const []const i8 = null,
+    /// Number of transcript claims contributed by each AIR component.
+    /// Null means one claim for an interaction component, none for a
+    /// trace-only component. The caller word bus contributes two claims.
+    claim_arities: ?[]const u8 = null,
 
     /// Rejects a shape upstream would assert on or that has no proof: a
     /// component with fewer interaction columns than its cumulative sum, a
     /// zero FRI fold step, a last layer larger than the trace, or an
     /// evaluation domain past 2^31.
     pub fn validate(self: ProofShape) Error!void {
-        for (self.component_shapes) |shape| {
-            if (shape.interaction_columns < n_cumulative_sum_columns_per_component) return error.InvalidProofShape;
-        }
+        for (self.component_shapes) |shape| if (shape.interaction_columns != 0 and
+            shape.interaction_columns < n_cumulative_sum_columns_per_component) return error.InvalidProofShape;
+        if (@import("verifier_types.zig").compositionColumnCount(self.composition_log_split, 4) == null)
+            return error.InvalidProofShape;
         if (self.fri.fold_step == 0) return error.InvalidProofShape;
         if (self.fri.log_last_layer_degree_bound > self.log_trace_size) return error.InvalidProofShape;
         if (self.logEvaluationDomainSize() > 31) return error.InvalidProofShape;
+        if (self.trace_mask_offsets) |masks| {
+            if (masks.len != self.nTraceColumns()) return error.InvalidProofShape;
+            for (masks) |offsets| {
+                if (offsets.len == 0) return error.InvalidProofShape;
+                var has_current = false;
+                for (offsets, 0..) |offset, i| {
+                    if (offset == 0) has_current = true;
+                    for (offsets[0..i]) |prior| if (prior == offset) return error.InvalidProofShape;
+                }
+                if (!has_current) return error.InvalidProofShape;
+            }
+        }
+        if (self.interaction_mask_offsets) |masks| {
+            if (masks.len != self.nInteractionColumns()) return error.InvalidProofShape;
+            for (masks) |offsets| {
+                if (!std.mem.eql(i8, offsets, &current_offsets) and
+                    !std.mem.eql(i8, offsets, &cumulative_offsets)) return error.InvalidProofShape;
+            }
+        }
+        if (self.claim_arities) |arities| {
+            if (arities.len != self.nComponents()) return error.InvalidProofShape;
+        }
+        var interaction_start: usize = 0;
+        for (self.component_shapes, 0..) |component, index| {
+            const claims = self.claimArity(index);
+            if ((component.interaction_columns == 0) != (claims == 0)) return error.InvalidProofShape;
+            var cumulative: usize = 0;
+            for (interaction_start..interaction_start + component.interaction_columns) |column|
+                cumulative += @intFromBool(self.isCumulativeSumColumn(column));
+            if (cumulative != @as(usize, claims) * n_cumulative_sum_columns_per_component)
+                return error.InvalidProofShape;
+            interaction_start += component.interaction_columns;
+        }
     }
 
     pub fn nComponents(self: ProofShape) usize {
         return self.component_shapes.len;
+    }
+
+    pub fn claimArity(self: ProofShape, component: usize) u8 {
+        std.debug.assert(component < self.nComponents());
+        return if (self.claim_arities) |arities| arities[component] else @intFromBool(self.component_shapes[component].interaction_columns != 0);
+    }
+
+    pub fn nClaimedSums(self: ProofShape) usize {
+        var total: usize = 0;
+        for (self.component_shapes, 0..) |_, index| total += self.claimArity(index);
+        return total;
+    }
+
+    pub fn claimRange(self: ProofShape, component: usize) struct { start: usize, end: usize } {
+        std.debug.assert(component < self.nComponents());
+        var start: usize = 0;
+        for (0..component) |index| start += self.claimArity(index);
+        return .{ .start = start, .end = start + self.claimArity(component) };
     }
 
     pub fn nTraceColumns(self: ProofShape) usize {
@@ -78,12 +145,60 @@ pub const ProofShape = struct {
     }
 
     pub fn nCumulativeSumColumns(self: ProofShape) usize {
-        return self.component_shapes.len * n_cumulative_sum_columns_per_component;
+        if (self.interaction_mask_offsets) |masks| {
+            var total: usize = 0;
+            for (masks) |offsets| total += @intFromBool(offsets.len == 2);
+            return total;
+        }
+        var total: usize = 0;
+        for (self.component_shapes) |component| {
+            if (component.interaction_columns != 0) total += n_cumulative_sum_columns_per_component;
+        }
+        return total;
+    }
+
+    pub fn nCompositionColumns(self: ProofShape) usize {
+        return @import("verifier_types.zig").compositionColumnCount(self.composition_log_split, 4).?;
+    }
+
+    /// Native mask order for any committed column. The cumulative-sum
+    /// interaction columns have the existing previous/current pair.
+    pub fn columnMaskOffsets(self: ProofShape, tree: usize, column: usize) []const i8 {
+        const columns = self.nColumnsPerTrace();
+        std.debug.assert(tree < n_traces and column < columns[tree]);
+        if (tree == 1) return if (self.trace_mask_offsets) |masks| masks[column] else &current_offsets;
+        if (tree == 2) return if (self.interaction_mask_offsets) |masks|
+            masks[column]
+        else if (self.isCumulativeSumColumn(column))
+            &cumulative_offsets
+        else
+            &current_offsets;
+        return &current_offsets;
+    }
+
+    /// Sum of the main-tree mask lengths, not the number of committed columns.
+    pub fn nTraceOodsValues(self: ProofShape) usize {
+        if (self.trace_mask_offsets) |masks| {
+            var total: usize = 0;
+            for (masks) |offsets| total += offsets.len;
+            return total;
+        }
+        return self.nTraceColumns();
+    }
+
+    pub fn traceMaskRange(self: ProofShape, column: usize) struct { start: usize, end: usize } {
+        std.debug.assert(column < self.nTraceColumns());
+        if (self.trace_mask_offsets) |masks| {
+            var start: usize = 0;
+            for (masks[0..column]) |offsets| start += offsets.len;
+            return .{ .start = start, .end = start + masks[column].len };
+        }
+        return .{ .start = column, .end = column + 1 };
     }
 
     /// `[preprocessed, trace, interaction, composition]` column counts.
     pub fn nColumnsPerTrace(self: ProofShape) [n_traces]usize {
-        return .{ self.n_preprocessed_columns, self.nTraceColumns(), self.nInteractionColumns(), n_composition_columns };
+        return .{ self.n_preprocessed_columns, self.nTraceColumns(), self.nInteractionColumns(), self.nCompositionColumns() };
     }
 
     pub fn nQueries(self: ProofShape) usize {
@@ -108,6 +223,10 @@ pub const ProofShape = struct {
     /// Whether interaction column `column` also carries its value at the
     /// previous point: the last four interaction columns of each component.
     pub fn isCumulativeSumColumn(self: ProofShape, column: usize) bool {
+        if (self.interaction_mask_offsets) |masks| {
+            std.debug.assert(column < masks.len);
+            return masks[column].len == 2;
+        }
         var start: usize = 0;
         for (self.component_shapes) |shape| {
             const end = start + shape.interaction_columns;
@@ -125,8 +244,8 @@ pub const ProofShape = struct {
         // channel_salt, three roots (two QM31 words each), pow_nonce and
         // interaction_pow_nonce.
         const fixed = (1 + 3 * 2 + 1 + 1) * qm31_bytes;
-        const claim = self.nComponents() * qm31_bytes;
-        const oods = (total_columns + self.nCumulativeSumColumns()) * qm31_bytes;
+        const claim = self.nClaimedSums() * qm31_bytes;
+        const oods = (total_columns + self.nCumulativeSumColumns() + self.nTraceOodsValues() - columns[1]) * qm31_bytes;
         const fri_last_layer = (@as(usize, 1) << @intCast(self.fri.log_last_layer_degree_bound)) * qm31_bytes;
 
         var steps_buffer: [max_fri_layers]u32 = undefined;
@@ -193,4 +312,48 @@ test "circuit proof shape: validation" {
     bad = test_shape;
     bad.component_shapes = &thin;
     try std.testing.expectError(error.InvalidProofShape, bad.validate());
+}
+
+test "circuit proof shape: split-two composition and trace-only components" {
+    const shapes = [_]ComponentShape{
+        .{ .trace_columns = 3, .interaction_columns = 0 },
+        .{ .trace_columns = 0, .interaction_columns = 8 },
+    };
+    var shape = test_shape;
+    shape.component_shapes = &shapes;
+    shape.composition_log_split = 2;
+    try shape.validate();
+    try std.testing.expectEqual(@as(usize, 16), shape.nCompositionColumns());
+    try std.testing.expectEqual(@as(usize, 4), shape.nCumulativeSumColumns());
+    const columns = shape.nColumnsPerTrace();
+    try std.testing.expectEqualSlices(usize, &.{ 3, 3, 8, 16 }, &columns);
+    try std.testing.expect(!shape.isCumulativeSumColumn(3));
+    try std.testing.expect(shape.isCumulativeSumColumn(4));
+    // Four wider composition columns, four fewer cumulative openings, and
+    // one fewer claim because the first component is trace-only.
+    const expected_delta = 4 * (qm31_bytes + shape.nQueries() * m31_bytes) - 5 * qm31_bytes;
+    try std.testing.expectEqual(test_shape.serializedLen() + expected_delta, shape.serializedLen());
+}
+
+test "circuit proof shape: ordered shifted masks increase OODS length and reject malformed masks" {
+    const masks = [_][]const i8{ &.{0}, &.{ -3, -2, -1, 0, 1 }, &.{ -16, -15, -7, -2, 0 } };
+    var shape = test_shape;
+    shape.trace_mask_offsets = &masks;
+    try shape.validate();
+    try std.testing.expectEqual(@as(usize, 11), shape.nTraceOodsValues());
+    try std.testing.expectEqual(@as(usize, 1), shape.traceMaskRange(1).start);
+    try std.testing.expectEqual(@as(usize, 6), shape.traceMaskRange(1).end);
+    try std.testing.expectEqual(@as(usize, 6), shape.traceMaskRange(2).start);
+    try std.testing.expectEqualSlices(i8, &.{ -16, -15, -7, -2, 0 }, shape.columnMaskOffsets(1, 2));
+    try std.testing.expectEqual(test_shape.serializedLen() + 8 * qm31_bytes, shape.serializedLen());
+
+    const wrong_count = [_][]const i8{&.{0}};
+    shape.trace_mask_offsets = &wrong_count;
+    try std.testing.expectError(error.InvalidProofShape, shape.validate());
+    const duplicate = [_][]const i8{ &.{0}, &.{ -1, 0, -1 }, &.{0} };
+    shape.trace_mask_offsets = &duplicate;
+    try std.testing.expectError(error.InvalidProofShape, shape.validate());
+    const missing_current = [_][]const i8{ &.{0}, &.{ -1, 1 }, &.{0} };
+    shape.trace_mask_offsets = &missing_current;
+    try std.testing.expectError(error.InvalidProofShape, shape.validate());
 }

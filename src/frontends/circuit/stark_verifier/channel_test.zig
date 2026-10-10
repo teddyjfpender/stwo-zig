@@ -143,6 +143,48 @@ test "channel: pow accepts exactly the valid nonce and bit count" {
 /// The core `Blake2sM31Channel` of the circuit proofs' channel profile.
 const HostChannel = core.vcs_lifted.channel_profile.proving_5a7c5ed.Blake2sM31MerkleChannel.Channel;
 
+test "channel: PoW checks reduced M31 digest words like the native verifier" {
+    const digest = [2]QM31{
+        qm31(968886948, 725376924, 836084817, 484428276),
+        qm31(1805658819, 300032261, 172116750, 994058243),
+    };
+    var digest_bytes: [32]u8 = undefined;
+    for (digest, 0..) |felt, half| {
+        for (felt.toM31Array(), 0..) |word, i|
+            std.mem.writeInt(u32, digest_bytes[(half * 4 + i) * 4 ..][0..4], word.v, .little);
+    }
+    var host = HostChannel{};
+    host.updateDigest(digest_bytes);
+    const pow_bits: u32 = 10;
+    const prefix = host.computePowPrefix(pow_bits);
+
+    // The first raw BLAKE2s word crosses the M31 modulus in both cases.
+    // Nonce 2392 is valid only after the mandated M31 reduction; nonce 866
+    // has ten zero raw bits but becomes invalid after that reduction.
+    for ([_]struct { nonce: u64, accepted: bool }{
+        .{ .nonce = 2392, .accepted = true },
+        .{ .nonce = 866, .accepted = false },
+    }) |case| {
+        var message: [40]u8 = undefined;
+        @memcpy(message[0..32], &prefix);
+        std.mem.writeInt(u64, message[32..40], case.nonce, .little);
+        var raw_hash: [32]u8 = undefined;
+        std.crypto.hash.blake2.Blake2s256.hash(&message, &raw_hash, .{});
+        const raw_first = std.mem.readInt(u32, raw_hash[0..4], .little);
+        try std.testing.expect(raw_first >= core.fields.m31.Modulus);
+        const raw_accepts = (raw_first & ((@as(u32, 1) << pow_bits) - 1)) == 0;
+        try std.testing.expectEqual(!case.accepted, raw_accepts);
+        try std.testing.expectEqual(case.accepted, host.verifyPowNonce(pow_bits, case.nonce));
+
+        var ctx = try Context.init(std.testing.allocator, 0);
+        defer ctx.deinit();
+        var circuit_channel = try fromDigest(&ctx, digest);
+        const nonce = try ctx.newVar(qm31(@intCast(case.nonce), 0, 0, 0));
+        try circuit_channel.pow(QM31, &ctx, pow_bits, nonce);
+        try std.testing.expectEqual(case.accepted, try ctx.isCircuitValid());
+    }
+}
+
 fn expectHostDigest(ctx: *const Context, channel: Channel, host: HostChannel) !void {
     const expected = builder.blake.reducedHashValueFromDigest(host.digestBytes());
     try expectValue(ctx, channel.digest.low, expected.low);
@@ -190,5 +232,45 @@ test "channel: unpack_qm31s_to_u32_words then mix_u32s matches stwo mix_felts" {
         try channel.mixU32s(QM31, &ctx, words);
         try expectHostDigest(&ctx, channel, host);
     }
+    try expectValid(&ctx);
+}
+
+test "channel: fused transcript salt, profile tag, field claims and independent lookup draws match native" {
+    const m = core.fields.m31.M31.fromCanonical;
+    const felts = [_]QM31{
+        QM31.fromM31(m(42), m(1337), m(0), m(0)),
+        QM31.fromM31(m(1), m(2), m(3), m(4)),
+    };
+    var ctx = try Context.init(std.testing.allocator, 0);
+    defer ctx.deinit();
+    var channel = Channel.init(QM31, &ctx);
+    var host: HostChannel = .{};
+
+    const tag: u64 = 0x5333_3146_4346_3031;
+    try channel.mixU64(QM31, &ctx, tag);
+    host.mixU64(tag);
+    try expectHostDigest(&ctx, channel, host);
+
+    const salt = core.fields.m31.Modulus + 5;
+    try channel.mixChannelSalt(QM31, &ctx, salt);
+    core.channel.lookup_transcript.mixChannelSalt(&host, salt);
+    try expectHostDigest(&ctx, channel, host);
+
+    var vars: [felts.len]builder.Var = undefined;
+    for (&vars, felts) |*v, value| v.* = try ctx.newVar(value);
+    try channel.mixFelts(QM31, &ctx, &vars);
+    host.mixFelts(&felts);
+    try expectHostDigest(&ctx, channel, host);
+
+    const first = try channel.drawLookupElements(QM31, &ctx);
+    const host_first = try core.channel.lookup_transcript.drawLookupElements(std.testing.allocator, &host);
+    try expectValue(&ctx, first[0], host_first.z);
+    try expectValue(&ctx, first[1], host_first.alpha);
+    const second = try channel.drawLookupElements(QM31, &ctx);
+    const host_second = try core.channel.lookup_transcript.drawLookupElements(std.testing.allocator, &host);
+    try expectValue(&ctx, second[0], host_second.z);
+    try expectValue(&ctx, second[1], host_second.alpha);
+    try std.testing.expect(!ctx.get(first[0]).eql(ctx.get(second[0])));
+    try expectHostDigest(&ctx, channel, host);
     try expectValid(&ctx);
 }
