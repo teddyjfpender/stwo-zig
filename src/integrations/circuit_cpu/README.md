@@ -88,9 +88,10 @@ const bytes = try verifier_proof.serialize(allocator);
 | `recursion` | Orchestration (design §7): `leaf_wrap` (`prove_leaf` steps 4-8), `topology_key` (design §3.5), `topology_cache` (the byte-bounded per-topology LRU), `canonical` (`CanonicalCircuit::build`), `fold` (`LayerEntry`, `reduce_pair`, `reduce_root_single`), `tree` (`fold_entries`, `foldLeaves`, `write_root_outputs`) and `circuit_params` (registry generation) |
 | `repeated_step_chip` | S31's four-lane indexed repeated-step AIR (`out = in² + c`), linked to the circuit by LogUp in the same proof |
 | `private_boundary_bridge` | S31's private four-lane circuit/chip boundary: chip endpoints joined to private Gate wires in one LogUp closure |
-| `private_pair_boundary` | Isolated checked two-call plan: source-owned repeated-address Gate counts, tagged seven-field tuples, exact five-component layout, closure oracle, and transcript order guard. No pair proof API yet. |
-| `tagged_pair_chip` | Staged two-call affine-square chip AIR with a component-constant call ID in its seven-field LogUp tuple; source binding awaits verifier integration. |
-| `tagged_pair_bridge` | Staged bridge AIR for each pair call: eight cyclic row equalities and five mixed-arity LogUp constraints; not yet in a native proof profile. |
+| `private_pair_boundary` | Checked two-call plan: source-owned repeated-address Gate counts, tagged seven-field tuples, exact five-component layout, closure oracle, and transcript order guard. |
+| `tagged_pair_chip` | Two-call affine-square chip AIR with a component-constant call ID in its seven-field LogUp tuple. |
+| `tagged_pair_bridge` | Bridge AIR for each pair call: eight cyclic row equalities and five mixed-arity LogUp constraints. |
+| `direct_pair_arithmetic` | Unexported engine experiment that proves and verifies the five-component pair in memory. S31 source-derived plan and manifest reconstruction, a sealed proof envelope, and byte-level admission remain before release. |
 | `sparse_arithmetic` | S31 sparse-v3 prover: QM31, M31-to-u32 and range-16 circuit AIRs, optionally with the step chip, in one transcript |
 | `sparse_wide` | S31 sparse-wide-v5 prover: Eq, QM31, M31-to-u32 and range-16 circuit AIRs |
 | `direct_arithmetic` | S31 direct-M31 v4 prover: one QM31 circuit component and an optional step chip |
@@ -123,9 +124,9 @@ preprocessed commitment. The pair profile tag is `0x5333315041495201`;
 
 The `Plan.extract`, `checkTraceRows`, `closure`, roster, and transcript-order
 functions are deterministic admission and test oracles. **They do not by
-themselves make a pair proof.** Tagged chip and bridge AIR implementations are
-staged as isolated components with row and quotient differential tests. The
-one-call proof format and verifier are unchanged.
+themselves make a pair proof.** Tagged chip and bridge AIR implementations have
+row and quotient differential tests. The one-call proof format and verifier
+are unchanged.
 
 An unexported `direct_pair_arithmetic.zig` experiment now constructs and
 verifies an in-memory five-component proof using one lookup challenge and five

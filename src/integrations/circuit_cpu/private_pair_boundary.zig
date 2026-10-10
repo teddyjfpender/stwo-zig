@@ -1,9 +1,9 @@
-//! Checked, bounded two-call boundary protocol for a future direct-M31 AIR.
+//! Checked, bounded two-call boundary protocol for the experimental direct-M31 AIR.
 //!
 //! This module is deliberately not wired into `direct_arithmetic.prove`:
-//! its roster and transcript commitments are protocol inputs, but the tagged
-//! AIRs still need PCS/transcript wiring and source-derived verification
-//! before any pair proof can be accepted.
+//! its roster and transcript commitments are protocol inputs. An unexported
+//! engine experiment proves this roster in memory; source-derived S31 plan and
+//! manifest reconstruction plus a sealed verifier remain before release.
 //! The live one-call proof format and verifier remain byte-for-byte unchanged.
 const std = @import("std");
 const core = @import("stwo_core");
@@ -56,8 +56,8 @@ pub const Plan = struct {
     }
 
     /// Construct the actual preprocessed circuit that commits the checked
-    /// multiplicities. No prover profile accepts it until the five-component
-    /// transcript and source-derived verifier reconstruction are implemented.
+    /// multiplicities. Only the unexported pair engine accepts this profile;
+    /// the S31 source-derived verifier reconstruction is still pending.
     pub fn preprocessed(self: Plan, allocator: std.mem.Allocator, source: CircuitView) !DirectCircuit {
         try self.validate(source, allocator);
         return DirectCircuit.fromCircuitWithPairBoundary(allocator, source, self.boundary());

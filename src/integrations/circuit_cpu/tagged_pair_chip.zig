@@ -2,10 +2,9 @@
 //!
 //! This is a real AIR component with the same nine committed state columns as
 //! the one-call chip. The component's `call_id` is a constant in every
-//! seven-field lookup tuple; it is never supplied by the witness. The future
-//! verifier must derive that constant from the source-bound manifest. No pair proof API is
-//! enabled until the two bridge AIRs, Gate compression, PCS roster, and verifier
-//! reconstruction are complete.
+//! seven-field lookup tuple; it is never supplied by the witness. The released
+//! verifier must derive that constant from the source-bound manifest. Only an
+//! unexported in-memory pair proof path uses this component today.
 const std = @import("std");
 const core = @import("stwo_core");
 const prover = @import("stwo_prover_engine");
