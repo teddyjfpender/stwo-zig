@@ -1,6 +1,6 @@
-//! Experimental bounded 1..8-call direct-M31 in-memory proof path. S31 must
-//! reconstruct the source-derived Plan and typed manifest before admitting a
-//! proof; no V4 wire envelope or source-pinned binary is exposed here.
+//! Experimental bounded 1..8-call direct-M31 native proof path. S31 must
+//! reconstruct the source-derived typed manifest before admitting proof
+//! bytes; the source-pinned V4 envelope lives in the S31 package, not here.
 //! Transcript order on both sides: V4 profile/effective digest and plan,
 //! channel salt, FRI config, preprocessed root, circuit identity, eight public
 //! words, one main root, interaction PoW nonce, one lookup challenge pair,
@@ -14,6 +14,7 @@ const old = @import("prove.zig");
 const air = @import("air.zig");
 const many = @import("private_many_boundary.zig");
 const preflight = @import("direct_many_preflight.zig");
+const schedule = @import("direct_many_schedule.zig");
 const chip = @import("tagged_many_chip.zig");
 const bridge = @import("tagged_many_bridge.zig");
 const direct = @import("direct_arithmetic.zig");
@@ -85,6 +86,81 @@ fn fillLogs(specs: many.Roster, comptime main: bool) [if (main) max_main_width e
     return logs;
 }
 
+fn fillSelectedLogs(selected: *const schedule.SelectedSchedule, comptime main: bool) ![if (main) max_main_width else max_interaction_width]u32 {
+    var logs: [if (main) max_main_width else max_interaction_width]u32 = undefined;
+    var at: usize = 0;
+    for (selected.slotSlice()) |slot| {
+        const offset = if (main) slot.main_offset else slot.interaction_offset;
+        const width = if (main) slot.main_columns else slot.interaction_columns;
+        if (offset != at or width > logs.len - at) return error.InvalidManySchedule;
+        @memset(logs[offset..][0..width], slot.trace_log_size);
+        at += width;
+    }
+    const expected_width = if (main) selected.geometry.live.tree_columns[1] else selected.geometry.live.tree_columns[2];
+    if (at != expected_width) return error.InvalidManySchedule;
+    return logs;
+}
+
+fn copySelectedColumns(
+    dst: []ColumnEvaluation,
+    selected: *const schedule.SelectedSchedule,
+    circuit_columns: []const ColumnEvaluation,
+    chips: anytype,
+    bridges: anytype,
+    comptime main: bool,
+) !void {
+    var at: usize = 0;
+    for (selected.slotSlice(), 0..) |slot, index| {
+        if (slot.proof_index != index) return error.InvalidManySchedule;
+        const columns: []const ColumnEvaluation = switch (slot.kind) {
+            .circuit => circuit_columns,
+            .chip => blk: {
+                const id: usize = @intCast(slot.call_id orelse return error.InvalidManySchedule);
+                if (id >= selected.geometry.call_count) return error.InvalidManySchedule;
+                break :blk chips[id].columns;
+            },
+            .bridge => blk: {
+                const id: usize = @intCast(slot.call_id orelse return error.InvalidManySchedule);
+                if (id >= selected.geometry.call_count) return error.InvalidManySchedule;
+                break :blk bridges[id].columns;
+            },
+        };
+        const expected_at = if (main) slot.main_offset else slot.interaction_offset;
+        const width = if (main) slot.main_columns else slot.interaction_columns;
+        if (at != expected_at or columns.len != width or at > dst.len or width > dst.len - at)
+            return error.InvalidManySchedule;
+        @memcpy(dst[at..][0..width], columns);
+        at += width;
+    }
+    if (at != dst.len) return error.InvalidManySchedule;
+}
+
+fn selectedSums(
+    selected: *const schedule.SelectedSchedule,
+    circuit_sum: QM31,
+    chips: anytype,
+    bridges: anytype,
+) ![many.max_components]QM31 {
+    var sums = [_]QM31{QM31.zero()} ** many.max_components;
+    for (selected.slotSlice(), 0..) |slot, index| {
+        if (slot.claimed_sum_index != index) return error.InvalidManySchedule;
+        sums[index] = switch (slot.kind) {
+            .circuit => circuit_sum,
+            .chip => blk: {
+                const id: usize = @intCast(slot.call_id orelse return error.InvalidManySchedule);
+                if (id >= selected.geometry.call_count) return error.InvalidManySchedule;
+                break :blk chips[id].claimed_sum;
+            },
+            .bridge => blk: {
+                const id: usize = @intCast(slot.call_id orelse return error.InvalidManySchedule);
+                if (id >= selected.geometry.call_count) return error.InvalidManySchedule;
+                break :blk bridges[id].claimed_sum;
+            },
+        };
+    }
+    return sums;
+}
+
 fn copyPart(comptime T: type, dst: []T, offset: *usize, source: []const T) !void {
     if (source.len > dst.len - offset.*) return error.InvalidManyRoster;
     @memcpy(dst[offset.*..][0..source.len], source);
@@ -117,10 +193,41 @@ pub fn prove(
     pcs: core.pcs.config_v2.PcsConfigV2,
     request: Request,
 ) !Proof {
+    return proveInternal(allocator, source, values, template, pcs, request, null);
+}
+
+/// Experimental engine adapter. This is not a source authentication API:
+/// only the S31 sealed wrapper may supply the regenerated selected schedule.
+/// The adapter rechecks all observable geometry before proving.
+pub fn proveSelected(
+    allocator: std.mem.Allocator,
+    source: CircuitView,
+    values: []const QM31,
+    template: *const air.Bundle,
+    selected: *const schedule.SelectedSchedule,
+) !Proof {
+    try selected.validateShape();
+    return proveInternal(allocator, source, values, template, selected.geometry.live.pcs, .{
+        .source_digest = selected.geometry.source_digest,
+        .manifest_digest = selected.manifest_digest,
+        .plan = selected.fixedCircuitPlan(),
+    }, selected);
+}
+
+fn proveInternal(
+    allocator: std.mem.Allocator,
+    source: CircuitView,
+    values: []const QM31,
+    template: *const air.Bundle,
+    pcs: core.pcs.config_v2.PcsConfigV2,
+    request: Request,
+    selected: ?*const schedule.SelectedSchedule,
+) !Proof {
     try validatePublicOutputShape(source);
     var pp = try request.plan.preprocessed(allocator, source);
     defer pp.deinit(allocator);
-    const live = try preflight.inspect(allocator, &pp, template, request.plan);
+    if (selected) |value| try value.revalidate(allocator, &pp, template);
+    const live = if (selected) |value| value.geometry.live else try preflight.inspect(allocator, &pp, template, request.plan);
     if (!std.meta.eql(pcs, live.pcs)) return error.InvalidManyPcsConfig;
     const layout = pp.layout();
     var bound = try air.bindDirectArithmetic(allocator, template, pp.traceLogSize(), &layout);
@@ -129,8 +236,11 @@ pub fn prove(
     const specs = try many.expectedRoster(request.plan, pp.traceLogSize(), bound.total_constraints);
     if (specs.count != live.count or specs.main_width != live.tree_columns[1] or
         specs.interaction_width != live.tree_columns[2]) return error.InvalidManyRoster;
+    const count = if (selected) |value| value.geometry.slot_count else specs.count;
+    const main_width = if (selected != null) @as(usize, live.tree_columns[1]) else specs.main_width;
+    const interaction_width = if (selected != null) @as(usize, live.tree_columns[2]) else specs.interaction_width;
     const states = try request.plan.extract(values);
-    const effective_digest = many.effectiveDigest(request.source_digest, request.manifest_digest);
+    const effective_digest = if (selected) |value| value.effectiveDigest() else many.effectiveDigest(request.source_digest, request.manifest_digest);
     var channel = Channel{};
     var order: many.TranscriptOrder = .{};
     many.mixProfile(&channel, effective_digest, request.plan);
@@ -166,19 +276,29 @@ pub fn prove(
         bridge_base[id] = try bridge.writeBase(allocator, values, call);
         bridge_ready += 1;
     }
-    const hash = many.identityHash(effective_digest, root, base.log_size, pcs.fri_config.log_blowup_factor, request.plan);
+    if (selected) |value| {
+        if (!std.meta.eql(root, value.geometry.fixed_root) or
+            base.log_size != value.geometry.slots[0].trace_log_size)
+            return error.InvalidManySchedule;
+    }
+    const hash = if (selected) |value| value.circuitIdentity() else many.identityHash(effective_digest, root, base.log_size, pcs.fri_config.log_blowup_factor, request.plan);
     MC.mixRoot(&channel, hash);
     try order.accept(.circuit_identity);
     channel.mixFelts(base.output_values);
     try order.accept(.public_statement);
     var main_views: [max_main_width]ColumnEvaluation = undefined;
     var main_at: usize = 0;
-    try copyPart(ColumnEvaluation, main_views[0..specs.main_width], &main_at, base.columns);
-    for (chip_base[0..request.plan.count]) |item|
-        try copyPart(ColumnEvaluation, main_views[0..specs.main_width], &main_at, item.columns);
-    for (bridge_base[0..request.plan.count]) |item|
-        try copyPart(ColumnEvaluation, main_views[0..specs.main_width], &main_at, item.columns);
-    if (main_at != specs.main_width) return error.InvalidManyRoster;
+    if (selected) |value| {
+        try copySelectedColumns(main_views[0..main_width], value, base.columns, chip_base[0..request.plan.count], bridge_base[0..request.plan.count], true);
+        main_at = main_width;
+    } else {
+        try copyPart(ColumnEvaluation, main_views[0..main_width], &main_at, base.columns);
+        for (chip_base[0..request.plan.count]) |item|
+            try copyPart(ColumnEvaluation, main_views[0..main_width], &main_at, item.columns);
+        for (bridge_base[0..request.plan.count]) |item|
+            try copyPart(ColumnEvaluation, main_views[0..main_width], &main_at, item.columns);
+        if (main_at != main_width) return error.InvalidManyRoster;
+    }
     try commit(&scheme, allocator, main_views[0..main_at], &channel);
     try order.accept(.main_commitment);
     const nonce = channel.grind(circuit.common.component_list.INTERACTION_POW_BITS);
@@ -200,11 +320,14 @@ pub fn prove(
         bridge_interaction[id] = try bridge.writeInteraction(allocator, bridge_base[id].columns, call, lookup.z, lookup.alpha);
         bridge_interaction_ready += 1;
     }
-    var sums = [_]QM31{QM31.zero()} ** many.max_components;
-    sums[0] = interaction.claimed_sum;
-    for (chip_interaction[0..request.plan.count], 0..) |item, id| sums[1 + id] = item.claimed_sum;
-    for (bridge_interaction[0..request.plan.count], 0..) |item, id| sums[1 + @as(usize, request.plan.count) + id] = item.claimed_sum;
-    const active_sums = sums[0..specs.count];
+    const sums = if (selected) |value| try selectedSums(value, interaction.claimed_sum, chip_interaction[0..request.plan.count], bridge_interaction[0..request.plan.count]) else blk: {
+        var legacy = [_]QM31{QM31.zero()} ** many.max_components;
+        legacy[0] = interaction.claimed_sum;
+        for (chip_interaction[0..request.plan.count], 0..) |item, id| legacy[1 + id] = item.claimed_sum;
+        for (bridge_interaction[0..request.plan.count], 0..) |item, id| legacy[1 + @as(usize, request.plan.count) + id] = item.claimed_sum;
+        break :blk legacy;
+    };
+    const active_sums = sums[0..count];
     var closure = try direct_trace.lookupSum(base.output_values, sums[0], lookup.z, lookup.alpha);
     for (active_sums[1..]) |sum| closure = closure.add(sum);
     if (!closure.isZero()) return error.InvalidManyLookupSum;
@@ -212,12 +335,17 @@ pub fn prove(
     try order.accept(.claimed_sums);
     var interaction_views: [max_interaction_width]ColumnEvaluation = undefined;
     var interaction_at: usize = 0;
-    try copyPart(ColumnEvaluation, interaction_views[0..specs.interaction_width], &interaction_at, interaction.columns);
-    for (chip_interaction[0..request.plan.count]) |item|
-        try copyPart(ColumnEvaluation, interaction_views[0..specs.interaction_width], &interaction_at, item.columns);
-    for (bridge_interaction[0..request.plan.count]) |item|
-        try copyPart(ColumnEvaluation, interaction_views[0..specs.interaction_width], &interaction_at, item.columns);
-    if (interaction_at != specs.interaction_width) return error.InvalidManyRoster;
+    if (selected) |value| {
+        try copySelectedColumns(interaction_views[0..interaction_width], value, interaction.columns, chip_interaction[0..request.plan.count], bridge_interaction[0..request.plan.count], false);
+        interaction_at = interaction_width;
+    } else {
+        try copyPart(ColumnEvaluation, interaction_views[0..interaction_width], &interaction_at, interaction.columns);
+        for (chip_interaction[0..request.plan.count]) |item|
+            try copyPart(ColumnEvaluation, interaction_views[0..interaction_width], &interaction_at, item.columns);
+        for (bridge_interaction[0..request.plan.count]) |item|
+            try copyPart(ColumnEvaluation, interaction_views[0..interaction_width], &interaction_at, item.columns);
+        if (interaction_at != interaction_width) return error.InvalidManyRoster;
+    }
     try commit(&scheme, allocator, interaction_views[0..interaction_at], &channel);
     try order.accept(.interaction_commitment);
 
@@ -227,30 +355,69 @@ pub fn prove(
     var chips: [many.n_calls]chip.Component = undefined;
     var bridges: [many.n_calls]bridge.Component = undefined;
     var handles: [many.max_components]prover.air.component_prover.ComponentProver = undefined;
-    handles[0] = captured.asProverComponent();
-    for (request.plan.callSlice(), 0..) |call, id| {
-        chips[id] = .{
-            .log_size = specs.entries[1 + id].log_size,
-            .call_id = call.call_id,
-            .constant = call.constant,
-            .main_offset = specs.entries[1 + id].main_offset,
-            .interaction_offset = specs.entries[1 + id].interaction_offset,
-            .elements = .init(lookup.z, lookup.alpha),
-            .claimed_sum = sums[1 + id],
-        };
-        handles[1 + id] = chips[id].asProverComponent();
-        bridges[id] = .{
-            .main_offset = specs.entries[1 + @as(usize, request.plan.count) + id].main_offset,
-            .interaction_offset = specs.entries[1 + @as(usize, request.plan.count) + id].interaction_offset,
-            .boundary = call,
-            .elements = .init(lookup.z, lookup.alpha),
-            .claimed_sum = sums[1 + @as(usize, request.plan.count) + id],
-        };
-        handles[1 + @as(usize, request.plan.count) + id] = bridges[id].asProverComponent();
+    if (selected) |value| {
+        for (value.slotSlice(), 0..) |slot, index| {
+            if (slot.claimed_sum_index != index) return error.InvalidManySchedule;
+            switch (slot.kind) {
+                .circuit => {
+                    if (index != 0 or slot.call_id != null) return error.InvalidManySchedule;
+                    handles[index] = captured.asProverComponent();
+                },
+                .chip => {
+                    const id: usize = @intCast(slot.call_id orelse return error.InvalidManySchedule);
+                    if (id >= value.geometry.call_count) return error.InvalidManySchedule;
+                    const call = value.geometry.calls[id];
+                    chips[id] = .{
+                        .log_size = slot.trace_log_size,
+                        .call_id = call.call_id,
+                        .constant = call.constant,
+                        .main_offset = slot.main_offset,
+                        .interaction_offset = slot.interaction_offset,
+                        .elements = .init(lookup.z, lookup.alpha),
+                        .claimed_sum = sums[index],
+                    };
+                    handles[index] = chips[id].asProverComponent();
+                },
+                .bridge => {
+                    const id: usize = @intCast(slot.call_id orelse return error.InvalidManySchedule);
+                    if (id >= value.geometry.call_count) return error.InvalidManySchedule;
+                    bridges[id] = .{
+                        .main_offset = slot.main_offset,
+                        .interaction_offset = slot.interaction_offset,
+                        .boundary = value.geometry.calls[id],
+                        .elements = .init(lookup.z, lookup.alpha),
+                        .claimed_sum = sums[index],
+                    };
+                    handles[index] = bridges[id].asProverComponent();
+                },
+            }
+        }
+    } else {
+        handles[0] = captured.asProverComponent();
+        for (request.plan.callSlice(), 0..) |call, id| {
+            chips[id] = .{
+                .log_size = specs.entries[1 + id].log_size,
+                .call_id = call.call_id,
+                .constant = call.constant,
+                .main_offset = specs.entries[1 + id].main_offset,
+                .interaction_offset = specs.entries[1 + id].interaction_offset,
+                .elements = .init(lookup.z, lookup.alpha),
+                .claimed_sum = sums[1 + id],
+            };
+            handles[1 + id] = chips[id].asProverComponent();
+            bridges[id] = .{
+                .main_offset = specs.entries[1 + @as(usize, request.plan.count) + id].main_offset,
+                .interaction_offset = specs.entries[1 + @as(usize, request.plan.count) + id].interaction_offset,
+                .boundary = call,
+                .elements = .init(lookup.z, lookup.alpha),
+                .claimed_sum = sums[1 + @as(usize, request.plan.count) + id],
+            };
+            handles[1 + @as(usize, request.plan.count) + id] = bridges[id].asProverComponent();
+        }
     }
-    try checkRuntimeHandles(prover.air.component_prover.ComponentProver, allocator, handles[0..specs.count], live);
+    try checkRuntimeHandles(prover.air.component_prover.ComponentProver, allocator, handles[0..count], live);
     scheme_owned = false;
-    var stark = try Engine.prove(allocator, handles[0..specs.count], &channel, scheme, .{ .include_all_preprocessed_columns = true });
+    var stark = try Engine.prove(allocator, handles[0..count], &channel, scheme, .{ .include_all_preprocessed_columns = true });
     try order.accept(.pcs_proof);
     try order.finish();
     errdefer stark.deinit(allocator);
@@ -260,7 +427,7 @@ pub fn prove(
         .output_values = try allocator.dupe(QM31, base.output_values),
         .interaction_pow_nonce = nonce,
         .claimed_sums = sums,
-        .sum_count = specs.count,
+        .sum_count = count,
         .stark_proof = stark,
         .circuit_hash = hash,
     };
@@ -289,10 +456,9 @@ pub fn verify(
     });
 }
 
-/// A future decoded V4 envelope will own only the postcard StarkProof, not
-/// prover-only PCS auxiliary state. This is the exact same verifier schedule
-/// as `verify`; the S31 wrapper must reconstruct `request` from sealed source
-/// and compare its generated V4 identity before calling this experimental adapter.
+/// A decoded S31 V4 envelope owns only the postcard StarkProof, not
+/// prover-only PCS auxiliary state. The S31 wrapper must regenerate the
+/// selected source and manifest identity before calling its selected adapter.
 pub const BorrowedProof = struct {
     output_values: []const QM31,
     interaction_pow_nonce: u64,
@@ -311,10 +477,44 @@ pub fn verifyBorrowed(
     public_words: [8]u32,
     proof: BorrowedProof,
 ) !void {
+    return verifyBorrowedInternal(allocator, source, template, pcs, request, null, public_words, proof);
+}
+
+/// Experimental selected verifier adapter. The caller must bind source,
+/// manifest, and native program digests by regenerating the S31 manifest.
+/// This method independently rechecks the fixed circuit and live geometry;
+/// it is not a standalone authenticated-source or proof-byte admission API.
+pub fn verifySelectedBorrowed(
+    allocator: std.mem.Allocator,
+    source: CircuitView,
+    template: *const air.Bundle,
+    selected: *const schedule.SelectedSchedule,
+    public_words: [8]u32,
+    proof: BorrowedProof,
+) !void {
+    try selected.validateShape();
+    return verifyBorrowedInternal(allocator, source, template, selected.geometry.live.pcs, .{
+        .source_digest = selected.geometry.source_digest,
+        .manifest_digest = selected.manifest_digest,
+        .plan = selected.fixedCircuitPlan(),
+    }, selected, public_words, proof);
+}
+
+fn verifyBorrowedInternal(
+    allocator: std.mem.Allocator,
+    source: CircuitView,
+    template: *const air.Bundle,
+    pcs: core.pcs.config_v2.PcsConfigV2,
+    request: Request,
+    selected: ?*const schedule.SelectedSchedule,
+    public_words: [8]u32,
+    proof: BorrowedProof,
+) !void {
     try validatePublicOutputShape(source);
     var pp = try request.plan.preprocessed(allocator, source);
     defer pp.deinit(allocator);
-    const live = try preflight.inspect(allocator, &pp, template, request.plan);
+    if (selected) |value| try value.revalidate(allocator, &pp, template);
+    const live = if (selected) |value| value.geometry.live else try preflight.inspect(allocator, &pp, template, request.plan);
     if (!std.meta.eql(pcs, live.pcs)) return error.InvalidManyPcsConfig;
     var committed = try direct.PreprocessedCommitment.build(allocator, &pp, pcs);
     defer committed.deinit(allocator);
@@ -332,9 +532,9 @@ pub fn verifyBorrowed(
         if (proof.output_values.len != 8 or !proof.output_values[index].eql(output.*))
             return error.InvalidManyPublicStatement;
     }
-    const effective_digest = many.effectiveDigest(request.source_digest, request.manifest_digest);
+    const effective_digest = if (selected) |value| value.effectiveDigest() else many.effectiveDigest(request.source_digest, request.manifest_digest);
     const circuit_log = pp.traceLogSize();
-    const expected_hash = many.identityHash(effective_digest, roots[0], circuit_log, pcs.fri_config.log_blowup_factor, request.plan);
+    const expected_hash = if (selected) |value| value.circuitIdentity() else many.identityHash(effective_digest, roots[0], circuit_log, pcs.fri_config.log_blowup_factor, request.plan);
     if (!std.mem.eql(u8, &proof.circuit_hash, &expected_hash)) return error.InvalidManyCircuitHash;
     var channel = Channel{};
     var order: many.TranscriptOrder = .{};
@@ -358,11 +558,14 @@ pub fn verifyBorrowed(
     defer bound.deinit();
     if (bound.components.len != 1) return error.InvalidManyRoster;
     const specs = try many.expectedRoster(request.plan, circuit_log, bound.total_constraints);
-    if (proof.sum_count != specs.count or specs.count != live.count or
+    const count = if (selected) |value| value.geometry.slot_count else specs.count;
+    const main_width = if (selected != null) @as(usize, live.tree_columns[1]) else specs.main_width;
+    const interaction_width = if (selected != null) @as(usize, live.tree_columns[2]) else specs.interaction_width;
+    if (proof.sum_count != count or specs.count != live.count or
         specs.main_width != live.tree_columns[1] or specs.interaction_width != live.tree_columns[2])
         return error.InvalidManyRoster;
-    const main_logs = fillLogs(specs, true);
-    try scheme.commit(allocator, roots[1], main_logs[0..specs.main_width], &channel);
+    const main_logs = if (selected) |value| try fillSelectedLogs(value, true) else fillLogs(specs, true);
+    try scheme.commit(allocator, roots[1], main_logs[0..main_width], &channel);
     try order.accept(.main_commitment);
     if (!channel.verifyPowNonce(circuit.common.component_list.INTERACTION_POW_BITS, proof.interaction_pow_nonce))
         return error.InvalidManyInteractionNonce;
@@ -375,8 +578,8 @@ pub fn verifyBorrowed(
     if (!closure.isZero()) return error.InvalidManyLookupSum;
     core.channel.lookup_transcript.mixInteractionClaim(&channel, proof.claimed_sums[0..proof.sum_count]);
     try order.accept(.claimed_sums);
-    const interaction_logs = fillLogs(specs, false);
-    try scheme.commit(allocator, roots[2], interaction_logs[0..specs.interaction_width], &channel);
+    const interaction_logs = if (selected) |value| try fillSelectedLogs(value, false) else fillLogs(specs, false);
+    try scheme.commit(allocator, roots[2], interaction_logs[0..interaction_width], &channel);
     try order.accept(.interaction_commitment);
 
     const lifting_bound = pcs.trace_lifting_log_size - pcs.fri_config.log_blowup_factor + 1;
@@ -384,34 +587,73 @@ pub fn verifyBorrowed(
     var chips: [many.n_calls]chip.Component = undefined;
     var bridges: [many.n_calls]bridge.Component = undefined;
     var handles: [many.max_components]core.air.components.Component = undefined;
-    handles[0] = captured.asVerifierComponent();
-    for (request.plan.callSlice(), 0..) |call, id| {
-        chips[id] = .{
-            .log_size = specs.entries[1 + id].log_size,
-            .call_id = call.call_id,
-            .constant = call.constant,
-            .main_offset = specs.entries[1 + id].main_offset,
-            .interaction_offset = specs.entries[1 + id].interaction_offset,
-            .elements = .init(lookup.z, lookup.alpha),
-            .claimed_sum = proof.claimed_sums[1 + id],
-        };
-        handles[1 + id] = chips[id].asVerifierComponent();
-        bridges[id] = .{
-            .main_offset = specs.entries[1 + @as(usize, request.plan.count) + id].main_offset,
-            .interaction_offset = specs.entries[1 + @as(usize, request.plan.count) + id].interaction_offset,
-            .boundary = call,
-            .elements = .init(lookup.z, lookup.alpha),
-            .claimed_sum = proof.claimed_sums[1 + @as(usize, request.plan.count) + id],
-        };
-        handles[1 + @as(usize, request.plan.count) + id] = bridges[id].asVerifierComponent();
+    if (selected) |value| {
+        for (value.slotSlice(), 0..) |slot, index| {
+            if (slot.claimed_sum_index != index) return error.InvalidManySchedule;
+            switch (slot.kind) {
+                .circuit => {
+                    if (index != 0 or slot.call_id != null) return error.InvalidManySchedule;
+                    handles[index] = captured.asVerifierComponent();
+                },
+                .chip => {
+                    const id: usize = @intCast(slot.call_id orelse return error.InvalidManySchedule);
+                    if (id >= value.geometry.call_count) return error.InvalidManySchedule;
+                    const call = value.geometry.calls[id];
+                    chips[id] = .{
+                        .log_size = slot.trace_log_size,
+                        .call_id = call.call_id,
+                        .constant = call.constant,
+                        .main_offset = slot.main_offset,
+                        .interaction_offset = slot.interaction_offset,
+                        .elements = .init(lookup.z, lookup.alpha),
+                        .claimed_sum = proof.claimed_sums[index],
+                    };
+                    handles[index] = chips[id].asVerifierComponent();
+                },
+                .bridge => {
+                    const id: usize = @intCast(slot.call_id orelse return error.InvalidManySchedule);
+                    if (id >= value.geometry.call_count) return error.InvalidManySchedule;
+                    bridges[id] = .{
+                        .main_offset = slot.main_offset,
+                        .interaction_offset = slot.interaction_offset,
+                        .boundary = value.geometry.calls[id],
+                        .elements = .init(lookup.z, lookup.alpha),
+                        .claimed_sum = proof.claimed_sums[index],
+                    };
+                    handles[index] = bridges[id].asVerifierComponent();
+                },
+            }
+        }
+    } else {
+        handles[0] = captured.asVerifierComponent();
+        for (request.plan.callSlice(), 0..) |call, id| {
+            chips[id] = .{
+                .log_size = specs.entries[1 + id].log_size,
+                .call_id = call.call_id,
+                .constant = call.constant,
+                .main_offset = specs.entries[1 + id].main_offset,
+                .interaction_offset = specs.entries[1 + id].interaction_offset,
+                .elements = .init(lookup.z, lookup.alpha),
+                .claimed_sum = proof.claimed_sums[1 + id],
+            };
+            handles[1 + id] = chips[id].asVerifierComponent();
+            bridges[id] = .{
+                .main_offset = specs.entries[1 + @as(usize, request.plan.count) + id].main_offset,
+                .interaction_offset = specs.entries[1 + @as(usize, request.plan.count) + id].interaction_offset,
+                .boundary = call,
+                .elements = .init(lookup.z, lookup.alpha),
+                .claimed_sum = proof.claimed_sums[1 + @as(usize, request.plan.count) + id],
+            };
+            handles[1 + @as(usize, request.plan.count) + id] = bridges[id].asVerifierComponent();
+        }
     }
-    try checkRuntimeHandles(core.air.components.Component, allocator, handles[0..specs.count], live);
+    try checkRuntimeHandles(core.air.components.Component, allocator, handles[0..count], live);
     var capture: core.verifier.ProofCapture(H) = undefined;
     try core.verifier.verifyBorrowedExWithProofCapture(
         H,
         MC,
         allocator,
-        handles[0..specs.count],
+        handles[0..count],
         &channel,
         &scheme,
         proof.stark_proof,

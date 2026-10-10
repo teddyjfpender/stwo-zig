@@ -99,6 +99,13 @@ pub const SelectedSchedule = struct {
     geometry: GeometrySelection,
     manifest_digest: [32]u8,
 
+    pub fn validateShape(self: *const SelectedSchedule) !void {
+        if (self.geometry.call_count == 0 or self.geometry.call_count > many.max_calls or
+            self.geometry.slot_count != 1 + 2 * @as(usize, self.geometry.call_count) or
+            self.geometry.slot_count > many.max_components)
+            return error.InvalidManySchedule;
+    }
+
     pub fn effectiveDigest(self: *const SelectedSchedule) [32]u8 {
         return many.effectiveDigest(self.geometry.source_digest, self.manifest_digest);
     }
@@ -123,6 +130,47 @@ pub const SelectedSchedule = struct {
 
     pub fn fixedCircuitPlan(self: *const SelectedSchedule) many.Plan {
         return self.geometry.fixedCircuitPlan();
+    }
+
+    /// Reconstruct the handles before executing a proof. This rejects
+    /// mutation of the selected geometry after source-pinned inspection.
+    /// It cannot authenticate `source_digest`, `manifest_digest`, or the S31
+    /// program-binding digests: the sealing wrapper must regenerate those.
+    pub fn revalidate(
+        self: *const SelectedSchedule,
+        allocator: std.mem.Allocator,
+        pp: *const DirectCircuit,
+        template: *const air.Bundle,
+    ) !void {
+        try self.validateShape();
+        const fri = self.geometry.live.pcs.fri_config;
+        const fresh = try selectGeometry(allocator, pp, template, .{
+            .source_digest = self.geometry.source_digest,
+            .fixed_root = self.geometry.fixed_root,
+            .calls = self.geometry.calls,
+            .call_count = self.geometry.call_count,
+            .slots = self.geometry.slots,
+            .slot_count = self.geometry.slot_count,
+            .pcs_profile = .{
+                .pow_bits = fri.pow_bits,
+                .log_blowup_factor = fri.log_blowup_factor,
+                .last_layer_degree_bound = fri.log_last_layer_degree_bound + 1,
+                .queries = fri.n_queries,
+                .fold_step = fri.fold_step,
+            },
+        });
+        const actual = fresh.live;
+        const expected = self.geometry.live;
+        if (!std.meta.eql(actual.pcs, expected.pcs) or
+            actual.count != expected.count or
+            !std.meta.eql(actual.tree_columns, expected.tree_columns) or
+            !std.meta.eql(actual.sample_width_limits, expected.sample_width_limits) or
+            actual.max_column_log_size != expected.max_column_log_size or
+            actual.composition_log_size != expected.composition_log_size or
+            actual.composition_split != expected.composition_split)
+            return error.InvalidManySchedule;
+        for (actual.factSlice(), expected.factSlice()) |left, right|
+            if (!std.meta.eql(left, right)) return error.InvalidManySchedule;
     }
 };
 
