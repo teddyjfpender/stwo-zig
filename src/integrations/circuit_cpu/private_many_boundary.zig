@@ -244,17 +244,32 @@ pub fn identityHash(effective_digest: [32]u8, preprocessed_root: [32]u8, circuit
 
 pub const TranscriptEvent = enum {
     profile,
+    channel_salt,
+    fri_config,
     preprocessed_commitment,
-    statement,
+    circuit_identity,
+    public_statement,
     main_commitment,
+    interaction_pow_nonce,
     lookup_challenge,
     claimed_sums,
     interaction_commitment,
+    pcs_proof,
 };
 
 pub const transcript_order = [_]TranscriptEvent{
-    .profile,          .preprocessed_commitment, .statement,              .main_commitment,
-    .lookup_challenge, .claimed_sums,            .interaction_commitment,
+    .profile,
+    .channel_salt,
+    .fri_config,
+    .preprocessed_commitment,
+    .circuit_identity,
+    .public_statement,
+    .main_commitment,
+    .interaction_pow_nonce,
+    .lookup_challenge,
+    .claimed_sums,
+    .interaction_commitment,
+    .pcs_proof,
 };
 
 pub const TranscriptOrder = struct {
@@ -300,4 +315,15 @@ test "V4 three-call boundary counts repeated addresses and has prefix-sum roster
     var exposed = plan;
     exposed.calls[1].output[0] = 35;
     try std.testing.expectError(error.InvalidManyBoundary, exposed.validate(source, allocator));
+}
+
+test "V4 transcript schedule names every native pair phase in order" {
+    var sequence: TranscriptOrder = .{};
+    try std.testing.expectError(error.ManyTranscriptOrder, sequence.accept(.preprocessed_commitment));
+    for (transcript_order) |event| try sequence.accept(event);
+    try sequence.finish();
+    try std.testing.expectError(error.ManyTranscriptOrder, sequence.accept(.pcs_proof));
+    var truncated: TranscriptOrder = .{};
+    try truncated.accept(.profile);
+    try std.testing.expectError(error.IncompleteManyTranscript, truncated.finish());
 }
