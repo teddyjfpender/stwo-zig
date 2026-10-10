@@ -105,6 +105,18 @@ pub fn build(b: *std.Build) void {
     b.step("export-qm31-air-lean", "Print native qm31_ops AIR expressions as Lean source")
         .dependOn(&qm31_export.step);
 
+    const logup_export_module = b.createModule(.{
+        .root_source_file = b.path("export_logup_air.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    const logup_export = b.addRunArtifact(b.addExecutable(.{
+        .name = "circuit-export-logup-air-lean",
+        .root_module = logup_export_module,
+    }));
+    b.step("export-logup-air-lean", "Print native LogUp formulas as Lean source")
+        .dependOn(&logup_export.step);
+
     // R1: the upstream `expect!` snapshots (unit tests) and the R1 builder
     // cases of `vectors/circuit/r2/gadgets.json`; R2: its gadget cases.
     const r1_step = b.step("circuit-parity-r1", "Rung R1: builder snapshots and builder cases against the oracle");
