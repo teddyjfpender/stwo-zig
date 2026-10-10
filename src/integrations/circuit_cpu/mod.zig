@@ -16,6 +16,10 @@ pub const private_boundary_bridge = @import("private_boundary_bridge.zig");
 pub const private_pair_boundary = @import("private_pair_boundary.zig");
 /// Source-derived V4 geometry only; no many-call proof is exported yet.
 pub const private_many_boundary = @import("private_many_boundary.zig");
+/// V4 AIR and live verifier-handle geometry, with no proof-byte admission.
+pub const direct_many_preflight = @import("direct_many_preflight.zig");
+pub const tagged_many_chip = @import("tagged_many_chip.zig");
+pub const tagged_many_bridge = @import("tagged_many_bridge.zig");
 pub const tagged_pair_chip = @import("tagged_pair_chip.zig");
 pub const tagged_pair_bridge = @import("tagged_pair_bridge.zig");
 pub const sparse_arithmetic = @import("sparse_arithmetic.zig");
@@ -50,6 +54,9 @@ test {
     _ = private_boundary_bridge;
     _ = private_pair_boundary;
     _ = private_many_boundary;
+    _ = direct_many_preflight;
+    _ = tagged_many_chip;
+    _ = tagged_many_bridge;
     _ = tagged_pair_chip;
     _ = tagged_pair_bridge;
     _ = sparse_arithmetic;
