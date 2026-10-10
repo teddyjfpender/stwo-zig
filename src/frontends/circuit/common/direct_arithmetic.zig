@@ -85,7 +85,7 @@ pub const Circuit = struct {
         const multiplicities = try source.computeUses(allocator);
         defer allocator.free(multiplicities);
         if (multiplicities.len == 0) return error.InvalidDirectTraceShape;
-        multiplicities[0] += @intCast(source.permutationRows());
+        try preprocessed.addCanonicalMultiplicity(&multiplicities[0], source.permutationRows());
         if (boundary) |item| {
             try item.validate(source.n_vars);
             // One extra Gate yield for each word consumed by the bridge AIR.
@@ -104,7 +104,7 @@ pub const Circuit = struct {
                     producers += 1;
                 };
                 if (producers != 1) return error.InvalidPrivateBoundary;
-                multiplicities[address] += 1;
+                try preprocessed.addCanonicalMultiplicity(&multiplicities[address], 1);
             }
         }
 

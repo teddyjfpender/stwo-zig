@@ -97,15 +97,15 @@ pub const Circuit = struct {
         defer old.deinit(allocator);
         const uses = try source.computeUses(allocator);
         defer allocator.free(uses);
-        uses[0] += @intCast(source.permutationRows());
+        try pp.addCanonicalMultiplicity(&uses[0], source.permutationRows());
         if (boundary) |sha| {
             try sha.validate(source);
-            for (sha.addresses) |address| uses[address] += 1;
+            for (sha.addresses) |address| try pp.addCanonicalMultiplicity(&uses[address], 1);
         }
         if (boundary_pair) |pair| {
             try pair.validate(source);
-            for (pair.first.addresses) |address| uses[address] += 1;
-            for (pair.second.addresses) |address| uses[address] += 1;
+            for (pair.first.addresses) |address| try pp.addCanonicalMultiplicity(&uses[address], 1);
+            for (pair.second.addresses) |address| try pp.addCanonicalMultiplicity(&uses[address], 1);
         }
 
         const eq_in0 = try allocator.alloc(M31, source.eq.len);

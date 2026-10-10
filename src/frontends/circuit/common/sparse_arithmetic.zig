@@ -108,10 +108,11 @@ pub const Circuit = struct {
         const multiplicities = try source.computeUses(allocator);
         defer allocator.free(multiplicities);
         if (multiplicities.len == 0) return error.InvalidSparseTraceShape;
-        multiplicities[0] += @intCast(source.permutationRows());
+        try preprocessed.addCanonicalMultiplicity(&multiplicities[0], source.permutationRows());
         if (boundary) |sha| {
             try sha.validate(source);
-            for (sha.addresses) |address| multiplicities[address] += 1;
+            for (sha.addresses) |address|
+                try preprocessed.addCanonicalMultiplicity(&multiplicities[address], 1);
         }
 
         var columns: [N_COLUMNS]preprocessed.Column = undefined;

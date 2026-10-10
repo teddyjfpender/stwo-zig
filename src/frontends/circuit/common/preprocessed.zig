@@ -136,7 +136,7 @@ pub const Error = error{
 
 /// Gate lookup multiplicities are M31 values. Reject a count that would
 /// become zero or alias a smaller count after field conversion.
-fn addCanonicalMultiplicity(counter: *u32, increment: usize) Error!void {
+pub fn addCanonicalMultiplicity(counter: *u32, increment: usize) Error!void {
     const modulus: u32 = core.fields.m31.Modulus;
     if (increment >= @as(usize, modulus)) return error.MultiplicityOutOfField;
     const addend: u32 = @intCast(increment);
