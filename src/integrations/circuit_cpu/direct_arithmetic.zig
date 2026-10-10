@@ -130,6 +130,10 @@ pub fn prove(
     pcs: core.pcs.config_v2.PcsConfigV2,
     request: Request,
 ) !Proof {
+    // A pair circuit has sixteen extra authenticated Gate yields. The v4/v5
+    // one-call prover cannot close them and must never treat it as an
+    // ordinary direct circuit or silently ignore its pair metadata.
+    if (pp.private_pair_boundary != null) return error.UnsupportedPairBoundaryProfile;
     if ((request.private_boundary == null) != (pp.private_boundary == null) or
         (request.private_boundary != null and !std.meta.eql(request.private_boundary.?, pp.private_boundary.?)) or
         (request.private_boundary != null and request.chip_request == null))

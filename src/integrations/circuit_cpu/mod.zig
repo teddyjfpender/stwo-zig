@@ -13,6 +13,7 @@ pub const verify = @import("verify.zig");
 pub const recursion = @import("recursion/mod.zig");
 pub const repeated_step_chip = @import("repeated_step_chip.zig");
 pub const private_boundary_bridge = @import("private_boundary_bridge.zig");
+pub const private_pair_boundary = @import("private_pair_boundary.zig");
 pub const sparse_arithmetic = @import("sparse_arithmetic.zig");
 pub const sparse_wide = @import("sparse_wide.zig");
 pub const direct_arithmetic = @import("direct_arithmetic.zig");
@@ -40,6 +41,7 @@ test {
     _ = recursion;
     _ = repeated_step_chip;
     _ = private_boundary_bridge;
+    _ = private_pair_boundary;
     _ = sparse_arithmetic;
     _ = sparse_wide;
 }

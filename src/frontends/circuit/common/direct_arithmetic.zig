@@ -26,6 +26,29 @@ pub const PrivateBoundary = struct {
     }
 };
 
+/// Source-owned addresses for exactly two private chip calls. Unlike the
+/// one-call boundary, an address may appear more than once. Every appearance
+/// adds a checked Gate yield, including repeats within one call.
+pub const PairBoundary = struct {
+    calls: [2]PrivateBoundary,
+
+    pub fn validate(self: PairBoundary, source: preprocessed.CircuitView) !void {
+        for (self.calls) |call| for (call.input ++ call.output) |address| {
+            if (address <= 2 or address >= source.n_vars or address >= core.fields.m31.Modulus)
+                return error.InvalidPairBoundary;
+            for (source.output) |public_address|
+                if (public_address == address) return error.InvalidPairBoundary;
+            var producers: usize = 0;
+            inline for (.{ source.add, source.sub, source.mul, source.pointwise_mul }) |gates| {
+                for (gates) |gate| producers += @intFromBool(gate.out == address);
+            }
+            for (source.permutation_outputs) |output|
+                producers += @intFromBool(output == address);
+            if (producers != 1) return error.InvalidPairBoundary;
+        };
+    }
+};
+
 pub const Layout = struct {
     entries: [N_COLUMNS]preprocessed.LayoutEntry,
 
@@ -53,6 +76,7 @@ pub const Circuit = struct {
     first_permutation_row: usize,
     n_outputs: usize,
     private_boundary: ?PrivateBoundary = null,
+    private_pair_boundary: ?PairBoundary = null,
 
     pub fn deinit(self: *Circuit, allocator: std.mem.Allocator) void {
         for (self.columns) |column| allocator.free(column.values);
@@ -67,15 +91,24 @@ pub const Circuit = struct {
         return fromCircuitWithPrivateBoundary(allocator, .fromBuilder(source), boundary);
     }
 
+    pub fn fromBuilderCircuitWithPairBoundary(allocator: std.mem.Allocator, source: *const builder_circuit.Circuit, boundary: PairBoundary) !Circuit {
+        return fromCircuitWithPairBoundary(allocator, .fromBuilder(source), boundary);
+    }
+
     pub fn fromCircuit(allocator: std.mem.Allocator, source: preprocessed.CircuitView) !Circuit {
-        return fromCircuitOptionalBoundary(allocator, source, null);
+        return fromCircuitOptionalBoundary(allocator, source, null, null);
     }
 
     pub fn fromCircuitWithPrivateBoundary(allocator: std.mem.Allocator, source: preprocessed.CircuitView, boundary: PrivateBoundary) !Circuit {
-        return fromCircuitOptionalBoundary(allocator, source, boundary);
+        return fromCircuitOptionalBoundary(allocator, source, boundary, null);
     }
 
-    fn fromCircuitOptionalBoundary(allocator: std.mem.Allocator, source: preprocessed.CircuitView, boundary: ?PrivateBoundary) !Circuit {
+    pub fn fromCircuitWithPairBoundary(allocator: std.mem.Allocator, source: preprocessed.CircuitView, boundary: PairBoundary) !Circuit {
+        return fromCircuitOptionalBoundary(allocator, source, null, boundary);
+    }
+
+    fn fromCircuitOptionalBoundary(allocator: std.mem.Allocator, source: preprocessed.CircuitView, boundary: ?PrivateBoundary, pair_boundary: ?PairBoundary) !Circuit {
+        if (boundary != null and pair_boundary != null) return error.InvalidPairBoundary;
         try source.validate();
         if (source.output.len == 0 or source.eq.len != 0 or source.triple_xor.len != 0 or
             source.m31_to_u32.len != 0 or source.blake_g_gate.len != 0)
@@ -106,6 +139,12 @@ pub const Circuit = struct {
                 if (producers != 1) return error.InvalidPrivateBoundary;
                 try preprocessed.addCanonicalMultiplicity(&multiplicities[address], 1);
             }
+        }
+        if (pair_boundary) |item| {
+            try item.validate(source);
+            for (item.calls) |call|
+                for (call.input ++ call.output) |address|
+                    try preprocessed.addCanonicalMultiplicity(&multiplicities[address], 1);
         }
 
         var columns: [N_COLUMNS]preprocessed.Column = undefined;
@@ -156,6 +195,7 @@ pub const Circuit = struct {
             .first_permutation_row = first_permutation_row,
             .n_outputs = source.output.len - 1,
             .private_boundary = boundary,
+            .private_pair_boundary = pair_boundary,
         };
     }
 
