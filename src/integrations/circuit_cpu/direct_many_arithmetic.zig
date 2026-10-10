@@ -586,6 +586,20 @@ test "V4 native three-call proof uses seven ordered component sums" {
         word.* = limbs[0].toU32();
     }
     try verify(allocator, source, &bundle, pcs, request, words, &proof);
+    for (0..proof.sum_count) |index| {
+        proof.claimed_sums[index] = proof.claimed_sums[index].add(QM31.one());
+        try std.testing.expectError(error.InvalidManyLookupSum, verify(allocator, source, &bundle, pcs, request, words, &proof));
+        proof.claimed_sums[index] = proof.claimed_sums[index].sub(QM31.one());
+    }
+    var reordered = request;
+    reordered.plan.calls[0] = request.plan.calls[1];
+    reordered.plan.calls[1] = request.plan.calls[0];
+    reordered.plan.calls[0].call_id = 0;
+    reordered.plan.calls[1].call_id = 1;
+    if (verify(allocator, source, &bundle, pcs, reordered, words, &proof)) |_| return error.AcceptedReorderedCalls else |_| {}
+    var changed_endpoint = request;
+    changed_endpoint.plan.calls[0].input[0] = request.plan.calls[1].input[0];
+    if (verify(allocator, source, &bundle, pcs, changed_endpoint, words, &proof)) |_| return error.AcceptedChangedEndpoint else |_| {}
     proof.sum_count -= 1;
     try std.testing.expectError(error.InvalidManyRoster, verify(allocator, source, &bundle, pcs, request, words, &proof));
 }
