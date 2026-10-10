@@ -32,8 +32,93 @@ const direct_trace = circuit.witness.direct_arithmetic;
 pub const Plan = pair.Plan;
 pub const Bundle = air.Bundle;
 
+/// Admission geometry reconstructed from the same five verifier components
+/// used by `verifyBorrowed`. It contains no lengths selected by proof bytes.
+pub const PreflightGeometry = struct {
+    tree_columns: [4]u32,
+    sample_width_limits: [4]u32,
+    max_column_log_size: u32,
+};
+
 pub fn parseBundle(allocator: std.mem.Allocator, bytes: []const u8) !Bundle {
     return air.parse(allocator, bytes);
+}
+
+pub fn preflightGeometry(
+    allocator: std.mem.Allocator,
+    source: CircuitView,
+    template: *const air.Bundle,
+    pcs: core.pcs.config_v2.PcsConfigV2,
+    plan: pair.Plan,
+) !PreflightGeometry {
+    try validatePublicOutputShape(source);
+    var pp = try plan.preprocessed(allocator, source);
+    defer pp.deinit(allocator);
+    const circuit_log = pp.traceLogSize();
+    const layout = pp.layout();
+    var bound = try air.bindDirectArithmetic(allocator, template, circuit_log, &layout);
+    defer bound.deinit();
+    if (bound.components.len != 1) return error.InvalidPairRoster;
+    const specs = try pair.expectedSpecs(plan, circuit_log, bound.total_constraints);
+    var pp_logs = [_]u32{circuit_log} ** direct_pp.N_COLUMNS;
+    const lifting_bound = pcs.trace_lifting_log_size - pcs.fri_config.log_blowup_factor + 1;
+    var captured = cairo.proving.air.component.Component.init(allocator, &bound.components[0], &pp_logs, lifting_bound, QM31.one(), QM31.one(), QM31.zero());
+    var chips: [pair.n_calls]chip.Component = undefined;
+    var bridges: [pair.n_calls]bridge.Component = undefined;
+    var handles: [pair.roster.len]core.air.components.Component = undefined;
+    handles[0] = captured.asVerifierComponent();
+    for (plan.calls, 0..) |call, id| {
+        chips[id] = .{
+            .log_size = specs[1 + id].log_size,
+            .call_id = call.call_id,
+            .constant = call.constant,
+            .main_offset = specs[1 + id].main_offset,
+            .interaction_offset = specs[1 + id].interaction_offset,
+            .elements = .init(QM31.one(), QM31.one()),
+            .claimed_sum = QM31.zero(),
+        };
+        handles[1 + id] = chips[id].asVerifierComponent();
+        bridges[id] = .{
+            .main_offset = specs[3 + id].main_offset,
+            .interaction_offset = specs[3 + id].interaction_offset,
+            .boundary = call,
+            .elements = .init(QM31.one(), QM31.one()),
+            .claimed_sum = QM31.zero(),
+        };
+        handles[3 + id] = bridges[id].asVerifierComponent();
+    }
+    for (handles, specs) |handle, spec|
+        if (handle.nConstraints() != spec.constraint_count) return error.InvalidPairRoster;
+    const components: core.air.components.Components = .{
+        .components = &handles,
+        .n_preprocessed_columns = direct_pp.N_COLUMNS,
+    };
+    const split = try components.compositionLogSplit();
+    const composition_log = core.verifier_types.compositionMaskLogSize(components.compositionLogDegreeBound(), split) orelse
+        return error.InvalidPairRoster;
+    const composition_columns = core.verifier_types.compositionColumnCount(split, QM31.SECURE_EXTENSION_DEGREE) orelse
+        return error.InvalidPairRoster;
+    var logs = try components.columnLogSizes(allocator);
+    defer logs.deinitDeep(allocator);
+    const point = core.circle.secureFieldPointFromRandomSeed(QM31.one());
+    var masks = try components.maskPoints(allocator, point, composition_log, true);
+    defer masks.deinitDeep(allocator);
+    if (logs.items.len != 3 or masks.items.len != 3) return error.InvalidPairRoster;
+    var geometry: PreflightGeometry = .{
+        .tree_columns = undefined,
+        .sample_width_limits = @splat(1),
+        .max_column_log_size = composition_log,
+    };
+    for (logs.items, masks.items, 0..) |tree_logs, tree_masks, tree| {
+        if (tree_logs.len != tree_masks.len) return error.InvalidPairRoster;
+        geometry.tree_columns[tree] = std.math.cast(u32, tree_logs.len) orelse return error.InvalidPairRoster;
+        for (tree_logs, tree_masks) |log, mask| {
+            geometry.max_column_log_size = @max(geometry.max_column_log_size, log);
+            geometry.sample_width_limits[tree] = @max(geometry.sample_width_limits[tree], std.math.cast(u32, mask.len) orelse return error.InvalidPairRoster);
+        }
+    }
+    geometry.tree_columns[3] = std.math.cast(u32, composition_columns) orelse return error.InvalidPairRoster;
+    return geometry;
 }
 
 pub const Request = struct {
