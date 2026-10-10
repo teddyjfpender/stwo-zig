@@ -15,6 +15,7 @@ const air = @import("air.zig");
 const many = @import("private_many_boundary.zig");
 const preflight = @import("direct_many_preflight.zig");
 const schedule = @import("direct_many_schedule.zig");
+const provenance = @import("direct_many_provenance.zig");
 const chip = @import("tagged_many_chip.zig");
 const bridge = @import("tagged_many_bridge.zig");
 const direct = @import("direct_arithmetic.zig");
@@ -212,6 +213,22 @@ pub fn proveSelected(
         .manifest_digest = selected.manifest_digest,
         .plan = selected.fixedCircuitPlan(),
     }, selected);
+}
+
+/// Guarded adapter for the source-pinned S31 envelope. The engine checks
+/// exact source/AIR bytes and native program bindings before any proof work;
+/// S31 must still derive descriptors and manifest digest from sealed source.
+pub fn proveSelectedSourceBound(
+    allocator: std.mem.Allocator,
+    source: CircuitView,
+    values: []const QM31,
+    selected: *const schedule.SelectedSchedule,
+    pin: provenance.SourcePin,
+) !Proof {
+    try provenance.validate(selected, pin);
+    var template = try air.parse(allocator, pin.air_bundle_bytes);
+    defer template.deinit();
+    return proveSelected(allocator, source, values, &template, selected);
 }
 
 fn proveInternal(
@@ -498,6 +515,21 @@ pub fn verifySelectedBorrowed(
         .manifest_digest = selected.manifest_digest,
         .plan = selected.fixedCircuitPlan(),
     }, selected, public_words, proof);
+}
+
+/// Guarded selected verifier adapter; proof-byte decoding stays in S31.
+pub fn verifySelectedSourceBoundBorrowed(
+    allocator: std.mem.Allocator,
+    source: CircuitView,
+    selected: *const schedule.SelectedSchedule,
+    pin: provenance.SourcePin,
+    public_words: [8]u32,
+    proof: BorrowedProof,
+) !void {
+    try provenance.validate(selected, pin);
+    var template = try air.parse(allocator, pin.air_bundle_bytes);
+    defer template.deinit();
+    return verifySelectedBorrowed(allocator, source, &template, selected, public_words, proof);
 }
 
 fn verifyBorrowedInternal(
