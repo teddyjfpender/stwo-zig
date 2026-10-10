@@ -144,6 +144,8 @@ pub const SelectedSchedule = struct {
     ) !void {
         try self.validateShape();
         const fri = self.geometry.live.pcs.fri_config;
+        const last_layer_degree_bound = std.math.add(u32, fri.log_last_layer_degree_bound, 1) catch
+            return error.InvalidManySchedule;
         const fresh = try selectGeometry(allocator, pp, template, .{
             .source_digest = self.geometry.source_digest,
             .fixed_root = self.geometry.fixed_root,
@@ -154,7 +156,7 @@ pub const SelectedSchedule = struct {
             .pcs_profile = .{
                 .pow_bits = fri.pow_bits,
                 .log_blowup_factor = fri.log_blowup_factor,
-                .last_layer_degree_bound = fri.log_last_layer_degree_bound + 1,
+                .last_layer_degree_bound = last_layer_degree_bound,
                 .queries = fri.n_queries,
                 .fold_step = fri.fold_step,
             },
