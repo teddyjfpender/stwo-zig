@@ -19,6 +19,8 @@ pub const tagged_pair_bridge = @import("tagged_pair_bridge.zig");
 pub const sparse_arithmetic = @import("sparse_arithmetic.zig");
 pub const sparse_wide = @import("sparse_wide.zig");
 pub const direct_arithmetic = @import("direct_arithmetic.zig");
+/// Experimental source-bound tagged pair path; the public proving API does not expose it.
+pub const experimental_direct_pair_arithmetic = @import("direct_pair_arithmetic.zig");
 
 pub const Internal = prove.Internal;
 pub const Root = prove.Root;
@@ -35,7 +37,7 @@ test "invariant: both profiles commit with the plain Blake2s Merkle hasher" {
 }
 
 test {
-    _ = @import("direct_pair_arithmetic.zig");
+    _ = experimental_direct_pair_arithmetic;
     _ = air;
     _ = prove;
     _ = verifier_proof;
