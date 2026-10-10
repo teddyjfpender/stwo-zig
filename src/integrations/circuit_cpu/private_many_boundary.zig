@@ -242,9 +242,9 @@ pub fn identityHash(effective_digest: [32]u8, preprocessed_root: [32]u8, circuit
     return result;
 }
 
-/// Expected V4 transcript phases, modeled before a native V4 scheduler
-/// exists. `TranscriptOrder` checks a proposed sequence in tests; it does
-/// not enforce ordering in any prover or verifier today.
+/// Expected V4 transcript phases. The experimental in-memory native V4
+/// scheduler checks these events while proving and verifying. This tracks
+/// control-flow order; transcript binding still depends on the actual mixes.
 pub const TranscriptEvent = enum {
     profile,
     channel_salt,

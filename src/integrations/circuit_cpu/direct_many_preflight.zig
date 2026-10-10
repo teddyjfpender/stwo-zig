@@ -1,7 +1,7 @@
 //! Witness-free V4 verifier-handle and PCS geometry inspection.
 //!
-//! This constructs the AIR handles a future native verifier must use. It
-//! accepts no proof bytes and cannot authorize a V4 proof on its own.
+//! This constructs the AIR handles used by the experimental in-memory V4
+//! verifier. It accepts no proof bytes and cannot authorize a V4 proof alone.
 const std = @import("std");
 const core = @import("stwo_core");
 const circuit = @import("stwo_circuit_frontend");
