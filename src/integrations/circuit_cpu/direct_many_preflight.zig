@@ -58,14 +58,19 @@ pub const Inspection = struct {
     }
 };
 
-fn sourceDigest(comptime source: []const u8) [32]u8 {
+fn sourceDigest(source: []const u8) [32]u8 {
     var result: [32]u8 = undefined;
     std.crypto.hash.sha2.Sha256.hash(source, &result, .{});
     return result;
 }
 
-pub const chip_source_sha256 = sourceDigest(@embedFile("tagged_many_chip.zig"));
-pub const bridge_source_sha256 = sourceDigest(@embedFile("tagged_many_bridge.zig"));
+pub fn chipSourceDigest() [32]u8 {
+    return sourceDigest(@embedFile("tagged_many_chip.zig"));
+}
+
+pub fn bridgeSourceDigest() [32]u8 {
+    return sourceDigest(@embedFile("tagged_many_bridge.zig"));
+}
 
 /// The only supported V4 PCS profile. The fixed tree is lifted to its own
 /// circuit height; the remaining trees use the highest selected component.
@@ -150,6 +155,8 @@ pub fn inspect(
         .composition_log_size = 0,
         .composition_split = 0,
     };
+    const chip_source_sha256 = chipSourceDigest();
+    const bridge_source_sha256 = bridgeSourceDigest();
     for (handles[0..specs.count], specs.slice(), result.facts[0..specs.count]) |handle, spec, *fact| {
         const expected_eval: u32 = switch (spec.kind) {
             .circuit => bound.components[0].evaluation_log_size,
