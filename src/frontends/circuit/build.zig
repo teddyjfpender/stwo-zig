@@ -92,6 +92,19 @@ pub fn build(b: *std.Build) void {
     );
     check_step.dependOn(&check.step);
 
+    const qm31_export_module = b.createModule(.{
+        .root_source_file = b.path("export_qm31_ops.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    qm31_export_module.addImport("stwo_core", core);
+    const qm31_export = b.addRunArtifact(b.addExecutable(.{
+        .name = "circuit-export-qm31-air-lean",
+        .root_module = qm31_export_module,
+    }));
+    b.step("export-qm31-air-lean", "Print native qm31_ops AIR expressions as Lean source")
+        .dependOn(&qm31_export.step);
+
     // R1: the upstream `expect!` snapshots (unit tests) and the R1 builder
     // cases of `vectors/circuit/r2/gadgets.json`; R2: its gadget cases.
     const r1_step = b.step("circuit-parity-r1", "Rung R1: builder snapshots and builder cases against the oracle");
