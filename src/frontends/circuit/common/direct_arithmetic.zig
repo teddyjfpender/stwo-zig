@@ -49,6 +49,38 @@ pub const PairBoundary = struct {
     }
 };
 
+/// Source-owned V4 boundary for 1..8 tagged chip calls. This type carries
+/// only circuit addresses; the versioned chip parameters and call IDs belong
+/// to the source-derived proof Plan. Each endpoint occurrence is counted,
+/// even when several calls refer to the same produced wire.
+pub const ManyBoundary = struct {
+    pub const max_calls: usize = 8;
+    const empty: PrivateBoundary = .{ .input = .{ 0, 0, 0, 0 }, .output = .{ 0, 0, 0, 0 } };
+    calls: [max_calls]PrivateBoundary = [_]PrivateBoundary{empty} ** max_calls,
+    count: u8 = 0,
+
+    pub fn callSlice(self: *const ManyBoundary) []const PrivateBoundary {
+        return self.calls[0..self.count];
+    }
+
+    pub fn validate(self: ManyBoundary, source: preprocessed.CircuitView) !void {
+        if (self.count == 0 or self.count > max_calls) return error.InvalidManyBoundary;
+        for (self.callSlice()) |call| for (call.input ++ call.output) |address| {
+            if (address <= 2 or address >= source.n_vars or address >= core.fields.m31.Modulus)
+                return error.InvalidManyBoundary;
+            for (source.output) |public_address|
+                if (public_address == address) return error.InvalidManyBoundary;
+            var producers: usize = 0;
+            inline for (.{ source.add, source.sub, source.mul, source.pointwise_mul }) |gates| {
+                for (gates) |gate| producers += @intFromBool(gate.out == address);
+            }
+            for (source.permutation_outputs) |output|
+                producers += @intFromBool(output == address);
+            if (producers != 1) return error.InvalidManyProducer;
+        };
+    }
+};
+
 pub const Layout = struct {
     entries: [N_COLUMNS]preprocessed.LayoutEntry,
 
@@ -77,6 +109,7 @@ pub const Circuit = struct {
     n_outputs: usize,
     private_boundary: ?PrivateBoundary = null,
     private_pair_boundary: ?PairBoundary = null,
+    private_many_boundary: ?ManyBoundary = null,
 
     pub fn deinit(self: *Circuit, allocator: std.mem.Allocator) void {
         for (self.columns) |column| allocator.free(column.values);
@@ -96,19 +129,26 @@ pub const Circuit = struct {
     }
 
     pub fn fromCircuit(allocator: std.mem.Allocator, source: preprocessed.CircuitView) !Circuit {
-        return fromCircuitOptionalBoundary(allocator, source, null, null);
+        return fromCircuitOptionalBoundary(allocator, source, null, null, null);
     }
 
     pub fn fromCircuitWithPrivateBoundary(allocator: std.mem.Allocator, source: preprocessed.CircuitView, boundary: PrivateBoundary) !Circuit {
-        return fromCircuitOptionalBoundary(allocator, source, boundary, null);
+        return fromCircuitOptionalBoundary(allocator, source, boundary, null, null);
     }
 
     pub fn fromCircuitWithPairBoundary(allocator: std.mem.Allocator, source: preprocessed.CircuitView, boundary: PairBoundary) !Circuit {
-        return fromCircuitOptionalBoundary(allocator, source, null, boundary);
+        return fromCircuitOptionalBoundary(allocator, source, null, boundary, null);
     }
 
-    fn fromCircuitOptionalBoundary(allocator: std.mem.Allocator, source: preprocessed.CircuitView, boundary: ?PrivateBoundary, pair_boundary: ?PairBoundary) !Circuit {
-        if (boundary != null and pair_boundary != null) return error.InvalidPairBoundary;
+    pub fn fromCircuitWithManyBoundary(allocator: std.mem.Allocator, source: preprocessed.CircuitView, boundary: ManyBoundary) !Circuit {
+        return fromCircuitOptionalBoundary(allocator, source, null, null, boundary);
+    }
+
+    fn fromCircuitOptionalBoundary(allocator: std.mem.Allocator, source: preprocessed.CircuitView, boundary: ?PrivateBoundary, pair_boundary: ?PairBoundary, many_boundary: ?ManyBoundary) !Circuit {
+        if (@as(u8, @intFromBool(boundary != null)) +
+            @as(u8, @intFromBool(pair_boundary != null)) +
+            @as(u8, @intFromBool(many_boundary != null)) > 1)
+            return error.ConflictingDirectBoundaries;
         try source.validate();
         if (source.output.len == 0 or source.eq.len != 0 or source.triple_xor.len != 0 or
             source.m31_to_u32.len != 0 or source.blake_g_gate.len != 0)
@@ -147,6 +187,13 @@ pub const Circuit = struct {
             try source.validateUniqueProducers(allocator);
             try item.validate(source);
             for (item.calls) |call|
+                for (call.input ++ call.output) |address|
+                    try preprocessed.addCanonicalMultiplicity(&multiplicities[address], 1);
+        }
+        if (many_boundary) |item| {
+            try source.validateUniqueProducers(allocator);
+            try item.validate(source);
+            for (item.callSlice()) |call|
                 for (call.input ++ call.output) |address|
                     try preprocessed.addCanonicalMultiplicity(&multiplicities[address], 1);
         }
@@ -200,6 +247,7 @@ pub const Circuit = struct {
             .n_outputs = source.output.len - 1,
             .private_boundary = boundary,
             .private_pair_boundary = pair_boundary,
+            .private_many_boundary = many_boundary,
         };
     }
 
