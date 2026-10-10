@@ -141,6 +141,10 @@ pub const Circuit = struct {
             }
         }
         if (pair_boundary) |item| {
+            // This constructor is public, so enforce global source coherence
+            // here as well as in the higher-level pair plan. A duplicate
+            // producer outside the endpoint set must never enter a proof key.
+            try source.validateUniqueProducers(allocator);
             try item.validate(source);
             for (item.calls) |call|
                 for (call.input ++ call.output) |address|

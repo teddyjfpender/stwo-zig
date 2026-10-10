@@ -2,13 +2,13 @@
 //!
 //! This module is deliberately not wired into `direct_arithmetic.prove`:
 //! its roster and transcript commitments are protocol inputs, but the tagged
-//! chip and bridge AIR components must exist before any pair proof is accepted.
+//! AIRs still need PCS/transcript wiring and source-derived verification
+//! before any pair proof can be accepted.
 //! The live one-call proof format and verifier remain byte-for-byte unchanged.
 const std = @import("std");
 const core = @import("stwo_core");
 const circuit = @import("stwo_circuit_frontend");
 const chip = @import("repeated_step_chip.zig");
-const bridge = @import("private_boundary_bridge.zig");
 
 const M31 = core.fields.m31.M31;
 const QM31 = core.fields.qm31.QM31;
@@ -22,6 +22,11 @@ pub const n_lanes: usize = 4;
 pub const n_endpoints: usize = n_calls * n_lanes * 2;
 pub const relation_id: u32 = 0x53333103;
 pub const profile_tag: u64 = 0x5333315041495201;
+pub const bridge_log_size: u32 = 4;
+pub const bridge_main_width: usize = 8;
+pub const bridge_interaction_width: usize = 20;
+pub const bridge_n_constraints: usize = 13;
+pub const chip_n_constraints: usize = 6;
 
 pub const Side = enum(u1) { input, output };
 
@@ -51,8 +56,8 @@ pub const Plan = struct {
     }
 
     /// Construct the actual preprocessed circuit that commits the checked
-    /// multiplicities. No prover profile accepts it until tagged pair AIRs
-    /// and verifier reconstruction have been implemented.
+    /// multiplicities. No prover profile accepts it until the five-component
+    /// transcript and source-derived verifier reconstruction are implemented.
     pub fn preprocessed(self: Plan, allocator: std.mem.Allocator, source: CircuitView) !DirectCircuit {
         try self.validate(source, allocator);
         return DirectCircuit.fromCircuitWithPairBoundary(allocator, source, self.boundary());
@@ -149,8 +154,8 @@ pub const TraceRow = struct {
 };
 
 /// Check the logical rows before committing a candidate trace. The eventual
-/// chip AIR must enforce these same equalities over committed row columns;
-/// this check alone makes no proof soundness claim.
+/// chip AIR separately enforces these equalities over committed row columns;
+/// this local check alone makes no proof soundness claim.
 pub fn checkTraceRows(call: Call, states: States, trace_rows: []const TraceRow) !void {
     if (trace_rows.len != call.rounds) return error.PairTraceLength;
     var previous = states.input;
@@ -187,7 +192,9 @@ fn m31At(values: []const QM31, address: u32) !M31 {
     return limbs[0];
 }
 
-/// One shared Fiat-Shamir `(z, alpha)` is used for Gate and both tagged chips.
+/// One shared Fiat-Shamir `(z, alpha)` is used for the existing six-field
+/// Gate relation and both seven-field tagged chips. Fractions with these
+/// arities enter the same LogUp sum; relation IDs separate their domains.
 pub const Elements = struct {
     z: QM31,
     powers: [7]QM31,
@@ -208,10 +215,31 @@ pub const Elements = struct {
             result = result.add(power.mulM31(word));
         return result.sub(self.z);
     }
+
+    pub fn combineGate(self: Elements, tuple: [6]M31) QM31 {
+        var result = QM31.zero();
+        for (tuple, self.powers[0..6]) |word, power|
+            result = result.add(power.mulM31(word));
+        return result.sub(self.z);
+    }
+
+    pub fn combineGateSecure(self: Elements, tuple: [6]QM31) QM31 {
+        var result = QM31.zero();
+        for (tuple, self.powers[0..6]) |word, power|
+            result = result.add(power.mul(word));
+        return result.sub(self.z);
+    }
+
+    pub fn combineSecure(self: Elements, tuple: [7]QM31) QM31 {
+        var result = QM31.zero();
+        for (tuple, self.powers) |word, power|
+            result = result.add(power.mul(word));
+        return result.sub(self.z);
+    }
 };
 
-pub fn gateTuple(address: u32, value: M31) [7]M31 {
-    return .{ M31.fromCanonical(circuit.common.component_list.GATE_RELATION_ID), M31.zero(), M31.fromCanonical(address), value, M31.zero(), M31.zero(), M31.zero() };
+pub fn gateTuple(address: u32, value: M31) [6]M31 {
+    return .{ M31.fromCanonical(circuit.common.component_list.GATE_RELATION_ID), M31.fromCanonical(address), value, M31.zero(), M31.zero(), M31.zero() };
 }
 
 pub fn chipTuple(call_id: u32, step: u32, state: [n_lanes]M31) [7]M31 {
@@ -219,21 +247,21 @@ pub fn chipTuple(call_id: u32, step: u32, state: [n_lanes]M31) [7]M31 {
 }
 
 /// Algebraic closure oracle for the exact two-call relation. It does not
-/// replace the committed AIR and PCS verifier. The old circuit Gate relation
-/// has six coordinates, so the new proof profile must also update its Gate
-/// compression to this seven-coordinate embedding before it can go live.
+/// replace the committed AIR and PCS verifier. It deliberately uses the
+/// existing six-coordinate Gate compression and a seven-coordinate chip
+/// compression with the same challenges.
 pub fn closure(plan: Plan, circuit_values: []const QM31, states: [n_calls]States, elements: Elements) !QM31 {
     var circuit_sum = QM31.zero();
     var bridge_sum = QM31.zero();
     var chip_sum = QM31.zero();
     for (plan.calls, states) |call, state| {
         for (call.input, state.input) |address, value| {
-            circuit_sum = circuit_sum.sub(try elements.combine(gateTuple(address, try m31At(circuit_values, address))).inv());
-            bridge_sum = bridge_sum.add(try elements.combine(gateTuple(address, value)).inv());
+            circuit_sum = circuit_sum.sub(try elements.combineGate(gateTuple(address, try m31At(circuit_values, address))).inv());
+            bridge_sum = bridge_sum.add(try elements.combineGate(gateTuple(address, value)).inv());
         }
         for (call.output, state.output) |address, value| {
-            circuit_sum = circuit_sum.sub(try elements.combine(gateTuple(address, try m31At(circuit_values, address))).inv());
-            bridge_sum = bridge_sum.add(try elements.combine(gateTuple(address, value)).inv());
+            circuit_sum = circuit_sum.sub(try elements.combineGate(gateTuple(address, try m31At(circuit_values, address))).inv());
+            bridge_sum = bridge_sum.add(try elements.combineGate(gateTuple(address, value)).inv());
         }
         const first = try elements.combine(chipTuple(call.call_id, 0, state.input)).inv();
         const last = try elements.combine(chipTuple(call.call_id, call.rounds, state.output)).inv();
@@ -253,8 +281,8 @@ pub const Component = enum(u8) { circuit, chip_0, chip_1, bridge_0, bridge_1 };
 pub const roster = [_]Component{ .circuit, .chip_0, .chip_1, .bridge_0, .bridge_1 };
 pub const circuit_main_width = circuit.witness.direct_arithmetic.main_width;
 pub const circuit_interaction_width = circuit.witness.direct_arithmetic.interaction_width;
-pub const main_width = circuit_main_width + n_calls * (chip.main_width + bridge.main_width);
-pub const interaction_width = circuit_interaction_width + n_calls * (chip.interaction_width + bridge.interaction_width);
+pub const main_width = circuit_main_width + n_calls * (chip.main_width + bridge_main_width);
+pub const interaction_width = circuit_interaction_width + n_calls * (chip.interaction_width + bridge_interaction_width);
 
 comptime {
     std.debug.assert(main_width == 46);
@@ -268,17 +296,19 @@ pub const ComponentSpec = struct {
     main_columns: usize,
     interaction_offset: usize,
     interaction_columns: usize,
+    constraint_offset: usize,
+    constraint_count: usize,
 };
 
-pub fn expectedSpecs(plan: Plan, circuit_log: u32) ![roster.len]ComponentSpec {
+pub fn expectedSpecs(plan: Plan, circuit_log: u32, circuit_constraints: usize) ![roster.len]ComponentSpec {
     const log0 = try chip.validateRounds(plan.calls[0].rounds);
     const log1 = try chip.validateRounds(plan.calls[1].rounds);
     return .{
-        .{ .role = .circuit, .log_size = circuit_log, .main_offset = 0, .main_columns = circuit_main_width, .interaction_offset = 0, .interaction_columns = circuit_interaction_width },
-        .{ .role = .chip_0, .log_size = log0, .main_offset = circuit_main_width, .main_columns = chip.main_width, .interaction_offset = circuit_interaction_width, .interaction_columns = chip.interaction_width },
-        .{ .role = .chip_1, .log_size = log1, .main_offset = circuit_main_width + chip.main_width, .main_columns = chip.main_width, .interaction_offset = circuit_interaction_width + chip.interaction_width, .interaction_columns = chip.interaction_width },
-        .{ .role = .bridge_0, .log_size = bridge.log_size, .main_offset = circuit_main_width + 2 * chip.main_width, .main_columns = bridge.main_width, .interaction_offset = circuit_interaction_width + 2 * chip.interaction_width, .interaction_columns = bridge.interaction_width },
-        .{ .role = .bridge_1, .log_size = bridge.log_size, .main_offset = circuit_main_width + 2 * chip.main_width + bridge.main_width, .main_columns = bridge.main_width, .interaction_offset = circuit_interaction_width + 2 * chip.interaction_width + bridge.interaction_width, .interaction_columns = bridge.interaction_width },
+        .{ .role = .circuit, .log_size = circuit_log, .main_offset = 0, .main_columns = circuit_main_width, .interaction_offset = 0, .interaction_columns = circuit_interaction_width, .constraint_offset = 0, .constraint_count = circuit_constraints },
+        .{ .role = .chip_0, .log_size = log0, .main_offset = circuit_main_width, .main_columns = chip.main_width, .interaction_offset = circuit_interaction_width, .interaction_columns = chip.interaction_width, .constraint_offset = circuit_constraints, .constraint_count = chip_n_constraints },
+        .{ .role = .chip_1, .log_size = log1, .main_offset = circuit_main_width + chip.main_width, .main_columns = chip.main_width, .interaction_offset = circuit_interaction_width + chip.interaction_width, .interaction_columns = chip.interaction_width, .constraint_offset = circuit_constraints + chip_n_constraints, .constraint_count = chip_n_constraints },
+        .{ .role = .bridge_0, .log_size = bridge_log_size, .main_offset = circuit_main_width + 2 * chip.main_width, .main_columns = bridge_main_width, .interaction_offset = circuit_interaction_width + 2 * chip.interaction_width, .interaction_columns = bridge_interaction_width, .constraint_offset = circuit_constraints + 2 * chip_n_constraints, .constraint_count = bridge_n_constraints },
+        .{ .role = .bridge_1, .log_size = bridge_log_size, .main_offset = circuit_main_width + 2 * chip.main_width + bridge_main_width, .main_columns = bridge_main_width, .interaction_offset = circuit_interaction_width + 2 * chip.interaction_width + bridge_interaction_width, .interaction_columns = bridge_interaction_width, .constraint_offset = circuit_constraints + 2 * chip_n_constraints + bridge_n_constraints, .constraint_count = bridge_n_constraints },
     };
 }
 
@@ -397,6 +427,18 @@ test "two-call plan checks coherent repeated addresses and canonical Gate counts
     var missing_producer = plan;
     missing_producer.calls[0].input[0] = 2;
     try std.testing.expectError(error.InvalidPairEndpoint, missing_producer.validate(source, allocator));
+
+    // The low-level public constructor must reject a duplicate producer
+    // even when its address is outside all chip endpoints.
+    var duplicate_gates = gates;
+    duplicate_gates[15].out = 17;
+    const duplicate_source = CircuitView{ .n_vars = 20, .add = &duplicate_gates, .output = &.{19} };
+    try std.testing.expectError(error.DuplicateProducerAddress, plan.validate(duplicate_source, allocator));
+    try std.testing.expectError(error.DuplicateProducerAddress, DirectCircuit.fromCircuitWithPairBoundary(
+        allocator,
+        duplicate_source,
+        plan.boundary(),
+    ));
 }
 
 test "pair endpoint manifest rejects missing, extra, swap and duplicate" {
@@ -450,10 +492,11 @@ test "tagged pair tuples, wrong claims and transcript order" {
     try std.testing.expect(!std.mem.eql(u8, &effectiveDigest(a, b), &effectiveDigest(b, a)));
     try std.testing.expectError(error.InvalidPairRoster, checkRoster(&.{ .circuit, .chip_1, .chip_0, .bridge_0, .bridge_1 }));
     try std.testing.expectError(error.InvalidPairRoster, checkRoster(&.{ .circuit, .chip_0, .chip_1, .bridge_0 }));
-    const specs = try expectedSpecs(plan, 4);
+    const specs = try expectedSpecs(plan, 4, 11);
     try checkSpecs(specs, &specs);
     try std.testing.expectEqual(@as(usize, 46), specs[4].main_offset + specs[4].main_columns);
     try std.testing.expectEqual(@as(usize, 64), specs[4].interaction_offset + specs[4].interaction_columns);
+    try std.testing.expectEqual(@as(usize, 11 + 38), specs[4].constraint_offset + specs[4].constraint_count);
     var reordered = specs;
     std.mem.swap(ComponentSpec, &reordered[1], &reordered[2]);
     try std.testing.expectError(error.InvalidPairRoster, checkSpecs(specs, &reordered));

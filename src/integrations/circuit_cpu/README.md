@@ -89,6 +89,8 @@ const bytes = try verifier_proof.serialize(allocator);
 | `repeated_step_chip` | S31's four-lane indexed repeated-step AIR (`out = in² + c`), linked to the circuit by LogUp in the same proof |
 | `private_boundary_bridge` | S31's private four-lane circuit/chip boundary: chip endpoints joined to private Gate wires in one LogUp closure |
 | `private_pair_boundary` | Isolated checked two-call plan: source-owned repeated-address Gate counts, tagged seven-field tuples, exact five-component layout, closure oracle, and transcript order guard. No pair proof API yet. |
+| `tagged_pair_chip` | Staged two-call affine-square chip AIR with a component-constant call ID in its seven-field LogUp tuple; source binding awaits verifier integration. |
+| `tagged_pair_bridge` | Staged bridge AIR for each pair call: eight cyclic row equalities and five mixed-arity LogUp constraints; not yet in a native proof profile. |
 | `sparse_arithmetic` | S31 sparse-v3 prover: QM31, M31-to-u32 and range-16 circuit AIRs, optionally with the step chip, in one transcript |
 | `sparse_wide` | S31 sparse-wide-v5 prover: Eq, QM31, M31-to-u32 and range-16 circuit AIRs |
 | `direct_arithmetic` | S31 direct-M31 v4 prover: one QM31 circuit component and an optional step chip |
@@ -106,20 +108,25 @@ counts. The existing direct prover rejects that circuit with
 protocol.
 
 The planned pair roster is exactly circuit, chip 0, chip 1, bridge 0, bridge 1.
-It has 46 main and 64 interaction columns. Chip relation tuples are
-`(relation, call_id, step, lane0, lane1, lane2, lane3)`; the boundary's Gate
-embedding has seven fields as well. Both calls must draw the same `(z, alpha)`
-after all main columns are committed. `effectiveDigest` binds the true source
+It has 46 main and 64 interaction columns. With `C` circuit constraints, the
+five component counts are `C, 6, 6, 13, 13`, at offsets
+`0, C, C+6, C+12, C+25`; total `C+38`. Chip relation tuples are
+`(relation, call_id, step, lane0, lane1, lane2, lane3)`. The existing Gate
+relation keeps its six-field tuple `(relation, address, value, 0, 0, 0)`.
+Both arities use the same `(z, alpha)` challenges and their fractions join
+the same LogUp sum. The prover draws this pair once after all main columns
+are committed, mixes the five claimed sums, then commits the interaction
+columns. `effectiveDigest` binds the true source
 digest and generated manifest digest with a pair-specific domain before the
 preprocessed commitment. The pair profile tag is `0x5333315041495201`;
 `S31NAT8P` and `S31NAT8C` are reserved for its eventual proof envelopes.
 
 The current `Plan.extract`, `checkTraceRows`, `closure`, roster, and transcript
 order functions are deterministic admission and test oracles. **They do not
-make a pair proof.** Remaining implementation work is: a seven-field Gate
-compression in the circuit AIR, two tagged chip AIR components, two bridge
-AIR components with committed row-to-row endpoint equalities, one shared
-LogUp claim checked against all five component sums, the paired PCS/Fiat-Shamir
+make a pair proof.** Tagged chip and bridge AIR implementations are staged
+as isolated components and require native validation. Remaining integration
+work is: one shared LogUp claim checked against all five component sums,
+the paired PCS/Fiat-Shamir
 schedule, and source-derived verifier reconstruction. The one-call proof
 format and verifier are unchanged.
 
