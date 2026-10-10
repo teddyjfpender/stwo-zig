@@ -117,9 +117,15 @@ pub fn SparseWideStatement(comptime V: type) type {
             return claims;
         }
 
-        pub fn componentLogSizes(self: *const Self) builder.simd.Simd { return self.log_sizes; }
-        pub fn preprocessedRoot(self: *const Self, _: *Context) Error!HashValue(Var) { return self.root; }
-        pub fn preprocessedColumnIds(self: *const Self) []const []const u8 { return &self.ids; }
+        pub fn componentLogSizes(self: *const Self) builder.simd.Simd {
+            return self.log_sizes;
+        }
+        pub fn preprocessedRoot(self: *const Self, _: *Context) Error!HashValue(Var) {
+            return self.root;
+        }
+        pub fn preprocessedColumnIds(self: *const Self) []const []const u8 {
+            return &self.ids;
+        }
         pub fn publicLogupSum(self: *const Self, ctx: *Context, elements: [2]Var) Error!Var {
             var sum = ctx.zero();
             const relation = try ctx.constant(QM31.fromBase(M31.fromCanonical(component_list.GATE_RELATION_ID)));
@@ -138,8 +144,12 @@ pub fn SparseWideStatement(comptime V: type) type {
             return sum;
         }
         pub fn publicParams(_: *const Self, _: *Context, _: *constraint_eval.ColumnMap(Var)) Error!void {}
-        pub fn sortingRequired(_: *const Self) bool { return true; }
-        pub fn nComponents(_: *const Self) usize { return N; }
+        pub fn sortingRequired(_: *const Self) bool {
+            return true;
+        }
+        pub fn nComponents(_: *const Self) usize {
+            return N;
+        }
         pub fn relationUsesPerRow(self: *const Self, index: usize) []const component_list.RelationUse {
             return self.table.entries[sparse.active_component_indices[index]].shape.relation_uses_per_row;
         }

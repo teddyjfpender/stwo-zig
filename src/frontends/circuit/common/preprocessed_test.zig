@@ -243,20 +243,17 @@ test "preprocessed: duplicate producer addresses fail closed" {
     var sample = SampleCircuit.init();
 
     sample.sub[0].out = sample.add[0].out;
-    try std.testing.expectError(error.DuplicateProducerAddress,
-        preprocessed.PreprocessedCircuit.fromCircuit(allocator, sample.view()));
+    try std.testing.expectError(error.DuplicateProducerAddress, preprocessed.PreprocessedCircuit.fromCircuit(allocator, sample.view()));
 
     sample = SampleCircuit.init();
     sample.blake_g_gate[0].out_base = sample.triple_xor[0].out;
-    try std.testing.expectError(error.DuplicateProducerAddress,
-        preprocessed.PreprocessedCircuit.fromCircuit(allocator, sample.view()));
+    try std.testing.expectError(error.DuplicateProducerAddress, preprocessed.PreprocessedCircuit.fromCircuit(allocator, sample.view()));
 
     sample = SampleCircuit.init();
     const repeated = [_]u32{ 30, 30 };
     var view = permutationView(&sample);
     view.permutation_outputs = &repeated;
-    try std.testing.expectError(error.DuplicateProducerAddress,
-        preprocessed.PreprocessedCircuit.fromCircuit(allocator, view));
+    try std.testing.expectError(error.DuplicateProducerAddress, preprocessed.PreprocessedCircuit.fromCircuit(allocator, view));
 }
 
 test "preprocessed: private SHA boundary adds one canonical Gate yield per limb" {
