@@ -329,9 +329,9 @@ pub const CircuitView = struct {
             return error.VariableOutOfRange;
     }
 
-    /// A Gate address must have at most one producing row. This validates
-    /// caller-supplied views as well as builder-owned circuits, so the Gate
-    /// lookup's address join cannot mix two producer values at one address.
+    /// Each declared circuit variable has at most one producing gate. The
+    /// permutation lowering deliberately reuses scratch addresses starting
+    /// at `n_vars` for multiset checks; those are outside this scan.
     pub fn validateUniqueProducers(self: CircuitView, allocator: std.mem.Allocator) (Error || std.mem.Allocator.Error)!void {
         const seen = try allocator.alloc(bool, self.n_vars);
         defer allocator.free(seen);
