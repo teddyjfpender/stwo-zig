@@ -96,7 +96,7 @@ pub fn preflightGeometry(
     const split = try components.compositionLogSplit();
     const composition_log = core.verifier_types.compositionMaskLogSize(components.compositionLogDegreeBound(), split) orelse
         return error.InvalidPairRoster;
-    const composition_columns = core.verifier_types.compositionColumnCount(split, QM31.SECURE_EXTENSION_DEGREE) orelse
+    const composition_columns = core.verifier_types.compositionColumnCount(split, core.fields.qm31.SECURE_EXTENSION_DEGREE) orelse
         return error.InvalidPairRoster;
     var logs = try components.columnLogSizes(allocator);
     defer logs.deinitDeep(allocator);
