@@ -166,7 +166,7 @@ pub const Component = struct {
         if (max_log_degree_bound < log_size) return error.InvalidPrivateBridgeShape;
         const preprocessed = try allocator.alloc([]CirclePointQM31, 0);
         errdefer allocator.free(preprocessed);
-        const main = try currentAndNextPointColumns(allocator, main_width, point);
+        const main = try currentAndNextPointColumns(allocator, main_width, point, max_log_degree_bound);
         errdefer freeMaskColumns(allocator, main);
         const interaction = try allocator.alloc([]CirclePointQM31, interaction_width);
         var ready: usize = 0;
@@ -337,14 +337,14 @@ fn filledLogs(allocator: std.mem.Allocator, n: usize) ![]u32 {
     return result;
 }
 
-fn currentAndNextPointColumns(allocator: std.mem.Allocator, n: usize, point: CirclePointQM31) ![][]CirclePointQM31 {
+fn currentAndNextPointColumns(allocator: std.mem.Allocator, n: usize, point: CirclePointQM31, max_log_degree_bound: u32) ![][]CirclePointQM31 {
     const result = try allocator.alloc([]CirclePointQM31, n);
     var ready: usize = 0;
     errdefer {
         for (result[0..ready]) |column| allocator.free(column);
         allocator.free(result);
     }
-    const next = nextRowPoint(point);
+    const next = nextRowPoint(max_log_degree_bound, point);
     for (result) |*column| {
         column.* = try allocator.dupe(CirclePointQM31, &.{ point, next });
         ready += 1;
@@ -358,13 +358,14 @@ fn freeMaskColumns(allocator: std.mem.Allocator, columns: [][]CirclePointQM31) v
 }
 
 fn previousRowPoint(max_log_degree_bound: u32, point: CirclePointQM31) CirclePointQM31 {
-    _ = max_log_degree_bound;
-    const step = canonic.CanonicCoset.new(log_size).coset_value.step;
+    // Openings are on the lifted mask domain. Its step doubles to one
+    // logical trace-row step before the trace polynomial is evaluated.
+    const step = canonic.CanonicCoset.new(max_log_degree_bound).coset_value.step;
     return point.sub(.{ .x = QM31.fromBase(step.x), .y = QM31.fromBase(step.y) });
 }
 
-fn nextRowPoint(point: CirclePointQM31) CirclePointQM31 {
-    const step = canonic.CanonicCoset.new(log_size).coset_value.step;
+fn nextRowPoint(max_log_degree_bound: u32, point: CirclePointQM31) CirclePointQM31 {
+    const step = canonic.CanonicCoset.new(max_log_degree_bound).coset_value.step;
     return point.add(.{ .x = QM31.fromBase(step.x), .y = QM31.fromBase(step.y) });
 }
 
@@ -450,11 +451,10 @@ fn secureAtColumns(columns: []const ColumnEvaluation, row: usize) QM31 {
     );
 }
 
-test "tagged pair bridge AIR-valid zero quotient agrees with verifier point" {
+test "tagged pair bridge row-varying quotient agrees with verifier point" {
     const allocator = std.testing.allocator;
     const circle_poly = prover.poly.circle.poly;
     const circle_eval = prover.poly.circle.evaluation;
-    const secure_poly = prover.poly.circle.secure_poly;
     const Poly = prover.air.component_prover.Poly;
     const TraceType = prover.air.component_prover.Trace;
     const call = Boundary{
@@ -475,9 +475,20 @@ test "tagged pair bridge AIR-valid zero quotient agrees with verifier point" {
     const alpha = QM31.fromU32Unchecked(11, 7, 13, 19);
     var interaction = try writeInteraction(allocator, base.columns, call, z, alpha);
     defer interaction.deinit();
+    // This adversarial witness violates the row-to-row endpoint constraint.
+    // Compare the rational quotient at the *same off-trace domain point*;
+    // interpolation across a trace-domain pole would be invalid here.
+    @constCast(base.columns[0].values)[chip.storageIndex(5, log_size)] = M31.fromCanonical(99);
     const trace_domain = canonic.CanonicCoset.new(log_size).circleDomain();
     const eval_log = log_size + 2;
     const eval_domain = canonic.CanonicCoset.new(eval_log).circleDomain();
+    var twiddles = try prover.poly.twiddles.precomputeM31(allocator, eval_domain.half_coset);
+    defer prover.poly.twiddles.deinitM31(allocator, &twiddles);
+    const twiddle_view = prover.poly.twiddles.TwiddleTree([]const M31).init(
+        twiddles.root_coset,
+        twiddles.twiddles,
+        twiddles.itwiddles,
+    );
     var coeffs: [main_width + interaction_width]circle_poly.CircleCoefficients = undefined;
     var eval_values: [main_width + interaction_width][]const M31 = undefined;
     var polys: [main_width + interaction_width]Poly = undefined;
@@ -494,24 +505,12 @@ test "tagged pair bridge AIR-valid zero quotient agrees with verifier point" {
             allocator,
             try circle_eval.CircleEvaluation.init(trace_domain, source.values),
         );
-        const lifted = allocator.alloc(M31, eval_domain.size()) catch |err| {
+        const extended = coeffs[index].evaluateWithTwiddles(allocator, eval_domain, twiddle_view) catch |err| {
             coeffs[index].deinit(allocator);
             return err;
         };
-        for (lifted, 0..) |*slot, row| {
-            const circle_index = core.utils.bitReverseIndex(row, eval_log);
-            const doubled = eval_domain.at(circle_index);
-            const lifted_point = CirclePointQM31{
-                .x = QM31.fromBase(doubled.x),
-                .y = QM31.fromBase(doubled.y),
-            };
-            const limbs = coeffs[index].evalAtPoint(lifted_point).toM31Array();
-            if (!limbs[1].isZero() or !limbs[2].isZero() or !limbs[3].isZero())
-                return error.InvalidLiftedTrace;
-            slot.* = limbs[0];
-        }
-        eval_values[index] = lifted;
-        polys[index] = .{ .log_size = eval_log, .values = lifted, .coefficients = coeffs[index] };
+        eval_values[index] = extended.values;
+        polys[index] = .{ .log_size = eval_log, .values = extended.values, .coefficients = coeffs[index] };
         ready += 1;
     }
     const empty_polys = [_]Poly{};
@@ -540,12 +539,17 @@ test "tagged pair bridge AIR-valid zero quotient agrees with verifier point" {
     try component.evaluateConstraintQuotientsOnDomain(&trace, &domain_accumulator);
     var quotient_evaluation = try domain_accumulator.finalize();
     defer quotient_evaluation.deinit(allocator);
-    var quotient_poly = try secure_poly.interpolateFromEvaluation(allocator, composition_domain, &quotient_evaluation);
-    defer quotient_poly.deinit(allocator);
-
-    var channel = @import("prove.zig").profiles.Blake2sM31MerkleChannel.Channel{};
-    channel.mixU32s(&.{ 0x5041_4952, 0x5155_4f54 });
-    const point = core.circle.randomSecureFieldPoint(&channel);
+    const sample_row = for (0..composition_domain.size()) |row| {
+        if (!quotient_evaluation.at(row).isZero()) break row;
+    } else return error.MissingAdversarialResidual;
+    const base_point = composition_domain.at(core.utils.bitReverseIndex(sample_row, composition_log));
+    const preimage_domain = canonic.CanonicCoset.new(composition_log + 1).circleDomain();
+    const preimage = for (0..preimage_domain.size()) |index| {
+        const candidate = preimage_domain.at(index);
+        const doubled = candidate.double();
+        if (doubled.x.eql(base_point.x) and doubled.y.eql(base_point.y)) break candidate;
+    } else return error.MissingCompositionPreimage;
+    const point = CirclePointQM31{ .x = QM31.fromBase(preimage.x), .y = QM31.fromBase(preimage.y) };
     var mask_points = try component.maskPoints(allocator, point, mask_log);
     defer mask_points.deinitDeep(allocator);
     var main_values: [main_width][2]QM31 = undefined;
@@ -567,8 +571,8 @@ test "tagged pair bridge AIR-valid zero quotient agrees with verifier point" {
     const masks = core.air.components.MaskValues{ .items = &mask_trees };
     var point_accumulator = PointEvaluationAccumulator.init(random);
     try component.evaluateConstraintQuotientsAtPoint(point, &masks, &point_accumulator, mask_log);
-    const domain_value = quotient_poly.evalAtPoint(point);
+    const domain_value = quotient_evaluation.at(sample_row);
     const point_value = point_accumulator.finalize();
-    try std.testing.expect(domain_value.isZero());
+    try std.testing.expect(!domain_value.isZero());
     try std.testing.expect(domain_value.eql(point_value));
 }
