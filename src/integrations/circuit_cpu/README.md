@@ -121,14 +121,22 @@ digest and generated manifest digest with a pair-specific domain before the
 preprocessed commitment. The pair profile tag is `0x5333315041495201`;
 `S31NAT8P` and `S31NAT8C` are reserved for its eventual proof envelopes.
 
-The current `Plan.extract`, `checkTraceRows`, `closure`, roster, and transcript
-order functions are deterministic admission and test oracles. **They do not
-make a pair proof.** Tagged chip and bridge AIR implementations are staged
-as isolated components and require native validation. Remaining integration
-work is: one shared LogUp claim checked against all five component sums,
-the paired PCS/Fiat-Shamir
-schedule, and source-derived verifier reconstruction. The one-call proof
-format and verifier are unchanged.
+The `Plan.extract`, `checkTraceRows`, `closure`, roster, and transcript-order
+functions are deterministic admission and test oracles. **They do not by
+themselves make a pair proof.** Tagged chip and bridge AIR implementations are
+staged as isolated components with row and quotient differential tests. The
+one-call proof format and verifier are unchanged.
+
+An unexported `direct_pair_arithmetic.zig` experiment now constructs and
+verifies an in-memory five-component proof using one lookup challenge and five
+claimed sums. Its native test covers two different constants and round counts,
+coherent repeated endpoint addresses, and public outputs depending on both
+calls. It also mutates the source and manifest digests, plan, public statement,
+sums, nonce, and commitment roots. This engine test accepts a caller-provided
+typed manifest digest and a caller-provided source plan; it does not reconstruct
+either from S31 source. There is no versioned pair proof envelope or released
+S31 pair compiler/verifier path. Those source correspondence and package checks
+remain required before the pair profile is enabled.
 
 `prove` takes an optional observer (`onStep`, `onLookupElements`,
 `onTraces`) for conformance tests and an `Options` value whose fields change

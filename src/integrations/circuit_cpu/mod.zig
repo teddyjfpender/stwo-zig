@@ -35,6 +35,7 @@ test "invariant: both profiles commit with the plain Blake2s Merkle hasher" {
 }
 
 test {
+    _ = @import("direct_pair_arithmetic.zig");
     _ = air;
     _ = prove;
     _ = verifier_proof;
