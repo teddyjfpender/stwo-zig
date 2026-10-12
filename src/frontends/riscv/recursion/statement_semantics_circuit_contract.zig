@@ -1,5 +1,15 @@
 //! Format-specific statement graph authority. Legacy graph seals remain fixed.
 pub fn Contract(comptime blake3: bool) type {
+    return ContractImpl(blake3, false);
+}
+
+/// New versioned row-11 semantics for an unbalanced V3 temporal tree. The
+/// legacy equal-height circuits and their identities remain untouched.
+pub fn ContractTemporalV3() type {
+    return ContractImpl(false, true);
+}
+
+fn ContractImpl(comptime blake3: bool, comptime temporal_v3: bool) type {
     return struct {
         pub const std = @import("std");
         pub const stwo_core = @import("stwo_core");
@@ -12,6 +22,7 @@ pub fn Contract(comptime blake3: bool) type {
         pub const statement_input = @import("air/statement_input.zig");
         pub const statement = if (blake3) @import("span_statement_blake3.zig") else @import("span_statement.zig");
         pub const BLAKE3 = blake3;
+        pub const TEMPORAL_V3 = temporal_v3;
         pub const DIGEST_WORD_COUNT: usize = if (blake3) statement.DIGEST_WORD_COUNT else 8;
 
         pub const Value = arithmetic.Value;
@@ -23,22 +34,32 @@ pub fn Contract(comptime blake3: bool) type {
         pub const StatementWords = statement.StatementWords;
 
         pub const FORMAT_VERSION: u16 = 1;
-        pub const IDENTITY_DOMAIN = if (blake3) "stwo-zig/typed-air/recursion-statement-semantics-circuit/blake3/v1\x00" else "stwo-zig/typed-air/recursion-statement-semantics-circuit/v1\x00";
+        pub const IDENTITY_DOMAIN = if (temporal_v3)
+            "stwo-zig/typed-air/recursion-temporal-statement-semantics/v3\x00"
+        else if (blake3)
+            "stwo-zig/typed-air/recursion-statement-semantics-circuit/blake3/v1\x00"
+        else
+            "stwo-zig/typed-air/recursion-statement-semantics-circuit/v1\x00";
         pub const STARK_V_COMMIT = "59172a201bd01f2f4b699bc2f7d4442d8ee81597";
         pub const STARK_V_SOURCE_SHA256 =
             "1c136c50f45ae592806649abf802e41b49d78320086ba729990d03e704107899";
-        pub const IDENTITY_DIGEST_HEX = if (blake3) "98a3f31ab5b46a4b4ddba58affb5139c0a76d0190444f3f278ab73bc51a0855e" else "8f7a0f9bf0dd638993f489f58c13b2f3aeee9dff7e804d49c4c02366fd1f6408";
+        pub const IDENTITY_DIGEST_HEX = if (temporal_v3)
+            "abe14d1fe499bf55e04f7f22ac99126ff1279df6cc15ef93d19b5892ca0dfb9f"
+        else if (blake3)
+            "98a3f31ab5b46a4b4ddba58affb5139c0a76d0190444f3f278ab73bc51a0855e"
+        else
+            "8f7a0f9bf0dd638993f489f58c13b2f3aeee9dff7e804d49c4c02366fd1f6408";
         pub const IDENTITY_DIGEST = hexDigest(
             IDENTITY_DIGEST_HEX,
             "invalid pinned row-11 statement-semantics circuit digest",
         );
         pub const SELECTOR_INPUT_COUNT: usize = 3;
         pub const STATEMENT_INPUT_COUNT: usize = 4 * statement.SPAN_STATEMENT_CANONICAL_WORDS;
-        pub const PRIVATE_INPUT_COUNT: usize = 313;
+        pub const PRIVATE_INPUT_COUNT: usize = if (temporal_v3) 593 else 313;
         pub const INPUT_COUNT: usize =
             SELECTOR_INPUT_COUNT + STATEMENT_INPUT_COUNT + PRIVATE_INPUT_COUNT;
-        pub const NODE_COUNT: usize = if (blake3) 10_912 else 9_564;
-        pub const OUTPUT_COUNT: usize = if (blake3) 2_916 else 2_416;
+        pub const NODE_COUNT: usize = if (temporal_v3) 17_304 else if (blake3) 10_912 else 9_564;
+        pub const OUTPUT_COUNT: usize = if (temporal_v3) 2_910 else if (blake3) 2_916 else 2_416;
 
         pub const U16_BASE: u32 = 1 << 16;
         pub const Error = arithmetic.Error || std.mem.Allocator.Error || error{

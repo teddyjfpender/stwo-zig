@@ -240,6 +240,14 @@ fn produceChild(
 /// No outer STARK is constructed: this measures the admitted native input and
 /// recursive geometry before allocating a stronger wrapper.
 pub fn checkNativeProfile(comptime NativeEngine: type, allocator: std.mem.Allocator, address_count: usize, profile: ingress.NativeProfile) !void {
+    return checkNativeProfileWithObserver(NativeEngine, allocator, address_count, profile, struct {
+        pub fn onPrepared(_: @This(), _: anytype) !void {}
+    }{});
+}
+
+/// Focused security gate hook. It observes the already freshly verified
+/// capture; the proof and all native preparation remain owned here.
+pub fn checkNativeProfileWithObserver(comptime NativeEngine: type, allocator: std.mem.Allocator, address_count: usize, profile: ingress.NativeProfile, observer: anytype) !void {
     var segments = try @import("recursive_segment_v2_memory_workload.zig").materialize(2, allocator, address_count, 13);
     defer for (&segments) |*segment| segment.deinit();
     const results = [2]*const frontend.runner.SegmentResult{ &segments[0].base, &segments[1].base };
@@ -254,4 +262,5 @@ pub fn checkNativeProfile(comptime NativeEngine: type, allocator: std.mem.Alloca
     if (!std.meta.eql(prepared.pcs_config, profile.pcsConfig()) or
         prepared.captured_fri.interaction_pow_bits != recursion.protocol.INTERACTION_POW_BITS)
         return error.NativeSecurityProfileMismatch;
+    try observer.onPrepared(&prepared);
 }

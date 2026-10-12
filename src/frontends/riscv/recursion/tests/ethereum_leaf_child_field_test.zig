@@ -13,13 +13,13 @@ const leaf_contract = @import("../segment_leaf_authority_v2_contract.zig");
 
 const M31 = core.fields.m31.M31;
 
-const components = [_]statement_v1.FamilyComponentDesc{.{
+pub const components = [_]statement_v1.FamilyComponentDesc{.{
     .family = .base_alu_imm,
     .log_size = 4,
     .n_rows = 3,
     .n_columns = 10,
 }};
-const infra = [_]statement_v1.InfraComponentDesc{.{
+pub const infra = [_]statement_v1.InfraComponentDesc{.{
     .kind = .program,
     .log_size = 4,
     .n_rows = 3,
@@ -116,7 +116,7 @@ pub fn runPinnedTests() !void {
     );
 }
 
-const Fixture = struct {
+pub const Fixture = struct {
     allocator: std.mem.Allocator,
     words: []M31,
     data: public_data_v2.PublicDataV2,
@@ -124,7 +124,7 @@ const Fixture = struct {
     receipt: statement_v2.VerifiedReceipt,
     tree0_root: [8]u32,
 
-    fn init(allocator: std.mem.Allocator) !Fixture {
+    pub fn init(allocator: std.mem.Allocator) !Fixture {
         const source_fixture = try public_support.Fixture.init();
         const source = source_fixture.rightSource();
         const words = try public_support.encode(allocator, &source);
@@ -152,12 +152,12 @@ const Fixture = struct {
         };
     }
 
-    fn deinit(self: *Fixture) void {
+    pub fn deinit(self: *Fixture) void {
         self.allocator.free(self.words);
         self.* = undefined;
     }
 
-    fn input(self: *const Fixture) witness_mod.InputsV1 {
+    pub fn input(self: *const Fixture) witness_mod.InputsV1 {
         return .{
             .public_data = &self.data,
             .context = &self.context,

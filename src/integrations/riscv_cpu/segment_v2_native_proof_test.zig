@@ -14,6 +14,7 @@ const runner = frontend.runner;
 const channel = frontend.recursion.poseidon2_channel;
 const protocol = frontend.recursion.protocol;
 const segment_v2 = frontend.recursion.segment_statement_v2;
+const io_binding = frontend.recursion.segment_public_io_binding_v1;
 const global_v3 = frontend.recursion.segment_leaf_local_authority_v3;
 const projection_v3 = frontend.recursion.segment_leaf_local_projection_v3;
 const verified_link_v3 = frontend.recursion.segment_leaf_local_verified_link_v3;
@@ -77,22 +78,32 @@ fn nativeSegmentsMode(comptime ProofEngine: type, comptime suite_name: []const u
     );
     defer program.deinit(allocator);
 
-    const public_input = digest("native-v2-input");
-    const public_output = digest("native-v2-output");
+    const expected_io = io_binding.Expected{
+        .input_start = left_result.input_start,
+        .input = left_result.input.?,
+        .output_len_addr = right_result.output_len_addr,
+        .output_data_addr = right_result.output_data_addr,
+        .output = right_result.output orelse &.{},
+    };
+    try io_binding.validateRunner(left_result, expected_io);
+    try io_binding.validateRunner(right_result, expected_io);
+    const public_input = try io_binding.inputDigest(expected_io);
+    const public_output = try io_binding.outputDigest(expected_io);
+    const zero_io: span.Digest = .{0} ** 8;
     const initial_state = try machineState(
         left_result.entry_cpu,
         segment_v2.snapshotIdentity(left_result.rw_memory.words, .initial_word).id,
-        digest("native-v2-io-entry"),
+        zero_io,
     );
     const shared_state = try machineState(
         left_result.exit_cpu,
         segment_v2.snapshotIdentity(left_result.rw_memory.words, .final_word).id,
-        digest("native-v2-io-shared"),
+        zero_io,
     );
     const final_state = try machineState(
         right_result.exit_cpu,
         segment_v2.snapshotIdentity(right_result.rw_memory.words, .final_word).id,
-        digest("native-v2-io-exit"),
+        zero_io,
     );
     const total_cycles = try std.math.add(
         u64,
@@ -261,6 +272,15 @@ fn nativeSegmentsMode(comptime ProofEngine: type, comptime suite_name: []const u
     const left_verify_ns = left_verify_timer.read();
     defer left_capture.deinit(allocator);
     try left_capture.validate();
+    const left_io_coverage = try io_binding.validateVerifiedCapture(ProofEngine, &left_capture, expected_io);
+    try std.testing.expect(left_io_coverage.input and !left_io_coverage.output);
+    try std.testing.expectError(error.IncompleteIoCoverage, io_binding.requireComplete(&.{left_io_coverage}));
+    var changed_expected_io = expected_io;
+    changed_expected_io.input = &.{1};
+    try std.testing.expectError(
+        error.InputDigestMismatch,
+        io_binding.validateVerifiedCapture(ProofEngine, &left_capture, changed_expected_io),
+    );
     try std.testing.expectEqual(left_public.wireId(), left_capture.receipt.wire_id);
     try std.testing.expectEqual(
         left_output.statement.authority_id,
@@ -812,14 +832,28 @@ fn nativeSegmentsMode(comptime ProofEngine: type, comptime suite_name: []const u
     try std.testing.expect(right_metadata.completion != null);
     right_proof_moved = true;
     var right_verify_timer = try std.time.Timer.start();
-    try prover.verifyRiscVSegmentV2WithEngine(
+    var right_capture: prover.VerifiedSegmentV2CaptureForEngine(ProofEngine) = undefined;
+    var right_channel = ProofEngine.Channel{};
+    try prover.verifyRiscVSegmentV2WithEngineUsingChannelAndCapture(
         ProofEngine,
         allocator,
         test_config,
         right_output.statement,
         right_output.proof,
         right_output.interaction_claim,
+        &right_channel,
+        &right_capture,
     );
+    defer right_capture.deinit(allocator);
+    const right_io_coverage = try io_binding.validateVerifiedCapture(ProofEngine, &right_capture, expected_io);
+    try std.testing.expect(!right_io_coverage.input and right_io_coverage.output);
+    var changed_final_io = expected_io;
+    changed_final_io.output = &.{1};
+    try std.testing.expectError(
+        error.OutputDigestMismatch,
+        io_binding.validateVerifiedCapture(ProofEngine, &right_capture, changed_final_io),
+    );
+    try io_binding.requireComplete(&.{ left_io_coverage, right_io_coverage });
     const right_verify_ns = right_verify_timer.read();
 
     std.debug.print(
@@ -875,57 +909,9 @@ test "native V2 proves a rebased leaf-local V3 segment without widening the AIR"
     const left_result = &left_profile.base;
     const right_result = &right_profile.base;
 
-    var program = try frontend.air.program.commitment.buildDeclared(
+    const right_global = try @import("recursive_segment_v3_native_test_fixture.zig").rightGlobal(
         allocator,
-        right_result.execution_trace.rows.items,
-        right_result.rw_memory.program_words,
-        null,
-    );
-    defer program.deinit(allocator);
-    const public_input = digest("native-local-v3-input");
-    const public_output = digest("native-local-v3-output");
-    const initial_state = try machineState(
-        left_result.entry_cpu,
-        segment_v2.snapshotIdentity(left_result.rw_memory.words, .initial_word).id,
-        digest("native-local-v3-io-entry"),
-    );
-    const shared_state = try machineState(
-        left_result.exit_cpu,
-        segment_v2.snapshotIdentity(left_result.rw_memory.words, .final_word).id,
-        digest("native-local-v3-io-shared"),
-    );
-    const final_state = try machineState(
-        right_result.exit_cpu,
-        segment_v2.snapshotIdentity(right_result.rw_memory.words, .final_word).id,
-        digest("native-local-v3-io-exit"),
-    );
-    const total_cycles = try std.math.add(
-        u64,
-        @intCast(left_result.cycle_count),
-        @intCast(right_result.cycle_count),
-    );
-    const job = try span.JobContext.init(
-        try span.CompleteExecution.init(
-            protocol.PROTOCOL_ID_WORDS,
-            scalarDigest(program.tree.root),
-            initial_state,
-            final_state,
-            public_input,
-            public_output,
-            total_cycles,
-        ),
-        2,
-    );
-    const right_global_statement = try leafStatement(
-        job,
-        right_result,
-        shared_state,
-        final_state,
-        span.EdgeClaim.absent(),
-        try span.EdgeClaim.present(public_output),
-    );
-    const right_global = try global_v3.SourceV3.fromSegmentResult(
-        right_global_statement,
+        left_result,
         right_result,
     );
     var projection = try projection_v3.ProjectionV3.init(&right_global);
@@ -980,10 +966,10 @@ test "native V2 proves a rebased leaf-local V3 segment without widening the AIR"
     );
     defer capture.deinit(allocator);
     try capture.validate();
-    const link = try verified_link_v3.VerifiedLinkV3.init(
+    const link = try verified_link_v3.VerifiedLinkV3.fromVerifiedCapture(
+        Engine,
         &global_metadata,
-        &capture.public_data.data,
-        &capture.receipt,
+        &capture,
     );
     try link.validateAgainst(
         &global_metadata,
@@ -1010,7 +996,7 @@ test "native V2 proves a rebased leaf-local V3 segment without widening the AIR"
         return err;
     };
     defer lease.deinit();
-    const leased_link = try verified_link_v3.VerifiedLinkV3.init(&global_metadata, lease.data(), &capture.receipt);
+    const leased_link = try verified_link_v3.VerifiedLinkV3.fromVerifiedCapture(Engine, &global_metadata, &capture);
     try std.testing.expectEqualDeep(link, leased_link);
     const before = counters.snapshot();
     for (0..8) |_| try leased_link.validateAgainst(&global_metadata, lease.data(), &capture.receipt);
@@ -1027,6 +1013,350 @@ test "native V2 proves a rebased leaf-local V3 segment without widening the AIR"
     substituted.authenticated_wire_id[0] ^= 1;
     try std.testing.expectError(error.SourceMutation, leased_link.validateAgainst(&global_metadata, &substituted, &capture.receipt));
     try projection.validateAgainst(&right_global);
+
+    // The reusable ingress must perform the same real prove, serialization,
+    // producer destruction, fresh verification and global-position join.
+    const PoseidonEngine = frontend.recursion.engine.ProverEngineForBackend(CpuBackend);
+    var admitted = try @import("recursive_segment_v3_native_ingress.zig").proveAndVerify(
+        PoseidonEngine,
+        allocator,
+        &right_global,
+        test_config,
+        digest("native-local-v3-session"),
+    );
+    defer admitted.deinit();
+    try admitted.validate();
+    try std.testing.expect(admitted.proof_bytes.len != 0);
+    try std.testing.expectEqualDeep(global_metadata, admitted.global_metadata);
+    try std.testing.expectEqualDeep(link.global_metadata_id, admitted.link.global_metadata_id);
+    var shifted = admitted.global_metadata;
+    shifted.global_cycle_start += 1;
+    try std.testing.expectError(
+        error.GlobalPositionMismatch,
+        admitted.link.validateAgainst(&shifted, &admitted.capture.public_data.data, &admitted.capture.receipt),
+    );
+    var wrong_entry = admitted.global_metadata;
+    wrong_entry.entry.snapshot_id[0] ^= 1;
+    try std.testing.expectError(
+        error.LocalBoundaryMismatch,
+        admitted.link.validateAgainst(&wrong_entry, &admitted.capture.public_data.data, &admitted.capture.receipt),
+    );
+    var wrong_exit = admitted.global_metadata;
+    wrong_exit.exit.snapshot_id[0] ^= 1;
+    try std.testing.expectError(
+        error.LocalBoundaryMismatch,
+        admitted.link.validateAgainst(&wrong_exit, &admitted.capture.public_data.data, &admitted.capture.receipt),
+    );
+    var wrong_clocks = admitted.global_metadata;
+    wrong_clocks.exit.memory_clock_id[0] ^= 1;
+    try std.testing.expectError(
+        error.LocalBoundaryMismatch,
+        admitted.link.validateAgainst(&wrong_clocks, &admitted.capture.public_data.data, &admitted.capture.receipt),
+    );
+
+    // The real native capture can feed the existing 39-component V2 outer
+    // transaction. The resulting stage is deliberately not a V3 root.
+    const recursion = frontend.recursion;
+    var profile = try recursion.captured_fri.Owned.init(
+        allocator,
+        recursion.captured_fri.ProfileConfig.fromPcs(test_config),
+        &admitted.capture.proof,
+    );
+    defer profile.deinit();
+    var tree_heights: [recursion.fixed_profile.TREE_COUNT]u32 = undefined;
+    @memcpy(&tree_heights, profile.trace_tree_heights);
+    const shape = try recursion.transcript_shape.derive(
+        profile.circuit.profile(),
+        tree_heights,
+        .{
+            .sampled_value_count = profile.sampled_value_count,
+            .queried_values_per_query = profile.queried_values_per_query,
+            .claimed_sum_count = profile.claimed_sum_count,
+            .interaction_pow_bits = profile.interaction_pow_bits,
+            .pcs_pow_bits = profile.pcs_pow_bits,
+        },
+    );
+    const schedule = recursion.air.verifier_schedule;
+    var vm_plan = try schedule.Plan.initShape(allocator, try schedule.vmProgramSpec(0, 0), shape);
+    defer vm_plan.deinit();
+    var recursion_plan = try schedule.Plan.initShape(allocator, schedule.RECURSION_PROGRAM_SPEC_V1, shape);
+    defer recursion_plan.deinit();
+    const keys = try recursion.segment_leaf_authority_v2.VerifierKeyAuthorityV2.init(
+        digest("recursive-v3-local-segment-vk"),
+        digest("recursive-v3-local-parent-vk"),
+    );
+    const leaf_outer = @import("recursive_segment_v2_leaf_outer.zig");
+    var prepared = try leaf_outer.PreparedNativeV2LeafOuter.init(
+        allocator,
+        allocator,
+        &admitted.capture,
+        test_config,
+        admitted.interaction_pow,
+        keys,
+        recursion.air.universal_challenges.UniversalRelations.dummy(),
+        .{ .vm = &vm_plan, .recursion = &recursion_plan },
+    );
+    admitted.capture_owned = false;
+    defer prepared.deinit();
+    const outer_stage = @import("recursive_segment_v3_outer_stage.zig");
+    var stage = try outer_stage.proveAndVerifyPrepared(
+        allocator,
+        &prepared,
+        &admitted.global_metadata,
+        &admitted.link,
+        .{ .worker_count = 1 },
+    );
+    defer stage.deinit(allocator);
+    try stage.manifest.validateAgainst(
+        &admitted.global_metadata,
+        &admitted.link,
+        &prepared.capture.public_data.data,
+        &prepared.capture.receipt,
+        &stage.publication,
+    );
+    try std.testing.expectError(error.V3WrapperProofUnavailable, stage.requireRecursiveV3Publication());
+    var forged_manifest = stage.manifest;
+    forged_manifest.outer_publication_id[0] ^= 1;
+    try std.testing.expectError(
+        error.InvalidV3StageManifest,
+        forged_manifest.validateAgainst(
+            &admitted.global_metadata,
+            &admitted.link,
+            &prepared.capture.public_data.data,
+            &prepared.capture.receipt,
+            &stage.publication,
+        ),
+    );
+
+    // The two field preimages now come from the separately verified native
+    // child and 39-row outer proof, then enter pinned typed-adapter geometry.
+    // Their AIR/LogUp rows still need one new V3 STARK transaction.
+    const outer_cohort = @import("recursive_segment_v2_outer_cohort.zig");
+    var cohort = try outer_cohort.Cohort.init(allocator, &prepared);
+    defer cohort.deinit();
+    var fields = try recursion.segment_leaf_wrapper_field_witness_v3.BundleV3.init(
+        allocator,
+        &prepared,
+        &stage.capture,
+        &stage.publication,
+        &stage.recursive_witness,
+        cohort.manifest(),
+    );
+    defer fields.deinit();
+    const field_manifest = try recursion.air.segment_leaf_wrapper_field_manifest_v3.Manifest.build(
+        allocator,
+        &fields.native,
+        &fields.provider,
+    );
+    try field_manifest.validateAgainst(allocator, &fields.native, &fields.provider);
+    try std.testing.expectEqualDeep(fields.native.program.digest, field_manifest.program_input.digest);
+    try std.testing.expectEqualDeep(fields.provider.authority.digest, field_manifest.provider_input.digest);
+    try std.testing.expectError(error.V3WrapperProofUnavailable, field_manifest.requireCompleteWrapperProof());
+
+    // Direct V3 source/projection rows use only the native capture. Their
+    // LAS2 authority is 24 words; no separate outer proof enters this path.
+    var direct_program = try recursion.ethereum_leaf_link_program_v3.ProgramV3.init(allocator);
+    defer direct_program.deinit();
+    var direct_rows = try recursion.segment_leaf_wrapper_source_projection_direct_v3.initFromNative(
+        allocator,
+        &direct_program,
+        &prepared,
+        &admitted.global_metadata,
+        &admitted.link,
+        &fields.native,
+    );
+    defer direct_rows.deinit();
+    try std.testing.expectEqual(@as(usize, 802), direct_rows.source_values.len);
+    try std.testing.expectEqual(@as(usize, 1085), direct_rows.projection_values.len);
+    _ = try direct_rows.sourceRow(&direct_program, 801);
+    _ = try direct_rows.projectionRow(&direct_program, 1084);
+    fields.native.tree0_root[0] ^= 1;
+    try std.testing.expectError(
+        error.Tree0FieldRootMismatch,
+        recursion.segment_leaf_wrapper_source_projection_direct_v3.initFromNative(
+            allocator,
+            &direct_program,
+            &prepared,
+            &admitted.global_metadata,
+            &admitted.link,
+            &fields.native,
+        ),
+    );
+    fields.native.tree0_root[0] ^= 1;
+    fields.native.program.digest[0] ^= 1;
+    try std.testing.expectError(
+        error.ProgramFieldIdentityMismatch,
+        recursion.segment_leaf_wrapper_source_projection_direct_v3.initFromNative(
+            allocator,
+            &direct_program,
+            &prepared,
+            &admitted.global_metadata,
+            &admitted.link,
+            &fields.native,
+        ),
+    );
+    fields.native.program.digest[0] ^= 1;
+
+    // Materialize the one enlarged row-34 call slice from source-owned calls
+    // and all four new hash preimages. The 49-row proof still needs to commit
+    // this slice and close the remaining typed lookup interactions.
+    var fixed_link_program = try recursion.ethereum_leaf_link_program_v1.ProgramV1.init(allocator);
+    defer fixed_link_program.deinit();
+    var hash_calls = try recursion.segment_leaf_wrapper_hash_call_roster_v3.BundleV3.init(
+        allocator,
+        &prepared,
+        &admitted.global_metadata,
+        &admitted.link,
+        &stage.capture,
+        &stage.publication,
+        &stage.recursive_witness,
+        &cohort,
+        &fixed_link_program,
+    );
+    defer hash_calls.deinit();
+    const wrapper_plan = try recursion.air.segment_leaf_wrapper_roster_v3.Plan.build(
+        allocator,
+        cohort.manifest(),
+        &fixed_link_program,
+        hash_calls.shape(),
+    );
+    try hash_calls.validateForPlan(&wrapper_plan, &cohort);
+    try std.testing.expectEqual(hash_calls.calls.len, wrapper_plan.poseidon_calls.total);
+    hash_calls.calls[hash_calls.ranges[1].start].input[0] ^= 1;
+    try std.testing.expectError(
+        error.V3PoseidonCallRosterMismatch,
+        hash_calls.validateForPlan(&wrapper_plan, &cohort),
+    );
+    hash_calls.calls[hash_calls.ranges[1].start].input[0] ^= 1;
+
+    // A separate versioned outer transaction proves the same genuine leaf
+    // cohort under q193/PCS-PoW16/fold4 and verifies its 10-bit interaction
+    // nonce before reconstructing relation challenges. Its artifact is not a
+    // legacy V2 publication and cannot yet stand in for the 49-row wrapper.
+    const strong_outer = recursion.segment_outer_transaction_v3.ForBackend(CpuBackend);
+    const StrongKernel = strong_outer.EngineKernel(outer_cohort.Cohort);
+    var strong = try StrongKernel.proveAndVerify(allocator, &prepared);
+    defer strong.deinit(allocator);
+    try strong.receipt.validate();
+    std.debug.print(
+        "SEGMENT_V3_STRONG_OUTER prepare_ns={d} prove_ns={d} serialize_ns={d} destroy_ns={d} fresh_verify_ns={d} transaction_ns={d} proof_bytes={d} producer_peak_bytes={d}\n",
+        .{
+            strong.receipt.producer_prepare_ns,
+            strong.receipt.prover_ns,
+            strong.receipt.serialize_ns,
+            strong.receipt.producer_destroy_ns,
+            strong.receipt.fresh_verifier_ns,
+            strong.receipt.transaction_ns,
+            strong.receipt.proof_bytes,
+            strong.receipt.producer_peak_bytes,
+        },
+    );
+    try strong.artifact.validateEncoding();
+    try std.testing.expect(strong.artifact.proof_bytes.len != 0);
+    try std.testing.expect(strong.receipt.producer_peak_bytes > 0);
+    try strong.field_snapshot.validateAgainst(cohort.manifest(), &strong.artifact);
+    var wrong_field_identity = strong.field_snapshot;
+    wrong_field_identity.proof_id[0] ^= 1;
+    try std.testing.expectError(
+        error.InvalidV3OuterFieldSnapshot,
+        wrong_field_identity.validateAgainst(cohort.manifest(), &strong.artifact),
+    );
+    const first_provider_word = strong.field_snapshot.provider.words[0];
+    strong.field_snapshot.provider.words[0] = M31.fromCanonical(2);
+    try std.testing.expectError(
+        error.SharedProviderFieldAuthorityMismatch,
+        strong.field_snapshot.validateAgainst(cohort.manifest(), &strong.artifact),
+    );
+    strong.field_snapshot.provider.words[0] = first_provider_word;
+    try strong.field_snapshot.validateAgainst(cohort.manifest(), &strong.artifact);
+    var wrong_query = strong.artifact;
+    wrong_query.query_count = 3;
+    var rejected_capture: strong_outer.Capture = undefined;
+    try std.testing.expectError(
+        error.InvalidV3OuterArtifact,
+        StrongKernel.verifyArtifact(allocator, &prepared, &wrong_query, &rejected_capture),
+    );
+    var wrong_profile = strong.artifact;
+    wrong_profile.profile_id[0] ^= 1;
+    try std.testing.expectError(
+        error.InvalidV3OuterProfile,
+        StrongKernel.verifyArtifact(allocator, &prepared, &wrong_profile, &rejected_capture),
+    );
+    // Postcard starts with the proof's own PCS PoW varint. Its value must
+    // agree with the pinned V3 profile even when the proof-byte identities
+    // are correctly recomputed after the mutation.
+    var wrong_embedded_config = strong.artifact;
+    wrong_embedded_config.proof_bytes = try allocator.dupe(u8, strong.artifact.proof_bytes);
+    defer allocator.free(wrong_embedded_config.proof_bytes);
+    try std.testing.expectEqual(@as(u8, 16), wrong_embedded_config.proof_bytes[0]);
+    wrong_embedded_config.proof_bytes[0] = 0;
+    const altered_identity = try recursion.canonical_proof_identity_v1.CanonicalProofIdentityV1.fromBytes(
+        wrong_embedded_config.proof_bytes,
+    );
+    wrong_embedded_config.proof_id = altered_identity.proof_id;
+    wrong_embedded_config.proof_sha256 = altered_identity.canonical_proof_sha_id;
+    try std.testing.expectError(
+        error.InvalidV3OuterProofShape,
+        StrongKernel.verifyArtifact(allocator, &prepared, &wrong_embedded_config, &rejected_capture),
+    );
+    var wrong_nonce = strong.artifact;
+    var rejected = false;
+    for (0..64) |_| {
+        wrong_nonce.interaction_pow_nonce +%= 1;
+        StrongKernel.verifyArtifact(allocator, &prepared, &wrong_nonce, &rejected_capture) catch |err| {
+            if (err == error.InvalidV3OuterInteractionPow) {
+                rejected = true;
+                break;
+            }
+            continue;
+        };
+        rejected_capture.deinit(allocator);
+    }
+    try std.testing.expect(rejected);
+
+    // The corrected schedule admits only the single provider digest emitted
+    // by row 39 and consumed by both row 40 and row 45. Its program and roster
+    // IDs cannot alias the earlier unclosed provider-digest schedule.
+    var link_program_v2 = try recursion.ethereum_leaf_link_program_v2.ProgramV2.init(allocator);
+    defer link_program_v2.deinit();
+    const wrapper_plan_v2 = try recursion.air.segment_leaf_wrapper_roster_v3_v2.PlanV2.build(
+        allocator,
+        cohort.manifest(),
+        &link_program_v2,
+        hash_calls.shape(),
+    );
+    try wrapper_plan_v2.validateAgainst(allocator, cohort.manifest(), &link_program_v2, hash_calls.shape());
+    _ = try recursion.segment_leaf_wrapper_protocol_v3.protocolId(&wrapper_plan_v2);
+    var link_rows = try recursion.segment_leaf_wrapper_source_projection_v3.WitnessV3.initFromVerifiedChildren(
+        CpuBackend,
+        allocator,
+        &link_program_v2,
+        &prepared,
+        &admitted.global_metadata,
+        &admitted.link,
+        &fields.native,
+        &strong,
+        cohort.manifest(),
+    );
+    defer link_rows.deinit();
+    try std.testing.expectEqual(@as(usize, 794), link_rows.source_values.len);
+    try std.testing.expectEqual(@as(usize, 1093), link_rows.projection_values.len);
+    strong.field_snapshot.provider.digest[0] ^= 1;
+    try std.testing.expectError(
+        error.SharedProviderFieldAuthorityMismatch,
+        recursion.segment_leaf_wrapper_source_projection_v3.WitnessV3.initFromVerifiedChildren(
+            CpuBackend,
+            allocator,
+            &link_program_v2,
+            &prepared,
+            &admitted.global_metadata,
+            &admitted.link,
+            &fields.native,
+            &strong,
+            cohort.manifest(),
+        ),
+    );
+    strong.field_snapshot.provider.digest[0] ^= 1;
 }
 
 fn leafStatement(

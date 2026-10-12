@@ -291,6 +291,200 @@ test "leaf-local V3: shared canonical projection rejects position and route muta
     try std.testing.expectError(error.InvalidEthereumLeafLinkProgram, program.validate());
 }
 
+test "leaf-local V3: link schedule joins every directly equal V2 boundary field" {
+    const link_program = @import("../ethereum_leaf_link_program_v1.zig");
+    const source_air = @import("../air/ethereum_leaf_link_source_v1.zig");
+    const leaf_v2 = @import("../segment_leaf_authority_v2.zig");
+
+    var program = try link_program.ProgramV1.init(std.testing.allocator);
+    defer program.deinit();
+    const first = 2 * span.SPAN_STATEMENT_CANONICAL_WORDS +
+        @import("../segment_leaf_local_verified_link_v3.zig").IDENTITY_WORDS;
+    try std.testing.expectEqual(@as(usize, 168), link_program.BOUNDARY_JOIN_ROW_COUNT);
+    try std.testing.expectEqual(@as(usize, 1117), link_program.PROJECTION_ROW_COUNT);
+    for (0..2) |side| {
+        const metadata_start = if (side == 0)
+            link_program.METADATA_ENTRY_BOUNDARY_START
+        else
+            link_program.METADATA_EXIT_BOUNDARY_START;
+        const wire_snapshot = if (side == 0)
+            segment_v2.fixed_layout.entry_snapshot_id
+        else
+            segment_v2.fixed_layout.exit_snapshot_id;
+        const wire_snapshot_count = if (side == 0)
+            segment_v2.fixed_layout.entry_snapshot_count
+        else
+            segment_v2.fixed_layout.exit_snapshot_count;
+        const wire_registers = if (side == 0)
+            segment_v2.fixed_layout.entry_register_clocks
+        else
+            segment_v2.fixed_layout.exit_register_clocks;
+        const wire_memory = if (side == 0)
+            segment_v2.fixed_layout.entry_memory_clock_id
+        else
+            segment_v2.fixed_layout.exit_memory_clock_id;
+        const wire_memory_count = if (side == 0)
+            segment_v2.fixed_layout.entry_memory_clock_count
+        else
+            segment_v2.fixed_layout.exit_memory_clock_count;
+        const pairs = [_]struct { metadata: usize, wire: usize, count: usize }{
+            .{ .metadata = metadata_start, .wire = wire_snapshot, .count = 8 },
+            .{ .metadata = metadata_start + 8, .wire = wire_snapshot_count, .count = 2 },
+            .{ .metadata = metadata_start + 11, .wire = wire_registers, .count = 64 },
+            .{ .metadata = metadata_start + 75, .wire = wire_memory, .count = 8 },
+            .{ .metadata = metadata_start + 83, .wire = wire_memory_count, .count = 2 },
+        };
+        var at = first + side * 84;
+        for (pairs) |pair| {
+            for (0..pair.count) |offset| {
+                const row = program.projection_rows[at];
+                try std.testing.expectEqual(@as(u32, 1), row.raw_mask);
+                try std.testing.expectEqual(@as(u32, 1), row.local_statement_mask);
+                try std.testing.expectEqual(source_air.METADATA_SCOPE, row.raw_scope);
+                try std.testing.expectEqual(leaf_v2.WIRE_SCOPE, row.statement_scope);
+                try std.testing.expectEqual(@as(u32, @intCast(pair.metadata + offset)), row.raw_index);
+                try std.testing.expectEqual(@as(u32, @intCast(pair.wire + offset)), row.statement_index);
+                try std.testing.expectEqual(@as(u32, 2), program.source_rows[pair.metadata + offset].use_count);
+                at += 1;
+            }
+        }
+        try std.testing.expectEqual(first + (side + 1) * 84, at);
+    }
+
+    const target = first + 10; // first entry-register clock limb
+    program.projection_rows[target].statement_index =
+        segment_v2.fixed_layout.exit_register_clocks;
+    try std.testing.expectError(error.InvalidEthereumLeafLinkProgram, program.validate());
+}
+
+test "leaf-local V3: typed position and completion routes are fixed" {
+    const link_program = @import("../ethereum_leaf_link_program_v1.zig");
+    const source_air = @import("../air/ethereum_leaf_link_source_v1.zig");
+    const leaf_v2 = @import("../segment_leaf_authority_v2.zig");
+    var program = try link_program.ProgramV1.init(std.testing.allocator);
+    defer program.deinit();
+    const first = 2 * span.SPAN_STATEMENT_CANONICAL_WORDS +
+        @import("../segment_leaf_local_verified_link_v3.zig").IDENTITY_WORDS +
+        link_program.BOUNDARY_JOIN_ROW_COUNT;
+    try std.testing.expectEqual(@as(usize, 19), link_program.POSITION_AND_COMPLETION_JOIN_ROW_COUNT);
+    try std.testing.expectEqual(@as(u32, 3), program.source_rows[link_program.METADATA_ENTRY_CONTINUATION_ROOT].use_count);
+    try std.testing.expectEqual(@as(u32, 3), program.source_rows[link_program.METADATA_EXIT_CONTINUATION_ROOT].use_count);
+    try std.testing.expectEqual(@as(u32, 2), program.source_rows[link_program.METADATA_COMPLETION_START].use_count);
+    try std.testing.expectEqual(@as(u32, 4), program.source_rows[link_program.METADATA_GLOBAL_START].use_count);
+    for (0..7) |offset| {
+        const row = program.projection_rows[first + 12 + offset];
+        try std.testing.expectEqual(@as(u32, 1), row.raw_mask);
+        try std.testing.expectEqual(@as(u32, 1), row.local_statement_mask);
+        try std.testing.expectEqual(source_air.METADATA_SCOPE, row.raw_scope);
+        try std.testing.expectEqual(leaf_v2.WIRE_SCOPE, row.statement_scope);
+        try std.testing.expectEqual(@as(u32, @intCast(link_program.METADATA_COMPLETION_START + 1 + offset)), row.raw_index);
+        try std.testing.expectEqual(@as(u32, @intCast(segment_v2.fixed_layout.completion + 1 + offset)), row.statement_index);
+    }
+    const first_start_row = first + 4;
+    try std.testing.expectEqual(@as(u32, @intCast(link_program.METADATA_GLOBAL_START)), program.projection_rows[first_start_row].raw_index);
+    program.projection_rows[first_start_row].raw_join_index += 1;
+    try std.testing.expectError(error.InvalidEthereumLeafLinkProgram, program.validate());
+}
+
+test "leaf-local V3: typed arithmetic pins semantic graph and accepts wide positions" {
+    const arithmetic = @import("../air/ethereum_leaf_link_arithmetic_v1.zig");
+    const witness = @import("../air/ethereum_leaf_link_arithmetic_witness_v1.zig");
+    const lang = @import("../../air/lang/mod.zig");
+    var definition = try arithmetic.build(std.testing.allocator);
+    defer definition.deinit();
+    const plan = try arithmetic.authenticate(&definition);
+    try std.testing.expectEqual(@as(usize, 28), plan.events.len);
+    var degrees = try lang.degree.analyze(std.testing.allocator, &definition.arena);
+    defer degrees.deinit();
+    try std.testing.expectEqual(arithmetic.MAXIMUM_CONSTRAINT_DEGREE, degrees.maximumConstraintDegree());
+    const actual_digest = try arithmetic.computeSemanticDigest(std.testing.allocator);
+    try std.testing.expectEqualStrings(arithmetic.SEMANTIC_DIGEST_HEX, &std.fmt.bytesToHex(actual_digest, .lower));
+    try std.testing.expectEqual(@as(usize, 31), definition.arena.constraintsView().len);
+    try std.testing.expectEqual(@as(usize, 28), definition.arena.effectsView().len);
+    for ([_]u32{ 0, 65535, 65536, 0x7fff_fffe }) |root| {
+        const entry = try witness.logicalRow(.entry_root, root, false, 0, 0);
+        const exit = try witness.logicalRow(.exit_root, root, false, 0, 0);
+        try evaluateV3Arithmetic(&definition, &entry, true);
+        try evaluateV3Arithmetic(&definition, &exit, true);
+    }
+    for ([_]bool{ false, true }) |present| {
+        const row = try witness.logicalRow(.completion, 0, present, 0, 0);
+        try evaluateV3Arithmetic(&definition, &row, true);
+    }
+    for ([_]struct { start: u64, count: u32 }{
+        .{ .start = 0, .count = 1 },
+        .{ .start = 0xffff, .count = 1 },
+        .{ .start = (@as(u64, 1) << 40) + 0xffff_fffe, .count = 65539 },
+        .{ .start = std.math.maxInt(u64) - 2, .count = 2 },
+    }) |case| {
+        const row = try witness.logicalRow(.position, 0, false, case.start, case.count);
+        try evaluateV3Arithmetic(&definition, &row, true);
+    }
+    try std.testing.expectError(error.NonCanonicalContinuationRoot, witness.logicalRow(.entry_root, 0x7fff_ffff, false, 0, 0));
+    try std.testing.expectError(error.GlobalCycleOverflow, witness.logicalRow(.position, 0, false, std.math.maxInt(u64), 1));
+}
+
+test "leaf-local V3: typed arithmetic rejects root, completion and carry mutations" {
+    const arithmetic = @import("../air/ethereum_leaf_link_arithmetic_v1.zig");
+    const witness = @import("../air/ethereum_leaf_link_arithmetic_witness_v1.zig");
+    var definition = try arithmetic.build(std.testing.allocator);
+    defer definition.deinit();
+    var root = try witness.logicalRow(.entry_root, 0x1234_ffff, false, 0, 0);
+    root[0] = root[0].add(M31.one());
+    try evaluateV3Arithmetic(&definition, &root, false);
+    root = try witness.logicalRow(.entry_root, 0x1234_ffff, false, 0, 0);
+    root[2] = root[2].add(M31.one());
+    try evaluateV3Arithmetic(&definition, &root, false);
+    root = try witness.logicalRow(.exit_root, 0x7fff_fffe, false, 0, 0);
+    root[7] = M31.zero(); // loses the 15-bit high-limb range certificate
+    try evaluateV3Arithmetic(&definition, &root, false);
+    root = try witness.logicalRow(.entry_root, 0, false, 0, 0);
+    // 0x7fff_ffff reduces to zero in M31. The inverse-gap constraint must
+    // reject this otherwise valid-looking pair of 16-bit wire limbs.
+    root[1] = M31.fromCanonical(65535);
+    root[2] = M31.fromCanonical(32767);
+    root[3] = M31.fromCanonical(255);
+    root[4] = M31.fromCanonical(255);
+    root[5] = M31.fromCanonical(255);
+    root[6] = M31.fromCanonical(127);
+    root[7] = M31.fromCanonical(254);
+    root[8] = M31.zero();
+    try evaluateV3Arithmetic(&definition, &root, false);
+
+    var completion = try witness.logicalRow(.completion, 0, true, 0, 0);
+    completion[10] = M31.fromCanonical(@intFromEnum(segment_v2.Tag.completion_absent));
+    try evaluateV3Arithmetic(&definition, &completion, false);
+    completion = try witness.logicalRow(.completion, 0, true, 0, 0);
+    completion[9] = M31.fromCanonical(2);
+    try evaluateV3Arithmetic(&definition, &completion, false);
+
+    var position = try witness.logicalRow(.position, 0, false, (@as(u64, 1) << 40) + 0xffff, 3);
+    position[15] = position[15].add(M31.one()); // end low limb
+    try evaluateV3Arithmetic(&definition, &position, false);
+    position = try witness.logicalRow(.position, 0, false, (@as(u64, 1) << 40) + 0xffff, 3);
+    position[21] = M31.zero(); // carry from first 16-bit limb
+    try evaluateV3Arithmetic(&definition, &position, false);
+    position = try witness.logicalRow(.position, 0, false, (@as(u64, 1) << 40) + 0xffff, 3);
+    position[24] = position[24].add(M31.one()); // start byte
+    try evaluateV3Arithmetic(&definition, &position, false);
+}
+
+fn evaluateV3Arithmetic(
+    definition: *const @import("../air/ethereum_leaf_link_arithmetic_v1.zig").Definition,
+    row: *const @import("../air/ethereum_leaf_link_arithmetic_v1.zig").Row,
+    valid: bool,
+) !void {
+    const support = @import("../air/test_support.zig");
+    const lang = @import("../../air/lang/mod.zig");
+    const values = try support.evaluateArena(std.testing.allocator, &definition.arena, row);
+    defer std.testing.allocator.free(values);
+    var satisfied = true;
+    for (definition.arena.constraintsView()) |constraint| {
+        satisfied = satisfied and values[lang.types.idIndex(constraint.root)].isZero();
+    }
+    try std.testing.expectEqual(valid, satisfied);
+}
+
 fn largePositionMetadata() !global_v3.MetadataV3 {
     const first_cycle: u64 = (@as(u64, 1) << 40) + 0xfffe;
     const cycle_count: u32 = 0x10003;

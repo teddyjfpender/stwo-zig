@@ -3,6 +3,8 @@
 const std = @import("std");
 const result_mod = @import("../result.zig");
 const segment_session = @import("../segment_session.zig");
+const segment_campaign = @import("../../recursion/segment_execution_campaign_v3.zig");
+const segment_plan = @import("../../recursion/segment_execution_plan_v3.zig");
 
 const CompletionReason = result_mod.CompletionReason;
 const ContinuationToken = result_mod.ContinuationToken;
@@ -302,6 +304,271 @@ test "runner: leaf-local segments reset proof clocks while preserving global sta
     try first.rw_memory.requireContinuationTo(second.rw_memory);
     try std.testing.expectEqual(@as(u32, 0x55), second.exit_cpu.readReg(1));
     try std.testing.expectEqual(@as(u32, 0x56), second.exit_cpu.readReg(3));
+}
+
+test "runner: real ELF campaign releases each leaf and preserves global order" {
+    const instructions = [_]u32{
+        0x0010_0137, // LUI x2, 0x100.
+        0x0550_0093, // ADDI x1, x0, 0x55.
+        0x0011_2023, // SW x1, 0(x2).
+        0x0001_2183, // LW x3, 0(x2).
+        0x0010_8193, // ADDI x3, x1, 1.
+        0x0000_0073, // ECALL.
+    };
+    const elf = makeTestElf(&instructions);
+    const Consumer = struct {
+        lengths: [3]usize = @splat(0),
+        count: usize = 0,
+        previous_exit: ?@import("../cpu.zig").Cpu = null,
+
+        pub fn onSegment(self: *@This(), leaf: *const result_mod.SegmentResult) !void {
+            try std.testing.expect(self.count < self.lengths.len);
+            try std.testing.expectEqual(@as(u64, @intCast(1 + 2 * self.count)), leaf.global_first_cycle);
+            if (self.previous_exit) |previous|
+                try std.testing.expect(std.meta.eql(previous, leaf.entry_cpu));
+            self.previous_exit = leaf.exit_cpu;
+            self.lengths[self.count] = leaf.execution_trace.rows.items.len;
+            self.count += 1;
+        }
+    };
+    var consumer = Consumer{};
+    const summary = try segment_campaign.run(
+        .rv32im_zkvm_v1,
+        std.testing.allocator,
+        &elf,
+        .{},
+        2,
+        3,
+        &consumer,
+    );
+    try std.testing.expectEqual(@as(u32, 3), summary.leaf_count);
+    try std.testing.expectEqual(@as(u64, 6), summary.retired_cycles);
+    try std.testing.expectEqual(CompletionReason.ecall, summary.completion_reason);
+    try std.testing.expectEqualSlices(usize, &.{ 2, 2, 2 }, &consumer.lengths);
+
+    var limited = Consumer{};
+    try std.testing.expectError(error.CampaignLeafLimitReached, segment_campaign.run(
+        .rv32im_zkvm_v1,
+        std.testing.allocator,
+        &elf,
+        .{},
+        2,
+        2,
+        &limited,
+    ));
+    try std.testing.expectEqual(@as(usize, 2), limited.count);
+
+    var halt_policy = Consumer{};
+    const stopped = try segment_campaign.run(
+        .rv32im_zkvm_v1,
+        std.testing.allocator,
+        &elf,
+        .{ .stop_on_halt_flag = true },
+        2,
+        3,
+        &halt_policy,
+    );
+    try std.testing.expectEqual(@as(u32, 2), stopped.leaf_count);
+    try std.testing.expectEqual(@as(u64, 3), stopped.retired_cycles);
+    try std.testing.expectEqual(CompletionReason.halt_flag, stopped.completion_reason);
+    try std.testing.expectEqualSlices(usize, &.{ 2, 1, 0 }, &halt_policy.lengths);
+
+    try std.testing.expectError(error.LeafBudgetExceedsLocalClock, segment_campaign.run(
+        .rv32im_zkvm_v1,
+        std.testing.allocator,
+        &elf,
+        .{},
+        @as(usize, @import("../../recursion/segment_leaf_local_authority_v3.zig").MAX_LEAF_CYCLES) + 1,
+        3,
+        &limited,
+    ));
+    try std.testing.expectEqual(@as(usize, 2), limited.count);
+}
+
+test "runner: planned V3 campaign rejects shortened or trailing leaf budgets" {
+    const instructions = [_]u32{
+        0x0010_0137, // LUI x2, 0x100.
+        0x0550_0093, // ADDI x1, x0, 0x55.
+        0x0011_2023, // SW x1, 0(x2).
+        0x0001_2183, // LW x3, 0(x2).
+        0x0010_8193, // ADDI x3, x1, 1.
+        0x0000_0073, // ECALL.
+    };
+    const elf = makeTestElf(&instructions);
+    const Consumer = struct {
+        count: usize = 0,
+
+        pub fn onSegment(self: *@This(), _: *const result_mod.SegmentResult) !void {
+            self.count += 1;
+        }
+    };
+
+    var exact = Consumer{};
+    const summary = try segment_campaign.runPlanned(
+        .rv32im_zkvm_v1,
+        std.testing.allocator,
+        &elf,
+        .{},
+        &.{ 2, 2, 2 },
+        &exact,
+    );
+    try std.testing.expectEqual(@as(u32, 3), summary.leaf_count);
+    try std.testing.expectEqual(@as(usize, 3), exact.count);
+
+    var shortened = Consumer{};
+    try std.testing.expectError(error.CampaignBudgetScheduleMismatch, segment_campaign.runPlanned(
+        .rv32im_zkvm_v1,
+        std.testing.allocator,
+        &elf,
+        .{},
+        &.{ 2, 5 },
+        &shortened,
+    ));
+    try std.testing.expectEqual(@as(usize, 1), shortened.count);
+
+    var trailing = Consumer{};
+    try std.testing.expectError(error.CampaignBudgetScheduleMismatch, segment_campaign.runPlanned(
+        .rv32im_zkvm_v1,
+        std.testing.allocator,
+        &elf,
+        .{},
+        &.{ 2, 2, 2, 2 },
+        &trailing,
+    ));
+    try std.testing.expectEqual(@as(usize, 2), trailing.count);
+}
+
+test "runner: V3 plan replays exact leaf sizes with guest policy and input" {
+    const instructions = [_]u32{
+        0x0010_0137, // LUI x2, 0x100.
+        0x0550_0093, // ADDI x1, x0, 0x55.
+        0x0011_2023, // SW x1, 0(x2).
+        0x0001_2183, // LW x3, 0(x2).
+        0x0000_0073, // ECALL.
+    };
+    var elf = makeTestElf(&instructions);
+    const options: segment_session.SessionOptions = .{
+        .stop_on_halt_flag = true,
+    };
+    var plan = try segment_plan.prepare(
+        .rv32im_zkvm_v1,
+        std.testing.allocator,
+        &elf,
+        options,
+        2,
+        3,
+    );
+    defer plan.deinit();
+    try std.testing.expectEqualSlices(u32, &.{ 2, 1 }, plan.cycle_counts);
+
+    const Consumer = struct {
+        count: usize = 0,
+        pub fn onSegment(self: *@This(), _: *const result_mod.SegmentResult) !void {
+            self.count += 1;
+        }
+    };
+    var consumer = Consumer{};
+    const summary = try segment_plan.replay(
+        .rv32im_zkvm_v1,
+        std.testing.allocator,
+        &elf,
+        options,
+        &plan,
+        &consumer,
+    );
+    try std.testing.expectEqual(@as(u32, 2), summary.leaf_count);
+    try std.testing.expectEqual(@as(usize, 2), consumer.count);
+
+    const original_exit = plan.leaf_records[0].exit_cpu.regs[1];
+    plan.leaf_records[0].exit_cpu.regs[1] ^= 1;
+    plan.leaf_records[1].entry_cpu.regs[1] ^= 1;
+    try std.testing.expectError(error.CampaignPlanReplayMismatch, segment_plan.replay(
+        .rv32im_zkvm_v1,
+        std.testing.allocator,
+        &elf,
+        options,
+        &plan,
+        &consumer,
+    ));
+    try std.testing.expectEqual(@as(usize, 2), consumer.count);
+    plan.leaf_records[0].exit_cpu.regs[1] = original_exit;
+    plan.leaf_records[1].entry_cpu.regs[1] = original_exit;
+
+    const original_memory = plan.leaf_records[0].exit_memory.id[0];
+    plan.leaf_records[0].exit_memory.id[0] ^= 1;
+    plan.leaf_records[1].entry_memory.id[0] ^= 1;
+    try std.testing.expectError(error.CampaignPlanReplayMismatch, segment_plan.replay(
+        .rv32im_zkvm_v1,
+        std.testing.allocator,
+        &elf,
+        options,
+        &plan,
+        &consumer,
+    ));
+    try std.testing.expectEqual(@as(usize, 2), consumer.count);
+    plan.leaf_records[0].exit_memory.id[0] = original_memory;
+    plan.leaf_records[1].entry_memory.id[0] = original_memory;
+
+    plan.leaf_records[0].exit_cpu.regs[1] ^= 1;
+    try std.testing.expectError(error.CampaignBoundaryDiscontinuity, plan.validate());
+    plan.leaf_records[0].exit_cpu.regs[1] ^= 1;
+
+    var observer_context: u8 = 0;
+    const Observer = struct {
+        fn observe(_: *anyopaque, _: segment_session.PreRetirementBoundaryV1) anyerror!void {}
+    };
+    var observed = options;
+    observed.pre_retirement_boundary_observer = .{
+        .context = &observer_context,
+        .observe_fn = Observer.observe,
+    };
+    try std.testing.expectError(error.CampaignCallbackPlanUnsupported, segment_plan.replay(
+        .rv32im_zkvm_v1,
+        std.testing.allocator,
+        &elf,
+        observed,
+        &plan,
+        &consumer,
+    ));
+
+    var altered = options;
+    altered.input = "changed-input";
+    try std.testing.expectError(error.CampaignPlanInputMismatch, segment_plan.replay(
+        .rv32im_zkvm_v1,
+        std.testing.allocator,
+        &elf,
+        altered,
+        &plan,
+        &consumer,
+    ));
+    const MutatingConsumer = struct {
+        elf: *[84 + 64]u8,
+        changed: bool = false,
+        pub fn onSegment(self: *@This(), _: *const result_mod.SegmentResult) !void {
+            if (!self.changed) {
+                self.elf[120] ^= 1; // Unused ELF padding; execution can still finish.
+                self.changed = true;
+            }
+        }
+    };
+    var mutator = MutatingConsumer{ .elf = &elf };
+    try std.testing.expectError(error.CampaignSourceMutation, segment_plan.replay(
+        .rv32im_zkvm_v1,
+        std.testing.allocator,
+        &elf,
+        options,
+        &plan,
+        &mutator,
+    ));
+    plan.cycle_counts[0] += 1;
+    try std.testing.expectError(error.InvalidCampaignPlan, segment_plan.replay(
+        .rv32im_zkvm_v1,
+        std.testing.allocator,
+        &elf,
+        options,
+        &plan,
+        &consumer,
+    ));
 }
 
 test "runner: continuation capability binds the clock frame" {

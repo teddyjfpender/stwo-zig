@@ -119,7 +119,21 @@ pub const statement_semantics_input_witness_blake3 = @import("statement_semantic
 pub const segment_public_outer_air_v2 = @import("segment_public_outer_air_v2.zig");
 pub const segment_boundary_components_v2 = @import("segment_boundary_components_v2.zig");
 pub const segment_outer_adapter_manifest_v2 = @import("segment_outer_adapter_manifest_v2.zig");
+pub const transcript_program_v2_field_source_v1 =
+    @import("transcript_program_v2_field_source_v1.zig");
+pub const transcript_program_v2_field_bridge_v4 =
+    @import("transcript_program_v2_field_bridge_v4.zig");
+pub const segment_v2_tree0_field_link_v3 =
+    @import("segment_v2_tree0_field_link_v3.zig");
+pub const segment_v2_tree0_field_link_direct_v4 =
+    @import("segment_v2_tree0_field_link_direct_v4.zig");
 pub const segment_outer_typed_catalog_v2 = @import("segment_outer_typed_catalog_v2.zig");
+pub const segment_leaf_wrapper_template_v6 = @import("segment_leaf_wrapper_template_v6.zig");
+pub const segment_leaf_wrapper_template_v7 = @import("segment_leaf_wrapper_template_v7.zig");
+pub const segment_leaf_wrapper_template_v8 = @import("segment_leaf_wrapper_template_v8.zig");
+pub const segment_leaf_wrapper_template_v9 = @import("segment_leaf_wrapper_template_v9.zig");
+pub const segment_leaf_wrapper_template_v10 = @import("segment_leaf_wrapper_template_v10.zig");
+pub const segment_leaf_wrapper_template_v11 = @import("segment_leaf_wrapper_template_v11.zig");
 pub const segment_publication_input_provider_component_v2 =
     @import("segment_publication_input_provider_component_v2.zig");
 pub const segment_publication_input_provider_v2 =
@@ -143,6 +157,10 @@ pub const transcript_execution_program_heterogeneous_v2 =
     @import("transcript_execution_program_heterogeneous_v2.zig");
 pub const transcript_payload = @import("transcript_payload.zig");
 pub const transcript_payload_relation = @import("transcript_payload_relation.zig");
+pub const transcript_payload_direct_v6 = @import("transcript_payload_direct_v6.zig");
+pub const transcript_payload_direct_v7 = @import("transcript_payload_direct_v7.zig");
+pub const segment_leaf_statement_source_direct_v8 = @import("segment_leaf_statement_source_direct_v8.zig");
+pub const transcript_program_v2_field_bridge_v6 = @import("transcript_program_v2_field_bridge_v6.zig");
 pub const transcript_payload_witness = @import("transcript_payload_witness.zig");
 pub const transcript_state = @import("transcript_state.zig");
 pub const transcript_state_relation = @import("transcript_state_relation.zig");
@@ -158,11 +176,28 @@ pub const ethereum_leaf_link_projection_v1 =
     @import("ethereum_leaf_link_projection_v1.zig");
 pub const ethereum_leaf_link_source_v1 =
     @import("ethereum_leaf_link_source_v1.zig");
+pub const ethereum_leaf_link_arithmetic_v1 =
+    @import("ethereum_leaf_link_arithmetic_v1.zig");
+pub const ethereum_leaf_link_arithmetic_witness_v1 =
+    @import("ethereum_leaf_link_arithmetic_witness_v1.zig");
+pub const segment_leaf_wrapper_link_manifest_v3 =
+    @import("segment_leaf_wrapper_link_manifest_v3.zig");
+pub const segment_leaf_wrapper_field_manifest_v3 =
+    @import("segment_leaf_wrapper_field_manifest_v3.zig");
+pub const segment_leaf_wrapper_roster_v3 =
+    @import("segment_leaf_wrapper_roster_v3.zig");
+pub const segment_leaf_wrapper_roster_v3_v2 =
+    @import("segment_leaf_wrapper_roster_v3_v2.zig");
+pub const segment_leaf_wrapper_proof_gate_v3 =
+    @import("segment_leaf_wrapper_proof_gate_v3.zig");
 pub const ethereum_leaf_child_field_router_v1 =
     @import("ethereum_leaf_child_field_router_v1.zig");
 pub const universal_challenges = @import("universal_challenges.zig");
 pub const vm_public_logup_control_witness_v2 =
     @import("vm_public_logup_control_witness_v2.zig");
+pub const vm_public_logup_control_v6 = @import("vm_public_logup_control_v6.zig");
+pub const vm_public_logup_control_witness_v6 = @import("vm_public_logup_control_witness_v6.zig");
+pub const v3_public_io_word_bridge_v1 = @import("v3_public_io_word_bridge_v1.zig");
 pub const universal_catalog = @import("universal_catalog.zig");
 pub const universal_adapter_manifest = @import("universal_adapter_manifest.zig");
 pub const universal_manifest = @import("universal_manifest.zig");

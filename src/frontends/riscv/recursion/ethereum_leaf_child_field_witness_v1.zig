@@ -148,6 +148,7 @@ fn buildUnchecked(
     @memset(authority_seen, false);
     var receipt_words: [program_mod.RECEIPT_WORD_COUNT]M31 = undefined;
     var receipt_seen = [_]bool{false} ** program_mod.RECEIPT_WORD_COUNT;
+    var npv2_seen = [_]bool{false} ** program_mod.DIGEST_WORD_COUNT;
 
     for (program.router_rows, router_rows) |schedule, *logical| {
         const value = try valueForRow(
@@ -167,16 +168,31 @@ fn buildUnchecked(
             &receipt_words,
             &receipt_seen,
         );
-        if (schedule.raw_b_sink_mask == 1) try assignRaw(
-            schedule.raw_b_scope,
-            schedule.raw_b_index,
-            value,
-            authority_words,
-            authority_seen,
-            &receipt_words,
-            &receipt_seen,
-        );
+        if (schedule.raw_b_sink_mask == 1) {
+            if (schedule.raw_b_scope == program_mod.NPV2_SCOPE) {
+                if (program.schema_version != program_mod.NPV2_SCHEMA_VERSION or
+                    schedule.derived_source_mask != 1 or
+                    schedule.sink_verifier_kind != leaf_source.LOCAL_AUTHORITY_DIGEST_KIND or
+                    schedule.raw_b_index < program_mod.NPV2_AUTHORITY_WORD_BASE or
+                    schedule.raw_b_index >= program_mod.NPV2_AUTHORITY_WORD_BASE + program_mod.DIGEST_WORD_COUNT)
+                    return error.InvalidEthereumChildFieldWitness;
+                const limb = schedule.raw_b_index - program_mod.NPV2_AUTHORITY_WORD_BASE;
+                if (npv2_seen[limb] or !value.eql(M31.fromCanonical(input.receipt.authority_id[limb])))
+                    return error.InvalidEthereumChildFieldWitness;
+                npv2_seen[limb] = true;
+            } else try assignRaw(
+                schedule.raw_b_scope,
+                schedule.raw_b_index,
+                value,
+                authority_words,
+                authority_seen,
+                &receipt_words,
+                &receipt_seen,
+            );
+        }
     }
+    if (program.schema_version == program_mod.NPV2_SCHEMA_VERSION)
+        for (npv2_seen) |seen| if (!seen) return error.InvalidEthereumChildFieldWitness;
     for (authority_seen) |seen| if (!seen)
         return error.InvalidEthereumChildFieldWitness;
     for (receipt_seen) |seen| if (!seen)

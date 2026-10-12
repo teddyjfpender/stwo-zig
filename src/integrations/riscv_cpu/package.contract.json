@@ -138,6 +138,7 @@
     "recursive_node_artifact_v2",
     "recursive_pipeline_worker_protocol_v1",
     "recursive_pipeline_worker_v1",
+    "recursive_segment_v3_native_ingress",
     "resource_usage",
     "verifyPoseidon2",
     "verifyRiscV",
