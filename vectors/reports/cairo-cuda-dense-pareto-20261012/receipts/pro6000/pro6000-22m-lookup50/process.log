@@ -1,0 +1,7 @@
+cairo-cuda arena reservation bytes=114411804960 slots=193
+cuda prepared arena mode=managed bytes=114411804960
+cairo-cuda static-phase initial_upload_ns=109292264 preprocessed_load_ns=231559946 materialize_ns=966457 cached=false device_image_hit=false
+cairo-cuda-memory-phase phase=proof_begin elapsed_ns=1231
+cairo-cuda proof phase=host_resident_main_coefficients_before_writers failed
+cairo-cuda phase=execute_proof failed: InvalidManagedPlacementPolicy
+error: InvalidManagedPlacementPolicy

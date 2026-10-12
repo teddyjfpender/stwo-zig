@@ -1,0 +1,17 @@
+cairo-cuda arena reservation bytes=114411804960 slots=193
+cuda prepared arena mode=managed bytes=114411804960
+cairo-cuda static-phase initial_upload_ns=82711064 preprocessed_load_ns=235637217 materialize_ns=935801 cached=false device_image_hit=false
+cairo-cuda-memory-phase phase=proof_begin elapsed_ns=1052
+cairo-cuda-memory-phase phase=trace_generation_end elapsed_ns=4070407789
+cairo-cuda-memory-phase phase=preprocessed_commit_end elapsed_ns=4822913120
+cairo-cuda-memory-phase phase=main_commit_end elapsed_ns=21521158240
+cairo-cuda-memory-phase phase=relation_end elapsed_ns=23188718810
+cairo-cuda-memory-phase phase=interaction_commit_end elapsed_ns=24857729957
+cairo-cuda-memory-phase phase=trace_commit_end elapsed_ns=24857777378
+cairo-cuda-memory-phase phase=constraint_evaluation_end elapsed_ns=45808187003
+cairo-cuda-memory-phase phase=composition_commit_end elapsed_ns=45808326851
+cairo-cuda-memory-phase phase=constraint_stage_end elapsed_ns=45808377807
+cairo-cuda-memory-phase phase=oods_end elapsed_ns=46122411203
+cairo-cuda-memory-phase phase=quotient_end elapsed_ns=46241228015
+cairo-cuda-memory-phase phase=fri_commit_end elapsed_ns=46251634363
+cairo-cuda-memory-phase phase=decommit_end elapsed_ns=46287991536

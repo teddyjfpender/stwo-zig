@@ -1,0 +1,15 @@
+{
+  "schema": "stwo.cairo-cuda-dense-catalogue-summary.v1",
+  "retrieved_utc_date": "2026-10-12",
+  "source": "https://15-237-92-219.sslip.io/v1/pies?status=ready&limit=1000",
+  "pagination": "follow next_after until null",
+  "ready_pies": 51015,
+  "single_block_pies": 19856,
+  "largest_single_block_by_os_steps": [
+    {"pie": "16011167_16011167", "os_steps": 25942361, "transactions": 8},
+    {"pie": "15737084_15737084", "os_steps": 25625956, "transactions": 6},
+    {"pie": "15550282_15550282", "os_steps": 25597991, "transactions": 8},
+    {"pie": "15909032_15909032", "os_steps": 25561839, "transactions": 8},
+    {"pie": "15646388_15646388", "os_steps": 25504212, "transactions": 8}
+  ]
+}

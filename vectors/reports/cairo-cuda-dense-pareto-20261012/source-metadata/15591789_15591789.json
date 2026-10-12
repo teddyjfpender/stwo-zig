@@ -1,0 +1,37 @@
+{
+  "retrieved_utc": "2026-10-12T15:11:24.120963+00:00",
+  "source": "https://15-237-92-219.sslip.io/v1/pies/15591789_15591789/meta",
+  "meta": {
+    "name": "15591789_15591789",
+    "first": 15591789,
+    "last": 15591789,
+    "starknet_version": "0.14.3",
+    "txs": 6,
+    "os_steps": 25379487,
+    "n_memory_holes": 2404858,
+    "builtins": {
+      "output": 2300,
+      "range_check": 1208018,
+      "pedersen": 191100,
+      "bitwise": 84,
+      "ec_op": 960,
+      "poseidon": 6070
+    },
+    "final_block_hash": "0x7269e7b5e7bdc8da854d2ded10e9f054d6e90772efe910ff2ebd3cfd5c6463f",
+    "final_state_root": "0x7e75bc59570ff555cc645e8355347e7287a8aabeaf4f6373e647e6a3b8d8e92",
+    "header_matches_chain": true,
+    "generator": "keep-starknet-strange/snos feature/0.14.3 38cabc9 (APOLLO-0.14.3-RC.15)",
+    "bytes": 137577016,
+    "peak_rss_gb": 5.1,
+    "blocks": 1,
+    "est_steps": 25967086,
+    "timings_s": {
+      "collect_s": 26.0,
+      "os_run_s": 48.0,
+      "write_s": 41.0,
+      "generate": 115.1,
+      "check": 2.0
+    },
+    "baked_at": "2026-10-01T01:38:25Z"
+  }
+}

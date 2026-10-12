@@ -1,0 +1,34 @@
+{
+  "schema": "stwo.cairo-cuda-memory-trial.v1",
+  "command": [
+    "./zig-out/bin/stwo-cairo-cuda",
+    "prove",
+    "--backend",
+    "cuda",
+    "--input",
+    "/tmp/inputs/15582797_15582797.cpi",
+    "--input-sha256",
+    "319b538ff50ad8e04735886a7844de300198194a4cc2128dcb57bc625ec4e4cb",
+    "--output",
+    "/tmp/results/pro6000-20m-resident-r2/proof.json",
+    "--report-out",
+    "/tmp/results/pro6000-20m-resident-r2/report.json"
+  ],
+  "binary_sha256": "b8a9a5331712ed551ad4a66512894f95b311eeeea3b702eceaabc1232fc48dfd",
+  "source": {
+    "git_head": null,
+    "git_diff_sha256": null
+  },
+  "policy_env": {
+    "STWO_CAIRO_CUDA_PREPROCESSED_VARIANT": "canonical"
+  },
+  "exit_code": 0,
+  "elapsed_ns": 3499180233,
+  "started_wall_utc": "2026-10-12T14:40:27.764018+00:00",
+  "process_spawn_wall_utc": "2026-10-12T14:40:27.764443+00:00",
+  "finished_wall_utc": "2026-10-12T14:40:31.263197+00:00",
+  "samples": 14,
+  "whole_device_peak_bytes": 89983549440,
+  "process_rss_peak_bytes": 3999145984,
+  "process_rss_scope": "process_tree"
+}

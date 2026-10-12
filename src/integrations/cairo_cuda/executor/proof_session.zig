@@ -400,6 +400,8 @@ pub const Prepared = struct {
                     "STWO_CUDA_CAPACITY_WRITER_SCRATCH_HOST_PERCENT",
                 );
             }
+            phase = "prefetch_capacity_trace_remainder";
+            try prefetchCapacityTraceRemainder(transaction, plan);
         }
         // Research policy for near-capacity devices: migrate only a bounded
         // fraction of the main coefficients before their first GPU write.
@@ -1271,6 +1273,9 @@ fn preferCapacitySlotHost(
         return preferManagedSlotHost(transaction, plan, kind, ordinal, true);
     const percent = std.fmt.parseInt(u8, raw, 10) catch
         return error.InvalidManagedPlacementPolicy;
+    // Zero is an explicit capacity-policy choice to keep this slot on the
+    // device; omission retains the conservative fully hosted default.
+    if (percent == 0) return;
     try preferManagedSlotHostFractionPercent(
         transaction,
         plan,
@@ -1292,6 +1297,50 @@ fn preferCapacitySlotHost(
             try transaction.sessionContext().prefetchManagedSlice(
                 u32,
                 try words.sub(host_words, words.len - host_words),
+                true,
+            );
+    }
+}
+
+/// Research-only, bounded device staging for the three writer slots that are
+/// also hot in relation generation. The hosted prefix remains on the host;
+/// only the checked remainder is prefetched on the proof stream. Reject a
+/// request when the complete transfer cannot leave a four-GiB device reserve.
+fn prefetchCapacityTraceRemainder(transaction: anytype, plan: *const resident_plan.Plan) !void {
+    const raw = std.posix.getenv("STWO_CUDA_CAPACITY_PREFETCH_TRACE_REMAINDER") orelse return;
+    if (std.mem.eql(u8, raw, "0")) return;
+    if (!std.mem.eql(u8, raw, "1")) return error.InvalidManagedPlacementPolicy;
+    const targets = .{
+        .{ .kind = resident_plan.SlotKind.writer_lookup_inputs, .ordinal = @as(u32, 0), .percent_env = "STWO_CUDA_CAPACITY_LOOKUP_HOST_PERCENT" },
+        .{ .kind = resident_plan.SlotKind.writer_scratch, .ordinal = @as(u32, 0), .percent_env = "STWO_CUDA_CAPACITY_WRITER_SCRATCH_HOST_PERCENT" },
+        .{ .kind = resident_plan.SlotKind.trace_coefficients, .ordinal = @as(u32, 1), .percent_env = "STWO_CUDA_CAPACITY_MAIN_COEFF_HOST_PERCENT" },
+    };
+    var requested_bytes: usize = 0;
+    inline for (targets) |target| {
+        const slot = plan.slot(target.kind, target.ordinal) orelse return error.InvalidProofSessionBindings;
+        const words = try transaction.slot(slot.id);
+        const percent_raw = std.posix.getenv(target.percent_env) orelse "100";
+        const percent = std.fmt.parseInt(u8, percent_raw, 10) catch return error.InvalidManagedPlacementPolicy;
+        const hosted_words = if (percent == 0) 0 else try hostFractionWords(words.len, percent);
+        const device_words = words.len - hosted_words;
+        const bytes = std.math.mul(usize, device_words, @sizeOf(u32)) catch return error.SizeOverflow;
+        requested_bytes = std.math.add(usize, requested_bytes, bytes) catch return error.SizeOverflow;
+    }
+    if (requested_bytes == 0) return;
+    const memory = try transaction.sessionContext().memoryInfo();
+    const reserve: usize = 4 * (1 << 30);
+    if (memory.free <= reserve or requested_bytes > memory.free - reserve)
+        return error.InsufficientDeviceMemory;
+    inline for (targets) |target| {
+        const slot = plan.slot(target.kind, target.ordinal) orelse unreachable;
+        const words = try transaction.slot(slot.id);
+        const percent_raw = std.posix.getenv(target.percent_env) orelse "100";
+        const percent = std.fmt.parseInt(u8, percent_raw, 10) catch unreachable;
+        const hosted_words = if (percent == 0) 0 else try hostFractionWords(words.len, percent);
+        if (hosted_words < words.len)
+            try transaction.sessionContext().prefetchManagedSlice(
+                u32,
+                try words.sub(hosted_words, words.len - hosted_words),
                 true,
             );
     }

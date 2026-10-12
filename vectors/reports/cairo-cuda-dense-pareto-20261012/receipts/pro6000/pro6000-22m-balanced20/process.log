@@ -1,0 +1,2 @@
+cairo-cuda arena reservation bytes=114411804960 slots=193
+cairo-cuda static-phase initial_upload_ns=83827382 preprocessed_load_ns=233687709 materialize_ns=972996 cached=false device_image_hit=false

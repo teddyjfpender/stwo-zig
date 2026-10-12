@@ -1,0 +1,35 @@
+{
+  "schema": "stwo-zig-cuda-host-preflight-v1",
+  "hostname": "519ba200235e",
+  "device": {
+    "command": [
+      "nvidia-smi",
+      "--query-gpu=name,uuid,compute_cap,driver_version,memory.total",
+      "--format=csv,noheader"
+    ],
+    "returncode": 0,
+    "stdout": "NVIDIA RTX PRO 6000 Blackwell Server Edition, GPU-a160859a-afe7-4b85-89cf-afb824972c08, 12.0, 595.71.05, 97887 MiB",
+    "stderr": ""
+  },
+  "build": {
+    "command": [
+      "/usr/local/cuda/bin/nvcc",
+      "-arch=sm_120",
+      "/tmp/cuda-host-preflight-njnwg25q/preflight.cu",
+      "-o",
+      "/tmp/cuda-host-preflight-njnwg25q/preflight"
+    ],
+    "returncode": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  "run": {
+    "command": [
+      "/tmp/cuda-host-preflight-njnwg25q/preflight"
+    ],
+    "returncode": 0,
+    "stdout": "CUDA context, managed advice, prefetch, kernel, and synchronization passed",
+    "stderr": ""
+  },
+  "passed": true
+}

@@ -1,0 +1,35 @@
+{
+  "schema": "stwo-zig-cuda-host-preflight-v1",
+  "hostname": "d138135e6d81",
+  "device": {
+    "command": [
+      "nvidia-smi",
+      "--query-gpu=name,uuid,compute_cap,driver_version,memory.total",
+      "--format=csv,noheader"
+    ],
+    "returncode": 0,
+    "stdout": "NVIDIA H200, GPU-69fd843e-4019-0fd2-b0ec-6f22e51180a3, 9.0, 570.172.08, 143771 MiB",
+    "stderr": ""
+  },
+  "build": {
+    "command": [
+      "/usr/local/cuda/bin/nvcc",
+      "-arch=sm_90",
+      "/tmp/cuda-host-preflight-nsjfr9su/preflight.cu",
+      "-o",
+      "/tmp/cuda-host-preflight-nsjfr9su/preflight"
+    ],
+    "returncode": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  "run": {
+    "command": [
+      "/tmp/cuda-host-preflight-nsjfr9su/preflight"
+    ],
+    "returncode": 0,
+    "stdout": "CUDA context, managed advice, prefetch, kernel, and synchronization passed",
+    "stderr": ""
+  },
+  "passed": true
+}
