@@ -1,0 +1,51 @@
+cairo-cuda arena reservation bytes=34052766352 slots=193
+cairo-cuda arena slot=1 kind=adapted_input ordinal=0 bytes=101602848 offset=9993663744 lifetime=ingress..trace_generation
+cairo-cuda arena slot=3 kind=writer_inputs ordinal=0 bytes=412247284 offset=9581416448 lifetime=ingress..trace_generation
+cairo-cuda arena slot=6 kind=writer_lookup_inputs ordinal=0 bytes=7267779328 offset=0 lifetime=trace_generation..trace_commit
+cairo-cuda arena slot=7 kind=writer_scratch ordinal=0 bytes=2313636932 offset=7267779328 lifetime=trace_generation..trace_generation
+cairo-cuda arena slot=16 kind=relation_base_inputs ordinal=0 bytes=232783872 offset=21664102144 lifetime=trace_commit..trace_commit
+cairo-cuda arena slot=27 kind=eval_lde_tile ordinal=0 bytes=3825205248 offset=20858795776 lifetime=constraint_evaluation..constraint_evaluation
+cairo-cuda arena slot=32 kind=constraint_composition_accumulator ordinal=0 bytes=402635264 offset=5095269888 lifetime=constraint_evaluation..constraint_evaluation
+cairo-cuda arena slot=33 kind=twiddles_forward ordinal=0 bytes=134217728 offset=33758708736 lifetime=ingress..proof_assembly
+cairo-cuda arena slot=34 kind=twiddles_inverse ordinal=0 bytes=134217728 offset=33892926464 lifetime=ingress..proof_assembly
+cairo-cuda arena slot=35 kind=trace_progressive_states ordinal=2 bytes=402653184 offset=20858795776 lifetime=trace_commit..trace_commit
+cairo-cuda arena slot=36 kind=trace_progressive_states ordinal=3 bytes=402653184 offset=21261448960 lifetime=trace_commit..trace_commit
+cairo-cuda arena slot=37 kind=trace_coefficients ordinal=0 bytes=2172402112 offset=27159623424 lifetime=ingress..proof_assembly
+cairo-cuda arena slot=38 kind=trace_evaluations ordinal=0 bytes=4344804224 offset=12219024128 lifetime=ingress..proof_assembly
+cairo-cuda arena slot=41 kind=trace_merkle_hashes ordinal=0 bytes=4294967264 offset=16563828480 lifetime=ingress..proof_assembly
+cairo-cuda arena slot=44 kind=trace_coefficients ordinal=1 bytes=2475622400 offset=24684001024 lifetime=trace_generation..oods
+cairo-cuda arena slot=45 kind=trace_evaluations ordinal=1 bytes=4951244800 offset=7267779328 lifetime=trace_commit..decommit
+cairo-cuda arena slot=48 kind=trace_merkle_hashes ordinal=1 bytes=1073741792 offset=31342789632 lifetime=trace_commit..decommit
+cairo-cuda arena slot=51 kind=trace_coefficients ordinal=2 bytes=2010764032 offset=29332025600 lifetime=trace_commit..oods
+cairo-cuda arena slot=52 kind=trace_evaluations ordinal=2 bytes=4021528064 offset=0 lifetime=trace_commit..decommit
+cairo-cuda arena slot=55 kind=trace_merkle_hashes ordinal=2 bytes=1073741792 offset=4021528064 lifetime=trace_commit..decommit
+cairo-cuda arena slot=58 kind=constraint_composition_output ordinal=3 bytes=268435456 offset=33490273280 lifetime=constraint_evaluation..decommit
+cairo-cuda arena slot=59 kind=trace_evaluations ordinal=3 bytes=536870912 offset=6169011712 lifetime=constraint_evaluation..decommit
+cairo-cuda arena slot=62 kind=trace_merkle_hashes ordinal=3 bytes=1073741792 offset=32416531456 lifetime=trace_commit..decommit
+cairo-cuda arena slot=77 kind=oods_reduce_a ordinal=0 bytes=513277952 offset=5095269856 lifetime=oods..oods
+cairo-cuda arena slot=78 kind=oods_reduce_b ordinal=0 bytes=513277952 offset=5608547808 lifetime=oods..oods
+cairo-cuda arena slot=93 kind=quotient_partial_coordinates ordinal=0 bytes=335535360 offset=5095269888 lifetime=quotient..quotient
+cairo-cuda arena slot=94 kind=quotient_result_coordinates ordinal=0 bytes=268435456 offset=20858795776 lifetime=quotient..decommit
+cairo-cuda arena slot=95 kind=quotient_subdomain_coordinates ordinal=0 bytes=134217728 offset=5430805248 lifetime=quotient..quotient
+cairo-cuda arena slot=99 kind=fri_merkle_hashes ordinal=0 bytes=1073741792 offset=5095269888 lifetime=fri_commit..decommit
+cairo-cuda arena slot=101 kind=fri_coordinates ordinal=1 bytes=134217728 offset=21395666688 lifetime=fri_commit..decommit
+cairo-cuda arena slot=102 kind=fri_merkle_hashes ordinal=1 bytes=536870880 offset=6705882624 lifetime=fri_commit..decommit
+cairo-cuda arena slot=104 kind=fri_coordinates ordinal=2 bytes=67108864 offset=21664102144 lifetime=fri_commit..decommit
+cairo-cuda arena slot=105 kind=fri_merkle_hashes ordinal=2 bytes=268435424 offset=21127231232 lifetime=fri_commit..decommit
+cairo-cuda arena slot=108 kind=fri_merkle_hashes ordinal=3 bytes=134217696 offset=21529884416 lifetime=fri_commit..decommit
+cuda prepared arena mode=managed bytes=34052766352
+cairo-cuda static-phase initial_upload_ns=164894639 preprocessed_load_ns=1270115530 materialize_ns=2793283 cached=false device_image_hit=false
+cairo-cuda-memory-phase phase=proof_begin elapsed_ns=1150
+cairo-cuda-memory-phase phase=trace_generation_end elapsed_ns=15142220002
+cairo-cuda-memory-phase phase=preprocessed_commit_end elapsed_ns=16156580331
+cairo-cuda-memory-phase phase=main_commit_end elapsed_ns=24117992153
+cairo-cuda-memory-phase phase=relation_end elapsed_ns=32522202704
+cairo-cuda-memory-phase phase=interaction_commit_end elapsed_ns=33771641394
+cairo-cuda-memory-phase phase=trace_commit_end elapsed_ns=33771685276
+cairo-cuda-memory-phase phase=constraint_evaluation_end elapsed_ns=47134612861
+cairo-cuda-memory-phase phase=composition_commit_end elapsed_ns=47134795218
+cairo-cuda-memory-phase phase=constraint_stage_end elapsed_ns=47134865881
+cairo-cuda-memory-phase phase=oods_end elapsed_ns=50197882770
+cairo-cuda-memory-phase phase=quotient_end elapsed_ns=52723703294
+cairo-cuda-memory-phase phase=fri_commit_end elapsed_ns=58300004548
+cairo-cuda-memory-phase phase=decommit_end elapsed_ns=66431874455
