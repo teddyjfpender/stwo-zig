@@ -86,6 +86,58 @@ const bytes = try verifier_proof.serialize(allocator);
 | `cairo_verifier_proof` | `prepare_circuit_proof_for_cairo_verifier`: a root proof as the Cairo circuit verifier's felt stream (`root.proof`) |
 | `verify` | `verify_circuit` on a `CircuitSerialize` proof and a `wire.verify_request` request: decode, convert, build the verification circuit with values; a `Verdict` (accepted with the output digest, or the rejecting stage) |
 | `recursion` | Orchestration (design §7): `leaf_wrap` (`prove_leaf` steps 4-8), `topology_key` (design §3.5), `topology_cache` (the byte-bounded per-topology LRU), `canonical` (`CanonicalCircuit::build`), `fold` (`LayerEntry`, `reduce_pair`, `reduce_root_single`), `tree` (`fold_entries`, `foldLeaves`, `write_root_outputs`) and `circuit_params` (registry generation) |
+| `repeated_step_chip` | S31's four-lane indexed repeated-step AIR (`out = in² + c`), linked to the circuit by LogUp in the same proof |
+| `private_boundary_bridge` | S31's private four-lane circuit/chip boundary: chip endpoints joined to private Gate wires in one LogUp closure |
+| `private_pair_boundary` | Checked two-call plan: source-owned repeated-address Gate counts, tagged seven-field tuples, exact five-component layout, closure oracle, and transcript order guard. |
+| `tagged_pair_chip` | Two-call affine-square chip AIR with a component-constant call ID in its seven-field LogUp tuple. |
+| `tagged_pair_bridge` | Bridge AIR for each pair call: eight cyclic row equalities and five mixed-arity LogUp constraints. |
+| `direct_pair_arithmetic` | Unexported engine experiment that proves and verifies the five-component pair in memory. S31 source-derived plan and manifest reconstruction, a sealed proof envelope, and byte-level admission remain before release. |
+| `sparse_arithmetic` | S31 sparse-v3 prover: QM31, M31-to-u32 and range-16 circuit AIRs, optionally with the step chip, in one transcript |
+| `sparse_wide` | S31 sparse-wide-v5 prover: Eq, QM31, M31-to-u32 and range-16 circuit AIRs |
+| `direct_arithmetic` | S31 direct-M31 v4 prover: one QM31 circuit component and an optional step chip |
+
+### Two-call private boundary staging
+
+`private_pair_boundary.Plan` has exactly two calls with IDs 0 and 1. Each
+call names four input and four output circuit addresses, a power-of-two round
+count, and a field constant. A shared address is allowed: `PairBoundary`
+raises the authenticated preprocessed Gate multiplicity once per appearance.
+The plan checks that each named address is a private, uniquely produced wire.
+`Plan.preprocessed` constructs the actual direct circuit columns with those
+counts. The existing direct prover rejects that circuit with
+`UnsupportedPairBoundaryProfile` so it cannot silently use the one-call
+protocol.
+
+The planned pair roster is exactly circuit, chip 0, chip 1, bridge 0, bridge 1.
+It has 46 main and 64 interaction columns. With `C` circuit constraints, the
+five component counts are `C, 6, 6, 13, 13`, at offsets
+`0, C, C+6, C+12, C+25`; total `C+38`. Chip relation tuples are
+`(relation, call_id, step, lane0, lane1, lane2, lane3)`. The existing Gate
+relation keeps its six-field tuple `(relation, address, value, 0, 0, 0)`.
+Both arities use the same `(z, alpha)` challenges and their fractions join
+the same LogUp sum. The prover draws this pair once after all main columns
+are committed, mixes the five claimed sums, then commits the interaction
+columns. `effectiveDigest` binds the true source
+digest and generated manifest digest with a pair-specific domain before the
+preprocessed commitment. The pair profile tag is `0x5333315041495201`;
+`S31NAT8P` and `S31NAT8C` are reserved for its eventual proof envelopes.
+
+The `Plan.extract`, `checkTraceRows`, `closure`, roster, and transcript-order
+functions are deterministic admission and test oracles. **They do not by
+themselves make a pair proof.** Tagged chip and bridge AIR implementations have
+row and quotient differential tests. The one-call proof format and verifier
+are unchanged.
+
+An unexported `direct_pair_arithmetic.zig` experiment now constructs and
+verifies an in-memory five-component proof using one lookup challenge and five
+claimed sums. Its native test covers two different constants and round counts,
+coherent repeated endpoint addresses, and public outputs depending on both
+calls. It also mutates the source and manifest digests, plan, public statement,
+sums, nonce, and commitment roots. This engine test accepts a caller-provided
+typed manifest digest and a caller-provided source plan; it does not reconstruct
+either from S31 source. There is no versioned pair proof envelope or released
+S31 pair compiler/verifier path. Those source correspondence and package checks
+remain required before the pair profile is enabled.
 
 `prove` takes an optional observer (`onStep`, `onLookupElements`,
 `onTraces`) for conformance tests and an `Options` value whose fields change

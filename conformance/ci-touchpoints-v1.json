@@ -560,6 +560,7 @@
           "zig",
           "build",
           "test-cairo-frontend",
+          "test-cairo-resident-gate-oods",
           "test-cairo-cpu-air",
           "test-cairo-cpu-proof",
           "-Doptimize=ReleaseFast",
@@ -1446,6 +1447,33 @@
         "script_contracts",
         "build_graph"
       ]
+    },
+    {
+      "prefixes": [
+        "vectors/reports"
+      ],
+      "lanes": [
+        "script_contracts",
+        "native_oracle"
+      ]
+    },
+    {
+      "prefixes": [
+        "vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1"
+      ],
+      "lanes": [
+        "riscv_frontend"
+      ]
+    },
+    {
+      "prefixes": [
+        "vectors/starknet",
+        "bench/site",
+        "SECURITY.md"
+      ],
+      "lanes": [
+        "script_contracts"
+      ]
     }
   ],
   "documentation_prefixes": [
@@ -1454,7 +1482,14 @@
     "LICENSE",
     "docs",
     "archive",
-    "conformance"
+    "conformance",
+    "design/README.md",
+    "design/riscv-proving-stack",
+    "design/starknet-proving-pipeline",
+    "editors",
+    "bench/README.md",
+    ".mailmap",
+    "vectors/.cairo_bench"
   ],
   "externally_validated_prefixes": [
     "autoresearch"

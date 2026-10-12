@@ -571,7 +571,7 @@ def validate_protocol_value(root: Path, protocol: dict[str, Any]) -> None:
     _expect_exact(protocol["schema_version"], SCHEMA_VERSION, "schema version")
     _expect_exact(protocol["status"], STATUS, "status")
     _expect_exact(protocol["repository"], REPOSITORY, "repository")
-    _expect_exact(protocol["documentation"], "design/typed-air/PERFORMANCE.md", "documentation")
+    _expect_exact(protocol["documentation"], "design/typed-air/performance/PERFORMANCE.md", "documentation")
     _owned_file(root, protocol["documentation"], "documentation")
 
     for section, fields in SECTION_FIELDS.items():

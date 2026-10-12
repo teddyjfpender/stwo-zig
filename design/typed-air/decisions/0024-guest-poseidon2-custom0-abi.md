@@ -373,7 +373,7 @@ not pay per-instruction dynamic capability dispatch. The call hot path performs
 no string lookup, global registry lookup, per-call timer, or unbounded thread
 creation. After capacity is available, recording a call is allocation free.
 
-C-013 admission follows [PERFORMANCE.md](../PERFORMANCE.md) and includes
+C-013 admission follows [PERFORMANCE.md](../performance/PERFORMANCE.md) and includes
 verified proofs for:
 
 - the exact native software implementation and the precompile at identical

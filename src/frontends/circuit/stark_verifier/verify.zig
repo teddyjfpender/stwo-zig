@@ -22,6 +22,16 @@
 //! | `evaluateComponent(i, ctx, data, acc) !void` | `CircuitEval::evaluate` |
 //! | `sortingRequired() bool` | `sorting_required` |
 //! | `verifyClaim(ctx, []const Var, *const ShiftedRelationUses) !void` | `verify_claim` |
+//!
+//! Statements with a profile-specific transcript may additionally implement
+//! `mixProofPrelude`, `mixClaims`, `drawInteractionElements`, and
+//! `mixClaimedSums`. The defaults retain the upstream generic-circuit order.
+//! A joined AIR can use the hooks to draw and retain its second lookup pair
+//! before composition evaluation, while still returning the Gate pair used
+//! by the common circuit components.
+//! Joined AIRs with trace-only components or multiple claims per component
+//! also provide `verifyLogupSums` and `computeCompositionPolynomial`. Those
+//! hooks own the exact closure equations and ordered constraint accumulation.
 
 const std = @import("std");
 const core = @import("stwo_core");
@@ -158,13 +168,26 @@ pub fn verify(
     stages: anytype,
 ) !void {
     try proof.validateStructure(config);
+    // Extra OODS openings require a statement-specific accumulator that
+    // consumes every shifted value in the verifier-owned mask order.
+    if (config.shape().nTraceOodsValues() != config.n_trace_columns and
+        !@hasDecl(@TypeOf(statement.*), "computeCompositionPolynomial"))
+        return error.MaskedTraceRequiresConstraintEvaluator;
     // The largest canonical coset, and so evaluation domain, is 2^30.
     if (config.logEvaluationDomainSize() > 30) return error.EvaluationDomainTooLarge;
     const log_trace_size = config.log_trace_size;
     var channel = channel_mod.Channel.init(V, ctx);
-
-    try channel.mixQm31s(V, ctx, &.{proof.channel_salt});
-    try fri.mixFriConfig(V, ctx, &channel, config.fri);
+    // Profile-specific native provers mix their domain and source identity
+    // before the channel salt. A statement that supplies this hook must
+    // reproduce that exact prefix inside the verifier circuit.
+    if (comptime @hasDecl(@TypeOf(statement.*), "mixProofPrelude")) {
+        try statement.mixProofPrelude(ctx, &channel, proof.channel_salt, config.fri);
+    } else {
+        if (comptime @hasDecl(@TypeOf(statement.*), "mixProfile"))
+            try statement.mixProfile(ctx, &channel);
+        try channel.mixQm31s(V, ctx, &.{proof.channel_salt});
+        try fri.mixFriConfig(V, ctx, &channel, config.fri);
+    }
     try stages.mark(&ctx.circuit, .{ .name = "channel_salt_and_fri_config" });
 
     const preprocessed_root = try statement.preprocessedRoot(ctx);
@@ -177,21 +200,36 @@ pub fn verify(
     const component_sizes_bits = try builder.extract_bits.extractBits(V, ctx, component_sizes, @intCast(log_trace_size + 1));
     try stages.mark(&ctx.circuit, .{ .name = "component_sizes" });
 
-    for (try statement.claimsToMix(ctx)) |claim| try channel.mixU32s(V, ctx, claim);
+    if (comptime @hasDecl(@TypeOf(statement.*), "mixClaims")) {
+        try statement.mixClaims(ctx, &channel);
+    } else {
+        for (try statement.claimsToMix(ctx)) |claim| try channel.mixU32s(V, ctx, claim);
+    }
     try stages.mark(&ctx.circuit, .{ .name = "claims_mixed" });
 
     try channel.mixCommitment(V, ctx, proof.trace_root);
     try channel.pow(V, ctx, config.n_interaction_pow_bits, proof.interaction_pow_nonce);
     try stages.mark(&ctx.circuit, .{ .name = "trace_root_and_interaction_pow" });
 
-    const interaction_elements = try channel.drawTwoQm31s(V, ctx);
+    const interaction_elements = if (comptime @hasDecl(@TypeOf(statement.*), "drawInteractionElements"))
+        try statement.drawInteractionElements(ctx, &channel)
+    else
+        try channel.drawTwoQm31s(V, ctx);
     try stages.mark(&ctx.circuit, .{ .name = "interaction_elements" });
 
     const public_logup_sum = try statement.publicLogupSum(ctx, interaction_elements);
-    try validateLogupSum(V, ctx, public_logup_sum, proof.claimed_sums);
+    if (comptime @hasDecl(@TypeOf(statement.*), "verifyLogupSums")) {
+        try statement.verifyLogupSums(ctx, public_logup_sum, proof.claimed_sums);
+    } else {
+        try validateLogupSum(V, ctx, public_logup_sum, proof.claimed_sums);
+    }
     try stages.mark(&ctx.circuit, .{ .name = "logup_sum" });
 
-    try channel.mixQm31s(V, ctx, proof.claimed_sums);
+    if (comptime @hasDecl(@TypeOf(statement.*), "mixClaimedSums")) {
+        try statement.mixClaimedSums(ctx, &channel, proof.claimed_sums);
+    } else {
+        try channel.mixQm31s(V, ctx, proof.claimed_sums);
+    }
     try channel.mixCommitment(V, ctx, proof.interaction_root);
     const composition_polynomial_coeff = try channel.drawQm31(V, ctx);
     try channel.mixCommitment(V, ctx, proof.composition_polynomial_root);
@@ -207,7 +245,7 @@ pub fn verify(
     try mixOodsValues(V, ctx, &channel, proof);
     try stages.mark(&ctx.circuit, .{ .name = "oods_values_mixed" });
 
-    const composition_eval = try constraint_eval.computeCompositionPolynomial(V, ctx, config.component_shapes, statement, .{
+    const composition_args: constraint_eval.EvaluateArgs = .{
         .preprocessed_columns = proof.preprocessed_columns_at_oods,
         .trace = proof.trace_at_oods,
         .interaction = proof.interaction_at_oods,
@@ -218,14 +256,19 @@ pub fn verify(
         .claimed_sums = proof.claimed_sums,
         .component_sizes = unpacked_component_sizes,
         .n_instances_bits = component_sizes_bits,
-    });
+    };
+    const composition_eval = if (comptime @hasDecl(@TypeOf(statement.*), "computeCompositionPolynomial"))
+        try statement.computeCompositionPolynomial(ctx, config.component_shapes, composition_args)
+    else
+        try constraint_eval.computeCompositionPolynomial(V, ctx, config.component_shapes, statement, composition_args);
     try stages.mark(&ctx.circuit, .{ .name = "composition_polynomial" });
     const expected_composition_eval = try oods.extractExpectedCompositionEval(
         V,
         ctx,
-        &proof.composition_eval_at_oods,
+        proof.composition_eval_at_oods,
         oods_point,
-        log_trace_size + COMPOSITION_LOG_SPLIT,
+        log_trace_size + config.composition_log_split,
+        config.composition_log_split,
     );
     try ctx.eq(composition_eval, expected_composition_eval);
     try stages.mark(&ctx.circuit, .{ .name = "composition_check" });
@@ -282,7 +325,7 @@ fn mixOodsValues(comptime V: type, ctx: *Context(V), channel: *channel_mod.Chann
         if (column.at_prev) |at_prev| try values.append(ctx.scratch(), at_prev);
         try values.append(ctx.scratch(), column.at_oods);
     }
-    try values.appendSlice(ctx.scratch(), &proof.composition_eval_at_oods);
+    try values.appendSlice(ctx.scratch(), proof.composition_eval_at_oods);
     try channel.mixQm31s(V, ctx, values.items);
 }
 

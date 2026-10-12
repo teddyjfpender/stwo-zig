@@ -195,6 +195,27 @@ test "borrowed proof capture matches owned verification and outlives poisoned or
     try std.testing.expectEqualDeep(owned, borrowed);
 }
 
+test "borrowed PCS rejects a changed OODS sample against the committed constant column" {
+    const a = std.testing.allocator;
+    var proof = try fixture(a);
+    defer proof.deinit(a);
+    var verifier = try Verifier.init(a, proof.config);
+    defer verifier.deinit(a);
+    var setup = Suite.Channel{};
+    try verifier.commit(a, proof.commitments.items[0], &.{1}, &setup);
+    try assertSuccess(a, &verifier, &proof);
+
+    proof.sampled_values.items[0][0][0] = Q.fromBase(M.fromCanonical(8));
+    var changed_channel = channelFor(&proof);
+    var capture: Capture = undefined;
+    if (verifier.verifyValuesWithBorrowedProofCapture(
+        a, try points(a), &proof, &changed_channel, challenges, &capture,
+    )) |_| {
+        capture.deinit(a);
+        return error.AcceptedChangedOodsSample;
+    } else |_| {}
+}
+
 fn foldedScratch(a: std.mem.Allocator) !void {
     var values: [8]Q = @splat(Q.zero());
     var subsets = [_][]Q{ &values, &values };

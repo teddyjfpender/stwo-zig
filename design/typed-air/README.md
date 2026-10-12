@@ -44,19 +44,19 @@ correctness merely because its witness generator agrees with it.
 
 ## Reading order
 
-1. [CHARTER.md](CHARTER.md) — problem, outcome, scope, and success criteria.
-2. [ORIGINAL-SCOPE.md](ORIGINAL-SCOPE.md) — complete proposal-to-production delivery map.
-3. [CANON.md](CANON.md) — taste, style, and engineering laws.
-4. [ARCHITECTURE.md](ARCHITECTURE.md) — current seams and target system.
-5. [IR.md](IR.md) — typed intermediate representation and lowering contract.
-6. [AUTHORING.md](AUTHORING.md) — executable public surface and lifecycle.
-7. [PRECOMPILES.md](PRECOMPILES.md) — component ABI and parallel proving model.
-8. [SOUNDNESS.md](SOUNDNESS.md) — threat model and preserved proof obligations.
-9. [IMPLEMENTATION.md](IMPLEMENTATION.md) — staged delivery and first pull requests.
-10. [TASKS.md](TASKS.md) — dependency-ordered executable work.
-11. [VALIDATION.md](VALIDATION.md) — test, formal, and release evidence.
-12. [PERFORMANCE.md](PERFORMANCE.md) — measurement and optimization discipline.
-13. [PROGRESS.md](PROGRESS.md) — current state, next actions, and chronological log.
+1. [CHARTER.md](project/CHARTER.md) — problem, outcome, scope, and success criteria.
+2. [ORIGINAL-SCOPE.md](project/ORIGINAL-SCOPE.md) — complete proposal-to-production delivery map.
+3. [CANON.md](architecture/CANON.md) — taste, style, and engineering laws.
+4. [ARCHITECTURE.md](architecture/ARCHITECTURE.md) — current seams and target system.
+5. [IR.md](architecture/IR.md) — typed intermediate representation and lowering contract.
+6. [AUTHORING.md](guides/AUTHORING.md) — executable public surface and lifecycle.
+7. [PRECOMPILES.md](architecture/PRECOMPILES.md) — component ABI and parallel proving model.
+8. [SOUNDNESS.md](architecture/SOUNDNESS.md) — threat model and preserved proof obligations.
+9. [IMPLEMENTATION.md](project/IMPLEMENTATION.md) — staged delivery and first pull requests.
+10. [TASKS.md](project/TASKS.md) — dependency-ordered executable work.
+11. [VALIDATION.md](guides/VALIDATION.md) — test, formal, and release evidence.
+12. [PERFORMANCE.md](performance/PERFORMANCE.md) — measurement and optimization discipline.
+13. [PROGRESS.md](project/PROGRESS.md) — current state, next actions, and chronological log.
 14. [decisions/README.md](decisions/README.md) — accepted and proposed decisions.
 15. [notes/README.md](notes/README.md) — dated research and implementation notes.
 16. [artifacts/README.md](artifacts/README.md) — reviewed deterministic evidence.
@@ -72,7 +72,7 @@ correctness merely because its witness generator agrees with it.
 5. Performance claims require verified proofs and reproducible measurements.
 6. Every changed correctness claim is reconciled with the soundness ledger.
 7. Material design decisions receive an ADR before code makes them expensive.
-8. [PROGRESS.md](PROGRESS.md) is updated in the same change that advances a
+8. [PROGRESS.md](project/PROGRESS.md) is updated in the same change that advances a
    milestone; it is not reconstructed later from memory.
 
 ## Current starting point
@@ -93,7 +93,7 @@ The repository already supplies much of the substrate:
 The isolated kernel now owns typed values, logical degree, hints and proof
 paths, ordered provisional effects, static calls, relation schemas, canonical
 manifests, semantic identity, and stable diagnostics. Its complete executable
-surface is documented in [AUTHORING.md](AUTHORING.md). A lossless shadow bridge
+surface is documented in [AUTHORING.md](guides/AUTHORING.md). A lossless shadow bridge
 now imports and differentially replays every production family while preserving
 independently computed degree. The complete production program boundary also
 preserves ordered constraints, selectors, lookup metadata, and batching. A

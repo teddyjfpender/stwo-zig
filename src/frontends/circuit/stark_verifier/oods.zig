@@ -64,15 +64,30 @@ fn periodGenerators(comptime V: type, ctx: *Context(V), trace_gen: core.circle.C
 pub fn extractExpectedCompositionEval(
     comptime V: type,
     ctx: *Context(V),
-    composition_eval_at_oods: *const [N_COMPOSITION_COLUMNS]Var,
+    composition_eval_at_oods: []const Var,
     oods_point: Point(Var),
     max_log_degree_bound: usize,
-) Error!Var {
-    const left = try ops.fromPartialEvals(V, ctx, composition_eval_at_oods[0..4].*);
-    const right = try ops.fromPartialEvals(V, ctx, composition_eval_at_oods[4..8].*);
-    var x = oods_point.x;
-    for (0..max_log_degree_bound - 2) |_| x = try circle.doubleX(V, ctx, x);
-    return ctx.add(left, try ctx.mul(x, right));
+    composition_log_split: u32,
+) (Error || error{InvalidCompositionShape})!Var {
+    const count = core.verifier_types.compositionChunkCount(composition_log_split) orelse return error.InvalidCompositionShape;
+    if (composition_eval_at_oods.len != count * core.fields.qm31.SECURE_EXTENSION_DEGREE or
+        max_log_degree_bound <= composition_log_split) return error.InvalidCompositionShape;
+    var chunks: [@as(usize, 1) << core.verifier_types.MAX_COMPOSITION_LOG_SPLIT]Var = undefined;
+    for (chunks[0..count], 0..) |*chunk, i| {
+        chunk.* = try ops.fromPartialEvals(V, ctx, composition_eval_at_oods[4 * i ..][0..4].*);
+    }
+    var active = count;
+    var parent_log = max_log_degree_bound - composition_log_split + 1;
+    while (active > 1) {
+        var factor = oods_point.x;
+        for (0..parent_log - 2) |_| factor = try circle.doubleX(V, ctx, factor);
+        for (0..active / 2) |i| {
+            chunks[i] = try ctx.add(chunks[2 * i], try ctx.mul(factor, chunks[2 * i + 1]));
+        }
+        active /= 2;
+        parent_log += 1;
+    }
+    return chunks[0];
 }
 
 /// `OodsResponse`: column `column_idx` of tree `trace_idx` claims `value`
@@ -85,7 +100,8 @@ pub const OodsResponse = struct {
 };
 
 /// `collect_oods_responses`, in the stwo prover's order: every preprocessed
-/// and trace column at the OODS point; each interaction column at the OODS
+/// column at the OODS point, every trace-column mask point in verifier-owned
+/// order, then each interaction column at the OODS
 /// point, a cumulative-sum column preceded by its periodicity and
 /// previous-row samples; then the composition columns.
 pub fn collectOodsResponses(
@@ -107,21 +123,42 @@ pub fn collectOodsResponses(
     };
     const oods_point_at_prev_row = try circle.addPoints(V, ctx, oods_point, neg_trace_gen);
 
+    // Reuse the exact same point wires for columns sharing an offset. The
+    // quotient groups responses by point-wire identity, not coordinates.
+    var shifted_points: std.AutoArrayHashMapUnmanaged(i8, Point(Var)) = .empty;
+    try shifted_points.put(ctx.scratch(), 0, oods_point);
+    try shifted_points.put(ctx.scratch(), -1, oods_point_at_prev_row);
+    const mask_step = core.poly.circle.CanonicCoset.new(@intCast(config.log_trace_size)).step();
+
     var n_cumulative: usize = 0;
     for (config.cumulative_sum_columns) |is_cumulative_sum| n_cumulative += @intFromBool(is_cumulative_sum);
     const responses = try ctx.scratch().alloc(
         OodsResponse,
-        config.n_preprocessed_columns + config.n_trace_columns + config.n_interaction_columns + 2 * n_cumulative + N_COMPOSITION_COLUMNS,
+        config.n_preprocessed_columns + config.shape().nTraceOodsValues() + config.n_interaction_columns + 2 * n_cumulative + config.shape().nCompositionColumns(),
     );
     var at: usize = 0;
     for (proof.preprocessed_columns_at_oods, 0..) |value, column_idx| {
         responses[at] = .{ .trace_idx = 0, .column_idx = column_idx, .pt = oods_point, .value = value };
         at += 1;
     }
-    for (proof.trace_at_oods, 0..) |value, column_idx| {
-        responses[at] = .{ .trace_idx = 1, .column_idx = column_idx, .pt = oods_point, .value = value };
-        at += 1;
+    var trace_value_index: usize = 0;
+    for (0..config.n_trace_columns) |column_idx| {
+        for (config.shape().columnMaskOffsets(1, column_idx)) |offset| {
+            const point = shifted_points.get(offset) orelse blk: {
+                const delta = mask_step.mulSigned(@as(isize, offset));
+                const shifted = try circle.addPoints(V, ctx, oods_point, .{
+                    .x = try ctx.constant(QM31.fromBase(delta.x)),
+                    .y = try ctx.constant(QM31.fromBase(delta.y)),
+                });
+                try shifted_points.put(ctx.scratch(), offset, shifted);
+                break :blk shifted;
+            };
+            responses[at] = .{ .trace_idx = 1, .column_idx = column_idx, .pt = point, .value = proof.trace_at_oods[trace_value_index] };
+            at += 1;
+            trace_value_index += 1;
+        }
     }
+    std.debug.assert(trace_value_index == proof.trace_at_oods.len);
     var column_idx: usize = 0;
     for (config.component_shapes, periodicity_points) |shape, periodicity_point| {
         for (0..shape.interaction_columns) |_| {

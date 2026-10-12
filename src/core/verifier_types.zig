@@ -49,6 +49,7 @@ pub const VerificationError = error{
     QueryPositionOutOfRange,
     ColumnIndexOutOfBounds,
     DivisionByZero,
+    InvalidOodsSeed,
     DegenerateLine,
     NonCanonical,
     NonUniqueXCoordinates,

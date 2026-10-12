@@ -13,9 +13,17 @@ SPEC = importlib.util.spec_from_file_location("configure_closure", SCRIPT)
 MODULE = importlib.util.module_from_spec(SPEC)
 assert SPEC.loader is not None
 SPEC.loader.exec_module(MODULE)
+ROOT = SCRIPT.parents[1]
 
 
 class ConfigureClosureTests(unittest.TestCase):
+    def test_cairo_cuda_scope_matches_catalog_without_cuda_toolchain(self) -> None:
+        products, scopes, _ = MODULE.read_product_catalog(ROOT)
+        configured = MODULE.check_scope(ROOT, "cairo_cuda", scopes["cairo_cuda"], products, scopes)
+        self.assertIn("test-cairo-cuda-relation-local", configured["steps"])
+        self.assertIn("benchmark-circuit-cuda-resident", configured["steps"])
+        self.assertIn("circuit-recursion-cuda-resident", configured["steps"])
+
     def test_configure_only_skips_install_exercise_and_default_retains_it(self) -> None:
         for configure_only in (True, False):
             for platform, explicit_receipt in product(("linux", "darwin"), (True, False)):

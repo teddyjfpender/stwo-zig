@@ -23,7 +23,7 @@ The local completion counts below are a research-snapshot observation, not a liv
 authority. Later on 2026-08-12 the branch reached all 34 logical rows through authenticated
 typed AIR and the generic adapter plus two authenticated shared providers: exact 36/36 AIR
 closure, with 3/36 real proof-byte gates. The normative live counts remain in
-[`../PROGRESS.md`](../PROGRESS.md) and the exact roster in
+[`../PROGRESS.md`](../project/PROGRESS.md) and the exact roster in
 [`2026-08-12-r012-universal-recursion-component-map.md`](2026-08-12-r012-universal-recursion-component-map.md).
 The A2/A3 shape has since entered implementation as an allocation-free native pair-node
 shadow: fixed ordered children, session/challenge/full-authority rederivation, VK injection
@@ -355,6 +355,6 @@ Local files read (working tree, `feat/typed-air-precompiles`):
 - Precompiles/hints: `src/frontends/riscv/air/guest_precompile/` (manifest, statement,
   interaction, proof_admission), `isa/custom0.zig`, `isa/execution_profile.zig`,
   `host/mod.zig`, `host/runtime.zig`, `host/prove_block.zig`
-- Design docs: `design/typed-air/PROGRESS.md`, `TASKS.md`, `PRECOMPILES.md`,
+- Design docs: `design/typed-air/project/PROGRESS.md`, `TASKS.md`, `PRECOMPILES.md`,
   `PERFORMANCE.md`, `decisions/0006`, `0025`, `0030`, `0031`, `0033`, `0035`,
   `0036` (untracked), `aggregation/` (R-007 reference)

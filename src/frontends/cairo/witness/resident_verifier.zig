@@ -52,6 +52,7 @@ const freeOffsetLists = geometry.freeOffsetLists;
 const pointsFromOffsets = geometry.pointsFromOffsets;
 const freePointTree = geometry.freePointTree;
 const offsetIndex = geometry.offsetIndex;
+const gate_oods_vectors = @import("gate_oods_vectors.zig");
 
 /// Replays the direct Cairo transcript and runs the generic AIR/PCS/FRI
 /// verifier. Success is the only state a caller may expose as `verified`.
@@ -763,6 +764,138 @@ test "resident verifier evaluates secure OODS trace samples in QM31" {
         &accumulator,
     );
     try std.testing.expect(accumulator.finalize().eql(QM31.fromPartialEvals(values)));
+}
+
+test "selected Gate native OODS bytecode matches independent QM31 vectors" {
+    const allocator = std.testing.allocator;
+    const bytes = try std.fs.cwd().readFileAlloc(
+        allocator,
+        "vectors/circuit/official/circuit_air.air_programs_v1.bin",
+        1024 * 1024,
+    );
+    defer allocator.free(bytes);
+    var digest: [32]u8 = undefined;
+    std.crypto.hash.sha2.Sha256.hash(bytes, &digest, .{});
+    const digest_hex = std.fmt.bytesToHex(digest, .lower);
+    try std.testing.expectEqualStrings(gate_oods_vectors.bundle_sha256, &digest_hex);
+
+    var bundle = try composition_bundle.Bundle.parse(allocator, bytes);
+    defer bundle.deinit();
+    try std.testing.expect(bundle.components.len > 1);
+    var gate = bundle.components[1]; // Borrowed fields; only the direct-Gate row bound changes.
+    try std.testing.expectEqualStrings("qm31_ops", gate.label);
+    try std.testing.expectEqual(@as(u32, 11), gate.n_constraints);
+    try std.testing.expectEqual(@as(u32, 1), gate.random_coefficient_offset);
+    try std.testing.expectEqual(@as(usize, 1), gate.parts.len);
+    try std.testing.expectEqual(@as(usize, 7), gate.ext_sources.len);
+    try std.testing.expectEqual(@as(usize, 11), gate.parts[0].program.constraint_roots.len);
+    const fixed_indices = [_]u32{ 26, 28, 29, 27, 30, 31, 32, 33 };
+    try std.testing.expectEqualSlices(u32, &fixed_indices, gate.preprocessed_indices);
+    gate.trace_log_size = 9; // Direct S31 Gate rebind: claimed sum is divided by 512.
+
+    const base_offsets = try componentOffsets(allocator, gate, 1);
+    defer freeOffsetLists(allocator, base_offsets);
+    const interaction_offsets = try componentOffsets(allocator, gate, 2);
+    defer freeOffsetLists(allocator, interaction_offsets);
+
+    for (gate_oods_vectors.cases) |fixture| {
+        var fixed_storage: [8][1]QM31 = undefined;
+        var main_storage: [12][1]QM31 = undefined;
+        var interaction_storage: [8][2]QM31 = undefined;
+        var empty = [_]QM31{};
+        var fixed_columns: [34][]QM31 = undefined;
+        var main_columns: [16][]QM31 = undefined;
+        var interaction_columns: [12][]QM31 = undefined;
+        for (&fixed_columns) |*column| column.* = empty[0..];
+        for (&main_columns) |*column| column.* = empty[0..];
+        for (&interaction_columns) |*column| column.* = empty[0..];
+        for (fixed_indices, 0..) |global, local| {
+            fixed_storage[local][0] = gateFixtureSample(fixture.seed, 0, local);
+            fixed_columns[global] = fixed_storage[local][0..];
+        }
+        for (0..12) |local| {
+            main_storage[local][0] = gateFixtureSample(fixture.seed, 1, local);
+            main_columns[4 + local] = main_storage[local][0..];
+        }
+        for (0..8) |local| {
+            interaction_storage[local][1] = gateFixtureSample(fixture.seed, 2, local);
+            if (local < 4) {
+                interaction_columns[4 + local] = interaction_storage[local][1..2];
+            } else {
+                interaction_storage[local][0] = gateFixtureSample(fixture.seed, 3, local);
+                interaction_columns[4 + local] = interaction_storage[local][0..2];
+            }
+        }
+        var mask_items = [_][][]QM31{
+            fixed_columns[0..], main_columns[0..], interaction_columns[0..],
+        };
+        const mask = air_components.MaskValues.initOwned(mask_items[0..]);
+        const runtime = RuntimeComponent{
+            .allocator = allocator,
+            .captured = &gate,
+            .preprocessed_logs = &.{},
+            .lifting_log_size = 24,
+            .lookup_alpha = gateFixtureSample(fixture.seed, 4, 0),
+            .lookup_z = gateFixtureSample(fixture.seed, 5, 0),
+            .claimed_sum = gateFixtureSample(fixture.seed, 6, 0),
+        };
+        const params = try runtime.extensionParameters();
+        defer allocator.free(params);
+        try std.testing.expectEqual(@as(usize, 7), params.len);
+        for (fixture.params, params) |expected, value| {
+            const actual = qm31Words(value);
+            try std.testing.expectEqualSlices(u32, &expected, &actual);
+        }
+
+        // A one-root borrowed view exposes each installed bytecode result. The
+        // production evaluator, trace reads, and parameter decoder still run.
+        for (fixture.roots, 0..) |expected, index| {
+            var one_root = [_]u32{gate.parts[0].program.constraint_roots[index]};
+            var narrowed = gate.parts[0].program;
+            narrowed.constraint_roots = one_root[0..];
+            var accumulator = air_accumulation.PointEvaluationAccumulator.init(QM31.one());
+            try runtime.evaluateProgram(
+                narrowed,
+                0,
+                &mask,
+                base_offsets,
+                interaction_offsets,
+                params,
+                QM31.one(),
+                &accumulator,
+            );
+            const actual = qm31Words(accumulator.finalize());
+            try std.testing.expectEqualSlices(u32, &expected, &actual);
+        }
+        // A changed previous-row opening must reach the singleton LogUp root.
+        // This is a native read control, distinct from the Python replay.
+        interaction_storage[4][0] = interaction_storage[4][0].add(QM31.one());
+        var one_root = [_]u32{gate.parts[0].program.constraint_roots[10]};
+        var narrowed = gate.parts[0].program;
+        narrowed.constraint_roots = one_root[0..];
+        var accumulator = air_accumulation.PointEvaluationAccumulator.init(QM31.one());
+        try runtime.evaluateProgram(
+            narrowed,
+            0,
+            &mask,
+            base_offsets,
+            interaction_offsets,
+            params,
+            QM31.one(),
+            &accumulator,
+        );
+        const changed = qm31Words(accumulator.finalize());
+        try std.testing.expect(!std.mem.eql(u32, &fixture.roots[10], &changed));
+    }
+}
+
+fn gateFixtureSample(seed: u32, group: u32, index: usize) QM31 {
+    var words: [4]u32 = undefined;
+    for (&words, 0..) |*word, limb| {
+        word.* = seed + group * 1009 + @as(u32, @intCast(index)) * 101 +
+            @as(u32, @intCast(limb)) * 13;
+    }
+    return QM31.fromU32Unchecked(words[0], words[1], words[2], words[3]);
 }
 
 test "global LogUp closure includes every dynamic memory segment" {

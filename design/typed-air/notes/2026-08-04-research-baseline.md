@@ -140,4 +140,4 @@ components.
 - ADR-0002: compatibility before optimization.
 - ADR-0003: one-proof precompiles before recursion.
 - ADR-0004: acyclic function graph in IR v0.
-- First implementation task: F-001 in [`TASKS.md`](../TASKS.md).
+- First implementation task: F-001 in [`TASKS.md`](../project/TASKS.md).

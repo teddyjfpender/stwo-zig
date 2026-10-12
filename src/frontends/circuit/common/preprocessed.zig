@@ -123,10 +123,41 @@ pub const Error = error{
     ColumnLengthNotPowerOfTwo,
     DuplicateColumnId,
     MultiplicityMismatch,
+    MultiplicityOutOfField,
     VariableOutOfRange,
+    DuplicateProducerAddress,
     AddressOutOfField,
     MissingOutputGate,
+    InvalidShaPrivateBoundary,
+    PublicShaPrivateBoundary,
+    DuplicateShaPrivateBoundary,
+    InvalidShaBoundaryProducer,
 } || tables.Error || tables.RowError;
+
+/// Gate lookup multiplicities are M31 values. Reject a count that would
+/// become zero or alias a smaller count after field conversion.
+pub fn addCanonicalMultiplicity(counter: *u32, increment: usize) Error!void {
+    const modulus: u32 = core.fields.m31.Modulus;
+    if (increment >= @as(usize, modulus)) return error.MultiplicityOutOfField;
+    const addend: u32 = @intCast(increment);
+    if (counter.* >= modulus - addend) return error.MultiplicityOutOfField;
+    counter.* += addend;
+}
+
+test "Gate multiplicities reject characteristic wrap" {
+    const modulus: u32 = core.fields.m31.Modulus;
+    var count: u32 = modulus - 2;
+    try addCanonicalMultiplicity(&count, 1);
+    try std.testing.expectEqual(modulus - 1, count);
+    try std.testing.expectError(error.MultiplicityOutOfField, addCanonicalMultiplicity(&count, 1));
+    try std.testing.expectEqual(modulus - 1, count);
+
+    var empty: u32 = 0;
+    try std.testing.expectError(error.MultiplicityOutOfField, addCanonicalMultiplicity(&empty, modulus));
+    try std.testing.expectEqual(@as(u32, 0), empty);
+    var invalid: u32 = std.math.maxInt(u32);
+    try std.testing.expectError(error.MultiplicityOutOfField, addCanonicalMultiplicity(&invalid, 0));
+}
 
 /// One `(id, log_size)` entry of a preprocessed-trace layout.
 pub const LayoutEntry = struct {
@@ -298,6 +329,29 @@ pub const CircuitView = struct {
             return error.VariableOutOfRange;
     }
 
+    /// Each declared circuit variable has at most one producing gate. The
+    /// permutation lowering deliberately reuses scratch addresses starting
+    /// at `n_vars` for multiset checks; those are outside this scan.
+    pub fn validateUniqueProducers(self: CircuitView, allocator: std.mem.Allocator) (Error || std.mem.Allocator.Error)!void {
+        const seen = try allocator.alloc(bool, self.n_vars);
+        defer allocator.free(seen);
+        @memset(seen, false);
+        const mark = struct {
+            fn at(flags: []bool, address: u32) Error!void {
+                if (address >= flags.len) return error.VariableOutOfRange;
+                if (flags[address]) return error.DuplicateProducerAddress;
+                flags[address] = true;
+            }
+        }.at;
+        inline for (.{ self.add, self.sub, self.mul, self.pointwise_mul }) |gates|
+            for (gates) |gate| try mark(seen, gate.out);
+        for (self.triple_xor) |gate| try mark(seen, gate.out);
+        for (self.m31_to_u32) |gate| try mark(seen, gate.out);
+        for (self.blake_g_gate) |gate|
+            for (gate.outputs()) |address| try mark(seen, address);
+        for (self.permutation_outputs) |address| try mark(seen, address);
+    }
+
     /// `Circuit::compute_multiplicities().0`: uses of every variable.
     pub fn computeUses(self: CircuitView, allocator: std.mem.Allocator) (Error || std.mem.Allocator.Error)![]u32 {
         const uses = try allocator.alloc(u32, self.n_vars);
@@ -306,7 +360,7 @@ pub const CircuitView = struct {
         const bump = struct {
             fn at(counts: []u32, variable: u32) Error!void {
                 if (variable >= counts.len) return error.VariableOutOfRange;
-                counts[variable] += 1;
+                try addCanonicalMultiplicity(&counts[variable], 1);
             }
         }.at;
         inline for (.{ self.add, self.sub, self.mul, self.pointwise_mul }) |gates| {
@@ -335,6 +389,33 @@ pub const CircuitView = struct {
     }
 };
 
+/// Fixed Gate addresses for one private 80-byte Bitcoin header and its
+/// 32-byte SHA256d digest. The caller AIR consumes one extra Gate yield at
+/// each address. The verifier derives these addresses from value-free
+/// topology; they are never chosen by the proof witness.
+pub const ShaBoundary = struct {
+    addresses: [56]u32,
+
+    pub fn validate(self: ShaBoundary, source: CircuitView) !void {
+        for (self.addresses, 0..) |address, index| {
+            if (address <= 2 or address >= source.n_vars or address >= core.fields.m31.Modulus)
+                return error.InvalidShaPrivateBoundary;
+            if (std.mem.indexOfScalar(u32, source.output, address) != null)
+                return error.PublicShaPrivateBoundary;
+            for (self.addresses[0..index]) |earlier|
+                if (earlier == address) return error.DuplicateShaPrivateBoundary;
+            var producers: u32 = 0;
+            inline for (.{ source.add, source.sub, source.mul, source.pointwise_mul }) |gates|
+                for (gates) |gate| {
+                    producers += @intFromBool(gate.out == address);
+                };
+            for (source.m31_to_u32) |gate| producers += @intFromBool(gate.out == address);
+            for (source.permutation_outputs) |out| producers += @intFromBool(out == address);
+            if (producers != 1) return error.InvalidShaBoundaryProducer;
+        }
+    }
+};
+
 /// One owned preprocessed column.
 pub const Column = struct {
     id: []const u8,
@@ -353,6 +434,7 @@ pub const PreprocessedCircuit = struct {
     first_permutation_row: usize,
     /// Public outputs, excluding the output gate of the `u` wire.
     n_outputs: usize,
+    sha_boundary: ?ShaBoundary = null,
 
     pub fn deinit(self: *PreprocessedCircuit, allocator: std.mem.Allocator) void {
         for (self.columns) |column| allocator.free(column.values);
@@ -361,13 +443,26 @@ pub const PreprocessedCircuit = struct {
 
     /// `PreprocessedCircuit::from_finalized_circuit`.
     pub fn fromCircuit(allocator: std.mem.Allocator, circuit: CircuitView) (Error || std.mem.Allocator.Error)!PreprocessedCircuit {
+        return fromCircuitOptionalBoundary(allocator, circuit, null);
+    }
+
+    pub fn fromCircuitWithShaBoundary(allocator: std.mem.Allocator, circuit: CircuitView, boundary: ShaBoundary) !PreprocessedCircuit {
+        return fromCircuitOptionalBoundary(allocator, circuit, boundary);
+    }
+
+    fn fromCircuitOptionalBoundary(allocator: std.mem.Allocator, circuit: CircuitView, boundary: ?ShaBoundary) !PreprocessedCircuit {
         if (circuit.output.len == 0) return error.MissingOutputGate;
         try circuit.validate();
+        try circuit.validateUniqueProducers(allocator);
         const multiplicities = try circuit.computeUses(allocator);
         defer allocator.free(multiplicities);
         // The permutation rows read the constant 0 once per input and output.
         if (multiplicities.len == 0) return error.VariableOutOfRange;
-        multiplicities[0] += @intCast(circuit.permutationRows());
+        try addCanonicalMultiplicity(&multiplicities[0], circuit.permutationRows());
+        if (boundary) |sha| {
+            try sha.validate(circuit);
+            for (sha.addresses) |address| try addCanonicalMultiplicity(&multiplicities[address], 1);
+        }
 
         var builder = TraceBuilder{ .allocator = allocator };
         errdefer builder.deinit();
@@ -480,6 +575,7 @@ pub const PreprocessedCircuit = struct {
             .columns = columns,
             .first_permutation_row = first_permutation_row,
             .n_outputs = circuit.output.len - 1,
+            .sha_boundary = boundary,
         };
     }
 
@@ -498,6 +594,10 @@ pub const PreprocessedCircuit = struct {
     /// circuit, read in place (`CircuitView.fromBuilder`).
     pub fn fromBuilderCircuit(allocator: std.mem.Allocator, circuit: *const builder_circuit.Circuit) (Error || std.mem.Allocator.Error)!PreprocessedCircuit {
         return fromCircuit(allocator, .fromBuilder(circuit));
+    }
+
+    pub fn fromBuilderCircuitWithShaBoundary(allocator: std.mem.Allocator, circuit: *const builder_circuit.Circuit, boundary: ShaBoundary) !PreprocessedCircuit {
+        return fromCircuitWithShaBoundary(allocator, .fromBuilder(circuit), boundary);
     }
 
     /// `PreProcessedTrace::log_sizes`.

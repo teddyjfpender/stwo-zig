@@ -153,7 +153,7 @@ fn fromProofMaterial(
     if (stark.commitments.items.len != wire.n_traces or stark.sampled_values.items.len != wire.n_traces)
         return error.InvalidCircuitProof;
     proof_config.validate() catch return error.InvalidCircuitProof;
-    if (claimed_sums_in.len != proof_config.nComponents()) return error.InvalidCircuitProof;
+    if (claimed_sums_in.len != proof_config.nClaimedSums()) return error.InvalidCircuitProof;
 
     var arena = std.heap.ArenaAllocator.init(allocator);
     errdefer arena.deinit();
@@ -167,13 +167,17 @@ fn fromProofMaterial(
     const claimed_sums = try a.dupe(QM31, claimed_sums_in);
     const interaction = stark.sampled_values.items[2];
     const interaction_at_oods = try a.alloc(wire.InteractionAtOods, interaction.len);
-    for (interaction, interaction_at_oods) |samples, *out| out.* = switch (samples.len) {
-        2 => .{ .at_oods = samples[1], .at_prev = samples[0] },
-        1 => .{ .at_oods = samples[0], .at_prev = null },
-        else => return error.InvalidCircuitProof,
-    };
+    if (interaction.len != config.nInteractionColumns()) return error.InvalidCircuitProof;
+    for (interaction, interaction_at_oods, 0..) |samples, *out, column| {
+        if (samples.len != config.columnMaskOffsets(2, column).len) return error.InvalidCircuitProof;
+        out.* = switch (samples.len) {
+            2 => .{ .at_oods = samples[1], .at_prev = samples[0] },
+            1 => .{ .at_oods = samples[0], .at_prev = null },
+            else => return error.InvalidCircuitProof,
+        };
+    }
     const composition = try singleRow(a, stark.sampled_values.items[3]);
-    if (composition.len != wire.n_composition_columns) return error.InvalidCircuitProof;
+    if (composition.len != config.nCompositionColumns()) return error.InvalidCircuitProof;
 
     var out = wire.Proof{
         .channel_salt = QM31.fromU32Unchecked(channel_salt % core.fields.m31.Modulus, 0, 0, 0),
@@ -182,9 +186,9 @@ fn fromProofMaterial(
         .composition_polynomial_root = stark.commitments.items[3],
         .claimed_sums = claimed_sums,
         .preprocessed_columns_at_oods = try singleRow(a, stark.sampled_values.items[0]),
-        .trace_at_oods = try singleRow(a, stark.sampled_values.items[1]),
+        .trace_at_oods = try flattenTraceMask(a, stark.sampled_values.items[1], config),
         .interaction_at_oods = interaction_at_oods,
-        .composition_eval_at_oods = composition[0..wire.n_composition_columns].*,
+        .composition_eval_at_oods = composition,
         .eval_domain_samples = undefined,
         .eval_domain_auth_paths = undefined,
         .pow_nonce = nonceQm31(stark.proof_of_work),
@@ -302,6 +306,23 @@ fn singleRow(a: std.mem.Allocator, samples: []const []const QM31) ![]QM31 {
     return row;
 }
 
+/// Preserve native PCS sampled-value order exactly: column first, then the
+/// mask points owned by the verification key. A missing shifted opening is a
+/// shape error, never an implicit zero or a skipped SHA equation.
+fn flattenTraceMask(a: std.mem.Allocator, samples: []const []const QM31, config: wire.ProofConfig) ![]QM31 {
+    if (samples.len != config.nTraceColumns()) return error.InvalidCircuitProof;
+    const values = try a.alloc(QM31, config.nTraceOodsValues());
+    var at: usize = 0;
+    for (samples, 0..) |column, index| {
+        const expected = config.columnMaskOffsets(1, index).len;
+        if (column.len != expected) return error.InvalidCircuitProof;
+        @memcpy(values[at..][0..expected], column);
+        at += expected;
+    }
+    std.debug.assert(at == values.len);
+    return values;
+}
+
 /// The in-circuit verifier's proof values (`Proof<QM31>` of
 /// `crates/stark_verifier`) of a CircuitSerialize proof: the same fields in
 /// the same flat layout, with every Merkle hash as eight packed `u32` words
@@ -337,7 +358,7 @@ pub fn circuitVerifierValues(
         .preprocessed_columns_at_oods = try allocator.dupe(QM31, proof.preprocessed_columns_at_oods),
         .trace_at_oods = try allocator.dupe(QM31, proof.trace_at_oods),
         .interaction_at_oods = interaction,
-        .composition_eval_at_oods = proof.composition_eval_at_oods,
+        .composition_eval_at_oods = try allocator.dupe(QM31, proof.composition_eval_at_oods),
         .eval_domain_samples = .{ .n_queries = config.nQueries(), .data = samples },
         .eval_domain_auth_paths = .{ .n_queries = config.nQueries(), .trees = eval_trees },
         .pow_nonce = proof.pow_nonce,

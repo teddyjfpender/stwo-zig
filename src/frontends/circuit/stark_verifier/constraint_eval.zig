@@ -93,7 +93,20 @@ pub fn CompositionConstraintAccumulator(comptime Ctx: type) type {
         }
 
         pub fn addToRelation(self: *Self, ctx: *Ctx, numerator: Var, element: []const Var) !void {
-            const term = try logup.logupTerm(Ctx, ctx, self.interaction_elements, numerator, element);
+            try self.addToRelationWithElements(ctx, self.interaction_elements, numerator, element);
+        }
+
+        /// Add a term from a separately challenged lookup bus. A joined AIR
+        /// component may use more than one relation challenge in the same
+        /// LogUp column; its term order still determines the pair batches.
+        pub fn addToRelationWithElements(
+            self: *Self,
+            ctx: *Ctx,
+            elements: [2]Var,
+            numerator: Var,
+            element: []const Var,
+        ) !void {
+            const term = try logup.logupTerm(Ctx, ctx, elements, numerator, element);
             try self.terms.append(self.allocator, term);
         }
 

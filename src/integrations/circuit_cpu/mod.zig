@@ -11,6 +11,33 @@ pub const cairo_verifier_proof = @import("cairo_verifier_proof.zig");
 /// `verify_circuit` on a `CircuitSerialize` proof.
 pub const verify = @import("verify.zig");
 pub const recursion = @import("recursion/mod.zig");
+pub const repeated_step_chip = @import("repeated_step_chip.zig");
+pub const private_boundary_bridge = @import("private_boundary_bridge.zig");
+pub const private_pair_boundary = @import("private_pair_boundary.zig");
+/// Source-derived V4 geometry only; no many-call proof is exported yet.
+pub const private_many_boundary = @import("private_many_boundary.zig");
+/// V4 AIR and live verifier-handle geometry, with no proof-byte admission.
+pub const direct_many_preflight = @import("direct_many_preflight.zig");
+pub const direct_many_registry = @import("direct_many_registry.zig");
+pub const direct_many_plan_admission = @import("direct_many_plan_admission.zig");
+pub const direct_mixed_admission = @import("direct_mixed_admission.zig");
+pub const direct_mixed_schedule = @import("direct_mixed_schedule.zig");
+pub const experimental_direct_mixed_arithmetic = @import("direct_mixed_arithmetic.zig");
+pub const experimental_direct_mixed_four_arithmetic = @import("direct_mixed_four_arithmetic.zig");
+pub const experimental_direct_mixed_general_arithmetic = @import("direct_mixed_general_arithmetic.zig");
+pub const direct_many_schedule = @import("direct_many_schedule.zig");
+pub const direct_many_provenance = @import("direct_many_provenance.zig");
+pub const tagged_many_chip = @import("tagged_many_chip.zig");
+pub const tagged_many_bridge = @import("tagged_many_bridge.zig");
+pub const tagged_pair_chip = @import("tagged_pair_chip.zig");
+pub const tagged_pair_bridge = @import("tagged_pair_bridge.zig");
+pub const sparse_arithmetic = @import("sparse_arithmetic.zig");
+pub const sparse_wide = @import("sparse_wide.zig");
+pub const direct_arithmetic = @import("direct_arithmetic.zig");
+/// Experimental source-bound tagged pair path; the public proving API does not expose it.
+pub const experimental_direct_pair_arithmetic = @import("direct_pair_arithmetic.zig");
+/// In-memory V4 proving experiment; wire admission remains disabled.
+pub const experimental_direct_many_arithmetic = @import("direct_many_arithmetic.zig");
 
 pub const Internal = prove.Internal;
 pub const Root = prove.Root;
@@ -27,10 +54,32 @@ test "invariant: both profiles commit with the plain Blake2s Merkle hasher" {
 }
 
 test {
+    _ = experimental_direct_pair_arithmetic;
+    _ = experimental_direct_many_arithmetic;
     _ = air;
     _ = prove;
     _ = verifier_proof;
     _ = cairo_verifier_proof;
     _ = verify;
     _ = recursion;
+    _ = repeated_step_chip;
+    _ = private_boundary_bridge;
+    _ = private_pair_boundary;
+    _ = private_many_boundary;
+    _ = direct_many_preflight;
+    _ = direct_many_registry;
+    _ = direct_many_plan_admission;
+    _ = direct_mixed_admission;
+    _ = direct_mixed_schedule;
+    _ = experimental_direct_mixed_arithmetic;
+    _ = experimental_direct_mixed_four_arithmetic;
+    _ = experimental_direct_mixed_general_arithmetic;
+    _ = direct_many_schedule;
+    _ = direct_many_provenance;
+    _ = tagged_many_chip;
+    _ = tagged_many_bridge;
+    _ = tagged_pair_chip;
+    _ = tagged_pair_bridge;
+    _ = sparse_arithmetic;
+    _ = sparse_wide;
 }

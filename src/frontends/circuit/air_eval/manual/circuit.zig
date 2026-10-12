@@ -86,6 +86,10 @@ const qm31_ops_constraints = blk: {
     };
 };
 
+/// Read-only arithmetic AIR tree export for independently checked source
+/// correspondence. The production evaluator below consumes this same array.
+pub const qm31_ops_constraint_trees = qm31_ops_constraints;
+
 /// `CircuitQm31OpsComponent::evaluate`.
 pub fn evaluateQm31Ops(interp: anytype) !void {
     const ctx = interp.ctx;

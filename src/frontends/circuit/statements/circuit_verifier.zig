@@ -38,6 +38,14 @@ pub fn CircuitPublicData(comptime V: type) type {
     };
 }
 
+/// Fixed identity for a compiled child program. The key digest commits to
+/// its source, ABI and verifier parameters; the root is independently fixed
+/// in the verifier circuit so that the proof cannot substitute another AIR.
+pub const BoundChild = struct {
+    key_digest: [32]u8,
+    preprocessed_root: [32]u8,
+};
+
 /// `build_verification_circuit`: the finalized circuit verifying `input`
 /// against `config`, `preprocessed_root` and `public_data`. `table` is the
 /// circuit-AIR evaluator table. The context owns everything; `deinit` it.
@@ -49,6 +57,19 @@ pub fn buildVerificationCircuit(
     preprocessed_root: HashValue(V),
     input: *const proof.Proof(V),
     public_data: CircuitPublicData(V),
+) !builder.Context(V) {
+    return buildVerificationCircuitBound(V, gpa, table, config, preprocessed_root, input, public_data, null);
+}
+
+pub fn buildVerificationCircuitBound(
+    comptime V: type,
+    gpa: std.mem.Allocator,
+    table: *const component_table.Table,
+    config: *const CircuitConfig,
+    preprocessed_root: HashValue(V),
+    input: *const proof.Proof(V),
+    public_data: CircuitPublicData(V),
+    bound_child: ?BoundChild,
 ) !builder.Context(V) {
     var ctx = try builder.Context(V).init(gpa, component_list.N_RESERVED);
     errdefer ctx.deinit();
@@ -63,13 +84,24 @@ pub fn buildVerificationCircuit(
     const proof_vars = try proof.guess(V, &ctx, input);
     try verify_mod.verify(V, &ctx, &proof_vars, proof_config, &statement, verify_mod.NoStages{});
 
-    // Outputs: Blake2s of the preprocessed root and the verified circuit's
-    // output digest (`u`, the last output, is checked by the logup sum).
+    // The regular output binds the root and child words. For S31, constrain
+    // the root directly and bind the entire child key with one personalized
+    // Blake2s block. The key digest is a circuit constant, never a witness.
     const statement_root = try statement.preprocessedRoot(&ctx);
     var preimage: [2 * builder.blake.digest_n_words]U32Wrapper(Var) = undefined;
-    @memcpy(preimage[0..builder.blake.digest_n_words], &statement_root.words);
+    if (bound_child) |bound| {
+        for (statement_root.words, 0..) |word, i| {
+            const expected = std.mem.readInt(u32, bound.preprocessed_root[4 * i ..][0..4], .little);
+            try ctx.eq(word.get(), (try builder.wrappers.constU32(V, &ctx, expected)).get());
+            const key_word = std.mem.readInt(u32, bound.key_digest[4 * i ..][0..4], .little);
+            preimage[i] = try builder.wrappers.constU32(V, &ctx, key_word);
+        }
+    } else @memcpy(preimage[0..builder.blake.digest_n_words], &statement_root.words);
     @memcpy(preimage[builder.blake.digest_n_words..], &statement.output_digest.words);
-    const output_hash = try builder.blake.blake2sU32s(V, &ctx, &preimage, 4 * preimage.len);
+    const output_hash = if (bound_child != null)
+        try builder.blake.blake2sU32sPersonalized(V, &ctx, &preimage, 4 * preimage.len, "S31RCV2!".*)
+    else
+        try builder.blake.blake2sU32s(V, &ctx, &preimage, 4 * preimage.len);
     var outputs: [builder.blake.digest_n_words]Var = undefined;
     for (&outputs, output_hash.words) |*out, word| out.* = word.get();
     try ctx.setOutputs(&outputs);
@@ -94,7 +126,19 @@ pub fn verifyCircuit(
     input: *const proof.Proof(QM31),
     public_data: CircuitPublicData(QM31),
 ) !builder.Context(QM31) {
-    var ctx = try buildVerificationCircuit(QM31, gpa, table, config, preprocessed_root, input, public_data);
+    return verifyCircuitBound(gpa, table, config, preprocessed_root, input, public_data, null);
+}
+
+pub fn verifyCircuitBound(
+    gpa: std.mem.Allocator,
+    table: *const component_table.Table,
+    config: *const CircuitConfig,
+    preprocessed_root: HashValue(QM31),
+    input: *const proof.Proof(QM31),
+    public_data: CircuitPublicData(QM31),
+    bound_child: ?BoundChild,
+) !builder.Context(QM31) {
+    var ctx = try buildVerificationCircuitBound(QM31, gpa, table, config, preprocessed_root, input, public_data, bound_child);
     errdefer ctx.deinit();
     if (!try ctx.isCircuitValid()) return error.VerificationFailed;
     return ctx;

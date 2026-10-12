@@ -208,6 +208,16 @@ pub fn addProducts(context: Context) void {
         "test-cairo-frontend",
         "Run focused backend-neutral Cairo conformance tests",
     ).dependOn(&run_cairo_tests.step);
+    // Test resident bytecode interpretation as the root Cairo module. A test
+    // inside a dependency module is not selected by test-cairo-frontend.
+    const gate_oods_tests = context.b.addTest(.{
+        .root_module = cairo_frontend,
+        .filters = &.{"selected Gate native OODS bytecode matches independent QM31 vectors"},
+    });
+    context.b.step(
+        "test-cairo-resident-gate-oods",
+        "Compare selected Gate resident bytecode against independent QM31 vectors",
+    ).dependOn(&context.b.addRunArtifact(gate_oods_tests).step);
 
     const cairo_cpu_air_test_root = consumer(
         context,

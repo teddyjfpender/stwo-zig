@@ -45,7 +45,7 @@ removed. All16 CSP cases passed CPU/Metal proof and policy checks over two round
 Strict quiet-host admission failed, so normative performance promotion is pending.
 
 See [the evidence index](../../vectors/reports/riscv-proving-stack-reset-20260908/native-fixed-cost-v1/README.md)
-and [runnable commands](small-recursive-benchmark.md). This accepts one native
+and [runnable commands](performance/small-recursive-benchmark.md). This accepts one native
 child and its native-assisted outer proof under unchanged development parameters;
 whole-block production and detached recursive-root milestones remain open.
 Further refactoring should follow the remaining measured cost and ownership

@@ -241,7 +241,7 @@ fn verifyImpl(
     );
 
     const oods_seed = channel.drawSecureFelt();
-    const oods_point = circle.secureFieldPointFromRandomSeed(oods_seed);
+    const oods_point = try pointFromOodsSeed(oods_seed);
 
     var sample_points = try components.maskPoints(
         allocator,
@@ -301,6 +301,24 @@ fn verifyImpl(
             channel,
         );
     }
+}
+
+/// A transcript seed can equal a root of `t² + 1`. Reject that proof before
+/// evaluating any OODS masks instead of taking the unchecked circle wrapper's
+/// `catch unreachable` path.
+fn pointFromOodsSeed(seed: QM31) VerificationError!CirclePointQM31 {
+    return circle.secureFieldPointFromRandomSeedChecked(seed) catch
+        return VerificationError.InvalidOodsSeed;
+}
+
+test "verifier: exceptional OODS seed fails closed" {
+    const square_root_of_minus_one = QM31.fromU32Unchecked(0, 1, 0, 0);
+    try std.testing.expectError(
+        VerificationError.InvalidOodsSeed,
+        pointFromOodsSeed(square_root_of_minus_one),
+    );
+    const valid = try pointFromOodsSeed(QM31.one());
+    try std.testing.expect(valid.isOnCircle());
 }
 
 fn appendCompositionMaskTree(

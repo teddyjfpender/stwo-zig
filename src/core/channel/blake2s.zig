@@ -3,6 +3,8 @@ const builtin = @import("builtin");
 const m31 = @import("../fields/m31.zig");
 const qm31 = @import("../fields/qm31.zig");
 const blake2_hash = @import("../vcs/blake2_hash.zig");
+const raw_blake2s = @import("../crypto/blake2s_backend.zig");
+const RawBlake2sHasher = raw_blake2s.Blake2sHasher;
 pub const pow_order = @import("blake2s_pow_order.zig");
 
 const M31 = m31.M31;
@@ -166,22 +168,43 @@ pub fn Blake2sChannelGeneric(comptime is_m31_output: bool) type {
         /// PoW predicate for eight candidates against a cached prefix hash.
         const NonceChecker = struct {
             prefix: Digest32,
-            n_bits: u32,
+            prepared_prefix: RawBlake2sHasher.Fixed40NoncePrefix,
+            mask: u32,
+
+            fn init(prefix: *const Digest32, n_bits: u32) NonceChecker {
+                std.debug.assert(n_bits >= 1 and n_bits <= pow_order.MAX_POW_BITS);
+                return .{
+                    .prefix = prefix.*,
+                    .prepared_prefix = RawBlake2sHasher.prepareFixed40NoncePrefix(prefix),
+                    .mask = if (n_bits == 32) std.math.maxInt(u32) else (@as(u32, 1) << @intCast(n_bits)) - 1,
+                };
+            }
 
             pub fn validMask8(self: NonceChecker, nonces: [pow_order.BATCH]u64) u8 {
-                var inputs: [pow_order.BATCH][40]u8 = undefined;
-                for (&inputs, nonces) |*input, nonce| {
-                    @memcpy(input[0..32], self.prefix[0..]);
-                    const nonce_bytes = u64ToBytesLe(nonce);
-                    @memcpy(input[32..40], nonce_bytes[0..]);
+                var first_words: [pow_order.BATCH]u32 = undefined;
+                if (raw_blake2s.getDefaultBackendSelection().effective == .scalar) {
+                    // Honor explicit scalar selection and unsupported SIMD
+                    // targets, as the former full-digest batch path did.
+                    for (nonces, &first_words) |nonce, *word| {
+                        var input: [40]u8 = undefined;
+                        @memcpy(input[0..32], &self.prefix);
+                        std.mem.writeInt(u64, input[32..40], nonce, .little);
+                        const digest = RawBlake2sHasher.hashFixedSingleBlockWithMode(40, .scalar, &input);
+                        word.* = std.mem.readInt(u32, digest[0..4], .little);
+                    }
+                } else {
+                    first_words = RawBlake2sHasher.hashFixed40NonceFirstWords8(&self.prepared_prefix, &nonces);
                 }
-                const outputs = Hasher.hashFixedSingleBlock8(40, &inputs);
-                var mask: u8 = 0;
-                for (outputs, 0..) |output, lane| {
-                    if (trailingZeroBits(output[0..16]) >= self.n_bits)
-                        mask |= @as(u8, 1) << @intCast(lane);
+                const Words = @Vector(pow_order.BATCH, u32);
+                var words: Words = first_words;
+                if (comptime is_m31_output) {
+                    // This is exactly reduceToM31's first u32 limb. Since
+                    // n_bits <= 32, no other digest word enters the predicate.
+                    const p: Words = @splat(m31.Modulus);
+                    const folded = (words & p) +% (words >> @as(Words, @splat(31)));
+                    words = @select(u32, folded >= p, folded -% p, folded);
                 }
-                return mask;
+                return @bitCast((words & @as(Words, @splat(self.mask))) == @as(Words, @splat(0)));
             }
 
             fn searchClass(
@@ -223,7 +246,8 @@ pub fn Blake2sChannelGeneric(comptime is_m31_output: bool) type {
         ) u64 {
             if (n_bits == 0) return 0;
             pow_order.requireSupportedBits(n_bits);
-            const checker = NonceChecker{ .prefix = self.computePowPrefix(n_bits), .n_bits = n_bits };
+            const prefix = self.computePowPrefix(n_bits);
+            const checker = NonceChecker.init(&prefix, n_bits);
             var best_index = std.atomic.Value(u64).init(std.math.maxInt(u64));
 
             if (n_workers <= 1) {
@@ -484,6 +508,46 @@ test "blake2s channel: parallel grinding returns the canonical lattice nonce" {
                 channel.grindWithWorkerCount(n_bits, worker_count),
             );
         }
+    }
+}
+
+test "blake2s channels: prepared first-word predicate matches the full-hash verifier" {
+    // Different transcripts, every supported bit bound, and nonce words on
+    // both sides of the canonical lattice boundary. The oracle computes all
+    // digest bytes and counts trailing zeros independently of the fast mask.
+    const nonces: [8]u64 = .{ 0, 1, 7, pow_order.LOW_MASK, pow_order.LOW_MASK + 1, 0x1_0000_0000, 0xf_0001_6fbd, std.math.maxInt(u64) };
+    inline for (.{ Blake2sChannel, Blake2sM31Channel }) |Channel| {
+        for ([_]u64{ 0, 1, 0x1111_2222_3333_4344 }) |seed| {
+            var channel = Channel{};
+            channel.mixU64(seed);
+            for (1..pow_order.MAX_POW_BITS + 1) |bits| {
+                const n_bits: u32 = @intCast(bits);
+                const prefix = channel.computePowPrefix(n_bits);
+                const checker = Channel.NonceChecker.init(&prefix, n_bits);
+                var expected: u8 = 0;
+                for (nonces, 0..) |nonce, lane| {
+                    if (channel.verifyPowNonce(n_bits, nonce)) expected |= @as(u8, 1) << @intCast(lane);
+                }
+                try std.testing.expectEqual(expected, checker.validMask8(nonces));
+            }
+        }
+    }
+}
+
+test "blake2s channels: nonce predicates honor explicit scalar hash selection" {
+    const previous = raw_blake2s.getDefaultBackendMode();
+    defer raw_blake2s.setDefaultBackendMode(previous);
+    raw_blake2s.setDefaultBackendMode(.scalar);
+    inline for (.{ Blake2sChannel, Blake2sM31Channel }) |Channel| {
+        const channel = Channel{};
+        const prefix = channel.computePowPrefix(8);
+        const checker = Channel.NonceChecker.init(&prefix, 8);
+        raw_blake2s.resetTestCompressionCounts();
+        _ = checker.validMask8(.{ 0, 1, 2, 3, 4, 5, 6, 7 });
+        const counts = raw_blake2s.testCompressionCounts();
+        try std.testing.expectEqual(@as(u64, 8), counts.scalar);
+        try std.testing.expectEqual(@as(u64, 0), counts.simd);
+        try std.testing.expectEqual(@as(u64, 0), counts.parallel_simd_4);
     }
 }
 

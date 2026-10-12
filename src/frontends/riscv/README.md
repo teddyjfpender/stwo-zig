@@ -152,7 +152,7 @@ The retained detached SegmentV2 leaf/parent tools are built by the CPU package;
 Metal supplies explicit backend-bound producers. See the
 [CPU integration](../../integrations/riscv_cpu/README.md),
 [Metal integration](../../integrations/riscv_metal/README.md), and
-[canonical recursion contract](../../../design/riscv-proving-stack/canonical-typed-recursion.md).
+[canonical recursion contract](../../../design/riscv-proving-stack/recursion/canonical-typed-recursion.md).
 This protocol proves bounded execution spans. It does not by itself establish
 all global memory, lookup, ROM, and caller relations required for a complete
 Ethereum block statement.

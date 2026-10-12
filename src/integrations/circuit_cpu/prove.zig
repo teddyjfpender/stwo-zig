@@ -34,6 +34,7 @@ const cairo = @import("stwo_cairo_frontend");
 /// tree's FFTs occupy every worker. Commitment bytes are unchanged.
 const CpuBackend = @import("stwo_cpu_backend").configured(.{ .wide_preparation = true });
 const air = @import("air.zig");
+const repeated_step_chip = @import("repeated_step_chip.zig");
 
 const M31 = core.fields.m31.M31;
 const QM31 = core.fields.qm31.QM31;
@@ -109,6 +110,17 @@ pub const Options = struct {
     /// Evaluates composition with generated native kernels; null uses the
     /// SIMD interpreter. Both produce the same field values.
     composition_executor: ?NativeExecutor = nativeCompositionExecutor(),
+    /// S31 hybrid-step-v2 extension. It adds one AIR component to the same
+    /// base, interaction, composition and FRI commitments as the circuit.
+    chip: ?ChipRequest = null,
+};
+
+pub const ChipRequest = struct {
+    source_digest: [32]u8,
+    rounds: u32,
+    constant: M31,
+    initial: [4]M31,
+    final: [4]M31,
 };
 
 const DeviceStage = cairo.proving.air.device_stage;
@@ -256,6 +268,11 @@ pub fn CircuitProofOf(comptime MC: type) type {
         /// Not a proof field: the committed log sizes the circuit hash
         /// binds, for callers that re-derive it.
         component_log_sizes: PerComponent(u32),
+        /// Present only for the hybrid-step-v2 profile. The v1 serializer
+        /// ignores this field and retains its original byte format.
+        chip_claimed_sum: ?QM31 = null,
+        /// Present only for the direct-M31 private circuit/chip bridge.
+        bridge_claimed_sum: ?QM31 = null,
 
         pub fn deinit(self: *@This()) void {
             self.stark_proof.deinit(self.allocator);
@@ -312,6 +329,8 @@ pub fn ProverOn(comptime B: type, comptime MC: type) type {
         ) !CircuitProof {
             const channel_salt: u32 = 0;
             var channel = Channel{};
+            if (options.chip) |request|
+                repeated_step_chip.mixProfile(&channel, request.source_digest, request.rounds, request.constant);
             lookup_transcript.mixChannelSalt(&channel, channel_salt);
             step(observer, .mix_channel_salt, &channel);
             pcs_config.fri_config.mixInto(&channel);
@@ -354,6 +373,36 @@ pub fn ProverOn(comptime B: type, comptime MC: type) type {
                 break :blk try witness.writeTrace(allocator, values, pp);
             };
             defer base.deinit();
+            var chip_base: ?repeated_step_chip.Base = null;
+            defer if (chip_base) |*owned| owned.deinit();
+            if (options.chip) |request| {
+                chip_base = try repeated_step_chip.writeBase(
+                    allocator,
+                    request.initial,
+                    request.constant,
+                    request.rounds,
+                );
+                if (!std.meta.eql(chip_base.?.final, request.final))
+                    return error.InvalidChipBoundary;
+                if (base.output_values.len != 8) return error.InvalidChipBoundary;
+                for (0..4) |lane| {
+                    const input_word = QM31.fromU32Unchecked(
+                        request.initial[lane].toU32() & 0xffff,
+                        request.initial[lane].toU32() >> 16,
+                        0,
+                        0,
+                    );
+                    const output_word = QM31.fromU32Unchecked(
+                        request.final[lane].toU32() & 0xffff,
+                        request.final[lane].toU32() >> 16,
+                        0,
+                        0,
+                    );
+                    if (!base.output_values[lane].eql(input_word) or
+                        !base.output_values[4 + lane].eql(output_word))
+                        return error.InvalidChipBoundary;
+                }
+            }
             // The value table's last reader was the base trace.
             if (options.release_values) |release| release.release(release.context);
             const hash = try circuit_hash.hostCircuitHash(
@@ -371,7 +420,14 @@ pub fn ProverOn(comptime B: type, comptime MC: type) type {
             {
                 var stage = try StageScope.begin(recorder, "circuit_commit_base", "commit base trace");
                 defer stage.end();
-                if (B == CpuBackend and scheme.compact_polynomial_storage)
+                if (chip_base) |*chip| {
+                    const joined = try joinedViews(allocator, base.columns, chip.columns);
+                    defer allocator.free(joined);
+                    if (B == CpuBackend and scheme.compact_polynomial_storage)
+                        try commitBorrowed(&scheme, allocator, joined, &channel)
+                    else
+                        try commit(&scheme, allocator, try dupColumns(allocator, joined), recorder, &channel);
+                } else if (B == CpuBackend and scheme.compact_polynomial_storage)
                     try commitBorrowed(&scheme, allocator, base.columns, &channel)
                 else
                     try commit(&scheme, allocator, try dupColumns(allocator, base.columns), recorder, &channel);
@@ -408,18 +464,49 @@ pub fn ProverOn(comptime B: type, comptime MC: type) type {
                 );
             };
             defer interaction.deinit();
+            var chip_interaction: ?repeated_step_chip.Interaction = null;
+            defer if (chip_interaction) |*owned| owned.deinit();
+            if (chip_base) |*chip| {
+                chip_interaction = try repeated_step_chip.writeInteraction(
+                    allocator,
+                    chip.columns,
+                    elements.z,
+                    elements.alpha,
+                );
+                const request = options.chip.?;
+                const closure = try repeated_step_chip.endpointSum(
+                    chip_interaction.?.claimed_sum,
+                    .init(elements.z, elements.alpha),
+                    request.rounds,
+                    request.initial,
+                    request.final,
+                );
+                if (!closure.isZero()) return error.InvalidChipLookupSum;
+            }
             const sum = try witness.lookupSum(base.output_values, interaction.claimed_sums, elements.z, elements.alpha);
             if (!sum.isZero()) return error.InvalidLookupSum;
             // The interaction pass was the base columns' last reader; the
             // commitment holds its own copy.
             witness.freeColumns(allocator, base.takeColumns());
             const claimed_sums = interaction.claimed_sums.toArray();
-            lookup_transcript.mixInteractionClaim(&channel, &claimed_sums);
+            if (chip_interaction) |chip|
+                lookup_transcript.mixInteractionClaim(&channel, &.{
+                    claimed_sums[0], claimed_sums[1],  claimed_sums[2],
+                    claimed_sums[3], claimed_sums[4],  claimed_sums[5],
+                    claimed_sums[6], claimed_sums[7],  claimed_sums[8],
+                    claimed_sums[9], claimed_sums[10], chip.claimed_sum,
+                })
+            else
+                lookup_transcript.mixInteractionClaim(&channel, &claimed_sums);
             step(observer, .mix_interaction_claim, &channel);
             {
                 var stage = try StageScope.begin(recorder, "circuit_commit_interaction", "commit interaction trace");
                 defer stage.end();
-                try commit(&scheme, allocator, interaction.takeColumns(), recorder, &channel);
+                if (chip_interaction) |*chip| {
+                    const joined = try joinedViews(allocator, interaction.columns, chip.columns);
+                    defer allocator.free(joined);
+                    try commit(&scheme, allocator, try dupColumns(allocator, joined), recorder, &channel);
+                } else try commit(&scheme, allocator, interaction.takeColumns(), recorder, &channel);
             }
             step(observer, .commit_interaction_trace, &channel);
             // The committed trees hold the blown-up evaluations
@@ -442,8 +529,8 @@ pub fn ProverOn(comptime B: type, comptime MC: type) type {
             // minus the blowup, one above the components' trace bound.
             const lifting_bound = pcs_config.trace_lifting_log_size - pcs_config.fri_config.log_blowup_factor + 1;
             var captured: [component_list.N_COMPONENTS]CapturedComponent = undefined;
-            var components: [component_list.N_COMPONENTS]prover.air.component_prover.ComponentProver = undefined;
-            for (bound.components, &captured, &components, claimed_sums) |*template, *runtime, *component, claimed_sum| {
+            var components: [component_list.N_COMPONENTS + 1]prover.air.component_prover.ComponentProver = undefined;
+            for (bound.components, &captured, components[0..component_list.N_COMPONENTS], claimed_sums) |*template, *runtime, *component, claimed_sum| {
                 runtime.* = CapturedComponent.init(
                     allocator,
                     template,
@@ -463,6 +550,27 @@ pub fn ProverOn(comptime B: type, comptime MC: type) type {
                 // composition is byte-identical.
                 component.pool_exclusive_domain = true;
             }
+            var chip_component: repeated_step_chip.Component = undefined;
+            var component_count: usize = component_list.N_COMPONENTS;
+            if (chip_interaction) |chip| {
+                const request = options.chip.?;
+                const main_widths = witness.traceWidths();
+                const interaction_widths = witness.interactionWidths();
+                var main_offset: usize = 0;
+                var interaction_offset: usize = 0;
+                for (main_widths) |width| main_offset += width;
+                for (interaction_widths) |width| interaction_offset += width;
+                chip_component = .{
+                    .log_size = try repeated_step_chip.validateRounds(request.rounds),
+                    .constant = request.constant,
+                    .main_offset = main_offset,
+                    .interaction_offset = interaction_offset,
+                    .elements = .init(elements.z, elements.alpha),
+                    .claimed_sum = chip.claimed_sum,
+                };
+                components[component_list.N_COMPONENTS] = chip_component.asProverComponent();
+                component_count += 1;
+            }
 
             // `STWO_CIRCUIT_STAGE_PROFILE` prints `prove_ex`'s stage tree when
             // the caller brought no recorder. Timing only; no byte changes.
@@ -480,6 +588,8 @@ pub fn ProverOn(comptime B: type, comptime MC: type) type {
             // exactly as the Cairo transaction does it.
             var stage: ?DeviceStage.Bound = null;
             defer if (stage) |*owned| owned.close();
+            if (chip_interaction != null and options.composition_device != null)
+                return error.HybridDeviceCompositionUnsupported;
             if (options.composition_device) |device| {
                 var committed_logs = try scheme.columnLogSizes(allocator);
                 defer committed_logs.deinitDeep(allocator);
@@ -499,7 +609,7 @@ pub fn ProverOn(comptime B: type, comptime MC: type) type {
             }
 
             scheme_owned = false;
-            var stark_proof = try Engine.prove(allocator, &components, &channel, scheme, .{
+            var stark_proof = try Engine.prove(allocator, components[0..component_count], &channel, scheme, .{
                 .include_all_preprocessed_columns = true,
                 .recorder = engine_recorder,
                 .composition_stage = if (stage) |*ready| ready.asStage() else null,
@@ -520,6 +630,7 @@ pub fn ProverOn(comptime B: type, comptime MC: type) type {
                 .channel_salt = channel_salt,
                 .circuit_hash = hash,
                 .component_log_sizes = base.log_sizes,
+                .chip_claimed_sum = if (chip_interaction) |chip| chip.claimed_sum else null,
             };
         }
 
@@ -628,6 +739,19 @@ fn dupColumns(
         initialized += 1;
     }
     return columns;
+}
+
+/// Concatenate descriptors only. Both source owners stay alive through the
+/// commitment; callers either duplicate the values or use a borrowed commit.
+fn joinedViews(
+    allocator: std.mem.Allocator,
+    left: []const prover.pcs.ColumnEvaluation,
+    right: []const prover.pcs.ColumnEvaluation,
+) ![]prover.pcs.ColumnEvaluation {
+    const joined = try allocator.alloc(prover.pcs.ColumnEvaluation, left.len + right.len);
+    @memcpy(joined[0..left.len], left);
+    @memcpy(joined[left.len..], right);
+    return joined;
 }
 
 /// The circuit prover on the internal (leaf and internal-fold) profile.

@@ -395,6 +395,16 @@ class PlannerContractTests(unittest.TestCase):
         self.assertTrue(any("test-cairo-cpu-product" in command for command in commands))
         self.assertTrue(any("test-cairo-cpu-oracle" in command for command in commands))
 
+    def test_cairo_resident_gate_oods_runs_on_resident_verifier_changes(self) -> None:
+        selected = self.lanes_for(
+            "src/frontends/cairo/witness/resident_verifier.zig"
+        )
+        self.assertIn("cairo_cpu", selected)
+        commands = self.policy["lanes"]["cairo_cpu"]["commands"]
+        self.assertTrue(
+            any("test-cairo-resident-gate-oods" in command for command in commands)
+        )
+
     def test_cairo_metal_requires_real_device_and_authenticated_aot(self) -> None:
         selected = self.lanes_for(
             "src/integrations/cairo_metal/prover/transaction.zig"

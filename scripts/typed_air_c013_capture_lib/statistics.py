@@ -3,7 +3,7 @@
 The A/A gate admits a host session.  The CPU reduction is deliberately a
 lane-local result: it can establish the native software/precompile crossover
 and total-work gates, but it is not the two-lane M6 promotion receipt required
-by :mod:`design/typed-air/PERFORMANCE.md`.
+by :mod:`design/typed-air/performance/PERFORMANCE.md`.
 """
 
 from __future__ import annotations

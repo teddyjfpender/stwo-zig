@@ -10,7 +10,7 @@ milestones M5 through M9.
 - [`m7-composition-checkpoint-2026-08-09.md`](m7-composition-checkpoint-2026-08-09.md)
   records a non-promotional development comparison and proof-identity check;
   it is not an M7 receipt or promotion verdict.
-- [`../PERFORMANCE.md`](../PERFORMANCE.md) explains the engineering policy and
+- [`../PERFORMANCE.md`](PERFORMANCE.md) explains the engineering policy and
   summarizes the normative contract.
 - [`../../../conformance/performance-authority/epoch-3/stats.py`](../../../conformance/performance-authority/epoch-3/stats.py)
   is the digest-pinned statistical implementation reused by the protocol.

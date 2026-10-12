@@ -32,6 +32,7 @@ pub const ProvingError = error{
     MissingPreprocessedTree,
     InvalidStructure,
     ConstraintsNotSatisfied,
+    InvalidOodsSeed,
     /// `proving_5a7c5ed`: the proof domain (the composition tree's height) is
     /// below the preprocessed tree's with `include_all_preprocessed_columns`
     /// (upstream `InvalidLiftingLogSizeError`), or not above the blowup.
@@ -625,7 +626,9 @@ fn proveExComponentsWithRecorder(
             try work.expectProducer(.oods_mask_points);
             // work-profile-plan:oods-mask-points
         }
-        const oods_point = circle.randomSecureFieldPoint(channel);
+        // Draw exactly once. The rational circle map is undefined at the two
+        // roots of t² + 1; report that rare seed instead of panicking.
+        const oods_point = try pointFromOodsSeed(channel.drawSecureFelt());
         completeOodsSeedToPointWork(work_recorder);
         var sample_points = try components_view.maskPointsWithWorkCapture(
             allocator,
@@ -862,6 +865,21 @@ fn commitCompositionChunks(
         recorder,
         channel,
     );
+}
+
+fn pointFromOodsSeed(seed: QM31) ProvingError!CirclePointQM31 {
+    return circle.secureFieldPointFromRandomSeedChecked(seed) catch
+        return ProvingError.InvalidOodsSeed;
+}
+
+test "prover: exceptional OODS seed returns error" {
+    const square_root_of_minus_one = QM31.fromU32Unchecked(0, 1, 0, 0);
+    try std.testing.expectError(
+        ProvingError.InvalidOodsSeed,
+        pointFromOodsSeed(square_root_of_minus_one),
+    );
+    const valid = try pointFromOodsSeed(QM31.one());
+    try std.testing.expect(valid.isOnCircle());
 }
 
 fn appendCompositionMaskTree(

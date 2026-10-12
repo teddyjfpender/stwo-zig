@@ -104,6 +104,15 @@ pub fn blake2sM31(comptime V: type, ctx: *context_mod.Context(V), input: []const
     return reduceHashValue(V, ctx, hash);
 }
 
+/// BLAKE2s with a fixed eight-byte personalization field. The personalized
+/// parameter block is constrained by the same Blake-G and XOR AIR as the
+/// unpersonalized variant; no extra message block is needed.
+pub fn blake2sM31Personalized(comptime V: type, ctx: *context_mod.Context(V), input: []const Var, n_bytes: usize, personalization: [8]u8) Error!ReducedHashValue(Var) {
+    std.debug.assert(input.len == std.math.divCeil(usize, n_bytes, 16) catch unreachable);
+    const words = try unpackQm31sToU32Words(V, ctx, input);
+    return reduceHashValue(V, ctx, try blake2sU32sPersonalized(V, ctx, words, n_bytes, personalization));
+}
+
 /// `blake2s`: Blake2s of `n_bytes` bytes packed four words per QM31 wire
 /// (`input.len == ceil(n_bytes / 16)`). Unused bytes must be zero.
 pub fn blake2s(comptime V: type, ctx: *context_mod.Context(V), input: []const Var, n_bytes: usize) Error!HashValue(Var) {
@@ -149,6 +158,10 @@ pub fn reduceHashValue(comptime V: type, ctx: *context_mod.Context(V), hash: Has
 /// per word, zero-padded to whole 64-byte blocks) over `n_bytes` bytes.
 /// Unused bytes of the last word must be zero.
 pub fn blake2sU32s(comptime V: type, ctx: *context_mod.Context(V), message: []const U32Wrapper(Var), n_bytes: usize) Error!HashValue(Var) {
+    return blake2sU32sPersonalized(V, ctx, message, n_bytes, [_]u8{0} ** 8);
+}
+
+pub fn blake2sU32sPersonalized(comptime V: type, ctx: *context_mod.Context(V), message: []const U32Wrapper(Var), n_bytes: usize, personalization: [8]u8) Error!HashValue(Var) {
     const block_bytes = 64;
     const words_per_block = 16;
     const n_blocks = @max(1, std.math.divCeil(usize, n_bytes, block_bytes) catch unreachable);
@@ -161,7 +174,10 @@ pub fn blake2sU32s(comptime V: type, ctx: *context_mod.Context(V), message: []co
 
     // `h`: the IV XORed with the parameter block (depth 1, fanout 1, digest length 32).
     var h: [8]U32Wrapper(Var) = undefined;
-    for (&h, 0..) |*word, i| word.* = try wrappers.constU32(V, ctx, if (i == 0) blake2s_iv[0] ^ 0x01010020 else blake2s_iv[i]);
+    for (&h, 0..) |*word, i| {
+        const parameter: u32 = if (i == 0) 0x01010020 else if (i == 6) std.mem.readInt(u32, personalization[0..4], .little) else if (i == 7) std.mem.readInt(u32, personalization[4..8], .little) else 0;
+        word.* = try wrappers.constU32(V, ctx, blake2s_iv[i] ^ parameter);
+    }
 
     for (0..n_blocks) |block_idx| {
         const block = padded[block_idx * words_per_block ..][0..words_per_block];

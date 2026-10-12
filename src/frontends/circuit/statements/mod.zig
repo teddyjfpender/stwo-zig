@@ -1,5 +1,6 @@
 //! Circuit-verifier, multiverifier and Cairo statements.
 pub const circuit_statement = @import("circuit_statement.zig");
+pub const sparse_wide_statement = @import("sparse_wide_statement.zig");
 pub const multiverifier = @import("multiverifier.zig");
 /// `crates/circuit_verifier/src/verify.rs`: one circuit proof, verified.
 pub const circuit_verifier = @import("circuit_verifier.zig");
