@@ -10,6 +10,7 @@
 
 const std = @import("std");
 const circle = @import("../circle.zig");
+const blake2s_channel = @import("../channel/blake2s.zig");
 const m31 = @import("../fields/m31.zig");
 const cm31 = @import("../fields/cm31.zig");
 const qm31 = @import("../fields/qm31.zig");
@@ -249,12 +250,13 @@ pub const AcceptedRelation = struct {
 /// Audit-only full verifier and extractor. The caller's channel changes only
 /// after both the complete native verifier and the independent relation check
 /// succeed. The returned owned certificate survives destruction of a decoded
-/// outer-wire proof. No authenticated-oracle uniqueness is asserted without
-/// a concrete Merkle collision bound.
+/// outer-wire proof. The concrete value-only Blake2s channel makes staged and
+/// replay copies independent. No authenticated-oracle uniqueness is asserted
+/// without a concrete Merkle collision bound.
 pub fn verifyAndExtract(
     allocator: std.mem.Allocator,
     proof: cascade.Proof,
-    channel: anytype,
+    channel: *blake2s_channel.Blake2sChannel,
     statement: cascade.ExpectedStatement,
 ) !AcceptedRelation {
     var arena = std.heap.ArenaAllocator.init(allocator);
