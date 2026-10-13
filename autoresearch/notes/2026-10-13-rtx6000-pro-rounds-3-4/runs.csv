@@ -1,0 +1,27 @@
+run_id,round,operation,case,allocation,image_or_experiment,exit_code,full_command_s,cairo_ingress_s,cairo_prove_decode_s,wrap_s,fold_reductions_s,planned_arena_bytes,sampled_gpu_peak_mib,gpu_free_min_mib,verification
+r3-saturated-baseline,round3,leaf-wrap,16309799_16309799,managed,none,0,28.559408,2.860611,21.585732,1.572076,,118890939480,97249,4,passed
+r3-saturated-traces-fixed,round3,leaf-wrap,16309799_16309799,managed,cold-trace-prefetch,0,39.869727,2.636342,33.016393,1.529697,,118890939480,97249,4,passed
+r3-boundary-strict,round3,leaf-wrap,16309353_16309353,strict,none,0,7.040902,3.169645,1.158142,1.428003,,97920382624,94683,2570,passed
+r3-fold16-baseline,round3,fold-tree,16 leaves,strict,none,0,10.488551,,,,9.034061,,27481,69772,passed
+r4-fold16-pow,round4,fold-tree,16 leaves,strict,none,0,9.557535,,,,8.195426,,27481,69772,passed
+r4-boundary-pow,round4,leaf-wrap,16309353_16309353,strict,none,0,8.291293,4.126961,1.042303,1.465657,,97920382624,94683,2570,passed
+r4-saturated-pow,round4,leaf-wrap,16309799_16309799,managed,none,0,25.171385,2.646662,19.007032,1.57433,,118890939480,97249,4,passed
+r4-16309292_16309292,round4,leaf-wrap,16309292_16309292,strict,none,0,5.997419,2.315934,1.029805,1.447114,,93939819200,90873,6380,passed
+r4-16309286_16309286,round4,leaf-wrap,16309286_16309286,managed,none,0,15.27503,3.783297,8.150907,1.324937,,103123420832,97249,4,passed
+r4-fold2-qualified,round4,fold-tree,2 leaves,strict,none,0,2.286689,,,,0.730232,,27481,69772,passed
+r4-fold4-qualified,round4,fold-tree,4 leaves,strict,none,0,3.406721,,,,1.837436,,27481,69772,passed
+r4-fold8-qualified,round4,fold-tree,8 leaves,strict,none,0,5.287042,,,,3.760991,,27481,69772,passed
+r4-fold16-qualified,round4,fold-tree,16 leaves,strict,none,0,9.897893,,,,8.292618,,27481,69772,passed
+r4-batch-on,round4,leaf-wrap-batch,fitting+saturated,managed,on,0,31.345793,,,,,,97249,4,passed
+r4-batch-off,round4,leaf-wrap-batch,fitting+saturated,managed,off,0,28.208749,,,,,,97249,4,passed
+r4-batch-on2,round4,leaf-wrap-batch,fitting+saturated,managed,on,0,27.220204,,,,,,97249,4,passed
+r4-batch-off2,round4,leaf-wrap-batch,fitting+saturated,managed,off,0,31.777468,,,,,,97249,4,passed
+r4-batch-auto,round4,leaf-wrap-batch,fitting+saturated,managed,auto,0,27.205266,,,,,,97249,4,passed
+r4-batch-auto3,round4,leaf-wrap-batch,fitting+saturated,managed,auto,0,31.024606,,,,,,97249,4,passed
+r4-batch-on3,round4,leaf-wrap-batch,fitting+saturated,managed,on,0,28.024638,,,,,,97249,4,passed
+r4-batch-on4,round4,leaf-wrap-batch,fitting+saturated,managed,on,0,31.437046,,,,,,97249,4,passed
+r4-batch-auto4,round4,leaf-wrap-batch,fitting+saturated,managed,auto,0,28.66541,,,,,,97249,4,passed
+r4-batch-auto-final,round4,leaf-wrap-batch,fitting+saturated,managed,auto,0,32.275416,,,,,,97249,4,passed
+r4-batch-fit-boundary,round4,leaf-wrap-batch,fitting+boundary,strict,auto,0,8.421124,,,,,,96731,522,passed
+r4-strict-reject-16309286_16309286,round4,leaf-wrap,16309286_16309286,strict,none,1,2.221067,,,,,,559,96694,expected InsufficientDeviceMemory
+r4-strict-reject-16309799_16309799,round4,leaf-wrap,16309799_16309799,strict,none,1,2.171772,,,,,,559,96694,expected InsufficientDeviceMemory

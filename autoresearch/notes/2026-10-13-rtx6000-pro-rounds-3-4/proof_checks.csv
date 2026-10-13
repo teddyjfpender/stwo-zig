@@ -1,0 +1,9 @@
+case,operation,proof_object_sha256,reference,comparison
+16309292_16309292,leaf-wrap,d85db1e1f5fdf6b956a69154092fe52e2293fef65cbe3ab006c33aeb409ebf44,saved H200 leaf proof field,exact
+16309286_16309286,leaf-wrap,cb30452cbf7b09078141f325641953dabbdc868c5bbac676a12aa0c600219fb8,saved H200 leaf proof field,exact
+16309353_16309353,leaf-wrap,753873b36c6a22ee5188d99a7830f018928dc09b52627985d49abb027035f335,saved H200 leaf proof field,exact
+16309799_16309799,leaf-wrap,c2579a0435e8e7e7ef3300c82675808b1e9e6937bd1ba686308f0cd59ca1d54e,saved H200 leaf proof field,exact
+2 real contiguous leaves,fold-tree,c5447d67382d67d4b0281f8f6edd8bb87397f8bfe6ad7a3b5e6690425e8a0cec,round-3 unmodified CUDA fold,exact
+16 real contiguous leaves,fold-tree,998f7b4323d90baa368debf19ce039cd2fd7e07fafc898b9b9f33505e78270c5,round-3 unmodified CUDA fold,exact
+16309799_16309799 (automatic image eviction),leaf-wrap-batch,c2579a0435e8e7e7ef3300c82675808b1e9e6937bd1ba686308f0cd59ca1d54e,saved H200 leaf proof field,exact
+"16309353_16309353 (retained image, strict)",leaf-wrap-batch,753873b36c6a22ee5188d99a7830f018928dc09b52627985d49abb027035f335,saved H200 leaf proof field,exact
