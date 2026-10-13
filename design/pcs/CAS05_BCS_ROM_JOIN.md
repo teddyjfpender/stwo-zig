@@ -15,18 +15,56 @@ does not infer Zig semantics, a random-oracle law, or a security level.
 
 | Order | Verifier operation | What is fixed before the next draw |
 | ---: | --- | --- |
-| 1 | absorb `S31CAS05`, outer version 5, XDM04 version 4 | protocol version |
-| 2 | absorb profile words and the XDM04 source root | height and columns, log blowup, raw query count, source commitment |
+| 1 | absorb `S31CAS06`, outer version 6, XDM04 version 4 | protocol version |
+| 2 | absorb a profile tag and words, then a source-root tag and XDM04 root | height and columns, log blowup, raw query count, source commitment |
 | 3 | draw OOD seed and map to a checked circle point | source commitment |
-| 4 | absorb claim tag and each profile-sized height claim array; draw batch coefficient | OOD claims |
-| 5 | for each nonterminal height `i`: draw `α_i`, then absorb line root `i` | line layer `i` may depend on `α_i`; its root precedes `α_(i+1)` |
-| 6 | draw final `α_(h−1)`; absorb terminal coefficients | all line commitments precede raw queries |
+| 4 | absorb claim-group tag and each tagged, indexed, length-bound height claim array; draw batch coefficient | OOD claims |
+| 5 | for each nonterminal height `i`: draw `α_i`, then absorb tagged line root `i` | line layer `i` may depend on `α_i`; its root precedes `α_(i+1)` |
+| 6 | draw final `α_(h−1)`; absorb tagged, length-bound terminal coefficients | all line commitments precede raw queries |
 | 7 | draw raw positions, authenticate XDM04 source rows and every line pair, check every fold and terminal evaluation | channel state is published only if all checks succeed |
 
 There is **no CAS05 proof-of-work nonce**. The experimental extractor's
 channel type is the raw-output `Blake2sChannel`; the production S31 direct
 Gate uses a distinct M31-reduced channel and two grinding stages. Its P07
 transcript conclusions and parameters do not transfer to CAS05.
+
+## Why outer version 6 changed the bytes
+
+Outer version 5 had a **real encoding ambiguity**. At the same channel digest
+`d`, `mixRoot(root)` and `mixFelts([a,b])` both hashed `d || payload`, where
+the payload is 32 bytes. If `root` was the canonical little-endian bytes of
+the two QM31 values, the hash *input* was identical. This required no BLAKE2s
+collision. The new version absorbs distinct eight-byte tags before source
+roots, line roots, height claims, and terminal coefficients. It also absorbs
+height/layer indices and array lengths. The wire magic remains `S31CAS05`
+as the family identifier, while outer wire version 6 and transcript tag
+`S31CAS06` reject old proofs and old challenge schedules.
+
+For a fixed prior digest, two different role tags make the first hash inputs
+distinct. If BLAKE2s has no collision on those inputs, their next digests
+differ and so do the following payload hash inputs. This is a **conditional
+input-separation argument**; it does not prove collision resistance or
+adaptive random-oracle freshness over the whole transcript. The
+[native test](../../src/tests/native/prover/paired_fri_bcs_fixture_test.zig)
+exhibits the old ambiguity and checks the separated new digest states.
+
+The typed transcript tags do **not** make transcript hashes disjoint from
+every Merkle hash input. For example, the line tree uses a 64-byte prefix
+`L = "leaf" || 60 zero bytes` and hashes a four-M31 row `r` as
+`H(L || LE32(r₀) || LE32(r₁) || LE32(r₂) || LE32(r₃))`. At a hypothetical
+channel digest `d = "leaf" || 28 zero bytes`, an absorption of three QM31
+values `(0, 0, QM31(r₀,r₁,r₂,r₃))` hashes exactly the same 80-byte input:
+
+```text
+channel: d (32 B) || zero QM31 (16 B) || zero QM31 (16 B) || r (16 B)
+line leaf: "leaf" || 60 zero bytes (64 B) || r (16 B)
+```
+
+The current challenge schedule does not give the prover this chosen digest;
+reaching it requires a constrained hash-output event. Still, global
+transcript/Merkle input disjointness is **false**, and a BCS/ROM reduction
+must account for this event and all adaptive hash work. The ledger leaves
+that theorem input false and native soundness bits unset.
 
 ## The precise raw-query fact
 
@@ -83,10 +121,11 @@ the conditional lemma**, with no claim about whole-proof soundness.
    transcript and both Merkle trees. Bound all adversarial hash work `T`,
    identify interactive round count `R`, and prove freshness and binding with
    an explicit cross-role collision budget. XDM03 hashes have leaf/upper/
-   insertion tags and line trees use prefixed Merkle hashes. Transcript root
-   and field absorptions are not operation-tagged; a 32-byte root and two
-   QM31 values produce equal bytes after the same digest. Fixed call order
-   might suffice, but needs a reduction.
+   insertion tags and line trees use prefixed Merkle hashes. The CAS05
+   transcript's root and field roles now have distinct tags. A reduction must
+   still cover adaptive transcript states, the conditional 80-byte line-leaf
+   overlap above, all Merkle inputs, and collisions in the shared hash
+   function.
 4. Prove the exact query law under adaptive transcript sampling, including
    all raw occurrences and overlapping lower-height projections. A fixed
    source schedule and a near-wrap test do not establish this distribution.

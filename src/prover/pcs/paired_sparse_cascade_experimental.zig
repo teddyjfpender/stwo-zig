@@ -15,6 +15,7 @@ const LineEvaluation = @import("../line.zig").LineEvaluation;
 
 const M31 = m31.M31;
 const QM31 = qm31.QM31;
+const Channel = core.channel.blake2s.Blake2sChannel;
 
 pub const Input = struct {
     source_columns: []const []const []const M31,
@@ -34,7 +35,7 @@ pub const OwnedProof = struct {
 pub fn prove(
     allocator: std.mem.Allocator,
     input: Input,
-    channel: anytype,
+    channel: *Channel,
 ) !OwnedProof {
     return proveImpl(allocator, input, channel, .none);
 }
@@ -45,7 +46,7 @@ pub fn prove(
 pub fn proveWithInvalidTerminalForTest(
     allocator: std.mem.Allocator,
     input: Input,
-    channel: anytype,
+    channel: *Channel,
 ) !OwnedProof {
     return proveImpl(allocator, input, channel, .terminal);
 }
@@ -55,7 +56,7 @@ pub fn proveWithInvalidTerminalForTest(
 pub fn proveWithInvalidLineForTest(
     allocator: std.mem.Allocator,
     input: Input,
-    channel: anytype,
+    channel: *Channel,
 ) !OwnedProof {
     return proveImpl(allocator, input, channel, .line);
 }
@@ -92,13 +93,13 @@ fn proveImpl(
     }
     var staged = channel.*;
     cascade.bindVersion(&staged);
-    const point = try core.pcs.paired_cascade_experimental.drawOodPoint(&staged, profile, root);
+    const point = try cascade.drawOodPoint(&staged, profile, root);
     for (input.source_columns, 0..) |columns, i| {
         const values = try a.alloc(QM31, columns.len);
         try old.evaluateClaims(a, domains[i], columns, point, values);
         claims[i] = values;
     }
-    const batch = core.pcs.paired_cascade_experimental.drawBatchAfterOod(&staged, claims);
+    const batch = cascade.drawBatchAfterOod(&staged, claims);
     const challenges = core.pcs.paired_ensemble.Challenges{ .batch = batch };
     for (input.source_columns, 0..) |columns, i|
         batches[i] = try old.pairedHeight(a, domains[i], columns, claims[i], point, challenges);
@@ -150,7 +151,7 @@ fn proveImpl(
         }
         columns_by_line[step] = line_columns;
         trees[step] = try SourceProver.commit(a, &columns_by_line[step]);
-        core.vcs_lifted.blake2_merkle.Blake2sMerkleChannel.mixRoot(&staged, trees[step].root());
+        cascade.mixLineRoot(&staged, step, trees[step].root());
     }
     const last_alpha = staged.drawSecureFelt();
     const last = try core.fri.multidomain_insertion.insertCircleBatch(
@@ -174,7 +175,7 @@ fn proveImpl(
         changed[0] = changed[0].add(QM31.one());
         break :blk changed;
     } else ordered[0..terminal_len];
-    staged.mixFelts(terminal);
+    cascade.mixTerminal(&staged, terminal);
     const raw = try core.queries.drawQueries(
         &staged,
         a,

@@ -10,6 +10,7 @@ const canonic = @import("../poly/circle/canonic.zig");
 const line = @import("../poly/line.zig");
 const utils = @import("../utils.zig");
 const queries = @import("../queries.zig");
+const blake2s_channel = @import("../channel/blake2s.zig");
 const blake2_merkle = @import("../vcs_lifted/blake2_merkle.zig");
 const vcs_verifier = @import("../vcs_lifted/verifier.zig");
 const xdm = @import("transposed_merkle_sparse.zig");
@@ -18,9 +19,16 @@ const old = @import("paired_cascade_experimental.zig");
 
 const M31 = m31.M31;
 const QM31 = qm31.QM31;
+const Channel = blake2s_channel.Blake2sChannel;
 const Hasher = blake2_merkle.Blake2sMerkleHasher;
-const TRANSCRIPT_TAG: u64 = 0x5333_3143_4153_3035; // S31CAS05
-pub const OUTER_VERSION: u16 = 5;
+const TRANSCRIPT_TAG: u64 = 0x5333_3143_4153_3036; // S31CAS06
+const PROFILE_TAG: u64 = 0x5333_3150_5246_3036; // S31PRF06
+const SOURCE_ROOT_TAG: u64 = 0x5333_3153_5243_3036; // S31SRC06
+const CLAIM_GROUP_TAG: u64 = 0x5333_3143_4c4d_3036; // S31CLM06
+const CLAIM_HEIGHT_TAG: u64 = 0x5333_3148_5443_3036; // S31HTC06
+const LINE_ROOT_TAG: u64 = 0x5333_314c_494e_3036; // S31LIN06
+const TERMINAL_TAG: u64 = 0x5333_3154_524d_3036; // S31TRM06
+pub const OUTER_VERSION: u16 = 6;
 
 pub const Profile = struct {
     source: xdm.Profile,
@@ -55,10 +63,55 @@ pub const Proof = struct {
     terminal_ordered_coeffs: []const QM31,
 };
 
-pub fn bindVersion(channel: anytype) void {
+pub fn bindVersion(channel: *Channel) void {
     channel.mixU64(TRANSCRIPT_TAG);
     channel.mixU64(OUTER_VERSION);
     channel.mixU64(xdm.VERSION);
+}
+
+/// CAS05-v6 transcript fields are typed before their bytes are absorbed.
+/// The old transcript sent a root and two QM31 values through the same
+/// `digest || 32 bytes` hash input. These distinct tags make those role
+/// inputs distinct unless the underlying hash itself collides.
+pub fn drawOodPoint(channel: *Channel, profile: Profile, root: xdm.Hash) !circle.CirclePointQM31 {
+    try profile.validate();
+    var staged = channel.*;
+    staged.mixU64(PROFILE_TAG);
+    staged.mixU64(profile.source.largest_log_size);
+    staged.mixU64(profile.source.height_count);
+    staged.mixU64(profile.log_blowup);
+    staged.mixU64(profile.source.query_count);
+    for (profile.source.columns[0..profile.source.height_count]) |count|
+        staged.mixU64(count);
+    staged.mixU64(SOURCE_ROOT_TAG);
+    blake2_merkle.Blake2sMerkleChannel.mixRoot(&staged, root);
+    const point = try circle.secureFieldPointFromRandomSeedChecked(staged.drawSecureFelt());
+    if (point.y.c1.isZero()) return error.DegenerateOodPoint;
+    channel.* = staged;
+    return point;
+}
+
+pub fn drawBatchAfterOod(channel: *Channel, claims: []const []const QM31) QM31 {
+    channel.mixU64(CLAIM_GROUP_TAG);
+    for (claims, 0..) |height, index| {
+        channel.mixU64(CLAIM_HEIGHT_TAG);
+        channel.mixU64(index);
+        channel.mixU64(height.len);
+        channel.mixFelts(height);
+    }
+    return channel.drawSecureFelt();
+}
+
+pub fn mixLineRoot(channel: *Channel, index: usize, root: xdm.Hash) void {
+    channel.mixU64(LINE_ROOT_TAG);
+    channel.mixU64(index);
+    blake2_merkle.Blake2sMerkleChannel.mixRoot(channel, root);
+}
+
+pub fn mixTerminal(channel: *Channel, coefficients: []const QM31) void {
+    channel.mixU64(TERMINAL_TAG);
+    channel.mixU64(coefficients.len);
+    channel.mixFelts(coefficients);
 }
 
 fn matches(statement: ExpectedStatement, proof: Proof) bool {
@@ -93,7 +146,7 @@ pub fn validateProof(proof: Proof) !void {
 pub fn verifyAgainstStatement(
     allocator: std.mem.Allocator,
     proof: Proof,
-    channel: anytype,
+    channel: *Channel,
     statement: ExpectedStatement,
 ) !void {
     try statement.profile.validate();
@@ -101,18 +154,18 @@ pub fn verifyAgainstStatement(
     if (!matches(statement, proof)) return error.UnexpectedSparseStatement;
     var staged = channel.*;
     bindVersion(&staged);
-    const sampled = try old.drawOodPoint(&staged, proof.profile, proof.source_root);
+    const sampled = try drawOodPoint(&staged, proof.profile, proof.source_root);
     if (!sampled.eql(proof.sampled_point)) return error.UnsampledOodPoint;
-    const batch = old.drawBatchAfterOod(&staged, proof.claims);
+    const batch = drawBatchAfterOod(&staged, proof.claims);
     const source = proof.profile.source;
     const alphas = try allocator.alloc(QM31, source.height_count);
     defer allocator.free(alphas);
     for (alphas, 0..) |*alpha, i| {
         alpha.* = staged.drawSecureFelt();
         if (i < proof.line_openings.len)
-            blake2_merkle.Blake2sMerkleChannel.mixRoot(&staged, proof.line_openings[i].root);
+            mixLineRoot(&staged, i, proof.line_openings[i].root);
     }
-    staged.mixFelts(proof.terminal_ordered_coeffs);
+    mixTerminal(&staged, proof.terminal_ordered_coeffs);
     const raw = try queries.drawQueries(
         &staged,
         allocator,
