@@ -30,6 +30,29 @@ SOURCES = {
 P = (1 << 31) - 1
 
 
+def input_length_audit() -> dict[str, object]:
+    """Finite arithmetic for the source-pinned, validated CAS05 call roster."""
+    channel_fixed = {37, 40, 64}  # draw, mixU64, mixRoot
+    line = {80: "leaf", 128: "parent"}  # 64-byte prefix + 4 or 16 words
+    assert not channel_fixed.intersection(line)
+    assert 10 % 4 == 42 % 4 == 2  # XDM leaf/inserted prefixes and u16 length
+    assert 72 not in channel_fixed  # XDM upper input
+    assert all((32 + 16 * n) % 4 == 0 for n in range(1, 65))
+    matches = {n: line[32 + 16 * n] for n in range(1, 65) if 32 + 16 * n in line}
+    assert matches == {3: "leaf", 6: "parent"}
+    assert all((1 << exponent) not in matches for exponent in range(23))
+    return {
+        "channel_fixed_bytes": sorted(channel_fixed),
+        "line_leaf_bytes": 80,
+        "line_parent_bytes": 128,
+        "source_leaf_bytes": "10 + 4m",
+        "source_inserted_bytes": "42 + 4m",
+        "source_upper_bytes": 72,
+        "claim_felt_counts_requiring_digest_guard": sorted(matches),
+        "terminal_felt_count": "power of two, so not 3 or 6",
+    }
+
+
 class IndependentRawChannel:
     """A tiny byte model for one fixed transcript fixture, not a ROM model."""
 
@@ -131,6 +154,7 @@ def audit_sources(s: dict[str, str]) -> dict[str, object]:
     verifier = body(s["verifier"], "pub fn verifyAgainstStatement(", "fn lineWord(")
     prover = body(s["prover"], "fn proveImpl(", "\n}")
     ood = body(s["verifier"], "pub fn drawOodPoint(", "pub fn drawBatchAfterOod(")
+    separation = body(s["verifier"], "pub fn checkClaimInputSeparation(", "pub fn drawBatchAfterOod(")
     batch = body(s["verifier"], "pub fn drawBatchAfterOod(", "pub fn mixLineRoot(")
     line_root = body(s["verifier"], "pub fn mixLineRoot(", "pub fn mixTerminal(")
     terminal = body(s["verifier"], "pub fn mixTerminal(", "fn matches(")
@@ -141,7 +165,7 @@ def audit_sources(s: dict[str, str]) -> dict[str, object]:
                  "var staged = channel.*;",
                  "bindVersion(&staged);",
                  "const sampled = try drawOodPoint(&staged, proof.profile, proof.source_root);",
-                 "const batch = drawBatchAfterOod(&staged, proof.claims);",
+                 "const batch = try drawBatchAfterOod(&staged, proof.claims);",
                  "alpha.* = staged.drawSecureFelt();",
                  "mixLineRoot(&staged, i, proof.line_openings[i].root);",
                  "mixTerminal(&staged, proof.terminal_ordered_coeffs);",
@@ -161,7 +185,7 @@ def audit_sources(s: dict[str, str]) -> dict[str, object]:
     ordered_once(prover, "CAS05 prover",
                  "cascade.bindVersion(&staged);",
                  "const point = try cascade.drawOodPoint(&staged, profile, root);",
-                 "cascade.drawBatchAfterOod(&staged, claims);",
+                 "try cascade.drawBatchAfterOod(&staged, claims);",
                  "const alpha = staged.drawSecureFelt();",
                  "cascade.mixLineRoot(&staged, step, trees[step].root());",
                  "const last_alpha = staged.drawSecureFelt();",
@@ -184,13 +208,20 @@ def audit_sources(s: dict[str, str]) -> dict[str, object]:
                  "staged.drawSecureFelt()",
                  "if (point.y.c1.isZero()) return error.DegenerateOodPoint;",
                  "channel.* = staged;")
-    ordered_once(batch, "CAS05 claim binding", "channel.mixU64(CLAIM_GROUP_TAG);",
+    ordered_once(separation, "CAS05 line-Merkle input separation",
+                 "felt_count == 3", "blake2_merkle.LEAF_PREFIX[0..32]",
+                 "felt_count == 6", "blake2_merkle.NODE_PREFIX[0..32]",
+                 "return error.TranscriptMerkleDomainOverlap;")
+    ordered_once(batch, "CAS05 claim binding", "var staged = channel.*;",
+                 "staged.mixU64(CLAIM_GROUP_TAG);",
                  "for (claims, 0..) |height, index| {",
-                 "channel.mixU64(CLAIM_HEIGHT_TAG);",
-                 "channel.mixU64(index);",
-                 "channel.mixU64(height.len);",
-                 "channel.mixFelts(height);",
-                 "return channel.drawSecureFelt();")
+                 "staged.mixU64(CLAIM_HEIGHT_TAG);",
+                 "staged.mixU64(index);",
+                 "staged.mixU64(height.len);",
+                 "try checkClaimInputSeparation(staged.digestBytes(), height.len);",
+                 "staged.mixFelts(height);",
+                 "const batch = staged.drawSecureFelt();",
+                 "channel.* = staged;", "return batch;")
     ordered_once(line_root, "CAS05 line root", "channel.mixU64(LINE_ROOT_TAG);",
                  "channel.mixU64(index);", "blake2_merkle.Blake2sMerkleChannel.mixRoot(channel, root);")
     ordered_once(terminal, "CAS05 terminal", "channel.mixU64(TERMINAL_TAG);",
@@ -243,6 +274,20 @@ def audit_sources(s: dict[str, str]) -> dict[str, object]:
             'pub const NODE_PREFIX = makePrefix("node");', 'var out: [64]u8 = [_]u8{0} ** 64;',
             'hasher.inner.update(LEAF_PREFIX[0..]);')
     require(s["line_hasher"], "line tree hasher", 'pub const Hasher = blake2_merkle.Blake2sMerkleHasher;')
+    require(s["verifier"], "line verifier hasher and width",
+            "const Hasher = blake2_merkle.Blake2sMerkleHasher;",
+            "&[_]u32{domain.logSize()} ** 4,",
+            "try verifier.verify(allocator, rows, &columns, .{ .hash_witness = opening.hash_witness });")
+    require(s["prover"], "line leaf width", "var line_columns: [4][]const M31 = undefined;",
+            "trees[step] = try SourceProver.commit(a, &columns_by_line[step]);")
+    require(s["verifier"], "terminal shape", "proof.terminal_ordered_coeffs.len != proof.profile.terminalLength()",
+            "return @as(usize, 1) << @intCast(")
+    require(s["merkle"], "XDM03 input sizes", "h.update(\"S31XDL03\");",
+            "h.update(\"S31XDU03\");", "h.update(\"S31XDI03\");",
+            "h.update(&left);", "h.update(&right);", "h.update(&pair);",
+            "var count: [2]u8 = undefined;", "h.update(&count);",
+            "h.update(&bytes);", "pub const MAX_COLUMNS: usize = 64;")
+    require(s["source"], "XDM04 maximum claim width", "count > tree.MAX_COLUMNS")
     return {
         "schema": "cas05-bcs-rom-theorem-input-v2",
         "scope": "experimental CAS05 outer version 6 / XDM04 raw Blake2s transcript",
@@ -257,10 +302,12 @@ def audit_sources(s: dict[str, str]) -> dict[str, object]:
             "outer_version": 6,
             "typed_source_root_claim_height_line_root_terminal": True,
             "exact_same_state_root_vs_two_felts_preimage_ambiguity_removed": True,
+            "accepted_CAS05_call_roster_input_disjointness_source_checked": True,
+            "line_leaf_and_parent_digest_prefixes_rejected_before_matching_claim_lengths": True,
             "global_transcript_merkle_hash_input_disjointness_proven": False,
-            "line_leaf_vs_three_felts_equality_if_digest_is_prefix": True,
             "full_ROM_freshness_or_collision_bound_proven": False,
         },
+        "accepted_call_roster_input_lengths": input_length_audit(),
         "round_schedule": [
             "CAS06 transcript, outer version 6 and XDM04 version words",
             "tagged profile words then tagged source root",

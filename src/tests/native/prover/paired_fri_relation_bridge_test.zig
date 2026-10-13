@@ -211,7 +211,7 @@ test "CAS05 accepted nonconstant four-height proof refines independent scalar re
         proof.source_root,
     );
     try std.testing.expect(point.eql(proof.sampled_point));
-    const batch_challenge = core.pcs.paired_sparse_cascade_experimental.drawBatchAfterOod(
+    const batch_challenge = try core.pcs.paired_sparse_cascade_experimental.drawBatchAfterOod(
         &replay,
         proof.claims,
     );

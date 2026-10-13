@@ -48,8 +48,8 @@ adaptive random-oracle freshness over the whole transcript. The
 [native test](../../src/tests/native/prover/paired_fri_bcs_fixture_test.zig)
 exhibits the old ambiguity and checks the separated new digest states.
 
-The typed transcript tags do **not** make transcript hashes disjoint from
-every Merkle hash input. For example, the line tree uses a 64-byte prefix
+The typed transcript tags alone did **not** make transcript hashes disjoint
+from every Merkle hash input. For example, the line tree uses a 64-byte prefix
 `L = "leaf" || 60 zero bytes` and hashes a four-M31 row `r` as
 `H(L || LE32(r₀) || LE32(r₁) || LE32(r₂) || LE32(r₃))`. At a hypothetical
 channel digest `d = "leaf" || 28 zero bytes`, an absorption of three QM31
@@ -60,11 +60,26 @@ channel: d (32 B) || zero QM31 (16 B) || zero QM31 (16 B) || r (16 B)
 line leaf: "leaf" || 60 zero bytes (64 B) || r (16 B)
 ```
 
-The current challenge schedule does not give the prover this chosen digest;
-reaching it requires a constrained hash-output event. Still, global
-transcript/Merkle input disjointness is **false**, and a BCS/ROM reduction
-must account for this event and all adaptive hash work. The ledger leaves
-that theorem input false and native soundness bits unset.
+Similarly, a six-QM31 claim can match the 128-byte line-parent input when
+its digest equals the first 32 bytes of `"node" || 60 zero bytes`. The
+CAS05 verifier and prover now check the digest immediately before either
+claim absorption and reject the matching prefix. The operation is staged,
+so rejection does not publish a partially advanced channel state.
+
+Here is the complete input-length audit for a **`validateProof`-accepted
+CAS05 proof**. A channel word absorption hashes 40 bytes, a root hashes
+64 bytes, a query/challenge draw hashes 37 bytes, and a felt-array absorption
+hashes `32+16n` bytes. XDM03 source leaves and inserted nodes have lengths
+`10+4m` and `42+4m`, both 2 modulo 4; source upper nodes have length
+72 bytes. A CAS05 line leaf has four M31 columns and hashes 80 bytes;
+its parent hashes 128 bytes. Thus only felt arrays of length three or six
+can equal a line hash input by length. Terminal arrays have power-of-two
+length and cannot be three or six. The two digest-prefix checks exclude the
+remaining claim cases by their first 32 bytes. This establishes byte-input
+separation for that enumerated, validated CAS05 call roster, conditional on
+the source roster remaining as checked. It does not prove that different
+inputs have different BLAKE2s outputs, that adaptive hash queries are fresh,
+or that the full BCS/ROM theorem applies. Native soundness bits stay unset.
 
 ## The precise raw-query fact
 
@@ -123,8 +138,8 @@ the conditional lemma**, with no claim about whole-proof soundness.
    an explicit cross-role collision budget. XDM03 hashes have leaf/upper/
    insertion tags and line trees use prefixed Merkle hashes. The CAS05
    transcript's root and field roles now have distinct tags. A reduction must
-   still cover adaptive transcript states, the conditional 80-byte line-leaf
-   overlap above, all Merkle inputs, and collisions in the shared hash
+   still cover adaptive transcript states, prove the accepted-input roster
+   refinement above, all Merkle inputs, and collisions in the shared hash
    function.
 4. Prove the exact query law under adaptive transcript sampling, including
    all raw occurrences and overlapping lower-height projections. A fixed

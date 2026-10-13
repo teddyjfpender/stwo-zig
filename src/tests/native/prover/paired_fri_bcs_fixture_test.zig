@@ -35,7 +35,7 @@ test "CAS05 raw Blake2s transcript matches independent byte fixture" {
         }
     }
     const claim_slices = [3][]const QM31{ &claims[0], &claims[1], &claims[2] };
-    const batch = cascade.drawBatchAfterOod(&channel, &claim_slices);
+    const batch = try cascade.drawBatchAfterOod(&channel, &claim_slices);
     try std.testing.expect(batch.eql(QM31.fromU32Unchecked(
         509825195,
         245298048,
@@ -83,4 +83,20 @@ test "CAS05 typed absorption separates root and two-QM31 byte roles" {
     cascade.mixLineRoot(&new_root, 0, root);
     cascade.mixTerminal(&new_felts, &two_felts);
     try std.testing.expect(!std.mem.eql(u8, &new_root.digest, &new_felts.digest));
+}
+
+test "CAS05 rejects the only accepted claim lengths that can alias line Merkle inputs" {
+    const prefixed = core.vcs_lifted.blake2_merkle;
+    var leaf_digest: [32]u8 = undefined;
+    var node_digest: [32]u8 = undefined;
+    @memcpy(&leaf_digest, prefixed.LEAF_PREFIX[0..32]);
+    @memcpy(&node_digest, prefixed.NODE_PREFIX[0..32]);
+    try std.testing.expectError(error.TranscriptMerkleDomainOverlap, cascade.checkClaimInputSeparation(leaf_digest, 3));
+    try std.testing.expectError(error.TranscriptMerkleDomainOverlap, cascade.checkClaimInputSeparation(node_digest, 6));
+    try cascade.checkClaimInputSeparation(leaf_digest, 6);
+    try cascade.checkClaimInputSeparation(node_digest, 3);
+    try cascade.checkClaimInputSeparation(leaf_digest, 2);
+    try cascade.checkClaimInputSeparation(node_digest, 4);
+    leaf_digest[31] = 1;
+    try cascade.checkClaimInputSeparation(leaf_digest, 3);
 }

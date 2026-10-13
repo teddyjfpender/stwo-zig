@@ -273,7 +273,7 @@ pub fn verifyAndExtract(
     cascade.bindVersion(&replay);
     const sampled = try cascade.drawOodPoint(&replay, proof.profile, proof.source_root);
     if (!sampled.eql(proof.sampled_point)) return error.TranscriptMismatch;
-    const batch = cascade.drawBatchAfterOod(&replay, proof.claims);
+    const batch = try cascade.drawBatchAfterOod(&replay, proof.claims);
     const h = proof.profile.source.height_count;
     const alphas = try a.alloc(QM31, h);
     const roots = try a.alloc(xdm.Hash, h - 1);

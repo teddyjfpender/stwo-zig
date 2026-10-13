@@ -339,7 +339,7 @@ test "three-height sparse two-row cascade verifies one-root source and line path
     sparse_cascade.bindVersion(&replay);
     const sampled = try sparse_cascade.drawOodPoint(&replay, proof.profile, proof.source_root);
     try std.testing.expect(sampled.eql(proof.sampled_point));
-    const lambda = sparse_cascade.drawBatchAfterOod(&replay, proof.claims);
+    const lambda = try sparse_cascade.drawBatchAfterOod(&replay, proof.claims);
     for (proof.line_openings, 0..) |opening, i| {
         _ = replay.drawSecureFelt();
         sparse_cascade.mixLineRoot(&replay, i, opening.root);
