@@ -57,6 +57,16 @@ witness_count:u32 | hash[32][witness_count]
 
 The outer `S31P2F01` version tag is mixed into the channel before its root/OOD/claim transcript. Both wire versions and the verifier's expected profile are checked first, so a rejected mode or malformed proof cannot reuse the source-only challenge stream. The source-envelope magic is parsed and checked but its standalone transcript routine is not replayed by the outer verifier. Rejection of a mismatched encoded OOD point leaves the caller's channel unchanged.
 
+The honest wire fixture is also run at adjacent 32/16-row and 64/32-row circle heights, with five and seven sampled raw queries respectively. These sizes are test geometry, not security parameters. At every source row it independently computes the native two-point quotient from the conjugate affine line and determinant, then compares `f + lambda*q` with the batched word. For a sample `Q`, claim `v`, and source row `P=(x,y)`, its scalar reference is
+
+```text
+L(y) = v + (conj(v)-v) * (y-Q.y)/(conj(Q.y)-Q.y)
+D(P) = (Re(Q.x)-x)*Im(Q.y) - (Re(Q.y)-y)*Im(Q.x)
+q(P) = (f(P)-L(y)) * (conj(Q.y)-Q.y) / D(P).
+```
+
+It checks the first circle fold and Eq. 68 insertion against separate row formulas, checks largest-to-smaller source projection by doubling each circle point, evaluates the short terminal polynomial at every terminal-domain row, and compares its OOD evaluation with direct Lagrange interpolation of the full terminal row vector. The prover and verifier transcript digests match after full serialized verification. Changing a claim while retaining the roots leaves the sampled OOD point fixed and changes the subsequent shared batch challenge. These checks expose arithmetic and transcript mismatches at several sizes; they do not prove a proximity bound.
+
 This is still a fixed two-height experimental protocol. Its query schedule and normalization need a theorem-to-code argument. The terminal degree check is structural (only the configured number of coefficients are accepted); sampled fold checks provide no security claim until the query distribution, source/FRI commitment binding, two-point quotient law, and error bounds are proven for this exact protocol.
 
 This is **not** a production PCS opening. The fixed two-height wire proof has no production prover path or admission gate, and its theorem mapping is incomplete. Legacy PCS transcripts and proof acceptance are untouched. No native soundness bit claim follows from these tests.
