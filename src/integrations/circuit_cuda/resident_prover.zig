@@ -172,7 +172,7 @@ pub fn prove(allocator: std.mem.Allocator, input: Input) !Result {
         );
     } else try cuda.runtime.proof_transaction.ResidentProofTransaction.openPrepared(
         allocator,
-        &.{ 80, 90 },
+        &.{ 80, 90, 120 },
         try memory_plan.placement.clone(allocator),
     );
     var finished = false;

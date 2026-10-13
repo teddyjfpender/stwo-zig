@@ -1,0 +1,36 @@
+{
+  "standard_build": {
+    "command": "zig build circuit-recursion-cuda-resident -Doptimize=ReleaseFast -Dcuda-arch=sm_120 with CUDA 12.8 toolchain options",
+    "exit_code": 0,
+    "binary_sha256": "687d6bc07300805ba057962bfcfa8a9fe7b6b56433dcb7ca88be16882a9e3de3"
+  },
+  "exact_file_matches": [
+    {
+      "case": "16309292_16309292",
+      "artifact": "top-level-fitting-leaf.proof",
+      "sha256": "d85db1e1f5fdf6b956a69154092fe52e2293fef65cbe3ab006c33aeb409ebf44",
+      "equal_to_qualified_proof": true,
+      "qualified_proof_equal_to_h200_fields": true
+    },
+    {
+      "case": "16309799_16309799",
+      "artifact": "top-level-saturated-leaf.proof",
+      "sha256": "c2579a0435e8e7e7ef3300c82675808b1e9e6937bd1ba686308f0cd59ca1d54e",
+      "equal_to_qualified_proof": true,
+      "qualified_proof_equal_to_h200_fields": true
+    },
+    {
+      "case": "2 contiguous leaves",
+      "artifact": "top-level-two-leaf-fold.proof",
+      "sha256": "c5447d67382d67d4b0281f8f6edd8bb87397f8bfe6ad7a3b5e6690425e8a0cec",
+      "equal_to_exploratory_fold": true
+    },
+    {
+      "case": "16309286_16309286",
+      "artifact": "final-batch-leaf.proof",
+      "sha256": "cb30452cbf7b09078141f325641953dabbdc868c5bbac676a12aa0c600219fb8",
+      "equal_to_qualified_proof": true,
+      "qualified_proof_equal_to_h200_fields": true
+    }
+  ]
+}

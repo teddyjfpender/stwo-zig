@@ -45,7 +45,20 @@ fn leafWrap(allocator: std.mem.Allocator, args: []const []const u8) !void {
     var catalog = try circuit_cuda.air_aot.build(allocator, try circuit_app.authenticatedAirPrograms());
     defer catalog.deinit();
     const catalog_ns = wall.lap();
-    var backend = circuit_cuda.recursion_source.Context{ .catalog = &catalog };
+    // Share one runtime with the verified Cairo proof. The Cairo arena is
+    // retired before the callback allocates the wrap arena, which matters on
+    // devices where the two proof families fit separately but not together.
+    var runtime = try circuit_cuda.recursion_source.Runtime.open(&.{ 80, 90, 120 });
+    var runtime_live = true;
+    defer if (runtime_live) runtime.abort() catch {};
+    var cairo_session = cairo_app.BatchSession{
+        .allocator = allocator,
+        .runtime = &runtime,
+        .early_prefetch = &prefetch,
+    };
+    var cairo_session_live = true;
+    defer if (cairo_session_live) cairo_session.deinit() catch {};
+    var backend = circuit_cuda.recursion_source.Context{ .catalog = &catalog, .runtime = &runtime };
     var receiver = sink.Context{
         .allocator = allocator,
         .request = .{
@@ -57,15 +70,23 @@ fn leafWrap(allocator: std.mem.Allocator, args: []const []const u8) !void {
         .output_path = leaf_path,
     };
     var total = try std.time.Timer.start();
-    try cairo_app.proveWithSinkUsingPrefetch(allocator, .{
-        .input = input,
-        .expected_input_sha256 = input_sha256,
-        .output = cairo_proof,
-        .report_out = cairo_report,
-        .repeat = 1,
-        .circuit_registry = registry,
-    }, receiver.sink(), &prefetch);
+    const item = cairo_app.BatchItem{
+        .request = .{
+            .input = input,
+            .expected_input_sha256 = input_sha256,
+            .output = cairo_proof,
+            .report_out = cairo_report,
+            .repeat = 1,
+            .circuit_registry = registry,
+        },
+        .sink = receiver.sink(),
+    };
+    try cairo_app.proveBatchWithSinksUsingSession(allocator, &.{item}, &cairo_session);
     if (!receiver.delivered) return error.MissingVerifiedCairoLeaf;
+    try cairo_session.deinit();
+    cairo_session_live = false;
+    try runtime.close();
+    runtime_live = false;
     std.debug.print("circuit-cuda leaf-wrap total_ns={} wrap_ns={} proof={s}\n", .{ total.read(), receiver.wrap_ns, leaf_path });
     std.debug.print("circuit-cuda leaf-wrap setup_ns={} execution_ns={}\n", .{ catalog_ns, wall.lap() });
 }
@@ -114,7 +135,7 @@ fn leafWrapCampaign(allocator: std.mem.Allocator, args: []const []const u8) !voi
     defer if (prefetch_live) prefetch.deinit();
     var catalog = try circuit_cuda.air_aot.build(allocator, try circuit_app.authenticatedAirPrograms());
     defer catalog.deinit();
-    var runtime = try circuit_cuda.recursion_source.Runtime.open(&.{ 80, 90 });
+    var runtime = try circuit_cuda.recursion_source.Runtime.open(&.{ 80, 90, 120 });
     var runtime_live = true;
     defer if (runtime_live) runtime.abort() catch {};
     var cairo_session = cairo_app.BatchSession{ .allocator = allocator, .runtime = &runtime, .early_prefetch = &prefetch };
@@ -183,7 +204,7 @@ fn leafWrapBatch(allocator: std.mem.Allocator, args: []const []const u8) !void {
     defer prefetch.deinit();
     var catalog = try circuit_cuda.air_aot.build(allocator, try circuit_app.authenticatedAirPrograms());
     defer catalog.deinit();
-    var runtime = try circuit_cuda.recursion_source.Runtime.open(&.{ 80, 90 });
+    var runtime = try circuit_cuda.recursion_source.Runtime.open(&.{ 80, 90, 120 });
     var runtime_live = true;
     defer if (runtime_live) runtime.abort() catch {};
     var cairo_session = cairo_app.BatchSession{ .allocator = allocator, .runtime = &runtime, .early_prefetch = &prefetch };
@@ -341,7 +362,7 @@ fn foldTree(allocator: std.mem.Allocator, args: []const []const u8) !void {
     var catalog = try circuit_cuda.air_aot.build(allocator, try circuit_app.authenticatedAirPrograms());
     defer catalog.deinit();
     const catalog_ns = wall.lap();
-    var runtime = try circuit_cuda.recursion_source.Runtime.open(&.{ 80, 90 });
+    var runtime = try circuit_cuda.recursion_source.Runtime.open(&.{ 80, 90, 120 });
     var runtime_live = true;
     defer if (runtime_live) runtime.abort() catch {};
     var backend = circuit_cuda.recursion_source.Context{ .catalog = &catalog, .runtime = &runtime };
@@ -386,7 +407,7 @@ fn foldStage(allocator: std.mem.Allocator, args: []const []const u8, terminal_ro
     const parse_ns = wall.lap();
     var catalog = try circuit_cuda.air_aot.build(allocator, try circuit_app.authenticatedAirPrograms());
     defer catalog.deinit();
-    var runtime = try circuit_cuda.recursion_source.Runtime.open(&.{ 80, 90 });
+    var runtime = try circuit_cuda.recursion_source.Runtime.open(&.{ 80, 90, 120 });
     var runtime_live = true;
     defer if (runtime_live) runtime.abort() catch {};
     var backend = circuit_cuda.recursion_source.Context{ .catalog = &catalog, .runtime = &runtime };
@@ -425,7 +446,7 @@ fn foldStageCampaign(allocator: std.mem.Allocator, args: []const []const u8) !vo
     const registry = try wire.registry.parseRegistry(a, try readFile(a, registry_path));
     var catalog = try circuit_cuda.air_aot.build(allocator, try circuit_app.authenticatedAirPrograms());
     defer catalog.deinit();
-    var runtime = try circuit_cuda.recursion_source.Runtime.open(&.{ 80, 90 });
+    var runtime = try circuit_cuda.recursion_source.Runtime.open(&.{ 80, 90, 120 });
     var runtime_live = true;
     defer if (runtime_live) runtime.abort() catch {};
     var backend = circuit_cuda.recursion_source.Context{ .catalog = &catalog, .runtime = &runtime };

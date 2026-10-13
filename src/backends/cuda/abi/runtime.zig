@@ -70,6 +70,7 @@ pub extern "c" fn stwo_exec_context_pool_current(
     used_current: *usize,
     reserved_current: *usize,
 ) c_int;
+pub extern "c" fn stwo_exec_context_pool_trim(handle: *anyopaque) c_int;
 pub extern "c" fn stwo_exec_context_stream(
     handle: *anyopaque,
     out_stream: *?*anyopaque,
@@ -125,6 +126,12 @@ pub extern "c" fn stwo_exec_context_validate_allocation(
     handle: *anyopaque,
     pointer: *const anyopaque,
     required_bytes: usize,
+) c_int;
+pub extern "c" fn stwo_exec_context_prefetch_u32(
+    handle: *anyopaque,
+    pointer: [*]u32,
+    count: usize,
+    to_host: c_int,
 ) c_int;
 pub extern "c" fn stwo_exec_context_memset_async(
     handle: *anyopaque,

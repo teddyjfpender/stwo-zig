@@ -780,6 +780,36 @@ pub fn ContextFor(comptime Api: type) type {
             self.counters.sync(self.active_stage);
         }
 
+        /// Release unused async-pool pages before an oversized managed arena.
+        /// This is an idle-runtime operation; it never runs inside a proof.
+        pub fn trimPoolForManaged(self: *Self) runtime_error.Error!void {
+            if (comptime !@hasDecl(Api, "stwo_exec_context_pool_trim"))
+                return error.InvalidState;
+            if (self.active_stage != null) return error.InvalidState;
+            try self.sync();
+            try runtime_error.check(Api.stwo_exec_context_pool_trim(try self.requireHandle()));
+        }
+
+        /// Move a proof-owned managed subrange between host and device at an
+        /// explicit phase boundary. Account this barrier separately from the
+        /// single terminal proof synchronization.
+        pub fn prefetchManaged(self: *Self, slice: anytype, to_host: bool) runtime_error.Error!void {
+            if (comptime !@hasDecl(Api, "stwo_exec_context_prefetch_u32"))
+                return error.InvalidState;
+            const stage = self.active_stage orelse return error.StageNotActive;
+            const pointer = try self.deviceSlicePointer(u32, slice, slice.len);
+            const bytes = std.math.mul(usize, slice.len, @sizeOf(u32)) catch return error.SizeOverflow;
+            try runtime_error.check(Api.stwo_exec_context_prefetch_u32(
+                try self.requireHandle(),
+                pointer,
+                slice.len,
+                @intFromBool(to_host),
+            ));
+            self.synchronized = false;
+            try self.sync();
+            self.counters.managedMigration(stage, bytes, to_host);
+        }
+
         pub fn poolCurrent(self: *Self) runtime_error.Error!struct {
             used: usize,
             reserved: usize,

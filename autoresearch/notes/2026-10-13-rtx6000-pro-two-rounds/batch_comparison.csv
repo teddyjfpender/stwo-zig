@@ -1,0 +1,4 @@
+run,fixed_device_image,full_command_s,sampled_gpu_peak_mib,fitting_ingress_s,fitting_proof_decode_s,fitting_wrap_s,near_limit_ingress_s,near_limit_proof_decode_s,near_limit_wrap_s,topology_cache_hits,proof_bytes_equal_to_saved_h200
+top-level-distinct-leaf-batch,on,92.306127184,97249,2.131039357,1.076353135,10.96026083,1.384667838,64.20909107,10.347656777,1,true
+final-distinct-leaf-batch,on,31.191322659,97249,11.854032038,1.104994501,1.251140319,1.469194757,12.259982521,0.816359831,1,true
+final-distinct-batch-no-image,off,20.433932235,97249,2.13153767,1.090664193,1.239814181,1.678786165,11.214830182,0.697917481,1,true

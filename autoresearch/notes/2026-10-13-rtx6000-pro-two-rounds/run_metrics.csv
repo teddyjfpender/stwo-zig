@@ -1,0 +1,15 @@
+run,case,task,success,full_command_s,sampled_gpu_peak_mib,sampled_gpu_min_free_mib,planned_cairo_arena_bytes,cairo_ingress_s,cairo_proof_decode_s,wrap_s,fold_setup_s,fold_reduce_s,fold_publish_s,fold_reductions,managed_migration_calls,managed_h2d_bytes,managed_d2h_bytes,h200_proof_match_or_verifier
+baseline-fitting-cairo,16309292_16309292,cairo-only,True,5.878305648,90873,6380,93939819200,3.875095383,1.078924642,,,,,,0,0,0,
+baseline-near-limit-cairo,16309286_16309286,cairo-only,False,3.914774837,559,96694,,,,,,,,,,,,
+baseline-saturated-cairo,16309799_16309799,cairo-only,False,3.926383295,559,96694,,,,,,,,,,,,
+qualified-fitting-leaf-wrap,16309292_16309292,cairo+wrap,True,5.874871469,90875,6378,93939819200,2.084700699,1.086414652,1.431497485,,,,,0,0,0,yes
+qualified-near-limit-managed,16309286_16309286,cairo+wrap,True,15.755630802,97249,4,103123420832,4.484705701,7.828457744,1.442050406,,,,,0,0,0,yes
+qualified-saturated-leaf-wrap,16309799_16309799,cairo+wrap,True,27.585575714,97249,4,118890939480,2.507492945,21.276435931,1.55740518,,,,,4,48169071360,48169071360,yes
+repeat-saturated-leaf-wrap,16309799_16309799,cairo+wrap,True,37.005311891,97249,4,118890939480,11.954198693,21.376342391,1.428566176,,,,,4,48169071360,48169071360,yes
+baseline-two-leaf-fold,2 contiguous leaves,fold,True,1.997675205,27481,69772,,,,,0.521333038,0.726117282,0.27383547,1.0,,,,internal verifier
+qualified-four-leaf-fold,4 contiguous leaves,fold,True,3.132763852,27481,69772,,,,,0.493770494,1.860068579,0.28395301,3.0,,,,internal verifier
+qualified-fold-8,8 contiguous leaves,fold,True,5.455287355,27481,69772,,,,,0.497916368,4.225651715,0.337725518,7.0,,,,internal verifier
+qualified-fold-16,16 contiguous leaves,fold,True,10.226681336,27481,69772,,,,,0.493985792,9.112413018,0.215117162,15.0,,,,internal verifier
+top-level-fitting-leaf-wrap,16309292_16309292,cairo+wrap,True,15.585858928,90875,6378,93939819200,11.717539649,1.087350385,1.466487622,,,,,0,0,0,yes
+top-level-saturated-leaf-wrap,16309799_16309799,cairo+wrap,True,29.178994169,97249,4,118890939480,4.127374112,21.611610968,1.4091167,,,,,4,48169071360,48169071360,yes
+top-level-two-leaf-fold,2 contiguous leaves,fold,True,1.728889112,27481,69772,,,,,0.525097419,0.748401882,0.177238058,1.0,,,,same root proof bytes
