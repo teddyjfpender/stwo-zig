@@ -224,7 +224,7 @@ fn runItems(allocator: std.mem.Allocator, items: []const BatchItem, mode: Mode, 
             if (source_jobs[index + 1]) |*job| job else null
         else
             null;
-        const receipt = try proveOnce(allocator, runtime, static_slot, if (use_device_image) image_slot else null, item.request, executable_digest, @intCast(if (mode == .repeated) index + 1 else 1), if (index == 0) runtime_init_ns else 0, if (index == 0) asset_init_ns else 0, item.sink, external_runtime != null, assets, if (needs_prefetch) early_prefetch orelse &prefetch else null, current_source_job, next_source_job);
+        const receipt = try proveOnce(allocator, runtime, static_slot, if (use_device_image) image_slot else null, image_requested, item.request, executable_digest, @intCast(if (mode == .repeated) index + 1 else 1), if (index == 0) runtime_init_ns else 0, if (index == 0) asset_init_ns else 0, item.sink, external_runtime != null, assets, if (needs_prefetch) early_prefetch orelse &prefetch else null, current_source_job, next_source_job);
         if (mode == .repeated and item.sink == null) {
             // Repeated CLI proofs publish a canonical file. A verified sink
             // receives the decoded proof directly and has no file digest.
@@ -261,6 +261,7 @@ fn proveOnce(
     runtime: *stwo.backend.runtime.NativeRuntime,
     resident_static: *?ResidentStatic,
     device_image_slot: ?*?DeviceImage,
+    image_forced: bool,
     request: cli.Prove,
     executable_digest: [32]u8,
     index: u32,
@@ -305,25 +306,39 @@ fn proveOnce(
     );
     defer controllers_prepared.deinit();
     const controllers_end_ns = timer.read();
+    const arena_plan = controllers_prepared.resident.combined_arena;
     var device_image: ?*DeviceImage = null;
     if (device_image_slot) |slot| {
         const prepared = &controllers_prepared.preprocessed_commit;
-        const key = stwo.executor.preprocessed_cache.deviceImageKey(
-            paths.preprocessed,
-            diagnostic.fixed.preprocessed_identities,
-            prepared,
-        );
-        if (slot.*) |*image| {
-            if (!std.mem.eql(u8, &image.key, &key)) {
+        const arena_bytes = try std.math.mul(usize, arena_plan.total_words, @sizeOf(u32));
+        const image_bytes = try std.math.mul(usize, prepared.column_offsets[prepared.column_offsets.len - 1], @sizeOf(u32));
+        const device_total = (try runtime.inner.session.context.memoryInfo()).total;
+        const reserve = stwo.backend.runtime.proof_transaction.device_memory_safety_reserve_bytes;
+        // Give the arena physical headroom before retaining an additional
+        // immutable image. Explicit =1 permits controlled image-on runs.
+        if (!image_forced and arena_bytes > device_total -| image_bytes -| reserve) {
+            if (slot.*) |*image| {
                 try image.deinit(runtime);
                 slot.* = null;
             }
+        } else {
+            const key = stwo.executor.preprocessed_cache.deviceImageKey(
+                paths.preprocessed,
+                diagnostic.fixed.preprocessed_identities,
+                prepared,
+            );
+            if (slot.*) |*image| {
+                if (!std.mem.eql(u8, &image.key, &key)) {
+                    try image.deinit(runtime);
+                    slot.* = null;
+                }
+            }
+            if (slot.* == null) {
+                const words = prepared.column_offsets[prepared.column_offsets.len - 1];
+                slot.* = try DeviceImage.init(runtime, words, key);
+            }
+            device_image = &slot.*.?;
         }
-        if (slot.* == null) {
-            const words = prepared.column_offsets[prepared.column_offsets.len - 1];
-            slot.* = try DeviceImage.init(runtime, words, key);
-        }
-        device_image = &slot.*.?;
     }
     var twiddles = try stwo.executor.canonical_twiddles.Pack.init(
         allocator,
@@ -332,7 +347,6 @@ fn proveOnce(
     defer twiddles.deinit();
     const twiddles_end_ns = timer.read();
 
-    const arena_plan = controllers_prepared.resident.combined_arena;
     std.debug.print("cairo-cuda arena reservation bytes={} slots={}\n", .{ arena_plan.total_words * 4, arena_plan.placements.len });
     for (arena_plan.placements) |placement| {
         if (placement.requirement.words >= 1 << 24) std.debug.print("cairo-cuda arena slot={} bytes={} offset={} lifetime={s}..{s}\n", .{ placement.requirement.id, placement.requirement.words * 4, placement.offset_words * 4, @tagName(placement.requirement.live_from), @tagName(placement.requirement.live_through) });

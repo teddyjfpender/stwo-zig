@@ -22,6 +22,9 @@ constexpr unsigned long long kIndexLimit =
 constexpr uint32_t kThreads = 256;
 constexpr uint32_t kBlocks = 1024;
 constexpr uint32_t kMinimumBlocksPerMultiprocessor = 6;
+// A bound read is an atomic global-memory operation. Refresh it in batches:
+// stale bounds can cause extra hashing, but cannot skip a smaller nonce.
+constexpr uint32_t kBestReloadPeriod = 32;
 #if defined(STWO_CUMETAL)
 // Metal does not expose portable device-scope 64-bit atomics on every Apple
 // GPU family supported by CuMetal. Search monotonically ordered index windows
@@ -137,18 +140,23 @@ void search_kernel(
     const unsigned long long stride =
         static_cast<unsigned long long>(gridDim.x) * blockDim.x;
     unsigned long long index = worker;
+    unsigned long long current_best = ~0ull;
+    uint32_t since_reload = 0;
+    const bool reduce_m31 =
+        reinterpret_cast<const transcript::State *>(transcript_state)->reserved != 0;
     while (index < search_end) {
         const unsigned long long candidate = index_to_nonce(index);
-        const unsigned long long current_best = atomicAdd(best_nonce, 0ull);
+        if (since_reload == 0) current_best = atomicAdd(best_nonce, 0ull);
         if (candidate >= current_best) break;
         uint32_t word = candidate_hash_word(prefix, candidate);
-        if (reinterpret_cast<const transcript::State *>(transcript_state)->reserved != 0)
-            word = transcript::reduce_m31_word(word);
+        if (reduce_m31) word = transcript::reduce_m31_word(word);
         if (trailing_zeros(word) >= pow_bits) {
             atomic_min_u64(best_nonce, candidate);
+            current_best = candidate;
         }
         if (stride >= search_end - index) break;
         index += stride;
+        since_reload = (since_reload + 1) % kBestReloadPeriod;
     }
 
     __syncthreads();
