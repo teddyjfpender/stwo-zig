@@ -75,7 +75,9 @@ fn pairedWord(
 }
 
 pub const AcceptedRelation = struct {
-    arena: std.heap.ArenaAllocator,
+    /// Stable address required by `source.allocator`, which remains public.
+    arena: *std.heap.ArenaAllocator,
+    arena_owner: std.mem.Allocator,
     profile: cascade.Profile,
     source_root: xdm.Hash,
     line_roots: []xdm.Hash,
@@ -94,6 +96,7 @@ pub const AcceptedRelation = struct {
 
     pub fn deinit(self: *AcceptedRelation) void {
         self.arena.deinit();
+        self.arena_owner.destroy(self.arena);
         self.* = undefined;
     }
 
@@ -259,7 +262,9 @@ pub fn verifyAndExtract(
     channel: *blake2s_channel.Blake2sChannel,
     statement: cascade.ExpectedStatement,
 ) !AcceptedRelation {
-    var arena = std.heap.ArenaAllocator.init(allocator);
+    const arena = try allocator.create(std.heap.ArenaAllocator);
+    errdefer allocator.destroy(arena);
+    arena.* = std.heap.ArenaAllocator.init(allocator);
     errdefer arena.deinit();
     const a = arena.allocator();
     var staged = channel.*;
@@ -344,6 +349,7 @@ pub fn verifyAndExtract(
     }
     var relation = AcceptedRelation{
         .arena = arena,
+        .arena_owner = allocator,
         .profile = proof.profile,
         .source_root = proof.source_root,
         .line_roots = roots,
