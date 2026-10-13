@@ -8,7 +8,7 @@ const std = @import("std");
 const circle = @import("../circle.zig");
 const m31 = @import("../fields/m31.zig");
 const qm31 = @import("../fields/qm31.zig");
-const blake2_merkle = @import("../vcs_lifted/blake2_merkle.zig");
+const blake2_hash = @import("../vcs/blake2_hash.zig");
 const paired = @import("paired_envelope.zig");
 const two_height = @import("paired_two_height_fri.zig");
 
@@ -49,6 +49,36 @@ pub const Prepared = struct {
     pub fn deinit(self: *Prepared) void {
         self.decoded.deinit();
         self.* = undefined;
+    }
+};
+
+/// A caller-owned public statement. The roots and OOD values are compared to
+/// the decoded proof before any verification state is published to the caller.
+/// This binds the relation to an application statement; it does not confer a
+/// security level on this experimental protocol.
+pub const ExpectedStatement = struct {
+    profile: paired.ExpectedProfile,
+    source_roots: []const Hash,
+    sample_values: []const []const QM31,
+
+    pub fn matches(self: ExpectedStatement, envelope: paired.Envelope) bool {
+        if (!self.profile.matches(envelope) or
+            self.source_roots.len != envelope.heights.len or
+            self.sample_values.len != envelope.heights.len)
+        {
+            return false;
+        }
+        for (envelope.heights, self.source_roots, self.sample_values) |height, root, claims| {
+            if (!std.mem.eql(u8, &height.source_root, &root) or
+                claims.len != height.sample_values.len)
+            {
+                return false;
+            }
+            for (height.sample_values, claims) |actual, expected| {
+                if (!actual.eql(expected)) return false;
+            }
+        }
+        return true;
     }
 };
 
@@ -201,16 +231,29 @@ pub fn drawOodPointFromRoots(
     envelope: paired.Envelope,
 ) !circle.CirclePointQM31 {
     try envelope.validate();
-    channel.mixU64(ROOTS_TAG);
-    channel.mixU64(envelope.largest_log_size);
-    channel.mixU64(envelope.query_count);
-    channel.mixU64(envelope.heights.len);
+    var staged_channel = channel.*;
+    staged_channel.mixU64(ROOTS_TAG);
+    staged_channel.mixU64(envelope.largest_log_size);
+    staged_channel.mixU64(envelope.query_count);
+    staged_channel.mixU64(envelope.heights.len);
     for (envelope.heights) |height| {
-        channel.mixU64((@as(u64, height.shape.log_domain_size) << 32) | height.shape.log_degree_bound);
-        channel.mixU64(height.shape.original_column_count);
-        blake2_merkle.Blake2sMerkleChannel.mixRoot(channel, height.source_root);
+        staged_channel.mixU64((@as(u64, height.shape.log_domain_size) << 32) | height.shape.log_degree_bound);
+        staged_channel.mixU64(height.shape.original_column_count);
+        // The same Blake2s Merkle-channel operation, spelled generically so
+        // deterministic rejection tests can inject a chosen seed.
+        staged_channel.updateDigest(blake2_hash.Blake2sHasher.concatAndHash(
+            staged_channel.digestBytes(),
+            height.source_root,
+        ));
     }
-    return circle.secureFieldPointFromRandomSeedChecked(channel.drawSecureFelt());
+    const point = try circle.secureFieldPointFromRandomSeedChecked(staged_channel.drawSecureFelt());
+    // The native conjugate-line construction divides by -2*point.y.c1.
+    // For a point over CM31 that component is zero. Other sampled points can
+    // still have a zero row-specific quotient determinant; checked inverses
+    // in the prover/verifier reject those exact rows.
+    if (point.y.c1.isZero()) return error.DegenerateOodPoint;
+    channel.* = staged_channel;
+    return point;
 }
 
 /// Require the encoded point for every source column to equal the point
@@ -232,6 +275,9 @@ pub fn drawBatchAfterOod(
     return .{ .batch = channel.drawSecureFelt() };
 }
 
+/// Checks a self-contained proof relation under caller-chosen geometry only.
+/// Use verifyAgainstStatement when an application expects particular roots
+/// and claims. Neither entry point is an admitted security profile.
 pub fn verify(
     allocator: std.mem.Allocator,
     encoded: []const u8,
@@ -239,20 +285,50 @@ pub fn verify(
     expected: paired.ExpectedProfile,
     n_queries: usize,
 ) !void {
-    var prepared = try decodeAndBind(allocator, encoded, channel, expected, n_queries);
+    return verifyWithStatement(allocator, encoded, channel, expected, n_queries, null);
+}
+
+pub fn verifyAgainstStatement(
+    allocator: std.mem.Allocator,
+    encoded: []const u8,
+    channel: anytype,
+    statement: ExpectedStatement,
+    n_queries: usize,
+) !void {
+    return verifyWithStatement(allocator, encoded, channel, statement.profile, n_queries, statement);
+}
+
+fn verifyWithStatement(
+    allocator: std.mem.Allocator,
+    encoded: []const u8,
+    channel: anytype,
+    expected: paired.ExpectedProfile,
+    n_queries: usize,
+    statement: ?ExpectedStatement,
+) !void {
+    // Parsing, transcript replay, Merkle authentication, and fold checks form
+    // one verifier transaction. A late rejection must not publish a partially
+    // advanced Fiat-Shamir state to the caller.
+    var staged_channel = channel.*;
+    var prepared = try decodeAndBind(allocator, encoded, &staged_channel, expected, n_queries);
     defer prepared.deinit();
+    if (statement) |expected_statement| {
+        if (!expected_statement.matches(prepared.decoded.source.envelope))
+            return error.UnexpectedPairedStatement;
+    }
     const source_prepared = paired.Prepared{
         .decoded = prepared.decoded.source,
         .challenges = prepared.challenges,
     };
-    return two_height.verifyAfterSourceBinding(
+    try two_height.verifyAfterSourceBinding(
         allocator,
-        channel,
+        &staged_channel,
         &source_prepared,
         prepared.decoded.intermediate,
         prepared.decoded.terminal_ordered_coeffs,
         n_queries,
     );
+    channel.* = staged_channel;
 }
 
 fn validateShape(

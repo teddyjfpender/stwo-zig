@@ -849,6 +849,41 @@ fn checkHonestAdjacentHeights(comptime largest_log: u32, n_queries: usize) !void
         .query_count = @intCast(4 * n_queries),
         .heights = &header_heights,
     };
+    // Force two otherwise astronomically rare transcript draws. Both map to
+    // C(CM31), where the conjugate-line denominator is zero. Rejection must
+    // leave the caller's transcript untouched, including after root binding.
+    const ChosenSeedChannel = struct {
+        digest: [32]u8 = [_]u8{0} ** 32,
+        draws: usize = 0,
+        seed: QM31,
+        const Self = @This();
+        pub fn digestBytes(self: Self) [32]u8 {
+            return self.digest;
+        }
+        pub fn updateDigest(self: *Self, digest: [32]u8) void {
+            self.digest = digest;
+        }
+        pub fn mixU64(self: *Self, _: u64) void {
+            self.draws += 1;
+        }
+        pub fn drawSecureFelt(self: *Self) QM31 {
+            self.draws += 1;
+            return self.seed;
+        }
+    };
+    for ([_]QM31{
+        QM31.fromBase(M31.fromCanonical(7)),
+        QM31.fromM31(M31.fromCanonical(7), M31.fromCanonical(11), M31.zero(), M31.zero()),
+    }) |seed| {
+        var channel = ChosenSeedChannel{ .seed = seed };
+        const original = channel;
+        try std.testing.expectError(
+            error.DegenerateOodPoint,
+            wire.drawOodPointFromRoots(&channel, header),
+        );
+        try std.testing.expectEqualSlices(u8, &original.digest, &channel.digest);
+        try std.testing.expectEqual(original.draws, channel.draws);
+    }
     var prover_channel = Channel{};
     wire.bindVersion(&prover_channel);
     const sample_point = try wire.drawOodPointFromRoots(&prover_channel, header);
@@ -1134,6 +1169,7 @@ fn checkHonestAdjacentHeights(comptime largest_log: u32, n_queries: usize) !void
     });
     defer alloc.free(changed_outer_wire);
     var changed_verifier_channel = Channel{};
+    const changed_verifier_before = changed_verifier_channel.digest;
     try std.testing.expectError(
         error.IntermediateFoldMismatch,
         wire.verify(alloc, changed_outer_wire, &changed_verifier_channel, .{
@@ -1141,6 +1177,11 @@ fn checkHonestAdjacentHeights(comptime largest_log: u32, n_queries: usize) !void
             .query_count = @intCast(4 * n_queries),
             .shapes = &[_]core.pcs.paired_ensemble.Shape{ shape0, shape1 },
         }, n_queries),
+    );
+    try std.testing.expectEqualSlices(
+        u8,
+        &changed_verifier_before,
+        &changed_verifier_channel.digest,
     );
 }
 
@@ -1435,6 +1476,46 @@ test "experimental sampled two-height FRI authenticates intermediate and checks 
         n_queries,
     );
     try std.testing.expectEqualSlices(u8, &prover_channel.digest, &wire_channel.digest);
+    const expected_roots = [_]envelope_mod.Hash{ tree0.root(), tree1.root() };
+    const expected_claims = [_][]const QM31{ &claims, &claims };
+    const statement = two_height_wire.ExpectedStatement{
+        .profile = expected_profile,
+        .source_roots = &expected_roots,
+        .sample_values = &expected_claims,
+    };
+    var statement_channel = Channel{};
+    try two_height_wire.verifyAgainstStatement(
+        alloc,
+        complete_wire,
+        &statement_channel,
+        statement,
+        n_queries,
+    );
+    try std.testing.expectEqualSlices(u8, &wire_channel.digest, &statement_channel.digest);
+    var wrong_roots = expected_roots;
+    wrong_roots[0][0] ^= 1;
+    var rejected_statement_channel = Channel{};
+    const statement_digest_before = rejected_statement_channel.digest;
+    try std.testing.expectError(
+        error.UnexpectedPairedStatement,
+        two_height_wire.verifyAgainstStatement(alloc, complete_wire, &rejected_statement_channel, .{
+            .profile = expected_profile,
+            .source_roots = &wrong_roots,
+            .sample_values = &expected_claims,
+        }, n_queries),
+    );
+    try std.testing.expectEqualSlices(u8, &statement_digest_before, &rejected_statement_channel.digest);
+    const wrong_claim = [_]QM31{claims[0].add(QM31.one())};
+    const wrong_claims = [_][]const QM31{ &wrong_claim, &claims };
+    try std.testing.expectError(
+        error.UnexpectedPairedStatement,
+        two_height_wire.verifyAgainstStatement(alloc, complete_wire, &rejected_statement_channel, .{
+            .profile = expected_profile,
+            .source_roots = &expected_roots,
+            .sample_values = &wrong_claims,
+        }, n_queries),
+    );
+    try std.testing.expectEqualSlices(u8, &statement_digest_before, &rejected_statement_channel.digest);
     const wrong_version_wire = try alloc.dupe(u8, complete_wire);
     defer alloc.free(wrong_version_wire);
     wrong_version_wire[8] = 2;
@@ -1506,6 +1587,7 @@ test "experimental sampled two-height FRI authenticates intermediate and checks 
             n_queries,
         ),
     );
+    try std.testing.expectEqualSlices(u8, &untouched_digest, &changed_source_channel.digest);
     try std.testing.expectError(
         error.InvalidPairedProof,
         two_height_wire.encode(alloc, .{
@@ -1614,6 +1696,7 @@ test "experimental sampled two-height FRI authenticates intermediate and checks 
             n_queries,
         ),
     );
+    try std.testing.expectEqualSlices(u8, &untouched_digest, &changed_line_channel.digest);
 
     // A prover can commit to a different, internally consistent line tree.
     // Merkle authentication then succeeds, but the sampled source-to-line
@@ -1741,6 +1824,7 @@ test "experimental sampled two-height FRI authenticates intermediate and checks 
             n_queries,
         ),
     );
+    try std.testing.expectEqualSlices(u8, &untouched_digest, &forged_line_channel.digest);
 
     // An adversary can publish a different short terminal polynomial and
     // re-open both honest trees at the resulting Fiat-Shamir queries. Its
@@ -1838,4 +1922,5 @@ test "experimental sampled two-height FRI authenticates intermediate and checks 
             n_queries,
         ),
     );
+    try std.testing.expectEqualSlices(u8, &untouched_digest, &wrong_terminal_verifier.digest);
 }

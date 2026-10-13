@@ -1,9 +1,10 @@
 //! Versioned experimental source-opening envelope for paired multi-height FRI.
 //!
 //! This wire contract carries authenticated source openings at each height.
-//! It intentionally does not claim to be a complete PCS proof: multi-height
-//! FRI layer commitments and opening checks are not implemented. No production
-//! verifier selects or accepts this variant.
+//! It intentionally does not claim to be a complete PCS proof by itself. A
+//! separate experimental two-height outer proof wraps this source fragment
+//! with one committed line layer and its opening checks. Generic height
+//! cascades and production verifier admission remain unimplemented.
 
 const std = @import("std");
 const circle = @import("../circle.zig");
