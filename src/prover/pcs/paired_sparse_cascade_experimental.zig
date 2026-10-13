@@ -72,7 +72,7 @@ fn proveImpl(
     var arena = std.heap.ArenaAllocator.init(allocator);
     errdefer arena.deinit();
     const a = arena.allocator();
-    var source = try source_prover.Commitment.commit(a, input.source_columns);
+    var source = try source_prover.Commitment.commitSparse(a, input.source_columns, input.n_queries);
     const root = source.root();
     const source_profile = sparse.Profile{
         .largest_log_size = source.profile.largest_log_size,

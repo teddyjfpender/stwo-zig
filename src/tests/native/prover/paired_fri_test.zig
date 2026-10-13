@@ -759,6 +759,15 @@ test "XDM04 authenticates sparse pairs and preserves duplicate raw queries" {
     const raw = [_]usize{ 5, 5, 23 };
     const encoded = try tree.encodeSparseOpenings(alloc, &raw);
     defer alloc.free(encoded);
+    var sparse_tree = try host.Commitment.commitSparse(alloc, &heights, raw.len);
+    defer sparse_tree.deinit();
+    const dense_root = tree.root();
+    const sparse_root = sparse_tree.root();
+    try std.testing.expectEqualSlices(u8, &dense_root, &sparse_root);
+    const sparse_encoded = try sparse_tree.encodeSparseOpenings(alloc, &raw);
+    defer alloc.free(sparse_encoded);
+    try std.testing.expectEqualSlices(u8, encoded, sparse_encoded);
+    try std.testing.expectError(error.UnsupportedProofFormat, sparse_tree.encodeOpenings(alloc, &raw));
     const profile = sparse.Profile{
         .largest_log_size = tree.profile.largest_log_size,
         .height_count = tree.profile.height_count,
@@ -804,6 +813,69 @@ test "XDM04 authenticates sparse pairs and preserves duplicate raw queries" {
                     try std.testing.expectEqual(heights[height][0][base + j], verified.at(height, query, j, 0));
             };
     }
+}
+
+test "CAS05 sparse host crosses XDM03 log cap with bounded k17 proof" {
+    const core = @import("stwo_core");
+    const host_tree = @import("stwo_prover_engine").pcs.transposed_cascade_experimental;
+    const host = @import("stwo_prover_engine").pcs.paired_sparse_cascade_experimental;
+    const Channel = core.channel.blake2s.Blake2sChannel;
+    const alloc = std.testing.allocator;
+    const first = try alloc.alloc(M31, 1 << 17);
+    defer alloc.free(first);
+    const second = try alloc.alloc(M31, 1 << 16);
+    defer alloc.free(second);
+    @memset(first, M31.fromCanonical(3));
+    @memset(second, M31.fromCanonical(5));
+    const h0 = [_][]const M31{first};
+    const h1 = [_][]const M31{second};
+    const heights = [_][]const []const M31{ &h0, &h1 };
+    try std.testing.expectError(error.InvalidCascadeProfile, host_tree.Commitment.commit(alloc, &heights));
+    try std.testing.expectError(error.InvalidCascadeProfile, host_tree.Commitment.commitSparse(alloc, &heights, 0));
+    const short_h1 = [_][]const M31{second[0 .. second.len - 1]};
+    const short_heights = [_][]const []const M31{ &h0, &short_h1 };
+    try std.testing.expectError(error.InvalidCascadeProfile, host_tree.Commitment.commitSparse(alloc, &short_heights, 3));
+    try std.testing.expect(
+        try host_tree.Commitment.estimatedSparseHostBytes(17, first.len + second.len) <
+            host_tree.Commitment.MAX_SPARSE_HOST_BYTES,
+    );
+    try std.testing.expect(
+        try host_tree.Commitment.estimatedSparseHostBytes(22, 0) >
+            host_tree.Commitment.MAX_SPARSE_HOST_BYTES,
+    );
+    var prover_channel = Channel{};
+    var owned = try host.prove(alloc, .{
+        .source_columns = &heights,
+        .log_blowup = 1,
+        .n_queries = 3,
+    }, &prover_channel);
+    defer owned.deinit();
+    const proof = owned.proof;
+    try std.testing.expectEqual(@as(u32, 17), proof.profile.source.largest_log_size);
+    const statement = core.pcs.paired_sparse_cascade_experimental.ExpectedStatement{
+        .profile = proof.profile,
+        .source_root = proof.source_root,
+        .claims = proof.claims,
+    };
+    const wire = core.pcs.paired_sparse_cascade_wire;
+    const encoded = try wire.encode(alloc, proof);
+    defer alloc.free(encoded);
+    try std.testing.expectEqual(@as(usize, 266584), encoded.len);
+    var verifier_channel = Channel{};
+    try wire.verifyAgainstStatement(alloc, encoded, &verifier_channel, statement);
+    try std.testing.expectEqualSlices(u8, &prover_channel.digest, &verifier_channel.digest);
+}
+
+test "CAS05 sparse host refuses dense tree above resident budget before hashing" {
+    const host_tree = @import("stwo_prover_engine").pcs.transposed_cascade_experimental;
+    const alloc = std.testing.allocator;
+    const first = try alloc.alloc(M31, 1 << 20);
+    defer alloc.free(first);
+    @memset(first, M31.zero());
+    const first_columns = [_][]const M31{first} ** 64;
+    const second_columns = [_][]const M31{first[0 .. 1 << 19]} ** 64;
+    const heights = [_][]const []const M31{ &first_columns, &second_columns };
+    try std.testing.expectError(error.SparseHostMemoryBudgetExceeded, host_tree.Commitment.commitSparse(alloc, &heights, 1));
 }
 
 test "XDM04 verifies a log-22 sparse path without a dense prover tree" {
