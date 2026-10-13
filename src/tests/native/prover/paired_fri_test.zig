@@ -1029,6 +1029,21 @@ fn checkHonestAdjacentHeights(comptime largest_log: u32, n_queries: usize) !void
         .terminal_ordered_coeffs = terminal_coeffs,
     });
     defer alloc.free(outer_wire);
+    var generated_channel = Channel{};
+    const generated_wire = try @import("stwo_prover_engine").pcs.paired_two_height_experimental.prove(
+        alloc,
+        .{
+            .largest_log_size = largest_log,
+            .log_blowup = 1,
+            .n_queries = n_queries,
+            .first_columns = &columns0,
+            .second_columns = &columns1,
+        },
+        &generated_channel,
+    );
+    defer alloc.free(generated_wire);
+    try std.testing.expectEqualSlices(u8, outer_wire, generated_wire);
+    try std.testing.expectEqualSlices(u8, &prover_channel.digest, &generated_channel.digest);
     var verifier_channel = Channel{};
     try wire.verify(alloc, outer_wire, &verifier_channel, .{
         .largest_log_size = largest_log,
@@ -1130,8 +1145,101 @@ fn checkHonestAdjacentHeights(comptime largest_log: u32, n_queries: usize) !void
 }
 
 test "experimental paired FRI works at parameterized adjacent heights" {
+    try checkHonestAdjacentHeights(4, 4);
     try checkHonestAdjacentHeights(5, 5);
     try checkHonestAdjacentHeights(6, 7);
+}
+
+test "experimental paired prover handles two source pairs and rejects invalid inputs" {
+    const core = @import("stwo_core");
+    const prover = @import("stwo_prover_engine").pcs.paired_two_height_experimental;
+    const wire = core.pcs.paired_two_height_wire;
+    const Channel = core.channel.blake2s.Blake2sChannel;
+    const alloc = std.testing.allocator;
+    const first_domain = core.poly.circle.canonic.CanonicCoset.new(5).circleDomain();
+    const second_domain = core.poly.circle.canonic.CanonicCoset.new(4).circleDomain();
+    var first_x: [32]M31 = undefined;
+    var second_x: [16]M31 = undefined;
+    for (&first_x, 0..) |*value, row| {
+        value.* = first_domain.at(core.utils.bitReverseIndex(row, 5)).x;
+    }
+    for (&second_x, 0..) |*value, row| {
+        value.* = second_domain.at(core.utils.bitReverseIndex(row, 4)).x;
+    }
+    const first_constant = [_]M31{M31.fromCanonical(7)} ** 32;
+    const second_constant = [_]M31{M31.fromCanonical(11)} ** 16;
+    const first_columns = [_][]const M31{ &first_x, &first_constant };
+    const second_columns = [_][]const M31{ &second_x, &second_constant };
+    const input = prover.Input{
+        .largest_log_size = 5,
+        .log_blowup = 2,
+        .n_queries = 5,
+        .first_columns = &first_columns,
+        .second_columns = &second_columns,
+    };
+    var proving_channel = Channel{};
+    const encoded = try prover.prove(alloc, input, &proving_channel);
+    defer alloc.free(encoded);
+    const shapes = try input.shapes();
+    var verifying_channel = Channel{};
+    try wire.verify(alloc, encoded, &verifying_channel, .{
+        .largest_log_size = 5,
+        .query_count = 20,
+        .shapes = &shapes,
+    }, 5);
+    try std.testing.expectEqualSlices(u8, &proving_channel.digest, &verifying_channel.digest);
+    var decoded = try wire.decode(alloc, encoded);
+    defer decoded.deinit();
+    const first = decoded.source.envelope.heights[0];
+    const second = decoded.source.envelope.heights[1];
+    try std.testing.expectEqual(@as(usize, 2), first.sample_values.len);
+    try std.testing.expectEqual(@as(usize, 2), second.sample_values.len);
+    try std.testing.expect(first.sample_values[0].eql(first.sample_points[0].x));
+    try std.testing.expect(second.sample_values[0].eql(second.sample_points[0].x));
+    try std.testing.expect(first.sample_values[1].eql(QM31.fromBase(M31.fromCanonical(7))));
+    try std.testing.expect(second.sample_values[1].eql(QM31.fromBase(M31.fromCanonical(11))));
+    var repeated_channel = Channel{};
+    const repeated = try prover.prove(alloc, input, &repeated_channel);
+    defer alloc.free(repeated);
+    try std.testing.expectEqualSlices(u8, encoded, repeated);
+    try std.testing.expectEqualSlices(u8, &proving_channel.digest, &repeated_channel.digest);
+    var prefixed_prover_channel = Channel{};
+    prefixed_prover_channel.mixU64(0x5345_4544_4544_5032);
+    const prefixed_wire = try prover.prove(alloc, input, &prefixed_prover_channel);
+    defer alloc.free(prefixed_wire);
+    var prefixed_verifier_channel = Channel{};
+    prefixed_verifier_channel.mixU64(0x5345_4544_4544_5032);
+    try wire.verify(alloc, prefixed_wire, &prefixed_verifier_channel, .{
+        .largest_log_size = 5,
+        .query_count = 20,
+        .shapes = &shapes,
+    }, 5);
+    try std.testing.expectEqualSlices(
+        u8,
+        &prefixed_prover_channel.digest,
+        &prefixed_verifier_channel.digest,
+    );
+
+    const short_columns = [_][]const M31{ first_x[0..31], &first_constant };
+    var rejected_channel = Channel{};
+    const untouched = rejected_channel.digest;
+    var malformed = input;
+    malformed.first_columns = &short_columns;
+    try std.testing.expectError(
+        error.InvalidPairedProverInput,
+        prover.prove(alloc, malformed, &rejected_channel),
+    );
+    try std.testing.expectEqualSlices(u8, &untouched, &rejected_channel.digest);
+    var high_degree = first_x;
+    high_degree[0] = high_degree[0].add(M31.one());
+    const high_degree_columns = [_][]const M31{ &high_degree, &first_constant };
+    malformed = input;
+    malformed.first_columns = &high_degree_columns;
+    try std.testing.expectError(
+        error.SourceDegreeExceeded,
+        prover.prove(alloc, malformed, &rejected_channel),
+    );
+    try std.testing.expectEqualSlices(u8, &untouched, &rejected_channel.digest);
 }
 
 test "experimental sampled two-height FRI authenticates intermediate and checks both folds" {

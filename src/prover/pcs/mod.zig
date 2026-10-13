@@ -7,6 +7,9 @@ pub const proof_of_work = @import("proof_of_work.zig");
 pub const tiled_commit = @import("tiled_commit.zig");
 
 pub const quotient_ops = scheme.quotient_ops;
+/// Isolated host reference for the draft S31P2F01 paired FRI proof. Production
+/// PCS does not call it or admit its proof format.
+pub const paired_two_height_experimental = @import("paired_two_height_experimental.zig");
 /// `proving_5a7c5ed` commitment heights: the single lifting step of every
 /// commit path and the FRI/PoW view of a V2 configuration.
 pub const revision_lifting = scheme.revision_lifting;
