@@ -11,6 +11,249 @@ const M31 = m31.M31;
 const QM31 = qm31.QM31;
 const FriProver = fri.FriProver;
 
+test "three-height one-root cascade authenticates every insertion and rolls back" {
+    const core = @import("stwo_core");
+    const cascade = core.pcs.paired_cascade_experimental;
+    const host = @import("stwo_prover_engine").pcs.paired_cascade_experimental;
+    const Channel = core.channel.blake2s.Blake2sChannel;
+    const alloc = std.testing.allocator;
+    const d0 = core.poly.circle.canonic.CanonicCoset.new(5).circleDomain();
+    const d1 = core.poly.circle.canonic.CanonicCoset.new(4).circleDomain();
+    var x0: [32]M31 = undefined;
+    var x1: [16]M31 = undefined;
+    for (&x0, 0..) |*value, row| value.* = d0.at(core.utils.bitReverseIndex(row, 5)).x;
+    for (&x1, 0..) |*value, row| value.* = d1.at(core.utils.bitReverseIndex(row, 4)).x;
+    const third = [_]M31{M31.fromCanonical(7)} ** 8;
+    const h0 = [_][]const M31{&x0};
+    const h1 = [_][]const M31{&x1};
+    const h2 = [_][]const M31{&third};
+    const heights = [_][]const []const M31{ &h0, &h1, &h2 };
+    var prover_channel = Channel{};
+    var owned = try host.prove(alloc, .{
+        .source_columns = &heights,
+        .log_blowup = 2,
+        .n_queries = 5,
+    }, &prover_channel);
+    defer owned.deinit();
+    const proof = owned.proof;
+    const statement = cascade.ExpectedStatement{
+        .profile = proof.profile,
+        .source_root = proof.source_root,
+        .claims = proof.claims,
+    };
+    var verifier_channel = Channel{};
+    try cascade.verifyAgainstStatement(alloc, proof, &verifier_channel, statement);
+    try std.testing.expectEqualSlices(u8, &prover_channel.digest, &verifier_channel.digest);
+    var replay = Channel{};
+    cascade.bindVersion(&replay);
+    const sampled = try cascade.drawOodPoint(&replay, proof.profile, proof.source_root);
+    try std.testing.expect(sampled.eql(proof.sampled_point));
+    const lambda = cascade.drawBatchAfterOod(&replay, proof.claims);
+    for (proof.line_openings) |opening| {
+        _ = replay.drawSecureFelt();
+        core.vcs_lifted.blake2_merkle.Blake2sMerkleChannel.mixRoot(&replay, opening.root);
+    }
+    _ = replay.drawSecureFelt();
+    replay.mixFelts(proof.terminal_ordered_coeffs);
+    const raw = try core.queries.drawQueries(&replay, alloc, 5, 5);
+    defer alloc.free(raw);
+    var opened = try core.pcs.transposed_merkle_cascade.verifyAndCollect(
+        alloc,
+        proof.source_wire,
+        proof.profile.source,
+        proof.source_root,
+        raw,
+    );
+    defer opened.deinit();
+    var paired = try core.pcs.transposed_paired_cascade.fromVerifiedOpenings(
+        alloc,
+        opened,
+        raw,
+        sampled,
+        proof.claims,
+        lambda,
+    );
+    defer paired.deinit();
+    const old_host = @import("stwo_prover_engine").pcs.paired_two_height_experimental;
+    for (heights, 0..) |columns, height| {
+        const log_size = 5 - @as(u32, @intCast(height));
+        const domain = core.poly.circle.canonic.CanonicCoset.new(log_size).circleDomain();
+        const reference = try old_host.pairedHeight(
+            alloc,
+            domain,
+            columns,
+            proof.claims[height],
+            sampled,
+            .{ .batch = lambda },
+        );
+        defer alloc.free(reference);
+        const width = proof.profile.source.width(height);
+        for (raw, 0..) |position, query| {
+            const base = (position & ~(proof.profile.source.width(0) - 1)) >> @intCast(height);
+            for (0..width) |j|
+                try std.testing.expect(reference[base + j].eql(paired.values[height][query * width + j]));
+        }
+    }
+    try std.testing.expectEqual(@as(usize, 2), proof.line_openings.len);
+    try std.testing.expectEqual(@as(usize, 1), proof.terminal_ordered_coeffs.len);
+    var wrong_root = statement;
+    wrong_root.source_root[0] ^= 1;
+    var rejected = Channel{};
+    const initial = rejected.digest;
+    try std.testing.expectError(error.UnexpectedCascadeStatement, cascade.verifyAgainstStatement(alloc, proof, &rejected, wrong_root));
+    try std.testing.expectEqualSlices(u8, &initial, &rejected.digest);
+    var wrong_claims = try alloc.dupe(QM31, proof.claims[1]);
+    defer alloc.free(wrong_claims);
+    wrong_claims[0] = wrong_claims[0].add(QM31.one());
+    var claims = [_][]const QM31{ proof.claims[0], wrong_claims, proof.claims[2] };
+    var wrong_statement = statement;
+    wrong_statement.claims = &claims;
+    try std.testing.expectError(error.UnexpectedCascadeStatement, cascade.verifyAgainstStatement(alloc, proof, &rejected, wrong_statement));
+    try std.testing.expectEqualSlices(u8, &initial, &rejected.digest);
+    var wrong_point = proof;
+    wrong_point.sampled_point = core.circle.CirclePointQM31.zero();
+    try std.testing.expectError(error.UnsampledOodPoint, cascade.verifyAgainstStatement(alloc, wrong_point, &rejected, statement));
+    try std.testing.expectEqualSlices(u8, &initial, &rejected.digest);
+    var wrong_source = proof;
+    const changed_source = try alloc.dupe(u8, proof.source_wire);
+    defer alloc.free(changed_source);
+    const xdm_header_len = 8 + 2 + 2 + 4 + 4 + 2 + 2 + 4 +
+        2 * proof.profile.source.height_count + 32;
+    changed_source[xdm_header_len + 4] ^= 1;
+    wrong_source.source_wire = changed_source;
+    if (cascade.verifyAgainstStatement(alloc, wrong_source, &rejected, statement)) |_| {
+        return error.ExpectedProofRejection;
+    } else |_| {}
+    try std.testing.expectEqualSlices(u8, &initial, &rejected.digest);
+    const changed_version = try alloc.dupe(u8, proof.source_wire);
+    defer alloc.free(changed_version);
+    changed_version[8] = 4;
+    wrong_source.source_wire = changed_version;
+    try std.testing.expectError(error.UnsupportedProofVersion, cascade.verifyAgainstStatement(alloc, wrong_source, &rejected, statement));
+    try std.testing.expectEqualSlices(u8, &initial, &rejected.digest);
+    var wrong_line = proof;
+    var line_openings = try alloc.dupe(cascade.LineOpening, proof.line_openings);
+    defer alloc.free(line_openings);
+    const changed = try alloc.dupe(M31, line_openings[1].queried_coordinates[0]);
+    defer alloc.free(changed);
+    changed[0] = changed[0].add(M31.one());
+    line_openings[1].queried_coordinates[0] = changed;
+    wrong_line.line_openings = line_openings;
+    try std.testing.expectError(error.DuplicateQueryMismatch, cascade.verifyAgainstStatement(alloc, wrong_line, &rejected, statement));
+    try std.testing.expectEqualSlices(u8, &initial, &rejected.digest);
+    var wrong_terminal = proof;
+    const terminal = try alloc.dupe(QM31, proof.terminal_ordered_coeffs);
+    defer alloc.free(terminal);
+    terminal[0] = terminal[0].add(QM31.one());
+    wrong_terminal.terminal_ordered_coeffs = terminal;
+    if (cascade.verifyAgainstStatement(alloc, wrong_terminal, &rejected, statement)) |_| {
+        return error.ExpectedProofRejection;
+    } else |_| {}
+    try std.testing.expectEqualSlices(u8, &initial, &rejected.digest);
+    try std.testing.expectEqual(@as(usize, 434), proof.source_wire.len);
+    try std.testing.expectEqual(@as(usize, 1), proof.line_openings[0].hash_witness.len);
+    try std.testing.expectEqual(@as(usize, 1), proof.line_openings[1].hash_witness.len);
+}
+
+test "generic cascade checks four adjacent heights under one transposed root" {
+    const core = @import("stwo_core");
+    const cascade = core.pcs.paired_cascade_experimental;
+    const host = @import("stwo_prover_engine").pcs.paired_cascade_experimental;
+    const Channel = core.channel.blake2s.Blake2sChannel;
+    const alloc = std.testing.allocator;
+    const d0 = core.poly.circle.canonic.CanonicCoset.new(6).circleDomain();
+    const d1 = core.poly.circle.canonic.CanonicCoset.new(5).circleDomain();
+    var x0: [64]M31 = undefined;
+    var x1: [32]M31 = undefined;
+    for (&x0, 0..) |*value, row| value.* = d0.at(core.utils.bitReverseIndex(row, 6)).x;
+    for (&x1, 0..) |*value, row| value.* = d1.at(core.utils.bitReverseIndex(row, 5)).x;
+    const third = [_]M31{M31.fromCanonical(7)} ** 16;
+    const fourth = [_]M31{M31.fromCanonical(11)} ** 8;
+    const h0 = [_][]const M31{&x0};
+    const h1 = [_][]const M31{&x1};
+    const h2 = [_][]const M31{&third};
+    const h3 = [_][]const M31{&fourth};
+    const heights = [_][]const []const M31{ &h0, &h1, &h2, &h3 };
+    var prover_channel = Channel{};
+    var owned = try host.prove(alloc, .{
+        .source_columns = &heights,
+        .log_blowup = 2,
+        .n_queries = 3,
+    }, &prover_channel);
+    defer owned.deinit();
+    const proof = owned.proof;
+    var verifier_channel = Channel{};
+    try cascade.verifyAgainstStatement(alloc, proof, &verifier_channel, .{
+        .profile = proof.profile,
+        .source_root = proof.source_root,
+        .claims = proof.claims,
+    });
+    try std.testing.expectEqualSlices(u8, &prover_channel.digest, &verifier_channel.digest);
+    try std.testing.expectEqual(@as(usize, 3), proof.line_openings.len);
+    try std.testing.expectEqual(@as(usize, 1), proof.terminal_ordered_coeffs.len);
+    try std.testing.expectEqual(@as(usize, 508), proof.source_wire.len);
+    for (proof.line_openings) |line_opening|
+        try std.testing.expectEqual(@as(usize, 1), line_opening.hash_witness.len);
+}
+
+test "XDM03 authenticates three adjacent source heights under one root" {
+    const core = @import("stwo_core");
+    const xdm = core.pcs.transposed_merkle_cascade;
+    const host = @import("stwo_prover_engine").pcs.transposed_cascade_experimental;
+    const alloc = std.testing.allocator;
+    const first = [_]M31{M31.fromCanonical(3)} ** 32;
+    const second = [_]M31{M31.fromCanonical(5)} ** 16;
+    const third = [_]M31{M31.fromCanonical(7)} ** 8;
+    const h0 = [_][]const M31{&first};
+    const h1 = [_][]const M31{&second};
+    const h2 = [_][]const M31{&third};
+    const heights = [_][]const []const M31{ &h0, &h1, &h2 };
+    var tree = try host.Commitment.commit(alloc, &heights);
+    defer tree.deinit();
+    const raw = [_]usize{ 1, 9, 1 };
+    const encoded = try tree.encodeOpenings(alloc, &raw);
+    defer alloc.free(encoded);
+    var profile = tree.profile;
+    profile.query_count = raw.len;
+    var opened = try xdm.verifyAndCollect(alloc, encoded, profile, tree.root(), &raw);
+    defer opened.deinit();
+    for (0..raw.len) |query| {
+        for (0..8) |row| try std.testing.expectEqual(first[0], opened.at(0, query, row, 0));
+        for (0..4) |row| try std.testing.expectEqual(second[0], opened.at(1, query, row, 0));
+        for (0..2) |row| try std.testing.expectEqual(third[0], opened.at(2, query, row, 0));
+    }
+    var bad_root = tree.root();
+    bad_root[0] ^= 1;
+    try std.testing.expectError(
+        error.UnexpectedCascadeRoot,
+        xdm.verifyAndCollect(alloc, encoded, profile, bad_root, &raw),
+    );
+    const wrong_raw = [_]usize{ 1, 8, 1 };
+    try std.testing.expectError(
+        error.UnexpectedCascadeQuery,
+        xdm.verifyAndCollect(alloc, encoded, profile, tree.root(), &wrong_raw),
+    );
+    var oversized = xdm.Profile{
+        .largest_log_size = 16,
+        .height_count = 8,
+        .columns = [_]u16{64} ** xdm.MAX_HEIGHTS,
+        .query_count = 1 << 14,
+    };
+    try std.testing.expectError(error.InvalidCascadeProfile, oversized.validate());
+    oversized.query_count = 1;
+    try oversized.validate();
+    const changed = try alloc.dupe(u8, encoded);
+    defer alloc.free(changed);
+    const header = try xdm.inspectHeader(encoded);
+    try std.testing.expect(std.meta.eql(profile, header.profile));
+    const first_felt_at = 8 + 2 + 2 + 4 + 4 + 2 + 2 + 4 + 2 * profile.height_count + 32 + 4;
+    changed[first_felt_at] ^= 1;
+    try std.testing.expectError(
+        error.DuplicateProjectedValue,
+        xdm.verifyAndCollect(alloc, changed, profile, tree.root(), &raw),
+    );
+}
+
 test "P2F02 one-root paired proof binds statement and rolls back late failures" {
     const core = @import("stwo_core");
     const host = @import("stwo_prover_engine").pcs.paired_two_height_v2_experimental;

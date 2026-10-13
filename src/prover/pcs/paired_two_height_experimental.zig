@@ -280,10 +280,12 @@ pub fn pairedHeight(
     challenges: paired.Challenges,
 ) ![]QM31 {
     const coefficients = try allocator.alloc(constraints.LineCoeffs, columns.len);
+    defer allocator.free(coefficients);
     for (claims, coefficients) |claim, *coefficient| {
         coefficient.* = try constraints.complexConjugateLineCoeffs(point, claim, QM31.one());
     }
     const powers = try allocator.alloc([2]QM31, columns.len);
+    defer allocator.free(powers);
     var power = QM31.one();
     for (powers) |*pair| {
         pair[0] = power;
