@@ -189,7 +189,25 @@ pub fn MerkleVerifierLifted(comptime H: type) type {
             if (queried_values.len != self.column_log_sizes.len) {
                 return MerkleVerificationError.InvalidQueryShape;
             }
-            if (self.column_log_sizes.len == 0) return;
+            if (self.column_log_sizes.len == 0) {
+                // An empty commitment tree has no queried leaves or Merkle
+                // witness. PCS may still retain this tree as a preprocessed
+                // placeholder, including in a proof capture. Publish an
+                // owned empty path record so its caller can safely deinit it.
+                if (query_positions.len != 0) return MerkleVerificationError.InvalidQueryShape;
+                if (decommitment.hash_witness.len != 0) return MerkleVerificationError.WitnessTooLong;
+                if (capture_out) |destination| {
+                    const positions = try allocator.alloc(usize, 0);
+                    errdefer allocator.free(positions);
+                    const siblings = try allocator.alloc(H.Hash, 0);
+                    destination.* = .{
+                        .positions = positions,
+                        .path_depth = 0,
+                        .siblings = siblings,
+                    };
+                }
+                return;
+            }
 
             for (queried_values) |column| {
                 if (column.len != query_positions.len) return MerkleVerificationError.InvalidQueryShape;
