@@ -240,6 +240,35 @@ circuit strict_time(private a: [u16; 2], private b: [u16; 2]) -> public [m31; 1]
         parser.parse()
         self.assertTrue(parser.stdlib_explicit)
 
+    def test_math_field_equality_and_static_product(self) -> None:
+        def run(source: str, inputs: dict, expected: int) -> list[str]:
+            relation, _ = compile_text(source)
+            assignment = {"public_inputs": inputs, "private_inputs": {},
+                          "public_outputs": {relation["public_outputs"][0]: [expected]}}
+            self.assertEqual(evaluate_relation(relation, assignment), assignment["public_outputs"])
+            return [node["op"] for node in relation["nodes"]]
+
+        for name, equal, unequal in (("eq", 1, 0), ("ne", 0, 1)):
+            source = f"""use std@1;
+circuit c(public a: [m31; 1], public b: [m31; 1]) -> public bit {{ std::math::{name}(a, b) }}"""
+            for a, b, expected in ((7, 7, equal), (7, 8, unequal), (0, P - 1, unequal)):
+                with self.subTest(name=name, a=a, b=b):
+                    ops = run(source, {"a": [a], "b": [b]}, expected)
+            self.assertEqual(ops[-1], "is_zero" if name == "eq" else "bool_not")
+
+        source = """use std@1;
+circuit c(public a: [m31; 1], public b: [m31; 1], public c: [m31; 1]) -> public [m31; 1] {
+    std::math::prod([a, b, c])
+}"""
+        self.assertEqual(run(source, {"a": [3], "b": [5], "c": [P - 2]}, (3 * 5 * (P - 2)) % P),
+                         ["mul", "mul"])
+        with self.assertRaisesRegex(SourceError, "requires a static array"):
+            compile_text("circuit bad(private x: [m31; 1]) -> public [m31; 1] { std::math::prod(x) }")
+        for args in ("x, x", "x, y"):
+            with self.assertRaisesRegex(SourceError, "eq and ne require two"):
+                compile_text("circuit bad(private x: [m31; 2], private y: [m31; 1]) -> public bit "
+                             f"{{ std::math::ne({args}) }}")
+
     def test_static_math_checks_shapes_and_term_counts(self) -> None:
         cases = (
             ("std::math::sum(x)", "requires a static array"),

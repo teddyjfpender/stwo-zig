@@ -12,12 +12,13 @@ from pathlib import Path
 S31_SOURCE_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(S31_SOURCE_ROOT / "python"))
 
-from s31_stdlib import Builder, P, StaticGroup, TypeErrorS31, Value
+from s31_stdlib import Builder, P, StaticGroup, Type, TypeErrorS31, Value
 
 
 BUILTINS = {
     "std::math::neg", "std::math::sub", "std::math::square", "std::math::pow",
     "std::math::inv", "std::math::div",
+    "std::math::eq", "std::math::ne", "std::math::prod",
     "std::math::sum", "std::math::dot", "std::math::poly_eval", "std::math::matvec", "std::math::matmul",
     "std::math::sum_lanes", "std::math::dot_lanes",
     "std::math::add_u256", "std::math::add_u256_checked", "std::math::le_u256",
@@ -160,6 +161,19 @@ def square(builder: Builder, value: Value, *, wanted: str | None = None,
     return builder.binary("mul", value, value, wanted=wanted, span=span)
 
 
+def eq(builder: Builder, lhs: Value, rhs: Value, *, wanted: str | None = None,
+       span: dict[str, int] | None = None) -> Value:
+    """One field bit for lhs == rhs on scalar [m31; 1] values."""
+    if lhs.typ != Type("m31", 1) or rhs.typ != Type("m31", 1):
+        raise TypeErrorS31("std::math::eq and ne require two [m31; 1] values")
+    return builder.is_zero(sub(builder, lhs, rhs, span=span), wanted=wanted, span=span)
+
+
+def ne(builder: Builder, lhs: Value, rhs: Value, *, wanted: str | None = None,
+       span: dict[str, int] | None = None) -> Value:
+    return builder.boolean("bool_not", eq(builder, lhs, rhs, span=span), wanted=wanted, span=span)
+
+
 def inv(builder: Builder, value: Value, *, wanted: str | None = None,
         span: dict[str, int] | None = None) -> Value:
     """Field inverse; a zero in any active lane makes the circuit unsatisfied."""
@@ -270,7 +284,18 @@ def matmul(builder: Builder, lhs: StaticGroup, rhs: StaticGroup, *,
 def sum_static(builder: Builder, group: StaticGroup, *, wanted: str | None = None,
                span: dict[str, int] | None = None) -> Value:
     """Balanced static reduction; each output lane sums the same source lane."""
-    layer = list(_group(group, "sum"))
+    return _balanced(builder, "add", _group(group, "sum"), wanted=wanted, span=span)
+
+
+def prod_static(builder: Builder, group: StaticGroup, *, wanted: str | None = None,
+                span: dict[str, int] | None = None) -> Value:
+    """Balanced static product; each output lane multiplies the same source lane."""
+    return _balanced(builder, "mul", _group(group, "prod"), wanted=wanted, span=span)
+
+
+def _balanced(builder: Builder, op: str, terms: tuple[Value, ...], *, wanted: str | None,
+              span: dict[str, int] | None) -> Value:
+    layer = list(terms)
     while len(layer) > 1:
         next_layer: list[Value] = []
         for index in range(0, len(layer), 2):
@@ -278,7 +303,7 @@ def sum_static(builder: Builder, group: StaticGroup, *, wanted: str | None = Non
                 next_layer.append(layer[index])
             else:
                 next_layer.append(builder.binary(
-                    "add", layer[index], layer[index + 1],
+                    op, layer[index], layer[index + 1],
                     wanted=wanted if len(layer) == 2 else None, span=span))
         layer = next_layer
     return layer[0]
