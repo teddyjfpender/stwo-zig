@@ -1,0 +1,279 @@
+//! Experimental sampled two-height FRI relation checker.
+//!
+//! It checks one committed intermediate line layer and a plain low-degree
+//! terminal polynomial against authenticated paired source openings at two
+//! adjacent circle heights. The surrounding complete experimental proof is
+//! versioned and serialized, but is not admitted by production PCS.
+
+const std = @import("std");
+const circle = @import("../circle.zig");
+const m31 = @import("../fields/m31.zig");
+const qm31 = @import("../fields/qm31.zig");
+const canonic = @import("../poly/circle/canonic.zig");
+const line = @import("../poly/line.zig");
+const core_utils = @import("../utils.zig");
+const queries = @import("../queries.zig");
+const vcs_verifier = @import("../vcs_lifted/verifier.zig");
+const blake2_merkle = @import("../vcs_lifted/blake2_merkle.zig");
+const envelope_mod = @import("paired_envelope.zig");
+
+const M31 = m31.M31;
+const QM31 = qm31.QM31;
+const H = envelope_mod.Hasher;
+
+pub const IntermediateOpening = struct {
+    root: H.Hash,
+    /// Four QM31 coordinates, each in sampled line-query order.
+    queried_coordinates: [4][]const M31,
+    hash_witness: []H.Hash,
+};
+
+pub const QuerySchedule = struct {
+    raw: []usize,
+    source_positions: []usize,
+    line_positions: []usize,
+
+    pub fn deinit(self: *QuerySchedule, allocator: std.mem.Allocator) void {
+        allocator.free(self.raw);
+        allocator.free(self.source_positions);
+        allocator.free(self.line_positions);
+        self.* = undefined;
+    }
+};
+
+/// The sampled Protocol-3 point is `raw` in native bit-reversed circle order.
+/// A circle squaring removes bit 1 while retaining bit 0 (the y-sign bit):
+/// P0[j0,j1,j2,...] -> P1[j0,j2,...]. The four-row authentication bundle
+/// also contains both conjugate preimages needed by the two fold checks.
+pub const QueryTrace = struct {
+    raw: usize,
+    projected_circle_row: usize,
+    source_bundle_base: usize,
+    line_bundle_base: usize,
+    terminal_row: usize,
+};
+
+pub fn queryTrace(raw: usize, largest_log_size: u32) !QueryTrace {
+    if (largest_log_size < 3 or largest_log_size > 30)
+        return error.InvalidTwoHeightProfile;
+    if (raw >= (@as(usize, 1) << @intCast(largest_log_size)))
+        return error.QueryPositionOutOfRange;
+    const terminal_row = raw >> 2;
+    return .{
+        .raw = raw,
+        .projected_circle_row = (terminal_row << 1) | (raw & 1),
+        .source_bundle_base = raw & ~@as(usize, 3),
+        .line_bundle_base = terminal_row << 1,
+        .terminal_row = terminal_row,
+    };
+}
+
+/// One raw largest-domain query needs four source rows (two circle folds),
+/// and the two corresponding intermediate-line rows. We retain repeats so
+/// the Merkle verifiers can reject inconsistent duplicate openings.
+pub fn sampleQuerySchedule(
+    allocator: std.mem.Allocator,
+    channel: anytype,
+    largest_log_size: u32,
+    n_queries: usize,
+) !QuerySchedule {
+    if (largest_log_size < 3 or largest_log_size > 30 or n_queries == 0 or
+        n_queries > (1 << 16) / 4)
+    {
+        return error.InvalidTwoHeightProfile;
+    }
+    const raw = try queries.drawQueries(channel, allocator, largest_log_size, n_queries);
+    errdefer allocator.free(raw);
+    const source_positions = try allocator.alloc(usize, n_queries * 4);
+    errdefer allocator.free(source_positions);
+    const line_positions = try allocator.alloc(usize, n_queries * 2);
+    errdefer allocator.free(line_positions);
+    for (raw, 0..) |position, i| {
+        const trace = try queryTrace(position, largest_log_size);
+        for (0..4) |j| source_positions[4 * i + j] = trace.source_bundle_base + j;
+        line_positions[2 * i] = trace.line_bundle_base;
+        line_positions[2 * i + 1] = trace.line_bundle_base + 1;
+    }
+    return .{ .raw = raw, .source_positions = source_positions, .line_positions = line_positions };
+}
+
+/// Replay after the outer proof binding has selected both wire versions,
+/// checked the verifier-chosen profile and OOD point, and drawn the shared
+/// batch challenge. This function draws the
+/// fold challenges and sampled queries only after the intermediate root and
+/// terminal polynomial are mixed. It authenticates source and intermediate
+/// openings before checking both height-transition relations.
+pub fn verifyAfterSourceBinding(
+    allocator: std.mem.Allocator,
+    channel: anytype,
+    prepared: *const envelope_mod.Prepared,
+    intermediate: IntermediateOpening,
+    terminal_ordered_coeffs: []const QM31,
+    n_queries: usize,
+) !void {
+    const envelope = prepared.decoded.envelope;
+    if (envelope.heights.len != 2 or n_queries == 0 or
+        n_queries > (1 << 16) / 4 or
+        envelope.query_count != n_queries * 4)
+    {
+        return error.InvalidTwoHeightProfile;
+    }
+    const shape0 = envelope.heights[0].shape;
+    const shape1 = envelope.heights[1].shape;
+    if (shape0.log_domain_size < 3 or shape1.log_degree_bound < 1 or
+        terminal_ordered_coeffs.len != (@as(usize, 1) << @intCast(shape1.log_degree_bound - 1)))
+    {
+        return error.InvalidTwoHeightProfile;
+    }
+    const terminal_domain = line.LineDomain.fromCircleDomain(
+        canonic.CanonicCoset.new(shape1.log_domain_size).circleDomain(),
+    );
+    if (terminal_ordered_coeffs.len > terminal_domain.size()) return error.InvalidTwoHeightProfile;
+    for (intermediate.queried_coordinates) |column| {
+        if (column.len != n_queries * 2) return error.InvalidIntermediateShape;
+    }
+
+    const alpha0 = channel.drawSecureFelt();
+    blake2_merkle.Blake2sMerkleChannel.mixRoot(channel, intermediate.root);
+    const alpha1 = channel.drawSecureFelt();
+    channel.mixFelts(terminal_ordered_coeffs);
+    var schedule = try sampleQuerySchedule(allocator, channel, shape0.log_domain_size, n_queries);
+    defer schedule.deinit(allocator);
+
+    const source0 = try envelope_mod.authenticatedHeightAnswers(
+        allocator,
+        envelope,
+        0,
+        schedule.source_positions,
+        prepared.challenges,
+    );
+    defer allocator.free(source0);
+    const source1 = try envelope_mod.authenticatedHeightAnswers(
+        allocator,
+        envelope,
+        1,
+        schedule.source_positions,
+        prepared.challenges,
+    );
+    defer allocator.free(source1);
+
+    try verifyFromAuthenticatedAnswers(
+        allocator,
+        shape0,
+        shape1,
+        intermediate,
+        terminal_ordered_coeffs,
+        schedule,
+        alpha0,
+        alpha1,
+        source0,
+        source1,
+        4,
+    );
+}
+
+/// Internal relation check for already authenticated rows. Complete proof
+/// entry points must authenticate source rows inside their verifier before
+/// calling this; these slices are not evidence on their own.
+pub fn verifyFromAuthenticatedAnswers(
+    allocator: std.mem.Allocator,
+    shape0: @import("paired_ensemble.zig").Shape,
+    shape1: @import("paired_ensemble.zig").Shape,
+    intermediate: IntermediateOpening,
+    terminal_ordered_coeffs: []const QM31,
+    schedule: QuerySchedule,
+    alpha0: QM31,
+    alpha1: QM31,
+    source0: []const QM31,
+    source1: []const QM31,
+    source1_stride: usize,
+) !void {
+    const n_queries = schedule.raw.len;
+    if (shape0.log_domain_size < 3 or shape1.log_domain_size + 1 != shape0.log_domain_size or
+        shape1.log_degree_bound < 1 or source1_stride < 2 or
+        source0.len != n_queries * 4 or source1.len != n_queries * source1_stride or
+        schedule.source_positions.len != n_queries * 4 or schedule.line_positions.len != n_queries * 2 or
+        terminal_ordered_coeffs.len != (@as(usize, 1) << @intCast(shape1.log_degree_bound - 1)))
+        return error.InvalidTwoHeightProfile;
+    const line_domain = line.LineDomain.fromCircleDomain(
+        canonic.CanonicCoset.new(shape0.log_domain_size).circleDomain(),
+    );
+    const terminal_domain = line.LineDomain.fromCircleDomain(
+        canonic.CanonicCoset.new(shape1.log_domain_size).circleDomain(),
+    );
+    for (intermediate.queried_coordinates) |column| {
+        if (column.len != n_queries * 2) return error.InvalidIntermediateShape;
+    }
+
+    var line_verifier = try vcs_verifier.MerkleVerifierLifted(H).init(
+        allocator,
+        intermediate.root,
+        &[_]u32{line_domain.logSize()} ** 4,
+    );
+    defer line_verifier.deinit(allocator);
+    const queried_columns = intermediate.queried_coordinates;
+    try line_verifier.verify(
+        allocator,
+        schedule.line_positions,
+        &queried_columns,
+        .{ .hash_witness = intermediate.hash_witness },
+    );
+
+    const terminal_coeffs = try allocator.dupe(QM31, terminal_ordered_coeffs);
+    var terminal_poly = line.LinePoly.fromOrderedCoefficients(terminal_coeffs);
+    defer terminal_poly.deinit(allocator);
+    const d0 = canonic.CanonicCoset.new(shape0.log_domain_size).circleDomain();
+    const d1 = canonic.CanonicCoset.new(shape1.log_domain_size).circleDomain();
+    for (schedule.raw, 0..) |raw_row, query_index| {
+        const trace = try queryTrace(raw_row, shape0.log_domain_size);
+        const raw_point = d0.at(core_utils.bitReverseIndex(raw_row, shape0.log_domain_size));
+        const projected_point = d1.at(core_utils.bitReverseIndex(
+            trace.projected_circle_row,
+            shape1.log_domain_size,
+        ));
+        if (!raw_point.double().eql(projected_point)) return error.InvalidQueryProjection;
+        const source_start = 4 * query_index;
+        const line_start = 2 * query_index;
+        const source_base = schedule.source_positions[source_start];
+        const line_base = schedule.line_positions[line_start];
+        if (source_base != trace.source_bundle_base or line_base != trace.line_bundle_base)
+            return error.InvalidQueryProjection;
+        var opened_line: [2]QM31 = undefined;
+        for (0..2) |j| {
+            const coordinate_index = line_start + j;
+            opened_line[j] = QM31.fromM31Array(.{
+                queried_columns[0][coordinate_index],
+                queried_columns[1][coordinate_index],
+                queried_columns[2][coordinate_index],
+                queried_columns[3][coordinate_index],
+            });
+            const circle_row = source_base + 2 * j;
+            const y = d0.at(core_utils.bitReverseIndex(circle_row, shape0.log_domain_size)).y;
+            const expected = try foldPair(
+                source0[source_start + 2 * j],
+                source0[source_start + 2 * j + 1],
+                y,
+                alpha0,
+            );
+            if (!expected.eql(opened_line[j])) return error.IntermediateFoldMismatch;
+        }
+        const x = line_domain.at(core_utils.bitReverseIndex(line_base, line_domain.logSize()));
+        const previous_fold = try foldPair(opened_line[0], opened_line[1], x, alpha1);
+        const projected = (source_base >> 2) << 1;
+        const y = d1.at(core_utils.bitReverseIndex(projected, shape1.log_domain_size)).y;
+        const second_start = source1_stride * query_index;
+        const inserted_fold = try foldPair(source1[second_start], source1[second_start + 1], y, alpha1);
+        const expected_terminal = previous_fold.add(alpha1.square().mul(inserted_fold));
+        const terminal_position = source_base >> 2;
+        const terminal_x = terminal_domain.at(core_utils.bitReverseIndex(
+            terminal_position,
+            terminal_domain.logSize(),
+        ));
+        const terminal_value = try terminal_poly.evalAtPoint(allocator, QM31.fromBase(terminal_x));
+        if (!expected_terminal.eql(terminal_value)) return error.TerminalFoldMismatch;
+    }
+}
+
+fn foldPair(even: QM31, odd: QM31, coordinate: M31, alpha: QM31) !QM31 {
+    return even.add(odd).add(alpha.mul(even.sub(odd).mulM31(try coordinate.inv())));
+}
