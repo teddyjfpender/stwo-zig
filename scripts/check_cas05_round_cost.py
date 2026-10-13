@@ -8,6 +8,8 @@ prover separately. It does not instantiate a BCS/ROM soundness theorem.
 from __future__ import annotations
 
 import argparse
+from fractions import Fraction
+import hashlib
 import json
 from pathlib import Path
 
@@ -21,6 +23,7 @@ def check_cost_sources(root: Path = ROOT) -> None:
     """Reject known control-flow changes that would invalidate these formulas."""
     # The existing BCS audit pins transcript order, tags, draws and admission.
     bcs_audit(root)
+    check_secure_sampler_sources(root)
     files = {
         "cascade": "src/core/pcs/paired_sparse_cascade_experimental.zig",
         "source": "src/core/pcs/transposed_merkle_sparse.zig",
@@ -83,6 +86,83 @@ def check_cost_sources(root: Path = ROOT) -> None:
             "return commitWithOptions(", "return buildTreeFromOwnedLeaves(")
 
 
+# Exact critical bodies are pinned separately from the wider, anchor-based
+# transcript roster. Changing any of these requires rederiving the probability
+# law below. The pin is a source audit, not a proof of Zig execution semantics.
+SAMPLER_BODY_PINS = (
+    ("src/core/channel/blake2s.zig", "pub fn drawU32s(", "pub fn drawSecureFelt(",
+     "b1491d6264ee97ad93902f3e022074695215cac9d90eed5f118f6593d994380e"),
+    ("src/core/channel/blake2s.zig", "pub fn drawSecureFelt(", "pub fn drawSecureFelts(",
+     "abaf35b20bc0ce1e45788a6c398847791e508e354aa03193c2ff19526c065260"),
+    ("src/core/channel/blake2s.zig", "fn drawBaseFelts(", "fn hashBytes(",
+     "915cb491be57393cbbf59bae9b36d970af40628831be385d818756d3cfd971ba"),
+    ("src/core/fields/m31.zig", "pub inline fn fromU64(", "pub inline fn isZero(",
+     "68731dea5f70b26ab10bfbb2268d24cff8400711c8870f6d31a9ee827a679c69"),
+    ("src/core/fields/m31.zig", "inline fn reduce64(", "inline fn reduceProduct(",
+     "c8f11a29764a5e876251f0fb9d44f6f314fab63b6a66f8e0b35038f9c20646ab"),
+    ("src/core/fields/qm31.zig", "pub inline fn fromM31Array(", "pub inline fn toM31Array(",
+     "7ca2b5f3f71864cc17572d1be4d1b1bc10e1757a0098df21b3cd7d9d1691cfa6"),
+)
+
+
+def check_secure_sampler_sources(root: Path = ROOT) -> None:
+    """Pin the exact native eight-word rejection and QM31 reduction path."""
+    channel = (root / "src/core/channel/blake2s.zig").read_text()
+    m31 = (root / "src/core/fields/m31.zig").read_text()
+    qm31 = (root / "src/core/fields/qm31.zig").read_text()
+    for source, anchor in (
+        (channel, "pub const FELTS_PER_HASH: usize = 8;"),
+        (channel, "pub const Blake2sChannel = Blake2sChannelGeneric(false);"),
+        (m31, "pub const Modulus: u32 = 0x7fffffff;"),
+        (qm31, "pub const SECURE_EXTENSION_DEGREE: usize = 4;"),
+    ):
+        if source.count(anchor) != 1:
+            raise ValueError(f"CAS05 secure sampler source changed: {anchor}")
+    for path, start, end, expected in SAMPLER_BODY_PINS:
+        source = (root / path).read_text()
+        if source.count(start) != 1 or source.count(end) != 1:
+            raise ValueError(f"CAS05 secure sampler function changed: {path} {start}")
+        body = source.split(start, 1)[1].split(end, 1)[0]
+        if hashlib.sha256(body.encode()).hexdigest() != expected:
+            raise ValueError(f"CAS05 secure sampler body changed: {path} {start}")
+
+
+def secure_sampler_tail(draws: int, attempts: int = 5) -> dict[str, object]:
+    """Exact ideal-block law and union bound for all secure draws.
+
+    This is the game in which each attempted 37-byte input obtains a fresh,
+    independent, uniform 256-bit hash output. Real BLAKE2s/ROM transfer must
+    separately account for adversarial prequeries and cross-epoch reuse.
+    """
+    if draws < 0 or attempts < 1:
+        raise ValueError("invalid secure sampler tail dimensions")
+    p = (1 << 31) - 1
+    word_accept = Fraction(2 * p, 1 << 32)
+    block_accept = word_accept ** 8
+    block_reject = 1 - block_accept
+    union_tail = draws * block_reject ** attempts
+    # For 2<=h<=8, draws=h+2<=10. A rejected block requires at least one
+    # of eight words in the two invalid u32 values. Hence r<8*2^-31=2^-28,
+    # and 10*r^5 < 10*2^-140 < 2^-136.
+    if draws <= 10 and attempts == 5 and not union_tail < Fraction(1, 1 << 136):
+        raise AssertionError("five-block dyadic certificate failed")
+    return {
+        "field_modulus": p,
+        "words_per_block": 8,
+        "invalid_u32_values_per_word": 2,
+        "block_acceptance_exact": f"{block_accept.numerator}/{block_accept.denominator}",
+        "block_rejection_exact": f"{block_reject.numerator}/{block_reject.denominator}",
+        "attempts_per_secure_draw_on_good_event": attempts,
+        "secure_draws": draws,
+        "any_draw_needs_more_than_attempts_union_bound_exact":
+            f"{union_tail.numerator}/{union_tail.denominator}",
+        "any_draw_needs_more_than_attempts_upper_dyadic_bits":
+            136 if draws <= 10 and attempts == 5 else None,
+        "model": "fresh independent uniform ideal hash blocks; ROM freshness and BLAKE2s transfer unproved",
+        "protocol_enforces_attempt_cap": False,
+    }
+
+
 def budget(k: int, h: int, beta: int, q: int, columns: tuple[int, ...]) -> dict[str, object]:
     if not (2 <= h <= 8 and h + 2 <= k <= 22 and 1 <= beta <= k - h and
             1 <= q <= 1 << 14 and len(columns) == h and
@@ -100,6 +180,8 @@ def budget(k: int, h: int, beta: int, q: int, columns: tuple[int, ...]) -> dict[
     query_blocks = (q + 7) // 8
     secure_challenges = h + 2
     no_rejection_transcript = transcript_absorptions + secure_challenges + query_blocks
+    sampler = secure_sampler_tail(secure_challenges)
+    good_event_transcript = transcript_absorptions + 5 * secure_challenges + query_blocks
     # There are h+1 independent secure-draw epochs, each at most 2^32-1
     # successful counter increments on a nontrapping execution.
     hard_transcript = transcript_absorptions + (h + 1) * ((1 << 32) - 1) + query_blocks
@@ -132,12 +214,15 @@ def budget(k: int, h: int, beta: int, q: int, columns: tuple[int, ...]) -> dict[
             "secure_challenges": secure_challenges,
             "query_blocks_exact": query_blocks,
             "transcript_if_no_secure_rejections": no_rejection_transcript,
+            "transcript_on_ideal_five_block_good_event_upper": good_event_transcript,
             "transcript_hard_nontrapping_upper": hard_transcript,
             "source_merkle_verifier_upper": source_verifier,
             "line_merkle_verifier_upper_by_height": line_verifier_by_height,
             "line_merkle_verifier_upper": line_verifier,
             "complete_verifier_internal_upper": hard_transcript + verifier_merkle,
             "complete_verifier_if_no_secure_rejections_upper": no_rejection_transcript + verifier_merkle,
+            "complete_verifier_on_ideal_five_block_good_event_upper":
+                good_event_transcript + verifier_merkle,
             "audit_extractor_internal_upper": 2 * (hard_transcript + verifier_merkle),
             "dense_host_source_tree_exact_if_admitted": host_source_tree if k <= 16 else None,
             "dense_host_line_trees_exact_if_admitted": host_line_trees if k <= 16 else None,
@@ -145,6 +230,7 @@ def budget(k: int, h: int, beta: int, q: int, columns: tuple[int, ...]) -> dict[
                 no_rejection_transcript + host_source_tree + host_line_trees if k <= 16 else None,
         },
         "external_adversarial_hash_queries_T": "independent explicit assumption; absent from internal counts",
+        "conditional_ideal_secure_sampler": sampler,
         "native_security_bits": None,
     }
 
