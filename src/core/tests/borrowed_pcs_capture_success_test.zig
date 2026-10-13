@@ -158,6 +158,57 @@ test "borrowed proof capture successful constant PCS remains immutable through e
     try assertSuccess(a, &verifier, &proof);
     try std.testing.checkAllAllocationFailures(a, assertSuccess, .{ &verifier, &proof });
 }
+
+test "borrowed proof capture rejects a root different from the authenticated tree" {
+    const a = std.testing.allocator;
+    var proof = try fixture(a);
+    defer proof.deinit(a);
+    var verifier = try Verifier.init(a, proof.config);
+    defer verifier.deinit(a);
+    var setup = Suite.Channel{};
+    try verifier.commit(a, proof.commitments.items[0], &.{1}, &setup);
+
+    std.mem.asBytes(&proof.commitments.items[0])[0] ^= 1;
+    var channel = channelFor(&proof);
+    var publication: [@sizeOf(Capture)]u8 align(@alignOf(Capture)) = @splat(0x7b);
+    try std.testing.expectError(error.InvalidStructure, verifier.verifyValuesWithBorrowedProofCapture(
+        a,
+        try points(a),
+        &proof,
+        &channel,
+        challenges,
+        @ptrCast(&publication),
+    ));
+    for (publication) |byte| try std.testing.expectEqual(@as(u8, 0x7b), byte);
+}
+
+test "borrowed proof capture rejects an extra uncommitted root" {
+    const a = std.testing.allocator;
+    var proof = try fixture(a);
+    defer proof.deinit(a);
+    var verifier = try Verifier.init(a, proof.config);
+    defer verifier.deinit(a);
+    var setup = Suite.Channel{};
+    try verifier.commit(a, proof.commitments.items[0], &.{1}, &setup);
+
+    const roots = try a.alloc(H.Hash, proof.commitments.items.len + 1);
+    @memcpy(roots[0..proof.commitments.items.len], proof.commitments.items);
+    roots[roots.len - 1] = proof.commitments.items[0];
+    a.free(proof.commitments.items);
+    proof.commitments.items = roots;
+    var channel = channelFor(&proof);
+    var publication: [@sizeOf(Capture)]u8 align(@alignOf(Capture)) = @splat(0x7b);
+    try std.testing.expectError(error.InvalidStructure, verifier.verifyValuesWithBorrowedProofCapture(
+        a,
+        try points(a),
+        &proof,
+        &channel,
+        challenges,
+        @ptrCast(&publication),
+    ));
+    for (publication) |byte| try std.testing.expectEqual(@as(u8, 0x7b), byte);
+}
+
 test "borrowed proof capture matches owned verification and outlives poisoned original vectors" {
     const a = std.testing.allocator;
     var proof = try fixture(a);
@@ -209,7 +260,12 @@ test "borrowed PCS rejects a changed OODS sample against the committed constant 
     var changed_channel = channelFor(&proof);
     var capture: Capture = undefined;
     if (verifier.verifyValuesWithBorrowedProofCapture(
-        a, try points(a), &proof, &changed_channel, challenges, &capture,
+        a,
+        try points(a),
+        &proof,
+        &changed_channel,
+        challenges,
+        &capture,
     )) |_| {
         capture.deinit(a);
         return error.AcceptedChangedOodsSample;

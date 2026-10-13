@@ -253,6 +253,16 @@ pub fn CommitmentSchemeVerifier(comptime H: type, comptime MC: type) type {
             defer if (owns_proof) cleanupProof(&proof, allocator);
 
             if (self.trees.items.len == 0) return verifier_types.VerificationError.EmptyTrees;
+            // The proof's exported commitment vector must be the same vector
+            // used to seed the transcript and authenticate every tree. A
+            // successful capture may feed recursive verification, so it may
+            // never publish caller-supplied roots different from these roots.
+            if (proof.commitments.items.len != self.trees.items.len)
+                return verifier_types.VerificationError.InvalidStructure;
+            for (self.trees.items, proof.commitments.items) |tree, commitment| {
+                if (!std.meta.eql(tree.root, commitment))
+                    return verifier_types.VerificationError.InvalidStructure;
+            }
             if (proof.decommitments.items.len != self.trees.items.len) return verifier_types.VerificationError.ShapeMismatch;
             if (proof.queried_values.items.len != self.trees.items.len) return verifier_types.VerificationError.ShapeMismatch;
             if (capture_out != null and proof_capture_out != null)
