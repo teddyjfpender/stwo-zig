@@ -73,8 +73,12 @@ fn proveImpl(
     const a = arena.allocator();
     var source = try source_prover.Commitment.commit(a, input.source_columns);
     const root = source.root();
-    var source_profile = source.profile;
-    source_profile.query_count = input.n_queries;
+    const source_profile = sparse.Profile{
+        .largest_log_size = source.profile.largest_log_size,
+        .height_count = source.profile.height_count,
+        .columns = source.profile.columns,
+        .query_count = input.n_queries,
+    };
     const profile = cascade.Profile{ .source = source_profile, .log_blowup = input.log_blowup };
     try profile.validate();
     const height_count = source_profile.height_count;

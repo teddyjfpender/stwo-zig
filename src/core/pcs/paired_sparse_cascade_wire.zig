@@ -16,6 +16,7 @@ const Hash = xdm.Hash;
 pub const MAGIC = "S31CAS05";
 pub const VERSION: u16 = cascade.OUTER_VERSION;
 pub const MAX_WIRE_BYTES: usize = 64 * 1024 * 1024;
+pub const MAX_LINE_HASH_WITNESS: usize = 1 << 20;
 
 pub const Decoded = struct {
     arena: std.heap.ArenaAllocator,
@@ -46,7 +47,9 @@ fn preflightLength(proof: cascade.Proof) !usize {
         try addSize(&total, try mulSize(count, 16));
     try addSize(&total, 4 + proof.source_wire.len + 4);
     for (proof.line_openings) |opening| {
-        if (opening.hash_witness.len > std.math.maxInt(u32)) return error.CascadeProofTooLarge;
+        // Decoder rejects larger witnesses; the encoder must never produce a
+        // wire it cannot read back, even for a caller-built proof object.
+        if (opening.hash_witness.len > MAX_LINE_HASH_WITNESS) return error.CascadeProofTooLarge;
         try addSize(&total, 32 + 4 + 4);
         try addSize(&total, try mulSize(source.query_count * 2, 4 * @sizeOf(M31)));
         try addSize(&total, try mulSize(opening.hash_witness.len, @sizeOf(Hash)));
@@ -166,7 +169,7 @@ pub fn decode(allocator: std.mem.Allocator, encoded: []const u8) !Decoded {
             column.* = values;
         }
         const witness_count = try c.readU32();
-        if (witness_count > (1 << 20) or
+        if (witness_count > MAX_LINE_HASH_WITNESS or
             c.bytes.len - c.at < @as(usize, witness_count) * @sizeOf(Hash))
             return error.InvalidCascadeProof;
         const witness = try a.alloc(Hash, witness_count);

@@ -658,8 +658,12 @@ test "XDM04 authenticates sparse pairs and preserves duplicate raw queries" {
     const raw = [_]usize{ 5, 5, 23 };
     const encoded = try tree.encodeSparseOpenings(alloc, &raw);
     defer alloc.free(encoded);
-    var profile = tree.profile;
-    profile.query_count = raw.len;
+    const profile = sparse.Profile{
+        .largest_log_size = tree.profile.largest_log_size,
+        .height_count = tree.profile.height_count,
+        .columns = tree.profile.columns,
+        .query_count = raw.len,
+    };
     try sparse.validateEncoding(encoded, profile, tree.root());
     var opened = try sparse.verifyAndCollect(alloc, encoded, profile, tree.root(), &raw);
     defer opened.deinit();
@@ -688,7 +692,7 @@ test "XDM04 authenticates sparse pairs and preserves duplicate raw queries" {
     for (overlap_cases) |case| {
         const bytes = try tree.encodeSparseOpenings(alloc, &case);
         defer alloc.free(bytes);
-        var case_profile = tree.profile;
+        var case_profile = profile;
         case_profile.query_count = case.len;
         var verified = try sparse.verifyAndCollect(alloc, bytes, case_profile, tree.root(), &case);
         defer verified.deinit();
@@ -698,6 +702,94 @@ test "XDM04 authenticates sparse pairs and preserves duplicate raw queries" {
                 for (0..2) |j|
                     try std.testing.expectEqual(heights[height][0][base + j], verified.at(height, query, j, 0));
             };
+    }
+}
+
+test "XDM04 verifies a log-22 sparse path without a dense prover tree" {
+    const core = @import("stwo_core");
+    const sparse = core.pcs.transposed_merkle_sparse;
+    const tree = core.pcs.transposed_merkle_cascade;
+    const alloc = std.testing.allocator;
+    const profile = sparse.Profile{
+        .largest_log_size = 22,
+        .height_count = 2,
+        .columns = .{ 1, 1, 0, 0, 0, 0, 0, 0 },
+        .query_count = 1,
+    };
+    try profile.validate();
+    const wide = sparse.Profile{
+        .largest_log_size = 22,
+        .height_count = 8,
+        .columns = [_]u16{1} ** tree.MAX_HEIGHTS,
+        .query_count = 1024,
+    };
+    try wide.validate(); // full-fiber XDM03 rejected this geometry.
+    var over_budget = wide;
+    over_budget.columns = [_]u16{64} ** tree.MAX_HEIGHTS;
+    over_budget.query_count = 1 << 14;
+    try std.testing.expectError(error.InvalidCascadeProfile, over_budget.validate());
+    var too_tall = wide;
+    too_tall.largest_log_size = sparse.MAX_LOG_SIZE + 1;
+    try std.testing.expectError(error.InvalidCascadeProfile, too_tall.validate());
+
+    const Hash = tree.Hash;
+    const first = [_]M31{M31.fromCanonical(1)};
+    const second = [_]M31{M31.fromCanonical(2)};
+    const third = [_]M31{M31.fromCanonical(3)};
+    const fourth = [_]M31{M31.fromCanonical(4)};
+    var witness: [42]Hash = undefined;
+    for (&witness, 0..) |*hash, i| hash.* = [_]u8{@intCast(i + 1)} ** 32;
+    const leaf4 = tree.hashLeaf(&first);
+    const leaf5 = tree.hashLeaf(&second);
+    var left = tree.hashInserted(leaf4, witness[0], &third);
+    var right = tree.hashInserted(leaf5, witness[1], &fourth);
+    // At level 21 the known inserted nodes occupy indices 2 and 3.
+    // Their upper siblings at 0 and 1 precede the 20 ordinary levels.
+    left = tree.hashUpper(witness[2], left);
+    right = tree.hashUpper(witness[3], right);
+    var at: usize = 4;
+    while (at < witness.len) : (at += 2) {
+        left = tree.hashUpper(left, witness[at]);
+        right = tree.hashUpper(right, witness[at + 1]);
+    }
+    const root = tree.hashUpper(left, right);
+
+    var bytes = std.ArrayList(u8).empty;
+    defer bytes.deinit(alloc);
+    const w = bytes.writer(alloc);
+    try w.writeAll(sparse.MAGIC);
+    try w.writeInt(u16, sparse.VERSION, .little);
+    try w.writeInt(u16, 0, .little);
+    try w.writeInt(u32, 0, .little);
+    try w.writeInt(u32, profile.largest_log_size, .little);
+    try w.writeInt(u16, @intCast(profile.height_count), .little);
+    try w.writeInt(u16, 0, .little);
+    try w.writeInt(u32, @intCast(profile.query_count), .little);
+    for (profile.columns[0..profile.height_count]) |count| try w.writeInt(u16, count, .little);
+    try w.writeAll(&root);
+    try w.writeInt(u32, 5, .little);
+    for ([_]u32{ 1, 2, 3, 4 }) |value| try w.writeInt(u32, value, .little);
+    try w.writeInt(u32, witness.len, .little);
+    for (witness) |hash| try w.writeAll(&hash);
+    std.mem.writeInt(u32, bytes.items[12..16], @intCast(bytes.items.len), .little);
+    try sparse.validateEncoding(bytes.items, profile, root);
+    var opened = try sparse.verifyAndCollect(alloc, bytes.items, profile, root, &.{5});
+    defer opened.deinit();
+    try std.testing.expectEqual(@as(u32, 1), opened.at(0, 0, 0, 0).toU32());
+    try std.testing.expectEqual(@as(u32, 2), opened.at(0, 0, 1, 0).toU32());
+    try std.testing.expectEqual(@as(u32, 3), opened.at(1, 0, 0, 0).toU32());
+    try std.testing.expectEqual(@as(u32, 4), opened.at(1, 0, 1, 0).toU32());
+    for ([_]usize{ 0, 1, 5, (1 << 21) + 7, (1 << 22) - 1 }) |raw| {
+        var point = core.poly.circle.canonic.CanonicCoset.new(22).circleDomain()
+            .at(core.utils.bitReverseIndex(raw, 22));
+        for (0..8) |height| {
+            const log_size: u32 = 22 - @as(u32, @intCast(height));
+            const row = sparse.pairBase(raw, height) | (raw & 1);
+            const expected = core.poly.circle.canonic.CanonicCoset.new(log_size).circleDomain()
+                .at(core.utils.bitReverseIndex(row, log_size));
+            try std.testing.expect(point.eql(expected));
+            point = point.double();
+        }
     }
 }
 
