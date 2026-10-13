@@ -33,6 +33,31 @@ The XDM04 decoder checks version, reserved bytes, exact total length, profile, r
 
 The [independent scalar relation fixture](../../src/tests/native/prover/paired_fri_relation_bridge_test.zig) accepts a byte-encoded four-height proof built from nonconstant `x` and `y` source columns. It replays the transcript, checks that every XDM04 authenticated row equals the original source column, and computes each paired quotient from direct interpolation of the OOD claim and its conjugate. It compares those words with the verifier's `fromVerifiedOpenings` output. It then calculates every row of each line layer using scalar pair arithmetic without calling the prover's or verifier's fold helpers, compares queried line words, and compares every final row with the revealed terminal polynomial. At each stage it also checks the published normalized recurrence with scale `2^i`: divide both the carried and inserted pairs by `2^i`, apply the `1/2` butterflies, and multiply the result by `2^(i+1)`. This finite differential check covers the actual authenticated wire and multiple insertions. It is **not** a proof for arbitrary accepted wires or arbitrary source polynomials.
 
+### All-query accepted-relation extractor
+
+[`paired_sparse_relation_experimental.zig`](../../src/core/pcs/paired_sparse_relation_experimental.zig) adds an **audit-only** `verifyAndExtract` path. The outer byte-wire entry point first decodes a canonical CAS05 proof. The extractor runs the complete statement-bound verifier on a staged transcript, then replays the same transcript and reauthenticates the exact sampled XDM04 source pairs and each committed line pair. It copies all source rows, claims, challenges, line pairs, terminal coefficients, and raw queries into an owned `AcceptedRelation`. Only after its `check` method succeeds for **every raw query and every height** does it publish the staged channel. Normal verification still uses its original path, without the extractor's repeated authentication and allocations.
+
+For source height `i`, let `Q_i^0,Q_i^1` be the two quotient-plus-original words recomputed from authenticated M31 rows by direct interpolation of the OOD claims. Write `P(a,b,u,α)=a+b+α(a−b)/u`. The extracted checker requires the following at each sampled raw query `r`:
+
+```text
+F_0(r) = P(Q_0^0, Q_0^1, y_0, α_0)
+F_i(r) = P(L_(i−1)^0, L_(i−1)^1, x_i, α_i)
+         + α_i² P(Q_i^0, Q_i^1, y_i, α_i)         for i > 0
+F_i(r) = L_i[b_(i+1)(r) + ((r >> (i+1)) & 1)]  for i < H−1
+F_(H−1)(r) = terminal(r >> H)
+```
+
+Here each `L_i` value is from a line pair reauthenticated at its committed root, and `terminal` is evaluation of the revealed ordered coefficients on the terminal line domain. The checker also confirms the circle doubling projection, overlapping-row consistency, exact profile dimensions and query range, and `F_i=2^(i+1)·G_i` for the normalized paper recurrence with the inserted height-`i` pair divided by `2^i`. Thus a **returned** certificate satisfies this explicit algebraic relation for its entire sampled query vector. A caller-built `AcceptedRelation` has no authentication status merely because its `check` method passes.
+
+| Premise or result | Current evidence | Remaining proof obligation |
+| --- | --- | --- |
+| External statement, canonical bytes, transcript custody | Complete verifier is called before extraction; full replay channel state (digest and draw counter) must match; [source-order guard](../../scripts/check_cas05_relation_extractor.py) rejects removed or reordered custody checks | Zig control-flow semantics and adaptive Fiat–Shamir/BCS reduction |
+| Source and line opening authentication | XDM04 and lifted line Merkle verifiers both run before rows enter the returned certificate | Concrete tagged Blake2s collision/binding bound; identification with fixed committed oracles |
+| Every sampled quotient, fold, normalized insertion, and terminal check | Parameterized loops over the admitted profile; direct-interpolation relation checker; nonconstant fixture and hostile certificate/wire mutations | Formal native-to-Protocol-3 semantic refinement, polynomial degree and cross-domain correlated agreement |
+| Published variable-round error expression | Short-terminal shape matches Protocol 3/Theorem 4; the eight-round roster is identified in S31 | Instantiate the exact native round/query/guarded-OOD and BCS parameters, then derive a conservative bound |
+
+The extractor is an operational witness and source-pinned regression aid. It does not prove that BLAKE2s acts as a random oracle, that committed rows are collision-free, or that a false low-degree statement is unlikely to pass. CAS05 remains outside production PCS.
+
 ## Cost and fixtures
 
 CAS04 opens `2^(h+1)-2` source rows and `2^h-2` line rows per raw query. CAS05 opens `2h` source rows and `2(h-1)` line rows, plus `O(h+k)` hash siblings per query. The host prover still constructs full committed trees and full-domain intermediate evaluations; the sparse memory claim applies to the verifier's opening authentication. XDM04 has its own `h<=8`, `k<=22`, `s<=16384` sparse verifier profile and a checked 64 MiB wire budget. The current dense host prover still inherits XDM03's `k<=16` cap, so the larger profile has a synthetic verifier-only authenticated-path fixture rather than a full honest proof.

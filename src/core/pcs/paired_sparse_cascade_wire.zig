@@ -9,6 +9,7 @@ const m31 = @import("../fields/m31.zig");
 const qm31 = @import("../fields/qm31.zig");
 const xdm = @import("transposed_merkle_cascade.zig");
 const cascade = @import("paired_sparse_cascade_experimental.zig");
+const relation = @import("paired_sparse_relation_experimental.zig");
 
 const M31 = m31.M31;
 const QM31 = qm31.QM31;
@@ -207,6 +208,21 @@ pub fn verifyAgainstStatement(
     var decoded = try decode(allocator, encoded);
     defer decoded.deinit();
     try cascade.verifyAgainstStatement(allocator, decoded.proof, channel, statement);
+}
+
+/// Audit-only accepted-relation extraction from a complete byte wire. The
+/// returned certificate owns its rows and remains valid after `decode` frees
+/// the temporary proof. Its algebraic check does not imply Merkle collision
+/// resistance, random-oracle sampling, or FRI proximity soundness.
+pub fn verifyAndExtractRelation(
+    allocator: std.mem.Allocator,
+    encoded: []const u8,
+    channel: anytype,
+    statement: cascade.ExpectedStatement,
+) !relation.AcceptedRelation {
+    var decoded = try decode(allocator, encoded);
+    defer decoded.deinit();
+    return relation.verifyAndExtract(allocator, decoded.proof, channel, statement);
 }
 
 fn writeQM31(w: anytype, value: QM31) !void {
