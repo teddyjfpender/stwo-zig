@@ -80,12 +80,13 @@ test "CAS05 accepted nonconstant four-height proof refines independent scalar re
         columns[height] = .{ xs[height][0..size], ys[height][0..size] };
         groups[height] = &columns[height];
     }
-    var prover_channel = Channel{};
-    var owned = try host.prove(allocator, .{
+    const input = host.Input{
         .source_columns = &groups,
         .log_blowup = 2,
         .n_queries = 13,
-    }, &prover_channel);
+    };
+    var prover_channel = Channel{};
+    var owned = try host.prove(allocator, input, &prover_channel);
     defer owned.deinit();
     const proof = owned.proof;
     const statement = core.pcs.paired_sparse_cascade_experimental.ExpectedStatement{
@@ -103,6 +104,102 @@ test "CAS05 accepted nonconstant four-height proof refines independent scalar re
         statement,
     );
     try std.testing.expectEqualSlices(u8, &prover_channel.digest, &verifier_channel.digest);
+    var extractor_channel = Channel{};
+    var accepted = try core.pcs.paired_sparse_cascade_wire.verifyAndExtractRelation(
+        allocator,
+        encoded,
+        &extractor_channel,
+        statement,
+    );
+    defer accepted.deinit();
+    try std.testing.expectEqualSlices(u8, &verifier_channel.digest, &extractor_channel.digest);
+    // The byte decoder has already freed its temporary proof. This check
+    // runs on the extractor's owned relation for every sampled query/height.
+    try accepted.check(allocator);
+    const original_forwarded = accepted.forwarded[0][0];
+    accepted.forwarded[0][0] = original_forwarded.add(QM31.one());
+    if (accepted.check(allocator)) |_| return error.MutatedForwardedValueAccepted else |_| {}
+    accepted.forwarded[0][0] = original_forwarded;
+    const original_alpha = accepted.alphas[0];
+    accepted.alphas[0] = original_alpha.add(QM31.one());
+    if (accepted.check(allocator)) |_| return error.MutatedFoldChallengeAccepted else |_| {}
+    accepted.alphas[0] = original_alpha;
+    const original_source = accepted.source.values[0][0];
+    accepted.source.values[0][0] = original_source.add(M31.one());
+    if (accepted.check(allocator)) |_| return error.MutatedSourceRowAccepted else |_| {}
+    accepted.source.values[0][0] = original_source;
+    const original_line = accepted.line_pairs[0][0];
+    accepted.line_pairs[0][0] = original_line.add(QM31.one());
+    if (accepted.check(allocator)) |_| return error.MutatedLineRowAccepted else |_| {}
+    accepted.line_pairs[0][0] = original_line;
+    const original_terminal = accepted.terminal_ordered_coeffs[0];
+    accepted.terminal_ordered_coeffs[0] = original_terminal.add(QM31.one());
+    if (accepted.check(allocator)) |_| return error.MutatedTerminalAccepted else |_| {}
+    accepted.terminal_ordered_coeffs[0] = original_terminal;
+    const original_raw = accepted.raw_queries[0];
+    accepted.raw_queries[0] = @as(usize, 1) << k;
+    if (accepted.check(allocator)) |_| return error.OutOfRangeQueryAccepted else |_| {}
+    accepted.raw_queries[0] = original_raw;
+    try accepted.check(allocator);
+    var wrong_statement = statement;
+    wrong_statement.source_root[0] ^= 1;
+    var rejected_channel = Channel{};
+    const initial_digest = rejected_channel.digest;
+    try std.testing.expectError(
+        error.UnexpectedSparseStatement,
+        core.pcs.paired_sparse_cascade_wire.verifyAndExtractRelation(
+            allocator,
+            encoded,
+            &rejected_channel,
+            wrong_statement,
+        ),
+    );
+    try std.testing.expectEqualSlices(u8, &initial_digest, &rejected_channel.digest);
+    var invalid_line_channel = Channel{};
+    var invalid_line = try host.proveWithInvalidLineForTest(allocator, input, &invalid_line_channel);
+    defer invalid_line.deinit();
+    const invalid_line_wire = try core.pcs.paired_sparse_cascade_wire.encode(allocator, invalid_line.proof);
+    defer allocator.free(invalid_line_wire);
+    try std.testing.expectError(
+        error.IntermediateFoldMismatch,
+        core.pcs.paired_sparse_cascade_wire.verifyAndExtractRelation(
+            allocator,
+            invalid_line_wire,
+            &rejected_channel,
+            .{
+                .profile = invalid_line.proof.profile,
+                .source_root = invalid_line.proof.source_root,
+                .claims = invalid_line.proof.claims,
+            },
+        ),
+    );
+    try std.testing.expectEqualSlices(u8, &initial_digest, &rejected_channel.digest);
+    var invalid_terminal_channel = Channel{};
+    var invalid_terminal = try host.proveWithInvalidTerminalForTest(
+        allocator,
+        input,
+        &invalid_terminal_channel,
+    );
+    defer invalid_terminal.deinit();
+    const invalid_terminal_wire = try core.pcs.paired_sparse_cascade_wire.encode(
+        allocator,
+        invalid_terminal.proof,
+    );
+    defer allocator.free(invalid_terminal_wire);
+    try std.testing.expectError(
+        error.TerminalFoldMismatch,
+        core.pcs.paired_sparse_cascade_wire.verifyAndExtractRelation(
+            allocator,
+            invalid_terminal_wire,
+            &rejected_channel,
+            .{
+                .profile = invalid_terminal.proof.profile,
+                .source_root = invalid_terminal.proof.source_root,
+                .claims = invalid_terminal.proof.claims,
+            },
+        ),
+    );
+    try std.testing.expectEqualSlices(u8, &initial_digest, &rejected_channel.digest);
 
     // Replay only transcript custody and XDM04 authentication. The expected
     // quotient and fold words below come from the independent scalar formulas.
@@ -265,4 +362,51 @@ test "CAS05 accepted nonconstant four-height proof refines independent scalar re
         scale = scale.mul(two);
     }
     allocator.free(current);
+}
+
+test "CAS05 accepted relation extractor checks every one of eight heights" {
+    const allocator = std.testing.allocator;
+    const k: u32 = 10;
+    const height_count: usize = 8;
+    var xs: [height_count][1024]M31 = undefined;
+    var columns: [height_count][1][]const M31 = undefined;
+    var groups: [height_count][]const []const M31 = undefined;
+    for (0..height_count) |height| {
+        const log_size = k - @as(u32, @intCast(height));
+        const size = @as(usize, 1) << @intCast(log_size);
+        const domain = canonic.CanonicCoset.new(log_size).circleDomain();
+        for (0..size) |row|
+            xs[height][row] = domain.at(core.utils.bitReverseIndex(row, log_size)).x;
+        columns[height] = .{xs[height][0..size]};
+        groups[height] = &columns[height];
+    }
+    var prover_channel = Channel{};
+    var owned = try host.prove(allocator, .{
+        .source_columns = &groups,
+        .log_blowup = 1,
+        .n_queries = 4,
+    }, &prover_channel);
+    defer owned.deinit();
+    const proof = owned.proof;
+    const encoded = try core.pcs.paired_sparse_cascade_wire.encode(allocator, proof);
+    defer allocator.free(encoded);
+    var verifier_channel = Channel{};
+    var accepted = try core.pcs.paired_sparse_cascade_wire.verifyAndExtractRelation(
+        allocator,
+        encoded,
+        &verifier_channel,
+        .{
+            .profile = proof.profile,
+            .source_root = proof.source_root,
+            .claims = proof.claims,
+        },
+    );
+    defer accepted.deinit();
+    try std.testing.expectEqualSlices(u8, &prover_channel.digest, &verifier_channel.digest);
+    try std.testing.expectEqual(height_count, accepted.forwarded.len);
+    try std.testing.expectEqual(@as(usize, 2), accepted.terminal_ordered_coeffs.len);
+    try accepted.check(allocator);
+    const middle = accepted.forwarded[4][0];
+    accepted.forwarded[4][0] = middle.add(QM31.one());
+    if (accepted.check(allocator)) |_| return error.MiddleFoldMutationAccepted else |_| {}
 }
