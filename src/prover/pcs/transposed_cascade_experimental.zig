@@ -8,12 +8,29 @@ const sparse = core.pcs.transposed_merkle_sparse;
 const topology = core.pcs.transposed_merkle;
 const M31 = xdm.M31;
 const Hash = xdm.Hash;
+const Mode = enum { dense, sparse };
 
 pub const Commitment = struct {
     allocator: std.mem.Allocator,
+    /// Shared source-tree geometry. Sparse commitments may exceed XDM03's
+    /// caps; only `encodeSparseOpenings` is valid for that mode.
     profile: xdm.Profile,
+    mode: Mode,
     layers: [][]Hash,
     source_columns: []const []const []const M31,
+
+    pub const MAX_SPARSE_HOST_BYTES: usize = 192 * 1024 * 1024;
+
+    pub fn estimatedSparseHostBytes(k: u32, source_words: usize) !usize {
+        if (k > sparse.MAX_LOG_SIZE) return error.InvalidCascadeProfile;
+        const node_count = (@as(usize, 1) << @intCast(k + 1)) - 1;
+        const tree_bytes = std.math.mul(usize, node_count, @sizeOf(Hash)) catch
+            return error.SparseHostMemoryBudgetExceeded;
+        const source_bytes = std.math.mul(usize, source_words, @sizeOf(M31)) catch
+            return error.SparseHostMemoryBudgetExceeded;
+        return std.math.add(usize, tree_bytes, source_bytes) catch
+            return error.SparseHostMemoryBudgetExceeded;
+    }
 
     pub fn deinit(self: *Commitment) void {
         for (self.layers) |layer| self.allocator.free(layer);
@@ -29,6 +46,26 @@ pub const Commitment = struct {
         allocator: std.mem.Allocator,
         source_columns: []const []const []const M31,
     ) !Commitment {
+        return commitImpl(allocator, source_columns, 1, .dense);
+    }
+
+    /// CAS05/XDM04 host reference. Preflight the actual sparse query shape
+    /// and a conservative resident tree+borrowed-source budget before any
+    /// tree allocation. This still materializes the entire Merkle tree.
+    pub fn commitSparse(
+        allocator: std.mem.Allocator,
+        source_columns: []const []const []const M31,
+        query_count: usize,
+    ) !Commitment {
+        return commitImpl(allocator, source_columns, query_count, .sparse);
+    }
+
+    fn commitImpl(
+        allocator: std.mem.Allocator,
+        source_columns: []const []const []const M31,
+        query_count: usize,
+        mode: Mode,
+    ) !Commitment {
         if (source_columns.len < 2 or source_columns.len > xdm.MAX_HEIGHTS or
             source_columns[0].len == 0 or source_columns[0][0].len < 16 or
             !std.math.isPowerOfTwo(source_columns[0][0].len))
@@ -36,6 +73,7 @@ pub const Commitment = struct {
         const k: u32 = @intCast(std.math.log2_int(usize, source_columns[0][0].len));
         if (k < source_columns.len + 2) return error.InvalidCascadeProfile;
         var columns = [_]u16{0} ** xdm.MAX_HEIGHTS;
+        var source_words: usize = 0;
         for (source_columns, 0..) |height, i| {
             if (height.len == 0 or height.len > xdm.MAX_COLUMNS)
                 return error.InvalidCascadeProfile;
@@ -43,6 +81,8 @@ pub const Commitment = struct {
             for (height) |column| {
                 if (column.len != (@as(usize, 1) << @intCast(k - @as(u32, @intCast(i)))))
                     return error.InvalidCascadeProfile;
+                source_words = std.math.add(usize, source_words, column.len) catch
+                    return error.SparseHostMemoryBudgetExceeded;
             }
         }
         const profile = xdm.Profile{
@@ -51,7 +91,19 @@ pub const Commitment = struct {
             .columns = columns,
             .query_count = 1,
         };
-        try profile.validate();
+        switch (mode) {
+            .dense => try profile.validate(),
+            .sparse => {
+                try (sparse.Profile{
+                    .largest_log_size = k,
+                    .height_count = source_columns.len,
+                    .columns = columns,
+                    .query_count = query_count,
+                }).validate();
+                if (try estimatedSparseHostBytes(k, source_words) > MAX_SPARSE_HOST_BYTES)
+                    return error.SparseHostMemoryBudgetExceeded;
+            },
+        }
         const layers = try allocator.alloc([]Hash, k + 1);
         var built: usize = 0;
         errdefer {
@@ -82,7 +134,7 @@ pub const Commitment = struct {
             if (level == 0) break;
             level -= 1;
         }
-        return .{ .allocator = allocator, .profile = profile, .layers = layers, .source_columns = source_columns };
+        return .{ .allocator = allocator, .profile = profile, .mode = mode, .layers = layers, .source_columns = source_columns };
     }
 
     pub fn encodeOpenings(
@@ -90,6 +142,7 @@ pub const Commitment = struct {
         allocator: std.mem.Allocator,
         raw_queries: []const usize,
     ) ![]u8 {
+        if (self.mode != .dense) return error.UnsupportedProofFormat;
         var profile = self.profile;
         profile.query_count = raw_queries.len;
         try profile.validate();
