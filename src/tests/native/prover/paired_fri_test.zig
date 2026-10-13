@@ -970,6 +970,47 @@ test "experimental sampled two-height FRI authenticates intermediate and checks 
         two_height_wire.verify(alloc, altered_wire, &untouched_channel, expected_profile, n_queries),
     );
     try std.testing.expectEqualSlices(u8, &untouched_digest, &untouched_channel.digest);
+    const changed_source_values = try alloc.dupe(M31, queried0[0]);
+    defer alloc.free(changed_source_values);
+    for (schedule.source_positions, 0..) |position, index| {
+        if (position == schedule.source_positions[0]) {
+            changed_source_values[index] = changed_source_values[index].add(M31.one());
+        }
+    }
+    const changed_source_columns = [_][]const M31{changed_source_values};
+    var changed_source_heights = heights;
+    changed_source_heights[0].queried_sources = &changed_source_columns;
+    const changed_source_wire = try envelope_mod.encode(alloc, .{
+        .largest_log_size = 4,
+        .query_count = 4 * n_queries,
+        .heights = &changed_source_heights,
+    });
+    defer alloc.free(changed_source_wire);
+    const changed_source_proof = try two_height_wire.encode(alloc, .{
+        .source_wire = changed_source_wire,
+        .intermediate = intermediate,
+        .terminal_ordered_coeffs = terminal_coeffs,
+    });
+    defer alloc.free(changed_source_proof);
+    var changed_source_channel = Channel{};
+    try std.testing.expectError(
+        error.RootMismatch,
+        two_height_wire.verify(
+            alloc,
+            changed_source_proof,
+            &changed_source_channel,
+            expected_profile,
+            n_queries,
+        ),
+    );
+    try std.testing.expectError(
+        error.InvalidPairedProof,
+        two_height_wire.encode(alloc, .{
+            .source_wire = encoded,
+            .intermediate = intermediate,
+            .terminal_ordered_coeffs = &[_]QM31{ terminal_coeffs[0], terminal_coeffs[1], QM31.one() },
+        }),
+    );
     try std.testing.expectError(
         error.UnsupportedProofFormat,
         two_height_wire.verify(alloc, encoded, &untouched_channel, expected_profile, n_queries),
@@ -993,6 +1034,24 @@ test "experimental sampled two-height FRI authenticates intermediate and checks 
         two_height_wire.verify(
             alloc,
             noncanonical_wire,
+            &untouched_channel,
+            expected_profile,
+            n_queries,
+        ),
+    );
+    try std.testing.expectEqualSlices(u8, &untouched_digest, &untouched_channel.digest);
+    const high_degree_wire = try alloc.alloc(u8, complete_wire.len + @sizeOf(QM31));
+    defer alloc.free(high_degree_wire);
+    @memcpy(high_degree_wire[0 .. terminal_offset + 2 * @sizeOf(QM31)], complete_wire[0 .. terminal_offset + 2 * @sizeOf(QM31)]);
+    @memset(high_degree_wire[terminal_offset + 2 * @sizeOf(QM31) ..][0..@sizeOf(QM31)], 0);
+    @memcpy(high_degree_wire[terminal_offset + 3 * @sizeOf(QM31) ..], complete_wire[terminal_offset + 2 * @sizeOf(QM31) ..]);
+    std.mem.writeInt(u32, high_degree_wire[12..16], @intCast(high_degree_wire.len), .little);
+    std.mem.writeInt(u32, high_degree_wire[terminal_offset - 4 ..][0..4], 3, .little);
+    try std.testing.expectError(
+        error.InvalidPairedProof,
+        two_height_wire.verify(
+            alloc,
+            high_degree_wire,
             &untouched_channel,
             expected_profile,
             n_queries,
@@ -1142,6 +1201,103 @@ test "experimental sampled two-height FRI authenticates intermediate and checks 
             &forged_prepared,
             forged_intermediate,
             terminal_coeffs,
+            n_queries,
+        ),
+    );
+
+    // An adversary can publish a different short terminal polynomial and
+    // re-open both honest trees at the resulting Fiat-Shamir queries. Its
+    // source and line Merkle proofs are then valid, but the second fold must
+    // disagree with that polynomial.
+    const wrong_terminal = [_]QM31{ terminal_coeffs[0].add(QM31.one()), terminal_coeffs[1] };
+    var wrong_terminal_channel = Channel{};
+    two_height_wire.bindVersion(&wrong_terminal_channel);
+    const wrong_sample = try two_height_wire.drawOodPointFromRoots(&wrong_terminal_channel, header);
+    try std.testing.expect(wrong_sample.eql(sample_point));
+    _ = try two_height_wire.drawBatchAfterOod(&wrong_terminal_channel, header, wrong_sample);
+    _ = wrong_terminal_channel.drawSecureFelt();
+    core.vcs_lifted.blake2_merkle.Blake2sMerkleChannel.mixRoot(
+        &wrong_terminal_channel,
+        g0_tree.root(),
+    );
+    _ = wrong_terminal_channel.drawSecureFelt();
+    wrong_terminal_channel.mixFelts(&wrong_terminal);
+    var wrong_terminal_schedule = try two_height.sampleQuerySchedule(
+        alloc,
+        &wrong_terminal_channel,
+        4,
+        n_queries,
+    );
+    defer wrong_terminal_schedule.deinit(alloc);
+    const wrong_projected = try core.pcs.paired_projection.projectPositions(
+        alloc,
+        wrong_terminal_schedule.source_positions,
+        4,
+        3,
+    );
+    defer alloc.free(wrong_projected);
+    var wrong_source0 = try tree0.decommit(
+        alloc,
+        wrong_terminal_schedule.source_positions,
+        &sources0,
+    );
+    defer wrong_source0.deinit(alloc);
+    var wrong_source1 = try tree1.decommit(alloc, wrong_projected, &sources1);
+    defer wrong_source1.deinit(alloc);
+    var wrong_line = try g0_tree.decommit(
+        alloc,
+        wrong_terminal_schedule.line_positions,
+        &g0_columns,
+    );
+    defer wrong_line.deinit(alloc);
+    const wrong_columns0 = [_][]const M31{wrong_source0.queried_values[0]};
+    const wrong_columns1 = [_][]const M31{wrong_source1.queried_values[0]};
+    const wrong_heights = [_]envelope_mod.HeightOpening{
+        .{
+            .shape = shape0,
+            .source_root = tree0.root(),
+            .sample_points = &points,
+            .sample_values = &claims,
+            .queried_sources = &wrong_columns0,
+            .hash_witness = wrong_source0.decommitment.decommitment.hash_witness,
+        },
+        .{
+            .shape = shape1,
+            .source_root = tree1.root(),
+            .sample_points = &points,
+            .sample_values = &claims,
+            .queried_sources = &wrong_columns1,
+            .hash_witness = wrong_source1.decommitment.decommitment.hash_witness,
+        },
+    };
+    const wrong_source_wire = try envelope_mod.encode(alloc, .{
+        .largest_log_size = 4,
+        .query_count = 4 * n_queries,
+        .heights = &wrong_heights,
+    });
+    defer alloc.free(wrong_source_wire);
+    const wrong_intermediate = two_height.IntermediateOpening{
+        .root = g0_tree.root(),
+        .queried_coordinates = .{
+            wrong_line.queried_values[0], wrong_line.queried_values[1],
+            wrong_line.queried_values[2], wrong_line.queried_values[3],
+        },
+        .hash_witness = wrong_line.decommitment.decommitment.hash_witness,
+    };
+    const wrong_terminal_wire = try two_height_wire.encode(alloc, .{
+        .source_wire = wrong_source_wire,
+        .intermediate = wrong_intermediate,
+        .terminal_ordered_coeffs = &wrong_terminal,
+    });
+    defer alloc.free(wrong_terminal_wire);
+    var wrong_terminal_verifier = Channel{};
+    try std.testing.expectError(
+        error.TerminalFoldMismatch,
+        two_height_wire.verify(
+            alloc,
+            wrong_terminal_wire,
+            &wrong_terminal_verifier,
+            expected_profile,
             n_queries,
         ),
     );
