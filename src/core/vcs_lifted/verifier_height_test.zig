@@ -90,5 +90,39 @@ test "vcs_lifted verifier: explicit heights must dominate columns and be zero wh
     var empty = try Verifier.initWithHeight(alloc, root, &.{}, 0);
     defer empty.deinit(alloc);
     try std.testing.expectEqual(@as(u32, 0), empty.height);
-    try empty.verify(alloc, &.{ 0, 1 }, &.{}, .{ .hash_witness = &.{} });
+    try empty.verify(alloc, &.{}, &.{}, .{ .hash_witness = &.{} });
+    try std.testing.expectError(
+        error.InvalidQueryShape,
+        empty.verify(alloc, &.{ 0, 1 }, &.{}, .{ .hash_witness = &.{} }),
+    );
+}
+
+test "vcs_lifted verifier: empty tree capture is owned and rejects nonempty inputs" {
+    const alloc = std.testing.allocator;
+    const root = [_]u8{0} ** 32;
+    const Capture = verifier.MerklePathCapture(Hasher);
+    var empty = try Verifier.initWithHeight(alloc, root, &.{}, 0);
+    defer empty.deinit(alloc);
+
+    var capture: Capture = undefined;
+    try empty.verifyWithPathCapture(alloc, &.{}, &.{}, .{ .hash_witness = &.{} }, &capture);
+    defer capture.deinit(alloc);
+    try std.testing.expectEqual(@as(u32, 0), capture.path_depth);
+    try std.testing.expectEqual(@as(usize, 0), capture.positions.len);
+    try std.testing.expectEqual(@as(usize, 0), capture.siblings.len);
+
+    const sentinel = Capture{ .positions = &.{}, .path_depth = std.math.maxInt(u32), .siblings = &.{} };
+    var rejected = sentinel;
+    try std.testing.expectError(
+        error.InvalidQueryShape,
+        empty.verifyWithPathCapture(alloc, &.{0}, &.{}, .{ .hash_witness = &.{} }, &rejected),
+    );
+    try std.testing.expectEqualDeep(sentinel, rejected);
+
+    var extra = [_]Hasher.Hash{root};
+    try std.testing.expectError(
+        error.WitnessTooLong,
+        empty.verifyWithPathCapture(alloc, &.{}, &.{}, .{ .hash_witness = &extra }, &rejected),
+    );
+    try std.testing.expectEqualDeep(sentinel, rejected);
 }
