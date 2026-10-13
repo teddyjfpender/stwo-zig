@@ -806,3 +806,386 @@ test "experimental versioned multi-height source openings authenticate before in
     extended_wire[encoded.len] = 0;
     try std.testing.expectError(error.InvalidPairedEnvelope, envelope_mod.decode(alloc, extended_wire));
 }
+
+fn pairedFullBatchForTest(
+    allocator: std.mem.Allocator,
+    source: []const M31,
+    log_domain_size: u32,
+    point: @import("stwo_core").circle.CirclePointQM31,
+    claim: QM31,
+    challenges: @import("stwo_core").pcs.paired_ensemble.Challenges,
+) ![]QM31 {
+    const core = @import("stwo_core");
+    const shape = core.pcs.paired_ensemble.Shape{
+        .log_domain_size = log_domain_size,
+        .log_degree_bound = log_domain_size - 1,
+        .original_column_count = 1,
+    };
+    const positions = try allocator.alloc(usize, source.len);
+    defer allocator.free(positions);
+    for (positions, 0..) |*position, i| position.* = i;
+    var log_column = [_]u32{log_domain_size};
+    var log_tree = [_][]u32{log_column[0..]};
+    var point_column = [_]core.circle.CirclePointQM31{point};
+    var point_tree = [_][]core.circle.CirclePointQM31{point_column[0..]};
+    var points = [_][][]core.circle.CirclePointQM31{point_tree[0..]};
+    var claim_column = [_]QM31{claim};
+    var claim_tree = [_][]QM31{claim_column[0..]};
+    var claims = [_][][]QM31{claim_tree[0..]};
+    var source_tree = [_][]M31{@constCast(source)};
+    var queried = [_][][]M31{source_tree[0..]};
+    const quotient = try core.pcs.quotients.friAnswers(
+        allocator,
+        core.pcs.TreeVec([]u32).initOwned(log_tree[0..]),
+        core.pcs.TreeVec([][]core.circle.CirclePointQM31).initOwned(points[0..]),
+        core.pcs.TreeVec([][]QM31).initOwned(claims[0..]),
+        QM31.one(),
+        positions,
+        core.pcs.TreeVec([][]M31).initOwned(queried[0..]),
+        log_domain_size,
+    );
+    defer allocator.free(quotient);
+    return core.pcs.paired_ensemble.foldColumns(
+        allocator,
+        &[_][]const M31{source},
+        &[_][]const QM31{quotient},
+        shape,
+        challenges,
+    );
+}
+
+test "experimental sampled two-height FRI authenticates intermediate and checks both folds" {
+    const core = @import("stwo_core");
+    const envelope_mod = core.pcs.paired_envelope;
+    const two_height = core.pcs.paired_two_height_fri;
+    const Channel = core.channel.blake2s.Blake2sChannel;
+    const Hasher = envelope_mod.Hasher;
+    const SourceProver = @import("stwo_prover_engine").vcs_lifted.prover.MerkleProverLifted(Hasher);
+    const LineEvaluation = @import("stwo_prover_engine").line.LineEvaluation;
+    const alloc = std.testing.allocator;
+    const d0 = core.poly.circle.canonic.CanonicCoset.new(4).circleDomain();
+    const d1 = core.poly.circle.canonic.CanonicCoset.new(3).circleDomain();
+    const shape0 = core.pcs.paired_ensemble.Shape{
+        .log_domain_size = 4,
+        .log_degree_bound = 3,
+        .original_column_count = 1,
+    };
+    const shape1 = core.pcs.paired_ensemble.Shape{
+        .log_domain_size = 3,
+        .log_degree_bound = 2,
+        .original_column_count = 1,
+    };
+    var f0: [16]M31 = undefined;
+    var f1: [8]M31 = undefined;
+    for (&f0, 0..) |*value, row| value.* = d0.at(core.utils.bitReverseIndex(row, 4)).x;
+    for (&f1, 0..) |*value, row| value.* = d1.at(core.utils.bitReverseIndex(row, 3)).x;
+    const sources0 = [_][]const M31{&f0};
+    const sources1 = [_][]const M31{&f1};
+    var tree0 = try SourceProver.commit(alloc, &sources0);
+    defer tree0.deinit(alloc);
+    var tree1 = try SourceProver.commit(alloc, &sources1);
+    defer tree1.deinit(alloc);
+    const sample_point = core.circle.SECURE_FIELD_CIRCLE_GEN.mul(13);
+    const points = [_]core.circle.CirclePointQM31{sample_point};
+    const claims = [_]QM31{sample_point.x};
+    const n_queries: usize = 4;
+    var dummy_values = [_]M31{M31.zero()} ** (4 * n_queries);
+    var empty_witness: [0]Hasher.Hash = .{};
+    const dummy_columns = [_][]const M31{&dummy_values};
+    const header_heights = [_]envelope_mod.HeightOpening{
+        .{
+            .shape = shape0,
+            .source_root = tree0.root(),
+            .sample_points = &points,
+            .sample_values = &claims,
+            .queried_sources = &dummy_columns,
+            .hash_witness = &empty_witness,
+        },
+        .{
+            .shape = shape1,
+            .source_root = tree1.root(),
+            .sample_points = &points,
+            .sample_values = &claims,
+            .queried_sources = &dummy_columns,
+            .hash_witness = &empty_witness,
+        },
+    };
+    const header = envelope_mod.Envelope{
+        .largest_log_size = 4,
+        .query_count = 4 * n_queries,
+        .heights = &header_heights,
+    };
+    var prover_channel = Channel{};
+    const batch_challenges = try envelope_mod.drawChallenges(&prover_channel, header);
+    const alpha0 = prover_channel.drawSecureFelt();
+    const batch0 = try pairedFullBatchForTest(alloc, &f0, 4, sample_point, sample_point.x, batch_challenges);
+    defer alloc.free(batch0);
+    const batch1 = try pairedFullBatchForTest(alloc, &f1, 3, sample_point, sample_point.x, batch_challenges);
+    defer alloc.free(batch1);
+    var g0 = [_]QM31{QM31.zero()} ** 8;
+    var workspace = try core_fri.folding.FoldCircleWorkspace.init(alloc, g0.len);
+    defer workspace.deinit(alloc);
+    try core_fri.folding.foldCircleIntoLineWithWorkspace(alloc, &g0, batch0, d0, alpha0, &workspace);
+    var g0_coordinates: [4][8]M31 = undefined;
+    for (g0, 0..) |value, row| {
+        const parts = value.toM31Array();
+        for (0..4) |part| g0_coordinates[part][row] = parts[part];
+    }
+    const g0_columns = [_][]const M31{
+        &g0_coordinates[0], &g0_coordinates[1], &g0_coordinates[2], &g0_coordinates[3],
+    };
+    var g0_tree = try SourceProver.commit(alloc, &g0_columns);
+    defer g0_tree.deinit(alloc);
+    core.vcs_lifted.blake2_merkle.Blake2sMerkleChannel.mixRoot(&prover_channel, g0_tree.root());
+    const alpha1 = prover_channel.drawSecureFelt();
+    const g1 = try core_fri.multidomain_insertion.insertCircleBatch(
+        alloc,
+        &g0,
+        core.poly.line.LineDomain.fromCircleDomain(d0),
+        batch1,
+        d1,
+        alpha1,
+    );
+    defer alloc.free(g1.values);
+    var g1_evaluation = try LineEvaluation.initBorrowed(g1.domain, g1.values);
+    var g1_poly = try g1_evaluation.interpolate(alloc);
+    defer g1_poly.deinit(alloc);
+    const ordered_coeffs = g1_poly.intoOrderedCoefficients();
+    for (ordered_coeffs[2..]) |coefficient| try std.testing.expect(coefficient.isZero());
+    const terminal_coeffs = ordered_coeffs[0..2];
+    prover_channel.mixFelts(terminal_coeffs);
+    var schedule = try two_height.sampleQuerySchedule(alloc, &prover_channel, 4, n_queries);
+    defer schedule.deinit(alloc);
+
+    const projected1 = try core.pcs.paired_projection.projectPositions(
+        alloc,
+        schedule.source_positions,
+        4,
+        3,
+    );
+    defer alloc.free(projected1);
+    var opened0 = try tree0.decommit(alloc, schedule.source_positions, &sources0);
+    defer opened0.deinit(alloc);
+    var opened1 = try tree1.decommit(alloc, projected1, &sources1);
+    defer opened1.deinit(alloc);
+    var opened_g0 = try g0_tree.decommit(alloc, schedule.line_positions, &g0_columns);
+    defer opened_g0.deinit(alloc);
+    const queried0 = [_][]const M31{opened0.queried_values[0]};
+    const queried1 = [_][]const M31{opened1.queried_values[0]};
+    const heights = [_]envelope_mod.HeightOpening{
+        .{
+            .shape = shape0,
+            .source_root = tree0.root(),
+            .sample_points = &points,
+            .sample_values = &claims,
+            .queried_sources = &queried0,
+            .hash_witness = opened0.decommitment.decommitment.hash_witness,
+        },
+        .{
+            .shape = shape1,
+            .source_root = tree1.root(),
+            .sample_points = &points,
+            .sample_values = &claims,
+            .queried_sources = &queried1,
+            .hash_witness = opened1.decommitment.decommitment.hash_witness,
+        },
+    };
+    const source_envelope = envelope_mod.Envelope{
+        .largest_log_size = 4,
+        .query_count = 4 * n_queries,
+        .heights = &heights,
+    };
+    const encoded = try envelope_mod.encode(alloc, source_envelope);
+    defer alloc.free(encoded);
+    const expected_profile = envelope_mod.ExpectedProfile{
+        .largest_log_size = 4,
+        .query_count = 4 * n_queries,
+        .shapes = &[_]core.pcs.paired_ensemble.Shape{ shape0, shape1 },
+    };
+    var verifier_channel = Channel{};
+    var prepared = try envelope_mod.decodeAndBind(alloc, encoded, &verifier_channel, expected_profile);
+    defer prepared.deinit();
+    const intermediate = two_height.IntermediateOpening{
+        .root = g0_tree.root(),
+        .queried_coordinates = .{
+            opened_g0.queried_values[0], opened_g0.queried_values[1],
+            opened_g0.queried_values[2], opened_g0.queried_values[3],
+        },
+        .hash_witness = opened_g0.decommitment.decommitment.hash_witness,
+    };
+    const two_height_wire = core.pcs.paired_two_height_wire;
+    const complete_wire = try two_height_wire.encode(alloc, .{
+        .source_wire = encoded,
+        .intermediate = intermediate,
+        .terminal_ordered_coeffs = terminal_coeffs,
+    });
+    defer alloc.free(complete_wire);
+    var wire_channel = Channel{};
+    try two_height_wire.verify(
+        alloc,
+        complete_wire,
+        &wire_channel,
+        expected_profile,
+        n_queries,
+    );
+    try std.testing.expectEqualSlices(u8, &prover_channel.digest, &wire_channel.digest);
+    const wrong_version_wire = try alloc.dupe(u8, complete_wire);
+    defer alloc.free(wrong_version_wire);
+    wrong_version_wire[8] = 2;
+    var untouched_channel = Channel{};
+    const untouched_digest = untouched_channel.digest;
+    try std.testing.expectError(
+        error.UnsupportedProofVersion,
+        two_height_wire.verify(
+            alloc,
+            wrong_version_wire,
+            &untouched_channel,
+            expected_profile,
+            n_queries,
+        ),
+    );
+    try std.testing.expectEqualSlices(u8, &untouched_digest, &untouched_channel.digest);
+    try two_height.verifyAfterSourceBinding(
+        alloc,
+        &verifier_channel,
+        &prepared,
+        intermediate,
+        terminal_coeffs,
+        n_queries,
+    );
+    try std.testing.expectEqualSlices(u8, &prover_channel.digest, &verifier_channel.digest);
+
+    // A changed intermediate line word must fail its own commitment check
+    // before either fold relation is considered.
+    const changed_coordinate = try alloc.dupe(M31, intermediate.queried_coordinates[0]);
+    defer alloc.free(changed_coordinate);
+    for (changed_coordinate) |*value| value.* = value.*.add(M31.one());
+    var changed_intermediate = intermediate;
+    changed_intermediate.queried_coordinates[0] = changed_coordinate;
+    var rejected_channel = Channel{};
+    var rejected_prepared = try envelope_mod.decodeAndBind(
+        alloc,
+        encoded,
+        &rejected_channel,
+        expected_profile,
+    );
+    defer rejected_prepared.deinit();
+    try std.testing.expectError(
+        error.RootMismatch,
+        two_height.verifyAfterSourceBinding(
+            alloc,
+            &rejected_channel,
+            &rejected_prepared,
+            changed_intermediate,
+            terminal_coeffs,
+            n_queries,
+        ),
+    );
+
+    // A prover can commit to a different, internally consistent line tree.
+    // Merkle authentication then succeeds, but the sampled source-to-line
+    // relation must still reject the forged fold.
+    var forged_coordinates = g0_coordinates;
+    for (&forged_coordinates[0]) |*value| value.* = value.*.add(M31.one());
+    const forged_columns = [_][]const M31{
+        &forged_coordinates[0], &forged_coordinates[1],
+        &forged_coordinates[2], &forged_coordinates[3],
+    };
+    var forged_tree = try SourceProver.commit(alloc, &forged_columns);
+    defer forged_tree.deinit(alloc);
+    var forged_prover_channel = Channel{};
+    _ = try envelope_mod.drawChallenges(&forged_prover_channel, header);
+    _ = forged_prover_channel.drawSecureFelt();
+    core.vcs_lifted.blake2_merkle.Blake2sMerkleChannel.mixRoot(
+        &forged_prover_channel,
+        forged_tree.root(),
+    );
+    _ = forged_prover_channel.drawSecureFelt();
+    forged_prover_channel.mixFelts(terminal_coeffs);
+    var forged_schedule = try two_height.sampleQuerySchedule(
+        alloc,
+        &forged_prover_channel,
+        4,
+        n_queries,
+    );
+    defer forged_schedule.deinit(alloc);
+    const forged_projected = try core.pcs.paired_projection.projectPositions(
+        alloc,
+        forged_schedule.source_positions,
+        4,
+        3,
+    );
+    defer alloc.free(forged_projected);
+    var forged_opened0 = try tree0.decommit(
+        alloc,
+        forged_schedule.source_positions,
+        &sources0,
+    );
+    defer forged_opened0.deinit(alloc);
+    var forged_opened1 = try tree1.decommit(
+        alloc,
+        forged_projected,
+        &sources1,
+    );
+    defer forged_opened1.deinit(alloc);
+    var forged_opened_line = try forged_tree.decommit(
+        alloc,
+        forged_schedule.line_positions,
+        &forged_columns,
+    );
+    defer forged_opened_line.deinit(alloc);
+    const forged_source0 = [_][]const M31{forged_opened0.queried_values[0]};
+    const forged_source1 = [_][]const M31{forged_opened1.queried_values[0]};
+    const forged_heights = [_]envelope_mod.HeightOpening{
+        .{
+            .shape = shape0,
+            .source_root = tree0.root(),
+            .sample_points = &points,
+            .sample_values = &claims,
+            .queried_sources = &forged_source0,
+            .hash_witness = forged_opened0.decommitment.decommitment.hash_witness,
+        },
+        .{
+            .shape = shape1,
+            .source_root = tree1.root(),
+            .sample_points = &points,
+            .sample_values = &claims,
+            .queried_sources = &forged_source1,
+            .hash_witness = forged_opened1.decommitment.decommitment.hash_witness,
+        },
+    };
+    const forged_envelope = envelope_mod.Envelope{
+        .largest_log_size = 4,
+        .query_count = 4 * n_queries,
+        .heights = &forged_heights,
+    };
+    const forged_wire = try envelope_mod.encode(alloc, forged_envelope);
+    defer alloc.free(forged_wire);
+    var forged_verifier_channel = Channel{};
+    var forged_prepared = try envelope_mod.decodeAndBind(
+        alloc,
+        forged_wire,
+        &forged_verifier_channel,
+        expected_profile,
+    );
+    defer forged_prepared.deinit();
+    const forged_intermediate = two_height.IntermediateOpening{
+        .root = forged_tree.root(),
+        .queried_coordinates = .{
+            forged_opened_line.queried_values[0], forged_opened_line.queried_values[1],
+            forged_opened_line.queried_values[2], forged_opened_line.queried_values[3],
+        },
+        .hash_witness = forged_opened_line.decommitment.decommitment.hash_witness,
+    };
+    try std.testing.expectError(
+        error.IntermediateFoldMismatch,
+        two_height.verifyAfterSourceBinding(
+            alloc,
+            &forged_verifier_channel,
+            &forged_prepared,
+            forged_intermediate,
+            terminal_coeffs,
+            n_queries,
+        ),
+    );
+}

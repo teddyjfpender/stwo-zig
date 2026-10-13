@@ -1,0 +1,236 @@
+//! Experimental complete wire container for the fixed two-height FRI slice.
+//!
+//! The outer magic selects this mode before any transcript replay. Production
+//! PCS does not dispatch to this decoder or verifier; the protocol's published
+//! soundness theorem has not been refined to these native choices.
+
+const std = @import("std");
+const m31 = @import("../fields/m31.zig");
+const qm31 = @import("../fields/qm31.zig");
+const paired = @import("paired_envelope.zig");
+const two_height = @import("paired_two_height_fri.zig");
+
+const M31 = m31.M31;
+const QM31 = qm31.QM31;
+const Hash = paired.Hash;
+pub const MAGIC = "S31P2F01";
+pub const VERSION: u16 = 1;
+const MAX_WIRE_BYTES: usize = 64 * 1024 * 1024;
+const MAX_HASH_WITNESS: usize = 1 << 20;
+
+pub const Proof = struct {
+    source_wire: []const u8,
+    intermediate: two_height.IntermediateOpening,
+    terminal_ordered_coeffs: []const QM31,
+};
+
+pub const Decoded = struct {
+    arena: std.heap.ArenaAllocator,
+    source: paired.Decoded,
+    intermediate: two_height.IntermediateOpening,
+    terminal_ordered_coeffs: []const QM31,
+
+    pub fn deinit(self: *Decoded) void {
+        self.source.deinit();
+        self.arena.deinit();
+        self.* = undefined;
+    }
+};
+
+pub const Prepared = struct {
+    decoded: Decoded,
+    challenges: @import("paired_ensemble.zig").Challenges,
+
+    pub fn deinit(self: *Prepared) void {
+        self.decoded.deinit();
+        self.* = undefined;
+    }
+};
+
+pub fn encode(allocator: std.mem.Allocator, proof: Proof) ![]u8 {
+    var source = try paired.decode(allocator, proof.source_wire);
+    defer source.deinit();
+    try validateShape(source.envelope, proof.intermediate, proof.terminal_ordered_coeffs);
+    var out = std.ArrayList(u8).empty;
+    errdefer out.deinit(allocator);
+    const writer = out.writer(allocator);
+    try writer.writeAll(MAGIC);
+    try writer.writeInt(u16, VERSION, .little);
+    try writer.writeInt(u16, 0, .little);
+    try writer.writeInt(u32, 0, .little); // patched total length
+    try writer.writeInt(u32, @intCast(proof.source_wire.len), .little);
+    try writer.writeAll(proof.source_wire);
+    try writer.writeAll(&proof.intermediate.root);
+    try writer.writeInt(u32, @intCast(proof.terminal_ordered_coeffs.len), .little);
+    for (proof.terminal_ordered_coeffs) |value| try writeQM31(writer, value);
+    const line_query_count = proof.intermediate.queried_coordinates[0].len;
+    try writer.writeInt(u32, @intCast(line_query_count), .little);
+    for (proof.intermediate.queried_coordinates) |column| {
+        for (column) |value| try writer.writeInt(u32, value.toU32(), .little);
+    }
+    try writer.writeInt(u32, @intCast(proof.intermediate.hash_witness.len), .little);
+    for (proof.intermediate.hash_witness) |hash| try writer.writeAll(&hash);
+    if (out.items.len > MAX_WIRE_BYTES) return error.PairedProofTooLarge;
+    const bytes = try out.toOwnedSlice(allocator);
+    std.mem.writeInt(u32, bytes[12..16], @intCast(bytes.len), .little);
+    return bytes;
+}
+
+pub fn decode(allocator: std.mem.Allocator, encoded: []const u8) !Decoded {
+    if (encoded.len < MAGIC.len) return error.TruncatedPairedProof;
+    if (!std.mem.eql(u8, encoded[0..MAGIC.len], MAGIC)) return error.UnsupportedProofFormat;
+    if (encoded.len > MAX_WIRE_BYTES) return error.PairedProofTooLarge;
+    var cursor = Cursor{ .bytes = encoded };
+    _ = try cursor.readBytes(MAGIC.len);
+    if (try cursor.readU16() != VERSION) return error.UnsupportedProofVersion;
+    if (try cursor.readU16() != 0) return error.InvalidPairedProof;
+    if (try cursor.readU32() != encoded.len) return error.InvalidPairedProof;
+    const source_len = try cursor.readU32();
+    const source_bytes = try cursor.readBytes(source_len);
+    var source = try paired.decode(allocator, source_bytes);
+    errdefer source.deinit();
+    var arena = std.heap.ArenaAllocator.init(allocator);
+    errdefer arena.deinit();
+    const a = arena.allocator();
+    var root: Hash = undefined;
+    @memcpy(&root, try cursor.readBytes(root.len));
+    const terminal_len = try cursor.readU32();
+    if (terminal_len == 0 or terminal_len > 1 << 16) return error.InvalidPairedProof;
+    if (cursor.bytes.len - cursor.at < @as(usize, terminal_len) * @sizeOf(QM31))
+        return error.TruncatedPairedProof;
+    const terminal = try a.alloc(QM31, terminal_len);
+    for (terminal) |*value| value.* = try cursor.readQM31();
+    const line_query_count = try cursor.readU32();
+    if (line_query_count == 0 or line_query_count > 1 << 15) return error.InvalidPairedProof;
+    if (cursor.bytes.len - cursor.at < @as(usize, line_query_count) * 4 * @sizeOf(M31))
+        return error.TruncatedPairedProof;
+    var columns: [4][]const M31 = undefined;
+    for (&columns) |*column| {
+        const values = try a.alloc(M31, line_query_count);
+        for (values) |*value| value.* = try cursor.readM31();
+        column.* = values;
+    }
+    const witness_count = try cursor.readU32();
+    if (witness_count > MAX_HASH_WITNESS) return error.InvalidPairedProof;
+    if (cursor.bytes.len - cursor.at < @as(usize, witness_count) * @sizeOf(Hash))
+        return error.TruncatedPairedProof;
+    const witness = try a.alloc(Hash, witness_count);
+    for (witness) |*hash| @memcpy(hash, try cursor.readBytes(hash.len));
+    if (cursor.at != encoded.len) return error.InvalidPairedProof;
+    const intermediate = two_height.IntermediateOpening{
+        .root = root,
+        .queried_coordinates = columns,
+        .hash_witness = witness,
+    };
+    try validateShape(source.envelope, intermediate, terminal);
+    return .{
+        .arena = arena,
+        .source = source,
+        .intermediate = intermediate,
+        .terminal_ordered_coeffs = terminal,
+    };
+}
+
+/// The expected profile comes from the verifier. No transcript operation is
+/// performed until both outer and inner versions, both parsers, and the shape
+/// check have succeeded.
+pub fn decodeAndBind(
+    allocator: std.mem.Allocator,
+    encoded: []const u8,
+    channel: anytype,
+    expected: paired.ExpectedProfile,
+    n_queries: usize,
+) !Prepared {
+    var decoded = try decode(allocator, encoded);
+    errdefer decoded.deinit();
+    if (!expected.matches(decoded.source.envelope) or
+        n_queries == 0 or n_queries > (1 << 16) / 4 or
+        decoded.source.envelope.query_count != n_queries * 4)
+    {
+        return error.UnexpectedPairedProfile;
+    }
+    const challenges = try paired.drawChallenges(channel, decoded.source.envelope);
+    return .{ .decoded = decoded, .challenges = challenges };
+}
+
+pub fn verify(
+    allocator: std.mem.Allocator,
+    encoded: []const u8,
+    channel: anytype,
+    expected: paired.ExpectedProfile,
+    n_queries: usize,
+) !void {
+    var prepared = try decodeAndBind(allocator, encoded, channel, expected, n_queries);
+    defer prepared.deinit();
+    const source_prepared = paired.Prepared{
+        .decoded = prepared.decoded.source,
+        .challenges = prepared.challenges,
+    };
+    return two_height.verifyAfterSourceBinding(
+        allocator,
+        channel,
+        &source_prepared,
+        prepared.decoded.intermediate,
+        prepared.decoded.terminal_ordered_coeffs,
+        n_queries,
+    );
+}
+
+fn validateShape(
+    envelope: paired.Envelope,
+    intermediate: two_height.IntermediateOpening,
+    terminal: []const QM31,
+) !void {
+    if (envelope.heights.len != 2 or envelope.query_count == 0 or
+        envelope.query_count % 4 != 0 or
+        envelope.heights[1].shape.log_degree_bound == 0)
+    {
+        return error.InvalidPairedProof;
+    }
+    const line_query_count: usize = @as(usize, envelope.query_count) / 2;
+    for (intermediate.queried_coordinates) |column| {
+        if (column.len != line_query_count) return error.InvalidPairedProof;
+    }
+    if (intermediate.hash_witness.len > MAX_HASH_WITNESS or
+        terminal.len != (@as(usize, 1) << @intCast(envelope.heights[1].shape.log_degree_bound - 1)))
+    {
+        return error.InvalidPairedProof;
+    }
+}
+
+fn writeQM31(writer: anytype, value: QM31) !void {
+    for (value.toM31Array()) |felt| try writer.writeInt(u32, felt.toU32(), .little);
+}
+
+const Cursor = struct {
+    bytes: []const u8,
+    at: usize = 0,
+
+    fn readBytes(self: *Cursor, len: usize) ![]const u8 {
+        const end = std.math.add(usize, self.at, len) catch return error.TruncatedPairedProof;
+        if (end > self.bytes.len) return error.TruncatedPairedProof;
+        const result = self.bytes[self.at..end];
+        self.at = end;
+        return result;
+    }
+
+    fn readU16(self: *Cursor) !u16 {
+        return std.mem.readInt(u16, (try self.readBytes(2))[0..2], .little);
+    }
+
+    fn readU32(self: *Cursor) !u32 {
+        return std.mem.readInt(u32, (try self.readBytes(4))[0..4], .little);
+    }
+
+    fn readM31(self: *Cursor) !M31 {
+        const value = try self.readU32();
+        if (value >= m31.Modulus) return error.NonCanonicalM31;
+        return M31.fromCanonical(value);
+    }
+
+    fn readQM31(self: *Cursor) !QM31 {
+        return QM31.fromM31Array(.{
+            try self.readM31(), try self.readM31(), try self.readM31(), try self.readM31(),
+        });
+    }
+};
