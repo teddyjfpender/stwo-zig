@@ -157,8 +157,50 @@ transcript ≤ 8h+11 + (h+1)(2^32−1) + ⌈q/8⌉.
 ```
 
 This intentionally enormous bound is deterministic. A useful smaller bound
-would need an enforced rejection cap or a separately budgeted ideal-oracle
-tail event; neither exists in CAS05 today.
+can be stated in a **fresh independent ideal-oracle block game** without
+changing CAS05 bytes. The source-pinned [cost checker](../../scripts/check_cas05_round_cost.py)
+audits the exact channel draw, eight-word rejection loop, M31 reduction,
+and QM31 construction before producing this conditional calculation. Its
+source pins are a change detector, not a Zig semantics theorem.
+
+One attempted secure draw hashes `digest || LE32(counter) || 0x00` to eight
+independent uniform 32-bit words in that game. Native `drawBaseFelts` accepts
+the **whole block** only if every word is strictly below `2p`, with
+`p=2^31−1`, so exactly two values per word (`2^32−2`, `2^32−1`) reject. The
+exact block acceptance and rejection probabilities are
+
+```text
+a = ((2^32−2)/2^32)^8 = (1−2^-31)^8
+r = 1−a < 8·2^-31 = 2^-28.
+```
+
+On acceptance, each residue in M31 has exactly two representatives in
+`[0,2p)`. The first four reduced words therefore form one uniform QM31
+value; the other four still participate in acceptance. Repeating until
+acceptance preserves that uniform output law under independent fresh blocks.
+For `D=h+2≤10` sequential secure challenges, adaptivity of the intervening
+digest changes does not affect the union bound *in this ideal game*: the
+probability that **any** challenge needs more than five hash blocks is at
+most `D·r^5 < 10·2^-140 < 2^-136`. No five-block cap is enforced by the
+native verifier. Rather, outside this tail event its transcript uses at most
+
+```text
+8h+11 + 5(h+2) + ceil(q/8)
+```
+
+finalizations. For `k=7,h=3,q=13`, that is 62 transcript and at most 660
+complete-verifier finalizations. At the broad verifier caps
+`k=22,h=8,q=16384` with one column per height, it is 2173 transcript and
+at most 5,343,357 complete-verifier finalizations. The hard nontrapping
+bound above remains the only deterministic one.
+
+This tail probability **is not a native soundness claim**. BLAKE2s is not
+proved to supply fresh independent ideal blocks; an adversary may prequery
+draw inputs, and digest epochs may collide. A BCS/ROM reduction must account
+for those bad events and for how many candidate transcripts an adversary can
+try within its external `T` query budget. OOD rejection also changes the
+distribution of *accepted proof points* and needs its own reduction. The
+conditional five-block event is solely a useful internal hash-cost bound.
 
 The source Merkle verifier hashes `2q` presented leaves, at most `2q`
 inserted nodes per later height (two finalizations each), and at most `2q`
