@@ -27,6 +27,8 @@ class Cas05BcsJoinTests(unittest.TestCase):
         self.assertFalse(report["full_theorem_join_complete"])
         self.assertTrue(report["BCS_theorem_inputs"]["CAS05_no_grinding"])
         self.assertFalse(report["role_framing"]["global_transcript_merkle_hash_input_disjointness_proven"])
+        self.assertTrue(report["role_framing"]["accepted_CAS05_call_roster_input_disjointness_source_checked"])
+        self.assertEqual([3, 6], report["accepted_call_roster_input_lengths"]["claim_felt_counts_requiring_digest_guard"])
         self.assertEqual(2048, report["max_query_hash_blocks"])
 
     def test_root_after_ood_draw_rejected(self) -> None:
@@ -35,14 +37,20 @@ class Cas05BcsJoinTests(unittest.TestCase):
                      "// removed root absorption")
 
     def test_claim_after_batch_draw_rejected(self) -> None:
-        self.mutated("verifier", "channel.mixFelts(height);",
+        self.mutated("verifier", "staged.mixFelts(height);",
                      "_ = height;")
+
+    def test_merkle_overlap_rejection_is_required(self) -> None:
+        self.mutated("verifier", "felt_count == 3", "felt_count == 2")
+        self.mutated("verifier", "felt_count == 6", "felt_count == 5")
+        self.mutated("verifier", "try checkClaimInputSeparation(staged.digestBytes(), height.len);",
+                     "// removed input separation")
 
     def test_typed_roles_and_indices_are_required(self) -> None:
         self.mutated("verifier", "staged.mixU64(SOURCE_ROOT_TAG);", "staged.mixU64(PROFILE_TAG);")
-        self.mutated("verifier", "channel.mixU64(CLAIM_HEIGHT_TAG);",
-                     "channel.mixU64(CLAIM_GROUP_TAG);")
-        self.mutated("verifier", "channel.mixU64(index);", "channel.mixU64(0);")
+        self.mutated("verifier", "staged.mixU64(CLAIM_HEIGHT_TAG);",
+                     "staged.mixU64(CLAIM_GROUP_TAG);")
+        self.mutated("verifier", "staged.mixU64(index);", "staged.mixU64(0);")
         self.mutated("verifier", "channel.mixU64(coefficients.len);",
                      "channel.mixU64(0);")
 
@@ -66,6 +74,12 @@ class Cas05BcsJoinTests(unittest.TestCase):
         self.assertEqual(digest + three_felts, line_prefix + row)
         self.assertEqual(hashlib.blake2s(digest + three_felts).digest(),
                          hashlib.blake2s(line_prefix + row).digest())
+        node_prefix = b"node" + bytes(60)
+        node_digest = node_prefix[:32]
+        children = struct.pack("<16I", *range(1, 17))
+        six_felts = bytes(32) + children
+        self.assertEqual(128, len(node_digest + six_felts))
+        self.assertEqual(node_digest + six_felts, node_prefix + children)
 
     def test_line_commitment_before_its_challenge_rejected(self) -> None:
         self.mutated("verifier", "alpha.* = staged.drawSecureFelt();",

@@ -99,7 +99,7 @@ fn proveImpl(
         try old.evaluateClaims(a, domains[i], columns, point, values);
         claims[i] = values;
     }
-    const batch = cascade.drawBatchAfterOod(&staged, claims);
+    const batch = try cascade.drawBatchAfterOod(&staged, claims);
     const challenges = core.pcs.paired_ensemble.Challenges{ .batch = batch };
     for (input.source_columns, 0..) |columns, i|
         batches[i] = try old.pairedHeight(a, domains[i], columns, claims[i], point, challenges);

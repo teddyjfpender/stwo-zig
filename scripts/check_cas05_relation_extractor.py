@@ -141,7 +141,7 @@ def audit(sources: dict[str, str]) -> list[str]:
         errors.append("original/own-quotient batch: each word must advance one power")
     cascade = function(sources[CASCADE], "pub fn verifyAgainstStatement(", errors)
     ordered(cascade, (
-        "const batch = drawBatchAfterOod(&staged, proof.claims);",
+        "const batch = try drawBatchAfterOod(&staged, proof.claims);",
         "const raw = try queries.drawQueries(",
         "var opened = try xdm.verifyAndCollect(",
         "var answers = try paired.fromVerifiedOpenings(",

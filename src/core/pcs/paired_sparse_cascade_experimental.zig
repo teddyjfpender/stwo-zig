@@ -91,15 +91,28 @@ pub fn drawOodPoint(channel: *Channel, profile: Profile, root: xdm.Hash) !circle
     return point;
 }
 
-pub fn drawBatchAfterOod(channel: *Channel, claims: []const []const QM31) QM31 {
-    channel.mixU64(CLAIM_GROUP_TAG);
+/// For validated CAS05 proofs, only 3- and 6-QM31 claim absorptions have
+/// the same input length as a line leaf or parent. Reject the digest prefix
+/// needed for an identical BLAKE2s preimage in either case.
+pub fn checkClaimInputSeparation(digest: [32]u8, felt_count: usize) !void {
+    if ((felt_count == 3 and std.mem.eql(u8, digest[0..], blake2_merkle.LEAF_PREFIX[0..32])) or
+        (felt_count == 6 and std.mem.eql(u8, digest[0..], blake2_merkle.NODE_PREFIX[0..32])))
+        return error.TranscriptMerkleDomainOverlap;
+}
+
+pub fn drawBatchAfterOod(channel: *Channel, claims: []const []const QM31) !QM31 {
+    var staged = channel.*;
+    staged.mixU64(CLAIM_GROUP_TAG);
     for (claims, 0..) |height, index| {
-        channel.mixU64(CLAIM_HEIGHT_TAG);
-        channel.mixU64(index);
-        channel.mixU64(height.len);
-        channel.mixFelts(height);
+        staged.mixU64(CLAIM_HEIGHT_TAG);
+        staged.mixU64(index);
+        staged.mixU64(height.len);
+        try checkClaimInputSeparation(staged.digestBytes(), height.len);
+        staged.mixFelts(height);
     }
-    return channel.drawSecureFelt();
+    const batch = staged.drawSecureFelt();
+    channel.* = staged;
+    return batch;
 }
 
 pub fn mixLineRoot(channel: *Channel, index: usize, root: xdm.Hash) void {
@@ -156,7 +169,7 @@ pub fn verifyAgainstStatement(
     bindVersion(&staged);
     const sampled = try drawOodPoint(&staged, proof.profile, proof.source_root);
     if (!sampled.eql(proof.sampled_point)) return error.UnsampledOodPoint;
-    const batch = drawBatchAfterOod(&staged, proof.claims);
+    const batch = try drawBatchAfterOod(&staged, proof.claims);
     const source = proof.profile.source;
     const alphas = try allocator.alloc(QM31, source.height_count);
     defer allocator.free(alphas);
