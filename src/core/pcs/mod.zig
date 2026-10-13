@@ -17,6 +17,7 @@ pub const transposed_merkle = @import("transposed_merkle.zig");
 pub const transposed_merkle_cascade = @import("transposed_merkle_cascade.zig");
 pub const transposed_paired_cascade = @import("transposed_paired_cascade.zig");
 pub const paired_cascade_experimental = @import("paired_cascade_experimental.zig");
+pub const paired_cascade_wire = @import("paired_cascade_wire.zig");
 pub const transposed_paired_answers = @import("transposed_paired_answers.zig");
 pub const verifier = @import("verifier.zig");
 

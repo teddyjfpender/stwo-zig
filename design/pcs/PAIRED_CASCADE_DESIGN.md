@@ -13,9 +13,17 @@ T_i(j) = FoldLine(L_i(2j), L_i(2j+1); x_i(j), alpha_i)
        + alpha_i² FoldCircle(H_i(2j), H_i(2j+1); y_i(j), alpha_i).
 ```
 
-Here the native inverse butterflies are unnormalized: `FoldPair(a,b;u,alpha)=a+b+alpha*(a-b)/u`. The published Eq. 68 uses the same relative `alpha_i²` insertion weight, while its displayed butterflies include factors of `1/2`; that normalization requires an explicit reduction. For `i<h-1`, `T_i` is authenticated against the next committed line root. At `i=h-1`, it must equal the terminal polynomial evaluated at the projected line point. The terminal degree bound is `2^(k-h-b)`; the verifier accepts exactly that many ordered coefficients and checks the local evaluations. A full conservative profile must also enforce the paper's small terminal bound `B`.
+Here the native inverse butterfly is `N(a,b;u,alpha)=a+b+alpha*(a-b)/u`; the published normalized butterfly is `F=N/2`. Let `C_i` be the native line after `i` folds and `P_i=C_i/2^i`. At insertion height `i>=1`, the current native recurrence `C_(i+1)=N(C_i)+alpha_i² N(H_i)` therefore implies
 
-The largest source bundle has `2^h` rows. Committed line layer `i` (one-based) needs `2^(h-i)` rows per raw query; the last line layer needs two. This is exactly 8/4/2 source rows and 4/2 line rows for `h=3`. Source values at each height are authenticated before any quotient or fold answer is used. Per source row, the batch is `f_0 + lambda*q_0 + lambda²*f_1 + lambda³*q_1 + …`, with each `q_j` derived from that authenticated `f_j` and its own OOD claim.
+```text
+P_(i+1) = F(P_i) + alpha_i² * 2^-i * F(H_i).
+```
+
+The published Eq. 68 insertion has coefficient `alpha_i²` on its unscaled height-`i` source batch. Exact correspondence thus needs an explicit `2^-i` source-batch rescaling in the published model, or a `2^i` insertion multiplier in the native model, followed by a source/batch degree and commitment refinement. The scalar identity is tested at `i=1,2,3`; this version has **not** made that protocol change. For `i<h-1`, `T_i` is authenticated against the next committed line root. At `i=h-1`, it must equal the terminal polynomial evaluated at the projected line point. The terminal degree bound is `2^(k-h-b)`; the verifier accepts exactly that many ordered coefficients and checks the local evaluations. A full conservative profile must also enforce the paper's small terminal bound `B`.
+
+The largest source bundle has `2^h` rows. Across all source heights this is `2^(h+1)-2` rows per raw query; line layers add `2^h-2` rows. This is exactly 8/4/2 source rows and 4/2 line rows for `h=3`. **This exponential full-fiber layout is a small-geometry mechanics harness, not a scalable proving protocol.** Near a full cascade from a largest domain around `2^20` rows to a small terminal, it would open on the order of `2^20` source rows *per query*. The experimental implementation caps `h` at 8 and `k` at 16, allocates dense `O(2^k)` Merkle level arrays, and recomputes domain and terminal data within raw-query loops. A production path needs a per-layer two-row query trace with separately authenticated siblings (`O(h)` rows per query), sparse authentication maps, and cached domains/twiddles/terminal evaluations. That alternative still needs its own transcript and theorem mapping.
+
+Source values at each height are authenticated before any quotient or fold answer is used. Per source row, the batch is `f_0 + lambda*q_0 + lambda²*f_1 + lambda³*q_1 + …`, with each `q_j` derived from that authenticated `f_j` and its own OOD claim.
 
 ## One-root XDM03 source wire
 
@@ -36,19 +44,21 @@ All integers are little-endian. Largest values are leaves. At tree level `k-i`, 
 
 An outer version selects the number of heights before replay. The verifier compares every source root, OOD claim, degree bound, column count, and query count with an independently supplied public statement. It then stages the entire transcript: bind version and source roots/profile; draw and check one OOD point; bind claims and draw one shared `lambda`; for each fold step draw `alpha_i` and mix the next line root if one exists; mix exact terminal coefficients; draw raw queries. Source and line Merkle authentication plus all fold checks occur before the staged channel is published. No lower-level source fragment or caller-constructed answer slice is a complete verifier entry point.
 
-The three-height milestone uses an experimental in-memory outer relation harness with a versioned `S31XDM03` source fragment. The tree inserts values at every smaller-height internal level and authenticates the projected query trace under one root. `src/core/pcs/paired_cascade_experimental.zig` stages the complete transcript, verifies XDM03 internally, derives every own-quotient batch, authenticates each line layer, and iterates the same fold transition through the terminal polynomial. `src/prover/pcs/paired_cascade_experimental.zig` constructs honest three- and four-height fixtures. A later canonical generic outer wire will encode this transcript and line openings; production remains fail-closed.
+`S31CAS04` is the strict, canonical experimental outer encoding. Its header includes magic, version 4, zero reserved fields, exact total length, profile and per-height column counts, then the source root, sampled OOD point, claims, nested XDM03 byte length and bytes, line roots/queried coordinates/witnesses, and terminal coefficients. Every field element, including values inside XDM03, is parsed canonically before transcript replay. The sole complete wire entry point requires an independently supplied statement containing the expected profile, source root, and claims; it authenticates source and line openings internally and publishes the caller's transcript only after all checks succeed. P2F01/P2F02 and production PCS do not dispatch this magic.
+
+The tree inserts values at every smaller-height internal level and authenticates the projected query trace under one root. `src/core/pcs/paired_cascade_experimental.zig` stages the complete transcript, verifies XDM03 internally, derives every own-quotient batch, authenticates each line layer, and iterates the same fold transition through the terminal polynomial. `src/prover/pcs/paired_cascade_experimental.zig` constructs deterministic three- and four-height fixtures. The tests reject truncated/trailing/noncanonical bytes, versions, shape/statement mismatch, transcript divergence, invalid openings, and a validly opened false terminal fold. Production remains fail-closed.
 
 ## Measured native fixtures
 
-These are exact deterministic Debug-test payload sizes. The in-memory outer proof has **no canonical byte encoding yet**, so the last column is an explicitly calculated payload subtotal: XDM03 source wire + all queried line coordinates (`4` bytes per M31 coordinate) + line roots + line witness hashes + terminal QM31 coefficients. It excludes the OOD point, claims, profile, and future outer framing.
+These are exact deterministic test sizes. The payload subtotal is XDM03 source wire + all queried line coordinates (`4` bytes per M31 coordinate) + line roots + line witness hashes + terminal QM31 coefficients. The final column is the complete `S31CAS04` encoding, including sampled point, claims, profile, lengths, and framing.
 
-| Source rows | Raw queries | XDM03 source wire | Line witness hashes | Queried line coordinates | Payload subtotal |
-| --- | ---: | ---: | ---: | ---: | ---: |
-| 32 / 16 / 8 | 5 | 434 B | 1 + 1 | 480 B | 1058 B |
-| 64 / 32 / 16 / 8 | 3 | 508 B | 1 + 1 + 1 | 672 B | 1388 B |
+| Source rows | Raw queries | XDM03 source wire | Line witness hashes | Queried line coordinates | Payload subtotal | Complete CAS04 wire |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| 32 / 16 / 8 | 5 | 434 B | 1 + 1 | 480 B | 1058 B | 1236 B |
+| 64 / 32 / 16 / 8 | 3 | 572 B | 2 + 2 + 2 | 672 B | 1548 B | 1752 B |
 
 The three-height fixture uses `f=x` at the first two heights and a constant at the third; the four-height fixture adds a constant at the fourth. Both end in one terminal QM31 coefficient. The query counts are tiny mechanics checks. No proving-time speedup, production wire advantage, or security level follows from these numbers.
 
 ## Remaining proof obligations
 
-The native two-point quotient degree/correlated-agreement reduction, conditional OOD distribution, concrete Blake2s/Fiat–Shamir BCS game, derived-oracle substitution, inverse-butterfly normalization, bundle-query implication, full-domain/coset checks, PoW and conservative error bound all remain open. A three-height fixture or a terminal with only a few coefficients does not establish any proven security bits.
+The native two-point quotient degree/correlated-agreement reduction, conditional OOD distribution, concrete Blake2s/Fiat–Shamir BCS game, derived-oracle substitution, exact normalized source-batch correspondence, full-domain/coset checks, PoW and conservative error bound all remain open. A finite counting lemma gives a conditional bridge for *ideal independent uniform* raw draws: when every row in each selected bundle is checked, the set of draws whose bundle hits fixed bad rows includes those bad rows, so the probability all `s` draws miss bad bundles is at most `(good-row density)^s`. The native full-bundle acceptance implication and masked Fiat–Shamir draw distribution remain separate proof obligations. This conditional lemma does not make the exponential bundle layout viable. A three-height fixture or a terminal with only a few coefficients establishes no proven security bits.

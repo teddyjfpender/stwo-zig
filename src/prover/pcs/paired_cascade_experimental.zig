@@ -35,6 +35,26 @@ pub fn prove(
     input: Input,
     channel: anytype,
 ) !OwnedProof {
+    return proveImpl(allocator, input, channel, false);
+}
+
+/// Adversarial test helper: authentic source and line commitments/openings are
+/// sampled for a deliberately false terminal polynomial. The resulting proof
+/// must pass Merkle checks and fail the final fold relation.
+pub fn proveWithInvalidTerminalForTest(
+    allocator: std.mem.Allocator,
+    input: Input,
+    channel: anytype,
+) !OwnedProof {
+    return proveImpl(allocator, input, channel, true);
+}
+
+fn proveImpl(
+    allocator: std.mem.Allocator,
+    input: Input,
+    channel: anytype,
+    corrupt_terminal: bool,
+) !OwnedProof {
     var arena = std.heap.ArenaAllocator.init(allocator);
     errdefer arena.deinit();
     const a = arena.allocator();
@@ -129,7 +149,11 @@ pub fn prove(
         if (!coefficient.isZero()) {
             return error.TerminalDegreeExceeded;
         };
-    const terminal = ordered[0..terminal_len];
+    const terminal = if (corrupt_terminal) blk: {
+        const changed = try a.dupe(QM31, ordered[0..terminal_len]);
+        changed[0] = changed[0].add(QM31.one());
+        break :blk changed;
+    } else ordered[0..terminal_len];
     staged.mixFelts(terminal);
     const raw = try core.queries.drawQueries(
         &staged,

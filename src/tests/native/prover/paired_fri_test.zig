@@ -28,12 +28,13 @@ test "three-height one-root cascade authenticates every insertion and rolls back
     const h1 = [_][]const M31{&x1};
     const h2 = [_][]const M31{&third};
     const heights = [_][]const []const M31{ &h0, &h1, &h2 };
-    var prover_channel = Channel{};
-    var owned = try host.prove(alloc, .{
+    const cascade_input = host.Input{
         .source_columns = &heights,
         .log_blowup = 2,
         .n_queries = 5,
-    }, &prover_channel);
+    };
+    var prover_channel = Channel{};
+    var owned = try host.prove(alloc, cascade_input, &prover_channel);
     defer owned.deinit();
     const proof = owned.proof;
     const statement = cascade.ExpectedStatement{
@@ -44,6 +45,73 @@ test "three-height one-root cascade authenticates every insertion and rolls back
     var verifier_channel = Channel{};
     try cascade.verifyAgainstStatement(alloc, proof, &verifier_channel, statement);
     try std.testing.expectEqualSlices(u8, &prover_channel.digest, &verifier_channel.digest);
+    const outer = core.pcs.paired_cascade_wire;
+    const encoded = try outer.encode(alloc, proof);
+    defer alloc.free(encoded);
+    try std.testing.expectError(
+        error.UnsupportedProofFormat,
+        core.pcs.paired_two_height_v2_wire.decode(alloc, encoded),
+    );
+    var decoded = try outer.decode(alloc, encoded);
+    defer decoded.deinit();
+    var wire_channel = Channel{};
+    try outer.verifyAgainstStatement(alloc, encoded, &wire_channel, statement);
+    try std.testing.expectEqualSlices(u8, &prover_channel.digest, &wire_channel.digest);
+    const reencoded = try outer.encode(alloc, decoded.proof);
+    defer alloc.free(reencoded);
+    try std.testing.expectEqualSlices(u8, encoded, reencoded);
+    try std.testing.expectEqual(@as(usize, 1236), encoded.len);
+    var wire_rejected = Channel{};
+    const wire_initial = wire_rejected.digest;
+    try std.testing.expectError(error.TruncatedCascadeProof, outer.verifyAgainstStatement(alloc, encoded[0 .. encoded.len - 1], &wire_rejected, statement));
+    try std.testing.expectError(error.TruncatedCascadeProof, outer.verifyAgainstStatement(alloc, encoded[0..15], &wire_rejected, statement));
+    const trailing = try alloc.alloc(u8, encoded.len + 1);
+    defer alloc.free(trailing);
+    @memcpy(trailing[0..encoded.len], encoded);
+    trailing[encoded.len] = 0;
+    try std.testing.expectError(error.InvalidCascadeProof, outer.verifyAgainstStatement(alloc, trailing, &wire_rejected, statement));
+    const mutated = try alloc.dupe(u8, encoded);
+    defer alloc.free(mutated);
+    mutated[8] = 5;
+    try std.testing.expectError(error.UnsupportedProofVersion, outer.verifyAgainstStatement(alloc, mutated, &wire_rejected, statement));
+    mutated[8] = outer.VERSION;
+    mutated[10] = 1;
+    try std.testing.expectError(error.InvalidCascadeProof, outer.verifyAgainstStatement(alloc, mutated, &wire_rejected, statement));
+    mutated[10] = 0;
+    const point_at = 32 + 2 * proof.profile.source.height_count + 32;
+    @memset(mutated[point_at..][0..4], 0xff);
+    try std.testing.expectError(error.NonCanonicalM31, outer.verifyAgainstStatement(alloc, mutated, &wire_rejected, statement));
+    @memcpy(mutated[point_at..][0..4], encoded[point_at..][0..4]);
+    const inner_at = std.mem.indexOf(u8, mutated, core.pcs.transposed_merkle_cascade.MAGIC).?;
+    mutated[inner_at + 8] = 4;
+    try std.testing.expectError(error.UnsupportedProofVersion, outer.verifyAgainstStatement(alloc, mutated, &wire_rejected, statement));
+    mutated[inner_at + 8] = 3;
+    const first_inner_felt = inner_at + 8 + 2 + 2 + 4 + 4 + 2 + 2 + 4 +
+        2 * proof.profile.source.height_count + 32 + 4;
+    @memset(mutated[first_inner_felt..][0..4], 0xff);
+    try std.testing.expectError(error.NonCanonicalM31, outer.verifyAgainstStatement(alloc, mutated, &wire_rejected, statement));
+    @memcpy(mutated[first_inner_felt..][0..4], encoded[first_inner_felt..][0..4]);
+    const line_count_at = inner_at + proof.source_wire.len;
+    mutated[line_count_at] = 0;
+    try std.testing.expectError(error.InvalidCascadeProof, outer.verifyAgainstStatement(alloc, mutated, &wire_rejected, statement));
+    mutated[line_count_at] = @intCast(proof.line_openings.len);
+    const root_at = 32 + 2 * proof.profile.source.height_count;
+    mutated[root_at] ^= 1;
+    try std.testing.expectError(error.UnexpectedCascadeRoot, outer.verifyAgainstStatement(alloc, mutated, &wire_rejected, statement));
+    mutated[root_at] ^= 1;
+    try std.testing.expectEqualSlices(u8, &wire_initial, &wire_rejected.digest);
+    var wire_wrong_root = statement;
+    wire_wrong_root.source_root[0] ^= 1;
+    try std.testing.expectError(error.UnexpectedCascadeStatement, outer.verifyAgainstStatement(alloc, encoded, &wire_rejected, wire_wrong_root));
+    var wire_wrong_shape = statement;
+    wire_wrong_shape.profile.source.columns[0] += 1;
+    try std.testing.expectError(error.UnexpectedCascadeStatement, outer.verifyAgainstStatement(alloc, encoded, &wire_rejected, wire_wrong_shape));
+    try std.testing.expectEqualSlices(u8, &wire_initial, &wire_rejected.digest);
+    var prefixed = Channel{};
+    prefixed.mixU64(0x5052_4546_4958_3034);
+    const prefixed_digest = prefixed.digest;
+    try std.testing.expectError(error.UnsampledOodPoint, outer.verifyAgainstStatement(alloc, encoded, &prefixed, statement));
+    try std.testing.expectEqualSlices(u8, &prefixed_digest, &prefixed.digest);
     var replay = Channel{};
     cascade.bindVersion(&replay);
     const sampled = try cascade.drawOodPoint(&replay, proof.profile, proof.source_root);
@@ -141,6 +209,10 @@ test "three-height one-root cascade authenticates every insertion and rolls back
     wrong_line.line_openings = line_openings;
     try std.testing.expectError(error.DuplicateQueryMismatch, cascade.verifyAgainstStatement(alloc, wrong_line, &rejected, statement));
     try std.testing.expectEqualSlices(u8, &initial, &rejected.digest);
+    const wrong_line_wire = try outer.encode(alloc, wrong_line);
+    defer alloc.free(wrong_line_wire);
+    try std.testing.expectError(error.DuplicateQueryMismatch, outer.verifyAgainstStatement(alloc, wrong_line_wire, &wire_rejected, statement));
+    try std.testing.expectEqualSlices(u8, &wire_initial, &wire_rejected.digest);
     var wrong_terminal = proof;
     const terminal = try alloc.dupe(QM31, proof.terminal_ordered_coeffs);
     defer alloc.free(terminal);
@@ -150,9 +222,65 @@ test "three-height one-root cascade authenticates every insertion and rolls back
         return error.ExpectedProofRejection;
     } else |_| {}
     try std.testing.expectEqualSlices(u8, &initial, &rejected.digest);
+    var forged_channel = Channel{};
+    var forged = try host.proveWithInvalidTerminalForTest(alloc, cascade_input, &forged_channel);
+    defer forged.deinit();
+    const forged_statement = cascade.ExpectedStatement{
+        .profile = forged.proof.profile,
+        .source_root = forged.proof.source_root,
+        .claims = forged.proof.claims,
+    };
+    const forged_wire = try outer.encode(alloc, forged.proof);
+    defer alloc.free(forged_wire);
+    try std.testing.expectError(error.TerminalFoldMismatch, outer.verifyAgainstStatement(alloc, forged_wire, &wire_rejected, forged_statement));
+    try std.testing.expectEqualSlices(u8, &wire_initial, &wire_rejected.digest);
     try std.testing.expectEqual(@as(usize, 434), proof.source_wire.len);
     try std.testing.expectEqual(@as(usize, 1), proof.line_openings[0].hash_witness.len);
     try std.testing.expectEqual(@as(usize, 1), proof.line_openings[1].hash_witness.len);
+}
+
+fn normalizedPairReference(even: QM31, odd: QM31, coordinate: M31, alpha: QM31) !QM31 {
+    const inverse_two = try M31.fromCanonical(2).inv();
+    return even.add(odd).add(alpha.mul(even.sub(odd).mulM31(try coordinate.inv())))
+        .mulM31(inverse_two);
+}
+
+test "native cascade normalization has a height-dependent inserted batch scale" {
+    const cascade = @import("stwo_core").pcs.paired_cascade_experimental;
+    // Let C_i be the native layer and P_i=C_i/2^i. The native insertion at
+    // height i corresponds to F(P_i)+alpha^2*2^-i*F(H_i), where F is the
+    // published normalized inverse butterfly. Check i=1,2,3 independently.
+    var factor = M31.fromCanonical(2);
+    var normalized_previous = QM31.fromBase(M31.fromCanonical(5));
+    var native_previous = normalized_previous.mulM31(factor);
+    for (1..4) |height| {
+        const other = QM31.fromBase(M31.fromCanonical(@intCast(8 + height)));
+        const inserted_even = QM31.fromBase(M31.fromCanonical(@intCast(15 + height)));
+        const inserted_odd = QM31.fromBase(M31.fromCanonical(@intCast(3 + height)));
+        const alpha = QM31.fromBase(M31.fromCanonical(@intCast(7 + height)));
+        const x = M31.fromCanonical(@intCast(2 + height));
+        const y = M31.fromCanonical(@intCast(4 + height));
+        const native_next = try cascade.foldInsertedPair(
+            native_previous,
+            other.mulM31(factor),
+            x,
+            inserted_even,
+            inserted_odd,
+            y,
+            alpha,
+        );
+        const previous_term = try normalizedPairReference(normalized_previous, other, x, alpha);
+        const inserted_term = try normalizedPairReference(inserted_even, inserted_odd, y, alpha);
+        const normalized_next = previous_term.add(
+            alpha.square().mul(inserted_term).mulM31(try factor.inv()),
+        );
+        const next_factor = factor.add(factor);
+        try std.testing.expect(native_next.eql(normalized_next.mulM31(next_factor)));
+        try std.testing.expect(!normalized_next.eql(previous_term.add(alpha.square().mul(inserted_term))));
+        factor = next_factor;
+        native_previous = native_next;
+        normalized_previous = normalized_next;
+    }
 }
 
 test "generic cascade checks four adjacent heights under one transposed root" {
@@ -191,9 +319,20 @@ test "generic cascade checks four adjacent heights under one transposed root" {
     try std.testing.expectEqualSlices(u8, &prover_channel.digest, &verifier_channel.digest);
     try std.testing.expectEqual(@as(usize, 3), proof.line_openings.len);
     try std.testing.expectEqual(@as(usize, 1), proof.terminal_ordered_coeffs.len);
-    try std.testing.expectEqual(@as(usize, 508), proof.source_wire.len);
+    try std.testing.expectEqual(@as(usize, 572), proof.source_wire.len);
     for (proof.line_openings) |line_opening|
-        try std.testing.expectEqual(@as(usize, 1), line_opening.hash_witness.len);
+        try std.testing.expectEqual(@as(usize, 2), line_opening.hash_witness.len);
+    const outer = core.pcs.paired_cascade_wire;
+    const encoded = try outer.encode(alloc, proof);
+    defer alloc.free(encoded);
+    var wire_channel = Channel{};
+    try outer.verifyAgainstStatement(alloc, encoded, &wire_channel, .{
+        .profile = proof.profile,
+        .source_root = proof.source_root,
+        .claims = proof.claims,
+    });
+    try std.testing.expectEqualSlices(u8, &prover_channel.digest, &wire_channel.digest);
+    try std.testing.expectEqual(@as(usize, 1752), encoded.len);
 }
 
 test "XDM03 authenticates three adjacent source heights under one root" {

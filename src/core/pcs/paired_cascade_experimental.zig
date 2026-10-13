@@ -1,6 +1,6 @@
 //! Experimental generic adjacent-height paired FRI relation checker. The
-//! three-height fixture uses one XDM03 source root. This in-memory outer API
-//! is not a canonical wire or admitted production PCS proof.
+//! three-height fixture uses one XDM03 source root. S31CAS04 is the canonical
+//! experimental outer wire; neither API is an admitted production PCS proof.
 
 const std = @import("std");
 const circle = @import("../circle.zig");
@@ -20,7 +20,8 @@ const M31 = m31.M31;
 const QM31 = qm31.QM31;
 const Hash = xdm.Hash;
 const Hasher = blake2_merkle.Blake2sMerkleHasher;
-const TRANSCRIPT_TAG: u64 = 0x5333_3143_4153_4333; // S31CASC3
+const TRANSCRIPT_TAG: u64 = 0x5333_3143_4153_3034; // S31CAS04
+pub const OUTER_VERSION: u16 = 4;
 const ROOT_TAG: u64 = 0x5333_3143_4152_3033;
 const CLAIM_TAG: u64 = 0x5333_3143_4143_3033;
 
@@ -66,6 +67,7 @@ pub const Proof = struct {
 
 pub fn bindVersion(channel: anytype) void {
     channel.mixU64(TRANSCRIPT_TAG);
+    channel.mixU64(OUTER_VERSION);
     channel.mixU64(xdm.VERSION);
 }
 
@@ -106,7 +108,9 @@ fn matches(statement: ExpectedStatement, proof: Proof) bool {
     return true;
 }
 
-fn validateProof(proof: Proof) !void {
+/// Structural checks only. Authentication remains exclusive to the complete
+/// statement-bound verifier and cannot be inferred from this function.
+pub fn validateProof(proof: Proof) !void {
     try proof.profile.validate();
     const source = proof.profile.source;
     if (proof.claims.len != source.height_count or
@@ -122,10 +126,7 @@ fn validateProof(proof: Proof) !void {
             if (column.len != source.query_count * width) return error.InvalidCascadeProof;
         }
     }
-    const header = try xdm.inspectHeader(proof.source_wire);
-    if (!std.meta.eql(header.profile, source) or
-        !std.mem.eql(u8, &header.root, &proof.source_root))
-        return error.InvalidCascadeProof;
+    try xdm.validateEncoding(proof.source_wire, source, proof.source_root);
 }
 
 /// Complete statement-bound verifier for the in-memory experimental harness.
@@ -182,8 +183,9 @@ pub fn verifyAgainstStatement(
     channel.* = staged;
 }
 
-/// Scalar Eq. 68 transition shared by every inserted height. The native
-/// butterflies omit published factors of 1/2; theorem refinement is open.
+/// Experimental scalar insertion shared by every height. Native butterflies
+/// omit the published 1/2 factors. Dividing layer i by 2^i makes the inserted
+/// height-i batch carry an extra 2^-i factor; see PAIRED_CASCADE_DESIGN.md.
 pub fn foldInsertedPair(
     previous_even: QM31,
     previous_odd: QM31,

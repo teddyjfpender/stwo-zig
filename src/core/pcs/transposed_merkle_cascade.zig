@@ -159,6 +159,34 @@ pub fn inspectHeader(encoded: []const u8) !Header {
     return parseHeader(&c);
 }
 
+/// Parse every field canonically without treating source values as trusted.
+/// Outer decoders use this before transcript replay. Query agreement and the
+/// Merkle root are checked separately by verifyAndCollect after sampling.
+pub fn validateEncoding(
+    encoded: []const u8,
+    expected: Profile,
+    expected_root: Hash,
+) !void {
+    try expected.validate();
+    var c = Cursor{ .bytes = encoded };
+    const header = try parseHeader(&c);
+    if (!std.meta.eql(header.profile, expected)) return error.UnexpectedCascadeProfile;
+    if (!std.mem.eql(u8, &header.root, &expected_root)) return error.UnexpectedCascadeRoot;
+    for (0..expected.query_count) |_| {
+        if (try c.readU32() >= (@as(usize, 1) << @intCast(expected.largest_log_size)))
+            return error.QueryPositionOutOfRange;
+        for (0..expected.height_count) |height| {
+            const count = expected.width(height) * expected.columns[height];
+            for (0..count) |_| _ = try c.readM31();
+        }
+    }
+    const witness_count = try c.readU32();
+    if (witness_count > (@as(usize, 1) << @intCast(expected.bottomLevel())))
+        return error.InvalidCascadeProof;
+    _ = try c.take(@as(usize, witness_count) * @sizeOf(Hash));
+    if (c.at != encoded.len) return error.InvalidCascadeProof;
+}
+
 /// Source rows leave this function only after the complete one-root multiproof
 /// matches the verifier's root and exact raw query sequence.
 pub fn verifyAndCollect(
