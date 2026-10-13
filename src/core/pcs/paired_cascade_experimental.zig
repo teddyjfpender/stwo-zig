@@ -71,7 +71,7 @@ pub fn bindVersion(channel: anytype) void {
     channel.mixU64(xdm.VERSION);
 }
 
-pub fn drawOodPoint(channel: anytype, profile: Profile, root: Hash) !circle.CirclePointQM31 {
+pub fn drawOodPoint(channel: anytype, profile: anytype, root: Hash) !circle.CirclePointQM31 {
     try profile.validate();
     var staged = channel.*;
     staged.mixU64(ROOT_TAG);

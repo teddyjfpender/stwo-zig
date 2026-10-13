@@ -22,10 +22,38 @@ const Hasher = blake2_merkle.Blake2sMerkleHasher;
 const TRANSCRIPT_TAG: u64 = 0x5333_3143_4153_3035; // S31CAS05
 pub const OUTER_VERSION: u16 = 5;
 
-pub const Profile = old.Profile;
-pub const ExpectedStatement = old.ExpectedStatement;
+pub const Profile = struct {
+    source: xdm.Profile,
+    log_blowup: u32,
+
+    pub fn validate(self: Profile) !void {
+        try self.source.validate();
+        if (self.log_blowup == 0 or
+            self.source.largest_log_size < self.source.height_count + self.log_blowup)
+            return error.InvalidCascadeProfile;
+    }
+
+    pub fn terminalLength(self: Profile) usize {
+        return @as(usize, 1) << @intCast(
+            self.source.largest_log_size - @as(u32, @intCast(self.source.height_count)) - self.log_blowup,
+        );
+    }
+};
+pub const ExpectedStatement = struct {
+    profile: Profile,
+    source_root: xdm.Hash,
+    claims: []const []const QM31,
+};
 pub const LineOpening = old.LineOpening;
-pub const Proof = old.Proof;
+pub const Proof = struct {
+    profile: Profile,
+    source_root: xdm.Hash,
+    sampled_point: circle.CirclePointQM31,
+    claims: []const []const QM31,
+    source_wire: []const u8,
+    line_openings: []const LineOpening,
+    terminal_ordered_coeffs: []const QM31,
+};
 
 pub fn bindVersion(channel: anytype) void {
     channel.mixU64(TRANSCRIPT_TAG);

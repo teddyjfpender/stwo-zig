@@ -162,8 +162,12 @@ pub const Commitment = struct {
         allocator: std.mem.Allocator,
         raw_queries: []const usize,
     ) ![]u8 {
-        var profile = self.profile;
-        profile.query_count = raw_queries.len;
+        const profile = sparse.Profile{
+            .largest_log_size = self.profile.largest_log_size,
+            .height_count = self.profile.height_count,
+            .columns = self.profile.columns,
+            .query_count = raw_queries.len,
+        };
         try profile.validate();
         var fixed_bytes: usize = 8 + 2 + 2 + 4 + 4 + 2 + 2 + 4 +
             2 * profile.height_count + 32 + 4;

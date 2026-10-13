@@ -11,7 +11,36 @@ const topology = @import("transposed_merkle.zig");
 
 pub const M31 = tree.M31;
 pub const Hash = tree.Hash;
-pub const Profile = tree.Profile;
+pub const MAX_LOG_SIZE: u32 = 22;
+
+/// Sparse openings have O(query_count * height_count) rows. Keep their
+/// admission bound separate from the older full-fiber XDM03 wire, whose
+/// profile deliberately limits query_count * 2^height_count.
+pub const Profile = struct {
+    largest_log_size: u32,
+    height_count: usize,
+    columns: [tree.MAX_HEIGHTS]u16,
+    query_count: usize,
+
+    pub fn validate(self: Profile) !void {
+        if (self.height_count < 2 or self.height_count > tree.MAX_HEIGHTS or
+            self.largest_log_size < self.height_count + 2 or
+            self.largest_log_size > MAX_LOG_SIZE or
+            self.query_count == 0 or self.query_count > (1 << 14))
+            return error.InvalidCascadeProfile;
+        for (self.columns[0..self.height_count]) |count|
+            if (count == 0 or count > tree.MAX_COLUMNS) return error.InvalidCascadeProfile;
+        for (self.columns[self.height_count..]) |count|
+            if (count != 0) return error.InvalidCascadeProfile;
+        var per_query_bytes: usize = 4; // encoded raw position
+        for (self.columns[0..self.height_count]) |count| {
+            const row_bytes = std.math.mul(usize, 2 * @as(usize, count), @sizeOf(M31)) catch return error.InvalidCascadeProfile;
+            per_query_bytes = std.math.add(usize, per_query_bytes, row_bytes) catch return error.InvalidCascadeProfile;
+        }
+        const fixed_bytes = std.math.mul(usize, self.query_count, per_query_bytes) catch return error.InvalidCascadeProfile;
+        if (fixed_bytes > MAX_WIRE_BYTES - 128) return error.InvalidCascadeProfile;
+    }
+};
 pub const MAGIC = "S31XDM04";
 pub const VERSION: u16 = 4;
 pub const MAX_WIRE_BYTES = tree.MAX_WIRE_BYTES;
