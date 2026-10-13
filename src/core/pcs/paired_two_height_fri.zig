@@ -41,6 +41,33 @@ pub const QuerySchedule = struct {
     }
 };
 
+/// The sampled Protocol-3 point is `raw` in native bit-reversed circle order.
+/// A circle squaring removes bit 1 while retaining bit 0 (the y-sign bit):
+/// P0[j0,j1,j2,...] -> P1[j0,j2,...]. The four-row authentication bundle
+/// also contains both conjugate preimages needed by the two fold checks.
+pub const QueryTrace = struct {
+    raw: usize,
+    projected_circle_row: usize,
+    source_bundle_base: usize,
+    line_bundle_base: usize,
+    terminal_row: usize,
+};
+
+pub fn queryTrace(raw: usize, largest_log_size: u32) !QueryTrace {
+    if (largest_log_size < 3 or largest_log_size > 30)
+        return error.InvalidTwoHeightProfile;
+    if (raw >= (@as(usize, 1) << @intCast(largest_log_size)))
+        return error.QueryPositionOutOfRange;
+    const terminal_row = raw >> 2;
+    return .{
+        .raw = raw,
+        .projected_circle_row = (terminal_row << 1) | (raw & 1),
+        .source_bundle_base = raw & ~@as(usize, 3),
+        .line_bundle_base = terminal_row << 1,
+        .terminal_row = terminal_row,
+    };
+}
+
 /// One raw largest-domain query needs four source rows (two circle folds),
 /// and the two corresponding intermediate-line rows. We retain repeats so
 /// the Merkle verifiers can reject inconsistent duplicate openings.
@@ -62,11 +89,10 @@ pub fn sampleQuerySchedule(
     const line_positions = try allocator.alloc(usize, n_queries * 2);
     errdefer allocator.free(line_positions);
     for (raw, 0..) |position, i| {
-        const source_base = position & ~@as(usize, 3);
-        const line_base = (position >> 2) << 1;
-        for (0..4) |j| source_positions[4 * i + j] = source_base + j;
-        line_positions[2 * i] = line_base;
-        line_positions[2 * i + 1] = line_base + 1;
+        const trace = try queryTrace(position, largest_log_size);
+        for (0..4) |j| source_positions[4 * i + j] = trace.source_bundle_base + j;
+        line_positions[2 * i] = trace.line_bundle_base;
+        line_positions[2 * i + 1] = trace.line_bundle_base + 1;
     }
     return .{ .raw = raw, .source_positions = source_positions, .line_positions = line_positions };
 }
@@ -153,11 +179,20 @@ pub fn verifyAfterSourceBinding(
     defer terminal_poly.deinit(allocator);
     const d0 = canonic.CanonicCoset.new(shape0.log_domain_size).circleDomain();
     const d1 = canonic.CanonicCoset.new(shape1.log_domain_size).circleDomain();
-    for (schedule.raw, 0..) |_, query_index| {
+    for (schedule.raw, 0..) |raw_row, query_index| {
+        const trace = try queryTrace(raw_row, shape0.log_domain_size);
+        const raw_point = d0.at(core_utils.bitReverseIndex(raw_row, shape0.log_domain_size));
+        const projected_point = d1.at(core_utils.bitReverseIndex(
+            trace.projected_circle_row,
+            shape1.log_domain_size,
+        ));
+        if (!raw_point.double().eql(projected_point)) return error.InvalidQueryProjection;
         const source_start = 4 * query_index;
         const line_start = 2 * query_index;
         const source_base = schedule.source_positions[source_start];
         const line_base = schedule.line_positions[line_start];
+        if (source_base != trace.source_bundle_base or line_base != trace.line_bundle_base)
+            return error.InvalidQueryProjection;
         var opened_line: [2]QM31 = undefined;
         for (0..2) |j| {
             const coordinate_index = line_start + j;

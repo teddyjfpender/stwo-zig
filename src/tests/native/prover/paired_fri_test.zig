@@ -1191,6 +1191,44 @@ test "experimental paired FRI works at parameterized adjacent heights" {
     try checkHonestAdjacentHeights(6, 7);
 }
 
+test "paired query trace follows the published circle-squaring projection" {
+    const core = @import("stwo_core");
+    const canonic = core.poly.circle.canonic;
+    const two_height = core.pcs.paired_two_height_fri;
+    const projection = core.pcs.paired_projection;
+    const alloc = std.testing.allocator;
+    for ([_]u32{ 4, 5, 6 }) |large_log| {
+        const large = canonic.CanonicCoset.new(large_log).circleDomain();
+        const small = canonic.CanonicCoset.new(large_log - 1).circleDomain();
+        for (0..large.size()) |raw| {
+            const trace = try two_height.queryTrace(raw, large_log);
+            const expected_projection = try projection.projectPositions(
+                alloc,
+                &[_]usize{raw},
+                large_log,
+                large_log - 1,
+            );
+            defer alloc.free(expected_projection);
+            try std.testing.expectEqual(expected_projection[0], trace.projected_circle_row);
+            try std.testing.expect(raw >= trace.source_bundle_base);
+            try std.testing.expect(raw < trace.source_bundle_base + 4);
+            try std.testing.expectEqual(trace.terminal_row, trace.line_bundle_base >> 1);
+            const p0 = large.at(core.utils.bitReverseIndex(raw, large_log));
+            const p1 = small.at(core.utils.bitReverseIndex(trace.projected_circle_row, large_log - 1));
+            try std.testing.expect(p0.double().eql(p1));
+        }
+    }
+    // An ordinary right shift of native bit-reversed row 2 selects the wrong
+    // smaller-domain point: it removes the y-sign bit instead of bit 1.
+    const large = canonic.CanonicCoset.new(4).circleDomain();
+    const small = canonic.CanonicCoset.new(3).circleDomain();
+    const p0 = large.at(core.utils.bitReverseIndex(2, 4));
+    const wrongly_shifted = small.at(core.utils.bitReverseIndex(1, 3));
+    try std.testing.expect(!p0.double().eql(wrongly_shifted));
+    try std.testing.expectError(error.QueryPositionOutOfRange, two_height.queryTrace(16, 4));
+    try std.testing.expectError(error.InvalidTwoHeightProfile, two_height.queryTrace(0, 2));
+}
+
 test "experimental paired prover handles two source pairs and rejects invalid inputs" {
     const core = @import("stwo_core");
     const prover = @import("stwo_prover_engine").pcs.paired_two_height_experimental;
