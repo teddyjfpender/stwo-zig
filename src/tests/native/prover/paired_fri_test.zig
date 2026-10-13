@@ -15,6 +15,26 @@ const M31 = m31.M31;
 const QM31 = qm31.QM31;
 const FriProver = fri.FriProver;
 
+fn expectSparseNonCanonicalRejected(
+    allocator: std.mem.Allocator,
+    proof: @import("stwo_core").pcs.paired_sparse_cascade_experimental.Proof,
+    statement: @import("stwo_core").pcs.paired_sparse_cascade_experimental.ExpectedStatement,
+) !void {
+    const core = @import("stwo_core");
+    const cascade = core.pcs.paired_sparse_cascade_experimental;
+    const Channel = core.channel.blake2s.Blake2sChannel;
+    try std.testing.expectError(error.NonCanonicalM31, cascade.validateProof(proof));
+    var channel = Channel{};
+    const before = channel.digest;
+    try std.testing.expectError(error.NonCanonicalM31, cascade.verifyAgainstStatement(
+        allocator,
+        proof,
+        &channel,
+        statement,
+    ));
+    try std.testing.expectEqualSlices(u8, &before, &channel.digest);
+}
+
 test "three-height one-root cascade authenticates every insertion and rolls back" {
     const core = @import("stwo_core");
     const cascade = core.pcs.paired_cascade_experimental;
@@ -317,6 +337,35 @@ test "three-height sparse two-row cascade verifies one-root source and line path
         .source_root = proof.source_root,
         .claims = proof.claims,
     };
+    // The public in-memory verifier must enforce the same M31 representation
+    // invariant as the byte decoder, before arithmetic or transcript updates.
+    var bad_point = proof;
+    bad_point.sampled_point.x.c0.a.v = m31.Modulus;
+    try expectSparseNonCanonicalRejected(alloc, bad_point, statement);
+    const bad_claim_values = try alloc.dupe(QM31, proof.claims[0]);
+    defer alloc.free(bad_claim_values);
+    bad_claim_values[0].c0.a.v = m31.Modulus;
+    const bad_claims = try alloc.dupe([]const QM31, proof.claims);
+    defer alloc.free(bad_claims);
+    bad_claims[0] = bad_claim_values;
+    var bad_claim = proof;
+    bad_claim.claims = bad_claims;
+    try expectSparseNonCanonicalRejected(alloc, bad_claim, statement);
+    const bad_line_coordinates = try alloc.dupe(M31, proof.line_openings[0].queried_coordinates[0]);
+    defer alloc.free(bad_line_coordinates);
+    bad_line_coordinates[0].v = m31.Modulus;
+    const bad_line_openings = try alloc.dupe(sparse_cascade.LineOpening, proof.line_openings);
+    defer alloc.free(bad_line_openings);
+    bad_line_openings[0].queried_coordinates[0] = bad_line_coordinates;
+    var bad_line = proof;
+    bad_line.line_openings = bad_line_openings;
+    try expectSparseNonCanonicalRejected(alloc, bad_line, statement);
+    const bad_terminal_coeffs = try alloc.dupe(QM31, proof.terminal_ordered_coeffs);
+    defer alloc.free(bad_terminal_coeffs);
+    bad_terminal_coeffs[0].c0.a.v = m31.Modulus;
+    var bad_terminal = proof;
+    bad_terminal.terminal_ordered_coeffs = bad_terminal_coeffs;
+    try expectSparseNonCanonicalRejected(alloc, bad_terminal, statement);
     var verifier_channel = Channel{};
     try sparse_cascade.verifyAgainstStatement(alloc, proof, &verifier_channel, statement);
     try std.testing.expectEqualSlices(u8, &prover_channel.digest, &verifier_channel.digest);
