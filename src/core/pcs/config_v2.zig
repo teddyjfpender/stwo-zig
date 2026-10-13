@@ -60,8 +60,14 @@ pub const FriConfigV2 = struct {
         });
     }
 
-    pub fn securityBits(self: FriConfigV2) u32 {
+    /// Nominal PoW-plus-query count, not a proven PCS/FRI soundness bound.
+    pub fn nominalWorkPlusQueryBits(self: FriConfigV2) u32 {
         return self.pow_bits + self.log_blowup_factor * self.n_queries;
+    }
+
+    /// Compatibility alias. Do not use this value as a security guarantee.
+    pub fn securityBits(self: FriConfigV2) u32 {
+        return self.nominalWorkPlusQueryBits();
     }
 
     /// The folding parameters without proof of work, for the FRI prover and

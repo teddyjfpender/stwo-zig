@@ -26,8 +26,14 @@ pub const PcsConfig = struct {
     fri_config: FriConfig,
     lifting_log_size: ?u32 = null, // optional Merkle lifting size (stark-v fork)
 
+    /// Nominal PoW-plus-query count, not a proven PCS/FRI soundness bound.
+    pub inline fn nominalWorkPlusQueryBits(self: PcsConfig) u32 {
+        return self.pow_bits + self.fri_config.nominalQueryBits();
+    }
+
+    /// Compatibility alias. Do not use this value as a security guarantee.
     pub inline fn securityBits(self: PcsConfig) u32 {
-        return self.pow_bits + self.fri_config.securityBits();
+        return self.nominalWorkPlusQueryBits();
     }
 
     pub fn mixInto(self: PcsConfig, channel: anytype) void {
