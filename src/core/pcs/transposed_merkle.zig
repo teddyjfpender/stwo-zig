@@ -140,6 +140,32 @@ const Cursor = struct {
     }
 };
 
+pub const Header = struct {
+    profile: Profile,
+    root: Hash,
+};
+
+/// Inspect the fixed header before an outer protocol replays its transcript.
+/// Full row and Merkle authentication still requires verifyAndCollect.
+pub fn inspectHeader(encoded: []const u8) !Header {
+    if (encoded.len < MAGIC.len) return error.TruncatedCrossDomainProof;
+    if (!std.mem.eql(u8, encoded[0..MAGIC.len], MAGIC)) return error.UnsupportedProofFormat;
+    if (encoded.len > MAX_WIRE_BYTES) return error.CrossDomainProofTooLarge;
+    var c = Cursor{ .bytes = encoded };
+    _ = try c.take(MAGIC.len);
+    if (try c.readU16() != VERSION) return error.UnsupportedProofVersion;
+    if (try c.readU16() != 0) return error.InvalidCrossDomainProof;
+    if (try c.readU32() != encoded.len) return error.InvalidCrossDomainProof;
+    const profile = Profile{
+        .log_size = try c.readU32(),
+        .large_columns = try c.readU16(),
+        .small_columns = try c.readU16(),
+        .query_count = try c.readU32(),
+    };
+    try profile.validate();
+    return .{ .profile = profile, .root = try c.hash() };
+}
+
 /// Check one S31XDM02 source proof against an externally chosen root, geometry,
 /// and Fiat-Shamir raw query sequence. Every raw query authenticates its four
 /// source rows and the two projected smaller-height rows. Repeated raw queries

@@ -11,6 +11,193 @@ const M31 = m31.M31;
 const QM31 = qm31.QM31;
 const FriProver = fri.FriProver;
 
+test "P2F02 one-root paired proof binds statement and rolls back late failures" {
+    const core = @import("stwo_core");
+    const host = @import("stwo_prover_engine").pcs.paired_two_height_v2_experimental;
+    const wire = core.pcs.paired_two_height_v2_wire;
+    const old_wire = core.pcs.paired_two_height_wire;
+    const Channel = core.channel.blake2s.Blake2sChannel;
+    const alloc = std.testing.allocator;
+    const d0 = core.poly.circle.canonic.CanonicCoset.new(5).circleDomain();
+    const d1 = core.poly.circle.canonic.CanonicCoset.new(4).circleDomain();
+    var x0: [32]M31 = undefined;
+    var x1: [16]M31 = undefined;
+    for (&x0, 0..) |*value, row| value.* = d0.at(core.utils.bitReverseIndex(row, 5)).x;
+    for (&x1, 0..) |*value, row| value.* = d1.at(core.utils.bitReverseIndex(row, 4)).x;
+    const c0 = [_]M31{M31.fromCanonical(7)} ** 32;
+    const c1 = [_]M31{M31.fromCanonical(11)} ** 16;
+    const first = [_][]const M31{ &x0, &c0 };
+    const second = [_][]const M31{ &x1, &c1 };
+    const input = host.Input{
+        .largest_log_size = 5,
+        .log_blowup = 2,
+        .n_queries = 5,
+        .first_columns = &first,
+        .second_columns = &second,
+    };
+    var prover_channel = Channel{};
+    const encoded = try host.prove(alloc, input, &prover_channel);
+    defer alloc.free(encoded);
+    var decoded = try wire.decode(alloc, encoded);
+    defer decoded.deinit();
+    const proof = decoded.proof;
+    const statement = wire.ExpectedStatement{
+        .profile = proof.profile,
+        .source_root = proof.source_root,
+        .large_claims = proof.large_claims,
+        .small_claims = proof.small_claims,
+    };
+    var verifier_channel = Channel{};
+    try wire.verifyAgainstStatement(alloc, encoded, &verifier_channel, statement);
+    try std.testing.expectEqualSlices(u8, &prover_channel.digest, &verifier_channel.digest);
+    try std.testing.expectError(error.UnsupportedProofFormat, old_wire.decode(alloc, encoded));
+    var wrong_root = statement;
+    wrong_root.source_root[0] ^= 1;
+    var rejected = Channel{};
+    const initial = rejected.digest;
+    try std.testing.expectError(
+        error.UnexpectedPairedStatement,
+        wire.verifyAgainstStatement(alloc, encoded, &rejected, wrong_root),
+    );
+    try std.testing.expectEqualSlices(u8, &initial, &rejected.digest);
+    var wrong_profile = statement;
+    wrong_profile.profile.n_queries += 1;
+    try std.testing.expectError(
+        error.UnexpectedPairedStatement,
+        wire.verifyAgainstStatement(alloc, encoded, &rejected, wrong_profile),
+    );
+    try std.testing.expectEqualSlices(u8, &initial, &rejected.digest);
+    var wrong_claims = try alloc.dupe(QM31, proof.large_claims);
+    defer alloc.free(wrong_claims);
+    wrong_claims[0] = wrong_claims[0].add(QM31.one());
+    var wrong_statement = statement;
+    wrong_statement.large_claims = wrong_claims;
+    try std.testing.expectError(
+        error.UnexpectedPairedStatement,
+        wire.verifyAgainstStatement(alloc, encoded, &rejected, wrong_statement),
+    );
+    try std.testing.expectEqualSlices(u8, &initial, &rejected.digest);
+    var wrong_outer = try alloc.dupe(u8, encoded);
+    defer alloc.free(wrong_outer);
+    wrong_outer[8] = 3;
+    try std.testing.expectError(
+        error.UnsupportedProofVersion,
+        wire.verifyAgainstStatement(alloc, wrong_outer, &rejected, statement),
+    );
+    try std.testing.expectEqualSlices(u8, &initial, &rejected.digest);
+    var wrong_inner = try alloc.dupe(u8, encoded);
+    defer alloc.free(wrong_inner);
+    const inner_at = std.mem.indexOf(u8, wrong_inner, core.pcs.transposed_merkle.MAGIC).?;
+    wrong_inner[inner_at + 8] = 3;
+    try std.testing.expectError(
+        error.UnsupportedProofVersion,
+        wire.verifyAgainstStatement(alloc, wrong_inner, &rejected, statement),
+    );
+    try std.testing.expectEqualSlices(u8, &initial, &rejected.digest);
+    var wrong_point_proof = proof;
+    wrong_point_proof.sampled_point = core.circle.CirclePointQM31.zero();
+    const wrong_point = try wire.encode(alloc, wrong_point_proof);
+    defer alloc.free(wrong_point);
+    try std.testing.expectError(
+        error.UnsampledOodPoint,
+        wire.verifyAgainstStatement(alloc, wrong_point, &rejected, statement),
+    );
+    try std.testing.expectEqualSlices(u8, &initial, &rejected.digest);
+    var wrong_terminal_proof = proof;
+    const changed_terminal = try alloc.dupe(QM31, proof.terminal_ordered_coeffs);
+    defer alloc.free(changed_terminal);
+    changed_terminal[0] = changed_terminal[0].add(QM31.one());
+    wrong_terminal_proof.terminal_ordered_coeffs = changed_terminal;
+    const wrong_terminal = try wire.encode(alloc, wrong_terminal_proof);
+    defer alloc.free(wrong_terminal);
+    if (wire.verifyAgainstStatement(alloc, wrong_terminal, &rejected, statement)) |_| {
+        return error.ExpectedProofRejection;
+    } else |_| {}
+    try std.testing.expectEqualSlices(u8, &initial, &rejected.digest);
+    var wrong_source = try alloc.dupe(u8, encoded);
+    defer alloc.free(wrong_source);
+    const xdm_at = std.mem.indexOf(u8, wrong_source, core.pcs.transposed_merkle.MAGIC).?;
+    wrong_source[xdm_at + 64] ^= 1; // first opened source felt
+    try std.testing.expectError(
+        error.RootMismatch,
+        wire.verifyAgainstStatement(alloc, wrong_source, &rejected, statement),
+    );
+    try std.testing.expectEqualSlices(u8, &initial, &rejected.digest);
+    var wrong_line_proof = proof;
+    var line_columns = proof.intermediate.queried_coordinates;
+    const changed_column = try alloc.dupe(M31, line_columns[0]);
+    defer alloc.free(changed_column);
+    changed_column[0] = changed_column[0].add(M31.one());
+    line_columns[0] = changed_column;
+    wrong_line_proof.intermediate.queried_coordinates = line_columns;
+    const wrong_line = try wire.encode(alloc, wrong_line_proof);
+    defer alloc.free(wrong_line);
+    try std.testing.expectError(
+        error.RootMismatch,
+        wire.verifyAgainstStatement(alloc, wrong_line, &rejected, statement),
+    );
+    try std.testing.expectEqualSlices(u8, &initial, &rejected.digest);
+    const old_prover = @import("stwo_prover_engine").pcs.paired_two_height_experimental;
+    var old_channel = Channel{};
+    const old_encoded = try old_prover.prove(alloc, input, &old_channel);
+    defer alloc.free(old_encoded);
+    try std.testing.expectEqual(@as(usize, 1012), encoded.len);
+    try std.testing.expectEqual(@as(usize, 1180), old_encoded.len);
+}
+
+fn checkP2F02Geometry(
+    comptime log_size: u32,
+    n_queries: usize,
+    expected_v2_bytes: usize,
+    expected_v1_bytes: usize,
+) !void {
+    const core = @import("stwo_core");
+    const host = @import("stwo_prover_engine").pcs.paired_two_height_v2_experimental;
+    const old_host = @import("stwo_prover_engine").pcs.paired_two_height_experimental;
+    const wire = core.pcs.paired_two_height_v2_wire;
+    const Channel = core.channel.blake2s.Blake2sChannel;
+    const alloc = std.testing.allocator;
+    const size = @as(usize, 1) << @intCast(log_size);
+    const d0 = core.poly.circle.canonic.CanonicCoset.new(log_size).circleDomain();
+    var x0: [size]M31 = undefined;
+    var x1: [size / 2]M31 = undefined;
+    for (&x0, 0..) |*value, row| value.* = d0.at(core.utils.bitReverseIndex(row, log_size)).x;
+    for (&x1) |*value| value.* = M31.fromCanonical(11);
+    const first = [_][]const M31{&x0};
+    const second = [_][]const M31{&x1};
+    const input = host.Input{
+        .largest_log_size = log_size,
+        .log_blowup = 2,
+        .n_queries = n_queries,
+        .first_columns = &first,
+        .second_columns = &second,
+    };
+    var prover_channel = Channel{};
+    const encoded = try host.prove(alloc, input, &prover_channel);
+    defer alloc.free(encoded);
+    var decoded = try wire.decode(alloc, encoded);
+    defer decoded.deinit();
+    const proof = decoded.proof;
+    var verifier_channel = Channel{};
+    try wire.verifyAgainstStatement(alloc, encoded, &verifier_channel, .{
+        .profile = proof.profile,
+        .source_root = proof.source_root,
+        .large_claims = proof.large_claims,
+        .small_claims = proof.small_claims,
+    });
+    try std.testing.expectEqualSlices(u8, &prover_channel.digest, &verifier_channel.digest);
+    var old_channel = Channel{};
+    const old_encoded = try old_host.prove(alloc, input, &old_channel);
+    defer alloc.free(old_encoded);
+    try std.testing.expectEqual(expected_v2_bytes, encoded.len);
+    try std.testing.expectEqual(expected_v1_bytes, old_encoded.len);
+}
+
+test "P2F02 roundtrips at adjacent 16/8 and 64/32 heights" {
+    try checkP2F02Geometry(4, 4, 592, 748);
+    try checkP2F02Geometry(6, 7, 1300, 1180);
+}
+
 test "experimental paired source and native quotient roundtrip through FRI" {
     const core = @import("stwo_core");
     const paired = core.pcs.paired_ensemble;

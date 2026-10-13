@@ -125,9 +125,6 @@ pub fn verifyAfterSourceBinding(
     {
         return error.InvalidTwoHeightProfile;
     }
-    const line_domain = line.LineDomain.fromCircleDomain(
-        canonic.CanonicCoset.new(shape0.log_domain_size).circleDomain(),
-    );
     const terminal_domain = line.LineDomain.fromCircleDomain(
         canonic.CanonicCoset.new(shape1.log_domain_size).circleDomain(),
     );
@@ -159,6 +156,54 @@ pub fn verifyAfterSourceBinding(
         prepared.challenges,
     );
     defer allocator.free(source1);
+
+    try verifyFromAuthenticatedAnswers(
+        allocator,
+        shape0,
+        shape1,
+        intermediate,
+        terminal_ordered_coeffs,
+        schedule,
+        alpha0,
+        alpha1,
+        source0,
+        source1,
+        4,
+    );
+}
+
+/// Internal relation check for already authenticated rows. Complete proof
+/// entry points must authenticate source rows inside their verifier before
+/// calling this; these slices are not evidence on their own.
+pub fn verifyFromAuthenticatedAnswers(
+    allocator: std.mem.Allocator,
+    shape0: @import("paired_ensemble.zig").Shape,
+    shape1: @import("paired_ensemble.zig").Shape,
+    intermediate: IntermediateOpening,
+    terminal_ordered_coeffs: []const QM31,
+    schedule: QuerySchedule,
+    alpha0: QM31,
+    alpha1: QM31,
+    source0: []const QM31,
+    source1: []const QM31,
+    source1_stride: usize,
+) !void {
+    const n_queries = schedule.raw.len;
+    if (shape0.log_domain_size < 3 or shape1.log_domain_size + 1 != shape0.log_domain_size or
+        shape1.log_degree_bound < 1 or source1_stride < 2 or
+        source0.len != n_queries * 4 or source1.len != n_queries * source1_stride or
+        schedule.source_positions.len != n_queries * 4 or schedule.line_positions.len != n_queries * 2 or
+        terminal_ordered_coeffs.len != (@as(usize, 1) << @intCast(shape1.log_degree_bound - 1)))
+        return error.InvalidTwoHeightProfile;
+    const line_domain = line.LineDomain.fromCircleDomain(
+        canonic.CanonicCoset.new(shape0.log_domain_size).circleDomain(),
+    );
+    const terminal_domain = line.LineDomain.fromCircleDomain(
+        canonic.CanonicCoset.new(shape1.log_domain_size).circleDomain(),
+    );
+    for (intermediate.queried_coordinates) |column| {
+        if (column.len != n_queries * 2) return error.InvalidIntermediateShape;
+    }
 
     var line_verifier = try vcs_verifier.MerkleVerifierLifted(H).init(
         allocator,
@@ -216,7 +261,8 @@ pub fn verifyAfterSourceBinding(
         const previous_fold = try foldPair(opened_line[0], opened_line[1], x, alpha1);
         const projected = (source_base >> 2) << 1;
         const y = d1.at(core_utils.bitReverseIndex(projected, shape1.log_domain_size)).y;
-        const inserted_fold = try foldPair(source1[source_start], source1[source_start + 1], y, alpha1);
+        const second_start = source1_stride * query_index;
+        const inserted_fold = try foldPair(source1[second_start], source1[second_start + 1], y, alpha1);
         const expected_terminal = previous_fold.add(alpha1.square().mul(inserted_fold));
         const terminal_position = source_base >> 2;
         const terminal_x = terminal_domain.at(core_utils.bitReverseIndex(

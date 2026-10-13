@@ -236,7 +236,7 @@ pub fn prove(allocator: std.mem.Allocator, input: Input, channel: anytype) ![]u8
     return proof_bytes;
 }
 
-fn evaluateClaims(
+pub fn evaluateClaims(
     allocator: std.mem.Allocator,
     domain: core.poly.circle.domain.CircleDomain,
     columns: []const []const M31,
@@ -254,7 +254,7 @@ fn evaluateClaims(
     }
 }
 
-fn validateSourceDegree(
+pub fn validateSourceDegree(
     allocator: std.mem.Allocator,
     domain: core.poly.circle.domain.CircleDomain,
     columns: []const []const M31,
@@ -271,7 +271,7 @@ fn validateSourceDegree(
     }
 }
 
-fn pairedHeight(
+pub fn pairedHeight(
     allocator: std.mem.Allocator,
     domain: core.poly.circle.domain.CircleDomain,
     columns: []const []const M31,
