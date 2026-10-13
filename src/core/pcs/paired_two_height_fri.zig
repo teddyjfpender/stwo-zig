@@ -2,8 +2,8 @@
 //!
 //! It checks one committed intermediate line layer and a plain low-degree
 //! terminal polynomial against authenticated paired source openings at two
-//! adjacent circle heights. The surrounding source envelope is versioned,
-//! but this FRI section is not serialized or admitted by production PCS.
+//! adjacent circle heights. The surrounding complete experimental proof is
+//! versioned and serialized, but is not admitted by production PCS.
 
 const std = @import("std");
 const circle = @import("../circle.zig");
@@ -71,8 +71,9 @@ pub fn sampleQuerySchedule(
     return .{ .raw = raw, .source_positions = source_positions, .line_positions = line_positions };
 }
 
-/// Replay after `paired_envelope.decodeAndBind` has selected the source-wire
-/// version and bound its verifier-chosen profile. This function draws the
+/// Replay after the outer proof binding has selected both wire versions,
+/// checked the verifier-chosen profile and OOD point, and drawn the shared
+/// batch challenge. This function draws the
 /// fold challenges and sampled queries only after the intermediate root and
 /// terminal polynomial are mixed. It authenticates source and intermediate
 /// openings before checking both height-transition relations.

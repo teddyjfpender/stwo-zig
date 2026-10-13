@@ -770,9 +770,8 @@ test "experimental sampled two-height FRI authenticates intermediate and checks 
     defer tree0.deinit(alloc);
     var tree1 = try SourceProver.commit(alloc, &sources1);
     defer tree1.deinit(alloc);
-    const sample_point = core.circle.SECURE_FIELD_CIRCLE_GEN.mul(13);
-    const points = [_]core.circle.CirclePointQM31{sample_point};
-    const claims = [_]QM31{sample_point.x};
+    var points = [_]core.circle.CirclePointQM31{core.circle.CirclePointQM31.zero()};
+    var claims = [_]QM31{QM31.zero()};
     const n_queries: usize = 4;
     var dummy_values = [_]M31{M31.zero()} ** (4 * n_queries);
     var empty_witness: [0]Hasher.Hash = .{};
@@ -802,7 +801,17 @@ test "experimental sampled two-height FRI authenticates intermediate and checks 
     };
     var prover_channel = Channel{};
     core.pcs.paired_two_height_wire.bindVersion(&prover_channel);
-    const batch_challenges = try envelope_mod.drawChallenges(&prover_channel, header);
+    const sample_point = try core.pcs.paired_two_height_wire.drawOodPointFromRoots(
+        &prover_channel,
+        header,
+    );
+    points[0] = sample_point;
+    claims[0] = sample_point.x;
+    const batch_challenges = try core.pcs.paired_two_height_wire.drawBatchAfterOod(
+        &prover_channel,
+        header,
+        sample_point,
+    );
     var source_only_channel = Channel{};
     const source_only_challenges = try envelope_mod.drawChallenges(&source_only_channel, header);
     try std.testing.expect(!batch_challenges.batch.eql(source_only_challenges.batch));
@@ -892,8 +901,12 @@ test "experimental sampled two-height FRI authenticates intermediate and checks 
         .shapes = &[_]core.pcs.paired_ensemble.Shape{ shape0, shape1 },
     };
     var verifier_channel = Channel{};
-    core.pcs.paired_two_height_wire.bindVersion(&verifier_channel);
-    var prepared = try envelope_mod.decodeAndBind(alloc, encoded, &verifier_channel, expected_profile);
+    var prepared = try core.pcs.paired_two_height_wire.bindSourceEnvelope(
+        alloc,
+        encoded,
+        &verifier_channel,
+        expected_profile,
+    );
     defer prepared.deinit();
     const intermediate = two_height.IntermediateOpening{
         .root = g0_tree.root(),
@@ -933,6 +946,28 @@ test "experimental sampled two-height FRI authenticates intermediate and checks 
             expected_profile,
             n_queries,
         ),
+    );
+    try std.testing.expectEqualSlices(u8, &untouched_digest, &untouched_channel.digest);
+    const other_point = core.circle.SECURE_FIELD_CIRCLE_GEN.mul(13);
+    try std.testing.expect(!other_point.eql(sample_point));
+    const altered_points = [_]core.circle.CirclePointQM31{other_point};
+    var altered_heights = heights;
+    altered_heights[0].sample_points = &altered_points;
+    const altered_source = try envelope_mod.encode(alloc, .{
+        .largest_log_size = 4,
+        .query_count = 4 * n_queries,
+        .heights = &altered_heights,
+    });
+    defer alloc.free(altered_source);
+    const altered_wire = try two_height_wire.encode(alloc, .{
+        .source_wire = altered_source,
+        .intermediate = intermediate,
+        .terminal_ordered_coeffs = terminal_coeffs,
+    });
+    defer alloc.free(altered_wire);
+    try std.testing.expectError(
+        error.UnsampledOodPoint,
+        two_height_wire.verify(alloc, altered_wire, &untouched_channel, expected_profile, n_queries),
     );
     try std.testing.expectEqualSlices(u8, &untouched_digest, &untouched_channel.digest);
     try std.testing.expectError(
@@ -982,8 +1017,7 @@ test "experimental sampled two-height FRI authenticates intermediate and checks 
     var changed_intermediate = intermediate;
     changed_intermediate.queried_coordinates[0] = changed_coordinate;
     var rejected_channel = Channel{};
-    two_height_wire.bindVersion(&rejected_channel);
-    var rejected_prepared = try envelope_mod.decodeAndBind(
+    var rejected_prepared = try two_height_wire.bindSourceEnvelope(
         alloc,
         encoded,
         &rejected_channel,
@@ -1015,7 +1049,9 @@ test "experimental sampled two-height FRI authenticates intermediate and checks 
     defer forged_tree.deinit(alloc);
     var forged_prover_channel = Channel{};
     two_height_wire.bindVersion(&forged_prover_channel);
-    _ = try envelope_mod.drawChallenges(&forged_prover_channel, header);
+    const forged_sample = try two_height_wire.drawOodPointFromRoots(&forged_prover_channel, header);
+    try std.testing.expect(forged_sample.eql(sample_point));
+    _ = try two_height_wire.drawBatchAfterOod(&forged_prover_channel, header, forged_sample);
     _ = forged_prover_channel.drawSecureFelt();
     core.vcs_lifted.blake2_merkle.Blake2sMerkleChannel.mixRoot(
         &forged_prover_channel,
@@ -1083,8 +1119,7 @@ test "experimental sampled two-height FRI authenticates intermediate and checks 
     const forged_wire = try envelope_mod.encode(alloc, forged_envelope);
     defer alloc.free(forged_wire);
     var forged_verifier_channel = Channel{};
-    two_height_wire.bindVersion(&forged_verifier_channel);
-    var forged_prepared = try envelope_mod.decodeAndBind(
+    var forged_prepared = try two_height_wire.bindSourceEnvelope(
         alloc,
         forged_wire,
         &forged_verifier_channel,

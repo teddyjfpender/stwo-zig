@@ -5,8 +5,10 @@
 //! soundness theorem has not been refined to these native choices.
 
 const std = @import("std");
+const circle = @import("../circle.zig");
 const m31 = @import("../fields/m31.zig");
 const qm31 = @import("../fields/qm31.zig");
+const blake2_merkle = @import("../vcs_lifted/blake2_merkle.zig");
 const paired = @import("paired_envelope.zig");
 const two_height = @import("paired_two_height_fri.zig");
 
@@ -16,6 +18,8 @@ const Hash = paired.Hash;
 pub const MAGIC = "S31P2F01";
 pub const VERSION: u16 = 1;
 const TRANSCRIPT_TAG: u64 = 0x5333_3150_3246_3031; // S31P2F01
+const ROOTS_TAG: u64 = 0x5333_3150_3252_4f54; // S31P2ROT
+const CLAIMS_TAG: u64 = 0x5333_3150_3243_4c4d; // S31P2CLM
 const MAX_WIRE_BYTES: usize = 64 * 1024 * 1024;
 const MAX_HASH_WITNESS: usize = 1 << 20;
 
@@ -150,8 +154,35 @@ pub fn decodeAndBind(
     {
         return error.UnexpectedPairedProfile;
     }
-    bindVersion(channel);
-    const challenges = try paired.drawChallenges(channel, decoded.source.envelope);
+    var staged_channel = channel.*;
+    bindVersion(&staged_channel);
+    const sampled_point = try drawOodPointFromRoots(&staged_channel, decoded.source.envelope);
+    const challenges = try drawBatchAfterOod(
+        &staged_channel,
+        decoded.source.envelope,
+        sampled_point,
+    );
+    channel.* = staged_channel;
+    return .{ .decoded = decoded, .challenges = challenges };
+}
+
+/// The small fixture can bind an already serialized source fragment before
+/// the FRI section is constructed. Complete verification must use the outer
+/// decoder above, which selects the outer version before replay.
+pub fn bindSourceEnvelope(
+    allocator: std.mem.Allocator,
+    encoded_source: []const u8,
+    channel: anytype,
+    expected: paired.ExpectedProfile,
+) !paired.Prepared {
+    var decoded = try paired.decode(allocator, encoded_source);
+    errdefer decoded.deinit();
+    if (!expected.matches(decoded.envelope)) return error.UnexpectedPairedProfile;
+    var staged_channel = channel.*;
+    bindVersion(&staged_channel);
+    const sampled_point = try drawOodPointFromRoots(&staged_channel, decoded.envelope);
+    const challenges = try drawBatchAfterOod(&staged_channel, decoded.envelope, sampled_point);
+    channel.* = staged_channel;
     return .{ .decoded = decoded, .challenges = challenges };
 }
 
@@ -161,6 +192,44 @@ pub fn decodeAndBind(
 pub fn bindVersion(channel: anytype) void {
     channel.mixU64(TRANSCRIPT_TAG);
     channel.mixU64(VERSION);
+}
+
+/// Bind source roots and public geometry, then sample the native secure-field
+/// circle point. The claim and the proof's point have not influenced the draw.
+pub fn drawOodPointFromRoots(
+    channel: anytype,
+    envelope: paired.Envelope,
+) !circle.CirclePointQM31 {
+    try envelope.validate();
+    channel.mixU64(ROOTS_TAG);
+    channel.mixU64(envelope.largest_log_size);
+    channel.mixU64(envelope.query_count);
+    channel.mixU64(envelope.heights.len);
+    for (envelope.heights) |height| {
+        channel.mixU64((@as(u64, height.shape.log_domain_size) << 32) | height.shape.log_degree_bound);
+        channel.mixU64(height.shape.original_column_count);
+        blake2_merkle.Blake2sMerkleChannel.mixRoot(channel, height.source_root);
+    }
+    return circle.secureFieldPointFromRandomSeedChecked(channel.drawSecureFelt());
+}
+
+/// Require the encoded point for every source column to equal the point
+/// sampled after source commitments. Only then bind the OOD claims and draw
+/// the single batch challenge shared by all heights.
+pub fn drawBatchAfterOod(
+    channel: anytype,
+    envelope: paired.Envelope,
+    sampled_point: circle.CirclePointQM31,
+) !@import("paired_ensemble.zig").Challenges {
+    try envelope.validate();
+    for (envelope.heights) |height| {
+        for (height.sample_points) |point| {
+            if (!point.eql(sampled_point)) return error.UnsampledOodPoint;
+        }
+    }
+    channel.mixU64(CLAIMS_TAG);
+    for (envelope.heights) |height| channel.mixFelts(height.sample_values);
+    return .{ .batch = channel.drawSecureFelt() };
 }
 
 pub fn verify(
