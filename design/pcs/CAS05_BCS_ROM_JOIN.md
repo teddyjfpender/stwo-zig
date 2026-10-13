@@ -115,6 +115,97 @@ traps before reusing a draw input. Digest absorption resets the counter.
 This closes deterministic *counter wrap*, not the random-oracle freshness
 condition across digest epochs or against adversarial hash queries.
 
+## Audited round and internal hash budget
+
+The [round-cost checker](../../scripts/check_cas05_round_cost.py) follows the
+version-6 complete statement-bound verifier and the dense host reference
+prover. It source-checks the transcript audit, source-tree hash sites, and
+line-tree verifier hash sites before evaluating the formulas. Its units are
+**BLAKE2s finalizations (oracle calls)**, not BLAKE2s compression blocks,
+wall time, or a security level. For a verifier-admitted XDM04 profile write
+`k` for the largest log domain, `h` for the number of source heights, `β`
+for log blowup, and `q` for raw queries. The caps are `2≤h≤8`,
+`h+2≤k≤22`, `1≤β≤k−h`, `1≤q≤16384`, each column count `1..64`, and the
+XDM04 fixed-row 64 MiB bound. An outer CAS05 wire has further byte limits.
+
+There are exactly **`h+2` commitment-to-challenge barriers** in the native
+transcript: source root → OOD seed; OOD claims → batch and first fold
+challenges; `h−1` line roots → the next fold challenges; terminal coefficients
+→ the entire raw-query vector. The batch and first fold challenges are two
+sequential draws after one prover message. Counting *logical random
+reductions* instead gives **`h+3`**: OOD, batch, `h` folds, and query.
+Published Protocol 3 by itself has `h+2` reductions (batch, `h` folds,
+query), with an explicit batch-oracle commitment between batch and first
+fold. CAS05 adds OOD claims but derives its batch rather than committing it
+as the paper does. Thus `h+2` is the exact native barrier count and `h+3`
+is the exact logical draw-stage count; **neither is yet a justified value of
+`R` in Theorem 6 for a CAS05 soundness claim**. A BCS refinement must specify
+how the two same-message challenges are grouped and prove the derived-oracle
+substitution and the new OOD reduction. Treating them as separate rounds may
+require a virtual message and a new round-error argument.
+
+The transcript makes exactly `8h+11` digest absorptions. It requests `h+2`
+secure challenges and exactly `⌈q/8⌉` raw-query hash blocks. Secure draws use
+rejection sampling, so `8h+11 + h+2 + ⌈q/8⌉` counts finalizations **only when
+every secure sample succeeds on its first block**. There are `h+1` digest
+epochs containing secure draws: OOD; batch plus first fold; and one after
+each line root. The checked `u32` counter makes the hard upper bound for a
+nontrapping execution
+
+```text
+transcript ≤ 8h+11 + (h+1)(2^32−1) + ⌈q/8⌉.
+```
+
+This intentionally enormous bound is deterministic. A useful smaller bound
+would need an enforced rejection cap or a separately budgeted ideal-oracle
+tail event; neither exists in CAS05 today.
+
+The source Merkle verifier hashes `2q` presented leaves, at most `2q`
+inserted nodes per later height (two finalizations each), and at most `2q`
+nodes at each of the `k−h+1` upper levels. Its bound is **`2q(k+h)`**.
+Line tree `j`, for `1≤j<h`, hashes at most `2q` leaves and `2q` parents at
+each of its `k−j` levels, giving **`2q(1+k−j)`**. The complete verifier's
+Merkle bound is therefore
+
+```text
+2q(k+h) + Σ[j=1..h−1] 2q(1+k−j).
+```
+
+The audit-only accepted-relation extractor reruns the full verifier, replays
+the transcript, and reauthenticates source and line openings. Its internal
+hash bound is twice the complete-verifier bound; it does not change the
+production protocol or attacker query budget. For the dense host prover,
+where `k≤16`, the full source tree uses exactly
+`3·2^k−2^(k−h+1)−1` finalizations, and its `h−1` full line trees use
+`Σ[j=1..h−1](2·2^(k−j)−1)`. These host counts do **not** extend the dense
+prover's admission to the verifier's `k=22` maximum.
+
+For a hand check, take `k=7,h=3,β=2,q=13` and two columns at each height.
+There are five native barriers, six logical reductions, 35 absorptions, five
+secure challenges, and two query blocks. With no secure rejection, the
+transcript uses 42 hashes. The source verification upper bound is 260 and
+the two line bounds are 182 and 156, so the complete verifier uses at most
+**640** internal hashes in that case. The dense host trees use exactly 351
+source and 190 line hashes. The checker prints these terms separately.
+
+At the broad verifier caps `k=22,h=8,β=1,q=16384` with one column per
+height, the Merkle upper bound is 5,341,184; the no-rejection transcript
+uses 2,133 hashes. This is a structural budget for any accepted proof with
+those dimensions, not a feasible dense-host-prover claim. The hard
+nontrapping transcript bound is far larger because of unchecked secure
+rejection loops.
+
+**`T` remains the adversary's external random-oracle query budget.** The
+internal prover/verifier counts above are separate; neither can be silently
+substituted for `T` in Theorem 6's expression. A full game must account for
+the adversary's ability to query the same BLAKE2s oracle on transcript and
+Merkle inputs, including cross-role collisions and freshness. The
+round-by-round errors and native security bits remain unset.
+
+Run `python3 -B scripts/check_cas05_round_cost.py --k 7 --h 3
+--log-blowup 2 --queries 13 --columns 2,2,2` and
+`python3 -B -m unittest scripts.tests.test_cas05_round_cost -v`.
+
 For a hand example, take `h=3`, `k=7`, `q=13`. The transcript draws `α₀`,
 absorbs line root 0, draws `α₁`, absorbs line root 1, draws `α₂`, absorbs
 terminal coefficients, then consumes two 256-bit query blocks. Its first
@@ -134,7 +225,7 @@ the conditional lemma**, with no claim about whole-proof soundness.
    tests are narrower evidence.
 3. Specify the random-oracle/BCS game for the *same* raw BLAKE2s function in
    transcript and both Merkle trees. Bound all adversarial hash work `T`,
-   identify interactive round count `R`, and prove freshness and binding with
+   refine the counted native barriers to the theorem's `R`, and prove freshness and binding with
    an explicit cross-role collision budget. XDM03 hashes have leaf/upper/
    insertion tags and line trees use prefixed Merkle hashes. The CAS05
    transcript's root and field roles now have distinct tags. A reduction must
