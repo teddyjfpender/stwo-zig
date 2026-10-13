@@ -139,6 +139,14 @@ fn matches(statement: ExpectedStatement, proof: Proof) bool {
     return true;
 }
 
+fn requireCanonicalM31(value: M31) !void {
+    if (value.v >= m31.Modulus) return error.NonCanonicalM31;
+}
+
+fn requireCanonicalQM31(value: QM31) !void {
+    for (value.toM31Array()) |coordinate| try requireCanonicalM31(coordinate);
+}
+
 /// Structural/canonical check only; authentication happens in the complete
 /// statement-bound verifier and cannot be inferred from this function.
 pub fn validateProof(proof: Proof) !void {
@@ -148,11 +156,20 @@ pub fn validateProof(proof: Proof) !void {
         proof.line_openings.len != source.height_count - 1 or
         proof.terminal_ordered_coeffs.len != proof.profile.terminalLength())
         return error.InvalidSparseProof;
-    for (proof.claims, 0..) |claims, i|
+    try requireCanonicalQM31(proof.sampled_point.x);
+    try requireCanonicalQM31(proof.sampled_point.y);
+    for (proof.claims, 0..) |claims, i| {
         if (claims.len != source.columns[i]) return error.InvalidSparseProof;
-    for (proof.line_openings) |opened|
-        for (opened.queried_coordinates) |column|
+        for (claims) |claim| try requireCanonicalQM31(claim);
+    }
+    for (proof.line_openings) |opened| {
+        for (opened.queried_coordinates) |column| {
             if (column.len != source.query_count * 2) return error.InvalidSparseProof;
+            for (column) |coordinate| try requireCanonicalM31(coordinate);
+        }
+    }
+    for (proof.terminal_ordered_coeffs) |coefficient|
+        try requireCanonicalQM31(coefficient);
     try xdm.validateEncoding(proof.source_wire, source, proof.source_root);
 }
 
