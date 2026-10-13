@@ -413,6 +413,38 @@ test "pcs utils: prepare preprocessed query positions" {
     try std.testing.expectEqual(@as(usize, 0), empty.len);
 }
 
+test "pcs utils: lifted query projection matches circle group squaring" {
+    const alloc = std.testing.allocator;
+    const CanonicCoset = @import("../poly/circle/canonic.zig").CanonicCoset;
+    const bitReverseIndex = @import("../utils.zig").bitReverseIndex;
+
+    for (1..9) |source_log_usize| {
+        const source_log: u32 = @intCast(source_log_usize);
+        const source_domain = CanonicCoset.new(source_log).circleDomain();
+        const positions = try alloc.alloc(usize, @as(usize, 1) << @intCast(source_log));
+        defer alloc.free(positions);
+        for (positions, 0..) |*position, index| position.* = index;
+
+        for (1..9) |tree_log_usize| {
+            const tree_log: u32 = @intCast(tree_log_usize);
+            const tree_domain = CanonicCoset.new(tree_log).circleDomain();
+            const projected = try prepareTreeQueryPositions(alloc, positions, source_log, tree_log);
+            defer alloc.free(projected);
+            for (positions, projected) |position, tree_position| {
+                try std.testing.expect(tree_position < (@as(usize, 1) << @intCast(tree_log)));
+                try std.testing.expectEqual(position & 1, tree_position & 1);
+                const source_point = source_domain.indexAt(bitReverseIndex(position, source_log));
+                const tree_point = tree_domain.indexAt(bitReverseIndex(tree_position, tree_log));
+                if (source_log >= tree_log) {
+                    try std.testing.expect(source_point.mul(@as(usize, 1) << @intCast(source_log - tree_log)).eql(tree_point));
+                } else {
+                    try std.testing.expect(tree_point.mul(@as(usize, 1) << @intCast(tree_log - source_log)).eql(source_point));
+                }
+            }
+        }
+    }
+}
+
 test "pcs utils: treevec zip and zipEq" {
     const alloc = std.testing.allocator;
 

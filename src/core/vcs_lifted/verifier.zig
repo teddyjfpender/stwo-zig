@@ -421,6 +421,85 @@ test "vcs_lifted verifier: verifies simple proof" {
     try verifySimpleProofWithAllocator(std.testing.allocator);
 }
 
+test "vcs_lifted verifier: captured opening replays root and binds row position and sibling" {
+    const Hasher = @import("blake2_merkle.zig").Blake2sMerkleHasher;
+    const Verifier = MerkleVerifierLifted(Hasher);
+    const alloc = std.testing.allocator;
+
+    const rows = [4][2]M31{
+        .{ M31.fromCanonical(10), M31.fromCanonical(20) },
+        .{ M31.fromCanonical(11), M31.fromCanonical(21) },
+        .{ M31.fromCanonical(12), M31.fromCanonical(22) },
+        .{ M31.fromCanonical(13), M31.fromCanonical(23) },
+    };
+    var leaves: [rows.len]Hasher.Hash = undefined;
+    for (rows, &leaves) |row, *digest| {
+        var hasher = Hasher.defaultWithInitialState();
+        hasher.updateLeaf(&row);
+        digest.* = hasher.finalize();
+    }
+    const left = Hasher.hashChildren(.{ .left = leaves[0], .right = leaves[1] });
+    const right = Hasher.hashChildren(.{ .left = leaves[2], .right = leaves[3] });
+    const root = Hasher.hashChildren(.{ .left = left, .right = right });
+    var verifier = try Verifier.init(alloc, root, &.{ 2, 2 });
+    defer verifier.deinit(alloc);
+
+    const positions = [_]usize{1};
+    const col0 = [_]M31{rows[1][0]};
+    const col1 = [_]M31{rows[1][1]};
+    const values = [_][]const M31{ &col0, &col1 };
+    var witness = [_]Hasher.Hash{ leaves[0], right };
+    var capture: MerklePathCapture(Hasher) = undefined;
+    try verifier.verifyWithPathCapture(
+        alloc, &positions, &values, .{ .hash_witness = &witness }, &capture,
+    );
+    defer capture.deinit(alloc);
+    try std.testing.expectEqual(@as(u32, 2), capture.path_depth);
+    try std.testing.expectEqualSlices(usize, &positions, capture.positions);
+
+    // Independent replay of the published full path, with the same bottom-up
+    // low-bit orientation used by the native verifier.
+    var replay_hasher = Hasher.defaultWithInitialState();
+    replay_hasher.updateLeaf(&rows[1]);
+    var replay = replay_hasher.finalize();
+    var index = positions[0];
+    for (capture.path(0)) |sibling| {
+        replay = if ((index & 1) == 0)
+            Hasher.hashChildren(.{ .left = replay, .right = sibling })
+        else
+            Hasher.hashChildren(.{ .left = sibling, .right = replay });
+        index >>= 1;
+    }
+    try std.testing.expect(vcs_hash.eql(root, replay));
+
+    const sentinel = MerklePathCapture(Hasher){
+        .positions = &.{}, .path_depth = std.math.maxInt(u32), .siblings = &.{},
+    };
+    const changed_col0 = [_]M31{M31.fromCanonical(14)};
+    const changed_values = [_][]const M31{ &changed_col0, &col1 };
+    var rejected_capture = sentinel;
+    try std.testing.expectError(
+        error.RootMismatch,
+        verifier.verifyWithPathCapture(
+            alloc, &positions, &changed_values,
+            .{ .hash_witness = &witness }, &rejected_capture,
+        ),
+    );
+    try std.testing.expectEqualDeep(sentinel, rejected_capture);
+
+    var changed_witness = [_]Hasher.Hash{ leaves[2], right };
+    try std.testing.expectError(
+        error.RootMismatch,
+        verifier.verify(alloc, &positions, &values, .{ .hash_witness = &changed_witness }),
+    );
+
+    const changed_positions = [_]usize{0};
+    try std.testing.expectError(
+        error.RootMismatch,
+        verifier.verify(alloc, &changed_positions, &values, .{ .hash_witness = &witness }),
+    );
+}
+
 test "vcs_lifted verifier: every allocation failure preserves capture and releases columns" {
     try std.testing.checkAllAllocationFailures(std.testing.allocator, verifySimpleProofWithAllocator, .{});
 }
