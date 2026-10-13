@@ -69,6 +69,19 @@ pub fn FriVerifier(comptime H: type, comptime MC: type) type {
             proof_in: FriProof(H),
             column_bound: CirclePolyDegreeBound,
         ) (std.mem.Allocator.Error || FriVerificationError)!Self {
+            // The transcript has exactly one committed layer per degree
+            // reduction. Extra zero-fold layers would add unconstrained
+            // commitment rounds after the claimed last-layer degree.
+            if (config.fold_step == 0 or column_bound.logDegreeBound() < config.fold_step)
+                return FriVerificationError.InvalidNumFriLayers;
+            const first_line_log = column_bound.logDegreeBound() - config.fold_step;
+            if (first_line_log < config.log_last_layer_degree_bound or
+                proof_in.inner_layers.len != config_mod.nFoldSteps(
+                    first_line_log - config.log_last_layer_degree_bound,
+                    config.fold_step,
+                ))
+                return FriVerificationError.InvalidNumFriLayers;
+
             MC.mixRoot(channel, proof_in.first_layer.commitment);
 
             const column_commitment_domain = canonic.CanonicCoset

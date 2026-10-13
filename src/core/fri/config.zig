@@ -45,8 +45,16 @@ pub const FriConfig = struct {
         return @as(usize, 1) << @intCast(self.log_last_layer_degree_bound + self.log_blowup_factor);
     }
 
-    pub inline fn securityBits(self: FriConfig) u32 {
+    /// A nominal blowup-times-query count. This is not a proven FRI
+    /// soundness bound: the bound also depends on the committed degree,
+    /// extension field, folding schedule, and proximity parameters.
+    pub inline fn nominalQueryBits(self: FriConfig) u32 {
         return self.log_blowup_factor * @as(u32, @intCast(self.n_queries));
+    }
+
+    /// Compatibility alias. Do not use this value as a security guarantee.
+    pub inline fn securityBits(self: FriConfig) u32 {
+        return self.nominalQueryBits();
     }
 
     pub fn default() FriConfig {

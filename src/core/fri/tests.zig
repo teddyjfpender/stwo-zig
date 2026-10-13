@@ -423,6 +423,38 @@ test "fri verifier: invalid layer count fails commit" {
     );
 }
 
+test "fri verifier: rejects a zero-fold extra inner layer before transcript replay" {
+    const Hasher = @import("stwo_core").vcs_lifted.blake2_merkle.Blake2sMerkleHasher;
+    const MerkleChannel = @import("stwo_core").vcs_lifted.blake2_merkle.Blake2sMerkleChannel;
+    const Channel = @import("stwo_core").channel.blake2s.Blake2sChannel;
+    const Verifier = FriVerifier(Hasher, MerkleChannel);
+    const alloc = std.testing.allocator;
+
+    const inner_layers = try alloc.alloc(FriLayerProof(Hasher), 1);
+    inner_layers[0] = .{
+        .fri_witness = try alloc.alloc(QM31, 0),
+        .decommitment = .{ .hash_witness = try alloc.alloc(Hasher.Hash, 0) },
+        .commitment = [_]u8{3} ** 32,
+    };
+    var proof = FriProof(Hasher){
+        .first_layer = .{
+            .fri_witness = try alloc.alloc(QM31, 0),
+            .decommitment = .{ .hash_witness = try alloc.alloc(Hasher.Hash, 0) },
+            .commitment = [_]u8{2} ** 32,
+        },
+        .inner_layers = inner_layers,
+        .last_layer_poly = line.LinePoly.initOwned(try alloc.dupe(QM31, &.{QM31.one()})),
+    };
+    defer proof.deinit(alloc);
+    var channel = Channel{};
+    const before = channel.digestBytes();
+    try std.testing.expectError(
+        FriVerificationError.InvalidNumFriLayers,
+        Verifier.commit(alloc, &channel, try FriConfig.init(2, 1, 4), proof, CirclePolyDegreeBound.init(3)),
+    );
+    try std.testing.expectEqualDeep(before, channel.digestBytes());
+}
+
 test "fri proof containers: deinit owned buffers" {
     const Hasher = @import("stwo_core").vcs_lifted.blake2_merkle.Blake2sMerkleHasher;
     const LayerProof = FriLayerProof(Hasher);
