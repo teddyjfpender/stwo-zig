@@ -1094,6 +1094,23 @@ test "experimental sampled two-height FRI authenticates intermediate and checks 
             n_queries,
         ),
     );
+    const changed_line_wire = try two_height_wire.encode(alloc, .{
+        .source_wire = encoded,
+        .intermediate = changed_intermediate,
+        .terminal_ordered_coeffs = terminal_coeffs,
+    });
+    defer alloc.free(changed_line_wire);
+    var changed_line_channel = Channel{};
+    try std.testing.expectError(
+        error.RootMismatch,
+        two_height_wire.verify(
+            alloc,
+            changed_line_wire,
+            &changed_line_channel,
+            expected_profile,
+            n_queries,
+        ),
+    );
 
     // A prover can commit to a different, internally consistent line tree.
     // Merkle authentication then succeeds, but the sampled source-to-line
@@ -1201,6 +1218,23 @@ test "experimental sampled two-height FRI authenticates intermediate and checks 
             &forged_prepared,
             forged_intermediate,
             terminal_coeffs,
+            n_queries,
+        ),
+    );
+    const forged_line_wire = try two_height_wire.encode(alloc, .{
+        .source_wire = forged_wire,
+        .intermediate = forged_intermediate,
+        .terminal_ordered_coeffs = terminal_coeffs,
+    });
+    defer alloc.free(forged_line_wire);
+    var forged_line_channel = Channel{};
+    try std.testing.expectError(
+        error.IntermediateFoldMismatch,
+        two_height_wire.verify(
+            alloc,
+            forged_line_wire,
+            &forged_line_channel,
+            expected_profile,
             n_queries,
         ),
     );
