@@ -5,6 +5,7 @@ test {
     _ = @import("fri_scheduler_test.zig");
     _ = @import("fri_test.zig");
     _ = @import("paired_fri_test.zig");
+    _ = @import("paired_fri_bcs_fixture_test.zig");
     _ = @import("pcs/mod.zig");
     _ = @import("prove_test.zig");
 }
