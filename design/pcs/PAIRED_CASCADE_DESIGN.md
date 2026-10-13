@@ -2,6 +2,8 @@
 
 This brief specifies an iterative verifier for source heights `k, k-1, …, k-(h-1)` with a common blowup exponent `b`. It extends the fixed two-height arithmetic of P2F02, with a one-root transposed source tree at every height. The [S-two whitepaper Protocols 3–4 and Eq. 68](https://www.researchgate.net/publication/407022099_S-two_Whitepaper) are the target; no security theorem is claimed for the native codec.
 
+The later [sparse CAS05/XDM04 opening](SPARSE_CASCADE_EXPERIMENTAL.md) authenticates only two source and line rows per height. This brief continues to describe the CAS04 full-fiber mechanics harness and its limits.
+
 ## Row geometry and one sampled query
 
 Let `h >= 2`. Draw one uniform raw row `r` from the largest bit-reversed circle domain of size `2^k`. Set `base = r & ~(2^h-1)`. At source height `i`, authenticate `2^(h-i)` rows starting at `base >> i`; this is the full local fiber bundle used by all remaining folds. Each projection removes the next squaring-fiber bit while preserving the native sign bit. The actual sampled point traces through circle doubling; opening the whole fiber bundle supplies the conjugate siblings needed to check every local fold. A production theorem must still prove the bundle-query event bound, rather than assume independent checks.

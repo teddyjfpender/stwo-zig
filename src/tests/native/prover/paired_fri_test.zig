@@ -283,6 +283,251 @@ test "native cascade normalization has a height-dependent inserted batch scale" 
     }
 }
 
+test "three-height sparse two-row cascade verifies one-root source and line paths" {
+    const core = @import("stwo_core");
+    const sparse_cascade = core.pcs.paired_sparse_cascade_experimental;
+    const host = @import("stwo_prover_engine").pcs.paired_sparse_cascade_experimental;
+    const Channel = core.channel.blake2s.Blake2sChannel;
+    const alloc = std.testing.allocator;
+    const d0 = core.poly.circle.canonic.CanonicCoset.new(5).circleDomain();
+    const d1 = core.poly.circle.canonic.CanonicCoset.new(4).circleDomain();
+    var x0: [32]M31 = undefined;
+    var x1: [16]M31 = undefined;
+    for (&x0, 0..) |*value, row| value.* = d0.at(core.utils.bitReverseIndex(row, 5)).x;
+    for (&x1, 0..) |*value, row| value.* = d1.at(core.utils.bitReverseIndex(row, 4)).x;
+    const third = [_]M31{M31.fromCanonical(7)} ** 8;
+    const h0 = [_][]const M31{&x0};
+    const h1 = [_][]const M31{&x1};
+    const h2 = [_][]const M31{&third};
+    const heights = [_][]const []const M31{ &h0, &h1, &h2 };
+    var prover_channel = Channel{};
+    var owned = try host.prove(alloc, .{
+        .source_columns = &heights,
+        .log_blowup = 2,
+        .n_queries = 5,
+    }, &prover_channel);
+    defer owned.deinit();
+    const proof = owned.proof;
+    const statement = sparse_cascade.ExpectedStatement{
+        .profile = proof.profile,
+        .source_root = proof.source_root,
+        .claims = proof.claims,
+    };
+    var verifier_channel = Channel{};
+    try sparse_cascade.verifyAgainstStatement(alloc, proof, &verifier_channel, statement);
+    try std.testing.expectEqualSlices(u8, &prover_channel.digest, &verifier_channel.digest);
+    for (proof.line_openings) |opening|
+        for (opening.queried_coordinates) |column|
+            try std.testing.expectEqual(@as(usize, 10), column.len);
+    const outer = core.pcs.paired_sparse_cascade_wire;
+    const encoded = try outer.encode(alloc, proof);
+    defer alloc.free(encoded);
+    try std.testing.expectError(error.UnsupportedProofFormat, core.pcs.paired_cascade_wire.decode(alloc, encoded));
+    var decoded = try outer.decode(alloc, encoded);
+    defer decoded.deinit();
+    const reencoded = try outer.encode(alloc, decoded.proof);
+    defer alloc.free(reencoded);
+    try std.testing.expectEqualSlices(u8, encoded, reencoded);
+    var wire_channel = Channel{};
+    try outer.verifyAgainstStatement(alloc, encoded, &wire_channel, statement);
+    try std.testing.expectEqualSlices(u8, &prover_channel.digest, &wire_channel.digest);
+    var replay = Channel{};
+    sparse_cascade.bindVersion(&replay);
+    const sampled = try core.pcs.paired_cascade_experimental.drawOodPoint(&replay, proof.profile, proof.source_root);
+    try std.testing.expect(sampled.eql(proof.sampled_point));
+    const lambda = core.pcs.paired_cascade_experimental.drawBatchAfterOod(&replay, proof.claims);
+    for (proof.line_openings) |opening| {
+        _ = replay.drawSecureFelt();
+        core.vcs_lifted.blake2_merkle.Blake2sMerkleChannel.mixRoot(&replay, opening.root);
+    }
+    _ = replay.drawSecureFelt();
+    replay.mixFelts(proof.terminal_ordered_coeffs);
+    const raw = try core.queries.drawQueries(&replay, alloc, 5, 5);
+    defer alloc.free(raw);
+    var opened = try core.pcs.transposed_merkle_sparse.verifyAndCollect(
+        alloc,
+        proof.source_wire,
+        proof.profile.source,
+        proof.source_root,
+        raw,
+    );
+    defer opened.deinit();
+    var sparse_answers = try core.pcs.transposed_paired_sparse.fromVerifiedOpenings(
+        alloc,
+        opened,
+        raw,
+        sampled,
+        proof.claims,
+        lambda,
+    );
+    defer sparse_answers.deinit();
+    const paired_reference = @import("stwo_prover_engine").pcs.paired_two_height_experimental;
+    for (heights, 0..) |columns, height| {
+        const log_size = 5 - @as(u32, @intCast(height));
+        const domain = core.poly.circle.canonic.CanonicCoset.new(log_size).circleDomain();
+        const reference = try paired_reference.pairedHeight(
+            alloc,
+            domain,
+            columns,
+            proof.claims[height],
+            sampled,
+            .{ .batch = lambda },
+        );
+        defer alloc.free(reference);
+        for (raw, 0..) |position, query| {
+            const base = core.pcs.transposed_merkle_sparse.pairBase(position, height);
+            for (0..2) |j|
+                try std.testing.expect(reference[base + j].eql(sparse_answers.values[height][query * 2 + j]));
+        }
+    }
+    try std.testing.expectEqual(@as(usize, 1428), encoded.len);
+    try std.testing.expectEqual(@as(usize, 722), proof.source_wire.len);
+    var rejected = Channel{};
+    const initial = rejected.digest;
+    try std.testing.expectError(error.TruncatedCascadeProof, outer.verifyAgainstStatement(alloc, encoded[0 .. encoded.len - 1], &rejected, statement));
+    const trailing = try alloc.alloc(u8, encoded.len + 1);
+    defer alloc.free(trailing);
+    @memcpy(trailing[0..encoded.len], encoded);
+    trailing[encoded.len] = 0;
+    try std.testing.expectError(error.InvalidCascadeProof, outer.verifyAgainstStatement(alloc, trailing, &rejected, statement));
+    const changed = try alloc.dupe(u8, encoded);
+    defer alloc.free(changed);
+    changed[8] = 4;
+    try std.testing.expectError(error.UnsupportedProofVersion, outer.verifyAgainstStatement(alloc, changed, &rejected, statement));
+    changed[8] = 5;
+    changed[10] = 1;
+    try std.testing.expectError(error.InvalidCascadeProof, outer.verifyAgainstStatement(alloc, changed, &rejected, statement));
+    changed[10] = 0;
+    const inner_at = std.mem.indexOf(u8, changed, core.pcs.transposed_merkle_sparse.MAGIC).?;
+    changed[inner_at + 8] = 3;
+    try std.testing.expectError(error.UnsupportedProofVersion, outer.verifyAgainstStatement(alloc, changed, &rejected, statement));
+    changed[inner_at + 8] = 4;
+    const point_at = 32 + 2 * proof.profile.source.height_count + 32;
+    @memset(changed[point_at..][0..4], 0xff);
+    try std.testing.expectError(error.NonCanonicalM31, outer.verifyAgainstStatement(alloc, changed, &rejected, statement));
+    @memcpy(changed[point_at..][0..4], encoded[point_at..][0..4]);
+    const inner_first_felt = inner_at + 8 + 2 + 2 + 4 + 4 + 2 + 2 + 4 +
+        2 * proof.profile.source.height_count + 32 + 4;
+    @memset(changed[inner_first_felt..][0..4], 0xff);
+    try std.testing.expectError(error.NonCanonicalM31, outer.verifyAgainstStatement(alloc, changed, &rejected, statement));
+    @memcpy(changed[inner_first_felt..][0..4], encoded[inner_first_felt..][0..4]);
+    changed[inner_first_felt - 4] ^= 1;
+    try std.testing.expectError(error.UnexpectedSparseQuery, outer.verifyAgainstStatement(alloc, changed, &rejected, statement));
+    changed[inner_first_felt - 4] ^= 1;
+    const line_count_at = inner_at + proof.source_wire.len;
+    changed[line_count_at] = 0;
+    try std.testing.expectError(error.InvalidCascadeProof, outer.verifyAgainstStatement(alloc, changed, &rejected, statement));
+    changed[line_count_at] = @intCast(proof.line_openings.len);
+    const root_at = 32 + 2 * proof.profile.source.height_count;
+    changed[root_at] ^= 1;
+    try std.testing.expectError(error.UnexpectedSparseRoot, outer.verifyAgainstStatement(alloc, changed, &rejected, statement));
+    changed[root_at] ^= 1;
+    changed[inner_at + proof.source_wire.len - 1] ^= 1;
+    if (outer.verifyAgainstStatement(alloc, changed, &rejected, statement)) |_| {
+        return error.ExpectedSourceWitnessRejection;
+    } else |_| {}
+    changed[inner_at + proof.source_wire.len - 1] ^= 1;
+    const first_line_value = line_count_at + 4 + 32 + 4;
+    changed[first_line_value] ^= 1;
+    if (outer.verifyAgainstStatement(alloc, changed, &rejected, statement)) |_| {
+        return error.ExpectedLineOpeningRejection;
+    } else |_| {}
+    changed[first_line_value] ^= 1;
+    var wrong_statement = statement;
+    wrong_statement.source_root[0] ^= 1;
+    try std.testing.expectError(error.UnexpectedSparseStatement, outer.verifyAgainstStatement(alloc, encoded, &rejected, wrong_statement));
+    wrong_statement = statement;
+    wrong_statement.profile.source.columns[0] += 1;
+    try std.testing.expectError(error.UnexpectedSparseStatement, outer.verifyAgainstStatement(alloc, encoded, &rejected, wrong_statement));
+    const wrong_claim = try alloc.dupe(QM31, proof.claims[0]);
+    defer alloc.free(wrong_claim);
+    wrong_claim[0] = wrong_claim[0].add(QM31.one());
+    var claim_rows = [_][]const QM31{ wrong_claim, proof.claims[1], proof.claims[2] };
+    wrong_statement = statement;
+    wrong_statement.claims = &claim_rows;
+    try std.testing.expectError(error.UnexpectedSparseStatement, outer.verifyAgainstStatement(alloc, encoded, &rejected, wrong_statement));
+    var prefixed = Channel{};
+    prefixed.mixU64(0x5350_4152_5345_3035);
+    const prefixed_digest = prefixed.digest;
+    try std.testing.expectError(error.UnsampledOodPoint, outer.verifyAgainstStatement(alloc, encoded, &prefixed, statement));
+    try std.testing.expectEqualSlices(u8, &prefixed_digest, &prefixed.digest);
+    try std.testing.expectEqualSlices(u8, &initial, &rejected.digest);
+    var line_channel = Channel{};
+    var false_line = try host.proveWithInvalidLineForTest(alloc, .{
+        .source_columns = &heights,
+        .log_blowup = 2,
+        .n_queries = 5,
+    }, &line_channel);
+    defer false_line.deinit();
+    const false_line_wire = try outer.encode(alloc, false_line.proof);
+    defer alloc.free(false_line_wire);
+    try std.testing.expectError(error.IntermediateFoldMismatch, outer.verifyAgainstStatement(alloc, false_line_wire, &rejected, .{
+        .profile = false_line.proof.profile,
+        .source_root = false_line.proof.source_root,
+        .claims = false_line.proof.claims,
+    }));
+    try std.testing.expectEqualSlices(u8, &initial, &rejected.digest);
+    var adversarial_channel = Channel{};
+    var adversarial = try host.proveWithInvalidTerminalForTest(alloc, .{
+        .source_columns = &heights,
+        .log_blowup = 2,
+        .n_queries = 5,
+    }, &adversarial_channel);
+    defer adversarial.deinit();
+    const false_wire = try outer.encode(alloc, adversarial.proof);
+    defer alloc.free(false_wire);
+    try std.testing.expectError(error.TerminalFoldMismatch, outer.verifyAgainstStatement(alloc, false_wire, &rejected, .{
+        .profile = adversarial.proof.profile,
+        .source_root = adversarial.proof.source_root,
+        .claims = adversarial.proof.claims,
+    }));
+    try std.testing.expectEqualSlices(u8, &initial, &rejected.digest);
+}
+
+test "four-height sparse cascade has a complete canonical wire" {
+    const core = @import("stwo_core");
+    const host = @import("stwo_prover_engine").pcs.paired_sparse_cascade_experimental;
+    const outer = core.pcs.paired_sparse_cascade_wire;
+    const Channel = core.channel.blake2s.Blake2sChannel;
+    const alloc = std.testing.allocator;
+    const d0 = core.poly.circle.canonic.CanonicCoset.new(6).circleDomain();
+    const d1 = core.poly.circle.canonic.CanonicCoset.new(5).circleDomain();
+    var x0: [64]M31 = undefined;
+    var x1: [32]M31 = undefined;
+    for (&x0, 0..) |*value, row| value.* = d0.at(core.utils.bitReverseIndex(row, 6)).x;
+    for (&x1, 0..) |*value, row| value.* = d1.at(core.utils.bitReverseIndex(row, 5)).x;
+    const third = [_]M31{M31.fromCanonical(7)} ** 16;
+    const fourth = [_]M31{M31.fromCanonical(11)} ** 8;
+    const h0 = [_][]const M31{&x0};
+    const h1 = [_][]const M31{&x1};
+    const h2 = [_][]const M31{&third};
+    const h3 = [_][]const M31{&fourth};
+    const heights = [_][]const []const M31{ &h0, &h1, &h2, &h3 };
+    var prover_channel = Channel{};
+    var owned = try host.prove(alloc, .{
+        .source_columns = &heights,
+        .log_blowup = 2,
+        .n_queries = 3,
+    }, &prover_channel);
+    defer owned.deinit();
+    const proof = owned.proof;
+    const encoded = try outer.encode(alloc, proof);
+    defer alloc.free(encoded);
+    var verifier_channel = Channel{};
+    try outer.verifyAgainstStatement(alloc, encoded, &verifier_channel, .{
+        .profile = proof.profile,
+        .source_root = proof.source_root,
+        .claims = proof.claims,
+    });
+    try std.testing.expectEqualSlices(u8, &prover_channel.digest, &verifier_channel.digest);
+    try std.testing.expectEqual(@as(usize, 1488), encoded.len);
+    try std.testing.expectEqual(@as(usize, 628), proof.source_wire.len);
+    try std.testing.expectEqual(@as(usize, 3), proof.line_openings.len);
+    for (proof.line_openings) |opening|
+        for (opening.queried_coordinates) |column|
+            try std.testing.expectEqual(@as(usize, 6), column.len);
+}
+
 test "generic cascade checks four adjacent heights under one transposed root" {
     const core = @import("stwo_core");
     const cascade = core.pcs.paired_cascade_experimental;
@@ -391,6 +636,106 @@ test "XDM03 authenticates three adjacent source heights under one root" {
         error.DuplicateProjectedValue,
         xdm.verifyAndCollect(alloc, changed, profile, tree.root(), &raw),
     );
+}
+
+test "XDM04 authenticates sparse pairs and preserves duplicate raw queries" {
+    const core = @import("stwo_core");
+    const sparse = core.pcs.transposed_merkle_sparse;
+    const host = @import("stwo_prover_engine").pcs.transposed_cascade_experimental;
+    const alloc = std.testing.allocator;
+    var first: [32]M31 = undefined;
+    var second: [16]M31 = undefined;
+    var third: [8]M31 = undefined;
+    for (&first, 0..) |*value, row| value.* = M31.fromCanonical(@intCast(row + 1));
+    for (&second, 0..) |*value, row| value.* = M31.fromCanonical(@intCast(row + 41));
+    for (&third, 0..) |*value, row| value.* = M31.fromCanonical(@intCast(row + 71));
+    const h0 = [_][]const M31{&first};
+    const h1 = [_][]const M31{&second};
+    const h2 = [_][]const M31{&third};
+    const heights = [_][]const []const M31{ &h0, &h1, &h2 };
+    var tree = try host.Commitment.commit(alloc, &heights);
+    defer tree.deinit();
+    const raw = [_]usize{ 5, 5, 23 };
+    const encoded = try tree.encodeSparseOpenings(alloc, &raw);
+    defer alloc.free(encoded);
+    var profile = tree.profile;
+    profile.query_count = raw.len;
+    try sparse.validateEncoding(encoded, profile, tree.root());
+    var opened = try sparse.verifyAndCollect(alloc, encoded, profile, tree.root(), &raw);
+    defer opened.deinit();
+    for (raw, 0..) |position, query| {
+        for (0..3) |height| {
+            const base = sparse.pairBase(position, height);
+            const source = heights[height][0];
+            for (0..2) |j|
+                try std.testing.expectEqual(source[base + j], opened.at(height, query, j, 0));
+        }
+    }
+    const wrong_raw = [_]usize{ 5, 7, 23 };
+    try std.testing.expectError(error.UnexpectedSparseQuery, sparse.verifyAndCollect(alloc, encoded, profile, tree.root(), &wrong_raw));
+    var wrong_root = tree.root();
+    wrong_root[0] ^= 1;
+    try std.testing.expectError(error.UnexpectedSparseRoot, sparse.verifyAndCollect(alloc, encoded, profile, wrong_root, &raw));
+    const changed = try alloc.dupe(u8, encoded);
+    defer alloc.free(changed);
+    const header_len = 8 + 2 + 2 + 4 + 4 + 2 + 2 + 4 + 2 * profile.height_count + 32;
+    const per_query = 4 + 3 * 2 * 4;
+    changed[header_len + per_query + 4] ^= 1;
+    try std.testing.expectError(error.DuplicateProjectedValue, sparse.verifyAndCollect(alloc, changed, profile, tree.root(), &raw));
+    const overlap_cases = [_][4]usize{
+        .{ 0, 1, 2, 3 }, .{ 4, 5, 6, 7 }, .{ 5, 7, 13, 15 }, .{ 0, 0, 0, 0 },
+    };
+    for (overlap_cases) |case| {
+        const bytes = try tree.encodeSparseOpenings(alloc, &case);
+        defer alloc.free(bytes);
+        var case_profile = tree.profile;
+        case_profile.query_count = case.len;
+        var verified = try sparse.verifyAndCollect(alloc, bytes, case_profile, tree.root(), &case);
+        defer verified.deinit();
+        for (case, 0..) |position, query|
+            for (0..3) |height| {
+                const base = sparse.pairBase(position, height);
+                for (0..2) |j|
+                    try std.testing.expectEqual(heights[height][0][base + j], verified.at(height, query, j, 0));
+            };
+    }
+}
+
+test "sparse pair schedule matches circle doubling and line fold positions" {
+    const core = @import("stwo_core");
+    const sparse = core.pcs.transposed_merkle_sparse;
+    const k: u32 = 6;
+    const largest = core.poly.circle.canonic.CanonicCoset.new(k).circleDomain();
+    for (0..64) |raw| {
+        var point = largest.at(core.utils.bitReverseIndex(raw, k));
+        for (0..4) |height| {
+            const log_size = k - @as(u32, @intCast(height));
+            const base = sparse.pairBase(raw, height);
+            try std.testing.expectEqual(2 * (raw >> @intCast(height + 1)), base);
+            const projected_row = base | (raw & 1);
+            const expected = core.poly.circle.canonic.CanonicCoset.new(log_size).circleDomain()
+                .at(core.utils.bitReverseIndex(projected_row, log_size));
+            try std.testing.expect(point.eql(expected));
+            if (height < 3) {
+                const next_base = sparse.pairBase(raw, height + 1);
+                const output = base / 2;
+                try std.testing.expectEqual(next_base + ((raw >> @intCast(height + 1)) & 1), output);
+            }
+            point = point.double();
+        }
+    }
+    for (0..4) |height| {
+        const shift: std.math.Log2Int(usize) = @intCast(height);
+        const domain_size: usize = @as(usize, 64) >> shift;
+        for (0..domain_size) |projected_row| {
+            var count: usize = 0;
+            for (0..64) |raw|
+                if ((sparse.pairBase(raw, height) | (raw & 1)) == projected_row) {
+                    count += 1;
+                };
+            try std.testing.expectEqual(@as(usize, 1) << shift, count);
+        }
+    }
 }
 
 test "P2F02 one-root paired proof binds statement and rolls back late failures" {
@@ -933,7 +1278,7 @@ fn manualNativeEq68Row(
     return previous_fold.add(alpha.square().mul(inserted_fold));
 }
 
-test "experimental multi-domain insertion matches Eq 68 at two smaller heights" {
+test "experimental multi-domain insertion matches native relation at two smaller heights" {
     const core = @import("stwo_core");
     const insert = core_fri.multidomain_insertion.insertCircleBatch;
     const alloc = std.testing.allocator;
