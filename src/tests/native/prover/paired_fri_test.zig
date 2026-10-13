@@ -1036,6 +1036,97 @@ fn checkHonestAdjacentHeights(comptime largest_log: u32, n_queries: usize) !void
         .shapes = &[_]core.pcs.paired_ensemble.Shape{ shape0, shape1 },
     }, n_queries);
     try std.testing.expectEqualSlices(u8, &prover_channel.digest, &verifier_channel.digest);
+
+    // Keep both honest commitments, change only the claimed OOD value, and
+    // open the honest trees afresh at the changed transcript's queries.
+    // Authentication succeeds; the algebraic first fold must reject.
+    _ = changed_claim_channel.drawSecureFelt();
+    core.vcs_lifted.blake2_merkle.Blake2sMerkleChannel.mixRoot(
+        &changed_claim_channel,
+        line_tree.root(),
+    );
+    _ = changed_claim_channel.drawSecureFelt();
+    changed_claim_channel.mixFelts(terminal_coeffs);
+    var changed_schedule = try two_height.sampleQuerySchedule(
+        alloc,
+        &changed_claim_channel,
+        largest_log,
+        n_queries,
+    );
+    defer changed_schedule.deinit(alloc);
+    const changed_projected = try core.pcs.paired_projection.projectPositions(
+        alloc,
+        changed_schedule.source_positions,
+        largest_log,
+        smaller_log,
+    );
+    defer alloc.free(changed_projected);
+    var changed_opened0 = try tree0.decommit(
+        alloc,
+        changed_schedule.source_positions,
+        &columns0,
+    );
+    defer changed_opened0.deinit(alloc);
+    var changed_opened1 = try tree1.decommit(
+        alloc,
+        changed_projected,
+        &columns1,
+    );
+    defer changed_opened1.deinit(alloc);
+    var changed_opened_line = try line_tree.decommit(
+        alloc,
+        changed_schedule.line_positions,
+        &line_columns,
+    );
+    defer changed_opened_line.deinit(alloc);
+    const changed_columns0 = [_][]const M31{changed_opened0.queried_values[0]};
+    const changed_columns1 = [_][]const M31{changed_opened1.queried_values[0]};
+    const changed_heights = [_]envelope_mod.HeightOpening{
+        .{
+            .shape = shape0,
+            .source_root = tree0.root(),
+            .sample_points = &points,
+            .sample_values = &changed_claims,
+            .queried_sources = &changed_columns0,
+            .hash_witness = changed_opened0.decommitment.decommitment.hash_witness,
+        },
+        .{
+            .shape = shape1,
+            .source_root = tree1.root(),
+            .sample_points = &points,
+            .sample_values = &changed_claims,
+            .queried_sources = &changed_columns1,
+            .hash_witness = changed_opened1.decommitment.decommitment.hash_witness,
+        },
+    };
+    const changed_source_wire = try envelope_mod.encode(alloc, .{
+        .largest_log_size = largest_log,
+        .query_count = @intCast(4 * n_queries),
+        .heights = &changed_heights,
+    });
+    defer alloc.free(changed_source_wire);
+    const changed_outer_wire = try wire.encode(alloc, .{
+        .source_wire = changed_source_wire,
+        .intermediate = .{
+            .root = line_tree.root(),
+            .queried_coordinates = .{
+                changed_opened_line.queried_values[0], changed_opened_line.queried_values[1],
+                changed_opened_line.queried_values[2], changed_opened_line.queried_values[3],
+            },
+            .hash_witness = changed_opened_line.decommitment.decommitment.hash_witness,
+        },
+        .terminal_ordered_coeffs = terminal_coeffs,
+    });
+    defer alloc.free(changed_outer_wire);
+    var changed_verifier_channel = Channel{};
+    try std.testing.expectError(
+        error.IntermediateFoldMismatch,
+        wire.verify(alloc, changed_outer_wire, &changed_verifier_channel, .{
+            .largest_log_size = largest_log,
+            .query_count = @intCast(4 * n_queries),
+            .shapes = &[_]core.pcs.paired_ensemble.Shape{ shape0, shape1 },
+        }, n_queries),
+    );
 }
 
 test "experimental paired FRI works at parameterized adjacent heights" {
