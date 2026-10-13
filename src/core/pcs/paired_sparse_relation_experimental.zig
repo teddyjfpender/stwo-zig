@@ -10,6 +10,7 @@
 
 const std = @import("std");
 const circle = @import("../circle.zig");
+const blake2s_channel = @import("../channel/blake2s.zig");
 const m31 = @import("../fields/m31.zig");
 const cm31 = @import("../fields/cm31.zig");
 const qm31 = @import("../fields/qm31.zig");
@@ -74,7 +75,9 @@ fn pairedWord(
 }
 
 pub const AcceptedRelation = struct {
-    arena: std.heap.ArenaAllocator,
+    /// Stable address required by `source.allocator`, which remains public.
+    arena: *std.heap.ArenaAllocator,
+    arena_owner: std.mem.Allocator,
     profile: cascade.Profile,
     source_root: xdm.Hash,
     line_roots: []xdm.Hash,
@@ -93,6 +96,7 @@ pub const AcceptedRelation = struct {
 
     pub fn deinit(self: *AcceptedRelation) void {
         self.arena.deinit();
+        self.arena_owner.destroy(self.arena);
         self.* = undefined;
     }
 
@@ -249,15 +253,18 @@ pub const AcceptedRelation = struct {
 /// Audit-only full verifier and extractor. The caller's channel changes only
 /// after both the complete native verifier and the independent relation check
 /// succeed. The returned owned certificate survives destruction of a decoded
-/// outer-wire proof. No authenticated-oracle uniqueness is asserted without
-/// a concrete Merkle collision bound.
+/// outer-wire proof. The concrete value-only Blake2s channel makes staged and
+/// replay copies independent. No authenticated-oracle uniqueness is asserted
+/// without a concrete Merkle collision bound.
 pub fn verifyAndExtract(
     allocator: std.mem.Allocator,
     proof: cascade.Proof,
-    channel: anytype,
+    channel: *blake2s_channel.Blake2sChannel,
     statement: cascade.ExpectedStatement,
 ) !AcceptedRelation {
-    var arena = std.heap.ArenaAllocator.init(allocator);
+    const arena = try allocator.create(std.heap.ArenaAllocator);
+    errdefer allocator.destroy(arena);
+    arena.* = std.heap.ArenaAllocator.init(allocator);
     errdefer arena.deinit();
     const a = arena.allocator();
     var staged = channel.*;
@@ -342,6 +349,7 @@ pub fn verifyAndExtract(
     }
     var relation = AcceptedRelation{
         .arena = arena,
+        .arena_owner = allocator,
         .profile = proof.profile,
         .source_root = proof.source_root,
         .line_roots = roots,

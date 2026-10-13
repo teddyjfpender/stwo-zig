@@ -5,6 +5,7 @@
 
 const std = @import("std");
 const circle = @import("../circle.zig");
+const blake2s_channel = @import("../channel/blake2s.zig");
 const m31 = @import("../fields/m31.zig");
 const qm31 = @import("../fields/qm31.zig");
 const xdm = @import("transposed_merkle_cascade.zig");
@@ -217,7 +218,7 @@ pub fn verifyAgainstStatement(
 pub fn verifyAndExtractRelation(
     allocator: std.mem.Allocator,
     encoded: []const u8,
-    channel: anytype,
+    channel: *blake2s_channel.Blake2sChannel,
     statement: cascade.ExpectedStatement,
 ) !relation.AcceptedRelation {
     var decoded = try decode(allocator, encoded);

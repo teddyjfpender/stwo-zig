@@ -409,4 +409,7 @@ test "CAS05 accepted relation extractor checks every one of eight heights" {
     const middle = accepted.forwarded[4][0];
     accepted.forwarded[4][0] = middle.add(QM31.one());
     if (accepted.check(allocator)) |_| return error.MiddleFoldMutationAccepted else |_| {}
+    // The source opening retains its arena allocator after extraction. Its
+    // public deinit must remain valid after the extractor's stack frame ends.
+    accepted.source.deinit();
 }
