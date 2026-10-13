@@ -337,15 +337,15 @@ test "three-height sparse two-row cascade verifies one-root source and line path
     try std.testing.expectEqualSlices(u8, &prover_channel.digest, &wire_channel.digest);
     var replay = Channel{};
     sparse_cascade.bindVersion(&replay);
-    const sampled = try core.pcs.paired_cascade_experimental.drawOodPoint(&replay, proof.profile, proof.source_root);
+    const sampled = try sparse_cascade.drawOodPoint(&replay, proof.profile, proof.source_root);
     try std.testing.expect(sampled.eql(proof.sampled_point));
-    const lambda = core.pcs.paired_cascade_experimental.drawBatchAfterOod(&replay, proof.claims);
-    for (proof.line_openings) |opening| {
+    const lambda = sparse_cascade.drawBatchAfterOod(&replay, proof.claims);
+    for (proof.line_openings, 0..) |opening, i| {
         _ = replay.drawSecureFelt();
-        core.vcs_lifted.blake2_merkle.Blake2sMerkleChannel.mixRoot(&replay, opening.root);
+        sparse_cascade.mixLineRoot(&replay, i, opening.root);
     }
     _ = replay.drawSecureFelt();
-    replay.mixFelts(proof.terminal_ordered_coeffs);
+    sparse_cascade.mixTerminal(&replay, proof.terminal_ordered_coeffs);
     const raw = try core.queries.drawQueries(&replay, alloc, 5, 5);
     defer alloc.free(raw);
     var opened = try core.pcs.transposed_merkle_sparse.verifyAndCollect(
@@ -384,8 +384,8 @@ test "three-height sparse two-row cascade verifies one-root source and line path
                 try std.testing.expect(reference[base + j].eql(sparse_answers.values[height][query * 2 + j]));
         }
     }
-    try std.testing.expectEqual(@as(usize, 1428), encoded.len);
-    try std.testing.expectEqual(@as(usize, 722), proof.source_wire.len);
+    try std.testing.expectEqual(@as(usize, 1364), encoded.len);
+    try std.testing.expectEqual(@as(usize, 658), proof.source_wire.len);
     var rejected = Channel{};
     const initial = rejected.digest;
     try std.testing.expectError(error.TruncatedCascadeProof, outer.verifyAgainstStatement(alloc, encoded[0 .. encoded.len - 1], &rejected, statement));
@@ -396,9 +396,9 @@ test "three-height sparse two-row cascade verifies one-root source and line path
     try std.testing.expectError(error.InvalidCascadeProof, outer.verifyAgainstStatement(alloc, trailing, &rejected, statement));
     const changed = try alloc.dupe(u8, encoded);
     defer alloc.free(changed);
-    changed[8] = 4;
-    try std.testing.expectError(error.UnsupportedProofVersion, outer.verifyAgainstStatement(alloc, changed, &rejected, statement));
     changed[8] = 5;
+    try std.testing.expectError(error.UnsupportedProofVersion, outer.verifyAgainstStatement(alloc, changed, &rejected, statement));
+    changed[8] = 6;
     changed[10] = 1;
     try std.testing.expectError(error.InvalidCascadeProof, outer.verifyAgainstStatement(alloc, changed, &rejected, statement));
     changed[10] = 0;
@@ -524,8 +524,8 @@ test "four-height sparse cascade has a complete canonical wire" {
         .claims = proof.claims,
     });
     try std.testing.expectEqualSlices(u8, &prover_channel.digest, &verifier_channel.digest);
-    try std.testing.expectEqual(@as(usize, 1488), encoded.len);
-    try std.testing.expectEqual(@as(usize, 628), proof.source_wire.len);
+    try std.testing.expectEqual(@as(usize, 1808), encoded.len);
+    try std.testing.expectEqual(@as(usize, 820), proof.source_wire.len);
     try std.testing.expectEqual(@as(usize, 3), proof.line_openings.len);
     for (proof.line_openings) |opening|
         for (opening.queried_coordinates) |column|

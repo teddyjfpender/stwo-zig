@@ -205,13 +205,13 @@ test "CAS05 accepted nonconstant four-height proof refines independent scalar re
     // quotient and fold words below come from the independent scalar formulas.
     var replay = Channel{};
     core.pcs.paired_sparse_cascade_experimental.bindVersion(&replay);
-    const point = try core.pcs.paired_cascade_experimental.drawOodPoint(
+    const point = try core.pcs.paired_sparse_cascade_experimental.drawOodPoint(
         &replay,
         proof.profile,
         proof.source_root,
     );
     try std.testing.expect(point.eql(proof.sampled_point));
-    const batch_challenge = core.pcs.paired_cascade_experimental.drawBatchAfterOod(
+    const batch_challenge = core.pcs.paired_sparse_cascade_experimental.drawBatchAfterOod(
         &replay,
         proof.claims,
     );
@@ -219,12 +219,13 @@ test "CAS05 accepted nonconstant four-height proof refines independent scalar re
     for (&alphas, 0..) |*alpha, step| {
         alpha.* = replay.drawSecureFelt();
         if (step < proof.line_openings.len)
-            core.vcs_lifted.blake2_merkle.Blake2sMerkleChannel.mixRoot(
+            core.pcs.paired_sparse_cascade_experimental.mixLineRoot(
                 &replay,
+                step,
                 proof.line_openings[step].root,
             );
     }
-    replay.mixFelts(proof.terminal_ordered_coeffs);
+    core.pcs.paired_sparse_cascade_experimental.mixTerminal(&replay, proof.terminal_ordered_coeffs);
     const raw = try core.queries.drawQueries(&replay, allocator, k, proof.profile.source.query_count);
     defer allocator.free(raw);
     var opened = try sparse.verifyAndCollect(

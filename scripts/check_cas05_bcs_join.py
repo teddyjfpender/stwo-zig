@@ -18,13 +18,14 @@ ROOT = Path(__file__).resolve().parents[1]
 SOURCES = {
     "verifier": "src/core/pcs/paired_sparse_cascade_experimental.zig",
     "prover": "src/prover/pcs/paired_sparse_cascade_experimental.zig",
-    "shared": "src/core/pcs/paired_cascade_experimental.zig",
     "wire": "src/core/pcs/paired_sparse_cascade_wire.zig",
     "relation": "src/core/pcs/paired_sparse_relation_experimental.zig",
     "channel": "src/core/channel/blake2s.zig",
     "queries": "src/core/queries.zig",
     "source": "src/core/pcs/transposed_merkle_sparse.zig",
     "merkle": "src/core/pcs/transposed_merkle_cascade.zig",
+    "line_merkle": "src/core/vcs_lifted/blake2_merkle.zig",
+    "line_hasher": "src/core/pcs/paired_envelope.zig",
 }
 P = (1 << 31) - 1
 
@@ -63,16 +64,20 @@ class IndependentRawChannel:
 def fixture() -> dict[str, object]:
     """Independent BLAKE2s/LE replay of a 3-height CAS05 event schedule."""
     c = IndependentRawChannel()
-    c.mix_u64(0x5333_3143_4153_3035)  # S31CAS05
-    c.mix_u64(5)
+    c.mix_u64(0x5333_3143_4153_3036)  # S31CAS06 transcript
+    c.mix_u64(6)
     c.mix_u64(4)  # XDM04
-    c.mix_u64(0x5333_3143_4152_3033)  # root tag
+    c.mix_u64(0x5333_3150_5246_3036)  # profile tag
     for value in (7, 3, 2, 13, 2, 2, 2):
         c.mix_u64(value)
+    c.mix_u64(0x5333_3153_5243_3036)  # source-root tag
     c.absorb(bytes([1]) * 32)  # source root
     ood_seed = c.draw_secure()
-    c.mix_u64(0x5333_3143_4143_3033)  # claim tag
+    c.mix_u64(0x5333_3143_4c4d_3036)  # claim-group tag
     for height in range(3):
+        c.mix_u64(0x5333_3148_5443_3036)  # claim-height tag
+        c.mix_u64(height)
+        c.mix_u64(2)
         c.mix_felts([tuple(range(1 + 8 * height + 4 * j, 5 + 8 * height + 4 * j))
                      for j in range(2)])
     batch = c.draw_secure()
@@ -80,7 +85,11 @@ def fixture() -> dict[str, object]:
     for height in range(3):
         alphas.append(c.draw_secure())
         if height < 2:
+            c.mix_u64(0x5333_314c_494e_3036)  # line-root tag
+            c.mix_u64(height)
             c.absorb(bytes([height + 2]) * 32)
+    c.mix_u64(0x5333_3154_524d_3036)  # terminal tag
+    c.mix_u64(4)
     c.mix_felts([tuple(range(25 + 4 * i, 29 + 4 * i)) for i in range(4)])
     raw = []
     while len(raw) < 13:
@@ -121,19 +130,21 @@ def audit_sources(s: dict[str, str]) -> dict[str, object]:
         raise ValueError("source roster changed")
     verifier = body(s["verifier"], "pub fn verifyAgainstStatement(", "fn lineWord(")
     prover = body(s["prover"], "fn proveImpl(", "\n}")
-    ood = body(s["shared"], "pub fn drawOodPoint(", "pub fn drawBatchAfterOod(")
-    batch = body(s["shared"], "pub fn drawBatchAfterOod(", "fn matches(")
+    ood = body(s["verifier"], "pub fn drawOodPoint(", "pub fn drawBatchAfterOod(")
+    batch = body(s["verifier"], "pub fn drawBatchAfterOod(", "pub fn mixLineRoot(")
+    line_root = body(s["verifier"], "pub fn mixLineRoot(", "pub fn mixTerminal(")
+    terminal = body(s["verifier"], "pub fn mixTerminal(", "fn matches(")
     ordered_once(verifier, "CAS05 verifier",
                  "try statement.profile.validate();",
                  "try validateProof(proof);",
                  "if (!matches(statement, proof)) return error.UnexpectedSparseStatement;",
                  "var staged = channel.*;",
                  "bindVersion(&staged);",
-                 "const sampled = try old.drawOodPoint(&staged, proof.profile, proof.source_root);",
-                 "const batch = old.drawBatchAfterOod(&staged, proof.claims);",
+                 "const sampled = try drawOodPoint(&staged, proof.profile, proof.source_root);",
+                 "const batch = drawBatchAfterOod(&staged, proof.claims);",
                  "alpha.* = staged.drawSecureFelt();",
-                 "blake2_merkle.Blake2sMerkleChannel.mixRoot(&staged, proof.line_openings[i].root);",
-                 "staged.mixFelts(proof.terminal_ordered_coeffs);",
+                 "mixLineRoot(&staged, i, proof.line_openings[i].root);",
+                 "mixTerminal(&staged, proof.terminal_ordered_coeffs);",
                  "const raw = try queries.drawQueries(",
                  "var opened = try xdm.verifyAndCollect(",
                  "try verifyFolds(allocator, proof, raw, answers.values, alphas);",
@@ -145,48 +156,73 @@ def audit_sources(s: dict[str, str]) -> dict[str, object]:
     if verifier.count("staged.drawSecureFelt()") != 1 or verifier.count("queries.drawQueries(") != 1:
         raise ValueError("CAS05 verifier challenge/query count changed")
     if re.findall(r"\bstaged\.(mix\w+|draw\w+|updateDigest|verifyPowNonce)\(", verifier) != [
-        "drawSecureFelt", "mixFelts"]:
+        "drawSecureFelt"]:
         raise ValueError("CAS05 verifier gained an unreviewed direct channel operation")
     ordered_once(prover, "CAS05 prover",
                  "cascade.bindVersion(&staged);",
-                 "const point = try core.pcs.paired_cascade_experimental.drawOodPoint(&staged, profile, root);",
-                 "core.pcs.paired_cascade_experimental.drawBatchAfterOod(&staged, claims);",
+                 "const point = try cascade.drawOodPoint(&staged, profile, root);",
+                 "cascade.drawBatchAfterOod(&staged, claims);",
                  "const alpha = staged.drawSecureFelt();",
-                 "core.vcs_lifted.blake2_merkle.Blake2sMerkleChannel.mixRoot(&staged, trees[step].root());",
+                 "cascade.mixLineRoot(&staged, step, trees[step].root());",
                  "const last_alpha = staged.drawSecureFelt();",
-                 "staged.mixFelts(terminal);",
+                 "cascade.mixTerminal(&staged, terminal);",
                  "const raw = try core.queries.drawQueries(",
                  "channel.* = staged;")
     require(prover, "CAS05 prover line-round barrier", "for (0..line_count) |step| {",
             "const line_count = height_count - 1;")
     if re.findall(r"\bstaged\.(mix\w+|draw\w+|updateDigest|verifyPowNonce)\(", prover) != [
-        "drawSecureFelt", "drawSecureFelt", "mixFelts"]:
+        "drawSecureFelt", "drawSecureFelt"]:
         raise ValueError("CAS05 prover gained an unreviewed direct channel operation")
     ordered_once(ood, "CAS05 OOD source binding",
-                 "staged.mixU64(ROOT_TAG);", "staged.mixU64(profile.source.largest_log_size);",
+                 "staged.mixU64(PROFILE_TAG);", "staged.mixU64(profile.source.largest_log_size);",
                  "staged.mixU64(profile.source.height_count);",
                  "staged.mixU64(profile.log_blowup);",
                  "staged.mixU64(profile.source.query_count);",
                  "staged.mixU64(count);",
-                 "staged.updateDigest(blake2_hash.Blake2sHasher.concatAndHash(staged.digestBytes(), root));",
+                 "staged.mixU64(SOURCE_ROOT_TAG);",
+                 "blake2_merkle.Blake2sMerkleChannel.mixRoot(&staged, root);",
                  "staged.drawSecureFelt()",
                  "if (point.y.c1.isZero()) return error.DegenerateOodPoint;",
                  "channel.* = staged;")
-    ordered_once(batch, "CAS05 claim binding", "channel.mixU64(CLAIM_TAG);",
-                 "for (claims) |height| channel.mixFelts(height);",
+    ordered_once(batch, "CAS05 claim binding", "channel.mixU64(CLAIM_GROUP_TAG);",
+                 "for (claims, 0..) |height, index| {",
+                 "channel.mixU64(CLAIM_HEIGHT_TAG);",
+                 "channel.mixU64(index);",
+                 "channel.mixU64(height.len);",
+                 "channel.mixFelts(height);",
                  "return channel.drawSecureFelt();")
-    require(s["verifier"], "CAS05 version", "const TRANSCRIPT_TAG: u64 = 0x5333_3143_4153_3035;",
+    ordered_once(line_root, "CAS05 line root", "channel.mixU64(LINE_ROOT_TAG);",
+                 "channel.mixU64(index);", "blake2_merkle.Blake2sMerkleChannel.mixRoot(channel, root);")
+    ordered_once(terminal, "CAS05 terminal", "channel.mixU64(TERMINAL_TAG);",
+                 "channel.mixU64(coefficients.len);", "channel.mixFelts(coefficients);")
+    require(s["verifier"], "CAS05 version", "const TRANSCRIPT_TAG: u64 = 0x5333_3143_4153_3036;",
+            "pub const OUTER_VERSION: u16 = 6;",
             "channel.mixU64(TRANSCRIPT_TAG);", "channel.mixU64(OUTER_VERSION);",
             "channel.mixU64(xdm.VERSION);")
+    for tag, value in {
+        "PROFILE_TAG": "0x5333_3150_5246_3036",
+        "SOURCE_ROOT_TAG": "0x5333_3153_5243_3036",
+        "CLAIM_GROUP_TAG": "0x5333_3143_4c4d_3036",
+        "CLAIM_HEIGHT_TAG": "0x5333_3148_5443_3036",
+        "LINE_ROOT_TAG": "0x5333_314c_494e_3036",
+        "TERMINAL_TAG": "0x5333_3154_524d_3036",
+    }.items():
+        require(s["verifier"], "typed role constants", f"const {tag}: u64 = {value};")
+    require(s["verifier"], "typed transcript channel", "const Channel = blake2s_channel.Blake2sChannel;",
+            "channel: *Channel,")
     require(s["source"], "XDM04 version and bounds", 'pub const MAGIC = "S31XDM04";',
             "pub const VERSION: u16 = 4;", "pub const MAX_LOG_SIZE: u32 = 22;",
             "self.query_count > (1 << 14)")
     require(s["wire"], "CAS05 byte path",
+            'pub const MAGIC = "S31CAS05";',
+            "pub const VERSION: u16 = cascade.OUTER_VERSION;",
             "var decoded = try decode(allocator, encoded);",
             "try cascade.verifyAgainstStatement(allocator, decoded.proof, channel, statement);")
     require(s["relation"], "CAS05 extractor channel",
             "channel: *blake2s_channel.Blake2sChannel,",
-            "try cascade.verifyAgainstStatement(a, proof, &staged, statement);")
+            "try cascade.verifyAgainstStatement(a, proof, &staged, statement);",
+            "cascade.mixLineRoot(&replay, height, roots[height]);",
+            "cascade.mixTerminal(&replay, proof.terminal_ordered_coeffs);")
     channel = s["channel"]
     ordered_once(body(channel, "pub fn drawU32s(", "pub fn drawSecureFelt("),
                  "channel draw encoding", "const counter = u32ToBytesLe(self.n_draws);",
@@ -203,9 +239,13 @@ def audit_sources(s: dict[str, str]) -> dict[str, object]:
             "if (produced == n_queries) break;")
     require(s["merkle"], "source Merkle roles", 'h.update("S31XDL03");',
             'h.update("S31XDU03");', 'h.update("S31XDI03");')
+    require(s["line_merkle"], "line Merkle prefix", 'pub const LEAF_PREFIX = makePrefix("leaf");',
+            'pub const NODE_PREFIX = makePrefix("node");', 'var out: [64]u8 = [_]u8{0} ** 64;',
+            'hasher.inner.update(LEAF_PREFIX[0..]);')
+    require(s["line_hasher"], "line tree hasher", 'pub const Hasher = blake2_merkle.Blake2sMerkleHasher;')
     return {
-        "schema": "cas05-bcs-rom-theorem-input-v1",
-        "scope": "experimental CAS05/XDM04 raw Blake2s transcript",
+        "schema": "cas05-bcs-rom-theorem-input-v2",
+        "scope": "experimental CAS05 outer version 6 / XDM04 raw Blake2s transcript",
         "status": "deterministic_source_schedule_only",
         "production_admitted": False,
         "native_proven_security_bits": None,
@@ -213,14 +253,22 @@ def audit_sources(s: dict[str, str]) -> dict[str, object]:
         "max_raw_queries": 1 << 14,
         "max_query_hash_blocks": (1 << 14) // 8,
         "counter": "u32 checked before every raw/secure hash block; exhaustion traps before hashing",
+        "role_framing": {
+            "outer_version": 6,
+            "typed_source_root_claim_height_line_root_terminal": True,
+            "exact_same_state_root_vs_two_felts_preimage_ambiguity_removed": True,
+            "global_transcript_merkle_hash_input_disjointness_proven": False,
+            "line_leaf_vs_three_felts_equality_if_digest_is_prefix": True,
+            "full_ROM_freshness_or_collision_bound_proven": False,
+        },
         "round_schedule": [
-            "CAS05, outer and XDM04 version words",
-            "profile words then source root",
+            "CAS06 transcript, outer version 6 and XDM04 version words",
+            "tagged profile words then tagged source root",
             "OOD secure draw with checked on-circle/nondegenerate mapping",
-            "claim tag and profile-sized claim arrays then batch secure draw",
-            "for each nonterminal height: alpha secure draw then line root",
+            "claim group plus tagged indexed length-bound height arrays then batch secure draw",
+            "for each nonterminal height: alpha secure draw then tagged indexed line root",
             "last alpha secure draw",
-            "terminal coefficients then raw query blocks",
+            "tagged length-bound terminal coefficients then raw query blocks",
             "authenticate exact sampled source and line rows; verify all folds; publish channel on success",
         ],
         "query_law_if_fresh_ideal_hash_outputs": {

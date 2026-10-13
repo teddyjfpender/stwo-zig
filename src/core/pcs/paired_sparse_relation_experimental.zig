@@ -21,7 +21,6 @@ const queries = @import("../queries.zig");
 const blake2_merkle = @import("../vcs_lifted/blake2_merkle.zig");
 const vcs_verifier = @import("../vcs_lifted/verifier.zig");
 const cascade = @import("paired_sparse_cascade_experimental.zig");
-const old = @import("paired_cascade_experimental.zig");
 const xdm = @import("transposed_merkle_sparse.zig");
 
 const M31 = m31.M31;
@@ -272,9 +271,9 @@ pub fn verifyAndExtract(
 
     var replay = channel.*;
     cascade.bindVersion(&replay);
-    const sampled = try old.drawOodPoint(&replay, proof.profile, proof.source_root);
+    const sampled = try cascade.drawOodPoint(&replay, proof.profile, proof.source_root);
     if (!sampled.eql(proof.sampled_point)) return error.TranscriptMismatch;
-    const batch = old.drawBatchAfterOod(&replay, proof.claims);
+    const batch = cascade.drawBatchAfterOod(&replay, proof.claims);
     const h = proof.profile.source.height_count;
     const alphas = try a.alloc(QM31, h);
     const roots = try a.alloc(xdm.Hash, h - 1);
@@ -282,10 +281,10 @@ pub fn verifyAndExtract(
         alpha.* = replay.drawSecureFelt();
         if (height + 1 < h) {
             roots[height] = proof.line_openings[height].root;
-            blake2_merkle.Blake2sMerkleChannel.mixRoot(&replay, roots[height]);
+            cascade.mixLineRoot(&replay, height, roots[height]);
         }
     }
-    replay.mixFelts(proof.terminal_ordered_coeffs);
+    cascade.mixTerminal(&replay, proof.terminal_ordered_coeffs);
     const raw = try queries.drawQueries(
         &replay,
         a,
