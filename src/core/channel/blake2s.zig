@@ -19,6 +19,10 @@ pub const Digest32 = [32]u8;
 pub const BLAKE_BYTES_PER_HASH: usize = 32;
 pub const FELTS_PER_HASH: usize = 8;
 
+fn nextDrawCounter(current: u32) error{DrawCounterExhausted}!u32 {
+    return std.math.add(u32, current, 1) catch error.DrawCounterExhausted;
+}
+
 pub const Blake2sChannel = Blake2sChannelGeneric(false);
 pub const Blake2sM31Channel = Blake2sChannelGeneric(true);
 
@@ -97,7 +101,10 @@ pub fn Blake2sChannelGeneric(comptime is_m31_output: bool) type {
             @memcpy(hash_input[32..36], counter[0..]);
             hash_input[36] = 0;
 
-            self.n_draws +%= 1;
+            // A repeated (digest, counter) pair would repeat the entire hash
+            // block. Reject before the u32 counter can wrap, including in
+            // drawBaseFelts' potentially unbounded rejection loop.
+            self.n_draws = nextDrawCounter(self.n_draws) catch @panic("BLAKE2s draw counter exhausted");
             const hash = hashBytes(hash_input[0..]);
 
             var out: [FELTS_PER_HASH]u32 = undefined;
@@ -381,6 +388,17 @@ test "blake2s channel: draw counters" {
     const felts = try channel.drawSecureFelts(std.testing.allocator, 9);
     defer std.testing.allocator.free(felts);
     try std.testing.expectEqual(@as(u32, 6), channel.n_draws);
+}
+
+test "blake2s channel: counter increment fails before wrap" {
+    try std.testing.expectEqual(@as(u32, 1), try nextDrawCounter(0));
+    try std.testing.expectEqual(std.math.maxInt(u32), try nextDrawCounter(std.math.maxInt(u32) - 1));
+    try std.testing.expectError(error.DrawCounterExhausted, nextDrawCounter(std.math.maxInt(u32)));
+
+    var channel = Blake2sM31Channel{};
+    channel.n_draws = std.math.maxInt(u32) - 1;
+    _ = channel.drawU32s();
+    try std.testing.expectEqual(std.math.maxInt(u32), channel.n_draws);
 }
 
 test "blake2s channel: draw_u32s differs on successive calls" {
