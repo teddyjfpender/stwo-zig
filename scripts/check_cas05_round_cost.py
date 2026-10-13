@@ -90,12 +90,18 @@ def check_cost_sources(root: Path = ROOT) -> None:
 # transcript roster. Changing any of these requires rederiving the probability
 # law below. The pin is a source audit, not a proof of Zig execution semantics.
 SAMPLER_BODY_PINS = (
+    ("src/core/channel/blake2s.zig", "fn nextDrawCounter(",
+     "const metal_aot_transcript_secure",
+     "a167d06701ce79dcff898802afd5552821458dfc16a1e352ab3184fa81f71340"),
     ("src/core/channel/blake2s.zig", "pub fn drawU32s(", "pub fn drawSecureFelt(",
      "b1491d6264ee97ad93902f3e022074695215cac9d90eed5f118f6593d994380e"),
     ("src/core/channel/blake2s.zig", "pub fn drawSecureFelt(", "pub fn drawSecureFelts(",
      "abaf35b20bc0ce1e45788a6c398847791e508e354aa03193c2ff19526c065260"),
     ("src/core/channel/blake2s.zig", "fn drawBaseFelts(", "fn hashBytes(",
      "915cb491be57393cbbf59bae9b36d970af40628831be385d818756d3cfd971ba"),
+    ("src/core/channel/blake2s.zig", "fn readU32Le(",
+     'test "blake2s channel: draw counters"',
+     "2f4aaeb8665cec2a8532c484a92cc6517d5a552101b50273296069a086d6e55c"),
     ("src/core/fields/m31.zig", "pub inline fn fromU64(", "pub inline fn isZero(",
      "68731dea5f70b26ab10bfbb2268d24cff8400711c8870f6d31a9ee827a679c69"),
     ("src/core/fields/m31.zig", "inline fn reduce64(", "inline fn reduceProduct(",
