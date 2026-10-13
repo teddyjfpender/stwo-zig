@@ -12,6 +12,8 @@ pub const paired_projection = @import("paired_projection.zig");
 pub const paired_envelope = @import("paired_envelope.zig");
 pub const paired_two_height_fri = @import("paired_two_height_fri.zig");
 pub const paired_two_height_wire = @import("paired_two_height_wire.zig");
+pub const transposed_merkle = @import("transposed_merkle.zig");
+pub const transposed_paired_answers = @import("transposed_paired_answers.zig");
 pub const verifier = @import("verifier.zig");
 
 const FriConfig = fri.FriConfig;

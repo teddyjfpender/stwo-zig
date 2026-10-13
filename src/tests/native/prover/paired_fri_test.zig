@@ -1229,6 +1229,230 @@ test "paired query trace follows the published circle-squaring projection" {
     try std.testing.expectError(error.InvalidTwoHeightProfile, two_height.queryTrace(0, 2));
 }
 
+test "versioned transposed two-height source and line commitments authenticate" {
+    const core = @import("stwo_core");
+    const xdm = core.pcs.transposed_merkle;
+    const Tree = @import("stwo_prover_engine").pcs.transposed_source_experimental.Commitment;
+    const SourceProver = @import("stwo_prover_engine").vcs_lifted.prover.MerkleProverLifted(core.vcs_lifted.blake2_merkle.Blake2sMerkleHasher);
+    const SourceVerifier = core.vcs_lifted.verifier.MerkleVerifierLifted(core.vcs_lifted.blake2_merkle.Blake2sMerkleHasher);
+    const alloc = std.testing.allocator;
+    for ([_]u32{ 4, 5, 6 }) |log_size| {
+        const size = @as(usize, 1) << @intCast(log_size);
+        const large = try alloc.alloc(M31, size);
+        defer alloc.free(large);
+        const small = try alloc.alloc(M31, size / 2);
+        defer alloc.free(small);
+        const line = try alloc.alloc(M31, size / 2);
+        defer alloc.free(line);
+        for (large, 0..) |*value, row| value.* = M31.fromCanonical(@intCast(row + 1));
+        for (small, line, 0..) |*value, *line_value, row| {
+            value.* = M31.fromCanonical(@intCast(row + 19));
+            line_value.* = M31.fromCanonical(@intCast(row + 31));
+        }
+        const large_columns = [_][]const M31{large};
+        const small_columns = [_][]const M31{small};
+        var tree = try Tree.commit(alloc, &large_columns, &small_columns);
+        defer tree.deinit();
+        const raw = [_]usize{ 2, 2, size - 3 };
+        const encoded = try tree.encodeOpenings(alloc, &raw);
+        defer alloc.free(encoded);
+        var old_large = try SourceProver.commit(alloc, &large_columns);
+        defer old_large.deinit(alloc);
+        var old_small = try SourceProver.commit(alloc, &small_columns);
+        defer old_small.deinit(alloc);
+        var large_rows: [12]usize = undefined;
+        for (raw, 0..) |query, qi| {
+            const base = query & ~@as(usize, 3);
+            for (0..4) |j| large_rows[4 * qi + j] = base + j;
+        }
+        const small_rows = try core.pcs.paired_projection.projectPositions(alloc, &large_rows, log_size, log_size - 1);
+        defer alloc.free(small_rows);
+        var old_large_open = try old_large.decommit(alloc, &large_rows, &large_columns);
+        defer old_large_open.deinit(alloc);
+        var old_small_open = try old_small.decommit(alloc, small_rows, &small_columns);
+        defer old_small_open.deinit(alloc);
+        const separate_hashes = old_large_open.decommitment.decommitment.hash_witness.len +
+            old_small_open.decommitment.decommitment.hash_witness.len;
+        const witness_count_offset = 60 + raw.len * 28;
+        const shared_hashes: usize = std.mem.readInt(u32, &encoded[witness_count_offset..][0..4].*, .little);
+        try std.testing.expectEqual(separate_hashes, shared_hashes);
+        try std.testing.expectEqual(witness_count_offset + 4 + 32 * shared_hashes, encoded.len);
+        const profile = xdm.Profile{
+            .log_size = log_size,
+            .large_columns = 1,
+            .small_columns = 1,
+            .query_count = raw.len,
+        };
+        try xdm.verifyWire(alloc, encoded, profile, tree.root(), &raw);
+        var authenticated = try xdm.verifyAndCollect(alloc, encoded, profile, tree.root(), &raw);
+        defer authenticated.deinit();
+        const sample_point = core.circle.SECURE_FIELD_CIRCLE_GEN.mul(13);
+        const batch = QM31.fromBase(M31.fromCanonical(7));
+        const large_claim = [_]QM31{sample_point.x};
+        const small_claim = [_]QM31{sample_point.y};
+        var answers = try core.pcs.transposed_paired_answers.fromVerifiedOpenings(
+            alloc,
+            authenticated,
+            &raw,
+            sample_point,
+            &large_claim,
+            &small_claim,
+            batch,
+        );
+        defer answers.deinit();
+        const full_large = try pairedFullBatchForTest(alloc, large, log_size, sample_point, large_claim[0], .{ .batch = batch });
+        defer alloc.free(full_large);
+        const full_small = try pairedFullBatchForTest(alloc, small, log_size - 1, sample_point, small_claim[0], .{ .batch = batch });
+        defer alloc.free(full_small);
+        for (raw, 0..) |query, qi| {
+            const large_base = query & ~@as(usize, 3);
+            const small_base = (query >> 2) << 1;
+            for (0..4) |j| {
+                try std.testing.expectEqual(large[large_base + j], authenticated.largeAt(qi, j, 0));
+                try std.testing.expect(answers.large[4 * qi + j].eql(full_large[large_base + j]));
+            }
+            for (0..2) |j| {
+                try std.testing.expectEqual(small[small_base + j], authenticated.smallAt(qi, j, 0));
+                try std.testing.expect(answers.small[2 * qi + j].eql(full_small[small_base + j]));
+            }
+        }
+        // The next FRI round commits its line separately, after its fold
+        // challenge. It must still authenticate its line queries normally.
+        const line_columns = [_][]const M31{line};
+        var line_tree = try SourceProver.commit(alloc, &line_columns);
+        defer line_tree.deinit(alloc);
+        const line_rows = [_]usize{ 1, 1, size / 2 - 2 };
+        var line_opening = try line_tree.decommit(alloc, &line_rows, &line_columns);
+        defer line_opening.deinit(alloc);
+        var line_verifier = try SourceVerifier.init(alloc, line_tree.root(), &[_]u32{log_size - 1});
+        defer line_verifier.deinit(alloc);
+        const line_values = [_][]const M31{line_opening.queried_values[0]};
+        try line_verifier.verify(alloc, &line_rows, &line_values, .{
+            .hash_witness = line_opening.decommitment.decommitment.hash_witness,
+        });
+        const wrong_raw = [_]usize{ 3, 2, size - 3 };
+        try std.testing.expectError(error.UnexpectedCrossDomainQuery, xdm.verifyWire(alloc, encoded, profile, tree.root(), &wrong_raw));
+        var wrong_root = tree.root();
+        wrong_root[0] ^= 1;
+        try std.testing.expectError(error.UnexpectedCrossDomainRoot, xdm.verifyWire(alloc, encoded, profile, wrong_root, &raw));
+        const changed = try alloc.dupe(u8, encoded);
+        defer alloc.free(changed);
+        changed[64] ^= 1; // first large value
+        try std.testing.expectError(error.DuplicateProjectedValue, xdm.verifyWire(alloc, changed, profile, tree.root(), &raw));
+        @memcpy(changed, encoded);
+        changed[120] ^= 1; // unique last-query large value
+        try std.testing.expectError(error.RootMismatch, xdm.verifyWire(alloc, changed, profile, tree.root(), &raw));
+        @memcpy(changed, encoded);
+        changed[136] ^= 1; // unique last-query inserted smaller-height value
+        try std.testing.expectError(error.RootMismatch, xdm.verifyWire(alloc, changed, profile, tree.root(), &raw));
+        @memcpy(changed, encoded);
+        changed[witness_count_offset + 4] ^= 1; // first shared authentication sibling
+        try std.testing.expectError(error.RootMismatch, xdm.verifyWire(alloc, changed, profile, tree.root(), &raw));
+        @memcpy(changed, encoded);
+        std.mem.writeInt(u32, changed[witness_count_offset..][0..4], @intCast(shared_hashes - 1), .little);
+        try std.testing.expectError(error.WitnessTooShort, xdm.verifyWire(alloc, changed, profile, tree.root(), &raw));
+        @memcpy(changed, encoded);
+        std.mem.writeInt(u32, changed[witness_count_offset..][0..4], @intCast(shared_hashes + 1), .little);
+        try std.testing.expectError(error.TruncatedCrossDomainProof, xdm.verifyWire(alloc, changed, profile, tree.root(), &raw));
+        @memcpy(changed, encoded);
+        changed[108] ^= 1; // duplicate projected small value in repeated query
+        try std.testing.expectError(error.DuplicateProjectedValue, xdm.verifyWire(alloc, changed, profile, tree.root(), &raw));
+        @memcpy(changed, encoded);
+        std.mem.writeInt(u32, changed[64..68], m31.Modulus, .little);
+        try std.testing.expectError(error.NonCanonicalM31, xdm.verifyWire(alloc, changed, profile, tree.root(), &raw));
+        @memcpy(changed, encoded);
+        changed[8] = 3;
+        try std.testing.expectError(error.UnsupportedProofVersion, xdm.verifyWire(alloc, changed, profile, tree.root(), &raw));
+        @memcpy(changed, encoded);
+        changed[10] = 1;
+        try std.testing.expectError(error.InvalidCrossDomainProof, xdm.verifyWire(alloc, changed, profile, tree.root(), &raw));
+        @memcpy(changed, encoded);
+        changed[0] ^= 1;
+        try std.testing.expectError(error.UnsupportedProofFormat, xdm.verifyWire(alloc, changed, profile, tree.root(), &raw));
+        try std.testing.expectError(error.InvalidCrossDomainProof, xdm.verifyWire(alloc, encoded[0 .. encoded.len - 1], profile, tree.root(), &raw));
+        const truncated = try alloc.dupe(u8, encoded[0 .. encoded.len - 1]);
+        defer alloc.free(truncated);
+        std.mem.writeInt(u32, truncated[12..16], @intCast(truncated.len), .little);
+        try std.testing.expectError(error.TruncatedCrossDomainProof, xdm.verifyWire(alloc, truncated, profile, tree.root(), &raw));
+        const extended = try alloc.alloc(u8, encoded.len + 1);
+        defer alloc.free(extended);
+        @memcpy(extended[0..encoded.len], encoded);
+        extended[encoded.len] = 0;
+        try std.testing.expectError(error.InvalidCrossDomainProof, xdm.verifyWire(alloc, extended, profile, tree.root(), &raw));
+        // The shared multiproof uses the same number of witness hashes as
+        // the existing two-tree compressed multiproofs on these query sets,
+        // while binding one root instead of two. Values and header framing
+        // are measured separately below in the design brief.
+    }
+}
+
+test "transposed source openings preserve multi-column paired order" {
+    const core = @import("stwo_core");
+    const xdm = core.pcs.transposed_merkle;
+    const Tree = @import("stwo_prover_engine").pcs.transposed_source_experimental.Commitment;
+    const alloc = std.testing.allocator;
+    var large0: [16]M31 = undefined;
+    var large1: [16]M31 = undefined;
+    var small0: [8]M31 = undefined;
+    var small1: [8]M31 = undefined;
+    for (&large0, &large1, 0..) |*a, *b, i| {
+        a.* = M31.fromCanonical(@intCast(i + 1));
+        b.* = M31.fromCanonical(@intCast(i * i + 3));
+    }
+    for (&small0, &small1, 0..) |*a, *b, i| {
+        a.* = M31.fromCanonical(@intCast(i + 19));
+        b.* = M31.fromCanonical(@intCast(2 * i + 7));
+    }
+    const large_cols = [_][]const M31{ &large0, &large1 };
+    const small_cols = [_][]const M31{ &small0, &small1 };
+    var tree = try Tree.commit(alloc, &large_cols, &small_cols);
+    defer tree.deinit();
+    const raw = [_]usize{ 3, 9 };
+    const encoded = try tree.encodeOpenings(alloc, &raw);
+    defer alloc.free(encoded);
+    const profile = xdm.Profile{ .log_size = 4, .large_columns = 2, .small_columns = 2, .query_count = raw.len };
+    var authenticated = try xdm.verifyAndCollect(alloc, encoded, profile, tree.root(), &raw);
+    defer authenticated.deinit();
+    const point = core.circle.SECURE_FIELD_CIRCLE_GEN.mul(13);
+    const batch = QM31.fromBase(M31.fromCanonical(7));
+    const large_claims = [_]QM31{ point.x, point.y };
+    const small_claims = [_]QM31{ point.y, point.x };
+    var answers = try core.pcs.transposed_paired_answers.fromVerifiedOpenings(
+        alloc,
+        authenticated,
+        &raw,
+        point,
+        &large_claims,
+        &small_claims,
+        batch,
+    );
+    defer answers.deinit();
+    const l0 = try pairedFullBatchForTest(alloc, &large0, 4, point, large_claims[0], .{ .batch = batch });
+    defer alloc.free(l0);
+    const l1 = try pairedFullBatchForTest(alloc, &large1, 4, point, large_claims[1], .{ .batch = batch });
+    defer alloc.free(l1);
+    const s0 = try pairedFullBatchForTest(alloc, &small0, 3, point, small_claims[0], .{ .batch = batch });
+    defer alloc.free(s0);
+    const s1 = try pairedFullBatchForTest(alloc, &small1, 3, point, small_claims[1], .{ .batch = batch });
+    defer alloc.free(s1);
+    for (raw, 0..) |query, qi| {
+        const large_base = query & ~@as(usize, 3);
+        const small_base = (query >> 2) << 1;
+        for (0..4) |j| {
+            const expected = l0[large_base + j].add(batch.square().mul(l1[large_base + j]));
+            try std.testing.expect(expected.eql(answers.large[4 * qi + j]));
+        }
+        for (0..2) |j| {
+            const expected = s0[small_base + j].add(batch.square().mul(s1[small_base + j]));
+            try std.testing.expect(expected.eql(answers.small[2 * qi + j]));
+        }
+    }
+    const changed = try alloc.dupe(u8, encoded);
+    defer alloc.free(changed);
+    changed[68] ^= 1; // second column at the first opened leaf
+    try std.testing.expectError(error.RootMismatch, xdm.verifyWire(alloc, changed, profile, tree.root(), &raw));
+}
+
 test "experimental paired prover handles two source pairs and rejects invalid inputs" {
     const core = @import("stwo_core");
     const prover = @import("stwo_prover_engine").pcs.paired_two_height_experimental;
