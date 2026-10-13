@@ -59,6 +59,20 @@ This is still a fixed two-height experimental protocol. Its query schedule and n
 
 This is **not** a production PCS opening. The fixed two-height wire proof has no production prover path or admission gate, and its theorem mapping is incomplete. Legacy PCS transcripts and proof acceptance are untouched. No native soundness bit claim follows from these tests.
 
+## Theorem-to-code audit still required
+
+| Published protocol property | Experimental implementation | Work before a security claim |
+| --- | --- | --- |
+| Protocol 4 quotient `(f-v)/v_Q` over a single sampled point | Native two-point conjugate quotient for every original column | Prove the degree and correlated-agreement reduction for this exact quotient law. |
+| Protocol 3 one shared batch challenge | One QM31 challenge across both heights and every source/quotient pair | Map pair ordering, field, and challenge timing to the theorem's ensemble model. |
+| Protocol 3 oracle commitment to each batched height | Source roots fixed before the challenge; batches derived from authenticated source openings | Prove this derived-oracle substitution, or commit batches explicitly. |
+| Eq. 68 fold with insertion | Both sampled fold relations checked with native inverse butterflies | Account for omitted `1/2` normalization and verify all domain/coset projection identities. |
+| Uniform verifier query point on the largest circle domain | Fiat–Shamir raw row draws, expanded to four source rows and two line rows; repeats retained | Prove the sampled distribution and adaptive transcript reduction for this exact expansion and hash channel. |
+| Bounded polynomial spaces and terminal degree | Fixed two-height log shapes and a short terminal polynomial | Generalize and enforce all per-height degree, blowup, and Eq. 80 small-table conditions. |
+| Abstract oracle authentication | Native lifted Blake2s Merkle roots and compressed multiproofs | State the hash assumption and prove parser, leaf layout, duplicate handling, and query projection correspond to the oracle game. |
+
+The fixture uses four queries for tiny domains to exercise mechanics; it is not a conservative parameter profile. Proven native security bits remain undefined.
+
 ## Required production work
 
 1. Generalize the experimental two-height wire proof to a complete PCS/FRI proof for admitted geometry, with a canonical decoder and production entry-point selection before transcript replay. Legacy proofs must never opt into paired verification, and paired proofs must never parse as legacy.
