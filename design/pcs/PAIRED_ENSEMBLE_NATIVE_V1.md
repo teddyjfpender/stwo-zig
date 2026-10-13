@@ -15,6 +15,15 @@ Every pair has its own source and quotient column. The module rejects missing or
 
 The native CPU tests use the actual quotient arithmetic for `f(P)=x(P)`, a nonzero quotient, the production `FriProver` and `FriVerifier`, and a source Merkle commitment/decommitment. The verifier reconstructs and authenticates the source queries, derives its own quotients, combines the pair, and accepts the FRI proof. Changed source values are rejected by Merkle verification before an answer is returned; changed paired answers are rejected by FRI. A separate two-column test confirms source order, pairing, and uniform-height refusal.
 
+`src/core/fri/multidomain_insertion.zig` adds a separate scalar kernel for one Eq. 68 height transition. Given a previous line word on `S_(i-1)` and a new circle batch on `D_i`, it checks that the previous line domain doubles exactly to the new batch's half-coset. It returns the native folds in this order:
+
+```text
+G_i = FoldLine(G_(i-1), alpha_i)
+    + alpha_i² * FoldCircle(H_i, alpha_i).
+```
+
+The existing native inverse butterflies omit the factors of `1/2` displayed in the paper's Eq. 70; theorem refinement must explicitly account for that normalization. The production `foldCircleIntoLine` helper uses the reverse weighting, `alpha² * previous + FoldCircle(inserted)`, so the experimental insertion kernel does not reuse its destination-combination behavior. A CPU test starts at a 16-row circle domain, inserts independent batches at 8 and 4 rows, checks each output row against the native scalar formula using its actual `x` and `y` coordinates, and rejects mismatched height and coset geometry. This kernel is not yet connected to FRI commitments, openings, or a multi-domain verifier.
+
 This is **not** a production PCS opening. The test assembles its transcript in code, and there is no versioned serialized PCS proof envelope or production prover path. Legacy PCS transcripts and proof acceptance are untouched. No native soundness bit claim follows from these tests.
 
 ## Required production work
@@ -23,7 +32,7 @@ This is **not** a production PCS opening. The test assembles its transcript in c
 2. Bind source commitments, exact OOD points and claims, source/quotient pair order, all domain heights and degree bounds, and one shared batch challenge in a single documented transcript schedule. Reject inconsistent or repeated source entries before FRI.
 3. On the prover, produce **each** quotient word from the corresponding committed source polynomial and claimed OOD value. Stream the paired first layer into FRI without materializing an unbounded second column set. Verify prover outputs against the scalar reference and query reconstruction.
 4. Authenticate all source columns at the exact FRI query positions before quotient arithmetic, as this experimental bridge does for one uniform domain. Preserve raw query multiplicities, lifted query maps, and borrowed-proof capture semantics.
-5. Implement Protocol 3's cross-domain batches and Eq. 68 folding **with insertion**. A repeated smaller-height source column on the largest domain is not a substitute for that reduction. Validate each per-height pair's target polynomial space and the small-table condition of Eq. 80; reject profiles outside the admitted theorem envelope.
+5. Wire Protocol 3's per-height batches to the experimental Eq. 68 insertion kernel in both FRI commit and verifier decommit, with a versioned proof shape and authenticated query projections across all heights. A repeated smaller-height source column on the largest domain is not a substitute for that reduction. Validate each per-height pair's target polynomial space and the small-table condition of Eq. 80; reject profiles outside the admitted theorem envelope.
 6. Refine the published interactive theorem to the native two-point quotient, actual query sampler, Merkle layout, Fiat–Shamir channel, field, and proof decoder. Only then calculate conservative native security bits and change release admission.
 
 Until these steps pass, native PCS/FRI proven security remains unknown and proved release admissibility must stay false.

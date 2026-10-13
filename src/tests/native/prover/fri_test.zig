@@ -458,3 +458,108 @@ test "paired authenticated bridge binds both source columns and their order" {
         ),
     );
 }
+
+fn manualNativeEq68Row(
+    previous_even: QM31,
+    previous_odd: QM31,
+    x: M31,
+    inserted_even: QM31,
+    inserted_odd: QM31,
+    y: M31,
+    alpha: QM31,
+) !QM31 {
+    // Native inverse butterflies omit division by two. This is the row-level
+    // Eq. 68 relation in the existing FRI evaluation convention.
+    const previous_fold = previous_even.add(previous_odd).add(
+        alpha.mul(previous_even.sub(previous_odd).mulM31(try x.inv())),
+    );
+    const inserted_fold = inserted_even.add(inserted_odd).add(
+        alpha.mul(inserted_even.sub(inserted_odd).mulM31(try y.inv())),
+    );
+    return previous_fold.add(alpha.square().mul(inserted_fold));
+}
+
+test "experimental multi-domain insertion matches Eq 68 at two smaller heights" {
+    const core = @import("stwo_core");
+    const insert = core_fri.multidomain_insertion.insertCircleBatch;
+    const alloc = std.testing.allocator;
+    const h0_domain = core.poly.circle.canonic.CanonicCoset.new(4).circleDomain();
+    const h1_domain = core.poly.circle.canonic.CanonicCoset.new(3).circleDomain();
+    const h2_domain = core.poly.circle.canonic.CanonicCoset.new(2).circleDomain();
+    const g0_domain = core.poly.line.LineDomain.fromCircleDomain(h0_domain);
+    var h0: [16]QM31 = undefined;
+    var h1: [8]QM31 = undefined;
+    var h2: [4]QM31 = undefined;
+    for (&h0, 0..) |*value, i| value.* = QM31.fromBase(M31.fromCanonical(@intCast(3 * i + 5)));
+    for (&h1, 0..) |*value, i| value.* = QM31.fromBase(M31.fromCanonical(@intCast(5 * i + 7)));
+    for (&h2, 0..) |*value, i| value.* = QM31.fromBase(M31.fromCanonical(@intCast(7 * i + 11)));
+    const alpha0 = QM31.fromU32Unchecked(2, 3, 0, 1);
+    const alpha1 = QM31.fromU32Unchecked(5, 0, 7, 1);
+    const alpha2 = QM31.fromU32Unchecked(11, 3, 2, 0);
+
+    // First height has no previous line layer. The following two heights
+    // insert into a previously folded line word.
+    var g0 = [_]QM31{QM31.zero()} ** 8;
+    var circle_workspace = try core_fri.folding.FoldCircleWorkspace.init(alloc, g0.len);
+    defer circle_workspace.deinit(alloc);
+    try core_fri.folding.foldCircleIntoLineWithWorkspace(
+        alloc,
+        &g0,
+        &h0,
+        h0_domain,
+        alpha0,
+        &circle_workspace,
+    );
+
+    const g1 = try insert(alloc, &g0, g0_domain, &h1, h1_domain, alpha1);
+    defer alloc.free(g1.values);
+    try std.testing.expect(g1.domain.coset().eql(h1_domain.half_coset));
+    for (g1.values, 0..) |actual, i| {
+        const x = g0_domain.at(core.utils.bitReverseIndex(i * 2, g0_domain.logSize()));
+        const y = h1_domain.at(core.utils.bitReverseIndex(i * 2, h1_domain.logSize())).y;
+        const expected = try manualNativeEq68Row(
+            g0[2 * i],
+            g0[2 * i + 1],
+            x,
+            h1[2 * i],
+            h1[2 * i + 1],
+            y,
+            alpha1,
+        );
+        try std.testing.expect(actual.eql(expected));
+    }
+
+    const g2 = try insert(alloc, g1.values, g1.domain, &h2, h2_domain, alpha2);
+    defer alloc.free(g2.values);
+    try std.testing.expect(g2.domain.coset().eql(h2_domain.half_coset));
+    for (g2.values, 0..) |actual, i| {
+        const x = g1.domain.at(core.utils.bitReverseIndex(i * 2, g1.domain.logSize()));
+        const y = h2_domain.at(core.utils.bitReverseIndex(i * 2, h2_domain.logSize())).y;
+        const expected = try manualNativeEq68Row(
+            g1.values[2 * i],
+            g1.values[2 * i + 1],
+            x,
+            h2[2 * i],
+            h2[2 * i + 1],
+            y,
+            alpha2,
+        );
+        try std.testing.expect(actual.eql(expected));
+    }
+
+    // The insertion kernel may not coerce a wrong height or an unrelated
+    // equal-sized circle coset into this cascade.
+    try std.testing.expectError(
+        error.InvalidInsertionGeometry,
+        insert(alloc, &g0, g0_domain, &h2, h2_domain, alpha1),
+    );
+    const shifted = h1_domain.shift(h1_domain.half_coset.step_size);
+    try std.testing.expectError(
+        error.InvalidInsertionGeometry,
+        insert(alloc, &g0, g0_domain, &h1, shifted, alpha1),
+    );
+    try std.testing.expectError(
+        error.InvalidInsertionGeometry,
+        insert(alloc, g0[0..7], g0_domain, &h1, h1_domain, alpha1),
+    );
+}

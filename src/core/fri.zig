@@ -18,11 +18,12 @@ const findSubsetIndex = merkle_queries.findSubsetIndex;
 const findPosition = merkle_queries.findPosition;
 
 const config_mod = @import("fri/config.zig");
-const folding = @import("fri/folding.zig");
+pub const folding = @import("fri/folding.zig");
 const merkle_queries = @import("fri/merkle_queries.zig");
 const query_capture = @import("fri/query_capture.zig");
 
 pub const geometry = @import("fri/geometry.zig");
+pub const multidomain_insertion = @import("fri/multidomain_insertion.zig");
 
 pub const FriConfig = config_mod.FriConfig;
 pub const FOLD_STEP = config_mod.FOLD_STEP;
