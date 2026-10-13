@@ -563,3 +563,55 @@ test "experimental multi-domain insertion matches Eq 68 at two smaller heights" 
         insert(alloc, g0[0..7], g0_domain, &h1, h1_domain, alpha1),
     );
 }
+
+test "experimental multi-domain insertion preserves an explicit low-degree cascade" {
+    const core = @import("stwo_core");
+    const insert = core_fri.multidomain_insertion.insertCircleBatch;
+    const alloc = std.testing.allocator;
+    const h0_domain = core.poly.circle.canonic.CanonicCoset.new(4).circleDomain();
+    const h1_domain = core.poly.circle.canonic.CanonicCoset.new(3).circleDomain();
+    const h2_domain = core.poly.circle.canonic.CanonicCoset.new(2).circleDomain();
+    const g0_domain = core.poly.line.LineDomain.fromCircleDomain(h0_domain);
+    var h0: [16]QM31 = undefined;
+    var h1: [8]QM31 = undefined;
+    const c = QM31.fromBase(M31.fromCanonical(9));
+    const h2 = [_]QM31{c} ** 4;
+    for (&h0, 0..) |*value, row| {
+        value.* = QM31.fromBase(h0_domain.at(core.utils.bitReverseIndex(row, 4)).x);
+    }
+    for (&h1, 0..) |*value, row| {
+        value.* = QM31.fromBase(h1_domain.at(core.utils.bitReverseIndex(row, 3)).x);
+    }
+    const alpha0 = QM31.fromBase(M31.fromCanonical(3));
+    const alpha1 = QM31.fromBase(M31.fromCanonical(5));
+    const alpha2 = QM31.fromBase(M31.fromCanonical(7));
+
+    var g0 = [_]QM31{QM31.zero()} ** 8;
+    var workspace = try core_fri.folding.FoldCircleWorkspace.init(alloc, g0.len);
+    defer workspace.deinit(alloc);
+    try core_fri.folding.foldCircleIntoLineWithWorkspace(
+        alloc,
+        &g0,
+        &h0,
+        h0_domain,
+        alpha0,
+        &workspace,
+    );
+    for (g0, 0..) |value, row| {
+        const x = g0_domain.at(core.utils.bitReverseIndex(row, g0_domain.logSize()));
+        try std.testing.expect(value.eql(QM31.fromBase(x).mulM31(M31.fromCanonical(2))));
+    }
+
+    const g1 = try insert(alloc, &g0, g0_domain, &h1, h1_domain, alpha1);
+    defer alloc.free(g1.values);
+    const g2 = try insert(alloc, g1.values, g1.domain, &h2, h2_domain, alpha2);
+    defer alloc.free(g2.values);
+
+    // Native butterflies are unnormalized: x circle-folds to 2x, then line
+    // folds to 4*alpha. The second line fold and constant insertion give a
+    // constant expression despite the two distinct source heights.
+    const expected = QM31.fromBase(M31.fromCanonical(8)).mul(alpha1)
+        .add(QM31.fromBase(M31.fromCanonical(4)).mul(alpha1.square()).mul(alpha2))
+        .add(QM31.fromBase(M31.fromCanonical(2)).mul(alpha2.square()).mul(c));
+    for (g2.values) |value| try std.testing.expect(value.eql(expected));
+}
