@@ -1,5 +1,9 @@
 # Sparse two-row paired FRI cascade: experimental CAS05/XDM04
 
+The [CAS05 BCS/ROM boundary](CAS05_BCS_ROM_JOIN.md) records the exact raw
+BLAKE2s transcript schedule, independent byte fixture, conditional query law,
+and the theorem inputs still missing for a soundness claim.
+
 This milestone replaces the full-fiber *opening* of CAS04 with a sparse path through the same one-root transposed source commitment. It is a mechanics fixture and is **not dispatched by production PCS**. The [S-two whitepaper](https://eprint.iacr.org/2026/532.pdf) multi-domain FRI protocol is the target for a future native refinement; this wire does not yet satisfy every published premise.
 
 ## Exact bit-reversed query schedule

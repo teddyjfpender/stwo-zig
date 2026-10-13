@@ -20,6 +20,13 @@ pub const FELTS_PER_HASH: usize = 8;
 pub const Blake2sChannel = Blake2sChannelGeneric(false);
 pub const Blake2sM31Channel = Blake2sChannelGeneric(true);
 
+/// Refuse the next draw before its input is hashed if the u32 counter would
+/// wrap. In particular, secure-field rejection loops cannot reuse a previous
+/// Fiat–Shamir draw input in the same digest epoch.
+fn nextDrawCounter(current: u32) error{DrawCounterExhausted}!u32 {
+    return std.math.add(u32, current, 1) catch error.DrawCounterExhausted;
+}
+
 const metal_aot_transcript_secure = [_]u32{
     0x2de3_3d85, 0x1867_60f3, 0x016d_fb8f, 0x5526_159e,
     0x033d_fdd3, 0x5743_5736, 0x76ae_db39, 0x79a6_e4ab,
@@ -95,7 +102,8 @@ pub fn Blake2sChannelGeneric(comptime is_m31_output: bool) type {
             @memcpy(hash_input[32..36], counter[0..]);
             hash_input[36] = 0;
 
-            self.n_draws +%= 1;
+            self.n_draws = nextDrawCounter(self.n_draws) catch
+                @panic("BLAKE2s draw counter exhausted");
             const hash = hashBytes(hash_input[0..]);
 
             var out: [FELTS_PER_HASH]u32 = undefined;
@@ -357,6 +365,20 @@ test "blake2s channel: draw counters" {
     const felts = try channel.drawSecureFelts(std.testing.allocator, 9);
     defer std.testing.allocator.free(felts);
     try std.testing.expectEqual(@as(u32, 6), channel.n_draws);
+}
+
+test "blake2s channel: counter refuses wrap for raw and M31 channels" {
+    try std.testing.expectEqual(std.math.maxInt(u32), try nextDrawCounter(std.math.maxInt(u32) - 1));
+    try std.testing.expectError(error.DrawCounterExhausted, nextDrawCounter(std.math.maxInt(u32)));
+
+    var raw = Blake2sChannel{ .n_draws = std.math.maxInt(u32) - 1 };
+    _ = raw.drawU32s();
+    try std.testing.expectEqual(std.math.maxInt(u32), raw.n_draws);
+    var m31_channel = Blake2sM31Channel{ .n_draws = std.math.maxInt(u32) - 1 };
+    _ = m31_channel.drawU32s();
+    try std.testing.expectEqual(std.math.maxInt(u32), m31_channel.n_draws);
+    // A further draw traps before hashing, even from drawSecureFelt's
+    // rejection loop. The fallible increment is tested above without a panic.
 }
 
 test "blake2s channel: draw_u32s differs on successive calls" {
