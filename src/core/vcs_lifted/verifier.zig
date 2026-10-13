@@ -195,6 +195,19 @@ pub fn MerkleVerifierLifted(comptime H: type) type {
                 if (column.len != query_positions.len) return MerkleVerificationError.InvalidQueryShape;
             }
 
+            // A path of `height` levels authenticates exactly 2^height leaf
+            // indices. Without this check, position `q + 2^height` has the
+            // same low-bit path as `q` and can replay its opening under the
+            // same root. If height reaches the machine word width, every
+            // representable usize is already within the domain; avoid an
+            // overflowing shift in that case.
+            if (self.height < @bitSizeOf(usize)) {
+                const domain_size: usize = @as(usize, 1) << @intCast(self.height);
+                for (query_positions) |position| {
+                    if (position >= domain_size) return MerkleVerificationError.InvalidQueryShape;
+                }
+            }
+
             const QueryOrder = struct {
                 positions: []const usize,
 
@@ -451,7 +464,11 @@ test "vcs_lifted verifier: captured opening replays root and binds row position 
     var witness = [_]Hasher.Hash{ leaves[0], right };
     var capture: MerklePathCapture(Hasher) = undefined;
     try verifier.verifyWithPathCapture(
-        alloc, &positions, &values, .{ .hash_witness = &witness }, &capture,
+        alloc,
+        &positions,
+        &values,
+        .{ .hash_witness = &witness },
+        &capture,
     );
     defer capture.deinit(alloc);
     try std.testing.expectEqual(@as(u32, 2), capture.path_depth);
@@ -473,7 +490,9 @@ test "vcs_lifted verifier: captured opening replays root and binds row position 
     try std.testing.expect(vcs_hash.eql(root, replay));
 
     const sentinel = MerklePathCapture(Hasher){
-        .positions = &.{}, .path_depth = std.math.maxInt(u32), .siblings = &.{},
+        .positions = &.{},
+        .path_depth = std.math.maxInt(u32),
+        .siblings = &.{},
     };
     const changed_col0 = [_]M31{M31.fromCanonical(14)};
     const changed_values = [_][]const M31{ &changed_col0, &col1 };
@@ -481,8 +500,25 @@ test "vcs_lifted verifier: captured opening replays root and binds row position 
     try std.testing.expectError(
         error.RootMismatch,
         verifier.verifyWithPathCapture(
-            alloc, &positions, &changed_values,
-            .{ .hash_witness = &witness }, &rejected_capture,
+            alloc,
+            &positions,
+            &changed_values,
+            .{ .hash_witness = &witness },
+            &rejected_capture,
+        ),
+    );
+    try std.testing.expectEqualDeep(sentinel, rejected_capture);
+
+    const aliased_positions = [_]usize{positions[0] + rows.len};
+    rejected_capture = sentinel;
+    try std.testing.expectError(
+        error.InvalidQueryShape,
+        verifier.verifyWithPathCapture(
+            alloc,
+            &aliased_positions,
+            &values,
+            .{ .hash_witness = &witness },
+            &rejected_capture,
         ),
     );
     try std.testing.expectEqualDeep(sentinel, rejected_capture);
