@@ -801,7 +801,11 @@ test "experimental sampled two-height FRI authenticates intermediate and checks 
         .heights = &header_heights,
     };
     var prover_channel = Channel{};
+    core.pcs.paired_two_height_wire.bindVersion(&prover_channel);
     const batch_challenges = try envelope_mod.drawChallenges(&prover_channel, header);
+    var source_only_channel = Channel{};
+    const source_only_challenges = try envelope_mod.drawChallenges(&source_only_channel, header);
+    try std.testing.expect(!batch_challenges.batch.eql(source_only_challenges.batch));
     const alpha0 = prover_channel.drawSecureFelt();
     const batch0 = try pairedFullBatchForTest(alloc, &f0, 4, sample_point, sample_point.x, batch_challenges);
     defer alloc.free(batch0);
@@ -888,6 +892,7 @@ test "experimental sampled two-height FRI authenticates intermediate and checks 
         .shapes = &[_]core.pcs.paired_ensemble.Shape{ shape0, shape1 },
     };
     var verifier_channel = Channel{};
+    core.pcs.paired_two_height_wire.bindVersion(&verifier_channel);
     var prepared = try envelope_mod.decodeAndBind(alloc, encoded, &verifier_channel, expected_profile);
     defer prepared.deinit();
     const intermediate = two_height.IntermediateOpening{
@@ -977,6 +982,7 @@ test "experimental sampled two-height FRI authenticates intermediate and checks 
     var changed_intermediate = intermediate;
     changed_intermediate.queried_coordinates[0] = changed_coordinate;
     var rejected_channel = Channel{};
+    two_height_wire.bindVersion(&rejected_channel);
     var rejected_prepared = try envelope_mod.decodeAndBind(
         alloc,
         encoded,
@@ -1008,6 +1014,7 @@ test "experimental sampled two-height FRI authenticates intermediate and checks 
     var forged_tree = try SourceProver.commit(alloc, &forged_columns);
     defer forged_tree.deinit(alloc);
     var forged_prover_channel = Channel{};
+    two_height_wire.bindVersion(&forged_prover_channel);
     _ = try envelope_mod.drawChallenges(&forged_prover_channel, header);
     _ = forged_prover_channel.drawSecureFelt();
     core.vcs_lifted.blake2_merkle.Blake2sMerkleChannel.mixRoot(
@@ -1076,6 +1083,7 @@ test "experimental sampled two-height FRI authenticates intermediate and checks 
     const forged_wire = try envelope_mod.encode(alloc, forged_envelope);
     defer alloc.free(forged_wire);
     var forged_verifier_channel = Channel{};
+    two_height_wire.bindVersion(&forged_verifier_channel);
     var forged_prepared = try envelope_mod.decodeAndBind(
         alloc,
         forged_wire,

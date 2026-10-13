@@ -15,6 +15,7 @@ const QM31 = qm31.QM31;
 const Hash = paired.Hash;
 pub const MAGIC = "S31P2F01";
 pub const VERSION: u16 = 1;
+const TRANSCRIPT_TAG: u64 = 0x5333_3150_3246_3031; // S31P2F01
 const MAX_WIRE_BYTES: usize = 64 * 1024 * 1024;
 const MAX_HASH_WITNESS: usize = 1 << 20;
 
@@ -149,8 +150,17 @@ pub fn decodeAndBind(
     {
         return error.UnexpectedPairedProfile;
     }
+    bindVersion(channel);
     const challenges = try paired.drawChallenges(channel, decoded.source.envelope);
     return .{ .decoded = decoded, .challenges = challenges };
+}
+
+/// Prover and verifier must bind the selected outer proof mode before the
+/// source-envelope transcript. The verifier calls this only after both wire
+/// versions and the locally expected profile have been checked.
+pub fn bindVersion(channel: anytype) void {
+    channel.mixU64(TRANSCRIPT_TAG);
+    channel.mixU64(VERSION);
 }
 
 pub fn verify(

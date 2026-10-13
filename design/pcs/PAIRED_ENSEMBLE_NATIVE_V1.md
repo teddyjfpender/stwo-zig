@@ -55,6 +55,8 @@ line_query_count:u32 | M31[4][line_query_count]
 witness_count:u32 | hash[32][witness_count]
 ```
 
+The outer `S31P2F01` version tag is mixed into the channel before the inner source-envelope transcript. Both wire versions and the verifier's expected profile are checked first, so a rejected mode or malformed proof cannot reuse the source-only challenge stream.
+
 This is still a fixed two-height experimental protocol. Its query schedule and normalization need a theorem-to-code argument. The terminal degree check is structural (only the configured number of coefficients are accepted); sampled fold checks provide no security claim until the query distribution, source/FRI commitment binding, two-point quotient law, and error bounds are proven for this exact protocol.
 
 This is **not** a production PCS opening. The fixed two-height wire proof has no production prover path or admission gate, and its theorem mapping is incomplete. Legacy PCS transcripts and proof acceptance are untouched. No native soundness bit claim follows from these tests.
