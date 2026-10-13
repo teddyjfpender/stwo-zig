@@ -615,3 +615,194 @@ test "experimental multi-domain insertion preserves an explicit low-degree casca
         .add(QM31.fromBase(M31.fromCanonical(2)).mul(alpha2.square()).mul(c));
     for (g2.values) |value| try std.testing.expect(value.eql(expected));
 }
+
+test "experimental versioned multi-height source openings authenticate before insertion" {
+    const core = @import("stwo_core");
+    const envelope_mod = core.pcs.paired_envelope;
+    const projection = core.pcs.paired_projection;
+    const Hasher = envelope_mod.Hasher;
+    const Channel = core.channel.blake2s.Blake2sChannel;
+    const SourceProver = @import("stwo_prover_engine").vcs_lifted.prover.MerkleProverLifted(Hasher);
+    const alloc = std.testing.allocator;
+    const d0 = core.poly.circle.canonic.CanonicCoset.new(4).circleDomain();
+    const d1 = core.poly.circle.canonic.CanonicCoset.new(3).circleDomain();
+    const shape0 = core.pcs.paired_ensemble.Shape{
+        .log_domain_size = 4,
+        .log_degree_bound = 3,
+        .original_column_count = 1,
+    };
+    const shape1 = core.pcs.paired_ensemble.Shape{
+        .log_domain_size = 3,
+        .log_degree_bound = 2,
+        .original_column_count = 1,
+    };
+    var f0: [16]M31 = undefined;
+    var f1: [8]M31 = undefined;
+    var queries: [16]usize = undefined;
+    for (&f0, &queries, 0..) |*value, *query, row| {
+        query.* = row;
+        value.* = d0.at(core.utils.bitReverseIndex(row, 4)).x;
+    }
+    for (&f1, 0..) |*value, row| value.* = d1.at(core.utils.bitReverseIndex(row, 3)).x;
+    const projected = try projection.projectPositions(alloc, &queries, 4, 3);
+    defer alloc.free(projected);
+    try std.testing.expectError(
+        error.QueryPositionOutOfRange,
+        projection.projectPositions(alloc, &[_]usize{16}, 4, 3),
+    );
+    try std.testing.expectError(
+        error.InvalidProjectionGeometry,
+        projection.projectPositions(alloc, &queries, 4, 5),
+    );
+    for (queries, projected) |large, small| {
+        const large_point = d0.at(core.utils.bitReverseIndex(large, 4));
+        const small_point = d1.at(core.utils.bitReverseIndex(small, 3));
+        try std.testing.expect(large_point.double().eql(small_point));
+    }
+
+    const columns0 = [_][]const M31{&f0};
+    const columns1 = [_][]const M31{&f1};
+    var tree0 = try SourceProver.commit(alloc, &columns0);
+    defer tree0.deinit(alloc);
+    var tree1 = try SourceProver.commit(alloc, &columns1);
+    defer tree1.deinit(alloc);
+    var opened0 = try tree0.decommit(alloc, &queries, &columns0);
+    defer opened0.deinit(alloc);
+    var opened1 = try tree1.decommit(alloc, projected, &columns1);
+    defer opened1.deinit(alloc);
+
+    const point = core.circle.SECURE_FIELD_CIRCLE_GEN.mul(13);
+    const points = [_]core.circle.CirclePointQM31{point};
+    const claims = [_]QM31{point.x};
+    const queried0 = [_][]const M31{opened0.queried_values[0]};
+    const queried1 = [_][]const M31{opened1.queried_values[0]};
+    const heights = [_]envelope_mod.HeightOpening{
+        .{
+            .shape = shape0,
+            .source_root = tree0.root(),
+            .sample_points = &points,
+            .sample_values = &claims,
+            .queried_sources = &queried0,
+            .hash_witness = opened0.decommitment.decommitment.hash_witness,
+        },
+        .{
+            .shape = shape1,
+            .source_root = tree1.root(),
+            .sample_points = &points,
+            .sample_values = &claims,
+            .queried_sources = &queried1,
+            .hash_witness = opened1.decommitment.decommitment.hash_witness,
+        },
+    };
+    const source_envelope = envelope_mod.Envelope{
+        .largest_log_size = 4,
+        .query_count = queries.len,
+        .heights = &heights,
+    };
+    const encoded = try envelope_mod.encode(alloc, source_envelope);
+    defer alloc.free(encoded);
+    const expected_profile = envelope_mod.ExpectedProfile{
+        .largest_log_size = 4,
+        .query_count = queries.len,
+        .shapes = &[_]core.pcs.paired_ensemble.Shape{ shape0, shape1 },
+    };
+    var verifier_channel = Channel{};
+    var prepared = try envelope_mod.decodeAndBind(alloc, encoded, &verifier_channel, expected_profile);
+    defer prepared.deinit();
+    const proof = prepared.decoded.envelope;
+    try std.testing.expectEqual(@as(usize, 2), proof.heights.len);
+    const reencoded = try envelope_mod.encode(alloc, proof);
+    defer alloc.free(reencoded);
+    try std.testing.expectEqualSlices(u8, encoded, reencoded);
+    var prover_channel = Channel{};
+    const prover_challenges = try envelope_mod.drawChallenges(&prover_channel, source_envelope);
+    const challenges = prepared.challenges;
+    try std.testing.expect(prover_challenges.batch.eql(challenges.batch));
+
+    const answers0 = try envelope_mod.authenticatedHeightAnswers(alloc, proof, 0, &queries, challenges);
+    defer alloc.free(answers0);
+    const answers1 = try envelope_mod.authenticatedHeightAnswers(alloc, proof, 1, &queries, challenges);
+    defer alloc.free(answers1);
+    var dense1: [8]QM31 = undefined;
+    var seen = [_]bool{false} ** 8;
+    for (projected, answers1) |position, answer| {
+        if (seen[position]) {
+            try std.testing.expect(dense1[position].eql(answer));
+        } else {
+            dense1[position] = answer;
+            seen[position] = true;
+        }
+    }
+    for (seen) |value| try std.testing.expect(value);
+
+    var g0 = [_]QM31{QM31.zero()} ** 8;
+    var workspace = try core_fri.folding.FoldCircleWorkspace.init(alloc, g0.len);
+    defer workspace.deinit(alloc);
+    const alpha0 = QM31.fromBase(M31.fromCanonical(3));
+    const alpha1 = QM31.fromBase(M31.fromCanonical(5));
+    try core_fri.folding.foldCircleIntoLineWithWorkspace(
+        alloc,
+        &g0,
+        answers0,
+        d0,
+        alpha0,
+        &workspace,
+    );
+    const g1 = try core_fri.multidomain_insertion.insertCircleBatch(
+        alloc,
+        &g0,
+        core.poly.line.LineDomain.fromCircleDomain(d0),
+        &dense1,
+        d1,
+        alpha1,
+    );
+    defer alloc.free(g1.values);
+    try std.testing.expectEqual(@as(usize, 4), g1.values.len);
+
+    const changed = try alloc.dupe(M31, proof.heights[1].queried_sources[0]);
+    defer alloc.free(changed);
+    changed[0] = changed[0].add(M31.one());
+    const changed_columns = [_][]const M31{changed};
+    var changed_heights = [_]envelope_mod.HeightOpening{ proof.heights[0], proof.heights[1] };
+    changed_heights[1].queried_sources = &changed_columns;
+    const changed_proof = envelope_mod.Envelope{
+        .largest_log_size = proof.largest_log_size,
+        .query_count = proof.query_count,
+        .heights = &changed_heights,
+    };
+    try std.testing.expectError(
+        error.DuplicateQueryMismatch,
+        envelope_mod.authenticatedHeightAnswers(alloc, changed_proof, 1, &queries, challenges),
+    );
+
+    const altered_wire = try alloc.dupe(u8, encoded);
+    defer alloc.free(altered_wire);
+    altered_wire[8] = 2;
+    var rejected_channel = Channel{};
+    const digest_before = rejected_channel.digest;
+    try std.testing.expectError(
+        error.UnsupportedProofVersion,
+        envelope_mod.decodeAndBind(alloc, altered_wire, &rejected_channel, expected_profile),
+    );
+    try std.testing.expectEqualSlices(u8, &digest_before, &rejected_channel.digest);
+    const wrong_profile = envelope_mod.ExpectedProfile{
+        .largest_log_size = 4,
+        .query_count = queries.len,
+        .shapes = &[_]core.pcs.paired_ensemble.Shape{ shape0, shape0 },
+    };
+    try std.testing.expectError(
+        error.UnexpectedPairedProfile,
+        envelope_mod.decodeAndBind(alloc, encoded, &rejected_channel, wrong_profile),
+    );
+    try std.testing.expectEqualSlices(u8, &digest_before, &rejected_channel.digest);
+    @memcpy(altered_wire[0..8], "STWOPRW1");
+    try std.testing.expectError(error.LegacyProofRequiresLegacyVerifier, envelope_mod.decode(alloc, altered_wire));
+    @memcpy(altered_wire, encoded);
+    std.mem.writeInt(u32, altered_wire[72..76], m31.Modulus, .little);
+    try std.testing.expectError(error.NonCanonicalM31, envelope_mod.decode(alloc, altered_wire));
+    const extended_wire = try alloc.alloc(u8, encoded.len + 1);
+    defer alloc.free(extended_wire);
+    @memcpy(extended_wire[0..encoded.len], encoded);
+    extended_wire[encoded.len] = 0;
+    try std.testing.expectError(error.InvalidPairedEnvelope, envelope_mod.decode(alloc, extended_wire));
+}

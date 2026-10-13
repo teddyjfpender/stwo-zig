@@ -8,6 +8,8 @@ pub const config_v2 = @import("config_v2.zig");
 pub const quotients = @import("quotients.zig");
 pub const paired_ensemble = @import("paired_ensemble.zig");
 pub const paired_authenticated = @import("paired_authenticated.zig");
+pub const paired_projection = @import("paired_projection.zig");
+pub const paired_envelope = @import("paired_envelope.zig");
 pub const verifier = @import("verifier.zig");
 
 const FriConfig = fri.FriConfig;
