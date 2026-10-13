@@ -530,6 +530,54 @@ test "four-height sparse cascade has a complete canonical wire" {
     for (proof.line_openings) |opening|
         for (opening.queried_coordinates) |column|
             try std.testing.expectEqual(@as(usize, 6), column.len);
+
+    // Every field-bearing part of CAS05 must reject the noncanonical word p
+    // before any transcript state is published. The nested XDM04 opening is
+    // included because it supplies the source values fed into the folds.
+    const source = proof.profile.source;
+    var claims_words: usize = 0;
+    for (source.columns[0..source.height_count]) |count| claims_words += count;
+    const point_offset = 32 + 2 * source.height_count + 32;
+    const claim_offset = point_offset + 2 * @sizeOf(QM31);
+    const source_offset = claim_offset + claims_words * @sizeOf(QM31) + 4;
+    const xdm_first_felt = source_offset + 28 + 2 * source.height_count + 32 + 4;
+    const first_line_felt = source_offset + proof.source_wire.len + 4 + 32 + 4;
+    var terminal_offset = source_offset + proof.source_wire.len + 4;
+    for (proof.line_openings) |opening| {
+        terminal_offset += 32 + 4 +
+            4 * source.query_count * 2 * @sizeOf(M31) +
+            4 + opening.hash_witness.len * 32;
+    }
+    terminal_offset += 4;
+    const field_offsets = [_]usize{
+        point_offset,    claim_offset,    xdm_first_felt,
+        first_line_felt, terminal_offset,
+    };
+    for (field_offsets) |offset| {
+        const canonical = try alloc.dupe(u8, encoded);
+        defer alloc.free(canonical);
+        std.mem.writeInt(u32, canonical[offset..][0..4], core.fields.m31.Modulus - 1, .little);
+        var parsed = try outer.decode(alloc, canonical);
+        parsed.deinit();
+
+        const changed = try alloc.dupe(u8, encoded);
+        defer alloc.free(changed);
+        std.mem.writeInt(u32, changed[offset..][0..4], core.fields.m31.Modulus, .little);
+        try std.testing.expectError(error.NonCanonicalM31, outer.decode(alloc, changed));
+        var rejected = Channel{};
+        const digest_before = rejected.digest;
+        try std.testing.expectError(error.NonCanonicalM31, outer.verifyAgainstStatement(
+            alloc,
+            changed,
+            &rejected,
+            .{
+                .profile = proof.profile,
+                .source_root = proof.source_root,
+                .claims = proof.claims,
+            },
+        ));
+        try std.testing.expectEqualSlices(u8, &digest_before, &rejected.digest);
+    }
 }
 
 test "generic cascade checks four adjacent heights under one transposed root" {
