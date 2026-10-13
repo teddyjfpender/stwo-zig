@@ -153,7 +153,7 @@ test "experimental paired source and native quotient roundtrip through FRI" {
     }
 
     const sample_point = core.circle.SECURE_FIELD_CIRCLE_GEN.mul(13);
-    var column_logs = [_]u32{shape.log_degree_bound};
+    var column_logs = [_]u32{shape.log_domain_size};
     var logs_tree = [_][]u32{column_logs[0..]};
     var point_column = [_]core.circle.CirclePointQM31{sample_point};
     var points_tree = [_][]core.circle.CirclePointQM31{point_column[0..]};
@@ -181,13 +181,21 @@ test "experimental paired source and native quotient roundtrip through FRI" {
     }
     try std.testing.expect(nonzero_quotient);
 
-    var prover_channel = Channel{};
-    const prover_challenges = try paired.drawChallenges(&prover_channel, shape);
     const source_columns = [_][]const M31{original[0..]};
+    const SourceProver = @import("stwo_prover_engine").vcs_lifted.prover.MerkleProverLifted(Hasher);
+    var source_tree = try SourceProver.commit(alloc, &source_columns);
+    defer source_tree.deinit(alloc);
+    const source_root = source_tree.root();
+
+    var prover_channel = Channel{};
+    MerkleChannel.mixRoot(&prover_channel, source_root);
+    prover_channel.mixFelts(&[_]QM31{ sample_point.x, sample_point.y, sample_point.x });
+    const prover_challenges = try paired.drawChallenges(&prover_channel, shape);
+    const quotient_columns = [_][]const QM31{all_quotient};
     const paired_values = try paired.foldColumns(
         alloc,
         &source_columns,
-        all_quotient,
+        &quotient_columns,
         shape,
         prover_challenges,
     );
@@ -198,9 +206,10 @@ test "experimental paired source and native quotient roundtrip through FRI" {
     defer decommit_result.deinit(alloc);
 
     var verifier_channel = Channel{};
+    MerkleChannel.mixRoot(&verifier_channel, source_root);
+    verifier_channel.mixFelts(&[_]QM31{ sample_point.x, sample_point.y, sample_point.x });
     const verifier_challenges = try paired.drawChallenges(&verifier_channel, shape);
-    try std.testing.expect(prover_challenges.originals.eql(verifier_challenges.originals));
-    try std.testing.expect(prover_challenges.quotient.eql(verifier_challenges.quotient));
+    try std.testing.expect(prover_challenges.batch.eql(verifier_challenges.batch));
     var verifier = try Verifier.commit(
         alloc,
         &verifier_channel,
@@ -213,9 +222,9 @@ test "experimental paired source and native quotient roundtrip through FRI" {
     defer alloc.free(positions);
     try std.testing.expectEqualSlices(usize, decommit_result.query_positions, positions);
 
-    const queried_original = try alloc.alloc(M31, positions.len);
-    defer alloc.free(queried_original);
-    for (queried_original, positions) |*value, position| value.* = original[position];
+    var source_opening = try source_tree.decommit(alloc, positions, &source_columns);
+    defer source_opening.deinit(alloc);
+    const queried_original = source_opening.queried_values[0];
     var queried_original_tree = [_][]M31{queried_original};
     var queried_original_all = [_][][]M31{queried_original_tree[0..]};
     const queried_quotient = try core.pcs.quotients.friAnswers(
@@ -232,16 +241,57 @@ test "experimental paired source and native quotient roundtrip through FRI" {
     const answers = try alloc.alloc(QM31, positions.len);
     defer alloc.free(answers);
     for (answers, queried_original, queried_quotient) |*answer, source, quotient| {
-        answer.* = try paired.foldRow(&[_]M31{source}, quotient, shape, verifier_challenges);
+        answer.* = try paired.foldRow(&[_]M31{source}, &[_]QM31{quotient}, shape, verifier_challenges);
     }
     for (answers, positions) |answer, position| {
         try std.testing.expect(answer.eql(paired_values[position]));
     }
-    try verifier.decommit(alloc, answers);
+    const SourceVerifier = core.vcs_lifted.verifier.MerkleVerifierLifted(Hasher);
+    var source_verifier = try SourceVerifier.init(alloc, source_root, &[_]u32{shape.log_domain_size});
+    defer source_verifier.deinit(alloc);
+    const authenticated_sources = [_][]const M31{queried_original};
+    const authenticated_answers = try core.pcs.paired_authenticated.authenticatedAnswers(
+        Hasher,
+        alloc,
+        source_verifier,
+        positions,
+        &authenticated_sources,
+        source_opening.decommitment.decommitment,
+        &[_]core.circle.CirclePointQM31{sample_point},
+        &[_]QM31{sample_point.x},
+        shape,
+        verifier_challenges,
+    );
+    defer alloc.free(authenticated_answers);
+    try std.testing.expectEqualSlices(QM31, answers, authenticated_answers);
+    try verifier.decommit(alloc, authenticated_answers);
     try std.testing.expectEqualSlices(u8, &prover_channel.digest, &verifier_channel.digest);
+
+    // A changed authenticated source is refused before a paired answer exists.
+    const corrupted_source = try alloc.dupe(M31, queried_original);
+    defer alloc.free(corrupted_source);
+    corrupted_source[0] = corrupted_source[0].add(M31.one());
+    const corrupted_sources = [_][]const M31{corrupted_source};
+    try std.testing.expectError(
+        error.RootMismatch,
+        core.pcs.paired_authenticated.authenticatedAnswers(
+            Hasher,
+            alloc,
+            source_verifier,
+            positions,
+            &corrupted_sources,
+            source_opening.decommitment.decommitment,
+            &[_]core.circle.CirclePointQM31{sample_point},
+            &[_]QM31{sample_point.x},
+            shape,
+            verifier_challenges,
+        ),
+    );
 
     // A changed paired answer must fail the same first-layer authentication.
     var bad_channel = Channel{};
+    MerkleChannel.mixRoot(&bad_channel, source_root);
+    bad_channel.mixFelts(&[_]QM31{ sample_point.x, sample_point.y, sample_point.x });
     _ = try paired.drawChallenges(&bad_channel, shape);
     var bad_verifier = try Verifier.commit(
         alloc,
@@ -277,24 +327,32 @@ test "paired ensemble binds shape and includes each source exactly once" {
     const challenges = try paired.drawChallenges(&channel, shape);
     const source0 = [_]M31{M31.fromCanonical(3)} ** 8;
     const source1 = [_]M31{M31.fromCanonical(5)} ** 8;
-    const quotient = [_]QM31{QM31.fromBase(M31.fromCanonical(7))} ** 8;
+    const quotient0 = [_]QM31{QM31.fromBase(M31.fromCanonical(7))} ** 8;
+    const quotient1 = [_]QM31{QM31.fromBase(M31.fromCanonical(11))} ** 8;
     const columns = [_][]const M31{ &source0, &source1 };
-    const folded = try paired.foldColumns(alloc, &columns, &quotient, shape, challenges);
+    const quotients = [_][]const QM31{ &quotient0, &quotient1 };
+    const folded = try paired.foldColumns(alloc, &columns, &quotients, shape, challenges);
     defer alloc.free(folded);
     const expected = try paired.foldRow(
         &[_]M31{ source0[0], source1[0] },
-        quotient[0],
+        &[_]QM31{ quotient0[0], quotient1[0] },
         shape,
         challenges,
     );
+    const lambda = challenges.batch;
+    const manual = QM31.fromBase(source0[0])
+        .add(lambda.mul(quotient0[0]))
+        .add(lambda.square().mul(QM31.fromBase(source1[0])))
+        .add(lambda.square().mul(lambda).mul(quotient1[0]));
+    try std.testing.expect(expected.eql(manual));
     for (folded) |value| try std.testing.expect(value.eql(expected));
     try std.testing.expectError(
         error.InvalidPairedShape,
-        paired.foldRow(&[_]M31{source0[0]}, quotient[0], shape, challenges),
+        paired.foldRow(&[_]M31{source0[0]}, &[_]QM31{quotient0[0]}, shape, challenges),
     );
     try std.testing.expectError(
         error.InvalidPairedShape,
-        paired.foldColumns(alloc, columns[0..1], &quotient, shape, challenges),
+        paired.foldColumns(alloc, columns[0..1], &quotients, shape, challenges),
     );
 
     var changed_channel = Channel{};
@@ -304,4 +362,99 @@ test "paired ensemble binds shape and includes each source exactly once" {
         .original_column_count = 2,
     });
     try std.testing.expect(!std.mem.eql(u8, &channel.digest, &changed_channel.digest));
+}
+
+test "paired authenticated bridge binds both source columns and their order" {
+    const core = @import("stwo_core");
+    const paired = core.pcs.paired_ensemble;
+    const Hasher = core.vcs_lifted.blake2_merkle.Blake2sMerkleHasher;
+    const MerkleChannel = core.vcs_lifted.blake2_merkle.Blake2sMerkleChannel;
+    const Channel = core.channel.blake2s.Blake2sChannel;
+    const SourceProver = @import("stwo_prover_engine").vcs_lifted.prover.MerkleProverLifted(Hasher);
+    const SourceVerifier = core.vcs_lifted.verifier.MerkleVerifierLifted(Hasher);
+    const alloc = std.testing.allocator;
+    const shape = paired.Shape{ .log_domain_size = 3, .log_degree_bound = 2, .original_column_count = 2 };
+    const original0 = [_]M31{M31.fromCanonical(3)} ** 8;
+    const original1 = [_]M31{M31.fromCanonical(5)} ** 8;
+    const source_columns = [_][]const M31{ &original0, &original1 };
+    var source_tree = try SourceProver.commit(alloc, &source_columns);
+    defer source_tree.deinit(alloc);
+    const positions = [_]usize{ 0, 3, 7 };
+    var source_opening = try source_tree.decommit(alloc, &positions, &source_columns);
+    defer source_opening.deinit(alloc);
+    var source_verifier = try SourceVerifier.init(alloc, source_tree.root(), &[_]u32{ 3, 3 });
+    defer source_verifier.deinit(alloc);
+    const query_columns = [_][]const M31{
+        source_opening.queried_values[0],
+        source_opening.queried_values[1],
+    };
+    const point = core.circle.SECURE_FIELD_CIRCLE_GEN.mul(13);
+    const points = [_]core.circle.CirclePointQM31{ point, point };
+    const claims = [_]QM31{
+        QM31.fromBase(original0[0]),
+        QM31.fromBase(original1[0]),
+    };
+    var channel = Channel{};
+    MerkleChannel.mixRoot(&channel, source_tree.root());
+    channel.mixFelts(&[_]QM31{ point.x, point.y, claims[0], claims[1] });
+    const challenges = try paired.drawChallenges(&channel, shape);
+    const answers = try core.pcs.paired_authenticated.authenticatedAnswers(
+        Hasher,
+        alloc,
+        source_verifier,
+        &positions,
+        &query_columns,
+        source_opening.decommitment.decommitment,
+        &points,
+        &claims,
+        shape,
+        challenges,
+    );
+    defer alloc.free(answers);
+    for (answers, source_opening.queried_values[0], source_opening.queried_values[1]) |answer, f0, f1| {
+        const expected = try paired.foldRow(
+            &[_]M31{ f0, f1 },
+            &[_]QM31{ QM31.zero(), QM31.zero() },
+            shape,
+            challenges,
+        );
+        try std.testing.expect(answer.eql(expected));
+    }
+
+    const swapped = [_][]const M31{
+        source_opening.queried_values[1],
+        source_opening.queried_values[0],
+    };
+    try std.testing.expectError(
+        error.RootMismatch,
+        core.pcs.paired_authenticated.authenticatedAnswers(
+            Hasher,
+            alloc,
+            source_verifier,
+            &positions,
+            &swapped,
+            source_opening.decommitment.decommitment,
+            &points,
+            &claims,
+            shape,
+            challenges,
+        ),
+    );
+    var wrong_height = try SourceVerifier.init(alloc, source_tree.root(), &[_]u32{ 3, 2 });
+    defer wrong_height.deinit(alloc);
+    try std.testing.expectError(
+        error.InvalidPairedShape,
+        core.pcs.paired_authenticated.authenticatedAnswers(
+            Hasher,
+            alloc,
+            wrong_height,
+            &positions,
+            &query_columns,
+            source_opening.decommitment.decommitment,
+            &points,
+            &claims,
+            shape,
+            challenges,
+        ),
+    );
 }
