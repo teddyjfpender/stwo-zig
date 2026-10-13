@@ -113,6 +113,7 @@ pub const LOG_PACKED_LEAF_SIZE: u32 = 2;
 
 pub const FriVerificationError = error{
     InvalidNumFriLayers,
+    QueryCapturePositionsInvalid,
     FirstLayerEvaluationsInvalid,
     FirstLayerCommitmentInvalid,
     InnerLayerCommitmentInvalid,

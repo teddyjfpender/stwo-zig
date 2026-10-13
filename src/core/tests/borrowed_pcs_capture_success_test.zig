@@ -195,6 +195,76 @@ test "borrowed proof capture matches owned verification and outlives poisoned or
     try std.testing.expectEqualDeep(owned, borrowed);
 }
 
+test "FRI capture binds exact transcript query order and multiplicity" {
+    const a = std.testing.allocator;
+    var proof = try fixture(a);
+    defer proof.deinit(a);
+
+    // Replay the fixture's PCS transcript prefix through the first FRI root.
+    var channel = channelFor(&proof);
+    channel.mixFelts(&.{Q.fromBase(M.fromCanonical(7))});
+    _ = channel.drawSecureFelt();
+    var fri_verifier = try core.fri.FriVerifier(H, Suite.MerkleChannel).commit(
+        a,
+        &channel,
+        proof.config.fri_config,
+        proof.fri_proof,
+        core.fri.CirclePolyDegreeBound.init(1),
+    );
+    defer fri_verifier.deinit(a);
+    channel.mixU64(proof.proof_of_work);
+    var sampled = try fri_verifier.sampleQueryPositionsWithRaw(a, &channel);
+    defer sampled.deinit(a);
+
+    const answers = try a.alloc(Q, sampled.unique.len);
+    defer a.free(answers);
+    @memset(answers, Q.zero());
+
+    // This is a complete, valid constant-polynomial FRI opening.
+    var honest: core.fri.FriQueryCapture(H) = undefined;
+    try fri_verifier.decommitWithQueryCapture(a, answers, sampled.raw, &honest);
+    defer honest.deinit(a);
+    try std.testing.expectEqualSlices(usize, sampled.raw, honest.layers[0].positions);
+
+    // Find distinct draws in one fold group. Both edits below leave each
+    // edited query in the same authenticated FRI subset as before.
+    var pair: ?[2]usize = null;
+    for (sampled.raw, 0..) |left, i| {
+        for (sampled.raw[i + 1 ..], i + 1..) |right, j| {
+            if (left != right and
+                (left >> @intCast(proof.config.fri_config.fold_step)) ==
+                    (right >> @intCast(proof.config.fri_config.fold_step)))
+            {
+                pair = .{ i, j };
+                break;
+            }
+        }
+        if (pair != null) break;
+    }
+    const indices = pair orelse return error.TestExpectedSameFoldPair;
+    const forged = try a.dupe(usize, sampled.raw);
+    defer a.free(forged);
+
+    std.mem.swap(usize, &forged[indices[0]], &forged[indices[1]]);
+    var unpublished: [@sizeOf(core.fri.FriQueryCapture(H))]u8 align(@alignOf(core.fri.FriQueryCapture(H))) = @splat(0x7b);
+    try std.testing.expectError(
+        core.fri.FriVerificationError.QueryCapturePositionsInvalid,
+        fri_verifier.decommitWithQueryCapture(a, answers, forged, @ptrCast(&unpublished)),
+    );
+    for (unpublished) |byte| try std.testing.expectEqual(@as(u8, 0x7b), byte);
+
+    // Changing one draw into a duplicate also preserves its fold group, but
+    // changes the exact transcript vector and must leave capture unpublished.
+    const original = sampled.raw[indices[1]];
+    sampled.raw[indices[1]] = sampled.raw[indices[0]];
+    defer sampled.raw[indices[1]] = original;
+    try std.testing.expectError(
+        core.fri.FriVerificationError.QueryCapturePositionsInvalid,
+        fri_verifier.decommitWithQueryCapture(a, answers, sampled.raw, @ptrCast(&unpublished)),
+    );
+    for (unpublished) |byte| try std.testing.expectEqual(@as(u8, 0x7b), byte);
+}
+
 fn foldedScratch(a: std.mem.Allocator) !void {
     var values: [8]Q = @splat(Q.zero());
     var subsets = [_][]Q{ &values, &values };

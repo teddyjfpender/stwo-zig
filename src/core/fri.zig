@@ -50,6 +50,9 @@ pub fn FriVerifier(comptime H: type, comptime MC: type) type {
         last_layer_domain: line.LineDomain,
         last_layer_poly: line.LinePoly,
         queries: ?queries_mod.Queries = null,
+        /// Owned transcript draw. The returned raw-query slice belongs to the
+        /// caller, so it cannot authenticate later capture labels by itself.
+        sampled_raw_queries: ?[]usize = null,
 
         const Self = @This();
 
@@ -59,6 +62,7 @@ pub fn FriVerifier(comptime H: type, comptime MC: type) type {
             allocator.free(self.inner_layers);
             self.last_layer_poly.deinit(allocator);
             if (self.queries) |*queries| queries.deinit(allocator);
+            if (self.sampled_raw_queries) |positions| allocator.free(positions);
             self.* = undefined;
         }
 
@@ -144,6 +148,7 @@ pub fn FriVerifier(comptime H: type, comptime MC: type) type {
                 .last_layer_domain = layer_domain,
                 .last_layer_poly = last_layer_poly,
                 .queries = null,
+                .sampled_raw_queries = null,
             };
         }
 
@@ -178,15 +183,23 @@ pub fn FriVerifier(comptime H: type, comptime MC: type) type {
             );
             errdefer allocator.free(raw);
 
-            if (self.queries) |*queries| queries.deinit(allocator);
-            self.queries = try queries_mod.Queries.init(
+            var new_queries = try queries_mod.Queries.init(
                 allocator,
                 raw,
                 first_layer_log_size,
             );
+            errdefer new_queries.deinit(allocator);
+            const unique = try allocator.dupe(usize, new_queries.positions);
+            errdefer allocator.free(unique);
+            const retained_raw = try allocator.dupe(usize, raw);
+
+            if (self.queries) |*queries| queries.deinit(allocator);
+            if (self.sampled_raw_queries) |positions| allocator.free(positions);
+            self.queries = new_queries;
+            self.sampled_raw_queries = retained_raw;
             return .{
                 .raw = raw,
-                .unique = try allocator.dupe(usize, self.queries.?.positions),
+                .unique = unique,
             };
         }
 
@@ -205,6 +218,8 @@ pub fn FriVerifier(comptime H: type, comptime MC: type) type {
 
         /// Completes FRI verification and publishes raw-query values and full
         /// authentication paths only after the terminal polynomial check.
+        /// The supplied raw positions must match the internally retained
+        /// transcript draw in exact order, including duplicate positions.
         pub fn decommitWithQueryCapture(
             self: *Self,
             allocator: std.mem.Allocator,
@@ -228,7 +243,13 @@ pub fn FriVerifier(comptime H: type, comptime MC: type) type {
             capture_out: ?*FriQueryCapture(H),
         ) !void {
             if ((raw_query_positions == null) != (capture_out == null))
-                return FriVerificationError.FirstLayerEvaluationsInvalid;
+                return FriVerificationError.QueryCapturePositionsInvalid;
+            if (raw_query_positions) |positions| {
+                const sampled = self.sampled_raw_queries orelse
+                    return FriVerificationError.QueryCapturePositionsInvalid;
+                if (!std.mem.eql(usize, positions, sampled))
+                    return FriVerificationError.QueryCapturePositionsInvalid;
+            }
             const queries = self.queries orelse return FriVerificationError.FirstLayerEvaluationsInvalid;
             const capture_layers = if (capture_out != null)
                 try allocator.alloc(
