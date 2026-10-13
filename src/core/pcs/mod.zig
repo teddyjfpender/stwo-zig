@@ -6,6 +6,7 @@ const vcs_verifier = @import("../vcs_lifted/verifier.zig");
 pub const utils = @import("utils.zig");
 pub const config_v2 = @import("config_v2.zig");
 pub const quotients = @import("quotients.zig");
+pub const paired_ensemble = @import("paired_ensemble.zig");
 pub const verifier = @import("verifier.zig");
 
 const FriConfig = fri.FriConfig;
