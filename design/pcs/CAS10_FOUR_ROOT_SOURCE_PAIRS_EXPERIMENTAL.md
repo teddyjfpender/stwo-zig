@@ -36,8 +36,15 @@ shape rejection. This proves only the implementation's local source-opening
 custody for that shape. The test does not run the Gate AIR or test any
 whole-oracle degree.
 
-The next protocol slice must serialize this source-opening subproof and bind
-it to a new post-OOD two-track FRI transcript. It must recompute each own
+The next full protocol slice must bind this source-opening subproof to a new
+post-OOD two-track FRI transcript. The stacked `S31G4P01` version
+1 subproof wire serializes four ordered root/log profiles, the opened M31
+words, and each tree's compressed Merkle witness. Its decoder checks exact
+lengths and canonical field words, compares every repeated root/log/height to
+the **external** statement, and then runs all four Merkle verifiers. Raw query
+positions are not taken from the wire; a future full verifier must derive
+them from the framed post-PoW channel. The subproof wire itself does not
+establish the root commitment epochs. The full protocol must recompute each own
 quotient from **its own** verifier-owned OOD claim, authenticate both FRI line
 tracks, and check folds and terminal polynomials. CAS09's existing source root
 uses a different Merkle hasher and one pre-OOD epoch; it cannot be substituted
