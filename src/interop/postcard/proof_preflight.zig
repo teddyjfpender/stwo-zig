@@ -5,6 +5,7 @@
 //! cannot turn a small payload into a large allocation request.
 
 const std = @import("std");
+const format_admission = @import("stwo_core").pcs.format_admission;
 
 const M31_MODULUS: u32 = 0x7fff_ffff;
 const TREE_COUNT: usize = 4;
@@ -36,6 +37,8 @@ pub const HashEncoding = enum {
 /// Shape known before proof decoding from an independently validated statement.
 pub const Shape = struct {
     config: Config,
+    /// Selected by the trusted verifier statement, never by proof bytes.
+    proof_mode: format_admission.Mode = .legacy_postcard,
     /// Preprocessed, main, interaction, and composition column counts.
     tree_columns: [TREE_COUNT]u32,
     /// Fixed-only provider proofs may commit an empty main tree. Other tree
@@ -66,6 +69,7 @@ pub const Shape = struct {
 /// witness/interaction, then composition: five trees in one STARK.
 pub const Shape5 = struct {
     config: Config,
+    proof_mode: format_admission.Mode = .legacy_postcard,
     tree_columns: [5]u32,
     allow_empty_main_tree: bool = false,
     /// FRI layers follow the last (composition) commitment's lifting log.
@@ -88,6 +92,7 @@ pub fn ShapeFor(comptime N: usize) type {
     if (N < 2 or N > MAX_TYPED_TREES) @compileError("unsupported typed proof tree count");
     return struct {
         config: Config,
+        proof_mode: format_admission.Mode = .legacy_postcard,
         tree_columns: [N]u32,
         allow_empty_main_tree: bool = false,
         max_column_log_size: u32,
@@ -107,7 +112,7 @@ pub fn validateFor(comptime N: usize, raw: []const u8, shape: ShapeFor(N)) Error
     return validateInternal(raw, shape, null);
 }
 
-pub const Error = error{
+pub const Error = format_admission.Error || error{
     EndOfStream,
     InvalidOptionTag,
     InvalidProofConfig,
@@ -169,6 +174,7 @@ fn validateInternal(
     shape: anytype,
     diagnostic: ?*?Diagnostic,
 ) Error!void {
+    _ = try format_admission.candidate(shape.proof_mode, raw);
     const bounds = try Bounds.init(shape);
     if (raw.len > shape.max_wire_bytes) return error.ProofResourceLimitExceeded;
 
@@ -966,4 +972,24 @@ test "proof preflight typed eight-tree bombs and noncanonical varints reject bef
     try appendVarint(std.testing.allocator, &prefix, shape.tree_columns[0]);
     try appendVarint(std.testing.allocator, &prefix, std.math.maxInt(u64)); // nested sample bomb
     try std.testing.expectError(error.ProofResourceLimitExceeded, validateFor(8, prefix.items, shape));
+}
+
+test "trusted proof mode rejects CAS05 before legacy postcard parsing" {
+    const shape = typedTestShape();
+    const legacy = try typedWire(8, std.testing.allocator, shape);
+    defer std.testing.allocator.free(legacy);
+    try validateFor(8, legacy, shape);
+
+    var cas05_key = shape;
+    cas05_key.proof_mode = .cas05_sparse_v6;
+    try std.testing.expectError(error.WrongProofFormat, validateFor(8, legacy, cas05_key));
+
+    var cas05_header = [_]u8{ 'S', '3', '1', 'C', 'A', 'S', '0', '5', 6, 0, 0, 0, 16, 0, 0, 0 };
+    try std.testing.expectError(error.WrongProofFormat, validateFor(8, &cas05_header, shape));
+    try std.testing.expectError(error.Cas05NotProduction, validateFor(8, &cas05_header, cas05_key));
+    cas05_header[8] = 5;
+    try std.testing.expectError(error.UnsupportedProofVersion, validateFor(8, &cas05_header, cas05_key));
+    cas05_header[8] = 6;
+    cas05_header[12] = 17;
+    try std.testing.expectError(error.MalformedProofHeader, validateFor(8, &cas05_header, cas05_key));
 }

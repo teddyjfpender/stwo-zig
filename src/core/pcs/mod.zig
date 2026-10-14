@@ -5,6 +5,7 @@ const qm31 = @import("../fields/qm31.zig");
 const vcs_verifier = @import("../vcs_lifted/verifier.zig");
 pub const utils = @import("utils.zig");
 pub const config_v2 = @import("config_v2.zig");
+pub const format_admission = @import("format_admission.zig");
 pub const quotients = @import("quotients.zig");
 pub const paired_ensemble = @import("paired_ensemble.zig");
 pub const paired_authenticated = @import("paired_authenticated.zig");
