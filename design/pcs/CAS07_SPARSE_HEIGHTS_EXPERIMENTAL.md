@@ -96,10 +96,11 @@ columns at each height share one `x + constant` input slice; this exercises
 the full column counts, nonzero paired quotients and all 17 folds, but is
 still an easy low-degree witness. It is not the Gate AIR or its witness
 generator. The measured run on an 18-core,
-64 GiB Apple host with `ReleaseFast`, `-j2`, and 32 queries gave 4.045 s
-inside `prove`, 8.12 ms inside verification, a 212,384-byte proof, and
-552,960,000 bytes maximum process RSS (`/usr/bin/time -l`). Build plus test
-wall time was 11.89 s. These are one-run observations, not a bound or
+64 GiB Apple host with `ReleaseFast`, `-j2`, and 232 raw queries gave 4.021 s
+inside `prove`, 22.03 ms inside verification, a 1,221,888-byte proof, and
+561,889,280 bytes maximum process RSS (`/usr/bin/time -l`). Build plus test
+wall time was 11.50 s. The 232-query count is an illustrative paper
+fixture, not a proven Gate security setting. These are one-run observations, not a bound or
 production latency estimate. The pilot test prints its current numbers when
 run through `test-cas07-sparse-heights`.
 

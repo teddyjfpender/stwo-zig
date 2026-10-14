@@ -227,7 +227,7 @@ test "CAS07 full Gate roster nonconstant pilot" {
         }
         heights[i] = columns;
     }
-    const input = host.Input{ .source_columns = &heights, .log_blowup = 2, .n_queries = 32 };
+    const input = host.Input{ .source_columns = &heights, .log_blowup = 2, .n_queries = 232 };
     var channel = Channel{};
     var timer = try std.time.Timer.start();
     var owned = try host.prove(std.testing.allocator, input, &channel);
