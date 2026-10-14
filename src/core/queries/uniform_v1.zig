@@ -241,4 +241,9 @@ test "empty, invalid, budget and counter boundaries fail closed" {
     try std.testing.expectEqual(word_space, channel.next_block);
     try std.testing.expectError(error.CounterExhausted, channel.drawRawU32sChecked());
     try std.testing.expectEqual(word_space, channel.next_block);
+
+    var last_block = FramedQueryWordChannelV1.init(digest, 0);
+    last_block.next_block = word_space - 1;
+    try std.testing.expectError(error.CounterExhausted, drawUniformQueriesV1(&last_block, std.testing.allocator, 2, 9, 2));
+    try std.testing.expectEqual(word_space, last_block.next_block);
 }
