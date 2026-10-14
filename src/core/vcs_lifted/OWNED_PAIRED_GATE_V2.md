@@ -249,7 +249,7 @@ and shape equality: it cannot establish sampled-value correctness or
 that source columns have the required degree. No production prover call has
 been wired because `S31NAT9F` has no selected proof producer or selector.
 
-A full-domain native differential at height 5 constructs 19 independent
+A full-domain native differential at height 5 constructs 19 separately parameterized
 linear source polynomials for the accepted 23-claim subroster, including the
 four double-claim columns. It evaluates their 23 genuine OOD values, runs
 the actual paired quotient formula at all 32 circle rows, and applies the
