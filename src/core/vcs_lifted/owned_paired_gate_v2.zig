@@ -17,6 +17,9 @@ const core_utils = @import("../utils.zig");
 const source_merkle = @import("blake2s_personalized_source_v2.zig");
 const lifted_verifier = @import("verifier.zig");
 const row_context = @import("../pcs/paired_row_context_v2.zig");
+const h3_projection = @import("sparse_h3_source_projection_v2.zig");
+const quotients = @import("../pcs/quotients.zig");
+const pcs_utils = @import("../pcs/utils.zig");
 const descriptor = @import("line_descriptor_v2.zig");
 const admission = @import("line_admission_v2.zig");
 
@@ -44,9 +47,12 @@ pub const Error = error{
     QuotientIntermediateFoldMismatch,
     OriginalTerminalFoldMismatch,
     QuotientTerminalFoldMismatch,
+    UnsupportedSparseH3Profile,
+    SparseSourceAlreadyVerified,
+    InvalidSparseClaimLayout,
 } || plan_mod.Error || admission.Error || uniform.Error || row_context.Error ||
     lifted_verifier.MerkleVerificationError || lifted_verifier.TreeHeightError ||
-    qm31.QM31.Error || m31.M31.Error;
+    qm31.QM31.Error || m31.M31.Error || h3_projection.Error;
 
 pub const source_tree_count: usize = 4;
 pub const max_source_columns: usize = 256;
@@ -57,14 +63,37 @@ pub const SourceRosterV2 = struct {
     column_descriptors: [source_tree_count][]const Digest32,
 };
 
+/// One or two key-derived mask offsets for a source column. For accepted
+/// sparse Gate, exactly twelve interaction columns have two samples.
+pub const SparseH3MaskOffsetsV2 = struct {
+    count: u8,
+    values: [2]i32,
+};
+
+pub const SparseH3SourceRosterV2 = struct {
+    column_log_sizes: [source_tree_count][]const u32,
+    column_descriptors: [source_tree_count][]const Digest32,
+    mask_offsets: [source_tree_count][]const SparseH3MaskOffsetsV2,
+    mask_log: u32,
+};
+
+const SourceMode = enum { h1, sparse_h3 };
+
 const OwnedSourceRoster = struct {
     logs: [source_tree_count][max_source_columns]u32,
+    offsets: [source_tree_count][max_source_columns]SparseH3MaskOffsetsV2,
     counts: [source_tree_count]usize,
     total: usize,
+    claim_total: usize,
+    mask_log: u32,
+    mode: SourceMode,
 
     fn init(statement: framed.StatementBinding, query_log: u32, roster: SourceRosterV2) Error!OwnedSourceRoster {
         var out: OwnedSourceRoster = undefined;
         out.total = 0;
+        out.claim_total = 0;
+        out.mask_log = 0;
+        out.mode = .h1;
         for (roster.column_log_sizes, 0..) |logs, tree| {
             const identities = roster.column_descriptors[tree];
             if (logs.len == 0 or logs.len > max_source_columns or
@@ -79,7 +108,49 @@ const OwnedSourceRoster = struct {
             out.counts[tree] = logs.len;
             @memcpy(out.logs[tree][0..logs.len], logs);
             out.total += logs.len;
+            out.claim_total += logs.len;
         }
+        return out;
+    }
+
+    fn initSparseH3(statement: framed.StatementBinding, query_log: u32, roster: SparseH3SourceRosterV2) Error!OwnedSourceRoster {
+        if (query_log != 17 or roster.mask_log != 16) return error.UnsupportedSparseH3Profile;
+        try h3_projection.validateAcceptedH3Logs(roster.column_log_sizes);
+        var out: OwnedSourceRoster = undefined;
+        out.total = 0;
+        out.claim_total = 0;
+        out.mask_log = roster.mask_log;
+        out.mode = .sparse_h3;
+        for (roster.column_log_sizes, 0..) |logs, tree| {
+            const identities = roster.column_descriptors[tree];
+            const offsets = roster.mask_offsets[tree];
+            if (identities.len != logs.len or offsets.len != logs.len or
+                logs.len > max_source_columns - out.total)
+                return error.InvalidSparseClaimLayout;
+            for (offsets, 0..) |entry, col| {
+                const has_two = tree == 2 and ((col >= 4 and col <= 7) or col >= 16);
+                if (entry.count != @as(u8, if (has_two) 2 else 1) or
+                    (entry.count == 1 and entry.values[1] != 0))
+                    return error.InvalidSparseClaimLayout;
+                out.claim_total += entry.count;
+            }
+            const digest = try sparseH3SourceRosterDigest(
+                statement.key_digest,
+                query_log,
+                roster.mask_log,
+                tree,
+                logs,
+                identities,
+                offsets,
+            );
+            if (!std.mem.eql(u8, &digest, &statement.source_tree_descriptors[tree]))
+                return error.SourceStatementMismatch;
+            out.counts[tree] = logs.len;
+            @memcpy(out.logs[tree][0..logs.len], logs);
+            @memcpy(out.offsets[tree][0..logs.len], offsets);
+            out.total += logs.len;
+        }
+        if (out.total != 61 or out.claim_total != 73) return error.InvalidSparseClaimLayout;
         return out;
     }
 };
@@ -134,6 +205,70 @@ pub fn sourceRosterDigest(
     return framed.hashFrameParts(.tree_context, 0, &.{bytes[0..at]});
 }
 
+pub const sparse_h3_roster_magic = "S31SRC3V";
+
+/// Versioned source descriptor for the accepted sparse H3 shape. Its mask
+/// offsets are *instructions*, not proof-supplied sample points. A selected
+/// S31 adapter must derive every identity, log and offset from its sealed key.
+pub fn sparseH3SourceRosterDigest(
+    key_digest: Digest32,
+    query_log: u32,
+    mask_log: u32,
+    tree: usize,
+    logs: []const u32,
+    identities: []const Digest32,
+    offsets: []const SparseH3MaskOffsetsV2,
+) Error!Digest32 {
+    if (tree >= source_tree_count or query_log != 17 or mask_log != 16 or
+        logs.len == 0 or logs.len > max_source_columns or
+        identities.len != logs.len or offsets.len != logs.len)
+        return error.InvalidSparseClaimLayout;
+    for (identities, 0..) |identity, i| {
+        for (identities[0..i]) |earlier|
+            if (std.mem.eql(u8, &identity, &earlier)) return error.InvalidSparseClaimLayout;
+    }
+    var bytes: [8 + source_merkle.profile_id.len + 8 + 8 + 32 + 1 + 8 + 4 + 4 + 4 + 45 * max_source_columns]u8 = undefined;
+    var at: usize = 0;
+    @memcpy(bytes[at..][0..8], sparse_h3_roster_magic);
+    at += 8;
+    @memcpy(bytes[at..][0..source_merkle.profile_id.len], source_merkle.profile_id);
+    at += source_merkle.profile_id.len;
+    @memcpy(bytes[at..][0..8], &source_merkle.leaf_context);
+    at += 8;
+    @memcpy(bytes[at..][0..8], &source_merkle.parent_context);
+    at += 8;
+    @memcpy(bytes[at..][0..32], &key_digest);
+    at += 32;
+    bytes[at] = @intCast(tree);
+    at += 1;
+    std.mem.writeInt(u64, bytes[at..][0..8], source_root_events[tree], .little);
+    at += 8;
+    std.mem.writeInt(u32, bytes[at..][0..4], query_log, .little);
+    at += 4;
+    std.mem.writeInt(u32, bytes[at..][0..4], mask_log, .little);
+    at += 4;
+    std.mem.writeInt(u32, bytes[at..][0..4], @intCast(logs.len), .little);
+    at += 4;
+    for (logs, identities, offsets, 0..) |log, identity, offset, col| {
+        const has_two = tree == 2 and ((col >= 4 and col <= 7) or col >= 16);
+        if ((log != 17 and log != 11 and log != 5) or
+            offset.count != @as(u8, if (has_two) 2 else 1) or
+            (offset.count == 1 and offset.values[1] != 0))
+            return error.InvalidSparseClaimLayout;
+        std.mem.writeInt(u32, bytes[at..][0..4], log, .little);
+        at += 4;
+        @memcpy(bytes[at..][0..32], &identity);
+        at += 32;
+        bytes[at] = offset.count;
+        at += 1;
+        for (offset.values) |value| {
+            std.mem.writeInt(i32, bytes[at..][0..4], value, .little);
+            at += 4;
+        }
+    }
+    return framed.hashFrameParts(.tree_context, 0, &.{bytes[0..at]});
+}
+
 pub const SourceTreePairOpeningV2 = struct {
     /// One pair per key-owned column, in its exact source descriptor order.
     columns: []const [2]m31.M31,
@@ -141,6 +276,7 @@ pub const SourceTreePairOpeningV2 = struct {
 };
 
 pub const SourcePairWordsV2 = [2][2]qm31.QM31;
+pub const SparseH3PairWordsV2 = [3]SourcePairWordsV2;
 
 fn qm31FromLimbs(limbs: [4]u32) qm31.QM31 {
     var coordinates: [4]m31.M31 = undefined;
@@ -165,6 +301,8 @@ const State = struct {
     source_claim_count: usize = 0,
     source_context: ?row_context.RowContextV2 = null,
     source_insertions: ?[]?SourcePairWordsV2 = null,
+    sparse_h3_insertions: ?[]?SparseH3PairWordsV2 = null,
+    batch_lambda: ?qm31.QM31 = null,
     fold_alphas: [plan_mod.max_fold_heights]qm31.QM31 = undefined,
     fold_alpha_count: usize = 0,
     terminal_coefficients: [2]?qm31.QM31 = .{ null, null },
@@ -190,7 +328,7 @@ pub const OwnedPairedGateVerifierV2 = opaque {
         manifest: descriptor.LineTreeManifestV2,
         statement: framed.StatementBinding,
     ) Error!*Self {
-        return initInternal(allocator, manifest, statement, null);
+        return initInternal(allocator, manifest, statement, null, null);
     }
 
     /// H1 candidate only: each source column is present at the first raw
@@ -202,7 +340,20 @@ pub const OwnedPairedGateVerifierV2 = opaque {
         statement: framed.StatementBinding,
         roster: SourceRosterV2,
     ) Error!*Self {
-        return initInternal(allocator, manifest, statement, roster);
+        return initInternal(allocator, manifest, statement, roster, null);
+    }
+
+    /// Accepted sparse Gate H3 *shape* candidate. The external S31 adapter
+    /// still must derive this roster and its mask offsets from a sealed key.
+    /// Production plain roots cannot be reused under the personalized source
+    /// profile named in these descriptors.
+    pub fn initWithSparseH3SourceRoster(
+        allocator: std.mem.Allocator,
+        manifest: descriptor.LineTreeManifestV2,
+        statement: framed.StatementBinding,
+        roster: SparseH3SourceRosterV2,
+    ) Error!*Self {
+        return initInternal(allocator, manifest, statement, null, roster);
     }
 
     fn initInternal(
@@ -210,7 +361,9 @@ pub const OwnedPairedGateVerifierV2 = opaque {
         manifest: descriptor.LineTreeManifestV2,
         statement: framed.StatementBinding,
         roster: ?SourceRosterV2,
+        sparse_roster: ?SparseH3SourceRosterV2,
     ) Error!*Self {
+        if (roster != null and sparse_roster != null) return error.InvalidSourceRoster;
         // A one-bit FRI fold at each committed height has a line tree at the
         // next height. The raw query is sampled over the first fold height.
         // This is checked geometry, not a sealed-key derivation.
@@ -220,6 +373,10 @@ pub const OwnedPairedGateVerifierV2 = opaque {
         for (manifest.fold_heights[1..], 1..) |height, i| {
             if (height + 1 != manifest.fold_heights[i - 1]) return error.InvalidQueryGeometry;
         }
+        if (sparse_roster != null and
+            (query_log_size != 17 or manifest.fold_heights.len < 14 or
+                manifest.fold_heights[12] != 5 or manifest.fold_heights[13] != 4))
+            return error.UnsupportedSparseH3Profile;
         for (manifest.trees, 0..) |tree, i| {
             const fold_height = manifest.fold_heights[i / 2];
             if (fold_height < 2 or tree.tree_log_size != fold_height - 1)
@@ -227,6 +384,8 @@ pub const OwnedPairedGateVerifierV2 = opaque {
         }
         const owned_roster = if (roster) |input|
             try OwnedSourceRoster.init(statement, query_log_size, input)
+        else if (sparse_roster) |input|
+            try OwnedSourceRoster.initSparseH3(statement, query_log_size, input)
         else
             null;
         const state = try allocator.create(State);
@@ -247,6 +406,8 @@ pub const OwnedPairedGateVerifierV2 = opaque {
         state.source_claim_count = 0;
         state.source_context = null;
         state.source_insertions = null;
+        state.sparse_h3_insertions = null;
+        state.batch_lambda = null;
         state.fold_alpha_count = 0;
         state.terminal_coefficients = .{ null, null };
         return @ptrCast(state);
@@ -263,6 +424,7 @@ pub const OwnedPairedGateVerifierV2 = opaque {
     pub fn deinit(self: *Self) void {
         const state = self.privateState();
         if (state.source_insertions) |insertions| state.allocator.free(insertions);
+        if (state.sparse_h3_insertions) |insertions| state.allocator.free(insertions);
         if (state.source_context) |*context| context.deinit();
         if (state.queries) |*queries| queries.deinit(state.allocator);
         state.admitted.deinit();
@@ -356,13 +518,13 @@ pub const OwnedPairedGateVerifierV2 = opaque {
     pub fn mixSampledValues(self: *Self, limbs: []const u32) Error!void {
         const state = self.privateState();
         if (state.source_roster) |roster| {
-            if (state.ood_point == null or limbs.len != roster.total * 4)
+            if (state.ood_point == null or limbs.len != roster.claim_total * 4)
                 return error.InvalidSourcePairShape;
         }
         try state.plan.mixSampledValues(limbs);
         if (state.source_roster) |roster| {
-            for (0..roster.total) |i| state.source_claims[i] = qm31FromLimbs(limbs[4 * i ..][0..4].*);
-            state.source_claim_count = roster.total;
+            for (0..roster.claim_total) |i| state.source_claims[i] = qm31FromLimbs(limbs[4 * i ..][0..4].*);
+            state.source_claim_count = roster.claim_total;
         }
     }
 
@@ -370,14 +532,18 @@ pub const OwnedPairedGateVerifierV2 = opaque {
         const state = self.privateState();
         const limbs = try state.plan.drawBatchLambda();
         if (state.source_roster) |roster| {
-            if (state.source_claim_count != roster.total) return error.SourceContextMissing;
+            if (state.source_claim_count != roster.claim_total) return error.SourceContextMissing;
             const point = state.ood_point orelse return error.SourceContextMissing;
-            state.source_context = try row_context.RowContextV2.init(
-                state.allocator,
-                point,
-                state.source_claims[0..roster.total],
-                qm31FromLimbs(limbs),
-            );
+            const batch = qm31FromLimbs(limbs);
+            state.batch_lambda = batch;
+            if (roster.mode == .h1) {
+                state.source_context = try row_context.RowContextV2.init(
+                    state.allocator,
+                    point,
+                    state.source_claims[0..roster.total],
+                    batch,
+                );
+            }
         }
         return limbs;
     }
@@ -463,10 +629,16 @@ pub const OwnedPairedGateVerifierV2 = opaque {
             max_blocks,
         );
         errdefer queries.deinit(state.allocator);
-        if (state.source_roster != null) {
-            const insertions = try state.allocator.alloc(?SourcePairWordsV2, n_queries);
-            @memset(insertions, null);
-            state.source_insertions = insertions;
+        if (state.source_roster) |roster| {
+            if (roster.mode == .h1) {
+                const insertions = try state.allocator.alloc(?SourcePairWordsV2, n_queries);
+                @memset(insertions, null);
+                state.source_insertions = insertions;
+            } else {
+                const insertions = try state.allocator.alloc(?SparseH3PairWordsV2, n_queries);
+                @memset(insertions, null);
+                state.sparse_h3_insertions = insertions;
+            }
         }
         state.queries = queries;
     }
@@ -494,6 +666,7 @@ pub const OwnedPairedGateVerifierV2 = opaque {
     ) Error!void {
         const state = self.privateState();
         const roster = if (state.source_roster) |*value| value else return error.SourceNotAdmitted;
+        if (roster.mode != .h1) return error.UnsupportedH1FoldProfile;
         const queries = state.queries orelse return error.QueriesNotDrawn;
         if (query_ordinal >= queries.raw.len) return error.InvalidQueryIndex;
         const insertions = state.source_insertions orelse return error.SourceContextMissing;
@@ -550,6 +723,141 @@ pub const OwnedPairedGateVerifierV2 = opaque {
     pub fn sourceInsertionAt(self: *const Self, query_ordinal: usize) Error!SourcePairWordsV2 {
         const state = self.stateConst();
         const insertions = state.source_insertions orelse return error.SourceContextMissing;
+        if (query_ordinal >= insertions.len) return error.InvalidQueryIndex;
+        return insertions[query_ordinal] orelse error.SourceContextMissing;
+    }
+
+    /// Authenticate the top-height lifted source pair in all four captured
+    /// roots, then privately compute one original/own-quotient insertion pair
+    /// at each populated sparse height. The lower circle row is derived by
+    /// `((raw >> (k-h+1)) << 1) | (raw&1)`, and each claim point is doubled
+    /// `k-h` times before its quotient denominator is evaluated at height h.
+    /// This is a candidate local join; it does not check FRI line equations.
+    pub fn verifyAndKeepSparseH3SourcePair(
+        self: *Self,
+        query_ordinal: usize,
+        openings: [source_tree_count]SourceTreePairOpeningV2,
+    ) Error!void {
+        const state = self.privateState();
+        const roster = if (state.source_roster) |*value| value else return error.SourceNotAdmitted;
+        if (roster.mode != .sparse_h3 or state.query_log_size != 17)
+            return error.UnsupportedSparseH3Profile;
+        const queries = state.queries orelse return error.QueriesNotDrawn;
+        if (query_ordinal >= queries.raw.len) return error.InvalidQueryIndex;
+        const insertions = state.sparse_h3_insertions orelse return error.SourceContextMissing;
+        if (insertions[query_ordinal] != null) return error.SparseSourceAlreadyVerified;
+        const sampled_point = state.ood_point orelse return error.SourceContextMissing;
+        const lambda = state.batch_lambda orelse return error.SourceContextMissing;
+        if (state.source_claim_count != roster.claim_total) return error.SourceContextMissing;
+        const raw = queries.raw[query_ordinal];
+        if (raw >= (@as(usize, 1) << 17)) return error.InvalidQueryGeometry;
+        const base = raw & ~@as(usize, 1);
+        const positions = [2]usize{ base, base + 1 };
+
+        // These are native lifted leaves: every lower-height column is
+        // included at the top raw leaf via the sign-preserving projection.
+        // Merkle row width/order come from the admitted descriptor, not wire.
+        for (openings, 0..) |opened, tree| {
+            const root = state.source_roots[tree] orelse return error.RootNotCaptured;
+            if (opened.columns.len != roster.counts[tree]) return error.InvalidSourcePairShape;
+            var columns: [max_source_columns][]const m31.M31 = undefined;
+            for (opened.columns, 0..) |*pair, col| {
+                for (pair) |value| if (value.v >= m31.Modulus) return error.NonCanonicalSourceRow;
+                columns[col] = pair[0..];
+            }
+            const verifier = lifted_verifier.MerkleVerifierLifted(source_merkle.SourceMerkleHasherV2){
+                .root = root,
+                .column_log_sizes = roster.logs[tree][0..roster.counts[tree]],
+                .height = state.query_log_size,
+            };
+            try verifier.verify(state.allocator, &positions, columns[0..opened.columns.len], .{ .hash_witness = opened.hash_witness });
+        }
+
+        // A local arena bounds temporary per-height sample/quotient shapes.
+        // The selected verifier should precompute and reuse quotient constants
+        // before admitting this path; no performance claim is made here.
+        var arena = std.heap.ArenaAllocator.init(state.allocator);
+        defer arena.deinit();
+        const a = arena.allocator();
+        var claim_starts: [source_tree_count][max_source_columns]usize = undefined;
+        var claim_at: usize = 0;
+        for (0..source_tree_count) |tree| for (0..roster.counts[tree]) |col| {
+            claim_starts[tree][col] = claim_at;
+            claim_at += roster.offsets[tree][col].count;
+        };
+        if (claim_at != roster.claim_total) return error.InvalidSparseClaimLayout;
+
+        var derived: SparseH3PairWordsV2 = undefined;
+        for (h3_projection.accepted_h3_logs, 0..) |height, slot| {
+            const projected = try h3_projection.projectCirclePair(raw, 17, height);
+            try h3_projection.checkCircleProjection(base, 17, height);
+            try h3_projection.checkCircleProjection(base + 1, 17, height);
+            var log_trees: [source_tree_count][]u32 = undefined;
+            var point_trees: [source_tree_count][][]circle.CirclePointQM31 = undefined;
+            var claim_trees: [source_tree_count][][]qm31.QM31 = undefined;
+            var value_trees: [source_tree_count][][]m31.M31 = undefined;
+            var original = [2]qm31.QM31{ qm31.QM31.zero(), qm31.QM31.zero() };
+            var power = qm31.QM31.one();
+            for (0..source_tree_count) |tree| {
+                var count: usize = 0;
+                for (roster.logs[tree][0..roster.counts[tree]]) |log|
+                    if (log == height) {
+                        count += 1;
+                    };
+                log_trees[tree] = try a.alloc(u32, count);
+                point_trees[tree] = try a.alloc([]circle.CirclePointQM31, count);
+                claim_trees[tree] = try a.alloc([]qm31.QM31, count);
+                value_trees[tree] = try a.alloc([]m31.M31, count);
+                var at: usize = 0;
+                for (roster.logs[tree][0..roster.counts[tree]], 0..) |log, col| {
+                    if (log != height) continue;
+                    const sample = roster.offsets[tree][col];
+                    log_trees[tree][at] = height;
+                    point_trees[tree][at] = try a.alloc(circle.CirclePointQM31, sample.count);
+                    claim_trees[tree][at] = try a.alloc(qm31.QM31, sample.count);
+                    value_trees[tree][at] = try a.alloc(m31.M31, 2);
+                    for (0..2) |side| {
+                        const value = openings[tree].columns[col][side];
+                        value_trees[tree][at][side] = value;
+                        original[side] = original[side].add(power.mul(qm31.QM31.fromBase(value)));
+                    }
+                    power = power.mul(lambda);
+                    for (0..sample.count) |j| {
+                        const offset_point = canonic.CanonicCoset.new(roster.mask_log).step()
+                            .mulSigned(sample.values[j]);
+                        const point = sampled_point.add(.{
+                            .x = qm31.QM31.fromBase(offset_point.x),
+                            .y = qm31.QM31.fromBase(offset_point.y),
+                        });
+                        point_trees[tree][at][j] = point.repeatedDouble(17 - height);
+                        claim_trees[tree][at][j] = state.source_claims[claim_starts[tree][col] + j];
+                    }
+                    at += 1;
+                }
+            }
+            const answers = quotients.friAnswers(
+                a,
+                pcs_utils.TreeVec([]u32).initOwned(log_trees[0..]),
+                pcs_utils.TreeVec([][]circle.CirclePointQM31).initOwned(point_trees[0..]),
+                pcs_utils.TreeVec([][]qm31.QM31).initOwned(claim_trees[0..]),
+                lambda,
+                &projected,
+                pcs_utils.TreeVec([][]m31.M31).initOwned(value_trees[0..]),
+                height,
+            ) catch |err| switch (err) {
+                error.OutOfMemory => return error.OutOfMemory,
+                else => return error.InvalidSparseClaimLayout,
+            };
+            if (answers.len != 2) return error.InvalidSparseClaimLayout;
+            for (0..2) |side| derived[slot][side] = .{ original[side], answers[side] };
+        }
+        insertions[query_ordinal] = derived;
+    }
+
+    /// A copy for diagnostics only. Fold verification must read the retained
+    /// private insertion directly and check every configured query ordinal.
+    pub fn sparseH3InsertionAt(self: *const Self, query_ordinal: usize) Error!SparseH3PairWordsV2 {
+        const insertions = self.stateConst().sparse_h3_insertions orelse return error.SourceContextMissing;
         if (query_ordinal >= insertions.len) return error.InvalidQueryIndex;
         return insertions[query_ordinal] orelse error.SourceContextMissing;
     }
@@ -1029,6 +1337,250 @@ test "source descriptor bytes match independent Python and bind ordered identiti
     try std.testing.expect(!std.mem.eql(u8, &ordered, &swapped));
     try std.testing.expectError(error.InvalidSourceRoster, sourceRosterDigest(zero, 2, 0, &.{ 2, 2 }, &.{ id_a, id_a }));
     try std.testing.expectError(error.InvalidSourceRoster, sourceRosterDigest(zero, 2, 0, &.{2}, &.{}));
+}
+
+const SparseH3TestRoster = struct {
+    logs: [4][max_source_columns]u32 = undefined,
+    ids: [4][max_source_columns]Digest32 = undefined,
+    offsets: [4][max_source_columns]SparseH3MaskOffsetsV2 = undefined,
+
+    fn init() SparseH3TestRoster {
+        var out: SparseH3TestRoster = .{};
+        const counts = h3_projection.accepted_h3_counts;
+        const patterns = [4][]const u32{
+            &.{ 5, 5, 5, 11, 11, 11, 11, 11, 11, 11, 11, 17 },
+            &.{ 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 5, 5, 5, 5, 17 },
+            &.{ 11, 11, 11, 11, 11, 11, 11, 11, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 17, 17, 17, 17 },
+            &([_]u32{17} ** 8),
+        };
+        for (0..4) |tree| {
+            for (patterns[tree], 0..) |height, at| {
+                out.logs[tree][at] = height;
+                out.ids[tree][at] = [_]u8{@intCast(32 * tree + at + 1)} ** 32;
+                const has_two = tree == 2 and ((at >= 4 and at <= 7) or at >= 16);
+                out.offsets[tree][at] = if (has_two)
+                    .{ .count = 2, .values = .{ -1, 0 } }
+                else
+                    .{ .count = 1, .values = .{ 0, 0 } };
+            }
+            std.debug.assert(patterns[tree].len == counts[tree]);
+        }
+        return out;
+    }
+
+    fn slices(self: *const SparseH3TestRoster) SparseH3SourceRosterV2 {
+        var out: SparseH3SourceRosterV2 = undefined;
+        out.mask_log = 16;
+        for (h3_projection.accepted_h3_counts, 0..) |count, tree| {
+            out.column_log_sizes[tree] = self.logs[tree][0..count];
+            out.column_descriptors[tree] = self.ids[tree][0..count];
+            out.mask_offsets[tree] = self.offsets[tree][0..count];
+        }
+        return out;
+    }
+};
+
+const SparseH3TestManifest = struct {
+    heights: [14]u32 = undefined,
+    trees: [26]descriptor.LineTreeDescriptorV2 = undefined,
+    columns: [1]Digest32 = .{[_]u8{0xE1} ** 32},
+
+    fn init(self: *SparseH3TestManifest) void {
+        const zero = [_]u8{0} ** 32;
+        const profile = descriptor.lineHashProfileDigest();
+        for (&self.heights, 0..) |*height, i| height.* = @intCast(17 - i);
+        for (&self.trees, 0..) |*tree, i| {
+            const pair = i / 2;
+            tree.* = .{
+                .key_digest = zero,
+                .profile_digest = profile,
+                .track = if (i % 2 == 0) .original else .own_quotient,
+                .fold_height = self.heights[pair],
+                .tree_log_size = self.heights[pair] - 1,
+                .root_event = 17 + 3 * @as(u64, @intCast(pair)) + @as(u64, @intCast(i % 2)),
+                .column_descriptors = &self.columns,
+            };
+        }
+    }
+
+    fn value(self: *const SparseH3TestManifest) descriptor.LineTreeManifestV2 {
+        return .{ .key_digest = [_]u8{0} ** 32, .fold_heights = &self.heights, .trees = &self.trees };
+    }
+};
+
+test "sparse H3 source roster binds mask instructions and rejects mutation" {
+    const allocator = std.testing.allocator;
+    const zero = [_]u8{0} ** 32;
+    var manifest_storage: SparseH3TestManifest = .{};
+    manifest_storage.init();
+    const manifest = manifest_storage.value();
+    var source = SparseH3TestRoster.init();
+    var roster = source.slices();
+    var python_vector: Digest32 = undefined;
+    _ = try std.fmt.hexToBytes(&python_vector, "124863b2249a569cb93c812c706d43a2dc4d2be7d4cf21783366adfe6b615f6f");
+    try std.testing.expectEqualDeep(python_vector, try sparseH3SourceRosterDigest(
+        zero,
+        17,
+        16,
+        0,
+        &.{5},
+        &.{[_]u8{0x11} ** 32},
+        &.{.{ .count = 1, .values = .{ 0, 0 } }},
+    ));
+    _ = try std.fmt.hexToBytes(&python_vector, "dfe141c2b67f21080fad9bb4dadb71e6514833ac967aef893eb7da9a5e82adc0");
+    const signed_ids = [_]Digest32{
+        [_]u8{0x21} ** 32, [_]u8{0x22} ** 32, [_]u8{0x23} ** 32,
+        [_]u8{0x24} ** 32, [_]u8{0x25} ** 32,
+    };
+    const signed_offsets = [_]SparseH3MaskOffsetsV2{
+        .{ .count = 1, .values = .{ 0, 0 } },  .{ .count = 1, .values = .{ 0, 0 } },
+        .{ .count = 1, .values = .{ 0, 0 } },  .{ .count = 1, .values = .{ 0, 0 } },
+        .{ .count = 2, .values = .{ -1, 0 } },
+    };
+    try std.testing.expectEqualDeep(python_vector, try sparseH3SourceRosterDigest(
+        zero,
+        17,
+        16,
+        2,
+        &.{ 11, 11, 11, 11, 11 },
+        &signed_ids,
+        &signed_offsets,
+    ));
+    var statement = try testStatement(manifest, allocator);
+    for (&statement.source_tree_descriptors, 0..) |*digest, tree|
+        digest.* = try sparseH3SourceRosterDigest(zero, 17, 16, tree, roster.column_log_sizes[tree], roster.column_descriptors[tree], roster.mask_offsets[tree]);
+    const verifier = try OwnedPairedGateVerifierV2.initWithSparseH3SourceRoster(allocator, manifest, statement, roster);
+    defer verifier.deinit();
+    try std.testing.expectError(error.QueriesNotDrawn, verifier.verifyAndKeepSparseH3SourcePair(0, undefined));
+    source.offsets[2][4].values[0] = -2;
+    roster = source.slices();
+    try std.testing.expectError(error.SourceStatementMismatch, OwnedPairedGateVerifierV2.initWithSparseH3SourceRoster(allocator, manifest, statement, roster));
+    source.offsets[2][4].values[0] = -1;
+    source.logs[0][0] = 17;
+    roster = source.slices();
+    try std.testing.expectError(error.InvalidAcceptedRoster, OwnedPairedGateVerifierV2.initWithSparseH3SourceRoster(allocator, manifest, statement, roster));
+}
+
+test "sparse H3 authenticated lower-height insertions use private raw query" {
+    const allocator = std.testing.allocator;
+    const zero = [_]u8{0} ** 32;
+    var manifest_storage: SparseH3TestManifest = .{};
+    manifest_storage.init();
+    const manifest = manifest_storage.value();
+    var source = SparseH3TestRoster.init();
+    const roster = source.slices();
+    var statement = try testStatement(manifest, allocator);
+    for (&statement.source_tree_descriptors, 0..) |*digest, tree|
+        digest.* = try sparseH3SourceRosterDigest(zero, 17, 16, tree, roster.column_log_sizes[tree], roster.column_descriptors[tree], roster.mask_offsets[tree]);
+    const verifier = try OwnedPairedGateVerifierV2.initWithSparseH3SourceRoster(allocator, manifest, statement, roster);
+    defer verifier.deinit();
+    const state = verifier.privateState();
+    state.ood_point = try circle.secureFieldPointFromRandomSeedChecked(qm31FromLimbs(.{ 9, 3, 7, 2 }));
+    state.batch_lambda = qm31.QM31.fromBase(m31.M31.fromCanonical(7));
+    state.source_claim_count = 73;
+    for (state.source_claims[0..73]) |*claim| claim.* = qm31.QM31.zero();
+    state.source_claims[0] = qm31.QM31.fromBase(m31.M31.fromCanonical(5));
+    state.source_claims[12] = qm31.QM31.fromBase(m31.M31.fromCanonical(13));
+    state.source_claims[49] = qm31.QM31.fromBase(m31.M31.fromCanonical(7));
+    state.source_claims[50] = qm31.QM31.fromBase(m31.M31.fromCanonical(11));
+    const raw = try allocator.dupe(usize, &.{ 90528, 90528 });
+    state.queries = .{ .raw = raw, .blocks_consumed = 1, .words_examined = 2, .words_rejected = 0 };
+    state.sparse_h3_insertions = try allocator.alloc(?SparseH3PairWordsV2, 2);
+    @memset(state.sparse_h3_insertions.?, null);
+
+    var columns: [4][max_source_columns][2]m31.M31 = undefined;
+    var witness: [4][16]Digest32 = undefined;
+    var openings: [4]SourceTreePairOpeningV2 = undefined;
+    for (h3_projection.accepted_h3_counts, 0..) |count, tree| {
+        for (columns[tree][0..count], 0..) |*pair, col| {
+            const value: u32 = if (tree == 0 and col == 0) 17 else if (tree == 1 and col == 0) 31 else if (tree == 2 and col == 16) 23 else 0;
+            pair.* = .{ m31.M31.fromCanonical(value), m31.M31.fromCanonical(value) };
+        }
+        var leaf = source_merkle.SourceMerkleHasherV2.defaultWithInitialState();
+        // Native lifted Merkle leaf order is ascending log, stable by column.
+        for ([_]u32{ 5, 11, 17 }) |height| for (0..count) |col| {
+            if (source.logs[tree][col] == height)
+                leaf.updateLeaf(columns[tree][col][0..1]);
+        };
+        var node = leaf.finalize();
+        for (0..17) |level| {
+            if (level > 0) witness[tree][level - 1] = node;
+            node = source_merkle.SourceMerkleHasherV2.hashChildren(.{ .left = node, .right = node });
+        }
+        state.source_roots[tree] = node;
+        openings[tree] = .{ .columns = columns[tree][0..count], .hash_witness = &witness[tree] };
+    }
+    try std.testing.expectError(error.InvalidQueryIndex, verifier.verifyAndKeepSparseH3SourcePair(2, openings));
+    try verifier.verifyAndKeepSparseH3SourcePair(0, openings);
+    try verifier.verifyAndKeepSparseH3SourcePair(1, openings);
+    const first = try verifier.sparseH3InsertionAt(0);
+    const repeated = try verifier.sparseH3InsertionAt(1);
+    try std.testing.expectEqualDeep(first, repeated);
+    for (first[0..1]) |pair| for (pair) |tracks| for (tracks) |value|
+        try std.testing.expect(value.eql(qm31.QM31.zero()));
+    const lambda = state.batch_lambda.?;
+    var lambda_8 = qm31.QM31.one();
+    for (0..8) |_| lambda_8 = lambda_8.mul(lambda);
+    const want_11_original = lambda_8.mul(qm31.QM31.fromBase(m31.M31.fromCanonical(31)));
+    try std.testing.expect(first[1][0][0].eql(want_11_original));
+    try std.testing.expect(first[1][1][0].eql(want_11_original));
+    const projected_11 = try h3_projection.projectCirclePair(90528, 17, 11);
+    const row_11 = canonic.CanonicCoset.new(11).circleDomain()
+        .at(core_utils.bitReverseIndex(projected_11[0], 11));
+    const point_11 = state.ood_point.?.repeatedDouble(6);
+    var context_11 = try row_context.RowContextV2.init(allocator, point_11, &.{state.source_claims[12]}, qm31.QM31.one());
+    defer context_11.deinit();
+    const want_11_quotient = lambda_8.mul((try context_11.openedValues(&.{m31.M31.fromCanonical(31)}, row_11))[1]);
+    try std.testing.expect(first[1][0][1].eql(want_11_quotient));
+    var lambda_15 = qm31.QM31.one();
+    for (0..15) |_| lambda_15 = lambda_15.mul(lambda);
+    const want_original = qm31.QM31.fromBase(m31.M31.fromCanonical(17)).add(lambda_15.mul(qm31.QM31.fromBase(m31.M31.fromCanonical(23))));
+    try std.testing.expect(first[2][0][0].eql(want_original));
+    try std.testing.expect(first[2][1][0].eql(want_original));
+    // Differential against the separately implemented one-column row
+    // context, including both explicit points and periodic sample first.
+    const projected = try h3_projection.projectCirclePair(90528, 17, 5);
+    const row = canonic.CanonicCoset.new(5).circleDomain()
+        .at(core_utils.bitReverseIndex(projected[0], 5));
+    const base_point = state.ood_point.?.repeatedDouble(12);
+    const offset_point = canonic.CanonicCoset.new(16).step().mulSigned(-1);
+    const shifted_point = state.ood_point.?.add(.{
+        .x = qm31.QM31.fromBase(offset_point.x),
+        .y = qm31.QM31.fromBase(offset_point.y),
+    }).repeatedDouble(12);
+    const periodic_step = canonic.CanonicCoset.new(5).step().repeatedDouble(5);
+    const periodic_point = base_point.add(.{
+        .x = qm31.QM31.fromBase(periodic_step.x),
+        .y = qm31.QM31.fromBase(periodic_step.y),
+    });
+    const value_17 = [_]m31.M31{m31.M31.fromCanonical(17)};
+    const value_23 = [_]m31.M31{m31.M31.fromCanonical(23)};
+    var c0 = try row_context.RowContextV2.init(allocator, base_point, &.{state.source_claims[0]}, qm31.QM31.one());
+    defer c0.deinit();
+    var cp = try row_context.RowContextV2.init(allocator, periodic_point, &.{state.source_claims[50]}, qm31.QM31.one());
+    defer cp.deinit();
+    var c1 = try row_context.RowContextV2.init(allocator, shifted_point, &.{state.source_claims[49]}, qm31.QM31.one());
+    defer c1.deinit();
+    var c2 = try row_context.RowContextV2.init(allocator, base_point, &.{state.source_claims[50]}, qm31.QM31.one());
+    defer c2.deinit();
+    const q0 = (try c0.openedValues(&value_17, row))[1];
+    const qp = (try cp.openedValues(&value_23, row))[1];
+    const q1 = (try c1.openedValues(&value_23, row))[1];
+    const q2 = (try c2.openedValues(&value_23, row))[1];
+    const want_quotient = q0.add(lambda_15.mul(qp)).add(lambda_15.mul(lambda).mul(q1))
+        .add(lambda_15.mul(lambda.square()).mul(q2));
+    try std.testing.expect(first[2][0][1].eql(want_quotient));
+    try std.testing.expectError(error.SparseSourceAlreadyVerified, verifier.verifyAndKeepSparseH3SourcePair(0, openings));
+    state.sparse_h3_insertions.?[1] = null;
+    columns[0][0][0] = m31.M31.one();
+    try std.testing.expectError(error.RootMismatch, verifier.verifyAndKeepSparseH3SourcePair(1, openings));
+    columns[0][0][0] = m31.M31.fromCanonical(17);
+    witness[0][0][0] ^= 1;
+    try std.testing.expectError(error.RootMismatch, verifier.verifyAndKeepSparseH3SourcePair(1, openings));
+    witness[0][0][0] ^= 1;
+    state.source_roots[0].?[0] ^= 1;
+    try std.testing.expectError(error.RootMismatch, verifier.verifyAndKeepSparseH3SourcePair(1, openings));
+    try std.testing.expect(state.sparse_h3_insertions.?[1] == null);
 }
 
 fn advanceH1Source(
