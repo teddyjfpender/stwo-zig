@@ -207,7 +207,7 @@ test "CAS07 candidate S31 prelude binds key words and roster before source profi
     try std.testing.expectEqualSlices(u8, &initial.digest, &rejected.digest);
 }
 
-test "CAS07 full Gate roster pilot" {
+test "CAS07 full Gate roster nonconstant pilot" {
     var input_arena = std.heap.ArenaAllocator.init(std.testing.allocator);
     defer input_arena.deinit();
     const a = input_arena.allocator();
@@ -216,8 +216,13 @@ test "CAS07 full Gate roster pilot" {
     for (counts, 0..) |count, i| {
         const columns = try a.alloc([]const M31, count);
         if (count > 0) {
-            const values = try a.alloc(M31, @as(usize, 1) << @intCast(20 - i));
-            @memset(values, M31.fromCanonical(@intCast(i + 1)));
+            const log_size: u32 = @intCast(20 - i);
+            const values = try a.alloc(M31, @as(usize, 1) << @intCast(log_size));
+            const domain = core.poly.circle.canonic.CanonicCoset.new(log_size).circleDomain();
+            for (values, 0..) |*value, row| {
+                const point = domain.at(core.utils.bitReverseIndex(row, log_size));
+                value.* = point.x.add(M31.fromCanonical(@intCast(i + 1)));
+            }
             for (columns) |*column| column.* = values;
         }
         heights[i] = columns;
