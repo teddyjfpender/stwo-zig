@@ -118,6 +118,20 @@ wrong version, a changed candidate S31 roster prelude, and honestly
 committed but false line/terminal data. These are finite implementation
 tests, not a PCS soundness proof.
 
+The `S31CAS07` wire also has an audit-only `verifyAndExtractRelation` entry
+point. It runs the full statement-bound verifier, replays the transcript,
+reauthenticates each sampled XDM05 source pair and intermediate line pair,
+and returns an owned record of the raw queries, source rows, claims,
+challenges, forwarded words, and terminal coefficients. Its independent
+`check` recomputes each original/own-quotient batch by direct interpolation,
+then checks the fold and normalized `2^i` recurrence at every queried height.
+CAS05/XDM04 uses the same checker, and its scalar bridge still passes. H=1
+and an absent interior height have hostile extraction tests, including changed
+recorded fold words and a fully authenticated false line. This establishes
+only a finite accepted-row relation conditional on Merkle binding. It does
+not establish whole-domain degree, cross-domain correlated agreement, or a
+soundness parameter.
+
 The S31 audit preflight accepts a caller-supplied Gate manifest. Its roster
 derivation is deterministic, but the API alone does not establish that the
 manifest came from the compiler or installed verification key. Production
@@ -139,4 +153,5 @@ Focused checks:
 
 ```sh
 zig build --build-file src/prover/build.zig test-xdm05-sparse-heights test-cas07-sparse-heights -j2 -Doptimize=ReleaseSafe
+zig build --build-file src/prover/build.zig test-cas05-accepted-relation -j2 -Doptimize=ReleaseSafe
 ```

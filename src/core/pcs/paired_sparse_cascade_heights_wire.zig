@@ -10,6 +10,7 @@ const m31 = @import("../fields/m31.zig");
 const qm31 = @import("../fields/qm31.zig");
 const xdm = @import("transposed_merkle_sparse_heights_experimental.zig");
 const cascade = @import("paired_sparse_cascade_heights_experimental.zig");
+const relation = @import("paired_sparse_relation_heights_experimental.zig");
 const s31_prelude = @import("s31_cas05_prelude_experimental.zig");
 
 const M31 = m31.M31;
@@ -223,6 +224,21 @@ pub fn verifyAgainstS31Statement(
     var decoded = try decode(allocator, encoded);
     defer decoded.deinit();
     try cascade.verifyAgainstS31Statement(allocator, decoded.proof, channel, binding, statement);
+}
+
+/// Audit-only accepted-relation extraction from a complete CAS07 byte wire.
+/// Rows are reauthenticated after the full statement-bound verifier succeeds;
+/// the returned owned certificate survives destruction of the decoded proof.
+/// This is not a production admission or a proximity-security certificate.
+pub fn verifyAndExtractRelation(
+    allocator: std.mem.Allocator,
+    encoded: []const u8,
+    channel: *blake2s_channel.Blake2sChannel,
+    statement: cascade.ExpectedStatement,
+) !relation.AcceptedRelation {
+    var decoded = try decode(allocator, encoded);
+    defer decoded.deinit();
+    return relation.verifyAndExtract(allocator, decoded.proof, channel, statement);
 }
 
 fn writeQM31(w: anytype, value: QM31) !void {

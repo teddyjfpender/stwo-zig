@@ -79,6 +79,19 @@ pub fn build(b: *std.Build) void {
     );
     s31_prelude_step.dependOn(&b.addRunArtifact(s31_prelude_tests).step);
     test_step.dependOn(s31_prelude_step);
+    const cas05_relation_root = b.createModule(.{
+        .root_source_file = b.path("../tests/native/prover/paired_fri_relation_bridge_test.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    cas05_relation_root.addImport("stwo_core", core);
+    cas05_relation_root.addImport("stwo_prover_engine", prover);
+    const cas05_relation_step = b.step(
+        "test-cas05-accepted-relation",
+        "Check the shared CAS05 authenticated-row relation after generic extraction",
+    );
+    cas05_relation_step.dependOn(&b.addRunArtifact(b.addTest(.{ .root_module = cas05_relation_root })).step);
+    test_step.dependOn(cas05_relation_step);
     const sparse_heights_root = b.createModule(.{
         .root_source_file = b.path("xdm05_sparse_heights_test_root.zig"),
         .target = target,
