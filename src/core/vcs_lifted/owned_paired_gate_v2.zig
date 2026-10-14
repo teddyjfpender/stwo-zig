@@ -17,6 +17,7 @@ const core_utils = @import("../utils.zig");
 const source_merkle = @import("blake2s_personalized_source_v2.zig");
 const lifted_verifier = @import("verifier.zig");
 const row_context = @import("../pcs/paired_row_context_v2.zig");
+const paired_claim_rows = @import("../pcs/paired_claim_rows_v2.zig");
 const h3_projection = @import("sparse_h3_source_projection_v2.zig");
 const quotients = @import("../pcs/quotients.zig");
 const pcs_utils = @import("../pcs/utils.zig");
@@ -319,6 +320,19 @@ pub const SourceTreePairOpeningV2 = struct {
 pub const SourcePairWordsV2 = [2][2]qm31.QM31;
 pub const SparseH3PairWordsV2 = [3]SourcePairWordsV2;
 
+/// One literal `(f, own quotient)` pair for each explicit OOD claim. Double-
+/// sample columns repeat the *same authenticated source value* under distinct
+/// claim indices. This does not include legacy periodicity contributions.
+pub const SparseH3LiteralClaimV2 = struct {
+    root_index: u8,
+    column_index: u8,
+    claim_index: u8,
+    height: u8,
+    words: paired_claim_rows.PairWords,
+};
+
+const SparseH3LiteralClaimRowsV2 = [73]SparseH3LiteralClaimV2;
+
 fn qm31FromLimbs(limbs: [4]u32) qm31.QM31 {
     var coordinates: [4]m31.M31 = undefined;
     for (limbs, &coordinates) |limb, *coordinate| coordinate.* = m31.M31.fromCanonical(limb);
@@ -343,6 +357,7 @@ const State = struct {
     source_context: ?row_context.RowContextV2 = null,
     source_insertions: ?[]?SourcePairWordsV2 = null,
     sparse_h3_insertions: ?[]?SparseH3PairWordsV2 = null,
+    literal_h3_claim_rows: ?[]?*SparseH3LiteralClaimRowsV2 = null,
     // Separate from the 61/85 diagnostic rows. No public constructor fills
     // this until a matched, authenticated per-claim ensemble is specified.
     paired_h3_insertions: ?[]?SparseH3PairWordsV2 = null,
@@ -451,6 +466,7 @@ pub const OwnedPairedGateVerifierV2 = opaque {
         state.source_context = null;
         state.source_insertions = null;
         state.sparse_h3_insertions = null;
+        state.literal_h3_claim_rows = null;
         state.paired_h3_insertions = null;
         state.batch_lambda = null;
         state.fold_alpha_count = 0;
@@ -470,6 +486,10 @@ pub const OwnedPairedGateVerifierV2 = opaque {
         const state = self.privateState();
         if (state.source_insertions) |insertions| state.allocator.free(insertions);
         if (state.sparse_h3_insertions) |insertions| state.allocator.free(insertions);
+        if (state.literal_h3_claim_rows) |rows| {
+            for (rows) |maybe_row| if (maybe_row) |row| state.allocator.destroy(row);
+            state.allocator.free(rows);
+        }
         if (state.paired_h3_insertions) |insertions| state.allocator.free(insertions);
         if (state.source_context) |*context| context.deinit();
         if (state.queries) |*queries| queries.deinit(state.allocator);
@@ -682,8 +702,12 @@ pub const OwnedPairedGateVerifierV2 = opaque {
                 state.source_insertions = insertions;
             } else {
                 const insertions = try state.allocator.alloc(?SparseH3PairWordsV2, n_queries);
+                errdefer state.allocator.free(insertions);
                 @memset(insertions, null);
+                const literal_rows = try state.allocator.alloc(?*SparseH3LiteralClaimRowsV2, n_queries);
+                @memset(literal_rows, null);
                 state.sparse_h3_insertions = insertions;
+                state.literal_h3_claim_rows = literal_rows;
             }
         }
         state.queries = queries;
@@ -788,6 +812,28 @@ pub const OwnedPairedGateVerifierV2 = opaque {
         query_ordinal: usize,
         openings: [source_tree_count]SourceTreePairOpeningV2,
     ) Error!void {
+        return self.verifyAndKeepSparseH3SourcePairInternal(query_ordinal, openings, .with_diagnostic);
+    }
+
+    /// Authenticate the same four source roots and retain only the literal
+    /// 73 explicit-claim pairs. This skips the unrelated legacy periodic
+    /// quotient computation. It still does not admit a fold ensemble.
+    pub fn verifyAndKeepSparseH3LiteralClaimPairs(
+        self: *Self,
+        query_ordinal: usize,
+        openings: [source_tree_count]SourceTreePairOpeningV2,
+    ) Error!void {
+        return self.verifyAndKeepSparseH3SourcePairInternal(query_ordinal, openings, .literal_only);
+    }
+
+    const SparseH3DerivationMode = enum { literal_only, with_diagnostic };
+
+    fn verifyAndKeepSparseH3SourcePairInternal(
+        self: *Self,
+        query_ordinal: usize,
+        openings: [source_tree_count]SourceTreePairOpeningV2,
+        mode: SparseH3DerivationMode,
+    ) Error!void {
         const state = self.privateState();
         const roster = if (state.source_roster) |*value| value else return error.SourceNotAdmitted;
         if (roster.mode != .sparse_h3 or state.query_log_size != 17)
@@ -795,7 +841,9 @@ pub const OwnedPairedGateVerifierV2 = opaque {
         const queries = state.queries orelse return error.QueriesNotDrawn;
         if (query_ordinal >= queries.raw.len) return error.InvalidQueryIndex;
         const insertions = state.sparse_h3_insertions orelse return error.SourceContextMissing;
+        const literal_slots = state.literal_h3_claim_rows orelse return error.SourceContextMissing;
         if (insertions[query_ordinal] != null) return error.SparseSourceAlreadyVerified;
+        if (literal_slots[query_ordinal] != null) return error.SparseSourceAlreadyVerified;
         const sampled_point = state.ood_point orelse return error.SourceContextMissing;
         const lambda = state.batch_lambda orelse return error.SourceContextMissing;
         if (state.source_claim_count != roster.claim_total) return error.SourceContextMissing;
@@ -836,6 +884,61 @@ pub const OwnedPairedGateVerifierV2 = opaque {
             claim_at += roster.offsets[tree][col].count;
         };
         if (claim_at != roster.claim_total) return error.InvalidSparseClaimLayout;
+
+        // Literal explicit-claim pairs keep each source identity attached to
+        // each of its one or two OOD claims. No native periodic sample enters
+        // this array. It is a source-bound candidate receipt, not yet the
+        // matched/batched fold ensemble required by Protocol 4.
+        const literal = try state.allocator.create(SparseH3LiteralClaimRowsV2);
+        errdefer state.allocator.destroy(literal);
+        var claim_inputs: [73]paired_claim_rows.ClaimInput = undefined;
+        var source_rows: [3][2]circle.CirclePointM31 = undefined;
+        for (h3_projection.accepted_h3_logs, 0..) |height, slot| {
+            const projected = try h3_projection.projectCirclePair(raw, 17, height);
+            const domain = canonic.CanonicCoset.new(height).circleDomain();
+            for (projected, 0..) |index, side|
+                source_rows[slot][side] = domain.at(core_utils.bitReverseIndex(index, height));
+        }
+        const mask_step = canonic.CanonicCoset.new(roster.mask_log).step();
+        for (0..source_tree_count) |tree| for (0..roster.counts[tree]) |col| {
+            const height = roster.logs[tree][col];
+            const slot: usize = switch (height) {
+                17 => 0,
+                11 => 1,
+                5 => 2,
+                else => return error.InvalidSparseClaimLayout,
+            };
+            const sample = roster.offsets[tree][col];
+            for (0..sample.count) |j| {
+                const index = claim_starts[tree][col] + j;
+                const shift = mask_step.mulSigned(sample.values[j]);
+                const top_point = sampled_point.add(.{
+                    .x = qm31.QM31.fromBase(shift.x),
+                    .y = qm31.QM31.fromBase(shift.y),
+                });
+                claim_inputs[index] = .{
+                    .point = top_point.repeatedDouble(17 - height),
+                    .claimed_value = state.source_claims[index],
+                    .source_rows = source_rows[slot],
+                    .source_values = openings[tree].columns[col],
+                };
+                literal[index] = .{
+                    .root_index = @intCast(tree),
+                    .column_index = @intCast(col),
+                    .claim_index = @intCast(index),
+                    .height = @intCast(height),
+                    .words = undefined,
+                };
+            }
+        };
+        var literal_words: [73]paired_claim_rows.PairWords = undefined;
+        paired_claim_rows.derive(&claim_inputs, &literal_words) catch return error.InvalidSparseClaimLayout;
+        for (&literal_words, literal) |words, *record| record.words = words;
+
+        if (mode == .literal_only) {
+            literal_slots[query_ordinal] = literal;
+            return;
+        }
 
         var derived: SparseH3PairWordsV2 = undefined;
         for (h3_projection.accepted_h3_logs, 0..) |height, slot| {
@@ -901,6 +1004,7 @@ pub const OwnedPairedGateVerifierV2 = opaque {
             if (answers.len != 2) return error.InvalidSparseClaimLayout;
             for (0..2) |side| derived[slot][side] = .{ original[side], answers[side] };
         }
+        literal_slots[query_ordinal] = literal;
         insertions[query_ordinal] = derived;
     }
 
@@ -910,6 +1014,15 @@ pub const OwnedPairedGateVerifierV2 = opaque {
         const insertions = self.stateConst().sparse_h3_insertions orelse return error.SourceContextMissing;
         if (query_ordinal >= insertions.len) return error.InvalidQueryIndex;
         return insertions[query_ordinal] orelse error.SourceContextMissing;
+    }
+
+    /// One copied explicit-claim receipt. Claim order is root, column, then
+    /// offset-instruction order. It is not a batched or degree-tested oracle.
+    pub fn sparseH3LiteralClaimAt(self: *const Self, query_ordinal: usize, claim_index: usize) Error!SparseH3LiteralClaimV2 {
+        const rows = self.stateConst().literal_h3_claim_rows orelse return error.SourceContextMissing;
+        if (query_ordinal >= rows.len or claim_index >= 73) return error.InvalidQueryIndex;
+        const stored = rows[query_ordinal] orelse return error.SourceContextMissing;
+        return stored[claim_index];
     }
 
     /// Read-only occupancy receipt for this admitted candidate roster. It
@@ -1672,6 +1785,8 @@ test "sparse H3 authenticated lower-height insertions use private raw query" {
     state.queries = .{ .raw = raw, .blocks_consumed = 1, .words_examined = 2, .words_rejected = 0 };
     state.sparse_h3_insertions = try allocator.alloc(?SparseH3PairWordsV2, 2);
     @memset(state.sparse_h3_insertions.?, null);
+    state.literal_h3_claim_rows = try allocator.alloc(?*SparseH3LiteralClaimRowsV2, 2);
+    @memset(state.literal_h3_claim_rows.?, null);
 
     var columns: [4][max_source_columns][2]m31.M31 = undefined;
     var witness: [4][16]Digest32 = undefined;
@@ -1701,6 +1816,40 @@ test "sparse H3 authenticated lower-height insertions use private raw query" {
     const first = try verifier.sparseH3InsertionAt(0);
     const repeated = try verifier.sparseH3InsertionAt(1);
     try std.testing.expectEqualDeep(first, repeated);
+    var claim_counts = [_]usize{ 0, 0, 0 };
+    for (0..73) |claim_index| {
+        const literal = try verifier.sparseH3LiteralClaimAt(0, claim_index);
+        try std.testing.expectEqual(@as(u8, @intCast(claim_index)), literal.claim_index);
+        const bucket: usize = switch (literal.height) {
+            17 => 0,
+            11 => 1,
+            5 => 2,
+            else => return error.InvalidSparseClaimLayout,
+        };
+        claim_counts[bucket] += 1;
+        try std.testing.expectEqualDeep(literal, try verifier.sparseH3LiteralClaimAt(1, claim_index));
+    }
+    try std.testing.expectEqualDeep([3]usize{ 18, 32, 23 }, claim_counts);
+    var expected_claim: usize = 0;
+    for (h3_projection.accepted_h3_counts, 0..) |count, tree| {
+        for (0..count) |col| {
+            for (0..source.offsets[tree][col].count) |_| {
+                const record = try verifier.sparseH3LiteralClaimAt(0, expected_claim);
+                try std.testing.expectEqual(@as(u8, @intCast(tree)), record.root_index);
+                try std.testing.expectEqual(@as(u8, @intCast(col)), record.column_index);
+                try std.testing.expectEqual(@as(u8, @intCast(source.logs[tree][col])), record.height);
+                expected_claim += 1;
+            }
+        }
+    }
+    try std.testing.expectEqual(@as(usize, 73), expected_claim);
+    try std.testing.expectError(error.InvalidQueryIndex, verifier.sparseH3LiteralClaimAt(0, 73));
+    const shifted_claim = try verifier.sparseH3LiteralClaimAt(0, 49);
+    const base_claim = try verifier.sparseH3LiteralClaimAt(0, 50);
+    try std.testing.expectEqual(shifted_claim.root_index, base_claim.root_index);
+    try std.testing.expectEqual(shifted_claim.column_index, base_claim.column_index);
+    for (0..2) |side| try std.testing.expect(shifted_claim.words[side][0].eql(base_claim.words[side][0]));
+    try std.testing.expect(!shifted_claim.words[0][1].eql(base_claim.words[0][1]));
     for (first[0..1]) |pair| for (pair) |tracks| for (tracks) |value|
         try std.testing.expect(value.eql(qm31.QM31.zero()));
     const lambda = state.batch_lambda.?;
@@ -1752,13 +1901,24 @@ test "sparse H3 authenticated lower-height insertions use private raw query" {
     const qp = (try cp.openedValues(&value_23, row))[1];
     const q1 = (try c1.openedValues(&value_23, row))[1];
     const q2 = (try c2.openedValues(&value_23, row))[1];
+    try std.testing.expect(shifted_claim.words[0][1].eql(q1));
+    try std.testing.expect(base_claim.words[0][1].eql(q2));
     const want_quotient = q0.add(lambda_15.mul(qp)).add(lambda_15.mul(lambda).mul(q1))
         .add(lambda_15.mul(lambda.square()).mul(q2));
     try std.testing.expect(first[2][0][1].eql(want_quotient));
     try std.testing.expectError(error.SparseSourceAlreadyVerified, verifier.verifyAndKeepSparseH3SourcePair(0, openings));
     state.sparse_h3_insertions.?[1] = null;
+    allocator.destroy(state.literal_h3_claim_rows.?[1].?);
+    state.literal_h3_claim_rows.?[1] = null;
+    try verifier.verifyAndKeepSparseH3LiteralClaimPairs(1, openings);
+    try std.testing.expect(state.sparse_h3_insertions.?[1] == null);
+    try std.testing.expect(state.paired_h3_insertions == null);
+    try std.testing.expectEqualDeep(shifted_claim, try verifier.sparseH3LiteralClaimAt(1, 49));
+    try std.testing.expectError(error.SparseSourceAlreadyVerified, verifier.verifyAndKeepSparseH3LiteralClaimPairs(1, openings));
+    allocator.destroy(state.literal_h3_claim_rows.?[1].?);
+    state.literal_h3_claim_rows.?[1] = null;
     columns[0][0][0] = m31.M31.one();
-    try std.testing.expectError(error.RootMismatch, verifier.verifyAndKeepSparseH3SourcePair(1, openings));
+    try std.testing.expectError(error.RootMismatch, verifier.verifyAndKeepSparseH3LiteralClaimPairs(1, openings));
     columns[0][0][0] = m31.M31.fromCanonical(17);
     witness[0][0][0] ^= 1;
     try std.testing.expectError(error.RootMismatch, verifier.verifyAndKeepSparseH3SourcePair(1, openings));
@@ -1766,6 +1926,7 @@ test "sparse H3 authenticated lower-height insertions use private raw query" {
     state.source_roots[0].?[0] ^= 1;
     try std.testing.expectError(error.RootMismatch, verifier.verifyAndKeepSparseH3SourcePair(1, openings));
     try std.testing.expect(state.sparse_h3_insertions.?[1] == null);
+    try std.testing.expect(state.literal_h3_claim_rows.?[1] == null);
 }
 
 test "sparse H3 committed cascade checks every step and all three source heights" {

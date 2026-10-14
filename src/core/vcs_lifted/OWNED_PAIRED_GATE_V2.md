@@ -101,6 +101,21 @@ insertion is an authenticated **local diagnostic**, not the matching
 per-claim original/quotient ensemble in S-two Protocol 4 Eq. (77), a proven
 degree-corrected oracle, or an established paper batch width `M`.
 
+The same authenticated opening also retains a separate **literal 73-claim
+receipt**. For each explicit claim in root/column/claim order it copies the
+same authenticated source value and computes that claim's own quotient at
+its normalized source-height OOD point. The twelve double-claim columns each
+appear twice with the same source identity and different point/value/divisor;
+no periodicity term enters this receipt. The per-height `(original, quotient)`
+word counts are 36, 64, and 46 at heights 17, 11, and 5. A single batch
+inversion handles all 146 row/claim denominators at one query. The receipt
+is available one claim at a time for audit, but it does **not** fill the
+paired-ensemble slot in the fold kernel: the common-Q and two-instance
+theorems, lambda schedule, and source identity refinement remain open.
+`verifyAndKeepSparseH3LiteralClaimPairs` authenticates the same four source
+paths and retains just this receipt, skipping legacy diagnostic `friAnswers`
+work. A repeated opening or failed path cannot overwrite the retained row.
+
 At one privately sampled raw query, `verifyAndKeepSparseH3SourcePair` opens
 the adjacent top leaves `raw & ~1` and `(raw & ~1)+1` under all four captured
 personalized source roots. The lifted leaf has every column in ascending log
@@ -141,7 +156,8 @@ The focused H3 tests pin the accepted 17→11 and 17→5 projections for both
 sides of raw query 90528, which map to source pairs 1414/1415 and 22/23.
 They check changed bucket counts, mask-offset descriptor mutation, a wrong
 query ordinal, repeated raw queries, inconsistent repeated rows, wrong paths,
-and a nonzero two-sample quotient against an independently constructed
+the exact 18/32/23 explicit-claim counts, repeated original values under
+one double-claim column, and a nonzero two-sample quotient against an independently constructed
 one-column row context. The tests use synthetic personalized source trees;
 the local arithmetic test seeds the owner's private transcript state directly
 to isolate the opening calculation, so it does not exercise full event replay;
