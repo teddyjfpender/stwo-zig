@@ -122,6 +122,20 @@ pub fn build(b: *std.Build) void {
     cascade_heights_step.dependOn(&b.addRunArtifact(cascade_heights_tests).step);
     test_step.dependOn(cascade_heights_step);
 
+    const cas07_gate_degree_root = b.createModule(.{
+        .root_source_file = b.path("cas07_gate_degree_test_root.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    cas07_gate_degree_root.addImport("stwo_core", core);
+    cas07_gate_degree_root.addImport("stwo_prover_engine", prover);
+    const cas07_gate_degree_step = b.step(
+        "test-cas07-gate-degree",
+        "Check exact Gate minimum-height source and own-quotient degree boundary",
+    );
+    cas07_gate_degree_step.dependOn(&b.addRunArtifact(b.addTest(.{ .root_module = cas07_gate_degree_root })).step);
+    test_step.dependOn(cas07_gate_degree_step);
+
     _ = addFocusedTests(b, core, backend_contracts, prover_api, target, optimize, check_only, .{
         .step = "test-blake3-prefix-reuse",
         .description = "Verify BLAKE3 bounded prefix reuse across budgets and worker counts",
