@@ -141,6 +141,18 @@ fn samplePoints(allocator: std.mem.Allocator) !Points {
     return Points.initOwned(trees);
 }
 
+fn emptyPreprocessedPoints(allocator: std.mem.Allocator) !Points {
+    const point = core.circle.SECURE_FIELD_CIRCLE_GEN.mul(47);
+    const empty_columns = try allocator.alloc([]CirclePointQM31, 0);
+    errdefer allocator.free(empty_columns);
+    const trace_columns = try allocator.alloc([]CirclePointQM31, 1);
+    errdefer allocator.free(trace_columns);
+    trace_columns[0] = try allocator.dupe(CirclePointQM31, &.{point});
+    errdefer allocator.free(trace_columns[0]);
+    const trees = try allocator.dupe([][]CirclePointQM31, &.{ empty_columns, trace_columns });
+    return Points.initOwned(trees);
+}
+
 fn Digest() type {
     return struct {
         hasher: std.crypto.hash.blake2.Blake2s256 = .init(.{}),
@@ -253,6 +265,53 @@ test "PCS revision: preprocessed tree below the trace height matches proving@5a7
 
 test "PCS revision: Blake2sMerkleChannel root profile matches proving@5a7c5ed" {
     try proveScenario(profiles.Blake2sMerkleChannel, 6, plain_lift6);
+}
+
+test "PCS revision: empty preprocessed tree has an owned empty proof capture" {
+    const allocator = std.testing.allocator;
+    const Profile = profiles.Blake2sMerkleChannel;
+    const Scheme = scheme_mod.CommitmentSchemeProver(HostBackend, Profile.MerkleHasher, Profile);
+    const Verifier = core.pcs.verifier.CommitmentSchemeVerifier(Profile.MerkleHasher, Profile);
+    const fri = try config_v2.FriConfigV2.init(0, 0, 1, 3, 1);
+    const config = config_v2.PcsConfigV2{
+        .fri_config = fri,
+        .trace_lifting_log_size = 4,
+        .preprocessed_lifting_log_size = 0,
+    };
+    var channel = Profile.Channel{};
+    fri.mixInto(&channel);
+    var scheme = try Scheme.initRevision(allocator, config);
+    {
+        errdefer scheme.deinit(allocator);
+        try commitTree(&scheme, allocator, &.{}, &channel);
+        try commitTree(&scheme, allocator, &.{.{ 3, 1 }}, &channel);
+    }
+    var ext = try scheme.proveValues(allocator, try emptyPreprocessedPoints(allocator), &channel);
+    defer ext.aux.deinit(allocator);
+    defer ext.proof.deinit(allocator);
+
+    var verifier = try Verifier.init(allocator, config);
+    defer verifier.deinit(allocator);
+    var verifier_channel = Profile.Channel{};
+    fri.mixInto(&verifier_channel);
+    try verifier.commit(allocator, ext.proof.commitments.items[0], &.{}, &verifier_channel);
+    try verifier.commit(allocator, ext.proof.commitments.items[1], &.{3}, &verifier_channel);
+
+    var capture: core.pcs.verifier.VerifiedProofCapture(Profile.MerkleHasher) = undefined;
+    try verifier.verifyValuesWithBorrowedProofCapture(
+        allocator,
+        try emptyPreprocessedPoints(allocator),
+        &ext.proof,
+        &verifier_channel,
+        .{ .composition_randomness = QM31.one(), .oods_seed = QM31.one() },
+        &capture,
+    );
+    defer capture.deinit(allocator);
+    try std.testing.expectEqual(@as(usize, 2), capture.trace_paths.len);
+    try std.testing.expectEqual(@as(usize, 0), capture.trace_paths[0].positions.len);
+    try std.testing.expectEqual(@as(u32, 0), capture.trace_paths[0].path_depth);
+    try std.testing.expectEqual(@as(usize, 0), capture.trace_paths[0].siblings.len);
+    try std.testing.expectEqualSlices(u8, &channel.digestBytes(), &verifier_channel.digestBytes());
 }
 
 test "PCS revision: a nonempty tree above its configured height is refused" {

@@ -189,7 +189,30 @@ pub fn MerkleVerifierLifted(comptime H: type) type {
             if (queried_values.len != self.column_log_sizes.len) {
                 return MerkleVerificationError.InvalidQueryShape;
             }
-            if (self.column_log_sizes.len == 0) return;
+            if (self.column_log_sizes.len == 0) {
+                // The prover commits one empty leaf at height zero. There is
+                // no row to open, so the root and empty proof are the entire
+                // commitment relation. Publish an owned zero-path capture on
+                // success: PCS records and later frees every captured tree.
+                if (self.height != 0 or query_positions.len != 0)
+                    return MerkleVerificationError.InvalidQueryShape;
+                if (decommitment.hash_witness.len != 0)
+                    return MerkleVerificationError.WitnessTooLong;
+                var empty_leaf = H.defaultWithInitialState();
+                if (!vcs_hash.eql(empty_leaf.finalize(), self.root))
+                    return MerkleVerificationError.RootMismatch;
+                if (capture_out) |destination| {
+                    const positions = try allocator.alloc(usize, 0);
+                    errdefer allocator.free(positions);
+                    const siblings = try allocator.alloc(H.Hash, 0);
+                    destination.* = .{
+                        .positions = positions,
+                        .path_depth = 0,
+                        .siblings = siblings,
+                    };
+                }
+                return;
+            }
 
             for (queried_values) |column| {
                 if (column.len != query_positions.len) return MerkleVerificationError.InvalidQueryShape;
