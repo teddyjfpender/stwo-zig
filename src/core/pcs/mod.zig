@@ -7,6 +7,7 @@ pub const utils = @import("utils.zig");
 pub const config_v2 = @import("config_v2.zig");
 pub const quotients = @import("quotients.zig");
 pub const verifier = @import("verifier.zig");
+pub const paired_row_context_v2 = @import("paired_row_context_v2.zig");
 
 const FriConfig = fri.FriConfig;
 const FriProof = fri.FriProof;
