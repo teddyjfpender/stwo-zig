@@ -85,6 +85,21 @@ test "XDM05 absent height hashes upper parent, authenticates gapped rows and sav
     try std.testing.expect(!std.mem.eql(u8, &root, &different_root));
     try std.testing.expectEqual(wire.len + raw.len * 2 * @sizeOf(M31), explicit_wire.len);
 
+    // The height-2 row sits above an absent height. Its field words must
+    // still be authenticated through the ordinary upper-parent at height 1.
+    var tampered_row = try allocator.dupe(u8, wire);
+    defer allocator.free(tampered_row);
+    const header: usize = 8 + 2 + 2 + 4 + 4 + 2 + 2 + 4 + 2 * heights.len + 32;
+    const height2_first_word = header + 4 + 2 * h0.len * @sizeOf(M31);
+    tampered_row[height2_first_word] ^= 1;
+    try std.testing.expectError(error.RootMismatch, source.verifyAndCollect(
+        allocator,
+        tampered_row,
+        tree.profile,
+        root,
+        &raw,
+    ));
+
     var changed = try allocator.dupe(u8, wire);
     defer allocator.free(changed);
     const counts_at: usize = 8 + 2 + 2 + 4 + 4 + 2 + 2 + 4;

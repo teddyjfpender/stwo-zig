@@ -9,6 +9,7 @@ const source = core.pcs.transposed_merkle_sparse_heights_experimental;
 const source_host = @import("stwo_prover_engine").pcs.transposed_sparse_heights_experimental;
 const prelude = core.pcs.s31_cas05_prelude_experimental;
 const M31 = core.fields.m31.M31;
+const QM31 = core.fields.qm31.QM31;
 const Channel = core.channel.blake2s.Blake2sChannel;
 
 fn statement(proof: cascade.Proof) cascade.ExpectedStatement {
@@ -59,6 +60,57 @@ test "CAS07 H=1 proves and verifies, with terminal and format failures" {
         &rejected,
         statement(fake.proof),
     ));
+}
+
+test "CAS07 H=1 verifies a nonconstant circle polynomial at sampled source pairs" {
+    const allocator = std.testing.allocator;
+    const domain = core.poly.circle.canonic.CanonicCoset.new(5).circleDomain();
+    var values: [32]M31 = undefined;
+    for (&values, 0..) |*value, row| {
+        const point = domain.at(core.utils.bitReverseIndex(row, 5));
+        value.* = point.x.add(M31.fromCanonical(7));
+    }
+    const h0 = [_][]const M31{&values};
+    const heights = [_][]const []const M31{&h0};
+    const input = host.Input{ .source_columns = &heights, .log_blowup = 2, .n_queries = 32 };
+    var prover_channel = Channel{};
+    var owned = try host.prove(allocator, input, &prover_channel);
+    defer owned.deinit();
+    var verifier_channel = Channel{};
+    try cascade.verifyAgainstStatement(allocator, owned.proof, &verifier_channel, statement(owned.proof));
+    try std.testing.expectEqualSlices(u8, &prover_channel.digest, &verifier_channel.digest);
+    try std.testing.expectEqual(@as(usize, 0), owned.proof.line_openings.len);
+    try std.testing.expectEqual(@as(usize, 4), owned.proof.terminal_ordered_coeffs.len);
+}
+
+test "an absent CAS07 height folds the preceding line without an inserted term" {
+    const allocator = std.testing.allocator;
+    const line_domain = core.poly.line.LineDomain.fromCircleDomain(
+        core.poly.circle.canonic.CanonicCoset.new(5).circleDomain(),
+    );
+    const inserted_domain = core.poly.circle.canonic.CanonicCoset.new(4).circleDomain();
+    var previous: [16]QM31 = undefined;
+    for (&previous, 0..) |*value, row|
+        value.* = QM31.fromBase(M31.fromCanonical(@intCast(3 * row * row + row + 11)));
+    const zero = [_]QM31{QM31.zero()} ** 16;
+    const alpha = QM31.fromBase(M31.fromCanonical(137));
+    const folded = try core.fri.multidomain_insertion.insertCircleBatch(
+        allocator,
+        &previous,
+        line_domain,
+        &zero,
+        inserted_domain,
+        alpha,
+    );
+    defer allocator.free(folded.values);
+    try std.testing.expectEqual(@as(usize, 8), folded.values.len);
+    for (folded.values, 0..) |actual, row| {
+        const x = line_domain.at(core.utils.bitReverseIndex(row, 3));
+        const even = previous[2 * row];
+        const odd = previous[2 * row + 1];
+        const expected = even.add(odd).add(alpha.mul(even.sub(odd).mulM31(try x.inv())));
+        try std.testing.expect(actual.eql(expected));
+    }
 }
 
 test "CAS07 gapped H=4 proves and verifies, with forged line rejected" {
