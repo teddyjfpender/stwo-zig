@@ -16,6 +16,7 @@ const vcs_verifier = @import("../vcs_lifted/verifier.zig");
 const xdm = @import("transposed_merkle_sparse.zig");
 const paired = @import("transposed_paired_sparse.zig");
 const old = @import("paired_cascade_experimental.zig");
+const s31_prelude = @import("s31_cas05_prelude_experimental.zig");
 
 const M31 = m31.M31;
 const QM31 = qm31.QM31;
@@ -221,6 +222,22 @@ pub fn verifyAgainstStatement(
     );
     defer answers.deinit();
     try verifyFolds(allocator, proof, raw, answers.values, alphas);
+    channel.* = staged;
+}
+
+/// Opt-in S31 candidate contract. The binding is trusted only when the caller
+/// independently reconstructs the installed key, public ABI words, and
+/// compiler-owned source-to-AIR roster. Production PCS does not call this.
+pub fn verifyAgainstS31Statement(
+    allocator: std.mem.Allocator,
+    proof: Proof,
+    channel: *Channel,
+    binding: s31_prelude.Binding,
+    statement: ExpectedStatement,
+) !void {
+    var staged = channel.*;
+    s31_prelude.mix(&staged, binding);
+    try verifyAgainstStatement(allocator, proof, &staged, statement);
     channel.* = staged;
 }
 

@@ -65,6 +65,21 @@ pub fn build(b: *std.Build) void {
     test_step.dependOn(&run_tests.step);
     test_step.dependOn(&run_deep_tests.step);
 
+    const s31_prelude_root = b.createModule(.{
+        .root_source_file = b.path("cas05_s31_prelude_test_root.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    s31_prelude_root.addImport("stwo_core", core);
+    s31_prelude_root.addImport("stwo_prover_engine", prover);
+    const s31_prelude_tests = b.addTest(.{ .root_module = s31_prelude_root });
+    const s31_prelude_step = b.step(
+        "test-cas05-s31-prelude",
+        "Check opt-in S31 CAS05 prover/verifier transcript context",
+    );
+    s31_prelude_step.dependOn(&b.addRunArtifact(s31_prelude_tests).step);
+    test_step.dependOn(s31_prelude_step);
+
     _ = addFocusedTests(b, core, backend_contracts, prover_api, target, optimize, check_only, .{
         .step = "test-blake3-prefix-reuse",
         .description = "Verify BLAKE3 bounded prefix reuse across budgets and worker counts",

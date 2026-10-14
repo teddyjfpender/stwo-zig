@@ -19,6 +19,7 @@ pub const transposed_merkle_cascade = @import("transposed_merkle_cascade.zig");
 pub const transposed_merkle_sparse = @import("transposed_merkle_sparse.zig");
 pub const transposed_paired_sparse = @import("transposed_paired_sparse.zig");
 pub const paired_sparse_cascade_experimental = @import("paired_sparse_cascade_experimental.zig");
+pub const s31_cas05_prelude_experimental = @import("s31_cas05_prelude_experimental.zig");
 pub const paired_sparse_relation_experimental = @import("paired_sparse_relation_experimental.zig");
 pub const paired_sparse_cascade_wire = @import("paired_sparse_cascade_wire.zig");
 pub const transposed_paired_cascade = @import("transposed_paired_cascade.zig");
