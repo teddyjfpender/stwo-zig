@@ -9,6 +9,7 @@ pub const proof_of_work = @import("proof_of_work.zig");
 pub const crypto = @import("crypto/mod.zig");
 pub const utils = @import("utils.zig");
 pub const queries = @import("queries.zig");
+pub const uniform_queries_v1 = @import("queries/uniform_v1.zig");
 pub const fraction = @import("fraction.zig");
 pub const fft = @import("fft.zig");
 pub const poly = @import("poly/mod.zig");
@@ -27,6 +28,11 @@ pub const proof_json = @import("proof_json.zig");
 pub const test_utils = @import("test_utils.zig");
 pub const verifier_types = @import("verifier_types.zig");
 pub const verifier = @import("verifier.zig");
+
+test {
+    _ = uniform_queries_v1;
+    _ = channel.framed_bcs_v2;
+}
 
 /// Vector where each element relates by index to a trace column.
 pub fn ColumnVec(comptime T: type) type {
