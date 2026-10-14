@@ -32,6 +32,7 @@ pub const verifier = @import("verifier.zig");
 test {
     _ = uniform_queries_v1;
     _ = channel.framed_bcs_v2;
+    _ = vcs_lifted.blake2s_personalized_line_v2;
 }
 
 /// Vector where each element relates by index to a trace column.

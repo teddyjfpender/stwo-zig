@@ -6,6 +6,7 @@ const M31 = m31_mod.M31;
 const QM31 = qm31_mod.QM31;
 
 pub const blake2_merkle = @import("blake2_merkle.zig");
+pub const blake2s_personalized_line_v2 = @import("blake2s_personalized_line_v2.zig");
 pub const blake3_merkle = @import("blake3_merkle.zig");
 pub const channel_profile = @import("channel_profile.zig");
 pub const merkle_hasher = @import("merkle_hasher.zig");
