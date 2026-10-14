@@ -78,6 +78,38 @@ the new route. The CAS05 public statement, commitments, prover, native
 verifier, correspondence proof, and conservative soundness profile remain
 unimplemented in production.
 
+## Experimental S31 transcript context
+
+The opt-in `proveForS31Statement` and `verifyAgainstS31Statement` wrappers
+apply the same typed Blake2s prelude **before** CAS05's `S31CAS06` version tag.
+They mix, in fixed order, `S31PRL01`, `S31KEY01` plus the whole installed-key
+SHA-256, `S31PUB01` plus eight ABI-reconstructed public words, and `S31RST01`
+plus a compiler-owned source-to-AIR roster SHA-256. Every tag is a `mixU64`;
+the two digests are eight little-endian `u32` words under `mixU32s`, and the
+public words are mixed as eight `u32`s. The CAS05 core then binds its profile,
+source commitment root, OOD claims, line roots, terminal coefficients, and
+queries in its existing order. The source root comes from the independent
+`ExpectedStatement`, not from proof authority.
+
+The focused test compares the prelude digest with an independent Python
+`hashlib.blake2s` byte fixture, proves and verifies one candidate wire under
+matching context, and rejects changed key, public words, roster digest, and
+an unbound proof without advancing the verifier channel. This is a
+**conditional transcript contract**: the API accepts a caller-supplied roster
+digest and cannot establish that it came from S31's compiler. S31 still needs
+to generate an ordered mapping for every preprocessed, base, and interaction
+AIR column and OOD claim into the XDM04 hierarchy, then have its installed
+verifier reconstruct that mapping. The experimental host can prove arbitrary
+degree-bounded source columns, including columns unrelated to any S31 AIR.
+No production dispatcher calls these wrappers, and this section makes no
+PCS/FRI soundness claim.
+
+Focused check:
+
+```sh
+zig build --build-file src/prover/build.zig test-cas05-s31-prelude -j2 -Doptimize=ReleaseSafe
+```
+
 Focused checks:
 
 ```sh

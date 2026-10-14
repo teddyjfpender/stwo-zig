@@ -16,6 +16,7 @@ const LineEvaluation = @import("../line.zig").LineEvaluation;
 const M31 = m31.M31;
 const QM31 = qm31.QM31;
 const Channel = core.channel.blake2s.Blake2sChannel;
+const s31_prelude = core.pcs.s31_cas05_prelude_experimental;
 
 pub const Input = struct {
     source_columns: []const []const []const M31,
@@ -38,6 +39,21 @@ pub fn prove(
     channel: *Channel,
 ) !OwnedProof {
     return proveImpl(allocator, input, channel, .none);
+}
+
+/// Candidate S31 host path. The context must come from an installed key,
+/// public ABI, and compiler-owned roster; it is not a production prover.
+pub fn proveForS31Statement(
+    allocator: std.mem.Allocator,
+    input: Input,
+    channel: *Channel,
+    binding: s31_prelude.Binding,
+) !OwnedProof {
+    var staged = channel.*;
+    s31_prelude.mix(&staged, binding);
+    const proof = try proveImpl(allocator, input, &staged, .none);
+    channel.* = staged;
+    return proof;
 }
 
 /// Adversarial test helper: authentic source and line commitments/openings are

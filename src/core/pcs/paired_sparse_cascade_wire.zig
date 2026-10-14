@@ -11,6 +11,7 @@ const qm31 = @import("../fields/qm31.zig");
 const xdm = @import("transposed_merkle_cascade.zig");
 const cascade = @import("paired_sparse_cascade_experimental.zig");
 const relation = @import("paired_sparse_relation_experimental.zig");
+const s31_prelude = @import("s31_cas05_prelude_experimental.zig");
 
 const M31 = m31.M31;
 const QM31 = qm31.QM31;
@@ -209,6 +210,20 @@ pub fn verifyAgainstStatement(
     var decoded = try decode(allocator, encoded);
     defer decoded.deinit();
     try cascade.verifyAgainstStatement(allocator, decoded.proof, channel, statement);
+}
+
+/// Candidate S31 wire entry point. The caller must derive `binding` from
+/// trusted installed metadata; this is not a production PCS dispatcher.
+pub fn verifyAgainstS31Statement(
+    allocator: std.mem.Allocator,
+    encoded: []const u8,
+    channel: *blake2s_channel.Blake2sChannel,
+    binding: s31_prelude.Binding,
+    statement: cascade.ExpectedStatement,
+) !void {
+    var decoded = try decode(allocator, encoded);
+    defer decoded.deinit();
+    try cascade.verifyAgainstS31Statement(allocator, decoded.proof, channel, binding, statement);
 }
 
 /// Audit-only accepted-relation extraction from a complete byte wire. The
