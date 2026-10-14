@@ -155,6 +155,21 @@ pub fn build(b: *std.Build) void {
     // This full-width diagnostic is opt-in because it materializes a 2^20-row
     // source tree and both complete FRI tracks.
 
+    const four_root_pairs = b.createModule(.{
+        .root_source_file = b.path("four_root_pair_openings_test_root.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    four_root_pairs.addImport("stwo_core", core);
+    four_root_pairs.addImport("stwo_prover_engine", prover);
+    const four_root_pair_tests = b.addTest(.{ .root_module = four_root_pairs });
+    const four_root_pair_step = b.step(
+        "test-four-root-pair-openings",
+        "Test four production-profile plain Merkle roots and synchronized source pairs",
+    );
+    four_root_pair_step.dependOn(&b.addRunArtifact(four_root_pair_tests).step);
+    test_step.dependOn(four_root_pair_step);
+
     _ = addFocusedTests(b, core, backend_contracts, prover_api, target, optimize, check_only, .{
         .step = "test-blake3-prefix-reuse",
         .description = "Verify BLAKE3 bounded prefix reuse across budgets and worker counts",

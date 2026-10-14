@@ -20,6 +20,7 @@ pub const paired_sparse_cascade_experimental = @import("paired_sparse_cascade_ex
 pub const paired_sparse_cascade_heights_experimental = @import("paired_sparse_cascade_heights_experimental.zig");
 pub const paired_independent_h1_experimental = @import("paired_independent_h1_experimental.zig");
 pub const paired_independent_heights_experimental = @import("paired_independent_heights_experimental.zig");
+pub const four_root_pair_openings_experimental = @import("four_root_pair_openings_experimental.zig");
 /// `proving_5a7c5ed` commitment heights: the single lifting step of every
 /// commit path and the FRI/PoW view of a V2 configuration.
 pub const revision_lifting = scheme.revision_lifting;
