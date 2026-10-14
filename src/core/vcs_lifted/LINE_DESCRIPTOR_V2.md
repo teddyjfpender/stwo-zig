@@ -66,9 +66,8 @@ remains an explicit selected-verifier and LDR-theorem obligation.
 The candidate `verifyBoundOpening` recomputes and hashes the complete
 manifest for **each** opening. If there are `q` openings and `B` manifest
 bytes, its statement check costs `q × B` hashed bytes; this has not been
-benchmarked as a whole verifier. A selected verifier should admit the
-statement once, copy or otherwise privately own the validated descriptor
-roster, retain its digest in an internal cache, and then check each opening
-against that cached binding and its authenticated root event. Exposing a
-mutable cached roster would invalidate that reasoning. No such admission
-cache or selected verifier exists in this candidate.
+benchmarked as a whole verifier. The experimental
+[`line_admission_v2.zig`](line_admission_v2.zig) adds an opaque one-time cache
+and named-root capture for disciplined callers. A selected verifier still
+needs to privately own the full channel/event wrapper and derive every
+descriptor from its sealed key; that integration remains open.
