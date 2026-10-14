@@ -79,6 +79,35 @@ pub fn build(b: *std.Build) void {
     );
     s31_prelude_step.dependOn(&b.addRunArtifact(s31_prelude_tests).step);
     test_step.dependOn(s31_prelude_step);
+    const sparse_heights_root = b.createModule(.{
+        .root_source_file = b.path("xdm05_sparse_heights_test_root.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    sparse_heights_root.addImport("stwo_core", core);
+    sparse_heights_root.addImport("stwo_prover_engine", prover);
+    const sparse_heights_tests = b.addTest(.{ .root_module = sparse_heights_root });
+    const sparse_heights_step = b.step(
+        "test-xdm05-sparse-heights",
+        "Test experimental H=1 and absent-height transposed source commitments",
+    );
+    sparse_heights_step.dependOn(&b.addRunArtifact(sparse_heights_tests).step);
+    test_step.dependOn(sparse_heights_step);
+
+    const cascade_heights_root = b.createModule(.{
+        .root_source_file = b.path("cas07_sparse_heights_test_root.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    cascade_heights_root.addImport("stwo_core", core);
+    cascade_heights_root.addImport("stwo_prover_engine", prover);
+    const cascade_heights_tests = b.addTest(.{ .root_module = cascade_heights_root });
+    const cascade_heights_step = b.step(
+        "test-cas07-sparse-heights",
+        "Test experimental H=1 and absent-height CAS07 paired folds",
+    );
+    cascade_heights_step.dependOn(&b.addRunArtifact(cascade_heights_tests).step);
+    test_step.dependOn(cascade_heights_step);
 
     _ = addFocusedTests(b, core, backend_contracts, prover_api, target, optimize, check_only, .{
         .step = "test-blake3-prefix-reuse",

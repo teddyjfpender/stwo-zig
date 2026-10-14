@@ -8,6 +8,7 @@
 
 const std = @import("std");
 const cas05 = @import("paired_sparse_cascade_wire.zig");
+const CAS07_RESERVED_MAGIC = "S31CAS07";
 
 pub const Mode = enum {
     legacy_postcard,
@@ -24,12 +25,14 @@ pub const Error = error{
 pub fn candidate(mode: Mode, bytes: []const u8) Error!Mode {
     const has_cas05_magic = bytes.len >= cas05.MAGIC.len and
         std.mem.eql(u8, bytes[0..cas05.MAGIC.len], cas05.MAGIC);
+    const has_cas07_magic = bytes.len >= CAS07_RESERVED_MAGIC.len and
+        std.mem.eql(u8, bytes[0..CAS07_RESERVED_MAGIC.len], CAS07_RESERVED_MAGIC);
     switch (mode) {
         .legacy_postcard => {
             // The current trusted legacy profiles cannot start with this
             // reserved prefix. Keep CAS05 bytes out of the unversioned
             // postcard parser even if a future profile resembles its header.
-            if (has_cas05_magic) return error.WrongProofFormat;
+            if (has_cas05_magic or has_cas07_magic) return error.WrongProofFormat;
             return .legacy_postcard;
         },
         .cas05_sparse_v6 => {
@@ -67,4 +70,8 @@ test "trusted mode keeps legacy bytes and CAS05 bytes separate" {
     cas05_header[12] = 17;
     try std.testing.expectError(error.MalformedProofHeader, candidate(.cas05_sparse_v6, &cas05_header));
     try std.testing.expectError(error.MalformedProofHeader, candidate(.cas05_sparse_v6, cas05_header[0..15]));
+
+    const cas07_header = [_]u8{ 'S', '3', '1', 'C', 'A', 'S', '0', '7', 7, 0, 0, 0, 16, 0, 0, 0 };
+    try std.testing.expectError(error.WrongProofFormat, candidate(.legacy_postcard, &cas07_header));
+    try std.testing.expectError(error.WrongProofFormat, candidate(.cas05_sparse_v6, &cas07_header));
 }
