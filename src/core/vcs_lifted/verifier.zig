@@ -191,6 +191,16 @@ pub fn MerkleVerifierLifted(comptime H: type) type {
             }
             if (self.column_log_sizes.len == 0) return;
 
+            // A Merkle path authenticates a leaf only inside this tree's
+            // domain. Without this check, a position with the same low
+            // `height` bits as a valid leaf hashes to the same root while
+            // retaining a nonzero index after the final parent step.
+            if (self.height >= @bitSizeOf(usize)) return MerkleVerificationError.InvalidQueryShape;
+            for (query_positions) |position| {
+                if (position >> @intCast(self.height) != 0)
+                    return MerkleVerificationError.InvalidQueryShape;
+            }
+
             for (queried_values) |column| {
                 if (column.len != query_positions.len) return MerkleVerificationError.InvalidQueryShape;
             }
@@ -419,6 +429,55 @@ fn maxLogSize(values: []const u32) u32 {
 
 test "vcs_lifted verifier: verifies simple proof" {
     try verifySimpleProofWithAllocator(std.testing.allocator);
+}
+
+test "vcs_lifted verifier: rejects an out-of-domain alias of an authenticated leaf" {
+    const Hasher = @import("blake2_merkle.zig").Blake2sMerkleHasher;
+    const Decommitment = MerkleDecommitmentLifted(Hasher);
+    const Verifier = MerkleVerifierLifted(Hasher);
+    const alloc = std.testing.allocator;
+
+    const value = M31.fromCanonical(7);
+    var hasher = Hasher.defaultWithInitialState();
+    hasher.updateLeaf(&.{value});
+    const leaf = hasher.finalize();
+    hasher = Hasher.defaultWithInitialState();
+    hasher.updateLeaf(&.{M31.fromCanonical(9)});
+    const sibling = hasher.finalize();
+    const root = Hasher.hashChildren(.{ .left = sibling, .right = leaf });
+    var tree = try Verifier.init(alloc, root, &.{1});
+    defer tree.deinit(alloc);
+    var proof = Decommitment{ .hash_witness = try alloc.dupe(Hasher.Hash, &.{sibling}) };
+    defer proof.deinit(alloc);
+    const columns = [_][]const M31{&.{value}};
+
+    try tree.verify(alloc, &.{1}, &columns, proof);
+    // With one Merkle level, index 3 had the same path bits as index 1.
+    // Before the bound check it was accepted against the same root.
+    try std.testing.expectError(
+        MerkleVerificationError.InvalidQueryShape,
+        tree.verify(alloc, &.{3}, &columns, proof),
+    );
+    const sentinel = MerklePathCapture(Hasher){
+        .positions = &.{},
+        .path_depth = std.math.maxInt(u32),
+        .siblings = &.{},
+    };
+    var capture = sentinel;
+    try std.testing.expectError(
+        MerkleVerificationError.InvalidQueryShape,
+        tree.verifyWithPathCapture(alloc, &.{3}, &columns, proof, &capture),
+    );
+    try std.testing.expectEqualDeep(sentinel, capture);
+
+    // The height-zero tree has only leaf index 0.
+    var constant = try Verifier.init(alloc, leaf, &.{0});
+    defer constant.deinit(alloc);
+    try constant.verify(alloc, &.{0}, &columns, .{ .hash_witness = &.{} });
+    try std.testing.expectError(
+        MerkleVerificationError.InvalidQueryShape,
+        constant.verify(alloc, &.{1}, &columns, .{ .hash_witness = &.{} }),
+    );
 }
 
 test "vcs_lifted verifier: every allocation failure preserves capture and releases columns" {
