@@ -23,6 +23,101 @@ pub const VerificationError = verifier_types.VerificationError;
 pub const QueryCapture = pcs_verifier.QueryCapture;
 pub const ProofCapture = pcs_verifier.VerifiedProofCapture;
 
+/// Dispatch an owned versioned proof according to the verifier's trusted
+/// format selection. Legacy proofs use the unchanged STARK verifier. CAS05
+/// remains unavailable until its full statement and PCS are integrated.
+pub fn verifySelected(
+    comptime H: type,
+    comptime MC: type,
+    allocator: std.mem.Allocator,
+    component_list: []const air_components.Component,
+    channel: anytype,
+    commitment_scheme: *pcs_verifier.CommitmentSchemeVerifier(H, MC),
+    proof_in: proof_mod.VersionedStarkProof(H),
+) anyerror!void {
+    var proof = proof_in;
+    var moved = false;
+    defer if (!moved) proof.deinit(allocator);
+
+    if (std.meta.activeTag(proof) != commitment_scheme.format_mode)
+        return error.WrongProofFormat;
+    switch (proof) {
+        .legacy_postcard => |legacy| {
+            moved = true;
+            return verifyImpl(H, MC, true, allocator, component_list, channel, commitment_scheme, legacy, null, null, false);
+        },
+        .cas05_sparse_v6 => |bytes| {
+            _ = try pcs.format_admission.candidate(.cas05_sparse_v6, bytes);
+            return error.Cas05NotProduction;
+        },
+    }
+}
+
+test "selected verifier rejects proof mode and CAS05 version confusion before transcript changes" {
+    const alloc = std.testing.allocator;
+    const blake = @import("vcs_lifted/blake2_merkle.zig");
+    const H = blake.Blake2sMerkleHasher;
+    const MC = blake.Blake2sMerkleChannel;
+    const Channel = @import("channel/blake2s.zig").Blake2sChannel;
+    const Config = pcs.PcsConfig{
+        .pow_bits = 0,
+        .fri_config = try fri.FriConfig.init(0, 1, 2),
+    };
+    const header = [_]u8{ 'S', '3', '1', 'C', 'A', 'S', '0', '5', 6, 0, 0, 0, 16, 0, 0, 0 };
+
+    var legacy_verifier = try pcs_verifier.CommitmentSchemeVerifier(H, MC).init(alloc, Config);
+    defer legacy_verifier.deinit(alloc);
+    var channel = Channel{};
+    const before = channel.digestBytes();
+    try std.testing.expectError(error.WrongProofFormat, verifySelected(
+        H,
+        MC,
+        alloc,
+        &.{},
+        &channel,
+        &legacy_verifier,
+        .{ .cas05_sparse_v6 = try alloc.dupe(u8, &header) },
+    ));
+    try std.testing.expectEqualSlices(u8, &before, &channel.digestBytes());
+
+    var cas05_verifier = try pcs_verifier.CommitmentSchemeVerifier(H, MC).initWithTrustedMode(
+        alloc,
+        Config,
+        .cas05_sparse_v6,
+    );
+    defer cas05_verifier.deinit(alloc);
+    try std.testing.expectError(error.Cas05NotProduction, verifySelected(
+        H,
+        MC,
+        alloc,
+        &.{},
+        &channel,
+        &cas05_verifier,
+        .{ .cas05_sparse_v6 = try alloc.dupe(u8, &header) },
+    ));
+    try std.testing.expectEqualSlices(u8, &before, &channel.digestBytes());
+
+    var old = header;
+    old[8] = 5;
+    try std.testing.expectError(error.UnsupportedProofVersion, verifySelected(
+        H,
+        MC,
+        alloc,
+        &.{},
+        &channel,
+        &cas05_verifier,
+        .{ .cas05_sparse_v6 = try alloc.dupe(u8, &old) },
+    ));
+    try std.testing.expectError(error.Cas05NotProduction, cas05_verifier.commit(
+        alloc,
+        [_]u8{1} ** 32,
+        &[_]u32{1},
+        &channel,
+    ));
+    try std.testing.expectEqual(@as(usize, 0), cas05_verifier.trees.items.len);
+    try std.testing.expectEqualSlices(u8, &before, &channel.digestBytes());
+}
+
 pub fn verify(
     comptime H: type,
     comptime MC: type,
@@ -178,6 +273,9 @@ fn verifyImpl(
     var proof = proof_in;
     var proof_moved = false;
     defer if (owns_proof and !proof_moved) proof.deinit(allocator);
+
+    if (commitment_scheme.format_mode != .legacy_postcard)
+        return VerificationError.Cas05NotProduction;
 
     if (commitment_scheme.trees.items.len <= PREPROCESSED_TRACE_IDX) {
         return VerificationError.InvalidPreprocessedTree;
