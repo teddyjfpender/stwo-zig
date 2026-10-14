@@ -39,17 +39,47 @@ original and own-quotient tracks together and returns no values unless all
 four paths verify. Neither method accepts a leaf index. A wrong neighbor or a
 replayed path at the other position fails its Merkle check.
 
+`initWithSourceRoster` additionally admits an H1 source profile. All source
+columns must have log size `k`, and the composition tree must have eight
+columns. The source descriptor encodes `S31SRC2V`, the fixed source hash
+profile, its two eight-byte BLAKE2s contexts, the key digest, root ordinal,
+named root event, query log, column count, and each column's little-endian
+log plus full 32-byte identity in order. The four named root events are
+`1, 4, 10, 12`. The descriptor is framed under `tree_context` event zero and
+must match the corresponding statement digest before the object is created.
+The source profile uses `S31S2LEF` for canonical M31 row leaves and
+`S31S2PAR` for 64-byte `left || right` parents. It is distinct from the
+production plain profile and the candidate line profile. The fixed profile
+and complete column roster are checked once; the selected verifier still
+must derive the key, identities, and statement from one sealed source.
+
+At an H1 query ordinal, `verifyAndKeepSourcePair` derives the source pair
+indices `raw & ~1` and `(raw & ~1)+1` from the privately stored raw query.
+It checks both rows in all four personalized source trees against roots
+absorbed in this same transcript. The caller supplies only row values and
+Merkle witnesses. The verifier converts its own OOD seed to a point, retains
+the canonical claims it mixed into the transcript, draws its own batch
+challenge, and computes CAS09's `RowContext` formula over the authenticated
+columns in roster order. It privately retains two original and two
+own-quotient insertion values per query. A wrong root, row, or pair index
+fails; malformed or noncanonical claims fail before transcript absorption.
+An arbitrary canonical claim remains only a transcript-bound assertion at this
+stage. Its correctness against the committed source polynomials requires the
+future quotient/fold and degree checks; this local source-path API cannot
+reject such a wrong claim on its own.
+The source roster is deliberately H1 only. Sparse, lower-height columns fail
+admission until their checked lifting and claim layout are specified.
+
 This does not yet check the CAS09 one-step relation. For each track that
 relation is `fold(previous_pair, line_x, alpha) + alpha² ×
 fold(inserted_source_pair, circle_y, alpha) = selected_next_value`.
 Here `fold(a,b,c,alpha) = a+b+alpha×(a-b)/c`, matching CAS09's native
 unscaled butterfly. The line and circle coordinates and both divisors are
 fixed by the checked domain geometry.
-The inserted original and own-quotient values are computed from authenticated
-four-root source rows, OOD claims, and the verifier's batch challenge. This
-object does not yet own those source openings, the OOD `RowContext`, or the
-stored fold alphas. Accepting them as caller-provided values would make the
-equation unauthenticated, so the local line-pair methods do not assert it.
+The inserted values now have private custody for the H1 source profile, but
+the object does not retain fold alphas or enforce the fold equation, terminal
+degree condition, or four-root AIR relation. Local Merkle authentication and
+insertion computation do not imply proof acceptance.
 
 Query draws reject a zero count without moving the transcript. Once the
 terminal query event begins, any sampler failure leaves the plan complete and
@@ -60,11 +90,15 @@ sealed configuration.
 This boundary does not derive the statement or manifest from a sealed key.
 The caller must supply both from trusted, checked verification data, including
 four source-tree descriptors, the circuit digest, FRI parameters, and the
-line-tree roster. The full PCS/FRI
-verifier, root and source-tree checks, non-squaring FRI query correspondence,
-BCS/ROM reduction, and native security-bit assignment remain open. A `true`
+line-tree roster. The full PCS/FRI verifier, non-squaring FRI query
+correspondence, and the BCS/ROM reduction across framed transcript hashes,
+personalized source hashes, and personalized line hashes remain open. In
+particular, the local tests do not establish a 96-bit collision bound for
+any of those profiles. Native proven security bits remain unset. A `true`
 Merkle opening result is only a local path check, never proof acceptance.
 
-The focused test checks event ordering, one root absorption, copied input
-metadata, cached opening verification, private query access, and rejection
-of a mismatched statement. These are candidate API tests, not soundness tests.
+The focused tests check event order, named root absorption, descriptor byte
+vectors against independent Python, copied metadata, source and line Merkle
+paths, private query projection, claim shape, and rejection of wrong rows,
+roots, and source pair indices. These are candidate API tests, not a PCS/FRI
+soundness proof.
