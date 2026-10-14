@@ -2,9 +2,10 @@
 
 `blake2s_personalized_line_v2.zig` defines an experimental profile for **new
 FRI line trees** under the reserved `S31NAT9F` selector. No verifier selects
-this profile today. The four Gate source roots retain their production plain
-BLAKE2s profile; a source opening cannot be silently reinterpreted as a line
-opening.
+this profile today. Earlier candidate source-opening bridges retain the
+production plain BLAKE2s profile. The complete proposed v2 hash roster in
+`GATE_HASH_PROFILE_V2.md` instead uses a distinct personalized source tree;
+those two kinds of source opening cannot be interchanged.
 
 The byte rules are fixed:
 

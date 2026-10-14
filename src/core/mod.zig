@@ -34,6 +34,7 @@ test {
     _ = channel.framed_bcs_v2;
     _ = vcs_lifted.blake2s_personalized_line_v2;
     _ = vcs_lifted.blake2s_personalized_source_v2;
+    _ = vcs_lifted.gate_hash_profile_v2;
     _ = pcs.paired_row_context_v2;
     _ = pcs.paired_claim_batch_v2;
     _ = vcs_lifted.line_descriptor_v2;
