@@ -83,6 +83,50 @@ test "CAS07 H=1 verifies a nonconstant circle polynomial at sampled source pairs
     try std.testing.expectEqual(@as(usize, 4), owned.proof.terminal_ordered_coeffs.len);
 }
 
+test "CAS07 H=1 accepted relation replays authenticated source and terminal" {
+    const allocator = std.testing.allocator;
+    const domain = core.poly.circle.canonic.CanonicCoset.new(5).circleDomain();
+    var values: [32]M31 = undefined;
+    for (&values, 0..) |*value, row| {
+        const point = domain.at(core.utils.bitReverseIndex(row, 5));
+        value.* = point.x.add(M31.fromCanonical(7));
+    }
+    const h0 = [_][]const M31{&values};
+    const heights = [_][]const []const M31{&h0};
+    const input = host.Input{ .source_columns = &heights, .log_blowup = 2, .n_queries = 5 };
+    var prover_channel = Channel{};
+    var owned = try host.prove(allocator, input, &prover_channel);
+    defer owned.deinit();
+    const encoded = try wire.encode(allocator, owned.proof);
+    defer allocator.free(encoded);
+    var verifier_channel = Channel{};
+    var accepted = try wire.verifyAndExtractRelation(
+        allocator,
+        encoded,
+        &verifier_channel,
+        statement(owned.proof),
+    );
+    defer accepted.deinit();
+    try std.testing.expectEqualSlices(u8, &prover_channel.digest, &verifier_channel.digest);
+    try std.testing.expectEqual(@as(usize, 0), accepted.line_pairs.len);
+    try std.testing.expectEqual(@as(usize, 0), accepted.line_roots.len);
+    try accepted.check(allocator);
+
+    accepted.forwarded[0][0] = accepted.forwarded[0][0].add(QM31.one());
+    try std.testing.expectError(error.InvalidFoldRelation, accepted.check(allocator));
+
+    var rejected = Channel{};
+    var wrong_statement = statement(owned.proof);
+    wrong_statement.source_root[0] ^= 1;
+    try std.testing.expectError(error.UnexpectedSparseStatement, wire.verifyAndExtractRelation(
+        allocator,
+        encoded,
+        &rejected,
+        wrong_statement,
+    ));
+    try std.testing.expectEqualDeep(Channel{}, rejected);
+}
+
 test "an absent CAS07 height folds the preceding line without an inserted term" {
     const allocator = std.testing.allocator;
     const line_domain = core.poly.line.LineDomain.fromCircleDomain(
@@ -146,6 +190,54 @@ test "CAS07 gapped H=4 proves and verifies, with forged line rejected" {
         &rejected,
         statement(fake.proof),
     ));
+}
+
+test "CAS07 gapped accepted relation covers absent height and rejects altered line" {
+    const allocator = std.testing.allocator;
+    const top_values = [_]M31{M31.fromCanonical(3)} ** 64;
+    const h2_values = [_]M31{M31.fromCanonical(5)} ** 16;
+    const h3_values = [_]M31{M31.fromCanonical(7)} ** 8;
+    const h0 = [_][]const M31{&top_values};
+    const h1 = [_][]const M31{};
+    const h2 = [_][]const M31{&h2_values};
+    const h3 = [_][]const M31{&h3_values};
+    const heights = [_][]const []const M31{ &h0, &h1, &h2, &h3 };
+    const input = host.Input{ .source_columns = &heights, .log_blowup = 2, .n_queries = 5 };
+    var prover_channel = Channel{};
+    var owned = try host.prove(allocator, input, &prover_channel);
+    defer owned.deinit();
+    const encoded = try wire.encode(allocator, owned.proof);
+    defer allocator.free(encoded);
+    var verifier_channel = Channel{};
+    var accepted = try wire.verifyAndExtractRelation(
+        allocator,
+        encoded,
+        &verifier_channel,
+        statement(owned.proof),
+    );
+    defer accepted.deinit();
+    try std.testing.expectEqualSlices(u8, &prover_channel.digest, &verifier_channel.digest);
+    try std.testing.expectEqual(@as(usize, 0), accepted.claims[1].len);
+    try std.testing.expectEqual(@as(usize, 0), accepted.source.values[1].len);
+    try std.testing.expectEqual(@as(usize, 3), accepted.line_pairs.len);
+    try accepted.check(allocator);
+
+    accepted.line_pairs[0][0] = accepted.line_pairs[0][0].add(QM31.one());
+    try std.testing.expectError(error.InvalidForwardedLine, accepted.check(allocator));
+
+    var fake_channel = Channel{};
+    var fake = try host.proveWithInvalidLineForTest(allocator, input, &fake_channel);
+    defer fake.deinit();
+    const fake_bytes = try wire.encode(allocator, fake.proof);
+    defer allocator.free(fake_bytes);
+    var rejected = Channel{};
+    try std.testing.expectError(error.IntermediateFoldMismatch, wire.verifyAndExtractRelation(
+        allocator,
+        fake_bytes,
+        &rejected,
+        statement(fake.proof),
+    ));
+    try std.testing.expectEqualDeep(Channel{}, rejected);
 }
 
 test "CAS07 profile admits current Gate heights and bounds source residency" {
