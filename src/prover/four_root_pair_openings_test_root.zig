@@ -6,6 +6,7 @@ const prover = @import("stwo_prover_engine");
 
 const M31 = core.fields.m31.M31;
 const source = core.pcs.four_root_pair_openings_experimental;
+const wire = core.pcs.four_root_pair_wire_experimental;
 
 fn word(value: u32) M31 {
     return M31.fromCanonical(value);
@@ -41,5 +42,9 @@ test "CAS10 four plain Gate roots authenticate synchronized source pairs" {
     try std.testing.expectEqual(@as(usize, 8), proof.expected.column_log_sizes[3].len);
     try std.testing.expectEqualSlices(M31, &[_]M31{ word(9), word(10), word(9), word(10), word(9), word(10) }, proof.openings[2].queried_values[0]);
     try source.verify(alloc, proof.expected, proof.openings);
+    const encoded = try wire.encode(alloc, proof.expected, proof.openings);
+    defer alloc.free(encoded);
+    try wire.verifyEncoded(alloc, encoded, proof.expected);
+    try std.testing.expectError(error.TruncatedFourRootPairWire, wire.verifyEncoded(alloc, encoded[0 .. encoded.len - 1], proof.expected));
     try std.testing.expectError(error.InvalidFourRootPairShape, source.pairPositions(alloc, &[_]usize{4}, 2));
 }
