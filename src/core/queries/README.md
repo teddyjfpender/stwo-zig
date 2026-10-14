@@ -21,7 +21,9 @@ BLAKE2s-256(
 
 The 32-byte output supplies eight little-endian `u32` words in order. The
 counter may take each value from `0` through `2^32−1` once; the next draw
-fails. The sampler caps consumed blocks and returns the raw position vector
+fails. A requested block budget above `2^32` is rejected before any draw,
+also bounding all word-accounting fields without overflow. The sampler caps
+consumed blocks and returns the raw position vector
 in transcript order, including duplicates, plus counts of blocks, examined
 words, rejected words, and discarded tail words. On failure, it frees the
 partial vector and returns an error; the verifier must reject the proof.

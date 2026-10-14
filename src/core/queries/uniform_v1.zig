@@ -14,6 +14,7 @@ pub const role_raw_word_draw: u8 = 4;
 
 pub const Error = error{
     InvalidDomain,
+    InvalidBlockBudget,
     InsufficientBlockBudget,
     CounterExhausted,
 };
@@ -103,6 +104,9 @@ pub fn drawUniformBoundedV1(
     max_blocks: u64,
 ) (Error || std.mem.Allocator.Error)!SampledQueriesV1 {
     if (domain_size == 0 or domain_size > word_space) return error.InvalidDomain;
+    // Also bounds every reported word count by 8 * 2^32 even for a generic
+    // caller-supplied channel that never reports its own counter exhaustion.
+    if (max_blocks > word_space) return error.InvalidBlockBudget;
     if (@as(u128, n_queries) > @as(u128, max_blocks) * words_per_block)
         return error.InsufficientBlockBudget;
 
@@ -230,6 +234,7 @@ test "empty, invalid, budget and counter boundaries fail closed" {
     try std.testing.expectError(error.InvalidDomain, drawUniformQueriesV1(&channel, std.testing.allocator, 32, 1, 1));
     try std.testing.expectError(error.InvalidDomain, drawUniformBoundedV1(&channel, std.testing.allocator, 0, 1, 1));
     try std.testing.expectError(error.InsufficientBlockBudget, drawUniformQueriesV1(&channel, std.testing.allocator, 2, 9, 1));
+    try std.testing.expectError(error.InvalidBlockBudget, drawUniformQueriesV1(&channel, std.testing.allocator, 2, 1, word_space + 1));
     try std.testing.expectEqual(@as(u64, 0), channel.next_block);
     channel.next_block = word_space - 1;
     _ = try channel.drawRawU32sChecked();
