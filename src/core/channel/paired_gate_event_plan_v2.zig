@@ -1,8 +1,9 @@
 //! Typed order for the candidate S31NAT9F four-root, two-track Gate channel.
 //!
-//! This wrapper enforces the proposed transcript event sequence without
-//! selecting a proof format. Statement digests and fold heights must come
-//! from a sealed verifier key and checked geometry, not proof-owned bytes.
+//! Its methods check the proposed transcript event sequence when callers use
+//! the wrapper as intended; Zig exposes mutable struct fields, so this is not
+//! a selected verifier's encapsulation boundary. Statement digests and fold
+//! heights must come from a sealed key and checked geometry, not proof bytes.
 //! Each named challenge event accepts one exact eight-limb block. Lookup uses
 //! both QM31 values; scalar challenges use the first four limbs and discard
 //! the second four. More accepted blocks require a new protocol revision.
@@ -39,9 +40,9 @@ pub const Stage = enum {
     complete,
 };
 
-/// A fixed-size roster copy avoids a caller mutating the fold schedule after
-/// statement absorption. Its actual values and descriptors must match the
-/// verifier key in a future selected profile.
+/// A fixed-size roster copy avoids aliasing the caller's input slice. The
+/// fields remain publicly mutable in Zig. A selected verifier must own this
+/// value privately and derive its roster and descriptors from its sealed key.
 pub const PairedGateEventPlanV2 = struct {
     channel: framed.FramedBcsChannelV2,
     stage: Stage,
