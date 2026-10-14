@@ -49,12 +49,16 @@ share low-degree `x+constant` values per height. It therefore exercises the
 full 193-column bucket and both tracks across all 17 folds, but it is **not**
 the Gate AIR or witness generator. One ReleaseSafe run with 232 illustrative
 queries took 4.64 seconds in the prover, 46.4 ms in verification, and emitted
-1,706,048 proof bytes. These are one-run measurements, not a performance
-bound or a certified security setting.
+1,706,048 proof bytes. A separate `/usr/bin/time -l` run of the test binary
+reported 681,934,848 bytes peak resident memory (about 650.3 MiB) and
+681,460,600 bytes peak memory footprint. These are one-run measurements, not
+a performance bound or a certified security setting.
 
 The remaining bridge is substantial: bind the actual S31 Gate key's four
-challenge-dependent roots, all 319 source columns and verifier-owned OOD
-claims to this one-root experimental source profile; prove the normalized
+challenge-dependent roots, all 319 committed columns and verifier-owned OOD
+claims (311 trace columns plus eight composition columns) to this one-root
+experimental source profile while preserving each root's original challenge
+epoch; prove the normalized
 source-height/lifted-row relation and the conjugate two-point circle-code
 degree theorem; establish correlated cross-domain agreement and the
 small-height condition; then derive a conservative adaptive BCS/ROM bound
