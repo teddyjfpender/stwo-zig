@@ -14,8 +14,10 @@ pub const paired_two_height_v2_experimental = @import("paired_two_height_v2_expe
 /// Draft S31XDM02 cross-domain source commitment; not production PCS.
 pub const transposed_source_experimental = @import("transposed_source_experimental.zig");
 pub const transposed_cascade_experimental = @import("transposed_cascade_experimental.zig");
+pub const transposed_sparse_heights_experimental = @import("transposed_sparse_heights_experimental.zig");
 pub const paired_cascade_experimental = @import("paired_cascade_experimental.zig");
 pub const paired_sparse_cascade_experimental = @import("paired_sparse_cascade_experimental.zig");
+pub const paired_sparse_cascade_heights_experimental = @import("paired_sparse_cascade_heights_experimental.zig");
 /// `proving_5a7c5ed` commitment heights: the single lifting step of every
 /// commit path and the FRI/PoW view of a V2 configuration.
 pub const revision_lifting = scheme.revision_lifting;
