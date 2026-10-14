@@ -109,6 +109,21 @@ pub fn build(b: *std.Build) void {
     cascade_heights_step.dependOn(&b.addRunArtifact(cascade_heights_tests).step);
     test_step.dependOn(cascade_heights_step);
 
+    const independent_h1_root = b.createModule(.{
+        .root_source_file = b.path("paired_independent_h1_test_root.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    independent_h1_root.addImport("stwo_core", core);
+    independent_h1_root.addImport("stwo_prover_engine", prover);
+    const independent_h1_tests = b.addTest(.{ .root_module = independent_h1_root });
+    const independent_h1_step = b.step(
+        "test-paired-independent-h1",
+        "Test experimental independent original and own-quotient H1 degree tracks",
+    );
+    independent_h1_step.dependOn(&b.addRunArtifact(independent_h1_tests).step);
+    test_step.dependOn(independent_h1_step);
+
     _ = addFocusedTests(b, core, backend_contracts, prover_api, target, optimize, check_only, .{
         .step = "test-blake3-prefix-reuse",
         .description = "Verify BLAKE3 bounded prefix reuse across budgets and worker counts",
