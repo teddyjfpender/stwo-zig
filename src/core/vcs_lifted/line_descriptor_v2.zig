@@ -24,6 +24,7 @@ pub const Error = error{
     InvalidTreeIndex,
     StatementMismatch,
     RootEventMismatch,
+    RowWidthMismatch,
     LengthOverflow,
 } || std.mem.Allocator.Error || framed.Error || line.Error;
 
@@ -198,6 +199,7 @@ pub fn verifyBoundOpening(
     if (tree_index >= manifest.trees.len) return error.InvalidTreeIndex;
     const tree = manifest.trees[tree_index];
     if (event != tree.root_event) return error.RootEventMismatch;
+    if (row.len != tree.column_descriptors.len) return error.RowWidthMismatch;
     return line.verifyPath(authenticated_root, row, leaf_index, tree.tree_log_size, siblings);
 }
 
@@ -359,6 +361,17 @@ test "line descriptor rejects reordering, duplicated roles and wrong roster" {
         &.{0},
         0,
         &.{},
+    ));
+    try std.testing.expectError(error.RowWidthMismatch, verifyBoundOpening(
+        allocator,
+        manifest,
+        statement,
+        0,
+        17,
+        root,
+        &.{ 0, 1 },
+        0,
+        &.{leaf1},
     ));
     var wrong_statement = statement;
     wrong_statement.line_profile_digest = zero;

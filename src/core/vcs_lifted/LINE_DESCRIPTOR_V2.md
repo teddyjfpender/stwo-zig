@@ -49,8 +49,8 @@ their identity digests remain different. The `tree_log_size` and fold height
 are both committed, but their arithmetic relation is not yet frozen by the
 candidate Gate proof geometry. The selected key derivation must check it.
 
-`verifyBoundOpening` checks that statement digest, exact root event, path
-depth and canonical row before comparing a Merkle path. Its root argument
+`verifyBoundOpening` checks that statement digest, exact root event, row width,
+path depth and canonical row before comparing a Merkle path. Its root argument
 must be the root already absorbed at that named event. The selected verifier
 must derive all descriptor bytes and ordered column identities from a sealed
 key and checked geometry, retain the wrapper privately, and establish that
