@@ -167,7 +167,7 @@ log, and mask offset from the installed sealed key, then own the statement and
 proof geometry. Degree testing, the multi-context BCS reduction, and
 query-consistency theorem remain open. Native proven security bits stay unset.
 
-### H3 committed fold kernel and source-ensemble gate
+### H3 committed and terminal fold kernels
 
 `verifySparseH3CommittedStepAtQuery` checks each of the 13 committed steps
 from height 17 down through the insertion at height 5. It authenticates both
@@ -191,9 +191,29 @@ kernel returns `SourceEnsembleNotAdmitted`. This prevents the diagnostic
 quotient from silently becoming an Eq. (77) source. A test-only private
 fixture populates the paired slot, replays all 13 drawn challenges against
 authenticated zero line trees, and rejects changed alphas, source words,
-both line paths, missing slots, and wrong ordinals. The final height-4 fold,
-terminal degree test, source-ensemble admission, and global FRI theorem are
-still open. No production verifier calls this kernel.
+both line paths, missing slots, and wrong ordinals.
+
+`verifySparseH3TerminalAtQuery` then checks the last height-4 fold into the
+terminal log-3 line domain. For each sampled query it first requires a
+successful check of **all 13 committed steps**. It authenticates both
+adjacent height-4 line rows under the captured original and own-quotient
+roots, folds each pair using retained `alpha[13]`, and compares the result
+at the privately projected terminal row to the corresponding polynomial.
+The proposed B=2 terminal profile absorbs exactly two canonical QM31
+coefficients per track before the final PoW and query draw. Wrong coefficient
+length fails before transcript absorption. The terminal polynomial has
+degree below 2; its evaluation domain has eight points. A local differential
+checks all eight pair-to-terminal positions against native
+`foldLineSingleStep` with a nonconstant terminal and changed-alpha control.
+
+The public method still fails `SourceEnsembleNotAdmitted` because no public
+operation fills the separate paired source slot. The literal 73-claim
+opening path provides authenticated per-claim words but does not yet establish
+the common-Q/two-instance source ensemble or admit its aggregate to the
+fold cascade. The degree profile, sealed-key/roster ownership, full per-query
+coverage, BCS reduction, and global FRI theorem remain open. Neither this
+kernel nor the literal path is selected by a production verifier; neither
+assigns paper M or security bits.
 
 The candidate `verifyH1OneStepAtQuery` checks the exact CAS09 two-step H1
 relation for a restricted degree-zero terminal profile. It requires two fold
