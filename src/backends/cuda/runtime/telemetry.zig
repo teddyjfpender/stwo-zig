@@ -53,6 +53,9 @@ pub const StageCounters = struct {
     memset_operations: u64 = 0,
     fill_words: u64 = 0,
     sync_calls: u64 = 0,
+    managed_migration_calls: u64 = 0,
+    managed_h2d_bytes: u64 = 0,
+    managed_d2h_bytes: u64 = 0,
     lane_joins: u64 = 0,
     kernel_launches: u64 = 0,
     graph_launches: u64 = 0,
@@ -74,6 +77,9 @@ pub const Counters = struct {
     memset_operations: u64 = 0,
     fill_words: u64 = 0,
     sync_calls: u64 = 0,
+    managed_migration_calls: u64 = 0,
+    managed_h2d_bytes: u64 = 0,
+    managed_d2h_bytes: u64 = 0,
     lane_joins: u64 = 0,
     kernel_launches: u64 = 0,
     graph_launches: u64 = 0,
@@ -145,6 +151,19 @@ pub const Counters = struct {
     pub fn sync(self: *Counters, stage: ?Stage) void {
         self.sync_calls += 1;
         if (stage) |value| self.stages[value.index()].sync_calls += 1;
+    }
+
+    pub fn managedMigration(self: *Counters, stage: Stage, bytes: usize, to_host: bool) void {
+        const amount: u64 = @intCast(bytes);
+        self.managed_migration_calls += 1;
+        self.stages[stage.index()].managed_migration_calls += 1;
+        if (to_host) {
+            self.managed_d2h_bytes += amount;
+            self.stages[stage.index()].managed_d2h_bytes += amount;
+        } else {
+            self.managed_h2d_bytes += amount;
+            self.stages[stage.index()].managed_h2d_bytes += amount;
+        }
     }
 
     pub fn join(self: *Counters, stage: ?Stage, lanes: u32) void {
@@ -252,7 +271,8 @@ pub const Counters = struct {
             self.cpu_fallbacks_completed == 0 and
             self.d2h_proof_operations == 1 and
             self.d2h_proof_bytes != 0 and
-            self.sync_calls == 1 and
+            self.sync_calls != 0 and
+            self.sync_calls - 1 == self.managed_migration_calls and
             self.live_bytes == 0 and
             self.kernel_launches != 0;
     }
@@ -292,6 +312,19 @@ test "terminal proof reads count operations and bytes per stage" {
     const stage = counters.stages[Stage.proof_assembly.index()];
     try std.testing.expectEqual(@as(u64, 2), stage.d2h_proof_operations);
     try std.testing.expectEqual(@as(u64, 96), stage.d2h_proof_bytes);
+}
+
+test "managed migration barriers remain distinct from the terminal proof barrier" {
+    var counters = Counters{};
+    counters.kernels(.trace_commit, 1);
+    counters.managedMigration(.trace_commit, 1024, true);
+    counters.sync(.trace_commit);
+    counters.proofRead(.proof_assembly, 64);
+    counters.sync(.proof_assembly);
+    try std.testing.expect(counters.isResident());
+    try std.testing.expectEqual(@as(u64, 1024), counters.managed_d2h_bytes);
+    counters.sync(.proof_assembly);
+    try std.testing.expect(!counters.isResident());
 }
 
 test "device timings cover every stage exactly once" {

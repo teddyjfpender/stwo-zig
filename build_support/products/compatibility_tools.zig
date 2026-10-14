@@ -170,6 +170,14 @@ pub fn addProducts(context: Context) void {
 
     const cairo_trace_geometry = consumer(context, protocol, "src/tools/cairo/trace_geometry_inspector.zig");
     cairo_trace_geometry.addImport("stwo", stwo);
+    cairo_trace_geometry.addImport("stwo_circuit_recursion_wire", graph.createCircuitRecursionWire(
+        b,
+        protocol,
+        compatibility_product,
+        context.target,
+        context.optimize,
+        cairo_frontend,
+    ));
     addExecutable(context, cairo_trace_geometry, "cairo-trace-geometry", "cairo-trace-geometry", "Build Cairo CUDA trace geometry inspector", false);
 
     const cairo_composition = consumer(

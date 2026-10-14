@@ -8,6 +8,22 @@ const telemetry = @import("telemetry.zig");
 
 pub const prepared_capacity: usize = 4;
 const device_memory_safety_reserve_bytes: usize = 256 * 1024 * 1024;
+const max_managed_headroom_bytes: usize = 4 * 1024 * 1024 * 1024;
+
+fn managedHeadroom(device_total: usize) usize {
+    return @min(device_total / 8, max_managed_headroom_bytes);
+}
+
+/// Experimental, explicitly opted-in managed-memory capacity for measuring
+/// out-of-core proofs. The native allocator uses the same environment gate.
+/// Keep the excess bounded so a malformed plan cannot exhaust host memory.
+pub fn managedOversubscriptionAllowed(arena_bytes: usize, device_total: usize) bool {
+    const flag = std.posix.getenv("STWO_CUDA_MANAGED_OVERSUBSCRIBE") orelse return false;
+    if (!std.mem.eql(u8, flag, "1")) return false;
+    const headroom = device_total / 2;
+    const limit = std.math.add(usize, device_total, headroom) catch return false;
+    return arena_bytes != 0 and arena_bytes <= limit;
+}
 
 pub fn CacheFor(comptime Api: type, comptime Context: type) type {
     const Arena = arena_module.ArenaFor(Context);
@@ -74,6 +90,18 @@ pub fn CacheFor(comptime Api: type, comptime Context: type) type {
                 self.evictions = increment(self.evictions) catch
                     return error.InvalidState;
                 destination = victim;
+            }
+
+            // An oversized managed arena cannot use cached pool capacity.
+            // Drop unused pages from the preceding proof before UVM starts
+            // faulting them back into the same physical device. This runs
+            // while the runtime is idle, so no proof synchronization is hidden.
+            if (comptime @hasDecl(Api, "stwo_exec_context_pool_trim")) {
+                const memory = try context.memoryInfo();
+                const strict_limit = memory.total - managedHeadroom(memory.total);
+                if (arena_bytes > strict_limit and
+                    managedOversubscriptionAllowed(arena_bytes, memory.total))
+                    try context.trimPoolForManaged();
             }
 
             const last_used = self.nextTick() catch
@@ -323,7 +351,8 @@ pub fn CacheFor(comptime Api: type, comptime Context: type) type {
                 break :blk pool.reserved - pool.used;
             } else 0;
             const usable_free = usableMemory(memory.free, memory.total, reusable);
-            return arena_bytes <= usable_free;
+            return arena_bytes <= usable_free or
+                managedOversubscriptionAllowed(arena_bytes, memory.total);
         }
     };
 }
@@ -338,6 +367,13 @@ test "arena admission counts reusable async pool pages" {
     try std.testing.expect(usableMemory(45 * gib, 140 * gib, 93 * gib) >= 98 * gib);
     try std.testing.expect(usableMemory(45 * gib, 140 * gib, 93 * gib) < 139 * gib);
     try std.testing.expect(usableMemory(45 * gib, 140 * gib, 0) < 98 * gib);
+}
+
+test "near-capacity managed arena leaves room for fixed data and scratch" {
+    const gib: usize = 1 << 30;
+    try std.testing.expectEqual(4 * gib, managedHeadroom(96 * gib));
+    try std.testing.expectEqual(3 * gib, managedHeadroom(24 * gib));
+    try std.testing.expectEqual(0, managedHeadroom(0));
 }
 
 fn increment(value: u64) error{Overflow}!u64 {

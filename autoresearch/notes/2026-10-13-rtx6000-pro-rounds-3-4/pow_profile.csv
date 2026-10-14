@@ -1,0 +1,3 @@
+profile,operation,pow_kernel_instances,pow_kernel_total_ms,pow_kernel_share_pct,root_proof_sha256
+r3-fold2-profile,real two-leaf fold,2,90.464656,27.3,c5447d67382d67d4b0281f8f6edd8bb87397f8bfe6ad7a3b5e6690425e8a0cec
+r4-fold2-profile,real two-leaf fold,2,6.031379,2.4,c5447d67382d67d4b0281f8f6edd8bb87397f8bfe6ad7a3b5e6690425e8a0cec

@@ -5,11 +5,58 @@ const cairo_app = @import("cairo_cuda_app");
 const circuit_app = @import("circuit_recursion_app");
 const circuit_cpu = @import("stwo_circuit_cpu_integration");
 
+/// Prepare proof-independent leaf tables while Cairo executes on the device.
+/// The callback joins before it sees the verified proof, so a failed setup
+/// cannot publish a leaf or change the proof's transcript.
+pub const SessionJob = struct {
+    allocator: std.mem.Allocator,
+    request: circuit_app.LeafWrapRequest,
+    thread: ?std.Thread = null,
+    session: ?circuit_app.VerifiedLeafSession = null,
+    failure: ?anyerror = null,
+
+    pub fn start(self: *SessionJob) void {
+        if (std.posix.getenv("STWO_CIRCUIT_LEAF_PREPARE_ASYNC")) |setting| {
+            if (std.mem.eql(u8, setting, "0")) {
+                self.run();
+                return;
+            }
+        }
+        self.thread = std.Thread.spawn(.{}, run, .{self}) catch {
+            self.run();
+            return;
+        };
+    }
+
+    pub fn wait(self: *SessionJob) !*circuit_app.VerifiedLeafSession {
+        if (self.thread) |thread| {
+            thread.join();
+            self.thread = null;
+        }
+        if (self.failure) |err| return err;
+        return if (self.session) |*session| session else error.MissingLeafSession;
+    }
+
+    pub fn deinit(self: *SessionJob) void {
+        if (self.thread) |thread| thread.join();
+        if (self.session) |*session| session.deinit();
+        self.* = undefined;
+    }
+
+    fn run(self: *SessionJob) void {
+        self.session = circuit_app.VerifiedLeafSession.init(self.allocator, self.request) catch |err| {
+            self.failure = err;
+            return;
+        };
+    }
+};
+
 pub const Context = struct {
     allocator: std.mem.Allocator,
     request: circuit_app.LeafWrapRequest,
     output_path: []const u8,
     shared_session: ?*circuit_app.VerifiedLeafSession = null,
+    preparing_session: ?*SessionJob = null,
     delivered: bool = false,
     wrap_ns: u64 = 0,
 
@@ -38,6 +85,8 @@ pub const Context = struct {
         var timer = try std.time.Timer.start();
         var leaf = if (self.shared_session) |session|
             try session.wrap(verified, &prepared.input)
+        else if (self.preparing_session) |job|
+            try (try job.wait()).wrap(verified, &prepared.input)
         else
             try circuit_app.leafWrapVerified(self.allocator, self.request, verified, &prepared.input);
         defer leaf.deinit();

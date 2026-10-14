@@ -1,0 +1,13 @@
+pie,label,active_rows,padded_rows,distinct_rows
+16309292_16309292,pedersen_builtin,262144,262144,null
+16309292_16309292,pedersen_aggregator_window_bits_18,131072,131072,92603
+16309292_16309292,partial_ec_mul_window_bits_18,3670016,4194304,null
+16309353_16309353,pedersen_builtin,262144,262144,null
+16309353_16309353,pedersen_aggregator_window_bits_18,131072,131072,102433
+16309353_16309353,partial_ec_mul_window_bits_18,3670016,4194304,null
+16309286_16309286,pedersen_builtin,262144,262144,null
+16309286_16309286,pedersen_aggregator_window_bits_18,131072,131072,109839
+16309286_16309286,partial_ec_mul_window_bits_18,3670016,4194304,null
+16309799_16309799,pedersen_builtin,262144,262144,null
+16309799_16309799,pedersen_aggregator_window_bits_18,262144,262144,134957
+16309799_16309799,partial_ec_mul_window_bits_18,7340032,8388608,null

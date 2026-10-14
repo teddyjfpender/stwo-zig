@@ -12,6 +12,8 @@
 #include <stdint.h>
 
 #include <limits>
+#include <algorithm>
+#include <cstdlib>
 #include <cstring>
 #include <new>
 #include <atomic>
@@ -26,6 +28,7 @@ constexpr size_t kInitialAllocationCapacity = 256;
 struct StwoNativeCudaAllocation {
     uintptr_t address;
     size_t bytes;
+    bool managed;
 };
 
 struct StwoNativeCudaDependency {
@@ -454,6 +457,20 @@ extern "C" int stwo_exec_context_pool_current(
     return 0;
 }
 
+// Called only between proofs, after stream synchronization, before admitting
+// an arena that cannot fit in device memory. The default pool policy retains
+// freed pages indefinitely; keeping them blocks useful managed residency.
+extern "C" int stwo_exec_context_pool_trim(void *handle) {
+    StwoNativeCudaContext *context = nullptr;
+    cudaError_t status = require_context(handle, &context);
+    if (status != cudaSuccess) return static_cast<int>(status);
+#if defined(STWO_CUMETAL)
+    return 0;
+#else
+    return static_cast<int>(cudaMemPoolTrimTo(context->pool, 0));
+#endif
+}
+
 extern "C" int stwo_exec_context_stream(
     void *handle,
     void **out_stream) {
@@ -818,17 +835,64 @@ extern "C" int stwo_exec_context_alloc_u32(
     StwoNativeCudaContext *context = nullptr;
     cudaError_t status = require_context(handle, &context);
     if (status == cudaSuccess) status = ensure_allocation_capacity(context);
+#if defined(STWO_CUMETAL)
+    const bool managed_requested = false;
+#else
+    const char *managed_flag = std::getenv("STWO_CUDA_MANAGED_OVERSUBSCRIBE");
+    const bool managed_requested = managed_flag != nullptr &&
+        managed_flag[0] == '1' && managed_flag[1] == '\0';
+#endif
+    size_t free_bytes = 0;
+    size_t total_bytes = 0;
+    if (status == cudaSuccess && managed_requested)
+        status = cudaMemGetInfo(&free_bytes, &total_bytes);
+    // The combined Cairo arena is not the whole device footprint: immutable
+    // coefficients, modules, and writer scratch remain live beside it. A
+    // near-capacity arena must use managed memory before those allocations
+    // start faulting or failing inside the proof. Keep the reserve proportional
+    // on smaller devices and bounded on large cards.
+    constexpr size_t kMaxReserveBytes = size_t{4} << 30;
+    const size_t reserve_bytes = std::min(kMaxReserveBytes, total_bytes / 8);
+    const size_t bytes = count * sizeof(uint32_t);
+    // A pool may retain gigabytes after an arena is released. cudaMemGetInfo
+    // excludes that reusable storage, so free_bytes alone must not force a
+    // small subsequent circuit arena onto managed memory. Try the ordered
+    // pool first whenever the request fits the device's total capacity.
+    bool managed = managed_requested && status == cudaSuccess &&
+        bytes > total_bytes - reserve_bytes;
     if (status == cudaSuccess) {
-        status = cudaMallocFromPoolAsync(
-            reinterpret_cast<void **>(out_pointer),
-            count * sizeof(uint32_t),
-            context->pool,
-            context->stream);
+        if (managed) {
+#if defined(STWO_CUMETAL)
+            status = cudaErrorInvalidValue;
+#else
+            status = cudaMallocManaged(
+                reinterpret_cast<void **>(out_pointer),
+                bytes, cudaMemAttachGlobal);
+#endif
+        } else {
+            status = cudaMallocFromPoolAsync(
+                reinterpret_cast<void **>(out_pointer),
+                bytes,
+                context->pool,
+                context->stream);
+            if (status == cudaErrorMemoryAllocation && managed_requested) {
+                // Only fall back after the allocator has checked its own
+                // reusable pool pages. Never hide non-capacity CUDA errors.
+#if !defined(STWO_CUMETAL)
+                (void)cudaGetLastError();
+                status = cudaMallocManaged(
+                    reinterpret_cast<void **>(out_pointer),
+                    bytes, cudaMemAttachGlobal);
+                managed = status == cudaSuccess;
+#endif
+            }
+        }
     }
     if (status == cudaSuccess) {
         context->allocations[context->allocation_count++] = {
             reinterpret_cast<uintptr_t>(*out_pointer),
-            count * sizeof(uint32_t),
+            bytes,
+            managed,
         };
     }
     return static_cast<int>(status);
@@ -853,7 +917,12 @@ extern "C" int stwo_exec_context_free_u32(
     }
     if (status == cudaSuccess && context->lane_count > 1) status = join_lanes(context);
     if (status == cudaSuccess) {
-        status = cudaFreeAsync(pointer, context->stream);
+        if (context->allocations[allocation_index].managed) {
+            status = cudaStreamSynchronize(context->stream);
+            if (status == cudaSuccess) status = cudaFree(pointer);
+        } else {
+            status = cudaFreeAsync(pointer, context->stream);
+        }
     }
     if (status == cudaSuccess) {
         --context->allocation_count;
@@ -889,6 +958,39 @@ extern "C" int stwo_exec_context_validate_allocation(
             required_bytes <= allocation.bytes - offset) {
             return 0;
         }
+    }
+    return static_cast<int>(cudaErrorInvalidDevicePointer);
+}
+
+// Stream-ordered migration of a registered arena subrange. A regular device
+// allocation is already resident and needs no migration.
+extern "C" int stwo_exec_context_prefetch_u32(
+    void *handle, uint32_t *pointer, size_t count, int to_host) {
+    if (pointer == nullptr || count == 0 || count >
+        std::numeric_limits<size_t>::max() / sizeof(uint32_t))
+        return static_cast<int>(cudaErrorInvalidValue);
+    StwoNativeCudaContext *context = nullptr;
+    cudaError_t status = require_context(handle, &context);
+    if (status != cudaSuccess) return static_cast<int>(status);
+    const uintptr_t address = reinterpret_cast<uintptr_t>(pointer);
+    for (size_t index = 0; index < context->allocation_count; ++index) {
+        const auto &allocation = context->allocations[index];
+        if (address < allocation.address) continue;
+        const size_t offset = static_cast<size_t>(address - allocation.address);
+        if (offset > allocation.bytes ||
+            count * sizeof(uint32_t) > allocation.bytes - offset) continue;
+        if (!allocation.managed) return 0;
+        if (context->lane_count > 1) {
+            status = join_lanes(context);
+            if (status != cudaSuccess) return static_cast<int>(status);
+        }
+#if defined(STWO_CUMETAL)
+        return 0;
+#else
+        return static_cast<int>(cudaMemPrefetchAsync(
+            pointer, count * sizeof(uint32_t),
+            to_host ? cudaCpuDeviceId : context->device, context->stream));
+#endif
     }
     return static_cast<int>(cudaErrorInvalidDevicePointer);
 }

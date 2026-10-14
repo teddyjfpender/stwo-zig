@@ -362,8 +362,25 @@ pub const Prepared = struct {
         try self.controllers.relation_sources.captureBaseInputs(session);
         phase = "preprocessed_commit";
         try self.controllers.preprocessed_commit.execute(session);
+        // A saturated one-block PIE can exceed device capacity while the
+        // lookup slab sits idle during the main trace commitment. The proof
+        // transcript is unchanged: migrate the exact registered slab after
+        // writers finish and restore it before relation evaluation.
+        const prefetch_policy = managedPhasePrefetchPolicy();
+        const lookup_slice = if (prefetch_policy != .none) blk: {
+            const slot = plan.slot(.writer_lookup_inputs, 0) orelse break :blk null;
+            break :blk try transaction.slot(slot.id);
+        } else null;
+        if (lookup_slice) |lookup| {
+            try session.context.prefetchManaged(lookup, true);
+        }
         phase = "main_commit";
         try self.controllers.main_commit.execute(session);
+        if (lookup_slice) |lookup| {
+            if (prefetch_policy == .lookup_and_coefficients)
+                try session.context.prefetchManaged(self.controllers.main_commit.coefficients, true);
+            try session.context.prefetchManaged(lookup, false);
+        }
         try proof_capture.captureStaticTraceRoot(
             session,
             .{ .proof = self.controllers.oods.proof },
@@ -485,6 +502,14 @@ pub const Prepared = struct {
         try transaction.endStage(.trace_commit);
 
         try transaction.beginStage(.constraint_evaluation);
+        // Relation has consumed the lookup slab by this boundary; restore
+        // coefficients before AIR constraint evaluation reads them again.
+        if (prefetch_policy == .lookup_and_coefficients and lookup_slice != null) {
+            try session.context.prefetchManaged(
+                self.controllers.main_commit.coefficients,
+                false,
+            );
+        }
         phase = "constraint_evaluation";
         try self.controllers.evaluation.execute(
             transaction,
@@ -672,6 +697,20 @@ pub const Prepared = struct {
 
 pub fn requireProductionReady() !void {
     return error.MissingProductionIngressBindingCompiler;
+}
+
+const ManagedPrefetchPolicy = enum { none, lookup_only, lookup_and_coefficients };
+
+/// The ordinary managed path moves only the lookup slab. `full` retains the
+/// older coefficient round-trip for controlled comparisons.
+fn managedPhasePrefetchPolicy() ManagedPrefetchPolicy {
+    const oversubscribe = std.posix.getenv("STWO_CUDA_MANAGED_OVERSUBSCRIBE") orelse return .none;
+    if (!std.mem.eql(u8, oversubscribe, "1")) return .none;
+    const prefetch = std.posix.getenv("STWO_CUDA_MANAGED_PREFETCH") orelse return .none;
+    if (std.mem.eql(u8, prefetch, "1") or std.mem.eql(u8, prefetch, "lookup_only"))
+        return .lookup_only;
+    if (std.mem.eql(u8, prefetch, "full")) return .lookup_and_coefficients;
+    return .none;
 }
 
 fn requireSameDevice(reference: common.Words, other: common.Words) !void {

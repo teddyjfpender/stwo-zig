@@ -258,7 +258,9 @@ fn placeSorted(requirements: []const Requirement, placements: []Placement) runti
     return total_words;
 }
 
-fn peakLiveWords(requirements: []const Requirement) runtime_error.Error!usize {
+/// A capacity lower bound for every placement of these live ranges. The
+/// actual arena can be larger when alignment or fragmentation leaves holes.
+pub fn peakLiveWords(requirements: []const Requirement) runtime_error.Error!usize {
     var peak: usize = 0;
     for (0..telemetry.stage_count * 2) |point| {
         var live: usize = 0;
@@ -268,6 +270,22 @@ fn peakLiveWords(requirements: []const Requirement) runtime_error.Error!usize {
             {
                 live = std.math.add(usize, live, requirement.words) catch
                     return error.SizeOverflow;
+            }
+        }
+        peak = @max(peak, live);
+    }
+    return peak;
+}
+
+/// The same bound for an assembled arena, including process-cache slots.
+pub fn peakPlacedLiveWords(placements: []const Placement) runtime_error.Error!usize {
+    var peak: usize = 0;
+    for (0..telemetry.stage_count * 2) |point| {
+        var live: usize = 0;
+        for (placements) |placement| {
+            const requirement = placement.requirement;
+            if (lifetimeStart(requirement) <= point and point <= lifetimeEnd(requirement)) {
+                live = std.math.add(usize, live, requirement.words) catch return error.SizeOverflow;
             }
         }
         peak = @max(peak, live);

@@ -2,6 +2,7 @@
 
 const std = @import("std");
 const arena_module = @import("arena.zig");
+const execution_cache = @import("execution_cache.zig");
 const column = @import("column.zig");
 const decommit_bundle = @import("proof_assembly/decommit_bundle.zig");
 const stark_bundle = @import("proof_assembly/stark_bundle.zig");
@@ -102,7 +103,8 @@ pub fn TransactionFor(comptime Session: type) type {
             const memory = try session.context.memoryInfo();
             const usable_free = memory.free -
                 @min(memory.free, device_memory_safety_reserve_bytes);
-            if (arena_bytes > usable_free)
+            if (arena_bytes > usable_free and
+                !execution_cache.managedOversubscriptionAllowed(arena_bytes, memory.total))
                 return error.InsufficientDeviceMemory;
             try session.beginStage(.ingress);
             const arena = try Arena.init(&session.context, &plan);
@@ -130,7 +132,8 @@ pub fn TransactionFor(comptime Session: type) type {
             const memory = try session.context.memoryInfo();
             const usable_free = memory.free -
                 @min(memory.free, device_memory_safety_reserve_bytes);
-            if (arena_bytes > usable_free)
+            if (arena_bytes > usable_free and
+                !execution_cache.managedOversubscriptionAllowed(arena_bytes, memory.total))
                 return error.InsufficientDeviceMemory;
             try session.beginStage(.ingress);
             const arena = try Arena.init(&session.context, &plan);
