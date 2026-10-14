@@ -86,6 +86,21 @@ Python BLAKE2s byte vector is pinned in the native test. An admitted manifest
 must contain consecutive fold heights from 17 through at least 4, so all
 three populated source heights have a fold step.
 
+**Blocking paired-ensemble mismatch.** The current H3 original accumulator
+advances once per source column: 14, 28, and 19 terms at heights 17, 11, and
+5, for **61** total. The native `friAnswers` quotient accumulator advances
+once per explicit claim **plus** one extra periodicity term per two-sample
+column: 22, 36, and 27 terms, for **85** total (73 explicit + 12 extra).
+The admitted roster computes and exposes these counts via
+`sparseH3TermCounts`; mutation of a two-sample column is rejected. At a
+height-local call (`lifting_log_size == column_log_size == h`), the periodic
+generator raised by `2^h` is the identity, so the extra periodic point is
+sample 1 again, with a second random power. Production uses lifting log 17
+and therefore a different periodic point and coefficient schedule. This H3
+insertion is an authenticated **local diagnostic**, not the matching
+per-claim original/quotient ensemble in S-two Protocol 4 Eq. (77), a proven
+degree-corrected oracle, or an established paper batch width `M`.
+
 At one privately sampled raw query, `verifyAndKeepSparseH3SourcePair` opens
 the adjacent top leaves `raw & ~1` and `(raw & ~1)+1` under all four captured
 personalized source roots. The lifted leaf has every column in ascending log
@@ -101,14 +116,23 @@ Merkle checks are separate obligations.
 For each populated height, the candidate derives OOD sample points from the
 privately drawn OOD point and the bound signed mask offsets. It doubles those
 points `17-h` times and evaluates the quotient at the projected height-h
-circle row. The two-sample columns receive the native periodic sample first,
-then their two explicit claims. Powers of the privately drawn batch challenge
-follow the source-column and sample order **within that height**. The original
+circle row. This normalization matches native prover source evaluation:
+`sampled_values.zig` computes `fold_count = 17-h`, and
+`sampled_coefficient_plans.zig` doubles each sampled point before polynomial
+evaluation. The accepted sparse Gate admission in S31 `native_verifier.zig`
+rederives the top mask points from sealed AIR handles and checks all 73
+captured point coordinates and values; its accepted H3 row fixture compares
+projected row arithmetic for all 73. These are finite source-bound checks,
+not a general interpolant theorem.
+
+The two-sample columns receive the native periodic sample first, then their
+two explicit claims. Powers of the privately drawn batch challenge follow
+the source-column and sample order **within that height**. The original
 track is one separately batched source value per column at that height. These
 two track insertions are retained privately per sampled ordinal only after
 every source path and every height computation succeeds. This per-height
-batch choice is part of the candidate protocol; it is not a claim that the
-accepted production proof uses this new paired transcript. The implementation
+batch choice is part of this candidate diagnostic; it does not implement
+the accepted production quotient schedule or Protocol 4 Eq. (77). The implementation
 currently calls the production quotient evaluator per height and query, which
 rebuilds temporary sample batches and constants. A selected verifier needs a
 one-time cached quotient context and a measured whole-verifier cost model.

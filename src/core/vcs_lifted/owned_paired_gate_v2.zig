@@ -77,6 +77,18 @@ pub const SparseH3SourceRosterV2 = struct {
     mask_log: u32,
 };
 
+/// Local candidate occupancy receipt. These counts are not a paper batch
+/// width: the native quotient evaluator inserts one extra periodicity sample
+/// for each two-sample column, while the original track uses one source value
+/// per column. Therefore the current two tracks do not implement Protocol 4
+/// Eq. (77)'s matching per-claim original/quotient ensemble.
+pub const SparseH3TermCountsV2 = struct {
+    original_by_height: [3]usize,
+    explicit_claims_by_height: [3]usize,
+    periodic_by_height: [3]usize,
+    quotient_by_height: [3]usize,
+};
+
 const SourceMode = enum { h1, sparse_h3 };
 
 const OwnedSourceRoster = struct {
@@ -85,6 +97,7 @@ const OwnedSourceRoster = struct {
     counts: [source_tree_count]usize,
     total: usize,
     claim_total: usize,
+    term_counts: SparseH3TermCountsV2,
     mask_log: u32,
     mode: SourceMode,
 
@@ -92,6 +105,12 @@ const OwnedSourceRoster = struct {
         var out: OwnedSourceRoster = undefined;
         out.total = 0;
         out.claim_total = 0;
+        out.term_counts = .{
+            .original_by_height = .{ 0, 0, 0 },
+            .explicit_claims_by_height = .{ 0, 0, 0 },
+            .periodic_by_height = .{ 0, 0, 0 },
+            .quotient_by_height = .{ 0, 0, 0 },
+        };
         out.mask_log = 0;
         out.mode = .h1;
         for (roster.column_log_sizes, 0..) |logs, tree| {
@@ -119,6 +138,12 @@ const OwnedSourceRoster = struct {
         var out: OwnedSourceRoster = undefined;
         out.total = 0;
         out.claim_total = 0;
+        out.term_counts = .{
+            .original_by_height = .{ 0, 0, 0 },
+            .explicit_claims_by_height = .{ 0, 0, 0 },
+            .periodic_by_height = .{ 0, 0, 0 },
+            .quotient_by_height = .{ 0, 0, 0 },
+        };
         out.mask_log = roster.mask_log;
         out.mode = .sparse_h3;
         for (roster.column_log_sizes, 0..) |logs, tree| {
@@ -132,6 +157,16 @@ const OwnedSourceRoster = struct {
                 if (entry.count != @as(u8, if (has_two) 2 else 1) or
                     (entry.count == 1 and entry.values[1] != 0))
                     return error.InvalidSparseClaimLayout;
+                const slot: usize = switch (logs[col]) {
+                    17 => 0,
+                    11 => 1,
+                    5 => 2,
+                    else => return error.InvalidSparseClaimLayout,
+                };
+                out.term_counts.original_by_height[slot] += 1;
+                out.term_counts.explicit_claims_by_height[slot] += entry.count;
+                out.term_counts.periodic_by_height[slot] += @intFromBool(has_two);
+                out.term_counts.quotient_by_height[slot] += entry.count + @as(usize, @intFromBool(has_two));
                 out.claim_total += entry.count;
             }
             const digest = try sparseH3SourceRosterDigest(
@@ -150,7 +185,12 @@ const OwnedSourceRoster = struct {
             @memcpy(out.offsets[tree][0..logs.len], offsets);
             out.total += logs.len;
         }
-        if (out.total != 61 or out.claim_total != 73) return error.InvalidSparseClaimLayout;
+        if (out.total != 61 or out.claim_total != 73 or
+            !std.mem.eql(usize, &out.term_counts.original_by_height, &.{ 14, 28, 19 }) or
+            !std.mem.eql(usize, &out.term_counts.explicit_claims_by_height, &.{ 18, 32, 23 }) or
+            !std.mem.eql(usize, &out.term_counts.periodic_by_height, &.{ 4, 4, 4 }) or
+            !std.mem.eql(usize, &out.term_counts.quotient_by_height, &.{ 22, 36, 27 }))
+            return error.InvalidSparseClaimLayout;
         return out;
     }
 };
@@ -728,11 +768,15 @@ pub const OwnedPairedGateVerifierV2 = opaque {
     }
 
     /// Authenticate the top-height lifted source pair in all four captured
-    /// roots, then privately compute one original/own-quotient insertion pair
-    /// at each populated sparse height. The lower circle row is derived by
+    /// roots, then privately compute a diagnostic original/native-quotient
+    /// pair at each populated sparse height. This is not yet a degree-correct
+    /// Eq. (77) insertion: the original uses 61 column terms while native
+    /// friAnswers inserts periodic samples and uses 85 quotient terms.
+    /// The lower circle row is derived by
     /// `((raw >> (k-h+1)) << 1) | (raw&1)`, and each claim point is doubled
     /// `k-h` times before its quotient denominator is evaluated at height h.
-    /// This is a candidate local join; it does not check FRI line equations.
+    /// This is a candidate local row join; it does not check FRI line equations
+    /// or establish a native-to-paper batch-width mapping.
     pub fn verifyAndKeepSparseH3SourcePair(
         self: *Self,
         query_ordinal: usize,
@@ -860,6 +904,14 @@ pub const OwnedPairedGateVerifierV2 = opaque {
         const insertions = self.stateConst().sparse_h3_insertions orelse return error.SourceContextMissing;
         if (query_ordinal >= insertions.len) return error.InvalidQueryIndex;
         return insertions[query_ordinal] orelse error.SourceContextMissing;
+    }
+
+    /// Read-only occupancy receipt for this admitted candidate roster. It
+    /// deliberately exposes the 61-versus-85 term mismatch to callers.
+    pub fn sparseH3TermCounts(self: *const Self) Error!SparseH3TermCountsV2 {
+        const roster = self.stateConst().source_roster orelse return error.SourceNotAdmitted;
+        if (roster.mode != .sparse_h3) return error.UnsupportedSparseH3Profile;
+        return roster.term_counts;
     }
 
     fn projectedLineRow(self: *const Self, tree_index: usize, query_ordinal: usize) Error!u64 {
@@ -1451,11 +1503,32 @@ test "sparse H3 source roster binds mask instructions and rejects mutation" {
         digest.* = try sparseH3SourceRosterDigest(zero, 17, 16, tree, roster.column_log_sizes[tree], roster.column_descriptors[tree], roster.mask_offsets[tree]);
     const verifier = try OwnedPairedGateVerifierV2.initWithSparseH3SourceRoster(allocator, manifest, statement, roster);
     defer verifier.deinit();
+    const counts = try verifier.sparseH3TermCounts();
+    try std.testing.expectEqualDeep([3]usize{ 14, 28, 19 }, counts.original_by_height);
+    try std.testing.expectEqualDeep([3]usize{ 18, 32, 23 }, counts.explicit_claims_by_height);
+    try std.testing.expectEqualDeep([3]usize{ 4, 4, 4 }, counts.periodic_by_height);
+    try std.testing.expectEqualDeep([3]usize{ 22, 36, 27 }, counts.quotient_by_height);
+    try std.testing.expectEqual(@as(usize, 61), counts.original_by_height[0] + counts.original_by_height[1] + counts.original_by_height[2]);
+    try std.testing.expectEqual(@as(usize, 85), counts.quotient_by_height[0] + counts.quotient_by_height[1] + counts.quotient_by_height[2]);
+    try std.testing.expect(counts.original_by_height[0] != counts.quotient_by_height[0]);
+    // friAnswers always inserts a third sample for two-point columns. When
+    // called at the source height, that "periodic" sample is exactly sample
+    // 1 again; it is not an independent OOD constraint.
+    for (h3_projection.accepted_h3_logs) |height| {
+        const period = canonic.CanonicCoset.new(height).step().repeatedDouble(height);
+        try std.testing.expect(period.eql(circle.CirclePointM31.identity()));
+    }
     try std.testing.expectError(error.QueriesNotDrawn, verifier.verifyAndKeepSparseH3SourcePair(0, undefined));
     source.offsets[2][4].values[0] = -2;
     roster = source.slices();
     try std.testing.expectError(error.SourceStatementMismatch, OwnedPairedGateVerifierV2.initWithSparseH3SourceRoster(allocator, manifest, statement, roster));
     source.offsets[2][4].values[0] = -1;
+    // Removing a periodicity-bearing second claim cannot be made to look like
+    // a valid 61-column/73-claim accepted profile.
+    source.offsets[2][16].count = 1;
+    roster = source.slices();
+    try std.testing.expectError(error.InvalidSparseClaimLayout, OwnedPairedGateVerifierV2.initWithSparseH3SourceRoster(allocator, manifest, statement, roster));
+    source.offsets[2][16].count = 2;
     source.logs[0][0] = 17;
     roster = source.slices();
     try std.testing.expectError(error.InvalidAcceptedRoster, OwnedPairedGateVerifierV2.initWithSparseH3SourceRoster(allocator, manifest, statement, roster));
