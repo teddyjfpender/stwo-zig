@@ -125,6 +125,20 @@ pub const Blake2sHasher = struct {
         };
     }
 
+    /// BLAKE2s's eight-byte personalization parameter occupies words 6 and
+    /// 7 of the parameter block. This is a new API for versioned profiles;
+    /// legacy `init` and `initWithMode` retain their exact initial state.
+    pub fn initWithModeAndContext(mode: BackendMode, context: [8]u8) Self {
+        var hasher = Self.initWithMode(mode);
+        hasher.h[6] ^= std.mem.readInt(u32, context[0..4], .little);
+        hasher.h[7] ^= std.mem.readInt(u32, context[4..8], .little);
+        return hasher;
+    }
+
+    pub fn initWithContext(context: [8]u8) Self {
+        return initWithModeAndContext(getDefaultBackendMode(), context);
+    }
+
     pub fn backendSelection(self: *const Self) BackendSelection {
         return self.selection;
     }
@@ -215,6 +229,23 @@ pub const Blake2sHasher = struct {
         return terminal_parallel.stateToDigest(Blake2sHash, hasher.h);
     }
 
+    /// One compression for a 64-byte personalized message. The context is a
+    /// fixed role tag, not a truncated tree descriptor.
+    pub fn hashFixed64WithContext(context: [8]u8, data: *const [64]u8) Blake2sHash {
+        return hashFixed64WithModeAndContext(getDefaultBackendMode(), context, data);
+    }
+
+    pub fn hashFixed64WithModeAndContext(
+        mode: BackendMode,
+        context: [8]u8,
+        data: *const [64]u8,
+    ) Blake2sHash {
+        var hasher = Self.initWithModeAndContext(mode, context);
+        hasher.addCounter(64);
+        hasher.compressBlockBytes(data[0..], true);
+        return terminal_parallel.stateToDigest(Blake2sHash, hasher.h);
+    }
+
     /// Hashes four independent, equal-length, single-block messages.
     ///
     /// The SIMD path maps each message to one vector lane. It is intended for
@@ -267,6 +298,36 @@ pub const Blake2sHasher = struct {
             0,
             0xFFFF_FFFF,
         );
+        return parallelStatesToDigests(&states);
+    }
+
+    /// Four independent personalized 64-byte messages in one SIMD batch.
+    pub fn hashFixed64WithContext4(
+        context: [8]u8,
+        data: *const [4][64]u8,
+    ) [4]Blake2sHash {
+        return hashFixed64WithModeAndContext4(getDefaultBackendMode(), context, data);
+    }
+
+    pub fn hashFixed64WithModeAndContext4(
+        mode: BackendMode,
+        context: [8]u8,
+        data: *const [4][64]u8,
+    ) [4]Blake2sHash {
+        if (selectBackend(mode).effective == .scalar) {
+            var out: [4]Blake2sHash = undefined;
+            for (&out, data) |*digest, *message| {
+                digest.* = hashFixed64WithModeAndContext(.scalar, context, message);
+            }
+            return out;
+        }
+
+        const initial = Self.initWithModeAndContext(mode, context);
+        var states: [8]V4 = undefined;
+        for (0..8) |word_index| states[word_index] = @splat(initial.h[word_index]);
+        var messages: [16]V4 = undefined;
+        block_io.loadParallel4(data, &messages);
+        compressParallel4(&states, &messages, 64, 0, 0xFFFF_FFFF);
         return parallelStatesToDigests(&states);
     }
 
