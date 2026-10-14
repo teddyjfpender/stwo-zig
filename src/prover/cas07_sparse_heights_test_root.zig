@@ -206,3 +206,34 @@ test "CAS07 candidate S31 prelude binds key words and roster before source profi
     const initial = Channel{};
     try std.testing.expectEqualSlices(u8, &initial.digest, &rejected.digest);
 }
+
+test "CAS07 full Gate roster pilot" {
+    var input_arena = std.heap.ArenaAllocator.init(std.testing.allocator);
+    defer input_arena.deinit();
+    const a = input_arena.allocator();
+    const counts = [_]usize{ 51, 0, 8, 0, 15, 0, 8, 0, 0, 0, 0, 28, 8, 0, 0, 0, 193 };
+    var heights: [17][]const []const M31 = undefined;
+    for (counts, 0..) |count, i| {
+        const columns = try a.alloc([]const M31, count);
+        if (count > 0) {
+            const values = try a.alloc(M31, @as(usize, 1) << @intCast(20 - i));
+            @memset(values, M31.fromCanonical(@intCast(i + 1)));
+            for (columns) |*column| column.* = values;
+        }
+        heights[i] = columns;
+    }
+    const input = host.Input{ .source_columns = &heights, .log_blowup = 2, .n_queries = 32 };
+    var channel = Channel{};
+    var timer = try std.time.Timer.start();
+    var owned = try host.prove(std.testing.allocator, input, &channel);
+    defer owned.deinit();
+    const proving_ns = timer.read();
+    const bytes = try wire.encode(std.testing.allocator, owned.proof);
+    defer std.testing.allocator.free(bytes);
+    var verify_channel = Channel{};
+    const verifying_start = timer.read();
+    try wire.verifyAgainstStatement(std.testing.allocator, bytes, &verify_channel, statement(owned.proof));
+    const verifying_ns = timer.read() - verifying_start;
+    try std.testing.expectEqualSlices(u8, &channel.digest, &verify_channel.digest);
+    std.debug.print("GATE_PILOT proving_ns={d} verifying_ns={d} proof_bytes={d}\n", .{ proving_ns, verifying_ns, bytes.len });
+}

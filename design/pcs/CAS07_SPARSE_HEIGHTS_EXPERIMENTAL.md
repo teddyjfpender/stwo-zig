@@ -89,6 +89,19 @@ all 17 folds. Zero-column gaps mainly avoid filler column work and bytes;
 these figures do not demonstrate a large speedup. A complete Gate cost run
 and a reliable peak-memory cap remain required.
 
+A local **Gate-shaped constant-column pilot** now constructs all 311 source
+columns at the heights above, runs the complete experimental prover, encodes
+the proof, and verifies it against a statement taken from that proof. The
+columns at each height share one constant input slice; this exercises the
+full column counts and all 17 folds, but is an easy low-degree witness and
+is not the Gate AIR or its witness generator. The measured run on an 18-core,
+64 GiB Apple host with `ReleaseFast`, `-j2`, and 32 queries gave 3.658 s
+inside `prove`, 7.62 ms inside verification, a 208,352-byte proof, and
+567,771,136 bytes maximum process RSS (`/usr/bin/time -l`). Build plus test
+wall time was 13.89 s. These are one-run observations, not a bound or
+production latency estimate. The pilot test prints its current numbers when
+run through `test-cas07-sparse-heights`.
+
 ## Evidence and admission gaps
 
 The focused `test-xdm05-sparse-heights` suite authenticates H=1 and a gapped
