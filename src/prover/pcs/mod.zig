@@ -27,6 +27,10 @@ pub const shell_work_profile = @import("shell_work_profile.zig");
 /// Process-local sampled-value plan types shared with exact backend epochs.
 /// These types contain borrowed slices and have no durable codec authority.
 pub const sampled_coefficient_plans = @import("sampled_coefficient_plans.zig");
+/// Candidate-only common 73-claim roster. A future Gate producer must call
+/// validateProducerSamples before using its sampled arrays for paired oracles.
+/// This export does not select the new proof protocol.
+pub const sparse_h3_claim_roster_v2 = @import("stwo_core").pcs.sparse_h3_claim_roster_v2;
 
 pub fn CommitmentTreeProver(comptime H: type) type {
     return scheme.CommitmentTreeProver(H);

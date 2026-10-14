@@ -235,6 +235,32 @@ it does not derive those sets, a joint adaptive BCS bound, or this lambda
 schedule from accepted native proofs. Thus weighted-row arithmetic is local
 evidence only, and public fold admission remains closed.
 
+`sparse_h3_claim_roster_v2.zig` is now the common candidate 73-claim index
+map. The owned verifier copies its `tree/column/sample` starts from this
+map. The prover PCS namespace exports the same type and its
+`validateProducerSamples` check. That check requires the exact 61-column
+height roster, the twelve two-sample interaction columns, 73 point/value
+slots in tree/column/sample order, and each **raw top-height** point equal
+to its key-directed mask shift. The owned verifier uses the roster's
+`normalizedClaimPoint` to apply the same `17-h` circle doublings before
+quotient evaluation. The check rejects reordered or missing raw points
+before a candidate producer could use those arrays. It checks only point
+and shape equality: it cannot establish sampled-value correctness or
+that source columns have the required degree. No production prover call has
+been wired because `S31NAT9F` has no selected proof producer or selector.
+
+A full-domain native differential at height 5 constructs 19 independent
+linear source polynomials for the accepted 23-claim subroster, including the
+four double-claim columns. It evaluates their 23 genuine OOD values, runs
+the actual paired quotient formula at all 32 circle rows, and applies the
+candidate `λ^(2j), λ^(2j+1)` weights. The original aggregate matches the
+independently weighted linear polynomial at every row; the own-quotient
+aggregate is constant across the domain, as its degree-zero bound requires.
+Changing one OOD claim makes the quotient nonconstant. This is finite
+arithmetic evidence for that degree-one source family, not a general
+multi-Q extraction theorem, a high-height degree proof, or an accepted PCS
+proof. The fold-admission slot stays inaccessible through public methods.
+
 The candidate `verifyH1OneStepAtQuery` checks the exact CAS09 two-step H1
 relation for a restricted degree-zero terminal profile. It requires two fold
 heights, initial query log `k >= 3`, one authenticated original and one
