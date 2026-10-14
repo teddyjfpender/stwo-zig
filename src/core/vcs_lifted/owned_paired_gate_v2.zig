@@ -19,6 +19,7 @@ const lifted_verifier = @import("verifier.zig");
 const row_context = @import("../pcs/paired_row_context_v2.zig");
 const paired_claim_rows = @import("../pcs/paired_claim_rows_v2.zig");
 const paired_claim_batch = @import("../pcs/paired_claim_batch_v2.zig");
+const claim_roster_mod = @import("../pcs/sparse_h3_claim_roster_v2.zig");
 const h3_projection = @import("sparse_h3_source_projection_v2.zig");
 const quotients = @import("../pcs/quotients.zig");
 const pcs_utils = @import("../pcs/utils.zig");
@@ -69,10 +70,7 @@ pub const SourceRosterV2 = struct {
 
 /// One or two key-derived mask offsets for a source column. For accepted
 /// sparse Gate, exactly twelve interaction columns have two samples.
-pub const SparseH3MaskOffsetsV2 = struct {
-    count: u8,
-    values: [2]i32,
-};
+pub const SparseH3MaskOffsetsV2 = claim_roster_mod.MaskOffsets;
 
 pub const SparseH3SourceRosterV2 = struct {
     column_log_sizes: [source_tree_count][]const u32,
@@ -104,6 +102,7 @@ const OwnedSourceRoster = struct {
     term_counts: SparseH3TermCountsV2,
     mask_log: u32,
     mode: SourceMode,
+    claim_roster: ?claim_roster_mod.ClaimRoster,
 
     fn init(statement: framed.StatementBinding, query_log: u32, roster: SourceRosterV2) Error!OwnedSourceRoster {
         var out: OwnedSourceRoster = undefined;
@@ -117,6 +116,7 @@ const OwnedSourceRoster = struct {
         };
         out.mask_log = 0;
         out.mode = .h1;
+        out.claim_roster = null;
         for (roster.column_log_sizes, 0..) |logs, tree| {
             const identities = roster.column_descriptors[tree];
             if (logs.len == 0 or logs.len > max_source_columns or
@@ -150,6 +150,8 @@ const OwnedSourceRoster = struct {
         };
         out.mask_log = roster.mask_log;
         out.mode = .sparse_h3;
+        out.claim_roster = claim_roster_mod.ClaimRoster.init(roster.column_log_sizes, roster.mask_offsets) catch
+            return error.InvalidSparseClaimLayout;
         for (roster.column_log_sizes, 0..) |logs, tree| {
             const identities = roster.column_descriptors[tree];
             const offsets = roster.mask_offsets[tree];
@@ -908,13 +910,8 @@ pub const OwnedPairedGateVerifierV2 = opaque {
         var arena = std.heap.ArenaAllocator.init(state.allocator);
         defer arena.deinit();
         const a = arena.allocator();
-        var claim_starts: [source_tree_count][max_source_columns]usize = undefined;
-        var claim_at: usize = 0;
-        for (0..source_tree_count) |tree| for (0..roster.counts[tree]) |col| {
-            claim_starts[tree][col] = claim_at;
-            claim_at += roster.offsets[tree][col].count;
-        };
-        if (claim_at != roster.claim_total) return error.InvalidSparseClaimLayout;
+        const claim_schedule = if (roster.claim_roster) |*value| value else return error.InvalidSparseClaimLayout;
+        if (claim_schedule.claims.len != roster.claim_total) return error.InvalidSparseClaimLayout;
 
         // Literal explicit-claim pairs keep each source identity attached to
         // each of its one or two OOD claims. No native periodic sample enters
@@ -930,7 +927,6 @@ pub const OwnedPairedGateVerifierV2 = opaque {
             for (projected, 0..) |index, side|
                 source_rows[slot][side] = domain.at(core_utils.bitReverseIndex(index, height));
         }
-        const mask_step = canonic.CanonicCoset.new(roster.mask_log).step();
         for (0..source_tree_count) |tree| for (0..roster.counts[tree]) |col| {
             const height = roster.logs[tree][col];
             const slot: usize = switch (height) {
@@ -941,14 +937,10 @@ pub const OwnedPairedGateVerifierV2 = opaque {
             };
             const sample = roster.offsets[tree][col];
             for (0..sample.count) |j| {
-                const index = claim_starts[tree][col] + j;
-                const shift = mask_step.mulSigned(sample.values[j]);
-                const top_point = sampled_point.add(.{
-                    .x = qm31.QM31.fromBase(shift.x),
-                    .y = qm31.QM31.fromBase(shift.y),
-                });
+                const index = claim_schedule.starts[tree][col] + j;
                 claim_inputs[index] = .{
-                    .point = top_point.repeatedDouble(17 - height),
+                    .point = claim_schedule.normalizedClaimPoint(index, sampled_point, roster.mask_log) catch
+                        return error.InvalidSparseClaimLayout,
                     .claimed_value = state.source_claims[index],
                     .source_rows = source_rows[slot],
                     .source_values = openings[tree].columns[col],
@@ -1015,7 +1007,7 @@ pub const OwnedPairedGateVerifierV2 = opaque {
                             .y = qm31.QM31.fromBase(offset_point.y),
                         });
                         point_trees[tree][at][j] = point.repeatedDouble(17 - height);
-                        claim_trees[tree][at][j] = state.source_claims[claim_starts[tree][col] + j];
+                        claim_trees[tree][at][j] = state.source_claims[claim_schedule.starts[tree][col] + j];
                     }
                     at += 1;
                 }

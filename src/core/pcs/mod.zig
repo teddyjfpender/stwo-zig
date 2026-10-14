@@ -10,6 +10,7 @@ pub const verifier = @import("verifier.zig");
 pub const paired_row_context_v2 = @import("paired_row_context_v2.zig");
 pub const paired_claim_rows_v2 = @import("paired_claim_rows_v2.zig");
 pub const paired_claim_batch_v2 = @import("paired_claim_batch_v2.zig");
+pub const sparse_h3_claim_roster_v2 = @import("sparse_h3_claim_roster_v2.zig");
 
 const FriConfig = fri.FriConfig;
 const FriProof = fri.FriProof;
