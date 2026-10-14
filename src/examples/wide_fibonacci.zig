@@ -424,14 +424,14 @@ pub fn verify(
     };
 
     proof_moved = true;
-    try core_verifier.verify(
+    try core_verifier.verifySelected(
         Hasher,
         MerkleChannel,
         allocator,
         verifier_components[0..],
         &channel,
         &commitment_scheme,
-        proof,
+        .{ .legacy_postcard = proof },
     );
 }
 
@@ -650,6 +650,33 @@ test "examples wide_fibonacci: prepared CPU backend route verifies" {
         null,
     );
     try verify(std.testing.allocator, config, output.statement, output.proof);
+}
+
+test "examples wide_fibonacci: CAS05 key rejects a genuine legacy proof" {
+    const alloc = std.testing.allocator;
+    const config = pcs_core.PcsConfig{
+        .pow_bits = 0,
+        .fri_config = try @import("stwo_core").fri.FriConfig.init(0, 1, 3),
+    };
+    const output = try prove(alloc, config, .{ .log_n_rows = 5, .sequence_len = 8 });
+    var verifier = try pcs_verifier.CommitmentSchemeVerifier(Hasher, MerkleChannel).initWithTrustedMode(
+        alloc,
+        config,
+        .cas05_sparse_v6,
+    );
+    defer verifier.deinit(alloc);
+    var channel = Channel{};
+    const before = channel.digestBytes();
+    try std.testing.expectError(error.WrongProofFormat, core_verifier.verifySelected(
+        Hasher,
+        MerkleChannel,
+        alloc,
+        &.{},
+        &channel,
+        &verifier,
+        .{ .legacy_postcard = output.proof },
+    ));
+    try std.testing.expectEqualSlices(u8, &before, &channel.digestBytes());
 }
 
 test "examples wide_fibonacci: corrupted recurrence trace is rejected" {

@@ -131,6 +131,26 @@ pub fn StarkProof(comptime H: type) type {
     };
 }
 
+/// Owned, explicitly tagged proof input for a trusted PCS format selection.
+/// The legacy variant keeps the existing StarkProof layout and serialization.
+/// CAS05 bytes are carried separately until a full production verifier exists.
+pub fn VersionedStarkProof(comptime H: type) type {
+    return union(pcs.format_admission.Mode) {
+        legacy_postcard: StarkProof(H),
+        cas05_sparse_v6: []u8,
+
+        const Self = @This();
+
+        pub fn deinit(self: *Self, allocator: std.mem.Allocator) void {
+            switch (self.*) {
+                .legacy_postcard => |*proof| proof.deinit(allocator),
+                .cas05_sparse_v6 => |bytes| allocator.free(bytes),
+            }
+            self.* = undefined;
+        }
+    };
+}
+
 /// Reconstructs one secure composition evaluation from recursively ordered
 /// coefficient-chunk evaluations.
 pub fn reconstructCompositionChunkEvals(

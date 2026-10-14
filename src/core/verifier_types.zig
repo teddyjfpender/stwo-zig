@@ -40,6 +40,7 @@ test "composition mask domain follows the admitted split" {
 
 pub const VerificationError = error{
     InvalidStructure,
+    Cas05NotProduction,
     OodsNotMatching,
     ProofOfWork,
     ShapeMismatch,

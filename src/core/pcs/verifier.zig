@@ -87,6 +87,8 @@ pub fn CommitmentSchemeVerifier(comptime H: type, comptime MC: type) type {
     return struct {
         trees: TreeVec(vcs_verifier.MerkleVerifierLifted(H)),
         config: PcsConfig,
+        /// Selected from the trusted verifier key, never from proof bytes.
+        format_mode: mod_pcs.format_admission.Mode = .legacy_postcard,
         revision_config: if (explicit_heights) Config else void,
 
         pub const revision = verifier_revision;
@@ -98,9 +100,18 @@ pub fn CommitmentSchemeVerifier(comptime H: type, comptime MC: type) type {
         const CommitmentSchemeProof = mod_pcs.CommitmentSchemeProof(H);
 
         pub fn init(allocator: std.mem.Allocator, config: Config) !Self {
+            return initWithTrustedMode(allocator, config, .legacy_postcard);
+        }
+
+        pub fn initWithTrustedMode(
+            allocator: std.mem.Allocator,
+            config: Config,
+            mode: mod_pcs.format_admission.Mode,
+        ) !Self {
             return .{
                 .trees = TreeVec(MerkleVerifier).initOwned(try allocator.alloc(MerkleVerifier, 0)),
                 .config = verifier_revision.legacyView(config),
+                .format_mode = mode,
                 .revision_config = if (explicit_heights) config else {},
             };
         }
@@ -135,6 +146,8 @@ pub fn CommitmentSchemeVerifier(comptime H: type, comptime MC: type) type {
             log_sizes: []const u32,
             channel: anytype,
         ) !void {
+            if (self.format_mode != .legacy_postcard)
+                return verifier_types.VerificationError.Cas05NotProduction;
             MC.mixRoot(channel, commitment);
 
             const extended_log_sizes = try allocator.alloc(u32, log_sizes.len);
@@ -251,6 +264,9 @@ pub fn CommitmentSchemeVerifier(comptime H: type, comptime MC: type) type {
 
             var proof = proof_in;
             defer if (owns_proof) cleanupProof(&proof, allocator);
+
+            if (self.format_mode != .legacy_postcard)
+                return verifier_types.VerificationError.Cas05NotProduction;
 
             if (self.trees.items.len == 0) return verifier_types.VerificationError.EmptyTrees;
             if (proof.decommitments.items.len != self.trees.items.len) return verifier_types.VerificationError.ShapeMismatch;
