@@ -87,8 +87,47 @@ test "vcs_lifted verifier: explicit heights must dominate columns and be zero wh
     const root = [_]u8{0} ** 32;
     try std.testing.expectError(error.InvalidTreeHeight, Verifier.initWithHeight(alloc, root, &.{ 3, 5 }, 4));
     try std.testing.expectError(error.InvalidTreeHeight, Verifier.initWithHeight(alloc, root, &.{}, 1));
-    var empty = try Verifier.initWithHeight(alloc, root, &.{}, 0);
+    var empty = try Verifier.initWithHeight(alloc, vectors.digest(vectors.empty_root), &.{}, 0);
     defer empty.deinit(alloc);
     try std.testing.expectEqual(@as(u32, 0), empty.height);
-    try empty.verify(alloc, &.{ 0, 1 }, &.{}, .{ .hash_witness = &.{} });
+    try empty.verify(alloc, &.{}, &.{}, .{ .hash_witness = &.{} });
+
+    var capture: verifier.MerklePathCapture(Hasher) = undefined;
+    try empty.verifyWithPathCapture(alloc, &.{}, &.{}, .{ .hash_witness = &.{} }, &capture);
+    defer capture.deinit(alloc);
+    try std.testing.expectEqual(@as(usize, 0), capture.positions.len);
+    try std.testing.expectEqual(@as(u32, 0), capture.path_depth);
+    try std.testing.expectEqual(@as(usize, 0), capture.siblings.len);
+
+    // Every successful empty-tree capture is owned; malformed empty-tree
+    // material is rejected before touching the caller's capture slot.
+    const sentinel = verifier.MerklePathCapture(Hasher){
+        .positions = &.{},
+        .path_depth = std.math.maxInt(u32),
+        .siblings = &.{},
+    };
+    var failed_capture = sentinel;
+    var wrong_root = try Verifier.initWithHeight(alloc, root, &.{}, 0);
+    defer wrong_root.deinit(alloc);
+    try std.testing.expectError(
+        error.RootMismatch,
+        wrong_root.verifyWithPathCapture(alloc, &.{}, &.{}, .{ .hash_witness = &.{} }, &failed_capture),
+    );
+    try std.testing.expectEqualDeep(sentinel, failed_capture);
+    try std.testing.expectError(
+        error.InvalidQueryShape,
+        empty.verifyWithPathCapture(alloc, &.{0}, &.{}, .{ .hash_witness = &.{} }, &failed_capture),
+    );
+    try std.testing.expectEqualDeep(sentinel, failed_capture);
+    try std.testing.expectError(
+        error.InvalidQueryShape,
+        empty.verifyWithPathCapture(alloc, &.{}, &.{&.{}}, .{ .hash_witness = &.{} }, &failed_capture),
+    );
+    try std.testing.expectEqualDeep(sentinel, failed_capture);
+    var excess_witness = [_]Hasher.Hash{root};
+    try std.testing.expectError(
+        error.WitnessTooLong,
+        empty.verifyWithPathCapture(alloc, &.{}, &.{}, .{ .hash_witness = &excess_witness }, &failed_capture),
+    );
+    try std.testing.expectEqualDeep(sentinel, failed_capture);
 }
