@@ -347,9 +347,19 @@ fn proveOnce(
     defer twiddles.deinit();
     const twiddles_end_ns = timer.read();
 
-    std.debug.print("cairo-cuda arena reservation bytes={} slots={}\n", .{ arena_plan.total_words * 4, arena_plan.placements.len });
+    const peak_live_words = try stwo.backend.runtime.arena.peakPlacedLiveWords(arena_plan.placements);
+    std.debug.print("cairo-cuda arena reservation bytes={} slots={} request_peak_live_bytes={}\n", .{ arena_plan.total_words * 4, arena_plan.placements.len, peak_live_words * 4 });
     for (arena_plan.placements) |placement| {
-        if (placement.requirement.words >= 1 << 24) std.debug.print("cairo-cuda arena slot={} bytes={} offset={} lifetime={s}..{s}\n", .{ placement.requirement.id, placement.requirement.words * 4, placement.offset_words * 4, @tagName(placement.requirement.live_from), @tagName(placement.requirement.live_through) });
+        if (placement.requirement.words < 1 << 24) continue;
+        const slot = placement.requirement;
+        std.debug.print(
+            "cairo-cuda arena slot={} bytes={} offset={} lifetime={s}..{s} phases={}..{}\n",
+            .{
+                slot.id,                  slot.words * 4,              placement.offset_words * 4,
+                @tagName(slot.live_from), @tagName(slot.live_through), slot.live_from_phase,
+                slot.live_through_phase,
+            },
+        );
     }
     phase = "allocate_arena";
     var arena_key_hash = std.crypto.hash.sha2.Sha256.init(.{});

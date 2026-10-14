@@ -168,22 +168,52 @@ pub fn leafPackedNode(allocator: std.mem.Allocator, circuit_hash: Digest, preima
 pub fn reducePair(gpa: std.mem.Allocator, fold: *const Fold, left: *LayerEntry, right: *LayerEntry, layer_idx: usize, pair_idx: usize, is_root: bool) !LayerEntry {
     defer left.deinit();
     defer right.deinit();
+    var reduce_stage = try StageScope.begin(fold.options.recorder, if (is_root) "fold_reduce_root" else "fold_reduce_internal", "one reduction");
+    defer reduce_stage.end();
+    var prepared = try preparePair(gpa, fold, left, right, layer_idx, pair_idx, is_root);
+    defer prepared.deinit();
+    return provePrepared(gpa, fold, &prepared);
+}
+
+/// Build a sibling's proof-dependent value table without touching the proof
+/// source. Independent siblings can be built while the GPU proves the
+/// preceding pair; the table is still proved in canonical tree order.
+pub const PreparedReduction = struct {
+    gpa: std.mem.Allocator,
+    values: ?[]QM31,
+    subtasks: []const PackedNode,
+    layer_idx: usize,
+    pair_idx: usize,
+    is_root: bool,
+    build_ns: u64,
+
+    pub fn deinit(self: *PreparedReduction) void {
+        if (self.values) |values| self.gpa.free(values);
+        self.* = undefined;
+    }
+};
+
+pub fn preparePair(gpa: std.mem.Allocator, fold: *const Fold, left: *const LayerEntry, right: *const LayerEntry, layer_idx: usize, pair_idx: usize, is_root: bool) !PreparedReduction {
     const subtasks = try fold.packed_allocator.alloc(PackedNode, 2);
     subtasks[0] = left.packed_output;
     subtasks[1] = right.packed_output;
-    return reduce(gpa, fold, .{ left, right }, subtasks, layer_idx, pair_idx, is_root);
+    return prepare(gpa, fold, .{ left, right }, subtasks, layer_idx, pair_idx, is_root);
 }
 
 /// `reduce_root_single`: the single-leaf tree's root folds its leaf with
 /// itself; the packed root carries the leaf once.
 pub fn reduceRootSingle(gpa: std.mem.Allocator, fold: *const Fold, entry: *LayerEntry) !LayerEntry {
     defer entry.deinit();
+    var reduce_stage = try StageScope.begin(fold.options.recorder, "fold_reduce_root", "one reduction");
+    defer reduce_stage.end();
     const subtasks = try fold.packed_allocator.alloc(PackedNode, 1);
     subtasks[0] = entry.packed_output;
-    return reduce(gpa, fold, .{ entry, entry }, subtasks, 1, 0, true);
+    var prepared = try prepare(gpa, fold, .{ entry, entry }, subtasks, 1, 0, true);
+    defer prepared.deinit();
+    return provePrepared(gpa, fold, &prepared);
 }
 
-fn reduce(
+fn prepare(
     gpa: std.mem.Allocator,
     fold: *const Fold,
     children: [2]*const LayerEntry,
@@ -191,12 +221,10 @@ fn reduce(
     layer_idx: usize,
     pair_idx: usize,
     is_root: bool,
-) !LayerEntry {
+) !PreparedReduction {
     var timer = try std.time.Timer.start();
     const canonical = fold.canonical;
     const recorder = fold.options.recorder;
-    var reduce_stage = try StageScope.begin(recorder, if (is_root) "fold_reduce_root" else "fold_reduce_internal", "one reduction");
-    defer reduce_stage.end();
     var build_stage = try StageScope.begin(recorder, "fold_build", "build the multiverifier circuit with values");
     defer build_stage.end();
 
@@ -241,25 +269,28 @@ fn reduce(
         if (record_gates and !try ctx.isCircuitValid()) return error.MultiverifierRejectedInputs;
         break :blk try ctx.intoValues();
     };
-    // The prover frees the value table once the base trace is written.
-    var owned_values = OwnedValues{ .gpa = gpa, .values = values };
-    defer owned_values.release();
     build_stage.end();
-    const build_ns = timer.lap();
+    return .{ .gpa = gpa, .values = values, .subtasks = subtasks, .layer_idx = layer_idx, .pair_idx = pair_idx, .is_root = is_root, .build_ns = timer.read() };
+}
 
+pub fn provePrepared(gpa: std.mem.Allocator, fold: *const Fold, prepared: *PreparedReduction) !LayerEntry {
+    var timer = try std.time.Timer.start();
+    var owned_values = OwnedValues{ .gpa = gpa, .values = prepared.values };
+    prepared.values = null;
+    defer owned_values.release();
     const parent: LayerEntry = if (fold.source) |source|
-        try proveNodeFromSource(source, gpa, fold, &owned_values, subtasks, is_root)
-    else if (is_root)
-        try proveNode(fold.provers.root, gpa, fold, &owned_values, subtasks, true)
+        try proveNodeFromSource(source, gpa, fold, &owned_values, prepared.subtasks, prepared.is_root)
+    else if (prepared.is_root)
+        try proveNode(fold.provers.root, gpa, fold, &owned_values, prepared.subtasks, true)
     else
-        try proveNode(fold.provers.internal, gpa, fold, &owned_values, subtasks, false);
+        try proveNode(fold.provers.internal, gpa, fold, &owned_values, prepared.subtasks, false);
     const proof_ns = timer.read();
-    if (fold.source == null) std.debug.print("circuit-proof-stage kind=fold ns={} layer={} pair={}\n", .{ proof_ns, layer_idx, pair_idx });
+    if (fold.source == null) std.debug.print("circuit-proof-stage kind=fold ns={} layer={} pair={}\n", .{ proof_ns, prepared.layer_idx, prepared.pair_idx });
     log.info("reduce layer {d} pair {d}{s}: build {d} ms, prove {d} ms", .{
-        layer_idx,
-        pair_idx,
-        if (is_root) " (root)" else "",
-        build_ns / std.time.ns_per_ms,
+        prepared.layer_idx,
+        prepared.pair_idx,
+        if (prepared.is_root) " (root)" else "",
+        prepared.build_ns / std.time.ns_per_ms,
         proof_ns / std.time.ns_per_ms,
     });
     return parent;

@@ -91,6 +91,74 @@ pub fn foldEntriesBoundedProfile(gpa: std.mem.Allocator, fold: *const Fold, entr
         var index: usize = 0;
         const parallel = max_jobs > 1 and live.len >= 4 and fold.options.recorder == null and
             std.mem.eql(u8, fold.provers.backend_name, "cpu");
+        // Device proofs use one arena and one stream. Prepare the next
+        // independent sibling on the CPU while the current pair is proved,
+        // then submit proofs in the original tree order. This adds only one
+        // value table and never overlaps two device arenas.
+        if (fold.source != null and live.len >= 4 and fold.options.recorder == null and deviceLookaheadEnabled()) {
+            const pair_count = live.len / 2;
+            var current = fold_mod.preparePair(gpa, fold, &live[0], &live[1], layer_idx + 1, 0, false) catch |err| {
+                releaseAfterFailure(live, 0, 0);
+                live = live[0..0];
+                return err;
+            };
+            live[0].deinit();
+            live[1].deinit();
+            var consumed: usize = 2;
+            for (0..pair_count) |pair_idx| {
+                var job: PairBuildJob = undefined;
+                var thread: ?std.Thread = null;
+                const has_next = pair_idx + 1 < pair_count;
+                if (has_next) {
+                    job = .{
+                        .gpa = gpa,
+                        .fold = fold,
+                        .left = &live[consumed],
+                        .right = &live[consumed + 1],
+                        .layer_idx = layer_idx + 1,
+                        .pair_idx = pair_idx + 1,
+                        .worker_count = @min(8, @max(1, (std.Thread.getCpuCount() catch 1) / 2)),
+                    };
+                    if (std.Thread.spawn(.{}, PairBuildJob.run, .{&job})) |running| {
+                        thread = running;
+                    } else |_| {
+                        job.run();
+                    }
+                }
+                const parent = fold_mod.provePrepared(gpa, fold, &current) catch |err| {
+                    current.deinit();
+                    if (thread) |running| running.join();
+                    if (has_next) {
+                        if (job.prepared) |*prepared| prepared.deinit();
+                    }
+                    releaseAfterFailure(live, next_len, consumed + @as(usize, if (has_next) 2 else 0));
+                    live = live[0..0];
+                    return err;
+                };
+                current.deinit();
+                live[next_len] = parent;
+                next_len += 1;
+                stats.n_pair_reductions += 1;
+                if (has_next) {
+                    if (thread) |running| running.join();
+                    if (job.failure) |err| {
+                        releaseAfterFailure(live, next_len, consumed + 2);
+                        live = live[0..0];
+                        return err;
+                    }
+                    current = job.prepared.?;
+                    consumed += 2;
+                }
+            }
+            if (live.len % 2 != 0) {
+                live[next_len] = live[live.len - 1];
+                next_len += 1;
+            }
+            live = live[0..next_len];
+            std.debug.print("circuit-fold-layer index={} pairs={} elapsed_ns={}\n", .{ layer_idx, layer_pairs, layer_timer.read() });
+            layer_idx += 1;
+            continue;
+        }
         if (parallel) {
             const pair_count = live.len / 2;
             const cpu_count = std.Thread.getCpuCount() catch 1;
@@ -200,6 +268,49 @@ pub fn foldLeavesBounded(gpa: std.mem.Allocator, fold: *const Fold, leaves: []co
 }
 
 const max_parallel_jobs = 2;
+
+fn deviceLookaheadEnabled() bool {
+    const setting = std.posix.getenv("STWO_CIRCUIT_DEVICE_FOLD_LOOKAHEAD") orelse return true;
+    return !std.mem.eql(u8, setting, "0");
+}
+
+const PairBuildJob = struct {
+    gpa: std.mem.Allocator,
+    fold: *const Fold,
+    left: *LayerEntry,
+    right: *LayerEntry,
+    layer_idx: usize,
+    pair_idx: usize,
+    worker_count: usize,
+    prepared: ?fold_mod.PreparedReduction = null,
+    failure: ?anyerror = null,
+
+    fn run(self: *PairBuildJob) void {
+        var pool: prover.work_pool.WorkPool = undefined;
+        pool.initInPlaceWithOptions(.{ .worker_count = self.worker_count }) catch |err| {
+            self.fail(err);
+            return;
+        };
+        defer pool.deinit();
+        var binding = prover.work_pool.ScopedPoolBinding.init(&pool) catch |err| {
+            self.fail(err);
+            return;
+        };
+        defer binding.deinit();
+        self.prepared = fold_mod.preparePair(self.gpa, self.fold, self.left, self.right, self.layer_idx, self.pair_idx, false) catch |err| {
+            self.fail(err);
+            return;
+        };
+        self.left.deinit();
+        self.right.deinit();
+    }
+
+    fn fail(self: *PairBuildJob, err: anyerror) void {
+        self.left.deinit();
+        self.right.deinit();
+        self.failure = err;
+    }
+};
 
 const PairJob = struct {
     gpa: std.mem.Allocator,

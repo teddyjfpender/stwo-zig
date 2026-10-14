@@ -1,6 +1,7 @@
 //! Inspect the exact CUDA trace-column geometry without opening a GPU runtime.
 const std = @import("std");
 const stwo = @import("stwo");
+const wire = @import("stwo_circuit_recursion_wire");
 
 const source = stwo.integrations.cairo_cuda.canonical_source;
 const trace_commit = stwo.integrations.cairo_cuda.executor.trace_commit;
@@ -13,12 +14,31 @@ pub fn main() !void {
     const allocator = std.heap.smp_allocator;
     const args = try std.process.argsAlloc(allocator);
     defer std.process.argsFree(allocator, args);
-    const breakdown = args.len > 1 and std.mem.eql(u8, args[1], "--memory-breakdown");
-    const first_path: usize = if (breakdown) 2 else 1;
+    var breakdown = false;
+    var registry_path: ?[]const u8 = null;
+    var first_path: usize = 1;
+    while (first_path < args.len) {
+        if (std.mem.eql(u8, args[first_path], "--memory-breakdown")) {
+            breakdown = true;
+            first_path += 1;
+        } else if (std.mem.eql(u8, args[first_path], "--registry")) {
+            first_path += 1;
+            if (first_path >= args.len or registry_path != null) return error.InvalidArgument;
+            registry_path = args[first_path];
+            first_path += 1;
+        } else break;
+    }
     if (args.len <= first_path) {
-        std.debug.print("usage: cairo-trace-geometry [--memory-breakdown] <adapted-input.cpi>...\n", .{});
+        std.debug.print("usage: cairo-trace-geometry [--memory-breakdown] [--registry REGISTRY.json] <adapted-input.cpi>...\n", .{});
         return error.InvalidArgument;
     }
+    const leaf_lane = if (registry_path) |path| blk: {
+        const bytes = try std.fs.cwd().readFileAlloc(allocator, path, 16 << 20);
+        defer allocator.free(bytes);
+        var registry = try wire.registry.parseRegistry(allocator, bytes);
+        defer registry.deinit();
+        break :blk try stwo.frontends.cairo.proving.leaf_lane.Lane.fromParameters(registry.registry.cairo_prover_params);
+    } else null;
     const forced_variant = std.posix.getenv("STWO_CAIRO_CUDA_PREPROCESSED_VARIANT");
     const variant = if (forced_variant) |name|
         std.meta.stringToEnum(Variant, name) orelse return error.InvalidPreprocessedVariant
@@ -27,7 +47,8 @@ pub fn main() !void {
     const paths = source.Paths{
         .input = args[first_path],
         .variant = variant,
-        .automatic_variant = forced_variant == null,
+        .automatic_variant = forced_variant == null and leaf_lane == null,
+        .leaf_lane = leaf_lane,
     };
     var assets = try source.Assets.load(allocator, paths);
     defer assets.deinit();
@@ -47,7 +68,8 @@ pub fn main() !void {
         var prepared = try source.prepareWithAssets(allocator, .{
             .input = path,
             .variant = variant,
-            .automatic_variant = forced_variant == null,
+            .automatic_variant = forced_variant == null and leaf_lane == null,
+            .leaf_lane = leaf_lane,
         }, target, &assets);
         defer prepared.deinit();
         var controllers = try controller_bundle.Prepared.init(
@@ -59,10 +81,10 @@ pub fn main() !void {
         );
         defer controllers.deinit();
         const summary = prepared.request.resident.summary;
-        std.debug.print("resident pie={s} logical_bytes={} peak_live_bytes={} allocated_bytes={} request_arena_bytes={} coefficient_cells={} evaluation_cells={}\n", .{
-            std.fs.path.stem(path),                              summary.logicalBytes(),           summary.peak_live_words * 4,
-            controllers.resident.combined_arena.total_words * 4, summary.allocatedResidentBytes(), summary.coefficient_cells,
-            summary.evaluation_cells,
+        std.debug.print("resident pie={s} logical_bytes={} peak_live_bytes={} allocated_bytes={} request_arena_bytes={} allocated_resident_bytes={} coefficient_cells={} evaluation_cells={}\n", .{
+            std.fs.path.stem(path),                              summary.logicalBytes(),          summary.peak_live_words * 4,
+            controllers.resident.combined_arena.total_words * 4, summary.request_arena_words * 4, summary.allocatedResidentBytes(),
+            summary.coefficient_cells,                           summary.evaluation_cells,
         });
         if (breakdown) {
             const pie = std.fs.path.stem(path);
@@ -106,18 +128,20 @@ pub fn main() !void {
         const program = prepared.request.proof_program;
         for (program.commitments) |tree| {
             var commitment = if (tree.role == .main)
-                try trace_commit.Prepared.initMain(
+                try trace_commit.Prepared.initMainWithBlowup(
                     allocator,
                     program,
                     prepared.request.resident,
                     prepared.request.trace_dispatch,
+                    prepared.protocol.log_blowup_factor,
                 )
             else
-                try trace_commit.Prepared.initProduced(
+                try trace_commit.Prepared.initProducedWithBlowup(
                     allocator,
                     program,
                     prepared.request.resident,
                     tree.role,
+                    prepared.protocol.log_blowup_factor,
                 );
             defer commitment.deinit();
             const columns = program.trace_columns[tree.first_column .. tree.first_column + tree.column_count];

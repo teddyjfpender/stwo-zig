@@ -59,6 +59,17 @@ fn leafWrap(allocator: std.mem.Allocator, args: []const []const u8) !void {
     var cairo_session_live = true;
     defer if (cairo_session_live) cairo_session.deinit() catch {};
     var backend = circuit_cuda.recursion_source.Context{ .catalog = &catalog, .runtime = &runtime };
+    var session_job = sink.SessionJob{
+        .allocator = allocator,
+        .request = .{
+            .registry_path = registry,
+            .program_path = program,
+            .prover_input_path = input,
+            .source = backend.source(),
+        },
+    };
+    session_job.start();
+    defer session_job.deinit();
     var receiver = sink.Context{
         .allocator = allocator,
         .request = .{
@@ -68,6 +79,7 @@ fn leafWrap(allocator: std.mem.Allocator, args: []const []const u8) !void {
             .source = backend.source(),
         },
         .output_path = leaf_path,
+        .preparing_session = &session_job,
     };
     var total = try std.time.Timer.start();
     const item = cairo_app.BatchItem{
