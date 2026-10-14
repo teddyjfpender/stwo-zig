@@ -11,7 +11,8 @@ const topology = @import("transposed_merkle.zig");
 pub const M31 = tree.M31;
 pub const Hash = tree.Hash;
 pub const MAX_LOG_SIZE: u32 = 22;
-pub const MAX_HEIGHTS: usize = 22;
+// k <= 22 and at least eight rows at the final source height imply H <= 20.
+pub const MAX_HEIGHTS: usize = 20;
 pub const MAX_COLUMNS: usize = 256;
 
 /// Sparse openings have O(query_count * height_count) rows. Keep their

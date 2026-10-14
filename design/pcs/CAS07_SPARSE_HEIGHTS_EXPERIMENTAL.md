@@ -66,7 +66,7 @@ The current Gate roster's log sizes and column counts map to `k=20`, `H=17`:
 | 8 | 12 | 8 |
 | 4 | 16 | 193 |
 
-Ten intermediate heights have `c_i=0`. The candidate cap is `H<=22`,
+Ten intermediate heights have `c_i=0`. The candidate cap is `H<=20`,
 `k<=22`, `c_i<=256`, with a 64 MiB proof-wire bound. With blowup log 2,
 the Gate shape has a two-coefficient terminal polynomial. The focused test
 validates this full *profile*; it does not construct the full Gate proof or
