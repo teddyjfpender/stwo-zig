@@ -65,21 +65,48 @@ own-quotient insertion values per query. A wrong root, row, or pair index
 fails; malformed or noncanonical claims fail before transcript absorption.
 An arbitrary canonical claim remains only a transcript-bound assertion at this
 stage. Its correctness against the committed source polynomials requires the
-future quotient/fold and degree checks; this local source-path API cannot
-reject such a wrong claim on its own.
+quotient/fold and degree checks; the local source-path API cannot reject such
+a wrong claim on its own.
+
 The source roster is deliberately H1 only. Sparse, lower-height columns fail
 admission until their checked lifting and claim layout are specified.
 
-This does not yet check the CAS09 one-step relation. For each track that
-relation is `fold(previous_pair, line_x, alpha) + alpha² ×
-fold(inserted_source_pair, circle_y, alpha) = selected_next_value`.
-Here `fold(a,b,c,alpha) = a+b+alpha×(a-b)/c`, matching CAS09's native
-unscaled butterfly. The line and circle coordinates and both divisors are
-fixed by the checked domain geometry.
-The inserted values now have private custody for the H1 source profile, but
-the object does not retain fold alphas or enforce the fold equation, terminal
-degree condition, or four-root AIR relation. Local Merkle authentication and
-insertion computation do not imply proof acceptance.
+The candidate `verifyH1OneStepAtQuery` checks the exact CAS09 two-step H1
+relation for a restricted degree-zero terminal profile. It requires two fold
+heights, initial query log `k >= 3`, one authenticated original and one
+authenticated own-quotient line tree at log `k-1`, and exactly one canonical
+QM31 terminal coefficient per track. The event plan draws `alpha[0]` before
+the line roots and `alpha[1]` after them; the opaque owner retains both exact
+draws. It checks, separately for each track:
+
+```text
+source_base  = raw & ~1
+line_base    = (raw >> 1) & ~1
+first       = fold(source_inserted[source_base..source_base+1], source_y, alpha[0])
+first       = authenticated_line_pair[(raw >> 1) & 1]
+second      = fold(authenticated_line_pair, line_x, alpha[1])
+second      = terminal_poly(line_domain[raw >> 2])
+fold(a,b,c,alpha) = a + b + alpha * (a - b) / c
+```
+
+The source insertion at the second height is zero for this H1 profile. The verifier
+derives `source_y`, `line_x`, and the terminal position from checked circle
+and line domains; it checks the circle point's first doubling against the
+next-height projection. A differential test matches both butterfly stages
+against production single-step FRI folding, including coset orientation.
+The terminal polynomial is constant here. A general terminal degree needs a
+sealed log-blowup/degree parameter and a later profile revision.
+
+This local method takes only line row/path wire. It reads the sampled raw
+position, source insertion, line roots, two alphas, and terminal coefficients
+from private state. It returns a mismatch for a wrong equation; it does not
+record a global proof-acceptance result. A selected verifier must call it for
+every configured query and check the remaining AIR, commitment, degree, and
+transcript conditions. At lower inserted source heights, the circle source
+projection must preserve the original low bit:
+`2 * (raw / 2^(i+1)) + raw % 2`; the folded line row uses
+`raw / 2^(i+1)`. The H1 profile has no lower inserted source height and does
+not establish that more general projection theorem.
 
 Query draws reject a zero count without moving the transcript. Once the
 terminal query event begins, any sampler failure leaves the plan complete and
@@ -94,11 +121,17 @@ line-tree roster. The full PCS/FRI verifier, non-squaring FRI query
 correspondence, and the BCS/ROM reduction across framed transcript hashes,
 personalized source hashes, and personalized line hashes remain open. In
 particular, the local tests do not establish a 96-bit collision bound for
-any of those profiles. Native proven security bits remain unset. A `true`
+any of those profiles. The published three-term collision bound cannot be
+applied to this five-context hash family without a role-aware reduction and
+query-count accounting. Native proven security bits remain unset. A `true`
 Merkle opening result is only a local path check, never proof acceptance.
 
 The focused tests check event order, named root absorption, descriptor byte
 vectors against independent Python, copied metadata, source and line Merkle
 paths, private query projection, claim shape, and rejection of wrong rows,
-roots, and source pair indices. These are candidate API tests, not a PCS/FRI
-soundness proof.
+roots, and source pair indices. The fold controls include 232 raw query
+ordinals over an eight-point domain (with repeats), a nonzero quotient
+witness, wrong source rows/insertions, wrong adjacent line paths, both wrong
+alphas, and terminal mismatches on both tracks. The number 232 exercises
+custody and does not certify the selected `T = 2^64` work-factor target.
+These are candidate API tests, not a PCS/FRI soundness proof.

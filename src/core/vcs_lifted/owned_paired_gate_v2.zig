@@ -12,6 +12,7 @@ const m31 = @import("../fields/m31.zig");
 const qm31 = @import("../fields/qm31.zig");
 const circle = @import("../circle.zig");
 const canonic = @import("../poly/circle/canonic.zig");
+const line = @import("../poly/line.zig");
 const core_utils = @import("../utils.zig");
 const source_merkle = @import("blake2s_personalized_source_v2.zig");
 const lifted_verifier = @import("verifier.zig");
@@ -35,9 +36,17 @@ pub const Error = error{
     ManifestPlanMismatch,
     InvalidQueryIndex,
     QueriesNotDrawn,
+    UnsupportedH1FoldProfile,
+    InvalidTerminalShape,
+    FoldContextMissing,
+    InvalidQueryProjection,
+    OriginalIntermediateFoldMismatch,
+    QuotientIntermediateFoldMismatch,
+    OriginalTerminalFoldMismatch,
+    QuotientTerminalFoldMismatch,
 } || plan_mod.Error || admission.Error || uniform.Error || row_context.Error ||
     lifted_verifier.MerkleVerificationError || lifted_verifier.TreeHeightError ||
-    qm31.QM31.Error;
+    qm31.QM31.Error || m31.M31.Error;
 
 pub const source_tree_count: usize = 4;
 pub const max_source_columns: usize = 256;
@@ -139,6 +148,10 @@ fn qm31FromLimbs(limbs: [4]u32) qm31.QM31 {
     return qm31.QM31.fromM31Array(coordinates);
 }
 
+fn foldPair(even: qm31.QM31, odd: qm31.QM31, coordinate: m31.M31, alpha: qm31.QM31) Error!qm31.QM31 {
+    return even.add(odd).add(alpha.mul(even.sub(odd).mulM31(try coordinate.inv())));
+}
+
 const State = struct {
     allocator: std.mem.Allocator,
     plan: plan_mod.PairedGateEventPlanV2,
@@ -152,6 +165,9 @@ const State = struct {
     source_claim_count: usize = 0,
     source_context: ?row_context.RowContextV2 = null,
     source_insertions: ?[]?SourcePairWordsV2 = null,
+    fold_alphas: [plan_mod.max_fold_heights]qm31.QM31 = undefined,
+    fold_alpha_count: usize = 0,
+    terminal_coefficients: [2]?qm31.QM31 = .{ null, null },
 };
 
 /// Four canonical M31 coordinates for one QM31 line value, with the Merkle
@@ -231,6 +247,8 @@ pub const OwnedPairedGateVerifierV2 = opaque {
         state.source_claim_count = 0;
         state.source_context = null;
         state.source_insertions = null;
+        state.fold_alpha_count = 0;
+        state.terminal_coefficients = .{ null, null };
         return @ptrCast(state);
     }
 
@@ -365,7 +383,12 @@ pub const OwnedPairedGateVerifierV2 = opaque {
     }
 
     pub fn drawFoldAlpha(self: *Self) Error![4]u32 {
-        return self.privateState().plan.drawFoldAlpha();
+        const state = self.privateState();
+        const fold_index = state.plan.fold_index;
+        const limbs = try state.plan.drawFoldAlpha();
+        state.fold_alphas[fold_index] = qm31FromLimbs(limbs);
+        state.fold_alpha_count = @max(state.fold_alpha_count, fold_index + 1);
+        return limbs;
     }
 
     /// The admitted cache absorbs and retains the root. The plan stage only
@@ -395,11 +418,21 @@ pub const OwnedPairedGateVerifierV2 = opaque {
     }
 
     pub fn mixOriginalTerminalCoefficients(self: *Self, limbs: []const u32) Error!void {
-        try self.privateState().plan.mixOriginalTerminalCoefficients(limbs);
+        const state = self.privateState();
+        if (state.source_roster != null and state.plan.fold_count == 2 and limbs.len != 4)
+            return error.InvalidTerminalShape;
+        try state.plan.mixOriginalTerminalCoefficients(limbs);
+        if (state.source_roster != null and state.plan.fold_count == 2)
+            state.terminal_coefficients[0] = qm31FromLimbs(limbs[0..4].*);
     }
 
     pub fn mixOwnQuotientTerminalCoefficients(self: *Self, limbs: []const u32) Error!void {
-        try self.privateState().plan.mixOwnQuotientTerminalCoefficients(limbs);
+        const state = self.privateState();
+        if (state.source_roster != null and state.plan.fold_count == 2 and limbs.len != 4)
+            return error.InvalidTerminalShape;
+        try state.plan.mixOwnQuotientTerminalCoefficients(limbs);
+        if (state.source_roster != null and state.plan.fold_count == 2)
+            state.terminal_coefficients[1] = qm31FromLimbs(limbs[0..4].*);
     }
 
     pub fn beginFriPow(self: *Self, difficulty: u32) Error!framed.PowBarrier {
@@ -602,6 +635,64 @@ pub const OwnedPairedGateVerifierV2 = opaque {
             try self.verifyAndReadLinePair(2 * fold_index, query_ordinal, openings[0]),
             try self.verifyAndReadLinePair(2 * fold_index + 1, query_ordinal, openings[1]),
         };
+    }
+
+    /// Exact CAS09 two-step H1 relation for one sampled raw query, restricted
+    /// to a degree-zero terminal on each independent track. Step zero folds
+    /// the privately retained source insertion into the selected authenticated
+    /// line row. Step one folds the authenticated adjacent line pair into the
+    /// transcript-absorbed terminal coefficient. The only caller input is the
+    /// two tracks' line row/path wire; no alpha, position, root, or insertion
+    /// value enters through this API. A full verifier must check every query.
+    pub fn verifyH1OneStepAtQuery(
+        self: *const Self,
+        query_ordinal: usize,
+        openings: [2][2]LineRowOpeningV2,
+    ) Error!void {
+        const state = self.stateConst();
+        if (state.source_roster == null or state.plan.fold_count != 2 or state.query_log_size < 3)
+            return error.UnsupportedH1FoldProfile;
+        if (state.fold_alpha_count != 2 or
+            state.terminal_coefficients[0] == null or state.terminal_coefficients[1] == null)
+            return error.FoldContextMissing;
+        const queries = state.queries orelse return error.QueriesNotDrawn;
+        if (query_ordinal >= queries.raw.len) return error.InvalidQueryIndex;
+        const insertions = state.source_insertions orelse return error.SourceContextMissing;
+        const inserted = insertions[query_ordinal] orelse return error.SourceContextMissing;
+        const raw = queries.raw[query_ordinal];
+        const k = state.query_log_size;
+        if (raw >= (@as(usize, 1) << @intCast(k))) return error.InvalidQueryGeometry;
+        const line_pairs = try self.verifyAndReadBothTrackPairs(0, query_ordinal, openings);
+
+        const source_domain = canonic.CanonicCoset.new(k).circleDomain();
+        const source_base = raw & ~@as(usize, 1);
+        const source_p0 = source_domain.at(core_utils.bitReverseIndex(source_base, k));
+        const projected = source_domain.at(core_utils.bitReverseIndex(raw, k)).double();
+        const next_circle_domain = canonic.CanonicCoset.new(k - 1).circleDomain();
+        const projected_row = ((raw >> 2) << 1) | (raw & 1);
+        const expected_projected = next_circle_domain.at(core_utils.bitReverseIndex(projected_row, k - 1));
+        if (!projected.eql(expected_projected)) return error.InvalidQueryProjection;
+
+        const line_base = (raw >> 1) & ~@as(usize, 1);
+        const line_x = line.LineDomain.fromCircleDomain(source_domain)
+            .at(core_utils.bitReverseIndex(line_base, k - 1));
+        const terminal_domain = line.LineDomain.fromCircleDomain(next_circle_domain);
+        const terminal_row = raw >> 2;
+        const terminal_x = terminal_domain.at(core_utils.bitReverseIndex(terminal_row, k - 2));
+        const selected_side = (raw >> 1) & 1;
+        for (0..2) |track| {
+            const first = try foldPair(inserted[0][track], inserted[1][track], source_p0.y, state.fold_alphas[0]);
+            if (!first.eql(line_pairs[track][selected_side]))
+                return if (track == 0) error.OriginalIntermediateFoldMismatch else error.QuotientIntermediateFoldMismatch;
+            const second = try foldPair(line_pairs[track][0], line_pairs[track][1], line_x, state.fold_alphas[1]);
+            // H1 has no source insertion at the second height; CAS09's
+            // alpha^2 times the fold of a zero pair is exactly zero.
+            var coefficient = [1]qm31.QM31{state.terminal_coefficients[track].?};
+            const terminal = line.LinePoly.fromOrderedCoefficients(&coefficient);
+            const expected = try terminal.evalAtPoint(state.allocator, qm31.QM31.fromBase(terminal_x));
+            if (!second.eql(expected))
+                return if (track == 0) error.OriginalTerminalFoldMismatch else error.QuotientTerminalFoldMismatch;
+        }
     }
 };
 
@@ -1087,4 +1178,385 @@ test "H1 source admission rejects unbound roster, lower height and wrong claim s
     noncanonical[0] = m31.Modulus;
     try std.testing.expectError(error.InvalidFieldLimbs, verifier.mixSampledValues(&noncanonical));
     try std.testing.expectEqual(before, verifier.nextEvent());
+}
+
+const ConstantSourceTreeH1 = struct {
+    count: usize,
+    pair_witness: [2]Digest32,
+    root: Digest32,
+
+    fn init(count: usize) ConstantSourceTreeH1 {
+        var leaf = source_merkle.SourceMerkleHasherV2.defaultWithInitialState();
+        const zero = [_]m31.M31{m31.M31.zero()};
+        for (0..count) |_| leaf.updateLeaf(&zero);
+        const value = leaf.finalize();
+        const parent = source_merkle.SourceMerkleHasherV2.hashChildren(.{ .left = value, .right = value });
+        const grandparent = source_merkle.SourceMerkleHasherV2.hashChildren(.{ .left = parent, .right = parent });
+        return .{
+            .count = count,
+            .pair_witness = .{ parent, grandparent },
+            .root = source_merkle.SourceMerkleHasherV2.hashChildren(.{ .left = grandparent, .right = grandparent }),
+        };
+    }
+
+    fn opening(self: *const ConstantSourceTreeH1, columns: *[8][2]m31.M31) SourceTreePairOpeningV2 {
+        for (columns[0..self.count]) |*pair| pair.* = .{ m31.M31.zero(), m31.M31.zero() };
+        return .{ .columns = columns[0..self.count], .hash_witness = @constCast(&self.pair_witness) };
+    }
+};
+
+const ConstantLineTreeH1 = struct {
+    row: [4]u32,
+    pair_witness: [2]Digest32,
+    root: Digest32,
+
+    fn init(value: u32) !ConstantLineTreeH1 {
+        const row = [_]u32{value} ** 4;
+        const leaf = try @import("blake2s_personalized_line_v2.zig").hashCanonicalRow(&row);
+        const parent = @import("blake2s_personalized_line_v2.zig").LineMerkleHasherV2.hashChildren(.{ .left = leaf, .right = leaf });
+        return .{
+            .row = row,
+            .pair_witness = .{ leaf, parent },
+            .root = @import("blake2s_personalized_line_v2.zig").LineMerkleHasherV2.hashChildren(.{ .left = parent, .right = parent }),
+        };
+    }
+
+    fn pair(self: *const ConstantLineTreeH1) [2]LineRowOpeningV2 {
+        return .{
+            .{ .row = self.row, .siblings = &self.pair_witness },
+            .{ .row = self.row, .siblings = &self.pair_witness },
+        };
+    }
+};
+
+const RowLineTreeH1 = struct {
+    rows: [4][4]u32,
+    paths: [4][2]Digest32,
+    root: Digest32,
+
+    fn init(words: [4]qm31.QM31) !RowLineTreeH1 {
+        const hash = @import("blake2s_personalized_line_v2.zig");
+        var out: RowLineTreeH1 = undefined;
+        var leaves: [4]Digest32 = undefined;
+        for (words, &out.rows, &leaves) |word, *row, *leaf| {
+            const limbs = word.toM31Array();
+            for (limbs, row) |limb, *slot| slot.* = limb.v;
+            leaf.* = try hash.hashCanonicalRow(row);
+        }
+        const parent0 = hash.LineMerkleHasherV2.hashChildren(.{ .left = leaves[0], .right = leaves[1] });
+        const parent1 = hash.LineMerkleHasherV2.hashChildren(.{ .left = leaves[2], .right = leaves[3] });
+        out.root = hash.LineMerkleHasherV2.hashChildren(.{ .left = parent0, .right = parent1 });
+        out.paths = .{
+            .{ leaves[1], parent1 }, .{ leaves[0], parent1 },
+            .{ leaves[3], parent0 }, .{ leaves[2], parent0 },
+        };
+        return out;
+    }
+
+    fn pair(self: *const RowLineTreeH1, base: usize) [2]LineRowOpeningV2 {
+        return .{
+            .{ .row = self.rows[base], .siblings = &self.paths[base] },
+            .{ .row = self.rows[base + 1], .siblings = &self.paths[base + 1] },
+        };
+    }
+};
+
+fn h1FoldRoster() SourceRosterV2 {
+    var roster = h1SourceRoster();
+    roster.column_log_sizes = .{ &.{3}, &.{3}, &.{3}, &([_]u32{3} ** 8) };
+    return roster;
+}
+
+fn h1FoldStatement(manifest: descriptor.LineTreeManifestV2, allocator: std.mem.Allocator) !framed.StatementBinding {
+    var statement = try testStatement(manifest, allocator);
+    const roster = h1FoldRoster();
+    for (&statement.source_tree_descriptors, 0..) |*digest, tree|
+        digest.* = try sourceRosterDigest(statement.key_digest, 3, tree, roster.column_log_sizes[tree], roster.column_descriptors[tree]);
+    return statement;
+}
+
+fn beginH1Fold(
+    allocator: std.mem.Allocator,
+    source_trees: [4]ConstantSourceTreeH1,
+    claims: []const u32,
+) !*OwnedPairedGateVerifierV2 {
+    const zero = [_]u8{0} ** 32;
+    const profile = descriptor.lineHashProfileDigest();
+    const columns = [_]Digest32{
+        [_]u8{0x51} ** 32, [_]u8{0x52} ** 32, [_]u8{0x53} ** 32, [_]u8{0x54} ** 32,
+    };
+    const trees = [_]descriptor.LineTreeDescriptorV2{
+        .{ .key_digest = zero, .profile_digest = profile, .track = .original, .fold_height = 3, .tree_log_size = 2, .root_event = 17, .column_descriptors = &columns },
+        .{ .key_digest = zero, .profile_digest = profile, .track = .own_quotient, .fold_height = 3, .tree_log_size = 2, .root_event = 18, .column_descriptors = &columns },
+    };
+    const manifest = descriptor.LineTreeManifestV2{ .key_digest = zero, .fold_heights = &.{ 3, 2 }, .trees = &trees };
+    const statement = try h1FoldStatement(manifest, allocator);
+    const verifier = try OwnedPairedGateVerifierV2.initWithSourceRoster(allocator, manifest, statement, h1FoldRoster());
+    errdefer verifier.deinit();
+    try verifier.mixFixedRoot(source_trees[0].root);
+    try verifier.mixCircuitIdentity(zero);
+    try verifier.mixPublicValues(&.{ 0, 1, 2, 3 });
+    try verifier.mixMainRoot(source_trees[1].root);
+    _ = try verifier.beginInteractionPow(0);
+    try verifier.acceptInteractionNonce(0);
+    _ = try verifier.drawLookupPair();
+    try verifier.mixInteractionClaim(&.{ 0, 1, 2, 3 });
+    try verifier.mixInteractionRoot(source_trees[2].root);
+    _ = try verifier.drawCompositionGamma();
+    try verifier.mixCompositionRoot(source_trees[3].root);
+    _ = try verifier.drawOodsSeed();
+    try verifier.mixSampledValues(claims);
+    _ = try verifier.drawBatchLambda();
+    const alpha0 = try verifier.drawFoldAlpha();
+    try std.testing.expectEqualDeep(qm31FromLimbs(alpha0), verifier.privateState().fold_alphas[0]);
+    return verifier;
+}
+
+fn finishH1Fold(
+    verifier: *OwnedPairedGateVerifierV2,
+    line_roots: [2]Digest32,
+    terminals: [2][4]u32,
+    n_queries: usize,
+) !void {
+    try verifier.captureOriginalLineRoot(line_roots[0]);
+    try verifier.captureOwnQuotientLineRoot(line_roots[1]);
+    const alpha1 = try verifier.drawFoldAlpha();
+    try std.testing.expectEqualDeep(qm31FromLimbs(alpha1), verifier.privateState().fold_alphas[1]);
+    try verifier.mixOriginalTerminalCoefficients(&terminals[0]);
+    try verifier.mixOwnQuotientTerminalCoefficients(&terminals[1]);
+    _ = try verifier.beginFriPow(0);
+    try verifier.acceptFriNonce(0);
+    try verifier.drawQueries(n_queries, (n_queries + 7) / 8);
+}
+
+fn advanceH1Fold(
+    allocator: std.mem.Allocator,
+    source_trees: [4]ConstantSourceTreeH1,
+    line_trees: [2]ConstantLineTreeH1,
+    claims: []const u32,
+    terminals: [2][4]u32,
+    n_queries: usize,
+) !*OwnedPairedGateVerifierV2 {
+    const verifier = try beginH1Fold(allocator, source_trees, claims);
+    errdefer verifier.deinit();
+    try finishH1Fold(verifier, .{ line_trees[0].root, line_trees[1].root }, terminals, n_queries);
+    return verifier;
+}
+
+fn authenticateH1FoldSource(
+    verifier: *OwnedPairedGateVerifierV2,
+    ordinal: usize,
+    trees: *const [4]ConstantSourceTreeH1,
+) !void {
+    var columns: [4][8][2]m31.M31 = undefined;
+    var openings: [4]SourceTreePairOpeningV2 = undefined;
+    for (&openings, trees, &columns) |*opening, *tree, *cols|
+        opening.* = tree.opening(cols);
+    try verifier.verifyAndKeepSourcePair(ordinal, openings);
+}
+
+test "owned H1 fold checks source to both authenticated line tracks and zero-degree terminals" {
+    const allocator = std.testing.allocator;
+    const source_trees = [4]ConstantSourceTreeH1{
+        ConstantSourceTreeH1.init(1), ConstantSourceTreeH1.init(1),
+        ConstantSourceTreeH1.init(1), ConstantSourceTreeH1.init(8),
+    };
+    const zero_line = try ConstantLineTreeH1.init(0);
+    const line_trees = [2]ConstantLineTreeH1{ zero_line, zero_line };
+    const zero_claims = [_]u32{0} ** (4 * 11);
+    const zero_terminals = [2][4]u32{ [_]u32{0} ** 4, [_]u32{0} ** 4 };
+    const verifier = try advanceH1Fold(allocator, source_trees, line_trees, &zero_claims, zero_terminals, 232);
+    defer verifier.deinit();
+    try std.testing.expectError(error.SourceContextMissing, verifier.verifyH1OneStepAtQuery(0, .{ zero_line.pair(), zero_line.pair() }));
+    var seen = [_]usize{0} ** 8;
+    for (0..try verifier.queryCount()) |ordinal| {
+        const raw = try verifier.queryPosition(ordinal);
+        seen[raw] += 1;
+        try authenticateH1FoldSource(verifier, ordinal, &source_trees);
+        try verifier.verifyH1OneStepAtQuery(ordinal, .{ zero_line.pair(), zero_line.pair() });
+        try std.testing.expectEqual(raw, try verifier.queryPosition(ordinal));
+    }
+    try std.testing.expectEqual(@as(usize, 232), try verifier.queryCount());
+    for (seen) |count| try std.testing.expect(count > 1);
+    try std.testing.expectError(error.InvalidQueryIndex, verifier.verifyH1OneStepAtQuery(232, .{ zero_line.pair(), zero_line.pair() }));
+    var changed_row = zero_line.pair();
+    changed_row[0].row[0] = 1;
+    try std.testing.expectError(error.InvalidLinePath, verifier.verifyH1OneStepAtQuery(0, .{ changed_row, zero_line.pair() }));
+}
+
+test "owned H1 fold rejects authenticated wrong line, terminal, and canonical claim" {
+    const allocator = std.testing.allocator;
+    const source_trees = [4]ConstantSourceTreeH1{
+        ConstantSourceTreeH1.init(1), ConstantSourceTreeH1.init(1),
+        ConstantSourceTreeH1.init(1), ConstantSourceTreeH1.init(8),
+    };
+    const zero_line = try ConstantLineTreeH1.init(0);
+    const one_line = try ConstantLineTreeH1.init(1);
+    const zero_claims = [_]u32{0} ** (4 * 11);
+    const zero_terminals = [2][4]u32{ [_]u32{0} ** 4, [_]u32{0} ** 4 };
+
+    const wrong_line = try advanceH1Fold(allocator, source_trees, .{ one_line, zero_line }, &zero_claims, zero_terminals, 8);
+    defer wrong_line.deinit();
+    try authenticateH1FoldSource(wrong_line, 0, &source_trees);
+    try std.testing.expectError(error.OriginalIntermediateFoldMismatch, wrong_line.verifyH1OneStepAtQuery(0, .{ one_line.pair(), zero_line.pair() }));
+
+    var bad_original_terminal = zero_terminals;
+    bad_original_terminal[0][0] = 1;
+    const wrong_terminal = try advanceH1Fold(allocator, source_trees, .{ zero_line, zero_line }, &zero_claims, bad_original_terminal, 8);
+    defer wrong_terminal.deinit();
+    try authenticateH1FoldSource(wrong_terminal, 0, &source_trees);
+    try std.testing.expectError(error.OriginalTerminalFoldMismatch, wrong_terminal.verifyH1OneStepAtQuery(0, .{ zero_line.pair(), zero_line.pair() }));
+
+    var bad_quotient_terminal = zero_terminals;
+    bad_quotient_terminal[1][0] = 1;
+    const wrong_quotient_terminal = try advanceH1Fold(allocator, source_trees, .{ zero_line, zero_line }, &zero_claims, bad_quotient_terminal, 8);
+    defer wrong_quotient_terminal.deinit();
+    try authenticateH1FoldSource(wrong_quotient_terminal, 0, &source_trees);
+    try std.testing.expectError(error.QuotientTerminalFoldMismatch, wrong_quotient_terminal.verifyH1OneStepAtQuery(0, .{ zero_line.pair(), zero_line.pair() }));
+
+    var bad_claims = zero_claims;
+    bad_claims[0] = 1;
+    const wrong_claim = try advanceH1Fold(allocator, source_trees, .{ zero_line, zero_line }, &bad_claims, zero_terminals, 8);
+    defer wrong_claim.deinit();
+    try authenticateH1FoldSource(wrong_claim, 0, &source_trees);
+    try std.testing.expectError(error.QuotientIntermediateFoldMismatch, wrong_claim.verifyH1OneStepAtQuery(0, .{ zero_line.pair(), zero_line.pair() }));
+
+    const wrong_source_row = try advanceH1Fold(allocator, source_trees, .{ zero_line, zero_line }, &zero_claims, zero_terminals, 8);
+    defer wrong_source_row.deinit();
+    var source_columns: [4][8][2]m31.M31 = undefined;
+    var source_openings: [4]SourceTreePairOpeningV2 = undefined;
+    for (&source_openings, &source_trees, &source_columns) |*opening, *tree, *cols|
+        opening.* = tree.opening(cols);
+    source_columns[0][0][0] = m31.M31.one();
+    try std.testing.expectError(error.RootMismatch, wrong_source_row.verifyAndKeepSourcePair(0, source_openings));
+    try std.testing.expectError(error.SourceContextMissing, wrong_source_row.verifyH1OneStepAtQuery(0, .{ zero_line.pair(), zero_line.pair() }));
+}
+
+test "owned H1 degree-zero terminal length fails before transcript absorption" {
+    const allocator = std.testing.allocator;
+    const source_trees = [4]ConstantSourceTreeH1{
+        ConstantSourceTreeH1.init(1), ConstantSourceTreeH1.init(1),
+        ConstantSourceTreeH1.init(1), ConstantSourceTreeH1.init(8),
+    };
+    const zero_claims = [_]u32{0} ** (4 * 11);
+    const zero_line = try ConstantLineTreeH1.init(0);
+    const verifier = try beginH1Fold(allocator, source_trees, &zero_claims);
+    defer verifier.deinit();
+    try verifier.captureOriginalLineRoot(zero_line.root);
+    try verifier.captureOwnQuotientLineRoot(zero_line.root);
+    _ = try verifier.drawFoldAlpha();
+    const before = verifier.nextEvent();
+    try std.testing.expectError(error.InvalidTerminalShape, verifier.mixOriginalTerminalCoefficients(&.{ 0, 0, 0, 0, 0, 0, 0, 0 }));
+    try std.testing.expectEqual(before, verifier.nextEvent());
+    try verifier.mixOriginalTerminalCoefficients(&.{ 0, 0, 0, 0 });
+    const after_first = verifier.nextEvent();
+    try std.testing.expectError(error.InvalidTerminalShape, verifier.mixOwnQuotientTerminalCoefficients(&.{}));
+    try std.testing.expectEqual(after_first, verifier.nextEvent());
+}
+
+test "owned H1 nonzero quotient fold is sensitive to both retained alphas" {
+    const allocator = std.testing.allocator;
+    const source_trees = [4]ConstantSourceTreeH1{
+        ConstantSourceTreeH1.init(1), ConstantSourceTreeH1.init(1),
+        ConstantSourceTreeH1.init(1), ConstantSourceTreeH1.init(8),
+    };
+    var claims = [_]u32{0} ** (4 * 11);
+    claims[0] = 1;
+    const verifier = try beginH1Fold(allocator, source_trees, &claims);
+    defer verifier.deinit();
+    const state = verifier.privateState();
+    const source_domain = canonic.CanonicCoset.new(3).circleDomain();
+    const context = state.source_context orelse return error.SourceContextMissing;
+    const zero_row = [_]m31.M31{m31.M31.zero()} ** 11;
+    var quotient_words: [4]qm31.QM31 = undefined;
+    for (&quotient_words, 0..) |*word, pair| {
+        const base = 2 * pair;
+        const p0 = source_domain.at(core_utils.bitReverseIndex(base, 3));
+        const p1 = source_domain.at(core_utils.bitReverseIndex(base + 1, 3));
+        const even = try context.openedValues(&zero_row, p0);
+        const odd = try context.openedValues(&zero_row, p1);
+        word.* = try foldPair(even[1], odd[1], p0.y, state.fold_alphas[0]);
+    }
+    const quotient_line = try RowLineTreeH1.init(quotient_words);
+    const original_line = try ConstantLineTreeH1.init(0);
+    try verifier.captureOriginalLineRoot(original_line.root);
+    try verifier.captureOwnQuotientLineRoot(quotient_line.root);
+    _ = try verifier.drawFoldAlpha();
+    const line_x = line.LineDomain.fromCircleDomain(source_domain).at(core_utils.bitReverseIndex(0, 2));
+    const terminal_quotient = try foldPair(quotient_words[0], quotient_words[1], line_x, state.fold_alphas[1]);
+    const terminal_limbs = terminal_quotient.toM31Array();
+    var quotient_terminal: [4]u32 = undefined;
+    for (terminal_limbs, &quotient_terminal) |limb, *slot| slot.* = limb.v;
+    try verifier.mixOriginalTerminalCoefficients(&.{ 0, 0, 0, 0 });
+    try verifier.mixOwnQuotientTerminalCoefficients(&quotient_terminal);
+    _ = try verifier.beginFriPow(0);
+    try verifier.acceptFriNonce(0);
+    try verifier.drawQueries(232, 29);
+
+    var selected: ?usize = null;
+    for (0..try verifier.queryCount()) |ordinal| {
+        if (try verifier.queryPosition(ordinal) < 4) {
+            selected = ordinal;
+            break;
+        }
+    }
+    const ordinal = selected orelse return error.InvalidQueryIndex;
+    try authenticateH1FoldSource(verifier, ordinal, &source_trees);
+    const raw = try verifier.queryPosition(ordinal);
+    const openings = [2][2]LineRowOpeningV2{ original_line.pair(), quotient_line.pair((raw >> 1) & ~@as(usize, 1)) };
+    try verifier.verifyH1OneStepAtQuery(ordinal, openings);
+    var wrong_neighbor = openings;
+    wrong_neighbor[1][1] = wrong_neighbor[1][0];
+    try std.testing.expectError(error.InvalidLinePath, verifier.verifyH1OneStepAtQuery(ordinal, wrong_neighbor));
+    const inserted = state.source_insertions.?[ordinal].?;
+    try std.testing.expect(!inserted[0][1].eql(inserted[1][1]));
+    try std.testing.expect(!quotient_words[0].eql(quotient_words[1]));
+
+    // Fault injection is test-only: the opaque API never exposes these
+    // values. A changed alpha at either height must break the same path.
+    const alpha0 = state.fold_alphas[0];
+    state.fold_alphas[0] = alpha0.add(qm31.QM31.one());
+    try std.testing.expectError(error.QuotientIntermediateFoldMismatch, verifier.verifyH1OneStepAtQuery(ordinal, openings));
+    state.fold_alphas[0] = alpha0;
+    const alpha1 = state.fold_alphas[1];
+    state.fold_alphas[1] = alpha1.add(qm31.QM31.one());
+    try std.testing.expectError(error.QuotientTerminalFoldMismatch, verifier.verifyH1OneStepAtQuery(ordinal, openings));
+    state.fold_alphas[1] = alpha1;
+    const original_insertion = state.source_insertions.?[ordinal].?;
+    var wrong_insertion = original_insertion;
+    wrong_insertion[0][1] = wrong_insertion[0][1].add(qm31.QM31.one());
+    state.source_insertions.?[ordinal] = wrong_insertion;
+    try std.testing.expectError(error.QuotientIntermediateFoldMismatch, verifier.verifyH1OneStepAtQuery(ordinal, openings));
+}
+
+test "H1 source and line pair coordinates match production single-step FRI" {
+    const allocator = std.testing.allocator;
+    const production = @import("../fri/folding.zig");
+    const source_domain = canonic.CanonicCoset.new(3).circleDomain();
+    const alpha = qm31.QM31.fromM31Array(.{
+        m31.M31.fromCanonical(7), m31.M31.fromCanonical(2),
+        m31.M31.fromCanonical(3), m31.M31.fromCanonical(1),
+    });
+    var source_values: [8]qm31.QM31 = undefined;
+    for (&source_values, 0..) |*value, i| value.* = qm31.QM31.fromBase(m31.M31.fromCanonical(@intCast(3 * i + 1)));
+    var production_source = [_]qm31.QM31{qm31.QM31.zero()} ** 4;
+    try production.foldCircleIntoLine(&production_source, &source_values, source_domain, alpha);
+    for (0..4) |pair| {
+        const base = 2 * pair;
+        const p0 = source_domain.at(core_utils.bitReverseIndex(base, 3));
+        const candidate = try foldPair(source_values[base], source_values[base + 1], p0.y, alpha);
+        try std.testing.expect(candidate.eql(production_source[pair]));
+    }
+
+    const line_domain = line.LineDomain.fromCircleDomain(source_domain);
+    var workspace = try production.FoldLineWorkspace.init(allocator, 2);
+    defer workspace.deinit(allocator);
+    const folded = try production.foldLineSingleStep(allocator, &production_source, line_domain, alpha, &workspace);
+    defer allocator.free(folded.values);
+    for (0..2) |pair| {
+        const base = 2 * pair;
+        const x = line_domain.at(core_utils.bitReverseIndex(base, 2));
+        const candidate = try foldPair(production_source[base], production_source[base + 1], x, alpha);
+        try std.testing.expect(candidate.eql(folded.values[pair]));
+    }
 }
