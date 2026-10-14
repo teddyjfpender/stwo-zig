@@ -8,13 +8,25 @@ order**, where duplicate draws remain separate slots.
 
 ## Bound position invariant
 
-`FriVerifier.sampleQueryPositionsWithRaw` now owns the exact raw draw as well
-as its normalized query set. `decommitWithQueryCapture` has no independent
-position argument: it expands each authenticated folding group at the raw
-position owned by that same verifier. Returned raw and unique slices are
-copies. Changing a returned slice cannot relabel a later capture. Ordinary
-PCS verification already passed the sampled positions to its own Merkle and
-FRI checks; this change closes the separate recursive capture API boundary.
+On `main` at `6692d4063`, `FriVerifier.sampleQueryPositionsWithRaw` returned
+the raw draw but retained only its normalized set. The public
+`decommitWithQueryCapture` API accepted an independent raw-position slice.
+The production PCS caller supplied the correct draw, but the API itself did
+not enforce that relation. This PR changes **main** so the verifier owns the
+exact raw draw as well as its normalized query set. The capture API has no
+independent position argument: it expands each authenticated folding group
+at the raw position owned by that same verifier. Returned raw and unique
+slices are copies.
+
+S31 currently pins Stwo commit `59e1f115`, which already contains
+`a3e858cc5` (`Bind FRI capture labels to transcript query draws`). That
+commit retained `sampled_raw_queries` and made `decommitImpl` reject a
+caller-supplied slice unless it exactly equals the transcript draw, including
+order and duplicates, with `QueryCapturePositionsInvalid`. S31's pinned
+verifier therefore **already enforces this invariant**. This PR is a
+mainline variant of the same guard, with a narrower capture API, and is not
+a newly discovered exploitable gap in S31's pinned verifier. It does not
+require an S31 gitlink update for this invariant alone.
 
 The focused regression draws 32 queries from a 16-position domain, so at
 least one duplicate is certain. It changes one returned raw position to the
@@ -35,7 +47,7 @@ small-domain condition is `1-theta > (1-delta)*(1+2/N_t)`. The theorem's
 correlated agreement is on the lifted, cross-domain ensemble; separate
 per-domain low-degree claims do not supply it.
 
-The production path in `src/core/pcs/verifier.zig` supplies only the
+The legacy production path in `src/core/pcs/verifier.zig` supplies only the
 `quotients.friAnswers` vector to `FriVerifier.decommit`. It does not commit an
 original-plus-own-quotient paired ensemble. Experimental CAS07/XDM05 in draft
 PR #269 introduces a paired sparse-height representation, but production
