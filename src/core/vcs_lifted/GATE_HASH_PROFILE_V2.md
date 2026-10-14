@@ -60,6 +60,13 @@ key and checked geometry.
    derive the same descriptors and event sequence, including both PoW
    barriers, challenge rejection counters, and query projection. Compare
    complete proof bytes and negative mutations, not only this small replay.
+   The integration points are `src/prover/prove.zig` and
+   `src/prover/pcs/mod.zig` for transcript/PCS construction,
+   `src/prover/vcs_lifted/prover.zig` for committed tree hashing,
+   `src/core/verifier.zig` and `src/core/pcs/verifier.zig` for verifier event
+   order, and `src/core/vcs_lifted/verifier.zig` for path hashing. The current
+   `src/core/vcs_lifted/channel_profile.zig` still names the plain profile;
+   do not replace that legacy choice in place.
 3. Finish the accepted Gate 73-claim paired source/own-quotient ensemble and
    its degree test. The current H3 weighting receipt is diagnostic: 61 source
    columns, 73 explicit OOD claims and 85 raw legacy quotient contributions
