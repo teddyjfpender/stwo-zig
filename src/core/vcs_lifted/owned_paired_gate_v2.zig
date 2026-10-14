@@ -52,6 +52,7 @@ pub const Error = error{
     SparseSourceAlreadyVerified,
     InvalidSparseClaimLayout,
     SourceEnsembleNotAdmitted,
+    CommittedFoldsNotChecked,
 } || plan_mod.Error || admission.Error || uniform.Error || row_context.Error ||
     lifted_verifier.MerkleVerificationError || lifted_verifier.TreeHeightError ||
     qm31.QM31.Error || m31.M31.Error || h3_projection.Error;
@@ -361,10 +362,12 @@ const State = struct {
     // Separate from the 61/85 diagnostic rows. No public constructor fills
     // this until a matched, authenticated per-claim ensemble is specified.
     paired_h3_insertions: ?[]?SparseH3PairWordsV2 = null,
+    h3_fold_checked: ?[]u16 = null,
     batch_lambda: ?qm31.QM31 = null,
     fold_alphas: [plan_mod.max_fold_heights]qm31.QM31 = undefined,
     fold_alpha_count: usize = 0,
     terminal_coefficients: [2]?qm31.QM31 = .{ null, null },
+    h3_terminal_coefficients: [2]?[2]qm31.QM31 = .{ null, null },
 };
 
 /// Four canonical M31 coordinates for one QM31 line value, with the Merkle
@@ -468,9 +471,11 @@ pub const OwnedPairedGateVerifierV2 = opaque {
         state.sparse_h3_insertions = null;
         state.literal_h3_claim_rows = null;
         state.paired_h3_insertions = null;
+        state.h3_fold_checked = null;
         state.batch_lambda = null;
         state.fold_alpha_count = 0;
         state.terminal_coefficients = .{ null, null };
+        state.h3_terminal_coefficients = .{ null, null };
         return @ptrCast(state);
     }
 
@@ -491,6 +496,7 @@ pub const OwnedPairedGateVerifierV2 = opaque {
             state.allocator.free(rows);
         }
         if (state.paired_h3_insertions) |insertions| state.allocator.free(insertions);
+        if (state.h3_fold_checked) |checked| state.allocator.free(checked);
         if (state.source_context) |*context| context.deinit();
         if (state.queries) |*queries| queries.deinit(state.allocator);
         state.admitted.deinit();
@@ -653,18 +659,34 @@ pub const OwnedPairedGateVerifierV2 = opaque {
         const state = self.privateState();
         if (state.source_roster != null and state.plan.fold_count == 2 and limbs.len != 4)
             return error.InvalidTerminalShape;
+        if (state.source_roster) |roster| {
+            if (roster.mode == .sparse_h3 and (state.plan.fold_count != 14 or limbs.len != 8))
+                return error.InvalidTerminalShape;
+        }
         try state.plan.mixOriginalTerminalCoefficients(limbs);
         if (state.source_roster != null and state.plan.fold_count == 2)
             state.terminal_coefficients[0] = qm31FromLimbs(limbs[0..4].*);
+        if (state.source_roster) |roster| {
+            if (roster.mode == .sparse_h3)
+                state.h3_terminal_coefficients[0] = .{ qm31FromLimbs(limbs[0..4].*), qm31FromLimbs(limbs[4..8].*) };
+        }
     }
 
     pub fn mixOwnQuotientTerminalCoefficients(self: *Self, limbs: []const u32) Error!void {
         const state = self.privateState();
         if (state.source_roster != null and state.plan.fold_count == 2 and limbs.len != 4)
             return error.InvalidTerminalShape;
+        if (state.source_roster) |roster| {
+            if (roster.mode == .sparse_h3 and (state.plan.fold_count != 14 or limbs.len != 8))
+                return error.InvalidTerminalShape;
+        }
         try state.plan.mixOwnQuotientTerminalCoefficients(limbs);
         if (state.source_roster != null and state.plan.fold_count == 2)
             state.terminal_coefficients[1] = qm31FromLimbs(limbs[0..4].*);
+        if (state.source_roster) |roster| {
+            if (roster.mode == .sparse_h3)
+                state.h3_terminal_coefficients[1] = .{ qm31FromLimbs(limbs[0..4].*), qm31FromLimbs(limbs[4..8].*) };
+        }
     }
 
     pub fn beginFriPow(self: *Self, difficulty: u32) Error!framed.PowBarrier {
@@ -705,9 +727,13 @@ pub const OwnedPairedGateVerifierV2 = opaque {
                 errdefer state.allocator.free(insertions);
                 @memset(insertions, null);
                 const literal_rows = try state.allocator.alloc(?*SparseH3LiteralClaimRowsV2, n_queries);
+                errdefer state.allocator.free(literal_rows);
                 @memset(literal_rows, null);
+                const checked = try state.allocator.alloc(u16, n_queries);
+                @memset(checked, 0);
                 state.sparse_h3_insertions = insertions;
                 state.literal_h3_claim_rows = literal_rows;
+                state.h3_fold_checked = checked;
             }
         }
         state.queries = queries;
@@ -1182,9 +1208,10 @@ pub const OwnedPairedGateVerifierV2 = opaque {
     /// The 61/85 diagnostic rows from verifyAndKeepSparseH3SourcePair never
     /// enter this relation. This checks Eq. (68) pointwise only after a future
     /// ensemble admission establishes the source values' origin and meaning.
-    /// The final h=4-to-terminal step remains outside this method.
+    /// A successful call records this step for this query. The final h=4
+    /// check requires all thirteen committed steps to have passed.
     pub fn verifySparseH3CommittedStepAtQuery(
-        self: *const Self,
+        self: *Self,
         fold_index: usize,
         query_ordinal: usize,
         previous_openings: ?[2][2]LineRowOpeningV2,
@@ -1245,6 +1272,56 @@ pub const OwnedPairedGateVerifierV2 = opaque {
             }
             if (!expected.eql(next[track][selected_side]))
                 return if (track == 0) error.OriginalIntermediateFoldMismatch else error.QuotientIntermediateFoldMismatch;
+        }
+        const checked = state.h3_fold_checked orelse return error.SourceContextMissing;
+        checked[query_ordinal] |= @as(u16, 1) << @intCast(fold_index);
+    }
+
+    /// Candidate last one-bit fold, h=4 -> terminal log 3, for one sampled
+    /// query. Both h=4 line pairs are authenticated at privately derived
+    /// adjacent indices, then folded with retained alpha[13] into the two
+    /// transcript-bound degree<2 terminal polynomials. It admits no source
+    /// values: the separate paired-ensemble slot must already be populated,
+    /// and all thirteen committed steps must have passed for this query.
+    /// No public path populates that slot or selects this verifier.
+    pub fn verifySparseH3TerminalAtQuery(
+        self: *const Self,
+        query_ordinal: usize,
+        previous_openings: [2][2]LineRowOpeningV2,
+    ) Error!void {
+        const state = self.stateConst();
+        const roster = state.source_roster orelse return error.SourceNotAdmitted;
+        if (roster.mode != .sparse_h3 or state.query_log_size != 17 or
+            state.plan.fold_count != 14 or state.plan.fold_heights[13] != 4)
+            return error.UnsupportedSparseH3Profile;
+        if (state.fold_alpha_count != 14 or state.h3_terminal_coefficients[0] == null or
+            state.h3_terminal_coefficients[1] == null)
+            return error.FoldContextMissing;
+        const queries = state.queries orelse return error.QueriesNotDrawn;
+        if (query_ordinal >= queries.raw.len) return error.InvalidQueryIndex;
+        const insertions = state.paired_h3_insertions orelse return error.SourceEnsembleNotAdmitted;
+        if (insertions[query_ordinal] == null) return error.SourceContextMissing;
+        const checked = state.h3_fold_checked orelse return error.SourceContextMissing;
+        if (checked[query_ordinal] != 0x1fff) return error.CommittedFoldsNotChecked;
+        const raw = queries.raw[query_ordinal];
+        if (raw >= (@as(usize, 1) << 17)) return error.InvalidQueryGeometry;
+        const previous = try self.verifyAndReadBothTrackPairs(12, query_ordinal, previous_openings);
+        const previous_domain = line.LineDomain.fromCircleDomain(canonic.CanonicCoset.new(5).circleDomain());
+        const terminal_domain = line.LineDomain.fromCircleDomain(canonic.CanonicCoset.new(4).circleDomain());
+        if (!previous_domain.double().coset().eql(canonic.CanonicCoset.new(4).circleDomain().half_coset))
+            return error.InvalidQueryProjection;
+        const previous_base = (raw >> 13) & ~@as(usize, 1);
+        const previous_x = previous_domain.at(core_utils.bitReverseIndex(previous_base, 4));
+        const terminal_row = raw >> 14;
+        const terminal_x = terminal_domain.at(core_utils.bitReverseIndex(terminal_row, 3));
+        const alpha = state.fold_alphas[13];
+        for (0..2) |track| {
+            const actual = try foldPair(previous[track][0], previous[track][1], previous_x, alpha);
+            var coefficients = state.h3_terminal_coefficients[track].?;
+            const terminal = line.LinePoly.fromOrderedCoefficients(&coefficients);
+            const expected = try terminal.evalAtPoint(state.allocator, qm31.QM31.fromBase(terminal_x));
+            if (!actual.eql(expected))
+                return if (track == 0) error.OriginalTerminalFoldMismatch else error.QuotientTerminalFoldMismatch;
         }
     }
 };
@@ -1967,8 +2044,12 @@ test "sparse H3 committed cascade checks every step and all three source heights
             try verifier.captureOwnQuotientLineRoot(lines[2 * i + 1].root);
         }
     }
-    try verifier.mixOriginalTerminalCoefficients(&.{ 0, 0, 0, 0 });
-    try verifier.mixOwnQuotientTerminalCoefficients(&.{ 0, 0, 0, 0 });
+    const terminal_event = verifier.nextEvent();
+    try std.testing.expectError(error.InvalidTerminalShape, verifier.mixOriginalTerminalCoefficients(&.{ 0, 0, 0, 0 }));
+    try std.testing.expectEqual(terminal_event, verifier.nextEvent());
+    try verifier.mixOriginalTerminalCoefficients(&.{ 0, 0, 0, 0, 0, 0, 0, 0 });
+    try std.testing.expectError(error.InvalidTerminalShape, verifier.mixOwnQuotientTerminalCoefficients(&.{ 0, 0, 0, 0 }));
+    try verifier.mixOwnQuotientTerminalCoefficients(&.{ 0, 0, 0, 0, 0, 0, 0, 0 });
     _ = try verifier.beginFriPow(0);
     try verifier.acceptFriNonce(0);
     try verifier.drawQueries(2, 1);
@@ -1999,13 +2080,35 @@ test "sparse H3 committed cascade checks every step and all three source heights
         }
     }.at;
     try std.testing.expectError(error.SourceEnsembleNotAdmitted, verifier.verifySparseH3CommittedStepAtQuery(0, 0, null, lineOpenings(&lines, 0)));
+    try std.testing.expectError(error.SourceEnsembleNotAdmitted, verifier.verifySparseH3TerminalAtQuery(0, lineOpenings(&lines, 12)));
     state.paired_h3_insertions = try allocator.alloc(?SparseH3PairWordsV2, 2);
     @memset(state.paired_h3_insertions.?, null);
     state.paired_h3_insertions.?[0] = inserted;
+    try std.testing.expectError(error.CommittedFoldsNotChecked, verifier.verifySparseH3TerminalAtQuery(0, lineOpenings(&lines, 12)));
     for (0..13) |i| {
         const previous: ?[2][2]LineRowOpeningV2 = if (i == 0) null else lineOpenings(&lines, i - 1);
         try verifier.verifySparseH3CommittedStepAtQuery(i, 0, previous, lineOpenings(&lines, i));
     }
+    try std.testing.expectEqual(@as(u16, 0x1fff), state.h3_fold_checked.?[0]);
+    state.h3_fold_checked.?[0] &= ~@as(u16, 1 << 6);
+    try std.testing.expectError(error.CommittedFoldsNotChecked, verifier.verifySparseH3TerminalAtQuery(0, lineOpenings(&lines, 12)));
+    state.h3_fold_checked.?[0] |= @as(u16, 1 << 6);
+    try verifier.verifySparseH3TerminalAtQuery(0, lineOpenings(&lines, 12));
+    try std.testing.expectError(error.SourceContextMissing, verifier.verifySparseH3TerminalAtQuery(1, lineOpenings(&lines, 12)));
+    try std.testing.expectError(error.InvalidQueryIndex, verifier.verifySparseH3TerminalAtQuery(2, lineOpenings(&lines, 12)));
+    var terminal_wrong_path = lineOpenings(&lines, 12);
+    terminal_wrong_path[1][1].row[0] = 1;
+    try std.testing.expectError(error.InvalidLinePath, verifier.verifySparseH3TerminalAtQuery(0, terminal_wrong_path));
+    const terminal_zero = state.h3_terminal_coefficients[0].?;
+    state.h3_terminal_coefficients[0].?[0] = qm31.QM31.one();
+    try std.testing.expectError(error.OriginalTerminalFoldMismatch, verifier.verifySparseH3TerminalAtQuery(0, lineOpenings(&lines, 12)));
+    state.h3_terminal_coefficients[0] = terminal_zero;
+    state.h3_terminal_coefficients[0].?[1] = qm31.QM31.one();
+    try std.testing.expectError(error.OriginalTerminalFoldMismatch, verifier.verifySparseH3TerminalAtQuery(0, lineOpenings(&lines, 12)));
+    state.h3_terminal_coefficients[0] = terminal_zero;
+    state.h3_terminal_coefficients[1].?[0] = qm31.QM31.one();
+    try std.testing.expectError(error.QuotientTerminalFoldMismatch, verifier.verifySparseH3TerminalAtQuery(0, lineOpenings(&lines, 12)));
+    state.h3_terminal_coefficients[1] = terminal_zero;
     for ([_]usize{ 0, 6, 12 }, 0..) |i, slot| {
         const previous: ?[2][2]LineRowOpeningV2 = if (i == 0) null else lineOpenings(&lines, i - 1);
         const alpha = state.fold_alphas[i];
@@ -2067,6 +2170,44 @@ test "sparse H3 source-height insertion equation matches native one-step folds" 
         try std.testing.expect(local_previous.add(alpha.square().mul(local_source)).eql(
             line_fold.values[pair].add(alpha.square().mul(source_fold[pair])),
         ));
+    }
+}
+
+test "sparse H3 last fold coordinates and degree-one terminal match native fold" {
+    const folding = @import("../fri/folding.zig");
+    const allocator = std.testing.allocator;
+    const previous_domain = line.LineDomain.fromCircleDomain(canonic.CanonicCoset.new(5).circleDomain());
+    const terminal_domain = line.LineDomain.fromCircleDomain(canonic.CanonicCoset.new(4).circleDomain());
+    try std.testing.expect(previous_domain.double().coset().eql(terminal_domain.coset()));
+    const alpha = qm31FromLimbs(.{ 7, 2, 3, 1 });
+    const one = qm31.QM31.one();
+    const two = qm31.QM31.fromBase(m31.M31.fromCanonical(2));
+    const three = qm31.QM31.fromBase(m31.M31.fromCanonical(3));
+    const four = qm31.QM31.fromBase(m31.M31.fromCanonical(4));
+    const six = qm31.QM31.fromBase(m31.M31.fromCanonical(6));
+    var previous: [16]qm31.QM31 = undefined;
+    for (&previous, 0..) |*value, row| {
+        const x = qm31.QM31.fromBase(previous_domain.at(core_utils.bitReverseIndex(row, 4)));
+        value.* = one.add(three.mul(x)).add(two.mul(x.square()));
+    }
+    var workspace = try folding.FoldLineWorkspace.init(allocator, 8);
+    defer workspace.deinit(allocator);
+    const native = try folding.foldLineSingleStep(allocator, &previous, previous_domain, alpha, &workspace);
+    defer allocator.free(native.values);
+    var coefficients = [2]qm31.QM31{ four.add(six.mul(alpha)), two };
+    const terminal = line.LinePoly.fromOrderedCoefficients(&coefficients);
+    for (0..8) |row| {
+        const raw = row << 14;
+        const pair_base = (raw >> 13) & ~@as(usize, 1);
+        try std.testing.expectEqual(row * 2, pair_base);
+        const x = previous_domain.at(core_utils.bitReverseIndex(pair_base, 4));
+        const local = try foldPair(previous[pair_base], previous[pair_base + 1], x, alpha);
+        const terminal_x = terminal_domain.at(core_utils.bitReverseIndex(raw >> 14, 3));
+        const expected = try terminal.evalAtPoint(allocator, qm31.QM31.fromBase(terminal_x));
+        try std.testing.expect(local.eql(native.values[row]));
+        try std.testing.expect(local.eql(expected));
+        const changed_alpha = try foldPair(previous[pair_base], previous[pair_base + 1], x, alpha.add(one));
+        try std.testing.expect(!changed_alpha.eql(expected));
     }
 }
 
