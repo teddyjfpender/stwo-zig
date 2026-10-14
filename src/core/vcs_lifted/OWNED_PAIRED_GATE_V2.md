@@ -148,9 +148,36 @@ to isolate the opening calculation, so it does not exercise full event replay;
 the accepted production proof has plain source roots and cannot be replayed
 under them. A selected S31 adapter still must derive every column identity,
 log, and mask offset from the installed sealed key, then own the statement and
-proof geometry. General H3 fold equations, degree testing, the multi-context
-BCS reduction, and query-consistency theorem remain open. Native proven
-security bits stay unset.
+proof geometry. Degree testing, the multi-context BCS reduction, and
+query-consistency theorem remain open. Native proven security bits stay unset.
+
+### H3 committed fold kernel and source-ensemble gate
+
+`verifySparseH3CommittedStepAtQuery` checks each of the 13 committed steps
+from height 17 down through the insertion at height 5. It authenticates both
+adjacent rows of both line tracks under privately captured roots, derives the
+selected row from the retained raw query, and uses the exact verifier-drawn
+alpha for that height. At the first height it folds the source pair into the
+line. At later heights its pointwise Eq. (68) recurrence is:
+
+```text
+next = fold(previous_line_pair, line_x, alpha)
+     + alpha² * fold(source_circle_pair, circle_y, alpha)   # at h=11 or h=5
+next = fold(previous_line_pair, line_x, alpha)              # other heights
+fold(a,b,c,alpha) = a + b + alpha * (a-b)/c
+```
+
+The line and circle domains are checked to share the expected doubled coset.
+The source pair comes from a **separate private paired-ensemble slot**. No
+public operation currently admits that slot: `verifyAndKeepSparseH3SourcePair`
+fills only its diagnostic 61/85 row slot, and a normal call to the fold
+kernel returns `SourceEnsembleNotAdmitted`. This prevents the diagnostic
+quotient from silently becoming an Eq. (77) source. A test-only private
+fixture populates the paired slot, replays all 13 drawn challenges against
+authenticated zero line trees, and rejects changed alphas, source words,
+both line paths, missing slots, and wrong ordinals. The final height-4 fold,
+terminal degree test, source-ensemble admission, and global FRI theorem are
+still open. No production verifier calls this kernel.
 
 The candidate `verifyH1OneStepAtQuery` checks the exact CAS09 two-step H1
 relation for a restricted degree-zero terminal profile. It requires two fold
