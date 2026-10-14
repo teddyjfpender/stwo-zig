@@ -68,8 +68,89 @@ stage. Its correctness against the committed source polynomials requires the
 quotient/fold and degree checks; the local source-path API cannot reject such
 a wrong claim on its own.
 
-The source roster is deliberately H1 only. Sparse, lower-height columns fail
-admission until their checked lifting and claim layout are specified.
+The original `initWithSourceRoster` entry remains H1 only. Sparse,
+lower-height columns use the distinct versioned admission below.
+
+The separate `initWithSparseH3SourceRoster` candidate admits the accepted
+sparse Gate **shape**: top query log 17; source logs 17, 11, and 5; and four
+tree widths 12, 17, 24, and 8. The per-tree height buckets are
+`(1,8,3)`, `(1,12,4)`, `(4,8,12)`, and `(8,0,0)` in descending log order.
+The interaction tree has twelve two-sample columns (indices 4–7 and 16–23),
+so 61 source columns carry 73 explicit OOD claims. Its `S31SRC3V` source
+descriptor binds each ordered column's 32-byte identity, log, and one or two
+signed mask offsets, as well as the key digest, source hash profile, named
+root event, query log 17, and mask log 16. Integer fields use little-endian
+widths: root event 8 bytes, logs/counts 4 bytes, and offsets 4 bytes. The
+source descriptor is framed under `tree_context` event zero; the single-column
+Python BLAKE2s byte vector is pinned in the native test. An admitted manifest
+must contain consecutive fold heights from 17 through at least 4, so all
+three populated source heights have a fold step.
+
+**Blocking paired-ensemble mismatch.** The current H3 original accumulator
+advances once per source column: 14, 28, and 19 terms at heights 17, 11, and
+5, for **61** total. The native `friAnswers` quotient accumulator advances
+once per explicit claim **plus** one extra periodicity term per two-sample
+column: 22, 36, and 27 terms, for **85** total (73 explicit + 12 extra).
+The admitted roster computes and exposes these counts via
+`sparseH3TermCounts`; mutation of a two-sample column is rejected. At a
+height-local call (`lifting_log_size == column_log_size == h`), the periodic
+generator raised by `2^h` is the identity, so the extra periodic point is
+sample 1 again, with a second random power. Production uses lifting log 17
+and therefore a different periodic point and coefficient schedule. This H3
+insertion is an authenticated **local diagnostic**, not the matching
+per-claim original/quotient ensemble in S-two Protocol 4 Eq. (77), a proven
+degree-corrected oracle, or an established paper batch width `M`.
+
+At one privately sampled raw query, `verifyAndKeepSparseH3SourcePair` opens
+the adjacent top leaves `raw & ~1` and `(raw & ~1)+1` under all four captured
+personalized source roots. The lifted leaf has every column in ascending log
+order, with stable column order within one log. Each lower column value at
+top leaf position `r` is the source row
+`((r >> (17-h+1)) << 1) | (r&1)`. Thus the two top leaves map to one adjacent
+circle pair at each of h=17,11,5. The implementation checks the corresponding
+circle-point doubling identity before deriving any inserted value. The S31
+Lean lemma `SparseCascadeQueries.lean` at merged commit `9feb12b9` proves the
+general canonical-index identity at the model level; the native point and
+Merkle checks are separate obligations.
+
+For each populated height, the candidate derives OOD sample points from the
+privately drawn OOD point and the bound signed mask offsets. It doubles those
+points `17-h` times and evaluates the quotient at the projected height-h
+circle row. This normalization matches native prover source evaluation:
+`sampled_values.zig` computes `fold_count = 17-h`, and
+`sampled_coefficient_plans.zig` doubles each sampled point before polynomial
+evaluation. The accepted sparse Gate admission in S31 `native_verifier.zig`
+rederives the top mask points from sealed AIR handles and checks all 73
+captured point coordinates and values; its accepted H3 row fixture compares
+projected row arithmetic for all 73. These are finite source-bound checks,
+not a general interpolant theorem.
+
+The two-sample columns receive the native periodic sample first, then their
+two explicit claims. Powers of the privately drawn batch challenge follow
+the source-column and sample order **within that height**. The original
+track is one separately batched source value per column at that height. These
+two track insertions are retained privately per sampled ordinal only after
+every source path and every height computation succeeds. This per-height
+batch choice is part of this candidate diagnostic; it does not implement
+the accepted production quotient schedule or Protocol 4 Eq. (77). The implementation
+currently calls the production quotient evaluator per height and query, which
+rebuilds temporary sample batches and constants. A selected verifier needs a
+one-time cached quotient context and a measured whole-verifier cost model.
+
+The focused H3 tests pin the accepted 17→11 and 17→5 projections for both
+sides of raw query 90528, which map to source pairs 1414/1415 and 22/23.
+They check changed bucket counts, mask-offset descriptor mutation, a wrong
+query ordinal, repeated raw queries, inconsistent repeated rows, wrong paths,
+and a nonzero two-sample quotient against an independently constructed
+one-column row context. The tests use synthetic personalized source trees;
+the local arithmetic test seeds the owner's private transcript state directly
+to isolate the opening calculation, so it does not exercise full event replay;
+the accepted production proof has plain source roots and cannot be replayed
+under them. A selected S31 adapter still must derive every column identity,
+log, and mask offset from the installed sealed key, then own the statement and
+proof geometry. General H3 fold equations, degree testing, the multi-context
+BCS reduction, and query-consistency theorem remain open. Native proven
+security bits stay unset.
 
 The candidate `verifyH1OneStepAtQuery` checks the exact CAS09 two-step H1
 relation for a restricted degree-zero terminal profile. It requires two fold
