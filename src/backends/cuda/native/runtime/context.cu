@@ -12,6 +12,7 @@
 #include <stdint.h>
 
 #include <limits>
+#include <algorithm>
 #include <cstdlib>
 #include <cstring>
 #include <new>
@@ -845,14 +846,20 @@ extern "C" int stwo_exec_context_alloc_u32(
     size_t total_bytes = 0;
     if (status == cudaSuccess && managed_requested)
         status = cudaMemGetInfo(&free_bytes, &total_bytes);
-    constexpr size_t kReserveBytes = size_t{256} << 20;
+    // The combined Cairo arena is not the whole device footprint: immutable
+    // coefficients, modules, and writer scratch remain live beside it. A
+    // near-capacity arena must use managed memory before those allocations
+    // start faulting or failing inside the proof. Keep the reserve proportional
+    // on smaller devices and bounded on large cards.
+    constexpr size_t kMaxReserveBytes = size_t{4} << 30;
+    const size_t reserve_bytes = std::min(kMaxReserveBytes, total_bytes / 8);
     const size_t bytes = count * sizeof(uint32_t);
     // A pool may retain gigabytes after an arena is released. cudaMemGetInfo
     // excludes that reusable storage, so free_bytes alone must not force a
     // small subsequent circuit arena onto managed memory. Try the ordered
     // pool first whenever the request fits the device's total capacity.
     bool managed = managed_requested && status == cudaSuccess &&
-        bytes > (total_bytes > kReserveBytes ? total_bytes - kReserveBytes : 0);
+        bytes > total_bytes - reserve_bytes;
     if (status == cudaSuccess) {
         if (managed) {
 #if defined(STWO_CUMETAL)
