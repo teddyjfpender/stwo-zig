@@ -35,6 +35,8 @@ test {
     _ = vcs_lifted.blake2s_personalized_line_v2;
     _ = vcs_lifted.line_descriptor_v2;
     _ = vcs_lifted.line_admission_v2;
+    _ = vcs_lifted.owned_paired_gate_v2;
+    _ = channel.paired_gate_event_plan_v2;
 }
 
 /// Vector where each element relates by index to a trace column.

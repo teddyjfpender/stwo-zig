@@ -9,6 +9,7 @@ pub const blake2_merkle = @import("blake2_merkle.zig");
 pub const blake2s_personalized_line_v2 = @import("blake2s_personalized_line_v2.zig");
 pub const line_descriptor_v2 = @import("line_descriptor_v2.zig");
 pub const line_admission_v2 = @import("line_admission_v2.zig");
+pub const owned_paired_gate_v2 = @import("owned_paired_gate_v2.zig");
 pub const blake3_merkle = @import("blake3_merkle.zig");
 pub const channel_profile = @import("channel_profile.zig");
 pub const merkle_hasher = @import("merkle_hasher.zig");
