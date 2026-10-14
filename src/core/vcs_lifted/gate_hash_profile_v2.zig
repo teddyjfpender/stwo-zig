@@ -14,6 +14,10 @@ const events = @import("../channel/paired_gate_event_plan_v2.zig");
 const source = @import("blake2s_personalized_source_v2.zig");
 const line = @import("blake2s_personalized_line_v2.zig");
 
+test {
+    _ = @import("gate_hash_differential_v2.zig");
+}
+
 pub const proof_magic = framed.reserved_proof_magic;
 pub const Statement = framed.StatementBinding;
 pub const Transcript = events.PairedGateEventPlanV2;
