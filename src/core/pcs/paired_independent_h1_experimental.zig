@@ -119,6 +119,17 @@ pub const RowContext = struct {
             self.add(&result, index, rows.at(height, query, side, index), p.y, inverse);
         return result;
     }
+
+    /// Reuse the exact original/own-quotient formula with an independently
+    /// authenticated row in canonical source-column order.
+    pub fn openedValues(self: RowContext, values: []const M31, p: circle.CirclePointM31) ![2]QM31 {
+        if (values.len != self.coefficients.len) return error.InvalidDualShape;
+        const inverse = try self.inverseDivisor(p);
+        var result = [2]QM31{ QM31.zero(), QM31.zero() };
+        for (values, 0..) |value, index|
+            self.add(&result, index, value, p.y, inverse);
+        return result;
+    }
 };
 
 fn matches(statement: ExpectedStatement, proof: Proof) bool {
