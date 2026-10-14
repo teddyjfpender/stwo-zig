@@ -4,8 +4,9 @@ The draft CAS05 verifier accepts a separate `S31CAS05` wire with outer version
 6. The production PCS still uses `CommitmentSchemeProof(H)` with one legacy
 `FriProof(H)`, and `CommitmentSchemeVerifier.verifyValuesImpl` builds quotient
 FRI answers for `FriVerifier`. The production prover still builds a lazy
-quotient provider and commits with `FriProver`. There is no tagged proof
-container or production CAS05 dispatch in those paths.
+quotient provider and commits with `FriProver`. The new in-memory tagged
+container admits only the legacy path; no serialized CAS05 proof or production
+CAS05 prover/verifier exists.
 
 | Boundary | Current behavior |
 | --- | --- |
@@ -40,12 +41,42 @@ checked. The Native wide-Fibonacci honest proof now passes through the new
 legacy dispatch; hostile tests cover swapped modes, outer version 5, and
 unchanged channel state on rejection.
 
-The next production slice must define a **serialized** tagged artifact and
-key binding, then connect independently supplied CAS05 statements, source and
-line commitments, claims, channel replay, and the complete CAS05 verifier to
-that tag. The current legacy `StarkProof(H)` serialization stays byte exact.
+The next production slice must define a **serialized** tagged proof artifact
+and an authenticated key binding, then connect independently supplied CAS05
+statements, source and line commitments, claims, channel replay, and the
+complete CAS05 verifier to that tag. The current legacy `StarkProof(H)`
+serialization stays byte exact.
 Only after the native correspondence and conservative soundness proof can a
 CAS05 key become admissible.
+
+## Installed Native artifact binding
+
+The Native CPU `verify --artifact` path now constructs an `InstalledKey` from
+the binary's pinned v1 schema, exchange mode, upstream revision, and requested
+security policy. `InstalledKey` is caller-supplied in this slice; the Native
+product currently installs only this legacy wrapper. It does not authenticate
+an S31 serialized verification key. The Native key selects `legacy_postcard`
+before the artifact is decoded. The serialized artifact must match the key's
+schema/exchange tuple;
+the receiver rejects a `pcs_mode` JSON field as unknown, and checks the proof
+bytes against the selected format before the legacy proof decoder runs.
+The existing v1 artifact writer and bytes are unchanged.
+
+For testing the boundary, schema 2 plus
+`proof_exchange_cas05_candidate_v1` is a **reserved candidate** tuple. A
+separately supplied CAS05 key can inspect the outer wire magic and version,
+but every matching candidate still returns `Cas05NotProduction`. The Native
+product never constructs that key. A forged installed-key tuple, mismatched
+artifact metadata, mode injection, and version 5 are covered by serialized
+artifact tests. This is an envelope admission check, not a CAS05 artifact
+standard or an installed S31 verification key.
+
+S31's source-bound embedded key and statement reconstruction live in the
+separate `s31` repository. A future engine update must bind its key profile to
+this mode and to a final CAS05 artifact schema before any S31 verifier uses
+the new route. The CAS05 public statement, commitments, prover, native
+verifier, correspondence proof, and conservative soundness profile remain
+unimplemented in production.
 
 Focused checks:
 
