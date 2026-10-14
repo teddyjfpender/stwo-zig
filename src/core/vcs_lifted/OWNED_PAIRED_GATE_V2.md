@@ -215,6 +215,26 @@ coverage, BCS reduction, and global FRI theorem remain open. Neither this
 kernel nor the literal path is selected by a production verifier; neither
 assigns paper M or security bits.
 
+The literal path now also retains a **non-admitting candidate weighted row**
+per height. It traverses the 73 explicit claims in captured root/column/claim
+order, with 18, 32, and 23 claims at heights 17, 11, and 5. For each height
+the list is `f₀,q₀,f₁,q₁,...`; its powers restart at one and advance once per
+function, so claim `j` contributes `λ^(2j) fⱼ` to the original track and
+`λ^(2j+1) qⱼ` to the own-quotient track. The 12 double-claim columns repeat
+the identical authenticated original under two distinct exponents and use
+their two distinct OOD quotient values. No legacy periodicity term enters.
+`sparseH3CandidateWeightedAt` returns a copy for inspection; this cache is
+separate from the paired source slot read by the fold checker.
+
+This schedule implements the literal Protocol 3 Eq. (66) power order for a
+*proposed* joint 73-pair list. It is not a theorem that a one-challenge
+multi-Q batch extracts two point-specific quotients with the same original.
+The current two-Q theorem instead assumes individually extracted instances
+that agree with one authenticated source oracle on sufficiently large sets;
+it does not derive those sets, a joint adaptive BCS bound, or this lambda
+schedule from accepted native proofs. Thus weighted-row arithmetic is local
+evidence only, and public fold admission remains closed.
+
 The candidate `verifyH1OneStepAtQuery` checks the exact CAS09 two-step H1
 relation for a restricted degree-zero terminal profile. It requires two fold
 heights, initial query log `k >= 3`, one authenticated original and one
