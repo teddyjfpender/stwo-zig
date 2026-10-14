@@ -132,6 +132,23 @@ only a finite accepted-row relation conditional on Merkle binding. It does
 not establish whole-domain degree, cross-domain correlated agreement, or a
 soundness parameter.
 
+The focused `test-cas07-gate-degree` regression pins the full **Gate source
+roster geometry** above, then examines its smallest occupied source domain:
+log size 4 with blowup log 2, hence four permitted circle coefficient slots.
+Native interpolation and `validateSourceDegree` admit each basis source
+`1`, `y`, `x`, and `xy`. The M31 source `x²` interpolates to slots 0 and 4
+with coefficient `1/2` in each and is rejected by the same source-degree
+check. At `Q = SECURE_FIELD_CIRCLE_GEN · 17`, its correct two-point claim
+`Q.x²` gives a quotient affine in `x,y` on all 16 canonical rows. The test
+compares every `pairedHeight` row to the independently reconstructed
+quotient and finds `y1·b+x1·c ≠ 0`; the four permitted basis sources all
+give zero. This is a native witness for the exact fifth-coordinate
+obstruction formalized in [S31 PR #230](https://github.com/teddyjfpender/s31/pull/230).
+It neither constructs an accepting proof from `x²` nor checks actual Gate
+witness columns. The honest reference prover rejects that column; an
+adversarial prover is constrained only by the authenticated paired FRI
+checks, whose degree and correlated-agreement reduction remains unproved.
+
 The S31 audit preflight accepts a caller-supplied Gate manifest. Its roster
 derivation is deterministic, but the API alone does not establish that the
 manifest came from the compiler or installed verification key. Production
@@ -154,4 +171,5 @@ Focused checks:
 ```sh
 zig build --build-file src/prover/build.zig test-xdm05-sparse-heights test-cas07-sparse-heights -j2 -Doptimize=ReleaseSafe
 zig build --build-file src/prover/build.zig test-cas05-accepted-relation -j2 -Doptimize=ReleaseSafe
+zig build --build-file src/prover/build.zig test-cas07-gate-degree -j2 -Doptimize=ReleaseSafe
 ```
