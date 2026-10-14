@@ -26,6 +26,7 @@ pub const paired_independent_heights_experimental = @import("paired_independent_
 pub const paired_independent_heights_wire = @import("paired_independent_heights_wire.zig");
 pub const four_root_pair_openings_experimental = @import("four_root_pair_openings_experimental.zig");
 pub const four_root_pair_wire_experimental = @import("four_root_pair_wire_experimental.zig");
+pub const four_root_independent_h1_experimental = @import("four_root_independent_h1_experimental.zig");
 pub const paired_sparse_cascade_heights_wire = @import("paired_sparse_cascade_heights_wire.zig");
 pub const transposed_paired_sparse = @import("transposed_paired_sparse.zig");
 pub const paired_sparse_cascade_experimental = @import("paired_sparse_cascade_experimental.zig");

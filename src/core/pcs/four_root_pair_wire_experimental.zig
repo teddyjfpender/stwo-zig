@@ -12,6 +12,16 @@ pub const version: u16 = 1;
 pub const max_wire_bytes: usize = 64 * 1024 * 1024;
 pub const max_witness_hashes: usize = 1 << 20;
 
+pub const Authenticated = struct {
+    arena: std.heap.ArenaAllocator,
+    openings: [source.root_count]source.TreeOpening,
+
+    pub fn deinit(self: *Authenticated) void {
+        self.arena.deinit();
+        self.* = undefined;
+    }
+};
+
 pub fn encode(
     allocator: std.mem.Allocator,
     expected: source.Expected,
@@ -62,11 +72,11 @@ pub fn encode(
 /// Decode and verify against externally provided accepted roots, source logs,
 /// lifting height and ordered raw queries. The root/profile values repeated in
 /// the wire are checked against `expected` before Merkle authentication.
-pub fn verifyEncoded(
+pub fn verifyAndCollect(
     allocator: std.mem.Allocator,
     encoded: []const u8,
     expected: source.Expected,
-) !void {
+) !Authenticated {
     if (encoded.len > max_wire_bytes) return error.FourRootPairWireTooLarge;
     var c = Cursor{ .bytes = encoded };
     if (!std.mem.eql(u8, try c.take(magic.len), magic))
@@ -84,7 +94,7 @@ pub fn verifyEncoded(
     const pair_count = std.math.mul(usize, expected.raw_queries.len, 2) catch
         return error.InvalidFourRootPairWire;
     var arena = std.heap.ArenaAllocator.init(allocator);
-    defer arena.deinit();
+    errdefer arena.deinit();
     const a = arena.allocator();
     var openings: [source.root_count]source.TreeOpening = undefined;
     for (expected.roots, expected.column_log_sizes, &openings) |root, logs, *opening| {
@@ -121,6 +131,16 @@ pub fn verifyEncoded(
     }
     if (c.at != encoded.len) return error.InvalidFourRootPairWire;
     try source.verify(a, expected, openings);
+    return .{ .arena = arena, .openings = openings };
+}
+
+pub fn verifyEncoded(
+    allocator: std.mem.Allocator,
+    encoded: []const u8,
+    expected: source.Expected,
+) !void {
+    var authenticated = try verifyAndCollect(allocator, encoded, expected);
+    authenticated.deinit();
 }
 
 const Cursor = struct {

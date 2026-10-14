@@ -170,6 +170,21 @@ pub fn build(b: *std.Build) void {
     four_root_pair_step.dependOn(&b.addRunArtifact(four_root_pair_tests).step);
     test_step.dependOn(four_root_pair_step);
 
+    const four_root_h1 = b.createModule(.{
+        .root_source_file = b.path("four_root_independent_h1_test_root.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    four_root_h1.addImport("stwo_core", core);
+    four_root_h1.addImport("stwo_prover_engine", prover);
+    const four_root_h1_tests = b.addTest(.{ .root_module = four_root_h1 });
+    const four_root_h1_step = b.step(
+        "test-four-root-independent-h1",
+        "Test four-root source custody against separate original and own-quotient H1 folds",
+    );
+    four_root_h1_step.dependOn(&b.addRunArtifact(four_root_h1_tests).step);
+    test_step.dependOn(four_root_h1_step);
+
     _ = addFocusedTests(b, core, backend_contracts, prover_api, target, optimize, check_only, .{
         .step = "test-blake3-prefix-reuse",
         .description = "Verify BLAKE3 bounded prefix reuse across budgets and worker counts",
