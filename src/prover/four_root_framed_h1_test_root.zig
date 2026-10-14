@@ -1,41 +1,32 @@
-//! Candidate CAS12 join: four plain source roots, framed challenges, exact
-//! raw queries, and two independent H1 degree checks. No production selector.
+//! Candidate CAS13 join: typed four-root challenge schedule, exact raw
+//! queries, and two independent H1 degree checks. No production selector.
 const std = @import("std");
 const core = @import("stwo_core");
 const prover = @import("stwo_prover_engine");
 
 const M31 = core.fields.m31.M31;
 const QM31 = core.fields.qm31.QM31;
-const Bcs = core.channel.framed_bcs_v2.FramedBcsChannelV2;
 const Binding = core.channel.framed_bcs_v2.StatementBinding;
+const Plan = core.channel.paired_gate_event_plan_v2.PairedGateEventPlanV2;
 const source_host = prover.pcs.four_root_pair_openings_experimental;
 const wire = core.pcs.four_root_pair_wire_experimental;
 const h1 = core.pcs.four_root_independent_h1_experimental;
 const dual = core.pcs.paired_independent_h1_experimental;
 const LineEvaluation = prover.line.LineEvaluation;
 
-fn firstQM31(limbs: [8]u32) QM31 {
+fn firstQM31(limbs: [4]u32) QM31 {
     return QM31.fromU32Unchecked(limbs[0], limbs[1], limbs[2], limbs[3]);
 }
 
-fn drawFirst(channel: *Bcs) !QM31 {
-    try channel.beginChallengeDraw();
-    const limbs = try channel.drawChallengeQM31Limbs();
-    try channel.endChallengeDraw();
-    return firstQM31(limbs);
-}
-
-fn absorbValues(channel: *Bcs, values: []const QM31) !void {
-    const allocator = std.testing.allocator;
+fn canonicalLimbs(allocator: std.mem.Allocator, values: []const QM31) ![]u32 {
     const limbs = try allocator.alloc(u32, 4 * values.len);
-    defer allocator.free(limbs);
     for (values, 0..) |value, i| {
         for (value.toM31Array(), 0..) |word, j| limbs[4 * i + j] = word.v;
     }
-    try channel.mixField(limbs);
+    return limbs;
 }
 
-test "CAS12 framed four-root H1 joins raw queries to both degree tracks" {
+test "CAS13 typed Gate events join four-root H1 to raw queries" {
     const alloc = std.testing.allocator;
     const k: u32 = 5;
     const domain = core.poly.circle.canonic.CanonicCoset.new(k).circleDomain();
@@ -79,7 +70,7 @@ test "CAS12 framed four-root H1 joins raw queries to both degree tracks" {
     defer preliminary.deinit();
     const roots = preliminary.expected.roots;
     const digest = [_]u8{0x42} ** 32;
-    var channel = Bcs.init(Binding{
+    var plan = try Plan.init(Binding{
         .key_digest = digest,
         .circuit_digest = [_]u8{0x43} ** 32,
         .fri_config_digest = [_]u8{0x44} ** 32,
@@ -88,19 +79,19 @@ test "CAS12 framed four-root H1 joins raw queries to both degree tracks" {
             [_]u8{0x12} ** 32, [_]u8{0x13} ** 32,
         },
         .line_profile_digest = [_]u8{0x45} ** 32,
-    });
-    try channel.mixRoot(roots[0]); // fixed
-    try channel.mixRoot([_]u8{0x46} ** 32); // circuit identity
-    try channel.mixField(&.{ 0, 0, 0, 0 }); // public output
-    try channel.mixRoot(roots[1]); // main
-    _ = try channel.beginPow(0); // interaction barrier
-    try channel.acceptPowNonce(0);
-    _ = try drawFirst(&channel); // lookup pair, unused in this H1 polynomial control
-    try channel.mixField(&.{ 0, 0, 0, 0 }); // interaction claim
-    try channel.mixRoot(roots[2]); // interaction
-    _ = try drawFirst(&channel); // composition gamma
-    try channel.mixRoot(roots[3]); // composition
-    const ood_seed = try drawFirst(&channel);
+    }, &.{k});
+    try plan.mixFixedRoot(roots[0]);
+    try plan.mixCircuitIdentity([_]u8{0x46} ** 32);
+    try plan.mixPublicValues(&.{ 0, 0, 0, 0 });
+    try plan.mixMainRoot(roots[1]);
+    _ = try plan.beginInteractionPow(0);
+    try plan.acceptInteractionNonce(0);
+    _ = try plan.drawLookupPair(); // unused in this H1 polynomial control
+    try plan.mixInteractionClaim(&.{ 0, 0, 0, 0 });
+    try plan.mixInteractionRoot(roots[2]);
+    _ = try plan.drawCompositionGamma();
+    try plan.mixCompositionRoot(roots[3]);
+    const ood_seed = firstQM31(try plan.drawOodsSeed());
     const point = try core.circle.secureFieldPointFromRandomSeedChecked(ood_seed);
     var claims: [11]QM31 = undefined;
     var claim_arena = std.heap.ArenaAllocator.init(alloc);
@@ -112,9 +103,12 @@ test "CAS12 framed four-root H1 joins raw queries to both degree tracks" {
         point,
         &claims,
     );
-    try absorbValues(&channel, &claims); // sampled values
-    const batch = try drawFirst(&channel);
-    const alpha = try drawFirst(&channel);
+    const claim_limbs = try canonicalLimbs(alloc, &claims);
+    defer alloc.free(claim_limbs);
+    try plan.mixSampledValues(claim_limbs);
+    const batch = firstQM31(try plan.drawBatchLambda());
+    try std.testing.expectEqual(k, try plan.currentFoldHeight());
+    const alpha = firstQM31(try plan.drawFoldAlpha());
 
     var context = try dual.RowContext.init(alloc, point, &claims, batch);
     defer context.deinit();
@@ -149,11 +143,16 @@ test "CAS12 framed four-root H1 joins raw queries to both degree tracks" {
             try std.testing.expect(coefficient.isZero());
         terminal[track] = try alloc.dupe(QM31, coefficients[0..bound]);
         terminals_built += 1;
-        try absorbValues(&channel, terminal[track]); // each terminal track
+        const terminal_limbs = try canonicalLimbs(alloc, terminal[track]);
+        defer alloc.free(terminal_limbs);
+        if (track == 0)
+            try plan.mixOriginalTerminalCoefficients(terminal_limbs)
+        else
+            try plan.mixOwnQuotientTerminalCoefficients(terminal_limbs);
     }
-    _ = try channel.beginPow(0); // final PCS barrier
-    try channel.acceptPowNonce(0);
-    var query_channel = try channel.beginQueries();
+    _ = try plan.beginFriPow(0);
+    try plan.acceptFriNonce(0);
+    var query_channel = try plan.beginQueries();
     try std.testing.expectEqual(@as(u64, 22), query_channel.event);
     var sampled = try core.uniform_queries_v1.drawUniformQueriesV1(
         &query_channel,
