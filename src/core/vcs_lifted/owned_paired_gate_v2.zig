@@ -13,6 +13,8 @@ const admission = @import("line_admission_v2.zig");
 
 pub const Digest32 = framed.Digest32;
 pub const Error = error{
+    InvalidQueryGeometry,
+    ZeroQueries,
     ManifestPlanMismatch,
     InvalidQueryIndex,
     QueriesNotDrawn,
@@ -22,6 +24,7 @@ const State = struct {
     allocator: std.mem.Allocator,
     plan: plan_mod.PairedGateEventPlanV2,
     admitted: *admission.AdmittedLineManifestV2,
+    query_log_size: u32,
     queries: ?uniform.SampledQueriesV1 = null,
 };
 
@@ -37,8 +40,20 @@ pub const OwnedPairedGateVerifierV2 = opaque {
         manifest: descriptor.LineTreeManifestV2,
         statement: framed.StatementBinding,
     ) Error!*Self {
-        // Manifest validation precedes allocation and the plan copies heights.
+        // A one-bit FRI fold at each committed height has a line tree at the
+        // next height. The raw query is sampled over the first fold height.
+        // This is checked geometry, not a sealed-key derivation.
         try manifest.validate();
+        const query_log_size = manifest.fold_heights[0];
+        if (query_log_size < 2 or query_log_size > 30) return error.InvalidQueryGeometry;
+        for (manifest.fold_heights[1..], 1..) |height, i| {
+            if (height + 1 != manifest.fold_heights[i - 1]) return error.InvalidQueryGeometry;
+        }
+        for (manifest.trees, 0..) |tree, i| {
+            const fold_height = manifest.fold_heights[i / 2];
+            if (fold_height < 2 or tree.tree_log_size != fold_height - 1)
+                return error.InvalidQueryGeometry;
+        }
         const state = try allocator.create(State);
         errdefer allocator.destroy(state);
         state.allocator = allocator;
@@ -49,6 +64,7 @@ pub const OwnedPairedGateVerifierV2 = opaque {
             statement,
             &state.plan.channel,
         );
+        state.query_log_size = query_log_size;
         state.queries = null;
         return @ptrCast(state);
     }
@@ -191,17 +207,17 @@ pub const OwnedPairedGateVerifierV2 = opaque {
     /// consistently through every FRI fold and opening geometry.
     pub fn drawQueries(
         self: *Self,
-        log_domain_size: u32,
         n_queries: usize,
         max_blocks: u64,
     ) Error!void {
         const state = self.privateState();
+        if (n_queries == 0) return error.ZeroQueries;
         if (!state.admitted.allRootsCaptured()) return error.RootNotCaptured;
         var query_channel = try state.plan.beginQueries();
         state.queries = try uniform.drawUniformQueriesV1(
             &query_channel,
             state.allocator,
-            log_domain_size,
+            state.query_log_size,
             n_queries,
             max_blocks,
         );
@@ -218,18 +234,34 @@ pub const OwnedPairedGateVerifierV2 = opaque {
         return queries.raw[index];
     }
 
-    /// Checks only an authenticated line-tree opening against a root captured
-    /// in this privately owned transcript. The caller-provided leaf index is
-    /// not yet bound to a sampled FRI query; this is not proof acceptance.
+    /// Checks an opening at the line row selected by a previously sampled
+    /// raw query. A fold from height h to h-1 removes one high-order bit in
+    /// bit-reversed query order: `line_row = raw >> (query_log - tree_log)`.
+    /// This authenticates only one selected row, not the adjacent pair needed
+    /// for a complete FRI relation or a proof-acceptance decision.
     pub fn verifyCapturedLineOpening(
         self: *const Self,
         tree_index: usize,
+        query_ordinal: usize,
         row: []const u32,
-        leaf_index: u64,
         siblings: []const Digest32,
     ) Error!bool {
-        if (self.stateConst().queries == null) return error.QueriesNotDrawn;
-        return self.stateConst().admitted.verifyCapturedOpening(tree_index, row, leaf_index, siblings);
+        const state = self.stateConst();
+        const queries = state.queries orelse return error.QueriesNotDrawn;
+        if (query_ordinal >= queries.raw.len) return error.InvalidQueryIndex;
+        const shape = try state.admitted.openingShape(tree_index);
+        const fold_index = tree_index / 2;
+        if (fold_index >= state.plan.fold_count or
+            shape.fold_height != state.plan.fold_heights[fold_index] or
+            shape.tree_log_size + 1 != shape.fold_height or
+            shape.tree_log_size >= state.query_log_size)
+            return error.InvalidQueryGeometry;
+        const raw = queries.raw[query_ordinal];
+        if (raw >= (@as(usize, 1) << @intCast(state.query_log_size)))
+            return error.InvalidQueryGeometry;
+        const shift = state.query_log_size - shape.tree_log_size;
+        const leaf_index: u64 = @intCast(raw >> @intCast(shift));
+        return state.admitted.verifyCapturedOpening(tree_index, row, leaf_index, siblings);
     }
 };
 
@@ -250,10 +282,10 @@ test "opaque paired verifier owns channel, cached roots and query positions" {
     const profile = descriptor.lineHashProfileDigest();
     const columns = [_]Digest32{zero};
     var trees = [_]descriptor.LineTreeDescriptorV2{
-        .{ .key_digest = zero, .profile_digest = profile, .track = .original, .fold_height = 17, .tree_log_size = 1, .root_event = 17, .column_descriptors = &columns },
-        .{ .key_digest = zero, .profile_digest = profile, .track = .own_quotient, .fold_height = 17, .tree_log_size = 1, .root_event = 18, .column_descriptors = &columns },
+        .{ .key_digest = zero, .profile_digest = profile, .track = .original, .fold_height = 2, .tree_log_size = 1, .root_event = 17, .column_descriptors = &columns },
+        .{ .key_digest = zero, .profile_digest = profile, .track = .own_quotient, .fold_height = 2, .tree_log_size = 1, .root_event = 18, .column_descriptors = &columns },
     };
-    var fold_heights = [_]u32{ 17, 16 };
+    var fold_heights = [_]u32{ 2, 1 };
     const manifest = descriptor.LineTreeManifestV2{ .key_digest = zero, .fold_heights = &fold_heights, .trees = &trees };
     const statement = try testStatement(manifest, allocator);
     const verifier = try OwnedPairedGateVerifierV2.init(allocator, manifest, statement);
@@ -281,7 +313,7 @@ test "opaque paired verifier owns channel, cached roots and query positions" {
     _ = try verifier.drawBatchLambda();
     _ = try verifier.drawFoldAlpha();
     try std.testing.expectEqual(@as(u64, 17), verifier.nextEvent());
-    try std.testing.expectError(error.RootNotCaptured, verifier.drawQueries(3, 2, 1));
+    try std.testing.expectError(error.RootNotCaptured, verifier.drawQueries(8, 1));
     const before_root = verifier.transcriptDigest();
     try verifier.captureOriginalLineRoot(root);
     try std.testing.expectEqual(@as(u64, 18), verifier.nextEvent());
@@ -298,14 +330,29 @@ test "opaque paired verifier owns channel, cached roots and query positions" {
     try verifier.mixOwnQuotientTerminalCoefficients(&.{ 0, 1, 2, 3 });
     _ = try verifier.beginFriPow(0);
     try verifier.acceptFriNonce(0);
-    try verifier.drawQueries(3, 2, 1);
-    try std.testing.expectEqual(@as(usize, 2), try verifier.queryCount());
-    try std.testing.expectEqual(@as(usize, 0), try verifier.queryPosition(0));
-    try std.testing.expectError(error.InvalidQueryIndex, verifier.queryPosition(2));
-    try std.testing.expect(try verifier.verifyCapturedLineOpening(0, &.{0}, 0, &.{leaf1}));
-    try std.testing.expect(!(try verifier.verifyCapturedLineOpening(0, &.{1}, 0, &.{leaf1})));
-    try std.testing.expectError(error.RowWidthMismatch, verifier.verifyCapturedLineOpening(0, &.{ 0, 1 }, 0, &.{leaf1}));
-    try std.testing.expectError(error.UnexpectedStage, verifier.drawQueries(3, 2, 1));
+    try verifier.drawQueries(8, 1);
+    try std.testing.expectEqual(@as(usize, 8), try verifier.queryCount());
+    var seen = [2]bool{ false, false };
+    for (0..8) |ordinal| {
+        const raw = try verifier.queryPosition(ordinal);
+        try std.testing.expect(raw < 4);
+        const projected = raw >> 1;
+        seen[projected] = true;
+        const good_row: u32 = @intCast(projected);
+        const good_sibling = if (projected == 0) leaf1 else leaf0;
+        try std.testing.expect(try verifier.verifyCapturedLineOpening(0, ordinal, &.{good_row}, &.{good_sibling}));
+        try std.testing.expect(try verifier.verifyCapturedLineOpening(1, ordinal, &.{good_row}, &.{good_sibling}));
+        // A valid path for the other leaf cannot be replayed at this sampled
+        // query ordinal, even though both paths share the captured root.
+        const wrong_row: u32 = @intCast(1 - projected);
+        const wrong_sibling = if (projected == 0) leaf0 else leaf1;
+        try std.testing.expect(!(try verifier.verifyCapturedLineOpening(0, ordinal, &.{wrong_row}, &.{wrong_sibling})));
+    }
+    try std.testing.expect(seen[0] and seen[1]);
+    try std.testing.expectError(error.InvalidQueryIndex, verifier.queryPosition(8));
+    try std.testing.expectError(error.InvalidQueryIndex, verifier.verifyCapturedLineOpening(0, 8, &.{0}, &.{leaf1}));
+    try std.testing.expectError(error.RowWidthMismatch, verifier.verifyCapturedLineOpening(0, 0, &.{ 0, 1 }, &.{leaf1}));
+    try std.testing.expectError(error.UnexpectedStage, verifier.drawQueries(8, 1));
 }
 
 test "owned verifier rejects mismatched statement before transcript events" {
@@ -315,4 +362,65 @@ test "owned verifier rejects mismatched statement before transcript events" {
     var statement = try testStatement(manifest, allocator);
     statement.line_profile_digest = zero;
     try std.testing.expectError(error.StatementMismatch, OwnedPairedGateVerifierV2.init(allocator, manifest, statement));
+}
+
+test "owned verifier rejects inconsistent fold and line-tree geometry" {
+    const allocator = std.testing.allocator;
+    const zero = [_]u8{0} ** 32;
+    const profile = descriptor.lineHashProfileDigest();
+    const columns = [_]Digest32{zero};
+    var trees = [_]descriptor.LineTreeDescriptorV2{
+        .{ .key_digest = zero, .profile_digest = profile, .track = .original, .fold_height = 3, .tree_log_size = 2, .root_event = 17, .column_descriptors = &columns },
+        .{ .key_digest = zero, .profile_digest = profile, .track = .own_quotient, .fold_height = 3, .tree_log_size = 2, .root_event = 18, .column_descriptors = &columns },
+    };
+    var heights = [_]u32{ 3, 1 };
+    const manifest = descriptor.LineTreeManifestV2{ .key_digest = zero, .fold_heights = &heights, .trees = &trees };
+    try std.testing.expectError(error.InvalidQueryGeometry, OwnedPairedGateVerifierV2.init(
+        allocator,
+        manifest,
+        try testStatement(manifest, allocator),
+    ));
+    heights[1] = 2;
+    trees[0].tree_log_size = 1;
+    try std.testing.expectError(error.InvalidQueryGeometry, OwnedPairedGateVerifierV2.init(
+        allocator,
+        manifest,
+        try testStatement(manifest, allocator),
+    ));
+}
+
+test "zero queries are rejected and failed query sampling is terminal" {
+    const allocator = std.testing.allocator;
+    const zero = [_]u8{0} ** 32;
+    const manifest = descriptor.LineTreeManifestV2{ .key_digest = zero, .fold_heights = &.{2}, .trees = &.{} };
+    const verifier = try OwnedPairedGateVerifierV2.init(allocator, manifest, try testStatement(manifest, allocator));
+    defer verifier.deinit();
+    try verifier.mixFixedRoot(zero);
+    try verifier.mixCircuitIdentity(zero);
+    try verifier.mixPublicValues(&.{ 0, 1, 2, 3 });
+    try verifier.mixMainRoot(zero);
+    _ = try verifier.beginInteractionPow(0);
+    try verifier.acceptInteractionNonce(0);
+    _ = try verifier.drawLookupPair();
+    try verifier.mixInteractionClaim(&.{ 0, 1, 2, 3 });
+    try verifier.mixInteractionRoot(zero);
+    _ = try verifier.drawCompositionGamma();
+    try verifier.mixCompositionRoot(zero);
+    _ = try verifier.drawOodsSeed();
+    try verifier.mixSampledValues(&.{ 0, 1, 2, 3 });
+    _ = try verifier.drawBatchLambda();
+    _ = try verifier.drawFoldAlpha();
+    try verifier.mixOriginalTerminalCoefficients(&.{ 0, 1, 2, 3 });
+    try verifier.mixOwnQuotientTerminalCoefficients(&.{ 0, 1, 2, 3 });
+    _ = try verifier.beginFriPow(0);
+    try verifier.acceptFriNonce(0);
+    const before = verifier.nextEvent();
+    try std.testing.expectError(error.ZeroQueries, verifier.drawQueries(0, 0));
+    try std.testing.expectEqual(before, verifier.nextEvent());
+    // Beginning terminal queries commits the plan to completion. A sampler
+    // budget failure cannot be retried with a more favorable configuration.
+    try std.testing.expectError(error.InsufficientBlockBudget, verifier.drawQueries(1, 0));
+    try std.testing.expectEqual(before + 1, verifier.nextEvent());
+    try std.testing.expectError(error.QueriesNotDrawn, verifier.queryCount());
+    try std.testing.expectError(error.UnexpectedStage, verifier.drawQueries(1, 1));
 }
