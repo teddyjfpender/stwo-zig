@@ -1,6 +1,12 @@
 //! GPU qualification harness for the complete circuit-recursion proof.
 //! It checks the Rust R7 serialized verifier-proof digest after native
 //! verification, then reports the per-stage device and host elapsed times.
+//!
+//! `<case> <profile> --last-layer <log_last_layer_degree_bound>
+//! [--expect-sha256 <hex>]` proves under that last-layer bound instead, for
+//! FRI shapes the Rust fixture lacks (a short last round of the four-fold
+//! schedule), and checks the digest when one is given. This product forbids
+//! CPU composition, so the expected digest comes from a CPU circuit build.
 const std = @import("std");
 const core = @import("stwo_core");
 const circuit = @import("stwo_circuit_frontend");
@@ -18,10 +24,15 @@ pub fn main() !void {
     const allocator = gpa_state.allocator();
     const args = try std.process.argsAlloc(allocator);
     defer std.process.argsFree(allocator, args);
-    if (args.len < 3 or args.len > 4) return error.UsageResidentBenchCaseProfile;
+    if (args.len < 3 or args.len > 7) return error.UsageResidentBenchCaseProfile;
     const which = std.meta.stringToEnum(contexts.TestContext, args[1]) orelse return error.UnknownCircuitCase;
     const profile = std.meta.stringToEnum(cuda.resident_prover.Profile, args[2]) orelse return error.UnknownCircuitProfile;
+    const custom = args.len >= 5 and std.mem.eql(u8, args[3], "--last-layer");
+    if (args.len >= 5 and !custom) return error.UsageResidentBenchCaseProfile;
+    if (args.len == 6 or (args.len == 7 and !std.mem.eql(u8, args[5], "--expect-sha256"))) return error.UsageResidentBenchCaseProfile;
     const expected_fixture = if (args.len == 4) args[3] else "vectors/circuit/r7/prove_profiles.json";
+    const log_last_layer: u32 = if (custom) try std.fmt.parseInt(u32, args[4], 10) else 0;
+    const expected_sha256: ?[]const u8 = if (args.len == 7) args[6] else null;
     var total = try std.time.Timer.start();
 
     var ctx = try contexts.build(QM31, allocator, which);
@@ -40,7 +51,7 @@ pub fn main() !void {
     var air = try cpu.air.bind(allocator, &template, try circuit.common.component_list.circuitComponentLogSizes(&layout), &layout);
     defer air.deinit();
     const config = core.pcs.config_v2.PcsConfigV2.fromFriAndTraceSize(
-        try core.pcs.config_v2.FriConfigV2.init(26, 0, 1, 70, 4),
+        try core.pcs.config_v2.FriConfigV2.init(26, log_last_layer, 1, 70, 4),
         pp.traceLogSize(),
     );
     const prepared_ns = total.read();
@@ -82,6 +93,13 @@ pub fn main() !void {
     var digest: [32]u8 = undefined;
     std.crypto.hash.sha2.Sha256.hash(wire, &digest, .{});
     const hex = std.fmt.bytesToHex(digest, .lower);
+    if (custom) {
+        std.debug.print("case={s} profile={s} log_last_layer={} proof_bytes={} sha256={s}\n", .{
+            @tagName(which), @tagName(profile), log_last_layer, wire.len, &hex,
+        });
+        if (expected_sha256) |sha| if (!std.mem.eql(u8, &hex, sha)) return error.CircuitProofDigestMismatch;
+        return;
+    }
     const expected = try fixtureDigest(allocator, expected_fixture, @tagName(which), @tagName(profile));
     if (!std.mem.eql(u8, &hex, &expected.sha256) or wire.len != expected.bytes) {
         std.debug.print("circuit CUDA proof mismatch case={s} profile={s} actual={s} expected={s} bytes={} expected_bytes={}\n", .{

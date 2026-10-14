@@ -68,6 +68,61 @@ test "prover fri: commit and decommit roundtrip with verifier" {
     try verifier.decommit(alloc, first_layer_answers);
 }
 
+test "prover fri: four-fold schedule with a short last round roundtrips with the verifier" {
+    // Input log c with blowup 1 and last-layer bound 0 folds c - 1 levels:
+    // c = 5, 6, 7, 8 give last rounds of 4, 1, 2, 3. A one-level last round
+    // commits one evaluation per leaf, the others pack four.
+    const CpuBackend = @import("stwo_cpu_backend").CpuBackend;
+    const Hasher = @import("stwo_core").vcs_lifted.blake2_merkle.Blake2sMerkleHasher;
+    const MerkleChannel = @import("stwo_core").vcs_lifted.blake2_merkle.Blake2sMerkleChannel;
+    const Channel = @import("stwo_core").channel.blake2s.Blake2sChannel;
+    const CircleCoefficients = @import("stwo_prover_engine").poly.circle.poly.CircleCoefficients;
+    const bitReverseIndex = @import("stwo_core").utils.bitReverseIndex;
+    const Prover = FriProver(CpuBackend, Hasher, MerkleChannel);
+    const Verifier = core_fri.FriVerifier(Hasher, MerkleChannel);
+    const alloc = std.testing.allocator;
+
+    var config = try core_fri.FriConfig.init(0, 1, 6);
+    config.fold_step = 4;
+    var rng = std.Random.DefaultPrng.init(0x5eed);
+    for ([_]u32{ 5, 6, 7, 8 }) |column_log_size| {
+        const domain = @import("stwo_core").poly.circle.canonic.CanonicCoset
+            .new(column_log_size)
+            .circleDomain();
+        // A random polynomial of degree < 2^(c - blowup), evaluated in
+        // bit-reversed domain order.
+        const coeffs = try alloc.alloc(M31, @as(usize, 1) << @intCast(column_log_size - config.log_blowup_factor));
+        defer alloc.free(coeffs);
+        for (coeffs) |*coeff| coeff.* = M31.fromCanonical(rng.random().uintLessThan(u32, (1 << 31) - 1));
+        const poly = try CircleCoefficients.initBorrowed(coeffs);
+        const values = try alloc.alloc(QM31, domain.size());
+        defer alloc.free(values);
+        for (values, 0..) |*value, i| {
+            const point = domain.at(bitReverseIndex(i, column_log_size));
+            value.* = poly.evalAtPoint(.{ .x = QM31.fromBase(point.x), .y = QM31.fromBase(point.y) });
+        }
+        const column = try secure_column.SecureColumnByCoords.fromSecureSlice(alloc, values);
+
+        var prover_channel = Channel{};
+        var prover = try Prover.commit(alloc, &prover_channel, config, domain, column);
+        var decommit_result = try prover.decommit(alloc, &prover_channel);
+        defer decommit_result.deinit(alloc);
+
+        var verifier_channel = Channel{};
+        const bound = core_fri.CirclePolyDegreeBound.init(column_log_size - config.log_blowup_factor);
+        var verifier = try Verifier.commit(alloc, &verifier_channel, config, decommit_result.fri_proof.proof, bound);
+        defer verifier.deinit(alloc);
+
+        const query_positions = try verifier.sampleQueryPositions(alloc, &verifier_channel);
+        defer alloc.free(query_positions);
+        try std.testing.expectEqualSlices(usize, decommit_result.query_positions, query_positions);
+        const first_layer_answers = try alloc.alloc(QM31, query_positions.len);
+        defer alloc.free(first_layer_answers);
+        for (query_positions, first_layer_answers) |position, *answer| answer.* = values[position];
+        try verifier.decommit(alloc, first_layer_answers);
+    }
+}
+
 test "prover fri: commit rejects non-canonic domain" {
     const CpuBackend = @import("stwo_cpu_backend").CpuBackend;
     const Hasher = @import("stwo_core").vcs_lifted.blake2_merkle.Blake2sMerkleHasher;

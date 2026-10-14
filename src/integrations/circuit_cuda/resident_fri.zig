@@ -13,6 +13,8 @@ pub const Layer = struct {
     evaluation_log: u32,
     fold_step: u32,
     evaluation_size: u32,
+    /// Evaluations hashed per Merkle leaf, as a log (geometry's `rows_per_leaf_log`).
+    rows_per_leaf_log: u32,
     merkle_first: usize,
     merkle_count: usize,
     twiddle_offsets: [4]u32,
@@ -38,7 +40,7 @@ pub const Plan = struct {
             fri.fold_step == 0 or fri.fold_step > 4)
             return error.InvalidCircuitFriGeometry;
         var descriptor_count: usize = 0;
-        for (geometry.fri_layers) |source| descriptor_count = try add(descriptor_count, source.evaluation_log - 1);
+        for (geometry.fri_layers) |source| descriptor_count = try add(descriptor_count, try merkleLevels(source));
         const layers = try allocator.alloc(Layer, geometry.fri_layers.len);
         errdefer allocator.free(layers);
         const descriptors = try allocator.alloc(field.MerkleLayerDescriptor, descriptor_count);
@@ -49,11 +51,12 @@ pub const Plan = struct {
             if (source.evaluation_log != geometry.fri_input_log - cumulative or
                 source.cumulative_fold != cumulative or source.fold_step == 0 or
                 source.fold_step > 4 or source.fold_step > source.evaluation_log or
-                (ordinal + 1 < layers.len and source.fold_step != fri.fold_step))
+                (ordinal + 1 < layers.len and source.fold_step != fri.fold_step) or
+                source.rows_per_leaf_log != expectedRowsPerLeafLog(ordinal, source, fri.fold_step))
                 return error.InvalidCircuitFriGeometry;
             const rows = try pow2u32(source.evaluation_log);
-            const count = source.evaluation_log - 1;
-            try fillDescriptors(descriptors[cursor..][0..count], rows >> 2);
+            const count = try merkleLevels(source);
+            try fillDescriptors(descriptors[cursor..][0..count], rows >> @intCast(source.rows_per_leaf_log));
             var offsets = [_]u32{0} ** 4;
             for (0..source.fold_step) |fold| {
                 const log = source.evaluation_log - @as(u32, @intCast(fold));
@@ -63,6 +66,7 @@ pub const Plan = struct {
                 .evaluation_log = source.evaluation_log,
                 .fold_step = source.fold_step,
                 .evaluation_size = rows,
+                .rows_per_leaf_log = source.rows_per_leaf_log,
                 .merkle_first = cursor,
                 .merkle_count = count,
                 .twiddle_offsets = offsets,
@@ -97,7 +101,7 @@ pub const Plan = struct {
         for (self.layers, view.activeLayers()) |layer, resident| {
             const rows: usize = layer.evaluation_size;
             if (resident.coordinates.column_stride_words != rows or resident.coordinates.storage.len != try mul(rows, 4) or
-                resident.merkle_hashes.len != try fullTreeHashes(rows >> 2) or resident.merkle_layers.len != layer.merkle_count)
+                resident.merkle_hashes.len != try fullTreeHashes(rows >> @intCast(layer.rows_per_leaf_log)) or resident.merkle_layers.len != layer.merkle_count)
                 return error.InvalidCircuitFriBuffers;
         }
         const final_rows = try pow2(self.final_log);
@@ -126,7 +130,7 @@ pub const Plan = struct {
             const root = try Builder.fri(
                 session,
                 layer.evaluation_size,
-                2,
+                layer.rows_per_leaf_log,
                 resident.coordinates,
                 resident.merkle_hashes,
                 self.descriptors[layer.merkle_first..][0..layer.merkle_count],
@@ -168,6 +172,19 @@ pub const Plan = struct {
         try sink.mixLastLayer(view.last_transcript);
     }
 };
+
+fn expectedRowsPerLeafLog(ordinal: usize, layer: geometry_module.FriLayer, config_fold_step: u32) u32 {
+    return if (geometry_module.packsLeaves(ordinal, layer.fold_step, config_fold_step, layer.evaluation_log))
+        core.fri.LOG_PACKED_LEAF_SIZE
+    else
+        0;
+}
+
+/// Merkle levels of a layer's tree, leaves included.
+fn merkleLevels(layer: geometry_module.FriLayer) !usize {
+    if (layer.rows_per_leaf_log > layer.evaluation_log) return error.InvalidCircuitFriGeometry;
+    return @as(usize, layer.evaluation_log - layer.rows_per_leaf_log) + 1;
+}
 
 fn fillDescriptors(output: []field.MerkleLayerDescriptor, leaves: u32) !void {
     var count: usize = leaves;
@@ -237,8 +254,67 @@ test "resident circuit FRI derives exact Rust R7 layer and terminal geometry" {
     for (geometry.fri_layers, plan.layers) |expected, actual| {
         try std.testing.expectEqual(expected.evaluation_log, actual.evaluation_log);
         try std.testing.expectEqual(expected.fold_step, actual.fold_step);
+        try std.testing.expectEqual(@as(u32, core.fri.LOG_PACKED_LEAF_SIZE), actual.rows_per_leaf_log);
         try std.testing.expectEqual(@as(usize, actual.evaluation_log - 1), actual.merkle_count);
     }
+}
+
+test "resident circuit FRI commits a short last round with the CPU prover's leaf packing" {
+    // With `fold_step = 4`, a last round that folds by 1 is committed with one
+    // evaluation per Merkle leaf (`prover/fri.zig` `shouldPack`, `core/fri.zig`
+    // `pack_leaves`); rounds folding by 2..4 pack four. Every last-layer bound
+    // below gives a different remainder, so all four last-round shapes appear.
+    const allocator = std.testing.allocator;
+    const circuit = @import("stwo_circuit_frontend");
+    const cpu = @import("stwo_circuit_cpu_integration");
+    const air = @import("air_aot.zig");
+    const decommit_module = @import("resident_decommit.zig");
+    const oods_module = @import("resident_oods.zig");
+    const layout_module = @import("resident_proof_layout.zig");
+    const encoded = try std.fs.cwd().readFileAlloc(allocator, cpu.air.bundle_path, 16 << 20);
+    defer allocator.free(encoded);
+    var template = try cpu.air.parse(allocator, encoded);
+    defer template.deinit();
+    var catalog = try air.build(allocator, encoded);
+    defer catalog.deinit();
+    const columns = try circuit.common.preprocessed.ColumnLayout.fromComponentSizes(cpu.air.recorded_sizes);
+    var bound = try cpu.air.bind(allocator, &template, try circuit.common.component_list.circuitComponentLogSizes(&columns), &columns);
+    defer bound.deinit();
+    var remainders_seen = [_]bool{false} ** 4;
+    for (0..4) |last_layer| {
+        const fri = try core.pcs.config_v2.FriConfigV2.init(26, @intCast(last_layer), 1, 70, 4);
+        const config = core.pcs.config_v2.PcsConfigV2.fromFriAndTraceSize(fri, columns.traceLogSize());
+        var geometry = try geometry_module.Geometry.init(allocator, &columns, &bound, &catalog, config);
+        defer geometry.deinit();
+        var plan = try Plan.init(allocator, &geometry, config, try pow2(config.trace_lifting_log_size));
+        defer plan.deinit();
+        const last = plan.layers[plan.layers.len - 1];
+        remainders_seen[last.fold_step % 4] = true;
+        var descriptor_cursor: usize = 0;
+        for (plan.layers, 0..) |layer, ordinal| {
+            const packs = layer.fold_step > 1 or ordinal == 0;
+            const expected_log: u32 = if (packs) core.fri.LOG_PACKED_LEAF_SIZE else 0;
+            try std.testing.expectEqual(expected_log, layer.rows_per_leaf_log);
+            try std.testing.expectEqual(expected_log, geometry.fri_layers[ordinal].rows_per_leaf_log);
+            try std.testing.expectEqual(layer.evaluation_log - expected_log, geometry.fri_layers[ordinal].leaf_log);
+            try std.testing.expectEqual(@as(usize, layer.evaluation_log - expected_log + 1), layer.merkle_count);
+            try std.testing.expectEqual(descriptor_cursor, layer.merkle_first);
+            const leaves = layer.evaluation_size >> @intCast(expected_log);
+            try std.testing.expectEqual(leaves, plan.descriptors[layer.merkle_first].hash_count);
+            try std.testing.expectEqual(@as(u32, 1), plan.descriptors[layer.merkle_first + layer.merkle_count - 1].hash_count);
+            descriptor_cursor += layer.merkle_count;
+        }
+        try std.testing.expectEqual(plan.descriptors.len, descriptor_cursor);
+        var decommit = try decommit_module.Plan.init(allocator, &geometry, config);
+        defer decommit.deinit();
+        var oods = try oods_module.Plan.init(allocator, &bound, &geometry, fri.log_blowup_factor);
+        defer oods.deinit();
+        var layout = try layout_module.Layout.init(allocator, &geometry, &oods, config);
+        defer layout.deinit(allocator);
+        for (layout.fri_trees, plan.layers) |tree, layer|
+            try std.testing.expectEqual(layer.rows_per_leaf_log, tree.log_rows_per_leaf);
+    }
+    for (remainders_seen) |seen| try std.testing.expect(seen);
 }
 
 test "resident circuit FRI four-fold controller typechecks against native CUDA session" {
