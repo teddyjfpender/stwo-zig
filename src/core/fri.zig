@@ -50,6 +50,9 @@ pub fn FriVerifier(comptime H: type, comptime MC: type) type {
         last_layer_domain: line.LineDomain,
         last_layer_poly: line.LinePoly,
         queries: ?queries_mod.Queries = null,
+        /// Original transcript draw, including order and duplicates. The
+        /// normalized `queries` set alone cannot identify raw capture slots.
+        raw_query_positions: ?[]usize = null,
 
         const Self = @This();
 
@@ -59,6 +62,7 @@ pub fn FriVerifier(comptime H: type, comptime MC: type) type {
             allocator.free(self.inner_layers);
             self.last_layer_poly.deinit(allocator);
             if (self.queries) |*queries| queries.deinit(allocator);
+            if (self.raw_query_positions) |positions| allocator.free(positions);
             self.* = undefined;
         }
 
@@ -144,6 +148,7 @@ pub fn FriVerifier(comptime H: type, comptime MC: type) type {
                 .last_layer_domain = layer_domain,
                 .last_layer_poly = last_layer_poly,
                 .queries = null,
+                .raw_query_positions = null,
             };
         }
 
@@ -161,9 +166,9 @@ pub fn FriVerifier(comptime H: type, comptime MC: type) type {
         }
 
         /// Samples once and retains the exact raw draw alongside the unique
-        /// Merkle-verifier set. Publication is failure-atomic: neither slice
-        /// escapes unless query normalization and the returned duplicate both
-        /// succeed.
+        /// Merkle-verifier set. Returned slices are independent copies: a
+        /// caller cannot relabel a later recursive capture by mutating them.
+        /// Replacing the stored draw is failure-atomic.
         pub fn sampleQueryPositionsWithRaw(
             self: *Self,
             allocator: std.mem.Allocator,
@@ -178,15 +183,24 @@ pub fn FriVerifier(comptime H: type, comptime MC: type) type {
             );
             errdefer allocator.free(raw);
 
-            if (self.queries) |*queries| queries.deinit(allocator);
-            self.queries = try queries_mod.Queries.init(
+            var normalized = try queries_mod.Queries.init(
                 allocator,
                 raw,
                 first_layer_log_size,
             );
+            errdefer normalized.deinit(allocator);
+            const returned_raw = try allocator.dupe(usize, raw);
+            errdefer allocator.free(returned_raw);
+            const returned_unique = try allocator.dupe(usize, normalized.positions);
+            errdefer allocator.free(returned_unique);
+
+            if (self.queries) |*queries| queries.deinit(allocator);
+            if (self.raw_query_positions) |positions| allocator.free(positions);
+            self.queries = normalized;
+            self.raw_query_positions = raw;
             return .{
-                .raw = raw,
-                .unique = try allocator.dupe(usize, self.queries.?.positions),
+                .raw = returned_raw,
+                .unique = returned_unique,
             };
         }
 
@@ -205,17 +219,18 @@ pub fn FriVerifier(comptime H: type, comptime MC: type) type {
 
         /// Completes FRI verification and publishes raw-query values and full
         /// authentication paths only after the terminal polynomial check.
+        /// Capture positions always come from this verifier's transcript draw;
+        /// no caller-provided positions can label an authenticated fold group.
         pub fn decommitWithQueryCapture(
             self: *Self,
             allocator: std.mem.Allocator,
             first_layer_query_evals: []const QM31,
-            raw_query_positions: []const usize,
             capture: *FriQueryCapture(H),
         ) !void {
             return self.decommitImpl(
                 allocator,
                 first_layer_query_evals,
-                raw_query_positions,
+                self.raw_query_positions orelse return FriVerificationError.FirstLayerEvaluationsInvalid,
                 capture,
             );
         }

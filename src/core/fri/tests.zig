@@ -390,6 +390,54 @@ test "fri verifier: commit and sample query positions" {
     }
 }
 
+test "fri verifier: recursive capture positions remain bound to transcript draw" {
+    const Hasher = @import("stwo_core").vcs_lifted.blake2_merkle.Blake2sMerkleHasher;
+    const MerkleChannel = @import("stwo_core").vcs_lifted.blake2_merkle.Blake2sMerkleChannel;
+    const Channel = @import("stwo_core").channel.blake2s.Blake2sChannel;
+    const Verifier = FriVerifier(Hasher, MerkleChannel);
+    const alloc = std.testing.allocator;
+
+    var channel = Channel{};
+    // The first domain has 16 positions. Drawing 32 queries guarantees
+    // duplicates and tests that raw slots survive normalization.
+    const config = try FriConfig.init(2, 1, 32);
+    var proof = FriProof(Hasher){
+        .first_layer = .{
+            .fri_witness = try alloc.alloc(QM31, 0),
+            .decommitment = .{ .hash_witness = try alloc.alloc(Hasher.Hash, 0) },
+            .commitment = [_]u8{2} ** 32,
+        },
+        .inner_layers = try alloc.alloc(FriLayerProof(Hasher), 0),
+        .last_layer_poly = line.LinePoly.initOwned(
+            try alloc.dupe(QM31, &[_]QM31{QM31.one()}),
+        ),
+    };
+    defer proof.deinit(alloc);
+    var verifier = try Verifier.commit(
+        alloc,
+        &channel,
+        config,
+        proof,
+        CirclePolyDegreeBound.init(3),
+    );
+    defer verifier.deinit(alloc);
+
+    var sampled = try verifier.sampleQueryPositionsWithRaw(alloc, &channel);
+    defer sampled.deinit(alloc);
+    try std.testing.expectEqual(@as(usize, 32), sampled.raw.len);
+    try std.testing.expect(sampled.unique.len <= 16);
+    try std.testing.expectEqualSlices(usize, sampled.raw, verifier.raw_query_positions.?);
+    try std.testing.expect(sampled.raw.ptr != verifier.raw_query_positions.?.ptr);
+
+    const original = verifier.raw_query_positions.?[0];
+    sampled.raw[0] ^= 1; // Same two-point folding coset, different query.
+    try std.testing.expectEqual(original, verifier.raw_query_positions.?[0]);
+    try std.testing.expectEqualSlices(usize, sampled.unique, verifier.queries.?.positions);
+    const unique_original = verifier.queries.?.positions[0];
+    sampled.unique[0] ^= 1;
+    try std.testing.expectEqual(unique_original, verifier.queries.?.positions[0]);
+}
+
 test "fri verifier: invalid layer count fails commit" {
     const Hasher = @import("stwo_core").vcs_lifted.blake2_merkle.Blake2sMerkleHasher;
     const MerkleChannel = @import("stwo_core").vcs_lifted.blake2_merkle.Blake2sMerkleChannel;

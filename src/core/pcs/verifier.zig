@@ -406,7 +406,6 @@ pub fn CommitmentSchemeVerifier(comptime H: type, comptime MC: type) type {
                 fri_verifier.decommitWithQueryCapture(
                     allocator,
                     fri_answers,
-                    query_capture.raw,
                     &fri_capture,
                 ) catch |err| {
                     if (err != error.OutOfMemory)
