@@ -37,6 +37,19 @@ masking, with no M31 reduction. The framed channel does not itself enforce the
 complete Gate root/challenge order. A selected verifier must own that schedule
 and compare it to its key and wire revision.
 
+`paired_gate_event_plan_v2.zig` is a typed candidate wrapper for that order.
+It copies a nonempty, strictly descending fold-height roster into a fixed
+64-entry array, then accepts only the next named operation from statement
+through four source roots, both PoW barriers, paired FRI line roots and
+terminal coefficients to raw queries. Wrong-stage calls leave the channel
+unchanged. Each named challenge consumes one accepted eight-limb block:
+lookup uses both QM31 values, while gamma, OOD seed, batch lambda and fold
+alpha return only the first QM31 and discard the second. Rejected raw blocks
+remain inside the same event. A future need for more accepted blocks changes
+the transcript and requires a new version. The wrapper still relies on a
+selected verifier to derive its statement and height roster from the sealed
+key and to authenticate every proof field and Merkle opening.
+
 The focused Zig tests pin digest, PoW and query vectors generated from S31's
 Python `pcs_fri_framed_bcs_v2.py`, including the complete illustrative
 four-root, two-track event plan for fold heights 17 and 16. A synthetic
