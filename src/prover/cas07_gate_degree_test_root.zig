@@ -186,3 +186,111 @@ test "CAS07 exact Gate roster has a low-degree quotient x-square edge counterexa
     for ([_]SourceKind{ .one, .y, .x, .xy, .x_squared }) |kind|
         try checkSource(std.testing.allocator, kind, domain, sample, source_bound_log);
 }
+
+// The formulas below are the CM31 specialization of
+// S31.Gadgets.PcsFri.GateFourSlotNativeMap. They are independent of the
+// native pairedHeight numerator and its coefficient builder.
+fn fourSlotAt(coefficients: [4]M31, point: Point) M31 {
+    return coefficients[0]
+        .add(coefficients[1].mul(point.y))
+        .add(coefficients[2].mul(point.x))
+        .add(coefficients[3].mul(point.x).mul(point.y));
+}
+
+fn fourSlotClaim(coefficients: [4]M31, point: SecurePoint) QM31 {
+    return QM31.fromBase(coefficients[0])
+        .add(point.y.mulM31(coefficients[1]))
+        .add(point.x.mulM31(coefficients[2]))
+        .add(point.x.mul(point.y).mulM31(coefficients[3]));
+}
+
+test "CAS07 four-slot quotient coefficient map matches native H=1 witness for varied sources" {
+    const allocator = std.testing.allocator;
+    const domain = core.poly.circle.canonic.CanonicCoset.new(4).circleDomain();
+    const tuples = [_][4]u32{
+        .{ 0, 0, 0, 0 },
+        .{ 1, 0, 0, 0 },
+        .{ 0, 1, 0, 0 },
+        .{ 0, 0, 1, 0 },
+        .{ 0, 0, 0, 1 },
+        .{ 3, 5, 7, 11 },
+        .{ 2147483646, 19, 0, 37 },
+        .{ 1234567, 7654321, 1111111, 3333333 },
+    };
+    for ([_]u32{ 17, 23 }) |sample_multiplier| {
+        const point = core.circle.SECURE_FIELD_CIRCLE_GEN.mul(sample_multiplier);
+        try std.testing.expect(point.isOnCircle());
+        const x0 = point.x.c0;
+        const x1 = point.x.c1;
+        const y0 = point.y.c0;
+        const y1 = point.y.c1;
+        try std.testing.expect(!y1.isZero());
+        const norm = x1.square().add(y1.square());
+        try std.testing.expect(!norm.isZero());
+        const determinant = x0.mul(y1).sub(y0.mul(x1));
+        const u = QM31.fromU32Unchecked(0, 0, 1, 0);
+        const scale = u.mulCM31(y1.neg().add(y1.neg()));
+        for (tuples) |raw| {
+            var coefficients: [4]M31 = undefined;
+            for (raw, 0..) |value, i| coefficients[i] = M31.fromCanonical(value);
+            var source: [16]M31 = undefined;
+            for (&source, 0..) |*value, i| {
+                const row = domain.at(core.utils.bitReverseIndex(i, 4));
+                value.* = fourSlotAt(coefficients, row);
+            }
+            const columns = [_][]const M31{&source};
+            try prover.pcs.paired_two_height_experimental.validateSourceDegree(
+                allocator,
+                domain,
+                &columns,
+                2,
+            );
+            const claim = fourSlotClaim(coefficients, point);
+            const c0 = CM31.fromBase(coefficients[0]);
+            const c1 = CM31.fromBase(coefficients[1]);
+            const c2 = CM31.fromBase(coefficients[2]);
+            const c3 = CM31.fromBase(coefficients[3]);
+            const v0 = c0.add(c1.mul(y0)).add(c2.mul(x0))
+                .add(c3.mul(x0.mul(y0).add(core.fields.qm31.R.mul(x1).mul(y1))));
+            const v1 = c1.mul(y1).add(c2.mul(x1))
+                .add(c3.mul(x0.mul(y1).add(x1.mul(y0))));
+            try std.testing.expect(claim.eql(.{ .c0 = v0, .c1 = v1 }));
+
+            const a = (try c2.neg().div(y1)).add(try c3.mul(determinant).mul(x1)
+                .div(y1.mul(norm)));
+            const b = try c3.mul(x1).div(norm);
+            const c = try c3.neg().mul(y1).div(norm);
+            try std.testing.expect(y1.mul(b).add(x1.mul(c)).isZero());
+
+            const evaluation = try prover.poly.circle.CircleEvaluation.init(domain, &source);
+            var polynomial = try prover.poly.circle.poly.interpolateFromEvaluation(allocator, evaluation);
+            defer polynomial.deinit(allocator);
+            try std.testing.expect(polynomial.evalAtPoint(point).eql(claim));
+            const native = try prover.pcs.paired_two_height_experimental.pairedHeight(
+                allocator,
+                domain,
+                &columns,
+                &.{claim},
+                point,
+                .{ .batch = QM31.one() },
+            );
+            defer allocator.free(native);
+            for (source, native, 0..) |value, actual, i| {
+                const row = domain.at(core.utils.bitReverseIndex(i, 4));
+                const row_x = CM31.fromBase(row.x);
+                const row_y = CM31.fromBase(row.y);
+                const affine = v0.add(v1.mul(try row_y.sub(y0).div(y1)));
+                const line = x0.sub(row_x).mul(y1).sub(y0.sub(row_y).mul(x1));
+                try std.testing.expect(!line.isZero());
+                const mapped_quotient = a.add(b.mul(row_x)).add(c.mul(row_y));
+                try std.testing.expect(CM31.fromBase(value).eql(
+                    affine.add(line.mul(mapped_quotient)),
+                ));
+                const divided_quotient = try CM31.fromBase(value).sub(affine).div(line);
+                try std.testing.expect(divided_quotient.eql(mapped_quotient));
+                const expected_native = QM31.fromBase(value).add(scale.mulCM31(mapped_quotient));
+                try std.testing.expect(actual.eql(expected_native));
+            }
+        }
+    }
+}
