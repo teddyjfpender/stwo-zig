@@ -63,3 +63,41 @@ pub const RowContextV2 = struct {
         return out;
     }
 };
+
+test "paired H1 quotient row matches production row evaluator" {
+    const allocator = std.testing.allocator;
+    const canonic = @import("../poly/circle/canonic.zig");
+    const production = @import("quotients/row_evaluation.zig");
+    const samples = @import("quotients/samples.zig");
+    const point = try circle.secureFieldPointFromRandomSeedChecked(QM31.fromM31Array(.{
+        M31.fromCanonical(9), M31.fromCanonical(3), M31.fromCanonical(7), M31.fromCanonical(2),
+    }));
+    const claims = [_]QM31{
+        QM31.fromM31Array(.{ M31.fromCanonical(11), M31.fromCanonical(2), M31.fromCanonical(5), M31.fromCanonical(1) }),
+        QM31.fromM31Array(.{ M31.fromCanonical(13), M31.fromCanonical(4), M31.fromCanonical(6), M31.fromCanonical(3) }),
+        QM31.fromM31Array(.{ M31.fromCanonical(17), M31.fromCanonical(8), M31.fromCanonical(9), M31.fromCanonical(5) }),
+    };
+    const batch = QM31.fromM31Array(.{
+        M31.fromCanonical(7), M31.fromCanonical(2), M31.fromCanonical(4), M31.fromCanonical(1),
+    });
+    const values = [_]M31{ M31.fromCanonical(19), M31.fromCanonical(23), M31.fromCanonical(29) };
+    const domain_point = canonic.CanonicCoset.new(3).circleDomain().at(1);
+    var context = try RowContextV2.init(allocator, point, &claims, batch);
+    defer context.deinit();
+    const actual = try context.openedValues(&values, domain_point);
+
+    var numerators: [claims.len]samples.NumeratorData = undefined;
+    var power = QM31.one();
+    var expected_original = QM31.zero();
+    for (&numerators, claims, values, 0..) |*entry, claim, value, i| {
+        entry.* = .{ .column_index = i, .sample_value = claim, .random_coeff = power };
+        expected_original = expected_original.add(power.mul(QM31.fromBase(value)));
+        power = power.mul(batch);
+    }
+    const grouped = [_]samples.ColumnSampleBatch{.{ .point = point, .cols_vals_randpows = &numerators }};
+    var constants = try production.quotientConstants(allocator, &grouped);
+    defer constants.deinit(allocator);
+    const expected_quotient = try production.accumulateRowQuotients(allocator, &grouped, &values, &constants, domain_point);
+    try std.testing.expect(actual[0].eql(expected_original));
+    try std.testing.expect(actual[1].eql(expected_quotient));
+}
