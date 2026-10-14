@@ -49,6 +49,28 @@ accepted PCS instance. In particular, the test statement uses zero digests;
 a selected verifier must derive all eight statement digests from its sealed
 key and checked geometry.
 
+`gate_hash_differential_v2.zig` adds a separate 448-byte synthetic proof
+fixture. Its producer builds four personalized two-leaf source trees and two
+personalized two-leaf FRI line trees, then drives the low-level native framed
+channel through both nonzero-difficulty PoW barriers, all named challenges,
+both fold tracks and the final raw query block. Its consumer decodes the
+emitted bytes, checks canonical source and line rows, authenticates all six
+Merkle openings, and drives the **different** typed event-plan API. The
+resulting digest, event counter, challenges, PoW prefix/trial hashes and raw
+query words must agree. A test-only standard-library BLAKE2s oracle checks
+the statement, root and field frames and both PoW prefix/trial/nonce frames
+against the native channel's bytes. Truncated input, changed openings, a
+source root substituted for a line root, noncanonical rows and invalid
+nonces at either barrier fail. This closes the earlier test's narrow weakness
+of calling one replay function twice; the two sides now have separate code
+and a concrete byte handoff.
+
+The fixture still has fixed two-leaf trees, test-derived nonzero statement
+digests, small PoW difficulties and no AIR/PCS degree test. It is not a
+complete native prover/verifier proof-byte differential. The selected raw
+Gate proof and verifier are untouched, and a BCS/ROM theorem for the five
+effective BLAKE2s domains remains open.
+
 ## Required steps before selection
 
 1. Freeze a new proof selector, versioned wire decoder, key-owned statement
