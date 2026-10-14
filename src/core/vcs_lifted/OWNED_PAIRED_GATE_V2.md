@@ -32,6 +32,25 @@ The projection matches the selected row of the pair opened in the experimental
 `paired_sparse_cascade_heights_experimental.zig` verifier, whose pair base is
 `((raw >> (i+2)) << 1)` for line tree `i`.
 
+`verifyAndReadLinePair` authenticates **both** rows at `pair_base` and
+`pair_base+1` under one captured root. Each row has four canonical M31 words,
+forming one QM31 line value. `verifyAndReadBothTrackPairs` does this for the
+original and own-quotient tracks together and returns no values unless all
+four paths verify. Neither method accepts a leaf index. A wrong neighbor or a
+replayed path at the other position fails its Merkle check.
+
+This does not yet check the CAS09 one-step relation. For each track that
+relation is `fold(previous_pair, line_x, alpha) + alpha² ×
+fold(inserted_source_pair, circle_y, alpha) = selected_next_value`.
+Here `fold(a,b,c,alpha) = a+b+alpha×(a-b)/c`, matching CAS09's native
+unscaled butterfly. The line and circle coordinates and both divisors are
+fixed by the checked domain geometry.
+The inserted original and own-quotient values are computed from authenticated
+four-root source rows, OOD claims, and the verifier's batch challenge. This
+object does not yet own those source openings, the OOD `RowContext`, or the
+stored fold alphas. Accepting them as caller-provided values would make the
+equation unauthenticated, so the local line-pair methods do not assert it.
+
 Query draws reject a zero count without moving the transcript. Once the
 terminal query event begins, any sampler failure leaves the plan complete and
 cannot be retried on the same object. The query count and block cap still

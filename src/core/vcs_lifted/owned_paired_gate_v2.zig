@@ -8,6 +8,8 @@ const std = @import("std");
 const framed = @import("../channel/framed_bcs_v2.zig");
 const plan_mod = @import("../channel/paired_gate_event_plan_v2.zig");
 const uniform = @import("../queries/uniform_v1.zig");
+const m31 = @import("../fields/m31.zig");
+const qm31 = @import("../fields/qm31.zig");
 const descriptor = @import("line_descriptor_v2.zig");
 const admission = @import("line_admission_v2.zig");
 
@@ -15,6 +17,8 @@ pub const Digest32 = framed.Digest32;
 pub const Error = error{
     InvalidQueryGeometry,
     ZeroQueries,
+    InvalidLineRowWidth,
+    InvalidLinePath,
     ManifestPlanMismatch,
     InvalidQueryIndex,
     QueriesNotDrawn,
@@ -26,6 +30,14 @@ const State = struct {
     admitted: *admission.AdmittedLineManifestV2,
     query_log_size: u32,
     queries: ?uniform.SampledQueriesV1 = null,
+};
+
+/// Four canonical M31 coordinates for one QM31 line value, with the Merkle
+/// path at an index derived privately from a sampled query. No index field is
+/// accepted from the proof or caller.
+pub const LineRowOpeningV2 = struct {
+    row: [4]u32,
+    siblings: []const Digest32,
 };
 
 /// Opaque custody for the candidate S31NAT9F schedule. A caller receives no
@@ -234,18 +246,7 @@ pub const OwnedPairedGateVerifierV2 = opaque {
         return queries.raw[index];
     }
 
-    /// Checks an opening at the line row selected by a previously sampled
-    /// raw query. A fold from height h to h-1 removes one high-order bit in
-    /// bit-reversed query order: `line_row = raw >> (query_log - tree_log)`.
-    /// This authenticates only one selected row, not the adjacent pair needed
-    /// for a complete FRI relation or a proof-acceptance decision.
-    pub fn verifyCapturedLineOpening(
-        self: *const Self,
-        tree_index: usize,
-        query_ordinal: usize,
-        row: []const u32,
-        siblings: []const Digest32,
-    ) Error!bool {
+    fn projectedLineRow(self: *const Self, tree_index: usize, query_ordinal: usize) Error!u64 {
         const state = self.stateConst();
         const queries = state.queries orelse return error.QueriesNotDrawn;
         if (query_ordinal >= queries.raw.len) return error.InvalidQueryIndex;
@@ -260,8 +261,72 @@ pub const OwnedPairedGateVerifierV2 = opaque {
         if (raw >= (@as(usize, 1) << @intCast(state.query_log_size)))
             return error.InvalidQueryGeometry;
         const shift = state.query_log_size - shape.tree_log_size;
-        const leaf_index: u64 = @intCast(raw >> @intCast(shift));
-        return state.admitted.verifyCapturedOpening(tree_index, row, leaf_index, siblings);
+        return @intCast(raw >> @intCast(shift));
+    }
+
+    /// Checks an opening at the line row selected by a previously sampled
+    /// raw query. A fold from height h to h-1 removes one high-order bit in
+    /// bit-reversed query order: `line_row = raw >> (query_log - tree_log)`.
+    /// This authenticates only one selected row, not the adjacent pair needed
+    /// for a complete FRI relation or a proof-acceptance decision.
+    pub fn verifyCapturedLineOpening(
+        self: *const Self,
+        tree_index: usize,
+        query_ordinal: usize,
+        row: []const u32,
+        siblings: []const Digest32,
+    ) Error!bool {
+        const leaf_index = try self.projectedLineRow(tree_index, query_ordinal);
+        return self.stateConst().admitted.verifyCapturedOpening(tree_index, row, leaf_index, siblings);
+    }
+
+    /// Authenticate both adjacent rows under one captured line-tree root.
+    /// CAS09's pair base is `(selected_line_row & ~1)`. Both path indices are
+    /// derived here from the same sampled raw query; neither can be supplied
+    /// or reordered by the caller. The result is local authenticated line
+    /// data only; no source insertion or FRI fold equation is checked here.
+    pub fn verifyAndReadLinePair(
+        self: *const Self,
+        tree_index: usize,
+        query_ordinal: usize,
+        openings: [2]LineRowOpeningV2,
+    ) Error![2]qm31.QM31 {
+        const selected = try self.projectedLineRow(tree_index, query_ordinal);
+        const shape = try self.stateConst().admitted.openingShape(tree_index);
+        if (shape.column_count != 4 or shape.tree_log_size == 0)
+            return error.InvalidLineRowWidth;
+        const base = selected & ~@as(u64, 1);
+        var out: [2]qm31.QM31 = undefined;
+        for (openings, 0..) |opening, side| {
+            const index = base + @as(u64, @intCast(side));
+            if (!try self.stateConst().admitted.verifyCapturedOpening(
+                tree_index,
+                &opening.row,
+                index,
+                opening.siblings,
+            )) return error.InvalidLinePath;
+            var coordinates: [4]m31.M31 = undefined;
+            for (opening.row, 0..) |word, coordinate|
+                coordinates[coordinate] = m31.M31.fromCanonical(word);
+            out[side] = qm31.QM31.fromM31Array(coordinates);
+        }
+        return out;
+    }
+
+    /// Check both independent tracks for one fold and one sampled query.
+    /// No partial result escapes if either track fails authentication.
+    pub fn verifyAndReadBothTrackPairs(
+        self: *const Self,
+        fold_index: usize,
+        query_ordinal: usize,
+        openings: [2][2]LineRowOpeningV2,
+    ) Error![2][2]qm31.QM31 {
+        if (fold_index >= self.stateConst().plan.fold_count - 1)
+            return error.InvalidTreeIndex;
+        return .{
+            try self.verifyAndReadLinePair(2 * fold_index, query_ordinal, openings[0]),
+            try self.verifyAndReadLinePair(2 * fold_index + 1, query_ordinal, openings[1]),
+        };
     }
 };
 
@@ -352,7 +417,98 @@ test "opaque paired verifier owns channel, cached roots and query positions" {
     try std.testing.expectError(error.InvalidQueryIndex, verifier.queryPosition(8));
     try std.testing.expectError(error.InvalidQueryIndex, verifier.verifyCapturedLineOpening(0, 8, &.{0}, &.{leaf1}));
     try std.testing.expectError(error.RowWidthMismatch, verifier.verifyCapturedLineOpening(0, 0, &.{ 0, 1 }, &.{leaf1}));
+    try std.testing.expectError(error.InvalidLineRowWidth, verifier.verifyAndReadLinePair(0, 0, .{
+        .{ .row = .{ 0, 1, 2, 3 }, .siblings = &.{leaf1} },
+        .{ .row = .{ 4, 5, 6, 7 }, .siblings = &.{leaf0} },
+    }));
     try std.testing.expectError(error.UnexpectedStage, verifier.drawQueries(8, 1));
+}
+
+test "both adjacent line rows use private sampled pair indices on both tracks" {
+    const allocator = std.testing.allocator;
+    const zero = [_]u8{0} ** 32;
+    const profile = descriptor.lineHashProfileDigest();
+    const columns = [_]Digest32{ zero, [_]u8{1} ** 32, [_]u8{2} ** 32, [_]u8{3} ** 32 };
+    const trees = [_]descriptor.LineTreeDescriptorV2{
+        .{ .key_digest = zero, .profile_digest = profile, .track = .original, .fold_height = 3, .tree_log_size = 2, .root_event = 17, .column_descriptors = &columns },
+        .{ .key_digest = zero, .profile_digest = profile, .track = .own_quotient, .fold_height = 3, .tree_log_size = 2, .root_event = 18, .column_descriptors = &columns },
+    };
+    const manifest = descriptor.LineTreeManifestV2{ .key_digest = zero, .fold_heights = &.{ 3, 2 }, .trees = &trees };
+    const verifier = try OwnedPairedGateVerifierV2.init(allocator, manifest, try testStatement(manifest, allocator));
+    defer verifier.deinit();
+    const line_hash = @import("blake2s_personalized_line_v2.zig");
+    const rows = [4][4]u32{
+        .{ 0, 1, 2, 3 }, .{ 4, 5, 6, 7 }, .{ 8, 9, 10, 11 }, .{ 12, 13, 14, 15 },
+    };
+    var leaves: [4]Digest32 = undefined;
+    for (rows, &leaves) |row, *leaf| leaf.* = try line_hash.hashCanonicalRow(&row);
+    const parent01 = line_hash.LineMerkleHasherV2.hashChildren(.{ .left = leaves[0], .right = leaves[1] });
+    const parent23 = line_hash.LineMerkleHasherV2.hashChildren(.{ .left = leaves[2], .right = leaves[3] });
+    const root = line_hash.LineMerkleHasherV2.hashChildren(.{ .left = parent01, .right = parent23 });
+    const paths = [4][2]Digest32{
+        .{ leaves[1], parent23 }, .{ leaves[0], parent23 },
+        .{ leaves[3], parent01 }, .{ leaves[2], parent01 },
+    };
+    try verifier.mixFixedRoot(zero);
+    try verifier.mixCircuitIdentity(zero);
+    try verifier.mixPublicValues(&.{ 0, 1, 2, 3 });
+    try verifier.mixMainRoot(zero);
+    _ = try verifier.beginInteractionPow(0);
+    try verifier.acceptInteractionNonce(0);
+    _ = try verifier.drawLookupPair();
+    try verifier.mixInteractionClaim(&.{ 0, 1, 2, 3 });
+    try verifier.mixInteractionRoot(zero);
+    _ = try verifier.drawCompositionGamma();
+    try verifier.mixCompositionRoot(zero);
+    _ = try verifier.drawOodsSeed();
+    try verifier.mixSampledValues(&.{ 0, 1, 2, 3 });
+    _ = try verifier.drawBatchLambda();
+    _ = try verifier.drawFoldAlpha();
+    try verifier.captureOriginalLineRoot(root);
+    try verifier.captureOwnQuotientLineRoot(root);
+    _ = try verifier.drawFoldAlpha();
+    try verifier.mixOriginalTerminalCoefficients(&.{ 0, 1, 2, 3 });
+    try verifier.mixOwnQuotientTerminalCoefficients(&.{ 0, 1, 2, 3 });
+    _ = try verifier.beginFriPow(0);
+    try verifier.acceptFriNonce(0);
+    try verifier.drawQueries(8, 1);
+    var seen = [2]bool{ false, false };
+    for (0..8) |ordinal| {
+        const raw = try verifier.queryPosition(ordinal);
+        try std.testing.expect(raw < 8);
+        const base = (raw >> 1) & ~@as(usize, 1);
+        seen[base / 2] = true;
+        const openings = [2]LineRowOpeningV2{
+            .{ .row = rows[base], .siblings = &paths[base] },
+            .{ .row = rows[base + 1], .siblings = &paths[base + 1] },
+        };
+        const both = try verifier.verifyAndReadBothTrackPairs(0, ordinal, .{ openings, openings });
+        for (0..2) |track| {
+            const pair = both[track];
+            for (0..2) |side| {
+                const coordinates = pair[side].toM31Array();
+                for (0..4) |coordinate|
+                    try std.testing.expectEqual(rows[base + side][coordinate], coordinates[coordinate].v);
+            }
+            // Replaying the first path as its neighbor cannot authenticate.
+            const wrong_neighbor = [2]LineRowOpeningV2{ openings[0], openings[0] };
+            try std.testing.expectError(error.InvalidLinePath, verifier.verifyAndReadLinePair(track, ordinal, wrong_neighbor));
+        }
+        const wrong_neighbor = [2]LineRowOpeningV2{ openings[0], openings[0] };
+        try std.testing.expectError(error.InvalidLinePath, verifier.verifyAndReadBothTrackPairs(0, ordinal, .{ openings, wrong_neighbor }));
+        var noncanonical = openings;
+        noncanonical[1].row[0] = m31.Modulus;
+        try std.testing.expectError(error.NonCanonicalRow, verifier.verifyAndReadLinePair(0, ordinal, noncanonical));
+    }
+    try std.testing.expect(seen[0] and seen[1]);
+    try std.testing.expectError(error.InvalidQueryIndex, verifier.verifyAndReadLinePair(0, 8, .{
+        .{ .row = rows[0], .siblings = &paths[0] },
+        .{ .row = rows[1], .siblings = &paths[1] },
+    }));
+    try std.testing.expectError(error.InvalidTreeIndex, verifier.verifyAndReadBothTrackPairs(1, 0, .{
+        .{ .{ .row = rows[0], .siblings = &paths[0] }, .{ .row = rows[1], .siblings = &paths[1] } },
+        .{ .{ .row = rows[0], .siblings = &paths[0] }, .{ .row = rows[1], .siblings = &paths[1] } },
+    }));
 }
 
 test "owned verifier rejects mismatched statement before transcript events" {
