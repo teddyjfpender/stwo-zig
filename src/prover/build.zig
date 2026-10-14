@@ -124,6 +124,37 @@ pub fn build(b: *std.Build) void {
     independent_h1_step.dependOn(&b.addRunArtifact(independent_h1_tests).step);
     test_step.dependOn(independent_h1_step);
 
+    const independent_heights_root = b.createModule(.{
+        .root_source_file = b.path("paired_independent_heights_test_root.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    independent_heights_root.addImport("stwo_core", core);
+    independent_heights_root.addImport("stwo_prover_engine", prover);
+    const independent_heights_tests = b.addTest(.{ .root_module = independent_heights_root });
+    const independent_heights_step = b.step(
+        "test-paired-independent-heights",
+        "Test experimental independent original and own-quotient sparse-height FRI",
+    );
+    independent_heights_step.dependOn(&b.addRunArtifact(independent_heights_tests).step);
+    test_step.dependOn(independent_heights_step);
+
+    const independent_gate_root = b.createModule(.{
+        .root_source_file = b.path("paired_independent_gate_pilot_test_root.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    independent_gate_root.addImport("stwo_core", core);
+    independent_gate_root.addImport("stwo_prover_engine", prover);
+    const independent_gate_tests = b.addTest(.{ .root_module = independent_gate_root });
+    const independent_gate_step = b.step(
+        "test-paired-independent-gate-pilot",
+        "Test experimental two-track FRI at the Gate-shaped sparse-height profile",
+    );
+    independent_gate_step.dependOn(&b.addRunArtifact(independent_gate_tests).step);
+    // This full-width diagnostic is opt-in because it materializes a 2^20-row
+    // source tree and both complete FRI tracks.
+
     _ = addFocusedTests(b, core, backend_contracts, prover_api, target, optimize, check_only, .{
         .step = "test-blake3-prefix-reuse",
         .description = "Verify BLAKE3 bounded prefix reuse across budgets and worker counts",

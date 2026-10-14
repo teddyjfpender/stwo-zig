@@ -111,12 +111,12 @@ pub const RowContext = struct {
         return result;
     }
 
-    pub fn opened(self: RowContext, rows: xdm.VerifiedOpenings, query: usize, side: usize, p: circle.CirclePointM31) ![2]QM31 {
-        if (self.coefficients.len != rows.profile.columns[0]) return error.InvalidDualShape;
+    pub fn opened(self: RowContext, rows: xdm.VerifiedOpenings, height: usize, query: usize, side: usize, p: circle.CirclePointM31) ![2]QM31 {
+        if (height >= rows.profile.height_count or self.coefficients.len != rows.profile.columns[height]) return error.InvalidDualShape;
         const inverse = try self.inverseDivisor(p);
         var result = [2]QM31{ QM31.zero(), QM31.zero() };
         for (0..self.coefficients.len) |index|
-            self.add(&result, index, rows.at(0, query, side, index), p.y, inverse);
+            self.add(&result, index, rows.at(height, query, side, index), p.y, inverse);
         return result;
     }
 };
@@ -182,8 +182,8 @@ pub fn verifyAgainstStatement(allocator: std.mem.Allocator, proof: Proof, channe
         const base = xdm.pairBase(position, 0);
         const p0 = domain.at(utils.bitReverseIndex(base, k));
         const p1 = domain.at(utils.bitReverseIndex(base + 1, k));
-        const first = try context.opened(opened, query, 0, p0);
-        const second = try context.opened(opened, query, 1, p1);
+        const first = try context.opened(opened, 0, query, 0, p0);
+        const second = try context.opened(opened, 0, query, 1, p1);
         const x = line_domain.at(utils.bitReverseIndex(position >> 1, k - 1));
         const expected = [2]QM31{
             try original_poly.evalAtPoint(allocator, QM31.fromBase(x)),
