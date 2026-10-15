@@ -9,9 +9,11 @@ no CPU proving fallback.
 
 The proof protocol is pinned to
 [`starkware-libs/proving@5a7c5ed`](https://github.com/starkware-libs/proving/tree/5a7c5ede4299c91a61df19a07cba4f7502c14230).
-A fold step of four packs four FRI rows per Merkle leaf. Commitment, opening,
-and decoding use the same layout. Independent verification and comparison with
-the pinned Rust `CircuitSerialize` digest are required for qualification.
+A FRI round packs four rows per Merkle leaf when it folds by more than one
+level. A short final round that folds by one level uses one row per leaf, as
+the CPU prover and verifier do. Commitment, opening, and decoding use the same
+per-round layout. Independent verification and comparison with the pinned Rust
+`CircuitSerialize` digest are required for qualification.
 
 ## Build and test
 
@@ -46,6 +48,10 @@ LD_LIBRARY_PATH=/usr/local/cuda/lib64:${LD_LIBRARY_PATH:-} \
 
 The benchmark also accepts `blake_g_gate` and the `root` channel profile. It
 fails on an invalid proof, nonresident proof event, or Rust digest mismatch.
+For a short final FRI round, pass `--last-layer N` and
+`--expect-sha256 HEX`, where the expected digest comes from a CPU circuit
+build with the same last-layer bound. The pinned Rust R7 fixture covers only
+bound zero.
 Set `STWO_CUDA_ARCHIVE_CACHE` to a persistent absolute directory to reuse
 source- and toolchain-bound cubins across Zig-only edits.
 
