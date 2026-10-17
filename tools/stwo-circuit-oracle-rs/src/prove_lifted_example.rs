@@ -38,6 +38,8 @@ const LIFTS: [u32; 3] = [0, 1, 3];
 
 #[derive(Serialize)]
 struct Case {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    fri_config: Option<[u64; 5]>,
     log_n_rows: u32,
     sequence_len: u32,
     trace_lifting_log_size: u32,
@@ -56,32 +58,51 @@ struct Body {
     cases: Vec<Case>,
 }
 
-fn prove_case(lift: u32) -> Result<Case> {
-    let fri_config = FriConfig::default();
+fn config_words(fri: FriConfig) -> [u64; 5] {
+    [
+        fri.pow_bits as u64,
+        fri.log_blowup_factor as u64,
+        fri.log_last_layer_degree_bound as u64,
+        fri.n_queries as u64,
+        fri.fold_step as u64,
+    ]
+}
+
+fn prove_case(lift: u32, fri_config: FriConfig, record_config: bool) -> Result<Case> {
     let config = PcsConfig {
         fri_config,
         trace_lifting_log_size: LOG_N_ROWS + fri_config.log_blowup_factor + lift,
         preprocessed_lifting_log_size: 0,
     };
     let twiddles = SimdBackend::precompute_twiddles(
-        CanonicCoset::new(config.trace_lifting_log_size.max(LOG_N_ROWS + 1 + fri_config.log_blowup_factor))
-            .circle_domain()
-            .half_coset,
+        CanonicCoset::new(
+            config
+                .trace_lifting_log_size
+                .max(LOG_N_ROWS + 1 + fri_config.log_blowup_factor),
+        )
+        .circle_domain()
+        .half_coset,
     );
     let channel = &mut Blake2sM31Channel::default();
-    let mut scheme = CommitmentSchemeProver::<SimdBackend, Blake2sM31MerkleChannel>::new(config, &twiddles);
+    let mut scheme =
+        CommitmentSchemeProver::<SimdBackend, Blake2sM31MerkleChannel>::new(config, &twiddles);
     let mut tree_builder = scheme.tree_builder();
     tree_builder.extend_evals(vec![]);
     tree_builder.commit(channel);
     let inputs = (0..1u32 << LOG_N_ROWS)
-        .map(|i| FibInput { a: BaseField::one(), b: BaseField::from_u32_unchecked(i) })
+        .map(|i| FibInput {
+            a: BaseField::one(),
+            b: BaseField::from_u32_unchecked(i),
+        })
         .collect_vec();
     let mut tree_builder = scheme.tree_builder();
     tree_builder.extend_evals(generate_trace::<FIB_SEQUENCE_LENGTH, SimdBackend>(&inputs));
     tree_builder.commit(channel);
     let component = WideFibonacciComponent::new(
         &mut TraceLocationAllocator::default(),
-        WideFibonacciEval::<FIB_SEQUENCE_LENGTH> { log_n_rows: LOG_N_ROWS },
+        WideFibonacciEval::<FIB_SEQUENCE_LENGTH> {
+            log_n_rows: LOG_N_ROWS,
+        },
         SecureField::zero(),
     );
     let proof = prove::<SimdBackend, Blake2sM31MerkleChannel>(&[&component], channel, scheme)
@@ -98,11 +119,16 @@ fn prove_case(lift: u32) -> Result<Case> {
     let bytes = bincode::serialize(&proof).context("bincode serialization failed")?;
     let stark = &proof.0;
     Ok(Case {
+        fri_config: record_config.then(|| config_words(fri_config)),
         log_n_rows: LOG_N_ROWS,
         sequence_len: FIB_SEQUENCE_LENGTH as u32,
         trace_lifting_log_size: config.trace_lifting_log_size,
         preprocessed_lifting_log_size: config.preprocessed_lifting_log_size,
-        commitments: stark.commitments.iter().map(|root| hex32(root.as_ref())).collect(),
+        commitments: stark
+            .commitments
+            .iter()
+            .map(|root| hex32(root.as_ref()))
+            .collect(),
         proof_of_work: stark.proof_of_work.into(),
         fri_inner_layer_roots: stark
             .fri_proof
@@ -118,15 +144,21 @@ fn prove_case(lift: u32) -> Result<Case> {
 
 pub fn run() -> Result<Vec<u8>> {
     let fri = FriConfig::default();
+    let mut cases = LIFTS
+        .iter()
+        .map(|&lift| prove_case(lift, fri, false))
+        .collect::<Result<Vec<_>>>()?;
+    // Degree bound 6, first fold 4, final inner fold 2: a Rust-generated
+    // proof for the short-last-round schedule, including a lifted tree.
+    cases.push(prove_case(1, FriConfig::new(10, 0, 1, 3, 4), true)?);
     let body = Body {
-        fri_config: [
-            fri.pow_bits as u64,
-            fri.log_blowup_factor as u64,
-            fri.log_last_layer_degree_bound as u64,
-            fri.n_queries as u64,
-            fri.fold_step as u64,
-        ],
-        cases: LIFTS.iter().map(|&lift| prove_case(lift)).collect::<Result<_>>()?,
+        fri_config: config_words(fri),
+        cases,
     };
-    crate::output::json(&Envelope::new("r10-lift", "prove-lifted-example", vec![], body))
+    crate::output::json(&Envelope::new(
+        "r10-lift",
+        "prove-lifted-example",
+        vec![],
+        body,
+    ))
 }

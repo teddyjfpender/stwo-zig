@@ -559,6 +559,7 @@ pub fn foldStageWithSource(
     var packed_safe = std.heap.ThreadSafeAllocator{ .child_allocator = packed_arena.allocator() };
     const fold: recursion.Fold = .{
         .canonical = canonical,
+        .leaf_verifiers = registry.leaf_verifiers,
         .table = &circuit_table,
         .bundle = &bundle,
         .options = options,
@@ -682,6 +683,7 @@ pub fn foldTreeWithSourceMode(
     var packed_safe = std.heap.ThreadSafeAllocator{ .child_allocator = packed_arena.allocator() };
     const fold: recursion.Fold = .{
         .canonical = canonical,
+        .leaf_verifiers = registry.leaf_verifiers,
         .table = &circuit_table,
         .bundle = &bundle,
         .options = options,

@@ -427,6 +427,16 @@ pub fn double(tape: *Tape, point: Point) !Point {
     return result;
 }
 
+/// Complete affine addition on the tape.
+///
+/// Known completeness gap (not a soundness issue): `lhs == rhs` is routed to
+/// `double`, which records a `.double` transition with `rhs = infinity`. The
+/// scalar program's add slot expects `(kind, accumulator, selected, result)`
+/// with `rhs = selected`, so a step whose accumulator equals the selected table
+/// entry fails `rowFromStep` with `InvalidTransition` and that signature cannot
+/// be proven. Closing it needs an `add_equal` point kind (lhs == rhs, result =
+/// 2*lhs) in the point AIR plus a per-slot kind constraint in the scalar
+/// program; both are layout changes and are deliberately not made here.
 pub fn addPoints(tape: *Tape, lhs: Point, rhs: Point) !Point {
     const product_start = tape.products.items.len;
     const linear_start = tape.linears.items.len;

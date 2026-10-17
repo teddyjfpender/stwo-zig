@@ -1,6 +1,7 @@
 const std = @import("std");
 
 pub fn addGates(b: *std.Build, prove_checkpoints: *std.Build.Step) void {
+    const directory = b.addSystemCommand(&.{ "mkdir", "-p", "zig-out/release-evidence/native" });
     const compile = b.addSystemCommand(&.{
         "zig",
         "build-lib",
@@ -9,8 +10,9 @@ pub fn addGates(b: *std.Build, prove_checkpoints: *std.Build.Step) void {
         "wasm32-freestanding",
         "-O",
         "ReleaseSmall",
-        "-femit-bin=/tmp/stwo-zig-std-shims-verifier.wasm",
+        "-femit-bin=zig-out/release-evidence/native/std-shims-verifier.wasm",
     });
+    compile.step.dependOn(&directory.step);
     b.step(
         "std-shims-smoke",
         "Build freestanding verifier profile shim (wasm32-freestanding)",

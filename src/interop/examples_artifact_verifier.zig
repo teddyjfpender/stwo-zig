@@ -181,8 +181,8 @@ fn requireSecurityPolicy(config: anytype, policy: SecurityPolicy) !void {
         .functional => .{ .pow_bits = @as(u32, 10), .n_queries = @as(usize, 3) },
         .smoke => .{ .pow_bits = @as(u32, 0), .n_queries = @as(usize, 3) },
     };
-    if (config.pow_bits < minimum.pow_bits or
-        config.fri_config.n_queries < minimum.n_queries or
+    if (config.pow_bits != minimum.pow_bits or
+        config.fri_config.n_queries != minimum.n_queries or
         config.fri_config.log_blowup_factor != 1 or
         config.fri_config.log_last_layer_degree_bound != 0 or
         config.fri_config.fold_step != 1 or

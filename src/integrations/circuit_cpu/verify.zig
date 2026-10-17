@@ -80,6 +80,7 @@ pub fn verifyProofBytes(
         else => return reject(.deserialize, err),
     };
     defer decoded.deinit();
+    if (decoded.consumed != proof_bytes.len) return reject(.deserialize, error.TrailingProofBytes);
     const values = verifier_proof.circuitVerifierValues(arena, &decoded.proof, shape) catch |err| switch (err) {
         error.OutOfMemory => return error.OutOfMemory,
         else => return reject(.deserialize, err),

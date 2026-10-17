@@ -494,6 +494,75 @@ pub const RiscVInteractionClaim = struct {
     }
 };
 
+/// Domain words for the physical claimed-sum frame: "STWP", "PCL1".
+pub const PHYSICAL_CLAIM_DOMAIN_WORDS = [2]u32{ 0x5057_5453, 0x314C_4350 };
+
+/// Compatibility batching: every opcode component consumes exactly
+/// `opcode_entries.batchCount(family)` detailed claims.
+pub const CompatibilityBatching = struct {
+    pub fn opcodeBatchCount(_: CompatibilityBatching, family: trace_mod.OpcodeFamily) usize {
+        return opcode_entries.batchCount(family);
+    }
+};
+
+/// Number of physical claimed sums bound by `mixPhysicalClaims` for one
+/// statement under one batching policy.
+pub fn physicalClaimCount(
+    statement: *const RiscVStatement,
+    batching: anytype,
+) error{InvalidInteractionClaim}!usize {
+    var total: usize = 0;
+    for (statement.component_descs[0..statement.n_components]) |desc| {
+        const count = batching.opcodeBatchCount(desc.family);
+        if (count > lookup_entry.MAX_BATCHES) return error.InvalidInteractionClaim;
+        total = std.math.add(usize, total, count) catch return error.InvalidInteractionClaim;
+    }
+    for (statement.infra_descs[0..statement.n_infra]) |desc| {
+        total = std.math.add(usize, total, nClaimedSumsForInfra(desc.kind)) catch
+            return error.InvalidInteractionClaim;
+    }
+    return total;
+}
+
+/// Bind every physical claimed sum the verifier components consume.
+///
+/// Security-critical. The canonical frame (`InteractionClaim.mixInto`) absorbs
+/// one aggregate per transcript component, but each opcode batch and each
+/// infrastructure sum enters its component's constraint linearly through the
+/// random composition coefficient. Binding only the aggregates would let a
+/// prover shift mass between two batches of one component after the OODS
+/// point is known and keep every aggregate, hence the global cancellation,
+/// unchanged. This frame is mixed immediately after the canonical frame and
+/// before the interaction tree commitment, on both prover and verifier.
+///
+/// `batching` selects the per-family batch count actually consumed by the
+/// opcode components (`CompatibilityBatching`, or the manifest-selected count
+/// for authenticated physical lookups). Fixed-capacity slack is never mixed.
+pub fn mixPhysicalClaims(
+    channel: anytype,
+    statement: *const RiscVStatement,
+    claim: *const RiscVInteractionClaim,
+    batching: anytype,
+) !void {
+    if (claim.n_components != statement.n_components or claim.n_infra != statement.n_infra)
+        return error.InvalidInteractionClaim;
+    const total = try physicalClaimCount(statement, batching);
+    channel.mixU32s(&.{
+        PHYSICAL_CLAIM_DOMAIN_WORDS[0],
+        PHYSICAL_CLAIM_DOMAIN_WORDS[1],
+        statement.n_components,
+        statement.n_infra,
+        std.math.cast(u32, total) orelse return error.InvalidInteractionClaim,
+    });
+    for (statement.component_descs[0..statement.n_components], 0..) |desc, index| {
+        const count = batching.opcodeBatchCount(desc.family);
+        channel.mixFelts(claim.opcode_claims[index][0..count]);
+    }
+    for (statement.infra_descs[0..statement.n_infra], 0..) |desc, index| {
+        channel.mixFelts(try claim.infraClaims(desc.kind, index));
+    }
+}
+
 fn componentForInfra(kind: InfraKind) transcript_claims.Component {
     return switch (kind) {
         .program => .program,

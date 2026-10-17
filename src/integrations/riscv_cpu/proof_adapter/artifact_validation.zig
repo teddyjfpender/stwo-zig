@@ -47,6 +47,10 @@ pub fn validateElfBinding(
     defer program.deinit(allocator);
     if (artifact.statement.public_data.program_root.? != program.tree.root)
         return error.ProgramRootMismatch;
+    try validateInitialRwRoot(
+        try expectedInitialRwRoot(allocator, snapshot.words),
+        artifact.statement.public_data.initial_rw_root,
+    );
 
     const completion = artifact.statement.public_data.completion;
     switch (completion.kind) {
@@ -61,6 +65,31 @@ pub fn validateElfBinding(
                 return error.CompletionInstructionMismatch;
         },
     }
+}
+
+/// The initial RW-memory root an honest prover commits for this image.
+///
+/// The prover's tree spans the loaded RW words plus every word the guest
+/// touched; touched-but-unloaded words enter with zero bytes, and a zero byte
+/// is the sparse tree's default leaf, so the root is a pure function of the
+/// loaded image.  Public-input words are excluded on both sides, so the root
+/// is independent of the input bytes as well.  Null when no RW word is loaded.
+pub fn expectedInitialRwRoot(
+    allocator: std.mem.Allocator,
+    words: []const stwo.frontends.riscv.runner.memory_state.WordState,
+) !?u32 {
+    const boundary = stwo.frontends.riscv.air.memory_commitment.boundary;
+    return boundary.initialTreeRoot(allocator, words);
+}
+
+/// A statement whose `initial_rw_root` is not the image's root would let the
+/// prover start execution from `.data`/`.rodata` contents of its choosing
+/// while `program_root` still matches the ELF.
+pub fn validateInitialRwRoot(expected: ?u32, claimed: ?u32) error{InitialRwRootMismatch}!void {
+    if (expected == null and claimed == null) return;
+    const expected_root = expected orelse return error.InitialRwRootMismatch;
+    const claimed_root = claimed orelse return error.InitialRwRootMismatch;
+    if (expected_root != claimed_root) return error.InitialRwRootMismatch;
 }
 
 pub fn measureProcessIdentity(allocator: std.mem.Allocator) !ProcessIdentity {

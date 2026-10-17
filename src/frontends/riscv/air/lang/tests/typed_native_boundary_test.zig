@@ -16,7 +16,10 @@ test "typed boundary providers match arbitrary rows and exact ordered events" {
         defer definition.deinit();
         var degree = try @import("../degree.zig").analyze(std.testing.allocator, &definition.arena);
         defer degree.deinit();
-        try std.testing.expectEqual(@as(u32, if (typed.isTable(kind)) 0 else if (kind == .memory or kind == .memory_full) 3 else 2), degree.maximumConstraintDegree());
+        // Memory kinds read their public-root binding parameters as fixed
+        // inputs, which the typed analysis counts as degree one; in the trace
+        // they are verifier constants and the binding is degree three.
+        try std.testing.expectEqual(@as(u32, if (typed.isTable(kind)) 0 else if (kind == .memory or kind == .memory_full) 4 else 2), degree.maximumConstraintDegree());
         try std.testing.expectEqual(@as(usize, D.DIRECT_CONSTRAINTS), definition.arena.constraints.items.len);
         for (0..8) |sample| {
             var main: [D.MAIN_COLUMNS]Q = undefined;
@@ -96,8 +99,8 @@ test "typed full-state memory preserves zero multiplicity distinction" {
     var full = try typed.Definition(.memory_full).init(std.testing.allocator);
     defer full.deinit();
     const main = [_]Q{Q.zero()} ** 8;
-    const a = try ordinary.evaluate(Q, std.testing.allocator, main, Q.one(), .{});
-    const b = try full.evaluate(Q, std.testing.allocator, main, Q.one(), .{});
+    const a = try ordinary.evaluate(Q, std.testing.allocator, main, Q.one(), .{Q.zero()} ** 4);
+    const b = try full.evaluate(Q, std.testing.allocator, main, Q.one(), .{Q.zero()} ** 4);
     try std.testing.expect(!a.direct[1].isZero());
     try std.testing.expect(b.direct[1].isZero());
     try std.testing.expectEqualDeep(a.lookups.entries[3].numerator, b.lookups.entries[3].numerator);

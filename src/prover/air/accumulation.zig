@@ -157,9 +157,15 @@ pub const DomainEvaluationAccumulator = struct {
     ) (std.mem.Allocator.Error || AccumulationError)![]ColumnAccumulator {
         const out = try allocator.alloc(ColumnAccumulator, requests.len);
         errdefer allocator.free(out);
+        const occurrences = try allocator.alloc(u8, self.max_log_size + 1);
+        defer allocator.free(occurrences);
+        @memset(occurrences, 0);
+        for (requests) |request| {
+            if (request.log_size > self.max_log_size) return AccumulationError.InvalidLogSize;
+            occurrences[request.log_size] = @min(occurrences[request.log_size] + 1, 2);
+        }
 
         for (requests, 0..) |request, i| {
-            if (request.log_size > self.max_log_size) return AccumulationError.InvalidLogSize;
             if (request.n_cols > self.next_power_index) return AccumulationError.NotEnoughCoefficients;
 
             const buckets = if (self.polynomial_extension_active)
@@ -180,7 +186,7 @@ pub const DomainEvaluationAccumulator = struct {
             out[i] = .{
                 .random_coeff_powers = self.random_coeff_powers[start..end],
                 .col = &buckets[request.log_size].?,
-                .next_fresh_index = if (fresh_bucket) 0 else null,
+                .next_fresh_index = if (fresh_bucket and occurrences[request.log_size] == 1) 0 else null,
             };
         }
         return out;

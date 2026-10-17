@@ -78,6 +78,36 @@ pub fn resolveWithOverride(
             .dirty_content_sha256 = dirty_digest,
         };
         try identity.validate();
+        // A root build has a checkout: delegated identity must describe the
+        // source actually present, rather than an arbitrary command-line claim.
+        if (readCommit(allocator, repository_root)) |head| {
+            if (!std.mem.eql(u8, &head, &identity.implementation_commit))
+                return error.ImplementationIdentityMismatch;
+            const tree = try readTree(allocator, repository_root, &head);
+            if (identity.implementation_tree) |claimed_tree| {
+                if (!std.mem.eql(u8, &tree, &claimed_tree)) return error.ImplementationIdentityMismatch;
+            }
+            const dirty = try readDirtyState(allocator, repository_root);
+            if (dirty.dirty != identity.implementation_dirty)
+                return error.ImplementationIdentityMismatch;
+            if (dirty.content_sha256) |digest| {
+                if (!std.mem.eql(u8, &digest, &identity.dirty_content_sha256.?))
+                    return error.ImplementationIdentityMismatch;
+            }
+        } else |err| {
+            // Source archives have no Git metadata, but a checkout whose Git
+            // metadata is broken must not silently accept an asserted identity.
+            const marker = try std.fs.path.join(allocator, &.{ repository_root, ".git" });
+            defer allocator.free(marker);
+            std.fs.cwd().access(marker, .{}) catch |access_err| switch (access_err) {
+                error.FileNotFound => {
+                    if (err == error.GitCommandFailed or err == error.FileNotFound) return identity;
+                    return err;
+                },
+                else => return access_err,
+            };
+            return err;
+        }
         return identity;
     }
 
@@ -290,7 +320,7 @@ test "explicit identity requires complete canonical dirty state" {
             .dirty = true,
         }),
     );
-    const dirty = try resolveWithOverride(std.testing.allocator, ".", .{
+    const dirty = try resolveWithOverride(std.testing.allocator, "definitely-not-a-repository", .{
         .commit = "0123456789abcdef0123456789abcdef01234567",
         .dirty = true,
         .dirty_content_sha256 = "11" ** SHA256_LEN,
@@ -316,6 +346,18 @@ test "rejects partial or malformed explicit identity" {
             .dirty_content_sha256 = "22" ** SHA256_LEN,
         }),
     );
+}
+
+test "an explicit root identity cannot impersonate another commit" {
+    const allocator = std.testing.allocator;
+    const head = readCommit(allocator, ".") catch return;
+    var wrong = head;
+    wrong[0] = if (head[0] == '0') '1' else '0';
+    try std.testing.expectError(error.ImplementationIdentityMismatch, resolveWithOverride(
+        allocator,
+        ".",
+        .{ .commit = &wrong, .dirty = false },
+    ));
 }
 
 test "local dirty digest binds sorted source content and excludes ignored outputs" {

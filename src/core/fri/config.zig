@@ -133,12 +133,13 @@ pub const CirclePolyDegreeBound = struct {
         return self.log_degree_bound;
     }
 
-    pub inline fn foldToLine(self: CirclePolyDegreeBound) LinePolyDegreeBound {
+    pub inline fn foldToLine(self: CirclePolyDegreeBound) ?LinePolyDegreeBound {
         return self.foldToLineWithStep(CIRCLE_TO_LINE_FOLD_STEP);
     }
 
-    pub inline fn foldToLineWithStep(self: CirclePolyDegreeBound, fold_step: u32) LinePolyDegreeBound {
-        return .{ .log_degree_bound = self.log_degree_bound - fold_step };
+    pub inline fn foldToLineWithStep(self: CirclePolyDegreeBound, fold_step: u32) ?LinePolyDegreeBound {
+        const bound = std.math.sub(u32, self.log_degree_bound, fold_step) catch return null;
+        return .{ .log_degree_bound = bound };
     }
 };
 

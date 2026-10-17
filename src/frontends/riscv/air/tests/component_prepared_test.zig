@@ -233,6 +233,7 @@ fn evaluateMemoryReference(
             previous,
             component.memory_claims,
             component.relations,
+            memory_interaction.RootParameters(QM31).fromPublic(component.initial_rw_root, component.final_rw_root),
         );
         var folded = QM31.zero();
         for (constraints, 0..) |constraint, index| {

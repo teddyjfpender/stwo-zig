@@ -29,6 +29,10 @@ pub fn verify(
 
     try assertOnCurve(tape, public_key);
     digest = try tape.reduceScalarOnce(digest);
+    // Canonical range proof `s < n`: a one-step reduction whose result is `s`
+    // itself. `s * s^-1 = 1` alone accepts any representative of the class.
+    // (`r` is bound by the final `result.x mod n = r` reduction.)
+    if (!std.mem.eql(u8, &(try tape.reduceScalarOnce(s)), &s)) return false;
     const inverse_s = try tape.inverse(.scalar, s);
     const generator_scalar = try tape.mul(.scalar, digest, inverse_s);
     const public_key_scalar = try tape.mul(.scalar, r, inverse_s);

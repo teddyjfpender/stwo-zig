@@ -82,16 +82,18 @@ test "R-012 row18 profile rejects count, order-shape, split, and claim mutations
     );
     facts[component_count - 1].composition_log_split -= 1;
 
-    var changed = statement.infra_descs[0];
-    statement.infra_descs[0] = statement.infra_descs[1];
-    statement.infra_descs[1] = changed;
+    // Swap the memory-boundary and Merkle descriptors: their constraint
+    // counts differ (the program ROM and memory boundary both carry seven).
+    var changed = statement.infra_descs[1];
+    statement.infra_descs[1] = statement.infra_descs[2];
+    statement.infra_descs[2] = changed;
     try std.testing.expectError(
         error.ConstraintCountMismatch,
         subject.testing.deriveFromFacts(statement, facts),
     );
-    changed = statement.infra_descs[0];
-    statement.infra_descs[0] = statement.infra_descs[1];
-    statement.infra_descs[1] = changed;
+    changed = statement.infra_descs[1];
+    statement.infra_descs[1] = statement.infra_descs[2];
+    statement.infra_descs[2] = changed;
     const restored = try subject.testing.deriveFromFacts(statement, facts);
     try std.testing.expectEqual(honest.manifest_digest, restored.manifest_digest);
 

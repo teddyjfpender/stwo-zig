@@ -18,6 +18,8 @@ const witness = @import("keccakf_witness.zig");
 
 pub const word_count: usize = call_buffer.word_count;
 pub const word_bytes: usize = @sizeOf(u32);
+/// The 1600-bit state as 64-bit lanes; the span bound counts in this unit.
+pub const double_word_count: usize = word_count / 2;
 pub const opcode_id: u32 = 46;
 
 pub const Layout = struct {
@@ -103,13 +105,15 @@ pub fn fill(record: call_buffer.Record) [Layout.main_columns]M31 {
     writeBytes(&row, Layout.pointer_bytes, record.state_ptr);
     row[Layout.pointer_double_word_index] = M31.fromCanonical(record.state_ptr / 8);
 
-    const last_word_index: u32 = record.state_ptr / @as(u32, word_bytes) +
-        @as(u32, word_count - 1);
-    row[Layout.span_end_limbs] = byteFelt(last_word_index, 0);
-    row[Layout.span_end_limbs + 1] = byteFelt(last_word_index, 8);
-    row[Layout.span_end_limbs + 2] = byteFelt(last_word_index, 16);
+    // Span end is the last double-word index `dwi + 24` (not the last word
+    // index `2*dwi + 49`): see `evaluateDirect` for why the factor matters.
+    const last_double_word_index: u32 = record.state_ptr / 8 +
+        @as(u32, double_word_count - 1);
+    row[Layout.span_end_limbs] = byteFelt(last_double_word_index, 0);
+    row[Layout.span_end_limbs + 1] = byteFelt(last_double_word_index, 8);
+    row[Layout.span_end_limbs + 2] = byteFelt(last_double_word_index, 16);
     row[Layout.span_end_limbs + 3] = M31.fromCanonical(
-        @intCast((last_word_index >> 24) & 0x0f),
+        @intCast((last_double_word_index >> 24) & 0x0f),
     );
     for (record.memory_previous_clocks, 0..) |clock, index| {
         row[Layout.previousClock(index)] = M31.fromCanonical(clock);
@@ -141,14 +145,18 @@ pub fn evaluateDirect(
         caller[Layout.pointer_double_word_index],
         8,
     )), 1);
-    sink.add(mulSmall(
-        S,
-        caller[Layout.pointer_double_word_index],
-        2,
-    ).add(mulSmall(S, enabler, word_count - 1)).sub(composeLittleEndian(
-        S,
-        caller[Layout.span_end_limbs..][0..4].*,
-    )), 1);
+    // Alignment and span bound. The span limbs are range-checked to 28 bits
+    // (8/8/8/4) and compose the LAST DOUBLE-WORD index `dwi + 24`. Because the
+    // relation is `dwi + 24 == L` with `L < 2^28`, `dwi` is forced below 2^28
+    // and `8 * dwi < 2^31 - 1` cannot wrap in M31, so `pointer == 8 * dwi` holds
+    // over the integers and the pointer is 8-byte aligned. The previous form
+    // `2 * dwi + 49 == L` admitted `dwi = (L - 49 + p) / 2 ~ 2^30`, for which
+    // `8 * dwi mod p = 4 * (L - 49)` is a 4-byte-aligned but 8-misaligned
+    // pointer. Byte 3 of the pointer is separately held below 64, so the span
+    // still ends below 2^30 + 192.
+    sink.add(caller[Layout.pointer_double_word_index]
+        .add(mulSmall(S, enabler, double_word_count - 1))
+        .sub(composeLittleEndian(S, caller[Layout.span_end_limbs..][0..4].*)), 1);
 }
 
 pub fn rowPairs(

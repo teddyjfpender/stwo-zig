@@ -5,6 +5,14 @@
 //! The component consumes two authenticated GLV splits, signed table entries,
 //! and exact affine transitions, then emits one complete double-scalar program
 //! tuple for the ECDSA layer.
+//!
+//! Table requests carry the program point as a per-call identity, and the
+//! doubling slot's transition kind is pinned to the doubling branches so the
+//! point bus cannot be answered with an identity no-op.
+//!
+//! Known completeness gap: an add slot whose accumulator equals the selected
+//! table entry has no representable transition (see `affine.addPoints`); such a
+//! step is rejected at witness generation rather than proven.
 
 const std = @import("std");
 const M31 = @import("stwo_core").fields.m31.M31;
@@ -104,8 +112,20 @@ pub const batch_count: usize = event_count / 2;
 /// points are inherited through split/table/point/program relations whose
 /// providers already own byte custody.
 pub const range_pair_count: usize = scalar_count * magnitude_bytes / 2;
-pub const maximum_constraint_degree: u8 = 2;
-pub const constraint_count: usize = 1134;
+/// Degree three comes only from the doubling-slot kind polynomial below.
+pub const maximum_constraint_degree: u8 = 3;
+pub const constraint_count: usize = 1135;
+
+/// Point-transition kinds an honest doubling slot may request. `double` is the
+/// generic step, `double_identity` opens every program (the accumulator starts
+/// at infinity) and `double_to_infinity` is the complete-formula branch for a
+/// two-torsion input. `right_identity` must stay excluded: with rhs fixed to
+/// infinity it would make `after_double == accumulator_before` a valid no-op.
+pub const doubling_kinds = [_]affine.PointKind{
+    .double,
+    .double_identity,
+    .double_to_infinity,
+};
 
 pub const Error = error{
     InvalidProgramRange,
@@ -293,6 +313,21 @@ pub fn evaluateDirect(
         ), 2);
     }
 
+    // The doubling request fixes rhs to infinity, so the point AIR alone cannot
+    // tell a doubling from a `right_identity` no-op. Pin the requested kind to
+    // the doubling branches; padding rows carry kind zero (`double`) and pass.
+    // Add slots need no such pin: their rhs is the selected table entry whose
+    // infinity marker is zero whenever a request is live, which already rules
+    // out every rhs-infinity kind in the point AIR.
+    const doubling_kind = main[Layout.transitionKind(0)];
+    var kind_polynomial = one;
+    inline for (doubling_kinds) |kind| {
+        kind_polynomial = kind_polynomial.mul(
+            doubling_kind.sub(scalar(S, @intFromEnum(kind))),
+        );
+    }
+    sink.add(kind_polynomial, doubling_kinds.len);
+
     for (0..scalar_count) |scalar_index| {
         var selector_sum = S.zero();
         for (0..digit_count) |code| {
@@ -383,6 +418,10 @@ pub fn rowPairs(
     const split_1 = splitTuple(S, main, 2, &point_scalar);
     events[0] = request(S, first, relations_mod.combineSplit(S, relations.split, split_0));
     events[1] = request(S, first, relations_mod.combineSplit(S, relations.split, split_1));
+    // Fixed generator tables (scalar slots 0 and 1) carry an all-zero source;
+    // variable tables (slots 2 and 3) are keyed by this program's own point, so
+    // another call's table entries can never satisfy these requests.
+    const zero_source = relations_mod.zeroSource(S);
     for (0..scalar_count) |scalar_index| {
         const nonzero = active.sub(main[Layout.digitSelector(scalar_index, 0)]);
         const code = digitCode(S, main, scalar_index);
@@ -392,6 +431,7 @@ pub fn rowPairs(
             scalar(S, scalar_index),
             code,
             &selected,
+            if (scalar_index < 2) &zero_source else &program_point,
         );
         events[2 + scalar_index] = request(
             S,

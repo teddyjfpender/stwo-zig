@@ -555,4 +555,11 @@ pub const specs = [_]Spec{
         .root = "poseidon2_universal_degree3_test_root.zig",
         .imports_prover_engine = true,
     },
+    .{
+        .step = "test-memory-commitment-soundness",
+        .description = "Check sparse-memory Merkle/boundary soundness constraints and statement shape bounds",
+        .root = "memory_commitment_soundness_test_root.zig",
+        .imports_prover_engine = true,
+        .minimum = 20,
+    },
 };

@@ -34,9 +34,8 @@ pub const M31 = struct {
     ///
     /// This exists for bulk readers that validate a whole run of borrowed
     /// words with one vector bound instead of one branch per element. A
-    /// non-canonical value produces a deterministic wrong field element, never
-    /// undefined behaviour, so the caller may defer its rejection to the end of
-    /// the run as long as it discards the run's results.
+    /// The caller must prove canonicality before any arithmetic on the value;
+    /// non-canonical operands can trap or overflow in ReleaseFast.
     pub inline fn fromU32Unchecked(x: u32) M31 {
         return .{ .v = x };
     }

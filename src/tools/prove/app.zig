@@ -20,6 +20,13 @@ const artifact_verifier = stwo.interop.examples_artifact_verifier;
 /// is the only tag it may ever pass; a request for any other device backend is
 /// still mapped to `.unavailable_device` below and fails closed inside `run`.
 const RiscVEngine = stwo.integrations.riscv_cpu.CpuProverEngine;
+const blake3_suite = stwo.core.proof_suites.Blake3;
+const RiscVBlake3Engine = stwo.prover.engine.ProverEngine(
+    RiscVEngine.Backend,
+    blake3_suite.Hasher,
+    blake3_suite.MerkleChannel,
+    blake3_suite.Channel,
+);
 const riscv_backend: riscv_adapter.Backend = .cpu;
 
 pub fn main() !void {
@@ -73,7 +80,7 @@ fn runElf(
     defer if (proof_temporary) |path| allocator.free(path);
     defer if (proof_temporary) |path| std.fs.cwd().deleteFile(path) catch {};
 
-    const report = riscv_adapter.run(RiscVEngine, riscv_backend, allocator, run.elf_path, run.input_path, .{
+    const report = riscv_adapter.run(RiscVBlake3Engine, riscv_backend, allocator, run.elf_path, run.input_path, .{
         .backend = switch (run.backend) {
             .cpu => .cpu,
             .metal_hybrid => .unavailable_device,
@@ -83,12 +90,12 @@ fn runElf(
         .experimental = run.experimental,
         .proof_temporary = proof_temporary,
         .proof_report_path = proof_output,
-    }) catch |err| switch (err) {
-        error.AdapterNotReleaseGated => {
+    }) catch |err| {
+        if (@as(anyerror, err) == error.AdapterNotReleaseGated) {
             try writeLine(std.fs.File.stderr().deprecatedWriter(), riscv_adapter.PENDING_DIAGNOSTIC);
             std.process.exit(1);
-        },
-        else => return err,
+        }
+        return err;
     };
     defer allocator.free(report);
 
@@ -228,7 +235,7 @@ test "RISC-V adapter: CPU path is live while unavailable device backends fail cl
     // Prove mode reaches real execution: a missing ELF surfaces as a file
     // error, proving the staged path is wired rather than gated.
     try std.testing.expectError(error.FileNotFound, riscv_adapter.run(
-        RiscVEngine,
+        RiscVBlake3Engine,
         riscv_backend,
         std.testing.allocator,
         "definitely-missing-guest.elf",
@@ -244,7 +251,7 @@ test "RISC-V adapter: CPU path is live while unavailable device backends fail cl
     ));
     // Device backends remain gated until a device-native RISC-V engine lands.
     try std.testing.expectError(error.AdapterNotReleaseGated, riscv_adapter.run(
-        RiscVEngine,
+        RiscVBlake3Engine,
         riscv_backend,
         std.testing.allocator,
         "guest.elf",

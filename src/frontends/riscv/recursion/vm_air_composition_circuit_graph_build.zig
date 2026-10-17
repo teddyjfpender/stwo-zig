@@ -49,6 +49,14 @@ pub fn Build(comptime Context: type) type {
             try validateSampleGeometry(context, capture);
             const sample_count = std.math.cast(u32, capture.sampled_values.len) orelse
                 return error.CircuitTooLarge;
+            // NOTE: the native memory-boundary AIR now binds row signs to the
+            // statement's public roots (`initial_rw_root`/`final_rw_root`) as
+            // verifier constants (`memory_interaction.N_CONSTRAINTS`, two
+            // constraints beyond `N_CONSTRAINTS_WITHOUT_ROOTS`).  This circuit
+            // has no public-root inputs, so it replays the retired shape below
+            // and no longer matches the native composition.  The recursion
+            // lane is paused and must be re-aligned (public roots as inputs,
+            // new circuit identity) before it is trusted again.
             const input_profile = graph_mod.InputProfile{
                 .sampled_value_count = sample_count,
                 .claimed_sum_count = context.profile.claimed_sum_count,
@@ -271,7 +279,8 @@ pub fn Build(comptime Context: type) type {
                         const active = try sample_layout.at(0, preprocessed_offset + 1, 0);
                         const component_claims = claims[claim_cursor..][0..memory_interaction.N_SUMS].*;
                         claim_cursor += memory_interaction.N_SUMS;
-                        const constraints = memory_interaction.evaluateGeneric(
+                        // Retired shape; see the re-alignment note above.
+                        const constraints = memory_interaction.evaluateWithoutRootsGeneric(
                             Scalar,
                             main,
                             active,

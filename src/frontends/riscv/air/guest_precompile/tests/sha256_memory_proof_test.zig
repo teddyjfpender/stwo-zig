@@ -123,7 +123,9 @@ const Protocol = struct {
     }
 
     pub fn config(_: @This()) !f.core.pcs.PcsConfig {
-        return @import("../../../recursion/blake3_execution_parent_protocol.zig").CSP_CONFIG;
+        // The archived parent protocol's CSP_CONFIG was this same literal; the
+        // shared secure profile is the single surviving source of it.
+        return @import("../../../prover.zig").SECURE_PCS_CONFIG;
     }
     pub fn mix(self: @This(), channel: *f.Channel) !void {
         channel.mixU32s(&.{ 0x53484d43, 1, format_version });

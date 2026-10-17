@@ -6,6 +6,7 @@ const pcs_core = @import("stwo_core").pcs;
 const component_order = @import("../air/component_order.zig");
 const lookup_table_schema = @import("../air/lookups/tables/schema.zig");
 const merkle_node = @import("../air/memory_commitment/merkle_node.zig");
+const sparse_merkle = @import("../air/memory_commitment/sparse_merkle.zig");
 const CircuitProfile = @import("ethereum_circuit_profile_v1.zig").CircuitProfileV1;
 const poseidon2_narrow = @import("../air/memory_commitment/poseidon2_narrow_degree3_v1.zig");
 const poseidon2_air = @import("../air/memory_commitment/poseidon2_air.zig");
@@ -365,6 +366,17 @@ fn validateGeometry(
         index += 1;
     }
     std.debug.assert(index == statement.n_infra);
+    try validateProgramShape(program);
+}
+
+/// Address-space bound for the committed program ROM: a sparse-Merkle leaf
+/// index is 30 bits wide, so no honest ROM exceeds `2^30` rows.
+const MAX_PROGRAM_LOG_SIZE: u32 = sparse_merkle.LEAF_DEPTH;
+
+/// Bound the declared log size before it is used as a shift amount; a hostile
+/// statement with `log_size >= @bitSizeOf(usize)` must fail closed, not panic.
+fn validateProgramShape(program: statement_mod.InfraComponentDesc) types.ProverError!void {
+    if (program.log_size > MAX_PROGRAM_LOG_SIZE) return types.ProverError.InvalidStatement;
     if (program.n_rows > (@as(usize, 1) << @intCast(program.log_size)) or
         program.log_size != computeLogSize(program.n_rows))
         return types.ProverError.InvalidStatement;
@@ -688,4 +700,24 @@ test "statement validation: only semantically constrained opcode families are ad
         try validateFamily(family, .relation_diagnostic);
         try std.testing.expect(semantic_eval.constraintCount(family) > 0);
     }
+}
+
+test "statement validation: oversized program log size fails closed before shifting" {
+    try validateProgramShape(.{ .kind = .program, .log_size = 5, .n_rows = 20, .n_columns = program_commitment.N_MAIN_COLUMNS });
+    try std.testing.expectError(
+        error.InvalidStatement,
+        validateProgramShape(.{ .kind = .program, .log_size = 40, .n_rows = 20, .n_columns = program_commitment.N_MAIN_COLUMNS }),
+    );
+    try std.testing.expectError(
+        error.InvalidStatement,
+        validateProgramShape(.{ .kind = .program, .log_size = 64, .n_rows = 20, .n_columns = program_commitment.N_MAIN_COLUMNS }),
+    );
+    try std.testing.expectError(
+        error.InvalidStatement,
+        validateProgramShape(.{ .kind = .program, .log_size = std.math.maxInt(u32), .n_rows = 1, .n_columns = program_commitment.N_MAIN_COLUMNS }),
+    );
+    try std.testing.expectError(
+        error.InvalidStatement,
+        validateProgramShape(.{ .kind = .program, .log_size = MAX_PROGRAM_LOG_SIZE + 1, .n_rows = 1, .n_columns = program_commitment.N_MAIN_COLUMNS }),
+    );
 }

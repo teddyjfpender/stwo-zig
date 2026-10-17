@@ -11,6 +11,10 @@ const QM31 = qm31.QM31;
 comptime {
     std.debug.assert(@sizeOf(QM31) == qm31.SECURE_EXTENSION_DEGREE * @sizeOf(M31));
     std.debug.assert(@alignOf(QM31) == @alignOf(M31));
+    std.debug.assert(@offsetOf(QM31, "c0") == 0);
+    std.debug.assert(@offsetOf(QM31, "c1") == 2 * @sizeOf(M31));
+    std.debug.assert(@offsetOf(@TypeOf(QM31.zero().c0), "a") == 0);
+    std.debug.assert(@offsetOf(@TypeOf(QM31.zero().c0), "b") == @sizeOf(M31));
 }
 
 pub const Digest32 = [32]u8;

@@ -331,6 +331,7 @@ const LiftedCheckpoint = struct {
     body: struct {
         fri_config: [5]u32,
         cases: []const struct {
+            fri_config: ?[5]u32 = null,
             log_n_rows: u32,
             sequence_len: u32,
             trace_lifting_log_size: u32,
@@ -347,9 +348,9 @@ const LiftedCheckpoint = struct {
 
 test "R10 lift: trace trees committed above their columns match proving@5a7c5ed" {
     // `stwo-circuit-oracle prove-lifted-example`: upstream's wide-Fibonacci
-    // prover test with the trace tree lifted 0, 1 and 3 levels above its
-    // columns. The small Cairo programs never lift (their 2^20-row tables fill
-    // the preprocessed domain), so this is the end-to-end check of the prover's
+    // prover test with trace trees lifted 0, 1 and 3 levels, plus a fold-step-4
+    // proof whose final FRI round folds only twice. Small Cairo programs never
+    // lift (their 2^20-row tables fill the preprocessed domain), so this checks
     // lifted commitments, queries, sampled points and FRI domain.
     const allocator = std.testing.allocator;
     const core = @import("stwo_core");
@@ -358,10 +359,9 @@ test "R10 lift: trace trees committed above their columns match proving@5a7c5ed"
     defer allocator.free(bytes);
     const checkpoint = try std.json.parseFromSlice(LiftedCheckpoint, allocator, bytes, .{ .ignore_unknown_fields = true });
     defer checkpoint.deinit();
-    const fri_words = checkpoint.value.body.fri_config;
-    const fri = try core.pcs.config_v2.FriConfigV2.init(fri_words[0], fri_words[2], fri_words[1], fri_words[3], fri_words[4]);
-
     for (checkpoint.value.body.cases) |case| {
+        const fri_words = case.fri_config orelse checkpoint.value.body.fri_config;
+        const fri = try core.pcs.config_v2.FriConfigV2.init(fri_words[0], fri_words[2], fri_words[1], fri_words[3], fri_words[4]);
         const config = core.pcs.config_v2.PcsConfigV2{
             .fri_config = fri,
             .trace_lifting_log_size = case.trace_lifting_log_size,
@@ -405,6 +405,10 @@ test "R10 lift: trace trees committed above their columns match proving@5a7c5ed"
         defer proof.deinit(allocator);
 
         const pcs_proof = proof.proof.commitment_scheme_proof;
+        if (case.fri_config != null) {
+            try std.testing.expectEqual(@as(u32, 4), fri.fold_step);
+            try std.testing.expectEqual(@as(usize, 1), pcs_proof.fri_proof.inner_layers.len);
+        }
         for (pcs_proof.commitments.items, case.commitments) |root, expected|
             try std.testing.expectEqualStrings(expected, &hex(root));
         var buffer: [24]u8 = undefined;

@@ -11,6 +11,7 @@ pub const prepared_domain = @import("prepared_domain.zig");
 pub const logup_columns = @import("logup_columns.zig");
 
 test {
+    _ = @import("accumulation_duplicate_test.zig");
     _ = @import("component_prover_test.zig");
     _ = composition_work;
     _ = oods_work;

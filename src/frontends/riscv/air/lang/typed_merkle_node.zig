@@ -9,7 +9,7 @@ const validate = @import("validate.zig");
 const entries = @import("../lookups/entry.zig");
 const Id = types.ValueId;
 pub const MAIN_COLUMNS = 10;
-pub const DIRECT_CONSTRAINTS = 7;
+pub const DIRECT_CONSTRAINTS = 9;
 pub const LOOKUPS = 5;
 pub const SUMS = 3;
 pub const Definition = struct {
@@ -39,6 +39,10 @@ pub const Definition = struct {
         for (c[6..9], 0..) |multiplicity, i| {
             result.roots[1 + i] = try a.mul(try a.mul(multiplicity, try a.sub(multiplicity, one, span), span), try a.sub(multiplicity, two, span), span);
             result.roots[4 + i] = try a.mul(multiplicity, padding, span);
+        }
+        // Child multiplicities are 0 or exactly the consumed parent multiplicity.
+        for (c[6..8], 0..) |child, i| {
+            result.roots[7 + i] = try a.mul(child, try a.sub(child, c[8], span), span);
         }
         for (result.roots, 0..) |root, i| {
             var name: [48]u8 = undefined;

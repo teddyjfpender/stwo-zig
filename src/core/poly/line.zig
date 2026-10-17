@@ -84,12 +84,29 @@ pub const LinePoly = struct {
     coeffs: []QM31,
     log_size: u32,
 
+    pub const Error = error{InvalidCoefficientCount};
+
+    /// For proof-derived coefficient slices. The caller keeps ownership on
+    /// failure, so existing errdefer cleanup remains valid.
+    pub fn initOwnedChecked(coeffs: []QM31) Error!LinePoly {
+        if (coeffs.len == 0 or !std.math.isPowerOfTwo(coeffs.len))
+            return error.InvalidCoefficientCount;
+        return initOwned(coeffs);
+    }
+
     pub fn initOwned(coeffs: []QM31) LinePoly {
         std.debug.assert(coeffs.len != 0 and (coeffs.len & (coeffs.len - 1)) == 0);
         return .{
             .coeffs = coeffs,
             .log_size = @intCast(std.math.log2_int(usize, coeffs.len)),
         };
+    }
+
+    test "checked line polynomial rejects malformed proof widths" {
+        var empty: [0]QM31 = .{};
+        var three = [_]QM31{ QM31.zero(), QM31.zero(), QM31.zero() };
+        try std.testing.expectError(error.InvalidCoefficientCount, initOwnedChecked(&empty));
+        try std.testing.expectError(error.InvalidCoefficientCount, initOwnedChecked(&three));
     }
 
     pub fn deinit(self: *LinePoly, allocator: std.mem.Allocator) void {

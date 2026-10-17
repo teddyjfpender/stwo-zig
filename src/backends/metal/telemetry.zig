@@ -4,6 +4,7 @@ const std = @import("std");
 const runtime = @import("runtime.zig");
 
 pub const Event = enum {
+    host_proving_admission,
     host_merkle_commit,
     /// Authenticated fixed-data hash layers reused, with no fresh hash commit.
     cached_merkle_artifact_adoption,
@@ -103,6 +104,7 @@ pub const Event = enum {
 };
 
 pub const CounterValues = struct {
+    host_proving_admissions: u64 = 0,
     host_merkle_commits: u64 = 0,
     cached_merkle_artifact_adoptions: u64 = 0,
     compacted_merkle_layer_adoptions: u64 = 0,
@@ -196,7 +198,9 @@ pub const CounterValues = struct {
             self.cpu_composition_evaluations,
             self.cpu_riscv_polynomial_composition_declines,
         }) |value| total +|= value;
-        return total;
+        // Admission can also emit a more specific counter; do not count that
+        // same host operation twice in the aggregate fallback signal.
+        return @max(total, self.host_proving_admissions);
     }
 };
 
@@ -439,6 +443,7 @@ pub const Delta = struct {
 const AtomicCounter = std.atomic.Value(u64);
 
 const CounterBank = struct {
+    host_proving_admissions: AtomicCounter = AtomicCounter.init(0),
     host_merkle_commits: AtomicCounter = AtomicCounter.init(0),
     cached_merkle_artifact_adoptions: AtomicCounter = AtomicCounter.init(0),
     compacted_merkle_layer_adoptions: AtomicCounter = AtomicCounter.init(0),
@@ -496,6 +501,7 @@ pub fn record(event: Event) void {
 pub fn recordN(event: Event, count: u64) void {
     if (count == 0) return;
     const counter = switch (event) {
+        .host_proving_admission => &counter_bank.host_proving_admissions,
         .host_merkle_commit => &counter_bank.host_merkle_commits,
         .cached_merkle_artifact_adoption => &counter_bank.cached_merkle_artifact_adoptions,
         .compacted_merkle_layer_adoption => &counter_bank.compacted_merkle_layer_adoptions,

@@ -21,7 +21,13 @@ pub const N_MAIN_COLUMNS: usize = 10;
 /// Exact schema pairing: children; parent + Poseidon input; Poseidon output.
 pub const N_SUMS: usize = 3;
 pub const N_INTERACTION_COLUMNS: usize = N_SUMS * 4;
-pub const N_CONSTRAINTS: usize = N_SUMS + 7;
+/// Three LogUp pair constraints, the enabler binding, three ternary
+/// multiplicity range constraints, three zero-on-padding constraints, and two
+/// child-to-parent multiplicity bindings (`child * (child - cur) = 0`).  The
+/// bindings make every emitted child claim ride on a consumed parent claim:
+/// without them a row could emit a leaf twice while consuming its parent once,
+/// letting two boundary rows open the same word under one root.
+pub const N_CONSTRAINTS: usize = N_SUMS + 9;
 /// A split base caller must not smuggle an unclosed Merkle term into the
 /// exported Poseidon residual.  Its three multiplicities are therefore
 /// constrained to zero in addition to the ordinary node AIR.
@@ -235,7 +241,19 @@ pub fn evaluateGeneric(
     result[N_SUMS + 4] = main[6].mul(is_padding);
     result[N_SUMS + 5] = main[7].mul(is_padding);
     result[N_SUMS + 6] = main[8].mul(is_padding);
+    // Child multiplicities are either absent (0) or exactly the parent's
+    // consumption multiplicity.  The honest builder emits every materialised
+    // child once and consumes every parent once (`sparse_merkle.zig`:
+    // leaf/parent multiplicity 1, default sibling multiplicity 0), so the
+    // constraint is exact for honest rows while forbidding a child emitted
+    // more often than its parent is consumed.  Degree 2.
+    result[N_SUMS + 7] = childMultiplicityBinding(main[6], main[8]);
+    result[N_SUMS + 8] = childMultiplicityBinding(main[7], main[8]);
     return result;
+}
+
+fn childMultiplicityBinding(child: anytype, parent: @TypeOf(child)) @TypeOf(child) {
+    return child.mul(child.sub(parent));
 }
 
 /// Base Merkle caller with its physical Poseidon provider removed.  The
@@ -547,4 +565,161 @@ test "Merkle node AIR: inactive rows cannot inject un-hashed tree edges" {
         &relations,
     );
     for (padding[N_SUMS + 4 ..]) |constraint| try std.testing.expect(constraint.isZero());
+}
+
+test "Merkle node AIR: child multiplicities are bound to the consumed parent" {
+    const zero = QM31.zero();
+    const one = QM31.one();
+    const two = QM31.fromBase(M31.fromU64(2));
+    const relations = relations_mod.Relations.dummy();
+    const Case = struct { lhs: QM31, rhs: QM31, cur: QM31, lhs_ok: bool, rhs_ok: bool };
+    const cases = [_]Case{
+        // Forged: both leaves emitted twice while the parent is consumed once.
+        .{ .lhs = two, .rhs = two, .cur = one, .lhs_ok = false, .rhs_ok = false },
+        .{ .lhs = two, .rhs = one, .cur = one, .lhs_ok = false, .rhs_ok = true },
+        .{ .lhs = one, .rhs = two, .cur = one, .lhs_ok = true, .rhs_ok = false },
+        // Forged: children emitted while nothing is consumed.
+        .{ .lhs = one, .rhs = zero, .cur = zero, .lhs_ok = false, .rhs_ok = true },
+        .{ .lhs = one, .rhs = one, .cur = two, .lhs_ok = false, .rhs_ok = false },
+        // Honest shapes: materialised child, default sibling, both children.
+        .{ .lhs = one, .rhs = zero, .cur = one, .lhs_ok = true, .rhs_ok = true },
+        .{ .lhs = zero, .rhs = one, .cur = one, .lhs_ok = true, .rhs_ok = true },
+        .{ .lhs = one, .rhs = one, .cur = one, .lhs_ok = true, .rhs_ok = true },
+        .{ .lhs = two, .rhs = two, .cur = two, .lhs_ok = true, .rhs_ok = true },
+        .{ .lhs = zero, .rhs = zero, .cur = zero, .lhs_ok = true, .rhs_ok = true },
+    };
+    for (cases) |case| {
+        var main = [_]QM31{zero} ** N_MAIN_COLUMNS;
+        main[0] = one;
+        main[6] = case.lhs;
+        main[7] = case.rhs;
+        main[8] = case.cur;
+        const constraints = evaluate(
+            main,
+            one,
+            zero,
+            .{zero} ** N_SUMS,
+            .{zero} ** N_SUMS,
+            .{zero} ** N_SUMS,
+            &relations,
+        );
+        try std.testing.expectEqual(case.lhs_ok, constraints[N_SUMS + 7].isZero());
+        try std.testing.expectEqual(case.rhs_ok, constraints[N_SUMS + 8].isZero());
+    }
+
+    // The split-provider caller inherits the binding unchanged.
+    var main = [_]QM31{zero} ** N_MAIN_COLUMNS;
+    main[0] = one;
+    main[6] = two;
+    main[8] = one;
+    const external = evaluateExternalProviderCaller(
+        main,
+        one,
+        zero,
+        .{zero} ** N_SUMS,
+        .{zero} ** N_SUMS,
+        .{zero} ** N_SUMS,
+        &relations,
+    );
+    try std.testing.expect(!external[N_SUMS + 7].isZero());
+    try std.testing.expect(!external[N_CONSTRAINTS].isZero());
+}
+
+test "Merkle node AIR: honest tree rows satisfy every non-LogUp constraint" {
+    const boundary = @import("boundary.zig");
+    const relations = relations_mod.Relations.dummy();
+    var claims = try boundary.build(std.testing.allocator, &.{
+        .{ .addr = 0x1000, .initial_word = 0x11223344, .final_word = 0x55667788, .final_clock = 9 },
+        .{ .addr = 0x1004, .initial_word = 0, .final_word = 1, .final_clock = 10 },
+        .{ .addr = sparse_merkle.LEAF_COUNT - 4, .initial_word = 5, .final_word = 5, .final_clock = 0 },
+    });
+    defer claims.deinit(std.testing.allocator);
+    const zero = QM31.zero();
+    const one = QM31.one();
+    inline for (.{ claims.initial_tree.?, claims.final_tree.? }) |tree| {
+        for (tree.nodes) |node| {
+            const row = NodeRow.fromNode(node, tree.root);
+            var main: [N_MAIN_COLUMNS]QM31 = undefined;
+            for (&main, mainValues(row)) |*dst, value| dst.* = QM31.fromBase(value);
+            const constraints = evaluate(
+                main,
+                one,
+                zero,
+                .{zero} ** N_SUMS,
+                .{zero} ** N_SUMS,
+                .{zero} ** N_SUMS,
+                &relations,
+            );
+            for (constraints[N_SUMS..]) |constraint| try std.testing.expect(constraint.isZero());
+        }
+    }
+}
+
+test "Merkle node AIR: doubled leaf emission cannot cover a duplicated boundary word" {
+    // Attack shape: the depth-30 node rows emit each byte leaf twice while
+    // consuming their parent once.  The Merkle bus alone still cancels against
+    // two `+1` boundary rows for the same word, which would open two access
+    // chains for one address.  The child-to-parent binding rejects the rows.
+    const boundary = @import("boundary.zig");
+    const memory_interaction = @import("interaction.zig");
+    const relations = relations_mod.Relations.dummy();
+    var boundary_claims = try boundary.build(std.testing.allocator, &.{.{
+        .addr = 0x1000,
+        .initial_word = 0x11223344,
+        .final_word = 0x55667788,
+        .final_clock = 9,
+    }});
+    defer boundary_claims.deinit(std.testing.allocator);
+    const tree = boundary_claims.initial_tree.?;
+
+    const rows = try std.testing.allocator.alloc(NodeRow, tree.nodes.len);
+    defer std.testing.allocator.free(rows);
+    var doubled_rows: usize = 0;
+    for (tree.nodes, rows) |node, *row| {
+        row.* = NodeRow.fromNode(node, tree.root);
+        if (row.depth == sparse_merkle.LEAF_DEPTH) {
+            if (row.lhs_mult == 1) row.lhs_mult = 2;
+            if (row.rhs_mult == 1) row.rhs_mult = 2;
+            doubled_rows += 1;
+        }
+    }
+    try std.testing.expectEqual(@as(usize, 2), doubled_rows);
+    const hash_calls = try calls(std.testing.allocator, rows);
+    defer std.testing.allocator.free(hash_calls);
+    const log_size: u32 = @max(4, std.math.log2_int_ceil(usize, rows.len));
+    var nodes = try generateInteraction(std.testing.allocator, rows, log_size, &relations);
+    defer nodes.deinit(std.testing.allocator);
+    var hashes = try poseidon2_air.generateInteraction(
+        std.testing.allocator,
+        hash_calls,
+        log_size,
+        &relations,
+    );
+    defer hashes.deinit(std.testing.allocator);
+
+    const initial_row = boundary_claims.rows[0];
+    try std.testing.expect(initial_row.multiplicity.eql(M31.one()));
+    const duplicated = [_]boundary.Row{ initial_row, initial_row };
+    const leaf_claim = try memory_interaction.diagnosticSum(&duplicated, .merkle, &relations);
+    // The bus balances: this is exactly the gap the AIR binding must close.
+    try verifyCancellation(nodes.claims, hashes.claims, leaf_claim, try rootEmit(tree, &relations));
+
+    const zero = QM31.zero();
+    const one = QM31.one();
+    var rejected: usize = 0;
+    for (rows) |row| {
+        var main: [N_MAIN_COLUMNS]QM31 = undefined;
+        for (&main, mainValues(row)) |*dst, value| dst.* = QM31.fromBase(value);
+        const constraints = evaluate(
+            main,
+            one,
+            zero,
+            .{zero} ** N_SUMS,
+            .{zero} ** N_SUMS,
+            .{zero} ** N_SUMS,
+            &relations,
+        );
+        if (!constraints[N_SUMS + 7].isZero() or !constraints[N_SUMS + 8].isZero()) rejected += 1;
+    }
+    try std.testing.expectEqual(doubled_rows, rejected);
 }

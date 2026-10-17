@@ -217,6 +217,58 @@ pub const Guest = struct {
         try self.requireSailAgreement(guest_label);
     }
 
+    /// Prove the guest honestly, then present the honest proof with a claim
+    /// that moves `delta` from one batch of an opcode component into another
+    /// batch of the same component. Every canonical aggregate is unchanged,
+    /// so the global LogUp cancellation still balances; only the per-batch
+    /// claim frame mixed before Tree 2 can reject it. Before that frame
+    /// existed, such a claim was bound to nothing and the shift could be
+    /// chosen after the OODS point (soundness finding F1).
+    pub fn expectShiftedBatchClaimRejected(self: *const Guest) !void {
+        const output = try riscv_cpu.proveRiscVWithPublicData(
+            self.allocator,
+            PCS_CONFIG,
+            &self.run.execution_trace,
+            &self.run.state_chain_tracker,
+            &self.run.rw_memory,
+            null,
+            self.public.data,
+        );
+        defer output.deinitAfterProofMoved(self.allocator);
+        const statement = &output.statement;
+
+        var component_index: ?usize = null;
+        for (statement.component_descs[0..statement.n_components], 0..) |desc, index| {
+            if (opcode_entries.batchCount(desc.family) >= 2) {
+                component_index = index;
+                break;
+            }
+        }
+        const index = component_index orelse return error.NoMultiBatchComponent;
+
+        const shifted = try self.allocator.create(@TypeOf(output.interaction_claim.*));
+        defer self.allocator.destroy(shifted);
+        shifted.* = output.interaction_claim.*;
+        const delta = QM31.fromU32Unchecked(0x1234_5678, 0x0f0f_0f0f, 7, 11);
+        shifted.opcode_claims[index][0] = shifted.opcode_claims[index][0].add(delta);
+        shifted.opcode_claims[index][1] = shifted.opcode_claims[index][1].sub(delta);
+
+        const honest_canonical = try output.interaction_claim.canonical(statement);
+        const shifted_canonical = try shifted.canonical(statement);
+        try std.testing.expectEqual(
+            honest_canonical.claimed_sums,
+            shifted_canonical.claimed_sums,
+        );
+
+        try std.testing.expect(std.meta.isError(riscv_cpu.verifyRiscV(
+            self.allocator,
+            PCS_CONFIG,
+            output.statement,
+            output.proof,
+            shifted,
+        )));
+    }
+
     /// The Sail leg on its own: replay the retirement sequence of this run —
     /// exactly the rows the prover commits — through the pinned Sail model,
     /// seeding the fixture's declared input word so the prologue's public

@@ -35,12 +35,18 @@ pub const Layout = struct {
     pub const main_columns: usize = y_half + 1;
 };
 
-pub const event_count: usize = 12;
+/// Curve membership (3 products, 1 linear), digest reduction, `r < n` and
+/// `s < n` canonical reductions, `r`/`s` inverses, negated digest, two scalar
+/// products, the scalar-program request and the recovery emission.
+pub const event_count: usize = 14;
 pub const batch_count: usize = event_count / 2;
 /// 32-byte digest/r/s, 64-byte output, plus recovery-id and parity half.
 pub const range_pair_count: usize = 81;
 pub const maximum_constraint_degree: u8 = 2;
 pub const constraint_count: usize = 5 + field.limb_count;
+/// Linear rows a recovery record must own: on-curve add, digest reduction,
+/// `r` and `s` canonical reductions, negated digest.
+pub const linear_record_count: usize = 5;
 
 pub const Error = error{
     InvalidLinearSequence,
@@ -50,7 +56,7 @@ pub const Error = error{
 };
 
 comptime {
-    if (Layout.main_columns != 517 or batch_count != 6 or range_pair_count != 81)
+    if (Layout.main_columns != 517 or batch_count != 7 or range_pair_count != 81)
         @compileError("secp256k1 recovery row geometry drifted");
 }
 
@@ -71,7 +77,7 @@ pub fn rowFromRecord(
     if (product_end > tape.products.items.len or
         linear_end > tape.linears.items.len or
         record.program_index >= tape.scalar_programs.items.len or
-        record.product_count < 7 or record.linear_count < 3)
+        record.product_count < 7 or record.linear_count < linear_record_count)
     {
         return error.InvalidTapeRange;
     }
@@ -95,8 +101,10 @@ pub fn rowFromRecord(
     const one = field.bytesFromInteger(1);
     try expectProduct(&products[3], .scalar, record.r, record.inverse_r, one);
     try expectProduct(&products[4], .scalar, record.s, record.inverse_s, one);
+    try expectLinear(&linears[2], .reduce_once, .scalar, record.r, field.scalar_modulus.bytes, record.r);
+    try expectLinear(&linears[3], .reduce_once, .scalar, record.s, field.scalar_modulus.bytes, record.s);
     try expectLinear(
-        &linears[2],
+        &linears[4],
         .subtract,
         .scalar,
         @splat(0),
@@ -217,17 +225,23 @@ pub fn rowPairs(
     events[4] = linearRequest(S, active, .reduce_once, .scalar, &digest_little_endian, &scalar_modulus, &reduced_digest, relations);
     events[5] = productRequest(S, active, .scalar, &r, &inverse_r, &one, relations);
     events[6] = productRequest(S, active, .scalar, &s, &inverse_s, &one, relations);
-    events[7] = linearRequest(S, active, .subtract, .scalar, &zero, &reduced_digest, &negative_digest, relations);
-    events[8] = productRequest(S, active, .scalar, &negative_digest, &inverse_r, &generator_scalar, relations);
-    events[9] = productRequest(S, active, .scalar, &s, &inverse_r, &recovery_point_scalar, relations);
-    events[10] = request(S, active, relations_mod.combineProgram(S, relations.program, relations_mod.programTuple(
+    // Canonical scalars: a `reduce_once` row whose result equals its operand
+    // proves the operand is already below `n` (the linear AIR range-checks the
+    // result against the modulus complement). Together with the inverses this
+    // pins `r, s` to `[1, n)`; the inverses alone accept `r + n` or `s + n`.
+    events[7] = linearRequest(S, active, .reduce_once, .scalar, &r, &scalar_modulus, &r, relations);
+    events[8] = linearRequest(S, active, .reduce_once, .scalar, &s, &scalar_modulus, &s, relations);
+    events[9] = linearRequest(S, active, .subtract, .scalar, &zero, &reduced_digest, &negative_digest, relations);
+    events[10] = productRequest(S, active, .scalar, &negative_digest, &inverse_r, &generator_scalar, relations);
+    events[11] = productRequest(S, active, .scalar, &s, &inverse_r, &recovery_point_scalar, relations);
+    events[12] = request(S, active, relations_mod.combineProgram(S, relations.program, relations_mod.programTuple(
         S,
         &generator_scalar,
         &recovery_point,
         &recovery_point_scalar,
         &public_key,
     )));
-    events[11] = emit(S, active, relations_mod.combineRecovery(
+    events[13] = emit(S, active, relations_mod.combineRecovery(
         S,
         relations.recovery,
         relations_mod.recoveryTuple(

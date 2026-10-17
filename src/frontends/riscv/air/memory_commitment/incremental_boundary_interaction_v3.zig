@@ -23,7 +23,10 @@ pub const PROFILE = "riscv-incremental-full-state-boundary-v3";
 
 pub const N_SUMS = legacy.N_SUMS;
 pub const N_COLUMNS = legacy.N_COLUMNS;
-pub const N_CONSTRAINTS: usize = N_SUMS + 2;
+/// Mirrors the legacy constraint count: V3 shares the frozen row encoding and
+/// the initial-row clock binding (`+1` rows are built with `.clock = 0`, see
+/// `incremental_transition_v1.zig`).
+pub const N_CONSTRAINTS: usize = legacy.N_CONSTRAINTS;
 
 pub const Claims = legacy.Claims;
 pub const Result = legacy.Result;
@@ -44,6 +47,7 @@ pub fn evaluate(
     previous: [N_SUMS]QM31,
     claims: [N_SUMS]QM31,
     relations: *const relations_mod.Relations,
+    roots: legacy.RootParameters(QM31),
 ) [N_CONSTRAINTS]QM31 {
     return evaluateGeneric(
         QM31,
@@ -54,6 +58,7 @@ pub fn evaluate(
         previous,
         claims,
         relations,
+        roots,
     );
 }
 
@@ -66,7 +71,28 @@ pub fn evaluateGeneric(
     previous: [N_SUMS]S,
     claims: [N_SUMS]S,
     relations: anytype,
+    roots: legacy.RootParameters(S),
 ) [N_CONSTRAINTS]S {
+    const base_constraints = evaluateWithoutRootsGeneric(S, main, is_active, is_first, sums, previous, claims, relations);
+    var result: [N_CONSTRAINTS]S = undefined;
+    @memcpy(result[0..legacy.N_CONSTRAINTS_WITHOUT_ROOTS], &base_constraints);
+    // Row sign is bound to the statement's public roots exactly as in V1.
+    result[N_SUMS + 3] = legacy.initialRootBindingGeneric(S, main[6], roots.initialTerm(main[7]));
+    result[N_SUMS + 4] = legacy.finalRootBindingGeneric(S, main[6], roots.finalTerm(main[7]));
+    return result;
+}
+
+/// Retired shape without the public-root bindings (recursion lane replay).
+pub fn evaluateWithoutRootsGeneric(
+    comptime S: type,
+    main: [8]S,
+    is_active: S,
+    is_first: S,
+    sums: [N_SUMS]S,
+    previous: [N_SUMS]S,
+    claims: [N_SUMS]S,
+    relations: anytype,
+) [legacy.N_CONSTRAINTS_WITHOUT_ROOTS]S {
     const list = legacy.entriesGeneric(S, main, is_active);
     const pairs = [N_SUMS]logup.RowPairFor(S){
         list.pairWith(0, relations) catch unreachable,
@@ -74,7 +100,7 @@ pub fn evaluateGeneric(
         list.pairWith(2, relations) catch unreachable,
         list.pairWith(3, relations) catch unreachable,
     };
-    var result: [N_CONSTRAINTS]S = undefined;
+    var result: [legacy.N_CONSTRAINTS_WITHOUT_ROOTS]S = undefined;
     for (0..N_SUMS) |index| {
         result[index] = logup.pairConstraintGeneric(
             S,
@@ -97,6 +123,8 @@ pub fn evaluateGeneric(
     result[N_SUMS + 1] = multiplicity.mul(
         is_active.sub(S.one()),
     );
+    // A `+1` row opens its access chain at clock zero (degree 3).
+    result[N_SUMS + 2] = legacy.initialRowClockConstraintGeneric(S, multiplicity, main[1]);
     return result;
 }
 
@@ -112,6 +140,7 @@ test "incremental boundary V3 permits active zero memory multiplicity" {
     main[5] = QM31.fromBase(M31.fromU64(4));
     main[7] = QM31.fromBase(M31.fromU64(99));
 
+    const roots = legacy.RootParameters(QM31).fromPublic(99, 99);
     const constraints = evaluate(
         main,
         one,
@@ -120,6 +149,7 @@ test "incremental boundary V3 permits active zero memory multiplicity" {
         .{zero} ** N_SUMS,
         .{zero} ** N_SUMS,
         &relations,
+        roots,
     );
     try @import("std").testing.expect(constraints[N_SUMS].isZero());
     try @import("std").testing.expect(constraints[N_SUMS + 1].isZero());
@@ -132,6 +162,7 @@ test "incremental boundary V3 permits active zero memory multiplicity" {
         .{zero} ** N_SUMS,
         .{zero} ** N_SUMS,
         &relations,
+        roots,
     );
     try @import("std").testing.expect(
         !legacy_constraints[legacy.N_SUMS + 1].isZero(),
@@ -152,6 +183,7 @@ test "incremental boundary V3 rejects nonzero memory multiplicity on padding" {
         .{zero} ** N_SUMS,
         .{zero} ** N_SUMS,
         &relations,
+        legacy.RootParameters(QM31).fromPublic(0, 0),
     );
     try @import("std").testing.expect(!constraints[N_SUMS + 1].isZero());
 }

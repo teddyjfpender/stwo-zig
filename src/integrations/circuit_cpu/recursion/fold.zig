@@ -72,6 +72,7 @@ pub const default_options: prove.Options = .{ .evaluations_only = true };
 /// Everything a reduction reads: built once per tree.
 pub const Fold = struct {
     canonical: *const CanonicalCircuit,
+    leaf_verifiers: []const wire.registry.LeafVerifier,
     /// The circuit AIR's in-circuit evaluators.
     table: *const component_table.Table,
     /// The circuit AIR's recorded constraint programs (`air.parse`).
@@ -114,13 +115,20 @@ pub const LayerEntry = struct {
     /// proof config, its preprocessed root as declared, its output digest
     /// recomputed from the hashed-output preimage.
     pub fn fromLeaf(gpa: std.mem.Allocator, fold: *const Fold, leaf: wire.leaf_proof_json.LeafInput) !LayerEntry {
+        var matched = false;
+        for (fold.leaf_verifiers) |entry| {
+            if (std.mem.eql(u32, &entry.preprocessed_root.words, &leaf.proof.circuit_preprocessed_root.words) and
+                std.mem.eql(u32, &entry.circuit_hash.words, &leaf.proof.circuit_hash.words))
+            {
+                matched = true;
+                break;
+            }
+        }
+        if (!matched) return error.LeafCircuitIdentityMismatch;
         const config = fold.canonical.proofConfig();
         var decoded = try wire.circuit_serialize.deserializeProof(gpa, leaf.proof.proof, config);
         errdefer decoded.deinit();
-        // Upstream (`deserialize_proof_with_config` on a slice) ignores
-        // bytes after the proof; so does this port.
-        if (decoded.consumed != leaf.proof.proof.len)
-            log.warn("leaf proof: {d} bytes after the proof ignored", .{leaf.proof.proof.len - decoded.consumed});
+        if (decoded.consumed != leaf.proof.proof.len) return error.TrailingLeafProofBytes;
         const output_digest = try leaf.outputDigest(gpa);
         return .{
             .arena = decoded.arena,

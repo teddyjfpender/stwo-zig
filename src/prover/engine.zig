@@ -119,6 +119,9 @@ pub fn ProverEngine(
             if (comptime @hasDecl(B, "telemetrySnapshot")) return B.telemetrySnapshot();
         }
 
+        /// Commits the next tree. The first tree may still be building when
+        /// this returns; call `Engine.flushPendingCommit` before any
+        /// unrelated transcript mix or draw.
         pub fn commit(
             scheme: *Scheme,
             allocator: std.mem.Allocator,

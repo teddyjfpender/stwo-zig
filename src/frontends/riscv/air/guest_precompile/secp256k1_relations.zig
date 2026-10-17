@@ -18,7 +18,12 @@ pub const linear_arity: usize = 2 + 3 * field.limb_count;
 pub const encoded_point_size: usize = 1 + 2 * field.limb_count;
 pub const point_arity: usize = 1 + 3 * encoded_point_size;
 pub const split_arity: usize = 2 + 3 * field.limb_count;
-pub const table_arity: usize = 2 + encoded_point_size;
+/// Kind, digit code, the signed entry, and the table's source point. The
+/// source is the per-call identity: variable tables carry the program point
+/// they were derived from (bound by the table-root bus and row continuity),
+/// so a scalar program can only select entries from tables built for its own
+/// point. Fixed generator tables carry an all-zero source.
+pub const table_arity: usize = 2 + 2 * encoded_point_size;
 pub const program_arity: usize = 2 * field.limb_count + 2 * encoded_point_size;
 pub const table_root_arity: usize = 1 + encoded_point_size;
 pub const ecdsa_arity: usize = 1 + field.limb_count + encoded_point_size +
@@ -194,12 +199,20 @@ pub fn tableTuple(
     table_kind: S,
     digit_code: S,
     point: *const [encoded_point_size]S,
+    source: *const [encoded_point_size]S,
 ) TableTuple(S) {
     var tuple: TableTuple(S) = undefined;
     tuple[0] = table_kind;
     tuple[1] = digit_code;
-    @memcpy(tuple[2..], point);
+    @memcpy(tuple[2..][0..encoded_point_size], point);
+    @memcpy(tuple[2 + encoded_point_size ..], source);
     return tuple;
+}
+
+/// Source identity carried by fixed (verifier-known) tables: all zero columns,
+/// distinct from an encoded point at infinity.
+pub fn zeroSource(comptime S: type) [encoded_point_size]S {
+    return @splat(S.zero());
 }
 
 pub fn programTuple(
@@ -336,17 +349,35 @@ pub fn splitTupleForRecord(record: *const affine.ScalarSplitRecord) SplitTuple(M
     );
 }
 
+/// `source` is the variable table's source point; pass `null` for the fixed
+/// generator kinds, whose rows carry an all-zero source.
 pub fn tableTupleForEntry(
     kind: affine.TableKind,
     digit_code: usize,
     point: affine.Point,
+    source: ?affine.Point,
 ) TableTuple(M31) {
     const encoded = encodePoint(point);
+    const encoded_source = if (source) |value| encodePoint(value) else zeroSource(M31);
     return tableTuple(
         M31,
         scalar(M31, @intFromEnum(kind)),
         scalar(M31, digit_code),
         &encoded,
+        &encoded_source,
+    );
+}
+
+/// Table tuple for one record entry, selecting the source by table kind.
+pub fn tableTupleForRecord(
+    table: *const affine.TableRecord,
+    digit_code: usize,
+) TableTuple(M31) {
+    return tableTupleForEntry(
+        table.kind,
+        digit_code,
+        table.entries[digit_code],
+        if (affine.fixedSignedTable(table.kind) != null) null else table.source,
     );
 }
 
@@ -523,7 +554,7 @@ fn scalar(comptime S: type, value: anytype) S {
 
 comptime {
     if (product_arity != 97 or linear_arity != 98 or point_arity != 196 or
-        split_arity != 98 or table_arity != 67 or program_arity != 194 or
+        split_arity != 98 or table_arity != 132 or program_arity != 194 or
         table_root_arity != 66 or ecdsa_arity != 162 or recovery_arity != 163)
         @compileError("secp256k1 relation geometry drifted");
 }

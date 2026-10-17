@@ -25,6 +25,8 @@ jobs:
       source_sha: ${{ steps.source.outputs.sha }}
     permissions:
       contents: read
+      id-token: write
+      attestations: write
     steps:
       - name: Check out exact source
         uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
@@ -45,6 +47,10 @@ jobs:
           python3 -m unittest scripts.tests.test_package_release -v
       - name: Build deterministic Zig source archives
         run: python3 scripts/package_release.py --output zig-out/packages
+      - name: Attest exact source archives
+        uses: actions/attest@508db95dd578ae2727ebd6217d5ba78e4fbda05d # v4.2.1
+        with:
+          subject-path: zig-out/packages/*.tar
       - name: Upload immutable package set
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
@@ -78,6 +84,8 @@ jobs:
         with:
           name: zig-source-packages-${{ needs.archives.outputs.source_sha }}
           path: packages
+      - name: Verify archive checksums
+        run: cd packages && sha256sum -c SHA256SUMS
       - name: Build package from only its published closure
         env:
           PACKAGE: ${{ matrix.package }}
@@ -105,6 +113,8 @@ jobs:
         with:
           name: zig-source-packages-${{ needs.archives.outputs.source_sha }}
           path: packages
+      - name: Verify archive checksums
+        run: cd packages && shasum -a 256 -c SHA256SUMS
       - name: Build Metal package from only its published closure
         run: |
           set -euo pipefail
@@ -126,6 +136,15 @@ jobs:
         with:
           name: zig-source-packages-${{ needs.archives.outputs.source_sha }}
           path: packages
+      - name: Verify checksums and signed provenance
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cd packages
+          sha256sum -c SHA256SUMS
+          for archive in ./*.tar; do
+            gh attestation verify "$archive" --repo "$GITHUB_REPOSITORY"
+          done
       - name: Publish atomic GitHub release assets
         env:
           GH_TOKEN: ${{ github.token }}

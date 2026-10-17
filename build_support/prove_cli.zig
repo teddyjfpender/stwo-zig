@@ -62,6 +62,10 @@ pub fn addProduct(context: Context) *std.Build.Step.Compile {
     });
     riscv_adapter.addImport("stwo", context.stwo_module);
     riscv_adapter.addImport(
+        "stwo_cpu_backend",
+        context.stwo_module.import_table.get("stwo_cpu_backend").?,
+    );
+    riscv_adapter.addImport(
         "stwo_prover_engine",
         context.stwo_module.import_table.get("stwo_prover_engine").?,
     );

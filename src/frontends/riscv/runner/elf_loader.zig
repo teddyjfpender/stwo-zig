@@ -18,6 +18,7 @@ pub const ElfError = error{
     NotLittleEndian,
     NotRiscV,
     InvalidProgramHeader,
+    LoadImageTooLarge,
     MissingAdmissionNote,
     RequiredCapabilityUnavailable,
     BufferTooSmall,
@@ -79,6 +80,10 @@ pub const RELEASE_ABI_SYMBOLS = [_][]const u8{
 // ELF32 header offsets and sizes
 const ELF_HDR_SIZE: usize = 52;
 const PHDR_SIZE: usize = 32;
+/// PT_LOAD ranges become individual initialized words in the proof memory
+/// inventory. Bound that work before touching memory, including zero-filled
+/// BSS that contributes no bytes to the ELF file itself.
+pub const MAX_LOAD_IMAGE_BYTES: u64 = 64 << 20;
 const SHDR_SIZE = elf_admission.section_header_size;
 
 /// Select the exact execution profile requested by an ELF.
@@ -136,9 +141,9 @@ pub fn loadElfForProfile(
     // e_phnum (offset 44, 2 bytes LE) — number of program headers.
     const e_phnum = readU16LE(elf_bytes[44..46]);
 
-    var segments_loaded: usize = 0;
-
-    // Iterate program headers and load PT_LOAD segments.
+    var load_bytes: u64 = 0;
+    // Preflight every segment before mutating memory. A late malformed header
+    // must not leave a partially loaded image behind.
     for (0..e_phnum) |i| {
         const ph_offset = @as(usize, e_phoff) + i * PHDR_SIZE;
         if (ph_offset + PHDR_SIZE > elf_bytes.len) return ElfError.InvalidProgramHeader;
@@ -153,9 +158,28 @@ pub fn loadElfForProfile(
         const p_filesz = readU32LE(phdr[16..20]);
         const p_memsz = readU32LE(phdr[20..24]);
 
-        if (p_filesz > p_memsz or @as(usize, p_offset) + @as(usize, p_filesz) > elf_bytes.len) {
+        const file_end = std.math.add(usize, p_offset, p_filesz) catch
+            return ElfError.InvalidProgramHeader;
+        const memory_end = std.math.add(u64, p_vaddr, p_memsz) catch
+            return ElfError.InvalidProgramHeader;
+        if (p_filesz > p_memsz or file_end > elf_bytes.len or
+            memory_end > (@as(u64, 1) << 32))
+        {
             return ElfError.InvalidProgramHeader;
         }
+        load_bytes += p_memsz;
+        if (load_bytes > MAX_LOAD_IMAGE_BYTES) return ElfError.LoadImageTooLarge;
+    }
+
+    var segments_loaded: usize = 0;
+    for (0..e_phnum) |i| {
+        const ph_offset = @as(usize, e_phoff) + i * PHDR_SIZE;
+        const phdr = elf_bytes[ph_offset .. ph_offset + PHDR_SIZE];
+        if (readU32LE(phdr[0..4]) != PT_LOAD) continue;
+        const p_offset = readU32LE(phdr[4..8]);
+        const p_vaddr = readU32LE(phdr[8..12]);
+        const p_filesz = readU32LE(phdr[16..20]);
+        const p_memsz = readU32LE(phdr[20..24]);
 
         const segment_data = elf_bytes[p_offset .. p_offset + p_filesz];
         mem.loadSegment(p_vaddr, segment_data);
@@ -799,6 +823,15 @@ test "loadElf materializes unaccessed BSS words" {
     try mem.addAlignedWordAddresses(&addresses);
     try std.testing.expect(addresses.contains(0x00010004));
     try std.testing.expectEqual(@as(u32, 0), mem.readU32(0x00010004));
+}
+
+test "loadElf rejects oversized BSS before mutating memory" {
+    var mem = @import("memory.zig").Memory.init(std.testing.allocator);
+    defer mem.deinit();
+    var elf = makeMinimalElf();
+    putU32LE(&elf, 72, @intCast(MAX_LOAD_IMAGE_BYTES + 1));
+    try std.testing.expectError(ElfError.LoadImageTooLarge, loadElf(&elf, &mem));
+    try std.testing.expectEqual(@as(usize, 0), mem.initialized_word_count);
 }
 
 test "loadElf rejects bad magic" {

@@ -167,6 +167,9 @@ pub fn verify(
     statement: anytype,
     stages: anytype,
 ) !void {
+    try config.shape().validate();
+    if (config.fri.log_last_layer_degree_bound != 0 or config.n_interaction_pow_bits > 30)
+        return error.InvalidCircuitVerifierConfig;
     try proof.validateStructure(config);
     // Extra OODS openings require a statement-specific accumulator that
     // consumes every shifted value in the verifier-owned mask order.

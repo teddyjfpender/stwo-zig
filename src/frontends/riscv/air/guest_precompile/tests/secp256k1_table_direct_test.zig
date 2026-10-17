@@ -69,18 +69,22 @@ test "secp256k1 table AIR: derivation requests cancel exact authorities" {
                 &previous,
                 &relations,
             ));
-            const table_tuple = relations_mod.tableTupleForEntry(
-                table.kind,
-                code,
-                table.entries[code],
-            );
+            const table_tuple = relations_mod.tableTupleForRecord(table, code);
             sum = sum.sub((relations_mod.combineTable(
                 M31,
                 relations.table,
                 table_tuple,
             ).inv() catch unreachable).mulM31(M31.fromCanonical(
-                multiplicities[table_index][code],
+                direct.emittedMultiplicity(code, multiplicities[table_index][code]),
             )));
+            if (code > affine.odd_table_size) {
+                // The negative row consumes its positive counterpart.
+                sum = sum.add(relations_mod.combineTable(
+                    M31,
+                    relations.table,
+                    relations_mod.tableTupleForRecord(table, positive_code),
+                ).inv() catch unreachable);
+            }
 
             const variable = table.kind == .public_key or
                 table.kind == .public_key_endomorphism;
@@ -151,6 +155,122 @@ test "secp256k1 table AIR: fixed and variable mutations fail closed" {
     sink = .{};
     direct.evaluateDirect(M31, &forged, &previous, &sink);
     try std.testing.expect(sink.failures != 0);
+}
+
+test "secp256k1 table AIR: chain rows bind predecessor code and kind" {
+    var tape = try cspTape();
+    defer tape.deinit();
+    const variable = &tape.tables.items[2];
+    const fixed = &tape.tables.items[0];
+    try std.testing.expect(variable.kind == .public_key and fixed.kind == .generator);
+
+    // Honest adjacency: code 3 follows code 2.
+    const code_two = try direct.rowFromEntry(&tape, variable, 2, 0);
+    const code_three = try direct.rowFromEntry(&tape, variable, 3, 0);
+    var sink = Sink{};
+    direct.evaluateDirect(M31, &code_three, &code_two, &sink);
+    try std.testing.expectEqual(@as(usize, 0), sink.failures);
+
+    // Relabelling: code 3 placed directly after code 1 (same table, same
+    // twice/source) must fail even though every other column is honest.
+    const code_one = try direct.rowFromEntry(&tape, variable, 1, 0);
+    sink = .{};
+    direct.evaluateDirect(M31, &code_three, &code_one, &sink);
+    try std.testing.expect(sink.failures != 0);
+
+    // Kind splice: a generator row with code 2 preceding a public-key row with
+    // code 3 fails on kind continuity (fixed rows carry zero twice/source, so
+    // isolate the kind check by copying the variable row's twice/source over).
+    var foreign = try direct.rowFromEntry(&tape, fixed, 2, 0);
+    @memcpy(
+        foreign[direct.Layout.twice..][0 .. 2 * relations_mod.encoded_point_size],
+        code_two[direct.Layout.twice..][0 .. 2 * relations_mod.encoded_point_size],
+    );
+    sink = .{};
+    direct.evaluateDirect(M31, &code_three, &foreign, &sink);
+    try std.testing.expect(sink.failures != 0);
+
+    // Padding predecessor (code zero, kind zero) is rejected for code >= 2.
+    const padding: [direct.Layout.main_columns]M31 = @splat(M31.zero());
+    sink = .{};
+    direct.evaluateDirect(M31, &code_two, &padding, &sink);
+    try std.testing.expect(sink.failures != 0);
+}
+
+test "secp256k1 table AIR: negative rows consume their positive entry from the bus" {
+    var tape = try cspTape();
+    defer tape.deinit();
+    const relations = relations_mod.Relations.dummy();
+    const variable = &tape.tables.items[2];
+    const code: usize = affine.odd_table_size + 1;
+    const previous = try direct.rowFromEntry(&tape, variable, code - 1, 0);
+    const row = try direct.rowFromEntry(&tape, variable, code, 0);
+    const honest = try pairSum(&direct.rowPairs(M31, &row, &previous, &relations));
+
+    // The request names the genuine positive entry (kind, code - 8, source).
+    const expected_request = relations_mod.combineTable(
+        M31,
+        relations.table,
+        relations_mod.tableTupleForRecord(variable, 1),
+    );
+    var found = false;
+    for (direct.rowPairs(M31, &row, &previous, &relations)) |pair| {
+        if (pair.d1.eql(expected_request) and pair.n1.eql(QM31.one().neg())) found = true;
+        if (pair.d2.eql(expected_request) and pair.n2.eql(QM31.one().neg())) found = true;
+    }
+    try std.testing.expect(found);
+
+    // Forging the `positive` witness (previously unbound) changes the request.
+    var forged = row;
+    forged[direct.Layout.positive + 1 + 32 + 3] =
+        forged[direct.Layout.positive + 1 + 32 + 3].add(M31.one());
+    const forged_sum = try pairSum(&direct.rowPairs(M31, &forged, &previous, &relations));
+    try std.testing.expect(!honest.eql(forged_sum));
+
+    // Positive rows emit one extra unit for exactly this request.
+    try std.testing.expectEqual(@as(u32, 1), direct.emittedMultiplicity(1, 0));
+    try std.testing.expectEqual(@as(u32, 1), direct.emittedMultiplicity(affine.odd_table_size, 0));
+    try std.testing.expectEqual(@as(u32, 0), direct.emittedMultiplicity(0, 0));
+    try std.testing.expectEqual(@as(u32, 0), direct.emittedMultiplicity(code, 0));
+}
+
+test "secp256k1 table AIR: emitted tuples carry the per-call source identity" {
+    var tape = try cspTape();
+    defer tape.deinit();
+    const relations = relations_mod.Relations.dummy();
+    const variable = &tape.tables.items[2];
+    const same_entry_other_call = relations_mod.tableTupleForEntry(
+        variable.kind,
+        3,
+        variable.entries[3],
+        variable.twice,
+    );
+    const own = relations_mod.combineTable(
+        M31,
+        relations.table,
+        relations_mod.tableTupleForRecord(variable, 3),
+    );
+    const other = relations_mod.combineTable(M31, relations.table, same_entry_other_call);
+    try std.testing.expect(!own.eql(other));
+
+    // A fixed generator table carries the all-zero source, not infinity.
+    const fixed = &tape.tables.items[0];
+    const zero_source = relations_mod.tableTupleForRecord(fixed, 3);
+    const infinity_source = relations_mod.tableTupleForEntry(
+        fixed.kind,
+        3,
+        fixed.entries[3],
+        affine.Point{},
+    );
+    try std.testing.expect(!relations_mod.combineTable(M31, relations.table, zero_source).eql(
+        relations_mod.combineTable(M31, relations.table, infinity_source),
+    ));
+    const fixed_row = try direct.rowFromEntry(&tape, fixed, 3, 0);
+    const previous = try direct.rowFromEntry(&tape, fixed, 2, 0);
+    const pairs = direct.rowPairs(M31, &fixed_row, &previous, &relations);
+    try std.testing.expect(pairs[0].d1.eql(
+        relations_mod.combineTable(M31, relations.table, zero_source),
+    ));
 }
 
 test "secp256k1 table AIR: byte custody is delegated to derivation relations" {

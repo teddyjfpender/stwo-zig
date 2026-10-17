@@ -277,6 +277,28 @@ fn buildInternal(
         claims;
 }
 
+/// Root of the initial-state tree a verifier can recompute without executing
+/// the guest: every ordinary RW word of the loaded image contributes its four
+/// byte leaves, public-input words are excluded exactly as in `build`, and
+/// words the guest later touches without the loader having placed them carry
+/// zero bytes, which hash to the sparse tree's default leaf
+/// (`poseidon2.DEFAULT_HASHES[LEAF_DEPTH] == 0`) and leave the root unchanged.
+/// Returns null when no word enters the initial tree, matching
+/// `Claims.initial_tree`.
+pub fn initialTreeRoot(allocator: std.mem.Allocator, input: []const WordState) Error!?u32 {
+    var leaves: std.ArrayList(sparse_merkle.Leaf) = .{};
+    defer leaves.deinit(allocator);
+    for (input) |word| {
+        if ((word.addr & 3) != 0) return error.MisalignedWord;
+        if (word.addr > sparse_merkle.LEAF_COUNT - 4) return error.IndexOutOfRange;
+        if (word.includeInitial()) try appendWordLeaves(&leaves, allocator, word.addr, word.initial_word);
+    }
+    if (leaves.items.len == 0) return null;
+    var tree = try sparse_merkle.build(allocator, leaves.items);
+    defer tree.deinit(allocator);
+    return tree.root;
+}
+
 fn appendWordLeaves(
     leaves: *std.ArrayList(sparse_merkle.Leaf),
     allocator: std.mem.Allocator,
@@ -410,4 +432,33 @@ test "memory boundary: invalid addresses and duplicate words fail closed" {
         .{ .addr = 4, .initial_word = 0, .final_word = 0, .final_clock = 0 },
         .{ .addr = 4, .initial_word = 0, .final_word = 0, .final_clock = 0 },
     }));
+}
+
+test "memory boundary: recomputed initial root matches the built tree and ignores zero words" {
+    const words = [_]WordState{
+        .{ .addr = 0x1004, .initial_word = 3, .final_word = 4, .final_clock = 9 },
+        .{ .addr = 0x1000, .initial_word = 1, .final_word = 2, .final_clock = 8 },
+        .{ .addr = 0x2000, .initial_word = 11, .final_word = 12, .final_clock = 4, .role = .{ .is_public_input = true } },
+    };
+    var claims = try build(std.testing.allocator, &words);
+    defer claims.deinit(std.testing.allocator);
+    const recomputed = (try initialTreeRoot(std.testing.allocator, &words)).?;
+    try std.testing.expectEqual(claims.initial_tree.?.root, recomputed);
+
+    // Words first touched by the guest without a loaded value are zero at
+    // entry; they must not move the root the verifier derives from the image.
+    const with_touched = words ++ [_]WordState{
+        .{ .addr = 0x3000, .initial_word = 0, .final_word = 77, .final_clock = 3 },
+        .{ .addr = 0x100c, .initial_word = 0, .final_word = 0, .final_clock = 5 },
+    };
+    try std.testing.expectEqual(recomputed, (try initialTreeRoot(std.testing.allocator, &with_touched)).?);
+    var touched_claims = try build(std.testing.allocator, &with_touched);
+    defer touched_claims.deinit(std.testing.allocator);
+    try std.testing.expectEqual(recomputed, touched_claims.initial_tree.?.root);
+
+    // A different loaded byte moves the root; public-input words never enter.
+    var altered = words;
+    altered[1].initial_word ^= 0x100;
+    try std.testing.expect(recomputed != (try initialTreeRoot(std.testing.allocator, &altered)).?);
+    try std.testing.expectEqual(@as(?u32, null), try initialTreeRoot(std.testing.allocator, words[2..3]));
 }

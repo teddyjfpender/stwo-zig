@@ -4,6 +4,13 @@
 //! their root to the scalar program, derive odd positive entries through one
 //! double and seven additions, and derive negative entries through scalar
 //! linear rows. A weighted table emission serves repeated digit selections.
+//!
+//! Rows of one table are committed in code order 0..16. A row with code two or
+//! more binds its predecessor's code (`code - 1`) and kind, so the positive
+//! chain `(c+2)P = cP + 2P` cannot be relabelled; a negative row consumes its
+//! positive counterpart `(kind, code - 8, positive, source)` from the table bus
+//! instead of trusting the `positive` witness columns. Every emitted and
+//! consumed tuple also carries the table's source point as a per-call identity.
 
 const std = @import("std");
 const M31 = @import("stwo_core").fields.m31.M31;
@@ -34,13 +41,15 @@ pub const Layout = struct {
     }
 };
 
-pub const event_count: usize = 6;
-pub const batch_count: usize = event_count / 2;
+/// Table emit, root request, endomorphism product, root doubling, chain
+/// addition, negation linear, and the negative row's positive-entry request.
+pub const event_count: usize = 7;
+pub const batch_count: usize = (event_count + 1) / 2;
 /// Fixed rows are constants; variable rows inherit byte custody through the
 /// point/product/linear and table-root buses.
 pub const range_pair_count: usize = 0;
 pub const maximum_constraint_degree: u8 = 3;
-pub const constraint_count: usize = 479;
+pub const constraint_count: usize = 481;
 
 pub const Error = error{
     InvalidTableRecord,
@@ -50,10 +59,18 @@ pub const Error = error{
 };
 
 comptime {
-    if (Layout.main_columns != 284 or range_pair_count != 0 or batch_count != 3)
+    if (Layout.main_columns != 284 or range_pair_count != 0 or batch_count != 4)
         @compileError("secp256k1 signed-table geometry drifted");
 }
 
+/// Emitted multiplicity of one entry: its digit-selection count plus the one
+/// request its negative counterpart row (`code + 8`) makes for positive codes.
+pub fn emittedMultiplicity(code: usize, selections: u32) u32 {
+    return selections + @intFromBool(code >= 1 and code <= affine.odd_table_size);
+}
+
+/// `multiplicity` is the number of digit selections served by this entry; the
+/// row adds the negative counterpart's request itself.
 pub fn rowFromEntry(
     tape: *const affine.Tape,
     table: *const affine.TableRecord,
@@ -63,7 +80,7 @@ pub fn rowFromEntry(
     if (code >= affine.signed_table_size) return error.InvalidTableRecord;
     var row: [Layout.main_columns]M31 = @splat(M31.zero());
     row[Layout.is_active] = M31.one();
-    row[Layout.multiplicity] = M31.fromCanonical(multiplicity);
+    row[Layout.multiplicity] = M31.fromCanonical(emittedMultiplicity(code, multiplicity));
     row[Layout.kindSelector(table.kind)] = M31.one();
     row[Layout.codeSelector(code)] = M31.one();
     writePoint(&row, Layout.point, table.entries[code]);
@@ -192,6 +209,17 @@ pub fn evaluateDirect(
         sink.add(code_after_one.mul(twice[index].sub(previous_twice[index])), 2);
         sink.add(code_after_one.mul(source[index].sub(previous_source[index])), 2);
     }
+    // Chain binding: a row with code >= 2 follows the row with code - 1 of the
+    // same kind. Without this the chain request `prev.point + twice == point`
+    // would accept any permutation of codes, letting a prover relabel which
+    // multiple each digit selects. A padding or foreign predecessor has code
+    // zero (or the wrong kind) and fails here.
+    const code_value = selectorValue(S, main, Layout.code_selectors, affine.signed_table_size);
+    const previous_code_value = selectorValue(S, previous, Layout.code_selectors, affine.signed_table_size);
+    sink.add(code_after_one.mul(code_value.sub(previous_code_value).sub(scalar(S, 1))), 2);
+    const kind_value = selectorValue(S, main, Layout.kind_selectors, 4);
+    const previous_kind_value = selectorValue(S, previous, Layout.kind_selectors, 4);
+    sink.add(code_after_one.mul(kind_value.sub(previous_kind_value)), 2);
     for (point[1..]) |coordinate| sink.add(code_zero.mul(coordinate), 2);
     const public_key = main[Layout.kindSelector(.public_key)];
     const public_key_endomorphism = main[Layout.kindSelector(.public_key_endomorphism)];
@@ -245,6 +273,7 @@ pub fn rowPairs(
         kind,
         code,
         &point,
+        &source,
     );
     events[0] = emit(
         S,
@@ -316,13 +345,39 @@ pub fn rowPairs(
         pointY(S, &point),
         relations,
     );
+    // The negation above only relates `point.y` to the `positive` witness. Bind
+    // `positive` to the genuine entry `code - 8` of this same table (kind and
+    // source included) by consuming it from the table bus; every positive row
+    // emits one extra unit for exactly this request.
+    const positive_tuple = relations_mod.tableTuple(
+        S,
+        kind,
+        code.sub(negative_code.mul(scalar(S, affine.odd_table_size))),
+        &positive,
+        &source,
+    );
+    events[6] = request(
+        S,
+        negative_code,
+        relations_mod.combineTable(S, relations.table, positive_tuple),
+    );
     var result: [batch_count]logup.RowPairFor(relations_mod.InteractionScalar(S)) = undefined;
-    for (&result, 0..) |*pair, index| pair.* = .{
-        .n1 = events[2 * index].n1,
-        .d1 = events[2 * index].d1,
-        .n2 = events[2 * index + 1].n1,
-        .d2 = events[2 * index + 1].d1,
-    };
+    for (&result, 0..) |*pair, index| {
+        const first = events[2 * index];
+        const second = if (2 * index + 1 < event_count)
+            events[2 * index + 1]
+        else
+            logup.RowPairFor(relations_mod.InteractionScalar(S)).single(
+                relations_mod.InteractionScalar(S).zero(),
+                relations_mod.InteractionScalar(S).one(),
+            );
+        pair.* = .{
+            .n1 = first.n1,
+            .d1 = first.d1,
+            .n2 = second.n1,
+            .d2 = second.d1,
+        };
+    }
     return result;
 }
 

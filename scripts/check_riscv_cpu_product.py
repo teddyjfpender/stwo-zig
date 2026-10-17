@@ -45,7 +45,10 @@ def main() -> int:
             if marker in text:
                 failures.append(f"{path.relative_to(ROOT)}: forbidden focused-product dependency {marker!r}")
     owner = (ROOT / "build_support/products/riscv_cpu.zig").read_text()
-    if '.name = "stwo-riscv-cpu"' not in owner:
+    # The logical product identity is owned by the executable constructor;
+    # this descriptor imports that value instead of restating its fields.
+    constructor = (ROOT / "build_support/products/riscv_cpu_executables.zig").read_text()
+    if 'const product = executables.product;' not in owner or '.name = "stwo-riscv-cpu"' not in constructor:
         failures.append("focused product does not use logical product ID stwo-riscv-cpu")
     if "getInstallStep" in owner:
         failures.append("focused product mutates the global default install step")

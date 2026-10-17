@@ -72,7 +72,12 @@ pub const ProofShape = struct {
             shape.interaction_columns < n_cumulative_sum_columns_per_component) return error.InvalidProofShape;
         if (@import("verifier_types.zig").compositionColumnCount(self.composition_log_split, 4) == null)
             return error.InvalidProofShape;
-        if (self.fri.fold_step == 0) return error.InvalidProofShape;
+        if (self.fri.fold_step == 0 or self.fri.fold_step > self.log_trace_size or
+            self.fri.n_queries == 0 or self.fri.n_queries > 1024 or
+            self.fri.pow_bits > 30 or
+            self.fri.log_blowup_factor < 1 or self.fri.log_blowup_factor > 16 or
+            self.fri.log_last_layer_degree_bound > 10)
+            return error.InvalidProofShape;
         if (self.fri.log_last_layer_degree_bound > self.log_trace_size) return error.InvalidProofShape;
         if (self.logEvaluationDomainSize() > 31) return error.InvalidProofShape;
         if (self.trace_mask_offsets) |masks| {

@@ -16,7 +16,12 @@ pub const Mode = enum {
     }
 
     pub fn admitHost(self: Mode, operation: HostOperation) !void {
-        if (self == .hybrid) return;
+        if (self == .hybrid) {
+            // Count every admitted host proving operation at the admission
+            // boundary, including callers that bypass the global helper.
+            @import("telemetry.zig").record(.host_proving_admission);
+            return;
+        }
         return switch (operation) {
             .recursive_preparation => error.MetalHostRecursivePreparationForbidden,
             .witness_generation => error.MetalHostWitnessGenerationForbidden,

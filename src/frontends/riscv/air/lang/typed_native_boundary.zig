@@ -62,11 +62,13 @@ pub fn Definition(comptime kind: Kind) type {
     return struct {
         const Self = @This();
         pub const MAIN_COLUMNS = if (isTable(kind)) 1 else if (kind == .memory or kind == .memory_full) 8 else 10;
-        pub const FIXED_COLUMNS = if (isTable(kind)) tableArity(kind) else if (kind == .program_fixed) 6 else 0;
+        /// Memory kinds take the four public-root binding parameters
+        /// `(k_init, b_init, k_final, b_final)` as verifier constants.
+        pub const FIXED_COLUMNS = if (isTable(kind)) tableArity(kind) else if (kind == .program_fixed) 6 else if (kind == .memory or kind == .memory_full) 4 else 0;
         pub const SUMS = if (isTable(kind)) 1 else if (kind == .clock) 2 else 4;
         pub const DIRECT_CONSTRAINTS = if (isTable(kind)) 0 else switch (kind) {
             .program_fixed => 9,
-            .memory, .memory_full => 2,
+            .memory, .memory_full => 5,
             else => 3,
         };
         pub const LOOKUPS = if (isTable(kind)) 1 else switch (kind) {
@@ -121,6 +123,13 @@ pub fn Definition(comptime kind: Kind) type {
                     const square = try a.mul(c[6], c[6]);
                     self.roots[0] = try a.mul(c[6], try a.sub(square, one));
                     self.roots[1] = if (kind == .memory) try a.sub(square, self.active) else try a.mul(c[6], try a.sub(self.active, one));
+                    // A `+1` (initial) row opens its access chain at clock zero.
+                    self.roots[2] = try a.mul(try a.mul(c[6], try a.add(c[6], one)), c[1]);
+                    // Row sign binds to the public roots: `+1` rows satisfy
+                    // `k_init·root + b_init = 0`, `-1` rows `k_final·root + b_final = 0`.
+                    const f = self.fixed;
+                    self.roots[3] = try a.mul(try a.mul(c[6], try a.add(c[6], one)), try a.add(try a.mul(f[0], c[7]), f[1]));
+                    self.roots[4] = try a.mul(try a.mul(c[6], try a.sub(c[6], one)), try a.add(try a.mul(f[2], c[7]), f[3]));
                     const negative = try a.neg(self.active);
                     self.events[0] = event(.range_check_8_8, negative, .{ c[2], c[3] }, zero);
                     self.events[1] = event(.range_check_8_8, negative, .{ c[4], c[5] }, zero);

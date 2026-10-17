@@ -87,11 +87,7 @@ test "secp256k1 scalar AIR: every schedule request cancels its exact authority" 
             sum = sum.add(relations_mod.combineTable(
                 M31,
                 relations.table,
-                relations_mod.tableTupleForEntry(
-                    tables[scalar_index].kind,
-                    code,
-                    tables[scalar_index].entries[code],
-                ),
+                relations_mod.tableTupleForRecord(&tables[scalar_index], code),
             ).inv() catch unreachable);
         }
         for (step.point_record_indices, 0..) |record_index, transition| {
@@ -155,6 +151,47 @@ test "secp256k1 scalar AIR: digit recurrence and chain mutations reject" {
         &sink,
     );
     try std.testing.expect(sink.failures != 0);
+}
+
+test "secp256k1 scalar AIR: doubling slot rejects identity no-op kinds" {
+    var tape = try cspTape();
+    defer tape.deinit();
+    const program = &tape.scalar_programs.items[0];
+    try std.testing.expect(program.step_count > 2);
+    const previous = try direct.rowFromStep(&tape, program, 0);
+    const row = try direct.rowFromStep(&tape, program, 1);
+    const next = try direct.rowFromStep(&tape, program, 2);
+    const slot = direct.Layout.transitionKind(0);
+    try std.testing.expectEqual(
+        M31.fromU64(@intFromEnum(affine.PointKind.double)),
+        row[slot],
+    );
+
+    // `right_identity` with rhs = infinity would make the doubling a no-op
+    // (`after_double == accumulator_before`) that the point AIR accepts.
+    for ([_]affine.PointKind{ .right_identity, .left_identity, .add, .inverse_pair }) |kind| {
+        var forged = row;
+        forged[slot] = M31.fromU64(@intFromEnum(kind));
+        if (kind == .right_identity) {
+            @memcpy(
+                forged[direct.Layout.after_double..][0..relations_mod.encoded_point_size],
+                row[direct.Layout.accumulator_before..][0..relations_mod.encoded_point_size],
+            );
+        }
+        var sink = Sink{};
+        direct.evaluateDirect(M31, &forged, &previous, &next, M31.zero(), M31.zero(), &sink);
+        try std.testing.expect(sink.failures != 0);
+    }
+
+    // Every honest doubling branch is admitted by the kind polynomial alone.
+    for (direct.doubling_kinds) |kind| {
+        var forged = row;
+        forged[slot] = M31.fromU64(@intFromEnum(kind));
+        var sink = Sink{};
+        direct.evaluateDirect(M31, &forged, &previous, &next, M31.zero(), M31.zero(), &sink);
+        try std.testing.expectEqual(@as(usize, 0), sink.failures);
+        try std.testing.expect(sink.maximum_degree <= direct.maximum_constraint_degree);
+    }
 }
 
 test "secp256k1 scalar AIR: private recurrence state is range-covered" {

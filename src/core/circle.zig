@@ -275,7 +275,7 @@ pub const Coset = struct {
     }
 
     pub fn new(initial_index: CirclePointIndex, log_size: u32) Coset {
-        std.debug.assert(log_size <= M31_CIRCLE_LOG_ORDER);
+        if (log_size >= M31_CIRCLE_LOG_ORDER) @panic("coset log size must be below circle order");
         const step_size = CirclePointIndex.subgroupGen(log_size);
         const half_step_size = step_size.half();
         return .{

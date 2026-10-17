@@ -111,6 +111,7 @@ fn foldCopies(gpa: std.mem.Allocator, setup: *const Setup, n: usize) !Outputs {
     defer packed_arena.deinit();
     const fold: recursion.Fold = .{
         .canonical = &setup.canonical,
+        .leaf_verifiers = setup.registry.registry.leaf_verifiers,
         .table = &setup.table,
         .bundle = &setup.bundle,
         .options = fold_options,
@@ -127,6 +128,41 @@ fn foldCopies(gpa: std.mem.Allocator, setup: *const Setup, n: usize) !Outputs {
     errdefer out.deinit();
     try recursion.tree.writeRootOutputs(&folded.root, &out.proof.writer, &out.outputs.writer, &out.packed_tree.writer);
     return out;
+}
+
+test "R9: leaf admission binds circuit identity and rejects trailing proof bytes" {
+    const gpa = std.heap.smp_allocator;
+    var setup: Setup = undefined;
+    try setup.init(gpa);
+    defer setup.deinit(gpa);
+    var packed_arena = std.heap.ArenaAllocator.init(gpa);
+    defer packed_arena.deinit();
+    const fold: recursion.Fold = .{
+        .canonical = &setup.canonical,
+        .leaf_verifiers = setup.registry.registry.leaf_verifiers,
+        .table = &setup.table,
+        .bundle = &setup.bundle,
+        .options = fold_options,
+        .provers = under_test.provers,
+        .packed_allocator = packed_arena.allocator(),
+    };
+
+    var admitted = try recursion.fold.LayerEntry.fromLeaf(gpa, &fold, setup.leaf.value);
+    admitted.deinit();
+
+    var bad = setup.leaf.value;
+    bad.proof.circuit_hash.words[0] ^= 1;
+    try std.testing.expectError(error.LeafCircuitIdentityMismatch, recursion.fold.LayerEntry.fromLeaf(gpa, &fold, bad));
+    bad = setup.leaf.value;
+    bad.proof.circuit_preprocessed_root.words[0] ^= 1;
+    try std.testing.expectError(error.LeafCircuitIdentityMismatch, recursion.fold.LayerEntry.fromLeaf(gpa, &fold, bad));
+    bad = setup.leaf.value;
+    const trailing = try gpa.alloc(u8, bad.proof.proof.len + 1);
+    defer gpa.free(trailing);
+    @memcpy(trailing[0..bad.proof.proof.len], bad.proof.proof);
+    trailing[trailing.len - 1] = 0;
+    bad.proof.proof = trailing;
+    try std.testing.expectError(error.InvalidLength, recursion.fold.LayerEntry.fromLeaf(gpa, &fold, bad));
 }
 
 fn sha256Hex(bytes: []const u8) [64]u8 {

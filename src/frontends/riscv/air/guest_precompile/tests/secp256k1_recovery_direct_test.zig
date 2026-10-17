@@ -45,7 +45,7 @@ test "secp256k1 recovery AIR: high-level row closes exact arithmetic tape" {
             relations_mod.productTupleForRecord(product),
         ).inv());
     }
-    for (tape.linears.items[record.linear_start..][0..3]) |*linear| {
+    for (tape.linears.items[record.linear_start..][0..direct.linear_record_count]) |*linear| {
         sum = sum.add(try relations_mod.combineLinear(
             M31,
             relations.linear,
@@ -101,6 +101,72 @@ test "secp256k1 recovery AIR: recid r and output mutations fail closed" {
         &forged,
         &relations,
     ))));
+}
+
+test "secp256k1 recovery AIR: r and s are bound below the group order" {
+    const field = @import("../secp256k1_field.zig");
+    const linear_direct = @import("../secp256k1_linear_direct.zig");
+    var tape = try recoveryTape();
+    defer tape.deinit();
+    const record = &tape.recoveries.items[0];
+    const row = try direct.rowFromRecord(&tape, record);
+    const relations = relations_mod.Relations.dummy();
+    const order = field.scalar_modulus.integer();
+
+    // The honest row requests `reduce_once(r, n) == r` and the same for `s`.
+    const linears = tape.linears.items[record.linear_start..][0..direct.linear_record_count];
+    try std.testing.expectEqual(affine.LinearKind.reduce_once, linears[2].kind);
+    try std.testing.expectEqual(affine.LinearKind.reduce_once, linears[3].kind);
+    try std.testing.expectEqualSlices(u8, &record.r, &linears[2].lhs);
+    try std.testing.expectEqualSlices(u8, &record.r, &linears[2].result);
+    try std.testing.expectEqualSlices(u8, &record.s, &linears[3].lhs);
+    try std.testing.expectEqualSlices(u8, &record.s, &linears[3].result);
+    const honest = try pairSum(&direct.rowPairs(M31, &row, &relations));
+
+    // A non-canonical representative `v in [n, 2^256)` of a valid scalar class
+    // satisfies every direct constraint and every modular product request (a
+    // product row does not require canonical operands); only the canonical
+    // reduction request distinguishes it, and no linear row can serve that
+    // request because the linear AIR forces its result below the modulus.
+    const representative = field.bytesFromInteger(order + 7);
+    inline for (.{ direct.Layout.r, direct.Layout.s }) |offset| {
+        var forged = row;
+        for (representative, 0..) |byte, index| forged[offset + index] = M31.fromU64(byte);
+        if (offset == direct.Layout.r) {
+            for (representative, 0..) |byte, index| {
+                forged[direct.Layout.recovery_point + 1 + index] = M31.fromU64(byte);
+            }
+        }
+        var sink = Sink{};
+        direct.evaluateDirect(M31, &forged, &sink);
+        try std.testing.expectEqual(@as(usize, 0), sink.failures);
+        try std.testing.expect(!honest.eql(try pairSum(&direct.rowPairs(M31, &forged, &relations))));
+    }
+    const non_canonical = affine.LinearRecord{
+        .kind = .reduce_once,
+        .modulus = .scalar,
+        .lhs = representative,
+        .rhs = field.scalar_modulus.bytes,
+        .result = representative,
+    };
+    try std.testing.expectError(
+        error.NonCanonicalOperand,
+        linear_direct.rowFromRecord(&non_canonical),
+    );
+
+    // The witness generator refuses out-of-range scalars outright.
+    var big_s: [32]u8 = undefined;
+    std.mem.writeInt(u256, &big_s, order, .big);
+    var scratch = affine.Tape.init(std.testing.allocator);
+    defer scratch.deinit();
+    try std.testing.expectError(error.InvalidScalar, recovery.recover(
+        &scratch,
+        fixture[0..32].*,
+        fixture[97..129].*,
+        big_s,
+        0,
+        fixture[33..97].*,
+    ));
 }
 
 test "secp256k1 recovery witness: invalid requests are fail atomic" {

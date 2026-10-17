@@ -37,6 +37,9 @@ pub const batch_count: usize = event_count / 2;
 pub const range_pair_count: usize = 80;
 pub const maximum_constraint_degree: u8 = 2;
 pub const constraint_count: usize = 3;
+/// Leading linear rows a record must own: on-curve add, digest reduction and
+/// the `s < n` canonical reduction; the final row is `result.x mod n = r`.
+pub const leading_linear_count: usize = 3;
 
 pub const Error = error{
     InvalidTapeRange,
@@ -67,7 +70,7 @@ pub fn rowFromRecord(
     if (product_end > tape.products.items.len or
         linear_end > tape.linears.items.len or
         record.program_index >= tape.scalar_programs.items.len or
-        record.product_count < 6 or record.linear_count < 3)
+        record.product_count < 6 or record.linear_count < leading_linear_count + 1)
     {
         return error.InvalidTapeRange;
     }
@@ -95,6 +98,7 @@ pub fn rowFromRecord(
         field.scalar_modulus.bytes,
         record.reduced_digest,
     );
+    try expectLinear(&linears[2], .reduce_once, .scalar, record.s, field.scalar_modulus.bytes, record.s);
     const one = field.bytesFromInteger(1);
     try expectProduct(&products[3], .scalar, record.s, record.inverse_s, one);
     try expectProduct(
@@ -218,7 +222,10 @@ pub fn rowPairs(
         &s,
     );
     events[10] = emit(S, active, relations_mod.combineEcdsa(S, relations.ecdsa, call));
-    events[11] = logup.RowPair.single(QM31.zero(), QM31.one());
+    // Canonical `s`: a `reduce_once` row whose result equals its operand proves
+    // `s < n` (the linear AIR range-checks the result against the modulus
+    // complement); `s * s^-1 = 1` above only proves `s != 0 (mod n)`.
+    events[11] = linearRequest(S, active, .reduce_once, .scalar, &s, &scalar_modulus, &s, relations);
 
     var pairs: [batch_count]logup.RowPair = undefined;
     for (&pairs, 0..) |*pair, index| pair.* = .{

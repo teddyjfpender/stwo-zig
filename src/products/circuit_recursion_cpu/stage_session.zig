@@ -19,6 +19,7 @@ pub const Session = struct {
     topologies: recursion.canonical.Cache,
     device_canonical: ?recursion.CanonicalCircuit,
     canonical: *const recursion.CanonicalCircuit,
+    leaf_verifiers: []const wire.registry.LeafVerifier,
     pool: prover.work_pool.WorkPool,
     binding: prover.work_pool.ScopedPoolBinding,
 
@@ -34,6 +35,7 @@ pub const Session = struct {
         self.allocator = allocator;
         self.provers = provers;
         self.source = source;
+        self.leaf_verifiers = registry.leaf_verifiers;
         self.air = try assets.Air.init(allocator);
         errdefer self.air.deinit();
         self.table = try self.air.circuitTable(allocator);
@@ -74,6 +76,7 @@ pub const Session = struct {
         var packed_safe = std.heap.ThreadSafeAllocator{ .child_allocator = packed_arena.allocator() };
         const fold: recursion.Fold = .{
             .canonical = self.canonical,
+            .leaf_verifiers = self.leaf_verifiers,
             .table = &self.table,
             .bundle = &self.bundle,
             .options = recursion.fold.default_options,

@@ -113,8 +113,14 @@ def gate_steps(gate_mode: str) -> list[dict[str, str]]:
         steps.insert(8, {"name": "prove_checkpoints", "command": "python3 scripts/prove_checkpoints.py"})
         steps.append(
             {
+                "name": "std_shims_output_dir",
+                "command": "mkdir -p zig-out/release-evidence/native",
+            }
+        )
+        steps.append(
+            {
                 "name": "std_shims",
-                "command": "zig build-lib src/std_shims_freestanding.zig -target wasm32-freestanding -O ReleaseSmall -femit-bin=/tmp/stwo-zig-std-shims-verifier.wasm",
+                "command": "zig build-lib src/std_shims_freestanding.zig -target wasm32-freestanding -O ReleaseSmall -femit-bin=zig-out/release-evidence/native/std-shims-verifier.wasm",
             }
         )
         steps.append(

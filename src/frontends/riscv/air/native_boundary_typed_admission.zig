@@ -30,7 +30,7 @@ pub fn Adapter(comptime kind: Kind) type {
             .clock => clock_interaction.N_MAIN_COLUMNS,
             else => unreachable,
         };
-        pub const FIXED_COLUMNS = if (typed.isTable(kind)) table_schema.arity(tableKind(kind)) else if (kind == .program_fixed) program.FIXED_COLUMN_COUNT else 0;
+        pub const FIXED_COLUMNS = if (typed.isTable(kind)) table_schema.arity(tableKind(kind)) else if (kind == .program_fixed) program.FIXED_COLUMN_COUNT else if (kind == .memory or kind == .memory_full) memory.N_ROOT_PARAMETERS else 0;
         pub const SUMS = if (typed.isTable(kind)) 1 else switch (kind) {
             .program, .program_fixed => program.N_SUMS,
             .memory => memory.N_SUMS,
@@ -58,8 +58,8 @@ pub fn Adapter(comptime kind: Kind) type {
             return switch (kind) {
                 .program => program.evaluateGeneric(Scalar, main, active, first, sums, previous, claims, relations),
                 .program_fixed => program.evaluateFixedGeneric(Scalar, main, fixed, active, first, sums, previous, claims, relations),
-                .memory => memory.evaluateGeneric(Scalar, main, active, first, sums, previous, claims, relations),
-                .memory_full => full_memory.evaluateGeneric(Scalar, main, active, first, sums, previous, claims, relations),
+                .memory => memory.evaluateGeneric(Scalar, main, active, first, sums, previous, claims, relations, memory.RootParameters(Scalar).fromArray(fixed)),
+                .memory_full => full_memory.evaluateGeneric(Scalar, main, active, first, sums, previous, claims, relations, memory.RootParameters(Scalar).fromArray(fixed)),
                 .clock => try clock.evaluateGeneric(Scalar, &main, sums, previous, first, active, claims, relations),
                 else => .{try tables.evaluateGeneric(Scalar, tableKind(kind), &fixed, main[0], sums[0], previous[0], first, claims[0], relations)},
             };

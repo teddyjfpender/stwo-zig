@@ -44,7 +44,7 @@ test "secp256k1 ECDSA AIR: high-level requests cancel exact tape authorities" {
         ).inv() catch unreachable);
     }
     const linears = tape.linears.items[record.linear_start..][0..record.linear_count];
-    for ([_]usize{ 0, 1, linears.len - 1 }) |index| {
+    for ([_]usize{ 0, 1, 2, linears.len - 1 }) |index| {
         sum = sum.add(relations_mod.combineLinear(
             M31,
             relations.linear,
@@ -85,6 +85,67 @@ test "secp256k1 ECDSA AIR: tape and public-input mutations fail closed" {
         error.InvalidLinearSequence,
         direct.rowFromRecord(&tape, record),
     );
+}
+
+test "secp256k1 ECDSA AIR: s is bound below the group order" {
+    const field = @import("../secp256k1_field.zig");
+    const linear_direct = @import("../secp256k1_linear_direct.zig");
+    var tape = try cspTape();
+    defer tape.deinit();
+    const record = &tape.ecdsa.items[0];
+    const row = try direct.rowFromRecord(&tape, record);
+    const relations = relations_mod.Relations.dummy();
+    const order = field.scalar_modulus.integer();
+
+    // The honest row requests `reduce_once(s, n) == s` from the linear bus.
+    const linears = tape.linears.items[record.linear_start..][0..record.linear_count];
+    try std.testing.expectEqual(affine.LinearKind.reduce_once, linears[2].kind);
+    try std.testing.expectEqualSlices(u8, &record.s, &linears[2].lhs);
+    try std.testing.expectEqualSlices(u8, &record.s, &linears[2].result);
+    const expected_request = relations_mod.combineLinear(
+        M31,
+        relations.linear,
+        relations_mod.linearTupleForRecord(&linears[2]),
+    );
+    const pairs = direct.rowPairs(M31, &row, &relations);
+    try std.testing.expect(pairs[direct.batch_count - 1].d2.eql(expected_request));
+    try std.testing.expect(pairs[direct.batch_count - 1].n2.eql(QM31.one().neg()));
+
+    // A non-canonical representative `v in [n, 2^256)` passes every direct
+    // constraint and every modular product request; only the canonical
+    // reduction request distinguishes it, and no linear row can serve it.
+    const representative = field.bytesFromInteger(order + 7);
+    var forged = row;
+    for (representative, 0..) |byte, index| forged[direct.Layout.s + index] = M31.fromU64(byte);
+    var sink = Sink{};
+    direct.evaluateDirect(M31, &forged, &sink);
+    try std.testing.expectEqual(@as(usize, 0), sink.failures);
+    const honest = try pairSum(&pairs);
+    try std.testing.expect(!honest.eql(try pairSum(&direct.rowPairs(M31, &forged, &relations))));
+    const non_canonical = affine.LinearRecord{
+        .kind = .reduce_once,
+        .modulus = .scalar,
+        .lhs = representative,
+        .rhs = field.scalar_modulus.bytes,
+        .result = representative,
+    };
+    try std.testing.expectError(
+        error.NonCanonicalOperand,
+        linear_direct.rowFromRecord(&non_canonical),
+    );
+
+    // The witness generator rejects `s = n` outright.
+    var big_s: [32]u8 = undefined;
+    std.mem.writeInt(u256, &big_s, order, .big);
+    var scratch = affine.Tape.init(std.testing.allocator);
+    defer scratch.deinit();
+    try std.testing.expect(!try ecdsa.verify(
+        &scratch,
+        fixture[0..32].*,
+        fixture[32..97].*,
+        fixture[97..129].*,
+        big_s,
+    ));
 }
 
 test "secp256k1 ECDSA AIR: infinity flags and out-of-range bytes reject" {

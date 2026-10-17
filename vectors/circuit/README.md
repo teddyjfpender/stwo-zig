@@ -42,7 +42,7 @@ host-specific. `python3 scripts/check_upstream_pins.py` rejects any drift. Regen
 | `r10/leaf_simple_bootloader.prover_input.json` | R8b | the leaf simple bootloader running one `simple_output` task with output `[11, 13, 17]` (upstream `test_golden_four_leaves_e2e`'s `leaf_bl_input`), run and adapted by `prove_leaf.rs` steps 1-2; the run's hashed-output preimage dump equals `four_leaves/leaf_preimage.json` |
 | `official/programs/simple_output_compiled.json` | R8b | upstream `crates/stwo_run_and_prove_recursive_tree/test_data/`: the bootloader task of the four-leaf goldens |
 | `r10/all_opcodes.fixed_22.prove_cairo.json` | R10c | `all_opcodes` under `LiftingSizePolicy::Fixed(22)`: every tree, the preprocessed one included, lifted one level above its columns |
-| `r10/prove_lifted_example.json` | R10 lift | upstream's wide-Fibonacci prover test with the trace tree lifted 0, 1 and 3 levels: `bincode(StarkProof)` digests |
+| `r10/prove_lifted_example.json` | R10 lift | upstream's wide-Fibonacci prover test with trace trees lifted 0, 1 and 3 levels, plus a fold-step-4 proof with a two-fold final round: `bincode(StarkProof)` digests |
 | `r10/{all_opcodes,all_builtins,use_all_opcodes_and_builtins}.prove_cairo.json` | R10c | leaf-lane Cairo proofs (`prove_cairo::<Blake2sM31MerkleChannel>` under the canonical_small leaf registry's `cairo_prover_params`) of the stwo-cairo 82f2125 `vectors/cairo/official` inputs and the adapted leaf-prover program: proof byte digests and per-stage transcript values |
 
 ## Encodings

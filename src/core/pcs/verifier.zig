@@ -74,8 +74,9 @@ pub fn VerifiedProofCapture(comptime H: type) type {
 /// Verifier-side state of the PCS commitment phase.
 ///
 /// `MC` selects the protocol revision (`Revision.of`). Under `stwo_7b211ed`
-/// `init` takes the legacy `PcsConfig` and trees are as tall as their largest
-/// column. Under `proving_5a7c5ed` (`CommitmentSchemeVerifier<MC>` of
+/// `init` takes the legacy `PcsConfig`; trees use its optional lifting height,
+/// or the largest column's height when no lifting height is configured. Under
+/// `proving_5a7c5ed` (`CommitmentSchemeVerifier<MC>` of
 /// proving@5a7c5ed) `init` takes a `PcsConfigV2`: each tree is verified at
 /// its configured lifting height, the proof domain is the last tree's height,
 /// preprocessed queries follow `prepare_preprocessed_query_positions`, and the
@@ -150,6 +151,8 @@ pub fn CommitmentSchemeVerifier(comptime H: type, comptime MC: type) type {
                     extended_log_sizes,
                     try verifier_revision.treeHeight(self.revision_config, self.trees.items.len, extended_log_sizes),
                 )
+            else if (self.config.lifting_log_size) |height|
+                try MerkleVerifier.initWithHeight(allocator, commitment, extended_log_sizes, height)
             else
                 try MerkleVerifier.init(allocator, commitment, extended_log_sizes);
             errdefer merkle_verifier.deinit(allocator);
@@ -246,6 +249,7 @@ pub fn CommitmentSchemeVerifier(comptime H: type, comptime MC: type) type {
             proof_capture_out: ?*VerifiedProofCapture(H),
             proof_capture_challenges: ?ProofCaptureChallenges,
         ) (std.mem.Allocator.Error || verifier_types.VerificationError)!void {
+            @setRuntimeSafety(true);
             var sampled_points_owned = sampled_points;
             defer sampled_points_owned.deinitDeep(allocator);
 
@@ -253,6 +257,7 @@ pub fn CommitmentSchemeVerifier(comptime H: type, comptime MC: type) type {
             defer if (owns_proof) cleanupProof(&proof, allocator);
 
             if (self.trees.items.len == 0) return verifier_types.VerificationError.EmptyTrees;
+            if (proof.commitments.items.len != self.trees.items.len) return verifier_types.VerificationError.ShapeMismatch;
             if (proof.decommitments.items.len != self.trees.items.len) return verifier_types.VerificationError.ShapeMismatch;
             if (proof.queried_values.items.len != self.trees.items.len) return verifier_types.VerificationError.ShapeMismatch;
             if (capture_out != null and proof_capture_out != null)
@@ -275,7 +280,13 @@ pub fn CommitmentSchemeVerifier(comptime H: type, comptime MC: type) type {
                     else => return err,
                 };
                 break :blk self.trees.items[self.trees.items.len - 1].height;
-            } else try computeLiftingLogSize(column_log_sizes, sampled_points_owned);
+            } else blk: {
+                const minimum = try computeLiftingLogSize(column_log_sizes, sampled_points_owned);
+                const requested = self.config.lifting_log_size orelse minimum;
+                if (requested < minimum or requested > circle.M31_CIRCLE_LOG_ORDER - 1)
+                    return verifier_types.VerificationError.ShapeMismatch;
+                break :blk requested;
+            };
             if (lifting_log_size < self.config.fri_config.log_blowup_factor) {
                 return verifier_types.VerificationError.ShapeMismatch;
             }
@@ -713,8 +724,25 @@ test "pcs verifier: commit stores extended log sizes and mixes root" {
     defer sizes.deinitDeep(alloc);
     try std.testing.expectEqual(@as(usize, 1), sizes.items.len);
     try std.testing.expectEqualSlices(u32, &[_]u32{ 5, 7 }, sizes.items[0]);
-}
 
+    var lifted = try Verifier.init(alloc, .{
+        .pow_bits = 10,
+        .fri_config = try fri.FriConfig.init(0, 2, 3),
+        .lifting_log_size = 8,
+    });
+    defer lifted.deinit(alloc);
+    var lifted_channel = Channel{};
+    try lifted.commit(alloc, root, &[_]u32{ 3, 5 }, &lifted_channel);
+    try std.testing.expectEqual(@as(u32, 8), lifted.trees.items[0].height);
+    var undersized = try Verifier.init(alloc, .{
+        .pow_bits = 10,
+        .fri_config = try fri.FriConfig.init(0, 2, 3),
+        .lifting_log_size = 6,
+    });
+    defer undersized.deinit(alloc);
+    var reject_channel = Channel{};
+    try std.testing.expectError(error.InvalidTreeHeight, undersized.commit(alloc, root, &[_]u32{ 3, 5 }, &reject_channel));
+}
 fn exerciseCommitAllocationFailures(allocator: std.mem.Allocator) !void {
     const H = @import("../vcs_lifted/blake2_merkle.zig").Blake2sMerkleHasher;
     const MC = @import("../vcs_lifted/blake2_merkle.zig").Blake2sMerkleChannel;

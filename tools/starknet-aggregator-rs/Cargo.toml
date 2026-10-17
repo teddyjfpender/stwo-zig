@@ -10,8 +10,8 @@ publish = false
 [dependencies]
 # Same pins as SNOS feature/0.14.3 (keep-starknet-strange/snos 38cabc9) so the
 # aggregator matches the OS that produced the leaves, and builds reuse its cache.
-starknet_os = { git = "https://github.com/starkware-libs/sequencer", tag = "APOLLO-0.14.3-RC.15", features = ["testing"] }
-apollo_starknet_os_program = { git = "https://github.com/starkware-libs/sequencer", tag = "APOLLO-0.14.3-RC.15" }
+starknet_os = { git = "https://github.com/starkware-libs/sequencer", rev = "12cf3b7d4a55478183662523c10eddb1d71243bf", features = ["testing"] }
+apollo_starknet_os_program = { git = "https://github.com/starkware-libs/sequencer", rev = "12cf3b7d4a55478183662523c10eddb1d71243bf" }
 cairo-vm = "=3.2.0"
 starknet-types-core = "0.2.4"
 clap = { version = "4", features = ["derive"] }

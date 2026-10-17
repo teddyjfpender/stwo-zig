@@ -85,7 +85,8 @@ test "secp256k1 affine: CSP signature verifies with compact operation tape" {
     );
     try std.testing.expect(valid);
     try std.testing.expectEqual(@as(usize, 1_042), tape.products.items.len);
-    try std.testing.expectEqual(@as(usize, 1_507), tape.linears.items.len);
+    // 1_507 arithmetic linears plus the `s < n` canonical reduction row.
+    try std.testing.expectEqual(@as(usize, 1_508), tape.linears.items.len);
     try std.testing.expectEqual(@as(usize, 228), tape.points.items.len);
     try std.testing.expectEqual(@as(usize, 4), tape.tables.items.len);
     try std.testing.expect(tape.scalar_steps.items.len > 0);

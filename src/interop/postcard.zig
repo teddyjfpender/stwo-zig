@@ -40,15 +40,16 @@ pub fn writeVarint(writer: anytype, value: u64) !void {
 /// Decode an unsigned varint (unsigned LEB128) into a u64.
 pub fn readVarint(reader: anytype) !u64 {
     var result: u64 = 0;
-    var shift: u6 = 0;
-    while (true) {
+    for (0..10) |index| {
         const byte = try reader.readByte();
-        result |= @as(u64, byte & 0x7F) << shift;
-        if (byte & 0x80 == 0) break;
-        if (shift >= 63) return error.VarintOverflow;
-        shift +|= 7;
+        if (index == 9 and (byte & 0xFE) != 0) return error.VarintOverflow;
+        result |= @as(u64, byte & 0x7F) << @as(u6, @intCast(index * 7));
+        if (byte & 0x80 == 0) {
+            if (index != 0 and (byte & 0x7F) == 0) return error.NonCanonicalVarint;
+            return result;
+        }
     }
-    return result;
+    return error.VarintOverflow;
 }
 
 // ---------------------------------------------------------------------------
@@ -218,6 +219,7 @@ pub fn deserializeProof(
     allocator: std.mem.Allocator,
     reader: anytype,
 ) !proof_mod.StarkProof(H) {
+    @setRuntimeSafety(true);
     const line = @import("stwo_core").poly.line;
 
     // -- PcsConfig --
@@ -302,6 +304,9 @@ pub fn deserializeProof(
     }
 
     const n_last = try readVarintUsize(reader);
+    if (n_last == 0 or !std.math.isPowerOfTwo(n_last) or
+        n_last > (@as(usize, 1) << @intCast(fri_config.log_last_layer_degree_bound)))
+        return error.InvalidLastLayerDegree;
     const last_coeffs = try allocator.alloc(QM31, n_last);
     errdefer allocator.free(last_coeffs);
     for (last_coeffs) |*coeff| {
@@ -319,7 +324,7 @@ pub fn deserializeProof(
             .fri_proof = .{
                 .first_layer = first_layer,
                 .inner_layers = inner_layers,
-                .last_layer_poly = line.LinePoly.initOwned(last_coeffs),
+                .last_layer_poly = try line.LinePoly.initOwnedChecked(last_coeffs),
             },
         },
     };
@@ -543,6 +548,19 @@ test "postcard: varint roundtrip" {
         var rbs = std.io.fixedBufferStream(written);
         const decoded = try readVarint(rbs.reader());
         try std.testing.expectEqual(value, decoded);
+    }
+}
+
+test "postcard: malformed and noncanonical varints are rejected" {
+    const cases = [_]struct { bytes: []const u8, expected: anyerror }{
+        .{ .bytes = &.{ 0x80, 0x00 }, .expected = error.NonCanonicalVarint },
+        .{ .bytes = &.{ 0x81, 0x80, 0x00 }, .expected = error.NonCanonicalVarint },
+        .{ .bytes = &.{ 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x02 }, .expected = error.VarintOverflow },
+        .{ .bytes = &.{ 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80 }, .expected = error.VarintOverflow },
+    };
+    inline for (cases) |case| {
+        var reader = std.io.fixedBufferStream(case.bytes);
+        try std.testing.expectError(case.expected, readVarint(reader.reader()));
     }
 }
 

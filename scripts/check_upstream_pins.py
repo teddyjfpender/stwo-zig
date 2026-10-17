@@ -732,6 +732,19 @@ def validate_repository(root: Path = ROOT, ledger_path: Path | None = None) -> l
         )
 
     errors.extend(_check_blake_oracle_source(root, ledger))
+    # The aggregator is a separate Rust workspace; its sequencer dependency
+    # must be an immutable full commit, not a movable release-candidate tag.
+    sequencer_repository = "https://github.com/starkware-libs/sequencer"
+    sequencer_revision = "12cf3b7d4a55478183662523c10eddb1d71243bf"
+    for dependency in ("starknet_os", "apollo_starknet_os_program"):
+        errors.extend(_check_manifest_dependency(
+            root, "tools/starknet-aggregator-rs/Cargo.toml", dependency,
+            sequencer_repository, sequencer_revision,
+        ))
+    errors.extend(_check_lock_sources(
+        root, "tools/starknet-aggregator-rs/Cargo.lock",
+        sequencer_repository, sequencer_revision,
+    ))
     errors.extend(_check_official_cairo_manifest(root, ledger))
     errors.extend(
         check_cairo_vm_adapter(

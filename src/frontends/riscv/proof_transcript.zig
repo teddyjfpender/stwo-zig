@@ -164,9 +164,22 @@ pub fn mixInteractionClaim(
     const canonical = try claim.canonical(statement);
     const view = canonical.view();
     if (comptime @hasDecl(@TypeOf(channel.*), "absorbRiscVClaimedSums")) {
+        // Recursion-lane scheduled channels absorb the canonical sums as one
+        // fixed-count schedule step; the physical frame below has no step in
+        // that schedule yet and the in-circuit transcript mirrors it exactly.
+        // That lane is paused (conformance/2026-09-27-riscv-pause-checkpoint.md)
+        // and must be re-aligned before it is relied upon.
         try channel.absorbRiscVClaimedSums(&view.claimed_sums);
     } else {
         view.mixInto(channel);
+        // Canonical first, then every physical claimed sum the components
+        // consume: see `statement_mod.mixPhysicalClaims`.
+        try statement_mod.mixPhysicalClaims(
+            channel,
+            statement,
+            claim,
+            statement_mod.CompatibilityBatching{},
+        );
     }
 }
 
@@ -554,6 +567,75 @@ test "active RISC-V transcript claim phase is byte-symmetric at every event" {
         prover.relation_pair_index,
     );
     try std.testing.expectEqual(prover.digestBytes(), verifier.digestBytes());
+}
+
+test "active RISC-V transcript binds per-batch claims under a fixed canonical aggregate" {
+    const allocator = std.testing.allocator;
+    const statement = fixtureStatement();
+    try statement_validation.validate(statement, .proof);
+    const honest = try allocator.create(statement_mod.RiscVInteractionClaim);
+    defer allocator.destroy(honest);
+    honest.* = fixtureInteractionClaim(&statement);
+    const delta = QM31.fromU32Unchecked(17, 29, 31, 37);
+
+    // Opcode component 0 (base_alu_imm) consumes several batch claims.
+    const batching = statement_mod.CompatibilityBatching{};
+    try std.testing.expect(batching.opcodeBatchCount(.base_alu_imm) >= 2);
+    const opcode_shift = try allocator.create(statement_mod.RiscVInteractionClaim);
+    defer allocator.destroy(opcode_shift);
+    opcode_shift.* = honest.*;
+    opcode_shift.opcode_claims[0][0] = opcode_shift.opcode_claims[0][0].add(delta);
+    opcode_shift.opcode_claims[0][1] = opcode_shift.opcode_claims[0][1].sub(delta);
+
+    // Infrastructure component 1 (memory) consumes four detailed sums.
+    try std.testing.expectEqual(statement_mod.InfraKind.memory, statement.infra_descs[1].kind);
+    const infra_shift = try allocator.create(statement_mod.RiscVInteractionClaim);
+    defer allocator.destroy(infra_shift);
+    infra_shift.* = honest.*;
+    infra_shift.memory_claims[1][0] = infra_shift.memory_claims[1][0].add(delta);
+    infra_shift.memory_claims[1][2] = infra_shift.memory_claims[1][2].sub(delta);
+
+    // Both shifts leave every canonical aggregate, and therefore the global
+    // LogUp cancellation, unchanged.
+    const honest_canonical = try honest.canonical(&statement);
+    for ([_]*const statement_mod.RiscVInteractionClaim{ opcode_shift, infra_shift }) |shifted| {
+        const shifted_canonical = try shifted.canonical(&statement);
+        try std.testing.expectEqual(honest_canonical.claimed_sums, shifted_canonical.claimed_sums);
+    }
+
+    var honest_channel = Blake2sChannel{};
+    try mixInteractionClaim(&honest_channel, &statement, honest);
+    var replay_channel = Blake2sChannel{};
+    try mixInteractionClaim(&replay_channel, &statement, honest);
+    try std.testing.expectEqual(honest_channel.digestBytes(), replay_channel.digestBytes());
+
+    for ([_]*const statement_mod.RiscVInteractionClaim{ opcode_shift, infra_shift }) |shifted| {
+        var shifted_channel = Blake2sChannel{};
+        try mixInteractionClaim(&shifted_channel, &statement, shifted);
+        try std.testing.expect(!std.mem.eql(
+            u8,
+            &honest_channel.digestBytes(),
+            &shifted_channel.digestBytes(),
+        ));
+    }
+
+    // The physical frame follows the canonical frame and binds exactly the
+    // consumed claims: every opcode batch plus every infrastructure sum.
+    var traced = EventTraceChannel{};
+    try mixInteractionClaim(&traced, &statement, honest);
+    var expected_felt_events: usize = transcript.claims.COMPONENT_COUNT;
+    expected_felt_events += statement.n_components + statement.n_infra;
+    try std.testing.expectEqual(expected_felt_events, traced.count(.mix_felts));
+    var expected_physical: usize = 0;
+    for (statement.component_descs[0..statement.n_components]) |desc|
+        expected_physical += batching.opcodeBatchCount(desc.family);
+    for (statement.infra_descs[0..statement.n_infra]) |desc|
+        expected_physical += statement_mod.nClaimedSumsForInfra(desc.kind);
+    try std.testing.expect(expected_physical > transcript.claims.COMPONENT_COUNT);
+    try std.testing.expectEqual(
+        expected_physical,
+        try statement_mod.physicalClaimCount(&statement, batching),
+    );
 }
 
 test "active RISC-V transcript rejects reversed main-claim and shard-manifest mix" {

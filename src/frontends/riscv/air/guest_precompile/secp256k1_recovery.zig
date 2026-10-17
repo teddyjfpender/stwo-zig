@@ -63,6 +63,15 @@ pub fn recover(
     const reduced_digest = try tape.reduceScalarOnce(reverse(digest_big_endian));
     const inverse_r = try tape.inverse(.scalar, r);
     const inverse_s = try tape.inverse(.scalar, s);
+    // Canonical range proofs `r < n` and `s < n`: a one-step reduction whose
+    // result is the operand itself. The inverse products above only prove
+    // `r, s != 0 (mod n)`; without these the AIR would attest recoveries for
+    // `r in [n, 2^256)` or `s >= n`, which the ABI (and Ethereum) rejects.
+    if (!std.mem.eql(u8, &(try tape.reduceScalarOnce(r)), &r) or
+        !std.mem.eql(u8, &(try tape.reduceScalarOnce(s)), &s))
+    {
+        return error.InvalidScalar;
+    }
     const negative_digest = try tape.sub(.scalar, @splat(0), reduced_digest);
     const generator_scalar = try tape.mul(
         .scalar,

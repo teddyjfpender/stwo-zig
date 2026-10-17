@@ -296,6 +296,17 @@ test "malicious prover harness: the fixture guest proves, verifies and agrees wi
     try guest.proveAndVerify("malicious-prover state-history guest");
 }
 
+// Soundness finding F1: per-batch LogUp claimed sums were never bound to the
+// transcript, only their 28 canonical aggregates. A prover could therefore
+// shift mass between two batches of one component after the OODS point and
+// keep every aggregate, hence the global cancellation, intact. The honest
+// proof is presented with exactly such a shifted claim and must be rejected.
+test "malicious prover harness: a per-batch claim shift under a fixed aggregate is rejected" {
+    var guest = try committed.Guest.init(std.testing.allocator, SPEC);
+    defer guest.deinit();
+    try guest.expectShiftedBatchClaimRejected();
+}
+
 test "malicious prover harness: the fixture retires the expected rows" {
     var guest = try committed.Guest.init(std.testing.allocator, SPEC);
     defer guest.deinit();

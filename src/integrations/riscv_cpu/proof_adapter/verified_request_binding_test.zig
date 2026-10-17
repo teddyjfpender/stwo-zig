@@ -1,18 +1,26 @@
-//! Structural pins for the profiled verified-request boundary.
+//! Structural pins for the full-width execution transaction boundary.
 //!
-//! A mock engine cannot prove where production I/O, verification, snapshots,
-//! and artifact publication sit around a real monotonic timer. These checks
-//! therefore bind the production adapter itself, following the same pattern as
+//! A mock engine cannot prove where production I/O, verification, and artifact
+//! publication sit around a real monotonic timer. These checks therefore bind
+//! the production transaction itself, following the same pattern as
 //! `staged_pcs_profile_test.zig`.
+//!
+//! The adapter was split: `proof_adapter.zig` is now a thin facade that routes
+//! through `profile_router.zig` into `blake3_execution_product.zig` (the
+//! sampled benchmark/prove loop and the report) and
+//! `blake3_execution_request.zig` (one timed execute-prove-verify request). The
+//! stage-profile recorder and the `verified_request_attempt` timing authority
+//! no longer sit on the product path: every sample is a freshly verified
+//! request whose phase partition is the single `Timing` struct, so the pins
+//! below bind that partition and the sample binding directly.
 
 const std = @import("std");
 const stwo = @import("stwo");
 
-const ADAPTER_SOURCE = @embedFile("../proof_adapter.zig");
-
-fn between(start_token: []const u8, end_token: []const u8) ![]const u8 {
-    return sourceBetween(ADAPTER_SOURCE, start_token, end_token);
-}
+const REQUEST_SOURCE = @embedFile("blake3_execution_request.zig");
+const PRODUCT_SOURCE = @embedFile("blake3_execution_product.zig");
+const ROUTER_SOURCE = @embedFile("profile_router.zig");
+const FACADE_SOURCE = @embedFile("../proof_adapter.zig");
 
 fn sourceBetween(
     source: []const u8,
@@ -27,6 +35,18 @@ fn sourceBetween(
     return tail[0..end];
 }
 
+/// The single timed request: guest execution through fresh verification.
+fn requestExecute() ![]const u8 {
+    return sourceBetween(REQUEST_SOURCE, "pub fn execute(", "\n}\n");
+}
+
+/// The sampled prove/benchmark loop and the report it publishes.
+fn productLoop() ![]const u8 {
+    const start = std.mem.indexOf(u8, PRODUCT_SOURCE, "fn runInternal(") orelse
+        return error.StartTokenMissing;
+    return PRODUCT_SOURCE[start..];
+}
+
 fn expectOrdered(source: []const u8, tokens: []const []const u8) !void {
     var cursor: usize = 0;
     for (tokens) |token| {
@@ -38,86 +58,119 @@ fn expectOrdered(source: []const u8, tokens: []const []const u8) !void {
     }
 }
 
-test "profiled phase clocks partition guest proof and native verification" {
-    const run_prove = try between("fn runProve(", "\nfn runBenchmark(");
-    try expectOrdered(run_prove, &.{
-        "Sha256.hash(input_bytes",
-        "Recorder.initWithOptions(",
-        "var profile_phase_timer: ?std.time.Timer",
-        "runner.runWithInput",
-        "const guest_execution_ns: ?u64",
-        "proof_phase_meter.Meter.init(",
-        "proveRiscVWithEngineAndPublicDataUsingChannelAndPhaseMeter(",
-        "proveRiscVWithEngineAndPublicDataUsingChannel(",
-        "const proving_including_witness_ns: ?u64",
-        "const witness_ns: ?u64",
-        "const proving_ns: ?u64",
-        "serializeProof(",
-        "verifyRiscVWithEngineUsingChannel(",
+test "phase clocks partition guest execution, proving and fresh verification" {
+    const execute = try requestExecute();
+    // One monotonic timer, read at every phase boundary, in execution order.
+    try expectOrdered(execute, &.{
+        "var timer = try std.time.Timer.start();",
+        "validateReleaseAbiForProfile(elf, profile)",
+        "runner.runWithInput(",
+        "prover.admitRunForProving(base_run)",
+        "const execution_end = timer.read();",
+        "initCompactRun(",
+        "const witness_end = timer.read();",
+        "owner.admission()",
+        "PreparedVerifier.initCompact(",
+        "const admission_end = timer.read();",
+        "Api.proveCompact(",
+        "const proving_end = timer.read();",
+        "Artifact.encode(",
+        "const artifact_end = timer.read();",
+        ".verifyPublic(",
         "error.TranscriptStateDigestMismatch",
-        "const verification_ns = verification_timer.read();",
-        "const telemetry_after = try Engine.telemetrySnapshot();",
-        "recorder.snapshot(allocator)",
-        "requireNativeOnlyStages(profile.stages)",
-        "verified_request_attempt.Attempt.capture(",
-        "artifact_mod.writeArtifact",
+        "const end = timer.read();",
+    });
+    // The report's partition is the differences of those boundaries, and the
+    // total is the final read, so the phases sum to the sample.
+    try expectOrdered(execute, &.{
+        ".execution_ns = execution_end,",
+        ".witness_ns = witness_end - execution_end,",
+        ".admission_ns = admission_end - witness_end,",
+        ".proving_ns = proving_end - admission_end,",
+        ".artifact_encoding_ns = artifact_end - proving_end,",
+        ".fresh_verification_ns = end - artifact_end,",
+        ".total_ns = end,",
+    });
+    // Verification runs on the CPU backend against the encoded bytes, after the
+    // witness and the proof object have been destroyed.
+    try expectOrdered(execute, &.{
+        "result.proof.deinit(a);\n    proof_alive = false;",
+        "owner.deinit();\n    owner_alive = false;",
+        "ForBackend(@import(\"stwo_cpu_backend\").CpuBackend).verifyPublic(",
     });
 }
 
-test "request clock and flat graph capture are absent on unprofiled attempts" {
-    const run_prove = try between("fn runProve(", "\nfn runBenchmark(");
-    for ([_][]const u8{
-        "profiled_sample_index: ?usize",
-        ".capture_tasks = profiled_sample_index != null,",
-        ".capture_work = profiled_sample_index != null,",
-        "if (profiled_sample_index != null)\n        try std.time.Timer.start()",
-        "if (profiled_sample_index != null)\n        try prover.proveRiscVWithEngineAndPublicDataUsingChannelAndPhaseMeter(",
-        "if (profiled_sample_index) |index|",
-    }) |token| {
-        try std.testing.expect(std.mem.indexOf(u8, run_prove, token) != null);
+test "stage-profile capture is absent from the execution transaction" {
+    // The old adapter captured a stage-profile recorder and flat task graph on
+    // profiled samples only. The transaction has no capture at all now:
+    // `profiled` is echoed from the request into the report and drives nothing.
+    for ([_][]const u8{ REQUEST_SOURCE, PRODUCT_SOURCE, ROUTER_SOURCE }) |source| {
+        for ([_][]const u8{
+            "stage_profile",
+            "Recorder",
+            "capture_tasks",
+            "capture_work",
+            "profile_attempt",
+            "profiled_sample_index",
+            "verified_request_attempt",
+        }) |token| {
+            try std.testing.expect(std.mem.indexOf(u8, source, token) == null);
+        }
     }
-    try std.testing.expect(std.mem.indexOf(u8, run_prove, "profile_attempt") == null);
+    const loop = try productLoop();
+    try std.testing.expect(std.mem.indexOf(
+        u8,
+        loop,
+        ".profiled = switch (options.mode) {\n            .prove => false,\n            .bench => |b| b.profiled,\n        },",
+    ) != null);
 }
 
-test "profiled benchmark binds every measured sample to the new timing authority" {
-    const run_benchmark = try between("fn runBenchmark(", "\n/// Cryptographically verifies");
-    try expectOrdered(run_benchmark, &.{
-        "if (benchmark.profiled and is_sample) sample_index else null",
-        "verified_request_attempt.requireProfiled(",
-        "retained_profiled_reports[retained_profiled_report_count] = parsed",
-        "retained_profiled_report_count != benchmark.samples",
-        "verified_request_attempt.PROFILED_BENCHMARK_SCHEMA",
-        ".timing_authority = if (benchmark.profiled) .{} else null",
-        ".verified_request_attempts = if (benchmark.profiled) profiled_attempts else null",
+test "benchmark binds every measured sample to a freshly verified request" {
+    const loop = try productLoop();
+    try expectOrdered(loop, &.{
+        "const count = try std.math.add(usize, warmups, samples);",
+        "for (0..count) |index| {",
+        "request.execute(Engine, backend == .metal, profile, a, elf, input, pcs_profile.select(options.protocol), budget);",
+        "return error.NonDeterministicStatement;",
+        "return error.NonDeterministicTranscript;",
+        "return error.NonDeterministicExecution;",
+        "if (index < warmups) continue;",
+        "timings[index - warmups] = result.timing;",
+        "devices[index - warmups] = result.device;",
+        "ordered[index - warmups] = result.timing.total_ns;",
+        "if (options.proof_temporary) |path|",
+        "try file.writeAll(result.artifact.bytes);",
+        ".schema = \"riscv_full_width_execution_v2\",",
+        ".verified_in_process = true,",
+        ".recursion_enabled = false,",
+        ".samples = samples,",
+        ".verified_samples = samples,",
+        ".timing_partition = \"execution+witness+admission+proving+artifact_encoding+fresh_verification\",",
+        ".timings = timings,",
         ".emit_null_optional_fields = false",
     });
-    try std.testing.expect(
-        std.mem.indexOf(
-            u8,
-            run_benchmark,
-            "else\n            benchmark_report.NATIVE_BENCHMARK_SCHEMA",
-        ) != null,
-    );
-    try std.testing.expect(
-        std.mem.indexOf(u8, run_benchmark, ".recursion_enabled = false") != null,
-    );
+    // Warmups and samples both flow from the requested mode; `prove` is the
+    // one-sample, zero-warmup degenerate case of the same loop.
+    try expectOrdered(loop, &.{
+        "const warmups: usize = switch (options.mode) {\n        .prove => 0,",
+        "const samples: usize = switch (options.mode) {\n        .prove => 1,",
+        "if (samples == 0) return error.NoBenchmarkSamples;",
+    });
 }
 
 test "ordinary product prove path has no execution policy or recursive call" {
-    const run_prove = try between("fn runProve(", "\nfn runBenchmark(");
-    try std.testing.expect(std.mem.indexOf(
-        u8,
-        run_prove,
-        "proveRiscVWithEngineAndPublicDataUsingChannel(",
-    ) != null);
-    for ([_][]const u8{
-        "proveRiscVWithEngineAndPublicDataUsingChannelAndExecution(",
-        "StatementAdmission",
-        "recursive_fri_outer",
-        "proveRecursive",
-        "proveOuter",
-    }) |forbidden| {
-        try std.testing.expect(std.mem.indexOf(u8, run_prove, forbidden) == null);
+    const execute = try requestExecute();
+    try std.testing.expect(std.mem.indexOf(u8, execute, "Api.proveCompact(") != null);
+    for ([_][]const u8{ REQUEST_SOURCE, PRODUCT_SOURCE, ROUTER_SOURCE, FACADE_SOURCE }) |source| {
+        for ([_][]const u8{
+            "proveRiscVWithEngineAndPublicDataUsingChannelAndExecution(",
+            "StatementAdmission",
+            "recursive_fri_outer",
+            "proveRecursive",
+            "proveOuter",
+        }) |forbidden| {
+            try std.testing.expect(std.mem.indexOf(u8, source, forbidden) == null);
+        }
     }
 }
 
@@ -159,11 +212,19 @@ test "ordinary public prove API types expose no execution policy parameter" {
     }
 }
 
-test "the structural fixture still covers the production adapter" {
-    try std.testing.expect(ADAPTER_SOURCE.len > 1024);
-    try std.testing.expect((try between("fn runProve(", "\nfn runBenchmark(")).len > 1024);
-    try std.testing.expect((try between(
-        "fn runBenchmark(",
-        "\n/// Cryptographically verifies",
-    )).len > 1024);
+test "the structural fixture still covers the production transaction" {
+    // The facade must still route every prove/bench request into the product
+    // transaction, or the pins above would bind dead code.
+    try std.testing.expect(std.mem.indexOf(
+        u8,
+        FACADE_SOURCE,
+        "return profile_router.run(Engine, backend, allocator, elf_path, input_path, options, process_identity);",
+    ) != null);
+    try std.testing.expect(std.mem.indexOf(
+        u8,
+        ROUTER_SOURCE,
+        "@import(\"blake3_execution_product.zig\").runForProfile(",
+    ) != null);
+    try std.testing.expect((try requestExecute()).len > 1024);
+    try std.testing.expect((try productLoop()).len > 1024);
 }

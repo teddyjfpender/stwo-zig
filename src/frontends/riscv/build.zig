@@ -23,6 +23,11 @@ pub fn build(b: *std.Build) void {
         "check-only",
         "Type-check focused roots without emitting or running test binaries",
     ) orelse false;
+    const test_filter = b.option(
+        []const u8,
+        "test-filter",
+        "Compile and run only frontend tests containing this name",
+    );
     const dependency_options = .{ .target = target, .optimize = optimize };
 
     const core = b.dependency("stwo_core", dependency_options).module("stwo_core");
@@ -103,7 +108,10 @@ pub fn build(b: *std.Build) void {
     keccakf_proof_harness.addImport("stwo_prover_engine", prover);
     keccakf_proof_harness.addImport("stwo_riscv_frontend", frontend);
 
-    const tests = b.addTest(.{ .root_module = frontend });
+    const tests = b.addTest(.{
+        .root_module = frontend,
+        .filters = if (test_filter) |filter| &.{filter} else &.{},
+    });
     const run_tests = b.addRunArtifact(tests);
     // ReleaseFast production skips the duplicate pre-commit semantic pass.
     // The package CI lane opts back in so the validator and its exact
@@ -121,7 +129,12 @@ pub fn build(b: *std.Build) void {
         "test",
         "Compile and test the stwo_riscv_frontend package",
     );
-    test_step.dependOn(TestCountFloor.add(b, run_tests, test_floor));
+    // A focused run deliberately omits the full-suite inventory floor; the
+    // unfiltered qualification run still checks it.
+    test_step.dependOn(if (test_filter == null)
+        TestCountFloor.add(b, run_tests, test_floor)
+    else
+        &run_tests.step);
 
     addFocusedTests(b, core, prover, prover_api, postcard, typed_air_artifacts, target, optimize, check_only, .{
         .step = "test-vm-leaf-context-v2",

@@ -73,13 +73,13 @@ These build settings do not change prover worker policy or proof identities.
 
 | Product | Host | State |
 | :--- | :--- | :--- |
-| `stwo-core` / `stwo-prover` | Zig-supported hosts | Released focused libraries |
-| `stwo-native-cpu` | Zig-supported hosts | Released CPU/SIMD CLI |
+| `stwo-core` / `stwo-prover` | Zig-supported hosts | Source-ready focused libraries; no tagged release yet |
+| `stwo-native-cpu` | Zig-supported hosts | Source-ready CPU/SIMD CLI; no tagged release yet |
 | `stwo-native-metal` | macOS with Apple Metal | Parity-gated, source-JIT, device-only CLI |
-| `stwo-zig` | Zig-supported hosts | Released CPU aggregate; Metal only with `-Daggregate-metal=true` on macOS |
+| `stwo-zig` | Zig-supported hosts | Source-ready CPU aggregate; Metal only with `-Daggregate-metal=true` on macOS; no tagged release yet |
 | `stwo-zig-riscv-cpu` | Native host; static x86_64 Linux artifact | Release-gated RV32IM prove, verify, and benchmark CLI |
 | `stwo-zig-riscv-metal` | macOS with Apple Metal | Parity-gated authenticated-AOT RV32IM CLI with resident-AIR and zero-fallback evidence |
-| `stwo-cairo-cpu` | Zig-supported hosts with Rust build tooling | Released CPU/SIMD CLI; complete admitted corpus accepted by official Rust |
+| `stwo-cairo-cpu` | Zig-supported hosts with Rust build tooling | Source-ready CPU/SIMD CLI; complete admitted corpus accepted by official Rust; no tagged release yet |
 | `stwo-cairo-metal` | macOS with Apple Metal | Parity-gated authenticated-AOT CLI; exact CPU parity, zero-fallback telemetry, and official Rust acceptance across the release corpus |
 | `stwo-circuit-recursion-cpu` | Zig-supported hosts | Parity-gated recursive tree (`fold-tree`) and registry generation (`circuit-params`) CLI; byte-identical to StarkWare's `proving@5a7c5ed` binaries on the canonical_small test registries |
 | CUDA products | Current NVIDIA qualification host pending | Working source retained, distribution deferred, and no fallback or placeholder execution |

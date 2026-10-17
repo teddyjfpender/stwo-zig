@@ -51,11 +51,11 @@ test "BLAKE3 Span public program authenticates complete ROM and emits no hash ro
     defer decoded.deinit();
     try std.testing.expectEqualDeep(plan.program_leaves, decoded.program_leaves);
     try std.testing.expectEqual(admitted.expected_id, try decoded.identity());
-    try std.testing.expectEqual(@as(u32, 4), std.mem.readInt(u32, bytes[8..12], .little));
+    try std.testing.expectEqual(plans.VERSION, std.mem.readInt(u32, bytes[8..12], .little));
     // Reject the previous schedule-only format, never reinterpret it as public ROM.
     std.mem.writeInt(u32, bytes[8..12], 2, .little);
     try std.testing.expectError(error.InvalidCommitmentPlanVersion, codec.decode(a, bytes, admitted.expected_id, .{}));
-    std.mem.writeInt(u32, bytes[8..12], 4, .little);
+    std.mem.writeInt(u32, bytes[8..12], plans.VERSION, .little);
     // Corrupt a canonical decoded value without changing the embedded authority.
     bytes[codec.HEADER_BYTES + 12] ^= 1;
     try std.testing.expectError(error.ProgramRootMismatch, codec.decode(a, bytes, admitted.expected_id, .{}));

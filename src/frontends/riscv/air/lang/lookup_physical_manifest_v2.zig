@@ -448,10 +448,32 @@ pub const AuthenticatedStatement = struct {
         );
         const view = canonical.view();
         if (comptime @hasDecl(@TypeOf(channel.*), "absorbRiscVClaimedSums")) {
+            // Recursion-lane scheduled channels absorb only the canonical
+            // sums (fixed schedule step, mirrored in-circuit). See
+            // `proof_transcript.mixInteractionClaim`; that lane is paused and
+            // must be re-aligned with the physical frame below.
             try channel.absorbRiscVClaimedSums(&view.claimed_sums);
         } else {
             view.mixInto(channel);
+            // Canonical first, then exactly the selected batch claims each
+            // opcode component consumes plus every infrastructure sum.
+            try statement_mod.mixPhysicalClaims(
+                channel,
+                statement,
+                claim,
+                SelectedBatching{ .manifest = manifest },
+            );
         }
+    }
+};
+
+/// Manifest-selected batching: each opcode component consumes exactly
+/// `detailed_claim_count` claims of its family entry.
+pub const SelectedBatching = struct {
+    manifest: *const Manifest,
+
+    pub fn opcodeBatchCount(self: SelectedBatching, family: Family) usize {
+        return @intCast(self.manifest.entryForFamily(family).detailed_claim_count);
     }
 };
 

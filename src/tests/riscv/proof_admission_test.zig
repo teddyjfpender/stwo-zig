@@ -34,6 +34,7 @@ const CpuProverEngine = riscv_cpu.CpuProverEngine;
 const ExtendedProof = prover.ExtendedProof;
 
 const CountingEngine = struct {
+    pub const Backend = CpuProverEngine.Backend;
     pub const Component = prover_component.ComponentProver;
     pub const Scheme = CpuProverEngine.Scheme;
     pub const Channel = CpuProverEngine.Channel;

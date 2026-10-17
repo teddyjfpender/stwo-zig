@@ -288,7 +288,10 @@ fn recordInfrastructure(
                 1,
             );
             const active = try layout.atBase(0, entry.preprocessed.offset + 1, 0);
-            const constraints = memory_boundary_policy.evaluateGeneric(
+            // Retired shape without the public-root sign bindings: this
+            // circuit has no public-root inputs (see the note in
+            // vm_air_composition_circuit_graph_build.zig).
+            const constraints = memory_boundary_policy.evaluateWithoutRootsGeneric(
                 Scalar,
                 main,
                 active,

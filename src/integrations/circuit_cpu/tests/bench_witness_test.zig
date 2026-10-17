@@ -80,6 +80,7 @@ test "bench: multiverifier witness and prove" {
     defer packed_arena.deinit();
     const fold: recursion.Fold = .{
         .canonical = &canonical,
+        .leaf_verifiers = registry.registry.leaf_verifiers,
         .table = &table,
         .bundle = &bundle,
         .options = .{ .compact_polynomial_min_log = 18 },

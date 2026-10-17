@@ -63,7 +63,7 @@ test "fri config: bounds checks" {
 
 test "fri: degree bound folding" {
     const circle_bound = CirclePolyDegreeBound.init(7);
-    const line_bound = circle_bound.foldToLine();
+    const line_bound = circle_bound.foldToLine().?;
     try std.testing.expectEqual(@as(u32, 6), line_bound.log_degree_bound);
     try std.testing.expectEqual(@as(u32, 5), (line_bound.fold(1) orelse unreachable).log_degree_bound);
     try std.testing.expect((line_bound.fold(7)) == null);
@@ -421,6 +421,51 @@ test "fri verifier: invalid layer count fails commit" {
             CirclePolyDegreeBound.init(3),
         ),
     );
+}
+
+test "fri verifier: rejects malformed terminal coefficients and surplus layers before transcript mutation" {
+    const H = @import("stwo_core").vcs_lifted.blake2_merkle.Blake2sMerkleHasher;
+    const MC = @import("stwo_core").vcs_lifted.blake2_merkle.Blake2sMerkleChannel;
+    const Channel = @import("stwo_core").channel.blake2s.Blake2sChannel;
+    const Verifier = FriVerifier(H, MC);
+    var empty_values: [0]QM31 = .{};
+    var empty_hashes: [0]H.Hash = .{};
+    const layer: FriLayerProof(H) = .{
+        .fri_witness = &empty_values,
+        .decommitment = .{ .hash_witness = &empty_hashes },
+        .commitment = [_]u8{1} ** 32,
+    };
+    var layers = [_]FriLayerProof(H){ layer, layer };
+    var invalid_coeffs = [_]QM31{ QM31.one(), QM31.one(), QM31.one() };
+    var valid_coeffs = [_]QM31{QM31.one()};
+    const config = try FriConfig.init(1, 1, 2);
+    var channel = Channel{};
+    const digest_before = channel.digestBytes();
+    try std.testing.expectError(FriVerificationError.LastLayerDegreeInvalid, Verifier.commit(
+        std.testing.allocator,
+        &channel,
+        config,
+        .{ .first_layer = layer, .inner_layers = layers[0..1], .last_layer_poly = .{ .coeffs = &invalid_coeffs, .log_size = 0 } },
+        CirclePolyDegreeBound.init(3),
+    ));
+    try std.testing.expectEqualSlices(u8, &digest_before, &channel.digestBytes());
+    try std.testing.expectError(FriVerificationError.InvalidNumFriLayers, Verifier.commit(
+        std.testing.allocator,
+        &channel,
+        config,
+        .{ .first_layer = layer, .inner_layers = &layers, .last_layer_poly = .{ .coeffs = &valid_coeffs, .log_size = 0 } },
+        CirclePolyDegreeBound.init(3),
+    ));
+    try std.testing.expectEqualSlices(u8, &digest_before, &channel.digestBytes());
+    var oversize_step = config;
+    oversize_step.fold_step = 4;
+    try std.testing.expectError(FriVerificationError.InvalidNumFriLayers, Verifier.commit(
+        std.testing.allocator,
+        &channel,
+        oversize_step,
+        .{ .first_layer = layer, .inner_layers = &layers, .last_layer_poly = .{ .coeffs = &valid_coeffs, .log_size = 0 } },
+        CirclePolyDegreeBound.init(3),
+    ));
 }
 
 test "fri proof containers: deinit owned buffers" {

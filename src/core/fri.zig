@@ -10,20 +10,17 @@ const circle_domain = @import("poly/circle/domain.zig");
 const queries_mod = @import("queries.zig");
 const core_utils = @import("utils.zig");
 const vcs_verifier = @import("vcs_lifted/verifier.zig");
-
 const M31 = m31.M31;
 const QM31 = qm31.QM31;
 const buildMerkleVerificationInputs = merkle_queries.build;
 const findSubsetIndex = merkle_queries.findSubsetIndex;
 const findPosition = merkle_queries.findPosition;
-
 const config_mod = @import("fri/config.zig");
+const commit_validation = @import("fri/commit_validation.zig");
 const folding = @import("fri/folding.zig");
 const merkle_queries = @import("fri/merkle_queries.zig");
 const query_capture = @import("fri/query_capture.zig");
-
 pub const geometry = @import("fri/geometry.zig");
-
 pub const FriConfig = config_mod.FriConfig;
 pub const FOLD_STEP = config_mod.FOLD_STEP;
 pub const CIRCLE_TO_LINE_FOLD_STEP = config_mod.CIRCLE_TO_LINE_FOLD_STEP;
@@ -34,10 +31,8 @@ pub const allFoldSteps = config_mod.allFoldSteps;
 pub const FriVerificationError = config_mod.FriVerificationError;
 pub const CirclePolyDegreeBound = config_mod.CirclePolyDegreeBound;
 pub const LinePolyDegreeBound = config_mod.LinePolyDegreeBound;
-
 pub const SparseEvaluation = folding.SparseEvaluation;
 pub const ComputeDecommitmentResult = folding.ComputeDecommitmentResult;
-
 pub const SampledQueryPositions = query_capture.SampledQueryPositions;
 pub const FriLayerQueryCapture = query_capture.FriLayerQueryCapture;
 pub const FriQueryCapture = query_capture.FriQueryCapture;
@@ -73,6 +68,9 @@ pub fn FriVerifier(comptime H: type, comptime MC: type) type {
             proof_in: FriProof(H),
             column_bound: CirclePolyDegreeBound,
         ) (std.mem.Allocator.Error || FriVerificationError)!Self {
+            @setRuntimeSafety(true);
+            const coefficients = proof_in.last_layer_poly.coefficients();
+            const initial_line_bound = try commit_validation.validate(config, column_bound, proof_in.inner_layers.len, coefficients.len);
             MC.mixRoot(channel, proof_in.first_layer.commitment);
 
             const column_commitment_domain = canonic.CanonicCoset
@@ -87,7 +85,7 @@ pub fn FriVerifier(comptime H: type, comptime MC: type) type {
             };
             errdefer first_layer.deinit(allocator);
 
-            var layer_bound = column_bound.foldToLineWithStep(config.fold_step);
+            var layer_bound = initial_line_bound;
             var layer_domain = line.LineDomain.init(
                 circle.Coset.halfOdds(layer_bound.logDegreeBound() + config.log_blowup_factor),
             ) catch return FriVerificationError.InvalidNumFriLayers;
@@ -104,7 +102,8 @@ pub fn FriVerifier(comptime H: type, comptime MC: type) type {
 
                 // Determine fold count: normally FOLD_STEP, clamped to the
                 // remaining degree so we don't overshoot.
-                const remaining = layer_bound.logDegreeBound() - config.log_last_layer_degree_bound;
+                const remaining = std.math.sub(u32, layer_bound.logDegreeBound(), config.log_last_layer_degree_bound) catch
+                    return FriVerificationError.InvalidNumFriLayers;
                 const this_fold_step: u32 = config_mod.foldStepAt(config.fold_step, remaining);
 
                 inner_layers[i] = .{
@@ -132,12 +131,9 @@ pub fn FriVerifier(comptime H: type, comptime MC: type) type {
                 return FriVerificationError.InvalidNumFriLayers;
             }
             var last_layer_poly = line.LinePoly.initOwned(
-                try allocator.dupe(QM31, proof_in.last_layer_poly.coefficients()),
+                try allocator.dupe(QM31, coefficients),
             );
             errdefer last_layer_poly.deinit(allocator);
-            if (last_layer_poly.len() > (@as(usize, 1) << @intCast(config.log_last_layer_degree_bound))) {
-                return FriVerificationError.LastLayerDegreeInvalid;
-            }
 
             channel.mixFelts(last_layer_poly.coefficients());
 

@@ -381,15 +381,21 @@ pub const ByteTable = struct {
         _ = group_first;
         _ = group_last;
         _ = relations;
+        // The emitted value (column 2) is served to every byte range check in
+        // the precompile with coefficient `multiplicity` (column 1), which is
+        // not gated by `active`. Its decomposition therefore has to hold on
+        // every row, active or not: boolean bits and an exact reconstruction
+        // bind `value` into [0, 255] unconditionally, so an inactive row cannot
+        // serve an out-of-range byte with a non-zero multiplicity.
         const active = main[0];
         sink.add(active.mul(active.sub(scalar(S, 1))), 2);
         var reconstructed = S.zero();
         for (0..8) |bit| {
             const value_bit = main[3 + bit];
-            sink.add(value_bit.mul(value_bit.sub(active)), 2);
+            sink.add(value_bit.mul(value_bit.sub(scalar(S, 1))), 2);
             reconstructed = reconstructed.add(value_bit.mul(scalar(S, @as(u64, 1) << @intCast(bit))));
         }
-        sink.add(active.mul(main[2].sub(reconstructed)), 2);
+        sink.add(main[2].sub(reconstructed), 1);
     }
 
     pub fn rowPairs(

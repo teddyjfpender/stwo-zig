@@ -149,6 +149,163 @@ const excluded = [_]struct { path: []const u8, why: []const u8 }{
         .path = "opcode_interaction_test_root.zig",
         .why = "focused opcode-interaction evidence root",
     },
+    // The frontend package module does not import `stwo_cpu_backend`, so a
+    // test that names it cannot compile under this package's test root. These
+    // run only from a focused root whose import table carries the CPU backend.
+    .{
+        .path = "air/block/memory_component_receipt_test.zig",
+        .why = "names stwo_cpu_backend; block-v2 receipt root block_memory_receipt_test_root.zig",
+    },
+    .{
+        .path = "compact_commitment_test_root.zig",
+        .why = "names stwo_cpu_backend; focused compact-commitment evidence root",
+    },
+    .{
+        .path = "prover/blake3_native_prepared_template_test_root.zig",
+        .why = "names stwo_cpu_backend; focused BLAKE3 prepared-template evidence root",
+    },
+    .{
+        .path = "prover/block_memory_proof_v2.zig",
+        .why = "names stwo_cpu_backend in its tests; paused block-v2 root block_memory_proof_test_root.zig",
+    },
+    .{
+        .path = "prover/block_memory_shared_instance_proof_v2.zig",
+        .why = "names stwo_cpu_backend in its tests; paused block-v2 shared-instance proof",
+    },
+    .{
+        .path = "prover/block_memory_shared_table_proof_v2.zig",
+        .why = "names stwo_cpu_backend in its tests; paused block-v2 shared-table proof",
+    },
+    .{
+        .path = "prover/tests/blake3_paired_memory_test.zig",
+        .why = "names stwo_cpu_backend; focused root blake3_paired_memory_test_root.zig",
+    },
+    .{
+        .path = "prover/tests/blake3_partial_input_test.zig",
+        .why = "names stwo_cpu_backend; focused root blake3_partial_input_test_root.zig",
+    },
+    .{
+        .path = "recursion/air/tests/blake3_pcs_capture_test.zig",
+        .why = "names stwo_cpu_backend; BLAKE3 PCS capture proof evidence",
+    },
+    .{
+        .path = "recursion/air/tests/readonly_consistency_test.zig",
+        .why = "proves on blake3_proof_fixture.Cpu (stwo_cpu_backend) through blake3_proof_gate_test_support",
+    },
+    .{
+        .path = "air/block/memory_global_closure_test.zig",
+        .why = "proves through prover/block_memory_proof_v2.zig, which names stwo_cpu_backend",
+    },
+    .{
+        .path = "recursion/air/tests/blake3_fri_group_test.zig",
+        .why = "proves through blake3_pcs_capture_test.roundtrip, which names stwo_cpu_backend",
+    },
+    // Real-proof gates on `blake3_proof_gate_test_support.runFor`, which proves
+    // on `blake3_proof_fixture.Cpu` (stwo_cpu_backend).
+    .{
+        .path = "prover/tests/block_rw_initial_joint_proof_v2_test.zig",
+        .why = "CPU real-proof gate through blake3_proof_gate_test_support",
+    },
+    .{
+        .path = "air/guest_precompile/tests/sha256_compression_proof_test.zig",
+        .why = "CPU real-proof gate through blake3_proof_gate_test_support",
+    },
+    .{
+        .path = "air/guest_precompile/tests/sha256_memory_proof_test.zig",
+        .why = "CPU real-proof gate through blake3_proof_gate_test_support",
+    },
+    .{
+        .path = "recursion/air/tests/blake3_bounded_draw_test.zig",
+        .why = "CPU real-proof gate through blake3_proof_gate_test_support",
+    },
+    .{
+        .path = "recursion/air/tests/blake3_challenge_committed_test.zig",
+        .why = "CPU real-proof gate through blake3_proof_gate_test_support",
+    },
+    .{
+        .path = "recursion/air/tests/blake3_field_bytes_proof_test.zig",
+        .why = "CPU real-proof gate through blake3_proof_gate_test_support",
+    },
+    .{
+        .path = "recursion/air/tests/blake3_lifted_path_test.zig",
+        .why = "CPU real-proof gate through blake3_proof_gate_test_support",
+    },
+    .{
+        .path = "recursion/air/tests/blake3_memory_path_proof_test.zig",
+        .why = "CPU real-proof gate through blake3_proof_gate_test_support",
+    },
+    .{
+        .path = "recursion/air/tests/blake3_memory_update_chain_test.zig",
+        .why = "CPU real-proof gate through blake3_proof_gate_test_support",
+    },
+    .{
+        .path = "recursion/air/tests/blake3_memory_update_proof_test.zig",
+        .why = "CPU real-proof gate through blake3_proof_gate_test_support",
+    },
+    .{
+        .path = "recursion/air/tests/blake3_merkle_path_test.zig",
+        .why = "CPU real-proof gate through blake3_proof_gate_test_support",
+    },
+    .{
+        .path = "recursion/air/tests/blake3_private_committed_test.zig",
+        .why = "CPU real-proof gate through blake3_proof_gate_test_support",
+    },
+    .{
+        .path = "recursion/air/tests/blake3_private_draw_test.zig",
+        .why = "CPU real-proof gate through blake3_proof_gate_test_support",
+    },
+    .{
+        .path = "recursion/air/tests/blake3_public_subtree_proof_test.zig",
+        .why = "CPU real-proof gate through blake3_proof_gate_test_support",
+    },
+    .{
+        .path = "recursion/air/tests/blake3_query_path_proof_test.zig",
+        .why = "CPU real-proof gate through blake3_proof_gate_test_support",
+    },
+    .{
+        .path = "recursion/air/tests/blake3_query_proof_test.zig",
+        .why = "CPU real-proof gate through blake3_proof_gate_test_support",
+    },
+    .{
+        .path = "recursion/air/tests/blake3_retry_control_test.zig",
+        .why = "CPU real-proof gate through blake3_proof_gate_test_support",
+    },
+    .{
+        .path = "recursion/air/tests/blake3_routed_node_test.zig",
+        .why = "CPU real-proof gate through blake3_proof_gate_test_support",
+    },
+    .{
+        .path = "recursion/air/tests/blake3_routed_transcript_test.zig",
+        .why = "CPU real-proof gate through blake3_proof_gate_test_support",
+    },
+    .{
+        .path = "recursion/air/tests/blake3_span_identity_proof_test.zig",
+        .why = "CPU real-proof gate through blake3_proof_gate_test_support",
+    },
+    .{
+        .path = "recursion/air/tests/blake3_transcript_sequence_test.zig",
+        .why = "CPU real-proof gate through blake3_proof_gate_test_support",
+    },
+    .{
+        .path = "recursion/air/tests/blake3_transcript_transition_test.zig",
+        .why = "CPU real-proof gate through blake3_proof_gate_test_support",
+    },
+    .{
+        .path = "recursion/air/tests/blake3_two_level_frontier_test.zig",
+        .why = "CPU real-proof gate through blake3_proof_gate_test_support",
+    },
+    .{
+        .path = "recursion/air/tests/blake3_wide_committed_test.zig",
+        .why = "CPU real-proof gate through blake3_proof_gate_test_support",
+    },
+    .{
+        .path = "recursion/air/tests/blake3_committed_test.zig",
+        .why = "CPU real-proof gate through blake3_proof_gate_test_support",
+    },
+    .{
+        .path = "sha256_batch_test_root.zig",
+        .why = "focused root over the CPU real-proof SHA-256 compression gate",
+    },
 };
 
 /// Where this package's sources sit, relative to the test's working directory.

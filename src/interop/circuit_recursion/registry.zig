@@ -218,7 +218,7 @@ fn readLiftingSizePolicy(value: std.json.Value) ReadError!LiftingSizePolicy {
 /// A `FriConfig` JSON object (`pow_bits`, `log_blowup_factor`,
 /// `log_last_layer_degree_bound`, `n_queries`, `fold_step`).
 pub fn readFriConfig(map: std.json.ObjectMap) ReadError!FriConfig {
-    return .{
+    const config: FriConfig = .{
         .pow_bits = try json_text.unsigned(u32, try json_text.field(map, "pow_bits")),
         .log_blowup_factor = try json_text.unsigned(u32, try json_text.field(map, "log_blowup_factor")),
         .log_last_layer_degree_bound = try json_text.unsigned(u32, try json_text.field(map, "log_last_layer_degree_bound")),
@@ -226,11 +226,19 @@ pub fn readFriConfig(map: std.json.ObjectMap) ReadError!FriConfig {
         .n_queries = try json_text.unsigned(u32, try json_text.field(map, "n_queries")),
         .fold_step = try json_text.unsigned(u32, try json_text.field(map, "fold_step")),
     };
+    if (config.n_queries == 0 or config.n_queries > 1024 or
+        config.pow_bits > 30 or config.fold_step == 0 or config.fold_step > 30 or
+        config.log_blowup_factor < 1 or config.log_blowup_factor > 16 or
+        config.log_last_layer_degree_bound > 10)
+        return error.InvalidValue;
+    return config;
 }
 
 fn readProofConfig(map: std.json.ObjectMap) ReadError!CircuitProofConfig {
+    const fri_config = try readFriConfig(try json_text.object(try json_text.field(map, "fri_config")));
+    if (fri_config.log_last_layer_degree_bound != 0) return error.InvalidValue;
     return .{
-        .fri_config = try readFriConfig(try json_text.object(try json_text.field(map, "fri_config"))),
+        .fri_config = fri_config,
         .component_log_sizes = try readLogSizes(try json_text.object(try json_text.field(map, "component_log_sizes"))),
     };
 }

@@ -354,6 +354,28 @@ jobs:
             test "$CUDA_RESULT" = skipped
           fi
 
+  verifier-safety:
+    name: Verifier malformed-proof safety
+    if: >-
+      github.event_name == 'pull_request' ||
+      (github.event_name == 'push' && github.ref == 'refs/heads/main') ||
+      github.event_name == 'schedule'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
+      - name: Setup Zig
+        uses: mlugg/setup-zig@d1434d08867e3ee9daa34448df10607b98908d29 # v2
+        with:
+          version: 0.15.2
+      - name: Run proof-consuming tests with runtime safety
+        run: |
+          zig build test --build-file src/core/build.zig -Doptimize=ReleaseSafe -j2
+          zig build test --build-file src/interop/proof_wire/build.zig -Doptimize=ReleaseSafe -j2
+          zig build test --build-file src/interop/circuit_recursion/build.zig -Doptimize=ReleaseSafe -j2
+          zig build test --build-file src/integrations/circuit_cpu/build.zig -Doptimize=ReleaseSafe -j2
+
   release-gate:
     name: Release gate
     if: >-

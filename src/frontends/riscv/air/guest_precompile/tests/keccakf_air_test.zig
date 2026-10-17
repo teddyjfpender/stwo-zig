@@ -121,6 +121,52 @@ test "keccakf AIR: caller alignment, memory state, and execution are bound" {
     try std.testing.expect(changed);
 }
 
+test "keccakf AIR: caller span bound leaves no 8-misaligned pointer alias" {
+    const p: u64 = (1 << 31) - 1;
+    const honest = caller.fill(record(5));
+    var sink = RootSink{};
+    try caller.evaluateDirect(M31, &honest, M31.one(), &sink);
+    try std.testing.expectEqual(caller.direct_constraint_count, sink.count);
+    try std.testing.expectEqual(@as(usize, 0), sink.failures);
+
+    // Alias: pointer 0x1004 (4 mod 8) with dwi = (ptr + 4p) / 8, for which
+    // 8 * dwi == ptr (mod p). Under the retired relation `2*dwi + 49 == L` the
+    // wrapped L = 2*dwi + 49 - p was a small, representable 28-bit value, so the
+    // misaligned pointer passed every constraint and every range check.
+    const pointer: u64 = 0x1004;
+    const alias_dwi: u64 = (pointer + 4 * p) / 8;
+    try std.testing.expectEqual(pointer, (8 * alias_dwi) % p);
+    const retired_span: u64 = (2 * alias_dwi + caller.word_count - 1) % p;
+    try std.testing.expect(retired_span < (1 << 28));
+    // The double-word span `dwi + 24` has no wrapped representative: it is a
+    // single canonical value >= 2^28 that the 8/8/8/4 limbs cannot express.
+    const span: u64 = (alias_dwi + caller.double_word_count - 1) % p;
+    try std.testing.expect(span >= (1 << 28));
+
+    var forged = honest;
+    inline for (0..4) |byte| forged[caller.Layout.pointer_bytes + byte] =
+        M31.fromCanonical(@intCast((pointer >> (8 * byte)) & 0xff));
+    forged[caller.Layout.pointer_double_word_index] = M31.fromCanonical(@intCast(alias_dwi));
+    // Limbs that satisfied the retired relation.
+    forged[caller.Layout.span_end_limbs] = M31.fromCanonical(@intCast(retired_span & 0xff));
+    forged[caller.Layout.span_end_limbs + 1] = M31.fromCanonical(@intCast((retired_span >> 8) & 0xff));
+    forged[caller.Layout.span_end_limbs + 2] = M31.fromCanonical(@intCast((retired_span >> 16) & 0xff));
+    forged[caller.Layout.span_end_limbs + 3] = M31.fromCanonical(@intCast((retired_span >> 24) & 0x0f));
+    sink = .{};
+    try caller.evaluateDirect(M31, &forged, M31.one(), &sink);
+    try std.testing.expect(sink.failures != 0);
+    // The only assignment satisfying the new relation puts limb 3 out of its
+    // 4-bit range, which the range_check_8_8_4 request rejects.
+    forged[caller.Layout.span_end_limbs] = M31.fromCanonical(@intCast(span & 0xff));
+    forged[caller.Layout.span_end_limbs + 1] = M31.fromCanonical(@intCast((span >> 8) & 0xff));
+    forged[caller.Layout.span_end_limbs + 2] = M31.fromCanonical(@intCast((span >> 16) & 0xff));
+    forged[caller.Layout.span_end_limbs + 3] = M31.fromCanonical(@intCast(span >> 24));
+    sink = .{};
+    try caller.evaluateDirect(M31, &forged, M31.one(), &sink);
+    try std.testing.expectEqual(@as(usize, 0), sink.failures);
+    try std.testing.expect(forged[caller.Layout.span_end_limbs + 3].toU32() > 15);
+}
+
 test "keccakf AIR: provider, caller, tables, and public core boundary cancel" {
     const records = [_]call_buffer.Record{ record(11), record(13), record(17) };
     var counters = try counters_mod.Counters.init(std.testing.allocator);

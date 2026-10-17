@@ -653,7 +653,9 @@ test "E-022 trace and witness geometry consumers retired their duplicate registr
     );
     try expectContains(
         trace_source,
-        "pub const MAX_FAMILY_COLUMNS: usize = composition_manifest.MAX_MAIN_COLUMNS;",
+        // Capacity exceeds the manifest's widest family by the canonical
+        // local-zero hint columns; family widths themselves stay manifest-owned.
+        "pub const MAX_FAMILY_COLUMNS: usize = composition_manifest.MAX_MAIN_COLUMNS + 6;",
     );
     try expectContains(
         trace_source,

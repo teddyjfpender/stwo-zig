@@ -673,6 +673,8 @@ fn assembleIntoInternal(
                         memory_boundary_policy
                     else
                         .legacy_role_filtered_v1,
+                    .initial_rw_root = publicRwRoot(statement, "initial_rw_root"),
+                    .final_rw_root = publicRwRoot(statement, "final_rw_root"),
                     .relations = relations,
                     .interaction_col_offset = placement.interaction_column_offset,
                     .program_claims = claim.program_claims[index],
@@ -691,6 +693,16 @@ fn assembleIntoInternal(
     {
         return types.ProverError.InvalidStatement;
     }
+}
+
+/// The sparse-memory boundary binds row signs to the statement's `u32`
+/// public roots.  BLAKE3 execution statements carry digest roots and reject
+/// every legacy memory component (`LegacyCommitmentInBlake3Execution`), so
+/// they never reach a component that would read these.
+fn publicRwRoot(statement: anytype, comptime field: []const u8) ?u32 {
+    const value = @field(statement.public_data, field);
+    if (@TypeOf(value) == ?u32) return value;
+    return null;
 }
 
 fn push(

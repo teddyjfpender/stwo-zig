@@ -26,7 +26,7 @@
 //! eight `(low_u16, high_u16, 0, 0)` QM31 words and writes `(high << 16) |
 //! low` little-endian, which is the digest's own byte string.
 //!
-//! As upstream, decoding rejects an M31 at or above P and ignores trailing
+//! Decoding rejects an M31 at or above P and requires exact proof length;
 //! bytes (`deserializeProof` reports how many it consumed). Encoding checks the
 //! proof's shape against the config first, so it never writes a byte string
 //! its own decoder would read differently.
@@ -50,6 +50,7 @@ const m31_bytes = shape.m31_bytes;
 pub const Hash = [hash_bytes]u8;
 
 pub const DecodeError = error{
+    InvalidLength,
     /// `DeserializeError::NotEnoughData`.
     NotEnoughData,
     /// `DeserializeError::ValueOutOfRange`: an M31 limb at or above P.
@@ -152,7 +153,7 @@ fn expectLen(actual: usize, expected: usize) ShapeError!void {
 pub const DecodedProof = struct {
     arena: std.heap.ArenaAllocator,
     proof: Proof,
-    /// Bytes read from the input; anything after them was ignored.
+    /// Bytes read from the exact-length input.
     consumed: usize,
 
     pub fn deinit(self: *DecodedProof) void {
@@ -167,7 +168,9 @@ pub fn deserializeProof(
     bytes: []const u8,
     config: ProofConfig,
 ) (DecodeError || ConfigError || std.mem.Allocator.Error)!DecodedProof {
+    @setRuntimeSafety(true);
     try config.validate();
+    if (bytes.len != config.serializedLen()) return error.InvalidLength;
     var arena = std.heap.ArenaAllocator.init(gpa);
     errdefer arena.deinit();
     const allocator = arena.allocator();
@@ -365,20 +368,17 @@ test "circuit serialize: decode then encode reproduces the bytes" {
     try std.testing.expectEqualSlices(u8, bytes, encoded);
 }
 
-test "circuit serialize: decoding rejects truncation and out-of-range limbs, ignores trailing bytes" {
+test "circuit serialize: decoding rejects truncation, trailing bytes and out-of-range limbs" {
     const allocator = std.testing.allocator;
     const len = test_config.serializedLen();
     const bytes = try patternBytes(allocator, len + 5);
     defer allocator.free(bytes);
-    try std.testing.expectError(error.NotEnoughData, deserializeProof(allocator, bytes[0 .. len - 1], test_config));
-
-    var trailing = try deserializeProof(allocator, bytes, test_config);
-    defer trailing.deinit();
-    try std.testing.expectEqual(len, trailing.consumed);
+    try std.testing.expectError(error.InvalidLength, deserializeProof(allocator, bytes[0 .. len - 1], test_config));
+    try std.testing.expectError(error.InvalidLength, deserializeProof(allocator, bytes, test_config));
 
     // The channel salt's first limb, set to P.
     std.mem.writeInt(u32, bytes[0..4], m31_modulus, .little);
-    try std.testing.expectError(error.ValueOutOfRange, deserializeProof(allocator, bytes, test_config));
+    try std.testing.expectError(error.ValueOutOfRange, deserializeProof(allocator, bytes[0..len], test_config));
 }
 
 test "circuit serialize: encoding rejects a proof whose shape differs from the config" {
@@ -440,7 +440,7 @@ test "circuit serialize: ordered main-tree masks roundtrip and reject legacy tru
     defer allocator.free(encoded);
     try std.testing.expectEqualSlices(u8, bytes, encoded);
     try std.testing.expectError(error.ShapeMismatch, serializeProofAlloc(allocator, &decoded.proof, test_config));
-    try std.testing.expectError(error.NotEnoughData, deserializeProof(allocator, bytes[0 .. bytes.len - 1], config));
+    try std.testing.expectError(error.InvalidLength, deserializeProof(allocator, bytes[0 .. bytes.len - 1], config));
     var missing = decoded.proof;
     missing.trace_at_oods = missing.trace_at_oods[0 .. missing.trace_at_oods.len - 1];
     try std.testing.expectError(error.ShapeMismatch, serializeProofAlloc(allocator, &missing, config));

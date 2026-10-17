@@ -94,6 +94,35 @@
         "sampled_values_sha256": "1e26c900f282d1a9a4c1b7641f767c8a0b03a6945a75666244449d536a7b202f",
         "stark_proof_bytes": 8884,
         "stark_proof_sha256": "6376c4cc89e562114fd7d0d2fc1d2ee095409a1cf4ea474e57f4ae9bd9f4488f"
+      },
+      {
+        "fri_config": [
+          10,
+          1,
+          0,
+          3,
+          4
+        ],
+        "log_n_rows": 5,
+        "sequence_len": 100,
+        "trace_lifting_log_size": 7,
+        "preprocessed_lifting_log_size": 0,
+        "commitments": [
+          "69217a3079908094e11121d042354a7c1f55b6482ca1a51e1b250dfd1ed0eef9",
+          "81aca70edab081584e662040002a96f33daabb4b2429c7a07aa0dcf1738a22b9",
+          "787ffd7e5c52fc0347eee234c93111d4b6d9adaf275eda6fa449b0fddc354eef"
+        ],
+        "proof_of_work": {
+          "value": "376",
+          "hi": 0,
+          "lo": 376
+        },
+        "fri_inner_layer_roots": [
+          "67a0d08246e2f9755c914d476d664936ef7949039bb050b934b1d8303da0a9e1"
+        ],
+        "sampled_values_sha256": "2479b046a72724ff700a7eba267d470e079dcdfccac95a348a2b3d14705d19a3",
+        "stark_proof_bytes": 6980,
+        "stark_proof_sha256": "b687d844347d05467c1832b40d2a544c7ed6ec150320eb2dc01f24f77b4ac9c8"
       }
     ]
   }

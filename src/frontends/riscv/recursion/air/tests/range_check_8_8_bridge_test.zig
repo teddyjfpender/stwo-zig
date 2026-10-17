@@ -482,10 +482,16 @@ test "range framework admission rejects selector claim shape identity and malfor
     program.inputs[3].trace_column.column_index += 1;
     try std.testing.expectError(error.InvalidFrameworkPolynomialIdentity, program.validate(&framework_tree_counts));
     program.inputs[3].trace_column.column_index -= 1;
+    // The same-row (cumulative) layout is exported without a selector, so a
+    // selector-bearing same-row program is a layout/input mismatch.
     program.layout = .same_row_prefix_v1;
+    program.identity = program.identityDigest();
+    try std.testing.expectError(error.InvalidFrameworkPolynomialInput, program.validate(&framework_tree_counts));
+    // A relation-only program has no direct graph in either layout; the
+    // selector-free same-row shape is therefore admissible for this component.
     program.is_first_input = null;
     program.identity = program.identityDigest();
-    try std.testing.expectError(error.InvalidBasePolynomialProgram, program.validate(&framework_tree_counts));
+    try program.validate(&framework_tree_counts);
     program.layout = .independent_prefix_v1;
     program.is_first_input = selector;
     program.identity = program.identityDigest();

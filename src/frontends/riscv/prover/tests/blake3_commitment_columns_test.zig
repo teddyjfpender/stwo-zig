@@ -45,6 +45,7 @@ pub fn check(a: std.mem.Allocator, source: *Witness, admission: Admission) !void
     execution.initializeDescriptorStorage();
     execution.n_components = 1;
     execution.n_infra = 0;
+    execution.x0_local_custody_version = 0;
     execution.initial_pc = 0x1000;
     execution.final_pc = 0x1004;
     execution.total_steps = 1;

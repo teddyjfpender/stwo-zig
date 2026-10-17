@@ -84,7 +84,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument(
         "--optimize",
         choices=("Debug", "ReleaseSafe", "ReleaseFast", "ReleaseSmall"),
-        default="ReleaseFast",
+        default="ReleaseSafe",
     )
     args = parser.parse_args(argv)
 

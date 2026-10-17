@@ -807,7 +807,7 @@ fn expectedLogSize(count: usize) u32 {
 comptime {
     if (merkle_node.N_MAIN_COLUMNS != 10 or
         merkle_node.N_INTERACTION_COLUMNS != 12 or
-        merkle_node.N_EXTERNAL_PROVIDER_CONSTRAINTS != 13 or
+        merkle_node.N_EXTERNAL_PROVIDER_CONSTRAINTS != 15 or
         poseidon2_air.N_MAIN_COLUMNS != authority.main_column_count or
         poseidon2_air.N_INTERACTION_COLUMNS != authority.interaction_column_count or
         standalone.composition_log_lift != 1)

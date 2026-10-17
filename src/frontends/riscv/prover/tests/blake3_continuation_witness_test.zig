@@ -40,7 +40,9 @@ test "BLAKE3 memory update proves runner snapshot conversion agrees with full ro
         try std.testing.expectEqualDeep(full.root, conversion.plan.roots[conversion.plan.roots.len - 1]);
         var wrong = full.root;
         wrong.bytes[31] ^= 0x80;
-        try std.testing.expectError(error.UntrustedMemoryUpdateChain, memory.prepareContinuation(a, side, &data, admission, wrong, 100000, 99999));
+        // Continuation custody is planned through blake3_public_subtree_chain, so
+        // a wrong full root is refused by that chain's admission.
+        try std.testing.expectError(error.UntrustedPublicSubtreeChain, memory.prepareContinuation(a, side, &data, admission, wrong, 100000, 99999));
     }
 }
 

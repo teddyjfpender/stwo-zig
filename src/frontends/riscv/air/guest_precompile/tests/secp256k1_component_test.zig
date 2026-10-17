@@ -88,6 +88,50 @@ test "secp256k1 component: every row family instantiates one protocol shape" {
     }
 }
 
+test "secp256k1 byte table: inactive rows cannot serve out-of-range bytes" {
+    const Config = config.ByteTable;
+    const relations = relations_mod.Relations.dummy();
+    const zero: [Config.main_column_count]M31 = @splat(M31.zero());
+
+    // Honest rows (all 256 values, any multiplicity) vanish.
+    for (0..256) |value| {
+        const row = Config.row(@intCast(value), M31.fromU64(value + 1));
+        var sink = Sink{};
+        Config.evaluate(M31, &row, &zero, &zero, M31.zero(), M31.zero(), &relations, &sink);
+        try std.testing.expectEqual(Config.direct_constraint_count, sink.count);
+        try std.testing.expectEqual(@as(usize, 0), sink.failures);
+    }
+
+    // Attack: an inactive row (active = 0) with value 300 and multiplicity 1
+    // used to satisfy every constraint (bits forced to zero, value unbound)
+    // while emitting `1 / byte(300)` into the shared range-check bus.
+    var forged = zero;
+    forged[1] = M31.one();
+    forged[2] = M31.fromU64(300);
+    var sink = Sink{};
+    Config.evaluate(M31, &forged, &zero, &zero, M31.zero(), M31.zero(), &relations, &sink);
+    try std.testing.expect(sink.failures != 0);
+    const pairs = Config.rowPairs(M31, &forged, &zero, &zero, &relations);
+    try std.testing.expect(pairs[0].d1.eql(relations_mod.combineByte(
+        M31,
+        relations.byte,
+        .{M31.fromU64(300)},
+    )));
+
+    // Bits are boolean and must reconstruct the value regardless of `active`.
+    forged = zero;
+    forged[2] = M31.fromU64(256);
+    forged[3] = M31.fromU64(256);
+    sink = .{};
+    Config.evaluate(M31, &forged, &zero, &zero, M31.zero(), M31.zero(), &relations, &sink);
+    try std.testing.expect(sink.failures != 0);
+    forged = Config.row(0x5a, M31.one());
+    forged[0] = M31.zero();
+    sink = .{};
+    Config.evaluate(M31, &forged, &zero, &zero, M31.zero(), M31.zero(), &relations, &sink);
+    try std.testing.expectEqual(@as(usize, 0), sink.failures);
+}
+
 test "secp256k1 component: full CSP bundle has exact rows and component claims" {
     const fixture = @import("secp256k1_affine_test.zig").csp_input;
     var tape = affine.Tape.init(std.testing.allocator);
@@ -276,6 +320,7 @@ fn expectExactTapeCustody(tape: *const affine.Tape) !void {
         for (record.product_start..record.product_start + 6) |index| products[index] += 1;
         linears[record.linear_start] += 1;
         linears[record.linear_start + 1] += 1;
+        linears[record.linear_start + 2] += 1;
         linears[record.linear_start + record.linear_count - 1] += 1;
         programs[record.program_index] += 1;
     }

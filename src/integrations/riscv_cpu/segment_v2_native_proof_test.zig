@@ -244,6 +244,62 @@ fn nativeSegmentsMode(comptime ProofEngine: type, comptime suite_name: []const u
         std.mem.asBytes(&capture_sentinel),
     );
 
+    // F1 regression: shifting mass between two batch claims of one opcode
+    // component keeps every canonical aggregate (and the global LogUp
+    // cancellation) unchanged. The per-batch transcript frame mixed before
+    // Tree 2 must still reject the proof on its own.
+    {
+        const QM31 = stwo_core.fields.qm31.QM31;
+        const manifest = frontend.air.lookup_physical_manifest_v2.Manifest.native();
+        const core_statement = &left_output.statement.core;
+        var shifted_component: ?usize = null;
+        for (core_statement.component_descs[0..core_statement.n_components], 0..) |desc, index| {
+            if (manifest.entryForFamily(desc.family).detailed_claim_count >= 2) {
+                shifted_component = index;
+                break;
+            }
+        }
+        const component_index = shifted_component orelse return error.NoMultiBatchComponent;
+        const shifted = try allocator.create(prover.RiscVInteractionClaim);
+        defer allocator.destroy(shifted);
+        shifted.* = left_output.interaction_claim.*;
+        const delta = QM31.fromU32Unchecked(0x1234_5678, 0x0f0f_0f0f, 7, 11);
+        shifted.opcode_claims[component_index][0] =
+            shifted.opcode_claims[component_index][0].add(delta);
+        shifted.opcode_claims[component_index][1] =
+            shifted.opcode_claims[component_index][1].sub(delta);
+        const honest_canonical = try allocator.create(frontend.air.statement.CanonicalInteractionClaim);
+        defer allocator.destroy(honest_canonical);
+        honest_canonical.* = try left_output.interaction_claim.canonical(core_statement);
+        const shifted_canonical = try allocator.create(frontend.air.statement.CanonicalInteractionClaim);
+        defer allocator.destroy(shifted_canonical);
+        shifted_canonical.* = try shifted.canonical(core_statement);
+        try std.testing.expectEqual(honest_canonical.claimed_sums, shifted_canonical.claimed_sums);
+
+        var shifted_stream = std.io.fixedBufferStream(proof_bytes.items);
+        const shifted_proof = try postcard.deserializeProof(
+            ProofEngine.Hasher,
+            allocator,
+            shifted_stream.reader(),
+        );
+        try std.testing.expectEqual(proof_bytes.items.len, shifted_stream.pos);
+        if (prover.verifyRiscVSegmentV2WithEngine(
+            ProofEngine,
+            allocator,
+            test_config,
+            left_output.statement,
+            shifted_proof,
+            shifted,
+        )) |_| {
+            return error.ExpectedShiftedBatchClaimRejection;
+        } else |err| {
+            std.debug.print(
+                "V2_NATIVE_PROOF_SUITE shifted batch claim rejected component={d} err={s}\n",
+                .{ component_index, @errorName(err) },
+            );
+        }
+    }
+
     var left_capture: prover.VerifiedSegmentV2CaptureForEngine(ProofEngine) = undefined;
     var left_channel = ProofEngine.Channel{};
     left_proof_moved = true;
@@ -270,478 +326,8 @@ fn nativeSegmentsMode(comptime ProofEngine: type, comptime suite_name: []const u
     try std.testing.expect(
         left_capture.public_data.canonical_words.ptr != left_words.ptr,
     );
-    if (comptime ProofEngine.Hasher != prover.Hasher) {
-        const adapter = frontend.recursion.air.blake3_native_transcript;
-        const coordinator = frontend.recursion.blake3_native_parent_preparation;
-        const state = try coordinator.State.initRowOracle(ProofEngine, allocator, &left_output.statement, left_output.interaction_claim, &left_capture, test_config, 3);
-        defer state.deinit();
-        const prepared = &state.prepared;
-        const transcript_counts = state.hash_layout.transcript;
-        const path_counts = state.hash_layout.paths;
-        try std.testing.expectEqual(prepared.live.g_rows.len + state.paths.live.g_rows.len, state.hash_layout.total.g);
-        try std.testing.expectEqual(prepared.live.xor_rows.len + state.paths.live.xor_rows.len, state.hash_layout.total.xor);
-        var invalid_layout = state.hash_layout;
-        invalid_layout.logs[0] += 1;
-        try std.testing.expectError(error.InvalidNativeHashLayout, invalid_layout.validateEmitted(transcript_counts, path_counts));
-        invalid_layout = state.hash_layout;
-        invalid_layout.paths.g += 1;
-        try std.testing.expectError(error.InvalidNativeHashLayout, invalid_layout.validateEmitted(transcript_counts, path_counts));
-        var invalid_geometry = left_capture.proof;
-        invalid_geometry.trace_paths = invalid_geometry.trace_paths[0..3];
-        try std.testing.expectError(error.InvalidNativeHashLayout, @TypeOf(state.hash_layout).init(allocator, transcript_counts, &invalid_geometry));
-        std.debug.print("V2_BLAKE3_HASH_LAYOUT transcript_g={d} path_g={d} total_g={d} total_xor={d} logs={d},{d} verified_against_emission=true\n", .{ transcript_counts.g, path_counts.g, state.hash_layout.total.g, state.hash_layout.total.xor, state.hash_layout.logs[0], state.hash_layout.logs[1] });
-
-        try std.testing.expectEqualSlices(u8, &left_channel.digestBytes(), &prepared.end.digestBytes());
-        try std.testing.expectEqual(left_channel.n_draws, prepared.end.n_draws);
-        try std.testing.expect(prepared.claim_payloads.len > 0);
-        var pairs: usize = 0;
-        for (prepared.live.draw_outputs) |output| if (output.role == .riscv_relation) {
-            pairs += 1;
-        };
-        try std.testing.expectEqual(frontend.air.relation_challenges.DRAW_COUNT / 2, pairs);
-        const composition = &state.composition;
-        const native_links = frontend.recursion.air.blake3_native_challenge_links;
-        const links = try native_links.prepare(allocator, composition, prepared.live.draw_outputs, 1500);
-        try std.testing.expectEqual(@as(usize, 104), links.links.len);
-        try std.testing.expectError(error.InvalidNativeChallengeLink, native_links.schedule(&composition.circuit, prepared.live.draw_outputs[1..]));
-        const duplicate_outputs = try allocator.alloc(@TypeOf(prepared.live.draw_outputs[0]), prepared.live.draw_outputs.len + 1);
-        defer allocator.free(duplicate_outputs);
-        @memcpy(duplicate_outputs[0..prepared.live.draw_outputs.len], prepared.live.draw_outputs);
-        duplicate_outputs[prepared.live.draw_outputs.len] = prepared.live.draw_outputs[0];
-        try std.testing.expectError(error.InvalidNativeChallengeLink, native_links.schedule(&composition.circuit, duplicate_outputs));
-        // Compare routed values directly with the canonical transcript draws.
-        var matched: usize = 0;
-        for (prepared.live.draw_outputs) |output| {
-            if (output.role != .riscv_relation and output.role != .composition and output.role != .oods) continue;
-            const draw = prepared.operations[output.operation].secure;
-            for (0..output.words) |coordinate| {
-                for (links.links, links.rows, links.fixed) |link, row, fixed| {
-                    if (link.source.circuit != output.source.circuit or link.source.first_wire != output.source.first_wire + coordinate) continue;
-                    try std.testing.expectEqual(draw.values[coordinate], row[0]);
-                    try std.testing.expect(fixed[0].isZero());
-                    try std.testing.expectEqualSlices(stwo_core.fields.m31.M31, row[1..], fixed[1..]);
-                    matched += 1;
-                }
-            }
-        }
-        try std.testing.expectEqual(links.links.len, matched);
-        const reordered = duplicate_outputs[0..prepared.live.draw_outputs.len];
-        std.mem.reverse(@TypeOf(reordered[0]), reordered);
-        try std.testing.expectEqualDeep(links.links, try native_links.schedule(&composition.circuit, reordered));
-        @memcpy(reordered, prepared.live.draw_outputs);
-        reordered[1].source = reordered[0].source;
-        try std.testing.expectError(error.InvalidNativeChallengeLink, native_links.schedule(&composition.circuit, reordered));
-        std.debug.print("V2_BLAKE3_NATIVE_COMPOSITION nodes={d} challenge_links={d} outputs={d}\n", .{ composition.circuit.nodes.len, links.links.len, composition.circuit.outputs.len });
-        const payload_links = frontend.recursion.air.blake3_native_payload_links;
-        const payloads = &state.payloads;
-        try std.testing.expectEqual(@as(usize, composition.circuit.input_profile.sampled_value_count) + frontend.air.transcript.claims.COMPONENT_COUNT, payloads.encoded.len);
-        for (payloads.encoded, payloads.fixed_encoded) |row, fixed| try std.testing.expectEqualSlices(stwo_core.fields.m31.M31, row[24..], fixed[24..]);
-        for (payloads.scalars, payloads.fixed_scalars) |row, fixed| {
-            try std.testing.expect(fixed[0].isZero());
-            try std.testing.expectEqualSlices(stwo_core.fields.m31.M31, row[1..], fixed[1..]);
-        }
-        for (payloads.packing, payloads.fixed_packing) |row, fixed| {
-            for (fixed[0..4]) |word| try std.testing.expect(word.isZero());
-            try std.testing.expectEqualSlices(stwo_core.fields.m31.M31, row[4..], fixed[4..]);
-        }
-        {
-            const saved = prepared.live.payload_reads;
-            defer prepared.live.payload_reads = saved;
-            prepared.live.payload_reads = saved[1..];
-            try std.testing.expectError(error.InvalidNativePayloadLink, payload_links.prepare(allocator, composition, prepared, 1500));
-        }
-        var changed_payload_checked = false;
-        for (prepared.operations) |*op| {
-            if (op.* != .routed_felts or !std.meta.eql(op.routed_felts.source, prepared.claim_payloads[0].source)) continue;
-            const saved = op.routed_felts.values;
-            defer op.routed_felts.values = saved;
-            const changed = [_]stwo_core.fields.qm31.QM31{saved[0].add(stwo_core.fields.qm31.QM31.one())};
-            op.routed_felts.values = &changed;
-            try std.testing.expectError(error.InvalidNativePayloadLink, payload_links.prepare(allocator, composition, prepared, 1500));
-            changed_payload_checked = true;
-            break;
-        }
-        try std.testing.expect(changed_payload_checked);
-        std.debug.print("V2_BLAKE3_NATIVE_PAYLOADS secure_values={d} scalar_routes={d}\n", .{ payloads.encoded.len, payloads.scalars.len });
-        const deep = &state.deep;
-        const shared_samples = &state.shared_samples;
-        try std.testing.expectEqual(@as(usize, composition.circuit.input_profile.sampled_value_count) * 4, shared_samples.destinations.len);
-        const claim_scalars = frontend.air.transcript.claims.COMPONENT_COUNT * 4;
-        try std.testing.expectEqualDeep(payloads.scalars[0..claim_scalars], shared_samples.sources[0..claim_scalars]);
-        for (shared_samples.sources[claim_scalars..], payloads.scalars[claim_scalars..]) |shared, original_source| {
-            try std.testing.expectEqual(original_source[3].v + 1, shared[3].v);
-            try std.testing.expectEqualSlices(stwo_core.fields.m31.M31, original_source[0..3], shared[0..3]);
-        }
-        for (shared_samples.destinations, shared_samples.fixed_destinations) |row, fixed| try std.testing.expectEqualSlices(stwo_core.fields.m31.M31, row[1..], fixed[1..]);
-        {
-            const index = frontend.air.transcript.claims.COMPONENT_COUNT;
-            const saved = payloads.nodes[index];
-            defer payloads.nodes[index] = saved;
-            payloads.nodes[index] = payloads.nodes[index + 1];
-            try std.testing.expectError(error.InvalidNativeSampleLink, frontend.recursion.air.blake3_native_sample_links.prepare(allocator, composition, payloads, deep, 1500, 1502));
-        }
-        const samples_changed = try allocator.dupe(stwo_core.fields.qm31.QM31, deep.inputs.inputs.sampled_values);
-        defer allocator.free(samples_changed);
-        samples_changed[0] = samples_changed[0].add(stwo_core.fields.qm31.QM31.one());
-        var wrong_deep = deep.inputs.inputs;
-        wrong_deep.sampled_values = samples_changed;
-        try std.testing.expectError(error.UnsatisfiedCircuit, deep.graph.evaluate(allocator, wrong_deep));
-        std.debug.print("V2_BLAKE3_NATIVE_DEEP nodes={d} outputs={d} shared_sample_scalars={d}\n", .{ deep.graph.nodes.len, deep.graph.outputs.len, shared_samples.destinations.len });
-        const fri = &state.fri;
-        try std.testing.expectEqual(test_config.fri_config.n_queries * 4, fri.sources.len);
-        for (fri.sources, fri.fixed_sources, fri.destinations, fri.fixed_destinations) |source, fixed_source, destination, fixed_destination| {
-            try std.testing.expectEqual(source[0], destination[0]);
-            try std.testing.expectEqualSlices(stwo_core.fields.m31.M31, source[1..], fixed_source[1..]);
-            try std.testing.expectEqualSlices(stwo_core.fields.m31.M31, destination[1..], fixed_destination[1..]);
-        }
-        const wrong_answers = try allocator.dupe(stwo_core.fields.qm31.QM31, fri.inputs.inputs.deep_answers);
-        defer allocator.free(wrong_answers);
-        wrong_answers[0] = wrong_answers[0].add(stwo_core.fields.qm31.QM31.one());
-        var wrong_fri = fri.inputs.inputs;
-        wrong_fri.deep_answers = wrong_answers;
-        try std.testing.expectError(error.UnsatisfiedCircuit, fri.graph.evaluate(allocator, wrong_fri));
-        const wrong_coefficients = try allocator.dupe(stwo_core.fields.qm31.QM31, fri.inputs.inputs.last_layer_coefficients);
-        defer allocator.free(wrong_coefficients);
-        wrong_coefficients[0] = wrong_coefficients[0].add(stwo_core.fields.qm31.QM31.one());
-        wrong_fri = fri.inputs.inputs;
-        wrong_fri.last_layer_coefficients = wrong_coefficients;
-        try std.testing.expectError(error.UnsatisfiedCircuit, fri.graph.evaluate(allocator, wrong_fri));
-        std.debug.print("V2_BLAKE3_NATIVE_FRI nodes={d} outputs={d} answer_routes={d}\n", .{ fri.graph.nodes.len, fri.graph.outputs.len, fri.sources.len });
-        const pcs_challenges = frontend.recursion.air.blake3_native_pcs_challenges;
-        const joined_challenges = &state.joined_challenges;
-        try std.testing.expectEqual(8 + 4 * fri.inputs.inputs.fri_alphas.len, joined_challenges.rows.len);
-        for (joined_challenges.rows, joined_challenges.fixed) |row, fixed| try std.testing.expectEqualSlices(stwo_core.fields.m31.M31, row[1..], fixed[1..]);
-        for (0..4) |word| try std.testing.expectEqual(links.rows[native_links.COUNT - 4 + word][3].v + 1, joined_challenges.composition.rows[native_links.COUNT - 4 + word][3].v);
-        {
-            const saved = prepared.live.draw_outputs;
-            defer prepared.live.draw_outputs = saved;
-            prepared.live.draw_outputs = saved[0 .. saved.len - 1];
-            try std.testing.expectError(error.InvalidNativePcsChallenge, pcs_challenges.prepare(allocator, composition, prepared, deep, fri, .{ 1500, 1502, 1504 }));
-        }
-        var checked_draw_mutation = false;
-        for (prepared.operations) |*op| {
-            if (op.* != .secure or op.secure.output == null or op.secure.output.? != .deep) continue;
-            const saved = op.secure.values[0];
-            defer op.secure.values[0] = saved;
-            op.secure.values[0] = saved.add(stwo_core.fields.m31.M31.one());
-            try std.testing.expectError(error.InvalidNativePcsChallenge, pcs_challenges.prepare(allocator, composition, prepared, deep, fri, .{ 1500, 1502, 1504 }));
-            checked_draw_mutation = true;
-            break;
-        }
-        try std.testing.expect(checked_draw_mutation);
-        std.debug.print("V2_BLAKE3_NATIVE_PCS_CHALLENGES routes={d} oods_shared=4\n", .{joined_challenges.rows.len});
-        const terminal_encoding = frontend.recursion.air.blake3_native_terminal_encoding;
-        const terminal_rows = &state.terminal_rows;
-        try std.testing.expectEqual(fri.inputs.inputs.last_layer_coefficients.len, terminal_rows.rows.len);
-        for (terminal_rows.rows, fri.inputs.inputs.last_layer_coefficients) |row, coefficient| {
-            try std.testing.expectEqualSlices(stwo_core.fields.m31.M31, &coefficient.toM31Array(), row.encoded[0..4]);
-            try std.testing.expectEqualSlices(stwo_core.fields.m31.M31, row.encoded[24..], row.fixed_encoded[24..]);
-        }
-        {
-            const saved = prepared.live.payload_reads;
-            defer prepared.live.payload_reads = saved;
-            prepared.live.payload_reads = saved[0 .. saved.len - 1];
-            try std.testing.expectError(error.InvalidNativeTerminalEncoding, terminal_encoding.prepare(allocator, prepared, fri, 1504));
-        }
-        var checked_terminal_mutation = false;
-        for (prepared.operations) |*op| {
-            if (op.* != .routed_felts or !std.meta.eql(op.routed_felts.source, adapter.TERMINAL_SOURCE)) continue;
-            const saved = op.routed_felts.values;
-            const changed = try allocator.dupe(stwo_core.fields.qm31.QM31, saved);
-            defer allocator.free(changed);
-            defer op.routed_felts.values = saved;
-            changed[0] = changed[0].add(stwo_core.fields.qm31.QM31.one());
-            op.routed_felts.values = changed;
-            try std.testing.expectError(error.InvalidNativeTerminalEncoding, terminal_encoding.prepare(allocator, prepared, fri, 1504));
-            checked_terminal_mutation = true;
-            break;
-        }
-        try std.testing.expect(checked_terminal_mutation);
-        std.debug.print("V2_BLAKE3_NATIVE_TERMINAL encoded_coefficients={d}\n", .{terminal_rows.rows.len});
-        const native_queries = frontend.recursion.air.blake3_native_queries;
-        const query_rows = &state.query_rows;
-        try std.testing.expectEqual(test_config.fri_config.n_queries, query_rows.encoded.len);
-        for (query_rows.rows, query_rows.fixed) |row, fixed| try std.testing.expectEqualSlices(stwo_core.fields.m31.M31, row[1..], fixed[1..]);
-        for (query_rows.encoded, left_capture.proof.queries.raw) |row, position| try std.testing.expectEqual(position, row[0].v);
-        {
-            const saved = prepared.live.query_outputs;
-            defer prepared.live.query_outputs = saved;
-            prepared.live.query_outputs = saved[1..];
-            try std.testing.expectError(error.InvalidNativeQueryLink, native_queries.prepare(allocator, prepared, deep, fri));
-        }
-        var query_mutation_checked = false;
-        for (prepared.operations) |*op| {
-            if (op.* != .queries) continue;
-            const saved = op.queries.values;
-            const changed = try allocator.dupe(u32, saved);
-            defer allocator.free(changed);
-            defer op.queries.values = saved;
-            changed[0] ^= 1;
-            op.queries.values = changed;
-            try std.testing.expectError(error.InvalidNativeQueryLink, native_queries.prepare(allocator, prepared, deep, fri));
-            query_mutation_checked = true;
-            break;
-        }
-        try std.testing.expect(query_mutation_checked);
-        std.debug.print("V2_BLAKE3_NATIVE_QUERIES queries={d} scalar_rows={d}\n", .{ query_rows.encoded.len, query_rows.rows.len });
-        const native_paths = frontend.recursion.air.blake3_stark_paths;
-        const paths = &state.paths;
-        try native_queries.applyPathReads(allocator, query_rows, deep, paths.inputs.projection.bit_reads);
-        const admitted_rows = try allocator.dupe(@TypeOf(query_rows.rows[0]), query_rows.rows);
-        defer allocator.free(admitted_rows);
-        try native_queries.applyPathReads(allocator, query_rows, deep, paths.inputs.projection.bit_reads);
-        try std.testing.expectEqualDeep(admitted_rows, query_rows.rows);
-        const saved_reads = try allocator.alloc([31]u32, query_rows.links.queries.len);
-        defer allocator.free(saved_reads);
-        for (query_rows.links.queries, saved_reads) |query, *saved| saved.* = query.path_uses;
-        {
-            const columns_support = frontend.recursion.air.blake3_native_parent_test_support.hash_columns;
-            var columns_arena = std.heap.ArenaAllocator.init(allocator);
-            defer columns_arena.deinit();
-            const out = try columns_support.allocate(columns_arena.allocator(), paths.live.g_rows.len, paths.live.xor_rows.len);
-            {
-                var repeated_paths = try native_paths.prepareMainColumns(allocator, &left_capture.proof, &deep.graph, &fri.graph, &query_rows.links, out);
-                defer repeated_paths.deinit();
-                try std.testing.expect(repeated_paths.hash_metadata != null);
-                try columns_support.expectReceipts(paths.live, repeated_paths.live);
-                try columns_support.expectReceipts(paths.fixed, repeated_paths.fixed);
-                try columns_support.expectFixedMetadata(paths.fixed, repeated_paths.fixed_hash_metadata.?);
-                try std.testing.expectEqualDeep(paths.inputs.sources, repeated_paths.inputs.sources);
-                for (query_rows.links.queries, saved_reads) |query, saved| try std.testing.expectEqualDeep(saved, query.path_uses);
-            }
-            try columns_support.expectRows(out, paths.live, paths.fixed);
-            columns_support.poison(out);
-            var bad = out;
-            bad.xor_rows.columns[0] = bad.xor_rows.columns[0][1..];
-            try std.testing.expectError(error.InvalidBlake3WitnessDestination, native_paths.prepareMainColumns(allocator, &left_capture.proof, &deep.graph, &fri.graph, &query_rows.links, bad));
-            try columns_support.expectPoison(out);
-            const sibling = &left_capture.proof.trace_paths[0].siblings[0];
-            sibling[31] ^= 0x80;
-            defer sibling[31] ^= 0x80;
-            try std.testing.expectError(error.InvalidStarkPathRoot, native_paths.prepareMainColumns(allocator, &left_capture.proof, &deep.graph, &fri.graph, &query_rows.links, out));
-            for (query_rows.links.queries, saved_reads) |query, saved| try std.testing.expectEqualDeep(saved, query.path_uses);
-        }
-        {
-            const sibling = &left_capture.proof.trace_paths[0].siblings[0];
-            sibling[31] ^= 0x80;
-            defer sibling[31] ^= 0x80;
-            try std.testing.expectError(error.InvalidStarkPathRoot, native_paths.prepare(allocator, &left_capture.proof, &deep.graph, &fri.graph, &query_rows.links));
-        }
-        for (query_rows.links.queries, saved_reads) |query, saved| try std.testing.expectEqualDeep(saved, query.path_uses);
-        std.debug.print("V2_BLAKE3_NATIVE_PATHS g_rows={d} select_rows={d} opening_sources={d}\n", .{ paths.live.g_rows.len, paths.live.select_rows.len, paths.inputs.sources.len });
-        const native_openings = frontend.recursion.air.blake3_native_openings;
-        const opening_rows = &state.opening_rows;
-        try std.testing.expectEqual(paths.inputs.sources.len, opening_rows.rows.len);
-        for (opening_rows.rows, opening_rows.fixed, paths.inputs.sources) |row, fixed, source| {
-            try std.testing.expectEqual(source.value, row[0]);
-            try std.testing.expectEqualSlices(stwo_core.fields.m31.M31, row[1..], fixed[1..]);
-        }
-        {
-            const saved = paths.inputs.sources;
-            defer paths.inputs.sources = saved;
-            paths.inputs.sources = saved[1..];
-            try std.testing.expectError(error.InvalidNativeOpeningSource, native_openings.prepare(allocator, paths, deep, fri));
-        }
-        {
-            const saved = paths.inputs.sources[0];
-            defer paths.inputs.sources[0] = saved;
-            paths.inputs.sources[0] = paths.inputs.sources[1];
-            try std.testing.expectError(error.InvalidNativeOpeningSource, native_openings.prepare(allocator, paths, deep, fri));
-            paths.inputs.sources[0] = saved;
-            paths.inputs.sources[0].value = saved.value.add(stwo_core.fields.m31.M31.one());
-            try std.testing.expectError(error.InvalidNativeOpeningSource, native_openings.prepare(allocator, paths, deep, fri));
-        }
-        std.debug.print("V2_BLAKE3_NATIVE_OPENINGS scalar_producers={d}\n", .{opening_rows.rows.len});
-        const root_nonce = frontend.recursion.air.blake3_native_root_nonce;
-        const root_words = &state.root_words;
-        try std.testing.expectEqual((left_capture.proof.commitments.len + left_capture.proof.fri.layers.len - 1) * 8 + 4, root_words.words.len);
-        for (root_words.words, root_words.fixed_words) |row, fixed| try std.testing.expectEqualSlices(stwo_core.fields.m31.M31, row[4..], fixed[4..]);
-        {
-            const saved = prepared.live.root_reads;
-            defer prepared.live.root_reads = saved;
-            prepared.live.root_reads = saved[1..];
-            try std.testing.expectError(error.InvalidNativeRootNonce, root_nonce.prepare(ProofEngine, allocator, &left_output.statement, &left_capture, test_config, left_output.interaction_claim.interaction_pow, prepared));
-        }
-        var root_checked = false;
-        var nonce_checked = false;
-        for (prepared.operations) |*op| {
-            if (op.* == .routed_root and !root_checked) {
-                op.routed_root.value[31] ^= 0x80;
-                defer op.routed_root.value[31] ^= 0x80;
-                try std.testing.expectError(error.InvalidNativeRootNonce, root_nonce.prepare(ProofEngine, allocator, &left_output.statement, &left_capture, test_config, left_output.interaction_claim.interaction_pow, prepared));
-                root_checked = true;
-            } else if (op.* == .routed_integer and !nonce_checked) {
-                op.routed_integer.value ^= 1;
-                defer op.routed_integer.value ^= 1;
-                try std.testing.expectError(error.InvalidNativeRootNonce, root_nonce.prepare(ProofEngine, allocator, &left_output.statement, &left_capture, test_config, left_output.interaction_claim.interaction_pow, prepared));
-                nonce_checked = true;
-            }
-        }
-        try std.testing.expect(root_checked and nonce_checked);
-        std.debug.print("V2_BLAKE3_NATIVE_ROOT_NONCE private_words={d} key_words={d}\n", .{ root_words.words.len, root_words.key.len });
-        const public_boundary = &state.public_boundary;
-        try public_boundary.graph.validate();
-        try std.testing.expect(try public_boundary.circuit.outputsAreZero(public_boundary.evaluation.values));
-        var public_sum_mutated = false;
-        for (public_boundary.bindings, 0..) |binding, index| {
-            if (binding != .published_sum_word) continue;
-            const saved = public_boundary.inputs[index];
-            defer public_boundary.inputs[index] = saved;
-            public_boundary.inputs[index] = saved.add(stwo_core.fields.qm31.QM31.one());
-            try std.testing.expectError(error.InvalidNativePublicBoundary, public_boundary.evaluate(allocator, public_boundary.inputs));
-            public_sum_mutated = true;
-            break;
-        }
-        try std.testing.expect(public_sum_mutated);
-        std.debug.print("V2_BLAKE3_NATIVE_PUBLIC_BOUNDARY nodes={d} inputs={d} outputs={d}\n", .{ public_boundary.graph.nodes.len, public_boundary.inputs.len, public_boundary.graph.outputs.len });
-        const public_links = frontend.recursion.air.blake3_native_public_links;
-        const public_join = &state.public_join;
-        try std.testing.expectEqual(@as(usize, 4), public_join.graph.outputs.len);
-        for (public_join.destinations, public_join.fixed_destinations) |row, fixed| try std.testing.expectEqualSlices(stwo_core.fields.m31.M31, row[1..], fixed[1..]);
-        var wrong_total = public_join.inputs;
-        wrong_total[0] = wrong_total[0].add(stwo_core.fields.qm31.QM31.one());
-        try std.testing.expectError(error.InvalidNativePublicLink, public_join.evaluate(allocator, &wrong_total));
-        for (public_join.composition.rows[0..32], joined_challenges.composition.rows[0..32]) |row, original_row| try std.testing.expectEqual(original_row[3].v + 1, row[3].v);
-        try std.testing.expectEqualDeep(joined_challenges.composition.rows[32..], public_join.composition.rows[32..]);
-        {
-            const saved = joined_challenges.composition.links[0];
-            defer joined_challenges.composition.links[0] = saved;
-            joined_challenges.composition.links[0].node = joined_challenges.composition.links[1].node;
-            try std.testing.expectError(error.InvalidNativePublicLink, public_links.prepare(allocator, composition, public_boundary, joined_challenges, payloads));
-        }
-        {
-            const saved = public_boundary.evaluation.values[0];
-            defer public_boundary.evaluation.values[0] = saved;
-            public_boundary.evaluation.values[0] = saved.add(stwo_core.fields.qm31.QM31.one());
-            try std.testing.expectError(error.InvalidNativePublicBoundary, public_boundary.validate(allocator));
-        }
-        std.debug.print("V2_BLAKE3_NATIVE_PUBLIC_LINKS challenges={d} aggregate_inputs={d} zero_outputs={d}\n", .{ public_join.challenge_rows.len, public_join.inputs.len, public_join.graph.outputs.len });
-        const public_sources = frontend.recursion.air.blake3_native_public_sources;
-        const public_inputs = &state.public_inputs;
-        try std.testing.expectEqual(public_boundary.inputs.len, public_inputs.rows.len + public_inputs.sums.len + public_join.challenge_rows.len + public_join.total_sources.len);
-        for (public_inputs.rows, public_inputs.fixed_rows) |row, fixed| {
-            try std.testing.expectEqualSlices(stwo_core.fields.m31.M31, row[4..], fixed[4..]);
-            try std.testing.expectEqualSlices(stwo_core.fields.m31.M31, row[0..4], row[8..12]);
-        }
-        for (public_inputs.sums, public_inputs.fixed_sums) |row, fixed| {
-            try std.testing.expectEqualSlices(stwo_core.fields.m31.M31, row[1..], fixed[1..]);
-            try std.testing.expectEqual(@as(u32, 0), fixed[0].v);
-        }
-        {
-            const index = public_inputs.statement_operation;
-            const saved = prepared.operations[index];
-            defer prepared.operations[index] = saved;
-            const changed = try allocator.dupe(u32, saved.words);
-            defer allocator.free(changed);
-            changed[0] ^= 1;
-            prepared.operations[index] = .{ .words = changed };
-            try std.testing.expectError(error.InvalidNativePublicSource, public_sources.prepare(allocator, &left_output.statement, test_config, prepared, public_boundary));
-        }
-        std.debug.print("V2_BLAKE3_NATIVE_PUBLIC_SOURCES public_rows={d} private_sum_rows={d} covered_inputs={d}\n", .{ public_inputs.rows.len, public_inputs.sums.len, public_boundary.inputs.len });
-        const parent_rows = frontend.recursion.air.blake3_native_parent_rows;
-        const parent_sources = state.sources();
-        {
-            const saved_row = opening_rows.rows[1];
-            const saved_fixed = opening_rows.fixed[1];
-            defer opening_rows.rows[1] = saved_row;
-            defer opening_rows.fixed[1] = saved_fixed;
-            opening_rows.rows[1] = opening_rows.rows[0];
-            opening_rows.fixed[1] = opening_rows.fixed[0];
-            try std.testing.expectError(error.DuplicateNativeParentInput, parent_rows.prepare(allocator, parent_sources));
-        }
-        {
-            const saved_rows = opening_rows.rows;
-            const saved_fixed = opening_rows.fixed;
-            defer opening_rows.rows = saved_rows;
-            defer opening_rows.fixed = saved_fixed;
-            opening_rows.rows = opening_rows.rows[1..];
-            opening_rows.fixed = opening_rows.fixed[1..];
-            try std.testing.expectError(error.MissingNativeParentInput, parent_rows.prepare(allocator, parent_sources));
-        }
-        if (audit_only) {
-            try parent_rows.fusionCensus(allocator, state.sources());
-            var census_rows = try parent_rows.prepareCensus(allocator, state.sources());
-            defer census_rows.deinit();
-            return;
-        }
-        var expected_parent = try state.finish();
-        defer expected_parent.deinit();
-        {
-            const direct = try coordinator.State.init(ProofEngine, allocator, &left_output.statement, left_output.interaction_claim, &left_capture, test_config, 3);
-            var owns_direct = true;
-            defer if (owns_direct) direct.deinit();
-            try std.testing.expect(direct.prepared.live.hash_metadata != null);
-            try std.testing.expect(direct.paths.hash_metadata != null);
-            const first_column = direct.hash_columns.?.main[0][0].values.ptr;
-            const metadata = &direct.prepared.live.hash_metadata.?.g_rows[0][0];
-            const saved = metadata.*;
-            metadata.* = saved.add(stwo_core.fields.m31.M31.one());
-            try std.testing.expectError(error.InvalidNativeParentRows, direct.finish());
-            metadata.* = saved;
-            try std.testing.expectEqual(first_column, direct.hash_columns.?.main[0][0].values.ptr);
-            var adopted = try direct.finish();
-            defer adopted.deinit();
-            try std.testing.expectEqual(first_column, adopted.rows.main[0][0].values.ptr);
-            try std.testing.expectEqual(@as(usize, 0), direct.hash_columns.?.main[0].len);
-            try std.testing.expectError(error.InvalidNativeHashColumns, direct.finish());
-            direct.deinit();
-            owns_direct = false;
-            inline for (parent_rows.Airs, 0..) |_, i| {
-                try std.testing.expectEqualDeep(expected_parent.rows.main[i], adopted.rows.main[i]);
-                try std.testing.expectEqualDeep(expected_parent.rows.fixed[i], adopted.rows.fixed[i]);
-            }
-        }
-        for ([_]usize{ 1, 64 * 1024 * 1024 }) |rejected_limit| {
-            try std.testing.expectError(error.PreparationHostBudgetExceeded, coordinator.prepareBounded(ProofEngine, allocator, &left_output.statement, left_output.interaction_claim, &left_capture, test_config, 3, rejected_limit));
-        }
-        const queued_byte_limit = 512 * 1024 * 1024;
-        var handoff = try coordinator.Handoff.init(allocator, 1, queued_byte_limit);
-        defer handoff.deinit();
-        const PreparationWorker = struct {
-            queue: *coordinator.Handoff,
-            failure: ?anyerror = null,
-            fn run(self: *@This(), a: std.mem.Allocator, statement: *const @TypeOf(left_output.statement), claim: @TypeOf(left_output.interaction_claim), capture: *const @TypeOf(left_capture)) void {
-                defer self.queue.close();
-                coordinator.prepareAndSend(ProofEngine, a, statement, claim, capture, test_config, 3, 512 * 1024 * 1024, self.queue) catch |err| {
-                    self.failure = err;
-                };
-            }
-        };
-        var preparation_worker = PreparationWorker{ .queue = &handoff };
-        const preparation_thread = try std.Thread.spawn(.{}, PreparationWorker.run, .{ &preparation_worker, allocator, &left_output.statement, left_output.interaction_claim, &left_capture });
-        // receive transfers the arena-backed owner across the thread boundary.
-        // Join before observing the worker error or releasing capture inputs.
-        const received_parent = handoff.receive();
-        preparation_thread.join();
-        if (preparation_worker.failure) |err| return err;
-        var parent = received_parent orelse return error.MissingPreparedParent;
-        defer parent.deinit();
-        try std.testing.expect(handoff.receive() == null);
-        {
-            const expected = &expected_parent;
-            try std.testing.expectEqualDeep(expected.context, parent.context);
-            inline for (parent_rows.Airs, 0..) |_, i| {
-                try std.testing.expectEqualDeep(expected.rows.main[i], parent.rows.main[i]);
-                try std.testing.expectEqualDeep(expected.rows.fixed[i], parent.rows.fixed[i]);
-            }
-        }
-        const preparation_budget = parent.allocation_budget.?.snapshot();
-        try std.testing.expect(preparation_budget.live_bytes <= preparation_budget.limit);
-        try std.testing.expect(preparation_budget.peak_live_bytes <= preparation_budget.limit);
-        std.debug.print("V2_BLAKE3_NATIVE_PARENT_HANDOFF slots=1 queue_limit_bytes={d} retained_bytes={d} preparation_peak_bytes={d} preparation_limit_bytes={d}\n", .{ queued_byte_limit, try parent.retainedBytes(), preparation_budget.peak_live_bytes, preparation_budget.limit });
-        std.debug.print("V2_BLAKE3_NATIVE_PARENT_PREPARATION canonical=true hash_columns_emitted_directly=true row_oracle_parity=true intermediates_released=true bounded_thread_handoff=true inputs={d}\n", .{parent.rows.input_count});
-        const execution_policy = @import("./recursive_pipeline_worker_execution_policy_v2.zig");
-        const host = try execution_policy.HostExecutionAuthorityV2.detect(16 * 1024 * 1024 * 1024);
-        const pipeline_policy = try execution_policy.PolicyV2.init(host, .{ .total_cpu_tokens = 3, .cpu_tokens_per_node = 3, .proof_worker_count = 2, .maximum_parallel_nodes = 1, .total_rss_bytes = 12 * 1024 * 1024 * 1024, .rss_bytes_per_node = 12 * 1024 * 1024 * 1024 });
-        const pipeline = frontend.recursion.blake3_native_parent_pipeline;
-        const parent_job = pipeline.Job(ProofEngine){ .statement = &left_output.statement, .claim = left_output.interaction_claim, .capture = &left_capture, .config = test_config, .capacity = 3 };
-        try frontend.recursion.air.blake3_native_parent_test_support.ForBackend(CpuBackend).check(ProofEngine, allocator, &parent.rows, parent.context, &pipeline_policy, &.{ parent_job, parent_job });
-        const original = left_output.interaction_claim.opcode_claims[0][0];
-        left_output.interaction_claim.opcode_claims[0][0] = original.add(stwo_core.fields.qm31.QM31.one());
-        defer left_output.interaction_claim.opcode_claims[0][0] = original;
-        try std.testing.expectError(error.InvalidBlake3PcsTranscript, adapter.prepare(ProofEngine, allocator, &left_output.statement, left_output.interaction_claim, &left_capture, test_config, 3));
-        std.debug.print("V2_BLAKE3_NATIVE_TRANSCRIPT operations={d} relation_pairs={d} draws={d} plan={s}\n", .{ prepared.operations.len, pairs, prepared.end.n_draws, std.fmt.bytesToHex(prepared.plan.id, .lower) });
-    }
+    // The BLAKE3 native-parent transcript/preparation/pipeline leg was retired
+    // with the archived recursion exports (recursion.blake3_native_parent_*).
     try left_capture.vm_air.validate();
     try left_capture.public_data.data.validate();
     const captured_relations = frontend.air.relation_challenges.Relations

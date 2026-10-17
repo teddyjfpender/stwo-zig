@@ -62,6 +62,7 @@ pub const MemoryBoundaryPolicy = enum(u32) {
         previous: [memory_interaction.N_SUMS]S,
         claims: [memory_interaction.N_SUMS]S,
         relations: anytype,
+        roots: memory_interaction.RootParameters(S),
     ) [memory_interaction.N_CONSTRAINTS]S {
         return switch (self) {
             .legacy_role_filtered_v1 => memory_interaction.evaluateGeneric(
@@ -73,6 +74,7 @@ pub const MemoryBoundaryPolicy = enum(u32) {
                 previous,
                 claims,
                 relations,
+                roots,
             ),
             .full_state_split_multiplicity_v3 => incremental_boundary_interaction_v3.evaluateGeneric(
                 S,
@@ -83,7 +85,28 @@ pub const MemoryBoundaryPolicy = enum(u32) {
                 previous,
                 claims,
                 relations,
+                roots,
             ),
+        };
+    }
+
+    /// Retired shape without the public-root bindings.  Only the paused
+    /// recursion composition lane replays this; the native prover and
+    /// verifier use `evaluateGeneric` with the statement's public roots.
+    pub fn evaluateWithoutRootsGeneric(
+        self: MemoryBoundaryPolicy,
+        comptime S: type,
+        main: [8]S,
+        is_active: S,
+        is_first: S,
+        sums: [memory_interaction.N_SUMS]S,
+        previous: [memory_interaction.N_SUMS]S,
+        claims: [memory_interaction.N_SUMS]S,
+        relations: anytype,
+    ) [memory_interaction.N_CONSTRAINTS_WITHOUT_ROOTS]S {
+        return switch (self) {
+            .legacy_role_filtered_v1 => memory_interaction.evaluateWithoutRootsGeneric(S, main, is_active, is_first, sums, previous, claims, relations),
+            .full_state_split_multiplicity_v3 => incremental_boundary_interaction_v3.evaluateWithoutRootsGeneric(S, main, is_active, is_first, sums, previous, claims, relations),
         };
     }
 };
@@ -107,6 +130,12 @@ pub const RiscVTraceComponent = struct {
     main_col_offset: usize,
     kind: Kind,
     memory_boundary_policy: MemoryBoundaryPolicy = .legacy_role_filtered_v1,
+    /// Statement public roots a memory-boundary component binds row signs to:
+    /// `+1` rows must carry `initial_rw_root`, `-1` rows `final_rw_root`, and
+    /// an absent root forbids that side.  Verifier-owned constants, identical
+    /// on the prover side, never read from the committed trace.
+    initial_rw_root: ?u32 = null,
+    final_rw_root: ?u32 = null,
     /// Six independently admitted ELF-derived Tree0 columns, selected only
     /// by the explicit Ethereum fixed-program profile. Null keeps legacy AIR.
     fixed_program_columns: ?[program_interaction.FIXED_COLUMN_COUNT]usize = null,
@@ -594,6 +623,7 @@ pub const RiscVTraceComponent = struct {
             previous,
             claims,
             relations,
+            memory_interaction.RootParameters(S).fromPublic(self.initial_rw_root, self.final_rw_root),
         );
     }
 };

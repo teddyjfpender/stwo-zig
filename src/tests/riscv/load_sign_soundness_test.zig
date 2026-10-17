@@ -131,12 +131,12 @@ const LH_SIGN_LIMB: usize = 1;
 /// `LH` sign residuals. Pinning the position names *which* of the row's three
 /// `range_check_m31` requests failed; the domain alone does not.
 ///
-/// The two sign residuals are the last entries the family emits, so pinning the
-/// entry count is what turns a reordered or extended emission list into a
-/// failure here instead of a probe silently naming a neighbouring request.
+/// An additional aligned-address high-range request follows the two sign
+/// residuals. Pin the full entry count and both indices so an intervening
+/// request cannot silently change the attribution.
 const LB_SIGN_REQUEST: usize = 14;
 const LH_SIGN_REQUEST: usize = 15;
-const N_LOAD_STORE_ENTRIES: usize = 16;
+const N_LOAD_STORE_ENTRIES: usize = 17;
 
 fn limbColumns(comptime prefix: []const u8) [4]usize {
     return .{

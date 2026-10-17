@@ -88,6 +88,8 @@ test "compression partition admission rejects changed schedules and weights" {
         cells += group.mainColumns();
         events += group.lookupEvents();
     }
-    try std.testing.expectEqual(@as(usize, 4592), cells);
-    try std.testing.expectEqual(@as(usize, 2688), events);
+    // Derived from the canonical topology: 4 columns per external input plus
+    // (blake3_g_packed.COLUMN_COUNT - 24) per packed round across 56 rounds.
+    try std.testing.expectEqual(@as(usize, 4144), cells);
+    try std.testing.expectEqual(@as(usize, 1792), events);
 }

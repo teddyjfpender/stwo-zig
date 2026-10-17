@@ -1,6 +1,6 @@
 # RISC-V frontend verification status and roadmap
 
-**Status date:** 2026-08-04
+**Status date:** 2026-10-17
 
 **Claim owner:** the repository-wide RISC-V refinement gate
 
@@ -12,8 +12,11 @@ what the checked artifacts establish from what remains an engineering plan.
 If an issue, pull request, or older document makes a stronger claim, this
 ledger takes precedence. A machine-readable receipt is authoritative only for
 the source revision and artifact identities it actually binds. The regenerated
-generated-Sail bridge receipt binds the row-local FV-1/FV-2 source and makes no
-FV-3/FV-4/FV-5 claim; the clean-tree top-level release receipt remains a TODO.
+generated-Sail bridge receipt binds the row-local FV-1/FV-2 source revision it
+names and makes no FV-3/FV-4/FV-5 claim. The October 2026 native-proof audit
+changed source identities; regenerated inputs pass the local checks, but the
+retained bridge receipt has not been reminted for this revision. The clean-tree
+top-level release receipt remains a TODO.
 
 The former **Team A / Team B** split was a temporary allocation of proof work.
 It is not an ISA distinction, an AIR boundary, or a verification grade. New
@@ -51,12 +54,22 @@ exact public inventory is therefore 94 theorems, and its policy records
 the remaining opcode families are part of that checked source surface rather
 than non-gating checkpoint prefixes.
 
-The generated-Sail bridge receipt was regenerated from the live pinned Sail
-toolchain for this 46/46 source. It binds the exact 47-source closure,
+The retained generated-Sail bridge receipt was made from the live pinned Sail
+toolchain for an earlier 46/46 source revision. It binds that exact 47-source closure,
 94-theorem inventory, source digests, axiom inventory, and
-`constructive_row_local_execution = true` policy. Future identity drift must
-fail closed and requires fresh regeneration. Minting/replaying the top-level
-clean-tree release receipt is deliberately left as a publication TODO.
+`constructive_row_local_execution = true` policy. The current revision needs
+live-toolchain receipt regeneration and replay before that claim can be renewed.
+Minting/replaying the top-level clean-tree release receipt is also a publication TODO.
+
+The October 2026 audit closed native-proof forgery paths in physical LogUp
+claim binding, memory-chain multiplicity and public-root binding, initial
+memory-root admission, and the secp256k1 recovery precompile. The separate
+Poseidon2 RISC-V recursive verifier is **not qualified** against the changed
+native transcript and boundary AIR; old detached-recursion bundles are stale.
+Its scheduled transcript, in-circuit root constraints, and vectors must be
+updated and checked together before activation. Strict address ordering in the
+boundary table and equal-points completeness in scalar multiplication also
+remain open hardening and completeness work, respectively.
 
 No current artifact proves that every accepted STARK proof represents a valid
 RISC-V execution. In particular, local opcode refinement is not a substitute
@@ -68,8 +81,8 @@ soundness of the PCS/FRI proof system.
 | Gate | Checked statement | Status | What remains |
 | --- | --- | --- | --- |
 | Source binding | The formal evaluator consumes the exact generated constraint programs for all 46 admitted RV32IM opcodes, with pinned selector, event order, fixed-table schemas, and source digests. | Landed | Keep regeneration and source-drift checks fail-closed. |
-| FV-1 — generated Sail | Each admitted opcode has a generated-Sail retirement normalizer, and the retained full-step trace erases to the exact pinned generated `try_step` semantics. | **46/46 receipt-bound**; full-step framing present | Independently reproduce the exact source/digest and 94-theorem inventories; keep regeneration fail-closed. |
-| FV-2 — local AIR refinement | Acceptance of each exact production AIR program implies the matching generated-Sail opcode retirement under explicit row, state, profile, and admission bindings. | **46/46 receipt-bound row-local publication implications**; `constructive_row_local_execution = true` | Maintain the exact axiom/source audit. Do not widen this local statement into an arbitrary-trace claim. |
+| FV-1 — generated Sail | Each admitted opcode has a generated-Sail retirement normalizer, and the retained full-step trace erases to the exact pinned generated `try_step` semantics. | 46/46 theorem source; prior-revision receipt | Regenerate and replay a live-toolchain receipt for this source identity; independently reproduce the source/digest and 94-theorem inventories. |
+| FV-2 — local AIR refinement | Acceptance of each exact production AIR program implies the matching generated-Sail opcode retirement under explicit row, state, profile, and admission bindings. | 46/46 theorem source; prior-revision receipt | Regenerate and replay the exact axiom/source inventory. Do not widen this local statement into an arbitrary-trace claim. |
 | FV-3 — `Word32` / M31 boundary | Every conversion between a 32-bit architectural value and one M31 element is injective or carries a proved bound; machine arithmetic never silently becomes field arithmetic. | Open; blocking; partial mitigations only | Complete issue [#157](https://github.com/teddyjfpender/stwo-zig/issues/157), including the mechanical conversion gate and per-site negative controls. |
 | FV-4 — trace composition | Local opcode theorems compose across arbitrary admitted traces, including fetch/decode, register and memory buses, clocks, traps, interrupts, and cross-row state. | Open; blocking | Prove a named length-parametric trace-refinement theorem and connect local admission to global frontend invariants. |
 | FV-5 — reproduction and review | Independent reviewers reproduce the exact artifacts and approve the claim/axiom/trusted-base boundary. | Open; blocking | Clean-room reproduction, independent sign-offs, and final claim promotion. |
@@ -165,8 +178,9 @@ Until FV-3/FV-4/FV-5 completion, accurate language is:
 > The current Lean source has 46/46 production-bound, kernel-checked row-local
 > AIR-to-generated-Sail publication implications, 46/46 retirement
 > normalizers, and an exact generated full-step framing theorem. The
-> generated-Sail bridge receipt binds that row-local result; top-level release
-> receipt replay remains a TODO. Whole-trace frontend refinement and
+> retained generated-Sail bridge receipt binds a prior source revision; a
+> current-revision bridge receipt and top-level release receipt remain TODOs.
+> Whole-trace frontend refinement and
 > proof-system soundness are not established.
 
 The phrases “the RISC-V frontend is formally verified”, “sound for all

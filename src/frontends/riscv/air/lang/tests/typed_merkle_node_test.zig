@@ -12,7 +12,7 @@ test "typed Merkle definition preserves off-trace direct roots and ordered event
     var degree = try @import("../degree.zig").analyze(std.testing.allocator, &definition.arena);
     defer degree.deinit();
     try std.testing.expectEqual(@as(u32, 3), degree.maximumConstraintDegree());
-    try std.testing.expectEqual(@as(usize, 7), definition.arena.constraints.items.len);
+    try std.testing.expectEqual(@as(usize, 9), definition.arena.constraints.items.len);
     var draws: [relations_mod.DRAW_COUNT]Q = undefined;
     for (&draws, 0..) |*v, i| v.* = Q.fromU32Unchecked(@intCast(i + 1), 7, 11, 13);
     const relations = relations_mod.Relations.fromDrawSequence(&draws);
@@ -38,18 +38,18 @@ fn Changed(comptime mutation: Mutation) type {
     return struct {
         pub const N_MAIN_COLUMNS = 10;
         pub const N_SUMS = 3;
-        pub const N_CONSTRAINTS = 10;
+        pub const N_CONSTRAINTS = 12;
         pub const N_INTERACTION_COLUMNS = if (mutation == .geometry) 13 else 12;
-        pub const N_EXTERNAL_PROVIDER_CONSTRAINTS = 13;
-        pub fn evaluateGeneric(comptime S: type, main: [10]S, active: S, first: S, sums: [3]S, previous: [3]S, claims: [3]S, relations: anytype) [10]S {
+        pub const N_EXTERNAL_PROVIDER_CONSTRAINTS = 15;
+        pub fn evaluateGeneric(comptime S: type, main: [10]S, active: S, first: S, sums: [3]S, previous: [3]S, claims: [3]S, relations: anytype) [12]S {
             var result = native.evaluateGeneric(S, main, active, first, sums, previous, claims, relations);
             if (mutation == .direct) result[3] = result[3].add(S.one());
             if (mutation == .interaction) result[0] = result[0].add(S.one());
             return result;
         }
-        pub fn evaluateExternalProviderCallerGeneric(comptime S: type, main: [10]S, active: S, first: S, sums: [3]S, previous: [3]S, claims: [3]S, relations: anytype) [13]S {
+        pub fn evaluateExternalProviderCallerGeneric(comptime S: type, main: [10]S, active: S, first: S, sums: [3]S, previous: [3]S, claims: [3]S, relations: anytype) [15]S {
             var result = native.evaluateExternalProviderCallerGeneric(S, main, active, first, sums, previous, claims, relations);
-            if (mutation == .external) result[10] = main[7];
+            if (mutation == .external) result[12] = main[7];
             return result;
         }
         pub fn entriesGeneric(comptime S: type, main: [10]S) entries.Builder(S).List {

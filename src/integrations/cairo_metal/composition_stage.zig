@@ -523,7 +523,7 @@ fn evaluate(self: *Session, request: *const device_stage.Request) !void {
             self.stage_ns += timer.read();
             for (plan.coordinates) |offset| @memset(self.words[offset..][0..rows], 0);
             try submit(self, entry);
-            publish(request, self.words, plan.coordinates, rows);
+            try publish(request, self.words, plan.coordinates, rows);
         },
         .tiled => |tiled| {
             // The frontend may resume exact host evaluation after any error.
@@ -546,7 +546,7 @@ fn evaluate(self: *Session, request: *const device_stage.Request) !void {
                     @memcpy(result[lane * rows + row_base ..][0..tiled.tile_rows], self.words[offset..][0..tiled.tile_rows]);
             }
             const offsets = [4]u32{ 0, @intCast(rows), @intCast(2 * rows), @intCast(3 * rows) };
-            publish(request, result, offsets, rows);
+            try publish(request, result, offsets, rows);
             std.log.info("composition tile staging: {s}: {d} MiB across {d} read sites", .{
                 request.captured.label, component_staged_bytes >> 20, tiled.reads.len,
             });
@@ -564,7 +564,14 @@ fn submit(self: *Session, entry: *const Entry) !void {
     }
 }
 
-fn publish(request: *const device_stage.Request, words: []const u32, offsets: [4]u32, rows: usize) void {
+fn publish(request: *const device_stage.Request, words: []const u32, offsets: [4]u32, rows: usize) !void {
+    // Validate every device result before touching the shared accumulator.
+    // A malformed word must not trigger unchecked scalar arithmetic or leave
+    // a partially published component behind.
+    for (offsets) |offset| {
+        const source = words[offset..][0..rows];
+        for (source) |word| if (word >= @import("stwo_core").fields.m31.Modulus) return error.NonCanonicalDeviceComposition;
+    }
     for (offsets, request.output) |offset, destination| {
         const source = words[offset..][0..rows];
         if (request.additive) {
