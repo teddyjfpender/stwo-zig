@@ -64,9 +64,14 @@ const test_terms = [_]lowering.PublicWireTerm{
 // admission or evidence that a production lowering is statement-independent.
 pub const testing = if (@import("builtin").is_test) struct {
     pub const key = testKey;
+    pub const keyWithPoseidonLog = testKeyWithPoseidonLog;
 } else struct {};
 
 fn testKey(word_count: usize, transcript_template_id: u32) !KeyV1 {
+    return testKeyWithPoseidonLog(word_count, transcript_template_id, 10);
+}
+
+fn testKeyWithPoseidonLog(word_count: usize, transcript_template_id: u32, poseidon_log_size: u32) !KeyV1 {
     const source_manifest = try source.ManifestV2.init(word_count);
     const retained_base = @import("segment_statement_v2_transcript_layout.zig").FIXED_WORD_COUNT +
         4 * @import("segment_statement_v2_transcript_layout.zig").SECTION_HEADER_WORDS;
@@ -76,7 +81,7 @@ fn testKey(word_count: usize, transcript_template_id: u32) !KeyV1 {
     var logs: air.universal_manifest.LogSizes = @splat(4);
     logs[11] = source_manifest.trace_log_size;
     logs[17] = air.vm_public_logup_control_witness_v2.TRACE_LOG_SIZE;
-    logs[34] = 10;
+    logs[34] = poseidon_log_size;
     logs[35] = air.range_check_8_8_bridge.LOG_SIZE;
     const catalog = try air.segment_outer_typed_catalog_v2.build(logs, boundary.components);
     const manifest = try air.segment_outer_adapter_manifest_v2.assemble(&catalog, .{

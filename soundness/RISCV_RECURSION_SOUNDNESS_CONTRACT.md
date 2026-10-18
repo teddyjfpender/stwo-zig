@@ -876,7 +876,7 @@ if its row is committed in Tree 0.
 | W-4 | Local shell fixed | Wide and compact providers constrain full IO; focused provider tests pass. End-to-end G-3(d) remains open. |
 | W-5 | Migration retired | Both migration entry points fail closed for pre-contract keys. |
 | W-6, W-7 | Open | Fresh 1/2/4/8 leaf-key setups completed and the focused `test-riscv-recursion-soundness` step passed 15/15 ReleaseSafe tests, but this step is only a subset of G-1 through G-10. Parent/root trees, Metal parity, adversarial cases, and the unskipped broad suites still require fresh final-identity evidence. The opt-in native leaf rejects aggregate-column and maximum-log geometry changes before transcript opening; exact re-pinned descriptor/catalog admission remains under test. |
-| W-9 | Detached leaf partial | Leaf key pins native Tree0 and CPU admission independently regenerates it. Frozen V1 row-5 requires the admitted root. V2 row-5 receives a geometry-derived root separately from the proof, rejects a different proof frame, and places that root in the constant column and source identity. Parent `admit-key` regenerates the fixed key from **verified child proofs** and rejects re-pinned child-key and root mutations before parent proof production; it is not proof-free key-only reconstruction. **The leaf outer Tree0 cannot yet be independently regenerated from the current key:** its 578 fixed columns comprise 46,808,640 field cells. Row 11 now has a value-independent recipe from the four retained-section counts bound into the key identity, but the remaining fixed-column families still require canonical key-only recipes. Copying a claimed root or raw columns is not an independent check. G-8(c) remains open for both leaf and parent, and the standalone hostile-proof G-8(a) control remains open. |
+| W-9 | Detached leaf partial | Leaf key pins native Tree0 and CPU admission independently regenerates it. Frozen V1 row-5 requires the admitted root. V2 row-5 receives a geometry-derived root separately from the proof, rejects a different proof frame, and places that root in the constant column and source identity. Parent `admit-key` regenerates the fixed key from **verified child proofs** and rejects re-pinned child-key and root mutations before parent proof production; it is not proof-free key-only reconstruction. **The leaf outer Tree0 cannot yet be independently regenerated from the current key:** its 578 fixed columns comprise 46,808,640 field cells. Row 11 has a value-independent recipe from the four retained-section counts bound into the key identity; provider rows 34 and 35 now have proof-free geometry/table recipes that match the production census. The remaining fixed-column families still require canonical key-only recipes. Copying a claimed root or raw columns is not an independent check. G-8(c) remains open for both leaf and parent, and the standalone hostile-proof G-8(a) control remains open. |
 | W-8 | False | `recursion_qualified` stays false until every gate and independent review passes. |
 
 The recursive AIR source map has been reviewed against the relocated S-box,
@@ -916,6 +916,20 @@ The native and outer preprocessed roots match the previous one-leaf fixture,
 while the key identity changes. This is only a component of K-8: the other
 fixed-column families and the parent root still require proof-free key-derived
 regeneration before G-8(c) can pass.
+
+A diagnostic Tree0 census over eight consecutive segment shapes produced four
+distinct roots and 19 rows with varying fixed-column hashes. Two adjacent
+segments with equal retained-section counts but different native
+`base_alu_imm`/`load_store` row counts differed only in fixed rows 4 and 5;
+this identifies the verifier transcript schedule as an input to the next
+key-only recipe. Changing the initial memory word in a one-segment fixture
+left all 39 fixed-row hashes and the outer Tree0 root unchanged. These are
+finite observations, not a general statement-independence proof. The new
+proof-free recipes for rows 11, 34 and 35 match the actual q193 census
+SHA-256 values `6046533df3c32ae03a8caf2ee1d755a4c839b395cd7ba1aebc78d6f5dcdb48e3`,
+`f6f8b08ada99b6065fd82b4afeba5e12f21693318865788702e11861b619f9fb`
+and `72447854d4ba84f6eed889db85f0ee0d6c5529d2d1e80420f6e35f06e1173ffa`,
+respectively; the focused soundness test pins all three.
 
 ## 11. Ledger update rule
 
