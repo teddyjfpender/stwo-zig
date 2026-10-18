@@ -50,6 +50,8 @@ pub const FROZEN_V1_ROSTER_ROW: u8 =
     @intFromEnum(roster.Component.statement_input);
 
 pub const CONTEXT_WORD_COUNT: usize = 137;
+pub const CONTEXT_ENTRY_CONTINUATION_ROOT_INDEX: usize = 15;
+pub const CONTEXT_EXIT_CONTINUATION_ROOT_INDEX: usize = 16;
 pub const CONTEXT_PREFIX_WORD_COUNT: usize = 17;
 pub const CONTEXT_SEGMENT_WIRE_ID_DIGEST_ORDINAL: usize = 4;
 pub const CONTEXT_SEGMENT_WIRE_ID_START: usize =

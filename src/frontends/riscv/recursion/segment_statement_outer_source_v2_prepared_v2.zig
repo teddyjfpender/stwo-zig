@@ -41,6 +41,7 @@ const manifestId = dependency_0.manifestId;
 const mulU32 = dependency_0.mulU32;
 const public_data_v2 = dependency_0.public_data_v2;
 const relation = dependency_0.relation;
+const root_context = @import("segment_leaf_statement_contract_v2.zig");
 const requireDigest = dependency_0.requireDigest;
 const segment_statement_v2 = dependency_0.segment_statement_v2;
 const source_v2 = dependency_0.source_v2;
@@ -328,6 +329,10 @@ pub fn contextRow(
                 0,
             .expected_header = 0,
             .boundary_bridge_mask = 0,
+            .native_root_relay_mask = @intFromBool(
+                index == root_context.CONTEXT_ENTRY_CONTINUATION_ROOT_INDEX or
+                    index == root_context.CONTEXT_EXIT_CONTINUATION_ROOT_INDEX,
+            ),
         },
         .main = .{
             .enabler = M31.one(),
@@ -423,6 +428,11 @@ pub fn writeEvents(
             felt(Air.BOUNDARY_BRIDGE_CIRCUIT_ID), felt(pp.memory_high_selector_index),
             main.memory_high_nonzero,             M31.zero(),
             M31.zero(),                           M31.zero(),
+        }),
+        event(logical_row, 11, .recursion_statement_word, .emit, pp.native_root_relay_mask, &.{
+            felt(@import("air/vm_statement_roots.zig").NATIVE_CONTINUATION_SCOPE),
+            felt(pp.source_index -| root_context.CONTEXT_ENTRY_CONTINUATION_ROOT_INDEX),
+            main.source_value,
         }),
     };
 }

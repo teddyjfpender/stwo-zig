@@ -33,6 +33,20 @@ test "selected physical claim payload is consumed by the shared input relation" 
     try std.testing.expectEqual(@as(u32, 1), metadata.input_use_count);
 }
 
+test "authenticated tree-zero payload publishes its preprocessed root" {
+    const metadata = payload_source.payloadMetadata(.{
+        .kind = .trace_commitment,
+        .verifier_sequence = 0,
+        .sub_index = 0,
+        .args = .{ 0, 0, 0, 0 },
+    }, 3);
+    try std.testing.expectEqual(payload_source.PayloadSourceKindV2.commitment, metadata.source_kind);
+    try std.testing.expectEqual(@as(u32, 0), metadata.item_index);
+    try std.testing.expectEqual(@as(u32, 3), metadata.limb_index);
+    try std.testing.expectEqual(@as(u32, 1), metadata.constant_mask);
+    try std.testing.expectEqual(@as(u32, 1), metadata.input_use_count);
+}
+
 const config = PcsConfig{
     .pow_bits = 0,
     .fri_config = .{

@@ -147,7 +147,7 @@ comptime {
         PUBLIC_LOGUP_SOURCE_COMPONENT_37 != 37 or
         VM_PUBLIC_LOGUP_ROW_16 != 16 or
         HEADER_LIMB_COUNT != 8 or
-        WIRE_ID_LIMB_COUNT != 16 or Air.RELATION_EVENT_COUNT != 11 or
+        WIRE_ID_LIMB_COUNT != 16 or Air.RELATION_EVENT_COUNT != 12 or
         Air.INTERACTION_BATCH_COUNT != 6 or Air.INTERACTION_COLUMN_COUNT != 24 or
         Air.BOUNDARY_BRIDGE_CIRCUIT_ID !=
             public_source_v2.BOUNDARY_BRIDGE_CIRCUIT_ID)
@@ -272,6 +272,7 @@ pub const PreprocessedRowV2 = struct {
     memory_byte_bridge_mask: u32 = 0,
     memory_low_selector_index: u32 = 0,
     memory_high_selector_index: u32 = 0,
+    native_root_relay_mask: u32 = 0,
 
     pub fn values(self: PreprocessedRowV2) [Air.PREPROCESSED_COLUMN_COUNT]M31 {
         return .{
@@ -297,6 +298,7 @@ pub const PreprocessedRowV2 = struct {
             felt(self.memory_byte_bridge_mask),
             felt(self.memory_low_selector_index),
             felt(self.memory_high_selector_index),
+            felt(self.native_root_relay_mask),
         };
     }
 };

@@ -183,6 +183,7 @@ test "V2 row-11 closes boundary words and exact ProgramV2 statement payloads" {
     var wire_consumes: usize = 0;
     var boundary_wire_emits: usize = 0;
     var register_byte_emits: usize = 0;
+    var native_root_relays: usize = 0;
     var seen_register_bytes: [register_bytes.BYTE_COUNT]bool = @splat(false);
     const memory = try register_bytes.MemoryLayout.init(&try fixture.data.authenticatedView());
     const seen_memory = try std.testing.allocator.alloc(bool, memory.memoryByteCount() * 2);
@@ -240,7 +241,23 @@ test "V2 row-11 closes boundary words and exact ProgramV2 statement payloads" {
             const byte_index = coordinate - memory.memoryByteCount();
             try std.testing.expectEqual(@as(u32, @intFromBool(!memory.value(fixture.words, byte_index).isZero())), event.tuple[2].toU32());
         }
+        if (event.ordinal == 11) {
+            try std.testing.expectEqual(@as(u32, 1), event.multiplicity);
+            try std.testing.expectEqual(
+                @import("../air/vm_statement_roots.zig").NATIVE_CONTINUATION_SCOPE,
+                event.tuple[0].toU32(),
+            );
+            const side = event.tuple[1].toU32();
+            try std.testing.expect(side < 2);
+            const expected = if (side == 0)
+                source_prepared.context.entry_continuation_root
+            else
+                source_prepared.context.exit_continuation_root;
+            try std.testing.expectEqual(expected, event.tuple[2].toU32());
+            native_root_relays += 1;
+        }
     }
+    try std.testing.expectEqual(@as(usize, 2), native_root_relays);
     for (seen_memory) |seen| try std.testing.expect(seen);
     try std.testing.expectEqual(memory.memoryByteCount(), closure.row11_memory_byte_emits);
     var missing_selector = closure;

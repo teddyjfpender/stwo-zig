@@ -517,7 +517,13 @@ pub fn payloadMetadata(
         .statement_wire_id => dynamicPayload(.statement, 1, payload_index, 1),
         .statement_words => dynamicPayload(.statement, 2, payload_index, 1),
         .trace_commitment => if (instruction.args[0] == 0)
-            constantPayload(.commitment, 0, payload_index)
+            .{
+                .source_kind = .commitment,
+                .item_index = 0,
+                .limb_index = payload_index,
+                .constant_mask = 1,
+                .input_use_count = 1,
+            }
         else
             dynamicPayload(.commitment, instruction.args[0], payload_index, 1),
         .interaction_pow => dynamicPayload(

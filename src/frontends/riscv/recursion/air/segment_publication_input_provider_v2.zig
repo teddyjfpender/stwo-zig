@@ -1,12 +1,9 @@
 //! Typed publisher for the capture-backed SegmentV2 publication input.
 //!
-//! One deliberately separate component emits two disjoint authenticated
-//! classes from its own committed trace:
-//!
-//! - 55 `recursion_verifier_input_word(2, LUP2, index, 0, value)` tuples for
-//!   the row-37 publication bridge; and
-//! - 84 `recursion_verifier_input_word(0, 12, item, limb, value)` tuples for
-//!   row 18's 21 detailed VM composition claims.
+//! The separate component emits 55 authenticated
+//! `recursion_verifier_input_word(2, LUP2, index, 0, value)` tuples for the
+//! row-37 publication bridge. Detailed VM claims are published directly by
+//! the transcript payload row and consumed by composition.
 //!
 //! It has no relation to `recursion_wire`, so it cannot self-cancel either
 //! consumer or hide a cross-domain residual.
@@ -52,7 +49,7 @@ pub const REFERENCE_MAXIMUM_CONSTRAINT_DEGREE: u32 = 3;
 // Regenerated from this file's typed IR. The focused authority test pins both
 // this semantic identity and the compiler profile before integration.
 pub const SEMANTIC_DIGEST_HEX =
-    "00b03b0d40531ff708ce2eecba67c6a54280877a3364a48e493514d99cb44e0e";
+    "e5e29a9ff159e19e7fabf95b8b63dd31d8b132125e8fb4a63c9711199bcd7858";
 pub const SEMANTIC_DIGEST: digest.Digest = hexDigest(
     SEMANTIC_DIGEST_HEX,
     "invalid SegmentV2 publication-input provider semantic digest",
@@ -193,8 +190,8 @@ pub const StaticProfile = struct {
 };
 
 pub const EXPECTED_STATIC_PROFILE = StaticProfile{
-    .arena_nodes = 27,
-    .compiled_nodes = 22,
+    .arena_nodes = 26,
+    .compiled_nodes = 21,
     .direct_constraints = DIRECT_CONSTRAINT_COUNT,
     .relation_events = RELATION_EVENT_COUNT,
     .interaction_batches = INTERACTION_BATCH_COUNT,
@@ -310,14 +307,9 @@ fn buildRaw(allocator: std.mem.Allocator) !Definition {
         preprocessed.index_1,
         main.value,
     };
-    // Each detailed claim is consumed once by the transcript and once by the
-    // composition input. Both lookups must resolve to this same provider row.
-    const detailed_multiplicity = try arena.sub(
-        try arena.constantField(2, span),
-        preprocessed.lup2_class,
-        span,
-    );
-    const weight = try arena.mul(preprocessed.active, detailed_multiplicity, span);
+    // Transcript payload rows already emit the detailed claims consumed by
+    // composition. Only the LUP2 publication needs this separate publisher.
+    const weight = try arena.mul(preprocessed.active, preprocessed.lup2_class, span);
     const event = try relation_effect.append(&arena, .{
         .domain = .recursion_verifier_input_word,
         .role = .emit,

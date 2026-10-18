@@ -1,4 +1,5 @@
-//! Publication-provider shape derived only from admitted claim count.
+//! Publication-provider shape retains claim-count custody, with only the 55
+//! native LogUp words represented as committed rows.
 const std = @import("std");
 const leaf_source = @import("../segment_leaf_layout_v2.zig");
 pub const Error = error{ InvalidInputPair, InvalidPreparedSource };
@@ -15,10 +16,7 @@ pub const Shape = struct {
 
     pub fn init(claim_count: usize) Error!Shape {
         if (claim_count == 0) return error.InvalidInputPair;
-        const limbs = std.math.mul(usize, claim_count, SECURE_LIMB_COUNT) catch
-            return error.InvalidInputPair;
-        const rows = std.math.add(usize, LUP2_WORD_COUNT, limbs) catch
-            return error.InvalidInputPair;
+        const rows = LUP2_WORD_COUNT;
         if (rows > (1 << 30)) return error.InvalidInputPair;
         return .{
             .claim_count = @intCast(claim_count),
@@ -40,7 +38,7 @@ pub const Shape = struct {
 /// Frozen small-fixture geometry. Live captures use PreparedV2.shape.
 pub const DETAILED_CLAIM_COUNT: usize = 21;
 pub const LEGACY_SHAPE = Shape.init(DETAILED_CLAIM_COUNT) catch unreachable;
-pub const DETAILED_LIMB_COUNT = DETAILED_CLAIM_COUNT * SECURE_LIMB_COUNT;
+pub const DETAILED_LIMB_COUNT = 0;
 pub const LOGICAL_ROW_COUNT = LEGACY_SHAPE.logical_row_count;
 pub const TRACE_LOG_SIZE = LEGACY_SHAPE.trace_log_size;
 pub const TRACE_ROW_COUNT = LEGACY_SHAPE.traceRowCount();
