@@ -218,6 +218,7 @@ pub fn transcriptEffect(step: schedule.VerifierStep) ?Effect {
         .absorb_trace_commitment,
         .absorb_public_claim,
         .absorb_claimed_sums,
+        .absorb_physical_claims,
         .absorb_sampled_values,
         .absorb_fri_commitment,
         .absorb_last_layer_coefficients,
@@ -251,6 +252,7 @@ pub fn payloadWordCount(
             0,
         .verify_and_absorb_interaction_pow, .verify_and_absorb_pcs_pow => component.QM31_WORD_COUNT,
         .absorb_claimed_sums => |item| try timesFour(item.count),
+        .absorb_physical_claims => |item| 5 + try timesFour(item.count),
         .absorb_sampled_values => |item| try timesFour(item.count),
         .absorb_last_layer_coefficients => |item| try timesFour(item.count),
         .draw_relation_challenge,
@@ -399,6 +401,26 @@ pub fn payloadSource(
             payload_index,
             item.count,
         ),
+        .absorb_physical_claims => |item| blk: {
+            if (payload_index < 5) {
+                const header = [_]u32{
+                    0x5057_5453,          0x314c_4350,
+                    item.component_count, item.infra_count,
+                    item.count,
+                };
+                break :blk constantIndexedSource(
+                    .protocol,
+                    2,
+                    payload_index,
+                    header[payload_index],
+                );
+            }
+            break :blk try indexedQm31Source(
+                .vm_air_claimed_sum,
+                payload_index - 5,
+                item.count,
+            );
+        },
         .absorb_sampled_values => |item| try indexedQm31Source(
             .sampled_value,
             payload_index,
@@ -499,6 +521,7 @@ pub fn inputUseCount(kind: VerifierInputKind) u32 {
         .statement,
         .commitment,
         .claimed_sum,
+        .vm_air_claimed_sum,
         .fri_commitment,
         .last_layer_coefficient,
         .vm_public_claim_digest,
@@ -507,7 +530,6 @@ pub fn inputUseCount(kind: VerifierInputKind) u32 {
         .pcs_parameters,
         .interaction_pow_nonce,
         .pcs_pow_nonce,
-        .vm_air_claimed_sum,
         => 0,
     };
 }
@@ -585,7 +607,10 @@ fn validateRowForLayout(row: Row, comptime layout: enum { legacy_scheduled, reco
         // Their input multiplicity is zero; all coordinates remain canonical.
         .protocol => if ((layout != .ethereum_field_poseidon and row.constant_mask != 1) or
             (row.constant_mask == 0 and row.constant_value != 0) or (layout == .legacy_scheduled and
-            (row.item_index > 1 or row.limb_index >= component.DIGEST_WORD_COUNT)))
+            (if (row.tag == 29)
+                row.item_index != 2 or row.limb_index >= 5
+            else
+                row.item_index > 1 or row.limb_index >= component.DIGEST_WORD_COUNT)))
         {
             return error.InvalidTraceRow;
         },
@@ -634,7 +659,8 @@ fn validateRowForLayout(row: Row, comptime layout: enum { legacy_scheduled, reco
         {
             return error.InvalidTraceRow;
         },
-        .vm_air_claimed_sum => if (!ethereum or
+        .vm_air_claimed_sum => if ((!ethereum and
+            !(layout == .legacy_scheduled and row.tag == 29)) or
             row.constant_mask != 0 or row.constant_value != 0 or
             row.limb_index >= component.QM31_WORD_COUNT or
             row.verifier_id != SEGMENT_VERIFIER_ID)

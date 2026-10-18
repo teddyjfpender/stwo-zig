@@ -3,7 +3,10 @@
 //! Verifier-owned preprocessing fixes every VM public-claim word coordinate,
 //! value class, constant, and public-I/O projection. Segment leaves publish the
 //! same value into three independently scoped consumers and export the unique
-//! byte decomposition of each u16 word. Inactive proof modes carry only zero.
+//! byte decomposition of each u16 word. The two native sparse-memory roots
+//! additionally enter the row-18 statement-word relation at scope 6, directly
+//! from their authenticated public-claim coordinates. Inactive proof modes
+//! carry only zero.
 
 const std = @import("std");
 const digest = @import("../../air/lang/digest.zig");
@@ -16,15 +19,15 @@ const relation_effect = @import("relation_effect.zig");
 
 pub const STABLE_NAME = "recursion.vm_public_claim_input.v1";
 pub const PHYSICAL_MAIN_COLUMN_COUNT: usize = 4;
-pub const PREPROCESSED_COLUMN_COUNT: usize = 10;
+pub const PREPROCESSED_COLUMN_COUNT: usize = 12;
 pub const PARAMETER_COUNT: usize = 8;
 pub const LOGICAL_INPUT_COUNT: usize =
     PHYSICAL_MAIN_COLUMN_COUNT + PREPROCESSED_COLUMN_COUNT + PARAMETER_COUNT;
 pub const DIRECT_CONSTRAINT_COUNT: usize = 7;
-pub const RELATION_EVENT_COUNT: usize = 8;
+pub const RELATION_EVENT_COUNT: usize = 9;
 pub const LOOKUP_BATCH_SIZE: u8 = 2;
-pub const INTERACTION_BATCH_COUNT: usize = 4;
-pub const INTERACTION_COLUMN_COUNT: usize = 16;
+pub const INTERACTION_BATCH_COUNT: usize = 5;
+pub const INTERACTION_COLUMN_COUNT: usize = 20;
 pub const REFERENCE_MAXIMUM_CONSTRAINT_DEGREE: u32 = 3;
 // The local conservative analyzer counts verifier parameters as degree-one
 // inputs. STWO substitutes `segment_active` as a public constant.
@@ -39,13 +42,13 @@ pub const LOW_BYTE_INDEX: u32 = 0;
 pub const HIGH_BYTE_INDEX: u32 = 1;
 
 pub const SEMANTIC_DIGEST_HEX =
-    "cd86885019abdb5c39a8cd101a1cab54bb058c046ba171e7d23810f7a5b0ddc6";
+    "b1ab8e1035056bf4ac0889c0f93a97feaf71dd9cfea83c90b6720f7c3b731df4";
 pub const SEMANTIC_DIGEST: digest.Digest = hexDigest(
     SEMANTIC_DIGEST_HEX,
     "invalid recursion VM public-claim input semantic digest",
 );
 pub const STATIC_PROFILE_DIGEST_HEX =
-    "6468cb83998bb68e1df98f1a1130742bf33b7918beb70285c9d94ae70a0a6141";
+    "ea8942630bd8075f719c869f93b10b40978b0f0344f44bd910575d3556dd176c";
 
 pub const MAIN_COLUMN_NAMES = [PHYSICAL_MAIN_COLUMN_COUNT][]const u8{
     "recursion.vm_public_claim_input.enabler",
@@ -65,6 +68,8 @@ pub const PREPROCESSED_COLUMN_NAMES = [PREPROCESSED_COLUMN_COUNT][]const u8{
     "recursion_vm_public_claim_input_input_io_index",
     "recursion_vm_public_claim_input_output_io_mask",
     "recursion_vm_public_claim_input_output_io_index",
+    "recursion_vm_public_claim_input_native_root_mask",
+    "recursion_vm_public_claim_input_native_root_side",
 };
 
 pub const PARAMETER_NAMES = [PARAMETER_COUNT][]const u8{
@@ -110,6 +115,8 @@ pub const PreprocessedColumns = struct {
     input_io_index: types.ValueId,
     output_io_mask: types.ValueId,
     output_io_index: types.ValueId,
+    native_root_mask: types.ValueId,
+    native_root_side: types.ValueId,
 
     pub fn physical(
         self: PreprocessedColumns,
@@ -125,6 +132,8 @@ pub const PreprocessedColumns = struct {
             self.input_io_index,
             self.output_io_mask,
             self.output_io_index,
+            self.native_root_mask,
+            self.native_root_side,
         };
     }
 };
@@ -162,6 +171,7 @@ pub const Definition = struct {
     main: MainColumns,
     preprocessed: PreprocessedColumns,
     parameters: Parameters,
+    native_root_scope: types.ValueId,
     active: types.ValueId,
     active_boolean: types.ValueId,
     active_u16: types.ValueId,
@@ -201,7 +211,7 @@ pub const Definition = struct {
             &self.preprocessed.physical(),
             &PREPROCESSED_COLUMN_NAMES,
             PHYSICAL_MAIN_COLUMN_COUNT,
-            &.{ 0, 2, 3, 4, 6, 8 },
+            &.{ 0, 2, 3, 4, 6, 8, 10 },
             &.{},
         );
         try validateInputs(
@@ -239,6 +249,7 @@ pub const Definition = struct {
             &.{ self.main.low_byte, self.main.high_byte },
             &.{ self.preprocessed.word_index, self.parameters.low_byte_index, self.main.low_byte },
             &.{ self.preprocessed.word_index, self.parameters.high_byte_index, self.main.high_byte },
+            &.{ self.native_root_scope, self.preprocessed.native_root_side, self.main.value },
         };
         const domains = [_]relation.Domain{
             .recursion_vm_public_claim_word,
@@ -249,6 +260,7 @@ pub const Definition = struct {
             .range_check_8_8,
             .recursion_vm_public_claim_byte,
             .recursion_vm_public_claim_byte,
+            .recursion_statement_word,
         };
         const roles = [_]relation.Role{
             .emit,
@@ -257,6 +269,7 @@ pub const Definition = struct {
             .emit,
             .emit,
             .request,
+            .emit,
             .emit,
             .emit,
         };
@@ -330,7 +343,7 @@ fn buildDefinition(allocator: std.mem.Allocator, comptime legacy_logup_exports: 
     | value.* = try arena.input(
         name,
         switch (index) {
-            0, 2, 3, 4, 6, 8 => .selector,
+            0, 2, 3, 4, 6, 8, 10 => .selector,
             else => .felt,
         },
         span,
@@ -346,6 +359,8 @@ fn buildDefinition(allocator: std.mem.Allocator, comptime legacy_logup_exports: 
         .input_io_index = preprocessed_values[7],
         .output_io_mask = preprocessed_values[8],
         .output_io_index = preprocessed_values[9],
+        .native_root_mask = preprocessed_values[10],
+        .native_root_side = preprocessed_values[11],
     };
     var routed_uses: [3]?types.ValueId = .{ null, null, null };
     if (!legacy_logup_exports) {
@@ -367,6 +382,10 @@ fn buildDefinition(allocator: std.mem.Allocator, comptime legacy_logup_exports: 
     };
 
     const one = try arena.constantField(1, span);
+    const native_root_scope = try arena.constantField(
+        @import("vm_statement_roots.zig").NATIVE_CONTINUATION_SCOPE,
+        span,
+    );
     const active = try arena.mul(preprocessed.row_mask, parameters.segment_active, span);
     const active_boolean = try arena.mul(
         preprocessed.boolean_mask,
@@ -414,6 +433,7 @@ fn buildDefinition(allocator: std.mem.Allocator, comptime legacy_logup_exports: 
     const logup_low_weight = if (legacy_logup_exports) active_u16 else try arena.mul(active_u16, routed_uses[1].?, span);
     const logup_high_weight = if (legacy_logup_exports) active_u16 else try arena.mul(active_u16, routed_uses[2].?, span);
     const claim_hash_weight = if (legacy_logup_exports) active else try arena.constantField(0, span);
+    const native_root_weight = try arena.mul(active, preprocessed.native_root_mask, span);
     const weights = [RELATION_EVENT_COUNT]types.ValueId{
         active,
         claim_hash_weight,
@@ -423,6 +443,7 @@ fn buildDefinition(allocator: std.mem.Allocator, comptime legacy_logup_exports: 
         active_u16,
         logup_low_weight,
         logup_high_weight,
+        native_root_weight,
     };
     const events = try relation_effect.appendGroup(RELATION_EVENT_COUNT, &arena, .{
         .{
@@ -473,12 +494,19 @@ fn buildDefinition(allocator: std.mem.Allocator, comptime legacy_logup_exports: 
             .values = &.{ preprocessed.word_index, parameters.high_byte_index, main.high_byte },
             .weight = logup_high_weight,
         },
+        .{
+            .domain = .recursion_statement_word,
+            .role = .emit,
+            .values = &.{ native_root_scope, preprocessed.native_root_side, main.value },
+            .weight = native_root_weight,
+        },
     }, span);
     return .{
         .arena = arena,
         .main = main,
         .preprocessed = preprocessed,
         .parameters = parameters,
+        .native_root_scope = native_root_scope,
         .active = active,
         .active_boolean = active_boolean,
         .active_u16 = active_u16,

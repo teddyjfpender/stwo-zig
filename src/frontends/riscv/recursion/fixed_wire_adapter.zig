@@ -49,6 +49,21 @@ pub fn populate(
     for (canonical_claim.claimed_sums, 0..) |value, index| {
         destination.claimed_sums[index] = qm31Wire(value);
     }
+    var physical_at: usize = 0;
+    for (statement.component_descs[0..statement.n_components], 0..) |desc, index| {
+        const count = (statement_mod.CompatibilityBatching{}).opcodeBatchCount(desc.family);
+        for (claim.opcode_claims[index][0..count]) |value| {
+            destination.physical_claimed_sums[physical_at] = qm31Wire(value);
+            physical_at += 1;
+        }
+    }
+    for (statement.infra_descs[0..statement.n_infra], 0..) |desc, index| {
+        for (claim.infraClaims(desc.kind, index) catch unreachable) |value| {
+            destination.physical_claimed_sums[physical_at] = qm31Wire(value);
+            physical_at += 1;
+        }
+    }
+    std.debug.assert(physical_at == dimensions.physical_claimed_sum_count);
     for (capture.sampled_values, 0..) |value, index| {
         destination.sampled_values[index] = qm31Wire(value);
     }
@@ -107,6 +122,12 @@ fn validateCapture(
     const canonical_claim = claim.canonical(statement) catch
         return error.InvalidInteractionClaim;
     if (canonical_claim.claimed_sums.len != dimensions.claimed_sum_count)
+        return error.CaptureShapeMismatch;
+    const physical_count = statement_mod.physicalClaimCount(
+        statement,
+        statement_mod.CompatibilityBatching{},
+    ) catch return error.InvalidInteractionClaim;
+    if (physical_count != dimensions.physical_claimed_sum_count)
         return error.CaptureShapeMismatch;
 
     const composition_columns = stwo_core.verifier_types.compositionColumnCount(

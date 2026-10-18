@@ -773,24 +773,25 @@ regenerated.
 with a new encode tag; append `physical_claimed_sum_count` to
 `transcript_shape.derive` and `ScheduleShape`; insert the step after
 `absorb_claimed_sums` in `Plan.initShape`; implement the header and payload
-frames in `scheduled_channel` / `native_scheduled_channel` so that
-`mixU32s` accepts exactly the T-4 header and `mixFelts` the claim payload at
-that step; delete `absorbRiscVClaimedSums` and the `@hasDecl` branch at
-`proof_transcript.zig:166`; carry the physical claims on the fixed wire
+frame in `native_scheduled_channel` using the typed hook allowed by T-5;
+the hook absorbs the exact T-4 header and ordered physical claims in one
+scheduled operation after the canonical-aggregate hook. Carry the physical claims on the fixed wire
 (`fixed_wire_fixed_stark_proof_wire.zig`, `Dimensions`); source row-18
 detailed claims from the transcript payload instead of
 `segment_publication_input_provider_v2`; update every file mirroring
 `absorb_claimed_sums` (15 source files reference it; the audit record counts
 ~120 across tests and vectors). Acceptance: G-1 passes; `payloadWordCount`
-returns `4·total` for the new step; plan digests and shape ids change.
+returns `5 + 4·total` for the header and claims in the new step; plan digests
+and shape ids change.
 
 **W-2 (R-D2, C-2/C-3).** Replace `evaluateWithoutRootsGeneric` in
 `vm_air_composition_circuit_graph_build.zig:283-293` and
 `ethereum_vm_composition_graph_base_v2.zig` with `evaluateGeneric(...,
 roots)`; add the root inputs to `InputProfile` and `vmInputCount`; bind them
-in row 18 to the row-12 claim words at 221/222 and 231/232; delete
-`N_CONSTRAINTS_WITHOUT_ROOTS` and both `evaluateWithoutRootsGeneric`
-functions. Acceptance: G-2 passes; the builder no longer returns
+in row 18 to the row-12 claim words at 221/222 and 231/232; remove every
+publicly callable rootless composition evaluator. The seven-term core may
+remain a private helper used only by the full nine-constraint evaluator.
+Acceptance: G-2 passes; the builder no longer returns
 `InvalidComponentOrder` on the hardened profile; the G-3(b) controls are
 rejected; circuit identity changes.
 
@@ -858,7 +859,8 @@ the same identity-changing batch as W-1 to W-4.
 
 | Work | State | Evidence or remaining condition |
 | --- | --- | --- |
-| W-1, W-2 | Open, blocking | The opt-in leaf now reaches `InvalidComponentOrder`: its boundary graph emits seven roots while the native AIR requires nine. Physical claims are still not absorbed by the scheduled transcript. |
+| W-1 | Native leaf partial | The scheduled channel and fixed wire now absorb all 51 detailed claims after the 28 aggregates; a changed physical claim with unchanged aggregates fails PoW in the opt-in leaf test. SegmentV2 now rejects a physical-claim schedule step rather than silently dropping it, but its provider-to-transcript migration and G-1/G-9 still block completion. |
+| W-2 | Composition graph partial | The opt-in native leaf builds the nine-constraint boundary graph with two native-root inputs. Row 12 now emits their scope-6 relation tuples directly from authenticated claim words 222/232, with side 0/1; focused row-12 checks and the whole-roster seal are re-pinned. The V2 base graph now also evaluates all nine memory constraints using explicit root inputs; a focused differential test matches the native evaluator. Root-bearing ProfileV2 programs use a new field-authority preimage while V1 rejects those bindings. The complete detached proof must still demonstrate row-12/row-18 cancellation, and G-2/G-3(b) remain open. |
 | W-3 | Geometry re-pinned | The hardened native leaf reported 38/627/204 columns; the frozen profile now has 877 table columns and 1,081 sampled values. |
 | W-4 | Local shell fixed | Wide and compact providers constrain full IO; focused provider tests pass. End-to-end G-3(d) remains open. |
 | W-5 | Migration retired | Both migration entry points fail closed for pre-contract keys. |

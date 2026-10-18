@@ -384,6 +384,25 @@ test "recursion Poseidon2 native leaf proves and independently verifies" {
         transcript_draws,
         transcript_rows.execution.final_draw_count,
     );
+    // The detailed per-batch claims are transcript data even if all 28
+    // aggregates stay fixed. A shifted physical claim must therefore change
+    // the native leaf challenge state before it can reach row 18.
+    const saved_physical_limb = leaf_wire.physical_claimed_sums[0][0];
+    leaf_wire.physical_claimed_sums[0][0] =
+        (saved_physical_limb + 1) % @import("stwo_core").fields.m31.Modulus;
+    try std.testing.expectError(
+        error.InvalidProofOfWork,
+        recursion.segment_transcript_witness.Prepared(LEAF_DIMENSIONS).init(
+            allocator,
+            &transcript_preprocessing,
+            vm_transcript_plan,
+            recursion_transcript_plan,
+            &leaf_authority.statement.words,
+            .{ .vm = public_claim_words },
+            leaf_wire,
+        ),
+    );
+    leaf_wire.physical_claimed_sums[0][0] = saved_physical_limb;
 
     var statement_authority = try recursion.segment_statement_outer_source.Authority.init(
         allocator,

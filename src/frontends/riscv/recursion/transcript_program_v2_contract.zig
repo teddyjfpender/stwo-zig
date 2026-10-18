@@ -283,6 +283,10 @@ pub fn buildInstructions(
                 if (log_index != interaction_log_count)
                     return error.ProgramShapeMismatch;
             },
+            // SegmentV2 does not yet publish native physical claims to the
+            // transcript. Refuse a plan that requires them rather than
+            // silently dropping the step through the generic `else` arm.
+            .absorb_physical_claims => return error.ProgramShapeMismatch,
             .draw_composition_randomness => try appendInstruction(
                 allocator,
                 destination,

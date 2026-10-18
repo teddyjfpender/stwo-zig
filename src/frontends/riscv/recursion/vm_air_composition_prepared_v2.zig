@@ -40,6 +40,8 @@ pub fn prepare(
         .claimed_sum_count = profile.input_profile.claimed_sum_count,
         .relation_challenge_count = relations_mod.RELATION_COUNT,
         .transcript_claimed_sum_count = transcript.COMPONENT_COUNT,
+        .vm_statement_root_count = 2,
+        .vm_native_continuation_roots = true,
     };
     var builder = support.Builder.init(allocator);
     defer builder.deinit();
@@ -66,13 +68,17 @@ pub fn prepare(
     }
     const randomness = try support.scalarInput(&builder, .composition_randomness);
     const seed = try support.scalarInput(&builder, .oods_point);
+    const native_roots = [2]Scalar{
+        try builder.input(.{ .native_continuation_root = 0 }),
+        try builder.input(.{ .native_continuation_root = 1 }),
+    };
     try program.bindTranscriptAggregates(&builder, selector, profile, null, claims, &aggregates);
     const relations = circuit.GraphRelations.init(draws);
     var layout = try support.SampleLayoutV2.init(allocator, &geometry, null, sampled);
     defer layout.deinit();
     const point = support.pointFromSeed(seed);
     var denominators: [31]?Scalar = .{null} ** 31;
-    const recorded = try base_graph.record(.legacy_role_filtered_v1, profile, &manifest, &selected, &layout, claims, &relations, point, randomness, profile.max_log_degree_bound, &denominators);
+    const recorded = try base_graph.record(.legacy_role_filtered_v1, profile, &manifest, &selected, &layout, claims, &relations, native_roots, point, randomness, profile.max_log_degree_bound, &denominators);
     const composition = try support.reconstructComposition(&layout, point, profile.composition_log_degree_bound, profile.composition_log_split);
     try builder.constrainZero(selector.mul(composition.sub(recorded.accumulation)));
     try builder.check();
@@ -122,7 +128,12 @@ fn validateCaptureGeometry(geometry: *const geometry_mod.GeometryV2, capture: an
 fn inputWord(source: graph.VmSource, capture: anytype) !M31 {
     const context = &capture.vm_air;
     return switch (source) {
-        .statement_word, .native_continuation_root => return error.InvalidInputBinding,
+        .statement_word => return error.InvalidInputBinding,
+        .native_continuation_root => |side| blk: {
+            const root = (if (side == 0) capture.public_data.data.initial_rw_root else capture.public_data.data.final_rw_root) orelse return error.InvalidInputBinding;
+            if (root >= core.fields.m31.Modulus) return error.InvalidInputBinding;
+            break :blk M31.fromCanonical(root);
+        },
         .segment_selector => M31.one(),
         .sampled_value => |coordinate| word(capture.proof.sampled_values, coordinate),
         .claimed_sum => |coordinate| word(context.detailed_claims, coordinate),

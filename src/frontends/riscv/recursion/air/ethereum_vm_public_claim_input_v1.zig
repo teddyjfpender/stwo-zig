@@ -21,7 +21,7 @@ pub const LOOKUP_BATCH_SIZE = legacy.LOOKUP_BATCH_SIZE;
 pub const INTERACTION_BATCH_COUNT = legacy.INTERACTION_BATCH_COUNT;
 pub const INTERACTION_COLUMN_COUNT = legacy.INTERACTION_COLUMN_COUNT;
 pub const Relation = @import("universal_relation_binding.zig").Binding(@This());
-pub const SEMANTIC_DIGEST_HEX = "064801f229b955638e49c848d704cc91691e493038d6461898936e3f0b989bc6";
+pub const SEMANTIC_DIGEST_HEX = "c3157d0a7a53cbba13625c8b9e6ea64c0b5d316860b649ae02f01203d7301362";
 pub const SEMANTIC_DIGEST: digest.Digest = blk: {
     var bytes: digest.Digest = undefined;
     _ = std.fmt.hexToBytes(&bytes, SEMANTIC_DIGEST_HEX) catch unreachable;
@@ -30,6 +30,7 @@ pub const SEMANTIC_DIGEST: digest.Digest = blk: {
 const event_ids: [RELATION_EVENT_COUNT]types.EffectId = .{
     @enumFromInt(0), @enumFromInt(1), @enumFromInt(2), @enumFromInt(3),
     @enumFromInt(4), @enumFromInt(5), @enumFromInt(6), @enumFromInt(7),
+    @enumFromInt(8),
 };
 
 pub const Definition = struct {

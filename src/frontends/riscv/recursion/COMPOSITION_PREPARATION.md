@@ -142,7 +142,9 @@ request from 354.7s to 244.0s; peak footprint remains 35.8 GiB. This is developm
 loop evidence, not a completed proving benchmark. Exact counts, sampled origins
 and input hashes are retained in the PR198 progress checkpoint.
 The existing V1 field publishers share `vm_binding_field_encoding_v1.zig` and
-explicitly reject these new inputs until their field admission is versioned.
+continue to reject native-root inputs. The root-bearing VM graph has a distinct
+V2 field-authority preimage and binding encoding; publisher adoption and
+independent detached-proof admission remain separate gates.
 
 Other statement/boundary constants in recursive construction, shared transcript
 admission, and proof serialization followed by verification after producer

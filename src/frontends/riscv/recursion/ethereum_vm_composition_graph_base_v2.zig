@@ -43,12 +43,13 @@ pub fn record(
     layout: *const SampleLayout,
     claims: []const Scalar,
     relations: *const circuit.GraphRelations,
+    native_roots: [2]Scalar,
     point: anytype,
     composition_randomness: Scalar,
     max_log_degree_bound: u32,
     denominators: *[31]?Scalar,
 ) !Result {
-    return recordWithFixedProgram(memory_boundary_policy, profile, manifest, compiler, layout, null, claims, relations, point, composition_randomness, max_log_degree_bound, denominators);
+    return recordWithFixedProgram(memory_boundary_policy, profile, manifest, compiler, layout, null, claims, relations, native_roots, point, composition_randomness, max_log_degree_bound, denominators);
 }
 
 pub fn recordWithFixedProgram(
@@ -60,6 +61,7 @@ pub fn recordWithFixedProgram(
     fixed_program_samples: ?[program_interaction.FIXED_COLUMN_COUNT]Scalar,
     claims: []const Scalar,
     relations: *const circuit.GraphRelations,
+    native_roots: [2]Scalar,
     point: anytype,
     composition_randomness: Scalar,
     max_log_degree_bound: u32,
@@ -110,6 +112,7 @@ pub fn recordWithFixedProgram(
                 layout,
                 claims,
                 relations,
+                native_roots,
                 denominator,
                 composition_randomness,
                 &result,
@@ -224,6 +227,7 @@ fn recordInfrastructure(
     layout: *const SampleLayout,
     claims: []const Scalar,
     relations: anytype,
+    native_roots: [2]Scalar,
     denominator: Scalar,
     randomness: Scalar,
     result: *Result,
@@ -288,10 +292,11 @@ fn recordInfrastructure(
                 1,
             );
             const active = try layout.atBase(0, entry.preprocessed.offset + 1, 0);
-            // Retired shape without the public-root sign bindings: this
-            // circuit has no public-root inputs (see the note in
-            // vm_air_composition_circuit_graph_build.zig).
-            const constraints = memory_boundary_policy.evaluateWithoutRootsGeneric(
+            const roots = memory_interaction.RootParameters(Scalar).fromArray(.{
+                Scalar.one(), native_roots[0].neg(),
+                Scalar.one(), native_roots[1].neg(),
+            });
+            const constraints = memory_boundary_policy.evaluateGeneric(
                 Scalar,
                 main,
                 active,
@@ -300,6 +305,7 @@ fn recordInfrastructure(
                 previous,
                 component_claims[0..memory_interaction.N_SUMS].*,
                 relations,
+                roots,
             );
             appendMany(result, randomness, denominator, &constraints);
         },
@@ -549,7 +555,7 @@ test "authenticated VM AIR ProfileV2 schema5 infrastructure recording equals nat
         }
         const fixed: [program_interaction.FIXED_COLUMN_COUNT]Scalar = .{Scalar.fromSecure(z)} ** program_interaction.FIXED_COLUMN_COUNT;
         var result: Result = .{ .accumulation = Scalar.zero(), .instruction_count = 0 };
-        try recordInfrastructure(.full_state_split_multiplicity_v3, .fixed_program_narrow_v1, fixed, kind, entry, &layout, &claims, &relations, Scalar.fromSecure(denominator), Scalar.fromSecure(randomness), &result);
+        try recordInfrastructure(.full_state_split_multiplicity_v3, .fixed_program_narrow_v1, fixed, kind, entry, &layout, &claims, &relations, .{ Scalar.zero(), Scalar.zero() }, Scalar.fromSecure(denominator), Scalar.fromSecure(randomness), &result);
         var main: [main_count]QM31 = undefined;
         for (&main, values[2..][0..main_count]) |*native, value| native.* = value.handle.constant;
         const current = try sampledInteraction(sum_count, &layout, 0, 0);
@@ -574,5 +580,120 @@ test "authenticated VM AIR ProfileV2 schema5 infrastructure recording equals nat
         try std.testing.expectEqual(constraint_count, result.instruction_count);
         try std.testing.expect(accumulation.eql(result.accumulation.handle.constant));
     }
+    try builder.check();
+}
+
+test "ProfileV2 memory composition binds both public roots in native constraint order" {
+    const std = @import("std");
+    const core = @import("stwo_core");
+    const QM31 = core.fields.qm31.QM31;
+    const allocator = std.testing.allocator;
+    var builder = circuit.Builder.init(allocator);
+    defer builder.deinit();
+    circuit.installBuilder(&builder);
+    defer circuit.uninstallBuilder();
+
+    const z = QM31.fromU32Unchecked(41, 5, 8, 2);
+    const alpha = QM31.fromU32Unchecked(7, 3, 1, 6);
+    const relation_mod = @import("../air/relation_challenges.zig");
+    var native_relations: relation_mod.Relations = undefined;
+    inline for (std.meta.fields(relation_mod.Relations)) |field|
+        @field(native_relations, field.name) = @TypeOf(@field(native_relations, field.name)).init(z, alpha);
+    const relations = circuit.GraphRelations.init(.{.{ Scalar.fromSecure(z), Scalar.fromSecure(alpha) }} ** relation_mod.RELATION_COUNT);
+    const randomness = QM31.fromU32Unchecked(13, 2, 4, 9);
+    const denominator = QM31.fromU32Unchecked(17, 4, 1, 3);
+    const roots = [2]QM31{ QM31.fromU32Unchecked(67, 0, 0, 0), QM31.fromU32Unchecked(89, 0, 0, 0) };
+
+    const ColumnV2 = @import("vm_composition_base_geometry_v2.zig").ColumnV2;
+    var pp_columns: [2]ColumnV2 = undefined;
+    var main_columns: [8]ColumnV2 = undefined;
+    var interaction_columns: [4 * memory_interaction.N_SUMS]ColumnV2 = undefined;
+    var base: @import("vm_composition_base_geometry_v2.zig").GeometryV2 = undefined;
+    base.columns = .{ &pp_columns, &main_columns, &interaction_columns, &.{} };
+    var main_offsets: [9]u32 = undefined;
+    var interaction_offsets: [4 * memory_interaction.N_SUMS + 1]u32 = undefined;
+    for (&main_offsets, 0..) |*offset, index| offset.* = @intCast(index);
+    for (&interaction_offsets, 0..) |*offset, index| offset.* = @intCast(2 * index);
+    var values: [2 + 8 + 2 * interaction_columns.len]Scalar = undefined;
+    for (&values, 0..) |*value, index|
+        value.* = Scalar.fromSecure(QM31.fromU32Unchecked(@intCast(index + 1), 3, 2, 1));
+    var pp_offsets = [_]u32{ 0, 1, 2 };
+    var empty_offsets = [_]u32{0};
+    const layout: SampleLayout = .{
+        .allocator = allocator,
+        .base = &base,
+        .extension = null,
+        .values = &values,
+        .tree_offsets = .{ 0, 2, 10, values.len, values.len },
+        .base_offsets = .{ &pp_offsets, &main_offsets, &interaction_offsets, &empty_offsets },
+        .extension_offsets = .{ &empty_offsets, &empty_offsets, &empty_offsets },
+    };
+    const entry: profile_mod.EntryV2 = .{
+        .physical_index = 0,
+        .shard_ordinal = 0,
+        .active = true,
+        .registry = .{ .infrastructure = .{ .kind = .memory, .adapter_kind = .trace } },
+        .log_size = 1,
+        .n_rows = 1,
+        .preprocessed = .{ .offset = 0, .sampled_columns = 2, .declared_columns = 2 },
+        .main = .{ .offset = 0, .sampled_columns = 8, .declared_columns = 8 },
+        .interaction = .{ .offset = 0, .sampled_columns = interaction_columns.len, .declared_columns = interaction_columns.len },
+        .constraint_count = memory_interaction.N_CONSTRAINTS,
+        .relation_event_count = memory_interaction.N_SUMS,
+        .interaction_batch_count = memory_interaction.N_SUMS,
+        .claimed_sum_offset = 0,
+        .claimed_sum_count = memory_interaction.N_SUMS,
+        .max_constraint_log_degree_bound = 2,
+        .composition_log_split = 1,
+    };
+    var claims: [memory_interaction.N_SUMS]Scalar = undefined;
+    var native_claims: [memory_interaction.N_SUMS]QM31 = undefined;
+    for (&claims, &native_claims, 0..) |*claim, *native, index| {
+        native.* = QM31.fromU32Unchecked(@intCast(71 + index), 2, 1, 4);
+        claim.* = Scalar.fromSecure(native.*);
+    }
+    var result: Result = .{ .accumulation = Scalar.zero(), .instruction_count = 0 };
+    try recordInfrastructure(
+        .full_state_split_multiplicity_v3,
+        .fixed_program_narrow_v1,
+        null,
+        .memory,
+        entry,
+        &layout,
+        &claims,
+        &relations,
+        .{ Scalar.fromSecure(roots[0]), Scalar.fromSecure(roots[1]) },
+        Scalar.fromSecure(denominator),
+        Scalar.fromSecure(randomness),
+        &result,
+    );
+    var native_main: [8]QM31 = undefined;
+    for (&native_main, values[2..10]) |*destination, value| destination.* = value.handle.constant;
+    const current = try sampledInteraction(memory_interaction.N_SUMS, &layout, 0, 0);
+    const previous = try sampledInteraction(memory_interaction.N_SUMS, &layout, 0, 1);
+    var native_current: [memory_interaction.N_SUMS]QM31 = undefined;
+    var native_previous: [memory_interaction.N_SUMS]QM31 = undefined;
+    for (&native_current, &native_previous, current, previous) |*a, *b, x, y| {
+        a.* = x.handle.constant;
+        b.* = y.handle.constant;
+    }
+    const expected = MemoryBoundaryPolicy.full_state_split_multiplicity_v3.evaluateGeneric(
+        QM31,
+        native_main,
+        values[1].handle.constant,
+        values[0].handle.constant,
+        native_current,
+        native_previous,
+        native_claims,
+        &native_relations,
+        memory_interaction.RootParameters(QM31).fromArray(.{
+            QM31.one(), roots[0].neg(), QM31.one(), roots[1].neg(),
+        }),
+    );
+    var accumulation = QM31.zero();
+    for (expected) |constraint|
+        accumulation = accumulation.mul(randomness).add(constraint.mul(denominator));
+    try std.testing.expectEqual(memory_interaction.N_CONSTRAINTS, result.instruction_count);
+    try std.testing.expect(accumulation.eql(result.accumulation.handle.constant));
     try builder.check();
 }

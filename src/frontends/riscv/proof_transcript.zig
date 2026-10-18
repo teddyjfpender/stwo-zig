@@ -164,12 +164,8 @@ pub fn mixInteractionClaim(
     const canonical = try claim.canonical(statement);
     const view = canonical.view();
     if (comptime @hasDecl(@TypeOf(channel.*), "absorbRiscVClaimedSums")) {
-        // Recursion-lane scheduled channels absorb the canonical sums as one
-        // fixed-count schedule step; the physical frame below has no step in
-        // that schedule yet and the in-circuit transcript mirrors it exactly.
-        // That lane is paused (conformance/2026-09-27-riscv-pause-checkpoint.md)
-        // and must be re-aligned before it is relied upon.
         try channel.absorbRiscVClaimedSums(&view.claimed_sums);
+        try channel.absorbRiscVPhysicalClaims(statement, claim);
     } else {
         view.mixInto(channel);
         // Canonical first, then every physical claimed sum the components

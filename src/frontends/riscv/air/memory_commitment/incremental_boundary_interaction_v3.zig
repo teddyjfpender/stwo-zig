@@ -83,7 +83,7 @@ pub fn evaluateGeneric(
 }
 
 /// Retired shape without the public-root bindings (recursion lane replay).
-pub fn evaluateWithoutRootsGeneric(
+fn evaluateWithoutRootsGeneric(
     comptime S: type,
     main: [8]S,
     is_active: S,

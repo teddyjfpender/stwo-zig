@@ -113,6 +113,40 @@ test "V2 raw program exactly matches the ordinary generic channel" {
         try std.testing.expect(actual.eql(expected));
 }
 
+test "V2 transcript refuses an unimplemented physical-claim step" {
+    var fixture = try Fixture.init(std.testing.allocator);
+    defer fixture.deinit();
+    const contract = @import("../transcript_program_v2_contract.zig");
+    const steps = try std.testing.allocator.dupe(schedule.VerifierStep, fixture.plan.steps);
+    defer std.testing.allocator.free(steps);
+    var replaced = false;
+    for (steps) |*step| if (step.* == .absorb_claimed_sums) {
+        step.* = .{ .absorb_physical_claims = .{
+            .count = 1,
+            .component_count = 1,
+            .infra_count = 1,
+        } };
+        replaced = true;
+        break;
+    };
+    try std.testing.expect(replaced);
+    var modified = fixture.plan;
+    modified.steps = steps;
+    var instructions: std.ArrayList(contract.Instruction) = .empty;
+    defer instructions.deinit(std.testing.allocator);
+    try std.testing.expectError(error.ProgramShapeMismatch, contract.buildInstructions(
+        std.testing.allocator,
+        &instructions,
+        &modified,
+        config,
+        @intCast(fixture.words.len),
+        &component_descs,
+        &infra_descs,
+        null,
+        null,
+    ));
+}
+
 test "V2 scheduled bootstrap rejects order version length and wire mutation" {
     var fixture = try Fixture.init(std.testing.allocator);
     defer fixture.deinit();

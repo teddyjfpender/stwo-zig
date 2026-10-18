@@ -229,7 +229,7 @@ test "R-012 recursion typed-AIR inventory is explicit and cannot overclaim compl
             .stable_name = vm_public_claim_input.STABLE_NAME,
             .main_columns = 4,
             .roots = 7,
-            .events = 8,
+            .events = 9,
             .maximum_degree = 4,
             .semantic_digest = vm_public_claim_input.SEMANTIC_DIGEST,
         },

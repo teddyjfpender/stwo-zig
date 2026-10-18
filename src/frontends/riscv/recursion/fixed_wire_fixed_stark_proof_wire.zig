@@ -36,6 +36,7 @@ const writePath = dependency_0.writePath;
 pub const Dimensions = struct {
     commitment_count: usize,
     claimed_sum_count: usize,
+    physical_claimed_sum_count: usize = 0,
     sampled_value_count: usize,
     queried_value_count: usize,
     trace_path_count: usize,
@@ -78,6 +79,7 @@ pub fn FixedStarkProofWire(comptime dimensions: Dimensions) type {
     return struct {
         commitments: [dimensions.commitment_count]channel.Digest,
         claimed_sums: [dimensions.claimed_sum_count]Qm31Wire,
+        physical_claimed_sums: [dimensions.physical_claimed_sum_count]Qm31Wire,
         sampled_values: [dimensions.sampled_value_count]Qm31Wire,
         queried_values: [dimensions.queried_value_count]u32,
         trace_paths: [dimensions.trace_path_count]MerklePathWire(
@@ -109,6 +111,7 @@ pub fn FixedStarkProofWire(comptime dimensions: Dimensions) type {
 
             for (self.commitments) |commitment| try validateDigest(commitment);
             for (self.claimed_sums) |value| try validateQm31(value);
+            for (self.physical_claimed_sums) |value| try validateQm31(value);
             for (self.sampled_values) |value| try validateQm31(value);
             for (self.queried_values) |value| try validateM31(value);
             for (self.last_layer_coefficients) |value| try validateQm31(value);
@@ -139,6 +142,7 @@ pub fn FixedStarkProofWire(comptime dimensions: Dimensions) type {
             var writer = ByteWriter.init(destination);
             for (self.commitments) |value| writer.writeDigest(value);
             for (self.claimed_sums) |value| writer.writeQm31(value);
+            for (self.physical_claimed_sums) |value| writer.writeQm31(value);
             for (self.sampled_values) |value| writer.writeQm31(value);
             for (self.queried_values) |value| writer.writeU32(value);
             for (self.trace_paths) |path| writePath(
@@ -180,6 +184,7 @@ pub fn FixedStarkProofWire(comptime dimensions: Dimensions) type {
             var reader = ByteReader.init(encoded);
             for (&destination.commitments) |*value| value.* = reader.readDigest();
             for (&destination.claimed_sums) |*value| value.* = reader.readQm31();
+            for (&destination.physical_claimed_sums) |*value| value.* = reader.readQm31();
             for (&destination.sampled_values) |*value| value.* = reader.readQm31();
             for (&destination.queried_values) |*value| value.* = reader.readU32();
             for (&destination.trace_paths) |*path| readPath(
@@ -235,6 +240,9 @@ pub fn preflightEncoded(
         try validateDigest(reader.readDigest());
     index = 0;
     while (index < dimensions.claimed_sum_count) : (index += 1)
+        try validateQm31(reader.readQm31());
+    index = 0;
+    while (index < dimensions.physical_claimed_sum_count) : (index += 1)
         try validateQm31(reader.readQm31());
     index = 0;
     while (index < dimensions.sampled_value_count) : (index += 1)
@@ -293,6 +301,7 @@ pub fn validateDimensionsAgainstShape(
 ) Error!void {
     if (dimensions.commitment_count != fixed_profile.TREE_COUNT or
         dimensions.claimed_sum_count != shape.claimed_sum_count or
+        dimensions.physical_claimed_sum_count != shape.physical_claimed_sum_count or
         dimensions.sampled_value_count != shape.sampled_value_count or
         dimensions.fri_layer_count != shape.fri.count or
         dimensions.query_count != protocol.FRI_QUERY_COUNT or
@@ -347,6 +356,10 @@ pub fn serializedByteCountRuntime(dimensions: Dimensions) Error!usize {
     bytes = try checkedAdd(
         bytes,
         try checkedMul(dimensions.claimed_sum_count, QM31_BYTES),
+    );
+    bytes = try checkedAdd(
+        bytes,
+        try checkedMul(dimensions.physical_claimed_sum_count, QM31_BYTES),
     );
     bytes = try checkedAdd(
         bytes,
