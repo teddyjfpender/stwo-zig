@@ -119,6 +119,7 @@ pub const Preprocessed = struct {
     vm_row_count: usize,
     recursion_row_count: usize,
     protocol_id: [component.DIGEST_WORD_COUNT]u32,
+    native_preprocessed_root: [component.DIGEST_WORD_COUNT]u32,
     vm_schedule_digest: [8]u32,
     recursion_schedule_digest: [8]u32,
     authority_digest: digest.Digest,
@@ -127,10 +128,13 @@ pub const Preprocessed = struct {
         allocator: std.mem.Allocator,
         vm: *const schedule.Plan,
         recursion: *const schedule.Plan,
+        native_preprocessed_root: [component.DIGEST_WORD_COUNT]u32,
     ) Error!Preprocessed {
         try component.SourceAuthority.pinned().validate();
         try (protocol.Profile{}).validate();
         try validateLanePlans(vm, recursion);
+        for (native_preprocessed_root) |word| if (word >= m31.Modulus)
+            return error.InvalidFieldElement;
         const protocol_id = protocol.protocolId();
         const vm_rows = try laneRowCount(vm);
         const recursion_rows = try laneRowCount(recursion);
@@ -144,11 +148,12 @@ pub const Preprocessed = struct {
         const rows = try allocator.alloc(Row, row_count);
         errdefer allocator.free(rows);
         var sink = Sink.write(rows);
-        try emitLane(&sink, vm, &protocol_id, SEGMENT_VERIFIER_ID, 1, 0);
+        try emitLane(&sink, vm, &protocol_id, &native_preprocessed_root, SEGMENT_VERIFIER_ID, 1, 0);
         try emitLane(
             &sink,
             recursion,
             &protocol_id,
+            null,
             LEFT_RECURSION_VERIFIER_ID,
             0,
             1,
@@ -157,6 +162,7 @@ pub const Preprocessed = struct {
             &sink,
             recursion,
             &protocol_id,
+            null,
             RIGHT_RECURSION_VERIFIER_ID,
             0,
             1,
@@ -170,6 +176,7 @@ pub const Preprocessed = struct {
             .vm_row_count = vm_rows,
             .recursion_row_count = recursion_rows,
             .protocol_id = protocol_id,
+            .native_preprocessed_root = native_preprocessed_root,
             .vm_schedule_digest = vm.authority_digest,
             .recursion_schedule_digest = recursion.authority_digest,
             .authority_digest = preprocessingDigest(
@@ -177,6 +184,7 @@ pub const Preprocessed = struct {
                 vm_rows,
                 recursion_rows,
                 protocol_id,
+                native_preprocessed_root,
                 vm.authority_digest,
                 recursion.authority_digest,
                 rows,
@@ -192,6 +200,8 @@ pub const Preprocessed = struct {
     pub fn validate(self: *const Preprocessed) Error!void {
         try component.SourceAuthority.pinned().validate();
         try (protocol.Profile{}).validate();
+        for (self.native_preprocessed_root) |word| if (word >= m31.Modulus)
+            return error.InvalidFieldElement;
         const expected_len = std.math.add(
             usize,
             self.vm_row_count,
@@ -210,6 +220,7 @@ pub const Preprocessed = struct {
             self.vm_row_count,
             self.recursion_row_count,
             self.protocol_id,
+            self.native_preprocessed_root,
             self.vm_schedule_digest,
             self.recursion_schedule_digest,
             self.rows,
@@ -233,11 +244,12 @@ pub const Preprocessed = struct {
             return error.AuthorityMismatch;
         }
         var sink = Sink.compare(self.rows);
-        try emitLane(&sink, vm, &self.protocol_id, SEGMENT_VERIFIER_ID, 1, 0);
+        try emitLane(&sink, vm, &self.protocol_id, &self.native_preprocessed_root, SEGMENT_VERIFIER_ID, 1, 0);
         try emitLane(
             &sink,
             recursion,
             &self.protocol_id,
+            null,
             LEFT_RECURSION_VERIFIER_ID,
             0,
             1,
@@ -246,6 +258,7 @@ pub const Preprocessed = struct {
             &sink,
             recursion,
             &self.protocol_id,
+            null,
             RIGHT_RECURSION_VERIFIER_ID,
             0,
             1,

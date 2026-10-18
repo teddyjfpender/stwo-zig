@@ -38,9 +38,9 @@ pub const BINDING_DIGEST = hexDigest(
     BINDING_DIGEST_HEX,
     "invalid recursion transcript-payload witness-binding digest",
 );
-pub const PREPROCESSING_FORMAT_VERSION: u16 = 1;
+pub const PREPROCESSING_FORMAT_VERSION: u16 = 2;
 pub const PREPROCESSING_DOMAIN =
-    "stwo-zig/typed-air/recursion-transcript-payload-preprocessing/v1\x00";
+    "stwo-zig/typed-air/recursion-transcript-payload-preprocessing/v2\x00";
 pub const PREPARED_BATCH_FORMAT_VERSION: u16 = 1;
 pub const PREPARED_BATCH_DOMAIN =
     "stwo-zig/typed-air/recursion-transcript-payload-batch/v1\x00";
@@ -154,6 +154,7 @@ pub const Error = direct.Error || schedule.Error || trace_mod.Error ||
     InvalidTranscriptSource,
     InvalidWitnessBinding,
     LogSizeOutOfRange,
+    NativeTree0RootRequired,
     SchemaMismatch,
 };
 
@@ -307,10 +308,13 @@ pub fn emitLane(
     sink: *Sink,
     plan: *const schedule.Plan,
     protocol_id: *const [component.DIGEST_WORD_COUNT]u32,
+    native_preprocessed_root: ?*const [component.DIGEST_WORD_COUNT]u32,
     verifier_id: u32,
     segment_mask: u32,
     binary_mask: u32,
 ) Error!void {
+    if (verifier_id == SEGMENT_VERIFIER_ID and native_preprocessed_root == null)
+        return error.NativeTree0RootRequired;
     var hash_id: u32 = 0;
     for (plan.steps, 0..) |step, sequence| {
         const effect = transcriptEffect(step) orelse continue;
@@ -321,6 +325,7 @@ pub fn emitLane(
             const source = try payloadSource(
                 plan,
                 protocol_id,
+                native_preprocessed_root,
                 step,
                 payload_u32,
             );
@@ -362,6 +367,7 @@ pub const PayloadSource = struct {
 pub fn payloadSource(
     plan: *const schedule.Plan,
     protocol_id: *const [component.DIGEST_WORD_COUNT]u32,
+    native_preprocessed_root: ?*const [component.DIGEST_WORD_COUNT]u32,
     step: schedule.VerifierStep,
     payload_index: u32,
 ) Error!PayloadSource {
@@ -390,6 +396,14 @@ pub fn payloadSource(
         ),
         .absorb_trace_commitment => |item| blk: {
             try requireWidth(payload_index, component.DIGEST_WORD_COUNT);
+            if (item.round == .preprocessed and item.tree == 0) {
+                if (native_preprocessed_root) |root| break :blk constantIndexedSource(
+                    .commitment,
+                    0,
+                    payload_index,
+                    try indexedWord(root, payload_index),
+                );
+            }
             break :blk dynamicSource(.commitment, item.tree, payload_index);
         },
         .verify_and_absorb_interaction_pow => blk: {
@@ -635,9 +649,13 @@ fn validateRowForLayout(row: Row, comptime layout: enum { legacy_scheduled, reco
         .commitment, .fri_commitment => {
             // The recorded common-fold profile pins tree0 in preprocessing
             // and still emits its commitment lookup to the verifier AIR.
-            const fixed_tree0 = layout != .legacy_scheduled and
-                row.source_kind == .commitment and row.item_index == 0 and row.constant_mask == 1;
-            if ((!fixed_tree0 and (row.constant_mask != 0 or row.constant_value != 0)) or
+            const fixed_tree0 = row.source_kind == .commitment and
+                row.item_index == 0 and row.constant_mask == 1;
+            const scheduled_native_tree0 = layout == .legacy_scheduled and
+                row.verifier_id == SEGMENT_VERIFIER_ID and
+                row.source_kind == .commitment and row.item_index == 0;
+            if ((scheduled_native_tree0 and !fixed_tree0) or
+                (!fixed_tree0 and (row.constant_mask != 0 or row.constant_value != 0)) or
                 row.limb_index >= component.DIGEST_WORD_COUNT)
                 return error.InvalidTraceRow;
         },

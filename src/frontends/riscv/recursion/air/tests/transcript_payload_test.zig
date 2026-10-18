@@ -139,6 +139,7 @@ test "R-012 transcript payload preprocessing assigns every exact semantic source
         measured.allocator(),
         &plans.vm,
         &plans.recursion,
+        test_support.TEST_NATIVE_TREE0_ROOT,
     );
     defer preprocessing.deinit();
     try std.testing.expectEqual(@as(usize, 1), measured.alloc_index);
@@ -233,6 +234,11 @@ test "R-012 transcript payload preprocessing assigns every exact semantic source
     try std.testing.expectEqual(@as(u32, 0), preprocessing.rows[pcs_index].item_index);
     const commitment_index = findKind(&preprocessing, 0, .commitment);
     try std.testing.expectEqual(@as(u32, 0), preprocessing.rows[commitment_index].item_index);
+    try std.testing.expectEqual(@as(u32, 1), preprocessing.rows[commitment_index].constant_mask);
+    try std.testing.expectEqual(test_support.TEST_NATIVE_TREE0_ROOT[0], preprocessing.rows[commitment_index].constant_value);
+    preprocessing.native_preprocessed_root[0] ^= 1;
+    try std.testing.expectError(error.AuthorityMismatch, preprocessing.validate());
+    preprocessing.native_preprocessed_root[0] ^= 1;
     const claimed_index = findKind(&preprocessing, 0, .claimed_sum);
     try std.testing.expectEqual(@as(u32, 1), preprocessing.rows[claimed_index].input_use_count);
     const sampled_index = findKind(&preprocessing, 0, .sampled_value);
@@ -683,6 +689,7 @@ test "R-012 transcript payload constructors release every allocation failure" {
         std.testing.allocator,
         &plans.vm,
         &plans.recursion,
+        test_support.TEST_NATIVE_TREE0_ROOT,
     );
     defer preprocessing.deinit();
     var trace = try TraceStorage.init(

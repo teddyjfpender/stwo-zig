@@ -872,7 +872,7 @@ committed in Tree 0.
 | W-4 | Local shell fixed | Wide and compact providers constrain full IO; focused provider tests pass. End-to-end G-3(d) remains open. |
 | W-5 | Migration retired | Both migration entry points fail closed for pre-contract keys. |
 | W-6, W-7 | Open | Rebuild/regenerate after W-1 and W-2, then run G-1 through G-10. The opt-in native leaf now rejects aggregate-column and maximum-log geometry changes before opening the transcript while holding the public claim fixed; this is only a G-7 subcheck, not exact descriptor/catalog admission. |
-| W-9 | Detached leaf partial | Leaf key pins native Tree0 and the CPU admission path independently regenerates it. Frozen V1 row-5 and parent-key Tree0 checks remain open. V2 row-5 metadata now marks Tree0 constant, but its value is still taken from the proof row itself; it must be sourced from the admitted key before G-8 can pass. |
+| W-9 | Detached leaf partial | Leaf key pins native Tree0 and the CPU admission path independently regenerates it. The frozen V1 row-5 preprocessing now requires a native Tree0 root, hashes it into a version-2 identity, and rejects a changed proof commitment in the focused witness test. The caller still must provide that root from independently admitted key custody; the CSP diagnostic producer currently recomputes it from its local statement. Parent-key Tree0 checks remain open. V2 row-5 metadata marks Tree0 constant, but its value is still taken from the proof row itself; it must be sourced from the admitted key before G-8 can pass. |
 | W-8 | False | `recursion_qualified` stays false until every gate and independent review passes. |
 
 The recursive AIR source-map check also fails on eight stale source hashes in

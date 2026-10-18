@@ -24,6 +24,7 @@ const schedule = @import("verifier_schedule.zig");
 const support = @import("test_support.zig");
 
 // Shared fixtures and mutation helpers for this conformance suite.
+pub const TEST_NATIVE_TREE0_ROOT = [_]u32{ 101, 102, 103, 104, 105, 106, 107, 108 };
 
 pub const FullFixture = struct {
     plans: PlanFixture,
@@ -46,6 +47,7 @@ pub const FullFixture = struct {
             allocator,
             &plans.vm,
             &plans.recursion,
+            TEST_NATIVE_TREE0_ROOT,
         );
         errdefer preprocessing.deinit();
         var vm = try TraceStorage.init(
@@ -466,7 +468,12 @@ pub fn preprocessingFailureCase(
     vm: *const schedule.Plan,
     recursion: *const schedule.Plan,
 ) !void {
-    var preprocessing = try witness.Preprocessed.init(allocator, vm, recursion);
+    var preprocessing = try witness.Preprocessed.init(
+        allocator,
+        vm,
+        recursion,
+        TEST_NATIVE_TREE0_ROOT,
+    );
     defer preprocessing.deinit();
 }
 

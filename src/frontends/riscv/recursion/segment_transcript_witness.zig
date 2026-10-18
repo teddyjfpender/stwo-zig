@@ -45,6 +45,7 @@ pub const Preprocessing = struct {
         allocator: std.mem.Allocator,
         vm_plan: *const schedule.Plan,
         recursion_plan: *const schedule.Plan,
+        native_preprocessed_root: [8]u32,
     ) Error!Preprocessing {
         var transcript_binding = try binding.Preprocessed.init(
             allocator,
@@ -67,6 +68,7 @@ pub const Preprocessing = struct {
             allocator,
             vm_plan,
             recursion_plan,
+            native_preprocessed_root,
         );
         errdefer transcript_payload.deinit();
         var relation_challenge_value = try relation_challenge.Preprocessed.init(
@@ -114,6 +116,16 @@ pub const Preprocessing = struct {
         try self.transcript_payload.validateAgainst(vm_plan, recursion_plan);
         try self.relation_challenge.validateAgainst(vm_plan, recursion_plan);
         try self.verifier_randomness.validateAgainst(vm_plan, recursion_plan);
+    }
+
+    /// The caller must supply this root from independent key admission. A
+    /// proof-derived commitment is not an authority for row 5 preprocessing.
+    pub fn validateNativeTree0Root(
+        self: *const Preprocessing,
+        admitted_root: [8]u32,
+    ) Error!void {
+        if (!std.meta.eql(self.transcript_payload.native_preprocessed_root, admitted_root))
+            return error.TranscriptSnapshotMismatch;
     }
 };
 
