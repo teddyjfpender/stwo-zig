@@ -136,6 +136,28 @@ test "recursion Poseidon2 native leaf proves and independently verifies" {
     const terminal_digest = proving_channel.digestWords();
     const transcript_draws = proving_channel.n_draws;
 
+    // Geometry is checked before the first transcript frame, even when the
+    // public data and its claim digest are unchanged. The detached catalog
+    // still has to pin each descriptor (G-7); these controls cover the native
+    // leaf's aggregate column and maximum-log admission boundary.
+    var changed_columns = output.statement;
+    changed_columns.component_descs[0].n_columns += 1;
+    var column_channel = try Engine.Channel.init(vm_transcript_plan, &leaf_authority);
+    try std.testing.expectError(
+        error.StatementGeometryMismatch,
+        column_channel.bindRiscVTranscript(selection.config, &changed_columns),
+    );
+    try std.testing.expect(!column_channel.started);
+
+    var changed_log = output.statement;
+    changed_log.component_descs[0].log_size = recursion.segment_profile.COLUMN_LOG_DEGREE + 1;
+    var log_channel = try Engine.Channel.init(vm_transcript_plan, &leaf_authority);
+    try std.testing.expectError(
+        error.StatementGeometryMismatch,
+        log_channel.bindRiscVTranscript(selection.config, &changed_log),
+    );
+    try std.testing.expect(!log_channel.started);
+
     var serialize_timer = try std.time.Timer.start();
     var proof_bytes: std.ArrayList(u8) = .empty;
     defer proof_bytes.deinit(allocator);

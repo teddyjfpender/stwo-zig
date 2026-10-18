@@ -71,7 +71,7 @@ leaf-to-parent and parent-to-root boundaries (section 2), key identity
 | R-D6 | Shard manifest replaced by public-claim digest and verifier-owned shape ids (accepted). | T-3 |
 | R-D7 | Frozen leaf geometry predates native column changes; leaf proving faults with `AuthorityMismatch`. | K-6, W-3 |
 | R-F1 | Universal provider shell admits narrow rows against full-IO requests. | P-1 to P-5, W-4 |
-| R-D8 (new, audit 2026-10-18) | The native segment proof's tree-0 (preprocessed) root enters the leaf transcript as proof data (`segment_transcript_outer_source_v2_prepared_v2.zig:474-479` `dynamicPayload(.commitment, ...)`, `constant_mask = 0`); no row compares it with the root the native verifier recomputes (`prover/statement_validation.zig:540-565` `verifyPreprocessedRoot`). | V-14, G-8, W-9 |
+| R-D8 (new, audit 2026-10-18) | The native segment proof's tree-0 (preprocessed) root lacks an independently supplied in-circuit constant. V2 now labels the row `constant_mask = 1`, but `segment_transcript_outer_components_v2_source.zig:238-244` sets `constant_value` from that same proof-derived row; this is a self-equality, not key binding. Frozen V1 row 5 remains dynamic. The native verifier recomputes the root (`prover/statement_validation.zig:540-565` `verifyPreprocessedRoot`). | V-14, G-8, W-9 |
 | R-D9 (new, audit 2026-10-18) | The scheduled lane drops `InteractionClaim.mixInto`'s interaction column log-size list (`air/transcript/claims.zig:75-78` mixes `log_sizes.len` and every `log_size`; `native_scheduled_channel.zig:109-118` absorbs only the 28 sums). | T-3(d) |
 
 <!-- audit: R-D8/R-D9 added. R-D8 is the highest-severity gap found: the contract as drafted never required the native preprocessed commitment to be verifier-owned, so a literal implementation would admit a leaf whose native proof commits an attacker-chosen tree 0 (selectors, lookup tables). -->
@@ -853,6 +853,13 @@ K-8 regeneration in the admission tooling. Acceptance: G-8 passes; the leaf
 key identity and the transcript shape change (K-1). This item MUST land in
 the same identity-changing batch as W-1 to W-4.
 
+The V2 `constant_mask = 1` metadata alone does not discharge this obligation:
+`segment_transcript_outer_components_v2_source.payloadLogicalRow` currently
+sets `constant_value = row.value`. The constant must instead come from the
+independently admitted key, and the component must reject a mismatched
+proof-derived value. A self-derived constant is invalid even if its row is
+committed in Tree 0.
+
 **W-8 (ledger).** Apply section 11.
 
 ### Implementation checkpoint (2026-10-18)
@@ -864,8 +871,8 @@ the same identity-changing batch as W-1 to W-4.
 | W-3 | Geometry re-pinned | The hardened native leaf reported 38/627/204 columns; the frozen profile now has 877 table columns and 1,081 sampled values. |
 | W-4 | Local shell fixed | Wide and compact providers constrain full IO; focused provider tests pass. End-to-end G-3(d) remains open. |
 | W-5 | Migration retired | Both migration entry points fail closed for pre-contract keys. |
-| W-6, W-7 | Open | Rebuild/regenerate after W-1 and W-2, then run G-1 through G-10. |
-| W-9 | Detached leaf partial | Leaf key pins native Tree0 and the CPU admission path independently regenerates it. Frozen V1 row-5 and parent-key Tree0 checks remain open. |
+| W-6, W-7 | Open | Rebuild/regenerate after W-1 and W-2, then run G-1 through G-10. The opt-in native leaf now rejects aggregate-column and maximum-log geometry changes before opening the transcript while holding the public claim fixed; this is only a G-7 subcheck, not exact descriptor/catalog admission. |
+| W-9 | Detached leaf partial | Leaf key pins native Tree0 and the CPU admission path independently regenerates it. Frozen V1 row-5 and parent-key Tree0 checks remain open. V2 row-5 metadata now marks Tree0 constant, but its value is still taken from the proof row itself; it must be sourced from the admitted key before G-8 can pass. |
 | W-8 | False | `recursion_qualified` stays false until every gate and independent review passes. |
 
 The recursive AIR source-map check also fails on eight stale source hashes in
