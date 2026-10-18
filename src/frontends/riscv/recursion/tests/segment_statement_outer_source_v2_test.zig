@@ -577,6 +577,38 @@ test "V2 row-11 register byte bridge reuses constrained decomposition" {
     try std.testing.expectEqual(@as(u32, 0), header.preprocessing.register_byte_bridge_mask);
 }
 
+test "V2 row-11 fixed columns regenerate from canonical shape without witness words" {
+    const rows = @import("../segment_statement_outer_source_v2_prepared_v2.zig");
+    const layout_mod = @import("../segment_statement_v2_transcript_layout.zig");
+    var fixture = try Fixture.init(std.testing.allocator);
+    defer fixture.deinit();
+    const view = try fixture.data.authenticatedView();
+    const layout = try layout_mod.Layout.fromView(&view);
+    const context = [_]M31{M31.zero()} ** source_v2.CONTEXT_WORD_COUNT;
+    const total = 8 + layout.total_words + context.len;
+    for (0..total) |index| {
+        const actual = try rows.rowAt(&view, &context, index, @intCast(total));
+        const regenerated = try rows.preprocessingAt(&layout, index);
+        try std.testing.expectEqualDeep(actual.preprocessing, regenerated);
+    }
+    try std.testing.expectError(error.InvalidTraceShape, rows.preprocessingAt(&layout, total));
+}
+
+test "detached key identity binds retained-section layout" {
+    try @import("../detached_segment_protocol_fixture_v1.zig").testFixedProjection();
+    var fixture = try Fixture.init(std.testing.allocator);
+    defer fixture.deinit();
+    const view = try fixture.data.authenticatedView();
+    const layout = try @import("../segment_statement_v2_transcript_layout.zig").Layout.fromView(&view);
+    var key = try @import("../detached_segment_protocol_fixture_v1.zig").testing.key(view.words.len, 1);
+    key.retained_section_counts = layout.counts;
+    try key.validateExpectedLayout(&fixture.data);
+    var wrong = key;
+    wrong.retained_section_counts[0] -= 1;
+    wrong.retained_section_counts[1] += 1;
+    try std.testing.expectError(error.SegmentDetachedWireLayoutMismatch, wrong.validateExpectedLayout(&fixture.data));
+}
+
 test "V2 row-11 sparse bytes constrain exact nonzero selectors" {
     const rows = @import("../segment_statement_outer_source_v2_prepared_v2.zig");
     var fixture = try Fixture.init(std.testing.allocator);

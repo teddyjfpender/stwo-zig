@@ -104,6 +104,7 @@ pub fn produceWithEngine(comptime Engine: type, allocator: std.mem.Allocator, pr
     try requireNativeProfile(prepared, profile);
     if (admitted_key) |key| {
         if (key.profile != profile) return error.InvalidSegmentDetachedProfile;
+        try key.validateExpectedLayout(&prepared.capture.public_data.data);
         if (!std.meta.eql(key.native_preprocessed_root, prepared.admitted_native_tree0_root))
             return error.InvalidNativePreprocessedCommitment;
     }
@@ -278,6 +279,8 @@ fn commitFixedColumns(comptime Engine: type, allocator: std.mem.Allocator, cohor
 
 fn fixedKey(allocator: std.mem.Allocator, prepared: *const leaf.PreparedNativeV2LeafOuter, cohort: *const cohort_mod.Cohort, profile: Profile, fixed_root: recursion.poseidon2_channel.Digest, wire_terms: *std.ArrayList(recursion.air.verifier_arithmetic_lowering.PublicWireTerm)) !verifier.KeyV1 {
     if (prepared.capture.proof.commitments.len == 0) return error.InvalidNativePreprocessedCommitment;
+    const authenticated_wire = try prepared.capture.public_data.data.authenticatedView();
+    const retained_layout = try recursion.segment_statement_v2_transcript_layout.Layout.fromView(&authenticated_wire);
     std.debug.assert(wire_terms.items.len == 0);
     for (cohort.core.authority.lowering_plan.public_terms) |term|
         if (term.active_in == .segment) try wire_terms.append(allocator, term);
@@ -292,6 +295,7 @@ fn fixedKey(allocator: std.mem.Allocator, prepared: *const leaf.PreparedNativeV2
             .poseidon_active_rows = std.math.cast(u32, cohort.core.poseidonCallCount()) orelse return error.ArithmeticOverflow,
         },
         .source_manifest = prepared.authority_prepared.source.manifest,
+        .retained_section_counts = retained_layout.counts,
         .admitted_keys = prepared.authority_prepared.source.verifier_keys,
         .native_descriptors = .{ .components = prepared.capture.vm_air.component_descs, .infrastructure = prepared.capture.vm_air.infra_descs },
         .wire_terms = wire_terms.items,

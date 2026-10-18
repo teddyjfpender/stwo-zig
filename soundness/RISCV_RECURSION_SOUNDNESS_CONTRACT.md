@@ -876,7 +876,7 @@ if its row is committed in Tree 0.
 | W-4 | Local shell fixed | Wide and compact providers constrain full IO; focused provider tests pass. End-to-end G-3(d) remains open. |
 | W-5 | Migration retired | Both migration entry points fail closed for pre-contract keys. |
 | W-6, W-7 | Open | Fresh 1/2/4/8 leaf-key setups completed and the focused `test-riscv-recursion-soundness` step passed 15/15 ReleaseSafe tests, but this step is only a subset of G-1 through G-10. Parent/root trees, Metal parity, adversarial cases, and the unskipped broad suites still require fresh final-identity evidence. The opt-in native leaf rejects aggregate-column and maximum-log geometry changes before transcript opening; exact re-pinned descriptor/catalog admission remains under test. |
-| W-9 | Detached leaf partial | Leaf key pins native Tree0 and CPU admission independently regenerates it. Frozen V1 row-5 requires the admitted root. V2 row-5 receives a geometry-derived root separately from the proof, rejects a different proof frame, and places that root in the constant column and source identity. Parent `admit-key` regenerates the fixed key from **verified child proofs** and rejects re-pinned child-key and root mutations before parent proof production; it is not proof-free key-only reconstruction. **The leaf outer Tree0 cannot yet be independently regenerated from the current key:** its 578 fixed columns comprise 46,808,640 field cells, and its row-11 selectors depend on prepared canonical wire and schedules absent from the key. A compact canonical recipe and identity-changing key admission are required; copying a claimed root or raw columns is not an independent check. G-8(c) remains open for both leaf and parent, and the standalone hostile-proof G-8(a) control remains open. |
+| W-9 | Detached leaf partial | Leaf key pins native Tree0 and CPU admission independently regenerates it. Frozen V1 row-5 requires the admitted root. V2 row-5 receives a geometry-derived root separately from the proof, rejects a different proof frame, and places that root in the constant column and source identity. Parent `admit-key` regenerates the fixed key from **verified child proofs** and rejects re-pinned child-key and root mutations before parent proof production; it is not proof-free key-only reconstruction. **The leaf outer Tree0 cannot yet be independently regenerated from the current key:** its 578 fixed columns comprise 46,808,640 field cells. Row 11 now has a value-independent recipe from the four retained-section counts bound into the key identity, but the remaining fixed-column families still require canonical key-only recipes. Copying a claimed root or raw columns is not an independent check. G-8(c) remains open for both leaf and parent, and the standalone hostile-proof G-8(a) control remains open. |
 | W-8 | False | `recursion_qualified` stays false until every gate and independent review passes. |
 
 The recursive AIR source map has been reviewed against the relocated S-box,
@@ -899,6 +899,23 @@ Metal; the full product wrapper stopped before its final report when the Metal
 parent gate lacked proof-free key admission. That wiring is repaired, and the
 parent and substitution stages were rerun independently against the retained
 verified leaves. G-8 and the remaining adversarial gates remain open.
+
+The first key-only Tree0 reconstruction step now binds the four canonical
+retained-section counts into the detached leaf key identity. Row 11's complete
+preprocessed selector row can be regenerated from those counts, without wire
+values or proof bytes, and is compared against every row of an authenticated
+fixture. Fresh verification checks the key's counts against the independently
+authenticated expected wire before proof decoding. A new one-leaf CPU product
+and same-geometry statement-substitution gate pass under this identity
+(`product.json` SHA-256
+`cff1219829aef500804aa47eaaeb220c3244f6dface8f4200291b4f88b07fe5c`).
+A one-leaf Metal product under the same admitted key also passes fresh
+verification and statement substitution (`product.json` SHA-256
+`eb9ae9f309ef8583eda58776775003aa3e00eecdb58db0c4388895c7ce3b3848`).
+The native and outer preprocessed roots match the previous one-leaf fixture,
+while the key identity changes. This is only a component of K-8: the other
+fixed-column families and the parent root still require proof-free key-derived
+regeneration before G-8(c) can pass.
 
 ## 11. Ledger update rule
 

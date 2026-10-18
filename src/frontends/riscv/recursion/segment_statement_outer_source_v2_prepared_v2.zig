@@ -42,6 +42,7 @@ const mulU32 = dependency_0.mulU32;
 const public_data_v2 = dependency_0.public_data_v2;
 const relation = dependency_0.relation;
 const root_context = @import("segment_leaf_statement_contract_v2.zig");
+const wire_layout = @import("segment_statement_v2_transcript_layout.zig");
 const requireDigest = dependency_0.requireDigest;
 const segment_statement_v2 = dependency_0.segment_statement_v2;
 const source_v2 = dependency_0.source_v2;
@@ -238,8 +239,13 @@ pub fn wireRow(
     index: usize,
 ) LogicalRowV2 {
     const value = view.words[index];
-    const is_u16 = wireWordIsU16(view, index);
-    const memory = dependency_0.register_bytes.MemoryLayout.init(view) catch unreachable;
+    const layout = wire_layout.Layout.fromView(view) catch unreachable;
+    const preprocessing = wirePreprocessing(&layout, index);
+    const is_u16 = preprocessing.source_u16_mask != 0;
+    const memory = dependency_0.register_bytes.MemoryLayout{
+        .entry = layout.section(.entry_snapshot),
+        .exit = layout.section(.exit_snapshot),
+    };
     const memory_byte = memory.firstByteIndexForWireWord(index);
     const register_byte = dependency_0.register_bytes.firstByteIndexForWireWord(index) orelse memory_byte;
     std.debug.assert(register_byte == null or is_u16);
@@ -250,30 +256,7 @@ pub fn wireRow(
     hint_recipe.evaluateField(hint_recipe.id(.field_inverse_or_zero), &.{if (memory_byte != null) bytes[0].toU32() else 0}, &low_hint) catch unreachable;
     hint_recipe.evaluateField(hint_recipe.id(.field_inverse_or_zero), &.{if (memory_byte != null) bytes[1].toU32() else 0}, &high_hint) catch unreachable;
     return .{
-        .preprocessing = .{
-            .row_mask = 1,
-            .source_mask = 1,
-            .verifier_a_mask = 1,
-            .verifier_b_mask = 0,
-            .header_mask = 0,
-            .recombine_mask = 0,
-            .source_u16_mask = @intFromBool(is_u16),
-            .verifier_a_u16_mask = 0,
-            .verifier_b_u16_mask = 0,
-            .source_scope = source_v2.WIRE_SCOPE,
-            .source_index = @intCast(index),
-            .verifier_item = Air.WIRE_WORD_ITEM,
-            .verifier_a_index = @intCast(index),
-            .verifier_b_index = 0,
-            .expected_header = 0,
-            .boundary_bridge_mask = 1,
-            .register_byte_bridge_mask = @intFromBool(register_byte != null),
-            .register_low_byte_index = if (register_byte) |byte| @intCast(view.words.len + byte) else 0,
-            .register_high_byte_index = if (register_byte) |byte| @intCast(view.words.len + byte + 1) else 0,
-            .memory_byte_bridge_mask = @intFromBool(memory_byte != null),
-            .memory_low_selector_index = if (memory_byte) |byte| @intCast(view.words.len + memory.selectorIndex(byte)) else 0,
-            .memory_high_selector_index = if (memory_byte) |byte| @intCast(view.words.len + memory.selectorIndex(byte + 1)) else 0,
-        },
+        .preprocessing = preprocessing,
         .main = .{
             .enabler = M31.one(),
             .source_value = value,
@@ -290,6 +273,57 @@ pub fn wireRow(
             .verifier_b_low_byte = M31.zero(),
             .verifier_b_high_byte = M31.zero(),
         },
+    };
+}
+
+/// The row-11 fixed columns are a pure function of the admitted canonical
+/// layout. No statement word or proof frame is read by this projection.
+pub fn preprocessingAt(
+    layout: *const wire_layout.Layout,
+    logical_row: usize,
+) Error!dependency_0.PreprocessedRowV2 {
+    const total = HEADER_LIMB_COUNT + layout.total_words + source_v2.CONTEXT_WORD_COUNT;
+    if (logical_row >= total) return error.InvalidTraceShape;
+    if (logical_row < HEADER_LIMB_COUNT)
+        return (try headerRow(layout.total_words, logical_row)).preprocessing;
+    const source_row = logical_row - HEADER_LIMB_COUNT;
+    if (source_row < layout.total_words) return wirePreprocessing(layout, source_row);
+    const zero_context = [_]M31{M31.zero()} ** source_v2.CONTEXT_WORD_COUNT;
+    return contextRow(&zero_context, @splat(0), source_row - layout.total_words).preprocessing;
+}
+
+fn wirePreprocessing(layout: *const wire_layout.Layout, index: usize) dependency_0.PreprocessedRowV2 {
+    const is_u16 = wireWordIsU16FromLayout(layout, index);
+    const memory = dependency_0.register_bytes.MemoryLayout{
+        .entry = layout.section(.entry_snapshot),
+        .exit = layout.section(.exit_snapshot),
+    };
+    const memory_byte = memory.firstByteIndexForWireWord(index);
+    const register_byte = dependency_0.register_bytes.firstByteIndexForWireWord(index) orelse memory_byte;
+    std.debug.assert(register_byte == null or is_u16);
+    return .{
+        .row_mask = 1,
+        .source_mask = 1,
+        .verifier_a_mask = 1,
+        .verifier_b_mask = 0,
+        .header_mask = 0,
+        .recombine_mask = 0,
+        .source_u16_mask = @intFromBool(is_u16),
+        .verifier_a_u16_mask = 0,
+        .verifier_b_u16_mask = 0,
+        .source_scope = source_v2.WIRE_SCOPE,
+        .source_index = @intCast(index),
+        .verifier_item = Air.WIRE_WORD_ITEM,
+        .verifier_a_index = @intCast(index),
+        .verifier_b_index = 0,
+        .expected_header = 0,
+        .boundary_bridge_mask = 1,
+        .register_byte_bridge_mask = @intFromBool(register_byte != null),
+        .register_low_byte_index = if (register_byte) |byte| @intCast(layout.total_words + byte) else 0,
+        .register_high_byte_index = if (register_byte) |byte| @intCast(layout.total_words + byte + 1) else 0,
+        .memory_byte_bridge_mask = @intFromBool(memory_byte != null),
+        .memory_low_selector_index = if (memory_byte) |byte| @intCast(layout.total_words + memory.selectorIndex(byte)) else 0,
+        .memory_high_selector_index = if (memory_byte) |byte| @intCast(layout.total_words + memory.selectorIndex(byte + 1)) else 0,
     };
 }
 
@@ -490,6 +524,11 @@ pub fn wireWordIsU16(
     view: *const segment_statement_v2.CanonicalWireViewV2,
     index: usize,
 ) bool {
+    const layout = wire_layout.Layout.fromView(view) catch unreachable;
+    return wireWordIsU16FromLayout(&layout, index);
+}
+
+fn wireWordIsU16FromLayout(layout: *const wire_layout.Layout, index: usize) bool {
     if (index == segment_statement_v2.fixed_layout.format_version or
         index == segment_statement_v2.fixed_layout.schema_version or
         index == segment_statement_v2.fixed_layout.flags)
@@ -512,10 +551,10 @@ pub fn wireWordIsU16(
         .{ segment_statement_v2.fixed_layout.completion + 2, 6 },
     }) |range| if (inRange(index, range[0], range[1])) return true;
     inline for (.{
-        view.entry_snapshot,
-        view.exit_snapshot,
-        view.entry_memory_clocks,
-        view.exit_memory_clocks,
+        layout.section(.entry_snapshot),
+        layout.section(.exit_snapshot),
+        layout.section(.entry_memory_clocks),
+        layout.section(.exit_memory_clocks),
     }) |section| {
         const header = section.payload_start - segment_statement_v2.SECTION_HEADER_WORDS;
         if (inRange(index, header + 1, 2) or

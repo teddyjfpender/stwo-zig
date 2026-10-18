@@ -27,6 +27,7 @@ const source = recursion.segment_leaf_statement_contract_v2;
 const components = recursion.detached_segment_admission_v1;
 const public_inputs = recursion.detached_segment_public_inputs_v1;
 const authority_boundary = recursion.detached_segment_authority_boundary_v1;
+const wire_layout = @import("segment_statement_v2_transcript_layout.zig");
 const PublicData = @import("../air/public_data_v2.zig").PublicDataV2;
 const QM31 = core.fields.qm31.QM31;
 const Digest = recursion.poseidon2_channel.Digest;
@@ -75,6 +76,9 @@ pub const KeyV1 = struct {
     preprocessed_root: Digest,
     parameters: components.AdmissionParametersV1,
     source_manifest: source.ManifestV2,
+    /// Authenticated canonical-wire section geometry. These four counts are
+    /// needed to regenerate row-11 fixed selectors without proof bytes.
+    retained_section_counts: [wire_layout.SECTIONS.len]u32,
     admitted_keys: source.VerifierKeyAuthorityV2,
     native_descriptors: authority_boundary.DescriptorsV1,
     wire_terms: []const lowering.PublicWireTerm,
@@ -96,6 +100,9 @@ pub const KeyV1 = struct {
         if (try self.native_descriptors.callCount() > (@as(u64, 1) << @intCast(self.manifest.placements[13].?.geometry.log_size)))
             return error.InvalidSegmentDetachedCircuit;
         try self.source_manifest.validate();
+        const retained_layout = try wire_layout.Layout.init(self.retained_section_counts);
+        if (retained_layout.total_words != self.source_manifest.wire_word_count)
+            return error.InvalidSegmentDetachedCircuit;
         try self.admitted_keys.validate();
         if (self.source_manifest.trace_log_size != self.manifest.placements[36].?.geometry.log_size or
             self.wire_terms.len == 0 or self.wire_terms.len >= core.fields.m31.Modulus or
@@ -116,6 +123,7 @@ pub const KeyV1 = struct {
         for (recursion.protocol.PROTOCOL_ID_WORDS) |word| hashWord(&hash, word);
         for (self.preprocessed_root) |word| hashWord(&hash, word);
         for (self.native_preprocessed_root) |word| hashWord(&hash, word);
+        for (self.retained_section_counts) |count| hashWord(&hash, count);
         hash.update(&self.parameters.query_reference.authority_digest);
         hashWord(&hash, self.parameters.poseidon_active_rows);
         for (self.source_manifest.identity) |word| hashWord(&hash, word);
@@ -157,6 +165,14 @@ pub const KeyV1 = struct {
         );
         if (!std.meta.eql(expected, self.native_preprocessed_root))
             return error.InvalidNativePreprocessedCommitment;
+    }
+
+    pub fn validateExpectedLayout(self: *const KeyV1, expected: *const PublicData) !void {
+        const view = try expected.authenticatedView();
+        const layout = try wire_layout.Layout.fromView(&view);
+        if (!std.meta.eql(layout.counts, self.retained_section_counts) or
+            layout.total_words != self.source_manifest.wire_word_count)
+            return error.SegmentDetachedWireLayoutMismatch;
     }
 
     /// Validate canonical fields against an independently pinned projection.
