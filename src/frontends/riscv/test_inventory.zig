@@ -98,6 +98,7 @@ test {
     _ = @import("recursion/tests/segment_transcript_witness_test.zig");
     _ = @import("recursion/tests/segment_leaf_authority_test.zig");
     _ = @import("recursion/segment_profile.zig");
+    _ = @import("recursion/detached_fixed_tree0_key_recipe_v1.zig");
     _ = @import("recursion/tests/segment_range_authority_test.zig");
     _ = @import("recursion/tests/segment_statement_outer_source_test.zig");
     _ = @import("recursion/tests/span_statement_test.zig");

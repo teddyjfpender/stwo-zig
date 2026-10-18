@@ -201,15 +201,15 @@ test "both authenticated inputs fail before caller-owned writes" {
     try std.testing.expectEqualDeep(trace_before, provider_trace);
 }
 
-test "publication provider preserves all 88 retained segment claims and rejects source mutation" {
+test "publication provider binds 88 segment claims but publishes only native LogUp words" {
     const allocator = std.testing.allocator;
     const support = @import("../ethereum_leaf_context_v1_test_support.zig");
     var fixture = try exact_support.Fixture.initWithCore(allocator, support.retainedSegmentZeroCore());
     defer fixture.deinit();
     const source = try witness.preflight(fixture.inputs());
     try std.testing.expectEqual(@as(u32, 88), source.shape.claim_count);
-    try std.testing.expectEqual(@as(u32, 407), source.shape.logical_row_count);
-    try std.testing.expectEqual(@as(usize, 512), source.shape.traceRowCount());
+    try std.testing.expectEqual(@as(u32, witness.LUP2_WORD_COUNT), source.shape.logical_row_count);
+    try std.testing.expectEqual(@as(usize, 64), source.shape.traceRowCount());
     var owner = try authority.AuthorityV2.init(allocator);
     defer owner.deinit();
     var workspace = try authority.WorkspaceV2.initForShape(allocator, source.shape);
@@ -220,16 +220,13 @@ test "publication provider preserves all 88 retained segment claims and rejects 
     try authority.prepareInto(&prepared, &workspace, &owner, output.stagedTrace(), fixture.inputs(), &fixture.outer_relations);
     try authority.verifyTrace(&prepared, &workspace, &owner, output.stagedTrace(), fixture.inputs(), &fixture.outer_relations);
     try std.testing.expectError(error.AliasedDestination, authority.verifyTrace(&prepared, &workspace, &owner, workspace.stagedTrace(), fixture.inputs(), &fixture.outer_relations));
-    var row: usize = witness.LUP2_WORD_COUNT;
-    for (source.detailed_claims) |claim| {
-        for (claim.toM31Array()) |limb| {
-            try std.testing.expect(limb.eql(output.stagedTrace().main[0][row]));
-            try workspace.relation_events[row].validate(source.shape);
-            row += 1;
-        }
-    }
-    try std.testing.expectEqual(source.shape.logical_row_count, row);
-    for (output.stagedTrace().main[0][row..]) |word| try std.testing.expect(word.isZero());
+    // Detailed claims are authenticated by the source receipt and published
+    // by transcript row 5, not duplicated in this 55-row provider.
+    try std.testing.expectEqual(@as(usize, 88), source.detailed_claims.len);
+    try std.testing.expectEqual(@as(usize, witness.LUP2_WORD_COUNT), workspace.relation_events.len);
+    for (workspace.relation_events) |event| try event.validate(source.shape);
+    for (output.stagedTrace().main[0][witness.LUP2_WORD_COUNT..]) |word|
+        try std.testing.expect(word.isZero());
 
     const output_before = try allocator.dupe(M31, output.storage);
     defer allocator.free(output_before);

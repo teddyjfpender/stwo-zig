@@ -15,7 +15,8 @@ pub const Shape = struct {
     trace_log_size: u32,
 
     pub fn init(claim_count: usize) Error!Shape {
-        if (claim_count == 0) return error.InvalidInputPair;
+        if (claim_count == 0 or claim_count > std.math.maxInt(u32))
+            return error.InvalidInputPair;
         const rows = LUP2_WORD_COUNT;
         if (rows > (1 << 30)) return error.InvalidInputPair;
         return .{
