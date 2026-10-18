@@ -879,6 +879,12 @@ if its row is committed in Tree 0.
 | W-9 | Detached leaf partial | Leaf key pins native Tree0 and CPU admission independently regenerates it. Frozen V1 row-5 requires the admitted root. V2 row-5 receives a geometry-derived root separately from the proof, rejects a different proof frame, and places that root in the constant column and source identity. Parent `admit-key` regenerates the fixed key from **verified child proofs** and rejects re-pinned child-key and root mutations before parent proof production; it is not proof-free key-only reconstruction. **The leaf outer Tree0 cannot yet be independently regenerated from the current key:** its 578 fixed columns comprise 46,808,640 field cells. Rows 11, 20–29, and 34–38 now have proof-free recipes: 16 nonempty row families, 22,160,000 field cells (47.3% of this census). The query-routing rows 20–22, trace-Merkle row 23, PCS row 24, and FRI rows 25–29 recipes match the retained production row digests for the q193 one-segment roster. A genuine CPU key setup also checked the descriptor-derived PCS profile and scheduled-verifier shape against the captured native verifier profile and shape. The VM composition profile and graph can now be independently compiled from the key's native descriptor geometry, with the q193 graph digest matching the production census; the proof preparation uses the same canonical graph builder. This is one prerequisite for the large shared arithmetic rows 30–32, whose other lanes and full lowering plan still need key-only reconstruction. Other fixed-column families also remain. Copying a claimed root or raw columns is not an independent check. G-8(c) remains open for both leaf and parent, and the standalone hostile-proof G-8(a) control remains open. |
 | W-8 | False | `recursion_qualified` stays false until every gate and independent review passes. |
 
+The detached leaf key schema is now version 3. Version 2 keys are rejected:
+the new native-sum topology affects the fixed arithmetic graph and therefore
+must be part of key identity. The focused native-sum suite confirms that
+changing retained values with the same topology leaves the graph digest
+unchanged, while an address mutation is rejected against the expected wire.
+
 One K-8 leaf dependency was the PCS/FRI fixed-row profile. Its large
 row-24 graph is generated without witness values, but the compiler requires
 the exact per-column log sizes and ordered sample-mask layouts. Native Tree 0,
@@ -895,9 +901,16 @@ mask order and identity now match a real captured native verifier profile,
 and the resulting rows 20–29 match the production census. These are
 component recipes, not independent regeneration of the complete Tree0.
 The largest remaining dependency is the shared arithmetic lowering plan
-for rows 30–32. It must reproduce the complete authenticated lane roster
-from key-owned inputs before those rows can be regenerated. A claimed profile
-digest or proof-derived layout does not qualify as key-only regeneration.
+for rows 30–32. The active SegmentV2 native-public-sum graph specializes on
+the union of four retained address lists and completion mode/value, not on
+the older V1 public-claim shape. The detached leaf key now pins this compact
+topology and compares it with the independently supplied expected wire before
+proof decoding. The graph can be rebuilt from that topology alone; the
+q193 CPU key setup compares its graph digest against the production graph.
+This does not yet reconstruct the complete lowering lane roster: the public
+lane's `circuit_identity` also hashes source receipts, and rows 30–32 remain
+unregenerated. A claimed profile digest or proof-derived layout does not
+qualify as key-only regeneration.
 
 The recursive AIR source map has been reviewed against the relocated S-box,
 matrix, framework constraint, and interaction-prefix equations and re-pinned

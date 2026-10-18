@@ -635,6 +635,7 @@ test {
     _ = @import("recursion/segment_outer_noncore_audits_v2_test_fixture.zig");
     _ = @import("recursion/segment_outer_noncore_audits_v2_test_suite_3.zig");
     _ = @import("recursion/tests/segment_public_native_sum_authority_v2_test.zig");
+    _ = @import("recursion/segment_public_native_sum_topology_v1.zig");
     _ = @import("recursion/tests/segment_public_outer_source_v2_test.zig");
     _ = @import("recursion/tests/segment_publication_input_provider_authority_v2_test.zig");
     _ = @import("recursion/tests/segment_publication_input_provider_plan_v2_test.zig");

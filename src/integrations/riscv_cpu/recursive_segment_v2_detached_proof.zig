@@ -141,7 +141,8 @@ pub fn produceWithEngine(comptime Engine: type, allocator: std.mem.Allocator, pr
     const fixed_root = try commitFixedColumns(Engine, allocator, &cohort, &preprocessed, &scheme, &channel);
     var wire_terms: std.ArrayList(recursion.air.verifier_arithmetic_lowering.PublicWireTerm) = .empty;
     defer wire_terms.deinit(allocator);
-    const candidate_key = try fixedKey(allocator, prepared, &cohort, profile, fixed_root, &wire_terms);
+    var candidate_key = try fixedKey(allocator, prepared, &cohort, profile, fixed_root, &wire_terms);
+    defer candidate_key.native_sum_topology.?.deinit(allocator);
     const identity = try candidate_key.identity();
     const key = admitted_key orelse &candidate_key;
     if (!std.meta.eql(identity, try key.identity()))
@@ -281,6 +282,26 @@ fn fixedKey(allocator: std.mem.Allocator, prepared: *const leaf.PreparedNativeV2
     if (prepared.capture.proof.commitments.len == 0) return error.InvalidNativePreprocessedCommitment;
     const authenticated_wire = try prepared.capture.public_data.data.authenticatedView();
     const retained_layout = try recursion.segment_statement_v2_transcript_layout.Layout.fromView(&authenticated_wire);
+    var topology = try recursion.segment_public_native_sum_topology_v1.Topology.fromView(
+        allocator,
+        &authenticated_wire,
+    );
+    errdefer topology.deinit(allocator);
+    var native_sum_graph = try recursion.segment_public_native_sum_authority_v2.buildNativeGraphFromTopology(
+        allocator,
+        &retained_layout,
+        topology,
+    );
+    defer native_sum_graph.circuit.deinit();
+    var native_sum_owned = try recursion.segment_public_native_sum_authority_v2.NativeOwnedGraph.init(
+        allocator,
+        &native_sum_graph.circuit,
+    );
+    defer native_sum_owned.deinit();
+    if (!std.meta.eql(
+        native_sum_owned.graph.identity_digest,
+        cohort.public_native_sum_source.loweringLane().graph.identity_digest,
+    )) return error.PublicNativeSumKeyGraphMismatch;
     std.debug.assert(wire_terms.items.len == 0);
     for (cohort.core.authority.lowering_plan.public_terms) |term|
         if (term.active_in == .segment) try wire_terms.append(allocator, term);
@@ -296,6 +317,7 @@ fn fixedKey(allocator: std.mem.Allocator, prepared: *const leaf.PreparedNativeV2
         },
         .source_manifest = prepared.authority_prepared.source.manifest,
         .retained_section_counts = retained_layout.counts,
+        .native_sum_topology = topology,
         .admitted_keys = prepared.authority_prepared.source.verifier_keys,
         .native_descriptors = .{ .components = prepared.capture.vm_air.component_descs, .infrastructure = prepared.capture.vm_air.infra_descs },
         .wire_terms = wire_terms.items,
@@ -328,7 +350,8 @@ pub fn deriveKey(allocator: std.mem.Allocator, prepared: *const leaf.PreparedNat
     const root = try commitFixedColumns(CpuEngine, allocator, &cohort, &preprocessed, &scheme, &channel);
     var wire_terms: std.ArrayList(recursion.air.verifier_arithmetic_lowering.PublicWireTerm) = .empty;
     defer wire_terms.deinit(allocator);
-    const key = try fixedKey(allocator, prepared, &cohort, profile, root, &wire_terms);
+    var key = try fixedKey(allocator, prepared, &cohort, profile, root, &wire_terms);
+    defer key.native_sum_topology.?.deinit(allocator);
     try key.validate();
     return std.json.Stringify.valueAlloc(allocator, key, .{});
 }

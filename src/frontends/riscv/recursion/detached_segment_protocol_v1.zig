@@ -28,10 +28,11 @@ const components = recursion.detached_segment_admission_v1;
 const public_inputs = recursion.detached_segment_public_inputs_v1;
 const authority_boundary = recursion.detached_segment_authority_boundary_v1;
 const wire_layout = @import("segment_statement_v2_transcript_layout.zig");
+const native_sum_topology = @import("segment_public_native_sum_topology_v1.zig");
 const PublicData = @import("../air/public_data_v2.zig").PublicDataV2;
 const QM31 = core.fields.qm31.QM31;
 const Digest = recursion.poseidon2_channel.Digest;
-pub const VERSION: u32 = 2;
+pub const VERSION: u32 = 3;
 pub const DEVELOPMENT_ONLY = true;
 pub const PCS_CONFIG = recursion.outer_parent_child_admission.OUTER_PCS_CONFIG;
 pub const INTERACTION_POW_BITS = recursion.outer_parent_child_admission.INTERACTION_POW_BITS;
@@ -79,6 +80,9 @@ pub const KeyV1 = struct {
     /// Authenticated canonical-wire section geometry. These four counts are
     /// needed to regenerate row-11 fixed selectors without proof bytes.
     retained_section_counts: [wire_layout.SECTIONS.len]u32,
+    /// Public topology controlling the SegmentV2 native-sum circuit's fixed
+    /// graph. It is checked against the independently supplied statement.
+    native_sum_topology: ?native_sum_topology.Topology = null,
     admitted_keys: source.VerifierKeyAuthorityV2,
     native_descriptors: authority_boundary.DescriptorsV1,
     wire_terms: []const lowering.PublicWireTerm,
@@ -103,6 +107,11 @@ pub const KeyV1 = struct {
         const retained_layout = try wire_layout.Layout.init(self.retained_section_counts);
         if (retained_layout.total_words != self.source_manifest.wire_word_count)
             return error.InvalidSegmentDetachedCircuit;
+        if (self.native_sum_topology) |topology| {
+            try topology.validate(self.retained_section_counts);
+        } else if (self.profile == .recursive_q193_v1) {
+            return error.MissingPublicNativeSumTopology;
+        }
         try self.admitted_keys.validate();
         if (self.source_manifest.trace_log_size != self.manifest.placements[36].?.geometry.log_size or
             self.wire_terms.len == 0 or self.wire_terms.len >= core.fields.m31.Modulus or
@@ -124,6 +133,16 @@ pub const KeyV1 = struct {
         for (self.preprocessed_root) |word| hashWord(&hash, word);
         for (self.native_preprocessed_root) |word| hashWord(&hash, word);
         for (self.retained_section_counts) |count| hashWord(&hash, count);
+        if (self.native_sum_topology) |topology| {
+            hashWord(&hash, 1);
+            hashWord(&hash, @intCast(topology.addresses.len));
+            for (topology.addresses) |address| hashWord(&hash, address);
+            if (topology.completion) |completion| {
+                hashWord(&hash, 1);
+                hashWord(&hash, @intFromEnum(completion.kind));
+                hashWord(&hash, completion.value);
+            } else hashWord(&hash, 0);
+        } else hashWord(&hash, 0);
         hash.update(&self.parameters.query_reference.authority_digest);
         hashWord(&hash, self.parameters.poseidon_active_rows);
         for (self.source_manifest.identity) |word| hashWord(&hash, word);
@@ -183,6 +202,8 @@ pub const KeyV1 = struct {
         if (!std.meta.eql(layout.counts, self.retained_section_counts) or
             layout.total_words != self.source_manifest.wire_word_count)
             return error.SegmentDetachedWireLayoutMismatch;
+        if (self.native_sum_topology) |topology|
+            try topology.validateAgainstView(&view);
     }
 
     /// Validate canonical fields against an independently pinned projection.

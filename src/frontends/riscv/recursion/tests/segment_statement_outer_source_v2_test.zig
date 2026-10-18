@@ -609,6 +609,31 @@ test "detached key identity binds retained-section layout" {
     try std.testing.expectError(error.SegmentDetachedWireLayoutMismatch, wrong.validateExpectedLayout(&fixture.data));
 }
 
+test "detached key binds public native-sum topology before proof decoding" {
+    var fixture = try Fixture.init(std.testing.allocator);
+    defer fixture.deinit();
+    const view = try fixture.data.authenticatedView();
+    const layout = try @import("../segment_statement_v2_transcript_layout.zig").Layout.fromView(&view);
+    var topology = try @import("../segment_public_native_sum_topology_v1.zig").Topology.fromView(
+        std.testing.allocator,
+        &view,
+    );
+    defer topology.deinit(std.testing.allocator);
+    var key = try @import("../detached_segment_protocol_fixture_v1.zig").testing.key(view.words.len, 1);
+    key.retained_section_counts = layout.counts;
+    key.native_sum_topology = topology;
+    const pin = try key.identity();
+    try key.validateExpectedLayout(&fixture.data);
+    const changed_addresses = try std.testing.allocator.dupe(u32, topology.addresses);
+    defer std.testing.allocator.free(changed_addresses);
+    if (changed_addresses.len == 0) return error.FixtureHasNoRetainedAddresses;
+    changed_addresses[0] += 1;
+    var wrong = key;
+    wrong.native_sum_topology.?.addresses = changed_addresses;
+    try std.testing.expectError(error.PublicNativeSumTopologyMismatch, wrong.validateExpectedLayout(&fixture.data));
+    try std.testing.expectError(error.SegmentDetachedCircuitPinMismatch, @import("../detached_segment_protocol_v1.zig").KeyV1.admit(wrong, pin));
+}
+
 test "V2 row-11 sparse bytes constrain exact nonzero selectors" {
     const rows = @import("../segment_statement_outer_source_v2_prepared_v2.zig");
     var fixture = try Fixture.init(std.testing.allocator);

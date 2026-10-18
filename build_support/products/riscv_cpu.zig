@@ -298,8 +298,12 @@ pub fn addProduct(context: Context) void {
             "shared Poseidon provider requires full IO",
             "catalog manifest ordering claims",
             "pre-October q193 leaf key",
+            "native-sum topology binds address arrangement",
+            "detached key binds public native-sum topology",
+            "SegmentV2 native-sum graph regenerates from admitted public topology",
+            "SegmentV2 native-sum",
         }),
-        .minimum = 9,
+        .minimum = 13,
     }}));
     context.b.step(
         "test-riscv-rigidity",

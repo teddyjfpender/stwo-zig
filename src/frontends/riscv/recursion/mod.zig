@@ -77,6 +77,7 @@ pub const segment_transcript_outer_components_v2 = @import("segment_transcript_o
 pub const segment_public_outer_source_v2 = @import("segment_public_outer_source_v2.zig");
 pub const segment_public_outer_components_v2 = @import("segment_public_outer_components_v2.zig");
 pub const segment_public_native_sum_authority_v2 = @import("segment_public_native_sum_authority_v2.zig");
+pub const segment_public_native_sum_topology_v1 = @import("segment_public_native_sum_topology_v1.zig");
 pub const segment_statement_outer_source = @import("segment_statement_outer_source.zig");
 pub const segment_statement_outer_source_v2 = @import("segment_statement_outer_source_v2.zig");
 pub const segment_statement_outer_components_v2 = @import("segment_statement_outer_components_v2.zig");
