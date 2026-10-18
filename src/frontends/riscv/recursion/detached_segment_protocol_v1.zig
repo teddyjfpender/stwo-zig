@@ -162,6 +162,10 @@ pub const KeyV1 = struct {
             self.profile.nativePcsConfig().fri_config.log_blowup_factor,
         );
         defer native_geometry.deinit();
+        _ = try native_geometry.pcsProfile(
+            std.math.cast(u32, self.profile.nativePcsConfig().fri_config.n_queries) orelse
+                return error.InvalidNativeDescriptorGeometry,
+        );
         const expected = try @import("../prover/preprocessed.zig").rootForDescriptors(
             Engine,
             allocator,

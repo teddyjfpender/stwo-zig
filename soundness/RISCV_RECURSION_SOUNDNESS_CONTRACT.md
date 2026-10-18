@@ -887,9 +887,12 @@ descriptors by `detached_native_column_geometry_v1.zig`, checked before
 native Tree0 regeneration, and can be compared with captured logs. The q193
 security profile does not fix one native component roster: real q193 keys
 have different component counts, so column counts must remain descriptor
-driven. The sample-mask order must
-likewise be derived from the canonical native component roster, then checked
-against the captured profile. A claimed profile digest or proof-derived layout
+driven. The native segment's sample-mask order is now specified alongside
+those logs: Tree0 and Tree1 sample the current point; the authenticated
+interaction columns sample current then previous; composition samples current.
+The derived PCS profile can build its graph without proof input. Its exact
+logs and mask order still need to be checked against a real captured profile
+and used to regenerate row 24. A claimed profile digest or proof-derived layout
 does not qualify as key-only regeneration.
 
 The recursive AIR source map has been reviewed against the relocated S-box,
