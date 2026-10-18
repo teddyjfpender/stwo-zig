@@ -4,6 +4,8 @@
 test {
     _ = @import("recursion/tests/transcript_program_v2_test.zig");
     _ = @import("recursion/tests/recursion_air_composition_circuit_test.zig");
+    _ = @import("recursion/tests/vm_air_profile_v2_test.zig");
+    _ = @import("recursion/vm_air_composition_key_graph_v2.zig");
     _ = @import("recursion/ethereum_vm_composition_graph_base_v2.zig");
     _ = @import("recursion/vm_public_semantics_circuit_logup_reference.zig");
     _ = @import("recursion/tests/fixed_wire_custody_test.zig");

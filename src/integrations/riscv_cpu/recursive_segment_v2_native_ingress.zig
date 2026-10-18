@@ -206,6 +206,17 @@ pub fn prepareWithProfile(
         return error.NativeColumnGeometryMismatch;
     if (profile.trace_tree_heights.len != recursion.fixed_profile.TREE_COUNT)
         return error.InvalidProofShape;
+    // The recursive VM graph is built from this profile. Recompute its full
+    // typed roster from the descriptors that will be serialized into the key,
+    // independently of the captured profile and proof values.
+    var key_vm_profile = try recursion.detached_native_vm_profile_from_key_v1.derive(
+        allocator,
+        .{ .components = capture.vm_air.component_descs, .infrastructure = capture.vm_air.infra_descs },
+        pcs_config,
+    );
+    defer key_vm_profile.deinit();
+    if (!std.mem.eql(u8, &key_vm_profile.identity_digest, &capture.vm_air.profile.identity_digest))
+        return error.NativeVmProfileGeometryMismatch;
     var tree_heights: [recursion.fixed_profile.TREE_COUNT]u32 = undefined;
     @memcpy(&tree_heights, profile.trace_tree_heights);
     const shape = try recursion.transcript_shape.derive(
@@ -256,6 +267,14 @@ pub fn prepareWithProfile(
     capture_moved = true;
     errdefer prepared.deinit();
     try prepared.validate();
+    var key_vm_graph = try recursion.vm_air_composition_key_graph_v2.buildFromDescriptors(
+        allocator,
+        .{ .components = prepared.capture.vm_air.component_descs, .infrastructure = prepared.capture.vm_air.infra_descs },
+        pcs_config,
+    );
+    defer key_vm_graph.deinit();
+    if (!std.mem.eql(u8, &key_vm_graph.graph_digest, &prepared.vm_air.circuit.graph_digest))
+        return error.NativeVmGraphGeometryMismatch;
     // Qualification-only differential: independently decode and verify the
     // same real proof with the recording native channel, then compare every
     // raw sponge frame, permutation call, PoW check and operation boundary to
