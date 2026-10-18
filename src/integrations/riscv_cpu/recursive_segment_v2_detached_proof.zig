@@ -138,7 +138,7 @@ pub fn produceWithEngine(comptime Engine: type, allocator: std.mem.Allocator, pr
     phase = try stage_profile.StageScope.begin(diagnostic, "wrapper.fixed", "Fixed columns and key admission");
     var preprocessed = try TreeStorage.init(allocator, manifest, 0);
     defer preprocessed.deinit();
-    const fixed_root = try commitFixedColumns(Engine, allocator, &cohort, &preprocessed, &scheme, &channel);
+    const fixed_root = try commitFixedColumns(Engine, allocator, &cohort, &preprocessed, &scheme, &channel, null);
     var wire_terms: std.ArrayList(recursion.air.verifier_arithmetic_lowering.PublicWireTerm) = .empty;
     defer wire_terms.deinit(allocator);
     var candidate_key = try fixedKey(allocator, prepared, &cohort, profile, fixed_root, &wire_terms);
@@ -267,9 +267,10 @@ fn requireNativeProfile(prepared: *const leaf.PreparedNativeV2LeafOuter, profile
         return error.DetachedNativeSecurityProfileMismatch;
 }
 
-fn commitFixedColumns(comptime Engine: type, allocator: std.mem.Allocator, cohort: *cohort_mod.Cohort, preprocessed: *storage.TreeStorageFor(Engine), scheme: anytype, channel: *Engine.Channel) !recursion.poseidon2_channel.Digest {
+fn commitFixedColumns(comptime Engine: type, allocator: std.mem.Allocator, cohort: *cohort_mod.Cohort, preprocessed: *storage.TreeStorageFor(Engine), scheme: anytype, channel: *Engine.Channel, arithmetic_digests: ?*[3][32]u8) !recursion.poseidon2_channel.Digest {
     const manifest = cohort.manifest();
     try cohort.fillPreprocessedInto(manifest, preprocessed.columns);
+    if (arithmetic_digests) |digests| digests.* = arithmeticColumnDigests(manifest, preprocessed.columns);
     try preprocessed.commit(scheme, channel);
     try Engine.flushPendingCommit(scheme, allocator, channel);
     var roots = try scheme.roots(allocator);
@@ -347,11 +348,116 @@ pub fn deriveKey(allocator: std.mem.Allocator, prepared: *const leaf.PreparedNat
     var channel = CpuEngine.Channel{};
     var preprocessed = try storage.TreeStorageFor(CpuEngine).init(allocator, cohort.manifest(), 0);
     defer preprocessed.deinit();
-    const root = try commitFixedColumns(CpuEngine, allocator, &cohort, &preprocessed, &scheme, &channel);
+    var arithmetic_digests: [3][32]u8 = undefined;
+    const root = try commitFixedColumns(CpuEngine, allocator, &cohort, &preprocessed, &scheme, &channel, &arithmetic_digests);
     var wire_terms: std.ArrayList(recursion.air.verifier_arithmetic_lowering.PublicWireTerm) = .empty;
     defer wire_terms.deinit(allocator);
     var key = try fixedKey(allocator, prepared, &cohort, profile, root, &wire_terms);
     defer key.native_sum_topology.?.deinit(allocator);
     try key.validate();
+    if (profile == .recursive_q193_v1) try recursion.detached_fixed_tree0_arithmetic_recipe_v1.validateAgainstProduction(
+        allocator,
+        &key,
+        &cohort.core.authority.lowering_plan,
+    );
+    if (profile == .recursive_q193_v1) try validateKeyArithmeticColumns(
+        allocator,
+        &key,
+        arithmetic_digests,
+    );
     return std.json.Stringify.valueAlloc(allocator, key, .{});
+}
+
+fn validateKeyArithmeticColumns(
+    allocator: std.mem.Allocator,
+    key: *const verifier.KeyV1,
+    production_digests: [3][32]u8,
+) !void {
+    const M31 = @import("stwo_core").fields.m31.M31;
+    const air = recursion.air;
+    const Counts = .{
+        air.qm31_mul_full_witness.PREPROCESSED_COLUMN_COUNT,
+        air.qm31_inv_witness.PREPROCESSED_COLUMN_COUNT,
+        air.linear_ops_witness.PREPROCESSED_COLUMN_COUNT,
+    };
+    var generated: [3][]M31 = undefined;
+    var views: [3][][]M31 = undefined;
+    var initialized: usize = 0;
+    defer for (0..initialized) |lane| {
+        allocator.free(views[lane]);
+        allocator.free(generated[lane]);
+    };
+    inline for (Counts, 0..) |count, lane| {
+        const placement = key.manifest.placements[30 + lane] orelse return error.InvalidFixedArithmeticGeometry;
+        const size = @as(usize, 1) << @intCast(placement.geometry.log_size);
+        generated[lane] = try allocator.alloc(M31, size * count);
+        views[lane] = allocator.alloc([]M31, count) catch |err| {
+            allocator.free(generated[lane]);
+            return err;
+        };
+        for (views[lane], 0..) |*column, index|
+            column.* = generated[lane][index * size ..][0..size];
+        initialized += 1;
+    }
+    var multiply: [air.qm31_mul_full_witness.PREPROCESSED_COLUMN_COUNT][]M31 = undefined;
+    var inverse: [air.qm31_inv_witness.PREPROCESSED_COLUMN_COUNT][]M31 = undefined;
+    var linear: [air.linear_ops_witness.PREPROCESSED_COLUMN_COUNT][]M31 = undefined;
+    @memcpy(multiply[0..], views[0]);
+    @memcpy(inverse[0..], views[1]);
+    @memcpy(linear[0..], views[2]);
+    try recursion.detached_fixed_tree0_arithmetic_recipe_v1.fillFromKey(
+        allocator,
+        key,
+        &multiply,
+        &inverse,
+        &linear,
+    );
+    const rebuilt_digests = [3][32]u8{
+        try digestGeneratedColumnLane(allocator, multiply[0..], key.manifest.placements[30].?.geometry.log_size),
+        try digestGeneratedColumnLane(allocator, inverse[0..], key.manifest.placements[31].?.geometry.log_size),
+        try digestGeneratedColumnLane(allocator, linear[0..], key.manifest.placements[32].?.geometry.log_size),
+    };
+    inline for (0..3) |lane|
+        if (!std.mem.eql(u8, &production_digests[lane], &rebuilt_digests[lane]))
+            return error.FixedArithmeticRowsMismatch;
+}
+
+fn arithmeticColumnDigests(manifest: anytype, columns: anytype) [3][32]u8 {
+    const Counts = .{
+        recursion.air.qm31_mul_full_witness.PREPROCESSED_COLUMN_COUNT,
+        recursion.air.qm31_inv_witness.PREPROCESSED_COLUMN_COUNT,
+        recursion.air.linear_ops_witness.PREPROCESSED_COLUMN_COUNT,
+    };
+    var digests: [3][32]u8 = undefined;
+    inline for (Counts, 0..) |count, lane| {
+        const placement = manifest.placements[30 + lane].?;
+        const offset = placement.preprocessed_offset;
+        digests[lane] = digestColumnLane(columns[@as(usize, offset)..][0..count]);
+    }
+    return digests;
+}
+
+fn digestColumnLane(columns: anytype) [32]u8 {
+    var hash = std.crypto.hash.sha2.Sha256.init(.{});
+    for (columns) |column| hash.update(std.mem.sliceAsBytes(column));
+    var digest: [32]u8 = undefined;
+    hash.final(&digest);
+    return digest;
+}
+
+fn digestGeneratedColumnLane(allocator: std.mem.Allocator, columns: anytype, log_size: u32) ![32]u8 {
+    const M31 = @import("stwo_core").fields.m31.M31;
+    const framework = recursion.air.framework_interaction;
+    const size = @as(usize, 1) << @intCast(log_size);
+    const committed = try allocator.alloc(M31, size);
+    defer allocator.free(committed);
+    var hash = std.crypto.hash.sha2.Sha256.init(.{});
+    for (columns) |logical| {
+        for (logical, 0..) |value, row|
+            committed[framework.committedRow(row, log_size)] = value;
+        hash.update(std.mem.sliceAsBytes(committed));
+    }
+    var digest: [32]u8 = undefined;
+    hash.final(&digest);
+    return digest;
 }
