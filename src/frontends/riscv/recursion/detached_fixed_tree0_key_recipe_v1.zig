@@ -9,6 +9,86 @@ const range = @import("air/range_check_8_8_bridge.zig");
 const statement = @import("segment_statement_outer_source_v2_contract.zig");
 const statement_rows = @import("segment_statement_outer_source_v2_prepared_v2.zig");
 const wire_layout = @import("segment_statement_v2_transcript_layout.zig");
+const leaf_source = @import("segment_leaf_authority_v2.zig");
+const provider_shape = @import("air/segment_publication_input_provider_shape_v2.zig");
+
+/// Boundary row 36 publishes the wire followed by the fixed-size context.
+/// Only the values live in Tree 1; the Tree 0 selectors follow from the key's
+/// admitted wire length and cannot be supplied by a proof or capture.
+pub fn fillBoundaryStatementRow(
+    manifest: *const manifest_mod.Manifest,
+    wire_word_count: u32,
+    columns: *[3][]M31,
+) !void {
+    try manifest.validate();
+    const placement = manifest.placements[36] orelse return error.InvalidFixedBoundaryGeometry;
+    if (placement.geometry.preprocessed_columns != columns.len or
+        placement.geometry.log_size >= @bitSizeOf(usize))
+        return error.InvalidFixedBoundaryGeometry;
+    const size = @as(usize, 1) << @intCast(placement.geometry.log_size);
+    const wire_words: usize = wire_word_count;
+    const logical = std.math.add(usize, wire_words, leaf_source.CONTEXT_WORD_COUNT) catch
+        return error.InvalidFixedBoundaryGeometry;
+    if (logical > size or logical <= size / 2) return error.InvalidFixedBoundaryGeometry;
+    for (columns) |column| if (column.len != size)
+        return error.InvalidFixedBoundaryGeometry;
+    for (columns) |column| @memset(column, M31.zero());
+    for (0..logical) |index| {
+        const committed = framework.committedRow(index, placement.geometry.log_size);
+        columns[0][committed] = M31.one();
+        columns[1][committed] = M31.fromCanonical(if (index < wire_words)
+            leaf_source.WIRE_SCOPE
+        else
+            leaf_source.CONTEXT_SCOPE);
+        columns[2][committed] = M31.fromCanonical(@intCast(if (index < wire_words)
+            index
+        else
+            index - wire_words));
+    }
+}
+
+pub fn fillBoundaryPublicLogupRow(
+    manifest: *const manifest_mod.Manifest,
+    columns: *[2][]M31,
+) !void {
+    try manifest.validate();
+    const placement = manifest.placements[37] orelse return error.InvalidFixedBoundaryGeometry;
+    if (placement.geometry.preprocessed_columns != columns.len or
+        placement.geometry.log_size >= @bitSizeOf(usize))
+        return error.InvalidFixedBoundaryGeometry;
+    const size = @as(usize, 1) << @intCast(placement.geometry.log_size);
+    if (provider_shape.LUP2_WORD_COUNT > size or
+        provider_shape.LUP2_WORD_COUNT <= size / 2)
+        return error.InvalidFixedBoundaryGeometry;
+    for (columns) |column| if (column.len != size)
+        return error.InvalidFixedBoundaryGeometry;
+    for (columns) |column| @memset(column, M31.zero());
+    for (0..provider_shape.LUP2_WORD_COUNT) |index| {
+        const committed = framework.committedRow(index, placement.geometry.log_size);
+        columns[0][committed] = M31.one();
+        columns[1][committed] = M31.fromCanonical(@intCast(index));
+    }
+}
+
+pub fn fillPublicationInputProviderRow(
+    manifest: *const manifest_mod.Manifest,
+    columns: *[4][]M31,
+) !void {
+    try manifest.validate();
+    const placement = manifest.placements[38] orelse return error.InvalidFixedProviderGeometry;
+    if (placement.geometry.preprocessed_columns != columns.len or
+        placement.geometry.log_size != provider_shape.TRACE_LOG_SIZE)
+        return error.InvalidFixedProviderGeometry;
+    const size = @as(usize, 1) << @intCast(placement.geometry.log_size);
+    for (columns) |column| if (column.len != size)
+        return error.InvalidFixedProviderGeometry;
+    for (columns) |column| @memset(column, M31.zero());
+    for (0..provider_shape.LUP2_WORD_COUNT) |index| {
+        columns[0][index] = M31.one();
+        columns[1][index] = M31.one();
+        columns[2][index] = M31.fromCanonical(@intCast(index));
+    }
+}
 
 pub fn fillStatementRow(
     manifest: *const manifest_mod.Manifest,
@@ -117,4 +197,44 @@ test "Tree0 rows 11 34 and 35 regenerate from key geometry and match production 
     var expected_range: [32]u8 = undefined;
     _ = try std.fmt.hexToBytes(&expected_range, "72447854d4ba84f6eed889db85f0ee0d6c5529d2d1e80420f6e35f06e1173ffa");
     try std.testing.expectEqual(expected_range, censusDigest(&range_view));
+}
+
+test "Tree0 boundary and input-provider rows regenerate without a proof" {
+    const allocator = std.testing.allocator;
+    const fixture = @import("detached_segment_protocol_fixture_v1.zig");
+    const counts = [4]u32{ 16, 16, 0, 11 };
+    const layout = try wire_layout.Layout.init(counts);
+    const key = try fixture.testing.keyWithPoseidonLog(layout.total_words, 1, 16);
+
+    const statement_size = @as(usize, 1) << @intCast(key.manifest.placements[36].?.geometry.log_size);
+    var statement_columns: [3][]M31 = undefined;
+    for (&statement_columns) |*column| column.* = try allocator.alloc(M31, statement_size);
+    defer for (statement_columns) |column| allocator.free(column);
+    try fillBoundaryStatementRow(&key.manifest, key.source_manifest.wire_word_count, &statement_columns);
+    const statement_view: [3][]const M31 = .{ statement_columns[0], statement_columns[1], statement_columns[2] };
+    var statement_digest: [32]u8 = undefined;
+    _ = try std.fmt.hexToBytes(&statement_digest, "5b293baf5e2b462fc439b6be3767646198fedf1551ebad2de54f528c33d63dd0");
+    try std.testing.expectEqual(statement_digest, censusDigest(&statement_view));
+
+    const public_size = @as(usize, 1) << @intCast(key.manifest.placements[37].?.geometry.log_size);
+    var public_columns: [2][]M31 = undefined;
+    for (&public_columns) |*column| column.* = try allocator.alloc(M31, public_size);
+    defer for (public_columns) |column| allocator.free(column);
+    try fillBoundaryPublicLogupRow(&key.manifest, &public_columns);
+    const public_view: [2][]const M31 = .{ public_columns[0], public_columns[1] };
+    var public_digest: [32]u8 = undefined;
+    _ = try std.fmt.hexToBytes(&public_digest, "c31f93a8fca7c0e971ba1e41d6391079624d4500ef601d89b1aa7750130aa1b7");
+    try std.testing.expectEqual(public_digest, censusDigest(&public_view));
+
+    const provider_size = @as(usize, 1) << @intCast(key.manifest.placements[38].?.geometry.log_size);
+    var provider_columns: [4][]M31 = undefined;
+    for (&provider_columns) |*column| column.* = try allocator.alloc(M31, provider_size);
+    defer for (provider_columns) |column| allocator.free(column);
+    try fillPublicationInputProviderRow(&key.manifest, &provider_columns);
+    const provider_view: [4][]const M31 = .{
+        provider_columns[0], provider_columns[1], provider_columns[2], provider_columns[3],
+    };
+    var provider_digest: [32]u8 = undefined;
+    _ = try std.fmt.hexToBytes(&provider_digest, "9521e69b5d76b96992de73cbb1502770d0443681cce35799222f65b8bfa402c0");
+    try std.testing.expectEqual(provider_digest, censusDigest(&provider_view));
 }
