@@ -130,7 +130,12 @@ fn inputWord(source: graph.VmSource, capture: anytype) !M31 {
     return switch (source) {
         .statement_word => return error.InvalidInputBinding,
         .native_continuation_root => |side| blk: {
-            const root = (if (side == 0) capture.public_data.data.initial_rw_root else capture.public_data.data.final_rw_root) orelse return error.InvalidInputBinding;
+            if (side > 1) return error.InvalidInputBinding;
+            const view = try capture.public_data.data.authenticatedView();
+            const root = if (side == 0)
+                view.statement.entry_continuation_root
+            else
+                view.statement.exit_continuation_root;
             if (root >= core.fields.m31.Modulus) return error.InvalidInputBinding;
             break :blk M31.fromCanonical(root);
         },

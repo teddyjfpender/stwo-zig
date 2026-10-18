@@ -269,6 +269,7 @@ pub fn For(comptime leaf_outer: type) type {
                 &prepared.capture.public_data.data,
                 prepared.capture.vm_air.component_descs,
                 prepared.capture.vm_air.infra_descs,
+                prepared.admitted_native_tree0_root,
             );
         }
 

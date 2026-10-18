@@ -147,6 +147,16 @@ pub fn prepareWithProfile(
     try capture.validate();
 
     const verify_ns = phase_timer.lap();
+    // Derive the fixed commitment from admitted component geometry. The
+    // captured proof's Tree-0 value is checked against this independent root.
+    const admitted_native_tree0_root = try prover.preprocessed.rootForDescriptors(
+        Engine,
+        allocator,
+        pcs_config,
+        capture.vm_air.component_descs,
+        capture.vm_air.infra_descs,
+    );
+
     var profile = try recursion.captured_fri.Owned.init(
         allocator,
         recursion.captured_fri.ProfileConfig.fromPcs(pcs_config),
@@ -188,6 +198,7 @@ pub fn prepareWithProfile(
         pcs_config,
         native_claim.interaction_pow,
         keys,
+        admitted_native_tree0_root,
         recursion.air.universal_challenges.UniversalRelations.dummy(),
         .{ .vm = &vm_plan, .recursion = &recursion_plan },
     );

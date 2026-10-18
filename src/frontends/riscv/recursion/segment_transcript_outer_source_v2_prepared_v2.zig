@@ -10,6 +10,7 @@ const Error = dependency_0.Error;
 const FORMAT_VERSION = dependency_0.FORMAT_VERSION;
 const IdentityHasher = dependency_0.IdentityHasher;
 const M31 = dependency_0.M31;
+const m31 = dependency_0.m31;
 const ManifestV2 = dependency_0.ManifestV2;
 const PRODUCTION_ACTIVATION = dependency_0.PRODUCTION_ACTIVATION;
 const PcsConfig = dependency_0.PcsConfig;
@@ -50,6 +51,8 @@ pub const PreparedV2 = struct {
     schema_version: u16 = SCHEMA_VERSION,
     manifest: ManifestV2,
     authority: AuthorityBindingV2,
+    /// Supplied by key admission, never recovered from the proof transcript.
+    admitted_native_tree0_root: Digest,
     execution_id: Digest,
     evidence_id: Digest,
     trace_receipt: [32]u8,
@@ -77,6 +80,7 @@ pub const PreparedV2 = struct {
             data,
             component_descs,
             infra_descs,
+            self.admitted_native_tree0_root,
         );
         if (!std.meta.eql(self.*, expected)) return error.SourceMismatch;
     }
@@ -207,6 +211,7 @@ pub const TranscriptPayloadRowV2 = struct {
     source_hash_id: u32,
     source_word_index: u32,
     value: M31,
+    constant_value: M31,
 };
 
 pub const PowCheckRowV2 = struct {
@@ -290,6 +295,7 @@ pub fn preflight(
     data: *const public_data_v2.PublicDataV2,
     component_descs: []const statement_v1.FamilyComponentDesc,
     infra_descs: []const statement_v1.InfraComponentDesc,
+    admitted_native_tree0_root: Digest,
 ) Error!PreparedV2 {
     return derivePrepared(
         program,
@@ -300,6 +306,7 @@ pub fn preflight(
         data,
         component_descs,
         infra_descs,
+        admitted_native_tree0_root,
     );
 }
 
@@ -314,6 +321,7 @@ pub fn prepareInto(
     data: *const public_data_v2.PublicDataV2,
     component_descs: []const statement_v1.FamilyComponentDesc,
     infra_descs: []const statement_v1.InfraComponentDesc,
+    admitted_native_tree0_root: Digest,
 ) Error!void {
     const output = std.mem.asBytes(destination);
     try rejectSourceAlias(
@@ -335,6 +343,7 @@ pub fn prepareInto(
         data,
         component_descs,
         infra_descs,
+        admitted_native_tree0_root,
     );
     destination.* = staged;
 }
@@ -348,6 +357,7 @@ pub fn derivePrepared(
     data: *const public_data_v2.PublicDataV2,
     component_descs: []const statement_v1.FamilyComponentDesc,
     infra_descs: []const statement_v1.InfraComponentDesc,
+    admitted_native_tree0_root: Digest,
 ) Error!PreparedV2 {
     try program.validateAgainst(
         plan,
@@ -359,6 +369,7 @@ pub fn derivePrepared(
     try execution.validateAgainst(program);
     try evidence.validateAgainst(execution, program);
     try validateProgramWords(program, plan);
+    try validateAdmittedTree0(program, execution, admitted_native_tree0_root);
 
     const counts = try deriveCounts(program, execution, plan);
     const manifest = try manifestFor(program, counts);
@@ -369,6 +380,7 @@ pub fn derivePrepared(
             .wire_id = program.wire_id,
             .statement_authority_id = program.statement_authority_id,
         },
+        .admitted_native_tree0_root = admitted_native_tree0_root,
         .execution_id = execution.identity,
         .evidence_id = evidence.identity,
         .trace_receipt = evidence.trace_receipt,
@@ -378,6 +390,30 @@ pub fn derivePrepared(
     };
     result.source_id = sourceId(&result);
     return result;
+}
+
+fn validateAdmittedTree0(
+    program: *const transcript.Program,
+    execution: *const transcript.Execution,
+    admitted_root: Digest,
+) Error!void {
+    var found = false;
+    for (program.instructions, execution.operations) |instruction, operation| {
+        if (instruction.kind != .trace_commitment or instruction.args[0] != 0)
+            continue;
+        if (found or operation.hash_count == 0 or
+            operation.first_hash_id >= execution.hash_frames.len)
+            return error.SourceMismatch;
+        found = true;
+        const words = execution.hash_frames[operation.first_hash_id].words;
+        if (words.len < channel.RATE * 2) return error.SourceMismatch;
+        for (admitted_root, words[channel.RATE..][0..channel.RATE]) |expected, actual| {
+            if (expected >= m31.Modulus or
+                actual.toU32() != expected)
+                return error.SourceMismatch;
+        }
+    }
+    if (!found) return error.SourceMismatch;
 }
 
 /// A mix frame advances the externally retained channel digest exactly once.
@@ -443,8 +479,10 @@ pub fn payloadRow(
     payload_index: u32,
     source_word_index: u32,
     value: M31,
+    admitted_native_tree0_root: Digest,
 ) TranscriptPayloadRowV2 {
     const metadata = payloadMetadata(instruction, payload_index);
+    const is_tree0 = instruction.kind == .trace_commitment and instruction.args[0] == 0;
     return .{
         .verifier_id = VERIFIER_ID,
         .instruction_index = instruction_index,
@@ -459,6 +497,12 @@ pub fn payloadRow(
         .source_hash_id = hash_id,
         .source_word_index = source_word_index,
         .value = value,
+        .constant_value = if (is_tree0)
+            M31.fromCanonical(admitted_native_tree0_root[payload_index])
+        else if (metadata.constant_mask == 1)
+            value
+        else
+            M31.zero(),
     };
 }
 
@@ -590,6 +634,7 @@ pub fn validateExecutionSnapshot(
     try plan.validate();
     try execution.validateAgainst(program);
     try validateProgramWords(program, plan);
+    try validateAdmittedTree0(program, execution, prepared.admitted_native_tree0_root);
     const evidence = try execution.evidence(program);
     const counts = try deriveCounts(program, execution, plan);
     const manifest = try manifestFor(program, counts);
@@ -646,6 +691,7 @@ pub fn sourceId(prepared: *const PreparedV2) Digest {
     hash.digest(prepared.authority.program_id);
     hash.digest(prepared.authority.wire_id);
     hash.digest(prepared.authority.statement_authority_id);
+    hash.digest(prepared.admitted_native_tree0_root);
     hash.digest(prepared.execution_id);
     hash.digest(prepared.evidence_id);
     hash.bytes(&prepared.trace_receipt);

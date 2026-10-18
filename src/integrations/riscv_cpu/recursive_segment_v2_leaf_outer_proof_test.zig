@@ -440,6 +440,13 @@ fn runGateWithHookForSteps(
         test_config,
         native_claim.interaction_pow,
         keys,
+        try prover.preprocessed.rootForDescriptors(
+            Engine,
+            allocator,
+            test_config,
+            capture.vm_air.component_descs,
+            capture.vm_air.infra_descs,
+        ),
         recursion.air.universal_challenges.UniversalRelations.dummy(),
         .{ .vm = &vm_plan, .recursion = &recursion_plan },
     );

@@ -124,6 +124,7 @@ test "V2 row-11 closes boundary words and exact ProgramV2 statement payloads" {
         &fixture.data,
         &component_descs,
         &infra_descs,
+        fixture.trace_commitments[0],
     );
     const manifest = try subject.preflight(
         &fixture.data,

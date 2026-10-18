@@ -99,7 +99,11 @@ pub fn produceWithProfile(allocator: std.mem.Allocator, prepared: *const leaf.Pr
 pub fn produceWithEngine(comptime Engine: type, allocator: std.mem.Allocator, prepared: *const leaf.PreparedNativeV2LeafOuter, admitted_key: ?*const verifier.KeyV1, profile: Profile) !Candidate {
     const TreeStorage = storage.TreeStorageFor(Engine);
     try requireNativeProfile(prepared, profile);
-    if (admitted_key) |key| if (key.profile != profile) return error.InvalidSegmentDetachedProfile;
+    if (admitted_key) |key| {
+        if (key.profile != profile) return error.InvalidSegmentDetachedProfile;
+        if (!std.meta.eql(key.native_preprocessed_root, prepared.admitted_native_tree0_root))
+            return error.InvalidNativePreprocessedCommitment;
+    }
     var timer = try std.time.Timer.start();
     var recorder = stage_profile.Recorder.initWithOptions(allocator, if (Engine == CpuEngine) "cpu" else "device", "detached-recursive-wrapper", .{ .capture_tasks = false });
     defer recorder.deinit();
@@ -246,7 +250,7 @@ fn fixedKey(allocator: std.mem.Allocator, prepared: *const leaf.PreparedNativeV2
         .pcs_config = profile.pcsConfig(),
         .manifest = cohort.manifest().*,
         .preprocessed_root = fixed_root,
-        .native_preprocessed_root = prepared.capture.proof.commitments[0],
+        .native_preprocessed_root = prepared.admitted_native_tree0_root,
         .parameters = .{
             .query_reference = cohort.core.authority.query_bits_reference,
             .poseidon_active_rows = std.math.cast(u32, cohort.core.poseidonCallCount()) orelse return error.ArithmeticOverflow,

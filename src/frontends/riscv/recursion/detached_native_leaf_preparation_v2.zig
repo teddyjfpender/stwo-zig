@@ -180,6 +180,7 @@ pub fn Preparation(comptime Capture: type, comptime CorePreflight: type) type {
             pcs_config: PcsConfig,
             interaction_pow: u64,
             verifier_keys: source_v2.VerifierKeyAuthorityV2,
+            admitted_native_tree0_root: Digest,
             outer_relations: universal.UniversalRelations,
             capture: NativeCapture,
             vm_plan: schedule.Plan,
@@ -210,11 +211,15 @@ pub fn Preparation(comptime Capture: type, comptime CorePreflight: type) type {
                 pcs_config: PcsConfig,
                 interaction_pow: u64,
                 verifier_keys: source_v2.VerifierKeyAuthorityV2,
+                admitted_native_tree0_root: Digest,
                 outer_relations: universal.UniversalRelations,
                 verifier_plans: CorePreflight.VerifierPlans,
             ) !PreparedNativeV2LeafOuter {
                 try capture.validate();
                 try verifier_keys.validate();
+                if (capture.proof.commitments.len == 0 or
+                    !std.meta.eql(capture.proof.commitments[0], admitted_native_tree0_root))
+                    return error.InvalidTranscriptInput;
                 try outer_relations.validate();
 
                 var vm_plan = try clonePlan(allocator, verifier_plans.vm);
@@ -383,6 +388,7 @@ pub fn Preparation(comptime Capture: type, comptime CorePreflight: type) type {
                     .pcs_config = pcs_config,
                     .interaction_pow = interaction_pow,
                     .verifier_keys = verifier_keys,
+                    .admitted_native_tree0_root = admitted_native_tree0_root,
                     .outer_relations = outer_relations,
                     .capture = capture.*,
                     .vm_plan = vm_plan,
@@ -430,6 +436,9 @@ pub fn Preparation(comptime Capture: type, comptime CorePreflight: type) type {
                 }
                 try self.capture.validate();
                 try self.verifier_keys.validate();
+                if (self.capture.proof.commitments.len == 0 or
+                    !std.meta.eql(self.capture.proof.commitments[0], self.admitted_native_tree0_root))
+                    return error.InvalidTranscriptInput;
                 try self.outer_relations.validate();
                 try self.vm_plan.validate();
                 try self.recursion_plan.validate();
@@ -708,6 +717,7 @@ pub fn Preparation(comptime Capture: type, comptime CorePreflight: type) type {
             hashInt(&hash, u16, bundle.format_version);
             hashInt(&hash, u16, bundle.schema_version);
             hashInt(&hash, u64, bundle.interaction_pow);
+            hashDigest(&hash, bundle.admitted_native_tree0_root);
             hashDigest(&hash, bundle.capture.receipt.identity);
             hashDigest(&hash, bundle.capture.native_public_sums.identity);
             hash.update(&bundle.capture.vm_air.identity_digest);

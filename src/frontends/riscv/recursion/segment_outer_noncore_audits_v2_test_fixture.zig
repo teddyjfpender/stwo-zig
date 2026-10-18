@@ -215,6 +215,7 @@ pub const Fixture = struct {
             &self.public_fixture.owned_public.data,
             &public_support.component_descs,
             &public_support.infra_descs,
+            trace_commitments[0],
         );
 
         const statement_manifest = try statement_source.preflight(

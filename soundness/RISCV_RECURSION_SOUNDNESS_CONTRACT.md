@@ -853,12 +853,13 @@ K-8 regeneration in the admission tooling. Acceptance: G-8 passes; the leaf
 key identity and the transcript shape change (K-1). This item MUST land in
 the same identity-changing batch as W-1 to W-4.
 
-The V2 `constant_mask = 1` metadata alone does not discharge this obligation:
-`segment_transcript_outer_components_v2_source.payloadLogicalRow` currently
-sets `constant_value = row.value`. The constant must instead come from the
-independently admitted key, and the component must reject a mismatched
-proof-derived value. A self-derived constant is invalid even if its row is
-committed in Tree 0.
+The V2 `constant_mask = 1` metadata alone does not discharge this obligation.
+The current source takes the Tree-0 constant from a root independently
+regenerated from native component descriptors, checks the proof frame against
+it, and binds it into the source receipt. G-8 still requires a hostile
+standalone leaf proof and independent key admission, plus parent-key
+preprocessed-tree regeneration. A self-derived constant remains invalid even
+if its row is committed in Tree 0.
 
 **W-8 (ledger).** Apply section 11.
 
@@ -872,7 +873,7 @@ committed in Tree 0.
 | W-4 | Local shell fixed | Wide and compact providers constrain full IO; focused provider tests pass. End-to-end G-3(d) remains open. |
 | W-5 | Migration retired | Both migration entry points fail closed for pre-contract keys. |
 | W-6, W-7 | Open | Rebuild/regenerate after W-1 and W-2, then run G-1 through G-10. The opt-in native leaf now rejects aggregate-column and maximum-log geometry changes before opening the transcript while holding the public claim fixed; this is only a G-7 subcheck, not exact descriptor/catalog admission. |
-| W-9 | Detached leaf partial | Leaf key pins native Tree0 and the CPU admission path independently regenerates it. The frozen V1 row-5 preprocessing now requires a native Tree0 root, hashes it into a version-2 identity, and rejects a changed proof commitment in the focused witness test. The caller still must provide that root from independently admitted key custody; the CSP diagnostic producer currently recomputes it from its local statement. Parent-key Tree0 checks remain open. V2 row-5 metadata marks Tree0 constant, but its value is still taken from the proof row itself; it must be sourced from the admitted key before G-8 can pass. |
+| W-9 | Detached leaf partial | Leaf key pins native Tree0 and CPU admission independently regenerates it. Frozen V1 row-5 requires the admitted root. V2 row-5 now receives a geometry-derived root separately from the proof, rejects a different proof frame, and places that root in the constant column and source identity; the mismatched-root test and detached producer build pass. The standalone hostile-proof G-8 test, independent leaf-key custody on every producer path, and parent-key Tree0 regeneration remain open. |
 | W-8 | False | `recursion_qualified` stays false until every gate and independent review passes. |
 
 The recursive AIR source-map check also fails on eight stale source hashes in
@@ -910,4 +911,4 @@ a digest-only update is not qualification evidence.
 | W-6 | `recursive-segment-v2-leaf-key-setup` build step was absent. | Resolved: `build-recursive-segment-v2-leaf-key-setup` now builds the existing runner. The proof and key regeneration sequence remains open until W-1 and W-2 land. |
 | K-6 | Exact re-derived values of the `segment_profile.zig` constants were unknown. | Resolved locally: the opt-in hardened native leaf measured 38/627/204 columns, 877 table columns and 1,081 sampled values; `segment_profile.zig` now pins them. Reconfirm in the regenerated end-to-end gate. |
 | S-4 | Map every `statement_validation.validate(.proof)` check to (a) key pin, (b) row semantics or (c) structure. | New, OPEN. |
-| K-8 / W-9 | Native tree-0 root constant and key regeneration tooling. | Leaf-side key pin and independent CPU admission regeneration are implemented. Frozen V1 row-5 and parent-key Tree0 regeneration remain open. |
+| K-8 / W-9 | Native tree-0 root constant and key regeneration tooling. | Leaf-side key pin, V1/V2 row-5 constants, and independent CPU root regeneration are implemented. Standalone hostile-proof qualification and parent-key Tree0 regeneration remain open. |
