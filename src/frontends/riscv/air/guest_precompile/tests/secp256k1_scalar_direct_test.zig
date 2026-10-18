@@ -5,6 +5,7 @@ const affine = @import("../secp256k1_affine.zig");
 const ecdsa = @import("../secp256k1_ecdsa.zig");
 const fixture = @import("secp256k1_affine_test.zig").csp_input;
 const direct = @import("../secp256k1_scalar_direct.zig");
+const field = @import("../secp256k1_field.zig");
 const relations_mod = @import("../secp256k1_relations.zig");
 
 const Sink = struct {
@@ -51,62 +52,10 @@ test "secp256k1 scalar AIR: every schedule request cancels its exact authority" 
     var tape = try cspTape();
     defer tape.deinit();
     const program = &tape.scalar_programs.items[0];
-    const relations = relations_mod.Relations.dummy();
     var previous: [direct.Layout.main_columns]M31 = @splat(M31.zero());
     for (0..program.step_count) |ordinal| {
-        const step = &tape.scalar_steps.items[program.step_start + ordinal];
         const row = try direct.rowFromStep(&tape, program, ordinal);
-        var sum = try pairSum(&direct.rowPairs(M31, &row, &previous, &relations));
-        if (ordinal == 0) {
-            for (tape.scalar_splits.items[program.split_start..][0..2]) |*split| {
-                sum = sum.add(relations_mod.combineSplit(
-                    M31,
-                    relations.split,
-                    relations_mod.splitTupleForRecord(split),
-                ).inv() catch unreachable);
-            }
-            const root_point = relations_mod.encodePoint(program.point);
-            for ([_]affine.TableKind{ .public_key, .public_key_endomorphism }) |kind| {
-                const root = relations_mod.tableRootTuple(
-                    M31,
-                    M31.fromU64(@intFromEnum(kind)),
-                    &root_point,
-                );
-                sum = sum.sub(relations_mod.combineTableRoot(
-                    M31,
-                    relations.table_root,
-                    root,
-                ).inv() catch unreachable);
-            }
-        }
-        const tables = tape.tables.items[program.table_start..][0..direct.scalar_count];
-        for (0..direct.scalar_count) |scalar_index| {
-            const digit = step.digits[scalar_index];
-            if (digit == 0) continue;
-            const code = affine.signedTableIndex(digit);
-            sum = sum.add(relations_mod.combineTable(
-                M31,
-                relations.table,
-                relations_mod.tableTupleForRecord(&tables[scalar_index], code),
-            ).inv() catch unreachable);
-        }
-        for (step.point_record_indices, 0..) |record_index, transition| {
-            if (transition != 0 and step.digits[transition - 1] == 0) continue;
-            const point = &tape.points.items[record_index];
-            sum = sum.add(relations_mod.combinePoint(
-                M31,
-                relations.point,
-                relations_mod.pointTupleForRecord(point),
-            ).inv() catch unreachable);
-        }
-        if (ordinal + 1 == program.step_count) {
-            sum = sum.sub(relations_mod.combineProgram(
-                M31,
-                relations.program,
-                relations_mod.programTupleForRecord(program),
-            ).inv() catch unreachable);
-        }
-        try std.testing.expect(sum.isZero());
+        try std.testing.expect((try scheduleSum(&tape, program, ordinal, &row, &previous)).isZero());
         previous = row;
     }
 }
@@ -194,6 +143,63 @@ test "secp256k1 scalar AIR: doubling slot rejects identity no-op kinds" {
     }
 }
 
+test "secp256k1 scalar AIR: add slot whose accumulator equals the selected entry proves" {
+    // Program `1 * G + 1 * G`: the generator stream selects G at bit zero, so
+    // the point stream's add slot sees `accumulator == selected == G`. Before
+    // `add_equal` this step had no representable transition and the whole
+    // program failed `rowFromStep` with `InvalidTransition`.
+    var tape = affine.Tape.init(std.testing.allocator);
+    defer tape.deinit();
+    const generator = affine.basePoint();
+    const one = field.bytesFromInteger(1);
+    const result = try affine.doubleScalarGlvWnaf(&tape, one, generator, one);
+    const expected = try affine.double(&tape, generator);
+    try std.testing.expect(affine.Point.eql(result, expected));
+    try std.testing.expectEqual(@as(usize, 1), tape.scalar_programs.items.len);
+    const program = &tape.scalar_programs.items[0];
+
+    var equal_slots: usize = 0;
+    var previous: [direct.Layout.main_columns]M31 = @splat(M31.zero());
+    for (0..program.step_count) |ordinal| {
+        const step = &tape.scalar_steps.items[program.step_start + ordinal];
+        const row = try direct.rowFromStep(&tape, program, ordinal);
+        const next = if (ordinal + 1 < program.step_count)
+            try direct.rowFromStep(&tape, program, ordinal + 1)
+        else
+            [_]M31{M31.zero()} ** direct.Layout.main_columns;
+        var sink = Sink{};
+        direct.evaluateDirect(
+            M31,
+            &row,
+            &previous,
+            &next,
+            M31.fromU64(@intFromBool(ordinal == 0)),
+            M31.fromU64(@intFromBool(ordinal + 1 == program.step_count)),
+            &sink,
+        );
+        try std.testing.expectEqual(@as(usize, 0), sink.failures);
+        try std.testing.expect(sink.maximum_degree <= direct.maximum_constraint_degree);
+        try std.testing.expect((try scheduleSum(&tape, program, ordinal, &row, &previous)).isZero());
+
+        for (1..1 + direct.scalar_count) |slot| {
+            if (step.digits[slot - 1] == 0) continue;
+            const record = &tape.points.items[step.point_record_indices[slot]];
+            try std.testing.expectEqual(
+                M31.fromU64(@intFromEnum(record.kind)),
+                row[direct.Layout.transitionKind(slot)],
+            );
+            if (record.kind == .add_equal) {
+                equal_slots += 1;
+                try std.testing.expect(!record.rhs.infinity);
+                try std.testing.expect(affine.Point.eql(record.lhs, step.selected[slot - 1]));
+                try std.testing.expect(affine.Point.eql(record.rhs, step.selected[slot - 1]));
+            }
+        }
+        previous = row;
+    }
+    try std.testing.expectEqual(@as(usize, 1), equal_slots);
+}
+
 test "secp256k1 scalar AIR: private recurrence state is range-covered" {
     var tape = try cspTape();
     defer tape.deinit();
@@ -220,6 +226,71 @@ fn cspTape() !affine.Tape {
         fixture[129..161].*,
     )) return error.InvalidFixture;
     return tape;
+}
+
+/// The row's requests plus every authority the honest tape supplies for this
+/// step (splits, table roots, table entries, point transitions, the program
+/// emission): zero exactly when the step's requests match its tape records.
+fn scheduleSum(
+    tape: *const affine.Tape,
+    program: *const affine.ScalarProgramRecord,
+    ordinal: usize,
+    row: *const [direct.Layout.main_columns]M31,
+    previous: *const [direct.Layout.main_columns]M31,
+) !QM31 {
+    const relations = relations_mod.Relations.dummy();
+    const step = &tape.scalar_steps.items[program.step_start + ordinal];
+    var sum = try pairSum(&direct.rowPairs(M31, row, previous, &relations));
+    if (ordinal == 0) {
+        for (tape.scalar_splits.items[program.split_start..][0..2]) |*split| {
+            sum = sum.add(relations_mod.combineSplit(
+                M31,
+                relations.split,
+                relations_mod.splitTupleForRecord(split),
+            ).inv() catch unreachable);
+        }
+        const root_point = relations_mod.encodePoint(program.point);
+        for ([_]affine.TableKind{ .public_key, .public_key_endomorphism }) |kind| {
+            const root = relations_mod.tableRootTuple(
+                M31,
+                M31.fromU64(@intFromEnum(kind)),
+                &root_point,
+            );
+            sum = sum.sub(relations_mod.combineTableRoot(
+                M31,
+                relations.table_root,
+                root,
+            ).inv() catch unreachable);
+        }
+    }
+    const tables = tape.tables.items[program.table_start..][0..direct.scalar_count];
+    for (0..direct.scalar_count) |scalar_index| {
+        const digit = step.digits[scalar_index];
+        if (digit == 0) continue;
+        const code = affine.signedTableIndex(digit);
+        sum = sum.add(relations_mod.combineTable(
+            M31,
+            relations.table,
+            relations_mod.tableTupleForRecord(&tables[scalar_index], code),
+        ).inv() catch unreachable);
+    }
+    for (step.point_record_indices, 0..) |record_index, transition| {
+        if (transition != 0 and step.digits[transition - 1] == 0) continue;
+        const point = &tape.points.items[record_index];
+        sum = sum.add(relations_mod.combinePoint(
+            M31,
+            relations.point,
+            relations_mod.pointTupleForRecord(point),
+        ).inv() catch unreachable);
+    }
+    if (ordinal + 1 == program.step_count) {
+        sum = sum.sub(relations_mod.combineProgram(
+            M31,
+            relations.program,
+            relations_mod.programTupleForRecord(program),
+        ).inv() catch unreachable);
+    }
+    return sum;
 }
 
 fn pairSum(pairs: *const [direct.batch_count]@import("../../logup.zig").RowPair) !QM31 {

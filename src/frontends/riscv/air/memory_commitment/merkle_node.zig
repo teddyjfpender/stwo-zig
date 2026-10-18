@@ -1,9 +1,18 @@
 //! Exact Stark-V Section 19 sparse-Merkle node AIR.
 //!
-//! Each row emits two child claims, consumes one parent claim, emits the
-//! 16-lane Poseidon2 input, and consumes the narrow one-lane output. The
-//! separate Poseidon2 component proves the permutation and cancels the latter
-//! two terms.
+//! Each row emits two child claims, consumes one parent claim, and consumes
+//! ONE atomic Poseidon2 tuple on the `poseidon2_io` relation binding the
+//! 16-lane input `[lhs, rhs, 0...]` to the one-lane output `[cur, 0...]`.
+//! The separate Poseidon2 component proves the permutation and emits the same
+//! tuple in its narrow mode.
+//!
+//! Soundness note: the input and the output must travel in a single tuple.
+//! The retired shape (`+[lhs, rhs, 0...]` and `-[cur, 0...]` as two separate
+//! `poseidon2` terms) let a prover pair one row's input with another row's
+//! output: an extra active node row with all three Merkle multiplicities zero
+//! (admitted by the AIR) plus two honest hash rows cancelled a forged parent
+//! for any leaf under an honest root.  The negative tests at the end of this
+//! file replay both forgery shapes.
 
 const std = @import("std");
 const M31 = @import("stwo_core").fields.m31.M31;
@@ -18,7 +27,10 @@ const sparse_merkle = @import("sparse_merkle.zig");
 
 /// enabler, index, depth, lhs, rhs, cur, lhs_mult, rhs_mult, cur_mult, root.
 pub const N_MAIN_COLUMNS: usize = 10;
-/// Exact schema pairing: children; parent + Poseidon input; Poseidon output.
+/// Exact schema pairing: children; parent + atomic Poseidon input/output
+/// tuple; a retained zero-multiplicity `poseidon2` entry.  The last entry only
+/// preserves the three-claim interaction geometry (12 columns, three claimed
+/// sums) that the statement, wire protocol and provider-shard pins depend on.
 pub const N_SUMS: usize = 3;
 pub const N_INTERACTION_COLUMNS: usize = N_SUMS * 4;
 /// Three LogUp pair constraints, the enabler binding, three ternary
@@ -346,18 +358,25 @@ pub fn entriesGeneric(comptime S: type, main: [N_MAIN_COLUMNS]S) lookup_entry.Bu
     var poseidon_input = [_]S{S.zero()} ** poseidon2_air.WIDTH;
     poseidon_input[0] = lhs;
     poseidon_input[1] = rhs;
-    var poseidon_output = [_]S{S.zero()} ** poseidon2_air.WIDTH;
-    poseidon_output[0] = cur;
+    // Atomic `[input16 || out0, 0...]` tuple: the hash row that cancels it must
+    // carry exactly this input and exactly this one-lane output.
+    const poseidon_io = narrowIoTuple(S, poseidon_input, cur);
     var list = EntryBuilder.List{};
     appendGeneric(S, &list, .merkle, main[6], .{ index, depth, lhs, root });
     appendGeneric(S, &list, .merkle, main[7], .{ index.add(one), depth, rhs, root });
     appendGeneric(S, &list, .merkle, main[8].neg(), .{
         index.mul(S.fromBase(M31.fromU64(1073741824))), depth.sub(one), cur, root,
     });
-    appendGeneric(S, &list, .poseidon2, enabler, poseidon_input);
-    appendGeneric(S, &list, .poseidon2, enabler.neg(), poseidon_output);
+    appendGeneric(S, &list, .poseidon2_io, enabler.neg(), poseidon_io);
+    // Zero multiplicity: retained only so the third LogUp claim keeps its
+    // geometry.  It never emits or consumes anything.
+    appendGeneric(S, &list, .poseidon2, S.zero(), poseidon_input);
     return list;
 }
+
+/// The 32-lane `poseidon2_io` tuple a narrow Poseidon2 row and its Merkle
+/// caller share (`poseidon2_layout.narrowIoTuple`).
+pub const narrowIoTuple = @import("poseidon2_layout.zig").narrowIoTuple;
 
 pub fn paddingPairs() [N_SUMS]logup.RowPair {
     const zero = QM31.zero();
@@ -722,4 +741,198 @@ test "Merkle node AIR: doubled leaf emission cannot cover a duplicated boundary 
         if (!constraints[N_SUMS + 7].isZero() or !constraints[N_SUMS + 8].isZero()) rejected += 1;
     }
     try std.testing.expectEqual(doubled_rows, rejected);
+}
+
+/// Shared fixture for the two Poseidon tuple-shape forgeries: one touched
+/// word, honest tree, and the depth-30 node holding byte 0 of the word.
+const ForgeryFixture = struct {
+    const boundary = @import("boundary.zig");
+    claims: boundary.Claims,
+    rows: []NodeRow,
+    leaf_node: usize,
+
+    fn init(allocator: std.mem.Allocator) !ForgeryFixture {
+        var claims = try boundary.build(allocator, &.{.{
+            .addr = 0x1000,
+            .initial_word = 0x11223344,
+            .final_word = 0x55667788,
+            .final_clock = 9,
+        }});
+        errdefer claims.deinit(allocator);
+        const tree = claims.initial_tree.?;
+        const rows = try allocator.alloc(NodeRow, tree.nodes.len);
+        errdefer allocator.free(rows);
+        var leaf_node: ?usize = null;
+        for (tree.nodes, rows, 0..) |node, *row, i| {
+            row.* = NodeRow.fromNode(node, tree.root);
+            if (row.depth == sparse_merkle.LEAF_DEPTH and row.index == 0x1000) leaf_node = i;
+        }
+        return .{ .claims = claims, .rows = rows, .leaf_node = leaf_node.? };
+    }
+
+    fn deinit(self: *ForgeryFixture, allocator: std.mem.Allocator) void {
+        allocator.free(self.rows);
+        self.claims.deinit(allocator);
+    }
+
+    fn root(self: *const ForgeryFixture) u32 {
+        return self.claims.initial_tree.?.root;
+    }
+
+    /// Boundary row opening `forged_byte` at byte 0 of the word under the
+    /// honest root.
+    fn forgedLeafClaim(self: *const ForgeryFixture, forged_byte: u32, relations: *const relations_mod.Relations) !QM31 {
+        const memory_interaction = @import("interaction.zig");
+        var row = self.claims.rows[0];
+        try std.testing.expect(row.multiplicity.eql(M31.one()));
+        row.value[0] = @intCast(forged_byte);
+        return memory_interaction.diagnosticSum(&.{row}, .merkle, relations);
+    }
+
+    fn publicEmit(self: *const ForgeryFixture, relations: *const relations_mod.Relations) !QM31 {
+        const value = QM31.fromBase(M31.fromU64(self.root()));
+        return try relations.merkle.combineSecure(.{ QM31.zero(), QM31.zero(), value, value }).inv();
+    }
+};
+
+fn expectRowsSatisfyDirectConstraints(rows: []const NodeRow, relations: *const relations_mod.Relations) !void {
+    const zero = QM31.zero();
+    const one = QM31.one();
+    for (rows) |row| {
+        var main: [N_MAIN_COLUMNS]QM31 = undefined;
+        for (&main, mainValues(row)) |*dst, value| dst.* = QM31.fromBase(value);
+        const constraints = evaluate(main, one, zero, .{zero} ** N_SUMS, .{zero} ** N_SUMS, .{zero} ** N_SUMS, relations);
+        for (constraints[N_SUMS..]) |constraint| try std.testing.expect(constraint.isZero());
+    }
+}
+
+fn expectHashRowsHonest(hash_calls: []const poseidon2_air.Call) !void {
+    for (hash_calls) |call| {
+        const row = poseidon2_air.fill(call);
+        var secure: [poseidon2_air.N_MAIN_COLUMNS]QM31 = undefined;
+        for (&secure, row) |*dst, value| dst.* = QM31.fromBase(value);
+        for (poseidon2_air.evaluate(secure)) |constraint| try std.testing.expect(constraint.isZero());
+        for (poseidon2_air.narrowModeConstraints(secure)) |constraint| try std.testing.expect(constraint.isZero());
+        try std.testing.expectEqual(call.narrow_output.?, poseidon2_air.output(row)[0].toU32());
+    }
+}
+
+test "Merkle node AIR: chained gadget node cannot cover a forged leaf (PoC shape 1)" {
+    // Attack shape: node J claims (forged_byte, sibling) -> honest parent P.
+    // An extra active node row K with all three Merkle multiplicities zero
+    // (admitted by the AIR) chains P -> o2 while two honest hash rows prove
+    // H(forged_byte, sibling) = o1 and H(o1, 0) = o2.  With input and output
+    // as two independent `poseidon2` terms every term cancelled; the atomic
+    // `poseidon2_io` tuple leaves J's `[forged, sibling || P]` uncovered.
+    const poseidon2 = @import("poseidon2.zig");
+    const allocator = std.testing.allocator;
+    const relations = relations_mod.Relations.dummy();
+    var fixture = try ForgeryFixture.init(allocator);
+    defer fixture.deinit(allocator);
+    const j = fixture.leaf_node;
+    const honest = fixture.rows;
+    const forged_byte: u32 = 0x45; // honest is 0x44
+    try std.testing.expectEqual(@as(u32, 0x44), honest[j].lhs);
+
+    const rows = try allocator.alloc(NodeRow, honest.len + 1);
+    defer allocator.free(rows);
+    @memcpy(rows[0..honest.len], honest);
+    rows[j].lhs = forged_byte;
+    const forged_parent = rows[j].cur;
+    const sibling = rows[j].rhs;
+    const o1 = poseidon2.hashPair(forged_byte, sibling);
+    const o2 = poseidon2.hashPair(o1, 0);
+    rows[honest.len] = .{ .index = 0, .depth = 30, .lhs = forged_parent, .rhs = 0, .cur = o2, .lhs_mult = 0, .rhs_mult = 0, .cur_mult = 0, .root = fixture.root() };
+
+    const hash_calls = try allocator.alloc(poseidon2_air.Call, rows.len);
+    defer allocator.free(hash_calls);
+    for (honest, 0..) |row, i| hash_calls[i] = row.poseidonCall();
+    hash_calls[j] = poseidon2_air.Call.narrowWithOutput(forged_byte, sibling, o1);
+    hash_calls[honest.len] = poseidon2_air.Call.narrowWithOutput(o1, 0, o2);
+
+    // Every direct constraint still passes: only the relation can reject this.
+    try expectRowsSatisfyDirectConstraints(rows, &relations);
+    try expectHashRowsHonest(hash_calls);
+    try expectCancellationFails(
+        rows,
+        hash_calls,
+        try fixture.forgedLeafClaim(forged_byte, &relations),
+        try fixture.publicEmit(&relations),
+        &relations,
+    );
+}
+
+test "Merkle node AIR: output-swap gadget node cannot cover a forged leaf (PoC shape 2)" {
+    // Attack shape: node J claims (forged_byte, sibling) -> honest parent P
+    // while gadget node K carries the honest preimage (0x44, sibling) with its
+    // output swapped to o1 = H(forged_byte, sibling).  Two honest hash rows
+    // H(forged, sibling) = o1 and H(0x44, sibling) = P cancelled every
+    // separate input/output term; the atomic tuple pairs each hash row with
+    // its own input and output only.
+    const poseidon2 = @import("poseidon2.zig");
+    const allocator = std.testing.allocator;
+    const relations = relations_mod.Relations.dummy();
+    var fixture = try ForgeryFixture.init(allocator);
+    defer fixture.deinit(allocator);
+    const j = fixture.leaf_node;
+    const honest = fixture.rows;
+    const honest_byte = honest[j].lhs;
+    const sibling = honest[j].rhs;
+    const parent = honest[j].cur;
+    const forged_byte: u32 = 0x45;
+    const o1 = poseidon2.hashPair(forged_byte, sibling);
+
+    const rows = try allocator.alloc(NodeRow, honest.len + 1);
+    defer allocator.free(rows);
+    @memcpy(rows[0..honest.len], honest);
+    rows[j].lhs = forged_byte;
+    rows[honest.len] = .{ .index = 0, .depth = 30, .lhs = honest_byte, .rhs = sibling, .cur = o1, .lhs_mult = 0, .rhs_mult = 0, .cur_mult = 0, .root = fixture.root() };
+
+    const hash_calls = try allocator.alloc(poseidon2_air.Call, rows.len);
+    defer allocator.free(hash_calls);
+    for (honest, 0..) |row, i| hash_calls[i] = row.poseidonCall();
+    hash_calls[j] = poseidon2_air.Call.narrowWithOutput(forged_byte, sibling, o1);
+    hash_calls[honest.len] = poseidon2_air.Call.narrowWithOutput(honest_byte, sibling, parent);
+
+    try expectRowsSatisfyDirectConstraints(rows, &relations);
+    try expectHashRowsHonest(hash_calls);
+    try expectCancellationFails(
+        rows,
+        hash_calls,
+        try fixture.forgedLeafClaim(forged_byte, &relations),
+        try fixture.publicEmit(&relations),
+        &relations,
+    );
+}
+
+test "Merkle node AIR: node consumes one atomic poseidon2_io tuple and no bare Poseidon terms" {
+    const relations = relations_mod.Relations.dummy();
+    var main = [_]QM31{QM31.zero()} ** N_MAIN_COLUMNS;
+    main[0] = QM31.one();
+    main[3] = QM31.fromBase(M31.fromU64(7));
+    main[4] = QM31.fromBase(M31.fromU64(11));
+    main[5] = QM31.fromBase(M31.fromU64(13));
+    const list = entries(main);
+    try std.testing.expectEqual(@as(usize, 5), list.len);
+    var live_poseidon_terms: usize = 0;
+    for (list.entries[0..list.len]) |item| {
+        if (item.domain == .merkle) continue;
+        if (item.numerator.isZero()) continue;
+        live_poseidon_terms += 1;
+        try std.testing.expectEqual(lookup_entry.Domain.poseidon2_io, item.domain);
+        try std.testing.expectEqual(@as(u8, 32), item.arity);
+        try std.testing.expect(item.numerator.eql(QM31.one().neg()));
+        try std.testing.expect(item.values[0].eql(main[3]));
+        try std.testing.expect(item.values[1].eql(main[4]));
+        for (item.values[2..16]) |lane| try std.testing.expect(lane.isZero());
+        try std.testing.expect(item.values[16].eql(main[5]));
+        for (item.values[17..32]) |lane| try std.testing.expect(lane.isZero());
+    }
+    try std.testing.expectEqual(@as(usize, 1), live_poseidon_terms);
+    // The tuple is exactly the one a narrow hash row provides.
+    const call = poseidon2_air.Call.narrowWithOutput(7, 11, 13);
+    const hash_pairs = poseidon2_air.narrowRowPairsFromCall(call, &relations);
+    const node_pairs = rowPairs(main, &relations);
+    try std.testing.expect(node_pairs[1].d2.eql(hash_pairs[0].d2));
+    try std.testing.expect(node_pairs[1].n2.add(hash_pairs[0].n2).isZero());
 }

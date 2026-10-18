@@ -371,6 +371,10 @@ fn entriesUnchecked(plan: *const Plan, row: RelationRow) [N_EVENTS]Entry {
                 lift(values[0..WIDTH], &row.input);
                 lift(values[WIDTH .. 2 * WIDTH], &row.output);
             },
+            .narrow_input_output => {
+                lift(values[0..WIDTH], &row.input);
+                values[WIDTH] = QM31.fromBase(row.output[0]);
+            },
         }
         entry.* = .{
             .id = event_plan.id,
@@ -394,7 +398,7 @@ fn numerator(formula: NumeratorFormula, row: RelationRow) QM31 {
     const io = QM31.fromBase(row.io);
     const one = QM31.one();
     return switch (formula) {
-        .negative_enabled_non_io => enabled.mul(one.sub(io)).neg(),
+        .negative_enabled_wide => enabled.mul(wide).neg(),
         .enabled_narrow => enabled.mul(one.sub(wide).sub(io)),
         .enabled_wide => enabled.mul(wide),
         .enabled_io => enabled.mul(io),

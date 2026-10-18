@@ -471,8 +471,12 @@ pub fn makeState(comptime Owner: type) type {
                 },
                 .program => .{ .rows = task.n_rows, .combinations_per_row = 7, .inputs_per_row = 24 },
                 .memory => .{ .rows = task.n_rows, .combinations_per_row = 7, .inputs_per_row = 27 },
-                .merkle => .{ .rows = task.n_rows, .combinations_per_row = 5, .inputs_per_row = 44 },
-                .poseidon2 => .{ .rows = task.n_rows, .combinations_per_row = 4, .inputs_per_row = 80 },
+                // Merkle: three 4-lane bus tuples, the 32-lane atomic Poseidon
+                // tuple and the retained 16-lane zero-multiplicity entry.
+                .merkle => .{ .rows = task.n_rows, .combinations_per_row = 5, .inputs_per_row = 60 },
+                // Poseidon2: 16-lane input, 32-lane narrow tuple, 16-lane wide
+                // output and the 32-lane atomic-IO tuple.
+                .poseidon2 => .{ .rows = task.n_rows, .combinations_per_row = 4, .inputs_per_row = 96 },
                 .clock_update => .{
                     .rows = try domainSize(task.log_size),
                     .combinations_per_row = 4,

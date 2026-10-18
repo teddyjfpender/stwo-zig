@@ -9,7 +9,7 @@ const roster = @import("../universal_roster.zig");
 // Recomputed from the complete ordered geometry below. In particular, row 20
 // now binds the profile-owned raw-query-to-position projection parameters.
 const FIXTURE_SEAL_HEX =
-    "4291b670ee1b6ce9b7b0f6d8fd60a241a9a38b81f49a4617bf6f2e86771efade";
+    "b23e6d341bc35bc56b7540b5675c07ea35fd16010ddb517441655c5cda955725";
 
 test "R-012 universal manifest closes all 36 rows in exact protocol order" {
     const log_sizes = fixtureLogSizes();

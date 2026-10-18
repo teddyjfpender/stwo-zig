@@ -268,37 +268,88 @@ fn expectProofPoolAudit(
     expect_publication: bool,
     expect_injected_failure: bool,
 ) !void {
-    const expected_pool_address = if (worker_count > 1) receipt.pool_address else 0;
-    try std.testing.expectEqual(
-        @as(usize, if (worker_count > 1) 1 else 0),
-        receipt.pool_init_count,
-    );
-    try std.testing.expectEqual(receipt.pool_init_count, receipt.pool_deinit_count);
-    try std.testing.expectEqual(receipt.pool_init_count, receipt.binding_init_count);
-    try std.testing.expectEqual(receipt.binding_init_count, receipt.binding_deinit_count);
-    if (worker_count > 1) try std.testing.expect(receipt.pool_address != 0);
+    expectProofPoolAuditPins(
+        receipt,
+        worker_count,
+        expect_publication,
+        expect_injected_failure,
+    ) catch |err| {
+        // A bare `expected 1, found 2` names no counter in a ReleaseSafe run;
+        // print the whole snapshot so the drifted pin can be read off.
+        std.debug.print(
+            "\n  proof-pool audit pin failed ({s}) workers={d} " ++
+                "expect_publication={} expect_injected_failure={}\n  {any}\n",
+            .{
+                @errorName(err),
+                worker_count,
+                expect_publication,
+                expect_injected_failure,
+                receipt,
+            },
+        );
+        return err;
+    };
+}
 
-    for (receipt.stage_observations, receipt.stage_pool_addresses) |observations, address| {
-        try std.testing.expect(observations >= 1);
-        try std.testing.expectEqual(expected_pool_address, address);
+fn expectProofPoolAuditPins(
+    receipt: work_pool.TestProofPoolAuditSnapshot,
+    worker_count: usize,
+    expect_publication: bool,
+    expect_injected_failure: bool,
+) !void {
+    // Every explicit CPU request, including `worker_count == 1`, owns exactly
+    // one proof-scoped pool: `ProofExecutionPool.initInPlace` stopped
+    // short-circuiting the one-worker request in 87a3965fe (2026-09-08), so
+    // a serial proof now runs on a one-worker pool that admits serial leases
+    // but spawns no helper threads. Before that commit a one-worker proof
+    // created no pool at all and these pins expected zero.
+    try std.testing.expectEqual(@as(usize, 1), receipt.pool_init_count);
+    try std.testing.expectEqual(receipt.pool_init_count, receipt.pool_deinit_count);
+    try std.testing.expect(receipt.pool_address != 0);
+    // Two coordinator bindings of the same pool per proof, both balanced: the
+    // orchestration's own `ScopedPoolBinding.init`, and the deferred-commit
+    // worker thread borrowing the proof pool through
+    // `ScopedPoolBinding.initIfNeeded` (`pcs/deferred_commit.zig`, f718c4f2d
+    // 2026-09-30). `scoped_pool` is thread-local, so the borrowing thread
+    // records a second init against the same address; a different address
+    // would surface in `stage_identity_mismatches` below.
+    try std.testing.expectEqual(@as(usize, 2), receipt.binding_init_count);
+    try std.testing.expectEqual(receipt.binding_init_count, receipt.binding_deinit_count);
+
+    // Serial composition (`composition_execution.resolveWithRecorder`) declines
+    // the pool for a one-worker budget and observes the stage with a null
+    // pool, so that one observation is the only admissible identity mismatch
+    // at width 1. Every other stage at every width must see the proof pool.
+    const composition_stage = @intFromEnum(work_pool.ProofPoolStage.composition);
+    var expected_identity_mismatches: usize = 0;
+    for (receipt.stage_observations, receipt.stage_pool_addresses, 0..) |observations, address, stage| {
+        try std.testing.expectEqual(@as(usize, 1), observations);
+        if (worker_count == 1 and stage == composition_stage) {
+            try std.testing.expectEqual(@as(usize, 0), address);
+            expected_identity_mismatches += 1;
+        } else {
+            try std.testing.expectEqual(receipt.pool_address, address);
+        }
     }
-    try std.testing.expectEqual(@as(usize, 0), receipt.stage_identity_mismatches);
+    try std.testing.expectEqual(expected_identity_mismatches, receipt.stage_identity_mismatches);
     try std.testing.expect(receipt.global_resolution_count >= 1);
     try std.testing.expectEqual(@as(usize, 0), receipt.global_resolution_mismatches);
 
     try std.testing.expectEqual(receipt.lease_acquire_count, receipt.lease_release_count);
+    try std.testing.expect(receipt.lease_acquire_count >= 1);
     try std.testing.expectEqual(@as(usize, 0), receipt.active_lease_count);
     try std.testing.expectEqual(@as(usize, 0), receipt.active_leased_workers);
     try std.testing.expect(receipt.max_leased_workers <= worker_count);
     try std.testing.expectEqual(receipt.structured_submitted, receipt.structured_completed);
     if (worker_count > 1) {
-        try std.testing.expect(receipt.lease_acquire_count >= 1);
         try std.testing.expect(receipt.structured_submitted >= 1);
         try std.testing.expectEqual(@as(usize, 1), receipt.nested_helper_probe_count);
         try std.testing.expectEqual(@as(usize, 0), receipt.nested_helper_saw_pool_count);
         try std.testing.expectEqual(@as(usize, 1), receipt.nested_binding_denied_count);
     } else {
-        try std.testing.expectEqual(@as(usize, 0), receipt.lease_acquire_count);
+        // A one-worker pool has no helper slots: serial leases are admitted,
+        // but nothing is ever submitted to a helper and no probe is armed.
+        try std.testing.expectEqual(@as(usize, 1), receipt.max_leased_workers);
         try std.testing.expectEqual(@as(usize, 0), receipt.structured_submitted);
         try std.testing.expectEqual(@as(usize, 0), receipt.nested_helper_probe_count);
         try std.testing.expectEqual(@as(usize, 0), receipt.nested_helper_saw_pool_count);

@@ -68,7 +68,7 @@ test "Ethereum AOT profile preserves exact core authority and admits five separa
     try std.testing.expectEqualStrings(core_source, Profile.core_v2.source());
     try std.testing.expectEqualDeep(manifest.nativeAmalgamatedSourceDigest(), Profile.core_v2.sourceDigest());
     // Pin the reviewed core source including BLAKE3 and M31 BLAKE2s PoW, parents, direct/staged and packed FRI leaves.
-    try std.testing.expectEqualStrings("d2658475a1c89a6b0251e088cced4eb67716fbe93db4aedb7c4810d24a152573", &std.fmt.bytesToHex(Profile.core_v2.sourceDigest(), .lower));
+    try std.testing.expectEqualStrings("8958cac79c4f3d372d4bd3f405599ba285844bc00c4ec3122a1903d597a1186c", &std.fmt.bytesToHex(Profile.core_v2.sourceDigest(), .lower));
     try std.testing.expectEqual(@as(usize, 235), Profile.core_v2.exports().len);
     try std.testing.expectEqualDeep(manifest.native_exports[0..], Profile.core_v2.exports());
     try std.testing.expectEqualDeep(abi.native_kernel_abi[0..], Profile.core_v2.kernelAbi());

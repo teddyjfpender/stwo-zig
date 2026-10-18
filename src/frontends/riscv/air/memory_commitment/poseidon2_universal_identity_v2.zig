@@ -13,7 +13,7 @@ const Hash = std.crypto.hash.sha2.Sha256;
 pub const FORMAT_VERSION: u32 = 2;
 pub const Digest = [32]u8;
 
-pub const CANONICAL_DIGEST = hexDigest("e37c589fabffa3711c41c6cb259e68303543bc36edcef3d5be5caec7459f8ddf");
+pub const CANONICAL_DIGEST = hexDigest("aebeb027a3c94ab6df9afe70e0e573726c7bdde655ff23b62670ae5c80ef939e");
 /// Only this reviewed historical implementation identity has a compatibility
 /// mapping. It authorizes the same canonical equations, never arbitrary source.
 pub const LEGACY_SOURCE_DIGEST = hexDigest("48302838137c822fe11fcafb652257046c41834f2ee1c818d93bf09a166f2871");

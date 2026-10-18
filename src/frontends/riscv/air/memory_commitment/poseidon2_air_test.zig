@@ -102,20 +102,26 @@ pub fn Tests(comptime context: anytype) type {
             try std.testing.expect(!constraints[0].isZero());
         }
 
-        test "poseidon2 AIR: Merkle input and narrow output cancel exactly" {
+        test "poseidon2 AIR: Merkle atomic input/output tuple cancels exactly" {
             const relations = relations_mod.Relations.dummy();
             const call = Call.narrow(31, 41);
             const row = secureRow(fill(call));
             const poseidon_pairs = rowPairs(row, &relations);
-            var merkle_input = [_]QM31{QM31.zero()} ** WIDTH;
-            merkle_input[0] = QM31.fromBase(M31.fromU64(31));
-            merkle_input[1] = QM31.fromBase(M31.fromU64(41));
-            var merkle_output = [_]QM31{QM31.zero()} ** WIDTH;
-            merkle_output[0] = row[OUTPUT_START];
-            const merkle_sum = (try relations.poseidon2.combineSecure(merkle_input).inv())
-                .sub(try relations.poseidon2.combineSecure(merkle_output).inv());
+            // The Merkle node consumes one `poseidon2_io` tuple carrying both
+            // the 16-lane input and output lane 0; nothing else is live.
+            var merkle_tuple = [_]QM31{QM31.zero()} ** (2 * WIDTH);
+            merkle_tuple[0] = QM31.fromBase(M31.fromU64(31));
+            merkle_tuple[1] = QM31.fromBase(M31.fromU64(41));
+            merkle_tuple[WIDTH] = row[OUTPUT_START];
+            const merkle_sum = (try relations.poseidon2_io.combineSecure(merkle_tuple).inv()).neg();
             const poseidon_sum = try pairSum(poseidon_pairs[0]);
             try std.testing.expect(merkle_sum.add(poseidon_sum).isZero());
+            try std.testing.expect((try pairSum(poseidon_pairs[1])).isZero());
+            // The bare input is no longer consumed in narrow mode: a tuple
+            // carrying the same input with a different output lane does not cancel.
+            merkle_tuple[WIDTH] = merkle_tuple[WIDTH].add(QM31.one());
+            const forged_sum = (try relations.poseidon2_io.combineSecure(merkle_tuple).inv()).neg();
+            try std.testing.expect(!forged_sum.add(poseidon_sum).isZero());
         }
 
         test "poseidon2 AIR: carried narrow output preserves active interaction terms" {

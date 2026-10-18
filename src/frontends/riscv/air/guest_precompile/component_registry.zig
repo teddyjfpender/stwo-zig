@@ -566,7 +566,9 @@ fn buildProviderEvents() [provider_event_count]EventPlan {
     var result: [provider_event_count]EventPlan = undefined;
     result[0] = baseEvent(0, .poseidon2, .request, null, .provider_input, no_index, 0);
     result[0].numerator = .zero_in_guest_mode;
-    result[1] = baseEvent(1, .poseidon2, .request, null, .provider_narrow_output, no_index, 0);
+    // Mirrors the physical provider: narrow mode is the atomic 32-lane
+    // `poseidon2_io` tuple `[input16 || out0, 0...]`, zero in guest mode.
+    result[1] = baseEvent(1, .poseidon2_io, .request, null, .provider_narrow_output, no_index, 0);
     result[1].numerator = .zero_in_guest_mode;
     result[2] = baseEvent(2, .poseidon2, .request, null, .provider_wide_output, no_index, 0);
     result[2].numerator = .zero_in_guest_mode;

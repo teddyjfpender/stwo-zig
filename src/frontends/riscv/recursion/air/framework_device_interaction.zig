@@ -13,11 +13,28 @@ pub fn writeColumns(comptime Air: type, rows: []const [Air.LOGICAL_INPUT_COUNT]M
     writeColumnsAt(Air, rows, log, tree, destination, 0);
 }
 
+/// Process-wide projection policy, read once instead of on every call.
+const Policy = struct {
+    var state = std.atomic.Value(u8).init(0);
+    const serial_projection: u8 = 1;
+    const row_major_copy: u8 = 2;
+    const resolved: u8 = 4;
+    fn flags() u8 {
+        const current = state.load(.acquire);
+        if (current & resolved != 0) return current;
+        var value: u8 = resolved;
+        if (std.process.hasEnvVarConstant("STWO_ZIG_SERIAL_COLUMN_PROJECTION")) value |= serial_projection;
+        if (std.process.hasEnvVarConstant("STWO_ZIG_ROW_MAJOR_WITNESS_COPY")) value |= row_major_copy;
+        state.store(value, .release);
+        return value;
+    }
+};
+
 /// Caller admits the chunk range; destination padding is already zeroed.
 pub fn writeColumnsAt(comptime Air: type, rows: []const [Air.LOGICAL_INPUT_COUNT]M31, log: u32, tree: usize, destination: []const []M31, logical_first: usize) void {
     const pool_mod = @import("stwo_prover_engine").work_pool;
     if (rows.len >= 64 and destination.len >= 64 and
-        !std.process.hasEnvVarConstant("STWO_ZIG_SERIAL_COLUMN_PROJECTION"))
+        Policy.flags() & Policy.serial_projection == 0)
     {
         if (pool_mod.getGlobalPool()) |pool| {
             const count = @min(@as(usize, 4), pool.workerCount());
@@ -64,7 +81,7 @@ fn writeColumnsAtSerial(comptime Air: type, rows: []const [Air.LOGICAL_INPUT_COU
     // Chunked witness emission must scale with the chunk, not the full trace.
     // Repeated full-domain scans make many small appends quadratic in trace size.
     if (rows.len < size / 2) {
-        if (std.process.hasEnvVarConstant("STWO_ZIG_ROW_MAJOR_WITNESS_COPY")) {
+        if (Policy.flags() & Policy.row_major_copy != 0) {
             for (rows, 0..) |row, offset| {
                 const committed = framework.committedRow(logical_first + offset, log);
                 for (destination, 0..) |column, index| column[committed] = row[start + index];

@@ -18,7 +18,7 @@ pub const Definition = struct {
     active: Id,
     roots: [DIRECT_CONSTRAINTS]Id,
     numerators: [LOOKUPS]Id,
-    tuples: [LOOKUPS][16]Id,
+    tuples: [LOOKUPS][32]Id,
 
     pub fn init(allocator: std.mem.Allocator) !Definition {
         var result: Definition = undefined;
@@ -48,13 +48,17 @@ pub const Definition = struct {
             var name: [48]u8 = undefined;
             _ = try a.assertZero(try std.fmt.bufPrint(&name, "merkle.direct.{d}", .{i}), root, null, .semantic, span);
         }
-        result.numerators = .{ c[6], c[7], try a.neg(c[8], span), c[0], try a.neg(c[0], span) };
-        result.tuples = .{.{zero} ** 16} ** LOOKUPS;
+        // Event 3 consumes the atomic `poseidon2_io` tuple
+        // `[left, right, 0 x 14 || current, 0 x 15]`; event 4 is the retained
+        // zero-multiplicity `poseidon2` entry that keeps the three-claim layout.
+        result.numerators = .{ c[6], c[7], try a.neg(c[8], span), try a.neg(c[0], span), zero };
+        result.tuples = .{.{zero} ** 32} ** LOOKUPS;
         result.tuples[0][0..4].* = .{ c[1], c[2], c[3], c[9] };
         result.tuples[1][0..4].* = .{ try a.add(c[1], one, span), c[2], c[4], c[9] };
         result.tuples[2][0..4].* = .{ try a.mul(c[1], half, span), try a.sub(c[2], one, span), c[5], c[9] };
         result.tuples[3][0..2].* = .{ c[3], c[4] };
-        result.tuples[4][0] = c[5];
+        result.tuples[3][16] = c[5];
+        result.tuples[4][0..2].* = .{ c[3], c[4] };
         try validate.validate(a);
         return result;
     }
@@ -76,8 +80,9 @@ pub const Definition = struct {
         var result: Result(S) = .{ .direct = undefined, .lookups = .{} };
         for (self.roots, &result.direct) |root, *value| value.* = values[types.idIndex(root)];
         for (self.numerators, self.tuples, 0..) |numerator, tuple, i| {
-            const arity: u8 = if (i < 3) 4 else 16;
-            var event = entries.Builder(S).Entry{ .domain = if (i < 3) .merkle else .poseidon2, .arity = arity, .numerator = values[types.idIndex(numerator)] };
+            const arity: u8 = if (i < 3) 4 else if (i == 3) 32 else 16;
+            const domain: entries.Domain = if (i < 3) .merkle else if (i == 3) .poseidon2_io else .poseidon2;
+            var event = entries.Builder(S).Entry{ .domain = domain, .arity = arity, .numerator = values[types.idIndex(numerator)] };
             for (tuple[0..arity], event.values[0..arity]) |value, *word| word.* = values[types.idIndex(value)];
             result.lookups.append(event);
         }

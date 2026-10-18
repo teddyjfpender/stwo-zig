@@ -69,16 +69,17 @@ pub fn entriesGeneric(comptime S: type, main: [N_MAIN_COLUMNS]S) entries.Builder
 }
 
 fn entriesForIo(comptime S: type, enabler: S, wide_flag: S, io_flag: S, input: [WIDTH]S, output: [WIDTH]S) entries.Builder(S).List {
-    var narrow = [_]S{S.zero()} ** WIDTH;
-    narrow[0] = output[0];
+    // Same relation semantics as `poseidon2_wide_equations`: narrow mode is one
+    // atomic `[input16 || out0, 0...]` tuple; only wide mode splits input/output.
+    const narrow_io = @import("poseidon2_layout.zig").narrowIoTuple(S, input, output[0]);
     var wide = [_]S{S.zero()} ** WIDTH;
     @memcpy(wide[0..8], output[0..8]);
     var io: [2 * WIDTH]S = undefined;
     @memcpy(io[0..WIDTH], &input);
     @memcpy(io[WIDTH..], &output);
     var list = entries.Builder(S).List{};
-    append(S, &list, .poseidon2, enabler.mul(S.one().sub(io_flag)).neg(), input);
-    append(S, &list, .poseidon2, enabler.mul(S.one().sub(wide_flag).sub(io_flag)), narrow);
+    append(S, &list, .poseidon2, enabler.mul(wide_flag).neg(), input);
+    append(S, &list, .poseidon2_io, enabler.mul(S.one().sub(wide_flag).sub(io_flag)), narrow_io);
     append(S, &list, .poseidon2, enabler.mul(wide_flag), wide);
     append(S, &list, .poseidon2_io, enabler.mul(io_flag), io);
     return list;

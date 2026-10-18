@@ -22,7 +22,7 @@ test "witness rigidity: typed MULH authority and legacy oracle match every sampl
             .MULH, .MULHSU, .MULHU => true,
             else => false,
         });
-        try trace.append(sample.trace_row);
+        try corpus_mod.appendSampledRow(&trace, sample.trace_row);
     }
     try std.testing.expect(trace.rows.items.len != 0);
 

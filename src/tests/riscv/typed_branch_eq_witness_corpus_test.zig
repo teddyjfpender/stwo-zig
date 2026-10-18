@@ -21,7 +21,7 @@ test "witness rigidity: typed BRANCH_EQ authority and legacy oracle match every 
         try std.testing.expect(
             sample.trace_row.opcode == .BEQ or sample.trace_row.opcode == .BNE,
         );
-        try trace.append(sample.trace_row);
+        try corpus_mod.appendSampledRow(&trace, sample.trace_row);
     }
     try std.testing.expect(trace.rows.items.len != 0);
 

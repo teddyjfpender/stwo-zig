@@ -436,8 +436,11 @@ pub fn entriesGeneric(
             return error.InvalidCandidateColumn;
         destination.* = main[column];
     }
-    var narrow = [_]S{S.zero()} ** candidate_mod.WIDTH;
-    narrow[0] = output[0];
+    // Atomic narrow tuple `[input16 || out0, 0...]`; only wide mode consumes
+    // the bare input and provides the eight-lane output separately.
+    var narrow_io = [_]S{S.zero()} ** (2 * candidate_mod.WIDTH);
+    @memcpy(narrow_io[0..candidate_mod.WIDTH], &input);
+    narrow_io[candidate_mod.WIDTH] = output[0];
     var wide_output = [_]S{S.zero()} ** candidate_mod.WIDTH;
     @memcpy(wide_output[0..8], output[0..8]);
     var io_tuple: [2 * candidate_mod.WIDTH]S = undefined;
@@ -445,13 +448,13 @@ pub fn entriesGeneric(
     @memcpy(io_tuple[candidate_mod.WIDTH..], &output);
 
     var list = Builder.List{};
-    appendEntryGeneric(S, &list, .poseidon2, enabler.mul(one.sub(io)).neg(), &input);
+    appendEntryGeneric(S, &list, .poseidon2, enabler.mul(wide).neg(), &input);
     appendEntryGeneric(
         S,
         &list,
-        .poseidon2,
+        .poseidon2_io,
         enabler.mul(one.sub(wide).sub(io)),
-        &narrow,
+        &narrow_io,
     );
     appendEntryGeneric(S, &list, .poseidon2, enabler.mul(wide), &wide_output);
     appendEntryGeneric(S, &list, .poseidon2_io, enabler.mul(io), &io_tuple);

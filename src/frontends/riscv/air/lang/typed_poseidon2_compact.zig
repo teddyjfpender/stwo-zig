@@ -98,14 +98,16 @@ pub const Definition = struct {
         const wide = result.columns[layout.WIDE_COLUMN];
         const io = result.columns[layout.IO_COLUMN];
         result.numerators = .{
-            try arena.neg(try arena.mul(enabler, try arena.sub(one, io, span), span), span),
+            try arena.neg(try arena.mul(enabler, wide, span), span),
             try arena.mul(enabler, try arena.sub(try arena.sub(one, wide, span), io, span), span),
             try arena.mul(enabler, wide, span),
             try arena.mul(enabler, io, span),
         };
         for (&result.tuples) |*tuple| tuple.* = @splat(zero);
         @memcpy(result.tuples[0][0..16], result.columns[1..17]);
-        result.tuples[1][0] = result.outputs[0];
+        // Narrow mode: atomic `[input16 || out0, 0...]` on `poseidon2_io`.
+        @memcpy(result.tuples[1][0..16], result.columns[1..17]);
+        result.tuples[1][16] = result.outputs[0];
         @memcpy(result.tuples[2][0..8], result.outputs[0..8]);
         @memcpy(result.tuples[3][0..16], result.columns[1..17]);
         @memcpy(result.tuples[3][16..32], &result.outputs);
@@ -136,8 +138,9 @@ pub const Definition = struct {
         for (self.outputs, &result.output) |output, *value| value.* = values[types.idIndex(output)];
         result.lookups = .{};
         for (self.numerators, self.tuples, 0..) |numerator, tuple, index| {
-            const arity: u8 = if (index == 3) 32 else 16;
-            var event = entries.Builder(S).Entry{ .domain = if (index == 3) .poseidon2_io else .poseidon2, .arity = arity, .numerator = values[types.idIndex(numerator)] };
+            const io_domain = index == 1 or index == 3;
+            const arity: u8 = if (io_domain) 32 else 16;
+            var event = entries.Builder(S).Entry{ .domain = if (io_domain) .poseidon2_io else .poseidon2, .arity = arity, .numerator = values[types.idIndex(numerator)] };
             for (tuple[0..arity], event.values[0..arity]) |value, *word| word.* = values[types.idIndex(value)];
             result.lookups.append(event);
         }

@@ -10,6 +10,7 @@ const M31 = @import("stwo_core").fields.m31.M31;
 const QM31 = @import("stwo_core").fields.qm31.QM31;
 const relation_challenges = @import("../relation_challenges.zig");
 const sparse_merkle = @import("sparse_merkle.zig");
+const poseidon2 = @import("poseidon2.zig");
 const memory_state = @import("../../runner/memory_state.zig");
 const poseidon_work = @import("../../prover/poseidon_witness_work.zig");
 
@@ -283,9 +284,15 @@ fn buildInternal(
 /// words the guest later touches without the loader having placed them carry
 /// zero bytes, which hash to the sparse tree's default leaf
 /// (`poseidon2.DEFAULT_HASHES[LEAF_DEPTH] == 0`) and leave the root unchanged.
-/// Returns null when no word enters the initial tree, matching
-/// `Claims.initial_tree`.
-pub fn initialTreeRoot(allocator: std.mem.Allocator, input: []const WordState) Error!?u32 {
+///
+/// When no word enters the tree the result is the empty sparse-tree root
+/// `poseidon2.DEFAULT_HASHES[0]`: that is exactly the root `build` commits
+/// for an image without loaded RW words whose guest touches memory (every
+/// touched word enters with zero bytes), so the verifier's expectation and
+/// the honest prover's claim agree.  A guest that touches nothing has no
+/// initial tree at all (`Claims.initial_tree == null`); callers decide
+/// whether to accept that absent claim.
+pub fn initialTreeRoot(allocator: std.mem.Allocator, input: []const WordState) Error!u32 {
     var leaves: std.ArrayList(sparse_merkle.Leaf) = .{};
     defer leaves.deinit(allocator);
     for (input) |word| {
@@ -293,7 +300,7 @@ pub fn initialTreeRoot(allocator: std.mem.Allocator, input: []const WordState) E
         if (word.addr > sparse_merkle.LEAF_COUNT - 4) return error.IndexOutOfRange;
         if (word.includeInitial()) try appendWordLeaves(&leaves, allocator, word.addr, word.initial_word);
     }
-    if (leaves.items.len == 0) return null;
+    if (leaves.items.len == 0) return poseidon2.DEFAULT_HASHES[0];
     var tree = try sparse_merkle.build(allocator, leaves.items);
     defer tree.deinit(allocator);
     return tree.root;
@@ -442,7 +449,7 @@ test "memory boundary: recomputed initial root matches the built tree and ignore
     };
     var claims = try build(std.testing.allocator, &words);
     defer claims.deinit(std.testing.allocator);
-    const recomputed = (try initialTreeRoot(std.testing.allocator, &words)).?;
+    const recomputed = try initialTreeRoot(std.testing.allocator, &words);
     try std.testing.expectEqual(claims.initial_tree.?.root, recomputed);
 
     // Words first touched by the guest without a loaded value are zero at
@@ -451,7 +458,7 @@ test "memory boundary: recomputed initial root matches the built tree and ignore
         .{ .addr = 0x3000, .initial_word = 0, .final_word = 77, .final_clock = 3 },
         .{ .addr = 0x100c, .initial_word = 0, .final_word = 0, .final_clock = 5 },
     };
-    try std.testing.expectEqual(recomputed, (try initialTreeRoot(std.testing.allocator, &with_touched)).?);
+    try std.testing.expectEqual(recomputed, try initialTreeRoot(std.testing.allocator, &with_touched));
     var touched_claims = try build(std.testing.allocator, &with_touched);
     defer touched_claims.deinit(std.testing.allocator);
     try std.testing.expectEqual(recomputed, touched_claims.initial_tree.?.root);
@@ -459,6 +466,21 @@ test "memory boundary: recomputed initial root matches the built tree and ignore
     // A different loaded byte moves the root; public-input words never enter.
     var altered = words;
     altered[1].initial_word ^= 0x100;
-    try std.testing.expect(recomputed != (try initialTreeRoot(std.testing.allocator, &altered)).?);
-    try std.testing.expectEqual(@as(?u32, null), try initialTreeRoot(std.testing.allocator, words[2..3]));
+    try std.testing.expect(recomputed != try initialTreeRoot(std.testing.allocator, &altered));
+
+    // No loaded RW word: the expectation is the empty sparse-tree root, which
+    // is also what the prover commits when the guest touches zero words.
+    try std.testing.expectEqual(poseidon2.DEFAULT_HASHES[0], try initialTreeRoot(std.testing.allocator, words[2..3]));
+    const touched_only = [_]WordState{
+        words[2],
+        .{ .addr = 0x3000, .initial_word = 0, .final_word = 77, .final_clock = 3 },
+    };
+    var touched_only_claims = try build(std.testing.allocator, &touched_only);
+    defer touched_only_claims.deinit(std.testing.allocator);
+    try std.testing.expectEqual(poseidon2.DEFAULT_HASHES[0], touched_only_claims.initial_tree.?.root);
+    try std.testing.expectEqual(poseidon2.DEFAULT_HASHES[0], try initialTreeRoot(std.testing.allocator, &touched_only));
+    // Nothing loaded and nothing touched: no initial tree is committed.
+    var untouched_claims = try build(std.testing.allocator, words[2..3]);
+    defer untouched_claims.deinit(std.testing.allocator);
+    try std.testing.expect(untouched_claims.initial_tree == null);
 }

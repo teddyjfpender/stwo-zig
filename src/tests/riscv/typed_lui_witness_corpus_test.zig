@@ -19,7 +19,7 @@ test "witness rigidity: typed LUI authority and legacy oracle match every sample
     for (corpus.samples) |sample| {
         if (sample.family != .lui) continue;
         try std.testing.expectEqual(frontend.isa.decode.Opcode.LUI, sample.trace_row.opcode);
-        try trace.append(sample.trace_row);
+        try corpus_mod.appendSampledRow(&trace, sample.trace_row);
     }
     try std.testing.expect(trace.rows.items.len != 0);
 

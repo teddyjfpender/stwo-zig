@@ -303,8 +303,10 @@ test "guest provider component: authenticated four-event coefficient program is 
         if (event < 3) try std.testing.expect(entry.numerator.isZero());
     }
     try std.testing.expect(entries[3].numerator.eql(QM31.one()));
-    for (entries[0..3]) |entry| {
-        try std.testing.expectEqual(@as(u32, 4), @intFromEnum(entry.schema));
+    for (entries[0..3], 0..) |entry, event| {
+        // Event 1 mirrors the physical narrow mode: the atomic `poseidon2_io`
+        // tuple (schema 5); the bare input and wide output stay on `poseidon2`.
+        try std.testing.expectEqual(@as(u32, if (event == 1) 5 else 4), @intFromEnum(entry.schema));
         try std.testing.expectEqual(components.Role.request, entry.role);
     }
     try std.testing.expectEqual(registry.guest_schema_id, entries[3].schema);

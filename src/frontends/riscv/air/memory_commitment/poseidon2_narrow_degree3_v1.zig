@@ -107,21 +107,23 @@ pub fn outputGeneric(comptime S: type, main: [N_MAIN_COLUMNS]S) [WIDTH]S {
     return state;
 }
 
-/// Preserve the exact legacy narrow relation entries and two-claim layout.
-/// Zero-multiplicity wide/IO entries are retained to avoid claim-layout drift.
+/// Preserve the exact legacy narrow relation entries and two-claim layout:
+/// the live term is the atomic narrow `poseidon2_io` tuple
+/// `[input16 || out0, 0...]` (this layout has no wide/IO mode, so the bare
+/// input, wide-output and atomic-IO entries carry zero multiplicity and are
+/// retained only to avoid claim-layout drift).
 pub fn entriesGeneric(comptime S: type, main: [N_MAIN_COLUMNS]S) entries.Builder(S).List {
     const input = initialState(S, main[1], main[2]);
     const output = outputGeneric(S, main);
-    var narrow = [_]S{S.zero()} ** WIDTH;
-    narrow[0] = output[0];
+    const narrow_io = @import("poseidon2_layout.zig").narrowIoTuple(S, input, output[0]);
     var wide = [_]S{S.zero()} ** WIDTH;
     @memcpy(wide[0..8], output[0..8]);
     var io: [2 * WIDTH]S = undefined;
     @memcpy(io[0..WIDTH], &input);
     @memcpy(io[WIDTH..], &output);
     var list = entries.Builder(S).List{};
-    append(S, &list, .poseidon2, main[0].neg(), input);
-    append(S, &list, .poseidon2, main[0], narrow);
+    append(S, &list, .poseidon2, S.zero(), input);
+    append(S, &list, .poseidon2_io, main[0], narrow_io);
     append(S, &list, .poseidon2, S.zero(), wide);
     append(S, &list, .poseidon2_io, S.zero(), io);
     return list;

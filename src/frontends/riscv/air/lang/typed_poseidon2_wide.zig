@@ -90,7 +90,7 @@ pub const Definition = struct {
         for (poseidon.values(program.definition.outputs), &outputs) |output, *value| value.* = mapped[types.idIndex(output)];
         for (result.events, &result.numerators, &result.tuples) |event, *numerator, *tuple| {
             numerator.* = switch (event.numerator) {
-                .negative_enabled_non_io => try arena.neg(try arena.mul(enabled, try arena.sub(one, io, span), span), span),
+                .negative_enabled_wide => try arena.neg(try arena.mul(enabled, wide, span), span),
                 .enabled_narrow => try arena.mul(enabled, try arena.sub(try arena.sub(one, wide, span), io, span), span),
                 .enabled_wide => try arena.mul(enabled, wide, span),
                 .enabled_io => try arena.mul(enabled, io, span),
@@ -103,6 +103,10 @@ pub const Definition = struct {
                 .input_output => {
                     @memcpy(tuple[0..poseidon.WIDTH], result.columns[compat.INPUT_START..][0..poseidon.WIDTH]);
                     @memcpy(tuple[poseidon.WIDTH..], &outputs);
+                },
+                .narrow_input_output => {
+                    @memcpy(tuple[0..poseidon.WIDTH], result.columns[compat.INPUT_START..][0..poseidon.WIDTH]);
+                    tuple[poseidon.WIDTH] = outputs[0];
                 },
             }
         }

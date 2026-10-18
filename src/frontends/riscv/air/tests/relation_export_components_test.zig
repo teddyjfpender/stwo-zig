@@ -236,7 +236,9 @@ test "relation component export preserves Rust Merkle and Poseidon declaration s
     try std.testing.expectEqual(@as(usize, 5), merkle_observer.len);
     try std.testing.expectEqualSlices(
         u8,
-        &.{ 4, 4, 4, 2, 1 },
+        // Merkle: three 4-lane bus tuples, the atomic `[left, right, 0 x 14 || current]`
+        // prefix (17 lanes) and the retained zero-multiplicity `[left, right]` entry.
+        &.{ 4, 4, 4, 17, 2 },
         &.{
             merkle_observer.entries[0].arity,
             merkle_observer.entries[1].arity,
@@ -251,7 +253,9 @@ test "relation component export preserves Rust Merkle and Poseidon declaration s
     }
     try std.testing.expectEqual(@as(u32, 11), merkle_observer.entries[3].values[0].toU32());
     try std.testing.expectEqual(@as(u32, 22), merkle_observer.entries[3].values[1].toU32());
-    try std.testing.expectEqual(@as(u32, 33), merkle_observer.entries[4].values[0].toU32());
+    try std.testing.expectEqual(@as(u32, 33), merkle_observer.entries[3].values[16].toU32());
+    try std.testing.expectEqual(@as(u32, 11), merkle_observer.entries[4].values[0].toU32());
+    try std.testing.expect(merkle_observer.entries[4].numerator.isZero());
 
     const call = poseidon2.Call.narrow(11, 22);
     const poseidon_main = poseidon2.fill(call);
@@ -294,7 +298,8 @@ test "relation component export preserves Rust Merkle and Poseidon declaration s
     try std.testing.expectEqual(@as(usize, 4), poseidon_observer.len);
     try std.testing.expectEqualSlices(
         u8,
-        &.{ 16, 1, 8, 32 },
+        // Poseidon: input, atomic narrow `[input16 || out0]` (17 lanes), wide, atomic IO.
+        &.{ 16, 17, 8, 32 },
         &.{
             poseidon_observer.entries[0].arity,
             poseidon_observer.entries[1].arity,
@@ -308,9 +313,12 @@ test "relation component export preserves Rust Merkle and Poseidon declaration s
     }
     try std.testing.expectEqual(@as(u32, 11), poseidon_observer.entries[0].values[0].toU32());
     try std.testing.expectEqual(@as(u32, 22), poseidon_observer.entries[0].values[1].toU32());
+    // Narrow tuple: input lanes first, output lane 0 at index 16.
+    try std.testing.expectEqual(@as(u32, 11), poseidon_observer.entries[1].values[0].toU32());
+    try std.testing.expectEqual(@as(u32, 22), poseidon_observer.entries[1].values[1].toU32());
     try std.testing.expectEqual(
         poseidon2.output(poseidon_main)[0].toU32(),
-        poseidon_observer.entries[1].values[0].toU32(),
+        poseidon_observer.entries[1].values[16].toU32(),
     );
 }
 

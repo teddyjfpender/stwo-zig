@@ -7,10 +7,10 @@ pub const Call = struct {
     io: bool = false,
     /// Narrow output already carried by the Merkle witness. Interaction
     /// generation may use it instead of recomputing 426 main-trace
-    /// temporaries. Only the input and one-lane narrow-output relations have
-    /// nonzero multiplicity in this mode; the Poseidon lookup AIR still binds
-    /// them to the separately committed permutation row and rejects any
-    /// disagreement.
+    /// temporaries. Only the atomic narrow `poseidon2_io` tuple
+    /// `[input16 || out0, 0...]` has nonzero multiplicity in this mode; the
+    /// Poseidon lookup AIR still binds it to the separately committed
+    /// permutation row and rejects any disagreement.
     narrow_output: ?u32 = null,
 
     pub fn narrow(left: u32, right: u32) Call {

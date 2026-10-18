@@ -25,7 +25,8 @@ test "Poseidon2 typed relation plan authenticates schemas batches and H-004 bind
         fixture.relation_plan.identity,
     );
     try std.testing.expectEqualDeep(compat.Identity.canonical(), fixture.relation_plan.compatibility_identity);
-    try std.testing.expectEqualSlices(u8, &.{ 16, 1, 8, 32 }, &.{
+    // Narrow mode is the atomic `[input16 || out0]` tuple: 17 semantic lanes.
+    try std.testing.expectEqualSlices(u8, &.{ 16, 17, 8, 32 }, &.{
         fixture.relation_plan.events[0].semantic_width,
         fixture.relation_plan.events[1].semantic_width,
         fixture.relation_plan.events[2].semantic_width,
@@ -499,12 +500,13 @@ fn narrowMerkleCounterpart(
     row: relations.RelationRow,
     relation_challenges: *const challenges.Relations,
 ) !QM31 {
-    var input = [_]QM31{QM31.zero()} ** relations.WIDTH;
-    var output = [_]QM31{QM31.zero()} ** relations.WIDTH;
-    for (&input, row.input) |*value, source_value| value.* = QM31.fromBase(source_value);
-    output[0] = QM31.fromBase(row.output[0]);
-    return (try relation_challenges.poseidon2.combineSecure(input).inv())
-        .sub(try relation_challenges.poseidon2.combineSecure(output).inv());
+    // The Merkle node consumes the atomic `[input16 || out0, 0...]` tuple on
+    // `poseidon2_io`; the bare input and one-lane output are no longer
+    // separate terms.
+    var tuple = [_]QM31{QM31.zero()} ** (2 * relations.WIDTH);
+    for (tuple[0..relations.WIDTH], row.input) |*value, source_value| value.* = QM31.fromBase(source_value);
+    tuple[relations.WIDTH] = QM31.fromBase(row.output[0]);
+    return (try relation_challenges.poseidon2_io.combineSecure(tuple).inv()).neg();
 }
 
 fn baseInput(input: [production.WIDTH]u32) [relations.WIDTH]M31 {

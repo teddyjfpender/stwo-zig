@@ -391,8 +391,10 @@ const MerkleAdapter = struct {
     fn evidenceArity(declaration: usize) u8 {
         return switch (declaration) {
             0...2 => 4,
-            3 => 2,
-            4 => 1,
+            // Atomic `[left, right, 0 x 14 || current]` prefix of the 32-lane tuple.
+            3 => 17,
+            // Retained zero-multiplicity `[left, right]` entry.
+            4 => 2,
             else => unreachable,
         };
     }
@@ -410,7 +412,8 @@ const PoseidonAdapter = struct {
     fn evidenceArity(declaration: usize) u8 {
         return switch (declaration) {
             0 => 16,
-            1 => 1,
+            // Narrow mode: `[input16 || out0]` prefix of the 32-lane tuple.
+            1 => 17,
             2 => 8,
             3 => 32,
             else => unreachable,

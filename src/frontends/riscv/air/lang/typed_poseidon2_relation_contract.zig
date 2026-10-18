@@ -102,7 +102,10 @@ pub const EventId = enum(u8) {
 };
 
 pub const NumeratorFormula = enum(u8) {
-    negative_enabled_non_io,
+    /// `-(enabled * wide)`: only wide mode consumes the bare 16-lane input.
+    negative_enabled_wide,
+    /// `enabled * (1 - wide - io)`: narrow mode provides the atomic
+    /// `[input16 || out0, 0...]` tuple.
     enabled_narrow,
     enabled_wide,
     enabled_io,
@@ -110,9 +113,13 @@ pub const NumeratorFormula = enum(u8) {
 
 pub const TupleProjection = enum(u8) {
     input,
+    /// Retired one-lane projection.  Kept as an enum value so the event
+    /// identity space stays stable; no canonical event uses it any more.
     narrow_output,
     wide_output,
     input_output,
+    /// 32 lanes: the 16-lane input followed by output lane 0 and 15 zeros.
+    narrow_input_output,
 };
 
 /// Static effect metadata. `relation_arity` is the denominator ABI width;
@@ -169,8 +176,8 @@ pub const BatchPlan = struct {
 /// All authority needed to reauthenticate a relation plan at a use boundary.
 pub fn canonicalEvent(ordinal: usize) EventPlan {
     return switch (ordinal) {
-        0 => makeEvent(.input, .poseidon2, 16, 16, .negative_enabled_non_io, .input),
-        1 => makeEvent(.narrow_output, .poseidon2, 16, 1, .enabled_narrow, .narrow_output),
+        0 => makeEvent(.input, .poseidon2, 16, 16, .negative_enabled_wide, .input),
+        1 => makeEvent(.narrow_output, .poseidon2_io, 32, 17, .enabled_narrow, .narrow_input_output),
         2 => makeEvent(.wide_output, .poseidon2, 16, 8, .enabled_wide, .wide_output),
         3 => makeEvent(.io, .poseidon2_io, 32, 32, .enabled_io, .input_output),
         else => unreachable,

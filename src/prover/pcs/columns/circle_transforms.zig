@@ -373,6 +373,10 @@ fn getOrInitFftPool() ?*std.Thread.Pool {
 /// computation with no allocator interaction.
 const FftEvalWorkItem = struct {
     values: [][]M31,
+    /// Coefficients of each buffer in `values`, copied by the worker that
+    /// transforms the batch so fresh output pages are first touched in
+    /// parallel rather than serially before dispatch.
+    sources: []const []const M31 = &.{},
     domain: prover_circle.CircleDomain,
     twiddle_tree: twiddles_mod.TwiddleTree([]const M31),
     /// Upper halves are unwritten and mathematically zero (2x extension);
@@ -383,7 +387,17 @@ const FftEvalWorkItem = struct {
     backend_execution: ?work_profile.M31ForwardFftExecution = null,
 };
 
+/// Copies every source into its buffer. Non-extension batches zero the rest of
+/// each buffer because the full transform reads it.
+fn materializeSources(item: *const FftEvalWorkItem) void {
+    for (item.values, item.sources) |values, source| {
+        @memcpy(values[0..source.len], source);
+        if (!item.extension and source.len < values.len) @memset(values[source.len..], M31.zero());
+    }
+}
+
 fn fftEvalWorker(item: *const FftEvalWorkItem) void {
+    materializeSources(item);
     if (item.extension) {
         prover_circle.poly.evaluateExtensionBuffersWithTwiddles(
             item.values,
@@ -459,6 +473,11 @@ pub fn extendCoefficientColumnsByGroupForBackend(
         for (work_value_slices.items) |s| allocator.free(s);
         work_value_slices.deinit(allocator);
     }
+    var work_source_slices = std.ArrayList([]const []const M31).empty;
+    defer {
+        for (work_source_slices.items) |s| allocator.free(s);
+        work_source_slices.deinit(allocator);
+    }
 
     var total_columns: usize = 0;
 
@@ -481,41 +500,41 @@ pub fn extendCoefficientColumnsByGroupForBackend(
         while (batch_start < group.indices.items.len) : (batch_start += batch_len) {
             const chunk_len = @min(batch_len, group.indices.items.len - batch_start);
 
-            // Allocate value-buffer slice for this batch.
+            // Allocate value-buffer slice for this batch. Coefficients are
+            // copied by the transforming worker, not here. Reserving the
+            // bookkeeping slots first keeps every failure path single-owner.
+            try work_items.ensureUnusedCapacity(allocator, 1);
+            try work_value_slices.ensureUnusedCapacity(allocator, 1);
+            try work_source_slices.ensureUnusedCapacity(allocator, 1);
             const batch_values = try allocator.alloc([]M31, chunk_len);
             errdefer allocator.free(batch_values);
+            const batch_sources = try allocator.alloc([]const M31, chunk_len);
+            errdefer allocator.free(batch_sources);
 
             var batch_extension = chunk_len > 0;
             for (group.indices.items[batch_start .. batch_start + chunk_len], 0..) |idx, bi| {
                 const values = try allocator.alloc(M31, domain_size);
                 const coeff_slice = coeffs[idx].coefficients();
-                @memcpy(values[0..coeff_slice.len], coeff_slice);
-                if (coeff_slice.len * 2 != values.len) {
-                    batch_extension = false;
-                    if (coeff_slice.len < values.len) @memset(values[coeff_slice.len..], M31.zero());
-                }
+                if (coeff_slice.len * 2 != values.len) batch_extension = false;
                 batch_values[bi] = values;
+                batch_sources[bi] = coeff_slice;
                 out[idx] = .{
                     .log_size = extended_log_size,
                     .values = values,
                 };
             }
-            if (!batch_extension) {
-                for (batch_values, group.indices.items[batch_start .. batch_start + chunk_len]) |values, idx| {
-                    const coeff_slice = coeffs[idx].coefficients();
-                    if (coeff_slice.len * 2 == values.len) @memset(values[coeff_slice.len..], M31.zero());
-                }
-            }
 
             total_columns += chunk_len;
 
-            try work_items.append(allocator, .{
+            work_items.appendAssumeCapacity(.{
                 .values = batch_values,
+                .sources = batch_sources,
                 .domain = domain,
                 .twiddle_tree = twiddle_tree,
                 .extension = batch_extension,
             });
-            try work_value_slices.append(allocator, batch_values);
+            work_value_slices.appendAssumeCapacity(batch_values);
+            work_source_slices.appendAssumeCapacity(batch_sources);
         }
     }
 
@@ -528,6 +547,7 @@ pub fn extendCoefficientColumnsByGroupForBackend(
         // The CPU extension transform treats an unwritten upper half as
         // implicit zero. Generic backend hooks receive ordinary full buffers,
         // so materialize that invariant before they can read or upload them.
+        for (work_items.items) |*item| materializeSources(item);
         materializeBackendExtensionZeros(work_items.items);
         for (work_items.items) |*item| {
             item.backend_execution = try B.evaluateCircleBuffers(

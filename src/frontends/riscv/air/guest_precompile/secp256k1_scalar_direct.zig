@@ -10,9 +10,9 @@
 //! doubling slot's transition kind is pinned to the doubling branches so the
 //! point bus cannot be answered with an identity no-op.
 //!
-//! Known completeness gap: an add slot whose accumulator equals the selected
-//! table entry has no representable transition (see `affine.addPoints`); such a
-//! step is rejected at witness generation rather than proven.
+//! Add slots are complete: an accumulator equal to the selected table entry is
+//! recorded as the `add_equal` point kind (tangent-slope doubling with
+//! `rhs = selected`), so every reachable step has a representable transition.
 
 const std = @import("std");
 const M31 = @import("stwo_core").fields.m31.M31;
@@ -318,7 +318,9 @@ pub fn evaluateDirect(
     // the doubling branches; padding rows carry kind zero (`double`) and pass.
     // Add slots need no such pin: their rhs is the selected table entry whose
     // infinity marker is zero whenever a request is live, which already rules
-    // out every rhs-infinity kind in the point AIR.
+    // out every rhs-infinity kind in the point AIR. The kinds that remain
+    // (`add`, `add_equal`, `inverse_pair`, and `left_identity` for an infinite
+    // accumulator) are each an exact group operation on `(before, selected)`.
     const doubling_kind = main[Layout.transitionKind(0)];
     var kind_polynomial = one;
     inline for (doubling_kinds) |kind| {

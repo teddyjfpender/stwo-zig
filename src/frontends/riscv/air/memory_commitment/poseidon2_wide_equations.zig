@@ -194,16 +194,19 @@ pub fn entriesGeneric(comptime S: type, main: [N_MAIN_COLUMNS]S) lookup_entry.Bu
     const one = S.one();
     const input = main[INPUT_START..][0..WIDTH].*;
     const out = main[OUTPUT_START..][0..WIDTH].*;
-    var narrow = [_]S{S.zero()} ** WIDTH;
-    narrow[0] = out[0];
+    // Narrow mode (`wide = io = 0`) provides ONE atomic tuple binding the
+    // 16-lane input to the first output lane; the sparse-Merkle node consumes
+    // exactly this tuple.  Only wide mode still consumes the bare input and
+    // provides the eight-lane output as two separate `poseidon2` terms.
+    const narrow_io = layout.narrowIoTuple(S, input, out[0]);
     var wide_output = [_]S{S.zero()} ** WIDTH;
     @memcpy(wide_output[0..8], out[0..8]);
     var io_tuple: [2 * WIDTH]S = undefined;
     @memcpy(io_tuple[0..WIDTH], &input);
     @memcpy(io_tuple[WIDTH..], &out);
     var list = EntryBuilder.List{};
-    appendGeneric(S, &list, .poseidon2, enabler.mul(one.sub(io)).neg(), input);
-    appendGeneric(S, &list, .poseidon2, enabler.mul(one.sub(wide).sub(io)), narrow);
+    appendGeneric(S, &list, .poseidon2, enabler.mul(wide).neg(), input);
+    appendGeneric(S, &list, .poseidon2_io, enabler.mul(one.sub(wide).sub(io)), narrow_io);
     appendGeneric(S, &list, .poseidon2, enabler.mul(wide), wide_output);
     appendGeneric(S, &list, .poseidon2_io, enabler.mul(io), io_tuple);
     return list;

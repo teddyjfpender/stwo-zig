@@ -505,7 +505,7 @@ fn ioRowPairsFromOutput(
 
     var list = lookup_entry.List{};
     append(&list, .poseidon2, QM31.zero(), input);
-    append(&list, .poseidon2, QM31.zero(), narrow);
+    append(&list, .poseidon2_io, QM31.zero(), layout.narrowIoTuple(QM31, input, narrow[0]));
     append(&list, .poseidon2, QM31.zero(), wide_output);
     append(&list, .poseidon2_io, QM31.one(), io_tuple);
     return .{
@@ -528,11 +528,11 @@ pub fn rowPairsFromCall(call: Call, relations: *const relations_mod.Relations) [
 
 /// Field-identical specialization of `rowPairsFromCall` for a canonical
 /// narrow call.  With enabler one and wide/io zero the four lookup entries
-/// carry constant numerators (-1, 1, 0, 0), and every denominator is a base
+/// carry constant numerators (0, 1, 0, 0), and every denominator is a base
 /// field tuple combined with the relation challenges, so the row never needs
 /// the 445-column main row, its QM31 promotion, or the entry-list copies.
-/// The `-1` numerator is `enabler * (1 - io)` negated exactly as the generic
-/// builder computes it.
+/// The only live term is the atomic narrow `poseidon2_io` tuple
+/// `[input16 || out0, 0...]` with numerator `enabler * (1 - wide - io)`.
 pub fn narrowRowPairsFromCall(call: Call, relations: *const relations_mod.Relations) [N_SUMS]logup.RowPair {
     std.debug.assert(call.narrow_output != null and !call.wide and !call.io);
     var input: [WIDTH]M31 = undefined;
@@ -540,16 +540,16 @@ pub fn narrowRowPairsFromCall(call: Call, relations: *const relations_mod.Relati
     const output_value = M31.fromU64(call.narrow_output.?);
     var narrow = [_]M31{M31.zero()} ** WIDTH;
     narrow[0] = output_value;
+    const narrow_io = layout.narrowIoTuple(M31, input, output_value);
     var io_tuple: [2 * WIDTH]M31 = undefined;
     @memcpy(io_tuple[0..WIDTH], &input);
     @memcpy(io_tuple[WIDTH..], &narrow);
-    const one = QM31.one();
     return .{
         .{
-            .n1 = one.neg(),
+            .n1 = QM31.zero(),
             .d1 = relations.poseidon2.combineBase(input),
-            .n2 = one,
-            .d2 = relations.poseidon2.combineBase(narrow),
+            .n2 = QM31.one(),
+            .d2 = relations.poseidon2_io.combineBase(narrow_io),
         },
         .{
             .n1 = QM31.zero(),

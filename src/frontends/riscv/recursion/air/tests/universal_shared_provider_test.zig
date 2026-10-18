@@ -488,8 +488,11 @@ test "R-012 universal Poseidon provider admits atomic IO without the memory-only
         .{ .input = input, .wide = true },
         .{ .input = input, .io = true },
     };
+    // Narrow mode provides only the atomic `[input16 || out0, 0...]` tuple;
+    // wide mode consumes the bare input and provides the eight-lane output;
+    // atomic IO provides the full `[input16 || output16]` tuple.
     const expected_numerators = [_][4]QM31{
-        .{ QM31.one().neg(), QM31.one(), QM31.zero(), QM31.zero() },
+        .{ QM31.zero(), QM31.one(), QM31.zero(), QM31.zero() },
         .{ QM31.one().neg(), QM31.zero(), QM31.one(), QM31.zero() },
         .{ QM31.zero(), QM31.zero(), QM31.zero(), QM31.one() },
     };

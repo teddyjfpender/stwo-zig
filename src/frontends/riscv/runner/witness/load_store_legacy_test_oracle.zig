@@ -65,17 +65,32 @@ pub fn writeRow(columns: anytype, index: usize, row: anytype) void {
     for (flags, 0..) |flag, i| w.set(columns, index, 34 + i, w.bit(flag));
     w.writeLimbs(columns, index, 42, result);
     w.destination(columns, index, 46, @intCast(r2));
+    // Aligned-address word binding (columns 48/49, pinned 2026-08-30 with the
+    // 16->17 lookup-entry change in `fixed_load_store.zig`): the word-aligned
+    // byte address divided by four, and its low 20 bits for the range-check
+    // request. Mirrors `typed_load_store_witness.zig` exactly; note it is the
+    // 4-byte-aligned address, not the legacy `aligned` (which keeps the low
+    // address bits for a misaligned word access).
+    const aligned_quarter = (row.mem_addr & ~@as(u32, 3)) >> 2;
+    w.set(columns, index, 48, w.u(aligned_quarter));
+    w.set(columns, index, 49, w.u(aligned_quarter & ((1 << 20) - 1)));
 }
+
+/// Committed width of the retired writer: the 48 oracle-semantics columns
+/// plus the two aligned-address columns above.
+pub const MAIN_COLUMN_COUNT: usize = load_store_semantics.N_ORACLE_COLUMNS + 2;
 
 fn semanticRow(row: anytype) !load_store_semantics.Row {
     const n = load_store_semantics.N_ORACLE_COLUMNS;
-    var storage: [n][1]M31 = .{.{M31.zero()}} ** n;
-    var columns: [n][]M31 = undefined;
+    var storage: [MAIN_COLUMN_COUNT][1]M31 = .{.{M31.zero()}} ** MAIN_COLUMN_COUNT;
+    var columns: [MAIN_COLUMN_COUNT][]M31 = undefined;
     for (&columns, &storage) |*column, *values| column.* = values;
     writeRow(&columns, 0, row);
 
+    // The pinned 62-root semantics oracle reads the 48-column prefix; the
+    // aligned-address columns are bound by the typed authority's own roots.
     var sampled: [n]QM31 = undefined;
-    for (&sampled, columns) |*value, column| value.* = QM31.fromBase(column[0]);
+    for (&sampled, columns[0..n]) |*value, column| value.* = QM31.fromBase(column[0]);
     return load_store_semantics.Row.fromOracleColumns(&sampled);
 }
 

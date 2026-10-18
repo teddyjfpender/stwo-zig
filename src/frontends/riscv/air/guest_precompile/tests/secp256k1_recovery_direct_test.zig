@@ -6,6 +6,7 @@ const direct = @import("../secp256k1_recovery_direct.zig");
 const fixture = @import("secp256k1_affine_test.zig").csp_input;
 const recovery = @import("../secp256k1_recovery.zig");
 const relations_mod = @import("../secp256k1_relations.zig");
+const scalar_direct = @import("../secp256k1_scalar_direct.zig");
 
 const Sink = struct {
     failures: usize = 0,
@@ -199,6 +200,86 @@ test "secp256k1 recovery witness: invalid requests are fail atomic" {
         ),
     );
     try std.testing.expectEqualDeep(before, lengths(&tape));
+}
+
+test "secp256k1 recovery witness: a recovery whose add slot meets its own table entry proves" {
+    // Submitter-chosen input with R = G, s = r and z = n - r, so
+    // u1 = -z * r^-1 = 1 and u2 = s * r^-1 = 1: the program is 1*G + 1*G and
+    // the point stream's add slot sees `accumulator == selected == G`. Before
+    // `add_equal` this recovery was computed correctly by the tape but could
+    // not be materialised (`InvalidTransition`), a per-request prover DoS.
+    const field = @import("../secp256k1_field.zig");
+    var tape = affine.Tape.init(std.testing.allocator);
+    defer tape.deinit();
+    const generator = affine.basePoint();
+    const r_big_endian = reverse(generator.x);
+    const order = field.scalar_modulus.integer();
+    try std.testing.expect(integer(generator.x) < order);
+    const digest_big_endian = reverse(field.bytesFromInteger(order - integer(generator.x)));
+    const twice = std.crypto.ecc.Secp256k1.basePoint.dbl().toUncompressedSec1();
+    const recovery_id: u32 = generator.y[0] & 1;
+
+    try recovery.recover(
+        &tape,
+        digest_big_endian,
+        r_big_endian,
+        r_big_endian,
+        recovery_id,
+        twice[1..65].*,
+    );
+    try std.testing.expectEqual(@as(usize, 1), tape.recoveries.items.len);
+    const record = &tape.recoveries.items[0];
+    try std.testing.expectEqual(@as(u256, 1), integer(record.generator_scalar));
+    try std.testing.expectEqual(@as(u256, 1), integer(record.recovery_point_scalar));
+    try std.testing.expect(affine.Point.eql(record.recovery_point, generator));
+
+    const program = &tape.scalar_programs.items[record.program_index];
+    var equal_slots: usize = 0;
+    var previous: [scalar_direct.Layout.main_columns]M31 = @splat(M31.zero());
+    for (0..program.step_count) |ordinal| {
+        const step = &tape.scalar_steps.items[program.step_start + ordinal];
+        for (1..1 + scalar_direct.scalar_count) |slot| {
+            if (step.digits[slot - 1] == 0) continue;
+            const point = &tape.points.items[step.point_record_indices[slot]];
+            if (point.kind == .add_equal) {
+                equal_slots += 1;
+                try std.testing.expect(affine.Point.eql(point.rhs, step.selected[slot - 1]));
+            }
+        }
+        const row = try scalar_direct.rowFromStep(&tape, program, ordinal);
+        const next = if (ordinal + 1 < program.step_count)
+            try scalar_direct.rowFromStep(&tape, program, ordinal + 1)
+        else
+            [_]M31{M31.zero()} ** scalar_direct.Layout.main_columns;
+        var sink = Sink{};
+        scalar_direct.evaluateDirect(
+            M31,
+            &row,
+            &previous,
+            &next,
+            M31.fromU64(@intFromBool(ordinal == 0)),
+            M31.fromU64(@intFromBool(ordinal + 1 == program.step_count)),
+            &sink,
+        );
+        try std.testing.expectEqual(@as(usize, 0), sink.failures);
+        previous = row;
+    }
+    try std.testing.expectEqual(@as(usize, 1), equal_slots);
+
+    const row = try direct.rowFromRecord(&tape, record);
+    var sink = Sink{};
+    direct.evaluateDirect(M31, &row, &sink);
+    try std.testing.expectEqual(@as(usize, 0), sink.failures);
+}
+
+fn reverse(input: [32]u8) [32]u8 {
+    var result: [32]u8 = undefined;
+    for (input, 0..) |byte, index| result[input.len - 1 - index] = byte;
+    return result;
+}
+
+fn integer(value: affine.Value) u256 {
+    return std.mem.readInt(u256, &value, .little);
 }
 
 fn recoveryTape() !affine.Tape {

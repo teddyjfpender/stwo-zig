@@ -46,6 +46,11 @@ pub const PointKind = enum(u3) {
     inverse_pair,
     double_identity,
     double_to_infinity,
+    /// `lhs == rhs != infinity` inside an addition: the result is `2 * lhs`
+    /// through the tangent-slope formula, but the tuple keeps `rhs = lhs` so
+    /// an add slot whose accumulator equals its selected table entry remains
+    /// representable.
+    add_equal,
 };
 
 pub const Point = struct {
@@ -399,7 +404,23 @@ pub fn double(tape: *Tape, point: Point) !Point {
         try appendPoint(tape, .double_to_infinity, point, .{}, result, @splat(0), @splat(0), product_start, linear_start);
         return result;
     }
+    return tangentDouble(tape, .double, point, .{}, product_start, linear_start);
+}
 
+/// Tangent-slope doubling of a finite point with `y != 0`: five products and
+/// seven linears, recorded under `kind` with the caller's `rhs`. `double`
+/// passes `rhs = infinity`; `addPoints` passes `rhs = lhs` as `add_equal` so
+/// the transition tuple matches the add-slot request shape.
+fn tangentDouble(
+    tape: *Tape,
+    kind: PointKind,
+    point: Point,
+    rhs: Point,
+    product_start: usize,
+    linear_start: usize,
+) !Point {
+    std.debug.assert(kind == .double or kind == .add_equal);
+    std.debug.assert(!point.infinity and integer(point.y) != 0);
     const xx = try tape.mul(.base, point.x, point.x);
     const two_xx = try tape.add(.base, xx, xx);
     const numerator = try tape.add(.base, two_xx, xx);
@@ -415,9 +436,9 @@ pub fn double(tape: *Tape, point: Point) !Point {
     const result = Point{ .x = x_out, .y = y_out, .infinity = false };
     try appendPoint(
         tape,
-        .double,
+        kind,
         point,
-        .{},
+        rhs,
         result,
         slope,
         denominator_inverse,
@@ -429,14 +450,13 @@ pub fn double(tape: *Tape, point: Point) !Point {
 
 /// Complete affine addition on the tape.
 ///
-/// Known completeness gap (not a soundness issue): `lhs == rhs` is routed to
-/// `double`, which records a `.double` transition with `rhs = infinity`. The
-/// scalar program's add slot expects `(kind, accumulator, selected, result)`
-/// with `rhs = selected`, so a step whose accumulator equals the selected table
-/// entry fails `rowFromStep` with `InvalidTransition` and that signature cannot
-/// be proven. Closing it needs an `add_equal` point kind (lhs == rhs, result =
-/// 2*lhs) in the point AIR plus a per-slot kind constraint in the scalar
-/// program; both are layout changes and are deliberately not made here.
+/// Every branch records a transition whose tuple is `(kind, lhs, rhs, result)`
+/// with the caller's `rhs`, including `lhs == rhs`, which is recorded as
+/// `add_equal` (tangent-slope doubling with `rhs = lhs`). This keeps the scalar
+/// program's add slot complete: a step whose accumulator equals the selected
+/// table entry is proven rather than rejected at witness generation. Equal
+/// points with `y == 0` are their own inverse and fall through to
+/// `inverse_pair`.
 pub fn addPoints(tape: *Tape, lhs: Point, rhs: Point) !Point {
     const product_start = tape.products.items.len;
     const linear_start = tape.linears.items.len;
@@ -449,7 +469,8 @@ pub fn addPoints(tape: *Tape, lhs: Point, rhs: Point) !Point {
         return lhs;
     }
     if (std.mem.eql(u8, &lhs.x, &rhs.x)) {
-        if (std.mem.eql(u8, &lhs.y, &rhs.y)) return double(tape, lhs);
+        if (std.mem.eql(u8, &lhs.y, &rhs.y) and integer(lhs.y) != 0)
+            return tangentDouble(tape, .add_equal, lhs, rhs, product_start, linear_start);
         const y_sum = try tape.add(.base, lhs.y, rhs.y);
         if (integer(y_sum) != 0) return error.InvalidPointPair;
         const result = Point{};

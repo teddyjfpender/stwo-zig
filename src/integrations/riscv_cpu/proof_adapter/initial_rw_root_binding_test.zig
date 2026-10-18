@@ -51,7 +51,7 @@ test "initial RW root: recomputed from the loaded image and compared exactly" {
     var snapshot = try captureImage(allocator, &memory);
     defer snapshot.deinit(allocator);
 
-    const expected = (try artifact_validation.expectedInitialRwRoot(allocator, snapshot.words)).?;
+    const expected = try artifact_validation.expectedInitialRwRoot(allocator, snapshot.words);
 
     // The honest prover's boundary witness commits the same root.
     const boundary = stwo.frontends.riscv.air.memory_commitment.boundary;
@@ -62,28 +62,138 @@ test "initial RW root: recomputed from the loaded image and compared exactly" {
     try artifact_validation.validateInitialRwRoot(expected, expected);
     try std.testing.expectError(error.InitialRwRootMismatch, artifact_validation.validateInitialRwRoot(expected, expected ^ 1));
     try std.testing.expectError(error.InitialRwRootMismatch, artifact_validation.validateInitialRwRoot(expected, null));
-    try std.testing.expectError(error.InitialRwRootMismatch, artifact_validation.validateInitialRwRoot(null, expected));
-    try artifact_validation.validateInitialRwRoot(null, null);
+    const empty = artifact_validation.emptyInitialRwRoot();
+    try std.testing.expect(expected != empty);
+    try std.testing.expectError(error.InitialRwRootMismatch, artifact_validation.validateInitialRwRoot(empty, expected));
+    try std.testing.expectError(error.InitialRwRootMismatch, artifact_validation.validateInitialRwRoot(expected, empty));
 
     // Public-input bytes never enter the initial tree, so the root the
     // verifier derives is independent of the input it was run with.
     memory.writeU32(0x0028_0000, 0x9999_9999);
     var with_other_input = try captureImage(allocator, &memory);
     defer with_other_input.deinit(allocator);
-    try std.testing.expectEqual(expected, (try artifact_validation.expectedInitialRwRoot(allocator, with_other_input.words)).?);
+    try std.testing.expectEqual(expected, try artifact_validation.expectedInitialRwRoot(allocator, with_other_input.words));
 
     // A guest touching an unloaded word sees zero bytes: the default leaf.
     const touched = try allocator.alloc(WordState, snapshot.words.len + 1);
     defer allocator.free(touched);
     @memcpy(touched[0..snapshot.words.len], snapshot.words);
     touched[snapshot.words.len] = .{ .addr = 0x0010_0040, .initial_word = 0, .final_word = 42, .final_clock = 3 };
-    try std.testing.expectEqual(expected, (try artifact_validation.expectedInitialRwRoot(allocator, touched)).?);
+    try std.testing.expectEqual(expected, try artifact_validation.expectedInitialRwRoot(allocator, touched));
 
     // Altered `.data` contents move the root.
     memory.writeU32(0x0002_0000, 0xdead_bee0);
     var altered = try captureImage(allocator, &memory);
     defer altered.deinit(allocator);
-    try std.testing.expect(expected != (try artifact_validation.expectedInitialRwRoot(allocator, altered.words)).?);
+    try std.testing.expect(expected != try artifact_validation.expectedInitialRwRoot(allocator, altered.words));
+}
+
+test "initial RW root: an image without loaded RW words expects the empty sparse-tree root" {
+    const allocator = std.testing.allocator;
+    var memory = runner.Memory.init(allocator);
+    defer memory.deinit();
+    memory.writeU32(0x0001_0000, 0x0000_0013); // program word only
+    memory.writeU32(0x0028_0000, 0x1234_5678); // public input placement
+    var snapshot = try captureImage(allocator, &memory);
+    defer snapshot.deinit(allocator);
+    for (snapshot.words) |word| try std.testing.expect(!word.includeInitial());
+
+    const empty = artifact_validation.emptyInitialRwRoot();
+    const expected = try artifact_validation.expectedInitialRwRoot(allocator, snapshot.words);
+    try std.testing.expectEqual(empty, expected);
+
+    // Honest prover whose guest touches memory: the boundary tree spans the
+    // touched zero words and commits exactly the empty-tree root.
+    const boundary = stwo.frontends.riscv.air.memory_commitment.boundary;
+    const touched = try allocator.alloc(WordState, snapshot.words.len + 1);
+    defer allocator.free(touched);
+    @memcpy(touched[0..snapshot.words.len], snapshot.words);
+    touched[snapshot.words.len] = .{ .addr = 0x0010_0040, .initial_word = 0, .final_word = 42, .final_clock = 3 };
+    var claims = try boundary.build(allocator, touched);
+    defer claims.deinit(allocator);
+    try std.testing.expectEqual(empty, claims.initial_tree.?.root);
+    try artifact_validation.validateInitialRwRoot(expected, claims.initial_tree.?.root);
+
+    // Honest prover whose guest touches nothing commits no initial tree.
+    var untouched = try boundary.build(allocator, snapshot.words);
+    defer untouched.deinit(allocator);
+    try std.testing.expect(untouched.initial_tree == null);
+    try artifact_validation.validateInitialRwRoot(expected, null);
+
+    // Any other root is still rejected.
+    try std.testing.expectError(error.InitialRwRootMismatch, artifact_validation.validateInitialRwRoot(expected, empty ^ 1));
+    try std.testing.expectError(error.InitialRwRootMismatch, artifact_validation.validateInitialRwRoot(expected, 0x1234_5678));
+}
+
+test "public I/O binding: statement addresses and lengths must match the ELF guest ABI" {
+    const elf_loader = runner.elf_loader;
+    const schema = stwo.interop.riscv_artifact;
+    const elf = elf_loader.ElfInfo{
+        .execution_profile = .rv32im_zkvm_v1,
+        .entry_point = 0x0001_0000,
+        .segments_loaded = 1,
+        .stack_pointer = 0x0020_0000,
+        .global_pointer = 0x0020_0800,
+        .input_start = 0x0028_0000,
+        .input_end = 0x0029_0000,
+        .halt_flag = 0x0020_0000,
+        .output_len = 0x0020_0004,
+        .output_data = 0x0020_0008,
+        .output_end = 0x0027_0000,
+        .memory_layout = layout(),
+    };
+    const honest = schema.PublicDataWire{
+        .initial_pc = elf.entry_point,
+        .final_pc = elf.entry_point,
+        .clock = 1,
+        .initial_regs = .{0} ** 32,
+        .final_regs = .{0} ** 32,
+        .reg_last_clock = .{0} ** 32,
+        .program_root = null,
+        .initial_rw_root = null,
+        .final_rw_root = null,
+        .completion = .{ .kind = .halt_flag, .address = elf.halt_flag, .value = 1, .clock = 1 },
+        .input_start = elf.input_start,
+        .input_len = 0x1_0000,
+        .input_words = &.{},
+        .output_len = 0x6_fff8,
+        .output_len_addr = elf.output_len,
+        .output_data_addr = elf.output_data,
+        .output_words = &.{},
+    };
+    try artifact_validation.validateIoBinding(honest, elf);
+
+    // Relocated input: the prover would override `.data` at an address of
+    // its choosing while `initial_rw_root` (which excludes input words) still
+    // matches the image.
+    var relocated_input = honest;
+    relocated_input.input_start = 0x0002_0000;
+    try std.testing.expectError(error.IoBindingMismatch, artifact_validation.validateIoBinding(relocated_input, elf));
+    // Input longer than the ELF window.
+    var long_input = honest;
+    long_input.input_len = 0x1_0001;
+    try std.testing.expectError(error.IoBindingMismatch, artifact_validation.validateIoBinding(long_input, elf));
+    // Relocated output length word or output data window.
+    var relocated_len = honest;
+    relocated_len.output_len_addr = elf.output_len + 4;
+    try std.testing.expectError(error.IoBindingMismatch, artifact_validation.validateIoBinding(relocated_len, elf));
+    var relocated_data = honest;
+    relocated_data.output_data_addr = 0x0002_0000;
+    try std.testing.expectError(error.IoBindingMismatch, artifact_validation.validateIoBinding(relocated_data, elf));
+    // Output longer than the ELF window.
+    var long_output = honest;
+    long_output.output_len = 0x6_fff9;
+    try std.testing.expectError(error.IoBindingMismatch, artifact_validation.validateIoBinding(long_output, elf));
+    // An ELF without an input window admits only an empty input.
+    var no_input_window = elf;
+    no_input_window.input_start = elf.output_len;
+    no_input_window.input_end = elf.output_len;
+    var empty_input = honest;
+    empty_input.input_start = elf.output_len;
+    empty_input.input_len = 0;
+    try artifact_validation.validateIoBinding(empty_input, no_input_window);
+    empty_input.input_len = 1;
+    try std.testing.expectError(error.IoBindingMismatch, artifact_validation.validateIoBinding(empty_input, no_input_window));
 }
 
 test "initial RW root: the artifact route rejects an altered initial_rw_root" {
@@ -129,8 +239,8 @@ test "initial RW root: the artifact route rejects an altered initial_rw_root" {
     defer snapshot.deinit(allocator);
     var program = try stwo.frontends.riscv.air.program.commitment.build(allocator, &.{}, snapshot.program_words);
     defer program.deinit(allocator);
-    const initial_rw_root = try artifact_validation.expectedInitialRwRoot(allocator, snapshot.words);
-    try std.testing.expect(initial_rw_root != null);
+    const initial_rw_root: ?u32 = try artifact_validation.expectedInitialRwRoot(allocator, snapshot.words);
+    try std.testing.expect(initial_rw_root.? != artifact_validation.emptyInitialRwRoot());
 
     const schema = stwo.interop.riscv_artifact;
     var artifact = schema.Artifact{
@@ -192,4 +302,21 @@ test "initial RW root: the artifact route rejects an altered initial_rw_root" {
     artifact.statement.public_data.initial_rw_root = initial_rw_root;
     artifact.statement.public_data.program_root = program.tree.root ^ 1;
     try std.testing.expectError(error.ProgramRootMismatch, artifact_validation.validateElfBinding(allocator, artifact, elf_path));
+    artifact.statement.public_data.program_root = program.tree.root;
+
+    // The artifact route binds the public-I/O window to the ELF symbols.
+    try artifact_validation.validateElfBinding(allocator, artifact, elf_path);
+    artifact.statement.public_data.input_start = elf_info.input_start ^ 0x100;
+    try std.testing.expectError(error.IoBindingMismatch, artifact_validation.validateElfBinding(allocator, artifact, elf_path));
+    artifact.statement.public_data.input_start = elf_info.input_start;
+    artifact.statement.public_data.output_data_addr = elf_info.output_data ^ 0x100;
+    try std.testing.expectError(error.IoBindingMismatch, artifact_validation.validateElfBinding(allocator, artifact, elf_path));
+    artifact.statement.public_data.output_data_addr = elf_info.output_data;
+    artifact.statement.public_data.output_len_addr = elf_info.output_len ^ 0x100;
+    try std.testing.expectError(error.IoBindingMismatch, artifact_validation.validateElfBinding(allocator, artifact, elf_path));
+    artifact.statement.public_data.output_len_addr = elf_info.output_len;
+    artifact.statement.public_data.input_len = (elf_info.input_end - elf_info.input_start) + 1;
+    try std.testing.expectError(error.IoBindingMismatch, artifact_validation.validateElfBinding(allocator, artifact, elf_path));
+    artifact.statement.public_data.input_len = 0;
+    try artifact_validation.validateElfBinding(allocator, artifact, elf_path);
 }

@@ -51,6 +51,7 @@ pub fn validateElfBinding(
         try expectedInitialRwRoot(allocator, snapshot.words),
         artifact.statement.public_data.initial_rw_root,
     );
+    try validateIoBinding(artifact.statement.public_data, elf_info);
 
     const completion = artifact.statement.public_data.completion;
     switch (completion.kind) {
@@ -73,23 +74,61 @@ pub fn validateElfBinding(
 /// touched; touched-but-unloaded words enter with zero bytes, and a zero byte
 /// is the sparse tree's default leaf, so the root is a pure function of the
 /// loaded image.  Public-input words are excluded on both sides, so the root
-/// is independent of the input bytes as well.  Null when no RW word is loaded.
+/// is independent of the input bytes as well.  An image without loaded RW
+/// words (no `.data`/`.bss`) yields the empty sparse-tree root
+/// `DEFAULT_HASHES[0]`, which is what the prover commits once the guest
+/// touches any word.
 pub fn expectedInitialRwRoot(
     allocator: std.mem.Allocator,
     words: []const stwo.frontends.riscv.runner.memory_state.WordState,
-) !?u32 {
+) !u32 {
     const boundary = stwo.frontends.riscv.air.memory_commitment.boundary;
     return boundary.initialTreeRoot(allocator, words);
+}
+
+/// Root of the sparse tree with no leaves: the only initial root an image
+/// without loaded RW words can honestly carry.
+pub fn emptyInitialRwRoot() u32 {
+    return stwo.frontends.riscv.air.memory_commitment.poseidon2.DEFAULT_HASHES[0];
 }
 
 /// A statement whose `initial_rw_root` is not the image's root would let the
 /// prover start execution from `.data`/`.rodata` contents of its choosing
 /// while `program_root` still matches the ELF.
-pub fn validateInitialRwRoot(expected: ?u32, claimed: ?u32) error{InitialRwRootMismatch}!void {
-    if (expected == null and claimed == null) return;
-    const expected_root = expected orelse return error.InitialRwRootMismatch;
-    const claimed_root = claimed orelse return error.InitialRwRootMismatch;
-    if (expected_root != claimed_root) return error.InitialRwRootMismatch;
+///
+/// An absent claim (`null`) means the prover committed no initial tree at
+/// all: that is honest only when the image has no loaded RW words and the
+/// guest touched none, so it is accepted exactly when the expected root is
+/// the empty-tree root.  Any other absent or differing root is rejected.
+pub fn validateInitialRwRoot(expected: u32, claimed: ?u32) error{InitialRwRootMismatch}!void {
+    const claimed_root = claimed orelse {
+        if (expected == emptyInitialRwRoot()) return;
+        return error.InitialRwRootMismatch;
+    };
+    if (expected != claimed_root) return error.InitialRwRootMismatch;
+}
+
+/// Binds the public-I/O window of the statement to the ELF's guest ABI, as
+/// the guest-profile verifier already does (`GuestAbiBindingMismatch`).
+///
+/// Without this a prover could relocate the public input to an RW address of
+/// its choosing (overriding `.data` contents while `initial_rw_root` still
+/// matches the image, since input words are excluded from that root) or
+/// point the public output at any memory window.  The runner itself only
+/// admits an input that fits `__input_start..__input_end` and an output that
+/// fits `__output_data..__output_end`, so the bounds are honest-prover exact.
+pub fn validateIoBinding(
+    public: stwo.interop.riscv_artifact.PublicDataWire,
+    elf: stwo.frontends.riscv.runner.elf_loader.ElfInfo,
+) error{IoBindingMismatch}!void {
+    if (public.input_start != elf.input_start or
+        public.output_len_addr != elf.output_len or
+        public.output_data_addr != elf.output_data)
+        return error.IoBindingMismatch;
+    if (elf.input_end < elf.input_start or public.input_len > elf.input_end - elf.input_start)
+        return error.IoBindingMismatch;
+    if (elf.output_end < elf.output_data or public.output_len > elf.output_end - elf.output_data)
+        return error.IoBindingMismatch;
 }
 
 pub fn measureProcessIdentity(allocator: std.mem.Allocator) !ProcessIdentity {

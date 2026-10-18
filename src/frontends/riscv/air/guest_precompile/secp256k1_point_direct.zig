@@ -5,6 +5,11 @@
 //! components, then emits one complete point-transition tuple for the scalar
 //! program. This keeps point constraints degree two while preserving complete
 //! exceptional-branch semantics.
+//!
+//! `add_equal` is the `lhs == rhs` branch of addition: it shares the tangent
+//! doubling formula and its primitive requests with `double`, but pins
+//! `rhs == lhs` (both finite) so the scalar program's add slot can request it
+//! with `rhs = selected`.
 
 const std = @import("std");
 const M31 = @import("stwo_core").fields.m31.M31;
@@ -15,7 +20,7 @@ const logup = @import("../logup.zig");
 const relations_mod = @import("secp256k1_relations.zig");
 
 pub const auxiliary_count: usize = 8;
-pub const kind_count: usize = 7;
+pub const kind_count: usize = 8;
 const point_kinds = [_]affine.PointKind{
     .double,
     .add,
@@ -24,6 +29,7 @@ const point_kinds = [_]affine.PointKind{
     .inverse_pair,
     .double_identity,
     .double_to_infinity,
+    .add_equal,
 };
 
 pub const Layout = struct {
@@ -52,7 +58,7 @@ pub const linear_event_count: usize = 14;
 pub const event_count: usize = product_event_count + linear_event_count + 1;
 pub const batch_count: usize = event_count / 2;
 pub const maximum_constraint_degree: u8 = 2;
-pub const constraint_count: usize = 416;
+pub const constraint_count: usize = 484;
 /// Every point-row value is authenticated by a range-checked product/linear
 /// row or by a caller/table root. Repeating those byte lookups here adds no
 /// authority and would dominate the interaction commitment.
@@ -66,8 +72,10 @@ pub const Error = error{
 };
 
 comptime {
-    if (Layout.main_columns != 523 or range_pair_count != 0 or
-        event_count != 24 or batch_count != 12)
+    if (Layout.main_columns != 524 or range_pair_count != 0 or
+        event_count != 24 or batch_count != 12 or
+        kind_count != point_kinds.len or
+        kind_count != @typeInfo(affine.PointKind).@"enum".fields.len)
     {
         @compileError("secp256k1 point-row geometry drifted");
     }
@@ -103,6 +111,11 @@ pub fn rowFromRecord(
 
     switch (record.kind) {
         .double => try materializeDouble(&row, record, products, linears),
+        .add_equal => {
+            if (record.lhs.infinity or !affine.Point.eql(record.lhs, record.rhs))
+                return error.InvalidPointRecord;
+            try materializeDouble(&row, record, products, linears);
+        },
         .add => try materializeAdd(&row, record, products, linears),
         .inverse_pair => try materializeInverse(&row, record, products, linears),
         .left_identity,
@@ -184,6 +197,16 @@ pub fn evaluateDirect(
     sink.add(add.mul(lhs[0]), 2);
     sink.add(add.mul(rhs[0]), 2);
     sink.add(add.mul(result[0]), 2);
+
+    // `add_equal`: both operands finite and coordinate-wise equal; the result
+    // is finite because the shared doubling requests prove `2y` invertible.
+    // The formula itself is authenticated by the same product/linear requests
+    // as `double` (see `rowPairs`), so only the operand shape is pinned here.
+    const add_equal = main[Layout.selector(.add_equal)];
+    sink.add(add_equal.mul(lhs[0]), 2);
+    sink.add(add_equal.mul(rhs[0]), 2);
+    sink.add(add_equal.mul(result[0]), 2);
+    constrainPointCoordinates(S, add_equal, &lhs, &rhs, sink);
 }
 
 pub fn rowPairs(
@@ -192,7 +215,9 @@ pub fn rowPairs(
     relations: anytype,
 ) [batch_count]logup.RowPairFor(relations_mod.InteractionScalar(S)) {
     comptime requireSupportedField(S);
-    const double = main[Layout.selector(.double)];
+    // `double` and `add_equal` are one-hot and share the tangent formula, so
+    // their sum is a 0/1 coefficient for the doubling requests below.
+    const double = main[Layout.selector(.double)].add(main[Layout.selector(.add_equal)]);
     const add = main[Layout.selector(.add)];
     const inverse = main[Layout.selector(.inverse_pair)];
     const lhs = pointView(S, main, Layout.lhs);

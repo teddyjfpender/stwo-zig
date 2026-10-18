@@ -16,8 +16,17 @@ const QM31 = qm31.QM31;
 const BaseChannel = channel_blake2s.Blake2sChannel;
 const BaseMerkleChannel = blake2_merkle.Blake2sMerkleChannel;
 
+/// `pow_bits` is deliberately non-zero. At zero bits the prover's FRI grind
+/// (`stwo_prover.pcs.proof_of_work.grindForBackend`) returns the nonce 0
+/// without consulting the channel, while the verifier still runs
+/// `channel.verifyPowNonce(0, nonce)`. Both are pure with respect to the
+/// channel digest, so proofs verify either way, but the instrumented channel
+/// below sees one `pow` event on the verifier side and none on the prover
+/// side, and the byte-symmetry test would report that production shortcut
+/// rather than a mixing drift. One bit keeps the grind trivial and routes
+/// both sides through the channel's own `grind`/`verifyPowNonce`.
 const TEST_PCS_CONFIG = pcs_core.PcsConfig{
-    .pow_bits = 0,
+    .pow_bits = 1,
     .fri_config = .{
         .log_blowup_factor = 1,
         .log_last_layer_degree_bound = 0,
@@ -288,7 +297,58 @@ fn cloneProof(allocator: std.mem.Allocator, bytes: []const u8) !prover.Proof {
     return postcard.deserializeProof(prover.Hasher, allocator, stream.reader());
 }
 
+/// Name the first event at which two channel traces diverge, so an
+/// asymmetric prover/verifier mix is localised by index and tag rather than
+/// reported as a bare event-count mismatch.
+fn reportFirstDivergence(expected: TranscriptRecorder, actual: TranscriptRecorder) void {
+    const common = @min(expected.event_count, actual.event_count);
+    var index: usize = 0;
+    while (index < common) : (index += 1) {
+        if (expected.tags[index] != actual.tags[index] or
+            !std.mem.eql(u8, expected.eventBytes(index), actual.eventBytes(index)))
+            break;
+    }
+    std.debug.print(
+        "\n  transcript divergence: prover events={d} verifier events={d} " ++
+            "first differing event={d}\n",
+        .{ expected.event_count, actual.event_count, index },
+    );
+    const window_start = index -| 3;
+    const window_end = @min(@max(expected.event_count, actual.event_count), index + 4);
+    var at = window_start;
+    while (at < window_end) : (at += 1) {
+        const prover_tag: []const u8 = if (at < expected.event_count)
+            @tagName(expected.tags[at])
+        else
+            "-";
+        const verifier_tag: []const u8 = if (at < actual.event_count)
+            @tagName(actual.tags[at])
+        else
+            "-";
+        const prover_len: usize = if (at < expected.event_count)
+            expected.eventBytes(at).len
+        else
+            0;
+        const verifier_len: usize = if (at < actual.event_count)
+            actual.eventBytes(at).len
+        else
+            0;
+        std.debug.print("    event {d}: prover {s} ({d} bytes) | verifier {s} ({d} bytes){s}\n", .{
+            at,
+            prover_tag,
+            prover_len,
+            verifier_tag,
+            verifier_len,
+            if (at == index) "  <-- first divergence" else "",
+        });
+    }
+}
+
 fn expectEqualTrace(expected: TranscriptRecorder, actual: TranscriptRecorder) !void {
+    const same = expected.event_count == actual.event_count and
+        std.mem.eql(TraceTag, expected.tags[0..expected.event_count], actual.tags[0..actual.event_count]) and
+        std.mem.eql(u8, expected.bytes[0..expected.len], actual.bytes[0..actual.len]);
+    if (!same) reportFirstDivergence(expected, actual);
     try std.testing.expectEqual(expected.event_count, actual.event_count);
     try std.testing.expectEqualSlices(
         TraceTag,

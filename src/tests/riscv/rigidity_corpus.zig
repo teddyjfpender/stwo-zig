@@ -273,6 +273,30 @@ pub const Corpus = struct {
     }
 };
 
+/// Append one sampled row to a synthetic, cross-program `Trace` for a
+/// row-local witness comparison.
+///
+/// The per-family corpus tests project every sampled row of one family
+/// through three writers -- the typed executor, the production
+/// `columnsForFamily` fill and the legacy oracle -- and demand equality. The
+/// rows come from many programs, so their retirement clocks are not
+/// consecutive, and `Trace.append` (correctly) refuses such a sequence: the
+/// clock authority is an invariant of one execution, which this sample set
+/// is not. Witness projection, by contrast, is row-local -- every family
+/// writer reads `clk` and the `*_prev_clk` fields only as values -- so the
+/// rows are retained byte-for-byte rather than renumbered: renumbering `clk`
+/// alone would break the writers' `prev_clk < clk` gap validation, and
+/// shifting the gaps alongside would stop the comparison being over the
+/// honest rows the corpus actually committed.
+///
+/// This bypasses the clock authority on purpose and is for tests that never
+/// prove from the resulting trace. Proving code must keep using `append`.
+pub fn appendSampledRow(trace: *trace_mod.Trace, row: TraceRow) !void {
+    try trace.rows.append(trace.allocator, row);
+    trace.step_count = trace.rows.items.len;
+    trace.last_retirement_clock = row.clk;
+}
+
 /// The corpus, executed and sampled on first use.
 ///
 /// Built lazily from a test body, and the test runner runs tests one at a time

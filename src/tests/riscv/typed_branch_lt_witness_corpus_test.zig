@@ -22,7 +22,7 @@ test "witness rigidity: typed BRANCH_LT authority and legacy oracle match every 
             .BLT, .BLTU, .BGE, .BGEU => true,
             else => false,
         });
-        try trace.append(sample.trace_row);
+        try corpus_mod.appendSampledRow(&trace, sample.trace_row);
     }
     try std.testing.expect(trace.rows.items.len != 0);
 

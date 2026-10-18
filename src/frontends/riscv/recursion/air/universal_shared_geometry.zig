@@ -7,7 +7,7 @@ const range = @import("range_check_8_8_contract.zig");
 const roster = @import("universal_roster.zig");
 
 pub const POSEIDON_SOURCE_AUTHORITY_DIGEST = hexDigest(
-    "eb2603d73ce1dd3d71c67bb380a751303782ca668ef0a657eccc668658c57252",
+    "ad85a2b2419c6169277b78eeb0fc8f6b8559bed770f543ab331fcbe1963784e7",
     "invalid recursion Poseidon2 source-authority digest",
 );
 

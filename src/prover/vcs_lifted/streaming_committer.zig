@@ -404,7 +404,8 @@ pub fn StreamingCommitter(comptime H: type, comptime Tree: type) type {
         const tail_cache_bytes_per_worker = @bitSizeOf(usize) *
             (@sizeOf(TailGroup) + 2 * @sizeOf(H) + 2 * @sizeOf(usize)) +
             64 * @sizeOf(@import("stwo_core").fields.m31.M31) +
-            @import("bounded_blake2_tail.zig").cacheBytes(H, ColumnRef);
+            @import("bounded_blake2_tail.zig").cacheBytes(H, ColumnRef) +
+            @import("bounded_blake3_tail.zig").cacheBytes(H, ColumnRef);
 
         fn absorbColumnsAt(hasher: *H, columns: []const ColumnRef, index: usize, comptime bulk: bool) void {
             if (!bulk) {
@@ -426,6 +427,10 @@ pub fn StreamingCommitter(comptime H: type, comptime Tree: type) type {
                 return finalizeBoundedTailRangeReusingImpl(range, false);
             }
             if (@import("bounded_blake2_tail.zig").finalize(H, range)) |absorptions| {
+                range.absorptions = absorptions;
+                return;
+            }
+            if (@import("bounded_blake3_tail.zig").finalize(H, range)) |absorptions| {
                 range.absorptions = absorptions;
                 return;
             }

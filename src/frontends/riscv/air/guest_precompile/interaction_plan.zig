@@ -495,8 +495,9 @@ fn providerEntryStatic(
     switch (event.projection) {
         .provider_input => assign(&entry, main.input),
         .provider_narrow_output => {
-            @memset(entry.values[0..16], scalar(S, 0));
-            entry.values[0] = main.output[0];
+            @memset(entry.values[0..32], scalar(S, 0));
+            for (main.input, 0..) |input, lane| entry.values[lane] = input;
+            entry.values[16] = main.output[0];
         },
         .provider_wide_output => {
             @memset(entry.values[0..16], scalar(S, 0));

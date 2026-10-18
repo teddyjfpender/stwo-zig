@@ -6,4 +6,5 @@ comptime {
     _ = @import("vcs_lifted/tests/lazy_and_batched.zig");
     _ = @import("vcs_lifted/tests/test_utils.zig");
     _ = @import("vcs_lifted/tests/bounded_blake2_tail.zig");
+    _ = @import("vcs_lifted/tests/bounded_blake3_tail.zig");
 }

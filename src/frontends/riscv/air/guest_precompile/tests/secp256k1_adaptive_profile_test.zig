@@ -12,14 +12,17 @@ test "adaptive secp profile omits only an exactly empty retirement family" {
     try std.testing.expectEqual(profile.Mode.inactive_zero_count, plan.mode);
     try std.testing.expectEqual(@as(u32, 0), plan.selected_component_count);
     try std.testing.expectEqual(@as(u64, 828), plan.legacy_costs.preprocessed_cells);
-    try std.testing.expectEqual(@as(u64, 10_818), plan.legacy_costs.main_cells);
+    // Main cells: the point row carries eight one-hot kind selectors (the
+    // `add_equal` branch for an add slot whose accumulator equals its
+    // selected entry), 524 columns over a two-row domain.
+    try std.testing.expectEqual(@as(u64, 10_820), plan.legacy_costs.main_cells);
     // Interaction cells: the signed table carries four LogUp batches (the
     // negative rows' positive-entry request) and the recovery row seven (the
     // `r, s < n` canonical reductions); each batch is four cells per row.
     try std.testing.expectEqual(@as(u64, 6_064), plan.legacy_costs.interaction_cells);
-    try std.testing.expectEqual(@as(u64, 17_710), plan.legacy_costs.total_cells);
+    try std.testing.expectEqual(@as(u64, 17_712), plan.legacy_costs.total_cells);
     try std.testing.expectEqual(@as(u64, 0), plan.selected_costs.total_cells);
-    try std.testing.expectEqual(@as(u64, 3_701_390), try profile.projectedOmittedCells(
+    try std.testing.expectEqual(@as(u64, 3_701_808), try profile.projectedOmittedCells(
         plan,
         209,
     ));

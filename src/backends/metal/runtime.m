@@ -333,67 +333,67 @@ static StwoZigMetalRuntime *create_runtime_from_library(
         runtime.riscvPolynomialPipelines[blake3InteractionName05] = make_pipeline(
             device, library, blake3InteractionName05, error_message, error_message_len);
         if (runtime.riscvPolynomialPipelines[blake3InteractionName05] == nil) return NULL;
-        NSString *blake3InteractionName06 = @"stwo_zig_framework_interaction_v1_14f3cbfd44bdddc3bf7416de819ba23270b3c8b5cf25005b2c36e2f3655e0898";
+        NSString *blake3InteractionName06 = @"stwo_zig_framework_interaction_v1_78c7dbd14267620f433d4e5f6e50435773041ba438e5425130f1686fe10aeeb8";
         runtime.riscvPolynomialPipelines[blake3InteractionName06] = make_pipeline(
             device, library, blake3InteractionName06, error_message, error_message_len);
         if (runtime.riscvPolynomialPipelines[blake3InteractionName06] == nil) return NULL;
-        NSString *blake3InteractionName07 = @"stwo_zig_framework_interaction_v1_3189e0f57241480608d508e3d36064f73c53ad19b6bea003e6b7dc0d14cc975b";
+        NSString *blake3InteractionName07 = @"stwo_zig_framework_interaction_v1_2e50a8bf3b66a0c081e54f670243acf46e0e73bf4c60e0efa08381e2ab24225e";
         runtime.riscvPolynomialPipelines[blake3InteractionName07] = make_pipeline(
             device, library, blake3InteractionName07, error_message, error_message_len);
         if (runtime.riscvPolynomialPipelines[blake3InteractionName07] == nil) return NULL;
-        NSString *blake3InteractionName08 = @"stwo_zig_framework_interaction_v1_1da43de062b46ceaa5e04a77f429f3466050cfca52f6b1830a1133298130c20f";
+        NSString *blake3InteractionName08 = @"stwo_zig_framework_interaction_v1_b50f78d2362ef7883db3dea2d5ce732c261b8921488e3acbc1b60af56f1c3dd4";
         runtime.riscvPolynomialPipelines[blake3InteractionName08] = make_pipeline(
             device, library, blake3InteractionName08, error_message, error_message_len);
         if (runtime.riscvPolynomialPipelines[blake3InteractionName08] == nil) return NULL;
-        NSString *blake3InteractionName09 = @"stwo_zig_framework_interaction_v1_ace96d9a45c208b9f233bb27ac73ce6147a91ad9df4301b9f1aff166fef6c9c4";
+        NSString *blake3InteractionName09 = @"stwo_zig_framework_interaction_v1_df239e73a17399916e67eca4b509c29944a9a1f3452a135dbe8121b6f97cd447";
         runtime.riscvPolynomialPipelines[blake3InteractionName09] = make_pipeline(
             device, library, blake3InteractionName09, error_message, error_message_len);
         if (runtime.riscvPolynomialPipelines[blake3InteractionName09] == nil) return NULL;
-        NSString *blake3InteractionName10 = @"stwo_zig_framework_interaction_v1_91d5fa87688b8c993ffca44fbb0679d02b25139fd1f538482c23d08bbfa7dec7";
+        NSString *blake3InteractionName10 = @"stwo_zig_framework_interaction_v1_d4554daf57ca0bfb1e6551f3dbde3cf8e0bf8856f03a5ecd05f55d5bafb9085b";
         runtime.riscvPolynomialPipelines[blake3InteractionName10] = make_pipeline(
             device, library, blake3InteractionName10, error_message, error_message_len);
         if (runtime.riscvPolynomialPipelines[blake3InteractionName10] == nil) return NULL;
-        NSString *blake3InteractionName11 = @"stwo_zig_framework_interaction_v1_a20d43085e9946c62dae85cfd655f90cfd044884b022408cc301aad58f77d860";
+        NSString *blake3InteractionName11 = @"stwo_zig_framework_interaction_v1_afd7b1cade5e0409e47321117942e34eab148c9860b3af08354b20a1bf80604f";
         runtime.riscvPolynomialPipelines[blake3InteractionName11] = make_pipeline(
             device, library, blake3InteractionName11, error_message, error_message_len);
         if (runtime.riscvPolynomialPipelines[blake3InteractionName11] == nil) return NULL;
-        NSString *blake3InteractionName12 = @"stwo_zig_framework_interaction_v1_f3062cacdbdc4475a2eb63fe1632cdea209bea7f6b52826d0373f4281b5e0f69";
+        NSString *blake3InteractionName12 = @"stwo_zig_framework_interaction_v1_a6cd202eeef47527564dc59a068a51e8439cba109a1f97bf0269d74361694bfd";
         runtime.riscvPolynomialPipelines[blake3InteractionName12] = make_pipeline(
             device, library, blake3InteractionName12, error_message, error_message_len);
         if (runtime.riscvPolynomialPipelines[blake3InteractionName12] == nil) return NULL;
-        NSString *blake3InteractionName13 = @"stwo_zig_framework_interaction_v1_75a8d6628aa611590f73e1140e4d07eb773e0a4b856497959812210fd52bfdb1";
+        NSString *blake3InteractionName13 = @"stwo_zig_framework_interaction_v1_395124dec6e6fff5b9f34526806f12d395154555b9557e06f92b86e760a80bcb";
         runtime.riscvPolynomialPipelines[blake3InteractionName13] = make_pipeline(
             device, library, blake3InteractionName13, error_message, error_message_len);
         if (runtime.riscvPolynomialPipelines[blake3InteractionName13] == nil) return NULL;
-        NSString *blake3CompositionName00 = @"stwo_zig_framework_poly_v1_f17154cc136988c312ad7d9d4186fe35eee1a7e865ae0b967791e1f43e643372";
+        NSString *blake3CompositionName00 = @"stwo_zig_framework_poly_v1_e1961911444c04bf33ddf08bc0d70da0eabbaf77a4c3d0716ae218cc21250495";
         runtime.riscvPolynomialPipelines[blake3CompositionName00] = make_pipeline(
             device, library, blake3CompositionName00, error_message, error_message_len);
         if (runtime.riscvPolynomialPipelines[blake3CompositionName00] == nil) return NULL;
-        NSString *blake3CompositionName01 = @"stwo_zig_framework_poly_v1_14fd127befc138e59e7bd018171534722c4e35f018f049ff3411bbb987bbd92f";
+        NSString *blake3CompositionName01 = @"stwo_zig_framework_poly_v1_fa910f239136eadabeede26d5ec5c7580edeb342e97a6836c08a190ab968c635";
         runtime.riscvPolynomialPipelines[blake3CompositionName01] = make_pipeline(
             device, library, blake3CompositionName01, error_message, error_message_len);
         if (runtime.riscvPolynomialPipelines[blake3CompositionName01] == nil) return NULL;
-        NSString *blake3CompositionName02 = @"stwo_zig_framework_poly_v1_3cf90e2e9f42306556486b60b704dacd35b2ae0ca8e8dc82d094c24e878dec08";
+        NSString *blake3CompositionName02 = @"stwo_zig_framework_poly_v1_2a1ffa25d2fb8edbf6c9acb73dfac3f726c734eb17539bf8ac0e5270c06cf991";
         runtime.riscvPolynomialPipelines[blake3CompositionName02] = make_pipeline(
             device, library, blake3CompositionName02, error_message, error_message_len);
         if (runtime.riscvPolynomialPipelines[blake3CompositionName02] == nil) return NULL;
-        NSString *blake3CompositionName03 = @"stwo_zig_framework_poly_v1_f75d65c0d545ba7c86fe825fd6bb72cc3206fd05d304b008bac279fa5364ded7";
+        NSString *blake3CompositionName03 = @"stwo_zig_framework_poly_v1_99959d06df85adfefa34b4d074d44f49d26455ee64573f8238c5a0dab6e96c5c";
         runtime.riscvPolynomialPipelines[blake3CompositionName03] = make_pipeline(
             device, library, blake3CompositionName03, error_message, error_message_len);
         if (runtime.riscvPolynomialPipelines[blake3CompositionName03] == nil) return NULL;
-        NSString *blake3CompositionName04 = @"stwo_zig_framework_poly_v1_72044ffd5100747bfbbb99fa4510e30bfabea6e957ad8af3fd7ecfcd24267fd3";
+        NSString *blake3CompositionName04 = @"stwo_zig_framework_poly_v1_f4c4eaf66075260007d1a0a4d79fa8c93fab91a45695067b966c4f133bb04dc1";
         runtime.riscvPolynomialPipelines[blake3CompositionName04] = make_pipeline(
             device, library, blake3CompositionName04, error_message, error_message_len);
         if (runtime.riscvPolynomialPipelines[blake3CompositionName04] == nil) return NULL;
-        NSString *blake3CompositionName05 = @"stwo_zig_framework_poly_v1_49cfc130b5919dcc71f5ede1ebc4670d768c75de281cbc2b61afdd57895f85d5";
+        NSString *blake3CompositionName05 = @"stwo_zig_framework_poly_v1_73de2f9a802502fc5e2be1c9ee300f23d9fb39b99a04a87fac466cf6dab1692c";
         runtime.riscvPolynomialPipelines[blake3CompositionName05] = make_pipeline(
             device, library, blake3CompositionName05, error_message, error_message_len);
         if (runtime.riscvPolynomialPipelines[blake3CompositionName05] == nil) return NULL;
-        NSString *blake3CompositionName06 = @"stwo_zig_framework_poly_v1_e0ee3bbc99efb45a130369bedeb3ed37a3c2b1a33ce09945ec5f47795a94726a";
+        NSString *blake3CompositionName06 = @"stwo_zig_framework_poly_v1_695b443555cb3fc534518c131900892693016203422739d66c5dbf6291f59c32";
         runtime.riscvPolynomialPipelines[blake3CompositionName06] = make_pipeline(
             device, library, blake3CompositionName06, error_message, error_message_len);
         if (runtime.riscvPolynomialPipelines[blake3CompositionName06] == nil) return NULL;
-        NSString *blake3CompositionName07 = @"stwo_zig_framework_poly_v1_64c7692789702f479217419ea05af67c8163b99191c8278fc8fca40eb12e30e0";
+        NSString *blake3CompositionName07 = @"stwo_zig_framework_poly_v1_4442bf7c34c72bc7254310c61f6d7678e1ef1c93bd75203d7e0076718685a11f";
         runtime.riscvPolynomialPipelines[blake3CompositionName07] = make_pipeline(
             device, library, blake3CompositionName07, error_message, error_message_len);
         if (runtime.riscvPolynomialPipelines[blake3CompositionName07] == nil) return NULL;
@@ -780,11 +780,11 @@ static StwoZigMetalRuntime *create_runtime_from_library(
         runtime.riscvPolynomialPipelines[riscvPolynomialName58] = make_pipeline(
             device, library, riscvPolynomialName58, error_message, error_message_len);
         if (runtime.riscvPolynomialPipelines[riscvPolynomialName58] == nil) return NULL;
-        NSString *riscvPolynomialName59 = @"stwo_zig_lookup_poly_bfaf5e2aa44bc0bce57377b16d8362a7";
+        NSString *riscvPolynomialName59 = @"stwo_zig_lookup_poly_aaa2ba0d74fa92422e1eeec654b3c0f5";
         runtime.riscvPolynomialPipelines[riscvPolynomialName59] = make_pipeline(
             device, library, riscvPolynomialName59, error_message, error_message_len);
         if (runtime.riscvPolynomialPipelines[riscvPolynomialName59] == nil) return NULL;
-        NSString *riscvPolynomialName60 = @"stwo_zig_lookup_poly_eadeb11637b6b8b330635af67876a763";
+        NSString *riscvPolynomialName60 = @"stwo_zig_lookup_poly_123612b9cbf50df93a5a42a3c8799481";
         runtime.riscvPolynomialPipelines[riscvPolynomialName60] = make_pipeline(
             device, library, riscvPolynomialName60, error_message, error_message_len);
         if (runtime.riscvPolynomialPipelines[riscvPolynomialName60] == nil) return NULL;
