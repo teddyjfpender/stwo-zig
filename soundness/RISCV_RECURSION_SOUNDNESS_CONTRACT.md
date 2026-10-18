@@ -870,7 +870,7 @@ if its row is committed in Tree 0.
 
 | Work | State | Evidence or remaining condition |
 | --- | --- | --- |
-| W-1 | Native and V2 transcript implemented; gates open | The scheduled channel and fixed wire absorb the detailed physical claims after the 28 aggregates. `proof_transcript.zig` now selects that framing only for the exact scheduled-channel type; a test recorder exposing deceptive methods stays on the native path, and no `@hasDecl` dispatch remains in that file. The row-5 transcript payload publishes each detailed claim once, and row 18 consumes that same relation tuple once. Row 38 now contains only the 55 native LogUp boundary rows. The detached two-segment canonical CPU tree produced and independently verified both leaves and one parent root after fresh key setup and the row-38 geometry cleanup. Its gate report has SHA-256 `150db03cb8c21bf71ab3a758c735241ec7efe48979240575a43c4a22c6b4674e`; this is a local checkpoint, not a publication gate. G-1's event-by-event comparison and G-9's whole-wire mapping remain required. |
+| W-1 | Native and V2 transcript implemented; gates open | The scheduled channel and fixed wire absorb the detailed physical claims after the 28 aggregates. `proof_transcript.zig` now selects that framing only for the exact scheduled-channel type; a test recorder exposing deceptive methods stays on the native path, and no `@hasDecl` dispatch remains in that file. The row-5 transcript payload publishes each detailed claim once, and row 18 consumes that same relation tuple once. Row 38 now contains only the 55 native LogUp boundary rows. The detached two-segment canonical CPU tree produced and independently verified both leaves and one parent root after fresh key setup and the row-38 geometry cleanup. Its gate report has SHA-256 `150db03cb8c21bf71ab3a758c735241ec7efe48979240575a43c4a22c6b4674e`; this is a local checkpoint, not a publication gate. A retained one-segment q193 transcript checkpoint now compares the native producer, fresh native verifier, and scheduled recursive execution frame by frame at `vectors/reports/riscv-recursion-20261018/q193-native-transcript-checkpoint/`. G-1's full-profile test and G-9's whole-wire mapping remain required. |
 | W-2 | Composition graph assembled at development security; gates open | The V2 base graph evaluates all nine memory constraints with explicit native continuation-root inputs. Row 11 consumes the authenticated context words at indices 15 and 16 and relays their values into scope 6 for row 18; the focused row-11 test and a complete detached development tree pass. Root-bearing ProfileV2 programs use a distinct field-authority preimage while V1 rejects those bindings. G-2's differential coverage and G-3(b)'s hostile-root controls remain open. |
 | W-3 | Geometry re-pinned | The hardened native leaf reported 38/627/204 columns; the frozen profile now has 877 table columns and 1,081 sampled values. |
 | W-4 | Local shell fixed | Wide and compact providers constrain full IO; focused provider tests pass. End-to-end G-3(d) remains open. |
@@ -879,7 +879,7 @@ if its row is committed in Tree 0.
 | W-9 | Detached leaf partial | Leaf key pins native Tree0 and CPU admission independently regenerates it. Frozen V1 row-5 requires the admitted root. V2 row-5 receives a geometry-derived root separately from the proof, rejects a different proof frame, and places that root in the constant column and source identity. Parent `admit-key` regenerates the fixed key from **verified child proofs** and rejects re-pinned child-key and root mutations before parent proof production; it is not proof-free key-only reconstruction. **The leaf outer Tree0 cannot yet be independently regenerated from the current key:** its 578 fixed columns comprise 46,808,640 field cells. Rows 11, 20–29, and 34–38 now have proof-free recipes: 16 nonempty row families, 22,160,000 field cells (47.3% of this census). The query-routing rows 20–22, trace-Merkle row 23, PCS row 24, and FRI rows 25–29 recipes match the retained production row digests for the q193 one-segment roster. A genuine CPU key setup also checked the descriptor-derived PCS profile and scheduled-verifier shape against the captured native verifier profile and shape. Other fixed-column families still require canonical key-only recipes. Copying a claimed root or raw columns is not an independent check. G-8(c) remains open for both leaf and parent, and the standalone hostile-proof G-8(a) control remains open. |
 | W-8 | False | `recursion_qualified` stays false until every gate and independent review passes. |
 
-The next K-8 leaf dependency is the PCS/FRI fixed-row profile. Its large
+One K-8 leaf dependency was the PCS/FRI fixed-row profile. Its large
 row-24 graph is generated without witness values, but the compiler requires
 the exact per-column log sizes and ordered sample-mask layouts. Native Tree 0,
 main, and interaction log sizes are now derived from the admitted component
@@ -892,9 +892,12 @@ those logs: Tree0 and Tree1 sample the current point; the authenticated
 interaction columns sample current then previous; composition samples current.
 The derived PCS profile builds its graph without proof input. Its exact logs,
 mask order and identity now match a real captured native verifier profile,
-and the resulting rows 24–28 match the production census. This is
-one row recipe, not independent regeneration of the complete Tree0. A claimed profile digest or proof-derived layout
-does not qualify as key-only regeneration.
+and the resulting rows 20–29 match the production census. These are
+component recipes, not independent regeneration of the complete Tree0.
+The largest remaining dependency is the shared arithmetic lowering plan
+for rows 30–32. It must reproduce the complete authenticated lane roster
+from key-owned inputs before those rows can be regenerated. A claimed profile
+digest or proof-derived layout does not qualify as key-only regeneration.
 
 The recursive AIR source map has been reviewed against the relocated S-box,
 matrix, framework constraint, and interaction-prefix equations and re-pinned
