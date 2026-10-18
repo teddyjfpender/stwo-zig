@@ -102,6 +102,7 @@ test {
     _ = @import("recursion/detached_native_column_geometry_v1.zig");
     _ = @import("recursion/detached_fixed_tree0_pcs_recipe_v1.zig");
     _ = @import("recursion/detached_fixed_tree0_fri_recipe_v1.zig");
+    _ = @import("recursion/detached_fixed_tree0_trace_merkle_recipe_v1.zig");
     _ = @import("recursion/tests/segment_range_authority_test.zig");
     _ = @import("recursion/tests/segment_statement_outer_source_test.zig");
     _ = @import("recursion/tests/span_statement_test.zig");

@@ -9,34 +9,12 @@ const node_air = @import("air/fri_merkle_node.zig");
 const node_witness = @import("air/fri_merkle_node_witness.zig");
 const anchor_air = @import("air/fri_merkle_anchor.zig");
 const anchor_witness = @import("air/fri_merkle_anchor_witness.zig");
-const schedule = @import("air/verifier_schedule.zig");
-const geometry_mod = @import("detached_native_column_geometry_v1.zig");
 const authority = @import("detached_segment_authority_boundary_v1.zig");
 const control_air = @import("air/fri_verifier_control.zig");
 const control_witness = @import("air/fri_verifier_control_witness.zig");
 const query_mapping_witness = @import("air/query_mapping_witness.zig");
 
-const KeySchedule = struct {
-    shape: schedule.ScheduleShape,
-    vm: schedule.Plan,
-    recursive: schedule.Plan,
-
-    fn init(allocator: std.mem.Allocator, descriptors: authority.DescriptorsV1) !KeySchedule {
-        var geometry = try geometry_mod.init(allocator, descriptors, segment.circuitProfile().log_blowup_factor);
-        defer geometry.deinit();
-        const shape = try geometry.q193ScheduleShape(descriptors);
-        var vm = try schedule.Plan.initShape(allocator, try schedule.vmProgramSpec(0, 0), shape);
-        errdefer vm.deinit();
-        const recursive = try schedule.Plan.initShape(allocator, schedule.RECURSION_PROGRAM_SPEC_V1, shape);
-        return .{ .shape = shape, .vm = vm, .recursive = recursive };
-    }
-
-    fn deinit(self: *KeySchedule) void {
-        self.recursive.deinit();
-        self.vm.deinit();
-        self.* = undefined;
-    }
-};
+const KeySchedule = @import("detached_q193_key_schedule_v1.zig").Owned;
 
 const ReferenceOwner = struct {
     allocator: std.mem.Allocator,
