@@ -222,6 +222,13 @@ pub fn prepareWithProfile(
             .pcs_pow_bits = profile.pcs_pow_bits,
         },
     );
+    if (pcs_config.fri_config.n_queries == recursion.protocol.FRI_QUERY_COUNT) {
+        const key_shape = try native_geometry.q193ScheduleShape(.{
+            .components = capture.vm_air.component_descs,
+            .infrastructure = capture.vm_air.infra_descs,
+        });
+        if (!std.meta.eql(key_shape, shape)) return error.NativeColumnGeometryMismatch;
+    }
     var vm_plan = try schedule.Plan.initShape(
         allocator,
         try schedule.vmProgramSpec(0, 0),

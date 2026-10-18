@@ -7,6 +7,8 @@ const lookup_physical = @import("../air/lang/lookup_physical_manifest_v2.zig");
 const segment_profile = @import("segment_profile.zig");
 const Layout = @import("sample_point_layout.zig").Layout;
 const pcs = @import("air/pcs_deep_circuit_circuit.zig");
+const transcript_shape = @import("transcript_shape.zig");
+const protocol = @import("protocol.zig");
 
 pub const Geometry = struct {
     allocator: std.mem.Allocator,
@@ -49,6 +51,41 @@ pub const Geometry = struct {
         };
         try profile.validate();
         return profile;
+    }
+
+    /// The q193 scheduled-verifier shape is determined by the key's native
+    /// roster and protocol constants, not the captured FRI or claim vectors.
+    pub fn q193ScheduleShape(
+        self: *const Geometry,
+        descriptors: authority.DescriptorsV1,
+    ) !@import("air/verifier_schedule.zig").ScheduleShape {
+        if (self.lifting_log_size != segment_profile.LIFTING_LOG_SIZE or
+            self.blowup != protocol.FRI_LOG_BLOWUP_FACTOR)
+            return error.NativeColumnGeometryMismatch;
+        var heights: [4]u32 = undefined;
+        var queried_columns: usize = 0;
+        for (self.pcs_trees, &heights) |tree, *height| {
+            height.* = 0;
+            for (tree.column_log_sizes) |log_size| height.* = @max(height.*, log_size);
+            queried_columns = try add(queried_columns, tree.column_log_sizes.len);
+        }
+        const lookup_manifest = lookup_physical.Manifest.native();
+        var physical_claims: usize = 0;
+        for (descriptors.components) |desc|
+            physical_claims = try add(physical_claims, lookup_manifest.entryForFamily(desc.family).detailed_claim_count);
+        for (descriptors.infrastructure) |desc|
+            physical_claims = try add(physical_claims, statement.nClaimedSumsForInfra(desc.kind));
+        const sample_count = try (try self.pcsProfile(protocol.FRI_QUERY_COUNT)).sampleCount();
+        return transcript_shape.derive(segment_profile.circuitProfile(), heights, .{
+            .sampled_value_count = std.math.cast(u32, sample_count) orelse return error.NativeColumnGeometryMismatch,
+            .queried_values_per_query = std.math.cast(u32, queried_columns) orelse return error.NativeColumnGeometryMismatch,
+            .claimed_sum_count = segment_profile.CLAIMED_SUM_COUNT,
+            .physical_claimed_sum_count = std.math.cast(u32, physical_claims) orelse return error.NativeColumnGeometryMismatch,
+            .physical_component_count = std.math.cast(u32, descriptors.components.len) orelse return error.NativeColumnGeometryMismatch,
+            .physical_infra_count = std.math.cast(u32, descriptors.infrastructure.len) orelse return error.NativeColumnGeometryMismatch,
+            .interaction_pow_bits = protocol.INTERACTION_POW_BITS,
+            .pcs_pow_bits = protocol.PCS_POW_BITS,
+        });
     }
 };
 
