@@ -125,6 +125,9 @@ fn derive(comptime count: usize, allocator: std.mem.Allocator, setup: SetupV1, b
         const key_pin = command.hash(bytes);
         const key = try command.OwnedKeyV1.admitWithNativeRoot(@import("recursive_segment_v2_leaf_outer.zig").Engine, allocator, bytes, key_pin);
         defer key.deinit();
+        // Exercise the same independently expected geometry admission as the
+        // detached verifier on every genuine key before publishing its pin.
+        try key.key().native_descriptors.validateAgainstExpected(&expected[index].data);
         receipts[index] = .{ .key_sha256 = key_pin, .circuit_identity = try key.key().identity(), .preprocessed_root = key.key().preprocessed_root, .native_preprocessed_root = key.key().native_preprocessed_root, .expected_wire_sha256 = pins[index] };
         var name: [48]u8 = undefined;
         var file = try directory.createFile(try std.fmt.bufPrint(&name, "child-{d}-key.json", .{index}), .{ .exclusive = true });

@@ -20,6 +20,7 @@ test {
     _ = @import("air/lang/tests/typed_merkle_node_test.zig");
     _ = @import("air/lang/tests/typed_poseidon2_compact_test.zig");
     _ = @import("leaf_manifest_contract_test_root.zig");
+    _ = @import("recursion_soundness_test_root.zig");
     _ = @import("trace_authority_test_root.zig");
     _ = @import("statement_authority_preimage_test_root.zig");
     _ = @import("segment_leaf_statement_contract_test_root.zig");
@@ -636,6 +637,7 @@ test {
     _ = @import("recursion/tests/segment_statement_v2_test.zig");
     _ = @import("recursion/tests/segment_transcript_outer_components_v2_test.zig");
     _ = @import("recursion/tests/segment_transcript_outer_source_v2_test.zig");
+    _ = @import("recursion/tests/fixed_wire_custody_test.zig");
     _ = @import("recursion/tests/transcript_program_v2_test.zig");
     _ = @import("row_window_edit_test_root.zig");
     _ = @import("row_window_expression_v2_edit_test_root.zig");
@@ -774,6 +776,7 @@ test {
     _ = @import("recursion/tests/ethereum_leaf_child_field_test.zig");
     _ = @import("recursion/ethereum_leaf_context_v1.zig");
     _ = @import("recursion/ethereum_vm_composition_graph_base_v2.zig");
+    _ = @import("recursion/vm_public_semantics_circuit_logup_reference.zig");
     _ = @import("recursion/tests/provider_shard_child_field_test.zig");
     _ = @import("recursion/recursion_air_composition_circuit_v3_program_roster_v3.zig");
     _ = @import("recursion/recursion_air_composition_circuit_v3_write_inputs_from_validated_profile_and_policy.zig");

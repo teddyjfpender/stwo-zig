@@ -38,6 +38,7 @@ pub const ChildCandidate = struct {
     hashes: command.CandidateHashesV1,
     expected_wire_sha256: [32]u8,
     circuit_identity: [32]u8,
+    transcript_recording_sha256: ?[32]u8 = null,
     native_ingress_ns: u64,
     detached_prepare_ns: u64,
     detached_prove_ns: u64,
@@ -173,11 +174,11 @@ fn produceChild(
             return error.TwoSegmentExpectedStatementMismatch;
         for (captured_words, expected.words()) |actual, wanted|
             if (!actual.eql(wanted)) return error.TwoSegmentExpectedStatementMismatch;
-        const outer_lifecycle = if (comptime OuterEngine != detached.CpuEngine) OuterEngine.Backend.runtimeLifecycleSnapshot() else {};
-        const outer_before = if (comptime OuterEngine != detached.CpuEngine) try OuterEngine.Backend.telemetrySnapshot() else {};
+        const outer_lifecycle = if (comptime OuterEngine.Backend != detached.CpuEngine.Backend) OuterEngine.Backend.runtimeLifecycleSnapshot() else {};
+        const outer_before = if (comptime OuterEngine.Backend != detached.CpuEngine.Backend) try OuterEngine.Backend.telemetrySnapshot() else {};
         var candidate = try detached.produceWithEngine(OuterEngine, producer_allocator, &prepared, admitted_key, proof_profile);
         defer candidate.deinit();
-        if (comptime OuterEngine != detached.CpuEngine) {
+        if (comptime OuterEngine.Backend != detached.CpuEngine.Backend) {
             const delta = (try OuterEngine.Backend.telemetrySnapshot()).delta(outer_before);
             try delta.requireMetalDispatch();
             if (delta.counters.metal_poseidon2_merkle_commits == 0) return error.RecursiveMetalPoseidonDispatchMissing;
@@ -212,6 +213,7 @@ fn produceChild(
             .hashes = hashes,
             .expected_wire_sha256 = command.hash(expected_json),
             .circuit_identity = candidate.circuit_identity,
+            .transcript_recording_sha256 = candidate.transcript_recording_sha256,
             .native_ingress_ns = native_ingress_ns,
             .detached_prepare_ns = candidate.prepare_ns,
             .detached_prove_ns = candidate.prove_ns,
@@ -226,11 +228,11 @@ fn produceChild(
     candidate_receipt.producer_peak_bytes = memory.peakBytes();
     candidate_receipt.transaction_ns = timer.read();
     std.debug.print("SEGMENT_V2_TWO_CHILD_CANDIDATE segment={d} first_cycle={d} retired_cycles={d} completed={} directory={s} native_backend={s} recursive_backend={s} proof_bytes={d} native_ingress_ns={d} outer_prepare_ns={d} outer_prove_ns={d} transaction_ns={d} producer_peak_bytes={d} producer_live_bytes_after_destroy={d} status=unverified_candidate parent_proof_created=false\n", .{
-        candidate_receipt.segment_index,                                    candidate_receipt.first_cycle,        candidate_receipt.retired_cycles,
-        candidate_receipt.completed,                                        directory_path,                       if (comptime NativeEngine == leaf.Engine) "cpu" else "metal",
-        if (comptime OuterEngine == detached.CpuEngine) "cpu" else "metal", candidate_receipt.hashes.proof_bytes, candidate_receipt.native_ingress_ns,
-        candidate_receipt.detached_prepare_ns,                              candidate_receipt.detached_prove_ns,  candidate_receipt.transaction_ns,
-        candidate_receipt.producer_peak_bytes,                              memory.snapshot().active_bytes,
+        candidate_receipt.segment_index,                                                    candidate_receipt.first_cycle,        candidate_receipt.retired_cycles,
+        candidate_receipt.completed,                                                        directory_path,                       if (comptime NativeEngine == leaf.Engine) "cpu" else "metal",
+        if (comptime OuterEngine.Backend == detached.CpuEngine.Backend) "cpu" else "metal", candidate_receipt.hashes.proof_bytes, candidate_receipt.native_ingress_ns,
+        candidate_receipt.detached_prepare_ns,                                              candidate_receipt.detached_prove_ns,  candidate_receipt.transaction_ns,
+        candidate_receipt.producer_peak_bytes,                                              memory.snapshot().active_bytes,
     });
     return candidate_receipt;
 }

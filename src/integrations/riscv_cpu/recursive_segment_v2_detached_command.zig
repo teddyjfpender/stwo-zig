@@ -99,3 +99,88 @@ test "SegmentV2 key admission independently regenerates native Tree0" {
         key.validateNativePreprocessedRoot(CpuEngine, allocator),
     );
 }
+
+test "SegmentV2 detached catalog rejects changed native geometry with fixed public claim pin" {
+    const allocator = std.testing.allocator;
+    const descriptors = [_]frontend.air.statement.FamilyComponentDesc{.{
+        .family = .lui,
+        .log_size = 4,
+        .n_rows = 1,
+        .n_columns = 1,
+    }};
+    var key = try frontend.recursion.detached_segment_protocol_fixture_v1.testing.key(1000, 1);
+    key.native_descriptors = .{ .components = &descriptors, .infrastructure = &.{} };
+    key.native_preprocessed_root = try frontend.prover_mod.preprocessed.rootForDescriptors(
+        CpuEngine,
+        allocator,
+        key.profile.nativePcsConfig(),
+        &descriptors,
+        &.{},
+    );
+    const admitted = try std.json.Stringify.valueAlloc(allocator, key, .{});
+    defer allocator.free(admitted);
+    const independent_pin = hash(admitted);
+    const owned = try OwnedKeyV1.admitWithNativeRoot(CpuEngine, allocator, admitted, independent_pin);
+    owned.deinit();
+
+    const variants = [_]frontend.air.statement.FamilyComponentDesc{
+        .{ .family = .lui, .log_size = 4, .n_rows = 2, .n_columns = 1 },
+        .{ .family = .lui, .log_size = 5, .n_rows = 1, .n_columns = 1 },
+        .{ .family = .lui, .log_size = 4, .n_rows = 1, .n_columns = 2 },
+    };
+    for (variants) |variant| {
+        const changed = [_]frontend.air.statement.FamilyComponentDesc{variant};
+        key.native_descriptors.components = &changed;
+        const bytes = try std.json.Stringify.valueAlloc(allocator, key, .{});
+        defer allocator.free(bytes);
+        try std.testing.expectError(
+            error.DetachedKeyHashMismatch,
+            OwnedKeyV1.admitWithNativeRoot(CpuEngine, allocator, bytes, independent_pin),
+        );
+    }
+}
+
+test "SegmentV2 newly pinned catalog still matches the independently expected segment" {
+    const allocator = std.testing.allocator;
+    const fixture = try frontend.testing.public_data_v2_test_support.Fixture.initWithRegister7(0x01020304);
+    const source = fixture.rightSource();
+    const words = try frontend.testing.public_data_v2_test_support.encode(allocator, &source);
+    defer allocator.free(words);
+    const public = try PublicData.authenticate(words);
+    const metadata = try public.metadata();
+    const steps = metadata.global_cycle_end - metadata.global_cycle_start;
+    try std.testing.expect(steps > 0 and steps < (1 << 16));
+
+    var descriptor = [_]frontend.air.statement.FamilyComponentDesc{.{
+        .family = .lui,
+        .log_size = @max(@as(u32, 4), std.math.log2_int_ceil(u32, steps)),
+        .n_rows = steps,
+        .n_columns = 18,
+    }};
+    var key = try frontend.recursion.detached_segment_protocol_fixture_v1.testing.key(1000, 1);
+    key.native_descriptors = .{ .components = &descriptor, .infrastructure = &.{} };
+    const original = try std.json.Stringify.valueAlloc(allocator, key, .{});
+    defer allocator.free(original);
+    const owned = try OwnedKeyV1.admit(allocator, original, hash(original));
+    defer owned.deinit();
+    try owned.key().native_descriptors.validateAgainstExpected(&public);
+
+    const variants = [_]frontend.air.statement.FamilyComponentDesc{
+        .{ .family = .lui, .log_size = descriptor[0].log_size, .n_rows = steps + 1, .n_columns = 18 },
+        .{ .family = .lui, .log_size = descriptor[0].log_size + 1, .n_rows = steps, .n_columns = 18 },
+        .{ .family = .lui, .log_size = descriptor[0].log_size, .n_rows = steps, .n_columns = 19 },
+    };
+    for (variants) |variant| {
+        descriptor[0] = variant;
+        const bytes = try std.json.Stringify.valueAlloc(allocator, key, .{});
+        defer allocator.free(bytes);
+        // Even a newly independent SHA pin cannot make this descriptor agree
+        // with the unchanged public claim. No proof or channel is present.
+        const repinned = try OwnedKeyV1.admit(allocator, bytes, hash(bytes));
+        defer repinned.deinit();
+        try std.testing.expectError(
+            error.InvalidNativeDescriptorGeometry,
+            repinned.key().native_descriptors.validateAgainstExpected(&public),
+        );
+    }
+}

@@ -288,7 +288,7 @@ test "catalog manifest ordering claims identities and geometry reject mutation" 
     var bad_provider_geometry = catalog;
     bad_provider_geometry.entries[38].geometry.log_size -= 1;
     try std.testing.expectError(
-        error.CatalogIdentityMismatch,
+        error.InvalidCatalogGeometry,
         bad_provider_geometry.validate(),
     );
 

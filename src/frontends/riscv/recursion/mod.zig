@@ -48,6 +48,7 @@ pub const protocol = @import("protocol.zig");
 pub const native_development_config = @import("native_development_config.zig");
 pub const recording_poseidon_channel_v4 =
     @import("recording_poseidon_channel_v4.zig");
+pub const transcript_equivalence_v2 = @import("transcript_equivalence_v2.zig");
 pub const relation_summary = @import("relation_summary.zig");
 pub const recursion_air_composition_circuit = @import("recursion_air_composition_circuit.zig");
 pub const recursion_air_composition_circuit_v3 = @import("recursion_air_composition_circuit_v3.zig");

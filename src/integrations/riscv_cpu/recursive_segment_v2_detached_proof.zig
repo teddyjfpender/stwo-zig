@@ -12,6 +12,8 @@ const storage = @import("stwo_riscv_frontend").recursion.transaction_storage_v2;
 const manifest_mod = recursion.air.segment_outer_adapter_manifest_v2;
 const stage_profile = @import("stwo_prover_api").stage_profile;
 const native_preprocessed = frontend.prover_mod.preprocessed;
+const recording = recursion.recording_poseidon_channel_v4;
+const transcript_equivalence = recursion.transcript_equivalence_v2;
 pub const CpuEngine = recursion.engine.ProverEngineForBackend(@import("stwo_cpu_backend").CpuBackend);
 pub const Profile = transcript.ProfileV1;
 
@@ -21,6 +23,7 @@ pub const Candidate = struct {
     proof_bytes: []u8,
     claims: verifier.ClaimsV1,
     circuit_identity: [32]u8,
+    transcript_recording_sha256: ?[32]u8 = null,
     prepare_ns: u64,
     prove_ns: u64,
 
@@ -105,7 +108,7 @@ pub fn produceWithEngine(comptime Engine: type, allocator: std.mem.Allocator, pr
             return error.InvalidNativePreprocessedCommitment;
     }
     var timer = try std.time.Timer.start();
-    var recorder = stage_profile.Recorder.initWithOptions(allocator, if (Engine == CpuEngine) "cpu" else "device", "detached-recursive-wrapper", .{ .capture_tasks = false });
+    var recorder = stage_profile.Recorder.initWithOptions(allocator, if (Engine.Backend == CpuEngine.Backend) "cpu" else "device", "detached-recursive-wrapper", .{ .capture_tasks = false });
     defer recorder.deinit();
     const diagnostic: ?*stage_profile.Recorder = if (std.process.hasEnvVarConstant("STWO_RISCV_RECURSIVE_WRAPPER_PROFILE")) &recorder else null;
     var phase = try stage_profile.StageScope.begin(diagnostic, "wrapper.cohort", "Admitted wrapper cohort");
@@ -123,10 +126,14 @@ pub fn produceWithEngine(comptime Engine: type, allocator: std.mem.Allocator, pr
     // them after evaluation. Metal already evaluates the committed columns on
     // device: retention measured no speedup and increased peak RSS. This local
     // storage choice changes neither admission nor the serialized proof.
-    scheme.setCoefficientRetentionPolicy(if (Engine == CpuEngine) .always else .never);
+    scheme.setCoefficientRetentionPolicy(if (Engine.Backend == CpuEngine.Backend) .always else .never);
     var scheme_moved = false;
     defer if (!scheme_moved) Engine.deinit(&scheme, allocator);
-    var channel = Engine.Channel{};
+    var channel: Engine.Channel = if (comptime Engine.Channel == recording.Channel)
+        recording.Channel.init(allocator)
+    else
+        .{};
+    defer if (comptime Engine.Channel == recording.Channel) channel.deinit();
     phase = try stage_profile.StageScope.begin(diagnostic, "wrapper.fixed", "Fixed columns and key admission");
     var preprocessed = try TreeStorage.init(allocator, manifest, 0);
     defer preprocessed.deinit();
@@ -199,6 +206,34 @@ pub fn produceWithEngine(comptime Engine: type, allocator: std.mem.Allocator, pr
     try postcard.serializeProof(recursion.engine.Hasher, encoded.writer(allocator), extended.proof);
     if (encoded.items.len == 0 or encoded.items.len > verifier.MAX_PROOF_BYTES)
         return error.SegmentDetachedProofSizeMismatch;
+    var transcript_recording_sha256: ?[32]u8 = null;
+    if (comptime Engine.Channel == recording.Channel) {
+        var producer_execution = try channel.finish();
+        defer producer_execution.deinit();
+        var verifier_channel = recording.Channel.init(allocator);
+        defer verifier_channel.deinit();
+        _ = try recursion.detached_segment_verifier_v1.verifyWithChannel(
+            recording.MerkleChannel,
+            allocator,
+            key,
+            expected,
+            claims,
+            encoded.items,
+            &verifier_channel,
+            null,
+        );
+        var verifier_execution = try verifier_channel.finish();
+        defer verifier_execution.deinit();
+        try transcript_equivalence.compareRecordings(&producer_execution, &verifier_execution);
+        transcript_recording_sha256 = producer_execution.identity_sha256;
+        std.debug.print("DETACHED_LEAF_TRANSCRIPT_EQUIVALENCE proof_bytes={d} operations={d} frames={d} calls={d} identity={s}\n", .{
+            encoded.items.len,
+            producer_execution.operations.len,
+            producer_execution.hash_frames.len,
+            producer_execution.poseidon_calls.len,
+            std.fmt.bytesToHex(producer_execution.identity_sha256, .lower),
+        });
+    }
     phase.end();
     const prove_ns = timer.read();
     if (diagnostic != null) {
@@ -214,6 +249,7 @@ pub fn produceWithEngine(comptime Engine: type, allocator: std.mem.Allocator, pr
         .proof_bytes = try encoded.toOwnedSlice(allocator),
         .claims = claims,
         .circuit_identity = identity,
+        .transcript_recording_sha256 = transcript_recording_sha256,
         .prepare_ns = prepare_ns,
         .prove_ns = prove_ns,
     };

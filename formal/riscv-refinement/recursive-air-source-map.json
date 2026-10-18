@@ -2,10 +2,10 @@
   "schema_version": 1,
   "claim": "Source-mapped local polynomial and additive boundary lemmas; not whole-Zig, permutation, LogUp or prover refinement.",
   "m31_modulus": 2147483647,
-  "source_mapping_review": "Reviewed actual x^5 Fill.sbox/Evaluate.sbox equations, unchanged shared round/matrix context, framework nonfinal same-row differences and final previous-row plus claim shift. QM31 add/sub map to four M31 coordinates. Division and batch-fraction normalization are explicit obligations outside these lemmas.",
+  "source_mapping_review": "Reviewed the relocated x^5 Fill.sbox/Evaluate.sbox equations, shared round/matrix context, framework nonfinal same-row differences and final previous-row plus claim shift. The interaction writer still forms each row's batch fractions, sums their final cumulative value into claimed_sum, and subtracts claimed_sum/trace_size from the cross-row prefix. QM31 add/sub map to four M31 coordinates. Input validation, division, batch-fraction normalization, wide-batch domain attribution, and whole-protocol soundness remain outside these local lemmas.",
   "mappings": [
     {
-      "zig": "poseidon2_universal_degree3_v1.zig: Fill.sbox and Evaluate.sbox",
+      "zig": "poseidon2_universal_degree3_v1.zig: Fill.sbox and poseidon2_universal_equations_v1.zig: Evaluate.sbox",
       "lean": "RiscvRefinement.Recursion.CompactPoseidon.accepted_output",
       "equations": [
         "square - x*x = 0",
@@ -14,12 +14,12 @@
       "result": "fifth equals x^5 modulo2147483647 for every canonicalM31input; no enabler premise"
     },
     {
-      "zig": "poseidon2_degree3_schedule.zig: walk/fullRound and poseidon2_air_runtime.zig: externalMatrix*/internalMatrix*",
+      "zig": "poseidon2_degree3_schedule.zig: walk/fullRound and poseidon2_matrix.zig: externalMatrix*/internalMatrix*",
       "lean": "RiscvRefinement.Recursion.CompactPoseidon.unchanged_context",
       "result": "pointwise S-box equality substitutes into an unchangedcontext; concrete schedule/constant/Zig translation remains a reviewed mapping, not a formal refinement"
     },
     {
-      "zig": "universal_typed_component_component_for_manifest.zig: evaluateBaseRowInto/frameworkConstraint",
+      "zig": "universal_typed_verifier_component.zig: evaluateBaseRowInto/frameworkConstraint",
       "lean": "RiscvRefinement.Recursion.FrameworkBoundary.row_boundary",
       "result": "same-row nonfinal cumulative differences telescope, only finalbatch includespreviousrow andshift; premise normalizedbatchfractions requiresnonzero denominators"
     },
@@ -32,11 +32,19 @@
   "sources": [
     {
       "path": "src/frontends/riscv/air/memory_commitment/poseidon2_universal_degree3_v1.zig",
-      "sha256": "35573c7ffe4686be57c29282036eb8744345253291043a1ce6cae537f4602604"
+      "sha256": "f340e7ad515dc8b7c62affa83272c2fdd2e46ce09da28614f33291c5636ce008"
+    },
+    {
+      "path": "src/frontends/riscv/air/memory_commitment/poseidon2_universal_equations_v1.zig",
+      "sha256": "7fbd3781d802fa5020006d5d8ffcf4ffb05d4fe7ba7e85aee1cd47e55f3c1efc"
     },
     {
       "path": "src/frontends/riscv/air/memory_commitment/poseidon2_degree3_schedule.zig",
-      "sha256": "46c5c803c37cfd94a3361c6f950f6a9b23539c4ab7430c66b7ea00fdb66be495"
+      "sha256": "0a124d115c50c07eb7ef6950fbba09e8fa388406ae974baa8b8cae364bc59bb4"
+    },
+    {
+      "path": "src/frontends/riscv/air/memory_commitment/poseidon2_matrix.zig",
+      "sha256": "4ddec37dffa67fcd912a1fda30300264ce9fba4e278e8fce81626490e80e7097"
     },
     {
       "path": "src/frontends/riscv/air/memory_commitment/poseidon2_constants.zig",
@@ -44,23 +52,27 @@
     },
     {
       "path": "src/frontends/riscv/air/memory_commitment/poseidon2_air.zig",
-      "sha256": "17e09f482788b6c4ddfa81d0a830e683ba9a171e81a8641826c08841c353f0c3"
+      "sha256": "9bca69ed0b82b51754a745e9cc8057de48f9c1d2754041348d9c9c93182ba351"
     },
     {
       "path": "src/frontends/riscv/air/memory_commitment/poseidon2_air_runtime.zig",
-      "sha256": "e19b73bfbdac20bc67a4a2fbaf1de67e6d1ddd60e0b67847ab3078b0e32b49e6"
+      "sha256": "defb03f92ec9152fce1c42ebd610c0837bb55bbc69d76bb0990df0a8b6585855"
     },
     {
       "path": "src/frontends/riscv/recursion/air/framework_interaction.zig",
-      "sha256": "899b5e97c5189a84074b58b89789ad8bc71b56379038eaa8e49dce585b0b02a0"
+      "sha256": "e9fea593234939df7e23d950eca1388baf318212f5cfbce1c47d5f34d00486c2"
     },
     {
       "path": "src/frontends/riscv/recursion/air/universal_typed_component_component_for_manifest.zig",
-      "sha256": "797f18912d0b9753745ea78832b800a6e29f268397aa14c8e135c645ed01e065"
+      "sha256": "a6e4bba9ae20376ad663aba7ec10f788a17e827c4276016d29fd1f392ed278a6"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/air/universal_typed_verifier_component.zig",
+      "sha256": "474f3c5a2896d82e7e9c529de43f7b8e5409faedb7da6afe611447b5a48862e9"
     },
     {
       "path": "src/core/fields/m31.zig",
-      "sha256": "6f6393f878cdf4e5474163dc3ddc8e8f758180f603482f1e275185fac5e8b4cd"
+      "sha256": "b4cd73532f8535bf59840bcf34b9392f4868b06ab231aa1955fb5de2e1400b38"
     },
     {
       "path": "src/core/fields/cm31.zig",
@@ -84,7 +96,7 @@
     },
     {
       "path": "formal/riscv-refinement/RiscvRefinement/Recursion/AxiomAudit.lean",
-      "sha256": "36a1aa3ae4542cd138832b5076bfec2a3917a1315f2a9f7d82302dee925c0dc1"
+      "sha256": "f6d3d9cc648173890133b9a65f233ffe674c5ffce529303f8f88c13e7762100a"
     },
     {
       "path": "formal/riscv-refinement/lean-toolchain",

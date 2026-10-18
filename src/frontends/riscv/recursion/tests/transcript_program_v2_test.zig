@@ -113,6 +113,29 @@ test "V2 raw program exactly matches the ordinary generic channel" {
         try std.testing.expect(actual.eql(expected));
 }
 
+test "V2 raw program matches every independently recorded native operation" {
+    const recording = @import("../recording_poseidon_channel_v4.zig");
+    const equivalence = @import("../transcript_equivalence_v2.zig");
+    var fixture = try Fixture.init(std.testing.allocator);
+    defer fixture.deinit();
+    var recorder = recording.Channel.init(std.testing.allocator);
+    defer recorder.deinit();
+    try drive(recording.MerkleChannel, &recorder, &fixture);
+    var native = try recorder.finish();
+    defer native.deinit();
+    try equivalence.compare(&native, &fixture.execution, &fixture.program);
+
+    // A changed frame word must fail even if the remaining transcript has
+    // matching call counts and a caller supplies the original execution.
+    const original = native.hash_frames[0].words[recording.RATE];
+    @constCast(native.hash_frames[0].words)[recording.RATE] = original.add(M31.one());
+    try std.testing.expectError(error.InvalidTranscriptTrace, equivalence.compare(
+        &native,
+        &fixture.execution,
+        &fixture.program,
+    ));
+}
+
 test "V2 transcript refuses physical claims without an authenticated batch manifest" {
     var fixture = try Fixture.init(std.testing.allocator);
     defer fixture.deinit();

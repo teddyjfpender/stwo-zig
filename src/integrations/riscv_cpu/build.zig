@@ -60,6 +60,12 @@ pub fn build(b: *std.Build) void {
     });
     b.step("test-recursive-segment-v2-native-tree0", "Reject a key whose native Tree0 differs from admitted geometry")
         .dependOn(&b.addRunArtifact(detached_command_tests).step);
+    const catalog_admission_tests = b.addTest(.{
+        .root_module = detached_command_root,
+        .filters = &.{"catalog"},
+    });
+    b.step("test-recursive-segment-v2-catalog-admission", "Reject changed native geometry before proof decoding")
+        .dependOn(&b.addRunArtifact(catalog_admission_tests).step);
 
     const secp_root = b.createModule(.{
         .root_source_file = b.path("secp256k1_precompile_proof_test.zig"),
@@ -110,6 +116,12 @@ pub fn build(b: *std.Build) void {
     });
     b.step("test-segment-v2-native-proof", "Prove and independently verify real nonfinal and final SegmentV2 shards")
         .dependOn(&b.addRunArtifact(segment_tests).step);
+    const hostile_root_tests = b.addTest(.{
+        .root_module = segment_root,
+        .filters = &.{"SegmentV2 precommit hostile memory root reaches native proof verification"},
+    });
+    b.step("test-segment-v2-hostile-root", "Re-prove a mutated SegmentV2 memory boundary root and require rejection")
+        .dependOn(&b.addRunArtifact(hostile_root_tests).step);
 
     const universal_root = b.createModule(.{
         .root_source_file = b.path("universal_typed_component_proof_test.zig"),

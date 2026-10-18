@@ -89,6 +89,7 @@ pub const CandidateReportV1 = struct {
     artifacts: command.CandidateHashesV1,
     candidate_root_words_sha256: [32]u8,
     circuit_identity: [32]u8,
+    transcript_recording_sha256: ?[32]u8 = null,
     preparation_ns: u64,
     key_preparation_ns: u64,
     proof_ns: u64,
@@ -160,6 +161,7 @@ fn runInner(comptime Engine: type, allocator: std.mem.Allocator, args: Arguments
         .artifacts = artifacts,
         .candidate_root_words_sha256 = command.hash(expected_json),
         .circuit_identity = candidate.circuit_identity,
+        .transcript_recording_sha256 = candidate.transcript_recording_sha256,
         .preparation_ns = preparation_ns,
         .key_preparation_ns = candidate.prepare_ns,
         .proof_ns = candidate.prove_ns,
@@ -208,6 +210,14 @@ pub fn main() !void {
         try std.fs.File.stdout().writeAll("\n");
         return;
     }
+    if (args.len > 1 and std.mem.eql(u8, args[1], "admit-key")) {
+        const pin = try admitKey(allocator, try parseArguments(args[2..]));
+        const receipt = try std.json.Stringify.valueAlloc(allocator, .{ .endpoint = "detached_parent_key_admission", .key_sha256 = pin, .proof_created = false }, .{});
+        defer allocator.free(receipt);
+        try std.fs.File.stdout().writeAll(receipt);
+        try std.fs.File.stdout().writeAll("\n");
+        return;
+    }
     if (args.len > 1 and std.mem.eql(u8, args[1], "derive-key")) {
         const pin = try deriveKey(allocator, try parseArguments(args[2..]));
         const receipt = try std.json.Stringify.valueAlloc(allocator, .{ .endpoint = "detached_parent_key_setup", .key_sha256 = pin, .proof_created = false }, .{});
@@ -216,7 +226,11 @@ pub fn main() !void {
         try std.fs.File.stdout().writeAll("\n");
         return;
     }
-    const report = try run(allocator, try parseArguments(args[1..]));
+    const parsed = try parseArguments(args[1..]);
+    const report = if (std.process.hasEnvVarConstant("STWO_RISCV_OUTER_TRANSCRIPT_EQUIVALENCE"))
+        try runWithEngine(@import("stwo_riscv_frontend").recursion.engine.RecordingProverEngineForBackend(@import("stwo_cpu_backend").CpuBackend), allocator, parsed)
+    else
+        try run(allocator, parsed);
     const json = try std.json.Stringify.valueAlloc(allocator, report, .{});
     defer allocator.free(json);
     try std.fs.File.stdout().writeAll(json);
@@ -326,4 +340,31 @@ pub fn deriveKey(allocator: std.mem.Allocator, args: ArgumentsV1) ![32]u8 {
     defer file.close();
     try file.writeAll(bytes);
     return command.hash(bytes);
+}
+
+/// Rebuilds the fixed parent tree from independently admitted children and
+/// compares it with the pinned key before reading any parent proof bytes.
+/// This is an admission operation, not a claim about a producer's candidate.
+pub fn admitKey(allocator: std.mem.Allocator, args: ArgumentsV1) ![32]u8 {
+    const input = args.parent_key orelse return error.ExpectedIndependentParentKeyAndHash;
+    const bytes = try std.fs.cwd().readFileAlloc(allocator, input.path, command.MAX_KEY_BYTES);
+    defer allocator.free(bytes);
+    const key = try command.OwnedKeyV1.admit(allocator, bytes, input.sha256);
+    defer key.deinit();
+    if (key.key().profile != args.proof_profile or
+        key.key().publication_mode != args.publication_mode)
+        return error.DetachedParentProfileMismatch;
+    var prepared = try prepareChildren(allocator, args, key.key());
+    defer prepared.deinit();
+    const regenerated = try proof.deriveKey(
+        allocator,
+        prepared.cohort,
+        prepared.child_key_sha256,
+        prepared.publication_mode,
+        args.proof_profile,
+    );
+    defer allocator.free(regenerated);
+    if (!std.mem.eql(u8, bytes, regenerated))
+        return error.DetachedParentFixedCircuitMismatch;
+    return input.sha256;
 }
