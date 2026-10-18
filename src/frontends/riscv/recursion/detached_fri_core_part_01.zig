@@ -336,9 +336,9 @@ pub fn Namespace(comptime context: type) type {
 
         pub const FORMAT_VERSION: u32 = 1;
         pub const TRANSCRIPT_DOMAIN: u32 = 0x5246_4131; // "RFA1"
-        pub const SEGMENT_CIRCUIT_ID: u32 = 301;
-        pub const LEFT_CIRCUIT_ID: u32 = 302;
-        pub const RIGHT_CIRCUIT_ID: u32 = 303;
+        pub const SEGMENT_CIRCUIT_ID: u32 = @import("detached_fri_circuit_ids_v1.zig").SEGMENT;
+        pub const LEFT_CIRCUIT_ID: u32 = @import("detached_fri_circuit_ids_v1.zig").LEFT_RECURSION;
+        pub const RIGHT_CIRCUIT_ID: u32 = @import("detached_fri_circuit_ids_v1.zig").RIGHT_RECURSION;
         pub const PCS_SEGMENT_CIRCUIT_ID: u32 = @import("detached_pcs_circuit_ids_v1.zig").SEGMENT;
         pub const PCS_LEFT_CIRCUIT_ID: u32 = @import("detached_pcs_circuit_ids_v1.zig").LEFT_RECURSION;
         pub const PCS_RIGHT_CIRCUIT_ID: u32 = @import("detached_pcs_circuit_ids_v1.zig").RIGHT_RECURSION;

@@ -147,6 +147,8 @@ pub const detached_native_column_geometry_v1 = @import("detached_native_column_g
 pub const detached_fixed_tree0_pcs_recipe_v1 = @import("detached_fixed_tree0_pcs_recipe_v1.zig");
 pub const detached_fixed_tree0_fri_recipe_v1 = @import("detached_fixed_tree0_fri_recipe_v1.zig");
 pub const detached_fixed_tree0_trace_merkle_recipe_v1 = @import("detached_fixed_tree0_trace_merkle_recipe_v1.zig");
+pub const detached_fixed_tree0_query_recipe_v1 = @import("detached_fixed_tree0_query_recipe_v1.zig");
+pub const detached_fixed_tree0_fri_input_recipe_v1 = @import("detached_fixed_tree0_fri_input_recipe_v1.zig");
 pub const detached_segment_verifier_v1 = @import("detached_segment_verifier_v1.zig");
 pub const detached_segment_command_v1 = @import("detached_segment_command_v1.zig");
 
