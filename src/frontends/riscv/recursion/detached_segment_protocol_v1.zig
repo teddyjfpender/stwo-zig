@@ -156,6 +156,12 @@ pub const KeyV1 = struct {
         allocator: std.mem.Allocator,
     ) !void {
         try self.validate();
+        var native_geometry = try @import("detached_native_column_geometry_v1.zig").init(
+            allocator,
+            self.native_descriptors,
+            self.profile.nativePcsConfig().fri_config.log_blowup_factor,
+        );
+        defer native_geometry.deinit();
         const expected = try @import("../prover/preprocessed.zig").rootForDescriptors(
             Engine,
             allocator,

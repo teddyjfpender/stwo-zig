@@ -882,8 +882,12 @@ if its row is committed in Tree 0.
 The next K-8 leaf dependency is the PCS/FRI fixed-row profile. Its large
 row-24 graph is generated without witness values, but the compiler requires
 the exact per-column log sizes and ordered sample-mask layouts. Native Tree 0,
-main, and interaction log sizes can be derived from the admitted component
-descriptors (`preprocessed.zig` and `verifier.zig`); the sample-mask order must
+main, and interaction log sizes are now derived from the admitted component
+descriptors by `detached_native_column_geometry_v1.zig`, checked before
+native Tree0 regeneration, and can be compared with captured logs. The q193
+security profile does not fix one native component roster: real q193 keys
+have different component counts, so column counts must remain descriptor
+driven. The sample-mask order must
 likewise be derived from the canonical native component roster, then checked
 against the captured profile. A claimed profile digest or proof-derived layout
 does not qualify as key-only regeneration.
