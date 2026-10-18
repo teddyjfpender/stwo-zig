@@ -21,8 +21,8 @@ pub const COLUMN_LOG_DEGREE: u32 = 20;
 pub const LIFTING_LOG_SIZE: u32 =
     COLUMN_LOG_DEGREE + protocol.FRI_LOG_BLOWUP_FACTOR;
 pub const PREPROCESSED_COLUMN_COUNT: u32 = 38;
-pub const MAIN_COLUMN_COUNT: u32 = 625;
-pub const INTERACTION_COLUMN_COUNT: u32 = 200;
+pub const MAIN_COLUMN_COUNT: u32 = 627;
+pub const INTERACTION_COLUMN_COUNT: u32 = 204;
 pub const COMPOSITION_COLUMN_COUNT: u32 = 8;
 pub const TREE_COLUMN_COUNTS = [fixed_profile.TREE_COUNT]u32{
     PREPROCESSED_COLUMN_COUNT,
@@ -130,8 +130,8 @@ test "recursion segment profile is one internally consistent frozen geometry" {
     DIMENSIONS.validate();
     const shape = try transcriptShape();
     try shape.validate();
-    try std.testing.expectEqual(TABLE_COUNT, @as(u32, 871));
-    try std.testing.expectEqual(SAMPLED_VALUE_COUNT, @as(u32, 1_071));
+    try std.testing.expectEqual(TABLE_COUNT, @as(u32, 877));
+    try std.testing.expectEqual(SAMPLED_VALUE_COUNT, @as(u32, 1_081));
     try std.testing.expectEqual(CLAIMED_SUM_COUNT, @as(u32, 28));
     try std.testing.expectEqual(
         @as(usize, protocol.FRI_QUERY_COUNT * TABLE_COUNT),

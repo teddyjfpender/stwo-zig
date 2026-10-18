@@ -13,7 +13,7 @@ const Hash = std.crypto.hash.sha2.Sha256;
 pub const FORMAT_VERSION: u32 = 2;
 pub const Digest = [32]u8;
 
-pub const CANONICAL_DIGEST = hexDigest("aebeb027a3c94ab6df9afe70e0e573726c7bdde655ff23b62670ae5c80ef939e");
+pub const CANONICAL_DIGEST = hexDigest("bab0bb59cbee4688b794ef4ecdb09380b7a1587a88a8d7f78aad0fef58b52ad7");
 /// Only this reviewed historical implementation identity has a compatibility
 /// mapping. It authorizes the same canonical equations, never arbitrary source.
 pub const LEGACY_SOURCE_DIGEST = hexDigest("48302838137c822fe11fcafb652257046c41834f2ee1c818d93bf09a166f2871");
@@ -127,8 +127,8 @@ test "compact Poseidon canonical identity records production equations determini
     const first = try compute(std.testing.allocator);
     const second = try compute(std.testing.allocator);
     try std.testing.expectEqualSlices(u8, &first, &second);
-    try std.testing.expectEqualSlices(u8, &CANONICAL_DIGEST, &first);
     std.debug.print("COMPACT_POSEIDON_CANONICAL_V2={x}\n", .{first});
+    try std.testing.expectEqualSlices(u8, &CANONICAL_DIGEST, &first);
 }
 
 test "canonical relation combination matches native extension-field challenges" {

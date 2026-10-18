@@ -14,17 +14,19 @@
 const std = @import("std");
 const stwo_core = @import("stwo_core");
 const public_data_mod = @import("../air/public_data.zig");
+const statement_mod = @import("../air/statement.zig");
 const protocol = @import("protocol.zig");
 const segment_authority = @import("segment_leaf_authority.zig");
 const channel_mod = @import("poseidon2_channel.zig");
 const scheduled = @import("scheduled_channel.zig");
 const transcript = @import("transcript_program.zig");
 const schedule = @import("air/verifier_schedule.zig");
+const segment_profile = @import("segment_profile.zig");
 
 const M31 = stwo_core.fields.m31.M31;
 const QM31 = stwo_core.fields.qm31.QM31;
 
-pub const Error = segment_authority.Error || scheduled.Error || error{
+pub const Error = segment_authority.Error || scheduled.Error || segment_profile.Error || error{
     ChannelNotInitialized,
     InvalidPcsConfiguration,
     InvalidProofSchema,
@@ -64,11 +66,13 @@ pub const Channel = struct {
     pub fn bindRiscVTranscript(
         self: *Self,
         pcs_config: stwo_core.pcs.PcsConfig,
-        data: *const public_data_mod.PublicData,
+        statement: *const statement_mod.RiscVStatement,
     ) Error!void {
         try self.checkHealthy();
         if (self.started) return error.TranscriptAlreadyStarted;
         try validatePcsConfig(pcs_config);
+        try segment_profile.validateStatement(statement);
+        const data: *const public_data_mod.PublicData = &statement.public_data;
 
         const leaf = self.leaf orelse return error.ChannelNotInitialized;
         try leaf.claim.validateAgainst(data);

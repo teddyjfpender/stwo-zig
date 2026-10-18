@@ -1,11 +1,14 @@
 # RISC-V frontend verification status and roadmap
 
-**Status date:** 2026-10-17
+**Status date:** 2026-10-18
 
 **Claim owner:** the repository-wide RISC-V refinement gate
 
 **Normative detailed contract:**
 [`UNIVERSAL_AIR_SAIL_REFINEMENT.md`](UNIVERSAL_AIR_SAIL_REFINEMENT.md)
+
+**Recursive proof qualification contract:**
+[`RISCV_RECURSION_SOUNDNESS_CONTRACT.md`](RISCV_RECURSION_SOUNDNESS_CONTRACT.md)
 
 This file is the short claim ledger for the RISC-V frontend. It separates
 what the checked artifacts establish from what remains an engineering plan.
@@ -43,6 +46,7 @@ the proof count, or define current ownership.
 ```text
 whole_frontend_verified = false
 proof_system_soundness = false
+recursion_qualified = false
 ```
 
 The current checked Lean source closure contains the full row-local FV-1/FV-2
@@ -66,10 +70,13 @@ claim binding, memory-chain multiplicity and public-root binding, initial
 memory-root admission, and the secp256k1 recovery precompile. The separate
 Poseidon2 RISC-V recursive verifier is **not qualified** against the changed
 native transcript and boundary AIR; old detached-recursion bundles are stale.
-Its scheduled transcript, in-circuit root constraints, and vectors must be
-updated and checked together before activation. Strict address ordering in the
-boundary table and equal-points completeness in scalar multiplication also
-remain open hardening and completeness work, respectively.
+Its scheduled transcript, in-circuit root constraints, parent-key Tree0
+admission, keys, and vectors must be updated and checked together before
+activation. The shared Poseidon2 provider now has a full-IO guard and the
+detached leaf key now checks its native Tree0 independently; neither local fix
+qualifies the full recursive verifier. Strict address ordering in the
+boundary table remains open hardening work; the equal-points completeness case
+was closed in the October audit.
 
 No current artifact proves that every accepted STARK proof represents a valid
 RISC-V execution. In particular, local opcode refinement is not a substitute

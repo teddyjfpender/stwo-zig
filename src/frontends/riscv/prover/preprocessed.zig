@@ -124,21 +124,39 @@ pub fn generate(
     allocator: std.mem.Allocator,
     statement: statement_mod.RiscVStatement,
 ) ![]prover_pcs.ColumnEvaluation {
+    return generateForDescriptors(
+        allocator,
+        statement.component_descs[0..statement.n_components],
+        statement.infra_descs[0..statement.n_infra],
+    );
+}
+
+/// Reconstruct Tree 0 from the geometry carried by an independently admitted
+/// recursive key. No execution or proof bytes are consulted.
+pub fn generateForDescriptors(
+    allocator: std.mem.Allocator,
+    components: []const statement_mod.FamilyComponentDesc,
+    infrastructure: []const statement_mod.InfraComponentDesc,
+) ![]prover_pcs.ColumnEvaluation {
+    if (components.len > statement_mod.MAX_COMPONENTS or
+        infrastructure.len > statement_mod.MAX_INFRA_COMPONENTS)
+        return error.InvalidStatement;
+    var column_count: usize = components.len * 2;
+    for (infrastructure) |desc|
+        column_count = try std.math.add(usize, column_count, statement_mod.nPreprocessedColumnsForInfra(desc.kind));
     const columns = try allocator.alloc(
         prover_pcs.ColumnEvaluation,
-        statement.nPreprocessedColumns(),
+        column_count,
     );
     var initialized: usize = 0;
     errdefer {
         for (columns[0..initialized]) |column| allocator.free(@constCast(column.values));
         allocator.free(columns);
     }
-    for (0..statement.n_components) |index| {
-        const desc = statement.component_descs[index];
+    for (components) |desc| {
         try appendSelectors(allocator, columns, &initialized, desc.log_size, desc.n_rows);
     }
-    for (0..statement.n_infra) |index| {
-        const desc = statement.infra_descs[index];
+    for (infrastructure) |desc| {
         var timer: ?std.time.Timer = if (std.process.hasEnvVarConstant("STWO_RISCV_NATIVE_PROFILE"))
             std.time.Timer.start() catch null
         else
@@ -170,6 +188,27 @@ pub fn generate(
     }
     std.debug.assert(initialized == columns.len);
     return columns;
+}
+
+pub fn rootForDescriptors(
+    comptime Engine: type,
+    allocator: std.mem.Allocator,
+    pcs_config: @import("stwo_core").pcs.PcsConfig,
+    components: []const statement_mod.FamilyComponentDesc,
+    infrastructure: []const statement_mod.InfraComponentDesc,
+) !types.HasherForEngine(Engine).Hash {
+    const columns = try generateForDescriptors(allocator, components, infrastructure);
+    var columns_moved = false;
+    errdefer if (!columns_moved) freeColumns(allocator, columns);
+    var scheme = try Engine.init(allocator, pcs_config);
+    defer Engine.deinit(&scheme, allocator);
+    var channel = Engine.Channel{};
+    columns_moved = true;
+    try Engine.commit(&scheme, allocator, columns, null, &channel);
+    var roots = try scheme.roots(allocator);
+    defer roots.deinit(allocator);
+    if (roots.items.len != 1) return error.InvalidPreprocessedCommitment;
+    return roots.items[0];
 }
 
 pub fn generatePoseidon2(

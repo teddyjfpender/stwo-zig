@@ -27,6 +27,12 @@ pub const OwnedKeyV1 = opaque {
         storage.* = .{ .allocator = allocator, .parsed = parsed };
         return @ptrCast(storage);
     }
+    pub fn admitWithNativeRoot(comptime Engine: type, allocator: std.mem.Allocator, bytes: []const u8, independent_sha256: [32]u8) !*OwnedKeyV1 {
+        const admitted = try admit(allocator, bytes, independent_sha256);
+        errdefer admitted.deinit();
+        try admitted.key().validateNativePreprocessedRoot(Engine, allocator);
+        return admitted;
+    }
     pub fn key(self: *const OwnedKeyV1) *const verifier.KeyV1 {
         const storage: *const Storage = @ptrCast(@alignCast(self));
         return &storage.parsed.value;
@@ -106,12 +112,24 @@ pub const ReceiptV1 = struct {
 };
 
 pub fn verifyDirectory(allocator: std.mem.Allocator, directory: []const u8, independent_key_sha256: [32]u8, expected_wire_path: []const u8) !ReceiptV1 {
+    _ = allocator;
+    _ = directory;
+    _ = independent_key_sha256;
+    _ = expected_wire_path;
+    return error.NativeTree0AdmissionRequired;
+}
+
+pub fn verifyDirectoryWithNativeRoot(comptime Engine: type, allocator: std.mem.Allocator, directory: []const u8, independent_key_sha256: [32]u8, expected_wire_path: []const u8) !ReceiptV1 {
+    return verifyDirectoryImpl(Engine, allocator, directory, independent_key_sha256, expected_wire_path);
+}
+
+fn verifyDirectoryImpl(comptime Engine: type, allocator: std.mem.Allocator, directory: []const u8, independent_key_sha256: [32]u8, expected_wire_path: []const u8) !ReceiptV1 {
     var request_timer = try std.time.Timer.start();
     var dir = try std.fs.cwd().openDir(directory, .{});
     defer dir.close();
     const key_json = try dir.readFileAlloc(allocator, "key.json", MAX_KEY_BYTES);
     defer allocator.free(key_json);
-    const key = try OwnedKeyV1.admit(allocator, key_json, independent_key_sha256);
+    const key = try OwnedKeyV1.admitWithNativeRoot(Engine, allocator, key_json, independent_key_sha256);
     defer key.deinit();
     const expected_json = try std.fs.cwd().readFileAlloc(allocator, expected_wire_path, MAX_INPUT_BYTES);
     defer allocator.free(expected_json);
@@ -167,7 +185,17 @@ fn reloadVerifiedExpected(allocator: std.mem.Allocator, path: []const u8, receip
 }
 
 pub fn verifyRoot(allocator: std.mem.Allocator, input: ArgumentsV1) !SingleRootReceiptV1 {
-    const receipt = try verifyDirectory(allocator, input.directory, input.independent_key_sha256, input.expected_wire_path);
+    _ = allocator;
+    _ = input;
+    return error.NativeTree0AdmissionRequired;
+}
+
+pub fn verifyRootWithNativeRoot(comptime Engine: type, allocator: std.mem.Allocator, input: ArgumentsV1) !SingleRootReceiptV1 {
+    return verifyRootImpl(Engine, allocator, input);
+}
+
+fn verifyRootImpl(comptime Engine: type, allocator: std.mem.Allocator, input: ArgumentsV1) !SingleRootReceiptV1 {
+    const receipt = try verifyDirectoryImpl(Engine, allocator, input.directory, input.independent_key_sha256, input.expected_wire_path);
     var expected = try reloadVerifiedExpected(allocator, input.expected_wire_path, receipt);
     defer expected.deinit();
     return .{ .child = receipt, .root = try singleRootStatement(&expected.data) };
@@ -188,12 +216,22 @@ pub const PairReceiptV1 = struct {
 /// register clocks, global position and complete-job coverage from the expected
 /// public wires. This is a verified two-proof bundle, not a recursive parent.
 pub fn verifyPair(allocator: std.mem.Allocator, inputs: [2]ArgumentsV1) !PairReceiptV1 {
+    _ = allocator;
+    _ = inputs;
+    return error.NativeTree0AdmissionRequired;
+}
+
+pub fn verifyPairWithNativeRoot(comptime Engine: type, allocator: std.mem.Allocator, inputs: [2]ArgumentsV1) !PairReceiptV1 {
+    return verifyPairImpl(Engine, allocator, inputs);
+}
+
+fn verifyPairImpl(comptime Engine: type, allocator: std.mem.Allocator, inputs: [2]ArgumentsV1) !PairReceiptV1 {
     var receipts: [2]ReceiptV1 = undefined;
     var expected: [2]OwnedExpectedV1 = undefined;
     var initialized: usize = 0;
     defer for (expected[0..initialized]) |*value| value.deinit();
     for (inputs, 0..) |input, index| {
-        receipts[index] = try verifyDirectory(allocator, input.directory, input.independent_key_sha256, input.expected_wire_path);
+        receipts[index] = try verifyDirectoryImpl(Engine, allocator, input.directory, input.independent_key_sha256, input.expected_wire_path);
         expected[index] = try reloadVerifiedExpected(allocator, input.expected_wire_path, receipts[index]);
         initialized += 1;
     }
@@ -206,18 +244,26 @@ pub fn verifyPair(allocator: std.mem.Allocator, inputs: [2]ArgumentsV1) !PairRec
 }
 
 pub fn main() !void {
+    return error.NativeTree0AdmissionRequired;
+}
+
+pub fn mainWithNativeRoot(comptime Engine: type) !void {
+    return mainImpl(Engine);
+}
+
+fn mainImpl(comptime Engine: type) !void {
     const allocator = std.heap.smp_allocator;
     const args = try std.process.argsAlloc(allocator);
     defer std.process.argsFree(allocator, args);
     const json = if (args.len == 5 and std.mem.eql(u8, args[1], "--root")) blk: {
         const input = try parseArguments(args[2..]);
-        break :blk try std.json.Stringify.valueAlloc(allocator, try verifyRoot(allocator, input), .{});
+        break :blk try std.json.Stringify.valueAlloc(allocator, try verifyRootImpl(Engine, allocator, input), .{});
     } else if (args.len == 8 and std.mem.eql(u8, args[1], "--pair")) blk: {
         const inputs: [2]ArgumentsV1 = .{ try parseArguments(args[2..5]), try parseArguments(args[5..8]) };
-        break :blk try std.json.Stringify.valueAlloc(allocator, try verifyPair(allocator, inputs), .{});
+        break :blk try std.json.Stringify.valueAlloc(allocator, try verifyPairImpl(Engine, allocator, inputs), .{});
     } else blk: {
         const input = try parseArguments(args[1..]);
-        break :blk try std.json.Stringify.valueAlloc(allocator, try verifyDirectory(allocator, input.directory, input.independent_key_sha256, input.expected_wire_path), .{});
+        break :blk try std.json.Stringify.valueAlloc(allocator, try verifyDirectoryImpl(Engine, allocator, input.directory, input.independent_key_sha256, input.expected_wire_path), .{});
     };
     defer allocator.free(json);
     try std.fs.File.stdout().writeAll(json);

@@ -477,7 +477,7 @@ pub fn Ops(comptime Owner: type) type {
             // prevents a proof under one profile from sharing a transcript prefix with
             // another profile even when every execution field is identical.
             if (comptime @hasDecl(Engine.Channel, "bindRiscVTranscript")) {
-                try channel.bindRiscVTranscript(pcs_config, &statement.public_data);
+                try channel.bindRiscVTranscript(pcs_config, statement);
             } else {
                 pcs_config.mixInto(channel);
                 statement.public_data.mixInto(channel);

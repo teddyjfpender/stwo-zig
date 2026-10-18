@@ -28,6 +28,7 @@ pub fn evaluateGeneric(comptime S: type, main: [N_MAIN_COLUMNS]S) [N_CONSTRAINTS
     constraints[1] = main[WIDE_COLUMN].mul(S.one().sub(main[WIDE_COLUMN]));
     constraints[2] = main[IO_COLUMN].mul(S.one().sub(main[IO_COLUMN]));
     constraints[3] = main[WIDE_COLUMN].mul(main[IO_COLUMN]);
+    constraints[4] = main[0].mul(S.one().sub(main[IO_COLUMN]));
     var state = main[1..17].*;
     var context = Evaluate(S){ .main = main, .constraints = &constraints };
     walk(S, &state, &context);
@@ -105,7 +106,7 @@ fn Evaluate(comptime S: type) type {
         main: [N_MAIN_COLUMNS]S,
         constraints: *[N_CONSTRAINTS]S,
         cursor: usize = 17,
-        constraint: usize = 4,
+        constraint: usize = 5,
         pub fn sbox(self: *@This(), x: S) S {
             const square = self.main[self.cursor];
             const fifth = self.main[self.cursor + 1];
@@ -125,6 +126,6 @@ fn append(comptime S: type, list: *entries.Builder(S).List, domain: entries.Doma
 }
 
 comptime {
-    if (N_SBOXES != 142 or N_MAIN_COLUMNS != 303 or N_CONSTRAINTS != 288)
+    if (N_SBOXES != 142 or N_MAIN_COLUMNS != 303 or N_CONSTRAINTS != 289)
         @compileError("Versioned recursive universal degree-three Poseidon geometry changed");
 }

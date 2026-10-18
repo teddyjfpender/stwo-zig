@@ -46,6 +46,21 @@ pub fn build(b: *std.Build) void {
     b.step("test", "Test the focused RISC-V CPU integration")
         .dependOn(&b.addRunArtifact(tests).step);
 
+    const detached_command_root = b.createModule(.{
+        .root_source_file = b.path("recursive_segment_v2_detached_command.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    detached_command_root.addImport("stwo_core", core);
+    detached_command_root.addImport("stwo_cpu_backend", cpu_backend);
+    detached_command_root.addImport("stwo_riscv_frontend", frontend);
+    const detached_command_tests = b.addTest(.{
+        .root_module = detached_command_root,
+        .filters = &.{"SegmentV2 key admission independently regenerates native Tree0"},
+    });
+    b.step("test-recursive-segment-v2-native-tree0", "Reject a key whose native Tree0 differs from admitted geometry")
+        .dependOn(&b.addRunArtifact(detached_command_tests).step);
+
     const secp_root = b.createModule(.{
         .root_source_file = b.path("secp256k1_precompile_proof_test.zig"),
         .target = target,
@@ -127,6 +142,8 @@ pub fn build(b: *std.Build) void {
         .optimize = optimize,
     });
     leaf_verifier_runner.addImport("stwo_leaf_verifier", leaf_verifier_root);
+    leaf_verifier_runner.addImport("stwo_riscv_frontend", frontend);
+    leaf_verifier_runner.addImport("stwo_cpu_backend", cpu_backend);
     const leaf_verifier = b.addExecutable(.{
         .name = "recursive-segment-v2-detached-verify",
         .root_module = leaf_verifier_runner,
@@ -171,6 +188,24 @@ pub fn build(b: *std.Build) void {
     });
     b.step("build-recursive-segment-v2-detached-leaf-producer", "Build the detached SegmentV2 leaf producer")
         .dependOn(&b.addInstallArtifact(leaf_producer, .{}).step);
+
+    const leaf_key_setup_root = b.createModule(.{
+        .root_source_file = b.path("recursive_segment_v2_leaf_key_setup_runner.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    leaf_key_setup_root.addImport("stwo_core", core);
+    leaf_key_setup_root.addImport("stwo_cpu_backend", cpu_backend);
+    leaf_key_setup_root.addImport("stwo_riscv_frontend", frontend);
+    leaf_key_setup_root.addImport("stwo_prover_api", prover_api);
+    leaf_key_setup_root.addImport("stwo_prover_engine", prover);
+    leaf_key_setup_root.addImport("interop_postcard", postcard);
+    const leaf_key_setup = b.addExecutable(.{
+        .name = "recursive-segment-v2-leaf-key-setup",
+        .root_module = leaf_key_setup_root,
+    });
+    b.step("build-recursive-segment-v2-leaf-key-setup", "Build the detached SegmentV2 leaf key-setup runner")
+        .dependOn(&b.addInstallArtifact(leaf_key_setup, .{}).step);
 
     const parent_producer_owner = b.addModule("stwo_riscv_detached_parent_producer", .{
         .root_source_file = b.path("recursive_segment_v2_detached_parent_producer.zig"),

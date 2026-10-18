@@ -145,7 +145,8 @@ test "universal degree3 backend constrains modes and padding independently of se
             const expected = air.evaluateGeneric(QM31, inputs[0..air.N_MAIN_COLUMNS].*);
             var rejected = false;
             for (expected) |value| rejected = rejected or !value.isZero();
-            try std.testing.expectEqual(mutation != 0, rejected);
+            try std.testing.expectEqual(mutation != 0 or
+                (row[0].toU32() != 0 and row[air.IO_COLUMN].toU32() == 0), rejected);
             for ([_]QM31{ QM31.zero(), QM31.one(), QM31.fromU32Unchecked(5, 7, 11, 13) }) |selector| {
                 inputs[air.N_MAIN_COLUMNS] = selector;
                 var covered: usize = 0;

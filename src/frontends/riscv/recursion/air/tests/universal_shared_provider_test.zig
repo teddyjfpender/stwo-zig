@@ -16,6 +16,27 @@ const relation = @import("../../../air/lang/relation.zig");
 const poseidon_air = @import("../../../air/memory_commitment/poseidon2_air.zig");
 const hash_component = @import("../../../air/memory_commitment/hash_component.zig");
 
+test "shared Poseidon provider requires full IO on every active row" {
+    const relations = @import("../../../air/relation_challenges.zig").Relations.dummy();
+    const input = [_]u32{0} ** poseidon_air.WIDTH;
+    const modes = [_]poseidon_air.Call{
+        .{ .input = input, .wide = false, .io = false },
+        .{ .input = input, .wide = true, .io = false },
+        .{ .input = input, .wide = false, .io = true },
+    };
+    for (modes, 0..) |mode, index| {
+        const base = poseidon_air.fill(mode);
+        var main: [poseidon_air.N_MAIN_COLUMNS]QM31 = undefined;
+        for (&main, base) |*word, value| word.* = QM31.fromBase(value);
+        const zero = [_]QM31{QM31.zero()} ** poseidon_air.N_SUMS;
+        const roots = hash_component.poseidonGeneralConstraints(main, QM31.one(), zero, zero, zero, &relations);
+        try std.testing.expectEqual(index == 2, roots[poseidon_air.N_CONSTRAINTS].isZero());
+        main[0] = QM31.zero();
+        const inactive = hash_component.poseidonGeneralConstraints(main, QM31.one(), zero, zero, zero, &relations);
+        try std.testing.expect(inactive[poseidon_air.N_CONSTRAINTS].isZero());
+    }
+}
+
 test "R-012 shared providers occupy exact roster slots without duplicate AIR" {
     try provider.PoseidonSourceAuthority.pinned().validate();
     try std.testing.expectEqualSlices(
@@ -71,7 +92,7 @@ test "R-012 shared providers occupy exact roster slots without duplicate AIR" {
     const verifier = try gate.verifierSlice();
     const prover = try gate.proverSlice();
     try std.testing.expectEqual(@as(usize, 2), verifier.len);
-    try std.testing.expectEqual(@as(usize, 432), verifier[0].nConstraints());
+    try std.testing.expectEqual(@as(usize, 433), verifier[0].nConstraints());
     try std.testing.expectEqual(@as(usize, 1), verifier[1].nConstraints());
     try std.testing.expectEqual(verifier[0].nConstraints(), prover[0].nConstraints());
     try std.testing.expectEqual(verifier[1].nConstraints(), prover[1].nConstraints());
@@ -347,7 +368,7 @@ test "R-012 universal Poseidon metadata drops only the memory activity shell" {
     );
 
     try std.testing.expectEqual(@as(usize, 1), poseidon.component.nPreprocessedColumns());
-    try std.testing.expectEqual(@as(usize, 432), poseidon.component.nConstraints());
+    try std.testing.expectEqual(@as(usize, 433), poseidon.component.nConstraints());
     const indices = try poseidon.component.preprocessedColumnIndices(
         std.testing.allocator,
     );
@@ -478,7 +499,7 @@ test "R-012 universal Poseidon prepared domain removes exactly one source view" 
     try general.run(&task_context);
 }
 
-test "R-012 universal Poseidon provider admits atomic IO without the memory-only shell" {
+test "R-012 universal Poseidon provider accepts only atomic full IO" {
     const relations = universal.UniversalRelations.dummy();
     const provider_relations = try provider.SharedProviderRelations.init(&relations);
     var input: [poseidon_air.WIDTH]u32 = undefined;
@@ -496,7 +517,7 @@ test "R-012 universal Poseidon provider admits atomic IO without the memory-only
         .{ QM31.one().neg(), QM31.zero(), QM31.one(), QM31.zero() },
         .{ QM31.zero(), QM31.zero(), QM31.zero(), QM31.one() },
     };
-    for (&calls, expected_numerators) |*call, expected| {
+    for (&calls, expected_numerators, 0..) |*call, expected, index| {
         const row = poseidon_air.fill(call.*);
         var main: [poseidon_air.N_MAIN_COLUMNS]QM31 = undefined;
         for (&main, row) |*destination, value|
@@ -523,8 +544,12 @@ test "R-012 universal Poseidon provider admits atomic IO without the memory-only
             claims,
             &provider_relations.native,
         );
-        for (constraints) |constraint|
+        for (constraints[0..poseidon_air.N_CONSTRAINTS]) |constraint|
             try std.testing.expect(constraint.isZero());
+        try std.testing.expectEqual(
+            index == 2,
+            constraints[poseidon_air.N_CONSTRAINTS].isZero(),
+        );
     }
 
     const io_row = poseidon_air.fill(calls[2]);

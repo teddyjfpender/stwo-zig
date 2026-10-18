@@ -12,6 +12,8 @@ const orchestration = @import("prover/orchestration.zig");
 const types = @import("prover/types.zig");
 
 pub const proof_phase_meter = @import("prover/proof_phase_meter.zig");
+/// Deterministic Tree0 derivation used by independently admitted recursion keys.
+pub const preprocessed = @import("prover/preprocessed.zig");
 pub const guest_precompile = @import("prover/guest_precompile/mod.zig");
 pub const main_trace_plan_execution = @import("prover/main_trace_plan_execution.zig");
 pub const main_trace_plan_execution_production =

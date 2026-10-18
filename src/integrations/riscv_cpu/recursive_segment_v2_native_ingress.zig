@@ -14,18 +14,7 @@ const protocol = recursion.protocol;
 const channel = recursion.poseidon2_channel;
 const schedule = recursion.air.verifier_schedule;
 const Engine = subject.Engine;
-pub const DEVELOPMENT_CONFIG = stwo_core.pcs.PcsConfig{
-    .pow_bits = 0,
-    .fri_config = .{
-        .log_blowup_factor = 1,
-        .log_last_layer_degree_bound = 0,
-        .n_queries = 1,
-        // A one-step fold needs more than the fixed verifier's 16-round
-        // capacity for this real trace. Two-step folding is both admitted by
-        // the native prover and representable by the recursive schedule.
-        .fold_step = 2,
-    },
-};
+pub const DEVELOPMENT_CONFIG = recursion.native_development_config.PCS_CONFIG;
 
 pub fn prepare(
     allocator: std.mem.Allocator,

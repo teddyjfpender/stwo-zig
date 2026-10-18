@@ -7,7 +7,7 @@ const range = @import("range_check_8_8_contract.zig");
 const roster = @import("universal_roster.zig");
 
 pub const POSEIDON_SOURCE_AUTHORITY_DIGEST = hexDigest(
-    "ad85a2b2419c6169277b78eeb0fc8f6b8559bed770f543ab331fcbe1963784e7",
+    "3410d725ea229c359d973892513070d31493c5e64e9fd209bf2ab7eb4b81956e",
     "invalid recursion Poseidon2 source-authority digest",
 );
 
@@ -17,7 +17,7 @@ pub const POSEIDON_INTERACTION_BATCH_COUNT: u16 = wide.N_SUMS;
 pub const POSEIDON_INTERACTION_COLUMN_COUNT: u16 =
     wide.N_INTERACTION_COLUMNS;
 pub const POSEIDON_DIRECT_CONSTRAINT_COUNT: u16 =
-    wide.N_CONSTRAINTS;
+    wide.N_CONSTRAINTS + 1;
 pub const POSEIDON_PROTOCOL_CONSTRAINT_DEGREE: u8 =
     wide.MAXIMUM_CONSTRAINT_DEGREE;
 /// A degree-three component evaluates its quotient on `log_size + 1`.
@@ -46,7 +46,7 @@ pub fn PoseidonForManifest(comptime manifest_contract: type, comptime compact: b
                 .preprocessed_columns = POSEIDON_PREPROCESSED_COLUMN_COUNT,
                 .main_columns = SelectedAir.N_MAIN_COLUMNS,
                 .interaction_columns = POSEIDON_INTERACTION_COLUMN_COUNT,
-                .direct_constraints = SelectedAir.N_CONSTRAINTS,
+                .direct_constraints = SelectedAir.N_CONSTRAINTS + @as(u16, @intFromBool(!compact)),
                 .interaction_batches = POSEIDON_INTERACTION_BATCH_COUNT,
                 .protocol_constraint_degree = POSEIDON_PROTOCOL_CONSTRAINT_DEGREE,
                 .profiled_constraint_degree = POSEIDON_PROTOCOL_CONSTRAINT_DEGREE,
@@ -95,7 +95,7 @@ fn hexDigest(
 comptime {
     if (POSEIDON_MAIN_COLUMN_COUNT != 445 or
         POSEIDON_INTERACTION_COLUMN_COUNT != 8 or
-        POSEIDON_DIRECT_CONSTRAINT_COUNT != 430 or
+        POSEIDON_DIRECT_CONSTRAINT_COUNT != 431 or
         RANGE_PREPROCESSED_COLUMN_COUNT != 3 or
         RANGE_MAIN_COLUMN_COUNT != 1 or
         RANGE_INTERACTION_COLUMN_COUNT != 4 or

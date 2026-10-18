@@ -31,7 +31,7 @@ pub const V1Protocol = struct {
         if (comptime @hasDecl(Engine.Channel, "bindRiscVTranscript")) {
             try transcript_channel.bindRiscVTranscript(
                 pcs_config,
-                &value.public_data,
+                value,
             );
         } else {
             pcs_config.mixInto(transcript_channel);

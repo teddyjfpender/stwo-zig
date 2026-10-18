@@ -12,7 +12,8 @@ const sampling = @import("hash_component_sampling.zig").Namespace(.{ .std = std,
 
 pub fn Layout(comptime air: type) type {
     return struct {
-        pub const N_CONSTRAINTS = air.N_CONSTRAINTS + air.N_SUMS;
+        pub const FULL_IO_ONLY = if (@hasDecl(air, "FULL_IO_ONLY")) air.FULL_IO_ONLY else false;
+        pub const N_CONSTRAINTS = air.N_CONSTRAINTS + @intFromBool(FULL_IO_ONLY) + air.N_SUMS;
         pub const ACTIVE = if (@hasDecl(air, "BINDS_ACTIVE_SELECTOR")) air.BINDS_ACTIVE_SELECTOR else true;
         pub const PP: usize = if (ACTIVE) 2 else 1;
     };
@@ -46,6 +47,7 @@ pub fn Component(comptime air: type) type {
 pub fn Methods(comptime Self: type, comptime air: type) type {
     const Shape = Layout(air);
     const ACTIVE = Shape.ACTIVE;
+    const FULL_IO_ONLY = Shape.FULL_IO_ONLY;
     const PP = Shape.PP;
     const N_CONSTRAINTS = Shape.N_CONSTRAINTS;
     return struct {
@@ -125,7 +127,8 @@ pub fn Methods(comptime Self: type, comptime air: type) type {
         pub fn constraints(self: *const Self, main: [air.N_MAIN_COLUMNS]QM31, active: QM31, first: QM31, sums: [air.N_SUMS]QM31, previous: [air.N_SUMS]QM31) [N_CONSTRAINTS]QM31 {
             var result: [N_CONSTRAINTS]QM31 = undefined;
             @memcpy(result[0..air.N_CONSTRAINTS], &(if (ACTIVE) air.evaluateGeneric(QM31, main, active) else air.evaluateGeneric(QM31, main)));
-            @memcpy(result[air.N_CONSTRAINTS..], &air.interactionConstraintsGeneric(QM31, main, first, sums, previous, self.claims, self.relations));
+            if (FULL_IO_ONLY) result[air.N_CONSTRAINTS] = main[0].mul(QM31.one().sub(main[air.IO_COLUMN]));
+            @memcpy(result[air.N_CONSTRAINTS + @intFromBool(FULL_IO_ONLY) ..], &air.interactionConstraintsGeneric(QM31, main, first, sums, previous, self.claims, self.relations));
             return result;
         }
     };

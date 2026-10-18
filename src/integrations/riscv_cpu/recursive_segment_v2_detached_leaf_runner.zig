@@ -81,7 +81,7 @@ fn produceSegments(comptime count: usize, comptime NativeEngine: type, comptime 
             _ = try std.fmt.hexToBytes(&pin, pin_text.?);
             const bytes = try std.fs.cwd().readFileAlloc(allocator, key_path, command.MAX_KEY_BYTES);
             defer allocator.free(bytes);
-            admitted[index] = try command.OwnedKeyV1.admit(allocator, bytes, pin);
+            admitted[index] = try command.OwnedKeyV1.admitWithNativeRoot(NativeCpuEngine, allocator, bytes, pin);
         }
     }
     try std.fs.cwd().makeDir(directory);

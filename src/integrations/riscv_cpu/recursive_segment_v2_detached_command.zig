@@ -6,6 +6,7 @@ const verifier = @import("recursive_segment_v2_detached_verifier.zig");
 const PublicData = frontend.air.public_data_v2.PublicDataV2;
 const VERSION: u32 = 1;
 const owner = frontend.recursion.detached_segment_command_v1;
+const CpuEngine = frontend.recursion.engine.ProverEngineForBackend(@import("stwo_cpu_backend").CpuBackend);
 pub const MAX_KEY_BYTES = owner.MAX_KEY_BYTES;
 pub const MAX_INPUT_BYTES = owner.MAX_INPUT_BYTES;
 pub const hash = owner.hash;
@@ -17,15 +18,23 @@ pub const decodeClaims = owner.decodeClaims;
 pub const CandidateHashesV1 = owner.CandidateHashesV1;
 pub const retainCandidate = owner.retainCandidate;
 pub const ReceiptV1 = owner.ReceiptV1;
-pub const verifyDirectory = owner.verifyDirectory;
+pub fn verifyDirectory(allocator: std.mem.Allocator, directory: []const u8, independent_key_sha256: [32]u8, expected_wire_path: []const u8) !ReceiptV1 {
+    return owner.verifyDirectoryWithNativeRoot(CpuEngine, allocator, directory, independent_key_sha256, expected_wire_path);
+}
 pub const ArgumentsV1 = owner.ArgumentsV1;
 pub const parseArguments = owner.parseArguments;
 pub const SingleRootReceiptV1 = owner.SingleRootReceiptV1;
 pub const singleRootStatement = owner.singleRootStatement;
-pub const verifyRoot = owner.verifyRoot;
+pub fn verifyRoot(allocator: std.mem.Allocator, input: ArgumentsV1) !SingleRootReceiptV1 {
+    return owner.verifyRootWithNativeRoot(CpuEngine, allocator, input);
+}
 pub const PairReceiptV1 = owner.PairReceiptV1;
-pub const verifyPair = owner.verifyPair;
-pub const main = owner.main;
+pub fn verifyPair(allocator: std.mem.Allocator, inputs: [2]ArgumentsV1) !PairReceiptV1 {
+    return owner.verifyPairWithNativeRoot(CpuEngine, allocator, inputs);
+}
+pub fn main() !void {
+    return owner.mainWithNativeRoot(CpuEngine);
+}
 
 test "SegmentV2 detached command requires separate circuit and statement authority" {
     const pin = "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef";
@@ -64,4 +73,29 @@ test "SegmentV2 detached command rejects unsupported claims version and empty pr
     const empty_proof = try std.json.Stringify.valueAlloc(std.testing.allocator, input, .{});
     defer std.testing.allocator.free(empty_proof);
     try std.testing.expectError(error.DetachedProofSizeMismatch, decodeClaims(std.testing.allocator, empty_proof));
+}
+
+test "SegmentV2 key admission independently regenerates native Tree0" {
+    const allocator = std.testing.allocator;
+    const descriptors = [_]frontend.air.statement.FamilyComponentDesc{.{
+        .family = .lui,
+        .log_size = 4,
+        .n_rows = 1,
+        .n_columns = 1,
+    }};
+    var key = try frontend.recursion.detached_segment_protocol_fixture_v1.testing.key(1000, 1);
+    key.native_descriptors = .{ .components = &descriptors, .infrastructure = &.{} };
+    key.native_preprocessed_root = try frontend.prover_mod.preprocessed.rootForDescriptors(
+        CpuEngine,
+        allocator,
+        key.profile.nativePcsConfig(),
+        &descriptors,
+        &.{},
+    );
+    try key.validateNativePreprocessedRoot(CpuEngine, allocator);
+    key.native_preprocessed_root[0] +%= 1;
+    try std.testing.expectError(
+        error.InvalidNativePreprocessedCommitment,
+        key.validateNativePreprocessedRoot(CpuEngine, allocator),
+    );
 }

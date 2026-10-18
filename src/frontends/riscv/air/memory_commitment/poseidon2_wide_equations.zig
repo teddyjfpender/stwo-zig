@@ -27,6 +27,9 @@ pub const PARTIAL_ROUND_WIDTH = layout.PARTIAL_ROUND_WIDTH;
 pub const OUTPUT_START = layout.OUTPUT_START;
 // The shared universal provider omits the separate memory activity shell.
 pub const BINDS_ACTIVE_SELECTOR = false;
+/// The detached recursion verifier uses this adapter for its shared provider.
+/// Native wide equations still describe all modes; the adapter adds the shell.
+pub const FULL_IO_ONLY = true;
 const kernel = @import("poseidon2_wide_equation_kernel.zig").Kernel(.{
     .std = std,
     .M31 = M31,

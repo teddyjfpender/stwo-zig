@@ -32,8 +32,12 @@ test "universal degree3 Poseidon matches legacy permutation and all relation mod
         for (&call.input) |*word| word.* = random.uintLessThan(u32, core.fields.m31.Modulus);
         const row = try air.fill(call);
         const old = legacy.fill(call);
-        try zeros(air.evaluateGeneric(M31, row));
-        try zeros(air.evaluateGeneric(QM31, secure(row)));
+        if (mode == 2) {
+            try zeros(air.evaluateGeneric(M31, row));
+            try zeros(air.evaluateGeneric(QM31, secure(row)));
+        } else {
+            try std.testing.expect(rejected(row));
+        }
         try std.testing.expectEqualDeep(legacy.output(old), air.outputGeneric(M31, row));
         const old_entries = legacy.entriesGeneric(QM31, secure(old));
         const new_entries = air.entriesGeneric(QM31, secure(row));
@@ -118,7 +122,7 @@ test "universal degree3 provider saves padded cells without raising quotient deg
     for (air.evaluateGeneric(Degree, .{variable} ** air.N_MAIN_COLUMNS)) |value| maximum = @max(maximum, value.degree);
     try std.testing.expectEqual(@as(u32, 3), maximum);
     try std.testing.expectEqual(@as(usize, 303), air.N_MAIN_COLUMNS);
-    try std.testing.expectEqual(@as(usize, 288), air.N_CONSTRAINTS);
+    try std.testing.expectEqual(@as(usize, 289), air.N_CONSTRAINTS);
     const saved_bytes = @as(u64, legacy.N_MAIN_COLUMNS - air.N_MAIN_COLUMNS) * (@as(u64, 1) << 18) * @sizeOf(M31);
     try std.testing.expectEqual(@as(u64, 142) << 20, saved_bytes);
     const Component = @import("poseidon2_universal_component_v1.zig").Component;
@@ -127,8 +131,8 @@ test "universal degree3 provider saves padded cells without raising quotient deg
     try value.validate();
     const handle = value.asProverComponent();
     const verifier = value.asVerifierComponent();
-    try std.testing.expectEqual(@as(usize, 290), handle.nConstraints());
-    try std.testing.expectEqual(@as(usize, 290), verifier.nConstraints());
+    try std.testing.expectEqual(@as(usize, 291), handle.nConstraints());
+    try std.testing.expectEqual(@as(usize, 291), verifier.nConstraints());
     var bounds = try handle.traceLogDegreeBounds(std.testing.allocator);
     defer {
         for (bounds.items) |tree| std.testing.allocator.free(tree);

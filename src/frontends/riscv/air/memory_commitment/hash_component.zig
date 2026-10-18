@@ -30,19 +30,18 @@ const CirclePointQM31 = circle.CirclePointQM31;
 pub const N_POSEIDON_SHELL_CONSTRAINTS: usize = 3;
 pub const N_POSEIDON_COMPONENT_CONSTRAINTS: usize =
     poseidon2_air.N_CONSTRAINTS + N_POSEIDON_SHELL_CONSTRAINTS + poseidon2_air.N_SUMS;
-/// Stark-V general mode owns the canonical 430 direct constraints and two
-/// pairs-batched LogUp recurrences. It intentionally omits only the three
-/// RISC-V sparse-memory shell constraints.
+/// The shared recursive provider serves only full input/output tuples. The
+/// extra mode constraint prevents an active narrow row from satisfying a
+/// full-IO request whose unconstrained upper output limbs are zero.
 pub const N_POSEIDON_GENERAL_COMPONENT_CONSTRAINTS: usize =
-    poseidon2_air.N_CONSTRAINTS + poseidon2_air.N_SUMS;
+    poseidon2_air.N_CONSTRAINTS + 1 + poseidon2_air.N_SUMS;
 
 pub const Kind = enum { merkle, poseidon2 };
 pub const PoseidonShell = enum {
     /// Sparse-memory ownership: bind the committed enabler to an external
     /// activity selector and prohibit wide/atomic-IO modes.
     narrow_memory,
-    /// Stark-V's generated shared provider: the committed enabler and mode
-    /// flags are already constrained by the canonical Poseidon2 AIR.
+    /// Shared recursive provider: every active row must use atomic full IO.
     universal,
 };
 
@@ -813,7 +812,8 @@ pub fn poseidonGeneralConstraintsGeneric(
     );
     var constraints: [N_POSEIDON_GENERAL_COMPONENT_CONSTRAINTS]S = undefined;
     @memcpy(constraints[0..poseidon2_air.N_CONSTRAINTS], &air_constraints);
-    @memcpy(constraints[poseidon2_air.N_CONSTRAINTS..], &interaction_constraints);
+    constraints[poseidon2_air.N_CONSTRAINTS] = main[0].mul(S.one().sub(main[poseidon2_air.IO_COLUMN]));
+    @memcpy(constraints[poseidon2_air.N_CONSTRAINTS + 1 ..], &interaction_constraints);
     return constraints;
 }
 
@@ -839,7 +839,7 @@ comptime {
         poseidon2_air.N_SUMS != 2 or
         N_POSEIDON_SHELL_CONSTRAINTS != 3 or
         N_POSEIDON_COMPONENT_CONSTRAINTS != 435 or
-        N_POSEIDON_GENERAL_COMPONENT_CONSTRAINTS != 432)
+        N_POSEIDON_GENERAL_COMPONENT_CONSTRAINTS != 433)
     {
         @compileError("Poseidon2 general/sparse component constraint geometry drifted");
     }

@@ -22,6 +22,7 @@ const KeyReceipt = struct {
     key_sha256: [32]u8,
     circuit_identity: [32]u8,
     preprocessed_root: [8]u32,
+    native_preprocessed_root: [8]u32,
     expected_wire_sha256: [32]u8,
 };
 
@@ -122,9 +123,9 @@ fn derive(comptime count: usize, allocator: std.mem.Allocator, setup: SetupV1, b
         const bytes = try proof.deriveKey(allocator, &prepared, setup.proof_profile);
         defer allocator.free(bytes);
         const key_pin = command.hash(bytes);
-        const key = try command.OwnedKeyV1.admit(allocator, bytes, key_pin);
+        const key = try command.OwnedKeyV1.admitWithNativeRoot(@import("recursive_segment_v2_leaf_outer.zig").Engine, allocator, bytes, key_pin);
         defer key.deinit();
-        receipts[index] = .{ .key_sha256 = key_pin, .circuit_identity = try key.key().identity(), .preprocessed_root = key.key().preprocessed_root, .expected_wire_sha256 = pins[index] };
+        receipts[index] = .{ .key_sha256 = key_pin, .circuit_identity = try key.key().identity(), .preprocessed_root = key.key().preprocessed_root, .native_preprocessed_root = key.key().native_preprocessed_root, .expected_wire_sha256 = pins[index] };
         var name: [48]u8 = undefined;
         var file = try directory.createFile(try std.fmt.bufPrint(&name, "child-{d}-key.json", .{index}), .{ .exclusive = true });
         defer file.close();

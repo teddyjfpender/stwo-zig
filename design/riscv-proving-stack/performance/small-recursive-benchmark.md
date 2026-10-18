@@ -1045,34 +1045,16 @@ commands and retained proof artifacts. The audit rechecks 180 distinct pins.
 CSP benchmarks were excluded at the user's request. Formal q193 production
 security admission and GPU composition admission remain open.
 
-### Canonical compact-Poseidon identity migration
+### Recursive key regeneration
 
-New parent keys bind the canonical production equation digest, separately from
-source provenance. Retained compact keys admit only the reviewed historical
-identity. Both native admission and recursive composition use the same geometry
-compatibility check. Preparation uses canonical identity by default; an
-independently pinned retained key can select the reviewed legacy identity while
-requiring the entire witness-derived manifest seal to match.
-
-Derive a new four-segment admission with
-`scripts/riscv_recursive_identity_migration.py`. Supply the historical admission
-and its hash, matching parent producer/verifier paths and hashes, the verified
-four-leaf bundle directory, and a new output directory. The tool migrates the
-two intermediate keys, qualifies their proofs against those independent pins,
-and invokes the producer's separate `derive-key` setup command for the root.
-Setup verifies both children and commits fixed columns using the same owner as
-production, then exits with a key and no root proof. Changed child identities
-change constants in root preprocessing, so copying the old root commitment is
-invalid even when all column geometry is unchanged.
-
-The receipt records the final admission digest. Pass that exact digest and the
-output `admission.json` to the complete-proof command using `--admission` and
-`--admission-sha256`, with either backend. All expected public input artifacts,
-PCS parameters and geometry remain unchanged. Intermediate preprocessing is
-preserved; root preprocessing is derived again from the newly admitted child
-keys. Qualification of the complete root remains a separate gate. The default
-complete-proof command retains the historical admission as a compatibility
-regression.
+The historical compact-Poseidon identity migration is retired. The current
+soundness changes alter the transcript, AIR constraints, native Tree-0 binding,
+and outer fixed columns; editing an old key's semantic digest or child pins
+cannot establish the new circuit identity. `riscv_recursive_identity_migration.py`
+now fails closed. Derive leaf keys from current native proofs with the leaf
+key-setup runner, then derive every parent key from independently pinned child
+keys. Prove and verify a fresh 1/2/4/8 bundle before publishing a new
+admission. Historical keys remain negative controls only.
 
 Focused iteration on this boundary:
 

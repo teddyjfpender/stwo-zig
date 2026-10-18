@@ -20,6 +20,14 @@ const INVENTORY = @embedFile("test_inventory.zig");
 /// Files that hold tests and are deliberately absent from the inventory.
 const excluded = [_]struct { path: []const u8, why: []const u8 }{
     .{
+        .path = "poseidon2_identity_test_root.zig",
+        .why = "focused compact-provider identity re-pin root",
+    },
+    .{
+        .path = "shared_provider_soundness_test_root.zig",
+        .why = "focused shared-provider full-IO soundness root",
+    },
+    .{
         .path = "recursion_poseidon_degree3_test_root.zig",
         .why = "backend-neutral semantic root, also consumed by scripts/recursive_poseidon_degree3_proof.py",
     },

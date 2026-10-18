@@ -478,7 +478,7 @@ fn bindCorePrefix(
     channel: *Engine.Channel,
 ) !void {
     if (comptime @hasDecl(Engine.Channel, "bindRiscVTranscript")) {
-        try channel.bindRiscVTranscript(pcs_config, &statement.public_data);
+        try channel.bindRiscVTranscript(pcs_config, statement);
     } else {
         pcs_config.mixInto(channel);
         statement.public_data.mixInto(channel);

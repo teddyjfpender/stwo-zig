@@ -45,6 +45,7 @@ pub const pair_node = @import("pair_node.zig");
 pub const poseidon2_channel = @import("poseidon2_channel.zig");
 pub const proof_ingress = @import("proof_ingress.zig");
 pub const protocol = @import("protocol.zig");
+pub const native_development_config = @import("native_development_config.zig");
 pub const recording_poseidon_channel_v4 =
     @import("recording_poseidon_channel_v4.zig");
 pub const relation_summary = @import("relation_summary.zig");

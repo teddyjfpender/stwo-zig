@@ -6,8 +6,8 @@
 //! composition recorder's symbolic scalar.  Constraint order is therefore the
 //! native verifier order:
 //!
-//! * Poseidon2: 430 generated permutation/flag roots, then its two independent
-//!   pairs-batched LogUp roots;
+//! * Poseidon2: 430 generated permutation/flag roots, one full-IO shell root,
+//!   then its two independent pairs-batched LogUp roots;
 //! * range-check-(8,8): its one native singleton LogUp root.
 //!
 //! Poseidon2's two boundary claims are deliberately explicit.  The universal
@@ -28,12 +28,12 @@ const recorder = @import("composition_graph_recorder.zig");
 
 pub const POSEIDON_AUXILIARY_CLAIM_COUNT: usize = poseidon_air.N_SUMS;
 pub const POSEIDON_CONSTRAINT_COUNT: usize =
-    poseidon_air.N_CONSTRAINTS + poseidon_air.N_SUMS;
+    poseidon_air.N_CONSTRAINTS + 1 + poseidon_air.N_SUMS;
 pub const RANGE_CHECK_8_8_CONSTRAINT_COUNT: usize = 1;
 
 comptime {
     if (POSEIDON_AUXILIARY_CLAIM_COUNT != 2 or
-        POSEIDON_CONSTRAINT_COUNT != 432 or
+        POSEIDON_CONSTRAINT_COUNT != 433 or
         table_schema.arity(.range_check_8_8) != 2)
     {
         @compileError("shared-provider composition geometry drifted");
@@ -146,6 +146,12 @@ pub fn recordPoseidon2ForAir(
         root,
         denominator_inverse,
     );
+    recorder.accumulate(
+        accumulation,
+        composition_randomness,
+        main[0].mul(recorder.Scalar.one().sub(main[Air.IO_COLUMN])),
+        denominator_inverse,
+    );
     const interaction_roots = Air.interactionConstraintsGeneric(
         recorder.Scalar,
         main,
@@ -161,7 +167,7 @@ pub fn recordPoseidon2ForAir(
         root,
         denominator_inverse,
     );
-    return Air.N_CONSTRAINTS + Air.N_SUMS;
+    return Air.N_CONSTRAINTS + 1 + Air.N_SUMS;
 }
 
 /// Constraint that binds the two row-34 native claims to the single roster
@@ -264,7 +270,7 @@ test "R-012 shared providers symbolically equal native row 34 and row 35" {
 
     const call = poseidon_air.Call{
         .input = .{ 3, 5, 8, 13, 21, 34, 55, 89, 144, 233, 377, 610, 987, 1597, 2584, 4181 },
-        .wide = true,
+        .io = true,
     };
     const native_main_base = poseidon_air.fill(call);
     var native_main: [poseidon_air.N_MAIN_COLUMNS]QM31 = undefined;
@@ -320,6 +326,8 @@ test "R-012 shared providers symbolically equal native row 34 and row 35" {
     var native_accumulation = QM31.zero();
     for (native_direct) |root| native_accumulation = native_accumulation
         .mul(native_random).add(root.mul(native_denominator));
+    const native_mode = native_main[0].mul(QM31.one().sub(native_main[poseidon_air.IO_COLUMN]));
+    native_accumulation = native_accumulation.mul(native_random).add(native_mode.mul(native_denominator));
     for (native_interaction) |root| native_accumulation = native_accumulation
         .mul(native_random).add(root.mul(native_denominator));
     const expected_poseidon = try Input.add(&builder, &concrete, native_accumulation);

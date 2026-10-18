@@ -29,7 +29,7 @@ test "compact typed lowering preserves all ordered roots outputs and lookups off
     var degrees = try @import("../degree.zig").analyze(std.testing.allocator, &definition.arena);
     defer degrees.deinit();
     try std.testing.expectEqual(@as(u32, 3), degrees.maximumConstraintDegree());
-    try std.testing.expectEqual(@as(usize, 288), definition.arena.constraints.items.len);
+    try std.testing.expectEqual(@as(usize, 289), definition.arena.constraints.items.len);
     for (0..4) |sample| {
         var base: [layout.N_MAIN_COLUMNS]M31 = undefined;
         var secure: [layout.N_MAIN_COLUMNS]QM31 = undefined;
@@ -42,13 +42,17 @@ test "compact typed lowering preserves all ordered roots outputs and lookups off
     }
 }
 
-test "compact typed constraints admit each provider mode and expose every materialized-column mutation" {
+test "compact typed constraints admit full IO and reject active narrow modes" {
     var definition = try typed.Definition.init(std.testing.allocator);
     defer definition.deinit();
     for (0..3) |mode| {
         const row = try witness.fill(.{ .input = .{ 1, 2 } ++ .{0} ** 14, .wide = mode == 1, .io = mode == 2 });
         const result = try definition.evaluate(M31, std.testing.allocator, row);
-        for (result.direct) |value| try std.testing.expect(value.isZero());
+        if (mode == 2) {
+            for (result.direct) |value| try std.testing.expect(value.isZero());
+        } else {
+            try std.testing.expect(!result.direct[4].isZero());
+        }
         try compare(M31, &definition, row);
     }
     const padding = witness.paddingRow();
@@ -59,7 +63,7 @@ test "compact typed constraints admit each provider mode and expose every materi
         var row = padding;
         row[column] = row[column].add(M31.one());
         const changed = try definition.evaluate(M31, std.testing.allocator, row);
-        try std.testing.expect(!changed.direct[4 + column - 17].isZero());
+        try std.testing.expect(!changed.direct[5 + column - 17].isZero());
     }
 }
 

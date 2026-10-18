@@ -11,6 +11,7 @@ const verifier = @import("recursive_segment_v2_detached_verifier.zig");
 const storage = @import("stwo_riscv_frontend").recursion.transaction_storage_v2;
 const manifest_mod = recursion.air.segment_outer_adapter_manifest_v2;
 const stage_profile = @import("stwo_prover_api").stage_profile;
+const native_preprocessed = frontend.prover_mod.preprocessed;
 pub const CpuEngine = recursion.engine.ProverEngineForBackend(@import("stwo_cpu_backend").CpuBackend);
 pub const Profile = transcript.ProfileV1;
 
@@ -60,7 +61,7 @@ pub fn retainIfRequested(allocator: std.mem.Allocator, prepared: *const leaf.Pre
         _ = try std.fmt.hexToBytes(&pin, key_pin.?);
         const bytes = try std.fs.cwd().readFileAlloc(allocator, path, command.MAX_KEY_BYTES);
         defer allocator.free(bytes);
-        owned_key = try command.OwnedKeyV1.admit(allocator, bytes, pin);
+        owned_key = try command.OwnedKeyV1.admitWithNativeRoot(CpuEngine, allocator, bytes, pin);
     }
     var candidate = try produce(allocator, prepared, if (owned_key) |key| key.key() else null);
     defer candidate.deinit();
@@ -236,6 +237,7 @@ fn commitFixedColumns(comptime Engine: type, allocator: std.mem.Allocator, cohor
 }
 
 fn fixedKey(allocator: std.mem.Allocator, prepared: *const leaf.PreparedNativeV2LeafOuter, cohort: *const cohort_mod.Cohort, profile: Profile, fixed_root: recursion.poseidon2_channel.Digest, wire_terms: *std.ArrayList(recursion.air.verifier_arithmetic_lowering.PublicWireTerm)) !verifier.KeyV1 {
+    if (prepared.capture.proof.commitments.len == 0) return error.InvalidNativePreprocessedCommitment;
     std.debug.assert(wire_terms.items.len == 0);
     for (cohort.core.authority.lowering_plan.public_terms) |term|
         if (term.active_in == .segment) try wire_terms.append(allocator, term);
@@ -244,6 +246,7 @@ fn fixedKey(allocator: std.mem.Allocator, prepared: *const leaf.PreparedNativeV2
         .pcs_config = profile.pcsConfig(),
         .manifest = cohort.manifest().*,
         .preprocessed_root = fixed_root,
+        .native_preprocessed_root = prepared.capture.proof.commitments[0],
         .parameters = .{
             .query_reference = cohort.core.authority.query_bits_reference,
             .poseidon_active_rows = std.math.cast(u32, cohort.core.poseidonCallCount()) orelse return error.ArithmeticOverflow,
@@ -260,6 +263,16 @@ fn fixedKey(allocator: std.mem.Allocator, prepared: *const leaf.PreparedNativeV2
 /// Prepared native inputs and compiler policy remain caller admission obligations.
 pub fn deriveKey(allocator: std.mem.Allocator, prepared: *const leaf.PreparedNativeV2LeafOuter, profile: Profile) ![]u8 {
     try requireNativeProfile(prepared, profile);
+    if (prepared.capture.proof.commitments.len == 0) return error.InvalidNativePreprocessedCommitment;
+    const native_root = try native_preprocessed.rootForDescriptors(
+        CpuEngine,
+        allocator,
+        profile.nativePcsConfig(),
+        prepared.capture.vm_air.component_descs,
+        prepared.capture.vm_air.infra_descs,
+    );
+    if (!std.meta.eql(native_root, prepared.capture.proof.commitments[0]))
+        return error.InvalidNativePreprocessedCommitment;
     var cohort = try cohort_mod.Cohort.init(allocator, prepared);
     defer cohort.deinit();
     var scheme = try CpuEngine.init(allocator, profile.pcsConfig());

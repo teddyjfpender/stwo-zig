@@ -46,6 +46,16 @@ fn loadAdmitted(comptime family: child_mod.Family, allocator: std.mem.Allocator,
     var dir = try std.fs.cwd().openDir(args.directory, .{});
     defer dir.close();
     const key = try dir.readFileAlloc(a, "key.json", Command.MAX_KEY_BYTES);
+    if (family == .segment) {
+        const Engine = frontend.recursion.engine.ProverEngineForBackend(@import("stwo_cpu_backend").CpuBackend);
+        const admitted = try frontend.recursion.detached_segment_command_v1.OwnedKeyV1.admitWithNativeRoot(
+            Engine,
+            allocator,
+            key,
+            args.independent_key_sha256,
+        );
+        admitted.deinit();
+    }
     const expected_bytes = try std.fs.cwd().readFileAlloc(a, args.expected_wire_path, Command.MAX_INPUT_BYTES);
     const expected = if (family == .segment) try command.OwnedExpectedV1.decode(a, expected_bytes) else try Command.decodeExpected(a, expected_bytes);
     const claims_bytes = try dir.readFileAlloc(a, "claims.json", Command.MAX_INPUT_BYTES);

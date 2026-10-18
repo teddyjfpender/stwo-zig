@@ -50,6 +50,13 @@ pub const ProfileV1 = enum(u8) {
         };
     }
 
+    pub fn nativePcsConfig(self: ProfileV1) core.pcs.PcsConfig {
+        return switch (self) {
+            .development_q3_v1 => @import("native_development_config.zig").PCS_CONFIG,
+            .recursive_q193_v1 => recursion.protocol.PCS_CONFIG,
+        };
+    }
+
     pub fn interactionPowBits(self: ProfileV1) u32 {
         return switch (self) {
             .development_q3_v1 => INTERACTION_POW_BITS,
@@ -63,6 +70,8 @@ pub const KeyV1 = struct {
     pcs_config: core.pcs.PcsConfig = PCS_CONFIG,
     version: u32 = VERSION,
     manifest: manifest_mod.Manifest,
+    /// Native segment Tree 0, distinct from this outer proof's Tree 0 below.
+    native_preprocessed_root: Digest,
     preprocessed_root: Digest,
     parameters: components.AdmissionParametersV1,
     source_manifest: source.ManifestV2,
@@ -90,10 +99,12 @@ pub const KeyV1 = struct {
         try self.admitted_keys.validate();
         if (self.source_manifest.trace_log_size != self.manifest.placements[36].?.geometry.log_size or
             self.wire_terms.len == 0 or self.wire_terms.len >= core.fields.m31.Modulus or
-            std.mem.allEqual(u32, &self.preprocessed_root, 0))
+            std.mem.allEqual(u32, &self.preprocessed_root, 0) or
+            std.mem.allEqual(u32, &self.native_preprocessed_root, 0))
             return error.InvalidSegmentDetachedCircuit;
-        for (self.preprocessed_root) |word| if (word >= core.fields.m31.Modulus)
-            return error.InvalidSegmentDetachedCircuit;
+        for ([_]Digest{ self.preprocessed_root, self.native_preprocessed_root }) |root|
+            for (root) |word| if (word >= core.fields.m31.Modulus)
+                return error.InvalidSegmentDetachedCircuit;
         var hash = std.crypto.hash.sha2.Sha256.init(.{});
         hash.update(switch (self.profile) {
             .development_q3_v1 => "stwo-zig/segment-v2-detached-development-circuit/v2\x00",
@@ -104,6 +115,7 @@ pub const KeyV1 = struct {
         hash.update(&air.universal_challenges.registryOrderDigest());
         for (recursion.protocol.PROTOCOL_ID_WORDS) |word| hashWord(&hash, word);
         for (self.preprocessed_root) |word| hashWord(&hash, word);
+        for (self.native_preprocessed_root) |word| hashWord(&hash, word);
         hash.update(&self.parameters.query_reference.authority_digest);
         hashWord(&hash, self.parameters.poseidon_active_rows);
         for (self.source_manifest.identity) |word| hashWord(&hash, word);
@@ -126,6 +138,25 @@ pub const KeyV1 = struct {
 
     pub fn validate(self: *const KeyV1) !void {
         _ = try self.identity();
+    }
+
+    /// Independent key admission, performed without reading a proof. The
+    /// native commitment is regenerated from the key's own geometry.
+    pub fn validateNativePreprocessedRoot(
+        self: *const KeyV1,
+        comptime Engine: type,
+        allocator: std.mem.Allocator,
+    ) !void {
+        try self.validate();
+        const expected = try @import("../prover/preprocessed.zig").rootForDescriptors(
+            Engine,
+            allocator,
+            self.profile.nativePcsConfig(),
+            self.native_descriptors.components,
+            self.native_descriptors.infrastructure,
+        );
+        if (!std.meta.eql(expected, self.native_preprocessed_root))
+            return error.InvalidNativePreprocessedCommitment;
     }
 
     /// Validate canonical fields against an independently pinned projection.

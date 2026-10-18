@@ -35,6 +35,7 @@ test {
     _ = @import("poseidon2_universal_degree3_test_root.zig");
     _ = @import("poseidon2_protocol_identity_test_root.zig");
     _ = @import("air/memory_commitment/poseidon2_universal_identity_v2.zig");
+    _ = @import("poseidon2_identity_migration.zig");
     _ = @import("recursion_arithmetic_fusion_test_root.zig");
     _ = @import("recursion_opening_accumulation_test_root.zig");
     _ = @import("air/guest_precompile/keccakf_row.zig");
@@ -119,6 +120,7 @@ test {
     _ = @import("recursion/tests/vm_air_profile_test.zig");
     _ = @import("recursion/air/tests/composition_circuit_test.zig");
     _ = @import("recursion/air/universal_shared_provider_composition.zig");
+    _ = @import("recursion/air/universal_provider_authority.zig");
     _ = @import("recursion/air/control_component.zig");
     _ = @import("recursion/air/tests/control_slice_test.zig");
     _ = @import("recursion/air/tests/control_slice_heterogeneous_v2_test.zig");

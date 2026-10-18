@@ -544,23 +544,14 @@ pub fn verifyPreprocessedRoot(
     statement: types.RiscVStatement,
     actual: types.HasherForEngine(Engine).Hash,
 ) !void {
-    const columns = try preprocessed_trace.generate(allocator, statement);
-    var columns_moved = false;
-    errdefer if (!columns_moved) {
-        for (columns) |column| allocator.free(@constCast(column.values));
-        allocator.free(columns);
-    };
-
-    var scheme = try Engine.init(allocator, pcs_config);
-    defer Engine.deinit(&scheme, allocator);
-    var channel = Engine.Channel{};
-    // `Engine.commit` consumes the generated columns on every return path.
-    // Relinquish rollback ownership immediately before the call.
-    columns_moved = true;
-    try Engine.commit(&scheme, allocator, columns, null, &channel);
-    var roots = try scheme.roots(allocator);
-    defer roots.deinit(allocator);
-    if (roots.items.len != 1 or !std.meta.eql(roots.items[0], actual))
+    const expected = try preprocessed_trace.rootForDescriptors(
+        Engine,
+        allocator,
+        pcs_config,
+        statement.component_descs[0..statement.n_components],
+        statement.infra_descs[0..statement.n_infra],
+    );
+    if (!std.meta.eql(expected, actual))
         return types.ProverError.InvalidPreprocessedCommitment;
 }
 

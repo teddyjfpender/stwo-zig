@@ -87,6 +87,7 @@ fn testKey(word_count: usize, transcript_template_id: u32) !KeyV1 {
     return .{
         .manifest = manifest,
         .preprocessed_root = fixture.id("fixed-tree0"),
+        .native_preprocessed_root = fixture.id("native-tree0"),
         .parameters = .{ .query_reference = try air.query_bits_witness.Reference.seal(lane, lane), .poseidon_active_rows = 1 },
         .source_manifest = source_manifest,
         .admitted_keys = try source.VerifierKeyAuthorityV2.init(fixture.id("segment-key"), fixture.id("parent-key")),
@@ -104,6 +105,9 @@ pub fn testFixedProjection() !void {
     try std.testing.expectEqual(pin, try other_template.identity());
     var changed = key;
     changed.preprocessed_root = fixture.id("other-tree0");
+    try std.testing.expectError(error.SegmentDetachedCircuitPinMismatch, KeyV1.admit(changed, pin));
+    changed = key;
+    changed.native_preprocessed_root = fixture.id("other-native-tree0");
     try std.testing.expectError(error.SegmentDetachedCircuitPinMismatch, KeyV1.admit(changed, pin));
     changed = key;
     changed.pcs_config.fri_config.n_queries += 1;

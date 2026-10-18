@@ -16,9 +16,9 @@ pub const STARK_V_AIR_FNS_SHA256 = hexDigest(
     "cd3922d517bb96dcb660ed25e1bd58811109ab21721936f8e56b0a74fe582e79",
     "invalid pinned Stark-V air_fns.rs digest",
 );
-pub const POSEIDON_SOURCE_AUTHORITY_FORMAT_VERSION: u16 = 1;
+pub const POSEIDON_SOURCE_AUTHORITY_FORMAT_VERSION: u16 = 2;
 pub const POSEIDON_SOURCE_AUTHORITY_DOMAIN =
-    "stwo-zig/typed-air/recursion-poseidon2-provider-source/v1\x00";
+    "stwo-zig/typed-air/recursion-poseidon2-provider-source/v2\x00";
 const POSEIDON_DIRECT_CONSTRAINT_COUNT = geometry.POSEIDON_DIRECT_CONSTRAINT_COUNT;
 const POSEIDON_INTERACTION_BATCH_COUNT = geometry.POSEIDON_INTERACTION_BATCH_COUNT;
 const POSEIDON_INTERACTION_COLUMN_COUNT = geometry.POSEIDON_INTERACTION_COLUMN_COUNT;
@@ -43,6 +43,7 @@ pub const PoseidonSourceAuthority = struct {
     direct_constraints: u16,
     interaction_batches: u16,
     maximum_constraint_degree: u8,
+    full_io_only: u8,
 
     pub fn pinned() PoseidonSourceAuthority {
         return .{
@@ -57,6 +58,7 @@ pub const PoseidonSourceAuthority = struct {
             .direct_constraints = POSEIDON_DIRECT_CONSTRAINT_COUNT,
             .interaction_batches = POSEIDON_INTERACTION_BATCH_COUNT,
             .maximum_constraint_degree = POSEIDON_PROTOCOL_CONSTRAINT_DEGREE,
+            .full_io_only = 1,
         };
     }
 
@@ -95,9 +97,15 @@ pub const PoseidonSourceAuthority = struct {
         hashInt(&hash, u16, self.direct_constraints);
         hashInt(&hash, u16, self.interaction_batches);
         hashInt(&hash, u8, self.maximum_constraint_degree);
+        hashInt(&hash, u8, self.full_io_only);
         return hash.finalResult();
     }
 };
+
+test "shared provider authority pins the full-IO shell" {
+    const actual = PoseidonSourceAuthority.pinned().identityDigest();
+    try std.testing.expectEqualSlices(u8, &POSEIDON_SOURCE_AUTHORITY_DIGEST, &actual);
+}
 
 fn hashBytes(hash: anytype, value: []const u8) void {
     hashInt(hash, u32, value.len);

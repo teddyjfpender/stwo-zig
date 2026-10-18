@@ -134,6 +134,33 @@ fixes produced the following inventory.
 | R-D7 (High, pre-existing) | Frozen leaf geometry in `recursion/segment_profile.zig` (38/625/200 columns, 1071 sampled values) predates the September native column changes; leaf proving faults at `absorb_sampled_values` with `AuthorityMismatch`. | `air/statement.zig` column geometry. | Re-derive the frozen constants and call `segment_profile.validateStatement` before binding the transcript so geometry drift fails before proving. |
 | R-D6 (accepted) | The scheduled lane replaces `mixShardManifest` with a public-claim digest and verifier-owned shape ids. | — | Record as an accepted design difference once component row counts are shown to be pinned by the committed preprocessed tree. |
 
+### Additional divergences found while auditing the recursion contract
+
+| Id | Divergence | Required change |
+| --- | --- | --- |
+| R-D8 (Critical for the lane) | The leaf's native segment proof carries its tree-0 (preprocessed) root as proof data in the scheduled transcript (`recursion/segment_transcript_outer_source_v2_prepared_v2.zig:474-479`, `constant_mask = 0`), and the standalone detached verifiers only compare `commitments[0]` to the key's `preprocessed_root` without regenerating it. The native verifier regenerates and checks this root (`prover/statement_validation.zig` `verifyPreprocessedRoot`). A literal re-alignment of only R-D1 and R-D2 would still admit a leaf with an attacker-chosen `is_active` and lookup-table commitment. | Make the native tree-0 root a key-pinned constant of the leaf transcript and regenerate it at admission from key fields (contract V-14, K-8, W-9). |
+| R-D9 (accepted difference, now recorded) | The scheduled channel absorbs the 28 canonical sums but not the native interaction log-size list (`air/transcript/claims.zig:75-78` vs `recursion/native_scheduled_channel.zig:109-118`). Sound only because component geometry is pinned by the key. | Record as an accepted difference (contract T-3(d)) and cover by the shard-geometry gate. |
+
+**P-5 resolved:** `air/memory_commitment/ethereum_node_v1.zig` intentionally
+requests the full-IO Poseidon2 tuple, but no roster in
+`prover/base_component_assembly.zig` instantiates that node; the product
+Ethereum and CSP profiles use the `narrow_degree3_v1` provider, which emits the
+full-IO tuple with zero weight. The native product is therefore not exposed.
+Any re-activation of that node alongside a narrow emitter must pin the
+provider mode per shell first (contract P-5).
+
+### Normative contract
+
+The requirements, verifier obligations, qualification gates and ordered work
+items for re-qualifying this lane are specified in
+`soundness/RISCV_RECURSION_SOUNDNESS_CONTRACT.md`, which was drafted from the
+code and then independently audited against it (the audit added V-14 to V-17,
+K-8, G-8 to G-10 and W-9). The leaf-key-setup build step is restored.
+The hardened native leaf re-measures at 38/627/204 columns, giving 877 table
+columns and 1,081 sampled values; those values are now pinned in the frozen
+profile. Recursion remains unqualified pending the claim-binding and boundary
+AIR re-alignment, regenerated proof bundles, and the contract's gates.
+
 ### Independent finding in the recursion lane
 
 **R-F1 (Critical for the lane, not product-reachable):** the recursion's
@@ -155,6 +182,23 @@ every native requester (the Merkle node and the guest Poseidon2 caller,
 requests the narrow tuple, so no native collision exists; the Ethereum
 memory-commitment node (`air/memory_commitment/ethereum_node_v1.zig:166`)
 should be confirmed to request the narrow shape as part of the re-alignment.
+
+Follow-through: the full-IO constraint is implemented in the wide and compact
+provider shells, with changed constraint counts and new authority/semantic
+digests. The focused provider suite passed (235 passed, one skipped). This
+closes the local row forgery; the required end-to-end G-3(d) recursive-proof
+rejection is still pending.
+
+The detached SegmentV2 leaf key now carries the native Tree0 root and the
+standalone CPU verifier regenerates it from admitted native descriptors before
+reading proof bytes. A positive/changed-root test passes. This does not yet
+discharge K-8 for parent keys or the older frozen V1 row-5 source.
+
+The recursive AIR source-map check is not current: its pinned SHA-256 values
+already differ from eight live source files, including the compact Poseidon
+implementation, field arithmetic, framework interaction and Lean axiom audit.
+Those mappings require equation-by-equation review before re-pinning; changing
+hashes alone would not be soundness evidence.
 
 ### In-circuit verifier readiness
 
@@ -195,6 +239,24 @@ in `f8b64e96b`, run `test-riscv-recursion-poseidon-leaf` and the full suite,
 and update the ledger. No step needs the pinned Sail oracle; only the Metal
 variants need a GPU. Documented single-run durations: build about 340 s, leaf
 and parent production about 35 s each, full tree gate about 75 s.
+
+### Checkpoint validation (2026-10-18)
+
+After the full-IO provider guard and leaf Tree0 admission changes,
+`zig build test-riscv -Doptimize=ReleaseSafe -j2` and
+`zig build test-riscv-prover -Doptimize=ReleaseSafe -j2` both exited 0.
+The frontend inventory includes the newly test-bearing identity and provider
+authority modules. The compact-provider tests now reject active narrow and
+wide rows, and the row-34 Horner fixture includes the new full-IO guard;
+focused inventory, compact, manifest and binary-composition tests pass.
+The regenerated R-012 fixture has 1,313 constraints and seal
+`be2b507c7829989a9d1ea6db41f59917206874bcd669c71f1d5c1e3a09b55313`.
+
+The opt-in unqualified leaf reaches `InvalidComponentOrder` because row 18
+still records seven boundary constraints where the native AIR has nine. This
+is a failing qualification gate, not a supported recursive proof. Source-map
+hash review, proof-bundle regeneration and the remaining contract gates have
+not passed; `recursion_qualified=false` remains authoritative.
 
 ## Follow-ups outside this record
 

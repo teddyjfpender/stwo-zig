@@ -205,7 +205,7 @@ fn Poseidon2AdapterForLayout(comptime manifest_contract: type, comptime compact:
                 self.component.interaction_col_offset != self.placement.interaction_offset or
                 self.component.nPreprocessedColumns() != POSEIDON_PREPROCESSED_COLUMN_COUNT or
                 self.component.nConstraints() !=
-                    selected_air.N_CONSTRAINTS + POSEIDON_INTERACTION_BATCH_COUNT)
+                    selected_air.N_CONSTRAINTS + @intFromBool(!compact) + POSEIDON_INTERACTION_BATCH_COUNT)
             {
                 return error.ProviderAuthorityMismatch;
             }

@@ -807,6 +807,8 @@ fn nativeAccumulation(
     );
     for (poseidon_direct) |root|
         accumulation = accumulation.mul(random).add(root.mul(core_denominator));
+    const full_io_guard = poseidon_main[0].mul(QM31.one().sub(poseidon_main[poseidon_air.IO_COLUMN]));
+    accumulation = accumulation.mul(random).add(full_io_guard.mul(core_denominator));
     for (poseidon_interaction) |root|
         accumulation = accumulation.mul(random).add(root.mul(core_denominator));
 

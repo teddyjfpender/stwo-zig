@@ -65,6 +65,7 @@ pub const Definition = struct {
         for ([_]usize{ 0, layout.WIDE_COLUMN, layout.IO_COLUMN }, 0..) |column, index|
             result.roots[index] = try arena.mul(result.columns[column], try arena.sub(one, result.columns[column], span), span);
         result.roots[3] = try arena.mul(result.columns[layout.WIDE_COLUMN], result.columns[layout.IO_COLUMN], span);
+        result.roots[4] = try arena.mul(result.columns[0], try arena.sub(one, result.columns[layout.IO_COLUMN], span), span);
         const mapped = try allocator.alloc(Id, logical.nodes.items.len);
         defer allocator.free(mapped);
         const inputs = poseidon.values(semantic.inputs);
@@ -88,7 +89,7 @@ pub const Definition = struct {
             };
             const column = cuts[index];
             if (column != absent) {
-                result.roots[4 + column - 17] = try arena.sub(result.columns[column], lowered, span);
+                result.roots[5 + column - 17] = try arena.sub(result.columns[column], lowered, span);
                 mapped[index] = result.columns[column];
             } else mapped[index] = lowered;
         }

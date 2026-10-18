@@ -9,7 +9,7 @@ const roster = @import("../universal_roster.zig");
 // Recomputed from the complete ordered geometry below. In particular, row 20
 // now binds the profile-owned raw-query-to-position projection parameters.
 const FIXTURE_SEAL_HEX =
-    "b23e6d341bc35bc56b7540b5675c07ea35fd16010ddb517441655c5cda955725";
+    "be2b507c7829989a9d1ea6db41f59917206874bcd669c71f1d5c1e3a09b55313";
 
 test "R-012 universal manifest closes all 36 rows in exact protocol order" {
     const log_sizes = fixtureLogSizes();
@@ -47,7 +47,7 @@ test "R-012 universal manifest closes all 36 rows in exact protocol order" {
     try std.testing.expectEqual(@as(u32, 570), manifest.total_preprocessed_columns);
     try std.testing.expectEqual(@as(u32, 1044), manifest.total_main_columns);
     try std.testing.expectEqual(@as(u32, 560), manifest.total_interaction_columns);
-    try std.testing.expectEqual(@as(u32, 1312), manifest.total_constraints);
+    try std.testing.expectEqual(@as(u32, 1313), manifest.total_constraints);
     const query_placement = manifest.placements[
         @intFromEnum(roster.Component.query_bits)
     ].?;

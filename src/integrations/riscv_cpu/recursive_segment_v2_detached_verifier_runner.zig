@@ -1,4 +1,7 @@
-//! Standalone consumer: fixed-key pin, expected public wire, claims and proof.
+//! Standalone consumer: regenerate native Tree 0 from the admitted leaf key
+//! before reading any proof bytes.
 pub fn main() !void {
-    return @import("stwo_leaf_verifier").main();
+    const recursion = @import("stwo_riscv_frontend").recursion;
+    const Engine = recursion.engine.ProverEngineForBackend(@import("stwo_cpu_backend").CpuBackend);
+    return recursion.detached_segment_command_v1.mainWithNativeRoot(Engine);
 }
