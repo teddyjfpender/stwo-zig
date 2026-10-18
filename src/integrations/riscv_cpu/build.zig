@@ -189,6 +189,24 @@ pub fn build(b: *std.Build) void {
     b.step("build-recursive-segment-v2-detached-leaf-producer", "Build the detached SegmentV2 leaf producer")
         .dependOn(&b.addInstallArtifact(leaf_producer, .{}).step);
 
+    const leaf_preparation_root = b.createModule(.{
+        .root_source_file = b.path("recursive_segment_v2_leaf_outer_proof_test.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    leaf_preparation_root.addImport("stwo_core", core);
+    leaf_preparation_root.addImport("stwo_cpu_backend", cpu_backend);
+    leaf_preparation_root.addImport("stwo_riscv_frontend", frontend);
+    leaf_preparation_root.addImport("stwo_prover_api", prover_api);
+    leaf_preparation_root.addImport("stwo_prover_engine", prover);
+    leaf_preparation_root.addImport("interop_postcard", postcard);
+    const leaf_preparation_tests = b.addTest(.{
+        .root_module = leaf_preparation_root,
+        .filters = &.{"generic Poseidon2 native V2 capture prepares the owned recursive leaf"},
+    });
+    b.step("test-recursive-segment-v2-leaf-preparation", "Prove, verify, and prepare a native SegmentV2 recursive leaf")
+        .dependOn(&b.addRunArtifact(leaf_preparation_tests).step);
+
     const leaf_key_setup_root = b.createModule(.{
         .root_source_file = b.path("recursive_segment_v2_leaf_key_setup_runner.zig"),
         .target = target,

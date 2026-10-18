@@ -70,6 +70,8 @@ pub const Kind = enum(u8) {
     interaction_pow,
     relation_draw,
     claimed_sum,
+    physical_claim_header,
+    physical_claim_batch,
     interaction_log_count,
     interaction_log_size,
     composition_draw,
@@ -133,6 +135,8 @@ pub const Instruction = struct {
             .shard_header => 6,
             .shard_component, .shard_infra => 8,
             .claimed_sum => 4,
+            .physical_claim_header => 10,
+            .physical_claim_batch => try timesFour(self.args[1]),
             .sampled_values, .last_layer_coefficients => try timesFour(self.args[0]),
             .relation_draw,
             .composition_draw,
@@ -283,10 +287,31 @@ pub fn buildInstructions(
                 if (log_index != interaction_log_count)
                     return error.ProgramShapeMismatch;
             },
-            // SegmentV2 does not yet publish native physical claims to the
-            // transcript. Refuse a plan that requires them rather than
-            // silently dropping the step through the generic `else` arm.
-            .absorb_physical_claims => return error.ProgramShapeMismatch,
+            .absorb_physical_claims => |item| {
+                const manifest = lookup_manifest orelse return error.ProgramShapeMismatch;
+                if (item.component_count != component_descs.len or
+                    item.infra_count != infra_descs.len)
+                    return error.ProgramShapeMismatch;
+                try appendInstruction(allocator, destination, sequence, &sub_index, .physical_claim_header, .{
+                    item.component_count, item.infra_count, item.count, 0,
+                });
+                var claim_at: u32 = 0;
+                for (component_descs) |descriptor| {
+                    const count = manifest.entryForFamily(descriptor.family).detailed_claim_count;
+                    try appendInstruction(allocator, destination, sequence, &sub_index, .physical_claim_batch, .{
+                        claim_at, count, 0, 0,
+                    });
+                    claim_at = try addU32(claim_at, count);
+                }
+                for (infra_descs) |descriptor| {
+                    const count: u32 = @intCast(statement_v1.nClaimedSumsForInfra(descriptor.kind));
+                    try appendInstruction(allocator, destination, sequence, &sub_index, .physical_claim_batch, .{
+                        claim_at, count, 0, 0,
+                    });
+                    claim_at = try addU32(claim_at, count);
+                }
+                if (claim_at != item.count) return error.ProgramShapeMismatch;
+            },
             .draw_composition_randomness => try appendInstruction(
                 allocator,
                 destination,

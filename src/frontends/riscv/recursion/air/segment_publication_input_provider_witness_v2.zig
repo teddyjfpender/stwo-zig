@@ -168,7 +168,7 @@ pub const RelationEventV2 = struct {
         if (self.roster_row != PROPOSED_ROSTER_ROW or
             self.logical_row >= shape.logical_row_count or self.event_ordinal != 0 or
             self.domain != .recursion_verifier_input_word or self.role != .emit or
-            self.multiplicity != 1 or self.arity != 5 or
+            self.multiplicity != (if (self.logical_row < LUP2_WORD_COUNT) @as(u32, 1) else 2) or self.arity != 5 or
             self.arity != relation.universalDescriptor(self.domain).arity)
         {
             return error.InvalidRelationEvent;
@@ -301,7 +301,11 @@ fn providerEvent(row_index: usize, row: RowV2) RelationEventV2 {
         row.value,
     };
     @memcpy(tuple[0..values.len], &values);
-    return .{ .logical_row = @intCast(row_index), .tuple = tuple };
+    return .{
+        .logical_row = @intCast(row_index),
+        .multiplicity = if (row.lup2_class) 1 else 2,
+        .tuple = tuple,
+    };
 }
 
 fn validateDestinationGeometry(destinations: DestinationsV2, shape: Shape) Error!void {

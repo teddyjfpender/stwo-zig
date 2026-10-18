@@ -225,6 +225,7 @@ pub const Inputs = struct {
     trace_commitments: []const Digest,
     interaction_pow: u64,
     claimed_sums: []const QM31,
+    physical_claims: []const QM31 = &.{},
     sampled_values: []const QM31,
     fri_commitments: []const Digest,
     last_layer_coefficients: []const QM31,
@@ -239,6 +240,9 @@ pub const Inputs = struct {
         for (program.instructions) |instruction| switch (instruction.kind) {
             .claimed_sum => if (instruction.args[0] >= self.claimed_sums.len)
                 return error.InvalidInputCount,
+            .physical_claim_batch => if (instruction.args[0] > self.physical_claims.len or
+                instruction.args[1] > self.physical_claims.len - instruction.args[0])
+                return error.InvalidInputCount,
             .sampled_values => if (instruction.args[0] != self.sampled_values.len)
                 return error.InvalidInputCount,
             .last_layer_coefficients => if (instruction.args[0] !=
@@ -248,6 +252,7 @@ pub const Inputs = struct {
         for (self.trace_commitments) |digest| try validateDigest(digest);
         for (self.fri_commitments) |digest| try validateDigest(digest);
         for (self.claimed_sums) |value| try validateQm31(value);
+        for (self.physical_claims) |value| try validateQm31(value);
         for (self.sampled_values) |value| try validateQm31(value);
         for (self.last_layer_coefficients) |value| try validateQm31(value);
     }
@@ -483,6 +488,17 @@ pub fn writePayload(
         }),
         .shard_component, .shard_infra => writeU32s(destination, &instruction.args),
         .claimed_sum => writeQm31(destination, inputs.claimed_sums[instruction.args[0]]),
+        .physical_claim_header => writeU32s(destination, &.{
+            statement_v1.PHYSICAL_CLAIM_DOMAIN_WORDS[0],
+            statement_v1.PHYSICAL_CLAIM_DOMAIN_WORDS[1],
+            instruction.args[0],
+            instruction.args[1],
+            instruction.args[2],
+        }),
+        .physical_claim_batch => writeQm31s(
+            destination,
+            inputs.physical_claims[instruction.args[0]..][0..instruction.args[1]],
+        ),
         .interaction_log_count => writeU64(destination, instruction.args[0]),
         .interaction_log_size => writeU64(destination, instruction.args[1]),
         .sampled_values => writeQm31s(destination, inputs.sampled_values),

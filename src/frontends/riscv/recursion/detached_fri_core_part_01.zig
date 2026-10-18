@@ -500,6 +500,9 @@ pub fn Namespace(comptime context: type) type {
             captured: *const recursion.captured_fri.Owned,
             vm_air: recursion.vm_composition_preparation.Source,
             verifier_plans: VerifierPlans,
+            physical_claimed_sum_count: u32,
+            physical_component_count: u32,
+            physical_infra_count: u32,
         ) !V2CoreRows18Through34PreflightReceipt {
             try captured.evaluation.validateAgainst(&captured.circuit);
             try captured.pcs_evaluation.validateAgainst(&captured.pcs_circuit);
@@ -512,13 +515,17 @@ pub fn Namespace(comptime context: type) type {
                 return error.V2CoreRows18Through34PreflightMismatch;
             }
 
+            var schedule_facts = ScheduleFacts.fromCaptured(captured);
+            schedule_facts.physical_claimed_sum_count = physical_claimed_sum_count;
+            schedule_facts.physical_component_count = physical_component_count;
+            schedule_facts.physical_infra_count = physical_infra_count;
             var authority = try Authority.init(
                 allocator,
                 &captured.circuit,
                 &captured.pcs_circuit,
                 captured.trace_tree_heights,
                 captured.column_log_sizes,
-                ScheduleFacts.fromCaptured(captured),
+                schedule_facts,
                 vm_air,
                 verifier_plans,
                 null,

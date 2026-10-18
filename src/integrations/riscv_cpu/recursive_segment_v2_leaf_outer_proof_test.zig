@@ -413,6 +413,9 @@ fn runGateWithHookForSteps(
             .sampled_value_count = profile.sampled_value_count,
             .queried_values_per_query = profile.queried_values_per_query,
             .claimed_sum_count = profile.claimed_sum_count,
+            .physical_claimed_sum_count = @intCast(capture.vm_air.detailed_claims.len),
+            .physical_component_count = @intCast(capture.vm_air.component_descs.len),
+            .physical_infra_count = @intCast(capture.vm_air.infra_descs.len),
             .interaction_pow_bits = profile.interaction_pow_bits,
             .pcs_pow_bits = profile.pcs_pow_bits,
         },
@@ -504,10 +507,10 @@ fn runGateWithHookForSteps(
         @as(usize, 0),
         try bundle.shared_poseidon_layout.verifier_core.count(),
     );
-    // Physical lookup activation adds one header frame (3 permutations) and
-    // three SHA-256 identity frames (4 each) to the old 885-call transcript.
+    // Physical lookup activation adds 15 calls to the old 885-call transcript;
+    // the selected physical-claim header and batches add another 32.
     try std.testing.expectEqual(
-        @as(usize, 900),
+        @as(usize, 932),
         try bundle.shared_poseidon_layout.transcript.count(),
     );
     try std.testing.expectEqual(
@@ -621,7 +624,7 @@ fn runGateWithHookForSteps(
         bundle.row34_boundary_prefix_calls.len + core_calls.len,
         complete_calls.len,
     );
-    try std.testing.expectEqual(@as(usize, 1_208), complete_calls.len);
+    try std.testing.expectEqual(@as(usize, 1_240), complete_calls.len);
     const complete_layout = try native_core.completeScheduleReceipt();
     try std.testing.expect(complete_layout.call_set_complete);
     try std.testing.expect(complete_layout.verifier_core_range_populated);

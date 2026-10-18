@@ -113,7 +113,7 @@ test "V2 raw program exactly matches the ordinary generic channel" {
         try std.testing.expect(actual.eql(expected));
 }
 
-test "V2 transcript refuses an unimplemented physical-claim step" {
+test "V2 transcript refuses physical claims without an authenticated batch manifest" {
     var fixture = try Fixture.init(std.testing.allocator);
     defer fixture.deinit();
     const contract = @import("../transcript_program_v2_contract.zig");
@@ -145,6 +145,60 @@ test "V2 transcript refuses an unimplemented physical-claim step" {
         null,
         null,
     ));
+}
+
+test "V2 transcript expands selected physical claims in native batch order" {
+    var fixture = try Fixture.init(std.testing.allocator);
+    defer fixture.deinit();
+    const contract = @import("../transcript_program_v2_contract.zig");
+    const lookup = @import("../../air/lang/lookup_physical_manifest_v2.zig");
+    var manifest = lookup.Manifest.native();
+    const opcode_count = manifest.entryForFamily(component_descs[0].family).detailed_claim_count;
+    const infra_count: u32 = @intCast(statement_v1.nClaimedSumsForInfra(infra_descs[0].kind));
+    const steps = try std.testing.allocator.dupe(schedule.VerifierStep, fixture.plan.steps);
+    defer std.testing.allocator.free(steps);
+    var physical_sequence: ?u32 = null;
+    for (steps, 0..) |*step, sequence| if (step.* == .absorb_claimed_sums) {
+        step.* = .{ .absorb_physical_claims = .{
+            .count = opcode_count + infra_count,
+            .component_count = 1,
+            .infra_count = 1,
+        } };
+        physical_sequence = @intCast(sequence);
+        break;
+    };
+    const sequence = physical_sequence orelse return error.TestUnexpectedResult;
+    var modified = fixture.plan;
+    modified.steps = steps;
+    var instructions: std.ArrayList(contract.Instruction) = .empty;
+    defer instructions.deinit(std.testing.allocator);
+    try contract.buildInstructions(
+        std.testing.allocator,
+        &instructions,
+        &modified,
+        config,
+        @intCast(fixture.words.len),
+        &component_descs,
+        &infra_descs,
+        null,
+        &manifest,
+    );
+    var batch_at: usize = 0;
+    for (instructions.items) |instruction| {
+        if (instruction.verifier_sequence != sequence) continue;
+        if (batch_at == 0) {
+            try std.testing.expectEqual(contract.Kind.physical_claim_header, instruction.kind);
+            try std.testing.expectEqual(@as(usize, 10), try instruction.payloadWordCount());
+        } else {
+            try std.testing.expectEqual(contract.Kind.physical_claim_batch, instruction.kind);
+            try std.testing.expectEqual(
+                @as(usize, if (batch_at == 1) opcode_count else infra_count) * 4,
+                try instruction.payloadWordCount(),
+            );
+        }
+        batch_at += 1;
+    }
+    try std.testing.expectEqual(@as(usize, 3), batch_at);
 }
 
 test "V2 scheduled bootstrap rejects order version length and wire mutation" {

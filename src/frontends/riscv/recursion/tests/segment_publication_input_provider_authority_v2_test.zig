@@ -26,7 +26,7 @@ test "publication-input provider pins typed semantic and geometry" {
         try air.staticProfile(&definition),
     );
     const plan = try binding.authenticate(&definition);
-    try std.testing.expectEqual(@as(u16, 10), plan.compiled_node_count);
+    try std.testing.expectEqual(@as(u16, 12), plan.compiled_node_count);
     try std.testing.expectEqual(
         @as(usize, 139),
         witness.LOGICAL_ROW_COUNT,
@@ -72,12 +72,19 @@ test "capture-backed provider emits exact disjoint 55 and 84 tuple classes" {
             const event = provider_trace.events[logical_row];
             try std.testing.expectEqual(air.DETAILED_VERIFIER_ID, event.tuple[0].toU32());
             try std.testing.expectEqual(air.DETAILED_SOURCE_KIND, event.tuple[1].toU32());
+            try std.testing.expectEqual(@as(u32, 2), event.multiplicity);
             try std.testing.expectEqual(@as(u32, @intCast(item)), event.tuple[2].toU32());
             try std.testing.expectEqual(@as(u32, @intCast(limb_index)), event.tuple[3].toU32());
             try std.testing.expect(limb.eql(event.tuple[4]));
             logical_row += 1;
         }
     }
+    var dropped_transcript_copy = provider_trace.events[witness.LUP2_WORD_COUNT];
+    dropped_transcript_copy.multiplicity = 1;
+    try std.testing.expectError(
+        error.InvalidRelationEvent,
+        dropped_transcript_copy.validate(prepared.shape),
+    );
     try std.testing.expectEqual(witness.LOGICAL_ROW_COUNT, logical_row);
     for (provider_trace.main[0][witness.LOGICAL_ROW_COUNT..]) |word|
         try std.testing.expect(word.isZero());

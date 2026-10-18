@@ -193,6 +193,7 @@ pub const PayloadSourceKindV2 = enum(u32) {
     last_layer_coefficient = @intFromEnum(payload_air.VerifierInputKind.last_layer_coefficient),
     interaction_pow_nonce = @intFromEnum(payload_air.VerifierInputKind.interaction_pow_nonce),
     pcs_pow_nonce = @intFromEnum(payload_air.VerifierInputKind.pcs_pow_nonce),
+    vm_air_claimed_sum = @intFromEnum(payload_air.VerifierInputKind.vm_air_claimed_sum),
     public_geometry = 13,
 };
 
@@ -529,6 +530,17 @@ pub fn payloadMetadata(
             .claimed_sum,
             instruction.args[0],
             payload_index,
+            1,
+        ),
+        .physical_claim_header => constantPayload(
+            .public_geometry,
+            instruction.sub_index,
+            payload_index,
+        ),
+        .physical_claim_batch => dynamicPayload(
+            .vm_air_claimed_sum,
+            instruction.args[0] + payload_index / 4,
+            payload_index % 4,
             1,
         ),
         .sampled_values => dynamicPayload(

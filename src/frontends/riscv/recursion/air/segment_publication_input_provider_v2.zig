@@ -46,13 +46,13 @@ pub const RELATION_EVENT_COUNT: usize = 1;
 pub const LOOKUP_BATCH_SIZE: u8 = 1;
 pub const INTERACTION_BATCH_COUNT: usize = 1;
 pub const INTERACTION_COLUMN_COUNT: usize = 4;
-pub const MAXIMUM_CONSTRAINT_DEGREE: u32 = 2;
+pub const MAXIMUM_CONSTRAINT_DEGREE: u32 = 3;
 pub const REFERENCE_MAXIMUM_CONSTRAINT_DEGREE: u32 = 3;
 
 // Regenerated from this file's typed IR. The focused authority test pins both
 // this semantic identity and the compiler profile before integration.
 pub const SEMANTIC_DIGEST_HEX =
-    "5b62519820b6cf232304c74537a8612f3956a0f90fa898bc560668cd54e1d32c";
+    "00b03b0d40531ff708ce2eecba67c6a54280877a3364a48e493514d99cb44e0e";
 pub const SEMANTIC_DIGEST: digest.Digest = hexDigest(
     SEMANTIC_DIGEST_HEX,
     "invalid SegmentV2 publication-input provider semantic digest",
@@ -106,6 +106,7 @@ pub const Definition = struct {
     preprocessed: PreprocessedColumns,
     verifier: types.ValueId,
     source_kind: types.ValueId,
+    weight: types.ValueId,
     roots: [DIRECT_CONSTRAINT_COUNT]types.ValueId,
     constraints: [DIRECT_CONSTRAINT_COUNT]types.ConstraintId,
     event: types.EffectId,
@@ -175,7 +176,7 @@ pub const Definition = struct {
             self.event,
             .recursion_verifier_input_word,
             .emit,
-            self.preprocessed.active,
+            self.weight,
             &tuple,
         );
     }
@@ -192,8 +193,8 @@ pub const StaticProfile = struct {
 };
 
 pub const EXPECTED_STATIC_PROFILE = StaticProfile{
-    .arena_nodes = 25,
-    .compiled_nodes = 20,
+    .arena_nodes = 27,
+    .compiled_nodes = 22,
     .direct_constraints = DIRECT_CONSTRAINT_COUNT,
     .relation_events = RELATION_EVENT_COUNT,
     .interaction_batches = INTERACTION_BATCH_COUNT,
@@ -309,11 +310,19 @@ fn buildRaw(allocator: std.mem.Allocator) !Definition {
         preprocessed.index_1,
         main.value,
     };
+    // Each detailed claim is consumed once by the transcript and once by the
+    // composition input. Both lookups must resolve to this same provider row.
+    const detailed_multiplicity = try arena.sub(
+        try arena.constantField(2, span),
+        preprocessed.lup2_class,
+        span,
+    );
+    const weight = try arena.mul(preprocessed.active, detailed_multiplicity, span);
     const event = try relation_effect.append(&arena, .{
         .domain = .recursion_verifier_input_word,
         .role = .emit,
         .values = &tuple,
-        .weight = preprocessed.active,
+        .weight = weight,
     }, span);
     return .{
         .arena = arena,
@@ -321,6 +330,7 @@ fn buildRaw(allocator: std.mem.Allocator) !Definition {
         .preprocessed = preprocessed,
         .verifier = verifier,
         .source_kind = source_kind,
+        .weight = weight,
         .roots = roots,
         .constraints = constraints,
         .event = event,
@@ -395,7 +405,7 @@ comptime {
         DETAILED_VERIFIER_ID != 0 or DETAILED_SOURCE_KIND != 12 or
         LOGICAL_INPUT_COUNT != 5 or DIRECT_CONSTRAINT_COUNT != 7 or
         RELATION_EVENT_COUNT != 1 or INTERACTION_BATCH_COUNT != 1 or
-        INTERACTION_COLUMN_COUNT != 4 or MAXIMUM_CONSTRAINT_DEGREE != 2 or
+        INTERACTION_COLUMN_COUNT != 4 or MAXIMUM_CONSTRAINT_DEGREE != 3 or
         relation.universalDescriptor(.recursion_verifier_input_word).arity != 5)
     {
         @compileError("SegmentV2 publication-input provider AIR drifted");

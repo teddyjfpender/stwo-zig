@@ -260,6 +260,7 @@ pub fn Preparation(comptime Capture: type, comptime CorePreflight: type) type {
                     .trace_commitments = captured_fri.trace_roots,
                     .interaction_pow = interaction_pow,
                     .claimed_sums = &canonical_claims,
+                    .physical_claims = capture.vm_air.detailed_claims,
                     .sampled_values = captured_fri.sampled_values,
                     .fri_commitments = captured_fri.fri_roots,
                     .last_layer_coefficients = captured_fri.last_layer_coefficients,
@@ -380,6 +381,9 @@ pub fn Preparation(comptime Capture: type, comptime CorePreflight: type) type {
                         &captured_fri,
                         .{ .borrowed = &vm_air },
                         owned_plans,
+                        @intCast(capture.vm_air.detailed_claims.len),
+                        @intCast(capture.vm_air.component_descs.len),
+                        @intCast(capture.vm_air.infra_descs.len),
                     );
 
                 var result = PreparedNativeV2LeafOuter{
