@@ -8,6 +8,27 @@ const proof_finalize = @import("../../../prover/proof_finalize.zig");
 const verifier = @import("../../../prover/verifier.zig");
 const proof_workspace = @import("../../../prover/proof_workspace.zig");
 
+test "lookup polynomial v2 refuses a scheduled transcript without physical claims" {
+    const Scheduled = struct {
+        pub fn absorbRiscVClaimedSums(_: *@This(), _: anytype) !void {
+            return error.UnexpectedCanonicalAbsorption;
+        }
+    };
+    var manifest = subject.Manifest.native();
+    var statement = fixture.canonicalStatement();
+    const authenticated = try subject.AuthenticatedStatement.init(&statement, &manifest);
+    const claim = try std.testing.allocator.create(statement_mod.RiscVInteractionClaim);
+    defer std.testing.allocator.destroy(claim);
+    claim.initZeroInto();
+    claim.n_components = statement.n_components;
+    claim.n_infra = statement.n_infra;
+    var scheduled = Scheduled{};
+    try std.testing.expectError(
+        error.UnsupportedScheduledPhysicalClaims,
+        authenticated.mixInteractionClaim(&scheduled, &statement, &manifest, claim),
+    );
+}
+
 test "lookup polynomial v2: authenticated prover and verifier construction share physical authority" {
     const allocator = std.testing.allocator;
     var manifest = subject.Manifest.native();

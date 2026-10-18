@@ -448,11 +448,10 @@ pub const AuthenticatedStatement = struct {
         );
         const view = canonical.view();
         if (comptime @hasDecl(@TypeOf(channel.*), "absorbRiscVClaimedSums")) {
-            // Recursion-lane scheduled channels absorb only the canonical
-            // sums (fixed schedule step, mirrored in-circuit). See
-            // `proof_transcript.mixInteractionClaim`; that lane is paused and
-            // must be re-aligned with the physical frame below.
-            try channel.absorbRiscVClaimedSums(&view.claimed_sums);
+            // The selected physical layout has a different batch count from
+            // the frozen scheduled lane. Refuse it until its detailed claims
+            // are part of the admitted schedule and recursive transcript.
+            return error.UnsupportedScheduledPhysicalClaims;
         } else {
             view.mixInto(channel);
             // Canonical first, then exactly the selected batch claims each
