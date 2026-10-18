@@ -339,9 +339,9 @@ pub fn Namespace(comptime context: type) type {
         pub const SEGMENT_CIRCUIT_ID: u32 = 301;
         pub const LEFT_CIRCUIT_ID: u32 = 302;
         pub const RIGHT_CIRCUIT_ID: u32 = 303;
-        pub const PCS_SEGMENT_CIRCUIT_ID: u32 = 201;
-        pub const PCS_LEFT_CIRCUIT_ID: u32 = 202;
-        pub const PCS_RIGHT_CIRCUIT_ID: u32 = 203;
+        pub const PCS_SEGMENT_CIRCUIT_ID: u32 = @import("detached_pcs_circuit_ids_v1.zig").SEGMENT;
+        pub const PCS_LEFT_CIRCUIT_ID: u32 = @import("detached_pcs_circuit_ids_v1.zig").LEFT_RECURSION;
+        pub const PCS_RIGHT_CIRCUIT_ID: u32 = @import("detached_pcs_circuit_ids_v1.zig").RIGHT_RECURSION;
         pub const VM_BINARY_CAPACITY_CIRCUIT_ID: u32 = 2;
         pub const INACTIVE_MIDDLE_FIRST: usize = 10;
         pub const INACTIVE_MIDDLE_COUNT: usize = 2;

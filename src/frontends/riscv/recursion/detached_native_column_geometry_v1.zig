@@ -27,9 +27,11 @@ pub const Geometry = struct {
     }
 
     pub fn validateCaptured(self: *const Geometry, captured: []const []const u32) !void {
-        if (captured.len < self.trees.len) return error.NativeColumnGeometryMismatch;
+        if (captured.len != self.pcs_trees.len) return error.NativeColumnGeometryMismatch;
         for (self.trees, captured[0..self.trees.len]) |derived, actual|
             if (!std.mem.eql(u32, derived, actual)) return error.NativeColumnGeometryMismatch;
+        if (!std.mem.eql(u32, self.composition_logs, captured[3]))
+            return error.NativeColumnGeometryMismatch;
     }
 
     pub fn validateSampleLayouts(self: *const Geometry, captured: []const Layout) !void {
@@ -175,9 +177,9 @@ test "native PCS trace logs follow the verifier's descriptor order without proof
     mutated_layouts[interaction_start] = .previous_current;
     try std.testing.expectError(error.NativeColumnGeometryMismatch, geometry.validateSampleLayouts(mutated_layouts));
     try std.testing.expectError(error.NativeColumnGeometryMismatch, geometry.validateCaptured(&.{
-        &.{ 5, 5, 7, 6 }, geometry.trees[1], geometry.trees[2],
+        &.{ 5, 5, 7, 6 }, geometry.trees[1], geometry.trees[2], geometry.composition_logs,
     }));
-    try geometry.validateCaptured(&.{ geometry.trees[0], geometry.trees[1], geometry.trees[2] });
+    try geometry.validateCaptured(&.{ geometry.trees[0], geometry.trees[1], geometry.trees[2], geometry.composition_logs });
     try std.testing.expectError(error.InvalidNativeDescriptorGeometry, init(std.testing.allocator, descriptors, 32));
     var oversized = descriptors;
     oversized.infrastructure = &.{.{ .kind = .program, .log_size = 21, .n_rows = 32, .n_columns = 10 }};

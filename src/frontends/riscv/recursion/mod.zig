@@ -143,6 +143,8 @@ pub const detached_segment_public_inputs_v1 = @import("detached_segment_public_i
 
 pub const detached_segment_authority_boundary_v1 = @import("detached_segment_authority_boundary_v1.zig");
 pub const detached_segment_protocol_v1 = @import("detached_segment_protocol_v1.zig");
+pub const detached_native_column_geometry_v1 = @import("detached_native_column_geometry_v1.zig");
+pub const detached_fixed_tree0_pcs_recipe_v1 = @import("detached_fixed_tree0_pcs_recipe_v1.zig");
 pub const detached_segment_verifier_v1 = @import("detached_segment_verifier_v1.zig");
 pub const detached_segment_command_v1 = @import("detached_segment_command_v1.zig");
 

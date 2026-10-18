@@ -187,6 +187,23 @@ pub fn prepareWithProfile(
         &capture.proof,
     );
     defer profile.deinit();
+    // Independently reconstruct the native PCS profile from the verified
+    // statement descriptors. These descriptors are serialized into the leaf
+    // key, so a later key-only compiler must obtain the same profile without
+    // using the captured proof's geometry or sampled-point lists.
+    var native_geometry = try recursion.detached_native_column_geometry_v1.init(
+        allocator,
+        .{ .components = capture.vm_air.component_descs, .infrastructure = capture.vm_air.infra_descs },
+        pcs_config.fri_config.log_blowup_factor,
+    );
+    defer native_geometry.deinit();
+    try native_geometry.validateCaptured(profile.column_log_sizes);
+    try native_geometry.validateSampleLayouts(profile.sample_layouts);
+    const derived_pcs_profile = try native_geometry.pcsProfile(
+        std.math.cast(u32, pcs_config.fri_config.n_queries) orelse return error.NativeColumnGeometryMismatch,
+    );
+    if (!std.meta.eql(derived_pcs_profile.identityDigest(), profile.pcs_circuit.profile().identityDigest()))
+        return error.NativeColumnGeometryMismatch;
     if (profile.trace_tree_heights.len != recursion.fixed_profile.TREE_COUNT)
         return error.InvalidProofShape;
     var tree_heights: [recursion.fixed_profile.TREE_COUNT]u32 = undefined;

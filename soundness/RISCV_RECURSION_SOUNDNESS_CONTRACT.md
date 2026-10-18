@@ -876,7 +876,7 @@ if its row is committed in Tree 0.
 | W-4 | Local shell fixed | Wide and compact providers constrain full IO; focused provider tests pass. End-to-end G-3(d) remains open. |
 | W-5 | Migration retired | Both migration entry points fail closed for pre-contract keys. |
 | W-6, W-7 | Open | Fresh 1/2/4/8 leaf-key setups completed and the focused `test-riscv-recursion-soundness` step passed 15/15 ReleaseSafe tests, but this step is only a subset of G-1 through G-10. Parent/root trees, Metal parity, adversarial cases, and the unskipped broad suites still require fresh final-identity evidence. The opt-in native leaf rejects aggregate-column and maximum-log geometry changes before transcript opening; exact re-pinned descriptor/catalog admission remains under test. |
-| W-9 | Detached leaf partial | Leaf key pins native Tree0 and CPU admission independently regenerates it. Frozen V1 row-5 requires the admitted root. V2 row-5 receives a geometry-derived root separately from the proof, rejects a different proof frame, and places that root in the constant column and source identity. Parent `admit-key` regenerates the fixed key from **verified child proofs** and rejects re-pinned child-key and root mutations before parent proof production; it is not proof-free key-only reconstruction. **The leaf outer Tree0 cannot yet be independently regenerated from the current key:** its 578 fixed columns comprise 46,808,640 field cells. Row 11 has a value-independent recipe from the four retained-section counts bound into the key identity; rows 34–38 now have proof-free geometry/table recipes that match the production row-digest census. The remaining fixed-column families still require canonical key-only recipes. Copying a claimed root or raw columns is not an independent check. G-8(c) remains open for both leaf and parent, and the standalone hostile-proof G-8(a) control remains open. |
+| W-9 | Detached leaf partial | Leaf key pins native Tree0 and CPU admission independently regenerates it. Frozen V1 row-5 requires the admitted root. V2 row-5 receives a geometry-derived root separately from the proof, rejects a different proof frame, and places that root in the constant column and source identity. Parent `admit-key` regenerates the fixed key from **verified child proofs** and rejects re-pinned child-key and root mutations before parent proof production; it is not proof-free key-only reconstruction. **The leaf outer Tree0 cannot yet be independently regenerated from the current key:** its 578 fixed columns comprise 46,808,640 field cells. Rows 11 and 24 and 34–38 now have proof-free recipes. The row-24 PCS recipe rebuilds the graph from admitted native descriptors and matches the production census digest `ccd6ec59d7ddf4439da2cc4ebaa1ee190025f3d5c5104f8908f2435fa0dded7d` for the q193 one-segment roster; the real native ingress also checked the key-derived PCS profile against the captured verifier profile during a one-segment CPU key setup. Other fixed-column families still require canonical key-only recipes. Copying a claimed root or raw columns is not an independent check. G-8(c) remains open for both leaf and parent, and the standalone hostile-proof G-8(a) control remains open. |
 | W-8 | False | `recursion_qualified` stays false until every gate and independent review passes. |
 
 The next K-8 leaf dependency is the PCS/FRI fixed-row profile. Its large
@@ -890,9 +890,10 @@ have different component counts, so column counts must remain descriptor
 driven. The native segment's sample-mask order is now specified alongside
 those logs: Tree0 and Tree1 sample the current point; the authenticated
 interaction columns sample current then previous; composition samples current.
-The derived PCS profile can build its graph without proof input. Its exact
-logs and mask order still need to be checked against a real captured profile
-and used to regenerate row 24. A claimed profile digest or proof-derived layout
+The derived PCS profile builds its graph without proof input. Its exact logs,
+mask order and identity now match a real captured native verifier profile,
+and the resulting row-24 fixed columns match the production census. This is
+one row recipe, not independent regeneration of the complete Tree0. A claimed profile digest or proof-derived layout
 does not qualify as key-only regeneration.
 
 The recursive AIR source map has been reviewed against the relocated S-box,
