@@ -197,6 +197,7 @@ pub const vm_public_claim_semantics_input = @import("vm_public_claim_semantics_i
 pub const vm_public_claim_semantics_input_relation = @import("vm_public_claim_semantics_input_relation.zig");
 pub const vm_public_claim_semantics_input_witness = @import("vm_public_claim_semantics_input_witness.zig");
 pub const vm_public_logup_control = @import("vm_public_logup_control.zig");
+pub const vm_public_logup_control_v2 = @import("vm_public_logup_control_v2.zig");
 pub const vm_public_logup_control_relation = @import("vm_public_logup_control_relation.zig");
 pub const vm_public_logup_input = @import("vm_public_logup_input.zig");
 pub const vm_public_logup_input_relation = @import("vm_public_logup_input_relation.zig");
