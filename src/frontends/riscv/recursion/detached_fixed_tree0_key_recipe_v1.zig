@@ -12,6 +12,24 @@ const wire_layout = @import("segment_statement_v2_transcript_layout.zig");
 const leaf_source = @import("segment_leaf_authority_v2.zig");
 const provider_shape = @import("air/segment_publication_input_provider_shape_v2.zig");
 
+/// The frozen statement-input adapter is explicitly inactive in SegmentV2.
+/// Its physical Tree0 columns are present and must all be zero.
+pub fn fillInactiveStatementInputRow(
+    manifest: *const manifest_mod.Manifest,
+    columns: *[@import("air/statement_input.zig").PREPROCESSED_COLUMN_COUNT][]M31,
+) !void {
+    try manifest.validate();
+    const placement = manifest.placements[10] orelse return error.InvalidFixedStatementGeometry;
+    if (placement.geometry.preprocessed_columns != columns.len or
+        placement.geometry.log_size != @import("segment_statement_outer_components_v2.zig").ROW10_LOG_SIZE)
+        return error.InvalidFixedStatementGeometry;
+    const size = @as(usize, 1) << @intCast(placement.geometry.log_size);
+    for (columns) |column| {
+        if (column.len != size) return error.InvalidFixedStatementGeometry;
+        @memset(column, M31.zero());
+    }
+}
+
 /// Boundary row 36 publishes the wire followed by the fixed-size context.
 /// Only the values live in Tree 1; the Tree 0 selectors follow from the key's
 /// admitted wire length and cannot be supplied by a proof or capture.

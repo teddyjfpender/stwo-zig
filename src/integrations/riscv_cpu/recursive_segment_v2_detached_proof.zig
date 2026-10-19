@@ -267,10 +267,10 @@ fn requireNativeProfile(prepared: *const leaf.PreparedNativeV2LeafOuter, profile
         return error.DetachedNativeSecurityProfileMismatch;
 }
 
-fn commitFixedColumns(comptime Engine: type, allocator: std.mem.Allocator, cohort: *cohort_mod.Cohort, preprocessed: *storage.TreeStorageFor(Engine), scheme: anytype, channel: *Engine.Channel, arithmetic_digests: ?*[3][32]u8) !recursion.poseidon2_channel.Digest {
+fn commitFixedColumns(comptime Engine: type, allocator: std.mem.Allocator, cohort: *cohort_mod.Cohort, preprocessed: *storage.TreeStorageFor(Engine), scheme: anytype, channel: *Engine.Channel, key_row_digests: ?*[6][32]u8) !recursion.poseidon2_channel.Digest {
     const manifest = cohort.manifest();
     try cohort.fillPreprocessedInto(manifest, preprocessed.columns);
-    if (arithmetic_digests) |digests| digests.* = arithmeticColumnDigests(manifest, preprocessed.columns);
+    if (key_row_digests) |digests| digests.* = keyRowDigests(manifest, preprocessed.columns);
     try preprocessed.commit(scheme, channel);
     try Engine.flushPendingCommit(scheme, allocator, channel);
     var roots = try scheme.roots(allocator);
@@ -348,8 +348,8 @@ pub fn deriveKey(allocator: std.mem.Allocator, prepared: *const leaf.PreparedNat
     var channel = CpuEngine.Channel{};
     var preprocessed = try storage.TreeStorageFor(CpuEngine).init(allocator, cohort.manifest(), 0);
     defer preprocessed.deinit();
-    var arithmetic_digests: [3][32]u8 = undefined;
-    const root = try commitFixedColumns(CpuEngine, allocator, &cohort, &preprocessed, &scheme, &channel, &arithmetic_digests);
+    var key_row_digests: [6][32]u8 = undefined;
+    const root = try commitFixedColumns(CpuEngine, allocator, &cohort, &preprocessed, &scheme, &channel, &key_row_digests);
     var wire_terms: std.ArrayList(recursion.air.verifier_arithmetic_lowering.PublicWireTerm) = .empty;
     defer wire_terms.deinit(allocator);
     var key = try fixedKey(allocator, prepared, &cohort, profile, root, &wire_terms);
@@ -360,21 +360,68 @@ pub fn deriveKey(allocator: std.mem.Allocator, prepared: *const leaf.PreparedNat
         &key,
         &cohort.core.authority.lowering_plan,
     );
-    if (profile == .recursive_q193_v1) try validateKeyArithmeticColumns(
+    if (profile == .recursive_q193_v1) try validateKeyFixedColumns(
         allocator,
         &key,
-        arithmetic_digests,
+        key_row_digests,
     );
     return std.json.Stringify.valueAlloc(allocator, key, .{});
 }
 
-fn validateKeyArithmeticColumns(
+fn validateKeyFixedColumns(
     allocator: std.mem.Allocator,
     key: *const verifier.KeyV1,
-    production_digests: [3][32]u8,
+    production_digests: [6][32]u8,
 ) !void {
     const M31 = @import("stwo_core").fields.m31.M31;
     const air = recursion.air;
+    const inactive_placement = key.manifest.placements[10] orelse return error.InvalidFixedStatementGeometry;
+    const inactive_size = @as(usize, 1) << @intCast(inactive_placement.geometry.log_size);
+    const inactive_count = air.statement_input.PREPROCESSED_COLUMN_COUNT;
+    const inactive_storage = try allocator.alloc(M31, inactive_size * inactive_count);
+    defer allocator.free(inactive_storage);
+    var inactive_columns: [inactive_count][]M31 = undefined;
+    for (&inactive_columns, 0..) |*column, index|
+        column.* = inactive_storage[index * inactive_size ..][0..inactive_size];
+    try recursion.detached_fixed_tree0_key_recipe_v1.fillInactiveStatementInputRow(&key.manifest, &inactive_columns);
+    const inactive_digest = digestColumnLane(&inactive_columns);
+    if (!std.mem.eql(u8, &production_digests[0], &inactive_digest))
+        return error.FixedInactiveStatementRowsMismatch;
+
+    const vm_placement = key.manifest.placements[18] orelse return error.InvalidFixedVmInputGeometry;
+    const vm_size = @as(usize, 1) << @intCast(vm_placement.geometry.log_size);
+    const vm_count = air.vm_air_composition_input_witness.PREPROCESSED_COLUMN_COUNT;
+    const vm_storage = try allocator.alloc(M31, vm_size * vm_count);
+    defer allocator.free(vm_storage);
+    var vm_columns: [vm_count][]M31 = undefined;
+    for (&vm_columns, 0..) |*column, index|
+        column.* = vm_storage[index * vm_size ..][0..vm_size];
+    try recursion.detached_fixed_tree0_vm_input_recipe_v1.fillFromKey(
+        allocator,
+        key,
+        &vm_columns,
+    );
+    const vm_digest = try digestGeneratedColumnLane(allocator, &vm_columns, vm_placement.geometry.log_size);
+    if (!std.mem.eql(u8, &production_digests[1], &vm_digest))
+        return error.FixedVmInputRowsMismatch;
+
+    const control_placement = key.manifest.placements[19] orelse return error.InvalidFixedControlGeometry;
+    const control_size = @as(usize, 1) << @intCast(control_placement.geometry.log_size);
+    const control_count = air.control_slice_witness.COLUMN_COUNT;
+    const control_storage = try allocator.alloc(M31, control_size * control_count);
+    defer allocator.free(control_storage);
+    var control_columns: [control_count][]M31 = undefined;
+    for (&control_columns, 0..) |*column, index|
+        column.* = control_storage[index * control_size ..][0..control_size];
+    try recursion.detached_fixed_tree0_control_recipe_v1.fillFromKey(
+        allocator,
+        key,
+        &control_columns,
+    );
+    const control_digest = try digestGeneratedColumnLane(allocator, &control_columns, control_placement.geometry.log_size);
+    if (!std.mem.eql(u8, &production_digests[2], &control_digest))
+        return error.FixedControlRowsMismatch;
+
     const Counts = .{
         air.qm31_mul_full_witness.PREPROCESSED_COLUMN_COUNT,
         air.qm31_inv_witness.PREPROCESSED_COLUMN_COUNT,
@@ -418,21 +465,27 @@ fn validateKeyArithmeticColumns(
         try digestGeneratedColumnLane(allocator, linear[0..], key.manifest.placements[32].?.geometry.log_size),
     };
     inline for (0..3) |lane|
-        if (!std.mem.eql(u8, &production_digests[lane], &rebuilt_digests[lane]))
+        if (!std.mem.eql(u8, &production_digests[lane + 3], &rebuilt_digests[lane]))
             return error.FixedArithmeticRowsMismatch;
 }
 
-fn arithmeticColumnDigests(manifest: anytype, columns: anytype) [3][32]u8 {
+fn keyRowDigests(manifest: anytype, columns: anytype) [6][32]u8 {
     const Counts = .{
         recursion.air.qm31_mul_full_witness.PREPROCESSED_COLUMN_COUNT,
         recursion.air.qm31_inv_witness.PREPROCESSED_COLUMN_COUNT,
         recursion.air.linear_ops_witness.PREPROCESSED_COLUMN_COUNT,
     };
-    var digests: [3][32]u8 = undefined;
+    var digests: [6][32]u8 = undefined;
+    const inactive_placement = manifest.placements[10].?;
+    digests[0] = digestColumnLane(columns[@as(usize, inactive_placement.preprocessed_offset)..][0..recursion.air.statement_input.PREPROCESSED_COLUMN_COUNT]);
+    const vm_placement = manifest.placements[18].?;
+    digests[1] = digestColumnLane(columns[@as(usize, vm_placement.preprocessed_offset)..][0..recursion.air.vm_air_composition_input_witness.PREPROCESSED_COLUMN_COUNT]);
+    const control_placement = manifest.placements[19].?;
+    digests[2] = digestColumnLane(columns[@as(usize, control_placement.preprocessed_offset)..][0..recursion.air.control_slice_witness.COLUMN_COUNT]);
     inline for (Counts, 0..) |count, lane| {
         const placement = manifest.placements[30 + lane].?;
         const offset = placement.preprocessed_offset;
-        digests[lane] = digestColumnLane(columns[@as(usize, offset)..][0..count]);
+        digests[lane + 3] = digestColumnLane(columns[@as(usize, offset)..][0..count]);
     }
     return digests;
 }
