@@ -240,8 +240,10 @@ def main() -> None:
                         "case": name, "exit_code": hostile_result.returncode,
                         "stderr": hostile_result.stderr,
                     })
+                    expected_error = ("DetachedParentChildKeyPinMismatch" if name == "child_key_sha256"
+                                      else "DetachedParentFixedCircuitMismatch")
                     if hostile_result.returncode == 0 or not re.search(
-                            r"(?m)^error: DetachedParentFixedCircuitMismatch\s*$", hostile_result.stderr):
+                            rf"(?m)^error: {expected_error}\s*$", hostile_result.stderr):
                         raise RuntimeError(f"hostile {name} key passed regeneration")
             log = output.with_name(output.name + ".producer.log")
             production = {"argv": argv, "log": str(log), "exited_before_verification": False}

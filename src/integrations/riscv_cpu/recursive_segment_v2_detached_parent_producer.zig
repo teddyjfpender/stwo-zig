@@ -126,6 +126,7 @@ fn runInner(comptime Engine: type, allocator: std.mem.Allocator, args: Arguments
         defer allocator.free(bytes);
         admitted_key = try command.OwnedKeyV1.admit(allocator, bytes, input.sha256);
         if (admitted_key.?.key().profile != args.proof_profile) return error.DetachedParentProfileMismatch;
+        try requirePinnedChildKeys(admitted_key.?.key().child_key_sha256, args.children);
     }
     var expected: protocol.ExpectedV1 = undefined;
     var child_pins: [2][32]u8 = undefined;
@@ -354,6 +355,9 @@ pub fn admitKey(allocator: std.mem.Allocator, args: ArgumentsV1) ![32]u8 {
     if (key.key().profile != args.proof_profile or
         key.key().publication_mode != args.publication_mode)
         return error.DetachedParentProfileMismatch;
+    // Reject a different child-key authority before loadAdmitted reads either
+    // child proof. A changed root changes the pinned child key's SHA-256.
+    try requirePinnedChildKeys(key.key().child_key_sha256, args.children);
     var prepared = try prepareChildren(allocator, args, key.key());
     defer prepared.deinit();
     const regenerated = try proof.deriveKey(
@@ -367,4 +371,11 @@ pub fn admitKey(allocator: std.mem.Allocator, args: ArgumentsV1) ![32]u8 {
     if (!std.mem.eql(u8, bytes, regenerated))
         return error.DetachedParentFixedCircuitMismatch;
     return input.sha256;
+}
+
+fn requirePinnedChildKeys(pins: [2][32]u8, children: [2]child_command.ArgumentsV1) !void {
+    for (children, pins) |child, pin| {
+        if (!std.meta.eql(child.independent_key_sha256, pin))
+            return error.DetachedParentChildKeyPinMismatch;
+    }
 }

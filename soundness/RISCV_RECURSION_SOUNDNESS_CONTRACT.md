@@ -876,8 +876,19 @@ if its row is committed in Tree 0.
 | W-4 | Local shell fixed | Wide and compact providers constrain full IO; focused provider tests pass. End-to-end G-3(d) remains open. |
 | W-5 | Migration retired | Both migration entry points fail closed for pre-contract keys. |
 | W-6, W-7 | Open | Fresh 1/2/4/8 leaf-key setups completed and the focused `test-riscv-recursion-soundness` step passed 15/15 ReleaseSafe tests, but this step is only a subset of G-1 through G-10. Parent/root trees, Metal parity, adversarial cases, and the unskipped broad suites still require fresh final-identity evidence. The opt-in native leaf rejects aggregate-column and maximum-log geometry changes before transcript opening; exact re-pinned descriptor/catalog admission remains under test. |
-| W-9 | Detached leaf Tree0 regenerated; parent and hostile gates open | Leaf key pins native Tree0 and CPU admission independently regenerates it. Frozen V1 row-5 requires the admitted root. V2 row-5 receives a geometry-derived root separately from the proof, rejects a different proof frame, and places that root in the constant column and source identity. The detached q193 leaf's complete 578-column, 46,808,640-cell outer Tree0 now regenerates from the serialized key alone. `recursive-segment-v2-leaf-key-rebuild` accepts a separately pinned key SHA-256, loads no proof or witness, commits all 39 reconstructed row families, and checks the resulting root. The genuine q193 one-segment key matched every production row digest and the complete root; changing the pinned root or native-sum address topology caused root mismatch. This establishes the leaf portion of G-8(c) for that roster, not every committed leaf shape. Parent `admit-key` still reconstructs from **verified child proofs**, so proof-free parent G-8(c) is open. The standalone hostile re-proven proof required by G-8(a) is also open. |
+| W-9 | Detached leaf Tree0 regenerated; parent and hostile gates open | Leaf key pins native Tree0 and CPU admission independently regenerates it. Frozen V1 row-5 requires the admitted root. V2 row-5 receives a geometry-derived root separately from the proof, rejects a different proof frame, and places that root in the constant column and source identity. The detached q193 leaf's complete outer Tree0 now regenerates from the serialized key alone; its one-segment census contains 578 fixed columns and 46,808,640 field cells. `recursive-segment-v2-leaf-key-rebuild` accepts a separately pinned key SHA-256, loads no proof or witness, commits all 39 reconstructed row families, and checks the resulting root. Fresh q193 setups for 1/2/4/8 leaves produced 15 distinct serialized keys; every key matched all production row digests during setup and the complete root in a separate proof-free process. Changing the pinned root or native-sum address topology caused root mismatch. This establishes the leaf portion of G-8(c) for those rosters, not every possible committed leaf shape. Parent `admit-key` still reconstructs from **verified child proofs**, so proof-free parent G-8(c) is open. Parent admission now rejects a different independently pinned child-key SHA-256 before reading either child proof; the deeper fixed-tree check still follows child verification. The standalone hostile re-proven proof required by G-8(a) is also open. |
 | W-8 | False | `recursion_qualified` stays false until every gate and independent review passes. |
+
+The parent G-8(c) gap is structural, not a missing root comparison.
+`detached_parent_protocol_v1.KeyV1` retains a manifest, row parameters,
+child-key hashes and a claimed fixed root. Its child-key hashes do not encode
+the transcript, PCS and arithmetic routing rows assembled by
+`detached_parent_preparation_v1.prepareFor` from verified child captures.
+The next identity version must carry a compact, canonical fixed-circuit
+recipe derived from independently pinned child keys, validate that recipe
+against those keys before child proof loading, and reconstruct and commit
+every parent fixed row from it in a proof-free process. Copying fixed columns
+or accepting the claimed root as a recipe would not satisfy G-8(c).
 
 The detached leaf key schema is now version 3. Version 2 keys are rejected:
 the new native-sum topology affects the fixed arithmetic graph and therefore
@@ -906,9 +917,10 @@ public-claim shape. The detached leaf key pins this compact topology and
 compares it with the independently supplied expected wire before proof
 decoding. The q193 CPU key setup compares all 39 reconstructed fixed-row
 digests and their actual commitment root against production; the separate
-pinned-key command checks that root without reading proof bytes. Parent Tree0
-still requires proof-free reconstruction, and additional leaf geometries
-must be covered before the universal G-8(c) claim is complete.
+pinned-key command checks that root without reading proof bytes. This passed
+the available fresh 1/2/4/8-leaf q193 rosters. Parent Tree0 still requires
+proof-free reconstruction; these finite rosters do not prove a universal
+G-8(c) claim.
 
 The recursive AIR source map has been reviewed against the relocated S-box,
 matrix, framework constraint, and interaction-prefix equations and re-pinned
