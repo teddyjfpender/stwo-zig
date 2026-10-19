@@ -406,7 +406,12 @@ test "authenticated VM AIR ProfileV2 has a cold-recompiled field-native authorit
     };
     var program = try program_v2.compile(allocator, input);
     defer program.deinit();
-    const authority = try program_field_authority.compile(
+    try std.testing.expectError(error.StatementRootsRequireNewFieldEncoding, program_field_authority.compile(
+        allocator,
+        &program,
+        input,
+    ));
+    const authority = try program_field_authority.compileWithNativeRoots(
         allocator,
         &program,
         input,

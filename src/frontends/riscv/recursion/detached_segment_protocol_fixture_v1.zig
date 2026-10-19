@@ -64,15 +64,24 @@ const test_terms = [_]lowering.PublicWireTerm{
 // admission or evidence that a production lowering is statement-independent.
 pub const testing = if (@import("builtin").is_test) struct {
     pub const key = testKey;
+    pub const keyWithPoseidonLog = testKeyWithPoseidonLog;
 } else struct {};
 
 fn testKey(word_count: usize, transcript_template_id: u32) !KeyV1 {
+    return testKeyWithPoseidonLog(word_count, transcript_template_id, 10);
+}
+
+fn testKeyWithPoseidonLog(word_count: usize, transcript_template_id: u32, poseidon_log_size: u32) !KeyV1 {
     const source_manifest = try source.ManifestV2.init(word_count);
+    const retained_base = @import("segment_statement_v2_transcript_layout.zig").FIXED_WORD_COUNT +
+        4 * @import("segment_statement_v2_transcript_layout.zig").SECTION_HEADER_WORDS;
+    if (word_count < retained_base or (word_count - retained_base) % 4 != 0)
+        return error.InvalidSegmentDetachedCircuit;
     const boundary = try recursion.segment_leaf_outer_authority_v2.OuterManifestV2.init(source_manifest);
     var logs: air.universal_manifest.LogSizes = @splat(4);
     logs[11] = source_manifest.trace_log_size;
     logs[17] = air.vm_public_logup_control_witness_v2.TRACE_LOG_SIZE;
-    logs[34] = 10;
+    logs[34] = poseidon_log_size;
     logs[35] = air.range_check_8_8_bridge.LOG_SIZE;
     const catalog = try air.segment_outer_typed_catalog_v2.build(logs, boundary.components);
     const manifest = try air.segment_outer_adapter_manifest_v2.assemble(&catalog, .{
@@ -90,6 +99,7 @@ fn testKey(word_count: usize, transcript_template_id: u32) !KeyV1 {
         .native_preprocessed_root = fixture.id("native-tree0"),
         .parameters = .{ .query_reference = try air.query_bits_witness.Reference.seal(lane, lane), .poseidon_active_rows = 1 },
         .source_manifest = source_manifest,
+        .retained_section_counts = .{ @intCast((word_count - retained_base) / 4), 0, 0, 0 },
         .admitted_keys = try source.VerifierKeyAuthorityV2.init(fixture.id("segment-key"), fixture.id("parent-key")),
         .native_descriptors = .{ .components = &.{}, .infrastructure = &.{} },
         .wire_terms = &test_terms,
@@ -101,6 +111,10 @@ pub fn testFixedProjection() !void {
     const other_template = try testKey(1000, 9);
     const pin = try key.identity();
     _ = try KeyV1.admit(key, pin);
+    var changed_layout = key;
+    changed_layout.retained_section_counts[0] -= 1;
+    changed_layout.retained_section_counts[1] += 1;
+    try std.testing.expectError(error.SegmentDetachedCircuitPinMismatch, KeyV1.admit(changed_layout, pin));
     try std.testing.expect(!std.mem.eql(u8, &key.manifest.seal, &other_template.manifest.seal));
     try std.testing.expectEqual(pin, try other_template.identity());
     var changed = key;

@@ -13,7 +13,6 @@ test "ethereum row12 routing identity preserves CSP seal" {
     const original = try legacy.semanticIdentity(std.testing.allocator);
     try std.testing.expectEqualStrings(legacy.SEMANTIC_DIGEST_HEX, &std.fmt.bytesToHex(original.bytes, .lower));
     const routed = try air.semanticIdentity(std.testing.allocator);
-    std.debug.print("ETHEREUM_CLAIM_ROUTING_SEMANTIC_DIGEST={s}\n", .{std.fmt.bytesToHex(routed.bytes, .lower)});
     try std.testing.expectEqualStrings(air.SEMANTIC_DIGEST_HEX, &std.fmt.bytesToHex(routed.bytes, .lower));
     try std.testing.expect(!std.meta.eql(original.bytes, routed.bytes));
     var definition = try air.build(std.testing.allocator);
@@ -112,7 +111,7 @@ test "ethereum row12 enables only exact authenticated role source fanout" {
     original[3] = M31.one();
     original[4] = M31.one(); // row mask
     original[8] = M31.one(); // u16 mask
-    original[14] = M31.one(); // segment parameter
+    original[legacy.PHYSICAL_MAIN_COLUMN_COUNT + legacy.PREPROCESSED_COLUMN_COUNT] = M31.one(); // segment parameter
     const row = air.logicalRow(original, .{ 2, 3, 1 });
     const values = try support.evaluateArena(std.testing.allocator, &definition.arena, &row);
     defer std.testing.allocator.free(values);

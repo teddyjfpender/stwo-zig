@@ -79,7 +79,13 @@ pub fn writeInto(
         infra_descs,
     );
 
-    writeRowsAssumeValid(destinations, program, execution, plan);
+    writeRowsAssumeValid(
+        destinations,
+        program,
+        execution,
+        plan,
+        prepared.admitted_native_tree0_root,
+    );
     writeEventsAssumeValid(destinations);
     writeProviderAssumeValid(destinations.poseidon_requests, execution);
 }

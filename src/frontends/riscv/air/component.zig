@@ -89,26 +89,6 @@ pub const MemoryBoundaryPolicy = enum(u32) {
             ),
         };
     }
-
-    /// Retired shape without the public-root bindings.  Only the paused
-    /// recursion composition lane replays this; the native prover and
-    /// verifier use `evaluateGeneric` with the statement's public roots.
-    pub fn evaluateWithoutRootsGeneric(
-        self: MemoryBoundaryPolicy,
-        comptime S: type,
-        main: [8]S,
-        is_active: S,
-        is_first: S,
-        sums: [memory_interaction.N_SUMS]S,
-        previous: [memory_interaction.N_SUMS]S,
-        claims: [memory_interaction.N_SUMS]S,
-        relations: anytype,
-    ) [memory_interaction.N_CONSTRAINTS_WITHOUT_ROOTS]S {
-        return switch (self) {
-            .legacy_role_filtered_v1 => memory_interaction.evaluateWithoutRootsGeneric(S, main, is_active, is_first, sums, previous, claims, relations),
-            .full_state_split_multiplicity_v3 => incremental_boundary_interaction_v3.evaluateWithoutRootsGeneric(S, main, is_active, is_first, sums, previous, claims, relations),
-        };
-    }
 };
 
 /// Number of committed M31 interaction columns for a component kind.

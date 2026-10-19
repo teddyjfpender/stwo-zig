@@ -281,6 +281,7 @@ pub fn testStreamWordCount(
         .absorb_public_claim => if (plan.schema == .vm) 8 else 0,
         .verify_and_absorb_interaction_pow, .verify_and_absorb_pcs_pow => 4,
         .absorb_claimed_sums => |item| try mulFour(item.count),
+        .absorb_physical_claims => |item| 5 + try mulFour(item.count),
         .absorb_sampled_values => |item| try mulFour(item.count),
         .absorb_last_layer_coefficients => |item| try mulFour(item.count),
         .draw_relation_challenge,

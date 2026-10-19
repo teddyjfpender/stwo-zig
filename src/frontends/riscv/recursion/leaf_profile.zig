@@ -167,6 +167,7 @@ pub fn deriveShape(
         .table_layout_id = tableLayoutId(statement),
         .table_count = table_count,
         .claimed_sum_count = transcript_claims.COMPONENT_COUNT,
+        .physical_claimed_sum_count = @intCast(dimensions.physical_claimed_sum_count),
         .sampled_value_count = std.math.cast(
             u32,
             capture.sampled_values.len,

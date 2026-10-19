@@ -336,12 +336,12 @@ pub fn Namespace(comptime context: type) type {
 
         pub const FORMAT_VERSION: u32 = 1;
         pub const TRANSCRIPT_DOMAIN: u32 = 0x5246_4131; // "RFA1"
-        pub const SEGMENT_CIRCUIT_ID: u32 = 301;
-        pub const LEFT_CIRCUIT_ID: u32 = 302;
-        pub const RIGHT_CIRCUIT_ID: u32 = 303;
-        pub const PCS_SEGMENT_CIRCUIT_ID: u32 = 201;
-        pub const PCS_LEFT_CIRCUIT_ID: u32 = 202;
-        pub const PCS_RIGHT_CIRCUIT_ID: u32 = 203;
+        pub const SEGMENT_CIRCUIT_ID: u32 = @import("detached_fri_circuit_ids_v1.zig").SEGMENT;
+        pub const LEFT_CIRCUIT_ID: u32 = @import("detached_fri_circuit_ids_v1.zig").LEFT_RECURSION;
+        pub const RIGHT_CIRCUIT_ID: u32 = @import("detached_fri_circuit_ids_v1.zig").RIGHT_RECURSION;
+        pub const PCS_SEGMENT_CIRCUIT_ID: u32 = @import("detached_pcs_circuit_ids_v1.zig").SEGMENT;
+        pub const PCS_LEFT_CIRCUIT_ID: u32 = @import("detached_pcs_circuit_ids_v1.zig").LEFT_RECURSION;
+        pub const PCS_RIGHT_CIRCUIT_ID: u32 = @import("detached_pcs_circuit_ids_v1.zig").RIGHT_RECURSION;
         pub const VM_BINARY_CAPACITY_CIRCUIT_ID: u32 = 2;
         pub const INACTIVE_MIDDLE_FIRST: usize = 10;
         pub const INACTIVE_MIDDLE_COUNT: usize = 2;
@@ -500,6 +500,9 @@ pub fn Namespace(comptime context: type) type {
             captured: *const recursion.captured_fri.Owned,
             vm_air: recursion.vm_composition_preparation.Source,
             verifier_plans: VerifierPlans,
+            physical_claimed_sum_count: u32,
+            physical_component_count: u32,
+            physical_infra_count: u32,
         ) !V2CoreRows18Through34PreflightReceipt {
             try captured.evaluation.validateAgainst(&captured.circuit);
             try captured.pcs_evaluation.validateAgainst(&captured.pcs_circuit);
@@ -512,13 +515,17 @@ pub fn Namespace(comptime context: type) type {
                 return error.V2CoreRows18Through34PreflightMismatch;
             }
 
+            var schedule_facts = ScheduleFacts.fromCaptured(captured);
+            schedule_facts.physical_claimed_sum_count = physical_claimed_sum_count;
+            schedule_facts.physical_component_count = physical_component_count;
+            schedule_facts.physical_infra_count = physical_infra_count;
             var authority = try Authority.init(
                 allocator,
                 &captured.circuit,
                 &captured.pcs_circuit,
                 captured.trace_tree_heights,
                 captured.column_log_sizes,
-                ScheduleFacts.fromCaptured(captured),
+                schedule_facts,
                 vm_air,
                 verifier_plans,
                 null,

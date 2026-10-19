@@ -40,6 +40,10 @@ pub const TABLE_COUNT: u32 = blk: {
 /// point; the other trees are sampled once.
 pub const SAMPLED_VALUE_COUNT: u32 = TABLE_COUNT + INTERACTION_COLUMN_COUNT;
 pub const CLAIMED_SUM_COUNT: u32 = transcript_claims.COMPONENT_COUNT;
+/// Exact native descriptor and per-batch claim geometry for the frozen leaf.
+pub const OPCODE_COMPONENT_COUNT: u32 = 4;
+pub const INFRA_COMPONENT_COUNT: u32 = 11;
+pub const PHYSICAL_CLAIMED_SUM_COUNT: u32 = 51;
 pub const FRI_LAYER_COUNT: usize = 5;
 pub const MAXIMUM_FOLD_WIDTH: usize = 16;
 pub const LAST_LAYER_COEFFICIENT_COUNT: usize = 1;
@@ -49,6 +53,7 @@ pub const FOLD_WIDTHS = [_]u32{MAXIMUM_FOLD_WIDTH} ** FRI_LAYER_COUNT;
 pub const DIMENSIONS = fixed_wire.Dimensions{
     .commitment_count = fixed_profile.TREE_COUNT,
     .claimed_sum_count = CLAIMED_SUM_COUNT,
+    .physical_claimed_sum_count = PHYSICAL_CLAIMED_SUM_COUNT,
     .sampled_value_count = SAMPLED_VALUE_COUNT,
     .queried_value_count = TABLE_COUNT * protocol.FRI_QUERY_COUNT,
     .trace_path_count = fixed_profile.TREE_COUNT * protocol.FRI_QUERY_COUNT,
@@ -81,6 +86,9 @@ pub fn transcriptShape() Error!schedule.ScheduleShape {
             .sampled_value_count = SAMPLED_VALUE_COUNT,
             .queried_values_per_query = TABLE_COUNT,
             .claimed_sum_count = CLAIMED_SUM_COUNT,
+            .physical_claimed_sum_count = PHYSICAL_CLAIMED_SUM_COUNT,
+            .physical_component_count = OPCODE_COMPONENT_COUNT,
+            .physical_infra_count = INFRA_COMPONENT_COUNT,
             .interaction_pow_bits = protocol.INTERACTION_POW_BITS,
             .pcs_pow_bits = protocol.PCS_POW_BITS,
         },
@@ -117,6 +125,12 @@ pub fn validateStatement(statement: *const statement_mod.RiscVStatement) Error!v
     {
         return error.StatementGeometryMismatch;
     }
+    const physical_count = statement_mod.physicalClaimCount(statement, statement_mod.CompatibilityBatching{}) catch
+        return error.StatementGeometryMismatch;
+    if (physical_count != PHYSICAL_CLAIMED_SUM_COUNT or
+        statement.n_components != OPCODE_COMPONENT_COUNT or
+        statement.n_infra != INFRA_COMPONENT_COUNT)
+        return error.StatementGeometryMismatch;
     var maximum_log: u32 = 0;
     for (statement.component_descs[0..statement.n_components]) |descriptor|
         maximum_log = @max(maximum_log, descriptor.log_size);

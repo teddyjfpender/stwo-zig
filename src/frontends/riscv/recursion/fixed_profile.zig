@@ -168,6 +168,7 @@ pub const ProofShapeV1 = struct {
     table_layout_id: channel.Digest,
     table_count: u32,
     claimed_sum_count: u32,
+    physical_claimed_sum_count: u32 = 0,
     sampled_value_count: u32,
     preprocessed_column_count: u32,
     tree_column_counts: [TREE_COUNT]u32,
@@ -254,6 +255,12 @@ pub const ProofShapeV1 = struct {
         appendDigest(&words, &at, self.table_layout_id);
         append(&words, &at, self.table_count);
         append(&words, &at, self.claimed_sum_count);
+        if (self.physical_claimed_sum_count != 0) {
+            // Preserve old non-VM profile identities; the VM extension is
+            // explicitly domain-separated by its nonzero physical count.
+            append(&words, &at, 0x5043_4c31); // PCL1
+            append(&words, &at, self.physical_claimed_sum_count);
+        }
         append(&words, &at, self.sampled_value_count);
         append(&words, &at, self.preprocessed_column_count);
         for (self.tree_column_counts) |count| append(&words, &at, count);

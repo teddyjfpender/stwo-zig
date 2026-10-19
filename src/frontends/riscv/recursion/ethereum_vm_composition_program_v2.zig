@@ -256,6 +256,8 @@ pub fn compile(
         .claimed_sum_count = claimed_sum_count,
         .relation_challenge_count = relations_mod.RELATION_COUNT,
         .transcript_claimed_sum_count = TRANSCRIPT_CLAIM_COUNT,
+        .vm_statement_root_count = 2,
+        .vm_native_continuation_roots = true,
     };
     const input_count = try graph_mod.vmInputCount(input_profile);
     const air_instruction_count = try add(
@@ -347,6 +349,10 @@ pub fn compile(
         &layout,
         claims[0..@as(usize, input.base_profile.input_profile.claimed_sum_count)],
         &relations.base,
+        .{
+            try builder.input(.{ .native_continuation_root = 0 }),
+            try builder.input(.{ .native_continuation_root = 1 }),
+        },
         point,
         composition_randomness,
         mask_log_size,

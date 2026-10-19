@@ -339,14 +339,11 @@ pub fn validateRowAudit(
     {
         return error.InvalidAuditGeometry;
     } else if (row == 38) {
-        const public_words = input_provider_witness.LUP2_WORD_COUNT;
-        const limbs = input_provider_witness.SECURE_LIMB_COUNT;
-        if (audit.logical_rows < public_words + limbs or
-            (audit.logical_rows - public_words) % limbs != 0)
+        // Detailed physical claims are published by the transcript row.
+        // This provider commits only the 55 native LogUp boundary words.
+        if (audit.logical_rows != input_provider_witness.LUP2_WORD_COUNT or
+            trace_rows != input_provider_authority.TRACE_ROW_COUNT)
             return error.InvalidAuditGeometry;
-        const shape = input_provider_authority.Shape.init((audit.logical_rows - public_words) / limbs) catch
-            return error.InvalidAuditGeometry;
-        if (shape.traceRowCount() != trace_rows) return error.InvalidAuditGeometry;
     }
     if (row == 17 and
         (audit.logical_rows != ROW17_LOGICAL_ROWS or

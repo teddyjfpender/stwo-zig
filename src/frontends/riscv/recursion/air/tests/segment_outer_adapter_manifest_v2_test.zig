@@ -21,7 +21,7 @@ const StatementRelation = struct {
     pub const Runtime = boundary_air.Statement.Runtime;
 };
 
-test "V2 provider geometry follows the authenticated claim inventory" {
+test "V2 provider geometry follows the fixed native LogUp publication" {
     const catalog = try catalog_mod.buildWithProviderShape(
         fixtureLogSizes(),
         boundaryComponents(8),
@@ -29,11 +29,13 @@ test "V2 provider geometry follows the authenticated claim inventory" {
     );
     const manifest = try subject.assemble(&catalog, authorityIds());
     try manifest.validate();
-    try std.testing.expectEqual(@as(u32, 9), manifest.placements[38].?.geometry.log_size);
+    try std.testing.expectEqual(@as(u32, 6), manifest.placements[38].?.geometry.log_size);
     const small = try fixtureCatalog(fixtureLogSizes());
     for (catalog.entries[0..38], small.entries[0..38]) |actual, expected|
         try std.testing.expectEqualDeep(expected, actual);
-    try std.testing.expect(!std.mem.eql(u8, &catalog.identity, &small.identity));
+    // Claim count remains authenticated by the source receipt, but no longer
+    // expands row 38: detailed claims are published by transcript row 5.
+    try std.testing.expectEqual(catalog.identity, small.identity);
 }
 
 test "V2 catalog append-fixes all 39 rows without moving rows zero through 37" {
@@ -288,7 +290,7 @@ test "catalog manifest ordering claims identities and geometry reject mutation" 
     var bad_provider_geometry = catalog;
     bad_provider_geometry.entries[38].geometry.log_size -= 1;
     try std.testing.expectError(
-        error.CatalogIdentityMismatch,
+        error.InvalidCatalogGeometry,
         bad_provider_geometry.validate(),
     );
 

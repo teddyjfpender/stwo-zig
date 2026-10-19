@@ -1,7 +1,7 @@
 //! Capture-backed witness for the SegmentV2 publication-input publisher.
 //!
 //! The V3 source schema binds a ContextV2 to the exact boundary publication.
-//! Its trace geometry follows the authenticated physical claim inventory.
+//! Its trace geometry contains exactly the 55 native LogUp boundary words.
 //! Preparation borrows immutable claims until materialization completes; the
 //! committed authority retains pointer-free identities and trace commitments.
 //! Hot materialization is allocation-free, exact-size, and alias-safe.
@@ -174,22 +174,11 @@ pub const RelationEventV2 = struct {
             return error.InvalidRelationEvent;
         }
         const row: usize = self.logical_row;
-        if (row < LUP2_WORD_COUNT) {
-            if (self.tuple[0].toU32() != air.LUP2_VERIFIER_ID or
-                self.tuple[1].toU32() != air.LUP2_SOURCE_KIND or
-                self.tuple[2].toU32() != row or !self.tuple[3].isZero())
-            {
-                return error.InvalidRelationEvent;
-            }
-        } else {
-            const offset = row - LUP2_WORD_COUNT;
-            if (self.tuple[0].toU32() != air.DETAILED_VERIFIER_ID or
-                self.tuple[1].toU32() != air.DETAILED_SOURCE_KIND or
-                self.tuple[2].toU32() != offset / SECURE_LIMB_COUNT or
-                self.tuple[3].toU32() != offset % SECURE_LIMB_COUNT)
-            {
-                return error.InvalidRelationEvent;
-            }
+        if (self.tuple[0].toU32() != air.LUP2_VERIFIER_ID or
+            self.tuple[1].toU32() != air.LUP2_SOURCE_KIND or
+            self.tuple[2].toU32() != row or !self.tuple[3].isZero())
+        {
+            return error.InvalidRelationEvent;
         }
         for (self.tuple[self.arity..]) |word| if (!word.isZero())
             return error.InvalidRelationEvent;
@@ -233,17 +222,6 @@ pub fn writeInto(
             .index_1 = 0,
         });
         row_index += 1;
-    }
-    for (prepared.detailed_claims, 0..) |claim, item| {
-        for (claim.toM31Array(), 0..) |word, limb| {
-            writeActiveRow(destinations, row_index, .{
-                .value = word,
-                .lup2_class = false,
-                .index_0 = @intCast(item),
-                .index_1 = @intCast(limb),
-            });
-            row_index += 1;
-        }
     }
     std.debug.assert(row_index == prepared.shape.logical_row_count);
 }
@@ -301,7 +279,11 @@ fn providerEvent(row_index: usize, row: RowV2) RelationEventV2 {
         row.value,
     };
     @memcpy(tuple[0..values.len], &values);
-    return .{ .logical_row = @intCast(row_index), .tuple = tuple };
+    return .{
+        .logical_row = @intCast(row_index),
+        .multiplicity = 1,
+        .tuple = tuple,
+    };
 }
 
 fn validateDestinationGeometry(destinations: DestinationsV2, shape: Shape) Error!void {

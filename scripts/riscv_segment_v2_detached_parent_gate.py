@@ -204,6 +204,47 @@ def main() -> None:
                              "--aot-manifest-sha256", args.metal_aot_manifest_sha256]
                 if args.metal_aot_profile is not None:
                     argv[5:5] = ["--aot-profile", args.metal_aot_profile]
+            # Regenerate the fixed parent commitment from independently verified
+            # children in a fresh process before any parent proof is produced or
+            # read. A separately pinned SHA alone does not establish that the
+            # key's child identities are the constants committed in Tree 0.
+            admission_argv = argv.copy()
+            # The Metal runner consumes authenticated AOT options before it
+            # forwards the remaining command to the shared parent parser.
+            admission_argv.insert(admission_argv.index("--profile"), "admit-key")
+            key_started = time.monotonic_ns()
+            key_check = subprocess.run(admission_argv, capture_output=True, text=True, timeout=300)
+            report["key_regeneration"] = {
+                "argv": admission_argv, "exit_code": key_check.returncode,
+                "process_ns": time.monotonic_ns() - key_started,
+                "stdout": key_check.stdout, "stderr": key_check.stderr,
+            }
+            if key_check.returncode or json.loads(key_check.stdout).get("key_sha256") != list(bytes.fromhex(args.key_sha256)):
+                raise RuntimeError("independent parent key regeneration failed before proof production")
+            with tempfile.TemporaryDirectory(prefix="segment-v2-parent-key-hostile-") as temporary:
+                original_key = json.loads(args.parent_key.read_bytes())
+                for name in ("child_key_sha256", "preprocessed_root"):
+                    hostile = copy.deepcopy(original_key)
+                    if name == "child_key_sha256":
+                        hostile[name][0][0] ^= 1
+                    else:
+                        hostile[name][0] = (hostile[name][0] + 1) % MODULUS
+                    hostile_path = Path(temporary) / (name + ".json")
+                    hostile_path.write_text(json.dumps(hostile))
+                    hostile_argv = admission_argv.copy()
+                    pin_at = hostile_argv.index("--parent-key-sha256") + 1
+                    hostile_argv[pin_at] = sha256(hostile_path)
+                    hostile_argv[hostile_argv.index("--parent-key") + 1] = str(hostile_path)
+                    hostile_result = subprocess.run(hostile_argv, capture_output=True, text=True, timeout=300)
+                    report.setdefault("key_regeneration_negative", []).append({
+                        "case": name, "exit_code": hostile_result.returncode,
+                        "stderr": hostile_result.stderr,
+                    })
+                    expected_error = ("DetachedParentChildKeyPinMismatch" if name == "child_key_sha256"
+                                      else "DetachedParentFixedCircuitMismatch")
+                    if hostile_result.returncode == 0 or not re.search(
+                            rf"(?m)^error: {expected_error}\s*$", hostile_result.stderr):
+                        raise RuntimeError(f"hostile {name} key passed regeneration")
             log = output.with_name(output.name + ".producer.log")
             production = {"argv": argv, "log": str(log), "exited_before_verification": False}
             report["producer"] = production

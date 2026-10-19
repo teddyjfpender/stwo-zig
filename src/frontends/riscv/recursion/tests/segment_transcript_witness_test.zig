@@ -113,6 +113,35 @@ test "R-012 segment transcript owner rejects detached row snapshots" {
     );
 }
 
+test "R-012 segment transcript rejects a proof-selected native Tree0 root" {
+    var fixture = try Fixture.init(std.testing.allocator);
+    defer fixture.deinit();
+    const admitted_root = testWire().commitments[0];
+    try fixture.preprocessing.validateNativeTree0Root(admitted_root);
+    var changed_root = admitted_root;
+    changed_root[0] ^= 1;
+    try std.testing.expectError(
+        error.TranscriptSnapshotMismatch,
+        fixture.preprocessing.validateNativeTree0Root(changed_root),
+    );
+
+    var wire = testWire();
+    wire.commitments[0] = changed_root;
+    const statement = testStatement();
+    try std.testing.expectError(
+        error.InvalidTranscriptSource,
+        Prepared.init(
+            std.testing.allocator,
+            &fixture.preprocessing,
+            &fixture.vm_plan,
+            &fixture.recursion_plan,
+            &statement,
+            testPublicClaim(),
+            &wire,
+        ),
+    );
+}
+
 test "R-012 segment transcript owner releases every allocation failure" {
     try std.testing.checkAllAllocationFailures(
         std.testing.allocator,
@@ -132,15 +161,16 @@ const Fixture = struct {
         errdefer vm_plan.deinit();
         var recursion_plan = try testPlan(allocator, .recursion);
         errdefer recursion_plan.deinit();
+        const wire = testWire();
         var preprocessing = try owner.Preprocessing.init(
             allocator,
             &vm_plan,
             &recursion_plan,
+            wire.commitments[0],
         );
         errdefer preprocessing.deinit();
         const statement = testStatement();
         const public_claim = testPublicClaim();
-        const wire = testWire();
         const prepared = try Prepared.init(
             allocator,
             &preprocessing,

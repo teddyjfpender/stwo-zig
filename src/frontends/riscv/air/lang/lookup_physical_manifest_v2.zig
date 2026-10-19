@@ -298,8 +298,20 @@ pub const AuthenticatedStatement = struct {
         statement: *const statement_mod.RiscVStatement,
         manifest: *const Manifest,
     ) !AuthenticatedStatement {
+        if (statement.n_components > statement_mod.MAX_COMPONENTS)
+            return error.InvalidStatementGeometry;
+        return initFromComponents(statement.component_descs[0..statement.n_components], manifest);
+    }
+
+    /// The physical lookup identity depends only on the admitted opcode
+    /// descriptor sequence. Key-only compilation must not manufacture a
+    /// public-data-bearing statement to obtain this identity.
+    pub fn initFromComponents(
+        components: []const statement_mod.FamilyComponentDesc,
+        manifest: *const Manifest,
+    ) !AuthenticatedStatement {
         try manifest.validate();
-        return deriveStatement(statement, manifest);
+        return deriveStatementFromComponents(components, manifest);
     }
 
     pub fn validateAgainst(
@@ -307,10 +319,20 @@ pub const AuthenticatedStatement = struct {
         statement: *const statement_mod.RiscVStatement,
         manifest: *const Manifest,
     ) !void {
+        if (statement.n_components > statement_mod.MAX_COMPONENTS)
+            return error.InvalidStatementGeometry;
+        return self.validateAgainstComponents(statement.component_descs[0..statement.n_components], manifest);
+    }
+
+    pub fn validateAgainstComponents(
+        self: *const AuthenticatedStatement,
+        components: []const statement_mod.FamilyComponentDesc,
+        manifest: *const Manifest,
+    ) !void {
         if (self.format_version != STATEMENT_FORMAT_VERSION)
             return error.InvalidStatementGeometry;
         try manifest.validate();
-        const expected = try deriveStatement(statement, manifest);
+        const expected = try deriveStatementFromComponents(components, manifest);
         if (!std.mem.eql(
             u8,
             &self.manifest_identity,
@@ -448,11 +470,10 @@ pub const AuthenticatedStatement = struct {
         );
         const view = canonical.view();
         if (comptime @hasDecl(@TypeOf(channel.*), "absorbRiscVClaimedSums")) {
-            // Recursion-lane scheduled channels absorb only the canonical
-            // sums (fixed schedule step, mirrored in-circuit). See
-            // `proof_transcript.mixInteractionClaim`; that lane is paused and
-            // must be re-aligned with the physical frame below.
-            try channel.absorbRiscVClaimedSums(&view.claimed_sums);
+            // The selected physical layout has a different batch count from
+            // the frozen scheduled lane. Refuse it until its detailed claims
+            // are part of the admitted schedule and recursive transcript.
+            return error.UnsupportedScheduledPhysicalClaims;
         } else {
             view.mixInto(channel);
             // Canonical first, then exactly the selected batch claims each
@@ -517,23 +538,23 @@ pub fn validatePinnedEntry(entry: *const FamilyEntry) !void {
     );
 }
 
-fn deriveStatement(
-    statement: *const statement_mod.RiscVStatement,
+fn deriveStatementFromComponents(
+    components: []const statement_mod.FamilyComponentDesc,
     manifest: *const Manifest,
 ) !AuthenticatedStatement {
-    if (statement.n_components > statement_mod.MAX_COMPONENTS)
+    if (components.len > statement_mod.MAX_COMPONENTS)
         return error.InvalidStatementGeometry;
     var hash = std.crypto.hash.sha2.Sha256.init(.{});
     hash.update(STATEMENT_IDENTITY_DOMAIN);
     hashInteger(&hash, u16, STATEMENT_FORMAT_VERSION);
     hash.update(&manifest.identity);
-    hashInteger(&hash, u32, statement.n_components);
+    hashInteger(&hash, u32, @intCast(components.len));
 
     var previous_rank: ?usize = null;
     var main_offset: u32 = 0;
     var interaction_offset: u32 = 0;
     var claim_offset: u32 = 0;
-    for (statement.component_descs[0..statement.n_components], 0..) |
+    for (components, 0..) |
         descriptor,
         component_index,
     | {
@@ -580,7 +601,7 @@ fn deriveStatement(
         .manifest_identity = manifest.identity,
         .statement_identity = statement_identity,
         .activation_identity = .{0} ** 32,
-        .component_count = statement.n_components,
+        .component_count = @intCast(components.len),
         .opcode_main_columns = main_offset,
         .opcode_interaction_columns = interaction_offset,
         .detailed_claim_count = claim_offset,

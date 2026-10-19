@@ -60,6 +60,12 @@ pub fn build(b: *std.Build) void {
     });
     b.step("test-recursive-segment-v2-native-tree0", "Reject a key whose native Tree0 differs from admitted geometry")
         .dependOn(&b.addRunArtifact(detached_command_tests).step);
+    const catalog_admission_tests = b.addTest(.{
+        .root_module = detached_command_root,
+        .filters = &.{"catalog"},
+    });
+    b.step("test-recursive-segment-v2-catalog-admission", "Reject changed native geometry before proof decoding")
+        .dependOn(&b.addRunArtifact(catalog_admission_tests).step);
 
     const secp_root = b.createModule(.{
         .root_source_file = b.path("secp256k1_precompile_proof_test.zig"),
@@ -110,6 +116,12 @@ pub fn build(b: *std.Build) void {
     });
     b.step("test-segment-v2-native-proof", "Prove and independently verify real nonfinal and final SegmentV2 shards")
         .dependOn(&b.addRunArtifact(segment_tests).step);
+    const hostile_root_tests = b.addTest(.{
+        .root_module = segment_root,
+        .filters = &.{"SegmentV2 precommit hostile memory root reaches native proof verification"},
+    });
+    b.step("test-segment-v2-hostile-root", "Re-prove a mutated SegmentV2 memory boundary root and require rejection")
+        .dependOn(&b.addRunArtifact(hostile_root_tests).step);
 
     const universal_root = b.createModule(.{
         .root_source_file = b.path("universal_typed_component_proof_test.zig"),
@@ -189,6 +201,24 @@ pub fn build(b: *std.Build) void {
     b.step("build-recursive-segment-v2-detached-leaf-producer", "Build the detached SegmentV2 leaf producer")
         .dependOn(&b.addInstallArtifact(leaf_producer, .{}).step);
 
+    const leaf_preparation_root = b.createModule(.{
+        .root_source_file = b.path("recursive_segment_v2_leaf_outer_proof_test.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    leaf_preparation_root.addImport("stwo_core", core);
+    leaf_preparation_root.addImport("stwo_cpu_backend", cpu_backend);
+    leaf_preparation_root.addImport("stwo_riscv_frontend", frontend);
+    leaf_preparation_root.addImport("stwo_prover_api", prover_api);
+    leaf_preparation_root.addImport("stwo_prover_engine", prover);
+    leaf_preparation_root.addImport("interop_postcard", postcard);
+    const leaf_preparation_tests = b.addTest(.{
+        .root_module = leaf_preparation_root,
+        .filters = &.{"generic Poseidon2 native V2 capture prepares the owned recursive leaf"},
+    });
+    b.step("test-recursive-segment-v2-leaf-preparation", "Prove, verify, and prepare a native SegmentV2 recursive leaf")
+        .dependOn(&b.addRunArtifact(leaf_preparation_tests).step);
+
     const leaf_key_setup_root = b.createModule(.{
         .root_source_file = b.path("recursive_segment_v2_leaf_key_setup_runner.zig"),
         .target = target,
@@ -206,6 +236,24 @@ pub fn build(b: *std.Build) void {
     });
     b.step("build-recursive-segment-v2-leaf-key-setup", "Build the detached SegmentV2 leaf key-setup runner")
         .dependOn(&b.addInstallArtifact(leaf_key_setup, .{}).step);
+
+    const leaf_key_rebuild_root = b.createModule(.{
+        .root_source_file = b.path("recursive_segment_v2_leaf_key_rebuild_runner.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    leaf_key_rebuild_root.addImport("stwo_core", core);
+    leaf_key_rebuild_root.addImport("stwo_cpu_backend", cpu_backend);
+    leaf_key_rebuild_root.addImport("stwo_riscv_frontend", frontend);
+    leaf_key_rebuild_root.addImport("stwo_prover_api", prover_api);
+    leaf_key_rebuild_root.addImport("stwo_prover_engine", prover);
+    leaf_key_rebuild_root.addImport("interop_postcard", postcard);
+    const leaf_key_rebuild = b.addExecutable(.{
+        .name = "recursive-segment-v2-leaf-key-rebuild",
+        .root_module = leaf_key_rebuild_root,
+    });
+    b.step("build-recursive-segment-v2-leaf-key-rebuild", "Build the proof-free detached leaf Tree0 rebuilder")
+        .dependOn(&b.addInstallArtifact(leaf_key_rebuild, .{}).step);
 
     const parent_producer_owner = b.addModule("stwo_riscv_detached_parent_producer", .{
         .root_source_file = b.path("recursive_segment_v2_detached_parent_producer.zig"),

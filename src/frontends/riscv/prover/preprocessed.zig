@@ -203,6 +203,7 @@ pub fn rootForDescriptors(
     var scheme = try Engine.init(allocator, pcs_config);
     defer Engine.deinit(&scheme, allocator);
     var channel = Engine.Channel{};
+    defer if (comptime @hasDecl(Engine.Channel, "deinit")) channel.deinit();
     columns_moved = true;
     try Engine.commit(&scheme, allocator, columns, null, &channel);
     var roots = try scheme.roots(allocator);

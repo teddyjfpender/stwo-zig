@@ -26,6 +26,19 @@ pub fn ProverEngineForBackend(comptime Backend: type) type {
     );
 }
 
+/// Qualification-only ordinary-channel engine that retains exact producer
+/// frames. It uses the same hasher and Merkle implementation as the regular
+/// engine; recording cannot alter proof bytes or transcript challenges.
+pub fn RecordingProverEngineForBackend(comptime Backend: type) type {
+    const recording = @import("recording_poseidon_channel_v4.zig");
+    return prover_engine.ProverEngine(
+        Backend,
+        Hasher,
+        recording.MerkleChannel,
+        recording.Channel,
+    );
+}
+
 /// Explicit experimental suite selection. Production defaults and scheduled
 /// Poseidon identities are unchanged; the normal engine pipeline is reused.
 pub fn Blake3ProverEngineForBackend(comptime Backend: type) type {

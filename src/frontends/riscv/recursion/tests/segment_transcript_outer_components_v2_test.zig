@@ -59,6 +59,19 @@ test "V2 rows 0--9 publish all trees, ten claims, and one provider range" {
     var fixture = try Fixture.init(allocator);
     defer fixture.deinit();
     const evidence = try fixture.execution.evidence(&fixture.program);
+    var wrong_native_root = fixture.trace_commitments[0];
+    wrong_native_root[0] ^= 1;
+    try std.testing.expectError(error.SourceMismatch, source_v2.preflight(
+        &fixture.program,
+        &fixture.execution,
+        &evidence,
+        &fixture.plan,
+        config,
+        &fixture.data,
+        &component_descs,
+        &infra_descs,
+        wrong_native_root,
+    ));
     const prepared = try source_v2.preflight(
         &fixture.program,
         &fixture.execution,
@@ -68,6 +81,7 @@ test "V2 rows 0--9 publish all trees, ten claims, and one provider range" {
         &fixture.data,
         &component_descs,
         &infra_descs,
+        fixture.trace_commitments[0],
     );
     const manifest = try buildManifest(&prepared);
     var owner = try subject.Source.init(allocator, &prepared, &manifest);
@@ -78,6 +92,18 @@ test "V2 rows 0--9 publish all trees, ten claims, and one provider range" {
         &fixture,
         &evidence,
     ));
+    var tree0_words: usize = 0;
+    for (workspace.transcript_payload_source, workspace.transcript_payload_rows) |row, logical| {
+        if (row.source_kind != .commitment or row.item_index != 0) continue;
+        try std.testing.expectEqual(@as(u32, 1), row.constant_mask);
+        try std.testing.expectEqual(row.constant_value, logical[18]);
+        try std.testing.expectEqual(
+            fixture.trace_commitments[0][row.limb_index],
+            row.constant_value.toU32(),
+        );
+        tree0_words += 1;
+    }
+    try std.testing.expectEqual(@as(usize, channel.RATE), tree0_words);
 
     var tree0 = try OwnedTree.init(
         allocator,
@@ -202,6 +228,7 @@ test "V2 rows 0--9 reject cache, challenge, manifest, and alias mutations atomic
         &fixture.data,
         &component_descs,
         &infra_descs,
+        fixture.trace_commitments[0],
     );
     const manifest = try buildManifest(&prepared);
     var owner = try subject.Source.init(std.testing.allocator, &prepared, &manifest);
@@ -302,6 +329,7 @@ test "V2 workspace allocation geometry is failure-clean" {
         &fixture.data,
         &component_descs,
         &infra_descs,
+        fixture.trace_commitments[0],
     );
     try std.testing.checkAllAllocationFailures(
         std.testing.allocator,

@@ -20,7 +20,7 @@ pub const DIRECT_PARTITION_COUNT: usize = 4;
 pub fn directConstraintCount(mode: DirectMode) usize {
     return switch (mode) {
         .narrow_memory => poseidon2_air.N_CONSTRAINTS + 3,
-        .universal => poseidon2_air.N_CONSTRAINTS,
+        .universal => poseidon2_air.N_CONSTRAINTS + 1,
     };
 }
 
@@ -62,13 +62,21 @@ pub fn buildPoseidonDirectRange(
     const air = poseidon2_air.evaluateGeneric(symbolic.Scalar, main);
     return switch (mode) {
         .universal => blk: {
+            // Match hash_component.evaluateUniversal: narrow rows may not
+            // masquerade as full-IO provider rows. Keep this final constraint
+            // in the exported program and its partition geometry.
+            var direct: [poseidon2_air.N_CONSTRAINTS + 1]symbolic.Scalar = undefined;
+            @memcpy(direct[0..poseidon2_air.N_CONSTRAINTS], &air);
+            direct[poseidon2_air.N_CONSTRAINTS] = main[0].mul(
+                symbolic.Scalar.one().sub(main[poseidon2_air.IO_COLUMN]),
+            );
             const end = std.math.add(usize, range.start, range.count) catch
                 return error.InvalidHashRuntimeProgram;
-            if (range.count == 0 or end > air.len) return error.InvalidHashRuntimeProgram;
+            if (range.count == 0 or end > direct.len) return error.InvalidHashRuntimeProgram;
             break :blk runtime_program.ownDirectProgram(
                 allocator,
                 &arena,
-                air[range.start..end],
+                direct[range.start..end],
                 poseidon2_air.N_MAIN_COLUMNS,
             );
         },
@@ -148,7 +156,7 @@ test "Poseidon mixed runtime programs bind complete direct and lookup geometry" 
         narrow.roots.len,
     );
     try std.testing.expectEqual(
-        @as(usize, poseidon2_air.N_CONSTRAINTS),
+        @as(usize, poseidon2_air.N_CONSTRAINTS + 1),
         universal.roots.len,
     );
     try std.testing.expectEqual(@as(usize, poseidon2_air.N_SUMS), lookups.batchCount());
@@ -166,4 +174,14 @@ test "Poseidon mixed runtime programs bind complete direct and lookup geometry" 
         covered += range.count;
     }
     try std.testing.expectEqual(narrow.roots.len, covered);
+    covered = 0;
+    for (0..DIRECT_PARTITION_COUNT) |partition| {
+        const range = directPartitionRange(.universal, partition);
+        var split = try buildPoseidonDirectRange(std.testing.allocator, .universal, range);
+        defer split.deinit();
+        try std.testing.expectEqual(range.count, split.roots.len);
+        try std.testing.expectEqual(covered, range.start);
+        covered += range.count;
+    }
+    try std.testing.expectEqual(universal.roots.len, covered);
 }

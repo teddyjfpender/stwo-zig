@@ -291,6 +291,98 @@ pub fn expectedClaimedSum(
     return (try public_logup.sum(data, relations)).neg();
 }
 
+test "RISC-V recursion public LogUp graph matches native boundary over 64 challenge vectors" {
+    const allocator = std.testing.allocator;
+    const shape = try vm_claim.Shape.init(2, 3);
+    var reference = try LogupReference.init(allocator, shape, 41, 28);
+    defer reference.deinit();
+
+    for (0..64) |seed| {
+        const io_word_count = seed % 3;
+        const input_words = [_]u32{ @intCast(seed + 0x1234), @intCast(seed + 0x5678) };
+        const output_words = [_]public_data.OutputWord{
+            .{ .addr = 0x10_0004, .value = @intCast(4 * io_word_count), .clock = @intCast(4 * seed + 1) },
+            .{ .addr = 0x10_0008, .value = @intCast(seed + 0x9876), .clock = @intCast(4 * seed + 2) },
+            .{ .addr = 0x10_000c, .value = @intCast(seed + 0xabcd), .clock = @intCast(4 * seed + 3) },
+        };
+        var data = public_data.PublicData{
+            .initial_pc = @intCast(0x1000 + 4 * seed),
+            .final_pc = @intCast(0x1004 + 4 * seed),
+            .clock = @intCast(seed + 12),
+            .initial_regs = .{0} ** 32,
+            .final_regs = .{0} ** 32,
+            .reg_last_clock = .{0} ** 32,
+            .program_root = @intCast(seed + 1),
+            .initial_rw_root = if (seed % 2 == 0) @intCast(seed + 100) else null,
+            .final_rw_root = if (seed % 3 == 0) @intCast(seed + 200) else null,
+            .completion = public_data.Completion.canonicalSelfLoop(@intCast(0x1004 + 4 * seed)),
+            .io_entries = .{
+                .input_start = 0x18_0000,
+                .input_len = @intCast(4 * io_word_count),
+                .input_words = input_words[0..io_word_count],
+                .output_len = @intCast(4 * io_word_count),
+                .output_len_addr = 0x10_0004,
+                .output_data_addr = 0x10_0008,
+                .output_words = output_words[0..if (io_word_count == 0) 0 else io_word_count + 1],
+            },
+        };
+        data.initial_regs[1] = @intCast(seed + 2);
+        data.final_regs[1] = @intCast(seed + 3);
+        data.reg_last_clock[1] = @intCast(4 * seed + 1);
+        var claim = try vm_claim.encode(allocator, &data, shape);
+        defer claim.deinit();
+
+        var relations: relation_challenges.Relations = undefined;
+        inline for (std.meta.fields(relation_challenges.Relations), 0..) |field, index| {
+            @field(relations, field.name) = @TypeOf(@field(relations, field.name)).init(
+                testChallenge(seed, 2 * index),
+                testChallenge(seed, 2 * index + 1),
+            );
+        }
+        var claimed_sums = [_]QM31{QM31.zero()} ** 28;
+        var other_total = QM31.zero();
+        for (claimed_sums[1..], 1..) |*sum, index| {
+            sum.* = testChallenge(seed, 100 + index);
+            other_total = other_total.add(sum.*);
+        }
+        const native_boundary = try public_logup.sum(&data, &relations);
+        claimed_sums[0] = native_boundary.neg().sub(other_total);
+        var prepared = try reference.prepare(allocator, .{
+            .segment_selected = true,
+            .claim_words = claim.words,
+            .relation_words = LogupBoundChallengeWords.fromRelations(&relations),
+            .claimed_sums = &claimed_sums,
+        });
+        prepared.deinit();
+
+        // Keep the public statement and challenges fixed while altering one
+        // transcript claim. Native cancellation and the circuit must agree
+        // that this vector is invalid.
+        claimed_sums[7] = claimed_sums[7].add(QM31.one());
+        try std.testing.expectError(error.SemanticConstraintViolation, reference.prepare(allocator, .{
+            .segment_selected = true,
+            .claim_words = claim.words,
+            .relation_words = LogupBoundChallengeWords.fromRelations(&relations),
+            .claimed_sums = &claimed_sums,
+        }));
+    }
+}
+
+const LogupBoundChallengeWords = dependency_2.LogupChallengeWords;
+
+fn testChallenge(seed: usize, domain: usize) QM31 {
+    const base: u64 = @as(u64, @intCast(seed)) *% 0x9e3779b97f4a7c15 +%
+        @as(u64, @intCast(domain)) *% 0xbf58476d1ce4e5b9;
+    var words: [4]u32 = undefined;
+    for (&words, 0..) |*word, index| {
+        var value = base +% (@as(u64, @intCast(index)) *% 0x94d049bb133111eb);
+        value = (value ^ (value >> 30)) *% 0xbf58476d1ce4e5b9;
+        value = (value ^ (value >> 27)) *% 0x94d049bb133111eb;
+        word.* = @intCast((value ^ (value >> 31)) % 2147483647);
+    }
+    return QM31.fromU32Unchecked(words[0], words[1], words[2], words[3]);
+}
+
 pub fn buildLogupGraph(
     allocator: std.mem.Allocator,
     shape: vm_claim.Shape,

@@ -138,8 +138,14 @@ fixes produced the following inventory.
 
 | Id | Divergence | Required change |
 | --- | --- | --- |
-| R-D8 (Critical for the lane) | The leaf's native segment proof carries its tree-0 (preprocessed) root as proof data in the scheduled transcript (`recursion/segment_transcript_outer_source_v2_prepared_v2.zig:474-479`, `constant_mask = 0`), and the standalone detached verifiers only compare `commitments[0]` to the key's `preprocessed_root` without regenerating it. The native verifier regenerates and checks this root (`prover/statement_validation.zig` `verifyPreprocessedRoot`). A literal re-alignment of only R-D1 and R-D2 would still admit a leaf with an attacker-chosen `is_active` and lookup-table commitment. | Make the native tree-0 root a key-pinned constant of the leaf transcript and regenerate it at admission from key fields (contract V-14, K-8, W-9). |
+| R-D8 (Critical for the lane) | The leaf's native segment proof carries its tree-0 (preprocessed) root as proof data. V2 now labels the row `constant_mask = 1` (`recursion/segment_transcript_outer_source_v2_prepared_v2.zig:474-479`), but `segment_transcript_outer_components_v2_source.payloadLogicalRow` sets its `constant_value` equal to the proof row. That self-equality does not bind the root to a key. Frozen V1 row 5 remains dynamic. The native verifier independently regenerates and checks this root (`prover/statement_validation.zig` `verifyPreprocessedRoot`). A literal re-alignment of only R-D1 and R-D2 would still admit a leaf with an attacker-chosen `is_active` and lookup-table commitment. | Make the native tree-0 root a key-pinned constant of the leaf transcript, source the AIR constant from that admitted key rather than the proof row, and regenerate it at admission from key fields (contract V-14, K-8, W-9). |
 | R-D9 (accepted difference, now recorded) | The scheduled channel absorbs the 28 canonical sums but not the native interaction log-size list (`air/transcript/claims.zig:75-78` vs `recursion/native_scheduled_channel.zig:109-118`). Sound only because component geometry is pinned by the key. | Record as an accepted difference (contract T-3(d)) and cover by the shard-geometry gate. |
+
+V1 row-5 follow-up: transcript preprocessing now requires a caller-supplied
+native Tree-0 root and rejects a proof commitment that differs from it. The
+standalone G-8(a) forged-tree proof and the V2/parent key-constant paths remain
+open; a diagnostic producer's root recomputation from its own statement is
+not a substitute for independent key admission.
 
 **P-5 resolved:** `air/memory_commitment/ethereum_node_v1.zig` intentionally
 requests the full-IO Poseidon2 tuple, but no roster in

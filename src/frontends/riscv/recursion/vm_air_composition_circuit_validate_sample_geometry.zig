@@ -100,7 +100,8 @@ pub fn inputWord(
     active: bool,
 ) Error!M31 {
     return switch (source) {
-        .statement_word, .native_continuation_root => return error.BindingCountMismatch,
+        .statement_word => return error.BindingCountMismatch,
+        .native_continuation_root => |side| context.native_roots[side],
         .segment_selector => M31.fromCanonical(@intFromBool(active)),
         .sampled_value => |coordinate| secureWord(
             capture.sampled_values,

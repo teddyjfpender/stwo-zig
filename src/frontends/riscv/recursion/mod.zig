@@ -48,6 +48,7 @@ pub const protocol = @import("protocol.zig");
 pub const native_development_config = @import("native_development_config.zig");
 pub const recording_poseidon_channel_v4 =
     @import("recording_poseidon_channel_v4.zig");
+pub const transcript_equivalence_v2 = @import("transcript_equivalence_v2.zig");
 pub const relation_summary = @import("relation_summary.zig");
 pub const recursion_air_composition_circuit = @import("recursion_air_composition_circuit.zig");
 pub const recursion_air_composition_circuit_v3 = @import("recursion_air_composition_circuit_v3.zig");
@@ -76,6 +77,7 @@ pub const segment_transcript_outer_components_v2 = @import("segment_transcript_o
 pub const segment_public_outer_source_v2 = @import("segment_public_outer_source_v2.zig");
 pub const segment_public_outer_components_v2 = @import("segment_public_outer_components_v2.zig");
 pub const segment_public_native_sum_authority_v2 = @import("segment_public_native_sum_authority_v2.zig");
+pub const segment_public_native_sum_topology_v1 = @import("segment_public_native_sum_topology_v1.zig");
 pub const segment_statement_outer_source = @import("segment_statement_outer_source.zig");
 pub const segment_statement_outer_source_v2 = @import("segment_statement_outer_source_v2.zig");
 pub const segment_statement_outer_components_v2 = @import("segment_statement_outer_components_v2.zig");
@@ -142,6 +144,21 @@ pub const detached_segment_public_inputs_v1 = @import("detached_segment_public_i
 
 pub const detached_segment_authority_boundary_v1 = @import("detached_segment_authority_boundary_v1.zig");
 pub const detached_segment_protocol_v1 = @import("detached_segment_protocol_v1.zig");
+pub const detached_native_column_geometry_v1 = @import("detached_native_column_geometry_v1.zig");
+pub const detached_fixed_tree0_pcs_recipe_v1 = @import("detached_fixed_tree0_pcs_recipe_v1.zig");
+pub const detached_fixed_tree0_fri_recipe_v1 = @import("detached_fixed_tree0_fri_recipe_v1.zig");
+pub const detached_fixed_tree0_trace_merkle_recipe_v1 = @import("detached_fixed_tree0_trace_merkle_recipe_v1.zig");
+pub const detached_fixed_tree0_query_recipe_v1 = @import("detached_fixed_tree0_query_recipe_v1.zig");
+pub const detached_fixed_tree0_fri_input_recipe_v1 = @import("detached_fixed_tree0_fri_input_recipe_v1.zig");
+pub const detached_native_vm_profile_from_key_v1 = @import("detached_native_vm_profile_from_key_v1.zig");
+pub const detached_fixed_tree0_arithmetic_recipe_v1 = @import("detached_fixed_tree0_arithmetic_recipe_v1.zig");
+pub const detached_fixed_tree0_key_recipe_v1 = @import("detached_fixed_tree0_key_recipe_v1.zig");
+pub const detached_fixed_tree0_vm_input_recipe_v1 = @import("detached_fixed_tree0_vm_input_recipe_v1.zig");
+pub const detached_fixed_tree0_control_recipe_v1 = @import("detached_fixed_tree0_control_recipe_v1.zig");
+pub const detached_fixed_tree0_public_relay_recipe_v1 = @import("detached_fixed_tree0_public_relay_recipe_v1.zig");
+pub const detached_fixed_tree0_transcript_shape_recipe_v1 = @import("detached_fixed_tree0_transcript_shape_recipe_v1.zig");
+pub const detached_fixed_tree0_rebuild_v1 = @import("detached_fixed_tree0_rebuild_v1.zig");
+pub const vm_air_composition_key_graph_v2 = @import("vm_air_composition_key_graph_v2.zig");
 pub const detached_segment_verifier_v1 = @import("detached_segment_verifier_v1.zig");
 pub const detached_segment_command_v1 = @import("detached_segment_command_v1.zig");
 

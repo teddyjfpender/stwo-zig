@@ -471,7 +471,7 @@ pub fn Namespace(comptime context: type) type {
                     &captured.pcs_circuit,
                     captured.trace_tree_heights,
                     captured.column_log_sizes,
-                    ScheduleFacts.fromCaptured(captured),
+                    try ScheduleFacts.fromCapturedForVmPlan(captured, verifier_plans.vm),
                     vm_air,
                     verifier_plans,
                     null,

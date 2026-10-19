@@ -3,6 +3,7 @@
 const std = @import("std");
 const core = @import("stwo_core");
 const verifier = @import("detached_segment_verifier_v1.zig");
+const recording = @import("recording_poseidon_channel_v4.zig");
 const M31 = core.fields.m31.M31;
 const PublicData = @import("../air/public_data_v2.zig").PublicDataV2;
 pub const MAX_KEY_BYTES: usize = 64 * 1024 * 1024;
@@ -109,6 +110,7 @@ pub const ReceiptV1 = struct {
     request_ns: u64,
     verify_ns: u64,
     transcript_digest: [8]u32,
+    transcript_recording_sha256: ?[32]u8 = null,
 };
 
 pub fn verifyDirectory(allocator: std.mem.Allocator, directory: []const u8, independent_key_sha256: [32]u8, expected_wire_path: []const u8) !ReceiptV1 {
@@ -142,12 +144,21 @@ fn verifyDirectoryImpl(comptime Engine: type, allocator: std.mem.Allocator, dire
     defer allocator.free(proof);
     if (proof.len != input.proof_bytes or !std.meta.eql(hash(proof), input.proof_sha256)) return error.DetachedProofIdentityMismatch;
     var timer = try std.time.Timer.start();
-    const terminal = try verifier.verify(allocator, key.key(), &expected.data, input.claims, proof);
+    var recording_identity: ?[32]u8 = null;
+    const terminal = if (std.process.hasEnvVarConstant("STWO_RISCV_OUTER_TRANSCRIPT_EQUIVALENCE")) blk: {
+        var channel = recording.Channel.init(allocator);
+        defer channel.deinit();
+        const result = try verifier.verifyWithChannel(recording.MerkleChannel, allocator, key.key(), &expected.data, input.claims, proof, &channel, null);
+        var execution = try channel.finish();
+        defer execution.deinit();
+        recording_identity = execution.identity_sha256;
+        break :blk result.terminal;
+    } else try verifier.verify(allocator, key.key(), &expected.data, input.claims, proof);
     const verify_ns = timer.read();
     return .{ .endpoint = switch (key.key().profile) {
         .development_q3_v1 => "verified_segment_v2_detached_development_q3",
         .recursive_q193_v1 => "verified_segment_v2_detached_q193",
-    }, .key_sha256 = independent_key_sha256, .expected_wire_sha256 = hash(expected_json), .claims_sha256 = hash(claims_json), .proof_sha256 = input.proof_sha256, .proof_bytes = proof.len, .request_ns = request_timer.read(), .verify_ns = verify_ns, .transcript_digest = terminal };
+    }, .key_sha256 = independent_key_sha256, .expected_wire_sha256 = hash(expected_json), .claims_sha256 = hash(claims_json), .proof_sha256 = input.proof_sha256, .proof_bytes = proof.len, .request_ns = request_timer.read(), .verify_ns = verify_ns, .transcript_digest = terminal, .transcript_recording_sha256 = recording_identity };
 }
 
 pub const ArgumentsV1 = struct { directory: []const u8, independent_key_sha256: [32]u8, expected_wire_path: []const u8 };
@@ -255,7 +266,27 @@ fn mainImpl(comptime Engine: type) !void {
     const allocator = std.heap.smp_allocator;
     const args = try std.process.argsAlloc(allocator);
     defer std.process.argsFree(allocator, args);
-    const json = if (args.len == 5 and std.mem.eql(u8, args[1], "--root")) blk: {
+    const json = if (args.len == 5 and std.mem.eql(u8, args[1], "--admit-key")) blk: {
+        const input = try parseArguments(args[2..]);
+        const key_json = try std.fs.cwd().readFileAlloc(allocator, input.directory, MAX_KEY_BYTES);
+        defer allocator.free(key_json);
+        const key = try OwnedKeyV1.admit(allocator, key_json, input.independent_key_sha256);
+        defer key.deinit();
+        const expected_json = try std.fs.cwd().readFileAlloc(allocator, input.expected_wire_path, MAX_INPUT_BYTES);
+        defer allocator.free(expected_json);
+        var expected = try OwnedExpectedV1.decode(allocator, expected_json);
+        defer expected.deinit();
+        try key.key().native_descriptors.validateAgainstExpected(&expected.data);
+        try key.key().validateNativePreprocessedRoot(Engine, allocator);
+        break :blk try std.json.Stringify.valueAlloc(allocator, .{
+            .key_sha256 = input.independent_key_sha256,
+            .expected_wire_sha256 = hash(expected_json),
+            .circuit_identity = try key.key().identity(),
+            .native_preprocessed_root = key.key().native_preprocessed_root,
+            .preprocessed_root = key.key().preprocessed_root,
+            .proof_read = false,
+        }, .{});
+    } else if (args.len == 5 and std.mem.eql(u8, args[1], "--root")) blk: {
         const input = try parseArguments(args[2..]);
         break :blk try std.json.Stringify.valueAlloc(allocator, try verifyRootImpl(Engine, allocator, input), .{});
     } else if (args.len == 8 and std.mem.eql(u8, args[1], "--pair")) blk: {

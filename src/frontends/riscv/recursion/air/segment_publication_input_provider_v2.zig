@@ -1,12 +1,9 @@
 //! Typed publisher for the capture-backed SegmentV2 publication input.
 //!
-//! One deliberately separate component emits two disjoint authenticated
-//! classes from its own committed trace:
-//!
-//! - 55 `recursion_verifier_input_word(2, LUP2, index, 0, value)` tuples for
-//!   the row-37 publication bridge; and
-//! - 84 `recursion_verifier_input_word(0, 12, item, limb, value)` tuples for
-//!   row 18's 21 detailed VM composition claims.
+//! The separate component emits 55 authenticated
+//! `recursion_verifier_input_word(2, LUP2, index, 0, value)` tuples for the
+//! row-37 publication bridge. Detailed VM claims are published directly by
+//! the transcript payload row and consumed by composition.
 //!
 //! It has no relation to `recursion_wire`, so it cannot self-cancel either
 //! consumer or hide a cross-domain residual.
@@ -46,13 +43,13 @@ pub const RELATION_EVENT_COUNT: usize = 1;
 pub const LOOKUP_BATCH_SIZE: u8 = 1;
 pub const INTERACTION_BATCH_COUNT: usize = 1;
 pub const INTERACTION_COLUMN_COUNT: usize = 4;
-pub const MAXIMUM_CONSTRAINT_DEGREE: u32 = 2;
+pub const MAXIMUM_CONSTRAINT_DEGREE: u32 = 3;
 pub const REFERENCE_MAXIMUM_CONSTRAINT_DEGREE: u32 = 3;
 
 // Regenerated from this file's typed IR. The focused authority test pins both
 // this semantic identity and the compiler profile before integration.
 pub const SEMANTIC_DIGEST_HEX =
-    "5b62519820b6cf232304c74537a8612f3956a0f90fa898bc560668cd54e1d32c";
+    "e5e29a9ff159e19e7fabf95b8b63dd31d8b132125e8fb4a63c9711199bcd7858";
 pub const SEMANTIC_DIGEST: digest.Digest = hexDigest(
     SEMANTIC_DIGEST_HEX,
     "invalid SegmentV2 publication-input provider semantic digest",
@@ -106,6 +103,7 @@ pub const Definition = struct {
     preprocessed: PreprocessedColumns,
     verifier: types.ValueId,
     source_kind: types.ValueId,
+    weight: types.ValueId,
     roots: [DIRECT_CONSTRAINT_COUNT]types.ValueId,
     constraints: [DIRECT_CONSTRAINT_COUNT]types.ConstraintId,
     event: types.EffectId,
@@ -175,7 +173,7 @@ pub const Definition = struct {
             self.event,
             .recursion_verifier_input_word,
             .emit,
-            self.preprocessed.active,
+            self.weight,
             &tuple,
         );
     }
@@ -192,8 +190,8 @@ pub const StaticProfile = struct {
 };
 
 pub const EXPECTED_STATIC_PROFILE = StaticProfile{
-    .arena_nodes = 25,
-    .compiled_nodes = 20,
+    .arena_nodes = 26,
+    .compiled_nodes = 21,
     .direct_constraints = DIRECT_CONSTRAINT_COUNT,
     .relation_events = RELATION_EVENT_COUNT,
     .interaction_batches = INTERACTION_BATCH_COUNT,
@@ -309,11 +307,14 @@ fn buildRaw(allocator: std.mem.Allocator) !Definition {
         preprocessed.index_1,
         main.value,
     };
+    // Transcript payload rows already emit the detailed claims consumed by
+    // composition. Only the LUP2 publication needs this separate publisher.
+    const weight = try arena.mul(preprocessed.active, preprocessed.lup2_class, span);
     const event = try relation_effect.append(&arena, .{
         .domain = .recursion_verifier_input_word,
         .role = .emit,
         .values = &tuple,
-        .weight = preprocessed.active,
+        .weight = weight,
     }, span);
     return .{
         .arena = arena,
@@ -321,6 +322,7 @@ fn buildRaw(allocator: std.mem.Allocator) !Definition {
         .preprocessed = preprocessed,
         .verifier = verifier,
         .source_kind = source_kind,
+        .weight = weight,
         .roots = roots,
         .constraints = constraints,
         .event = event,
@@ -395,7 +397,7 @@ comptime {
         DETAILED_VERIFIER_ID != 0 or DETAILED_SOURCE_KIND != 12 or
         LOGICAL_INPUT_COUNT != 5 or DIRECT_CONSTRAINT_COUNT != 7 or
         RELATION_EVENT_COUNT != 1 or INTERACTION_BATCH_COUNT != 1 or
-        INTERACTION_COLUMN_COUNT != 4 or MAXIMUM_CONSTRAINT_DEGREE != 2 or
+        INTERACTION_COLUMN_COUNT != 4 or MAXIMUM_CONSTRAINT_DEGREE != 3 or
         relation.universalDescriptor(.recursion_verifier_input_word).arity != 5)
     {
         @compileError("SegmentV2 publication-input provider AIR drifted");

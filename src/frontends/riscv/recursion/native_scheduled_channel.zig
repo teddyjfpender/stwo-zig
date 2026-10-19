@@ -121,6 +121,62 @@ pub const Channel = struct {
         try self.mixSecurePayload(values);
     }
 
+    /// Absorb the native physical-claim header and each detailed claim in
+    /// statement order. This is one scheduled operation, prior to Tree 2.
+    pub fn absorbRiscVPhysicalClaims(
+        self: *Self,
+        statement: *const statement_mod.RiscVStatement,
+        claim: *const statement_mod.RiscVInteractionClaim,
+    ) Error!void {
+        try self.checkStarted();
+        if (claim.n_components != statement.n_components or
+            claim.n_infra != statement.n_infra)
+            return error.UnexpectedChannelOperation;
+        const total = statement_mod.physicalClaimCount(
+            statement,
+            statement_mod.CompatibilityBatching{},
+        ) catch return error.UnexpectedChannelOperation;
+        if (total != segment_profile.PHYSICAL_CLAIMED_SUM_COUNT)
+            return error.UnexpectedChannelOperation;
+        const step = try self.nextTranscriptStep();
+        if (step != .absorb_physical_claims or
+            step.absorb_physical_claims.count != total or
+            step.absorb_physical_claims.component_count != statement.n_components or
+            step.absorb_physical_claims.infra_count != statement.n_infra)
+            return error.UnexpectedChannelOperation;
+
+        var words: [5 + 4 * segment_profile.PHYSICAL_CLAIMED_SUM_COUNT]M31 = undefined;
+        const header = [_]u32{
+            statement_mod.PHYSICAL_CLAIM_DOMAIN_WORDS[0],
+            statement_mod.PHYSICAL_CLAIM_DOMAIN_WORDS[1],
+            @intCast(statement.n_components),
+            @intCast(statement.n_infra),
+            @intCast(total),
+        };
+        for (header, 0..) |word, index| words[index] = try canonical(word);
+        var at: usize = 5;
+        for (statement.component_descs[0..statement.n_components], 0..) |desc, index| {
+            const count = (statement_mod.CompatibilityBatching{}).opcodeBatchCount(desc.family);
+            for (claim.opcode_claims[index][0..count]) |value| {
+                for (value.toM31Array()) |limb| {
+                    words[at] = limb;
+                    at += 1;
+                }
+            }
+        }
+        for (statement.infra_descs[0..statement.n_infra], 0..) |desc, index| {
+            const values = claim.infraClaims(desc.kind, index) catch
+                return error.UnexpectedChannelOperation;
+            for (values) |value| for (value.toM31Array()) |limb| {
+                words[at] = limb;
+                at += 1;
+            };
+        }
+        if (at != words.len) return error.UnexpectedChannelOperation;
+        try (try self.driverPtr()).mix(step, &words);
+        self.syncDrawCount();
+    }
+
     pub fn completeRiscVTranscript(self: *Self) Error!void {
         try self.checkStarted();
         if (self.first_fault != null) return error.TranscriptFault;

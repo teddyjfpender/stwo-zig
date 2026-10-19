@@ -24,7 +24,7 @@ pub const BINDING_FORMAT_VERSION: u16 = 1;
 pub const BINDING_DOMAIN =
     "stwo-zig/typed-air/recursion-vm-public-claim-input-witness/v1\x00";
 pub const BINDING_DIGEST_HEX =
-    "aada6002e86382de0e220972a05d5d7bbb6c7af2495287838f8565cfbb66779f";
+    "ca91345b3a344449ea6ae6f1dc93d2e9165d8ea8326638820387460d7fcb06cd";
 pub const BINDING_DIGEST: digest.Digest = hexDigest(
     BINDING_DIGEST_HEX,
     "invalid recursion VM public-claim input witness-binding digest",
@@ -73,6 +73,8 @@ pub const PreprocessedSource = enum(u8) {
     input_io_index = 7,
     output_io_mask = 8,
     output_io_index = 9,
+    native_root_mask = 10,
+    native_root_side = 11,
 };
 
 pub fn Slot(comptime SourceType: type) type {
@@ -157,6 +159,7 @@ pub const PreprocessedRow = struct {
     kind: WordKind,
     input_io_index: ?u32,
     output_io_index: ?u32,
+    native_root_side: ?u32 = null,
 
     pub fn values(self: PreprocessedRow) [PREPROCESSED_COLUMN_COUNT]M31 {
         return .{
@@ -173,6 +176,8 @@ pub const PreprocessedRow = struct {
             M31.fromU64(self.input_io_index orelse 0),
             M31.fromU64(@intFromBool(self.output_io_index != null)),
             M31.fromU64(self.output_io_index orelse 0),
+            M31.fromU64(@intFromBool(self.native_root_side != null)),
+            M31.fromU64(self.native_root_side orelse 0),
         };
     }
 };
@@ -405,6 +410,12 @@ fn expectedRow(shape: Shape, index: usize) PreprocessedRow {
         .kind = expectedKind(shape, index),
         .input_io_index = inputIoIndex(shape, index),
         .output_io_index = outputIoIndex(shape, index),
+        .native_root_side = if (index == @import("../vm_public_claim.zig").canonical_layout.initial_rw_root_start)
+            0
+        else if (index == @import("../vm_public_claim.zig").canonical_layout.final_rw_root_start)
+            1
+        else
+            null,
     };
 }
 
@@ -489,7 +500,8 @@ fn traceLogSize(row_count: usize) Error!u32 {
 fn validatePreprocessedRow(row: PreprocessedRow) direct.Error!void {
     if (row.word_index >= m31.Modulus or
         (row.input_io_index != null and row.input_io_index.? >= m31.Modulus) or
-        (row.output_io_index != null and row.output_io_index.? >= m31.Modulus))
+        (row.output_io_index != null and row.output_io_index.? >= m31.Modulus) or
+        (row.native_root_side != null and row.native_root_side.? > 1))
     {
         return error.InvalidTraceRow;
     }
@@ -533,6 +545,7 @@ fn rowsDigest(shape: Shape, rows: []const PreprocessedRow) digest.Digest {
         });
         hashOptional(&hash, row.input_io_index);
         hashOptional(&hash, row.output_io_index);
+        hashOptional(&hash, row.native_root_side);
     }
     return hash.finalResult();
 }

@@ -5,6 +5,9 @@ const options_mod = @import("recursive_segment_v2_detached_leaf_options.zig");
 const CpuOuterEngine = @import("recursive_segment_v2_detached_proof.zig").CpuEngine;
 const NativeCpuEngine = @import("recursive_segment_v2_leaf_outer.zig").Engine;
 const ProofProfile = options_mod.Profile;
+const RecordedOuterEngine = @import("stwo_riscv_frontend").recursion.engine.RecordingProverEngineForBackend(
+    @import("stwo_cpu_backend").CpuBackend,
+);
 
 pub fn main() !void {
     try run(void);
@@ -24,7 +27,10 @@ fn run(comptime Metal: type) !void {
         return err;
     };
     switch (options.native_backend) {
-        .cpu => try produceSelectedSegments(options.segment_count, NativeCpuEngine, CpuOuterEngine, allocator, options.address_count, options.initial_memory_word, options.directory, options.child_key_paths, options.child_key_pins, options.proof_profile),
+        .cpu => if (std.process.hasEnvVarConstant("STWO_RISCV_OUTER_TRANSCRIPT_EQUIVALENCE"))
+            try produceSelectedSegments(options.segment_count, NativeCpuEngine, RecordedOuterEngine, allocator, options.address_count, options.initial_memory_word, options.directory, options.child_key_paths, options.child_key_pins, options.proof_profile)
+        else
+            try produceSelectedSegments(options.segment_count, NativeCpuEngine, CpuOuterEngine, allocator, options.address_count, options.initial_memory_word, options.directory, options.child_key_paths, options.child_key_pins, options.proof_profile),
         .metal => {
             if (comptime Metal == void) return error.MetalBackendUnavailable else {
                 const Backend = Metal.MetalCommitBackend;
@@ -56,10 +62,18 @@ fn run(comptime Metal: type) !void {
                     .{ @tagName(selected_aot), std.fmt.bytesToHex(manifest, .lower), std.fmt.bytesToHex(identity.source_sha256, .lower), std.fmt.bytesToHex(identity.metallib_sha256.?, .lower), timer.read() },
                 );
                 const NativeEngine = @import("stwo_riscv_frontend").recursion.engine.ProverEngineForBackend(Backend);
-                if (options.recursive_backend == .metal)
-                    try produceSelectedSegments(options.segment_count, NativeEngine, NativeEngine, allocator, options.address_count, options.initial_memory_word, options.directory, options.child_key_paths, options.child_key_pins, options.proof_profile)
-                else
-                    try produceSelectedSegments(options.segment_count, NativeEngine, CpuOuterEngine, allocator, options.address_count, options.initial_memory_word, options.directory, options.child_key_paths, options.child_key_pins, options.proof_profile);
+                const RecordedMetalEngine = @import("stwo_riscv_frontend").recursion.engine.RecordingProverEngineForBackend(Backend);
+                if (options.recursive_backend == .metal) {
+                    if (std.process.hasEnvVarConstant("STWO_RISCV_OUTER_TRANSCRIPT_EQUIVALENCE"))
+                        try produceSelectedSegments(options.segment_count, NativeEngine, RecordedMetalEngine, allocator, options.address_count, options.initial_memory_word, options.directory, options.child_key_paths, options.child_key_pins, options.proof_profile)
+                    else
+                        try produceSelectedSegments(options.segment_count, NativeEngine, NativeEngine, allocator, options.address_count, options.initial_memory_word, options.directory, options.child_key_paths, options.child_key_pins, options.proof_profile);
+                } else {
+                    if (std.process.hasEnvVarConstant("STWO_RISCV_OUTER_TRANSCRIPT_EQUIVALENCE"))
+                        try produceSelectedSegments(options.segment_count, NativeEngine, RecordedOuterEngine, allocator, options.address_count, options.initial_memory_word, options.directory, options.child_key_paths, options.child_key_pins, options.proof_profile)
+                    else
+                        try produceSelectedSegments(options.segment_count, NativeEngine, CpuOuterEngine, allocator, options.address_count, options.initial_memory_word, options.directory, options.child_key_paths, options.child_key_pins, options.proof_profile);
+                }
                 try Backend.shutdown();
                 if (Backend.runtimeLifecycleSnapshot().initialized) return error.NativeMetalRuntimeNotReleased;
             }

@@ -280,6 +280,31 @@ pub fn addProduct(context: Context) void {
         }),
         .minimum = 1,
     }}));
+    // This root imports only the recursive soundness checks, rather than the
+    // entire RISC-V frontend inventory. The floor prevents a silently empty
+    // result if an import or a pinned filter drifts.
+    const recursion_soundness = context.b.step(
+        "test-riscv-recursion-soundness",
+        "Run focused recursive transcript, composition, key and wire-custody checks",
+    );
+    recursion_soundness.dependOn(test_filter.addSuites(context.b, &.{.{
+        .tests = riscv_cpu_tests.addFocusedTestRoot(test_context, "src/frontends/riscv/recursion_soundness_test_root.zig", &.{
+            "V2 transcript",
+            "binary composition",
+            "ProfileV2 memory composition",
+            "RISC-V recursion public LogUp graph",
+            "fixed wire field",
+            "transcript payload distinguishes",
+            "shared Poseidon provider requires full IO",
+            "catalog manifest ordering claims",
+            "pre-October q193 leaf key",
+            "native-sum topology binds address arrangement",
+            "detached key binds public native-sum topology",
+            "SegmentV2 native-sum graph regenerates from admitted public topology",
+            "SegmentV2 native-sum",
+        }),
+        .minimum = 13,
+    }}));
     context.b.step(
         "test-riscv-rigidity",
         "Run the full witness-rigidity sweep over every committed opcode column",

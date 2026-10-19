@@ -78,9 +78,25 @@ pub const CompilerV2 = struct {
         authenticated: *const lookup_manifest.AuthenticatedStatement,
         profile: *const profile_mod.ProfileV2,
     ) !CompilerV2 {
-        try profile.validateAuthority(
+        return initFromGeometry(
             allocator,
-            statement,
+            try profile_mod.Geometry.fromStatement(statement),
+            manifest,
+            authenticated,
+            profile,
+        );
+    }
+
+    pub fn initFromGeometry(
+        allocator: std.mem.Allocator,
+        geometry: profile_mod.Geometry,
+        manifest: *const lookup_manifest.Manifest,
+        authenticated: *const lookup_manifest.AuthenticatedStatement,
+        profile: *const profile_mod.ProfileV2,
+    ) !CompilerV2 {
+        try profile.validateAuthorityGeometry(
+            allocator,
+            geometry,
             manifest,
             authenticated,
         );

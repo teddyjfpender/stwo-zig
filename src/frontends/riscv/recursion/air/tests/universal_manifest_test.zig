@@ -6,10 +6,10 @@ const query_bits = @import("../query_bits.zig");
 const range_bridge = @import("../range_check_8_8_bridge.zig");
 const roster = @import("../universal_roster.zig");
 
-// Recomputed from the complete ordered geometry below. In particular, row 20
-// now binds the profile-owned raw-query-to-position projection parameters.
+// Recomputed from the complete ordered geometry below. Row 12 now includes
+// the two native sparse-root selectors and their authenticated relation event.
 const FIXTURE_SEAL_HEX =
-    "be2b507c7829989a9d1ea6db41f59917206874bcd669c71f1d5c1e3a09b55313";
+    "03b8e8b3181c64b602ebc08a1c5c737bbf856ea90d1b5f0e23a1f510b23ea696";
 
 test "R-012 universal manifest closes all 36 rows in exact protocol order" {
     const log_sizes = fixtureLogSizes();
@@ -44,10 +44,10 @@ test "R-012 universal manifest closes all 36 rows in exact protocol order" {
     try std.testing.expectEqual(prior_main, manifest.total_main_columns);
     try std.testing.expectEqual(prior_interaction, manifest.total_interaction_columns);
     try std.testing.expectEqual(prior_constraints, manifest.total_constraints);
-    try std.testing.expectEqual(@as(u32, 570), manifest.total_preprocessed_columns);
+    try std.testing.expectEqual(@as(u32, 572), manifest.total_preprocessed_columns);
     try std.testing.expectEqual(@as(u32, 1044), manifest.total_main_columns);
-    try std.testing.expectEqual(@as(u32, 560), manifest.total_interaction_columns);
-    try std.testing.expectEqual(@as(u32, 1313), manifest.total_constraints);
+    try std.testing.expectEqual(@as(u32, 564), manifest.total_interaction_columns);
+    try std.testing.expectEqual(@as(u32, 1314), manifest.total_constraints);
     const query_placement = manifest.placements[
         @intFromEnum(roster.Component.query_bits)
     ].?;

@@ -17,6 +17,35 @@ const channel = @import("../poseidon2_channel.zig");
 const schedule = @import("../air/verifier_schedule.zig");
 const subject = @import("../segment_transcript_outer_source_v2.zig");
 const transcript = @import("../transcript_program_v2.zig");
+const payload_source = @import("../segment_transcript_outer_source_v2_prepared_v2.zig");
+
+test "selected physical claim payload is consumed by the shared input relation" {
+    const metadata = payload_source.payloadMetadata(.{
+        .kind = .physical_claim_batch,
+        .verifier_sequence = 0,
+        .sub_index = 0,
+        .args = .{ 3, 2, 0, 0 },
+    }, 5);
+    try std.testing.expectEqual(payload_source.PayloadSourceKindV2.vm_air_claimed_sum, metadata.source_kind);
+    try std.testing.expectEqual(@as(u32, 4), metadata.item_index);
+    try std.testing.expectEqual(@as(u32, 1), metadata.limb_index);
+    try std.testing.expectEqual(@as(u32, 0), metadata.constant_mask);
+    try std.testing.expectEqual(@as(u32, 1), metadata.input_use_count);
+}
+
+test "authenticated tree-zero payload publishes its preprocessed root" {
+    const metadata = payload_source.payloadMetadata(.{
+        .kind = .trace_commitment,
+        .verifier_sequence = 0,
+        .sub_index = 0,
+        .args = .{ 0, 0, 0, 0 },
+    }, 3);
+    try std.testing.expectEqual(payload_source.PayloadSourceKindV2.commitment, metadata.source_kind);
+    try std.testing.expectEqual(@as(u32, 0), metadata.item_index);
+    try std.testing.expectEqual(@as(u32, 3), metadata.limb_index);
+    try std.testing.expectEqual(@as(u32, 1), metadata.constant_mask);
+    try std.testing.expectEqual(@as(u32, 1), metadata.input_use_count);
+}
 
 const config = PcsConfig{
     .pow_bits = 0,
@@ -63,7 +92,19 @@ test "V2 source writes exact typed rows events and provider range" {
         &fixture.data,
         &component_descs,
         &infra_descs,
+        support.id("v2-source-tree-0"),
     );
+    try std.testing.expectError(error.SourceMismatch, subject.preflight(
+        &fixture.program,
+        &fixture.execution,
+        &evidence,
+        &fixture.plan,
+        config,
+        &fixture.data,
+        &component_descs,
+        &infra_descs,
+        support.id("wrong-v2-tree-0"),
+    ));
     try std.testing.expect(!prepared.productionReady());
     try prepared.manifest.validate();
     const authority_words = prepared.authority.canonicalWords();
@@ -83,6 +124,7 @@ test "V2 source writes exact typed rows events and provider range" {
         &fixture.data,
         &component_descs,
         &infra_descs,
+        support.id("v2-source-tree-0"),
     );
     try std.testing.expectEqualDeep(prepared, published);
 
@@ -138,6 +180,7 @@ test "V2 digest-state keys advance only on mixes and count every reuse" {
         &fixture.data,
         &component_descs,
         &infra_descs,
+        support.id("v2-source-tree-0"),
     );
     var owned = try OwnedDestinations.init(std.testing.allocator, prepared.counts());
     defer owned.deinit();
@@ -222,6 +265,7 @@ test "V2 control and transcript rows share the exact verifier-owned schedule" {
         &fixture.data,
         &component_descs,
         &infra_descs,
+        support.id("v2-source-tree-0"),
     );
     try std.testing.expectEqual(fixture.plan.steps.len, prepared.counts().control);
     var owned = try OwnedDestinations.init(std.testing.allocator, prepared.counts());
@@ -350,6 +394,7 @@ test "V2 raw query custody preserves complete transcript words atomically" {
         &fixture.data,
         &component_descs,
         &infra_descs,
+        support.id("v2-source-tree-0"),
     );
 
     var query_words: [config.fri_config.n_queries]M31 = undefined;
@@ -416,6 +461,7 @@ test "V2 source rejects evidence mutation before destination writes" {
         &fixture.data,
         &component_descs,
         &infra_descs,
+        support.id("v2-source-tree-0"),
     );
     var owned = try OwnedDestinations.init(std.testing.allocator, prepared.counts());
     defer owned.deinit();
@@ -454,6 +500,7 @@ test "V2 source rejects omitted destination and alias before any write" {
         &fixture.data,
         &component_descs,
         &infra_descs,
+        support.id("v2-source-tree-0"),
     );
     var owned = try OwnedDestinations.init(std.testing.allocator, prepared.counts());
     defer owned.deinit();
@@ -514,6 +561,7 @@ test "V2 source rejects reordered program and duplicated operation atomically" {
         &fixture.data,
         &component_descs,
         &infra_descs,
+        support.id("v2-source-tree-0"),
     );
     var owned = try OwnedDestinations.init(std.testing.allocator, prepared.counts());
     defer owned.deinit();
@@ -577,6 +625,7 @@ test "V2 source rejects manifest event and provider-range drift" {
         &fixture.data,
         &component_descs,
         &infra_descs,
+        support.id("v2-source-tree-0"),
     );
     var owned = try OwnedDestinations.init(std.testing.allocator, prepared.counts());
     defer owned.deinit();

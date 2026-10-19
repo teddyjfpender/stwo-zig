@@ -14,6 +14,10 @@ const native_statement = @import("../../air/statement_v2.zig");
 const leaf_source = @import("../segment_leaf_authority_v2.zig");
 const public_source = @import("../segment_public_outer_source_v2.zig");
 const subject = @import("../segment_public_native_sum_authority_v2.zig");
+const native_sum_topology = @import("../segment_public_native_sum_topology_v1.zig");
+test {
+    _ = @import("../segment_public_native_sum_topology_v1.zig");
+}
 const fixture_support = @import("../segment_public_outer_test_support.zig");
 const fixed_profile = @import("../fixed_profile.zig");
 const protocol = @import("../protocol.zig");
@@ -68,6 +72,24 @@ test "SegmentV2 native-sum graph exactly replays all four domains and total" {
     try std.testing.expectEqualDeep(source.authority_digest, lane.circuit_identity);
     try std.testing.expectEqual(source.owned_graph.nodes.ptr, lane.graph.nodes.ptr);
     try lane.graph.validate();
+}
+
+test "SegmentV2 native-sum graph regenerates from admitted public topology" {
+    var fixture = try Fixture.init(std.testing.allocator);
+    defer fixture.deinit();
+    const prepared = try public_source.preflight(fixture.inputs());
+    var source = try subject.SourceV2.init(std.testing.allocator, &prepared, fixture.inputs());
+    defer source.deinit();
+    const view = try fixture.owned_public.data.authenticatedView();
+    const retained = try @import("../segment_statement_v2_transcript_layout.zig").Layout.fromView(&view);
+    var topology = try native_sum_topology.Topology.fromView(std.testing.allocator, &view);
+    defer topology.deinit(std.testing.allocator);
+    var authored = try subject.buildNativeGraphFromTopology(std.testing.allocator, &retained, topology);
+    defer authored.circuit.deinit();
+    var regenerated = try subject.NativeOwnedGraph.init(std.testing.allocator, &authored.circuit);
+    defer regenerated.deinit();
+    try std.testing.expectEqualDeep(source.owned_graph.graph.identity_digest, regenerated.graph.identity_digest);
+    try std.testing.expectEqualDeep(source.term_counts, authored.term_counts);
 }
 
 test "SegmentV2 native-sum graph pins dense input and circuit-44 bridge order" {

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Build and freshly verify the pinned generic SegmentV2 CPU/Metal tree.
+"""Build and freshly verify an independently pinned SegmentV2 CPU/Metal tree.
 
 All executables and (for Metal) the AOT bundle are built into a new output
 directory. No retained session binary is an input. The existing tree gate owns
@@ -18,10 +18,6 @@ import sys
 import time
 
 ROOT = Path(__file__).resolve().parents[1]
-ADMISSION = ROOT / "vectors/reports/recursive-product-20260917/canonical-admission-v2/admission.json"
-ADMISSION_SHA256 = "1fe20e6c7ee8daec966ccf2aa601e9e417d1aa37e9e96e8d9290c8ae18d90a89"
-OTHER_ADMISSION = ROOT / "vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/tree-admissions/air-fusion-q193-4-seed14.json"
-OTHER_ADMISSION_SHA256 = "c7b278867cee07a660be4e2ec16f71db78f1bb7dd51ed74cf26e2c683dea4b07"
 
 
 def sha256(path: Path) -> str:
@@ -43,24 +39,37 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--backend", choices=("cpu", "metal"), required=True)
     parser.add_argument("--output", type=Path, required=True, help="new evidence/build directory")
-    parser.add_argument("--admission", type=Path, help="independently reviewed four-segment tree admission")
-    parser.add_argument("--admission-sha256", help="required exact digest when overriding admission")
+    parser.add_argument("--admission", type=Path, required=True,
+                        help="freshly regenerated, independently reviewed tree admission")
+    parser.add_argument("--admission-sha256", required=True)
+    parser.add_argument("--other-inputs", type=Path, required=True,
+                        help="same-geometry workload with a distinct memory seed")
+    parser.add_argument("--other-inputs-sha256", required=True)
     args = parser.parse_args()
-    if (args.admission is None) != (args.admission_sha256 is None):
-        parser.error("--admission and --admission-sha256 must be supplied together")
-    admission = args.admission.resolve() if args.admission is not None else ADMISSION
-    admission_sha256 = args.admission_sha256 or ADMISSION_SHA256
-    if len(admission_sha256) != 64 or any(c not in "0123456789abcdef" for c in admission_sha256):
-        parser.error("admission digest must be lowercase SHA-256 hex")
+    admission = args.admission.resolve()
+    other_inputs = args.other_inputs.resolve()
+    for name, digest in (("admission", args.admission_sha256),
+                         ("other inputs", args.other_inputs_sha256)):
+        if len(digest) != 64 or any(c not in "0123456789abcdef" for c in digest):
+            parser.error(f"{name} digest must be lowercase SHA-256 hex")
     zig_version = subprocess.check_output(["zig", "version"], text=True).strip()
     if zig_version != "0.15.2":
         parser.error(f"this admitted build requires Zig 0.15.2, found {zig_version}")
     if args.backend == "metal" and sys.platform != "darwin":
         parser.error("Metal requires a physical Mac and the full Xcode Metal toolchain")
-    if sha256(admission) != admission_sha256:
+    if sha256(admission) != args.admission_sha256:
         parser.error("reviewed tree admission digest mismatch")
-    if sha256(OTHER_ADMISSION) != OTHER_ADMISSION_SHA256:
-        parser.error("reviewed substitution admission digest mismatch")
+    if sha256(other_inputs) != args.other_inputs_sha256:
+        parser.error("reviewed substitution workload digest mismatch")
+    tree = json.loads(admission.read_bytes())
+    alternate = json.loads(other_inputs.read_bytes())
+    segment_count = len(tree["leaves"])
+    if (segment_count not in (1, 2, 4, 8) or
+            len(alternate["leaf_expected"]) != segment_count or
+            tree["profile"] != alternate["profile"] or
+            tree["memory_addresses"] != alternate["memory_addresses"] or
+            tree["initial_memory_word"] == alternate["initial_memory_word"]):
+        parser.error("substitution workload must have matching geometry and a distinct seed")
     output = args.output.resolve()
     if output.is_relative_to(ROOT) and not output.is_relative_to(ROOT / "zig-out"):
         parser.error("repository outputs must be under zig-out; an external directory is also supported")
@@ -70,9 +79,10 @@ def main() -> None:
         "schema": "stwo.recursive-product.v1", "backend": args.backend,
         "profile": "recursive_q193_v1", "production_security_qualified": False,
         "head": subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip(),
+        "segments": segment_count,
         "zig_version": zig_version,
-        "source_sha256": snapshot, "admission_sha256": admission_sha256,
-        "substitution_admission_sha256": OTHER_ADMISSION_SHA256,
+        "source_sha256": snapshot, "admission_sha256": args.admission_sha256,
+        "substitution_inputs_sha256": args.other_inputs_sha256,
         "steps": [], "passed": False,
     }
     environment = dict(os.environ)
@@ -156,7 +166,7 @@ def main() -> None:
         }
         command = [sys.executable, str(ROOT / "scripts/riscv_segment_v2_detached_tree_gate.py"),
                    "--backend", args.backend, "--admission", str(admission),
-                   "--admission-sha256", admission_sha256, "--output", str(output / "tree")]
+                   "--admission-sha256", args.admission_sha256, "--output", str(output / "tree")]
         report["binary_sha256"] = {role: sha256(path) for role, path in binaries.items()}
         for role, path in binaries.items():
             command += ["--" + role, str(path), "--" + role + "-sha256", report["binary_sha256"][role]]
@@ -167,43 +177,40 @@ def main() -> None:
         if args.backend == "metal":
             from riscv_segment_v2_detached_gate import records
             native_device = records((output / "tree/produce-leaves.log").read_text(), "SEGMENT_V2_TWO_CHILD_NATIVE_METAL")
-            if len(native_device) != 4 or any(row.get("table_interaction_dispatches") != "24" for row in native_device):
+            if len(native_device) != segment_count or any(row.get("table_interaction_dispatches") != "24" for row in native_device):
                 raise RuntimeError("all six native tables must execute device interactions for every child")
-            report["native_table_interactions"] = {"tables_per_child": 6, "children": 4, "successful_device_dispatches": 96}
+            report["native_table_interactions"] = {"tables_per_child": 6, "children": segment_count,
+                                                    "successful_device_dispatches": 24 * segment_count}
             leaf_device = records((output / "tree/produce-leaves.log").read_text(), "DETACHED_LEAF_TYPED_DEVICE_INTERACTION")
-            if len(leaf_device) != 4 or any(row.get("components") != "36" or row.get("inactive_zero_components") != "1" or row.get("dispatches") != "144" for row in leaf_device):
+            if len(leaf_device) != segment_count or any(row.get("components") != "36" or row.get("inactive_zero_components") != "1" or row.get("dispatches") != "144" for row in leaf_device):
                 raise RuntimeError("all 36 active typed components must execute device interactions for every leaf")
-            report["leaf_typed_interactions"] = {"components_per_leaf": 36, "inactive_zero_components_per_leaf": 1, "leaves": 4, "successful_device_dispatches": 576}
+            report["leaf_typed_interactions"] = {"components_per_leaf": 36, "inactive_zero_components_per_leaf": 1,
+                                                 "leaves": segment_count, "successful_device_dispatches": 144 * segment_count}
             parent_device = []
             for log in sorted((output / "tree").glob("parent-*-accepted.json.producer.log")):
                 parent_device.extend(records(log.read_text(), "DETACHED_PARENT_TYPED_DEVICE_INTERACTION"))
-            if len(parent_device) != 3 or any(row.get("components") != "29" or row.get("dispatches") != "116" for row in parent_device):
+            if len(parent_device) != segment_count - 1 or any(row.get("components") != "29" or row.get("dispatches") != "116" for row in parent_device):
                 raise RuntimeError("all 29 typed components must execute device interactions for every parent")
-            report["parent_typed_interactions"] = {"components_per_parent": 29, "parents": 3, "successful_device_dispatches": 348}
-        original = json.loads(admission.read_bytes())
-        other = json.loads(OTHER_ADMISSION.read_bytes())
-        for index, (node, substitute) in enumerate(zip(original["leaves"], other["leaves"], strict=True)):
-            expected = admission.parent / node["expected"]["path"]
-            wrong = OTHER_ADMISSION.parent / substitute["expected"]["path"]
-            if (node["key"]["sha256"] != substitute["key"]["sha256"] or sha256(expected) != node["expected"]["sha256"]
-                    or sha256(wrong) != substitute["expected"]["sha256"]
-                    or len(json.loads(expected.read_bytes())) != len(json.loads(wrong.read_bytes()))
-                    or expected.read_bytes() == wrong.read_bytes()):
-                raise RuntimeError("substitution must have the same key and geometry and a distinct pinned statement")
-            run(f"substitution-{index}", [sys.executable,
-                str(ROOT / "scripts/riscv_segment_v2_detached_gate.py"),
-                "--proof-profile", "recursive_q193_v1", "--verifier", str(binaries["leaf-verifier"]),
-                "--bundle", str(output / f"tree/leaves/child-{index}"),
-                "--key-sha256", node["key"]["sha256"], "--expected-wire", str(expected),
-                "--other-expected-wire", str(wrong),
-                "--output", str(output / f"substitution-{index}.json")], timeout=120)
-            if sha256(wrong) != substitute["expected"]["sha256"]:
-                raise RuntimeError("substitution input changed during verification")
-        if (source_snapshot() != snapshot or sha256(admission) != admission_sha256
-                or sha256(OTHER_ADMISSION) != OTHER_ADMISSION_SHA256
+            report["parent_typed_interactions"] = {"components_per_parent": 29, "parents": segment_count - 1,
+                                                   "successful_device_dispatches": 116 * (segment_count - 1)}
+        substitution = output / "statement-substitution.json"
+        run("statement-substitution", [sys.executable,
+            str(ROOT / "scripts/riscv_segment_v2_statement_substitution.py"),
+            "--admission", str(admission), "--admission-sha256", args.admission_sha256,
+            "--other-inputs", str(other_inputs), "--other-inputs-sha256", args.other_inputs_sha256,
+            "--leaf-verifier", str(binaries["leaf-verifier"]),
+            "--leaf-verifier-sha256", report["binary_sha256"]["leaf-verifier"],
+            "--parent-verifier", str(binaries["parent-verifier"]),
+            "--parent-verifier-sha256", report["binary_sha256"]["parent-verifier"],
+            "--tree", str(output / "tree"), "--output", str(substitution)], timeout=300)
+        if json.loads(substitution.read_bytes()).get("passed") is not True:
+            raise RuntimeError("statement substitution gate did not pass")
+        if (source_snapshot() != snapshot or sha256(admission) != args.admission_sha256
+                or sha256(other_inputs) != args.other_inputs_sha256
                 or any(sha256(path) != report["binary_sha256"][role] for role, path in binaries.items())):
             raise RuntimeError("source, admission or executable changed during verification")
         report["tree_report_sha256"] = sha256(output / "tree/report.json")
+        report["substitution_report_sha256"] = sha256(substitution)
         report["passed"] = True
     except BaseException as error:
         report["error"] = f"{type(error).__name__}: {error}"

@@ -14,6 +14,13 @@ const protocol = recursion.protocol;
 const channel = recursion.poseidon2_channel;
 const schedule = recursion.air.verifier_schedule;
 const Engine = subject.Engine;
+const recording = recursion.recording_poseidon_channel_v4;
+const RecordingEngine = @import("stwo_prover_engine").engine.ProverEngine(
+    @import("stwo_cpu_backend").CpuBackend,
+    Engine.Hasher,
+    recording.MerkleChannel,
+    recording.Channel,
+);
 pub const DEVELOPMENT_CONFIG = recursion.native_development_config.PCS_CONFIG;
 
 pub fn prepare(
@@ -75,14 +82,31 @@ pub fn prepareWithProfile(
     var native_memory = @import("stwo_prover_engine").tracked_smp_allocator.TrackedSmpAllocator{};
     defer std.debug.assert(native_memory.isEmpty());
     const native_allocator = native_memory.allocator();
-    var output = try prover.proveRiscVSegmentV2WithEngine(
-        NativeEngine,
-        native_allocator,
-        pcs_config,
-        result,
-        null,
-        public_data,
-    );
+    const transcript_gate = std.process.hasEnvVarConstant("STWO_RISCV_TRANSCRIPT_EQUIVALENCE");
+    const RecordingNativeEngine = recursion.engine.RecordingProverEngineForBackend(NativeEngine.Backend);
+    var producer_channel = recording.Channel.init(allocator);
+    defer producer_channel.deinit();
+    var output = if (transcript_gate)
+        try prover.proveRiscVSegmentV2WithEngineUsingChannel(
+            RecordingNativeEngine,
+            native_allocator,
+            pcs_config,
+            result,
+            null,
+            public_data,
+            &producer_channel,
+        )
+    else
+        try prover.proveRiscVSegmentV2WithEngine(
+            NativeEngine,
+            native_allocator,
+            pcs_config,
+            result,
+            null,
+            public_data,
+        );
+    var producer_execution: ?recording.ExecutionV4 = if (transcript_gate) try producer_channel.finish() else null;
+    defer if (producer_execution) |*execution| execution.deinit();
     var native_output_owned = true;
     defer if (native_output_owned) output.deinit(native_allocator);
 
@@ -147,14 +171,52 @@ pub fn prepareWithProfile(
     try capture.validate();
 
     const verify_ns = phase_timer.lap();
+    // Derive the fixed commitment from admitted component geometry. The
+    // captured proof's Tree-0 value is checked against this independent root.
+    const admitted_native_tree0_root = try prover.preprocessed.rootForDescriptors(
+        Engine,
+        allocator,
+        pcs_config,
+        capture.vm_air.component_descs,
+        capture.vm_air.infra_descs,
+    );
+
     var profile = try recursion.captured_fri.Owned.init(
         allocator,
         recursion.captured_fri.ProfileConfig.fromPcs(pcs_config),
         &capture.proof,
     );
     defer profile.deinit();
+    // Independently reconstruct the native PCS profile from the verified
+    // statement descriptors. These descriptors are serialized into the leaf
+    // key, so a later key-only compiler must obtain the same profile without
+    // using the captured proof's geometry or sampled-point lists.
+    var native_geometry = try recursion.detached_native_column_geometry_v1.init(
+        allocator,
+        .{ .components = capture.vm_air.component_descs, .infrastructure = capture.vm_air.infra_descs },
+        pcs_config.fri_config.log_blowup_factor,
+    );
+    defer native_geometry.deinit();
+    try native_geometry.validateCaptured(profile.column_log_sizes);
+    try native_geometry.validateSampleLayouts(profile.sample_layouts);
+    const derived_pcs_profile = try native_geometry.pcsProfile(
+        std.math.cast(u32, pcs_config.fri_config.n_queries) orelse return error.NativeColumnGeometryMismatch,
+    );
+    if (!std.meta.eql(derived_pcs_profile.identityDigest(), profile.pcs_circuit.profile().identityDigest()))
+        return error.NativeColumnGeometryMismatch;
     if (profile.trace_tree_heights.len != recursion.fixed_profile.TREE_COUNT)
         return error.InvalidProofShape;
+    // The recursive VM graph is built from this profile. Recompute its full
+    // typed roster from the descriptors that will be serialized into the key,
+    // independently of the captured profile and proof values.
+    var key_vm_profile = try recursion.detached_native_vm_profile_from_key_v1.derive(
+        allocator,
+        .{ .components = capture.vm_air.component_descs, .infrastructure = capture.vm_air.infra_descs },
+        pcs_config,
+    );
+    defer key_vm_profile.deinit();
+    if (!std.mem.eql(u8, &key_vm_profile.identity_digest, &capture.vm_air.profile.identity_digest))
+        return error.NativeVmProfileGeometryMismatch;
     var tree_heights: [recursion.fixed_profile.TREE_COUNT]u32 = undefined;
     @memcpy(&tree_heights, profile.trace_tree_heights);
     const shape = try recursion.transcript_shape.derive(
@@ -164,10 +226,20 @@ pub fn prepareWithProfile(
             .sampled_value_count = profile.sampled_value_count,
             .queried_values_per_query = profile.queried_values_per_query,
             .claimed_sum_count = profile.claimed_sum_count,
+            .physical_claimed_sum_count = @intCast(capture.vm_air.detailed_claims.len),
+            .physical_component_count = @intCast(capture.vm_air.component_descs.len),
+            .physical_infra_count = @intCast(capture.vm_air.infra_descs.len),
             .interaction_pow_bits = profile.interaction_pow_bits,
             .pcs_pow_bits = profile.pcs_pow_bits,
         },
     );
+    if (pcs_config.fri_config.n_queries == recursion.protocol.FRI_QUERY_COUNT) {
+        const key_shape = try native_geometry.q193ScheduleShape(.{
+            .components = capture.vm_air.component_descs,
+            .infrastructure = capture.vm_air.infra_descs,
+        });
+        if (!std.meta.eql(key_shape, shape)) return error.NativeColumnGeometryMismatch;
+    }
     var vm_plan = try schedule.Plan.initShape(
         allocator,
         try schedule.vmProgramSpec(0, 0),
@@ -188,12 +260,71 @@ pub fn prepareWithProfile(
         pcs_config,
         native_claim.interaction_pow,
         keys,
+        admitted_native_tree0_root,
         recursion.air.universal_challenges.UniversalRelations.dummy(),
         .{ .vm = &vm_plan, .recursion = &recursion_plan },
     );
     capture_moved = true;
     errdefer prepared.deinit();
     try prepared.validate();
+    var key_vm_graph = try recursion.vm_air_composition_key_graph_v2.buildFromDescriptors(
+        allocator,
+        .{ .components = prepared.capture.vm_air.component_descs, .infrastructure = prepared.capture.vm_air.infra_descs },
+        pcs_config,
+    );
+    defer key_vm_graph.deinit();
+    if (!std.mem.eql(u8, &key_vm_graph.graph_digest, &prepared.vm_air.circuit.graph_digest))
+        return error.NativeVmGraphGeometryMismatch;
+    // Qualification-only differential: independently decode and verify the
+    // same real proof with the recording native channel, then compare every
+    // raw sponge frame, permutation call, PoW check and operation boundary to
+    // the recursive leaf's V2 execution. Ordinary proving pays no extra work.
+    if (transcript_gate) {
+        var physical_headers: usize = 0;
+        for (prepared.transcript_program.instructions) |instruction| {
+            if (instruction.kind != .physical_claim_header) continue;
+            physical_headers += 1;
+            if (instruction.args[2] != shape.physical_claimed_sum_count or
+                try instruction.payloadWordCount() != 10)
+                return error.NativeRecursiveTranscriptMismatch;
+        }
+        if (physical_headers != 1) return error.NativeRecursiveTranscriptMismatch;
+        var recorded_stream = std.io.fixedBufferStream(proof_bytes.items);
+        const recorded_proof = try postcard.deserializeProof(
+            RecordingEngine.Hasher,
+            allocator,
+            recorded_stream.reader(),
+        );
+        if (recorded_stream.pos != proof_bytes.items.len) {
+            var unverified = recorded_proof;
+            unverified.deinit(allocator);
+            return error.InvalidProofShape;
+        }
+        var recorded_channel = recording.Channel.init(allocator);
+        defer recorded_channel.deinit();
+        try prover.verifyRiscVSegmentV2WithEngineUsingChannel(
+            RecordingEngine,
+            allocator,
+            pcs_config,
+            native_statement,
+            recorded_proof,
+            native_claim,
+            &recorded_channel,
+        );
+        var native_execution = try recorded_channel.finish();
+        defer native_execution.deinit();
+        try recursion.transcript_equivalence_v2.compareRecordings(&producer_execution.?, &native_execution);
+        try recursion.transcript_equivalence_v2.compare(
+            &native_execution,
+            &prepared.transcript_execution,
+            &prepared.transcript_program,
+        );
+        try recursion.transcript_equivalence_v2.compare(
+            &producer_execution.?,
+            &prepared.transcript_execution,
+            &prepared.transcript_program,
+        );
+    }
     std.debug.print("SEGMENT_V2_NATIVE_PROFILE profile={s} segment={d} queries={d} fold_step={d} pcs_pow_bits={d} interaction_pow_bits={d} prove_ns={d} transport_ns={d} verify_ns={d} recursive_prepare_ns={d} proof_bytes={d} transcript_calls={d} verifier_core_calls={d} outer_proof_created=false\n", .{
         @tagName(native_profile),                          result.segment_index,  pcs_config.fri_config.n_queries,
         pcs_config.fri_config.fold_step,                   pcs_config.pow_bits,   profile.interaction_pow_bits,

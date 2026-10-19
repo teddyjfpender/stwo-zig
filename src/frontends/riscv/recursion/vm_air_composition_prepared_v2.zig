@@ -12,12 +12,8 @@ const geometry_mod = @import("vm_composition_base_geometry_v2.zig");
 const lookup = @import("../air/lang/lookup_physical_manifest_v2.zig");
 const selected_lookup = @import("vm_selected_lookup_compiler_v2.zig");
 const relations_mod = @import("../air/relation_challenges.zig");
-const transcript = @import("../air/transcript/claims.zig");
 const logup = @import("../air/logup.zig");
-const base_graph = @import("ethereum_vm_composition_graph_base_v2.zig");
-const support = @import("ethereum_vm_composition_graph_support_v2.zig");
-const program = @import("ethereum_vm_composition_program_v2.zig");
-const Scalar = support.Scalar;
+const key_graph = @import("vm_air_composition_key_graph_v2.zig");
 
 pub fn prepare(
     allocator: std.mem.Allocator,
@@ -35,58 +31,9 @@ pub fn prepare(
     defer geometry.deinit();
     try validateCaptureGeometry(&geometry, &capture.proof, pcs.fri_config.log_blowup_factor);
     const selected = try selected_lookup.CompilerV2.init(allocator, &native.core, &manifest, &authenticated, profile);
-    const input_profile = graph.InputProfile{
-        .sampled_value_count = geometry.sampled_value_count,
-        .claimed_sum_count = profile.input_profile.claimed_sum_count,
-        .relation_challenge_count = relations_mod.RELATION_COUNT,
-        .transcript_claimed_sum_count = transcript.COMPONENT_COUNT,
-    };
-    var builder = support.Builder.init(allocator);
-    defer builder.deinit();
-    try builder.reserve(try graph.vmInputCount(input_profile), profile.air_instruction_count + transcript.COMPONENT_COUNT + 1);
-    circuit.installBuilder(&builder);
-    defer circuit.uninstallBuilder();
-
-    const selector = try builder.input(.segment_selector);
-    const sampled = try allocator.alloc(Scalar, input_profile.sampled_value_count);
-    defer allocator.free(sampled);
-    for (sampled, 0..) |*value, index|
-        value.* = try support.secureInput(&builder, .sampled_value, @intCast(index));
-    const claims = try allocator.alloc(Scalar, input_profile.claimed_sum_count);
-    defer allocator.free(claims);
-    for (claims, 0..) |*value, index|
-        value.* = try support.secureInput(&builder, .claimed_sum, @intCast(index));
-    var aggregates: [transcript.COMPONENT_COUNT]Scalar = undefined;
-    for (&aggregates, 0..) |*value, index|
-        value.* = try support.secureInput(&builder, .transcript_claimed_sum, @intCast(index));
-    var draws: [relations_mod.RELATION_COUNT][2]Scalar = undefined;
-    for (&draws, 0..) |*pair, index| {
-        pair[0] = try support.challengeInput(&builder, @intCast(index), 0);
-        pair[1] = try support.challengeInput(&builder, @intCast(index), 4);
-    }
-    const randomness = try support.scalarInput(&builder, .composition_randomness);
-    const seed = try support.scalarInput(&builder, .oods_point);
-    try program.bindTranscriptAggregates(&builder, selector, profile, null, claims, &aggregates);
-    const relations = circuit.GraphRelations.init(draws);
-    var layout = try support.SampleLayoutV2.init(allocator, &geometry, null, sampled);
-    defer layout.deinit();
-    const point = support.pointFromSeed(seed);
-    var denominators: [31]?Scalar = .{null} ** 31;
-    const recorded = try base_graph.record(.legacy_role_filtered_v1, profile, &manifest, &selected, &layout, claims, &relations, point, randomness, profile.max_log_degree_bound, &denominators);
-    const composition = try support.reconstructComposition(&layout, point, profile.composition_log_degree_bound, profile.composition_log_split);
-    try builder.constrainZero(selector.mul(composition.sub(recorded.accumulation)));
-    try builder.check();
-
-    const lane = graph.VmLane{
-        .circuit_id = circuit.CIRCUIT_ID,
-        .graph = .{
-            .nodes = builder.nodes.items,
-            .outputs = builder.outputs.items,
-            .identity_digest = graph.computeGraphDigest(builder.nodes.items, builder.outputs.items),
-        },
-        .profile = input_profile,
-        .bindings = builder.bindings.items,
-    };
+    var compiled_graph = try key_graph.build(allocator, profile, &manifest, &selected, &geometry);
+    defer compiled_graph.deinit();
+    const lane = compiled_graph.lane();
     const inputs = try allocator.alloc(M31, lane.bindings.len);
     defer allocator.free(inputs);
     for (lane.bindings, inputs) |binding, *value|
@@ -122,7 +69,17 @@ fn validateCaptureGeometry(geometry: *const geometry_mod.GeometryV2, capture: an
 fn inputWord(source: graph.VmSource, capture: anytype) !M31 {
     const context = &capture.vm_air;
     return switch (source) {
-        .statement_word, .native_continuation_root => return error.InvalidInputBinding,
+        .statement_word => return error.InvalidInputBinding,
+        .native_continuation_root => |side| blk: {
+            if (side > 1) return error.InvalidInputBinding;
+            const view = try capture.public_data.data.authenticatedView();
+            const root = if (side == 0)
+                view.statement.entry_continuation_root
+            else
+                view.statement.exit_continuation_root;
+            if (root >= core.fields.m31.Modulus) return error.InvalidInputBinding;
+            break :blk M31.fromCanonical(root);
+        },
         .segment_selector => M31.one(),
         .sampled_value => |coordinate| word(capture.proof.sampled_values, coordinate),
         .claimed_sum => |coordinate| word(context.detailed_claims, coordinate),

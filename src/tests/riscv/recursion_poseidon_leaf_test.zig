@@ -136,6 +136,28 @@ test "recursion Poseidon2 native leaf proves and independently verifies" {
     const terminal_digest = proving_channel.digestWords();
     const transcript_draws = proving_channel.n_draws;
 
+    // Geometry is checked before the first transcript frame, even when the
+    // public data and its claim digest are unchanged. The detached catalog
+    // still has to pin each descriptor (G-7); these controls cover the native
+    // leaf's aggregate column and maximum-log admission boundary.
+    var changed_columns = output.statement;
+    changed_columns.component_descs[0].n_columns += 1;
+    var column_channel = try Engine.Channel.init(vm_transcript_plan, &leaf_authority);
+    try std.testing.expectError(
+        error.StatementGeometryMismatch,
+        column_channel.bindRiscVTranscript(selection.config, &changed_columns),
+    );
+    try std.testing.expect(!column_channel.started);
+
+    var changed_log = output.statement;
+    changed_log.component_descs[0].log_size = recursion.segment_profile.COLUMN_LOG_DEGREE + 1;
+    var log_channel = try Engine.Channel.init(vm_transcript_plan, &leaf_authority);
+    try std.testing.expectError(
+        error.StatementGeometryMismatch,
+        log_channel.bindRiscVTranscript(selection.config, &changed_log),
+    );
+    try std.testing.expect(!log_channel.started);
+
     var serialize_timer = try std.time.Timer.start();
     var proof_bytes: std.ArrayList(u8) = .empty;
     defer proof_bytes.deinit(allocator);
@@ -350,12 +372,21 @@ test "recursion Poseidon2 native leaf proves and independently verifies" {
         return err;
     };
     try leaf_wire.validateAgainstShape(leaf_shape);
+    const admitted_native_tree0 = try prover.preprocessed.rootForDescriptors(
+        Engine,
+        allocator,
+        selection.config,
+        output.statement.component_descs[0..output.statement.n_components],
+        output.statement.infra_descs[0..output.statement.n_infra],
+    );
+    try std.testing.expectEqualDeep(admitted_native_tree0, leaf_wire.commitments[0]);
 
     var transcript_preprocessing =
         try recursion.segment_transcript_witness.Preprocessing.init(
             allocator,
             vm_transcript_plan,
             recursion_transcript_plan,
+            admitted_native_tree0,
         );
     defer transcript_preprocessing.deinit();
     var public_claim_words: [recursion.poseidon2_channel.RATE]M31 = undefined;
@@ -384,6 +415,25 @@ test "recursion Poseidon2 native leaf proves and independently verifies" {
         transcript_draws,
         transcript_rows.execution.final_draw_count,
     );
+    // The detailed per-batch claims are transcript data even if all 28
+    // aggregates stay fixed. A shifted physical claim must therefore change
+    // the native leaf challenge state before it can reach row 18.
+    const saved_physical_limb = leaf_wire.physical_claimed_sums[0][0];
+    leaf_wire.physical_claimed_sums[0][0] =
+        (saved_physical_limb + 1) % @import("stwo_core").fields.m31.Modulus;
+    try std.testing.expectError(
+        error.InvalidProofOfWork,
+        recursion.segment_transcript_witness.Prepared(LEAF_DIMENSIONS).init(
+            allocator,
+            &transcript_preprocessing,
+            vm_transcript_plan,
+            recursion_transcript_plan,
+            &leaf_authority.statement.words,
+            .{ .vm = public_claim_words },
+            leaf_wire,
+        ),
+    );
+    leaf_wire.physical_claimed_sums[0][0] = saved_physical_limb;
 
     var statement_authority = try recursion.segment_statement_outer_source.Authority.init(
         allocator,
