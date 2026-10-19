@@ -876,7 +876,7 @@ if its row is committed in Tree 0.
 | W-4 | Local shell fixed | Wide and compact providers constrain full IO; focused provider tests pass. End-to-end G-3(d) remains open. |
 | W-5 | Migration retired | Both migration entry points fail closed for pre-contract keys. |
 | W-6, W-7 | Open | Fresh 1/2/4/8 leaf-key setups completed and the focused `test-riscv-recursion-soundness` step passed 15/15 ReleaseSafe tests, but this step is only a subset of G-1 through G-10. Parent/root trees, Metal parity, adversarial cases, and the unskipped broad suites still require fresh final-identity evidence. The opt-in native leaf rejects aggregate-column and maximum-log geometry changes before transcript opening; exact re-pinned descriptor/catalog admission remains under test. |
-| W-9 | Detached leaf partial | Leaf key pins native Tree0 and CPU admission independently regenerates it. Frozen V1 row-5 requires the admitted root. V2 row-5 receives a geometry-derived root separately from the proof, rejects a different proof frame, and places that root in the constant column and source identity. Parent `admit-key` regenerates the fixed key from **verified child proofs** and rejects re-pinned child-key and root mutations before parent proof production; it is not proof-free key-only reconstruction. **The leaf outer Tree0 cannot yet be independently regenerated from the current key:** its 578 fixed columns comprise 46,808,640 field cells. All 35 nonempty row families (rows 0, 2–5, 8–32, and 34–38) now have proof-free recipes for all 46,808,640 fixed cells in this census. The query-routing rows 20–22, trace-Merkle row 23, PCS row 24, and FRI rows 25–29 recipes match retained production row digests for the q193 one-segment roster. The active V2 public-native-sum graph is independently reconstructed from key-bound address topology; the complete five-lane arithmetic plan built from key inputs matches every production row and public term. Genuine q193 CPU key setup regenerated transcript-control row 0, inactive row 10, public rows 12–17, rows 18–19 from authenticated VM graph and verifier schedules, and rows 30–32 from the lowering plan; all matched production Tree0 digests after the canonical committed-row mapping where needed. These checks do not authenticate the remaining rows or replace a whole-tree root check. The six transcript rows 2–5 and 8–9 also matched genuine q193 production digests after reconstruction from the key-derived verifier instruction and frame schedule. Copying a claimed root or raw columns is not an independent check. G-8(c) remains open for both leaf and parent, and the standalone hostile-proof G-8(a) control remains open. |
+| W-9 | Detached leaf Tree0 regenerated; parent and hostile gates open | Leaf key pins native Tree0 and CPU admission independently regenerates it. Frozen V1 row-5 requires the admitted root. V2 row-5 receives a geometry-derived root separately from the proof, rejects a different proof frame, and places that root in the constant column and source identity. The detached q193 leaf's complete 578-column, 46,808,640-cell outer Tree0 now regenerates from the serialized key alone. `recursive-segment-v2-leaf-key-rebuild` accepts a separately pinned key SHA-256, loads no proof or witness, commits all 39 reconstructed row families, and checks the resulting root. The genuine q193 one-segment key matched every production row digest and the complete root; changing the pinned root or native-sum address topology caused root mismatch. This establishes the leaf portion of G-8(c) for that roster, not every committed leaf shape. Parent `admit-key` still reconstructs from **verified child proofs**, so proof-free parent G-8(c) is open. The standalone hostile re-proven proof required by G-8(a) is also open. |
 | W-8 | False | `recursion_qualified` stays false until every gate and independent review passes. |
 
 The detached leaf key schema is now version 3. Version 2 keys are rejected:
@@ -899,18 +899,16 @@ interaction columns sample current then previous; composition samples current.
 The derived PCS profile builds its graph without proof input. Its exact logs,
 mask order and identity now match a real captured native verifier profile,
 and the resulting rows 20–29 match the production census. These are
-component recipes, not independent regeneration of the complete Tree0.
-The largest remaining dependency is the shared arithmetic lowering plan
-for rows 30–32. The active SegmentV2 native-public-sum graph specializes on
-the union of four retained address lists and completion mode/value, not on
-the older V1 public-claim shape. The detached leaf key now pins this compact
-topology and compares it with the independently supplied expected wire before
-proof decoding. The graph can be rebuilt from that topology alone; the
-q193 CPU key setup compares its graph digest against the production graph.
-This does not yet reconstruct the complete lowering lane roster: the public
-lane's `circuit_identity` also hashes source receipts, and rows 30–32 remain
-unregenerated. A claimed profile digest or proof-derived layout does not
-qualify as key-only regeneration.
+component recipes now feed the complete key-only leaf Tree0 writer. The
+active SegmentV2 native-public-sum graph specializes on the union of four
+retained address lists and completion mode/value, not on the older V1
+public-claim shape. The detached leaf key pins this compact topology and
+compares it with the independently supplied expected wire before proof
+decoding. The q193 CPU key setup compares all 39 reconstructed fixed-row
+digests and their actual commitment root against production; the separate
+pinned-key command checks that root without reading proof bytes. Parent Tree0
+still requires proof-free reconstruction, and additional leaf geometries
+must be covered before the universal G-8(c) claim is complete.
 
 The recursive AIR source map has been reviewed against the relocated S-box,
 matrix, framework constraint, and interaction-prefix equations and re-pinned
@@ -946,9 +944,9 @@ A one-leaf Metal product under the same admitted key also passes fresh
 verification and statement substitution (`product.json` SHA-256
 `eb9ae9f309ef8583eda58776775003aa3e00eecdb58db0c4388895c7ce3b3848`).
 The native and outer preprocessed roots match the previous one-leaf fixture,
-while the key identity changes. This is only a component of K-8: the other
-fixed-column families and the parent root still require proof-free key-derived
-regeneration before G-8(c) can pass.
+while the key identity changes. This earlier checkpoint predates the complete
+q193 leaf reconstruction described above; parent reconstruction and broader
+leaf geometry coverage remain required before G-8(c) can pass.
 
 A diagnostic Tree0 census over eight consecutive segment shapes produced four
 distinct roots and 19 rows with varying fixed-column hashes. Two adjacent
@@ -995,4 +993,4 @@ respectively; the focused soundness test pins all three.
 | W-6 | `recursive-segment-v2-leaf-key-setup` build step was absent. | Resolved: `build-recursive-segment-v2-leaf-key-setup` now builds the existing runner. The proof and key regeneration sequence remains open until W-1 and W-2 land. |
 | K-6 | Exact re-derived values of the `segment_profile.zig` constants were unknown. | Resolved locally: the opt-in hardened native leaf measured 38/627/204 columns, 877 table columns and 1,081 sampled values; `segment_profile.zig` now pins them. Reconfirm in the regenerated end-to-end gate. |
 | S-4 | Map every `statement_validation.validate(.proof)` check to (a) key pin, (b) row semantics or (c) structure. | New, OPEN. |
-| K-8 / W-9 | Native tree-0 root constant and key regeneration tooling. | Leaf-side key pin, V1/V2 row-5 constants, and independent CPU native-root regeneration are implemented. Parent `admit-key` regenerates from verified child proofs, but proof-free key-only regeneration of both outer leaf and parent Tree0 remains open, as does standalone hostile-proof qualification. |
+| K-8 / W-9 | Native tree-0 root constant and key regeneration tooling. | Leaf-side key pin, V1/V2 row-5 constants, independent CPU native-root regeneration, and full proof-free q193 one-segment leaf outer Tree0 reconstruction are implemented. Other committed leaf geometries and proof-free parent Tree0 regeneration remain open, as does standalone hostile-proof qualification. |

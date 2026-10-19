@@ -237,6 +237,24 @@ pub fn build(b: *std.Build) void {
     b.step("build-recursive-segment-v2-leaf-key-setup", "Build the detached SegmentV2 leaf key-setup runner")
         .dependOn(&b.addInstallArtifact(leaf_key_setup, .{}).step);
 
+    const leaf_key_rebuild_root = b.createModule(.{
+        .root_source_file = b.path("recursive_segment_v2_leaf_key_rebuild_runner.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    leaf_key_rebuild_root.addImport("stwo_core", core);
+    leaf_key_rebuild_root.addImport("stwo_cpu_backend", cpu_backend);
+    leaf_key_rebuild_root.addImport("stwo_riscv_frontend", frontend);
+    leaf_key_rebuild_root.addImport("stwo_prover_api", prover_api);
+    leaf_key_rebuild_root.addImport("stwo_prover_engine", prover);
+    leaf_key_rebuild_root.addImport("interop_postcard", postcard);
+    const leaf_key_rebuild = b.addExecutable(.{
+        .name = "recursive-segment-v2-leaf-key-rebuild",
+        .root_module = leaf_key_rebuild_root,
+    });
+    b.step("build-recursive-segment-v2-leaf-key-rebuild", "Build the proof-free detached leaf Tree0 rebuilder")
+        .dependOn(&b.addInstallArtifact(leaf_key_rebuild, .{}).step);
+
     const parent_producer_owner = b.addModule("stwo_riscv_detached_parent_producer", .{
         .root_source_file = b.path("recursive_segment_v2_detached_parent_producer.zig"),
         .target = target,

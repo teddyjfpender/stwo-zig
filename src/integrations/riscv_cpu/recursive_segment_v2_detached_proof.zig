@@ -17,7 +17,7 @@ const transcript_equivalence = recursion.transcript_equivalence_v2;
 pub const CpuEngine = recursion.engine.ProverEngineForBackend(@import("stwo_cpu_backend").CpuBackend);
 pub const Profile = transcript.ProfileV1;
 const KEY_ROW_INDICES = [_]usize{ 0, 2, 3, 4, 5, 8, 9, 10, 12, 13, 14, 15, 16, 17, 18, 19, 30, 31, 32 };
-const KeyRowDigests = [KEY_ROW_INDICES.len][32]u8;
+const KeyRowDigests = [recursion.air.segment_outer_adapter_manifest_v2.COMPONENT_COUNT][32]u8;
 
 pub const Candidate = struct {
     allocator: std.mem.Allocator,
@@ -367,7 +367,50 @@ pub fn deriveKey(allocator: std.mem.Allocator, prepared: *const leaf.PreparedNat
         &key,
         key_row_digests,
     );
+    if (profile == .recursive_q193_v1) {
+        var rebuilt_digests: KeyRowDigests = undefined;
+        const rebuilt_root = try rebuildFixedRootFromKeyWithDigests(allocator, &key, &rebuilt_digests);
+        var mismatches: usize = 0;
+        for (key_row_digests, rebuilt_digests, 0..) |production, rebuilt, row| {
+            if (!std.meta.eql(production, rebuilt)) {
+                std.debug.print("DETACHED_LEAF_KEY_TREE0_ROW_MISMATCH row={d}\n", .{row});
+                mismatches += 1;
+            }
+        }
+        if (mismatches != 0 or !std.meta.eql(rebuilt_root, root))
+            return error.SegmentDetachedFixedCircuitMismatch;
+    }
     return std.json.Stringify.valueAlloc(allocator, key, .{});
+}
+
+/// Key-only Tree0 commitment. A standalone admission tool can call this in a
+/// process that has never loaded a native proof or a captured witness.
+pub fn rebuildFixedRootFromKey(
+    allocator: std.mem.Allocator,
+    key: *const verifier.KeyV1,
+) !recursion.poseidon2_channel.Digest {
+    return rebuildFixedRootFromKeyWithDigests(allocator, key, null);
+}
+
+fn rebuildFixedRootFromKeyWithDigests(
+    allocator: std.mem.Allocator,
+    key: *const verifier.KeyV1,
+    row_digests: ?*KeyRowDigests,
+) !recursion.poseidon2_channel.Digest {
+    var scheme = try CpuEngine.init(allocator, key.profile.pcsConfig());
+    defer CpuEngine.deinit(&scheme, allocator);
+    scheme.setCoefficientRetentionPolicy(.never);
+    var channel = CpuEngine.Channel{};
+    var fixed = try storage.TreeStorageFor(CpuEngine).init(allocator, &key.manifest, 0);
+    defer fixed.deinit();
+    try recursion.detached_fixed_tree0_rebuild_v1.fillFromKey(allocator, key, fixed.columns);
+    if (row_digests) |digests| digests.* = keyRowDigests(&key.manifest, fixed.columns);
+    try fixed.commit(&scheme, &channel);
+    try CpuEngine.flushPendingCommit(&scheme, allocator, &channel);
+    var roots = try scheme.roots(allocator);
+    defer roots.deinit(allocator);
+    if (roots.items.len != 1) return error.SegmentDetachedPreprocessedCommitmentMismatch;
+    return roots.items[0];
 }
 
 fn validateKeyFixedColumns(
@@ -575,18 +618,18 @@ fn validateKeyFixedColumns(
 
 fn keyRowDigests(manifest: anytype, columns: anytype) KeyRowDigests {
     var digests: KeyRowDigests = undefined;
-    inline for (KEY_ROW_INDICES, 0..) |row, slot| {
+    inline for (0..digests.len) |row| {
         const placement = manifest.placements[row].?;
         const offset = @as(usize, placement.preprocessed_offset);
         const count = @as(usize, placement.geometry.preprocessed_columns);
-        digests[slot] = digestColumnLane(columns[offset..][0..count]);
+        digests[row] = digestColumnLane(columns[offset..][0..count]);
     }
     return digests;
 }
 
 fn keyRowSlot(comptime row: usize) usize {
-    inline for (KEY_ROW_INDICES, 0..) |candidate, slot|
-        if (candidate == row) return slot;
+    inline for (KEY_ROW_INDICES) |candidate|
+        if (candidate == row) return row;
     @compileError("fixed Tree0 row is absent from the digest roster");
 }
 
