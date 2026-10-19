@@ -185,6 +185,7 @@ pub const vm_air_composition_input_relation = @import("vm_air_composition_input_
 pub const vm_air_composition_input_witness = @import("vm_air_composition_input_witness.zig");
 pub const vm_air_composition_input_witness_blake3 = @import("vm_air_composition_input_witness_blake3.zig");
 pub const vm_public_claim_hash = @import("vm_public_claim_hash.zig");
+pub const vm_public_claim_hash_authority_v2 = @import("vm_public_claim_hash_authority_v2.zig");
 pub const vm_public_claim_hash_relation = @import("vm_public_claim_hash_relation.zig");
 pub const vm_public_claim_hash_witness = @import("vm_public_claim_hash_witness.zig");
 pub const vm_public_claim_input = @import("vm_public_claim_input.zig");

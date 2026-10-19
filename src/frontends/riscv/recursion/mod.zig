@@ -155,6 +155,7 @@ pub const detached_fixed_tree0_arithmetic_recipe_v1 = @import("detached_fixed_tr
 pub const detached_fixed_tree0_key_recipe_v1 = @import("detached_fixed_tree0_key_recipe_v1.zig");
 pub const detached_fixed_tree0_vm_input_recipe_v1 = @import("detached_fixed_tree0_vm_input_recipe_v1.zig");
 pub const detached_fixed_tree0_control_recipe_v1 = @import("detached_fixed_tree0_control_recipe_v1.zig");
+pub const detached_fixed_tree0_public_relay_recipe_v1 = @import("detached_fixed_tree0_public_relay_recipe_v1.zig");
 pub const vm_air_composition_key_graph_v2 = @import("vm_air_composition_key_graph_v2.zig");
 pub const detached_segment_verifier_v1 = @import("detached_segment_verifier_v1.zig");
 pub const detached_segment_command_v1 = @import("detached_segment_command_v1.zig");

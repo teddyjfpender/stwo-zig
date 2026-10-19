@@ -16,7 +16,7 @@ const recording = recursion.recording_poseidon_channel_v4;
 const transcript_equivalence = recursion.transcript_equivalence_v2;
 pub const CpuEngine = recursion.engine.ProverEngineForBackend(@import("stwo_cpu_backend").CpuBackend);
 pub const Profile = transcript.ProfileV1;
-const KEY_ROW_INDICES = [_]usize{ 0, 10, 17, 18, 19, 30, 31, 32 };
+const KEY_ROW_INDICES = [_]usize{ 0, 10, 12, 13, 14, 15, 16, 17, 18, 19, 30, 31, 32 };
 const KeyRowDigests = [KEY_ROW_INDICES.len][32]u8;
 
 pub const Candidate = struct {
@@ -406,6 +406,45 @@ fn validateKeyFixedColumns(
     const inactive_digest = digestColumnLane(&inactive_columns);
     if (!std.mem.eql(u8, &production_digests[keyRowSlot(10)], &inactive_digest))
         return error.FixedInactiveStatementRowsMismatch;
+
+    inline for ([_]usize{ 12, 14, 15, 16 }) |row| {
+        const placement = key.manifest.placements[row] orelse return error.InvalidFixedPublicRelayGeometry;
+        const size = @as(usize, 1) << @intCast(placement.geometry.log_size);
+        const count = recursion.detached_fixed_tree0_public_relay_recipe_v1.COLUMN_COUNT;
+        const relay_storage = try allocator.alloc(M31, size * count);
+        defer allocator.free(relay_storage);
+        const columns = try allocator.alloc([]M31, count);
+        defer allocator.free(columns);
+        for (columns, 0..) |*column, index|
+            column.* = relay_storage[index * size ..][0..size];
+        try recursion.detached_fixed_tree0_public_relay_recipe_v1.fillFromKey(
+            allocator,
+            key,
+            row,
+            columns,
+        );
+        const digest = digestColumnLane(columns);
+        if (!std.mem.eql(u8, &production_digests[keyRowSlot(row)], &digest))
+            return error.FixedPublicRelayRowsMismatch;
+    }
+
+    const hash_placement = key.manifest.placements[13] orelse return error.InvalidFixedPublicRelayGeometry;
+    const hash_size = @as(usize, 1) << @intCast(hash_placement.geometry.log_size);
+    const hash_count = air.vm_public_claim_hash_authority_v2.PREPROCESSED_COLUMN_COUNT;
+    const hash_storage = try allocator.alloc(M31, hash_size * hash_count);
+    defer allocator.free(hash_storage);
+    const hash_columns = try allocator.alloc([]M31, hash_count);
+    defer allocator.free(hash_columns);
+    for (hash_columns, 0..) |*column, index|
+        column.* = hash_storage[index * hash_size ..][0..hash_size];
+    try recursion.detached_fixed_tree0_public_relay_recipe_v1.fillHashFromKey(
+        allocator,
+        key,
+        hash_columns,
+    );
+    const hash_digest = digestColumnLane(hash_columns);
+    if (!std.mem.eql(u8, &production_digests[keyRowSlot(13)], &hash_digest))
+        return error.FixedPublicHashRowsMismatch;
 
     const public_placement = key.manifest.placements[17] orelse return error.InvalidFixedControlGeometry;
     const public_size = @as(usize, 1) << @intCast(public_placement.geometry.log_size);
