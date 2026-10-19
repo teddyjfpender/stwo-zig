@@ -438,8 +438,26 @@ pub fn writePayload(
 ) Error!void {
     if (destination.len != try instruction.payloadWordCount())
         return error.DestinationLengthMismatch;
+    if (try writeFixedPayload(
+        destination,
+        program.pcs_config,
+        program.lookup_activation,
+        instruction,
+    )) return;
     switch (instruction.kind) {
-        .pcs_config => writePcsFelts(destination, program.pcs_config),
+        .pcs_config,
+        .lookup_activation_header,
+        .lookup_manifest_identity,
+        .lookup_statement_identity,
+        .lookup_activation_identity,
+        .main_log_size,
+        .shard_header,
+        .shard_component,
+        .shard_infra,
+        .physical_claim_header,
+        .interaction_log_count,
+        .interaction_log_size,
+        => unreachable,
         .statement_header => writeU32s(destination, &.{
             public_data_v2.STATEMENT_TRANSCRIPT_DOMAIN,
             public_data_v2.STATEMENT_TRANSCRIPT_VERSION,
@@ -448,59 +466,15 @@ pub fn writePayload(
         }),
         .statement_wire_id => writeU32s(destination, &program.wire_id),
         .statement_words => @memcpy(destination, data.words()),
-        .lookup_activation_header => {
-            const activation = program.lookup_activation orelse
-                return error.ProgramShapeMismatch;
-            writeU32s(destination, &.{
-                lookup_physical_v2.TRANSCRIPT_TAG,
-                lookup_physical_v2.FORMAT_VERSION,
-                activation.format_version,
-                activation.component_count,
-                activation.opcode_main_columns,
-                activation.opcode_interaction_columns,
-                activation.detailed_claim_count,
-            });
-        },
-        .lookup_manifest_identity => try writeSha256Digest(
-            destination,
-            (program.lookup_activation orelse
-                return error.ProgramShapeMismatch).manifest_identity,
-        ),
-        .lookup_statement_identity => try writeSha256Digest(
-            destination,
-            (program.lookup_activation orelse
-                return error.ProgramShapeMismatch).statement_identity,
-        ),
-        .lookup_activation_identity => try writeSha256Digest(
-            destination,
-            (program.lookup_activation orelse
-                return error.ProgramShapeMismatch).activation_identity,
-        ),
         .trace_commitment => try writeDigest(
             destination,
             inputs.trace_commitments[instruction.args[0]],
         ),
-        .main_log_size => writeU64(destination, instruction.args[1]),
-        .shard_header => writeU32s(destination, &.{
-            0x5348_5244,
-            instruction.args[0],
-            instruction.args[1],
-        }),
-        .shard_component, .shard_infra => writeU32s(destination, &instruction.args),
         .claimed_sum => writeQm31(destination, inputs.claimed_sums[instruction.args[0]]),
-        .physical_claim_header => writeU32s(destination, &.{
-            statement_v1.PHYSICAL_CLAIM_DOMAIN_WORDS[0],
-            statement_v1.PHYSICAL_CLAIM_DOMAIN_WORDS[1],
-            instruction.args[0],
-            instruction.args[1],
-            instruction.args[2],
-        }),
         .physical_claim_batch => writeQm31s(
             destination,
             inputs.physical_claims[instruction.args[0]..][0..instruction.args[1]],
         ),
-        .interaction_log_count => writeU64(destination, instruction.args[0]),
-        .interaction_log_size => writeU64(destination, instruction.args[1]),
         .sampled_values => writeQm31s(destination, inputs.sampled_values),
         .fri_commitment => try writeDigest(
             destination,
@@ -520,6 +494,64 @@ pub fn writePayload(
         .query_draw,
         => return error.ProgramShapeMismatch,
     }
+}
+
+/// Writes only verifier-owned constant payloads. The detached Tree0 compiler
+/// calls this with key-derived shape, while execution uses the same encoder.
+/// Dynamic statement, commitment, claim, and PoW words are never accepted.
+pub fn writeFixedPayload(
+    destination: []M31,
+    pcs_config: PcsConfig,
+    lookup_activation: ?lookup_physical_v2.AuthenticatedStatement,
+    instruction: Instruction,
+) Error!bool {
+    if (destination.len != try instruction.payloadWordCount())
+        return error.DestinationLengthMismatch;
+    switch (instruction.kind) {
+        .pcs_config => writePcsFelts(destination, pcs_config),
+        .lookup_activation_header => {
+            const activation = lookup_activation orelse return error.ProgramShapeMismatch;
+            writeU32s(destination, &.{
+                lookup_physical_v2.TRANSCRIPT_TAG,
+                lookup_physical_v2.FORMAT_VERSION,
+                activation.format_version,
+                activation.component_count,
+                activation.opcode_main_columns,
+                activation.opcode_interaction_columns,
+                activation.detailed_claim_count,
+            });
+        },
+        .lookup_manifest_identity => try writeSha256Digest(
+            destination,
+            (lookup_activation orelse return error.ProgramShapeMismatch).manifest_identity,
+        ),
+        .lookup_statement_identity => try writeSha256Digest(
+            destination,
+            (lookup_activation orelse return error.ProgramShapeMismatch).statement_identity,
+        ),
+        .lookup_activation_identity => try writeSha256Digest(
+            destination,
+            (lookup_activation orelse return error.ProgramShapeMismatch).activation_identity,
+        ),
+        .main_log_size => writeU64(destination, instruction.args[1]),
+        .shard_header => writeU32s(destination, &.{
+            0x5348_5244,
+            instruction.args[0],
+            instruction.args[1],
+        }),
+        .shard_component, .shard_infra => writeU32s(destination, &instruction.args),
+        .physical_claim_header => writeU32s(destination, &.{
+            statement_v1.PHYSICAL_CLAIM_DOMAIN_WORDS[0],
+            statement_v1.PHYSICAL_CLAIM_DOMAIN_WORDS[1],
+            instruction.args[0],
+            instruction.args[1],
+            instruction.args[2],
+        }),
+        .interaction_log_count => writeU64(destination, instruction.args[0]),
+        .interaction_log_size => writeU64(destination, instruction.args[1]),
+        else => return false,
+    }
+    return true;
 }
 
 pub fn validateInstructionShape(program: *const Program) Error!void {

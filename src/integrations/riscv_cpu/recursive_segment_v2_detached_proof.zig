@@ -16,7 +16,7 @@ const recording = recursion.recording_poseidon_channel_v4;
 const transcript_equivalence = recursion.transcript_equivalence_v2;
 pub const CpuEngine = recursion.engine.ProverEngineForBackend(@import("stwo_cpu_backend").CpuBackend);
 pub const Profile = transcript.ProfileV1;
-const KEY_ROW_INDICES = [_]usize{ 0, 10, 12, 13, 14, 15, 16, 17, 18, 19, 30, 31, 32 };
+const KEY_ROW_INDICES = [_]usize{ 0, 2, 3, 4, 5, 8, 9, 10, 12, 13, 14, 15, 16, 17, 18, 19, 30, 31, 32 };
 const KeyRowDigests = [KEY_ROW_INDICES.len][32]u8;
 
 pub const Candidate = struct {
@@ -393,6 +393,35 @@ fn validateKeyFixedColumns(
     const transcript_digest = digestColumnLane(&transcript_columns);
     if (!std.mem.eql(u8, &production_digests[keyRowSlot(0)], &transcript_digest))
         return error.FixedTranscriptControlRowsMismatch;
+
+    inline for ([_]usize{ 2, 3, 4, 5, 8, 9 }) |row| {
+        const placement = key.manifest.placements[row] orelse return error.InvalidFixedTranscriptShape;
+        const size = @as(usize, 1) << @intCast(placement.geometry.log_size);
+        const count: usize = switch (row) {
+            2 => air.transcript_binding_witness.PREPROCESSED_COLUMN_COUNT,
+            3 => air.transcript_state_witness.PREPROCESSED_COLUMN_COUNT,
+            4 => air.transcript_word_witness.PREPROCESSED_COLUMN_COUNT,
+            5 => air.transcript_payload_witness.PREPROCESSED_COLUMN_COUNT,
+            8 => air.relation_challenge_witness.PREPROCESSED_COLUMN_COUNT,
+            9 => air.verifier_randomness_witness.PREPROCESSED_COLUMN_COUNT,
+            else => unreachable,
+        };
+        const shape_storage = try allocator.alloc(M31, size * count);
+        defer allocator.free(shape_storage);
+        const columns = try allocator.alloc([]M31, count);
+        defer allocator.free(columns);
+        for (columns, 0..) |*column, index|
+            column.* = shape_storage[index * size ..][0..size];
+        try recursion.detached_fixed_tree0_transcript_shape_recipe_v1.fillFromKey(
+            allocator,
+            key,
+            row,
+            columns,
+        );
+        const digest = digestColumnLane(columns);
+        if (!std.mem.eql(u8, &production_digests[keyRowSlot(row)], &digest))
+            return error.FixedTranscriptShapeRowsMismatch;
+    }
 
     const inactive_placement = key.manifest.placements[10] orelse return error.InvalidFixedStatementGeometry;
     const inactive_size = @as(usize, 1) << @intCast(inactive_placement.geometry.log_size);
