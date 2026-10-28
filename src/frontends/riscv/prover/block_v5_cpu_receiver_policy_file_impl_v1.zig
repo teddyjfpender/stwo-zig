@@ -1,15 +1,19 @@
 //! SHA-pinned independent public receiver policy, never proof authority. The
 //! out-of-band digest and public identity are required before typed decoding.
 pub fn ForCapacity(comptime capacity: bool) type {
+    return ForKind(capacity, false);
+}
+pub const NativeBatch = ForKind(false, true);
+fn ForKind(comptime capacity: bool, comptime native_batch: bool) type {
     return struct {
         const std = @import("std");
         const core = @import("stwo_core");
         const Global = if (capacity) @import("block_v5_capacity_global_receiver_v1.zig") else @import("block_v5_global_receiver_v1.zig");
         const Budget = @import("stwo_prover_engine").host_budget_allocator.SharedHostBudget;
-        pub const FILE = if (capacity) "block-v5-capacity-receiver-policy.json" else "block-v5-receiver-policy.json";
-        pub const FORMAT = if (capacity) "stwo-zig/block-v5/capacity-receiver-policy" else "stwo-zig/block-v5/receiver-policy";
-        pub const VERSION: u32 = if (capacity) 1 else @import("block_v5_execution_recipe_v1.zig").canonical.callerProtocolVersion();
-        pub const Limits = struct {
+        pub const FILE = if (native_batch) "block-v6-native-batch-receiver-policy.json" else if (capacity) "block-v5-capacity-receiver-policy.json" else "block-v5-receiver-policy.json";
+        pub const FORMAT = if (native_batch) "stwo-zig/block-v6/native-batch-receiver-policy" else if (capacity) "stwo-zig/block-v5/capacity-receiver-policy" else "stwo-zig/block-v5/receiver-policy";
+        pub const VERSION: u32 = if (native_batch) 1 else if (capacity) 1 else @import("block_v5_execution_recipe_v1.zig").canonical.callerProtocolVersion();
+        pub const Limits = if (native_batch) ForCapacity(false).Limits else struct {
             max_file_bytes: usize,
             max_owned_bytes: usize,
             max_executions: usize,
@@ -22,7 +26,7 @@ pub fn ForCapacity(comptime capacity: bool) type {
                     return error.InvalidV5ReceiverPolicyLimits;
             }
         };
-        pub const Identity = struct {
+        pub const Identity = if (native_batch) ForCapacity(false).Identity else struct {
             execution_recipe: @import("block_v5_execution_recipe_v1.zig").Recipe = @import("block_v5_execution_recipe_v1.zig").canonical,
             job_id: [32]u8,
             source_image_digest: [32]u8,
@@ -40,11 +44,12 @@ pub fn ForCapacity(comptime capacity: bool) type {
                     return error.UntrustedV5ReceiverPolicyIdentity;
             }
         };
+        const Recursive = if (native_batch) Global.NativeBatchPins else Global.RecursivePins;
         const Wire = struct {
             format: []const u8 = FORMAT,
             version: u32 = VERSION,
             globals: Global.Pins,
-            recursion: Global.RecursivePins,
+            recursion: Recursive,
         };
         pub const Owned = struct {
             parent: std.mem.Allocator,
@@ -54,7 +59,7 @@ pub fn ForCapacity(comptime capacity: bool) type {
             pub fn globals(self: *const Owned) Global.Pins {
                 return self.parsed.value.globals;
             }
-            pub fn recursion(self: *const Owned) Global.RecursivePins {
+            pub fn recursion(self: *const Owned) Recursive {
                 return self.parsed.value.recursion;
             }
             pub fn deinit(self: *Owned) void {
@@ -79,18 +84,29 @@ pub fn ForCapacity(comptime capacity: bool) type {
                 pins.tables.catalog.records.len > limits.max_executions or pins.memory.catalog.records.len > limits.max_executions or
                 pins.memory.executions.len > limits.max_executions or pins.tables.extensions.len > limits.max_executions or
                 pins.memory.extensions.len > limits.max_executions or pins.tables.providers.len > limits.max_roster_entries or
-                pins.memory.memory.instanceCount() > limits.max_roster_entries or pins.memory.memory.rangeRoots().len > limits.max_roster_entries or
-                wire.recursion.leaves.len > limits.max_executions or wire.recursion.parents.len > limits.max_executions)
+                pins.memory.memory.instanceCount() > limits.max_roster_entries or pins.memory.memory.rangeRoots().len > limits.max_roster_entries)
                 return error.V5ReceiverPolicyResourceLimit;
-            var schedule_count: usize = wire.recursion.outer.schedule.len;
-            for (wire.recursion.leaves) |leaf| schedule_count = try std.math.add(usize, schedule_count, leaf.schedule.len);
-            for (wire.recursion.parents) |parent| schedule_count = try std.math.add(usize, schedule_count, parent.schedule.len);
-            if (schedule_count > limits.max_schedule_wires) return error.V5ReceiverPolicyResourceLimit;
+            if (native_batch) {
+                const batch = wire.recursion;
+                if (batch.schedule.len > limits.max_schedule_wires) return error.V5ReceiverPolicyResourceLimit;
+                if (batch.key.child_count != pins.tables.executions.len or
+                    !std.meta.eql(batch.key.config, pins.tables.seal.config) or
+                    !std.meta.eql(batch.key.context.child_config, pins.tables.seal.config) or
+                    !std.meta.eql(try batch.key.identity(), batch.expected_id) or
+                    !std.meta.eql(try @import("../recursion/block_v6_native_batch_public_v1.zig").scheduleDigest(batch.schedule), batch.key.public_schedule_digest))
+                    return error.UntrustedV6NativeBatchPolicy;
+            } else {
+                if (wire.recursion.leaves.len > limits.max_executions or wire.recursion.parents.len > limits.max_executions) return error.V5ReceiverPolicyResourceLimit;
+                var schedule_count: usize = wire.recursion.outer.schedule.len;
+                for (wire.recursion.leaves) |leaf| schedule_count = try std.math.add(usize, schedule_count, leaf.schedule.len);
+                for (wire.recursion.parents) |parent| schedule_count = try std.math.add(usize, schedule_count, parent.schedule.len);
+                if (schedule_count > limits.max_schedule_wires) return error.V5ReceiverPolicyResourceLimit;
+            }
             try @import("block_v5_cpu_bundle_policy_v1.zig").ForCapacity(capacity).validateStructure(pins);
             _ = try pins.validate();
-            try wire.recursion.validate(pins.tables.seal.config, pins.tables.executions.len);
+            if (!native_batch) try wire.recursion.validate(pins.tables.seal.config, pins.tables.executions.len);
         }
-        pub fn write(a: std.mem.Allocator, dir: std.fs.Dir, globals: Global.Pins, recursion: Global.RecursivePins, limits: Limits) ![32]u8 {
+        pub fn write(a: std.mem.Allocator, dir: std.fs.Dir, globals: Global.Pins, recursion: Recursive, limits: Limits) ![32]u8 {
             const wire = Wire{ .globals = globals, .recursion = recursion };
             try require(wire, limits);
             var counter = @import("block_v5_cpu_counting_writer_v1.zig").Counting.init(limits.max_file_bytes);

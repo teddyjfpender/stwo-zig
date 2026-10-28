@@ -48,11 +48,10 @@ pub fn ForBackend(comptime Backend: type) type {
         pub fn hooks(self: *Self) Producer.Hooks {
             return .{ .context = self, .on_proof = onProof };
         }
-        fn onProof(raw: *anyopaque, a: std.mem.Allocator, warm: Producer.WarmExecution, proof: *const Native.Proof) !void {
-            const self: *Self = @ptrCast(@alignCast(raw));
+        pub fn validateWarm(selected: Parent.protocol.Profile, warm: Producer.WarmExecution, proof: *const Native.Proof) !void {
             // Canonical native security cannot be compressed by a diagnostic
             // recursive verifier, nor vice versa. Both setup layers match B5SS.
-            if (!std.meta.eql(self.options.profile.config(), warm.pins.config) or
+            if (!std.meta.eql(selected.config(), warm.pins.config) or
                 !std.meta.eql(warm.first.template.config, warm.pins.config)) return error.V5NativeLeafStageSecurityMismatch;
             if (warm.first.index != warm.index or warm.first.native != warm.replay.owner or
                 !warm.replay.owner.native_only_v5 or warm.first.owns_scheme or
@@ -66,6 +65,10 @@ pub fn ForBackend(comptime Backend: type) type {
             try warm.replay.admission.require(warm.pins, &warm.replay.owner.statement.public_data);
             try warm.first.template.admit(&warm.replay.owner.statement, warm.first.template_id);
             try warm.catalog.admit(warm.pins, warm.sealed, warm.index, warm.first.template, warm.first.template_id);
+        }
+        fn onProof(raw: *anyopaque, a: std.mem.Allocator, warm: Producer.WarmExecution, proof: *const Native.Proof) !void {
+            const self: *Self = @ptrCast(@alignCast(raw));
+            try validateWarm(self.options.profile, warm, proof);
             // Fresh verification borrows the bounded producer artifact. All
             // returned capture material is owned, without encoding/decoding
             // a second native proof. Independent file admission is unchanged.

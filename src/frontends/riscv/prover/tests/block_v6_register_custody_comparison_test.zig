@@ -91,6 +91,11 @@ fn compare(selected: Profile) !void {
         if (mode == 1) try @import("block_v6_register_custody_negative_test_support.zig").qualify(a, temporary.dir, globals, result.bundle_manifest_sha256, options.store);
         if (mode == 1 and std.process.hasEnvVarConstant("STWO_COMPLETE_NATIVE_BATCH"))
             try @import("block_v6_complete_native_batch_test_support.zig").qualify(a, temporary.dir, globals, result.bundle_manifest_sha256, options.store, &.{}, selected);
+        if (mode == 1 and std.process.hasEnvVarConstant("STWO_NATIVE_BATCH_DRIVER")) {
+            var fresh_source = try Source.Source.initFromPlan(a, &elf, &.{}, &oracle, maximum, config, pins, planned);
+            defer fresh_source.deinit();
+            try @import("block_v6_native_batch_driver_test_support.zig").qualify(a, &fresh_source, input, options, result, wall_ns);
+        }
         std.debug.print("BLOCK_V6_REGISTER_COMPLETE verified=true profile={s} mode={d} iterations={d} cycles={d} segments={d} events={d} byte_requests={d} memory_instances={d} memory_cells={d} base_files={d} collection_ns={d} proving_ns={d} forest_ns={d} verification_ns={d} wall_ns={d} memory_range_ns={d} lookup_ns={d} caller_ns={d} rom_ns={d} charged_peak_bytes={d} witness_file_bytes={d} proof_file_bytes={d} initial_rw={s} final_rw={s} complete_bundle=true standalone_root=false\n", .{ @tagName(selected), mode, iterations, planned.last.cycle, result.verified.execution_count, result.verified.memory_events, result.verified.byte_requests, globals.memory.memory.instanceCount(), memory_cells, result.proof_files, result.collection_ns, result.proving_ns, result.forest_ns, result.verification_ns, wall_ns, result.family_proving_ns.memory_and_range, result.family_proving_ns.lookup, result.family_proving_ns.caller, result.family_proving_ns.rom, result.aggregate_heap_peak_bytes, result.witness_file_bytes, result.proof_file_bytes, std.fmt.bytesToHex(result.verified.initial_rw_root, .lower), std.fmt.bytesToHex(result.verified.final_rw_root, .lower) });
     }
     try std.testing.expect(events[0] > events[1]);

@@ -145,7 +145,8 @@ pub fn ForCapacity(comptime capacity: bool) type {
             collected: *Collect.Collected,
             assembly: *Assembly.Assembly,
             fused: *NativeFused.ForBackend(Cpu),
-            leaf: *LeafStage,
+            leaf: ?*LeafStage,
+            native_callback: ?NativeProofCallback = null,
             prepared: []const Prepared,
             families: *FamilyQueue.Queue,
             leaf_queue: if (capacity) *LeafQueue else void,
@@ -198,12 +199,58 @@ pub fn ForCapacity(comptime capacity: bool) type {
                     // Native witness, replay and PCS remain foreground-owned.
                     try self.leaf_queue.enqueueProof(execution.index, proof);
                 } else {
-                    const callbacks = self.leaf.hooks();
-                    try callbacks.on_proof.?(callbacks.context, a, execution, proof);
+                    if (self.native_callback) |callback| {
+                        try callback.run(callback.context, a, execution, proof);
+                    } else {
+                        const callbacks = self.leaf.?.hooks();
+                        try callbacks.on_proof.?(callbacks.context, a, execution, proof);
+                    }
                 }
                 std.debug.print("BLOCK_V5_PROVE native_leaf_callback_finished={d}/{d} async={any} callback_ms={d}\n", .{ execution.index + 1, self.assembly.executions.len, capacity, timer.read() / std.time.ns_per_ms });
             }
         };
+
+        pub const NativeProofCallback = struct {
+            context: *anyopaque,
+            run: *const fn (*anyopaque, std.mem.Allocator, Producer.WarmExecution, *const Native.Proof) anyerror!void,
+        };
+
+        /// Same native/companion/provider publication used by both recursive
+        /// strategies. The callback owns its captures; no live native witness
+        /// or PCS owner may escape this call. Globals are still verified later.
+        pub fn publishNativeBase(a: std.mem.Allocator, dir: std.fs.Dir, collected: *Collect.Collected, assembly: *Assembly.Assembly, writer: *Store.Store, pool: *engine.work_pool.WorkPool, options: Options, callback: NativeProofCallback) !FamilyQueue.Statistics {
+            if (comptime capacity) @compileError("NativeV3 publication only");
+            var fused = NativeFused.ForBackend(Cpu){ .proposals = collected.ordinary, .limits = options.collection.ordinary, .sink = writer.fusedSink() };
+            var execution = try StagedExecution.Source.init(a, dir, collected.planning.records.items, collected.native_pins, collected.bound.admissions, options.collection.witness.native);
+            defer execution.deinit();
+            const families = try FamilyQueue.Queue.start(a, pool, options.families, options.total_host_limit);
+            defer families.deinit();
+            var hooks = Hooks{ .collected = collected, .assembly = assembly, .fused = &fused, .leaf = null, .native_callback = callback, .prepared = &.{}, .families = families, .leaf_queue = {}, .ordinary_limits = options.collection.ordinary, .readonly_sink = null };
+            try publishBaseJobs(a, dir, collected, assembly, writer, pool, options, &execution, &fused, &hooks, null);
+            return families.finish();
+        }
+
+        fn publishBaseJobs(a: std.mem.Allocator, dir: std.fs.Dir, collected: *Collect.Collected, assembly: *Assembly.Assembly, writer: *Store.Store, pool: *engine.work_pool.WorkPool, options: Options, execution: *StagedExecution.Source, fused: *NativeFused.ForBackend(Cpu), hooks: *Hooks, recursive: ?*RecursivePublication.Session) !void {
+            // Jobs borrow this stack object. Join on success AND failure before
+            // releasing it; queue cleanup alone in the caller would be too late.
+            var independent = IndependentFamilies{ .a = a, .collected = collected, .assembly = assembly, .store = writer, .pool = pool, .dir = dir, .witness_limits = options.collection.witness, .families = hooks.families, .recursive = recursive };
+            errdefer hooks.families.abort();
+            for ([_]FamilyQueue.Job{
+                .{ .family = .memory, .context = &independent, .reservation = options.families.family_reservation, .run = IndependentFamilies.memory },
+                .{ .family = .caller, .context = &independent, .reservation = options.families.family_reservation, .run = IndependentFamilies.callers },
+                .{ .family = .program, .context = &independent, .reservation = options.families.family_reservation, .run = IndependentFamilies.program },
+                .{ .family = .lookup, .context = &independent, .reservation = options.families.family_reservation, .run = IndependentFamilies.lookup },
+            }) |job| try hooks.families.submit(job);
+            const stored_sink = writer.executionSink();
+            const execution_sink: ProducerStack.LightweightExecutionSink = if (capacity)
+                .{ .context = stored_sink.context, .native = stored_sink.native, .table = stored_sink.table }
+            else
+                stored_sink;
+            _ = try Producer.proveExecutionsWithMemoryPlanHooks(a, &assembly.program, collected.globals.memory.memoryPlan(), assembly.seal_pins, assembly.entries, assembly.sealed, collected.bound.catalogAdmission(), execution.source(), execution_sink, .{ .context = hooks, .fused_program_requests = true, .prepare_first_round = Hooks.firstRound, .on_first_round = Hooks.warm, .on_proof = Hooks.nativeProof });
+            try execution.requireFinished();
+            try fused.requireFinished();
+            _ = try hooks.families.finish();
+        }
 
         /// Each job borrows immutable collection/admission data and owns its opened
         /// witness reader and PCS state. No job retains the live native replay owner.
@@ -405,21 +452,7 @@ pub fn ForCapacity(comptime capacity: bool) type {
                 // setup cache, leaf metadata or shared pool can be destroyed.
                 defer if (capacity) leaf_queue.deinit();
                 var hooks = Hooks{ .collected = collected, .assembly = assembly, .fused = &fused, .leaf = &leaf_stage, .prepared = prepared, .families = families, .leaf_queue = leaf_queue, .ordinary_limits = options.collection.ordinary, .readonly_sink = if (capacity and collected.readonly != null) writer.nativeReadonlySink() else null };
-                var independent = IndependentFamilies{ .a = a, .collected = collected, .assembly = assembly, .store = &writer, .pool = &pool, .dir = dir, .witness_limits = options.collection.witness, .families = families, .recursive = recursive_publication };
-                for ([_]FamilyQueue.Job{
-                    .{ .family = .memory, .context = &independent, .reservation = options.families.family_reservation, .run = IndependentFamilies.memory },
-                    .{ .family = .caller, .context = &independent, .reservation = options.families.family_reservation, .run = IndependentFamilies.callers },
-                    .{ .family = .program, .context = &independent, .reservation = options.families.family_reservation, .run = IndependentFamilies.program },
-                    .{ .family = .lookup, .context = &independent, .reservation = options.families.family_reservation, .run = IndependentFamilies.lookup },
-                }) |job| try families.submit(job);
-                const stored_sink = writer.executionSink();
-                const execution_sink: ProducerStack.LightweightExecutionSink = if (capacity)
-                    .{ .context = stored_sink.context, .native = stored_sink.native, .table = stored_sink.table }
-                else
-                    stored_sink;
-                _ = try Producer.proveExecutionsWithMemoryPlanHooks(a, &assembly.program, collected.globals.memory.memoryPlan(), assembly.seal_pins, assembly.entries, assembly.sealed, collected.bound.catalogAdmission(), execution.source(), execution_sink, .{ .context = &hooks, .fused_program_requests = true, .prepare_first_round = Hooks.firstRound, .on_first_round = Hooks.warm, .on_proof = Hooks.nativeProof });
-                try execution.requireFinished();
-                try fused.requireFinished();
+                try publishBaseJobs(a, dir, collected, assembly, &writer, &pool, options, &execution, &fused, &hooks, recursive_publication);
                 if (capacity) leaf_statistics = try leaf_queue.finish();
                 family_statistics = try families.finish();
                 if (capacity) if (recursive_publication) |recursive| {
