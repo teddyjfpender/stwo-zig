@@ -19,6 +19,13 @@ const empty = @import("block_v5_empty_opcode_memory_v1.zig");
 const producer = @import("block_v5_block_producer_v1.zig");
 const Digest = [32]u8;
 pub const Limits = struct { max_slots: usize, max_witness_cells: usize, max_metadata_bytes: usize, register_custody_mode: u32 = 0 };
+pub const CollectTimings = struct {
+    trace_init_ns: u64 = 0,
+    counter_ns: u64 = 0,
+    census_ns: u64 = 0,
+    commitment_ns: u64 = 0,
+    finalize_ns: u64 = 0,
+};
 pub const Sink = struct { context: *anyopaque, put_opcode: *const fn (*anyopaque, u32, *sidecar.Proof) anyerror!void };
 pub const Proposal = struct {
     register_custody_mode: u32 = 0,
@@ -111,12 +118,17 @@ pub fn ForBackend(comptime Backend: type) type {
             if (self.next != self.proposals.len) return error.IncompleteV5NativeMemoryStage;
         }
         pub fn collect(a: std.mem.Allocator, owner: *Owner, frame: frame_mod.Frame, native: *const physical.Proposal, global: *counters.Set, limits: Limits) !Proposal {
+            return collectTimed(a, owner, frame, native, global, limits, null);
+        }
+        pub fn collectTimed(a: std.mem.Allocator, owner: *Owner, frame: frame_mod.Frame, native: *const physical.Proposal, global: *counters.Set, limits: Limits, timings: ?*CollectTimings) !Proposal {
+            var timer: ?std.time.Timer = if (timings != null) try std.time.Timer.start() else null;
             if (!owner.native_only_v5 or owner.failed or owner.interaction_ready or !owner.tables_ready or frame.cycle_count == 0 or
                 frame.global_first_cycle != native.first_cycle or frame.cycle_count != owner.statement.public_data.clock) return error.InvalidV5NativeMemoryPhase;
             try native.template.admit(&owner.statement, native.template_id);
             if (!std.meta.eql(native.public_digest, @import("block_v5_native_public_admission_v1.zig").publicDigest(&owner.statement.public_data))) return error.InvalidV5NativeMemoryPhase;
             var source = try Traces.init(a, owner, frame, limits);
             defer source.deinit();
+            if (timer) |*clock| timings.?.trace_init_ns += clock.lap();
             var local = try counters.Counter.init(a, .range_check_8_8);
             defer local.deinit(a);
             var scheme = try Scheme.init(a, native.template.config);
@@ -130,7 +142,9 @@ pub fn ForBackend(comptime Backend: type) type {
                 _ = try bytes.collectCounter(a, input.trace, &local);
                 for (input.trace.witness) |values| try witness.append(a, .{ .log_size = input.descriptor.log_size, .values = values });
             }
+            if (timer) |*clock| timings.?.counter_ns += clock.lap();
             const events = try source.census();
+            if (timer) |*clock| timings.?.census_ns += clock.lap();
             const root = if (source.slots.len == 0) empty.witnessRootForMode(limits.register_custody_mode) else blk: {
                 try scheme.commitBorrowedStreaming(a, witness.items, 16, &channel);
                 var roots = try scheme.roots(a);
@@ -138,8 +152,10 @@ pub fn ForBackend(comptime Backend: type) type {
                 if (roots.items.len != 1) return error.InvalidV5NativeMemoryWitness;
                 break :blk roots.items[0];
             };
+            if (timer) |*clock| timings.?.commitment_ns += clock.lap();
             const slots = try a.dupe(sidecar.Slot, source.slots);
             for (global.get(.range_check_8_8).values, local.values) |*value, addend| value.* = value.add(addend);
+            if (timer) |*clock| timings.?.finalize_ns += clock.lap();
             return .{ .register_custody_mode = limits.register_custody_mode, .a = a, .slots = slots, .native_roots = native.roots, .template_id = native.template_id, .witness_root = root, .byte_snapshot = snapshot.counterSnapshot(&local), .ordinary_events = events, .index = native.index, .frame = frame };
         }
         fn onFirstRound(raw: *anyopaque, a: std.mem.Allocator, warm: Producer.WarmExecution) !void {

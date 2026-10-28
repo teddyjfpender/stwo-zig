@@ -10,9 +10,11 @@ const preflight = @import("prover/blake3_execution_preflight.zig");
 test "block-v5 complete first-pass collection profile q8" {
     const a = std.testing.allocator;
     const selected = Profile.diagnostic_q8_pow0;
+    const distinct = std.process.hasEnvVarConstant("STWO_BLOCK_PROFILE_DISTINCT_STORES");
+    const small = std.process.hasEnvVarConstant("STWO_BLOCK_PROFILE_4K_STORES");
     const quarter_million = std.process.hasEnvVarConstant("STWO_BLOCK_PROFILE_256K_STORES");
     const large = std.process.hasEnvVarConstant("STWO_BLOCK_PROFILE_64K_STORES");
-    const requested_stores: u64 = if (quarter_million) 262_144 else if (large) 65_536 else 16_384;
+    const requested_stores: u64 = if (quarter_million) 262_144 else if (large) 65_536 else if (small) 4_096 else 16_384;
     const prefix = [_]u32{
         0x001002b7,                                            0x10028293,                                  0x08028313,
         @import("isa/sha256_compression_v1.zig").encode(5, 6), @import("isa/custom0.zig").encodeKeccakf(5), @import("isa/sha256_compression_v1.zig").encode(5, 6),
@@ -26,15 +28,19 @@ test "block-v5 complete first-pass collection profile q8" {
     const loop = [_]u32{
         0x000043b7, // LUI x7, 4: 16,384 iterations.
         0x00312223, // SW x3, 4(x2).
+        0x00000013, // NOP for repeated-address arm; ADDI x2, x2, 4 for distinct arm.
         0xfff38393, // ADDI x7, x7, -1.
-        0xfe039ce3, // BNE x7, x0, -8.
+        0xfe039ae3, // BNE x7, x0, -12.
     };
     var instructions = prefix ++ loop ++ suffix;
     if (quarter_million) {
         instructions[prefix.len] = 0x000403b7; // LUI x7, 64: 262,144 iterations.
     } else if (large) {
         instructions[prefix.len] = 0x000103b7; // LUI x7, 16: 65,536 iterations.
+    } else if (small) {
+        instructions[prefix.len] = 0x000013b7; // LUI x7, 1: 4,096 iterations.
     }
+    if (distinct) instructions[prefix.len + 2] = 0x00410113;
     const elf = fixture.buildReleaseProgram(instructions.len, &instructions, 256, profile);
     const oracle = [_]u8{1};
     const config = selected.config();
@@ -54,4 +60,9 @@ test "block-v5 complete first-pass collection profile q8" {
     try std.testing.expectEqual(schedule.segments, collected.planning.records.items.len);
     try std.testing.expect(collected.replay.spooler.event_count > requested_stores);
     try std.testing.expect(collected.globals.memory.instanceCount() > 0);
+    var first_touches = try collected.replay.firstTouches();
+    defer first_touches.deinit();
+    var first_touch_count: u64 = 0;
+    while (try first_touches.next()) |_| first_touch_count += 1;
+    std.debug.print("BLOCK_V5_PROFILE_DISTINCT stores={d} distinct={any} first_touches={d}\n", .{ requested_stores, distinct, first_touch_count });
 }

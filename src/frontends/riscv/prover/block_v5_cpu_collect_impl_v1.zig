@@ -185,7 +185,7 @@ pub fn ForCapacity(comptime capacity: bool) type {
                     if (current.owner.opcode_columns.lookup_counters) |*native_counters| counters.mergeFrom(native_counters);
                     const frame = @import("../air/block/memory_event.zig").Frame{ .clock_frame = base.clock_frame, .global_first_cycle = base.global_first_cycle, .cycle_count = @intCast(base.cycle_count) };
                     timings.fetches_counters_ns += phase_timer.lap();
-                    result.ordinary[index] = try collectOrdinary(a, current.owner, frame, &physical, &counters, limits.ordinary);
+                    result.ordinary[index] = try collectOrdinary(a, current.owner, frame, &physical, &counters, limits.ordinary, if (emit_timings) &timings.ordinary_detail else null);
                     ordinary_count += 1;
                     if (capacity) if (result.readonly) |*selected| {
                         try selected.append(try @import("block_v5_native_capacity_readonly_stage_v1.zig").ForBackend(Cpu).collectWithCounters(a, current.owner, metadata, &result.ordinary[index], limits.ordinary, &selected.selection, selected.selectionPins(), selected.input, selected.native_limits, if (selected.counter_groups) |*groups_owned| groups_owned else null));
@@ -285,6 +285,7 @@ pub fn ForCapacity(comptime capacity: bool) type {
             native_stage_ns: u64 = 0,
             fetches_counters_ns: u64 = 0,
             ordinary_ns: u64 = 0,
+            ordinary_detail: @import("block_v5_native_memory_stage_v1.zig").CollectTimings = .{},
             caller_ns: u64 = 0,
             planning_ns: u64 = 0,
             replay_append_ns: u64 = 0,
@@ -296,6 +297,7 @@ pub fn ForCapacity(comptime capacity: bool) type {
 
             fn print(self: Timings, segments: usize, events: u64) void {
                 std.debug.print("BLOCK_V5_COLLECT_PROFILE segments={d} events={d} setup_ms={d} execution_ms={d} native_first_ms={d} native_stage_ms={d} fetches_counters_ms={d} ordinary_ms={d} caller_ms={d} planning_ms={d} replay_append_ms={d} boundary_ms={d} sort_ms={d} groups_finish_ms={d} global_first_ms={d} bind_ms={d}\n", .{ segments, events, self.setup_ns / std.time.ns_per_ms, self.execution_ns / std.time.ns_per_ms, self.native_first_ns / std.time.ns_per_ms, self.native_stage_ns / std.time.ns_per_ms, self.fetches_counters_ns / std.time.ns_per_ms, self.ordinary_ns / std.time.ns_per_ms, self.caller_ns / std.time.ns_per_ms, self.planning_ns / std.time.ns_per_ms, self.replay_append_ns / std.time.ns_per_ms, self.boundary_ns / std.time.ns_per_ms, self.sort_ns / std.time.ns_per_ms, self.groups_finish_ns / std.time.ns_per_ms, self.global_first_ns / std.time.ns_per_ms, self.bind_ns / std.time.ns_per_ms });
+                if (!capacity) std.debug.print("BLOCK_V5_ORDINARY_PROFILE trace_init_ms={d} counter_ms={d} census_ms={d} commitment_ms={d} finalize_ms={d}\n", .{ self.ordinary_detail.trace_init_ns / std.time.ns_per_ms, self.ordinary_detail.counter_ns / std.time.ns_per_ms, self.ordinary_detail.census_ns / std.time.ns_per_ms, self.ordinary_detail.commitment_ns / std.time.ns_per_ms, self.ordinary_detail.finalize_ns / std.time.ns_per_ms });
             }
         };
 
@@ -326,9 +328,9 @@ pub fn ForCapacity(comptime capacity: bool) type {
         fn ordinaryMode(limits: NativeMemory.Limits) u32 {
             return if (capacity) limits.memory.register_custody_mode else limits.register_custody_mode;
         }
-        fn collectOrdinary(a: std.mem.Allocator, owner: *@import("blake3_execution_trace.zig").Owner, frame: @import("../air/block/memory_event.zig").Frame, native: *const NativeRoots.Proposal, counters: *Tables.counter.Set, limits: NativeMemory.Limits) !NativeMemory.Proposal {
+        fn collectOrdinary(a: std.mem.Allocator, owner: *@import("blake3_execution_trace.zig").Owner, frame: @import("../air/block/memory_event.zig").Frame, native: *const NativeRoots.Proposal, counters: *Tables.counter.Set, limits: NativeMemory.Limits, timings: ?*@import("block_v5_native_memory_stage_v1.zig").CollectTimings) !NativeMemory.Proposal {
             if (capacity) return NativeMemory.ForBackend(Cpu).collect(a, owner, &native.physical, frame, counters, limits);
-            return NativeMemory.ForBackend(Cpu).collect(a, owner, frame, native, counters, limits);
+            return NativeMemory.ForBackend(Cpu).collectTimed(a, owner, frame, native, counters, limits, timings);
         }
     };
 }
