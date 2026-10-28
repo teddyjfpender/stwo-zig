@@ -236,10 +236,12 @@ pub fn generate(
                 const family_index = @intFromEnum(family);
                 const family_row = offsets[family_index];
                 offsets[family_index] += 1;
-                const shard_index = family_row / MAX_OPCODE_SHARD_ROWS;
+                if (work.family_component_counts[family_index] == 0) continue;
+                const shard_rows = work.domain_sizes[work.first_component[family_index]];
+                const shard_index = family_row / shard_rows;
                 if (shard_index >= work.family_component_counts[family_index]) continue;
                 const component_index = work.first_component[family_index] + shard_index;
-                const row_index = family_row - shard_index * MAX_OPCODE_SHARD_ROWS;
+                const row_index = family_row - shard_index * shard_rows;
                 if (row_index >= work.domain_sizes[component_index]) continue;
                 const physical_row = work.placements[component_index].?.map(row_index);
                 trace.validateFamilyRow(row, family) catch {
@@ -349,7 +351,7 @@ pub fn generate(
         const family_index = @intFromEnum(statement.component_descs[component_index].family);
         const shard_index = component_index - first_component[family_index];
         result.components[component_index].n_real_rows = @min(
-            row_counters[family_index] -| shard_index * MAX_OPCODE_SHARD_ROWS,
+            row_counters[family_index] -| shard_index * domain_sizes[first_component[family_index]],
             domain_sizes[component_index],
         );
     }

@@ -82,7 +82,7 @@ pub const Owner = struct {
             var remaining = counts.get(family);
             while (remaining != 0) {
                 if (self.statement.n_components == statement_mod.MAX_COMPONENTS) return error.TooManyOpcodeShards;
-                const n = @min(remaining, opcode.MAX_OPCODE_SHARD_ROWS);
+                const n = @min(remaining, @import("../air/native_opcode_tiling_v1.zig").PRODUCER_ROWS);
                 self.statement.component_descs[self.statement.n_components] = .{ .family = family, .log_size = logSize(n), .n_rows = @intCast(n), .n_columns = if (local_zero) @intCast(try @import("../air/x0_native_envelope_v1.zig").mainColumnCount(family)) else opcode.nCommittedColumnsForFamily(family) };
                 self.statement.n_components += 1;
                 remaining -= n;
