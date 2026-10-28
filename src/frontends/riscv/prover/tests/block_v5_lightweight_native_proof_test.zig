@@ -58,7 +58,13 @@ test "block-v5 persistent native recursive worker rebinds two actual same-key in
     try qualify(false, true);
 }
 fn qualify(comptime fold: bool, comptime use_worker: bool) !void {
+    return qualifyWithProfile(fold, use_worker, .diagnostic_q8_pow0, false);
+}
+/// Shared real native fixture; alternate aggregation keeps the guest, source
+/// seal, native proofs and security policy identical to the wrapper baseline.
+pub fn qualifyWithProfile(comptime fold: bool, comptime use_worker: bool, comptime selected: parent.protocol.Profile, comptime direct_batch: bool) !void {
     const a = std.testing.allocator;
+    var timer = try std.time.Timer.start();
     const instructions = [_]u32{ 0x00500093, 0x00600093, 0x0000006f };
     const elf = @import("../../runner/guest_precompile/test_elf.zig").buildProgram(instructions.len, &instructions, 0, .rv32im_zkvm_v1);
     var session = try runner.BaseExecutionSession.init(a, &elf, .{ .trace_retention = .segment_owned, .clock_frame = .leaf_local });
@@ -73,7 +79,7 @@ fn qualify(comptime fold: bool, comptime use_worker: bool) !void {
     counts[@intFromEnum(seals.Family.execution_sidecar) - 1] = 2;
     counts[@intFromEnum(seals.Family.program_request) - 1] = 2;
     counts[@intFromEnum(seals.Family.memory) - 1] = 1;
-    var pins_a = seals.Pins{ .job_id = @splat(1), .source_image_digest = @splat(2), .program_root = @splat(3), .program_plan_digest = @splat(4), .memory_plan_digest = @splat(5), .initial_source_plan_digest = @splat(6), .rw_endpoint_plan_digest = @splat(25), .native_template_catalog_digest = @splat(26), .config = parent.protocol.PCS_CONFIG, .counts = counts };
+    var pins_a = seals.Pins{ .job_id = @splat(1), .source_image_digest = @splat(2), .program_root = @splat(3), .program_plan_digest = @splat(4), .memory_plan_digest = @splat(5), .initial_source_plan_digest = @splat(6), .rw_endpoint_plan_digest = @splat(25), .native_template_catalog_digest = @splat(26), .config = selected.config(), .counts = counts };
     var pins_b = pins_a;
     if (!fold) pins_b.job_id[0] ^= 1;
     var first = try Fixture.init(a, &segment_a, pins_a);
@@ -116,6 +122,18 @@ fn qualify(comptime fold: bool, comptime use_worker: bool) !void {
     const rounds = .{ &round_a, &round_b };
     const all_sealed = [_]seals.Sealed{ sealed_a, sealed_b };
     const all_pins = [_]seals.Pins{ pins_a, pins_b };
+    const native_ns = timer.read();
+    if (direct_batch) {
+        var policies: [2]recursive_admission.Prepared = undefined;
+        var initialized: usize = 0;
+        defer for (policies[0..initialized]) |*policy| policy.deinit();
+        inline for (0..2) |i| {
+            policies[i] = try recursive_admission.Prepared.init(a, &fixtures[i].owner.statement, fixtures[i].pin, rounds[i].template, rounds[i].template_id, i, all_sealed[i], all_pins[i], &entries, catalog);
+            initialized += 1;
+        }
+        try @import("block_v6_native_batch_proof_test.zig").qualify(a, &.{ &policies[0], &policies[1] }, &captures, selected, native_ns);
+        return;
+    }
     const Plan = @import("../../recursion/blake3_native_parent_producer.zig").PlanForProtocol(Cpu, recursive_protocol);
     const Worker = @import("../../recursion/blake3_native_parent_worker.zig").WorkerForProtocol(Cpu, recursive_protocol);
     var schedule: ?[]bus.Wire = null;
@@ -128,6 +146,8 @@ fn qualify(comptime fold: bool, comptime use_worker: bool) !void {
     var expected_key: ?[32]u8 = null;
     var byte_counts: [2]usize = undefined;
     var fixed_rows: usize = 0;
+    const batch_bench = @import("block_v6_native_batch_proof_test.zig");
+    var wrapper_work: batch_bench.Work = .{};
     var open_equations: [2]?leaf.OpenEquation = @splat(null);
     defer for (&open_equations) |*equation| if (equation.*) |*owned| owned.deinit();
     var recursive_keys: [2]recursive_protocol.Key = undefined;
@@ -136,7 +156,10 @@ fn qualify(comptime fold: bool, comptime use_worker: bool) !void {
         defer admitted.deinit();
         var prepared = try bus.prepare(a, &admitted, captures[i], 2);
         defer prepared.deinit();
-        const geometry = try parent.ForBackend(Cpu).deriveKey(a, &prepared.recursive);
+        const costs = batch_bench.work(&prepared.recursive.rows);
+        wrapper_work.cells += costs.cells;
+        wrapper_work.g_rows += costs.g_rows;
+        const geometry = try parent.ForBackend(Cpu).deriveKeyWithProfile(a, &prepared.recursive, selected);
         const key = try recursive_protocol.Key.fromGeometry(geometry, prepared.wires);
         const key_id = try key.identity();
         recursive_keys[i] = key;
@@ -210,6 +233,7 @@ fn qualify(comptime fold: bool, comptime use_worker: bool) !void {
         const verified_children = [_]*const @import("../../recursion/blake3_native_parent_verifier.zig").Verified{ &open_equations[0].?.equation, &open_equations[1].?.equation };
         // Exercise the actual arithmetic edge constraint independently of the
         // host span preflight: mutate only a routed public PC graph input.
+        const edge_started = timer.read();
         const edge_spans: [2]@import("../../recursion/block_v5_pc_clock_span_v1.zig").Span = .{ children[0].span, children[1].span };
         const edge_admission = fold_bus.ChildAdmission.init(children[0].admission, &edge_spans);
         var edge_plan = try @import("../../recursion/blake3_execution_parent_preparation.zig").State.plan(a, &edge_admission, verified_children[0], edge_admission.expected_id, 2);
@@ -225,9 +249,10 @@ fn qualify(comptime fold: bool, comptime use_worker: bool) !void {
         try std.testing.expectError(error.UnsatisfiedCircuit, edge_graph.circuit.evaluateInto(edge_graph.inputs, edge_graph.values));
         // Release the deliberately invalid graph before assembling/proving rows.
         edge_plan.deinit();
+        const edge_audit_ns = timer.read() - edge_started;
         var combined = try fold_prepare.prepare(a, &children, &verified_children, 2);
         defer combined.deinit();
-        const fold_geometry = try parent.ForBackend(Cpu).deriveKey(a, &combined.recursive);
+        const fold_geometry = try parent.ForBackend(Cpu).deriveKeyWithProfile(a, &combined.recursive, selected);
         const fold_key = try fold_protocol.Key.fromGeometry(fold_geometry, combined.wires);
         const fold_key_id = try fold_key.identity();
         const fold_authority = try fold_protocol.Admission.init(fold_key, fold_key_id, combined.wires, combined.values);
@@ -255,6 +280,8 @@ fn qualify(comptime fold: bool, comptime use_worker: bool) !void {
         var row_count: usize = 0;
         inline for (combined.recursive.rows.fixed) |rows| row_count += rows.len;
         std.debug.print("BLOCK_V5_OPEN_PARENT verified=true native_version=3 children=2 child_equations=true public_supply_closed=true pc_clock_edges=true fixed_rows={d} public_wires={d} proof_bytes={d} global_claims_open=true\n", .{ row_count, combined.wires.len, fold_bytes.len });
+        const parent_work = batch_bench.work(&combined.recursive.rows);
+        std.debug.print("BLOCK_V6_WRAPPER_BASELINE profile={s} children=2 native_ns={d} recursive_ns={d} excluded_edge_audit_ns={d} g_rows={d} air_cells={d} proof_bytes={d} globals_open=true\n", .{ @tagName(selected), native_ns, timer.read() - native_ns - edge_audit_ns, edge_audit_ns, wrapper_work.g_rows + parent_work.g_rows, wrapper_work.cells + parent_work.cells, fold_bytes.len });
     }
     std.debug.print("BLOCK_V5_LIGHTWEIGHT_NATIVE verified=true states=2 native_version=3 perleaf_plan=false custody_witness=false compensation=pc_clock_only recursive_key_reused=true fixed_rows={d} proof_bytes={d}+{d} global_claims_open=true\n", .{ fixed_rows, byte_counts[0], byte_counts[1] });
 }
