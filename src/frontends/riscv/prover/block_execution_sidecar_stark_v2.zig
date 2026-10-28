@@ -142,7 +142,11 @@ pub const Component = struct {
             }
             if (self.shared_keccak_state_offset) |state_offset| {
                 if (state_offset + keccak_witness.state_cell_count > main.len) return error.InvalidExecutionSidecarMask;
-                const output_point = point.add(logup.liftPoint(canonic.CanonicCoset.new(self.log_size).coset_value.step).mulSigned(27));
+                // Mixed caller proofs lift this component into the shared
+                // composition domain. Its +27 opening must use that domain's
+                // step, just like the native Keccak component and the -1
+                // interaction opening above.
+                const output_point = point.add(logup.liftPoint(canonic.CanonicCoset.new(max_log).coset_value.step).mulSigned(27));
                 for (main[state_offset..][0..keccak_witness.state_cell_count]) |*column| {
                     a.free(column.*);
                     column.* = try a.dupe(circle.CirclePointQM31, &.{ point, output_point });
@@ -374,4 +378,46 @@ test "block-v2 sidecar adapter declares same-root opcode main and own witnesses"
     const zeros: [opcode.MAX_FAMILY_COLUMNS]Q = @splat(Q.zero());
     const residuals = try eval.evaluateRow(&adapter, zeros[0..opcode.nColumnsForFamily(family)], @splat(Q.zero()), @splat(Q.zero()), @splat(Q.zero()));
     for (residuals) |residual| try std.testing.expect(residual.isZero());
+}
+
+test "Keccak sidecar shifts output opening in the shared composition domain" {
+    const a = std.testing.allocator;
+    const trace_log: u32 = 5;
+    const composition_log: u32 = 8;
+    const main_logs = try filled(a, keccak_trace.Layout.main_columns, trace_log);
+    defer a.free(main_logs);
+    const sealed = @import("block_commitment_manifest.zig").Sealed{ .digest = @splat(82), .instance_count = 1 };
+    const challenges = try bus.Challenges.draw(a, sealed);
+    const descriptor = external.Descriptor{
+        .kind = .keccak,
+        .slot = 1,
+        .log_size = trace_log,
+        .fixed_offset = 0,
+        .main_offset = 0,
+        .frame = .{ .clock_frame = .leaf_local, .global_first_cycle = 1, .cycle_count = 2 },
+    };
+    const adapter = try (Component{
+        .family = .base_alu_imm,
+        .slot = descriptor.slot,
+        .external_source = descriptor,
+        .log_size = trace_log,
+        .base_clock = 0,
+        .fixed_logs = &.{},
+        .main_logs = main_logs,
+        .shared_keccak_state_offset = keccak_trace.Layout.state,
+        .main_offset = 0,
+        .transition_claim = Q.zero(),
+        .range_claims = @splat(Q.zero()),
+        .challenges = &challenges,
+    }).init();
+    const point = circle.SECURE_FIELD_CIRCLE_GEN.mul(83);
+    var points = try adapter.maskPoints(a, point, composition_log);
+    defer points.deinitDeep(a);
+    const state_openings = points.items[1][keccak_trace.Layout.state];
+    try std.testing.expectEqual(@as(usize, 2), state_openings.len);
+    try std.testing.expect(state_openings[0].eql(point));
+    const composition_step = logup.liftPoint(canonic.CanonicCoset.new(composition_log).coset_value.step);
+    try std.testing.expect(state_openings[1].eql(point.add(composition_step.mulSigned(27))));
+    const trace_step = logup.liftPoint(canonic.CanonicCoset.new(trace_log).coset_value.step);
+    try std.testing.expect(!state_openings[1].eql(point.add(trace_step.mulSigned(27))));
 }

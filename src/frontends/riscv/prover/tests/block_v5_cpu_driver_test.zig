@@ -35,7 +35,9 @@ pub fn runFixture(a: std.mem.Allocator, comptime selected: Profile) !void {
     const result = try Driver.run(a, temporary.dir, &source, .{ .runner_pins = pins, .job_id = @splat(91), .expected_final_rw_root = planned.last.machine.rw_memory.bytes }, options);
     try std.testing.expectEqual(@as(u32, if (selected == .diagnostic_q8_pow0) 2 else 3), result.verified.execution_count);
     try std.testing.expectEqual(.verified, result.verified.exact_recursive_forest);
-    try std.testing.expect(result.proof_files > 10);
+    // This field counts base bundle files. The independently verified forest
+    // is reported by exact_recursive_forest, not added to this file count.
+    try std.testing.expect(result.proof_files >= 10);
     try std.testing.expect(source.first_complete and !source.second_complete);
     try std.testing.expect(result.witness_file_bytes > 0);
     std.debug.print("BLOCK_V5_CPU_COMPLETE verified=true profile={s} segments={d} memory_events={d} proof_files={d} collection_ms={d} proving_ms={d} forest_ms={d} verify_ms={d}\n", .{ @tagName(selected), result.verified.execution_count, result.verified.memory_events, result.proof_files, result.collection_ns / std.time.ns_per_ms, result.proving_ns / std.time.ns_per_ms, result.forest_ns / std.time.ns_per_ms, result.verification_ns / std.time.ns_per_ms });

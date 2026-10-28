@@ -263,7 +263,7 @@ test "exact Ethereum-SHA runner source streams and checks both replays" {
     missing_job.expected_job = null;
     try std.testing.expectError(error.MissingPinnedBlockJob, Source.initFromPlan(a, &elf, &.{}, &oracle, 6, config, missing_job, planned));
     var changed_plan = planned;
-    changed_plan.first.machine.rw_memory[0] ^= 1;
+    changed_plan.first.machine.rw_memory.bytes[0] ^= 1;
     try std.testing.expectError(error.UntrustedBlockRunnerEndpoint, Source.initFromPlan(a, &elf, &.{}, &oracle, 6, config, pins, changed_plan));
     changed_plan = planned;
     changed_plan.last.machine.pc +%= 4;

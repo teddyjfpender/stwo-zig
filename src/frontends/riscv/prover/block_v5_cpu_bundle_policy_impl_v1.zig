@@ -181,9 +181,13 @@ pub fn ForCapacity(comptime capacity: bool) type {
                 try receiver.admit(a, index, .{ .statement = pin.statement, .total_steps = pin.total_steps, .execution_instance_id = native_entry.instance_id, .expected_key_id = key, .expected_caller_instance_id = entry.instance_id, .roots = entry.roots, .witness_root = witness, .frame = frame, .expected_rw_events = schedule.rw_events }, sealed, pins.tables.seal, pins.tables.roster);
                 const request_entry = try find(pins.tables.roster, .program_extension_request, index);
                 const column_count = try std.math.add(usize, try std.math.mul(usize, schedule.projectionCount(), 4), try std.math.mul(usize, schedule.memory.len, sidecar_eval.INTERACTION_COUNT));
-                const log = @max(@max(maximum(fixed), maximum(main)), @max(maxSlots(schedule.program), @max(maxSlots(schedule.tables), maxSlots(schedule.memory))));
+                // FRI follows the largest constrained caller component. The
+                // reused fixed/main columns can have a larger Merkle domain,
+                // but they do not raise the quotient degree or FRI layer count.
+                const log = @max(maxSlots(schedule.program), @max(maxSlots(schedule.tables), maxSlots(schedule.memory)));
+                const merkle_log = @max(maximum(fixed), maximum(main));
                 const composition = core.verifier_types.compositionColumnCount(schedule.split, core.fields.qm31.SECURE_EXTENSION_DEGREE) orelse return error.InvalidV5BundleGeometry;
-                const geometry = store.Geometry{ .tree_count = 5, .tree_columns = .{ @intCast(fixed.len), @intCast(main.len), @intCast(try std.math.mul(usize, schedule.memory.len, integer.COLUMN_COUNT)), @intCast(column_count), @intCast(composition) }, .max_column_log = log, .max_merkle_log = @max(log, @max(maximum(fixed), maximum(main))), .sample_width_limits = .{ 2, 6, 1, 2, 1 } };
+                const geometry = store.Geometry{ .tree_count = 5, .tree_columns = .{ @intCast(fixed.len), @intCast(main.len), @intCast(try std.math.mul(usize, schedule.memory.len, integer.COLUMN_COUNT)), @intCast(column_count), @intCast(composition) }, .max_column_log = log, .max_merkle_log = @max(log, merkle_log), .sample_width_limits = .{ 2, 6, 1, 2, 1 } };
                 var policy = make(.caller_fused, index, sealed.digest, request_entry.instance_id, entry.roots, @intCast(schedule.program.len), geometry, config);
                 policy.expected.state_claim_count = @intCast(schedule.program.len);
                 policy.expected.table_claim_count = @intCast(schedule.tables.len);

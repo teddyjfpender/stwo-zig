@@ -384,7 +384,10 @@ pub fn ForBackend(comptime Backend: type) type {
                 for (interaction.items) |column| a.free(column.values);
                 interaction.deinit(a);
             }
-            for (schedule.program, 0..) |slot, i| inline for (.{ .program, .state }, 0..) |projection, part| {
+            // Interaction geometry and verifier offsets are partition-major:
+            // all program columns, then all state columns. Keep the committed
+            // tree in that same order when more than one caller is active.
+            inline for (.{ .program, .state }, 0..) |projection, part| for (schedule.program, 0..) |slot, i| {
                 const generated = try generateProgram(a, columns.fixed, columns.main, slot, &relations.sha, projection);
                 const claim = Program.Claim{ .sum = generated.claim, .fetch_count = slot.active_calls };
                 if (part == 0) proof.program_claims[i] = claim else proof.state_claims[i] = claim;

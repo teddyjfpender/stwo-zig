@@ -258,11 +258,11 @@ test "block-v4 active signer source matches native byte addresses and clocks" {
     const output = try signerPair(Q, &main, 1 + signer.input_word_count);
     try std.testing.expectEqual(@as(u32, 5), pointer.source_address.toM31Array()[0].toU32());
     try std.testing.expectEqual(@as(u32, 9), pointer.local_clock.toM31Array()[0].toU32());
-    try std.testing.expectEqual(@as(u32, 10), input.source_address.toM31Array()[0].toU32());
+    try std.testing.expectEqual(@as(u32, 40), input.source_address.toM31Array()[0].toU32());
     try std.testing.expectEqual(@as(u32, 10), input.local_clock.toM31Array()[0].toU32());
     try std.testing.expectEqual(@as(u32, 0x12), input.before[0].toM31Array()[0].toU32());
     try std.testing.expectEqual(@as(u32, 0x12), input.after[0].toM31Array()[0].toU32());
-    try std.testing.expectEqual(@as(u32, @intCast(10 + signer.input_word_count)), output.source_address.toM31Array()[0].toU32());
+    try std.testing.expectEqual(@as(u32, @intCast(4 * (10 + signer.input_word_count))), output.source_address.toM31Array()[0].toU32());
     try std.testing.expectEqual(@as(u32, 0x34), output.before[0].toM31Array()[0].toU32());
     try std.testing.expectEqual(@as(u32, 0x56), output.after[0].toM31Array()[0].toU32());
     const accesses = [_]pair_mod.Pair(Q){ pointer, input, output };
