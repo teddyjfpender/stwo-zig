@@ -36,7 +36,43 @@ an exact forest and a fresh detached receiver result. This establishes a
 usable small positive test for further architecture work, not block-scale
 soundness or speed.
 
+The measured forest covers native execution and exports open global
+obligations. `block_v5_global_receiver_impl_v1.verifyWithTransportSelected`
+first verifies the global base proofs, then checks that forest against the
+fresh native residual. Thus complete-bundle verification is stronger than
+native-only verification, but the outer forest file alone is not a closed
+block proof. Block-v6 must recursively include global memory, caller, lookup,
+source authentication and final relation closure before claiming a single
+block root. The separate capacity completion path remains to be qualified.
+
 ## Four proof-architecture changes
+
+### Measured recursion cost that sets the priority
+
+The canonical three-segment fixture was profiled with fresh detached
+verification again; all 13 selected tests passed. Its local two-child parent
+spent 14.317 s preparing verifier rows, 3.057 s deriving its key, 4.790 s
+constructing setup, 38.268 s proving and 0.195 s encoding/verifying. Its
+two-child exact outer spent 14.728, 3.308, 5.184, 43.871 and 0.198 s in
+the corresponding stages. Both were cache misses. Raw counters are in
+`block-v5-parent-profile-m5-20261028.json`.
+
+The producer already uses radix-four planning and authenticated setup caches.
+On a miss, `blake3_parent_fixed_key_v1.derive` commits fixed columns and drops
+the tree; `blake3_native_parent_producer.Plan.init` projects and commits them
+again. An owned fixed-commitment handoff can remove that duplication, subject
+to exact independent root admission and lifetime checks. It cannot supply the
+main gain: preparation plus key/setup is about 35% of these parent jobs. Even
+removing all of it bounds their summed elapsed-time improvement at roughly
+1.56x. Actual STARK proving accounts for 82.139 s across the two jobs, so
+reducing the verifier's proved work is essential. These are per-job sums;
+local parent work overlaps base publication, and must not be added to the
+122.962 s forest wall timer as separate work.
+
+This prioritizes joint base proofs and specialized verifier operations over
+further setup-cache tuning. The next comparison must count committed verifier
+cells, hash calls, openings and quotient work for the same child statements,
+then prove and independently verify the reduced circuit at q70/26.
 
 ### 1. Prove registers within execution; use sorted RAM only for mutable words
 

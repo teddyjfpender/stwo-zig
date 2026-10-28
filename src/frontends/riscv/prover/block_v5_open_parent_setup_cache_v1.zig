@@ -66,11 +66,16 @@ pub fn ForBackend(comptime Backend: type) type {
         pub fn proveConsuming(self: *Self, prepared: *Preparation.Prepared) !Proved {
             if (!self.busy.tryLock()) return error.V5OpenSetupCacheAlreadyLeased;
             defer self.busy.unlock();
+            const profiling = std.process.hasEnvVarConstant("STWO_BLOCK_V5_PROVE_PROFILE");
+            var timer: ?std.time.Timer = if (profiling) try std.time.Timer.start() else null;
+            var derive_ns: u64 = 0;
+            var setup_ns: u64 = 0;
             defer prepared.recursive.rows.releaseRows();
             if (!std.meta.eql(prepared.recursive.context.child_config, self.options.profile.config())) return error.V5OpenSetupCacheSecurityMismatch;
             try prepared.values.validate();
             try prepared.recursive.rows.partitionHashRows();
             const digest = try Bus.scheduleDigest(prepared.wires);
+            const partition_ns = if (timer) |*clock| clock.lap() else 0;
             self.clock = try std.math.add(u64, self.clock, 1);
             var selected: ?usize = null;
             for (self.entries, 0..) |*slot, i| if (slot.*) |*entry| {
@@ -94,16 +99,22 @@ pub fn ForBackend(comptime Backend: type) type {
                 selected = i;
                 break;
             };
+            const cache_hit = selected != null;
+            const lookup_ns = if (timer) |*clock| clock.lap() else 0;
             if (selected == null) {
                 var victim: usize = 0;
                 for (self.entries, 0..) |entry, i| {
-                    if (entry == null) { victim = i; break; }
+                    if (entry == null) {
+                        victim = i;
+                        break;
+                    }
                     if (entry.?.last_use < self.entries[victim].?.last_use) victim = i;
                 }
                 if (self.entries[victim] != null) self.stats.evictions += 1;
                 // Evict before a miss to avoid temporarily doubling fixed data.
                 self.drop(&self.entries[victim]);
                 const geometry = try Parent.ForBackend(Backend).deriveKeyWithProfile(self.a, &prepared.recursive, self.options.profile);
+                if (timer) |*clock| derive_ns = clock.lap();
                 const key = try Protocol.Key.fromGeometry(geometry, prepared.wires);
                 const key_id = try key.identity();
                 const wires = try self.a.dupe(Bus.Wire, prepared.wires);
@@ -112,12 +123,14 @@ pub fn ForBackend(comptime Backend: type) type {
                 errdefer self.a.free(children);
                 const admission = try Protocol.Admission.init(key, key_id, wires, .{ .purpose = prepared.values.purpose, .children = children });
                 const plan = try Plan.init(self.a, &prepared.recursive.rows, admission);
+                if (timer) |*clock| setup_ns = clock.lap();
                 self.entries[victim] = .{ .key = key, .key_id = key_id, .wires = wires, .children = children, .plan = plan, .last_use = self.clock };
                 self.stats.misses += 1;
                 selected = victim;
             }
             const entry = &self.entries[selected.?].?;
             const proof = try entry.plan.proveConsumingWithWorkspace(self.a, &prepared.recursive.rows, &self.workspace);
+            if (timer) |*clock| std.debug.print("BLOCK_V5_PARENT_PROFILE hit={any} partition_ms={d} lookup_rebind_ms={d} derive_key_ms={d} setup_ms={d} proof_ms={d}\n", .{ cache_hit, partition_ns / std.time.ns_per_ms, lookup_ns / std.time.ns_per_ms, derive_ns / std.time.ns_per_ms, setup_ns / std.time.ns_per_ms, clock.read() / std.time.ns_per_ms });
             return .{ .key = entry.key, .key_id = entry.key_id, .proof = proof };
         }
         fn sameWires(left: []const Bus.Wire, right: []const Bus.Wire) bool {

@@ -1,0 +1,62 @@
+{
+  "status": "diagnostic canonical CPU phase profile; fresh complete-bundle verification passed",
+  "host": "Apple M5",
+  "optimize": "ReleaseFast",
+  "command": "STWO_BLOCK_V5_PROVE_PROFILE=1 python3 scripts/zig_protocol_test.py src/frontends/riscv/block_v5_cpu_profile_test_root.zig -OReleaseFast --test-filter 'block-v5 CPU assembled mixed multi-segment complete bundle canonical'",
+  "scope": "Native execution forest plus separate global base verification; not standalone recursively closed block root",
+  "notes": [
+    "Single run; parent jobs can overlap the base-publication timer, so their elapsed times do not sum to forest wall time.",
+    "derive_key_ms includes cache eviction on a miss; setup_ms includes admission construction.",
+    "Timers enabled only by STWO_BLOCK_V5_PROVE_PROFILE."
+  ],
+  "records": [
+    {
+      "record": "BLOCK_V5_PARENT_PROFILE",
+      "hit": "false",
+      "partition_ms": 279,
+      "lookup_rebind_ms": 0,
+      "derive_key_ms": 3057,
+      "setup_ms": 4790,
+      "proof_ms": 38268
+    },
+    {
+      "record": "BLOCK_V5_FOLD_PROFILE",
+      "purpose": "local",
+      "children": 2,
+      "preparation_ms": 14317,
+      "setup_and_prove_ms": 46394,
+      "encode_verify_ms": 195,
+      "proof_bytes": 967917
+    },
+    {
+      "record": "BLOCK_V5_PARENT_PROFILE",
+      "hit": "false",
+      "partition_ms": 301,
+      "lookup_rebind_ms": 0,
+      "derive_key_ms": 3308,
+      "setup_ms": 5184,
+      "proof_ms": 43871
+    },
+    {
+      "record": "BLOCK_V5_FOLD_PROFILE",
+      "purpose": "exact_outer",
+      "children": 2,
+      "preparation_ms": 14728,
+      "setup_and_prove_ms": 52665,
+      "encode_verify_ms": 198,
+      "proof_bytes": 981648
+    },
+    {
+      "record": "BLOCK_V5_CPU_COMPLETE",
+      "verified": "true",
+      "profile": "csp_q70_pow26",
+      "segments": 3,
+      "memory_events": 101,
+      "proof_files": 12,
+      "collection_ms": 1011,
+      "proving_ms": 28836,
+      "forest_ms": 122962,
+      "verify_ms": 2041
+    }
+  ]
+}

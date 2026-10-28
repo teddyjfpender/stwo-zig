@@ -148,9 +148,13 @@ pub fn ForLeafAdapter(comptime LeafAdapter: type) type {
             }
         };
         fn proveFold(a: std.mem.Allocator, purpose: bus.Purpose, children: []const normalized.Child, captures: []const *const verified_mod.Verified, cache: *Cache) !Fold {
+            const profiling = std.process.hasEnvVarConstant("STWO_BLOCK_V5_PROVE_PROFILE");
+            var timer: ?std.time.Timer = if (profiling) try std.time.Timer.start() else null;
             var prepared = try preparation.prepare(a, purpose, children, captures, 2);
             errdefer prepared.deinit();
+            const preparation_ns = if (timer) |*clock| clock.lap() else 0;
             const proved = try cache.proveConsuming(&prepared);
+            const proving_ns = if (timer) |*clock| clock.lap() else 0;
             var artifact = proved.proof;
             defer artifact.deinit();
             const admission = try protocol.Admission.init(proved.key, proved.key_id, prepared.wires, prepared.values);
@@ -160,6 +164,7 @@ pub fn ForLeafAdapter(comptime LeafAdapter: type) type {
             var fresh = try parent.verify(&owned, &admission);
             defer fresh.deinit();
             try fresh.validate(&admission, admission.expected_id);
+            if (timer) |*clock| std.debug.print("BLOCK_V5_FOLD_PROFILE purpose={s} children={d} preparation_ms={d} setup_and_prove_ms={d} encode_verify_ms={d} proof_bytes={d}\n", .{ @tagName(purpose), children.len, preparation_ns / std.time.ns_per_ms, proving_ns / std.time.ns_per_ms, clock.read() / std.time.ns_per_ms, bytes.len });
             return .{ .a = a, .prepared = prepared, .admission = admission, .bytes = bytes, .span = try prepared.values.outputSpan() };
         }
         const OuterWork = struct {
