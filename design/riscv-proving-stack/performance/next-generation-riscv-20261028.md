@@ -7,6 +7,12 @@ on two tiny adjacent native segments (three eight-worker M5 runs). This is
 The earlier canonical complete-bundle fixture still exports global obligations
 from its forest; its detached receiver closes them with separate base proofs.
 
+The earlier hash-work census implementation is pinned at lab commit
+[`7f77b5e87`](https://github.com/teddyjfpender/stwo-zig/commit/7f77b5e87).
+The archived block implementation and new experiment remain on
+`codex/ethereum-block-fast-lab`. The linked direct-batch report pins its newer
+implementation and measurement receipts separately.
+
 ## Two distinct order-of-magnitude opportunities
 
 | Change | Evidence | What the ratio does and does not mean |
