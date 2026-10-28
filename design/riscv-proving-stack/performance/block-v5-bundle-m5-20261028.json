@@ -34,5 +34,6 @@
       "detached_verification_ms": 2034,
       "complete_bundle_verified": true
     }
-  ]
+  ],
+  "recursive_scope": "Native execution forest with open global obligations. The detached bundle receiver separately verifies global base proofs and closes their relations. This is not a standalone recursively closed block root."
 }
