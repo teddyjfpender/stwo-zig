@@ -1,5 +1,12 @@
 # RISC-V architecture: remove wrapper amplification and global register traffic
 
+Latest integration: the [bounded complete-bundle driver](native-batch-driver-m5-20261028.md)
+measures 2.64× lower canonical wall time on a mixed 307,214-cycle workload.
+This is the relevant integrated result; the larger isolated ratios below must
+not be presented as its end-to-end gain. Recursion remains 62.1% of the new
+wall time. The [next architecture decision](whole-job-proof-work-20261028.md)
+targets fewer STARK instances and repeated wide witness work.
+
 Status: a [direct-native batch experiment](direct-native-batch-m5-20261028.md)
 now passes fresh proofs at q70/PoW26 and measures **17.0x faster recursion**
 on two tiny adjacent native segments (three eight-worker M5 runs). This is

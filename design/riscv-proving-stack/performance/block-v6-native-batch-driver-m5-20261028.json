@@ -1,0 +1,269 @@
+{
+  "schema": "stwo-zig/native-batch-driver/v1",
+  "scope": "Complete bundles including original global base proofs; single native batch, not standalone block root",
+  "timing": "Actual driver invocation including publication and fresh complete verification; shared preflight/source initialization excluded; extra detached and hostile probes excluded",
+  "memory": "Whole driver shared allocator peak, not RSS; family times overlap and are not additive",
+  "log": "block-v6-driver-comparison.log",
+  "log_sha256": "99eec3849232eea7bd4ee9a3736e6e82bf3a50357fb45838e73a75b321e81ebd",
+  "samples": {
+    "diagnostic_q8_pow0": {
+      "begin": {
+        "0": {
+          "profile": "diagnostic_q8_pow0",
+          "mode": 0,
+          "iterations": 61440,
+          "cycles": 307214,
+          "segments": 2,
+          "preflight_ns": 19404708
+        },
+        "1": {
+          "profile": "diagnostic_q8_pow0",
+          "mode": 1,
+          "iterations": 61440,
+          "cycles": 307214,
+          "segments": 2,
+          "preflight_ns": 19404708
+        }
+      },
+      "baseline": {
+        "0": {
+          "verified": "true",
+          "profile": "diagnostic_q8_pow0",
+          "mode": 0,
+          "iterations": 61440,
+          "cycles": 307214,
+          "segments": 2,
+          "events": 737404,
+          "byte_requests": 10323656,
+          "memory_instances": 1,
+          "memory_cells": 112197632,
+          "base_files": 10,
+          "collection_ns": 3235123583,
+          "proving_ns": 14441925500,
+          "forest_ns": 9367435667,
+          "verification_ns": 1971739833,
+          "wall_ns": 29017124625,
+          "memory_range_ns": 6373919958,
+          "lookup_ns": 919987959,
+          "caller_ns": 3265816166,
+          "rom_ns": 100269291,
+          "charged_peak_bytes": 5109099740,
+          "witness_file_bytes": 53027364,
+          "proof_file_bytes": 2056877,
+          "initial_rw": "b3c2378f03cf0f2a9d3289db9da9bdb06c0ac53262d7276c173488eca14b03c9",
+          "final_rw": "94733e821ad308eeb69d49786c09f3ef5a90d171145bcd3b847fb6dd504f0d7d",
+          "complete_bundle": "true",
+          "standalone_root": "false"
+        },
+        "1": {
+          "verified": "true",
+          "profile": "diagnostic_q8_pow0",
+          "mode": 1,
+          "iterations": 61440,
+          "cycles": 307214,
+          "segments": 2,
+          "events": 122981,
+          "byte_requests": 1721734,
+          "memory_instances": 1,
+          "memory_cells": 11141120,
+          "base_files": 10,
+          "collection_ns": 1482151292,
+          "proving_ns": 10709877625,
+          "forest_ns": 9444095667,
+          "verification_ns": 1816935041,
+          "wall_ns": 23453752291,
+          "memory_range_ns": 2492379334,
+          "lookup_ns": 1731686167,
+          "caller_ns": 3310014667,
+          "rom_ns": 12820875,
+          "charged_peak_bytes": 2178993487,
+          "witness_file_bytes": 53027364,
+          "proof_file_bytes": 1970137,
+          "initial_rw": "b3c2378f03cf0f2a9d3289db9da9bdb06c0ac53262d7276c173488eca14b03c9",
+          "final_rw": "94733e821ad308eeb69d49786c09f3ef5a90d171145bcd3b847fb6dd504f0d7d",
+          "complete_bundle": "true",
+          "standalone_root": "false"
+        }
+      },
+      "driver": [
+        {
+          "verified": "true",
+          "profile": "diagnostic_q8_pow0",
+          "segments": 2,
+          "baseline_wall_ns": 23453752291,
+          "wall_ns": 13132446667,
+          "collection_ns": 1479124333,
+          "base_ns": 6354211167,
+          "recursive_ns": 3469514625,
+          "verification_ns": 1829048333,
+          "prepare_ns": 1526835917,
+          "setup_ns": 370690583,
+          "prove_ns": 1523886083,
+          "encode_ns": 29225750,
+          "detached_ns": 1638617083,
+          "charged_peak_bytes": 1497336526,
+          "base_files": 10,
+          "base_file_bytes": 1970137,
+          "batch_bytes": 135190,
+          "memory_ns": 1534464875,
+          "caller_ns": 3730480833,
+          "lookup_ns": 2219432417,
+          "rom_ns": 29486792,
+          "replacement_driver": "true",
+          "standalone_root": "false",
+          "unpartitioned_ns": 548209
+        }
+      ],
+      "controls": [
+        {
+          "changed_identity": "rejected",
+          "cancelling_claims": "OodsNotMatching",
+          "cold_after_owner_destruction": "true"
+        }
+      ],
+      "matched": [
+        {
+          "profile": "diagnostic_q8_pow0",
+          "cycles": 307214,
+          "mode0_events": 737404,
+          "mode1_events": 122981,
+          "same_elf_input_endpoints": "true",
+          "complete_bundles": "true"
+        }
+      ],
+      "speedup": 1.7859392758804036,
+      "peak_ratio_old_over_new": 1.4552463318456441
+    },
+    "csp_q70_pow26": {
+      "begin": {
+        "0": {
+          "profile": "csp_q70_pow26",
+          "mode": 0,
+          "iterations": 61440,
+          "cycles": 307214,
+          "segments": 2,
+          "preflight_ns": 8845917
+        },
+        "1": {
+          "profile": "csp_q70_pow26",
+          "mode": 1,
+          "iterations": 61440,
+          "cycles": 307214,
+          "segments": 2,
+          "preflight_ns": 8845917
+        }
+      },
+      "baseline": {
+        "0": {
+          "verified": "true",
+          "profile": "csp_q70_pow26",
+          "mode": 0,
+          "iterations": 61440,
+          "cycles": 307214,
+          "segments": 2,
+          "events": 737404,
+          "byte_requests": 10323656,
+          "memory_instances": 1,
+          "memory_cells": 112197632,
+          "base_files": 10,
+          "collection_ns": 3361499459,
+          "proving_ns": 33930622958,
+          "forest_ns": 52429358167,
+          "verification_ns": 2255419958,
+          "wall_ns": 91977782958,
+          "memory_range_ns": 8295540959,
+          "lookup_ns": 4070766125,
+          "caller_ns": 4410118542,
+          "rom_ns": 429532583,
+          "charged_peak_bytes": 7567711088,
+          "witness_file_bytes": 53027364,
+          "proof_file_bytes": 9732855,
+          "initial_rw": "b3c2378f03cf0f2a9d3289db9da9bdb06c0ac53262d7276c173488eca14b03c9",
+          "final_rw": "94733e821ad308eeb69d49786c09f3ef5a90d171145bcd3b847fb6dd504f0d7d",
+          "complete_bundle": "true",
+          "standalone_root": "false"
+        },
+        "1": {
+          "verified": "true",
+          "profile": "csp_q70_pow26",
+          "mode": 1,
+          "iterations": 61440,
+          "cycles": 307214,
+          "segments": 2,
+          "events": 122981,
+          "byte_requests": 1721734,
+          "memory_instances": 1,
+          "memory_cells": 11141120,
+          "base_files": 10,
+          "collection_ns": 1550416667,
+          "proving_ns": 31217243916,
+          "forest_ns": 52360281334,
+          "verification_ns": 2066042208,
+          "wall_ns": 87194698458,
+          "memory_range_ns": 2852429334,
+          "lookup_ns": 2374033000,
+          "caller_ns": 5203686209,
+          "rom_ns": 1534117875,
+          "charged_peak_bytes": 7567711522,
+          "witness_file_bytes": 53027364,
+          "proof_file_bytes": 9159216,
+          "initial_rw": "b3c2378f03cf0f2a9d3289db9da9bdb06c0ac53262d7276c173488eca14b03c9",
+          "final_rw": "94733e821ad308eeb69d49786c09f3ef5a90d171145bcd3b847fb6dd504f0d7d",
+          "complete_bundle": "true",
+          "standalone_root": "false"
+        }
+      },
+      "driver": [
+        {
+          "verified": "true",
+          "profile": "csp_q70_pow26",
+          "segments": 2,
+          "baseline_wall_ns": 87194698458,
+          "wall_ns": 32992174959,
+          "collection_ns": 1546991625,
+          "base_ns": 8881760958,
+          "recursive_ns": 20491166459,
+          "verification_ns": 2071702000,
+          "prepare_ns": 9520585292,
+          "setup_ns": 2152384833,
+          "prove_ns": 8757898042,
+          "encode_ns": 30800667,
+          "detached_ns": 1859168041,
+          "charged_peak_bytes": 6591350345,
+          "base_files": 10,
+          "base_file_bytes": 9159216,
+          "batch_bytes": 937929,
+          "memory_ns": 2690206541,
+          "caller_ns": 5588566167,
+          "lookup_ns": 2581623125,
+          "rom_ns": 1536942250,
+          "replacement_driver": "true",
+          "standalone_root": "false",
+          "unpartitioned_ns": 553917
+        }
+      ],
+      "controls": [
+        {
+          "changed_identity": "rejected",
+          "cancelling_claims": "OodsNotMatching",
+          "cold_after_owner_destruction": "true"
+        }
+      ],
+      "matched": [
+        {
+          "profile": "csp_q70_pow26",
+          "cycles": 307214,
+          "mode0_events": 737404,
+          "mode1_events": 122981,
+          "same_elf_input_endpoints": "true",
+          "complete_bundles": "true"
+        }
+      ],
+      "speedup": 2.6428902782662402,
+      "peak_ratio_old_over_new": 1.1481276409075476
+    }
+  },
+  "implementation_commit": "eb289f24a1ae90f1bd244b9c4743ab26b2aa439b",
+  "host": "Apple M5; CPU; 8 workers; ReleaseFast",
+  "repetitions_per_profile": 1
+}
