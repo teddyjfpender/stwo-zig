@@ -2,8 +2,11 @@
 
 Implementation update: the [direct-native batch experiment](direct-native-batch-m5-20261028.md)
 now measures 17.0x faster recursion on a two-segment q70/PoW26 fixture.
-Global closure and multi-level batch consumption remain open; the complete
-block architecture below is not yet implemented.
+A [nine-segment follow-up](native-batch-scaling-m5-20261028.md) now proves
+8+1 batches through a freshly verified upper parent. Experimental FRI schedules
+reduce its measured phase sum from 58.219 to 39.493 s, with security review
+still required. Global closure remains open; the complete block architecture
+below is not yet implemented.
 
 Status: design and experiment contract, not a qualified proof protocol. The
 archived block-v5 run stopped before a root. All speedups below are hypotheses

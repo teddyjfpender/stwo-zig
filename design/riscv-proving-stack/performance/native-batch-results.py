@@ -85,10 +85,62 @@ def summarize(samples):
             "tree_work_counterfactual": {"assumptions": "Uniform tiny-native cost and unchanged upper-parent cost; excludes global proofs, batch binding, padding and changed parent geometry. Not runtime or capacity qualification. Only two-child batches have proof evidence here.", "rows": tree_model}}
 
 
+def scaling(path):
+    raw = path.read_bytes()
+    text = raw.decode()
+    if not re.search(r"All \d+ tests passed\.", text) or "FAIL (" in text:
+        raise ValueError(f"{path.name}: incomplete or failed proof run")
+    runs = {}
+    markers = {"BLOCK_V6_SCALE_SOURCE": "source", "BLOCK_V6_DIRECT_NATIVE": "batches",
+               "BLOCK_V6_SCALE_ROOT_INPUT": "partition", "BLOCK_V6_SCALE_PARTITIONS": "partition",
+               "BLOCK_V6_BATCH_UPPER": "upper"}
+    for line in text.splitlines():
+        for marker, name in markers.items():
+            if marker + " " not in line:
+                continue
+            row = record(line, marker)
+            run = runs.setdefault(row["profile"], {"batches": []})
+            if name == "batches":
+                run[name].append(row)
+            elif name in run:
+                raise ValueError(f"{path.name}: duplicate {name}")
+            else:
+                run[name] = row
+    for run in runs.values():
+        source, partition, upper = (run[name] for name in ("source", "partition", "upper"))
+        if source["segments"] != 9 or source["cycles"] != 13 * source["base_steps"] or source["workers"] != 8 or partition["native_ns"] != source["native_ns"]:
+            raise ValueError("Unexpected native workload")
+        eight = [row for row in run["batches"] if row["children"] == 8]
+        tail = [row for row in run["batches"] if row["children"] == 1]
+        if len(eight) != 1 or len(tail) != 1:
+            raise ValueError("Missing exact 8+1 batches")
+        for row in run["batches"] + [upper]:
+            if row["verified"] != "true" or row["globals_open"] != "true" or row["recursive_ns"] != sum(row[key] for key in ("prepare_ns", "setup_ns", "prove_ns", "encode_verify_ns")):
+                raise ValueError("Verification scope or timing mismatch")
+        if (partition["batch8_ns"] != eight[0]["recursive_ns"] + tail[0]["recursive_ns"] or
+                partition["batch8_cells"] != eight[0]["air_cells"] + tail[0]["air_cells"] or
+                upper["segments"] != 9 or upper["child_batches"] != 2):
+            raise ValueError("Batch partition mismatch")
+        run["phase_sum_ns"] = source["native_ns"] + partition["batch8_ns"] + upper["recursive_ns"]
+        run["recursive_air_cells"] = partition["batch8_cells"] + upper["air_cells"]
+        run["recursive_g_rows"] = eight[0]["g_rows"] + tail[0]["g_rows"] + upper["g_rows"]
+    if not runs:
+        raise ValueError("No completed scaling experiments")
+    return {"log": path.name, "sha256": hashlib.sha256(raw).hexdigest(), "runs": runs}
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--scaling", action="store_true", help="Summarize complete nine-native -> 8+1 -> upper experiments")
     parser.add_argument("logs", type=Path, nargs="+")
     args = parser.parse_args()
+    if args.scaling:
+        print(json.dumps({"schema": "stwo-zig/native-batch-scaling/v1",
+                          "scope": "Real nine-segment ADDI/JAL job, 8+1 batch proofs, one freshly verified upper proof; global obligations remain open",
+                          "security": "csp_q70_pow26 is unchanged; experimental fold2/fold4 profiles are not production-security qualified",
+                          "timing": "Phase sums, not complete command latency; charged peak is upper allocator accounting, not process RSS or whole-job peak",
+                          "samples": [scaling(path) for path in args.logs]}, indent=2))
+        return
     samples = [read(path) for path in args.logs]
     print(json.dumps({
         "schema": "stwo-zig/direct-native-batch-comparison/v1",

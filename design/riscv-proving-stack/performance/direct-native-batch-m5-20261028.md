@@ -1,5 +1,10 @@
 # Direct-native recursion: measured architectural work elimination
 
+Follow-up: [nine-segment batches and a real upper proof](native-batch-scaling-m5-20261028.md)
+now cover heterogeneous native templates, partial tails and recursive batch
+consumption. The qualification limits below describe this earlier two-segment
+measurement; global closure remains open in both experiments.
+
 A focused implementation now replaces two individual native-verifier wrappers
 and their recursive parent with one proof of both original native verifiers.
 On an M5 Max with eight CPU workers, its median recursive phase is **17.0x
