@@ -120,8 +120,11 @@ pub fn For(comptime Spec: type) type {
                         else => return err,
                     };
                     var group = std.Thread.WaitGroup{};
+                    var joined = false;
                     defer {
-                        group.wait();
+                        // Zig WaitGroup.wait is single-use: a second wait can
+                        // manufacture a pending count and sleep forever.
+                        if (!joined) group.wait();
                         lease.completeWave();
                         lease.deinit();
                     }
@@ -137,6 +140,7 @@ pub fn For(comptime Spec: type) type {
                     for (tiles[1..count]) |*tile| try lease.spawnWg(&group, Tile.worker, .{tile});
                     tiles[0].worker();
                     group.wait();
+                    joined = true;
                     for (tiles[0..count]) |tile| if (tile.failure) |err| return err;
                     result.next_fresh_index = if (result.next_fresh_index == 0) size else null;
                     return;
