@@ -119,15 +119,20 @@ fn ExecutionStatement(comptime blake3: bool) type {
             if (self.initial_pc >= (1 << 30) or self.final_pc >= (1 << 30)) return error.InvalidStatement;
             if (self.initial_pc != self.public_data.initial_pc or self.final_pc != self.public_data.final_pc or self.total_steps != self.public_data.clock) return error.InvalidStatement;
             const order = @import("component_order.zig");
-            const tiling = @import("native_opcode_tiling_v1.zig");
-            if (@as(u64, self.total_steps) > @as(u64, MAX_COMPONENTS) * tiling.MAX_ROWS or @import("../access_clock.zig").maximum(self.total_steps) >= @import("../runner/state_chain.zig").CLOCK_PREV_BOUND) return error.InvalidStatement;
+            const max_shard_rows: u32 = 1 << 16;
+            if (self.total_steps > MAX_COMPONENTS * max_shard_rows or @import("../access_clock.zig").maximum(self.total_steps) >= @import("../runner/state_chain.zig").CLOCK_PREV_BOUND) return error.InvalidStatement;
             var rows: u64 = 0;
-            var shards = tiling.Cursor{};
+            var previous_family: ?usize = null;
+            var previous_rows: u32 = 0;
             for (self.component_descs[0..self.n_components]) |desc| {
-                if (desc.n_columns != (if (self.localZeroCustody()) try @import("x0_native_envelope_v1.zig").mainColumnCount(desc.family) else trace_mod.nColumnsForFamily(desc.family))) return error.InvalidStatement;
+                if (desc.n_rows == 0 or desc.n_rows > max_shard_rows or desc.log_size != @max(1, std.math.log2_int_ceil(u32, desc.n_rows)) or desc.n_columns != (if (self.localZeroCustody()) try @import("x0_native_envelope_v1.zig").mainColumnCount(desc.family) else trace_mod.nColumnsForFamily(desc.family))) return error.InvalidStatement;
                 if (!@import("semantic_eval.zig").isTraceCompatible(desc.family)) return error.InvalidStatement;
                 const family = order.opcodeFamilyIndex(desc.family);
-                try shards.admit(family, desc.n_rows, desc.log_size);
+                if (previous_family) |previous| {
+                    if (family < previous or (family == previous and previous_rows != max_shard_rows)) return error.InvalidStatement;
+                }
+                previous_family = family;
+                previous_rows = desc.n_rows;
                 rows += desc.n_rows;
             }
             if (rows + @as(u64, external_retirements) != self.total_steps) return error.InvalidStatement;
