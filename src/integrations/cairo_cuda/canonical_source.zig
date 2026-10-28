@@ -307,6 +307,51 @@ test "canonical CUDA shared authenticated assets preserve the dynamic request" {
     ));
 }
 
+test "concurrent canonical source preparation borrows immutable authenticated assets" {
+    const target = @import("request_compiler/sn2_test_support.zig").target();
+    const compact: Paths = .{ .input = "vectors/cairo/official/all_opcodes.prover_input.cpi" };
+    const json: Paths = .{ .input = "vectors/cairo/official/all_builtins.prover_input.json" };
+    var assets = try Assets.load(std.testing.allocator, compact);
+    defer assets.deinit();
+    const Worker = struct {
+        assets: *const Assets,
+        target: cuda.runtime.execution_plan.CompileOptions,
+        prepared: ?Prepared = null,
+        failure: ?anyerror = null,
+
+        fn run(self: *@This()) void {
+            self.prepared = prepareWithAssets(std.heap.smp_allocator, compact, self.target, self.assets) catch |err| {
+                self.failure = err;
+                return;
+            };
+        }
+    };
+    var worker = Worker{ .assets = &assets, .target = target };
+    defer if (worker.prepared) |*prepared| prepared.deinit();
+    const thread = try std.Thread.spawn(.{}, Worker.run, .{&worker});
+    var other = prepareWithAssets(std.heap.smp_allocator, json, target, &assets) catch |err| {
+        thread.join();
+        return err;
+    };
+    defer other.deinit();
+    thread.join();
+    if (worker.failure) |err| return err;
+    var ahead = worker.prepared orelse return error.MissingPreparedCairoSource;
+    worker.prepared = null;
+    defer ahead.deinit();
+    var serial = try prepareWithAssets(std.heap.smp_allocator, compact, target, &assets);
+    defer serial.deinit();
+    try std.testing.expectEqual(serial.input_sha256, ahead.input_sha256);
+    try std.testing.expectEqual(serial.request.plan.cache_key, ahead.request.plan.cache_key);
+    try std.testing.expectEqual(serial.composition.plan_hash, ahead.composition.plan_hash);
+    try std.testing.expectEqual(serial.geometry.extents.len, ahead.geometry.extents.len);
+    try std.testing.expectEqual(serial.feeds.feeds.len, ahead.feeds.feeds.len);
+    for (serial.feeds.feeds, ahead.feeds.feeds) |expected, actual| {
+        try std.testing.expectEqualSlices(u8, expected.producer, actual.producer);
+        try std.testing.expectEqualSlices(u32, expected.descriptors, actual.descriptors);
+    }
+}
+
 test "canonical CUDA circuit leaf prepares lifted M31 source geometry" {
     const params = cairo.proving.leaf_lane.ProverParameters{
         .channel_hash = .blake2s,

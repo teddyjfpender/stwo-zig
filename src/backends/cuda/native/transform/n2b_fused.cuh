@@ -15,7 +15,6 @@ __device__ __forceinline__ void n2b_shuffle(
     uint32_t log_stride,
     uint32_t lane) {
     const uint32_t mask = 1u << log_stride;
-    __syncwarp(0xffffffffu);
 #pragma unroll
     for (uint32_t i = 0; i < 1u << (LogValues - 1u); ++i) {
         M31 *value = lane & mask ? values + 2u * i : values + 2u * i + 1u;
@@ -74,12 +73,9 @@ void n2b_continue(
         }
     }
 
-    uint32_t layer_size = 1;
-    uint32_t layer_offset = (1u << (log_n - 1u)) - 2u;
-    for (uint32_t stage = 1; stage < min_stage; ++stage) {
-        layer_size <<= 1;
-        layer_offset -= layer_size;
-    }
+    uint32_t layer_size = 1u << (min_stage - 1u);
+    uint32_t layer_offset =
+        (1u << (log_n - 1u)) - (1u << min_stage);
 #pragma unroll
     for (uint32_t stage = min_stage; stage < middle_stage; ++stage) {
         const uint32_t log_stride =
@@ -169,12 +165,9 @@ __global__ void n2b_final_warp(
         values[i] = column[warp_start + (i << kN2bLogWarp)];
     }
 
-    uint32_t layer_size = 1;
-    uint32_t layer_offset = (1u << (log_n - 1u)) - 2u;
-    for (uint32_t stage = 1; stage < min_stage; ++stage) {
-        layer_size <<= 1;
-        layer_offset -= layer_size;
-    }
+    uint32_t layer_size = 1u << (min_stage - 1u);
+    uint32_t layer_offset =
+        (1u << (log_n - 1u)) - (1u << min_stage);
     uint32_t stage = min_stage;
 #pragma unroll
     for (; stage < min_stage + LogValues; ++stage) {
@@ -261,12 +254,9 @@ __global__ void n2b_final_block(
             block_start + (i << (kN2bLogWarp + LogWarps)) + offset];
     }
 
-    uint32_t layer_size = 1;
-    uint32_t layer_offset = (1u << (log_n - 1u)) - 2u;
-    for (uint32_t stage = 1; stage < min_stage; ++stage) {
-        layer_size <<= 1;
-        layer_offset -= layer_size;
-    }
+    uint32_t layer_size = 1u << (min_stage - 1u);
+    uint32_t layer_offset =
+        (1u << (log_n - 1u)) - (1u << min_stage);
     uint32_t stage = min_stage;
 #pragma unroll
     for (; stage < min_stage + LogWarps; ++stage) {

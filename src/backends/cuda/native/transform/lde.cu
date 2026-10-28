@@ -232,6 +232,56 @@ int lde_columns_on(
 
 }  // namespace
 
+// The canonical fixed artifact stores groups of sixteen coefficients in Rust
+// SIMD order. Swap the two vector-index halves in place after the raw bytes
+// have been checked and uploaded. Each thread owns one sixteen-word block;
+// only the lower triangle swaps, so every word has one writer.
+__global__ void transpose_preprocessed_simd_blocks(
+    uint32_t *values, uint32_t log_vectors, uint32_t outer,
+    uint32_t middle, uint32_t vector_count) {
+    const uint32_t block = blockIdx.x * blockDim.x + threadIdx.x;
+    if (block >= vector_count) return;
+    const uint32_t half = log_vectors / 2;
+    const uint32_t a = block / (middle * outer);
+    const uint32_t b = (block / outer) % middle;
+    const uint32_t c = block % outer;
+    const uint32_t i = (a << (log_vectors - half)) | (b << half) | c;
+    const uint32_t j = (c << (log_vectors - half)) | (b << half) | a;
+    if (i >= j) return;
+    uint32_t *left = values + static_cast<size_t>(i) * 16u;
+    uint32_t *right = values + static_cast<size_t>(j) * 16u;
+#pragma unroll
+    for (uint32_t lane = 0; lane < 16u; ++lane) {
+        const uint32_t word = left[lane];
+        left[lane] = right[lane];
+        right[lane] = word;
+    }
+}
+
+static int preprocessed_transpose_simd_blocks_on(
+    uint32_t *values, size_t words, uint32_t log_rows, void *stream_raw,
+    uint32_t *launches_out) {
+    if (launches_out != nullptr) *launches_out = 0;
+    if (values == nullptr || stream_raw == nullptr || launches_out == nullptr ||
+        log_rows <= 16u || log_rows > 30u ||
+        words != (static_cast<size_t>(1) << log_rows)) {
+        return static_cast<int>(cudaErrorInvalidValue);
+    }
+    const uint32_t log_vectors = log_rows - 4u;
+    const uint32_t half = log_vectors / 2u;
+    const uint32_t outer = 1u << half;
+    const uint32_t middle = 1u << (log_vectors & 1u);
+    const uint32_t vector_count = 1u << log_vectors;
+    constexpr uint32_t threads = 256u;
+    transpose_preprocessed_simd_blocks<<<
+        (vector_count + threads - 1u) / threads, threads, 0,
+        reinterpret_cast<cudaStream_t>(stream_raw)>>>(
+            values, log_vectors, outer, middle, vector_count);
+    const cudaError_t status = cudaPeekAtLastError();
+    if (status == cudaSuccess) *launches_out = 1;
+    return static_cast<int>(status);
+}
+
 extern "C" int stwo_lde_n2b_addressed_on(
     uint32_t *arena,
     size_t arena_words,
@@ -246,6 +296,18 @@ extern "C" int stwo_lde_n2b_addressed_on(
     uint32_t include_circle,
     uint32_t *launches_out) {
     using namespace stwo::cuda::transform;
+    // Mode 2 is the checked ingress-only in-place fixed-coefficient order
+    // conversion. Keep the stable Rust-declared transform ABI; no extra
+    // product symbol or pointer table is needed for this one-column mode.
+    if (include_circle == 2u) {
+        if (descriptor_count != 0u || evaluation_tile_offset_words != 0u ||
+            twiddle_words != 0u || evaluation_domain_size != 0u ||
+            twiddles != arena) {
+            return static_cast<int>(cudaErrorInvalidValue);
+        }
+        return preprocessed_transpose_simd_blocks_on(
+            arena, arena_words, log_n, stream_raw, launches_out);
+    }
     if (launches_out != nullptr) *launches_out = 0;
     if (!valid_shape(
             log_n,

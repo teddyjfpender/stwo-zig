@@ -78,6 +78,34 @@ pub fn validateAddressedPlan(
 
 pub fn OpsFor(comptime Api: type) type {
     return struct {
+        pub fn transposePreprocessed(
+            session: anytype,
+            values: common.Words,
+            log_rows: u32,
+        ) runtime_error.Error!void {
+            try common.requireStage(session, .ingress);
+            if (log_rows <= 16 or log_rows > 30 or
+                values.len != @as(usize, 1) << @intCast(log_rows))
+                return error.InvalidKernelDescriptor;
+            const resident = try layout.resident(session, u32, values, values.len);
+            var launches: u32 = 0;
+            const status = Api.stwo_lde_n2b_addressed_on(
+                resident.pointer,
+                values.len,
+                @ptrCast(@alignCast(resident.pointer)),
+                0,
+                0,
+                log_rows,
+                resident.pointer,
+                0,
+                0,
+                session.context.stream,
+                2,
+                &launches,
+            );
+            try common.recordMany(session, .ingress, status, launches);
+        }
+
         /// Extends an authenticated heterogeneous coefficient batch into one
         /// reusable contiguous evaluation tile in the same proof arena.
         pub fn extendAddressed(

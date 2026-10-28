@@ -27,6 +27,10 @@ pub const Receipt = struct {
     prepared_arena_reused: bool = false,
     preprocessed_reused: bool = false,
     ingress_ns: u64,
+    /// CPU work can overlap the preceding PIE's CUDA proof. These intervals
+    /// are reported separately from critical-path ingress wall time.
+    source_lookahead_prepare_ns: u64 = 0,
+    source_lookahead_wait_ns: u64 = 0,
     ingress_timings: IngressTimings,
     proof_execute_and_decode_ns: u64,
     adapted_input_until_publication_ns: u64,
@@ -104,7 +108,7 @@ fn writeReportWithTeardown(path: []const u8, receipts: []const Receipt, runtime_
         .schema = "stwo-zig-cairo-cuda-canonical-receipt-v2",
         .production_eligible = false,
         .verification_status = "zig_verified_rust_verification_pending",
-        .timing_scope = "adapted input to official Rust proof JSON; excludes PIE execution/adaptation; proving stage reported separately from ingress and verification",
+        .timing_scope = "adapted input to official Rust proof JSON; excludes PIE execution/adaptation; in-command source lookahead overlaps previous proofs, so per-trial windows are not additive; proving stage reported separately from ingress and verification",
         .runtime_lifecycle = "one runtime and bounded arena cache per process; startup charged to first trial; subsequent trials prepare fresh proof inputs; teardown reported separately",
         .runtime_teardown_ns = runtime_teardown_ns,
         .completed_trials = receipts,

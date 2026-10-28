@@ -394,11 +394,41 @@ __global__ void mixed_leaf_kernel(uint32_t size, uint32_t count,
         const uint32_t ratio_log = __ffs(size / input.source_size) - 1;
         const uint32_t source_row = lifted_column_index(row, ratio_log);
         const uint32_t columns = input.capacity_words / input.stride_words;
-        for (uint32_t column = 0; column < columns; ++column) {
+        uint32_t column = 0;
+        for (; column < columns; ++column) {
             if (pending == 16) {
                 compressed_bytes += 64;
                 STWO_COMPRESS_PROGRESSIVE(compressed_bytes, 0);
                 pending = 0;
+            }
+            // A complete non-final block can be absorbed directly into the
+            // register state. Keep the final block pending for Blake2s's
+            // distinct final-compression flag.
+            if (pending == 0 && columns - column > 16) {
+#define STWO_MIXED_WORD(index) input.columns[                    \
+                static_cast<size_t>(column + index) *            \
+                    input.stride_words + source_row]
+                p0 = STWO_MIXED_WORD(0);
+                p1 = STWO_MIXED_WORD(1);
+                p2 = STWO_MIXED_WORD(2);
+                p3 = STWO_MIXED_WORD(3);
+                p4 = STWO_MIXED_WORD(4);
+                p5 = STWO_MIXED_WORD(5);
+                p6 = STWO_MIXED_WORD(6);
+                p7 = STWO_MIXED_WORD(7);
+                p8 = STWO_MIXED_WORD(8);
+                p9 = STWO_MIXED_WORD(9);
+                p10 = STWO_MIXED_WORD(10);
+                p11 = STWO_MIXED_WORD(11);
+                p12 = STWO_MIXED_WORD(12);
+                p13 = STWO_MIXED_WORD(13);
+                p14 = STWO_MIXED_WORD(14);
+                p15 = STWO_MIXED_WORD(15);
+#undef STWO_MIXED_WORD
+                compressed_bytes += 64;
+                STWO_COMPRESS_PROGRESSIVE(compressed_bytes, 0);
+                column += 15;
+                continue;
             }
             const uint32_t word = input.columns[
                 static_cast<size_t>(column) * input.stride_words + source_row];

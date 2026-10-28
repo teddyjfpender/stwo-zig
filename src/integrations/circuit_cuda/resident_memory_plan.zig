@@ -123,6 +123,7 @@ pub const Slot = struct {
 pub const Input = struct {
     value_count: usize,
     twiddle_words: usize,
+    retain_static: bool = false,
     commitments: *const [4]commit.Plan,
     interaction: *const interaction.Plan,
     composition: *const composition.Plan,
@@ -167,7 +168,35 @@ pub const Plan = struct {
     pub fn bytes(self: *const Plan) !usize {
         return mul(self.placement.total_words, 4);
     }
+
+    /// Only an identical physical layout may borrow a process-owned arena.
+    /// Hash every slot's extent, offset, alignment and stage lifetime so a
+    /// different fold geometry cannot reuse stale device addresses.
+    pub fn cacheKey(self: *const Plan) [32]u8 {
+        var hash = std.crypto.hash.sha2.Sha256.init(.{});
+        hash.update("stwo-zig/circuit-cuda-arena/v1\x00");
+        hashInt(u64, &hash, @intCast(self.placement.total_words));
+        hashInt(u64, &hash, @intCast(self.placement.placements.len));
+        for (self.placement.placements) |placement| {
+            const requirement = placement.requirement;
+            hashInt(u32, &hash, requirement.id);
+            hashInt(u64, &hash, @intCast(requirement.words));
+            hashInt(u64, &hash, @intCast(requirement.alignment_words));
+            hashInt(u8, &hash, @intFromEnum(requirement.live_from));
+            hashInt(u8, &hash, @intFromEnum(requirement.live_through));
+            hashInt(u8, &hash, requirement.live_from_phase);
+            hashInt(u8, &hash, requirement.live_through_phase);
+            hashInt(u64, &hash, @intCast(placement.offset_words));
+        }
+        return hash.finalResult();
+    }
 };
+
+fn hashInt(comptime T: type, hash: *std.crypto.hash.sha2.Sha256, value: T) void {
+    var bytes: [@sizeOf(T)]u8 = undefined;
+    std.mem.writeInt(T, &bytes, value, .little);
+    hash.update(&bytes);
+}
 
 const Builder = struct {
     allocator: std.mem.Allocator,
@@ -200,7 +229,7 @@ const Builder = struct {
         const source_kinds = [_]Kind{ .preprocessed_source, .base_source, .interaction_source };
         for (source_kinds, 0..) |kind, tree_index| {
             for (trees[tree_index].column_logs, 0..) |log, ordinal|
-                try self.add(kind, ordinal, try pow2(log), 64, if (tree_index == 2) .trace_commit else .ingress, .trace_commit);
+                try self.add(kind, ordinal, try pow2(log), 64, if (tree_index == 2) .trace_commit else .ingress, if (input.retain_static and tree_index == 0) .proof_assembly else .trace_commit);
         }
         for (trees, 0..) |tree, ordinal| {
             const r = tree.requirements;
@@ -211,8 +240,8 @@ const Builder = struct {
             try self.add(.commit_hashes, ordinal, try mul(r.merkle_hashes, 8), 64, start, .decommit);
             try self.add(.commit_layers, ordinal, try mul(r.merkle_layers, @sizeOf(field.MerkleLayerDescriptor) / 4), 2, .ingress, .decommit);
         }
-        try self.add(.twiddles_forward, 0, input.twiddle_words, 64, .ingress, .quotient);
-        try self.add(.twiddles_inverse, 0, input.twiddle_words, 64, .ingress, .fri_commit);
+        try self.add(.twiddles_forward, 0, input.twiddle_words, 64, .ingress, if (input.retain_static) .proof_assembly else .quotient);
+        try self.add(.twiddles_inverse, 0, input.twiddle_words, 64, .ingress, if (input.retain_static) .proof_assembly else .fri_commit);
         try self.add(.transcript_state, 0, 16, 4, .trace_commit, .decommit);
         try self.add(.transcript_boundary, 0, 16, 4, .trace_commit, .decommit);
         try self.add(.transcript_salt, 0, 4, 4, .ingress, .trace_commit);

@@ -100,9 +100,16 @@ pub fn prove(allocator: std.mem.Allocator, input: Input) !Result {
     defer terminal_bundle.deinit(allocator);
     var logical = try proof_layout.Layout.init(allocator, &geometry, &oods_plan, input.config);
     defer logical.deinit(allocator);
+    const reuse_setting = std.posix.getenv("STWO_CIRCUIT_CUDA_REUSE_ARENA");
+    const reuse_arena = input.runtime != null and
+        (reuse_setting == null or !std.mem.eql(u8, reuse_setting.?, "0"));
+    const static_setting = std.posix.getenv("STWO_CIRCUIT_CUDA_STATIC_RESIDENT");
+    const retain_static = reuse_arena and
+        (static_setting == null or !std.mem.eql(u8, static_setting.?, "0"));
     var memory_plan = try memory.Plan.init(allocator, .{
         .value_count = input.values.len,
         .twiddle_words = twiddle_words,
+        .retain_static = retain_static,
         .commitments = &commit_plans,
         .interaction = &interaction_plan,
         .composition = &composition_plan,
@@ -114,8 +121,6 @@ pub fn prove(allocator: std.mem.Allocator, input: Input) !Result {
     });
     defer memory_plan.deinit();
     const planned_arena_bytes = try memory_plan.bytes();
-    var twiddles = try Twiddles.init(allocator, twiddle_words);
-    defer twiddles.deinit();
     const plan_ns = phase.lap();
 
     // The preprocessed root is circuit-static and may be cached across
@@ -130,8 +135,32 @@ pub fn prove(allocator: std.mem.Allocator, input: Input) !Result {
     const hash_words = core.vcs.blake2_hash.digestToU32s(circuit_hash);
     const static_hash_ns = phase.lap();
 
-    var placement = try memory_plan.placement.clone(allocator);
+    const arena_key = if (retain_static)
+        staticCacheKey(memory_plan.cacheKey(), geometry.identity, core.vcs.blake2_hash.digestToU32s(pp_root), input.preprocessed)
+    else
+        memory_plan.cacheKey();
+    var arena_reused = false;
     var tx = if (input.runtime) |runtime| blk: {
+        if (reuse_arena) {
+            arena_reused = runtime.hasPreparedExecution(arena_key);
+            if (!arena_reused) {
+                // Keep only one fold arena resident. Root geometry can differ
+                // from internal folds, and co-residency would raise peak VRAM.
+                try runtime.releasePreparedExecution();
+                try runtime.prepareExecution(
+                    allocator,
+                    arena_key,
+                    try memory_plan.placement.clone(allocator),
+                );
+            }
+            const retained = try runtime.beginProof();
+            break :blk try cuda.runtime.proof_transaction.ResidentProofTransaction.openPreparedCachedRetained(
+                allocator,
+                retained,
+                arena_key,
+            );
+        }
+        var placement = try memory_plan.placement.clone(allocator);
         const retained = runtime.beginProof() catch |err| {
             placement.deinit(allocator);
             return err;
@@ -144,7 +173,7 @@ pub fn prove(allocator: std.mem.Allocator, input: Input) !Result {
     } else try cuda.runtime.proof_transaction.ResidentProofTransaction.openPrepared(
         allocator,
         &.{ 80, 90 },
-        placement,
+        try memory_plan.placement.clone(allocator),
     );
     var finished = false;
     defer if (!finished) tx.abort() catch {};
@@ -158,7 +187,12 @@ pub fn prove(allocator: std.mem.Allocator, input: Input) !Result {
         .output_count = input.preprocessed.n_outputs,
     });
     defer views.deinit();
-    try ingress(&tx, &memory_plan, input, &views, &terminal_bundle, &twiddles, &hash_words);
+    const static_reused = retain_static and arena_reused;
+    var twiddles: Twiddles = undefined;
+    const have_twiddles = !static_reused;
+    if (have_twiddles) twiddles = try Twiddles.init(allocator, twiddle_words);
+    defer if (have_twiddles) twiddles.deinit();
+    try ingress(&tx, &memory_plan, input, &views, &terminal_bundle, if (have_twiddles) &twiddles else null, &hash_words, !static_reused);
 
     var sink = try transcript.NativeSink.init(session, views.transcript, @enumFromInt(@intFromEnum(input.profile)), geometry.identity);
     try sink.prime(0, input.config);
@@ -259,8 +293,8 @@ pub fn prove(allocator: std.mem.Allocator, input: Input) !Result {
     };
     errdefer decoded.deinit(allocator);
     const stark = try decoded.decodeStarkProof(allocator, &logical, input.config);
-    std.debug.print("circuit-cuda resident-phase profile={s} plan_ns={} static_hash_ns={} ingress_ns={} schedule_ns={} finish_ns={} decode_ns={}\n", .{
-        @tagName(input.profile), plan_ns, static_hash_ns, ingress_ns, schedule_ns, finish_ns, phase.lap(),
+    std.debug.print("circuit-cuda resident-phase profile={s} arena_reused={} static_reused={} plan_ns={} static_hash_ns={} ingress_ns={} schedule_ns={} finish_ns={} decode_ns={}\n", .{
+        @tagName(input.profile), arena_reused, static_reused, plan_ns, static_hash_ns, ingress_ns, schedule_ns, finish_ns, phase.lap(),
     });
     return .{
         .allocator = allocator,
@@ -278,23 +312,43 @@ fn ingress(
     input: Input,
     views: *const binding.Views,
     bundle: *const terminal.Bundle,
-    twiddles: *const Twiddles,
+    twiddles: ?*const Twiddles,
     hash_words: *const [8]u32,
+    upload_static: bool,
 ) !void {
     const session = tx.proofSession();
     const value_words: [*]const u32 = @ptrCast(input.values.ptr);
     try session.context.uploadSlice(u32, views.values, value_words[0 .. input.values.len * 4]);
-    for (input.preprocessed.columns, views.preprocessed) |column, destination| {
-        if (destination.len != column.values.len) return error.InvalidCircuitResidentInput;
-        const source: [*]const u32 = @ptrCast(column.values.ptr);
-        try session.context.uploadSlice(u32, destination, source[0..column.values.len]);
+    if (upload_static) {
+        for (input.preprocessed.columns, views.preprocessed) |column, destination| {
+            if (destination.len != column.values.len) return error.InvalidCircuitResidentInput;
+            const source: [*]const u32 = @ptrCast(column.values.ptr);
+            try session.context.uploadSlice(u32, destination, source[0..column.values.len]);
+        }
+        const table = twiddles orelse return error.InvalidCircuitTwiddles;
+        try session.context.uploadSlice(u32, views.twiddles_forward, table.forwardWords());
+        try session.context.uploadSlice(u32, views.twiddles_inverse, table.inverseWords());
     }
-    try session.context.uploadSlice(u32, views.twiddles_forward, twiddles.forwardWords());
-    try session.context.uploadSlice(u32, views.twiddles_inverse, twiddles.inverseWords());
     try session.context.uploadSlice(u32, views.circuit_hash, hash_words);
     const terminal_id = (try plan.slot(.terminal_bundle, 0)).requirement.id;
     try tx.zeroResidentSlice(u32, .ingress, terminal_id, 0, bundle.total_words);
     try session.context.uploadSlice(u32, try views.proof.bundle.sub(0, bundle.static_header.len), bundle.static_header);
+}
+
+fn staticCacheKey(plan_key: [32]u8, geometry_identity: [32]u8, root_words: [8]u32, preprocessed: *const circuit.common.preprocessed.PreprocessedCircuit) [32]u8 {
+    var hash = std.crypto.hash.sha2.Sha256.init(.{});
+    hash.update("stwo-zig/circuit-cuda-static-arena/v1\x00");
+    hash.update(&plan_key);
+    hash.update(&geometry_identity);
+    for (root_words) |word| {
+        var bytes: [4]u8 = undefined;
+        std.mem.writeInt(u32, &bytes, word, .little);
+        hash.update(&bytes);
+    }
+    var address: [@sizeOf(usize)]u8 = undefined;
+    std.mem.writeInt(usize, &address, @intFromPtr(preprocessed), .little);
+    hash.update(&address);
+    return hash.finalResult();
 }
 
 const Twiddles = struct {
