@@ -33,6 +33,7 @@ pub fn ForBackend(comptime Backend: type) type {
         /// then bindProviders(bound). This resolves the late-ID dependency
         /// without placeholder global digests or admissions.
         pub fn collect(a: std.mem.Allocator, dir: std.fs.Dir, sorted: packed_mod.SortedSource, source_input: writer.Input, config: core.pcs.PcsConfig, limits: Limits) !Self {
+            var phase_timer = try std.time.Timer.start();
             if (limits.minimum_memory_log < 8 or limits.maximum_memory_log > 24 or limits.maximum_memory_log < limits.minimum_memory_log or limits.max_memory_instances == 0 or limits.max_range_shards == 0) return error.InvalidV5GlobalPlanLimits;
             if (source_input.register_custody_mode == 1) {
                 var sizes = try @import("block_v5_ram_lanes_replay_v1.zig").selectSizes(Backend, a, source_input.expected_total_events, .{ .minimum_row_log = limits.minimum_memory_log, .maximum_row_log = limits.maximum_memory_log, .max_instances = limits.max_memory_instances }, config, try packed_mod.laneResources(limits.lane_resources, limits.maximum_memory_log, limits.max_memory_instances, limits.max_range_shards));
@@ -42,11 +43,16 @@ pub fn ForBackend(comptime Backend: type) type {
                 defer sizes.deinit();
                 if (sizes.capacities.len > limits.max_memory_instances) return error.V5GlobalPlanResourceLimit;
             } else return error.InvalidV5EmptyRwMode;
+            const size_plan_ns = phase_timer.lap();
             var sources = try writer.write(dir, source_input, sorted);
             errdefer sources.deinit();
+            const source_write_ns = phase_timer.lap();
             var memory = try packed_mod.ForBackend(Backend).collect(a, sorted, sources.event_count, limits.minimum_memory_log, limits.maximum_memory_log, limits.max_memory_instances, limits.max_range_shards, source_input.register_custody_mode, config, limits.lane_resources);
             errdefer memory.deinit();
             if (memory.rangeCount() > limits.max_range_shards) return error.V5GlobalPlanResourceLimit;
+            const memory_first_ns = phase_timer.lap();
+            if (std.process.hasEnvVarConstant("STWO_BLOCK_V5_COLLECT_PROFILE"))
+                std.debug.print("BLOCK_V5_GLOBAL_PROFILE events={d} memory_instances={d} range_shards={d} size_plan_ms={d} source_write_ms={d} memory_first_ms={d}\n", .{ sources.event_count, memory.instanceCount(), memory.rangeCount(), size_plan_ns / std.time.ns_per_ms, source_write_ns / std.time.ns_per_ms, memory_first_ns / std.time.ns_per_ms });
             return .{ .a = a, .memory = memory, .sources = sources, .sorted = sorted, .config = config, .limits = limits };
         }
         pub fn digests(self: *const Self) !driver.GlobalPlans {

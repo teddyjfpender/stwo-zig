@@ -246,9 +246,9 @@ pub fn ForStackReadonly(comptime Stack: type, comptime ReadonlyPolicy: type) typ
                     try self.add(index, demand, sum);
                     if (self.pins.readonly) |selected| {
                         if (ReadonlyPolicy.global) {
-                            const expected = selected.native[index];
-                            const received = if (expected.census.all_rw == 0) null else try (self.loader.take_native_readonly orelse return error.MissingReadonlyInputProof)(self.loader.context, self.a, index);
-                            const partition = try @import("block_v5_readonly_input_global_source_receiver_v2.zig").ForStack(Stack).ForBackend(Backend).consumeAfterFreshNative(self.a, received, index, fresh, receipt, self.pins.opcode_witness_roots[index], self.sealed, self.pins.memory.sealPins(), self.pins.memory.firstRound(), .{ .authority = selected.roster, .ordinal = expected.ordinal, .limits = selected.classifier_limits }, self.readonly_session);
+                            const expected_native = selected.native[index];
+                            const received = if (expected_native.census.all_rw == 0) null else try (self.loader.take_native_readonly orelse return error.MissingReadonlyInputProof)(self.loader.context, self.a, index);
+                            const partition = try @import("block_v5_readonly_input_global_source_receiver_v2.zig").ForStack(Stack).ForBackend(Backend).consumeAfterFreshNative(self.a, received, index, fresh, receipt, self.pins.opcode_witness_roots[index], self.sealed, self.pins.memory.sealPins(), self.pins.memory.firstRound(), .{ .authority = selected.roster, .ordinal = expected_native.ordinal, .limits = selected.classifier_limits }, self.readonly_session);
                             self.transition_sum = self.transition_sum.add(partition.mutable_sum);
                             self.readonly_count = try std.math.add(u64, self.readonly_count, partition.readonly_count);
                         } else {

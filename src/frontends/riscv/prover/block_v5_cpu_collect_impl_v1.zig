@@ -78,6 +78,9 @@ pub fn ForCapacity(comptime capacity: bool) type {
         };
 
         pub fn collect(a: std.mem.Allocator, dir: std.fs.Dir, source: *Runner.Source, policy: Driver.InputPolicy, config: core.pcs.PcsConfig, limits: Limits) !*Collected {
+            var phase_timer = try std.time.Timer.start();
+            var timings: Timings = .{};
+            const emit_timings = std.process.hasEnvVarConstant("STWO_BLOCK_V5_COLLECT_PROFILE");
             try policy.requireSource(source, limits.planning);
             const recipe = policy.runner_pins.execution_recipe;
             try recipe.requireCompiled();
@@ -128,6 +131,7 @@ pub fn ForCapacity(comptime capacity: bool) type {
             defer if (capacity) {
                 if (fixed) |*cache| cache.deinit() catch @panic("capacity collection retained a fixed PCS lease");
             };
+            timings.setup_ns = phase_timer.lap();
             {
                 var reader = try source.openPass(.first);
                 defer reader.deinit();
@@ -161,7 +165,9 @@ pub fn ForCapacity(comptime capacity: bool) type {
                             .caps = limits.source_files,
                         });
                     }
+                    timings.execution_ns += phase_timer.lap();
                     var physical = try collectPhysical(a, current.owner, config, index, base.global_first_cycle, limits, &fixed);
+                    timings.native_first_ns += phase_timer.lap();
                     const metadata = nativeMetadata(&physical);
                     if (register_mode == 1) result.owned_register_windows[index] = Registers.Window.fromPublic(index, base.global_first_cycle, &metadata.shape.public_data);
                     var owns_physical = true;
@@ -169,6 +175,7 @@ pub fn ForCapacity(comptime capacity: bool) type {
                     var native_name: [96]u8 = undefined;
                     result.native_pins[index] = try NativeStage.write(a, dir, try Witness.nativeName(index, &native_name), current.owner, &physical, limits.witness.native);
                     try Witness.admitBytes(&result.witness_file_bytes, result.native_pins[index], limits.witness);
+                    timings.native_stage_ns += phase_timer.lap();
                     const complete = try Execution.fetches(a, current, false);
                     defer a.free(complete);
                     const caller_fetches = try Execution.fetches(a, current, true);
@@ -177,11 +184,13 @@ pub fn ForCapacity(comptime capacity: bool) type {
                     defer counters.deinit(a);
                     if (current.owner.opcode_columns.lookup_counters) |*native_counters| counters.mergeFrom(native_counters);
                     const frame = @import("../air/block/memory_event.zig").Frame{ .clock_frame = base.clock_frame, .global_first_cycle = base.global_first_cycle, .cycle_count = @intCast(base.cycle_count) };
+                    timings.fetches_counters_ns += phase_timer.lap();
                     result.ordinary[index] = try collectOrdinary(a, current.owner, frame, &physical, &counters, limits.ordinary);
                     ordinary_count += 1;
                     if (capacity) if (result.readonly) |*selected| {
                         try selected.append(try @import("block_v5_native_capacity_readonly_stage_v1.zig").ForBackend(Cpu).collectWithCounters(a, current.owner, metadata, &result.ordinary[index], limits.ordinary, &selected.selection, selected.selectionPins(), selected.input, selected.native_limits, if (selected.counter_groups) |*groups_owned| groups_owned else null));
                     };
+                    timings.ordinary_ns += phase_timer.lap();
                     var demand = try Demand.nativeDemand(&metadata.shape, current.owner.external_retirements);
                     try Demand.addDemand(&demand, try Demand.sidecarMemoryDemand(ordinaryEvents(&result.ordinary[index])));
                     if (current.owner.external_retirements != 0) {
@@ -198,9 +207,11 @@ pub fn ForCapacity(comptime capacity: bool) type {
                         try Demand.addDemand(&demand, result.callers[index].?.caller_max_requests);
                         try Demand.addDemand(&demand, try Demand.sidecarMemoryDemand(result.callers[index].?.byte_demand.event_count));
                     }
+                    timings.caller_ns += phase_timer.lap();
                     try groups.addExecution(index, demand, &counters);
                     try result.planning.append(&physical, complete, caller_fetches, demand);
                     owns_physical = false;
+                    timings.planning_ns += phase_timer.lap();
                     if (try std.math.add(u64, result.replay.spooler.event_count, base.state_chain_tracker.accesses.items.len) > limits.source_files.max_events)
                         return error.V5SourceFileCapExceeded;
                     if (result.readonly) |*selected| {
@@ -211,6 +222,7 @@ pub fn ForCapacity(comptime capacity: bool) type {
                         const caller_readonly: u64 = if (caller_physical) |caller| caller.readonly_events else 0;
                         if (census.all_rw != try std.math.add(u64, native.all_rw, caller_all) or census.readonly != try std.math.add(u64, native.readonly, caller_readonly)) return error.StaleReadonlyInputCensus;
                     } else try result.replay.appendResult(base);
+                    timings.replay_append_ns += phase_timer.lap();
                     final_registers = base.exit_cpu.regs;
                     if (index % 16 == 0 or index + 1 == source.schedule.segments)
                         std.debug.print("BLOCK_V5_COLLECT segment={d}/{d} cycles={d} memory_events={d}\n", .{ index + 1, source.schedule.segments, base.global_first_cycle + base.cycle_count - 1, result.replay.spooler.event_count });
@@ -223,12 +235,15 @@ pub fn ForCapacity(comptime capacity: bool) type {
                 result.register_windows = .{ .version = recipe.windowVersion(), .initial_registers = source.planned.first.machine.registers, .final_registers = source.planned.last.machine.registers, .windows = result.owned_register_windows };
                 _ = try result.register_windows.?.digest();
             }
+            timings.boundary_ns = phase_timer.lap();
             {
                 var sorted_reader = try result.replay.finish();
                 sorted_reader.deinit();
             }
+            timings.sort_ns = phase_timer.lap();
             result.groups = try groups.finish(source.schedule.segments);
             errdefer result.groups.deinit();
+            timings.groups_finish_ns = phase_timer.lap();
             const sorted = Sorted.fromReplay(&result.replay);
             std.debug.print("BLOCK_V5_COLLECT sorted_events={d} lookup_groups={d} global_roots_started=true\n", .{ result.replay.spooler.event_count, result.groups.records.len });
             result.globals = try Global.ForBackend(Cpu).collect(a, dir, sorted, .{
@@ -245,6 +260,7 @@ pub fn ForCapacity(comptime capacity: bool) type {
                 .caps = limits.source_files,
             }, config, limits.globals);
             errdefer result.globals.deinit();
+            timings.global_first_ns = phase_timer.lap();
             if (result.readonly) |*selected| {
                 if (selected.counter_groups) |*groups_owned| try groups_owned.finish();
                 try selected.bind(result.globals.sources.initial_pins);
@@ -257,8 +273,31 @@ pub fn ForCapacity(comptime capacity: bool) type {
             result.bound = try result.planning.bind(try result.globals.digests());
             errdefer result.bound.deinit();
             try result.globals.bindProviders(&result.bound, &result.groups);
+            timings.bind_ns = phase_timer.lap();
+            if (emit_timings) timings.print(source.schedule.segments, result.replay.spooler.event_count);
             return result;
         }
+
+        const Timings = struct {
+            setup_ns: u64 = 0,
+            execution_ns: u64 = 0,
+            native_first_ns: u64 = 0,
+            native_stage_ns: u64 = 0,
+            fetches_counters_ns: u64 = 0,
+            ordinary_ns: u64 = 0,
+            caller_ns: u64 = 0,
+            planning_ns: u64 = 0,
+            replay_append_ns: u64 = 0,
+            boundary_ns: u64 = 0,
+            sort_ns: u64 = 0,
+            groups_finish_ns: u64 = 0,
+            global_first_ns: u64 = 0,
+            bind_ns: u64 = 0,
+
+            fn print(self: Timings, segments: usize, events: u64) void {
+                std.debug.print("BLOCK_V5_COLLECT_PROFILE segments={d} events={d} setup_ms={d} execution_ms={d} native_first_ms={d} native_stage_ms={d} fetches_counters_ms={d} ordinary_ms={d} caller_ms={d} planning_ms={d} replay_append_ms={d} boundary_ms={d} sort_ms={d} groups_finish_ms={d} global_first_ms={d} bind_ms={d}\n", .{ segments, events, self.setup_ns / std.time.ns_per_ms, self.execution_ns / std.time.ns_per_ms, self.native_first_ns / std.time.ns_per_ms, self.native_stage_ns / std.time.ns_per_ms, self.fetches_counters_ns / std.time.ns_per_ms, self.ordinary_ns / std.time.ns_per_ms, self.caller_ns / std.time.ns_per_ms, self.planning_ns / std.time.ns_per_ms, self.replay_append_ns / std.time.ns_per_ms, self.boundary_ns / std.time.ns_per_ms, self.sort_ns / std.time.ns_per_ms, self.groups_finish_ns / std.time.ns_per_ms, self.global_first_ns / std.time.ns_per_ms, self.bind_ns / std.time.ns_per_ms });
+            }
+        };
 
         const FixedCache = @import("block_v5_native_capacity_fixed_cache_v1.zig").ForBackend(Cpu);
         const FixedReuse = if (capacity) ?FixedCache.Cache else void;

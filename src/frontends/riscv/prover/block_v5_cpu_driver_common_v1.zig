@@ -308,19 +308,25 @@ pub fn ForCapacity(comptime capacity: bool) type {
             defer pool.deinit();
             var binding = try engine.work_pool.ScopedPoolBinding.init(&pool);
             defer binding.deinit();
+            const pool_setup_ns = timer.read();
+            var collection_timer = try std.time.Timer.start();
             const collected = try Collect.collect(a, dir, source, policy, config, options.collection);
             defer collected.deinit();
+            const collect_impl_ns = collection_timer.lap();
             const assembly = try Assembly.assemble(a, collected, policy, options.max_roster_entries);
             defer assembly.deinit();
+            const assembly_ns = collection_timer.lap();
             var source_pages: ?*SourcePages.Job = if (capacity) if (options.source_pages) |pages|
                 try SourcePages.collect(a, dir, &collected.globals.sources, assembly.seal_pins, assembly.entries, assembly.sealed, source.input, config, pages)
             else
                 null else null;
             defer if (source_pages) |job| job.deinit() catch @panic("CPU source PAGE job lifetime");
+            const source_pages_ns = collection_timer.lap();
             const policies = try Policy.build(a, assembly.global_pins, options.store);
             defer a.free(policies);
             var writer = try Store.Store.initWriter(a, dir, policies, config, options.store);
             defer writer.deinit();
+            const store_init_ns = collection_timer.lap();
             const prepared = try a.alloc(Prepared, assembly.executions.len);
             defer a.free(prepared);
             var prepared_count: usize = 0;
@@ -333,6 +339,7 @@ pub fn ForCapacity(comptime capacity: bool) type {
                 prepared_count += 1;
                 prepared[index].reusable_public_inputs = true;
             }
+            const prepared_ns = collection_timer.lap();
             // Stable original sources and templates outlive all worker joins,
             // stores and scoped readers. Defer order releases publication first.
             const recursive_sources: ?*RecursiveSources.Owner = if (capacity) if (options.recursive_families) |recursive|
@@ -362,10 +369,13 @@ pub fn ForCapacity(comptime capacity: bool) type {
                 return err;
             };
             defer leaves.deinit();
+            const recursion_setup_ns = collection_timer.lap();
             // Abort joins all readers before leaf schedules/prepared policies are freed.
             var stream_live = true;
             defer if (stream_live) stream.abort();
             const collection_ns = timer.lap();
+            if (std.process.hasEnvVarConstant("STWO_BLOCK_V5_COLLECT_PROFILE"))
+                std.debug.print("BLOCK_V5_DRIVER_PROFILE pool_setup_ms={d} collect_impl_ms={d} assembly_ms={d} source_pages_ms={d} store_init_ms={d} prepared_ms={d} recursion_setup_ms={d} collection_total_ms={d}\n", .{ pool_setup_ns / std.time.ns_per_ms, collect_impl_ns / std.time.ns_per_ms, assembly_ns / std.time.ns_per_ms, source_pages_ns / std.time.ns_per_ms, store_init_ns / std.time.ns_per_ms, prepared_ns / std.time.ns_per_ms, recursion_setup_ns / std.time.ns_per_ms, collection_ns / std.time.ns_per_ms });
             std.debug.print("BLOCK_V5_DRIVER collected=true segments={d} memory_instances={d} base_files={d} collection_ms={d}\n", .{ source.schedule.segments, collected.globals.memory.instanceCount(), policies.len, collection_ns / std.time.ns_per_ms });
             const sorter = collected.replay.spooler.statistics;
             std.debug.print("BLOCK_V5_SORT initial_runs={d} merge_passes={d} read_bytes={d} written_bytes={d} sort_buffer_bytes={d}\n", .{ sorter.initial_runs, sorter.merge_passes, sorter.bytes_read, sorter.bytes_written, sorter.sort_buffer_bytes });
