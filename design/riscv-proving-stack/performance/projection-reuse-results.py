@@ -38,6 +38,7 @@ def parse(path):
             raise ValueError("incorrect STARK count")
         if pruned and not (0 < row.get("aliases", 0) < row.get("projections", 0) and row.get("alias_cells", 0) > 0):
             raise ValueError("missing elimination census")
+        row["removed_interaction_cells"] = row.get("alias_cells", 0) if pruned else 0
         rows.append(row)
     expected = {(profile, mode, ram, arm)
                 for profile in ("diagnostic_q8_pow0", "csp_q70_pow26")

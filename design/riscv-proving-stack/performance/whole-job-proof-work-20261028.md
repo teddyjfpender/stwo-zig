@@ -1,5 +1,12 @@
 # Whole-block proof work: architecture decision after direct aggregation
 
+Follow-up: [exact projection reuse](projection-reuse-m5-20261028.md) now removes
+identical native/companion physical batches in an explicit joint protocol.
+Matched diagnostic proof-phase improvement is only 2–8% over the unpruned
+joint proof. This bounds the small rewrite; the architectural priority remains
+one partitioned relation layout and eliminating repeated wide-witness work.
+No complete-block timing or recursive acceptance is established by that test.
+
 ## Required statement and evidence
 
 The objective is a single independently verifiable proof of the pinned Ethereum
