@@ -57,6 +57,8 @@ test "metal: streaming BLAKE2s planned terminal flags preserve all carry boundar
                 try committer.addColumns(refs[next..end]);
                 next = end;
             }
+            if (count == 17 and batch == 1)
+                try std.testing.expectEqual(@as(u64, 16), committer.stream.?.aliases);
             if (count != 0 and batch >= 16 and count % 16 == 0)
                 try std.testing.expectEqual(@as(usize, 0), committer.pending_count);
             var actual = try committer.finalize();
@@ -204,6 +206,31 @@ test "metal: streaming BLAKE2s retires page-backed sources after each real GPU b
     for (actual.layers, 0..) |layer, log| {
         if (log <= stream.log_size - 4) try std.testing.expectEqualSlices(H.Hash, expected.layers[log], layer) else try std.testing.expectEqual(@as(usize, 0), layer.len);
     }
+}
+
+test "metal: streaming BLAKE2s reads multiple columns from one page backing" {
+    const H = b2.Blake2sPlainMerkleHasher;
+    const rows: usize = 1 << 12;
+    const alignment = comptime std.mem.Alignment.fromByteUnits(std.heap.page_size_max);
+    const owner = try a.alignedAlloc(M31, alignment, rows * 2);
+    defer a.free(owner);
+    for (owner, 0..) |*value, index|
+        value.* = M31.fromCanonical(@intCast((index * 17 + 3) % 0x7fffffff));
+    const columns = [_][]const M31{ owner[0..rows], owner[rows .. rows * 2] };
+    var expected = try prover.vcs_lifted.prover.MerkleProverLifted(H).commit(a, &columns);
+    defer expected.deinit(a);
+    var runtime = try native.Runtime.init();
+    defer runtime.deinit();
+    var stream = try native.Blake2LeafStream(H).init(a, &runtime);
+    defer stream.deinit();
+    try stream.pushBlock(&columns, true, &.{owner});
+    try std.testing.expectEqual(@as(u64, 2), stream.aliases);
+    try std.testing.expectEqual(@as(u64, 0), stream.uploads);
+    var actual = try stream.finish(0);
+    defer actual.deinit(a);
+    try std.testing.expectEqualDeep(expected.root(), actual.root());
+    for (expected.layers, actual.layers) |want, got|
+        try std.testing.expectEqualSlices(H.Hash, want, got);
 }
 
 fn allocationCase(allocator: std.mem.Allocator, runtime: *native.Runtime, columns: []const []const M31) !void {
