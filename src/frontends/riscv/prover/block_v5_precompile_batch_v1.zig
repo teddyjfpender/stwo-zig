@@ -112,14 +112,22 @@ pub fn ForBackend(comptime Backend: type) type {
                 return error.BlockV5PrecompileRootReplayMismatch;
             const warm = WarmCaller{ .record = record, .witness = witness, .first = first, .sealed = sealed, .pins = pins, .entries = entries };
             if (hooks) |callbacks| if (callbacks.on_first_round) |callback| {
-                try callback(callbacks.context, a, warm);
+                callback(callbacks.context, a, warm) catch |err| {
+                    if (std.process.hasEnvVarConstant("STWO_BLOCK_V5_PROVE_PROFILE"))
+                        std.debug.print("BLOCK_V5_CALLER_FAILURE stage=warm error={s}\n", .{@errorName(err)});
+                    return err;
+                };
                 if (!first.owns_scheme or first.scheme.trees.items.len != 2 or !std.meta.eql(first.entry(), record.entry()))
                     return error.ChangedV5BlockWarmCaller;
                 var roots = try first.scheme.roots(a);
                 defer roots.deinit(a);
                 if (roots.items.len != 2 or !std.meta.eql(roots.items[0..2].*, record.roots)) return error.ChangedV5BlockWarmCaller;
             };
-            var proof = try Api.prove(a, first, sealed, pins, entries, pool);
+            var proof = Api.prove(a, first, sealed, pins, entries, pool) catch |err| {
+                if (std.process.hasEnvVarConstant("STWO_BLOCK_V5_PROVE_PROFILE"))
+                    std.debug.print("BLOCK_V5_CALLER_FAILURE stage=base error={s}\n", .{@errorName(err)});
+                return err;
+            };
             errdefer proof.deinit(a);
             if (hooks) |callbacks| if (callbacks.on_proof) |callback| try callback(callbacks.context, a, warm, &proof);
             try sink.accept(sink.context, record.execution.index, &proof);

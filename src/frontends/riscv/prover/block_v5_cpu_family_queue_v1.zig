@@ -198,6 +198,8 @@ pub const Queue = struct {
             self.statistics.active -= 1;
             self.statistics.live_reservation -= job.reservation;
             if (failure) |err| {
+                if (std.process.hasEnvVarConstant("STWO_BLOCK_V5_PROVE_PROFILE"))
+                    std.debug.print("BLOCK_V5_FAMILY_FAILURE family={s} error={s}\n", .{ @tagName(job.family), @errorName(err) });
                 if (self.failure == null) self.failure = err;
                 self.closing = true;
                 self.cancelQueued();

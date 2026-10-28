@@ -59,7 +59,9 @@ pub fn Projection(comptime Inner: type) type {
             return .initOwned(items);
         }
         pub fn evaluateConstraintQuotientsAtPoint(self: *const Self, point: Point, mask: *const core.air.components.MaskValues, accumulator: *core.air.accumulation.PointEvaluationAccumulator, max_log: u32) !void {
-            if (mask.items.len != 4) return error.InvalidV5CompositeTrees;
+            // The complete prover appends a composition-opening tree after
+            // the four trace trees; it is not part of this AIR's witness.
+            if (mask.items.len != 4 and mask.items.len != 5) return error.InvalidV5CompositeTrees;
             var items: [3][][]core.fields.qm31.QM31 = .{ mask.items[0], mask.items[1], mask.items[3] };
             const view = core.air.components.MaskValues{ .items = &items };
             try self.inner.evaluateConstraintQuotientsAtPoint(point, &view, accumulator, max_log);
@@ -115,8 +117,9 @@ pub fn Access(comptime Inner: type) type {
             return self.inner.maskPoints(a, point, max_log);
         }
         pub fn evaluateConstraintQuotientsAtPoint(self: *const Self, point: Point, mask: *const core.air.components.MaskValues, accumulator: *core.air.accumulation.PointEvaluationAccumulator, max_log: u32) !void {
-            if (mask.items.len != 4) return error.InvalidV5CompositeTrees;
-            try self.inner.evaluateConstraintQuotientsAtPoint(point, mask, accumulator, max_log);
+            if (mask.items.len != 4 and mask.items.len != 5) return error.InvalidV5CompositeTrees;
+            const view = core.air.components.MaskValues{ .items = mask.items[0..4] };
+            try self.inner.evaluateConstraintQuotientsAtPoint(point, &view, accumulator, max_log);
         }
         pub fn evaluateConstraintQuotientsOnDomain(self: *const Self, trace: *const PC.Trace, accumulator: *Domain) !void {
             if (trace.polys.items.len != 4) return error.InvalidV5CompositeTrees;

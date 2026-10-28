@@ -71,7 +71,11 @@ pub fn ForBackend(comptime Backend: type) type {
         /// made it. No retained source/witness ownership escapes this callback.
         pub fn provePreparedWarm(self: *@This(), a: std.mem.Allocator, prepared: *Prepared, warm: Batch.ForBackend(Backend).WarmCaller) !void {
             if (!std.meta.eql(prepared.first.roots[2], self.expected_witness_root) or !std.meta.eql(prepared.byte_snapshot, self.expected_byte_snapshot) or prepared.byte_demand.event_count != try @import("block_execution_external_trace_v2.zig").expectedEventCountForMode(&warm.record.statement, warm.sealed.register_custody_mode)) return error.ChangedV5FusedWarmCallerWitness;
-            var proof = try Fused.ForBackend(Backend).proveForCallerFirstRound(a, &prepared.first, prepared.inputs, warm.first, self.frame, self.expected_witness_root, warm.sealed, warm.pins, warm.entries);
+            var proof = Fused.ForBackend(Backend).proveForCallerFirstRound(a, &prepared.first, prepared.inputs, warm.first, self.frame, self.expected_witness_root, warm.sealed, warm.pins, warm.entries) catch |err| {
+                if (std.process.hasEnvVarConstant("STWO_BLOCK_V5_PROVE_PROFILE"))
+                    std.debug.print("BLOCK_V5_CALLER_FAILURE stage=fused error={s}\n", .{@errorName(err)});
+                return err;
+            };
             var owns = true;
             defer if (owns) proof.deinit(a);
             try self.sink.put_fused(self.sink.context, warm.record.execution.index, &proof);

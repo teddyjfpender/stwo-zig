@@ -90,7 +90,7 @@ pub fn For(comptime Inner: type, comptime tree_count: usize, comptime local_coun
             return .initOwned(trees);
         }
         pub fn evaluateConstraintQuotientsAtPoint(self: *const Self, point: Point, mask: *const Components.MaskValues, accumulator: *core.air.accumulation.PointEvaluationAccumulator, max_log: u32) !void {
-            if (mask.items.len != tree_count) return error.InvalidSourcePageComponentMasks;
+            if (mask.items.len != tree_count and mask.items.len != tree_count + 1) return error.InvalidSourcePageComponentMasks;
             var views: [local_count][][]core.fields.qm31.QM31 = undefined;
             for (&views, self.bindings) |*view, binding| {
                 const columns = mask.items[binding.tree];

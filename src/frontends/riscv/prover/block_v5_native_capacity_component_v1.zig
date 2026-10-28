@@ -82,7 +82,7 @@ pub const Component = struct {
         return original;
     }
     pub fn evaluateConstraintQuotientsAtPoint(self: *const Self, point: Point, mask: *const components.MaskValues, accumulator: *core.air.accumulation.PointEvaluationAccumulator, max_log: u32) !void {
-        if (mask.items.len != 3 or mask.items[0].len != self.fixed_logs.len or mask.items[1].len != self.main_logs.len) return error.InvalidNativeCapacityMasks;
+        if ((mask.items.len != 3 and mask.items.len != 4) or mask.items[0].len != self.fixed_logs.len or mask.items[1].len != self.main_logs.len) return error.InvalidNativeCapacityMasks;
         // Stack views borrow exactly the authenticated main selector cells.
         // No caller-owned count/selector replaces a PCS opening.
         var fixed: [2 * protocol.MAX_SHARDS][]Q = undefined;

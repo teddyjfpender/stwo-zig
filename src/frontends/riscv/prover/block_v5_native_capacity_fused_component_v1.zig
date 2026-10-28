@@ -91,7 +91,7 @@ fn Component(comptime access: bool) type {
         }
         pub fn evaluateConstraintQuotientsAtPoint(self: *const Self, point: Point, mask: *const Components.MaskValues, accumulator: *core.air.accumulation.PointEvaluationAccumulator, max_log: u32) !void {
             const trees_count: usize = if (access) 4 else if (self.inner.has_access_witness) 4 else 3;
-            if (mask.items.len != trees_count or mask.items[0].len > 2 * Capacity.MAX_SHARDS or mask.items[0].len <= self.binding.fixed_active_index or
+            if ((mask.items.len != trees_count and mask.items.len != trees_count + 1) or mask.items[0].len > 2 * Capacity.MAX_SHARDS or mask.items[0].len <= self.binding.fixed_active_index or
                 mask.items[1].len <= self.binding.main_index or mask.items[1][self.binding.main_index].len != 1 or max_log < self.logSize()) return error.InvalidCapacityFusedMasks;
             var fixed: [2 * Capacity.MAX_SHARDS][]Q = undefined;
             @memcpy(fixed[0..mask.items[0].len], mask.items[0]);

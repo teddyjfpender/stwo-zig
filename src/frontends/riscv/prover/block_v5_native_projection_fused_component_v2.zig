@@ -63,10 +63,12 @@ pub const ProjectionComponent = struct {
     }
     pub fn evaluateConstraintQuotientsAtPoint(self: *const Self, point: Point, mask: *const core.air.components.MaskValues, accumulator: *core.air.accumulation.PointEvaluationAccumulator, max_log: u32) !void {
         if (!self.has_access_witness) {
-            if (mask.items.len != 3) return error.InvalidV5FullFusedTrees;
-            return self.inner.evaluateConstraintQuotientsAtPoint(point, mask, accumulator, max_log);
+            // Proving appends the composition openings to the three trace trees.
+            if (mask.items.len != 3 and mask.items.len != 4) return error.InvalidV5FullFusedTrees;
+            const view = core.air.components.MaskValues{ .items = mask.items[0..3] };
+            return self.inner.evaluateConstraintQuotientsAtPoint(point, &view, accumulator, max_log);
         }
-        if (mask.items.len != 4) return error.InvalidV5FullFusedTrees;
+        if (mask.items.len != 4 and mask.items.len != 5) return error.InvalidV5FullFusedTrees;
         var trees: [3][][]core.fields.qm31.QM31 = .{ mask.items[0], mask.items[1], mask.items[3] };
         const view = core.air.components.MaskValues{ .items = &trees };
         try self.inner.evaluateConstraintQuotientsAtPoint(point, &view, accumulator, max_log);
@@ -127,8 +129,9 @@ pub const AccessComponent = struct {
         return self.inner.preprocessedColumnIndices(a);
     }
     pub fn evaluateConstraintQuotientsAtPoint(self: *const Self, point: Point, mask: *const core.air.components.MaskValues, accumulator: *core.air.accumulation.PointEvaluationAccumulator, max_log: u32) !void {
-        if (mask.items.len != 4) return error.InvalidV5FullFusedTrees;
-        try self.inner.evaluateConstraintQuotientsAtPoint(point, mask, accumulator, max_log);
+        if (mask.items.len != 4 and mask.items.len != 5) return error.InvalidV5FullFusedTrees;
+        const view = core.air.components.MaskValues{ .items = mask.items[0..4] };
+        try self.inner.evaluateConstraintQuotientsAtPoint(point, &view, accumulator, max_log);
     }
     pub fn evaluateConstraintQuotientsOnDomain(self: *const Self, trace: *const Trace, accumulator: *DomainAccumulator) !void {
         if (trace.polys.items.len != 4) return error.InvalidV5FullFusedTrees;

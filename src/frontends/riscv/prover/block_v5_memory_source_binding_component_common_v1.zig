@@ -117,7 +117,7 @@ pub fn ForSchema(comptime Schema: type) type {
                 return .initOwned(trees);
             }
             pub fn evaluateConstraintQuotientsAtPoint(self: *const Self, point: Point, mask: *const Components.MaskValues, accumulator: *core.air.accumulation.PointEvaluationAccumulator, max_log: u32) !void {
-                if (mask.items.len != 4 or mask.items[0].len != First.FIXED_COUNT or mask.items[1].len != Air.MAIN_COUNT or mask.items[2].len != Routing.ROUTING_COUNT or mask.items[3].len != Air.INTERACTION_COUNT) return error.InvalidMemorySourceBindingMasks;
+                if ((mask.items.len != 4 and mask.items.len != 5) or mask.items[0].len != First.FIXED_COUNT or mask.items[1].len != Air.MAIN_COUNT or mask.items[2].len != Routing.ROUTING_COUNT or mask.items[3].len != Air.INTERACTION_COUNT) return error.InvalidMemorySourceBindingMasks;
                 var fixed: [Air.FIXED_COUNT][]Q = undefined;
                 @memcpy(fixed[0..First.FIXED_COUNT], mask.items[0]);
                 @memcpy(fixed[First.FIXED_COUNT..], mask.items[2]);

@@ -117,7 +117,7 @@ pub fn ForSourceFixed(comptime source_fixed_count: usize) type {
             return .initOwned(trees);
         }
         pub fn evaluateConstraintQuotientsAtPoint(self: *const Self, point: Point, mask: *const Components.MaskValues, accumulator: *core.air.accumulation.PointEvaluationAccumulator, max_log: u32) !void {
-            if (mask.items.len != 5 or mask.items[0].len != source_fixed_count or mask.items[1].len != Air.SOURCE_MAIN_COUNT or mask.items[2].len != Spec.FIXED_COUNT or mask.items[3].len != Air.CAPTURE_MAIN_COUNT or mask.items[4].len != Spec.INTERACTION_COUNT) return error.InvalidSourceShaConnectorMasks;
+            if ((mask.items.len != 5 and mask.items.len != 6) or mask.items[0].len != source_fixed_count or mask.items[1].len != Air.SOURCE_MAIN_COUNT or mask.items[2].len != Spec.FIXED_COUNT or mask.items[3].len != Air.CAPTURE_MAIN_COUNT or mask.items[4].len != Spec.INTERACTION_COUNT) return error.InvalidSourceShaConnectorMasks;
             var main: [Spec.MAIN_COUNT][]Q = undefined;
             @memcpy(main[0..Air.SOURCE_MAIN_COUNT], mask.items[1]);
             @memcpy(main[Air.SOURCE_MAIN_COUNT..], mask.items[3]);

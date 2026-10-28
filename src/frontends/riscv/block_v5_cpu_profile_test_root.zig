@@ -7,6 +7,10 @@ const profile = @import("isa/execution_profile.zig").ExecutionProfile.rv32im_zkv
 const fixture = @import("runner/guest_precompile/test_elf.zig");
 const preflight = @import("prover/blake3_execution_preflight.zig");
 
+test {
+    _ = @import("prover/tests/block_v5_cpu_driver_test.zig");
+}
+
 test "block-v5 complete first-pass collection profile q8" {
     const a = std.testing.allocator;
     const selected = Profile.diagnostic_q8_pow0;
