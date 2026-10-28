@@ -22,12 +22,18 @@ const Summary = struct {
     }
 };
 test "block-v6 joint native and companion diagnostic real RAM" {
-    try compare(.diagnostic_q8_pow0);
+    try compare(.diagnostic_q8_pow0, false);
 }
 test "block-v6 joint native and companion canonical real RAM" {
-    try compare(.csp_q70_pow26);
+    try compare(.csp_q70_pow26, false);
 }
-fn compare(profile: Profile) !void {
+test "block-v6 pruned native and companion diagnostic real RAM" {
+    try compare(.diagnostic_q8_pow0, true);
+}
+test "block-v6 pruned native and companion canonical real RAM" {
+    try compare(.csp_q70_pow26, true);
+}
+fn compare(profile: Profile, comptime prune: bool) !void {
     const engine = @import("stwo_prover_engine");
     var pool: engine.work_pool.WorkPool = undefined;
     try pool.initInPlaceWithOptions(.{ .worker_count = 8, .backing_allocator = std.testing.allocator });
@@ -35,20 +41,31 @@ fn compare(profile: Profile) !void {
     var binding = try engine.work_pool.ScopedPoolBinding.init(&pool);
     defer binding.deinit();
     for ([_]u32{ 0, 1 }) |mode| {
-        var previous = try run(false, profile, mode, true);
+        var previous = try run(false, false, profile, mode, true);
         defer previous.deinit(std.testing.allocator);
-        var current = try run(true, profile, mode, true);
+        var current = try run(true, false, profile, mode, true);
         defer current.deinit(std.testing.allocator);
         try std.testing.expectEqualDeep(previous, current);
+        if (prune) {
+            var pruned = try run(true, true, profile, mode, true);
+            defer pruned.deinit(std.testing.allocator);
+            try std.testing.expectEqualDeep(previous, pruned);
+        }
     }
-    var previous = try run(false, profile, 1, false);
+    var previous = try run(false, false, profile, 1, false);
     defer previous.deinit(std.testing.allocator);
-    var current = try run(true, profile, 1, false);
+    var current = try run(true, false, profile, 1, false);
     defer current.deinit(std.testing.allocator);
     try std.testing.expectEqualDeep(previous, current);
+    if (prune) {
+        var pruned = try run(true, true, profile, 1, false);
+        defer pruned.deinit(std.testing.allocator);
+        try std.testing.expectEqualDeep(previous, pruned);
+    }
 }
-fn run(comptime joint: bool, profile: Profile, mode: u32, comptime ram: bool) !Summary {
+fn run(comptime joint: bool, comptime reuse: bool, profile: Profile, mode: u32, comptime ram: bool) !Summary {
     const a = std.testing.allocator;
+    const JointBackend = Joint.ForBackendWithProjectionReuse(Cpu, reuse);
     const iterations = if (std.posix.getenv("STWO_JOINT_ITERATIONS")) |raw| try std.fmt.parseInt(u32, raw, 10) else 1;
     if (iterations == 0 or iterations > 1024) return error.InvalidJointBenchmarkIterations;
     const seed = if (std.posix.getenv("STWO_JOINT_SEED")) |raw| try std.fmt.parseInt(u8, raw, 10) else 1;
@@ -96,7 +113,7 @@ fn run(comptime joint: bool, profile: Profile, mode: u32, comptime ram: bool) !S
     const memory = Receiver.MemoryPin{ .frame = frame, .expected_events = try source.census(), .witness_root = access.roots[2] };
     var timer = try std.time.Timer.start();
     if (joint) {
-        var proof = try Joint.ForBackend(Cpu).prove(a, &first, &access, source.inputs, source.slots, memory, sealed, pins, &entries, catalog);
+        var proof = try JointBackend.prove(a, &first, &access, source.inputs, source.slots, memory, sealed, pins, &entries, catalog);
         var owns = true;
         defer if (owns) proof.deinit(a);
         const prove_ns = timer.lap();
@@ -106,7 +123,7 @@ fn run(comptime joint: bool, profile: Profile, mode: u32, comptime ram: bool) !S
         var bad = try clone(a, proof);
         bad.native_claims.opcode_claims[0][0] = bad.native_claims.opcode_claims[0][0].add(Q.one());
         bad.native_claims.opcode_claims[1][0] = bad.native_claims.opcode_claims[1][0].sub(Q.one());
-        if (Joint.ForBackend(Cpu).verifyOwned(a, bad, 0, pin, memory, sealed, pins, &entries, catalog)) |accepted| {
+        if (JointBackend.verifyOwned(a, bad, 0, pin, memory, sealed, pins, &entries, catalog)) |accepted| {
             var value = accepted;
             value.deinit(a);
             return error.AcceptedChangedJointNativeClaim;
@@ -114,16 +131,37 @@ fn run(comptime joint: bool, profile: Profile, mode: u32, comptime ram: bool) !S
         bad = try clone(a, proof);
         bad.body.claims[0].sum = bad.body.claims[0].sum.add(Q.one());
         bad.body.claims[1].sum = bad.body.claims[1].sum.sub(Q.one());
-        if (Joint.ForBackend(Cpu).verifyOwned(a, bad, 0, pin, memory, sealed, pins, &entries, catalog)) |accepted| {
+        if (JointBackend.verifyOwned(a, bad, 0, pin, memory, sealed, pins, &entries, catalog)) |accepted| {
             var value = accepted;
             value.deinit(a);
             return error.AcceptedCancellingJointClaims;
         } else |_| {}
+        bad = try clone(a, proof);
+        if (Joint.ForBackendWithProjectionReuse(Cpu, !reuse).verifyOwned(a, bad, 0, pin, memory, sealed, pins, &entries, catalog)) |accepted| {
+            var value = accepted;
+            value.deinit(a);
+            return error.AcceptedWrongJointProtocol;
+        } else |_| {}
+        var alias_count: usize = 0;
+        var alias_cells: u64 = 0;
+        for (projections, 0..) |slot, i| {
+            const alias = try @import("../block_v6_projection_alias_v1.zig").claim(a, &fixture.owner.statement, proof.native_claims, slot);
+            if (alias == null) continue;
+            alias_count += 1;
+            alias_cells += @as(u64, 4) << @intCast(slot.log_size);
+            if (reuse and alias_count == 1) {
+                bad = try clone(a, proof);
+                bad.body.claims[i].sum = bad.body.claims[i].sum.add(Q.one());
+                try std.testing.expectError(error.UntrustedJointProjectionAlias, JointBackend.verifyOwned(a, bad, 0, pin, memory, sealed, pins, &entries, catalog));
+            }
+        }
+        try std.testing.expect(alias_count > 0);
         _ = timer.lap();
         owns = false;
-        var fresh = try Joint.ForBackend(Cpu).verifyOwned(a, proof, 0, pin, memory, sealed, pins, &entries, catalog);
+        var fresh = try JointBackend.verifyOwned(a, proof, 0, pin, memory, sealed, pins, &entries, catalog);
         defer fresh.deinit(a);
-        std.debug.print("BLOCK_V6_JOINT profile={s} mode={d} ram={} cycles={d} seed={d} joint=true prove_ns={d} verify_ns={d} stark_bytes={d} starks=1 globals_open=true\n", .{ @tagName(profile), mode, ram, cycles, seed, prove_ns, timer.lap(), stark_bytes });
+        const verify_ns = timer.lap();
+        if (reuse) std.debug.print("BLOCK_V6_PRUNED profile={s} mode={d} ram={} cycles={d} seed={d} aliases={d} projections={d} alias_cells={d} prove_ns={d} verify_ns={d} stark_bytes={d} starks=1 globals_open=true\n", .{ @tagName(profile), mode, ram, cycles, seed, alias_count, projections.len, alias_cells, prove_ns, verify_ns, stark_bytes }) else std.debug.print("BLOCK_V6_JOINT profile={s} mode={d} ram={} cycles={d} seed={d} joint=true prove_ns={d} verify_ns={d} stark_bytes={d} starks=1 globals_open=true\n", .{ @tagName(profile), mode, ram, cycles, seed, prove_ns, verify_ns, stark_bytes });
         return summary(a, fresh.native, fresh.companion);
     } else {
         var proof = try Fused.ForBackend(Cpu).proveForNativeFirstRound(a, &access, source.inputs, source.slots, projections, sealed, pins, &entries, catalog, &first, 0, frame, memory.witness_root);

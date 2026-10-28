@@ -38,6 +38,11 @@ pub const Open = struct {
 };
 
 pub fn ForBackend(comptime Backend: type) type {
+    return ForBackendWithProjectionReuse(Backend, false);
+}
+/// Explicit B6JP-v2 experiment. The caller independently selects the expected
+/// protocol; a proof cannot opt itself into a different relation schedule.
+pub fn ForBackendWithProjectionReuse(comptime Backend: type, comptime reuse: bool) type {
     return struct {
         /// A real native prefix and a real source-sealed memory prefix are
         /// borrowed. The companion prefix is consumed; native storage stays
@@ -60,7 +65,7 @@ pub fn ForBackend(comptime Backend: type) type {
             defer native.deinit();
             const logs = try Template.columnLogs(a, pin.shape, pin.template.external_retirements, .interaction);
             defer a.free(logs);
-            const body = try Fused.ForBackend(Backend).proveForNativeFirstRoundWithJoint(a, access, inputs, slots, projections, sealed, pins, entries, catalog, first, first.index, memory.frame, memory.witness_root, .{ .native = native, .columns = first.native.interaction.items, .logs = logs });
+            const body = try Fused.ForBackend(Backend).proveForNativeFirstRoundWithJoint(a, access, inputs, slots, projections, sealed, pins, entries, catalog, first, first.index, memory.frame, memory.witness_root, .{ .native = native, .columns = first.native.interaction.items, .logs = logs, .reuse_projections = reuse });
             return .{ .body = body, .native_claims = claims };
         }
 
@@ -93,7 +98,7 @@ pub fn ForBackend(comptime Backend: type) type {
             const logs = try Template.columnLogs(a, pin.shape, pin.template.external_retirements, .interaction);
             defer a.free(logs);
             owns = false;
-            var result = try Fused.ForBackend(Backend).verifyOwnedWithJoint(a, proof.body, sealed, pins, entries, &receipt, index, memory.frame, projections, slots, fixed, main, memory.witness_root, empty, .{ .native = native, .logs = logs });
+            var result = try Fused.ForBackend(Backend).verifyOwnedWithJoint(a, proof.body, sealed, pins, entries, &receipt, index, memory.frame, projections, slots, fixed, main, memory.witness_root, empty, .{ .native = native, .logs = logs, .reuse_projections = reuse });
             errdefer result.deinit(a);
             if (result.memory) |verified| {
                 if (verified.event_count != memory.expected_events) return error.UntrustedV5FullFusedMemoryCensus;

@@ -94,10 +94,20 @@ pub fn compositionSplit(projections: []const Source.Slot) u32 {
     return split;
 }
 pub fn interactionLogs(a: std.mem.Allocator, projections: []const Source.Slot, slots: []const Memory.Slot) ![]u32 {
-    const count = try std.math.add(usize, try std.math.mul(usize, projections.len, 4), try std.math.mul(usize, slots.len, Eval.INTERACTION_COUNT));
+    const layout = try Joint.ProjectionLayout.init(a, null, projections);
+    defer layout.deinit(a);
+    return interactionLogsForLayout(a, projections, slots, layout);
+}
+fn interactionLogsForLayout(a: std.mem.Allocator, projections: []const Source.Slot, slots: []const Memory.Slot, layout: Joint.ProjectionLayout) ![]u32 {
+    const count = try std.math.add(usize, try std.math.mul(usize, layout.count, 4), try std.math.mul(usize, slots.len, Eval.INTERACTION_COUNT));
     const logs = try a.alloc(u32, count);
-    for (projections, 0..) |slot, i| @memset(logs[4 * i ..][0..4], slot.log_size);
-    const begin = projections.len * 4;
+    var retained: usize = 0;
+    for (projections, layout.aliases) |slot, alias| {
+        if (alias != null) continue;
+        @memset(logs[4 * retained ..][0..4], slot.log_size);
+        retained += 1;
+    }
+    const begin = layout.count * 4;
     for (slots, 0..) |slot, i| @memset(logs[begin + i * Eval.INTERACTION_COUNT ..][0..Eval.INTERACTION_COUNT], slot.log_size);
     return logs;
 }
@@ -170,7 +180,9 @@ pub fn ForBackend(comptime Backend: type) type {
                 for (interactions.items) |column| a.free(column.values);
                 interactions.deinit(a);
             }
-            const logs = try interactionLogs(a, projections, slots);
+            const layout = try Joint.ProjectionLayout.init(a, joint, projections);
+            defer layout.deinit(a);
+            const logs = try interactionLogsForLayout(a, projections, slots, layout);
             defer a.free(logs);
             const witness_logs = try witnessLogs(a, slots);
             defer a.free(witness_logs);
@@ -183,13 +195,21 @@ pub fn ForBackend(comptime Backend: type) type {
             const elements = relations.get(.memory_access);
             var cache = try @import("block_v5_quotient_column_cache_v1.zig").Cache.init(a);
             defer cache.deinit();
-            const projection_components = try a.alloc(Adapter.ProjectionComponent, projections.len);
+            const projection_components = try a.alloc(Adapter.ProjectionComponent, layout.count);
             defer a.free(projection_components);
             const memory_components = try a.alloc(Adapter.AccessComponent, slots.len);
             defer a.free(memory_components);
-            const handles = try a.alloc(engine.air.component_prover.ComponentProver, try std.math.add(usize, projections.len, slots.len));
+            const handles = try a.alloc(engine.air.component_prover.ComponentProver, try std.math.add(usize, layout.count, slots.len));
             defer a.free(handles);
-            for (projections, claims, projection_components, 0..) |slot, *claim, *component, i| {
+            var retained: usize = 0;
+            for (projections, claims, layout.aliases) |slot, *claim, alias| {
+                if (alias) |value| {
+                    claim.* = .{ .sum = value, .row_count = slot.n_rows };
+                    continue;
+                }
+                const i = retained;
+                const component = &projection_components[i];
+                retained += 1;
                 try interactions.ensureUnusedCapacity(a, 4);
                 const generated = try generateProjection(a, main, slot, relations);
                 claim.* = .{ .sum = generated.sum, .row_count = slot.n_rows };
@@ -216,9 +236,9 @@ pub fn ForBackend(comptime Backend: type) type {
                 try appendColumns(a, &interactions, input.descriptor.log_size, &transition.columns);
                 try appendColumns(a, &interactions, input.descriptor.log_size, &bytes.columns);
                 try appendColumns(a, &interactions, input.descriptor.log_size, &memory.columns);
-                component.* = try accessComponent(input.descriptor, i, projections.len, first.fixed_logs, first.main_logs, witness_logs, logs, claim.*, &challenges, &word_challenges, compositionSplit(projections), sealed.register_custody_mode);
+                component.* = try accessComponent(input.descriptor, i, layout.count, first.fixed_logs, first.main_logs, witness_logs, logs, claim.*, &challenges, &word_challenges, compositionSplit(projections), sealed.register_custody_mode);
                 component.inner.quotient_cache = &cache;
-                handles[projections.len + i] = component.asProverComponent();
+                handles[layout.count + i] = component.asProverComponent();
             }
             // Both physical claim sets precede either interaction commitment.
             if (joint) |joined| try joined.mix(&channel);
@@ -265,7 +285,9 @@ pub fn ForBackend(comptime Backend: type) type {
             const witness_logs = try witnessLogs(a, slots);
             defer a.free(witness_logs);
             if (slots.len != 0) try verifier.commit(a, roots[2], witness_logs, &channel);
-            const logs = try interactionLogs(a, projections, slots);
+            const layout = try Joint.ProjectionLayout.init(a, joint, projections);
+            defer layout.deinit(a);
+            const logs = try interactionLogsForLayout(a, projections, slots, layout);
             defer a.free(logs);
             const mask = try mainMask(a, main_logs.len, projections, slots);
             defer a.free(mask);
@@ -277,19 +299,27 @@ pub fn ForBackend(comptime Backend: type) type {
             const interaction_tree: usize = if (slots.len == 0) 2 else 3;
             if (joint) |joined| try verifier.commit(a, roots[interaction_tree], joined.logs, &channel);
             try verifier.commit(a, roots[interaction_tree + @as(usize, @intFromBool(joint != null))], logs, &channel);
-            const projection_components = try a.alloc(Adapter.ProjectionComponent, projections.len);
+            const projection_components = try a.alloc(Adapter.ProjectionComponent, layout.count);
             defer a.free(projection_components);
             const memory_components = try a.alloc(Adapter.AccessComponent, slots.len);
             defer a.free(memory_components);
-            const handles = try a.alloc(core.air.components.Component, projections.len + slots.len);
+            const handles = try a.alloc(core.air.components.Component, layout.count + slots.len);
             defer a.free(handles);
-            for (projections, proof.claims, projection_components, 0..) |slot, claim, *component, i| {
+            var retained: usize = 0;
+            for (projections, proof.claims, layout.aliases) |slot, claim, alias| {
+                if (alias) |value| {
+                    if (!claim.sum.eql(value) or claim.row_count != slot.n_rows) return error.UntrustedJointProjectionAlias;
+                    continue;
+                }
+                const i = retained;
+                const component = &projection_components[i];
+                retained += 1;
                 component.* = try (Adapter.ProjectionComponent{ .has_access_witness = slots.len != 0, .inner = .{ .slot = slot, .fixed_logs = fixed_logs, .main_logs = main_logs, .root_owner = i == 0, .main_open_mask = mask, .interaction_offset = 4 * i, .interaction_logs = logs, .claim = claim.sum, .relations = &word_challenges.universal_prefix, .composition_split = compositionSplit(projections) } }).init();
                 handles[i] = component.asVerifierComponent();
             }
             for (slots, proof.memory_claims, memory_components, 0..) |slot, claim, *component, i| {
-                component.* = try accessComponent(slot, i, projections.len, fixed_logs, main_logs, witness_logs, logs, claim, &challenges, &word_challenges, compositionSplit(projections), sealed.register_custody_mode);
-                handles[projections.len + i] = component.asVerifierComponent();
+                component.* = try accessComponent(slot, i, layout.count, fixed_logs, main_logs, witness_logs, logs, claim, &challenges, &word_challenges, compositionSplit(projections), sealed.register_custody_mode);
+                handles[layout.count + i] = component.asVerifierComponent();
             }
             var result = try receipts(a, proof.claims, proof.memory_claims, projections, native, witness_root, index, sealed);
             errdefer result.deinit(a);

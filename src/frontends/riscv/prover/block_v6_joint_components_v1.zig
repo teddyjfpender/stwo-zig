@@ -175,8 +175,38 @@ pub const Context = struct {
     native: *const @import("block_v5_native_components_v3.zig").Owner,
     columns: []const engine.pcs.ColumnEvaluation = &.{},
     logs: []const u32,
+    reuse_projections: bool = false,
     pub fn mix(self: Context, channel: *core.proof_suites.Blake3.Channel) !void {
-        channel.mixU32s(&.{ 0x42364a50, 1 }); // B6JP, new joint proof domain.
+        channel.mixU32s(&.{ 0x42364a50, if (self.reuse_projections) 2 else 1 }); // B6JP, new joint proof domain.
         try @import("block_v5_native_template_protocol_v3.zig").mixClaims(channel, &self.native.statement, &self.native.claims);
+    }
+};
+
+/// Derived once from independently admitted native geometry. The null entries
+/// still need companion equations. No caller may supply this plan in a proof.
+pub const ProjectionLayout = struct {
+    aliases: []?Q,
+    count: usize,
+    pub fn init(a: std.mem.Allocator, joint: ?Context, projections: []const @import("block_v5_native_projection_fused_source_v1.zig").Slot) !@This() {
+        const aliases = try a.alloc(?Q, projections.len);
+        errdefer a.free(aliases);
+        @memset(aliases, null);
+        var count = projections.len;
+        if (joint) |context| if (context.reuse_projections) {
+            var cache = @import("block_v6_projection_alias_v1.zig").Cache{};
+            defer cache.deinit();
+            for (projections, aliases) |slot, *alias| {
+                alias.* = try cache.claim(a, &context.native.statement, &context.native.claims, slot);
+                if (alias.* != null) count -= 1;
+            }
+        };
+        // The current companion owner declares the interaction tree through
+        // its first surviving projection. An all-aliased schedule requires a
+        // separately admitted owner, not silent loss of column declarations.
+        if (projections.len != 0 and count == 0) return error.UnsupportedFullyAliasedProjectionRoster;
+        return .{ .aliases = aliases, .count = count };
+    }
+    pub fn deinit(self: @This(), a: std.mem.Allocator) void {
+        a.free(self.aliases);
     }
 };
