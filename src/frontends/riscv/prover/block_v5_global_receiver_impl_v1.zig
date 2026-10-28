@@ -119,6 +119,19 @@ pub fn ForStackReadonly(comptime Stack: type, comptime ReadonlyPolicy: type) typ
             programs: Programs.Loader,
             readonly_providers: if (ReadonlyPolicy.global) ?@import("block_v5_readonly_input_global_provider_loader_v2.zig").Loader else void = if (ReadonlyPolicy.global) null else {},
         };
+        /// Versioned alternative to the per-execution wrapper forest. These
+        /// pins carry no producer receipts; fresh native exports come only
+        /// from the original global receive loop below.
+        pub const NativeBatchPins = struct {
+            key: @import("../recursion/block_v6_native_batch_protocol_v1.zig").Key,
+            expected_id: [32]u8,
+            schedule: []const @import("../recursion/block_v6_native_batch_public_v1.zig").Wire,
+        };
+        pub const VerifiedNativeBatchBundle = struct {
+            globals: VerifiedGlobals,
+            direct_native_batch_verified: void = {},
+            // Global files remain necessary; the batch alone is an open proof.
+        };
         pub const VerifiedGlobals = struct {
             native_program_memory_tables_registers_endpoints_closed: void = {},
             seal_digest: [32]u8,
@@ -231,6 +244,48 @@ pub fn ForStackReadonly(comptime Stack: type, comptime ReadonlyPolicy: type) typ
                     var fresh = try verifyFresh(a, pins, inputs);
                     defer fresh.deinit(a);
                     return fresh.summary;
+                }
+                pub fn verifyCompleteNativeBatch(a: std.mem.Allocator, pins: Pins, inputs: Inputs, batch: NativeBatchPins, bytes: []const u8) !VerifiedNativeBatchBundle {
+                    if (comptime Stack.is_capacity or ReadonlyPolicy.global) {
+                        return error.UnsupportedNativeBatchReceiverStack;
+                    } else {
+                        const Batch = @import("../recursion/block_v6_native_batch_receiver_v1.zig");
+                        const Frames = @import("../recursion/block_v5_open_child_frames_v2.zig");
+                        const Parent = @import("../recursion/blake3_execution_parent_proof.zig");
+                        const count = pins.tables.executions.len;
+                        if (count == 0 or count > @import("../recursion/block_v6_native_batch_public_v1.zig").MAX_CHILDREN or batch.key.child_count != count)
+                            return error.IncompleteV6NativeBatch;
+                        if (!std.meta.eql(batch.key.config, pins.tables.seal.config) or !std.meta.eql(batch.key.context.child_config, pins.tables.seal.config))
+                            return error.NativeBatchSecurityMismatch;
+                        if (!std.meta.eql(try batch.key.identity(), batch.expected_id)) return error.UntrustedNativeBatchKey;
+                        const sealed = try pins.validate();
+                        var fresh = try verifyFresh(a, pins, inputs);
+                        defer fresh.deinit(a);
+                        const prepared = try a.alloc(NativeRecursive.Prepared, count);
+                        defer a.free(prepared);
+                        var initialized: usize = 0;
+                        defer for (prepared[0..initialized]) |*value| value.deinit();
+                        const admissions = try a.alloc(*const NativeRecursive.Prepared, count);
+                        defer a.free(admissions);
+                        for (pins.tables.executions, admissions, 0..) |pin, *admitted, index| {
+                            prepared[index] = try prepareRecursive(a, pin, @intCast(index), sealed, pins.tables.seal, pins.tables.roster, pins.tables.catalog);
+                            initialized += 1;
+                            prepared[index].reusable_public_inputs = true;
+                            admitted.* = &prepared[index];
+                        }
+                        var child = try (Batch.Expected{ .native = admissions, .exported = fresh.receipts, .key = batch.key, .expected_id = batch.expected_id, .schedule = batch.schedule }).reconstruct(a);
+                        defer child.deinit();
+                        if (!std.meta.eql(child.span, fresh.summary.span) or !child.native_open_sum.eql(fresh.native_open_sum))
+                            return error.UntrustedV6CompleteBatchSpan;
+                        const authority = Frames.Admission.init(&child, &.{});
+                        var decoded = try Parent.codec.decode(a, bytes, &authority);
+                        var verified = try Parent.verify(&decoded, &authority);
+                        defer verified.deinit();
+                        try verified.validate(&authority, batch.expected_id);
+                        // Do not set the V5 forest flag: this is a distinct V6
+                        // theorem with full fresh globals and one native batch.
+                        return .{ .globals = fresh.summary };
+                    }
                 }
                 /// Fresh original native/caller/provider/global loop with a
                 /// genuine PAGE/lane/range source receiver selected internally.

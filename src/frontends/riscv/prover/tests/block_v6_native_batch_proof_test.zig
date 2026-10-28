@@ -52,11 +52,13 @@ pub fn qualifyMeasured(a: std.mem.Allocator, admissions: []const *const preparat
 
 pub const Retained = struct {
     allocator: std.mem.Allocator,
+    encoded: []u8,
     measurement: Measurement,
     child: frames.Child,
     capture: @import("../../recursion/blake3_native_parent_verifier.zig").Verified,
     expected: receiver.Expected,
     pub fn deinit(self: *Retained) void {
+        self.allocator.free(self.encoded);
         self.capture.deinit();
         self.child.deinit();
         self.allocator.free(self.expected.exported);
@@ -161,7 +163,7 @@ pub fn qualifyRetained(a: std.mem.Allocator, admissions: []const *const preparat
         @tagName(selected),                           children.len, native_ns,   prepare_ns, setup_ns, prove_ns, verify_ns,
         prepare_ns + setup_ns + prove_ns + verify_ns, costs.g_rows, costs.cells, bytes.len,
     });
-    return .{ .allocator = a, .measurement = .{ .span = span, .recursive_ns = prepare_ns + setup_ns + prove_ns + verify_ns, .costs = costs, .proof_bytes = bytes.len }, .child = normalized, .capture = fresh, .expected = expected_child };
+    return .{ .allocator = a, .encoded = try a.dupe(u8, bytes), .measurement = .{ .span = span, .recursive_ns = prepare_ns + setup_ns + prove_ns + verify_ns, .costs = costs, .proof_bytes = bytes.len }, .child = normalized, .capture = fresh, .expected = expected_child };
 }
 
 pub const Work = struct { cells: usize = 0, g_rows: usize = 0 };
