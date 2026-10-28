@@ -1,5 +1,10 @@
 # Block-v6: remove proof work, then accelerate what remains
 
+Implementation update: the [direct-native batch experiment](direct-native-batch-m5-20261028.md)
+now measures 17.0x faster recursion on a two-segment q70/PoW26 fixture.
+Global closure and multi-level batch consumption remain open; the complete
+block architecture below is not yet implemented.
+
 Status: design and experiment contract, not a qualified proof protocol. The
 archived block-v5 run stopped before a root. All speedups below are hypotheses
 unless explicitly marked measured.
