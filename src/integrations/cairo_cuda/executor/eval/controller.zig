@@ -304,12 +304,18 @@ pub const Bound = struct {
             self.prepared.parameters,
         );
         var diagnostic_cursor: usize = 0;
+        const component_prefetch = transaction.isManagedArena() and
+            if (std.posix.getenv("STWO_CUDA_EVAL_COMPONENT_PREFETCH")) |value|
+                std.mem.eql(u8, value, "1")
+            else
+                false;
         if (self.prepared.slots.diagnostic) |id| {
             const powers = try transaction.slot(self.prepared.slots.random_powers);
             try session.context.copyDeviceSlice(u32, try (try transaction.slot(id)).sub(0, powers.len), powers);
             diagnostic_cursor = powers.len;
         }
         for (self.prepared.topology.components) |component| {
+            if (component_prefetch) try self.prefetchComponentSources(session, component);
             if (component.recompute_source_count != 0) try transform.Native.extendAddressed(
                 session,
                 .constraint_evaluation,
@@ -359,6 +365,46 @@ pub const Bound = struct {
             transaction,
             bindings,
         );
+    }
+
+    /// Admit only the authenticated sources for one component into HBM before
+    /// its addressed LDE and AIR launches. The fixed 2 GiB bound prevents a
+    /// component with an unusually wide source set from flooding a small GPU.
+    /// This is an opt-in research path until whole-device capacity and exact
+    /// proof results qualify it across the large-PIE cohort.
+    fn prefetchComponentSources(self: Bound, session: anytype, component: topology_module.Component) !void {
+        const limit_words: u64 = (2 * 1024 * 1024 * 1024) / @sizeOf(u32);
+        var total_words: u64 = 0;
+        const first: usize = component.first_source;
+        const count: usize = component.source_count;
+        for (self.prepared.topology.sources[first..][0..count], 0..) |source, local| {
+            const words: u64 = @as(u64, 1) << @intCast(source.log_rows +
+                @as(u32, @intFromBool(source.reuse_committed_lde)));
+            total_words = std.math.add(u64, total_words, words) catch return error.SizeOverflow;
+            if ((local < @as(usize, component.recompute_source_count) and source.reuse_committed_lde) or
+                (local >= @as(usize, component.recompute_source_count) and !source.reuse_committed_lde))
+                return error.InvalidKernelDescriptor;
+        }
+        if (total_words > limit_words) {
+            std.debug.print("cairo-cuda eval prefetch component={} skipped words={}\n", .{ component.component_index, total_words });
+            return;
+        }
+        for (self.prepared.topology.sources[first..][0..count], 0..) |source, local| {
+            const words: usize = @as(usize, 1) << @intCast(source.log_rows +
+                @as(u32, @intFromBool(source.reuse_committed_lde)));
+            const offset: u64 = if (source.reuse_committed_lde) blk: {
+                const width: usize = if (self.prepared.topology.wide_trace_offsets) 2 else 1;
+                const index = @as(usize, component.first_trace_offset) + local * width;
+                const low = @as(u64, self.prepared.trace_offsets[index]);
+                break :blk low | (if (width == 2)
+                    @as(u64, self.prepared.trace_offsets[index + 1]) << 32
+                else
+                    0);
+            } else self.prepared.lde_descriptors[first + local].coefficient_offset_words;
+            const start = std.math.cast(usize, offset) orelse return error.SizeOverflow;
+            try session.context.prefetchManagedSlice(u32, try self.arena.sub(start, words), true);
+        }
+        std.debug.print("cairo-cuda eval prefetch component={} words={}\n", .{ component.component_index, total_words });
     }
 };
 

@@ -1,0 +1,28 @@
+{
+  "schema": "stwo.proving-service.campaign.v1",
+  "registry_sha256": "a2503220947f161185a4f5160fd5953db92f6aec0055367830ebc8a65187eabf",
+  "program_sha256": "5e2befae48dcdea8d19dc655e40ac236285d049d12573bfb341bec9ce39182f5",
+  "step_basis": "os_steps",
+  "leaves": [
+    {
+      "name": "15653256_15653263",
+      "first_block": 15653256,
+      "last_block": 15653263,
+      "initial_root": "0x7cc51d24bc74bd5f08cc90f534ff35191f4079e66cfec5640444a6ca1162d6b",
+      "final_root": "0x696bd924f5dcef0fd3bbc1fd7486cc577da443c8011ec8fee54bb1a32f2e2b9",
+      "adapted_sha256": "0ab78c036d0622580c6b5d728fe3a4484f2344db610c27eeb7ce3232b10c4711",
+      "preimage_sha256": "73acdc45e974b5dbe948ad9d31ce55e0049b0ad3adfd7b1df75c49d2c7d46a9e",
+      "steps": 4174690
+    },
+    {
+      "name": "15653264_15653264",
+      "first_block": 15653264,
+      "last_block": 15653264,
+      "initial_root": "0x696bd924f5dcef0fd3bbc1fd7486cc577da443c8011ec8fee54bb1a32f2e2b9",
+      "final_root": "0x17cd6262e1d9b8e09e0cc4d6e85942c475ad458fcd0f14816cf252fff8bfee1",
+      "adapted_sha256": "65dd69e3f1eb08c8db2448da4342758768722bf52bd8caa2de8bdfcb9de2d13a",
+      "preimage_sha256": "f656c48b32e62e7e34e7743a1e4104eba6ec874331f453781377e701e5c8884d",
+      "steps": 22810055
+    }
+  ]
+}

@@ -330,6 +330,13 @@ pub const Prepared = struct {
         try self.validate(plan, protocol);
         const placement = try managedPlacement();
         const compact_profile = try compactDeviceProfile(transaction);
+        const decommit_prefetch = if (std.posix.getenv("STWO_CUDA_DECOMMIT_PREFETCH_HASHES")) |value|
+            std.mem.eql(u8, value, "1")
+        else
+            false;
+        if (decommit_prefetch and
+            (!transaction.isManagedArena() or placement != .capacity or compact_profile != .none or self.transient_static))
+            return error.ConflictingManagedPolicies;
         const compact_hash_host_percent: u8 = if (compact_profile == .large and self.transient_static)
             try compactTraceHashHostPercent(transaction)
         else
@@ -890,8 +897,35 @@ pub const Prepared = struct {
             self.bindings.query_pow.transcript_nonce,
         );
         try transaction.endStage(.pow);
+        memoryPhase(&memory_timer, "query_pow_end");
 
         try transaction.beginStage(.decommit);
+        if (decommit_prefetch) {
+            // The 70-query opening walk is sparse and random. A multi-GiB
+            // hash tree can be mostly host-backed after FRI even though the
+            // whole tree fits in the HBM released by earlier stages. This
+            // opt-in research path restores the four authenticated trace
+            // trees before the opening kernels; it changes no transcript or
+            // path data, only their physical location.
+            phase = "decommit_prefetch_trace_hashes";
+            var total_hash_bytes: u64 = 0;
+            for (0..4) |ordinal| {
+                const slot = plan.slot(.trace_merkle_hashes, @intCast(ordinal)) orelse
+                    return error.InvalidProofSessionBindings;
+                const words = try transaction.slot(slot.id);
+                total_hash_bytes = std.math.add(
+                    u64,
+                    total_hash_bytes,
+                    std.math.mul(u64, words.len, @sizeOf(u32)) catch return error.SizeOverflow,
+                ) catch return error.SizeOverflow;
+            }
+            if (total_hash_bytes > 8 * (1 << 30)) return error.InvalidManagedPlacementPolicy;
+            for (0..4) |ordinal| {
+                const slot = plan.slot(.trace_merkle_hashes, @intCast(ordinal)) orelse
+                    return error.InvalidProofSessionBindings;
+                try transaction.prefetchManagedSlot(slot.id, true);
+            }
+        }
         phase = "decommit";
         const route = try self.controllers.decommit.execute(
             session,

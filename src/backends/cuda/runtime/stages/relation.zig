@@ -188,6 +188,19 @@ pub fn prepare(
     options: PrepareOptions,
 ) PrepareError!*PreparedPlan {
     try validatePreparedInput(allocator, options);
+    if (std.posix.getenv("STWO_CUDA_RELATION_SOURCE_DIAGNOSTIC")) |value| {
+        if (std.mem.eql(u8, value, "1")) {
+            for (options.instances, options.topology.geometry, 0..) |instance, geometry, index| {
+                var source_words: u64 = 0;
+                for (instance.source_word_extents) |extent|
+                    source_words = std.math.add(u64, source_words, extent) catch return error.SizeOverflow;
+                std.debug.print(
+                    "cuda relation source instance={} rows={} columns={} source_words={} output_words={}\n",
+                    .{ index, geometry.rows, geometry.columns, source_words, @as(u64, geometry.rows) * geometry.columns * 4 },
+                );
+            }
+        }
+    }
     const state = try allocator.create(PlanState);
     errdefer allocator.destroy(state);
     const geometry = try allocator.dupe(Geometry, options.topology.geometry);
@@ -322,6 +335,11 @@ pub fn OpsForAt(
             const instance_count = try topology.instanceCount();
             const scratch_words = try topology.scratchWords();
             try validateResidentPlan(session, state);
+            const timeline = if (std.posix.getenv("STWO_CUDA_RELATION_TIMELINE")) |value|
+                std.mem.eql(u8, value, "1")
+            else
+                false;
+            var timer = if (timeline) std.time.Timer.start() catch return error.InvalidState else null;
 
             const drawn = try layout.resident(
                 session,
@@ -415,6 +433,7 @@ pub fn OpsForAt(
                 session.context.stream,
             );
             try common.record(session, stage, status);
+            if (timeline) try reportTimeline(session, &timer, "challenge");
 
             if (topology.fused_fractions) {
                 status = Api.stwo_relation_fused_global_on(
@@ -431,6 +450,7 @@ pub fn OpsForAt(
                     session.context.stream,
                 );
                 try common.recordMany(session, stage, status, 2);
+                if (timeline) try reportTimeline(session, &timer, "fused_fraction_prefix");
             } else {
                 status = Api.stwo_relation_pairs_global_on(
                     sources.pointer,
@@ -446,6 +466,7 @@ pub fn OpsForAt(
                     session.context.stream,
                 );
                 try common.record(session, stage, status);
+                if (timeline) try reportTimeline(session, &timer, "pairs");
 
                 status = Api.stwo_relation_fraction_chain_global_on(
                     outputs.pointer,
@@ -457,6 +478,7 @@ pub fn OpsForAt(
                     session.context.stream,
                 );
                 try common.recordMany(session, stage, status, 2);
+                if (timeline) try reportTimeline(session, &timer, "fraction_chain");
             }
 
             status = Api.stwo_relation_tail_global_on(
@@ -472,8 +494,16 @@ pub fn OpsForAt(
                 session.context.stream,
             );
             try common.recordMany(session, stage, status, 5);
+            if (timeline) try reportTimeline(session, &timer, "tail");
         }
     };
+}
+
+fn reportTimeline(session: anytype, timer: *?std.time.Timer, name: []const u8) runtime_error.Error!void {
+    if (comptime @hasDecl(@TypeOf(session.context), "sync")) {
+        try session.context.sync();
+        std.debug.print("cuda relation timeline phase={s} elapsed_ns={}\n", .{ name, timer.*.?.lap() });
+    }
 }
 
 fn validatePreparedInput(
