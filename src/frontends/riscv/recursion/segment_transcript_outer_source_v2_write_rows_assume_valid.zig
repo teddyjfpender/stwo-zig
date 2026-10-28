@@ -36,6 +36,7 @@ pub fn writeRowsAssumeValid(
     program: *const transcript.Program,
     execution: *const transcript.Execution,
     plan: *const schedule.Plan,
+    admitted_native_tree0_root: dependency_0.Digest,
 ) void {
     var control_at: usize = 0;
     for (plan.steps, 0..) |step, sequence| {
@@ -193,6 +194,7 @@ pub fn writeRowsAssumeValid(
                         @intCast(frame_word_index - channel.RATE),
                         @intCast(frame_word_index),
                         value,
+                        admitted_native_tree0_root,
                     );
                     payload_at += 1;
                 }

@@ -1,6 +1,7 @@
 const std = @import("std");
 const stwo_core = @import("stwo_core");
 const QM31 = stwo_core.fields.qm31.QM31;
+const M31 = stwo_core.fields.m31.M31;
 const opcode_entries = @import("../../air/lookups/opcode_entries.zig");
 const relation_challenges = @import("../../air/relation_challenges.zig");
 const statement_mod = @import("../../air/statement.zig");
@@ -39,6 +40,16 @@ test "R-012 verified VM leaf context owns exact detailed authority" {
     );
     try std.testing.expectEqual(statement.n_components, context.component_descs.len);
     try std.testing.expectEqual(statement.n_infra, context.infra_descs.len);
+
+    statement.public_data.initial_rw_root = null;
+    try std.testing.expectError(error.InvalidDescriptorShape, subject.testing.initFromProfile(
+        allocator,
+        statement,
+        claim,
+        &relations,
+        profile,
+    ));
+    statement.public_data.initial_rw_root = 7;
 
     // Caller mutation cannot rewrite recursive inputs after verification.
     statement.component_descs[0].n_rows -= 1;
@@ -85,6 +96,11 @@ test "R-012 VM leaf context rejects every authenticated storage class mutation" 
     context.relation_draws[3] = context.relation_draws[3].sub(QM31.one());
     try context.validate();
 
+    context.native_roots[0] = context.native_roots[0].add(M31.one());
+    try std.testing.expectError(error.ContextDigestMismatch, context.validate());
+    context.native_roots[0] = context.native_roots[0].sub(M31.one());
+    try context.validate();
+
     context.component_descs[0].n_rows -= 1;
     try std.testing.expectError(error.ContextDigestMismatch, context.validate());
     context.component_descs[0].n_rows += 1;
@@ -117,6 +133,8 @@ fn initClaim(
 }
 
 fn initFixture(statement: *statement_mod.RiscVStatement) void {
+    statement.public_data.initial_rw_root = 7;
+    statement.public_data.final_rw_root = 11;
     statement.n_components = 2;
     statement.component_descs[0] = .{
         .family = .base_alu_imm,

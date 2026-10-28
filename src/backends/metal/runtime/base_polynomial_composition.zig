@@ -416,11 +416,16 @@ fn evaluateInternal(
         for (partition.bases[0..partition.base_count]) |base| {
             const capability = base.capability;
             const range = base.constraints;
-            const job_power_start = try rangePowerStart(
+            const job_power_start = rangePowerStart(
                 power_start,
                 constraint_count,
                 range,
-            );
+            ) catch |err| {
+                std.log.err("Metal base composition partition: component={d} total={d} start={d} count={d}", .{
+                    component_registry_index, constraint_count, range.start, range.count,
+                });
+                return err;
+            };
             const job = try resolveBaseJob(
                 component,
                 capability,
@@ -447,7 +452,12 @@ fn evaluateInternal(
                 capability,
                 accelerated_trace,
                 residency_handles,
-                try rangePowerStart(power_start, constraint_count, range),
+                rangePowerStart(power_start, constraint_count, range) catch |err| {
+                    std.log.err("Metal lookup composition partition: component={d} total={d} start={d} count={d}", .{
+                        component_registry_index, constraint_count, range.start, range.count,
+                    });
+                    return err;
+                },
                 range.count,
             );
             initialized_lookup_jobs += 1;

@@ -238,6 +238,9 @@ pub fn Namespace(comptime context: type) type {
             sampled_value_count: u32,
             queried_values_per_query: u32,
             claimed_sum_count: u32,
+            physical_claimed_sum_count: u32 = 0,
+            physical_component_count: u32 = 0,
+            physical_infra_count: u32 = 0,
             interaction_pow_bits: u32,
             pcs_pow_bits: u32,
 
@@ -249,6 +252,25 @@ pub fn Namespace(comptime context: type) type {
                     .interaction_pow_bits = captured.interaction_pow_bits,
                     .pcs_pow_bits = captured.pcs_pow_bits,
                 };
+            }
+
+            pub fn fromCapturedForVmPlan(
+                captured: *const recursion.captured_fri.Owned,
+                plan: *const schedule.Plan,
+            ) !ScheduleFacts {
+                var facts = fromCaptured(captured);
+                var seen = false;
+                for (plan.steps) |step| switch (step) {
+                    .absorb_physical_claims => |physical| {
+                        if (seen) return error.AuthorityMismatch;
+                        seen = true;
+                        facts.physical_claimed_sum_count = physical.count;
+                        facts.physical_component_count = physical.component_count;
+                        facts.physical_infra_count = physical.infra_count;
+                    },
+                    else => {},
+                };
+                return facts;
             }
         };
 
@@ -272,6 +294,9 @@ pub fn Namespace(comptime context: type) type {
                     .sampled_value_count = facts.sampled_value_count,
                     .queried_values_per_query = facts.queried_values_per_query,
                     .claimed_sum_count = facts.claimed_sum_count,
+                    .physical_claimed_sum_count = facts.physical_claimed_sum_count,
+                    .physical_component_count = facts.physical_component_count,
+                    .physical_infra_count = facts.physical_infra_count,
                     .interaction_pow_bits = facts.interaction_pow_bits,
                     .pcs_pow_bits = facts.pcs_pow_bits,
                 },

@@ -397,12 +397,22 @@ pub fn produce(
         proof_capture,
     );
     try leaf_wire.validateAgainstShape(leaf_shape);
+    const admitted_native_tree0 = try prover.preprocessed.rootForDescriptors(
+        Engine,
+        allocator,
+        recursion.protocol.PCS_CONFIG,
+        output.statement.component_descs[0..output.statement.n_components],
+        output.statement.infra_descs[0..output.statement.n_infra],
+    );
+    if (!std.meta.eql(admitted_native_tree0, leaf_wire.commitments[0]))
+        return error.InvalidNativePreprocessedCommitment;
 
     var transcript_preprocessing =
         try recursion.segment_transcript_witness.Preprocessing.init(
             allocator,
             &transcript_plans.vm,
             &transcript_plans.recursion,
+            admitted_native_tree0,
         );
     defer transcript_preprocessing.deinit();
     var public_claim_words: [recursion.poseidon2_channel.RATE]M31 = undefined;

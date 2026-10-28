@@ -168,7 +168,7 @@ pub const ExecutionV4 = struct {
 /// verifier.  Void-returning channel calls retain their first allocation or
 /// protocol failure and make `finish` fail closed.
 pub const Channel = struct {
-    allocator: std.mem.Allocator,
+    allocator: std.mem.Allocator = std.heap.smp_allocator,
     inner: native_channel.Channel = .{},
     context_tag: u32 = 0,
     first_fault: ?anyerror = null,
@@ -488,7 +488,12 @@ pub const Channel = struct {
     }
 
     pub fn verifyPowNonce(self: *Self, bits: u32, nonce: u64) bool {
-        if (self.first_fault != null or self.pending_pow != null) {
+        if (self.first_fault != null) return false;
+        if (self.pending_pow) |pending| {
+            // A CPU search already checked the nonce. The detached protocol
+            // rechecks that same candidate before mixing it, while PCS mixes
+            // it directly. Both paths describe one PoW event.
+            if (pending.bits == bits and pending.nonce == nonce) return true;
             self.recordFault(error.PendingProofOfWork);
             return false;
         }

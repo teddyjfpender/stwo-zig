@@ -474,6 +474,7 @@ fn compileInternal(
         split.fixed_program_values,
         claims[0..@as(usize, input.base_profile.input_profile.claimed_sum_count)],
         &relations.base,
+        root_values,
         point,
         composition_randomness,
         mask_log_size,

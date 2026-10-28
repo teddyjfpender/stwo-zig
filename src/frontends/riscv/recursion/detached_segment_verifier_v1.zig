@@ -77,7 +77,7 @@ pub fn verifyWithChannel(
     capture: ?*ProofCapture,
 ) !RecordingResultV1 {
     try key.validate();
-    _ = try expected.metadata();
+    try key.validateExpected(expected);
     _ = try claims.vector(&key.manifest);
     if (proof_bytes.len == 0 or proof_bytes.len > MAX_PROOF_BYTES)
         return error.SegmentDetachedProofSizeMismatch;

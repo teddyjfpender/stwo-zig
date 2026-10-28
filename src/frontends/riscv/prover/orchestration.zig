@@ -48,6 +48,7 @@
 //! ```
 
 const std = @import("std");
+const builtin = @import("builtin");
 const pcs_core = @import("stwo_core").pcs;
 const prover_engine = @import("stwo_prover_engine").engine;
 const work_pool = @import("stwo_prover_engine").work_pool;
@@ -134,6 +135,11 @@ pub const ExecutionOptionsV2 = struct {
     /// Ethereum retained PCS ceiling; independent of composition allocation.
     pcs_retained_byte_budget: ?usize = null,
     statement_admission: ?StatementAdmissionV2 = null,
+    /// Test-only entry to the real SegmentV2 Tree 0 commit. Production builds
+    /// erase the value type, so commands and service requests cannot supply a
+    /// witness mutation through this options struct.
+    test_preprocessed_mutation: if (builtin.is_test) ?TestWitnessMutation else void =
+        if (builtin.is_test) null else {},
 };
 
 pub const LookupLayoutV2 = enum {

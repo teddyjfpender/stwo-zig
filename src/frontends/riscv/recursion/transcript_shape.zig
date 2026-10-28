@@ -14,12 +14,15 @@ const schedule = @import("air/verifier_schedule.zig");
 
 pub const PROFILE_ID_DOMAIN: u32 = 0x5246_5031; // "RFP1"
 pub const SHAPE_ID_DOMAIN: u32 = 0x5246_5331; // "RFS1"
-pub const SHAPE_WORD_COUNT: usize = 25;
+pub const SHAPE_WORD_COUNT: usize = 28;
 
 pub const Facts = struct {
     sampled_value_count: u32,
     queried_values_per_query: u32,
     claimed_sum_count: u32,
+    physical_claimed_sum_count: u32 = 0,
+    physical_component_count: u32 = 0,
+    physical_infra_count: u32 = 0,
     interaction_pow_bits: u32,
     pcs_pow_bits: u32,
 };
@@ -71,8 +74,11 @@ pub fn derive(
     words[20] = facts.sampled_value_count;
     words[21] = facts.queried_values_per_query;
     words[22] = facts.claimed_sum_count;
-    words[23] = facts.interaction_pow_bits;
-    words[24] = facts.pcs_pow_bits;
+    words[23] = facts.physical_claimed_sum_count;
+    words[24] = facts.physical_component_count;
+    words[25] = facts.physical_infra_count;
+    words[26] = facts.interaction_pow_bits;
+    words[27] = facts.pcs_pow_bits;
 
     const result = schedule.ScheduleShape{
         .protocol_id = protocol_id,
@@ -82,6 +88,9 @@ pub fn derive(
         .query_count = profile.query_count,
         .table_count = facts.queried_values_per_query,
         .claimed_sum_count = facts.claimed_sum_count,
+        .physical_claimed_sum_count = facts.physical_claimed_sum_count,
+        .physical_component_count = facts.physical_component_count,
+        .physical_infra_count = facts.physical_infra_count,
         .sampled_value_count = facts.sampled_value_count,
         .tree_heights = tree_heights,
         .fri = fri,

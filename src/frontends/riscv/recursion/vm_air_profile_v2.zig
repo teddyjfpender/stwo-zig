@@ -335,12 +335,27 @@ pub const ProfileV2 = struct {
         manifest: *const lookup_physical_v2.Manifest,
         authenticated: *const lookup_physical_v2.AuthenticatedStatement,
     ) !void {
-        var expected = try deriveFromSource(
+        return self.validateAuthorityGeometry(
             allocator,
-            statement,
+            try Geometry.fromStatement(statement),
             manifest,
             authenticated,
-            ExpectedSource{ .statement = statement, .manifest = manifest, .circuit_profile = self.circuit_profile },
+        );
+    }
+
+    pub fn validateAuthorityGeometry(
+        self: *const ProfileV2,
+        allocator: std.mem.Allocator,
+        geometry: Geometry,
+        manifest: *const lookup_physical_v2.Manifest,
+        authenticated: *const lookup_physical_v2.AuthenticatedStatement,
+    ) !void {
+        var expected = try deriveFromSource(
+            allocator,
+            geometry,
+            manifest,
+            authenticated,
+            ExpectedSource{ .geometry = geometry, .manifest = manifest, .circuit_profile = self.circuit_profile },
             self.input_profile.sampled_value_count,
             self.circuit_profile,
         );
@@ -375,7 +390,7 @@ pub fn deriveWithCircuitProfile(
 ) !ProfileV2 {
     return deriveFromSource(
         allocator,
-        statement,
+        try Geometry.fromStatement(statement),
         manifest,
         authenticated,
         NativeSource{ .components = components },
@@ -408,12 +423,32 @@ pub fn deriveAuthorityWithCircuitProfile(
     sampled_value_count: u32,
     circuit_profile: circuit.CircuitProfileV1,
 ) !ProfileV2 {
-    return deriveFromSource(
+    return deriveAuthorityFromGeometryWithCircuitProfile(
         allocator,
-        statement,
+        try Geometry.fromStatement(statement),
         manifest,
         authenticated,
-        ExpectedSource{ .statement = statement, .manifest = manifest, .circuit_profile = circuit_profile },
+        sampled_value_count,
+        circuit_profile,
+    );
+}
+
+/// Rebuild the canonical profile without a public-data-bearing statement or
+/// captured proof. Only admitted native descriptor geometry is accepted.
+pub fn deriveAuthorityFromGeometryWithCircuitProfile(
+    allocator: std.mem.Allocator,
+    geometry: Geometry,
+    manifest: *const lookup_physical_v2.Manifest,
+    authenticated: *const lookup_physical_v2.AuthenticatedStatement,
+    sampled_value_count: u32,
+    circuit_profile: circuit.CircuitProfileV1,
+) !ProfileV2 {
+    return deriveFromSource(
+        allocator,
+        geometry,
+        manifest,
+        authenticated,
+        ExpectedSource{ .geometry = geometry, .manifest = manifest, .circuit_profile = circuit_profile },
         sampled_value_count,
         circuit_profile,
     );
@@ -443,19 +478,18 @@ const NativeSource = struct {
 };
 
 const ExpectedSource = struct {
-    statement: *const statement_mod.RiscVStatement,
+    geometry: Geometry,
     manifest: *const lookup_physical_v2.Manifest,
     circuit_profile: circuit.CircuitProfileV1 = .legacy_v4,
 
     fn len(self: ExpectedSource) usize {
-        return 2 * @as(usize, self.statement.n_components) +
-            self.statement.n_infra;
+        return 2 * self.geometry.components.len + self.geometry.infrastructure.len;
     }
 
     fn facts(self: ExpectedSource, index: usize) Facts {
-        const opcode_count = 2 * @as(usize, self.statement.n_components);
+        const opcode_count = 2 * self.geometry.components.len;
         if (index < opcode_count) {
-            const descriptor = self.statement.component_descs[index / 2];
+            const descriptor = self.geometry.components[index / 2];
             if (index % 2 == 0) return .{
                 .n_constraints = semantic_eval.constraintCount(
                     descriptor.family,
@@ -473,7 +507,7 @@ const ExpectedSource = struct {
                 .composition_log_split = verifier_types.COMPOSITION_LOG_SPLIT,
             };
         }
-        const descriptor = self.statement.infra_descs[index - opcode_count];
+        const descriptor = self.geometry.infrastructure[index - opcode_count];
         return .{
             .n_constraints = registry.constraintCountWithCircuitProfile(descriptor.kind, self.circuit_profile),
             .max_constraint_log_degree_bound = descriptor.log_size + 1,
@@ -482,9 +516,24 @@ const ExpectedSource = struct {
     }
 };
 
+pub const Geometry = struct {
+    components: []const statement_mod.FamilyComponentDesc,
+    infrastructure: []const statement_mod.InfraComponentDesc,
+
+    pub fn fromStatement(statement: *const statement_mod.RiscVStatement) !Geometry {
+        if (statement.n_components > statement_mod.MAX_COMPONENTS or
+            statement.n_infra > statement_mod.MAX_INFRA_COMPONENTS)
+            return error.InvalidStatementShape;
+        return .{
+            .components = statement.component_descs[0..statement.n_components],
+            .infrastructure = statement.infra_descs[0..statement.n_infra],
+        };
+    }
+};
+
 fn deriveFromSource(
     allocator: std.mem.Allocator,
-    statement: *const statement_mod.RiscVStatement,
+    geometry: Geometry,
     manifest: *const lookup_physical_v2.Manifest,
     authenticated: *const lookup_physical_v2.AuthenticatedStatement,
     source: anytype,
@@ -492,19 +541,19 @@ fn deriveFromSource(
     circuit_profile: circuit.CircuitProfileV1,
 ) !ProfileV2 {
     try manifest.validate();
-    try authenticated.validateAgainst(statement, manifest);
-    if (statement.n_components == 0 or
-        statement.n_components > statement_mod.MAX_COMPONENTS or
-        statement.n_infra == 0 or
-        statement.n_infra > statement_mod.MAX_INFRA_COMPONENTS)
+    try authenticated.validateAgainstComponents(geometry.components, manifest);
+    if (geometry.components.len == 0 or
+        geometry.components.len > statement_mod.MAX_COMPONENTS or
+        geometry.infrastructure.len == 0 or
+        geometry.infrastructure.len > statement_mod.MAX_INFRA_COMPONENTS)
     {
         return error.InvalidStatementShape;
     }
     const expected_count = std.math.add(
         usize,
-        std.math.mul(usize, statement.n_components, 2) catch
+        std.math.mul(usize, geometry.components.len, 2) catch
             return error.ComponentCountMismatch,
-        statement.n_infra,
+        geometry.infrastructure.len,
     ) catch return error.ComponentCountMismatch;
     if (source.len() != expected_count) return error.ComponentCountMismatch;
     const entries = try allocator.alloc(EntryV2, expected_count);
@@ -515,7 +564,7 @@ fn deriveFromSource(
     var preprocessed_columns: u32 = 0;
     var main_columns: u32 = 0;
     var interaction_columns: u32 = 0;
-    for (statement.component_descs[0..statement.n_components]) |descriptor| {
+    for (geometry.components) |descriptor| {
         if (!semantic_eval.isTraceCompatible(descriptor.family))
             return error.InvalidStatementShape;
         const physical = manifest.entryForFamily(descriptor.family);
@@ -613,14 +662,14 @@ fn deriveFromSource(
 
     const opcode_cursor = @import("../air/lang/opcode_composition_manifest.zig")
         .PlacementCursor{
-        .component_count = @intCast(statement.n_components),
-        .adapter_count = 2 * @as(usize, statement.n_components),
+        .component_count = @intCast(geometry.components.len),
+        .adapter_count = 2 * geometry.components.len,
         .preprocessed_columns = preprocessed_columns,
         .main_columns = main_columns,
         .interaction_columns = interaction_columns,
     };
     var infra_cursor = base_assembly.InfrastructureCursor.init(opcode_cursor);
-    for (statement.infra_descs[0..statement.n_infra], 0..) |descriptor, ordinal| {
+    for (geometry.infrastructure, 0..) |descriptor, ordinal| {
         try @import("../air/native_infrastructure_typed_admission.zig").validateKind(descriptor.kind, allocator);
         const placement = try infra_cursor.appendWithCircuit(
             descriptor.kind,
@@ -799,7 +848,7 @@ pub const testing = struct {
         manifest: *const lookup_physical_v2.Manifest,
     ) ![]Facts {
         const source = ExpectedSource{
-            .statement = statement,
+            .geometry = try Geometry.fromStatement(statement),
             .manifest = manifest,
         };
         const count = source.len();
@@ -827,7 +876,7 @@ pub const testing = struct {
         };
         return deriveFromSource(
             allocator,
-            statement,
+            try Geometry.fromStatement(statement),
             manifest,
             authenticated,
             Source{ .values = fact_values },

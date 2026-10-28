@@ -142,9 +142,6 @@ pub fn paddingPairs(relations: *const relations_mod.Relations) [N_SUMS]logup.Row
 /// close it against the initial one, starting execution from `.data` contents
 /// the verified initial root never committed.  Degree 3 in trace columns.
 pub const N_CONSTRAINTS: usize = N_SUMS + 5;
-/// The retired shape without the public-root bindings.  The paused recursion
-/// composition lane still replays this shape because its circuit has no
-/// public-root inputs; it must be re-aligned before it is trusted again.
 pub const N_CONSTRAINTS_WITHOUT_ROOTS: usize = N_SUMS + 3;
 pub const N_ROOT_PARAMETERS: usize = 4;
 
@@ -243,7 +240,7 @@ pub fn finalRootBindingGeneric(comptime S: type, multiplicity: S, term: S) S {
 
 /// Retired constraint shape without the public-root bindings; see
 /// `N_CONSTRAINTS_WITHOUT_ROOTS`.
-pub fn evaluateWithoutRootsGeneric(
+fn evaluateWithoutRootsGeneric(
     comptime S: type,
     main: [8]S,
     is_active: S,

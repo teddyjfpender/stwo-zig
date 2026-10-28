@@ -1,0 +1,17 @@
+{
+  "source_commit": "f374b1db6",
+  "source_file": "src/frontends/riscv/block_v5_ram_lanes_kernel_bench_root.zig",
+  "source_sha256": "dbe93294867f9362f71d42ce742450da515f20c3ddbb6f2447098c6b6754df3c",
+  "command": "python3 scripts/zig_protocol_test.py src/frontends/riscv/block_v5_ram_lanes_kernel_bench_root.zig -OReleaseFast --test-filter 'block-v5 RAM component benchmark'",
+  "host": "local Apple M5",
+  "events": 32768,
+  "passed": true,
+  "exact_bus_counter_parity": true,
+  "word_interaction_ns_samples": [32046084, 32080833, 32983417, 32573083],
+  "ram2_interaction_ns_samples": [22290792, 23330250, 21718125, 21565083],
+  "word_interaction_ns_median": 32326958,
+  "ram2_interaction_ns_median": 22004458,
+  "word_trace_interaction_array_bytes": 14024704,
+  "ram2_trace_interaction_array_bytes": 11141120,
+  "scope": "witness and interaction kernel only; no STARK, commitments, FRI, recursion, guest execution, GPU, or whole-process memory peak"
+}

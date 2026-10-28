@@ -41,6 +41,7 @@ pub const EXACT_47_DOMAIN_CLOSURE_AVAILABLE = owner.EXACT_47_DOMAIN_CLOSURE_AVAI
 pub const OUTER_STARK_VERIFIED = owner.OUTER_STARK_VERIFIED;
 pub const PRODUCTION_ACTIVATION = owner.PRODUCTION_ACTIVATION;
 pub const Error = owner.Error;
+pub const validateNativeTree0 = owner.validateNativeTree0;
 pub const CallRange = owner.CallRange;
 pub const SharedPoseidonCallLayoutV2 = owner.SharedPoseidonCallLayoutV2;
 pub const OwnedCompletePoseidonScheduleV2 = owner.OwnedCompletePoseidonScheduleV2;

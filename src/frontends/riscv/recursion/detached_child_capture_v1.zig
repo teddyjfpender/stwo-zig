@@ -154,10 +154,20 @@ pub fn OwnedFor(comptime family: Family) type {
         /// nested capture storage. The returned layout owns its allocations.
         pub fn compositionLayout(self: *const Self, allocator: std.mem.Allocator) !recursion.recursion_air_composition_circuit_v3.capture_layout_v3.CaptureLayoutV3 {
             const Layout = recursion.recursion_air_composition_circuit_v3.capture_layout_v3.CaptureLayoutV3;
-            return if (family == .segment)
-                Layout.initSegment(allocator, &self.key().manifest, &self.storage().capture)
+            const key_value = self.key();
+            var captured = if (family == .segment)
+                try Layout.initSegment(allocator, &key_value.manifest, &self.storage().capture)
             else
-                Layout.initAuthenticatedBinaryWithProviderRow(allocator, .detached_segment_parent_v1, 34, &self.key().manifest, &self.storage().capture);
+                try Layout.initAuthenticatedBinaryWithProviderRow(allocator, .detached_segment_parent_v1, 34, &key_value.manifest, &self.storage().capture);
+            errdefer captured.deinit();
+            var from_key = if (family == .segment)
+                try Layout.initSegmentFromKey(allocator, &key_value.manifest, key_value.pcs_config.fri_config.log_blowup_factor)
+            else
+                try Layout.initDetachedParentFromKey(allocator, &key_value.manifest, key_value.pcs_config.fri_config.log_blowup_factor);
+            defer from_key.deinit();
+            if (!std.mem.eql(u8, &captured.identity, &from_key.identity))
+                return error.DetachedChildCompositionLayoutMismatch;
+            return captured;
         }
         pub fn writeCompositionInputs(self: *const Self, profile: recursion.recursion_air_composition_circuit_v3.InputProfileV3, destination: []QM31) !void {
             const v3 = recursion.recursion_air_composition_circuit_v3;
@@ -383,4 +393,170 @@ pub fn testOwnedCapture() !void {
     std.debug.print("SEGMENT_V2_DETACHED_CHILD transcript_operations={d} poseidon_calls={d} sampled_values={d} queried_values={d} fri_layers={d} raw_queries={d} input_bytes={d} caller_destroyed=true\n", .{
         before.operations.len, before.trace.poseidon_calls.len, captured.sampled_values.len, captured.queried_values.len, captured.fri_layer_count, captured.raw_queries.len, proof_bytes.len,
     });
+}
+
+/// Genuine-proof parity for the proof-free PCS/FRI graph template. The
+/// boundary-profile fixture used by testOwnedCapture is intentionally not part
+/// of this gate: any independently admitted child key may exercise it.
+pub fn testKeyTemplateFromGenuineCapture() !void {
+    const allocator = std.testing.allocator;
+    const directory = try std.process.getEnvVarOwned(allocator, "STWO_SEGMENT_V2_CHILD_BUNDLE");
+    defer allocator.free(directory);
+    const pin_hex = try std.process.getEnvVarOwned(allocator, "STWO_SEGMENT_V2_CHILD_KEY_SHA256");
+    defer allocator.free(pin_hex);
+    const expected_path = try std.process.getEnvVarOwned(allocator, "STWO_SEGMENT_V2_CHILD_EXPECTED_WIRE");
+    defer allocator.free(expected_path);
+    const args = try command.parseArguments(&.{ directory, pin_hex, expected_path });
+    var dir = try std.fs.cwd().openDir(args.directory, .{});
+    defer dir.close();
+    const key_json = try dir.readFileAlloc(allocator, "key.json", command.MAX_KEY_BYTES);
+    defer allocator.free(key_json);
+    const expected_json = try std.fs.cwd().readFileAlloc(allocator, args.expected_wire_path, command.MAX_INPUT_BYTES);
+    defer allocator.free(expected_json);
+    var expected = try command.OwnedExpectedV1.decode(allocator, expected_json);
+    defer expected.deinit();
+    const claims_json = try dir.readFileAlloc(allocator, "claims.json", command.MAX_INPUT_BYTES);
+    defer allocator.free(claims_json);
+    const input = try command.decodeClaims(allocator, claims_json);
+    const proof_bytes = try dir.readFileAlloc(allocator, "proof.bin", input.proof_bytes);
+    defer allocator.free(proof_bytes);
+    try std.testing.expectEqual(input.proof_bytes, proof_bytes.len);
+    try std.testing.expectEqual(input.proof_sha256, command.hash(proof_bytes));
+    const child = try OwnedV1.init(allocator, key_json, args.independent_key_sha256, &expected.data, input.claims, proof_bytes);
+    defer child.deinit();
+    try @import("detached_prefix_preparation_v1.zig").testKeyOnlyOperationParity(allocator, child);
+    try @import("detached_pcs_rows_v1.zig").testKeyOnlyControlParity(allocator, child);
+    try @import("detached_pcs_preparation_v1.zig").testKeyTemplateParity(allocator, child);
+    try @import("detached_parent_fixed_control_v1.zig").testAgainstVerifiedChild(allocator, child);
+    try @import("detached_parent_fixed_transcript_v1.zig").testAgainstVerifiedChild(allocator, child);
+    try @import("detached_composition_preparation_v1.zig").testKeyGraphAgainstVerifiedChild(allocator, child);
+    const shape = try @import("detached_boundary_key_shape_v1.zig").SegmentShapeV1.init(allocator, child.key());
+    const admitted = @import("detached_section_profile_v1.zig").SectionProfileV1{ .counts = child.key().retained_section_counts };
+    const boundary = try @import("detached_boundary_preparation_v1.zig").OwnedV1.init(allocator, child, admitted, shape.memory);
+    defer boundary.deinit();
+    try std.testing.expectEqual(shape.wire_word_count, child.expected().words().len);
+    try std.testing.expectEqual(shape.provider_calls, boundary.providerCalls().len);
+    try std.testing.expectEqual(shape.provider_calls, boundary.providerBindings().len);
+}
+
+pub fn testKeyTemplateFromGenuineParentCapture() !void {
+    const allocator = std.testing.allocator;
+    const directory = try std.process.getEnvVarOwned(allocator, "STWO_DETACHED_PARENT_BUNDLE");
+    defer allocator.free(directory);
+    const pin_hex = try std.process.getEnvVarOwned(allocator, "STWO_DETACHED_PARENT_KEY_SHA256");
+    defer allocator.free(pin_hex);
+    const expected_path = try std.process.getEnvVarOwned(allocator, "STWO_DETACHED_PARENT_EXPECTED_ROOT");
+    defer allocator.free(expected_path);
+    const parent = try loadVerifiedParentFixture(allocator, directory, pin_hex, expected_path);
+    defer parent.deinit();
+    try @import("detached_prefix_preparation_v1.zig").testKeyOnlyOperationParity(allocator, parent);
+    try @import("detached_pcs_rows_v1.zig").testKeyOnlyControlParity(allocator, parent);
+    try @import("detached_pcs_preparation_v1.zig").testKeyTemplateParity(allocator, parent);
+    try @import("detached_parent_fixed_control_v1.zig").testAgainstVerifiedChild(allocator, parent);
+    try @import("detached_parent_fixed_transcript_v1.zig").testAgainstVerifiedChild(allocator, parent);
+    try @import("detached_composition_preparation_v1.zig").testKeyGraphAgainstVerifiedChild(allocator, parent);
+    try @import("detached_boundary_preparation_v1.zig").testParentKeyGraphAgainstVerifiedChild(allocator, parent);
+}
+
+pub fn testKeyTemplateFromGenuineParentPair() !void {
+    return testKeyTemplateFromGenuineParentPairWithRoot(null);
+}
+
+pub fn testKeyTemplateFromGenuineParentPairWithRoot(comptime root_check: anytype) !void {
+    const allocator = std.testing.allocator;
+    const left_directory = try std.process.getEnvVarOwned(allocator, "STWO_DETACHED_PARENT_BUNDLE");
+    defer allocator.free(left_directory);
+    const left_pin = try std.process.getEnvVarOwned(allocator, "STWO_DETACHED_PARENT_KEY_SHA256");
+    defer allocator.free(left_pin);
+    const left_expected = try std.process.getEnvVarOwned(allocator, "STWO_DETACHED_PARENT_EXPECTED_ROOT");
+    defer allocator.free(left_expected);
+    const right_directory = try std.process.getEnvVarOwned(allocator, "STWO_DETACHED_OTHER_PARENT_BUNDLE");
+    defer allocator.free(right_directory);
+    const right_pin = try std.process.getEnvVarOwned(allocator, "STWO_DETACHED_OTHER_PARENT_KEY_SHA256");
+    defer allocator.free(right_pin);
+    const right_expected = try std.process.getEnvVarOwned(allocator, "STWO_DETACHED_OTHER_PARENT_EXPECTED_ROOT");
+    defer allocator.free(right_expected);
+    const left = try loadVerifiedParentFixture(allocator, left_directory, left_pin, left_expected);
+    defer left.deinit();
+    const right = try loadVerifiedParentFixture(allocator, right_directory, right_pin, right_expected);
+    defer right.deinit();
+    try std.testing.expect(!std.meta.eql(try left.key().identity(), try right.key().identity()));
+    try @import("detached_pcs_preparation_v1.zig").testKeyTemplatePairParity(allocator, left, right);
+    try @import("detached_composition_preparation_v1.zig").testKeyGraphAgainstVerifiedChild(allocator, left);
+    try @import("detached_composition_preparation_v1.zig").testKeyGraphAgainstVerifiedChild(allocator, right);
+    try @import("detached_boundary_preparation_v1.zig").testParentKeyGraphAgainstVerifiedChild(allocator, left);
+    try @import("detached_boundary_preparation_v1.zig").testParentKeyGraphAgainstVerifiedChild(allocator, right);
+    try @import("detached_parent_statement_preparation_v1.zig").testParentKeyGraphAgainstVerifiedChildren(allocator, left, right, .root);
+    try @import("detached_parent_arithmetic_v1.zig").testParentFixedArithmeticAgainstVerifiedChildren(allocator, left, right, .root);
+    try @import("detached_parent_fixed_base_v1.zig").testAgainstVerifiedChildren(.parent, allocator, .{ left, right });
+    try @import("detached_parent_fixed_tree0_rebuild_v1.zig").testAgainstVerifiedChildrenWithRoot(.parent, allocator, .{ left, right }, .root, root_check);
+}
+
+pub fn testKeyStatementFromGenuineSegmentPair() !void {
+    return testKeyStatementFromGenuineSegmentPairWithRoot(null);
+}
+
+pub fn testKeyStatementFromGenuineSegmentPairWithRoot(comptime root_check: anytype) !void {
+    const allocator = std.testing.allocator;
+    const left_directory = try std.process.getEnvVarOwned(allocator, "STWO_SEGMENT_V2_CHILD_BUNDLE");
+    defer allocator.free(left_directory);
+    const left_pin = try std.process.getEnvVarOwned(allocator, "STWO_SEGMENT_V2_CHILD_KEY_SHA256");
+    defer allocator.free(left_pin);
+    const left_expected = try std.process.getEnvVarOwned(allocator, "STWO_SEGMENT_V2_CHILD_EXPECTED_WIRE");
+    defer allocator.free(left_expected);
+    const right_directory = try std.process.getEnvVarOwned(allocator, "STWO_DETACHED_OTHER_SEGMENT_BUNDLE");
+    defer allocator.free(right_directory);
+    const right_pin = try std.process.getEnvVarOwned(allocator, "STWO_DETACHED_OTHER_SEGMENT_KEY_SHA256");
+    defer allocator.free(right_pin);
+    const right_expected = try std.fs.path.join(allocator, &.{ right_directory, "expected-wire.json" });
+    defer allocator.free(right_expected);
+    const left = try loadVerifiedSegmentFixture(allocator, left_directory, left_pin, left_expected);
+    defer left.deinit();
+    const right = try loadVerifiedSegmentFixture(allocator, right_directory, right_pin, right_expected);
+    defer right.deinit();
+    try @import("detached_parent_statement_preparation_v1.zig").testSegmentKeyGraphAgainstVerifiedChildren(allocator, left, right, .intermediate);
+    try @import("detached_parent_arithmetic_v1.zig").testSegmentFixedArithmeticAgainstVerifiedChildren(allocator, left, right, .intermediate);
+    try @import("detached_parent_fixed_base_v1.zig").testAgainstVerifiedChildren(.segment, allocator, .{ left, right });
+    try @import("detached_parent_fixed_tree0_rebuild_v1.zig").testAgainstVerifiedChildrenWithRoot(.segment, allocator, .{ left, right }, .intermediate, root_check);
+}
+
+fn loadVerifiedSegmentFixture(allocator: std.mem.Allocator, directory: []const u8, pin_hex: []const u8, expected_path: []const u8) !*OwnedV1 {
+    const args = try command.parseArguments(&.{ directory, pin_hex, expected_path });
+    var dir = try std.fs.cwd().openDir(args.directory, .{});
+    defer dir.close();
+    const key_json = try dir.readFileAlloc(allocator, "key.json", command.MAX_KEY_BYTES);
+    defer allocator.free(key_json);
+    const expected_json = try std.fs.cwd().readFileAlloc(allocator, args.expected_wire_path, command.MAX_INPUT_BYTES);
+    defer allocator.free(expected_json);
+    var expected = try command.OwnedExpectedV1.decode(allocator, expected_json);
+    defer expected.deinit();
+    const claims_json = try dir.readFileAlloc(allocator, "claims.json", command.MAX_INPUT_BYTES);
+    defer allocator.free(claims_json);
+    const input = try command.decodeClaims(allocator, claims_json);
+    const proof_bytes = try dir.readFileAlloc(allocator, "proof.bin", input.proof_bytes);
+    defer allocator.free(proof_bytes);
+    if (input.proof_bytes != proof_bytes.len or !std.meta.eql(input.proof_sha256, command.hash(proof_bytes)))
+        return error.DetachedChildProofFileMismatch;
+    return OwnedV1.init(allocator, key_json, args.independent_key_sha256, &expected.data, input.claims, proof_bytes);
+}
+
+fn loadVerifiedParentFixture(allocator: std.mem.Allocator, directory: []const u8, pin_hex: []const u8, expected_path: []const u8) !*ParentOwnedV1 {
+    const parent_command = @import("detached_parent_command_v1.zig");
+    var pin: [32]u8 = undefined;
+    _ = try std.fmt.hexToBytes(&pin, pin_hex);
+    var dir = try std.fs.cwd().openDir(directory, .{});
+    defer dir.close();
+    const key_json = try dir.readFileAlloc(allocator, "key.json", parent_command.MAX_KEY_BYTES);
+    defer allocator.free(key_json);
+    const expected_json = try std.fs.cwd().readFileAlloc(allocator, expected_path, parent_command.MAX_INPUT_BYTES);
+    defer allocator.free(expected_json);
+    const expected = try parent_command.decodeExpected(allocator, expected_json);
+    const claims_json = try dir.readFileAlloc(allocator, "claims.json", parent_command.MAX_INPUT_BYTES);
+    defer allocator.free(claims_json);
+    const input = try parent_command.decodeClaims(allocator, claims_json);
+    const proof_bytes = try dir.readFileAlloc(allocator, "proof.bin", input.proof_bytes);
+    defer allocator.free(proof_bytes);
+    try std.testing.expectEqual(input.proof_bytes, proof_bytes.len);
+    try std.testing.expectEqual(input.proof_sha256, parent_command.hash(proof_bytes));
+    return ParentOwnedV1.init(allocator, key_json, pin, &expected, input.claims, proof_bytes);
 }

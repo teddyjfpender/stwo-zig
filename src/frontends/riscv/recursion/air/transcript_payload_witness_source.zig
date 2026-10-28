@@ -248,6 +248,7 @@ pub fn preprocessingDigest(
     vm_rows: usize,
     recursion_rows: usize,
     protocol_id: [component.DIGEST_WORD_COUNT]u32,
+    native_preprocessed_root: [component.DIGEST_WORD_COUNT]u32,
     vm_schedule: [8]u32,
     recursion_schedule: [8]u32,
     rows: []const Row,
@@ -260,6 +261,7 @@ pub fn preprocessingDigest(
     hashInt(&hash, u64, vm_rows);
     hashInt(&hash, u64, recursion_rows);
     for (protocol_id) |word| hashInt(&hash, u32, word);
+    for (native_preprocessed_root) |word| hashInt(&hash, u32, word);
     for (vm_schedule) |word| hashInt(&hash, u32, word);
     for (recursion_schedule) |word| hashInt(&hash, u32, word);
     hashInt(&hash, u64, rows.len);

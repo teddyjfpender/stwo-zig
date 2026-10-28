@@ -1,0 +1,56 @@
+{
+  "schema": "stwo.riscv.block-ram-component-size-sweep.v1",
+  "source_commit": "99975023b",
+  "source_branch": "codex/ethereum-block-fast-lab",
+  "benchmark_source": "src/frontends/riscv/block_v5_ram_full_proof_bench_root.zig",
+  "benchmark_source_sha256": "1f66f421a5cba6a8e9f04d233554f59d8a40b8ec6dbbd63d1ab8fbdc3ca58a75",
+  "host": "local Apple M5",
+  "optimize": "ReleaseFast",
+  "queries": 70,
+  "pow_bits": 26,
+  "pool_workers": 8,
+  "input": "Synthetic ordered space-1 RAM; 16 accesses per address; clocks start at 2^48; identical events for both layouts",
+  "scope": "RAM component proof only. Each proof freshly verifies against a self-built test seal. Archived complete policy admits mode1 with RAM2; the mode1 word-v4 comparator is not a complete-policy result. No independent block policy, range-provider proof, execution, full global join, recursion or Ethereum block verification. Times exclude event generation, verification and full-process setup.",
+  "timing_sum": "first commitment + shared inverse table preparation + proof generation",
+  "cases": [
+    {
+      "events": 32768,
+      "word_total_ns": [611276500, 611409332, 612456957, 610400542],
+      "ram2_total_ns": [637194083, 635531625, 636970834, 639184792],
+      "word_median_ns": 611342916,
+      "ram2_median_ns": 637082458,
+      "all_proofs_verified": true
+    },
+    {
+      "events": 65536,
+      "word_total_ns": [368236542, 370315792, 373971375, 373835916],
+      "ram2_total_ns": [307529668, 310026958, 302996208, 308069250],
+      "word_median_ns": 372075854,
+      "ram2_median_ns": 307799459,
+      "all_proofs_verified": true
+    },
+    {
+      "events": 262144,
+      "word_total_ns": [1986094001, 2005969708, 2001205582, 2017709459],
+      "ram2_total_ns": [1240647875, 1247477375, 1234295833, 1215681584],
+      "word_median_ns": 2003587645,
+      "ram2_median_ns": 1237471854,
+      "all_proofs_verified": true
+    },
+    {
+      "events": 1048576,
+      "word_total_ns": [4634170791, 4807736417, 4742972291, 4658989459],
+      "ram2_total_ns": [4054565916, 4039978583, 4090230292, 4106726959],
+      "word_median_ns": 4700980875,
+      "ram2_median_ns": 4072398104,
+      "all_proofs_verified": true
+    },
+    {
+      "events": 4194304,
+      "word_total_ns": [19591347085],
+      "ram2_total_ns": [16288471334],
+      "all_proofs_verified": true,
+      "single_pair_only": true
+    }
+  ]
+}

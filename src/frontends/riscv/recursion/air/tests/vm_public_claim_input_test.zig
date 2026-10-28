@@ -27,12 +27,12 @@ test "R-012 VM public-claim input preserves exact row-12 geometry and order" {
     defer definition.deinit();
     const plan = try relation_plan.authenticate(&definition);
     try std.testing.expectEqual(@as(usize, 4), air.PHYSICAL_MAIN_COLUMN_COUNT);
-    try std.testing.expectEqual(@as(usize, 10), air.PREPROCESSED_COLUMN_COUNT);
+    try std.testing.expectEqual(@as(usize, 12), air.PREPROCESSED_COLUMN_COUNT);
     try std.testing.expectEqual(@as(usize, 8), air.PARAMETER_COUNT);
     try std.testing.expectEqual(@as(usize, 7), definition.arena.constraintsView().len);
-    try std.testing.expectEqual(@as(usize, 8), definition.arena.effectsView().len);
-    try std.testing.expectEqual(@as(usize, 4), relation_plan.Runtime.BATCH_COUNT);
-    try std.testing.expectEqual(@as(usize, 16), relation_plan.Runtime.INTERACTION_COLUMN_COUNT);
+    try std.testing.expectEqual(@as(usize, 9), definition.arena.effectsView().len);
+    try std.testing.expectEqual(@as(usize, 5), relation_plan.Runtime.BATCH_COUNT);
+    try std.testing.expectEqual(@as(usize, 20), relation_plan.Runtime.INTERACTION_COLUMN_COUNT);
 
     const expected_domains = [_]relation.Domain{
         .recursion_vm_public_claim_word,
@@ -43,6 +43,7 @@ test "R-012 VM public-claim input preserves exact row-12 geometry and order" {
         .range_check_8_8,
         .recursion_vm_public_claim_byte,
         .recursion_vm_public_claim_byte,
+        .recursion_statement_word,
     };
     const expected_roles = [_]relation.Role{
         .emit,
@@ -51,6 +52,7 @@ test "R-012 VM public-claim input preserves exact row-12 geometry and order" {
         .emit,
         .emit,
         .request,
+        .emit,
         .emit,
         .emit,
     };
@@ -85,9 +87,9 @@ test "R-012 VM public-claim input profile is exact and closed" {
     try profile.validate();
     try std.testing.expectEqual(@as(u32, air.LOGICAL_INPUT_COUNT), profile.logical_input_nodes);
     try std.testing.expectEqual(@as(u32, 7), profile.constraint_roots);
-    try std.testing.expectEqual(@as(u32, 8), profile.lookup_events);
-    try std.testing.expectEqual(@as(?u32, 4), profile.lookup_batches);
-    try std.testing.expectEqual(@as(?u32, 16), profile.interaction_columns);
+    try std.testing.expectEqual(@as(u32, 9), profile.lookup_events);
+    try std.testing.expectEqual(@as(?u32, 5), profile.lookup_batches);
+    try std.testing.expectEqual(@as(?u32, 20), profile.interaction_columns);
     try std.testing.expectEqual(@as(u32, 4), profile.maximum_logical_constraint_degree);
     try std.testing.expectEqual(@as(u32, 0), profile.nodes_outside_constraint_effect_closure);
     try std.testing.expectEqualStrings(
@@ -107,6 +109,9 @@ test "R-012 canonical claim shape owns exact classification and IO projections" 
     ));
     try std.testing.expectEqual(witness.WordKind.boolean, preprocessing.rows[211].kind);
     try std.testing.expectEqual(witness.WordKind.field, preprocessing.rows[212].kind);
+    try std.testing.expectEqual(@as(?u32, 0), preprocessing.rows[222].native_root_side);
+    try std.testing.expectEqual(@as(?u32, 1), preprocessing.rows[232].native_root_side);
+    try std.testing.expectEqual(@as(?u32, null), preprocessing.rows[223].native_root_side);
     try std.testing.expectEqual(witness.WordKind.u16, preprocessing.rows[241].kind);
     try std.testing.expectEqual(@as(?u32, 3), preprocessing.rows[241].input_io_index);
     try std.testing.expectEqual(@as(?u32, 3), preprocessing.rows[245].output_io_index);
@@ -246,6 +251,8 @@ test "R-012 VM public-claim relation weights cover exact source classes" {
         .{ .row = 241, .nonzero = &.{ 0, 1, 2, 3, 5, 6, 7 } },
         .{ .row = 245, .nonzero = &.{ 0, 1, 2, 4, 5, 6, 7 } },
         .{ .row = 212, .nonzero = &.{ 0, 1, 2 } },
+        .{ .row = 222, .nonzero = &.{ 0, 1, 2, 8 } },
+        .{ .row = 232, .nonzero = &.{ 0, 1, 2, 8 } },
     };
     for (cases) |case| {
         const entries = try plan.entries(
@@ -270,6 +277,18 @@ test "R-012 VM public-claim relation weights cover exact source classes" {
                     QM31.one();
                 try std.testing.expect(entry.numerator.eql(expected_sign));
             }
+        }
+        if (case.row == 222 or case.row == 232) {
+            const root = entries[8];
+            try std.testing.expectEqual(relation.Domain.recursion_statement_word, root.domain);
+            try std.testing.expectEqual(@as(u8, 3), root.arity);
+            try std.testing.expect(root.values[0].eql(QM31.fromBase(
+                M31.fromCanonical(@import("../vm_statement_roots.zig").NATIVE_CONTINUATION_SCOPE),
+            )));
+            try std.testing.expect(root.values[1].eql(QM31.fromBase(
+                M31.fromCanonical(@intCast(@intFromBool(case.row == 232))),
+            )));
+            try std.testing.expect(root.values[2].eql(QM31.fromBase(main.rows[case.row].value)));
         }
     }
 }
@@ -340,8 +359,8 @@ test "R-012 VM public-claim interaction pins one-inversion five-allocation geome
         );
         defer interaction.deinit(measured.allocator());
         try std.testing.expectEqual(@as(usize, 5), measured.alloc_index);
-        try std.testing.expectEqual(@as(usize, 4), interaction.claims.sums.len);
-        try std.testing.expectEqual(@as(usize, 16), interaction.columns.len);
+        try std.testing.expectEqual(@as(usize, 5), interaction.claims.sums.len);
+        try std.testing.expectEqual(@as(usize, 20), interaction.columns.len);
     }
     try std.testing.expectEqual(measured.allocated_bytes, measured.freed_bytes);
     try std.testing.checkAllAllocationFailures(

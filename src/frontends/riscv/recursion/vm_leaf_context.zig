@@ -52,6 +52,8 @@ pub const Context = struct {
     /// source for its aggregate-consistency constraints.
     canonical_claims: [transcript_claims.COMPONENT_COUNT]QM31,
     relation_draws: [relation_challenges.DRAW_COUNT]QM31,
+    /// Native sparse-memory roots, distinct from span snapshot digests.
+    native_roots: [2]m31.M31,
     identity_digest: [Sha256.digest_length]u8,
 
     pub fn initVerified(
@@ -94,6 +96,20 @@ pub const Context = struct {
 
         var relation_draws: [relation_challenges.DRAW_COUNT]QM31 = undefined;
         try relations.writeDraws(&relation_draws);
+        // This frozen recursive leaf profile admits only segments with both
+        // sparse-memory roots. The native verifier also supports absent roots,
+        // but those require a distinct circuit profile with presence-gated
+        // boundary parameters rather than silently substituting zero.
+        const initial_root = statement.public_data.initial_rw_root orelse
+            return error.InvalidDescriptorShape;
+        const final_root = statement.public_data.final_rw_root orelse
+            return error.InvalidDescriptorShape;
+        if (initial_root >= m31.Modulus or final_root >= m31.Modulus)
+            return error.InvalidDescriptorShape;
+        const native_roots = [2]m31.M31{
+            m31.M31.fromCanonical(initial_root),
+            m31.M31.fromCanonical(final_root),
+        };
         var result = Context{
             .allocator = allocator,
             .schema_version = SCHEMA_VERSION,
@@ -103,6 +119,7 @@ pub const Context = struct {
             .detailed_claims = detailed_claims,
             .canonical_claims = canonical_claims,
             .relation_draws = relation_draws,
+            .native_roots = native_roots,
             .identity_digest = undefined,
         };
         try result.validateShape();
@@ -179,6 +196,8 @@ pub const Context = struct {
         }
         for (self.relation_draws) |value| validateQm31(value) catch
             return error.InvalidRelationDraw;
+        for (self.native_roots) |value| if (value.toU32() >= m31.Modulus)
+            return error.InvalidDescriptorShape;
     }
 
     fn computeIdentityDigest(self: *const Context) [Sha256.digest_length]u8 {
@@ -206,6 +225,7 @@ pub const Context = struct {
         for (self.canonical_claims) |value| hashQm31(&hash, value);
         hashInt(&hash, u32, @intCast(self.relation_draws.len));
         for (self.relation_draws) |value| hashQm31(&hash, value);
+        for (self.native_roots) |value| hashInt(&hash, u32, value.toU32());
         return hash.finalResult();
     }
 };

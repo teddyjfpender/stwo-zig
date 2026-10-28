@@ -12,6 +12,7 @@ const transcript = @import("air/transcript/mod.zig");
 const statement_validation = @import("prover/statement_validation.zig");
 const interaction_witness_work = @import("prover/interaction_witness_work.zig");
 const trace_mod = @import("runner/trace.zig");
+const ScheduledChannel = @import("recursion/native_scheduled_channel.zig").Channel;
 
 pub const ProverRelations = struct {
     interaction_pow: u64,
@@ -24,13 +25,7 @@ pub fn proveToRelations(
     channel: anytype,
     statement: *const statement_mod.RiscVStatement,
 ) !ProverRelations {
-    if (comptime @hasDecl(@TypeOf(channel.*), "absorbRiscVPublicClaim")) {
-        try channel.absorbRiscVPublicClaim();
-    } else {
-        const main_claim = statement.canonicalMainClaim();
-        main_claim.mixInto(channel);
-        statement.mixShardManifest(channel);
-    }
+    try mixPublicClaim(channel, statement);
     const nonce = channel.grind(transcript.INTERACTION_POW_BITS);
     channel.mixU64(nonce);
     return .{
@@ -70,13 +65,7 @@ pub fn proveToRelationsWithExtension(
     statement: *const statement_mod.RiscVStatement,
     extension: anytype,
 ) !ProverRelations {
-    if (comptime @hasDecl(@TypeOf(channel.*), "absorbRiscVPublicClaim")) {
-        try channel.absorbRiscVPublicClaim();
-    } else {
-        const main_claim = statement.canonicalMainClaim();
-        main_claim.mixInto(channel);
-        statement.mixShardManifest(channel);
-    }
+    try mixPublicClaim(channel, statement);
     extension.mixInto(channel);
     const nonce = channel.grind(transcript.INTERACTION_POW_BITS);
     channel.mixU64(nonce);
@@ -119,13 +108,7 @@ pub fn verifyToRelations(
     statement: *const statement_mod.RiscVStatement,
     interaction_pow: u64,
 ) !relation_challenges.Relations {
-    if (comptime @hasDecl(@TypeOf(channel.*), "absorbRiscVPublicClaim")) {
-        try channel.absorbRiscVPublicClaim();
-    } else {
-        const main_claim = statement.canonicalMainClaim();
-        main_claim.mixInto(channel);
-        statement.mixShardManifest(channel);
-    }
+    try mixPublicClaim(channel, statement);
     if (!channel.verifyPowNonce(transcript.INTERACTION_POW_BITS, interaction_pow))
         return transcript.PrefixError.InvalidInteractionProofOfWork;
     channel.mixU64(interaction_pow);
@@ -142,13 +125,7 @@ pub fn verifyToRelationsWithExtension(
     interaction_pow: u64,
     extension: anytype,
 ) !relation_challenges.Relations {
-    if (comptime @hasDecl(@TypeOf(channel.*), "absorbRiscVPublicClaim")) {
-        try channel.absorbRiscVPublicClaim();
-    } else {
-        const main_claim = statement.canonicalMainClaim();
-        main_claim.mixInto(channel);
-        statement.mixShardManifest(channel);
-    }
+    try mixPublicClaim(channel, statement);
     extension.mixInto(channel);
     if (!channel.verifyPowNonce(transcript.INTERACTION_POW_BITS, interaction_pow))
         return transcript.PrefixError.InvalidInteractionProofOfWork;
@@ -163,13 +140,9 @@ pub fn mixInteractionClaim(
 ) !void {
     const canonical = try claim.canonical(statement);
     const view = canonical.view();
-    if (comptime @hasDecl(@TypeOf(channel.*), "absorbRiscVClaimedSums")) {
-        // Recursion-lane scheduled channels absorb the canonical sums as one
-        // fixed-count schedule step; the physical frame below has no step in
-        // that schedule yet and the in-circuit transcript mirrors it exactly.
-        // That lane is paused (conformance/2026-09-27-riscv-pause-checkpoint.md)
-        // and must be re-aligned before it is relied upon.
+    if (comptime @TypeOf(channel.*) == ScheduledChannel) {
         try channel.absorbRiscVClaimedSums(&view.claimed_sums);
+        try channel.absorbRiscVPhysicalClaims(statement, claim);
     } else {
         view.mixInto(channel);
         // Canonical first, then every physical claimed sum the components
@@ -180,6 +153,22 @@ pub fn mixInteractionClaim(
             claim,
             statement_mod.CompatibilityBatching{},
         );
+    }
+}
+
+/// Only the admitted scheduled adapter may replace the ordinary native claim
+/// frame. An arbitrary channel exposing similarly named methods remains on
+/// the canonical native transcript path.
+fn mixPublicClaim(
+    channel: anytype,
+    statement: *const statement_mod.RiscVStatement,
+) !void {
+    if (comptime @TypeOf(channel.*) == ScheduledChannel) {
+        try channel.absorbRiscVPublicClaim();
+    } else {
+        const main_claim = statement.canonicalMainClaim();
+        main_claim.mixInto(channel);
+        statement.mixShardManifest(channel);
     }
 }
 
@@ -208,6 +197,26 @@ const EventTraceChannel = struct {
     tags: [1024]TraceTag = undefined,
     tags_len: usize = 0,
     relation_pair_index: u32 = 0,
+
+    // Deliberately deceptive capabilities: the production dispatch must use
+    // the exact scheduled adapter type, not method-name discovery. Existing
+    // native transcript tests exercise this recorder and fail if one of these
+    // methods is selected.
+    pub fn absorbRiscVPublicClaim(_: *EventTraceChannel) !void {
+        return error.UnexpectedScheduledDispatch;
+    }
+
+    pub fn absorbRiscVClaimedSums(_: *EventTraceChannel, _: []const QM31) !void {
+        return error.UnexpectedScheduledDispatch;
+    }
+
+    pub fn absorbRiscVPhysicalClaims(
+        _: *EventTraceChannel,
+        _: *const statement_mod.RiscVStatement,
+        _: *const statement_mod.RiscVInteractionClaim,
+    ) !void {
+        return error.UnexpectedScheduledDispatch;
+    }
 
     pub fn mixU32s(self: *EventTraceChannel, values: []const u32) void {
         self.inner.mixU32s(values);

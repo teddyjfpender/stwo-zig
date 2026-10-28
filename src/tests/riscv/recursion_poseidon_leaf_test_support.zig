@@ -3,6 +3,7 @@
 const std = @import("std");
 const postcard = @import("interop_postcard");
 const frontend = @import("stwo_riscv_frontend");
+const statement_mod = frontend.air.statement;
 const CpuBackend = @import("stwo_cpu_backend").CpuBackend;
 const riscv_cpu = @import("stwo_riscv_cpu_integration");
 
@@ -231,6 +232,10 @@ pub fn measurementDimensions(
     return .{
         .commitment_count = capture.commitments.len,
         .claimed_sum_count = canonical_claim.claimed_sums.len,
+        .physical_claimed_sum_count = try statement_mod.physicalClaimCount(
+            statement,
+            statement_mod.CompatibilityBatching{},
+        ),
         .sampled_value_count = capture.sampled_values.len,
         .queried_value_count = capture.queried_values.len,
         .trace_path_count = trace_path_count,

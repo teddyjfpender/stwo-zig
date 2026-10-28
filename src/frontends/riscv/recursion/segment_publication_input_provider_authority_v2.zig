@@ -240,7 +240,7 @@ pub const PreparedAuthorityV2 = struct {
             self.lup2_publisher_claim.add(self.detailed_publisher_claim),
         ) or !self.lup2_publisher_claim.add(
             self.row37_consumer_claim,
-        ).isZero() or
+        ).isZero() or !self.detailed_publisher_claim.isZero() or
             !std.mem.eql(u8, &self.identity, &preparedAuthorityId(self)))
         {
             return error.InvalidPreparedAuthority;
@@ -362,8 +362,8 @@ pub fn prepareIntoWithGenerator(
     )) return error.ClaimClosureMismatch;
 
     // The first 55 source-exact rows are byte-for-byte the opposite of row
-    // 37's capture-backed consumers. The residual therefore belongs solely to
-    // row 18's authenticated detailed-claim limbs without a second inversion pass.
+    // 37's capture-backed consumers. Detailed claims are owned by the
+    // transcript payload and have no rows in this component.
     const row37_consumer_claim =
         inputs.capture.closure.verifier_input_consume;
     const lup2_publisher_claim = row37_consumer_claim.neg();

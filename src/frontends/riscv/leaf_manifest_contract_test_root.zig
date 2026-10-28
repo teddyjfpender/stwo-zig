@@ -8,6 +8,24 @@ const contract = @import("recursion/air/segment_outer_manifest_contract_v2.zig")
 
 /// Opt-in override for the unqualified recursion lane (see the skip below).
 const RUN_UNQUALIFIED_RECURSION_LANE_ENV = "STWO_RECURSION_RUN_UNQUALIFIED_LANE";
+const OLD_Q193_KEY = "vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/q193-ladder-4-admission/child-0-key.json";
+
+fn readOldQ193Key(allocator: std.mem.Allocator) ![]u8 {
+    return std.fs.cwd().readFileAlloc(allocator, OLD_Q193_KEY, 64 * 1024 * 1024) catch |err| switch (err) {
+        error.FileNotFound => std.fs.cwd().readFileAlloc(allocator, "../../../" ++ OLD_Q193_KEY, 64 * 1024 * 1024),
+        else => return err,
+    };
+}
+
+test "pre-October q193 leaf key fails current catalog admission" {
+    const allocator = std.testing.allocator;
+    const bytes = try readOldQ193Key(allocator);
+    defer allocator.free(bytes);
+    const OldKey = struct { manifest: contract.Manifest };
+    const parsed = try std.json.parseFromSlice(OldKey, allocator, bytes, .{ .ignore_unknown_fields = true });
+    defer parsed.deinit();
+    try std.testing.expectError(error.ManifestSealMismatch, parsed.value.manifest.validate());
+}
 
 test "pure leaf manifest admits the independently pinned q193 key" {
     const allocator = std.testing.allocator;
@@ -15,12 +33,14 @@ test "pure leaf manifest admits the independently pinned q193 key" {
     // pre-October-2026 compact-Poseidon catalog identity. The October 2026
     // audit replaced the Merkle node's two-term Poseidon2 lookup with one
     // atomic `poseidon2_io` tuple, so the key now fails
-    // `InvalidCatalogGeometry`, and soundness/RISCV_FRONTEND_VERIFICATION_STATUS.md
+    // `ManifestSealMismatch` under the current provider authority, and
+    // soundness/RISCV_FRONTEND_VERIFICATION_STATUS.md
     // ("The October 2026 audit ...") declares the recursion lane NOT QUALIFIED
-    // until its keys and vectors are re-minted together through
-    // `poseidon2_identity_migration`. Remove this skip when that lands.
+    // until its keys and vectors are re-derived under the current circuit.
+    // Pre-contract migration has been retired; remove this skip only after
+    // the regenerated-key regression below is installed.
     if (std.posix.getenv(RUN_UNQUALIFIED_RECURSION_LANE_ENV) == null) return error.SkipZigTest;
-    const bytes = try std.fs.cwd().readFileAlloc(allocator, "vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/q193-ladder-4-admission/child-0-key.json", 64 * 1024 * 1024);
+    const bytes = try readOldQ193Key(allocator);
     defer allocator.free(bytes);
     var actual: [32]u8 = undefined;
     std.crypto.hash.sha2.Sha256.hash(bytes, &actual, .{});

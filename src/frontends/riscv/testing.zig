@@ -236,6 +236,8 @@ pub const aggregation_types = @import("aggregation/types.zig");
 pub const jalr_semantics =
     @import("air/semantics/jalr_legacy_test_oracle.zig");
 pub const prover_orchestration = @import("prover/orchestration.zig");
+pub const verifySegmentV2HostileTree0CaptureForTest =
+    @import("prover/verifier.zig").verifyRiscVSegmentV2WithHostileTree0CaptureForTest;
 pub const commitment_witness = @import("prover/commitment_witness.zig");
 pub const statement_geometry = @import("prover/statement_geometry.zig");
 pub const proof_workspace = @import("prover/proof_workspace.zig");

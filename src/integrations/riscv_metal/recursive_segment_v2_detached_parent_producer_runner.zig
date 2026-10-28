@@ -4,6 +4,7 @@ const std = @import("std");
 const metal = @import("stwo_metal_backend");
 const Backend = metal.MetalCommitBackend;
 const Engine = @import("stwo_riscv_frontend").recursion.engine.ProverEngineForBackend(Backend);
+const RecordedEngine = @import("stwo_riscv_frontend").recursion.engine.RecordingProverEngineForBackend(Backend);
 const producer = @import("stwo_riscv_detached_parent_producer");
 
 pub fn main() !void {
@@ -20,6 +21,20 @@ pub fn main() !void {
         const value = args[tail + 1];
         selected_aot = if (std.mem.eql(u8, value, "core-v2")) .core_v2 else if (std.mem.eql(u8, value, "recursive-framework-v1")) .recursive_framework_v1 else return error.InvalidAotProfile;
         tail += 2;
+    }
+    // Parent key admission verifies the children and rebuilds the fixed
+    // circuit identity. It is proof-free and has no device work to dispatch.
+    if (args.len > tail and std.mem.eql(u8, args[tail], "admit-key")) {
+        const pin = try producer.admitKey(allocator, try producer.parseArguments(args[tail + 1 ..]));
+        const receipt = try std.json.Stringify.valueAlloc(allocator, .{
+            .endpoint = "detached_parent_key_admission",
+            .key_sha256 = pin,
+            .proof_created = false,
+        }, .{});
+        defer allocator.free(receipt);
+        try std.fs.File.stdout().writeAll(receipt);
+        try std.fs.File.stdout().writeAll("\n");
+        return;
     }
     const is_worker = args.len == tail + 3 and std.mem.eql(u8, args[tail], "--worker");
     var batch_input: ?producer.batch.Admitted = if (args.len == tail + 3 and (is_worker or std.mem.eql(u8, args[tail], "--batch"))) try producer.batch.admit(allocator, args[tail + 1], args[tail + 2]) else null;
@@ -63,7 +78,10 @@ pub fn main() !void {
             }
         };
         var guard = Guard{ .telemetry = before, .lifecycle = lifecycle };
-        try producer.worker.serve(Engine, allocator, &batch_input.?, &guard);
+        if (std.process.hasEnvVarConstant("STWO_RISCV_OUTER_TRANSCRIPT_EQUIVALENCE"))
+            try producer.worker.serve(RecordedEngine, allocator, &batch_input.?, &guard)
+        else
+            try producer.worker.serve(Engine, allocator, &batch_input.?, &guard);
         try Backend.shutdown();
         if (Backend.runtimeLifecycleSnapshot().initialized) return error.MetalRuntimeNotReleased;
         std.debug.print("DETACHED_PARENT_METAL_WORKER runtime_released=true\n", .{});
@@ -71,8 +89,17 @@ pub fn main() !void {
     }
     var batch_report: ?producer.batch.Report = null;
     defer if (batch_report) |*report| report.deinit();
-    const report = if (input) |single| try producer.runWithEngine(Engine, allocator, single) else blk: {
-        batch_report = try producer.batch.run(Engine, allocator, &batch_input.?);
+    const transcript_gate = std.process.hasEnvVarConstant("STWO_RISCV_OUTER_TRANSCRIPT_EQUIVALENCE");
+    const report = if (input) |single|
+        if (transcript_gate)
+            try producer.runWithEngine(RecordedEngine, allocator, single)
+        else
+            try producer.runWithEngine(Engine, allocator, single)
+    else blk: {
+        batch_report = if (transcript_gate)
+            try producer.batch.run(RecordedEngine, allocator, &batch_input.?)
+        else
+            try producer.batch.run(Engine, allocator, &batch_input.?);
         break :blk null;
     };
     const after = Backend.runtimeLifecycleSnapshot();

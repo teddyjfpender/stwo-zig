@@ -1,4 +1,4 @@
-//! Challenge-independent tuple-closure diagnosis for the 38-row SegmentV2
+//! Challenge-independent tuple-closure diagnosis for the 39-row SegmentV2
 //! outer cohort.
 //!
 //! The proof path first identifies non-zero relation domains algebraically.
@@ -20,7 +20,7 @@ pub const TupleClosureReport = relation_interaction.TupleClosureReport;
 pub const RelationDomain = @TypeOf(@as(TupleContribution, undefined).domain);
 pub const RelationRole = @TypeOf(@as(TupleContribution, undefined).role);
 
-pub const COMPONENT_COUNT: usize = 38;
+pub const COMPONENT_COUNT: usize = roster.COMPONENT_COUNT + 3;
 pub const VERBOSE_ENV = "STWO_RECURSION_OUTER_TUPLE_VERBOSE";
 pub const RED_DOMAIN_MASK: u64 =
     domainBit(.poseidon2_io) |
@@ -28,6 +28,7 @@ pub const RED_DOMAIN_MASK: u64 =
     domainBit(.recursion_step) |
     domainBit(.recursion_transcript_digest_state) |
     domainBit(.recursion_verifier_input_word) |
+    domainBit(.recursion_statement_word) |
     domainBit(.recursion_verifier_randomness_word);
 
 pub const AuthorityClass = enum(u8) {
@@ -39,6 +40,7 @@ pub const AuthorityClass = enum(u8) {
     range_provider,
     statement_boundary,
     public_logup_boundary,
+    publication_input_provider,
 };
 
 pub const ResidualKind = enum(u8) {
@@ -62,6 +64,8 @@ pub const ExpectedCounterpart = enum(u8) {
     transcript_digest_state_peer,
     verifier_input_publisher,
     verifier_input_consumer,
+    statement_word_publisher,
+    statement_word_consumer,
     verifier_randomness_publisher,
     verifier_randomness_consumer,
     cross_authority_multiplicity,
@@ -459,6 +463,10 @@ fn expectedCounterpart(
             .verifier_input_publisher
         else
             .verifier_input_consumer,
+        .recursion_statement_word => if (kind == .missing_emitter)
+            .statement_word_publisher
+        else
+            .statement_word_consumer,
         .recursion_verifier_randomness_word => if (kind == .missing_emitter)
             .verifier_randomness_publisher
         else
@@ -477,6 +485,7 @@ fn authorityForComponent(component: u8) AuthorityClass {
         35 => .range_provider,
         36 => .statement_boundary,
         37 => .public_logup_boundary,
+        38 => .publication_input_provider,
         else => unreachable,
     };
 }
@@ -487,6 +496,7 @@ fn componentName(component: u8) []const u8 {
     return switch (component) {
         36 => "statement_source_v2",
         37 => "public_logup_source_v2",
+        38 => "publication_input_provider_v2",
         else => "invalid",
     };
 }
@@ -500,7 +510,7 @@ fn componentBit(component: u8) u64 {
 }
 
 comptime {
-    if (COMPONENT_COUNT != roster.COMPONENT_COUNT + 2)
+    if (COMPONENT_COUNT != roster.COMPONENT_COUNT + 3)
         @compileError("SegmentV2 diagnostic roster drifted");
     if (RED_DOMAIN_MASK & domainBit(.range_check_8_8) != 0)
         @compileError("red-domain tuple diagnostic unexpectedly includes row 35");

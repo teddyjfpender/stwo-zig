@@ -1,0 +1,466 @@
+{
+  "schema": "stwo-zig/native-batch-scaling/v1",
+  "scope": "Real nine-segment ADDI/JAL job, 8+1 batch proofs, one freshly verified upper proof; global obligations remain open",
+  "security": "csp_q70_pow26 is unchanged; experimental fold2/fold4 profiles are not production-security qualified",
+  "timing": "Phase sums, not complete command latency; charged peak is upper allocator accounting, not process RSS or whole-job peak",
+  "samples": [
+    {
+      "log": "block-v6-scaling-upper.log",
+      "sha256": "bf325a3c2b6100cab1081d49bd4c5a51cc5aacfbe0183bf7a7bbf5d6c1ab16aa",
+      "runs": {
+        "diagnostic_q8_pow0": {
+          "batches": [
+            {
+              "verified": "true",
+              "profile": "diagnostic_q8_pow0",
+              "children": 4,
+              "native_ns": 0,
+              "prepare_ns": 868815250,
+              "setup_ns": 159028209,
+              "prove_ns": 556928750,
+              "encode_verify_ns": 122309833,
+              "recursive_ns": 1707082042,
+              "g_rows": 94752,
+              "air_cells": 29760044,
+              "proof_bytes": 129079,
+              "globals_open": "true"
+            },
+            {
+              "verified": "true",
+              "profile": "diagnostic_q8_pow0",
+              "children": 4,
+              "native_ns": 0,
+              "prepare_ns": 869601625,
+              "setup_ns": 156273625,
+              "prove_ns": 551148584,
+              "encode_verify_ns": 122067083,
+              "recursive_ns": 1699090917,
+              "g_rows": 94752,
+              "air_cells": 29760044,
+              "proof_bytes": 128563,
+              "globals_open": "true"
+            },
+            {
+              "verified": "true",
+              "profile": "diagnostic_q8_pow0",
+              "children": 1,
+              "native_ns": 0,
+              "prepare_ns": 174867125,
+              "setup_ns": 106315167,
+              "prove_ns": 399079125,
+              "encode_verify_ns": 121836125,
+              "recursive_ns": 802097542,
+              "g_rows": 23688,
+              "air_cells": 7440812,
+              "proof_bytes": 126942,
+              "globals_open": "true"
+            },
+            {
+              "verified": "true",
+              "profile": "diagnostic_q8_pow0",
+              "children": 8,
+              "native_ns": 0,
+              "prepare_ns": 1844761125,
+              "setup_ns": 203570958,
+              "prove_ns": 809681250,
+              "encode_verify_ns": 124087625,
+              "recursive_ns": 2982100958,
+              "g_rows": 189504,
+              "air_cells": 59519020,
+              "proof_bytes": 123671,
+              "globals_open": "true"
+            },
+            {
+              "verified": "true",
+              "profile": "diagnostic_q8_pow0",
+              "children": 3,
+              "native_ns": 0,
+              "prepare_ns": 638808458,
+              "setup_ns": 150587834,
+              "prove_ns": 539131875,
+              "encode_verify_ns": 122913791,
+              "recursive_ns": 1451441958,
+              "g_rows": 71064,
+              "air_cells": 29329004,
+              "proof_bytes": 131136,
+              "globals_open": "true"
+            }
+          ],
+          "source": {
+            "profile": "diagnostic_q8_pow0",
+            "segments": 9,
+            "cycles": 26,
+            "base_steps": 2,
+            "native_ns": 140630458,
+            "workers": 8,
+            "globals_open": "true"
+          },
+          "partition": {
+            "profile": "diagnostic_q8_pow0",
+            "native_ns": 140630458,
+            "batch4_ns": 4208270501,
+            "batch8_ns": 3784198500,
+            "batch4_cells": 66960900,
+            "batch8_cells": 66959832,
+            "complete_root": "false"
+          },
+          "upper": {
+            "verified": "true",
+            "profile": "diagnostic_q8_pow0",
+            "segments": 9,
+            "child_batches": 2,
+            "prepare_ns": 2030401125,
+            "setup_ns": 624638334,
+            "prove_ns": 2836831083,
+            "encode_verify_ns": 169160042,
+            "recursive_ns": 5661030584,
+            "g_rows": 648592,
+            "air_cells": 230346220,
+            "proof_bytes": 139288,
+            "globals_open": "true"
+          },
+          "phase_sum_ns": 9585859542,
+          "recursive_air_cells": 297306052,
+          "recursive_g_rows": 861784
+        },
+        "csp_q70_pow26": {
+          "batches": [
+            {
+              "verified": "true",
+              "profile": "csp_q70_pow26",
+              "children": 4,
+              "native_ns": 0,
+              "prepare_ns": 4680798375,
+              "setup_ns": 994939667,
+              "prove_ns": 3740070000,
+              "encode_verify_ns": 151983541,
+              "recursive_ns": 9567791583,
+              "g_rows": 1402464,
+              "air_cells": 342216192,
+              "proof_bytes": 893883,
+              "globals_open": "true"
+            },
+            {
+              "verified": "true",
+              "profile": "csp_q70_pow26",
+              "children": 4,
+              "native_ns": 0,
+              "prepare_ns": 4686893584,
+              "setup_ns": 984069625,
+              "prove_ns": 3712340250,
+              "encode_verify_ns": 152582458,
+              "recursive_ns": 9535885917,
+              "g_rows": 1402464,
+              "air_cells": 342216192,
+              "proof_bytes": 900047,
+              "globals_open": "true"
+            },
+            {
+              "verified": "true",
+              "profile": "csp_q70_pow26",
+              "children": 1,
+              "native_ns": 0,
+              "prepare_ns": 973580541,
+              "setup_ns": 345755417,
+              "prove_ns": 1559915833,
+              "encode_verify_ns": 150174500,
+              "recursive_ns": 3029426291,
+              "g_rows": 311080,
+              "air_cells": 114701740,
+              "proof_bytes": 804471,
+              "globals_open": "true"
+            },
+            {
+              "verified": "true",
+              "profile": "csp_q70_pow26",
+              "children": 8,
+              "native_ns": 0,
+              "prepare_ns": 10119176000,
+              "setup_ns": 1996779417,
+              "prove_ns": 7329896958,
+              "encode_verify_ns": 155872834,
+              "recursive_ns": 19601725209,
+              "g_rows": 2804928,
+              "air_cells": 684432384,
+              "proof_bytes": 924608,
+              "globals_open": "true"
+            },
+            {
+              "verified": "true",
+              "profile": "csp_q70_pow26",
+              "children": 3,
+              "native_ns": 0,
+              "prepare_ns": 3640125250,
+              "setup_ns": 864235208,
+              "prove_ns": 3310072833,
+              "encode_verify_ns": 153524667,
+              "recursive_ns": 7967957958,
+              "g_rows": 1091384,
+              "air_cells": 275400704,
+              "proof_bytes": 890501,
+              "globals_open": "true"
+            }
+          ],
+          "source": {
+            "profile": "csp_q70_pow26",
+            "segments": 9,
+            "cycles": 832,
+            "base_steps": 64,
+            "native_ns": 2455046417,
+            "workers": 8,
+            "globals_open": "true"
+          },
+          "partition": {
+            "profile": "csp_q70_pow26",
+            "native_ns": 2455046417,
+            "batch4_ns": 22133103791,
+            "batch8_ns": 22631151500,
+            "batch4_cells": 799134124,
+            "batch8_cells": 799134124,
+            "complete_root": "false"
+          },
+          "upper": {
+            "verified": "true",
+            "profile": "csp_q70_pow26",
+            "segments": 9,
+            "child_batches": 2,
+            "prepare_ns": 13926664166,
+            "setup_ns": 4066615792,
+            "prove_ns": 15545137167,
+            "encode_verify_ns": 208123708,
+            "recursive_ns": 33746540833,
+            "g_rows": 5312048,
+            "air_cells": 1293254656,
+            "proof_bytes": 982775,
+            "globals_open": "true"
+          },
+          "phase_sum_ns": 58832738750,
+          "recursive_air_cells": 2092388780,
+          "recursive_g_rows": 8428056
+        }
+      }
+    },
+    {
+      "log": "block-v6-fold-schedules.log",
+      "sha256": "632d0c43d69bb43c40cbd8f2e24dd43a468edfb1b668583ab64edc968805f011",
+      "runs": {
+        "csp_q70_pow26": {
+          "batches": [
+            {
+              "verified": "true",
+              "profile": "csp_q70_pow26",
+              "children": 8,
+              "native_ns": 0,
+              "prepare_ns": 10086347166,
+              "setup_ns": 1996266209,
+              "prove_ns": 7250119500,
+              "encode_verify_ns": 154993208,
+              "recursive_ns": 19487726083,
+              "g_rows": 2804928,
+              "air_cells": 684432384,
+              "proof_bytes": 924608,
+              "globals_open": "true"
+            },
+            {
+              "verified": "true",
+              "profile": "csp_q70_pow26",
+              "children": 1,
+              "native_ns": 0,
+              "prepare_ns": 993623750,
+              "setup_ns": 358324875,
+              "prove_ns": 1574316334,
+              "encode_verify_ns": 150664875,
+              "recursive_ns": 3076929834,
+              "g_rows": 311080,
+              "air_cells": 114701740,
+              "proof_bytes": 804471,
+              "globals_open": "true"
+            }
+          ],
+          "source": {
+            "profile": "csp_q70_pow26",
+            "segments": 9,
+            "cycles": 832,
+            "base_steps": 64,
+            "native_ns": 2259352750,
+            "workers": 8,
+            "globals_open": "true"
+          },
+          "partition": {
+            "profile": "csp_q70_pow26",
+            "native_ns": 2259352750,
+            "batch8_ns": 22564655917,
+            "batch8_cells": 799134124,
+            "complete_root": "false"
+          },
+          "upper": {
+            "verified": "true",
+            "profile": "csp_q70_pow26",
+            "segments": 9,
+            "child_batches": 2,
+            "prepare_ns": 13798544000,
+            "setup_ns": 4048569750,
+            "prove_ns": 15341716625,
+            "encode_verify_ns": 205794417,
+            "recursive_ns": 33394624792,
+            "g_rows": 5312048,
+            "air_cells": 1293254656,
+            "proof_bytes": 982775,
+            "charged_peak_bytes": 10704814035,
+            "globals_open": "true"
+          },
+          "phase_sum_ns": 58218633459,
+          "recursive_air_cells": 2092388780,
+          "recursive_g_rows": 8428056
+        },
+        "experimental_q70_pow26_fold2": {
+          "batches": [
+            {
+              "verified": "true",
+              "profile": "experimental_q70_pow26_fold2",
+              "children": 8,
+              "native_ns": 0,
+              "prepare_ns": 7544923834,
+              "setup_ns": 1523971875,
+              "prove_ns": 5889439708,
+              "encode_verify_ns": 145498000,
+              "recursive_ns": 15103833417,
+              "g_rows": 2007488,
+              "air_cells": 508271616,
+              "proof_bytes": 830809,
+              "globals_open": "true"
+            },
+            {
+              "verified": "true",
+              "profile": "experimental_q70_pow26_fold2",
+              "children": 1,
+              "native_ns": 0,
+              "prepare_ns": 745356000,
+              "setup_ns": 234907500,
+              "prove_ns": 910953542,
+              "encode_verify_ns": 140355917,
+              "recursive_ns": 2031572959,
+              "g_rows": 231336,
+              "air_cells": 63535020,
+              "proof_bytes": 695076,
+              "globals_open": "true"
+            }
+          ],
+          "source": {
+            "profile": "experimental_q70_pow26_fold2",
+            "segments": 9,
+            "cycles": 832,
+            "base_steps": 64,
+            "native_ns": 3163807708,
+            "workers": 8,
+            "globals_open": "true"
+          },
+          "partition": {
+            "profile": "experimental_q70_pow26_fold2",
+            "native_ns": 3163807708,
+            "batch8_ns": 17135406376,
+            "batch8_cells": 571806636,
+            "complete_root": "false"
+          },
+          "upper": {
+            "verified": "true",
+            "profile": "experimental_q70_pow26_fold2",
+            "segments": 9,
+            "child_batches": 2,
+            "prepare_ns": 8700164625,
+            "setup_ns": 2233422625,
+            "prove_ns": 8833750958,
+            "encode_verify_ns": 189833459,
+            "recursive_ns": 19957171667,
+            "g_rows": 3401328,
+            "air_cells": 796581632,
+            "proof_bytes": 837310,
+            "charged_peak_bytes": 7048742139,
+            "globals_open": "true"
+          },
+          "phase_sum_ns": 40256385751,
+          "recursive_air_cells": 1368388268,
+          "recursive_g_rows": 5640152
+        },
+        "experimental_q70_pow26_fold4": {
+          "batches": [
+            {
+              "verified": "true",
+              "profile": "experimental_q70_pow26_fold4",
+              "children": 8,
+              "native_ns": 0,
+              "prepare_ns": 7944160292,
+              "setup_ns": 1748735250,
+              "prove_ns": 6385113416,
+              "encode_verify_ns": 142127417,
+              "recursive_ns": 16220136375,
+              "g_rows": 2158912,
+              "air_cells": 554286080,
+              "proof_bytes": 814234,
+              "globals_open": "true"
+            },
+            {
+              "verified": "true",
+              "profile": "experimental_q70_pow26_fold4",
+              "children": 1,
+              "native_ns": 0,
+              "prepare_ns": 789425625,
+              "setup_ns": 237188584,
+              "prove_ns": 968065750,
+              "encode_verify_ns": 137428666,
+              "recursive_ns": 2132108625,
+              "g_rows": 254184,
+              "air_cells": 63568812,
+              "proof_bytes": 678879,
+              "globals_open": "true"
+            }
+          ],
+          "source": {
+            "profile": "experimental_q70_pow26_fold4",
+            "segments": 9,
+            "cycles": 832,
+            "base_steps": 64,
+            "native_ns": 2380206333,
+            "workers": 8,
+            "globals_open": "true"
+          },
+          "partition": {
+            "profile": "experimental_q70_pow26_fold4",
+            "native_ns": 2380206333,
+            "batch8_ns": 18352245000,
+            "batch8_cells": 617854892,
+            "complete_root": "false"
+          },
+          "upper": {
+            "verified": "true",
+            "profile": "experimental_q70_pow26_fold4",
+            "segments": 9,
+            "child_batches": 2,
+            "prepare_ns": 7781431833,
+            "setup_ns": 2196404625,
+            "prove_ns": 8595769667,
+            "encode_verify_ns": 186544667,
+            "recursive_ns": 18760150792,
+            "g_rows": 3113040,
+            "air_cells": 752877312,
+            "proof_bytes": 816906,
+            "charged_peak_bytes": 6372464075,
+            "globals_open": "true"
+          },
+          "phase_sum_ns": 39492602125,
+          "recursive_air_cells": 1370732204,
+          "recursive_g_rows": 5526136
+        }
+      }
+    }
+  ],
+  "provenance": {
+    "implementation_commit": "68b6a1c167fc68415c255ede53aa52549743a477",
+    "hardware": "Apple M5 Max, 64 GiB, 18 logical CPUs",
+    "workers": 8,
+    "compiler": "Zig 0.15.2 ReleaseFast",
+    "timing_source_note": "Timing logs precede the final equal-and-opposite claim negative assertion; proof-producing implementation is unchanged. Final negative gate passed in ReleaseSafe.",
+    "final_negative_log_sha256": "aa1c647f5c2b21d383f1ae9c43b18537f1274d681fc271b924e624b471fbc24a",
+    "final_negative_result": "All 8 selected tests passed in ReleaseSafe, including fresh upper verification and rejection of cancelling native residual changes."
+  }
+}

@@ -15,6 +15,8 @@ pub const wire_statement = @import("segment_statement_v2.zig");
 pub const graph_mod = @import("air/composition_circuit.zig");
 pub const lowering = @import("air/verifier_arithmetic_lowering.zig");
 pub const register_bytes = @import("segment_register_byte_layout_v1.zig");
+pub const native_sum_topology = @import("segment_public_native_sum_topology_v1.zig");
+pub const wire_layout = @import("segment_statement_v2_transcript_layout.zig");
 
 pub const FORMAT_VERSION: u16 = 5;
 pub const SCHEMA_VERSION: u16 = 3;
@@ -47,6 +49,8 @@ pub const Error = public_source.Error || arithmetic.Error || graph_mod.Error ||
         GraphMirrorMismatch,
         InputBindingMismatch,
         InvalidAuthenticatedTopology,
+        InvalidPublicNativeSumTopology,
+        PublicNativeSumTopologyMismatch,
         PublishedSumMismatch,
     };
 
@@ -333,30 +337,31 @@ pub fn bindGraphInputs(
 
 pub fn addSparseMemoryTerms(
     accumulator: *RelationAccumulator,
-    view: *const wire_statement.CanonicalWireViewV2,
+    topology: native_sum_topology.Topology,
+    retained: *const wire_layout.Layout,
     wire: []const arithmetic.Value,
     layout: register_bytes.MemoryLayout,
     bytes: []const arithmetic.Value,
 ) Error!void {
     var positions = [_]usize{0} ** 4;
-    while (nextMemoryAddress(view, positions)) |address| {
-        const entry_value_match = positions[0] < view.entry_snapshot.count and
-            view.sparseEntry(view.entry_snapshot, positions[0]).address == address;
-        const exit_value_match = positions[1] < view.exit_snapshot.count and
-            view.sparseEntry(view.exit_snapshot, positions[1]).address == address;
-        const entry_clock_match = positions[2] < view.entry_memory_clocks.count and
-            view.clockEntry(view.entry_memory_clocks, positions[2]).address == address;
-        const exit_clock_match = positions[3] < view.exit_memory_clocks.count and
-            view.clockEntry(view.exit_memory_clocks, positions[3]).address == address;
+    while (topology.nextMemoryAddress(retained.counts, positions)) |address| {
+        const entry_value_match = positions[0] < retained.counts[0] and
+            topology.addressAt(retained.counts, 0, positions[0]) == address;
+        const exit_value_match = positions[1] < retained.counts[1] and
+            topology.addressAt(retained.counts, 1, positions[1]) == address;
+        const entry_clock_match = positions[2] < retained.counts[2] and
+            topology.addressAt(retained.counts, 2, positions[2]) == address;
+        const exit_clock_match = positions[3] < retained.counts[3] and
+            topology.addressAt(retained.counts, 3, positions[3]) == address;
 
         const address_start = if (entry_value_match)
-            retainedStart(view.entry_snapshot, positions[0])
+            retainedStart(retained.sections[0], positions[0])
         else if (exit_value_match)
-            retainedStart(view.exit_snapshot, positions[1])
+            retainedStart(retained.sections[1], positions[1])
         else if (entry_clock_match)
-            retainedStart(view.entry_memory_clocks, positions[2])
+            retainedStart(retained.sections[2], positions[2])
         else if (exit_clock_match)
-            retainedStart(view.exit_memory_clocks, positions[3])
+            retainedStart(retained.sections[3], positions[3])
         else
             return error.InvalidAuthenticatedTopology;
         const address_value = try u32At(
@@ -377,7 +382,7 @@ pub fn addSparseMemoryTerms(
             try u32At(
                 accumulator.builder,
                 wire,
-                retainedStart(view.entry_memory_clocks, positions[2]) + 2,
+                retainedStart(retained.sections[2], positions[2]) + 2,
             )
         else
             arithmetic.Value.zero();
@@ -385,7 +390,7 @@ pub fn addSparseMemoryTerms(
             try u32At(
                 accumulator.builder,
                 wire,
-                retainedStart(view.exit_memory_clocks, positions[3]) + 2,
+                retainedStart(retained.sections[3], positions[3]) + 2,
             )
         else
             arithmetic.Value.zero();

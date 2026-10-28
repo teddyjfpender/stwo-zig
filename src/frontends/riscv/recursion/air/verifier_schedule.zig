@@ -148,6 +148,7 @@ pub const VerifierStep = union(enum) {
     verify_and_absorb_interaction_pow: struct { bits: u32 },
     draw_relation_challenge: struct { challenge: u32 },
     absorb_claimed_sums: struct { count: u32 },
+    absorb_physical_claims: struct { count: u32, component_count: u32, infra_count: u32 },
     draw_composition_randomness,
     draw_oods_point,
     accumulate_public_logup_term: struct { term: u32 },
@@ -201,6 +202,7 @@ pub const VerifierStep = union(enum) {
             .verify_and_absorb_interaction_pow => |step| encoded(6, .{step.bits}),
             .draw_relation_challenge => |step| encoded(7, .{step.challenge}),
             .absorb_claimed_sums => |step| encoded(8, .{step.count}),
+            .absorb_physical_claims => |step| encoded(29, .{ step.count, step.component_count, step.infra_count }),
             .draw_composition_randomness => encoded(9, .{}),
             .draw_oods_point => encoded(10, .{}),
             .accumulate_public_logup_term => |step| encoded(11, .{step.term}),
@@ -273,6 +275,9 @@ pub const ScheduleShape = struct {
     query_count: u32,
     table_count: u32,
     claimed_sum_count: u32,
+    physical_claimed_sum_count: u32 = 0,
+    physical_component_count: u32 = 0,
+    physical_infra_count: u32 = 0,
     sampled_value_count: u32,
     tree_heights: [fixed_profile.TREE_COUNT]u32,
     fri: fixed_profile.FriSchedule,
@@ -287,6 +292,9 @@ pub const ScheduleShape = struct {
             .query_count = @intCast(protocol.FRI_QUERY_COUNT),
             .table_count = shape.table_count,
             .claimed_sum_count = shape.claimed_sum_count,
+            .physical_claimed_sum_count = 0,
+            .physical_component_count = 0,
+            .physical_infra_count = 0,
             .sampled_value_count = shape.sampled_value_count,
             .tree_heights = shape.tree_heights,
             .fri = shape.fri,
@@ -303,6 +311,13 @@ pub const ScheduleShape = struct {
             self.query_count == 0 or self.query_count >= m31.Modulus or
             self.table_count == 0 or self.table_count >= m31.Modulus or
             self.claimed_sum_count == 0 or self.claimed_sum_count >= m31.Modulus or
+            self.physical_claimed_sum_count >= m31.Modulus or
+            self.physical_component_count >= m31.Modulus or
+            self.physical_infra_count >= m31.Modulus or
+            (self.physical_claimed_sum_count == 0 and
+                (self.physical_component_count != 0 or self.physical_infra_count != 0)) or
+            (self.physical_claimed_sum_count != 0 and
+                (self.physical_component_count == 0 or self.physical_infra_count == 0)) or
             self.sampled_value_count == 0 or self.sampled_value_count >= m31.Modulus or
             self.fri.count == 0 or self.fri.count > self.fri.rounds.len or
             self.fri.last_layer_coefficient_count == 0 or
@@ -392,6 +407,14 @@ pub const Plan = struct {
         try steps.appendSlice(allocator, &.{
             .assert_global_logup_zero,
             .{ .absorb_claimed_sums = .{ .count = shape.claimed_sum_count } },
+        });
+        if (spec.schema == .vm and shape.physical_claimed_sum_count != 0)
+            try steps.append(allocator, .{ .absorb_physical_claims = .{
+                .count = shape.physical_claimed_sum_count,
+                .component_count = shape.physical_component_count,
+                .infra_count = shape.physical_infra_count,
+            } });
+        try steps.appendSlice(allocator, &.{
             commitmentStep(shape, .interaction, 2),
             .draw_composition_randomness,
             commitmentStep(shape, .composition, 3),

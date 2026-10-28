@@ -1,0 +1,32 @@
+{
+  "passed": true,
+  "script_sha256": "420af51d238a0baba67f98bf40677bbe2a682beadcfe23c98ceed4c7aa0b40ee",
+  "verifier_sha256": "7c09f5fb63f939e40ceee92228c233e3085ef7770cbc834a3b2efa89841c3566",
+  "native_test_log_sha256": "cb49d57b0692fb2b6d53f463aaba99a162786182323dea598d48980a3ab2d5fb",
+  "bundle_inputs_sha256": {
+    "key.json": "ae13d9d3f27dc647950a1f46ea2387344d0133548011a0447d4c1be9aa8d356d",
+    "claims.json": "e48921c1d311968aacb26dc740c2b391a1baca2210d8df86768510132fd822c1",
+    "proof.bin": "1e6ae8a1fec6f4a75a0b779c295ad56fbce00bc2fc3a7782fa58db790bbf2b55",
+    "expected-wire.json": "28a55446a807aa3e044582255407ca418fe997974bf4cae241d1a51a79c80ea0",
+    "hostile-native-proof.bin": "39fbdb1ddf7bca38773f5828b8a02e610b12de1bb22d31d7b90900b75672757d",
+    "hostile-native-statement.json": "a02acd4a24361af6b81d24b4b6413dbb0c0fa27872197b85702bcb7d6edd7f65",
+    "hostile-native-claim.json": "f74c90831ca188e8fe99d2557e112eebf0e5de65ef64083f96b9e3874dbff108"
+  },
+  "cases": [
+    {
+      "name": "proof-present",
+      "exit_code": 1,
+      "elapsed_ns": 970112167,
+      "log_sha256": "6794699283fbeb54c65a401b1a679f5894c4ee319a96fd7e142b801b2b8aa5bf",
+      "expected_error": "InvalidNativePreprocessedCommitment"
+    },
+    {
+      "name": "proof-absent",
+      "exit_code": 1,
+      "elapsed_ns": 225456916,
+      "log_sha256": "6794699283fbeb54c65a401b1a679f5894c4ee319a96fd7e142b801b2b8aa5bf",
+      "expected_error": "InvalidNativePreprocessedCommitment"
+    }
+  ],
+  "inputs_unchanged": true
+}

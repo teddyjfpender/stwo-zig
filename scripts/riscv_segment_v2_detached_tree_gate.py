@@ -36,6 +36,7 @@ def main() -> None:
     args = parser.parse_args()
     if args.aot_profile is not None and args.backend != "metal":
         parser.error("CPU proving does not accept an AOT profile")
+    transcript_gate = "STWO_RISCV_OUTER_TRANSCRIPT_EQUIVALENCE" in os.environ
     if (args.backend == "metal") != bool(args.aot_bundle and args.aot_manifest_sha256) or bool(args.aot_bundle) != bool(args.aot_manifest_sha256):
         parser.error("only Metal requires both AOT bundle and manifest pin")
     output = args.output.resolve()
@@ -74,8 +75,10 @@ def main() -> None:
     seed = manifest["initial_memory_word"]
     if type(seed) is not int or not 0 <= seed <= 0xffffffff:
         raise ValueError("initial memory word must fit u32")
-    for node in leaves + [node for level in levels for node in level]:
-        for field in ("key", "expected"):
+    for node, fields in [(node, ("key", "expected")) for node in leaves] + [
+        (node, ("key", "expected", "key_registry")) for level in levels for node in level
+    ]:
+        for field in fields:
             value = node[field]
             value["resolved"] = str(admit(manifest_path.parent / value["path"], digest(value["sha256"])))
     for role in ("leaf_producer", "parent_producer", "leaf_verifier", "parent_verifier"):
@@ -86,6 +89,7 @@ def main() -> None:
     report = {"gate_sha256": sha256(Path(__file__)), "admission_sha256": args.admission_sha256,
               "backend": args.backend, "aot_profile": AOT_PROFILES[args.aot_profile or "core-v2"] if args.backend == "metal" else None, "segments": count, "memory_addresses": memory_addresses, "profile": manifest["profile"],
               "inputs": {str(p): pin for p, pin in inputs.items()}, "steps": [], "passed": False,
+              "transcript_equivalence": [] if transcript_gate else None,
               "timing_scope": "complete gate includes hostile cases; production sums are separate measurements"}
     scripts = Path(__file__).resolve().parent
     started = time.monotonic_ns()
@@ -137,6 +141,7 @@ def main() -> None:
         text = Path(batch["log"]).read_text()
         batch["lifecycle"] = require_producer_lifecycle(
             text, args.backend, args.aot_manifest_sha256, args.backend, count, args.aot_profile)
+        leaf_receipt = json.loads((leaf_dir / "candidate-receipt.json").read_bytes()) if transcript_gate else None
         previous_dirs = [leaf_dir / f"child-{index}" for index in range(count)]
         for index, (directory, node) in enumerate(zip(previous_dirs, leaves)):
             gate = output / f"leaf-{index}-accepted.json"
@@ -144,10 +149,17 @@ def main() -> None:
                 "--proof-profile", manifest["profile"], "--verifier", str(args.leaf_verifier),
                 "--bundle", str(directory), "--key-sha256", node["key"]["sha256"],
                 "--expected-wire", node["expected"]["resolved"], "--output", str(gate)] +
-                (["--require-root"] if count == 1 else []))
+                (["--require-root"] if count == 1 else []) +
+                (["--require-transcript-equivalence"] if transcript_gate else []))
             accepted_leaf = json.loads(gate.read_bytes())
             if not accepted_leaf["passed"]:
                 raise RuntimeError("leaf proof gate did not pass")
+            if transcript_gate:
+                produced = leaf_receipt["children"][index]["transcript_recording_sha256"]
+                verified = accepted_leaf["cases"][0]["receipt"].get("transcript_recording_sha256")
+                if produced is None or verified is None or produced != verified:
+                    raise RuntimeError(f"leaf {index} producer/standalone-verifier transcript mismatch")
+                report["transcript_equivalence"].append({"node": f"leaf-{index}", "identity_sha256": produced})
             if count == 1:
                 report["root"] = accepted_leaf["cases"][0]["receipt"]
         previous_nodes = leaves
@@ -163,6 +175,8 @@ def main() -> None:
                         "--verifier", str(args.parent_verifier), "--verifier-sha256", args.parent_verifier_sha256,
                         "--producer", str(args.parent_producer), "--producer-sha256", args.parent_producer_sha256,
                         "--bundle", str(directory), "--parent-key", node["key"]["resolved"], "--key-sha256", node["key"]["sha256"],
+                        "--key-registry", node["key_registry"]["resolved"],
+                        "--key-registry-sha256", node["key_registry"]["sha256"],
                         "--expected-root", node["expected"]["resolved"], "--expected-root-sha256", node["expected"]["sha256"],
                         "--publication-mode", "root" if root else "intermediate", "--child-family", "segment" if level_index == 0 else "parent",
                         "--memory-profile", "continuation" if level_index == 0 and index > 0 else "initial", "--output", str(gate)]
@@ -179,6 +193,12 @@ def main() -> None:
                 accepted = json.loads(gate.read_bytes())
                 if not accepted["passed"] or not accepted["producer"]["exited_before_verification"]:
                     raise RuntimeError("parent did not independently verify after producer exit")
+                if transcript_gate:
+                    produced = accepted["producer"]["lifecycle"].get("transcript_recording_sha256")
+                    verified = accepted["cases"][0]["receipt"].get("transcript_recording_sha256")
+                    if produced is None or verified is None or produced != verified:
+                        raise RuntimeError(f"{name} producer/standalone-verifier transcript mismatch")
+                    report["transcript_equivalence"].append({"node": name, "identity_sha256": produced})
                 parent_production_ns += accepted["producer"]["process_ns"]
                 directories.append(directory)
                 if root:

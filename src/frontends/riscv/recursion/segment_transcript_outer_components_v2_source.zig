@@ -238,10 +238,7 @@ pub const Source = struct {
 pub fn payloadLogicalRow(
     row: source_v2.TranscriptPayloadRowV2,
 ) TranscriptPayloadRelation.Row {
-    const constant_value = if (row.constant_mask == 1)
-        row.value
-    else
-        M31.zero();
+    const constant_value = row.constant_value;
     return .{
         M31.one(),
         row.value,
@@ -353,7 +350,7 @@ inline fn evaluateRelationOp(
     values: anytype,
 ) M31 {
     return switch (op) {
-        .machine => |v| @import("air/closed_machine_expression.zig").evaluate(M31,v,values),
+        .machine => |v| @import("air/closed_machine_expression.zig").evaluate(M31, v, values),
         .constant => |value| M31.fromU64(value),
         .add => |binary| values[binary.lhs].add(values[binary.rhs]),
         .sub => |binary| values[binary.lhs].sub(values[binary.rhs]),

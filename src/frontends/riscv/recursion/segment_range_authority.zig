@@ -99,7 +99,7 @@ pub const SourceAuthority = struct {
             self.table_log_size != lookup_schema.logSize(self.table_kind) or
             self.table_size != lookup_schema.size(self.table_kind) or
             statement_air.RELATION_EVENT_COUNT != 3 or
-            claim_air.RELATION_EVENT_COUNT != 8)
+            claim_air.RELATION_EVENT_COUNT != 9)
         {
             return error.InvalidSourceAuthority;
         }

@@ -372,3 +372,41 @@ pub fn testSymbolicClaims() !void {
     try std.testing.expectEqualDeep(first_circuit.nodes, second_circuit.nodes);
     try std.testing.expectEqualDeep(first_circuit.outputs, second_circuit.outputs);
 }
+
+test "segment composition layout reconstructs from admitted key geometry" {
+    const allocator = std.testing.allocator;
+    const admitted = try testAdmission();
+    const Layout = composition_v3.capture_layout_v3.CaptureLayoutV3;
+    var capture = try testing_support.recursion_air_composition_v3.CaptureFixture.init(allocator, &admitted.manifest);
+    defer capture.deinit();
+    var from_capture = try Layout.initSegment(allocator, &admitted.manifest, capture.view());
+    defer from_capture.deinit();
+    var from_key = try Layout.initSegmentFromKey(allocator, &admitted.manifest, 1);
+    defer from_key.deinit();
+    try std.testing.expectEqualSlices(u8, &from_capture.identity, &from_key.identity);
+    try std.testing.expectEqualDeep(from_capture.tree_column_counts, from_key.tree_column_counts);
+    try std.testing.expectEqual(from_capture.sampled_value_count, from_key.sampled_value_count);
+    for (from_capture.offsets, from_key.offsets) |captured, rebuilt|
+        try std.testing.expectEqualSlices(usize, captured, rebuilt);
+    const key_heights = try from_key.treeHeightsFromManifest(&admitted.manifest);
+    for (capture.column_log_sizes, key_heights) |logs, expected_height| {
+        var captured_height: u32 = 0;
+        for (logs) |log| captured_height = @max(captured_height, log);
+        try std.testing.expectEqual(expected_height, captured_height);
+    }
+
+    // Two different dynamic captures of the same admitted shape must select
+    // identical fixed layout identities.
+    capture.sampled_values[0] = QM31.one();
+    var second = try Layout.initSegment(allocator, &admitted.manifest, capture.view());
+    defer second.deinit();
+    try std.testing.expectEqualSlices(u8, &from_key.identity, &second.identity);
+
+    // A truncated captured log table is rejected before any indexed read.
+    {
+        const original = capture.column_log_sizes[0];
+        defer capture.column_log_sizes[0] = original;
+        capture.column_log_sizes[0] = original[0..0];
+        try std.testing.expectError(error.InvalidSampleGeometry, Layout.initSegment(allocator, &admitted.manifest, capture.view()));
+    }
+}

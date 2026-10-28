@@ -2,6 +2,7 @@
 const std = @import("std");
 const core = @import("stwo_core");
 const verifier = @import("detached_parent_verifier_v1.zig");
+const recording = @import("recording_poseidon_channel_v4.zig");
 const protocol = @import("detached_parent_protocol_v1.zig");
 pub const MAX_KEY_BYTES: usize = 64 * 1024 * 1024;
 pub const MAX_INPUT_BYTES: usize = 128 * 1024;
@@ -15,6 +16,9 @@ pub const OwnedKeyV1 = opaque {
     pub fn admit(allocator: std.mem.Allocator, bytes: []const u8, independent_sha256: [32]u8) !*OwnedKeyV1 {
         if (bytes.len == 0 or bytes.len > MAX_KEY_BYTES) return error.DetachedParentKeySizeMismatch;
         if (!std.meta.eql(hash(bytes), independent_sha256)) return error.DetachedParentKeyHashMismatch;
+        const envelope = try std.json.parseFromSlice(struct { version: u32 }, allocator, bytes, .{ .ignore_unknown_fields = true });
+        defer envelope.deinit();
+        if (envelope.value.version != protocol.VERSION) return error.DetachedParentProfileMismatch;
         const parsed = try std.json.parseFromSlice(verifier.KeyV1, allocator, bytes, .{ .allocate = .alloc_always });
         errdefer parsed.deinit();
         try parsed.value.validate();
@@ -100,6 +104,7 @@ pub const ReceiptV1 = struct {
     request_ns: u64,
     verify_ns: u64,
     transcript_digest: [8]u32,
+    transcript_recording_sha256: ?[32]u8 = null,
 };
 pub fn verifyDirectory(allocator: std.mem.Allocator, directory: []const u8, independent_key_sha256: [32]u8, expected_path: []const u8) !ReceiptV1 {
     var timer = try std.time.Timer.start();
@@ -124,8 +129,17 @@ fn verifyDirectoryInner(allocator: std.mem.Allocator, directory: []const u8, ind
     defer allocator.free(proof);
     if (proof.len != claims.proof_bytes or !std.meta.eql(hash(proof), claims.proof_sha256)) return error.DetachedParentProofIdentityMismatch;
     var timer = try std.time.Timer.start();
-    const terminal = try verifier.verify(allocator, key.key(), &expected, claims.claims, proof);
-    return .{ .proof_profile = key.key().profile, .endpoint = if (key.key().profile == .recursive_q193_v1) (if (key.key().publication_mode == .root) "verified_segment_v2_detached_two_child_parent_q193" else "verified_segment_v2_detached_intermediate_parent_q193") else if (key.key().publication_mode == .root) "verified_segment_v2_detached_two_child_parent_development_q3" else "verified_segment_v2_detached_intermediate_parent_development_q3", .publication_mode = key.key().publication_mode, .key_sha256 = independent_key_sha256, .expected_root_sha256 = hash(expected_json), .claims_sha256 = hash(claims_json), .proof_sha256 = claims.proof_sha256, .proof_bytes = proof.len, .request_ns = 0, .verify_ns = timer.read(), .transcript_digest = terminal };
+    var recording_identity: ?[32]u8 = null;
+    const terminal = if (std.process.hasEnvVarConstant("STWO_RISCV_OUTER_TRANSCRIPT_EQUIVALENCE")) blk: {
+        var channel = recording.Channel.init(allocator);
+        defer channel.deinit();
+        const result = try verifier.verifyWithChannel(recording.MerkleChannel, allocator, key.key(), &expected, claims.claims, proof, &channel, null);
+        var execution = try channel.finish();
+        defer execution.deinit();
+        recording_identity = execution.identity_sha256;
+        break :blk result.terminal;
+    } else try verifier.verify(allocator, key.key(), &expected, claims.claims, proof);
+    return .{ .proof_profile = key.key().profile, .endpoint = if (key.key().profile == .recursive_q193_v1) (if (key.key().publication_mode == .root) "verified_segment_v2_detached_two_child_parent_q193" else "verified_segment_v2_detached_intermediate_parent_q193") else if (key.key().publication_mode == .root) "verified_segment_v2_detached_two_child_parent_development_q3" else "verified_segment_v2_detached_intermediate_parent_development_q3", .publication_mode = key.key().publication_mode, .key_sha256 = independent_key_sha256, .expected_root_sha256 = hash(expected_json), .claims_sha256 = hash(claims_json), .proof_sha256 = claims.proof_sha256, .proof_bytes = proof.len, .request_ns = 0, .verify_ns = timer.read(), .transcript_digest = terminal, .transcript_recording_sha256 = recording_identity };
 }
 pub fn main() !void {
     const allocator = std.heap.smp_allocator;
@@ -141,14 +155,10 @@ pub fn main() !void {
         try file.writeAll(json);
         return;
     }
-    if (args.len != 4 or args[1].len == 0 or args[2].len != 64 or args[3].len == 0) return error.ExpectedBundleIndependentKeyAndRootWords;
-    var key_sha256: [32]u8 = undefined;
-    _ = try std.fmt.hexToBytes(&key_sha256, args[2]);
-    const receipt = try verifyDirectory(allocator, args[1], key_sha256, args[3]);
-    const json = try std.json.Stringify.valueAlloc(allocator, receipt, .{});
-    defer allocator.free(json);
-    try std.fs.File.stdout().writeAll(json);
-    try std.fs.File.stdout().writeAll("\n");
+    // The integration executable supplies and admits the full independent
+    // key registry before invoking verifyDirectory. This narrow frontend
+    // entry only derives caller-owned expected words.
+    return error.ParentVerificationRequiresIndependentKeyRegistry;
 }
 
 /// Derive the expected root from caller-owned public inputs only. No candidate

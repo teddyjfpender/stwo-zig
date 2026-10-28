@@ -89,7 +89,8 @@ class AotProfileTests(unittest.TestCase):
             ("riscv_segment_v2_detached_gate.py", ["--verifier", "missing", "--bundle", "missing",
                 "--key-sha256", PIN, "--expected-wire", "missing", "--output", "missing", "--aot-profile", "core-v2"]),
             ("riscv_segment_v2_detached_parent_gate.py", ["--verifier", "missing", "--verifier-sha256", PIN,
-                "--bundle", "missing", "--key-sha256", PIN, "--expected-root", "missing", "--expected-root-sha256", PIN,
+                "--bundle", "missing", "--key-sha256", PIN, "--key-registry", "missing", "--key-registry-sha256", PIN,
+                "--expected-root", "missing", "--expected-root-sha256", PIN,
                 "--output", "missing", "--metal-aot-profile", "core-v2"]),
         )
         for script, arguments in cases:

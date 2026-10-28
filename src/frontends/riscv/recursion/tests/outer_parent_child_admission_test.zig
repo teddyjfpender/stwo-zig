@@ -499,6 +499,36 @@ test "R-013 fixed outer wire rejects header payload padding and alias mutations"
     );
     wire.payload.trace_paths[0].siblings[5] = [_]u32{0} ** channel.RATE;
 
+    // Active PCS material must be bound too. Padding validation alone cannot
+    // establish custody of values the Merkle and FRI circuits actually read.
+    wire.payload.queried_values[0] +%= 1;
+    try std.testing.expectError(
+        error.WireHeaderMismatch,
+        wire.validateAgainst(&candidate, scratch),
+    );
+    wire.payload.queried_values[0] -%= 1;
+
+    wire.payload.trace_paths[0].siblings[0][0] +%= 1;
+    try std.testing.expectError(
+        error.WireHeaderMismatch,
+        wire.validateAgainst(&candidate, scratch),
+    );
+    wire.payload.trace_paths[0].siblings[0][0] -%= 1;
+
+    wire.payload.fri_layers[0].queries[0].values[0][0] +%= 1;
+    try std.testing.expectError(
+        error.WireHeaderMismatch,
+        wire.validateAgainst(&candidate, scratch),
+    );
+    wire.payload.fri_layers[0].queries[0].values[0][0] -%= 1;
+
+    wire.payload.fri_layers[0].queries[0].path.siblings[0][0] +%= 1;
+    try std.testing.expectError(
+        error.WireHeaderMismatch,
+        wire.validateAgainst(&candidate, scratch),
+    );
+    wire.payload.fri_layers[0].queries[0].path.siblings[0][0] -%= 1;
+
     wire.payload.pcs_pow += 1;
     try std.testing.expectError(
         error.WireHeaderMismatch,

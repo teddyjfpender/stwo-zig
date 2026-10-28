@@ -78,6 +78,7 @@ test "R-009 binary pair authority generic custody path typechecks and omits atom
         allocator,
         &vm_plan,
         &recursion_plan,
+        id("inactive-vm-tree0"),
     );
     defer transcript_preprocessing.deinit();
     var statement_preprocessing = try statement_input.Preprocessed.init(allocator);
@@ -289,6 +290,7 @@ const HonestFixture = struct {
             allocator,
             &vm_plan,
             &left_recursion_plan,
+            id("inactive-vm-tree0"),
         );
         errdefer transcript_preprocessing.deinit();
         var statement_preprocessing = try statement_input.Preprocessed.init(allocator);

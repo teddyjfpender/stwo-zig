@@ -18,7 +18,9 @@ const manifest_mod = cohort.manifest_mod;
 const M31 = core.fields.m31.M31;
 const QM31 = core.fields.qm31.QM31;
 const payload = @import("detached_payload_v1.zig");
-pub const VERSION: u32 = 2;
+const recipe_mod = @import("detached_parent_fixed_recipe_v1.zig");
+pub const FixedRecipeV1 = recipe_mod.FixedRecipeV1;
+pub const VERSION: u32 = 3;
 pub const DEVELOPMENT_ONLY = true;
 pub const PCS_CONFIG = recursion.outer_parent_child_admission.OUTER_PCS_CONFIG;
 pub const PUBLIC_SCOPE: u32 = 3;
@@ -52,6 +54,7 @@ pub const KeyV1 = struct {
     parameters: cohort.ParametersV1,
     preprocessed_root: recursion.poseidon2_channel.Digest,
     child_key_sha256: [2][32]u8,
+    fixed_recipe: FixedRecipeV1,
 
     pub fn validate(self: *const KeyV1) !void {
         _ = try self.identity();
@@ -60,27 +63,63 @@ pub const KeyV1 = struct {
     pub fn identity(self: *const KeyV1) ![32]u8 {
         if (self.version != VERSION or !std.meta.eql(self.pcs_config, self.profile.pcsConfig())) return error.DetachedParentProfileMismatch;
         try self.parameters.validate(&self.manifest);
+        if (self.fixed_recipe.version != recipe_mod.VERSION) return error.DetachedParentFixedRecipeMismatch;
         if (std.mem.allEqual(u32, &self.preprocessed_root, 0)) return error.DetachedParentKeyMismatch;
         for (self.preprocessed_root) |word| if (word >= core.fields.m31.Modulus) return error.DetachedParentKeyMismatch;
         for (self.child_key_sha256) |pin| if (std.mem.allEqual(u8, &pin, 0)) return error.DetachedParentKeyMismatch;
+        for (self.fixed_recipe.children) |child| {
+            if (std.mem.allEqual(u8, &child.key_identity, 0) or std.mem.allEqual(u32, &child.preprocessed_root, 0) or
+                std.mem.allEqual(u8, &child.manifest_seal, 0) or std.mem.allEqual(u8, &child.pcs_graph_identity_digest, 0))
+                return error.DetachedParentFixedRecipeMismatch;
+            for (child.preprocessed_root) |word| if (word >= core.fields.m31.Modulus)
+                return error.DetachedParentFixedRecipeMismatch;
+        }
         var hash = std.crypto.hash.sha2.Sha256.init(.{});
         hash.update(switch (self.profile) {
-            .detached_continuation_development_q3_v2 => "stwo-zig/segment-v2-detached-two-child-development-parent/v2\x00",
-            .recursive_q193_v1 => "stwo-zig/segment-v2-detached-two-child-q193-parent/v1\x00",
+            .detached_continuation_development_q3_v2 => "stwo-zig/segment-v2-detached-two-child-development-parent/v3\x00",
+            .recursive_q193_v1 => "stwo-zig/segment-v2-detached-two-child-q193-parent/v2\x00",
         });
-        for ([_]u32{ VERSION, @intFromEnum(self.profile), @intFromEnum(self.publication_mode), continuation.VERSION, manifest_mod.FORMAT_VERSION, PUBLIC_SCOPE, continuation.WORD_COUNT, self.pcs_config.pow_bits, self.pcs_config.fri_config.log_blowup_factor, self.pcs_config.fri_config.log_last_layer_degree_bound, @intCast(self.pcs_config.fri_config.n_queries), self.pcs_config.fri_config.fold_step }) |word| hashWord(&hash, word);
+        for ([_]u32{ VERSION, @intFromEnum(self.profile), @intFromEnum(self.publication_mode), @intFromEnum(std.meta.activeTag(self.fixed_recipe.boundary)), self.pcs_config.pow_bits, self.pcs_config.fri_config.log_blowup_factor, self.pcs_config.fri_config.log_last_layer_degree_bound, @intCast(self.pcs_config.fri_config.n_queries), self.pcs_config.fri_config.fold_step, self.fixed_recipe.version, manifest_mod.FORMAT_VERSION, continuation.VERSION, PUBLIC_SCOPE, continuation.WORD_COUNT }) |word| hashWord(&hash, word);
         if (self.profile == .recursive_q193_v1) hashWord(&hash, self.profile.interactionPowBits());
         hash.update(&self.manifest.seal);
         hash.update(&recursion.air.universal_challenges.registryOrderDigest());
         for (recursion.protocol.PROTOCOL_ID_WORDS) |word| hashWord(&hash, word);
-        for (self.preprocessed_root) |word| hashWord(&hash, word);
-        for (self.child_key_sha256) |pin| hash.update(&pin);
+        for (self.fixed_recipe.children, self.child_key_sha256) |child, pin| {
+            hash.update(&pin);
+            hash.update(&child.key_identity);
+            for (child.preprocessed_root) |word| hashWord(&hash, word);
+            hash.update(&child.manifest_seal);
+            hash.update(&child.composition_layout_manifest_id);
+            for (child.vm_schedule_digest) |word| hashWord(&hash, word);
+            for (child.recursion_schedule_digest) |word| hashWord(&hash, word);
+            hash.update(&child.pcs_graph_identity_digest);
+            hashWord(&hash, child.sampled_value_count);
+            for (child.trace_tree_heights) |word| hashWord(&hash, word);
+            hashWord(&hash, child.fri_layer_count);
+            hashWord(&hash, child.last_layer_coefficient_count);
+        }
+        switch (self.fixed_recipe.boundary) {
+            .segment => |boundary| {
+                hashWord(&hash, @intFromEnum(recipe_mod.ChildFamily.segment));
+                for (boundary.sections, boundary.memory) |sections, memory| {
+                    hashU16(&hash, sections.version);
+                    for (sections.counts) |count| hashWord(&hash, count);
+                    hashU16(&hash, memory.version);
+                    for ([_][]const u32{ memory.entry_addresses, memory.exit_addresses }) |addresses| {
+                        hashWord(&hash, @intCast(addresses.len));
+                        for (addresses) |address| hashWord(&hash, address);
+                    }
+                }
+            },
+            .parent => hashWord(&hash, @intFromEnum(recipe_mod.ChildFamily.parent)),
+        }
         hashWord(&hash, self.parameters.poseidon_active_rows);
         for (self.parameters.words, 0..) |words, row| {
             hashWord(&hash, @intCast(row));
             hashWord(&hash, @intCast(words.len));
             for (words) |word| hashWord(&hash, word.toU32());
         }
+        for (self.preprocessed_root) |word| hashWord(&hash, word);
         return hash.finalResult();
     }
 };
@@ -146,5 +185,11 @@ pub fn mixClaimsAndBoundary(channel: anytype, key: *const KeyV1, expected: *cons
 fn hashWord(hash: anytype, word: u32) void {
     var bytes: [4]u8 = undefined;
     std.mem.writeInt(u32, &bytes, word, .little);
+    hash.update(&bytes);
+}
+
+fn hashU16(hash: anytype, word: u16) void {
+    var bytes: [2]u8 = undefined;
+    std.mem.writeInt(u16, &bytes, word, .little);
     hash.update(&bytes);
 }

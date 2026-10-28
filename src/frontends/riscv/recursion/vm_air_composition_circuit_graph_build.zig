@@ -49,19 +49,13 @@ pub fn Build(comptime Context: type) type {
             try validateSampleGeometry(context, capture);
             const sample_count = std.math.cast(u32, capture.sampled_values.len) orelse
                 return error.CircuitTooLarge;
-            // NOTE: the native memory-boundary AIR now binds row signs to the
-            // statement's public roots (`initial_rw_root`/`final_rw_root`) as
-            // verifier constants (`memory_interaction.N_CONSTRAINTS`, two
-            // constraints beyond `N_CONSTRAINTS_WITHOUT_ROOTS`).  This circuit
-            // has no public-root inputs, so it replays the retired shape below
-            // and no longer matches the native composition.  The recursion
-            // lane is paused and must be re-aligned (public roots as inputs,
-            // new circuit identity) before it is trusted again.
             const input_profile = graph_mod.InputProfile{
                 .sampled_value_count = sample_count,
                 .claimed_sum_count = context.profile.claimed_sum_count,
                 .relation_challenge_count = context.profile.relation_challenge_count,
                 .transcript_claimed_sum_count = transcript_claims.COMPONENT_COUNT,
+                .vm_statement_root_count = 2,
+                .vm_native_continuation_roots = true,
             };
             const input_count = try graph_mod.vmInputCount(input_profile);
 
@@ -97,6 +91,10 @@ pub fn Build(comptime Context: type) type {
             }
             const composition_randomness = try scalarInput(&builder, .composition_randomness);
             const oods_seed = try scalarInput(&builder, .oods_point);
+            const native_roots = [2]Scalar{
+                try builder.input(.{ .native_continuation_root = 0 }),
+                try builder.input(.{ .native_continuation_root = 1 }),
+            };
             try builder.check();
 
             // Bind the transcript's fixed 28 aggregate claims to the exact detailed
@@ -279,8 +277,11 @@ pub fn Build(comptime Context: type) type {
                         const active = try sample_layout.at(0, preprocessed_offset + 1, 0);
                         const component_claims = claims[claim_cursor..][0..memory_interaction.N_SUMS].*;
                         claim_cursor += memory_interaction.N_SUMS;
-                        // Retired shape; see the re-alignment note above.
-                        const constraints = memory_interaction.evaluateWithoutRootsGeneric(
+                        const roots = memory_interaction.RootParameters(Scalar).fromArray(.{
+                            Scalar.one(), native_roots[0].neg(),
+                            Scalar.one(), native_roots[1].neg(),
+                        });
+                        const constraints = memory_interaction.evaluateGeneric(
                             Scalar,
                             main,
                             active,
@@ -289,6 +290,7 @@ pub fn Build(comptime Context: type) type {
                             previous,
                             component_claims,
                             &relations,
+                            roots,
                         );
                         appendConstraints(&accumulation, composition_randomness, denominator, &constraints, &instruction_count);
                     },

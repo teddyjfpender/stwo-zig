@@ -29,6 +29,16 @@ def digest(value: str) -> str:
     return value.lower()
 
 
+def relocate_registry_paths(registry: dict, source: Path) -> dict:
+    """Keep every pinned child key address stable when a hostile copy moves."""
+    relocated = copy.deepcopy(registry)
+    for node in relocated["nodes"]:
+        key_path = Path(node["key_path"])
+        if not key_path.is_absolute():
+            node["key_path"] = str((source.parent / key_path).resolve())
+    return relocated
+
+
 def require_metal_lifecycle(output: str, manifest_pin: str, aot_profile: str | None = None) -> dict:
     matches = list(re.finditer(
         r"^DETACHED_PARENT_METAL dispatches=(?P<dispatches>\d+) poseidon_commits=(?P<poseidon_commits>\d+) "
@@ -64,9 +74,14 @@ def main() -> None:
     parser.add_argument("--verifier-sha256", type=digest, required=True)
     parser.add_argument("--bundle", type=Path, required=True)
     parser.add_argument("--key-sha256", type=digest, required=True)
+    parser.add_argument("--key-registry", type=Path, required=True,
+                        help="external postorder key registry for proof-free Tree0 admission")
+    parser.add_argument("--key-registry-sha256", type=digest, required=True)
     parser.add_argument("--expected-root", type=Path, required=True)
     parser.add_argument("--expected-root-sha256", type=digest, required=True)
     parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument("--accepted-only", action="store_true",
+                        help="key-setup preflight: prove and freshly verify the genuine candidate only")
     parser.add_argument("--proof-profile", choices=("detached_continuation_development_q3_v2", "recursive_q193_v1"),
                         default="detached_continuation_development_q3_v2")
     parser.add_argument("--publication-mode", choices=("root", "intermediate"), default="root")
@@ -98,16 +113,25 @@ def main() -> None:
         parser.error("continuation memory profile requires intermediate publication")
     if args.child_family == "parent" and args.memory_profile != "initial":
         parser.error("parent children do not accept a native memory profile")
-    verifier, bundle, expected, output = (
-        path.resolve() for path in (args.verifier, args.bundle, args.expected_root, args.output))
+    verifier, bundle, expected, output, key_registry = (
+        path.resolve() for path in (args.verifier, args.bundle, args.expected_root, args.output, args.key_registry))
     if output.exists() or output.is_relative_to(bundle):
         parser.error("report must be a new path outside the retained bundle")
     artifacts = [bundle / name for name in ("key.json", "claims.json", "proof.bin")]
     production_options = (args.producer, args.producer_sha256, args.parent_key, args.left, args.right)
     if any(production_options) and not all(production_options):
         parser.error("production requires producer/hash, admitted parent key and both admitted children")
-    inputs = [verifier, expected]
-    pins = [(verifier, args.verifier_sha256), (expected, args.expected_root_sha256)]
+    inputs = [verifier, expected, key_registry]
+    pins = [(verifier, args.verifier_sha256), (expected, args.expected_root_sha256),
+            (key_registry, args.key_registry_sha256)]
+    registry_data = json.loads(key_registry.read_bytes())
+    if registry_data.get("version") != 1 or not isinstance(registry_data.get("nodes"), list):
+        parser.error("unsupported independent key registry")
+    root_index = registry_data.get("root_index")
+    if type(root_index) is not int or not 0 <= root_index < len(registry_data["nodes"]):
+        parser.error("invalid key registry root")
+    if bytes(registry_data["nodes"][root_index]["key_sha256"]).hex() != args.key_sha256:
+        parser.error("key registry root does not match the independent parent pin")
     if args.producer:
         if bundle.exists():
             parser.error("production requires a new bundle directory")
@@ -138,6 +162,7 @@ def main() -> None:
     report = {"gate_sha256": sha256(Path(__file__)), "proof_profile": args.proof_profile,
               "proving_backend": "metal" if args.metal_aot_bundle else ("cpu" if args.producer else "not_observed"), "development_only": True,
               "verifier_sha256": args.verifier_sha256, "key_sha256": args.key_sha256,
+              "key_registry_sha256": args.key_registry_sha256,
               "expected_root_sha256": args.expected_root_sha256,
               "original_files": {str(path): pin for path, pin in unchanged.items()},
               "cases": [], "passed": False}
@@ -147,7 +172,16 @@ def main() -> None:
                error: str | tuple[str, ...] | None = None) -> None:
         # Each call exits before the next starts. No producer owners or in-process
         # verifier caches can cross this boundary. Timings are diagnostics only.
-        argv = [str(verifier), str(directory), pin, str(root)]
+        registry_path = key_registry
+        if pin != args.key_sha256:
+            # A re-pinned hostile key must reach key admission rather than
+            # failing only because the genuine registry still pins the old key.
+            changed_registry = relocate_registry_paths(registry_data, key_registry)
+            changed_registry["nodes"][root_index]["key_sha256"] = list(bytes.fromhex(pin))
+            changed_registry["nodes"][root_index]["key_path"] = str(directory / "key.json")
+            registry_path = directory / "hostile-key-registry.json"
+            registry_path.write_text(json.dumps(changed_registry))
+        argv = [str(verifier), str(directory), pin, str(root), str(registry_path)]
         entry = {"case": name, "argv": argv, "expected_acceptance": accept,
                  "key_sha256": pin, "expected_root_sha256": sha256(root),
                  "artifact_sha256": {p: sha256(directory / p)
@@ -204,6 +238,44 @@ def main() -> None:
                              "--aot-manifest-sha256", args.metal_aot_manifest_sha256]
                 if args.metal_aot_profile is not None:
                     argv[5:5] = ["--aot-profile", args.metal_aot_profile]
+            # This standalone command walks every independently located child
+            # key and rebuilds every Tree0 without reading any proof file.
+            admission_argv = [str(verifier), "--admit-key", str(key_registry), args.key_sha256]
+            key_started = time.monotonic_ns()
+            key_check = subprocess.run(admission_argv, capture_output=True, text=True, timeout=300)
+            report["key_regeneration"] = {
+                "argv": admission_argv, "exit_code": key_check.returncode,
+                "process_ns": time.monotonic_ns() - key_started,
+                "stdout": key_check.stdout, "stderr": key_check.stderr,
+            }
+            if key_check.returncode or not json.loads(key_check.stdout).get("fixed_root_admitted"):
+                raise RuntimeError("independent parent key regeneration failed before proof production")
+            with tempfile.TemporaryDirectory(prefix="segment-v2-parent-key-hostile-") as temporary:
+                original_key = json.loads(args.parent_key.read_bytes())
+                for name in ("child_key_sha256", "preprocessed_root"):
+                    hostile = copy.deepcopy(original_key)
+                    if name == "child_key_sha256":
+                        hostile[name][0][0] ^= 1
+                    else:
+                        hostile[name][0] = (hostile[name][0] + 1) % MODULUS
+                    hostile_path = Path(temporary) / (name + ".json")
+                    hostile_path.write_text(json.dumps(hostile))
+                    hostile_registry = relocate_registry_paths(registry_data, key_registry)
+                    hostile_registry["nodes"][root_index]["key_path"] = str(hostile_path)
+                    hostile_registry["nodes"][root_index]["key_sha256"] = list(bytes.fromhex(sha256(hostile_path)))
+                    hostile_registry_path = Path(temporary) / (name + "-registry.json")
+                    hostile_registry_path.write_text(json.dumps(hostile_registry))
+                    hostile_argv = [str(verifier), "--admit-key", str(hostile_registry_path), sha256(hostile_path)]
+                    hostile_result = subprocess.run(hostile_argv, capture_output=True, text=True, timeout=300)
+                    report.setdefault("key_regeneration_negative", []).append({
+                        "case": name, "exit_code": hostile_result.returncode,
+                        "stderr": hostile_result.stderr,
+                    })
+                    expected_error = ("DetachedParentChildKeyPinMismatch" if name == "child_key_sha256"
+                                      else "DetachedParentPreprocessedCommitmentMismatch")
+                    if hostile_result.returncode == 0 or not re.search(
+                            rf"(?m)^error: {expected_error}\s*$", hostile_result.stderr):
+                        raise RuntimeError(f"hostile {name} key passed regeneration")
             log = output.with_name(output.name + ".producer.log")
             production = {"argv": argv, "log": str(log), "exited_before_verification": False}
             report["producer"] = production
@@ -235,9 +307,13 @@ def main() -> None:
         # Trust checks above precede execution; genuine acceptance precedes every
         # mutation, including assertions about this development wire profile.
         invoke("genuine", accept=True)
+        if args.accepted_only:
+            report["accepted_only"] = True
+            report["passed"] = True
+            return
         key_bytes, claims_bytes, proof = [path.read_bytes() for path in artifacts]
         key, claims = json.loads(key_bytes), json.loads(claims_bytes)
-        if key["version"] not in (1, 2) or claims["version"] != key["version"] or len(claims["claims"]["values"]) != 36:
+        if key["version"] != 3 or claims["version"] != key["version"] or len(claims["claims"]["values"]) != 36:
             raise RuntimeError("unsupported parent transport version/claim inventory")
         if key.get("publication_mode", "root") != args.publication_mode:
             raise RuntimeError("admitted key does not match requested publication mode")
@@ -325,7 +401,10 @@ def main() -> None:
             wrong_pin = ("1" if args.key_sha256[0] == "0" else "0") + args.key_sha256[1:]
             invoke("wrong_independent_key_pin", pin=wrong_pin, error="DetachedParentKeyHashMismatch")
             words = json.loads(expected.read_bytes())
-            if len(words) != (436 if key["version"] == 2 else 412) or any(type(word) is not int or not 0 <= word < MODULUS for word in words):
+            # span_continuation_v1.WORD_COUNT is 436: 412 span words and
+            # three 8-word session/entry/exit lineage digests. This layout
+            # is independent of the parent key transport version.
+            if len(words) != 436 or any(type(word) is not int or not 0 <= word < MODULUS for word in words):
                 raise RuntimeError("unsupported expected-root word ABI")
             # span_statement_executed_span.canonical_layout.program_start == 11
             # in V1. The digest has no integer/tag/coverage restrictions. Requiring
@@ -335,20 +414,13 @@ def main() -> None:
             changed_root.write_text(json.dumps(words))
             invoke("changed_canonical_expected_root", root=changed_root,
                    error=boundary_errors)
-            if key["version"] == 2:
-                changed_key = copy.deepcopy(key)
-                changed_key["publication_mode"] = "intermediate" if key["publication_mode"] == "root" else "root"
-                changed_directory = candidate("changed_publication_mode", changed_key=changed_key)
-                invoke("changed_publication_mode", changed_directory, sha256(changed_directory / "key.json"),
-                       error=("DetachedParentClaimClosureMismatch", "RootSlotStartMismatch", "RootHeightNotMinimal", "InvalidDetachedInteractionPow")
-                       if args.publication_mode == "intermediate" else boundary_errors)
-                for name, index in (("session", 412), ("entry_lineage", 420), ("exit_lineage", 428)):
-                    words = json.loads(expected.read_bytes())
-                    words[index] = (words[index] + 1) % MODULUS
-                    changed_root = work / f"changed-{name}.json"
-                    changed_root.write_text(json.dumps(words))
-                    invoke(f"changed_published_{name}", root=changed_root,
-                           error=boundary_errors)
+            for name, index in (("session", 412), ("entry_lineage", 420), ("exit_lineage", 428)):
+                words = json.loads(expected.read_bytes())
+                words[index] = (words[index] + 1) % MODULUS
+                changed_root = work / f"changed-{name}.json"
+                changed_root.write_text(json.dumps(words))
+                invoke(f"changed_published_{name}", root=changed_root,
+                       error=boundary_errors)
         report["passed"] = True
     except Exception as error:
         report["failure"] = str(error)

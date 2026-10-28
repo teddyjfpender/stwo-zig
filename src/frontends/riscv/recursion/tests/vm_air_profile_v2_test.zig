@@ -8,6 +8,54 @@ const subject = @import("../vm_air_profile_v2.zig");
 const SAMPLED_VALUE_COUNT: u32 = 317;
 const MUL_LOOKUP_INDEX: usize = 19;
 
+test "geometry-only VM profile reconstruction matches full-statement authority" {
+    const allocator = std.testing.allocator;
+    const geometry_mod = @import("../vm_composition_base_geometry_v2.zig");
+    var statement = support.retainedSegmentZeroCore();
+    const manifest = lookup_physical_v2.Manifest.native();
+    const geometry = try subject.Geometry.fromStatement(&statement);
+    const authenticated = try lookup_physical_v2.AuthenticatedStatement.init(&statement, &manifest);
+    const key_authenticated = try lookup_physical_v2.AuthenticatedStatement.initFromComponents(geometry.components, &manifest);
+    try std.testing.expectEqualDeep(authenticated, key_authenticated);
+    const samples = try geometry_mod.expectedSampledValueCount(&statement, &manifest);
+    var full = try subject.deriveAuthority(allocator, &statement, &manifest, &authenticated, samples);
+    defer full.deinit();
+    var from_key_geometry = try subject.deriveAuthorityFromGeometryWithCircuitProfile(
+        allocator,
+        geometry,
+        &manifest,
+        &key_authenticated,
+        samples,
+        .legacy_v4,
+    );
+    defer from_key_geometry.deinit();
+    try std.testing.expectEqualDeep(full.identity_digest, from_key_geometry.identity_digest);
+    try std.testing.expectEqualDeep(full.input_profile, from_key_geometry.input_profile);
+    try std.testing.expectEqual(full.air_instruction_count, from_key_geometry.air_instruction_count);
+    const selected = @import("../vm_selected_lookup_compiler_v2.zig");
+    const full_selected = try selected.CompilerV2.init(
+        allocator,
+        &statement,
+        &manifest,
+        &authenticated,
+        &full,
+    );
+    const key_selected = try selected.CompilerV2.initFromGeometry(
+        allocator,
+        geometry,
+        &manifest,
+        &key_authenticated,
+        &from_key_geometry,
+    );
+    try std.testing.expectEqualDeep(full_selected.identity_sha256, key_selected.identity_sha256);
+
+    statement.component_descs[0].n_rows += 1;
+    try std.testing.expectError(
+        error.InvalidStatementIdentity,
+        key_authenticated.validateAgainstComponents(geometry.components, &manifest),
+    );
+}
+
 test "authenticated VM AIR ProfileV2 binds fixed program and narrow Poseidon as an explicit circuit" {
     const allocator = std.testing.allocator;
     const geometry = @import("../vm_composition_base_geometry_v2.zig");

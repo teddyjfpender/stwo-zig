@@ -233,6 +233,7 @@ pub fn effect(step: schedule.VerifierStep) ?Effect {
         .absorb_trace_commitment,
         .absorb_public_claim,
         .absorb_claimed_sums,
+        .absorb_physical_claims,
         .absorb_sampled_values,
         .absorb_fri_commitment,
         .absorb_last_layer_coefficients,
@@ -265,6 +266,7 @@ pub fn payloadWordCount(
         .verify_and_absorb_pcs_pow,
         => 4,
         .absorb_claimed_sums => |item| try timesFour(item.count),
+        .absorb_physical_claims => |item| try add(5, try timesFour(item.count)),
         .absorb_sampled_values => |item| try timesFour(item.count),
         .absorb_last_layer_coefficients => |item| try timesFour(item.count),
         .draw_relation_challenge,
@@ -375,6 +377,15 @@ pub fn writePayload(
         ),
         .verify_and_absorb_pcs_pow => writeNonce(destination, proof.pcs_pow),
         .absorb_claimed_sums => try copyQm31Wires(destination, &proof.claimed_sums),
+        .absorb_physical_claims => |item| {
+            const header = [_]u32{
+                0x5057_5453,          0x314c_4350,
+                item.component_count, item.infra_count,
+                item.count,
+            };
+            try copyCanonicalU32(destination[0..5], &header);
+            try copyQm31Wires(destination[5..], &proof.physical_claimed_sums);
+        },
         .absorb_sampled_values => try copyQm31Wires(destination, &proof.sampled_values),
         .absorb_fri_commitment => |item| {
             const index: usize = @intCast(item.layer);

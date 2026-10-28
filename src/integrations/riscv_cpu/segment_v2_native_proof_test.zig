@@ -15,6 +15,10 @@ const channel = frontend.recursion.poseidon2_channel;
 const protocol = frontend.recursion.protocol;
 const segment_v2 = frontend.recursion.segment_statement_v2;
 const global_v3 = frontend.recursion.segment_leaf_local_authority_v3;
+const leaf_outer = @import("recursive_segment_v2_leaf_outer.zig");
+const detached = @import("recursive_segment_v2_detached_proof.zig");
+const detached_command = @import("recursive_segment_v2_detached_command.zig");
+const detached_verifier = @import("recursive_segment_v2_detached_verifier.zig");
 const projection_v3 = frontend.recursion.segment_leaf_local_projection_v3;
 const verified_link_v3 = frontend.recursion.segment_leaf_local_verified_link_v3;
 const span = frontend.recursion.span_statement;
@@ -33,6 +37,9 @@ const test_config = pcs_core.PcsConfig{
 test "native V2 proves and independently verifies real nonfinal and final segments" {
     try nativeSegments(Engine, "blake2s-default");
 }
+test "native q193 re-proves an AIR-valid hostile Tree0 and rejects its root" {
+    try nativeSegmentsMode(frontend.recursion.engine.ProverEngineForBackend(CpuBackend), "poseidon-q193", false);
+}
 test "BLAKE3 V2 segment proofs verify nonfinal capture and final completion" {
     try nativeSegments(frontend.recursion.engine.Blake3ProverEngineForBackend(CpuBackend), "blake3.experimental.v1");
 }
@@ -44,7 +51,11 @@ fn nativeSegments(comptime ProofEngine: type, comptime suite_name: []const u8) !
 }
 fn nativeSegmentsMode(comptime ProofEngine: type, comptime suite_name: []const u8, comptime audit_only: bool) !void {
     const allocator = std.testing.allocator;
-    std.debug.print("\nV2_NATIVE_PROOF_SUITE suite={s} queries={d} pow_bits={d}\n", .{ suite_name, test_config.fri_config.n_queries, test_config.pow_bits });
+    const pcs_config = if (comptime ProofEngine.Hasher == frontend.recursion.engine.Hasher)
+        protocol.PCS_CONFIG
+    else
+        test_config;
+    std.debug.print("\nV2_NATIVE_PROOF_SUITE suite={s} queries={d} pow_bits={d}\n", .{ suite_name, pcs_config.fri_config.n_queries, pcs_config.pow_bits });
     var recorder = prover_api.stage_profile.Recorder.initWithOptions(
         allocator,
         "test",
@@ -170,7 +181,7 @@ fn nativeSegmentsMode(comptime ProofEngine: type, comptime suite_name: []const u
     var left_output = try prover.proveRiscVSegmentV2WithEngine(
         ProofEngine,
         allocator,
-        test_config,
+        pcs_config,
         left_result,
         &recorder,
         left_public,
@@ -184,6 +195,263 @@ fn nativeSegmentsMode(comptime ProofEngine: type, comptime suite_name: []const u
         left_output.deinit(allocator);
     try left_output.statement.validateSegmentResult(left_result);
     try std.testing.expect(!(try left_output.statement.metadata()).is_final);
+    if (comptime !audit_only) {
+        // This is a genuinely re-proved Tree 0, not a mutation of serialized
+        // proof bytes. The bitwise row with operation 3 is never requested by
+        // this guest, so changing its fixed tuple preserves native AIR
+        // satisfaction while changing the canonical table commitment.
+        const core_statement = &left_output.statement.core;
+        var bitwise_rows: ?u32 = null;
+        for (core_statement.infra_descs[0..core_statement.n_infra]) |desc| {
+            if (desc.kind == .bitwise) bitwise_rows = desc.n_rows;
+        }
+        const bitwise_row = (bitwise_rows orelse return error.MissingBitwiseTable) - 1;
+        var hostile_channel = ProofEngine.Channel{};
+        var hostile = try prover.proveRiscVSegmentV2WithEngineUsingChannelAndExecution(
+            ProofEngine,
+            allocator,
+            pcs_config,
+            left_result,
+            null,
+            left_public,
+            &hostile_channel,
+            .{ .test_preprocessed_mutation = .{ .preprocessed = .{
+                .target = .{ .infrastructure = .{ .kind = .bitwise } },
+                .column = 1,
+                .logical_row = bitwise_row,
+            } } },
+        );
+        var hostile_proof_moved = false;
+        defer if (hostile_proof_moved)
+            hostile.deinitAfterProofMoved(allocator)
+        else
+            hostile.deinit(allocator);
+        const honest_root = left_output.proof.commitment_scheme_proof.commitments.items[0];
+        const hostile_root = hostile.proof.commitment_scheme_proof.commitments.items[0];
+        try std.testing.expect(!std.meta.eql(honest_root, hostile_root));
+        try std.testing.expectEqualDeep(left_output.statement, hostile.statement);
+        if (comptime ProofEngine.Hasher == frontend.recursion.engine.Hasher) {
+            // Copy through canonical serialization. Only the test verifier
+            // omits the independent Tree 0 comparison; every remaining native
+            // AIR/PCS/FRI check runs against this separately decoded proof.
+            var hostile_bytes: std.ArrayList(u8) = .empty;
+            defer hostile_bytes.deinit(allocator);
+            try postcard.serializeProof(
+                ProofEngine.Hasher,
+                hostile_bytes.writer(allocator),
+                hostile.proof,
+            );
+            var hostile_stream = std.io.fixedBufferStream(hostile_bytes.items);
+            var hostile_copy = try postcard.deserializeProof(
+                ProofEngine.Hasher,
+                allocator,
+                hostile_stream.reader(),
+            );
+            var hostile_copy_moved = false;
+            defer if (!hostile_copy_moved) hostile_copy.deinit(allocator);
+            try std.testing.expectEqual(hostile_bytes.items.len, hostile_stream.pos);
+            var captured: prover.VerifiedSegmentV2CaptureForEngine(ProofEngine) = undefined;
+            var capture_channel = ProofEngine.Channel{};
+            hostile_copy_moved = true;
+            try frontend.testing.verifySegmentV2HostileTree0CaptureForTest(
+                ProofEngine,
+                allocator,
+                pcs_config,
+                hostile.statement,
+                hostile_copy,
+                hostile.interaction_claim,
+                &capture_channel,
+                &captured,
+            );
+            var captured_moved = false;
+            defer if (!captured_moved) captured.deinit(allocator);
+            try captured.validate();
+            try std.testing.expectEqualDeep(hostile_root, captured.proof.commitments[0]);
+            const canonical_root = try prover.preprocessed.rootForDescriptors(
+                ProofEngine,
+                allocator,
+                pcs_config,
+                core_statement.component_descs[0..core_statement.n_components],
+                core_statement.infra_descs[0..core_statement.n_infra],
+            );
+            try std.testing.expectEqualDeep(honest_root, canonical_root);
+            try std.testing.expectError(
+                error.InvalidNativePreprocessedCommitment,
+                leaf_outer.validateNativeTree0(
+                    &captured,
+                    canonical_root,
+                ),
+            );
+            // The test-only native capture bypasses native Tree-0 admission
+            // after all other native checks. The ordinary recursive leaf
+            // preparation must still reject it against the independent
+            // canonical root before it can construct an outer proof. The
+            // plans are intentionally never dereferenced on this path.
+            const keys = try frontend.recursion.segment_leaf_authority_v2.VerifierKeyAuthorityV2.init(
+                digest("hostile-tree0-segment-key"),
+                digest("hostile-tree0-parent-key"),
+            );
+            try std.testing.expectError(
+                error.InvalidNativePreprocessedCommitment,
+                leaf_outer.PreparedNativeV2LeafOuter.init(
+                    allocator,
+                    allocator,
+                    &captured,
+                    pcs_config,
+                    hostile.interaction_claim.interaction_pow,
+                    keys,
+                    canonical_root,
+                    frontend.recursion.air.universal_challenges.UniversalRelations.dummy(),
+                    .{ .vm = undefined, .recursion = undefined },
+                ),
+            );
+            // An optional test export carries the *fully re-proved* hostile
+            // native capture through outer proving under its own Tree-0 root.
+            // Production key admission must reject the resulting outer
+            // candidate after independently rebuilding the native root from
+            // descriptors. The retained bundle can also be replayed by the
+            // standalone verifier in a separate process.
+            const export_dir: ?[]u8 = std.process.getEnvVarOwned(
+                allocator,
+                "STWO_RISCV_HOSTILE_TREE0_EXPORT_DIR",
+            ) catch |err| switch (err) {
+                error.EnvironmentVariableNotFound => null,
+                else => return err,
+            };
+            if (export_dir) |directory| {
+                defer allocator.free(directory);
+                var prepared = try prepareHostileCapture(
+                    allocator,
+                    &captured,
+                    pcs_config,
+                    hostile.interaction_claim.interaction_pow,
+                    keys,
+                    hostile_root,
+                );
+                captured_moved = true;
+                defer prepared.deinit();
+                var candidate = try detached.produceWithProfile(
+                    allocator,
+                    &prepared,
+                    null,
+                    .recursive_q193_v1,
+                );
+                defer candidate.deinit();
+                // The outer proof itself must be internally valid. Only this
+                // test uses a self-pinned key without canonical-root admission.
+                const candidate_pin = detached_command.hash(candidate.key_json);
+                var self_pinned = try detached_command.OwnedKeyV1.admit(
+                    allocator,
+                    candidate.key_json,
+                    candidate_pin,
+                );
+                defer self_pinned.deinit();
+                _ = try detached_verifier.verify(
+                    allocator,
+                    self_pinned.key(),
+                    &prepared.capture.public_data.data,
+                    candidate.claims,
+                    candidate.proof_bytes,
+                );
+                const hashes = try detached_command.retainCandidate(
+                    allocator,
+                    directory,
+                    candidate.key_json,
+                    candidate.claims,
+                    candidate.proof_bytes,
+                );
+                const expected_json = try detached_command.encodeExpected(
+                    allocator,
+                    &prepared.capture.public_data.data,
+                );
+                defer allocator.free(expected_json);
+                var export_directory = try std.fs.cwd().openDir(directory, .{});
+                defer export_directory.close();
+                var expected_file = try export_directory.createFile(
+                    "expected-wire.json",
+                    .{ .exclusive = true },
+                );
+                defer expected_file.close();
+                try expected_file.writeAll(expected_json);
+                const native_statement_json = try std.json.Stringify.valueAlloc(
+                    allocator,
+                    .{
+                        .format_version = hostile.statement.format_version,
+                        .schema_version = hostile.statement.schema_version,
+                        .core = .{
+                            .n_components = hostile.statement.core.n_components,
+                            .component_descs = hostile.statement.core.component_descs[0..hostile.statement.core.n_components],
+                            .initial_pc = hostile.statement.core.initial_pc,
+                            .final_pc = hostile.statement.core.final_pc,
+                            .total_steps = hostile.statement.core.total_steps,
+                            .public_data = hostile.statement.core.public_data,
+                            .x0_local_custody_version = hostile.statement.core.x0_local_custody_version,
+                            .n_infra = hostile.statement.core.n_infra,
+                            .infra_descs = hostile.statement.core.infra_descs[0..hostile.statement.core.n_infra],
+                        },
+                        .authority_id = hostile.statement.authority_id,
+                        .expected_wire_sha256 = detached_command.hash(expected_json),
+                    },
+                    .{},
+                );
+                defer allocator.free(native_statement_json);
+                const native_claim_json = try std.json.Stringify.valueAlloc(
+                    allocator,
+                    hostile.interaction_claim.*,
+                    .{},
+                );
+                defer allocator.free(native_claim_json);
+                for ([_]struct { name: []const u8, bytes: []const u8 }{
+                    .{ .name = "hostile-native-proof.bin", .bytes = hostile_bytes.items },
+                    .{ .name = "hostile-native-statement.json", .bytes = native_statement_json },
+                    .{ .name = "hostile-native-claim.json", .bytes = native_claim_json },
+                }) |artifact| {
+                    var file = try export_directory.createFile(artifact.name, .{ .exclusive = true });
+                    defer file.close();
+                    try file.writeAll(artifact.bytes);
+                }
+                try std.testing.expectError(
+                    error.InvalidNativePreprocessedCommitment,
+                    detached_command.OwnedKeyV1.admitWithNativeRoot(
+                        ProofEngine,
+                        allocator,
+                        candidate.key_json,
+                        hashes.key_sha256,
+                    ),
+                );
+                std.debug.print(
+                    "HOSTILE_TREE0_OUTER_CANDIDATE directory={s} key_sha256={s} proof_sha256={s} native_proof_sha256={s} proof_bytes={d} self_pinned_outer_verified=true\n",
+                    .{ directory, std.fmt.bytesToHex(hashes.key_sha256, .lower), std.fmt.bytesToHex(hashes.proof_sha256, .lower), std.fmt.bytesToHex(detached_command.hash(hostile_bytes.items), .lower), hashes.proof_bytes },
+                );
+            }
+        }
+        hostile_proof_moved = true;
+        try std.testing.expectError(
+            error.InvalidPreprocessedCommitment,
+            prover.verifyRiscVSegmentV2WithEngine(
+                ProofEngine,
+                allocator,
+                pcs_config,
+                hostile.statement,
+                hostile.proof,
+                hostile.interaction_claim,
+            ),
+        );
+    }
+    // The focused q193 gate verifies its honest control before exiting. The
+    // remaining checks below exercise the separate two-segment fixture.
+    if (comptime ProofEngine.Hasher == frontend.recursion.engine.Hasher) {
+        left_proof_moved = true;
+        try prover.verifyRiscVSegmentV2WithEngine(
+            ProofEngine,
+            allocator,
+            pcs_config,
+            left_output.statement,
+            left_output.proof,
+            left_output.interaction_claim,
+        );
+        return;
+    }
     const work = recorder.workCaptureRecorder() orelse unreachable;
     const poseidon_site = @intFromEnum(
         prover_api.work_profile.Site.sparse_memory_and_guest_poseidon_witness,
@@ -202,10 +470,12 @@ fn nativeSegmentsMode(comptime ProofEngine: type, comptime suite_name: []const u
         proof_bytes.writer(allocator),
         left_output.proof,
     );
-    if (comptime ProofEngine.Hasher != prover.Hasher) {
+    if (comptime ProofEngine.Hasher != prover.Hasher and
+        ProofEngine.Hasher != frontend.recursion.engine.Hasher)
+    {
         var wrong_stream = std.io.fixedBufferStream(proof_bytes.items);
         const wrong_suite_proof = try postcard.deserializeProof(prover.Hasher, allocator, wrong_stream.reader());
-        try std.testing.expectError(error.InvalidPreprocessedCommitment, prover.verifyRiscVSegmentV2WithEngine(Engine, allocator, test_config, left_output.statement, wrong_suite_proof, left_output.interaction_claim));
+        try std.testing.expectError(error.InvalidPreprocessedCommitment, prover.verifyRiscVSegmentV2WithEngine(Engine, allocator, pcs_config, left_output.statement, wrong_suite_proof, left_output.interaction_claim));
     }
     var proof_stream = std.io.fixedBufferStream(proof_bytes.items);
     var mutated_proof = try postcard.deserializeProof(
@@ -230,7 +500,7 @@ fn nativeSegmentsMode(comptime ProofEngine: type, comptime suite_name: []const u
         prover.verifyRiscVSegmentV2WithEngineUsingChannelAndCapture(
             ProofEngine,
             allocator,
-            test_config,
+            pcs_config,
             bad_version,
             mutated_proof,
             left_output.interaction_claim,
@@ -286,7 +556,7 @@ fn nativeSegmentsMode(comptime ProofEngine: type, comptime suite_name: []const u
         if (prover.verifyRiscVSegmentV2WithEngine(
             ProofEngine,
             allocator,
-            test_config,
+            pcs_config,
             left_output.statement,
             shifted_proof,
             shifted,
@@ -307,7 +577,7 @@ fn nativeSegmentsMode(comptime ProofEngine: type, comptime suite_name: []const u
     try prover.verifyRiscVSegmentV2WithEngineUsingChannelAndCapture(
         ProofEngine,
         allocator,
-        test_config,
+        pcs_config,
         left_output.statement,
         left_output.proof,
         left_output.interaction_claim,
@@ -360,7 +630,7 @@ fn nativeSegmentsMode(comptime ProofEngine: type, comptime suite_name: []const u
     var right_output = try prover.proveRiscVSegmentV2WithEngine(
         ProofEngine,
         allocator,
-        test_config,
+        pcs_config,
         right_result,
         null,
         right_public,
@@ -401,7 +671,7 @@ fn nativeSegmentsMode(comptime ProofEngine: type, comptime suite_name: []const u
     try prover.verifyRiscVSegmentV2WithEngine(
         ProofEngine,
         allocator,
-        test_config,
+        pcs_config,
         right_output.statement,
         right_output.proof,
         right_output.interaction_claim,
@@ -637,6 +907,65 @@ fn leafStatement(
             input,
             output,
         ),
+    );
+}
+
+fn prepareHostileCapture(
+    allocator: std.mem.Allocator,
+    captured: *leaf_outer.NativeCapture,
+    pcs_config: pcs_core.PcsConfig,
+    interaction_pow: u64,
+    keys: frontend.recursion.segment_leaf_authority_v2.VerifierKeyAuthorityV2,
+    hostile_root: leaf_outer.Digest,
+) !leaf_outer.PreparedNativeV2LeafOuter {
+    const recursion = frontend.recursion;
+    const schedule = recursion.air.verifier_schedule;
+    var profile = try recursion.captured_fri.Owned.init(
+        allocator,
+        recursion.captured_fri.ProfileConfig.fromPcs(pcs_config),
+        &captured.proof,
+    );
+    defer profile.deinit();
+    if (profile.trace_tree_heights.len != recursion.fixed_profile.TREE_COUNT)
+        return error.InvalidProofShape;
+    var tree_heights: [recursion.fixed_profile.TREE_COUNT]u32 = undefined;
+    @memcpy(&tree_heights, profile.trace_tree_heights);
+    const shape = try recursion.transcript_shape.derive(
+        profile.circuit.profile(),
+        tree_heights,
+        .{
+            .sampled_value_count = profile.sampled_value_count,
+            .queried_values_per_query = profile.queried_values_per_query,
+            .claimed_sum_count = profile.claimed_sum_count,
+            .physical_claimed_sum_count = @intCast(captured.vm_air.detailed_claims.len),
+            .physical_component_count = @intCast(captured.vm_air.component_descs.len),
+            .physical_infra_count = @intCast(captured.vm_air.infra_descs.len),
+            .interaction_pow_bits = profile.interaction_pow_bits,
+            .pcs_pow_bits = profile.pcs_pow_bits,
+        },
+    );
+    var vm_plan = try schedule.Plan.initShape(
+        allocator,
+        try schedule.vmProgramSpec(0, 0),
+        shape,
+    );
+    defer vm_plan.deinit();
+    var recursion_plan = try schedule.Plan.initShape(
+        allocator,
+        schedule.RECURSION_PROGRAM_SPEC_V1,
+        shape,
+    );
+    defer recursion_plan.deinit();
+    return leaf_outer.PreparedNativeV2LeafOuter.init(
+        allocator,
+        allocator,
+        captured,
+        pcs_config,
+        interaction_pow,
+        keys,
+        hostile_root,
+        recursion.air.universal_challenges.UniversalRelations.dummy(),
+        .{ .vm = &vm_plan, .recursion = &recursion_plan },
     );
 }
 

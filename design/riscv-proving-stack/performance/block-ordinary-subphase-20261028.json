@@ -1,0 +1,27 @@
+{
+  "schema": "stwo.riscv.block-v5-ordinary-subphase.v1",
+  "source_commit": "f75b58a77a21ba72cea82ef07a4d03e0cd2d5464",
+  "fixture_sha256": "8354005693b41b29a21d946304204ad3be614b0c8405961835622985582685d4",
+  "host": "local Apple M5",
+  "profile": "diagnostic_q8_pow0",
+  "optimize": "ReleaseFast",
+  "scope": "Single diagnostic Collect.collect run with 262,144 repeated stores; no base or recursive STARK proof; rounded millisecond counters; not comparable to prior q70/26 block time.",
+  "command": [
+    "python3",
+    "scripts/zig_protocol_test.py",
+    "src/frontends/riscv/block_v5_cpu_profile_test_root.zig",
+    "-OReleaseFast",
+    "--test-filter",
+    "block-v5 complete first-pass collection profile q8"
+  ],
+  "environment": {
+    "STWO_BLOCK_V5_COLLECT_PROFILE": "1",
+    "STWO_BLOCK_PROFILE_256K_STORES": "1"
+  },
+  "profile_lines": [
+    "BLOCK_V5_GLOBAL_PROFILE events=262245 memory_instances=3 range_shards=1 size_plan_ms=0 source_write_ms=1 memory_first_ms=214",
+    "BLOCK_V5_COLLECT_PROFILE segments=513 events=262245 setup_ms=0 execution_ms=699 native_first_ms=2519 native_stage_ms=230 fetches_counters_ms=373 ordinary_ms=2866 caller_ms=310 planning_ms=719 replay_append_ms=4 boundary_ms=0 sort_ms=16 groups_finish_ms=263 global_first_ms=216 bind_ms=9",
+    "BLOCK_V5_ORDINARY_PROFILE trace_init_ms=302 counter_ms=876 census_ms=252 commitment_ms=1086 finalize_ms=3",
+    "BLOCK_V5_PROFILE_DISTINCT stores=262144 distinct=false first_touches=53"
+  ]
+}

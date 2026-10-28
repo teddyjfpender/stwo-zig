@@ -124,6 +124,7 @@ test "V2 row-11 closes boundary words and exact ProgramV2 statement payloads" {
         &fixture.data,
         &component_descs,
         &infra_descs,
+        fixture.trace_commitments[0],
     );
     const manifest = try subject.preflight(
         &fixture.data,
@@ -182,6 +183,7 @@ test "V2 row-11 closes boundary words and exact ProgramV2 statement payloads" {
     var wire_consumes: usize = 0;
     var boundary_wire_emits: usize = 0;
     var register_byte_emits: usize = 0;
+    var native_root_relays: usize = 0;
     var seen_register_bytes: [register_bytes.BYTE_COUNT]bool = @splat(false);
     const memory = try register_bytes.MemoryLayout.init(&try fixture.data.authenticatedView());
     const seen_memory = try std.testing.allocator.alloc(bool, memory.memoryByteCount() * 2);
@@ -239,7 +241,23 @@ test "V2 row-11 closes boundary words and exact ProgramV2 statement payloads" {
             const byte_index = coordinate - memory.memoryByteCount();
             try std.testing.expectEqual(@as(u32, @intFromBool(!memory.value(fixture.words, byte_index).isZero())), event.tuple[2].toU32());
         }
+        if (event.ordinal == 11) {
+            try std.testing.expectEqual(@as(u32, 1), event.multiplicity);
+            try std.testing.expectEqual(
+                @import("../air/vm_statement_roots.zig").NATIVE_CONTINUATION_SCOPE,
+                event.tuple[0].toU32(),
+            );
+            const side = event.tuple[1].toU32();
+            try std.testing.expect(side < 2);
+            const expected = if (side == 0)
+                source_prepared.context.entry_continuation_root
+            else
+                source_prepared.context.exit_continuation_root;
+            try std.testing.expectEqual(expected, event.tuple[2].toU32());
+            native_root_relays += 1;
+        }
     }
+    try std.testing.expectEqual(@as(usize, 2), native_root_relays);
     for (seen_memory) |seen| try std.testing.expect(seen);
     try std.testing.expectEqual(memory.memoryByteCount(), closure.row11_memory_byte_emits);
     var missing_selector = closure;
@@ -557,6 +575,63 @@ test "V2 row-11 register byte bridge reuses constrained decomposition" {
     const header = prepared_rows.wireRow(&view, 0);
     try std.testing.expectEqual(@as(u32, 1), header.preprocessing.boundary_bridge_mask);
     try std.testing.expectEqual(@as(u32, 0), header.preprocessing.register_byte_bridge_mask);
+}
+
+test "V2 row-11 fixed columns regenerate from canonical shape without witness words" {
+    const rows = @import("../segment_statement_outer_source_v2_prepared_v2.zig");
+    const layout_mod = @import("../segment_statement_v2_transcript_layout.zig");
+    var fixture = try Fixture.init(std.testing.allocator);
+    defer fixture.deinit();
+    const view = try fixture.data.authenticatedView();
+    const layout = try layout_mod.Layout.fromView(&view);
+    const context = [_]M31{M31.zero()} ** source_v2.CONTEXT_WORD_COUNT;
+    const total = 8 + layout.total_words + context.len;
+    for (0..total) |index| {
+        const actual = try rows.rowAt(&view, &context, index, @intCast(total));
+        const regenerated = try rows.preprocessingAt(&layout, index);
+        try std.testing.expectEqualDeep(actual.preprocessing, regenerated);
+    }
+    try std.testing.expectError(error.InvalidTraceShape, rows.preprocessingAt(&layout, total));
+}
+
+test "detached key identity binds retained-section layout" {
+    try @import("../detached_segment_protocol_fixture_v1.zig").testFixedProjection();
+    var fixture = try Fixture.init(std.testing.allocator);
+    defer fixture.deinit();
+    const view = try fixture.data.authenticatedView();
+    const layout = try @import("../segment_statement_v2_transcript_layout.zig").Layout.fromView(&view);
+    var key = try @import("../detached_segment_protocol_fixture_v1.zig").testing.key(view.words.len, 1);
+    key.retained_section_counts = layout.counts;
+    try key.validateExpectedLayout(&fixture.data);
+    var wrong = key;
+    wrong.retained_section_counts[0] -= 1;
+    wrong.retained_section_counts[1] += 1;
+    try std.testing.expectError(error.SegmentDetachedWireLayoutMismatch, wrong.validateExpectedLayout(&fixture.data));
+}
+
+test "detached key binds public native-sum topology before proof decoding" {
+    var fixture = try Fixture.init(std.testing.allocator);
+    defer fixture.deinit();
+    const view = try fixture.data.authenticatedView();
+    const layout = try @import("../segment_statement_v2_transcript_layout.zig").Layout.fromView(&view);
+    var topology = try @import("../segment_public_native_sum_topology_v1.zig").Topology.fromView(
+        std.testing.allocator,
+        &view,
+    );
+    defer topology.deinit(std.testing.allocator);
+    var key = try @import("../detached_segment_protocol_fixture_v1.zig").testing.key(view.words.len, 1);
+    key.retained_section_counts = layout.counts;
+    key.native_sum_topology = topology;
+    const pin = try key.identity();
+    try key.validateExpectedLayout(&fixture.data);
+    const changed_addresses = try std.testing.allocator.dupe(u32, topology.addresses);
+    defer std.testing.allocator.free(changed_addresses);
+    if (changed_addresses.len == 0) return error.FixtureHasNoRetainedAddresses;
+    changed_addresses[0] += 1;
+    var wrong = key;
+    wrong.native_sum_topology.?.addresses = changed_addresses;
+    try std.testing.expectError(error.PublicNativeSumTopologyMismatch, wrong.validateExpectedLayout(&fixture.data));
+    try std.testing.expectError(error.SegmentDetachedCircuitPinMismatch, @import("../detached_segment_protocol_v1.zig").KeyV1.admit(wrong, pin));
 }
 
 test "V2 row-11 sparse bytes constrain exact nonzero selectors" {

@@ -38,9 +38,9 @@ pub const BINDING_DIGEST = hexDigest(
     BINDING_DIGEST_HEX,
     "invalid recursion transcript-payload witness-binding digest",
 );
-pub const PREPROCESSING_FORMAT_VERSION: u16 = 1;
+pub const PREPROCESSING_FORMAT_VERSION: u16 = 2;
 pub const PREPROCESSING_DOMAIN =
-    "stwo-zig/typed-air/recursion-transcript-payload-preprocessing/v1\x00";
+    "stwo-zig/typed-air/recursion-transcript-payload-preprocessing/v2\x00";
 pub const PREPARED_BATCH_FORMAT_VERSION: u16 = 1;
 pub const PREPARED_BATCH_DOMAIN =
     "stwo-zig/typed-air/recursion-transcript-payload-batch/v1\x00";
@@ -154,6 +154,7 @@ pub const Error = direct.Error || schedule.Error || trace_mod.Error ||
     InvalidTranscriptSource,
     InvalidWitnessBinding,
     LogSizeOutOfRange,
+    NativeTree0RootRequired,
     SchemaMismatch,
 };
 
@@ -218,6 +219,7 @@ pub fn transcriptEffect(step: schedule.VerifierStep) ?Effect {
         .absorb_trace_commitment,
         .absorb_public_claim,
         .absorb_claimed_sums,
+        .absorb_physical_claims,
         .absorb_sampled_values,
         .absorb_fri_commitment,
         .absorb_last_layer_coefficients,
@@ -251,6 +253,7 @@ pub fn payloadWordCount(
             0,
         .verify_and_absorb_interaction_pow, .verify_and_absorb_pcs_pow => component.QM31_WORD_COUNT,
         .absorb_claimed_sums => |item| try timesFour(item.count),
+        .absorb_physical_claims => |item| 5 + try timesFour(item.count),
         .absorb_sampled_values => |item| try timesFour(item.count),
         .absorb_last_layer_coefficients => |item| try timesFour(item.count),
         .draw_relation_challenge,
@@ -305,10 +308,13 @@ pub fn emitLane(
     sink: *Sink,
     plan: *const schedule.Plan,
     protocol_id: *const [component.DIGEST_WORD_COUNT]u32,
+    native_preprocessed_root: ?*const [component.DIGEST_WORD_COUNT]u32,
     verifier_id: u32,
     segment_mask: u32,
     binary_mask: u32,
 ) Error!void {
+    if (verifier_id == SEGMENT_VERIFIER_ID and native_preprocessed_root == null)
+        return error.NativeTree0RootRequired;
     var hash_id: u32 = 0;
     for (plan.steps, 0..) |step, sequence| {
         const effect = transcriptEffect(step) orelse continue;
@@ -319,6 +325,7 @@ pub fn emitLane(
             const source = try payloadSource(
                 plan,
                 protocol_id,
+                native_preprocessed_root,
                 step,
                 payload_u32,
             );
@@ -360,6 +367,7 @@ pub const PayloadSource = struct {
 pub fn payloadSource(
     plan: *const schedule.Plan,
     protocol_id: *const [component.DIGEST_WORD_COUNT]u32,
+    native_preprocessed_root: ?*const [component.DIGEST_WORD_COUNT]u32,
     step: schedule.VerifierStep,
     payload_index: u32,
 ) Error!PayloadSource {
@@ -388,6 +396,14 @@ pub fn payloadSource(
         ),
         .absorb_trace_commitment => |item| blk: {
             try requireWidth(payload_index, component.DIGEST_WORD_COUNT);
+            if (item.round == .preprocessed and item.tree == 0) {
+                if (native_preprocessed_root) |root| break :blk constantIndexedSource(
+                    .commitment,
+                    0,
+                    payload_index,
+                    try indexedWord(root, payload_index),
+                );
+            }
             break :blk dynamicSource(.commitment, item.tree, payload_index);
         },
         .verify_and_absorb_interaction_pow => blk: {
@@ -399,6 +415,26 @@ pub fn payloadSource(
             payload_index,
             item.count,
         ),
+        .absorb_physical_claims => |item| blk: {
+            if (payload_index < 5) {
+                const header = [_]u32{
+                    0x5057_5453,          0x314c_4350,
+                    item.component_count, item.infra_count,
+                    item.count,
+                };
+                break :blk constantIndexedSource(
+                    .protocol,
+                    2,
+                    payload_index,
+                    header[payload_index],
+                );
+            }
+            break :blk try indexedQm31Source(
+                .vm_air_claimed_sum,
+                payload_index - 5,
+                item.count,
+            );
+        },
         .absorb_sampled_values => |item| try indexedQm31Source(
             .sampled_value,
             payload_index,
@@ -499,6 +535,7 @@ pub fn inputUseCount(kind: VerifierInputKind) u32 {
         .statement,
         .commitment,
         .claimed_sum,
+        .vm_air_claimed_sum,
         .fri_commitment,
         .last_layer_coefficient,
         .vm_public_claim_digest,
@@ -507,7 +544,6 @@ pub fn inputUseCount(kind: VerifierInputKind) u32 {
         .pcs_parameters,
         .interaction_pow_nonce,
         .pcs_pow_nonce,
-        .vm_air_claimed_sum,
         => 0,
     };
 }
@@ -585,7 +621,10 @@ fn validateRowForLayout(row: Row, comptime layout: enum { legacy_scheduled, reco
         // Their input multiplicity is zero; all coordinates remain canonical.
         .protocol => if ((layout != .ethereum_field_poseidon and row.constant_mask != 1) or
             (row.constant_mask == 0 and row.constant_value != 0) or (layout == .legacy_scheduled and
-            (row.item_index > 1 or row.limb_index >= component.DIGEST_WORD_COUNT)))
+            (if (row.tag == 29)
+                row.item_index != 2 or row.limb_index >= 5
+            else
+                row.item_index > 1 or row.limb_index >= component.DIGEST_WORD_COUNT)))
         {
             return error.InvalidTraceRow;
         },
@@ -610,9 +649,13 @@ fn validateRowForLayout(row: Row, comptime layout: enum { legacy_scheduled, reco
         .commitment, .fri_commitment => {
             // The recorded common-fold profile pins tree0 in preprocessing
             // and still emits its commitment lookup to the verifier AIR.
-            const fixed_tree0 = layout != .legacy_scheduled and
-                row.source_kind == .commitment and row.item_index == 0 and row.constant_mask == 1;
-            if ((!fixed_tree0 and (row.constant_mask != 0 or row.constant_value != 0)) or
+            const fixed_tree0 = row.source_kind == .commitment and
+                row.item_index == 0 and row.constant_mask == 1;
+            const scheduled_native_tree0 = layout == .legacy_scheduled and
+                row.verifier_id == SEGMENT_VERIFIER_ID and
+                row.source_kind == .commitment and row.item_index == 0;
+            if ((scheduled_native_tree0 and !fixed_tree0) or
+                (!fixed_tree0 and (row.constant_mask != 0 or row.constant_value != 0)) or
                 row.limb_index >= component.DIGEST_WORD_COUNT)
                 return error.InvalidTraceRow;
         },
@@ -634,7 +677,8 @@ fn validateRowForLayout(row: Row, comptime layout: enum { legacy_scheduled, reco
         {
             return error.InvalidTraceRow;
         },
-        .vm_air_claimed_sum => if (!ethereum or
+        .vm_air_claimed_sum => if ((!ethereum and
+            !(layout == .legacy_scheduled and row.tag == 29)) or
             row.constant_mask != 0 or row.constant_value != 0 or
             row.limb_index >= component.QM31_WORD_COUNT or
             row.verifier_id != SEGMENT_VERIFIER_ID)

@@ -71,7 +71,7 @@ leaf-to-parent and parent-to-root boundaries (section 2), key identity
 | R-D6 | Shard manifest replaced by public-claim digest and verifier-owned shape ids (accepted). | T-3 |
 | R-D7 | Frozen leaf geometry predates native column changes; leaf proving faults with `AuthorityMismatch`. | K-6, W-3 |
 | R-F1 | Universal provider shell admits narrow rows against full-IO requests. | P-1 to P-5, W-4 |
-| R-D8 (new, audit 2026-10-18) | The native segment proof's tree-0 (preprocessed) root enters the leaf transcript as proof data (`segment_transcript_outer_source_v2_prepared_v2.zig:474-479` `dynamicPayload(.commitment, ...)`, `constant_mask = 0`); no row compares it with the root the native verifier recomputes (`prover/statement_validation.zig:540-565` `verifyPreprocessedRoot`). | V-14, G-8, W-9 |
+| R-D8 (new, audit 2026-10-18) | The native segment proof's tree-0 (preprocessed) root lacks an independently supplied in-circuit constant. V2 now labels the row `constant_mask = 1`, but `segment_transcript_outer_components_v2_source.zig:238-244` sets `constant_value` from that same proof-derived row; this is a self-equality, not key binding. Frozen V1 row 5 remains dynamic. The native verifier recomputes the root (`prover/statement_validation.zig:540-565` `verifyPreprocessedRoot`). | V-14, G-8, W-9 |
 | R-D9 (new, audit 2026-10-18) | The scheduled lane drops `InteractionClaim.mixInto`'s interaction column log-size list (`air/transcript/claims.zig:75-78` mixes `log_sizes.len` and every `log_size`; `native_scheduled_channel.zig:109-118` absorbs only the 28 sums). | T-3(d) |
 
 <!-- audit: R-D8/R-D9 added. R-D8 is the highest-severity gap found: the contract as drafted never required the native preprocessed commitment to be verifier-owned, so a literal implementation would admit a leaf whose native proof commits an attacker-chosen tree 0 (selectors, lookup tables). -->
@@ -208,7 +208,8 @@ preprocessed root and child pins).
 
 **S-9.** The expected root words MUST be supplied to the fresh root verifier
 from an independently pinned admission file, as `riscv_recursive_product.py`
-and `riscv_segment_v2_detached_tree_gate.py` do (`scripts/riscv_recursive_product.py:20-23`).
+and `riscv_segment_v2_detached_tree_gate.py` do through mandatory admission
+path and SHA-256 arguments.
 A root whose expected words are taken from the producer's output is not
 verified.
 
@@ -672,8 +673,9 @@ together and recorded in one receipt: `segment_profile.zig` constants;
 `transcript_shape.zig` shape word list; the plan digests; the circuit
 identity (C-8); `universal_shared_geometry.POSEIDON_SOURCE_AUTHORITY_DIGEST`;
 `poseidon2_universal_identity_v2.CANONICAL_DIGEST`; the key hash in
-`leaf_manifest_contract_test_root.zig:28`; `ADMISSION_SHA256` and
-`OTHER_ADMISSION_SHA256` in `scripts/riscv_recursive_product.py:20-23`;
+`leaf_manifest_contract_test_root.zig:28`; the independently supplied
+admission and alternate-workload SHA-256 values retained in each
+`riscv_recursive_product.py` receipt;
 `vectors/riscv_csp/recursion-shape-audit-v{1,2}.json`; and the transcript,
 hash and provider contract digests named in the audit record.
 
@@ -749,12 +751,12 @@ created) and its pass criterion. A gate that is skipped under
 | G-1 | Transcript byte-equivalence, native vs scheduled | New `src/tests/riscv/recursion_transcript_equivalence_test.zig`, modelled on `src/tests/riscv/transcript_path_test.zig:1-60` (event-recording channel wrapper) applied to the native verifier driven by `native_scheduled_channel.Channel`, plus `Execution.replayNative` (`transcript_program_contract.zig:155`) on the recorded leaf execution. | For one real leaf proof per profile: the ordered mix/draw/PoW event trace produced by the native prover equals that of the native verifier, equals the plan step sequence of T-6 with the exact payload word counts of `payloadWordCount` (`transcript_program_contract.zig:254-279`), and `replayNative` succeeds; the physical-claim frame is present with `total = physicalClaimCount`. Any `@hasDecl` bypass remaining in `proof_transcript.zig` fails the gate. |
 | G-2 | Constraint-program equivalence | Extend `src/frontends/riscv/recursion/tests/recursion_air_composition_circuit_test.zig` (or new `vm_air_composition_equivalence_test.zig`) to evaluate the built circuit on the captured sampled values and compare with `Components.evalCompositionPolynomialAtPoint`. | For every admitted profile and for ≥ 64 random OODS seeds and random claim vectors: circuit accumulation equals the native value; `air_instruction_count` equals the sum of `constraintCountForInfra` and opcode counts; the memory component contributes 9 constraints with root inputs taken from claim words 222/232; and (V-15) the rows 15-17 public-LogUp graph evaluated on the same random claim vector and challenges equals `−public_logup.sum(public_data, relations)` so that `Σ canonical + boundary = 0` holds exactly when `verifyGlobalCancellation` would accept. |
 | G-3 | Closed-forgery negative controls, in-circuit | New cases in `src/tests/riscv/recursion_poseidon_leaf_test.zig` (next to `runAdapterMutationFleet`, `recursion_poseidon_leaf_test_support.zig:245`) and `src/frontends/riscv/recursion/air/tests/universal_shared_provider_test.zig`. | Each is rejected by the standalone leaf verifier, not only by the native verifier: (a) per-batch claim shift with fixed aggregate (mirror of `malicious_prover_harness.zig:304-308`); (b) missing root binding: a boundary row with sign `+1` whose root is not `initial_rw_root`, and the sign-swap variant; (c) Merkle doubled leaf (`merkle_node.zig:700-701` mutation) ; (d) narrow provider row offered against a full-IO request with zero output lanes 1..15 (R-F1). Expected failures are named errors or `LogupSumNonZero`, never a crash. |
-| G-4 | Key freshness | Extend `leaf_manifest_contract_test_root.zig` and `src/frontends/riscv/recursion/air/tests/segment_outer_adapter_manifest_v2_test.zig`. | A key whose `provider_authority_sha_id`, catalog identity, circuit identity or VM profile manifest digest differs from the current native identity fails admission with `InvalidCatalogGeometry`, `CatalogIdentityMismatch`, `AuthorityMismatch` or `DetachedParentProfileMismatch` before proof decoding; the pre-October q193 key is such a negative control and MUST stay committed as one. |
+| G-4 | Key freshness | Extend `leaf_manifest_contract_test_root.zig` and `src/frontends/riscv/recursion/air/tests/segment_outer_adapter_manifest_v2_test.zig`. | A key whose `provider_authority_sha_id`, catalog identity, circuit identity or VM profile manifest digest differs from the current native identity fails admission with a named mismatch (`ManifestSealMismatch`, `InvalidCatalogGeometry`, `CatalogIdentityMismatch`, `AuthorityMismatch` or `DetachedParentProfileMismatch`) before proof decoding; the pre-October q193 key is such a negative control and MUST stay committed as one. |
 | G-5 | End-to-end 1/2/4/8 with hostile substitution | `scripts/riscv_recursive_product.py --backend cpu` (and `--backend metal` for parity) over a regenerated admission; `scripts/riscv_segment_v2_detached_tree_gate.py`; `scripts/riscv_segment_v2_statement_substitution.py`; per-node `riscv_segment_v2_detached_gate.py:294-330` and `riscv_segment_v2_detached_parent_gate.py:268-345` mutation suites. | All genuine leaf, parent and root proofs verify in fresh processes with independently pinned keys and expected words; every same-geometry statement substitution (`riscv_recursive_product.py:185-201`), proof mutation, claim mutation, interaction-PoW case, changed canonical root, changed publication mode and lineage case is rejected with the expected error; CPU and Metal artifacts are byte-identical; `production_security_qualified` stays `false`. |
 | G-6 | Build and suite | `zig build test-riscv-recursion-poseidon-leaf` (`build_support/products/riscv_cpu.zig:227-234`), `zig build test-riscv -Doptimize=ReleaseSafe`, `zig build test-riscv-prover`, `test-vm-air-profile-v2`, `test-detached-boundary`. | Green with the `STWO_RECURSION_RUN_UNQUALIFIED_LANE` skips removed and the leaf test body restored. |
 | G-7 | R-D6 shard-geometry binding | New test beside G-1. | A leaf proof whose statement has a different component row count, log size or column count than the admitted catalog, but the same claim digest, is rejected by `validateStatement` or catalog admission before any transcript frame; this discharges T-3(a) together with G-8. |
 | **G-8** (new) | Tree-0 / key-constant binding | New cases in `src/tests/riscv/recursion_poseidon_leaf_test.zig` and the parent gate `scripts/riscv_segment_v2_detached_parent_gate.py`. | (a) A native segment proof whose tree-0 commitment is replaced by the root of a prover-generated preprocessed tree (e.g. `is_active` extended by one row, or one lookup-table tuple altered) while every other proof field is re-proved consistently is rejected by the **standalone leaf verifier** (not only by the native verifier). (b) A parent key whose `child_key_sha256` or child `preprocessed_root` constants differ from the children actually proved fails K-8 regeneration (`preprocessed_root` mismatch) before any proof byte is read. (c) Regenerating the preprocessed tree of every committed leaf and parent key from the key's fields reproduces `preprocessed_root` exactly. |
-| **G-9** (new) | No trusted-but-unabsorbed wire field | New static check beside G-1 over the row-5 payload metadata and the fixed wire. | For every `TranscriptPayloadRow` with `constant_mask = 0` the value is a fixed-wire field that is (i) absorbed by a plan step before its first use and (ii) consumed (`input_use_count ≥ 1`) by exactly the rows the plan names; for every field of `FixedStarkProofWire` there exists such a row or a Merkle/FRI path step that authenticates it; the detailed claims (post-W-1) and every commitment appear in this map; no row reads a wire field through any other path (e.g. the `segment_publication_input_provider_v2` route of R-D1 is gone). The check fails if any `constant_mask = 1` payload is not pinned by the key (K-8). |
+| **G-9** (new) | No trusted-but-unabsorbed wire field | New static check beside G-1 over the row-5 payload metadata and the fixed wire. | For every `TranscriptPayloadRow` with `constant_mask = 0` the value is a fixed-wire field absorbed by its plan step before first use. Ordinary dynamic payloads are consumed (`input_use_count ≥ 1`) by exactly the named input rows; the `interaction_pow` and `pcs_pow` nonce payloads instead have `input_use_count = 0` and must each be consumed and verified by exactly one dedicated PoW plan step. For every field of `FixedStarkProofWire` there exists such a row or a Merkle/FRI path step that authenticates it; the detailed claims (post-W-1) and every commitment appear in this map; no row reads a wire field through any other path (e.g. the `segment_publication_input_provider_v2` route of R-D1 is gone). The check fails if any `constant_mask = 1` payload is not pinned by the key (K-8). |
 | **G-10** (new) | Intra-lane prover/verifier transcript symmetry | Extend G-1 with the recording channel (`detached_segment_recording_components_v1.zig`, `recording_poseidon_channel_v4.zig`). | For every leaf and parent produced in G-5, the producer's recorded `Execution` (`transcript_program_contract.zig`) equals, frame for frame, the recording made by the standalone verifier's recording channel on the same proof bytes, and `replayNative` succeeds on both; any divergence is a lane-internal asymmetry and fails the gate. |
 
 <!-- audit: G-8/G-9/G-10 added for brief items 7 and 8. G-2's pass criterion is extended below to the public boundary (V-15). -->
@@ -773,24 +775,25 @@ regenerated.
 with a new encode tag; append `physical_claimed_sum_count` to
 `transcript_shape.derive` and `ScheduleShape`; insert the step after
 `absorb_claimed_sums` in `Plan.initShape`; implement the header and payload
-frames in `scheduled_channel` / `native_scheduled_channel` so that
-`mixU32s` accepts exactly the T-4 header and `mixFelts` the claim payload at
-that step; delete `absorbRiscVClaimedSums` and the `@hasDecl` branch at
-`proof_transcript.zig:166`; carry the physical claims on the fixed wire
+frame in `native_scheduled_channel` using the typed hook allowed by T-5;
+the hook absorbs the exact T-4 header and ordered physical claims in one
+scheduled operation after the canonical-aggregate hook. Carry the physical claims on the fixed wire
 (`fixed_wire_fixed_stark_proof_wire.zig`, `Dimensions`); source row-18
 detailed claims from the transcript payload instead of
 `segment_publication_input_provider_v2`; update every file mirroring
 `absorb_claimed_sums` (15 source files reference it; the audit record counts
 ~120 across tests and vectors). Acceptance: G-1 passes; `payloadWordCount`
-returns `4·total` for the new step; plan digests and shape ids change.
+returns `5 + 4·total` for the header and claims in the new step; plan digests
+and shape ids change.
 
 **W-2 (R-D2, C-2/C-3).** Replace `evaluateWithoutRootsGeneric` in
 `vm_air_composition_circuit_graph_build.zig:283-293` and
 `ethereum_vm_composition_graph_base_v2.zig` with `evaluateGeneric(...,
 roots)`; add the root inputs to `InputProfile` and `vmInputCount`; bind them
-in row 18 to the row-12 claim words at 221/222 and 231/232; delete
-`N_CONSTRAINTS_WITHOUT_ROOTS` and both `evaluateWithoutRootsGeneric`
-functions. Acceptance: G-2 passes; the builder no longer returns
+in row 18 to the row-12 claim words at 221/222 and 231/232; remove every
+publicly callable rootless composition evaluator. The seven-term core may
+remain a private helper used only by the full nine-constraint evaluator.
+Acceptance: G-2 passes; the builder no longer returns
 `InvalidComponentOrder` on the hardened profile; the G-3(b) controls are
 rejected; circuit identity changes.
 
@@ -831,7 +834,8 @@ key setup; (3) `scripts/riscv_segment_v2_tree_key_setup.py` (parent
 gates, regenerating the other-admission control; (5) re-pin the K-7
 inventory; (6) remove the `STWO_RECURSION_RUN_UNQUALIFIED_LANE` skips,
 restore the leaf test body removed in `f8b64e96b`, run G-6. Acceptance: G-5
-and G-6 records retained; `riscv_recursive_product.py` constants updated.
+and G-6 records retained; `riscv_recursive_product.py` requires freshly
+pinned admission and alternate-workload inputs instead of frozen constants.
 The `build-recursive-segment-v2-leaf-key-setup` step now exists in
 `src/integrations/riscv_cpu/build.zig`; its runner remains the same source.
 
@@ -852,23 +856,123 @@ K-8 regeneration in the admission tooling. Acceptance: G-8 passes; the leaf
 key identity and the transcript shape change (K-1). This item MUST land in
 the same identity-changing batch as W-1 to W-4.
 
+The V2 `constant_mask = 1` metadata alone does not discharge this obligation.
+The current source takes the Tree-0 constant from a root independently
+regenerated from native component descriptors, checks the proof frame against
+it, and binds it into the source receipt. G-8 still requires a hostile
+standalone leaf proof and independent key admission, plus parent-key
+preprocessed-tree regeneration. A self-derived constant remains invalid even
+if its row is committed in Tree 0.
+
 **W-8 (ledger).** Apply section 11.
 
 ### Implementation checkpoint (2026-10-18)
 
 | Work | State | Evidence or remaining condition |
 | --- | --- | --- |
-| W-1, W-2 | Open, blocking | The opt-in leaf now reaches `InvalidComponentOrder`: its boundary graph emits seven roots while the native AIR requires nine. Physical claims are still not absorbed by the scheduled transcript. |
+| W-1 | Native and V2 transcript implemented; gates open | The scheduled channel and fixed wire absorb the detailed physical claims after the 28 aggregates. `proof_transcript.zig` now selects that framing only for the exact scheduled-channel type; a test recorder exposing deceptive methods stays on the native path, and no `@hasDecl` dispatch remains in that file. The row-5 transcript payload publishes each detailed claim once, and row 18 consumes that same relation tuple once. Row 38 now contains only the 55 native LogUp boundary rows. The detached two-segment canonical CPU tree produced and independently verified both leaves and one parent root after fresh key setup and the row-38 geometry cleanup. Its gate report has SHA-256 `150db03cb8c21bf71ab3a758c735241ec7efe48979240575a43c4a22c6b4674e`; this is a local checkpoint, not a publication gate. A retained one-segment q193 transcript checkpoint now compares the native producer, fresh native verifier, and scheduled recursive execution frame by frame at `vectors/reports/riscv-recursion-20261018/q193-native-transcript-checkpoint/`. G-1's full-profile test and G-9's whole-wire mapping remain required. |
+| W-2 | Composition graph assembled at development security; gates open | The V2 base graph evaluates all nine memory constraints with explicit native continuation-root inputs. Row 11 consumes the authenticated context words at indices 15 and 16 and relays their values into scope 6 for row 18; the focused row-11 test and a complete detached development tree pass. Root-bearing ProfileV2 programs use a distinct field-authority preimage while V1 rejects those bindings. G-2's differential coverage and G-3(b)'s hostile-root controls remain open. |
 | W-3 | Geometry re-pinned | The hardened native leaf reported 38/627/204 columns; the frozen profile now has 877 table columns and 1,081 sampled values. |
 | W-4 | Local shell fixed | Wide and compact providers constrain full IO; focused provider tests pass. End-to-end G-3(d) remains open. |
 | W-5 | Migration retired | Both migration entry points fail closed for pre-contract keys. |
-| W-6, W-7 | Open | Rebuild/regenerate after W-1 and W-2, then run G-1 through G-10. |
-| W-9 | Detached leaf partial | Leaf key pins native Tree0 and the CPU admission path independently regenerates it. Frozen V1 row-5 and parent-key Tree0 checks remain open. |
+| W-6, W-7 | Open | Fresh 1/2/4/8 leaf-key setups completed and the focused `test-riscv-recursion-soundness` step passed 15/15 ReleaseSafe tests, but this step is only a subset of G-1 through G-10. Parent/root trees, Metal parity, adversarial cases, and the unskipped broad suites still require fresh final-identity evidence. The opt-in native leaf rejects aggregate-column and maximum-log geometry changes before transcript opening; exact re-pinned descriptor/catalog admission remains under test. |
+| W-9 | Detached leaf Tree0 regenerated; parent and hostile gates open | Leaf key pins native Tree0 and CPU admission independently regenerates it. Frozen V1 row-5 requires the admitted root. V2 row-5 receives a geometry-derived root separately from the proof, rejects a different proof frame, and places that root in the constant column and source identity. The detached q193 leaf's complete outer Tree0 now regenerates from the serialized key alone; its one-segment census contains 578 fixed columns and 46,808,640 field cells. `recursive-segment-v2-leaf-key-rebuild` accepts a separately pinned key SHA-256, loads no proof or witness, commits all 39 reconstructed row families, and checks the resulting root. Fresh q193 setups for 1/2/4/8 leaves produced 15 distinct serialized keys; every key matched all production row digests during setup and the complete root in a separate proof-free process. Changing the pinned root or native-sum address topology caused root mismatch. This establishes the leaf portion of G-8(c) for those rosters, not every possible committed leaf shape. Parent `admit-key` still reconstructs from **verified child proofs**, so proof-free parent G-8(c) is open. Parent admission now rejects a different independently pinned child-key SHA-256 before reading either child proof; the deeper fixed-tree check still follows child verification. The standalone hostile re-proven proof required by G-8(a) is also open. |
 | W-8 | False | `recursion_qualified` stays false until every gate and independent review passes. |
 
-The recursive AIR source-map check also fails on eight stale source hashes in
-the current tree. Review their equations and Lean mappings before re-pinning;
-a digest-only update is not qualification evidence.
+The parent G-8(c) gap is structural, not a missing root comparison.
+`detached_parent_protocol_v1.KeyV1` retains a manifest, row parameters,
+child-key hashes and a claimed fixed root. Its child-key hashes do not encode
+the transcript, PCS and arithmetic routing rows assembled by
+`detached_parent_preparation_v1.prepareFor` from verified child captures.
+The next identity version must carry a compact, canonical fixed-circuit
+recipe derived from independently pinned child keys, validate that recipe
+against those keys before child proof loading, and reconstruct and commit
+every parent fixed row from it in a proof-free process. Copying fixed columns
+or accepting the claimed root as a recipe would not satisfy G-8(c).
+
+The detached leaf key schema is now version 3. Version 2 keys are rejected:
+the new native-sum topology affects the fixed arithmetic graph and therefore
+must be part of key identity. The focused native-sum suite confirms that
+changing retained values with the same topology leaves the graph digest
+unchanged, while an address mutation is rejected against the expected wire.
+
+One K-8 leaf dependency was the PCS/FRI fixed-row profile. Its large
+row-24 graph is generated without witness values, but the compiler requires
+the exact per-column log sizes and ordered sample-mask layouts. Native Tree 0,
+main, and interaction log sizes are now derived from the admitted component
+descriptors by `detached_native_column_geometry_v1.zig`, checked before
+native Tree0 regeneration, and can be compared with captured logs. The q193
+security profile does not fix one native component roster: real q193 keys
+have different component counts, so column counts must remain descriptor
+driven. The native segment's sample-mask order is now specified alongside
+those logs: Tree0 and Tree1 sample the current point; the authenticated
+interaction columns sample current then previous; composition samples current.
+The derived PCS profile builds its graph without proof input. Its exact logs,
+mask order and identity now match a real captured native verifier profile,
+and the resulting rows 20–29 match the production census. These are
+component recipes now feed the complete key-only leaf Tree0 writer. The
+active SegmentV2 native-public-sum graph specializes on the union of four
+retained address lists and completion mode/value, not on the older V1
+public-claim shape. The detached leaf key pins this compact topology and
+compares it with the independently supplied expected wire before proof
+decoding. The q193 CPU key setup compares all 39 reconstructed fixed-row
+digests and their actual commitment root against production; the separate
+pinned-key command checks that root without reading proof bytes. This passed
+the available fresh 1/2/4/8-leaf q193 rosters. Parent Tree0 still requires
+proof-free reconstruction; these finite rosters do not prove a universal
+G-8(c) claim.
+
+The recursive AIR source map has been reviewed against the relocated S-box,
+matrix, framework constraint, and interaction-prefix equations and re-pinned
+to 18 files. `check_recursive_air.py` now passes its source and 10-theorem
+Lean audit. Its claim remains limited to local algebra, not whole-prover
+soundness.
+
+The 2026-10-18 diagnostic two-leaf Metal run produced and independently
+verified both leaves and the parent under `recursive_q193_v1`. The parent gate
+passed 28 fresh-process cases (report SHA-256
+`b04e95398226477a83a13acbe9072a51905c64e15846e97cb72f56dbdea04541`),
+and the same-geometry statement-substitution gate passed six accept/reject
+checks (report SHA-256
+`b012b102267845ce36805c1dbe45a828c37c9bb614c1efc6e04fdb627a34abae`).
+The CPU transcript comparison passed for two leaves and their parent (report
+SHA-256 `8d5ba6447afe63dbf1a6ecbe043b91bf665cf65921a614cd331449947b6133bd`).
+These diagnostic reports do not establish G-5 across 1/2/4/8 or G-10 for
+Metal; the full product wrapper stopped before its final report when the Metal
+parent gate lacked proof-free key admission. That wiring is repaired, and the
+parent and substitution stages were rerun independently against the retained
+verified leaves. G-8 and the remaining adversarial gates remain open.
+
+The first key-only Tree0 reconstruction step now binds the four canonical
+retained-section counts into the detached leaf key identity. Row 11's complete
+preprocessed selector row can be regenerated from those counts, without wire
+values or proof bytes, and is compared against every row of an authenticated
+fixture. Fresh verification checks the key's counts against the independently
+authenticated expected wire before proof decoding. A new one-leaf CPU product
+and same-geometry statement-substitution gate pass under this identity
+(`product.json` SHA-256
+`cff1219829aef500804aa47eaaeb220c3244f6dface8f4200291b4f88b07fe5c`).
+A one-leaf Metal product under the same admitted key also passes fresh
+verification and statement substitution (`product.json` SHA-256
+`eb9ae9f309ef8583eda58776775003aa3e00eecdb58db0c4388895c7ce3b3848`).
+The native and outer preprocessed roots match the previous one-leaf fixture,
+while the key identity changes. This earlier checkpoint predates the complete
+q193 leaf reconstruction described above; parent reconstruction and broader
+leaf geometry coverage remain required before G-8(c) can pass.
+
+A diagnostic Tree0 census over eight consecutive segment shapes produced four
+distinct roots and 19 rows with varying fixed-column hashes. Two adjacent
+segments with equal retained-section counts but different native
+`base_alu_imm`/`load_store` row counts differed only in fixed rows 4 and 5;
+this identifies the verifier transcript schedule as an input to the next
+key-only recipe. Changing the initial memory word in a one-segment fixture
+left all 39 fixed-row hashes and the outer Tree0 root unchanged. These are
+finite observations, not a general statement-independence proof. The new
+proof-free recipes for rows 11, 34 and 35 match the actual q193 census
+SHA-256 values `6046533df3c32ae03a8caf2ee1d755a4c839b395cd7ba1aebc78d6f5dcdb48e3`,
+`f6f8b08ada99b6065fd82b4afeba5e12f21693318865788702e11861b619f9fb`
+and `72447854d4ba84f6eed889db85f0ee0d6c5529d2d1e80420f6e35f06e1173ffa`,
+respectively; the focused soundness test pins all three.
 
 ## 11. Ledger update rule
 
@@ -901,4 +1005,4 @@ a digest-only update is not qualification evidence.
 | W-6 | `recursive-segment-v2-leaf-key-setup` build step was absent. | Resolved: `build-recursive-segment-v2-leaf-key-setup` now builds the existing runner. The proof and key regeneration sequence remains open until W-1 and W-2 land. |
 | K-6 | Exact re-derived values of the `segment_profile.zig` constants were unknown. | Resolved locally: the opt-in hardened native leaf measured 38/627/204 columns, 877 table columns and 1,081 sampled values; `segment_profile.zig` now pins them. Reconfirm in the regenerated end-to-end gate. |
 | S-4 | Map every `statement_validation.validate(.proof)` check to (a) key pin, (b) row semantics or (c) structure. | New, OPEN. |
-| K-8 / W-9 | Native tree-0 root constant and key regeneration tooling. | Leaf-side key pin and independent CPU admission regeneration are implemented. Frozen V1 row-5 and parent-key Tree0 regeneration remain open. |
+| K-8 / W-9 | Native tree-0 root constant and key regeneration tooling. | Leaf-side key pin, V1/V2 row-5 constants, independent CPU native-root regeneration, and full proof-free q193 one-segment leaf outer Tree0 reconstruction are implemented. Other committed leaf geometries and proof-free parent Tree0 regeneration remain open, as does standalone hostile-proof qualification. |

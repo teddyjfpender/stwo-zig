@@ -332,6 +332,7 @@ pub fn payloadWordCountForStep(step: schedule.VerifierStep) Error!usize {
         .verify_and_absorb_pcs_pow,
         => 4,
         .absorb_claimed_sums => |item| try timesFour(item.count),
+        .absorb_physical_claims => |item| try add(5, try timesFour(item.count)),
         .absorb_sampled_values => |item| try timesFour(item.count),
         .absorb_last_layer_coefficients => |item| try timesFour(item.count),
         .draw_relation_challenge,
@@ -483,6 +484,7 @@ pub fn validateInputs(
     var fri_layers: usize = 0;
     var raw_queries: usize = 0;
     var claimed_sums: ?usize = null;
+    var physical_claimed_sums: ?usize = null;
     var sampled_values: ?usize = null;
     var terminal: ?usize = null;
     for (plan.steps) |step| switch (step) {
@@ -493,6 +495,7 @@ pub fn validateInputs(
             @as(usize, @intCast(item.query_count)),
         ),
         .absorb_claimed_sums => |item| claimed_sums = @intCast(item.count),
+        .absorb_physical_claims => |item| physical_claimed_sums = @intCast(item.count),
         .absorb_sampled_values => |item| sampled_values = @intCast(item.count),
         .absorb_last_layer_coefficients => |item| terminal = @intCast(item.count),
         else => {},
@@ -501,6 +504,7 @@ pub fn validateInputs(
         fri_layers != dimensions.fri_layer_count or
         raw_queries != dimensions.query_count or
         claimed_sums != dimensions.claimed_sum_count or
+        (if (physical_claimed_sums) |count| count else 0) != dimensions.physical_claimed_sum_count or
         sampled_values != dimensions.sampled_value_count or
         terminal != dimensions.last_layer_coefficient_count)
     {
@@ -509,6 +513,7 @@ pub fn validateInputs(
     for (proof.commitments) |digest_value| for (digest_value) |word|
         try validateU32(word);
     for (proof.claimed_sums) |value| for (value) |word| try validateU32(word);
+    for (proof.physical_claimed_sums) |value| for (value) |word| try validateU32(word);
     for (proof.sampled_values) |value| for (value) |word| try validateU32(word);
     for (proof.fri_layers) |layer| for (layer.commitment) |word|
         try validateU32(word);

@@ -1,0 +1,64 @@
+{
+  "schema": "stwo-riscv-recursion-two-segment-checkpoint-v1",
+  "date": "2026-10-18",
+  "qualification": false,
+  "profile": "recursive_q193_v1",
+  "backend": "cpu",
+  "segments": 2,
+  "passed": true,
+  "gate_report_sha256": "150db03cb8c21bf71ab3a758c735241ec7efe48979240575a43c4a22c6b4674e",
+  "admission_sha256": "adce8f2d20b39993721f5d7cbd6d336f94e3cefcc5ab54bc9d28bbb04c0af6a9",
+  "gate_script_sha256": "c76ac045738c6eb8f4b60ffc7ac53387fc0a30a3069c62b9a836e0dc82366232",
+  "leaf_proofs": [
+    {
+      "key_sha256": "a9dc48b014b5d7d724b729ab5d0711ce1138e7af55cb0a335978a2d0a6f1b73c",
+      "expected_wire_sha256": "b086b78a677a208dbab1feb2fae6e89cdf034fdd1019d0168d504cfe36455a53",
+      "proof_sha256": "4ff020353f6cb54d531de1c39da416261dd02ab8423af7e796cd846d589b768e",
+      "independent_verifier_sha256": "8b142ea22a39156033dd13a21a5db2f926015b32d5d81bbf8dede252990fd6b4"
+    },
+    {
+      "key_sha256": "c6601903052c3d8caccb25e2f567d9879cd220322553b24a572e25905188678b",
+      "expected_wire_sha256": "46b07aba1db64392f5e2a83017d600ea821a06035e236c9d98a0746ed4c09249",
+      "proof_sha256": "693731efdb014673b5e182b327cd4aa77c19703975fada00b02f783b9b7825f5",
+      "independent_verifier_sha256": "8b142ea22a39156033dd13a21a5db2f926015b32d5d81bbf8dede252990fd6b4"
+    }
+  ],
+  "root_proof": {
+    "key_sha256": "2bd1e842433e27f0f401e2e8f56ca702440f9348965e68175bc409e43ebe5fa4",
+    "expected_root_sha256": "05217b076821e343279803fe728a70c644c153dad1eb077f9f91d8e6e7a8662c",
+    "proof_sha256": "f7636e0e7e4daac0cdbcd51f33c52d89f14f82df82de974090d5c3db7e8ba99d",
+    "proof_bytes": 2424340,
+    "independent_verifier_sha256": "5f8cf8a778e245019ec1844b3c9952518e7ef2cbbaf3290e863a8a9a7d266954"
+  },
+  "steps": [
+    {
+      "name": "produce-leaves",
+      "elapsed_ns": 22726431667,
+      "peak_rss_bytes": 2712387584,
+      "exit_code": 0,
+      "log_sha256": "2bbc9fad5ce1a50c9e6e7f737959e72aaf968bf737cd9b1b7b9ba12f2e796067"
+    },
+    {
+      "name": "verify-leaf-0",
+      "elapsed_ns": 4137369000,
+      "peak_rss_bytes": 272465920,
+      "exit_code": 0,
+      "log_sha256": "4d86be8c295af475abf52190daa5d82cdbff0988922f9eea32e4812cfa151c15"
+    },
+    {
+      "name": "verify-leaf-1",
+      "elapsed_ns": 4207745917,
+      "peak_rss_bytes": 272367616,
+      "exit_code": 0,
+      "log_sha256": "43e141ce71bdb08c8deda8cf0cd6cb5b8a0d752232dfd9e11cbbc7fd7b207e67"
+    },
+    {
+      "name": "parent-1-0",
+      "elapsed_ns": 12123009125,
+      "peak_rss_bytes": 3492200448,
+      "exit_code": 0,
+      "log_sha256": "882fc336df53bfdf7fa2f3fdd1e2297b5a75941e289c13c717f1c5072180408b"
+    }
+  ],
+  "limits": "Two segments on CPU only. Transcript equivalence, hostile controls, key regeneration, larger trees, Metal parity, and publication review remain open."
+}

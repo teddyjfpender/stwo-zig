@@ -1,4 +1,4 @@
-//! Field-native authority for one cold-compiled Ethereum VM verifier program.
+//! Versioned field-native authority for cold-compiled Ethereum VM programs.
 //!
 //! SHA-256 identities remain useful transport checks, but a recursive proof
 //! cannot treat their bytes as algebraic authority.  This module instead
@@ -22,9 +22,12 @@ const M31 = core.fields.m31.M31;
 const m31 = core.fields.m31;
 
 pub const FORMAT_VERSION: u16 = 1;
+pub const ROOT_FORMAT_VERSION: u16 = 2;
 pub const SCHEMA_VERSION: u16 = 1;
 pub const PROGRAM_DIGEST_DOMAIN: u32 = 0x4550_4631; // "EPF1"
 pub const MANIFEST_DIGEST_DOMAIN: u32 = 0x4550_4d31; // "EPM1"
+pub const ROOT_PROGRAM_DIGEST_DOMAIN: u32 = 0x4550_4632; // "EPF2"
+pub const ROOT_MANIFEST_DIGEST_DOMAIN: u32 = 0x4550_4d32; // "EPM2"
 
 pub const Error = error{
     ArithmeticOverflow,
@@ -34,41 +37,47 @@ pub const Error = error{
 
 /// Pointer-free public result.  It deliberately contains no SHA-256 field:
 /// the two Poseidon digests are reconstructed from typed compiler inputs.
-pub const AuthorityV1 = struct {
-    format_version: u16 = FORMAT_VERSION,
-    schema_version: u16 = SCHEMA_VERSION,
-    program_word_count: u32,
-    manifest_word_count: u32,
-    verifier_program_authority: channel.Digest,
-    component_manifest_authority: channel.Digest,
+pub const AuthorityV1 = Authority(FORMAT_VERSION);
+pub const AuthorityV2 = Authority(ROOT_FORMAT_VERSION);
 
-    pub fn validate(self: AuthorityV1) !void {
-        if (self.format_version != FORMAT_VERSION or
-            self.schema_version != SCHEMA_VERSION or
-            self.program_word_count == 0 or self.manifest_word_count == 0)
-        {
-            return error.InvalidEthereumVmFieldAuthority;
+fn Authority(comptime version_pin: u16) type {
+    return struct {
+        const Self = @This();
+        format_version: u16 = version_pin,
+        schema_version: u16 = SCHEMA_VERSION,
+        program_word_count: u32,
+        manifest_word_count: u32,
+        verifier_program_authority: channel.Digest,
+        component_manifest_authority: channel.Digest,
+
+        pub fn validate(self: Self) !void {
+            if (self.format_version != version_pin or
+                self.schema_version != SCHEMA_VERSION or
+                self.program_word_count == 0 or self.manifest_word_count == 0)
+            {
+                return error.InvalidEthereumVmFieldAuthority;
+            }
+            try requireDigest(self.verifier_program_authority);
+            try requireDigest(self.component_manifest_authority);
         }
-        try requireDigest(self.verifier_program_authority);
-        try requireDigest(self.component_manifest_authority);
-    }
 
-    /// Cold re-admission always rebuilds both digests from the trusted
-    /// compiler inputs.  A self-consistent retained value cannot select a
-    /// graph, component roster, or protocol profile.
-    pub fn validateAgainst(
-        self: AuthorityV1,
-        allocator: std.mem.Allocator,
-        program: *const program_mod.EthereumVmCompositionProgramV2,
-        input: program_mod.CompilerInputV2,
-    ) !void {
-        try self.validate();
-        try program.validateAgainst(input);
-        const expected = try deriveUnchecked(allocator, program, input);
-        if (!std.meta.eql(self, expected))
-            return error.InvalidEthereumVmFieldAuthority;
-    }
-};
+        /// Cold re-admission always rebuilds both digests from the trusted
+        /// compiler inputs.  A self-consistent retained value cannot select a
+        /// graph, component roster, or protocol profile.
+        pub fn validateAgainst(
+            self: Self,
+            allocator: std.mem.Allocator,
+            program: *const program_mod.EthereumVmCompositionProgramV2,
+            input: program_mod.CompilerInputV2,
+        ) !void {
+            try self.validate();
+            try program.validateAgainst(input);
+            const expected = try deriveUnchecked(version_pin, allocator, program, input);
+            if (!std.meta.eql(self, expected))
+                return error.InvalidEthereumVmFieldAuthority;
+        }
+    };
+}
 
 pub fn compile(
     allocator: std.mem.Allocator,
@@ -76,16 +85,30 @@ pub fn compile(
     input: program_mod.CompilerInputV2,
 ) !AuthorityV1 {
     try program.validateAgainst(input);
-    const result = try deriveUnchecked(allocator, program, input);
+    const result = try deriveUnchecked(FORMAT_VERSION, allocator, program, input);
+    try result.validateAgainst(allocator, program, input);
+    return result;
+}
+
+/// Root-bearing graphs use a distinct field preimage and binding encoding.
+/// V1 remains frozen and rejects those inputs.
+pub fn compileWithNativeRoots(
+    allocator: std.mem.Allocator,
+    program: *const program_mod.EthereumVmCompositionProgramV2,
+    input: program_mod.CompilerInputV2,
+) !AuthorityV2 {
+    try program.validateAgainst(input);
+    const result = try deriveUnchecked(ROOT_FORMAT_VERSION, allocator, program, input);
     try result.validateAgainst(allocator, program, input);
     return result;
 }
 
 fn deriveUnchecked(
+    comptime format_version: u16,
     allocator: std.mem.Allocator,
     program: *const program_mod.EthereumVmCompositionProgramV2,
     input: program_mod.CompilerInputV2,
-) !AuthorityV1 {
+) !Authority(format_version) {
     var extension = try extension_geometry_mod.GeometryV2.init(
         allocator,
         input.base_profile,
@@ -99,15 +122,21 @@ fn deriveUnchecked(
         input.extension_statement,
     );
 
-    var program_encoder = Encoder.init(PROGRAM_DIGEST_DOMAIN);
-    try encodeProgram(&program_encoder, program);
+    var program_encoder = Encoder.init(if (format_version == FORMAT_VERSION)
+        PROGRAM_DIGEST_DOMAIN
+    else
+        ROOT_PROGRAM_DIGEST_DOMAIN);
+    try encodeProgram(format_version, &program_encoder, program);
     const program_result = program_encoder.finalize();
-    var manifest_encoder = Encoder.init(MANIFEST_DIGEST_DOMAIN);
+    var manifest_encoder = Encoder.init(if (format_version == FORMAT_VERSION)
+        MANIFEST_DIGEST_DOMAIN
+    else
+        ROOT_MANIFEST_DIGEST_DOMAIN);
     try manifest_encoder.digest(program_result.digest);
     try encodeBaseProfile(&manifest_encoder, input.base_profile);
     try encodeExtensionGeometry(&manifest_encoder, &extension);
     const manifest_result = manifest_encoder.finalize();
-    const result = AuthorityV1{
+    const result = Authority(format_version){
         .program_word_count = program_result.word_count,
         .manifest_word_count = manifest_result.word_count,
         .verifier_program_authority = program_result.digest,
@@ -118,15 +147,16 @@ fn deriveUnchecked(
 }
 
 fn encodeProgram(
+    comptime format_version: u16,
     encoder: *Encoder,
     program: *const program_mod.EthereumVmCompositionProgramV2,
 ) !void {
-    try encoder.word(FORMAT_VERSION);
+    try encoder.word(format_version);
     try encoder.word(SCHEMA_VERSION);
     try encoder.word(program.format_version);
     try encoder.word(program.schema_version);
     try encoder.word(program_mod.CIRCUIT_ID);
-    try encodeInputProfile(encoder, program.input_profile);
+    try encodeInputProfile(format_version, encoder, program.input_profile);
     const profile = protocol.Profile{};
     try profile.validate();
     for (profile.words()) |word| try encoder.word(word);
@@ -137,7 +167,12 @@ fn encodeProgram(
     try encoder.count(program.outputs.len);
     for (program.outputs) |output| try encoder.word(output);
     try encoder.count(program.bindings.len);
-    for (program.bindings) |binding| try encodeBinding(encoder, binding);
+    for (program.bindings) |binding| {
+        if (format_version == FORMAT_VERSION)
+            try encodeBinding(encoder, binding)
+        else
+            try @import("vm_binding_field_encoding_v2.zig").encode(encoder, binding);
+    }
 }
 
 fn encodeNode(encoder: *Encoder, node: graph.Node) !void {
@@ -285,7 +320,14 @@ fn encodeExtensionGeometry(
     try encoder.word(geometry.max_log_degree_bound);
 }
 
-fn encodeInputProfile(encoder: *Encoder, profile: graph.InputProfile) !void {
+fn encodeInputProfile(
+    comptime format_version: u16,
+    encoder: *Encoder,
+    profile: graph.InputProfile,
+) !void {
+    if (format_version == FORMAT_VERSION and
+        (profile.vm_statement_root_count != 0 or profile.vm_native_continuation_roots))
+        return error.StatementRootsRequireNewFieldEncoding;
     inline for (.{
         profile.sampled_value_count,
         profile.claimed_sum_count,
@@ -293,6 +335,12 @@ fn encodeInputProfile(encoder: *Encoder, profile: graph.InputProfile) !void {
         profile.transcript_claimed_sum_count,
         profile.public_wire_boundary_count,
     }) |word| try encoder.word(word);
+    if (format_version == ROOT_FORMAT_VERSION) {
+        if (profile.vm_statement_root_count != 2 or !profile.vm_native_continuation_roots)
+            return error.InvalidEthereumVmFieldAuthority;
+        try encoder.word(profile.vm_statement_root_count);
+        try encoder.word(@intFromBool(profile.vm_native_continuation_roots));
+    }
 }
 
 const EncodedDigest = struct {
@@ -349,6 +397,8 @@ fn requireDigest(value: channel.Digest) !void {
 comptime {
     if (PROGRAM_DIGEST_DOMAIN >= m31.Modulus or
         MANIFEST_DIGEST_DOMAIN >= m31.Modulus or
+        ROOT_PROGRAM_DIGEST_DOMAIN >= m31.Modulus or
+        ROOT_MANIFEST_DIGEST_DOMAIN >= m31.Modulus or
         program_mod.FORMAT_VERSION != 2 or program_mod.SCHEMA_VERSION != 1)
     {
         @compileError("Ethereum VM field-authority ABI drifted");

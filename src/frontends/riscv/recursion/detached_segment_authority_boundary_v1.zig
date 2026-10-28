@@ -6,6 +6,10 @@ const call_source = @import("segment_authority_wire_v2.zig");
 const statement = @import("../air/statement_geometry.zig");
 const preimage = @import("../air/statement_v2_authority_preimage.zig");
 const PublicDataV2 = @import("../air/public_data_v2.zig").PublicDataV2;
+const native_statement = @import("../air/statement.zig");
+const opcode_order = @import("../air/component_order.zig");
+const opcode_trace = @import("../runner/trace.zig");
+const table_schema = @import("../air/lookups/tables/schema.zig");
 const universal = @import("air/universal_challenges.zig");
 const poseidon_call = @import("../air/memory_commitment/poseidon2_call.zig");
 const QM31 = core.fields.qm31.QM31;
@@ -17,6 +21,63 @@ pub const DescriptorsV1 = struct {
 
     pub fn callCount(self: DescriptorsV1) !usize {
         return authority.authorityHashCallCount(self.components.len, self.infrastructure.len);
+    }
+
+    /// Reject a newly pinned but geometrically false catalog before proof
+    /// decoding or the first transcript frame. The public segment fixes the
+    /// number of retired native instructions independently of this key.
+    pub fn validateAgainstExpected(self: DescriptorsV1, expected: *const PublicDataV2) !void {
+        const metadata = try expected.metadata();
+        if (self.components.len == 0 or self.components.len > statement.MAX_COMPONENTS or
+            self.infrastructure.len > statement.MAX_INFRA_COMPONENTS)
+            return error.InvalidNativeDescriptorGeometry;
+        var rows: u64 = 0;
+        var previous_family: ?usize = null;
+        var previous_rows: u32 = 0;
+        for (self.components) |desc| {
+            if (desc.n_rows == 0 or desc.n_rows > (1 << 16) or
+                desc.log_size != @max(@as(u32, 4), std.math.log2_int_ceil(u32, desc.n_rows)) or
+                desc.n_columns != opcode_trace.nColumnsForFamily(desc.family))
+                return error.InvalidNativeDescriptorGeometry;
+            const rank = opcode_order.opcodeFamilyIndex(desc.family);
+            if (previous_family) |previous|
+                if (rank < previous or (rank == previous and previous_rows != (1 << 16)))
+                    return error.InvalidNativeDescriptorGeometry;
+            previous_family = rank;
+            previous_rows = desc.n_rows;
+            rows += desc.n_rows;
+        }
+        if (metadata.global_cycle_end < metadata.global_cycle_start or
+            rows != @as(u64, metadata.global_cycle_end - metadata.global_cycle_start))
+            return error.InvalidNativeDescriptorGeometry;
+
+        for (self.infrastructure) |desc| {
+            if (desc.log_size == 0 or desc.log_size > 30 or
+                desc.n_rows > (@as(u32, 1) << @intCast(desc.log_size)))
+                return error.InvalidNativeDescriptorGeometry;
+            if (native_statement.tableKind(desc.kind)) |kind| {
+                if (desc.log_size != table_schema.logSize(kind) or
+                    desc.n_rows != table_schema.size(kind) or desc.n_columns != 1)
+                    return error.InvalidNativeDescriptorGeometry;
+            } else if (desc.kind == .clock_update) {
+                if (desc.n_columns != @import("../infra_trace.zig").CLOCK_UPDATE_COLS or
+                    desc.log_size != @max(@as(u32, 4), std.math.log2_int_ceil(u32, @max(desc.n_rows, 1))))
+                    return error.InvalidNativeDescriptorGeometry;
+            } else {
+                if (desc.n_rows == 0 or
+                    desc.log_size != @max(@as(u32, if (desc.kind == .program) 1 else 4), std.math.log2_int_ceil(u32, desc.n_rows)))
+                    return error.InvalidNativeDescriptorGeometry;
+                const expected_columns: u32 = switch (desc.kind) {
+                    .program => @import("../air/program/commitment.zig").N_MAIN_COLUMNS,
+                    .memory => @import("../air/memory_commitment/trace.zig").N_COLUMNS,
+                    .merkle => @import("../air/memory_commitment/merkle_node.zig").N_MAIN_COLUMNS,
+                    .poseidon2 => @import("../air/memory_commitment/poseidon2_air.zig").N_MAIN_COLUMNS,
+                    else => unreachable,
+                };
+                if (desc.n_columns != expected_columns)
+                    return error.InvalidNativeDescriptorGeometry;
+            }
+        }
     }
 
     /// Hash only geometry words from the shared native preimage emitter.

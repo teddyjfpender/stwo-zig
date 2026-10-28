@@ -17,6 +17,35 @@ const channel = @import("../poseidon2_channel.zig");
 const schedule = @import("../air/verifier_schedule.zig");
 const subject = @import("../segment_transcript_outer_source_v2.zig");
 const transcript = @import("../transcript_program_v2.zig");
+const payload_source = @import("../segment_transcript_outer_source_v2_prepared_v2.zig");
+
+test "selected physical claim payload is consumed by the shared input relation" {
+    const metadata = payload_source.payloadMetadata(.{
+        .kind = .physical_claim_batch,
+        .verifier_sequence = 0,
+        .sub_index = 0,
+        .args = .{ 3, 2, 0, 0 },
+    }, 5);
+    try std.testing.expectEqual(payload_source.PayloadSourceKindV2.vm_air_claimed_sum, metadata.source_kind);
+    try std.testing.expectEqual(@as(u32, 4), metadata.item_index);
+    try std.testing.expectEqual(@as(u32, 1), metadata.limb_index);
+    try std.testing.expectEqual(@as(u32, 0), metadata.constant_mask);
+    try std.testing.expectEqual(@as(u32, 1), metadata.input_use_count);
+}
+
+test "authenticated tree-zero payload publishes its preprocessed root" {
+    const metadata = payload_source.payloadMetadata(.{
+        .kind = .trace_commitment,
+        .verifier_sequence = 0,
+        .sub_index = 0,
+        .args = .{ 0, 0, 0, 0 },
+    }, 3);
+    try std.testing.expectEqual(payload_source.PayloadSourceKindV2.commitment, metadata.source_kind);
+    try std.testing.expectEqual(@as(u32, 0), metadata.item_index);
+    try std.testing.expectEqual(@as(u32, 3), metadata.limb_index);
+    try std.testing.expectEqual(@as(u32, 1), metadata.constant_mask);
+    try std.testing.expectEqual(@as(u32, 1), metadata.input_use_count);
+}
 
 const config = PcsConfig{
     .pow_bits = 0,
@@ -49,6 +78,92 @@ const testPlan = test_support.testPlan;
 const expectCanonicalEventOrder = test_support.expectCanonicalEventOrder;
 const qm31 = test_support.qm31;
 
+test "V2 payload custody covers every absorbed word and isolates both PoW nonces" {
+    var fixture = try Fixture.init(std.testing.allocator);
+    defer fixture.deinit();
+
+    const evidence = try fixture.execution.evidence(&fixture.program);
+    const tree0 = fixture.trace_commitments[0];
+    const prepared = try subject.preflight(
+        &fixture.program,
+        &fixture.execution,
+        &evidence,
+        &fixture.plan,
+        config,
+        &fixture.data,
+        &component_descs,
+        &infra_descs,
+        tree0,
+    );
+    var owned = try OwnedDestinations.init(std.testing.allocator, prepared.counts());
+    defer owned.deinit();
+    try subject.writeInto(
+        &prepared,
+        owned.view(),
+        &fixture.program,
+        &fixture.execution,
+        &evidence,
+        &fixture.plan,
+        config,
+        &fixture.data,
+        &component_descs,
+        &infra_descs,
+    );
+
+    var payload_at: usize = 0;
+    var pow_at: usize = 0;
+    var dynamic_count: usize = 0;
+    var constant_count: usize = 0;
+    for (fixture.program.instructions, fixture.execution.operations, 0..) |instruction, operation, instruction_index| {
+        if (instruction.effect() == .draw) continue;
+        const frame = fixture.execution.hash_frames[operation.first_hash_id];
+        try std.testing.expectEqual(transcript.HashPurpose.mix, frame.purpose);
+        const count = try instruction.payloadWordCount();
+        try std.testing.expectEqual(@as(usize, transcript.RATE) + count, frame.words.len);
+        for (0..count) |word_index| {
+            const row = owned.transcript_payload[payload_at];
+            const metadata = payload_source.payloadMetadata(instruction, @intCast(word_index));
+            try std.testing.expectEqual(@as(u32, @intCast(instruction_index)), row.instruction_index);
+            try std.testing.expectEqual(@as(u32, @intCast(word_index)), row.payload_index);
+            try std.testing.expectEqual(@as(u32, @intCast(operation.first_hash_id)), row.source_hash_id);
+            try std.testing.expectEqual(@as(u32, @intCast(transcript.RATE + word_index)), row.source_word_index);
+            try std.testing.expectEqual(frame.words[transcript.RATE + word_index], row.value);
+            try std.testing.expectEqual(metadata.source_kind, row.source_kind);
+            try std.testing.expectEqual(metadata.item_index, row.item_index);
+            try std.testing.expectEqual(metadata.limb_index, row.limb_index);
+            try std.testing.expectEqual(metadata.constant_mask, row.constant_mask);
+            try std.testing.expectEqual(metadata.input_use_count, row.input_use_count);
+            if (row.constant_mask == 0) {
+                try std.testing.expect(row.constant_value.isZero());
+                switch (instruction.kind) {
+                    .interaction_pow => try std.testing.expectEqual(payload_source.PayloadSourceKindV2.interaction_pow_nonce, row.source_kind),
+                    .pcs_pow => try std.testing.expectEqual(payload_source.PayloadSourceKindV2.pcs_pow_nonce, row.source_kind),
+                    else => try std.testing.expect(row.input_use_count >= 1),
+                }
+                dynamic_count += 1;
+            } else {
+                try std.testing.expectEqual(@as(u32, 1), row.constant_mask);
+                try std.testing.expectEqual(row.value, row.constant_value);
+                constant_count += 1;
+            }
+            payload_at += 1;
+        }
+        if (instruction.effect() == .pow) {
+            try std.testing.expectEqual(@as(usize, 4), count);
+            try std.testing.expectEqual(@as(u32, 0), owned.transcript_payload[payload_at - 1].input_use_count);
+            // PoW rows use the verifier-plan sequence; payload rows use the
+            // expanded program instruction index. These are distinct axes.
+            try std.testing.expectEqual(instruction.verifier_sequence, owned.pow_frame[pow_at].instruction_index);
+            pow_at += 1;
+        }
+    }
+    try std.testing.expectEqual(owned.transcript_payload.len, payload_at);
+    try std.testing.expectEqual(owned.pow_frame.len, pow_at);
+    try std.testing.expectEqual(@as(usize, 2), pow_at);
+    try std.testing.expect(dynamic_count > 0);
+    try std.testing.expect(constant_count > 0);
+}
+
 test "V2 source writes exact typed rows events and provider range" {
     var fixture = try Fixture.init(std.testing.allocator);
     defer fixture.deinit();
@@ -63,7 +178,19 @@ test "V2 source writes exact typed rows events and provider range" {
         &fixture.data,
         &component_descs,
         &infra_descs,
+        support.id("v2-source-tree-0"),
     );
+    try std.testing.expectError(error.SourceMismatch, subject.preflight(
+        &fixture.program,
+        &fixture.execution,
+        &evidence,
+        &fixture.plan,
+        config,
+        &fixture.data,
+        &component_descs,
+        &infra_descs,
+        support.id("wrong-v2-tree-0"),
+    ));
     try std.testing.expect(!prepared.productionReady());
     try prepared.manifest.validate();
     const authority_words = prepared.authority.canonicalWords();
@@ -83,6 +210,7 @@ test "V2 source writes exact typed rows events and provider range" {
         &fixture.data,
         &component_descs,
         &infra_descs,
+        support.id("v2-source-tree-0"),
     );
     try std.testing.expectEqualDeep(prepared, published);
 
@@ -138,6 +266,7 @@ test "V2 digest-state keys advance only on mixes and count every reuse" {
         &fixture.data,
         &component_descs,
         &infra_descs,
+        support.id("v2-source-tree-0"),
     );
     var owned = try OwnedDestinations.init(std.testing.allocator, prepared.counts());
     defer owned.deinit();
@@ -222,6 +351,7 @@ test "V2 control and transcript rows share the exact verifier-owned schedule" {
         &fixture.data,
         &component_descs,
         &infra_descs,
+        support.id("v2-source-tree-0"),
     );
     try std.testing.expectEqual(fixture.plan.steps.len, prepared.counts().control);
     var owned = try OwnedDestinations.init(std.testing.allocator, prepared.counts());
@@ -350,6 +480,7 @@ test "V2 raw query custody preserves complete transcript words atomically" {
         &fixture.data,
         &component_descs,
         &infra_descs,
+        support.id("v2-source-tree-0"),
     );
 
     var query_words: [config.fri_config.n_queries]M31 = undefined;
@@ -416,6 +547,7 @@ test "V2 source rejects evidence mutation before destination writes" {
         &fixture.data,
         &component_descs,
         &infra_descs,
+        support.id("v2-source-tree-0"),
     );
     var owned = try OwnedDestinations.init(std.testing.allocator, prepared.counts());
     defer owned.deinit();
@@ -454,6 +586,7 @@ test "V2 source rejects omitted destination and alias before any write" {
         &fixture.data,
         &component_descs,
         &infra_descs,
+        support.id("v2-source-tree-0"),
     );
     var owned = try OwnedDestinations.init(std.testing.allocator, prepared.counts());
     defer owned.deinit();
@@ -514,6 +647,7 @@ test "V2 source rejects reordered program and duplicated operation atomically" {
         &fixture.data,
         &component_descs,
         &infra_descs,
+        support.id("v2-source-tree-0"),
     );
     var owned = try OwnedDestinations.init(std.testing.allocator, prepared.counts());
     defer owned.deinit();
@@ -577,6 +711,7 @@ test "V2 source rejects manifest event and provider-range drift" {
         &fixture.data,
         &component_descs,
         &infra_descs,
+        support.id("v2-source-tree-0"),
     );
     var owned = try OwnedDestinations.init(std.testing.allocator, prepared.counts());
     defer owned.deinit();

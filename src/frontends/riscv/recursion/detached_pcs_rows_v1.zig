@@ -35,6 +35,27 @@ const M31 = core.fields.m31.M31;
 const NonceRow = frame_rows.NonceRow;
 const STEP_TAG_BASE: u32 = 0x5354_0000;
 
+pub fn controlRowsFromOperations(allocator: std.mem.Allocator, operations: anytype, lane: u32, first_sequence: u32) ![]air.control_witness.Row {
+    if (lane != 1 and lane != 2) return error.InvalidDetachedPcsLane;
+    const length = std.math.cast(u32, operations.len) orelse return error.ArithmeticOverflow;
+    _ = try std.math.add(u32, first_sequence, length);
+    const result = try allocator.alloc(air.control_witness.Row, operations.len);
+    errdefer allocator.free(result);
+    for (operations, result, 0..) |instruction, *row, index| {
+        const is_pow = instruction.effect == .pow;
+        row.* = .{
+            .segment_mask = 0,
+            .binary_mask = 1,
+            .verifier_id = lane,
+            .sequence = first_sequence + @as(u32, @intCast(index)),
+            .tag = if (is_pow) air.pow_frame.controlTag(.pcs) else STEP_TAG_BASE + @intFromEnum(instruction.context),
+            .args = .{ if (is_pow) instruction.pow_bits else @intFromEnum(instruction.effect), instruction.payload_words, @intFromEnum(instruction.draw), instruction.item },
+            .terminal_mask = 0,
+        };
+    }
+    return result;
+}
+
 pub const View = struct {
     control: []const air.control_witness.Row,
     sponge: []const rows.TranscriptAirRowV2,
@@ -82,7 +103,7 @@ pub const OwnedV1 = opaque {
             draw_count += @intFromBool(op.effect == .draw);
             pow_count += @intFromBool(op.effect == .pow);
         }
-        const control = try owned.alloc(air.control_witness.Row, operations.len);
+        const control = try controlRowsFromOperations(owned, operations, lane, start.next_operation);
         const sponge = try owned.alloc(rows.TranscriptAirRowV2, call_count);
         const binding = try owned.alloc(rows.TranscriptBindingRowV2, call_count);
         const state = try owned.alloc(rows.TranscriptStateRowV2, frame_count);
@@ -113,7 +134,6 @@ pub const OwnedV1 = opaque {
                 .tag = if (is_pow) air.pow_frame.controlTag(.pcs) else STEP_TAG_BASE + @intFromEnum(instruction.context),
                 .args = .{ if (is_pow) instruction.pow_bits else @intFromEnum(instruction.effect), instruction.payload_words, @intFromEnum(instruction.draw), instruction.item },
             };
-            control[index] = .{ .segment_mask = 0, .binary_mask = 1, .verifier_id = lane, .sequence = step.sequence, .tag = step.tag, .args = step.args, .terminal_mask = 0 };
             for (0..hash_count) |part| {
                 const frame = execution.trace.hash_frames[hash_at];
                 const pow_draw = is_pow and part == 1;
@@ -222,6 +242,18 @@ pub const OwnedV1 = opaque {
         allocator.destroy(value);
     }
 };
+
+pub fn testKeyOnlyControlParity(allocator: std.mem.Allocator, child: anytype) !void {
+    const prefix = try prefix_mod.OwnedV1.init(allocator, child, 1);
+    defer prefix.deinit();
+    const captured = try OwnedV1.init(allocator, child, prefix, 1);
+    defer captured.deinit();
+    const operations = try prefix_mod.initPcsOperationsFromKey(allocator, child.key());
+    defer allocator.free(operations);
+    const fixed = try controlRowsFromOperations(allocator, operations, 1, prefix.view().next_operation);
+    defer allocator.free(fixed);
+    try std.testing.expectEqualDeep(captured.view().control, fixed);
+}
 
 pub fn testFromVerifiedChild(allocator: std.mem.Allocator, child: anytype) !void {
     const prefix = try prefix_mod.OwnedV1.init(allocator, child, 1);

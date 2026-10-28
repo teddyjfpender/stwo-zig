@@ -80,6 +80,7 @@ pub const OwnedEvaluationV2 = shard_2.OwnedEvaluationV2;
 /// Hash-independent arithmetic authority reused by admitted native proof suites.
 /// Callers must authenticate the canonical wire and bind every input in the parent.
 pub const buildNativeGraph = shard_1.buildGraph;
+pub const buildNativeGraphFromTopology = shard_1.buildGraphFromTopology;
 pub const nativeInputSource = shard_1.inputSource;
 pub const NativeOwnedGraph = shard_0.OwnedGraph;
 pub const nativeGraphNodeEql = shard_1.nodeEql;

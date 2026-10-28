@@ -14,6 +14,7 @@ import argparse
 import copy
 import hashlib
 import json
+import os
 from pathlib import Path
 import subprocess
 import tempfile
@@ -125,8 +126,11 @@ def run_producer(args: argparse.Namespace, report: dict) -> None:
                 raise RuntimeError("producer output appeared while waiting; refusing to overwrite evidence")
             started = time.monotonic_ns()
             try:
+                environment = os.environ.copy()
+                if args.require_transcript_equivalence:
+                    environment["STWO_RISCV_OUTER_TRANSCRIPT_EQUIVALENCE"] = "1"
                 result = subprocess.run(argv, stdout=output, stderr=subprocess.STDOUT,
-                                        timeout=300, check=False)
+                                        timeout=300, check=False, env=environment)
                 record["exit_code"] = result.returncode
                 record["exited_before_verification"] = True
             except subprocess.TimeoutExpired:
@@ -154,6 +158,8 @@ def main() -> None:
     parser.add_argument("--expected-wire", type=Path, required=True)
     parser.add_argument("--other-expected-wire", type=Path)
     parser.add_argument("--require-root", action="store_true", help="require this proof to cover a complete one-segment job")
+    parser.add_argument("--require-transcript-equivalence", action="store_true",
+                        help="compare producer and fresh verifier recording identities")
     parser.add_argument("--adjacent-bundle", type=Path)
     parser.add_argument("--adjacent-key-sha256")
     parser.add_argument("--adjacent-expected-wire", type=Path)
@@ -213,13 +219,19 @@ def main() -> None:
         parser.error("output already exists; retain the prior result")
     args.output.parent.mkdir(parents=True, exist_ok=True)
     results = []
+    expected_recording = None
+    adjacent_recording = None
 
-    def invoke(name: str, arguments: list[str], accept: bool) -> None:
+    def invoke(name: str, arguments: list[str], accept: bool,
+               expected_errors: tuple[str, ...] = ()) -> None:
         started = time.monotonic_ns()
+        environment = os.environ.copy()
+        if args.require_transcript_equivalence:
+            environment["STWO_RISCV_OUTER_TRANSCRIPT_EQUIVALENCE"] = "1"
         result = subprocess.run(
             [str(verifier), *arguments],
             stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True,
-            timeout=120, check=False,
+            timeout=120, check=False, env=environment,
         )
         entry = {"case": name, "expected_acceptance": accept,
                  "exit_code": result.returncode,
@@ -234,20 +246,54 @@ def main() -> None:
                     or not isinstance(receipt.get("root"), dict)
                     or receipt.get("child", {}).get("verified") is not True):
                 raise RuntimeError(f"{name}: missing complete single-segment root receipt")
+            if name == "genuine" and args.require_transcript_equivalence:
+                verified_recording = receipt.get("child", receipt).get("transcript_recording_sha256")
+                if verified_recording is None or verified_recording != expected_recording:
+                    raise RuntimeError(f"{name}: producer and fresh verifier transcript recordings differ")
+            if name == "complete_adjacent_pair" and args.require_transcript_equivalence:
+                actual = [child.get("transcript_recording_sha256") for child in receipt["children"]]
+                if actual != [expected_recording, adjacent_recording]:
+                    raise RuntimeError(f"{name}: producer and fresh verifier child recordings differ")
         results.append(entry)
         if (result.returncode == 0) != accept:
             raise RuntimeError(f"{name}: unexpected verifier result: {result.stdout}")
         if not accept and result.returncode < 0:
             raise RuntimeError(f"{name}: verifier crashed instead of rejecting input")
+        if not accept and expected_errors and not any(
+                f"error: {error}" in result.stdout for error in expected_errors):
+            raise RuntimeError(f"{name}: verifier rejected outside the expected boundary: {result.stdout}")
 
-    def run(name: str, directory: Path, pin: str, wire: Path, accept: bool) -> None:
-        invoke(name, (["--root"] if args.require_root else []) + [str(directory), pin, str(wire)], accept)
+    def run(name: str, directory: Path, pin: str, wire: Path, accept: bool,
+            expected_errors: tuple[str, ...] = ()) -> None:
+        invoke(name, (["--root"] if args.require_root else []) + [str(directory), pin, str(wire)],
+               accept, expected_errors)
 
     report = {"gate_sha256": hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
               "verifier_sha256": hashlib.sha256(verifier.read_bytes()).hexdigest(),
               "key_sha256": args.key_sha256,
               "expected_wire_sha256": sha256(expected),
-              "development_only": True, "proof_profile": args.proof_profile, "single_segment_root_required": args.require_root, "cases": results, "passed": False}
+              "development_only": True, "proof_profile": args.proof_profile, "single_segment_root_required": args.require_root,
+              "transcript_equivalence_required": args.require_transcript_equivalence,
+              "cases": results, "passed": False}
+
+    def producer_recording(candidate_dir: Path, pin: str, wire: Path) -> list[int]:
+        producer_receipt = json.loads((candidate_dir.parent / "candidate-receipt.json").read_text())
+        child_index = int(candidate_dir.name.removeprefix("child-"))
+        child = producer_receipt["children"][child_index]
+        hashes = child["hashes"]
+        claims_bytes = (candidate_dir / "claims.json").read_bytes()
+        proof_bytes = (candidate_dir / "proof.bin").read_bytes()
+        if (child["segment_index"] != child_index or
+                bytes(hashes["key_sha256"]).hex() != pin or
+                hashes["claims_sha256"] != list(hashlib.sha256(claims_bytes).digest()) or
+                hashes["proof_sha256"] != list(hashlib.sha256(proof_bytes).digest()) or
+                hashes["proof_bytes"] != len(proof_bytes) or
+                child["expected_wire_sha256"] != list(bytes.fromhex(sha256(wire)))):
+            raise RuntimeError("producer transcript receipt does not name the genuine candidate")
+        identity = child["transcript_recording_sha256"]
+        if identity is None or len(identity) != 32:
+            raise RuntimeError("producer did not retain a complete transcript recording identity")
+        return identity
     trusted_paths = [verifier, expected]
     if args.adjacent_expected_wire:
         trusted_paths.append(args.adjacent_expected_wire.resolve())
@@ -272,6 +318,14 @@ def main() -> None:
             raise RuntimeError("the supplied independent key pin does not match key.json")
         if json.loads(key).get("profile") != args.proof_profile:
             raise RuntimeError("admitted key does not match the selected proof profile")
+        if args.require_transcript_equivalence:
+            expected_recording = producer_recording(bundle, args.key_sha256, expected)
+            report["producer_transcript_recording_sha256"] = expected_recording
+            if args.adjacent_bundle:
+                adjacent_recording = producer_recording(args.adjacent_bundle.resolve(),
+                                                        args.adjacent_key_sha256,
+                                                        args.adjacent_expected_wire.resolve())
+                report["adjacent_producer_transcript_recording_sha256"] = adjacent_recording
         report["proof_sha256"] = hashlib.sha256(proof).hexdigest()
         for artifact_bundle in (bundle, args.adjacent_bundle):
             if artifact_bundle:
@@ -336,6 +390,39 @@ def main() -> None:
                 (directory / "claims.json").write_text(json.dumps(changed_claims))
                 (directory / "proof.bin").write_bytes(proof)
                 run(name, directory, args.key_sha256, expected, False)
+            # Re-pin each hostile catalog so transport hashing cannot be the
+            # reason it fails. The expected statement, claims and genuine proof
+            # remain byte-for-byte identical. Key/root admission must reject
+            # before this proof is decoded or a transcript frame is absorbed.
+            key_data = json.loads(key)
+            if not key_data["native_descriptors"]["components"]:
+                raise RuntimeError("admitted key has no native component shard")
+            key_mutations = {
+                "changed_native_preprocessed_root": ("native_preprocessed_root", None),
+                "changed_native_component_rows": ("native_descriptors", "n_rows"),
+                "changed_native_component_log_size": ("native_descriptors", "log_size"),
+                "changed_native_component_columns": ("native_descriptors", "n_columns"),
+            }
+            for name, (section, field) in key_mutations.items():
+                changed = copy.deepcopy(key_data)
+                if field is None:
+                    root = changed[section]
+                    root[0] = (root[0] + 1) % MODULUS
+                else:
+                    changed[section]["components"][0][field] += 1
+                changed_key = json.dumps(changed, separators=(",", ":")).encode()
+                directory = work / name
+                directory.mkdir()
+                (directory / "key.json").write_bytes(changed_key)
+                (directory / "claims.json").write_bytes(claims_bytes)
+                (directory / "proof.bin").write_bytes(proof)
+                changed_pin = hashlib.sha256(changed_key).hexdigest()
+                expected_errors = (("InvalidNativePreprocessedCommitment",) if field is None else
+                                   ("InvalidNativeDescriptorGeometry", "InvalidNativePreprocessedCommitment"))
+                run(name, directory, changed_pin, expected, False, expected_errors)
+                (directory / "proof.bin").unlink()
+                run(name + "_before_proof_read", directory, changed_pin, expected, False,
+                    expected_errors)
             wrong_pin = ("0" if args.key_sha256[0] != "0" else "1") + args.key_sha256[1:]
             run("wrong_independent_key_pin", bundle, wrong_pin, expected, False)
             if args.other_expected_wire:

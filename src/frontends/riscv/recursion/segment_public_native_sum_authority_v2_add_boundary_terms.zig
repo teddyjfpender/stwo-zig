@@ -29,13 +29,38 @@ const span_statement = dependency_0.span_statement;
 const std = dependency_0.std;
 const register_bytes = dependency_0.register_bytes;
 const wire_statement = dependency_0.wire_statement;
+const native_sum_topology = dependency_0.native_sum_topology;
+const wire_layout = dependency_0.wire_layout;
 
 pub fn buildGraph(
     allocator: std.mem.Allocator,
     view: *const wire_statement.CanonicalWireViewV2,
 ) Error!AuthoredGraph {
-    const layout = try register_bytes.MemoryLayout.init(view);
-    const input_count = try checkedAdd(try checkedAdd(view.words.len, INPUT_SUFFIX_WORD_COUNT), 2 * layout.memoryByteCount());
+    const base = try view.statement.base();
+    const executed = switch (base.body) {
+        .empty => return error.InvalidAuthenticatedTopology,
+        .executed => |value| value,
+    };
+    if (executed.segment_count != 1 or base.slots.height != 0)
+        return error.InvalidAuthenticatedTopology;
+    const retained = try wire_layout.Layout.fromView(view);
+    var topology = try native_sum_topology.Topology.fromView(allocator, view);
+    defer topology.deinit(allocator);
+    return buildGraphFromTopology(allocator, &retained, topology);
+}
+
+/// Rebuild the exact graph from admitted public topology, with no proof bytes.
+pub fn buildGraphFromTopology(
+    allocator: std.mem.Allocator,
+    retained: *const wire_layout.Layout,
+    topology: native_sum_topology.Topology,
+) Error!AuthoredGraph {
+    try topology.validate(retained.counts);
+    const layout = register_bytes.MemoryLayout{
+        .entry = retained.sections[0],
+        .exit = retained.sections[1],
+    };
+    const input_count = try checkedAdd(try checkedAdd(retained.total_words, INPUT_SUFFIX_WORD_COUNT), 2 * layout.memoryByteCount());
     var builder = arithmetic.Builder.initDefault(allocator);
     errdefer builder.deinit();
     // Inputs are declared before the first operation, making input node IDs
@@ -46,12 +71,12 @@ pub fn buildGraph(
     for (values, 0..) |*value, index|
         value.* = try builder.input(@intCast(index));
 
-    const graph_inputs = try bindGraphInputs(&builder, values, view.words.len, layout.memoryByteCount());
+    const graph_inputs = try bindGraphInputs(&builder, values, retained.total_words, layout.memoryByteCount());
     var accumulator = RelationAccumulator{
         .builder = &builder,
         .relations = &graph_inputs.relations,
     };
-    try addBoundaryTerms(&accumulator, view, graph_inputs.wire, graph_inputs.register_bytes, layout, graph_inputs.memory_bytes, graph_inputs.memory_selectors);
+    try addBoundaryTerms(&accumulator, topology, retained, graph_inputs.wire, graph_inputs.register_bytes, layout, graph_inputs.memory_bytes, graph_inputs.memory_selectors);
 
     for (0..DOMAIN_COUNT) |index| {
         _ = try builder.markOutput(try builder.sub(
@@ -89,21 +114,14 @@ pub fn buildGraph(
 
 pub fn addBoundaryTerms(
     accumulator: *RelationAccumulator,
-    view: *const wire_statement.CanonicalWireViewV2,
+    topology: native_sum_topology.Topology,
+    retained: *const wire_layout.Layout,
     wire: []const arithmetic.Value,
     bytes: []const arithmetic.Value,
     layout: register_bytes.MemoryLayout,
     memory_bytes: []const arithmetic.Value,
     selectors: []const arithmetic.Value,
 ) Error!void {
-    const base = try view.statement.base();
-    const executed = switch (base.body) {
-        .empty => return error.InvalidAuthenticatedTopology,
-        .executed => |value| value,
-    };
-    if (executed.segment_count != 1 or base.slots.height != 0)
-        return error.InvalidAuthenticatedTopology;
-
     const entry_pc = try baseU32(
         accumulator.builder,
         wire,
@@ -169,7 +187,7 @@ pub fn addBoundaryTerms(
         }, .negative);
     }
 
-    try addSparseMemoryTerms(accumulator, view, wire, layout, memory_bytes);
+    try addSparseMemoryTerms(accumulator, topology, retained, wire, layout, memory_bytes);
 
     const program_root_index = wire_statement.fixed_layout.base_statement +
         span_statement.canonical_layout.program_start;
@@ -212,7 +230,7 @@ pub fn addBoundaryTerms(
         exit_root,
     );
 
-    if (view.statement.completion) |completion| {
+    if (topology.completion) |completion| {
         if (completion.kind == .unretired_self_loop) {
             const decoded = program_decode.decodeProgramWord(completion.value) catch
                 unreachable;

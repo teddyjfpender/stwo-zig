@@ -1,0 +1,759 @@
+{
+  "schema": "stwo-zig/joint-native-proof/v1",
+  "logs": [
+    {
+      "name": "block-v6-joint-native-medium.log",
+      "sha256": "6025094a4719672df124ed5ade42f1359d244abef0cc29ce7563b31388af8d4f"
+    },
+    {
+      "name": "block-v6-joint-native-medium-2.log",
+      "sha256": "a72ef0b1c84b8499499abb22dc93d2417c369b7db9cd5a75df5f6b9805412ca1"
+    },
+    {
+      "name": "block-v6-joint-native-medium-3.log",
+      "sha256": "7e4ef694c55b0c1c831d9439ab30c5cc84d6f5aa7c0bcff93ddff40d1affd526"
+    }
+  ],
+  "rows": [
+    {
+      "profile": "diagnostic_q8_pow0",
+      "mode": 0,
+      "ram": true,
+      "cycles": 5123,
+      "seed": 1,
+      "joint": false,
+      "prove_ns": 199601375,
+      "verify_ns": 54824458,
+      "stark_bytes": 105815,
+      "starks": 2,
+      "globals_open": true
+    },
+    {
+      "profile": "diagnostic_q8_pow0",
+      "mode": 0,
+      "ram": true,
+      "cycles": 5123,
+      "seed": 1,
+      "joint": true,
+      "prove_ns": 188941167,
+      "verify_ns": 47468791,
+      "stark_bytes": 81289,
+      "starks": 1,
+      "globals_open": true
+    },
+    {
+      "profile": "diagnostic_q8_pow0",
+      "mode": 1,
+      "ram": true,
+      "cycles": 5123,
+      "seed": 1,
+      "joint": false,
+      "prove_ns": 135618500,
+      "verify_ns": 39082000,
+      "stark_bytes": 81163,
+      "starks": 2,
+      "globals_open": true
+    },
+    {
+      "profile": "diagnostic_q8_pow0",
+      "mode": 1,
+      "ram": true,
+      "cycles": 5123,
+      "seed": 1,
+      "joint": true,
+      "prove_ns": 127241458,
+      "verify_ns": 30810959,
+      "stark_bytes": 57427,
+      "starks": 1,
+      "globals_open": true
+    },
+    {
+      "profile": "diagnostic_q8_pow0",
+      "mode": 1,
+      "ram": false,
+      "cycles": 5123,
+      "seed": 1,
+      "joint": false,
+      "prove_ns": 92056834,
+      "verify_ns": 31427417,
+      "stark_bytes": 68767,
+      "starks": 2,
+      "globals_open": true
+    },
+    {
+      "profile": "diagnostic_q8_pow0",
+      "mode": 1,
+      "ram": false,
+      "cycles": 5123,
+      "seed": 1,
+      "joint": true,
+      "prove_ns": 82870333,
+      "verify_ns": 23889750,
+      "stark_bytes": 43958,
+      "starks": 1,
+      "globals_open": true
+    },
+    {
+      "profile": "csp_q70_pow26",
+      "mode": 0,
+      "ram": true,
+      "cycles": 5123,
+      "seed": 1,
+      "joint": false,
+      "prove_ns": 1672417167,
+      "verify_ns": 74162583,
+      "stark_bytes": 515469,
+      "starks": 2,
+      "globals_open": true
+    },
+    {
+      "profile": "csp_q70_pow26",
+      "mode": 0,
+      "ram": true,
+      "cycles": 5123,
+      "seed": 1,
+      "joint": true,
+      "prove_ns": 828637833,
+      "verify_ns": 58763458,
+      "stark_bytes": 402087,
+      "starks": 1,
+      "globals_open": true
+    },
+    {
+      "profile": "csp_q70_pow26",
+      "mode": 1,
+      "ram": true,
+      "cycles": 5123,
+      "seed": 1,
+      "joint": false,
+      "prove_ns": 1394978167,
+      "verify_ns": 56684500,
+      "stark_bytes": 406737,
+      "starks": 2,
+      "globals_open": true
+    },
+    {
+      "profile": "csp_q70_pow26",
+      "mode": 1,
+      "ram": true,
+      "cycles": 5123,
+      "seed": 1,
+      "joint": true,
+      "prove_ns": 175098416,
+      "verify_ns": 41446625,
+      "stark_bytes": 285386,
+      "starks": 1,
+      "globals_open": true
+    },
+    {
+      "profile": "csp_q70_pow26",
+      "mode": 1,
+      "ram": false,
+      "cycles": 5123,
+      "seed": 1,
+      "joint": false,
+      "prove_ns": 407683625,
+      "verify_ns": 48235083,
+      "stark_bytes": 333578,
+      "starks": 2,
+      "globals_open": true
+    },
+    {
+      "profile": "csp_q70_pow26",
+      "mode": 1,
+      "ram": false,
+      "cycles": 5123,
+      "seed": 1,
+      "joint": true,
+      "prove_ns": 115385500,
+      "verify_ns": 32980541,
+      "stark_bytes": 218050,
+      "starks": 1,
+      "globals_open": true
+    },
+    {
+      "profile": "diagnostic_q8_pow0",
+      "mode": 0,
+      "ram": true,
+      "cycles": 5123,
+      "seed": 2,
+      "joint": false,
+      "prove_ns": 199411625,
+      "verify_ns": 54665666,
+      "stark_bytes": 104807,
+      "starks": 2,
+      "globals_open": true
+    },
+    {
+      "profile": "diagnostic_q8_pow0",
+      "mode": 0,
+      "ram": true,
+      "cycles": 5123,
+      "seed": 2,
+      "joint": true,
+      "prove_ns": 191703375,
+      "verify_ns": 47361875,
+      "stark_bytes": 77055,
+      "starks": 1,
+      "globals_open": true
+    },
+    {
+      "profile": "diagnostic_q8_pow0",
+      "mode": 1,
+      "ram": true,
+      "cycles": 5123,
+      "seed": 2,
+      "joint": false,
+      "prove_ns": 134629667,
+      "verify_ns": 39270333,
+      "stark_bytes": 84917,
+      "starks": 2,
+      "globals_open": true
+    },
+    {
+      "profile": "diagnostic_q8_pow0",
+      "mode": 1,
+      "ram": true,
+      "cycles": 5123,
+      "seed": 2,
+      "joint": true,
+      "prove_ns": 126783208,
+      "verify_ns": 31261334,
+      "stark_bytes": 58298,
+      "starks": 1,
+      "globals_open": true
+    },
+    {
+      "profile": "diagnostic_q8_pow0",
+      "mode": 1,
+      "ram": false,
+      "cycles": 5123,
+      "seed": 2,
+      "joint": false,
+      "prove_ns": 91174500,
+      "verify_ns": 33175375,
+      "stark_bytes": 68498,
+      "starks": 2,
+      "globals_open": true
+    },
+    {
+      "profile": "diagnostic_q8_pow0",
+      "mode": 1,
+      "ram": false,
+      "cycles": 5123,
+      "seed": 2,
+      "joint": true,
+      "prove_ns": 87516584,
+      "verify_ns": 24112792,
+      "stark_bytes": 46126,
+      "starks": 1,
+      "globals_open": true
+    },
+    {
+      "profile": "csp_q70_pow26",
+      "mode": 0,
+      "ram": true,
+      "cycles": 5123,
+      "seed": 2,
+      "joint": false,
+      "prove_ns": 500793000,
+      "verify_ns": 73537750,
+      "stark_bytes": 512083,
+      "starks": 2,
+      "globals_open": true
+    },
+    {
+      "profile": "csp_q70_pow26",
+      "mode": 0,
+      "ram": true,
+      "cycles": 5123,
+      "seed": 2,
+      "joint": true,
+      "prove_ns": 384563958,
+      "verify_ns": 59025542,
+      "stark_bytes": 402334,
+      "starks": 1,
+      "globals_open": true
+    },
+    {
+      "profile": "csp_q70_pow26",
+      "mode": 1,
+      "ram": true,
+      "cycles": 5123,
+      "seed": 2,
+      "joint": false,
+      "prove_ns": 233159000,
+      "verify_ns": 53984333,
+      "stark_bytes": 394634,
+      "starks": 2,
+      "globals_open": true
+    },
+    {
+      "profile": "csp_q70_pow26",
+      "mode": 1,
+      "ram": true,
+      "cycles": 5123,
+      "seed": 2,
+      "joint": true,
+      "prove_ns": 198402292,
+      "verify_ns": 39977875,
+      "stark_bytes": 280939,
+      "starks": 1,
+      "globals_open": true
+    },
+    {
+      "profile": "csp_q70_pow26",
+      "mode": 1,
+      "ram": false,
+      "cycles": 5123,
+      "seed": 2,
+      "joint": false,
+      "prove_ns": 540702125,
+      "verify_ns": 48142958,
+      "stark_bytes": 331913,
+      "starks": 2,
+      "globals_open": true
+    },
+    {
+      "profile": "csp_q70_pow26",
+      "mode": 1,
+      "ram": false,
+      "cycles": 5123,
+      "seed": 2,
+      "joint": true,
+      "prove_ns": 247844833,
+      "verify_ns": 32802833,
+      "stark_bytes": 219505,
+      "starks": 1,
+      "globals_open": true
+    },
+    {
+      "profile": "diagnostic_q8_pow0",
+      "mode": 0,
+      "ram": true,
+      "cycles": 5123,
+      "seed": 3,
+      "joint": false,
+      "prove_ns": 201512125,
+      "verify_ns": 54658875,
+      "stark_bytes": 103216,
+      "starks": 2,
+      "globals_open": true
+    },
+    {
+      "profile": "diagnostic_q8_pow0",
+      "mode": 0,
+      "ram": true,
+      "cycles": 5123,
+      "seed": 3,
+      "joint": true,
+      "prove_ns": 191404500,
+      "verify_ns": 47379166,
+      "stark_bytes": 81292,
+      "starks": 1,
+      "globals_open": true
+    },
+    {
+      "profile": "diagnostic_q8_pow0",
+      "mode": 1,
+      "ram": true,
+      "cycles": 5123,
+      "seed": 3,
+      "joint": false,
+      "prove_ns": 134799958,
+      "verify_ns": 39081250,
+      "stark_bytes": 81414,
+      "starks": 2,
+      "globals_open": true
+    },
+    {
+      "profile": "diagnostic_q8_pow0",
+      "mode": 1,
+      "ram": true,
+      "cycles": 5123,
+      "seed": 3,
+      "joint": true,
+      "prove_ns": 127922500,
+      "verify_ns": 31147291,
+      "stark_bytes": 56942,
+      "starks": 1,
+      "globals_open": true
+    },
+    {
+      "profile": "diagnostic_q8_pow0",
+      "mode": 1,
+      "ram": false,
+      "cycles": 5123,
+      "seed": 3,
+      "joint": false,
+      "prove_ns": 95378917,
+      "verify_ns": 31514333,
+      "stark_bytes": 68398,
+      "starks": 2,
+      "globals_open": true
+    },
+    {
+      "profile": "diagnostic_q8_pow0",
+      "mode": 1,
+      "ram": false,
+      "cycles": 5123,
+      "seed": 3,
+      "joint": true,
+      "prove_ns": 85853250,
+      "verify_ns": 23542833,
+      "stark_bytes": 42884,
+      "starks": 1,
+      "globals_open": true
+    },
+    {
+      "profile": "csp_q70_pow26",
+      "mode": 0,
+      "ram": true,
+      "cycles": 5123,
+      "seed": 3,
+      "joint": false,
+      "prove_ns": 650222709,
+      "verify_ns": 74339542,
+      "stark_bytes": 515601,
+      "starks": 2,
+      "globals_open": true
+    },
+    {
+      "profile": "csp_q70_pow26",
+      "mode": 0,
+      "ram": true,
+      "cycles": 5123,
+      "seed": 3,
+      "joint": true,
+      "prove_ns": 1035866750,
+      "verify_ns": 59003084,
+      "stark_bytes": 397692,
+      "starks": 1,
+      "globals_open": true
+    },
+    {
+      "profile": "csp_q70_pow26",
+      "mode": 1,
+      "ram": true,
+      "cycles": 5123,
+      "seed": 3,
+      "joint": false,
+      "prove_ns": 521008292,
+      "verify_ns": 56006917,
+      "stark_bytes": 404453,
+      "starks": 2,
+      "globals_open": true
+    },
+    {
+      "profile": "csp_q70_pow26",
+      "mode": 1,
+      "ram": true,
+      "cycles": 5123,
+      "seed": 3,
+      "joint": true,
+      "prove_ns": 224599084,
+      "verify_ns": 40625875,
+      "stark_bytes": 281503,
+      "starks": 1,
+      "globals_open": true
+    },
+    {
+      "profile": "csp_q70_pow26",
+      "mode": 1,
+      "ram": false,
+      "cycles": 5123,
+      "seed": 3,
+      "joint": false,
+      "prove_ns": 434660250,
+      "verify_ns": 48422167,
+      "stark_bytes": 332284,
+      "starks": 2,
+      "globals_open": true
+    },
+    {
+      "profile": "csp_q70_pow26",
+      "mode": 1,
+      "ram": false,
+      "cycles": 5123,
+      "seed": 3,
+      "joint": true,
+      "prove_ns": 168466500,
+      "verify_ns": 32395875,
+      "stark_bytes": 211729,
+      "starks": 1,
+      "globals_open": true
+    }
+  ],
+  "summaries": [
+    {
+      "profile": "csp_q70_pow26",
+      "mode": 0,
+      "ram": true,
+      "seeds": [
+        1,
+        2,
+        3
+      ],
+      "separate": {
+        "prove_ns": {
+          "median": 650222709,
+          "min": 500793000,
+          "max": 1672417167
+        },
+        "verify_ns": {
+          "median": 74162583,
+          "min": 73537750,
+          "max": 74339542
+        },
+        "stark_bytes": {
+          "median": 515469,
+          "min": 512083,
+          "max": 515601
+        }
+      },
+      "joint": {
+        "prove_ns": {
+          "median": 828637833,
+          "min": 384563958,
+          "max": 1035866750
+        },
+        "verify_ns": {
+          "median": 59003084,
+          "min": 58763458,
+          "max": 59025542
+        },
+        "stark_bytes": {
+          "median": 402087,
+          "min": 397692,
+          "max": 402334
+        }
+      }
+    },
+    {
+      "profile": "csp_q70_pow26",
+      "mode": 1,
+      "ram": false,
+      "seeds": [
+        1,
+        2,
+        3
+      ],
+      "separate": {
+        "prove_ns": {
+          "median": 434660250,
+          "min": 407683625,
+          "max": 540702125
+        },
+        "verify_ns": {
+          "median": 48235083,
+          "min": 48142958,
+          "max": 48422167
+        },
+        "stark_bytes": {
+          "median": 332284,
+          "min": 331913,
+          "max": 333578
+        }
+      },
+      "joint": {
+        "prove_ns": {
+          "median": 168466500,
+          "min": 115385500,
+          "max": 247844833
+        },
+        "verify_ns": {
+          "median": 32802833,
+          "min": 32395875,
+          "max": 32980541
+        },
+        "stark_bytes": {
+          "median": 218050,
+          "min": 211729,
+          "max": 219505
+        }
+      }
+    },
+    {
+      "profile": "csp_q70_pow26",
+      "mode": 1,
+      "ram": true,
+      "seeds": [
+        1,
+        2,
+        3
+      ],
+      "separate": {
+        "prove_ns": {
+          "median": 521008292,
+          "min": 233159000,
+          "max": 1394978167
+        },
+        "verify_ns": {
+          "median": 56006917,
+          "min": 53984333,
+          "max": 56684500
+        },
+        "stark_bytes": {
+          "median": 404453,
+          "min": 394634,
+          "max": 406737
+        }
+      },
+      "joint": {
+        "prove_ns": {
+          "median": 198402292,
+          "min": 175098416,
+          "max": 224599084
+        },
+        "verify_ns": {
+          "median": 40625875,
+          "min": 39977875,
+          "max": 41446625
+        },
+        "stark_bytes": {
+          "median": 281503,
+          "min": 280939,
+          "max": 285386
+        }
+      }
+    },
+    {
+      "profile": "diagnostic_q8_pow0",
+      "mode": 0,
+      "ram": true,
+      "seeds": [
+        1,
+        2,
+        3
+      ],
+      "separate": {
+        "prove_ns": {
+          "median": 199601375,
+          "min": 199411625,
+          "max": 201512125
+        },
+        "verify_ns": {
+          "median": 54665666,
+          "min": 54658875,
+          "max": 54824458
+        },
+        "stark_bytes": {
+          "median": 104807,
+          "min": 103216,
+          "max": 105815
+        }
+      },
+      "joint": {
+        "prove_ns": {
+          "median": 191404500,
+          "min": 188941167,
+          "max": 191703375
+        },
+        "verify_ns": {
+          "median": 47379166,
+          "min": 47361875,
+          "max": 47468791
+        },
+        "stark_bytes": {
+          "median": 81289,
+          "min": 77055,
+          "max": 81292
+        }
+      }
+    },
+    {
+      "profile": "diagnostic_q8_pow0",
+      "mode": 1,
+      "ram": false,
+      "seeds": [
+        1,
+        2,
+        3
+      ],
+      "separate": {
+        "prove_ns": {
+          "median": 92056834,
+          "min": 91174500,
+          "max": 95378917
+        },
+        "verify_ns": {
+          "median": 31514333,
+          "min": 31427417,
+          "max": 33175375
+        },
+        "stark_bytes": {
+          "median": 68498,
+          "min": 68398,
+          "max": 68767
+        }
+      },
+      "joint": {
+        "prove_ns": {
+          "median": 85853250,
+          "min": 82870333,
+          "max": 87516584
+        },
+        "verify_ns": {
+          "median": 23889750,
+          "min": 23542833,
+          "max": 24112792
+        },
+        "stark_bytes": {
+          "median": 43958,
+          "min": 42884,
+          "max": 46126
+        }
+      }
+    },
+    {
+      "profile": "diagnostic_q8_pow0",
+      "mode": 1,
+      "ram": true,
+      "seeds": [
+        1,
+        2,
+        3
+      ],
+      "separate": {
+        "prove_ns": {
+          "median": 134799958,
+          "min": 134629667,
+          "max": 135618500
+        },
+        "verify_ns": {
+          "median": 39082000,
+          "min": 39081250,
+          "max": 39270333
+        },
+        "stark_bytes": {
+          "median": 81414,
+          "min": 81163,
+          "max": 84917
+        }
+      },
+      "joint": {
+        "prove_ns": {
+          "median": 127241458,
+          "min": 126783208,
+          "max": 127922500
+        },
+        "verify_ns": {
+          "median": 31147291,
+          "min": 30810959,
+          "max": 31261334
+        },
+        "stark_bytes": {
+          "median": 57427,
+          "min": 56942,
+          "max": 58298
+        }
+      }
+    }
+  ],
+  "scope": "Open native + projection + ordinary-memory relation proofs; no global or recursive closure",
+  "timing": "Proof phases exclude runner/witness/first-round setup, hostile probes and serialization; verification separately timed",
+  "bytes": "Postcard STARK bytes only; native/projection/memory claim transport is not included",
+  "caution": "Three transcript seeds are not a stable canonical PoW latency distribution; no Ethereum-block speedup claim",
+  "implementation_commit": "4af0abbba711e7372613ca474922ff0329946efe",
+  "host": "Apple M5 CPU; 8 workers; ReleaseFast"
+}

@@ -26,9 +26,9 @@ test "publication-input provider pins typed semantic and geometry" {
         try air.staticProfile(&definition),
     );
     const plan = try binding.authenticate(&definition);
-    try std.testing.expectEqual(@as(u16, 10), plan.compiled_node_count);
+    try std.testing.expectEqual(@as(u16, 11), plan.compiled_node_count);
     try std.testing.expectEqual(
-        @as(usize, 139),
+        @as(usize, 55),
         witness.LOGICAL_ROW_COUNT,
     );
     try std.testing.expectEqual(@as(u8, 38), component.PROPOSED_ROSTER_ROW);
@@ -37,7 +37,7 @@ test "publication-input provider pins typed semantic and geometry" {
     try std.testing.expect(authority.ROSTER_INTEGRATION_AVAILABLE);
 }
 
-test "capture-backed provider emits exact disjoint 55 and 84 tuple classes" {
+test "capture-backed provider emits only the 55 native LogUp words" {
     var fixture = try exact_support.Fixture.init(std.testing.allocator);
     defer fixture.deinit();
     const inputs = fixture.inputs();
@@ -66,19 +66,13 @@ test "capture-backed provider emits exact disjoint 55 and 84 tuple classes" {
         try std.testing.expectEqual(@as(u32, @intCast(index)), emit.logical_row);
     }
 
-    var logical_row: usize = witness.LUP2_WORD_COUNT;
-    for (fixture.sources.vm_context.detailed_claims, 0..) |claim, item| {
-        for (claim.toM31Array(), 0..) |limb, limb_index| {
-            const event = provider_trace.events[logical_row];
-            try std.testing.expectEqual(air.DETAILED_VERIFIER_ID, event.tuple[0].toU32());
-            try std.testing.expectEqual(air.DETAILED_SOURCE_KIND, event.tuple[1].toU32());
-            try std.testing.expectEqual(@as(u32, @intCast(item)), event.tuple[2].toU32());
-            try std.testing.expectEqual(@as(u32, @intCast(limb_index)), event.tuple[3].toU32());
-            try std.testing.expect(limb.eql(event.tuple[4]));
-            logical_row += 1;
-        }
-    }
-    try std.testing.expectEqual(witness.LOGICAL_ROW_COUNT, logical_row);
+    var dropped_transcript_copy = provider_trace.events[0];
+    dropped_transcript_copy.multiplicity = 0;
+    try std.testing.expectError(
+        error.InvalidRelationEvent,
+        dropped_transcript_copy.validate(prepared.shape),
+    );
+    try std.testing.expectEqual(witness.LUP2_WORD_COUNT, witness.LOGICAL_ROW_COUNT);
     for (provider_trace.main[0][witness.LOGICAL_ROW_COUNT..]) |word|
         try std.testing.expect(word.isZero());
     for (provider_trace.preprocessed) |column| {
@@ -87,7 +81,7 @@ test "capture-backed provider emits exact disjoint 55 and 84 tuple classes" {
     }
 }
 
-test "committed provider closes row37 separately and retains row18 residual" {
+test "committed provider closes row37 while transcript owns row18 claims" {
     var fixture = try exact_support.Fixture.init(std.testing.allocator);
     defer fixture.deinit();
     var owner = try authority.AuthorityV2.init(std.testing.allocator);
@@ -111,11 +105,10 @@ test "committed provider closes row37 separately and retains row18 residual" {
     try std.testing.expect(prepared.claimed_sum.eql(
         prepared.lup2_publisher_claim.add(prepared.detailed_publisher_claim),
     ));
+    try std.testing.expect(prepared.detailed_publisher_claim.isZero());
 
-    // Row 38 is a single-domain publisher even though its source rows have
-    // two independently authenticated tuple classes. Reuse the production
-    // plan, rows, inversion workspace, and committed destination to pin that
-    // the 55 + 84 split cannot leak a claim into any other universal domain.
+    // Row 38 has only the authenticated native LogUp source class. Reuse the
+    // production plan and committed destination to pin its sole emitted domain.
     var regenerated_trace = provider_trace.trace();
     const domain_claims = try authority.Framework
         .generatePreparedIntoWithDomainSums(
@@ -208,15 +201,15 @@ test "both authenticated inputs fail before caller-owned writes" {
     try std.testing.expectEqualDeep(trace_before, provider_trace);
 }
 
-test "publication provider preserves all 88 retained segment claims and rejects source mutation" {
+test "publication provider binds 88 segment claims but publishes only native LogUp words" {
     const allocator = std.testing.allocator;
     const support = @import("../ethereum_leaf_context_v1_test_support.zig");
     var fixture = try exact_support.Fixture.initWithCore(allocator, support.retainedSegmentZeroCore());
     defer fixture.deinit();
     const source = try witness.preflight(fixture.inputs());
     try std.testing.expectEqual(@as(u32, 88), source.shape.claim_count);
-    try std.testing.expectEqual(@as(u32, 407), source.shape.logical_row_count);
-    try std.testing.expectEqual(@as(usize, 512), source.shape.traceRowCount());
+    try std.testing.expectEqual(@as(u32, witness.LUP2_WORD_COUNT), source.shape.logical_row_count);
+    try std.testing.expectEqual(@as(usize, 64), source.shape.traceRowCount());
     var owner = try authority.AuthorityV2.init(allocator);
     defer owner.deinit();
     var workspace = try authority.WorkspaceV2.initForShape(allocator, source.shape);
@@ -227,16 +220,13 @@ test "publication provider preserves all 88 retained segment claims and rejects 
     try authority.prepareInto(&prepared, &workspace, &owner, output.stagedTrace(), fixture.inputs(), &fixture.outer_relations);
     try authority.verifyTrace(&prepared, &workspace, &owner, output.stagedTrace(), fixture.inputs(), &fixture.outer_relations);
     try std.testing.expectError(error.AliasedDestination, authority.verifyTrace(&prepared, &workspace, &owner, workspace.stagedTrace(), fixture.inputs(), &fixture.outer_relations));
-    var row: usize = witness.LUP2_WORD_COUNT;
-    for (source.detailed_claims) |claim| {
-        for (claim.toM31Array()) |limb| {
-            try std.testing.expect(limb.eql(output.stagedTrace().main[0][row]));
-            try workspace.relation_events[row].validate(source.shape);
-            row += 1;
-        }
-    }
-    try std.testing.expectEqual(source.shape.logical_row_count, row);
-    for (output.stagedTrace().main[0][row..]) |word| try std.testing.expect(word.isZero());
+    // Detailed claims are authenticated by the source receipt and published
+    // by transcript row 5, not duplicated in this 55-row provider.
+    try std.testing.expectEqual(@as(usize, 88), source.detailed_claims.len);
+    try std.testing.expectEqual(@as(usize, witness.LUP2_WORD_COUNT), workspace.relation_events.len);
+    for (workspace.relation_events) |event| try event.validate(source.shape);
+    for (output.stagedTrace().main[0][witness.LUP2_WORD_COUNT..]) |word|
+        try std.testing.expect(word.isZero());
 
     const output_before = try allocator.dupe(M31, output.storage);
     defer allocator.free(output_before);

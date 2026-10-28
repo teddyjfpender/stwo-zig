@@ -46,12 +46,12 @@ pub const StatementSemanticsV2 = struct {
     pub const BOUNDARY_BRIDGE_CIRCUIT_ID: u32 = 45;
 
     pub const PHYSICAL_MAIN_COLUMN_COUNT: usize = 14;
-    pub const PREPROCESSED_COLUMN_COUNT: usize = 22;
+    pub const PREPROCESSED_COLUMN_COUNT: usize = 23;
     pub const PARAMETER_COUNT: usize = 0;
     pub const LOGICAL_INPUT_COUNT: usize =
         PHYSICAL_MAIN_COLUMN_COUNT + PREPROCESSED_COLUMN_COUNT;
     pub const DIRECT_CONSTRAINT_COUNT: usize = 23;
-    pub const RELATION_EVENT_COUNT: usize = 11;
+    pub const RELATION_EVENT_COUNT: usize = 12;
     pub const LOOKUP_BATCH_SIZE: u8 = 2;
     pub const INTERACTION_BATCH_COUNT: usize = 6;
     pub const INTERACTION_COLUMN_COUNT: usize = 24;
@@ -61,7 +61,7 @@ pub const StatementSemanticsV2 = struct {
     // Regenerated from the typed IR by the focused source test. This value is
     // deliberately pinned before the component can be authenticated.
     pub const SEMANTIC_DIGEST_HEX =
-        "fc0993e7444aaa88049ec7f4ea083da00d5e6a8c7dbacd03641d0b1f8dfa10c9";
+        "b3ff50e438dc366107dec134974a96521ca1ca10fe1c88a9a335cfff3ecc78d7";
     pub const SEMANTIC_DIGEST: digest.Digest = hexDigest(
         SEMANTIC_DIGEST_HEX,
         "invalid V2 statement-semantics digest",
@@ -107,6 +107,7 @@ pub const StatementSemanticsV2 = struct {
             "recursion_segment_leaf_v2_statement_semantics_memory_byte_bridge_mask",
             "recursion_segment_leaf_v2_statement_semantics_memory_low_selector_index",
             "recursion_segment_leaf_v2_statement_semantics_memory_high_selector_index",
+            "recursion_segment_leaf_v2_statement_semantics_native_root_relay_mask",
         };
     pub const CONSTRAINT_NAMES = [DIRECT_CONSTRAINT_COUNT][]const u8{
         "recursion.segment_leaf_v2.statement_semantics.enabler_matches_row_mask",
@@ -195,6 +196,7 @@ pub const StatementSemanticsV2 = struct {
         memory_byte_bridge_mask: types.ValueId,
         memory_low_selector_index: types.ValueId,
         memory_high_selector_index: types.ValueId,
+        native_root_relay_mask: types.ValueId,
 
         pub fn physical(
             self: PreprocessedColumns,
@@ -222,6 +224,7 @@ pub const StatementSemanticsV2 = struct {
                 self.memory_byte_bridge_mask,
                 self.memory_low_selector_index,
                 self.memory_high_selector_index,
+                self.native_root_relay_mask,
             };
         }
     };
@@ -230,6 +233,7 @@ pub const StatementSemanticsV2 = struct {
         arena: ir.Arena,
         main: MainColumns,
         preprocessed: PreprocessedColumns,
+        relay_index: types.ValueId,
         roots: [DIRECT_CONSTRAINT_COUNT]types.ValueId,
         constraints: [DIRECT_CONSTRAINT_COUNT]types.ConstraintId,
         events: [RELATION_EVENT_COUNT]types.EffectId,
@@ -396,6 +400,9 @@ pub const StatementSemanticsV2 = struct {
             try validateEffect(&self.arena, self.events[9], 9, .recursion_wire, .emit, self.preprocessed.memory_byte_bridge_mask, &memory_low_tuple);
             const memory_high_tuple = [_]types.ValueId{ bridge_circuit, self.preprocessed.memory_high_selector_index, self.main.memory_high_nonzero, zero, zero, zero };
             try validateEffect(&self.arena, self.events[10], 10, .recursion_wire, .emit, self.preprocessed.memory_byte_bridge_mask, &memory_high_tuple);
+            const root_scope = constantValue(&self.arena, @import("air/vm_statement_roots.zig").NATIVE_CONTINUATION_SCOPE) orelse return error.InvalidDefinition;
+            const native_root_tuple = [_]types.ValueId{ root_scope, self.relay_index, self.main.source_value };
+            try validateEffect(&self.arena, self.events[11], 11, .recursion_statement_word, .emit, self.preprocessed.native_root_relay_mask, &native_root_tuple);
         }
     };
 
@@ -463,7 +470,7 @@ pub const StatementSemanticsV2 = struct {
             index,
         | value.* = try arena.input(
             name,
-            if (index < 9 or index == 15 or index == 16 or index == 19) .selector else .felt,
+            if (index < 9 or index == 15 or index == 16 or index == 19 or index == 22) .selector else .felt,
             span,
         );
         const preprocessed = PreprocessedColumns{
@@ -489,8 +496,12 @@ pub const StatementSemanticsV2 = struct {
             .memory_byte_bridge_mask = preprocessed_values[19],
             .memory_low_selector_index = preprocessed_values[20],
             .memory_high_selector_index = preprocessed_values[21],
+            .native_root_relay_mask = preprocessed_values[22],
         };
         const one = try arena.constantField(1, span);
+        const native_root_scope = try arena.constantField(@import("air/vm_statement_roots.zig").NATIVE_CONTINUATION_SCOPE, span);
+        const native_root_context_index = try arena.constantField(@import("segment_leaf_statement_contract_v2.zig").CONTEXT_ENTRY_CONTINUATION_ROOT_INDEX, span);
+        const relay_index = try arena.sub(preprocessed.source_index, native_root_context_index, span);
         const byte_radix = try arena.constantField(256, span);
         const limb_radix = try arena.constantField(1 << 16, span);
         const inactive_source = try arena.sub(one, preprocessed.source_mask, span);
@@ -680,11 +691,18 @@ pub const StatementSemanticsV2 = struct {
             }, span),
             try relation_effect.append(&arena, .{ .domain = .recursion_wire, .role = .emit, .values = &memory_low_tuple, .weight = preprocessed.memory_byte_bridge_mask }, span),
             try relation_effect.append(&arena, .{ .domain = .recursion_wire, .role = .emit, .values = &memory_high_tuple, .weight = preprocessed.memory_byte_bridge_mask }, span),
+            try relation_effect.append(&arena, .{
+                .domain = .recursion_statement_word,
+                .role = .emit,
+                .values = &.{ native_root_scope, relay_index, main.source_value },
+                .weight = preprocessed.native_root_relay_mask,
+            }, span),
         };
         return .{
             .arena = arena,
             .main = main,
             .preprocessed = preprocessed,
+            .relay_index = relay_index,
             .roots = roots,
             .constraints = constraints,
             .events = events,
@@ -712,7 +730,7 @@ pub const StatementSemanticsV2 = struct {
             value,
             expected_name,
             PHYSICAL_MAIN_COLUMN_COUNT + local_index,
-            if (local_index < 9 or local_index == 15 or local_index == 16 or local_index == 19) .selector else .felt,
+            if (local_index < 9 or local_index == 15 or local_index == 16 or local_index == 19 or local_index == 22) .selector else .felt,
         );
     }
 };
