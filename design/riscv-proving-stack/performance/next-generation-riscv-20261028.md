@@ -26,8 +26,12 @@ the final recursive closure. The native forest alone is insufficient.
 
 The direct-native batch now demonstrates that wrapper verification can be
 removed: 32.425 to 1.910 seconds for the focused recursive phase, with 37.88x
-fewer G rows and 32.97x fewer AIR cells. The next gate is larger batches and
-a complete global receiver, followed by a parent that consumes those batches.
+fewer G rows and 32.97x fewer AIR cells. The
+[nine-segment follow-up](native-batch-scaling-m5-20261028.md) now verifies
+heterogeneous batches of 1/3/4/8 children and an upper parent consuming 8+1.
+Its canonical phase sum is 58.219 s; experimental wider FRI schedules reduce
+that to 39.493 s. Global recursive closure remains open. These larger results
+show why removing individual wrappers is necessary but insufficient.
 The large-tree counterfactual limits an eight-child-only change to roughly
 7.3x G-work reduction; cheaper upper proofs and memory redesign are still
 needed. Do not transfer the tiny-fixture runtime ratio to Ethereum blocks.
@@ -248,16 +252,17 @@ only replace it after measuring additional hash calls it can remove.
 
 ## Implementation and decision order
 
-1. Direct native batch for the exact three-segment fixture, including new public
-   bus and adversarial receiver tests; measure complete proof time and AIR work.
-2. Repeat with realistic segment widths and batch sizes 2/4/8; include partial
-   batches and a second reduction level. Choose the batch frontier by the
-   complete tree cost and memory, not just the first parent.
+1. Preserve the implemented direct native batch, public bus and adversarial
+   receiver tests. The two-segment baseline and nine-segment upper proof are
+   measured; the latter still contains only 832 guest cycles.
+2. Extend to realistic segment widths and global proof families. Batch sizes
+   1/3/4/8 and an 8+1 upper root pass, but do not establish block-scale capacity
+   or closure. Choose the frontier by complete tree cost and memory.
 3. Qualify register-local/RAM2 with hostile tests and matched full base proofs;
    compare mode0/mode1 under identical guest, public roots and security policy.
-4. Implement one versioned fold4 profile and fixed-frontier experiment, measuring
-   all added arithmetic/routing as well as removed hashes. Keep node-domain
-   redesign separately reviewable.
+4. Review security of the implemented experimental fold2/fold4 profiles before
+   considering production adoption. Their measured gain is about 1.5x, not 10x.
+   Fixed-frontier and node-domain redesign remain separate experiments.
 5. Introduce the narrow event-root bridge and joint proof tiles only after their
    exact global challenge and ownership contracts are executable.
 6. Recursively close every global proof family before publishing a standalone
