@@ -7,6 +7,7 @@ const bus = @import("block_v6_native_batch_public_v1.zig");
 const artifact = @import("blake3_native_parent_artifact.zig");
 const universal = @import("air/universal_challenges.zig");
 pub const VERSION = bus.VERSION;
+pub const CLAIM_TAG: u32 = 0x42364e43;
 pub const Key = struct {
     profile: base.Profile,
     config: core.pcs.PcsConfig,
@@ -78,7 +79,7 @@ pub const Admission = struct {
     pub fn mixClaims(self: *const Admission, channel: anytype, claims: []const core.fields.qm31.QM31) !void {
         try self.validate();
         if (claims.len != artifact.CLAIM_COUNT) return error.InvalidBlake3ParentClaims;
-        channel.mixU32s(&.{ 0x42364e43, VERSION, artifact.CLAIM_COUNT });
+        channel.mixU32s(&.{ CLAIM_TAG, VERSION, artifact.CLAIM_COUNT });
         channel.mixFelts(claims);
     }
     pub fn validateClaimsForRelations(self: *const Admission, claims: artifact.Claims, relations: universal.UniversalRelations) !void {

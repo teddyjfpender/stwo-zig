@@ -8,6 +8,8 @@ const bus = @import("../../recursion/block_v6_native_batch_public_v1.zig");
 const protocol = @import("../../recursion/block_v6_native_batch_protocol_v1.zig");
 const parent = @import("../../recursion/blake3_execution_parent_proof.zig");
 const fixture = @import("block_v5_lightweight_native_proof_test.zig");
+const frames = @import("../../recursion/block_v5_open_child_frames_v2.zig");
+const receiver = @import("../../recursion/block_v6_native_batch_receiver_v1.zig");
 
 test "block-v6 direct native batch q8 has no individual recursive wrappers" {
     try run(.diagnostic_q8_pow0, true);
@@ -32,6 +34,38 @@ fn run(comptime selected: parent.protocol.Profile, comptime direct: bool) !void 
 }
 
 pub fn qualify(a: std.mem.Allocator, admissions: []const *const preparation.NativeAdmission, captures: []const *const preparation.Capture, selected: parent.protocol.Profile, native_ns: u64) !void {
+    _ = try qualifyMeasured(a, admissions, captures, selected, native_ns);
+}
+
+pub const Measurement = struct {
+    span: @import("../../recursion/block_v5_pc_clock_span_v1.zig").Span,
+    recursive_ns: u64,
+    costs: Work,
+    proof_bytes: usize,
+};
+
+pub fn qualifyMeasured(a: std.mem.Allocator, admissions: []const *const preparation.NativeAdmission, captures: []const *const preparation.Capture, selected: parent.protocol.Profile, native_ns: u64) !Measurement {
+    var retained = try qualifyRetained(a, admissions, captures, selected, native_ns);
+    defer retained.deinit();
+    return retained.measurement;
+}
+
+pub const Retained = struct {
+    allocator: std.mem.Allocator,
+    measurement: Measurement,
+    child: frames.Child,
+    capture: @import("../../recursion/blake3_native_parent_verifier.zig").Verified,
+    expected: receiver.Expected,
+    pub fn deinit(self: *Retained) void {
+        self.capture.deinit();
+        self.child.deinit();
+        self.allocator.free(self.expected.exported);
+        self.allocator.free(self.expected.schedule);
+        self.* = undefined;
+    }
+};
+
+pub fn qualifyRetained(a: std.mem.Allocator, admissions: []const *const preparation.NativeAdmission, captures: []const *const preparation.Capture, selected: parent.protocol.Profile, native_ns: u64) !Retained {
     var timer = try std.time.Timer.start();
     var prepared = try preparation.prepare(a, admissions, captures, 2);
     defer prepared.deinit();
@@ -57,36 +91,39 @@ pub fn qualify(a: std.mem.Allocator, admissions: []const *const preparation.Nati
     const fresh_authority = try protocol.Admission.init(key, expected, prepared.wires, .{ .children = children });
     var decoded = try parent.codec.decode(a, bytes, &fresh_authority);
     var fresh = try parent.verify(&decoded, &fresh_authority);
-    defer fresh.deinit();
+    errdefer fresh.deinit();
     try fresh.validate(&fresh_authority, expected);
     const span = try fresh_authority.values.outputSpan();
     try std.testing.expectEqual(@as(u32, @intCast(admissions.len)), span.segment_count);
     const verify_ns = timer.lap();
 
-    const original = children[1];
-    children[1].native.open_sum = original.native.open_sum.add(core.fields.qm31.QM31.one());
+    const original_first = children[0];
+    children[0].native.open_sum = original_first.native.open_sum.add(core.fields.qm31.QM31.one());
     try std.testing.expectError(error.InvalidNativeBatchPublicClosure, fresh.validate(&fresh_authority, expected));
-    children[1] = original;
-    children[1].span.initial_pc ^= 4;
-    try std.testing.expectError(error.DiscontinuousV5PcClockSpan, fresh_authority.validate());
-    children[1] = children[0];
-    try std.testing.expectError(error.DiscontinuousV5PcClockSpan, fresh_authority.validate());
-    children[1] = original;
-    // Bypass host adjacency preflight and exercise the emitted arithmetic graph.
-    var edge_wires: std.ArrayList(bus.Wire) = .empty;
-    defer edge_wires.deinit(a);
-    inline for (.{ "initial_pc", "first_cycle", "first_index" }) |field| {
-        if (comptime std.mem.eql(u8, field, "initial_pc")) {
-            @field(children[1].span, field) += 1;
-        } else {
-            // Keep each span individually valid, but break the join edge.
-            @field(children[1].span, field) -= 1;
-        }
-        try std.testing.expectError(error.UnsatisfiedCircuit, @import("../../recursion/air/block_v6_native_batch_edges_v1.zig").append(&prepared.recursive.rows, children, 1_500_000_000, &edge_wires));
+    children[0] = original_first;
+    if (children.len > 1) {
+        const original = children[1];
+        children[1].span.initial_pc ^= 4;
+        try std.testing.expectError(error.DiscontinuousV5PcClockSpan, fresh_authority.validate());
+        children[1] = children[0];
+        try std.testing.expectError(error.DiscontinuousV5PcClockSpan, fresh_authority.validate());
         children[1] = original;
+        // Bypass host adjacency preflight and exercise the emitted arithmetic graph.
+        var edge_wires: std.ArrayList(bus.Wire) = .empty;
+        defer edge_wires.deinit(a);
+        inline for (.{ "initial_pc", "first_cycle", "first_index" }) |field| {
+            if (comptime std.mem.eql(u8, field, "initial_pc")) {
+                @field(children[1].span, field) += 1;
+            } else {
+                // Keep each span individually valid, but break the join edge.
+                @field(children[1].span, field) -= 1;
+            }
+            try std.testing.expectError(error.UnsatisfiedCircuit, @import("../../recursion/air/block_v6_native_batch_edges_v1.zig").append(&prepared.recursive.rows, children, 1_500_000_000, &edge_wires));
+            children[1] = original;
+        }
     }
     var wrong = fresh_authority;
-    wrong.values.children = children[0..1];
+    wrong.values.children = children[0 .. children.len - 1];
     try std.testing.expectError(error.InvalidNativeBatchAdmission, wrong.validate());
     wrong = fresh_authority;
     wrong.expected_id[0] ^= 1;
@@ -95,16 +132,36 @@ pub fn qualify(a: std.mem.Allocator, admissions: []const *const preparation.Nati
     // Changed native proof claims cannot enter the batch under an old capture.
     var changed_capture = captures[0].*;
     changed_capture.receipt.open_sum = changed_capture.receipt.open_sum.add(core.fields.qm31.QM31.one());
-    if (preparation.prepare(a, admissions, &.{ &changed_capture, captures[1] }, 2)) |unexpected| {
-        var owned = unexpected;
-        owned.deinit();
-        return error.AcceptedChangedNativeCapture;
-    } else |_| {}
+    const changed_captures = try a.dupe(*const preparation.Capture, captures);
+    defer a.free(changed_captures);
+    changed_captures[0] = &changed_capture;
+    try std.testing.expectError(error.InvalidNativeV5RecursiveCapture, preparation.prepare(a, admissions, changed_captures, 2));
+    const owned_wires = try a.dupe(bus.Wire, prepared.wires);
+    errdefer a.free(owned_wires);
+    const receipts = try a.alloc(receiver.Receipt, captures.len);
+    errdefer a.free(receipts);
+    for (receipts, captures) |*receipt, capture| receipt.* = capture.receipt;
+    const expected_child = receiver.Expected{ .native = admissions, .exported = receipts, .key = key, .expected_id = expected, .schedule = owned_wires };
+    var normalized = try expected_child.reconstruct(a);
+    errdefer normalized.deinit();
+    const normalized_admission = frames.Admission.init(&normalized, &.{});
+    try fresh.validate(&normalized_admission, expected);
+    // Normalization must replay the complete original transcript, including
+    // its separate claim domain, before any parent may consume this capture.
+    var original_channel = core.channel.blake3.Channel{};
+    var normalized_channel = core.channel.blake3.Channel{};
+    try fresh_authority.mix(&original_channel);
+    try normalized_admission.mix(&normalized_channel);
+    try fresh_authority.mixClaims(&original_channel, &fresh.claims);
+    try normalized_admission.mixClaims(&normalized_channel, &fresh.claims);
+    try std.testing.expectEqualDeep(original_channel.digestBytes(), normalized_channel.digestBytes());
+    try std.testing.expectEqual(original_channel.n_draws, normalized_channel.n_draws);
     const costs = work(&prepared.recursive.rows);
-    std.debug.print("BLOCK_V6_DIRECT_NATIVE verified=true profile={s} children=2 native_ns={d} prepare_ns={d} setup_ns={d} prove_ns={d} encode_verify_ns={d} recursive_ns={d} g_rows={d} air_cells={d} proof_bytes={d} globals_open=true\n", .{
-        @tagName(selected),                           native_ns,    prepare_ns,  setup_ns,  prove_ns, verify_ns,
+    std.debug.print("BLOCK_V6_DIRECT_NATIVE verified=true profile={s} children={d} native_ns={d} prepare_ns={d} setup_ns={d} prove_ns={d} encode_verify_ns={d} recursive_ns={d} g_rows={d} air_cells={d} proof_bytes={d} globals_open=true\n", .{
+        @tagName(selected),                           children.len, native_ns,   prepare_ns, setup_ns, prove_ns, verify_ns,
         prepare_ns + setup_ns + prove_ns + verify_ns, costs.g_rows, costs.cells, bytes.len,
     });
+    return .{ .allocator = a, .measurement = .{ .span = span, .recursive_ns = prepare_ns + setup_ns + prove_ns + verify_ns, .costs = costs, .proof_bytes = bytes.len }, .child = normalized, .capture = fresh, .expected = expected_child };
 }
 
 pub const Work = struct { cells: usize = 0, g_rows: usize = 0 };

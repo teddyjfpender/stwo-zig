@@ -12,13 +12,24 @@ pub const DOMAIN = "stwo-zig/blake3-execution-child-parent/v3\x00";
 pub const Profile = enum(u32) {
     diagnostic_q8_pow0 = 1,
     csp_q70_pow26 = 2,
+    // Research profiles: query/PoW counts match CSP, but the complete security
+    // bound for the wider FRI schedule is not qualified for production.
+    experimental_q70_pow26_fold2 = 3,
+    experimental_q70_pow26_fold4 = 4,
     pub fn config(self: Profile) core.pcs.PcsConfig {
         return switch (self) {
             .diagnostic_q8_pow0 => PCS_CONFIG,
             .csp_q70_pow26 => CSP_CONFIG,
+            .experimental_q70_pow26_fold2 => withFold(2),
+            .experimental_q70_pow26_fold4 => withFold(4),
         };
     }
 };
+fn withFold(step: u32) core.pcs.PcsConfig {
+    var config = CSP_CONFIG;
+    config.fri_config.fold_step = step;
+    return config;
+}
 pub const PCS_CONFIG = core.pcs.PcsConfig{ .pow_bits = 0, .fri_config = .{ .log_last_layer_degree_bound = 0, .log_blowup_factor = 1, .n_queries = 8, .fold_step = 1 } };
 pub const CSP_CONFIG = core.pcs.PcsConfig{ .pow_bits = 26, .fri_config = .{ .log_last_layer_degree_bound = 0, .log_blowup_factor = 1, .n_queries = 70, .fold_step = 1 } };
 pub const Context = @import("blake3_execution_parent_preparation.zig").Context;

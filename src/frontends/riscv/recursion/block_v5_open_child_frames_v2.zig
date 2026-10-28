@@ -9,6 +9,7 @@ const native_protocol = @import("block_v5_reusable_native_parent_protocol_v1.zig
 const native_bus = @import("block_v5_recursive_public_bus_v1.zig");
 const capacity_protocol = @import("block_v5_reusable_capacity_parent_protocol_v1.zig");
 const capacity_bus = @import("block_v5_capacity_recursive_public_bus_v1.zig");
+const batch_protocol = @import("block_v6_native_batch_protocol_v1.zig");
 const span_mod = @import("block_v5_pc_clock_span_v1.zig");
 const v1_protocol = @import("block_v5_reusable_open_parent_protocol_v1.zig");
 const base = @import("blake3_execution_parent_protocol.zig");
@@ -101,6 +102,15 @@ pub fn fromOpenV1(a: std.mem.Allocator, policy: v1_protocol.Admission) !Child {
     for (policy.values.children) |child| open = open.add(child.admission.values.open_sum);
     return create(a, policy, try policy.values.outputSpan(), open);
 }
+/// The batch admission must come from independently reconstructed native public
+/// policies. Every original transcript frame and wire supply remains present;
+/// the next parent proves the batch STARK rather than trusting its host receipt.
+pub fn fromNativeBatchV6(a: std.mem.Allocator, policy: batch_protocol.Admission) !Child {
+    try policy.validate();
+    var open = Q.zero();
+    for (policy.values.children) |child| open = open.add(child.native.open_sum);
+    return create(a, policy, try policy.values.outputSpan(), open);
+}
 /// All recursive levels use this same protocol after the first open fold.
 /// No legacy admission with an old claim-zero closure is admitted here.
 pub fn fromOpenV2(a: std.mem.Allocator, policy: @import("block_v5_reusable_open_parent_protocol_v2.zig").Admission) !Child {
@@ -125,7 +135,8 @@ fn create(a: std.mem.Allocator, policy: anytype, span: span_mod.Span, open: Q) !
             try policy.values.at(wire);
         term.* = .{ .circuit = wire.circuit, .wire = wire.wire, .uses = wire.uses, .negative = if (@hasField(@TypeOf(wire), "negative")) wire.negative else false, .coordinates = coordinates };
     }
-    var result = Child{ .arena = arena, .key = .{ .profile = policy.key.profile, .config = policy.key.config, .context = policy.key.context, .log_sizes = policy.key.log_sizes, .preprocessed_root = policy.key.preprocessed_root }, .expected_id = policy.expected_id, .public_input_digest = try policy.publicInputIdentity(), .claim_frame = .{ if (@TypeOf(policy) == capacity_protocol.Admission) capacity_protocol.CLAIM_TAG else if (@TypeOf(policy) == native_protocol.Admission) 0x42355243 else 0x42354f43, if (@TypeOf(policy) == @import("block_v5_reusable_open_parent_protocol_v2.zig").Admission) 2 else 1, @import("blake3_native_parent_artifact.zig").CLAIM_COUNT }, .frames = try collector.frames.toOwnedSlice(temp), .cells = try collector.cells.toOwnedSlice(temp), .terms = terms, .span = span, .native_open_sum = open, .seal = undefined };
+    const claim_tag: u32 = if (@TypeOf(policy) == batch_protocol.Admission) batch_protocol.CLAIM_TAG else if (@TypeOf(policy) == capacity_protocol.Admission) capacity_protocol.CLAIM_TAG else if (@TypeOf(policy) == native_protocol.Admission) 0x42355243 else 0x42354f43;
+    var result = Child{ .arena = arena, .key = .{ .profile = policy.key.profile, .config = policy.key.config, .context = policy.key.context, .log_sizes = policy.key.log_sizes, .preprocessed_root = policy.key.preprocessed_root }, .expected_id = policy.expected_id, .public_input_digest = try policy.publicInputIdentity(), .claim_frame = .{ claim_tag, if (@TypeOf(policy) == @import("block_v5_reusable_open_parent_protocol_v2.zig").Admission) 2 else 1, @import("blake3_native_parent_artifact.zig").CLAIM_COUNT }, .frames = try collector.frames.toOwnedSlice(temp), .cells = try collector.cells.toOwnedSlice(temp), .terms = terms, .span = span, .native_open_sum = open, .seal = undefined };
     result.seal = try result.identity();
     try result.validate();
     return result;

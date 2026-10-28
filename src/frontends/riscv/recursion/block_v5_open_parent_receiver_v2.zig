@@ -12,11 +12,13 @@ pub const Expected = union(enum) {
     native: @import("block_v5_open_parent_receiver_v1.zig").ExpectedChild,
     open_v1: @import("block_v5_reusable_open_parent_protocol_v1.zig").Admission,
     open_v2: protocol.Admission,
+    native_batch_v6: @import("block_v6_native_batch_receiver_v1.zig").Expected,
     pub fn reconstruct(self: Expected, a: std.mem.Allocator) !normalized.Child {
         return switch (self) {
             .native => |value| normalized.fromNative(a, value.native, value.exported, value.recursive_key, value.recursive_key_id, value.recursive_schedule),
             .open_v1 => |value| normalized.fromOpenV1(a, value),
             .open_v2 => |value| normalized.fromOpenV2(a, value),
+            .native_batch_v6 => |value| value.reconstruct(a),
         };
     }
 };
