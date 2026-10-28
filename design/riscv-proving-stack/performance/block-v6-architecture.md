@@ -1,5 +1,12 @@
 # Block-v6: remove proof work, then accelerate what remains
 
+The [joint native/companion STARK](joint-native-m5-20261028.md) now implements
+the next proof-structure change: one composition/FRI for both equation sets,
+with all exported relations matching the original independent proofs. Three
+transcript-seed suites pass. Proof bodies shrink 22–36% on the tested cases;
+diagnostic proving improves only 4–7%, and canonical PoW timing is variable.
+This is an open component proof, not yet the driver's recursive child format.
+
 The [actual replacement driver](native-batch-driver-m5-20261028.md) now measures
 **87.195 → 32.992 s (2.64×)** at q70/26 on the matched two-segment mixed fixture.
 Its charged allocation peak falls 7.568 → 6.591 GB. This removes the old
