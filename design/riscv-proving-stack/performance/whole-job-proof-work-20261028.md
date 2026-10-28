@@ -50,6 +50,14 @@ No copied external implementation is included.
 
 ## 1. Joint native and companion commitment
 
+Implementation update: [joint native proof qualification](joint-native-m5-20261028.md)
+now establishes one STARK for both component sets with independent verification.
+It retains a separate access-witness tree and two interaction trees under one
+composition/FRI. The new B6JP transcript domain, tree relocation and checked
+q1-to-q2 extension are implemented; durable codec, recursive admission/capture
+and complete-bundle integration below remain unfinished. Measurements do not
+establish another order-of-magnitude runtime improvement from fusion alone.
+
 `block_v5_program_native_batch_common_v1.zig:verifyFused` still loads an original
 native proof and a separate fused projection/memory proof. The word "fused"
 does not mean these share one PCS. Native proving in
