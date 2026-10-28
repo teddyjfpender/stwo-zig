@@ -32,7 +32,9 @@ row log 22, counting full padded commitment domains. The old memory AIR has
 has 12 + 27 + 68 cells/event. The archived RAM2 profile has 24 + 54 + 92
 cells/two-event row. The latter two include the proposed mode1 projection,
 which sends only writable RAM to sorted memory and closes register custody in
-execution windows. They were not measured on the complete block.
+execution windows. The mode1 + word-v4 case is a **counterfactual comparator**:
+the archived complete receiver admits mode1 with RAM2, not word-v4. Neither
+layout was measured on the complete block.
 
 | Geometry | Instances | Committed M31 cells | Raw trace bytes | Cell reduction |
 | --- | ---: | ---: | ---: | ---: |
@@ -59,6 +61,47 @@ measured 32.327 versus 21.500 ms, showing similar kernel behavior, but neither
 run proves an end-to-end gain. See `block-ram2-m5-20261028.json` for the fresh
 samples and scope.
 
+The follow-up *full RAM component STARK* comparison changes the conclusion
+from the kernel-only benchmark. The CPU prover used one eight-worker pool,
+70 FRI queries, 26 PoW bits, ReleaseFast, the same synthetic sorted writable-
+RAM events and fresh verification of each component proof. Each row below is
+first commitment + shared inverse-table preparation + proof generation; it
+excludes verification, event generation and other block proof families. Four
+alternating-order pairs produced each median except the 4M row, which is one
+pair. The archived proof source plus a corrected single-wait worker scheduler
+is pinned at lab commit `99975023b`; raw paired totals are in
+`block-ram-proof-size-sweep-20261028.json`.
+
+| RW events in one component | Word-v4 | RAM2 | Word/RAM2 |
+| --- | ---: | ---: | ---: |
+| 32,768 | 0.611 s | 0.637 s | 0.96x |
+| 65,536 | 0.372 s | 0.308 s | 1.21x |
+| 262,144 | 2.004 s | 1.237 s | 1.62x |
+| 1,048,576 | 4.701 s | 4.072 s | 1.15x |
+| 4,194,304 | 19.591 s | 16.288 s | 1.20x |
+
+This falsifies the assumption that a 10.14x reduction in *block aggregate
+memory cells* makes this one component's proof 10x faster. Register event
+removal accounts for most of the aggregate reduction; RAM2 alone provides a
+size-dependent 0.96–1.62x component time ratio in this experiment. Small
+instances favor word-v4, and the measured crossover lies between 32k and 64k
+events on this host. A production planner should select a protocol by measured
+whole-proof cost, peak and proof count for its hardware, with the protocol tag
+bound in the independently derived roster. It must not silently switch layout
+for the same committed claim. For the target block's seven large RW shards,
+RAM2 remains the measured choice. A future small-instance word-v4 exception
+requires a new versioned global policy and complete requalification; the
+component-only benchmark does not authorize it.
+
+The repeated large test originally stalled after two pairs. Sampling showed
+the main thread blocked in the word quotient worker join while all helpers
+were idle. That path called Zig `WaitGroup.wait()` explicitly and again in a
+defer; the second wait can fabricate a pending count. Commit `99975023b`
+guards the cleanup wait so it runs only if the explicit join did not occur.
+The four-pair million-event canonical run then completed and verified every
+proof. A long-lived block prover needs this lifecycle fix before parallel
+quotient timing is trustworthy.
+
 The row-cap sensitivity check is informative. For the RAM2 census, row logs
 20, 21 and 22 commit the same 4.991 billion cells in 28, 14 and 7 instances.
 Row logs 23 and 24 commit 5.704 billion cells in 4 and 2 instances because
@@ -84,7 +127,9 @@ on this profile merely for code sharing.
    requester tuples. Keep input and ROM in separate authenticated read-only
    families. Lane packing is selected by **total committed cells and owned
    scratch**, not by instance count alone. Narrow the predecessor and range
-   witness before raising row caps.
+   witness before raising row caps. Keep RAM2 for the target block's large
+   shards; any small-instance alternative requires a separately versioned
+   global receiver and complete proof qualification.
 3. **Ethereum-heavy operations.** Route Keccak, SHA-256 and elliptic-curve
    calls to dedicated typed AIRs with exact ordered call/return buses. Host
    precomputation may produce witnesses but never grants arithmetic authority.
