@@ -327,10 +327,16 @@ is insufficient for an Ethereum-block claim.
 
 The experimental priority has changed accordingly. First restore and qualify
 the existing register-local custody plus RAM2 *complete bundle* at canonical
-security; its archived full-driver fixture currently stops at
-`InvalidV5FullFusedTrees` after collection, so collector success cannot be
-reported as a qualified proof. In parallel, remove the measured native and
-sidecar reconstruction/recommitment tax through the versioned event bridge.
+security. The archived full-driver q8 fixture initially stopped at
+`InvalidV5FullFusedTrees` after collection. Lab commit `4f00a4c8a` corrects
+the fused adapters' trace-tree versus appended composition-tree handling; the
+fixture then completes its first sidecar and recursive leaf, but the fused
+SHA/Keccak caller proof still fails `ConstraintsNotSatisfied` during OODS.
+Neither outcome is a qualified bundle or a performance measurement. The next
+gate is to locate the caller equation or composition mismatch, preserve the
+full component roster, and obtain a fresh detached two-segment verification.
+In parallel, remove the measured native and sidecar
+reconstruction/recommitment tax through the versioned event bridge.
 Then fuse proof families and schedule their GPU/recursive work. Replace the
 external sorter only after a full-block phase trace shows its wall time and
 memory traffic on the selected hardware. Smaller hash/lookup encodings from
