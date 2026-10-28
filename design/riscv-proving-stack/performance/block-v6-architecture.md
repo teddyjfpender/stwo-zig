@@ -8,6 +8,15 @@ reduce its measured phase sum from 58.219 to 39.493 s, with security review
 still required. Global closure remains open; the complete block architecture
 below is not yet implemented.
 
+A [same-execution partition experiment](native-tiling-m5-20261028.md) now
+measures the next work-removal target: forming one larger native proof before
+recursion instead of nine smaller proofs reduces the 851,968-cycle fixture's
+phase sum from 196.377 to 15.927 s (12.33x), and recursive AIR cells by 11.05x.
+Native committed cells are identical at that size. This is an ALU-only,
+open-global result, not a block speedup or implemented joint PCS. It makes
+independent component sizing and earlier proof fusion the priority over
+further small FRI-parameter gains.
+
 Status: design and experiment contract, not a qualified proof protocol. The
 archived block-v5 run stopped before a root. All speedups below are hypotheses
 unless explicitly marked measured.

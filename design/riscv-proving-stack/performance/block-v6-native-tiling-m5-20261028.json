@@ -1,0 +1,627 @@
+{
+  "schema": "stwo-zig/native-tiling/v1",
+  "scope": "Fixed ADDI/JAL execution, 1/3/9 native STARKs each reduced to one recursive proof; global obligations open",
+  "timing": "Phase sums; charged allocator peak includes retained native inputs and test probes, excludes thread stacks and untracked allocations",
+  "samples": [
+    {
+      "log": "block-v6-tiling-832.log",
+      "sha256": "f94061cbf8c1ca6eeab48414756bf87f3ea970cf0bea2c9d594bf57598ee9a6a",
+      "runs": [
+        {
+          "source": {
+            "profile": "csp_q70_pow26",
+            "segments": 1,
+            "cycles": 832,
+            "base_steps": 64,
+            "native_ns": 84650833,
+            "native_cells": 54784,
+            "native_max_log": 9,
+            "native_peak_bytes": 36902408,
+            "workers": 8,
+            "globals_open": "true"
+          },
+          "proof_stages": [
+            {
+              "verified": "true",
+              "profile": "csp_q70_pow26",
+              "children": 1,
+              "native_ns": 84650833,
+              "prepare_ns": 1973795291,
+              "setup_ns": 625725584,
+              "prove_ns": 3018090416,
+              "encode_verify_ns": 187977709,
+              "recursive_ns": 5805589000,
+              "g_rows": 674408,
+              "air_cells": 226129836,
+              "proof_bytes": 847464,
+              "globals_open": "true"
+            }
+          ],
+          "result": {
+            "verified": "true",
+            "profile": "csp_q70_pow26",
+            "segments": 1,
+            "cycles": 832,
+            "execution_digest": "20edf024594c23c885ade7a4e4268241197e73e584570dbbc7a2a066c2c2c541",
+            "native_ns": 84650833,
+            "recursive_ns": 5805589000,
+            "phase_sum_ns": 5890239833,
+            "air_cells": 226129836,
+            "g_rows": 674408,
+            "root_bytes": 847464,
+            "charged_peak_bytes": 2643998072,
+            "globals_open": "true"
+          }
+        },
+        {
+          "source": {
+            "profile": "csp_q70_pow26",
+            "segments": 3,
+            "cycles": 832,
+            "base_steps": 64,
+            "native_ns": 724197667,
+            "native_cells": 54784,
+            "native_max_log": 8,
+            "native_peak_bytes": 96598540,
+            "workers": 8,
+            "globals_open": "true"
+          },
+          "proof_stages": [
+            {
+              "verified": "true",
+              "profile": "csp_q70_pow26",
+              "children": 3,
+              "native_ns": 724197667,
+              "prepare_ns": 5042885875,
+              "setup_ns": 1025832458,
+              "prove_ns": 4292942708,
+              "encode_verify_ns": 187617209,
+              "recursive_ns": 10549278250,
+              "g_rows": 1525944,
+              "air_cells": 362956800,
+              "proof_bytes": 886694,
+              "globals_open": "true"
+            }
+          ],
+          "result": {
+            "verified": "true",
+            "profile": "csp_q70_pow26",
+            "segments": 3,
+            "cycles": 832,
+            "execution_digest": "20edf024594c23c885ade7a4e4268241197e73e584570dbbc7a2a066c2c2c541",
+            "native_ns": 724197667,
+            "recursive_ns": 10549278250,
+            "phase_sum_ns": 11273475917,
+            "air_cells": 362956800,
+            "g_rows": 1525944,
+            "root_bytes": 886694,
+            "charged_peak_bytes": 3878986300,
+            "globals_open": "true"
+          }
+        },
+        {
+          "source": {
+            "profile": "csp_q70_pow26",
+            "segments": 9,
+            "cycles": 832,
+            "base_steps": 64,
+            "native_ns": 2311445833,
+            "native_cells": 44512,
+            "native_max_log": 6,
+            "native_peak_bytes": 277871389,
+            "workers": 8,
+            "globals_open": "true"
+          },
+          "proof_stages": [
+            {
+              "verified": "true",
+              "profile": "csp_q70_pow26",
+              "children": 8,
+              "native_ns": 0,
+              "prepare_ns": 11060826416,
+              "setup_ns": 2005833292,
+              "prove_ns": 7360519542,
+              "encode_verify_ns": 192279750,
+              "recursive_ns": 20619459000,
+              "g_rows": 2804928,
+              "air_cells": 684432384,
+              "proof_bytes": 924608,
+              "globals_open": "true"
+            },
+            {
+              "verified": "true",
+              "profile": "csp_q70_pow26",
+              "children": 1,
+              "native_ns": 0,
+              "prepare_ns": 1100131375,
+              "setup_ns": 351732625,
+              "prove_ns": 1611441166,
+              "encode_verify_ns": 188146417,
+              "recursive_ns": 3251451583,
+              "g_rows": 311080,
+              "air_cells": 114701740,
+              "proof_bytes": 804471,
+              "globals_open": "true"
+            },
+            {
+              "verified": "true",
+              "profile": "csp_q70_pow26",
+              "segments": 9,
+              "child_batches": 2,
+              "prepare_ns": 14958080709,
+              "setup_ns": 4078978750,
+              "prove_ns": 15558376250,
+              "encode_verify_ns": 239062333,
+              "recursive_ns": 34834498042,
+              "g_rows": 5312048,
+              "air_cells": 1293254656,
+              "proof_bytes": 982775,
+              "charged_peak_bytes": 10704814035,
+              "globals_open": "true"
+            }
+          ],
+          "result": {
+            "verified": "true",
+            "profile": "csp_q70_pow26",
+            "segments": 9,
+            "cycles": 832,
+            "execution_digest": "20edf024594c23c885ade7a4e4268241197e73e584570dbbc7a2a066c2c2c541",
+            "native_ns": 2311445833,
+            "recursive_ns": 58705408625,
+            "phase_sum_ns": 61016854458,
+            "air_cells": 2092388780,
+            "g_rows": 8428056,
+            "root_bytes": 982775,
+            "charged_peak_bytes": 10983675620,
+            "globals_open": "true"
+          }
+        }
+      ],
+      "nine_over_candidate": {
+        "csp_q70_pow26": {
+          "1": {
+            "phase_sum_ns": 10.358976236613284,
+            "recursive_ns": 10.111878161716236,
+            "air_cells": 9.253041602170534,
+            "g_rows": 12.496969193722494,
+            "charged_peak_bytes": 4.154191992920636
+          },
+          "3": {
+            "phase_sum_ns": 5.412426026119305,
+            "recursive_ns": 5.564874414512671,
+            "air_cells": 5.764842482631542,
+            "g_rows": 5.52317516239128,
+            "charged_peak_bytes": 2.8315840197734135
+          },
+          "9": {
+            "phase_sum_ns": 1.0,
+            "recursive_ns": 1.0,
+            "air_cells": 1.0,
+            "g_rows": 1.0,
+            "charged_peak_bytes": 1.0
+          }
+        }
+      }
+    },
+    {
+      "log": "block-v6-tiling-212992.log",
+      "sha256": "82e658c82c0473746f293cf826ac49e11275db688a7747a252ffb64bda02bc08",
+      "runs": [
+        {
+          "source": {
+            "profile": "csp_q70_pow26",
+            "segments": 1,
+            "cycles": 212992,
+            "base_steps": 16384,
+            "native_ns": 534712500,
+            "native_cells": 14024704,
+            "native_max_log": 16,
+            "native_peak_bytes": 347717035,
+            "workers": 8,
+            "globals_open": "true"
+          },
+          "proof_stages": [
+            {
+              "verified": "true",
+              "profile": "csp_q70_pow26",
+              "children": 1,
+              "native_ns": 534712500,
+              "prepare_ns": 4833778667,
+              "setup_ns": 1067972875,
+              "prove_ns": 4293775333,
+              "encode_verify_ns": 186599500,
+              "recursive_ns": 10382126375,
+              "g_rows": 1642256,
+              "air_cells": 382261248,
+              "proof_bytes": 892443,
+              "globals_open": "true"
+            }
+          ],
+          "result": {
+            "verified": "true",
+            "profile": "csp_q70_pow26",
+            "segments": 1,
+            "cycles": 212992,
+            "execution_digest": "c11a55e72b4ddfe15849686b2777701048e3b4c3496f879db49e49fba64955e7",
+            "native_ns": 534712500,
+            "recursive_ns": 10382126375,
+            "phase_sum_ns": 10916838875,
+            "air_cells": 382261248,
+            "g_rows": 1642256,
+            "root_bytes": 892443,
+            "charged_peak_bytes": 3528266331,
+            "globals_open": "true"
+          }
+        },
+        {
+          "source": {
+            "profile": "csp_q70_pow26",
+            "segments": 3,
+            "cycles": 212992,
+            "base_steps": 16384,
+            "native_ns": 2074877625,
+            "native_cells": 14024704,
+            "native_max_log": 16,
+            "native_peak_bytes": 300824667,
+            "workers": 8,
+            "globals_open": "true"
+          },
+          "proof_stages": [
+            {
+              "verified": "true",
+              "profile": "csp_q70_pow26",
+              "children": 3,
+              "native_ns": 2074877625,
+              "prepare_ns": 13794515792,
+              "setup_ns": 3153836375,
+              "prove_ns": 13885354042,
+              "encode_verify_ns": 193916041,
+              "recursive_ns": 31027622250,
+              "g_rows": 4521272,
+              "air_cells": 1036865536,
+              "proof_bytes": 969728,
+              "globals_open": "true"
+            }
+          ],
+          "result": {
+            "verified": "true",
+            "profile": "csp_q70_pow26",
+            "segments": 3,
+            "cycles": 212992,
+            "execution_digest": "c11a55e72b4ddfe15849686b2777701048e3b4c3496f879db49e49fba64955e7",
+            "native_ns": 2074877625,
+            "recursive_ns": 31027622250,
+            "phase_sum_ns": 33102499875,
+            "air_cells": 1036865536,
+            "g_rows": 4521272,
+            "root_bytes": 969728,
+            "charged_peak_bytes": 9286792534,
+            "globals_open": "true"
+          }
+        },
+        {
+          "source": {
+            "profile": "csp_q70_pow26",
+            "segments": 9,
+            "cycles": 212992,
+            "base_steps": 16384,
+            "native_ns": 2806194292,
+            "native_cells": 11395072,
+            "native_max_log": 14,
+            "native_peak_bytes": 494679348,
+            "workers": 8,
+            "globals_open": "true"
+          },
+          "proof_stages": [
+            {
+              "verified": "true",
+              "profile": "csp_q70_pow26",
+              "children": 8,
+              "native_ns": 0,
+              "prepare_ns": 33650389166,
+              "setup_ns": 8189089792,
+              "prove_ns": 43613734792,
+              "encode_verify_ns": 370420083,
+              "recursive_ns": 85823633833,
+              "g_rows": 9872576,
+              "air_cells": 2382999552,
+              "proof_bytes": 1016559,
+              "globals_open": "true"
+            },
+            {
+              "verified": "true",
+              "profile": "csp_q70_pow26",
+              "children": 1,
+              "native_ns": 0,
+              "prepare_ns": 4174384792,
+              "setup_ns": 978671416,
+              "prove_ns": 6351251542,
+              "encode_verify_ns": 277111583,
+              "recursive_ns": 11781419333,
+              "g_rows": 1163176,
+              "air_cells": 286209536,
+              "proof_bytes": 891619,
+              "globals_open": "true"
+            },
+            {
+              "verified": "true",
+              "profile": "csp_q70_pow26",
+              "segments": 9,
+              "child_batches": 2,
+              "prepare_ns": 17131669917,
+              "setup_ns": 6109530750,
+              "prove_ns": 29907838167,
+              "encode_verify_ns": 401651416,
+              "recursive_ns": 53550690250,
+              "g_rows": 5713232,
+              "air_cells": 1363247104,
+              "proof_bytes": 970617,
+              "charged_peak_bytes": 10977911691,
+              "globals_open": "true"
+            }
+          ],
+          "result": {
+            "verified": "true",
+            "profile": "csp_q70_pow26",
+            "segments": 9,
+            "cycles": 212992,
+            "execution_digest": "c11a55e72b4ddfe15849686b2777701048e3b4c3496f879db49e49fba64955e7",
+            "native_ns": 2806194292,
+            "recursive_ns": 151155743416,
+            "phase_sum_ns": 153961937708,
+            "air_cells": 4032456192,
+            "g_rows": 16748984,
+            "root_bytes": 970617,
+            "charged_peak_bytes": 19510871191,
+            "globals_open": "true"
+          }
+        }
+      ],
+      "nine_over_candidate": {
+        "csp_q70_pow26": {
+          "1": {
+            "phase_sum_ns": 14.103161132164278,
+            "recursive_ns": 14.559227845654114,
+            "air_cells": 10.548953662182361,
+            "g_rows": 10.198765600491031,
+            "charged_peak_bytes": 5.529874833873475
+          },
+          "3": {
+            "phase_sum_ns": 4.651066786175767,
+            "recursive_ns": 4.8716508857200616,
+            "air_cells": 3.889083060428773,
+            "g_rows": 3.704484932558802,
+            "charged_peak_bytes": 2.100926786031721
+          },
+          "9": {
+            "phase_sum_ns": 1.0,
+            "recursive_ns": 1.0,
+            "air_cells": 1.0,
+            "g_rows": 1.0,
+            "charged_peak_bytes": 1.0
+          }
+        }
+      }
+    },
+    {
+      "log": "block-v6-tiling-851968.log",
+      "sha256": "f00bd71607103b94269839d12302587a6ddfeab0bb6b9bc7936aad192e97ef26",
+      "runs": [
+        {
+          "source": {
+            "profile": "csp_q70_pow26",
+            "segments": 1,
+            "cycles": 851968,
+            "base_steps": 65536,
+            "native_ns": 856937250,
+            "native_cells": 45580288,
+            "native_max_log": 16,
+            "native_peak_bytes": 933234701,
+            "workers": 8,
+            "globals_open": "true"
+          },
+          "proof_stages": [
+            {
+              "verified": "true",
+              "profile": "csp_q70_pow26",
+              "children": 1,
+              "native_ns": 856937250,
+              "prepare_ns": 5096937375,
+              "setup_ns": 1244081417,
+              "prove_ns": 8443951833,
+              "encode_verify_ns": 285197334,
+              "recursive_ns": 15070167959,
+              "g_rows": 1796872,
+              "air_cells": 413530112,
+              "proof_bytes": 892425,
+              "globals_open": "true"
+            }
+          ],
+          "result": {
+            "verified": "true",
+            "profile": "csp_q70_pow26",
+            "segments": 1,
+            "cycles": 851968,
+            "execution_digest": "7b7e8cf194fefe86f6cdbdbee37659dd618b45afcb0a6ad8f7ab6838b8ef604f",
+            "native_ns": 856937250,
+            "recursive_ns": 15070167959,
+            "phase_sum_ns": 15927105209,
+            "air_cells": 413530112,
+            "g_rows": 1796872,
+            "root_bytes": 892425,
+            "charged_peak_bytes": 4308177437,
+            "globals_open": "true"
+          }
+        },
+        {
+          "source": {
+            "profile": "csp_q70_pow26",
+            "segments": 3,
+            "cycles": 851968,
+            "base_steps": 65536,
+            "native_ns": 3620347875,
+            "native_cells": 45580288,
+            "native_max_log": 16,
+            "native_peak_bytes": 886218585,
+            "workers": 8,
+            "globals_open": "true"
+          },
+          "proof_stages": [
+            {
+              "verified": "true",
+              "profile": "csp_q70_pow26",
+              "children": 3,
+              "native_ns": 3620347875,
+              "prepare_ns": 15346666709,
+              "setup_ns": 5096890791,
+              "prove_ns": 24294366667,
+              "encode_verify_ns": 293287375,
+              "recursive_ns": 45031211542,
+              "g_rows": 4956896,
+              "air_cells": 1193422848,
+              "proof_bytes": 983642,
+              "globals_open": "true"
+            }
+          ],
+          "result": {
+            "verified": "true",
+            "profile": "csp_q70_pow26",
+            "segments": 3,
+            "cycles": 851968,
+            "execution_digest": "7b7e8cf194fefe86f6cdbdbee37659dd618b45afcb0a6ad8f7ab6838b8ef604f",
+            "native_ns": 3620347875,
+            "recursive_ns": 45031211542,
+            "phase_sum_ns": 48651559417,
+            "air_cells": 1193422848,
+            "g_rows": 4956896,
+            "root_bytes": 983642,
+            "charged_peak_bytes": 10596022124,
+            "globals_open": "true"
+          }
+        },
+        {
+          "source": {
+            "profile": "csp_q70_pow26",
+            "segments": 9,
+            "cycles": 851968,
+            "base_steps": 65536,
+            "native_ns": 9229846208,
+            "native_cells": 45580288,
+            "native_max_log": 16,
+            "native_peak_bytes": 890634390,
+            "workers": 8,
+            "globals_open": "true"
+          },
+          "proof_stages": [
+            {
+              "verified": "true",
+              "profile": "csp_q70_pow26",
+              "children": 8,
+              "native_ns": 0,
+              "prepare_ns": 40463083583,
+              "setup_ns": 13460570167,
+              "prove_ns": 66184871250,
+              "encode_verify_ns": 436752375,
+              "recursive_ns": 120545277375,
+              "g_rows": 12266688,
+              "air_cells": 2849849344,
+              "proof_bytes": 1017744,
+              "globals_open": "true"
+            },
+            {
+              "verified": "true",
+              "profile": "csp_q70_pow26",
+              "children": 1,
+              "native_ns": 0,
+              "prepare_ns": 4938561333,
+              "setup_ns": 1088172750,
+              "prove_ns": 9333439292,
+              "encode_verify_ns": 301927791,
+              "recursive_ns": 15662101166,
+              "g_rows": 1454600,
+              "air_cells": 356231168,
+              "proof_bytes": 891426,
+              "globals_open": "true"
+            },
+            {
+              "verified": "true",
+              "profile": "csp_q70_pow26",
+              "segments": 9,
+              "child_batches": 2,
+              "prepare_ns": 17042388875,
+              "setup_ns": 5747733583,
+              "prove_ns": 27788441959,
+              "encode_verify_ns": 360837833,
+              "recursive_ns": 50939402250,
+              "g_rows": 5713232,
+              "air_cells": 1363247104,
+              "proof_bytes": 976330,
+              "charged_peak_bytes": 10977926291,
+              "globals_open": "true"
+            }
+          ],
+          "result": {
+            "verified": "true",
+            "profile": "csp_q70_pow26",
+            "segments": 9,
+            "cycles": 851968,
+            "execution_digest": "7b7e8cf194fefe86f6cdbdbee37659dd618b45afcb0a6ad8f7ab6838b8ef604f",
+            "native_ns": 9229846208,
+            "recursive_ns": 187146780791,
+            "phase_sum_ns": 196376626999,
+            "air_cells": 4569327616,
+            "g_rows": 19434520,
+            "root_bytes": 976330,
+            "charged_peak_bytes": 22915161431,
+            "globals_open": "true"
+          }
+        }
+      ],
+      "nine_over_candidate": {
+        "csp_q70_pow26": {
+          "1": {
+            "phase_sum_ns": 12.329712425584567,
+            "recursive_ns": 12.418360651331344,
+            "air_cells": 11.049564429300858,
+            "g_rows": 10.815750927166766,
+            "charged_peak_bytes": 5.318992025304551
+          },
+          "3": {
+            "phase_sum_ns": 4.036389158995413,
+            "recursive_ns": 4.155934836806483,
+            "air_cells": 3.8287582843394667,
+            "g_rows": 3.9207036016087486,
+            "charged_peak_bytes": 2.162619251152481
+          },
+          "9": {
+            "phase_sum_ns": 1.0,
+            "recursive_ns": 1.0,
+            "air_cells": 1.0,
+            "g_rows": 1.0,
+            "charged_peak_bytes": 1.0
+          }
+        }
+      }
+    }
+  ],
+  "provenance": {
+    "implementation_commit": "b13f67ec95c7017cbb1d7b6884c809ac7ca6e2e5",
+    "hardware": "Apple M5 Max, 64 GiB, 18 logical CPUs",
+    "workers": 8,
+    "compiler": "Zig 0.15.2 ReleaseFast",
+    "samples_per_partition_and_size": 1,
+    "order": "1,3,9 in each process; separate processes for each cycle count",
+    "safe_gate": {
+      "result": "All 8 selected tests passed; 26-cycle 1/3/9 comparison with hostile batch and upper receiver probes",
+      "log_sha256": "e9af42a36ff24b1de2608358ea8866db46b449397f6e98fe006a95455fcf5ff0",
+      "scope": "ReleaseSafe run precedes native cell census instrumentation; proof-producing code unchanged"
+    },
+    "parser_controls": [
+      "missing completion",
+      "false verification",
+      "changed endpoint digest",
+      "missing partition",
+      "changed time total"
+    ]
+  }
+}

@@ -36,6 +36,16 @@ The large-tree counterfactual limits an eight-child-only change to roughly
 7.3x G-work reduction; cheaper upper proofs and memory redesign are still
 needed. Do not transfer the tiny-fixture runtime ratio to Ethereum blocks.
 
+The [same-execution tiling follow-up](native-tiling-m5-20261028.md) tests
+formation of fewer native proofs before recursion. At 851,968 cycles,
+one/three/nine native proofs all commit 45,580,288 native cells, but the
+one-proof route reduces the measured phase sum from 196.377 to 15.927 s
+and recursive cells by 11.05x versus nine. This still uses only ADDI/JAL and
+leaves global obligations open. It establishes why native-cell minimization
+alone is an inadequate sizing objective, not that the full block can fit a
+larger monolithic segment. Native, memory and caller capacities must be
+decoupled, and the total tree cost must determine the proof grouping.
+
 ## New measurement: where recursive hash work comes from
 
 Reproduction, from the lab branch:
