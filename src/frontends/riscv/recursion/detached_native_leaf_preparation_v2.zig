@@ -62,8 +62,18 @@ pub fn Preparation(comptime Capture: type, comptime CorePreflight: type) type {
             IdentityMismatch,
             InvalidCanonicalClaim,
             InvalidTranscriptInput,
+            InvalidNativePreprocessedCommitment,
             TraceMutation,
         };
+
+        /// First outer-preparation boundary after native capture. The root is
+        /// independently reconstructed from admitted geometry; capture data
+        /// cannot choose the constant used by the recursive circuit.
+        pub fn validateNativeTree0(capture: *const NativeCapture, admitted_root: Digest) Error!void {
+            if (capture.proof.commitments.len == 0 or
+                !std.meta.eql(capture.proof.commitments[0], admitted_root))
+                return error.InvalidNativePreprocessedCommitment;
+        }
 
         pub const CallRange = shared_schedule_v2.CallRange;
         pub const SharedPoseidonCallLayoutV2 =
@@ -217,9 +227,7 @@ pub fn Preparation(comptime Capture: type, comptime CorePreflight: type) type {
             ) !PreparedNativeV2LeafOuter {
                 try capture.validate();
                 try verifier_keys.validate();
-                if (capture.proof.commitments.len == 0 or
-                    !std.meta.eql(capture.proof.commitments[0], admitted_native_tree0_root))
-                    return error.InvalidTranscriptInput;
+                try validateNativeTree0(capture, admitted_native_tree0_root);
                 try outer_relations.validate();
 
                 var vm_plan = try clonePlan(allocator, verifier_plans.vm);
@@ -440,9 +448,7 @@ pub fn Preparation(comptime Capture: type, comptime CorePreflight: type) type {
                 }
                 try self.capture.validate();
                 try self.verifier_keys.validate();
-                if (self.capture.proof.commitments.len == 0 or
-                    !std.meta.eql(self.capture.proof.commitments[0], self.admitted_native_tree0_root))
-                    return error.InvalidTranscriptInput;
+                try validateNativeTree0(&self.capture, self.admitted_native_tree0_root);
                 try self.outer_relations.validate();
                 try self.vm_plan.validate();
                 try self.recursion_plan.validate();

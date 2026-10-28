@@ -34,7 +34,7 @@ test "detached parent snapshots typed rows and rejects mutable ingress and inact
     const verifier = @import("./recursive_segment_v2_detached_parent_verifier.zig");
     // Structural fixture only: these nonzero placeholders are not independent
     // key admission. Derive wire-decoder bounds without any witness or proof.
-    var key = protocol.KeyV1{ .manifest = prepared.manifest().*, .parameters = prepared.parameters(), .preprocessed_root = @splat(1), .child_key_sha256 = @splat(@splat(1)) };
+    var key = protocol.KeyV1{ .manifest = prepared.manifest().*, .parameters = prepared.parameters(), .preprocessed_root = @splat(1), .child_key_sha256 = @splat(@splat(1)), .fixed_recipe = @import("stwo_riscv_frontend").recursion.detached_parent_fixed_recipe_test_fixture.placeholder() };
     const shape = try verifier.proofPreflightShape(allocator, &key);
     try std.testing.expectEqual(prepared.manifest().total_preprocessed_columns, shape.tree_columns[0]);
     try std.testing.expectEqual(prepared.manifest().total_main_columns, shape.tree_columns[1]);

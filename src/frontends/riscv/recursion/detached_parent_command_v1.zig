@@ -16,6 +16,9 @@ pub const OwnedKeyV1 = opaque {
     pub fn admit(allocator: std.mem.Allocator, bytes: []const u8, independent_sha256: [32]u8) !*OwnedKeyV1 {
         if (bytes.len == 0 or bytes.len > MAX_KEY_BYTES) return error.DetachedParentKeySizeMismatch;
         if (!std.meta.eql(hash(bytes), independent_sha256)) return error.DetachedParentKeyHashMismatch;
+        const envelope = try std.json.parseFromSlice(struct { version: u32 }, allocator, bytes, .{ .ignore_unknown_fields = true });
+        defer envelope.deinit();
+        if (envelope.value.version != protocol.VERSION) return error.DetachedParentProfileMismatch;
         const parsed = try std.json.parseFromSlice(verifier.KeyV1, allocator, bytes, .{ .allocate = .alloc_always });
         errdefer parsed.deinit();
         try parsed.value.validate();
@@ -152,14 +155,10 @@ pub fn main() !void {
         try file.writeAll(json);
         return;
     }
-    if (args.len != 4 or args[1].len == 0 or args[2].len != 64 or args[3].len == 0) return error.ExpectedBundleIndependentKeyAndRootWords;
-    var key_sha256: [32]u8 = undefined;
-    _ = try std.fmt.hexToBytes(&key_sha256, args[2]);
-    const receipt = try verifyDirectory(allocator, args[1], key_sha256, args[3]);
-    const json = try std.json.Stringify.valueAlloc(allocator, receipt, .{});
-    defer allocator.free(json);
-    try std.fs.File.stdout().writeAll(json);
-    try std.fs.File.stdout().writeAll("\n");
+    // The integration executable supplies and admits the full independent
+    // key registry before invoking verifyDirectory. This narrow frontend
+    // entry only derives caller-owned expected words.
+    return error.ParentVerificationRequiresIndependentKeyRegistry;
 }
 
 /// Derive the expected root from caller-owned public inputs only. No candidate

@@ -206,6 +206,15 @@ pub const KeyV1 = struct {
             try topology.validateAgainstView(&view);
     }
 
+    /// Admit the caller's expected statement against the key before reading
+    /// any claims or proof bytes. The verifier repeats this check for callers
+    /// that bypass the directory command and supply decoded proof data.
+    pub fn validateExpected(self: *const KeyV1, expected: *const PublicData) !void {
+        _ = try expected.metadata();
+        try self.validateExpectedLayout(expected);
+        try self.native_descriptors.validateAgainstExpected(expected);
+    }
+
     /// Validate canonical fields against an independently pinned projection.
     /// This value is not an immutable owner or a compiler-policy certificate;
     /// callers must retain admitted key storage with their normal key custody.

@@ -54,28 +54,27 @@ pub const OwnedV1 = opaque {
         return initWithMode(allocator, left, right, .root);
     }
     pub fn initWithMode(allocator: std.mem.Allocator, left: *const boundary.OwnedV1, right: *const boundary.OwnedV1, mode: continuation.Mode) !*OwnedV1 {
-        return initFor(.segment, allocator, left, right, mode);
+        return initFor(.segment, allocator, left, right, mode, true);
     }
     pub fn initParents(allocator: std.mem.Allocator, left: *const boundary.OwnedV1, right: *const boundary.OwnedV1, mode: continuation.Mode) !*OwnedV1 {
-        return initFor(.parent, allocator, left, right, mode);
+        return initFor(.parent, allocator, left, right, mode, true);
     }
-    fn initFor(comptime family: @import("detached_child_capture_v1.zig").Family, allocator: std.mem.Allocator, left: *const boundary.OwnedV1, right: *const boundary.OwnedV1, mode: continuation.Mode) !*OwnedV1 {
-        const children = [_]*const boundary.OwnedV1{ left, right };
+    fn initFor(comptime family: @import("detached_child_capture_v1.zig").Family, allocator: std.mem.Allocator, left: anytype, right: @TypeOf(left), mode: continuation.Mode, evaluate: bool) !*OwnedV1 {
+        const children = [_]@TypeOf(left){ left, right };
         for (children) |child| if (child.family() != family) return error.DetachedParentBoundaryFamilyMismatch;
         var words: [3]Words = undefined;
         for (children, 0..) |child, index| for (&words[index], child.spanNodes()) |*word, node| {
-            if (node >= child.evaluatedValues().len) return error.InvalidParentProjection;
-            word.* = try child.evaluatedValues()[node].tryIntoM31();
+            word.* = try (try child.graphValue(node)).tryIntoM31();
         };
         var publications: [3]continuation.Words = undefined;
         for (children, 0..) |child, index| {
             publications[index][0..WORD_COUNT].* = words[index];
             for (WORD_COUNT..continuation.WORD_COUNT) |word| {
                 const node = try child.rawWireNode(try child.publicationRawWord(word));
-                publications[index][word] = try child.evaluatedValues()[node].tryIntoM31();
+                publications[index][word] = try (try child.graphValue(node)).tryIntoM31();
             }
         }
-        publications[2] = try continuation.fold(&publications[0], &publications[1], mode);
+        publications[2] = if (evaluate) try continuation.fold(&publications[0], &publications[1], mode) else @splat(M31.zero());
         words[2] = publications[2][0..WORD_COUNT].*;
         var semantic = try semantics.build(allocator);
         errdefer semantic.deinit();
@@ -138,7 +137,7 @@ pub const OwnedV1 = opaque {
                     const boundary_node = try child.rawWireNode(raw_word);
                     const input = try builder.input();
                     symbol.* = input.value;
-                    try inputs.append(allocator, child.evaluatedValues()[boundary_node]);
+                    try inputs.append(allocator, try child.graphValue(boundary_node));
                     try bindings.append(allocator, .{ .node_id = input.node_id, .source = .{ .child = .{
                         .child = @intCast(index),
                         .boundary_node = boundary_node,
@@ -169,7 +168,18 @@ pub const OwnedV1 = opaque {
                 @memset(symbols, S.zero());
                 continue; // These child statements are authenticated by child proofs.
             }
-            try semantic.prepareInputsInto(witness(&words, instance), &prepared);
+            if (evaluate) {
+                try semantic.prepareInputsInto(witness(&words, instance), &prepared);
+            } else {
+                // The fixed graph needs only selector constants and input
+                // provenance. Private hints depend on a real valid statement;
+                // zero placeholders must never be interpreted as a witness.
+                @memset(&prepared, QM31.zero());
+                for (semantic.inputBindings(), &prepared) |binding, *value| switch (binding.source) {
+                    .selector => |selected| value.* = if (selected == kind(instance)) QM31.one() else QM31.zero(),
+                    else => {},
+                };
+            }
             for (symbols, semantic.inputBindings(), prepared, 0..) |*symbol, binding, value, index| {
                 symbol.* = switch (binding.source) {
                     .selector => S.fromSecure(value),
@@ -229,7 +239,10 @@ pub const OwnedV1 = opaque {
         errdefer circuit.deinit();
         const values = try allocator.alloc(QM31, circuit.nodes.len);
         errdefer allocator.free(values);
-        try circuit.evaluateInto(inputs.items, values);
+        if (evaluate)
+            try circuit.evaluateInto(inputs.items, values)
+        else
+            @memset(values, QM31.zero());
         const result = try allocator.create(Storage);
         errdefer allocator.destroy(result);
         const owned_inputs = try inputs.toOwnedSlice(allocator);
@@ -268,6 +281,134 @@ pub const OwnedV1 = opaque {
         return self.storage().publication_words;
     }
 };
+
+/// A parent-parent statement graph with no child proofs or statement values.
+/// The synthetic graph owner is kept opaque so its zero inputs cannot be
+/// confused with an evaluated fold witness.
+pub const ParentKeyGraphV1 = opaque {
+    const Self = @This();
+    const Storage = struct {
+        allocator: std.mem.Allocator,
+        left: *boundary.ParentKeyGraphV1,
+        right: *boundary.ParentKeyGraphV1,
+        graph_owner: *OwnedV1,
+    };
+
+    fn storage(self: *const Self) *const Storage {
+        return @ptrCast(@alignCast(self));
+    }
+
+    pub fn init(allocator: std.mem.Allocator, left_key: anytype, right_key: @TypeOf(left_key), mode: continuation.Mode) !*Self {
+        const left = try boundary.ParentKeyGraphV1.init(allocator, left_key);
+        errdefer left.deinit();
+        const right = try boundary.ParentKeyGraphV1.init(allocator, right_key);
+        errdefer right.deinit();
+        const graph_owner = try OwnedV1.initFor(.parent, allocator, left, right, mode, false);
+        errdefer graph_owner.deinit();
+        const value = try allocator.create(Storage);
+        value.* = .{ .allocator = allocator, .left = left, .right = right, .graph_owner = graph_owner };
+        return @ptrCast(value);
+    }
+
+    pub fn deinit(self: *Self) void {
+        const value: *Storage = @ptrCast(@alignCast(self));
+        value.graph_owner.deinit();
+        value.right.deinit();
+        value.left.deinit();
+        value.allocator.destroy(value);
+    }
+
+    pub fn graph(self: *const Self) air.composition_circuit.CircuitGraph {
+        return self.storage().graph_owner.graph();
+    }
+
+    pub fn inputBindings(self: *const Self) []const InputBinding {
+        return self.storage().graph_owner.inputBindings();
+    }
+
+    pub fn boundaryGraphIdentities(self: *const Self) [2][32]u8 {
+        return self.storage().graph_owner.boundaryGraphIdentities();
+    }
+};
+
+/// Segment-pair statement graph rebuilt from child keys and the publication
+/// mode. Its placeholders only establish circuit geometry; no fold witness is
+/// evaluated or admitted here.
+pub const SegmentKeyGraphV1 = opaque {
+    const Self = @This();
+    const Storage = struct {
+        allocator: std.mem.Allocator,
+        left: *boundary.SegmentKeyGraphV1,
+        right: *boundary.SegmentKeyGraphV1,
+        graph_owner: *OwnedV1,
+    };
+
+    fn storage(self: *const Self) *const Storage {
+        return @ptrCast(@alignCast(self));
+    }
+
+    pub fn init(allocator: std.mem.Allocator, left_key: *const @import("detached_segment_protocol_v1.zig").KeyV1, right_key: *const @import("detached_segment_protocol_v1.zig").KeyV1, mode: continuation.Mode) !*Self {
+        const left = try boundary.SegmentKeyGraphV1.init(allocator, left_key);
+        errdefer left.deinit();
+        const right = try boundary.SegmentKeyGraphV1.init(allocator, right_key);
+        errdefer right.deinit();
+        const graph_owner = try OwnedV1.initFor(.segment, allocator, left, right, mode, false);
+        errdefer graph_owner.deinit();
+        const value = try allocator.create(Storage);
+        value.* = .{ .allocator = allocator, .left = left, .right = right, .graph_owner = graph_owner };
+        return @ptrCast(value);
+    }
+
+    pub fn deinit(self: *Self) void {
+        const value: *Storage = @ptrCast(@alignCast(self));
+        value.graph_owner.deinit();
+        value.right.deinit();
+        value.left.deinit();
+        value.allocator.destroy(value);
+    }
+
+    pub fn graph(self: *const Self) air.composition_circuit.CircuitGraph {
+        return self.storage().graph_owner.graph();
+    }
+
+    pub fn inputBindings(self: *const Self) []const InputBinding {
+        return self.storage().graph_owner.inputBindings();
+    }
+
+    pub fn boundaryGraphIdentities(self: *const Self) [2][32]u8 {
+        return self.storage().graph_owner.boundaryGraphIdentities();
+    }
+};
+
+pub fn testSegmentKeyGraphAgainstVerifiedChildren(allocator: std.mem.Allocator, left_child: *const @import("detached_child_capture_v1.zig").OwnedV1, right_child: *const @import("detached_child_capture_v1.zig").OwnedV1, mode: continuation.Mode) !void {
+    const shape_left = try @import("detached_boundary_key_shape_v1.zig").SegmentShapeV1.init(allocator, left_child.key());
+    const shape_right = try @import("detached_boundary_key_shape_v1.zig").SegmentShapeV1.init(allocator, right_child.key());
+    const left = try boundary.OwnedV1.init(allocator, left_child, .{ .counts = left_child.key().retained_section_counts }, shape_left.memory);
+    defer left.deinit();
+    const right = try boundary.OwnedV1.init(allocator, right_child, .{ .counts = right_child.key().retained_section_counts }, shape_right.memory);
+    defer right.deinit();
+    const captured = try OwnedV1.initWithMode(allocator, left, right, mode);
+    defer captured.deinit();
+    const fixed = try SegmentKeyGraphV1.init(allocator, left_child.key(), right_child.key(), mode);
+    defer fixed.deinit();
+    try std.testing.expectEqualDeep(captured.graph().identity_digest, fixed.graph().identity_digest);
+    try std.testing.expectEqualDeep(captured.inputBindings(), fixed.inputBindings());
+    try std.testing.expectEqualDeep(captured.boundaryGraphIdentities(), fixed.boundaryGraphIdentities());
+}
+
+pub fn testParentKeyGraphAgainstVerifiedChildren(allocator: std.mem.Allocator, left_child: *const @import("detached_child_capture_v1.zig").ParentOwnedV1, right_child: *const @import("detached_child_capture_v1.zig").ParentOwnedV1, mode: continuation.Mode) !void {
+    const left = try boundary.OwnedV1.initParent(allocator, left_child);
+    defer left.deinit();
+    const right = try boundary.OwnedV1.initParent(allocator, right_child);
+    defer right.deinit();
+    const captured = try OwnedV1.initParents(allocator, left, right, mode);
+    defer captured.deinit();
+    const fixed = try ParentKeyGraphV1.init(allocator, left_child.key(), right_child.key(), mode);
+    defer fixed.deinit();
+    try std.testing.expectEqualDeep(captured.graph().identity_digest, fixed.graph().identity_digest);
+    try std.testing.expectEqualDeep(captured.inputBindings(), fixed.inputBindings());
+    try std.testing.expectEqualDeep(captured.boundaryGraphIdentities(), fixed.boundaryGraphIdentities());
+}
 
 fn kind(instance: usize) semantics.ProofKind {
     return if (instance < 2) .segment_leaf else .binary_node;

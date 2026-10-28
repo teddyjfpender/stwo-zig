@@ -204,6 +204,29 @@ pub const Program = struct {
             return error.AuthorityMismatch;
         }
         try validateInstructionShape(self);
+
+        // A digest over caller-held instructions only proves self-consistency.
+        // Re-expand the authenticated plan and statement geometry so a
+        // re-sealed program cannot omit or reorder a physical-claim batch (or
+        // any other Fiat--Shamir operation) before row-5 construction.
+        var expected_instructions: std.ArrayList(Instruction) = .empty;
+        defer expected_instructions.deinit(self.allocator);
+        try buildInstructions(
+            self.allocator,
+            &expected_instructions,
+            plan,
+            pcs_config,
+            self.wire_word_count,
+            component_descs,
+            infra_descs,
+            expected_lookup,
+            if (expected_lookup != null) &lookup_manifest else null,
+        );
+        if (self.instructions.len != expected_instructions.items.len)
+            return error.AuthorityMismatch;
+        for (self.instructions, expected_instructions.items) |actual, expected| {
+            if (!std.meta.eql(actual, expected)) return error.AuthorityMismatch;
+        }
     }
 
     pub fn relationDrawCount(self: *const Program) usize {

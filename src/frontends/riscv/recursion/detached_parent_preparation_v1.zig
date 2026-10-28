@@ -19,6 +19,7 @@ const arithmetic_mod = @import("detached_parent_arithmetic_v1.zig");
 const base_mod = @import("detached_parent_base_rows_v1.zig");
 const cohort = recursion.detached_parent_prepared_v1;
 const protocol = recursion.detached_parent_protocol_v1;
+const fixed_recipe = @import("detached_parent_fixed_recipe_v1.zig");
 const Manifest = recursion.detached_parent_components_v1.manifest_mod.Manifest;
 const command = @import("detached_segment_command_v1.zig");
 pub const ProfileV1 = struct {
@@ -36,13 +37,16 @@ pub const TINY_MEMORY_CONTINUATION_PROFILE_V1 = ProfileV1{
     .memory = TINY_MEMORY_PROFILE_V1.memory,
 };
 pub const Prepared = struct {
+    allocator: std.mem.Allocator,
     cohort: *cohort.PreparedV1,
+    fixed_recipe: std.json.Parsed(fixed_recipe.FixedRecipeV1),
     expected: protocol.ExpectedV1,
     child_key_sha256: [2][32]u8,
     preparation_ns: u64,
     publication_mode: protocol.PublicationMode,
     pub fn deinit(self: *Prepared) void {
         self.cohort.deinit();
+        self.fixed_recipe.deinit();
         self.* = undefined;
     }
 };
@@ -114,5 +118,14 @@ fn prepareFor(comptime family: child_mod.Family, allocator: std.mem.Allocator, c
     std.debug.print("DETACHED_PARENT_PREPARATION rows_bytes={d} providers={d} graph_ns={d} snapshot_pending=true\n", .{ logical_bytes, calls.items.len, timer.read() });
     const prepared = try cohort.PreparedV1.initForManifest(allocator, logical, calls.items, admitted_manifest);
     errdefer prepared.deinit();
-    return .{ .cohort = prepared, .expected = graph.parent_words, .child_key_sha256 = .{ children[0].keySha256(), children[1].keySha256() }, .preparation_ns = timer.read(), .publication_mode = mode };
+    // Retain only a typed, key-derived fixed recipe after child owners leave
+    // scope. JSON round-tripping deep-copies the boundary address slices, so
+    // no borrowed pointer into either child key survives this boundary.
+    const family_tag: fixed_recipe.ChildFamily = if (family == .segment) .segment else .parent;
+    const recipe_view = try fixed_recipe.FixedRecipeV1.fromChildKeys(family_tag, a, .{ children[0].key(), children[1].key() });
+    const recipe_bytes = try std.json.Stringify.valueAlloc(allocator, recipe_view, .{});
+    defer allocator.free(recipe_bytes);
+    const recipe_owned = try std.json.parseFromSlice(fixed_recipe.FixedRecipeV1, allocator, recipe_bytes, .{ .allocate = .alloc_always });
+    errdefer recipe_owned.deinit();
+    return .{ .allocator = allocator, .cohort = prepared, .fixed_recipe = recipe_owned, .expected = graph.parent_words, .child_key_sha256 = .{ children[0].keySha256(), children[1].keySha256() }, .preparation_ns = timer.read(), .publication_mode = mode };
 }

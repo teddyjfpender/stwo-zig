@@ -20,6 +20,7 @@ const graph_mod = @import("air/composition_circuit.zig");
 const segment_manifest_mod = @import("air/segment_outer_adapter_manifest_v2.zig");
 const universal_manifest_mod = @import("air/universal_adapter_manifest.zig");
 const universal_roster = @import("air/universal_roster.zig");
+const SamplePointLayout = @import("sample_point_layout.zig").Layout;
 
 pub const FORMAT_VERSION: u16 = 1;
 pub const SCHEMA_VERSION: u16 = 1;
@@ -144,6 +145,36 @@ pub const CaptureLayoutV3 = struct {
     fri_log_blowup: u32,
     identity: [32]u8,
 
+    /// The four PCS commitment heights are fixed by admitted component
+    /// geometry and the composition quotient bound. A captured proof may
+    /// confirm these heights, but cannot choose them for a parent circuit.
+    pub fn treeHeightsFromManifest(self: *const CaptureLayoutV3, manifest: anytype) Error![TREE_COUNT]u32 {
+        try manifest.validate();
+        const seal = if (comptime @TypeOf(manifest.*) == segment_manifest_mod.Manifest)
+            segment_manifest_mod.programGeometryShaId(manifest)
+        else
+            manifest.seal;
+        if (!std.mem.eql(u8, &self.manifest_seal, &seal))
+            return error.ManifestAuthorityMismatch;
+        var heights: [TREE_COUNT]u32 = @splat(0);
+        for (manifest.roster_rows[0..manifest.roster_count]) |row| {
+            const geometry = manifest.placements[row].?.geometry;
+            const height = std.math.add(u32, geometry.log_size, self.fri_log_blowup) catch
+                return error.ArithmeticOverflow;
+            if (height >= stwo_core.circle.M31_CIRCLE_LOG_ORDER)
+                return error.InvalidTraceLogGeometry;
+            for ([_]u16{ geometry.preprocessed_columns, geometry.main_columns, geometry.interaction_columns }, 0..) |count, tree|
+                if (count != 0) {
+                    heights[tree] = @max(heights[tree], height);
+                };
+        }
+        heights[COMPOSITION_TREE_INDEX] = std.math.add(u32, self.quotient_max_log_degree_bound, self.fri_log_blowup) catch
+            return error.ArithmeticOverflow;
+        for (heights) |height| if (height == 0 or height >= stwo_core.circle.M31_CIRCLE_LOG_ORDER)
+            return error.InvalidTraceLogGeometry;
+        return heights;
+    }
+
     pub fn initSegment(
         allocator: std.mem.Allocator,
         manifest: *const segment_manifest_mod.Manifest,
@@ -165,6 +196,54 @@ pub const CaptureLayoutV3 = struct {
         result.identity = layoutIdentity(&result);
         try result.validateSelfConsistency();
         return result;
+    }
+
+    /// Reconstruct the segment composition layout from authenticated key
+    /// geometry. No proof capture or sampled value is needed for this shape.
+    pub fn initSegmentFromKey(
+        allocator: std.mem.Allocator,
+        manifest: *const segment_manifest_mod.Manifest,
+        fri_log_blowup: u32,
+    ) Error!CaptureLayoutV3 {
+        try manifest.validate();
+        var result = try initForKey(
+            allocator,
+            .segment_leaf,
+            .segment_v2,
+            POSEIDON_ROSTER_ROW,
+            manifest,
+            manifest.catalog_identity,
+            fri_log_blowup,
+            null,
+        );
+        result.manifest_seal = segment_manifest_mod.programGeometryShaId(manifest);
+        result.identity = layoutIdentity(&result);
+        try result.validateSelfConsistency();
+        return result;
+    }
+
+    /// The detached parent uses provider row 34 and the parent manifest seal.
+    /// Keep this separate from the generic binary constructor so a caller
+    /// cannot choose a different provider placement or family tag.
+    pub fn initDetachedParentFromKey(
+        allocator: std.mem.Allocator,
+        manifest: *const universal_manifest_mod.Manifest,
+        fri_log_blowup: u32,
+    ) Error!CaptureLayoutV3 {
+        try manifest.validate();
+        if (manifest.placements[34] == null or
+            std.mem.indexOfScalar(u8, manifest.roster_rows[0..manifest.roster_count], 34) == null)
+            return error.ManifestAuthorityMismatch;
+        return initForKey(
+            allocator,
+            .binary_node,
+            .detached_segment_parent_v1,
+            34,
+            manifest,
+            [_]u8{0} ** 32,
+            fri_log_blowup,
+            null,
+        );
     }
 
     pub fn initBinary(
@@ -380,6 +459,43 @@ pub const CaptureLayoutV3 = struct {
         {
             return error.CaptureLayoutIdentityMismatch;
         }
+    }
+
+    /// Exact OODS mask order implied by the admitted manifest. The offsets
+    /// were derived from the key, so a captured proof cannot choose a
+    /// different PCS circuit merely by preserving the sample count.
+    pub fn sampleLayoutsFromKey(self: *const CaptureLayoutV3, allocator: std.mem.Allocator, manifest: anytype) Error![]SamplePointLayout {
+        try self.validateSelfConsistency();
+        _ = try self.treeHeightsFromManifest(manifest);
+        const poseidon = manifest.placements[POSEIDON_ROSTER_ROW] orelse return error.ManifestAuthorityMismatch;
+        const range = manifest.placements[@intFromEnum(universal_roster.Component.range_check_8_8)] orelse return error.ManifestAuthorityMismatch;
+        const poseidon_start: usize = @intCast(poseidon.interaction_offset);
+        const poseidon_end = poseidon_start + poseidon.geometry.interaction_columns;
+        const range_start: usize = @intCast(range.interaction_offset);
+        const range_end = range_start + range.geometry.interaction_columns;
+        var column_count: usize = 0;
+        for (self.tree_column_counts) |count|
+            column_count = std.math.add(usize, column_count, count) catch return error.ArithmeticOverflow;
+        const layouts = try allocator.alloc(SamplePointLayout, column_count);
+        errdefer allocator.free(layouts);
+        var cursor: usize = 0;
+        for (self.offsets, 0..) |tree, tree_index| {
+            for (tree[1..], tree[0 .. tree.len - 1], 0..) |next, prior, column| {
+                layouts[cursor] = switch (next - prior) {
+                    1 => .current,
+                    2 => if (tree_index == INTERACTION_TREE_INDEX and
+                        ((column >= poseidon_start and column < poseidon_end) or
+                            (column >= range_start and column < range_end)))
+                        .current_previous
+                    else
+                        .previous_current,
+                    else => return error.InvalidSampleGeometry,
+                };
+                cursor += 1;
+            }
+        }
+        std.debug.assert(cursor == layouts.len);
+        return layouts;
     }
 
     pub fn at(
@@ -634,13 +750,7 @@ fn initForManifest(
         return error.InvalidCompositionGeometry;
     }
 
-    const composition_log_size = if (normalized_split) |admitted_split|
-        try deriveNormalizedCompositionLogSize(manifest, admitted_split)
-    else
-        try deriveCompositionLogSize(manifest);
-    if (composition_log_size <= split)
-        return error.InvalidCompositionGeometry;
-    const quotient_bound = composition_log_size - split;
+    // Preflight lengths before deriveFriLogBlowup indexes any captured log.
     const expected_columns = try expectedTreeColumnCounts(manifest, split);
     for (capture.sampled_points, capture.column_log_sizes, expected_columns) |
         points,
@@ -653,50 +763,91 @@ fn initForManifest(
         manifest,
         capture.column_log_sizes,
     );
+    var result = try initForKey(
+        allocator,
+        kind,
+        family,
+        poseidon_roster_row,
+        manifest,
+        catalog_identity,
+        fri_log_blowup,
+        normalized_split,
+    );
+    errdefer result.deinit();
+    if (result.composition_log_split != split) return error.InvalidCompositionGeometry;
     try validateColumnLogs(
         manifest,
         capture.column_log_sizes,
-        quotient_bound,
+        result.quotient_max_log_degree_bound,
         fri_log_blowup,
     );
+    for (capture.sampled_points, result.offsets) |
+        tree,
+        tree_offsets,
+    | {
+        for (tree, 0..) |column, column_index|
+            if (column.len != tree_offsets[column_index + 1] - tree_offsets[column_index])
+                return error.InvalidSampleGeometry;
+    }
+    if (result.sampled_value_count != capture.sampled_values.len)
+        return error.InvalidSampleGeometry;
+    return result;
+}
+
+fn initForKey(
+    allocator: std.mem.Allocator,
+    kind: ProofKind,
+    family: ManifestFamily,
+    poseidon_roster_row: usize,
+    manifest: anytype,
+    catalog_identity: [32]u8,
+    fri_log_blowup: u32,
+    normalized_split: ?u32,
+) Error!CaptureLayoutV3 {
+    if (fri_log_blowup >= stwo_core.circle.M31_CIRCLE_LOG_ORDER)
+        return error.InvalidTraceLogGeometry;
+    const split = normalized_split orelse verifier_types.COMPOSITION_LOG_SPLIT;
+    const composition_log_size = if (normalized_split) |admitted_split|
+        try deriveNormalizedCompositionLogSize(manifest, admitted_split)
+    else
+        try deriveCompositionLogSize(manifest);
+    if (composition_log_size <= split) return error.InvalidCompositionGeometry;
+    const quotient_bound = composition_log_size - split;
+    const expected_columns = try expectedTreeColumnCounts(manifest, split);
 
     var offsets: [TREE_COUNT][]usize = undefined;
     var initialized: usize = 0;
     errdefer for (offsets[0..initialized]) |tree| allocator.free(tree);
     var tree_column_counts: [TREE_COUNT]u32 = undefined;
     var value_cursor: usize = 0;
-    for (capture.sampled_points, &offsets, &tree_column_counts, 0..) |
-        tree,
+    for (expected_columns, &offsets, &tree_column_counts, 0..) |
+        column_count,
         *tree_offsets,
-        *column_count,
+        *count,
         tree_index,
     | {
-        column_count.* = std.math.cast(u32, tree.len) orelse
-            return error.CircuitTooLarge;
-        tree_offsets.* = try allocator.alloc(usize, tree.len + 1);
+        count.* = std.math.cast(u32, column_count) orelse return error.CircuitTooLarge;
+        tree_offsets.* = try allocator.alloc(usize, column_count + 1);
         initialized += 1;
-        for (tree, 0..) |column, column_index| {
-            const expected_samples = try expectedSampleCount(
-                manifest,
-                poseidon_roster_row,
-                tree_index,
-                column_index,
-            );
-            if (column.len != expected_samples)
-                return error.InvalidSampleGeometry;
+        for (0..column_count) |column_index| {
             tree_offsets.*[column_index] = value_cursor;
             value_cursor = std.math.add(
                 usize,
                 value_cursor,
-                column.len,
+                try expectedSampleCount(manifest, poseidon_roster_row, tree_index, column_index),
             ) catch return error.ArithmeticOverflow;
         }
-        tree_offsets.*[tree.len] = value_cursor;
+        tree_offsets.*[column_count] = value_cursor;
     }
-    if (value_cursor != capture.sampled_values.len)
-        return error.InvalidSampleGeometry;
-    const sampled_value_count = std.math.cast(u32, value_cursor) orelse
-        return error.CircuitTooLarge;
+    for (manifest.roster_rows[0..manifest.roster_count]) |row| {
+        const geometry = manifest.placements[row].?.geometry;
+        const height = std.math.add(u32, geometry.log_size, fri_log_blowup) catch return error.ArithmeticOverflow;
+        if (height >= stwo_core.circle.M31_CIRCLE_LOG_ORDER)
+            return error.InvalidTraceLogGeometry;
+    }
+    const composition_height = std.math.add(u32, quotient_bound, fri_log_blowup) catch return error.ArithmeticOverflow;
+    if (composition_height >= stwo_core.circle.M31_CIRCLE_LOG_ORDER)
+        return error.InvalidTraceLogGeometry;
     var result = CaptureLayoutV3{
         .allocator = allocator,
         .proof_kind = kind,
@@ -704,7 +855,7 @@ fn initForManifest(
         .manifest_seal = manifest.seal,
         .catalog_identity = catalog_identity,
         .component_count = manifest.roster_count,
-        .sampled_value_count = sampled_value_count,
+        .sampled_value_count = std.math.cast(u32, value_cursor) orelse return error.CircuitTooLarge,
         .tree_column_counts = tree_column_counts,
         .offsets = offsets,
         .composition_log_size = composition_log_size,

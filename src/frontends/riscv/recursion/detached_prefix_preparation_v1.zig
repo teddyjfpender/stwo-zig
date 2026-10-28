@@ -31,6 +31,8 @@ const core = @import("stwo_core");
 const recording = recursion.recording_poseidon_channel_v4;
 const transcript = @import("detached_segment_protocol_v1.zig");
 const child_mod = @import("detached_child_views_v1.zig");
+const pcs_key_shape = @import("detached_pcs_key_shape_v1.zig");
+const public_data_v2 = @import("../air/public_data_v2.zig");
 const frame_rows = @import("transcript_frame_rows_v1.zig");
 const rows = recursion.segment_transcript_outer_source_v2;
 const M31 = core.fields.m31.M31;
@@ -114,13 +116,20 @@ pub fn boundaryChallengeFor(comptime family: child_mod.Family, challenge: usize)
 /// program's PCS emitter so the detached suffix cannot grow a parallel order.
 pub fn initPcsOperations(allocator: std.mem.Allocator, child: anytype) ![]recursion.pcs_transcript_program_v1.Operation {
     const captured = child.captureView();
-    return recursion.pcs_transcript_program_v1.initPcsOperations(allocator, .{
-        .sampled_value_count = captured.sampled_values.len,
-        .fri_layer_count = captured.fri_layer_count,
-        .last_layer_coefficient_count = captured.last_layer_coefficients.len,
-        .query_count = child.key().pcs_config.fri_config.n_queries,
-        .pow_bits = child.key().pcs_config.pow_bits,
-    });
+    const shape = try pcs_key_shape.transcriptShape(allocator, child.key());
+    if (captured.sampled_values.len != shape.sampled_value_count or
+        captured.fri_layer_count != shape.fri_layer_count or
+        captured.last_layer_coefficients.len != shape.last_layer_coefficient_count)
+        return error.DetachedPcsKeyTranscriptShapeMismatch;
+    return initPcsOperationsFromShape(allocator, shape);
+}
+
+pub fn initPcsOperationsFromKey(allocator: std.mem.Allocator, key: anytype) ![]recursion.pcs_transcript_program_v1.Operation {
+    return initPcsOperationsFromShape(allocator, try pcs_key_shape.transcriptShape(allocator, key));
+}
+
+fn initPcsOperationsFromShape(allocator: std.mem.Allocator, shape: anytype) ![]recursion.pcs_transcript_program_v1.Operation {
+    return recursion.pcs_transcript_program_v1.initPcsOperations(allocator, shape);
 }
 
 pub const PayloadRow = struct { preprocessing: air.transcript_payload_witness.Row, value: M31 };
@@ -202,7 +211,7 @@ pub const OwnedV1 = opaque {
         }
         const operation_values = try plan.operations.toOwnedSlice(allocator);
         errdefer allocator.free(operation_values);
-        const control = try allocator.alloc(air.control_witness.Row, operation_count);
+        const control = try controlRowsFromOperations(allocator, operation_values, lane);
         errdefer allocator.free(control);
         const sponge = try allocator.alloc(rows.TranscriptAirRowV2, call_count);
         errdefer allocator.free(sponge);
@@ -245,7 +254,6 @@ pub const OwnedV1 = opaque {
                 .tag = if (is_pow) air.pow_frame.controlTag(.interaction) else STEP_TAG_BASE + @intFromEnum(instruction.source),
                 .args = if (is_pow) .{ instruction.pow_bits, 4, 0, 0 } else .{ @intFromEnum(instruction.effect), instruction.payload_words, instruction.item, VERSION },
             };
-            control[index] = .{ .segment_mask = 0, .binary_mask = 1, .verifier_id = lane, .sequence = step.sequence, .tag = step.tag, .args = step.args, .terminal_mask = 0 };
             for (0..hash_count) |part| {
                 const frame = execution.trace.hash_frames[hash_at];
                 const pow_draw = is_pow and part == 1;
@@ -435,6 +443,162 @@ const PlanChannel = struct {
         return result;
     }
 };
+
+/// Key-only prefix schedule through the Tree2 commitment. Dynamic expected
+/// words, claims, commitments and challenges contribute lengths but no values.
+/// The returned operations are independent of a child proof or recording.
+pub fn operationsFromKey(comptime family: child_mod.Family, allocator: std.mem.Allocator, key: anytype) ![]Operation {
+    const Protocol = if (family == .segment) transcript else @import("detached_parent_protocol_v1.zig");
+    try key.validate();
+    var dummy_relations = universal.UniversalRelations.dummy();
+    var plan = PlanChannel{ .allocator = allocator, .relations = &dummy_relations };
+    errdefer plan.operations.deinit(allocator);
+    try plan.root(.tree0, key.preprocessed_root);
+    try plan.root(.tree1, @splat(0));
+    plan.beginDetachedPayload(.admission_header);
+    if (family == .segment) {
+        const segment_manifest = @import("air/segment_outer_manifest_contract_v2.zig");
+        plan.mixU32s(&.{ 0x5344_4131, Protocol.VERSION, segment_manifest.COMPONENT_COUNT });
+    } else {
+        const parent_manifest = @import("detached_parent_components_v1.zig").manifest_mod;
+        const continuation = @import("span_continuation_v1.zig");
+        plan.mixU32s(&.{ 0x4450_4131, Protocol.VERSION, parent_manifest.COMPONENT_COUNT, Protocol.PUBLIC_SCOPE, continuation.WORD_COUNT });
+    }
+    const identity = try key.identity();
+    var pin_words: [8]u32 = undefined;
+    for (&pin_words, 0..) |*word, index| word.* = std.mem.readInt(u32, identity[index * 4 ..][0..4], .little);
+    plan.beginDetachedPayload(.key_identity);
+    plan.mixU32s(&pin_words);
+    if (family == .segment) {
+        plan.beginDetachedPayload(.expected);
+        plan.mixU32s(&.{ public_data_v2.STATEMENT_TRANSCRIPT_DOMAIN, public_data_v2.STATEMENT_TRANSCRIPT_VERSION, public_data_v2.STATEMENT_TRANSCRIPT_SCHEMA_VERSION, key.source_manifest.wire_word_count });
+        plan.mixU32s(&([_]u32{0} ** 8));
+        const empty_wire = try allocator.alloc(M31, key.source_manifest.wire_word_count);
+        defer allocator.free(empty_wire);
+        @memset(empty_wire, M31.zero());
+        plan.mixCanonicalM31Words(empty_wire);
+    } else {
+        const continuation = @import("span_continuation_v1.zig");
+        plan.beginDetachedPayload(.expected_u32);
+        plan.mixU32s(&([_]u32{0} ** continuation.WORD_COUNT));
+    }
+    try Protocol.mixInteractionPow(&plan, key, if (key.profile.interactionPowBits() == 0) null else @as(?u64, 0));
+    _ = try universal.UniversalRelations.draw(allocator, &plan);
+    if (family == .segment) {
+        const manifest = @import("air/segment_outer_manifest_contract_v2.zig");
+        const call_wire = @import("segment_authority_wire_v2.zig");
+        const call_count = try key.native_descriptors.callCount();
+        const term_count = std.math.mul(usize, call_count, call_wire.CALL_WIRE_GROUP_COUNT) catch return error.ArithmeticOverflow;
+        const empty_claims: [manifest.COMPONENT_COUNT]QM31 = @splat(QM31.zero());
+        plan.beginDetachedPayload(.claims_header);
+        plan.mixU32s(&.{ 0x5344_4331, Protocol.VERSION, manifest.COMPONENT_COUNT });
+        plan.beginDetachedPayload(.claims);
+        plan.mixFelts(&empty_claims);
+        plan.beginDetachedPayload(.boundary_header);
+        plan.mixU32s(&.{ 0x5344_4231, Protocol.VERSION, @intCast(key.wire_terms.len), std.math.cast(u32, term_count) orelse return error.ArithmeticOverflow, 2 });
+    } else {
+        const manifest = @import("detached_parent_components_v1.zig").manifest_mod;
+        const continuation = @import("span_continuation_v1.zig");
+        const empty_claims: [manifest.COMPONENT_COUNT]QM31 = @splat(QM31.zero());
+        plan.beginDetachedPayload(.claims_header);
+        plan.mixU32s(&.{ 0x4450_4331, Protocol.VERSION, manifest.COMPONENT_COUNT });
+        plan.beginDetachedPayload(.claims);
+        plan.mixFelts(&empty_claims);
+        plan.beginDetachedPayload(.boundary_header);
+        plan.mixU32s(&.{ 0x4450_4231, Protocol.VERSION, Protocol.PUBLIC_SCOPE, continuation.WORD_COUNT, 2 });
+    }
+    plan.beginDetachedPayload(.boundary);
+    plan.mixFelts(&.{QM31.zero()});
+    plan.beginDetachedPayload(.partials);
+    plan.mixFelts(&.{ QM31.zero(), QM31.zero() });
+    try plan.root(.tree2, @splat(0));
+    if (plan.failure) |err| return err;
+    return plan.operations.toOwnedSlice(allocator);
+}
+
+pub const PrefixShape = struct {
+    operation_count: u32,
+    frame_count: u32,
+    call_count: u32,
+    word_count: u32,
+    payload_count: u32,
+    draw_count: u32,
+    pow_count: u32,
+
+    /// The sponge's block rule is shared with the captured-row constructor.
+    /// This is the fixed topology; no hash output or proof word is read.
+    pub fn fromOperations(operations: []const Operation) !PrefixShape {
+        const rate: u32 = @intCast(recording.RATE);
+        var result = PrefixShape{
+            .operation_count = std.math.cast(u32, operations.len) orelse return error.ArithmeticOverflow,
+            .frame_count = 0,
+            .call_count = 0,
+            .word_count = 0,
+            .payload_count = 0,
+            .draw_count = 0,
+            .pow_count = 0,
+        };
+        for (operations) |operation| {
+            if (operation.effect == .pow) {
+                result.pow_count = try std.math.add(u32, result.pow_count, 1);
+            } else {
+                result.payload_count = try std.math.add(u32, result.payload_count, operation.payload_words);
+            }
+            if (operation.effect == .draw)
+                result.draw_count = try std.math.add(u32, result.draw_count, 1);
+            const frames: u32 = if (operation.effect == .pow) 2 else 1;
+            for (0..frames) |part| {
+                const draw = operation.effect == .draw or (operation.effect == .pow and part == 1);
+                const absorbed = try std.math.add(u32, rate, if (draw) 2 else operation.payload_words);
+                const calls = try std.math.add(u32, absorbed / rate, 1);
+                result.frame_count = try std.math.add(u32, result.frame_count, 1);
+                result.call_count = try std.math.add(u32, result.call_count, calls);
+                result.word_count = try std.math.add(u32, result.word_count, try std.math.mul(u32, calls - 1, rate));
+            }
+        }
+        return result;
+    }
+};
+
+pub fn controlRowsFromOperations(allocator: std.mem.Allocator, operations: []const Operation, lane: u32) ![]air.control_witness.Row {
+    if (lane != 1 and lane != 2) return error.InvalidDetachedPrefixLane;
+    const result = try allocator.alloc(air.control_witness.Row, operations.len);
+    errdefer allocator.free(result);
+    for (operations, result, 0..) |instruction, *row, index| {
+        const is_pow = instruction.effect == .pow;
+        row.* = .{
+            .segment_mask = 0,
+            .binary_mask = 1,
+            .verifier_id = lane,
+            .sequence = std.math.cast(u32, index) orelse return error.ArithmeticOverflow,
+            .tag = if (is_pow) air.pow_frame.controlTag(.interaction) else STEP_TAG_BASE + @intFromEnum(instruction.source),
+            .args = if (is_pow) .{ instruction.pow_bits, 4, 0, 0 } else .{ @intFromEnum(instruction.effect), instruction.payload_words, instruction.item, VERSION },
+            .terminal_mask = 0,
+        };
+    }
+    return result;
+}
+
+pub fn testKeyOnlyOperationParity(allocator: std.mem.Allocator, child: anytype) !void {
+    const family = @typeInfo(@TypeOf(child)).pointer.child.FAMILY;
+    const fixed_operations = try operationsFromKey(family, allocator, child.key());
+    defer allocator.free(fixed_operations);
+    const captured = try OwnedV1.init(allocator, child, 1);
+    defer captured.deinit();
+    const view = captured.view();
+    try std.testing.expectEqualDeep(view.operations, fixed_operations);
+    const fixed_control = try controlRowsFromOperations(allocator, fixed_operations, 1);
+    defer allocator.free(fixed_control);
+    try std.testing.expectEqualDeep(view.control, fixed_control);
+    const shape = try PrefixShape.fromOperations(fixed_operations);
+    try std.testing.expectEqual(view.next_operation, shape.operation_count);
+    try std.testing.expectEqual(view.next_hash, shape.frame_count);
+    try std.testing.expectEqual(view.next_call, shape.call_count);
+    try std.testing.expectEqual(view.word.len, shape.word_count);
+    try std.testing.expectEqual(view.payload.len, shape.payload_count);
+    try std.testing.expectEqual(view.challenges.len, shape.draw_count);
+    try std.testing.expectEqual(view.pow_check.len, shape.pow_count);
+}
 
 pub fn testFromVerifiedChild(allocator: std.mem.Allocator, child: anytype) !void {
     const owner = try OwnedV1.init(allocator, child, 1);

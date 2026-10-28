@@ -28,21 +28,21 @@ pub const Candidate = struct {
     }
 };
 
-pub fn produce(allocator: std.mem.Allocator, prepared: *cohort.PreparedV1, expected: *const protocol.ExpectedV1, child_key_sha256: [2][32]u8, mode: protocol.PublicationMode, admitted_key: ?*const protocol.KeyV1) !Candidate {
-    return produceWithProfile(allocator, prepared, expected, child_key_sha256, mode, admitted_key, .detached_continuation_development_q3_v2);
+pub fn produce(allocator: std.mem.Allocator, prepared: *cohort.PreparedV1, recipe: *const protocol.FixedRecipeV1, expected: *const protocol.ExpectedV1, child_key_sha256: [2][32]u8, mode: protocol.PublicationMode, admitted_key: ?*const protocol.KeyV1) !Candidate {
+    return produceWithProfile(allocator, prepared, recipe, expected, child_key_sha256, mode, admitted_key, .detached_continuation_development_q3_v2);
 }
 
-pub fn produceWithProfile(allocator: std.mem.Allocator, prepared: *cohort.PreparedV1, expected: *const protocol.ExpectedV1, child_key_sha256: [2][32]u8, mode: protocol.PublicationMode, admitted_key: ?*const protocol.KeyV1, profile: protocol.ProfileV1) !Candidate {
-    return produceWithEngine(CpuEngine, allocator, prepared, expected, child_key_sha256, mode, admitted_key, profile);
+pub fn produceWithProfile(allocator: std.mem.Allocator, prepared: *cohort.PreparedV1, recipe: *const protocol.FixedRecipeV1, expected: *const protocol.ExpectedV1, child_key_sha256: [2][32]u8, mode: protocol.PublicationMode, admitted_key: ?*const protocol.KeyV1, profile: protocol.ProfileV1) !Candidate {
+    return produceWithEngine(CpuEngine, allocator, prepared, recipe, expected, child_key_sha256, mode, admitted_key, profile);
 }
 
-pub fn produceWithEngine(comptime Engine: type, allocator: std.mem.Allocator, prepared: *cohort.PreparedV1, expected: *const protocol.ExpectedV1, child_key_sha256: [2][32]u8, mode: protocol.PublicationMode, admitted_key: ?*const protocol.KeyV1, profile: protocol.ProfileV1) !Candidate {
-    return produceWithWorkspace(Engine, allocator, prepared, expected, child_key_sha256, mode, admitted_key, profile, null);
+pub fn produceWithEngine(comptime Engine: type, allocator: std.mem.Allocator, prepared: *cohort.PreparedV1, recipe: *const protocol.FixedRecipeV1, expected: *const protocol.ExpectedV1, child_key_sha256: [2][32]u8, mode: protocol.PublicationMode, admitted_key: ?*const protocol.KeyV1, profile: protocol.ProfileV1) !Candidate {
+    return produceWithWorkspace(Engine, allocator, prepared, recipe, expected, child_key_sha256, mode, admitted_key, profile, null);
 }
 
 pub const WorkspaceFor = @import("recursive_segment_v2_detached_parent_workspace.zig").WorkspaceFor;
 
-pub fn produceWithWorkspace(comptime Engine: type, allocator: std.mem.Allocator, prepared: *cohort.PreparedV1, expected: *const protocol.ExpectedV1, child_key_sha256: [2][32]u8, mode: protocol.PublicationMode, admitted_key: ?*const protocol.KeyV1, profile: protocol.ProfileV1, workspace: ?*WorkspaceFor(Engine)) !Candidate {
+pub fn produceWithWorkspace(comptime Engine: type, allocator: std.mem.Allocator, prepared: *cohort.PreparedV1, recipe: *const protocol.FixedRecipeV1, expected: *const protocol.ExpectedV1, child_key_sha256: [2][32]u8, mode: protocol.PublicationMode, admitted_key: ?*const protocol.KeyV1, profile: protocol.ProfileV1, workspace: ?*WorkspaceFor(Engine)) !Candidate {
     if (@hasDecl(Engine.Backend, "admitHostProving"))
         try Engine.Backend.admitHostProving(.witness_generation);
     const TreeStorage = storage.TreeStorageForManifest(Engine, cohort.manifest_mod);
@@ -72,7 +72,7 @@ pub fn produceWithWorkspace(comptime Engine: type, allocator: std.mem.Allocator,
     else
         .{};
     defer if (comptime Engine.Channel == recording.Channel) channel.deinit();
-    const candidate_key = try fixedKey(Engine, allocator, prepared, child_key_sha256, mode, profile, &scheme, &channel);
+    const candidate_key = try fixedKey(Engine, allocator, prepared, recipe, child_key_sha256, mode, profile, &scheme, &channel);
     const identity = try candidate_key.identity();
     const key = admitted_key orelse &candidate_key;
     if (!std.meta.eql(identity, try key.identity())) return error.DetachedParentFixedCircuitMismatch;
@@ -171,12 +171,14 @@ pub fn produceWithWorkspace(comptime Engine: type, allocator: std.mem.Allocator,
 
 /// Commit only verifier-owned fixed columns. The returned key borrows prepared
 /// parameters; no main columns, interaction columns or proof are constructed.
-fn fixedKey(comptime Engine: type, allocator: std.mem.Allocator, prepared: *cohort.PreparedV1, child_key_sha256: [2][32]u8, mode: protocol.PublicationMode, profile: protocol.ProfileV1, scheme: anytype, channel: anytype) !protocol.KeyV1 {
+fn fixedKey(comptime Engine: type, allocator: std.mem.Allocator, prepared: *cohort.PreparedV1, recipe: *const protocol.FixedRecipeV1, child_key_sha256: [2][32]u8, mode: protocol.PublicationMode, profile: protocol.ProfileV1, scheme: anytype, channel: anytype) !protocol.KeyV1 {
     const TreeStorage = storage.TreeStorageForManifest(Engine, cohort.manifest_mod);
     const manifest = prepared.manifest();
     var preprocessed = try TreeStorage.init(allocator, manifest, 0);
     defer preprocessed.deinit();
     try prepared.fillPreprocessedInto(preprocessed.columns);
+    if (std.process.hasEnvVarConstant("STWO_RISCV_PARENT_FIXED_CENSUS"))
+        try recursion.detached_parent_fixed_census_v1.print(manifest, preprocessed.columns);
     try preprocessed.commit(scheme, channel);
     try Engine.flushPendingCommit(scheme, allocator, channel);
     var roots = try scheme.roots(allocator);
@@ -190,14 +192,15 @@ fn fixedKey(comptime Engine: type, allocator: std.mem.Allocator, prepared: *coho
         .parameters = prepared.parameters(),
         .preprocessed_root = roots.items[0],
         .child_key_sha256 = child_key_sha256,
+        .fixed_recipe = recipe.*,
     };
 }
 
-pub fn deriveKey(allocator: std.mem.Allocator, prepared: *cohort.PreparedV1, child_key_sha256: [2][32]u8, mode: protocol.PublicationMode, profile: protocol.ProfileV1) ![]u8 {
+pub fn deriveKey(allocator: std.mem.Allocator, prepared: *cohort.PreparedV1, recipe: *const protocol.FixedRecipeV1, child_key_sha256: [2][32]u8, mode: protocol.PublicationMode, profile: protocol.ProfileV1) ![]u8 {
     var scheme = try CpuEngine.init(allocator, profile.pcsConfig());
     defer CpuEngine.deinit(&scheme, allocator);
     var channel = CpuEngine.Channel{};
-    const key = try fixedKey(CpuEngine, allocator, prepared, child_key_sha256, mode, profile, &scheme, &channel);
+    const key = try fixedKey(CpuEngine, allocator, prepared, recipe, child_key_sha256, mode, profile, &scheme, &channel);
     try key.validate();
     return std.json.Stringify.valueAlloc(allocator, key, .{});
 }

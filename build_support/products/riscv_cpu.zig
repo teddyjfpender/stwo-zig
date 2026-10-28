@@ -290,11 +290,18 @@ pub fn addProduct(context: Context) void {
     recursion_soundness.dependOn(test_filter.addSuites(context.b, &.{.{
         .tests = riscv_cpu_tests.addFocusedTestRoot(test_context, "src/frontends/riscv/recursion_soundness_test_root.zig", &.{
             "V2 transcript",
+            "V2 program rejects a re-sealed instruction sequence outside the admitted plan",
             "binary composition",
             "ProfileV2 memory composition",
             "RISC-V recursion public LogUp graph",
             "fixed wire field",
             "transcript payload distinguishes",
+            "V2 payload custody covers every absorbed word",
+            "R-013 fixed outer wire rejects header payload padding and alias mutations",
+            "R-012 Merkle path constraints and relations reject every mutable class",
+            "R-012 FRI Merkle anchor root equals typed node root in every mode",
+            "R-012 FRI verifier input preserves exact row-29 geometry and seals",
+            "Merkle and FRI AIR custody joins roots paths leaves and verifier values",
             "shared Poseidon provider requires full IO",
             "catalog manifest ordering claims",
             "pre-October q193 leaf key",
@@ -302,8 +309,12 @@ pub fn addProduct(context: Context) void {
             "detached key binds public native-sum topology",
             "SegmentV2 native-sum graph regenerates from admitted public topology",
             "SegmentV2 native-sum",
+            "segment composition layout reconstructs from admitted key geometry",
+            "detached parent composition layout reconstructs from admitted key geometry",
+            "detached parent key PCS schedule retains inactive claim slots",
+            "compact Poseidon composition has exactly the admitted native constraint width",
         }),
-        .minimum = 13,
+        .minimum = 24,
     }}));
     context.b.step(
         "test-riscv-rigidity",

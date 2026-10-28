@@ -12,3 +12,23 @@ pub const OwnedFor = owner.OwnedFor;
 test "SegmentV2 detached child owns genuine capture and exact recorded transcript" {
     try owner.testOwnedCapture();
 }
+
+test "SegmentV2 key-only PCS FRI template matches genuine child" {
+    try owner.testKeyTemplateFromGenuineCapture();
+}
+
+test "SegmentV2 key-only PCS FRI template matches genuine parent" {
+    try owner.testKeyTemplateFromGenuineParentCapture();
+}
+
+test "SegmentV2 distinct parent keys reproduce paired PCS FRI fixed columns" {
+    try owner.testKeyTemplateFromGenuineParentPairWithRoot(
+        @import("recursive_segment_v2_detached_parent_fixed_root.zig").testAgainstPreparedColumns,
+    );
+}
+
+test "SegmentV2 distinct segment keys reproduce parent graph fixed rows" {
+    try owner.testKeyStatementFromGenuineSegmentPairWithRoot(
+        @import("recursive_segment_v2_detached_parent_fixed_root.zig").testAgainstPreparedColumns,
+    );
+}

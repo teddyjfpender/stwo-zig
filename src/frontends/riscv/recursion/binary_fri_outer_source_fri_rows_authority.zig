@@ -142,12 +142,24 @@ pub const FriRowsAuthority = struct {
         recursion_plan: *const schedule.Plan,
         template: anytype,
     ) !FriRowsAuthority {
+        return initInactiveFromTemplates(allocator, vm_plan, recursion_plan, template, template);
+    }
+
+    /// Preserve each admitted child's PCS/FRI identity independently. A
+    /// parent cannot silently substitute its left child's graph for the right.
+    pub fn initInactiveFromTemplates(
+        allocator: std.mem.Allocator,
+        vm_plan: *const schedule.Plan,
+        recursion_plan: *const schedule.Plan,
+        left: anytype,
+        right: anytype,
+    ) !FriRowsAuthority {
         return initFromProfiles(
             allocator,
             vm_plan,
             recursion_plan,
-            template,
-            template,
+            left,
+            right,
             false,
         );
     }
@@ -158,7 +170,7 @@ pub const FriRowsAuthority = struct {
         recursion_plan: *const schedule.Plan,
         left: anytype,
         right: anytype,
-        active_children: bool,
+        comptime active_children: bool,
     ) !FriRowsAuthority {
         const mapping_profile = query_mapping_witness.LaneProfile{
             .query_count = left.circuit.query_count,

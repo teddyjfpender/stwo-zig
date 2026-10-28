@@ -203,6 +203,19 @@ pub const Binding = struct {
 pub const LayerProfile = struct {
     width: u32,
     tree_height: u32,
+
+    /// The Merkle path omits the packed-leaf subtree proved by the FRI leaf
+    /// AIR. Captured sibling arrays therefore have this depth, rather than
+    /// the full `tree_height` used by the leaf component.
+    pub fn siblingPathDepth(self: LayerProfile) Error!u32 {
+        if (self.width < 2 or self.width > 16 or !std.math.isPowerOfTwo(self.width))
+            return error.InvalidProfile;
+        const fold_step = std.math.log2_int(u32, self.width);
+        const leaf_size: u32 = if (fold_step > 1) PACKED_LEAF_SIZE else 1;
+        const subtree_height = std.math.log2_int(u32, self.width / leaf_size);
+        if (self.tree_height < subtree_height) return error.InvalidProfile;
+        return self.tree_height - subtree_height;
+    }
 };
 
 pub const LaneProfile = struct {

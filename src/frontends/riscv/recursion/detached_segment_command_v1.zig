@@ -137,6 +137,7 @@ fn verifyDirectoryImpl(comptime Engine: type, allocator: std.mem.Allocator, dire
     defer allocator.free(expected_json);
     var expected = try OwnedExpectedV1.decode(allocator, expected_json);
     defer expected.deinit();
+    try key.key().validateExpected(&expected.data);
     const claims_json = try dir.readFileAlloc(allocator, "claims.json", MAX_INPUT_BYTES);
     defer allocator.free(claims_json);
     const input = try decodeClaims(allocator, claims_json);

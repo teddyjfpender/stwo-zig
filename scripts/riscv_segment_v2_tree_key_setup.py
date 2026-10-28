@@ -109,6 +109,10 @@ def main() -> None:
 
     try:
         previous = leaves
+        registries = [{"version": 1, "root_index": 0, "nodes": [{
+            "family": "segment", "key_path": node["key"]["path"],
+            "key_sha256": list(bytes.fromhex(node["key"]["sha256"])),
+        }]} for node in leaves]
         directories = [output / "leaves" / f"child-{i}" for i in range(count)]
         if count > 1:
             argv = [args.leaf_producer, "--memory-addresses", inputs["memory_addresses"],
@@ -131,6 +135,7 @@ def main() -> None:
         for depth, level in enumerate(levels):
             root = depth == len(levels) - 1
             next_dirs = []
+            next_registries = []
             for index, node in enumerate(level):
                 name = f"parent-{depth + 1}-{index}"
                 key = output / (name + "-key.json")
@@ -148,14 +153,47 @@ def main() -> None:
                 argv += ["--proof-profile", "recursive_q193_v1" if inputs["profile"] == "recursive_q193_v1" else "detached_continuation_development_q3_v2"] + boundary_args
                 run(name + "-setup", argv, True)
                 node["key"] = {"path": str(key), "sha256": sha256(key)}
+                left_registry, right_registry = registries[2 * index:2 * index + 2]
+                offset = len(left_registry["nodes"])
+                right_nodes = []
+                for prior in right_registry["nodes"]:
+                    copied = prior.copy()
+                    if "children" in copied:
+                        copied["children"] = [child + offset for child in copied["children"]]
+                    right_nodes.append(copied)
+                registry_nodes = left_registry["nodes"] + right_nodes
+                registry_nodes.append({"family": "parent", "key_path": str(key),
+                                       "key_sha256": list(bytes.fromhex(node["key"]["sha256"])),
+                                       "children": [left_registry["root_index"],
+                                                    offset + right_registry["root_index"]]})
+                key_registry = {"version": 1, "root_index": len(registry_nodes) - 1,
+                                "nodes": registry_nodes}
+                registry_path = output / (name + "-key-registry.json")
+                portable_registry = {**key_registry, "nodes": [
+                    {**item, "key_path": os.path.relpath(item["key_path"], registry_path.parent)}
+                    for item in registry_nodes
+                ]}
+                registry_path.write_text(json.dumps(portable_registry, separators=(",", ":")) + "\n")
+                node["key_registry"] = {"path": str(registry_path), "sha256": sha256(registry_path)}
+                next_registries.append(key_registry)
+                admitted_log = run(name + "-key-admission", [args.parent_verifier, "--admit-key",
+                                                               registry_path, node["key"]["sha256"]])
+                admitted_receipt = json.loads(admitted_log.read_text())
+                if (admitted_receipt.get("fixed_root_admitted") is not True or
+                        admitted_receipt.get("proof_loaded") is not False or
+                        bytes(admitted_receipt.get("parent_key_sha256", [])).hex() != node["key"]["sha256"]):
+                    raise RuntimeError(f"{name}: key-only Tree0 admission receipt mismatch")
                 if root:
                     continue
                 bundle, accepted = output / name, output / (name + "-accepted.json")
                 argv = [sys.executable, scripts / "riscv_segment_v2_detached_parent_gate.py",
+                    "--accepted-only",
                     "--proof-profile", "recursive_q193_v1" if inputs["profile"] == "recursive_q193_v1" else "detached_continuation_development_q3_v2",
                     "--producer", args.parent_producer, "--producer-sha256", args.parent_producer_sha256,
                     "--verifier", args.parent_verifier, "--verifier-sha256", args.parent_verifier_sha256,
                     "--bundle", bundle, "--parent-key", key, "--key-sha256", node["key"]["sha256"],
+                    "--key-registry", registry_path,
+                    "--key-registry-sha256", node["key_registry"]["sha256"],
                     "--expected-root", node["expected"]["path"], "--expected-root-sha256", node["expected"]["sha256"],
                     "--publication-mode", "intermediate", "--child-family", "parent" if depth else "segment",
                     "--memory-profile", "continuation" if depth == 0 and index > 0 else "initial",
@@ -166,13 +204,13 @@ def main() -> None:
                 if not json.loads(accepted.read_bytes())["passed"]:
                     raise RuntimeError("fresh intermediate verification failed")
                 next_dirs.append(bundle)
-            previous, directories = level, next_dirs
+            previous, directories, registries = level, next_dirs, next_registries
         if any(sha256(Path(path)) != pin for path, pin in admitted.items()):
             raise RuntimeError("an admitted input changed during setup")
         admission = {key: inputs[key] for key in ("version", "profile", "memory_addresses", "initial_memory_word")}
         admission.update(leaves=leaves, parents=levels)
         for node in leaves + [node for level in levels for node in level]:
-            for field in ("key", "expected", "boundary_profile"):
+            for field in ("key", "expected", "boundary_profile", "key_registry"):
                 if field in node:
                     node[field]["path"] = os.path.relpath(node[field]["path"], output)
         target = output / "admission.json"

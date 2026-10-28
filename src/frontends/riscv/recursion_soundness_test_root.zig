@@ -9,6 +9,11 @@ test {
     _ = @import("recursion/ethereum_vm_composition_graph_base_v2.zig");
     _ = @import("recursion/vm_public_semantics_circuit_logup_reference.zig");
     _ = @import("recursion/tests/fixed_wire_custody_test.zig");
+    _ = @import("recursion/tests/segment_transcript_outer_source_v2_test.zig");
+    _ = @import("recursion/tests/outer_parent_child_admission_test.zig");
+    _ = @import("recursion/air/tests/merkle_path_test.zig");
+    _ = @import("recursion/air/tests/fri_merkle_anchor_test.zig");
+    _ = @import("recursion/air/tests/fri_verifier_input_test.zig");
     _ = @import("recursion/tests/segment_statement_outer_source_v2_test.zig");
     _ = @import("recursion/detached_fixed_tree0_key_recipe_v1.zig");
     _ = @import("recursion/detached_native_column_geometry_v1.zig");
@@ -17,9 +22,14 @@ test {
     _ = @import("recursion/detached_fixed_tree0_trace_merkle_recipe_v1.zig");
     _ = @import("recursion/detached_fixed_tree0_query_recipe_v1.zig");
     _ = @import("recursion/detached_fixed_tree0_fri_input_recipe_v1.zig");
+    _ = @import("recursion/detached_segment_recording_components_v1.zig");
+    _ = @import("recursion/detached_parent_prepared_v1.zig");
+    _ = @import("recursion/detached_parent_fixed_census_v1.zig");
+    _ = @import("recursion/detached_parent_fixed_tables_v1.zig");
     _ = @import("recursion/segment_public_native_sum_topology_v1.zig");
     _ = @import("recursion/tests/segment_public_native_sum_authority_v2_test.zig");
     _ = @import("recursion/air/tests/universal_shared_provider_test.zig");
+    _ = @import("recursion/air/universal_shared_provider_composition.zig");
     _ = @import("recursion/air/tests/segment_outer_adapter_manifest_v2_test.zig");
     _ = @import("leaf_manifest_contract_test_root.zig");
 }

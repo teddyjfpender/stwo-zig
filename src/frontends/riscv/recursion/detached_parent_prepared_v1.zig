@@ -18,6 +18,7 @@ const work_pool = @import("stwo_prover_engine").work_pool;
 const device_interaction = @import("air/framework_device_interaction.zig");
 const CompactLedger = @import("compact_tuple_ledger_v1.zig").Owner;
 const range = @import("air/range_check_8_8_bridge.zig");
+const fixed_tables = @import("detached_parent_fixed_tables_v1.zig");
 const provider = @import("air/universal_shared_provider.zig");
 const PoseidonAdapter = provider.Poseidon2Degree3AdapterForManifest(manifest_mod);
 const air = struct {
@@ -197,16 +198,7 @@ pub const PreparedV1 = opaque {
     pub fn fillPreprocessedInto(self: *const Self, destination: [][]M31) !void {
         try self.preflight(0, destination);
         self.fillLogical(0, destination);
-        const data = self.storage();
-        const poseidon = data.manifest.placements[34].?;
-        destination[poseidon.preprocessed_offset][air.framework_interaction.committedRow(0, poseidon.geometry.log_size)] = M31.one();
-        const placement = data.manifest.placements[35].?;
-        destination[placement.preprocessed_offset][range.committedRow(0)] = M31.one();
-        for (0..range.TABLE_SIZE) |logical| {
-            const row = range.committedRow(logical);
-            destination[placement.preprocessed_offset + 1][row] = M31.fromCanonical(@intCast(logical & 255));
-            destination[placement.preprocessed_offset + 2][row] = M31.fromCanonical(@intCast(logical >> 8));
-        }
+        try fixed_tables.fillFromManifest(&self.storage().manifest, destination);
     }
     fn fillMainBody(self: *Self, destination: [][]M31) !void {
         const data: *Storage = @ptrCast(@alignCast(self));
@@ -460,6 +452,122 @@ pub fn testSnapshotAdmission() !*PreparedV1 {
     changed_manifest.placements[11].?.geometry.semantic_digest[0] ^= 1;
     try std.testing.expectError(error.ManifestSealMismatch, prepared.parameters().validate(&changed_manifest));
     return prepared;
+}
+
+test "detached parent composition layout reconstructs from admitted key geometry" {
+    const allocator = std.testing.allocator;
+    const prepared = try testSnapshotAdmission();
+    defer prepared.deinit();
+    const layout_mod = @import("recursion_air_composition_capture_layout_v3.zig");
+    const Layout = layout_mod.CaptureLayoutV3;
+    const fixture_mod = @import("recursion_air_composition_circuit_v3_test_support.zig");
+    var capture = try fixture_mod.CaptureFixture.init(allocator, prepared.manifest());
+    defer capture.deinit();
+    var from_capture = try Layout.initAuthenticatedBinaryWithProviderRow(
+        allocator,
+        .detached_segment_parent_v1,
+        34,
+        prepared.manifest(),
+        capture.view(),
+    );
+    defer from_capture.deinit();
+    var from_key = try Layout.initDetachedParentFromKey(allocator, prepared.manifest(), 1);
+    defer from_key.deinit();
+    try std.testing.expectEqualSlices(u8, &from_capture.identity, &from_key.identity);
+    try std.testing.expectEqualDeep(from_capture.tree_column_counts, from_key.tree_column_counts);
+    try std.testing.expectEqual(from_capture.sampled_value_count, from_key.sampled_value_count);
+    const expected_layouts = try from_key.sampleLayoutsFromKey(allocator, prepared.manifest());
+    defer allocator.free(expected_layouts);
+    var expected_samples: usize = 0;
+    for (expected_layouts) |layout| expected_samples += layout.sampleCount();
+    try std.testing.expectEqual(@as(usize, from_key.sampled_value_count), expected_samples);
+    const interaction_start: usize = from_key.tree_column_counts[0] + from_key.tree_column_counts[1];
+    const poseidon_placement = prepared.manifest().placements[34].?;
+    const range_placement = prepared.manifest().placements[35].?;
+    try std.testing.expectEqual(@as(@TypeOf(expected_layouts[0]), .current_previous), expected_layouts[interaction_start + poseidon_placement.interaction_offset]);
+    try std.testing.expectEqual(@as(@TypeOf(expected_layouts[0]), .current_previous), expected_layouts[interaction_start + range_placement.interaction_offset]);
+    var typed_pair: ?usize = null;
+    const interaction_offsets = from_key.offsets[layout_mod.INTERACTION_TREE_INDEX];
+    for (0..from_key.tree_column_counts[layout_mod.INTERACTION_TREE_INDEX]) |column| {
+        if (interaction_offsets[column + 1] - interaction_offsets[column] != 2 or
+            column >= poseidon_placement.interaction_offset) continue;
+        typed_pair = column;
+        break;
+    }
+    try std.testing.expect(typed_pair != null);
+    try std.testing.expectEqual(@as(@TypeOf(expected_layouts[0]), .previous_current), expected_layouts[interaction_start + typed_pair.?]);
+    for (from_capture.offsets, from_key.offsets) |captured, rebuilt|
+        try std.testing.expectEqualSlices(usize, captured, rebuilt);
+    const key_heights = try from_key.treeHeightsFromManifest(prepared.manifest());
+    for (capture.column_log_sizes, key_heights) |logs, expected_height| {
+        var captured_height: u32 = 0;
+        for (logs) |log| captured_height = @max(captured_height, log);
+        try std.testing.expectEqual(expected_height, captured_height);
+    }
+    const protocol = @import("detached_parent_protocol_v1.zig");
+    const key_geometry = @import("detached_pcs_key_geometry_v1.zig");
+    const key = protocol.KeyV1{
+        .profile = .recursive_q193_v1,
+        .pcs_config = protocol.ProfileV1.recursive_q193_v1.pcsConfig(),
+        .manifest = prepared.manifest().*,
+        .parameters = prepared.parameters(),
+        .preprocessed_root = .{ 1, 0, 0, 0, 0, 0, 0, 0 },
+        .child_key_sha256 = .{ @splat(1), @splat(2) },
+        .fixed_recipe = @import("detached_parent_fixed_recipe_test_fixture.zig").placeholder(),
+    };
+    var pcs_geometry = try key_geometry.GeometryV1.init(allocator, &key);
+    defer pcs_geometry.deinit();
+    for (pcs_geometry.column_logs, capture.column_log_sizes) |expected, actual|
+        try std.testing.expectEqualSlices(u32, expected, actual);
+    var small_key = key;
+    small_key.profile = .detached_continuation_development_q3_v2;
+    small_key.pcs_config = small_key.profile.pcsConfig();
+    var template = try @import("detached_pcs_key_template_v1.zig").TemplateV1.init(allocator, &small_key);
+    defer template.deinit();
+    var inactive_fri = try template.evaluateInactive();
+    defer inactive_fri.deinit();
+    try inactive_fri.validateAgainst(&template.circuit);
+    var inactive_pcs = try template.evaluatePcsInactive();
+    defer inactive_pcs.deinit();
+    try inactive_pcs.validateAgainst(&template.pcs_circuit);
+    capture.sampled_values[0] = QM31.one();
+    var second = try Layout.initAuthenticatedBinaryWithProviderRow(
+        allocator,
+        .detached_segment_parent_v1,
+        34,
+        prepared.manifest(),
+        capture.view(),
+    );
+    defer second.deinit();
+    try std.testing.expectEqualSlices(u8, &from_key.identity, &second.identity);
+}
+
+test "detached parent key PCS schedule retains inactive claim slots" {
+    const allocator = std.testing.allocator;
+    const prepared = try testSnapshotAdmission();
+    defer prepared.deinit();
+    const protocol = @import("detached_parent_protocol_v1.zig");
+    const pcs = @import("detached_pcs_key_shape_v1.zig");
+    const key = protocol.KeyV1{
+        .manifest = prepared.manifest().*,
+        .parameters = prepared.parameters(),
+        .preprocessed_root = .{ 1, 0, 0, 0, 0, 0, 0, 0 },
+        .child_key_sha256 = .{ @splat(1), @splat(2) },
+        .fixed_recipe = @import("detached_parent_fixed_recipe_test_fixture.zig").placeholder(),
+    };
+    try std.testing.expect(key.manifest.roster_count < manifest_mod.COMPONENT_COUNT);
+    var plan = try pcs.planFromKey(allocator, &key, .vm);
+    defer plan.deinit();
+    var found = false;
+    for (plan.steps) |step| switch (step) {
+        .absorb_claimed_sums => |claim| {
+            try std.testing.expect(!found);
+            try std.testing.expectEqual(@as(u32, manifest_mod.COMPONENT_COUNT), claim.count);
+            found = true;
+        },
+        else => {},
+    };
+    try std.testing.expect(found);
 }
 
 pub fn testPoseidonInteractionPolicy() !void {

@@ -18,6 +18,52 @@ const recorder = v3.segment_recorder_v3.graph_recorder;
 const child_mod = @import("detached_child_capture_v1.zig");
 const QM31 = core.fields.qm31.QM31;
 
+/// The composition graph is fixed by an admitted child key. Keep this owner
+/// separate from OwnedV1: it cannot read a proof capture or evaluate a witness.
+pub const KeyGraphV1 = struct {
+    allocator: std.mem.Allocator,
+    layout: v3.capture_layout_v3.CaptureLayoutV3,
+    circuit: recorder.Circuit,
+    bindings: []composition.RecursionInputBinding,
+
+    pub fn init(comptime family: child_mod.Family, allocator: std.mem.Allocator, key: anytype) !KeyGraphV1 {
+        try key.validate();
+        const Factory = if (family == .segment) @import("detached_segment_recording_components_v1.zig") else recursion.detached_parent_components_v1;
+        var layout = if (family == .segment)
+            try v3.capture_layout_v3.CaptureLayoutV3.initSegmentFromKey(allocator, &key.manifest, key.pcs_config.fri_config.log_blowup_factor)
+        else
+            try v3.capture_layout_v3.CaptureLayoutV3.initDetachedParentFromKey(allocator, &key.manifest, key.pcs_config.fri_config.log_blowup_factor);
+        errdefer layout.deinit();
+        const profile = v3.InputProfileV3{ .sampled_value_count = layout.sampled_value_count };
+        try profile.validate();
+        const relations = Factory.Relations.dummy();
+        const zero_claims = Factory.ClaimsV1{
+            .values = @splat(QM31.zero()),
+            .poseidon_partials = @splat(QM31.zero()),
+        };
+        const components = try Factory.OwnedComponentsV1.init(allocator, &key.manifest, key.parameters, &relations, zero_claims);
+        defer components.deinit();
+        const kind: composition.ProofKind = if (family == .segment) .segment_leaf else .binary_node;
+        const program = try recordDetached(kind, allocator, &key.manifest, &layout, profile, components);
+        return .{ .allocator = allocator, .layout = layout, .circuit = program.circuit, .bindings = program.bindings };
+    }
+
+    pub fn deinit(self: *KeyGraphV1) void {
+        self.allocator.free(self.bindings);
+        self.circuit.deinit();
+        self.layout.deinit();
+        self.* = undefined;
+    }
+
+    pub fn graph(self: *const KeyGraphV1) composition.CircuitGraph {
+        return self.circuit.graph();
+    }
+
+    pub fn inputBindings(self: *const KeyGraphV1) []const composition.RecursionInputBinding {
+        return self.bindings;
+    }
+};
+
 pub const OwnedV1 = opaque {
     const Storage = struct {
         allocator: std.mem.Allocator,
@@ -187,6 +233,11 @@ pub fn testFromVerifiedChild(allocator: std.mem.Allocator, child: *const child_m
     const owned = try OwnedV1.init(allocator, child);
     defer owned.deinit();
     const value = owned.storage();
+    var key_graph = try KeyGraphV1.init(.segment, allocator, child.key());
+    defer key_graph.deinit();
+    try std.testing.expectEqualDeep(value.layout.identity, key_graph.layout.identity);
+    try std.testing.expectEqualDeep(value.circuit.graph().identity_digest, key_graph.graph().identity_digest);
+    try std.testing.expectEqualDeep(value.bindings, key_graph.bindings);
     const inputs = try allocator.dupe(QM31, value.inputs);
     defer allocator.free(inputs);
     const scratch = try allocator.alloc(QM31, value.values.len);
@@ -214,4 +265,15 @@ pub fn testFromVerifiedChild(allocator: std.mem.Allocator, child: *const child_m
     try std.testing.expectEqual(@as(usize, 4), changed_samples);
     try value.circuit.evaluateInto(value.inputs, scratch);
     std.debug.print("detached composition: samples={d} inputs={d} nodes={d} outputs={d} rejected_claims={d} rejected_sample_words={d}\n", .{ value.profile.sampled_value_count, value.inputs.len, value.values.len, value.circuit.outputs.len, changed_claims, changed_samples });
+}
+
+pub fn testKeyGraphAgainstVerifiedChild(allocator: std.mem.Allocator, child: anytype) !void {
+    const family = @typeInfo(@TypeOf(child)).pointer.child.FAMILY;
+    const captured = try OwnedV1.init(allocator, child);
+    defer captured.deinit();
+    var key_graph = try KeyGraphV1.init(family, allocator, child.key());
+    defer key_graph.deinit();
+    try std.testing.expectEqualDeep(captured.storage().layout.identity, key_graph.layout.identity);
+    try std.testing.expectEqualDeep(captured.graph().identity_digest, key_graph.graph().identity_digest);
+    try std.testing.expectEqualDeep(captured.inputBindings(), key_graph.bindings);
 }

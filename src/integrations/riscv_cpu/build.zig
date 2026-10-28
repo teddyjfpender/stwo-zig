@@ -67,6 +67,39 @@ pub fn build(b: *std.Build) void {
     b.step("test-recursive-segment-v2-catalog-admission", "Reject changed native geometry before proof decoding")
         .dependOn(&b.addRunArtifact(catalog_admission_tests).step);
 
+    const child_capture_root = b.createModule(.{
+        .root_source_file = b.path("recursive_segment_v2_detached_child_transcript.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    child_capture_root.addImport("stwo_riscv_frontend", frontend);
+    child_capture_root.addImport("stwo_cpu_backend", cpu_backend);
+    child_capture_root.addImport("stwo_core", core);
+    const child_capture_tests = b.addTest(.{
+        .root_module = child_capture_root,
+        .filters = &.{"SegmentV2 key-only PCS FRI template matches genuine child"},
+    });
+    b.step("test-recursive-segment-v2-child-capture", "Check a real detached child capture and key-only PCS/FRI template; requires pinned fixture environment")
+        .dependOn(&b.addRunArtifact(child_capture_tests).step);
+    const parent_template_tests = b.addTest(.{
+        .root_module = child_capture_root,
+        .filters = &.{"SegmentV2 key-only PCS FRI template matches genuine parent"},
+    });
+    b.step("test-recursive-segment-v2-parent-template", "Check a real recursive parent against its key-only PCS/FRI template; requires pinned fixture environment")
+        .dependOn(&b.addRunArtifact(parent_template_tests).step);
+    const parent_pair_tests = b.addTest(.{
+        .root_module = child_capture_root,
+        .filters = &.{"SegmentV2 distinct parent keys reproduce paired PCS FRI fixed columns"},
+    });
+    b.step("test-recursive-segment-v2-parent-pair", "Check two independently pinned recursive parents against key-only paired fixed columns; requires pinned fixture environment")
+        .dependOn(&b.addRunArtifact(parent_pair_tests).step);
+    const segment_pair_tests = b.addTest(.{
+        .root_module = child_capture_root,
+        .filters = &.{"SegmentV2 distinct segment keys reproduce parent graph fixed rows"},
+    });
+    b.step("test-recursive-segment-v2-segment-pair", "Compare key-only parent graph fixed rows with two independently verified segment children; requires pinned fixture environment")
+        .dependOn(&b.addRunArtifact(segment_pair_tests).step);
+
     const secp_root = b.createModule(.{
         .root_source_file = b.path("secp256k1_precompile_proof_test.zig"),
         .target = target,
@@ -116,6 +149,12 @@ pub fn build(b: *std.Build) void {
     });
     b.step("test-segment-v2-native-proof", "Prove and independently verify real nonfinal and final SegmentV2 shards")
         .dependOn(&b.addRunArtifact(segment_tests).step);
+    const hostile_tree0_q193_tests = b.addTest(.{
+        .root_module = segment_root,
+        .filters = &.{"native q193 re-proves an AIR-valid hostile Tree0 and rejects its root"},
+    });
+    b.step("test-segment-v2-hostile-tree0-q193", "Re-prove a canonical-AIR-valid hostile native Tree0 under q193")
+        .dependOn(&b.addRunArtifact(hostile_tree0_q193_tests).step);
     const hostile_root_tests = b.addTest(.{
         .root_module = segment_root,
         .filters = &.{"SegmentV2 precommit hostile memory root reaches native proof verification"},
@@ -163,19 +202,17 @@ pub fn build(b: *std.Build) void {
     b.step("build-recursive-segment-v2-detached-verifier", "Build the detached SegmentV2 leaf verifier")
         .dependOn(&b.addInstallArtifact(leaf_verifier, .{}).step);
 
-    const parent_verifier_root = b.createModule(.{
-        .root_source_file = b.path("../../frontends/riscv/parent_verifier.zig"),
-        .target = target,
-        .optimize = optimize,
-    });
-    parent_verifier_root.addImport("stwo_core", core);
-    parent_verifier_root.addImport("interop_postcard", postcard);
     const parent_verifier_runner = b.createModule(.{
         .root_source_file = b.path("recursive_segment_v2_detached_parent_verifier_runner.zig"),
         .target = target,
         .optimize = optimize,
     });
-    parent_verifier_runner.addImport("stwo_parent_verifier", parent_verifier_root);
+    parent_verifier_runner.addImport("stwo_core", core);
+    parent_verifier_runner.addImport("stwo_cpu_backend", cpu_backend);
+    parent_verifier_runner.addImport("stwo_riscv_frontend", frontend);
+    parent_verifier_runner.addImport("stwo_prover_api", prover_api);
+    parent_verifier_runner.addImport("stwo_prover_engine", prover);
+    parent_verifier_runner.addImport("interop_postcard", postcard);
     const parent_verifier = b.addExecutable(.{
         .name = "recursive-segment-v2-detached-parent-verify",
         .root_module = parent_verifier_runner,

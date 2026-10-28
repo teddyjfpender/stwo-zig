@@ -49,6 +49,7 @@ pub const MemoryProfileV1 = memory_profile_mod.MemoryProfileV1;
 const SectionV1 = @import("detached_section_profile_v1.zig").SectionV1;
 const child_mod = @import("detached_child_capture_v1.zig");
 const key_mod = @import("detached_segment_protocol_v1.zig");
+const key_shape = @import("detached_boundary_key_shape_v1.zig");
 const public_inputs = @import("detached_segment_public_inputs_v1.zig");
 const boundary = @import("detached_segment_authority_boundary_v1.zig");
 const wire_layout = recursion.segment_statement_v2.fixed_layout;
@@ -131,6 +132,10 @@ pub const OwnedV1 = opaque {
     pub fn evaluatedValues(self: *const OwnedV1) []const QM31 {
         return self.storage().values;
     }
+    pub fn graphValue(self: *const OwnedV1, node: u32) !QM31 {
+        if (node >= self.storage().values.len) return error.InvalidBoundaryProjection;
+        return self.storage().values[node];
+    }
     pub fn providerCalls(self: *const OwnedV1) []const rows.ProviderCall {
         return self.storage().calls;
     }
@@ -159,6 +164,177 @@ pub const OwnedV1 = opaque {
     }
     pub fn spanNodes(self: *const OwnedV1) *const [recursion.span_statement.SPAN_STATEMENT_CANONICAL_WORDS]u32 {
         return &self.storage().span_nodes;
+    }
+};
+
+/// Fixed binary-child boundary graph built without a child proof or public
+/// statement. The synthetic values exist only to allocate graph input nodes;
+/// they are never evaluated or exposed as an admitted witness.
+pub const ParentKeyGraphV1 = opaque {
+    const Self = @This();
+    const Storage = struct { allocator: std.mem.Allocator, owner: *OwnedV1 };
+
+    fn storage(self: *const Self) *const Storage {
+        return @ptrCast(@alignCast(self));
+    }
+
+    pub fn init(allocator: std.mem.Allocator, key: anytype) !*Self {
+        try key.validate();
+        const empty: [recursion.span_continuation_v1.WORD_COUNT]M31 = @splat(M31.zero());
+        const relations = air.universal_challenges.UniversalRelations.dummy();
+        const owner = try initParentWords(allocator, &empty, &relations, QM31.zero(), false);
+        errdefer owner.deinit();
+        const value = try allocator.create(Storage);
+        value.* = .{ .allocator = allocator, .owner = owner };
+        return @ptrCast(value);
+    }
+
+    pub fn deinit(self: *Self) void {
+        const value: *Storage = @ptrCast(@alignCast(self));
+        value.owner.deinit();
+        value.allocator.destroy(value);
+    }
+
+    pub fn graph(self: *const Self) composition.CircuitGraph {
+        return self.storage().owner.graph();
+    }
+
+    pub fn inputBindings(self: *const Self) []const InputBinding {
+        return self.storage().owner.inputBindings();
+    }
+
+    pub fn providerBindings(self: *const Self) []const ProviderBinding {
+        return self.storage().owner.providerBindings();
+    }
+
+    pub fn providerCalls(self: *const Self) []const rows.ProviderCall {
+        return self.storage().owner.providerCalls();
+    }
+
+    pub fn spanNodes(self: *const Self) *const [recursion.span_statement.SPAN_STATEMENT_CANONICAL_WORDS]u32 {
+        return self.storage().owner.spanNodes();
+    }
+
+    pub fn rawWireNode(self: *const Self, word: usize) !u32 {
+        return self.storage().owner.rawWireNode(word);
+    }
+
+    pub fn family(_: *const Self) child_mod.Family {
+        return .parent;
+    }
+
+    pub fn publicationRawWord(_: *const Self, word: usize) !usize {
+        if (word < recursion.span_continuation_v1.SPAN_WORDS or word >= recursion.span_continuation_v1.WORD_COUNT)
+            return error.InvalidBoundaryProjection;
+        return word;
+    }
+
+    pub fn graphValue(self: *const Self, node: u32) !QM31 {
+        if (node >= self.graph().nodes.len) return error.InvalidBoundaryProjection;
+        return QM31.zero();
+    }
+};
+
+const SegmentHints = struct {
+    wire_id: [8]u32,
+    global_cycle_end: u32,
+    segment_index: u32,
+    segment_count: u32,
+};
+
+/// Segment boundary circuit geometry built only from the admitted key. These
+/// zero-filled inputs are graph placeholders, never a witness or public claim.
+pub const SegmentKeyGraphV1 = opaque {
+    const Self = @This();
+    const Storage = struct { allocator: std.mem.Allocator, owner: *OwnedV1 };
+
+    fn storage(self: *const Self) *const Storage {
+        return @ptrCast(@alignCast(self));
+    }
+
+    pub fn init(allocator: std.mem.Allocator, key: *const key_mod.KeyV1) !*Self {
+        const shape = try key_shape.SegmentShapeV1.init(allocator, key);
+        const wire_words = try allocator.alloc(M31, shape.wire_word_count);
+        defer allocator.free(wire_words);
+        @memset(wire_words, M31.zero());
+        const calls = try allocator.alloc(rows.ProviderCall, shape.provider_calls);
+        var calls_owned = true;
+        errdefer if (calls_owned) allocator.free(calls);
+        @memset(calls, std.mem.zeroes(rows.ProviderCall));
+        const call_words = try allocator.alloc([32]M31, shape.provider_calls);
+        defer allocator.free(call_words);
+        @memset(call_words, @splat(M31.zero()));
+        const relations = air.universal_challenges.UniversalRelations.dummy();
+        const owner = try initSegmentGraph(
+            allocator,
+            key,
+            wire_words,
+            .{ .wire_id = @splat(0), .global_cycle_end = 0, .segment_index = 0, .segment_count = 1 },
+            &relations,
+            QM31.zero(),
+            QM31.zero(),
+            shape.sections,
+            .{ shape.memory.entry_addresses, shape.memory.exit_addresses },
+            calls,
+            call_words,
+            shape.wire_calls,
+            shape.context_calls,
+            shape.authority_calls,
+            .{ .initial_pc = 0, .final_pc = 0, .cycle_count = 0, .wire_id = @splat(0), .component_descs = key.native_descriptors.components, .infra_descs = key.native_descriptors.infrastructure },
+            false,
+        );
+        calls_owned = false;
+        errdefer owner.deinit();
+        const value = try allocator.create(Storage);
+        value.* = .{ .allocator = allocator, .owner = owner };
+        return @ptrCast(value);
+    }
+
+    pub fn deinit(self: *Self) void {
+        const value: *Storage = @ptrCast(@alignCast(self));
+        value.owner.deinit();
+        value.allocator.destroy(value);
+    }
+
+    pub fn graph(self: *const Self) composition.CircuitGraph {
+        return self.storage().owner.graph();
+    }
+
+    pub fn inputBindings(self: *const Self) []const InputBinding {
+        return self.storage().owner.inputBindings();
+    }
+
+    pub fn providerBindings(self: *const Self) []const ProviderBinding {
+        return self.storage().owner.providerBindings();
+    }
+
+    pub fn providerCalls(self: *const Self) []const rows.ProviderCall {
+        return self.storage().owner.providerCalls();
+    }
+
+    pub fn spanNodes(self: *const Self) *const [recursion.span_statement.SPAN_STATEMENT_CANONICAL_WORDS]u32 {
+        return self.storage().owner.spanNodes();
+    }
+
+    pub fn rawWireNode(self: *const Self, word: usize) !u32 {
+        return self.storage().owner.rawWireNode(word);
+    }
+
+    pub fn graphValue(self: *const Self, node: u32) !QM31 {
+        if (node >= self.graph().nodes.len) return error.InvalidBoundaryProjection;
+        return QM31.zero();
+    }
+
+    pub fn family(_: *const Self) child_mod.Family {
+        return .segment;
+    }
+
+    pub fn retainedSections(self: *const Self) ![4]SectionV1 {
+        return self.storage().owner.retainedSections();
+    }
+
+    pub fn publicationRawWord(self: *const Self, word: usize) !usize {
+        return self.storage().owner.publicationRawWord(word);
     }
 };
 
@@ -259,14 +435,57 @@ fn initExpected(
     const hash_boundary = try boundary.derive(expected, key.native_descriptors, relations);
     const combined_boundary = (try key.wireClaim(relations)).add(hash_boundary.claimed_sum);
 
+    return initSegmentGraph(
+        allocator,
+        key,
+        expected.words(),
+        .{
+            .wire_id = metadata.wire_id,
+            .global_cycle_end = metadata.global_cycle_end,
+            .segment_index = metadata.segment_index,
+            .segment_count = metadata.segment_count,
+        },
+        relations,
+        statement_claim,
+        combined_boundary,
+        sections,
+        addresses,
+        calls,
+        call_words,
+        wire_calls,
+        context_calls,
+        authority_calls,
+        authority_input,
+        true,
+    );
+}
+
+fn initSegmentGraph(
+    allocator: std.mem.Allocator,
+    key: *const key_mod.KeyV1,
+    wire_words: []const M31,
+    hints: SegmentHints,
+    relations: *const air.universal_challenges.UniversalRelations,
+    statement_claim: QM31,
+    combined_boundary: QM31,
+    sections: [4]SectionV1,
+    addresses: [2][]const u32,
+    calls: []rows.ProviderCall,
+    call_words: [][32]M31,
+    wire_calls: usize,
+    context_calls: usize,
+    authority_calls: usize,
+    authority_input: preimage.Input,
+    evaluate: bool,
+) !*OwnedV1 {
     var builder = recorder.Builder.init(allocator);
     defer builder.deinit();
     var inputs = Inputs{ .allocator = allocator, .builder = &builder };
     defer inputs.deinit();
-    const wire_count = expected.words().len;
-    for (expected.words(), 0..) |word, index| _ = try inputs.add(word, .{ .transcript = prefix.inputCoordinate(.wire, @intCast(index)).? });
+    const wire_count = wire_words.len;
+    for (wire_words, 0..) |word, index| _ = try inputs.add(word, .{ .transcript = prefix.inputCoordinate(.wire, @intCast(index)).? });
     const wire_id_start = inputs.values.items.len;
-    for (metadata.wire_id, 0..) |word, index| for (0..2) |limb| {
+    for (hints.wire_id, 0..) |word, index| for (0..2) |limb| {
         _ = try inputs.add(M31.fromCanonical((word >> @as(u5, @intCast(limb * 16))) & 65535), .{ .transcript = prefix.inputCoordinate(.wire_id, @intCast(index * 2 + limb)).? });
     };
     var claim_limbs: [2][4]S = undefined;
@@ -282,22 +501,22 @@ fn initExpected(
         }
     }
     const end_start = inputs.values.items.len;
-    for (0..2) |limb| _ = try inputs.add(M31.fromCanonical((metadata.global_cycle_end >> @as(u5, @intCast(16 * limb))) & 65535), .{ .end_limb = @intCast(limb) });
-    const carry_native: u32 = @intFromBool((metadata.segment_index & 65535) == 65535);
+    for (0..2) |limb| _ = try inputs.add(M31.fromCanonical((hints.global_cycle_end >> @as(u5, @intCast(16 * limb))) & 65535), .{ .end_limb = @intCast(limb) });
+    const carry_native: u32 = @intFromBool((hints.segment_index & 65535) == 65535);
     const increment_carry = try inputs.add(M31.fromCanonical(carry_native), .increment_carry);
     const next_low_index = inputs.values.items.len;
-    const next_low_hint = try inputs.add(M31.fromCanonical((metadata.segment_index + 1) & 65535), .increment_low);
+    const next_low_hint = try inputs.add(M31.fromCanonical((hints.segment_index + 1) & 65535), .increment_low);
     try inputs.addRange(next_low_index, 16);
-    const remaining = metadata.segment_count - metadata.segment_index - 1;
+    const remaining = hints.segment_count - hints.segment_index - 1;
     const remaining_start = inputs.values.items.len;
     var remaining_limbs: [2]S = undefined;
     for (&remaining_limbs, 0..) |*limb, offset| limb.* = try inputs.add(M31.fromCanonical((remaining >> @as(u5, @intCast(16 * offset))) & 65535), .{ .remaining_segments_limb = @intCast(offset) });
     try inputs.addRange(remaining_start, 16);
     try inputs.addRange(remaining_start + 1, 16);
-    const remaining_carry = try inputs.add(M31.fromCanonical(@intFromBool(((metadata.segment_index + 1) & 65535) + (remaining & 65535) >= 65536)), .remaining_segments_carry);
+    const remaining_carry = try inputs.add(M31.fromCanonical(@intFromBool(((hints.segment_index + 1) & 65535) + (remaining & 65535) >= 65536)), .remaining_segments_carry);
     const zero_values = [_]M31{
-        M31.fromCanonical(metadata.segment_index & 65535),                                                                M31.fromCanonical(metadata.segment_index >> 16),
-        M31.fromCanonical((metadata.segment_count & 65535)).sub(M31.fromCanonical((metadata.segment_index + 1) & 65535)), M31.fromCanonical(metadata.segment_count >> 16).sub(M31.fromCanonical((metadata.segment_index + 1) >> 16)),
+        M31.fromCanonical(hints.segment_index & 65535),                                                             M31.fromCanonical(hints.segment_index >> 16),
+        M31.fromCanonical((hints.segment_count & 65535)).sub(M31.fromCanonical((hints.segment_index + 1) & 65535)), M31.fromCanonical(hints.segment_count >> 16).sub(M31.fromCanonical((hints.segment_index + 1) >> 16)),
     };
     var zero_inverses: [4]S = undefined;
     for (&zero_inverses, zero_values, 0..) |*inverse, value, index| inverse.* = try inputs.add(if (value.isZero()) M31.zero() else try value.inv(), .{ .zero_inverse = @intCast(index) });
@@ -324,9 +543,9 @@ fn initExpected(
     for (sections) |section| for (0..section.payloadWords()) |word| try inputs.addRange(section.payload_start + word, 16);
     try inputs.addRange(end_start, 16);
     try inputs.addRange(end_start + 1, 9);
-    const symbolic_calls = try allocator.alloc([32]S, call_count);
+    const symbolic_calls = try allocator.alloc([32]S, calls.len);
     defer allocator.free(symbolic_calls);
-    const provider_bindings = try allocator.alloc(ProviderBinding, call_count);
+    const provider_bindings = try allocator.alloc(ProviderBinding, calls.len);
     errdefer allocator.free(provider_bindings);
     for (symbolic_calls, provider_bindings, call_words, 0..) |*symbols, *binding, words, call| {
         for (symbols, &binding.nodes, words, 0..) |*symbol, *node, word, index| {
@@ -427,7 +646,7 @@ fn initExpected(
     try recordRetainedIdentities(&graph_calls, wire, sections);
     try recordContinuationRoots(allocator, &graph_calls, &inputs, wire, sections, addresses);
     if (graph_calls.failure) |err| return err;
-    if (graph_calls.at != call_count) return error.InvalidBoundaryShape;
+    if (graph_calls.at != calls.len) return error.InvalidBoundaryShape;
     const statement_challenge = try recorder.ChallengeSet.Element.init(3, recorder.fromPartialEvals(draw_limbs[0][0]), recorder.fromPartialEvals(draw_limbs[0][1]));
     const wire_challenge = try recorder.ChallengeSet.Element.init(6, recorder.fromPartialEvals(draw_limbs[1][0]), recorder.fromPartialEvals(draw_limbs[1][1]));
     var statement_sink = StatementSink{ .challenge = &statement_challenge };
@@ -452,7 +671,7 @@ fn initExpected(
     errdefer circuit.deinit();
     const values = try allocator.alloc(QM31, circuit.nodes.len);
     errdefer allocator.free(values);
-    try circuit.evaluateInto(inputs.values.items, values);
+    if (evaluate) try circuit.evaluateInto(inputs.values.items, values) else @memset(values, QM31.zero());
     const value = try allocator.create(OwnedV1.Storage);
     errdefer allocator.destroy(value);
     const input_values = try inputs.values.toOwnedSlice(allocator);
@@ -471,6 +690,13 @@ fn initExpected(
 fn initParentExpected(allocator: std.mem.Allocator, child: *const child_mod.ParentOwnedV1) !*OwnedV1 {
     const protocol = recursion.detached_parent_protocol_v1;
     const expected = child.expected();
+    const native_claim = try protocol.publicBoundary(expected, child.relations());
+    return initParentWords(allocator, expected, child.relations(), native_claim, true);
+}
+
+fn initParentWords(allocator: std.mem.Allocator, expected: []const M31, relations: *const air.universal_challenges.UniversalRelations, native_claim: QM31, evaluate: bool) !*OwnedV1 {
+    const protocol = recursion.detached_parent_protocol_v1;
+    if (expected.len != recursion.span_continuation_v1.WORD_COUNT) return error.InvalidBoundaryShape;
     var builder = recorder.Builder.init(allocator);
     defer builder.deinit();
     var inputs = Inputs{ .allocator = allocator, .builder = &builder };
@@ -481,10 +707,9 @@ fn initParentExpected(allocator: std.mem.Allocator, child: *const child_mod.Pare
         });
     };
     var claim: [4]S = undefined;
-    const native_claim = try protocol.publicBoundary(expected, child.relations());
     for (&claim, native_claim.toM31Array(), 0..) |*limb, word, index|
         limb.* = try inputs.add(word, .{ .transcript = prefix.inputCoordinateFor(.parent, .boundary, @intCast(index)).? });
-    const native_challenge = try child.relations().getExact(.recursion_statement_word);
+    const native_challenge = try relations.getExact(.recursion_statement_word);
     var draws: [2][4]S = undefined;
     for (&draws, [_]QM31{ native_challenge.z, native_challenge.alpha }, 0..) |*limbs, draw, index| {
         for (limbs, draw.toM31Array(), 0..) |*limb, word, part|
@@ -515,7 +740,10 @@ fn initParentExpected(allocator: std.mem.Allocator, child: *const child_mod.Pare
     errdefer circuit.deinit();
     const values = try allocator.alloc(QM31, circuit.nodes.len);
     errdefer allocator.free(values);
-    try circuit.evaluateInto(inputs.values.items, values);
+    if (evaluate)
+        try circuit.evaluateInto(inputs.values.items, values)
+    else
+        @memset(values, QM31.zero());
     const value = try allocator.create(OwnedV1.Storage);
     errdefer allocator.destroy(value);
     const input_values = try inputs.values.toOwnedSlice(allocator);
@@ -608,9 +836,30 @@ fn exercise(value: *const OwnedV1.Storage) !void {
 }
 
 /// Retained genuine-child arithmetic/provider check, not recursive acceptance.
+pub fn testParentKeyGraphAgainstVerifiedChild(allocator: std.mem.Allocator, child: *const child_mod.ParentOwnedV1) !void {
+    const captured = try OwnedV1.initParent(allocator, child);
+    defer captured.deinit();
+    const fixed = try ParentKeyGraphV1.init(allocator, child.key());
+    defer fixed.deinit();
+    try std.testing.expectEqualDeep(captured.graph().identity_digest, fixed.graph().identity_digest);
+    try std.testing.expectEqualDeep(captured.inputBindings(), fixed.inputBindings());
+    try std.testing.expectEqualDeep(captured.spanNodes(), fixed.spanNodes());
+    for (0..recursion.span_continuation_v1.WORD_COUNT) |index|
+        try std.testing.expectEqual(try captured.rawWireNode(index), try fixed.rawWireNode(index));
+}
+
+/// Retained genuine-child arithmetic/provider check, not recursive acceptance.
 pub fn testFromVerifiedChild(allocator: std.mem.Allocator, child: *const child_mod.OwnedV1, profile: SectionProfileV1, memory_profile: MemoryProfileV1) !void {
     const value = try OwnedV1.init(allocator, child, profile, memory_profile);
     defer value.deinit();
+    const fixed = try SegmentKeyGraphV1.init(allocator, child.key());
+    defer fixed.deinit();
+    try std.testing.expectEqualDeep(value.graph().identity_digest, fixed.graph().identity_digest);
+    try std.testing.expectEqualDeep(value.inputBindings(), fixed.inputBindings());
+    try std.testing.expectEqualDeep(value.providerBindings(), fixed.providerBindings());
+    try std.testing.expectEqualDeep(value.spanNodes(), fixed.spanNodes());
+    for (0..child.expected().words().len) |index|
+        try std.testing.expectEqual(try value.rawWireNode(index), try fixed.rawWireNode(index));
     try exercise(value.storage());
 }
 

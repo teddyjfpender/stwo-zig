@@ -39,13 +39,15 @@ const recursion = struct {
     const binary_fri_outer_source = @import("binary_fri_outer_source.zig");
     const captured_fri = @import("captured_fri.zig");
     const fixed_profile = @import("fixed_profile.zig");
-    const poseidon2_channel = @import("poseidon2_channel.zig");
     const protocol = @import("protocol.zig");
 };
 const air = recursion.air;
 const schedule = air.verifier_schedule;
 const fixed = recursion.fixed_profile;
 const source = recursion.binary_fri_outer_source;
+const key_shape = @import("detached_pcs_key_shape_v1.zig");
+const key_geometry = @import("detached_pcs_key_geometry_v1.zig");
+const device_interaction = @import("air/framework_device_interaction.zig");
 const M31 = core.fields.m31.M31;
 const QM31 = core.fields.qm31.QM31;
 const ProviderCall = @import("../air/lang/typed_poseidon2_witness.zig").Call;
@@ -175,23 +177,25 @@ pub const OwnedV1 = opaque {
 
 fn makePlan(allocator: std.mem.Allocator, child: anytype, capture: *const recursion.captured_fri.Owned, schema: schedule.Schema) !schedule.Plan {
     const key = child.key();
-    if (capture.trace_tree_heights.len != fixed.TREE_COUNT) return error.DetachedPcsTreeCount;
-    var heights: [fixed.TREE_COUNT]u32 = undefined;
-    @memcpy(&heights, capture.trace_tree_heights);
-    const identity = try key.identity();
-    const channel = recursion.poseidon2_channel;
-    const shape = schedule.ScheduleShape{
-        .protocol_id = channel.hashBytes("detached-segment-pcs-checks/v1", 0x44504331),
-        .shape_id = channel.hashBytes(&identity, 0x44504731),
-        .interaction_pow_bits = capture.interaction_pow_bits,
-        .pcs_pow_bits = capture.pcs_pow_bits,
-        .query_count = capture.circuit.query_count,
-        .table_count = key.manifest.roster_count,
-        .claimed_sum_count = @intCast(child.claims().values.len),
-        .sampled_value_count = capture.sampled_value_count,
-        .tree_heights = heights,
-        .fri = try fixed.FriSchedule.init(capture.circuit.lifting_log_size - key.pcs_config.fri_config.log_blowup_factor, key.pcs_config.fri_config),
-    };
+    const shape = try key_shape.scheduleShape(allocator, key);
+    var geometry = try key_geometry.GeometryV1.init(allocator, key);
+    defer geometry.deinit();
+    try geometry.validateCaptured(capture);
+    if (capture.trace_tree_heights.len != fixed.TREE_COUNT)
+        return error.DetachedPcsTreeCount;
+    if (!std.mem.eql(u32, capture.trace_tree_heights, &shape.tree_heights))
+        return error.DetachedPcsKeyTreeHeightMismatch;
+    if (capture.circuit.lifting_log_size != shape.tree_heights[fixed.TREE_COUNT - 1])
+        return error.DetachedPcsKeyLiftingMismatch;
+    if (capture.interaction_pow_bits != shape.interaction_pow_bits or
+        capture.pcs_pow_bits != shape.pcs_pow_bits)
+        return error.DetachedPcsKeyPowMismatch;
+    if (capture.circuit.query_count != shape.query_count)
+        return error.DetachedPcsKeyQueryCountMismatch;
+    if (capture.sampled_value_count != shape.sampled_value_count)
+        return error.DetachedPcsKeySampleCountMismatch;
+    if (child.claims().values.len != shape.claimed_sum_count)
+        return error.DetachedPcsKeyClaimCountMismatch;
     return schedule.Plan.initShape(allocator, try schedule.ProgramSpec.init(schema, air.universal_challenges.RELATION_COUNT, 1, key.manifest.total_constraints, air.universal_challenges.RELATION_COUNT), shape);
 }
 
@@ -225,6 +229,26 @@ fn selectedMetadata(comptime T: type, allocator: std.mem.Allocator, lane: u32, r
     var result: std.ArrayList(T) = .empty;
     for (rows) |row| if (row.verifier_id == lane) try result.append(allocator, row);
     return result.toOwnedSlice(allocator);
+}
+
+pub fn controlRowsFromKey(allocator: std.mem.Allocator, key: anytype, lane: u32) ![]air.control_witness.Row {
+    if (lane != 1 and lane != 2) return error.InvalidDetachedPcsLane;
+    var plan = try key_shape.planFromKey(allocator, key, .recursion);
+    defer plan.deinit();
+    return controlRowsFromPlan(allocator, &plan, lane);
+}
+
+fn controlRowsFromPlan(allocator: std.mem.Allocator, plan: *const schedule.Plan, lane: u32) ![]air.control_witness.Row {
+    var control: std.ArrayList(air.control_witness.Row) = .empty;
+    errdefer control.deinit(allocator);
+    for (plan.steps, 0..) |step, sequence| switch (step) {
+        .verify_trace_merkle_path, .evaluate_deep_quotient, .verify_fri_merkle_path, .fold_fri, .verify_last_layer => {
+            const encoded = step.encode();
+            try control.append(allocator, .{ .segment_mask = 0, .binary_mask = 1, .verifier_id = lane, .sequence = std.math.cast(u32, sequence) orelse return error.ArithmeticOverflow, .tag = encoded.tag, .args = encoded.args, .terminal_mask = 0 });
+        },
+        else => {},
+    };
+    return control.toOwnedSlice(allocator);
 }
 fn buildRows(value: *OwnedV1.Storage, child: anytype, comptime selected_lane_only: bool) !void {
     const allocator = value.arena.allocator();
@@ -296,15 +320,7 @@ fn buildRows(value: *OwnedV1.Storage, child: anytype, comptime selected_lane_onl
     }
     value.view_value.pcs_metadata = try selectedMetadata(W.pcs_deep.Row, allocator, value.lane, prepared.pcs_preprocessing.rows);
     value.view_value.fri_metadata = try selectedMetadata(W.fri_input.Row, allocator, value.lane, prepared.input_preprocessing.rows);
-    var control: std.ArrayList(air.control_witness.Row) = .empty;
-    for (value.recursion_plan.steps, 0..) |step, sequence| switch (step) {
-        .verify_trace_merkle_path, .evaluate_deep_quotient, .verify_fri_merkle_path, .fold_fri, .verify_last_layer => {
-            const encoded = step.encode();
-            try control.append(allocator, .{ .segment_mask = 0, .binary_mask = 1, .verifier_id = value.lane, .sequence = @intCast(sequence), .tag = encoded.tag, .args = encoded.args, .terminal_mask = 0 });
-        },
-        else => {},
-    };
-    value.view_value.control = try control.toOwnedSlice(allocator);
+    value.view_value.control = try controlRowsFromPlan(allocator, &value.recursion_plan, value.lane);
     try buildPathsAndProvider(value);
 }
 
@@ -387,7 +403,163 @@ fn appendProvider(allocator: std.mem.Allocator, calls: *std.ArrayList(ProviderCa
     };
 }
 
+pub fn testKeyTemplateParity(allocator: std.mem.Allocator, child: anytype) !void {
+    var template = try @import("detached_pcs_key_template_v1.zig").TemplateV1.init(allocator, child.key());
+    defer template.deinit();
+    var captured = try child.preparePcs(allocator);
+    defer captured.deinit();
+    try template.geometry.validateCaptured(&captured);
+    try std.testing.expectEqualSlices(u8, &captured.circuit.profile_digest, &template.circuit.profile_digest);
+    try std.testing.expectEqualSlices(u8, &captured.circuit.graph_digest, &template.circuit.graph_digest);
+    try std.testing.expectEqualSlices(u8, &captured.circuit.identity_digest, &template.circuit.identity_digest);
+    const captured_pcs = captured.pcs_circuit.view();
+    const key_pcs = template.pcs_circuit.view();
+    try std.testing.expectEqualSlices(u8, &captured_pcs.profile_digest, &key_pcs.profile_digest);
+    try std.testing.expectEqualSlices(u8, &captured_pcs.graph_digest, &key_pcs.graph_digest);
+    try std.testing.expectEqualSlices(u8, &captured_pcs.identity_digest, &key_pcs.identity_digest);
+    try std.testing.expectEqualSlices(u32, captured.trace_tree_heights, template.trace_tree_heights);
+    try std.testing.expectEqualDeep(captured.fri_layer_profiles, template.fri_layer_profiles);
+    var inactive_fri = try template.evaluateInactive();
+    defer inactive_fri.deinit();
+    try inactive_fri.validateAgainst(&template.circuit);
+    var inactive_pcs = try template.evaluatePcsInactive();
+    defer inactive_pcs.deinit();
+    try inactive_pcs.validateAgainst(&template.pcs_circuit);
+
+    var vm_plan = try key_shape.planFromKey(allocator, child.key(), .vm);
+    defer vm_plan.deinit();
+    var recursion_plan = try key_shape.planFromKey(allocator, child.key(), .recursion);
+    defer recursion_plan.deinit();
+    var from_key = try source.FriRowsAuthority.initInactiveFromTemplate(allocator, &vm_plan, &recursion_plan, &template);
+    defer from_key.deinit();
+    const Child = struct { capture: *const recursion.captured_fri.Owned };
+    var from_capture = try source.FriRowsAuthority.init(allocator, &vm_plan, &recursion_plan, [2]Child{ .{ .capture = &captured }, .{ .capture = &captured } });
+    defer from_capture.deinit();
+    try std.testing.expectEqualDeep(from_capture.log_sizes, from_key.log_sizes);
+    inline for (.{
+        "query_bits_preprocessing",
+        "query_mapping_preprocessing",
+        "merkle_root_preprocessing",
+        "trace_merkle_preprocessing",
+        "pcs_preprocessing",
+        "fri_leaf_preprocessing",
+        "fri_node_preprocessing",
+        "fri_anchor_preprocessing",
+        "control_preprocessing",
+        "input_preprocessing",
+    }) |field| {
+        const actual = @field(from_capture, field);
+        const rebuilt = @field(from_key, field);
+        try std.testing.expectEqual(actual.log_size, rebuilt.log_size);
+        try std.testing.expectEqualDeep(actual.rows, rebuilt.rows);
+    }
+    // Exercise the committed-row mapping and zero padding used by the parent,
+    // with no child proof values on the key-derived side.
+    const left = try OwnedV1.init(allocator, child, 1);
+    defer left.deinit();
+    const right = try OwnedV1.init(allocator, child, 2);
+    defer right.deinit();
+    const left_view = left.view();
+    const right_view = right.view();
+    for ([_]u32{ 1, 2 }, [_][]const air.control_witness.Row{ left_view.control, right_view.control }) |lane, captured_control| {
+        const fixed_control = try controlRowsFromKey(allocator, child.key(), lane);
+        defer allocator.free(fixed_control);
+        try std.testing.expectEqualDeep(captured_control, fixed_control);
+    }
+    inline for (.{
+        .{ "query_bits", "query_bits_preprocessing" },
+        .{ "query_mapping", "query_mapping_preprocessing" },
+        .{ "merkle_root", "merkle_root_preprocessing" },
+        .{ "trace_merkle", "trace_merkle_preprocessing" },
+        .{ "pcs_deep", "pcs_preprocessing" },
+        .{ "fri_leaf", "fri_leaf_preprocessing" },
+        .{ "fri_node", "fri_node_preprocessing" },
+        .{ "fri_anchor", "fri_anchor_preprocessing" },
+        .{ "fri_control", "control_preprocessing" },
+        .{ "fri_input", "input_preprocessing" },
+    }) |fields| try testFixedPairProjection(
+        allocator,
+        @field(A, fields[0]),
+        @field(from_key, fields[1]).rows,
+        @field(from_key, fields[1]).rows,
+        @field(left_view, fields[0]),
+        @field(right_view, fields[0]),
+    );
+}
+
+pub fn testKeyTemplatePairParity(allocator: std.mem.Allocator, left_child: anytype, right_child: anytype) !void {
+    var left_template = try @import("detached_pcs_key_template_v1.zig").TemplateV1.init(allocator, left_child.key());
+    defer left_template.deinit();
+    var right_template = try @import("detached_pcs_key_template_v1.zig").TemplateV1.init(allocator, right_child.key());
+    defer right_template.deinit();
+    var left_vm = try key_shape.planFromKey(allocator, left_child.key(), .vm);
+    defer left_vm.deinit();
+    var left_recursion = try key_shape.planFromKey(allocator, left_child.key(), .recursion);
+    defer left_recursion.deinit();
+    var right_vm = try key_shape.planFromKey(allocator, right_child.key(), .vm);
+    defer right_vm.deinit();
+    var right_recursion = try key_shape.planFromKey(allocator, right_child.key(), .recursion);
+    defer right_recursion.deinit();
+    var left_fixed = try source.FriRowsAuthority.initInactiveFromTemplate(allocator, &left_vm, &left_recursion, &left_template);
+    defer left_fixed.deinit();
+    var right_fixed = try source.FriRowsAuthority.initInactiveFromTemplate(allocator, &right_vm, &right_recursion, &right_template);
+    defer right_fixed.deinit();
+    const left = try OwnedV1.init(allocator, left_child, 1);
+    defer left.deinit();
+    const right = try OwnedV1.init(allocator, right_child, 2);
+    defer right.deinit();
+    const left_view = left.view();
+    const right_view = right.view();
+    inline for (.{
+        .{ "query_bits", "query_bits_preprocessing" },
+        .{ "query_mapping", "query_mapping_preprocessing" },
+        .{ "merkle_root", "merkle_root_preprocessing" },
+        .{ "trace_merkle", "trace_merkle_preprocessing" },
+        .{ "pcs_deep", "pcs_preprocessing" },
+        .{ "fri_leaf", "fri_leaf_preprocessing" },
+        .{ "fri_node", "fri_node_preprocessing" },
+        .{ "fri_anchor", "fri_anchor_preprocessing" },
+        .{ "fri_control", "control_preprocessing" },
+        .{ "fri_input", "input_preprocessing" },
+    }) |fields| try testFixedPairProjection(
+        allocator,
+        @field(A, fields[0]),
+        @field(left_fixed, fields[1]).rows,
+        @field(right_fixed, fields[1]).rows,
+        @field(left_view, fields[0]),
+        @field(right_view, fields[0]),
+    );
+}
+
+fn testFixedPairProjection(allocator: std.mem.Allocator, comptime Air: type, left_metadata: anytype, right_metadata: anytype, left: []const Row(Air), right: []const Row(Air)) !void {
+    const count = try std.math.add(usize, left.len, right.len);
+    if (count > @as(usize, 1) << 28) return error.DetachedPcsFixedDestinationMismatch;
+    const log_size = @max(4, std.math.log2_int_ceil(usize, @max(count, 1)));
+    const height: usize = @as(usize, 1) << @intCast(log_size);
+    const combined = try allocator.alloc(Row(Air), count);
+    defer allocator.free(combined);
+    @memcpy(combined[0..left.len], left);
+    @memcpy(combined[left.len..], right);
+    const expected = try allocator.alloc([]M31, Air.PREPROCESSED_COLUMN_COUNT);
+    defer allocator.free(expected);
+    const rebuilt = try allocator.alloc([]M31, Air.PREPROCESSED_COLUMN_COUNT);
+    defer allocator.free(rebuilt);
+    for (expected, rebuilt) |*a, *b| {
+        a.* = try allocator.alloc(M31, height);
+        b.* = try allocator.alloc(M31, height);
+    }
+    defer for (expected, rebuilt) |a, b| {
+        allocator.free(a);
+        allocator.free(b);
+    };
+    for (expected) |column| @memset(column, M31.zero());
+    device_interaction.writeColumns(Air, combined, log_size, 0, expected);
+    try @import("detached_pcs_fixed_projection_v1.zig").fillPair(Air, left_metadata, right_metadata, log_size, rebuilt);
+    for (expected, rebuilt) |a, b| try std.testing.expectEqualSlices(M31, a, b);
+}
+
 pub fn testFromVerifiedChild(allocator: std.mem.Allocator, child: anytype) !void {
+    try testKeyTemplateParity(allocator, child);
     for ([_]u32{ 1, 2 }) |lane| {
         const owner = try OwnedV1.initWithLaneSelection(allocator, child, lane, false, null);
         defer owner.deinit();

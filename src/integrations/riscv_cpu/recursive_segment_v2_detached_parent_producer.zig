@@ -139,7 +139,7 @@ fn runInner(comptime Engine: type, allocator: std.mem.Allocator, args: Arguments
         expected = prepared.expected;
         child_pins = prepared.child_key_sha256;
         preparation_ns = prepared.preparation_ns;
-        break :blk try proof.produceWithWorkspace(Engine, allocator, prepared.cohort, &expected, child_pins, prepared.publication_mode, if (admitted_key) |key| key.key() else null, args.proof_profile, workspace);
+        break :blk try proof.produceWithWorkspace(Engine, allocator, prepared.cohort, &prepared.fixed_recipe.value, &expected, child_pins, prepared.publication_mode, if (admitted_key) |key| key.key() else null, args.proof_profile, workspace);
     };
     // The cohort and every original proof/prover component have been destroyed.
     // Only durable candidate bytes and fixed claims survive this boundary.
@@ -335,7 +335,7 @@ pub fn deriveKey(allocator: std.mem.Allocator, args: ArgumentsV1) ![32]u8 {
     try requireNewOutput(args.output);
     var prepared = try prepareChildren(allocator, args, null);
     defer prepared.deinit();
-    const bytes = try proof.deriveKey(allocator, prepared.cohort, prepared.child_key_sha256, prepared.publication_mode, args.proof_profile);
+    const bytes = try proof.deriveKey(allocator, prepared.cohort, &prepared.fixed_recipe.value, prepared.child_key_sha256, prepared.publication_mode, args.proof_profile);
     defer allocator.free(bytes);
     var file = try std.fs.cwd().createFile(args.output, .{ .exclusive = true });
     defer file.close();
@@ -363,6 +363,7 @@ pub fn admitKey(allocator: std.mem.Allocator, args: ArgumentsV1) ![32]u8 {
     const regenerated = try proof.deriveKey(
         allocator,
         prepared.cohort,
+        &prepared.fixed_recipe.value,
         prepared.child_key_sha256,
         prepared.publication_mode,
         args.proof_profile,

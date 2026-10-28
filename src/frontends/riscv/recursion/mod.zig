@@ -2,6 +2,7 @@
 
 pub const air = @import("air/mod.zig");
 pub const detached_boundary_preparation_v1 = @import("detached_boundary_preparation_v1.zig");
+pub const detached_boundary_key_shape_v1 = @import("detached_boundary_key_shape_v1.zig");
 pub const detached_child_capture_v1 = @import("detached_child_capture_v1.zig");
 pub const detached_parent_statement_preparation_v1 = @import("detached_parent_statement_preparation_v1.zig");
 pub const detached_segment_recording_components_v1 = @import("detached_segment_recording_components_v1.zig");
@@ -123,6 +124,12 @@ pub const detached_parent_verifier_components_v1 = @import("detached_parent_veri
 pub const detached_parent_components_v1 = @import("detached_parent_components_v1.zig");
 pub const detached_pcs_preparation_v1 = @import("detached_pcs_preparation_v1.zig");
 pub const detached_parent_prepared_v1 = @import("detached_parent_prepared_v1.zig");
+pub const detached_parent_fixed_census_v1 = @import("detached_parent_fixed_census_v1.zig");
+pub const detached_parent_fixed_tree0_rebuild_v1 = @import("detached_parent_fixed_tree0_rebuild_v1.zig");
+pub const detached_parent_key_manifest_v1 = @import("detached_parent_key_manifest_v1.zig");
+pub const detached_parent_fixed_recipe_v1 = @import("detached_parent_fixed_recipe_v1.zig");
+pub const detached_parent_fixed_recipe_test_fixture = @import("detached_parent_fixed_recipe_test_fixture.zig");
+pub const detached_parent_fixed_tables_v1 = @import("detached_parent_fixed_tables_v1.zig");
 pub const detached_parent_protocol_v1 = @import("detached_parent_protocol_v1.zig");
 pub const detached_claims_v1 = @import("detached_claims_v1.zig");
 pub const detached_payload_v1 = @import("detached_payload_v1.zig");

@@ -6,8 +6,10 @@
 //! composition recorder's symbolic scalar.  Constraint order is therefore the
 //! native verifier order:
 //!
-//! * Poseidon2: 430 generated permutation/flag roots, one full-IO shell root,
-//!   then its two independent pairs-batched LogUp roots;
+//! * Wide Poseidon2: 430 generated permutation/flag roots, one full-IO shell
+//!   root, then its two independent pairs-batched LogUp roots;
+//! * Compact Poseidon2: its 289 direct roots already include full-IO mode,
+//!   then the same two independent pairs-batched LogUp roots;
 //! * range-check-(8,8): its one native singleton LogUp root.
 //!
 //! Poseidon2's two boundary claims are deliberately explicit.  The universal
@@ -22,6 +24,7 @@ const M31 = stwo_core.fields.m31.M31;
 const QM31 = stwo_core.fields.qm31.QM31;
 
 const poseidon_air = @import("../../air/memory_commitment/poseidon2_air.zig");
+const compact_poseidon_air = @import("../../air/memory_commitment/poseidon2_universal_equations_v1.zig");
 const table_interaction = @import("../../air/lookups/tables/interaction.zig");
 const table_schema = @import("../../air/lookups/tables/schema.zig");
 const recorder = @import("composition_graph_recorder.zig");
@@ -29,11 +32,14 @@ const recorder = @import("composition_graph_recorder.zig");
 pub const POSEIDON_AUXILIARY_CLAIM_COUNT: usize = poseidon_air.N_SUMS;
 pub const POSEIDON_CONSTRAINT_COUNT: usize =
     poseidon_air.N_CONSTRAINTS + 1 + poseidon_air.N_SUMS;
+pub const COMPACT_POSEIDON_CONSTRAINT_COUNT: usize =
+    compact_poseidon_air.N_CONSTRAINTS + compact_poseidon_air.N_SUMS;
 pub const RANGE_CHECK_8_8_CONSTRAINT_COUNT: usize = 1;
 
 comptime {
     if (POSEIDON_AUXILIARY_CLAIM_COUNT != 2 or
         POSEIDON_CONSTRAINT_COUNT != 433 or
+        COMPACT_POSEIDON_CONSTRAINT_COUNT != 291 or
         table_schema.arity(.range_check_8_8) != 2)
     {
         @compileError("shared-provider composition geometry drifted");
@@ -137,6 +143,8 @@ pub fn recordPoseidon2ForAir(
     denominator_inverse: recorder.Scalar,
     accumulation: *recorder.Scalar,
 ) Error!usize {
+    if (comptime Air != poseidon_air and Air != compact_poseidon_air)
+        @compileError("unadmitted Poseidon2 composition AIR");
     const symbolic_relations = try SymbolicRelations.init(challenges);
 
     const direct_roots = Air.evaluateGeneric(recorder.Scalar, main);
@@ -146,7 +154,9 @@ pub fn recordPoseidon2ForAir(
         root,
         denominator_inverse,
     );
-    recorder.accumulate(
+    // The compact AIR includes enabler * (1 - io) among its direct roots.
+    // The legacy wide AIR needs the separate universal shell root.
+    if (comptime Air == poseidon_air) recorder.accumulate(
         accumulation,
         composition_randomness,
         main[0].mul(recorder.Scalar.one().sub(main[Air.IO_COLUMN])),
@@ -167,7 +177,38 @@ pub fn recordPoseidon2ForAir(
         root,
         denominator_inverse,
     );
-    return Air.N_CONSTRAINTS + 1 + Air.N_SUMS;
+    return Air.N_CONSTRAINTS + @as(usize, @intFromBool(Air == poseidon_air)) + Air.N_SUMS;
+}
+
+test "compact Poseidon composition has exactly the admitted native constraint width" {
+    const manifest_mod = @import("universal_adapter_manifest.zig");
+    const geometry = @import("universal_shared_geometry.zig");
+    const universal = @import("universal_challenges.zig");
+    var builder = recorder.Builder.init(std.testing.allocator);
+    defer builder.deinit();
+    try builder.reserve(0, 50_000);
+    try builder.activate();
+    const Scalar = recorder.Scalar;
+    const main: [compact_poseidon_air.N_MAIN_COLUMNS]Scalar = @splat(Scalar.zero());
+    const partials: [compact_poseidon_air.N_SUMS]Scalar = @splat(Scalar.zero());
+    const draws: [universal.RELATION_COUNT][2]Scalar = @splat(.{ Scalar.zero(), Scalar.one() });
+    const challenges = try recorder.ChallengeSet.init(draws);
+    var accumulation = Scalar.zero();
+    const count = try recordPoseidon2ForAir(
+        compact_poseidon_air,
+        main,
+        Scalar.one(),
+        partials,
+        partials,
+        partials,
+        &challenges,
+        Scalar.one(),
+        Scalar.one(),
+        &accumulation,
+    );
+    const admitted = geometry.PoseidonForManifest(manifest_mod, true, .canonical_only).manifestGeometry(10);
+    try std.testing.expectEqual(@as(usize, admitted.direct_constraints) + admitted.interaction_batches, count);
+    builder.deactivate();
 }
 
 /// Constraint that binds the two row-34 native claims to the single roster

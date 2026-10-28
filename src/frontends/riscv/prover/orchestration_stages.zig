@@ -5,6 +5,7 @@
 //! ```
 
 const std = @import("std");
+const builtin = @import("builtin");
 const pcs_core = @import("stwo_core").pcs;
 const prover_engine = @import("stwo_prover_engine").engine;
 const work_pool = @import("stwo_prover_engine").work_pool;
@@ -192,7 +193,7 @@ pub fn Ops(comptime Owner: type) type {
                 &scheme,
                 transcript_channel,
                 recorder,
-                null,
+                if (comptime builtin.is_test) execution.test_preprocessed_mutation else null,
                 &ignored_tree0,
                 null,
             );

@@ -8,6 +8,7 @@
 //! `defer`. See `proof_workspace.zig`.
 
 const std = @import("std");
+const builtin = @import("builtin");
 const core_air_components = @import("stwo_core").air.components;
 const pcs_core = @import("stwo_core").pcs;
 const pcs_verifier = @import("stwo_core").pcs.verifier;
@@ -142,6 +143,7 @@ pub fn verifyRiscVWithEngineUsingChannel(
         V1Protocol,
         Engine,
         .compatibility,
+        false,
         allocator,
         pcs_config,
         statement,
@@ -173,6 +175,7 @@ pub fn verifyRiscVWithEngineUsingChannelAndQueryCapture(
         V1Protocol,
         Engine,
         .compatibility,
+        false,
         allocator,
         pcs_config,
         statement,
@@ -203,6 +206,7 @@ pub fn verifyRiscVWithEngineUsingChannelAndProofCapture(
         V1Protocol,
         Engine,
         .compatibility,
+        false,
         allocator,
         pcs_config,
         statement,
@@ -233,6 +237,7 @@ pub fn verifyRiscVWithEngineUsingChannelAndRecursiveLeafCapture(
         V1Protocol,
         Engine,
         .compatibility,
+        false,
         allocator,
         pcs_config,
         statement,
@@ -282,6 +287,7 @@ pub fn verifyRiscVSegmentV2WithEngineUsingChannel(
         V2Protocol,
         Engine,
         .authenticated_physical_v2,
+        false,
         allocator,
         pcs_config,
         statement,
@@ -313,6 +319,7 @@ pub fn verifyRiscVSegmentV2WithEngineUsingChannelAndTranscriptExtension(
         V2Protocol,
         Engine,
         .authenticated_physical_v2,
+        false,
         allocator,
         pcs_config,
         statement,
@@ -341,6 +348,41 @@ pub fn verifyRiscVSegmentV2WithEngineUsingChannelAndCapture(
         V2Protocol,
         Engine,
         .authenticated_physical_v2,
+        false,
+        allocator,
+        pcs_config,
+        statement,
+        proof_in,
+        claim,
+        transcript_channel,
+        @as(void, {}),
+        null,
+        null,
+        null,
+        capture,
+    );
+}
+
+/// Qualification-only escape hatch: check every native proof condition except
+/// the independently computed Tree 0 root. A hostile preprocessed table proof
+/// must pass here before it can exercise the outer circuit's own root binding.
+/// Production builds cannot instantiate this function.
+pub fn verifyRiscVSegmentV2WithHostileTree0CaptureForTest(
+    comptime Engine: type,
+    allocator: std.mem.Allocator,
+    pcs_config: pcs_core.PcsConfig,
+    statement: statement_v2.RiscVStatementV2,
+    proof_in: types.ProofForEngine(Engine),
+    claim: *const types.RiscVInteractionClaim,
+    transcript_channel: *Engine.Channel,
+    capture: *VerifiedSegmentV2CaptureForEngine(Engine),
+) !void {
+    if (comptime !builtin.is_test) @compileError("hostile Tree0 capture is test-only");
+    return verifyRiscVWithEngineUsingChannelImpl(
+        V2Protocol,
+        Engine,
+        .authenticated_physical_v2,
+        true,
         allocator,
         pcs_config,
         statement,
@@ -389,6 +431,7 @@ pub fn verifyRiscVSegmentLookupV2WithEngineUsingChannel(
         V2Protocol,
         Engine,
         .authenticated_physical_v2,
+        false,
         allocator,
         pcs_config,
         statement,
@@ -407,6 +450,7 @@ pub fn verifyRiscVWithEngineUsingChannelImpl(
     comptime Protocol: type,
     comptime Engine: type,
     comptime lookup_layout: LookupLayoutV2,
+    comptime allow_test_preprocessed_root_mismatch: bool,
     allocator: std.mem.Allocator,
     pcs_config: pcs_core.PcsConfig,
     statement: Protocol.Statement,
@@ -419,6 +463,8 @@ pub fn verifyRiscVWithEngineUsingChannelImpl(
     recursive_capture_out: ?*RecursiveLeafCaptureForEngine(Engine),
     v2_capture_out: ?*VerifiedSegmentV2CaptureForEngine(Engine),
 ) !void {
+    if (comptime allow_test_preprocessed_root_mismatch and !builtin.is_test)
+        @compileError("hostile Tree0 capture is test-only");
     comptime @import("stwo_prover_api").assertProverEngine(Engine);
     var proof = proof_in;
     var proof_moved = false;
@@ -446,13 +492,15 @@ pub fn verifyRiscVWithEngineUsingChannelImpl(
         return core_verifier.VerificationError.InvalidStructure;
     }
     try @import("../air/native_infrastructure_typed_admission.zig").validateStatement(core_statement, allocator);
-    try statement_validation.verifyPreprocessedRoot(
-        Engine,
-        allocator,
-        pcs_config,
-        core_statement.*,
-        proof.commitment_scheme_proof.commitments.items[0],
-    );
+    if (comptime !allow_test_preprocessed_root_mismatch) {
+        try statement_validation.verifyPreprocessedRoot(
+            Engine,
+            allocator,
+            pcs_config,
+            core_statement.*,
+            proof.commitment_scheme_proof.commitments.items[0],
+        );
+    }
 
     try Protocol.bind(Engine, pcs_config, &statement, channel);
     var lookup_manifest: lookup_physical_v2.Manifest = undefined;

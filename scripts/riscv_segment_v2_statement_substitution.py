@@ -68,6 +68,9 @@ def main() -> None:
         if expected.read_bytes() == changed.read_bytes() or len(json.loads(expected.read_bytes())) != len(json.loads(changed.read_bytes())):
             raise ValueError("expected statements must be distinct with matching wire length")
         admit(bundle / "key.json", node["key"]["sha256"])
+        if name.startswith("parent-"):
+            registry = node["key_registry"]
+            admit(args.admission.parent / registry["path"], registry["sha256"])
         for file in ("claims.json", "proof.bin"):
             path = (bundle / file).resolve()
             pins[str(path)] = sha256(path)
@@ -77,6 +80,8 @@ def main() -> None:
         for name, bundle, verifier, node, expected, changed, options in prepared:
             for accept, statement in ((True, expected), (False, changed)):
                 argv = [str(verifier), *options, str(bundle), node["key"]["sha256"], str(statement)]
+                if name.startswith("parent-"):
+                    argv.append(str((args.admission.parent / node["key_registry"]["path"]).resolve()))
                 start = time.monotonic_ns()
                 result = subprocess.run(argv, capture_output=True, text=True, timeout=120)
                 case = {"node": name, "expected_acceptance": accept, "argv": argv, "exit_code": result.returncode,

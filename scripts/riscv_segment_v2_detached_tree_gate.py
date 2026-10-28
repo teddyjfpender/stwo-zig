@@ -75,8 +75,10 @@ def main() -> None:
     seed = manifest["initial_memory_word"]
     if type(seed) is not int or not 0 <= seed <= 0xffffffff:
         raise ValueError("initial memory word must fit u32")
-    for node in leaves + [node for level in levels for node in level]:
-        for field in ("key", "expected"):
+    for node, fields in [(node, ("key", "expected")) for node in leaves] + [
+        (node, ("key", "expected", "key_registry")) for level in levels for node in level
+    ]:
+        for field in fields:
             value = node[field]
             value["resolved"] = str(admit(manifest_path.parent / value["path"], digest(value["sha256"])))
     for role in ("leaf_producer", "parent_producer", "leaf_verifier", "parent_verifier"):
@@ -147,7 +149,8 @@ def main() -> None:
                 "--proof-profile", manifest["profile"], "--verifier", str(args.leaf_verifier),
                 "--bundle", str(directory), "--key-sha256", node["key"]["sha256"],
                 "--expected-wire", node["expected"]["resolved"], "--output", str(gate)] +
-                (["--require-root"] if count == 1 else []))
+                (["--require-root"] if count == 1 else []) +
+                (["--require-transcript-equivalence"] if transcript_gate else []))
             accepted_leaf = json.loads(gate.read_bytes())
             if not accepted_leaf["passed"]:
                 raise RuntimeError("leaf proof gate did not pass")
@@ -172,6 +175,8 @@ def main() -> None:
                         "--verifier", str(args.parent_verifier), "--verifier-sha256", args.parent_verifier_sha256,
                         "--producer", str(args.parent_producer), "--producer-sha256", args.parent_producer_sha256,
                         "--bundle", str(directory), "--parent-key", node["key"]["resolved"], "--key-sha256", node["key"]["sha256"],
+                        "--key-registry", node["key_registry"]["resolved"],
+                        "--key-registry-sha256", node["key_registry"]["sha256"],
                         "--expected-root", node["expected"]["resolved"], "--expected-root-sha256", node["expected"]["sha256"],
                         "--publication-mode", "root" if root else "intermediate", "--child-family", "segment" if level_index == 0 else "parent",
                         "--memory-profile", "continuation" if level_index == 0 and index > 0 else "initial", "--output", str(gate)]

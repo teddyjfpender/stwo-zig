@@ -136,6 +136,46 @@ test "V2 raw program matches every independently recorded native operation" {
     ));
 }
 
+test "V2 program rejects a re-sealed instruction sequence outside the admitted plan" {
+    const program_impl = @import("../transcript_program_v2_program.zig");
+    var fixture = try Fixture.init(std.testing.allocator);
+    defer fixture.deinit();
+    try fixture.program.validateAgainst(
+        &fixture.plan,
+        config,
+        &fixture.data,
+        &component_descs,
+        &infra_descs,
+    );
+
+    var changed: ?usize = null;
+    for (fixture.program.instructions, 0..) |instruction, index| {
+        if (instruction.kind == .trace_commitment and instruction.args[0] == 1) {
+            changed = index;
+            break;
+        }
+    }
+    const index = changed orelse return error.TestUnexpectedResult;
+    const original_instruction = fixture.program.instructions[index];
+    const original_identity = fixture.program.identity;
+    defer {
+        fixture.program.instructions[index] = original_instruction;
+        fixture.program.identity = original_identity;
+    }
+    // Four commitments still exist and the altered program has a valid
+    // self-hash. Only independent expansion from the admitted plan can reject
+    // the duplicate Tree-2 mix and missing Tree-1 mix.
+    fixture.program.instructions[index].args[0] = 2;
+    fixture.program.identity = program_impl.programIdentity(&fixture.program);
+    try std.testing.expectError(error.AuthorityMismatch, fixture.program.validateAgainst(
+        &fixture.plan,
+        config,
+        &fixture.data,
+        &component_descs,
+        &infra_descs,
+    ));
+}
+
 test "V2 transcript refuses physical claims without an authenticated batch manifest" {
     var fixture = try Fixture.init(std.testing.allocator);
     defer fixture.deinit();
