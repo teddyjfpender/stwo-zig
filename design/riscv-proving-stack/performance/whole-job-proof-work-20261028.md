@@ -1,5 +1,12 @@
 # Whole-block proof work: architecture decision after direct aggregation
 
+Latest complete-bundle evidence: [execution partitioning](closed-tiling-m5-20261028.md)
+reduces the same 1.31M-cycle mixed guest from 75.250 to 39.826 s by using one
+execution proof rather than four, without dropping global closure. Two wider
+native-domain layouts [regressed and were reverted](native-domain-tiling-m5-20261028.md).
+Fewer columns alone did not reduce recursive area. Preserve the original row
+domains until a complete-work model and measurements justify changing them.
+
 Follow-up: [exact projection reuse](projection-reuse-m5-20261028.md) now removes
 identical native/companion physical batches in an explicit joint protocol.
 Matched diagnostic proof-phase improvement is only 2–8% over the unpruned
