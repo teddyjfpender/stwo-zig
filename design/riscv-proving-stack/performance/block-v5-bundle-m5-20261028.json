@@ -1,0 +1,38 @@
+{
+  "status": "small-fixture complete bundle; not an Ethereum block benchmark",
+  "date": "2026-10-28",
+  "host": "Apple M5",
+  "backend": "CPU",
+  "optimize": "ReleaseFast",
+  "command": "STWO_BLOCK_V5_PROVE_PROFILE=1 python3 scripts/zig_protocol_test.py src/frontends/riscv/block_v5_cpu_profile_test_root.zig -OReleaseFast",
+  "measurement_boundary": "Driver.run stage timers; excludes fixture ELF generation, guest preflight, test compilation and unrelated root tests",
+  "proof_file_accounting": "base bundle files only; the exact recursive forest is verified separately",
+  "samples": [
+    {
+      "profile": "diagnostic_q8_pow0",
+      "fri_queries": 8,
+      "pow_bits": 0,
+      "segments": 2,
+      "memory_events": 101,
+      "base_proof_files": 10,
+      "collection_ms": 963,
+      "base_and_recursive_leaves_ms": 7368,
+      "forest_ms": 18461,
+      "detached_verification_ms": 1843,
+      "complete_bundle_verified": true
+    },
+    {
+      "profile": "csp_q70_pow26",
+      "fri_queries": 70,
+      "pow_bits": 26,
+      "segments": 3,
+      "memory_events": 101,
+      "base_proof_files": 12,
+      "collection_ms": 966,
+      "base_and_recursive_leaves_ms": 29701,
+      "forest_ms": 123023,
+      "detached_verification_ms": 2034,
+      "complete_bundle_verified": true
+    }
+  ]
+}

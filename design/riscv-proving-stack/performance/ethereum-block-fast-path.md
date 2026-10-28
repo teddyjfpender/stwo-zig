@@ -325,18 +325,22 @@ execution leaves. An independently supplied block policy must bind the ELF,
 fork rules, parent state root and claimed output; a prover-generated policy
 is insufficient for an Ethereum-block claim.
 
-The experimental priority has changed accordingly. First restore and qualify
-the existing register-local custody plus RAM2 *complete bundle* at canonical
-security. The archived full-driver q8 fixture initially stopped at
-`InvalidV5FullFusedTrees` after collection. Lab commit `4f00a4c8a` corrects
-the fused adapters' trace-tree versus appended composition-tree handling; the
-fixture then completes its first sidecar and recursive leaf, but the fused
-SHA/Keccak caller proof still fails `ConstraintsNotSatisfied` during OODS.
-Neither outcome is a qualified bundle or a performance measurement. The next
-gate is to locate the caller equation or composition mismatch, preserve the
-full component roster, and obtain a fresh detached two-segment verification.
-In parallel, remove the measured native and sidecar
-reconstruction/recommitment tax through the versioned event bridge.
+The experimental priority has changed accordingly. First qualify the existing
+register-local custody plus RAM2 *complete bundle* at canonical security.
+Lab commit `ded203207` now passes a real-ELF, two-segment q8 bundle and a
+three-segment 70-query/26-PoW bundle through base publication, exact recursive
+forest and fresh detached verification. The path had three protocol defects:
+Keccak output openings used the component step rather than the shared
+composition step; caller program/state interaction columns were committed in
+a different order from their verifier offsets; and five-tree caller preflight
+used the larger fixed/main Merkle log as its FRI degree bound. The record at
+`block-v5-bundle-m5-20261028.json` gives their small-fixture phase timings.
+This clears the positive complete-bundle gate, not the hostile or full-block
+qualification gates. Next run changed endpoint, tuple, count, order and root
+substitutions against the detached receiver, then benchmark the complete
+block profile. In parallel, remove the measured native and sidecar
+reconstruction/recommitment tax through the versioned event bridge specified
+in `block-v6-architecture.md`.
 Then fuse proof families and schedule their GPU/recursive work. Replace the
 external sorter only after a full-block phase trace shows its wall time and
 memory traffic on the selected hardware. Smaller hash/lookup encodings from
