@@ -1,14 +1,11 @@
 # RISC-V architecture: remove wrapper amplification and global register traffic
 
-Status: measured cost census and implementation design, **not an implemented
-replacement protocol or a measured 10x block speedup**. The canonical positive
-fixture passes fresh verification. Its forest still exports global obligations;
-the detached bundle receiver closes those with separately verified base proofs.
-
-Instrumented implementation and run evidence: lab commit
-[`7f77b5e87`](https://github.com/teddyjfpender/stwo-zig/commit/7f77b5e87).
-The current branch retains the architecture and receipts; the archived block
-implementation remains on `codex/ethereum-block-fast-lab`.
+Status: a [direct-native batch experiment](direct-native-batch-m5-20261028.md)
+now passes fresh proofs at q70/PoW26 and measures **17.0x faster recursion**
+on two tiny adjacent native segments (three eight-worker M5 runs). This is
+**not a measured block speedup or a complete replacement block protocol**.
+The earlier canonical complete-bundle fixture still exports global obligations
+from its forest; its detached receiver closes them with separate base proofs.
 
 ## Two distinct order-of-magnitude opportunities
 
@@ -21,9 +18,13 @@ These attack different work. Do not multiply their ratios. A complete block
 profile must also include source authentication, global buses, precompiles and
 the final recursive closure. The native forest alone is insufficient.
 
-The stronger recursion finding changes implementation priority. First build a
-direct-native batch receiver and proof. Do not spend another iteration shaving
-generic G rows before testing whether most wrapper verification can disappear.
+The direct-native batch now demonstrates that wrapper verification can be
+removed: 32.425 to 1.910 seconds for the focused recursive phase, with 37.88x
+fewer G rows and 32.97x fewer AIR cells. The next gate is larger batches and
+a complete global receiver, followed by a parent that consumes those batches.
+The large-tree counterfactual limits an eight-child-only change to roughly
+7.3x G-work reduction; cheaper upper proofs and memory redesign are still
+needed. Do not transfer the tiny-fixture runtime ratio to Ethereum blocks.
 
 ## New measurement: where recursive hash work comes from
 

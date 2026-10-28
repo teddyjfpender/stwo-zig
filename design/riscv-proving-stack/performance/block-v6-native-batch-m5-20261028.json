@@ -1,0 +1,256 @@
+{
+  "schema": "stwo-zig/direct-native-batch-comparison/v1",
+  "scope": "Two real adjacent one-instruction native proofs; global providers remain open",
+  "profile": "csp_q70_pow26",
+  "timing_scope": "Recursive preparation, key/setup, proving and encode/fresh verification; baseline excludes its deliberate invalid-edge graph probe",
+  "limitations": [
+    "Tiny fixture, not a block speedup",
+    "No GPU measurement",
+    "AIR cells exclude lookup providers and PCS/quotient expansion",
+    "Final proof bytes exclude retained native and intermediate proofs",
+    "Native-plus-recursive is a phase sum, not complete command latency",
+    "Baseline includes small harness checks outside the excluded graph probe"
+  ],
+  "samples": [
+    {
+      "log": "block-v6-pooled-comparison.log",
+      "sha256": "db16b293b8b1225cb3b3074145b4d6d978aeb0d4de2f957886b396b88ef49f0f",
+      "workers": 8,
+      "direct": {
+        "verified": "true",
+        "profile": "csp_q70_pow26",
+        "children": 2,
+        "native_ns": 463520709,
+        "prepare_ns": 712196750,
+        "setup_ns": 192325708,
+        "prove_ns": 847756167,
+        "encode_verify_ns": 144335167,
+        "recursive_ns": 1896613792,
+        "g_rows": 128800,
+        "air_cells": 36828460,
+        "proof_bytes": 761485,
+        "globals_open": "true",
+        "native_plus_recursive_ns": 2360134501
+      },
+      "wrappers": {
+        "profile": "csp_q70_pow26",
+        "children": 2,
+        "native_ns": 465970750,
+        "recursive_ns": 31895293917,
+        "excluded_edge_audit_ns": 197178792,
+        "g_rows": 4878496,
+        "air_cells": 1214347608,
+        "proof_bytes": 977158,
+        "globals_open": "true",
+        "native_plus_recursive_ns": 32361264667
+      }
+    },
+    {
+      "log": "block-v6-pooled-comparison-2.log",
+      "sha256": "2e86ff5b78be54331a1f8f0e77693717cc75dd4dc1618315fcd70602c7956637",
+      "workers": 8,
+      "direct": {
+        "verified": "true",
+        "profile": "csp_q70_pow26",
+        "children": 2,
+        "native_ns": 465372416,
+        "prepare_ns": 711017250,
+        "setup_ns": 194857417,
+        "prove_ns": 860400791,
+        "encode_verify_ns": 143810542,
+        "recursive_ns": 1910086000,
+        "g_rows": 128800,
+        "air_cells": 36828460,
+        "proof_bytes": 761485,
+        "globals_open": "true",
+        "native_plus_recursive_ns": 2375458416
+      },
+      "wrappers": {
+        "profile": "csp_q70_pow26",
+        "children": 2,
+        "native_ns": 468195375,
+        "recursive_ns": 32425040625,
+        "excluded_edge_audit_ns": 194837083,
+        "g_rows": 4878496,
+        "air_cells": 1214347608,
+        "proof_bytes": 977158,
+        "globals_open": "true",
+        "native_plus_recursive_ns": 32893236000
+      }
+    },
+    {
+      "log": "block-v6-pooled-comparison-3.log",
+      "sha256": "c86c370da6fff204298c58dba8307bcc5ecacb66619edc5aeca1181766a03653",
+      "workers": 8,
+      "direct": {
+        "verified": "true",
+        "profile": "csp_q70_pow26",
+        "children": 2,
+        "native_ns": 475686959,
+        "prepare_ns": 749315958,
+        "setup_ns": 195230125,
+        "prove_ns": 871068250,
+        "encode_verify_ns": 149855375,
+        "recursive_ns": 1965469708,
+        "g_rows": 128800,
+        "air_cells": 36828460,
+        "proof_bytes": 761485,
+        "globals_open": "true",
+        "native_plus_recursive_ns": 2441156667
+      },
+      "wrappers": {
+        "profile": "csp_q70_pow26",
+        "children": 2,
+        "native_ns": 477030666,
+        "recursive_ns": 33048260501,
+        "excluded_edge_audit_ns": 201465666,
+        "g_rows": 4878496,
+        "air_cells": 1214347608,
+        "proof_bytes": 977158,
+        "globals_open": "true",
+        "native_plus_recursive_ns": 33525291167
+      }
+    }
+  ],
+  "medians": {
+    "direct": {
+      "native_ns": 465372416,
+      "recursive_ns": 1910086000,
+      "native_plus_recursive_ns": 2375458416,
+      "g_rows": 128800,
+      "air_cells": 36828460,
+      "proof_bytes": 761485
+    },
+    "wrappers": {
+      "native_ns": 468195375,
+      "recursive_ns": 32425040625,
+      "native_plus_recursive_ns": 32893236000,
+      "g_rows": 4878496,
+      "air_cells": 1214347608,
+      "proof_bytes": 977158
+    }
+  },
+  "wrapper_over_direct_ratios": {
+    "native_ns": 1.0060660213260255,
+    "recursive_ns": 16.97569670946753,
+    "native_plus_recursive_ns": 13.847110847508938,
+    "g_rows": 37.87652173913043,
+    "air_cells": 32.973075930951225,
+    "proof_bytes": 1.2832268527942112
+  },
+  "tree_work_counterfactual": {
+    "assumptions": "Uniform tiny-native cost and unchanged upper-parent cost; excludes global proofs, batch binding, padding and changed parent geometry. Not runtime or capacity qualification. Only two-child batches have proof evidence here.",
+    "rows": [
+      {
+        "native_proofs": 67,
+        "batch_size": 4,
+        "batch_proofs": 17,
+        "upper_binary_parents": 16,
+        "old_g": 317794736.0,
+        "new_g": 80309936.0,
+        "work_ratio": 3.957103589274433,
+        "implemented_count_cap": true
+      },
+      {
+        "native_proofs": 67,
+        "batch_size": 8,
+        "batch_proofs": 9,
+        "upper_binary_parents": 8,
+        "old_g": 317794736.0,
+        "new_g": 42312368.0,
+        "work_ratio": 7.510681888567428,
+        "implemented_count_cap": true
+      },
+      {
+        "native_proofs": 67,
+        "batch_size": 16,
+        "batch_proofs": 5,
+        "upper_binary_parents": 4,
+        "old_g": 317794736.0,
+        "new_g": 23313584.0,
+        "work_ratio": 13.631311942428072,
+        "implemented_count_cap": false
+      },
+      {
+        "native_proofs": 512,
+        "batch_size": 4,
+        "batch_proofs": 128,
+        "upper_binary_parents": 127,
+        "old_g": 2460067456.0,
+        "new_g": 636184192.0,
+        "work_ratio": 3.8669106949454033,
+        "implemented_count_cap": true
+      },
+      {
+        "native_proofs": 512,
+        "batch_size": 8,
+        "batch_proofs": 64,
+        "upper_binary_parents": 63,
+        "old_g": 2460067456.0,
+        "new_g": 332203648.0,
+        "work_ratio": 7.4052993421673685,
+        "implemented_count_cap": true
+      },
+      {
+        "native_proofs": 512,
+        "batch_size": 16,
+        "batch_proofs": 32,
+        "upper_binary_parents": 31,
+        "old_g": 2460067456.0,
+        "new_g": 180213376.0,
+        "work_ratio": 13.650859390148709,
+        "implemented_count_cap": false
+      },
+      {
+        "native_proofs": 4096,
+        "batch_size": 4,
+        "batch_proofs": 1024,
+        "upper_binary_parents": 1023,
+        "old_g": 19713787520.0,
+        "new_g": 5122721408.0,
+        "work_ratio": 3.8483036553995635,
+        "implemented_count_cap": true
+      },
+      {
+        "native_proofs": 4096,
+        "batch_size": 8,
+        "batch_proofs": 512,
+        "upper_binary_parents": 511,
+        "old_g": 19713787520.0,
+        "new_g": 2690877056.0,
+        "work_ratio": 7.3261569033944,
+        "implemented_count_cap": true
+      },
+      {
+        "native_proofs": 4096,
+        "batch_size": 16,
+        "batch_proofs": 256,
+        "upper_binary_parents": 255,
+        "old_g": 19713787520.0,
+        "new_g": 1474954880.0,
+        "work_ratio": 13.365688528722995,
+        "implemented_count_cap": false
+      }
+    ]
+  },
+  "provenance": {
+    "implementation_commit": "46772b29518826ee6d5db098e5d95068abf9a90b",
+    "hardware": "Apple M5 Max, 64 GiB unified memory, 18 logical CPUs",
+    "compiler": "Zig 0.15.2 ReleaseFast",
+    "workers": 8,
+    "run_order": "q8 direct, canonical direct, canonical wrapped; repeated three times, sequentially",
+    "first_run_command": "STWO_NATIVE_BATCH_WORKERS=8 python3 scripts/zig_protocol_test.py src/frontends/riscv/block_v6_native_batch_test_root.zig -OReleaseFast --test-filter block-v6",
+    "following_runs": "Same cached test executable and seed, no rebuild",
+    "source_sha256": {
+      "src/frontends/riscv/block_v6_native_batch_test_root.zig": "41b001c5293b2f0ff3d8f80a371c3d70f87c8a738c19fcfd20e5f74fb5c0ead6",
+      "src/frontends/riscv/prover/tests/block_v5_lightweight_native_proof_test.zig": "1588653d3452877529684a54ff90f30eebe8f8799e5d746077654e7b722900b4",
+      "src/frontends/riscv/prover/tests/block_v6_native_batch_proof_test.zig": "3aca3fb7a17f462c16fa4b431b7bf1e3b7102b4afe4cf4bb8c4952c147909eb8",
+      "src/frontends/riscv/recursion/air/block_v6_native_batch_edges_v1.zig": "bd0826a3a23611bd130c8a3261e695275b3f3e276a44d2554e9611ebae006482",
+      "src/frontends/riscv/recursion/block_v6_native_batch_prepare_v1.zig": "5ccd29dc1329a2097b718261abce2c3f692794a05e12c88b3ad1740b8ae158ec",
+      "src/frontends/riscv/recursion/block_v6_native_batch_protocol_v1.zig": "b0f8cdc96635bfb4d8e924921cec94373102b34a3848280ecb76c0fed915d1e0",
+      "src/frontends/riscv/recursion/block_v6_native_batch_public_v1.zig": "aa434fec61fe029bda0984f8f2e5306ace4045b542d6354c050241bea458cd2a"
+    },
+    "selected_test_result": "All 10 tests passed in each of three runs",
+    "peak_memory": "not measured; AIR cells are not peak memory"
+  }
+}
