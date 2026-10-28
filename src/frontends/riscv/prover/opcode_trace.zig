@@ -130,6 +130,8 @@ pub fn generate(
     result.direct_semantic_audit_performed = false;
     var log_sizes: [MAX_COMPONENTS]u32 = undefined;
     var domain_sizes: [MAX_COMPONENTS]usize = undefined;
+    var domain_starts: [MAX_COMPONENTS]usize = undefined;
+    var family_domain_rows: [trace.N_FAMILIES]usize = @splat(0);
     var n_cols: [MAX_COMPONENTS]usize = undefined;
     var row_counters: [trace.N_FAMILIES]usize = .{0} ** trace.N_FAMILIES;
     var first_component: [trace.N_FAMILIES]usize = undefined;
@@ -160,6 +162,8 @@ pub fn generate(
         family_component_counts[family_index] += 1;
         log_sizes[component_index] = desc.log_size;
         domain_sizes[component_index] = @as(usize, 1) << @intCast(desc.log_size);
+        domain_starts[component_index] = family_domain_rows[family_index];
+        family_domain_rows[family_index] = try std.math.add(usize, family_domain_rows[family_index], domain_sizes[component_index]);
         n_cols[component_index] = if (use_local_zero) try local_zero.mainColumnCount(desc.family) else trace.nColumnsForFamily(desc.family);
         if (desc.n_columns != n_cols[component_index]) return error.InvalidOpcodeColumnRecipe;
 
@@ -207,6 +211,7 @@ pub fn generate(
         result: *Columns,
         placements: *const [MAX_COMPONENTS]?infra.BitReversalTable,
         domain_sizes: *const [MAX_COMPONENTS]usize,
+        domain_starts: *const [MAX_COMPONENTS]usize,
         first_component: *const [trace.N_FAMILIES]usize,
         family_component_counts: *const [trace.N_FAMILIES]usize,
         lookup_counters: *lookup_counter.Set,
@@ -237,11 +242,11 @@ pub fn generate(
                 const family_row = offsets[family_index];
                 offsets[family_index] += 1;
                 if (work.family_component_counts[family_index] == 0) continue;
-                const shard_rows = work.domain_sizes[work.first_component[family_index]];
-                const shard_index = family_row / shard_rows;
-                if (shard_index >= work.family_component_counts[family_index]) continue;
-                const component_index = work.first_component[family_index] + shard_index;
-                const row_index = family_row - shard_index * shard_rows;
+                const first = work.first_component[family_index];
+                const starts = work.domain_starts[first..][0..work.family_component_counts[family_index]];
+                const shard_index = @import("../air/native_opcode_tiling_v1.zig").shardIndex(starts, family_row) orelse continue;
+                const component_index = first + shard_index;
+                const row_index = family_row - work.domain_starts[component_index];
                 if (row_index >= work.domain_sizes[component_index]) continue;
                 const physical_row = work.placements[component_index].?.map(row_index);
                 trace.validateFamilyRow(row, family) catch {
@@ -320,6 +325,7 @@ pub fn generate(
             .result = &result,
             .placements = &placements,
             .domain_sizes = &domain_sizes,
+            .domain_starts = &domain_starts,
             .first_component = &first_component,
             .family_component_counts = &family_component_counts,
             .lookup_counters = &worker_counters[worker],
@@ -349,9 +355,8 @@ pub fn generate(
 
     for (0..statement.n_components) |component_index| {
         const family_index = @intFromEnum(statement.component_descs[component_index].family);
-        const shard_index = component_index - first_component[family_index];
         result.components[component_index].n_real_rows = @min(
-            row_counters[family_index] -| shard_index * domain_sizes[first_component[family_index]],
+            row_counters[family_index] -| domain_starts[component_index],
             domain_sizes[component_index],
         );
     }

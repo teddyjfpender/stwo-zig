@@ -55,3 +55,21 @@ partial nonfinal shards, reordered families and oversized tails. Test more
 than one full 2^20 shard separately if the measured guest does not cross it.
 This experiment does not close all global proof families recursively and
 cannot establish seconds-level Ethereum proving by itself.
+
+## Rejected first layout and revised selection
+
+The first canonical one-segment result at the 2^20 cap regressed from 39.826 s
+to 68.890 s. Native cells increased from 95.95M to 178.26M, companion auxiliary
+cells from 146.80M to 288.36M and recursive cells from 499.79M to 574.48M.
+Reducing component count alone did not reduce verifier work. The cause includes
+padding a family just above a power-of-two boundary to the next full domain.
+
+Revised transfer: greedy dyadic decomposition of each family's row population,
+bounded by 2^20, with a final tail of at most 2^16 rows. This is a matrix tiling
+choice, not a new polynomial commitment. Full tiles are nonincreasing powers of
+two; only the last tile may be partial. It preserves the old cap's padded area
+while coalescing groups of full log-16 shards. Row routing uses explicit
+prefix boundaries rather than division by one uniform family capacity.
+Qualification includes old uniform shards, descending domains, multiple full
+log-20 shards followed by smaller domains, and boundary row placement.
+The same complete-bundle comparison must decide whether it actually helps.

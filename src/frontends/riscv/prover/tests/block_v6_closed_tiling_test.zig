@@ -17,7 +17,7 @@ test "block-v6 closed mixed tiling complete bundles" {
 fn run(selected: Profile) !void {
     const a = std.testing.allocator;
     const iterations = if (std.posix.getenv("STWO_CLOSED_TILE_ITERATIONS")) |value| try std.fmt.parseInt(u32, value, 10) else 4096;
-    if (iterations > 262144) return error.InvalidClosedTileIterations;
+    if (iterations > 1 << 20) return error.InvalidClosedTileIterations;
     const code = try Guest.instructions(iterations);
     const elf = @import("../../runner/guest_precompile/test_elf.zig").buildReleaseProgram(code.len, &code, 256, Guest.profile);
     const oracle = [_]u8{1};
