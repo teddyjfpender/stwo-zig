@@ -18,27 +18,7 @@ fn compare(selected: Profile) !void {
     const a = std.testing.allocator;
     const iterations = if (std.posix.getenv("STWO_REGISTER_COMPARE_ITERATIONS")) |raw| try std.fmt.parseInt(u32, raw, 10) else 4096;
     if (iterations < 4096 or iterations > 65536 or iterations % 4096 != 0) return error.InvalidRegisterComparisonSize;
-    const prefix = [_]u32{
-        0x001002b7,                                                  0x10028293,                                        0x08028313,
-        @import("../../isa/sha256_compression_v1.zig").encode(5, 6), @import("../../isa/custom0.zig").encodeKeccakf(5), @import("../../isa/sha256_compression_v1.zig").encode(5, 6),
-        0x00100137, // x2 = writable RAM base.
-        0x00000193, // x3 = 0.
-    };
-    var instructions = prefix ++ [_]u32{
-        0x000013b7, // LUI x7, iterations / 4096.
-        0x00118193, // ADDI x3, x3, 1.
-        0x02312023, // SW x3, 32(x2).
-        0x02012203, // LW x4, 32(x2).
-        0xfff38393, // ADDI x7, x7, -1.
-        0xfe0398e3, // BNE x7, x0, -16.
-        0x00100137,
-        0x00100193,
-        0x00312223,
-        0x00312423,
-        0x00312023,
-        0x0000006f,
-    };
-    instructions[prefix.len] = (iterations & 0xfffff000) | (7 << 7) | 0x37;
+    const instructions = try @import("block_v6_mixed_guest_test_support.zig").instructions(iterations);
     const elf = @import("../../runner/guest_precompile/test_elf.zig").buildReleaseProgram(instructions.len, &instructions, 256, profile);
     const oracle = [_]u8{1};
     const config = selected.config();
