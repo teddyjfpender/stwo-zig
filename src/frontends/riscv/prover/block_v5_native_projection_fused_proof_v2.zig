@@ -33,6 +33,7 @@ const Canonical = @import("../recursion/air/universal_provider_relations.zig");
 const Schema = @import("../air/lookups/tables/schema.zig");
 const Frame = @import("../air/block/memory_event.zig").Frame;
 const Empty = @import("block_v5_empty_opcode_memory_v1.zig");
+const Joint = @import("block_v6_joint_components_v1.zig");
 
 pub const TAG: u32 = 0x42354650;
 pub const VERSION: u32 = 2;
@@ -114,8 +115,12 @@ pub fn ForBackend(comptime Backend: type) type {
         /// Both inputs are genuine producer objects; neither is a fabricated
         /// verifier receipt. The access prefix is consumed, native is retained.
         pub fn proveForNativeFirstRound(a: std.mem.Allocator, first: *FirstRound, inputs: []const Memory.Input, slots: []const Memory.Slot, projections: []const Source.Slot, sealed: Seal.Sealed, pins: Seal.Pins, entries: []const Seal.Entry, catalog: Catalog.Admission, native: *Native.ForBackend(Backend).FirstRound, index: u32, frame: Frame, witness_root: Digest) !Proof {
+            return proveForNativeFirstRoundWithJoint(a, first, inputs, slots, projections, sealed, pins, entries, catalog, native, index, frame, witness_root, null);
+        }
+
+        pub fn proveForNativeFirstRoundWithJoint(a: std.mem.Allocator, first: *FirstRound, inputs: []const Memory.Input, slots: []const Memory.Slot, projections: []const Source.Slot, sealed: Seal.Sealed, pins: Seal.Pins, entries: []const Seal.Entry, catalog: Catalog.Admission, native: *Native.ForBackend(Backend).FirstRound, index: u32, frame: Frame, witness_root: Digest, joint: ?Joint.Context) !Proof {
             if (!native.owns_scheme or native.index != index or !native.native.native_only_v5 or native.native.failed or
-                !native.native.tables_ready or native.native.interaction_ready or native.scheme.trees.items.len != 2 or
+                !native.native.tables_ready or native.native.interaction_ready != (joint != null) or native.scheme.trees.items.len != 2 or
                 !std.meta.eql(native.scheme.config, pins.config)) return error.UntrustedV5FullFusedNativePhase;
             try native.pin.require(pins, &native.native.statement.public_data);
             try native.template.admit(&native.native.statement, native.template_id);
@@ -143,10 +148,10 @@ pub fn ForBackend(comptime Backend: type) type {
             try Native.admitEntry(index, native.roots, native.instance_id, sealed, entries);
             const empty_entry: ?Seal.Entry = if (slots.len == 0) try Empty.firstRoundEntryForMode(a, &native.native.statement, frame, native.entry(), 0, sealed.register_custody_mode) else null;
             try admit(sealed, pins, entries, index, native.template_id, native.instance_id, native.roots, witness_root, frame, projections, slots, empty_entry);
-            return proveBound(a, first, native.native.main.items, inputs, slots, projections, sealed, native.template_id, native.instance_id, index, witness_root, native.roots);
+            return proveBound(a, first, native.native.main.items, inputs, slots, projections, sealed, native.template_id, native.instance_id, index, witness_root, native.roots, joint);
         }
 
-        fn proveBound(a: std.mem.Allocator, first: *FirstRound, main: []const Column, inputs: []const Memory.Input, slots: []const Memory.Slot, projections: []const Source.Slot, sealed: Seal.Sealed, template: Digest, native: Digest, index: u32, witness_root: Digest, roots: [2]Digest) !Proof {
+        fn proveBound(a: std.mem.Allocator, first: *FirstRound, main: []const Column, inputs: []const Memory.Input, slots: []const Memory.Slot, projections: []const Source.Slot, sealed: Seal.Sealed, template: Digest, native: Digest, index: u32, witness_root: Digest, roots: [2]Digest, joint: ?Joint.Context) !Proof {
             try validateRoster(projections, slots, first.main_logs, sealed.register_custody_mode);
             if (!first.owns_scheme or first.scheme.trees.items.len != (if (slots.len == 0) @as(usize, 2) else 3) or inputs.len != slots.len or first.snapshots.len != slots.len or
                 !std.meta.eql(first.roots[0..2].*, roots) or !std.meta.eql(first.roots[2], witness_root)) return error.UntrustedV5FullFusedFirstRound;
@@ -215,8 +220,17 @@ pub fn ForBackend(comptime Backend: type) type {
                 component.inner.quotient_cache = &cache;
                 handles[projections.len + i] = component.asProverComponent();
             }
+            // Both physical claim sets precede either interaction commitment.
+            if (joint) |joined| try joined.mix(&channel);
             try mixClaims(&channel, template, native, index, projections, slots, claims, memory_claims);
+            if (joint) |joined| try first.scheme.commitBorrowedStreaming(a, joined.columns, 8, &channel);
             try first.scheme.commitBorrowedStreaming(a, interactions.items, 8, &channel);
+            if (joint) |joined| {
+                var combined = try Joint.Combined(true).init(a, joined.native.proving.components.active(), handles, slots.len != 0);
+                defer combined.deinit(a);
+                first.owns_scheme = false;
+                return .{ .stark = try engine.prove.prove(Backend, suite.Hasher, suite.MerkleChannel, a, combined.handles, &channel, first.scheme), .claims = claims, .memory_claims = memory_claims };
+            }
             first.owns_scheme = false;
             return .{ .stark = try engine.prove.prove(Backend, suite.Hasher, suite.MerkleChannel, a, handles, &channel, first.scheme), .claims = claims, .memory_claims = memory_claims };
         }
@@ -225,6 +239,10 @@ pub fn ForBackend(comptime Backend: type) type {
         /// its just-verified native value, not transport a receipt as authority.
         /// This function consumes the STARK and all claims on every path.
         pub fn verifyOwned(a: std.mem.Allocator, received: Proof, sealed: Seal.Sealed, pins: Seal.Pins, entries: []const Seal.Entry, native: *const Native.OpenReceipt, index: u32, frame: Frame, projections: []const Source.Slot, slots: []const Memory.Slot, fixed_logs: []const u32, main_logs: []const u32, witness_root: Digest, empty_entry: ?Seal.Entry) !Verified {
+            return verifyOwnedWithJoint(a, received, sealed, pins, entries, native, index, frame, projections, slots, fixed_logs, main_logs, witness_root, empty_entry, null);
+        }
+
+        pub fn verifyOwnedWithJoint(a: std.mem.Allocator, received: Proof, sealed: Seal.Sealed, pins: Seal.Pins, entries: []const Seal.Entry, native: *const Native.OpenReceipt, index: u32, frame: Frame, projections: []const Source.Slot, slots: []const Memory.Slot, fixed_logs: []const u32, main_logs: []const u32, witness_root: Digest, empty_entry: ?Seal.Entry, joint: ?Joint.Context) !Verified {
             var proof = received;
             var owns = true;
             defer if (owns) proof.deinit(a);
@@ -237,7 +255,7 @@ pub fn ForBackend(comptime Backend: type) type {
             try validateRoster(projections, slots, main_logs, sealed.register_custody_mode);
             if (proof.claims.len != projections.len or proof.memory_claims.len != slots.len or !std.meta.eql(proof.stark.commitment_scheme_proof.config, pins.config)) return error.InvalidV5FullFusedProof;
             const roots = proof.stark.commitment_scheme_proof.commitments.items;
-            if (roots.len != (if (slots.len == 0) @as(usize, 4) else 5) or !std.meta.eql(roots[0..2].*, native.first_roots) or
+            if (roots.len != (if (slots.len == 0) @as(usize, 4) else 5) + @as(usize, @intFromBool(joint != null)) or !std.meta.eql(roots[0..2].*, native.first_roots) or
                 (slots.len != 0 and !std.meta.eql(roots[2], witness_root))) return error.UntrustedV5FullFusedFirstRound;
             var channel = firstChannel(native.template_id, native.instance_id, index, projections, slots);
             var verifier = try Verifier.init(a, pins.config);
@@ -254,8 +272,11 @@ pub fn ForBackend(comptime Backend: type) type {
             const word_challenges = try Word.Challenges.draw(a, sealed);
             const challenges = try Bus.Challenges.draw(a, sealed);
             channel = try proofChannel(a, sealed);
+            if (joint) |joined| try joined.mix(&channel);
             try mixClaims(&channel, native.template_id, native.instance_id, index, projections, slots, proof.claims, proof.memory_claims);
-            try verifier.commit(a, roots[if (slots.len == 0) @as(usize, 2) else 3], logs, &channel);
+            const interaction_tree: usize = if (slots.len == 0) 2 else 3;
+            if (joint) |joined| try verifier.commit(a, roots[interaction_tree], joined.logs, &channel);
+            try verifier.commit(a, roots[interaction_tree + @as(usize, @intFromBool(joint != null))], logs, &channel);
             const projection_components = try a.alloc(Adapter.ProjectionComponent, projections.len);
             defer a.free(projection_components);
             const memory_components = try a.alloc(Adapter.AccessComponent, slots.len);
@@ -272,8 +293,15 @@ pub fn ForBackend(comptime Backend: type) type {
             }
             var result = try receipts(a, proof.claims, proof.memory_claims, projections, native, witness_root, index, sealed);
             errdefer result.deinit(a);
-            owns = false;
-            try core.verifier.verify(suite.Hasher, suite.MerkleChannel, a, handles, &channel, &verifier, proof.stark);
+            if (joint) |joined| {
+                var combined = try Joint.Combined(false).init(a, joined.native.verifying.components.active(), handles, slots.len != 0);
+                defer combined.deinit(a);
+                owns = false;
+                try core.verifier.verify(suite.Hasher, suite.MerkleChannel, a, combined.handles, &channel, &verifier, proof.stark);
+            } else {
+                owns = false;
+                try core.verifier.verify(suite.Hasher, suite.MerkleChannel, a, handles, &channel, &verifier, proof.stark);
+            }
             return result;
         }
     };

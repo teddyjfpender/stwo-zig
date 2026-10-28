@@ -83,7 +83,7 @@ pub fn ForBackend(comptime Backend: type) type {
         /// No access tree is fabricated for zero RW. The third roots field is
         /// the independently admitted typed-absence ID, not a PCS commitment;
         /// v2 alone accepts this two-tree first-round/three-tree proof layout.
-        fn borrowProjectionFirstRound(a: std.mem.Allocator, native: *Scheme, absence_root: [32]u8) !Api.FirstRound {
+        pub fn borrowProjectionFirstRound(a: std.mem.Allocator, native: *Scheme, absence_root: [32]u8) !Api.FirstRound {
             var channel = suite.Channel{};
             var scheme = try @import("block_v5_shared_first_round_v1.zig").copy(Backend, a, native, &channel);
             errdefer scheme.deinit(a);

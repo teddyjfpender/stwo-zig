@@ -218,6 +218,28 @@ pub fn ForBackend(comptime Backend: type) type {
             return verifyInternal(false, true, a, received, shape, pin, expected_template, expected_template_id, execution_profile, index, sealed, pins, entries, catalog);
         }
 
+        /// Reconstruct fixed columns from independently admitted geometry.
+        /// Shared by separate and joint STARK verifiers; no proof receipt.
+        pub fn verifyFixed(a: std.mem.Allocator, shape: *const statement.Blake3ExecutionStatement, expected_template: Template, config: core.pcs.PcsConfig) !void {
+            var arena = std.heap.ArenaAllocator.init(a);
+            defer arena.deinit();
+            const scratch = arena.allocator();
+            var fixed_columns: std.ArrayList(Column) = .empty;
+            if (frame.required(shape)) {
+                _ = try frame.expected(shape, expected_template.external_retirements);
+                try fixed_columns.appendSlice(scratch, try frame.fixedColumns(scratch));
+            } else try native_protocol.nativePreprocessedWithExternal(scratch, shape, expected_template.external_retirements, &fixed_columns);
+            var fixed_scheme = try Scheme.init(a, config);
+            defer fixed_scheme.deinit(a);
+            fixed_scheme.setCoefficientRetentionPolicy(.never);
+            var fixed_channel = suite.Channel{};
+            try fixed_scheme.commitBorrowedStreaming(a, fixed_columns.items, 8, &fixed_channel);
+            var fixed_roots = try fixed_scheme.roots(a);
+            defer fixed_roots.deinit(a);
+            if (fixed_roots.items.len != 1 or !std.meta.eql(fixed_roots.items[0], expected_template.fixed_root))
+                return error.UntrustedNativeV5FixedRoot;
+        }
+
         fn verifyInternal(comptime capture_mode: bool, comptime owns_received: bool, a: std.mem.Allocator, received: Proof, shape: *const statement.Blake3ExecutionStatement, pin: plan_mod.Admission, expected_template: Template, expected_template_id: Digest, execution_profile: profile_mod.ExecutionProfile, index: u32, sealed: seal_mod.Sealed, pins: seal_mod.Pins, entries: []const seal_mod.Entry, catalog: ?catalog_mod.Admission) !(if (capture_mode) VerifiedCapture else OpenReceipt) {
             var proof = received;
             var owns_proof = owns_received;
@@ -247,20 +269,7 @@ pub fn ForBackend(comptime Backend: type) type {
             var arena = std.heap.ArenaAllocator.init(a);
             defer arena.deinit();
             const scratch = arena.allocator();
-            var fixed_columns: std.ArrayList(Column) = .empty;
-            if (frame.required(shape)) {
-                _ = try frame.expected(shape, expected_template.external_retirements);
-                try fixed_columns.appendSlice(scratch, try frame.fixedColumns(scratch));
-            } else try native_protocol.nativePreprocessedWithExternal(scratch, shape, expected_template.external_retirements, &fixed_columns);
-            var fixed_scheme = try Scheme.init(a, pins.config);
-            defer fixed_scheme.deinit(a);
-            fixed_scheme.setCoefficientRetentionPolicy(.never);
-            var fixed_channel = suite.Channel{};
-            try fixed_scheme.commitBorrowedStreaming(a, fixed_columns.items, 8, &fixed_channel);
-            var fixed_roots = try fixed_scheme.roots(a);
-            defer fixed_roots.deinit(a);
-            if (fixed_roots.items.len != 1 or !std.meta.eql(fixed_roots.items[0], first_roots[0]))
-                return error.UntrustedNativeV5FixedRoot;
+            try verifyFixed(a, shape, expected_template, pins.config);
 
             const challenges = try relations_mod.Challenges.draw(a, sealed);
             const shared = try providers.SharedProviderRelations.init(&challenges.universal_prefix);
@@ -352,7 +361,7 @@ pub fn admitEntry(index: u32, roots: seal_mod.Roots, instance_id: Digest, sealed
     if (!found) return error.MissingNativeV5FirstRound;
 }
 
-fn openSum(joined: *const joined_mod.Owner, shape: *const statement.Blake3ExecutionStatement, claims: *const statement.RiscVInteractionClaim) !Q {
+pub fn openSum(joined: *const joined_mod.Owner, shape: *const statement.Blake3ExecutionStatement, claims: *const statement.RiscVInteractionClaim) !Q {
     var sum = try joined.publicCompensation();
     for (shape.component_descs[0..shape.n_components], 0..) |desc, index|
         sum = sum.add(try claims.opcodeClaimTotal(desc.family, index));
