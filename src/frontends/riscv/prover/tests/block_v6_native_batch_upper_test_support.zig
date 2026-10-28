@@ -11,7 +11,9 @@ const protocol = @import("../../recursion/block_v5_reusable_open_parent_protocol
 const receiver = @import("../../recursion/block_v5_open_parent_receiver_v2.zig");
 const Span = @import("../../recursion/block_v5_pc_clock_span_v1.zig").Span;
 
-pub fn qualify(backing: std.mem.Allocator, selected: parent.protocol.Profile, left: *const bench.Retained, right: *const bench.Retained, expected_span: Span) !void {
+pub const Measurement = struct { recursive_ns: u64, costs: bench.Work, proof_bytes: usize };
+
+pub fn qualify(backing: std.mem.Allocator, selected: parent.protocol.Profile, left: *const bench.Retained, right: *const bench.Retained, expected_span: Span) !Measurement {
     const Budget = @import("stwo_prover_engine").host_budget_allocator.SharedHostBudget;
     const budget = try Budget.create(backing, 32 * 1024 * 1024 * 1024);
     defer budget.destroy();
@@ -68,4 +70,5 @@ pub fn qualify(backing: std.mem.Allocator, selected: parent.protocol.Profile, le
     try std.testing.expectError(error.TamperedV5OpenChildFrames, wrong_frame.validate());
     const costs = bench.work(&prepared.recursive.rows);
     std.debug.print("BLOCK_V6_BATCH_UPPER verified=true profile={s} segments={d} child_batches=2 prepare_ns={d} setup_ns={d} prove_ns={d} encode_verify_ns={d} recursive_ns={d} g_rows={d} air_cells={d} proof_bytes={d} charged_peak_bytes={d} globals_open=true\n", .{ @tagName(selected), expected_span.segment_count, prepare_ns, setup_ns, prove_ns, verify_ns, prepare_ns + setup_ns + prove_ns + verify_ns, costs.g_rows, costs.cells, bytes.len, budget.snapshot().peak_live_bytes });
+    return .{ .recursive_ns = prepare_ns + setup_ns + prove_ns + verify_ns, .costs = costs, .proof_bytes = bytes.len };
 }
