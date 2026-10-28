@@ -1,0 +1,855 @@
+{
+  "scope": "AIR fixed/main/interaction commitment cells only; excludes lookup-provider tables, composition, PCS expansion, scratch and all timing. Sequential single-lane logs required.",
+  "parents": [
+    {
+      "air_cells": 1177518080,
+      "padding_cells": 126082691,
+      "cohorts": 23,
+      "cohort_geometry": [
+        {
+          "cohort": 0,
+          "air": "recursion.air.blake3_g_call",
+          "rows": 2097152,
+          "padded_rows": 2097152,
+          "fixed": 16,
+          "main": 82,
+          "interaction": 80,
+          "committed_cells": 373293056,
+          "unpadded_cells": 373293056,
+          "padding_cells": 0
+        },
+        {
+          "cohort": 1,
+          "air": "recursion.air.blake3_xor_call",
+          "rows": 1357056,
+          "padded_rows": 2097152,
+          "fixed": 6,
+          "main": 12,
+          "interaction": 16,
+          "committed_cells": 71303168,
+          "unpadded_cells": 46139904,
+          "padding_cells": 25163264
+        },
+        {
+          "cohort": 2,
+          "air": "recursion.air.blake3_boundary",
+          "rows": 1324041,
+          "padded_rows": 2097152,
+          "fixed": 8,
+          "main": 4,
+          "interaction": 4,
+          "committed_cells": 33554432,
+          "unpadded_cells": 21184656,
+          "padding_cells": 12369776
+        },
+        {
+          "cohort": 3,
+          "air": "recursion.air.qm31_mul_add_v1",
+          "rows": 264287,
+          "padded_rows": 524288,
+          "fixed": 10,
+          "main": 17,
+          "interaction": 8,
+          "committed_cells": 18350080,
+          "unpadded_cells": 9250045,
+          "padding_cells": 9100035
+        },
+        {
+          "cohort": 4,
+          "air": "recursion.air.qm31_inv",
+          "rows": 4458,
+          "padded_rows": 8192,
+          "fixed": 15,
+          "main": 14,
+          "interaction": 4,
+          "committed_cells": 270336,
+          "unpadded_cells": 147114,
+          "padding_cells": 123222
+        },
+        {
+          "cohort": 5,
+          "air": "recursion.air.linear_ops",
+          "rows": 57101,
+          "padded_rows": 65536,
+          "fixed": 27,
+          "main": 21,
+          "interaction": 8,
+          "committed_cells": 3670016,
+          "unpadded_cells": 3197656,
+          "padding_cells": 472360
+        },
+        {
+          "cohort": 6,
+          "air": "recursion.air.blake3_challenge_block",
+          "rows": 272,
+          "padded_rows": 512,
+          "fixed": 15,
+          "main": 71,
+          "interaction": 68,
+          "committed_cells": 78848,
+          "unpadded_cells": 41888,
+          "padding_cells": 36960
+        },
+        {
+          "cohort": 7,
+          "air": "recursion.air.blake3_byte_route",
+          "rows": 1112254,
+          "padded_rows": 2097152,
+          "fixed": 45,
+          "main": 12,
+          "interaction": 8,
+          "committed_cells": 136314880,
+          "unpadded_cells": 72296510,
+          "padding_cells": 64018370
+        },
+        {
+          "cohort": 8,
+          "air": "recursion.air.blake3_query_mask",
+          "rows": 142,
+          "padded_rows": 256,
+          "fixed": 10,
+          "main": 8,
+          "interaction": 12,
+          "committed_cells": 7680,
+          "unpadded_cells": 4260,
+          "padding_cells": 3420
+        },
+        {
+          "cohort": 9,
+          "air": "recursion.air.blake3_private_word",
+          "rows": 255560,
+          "padded_rows": 262144,
+          "fixed": 4,
+          "main": 4,
+          "interaction": 8,
+          "committed_cells": 4194304,
+          "unpadded_cells": 4088960,
+          "padding_cells": 105344
+        },
+        {
+          "cohort": 10,
+          "air": "recursion.air.blake3_field_bytes",
+          "rows": 240726,
+          "padded_rows": 262144,
+          "fixed": 9,
+          "main": 24,
+          "interaction": 36,
+          "committed_cells": 18087936,
+          "unpadded_cells": 16610094,
+          "padding_cells": 1477842
+        },
+        {
+          "cohort": 11,
+          "air": "recursion.air.qm31_pack_wire",
+          "rows": 14190,
+          "padded_rows": 16384,
+          "fixed": 8,
+          "main": 4,
+          "interaction": 12,
+          "committed_cells": 393216,
+          "unpadded_cells": 340560,
+          "padding_cells": 52656
+        },
+        {
+          "cohort": 12,
+          "air": "recursion.air.scalar_wire_source",
+          "rows": 65124,
+          "padded_rows": 65536,
+          "fixed": 6,
+          "main": 1,
+          "interaction": 4,
+          "committed_cells": 720896,
+          "unpadded_cells": 716364,
+          "padding_cells": 4532
+        },
+        {
+          "cohort": 13,
+          "air": "recursion.air.blake3_path_select",
+          "rows": 303772,
+          "padded_rows": 524288,
+          "fixed": 12,
+          "main": 17,
+          "interaction": 12,
+          "committed_cells": 21495808,
+          "unpadded_cells": 12454652,
+          "padding_cells": 9041156
+        },
+        {
+          "cohort": 14,
+          "air": "recursion.air.blake3_retry_control",
+          "rows": 272,
+          "padded_rows": 512,
+          "fixed": 22,
+          "main": 12,
+          "interaction": 40,
+          "committed_cells": 37888,
+          "unpadded_cells": 20128,
+          "padding_cells": 17760
+        },
+        {
+          "cohort": 15,
+          "air": "recursion.air.blake3_counter_step",
+          "rows": 290,
+          "padded_rows": 512,
+          "fixed": 9,
+          "main": 24,
+          "interaction": 28,
+          "committed_cells": 31232,
+          "unpadded_cells": 17690,
+          "padding_cells": 13542
+        },
+        {
+          "cohort": 16,
+          "air": "recursion.air.readonly_consistency",
+          "rows": 231980,
+          "padded_rows": 262144,
+          "fixed": 6,
+          "main": 19,
+          "interaction": 20,
+          "committed_cells": 11796480,
+          "unpadded_cells": 10439100,
+          "padding_cells": 1357380
+        },
+        {
+          "cohort": 17,
+          "air": "recursion.air.readonly_input",
+          "rows": 231980,
+          "padded_rows": 262144,
+          "fixed": 6,
+          "main": 5,
+          "interaction": 8,
+          "committed_cells": 4980736,
+          "unpadded_cells": 4407620,
+          "padding_cells": 573116
+        },
+        {
+          "cohort": 18,
+          "air": "recursion.air.detached_opening_accumulate4_v1",
+          "rows": 16970,
+          "padded_rows": 32768,
+          "fixed": 13,
+          "main": 41,
+          "interaction": 20,
+          "committed_cells": 2424832,
+          "unpadded_cells": 1255780,
+          "padding_cells": 1169052
+        },
+        {
+          "cohort": 19,
+          "air": "recursion.air.native_pcs_opening4_v1",
+          "rows": 54460,
+          "padded_rows": 65536,
+          "fixed": 13,
+          "main": 29,
+          "interaction": 20,
+          "committed_cells": 4063232,
+          "unpadded_cells": 3376520,
+          "padding_cells": 686712
+        },
+        {
+          "cohort": 20,
+          "air": "recursion.air.blake3_g_call",
+          "rows": 2097152,
+          "padded_rows": 2097152,
+          "fixed": 16,
+          "main": 82,
+          "interaction": 80,
+          "committed_cells": 373293056,
+          "unpadded_cells": 373293056,
+          "padding_cells": 0
+        },
+        {
+          "cohort": 21,
+          "air": "recursion.air.blake3_g_call",
+          "rows": 524288,
+          "padded_rows": 524288,
+          "fixed": 16,
+          "main": 82,
+          "interaction": 80,
+          "committed_cells": 93323264,
+          "unpadded_cells": 93323264,
+          "padding_cells": 0
+        },
+        {
+          "cohort": 22,
+          "air": "recursion.air.blake3_g_call",
+          "rows": 31104,
+          "padded_rows": 32768,
+          "fixed": 16,
+          "main": 82,
+          "interaction": 80,
+          "committed_cells": 5832704,
+          "unpadded_cells": 5536512,
+          "padding_cells": 296192
+        }
+      ],
+      "groups": [
+        {
+          "air": "recursion.air.blake3_g_call",
+          "rows": 4749696,
+          "committed_cells": 845742080,
+          "padding_cells": 296192,
+          "share_of_air_cells": 0.7182412689578406
+        },
+        {
+          "air": "recursion.air.blake3_byte_route",
+          "rows": 1112254,
+          "committed_cells": 136314880,
+          "padding_cells": 64018370,
+          "share_of_air_cells": 0.11576457492695144
+        },
+        {
+          "air": "recursion.air.blake3_xor_call",
+          "rows": 1357056,
+          "committed_cells": 71303168,
+          "padding_cells": 25163264,
+          "share_of_air_cells": 0.060553777654097675
+        },
+        {
+          "air": "recursion.air.blake3_boundary",
+          "rows": 1324041,
+          "committed_cells": 33554432,
+          "padding_cells": 12369776,
+          "share_of_air_cells": 0.0284958953666342
+        },
+        {
+          "air": "recursion.air.blake3_path_select",
+          "rows": 303772,
+          "committed_cells": 21495808,
+          "padding_cells": 9041156,
+          "share_of_air_cells": 0.018255182969250036
+        },
+        {
+          "air": "recursion.air.qm31_mul_add_v1",
+          "rows": 264287,
+          "committed_cells": 18350080,
+          "padding_cells": 9100035,
+          "share_of_air_cells": 0.015583692778628078
+        },
+        {
+          "air": "recursion.air.blake3_field_bytes",
+          "rows": 240726,
+          "committed_cells": 18087936,
+          "padding_cells": 1477842,
+          "share_of_air_cells": 0.01536106859607625
+        },
+        {
+          "air": "recursion.air.readonly_consistency",
+          "rows": 231980,
+          "committed_cells": 11796480,
+          "padding_cells": 1357380,
+          "share_of_air_cells": 0.010018088214832336
+        },
+        {
+          "air": "recursion.air.readonly_input",
+          "rows": 231980,
+          "committed_cells": 4980736,
+          "padding_cells": 573116,
+          "share_of_air_cells": 0.004229859468484764
+        },
+        {
+          "air": "recursion.air.blake3_private_word",
+          "rows": 255560,
+          "committed_cells": 4194304,
+          "padding_cells": 105344,
+          "share_of_air_cells": 0.003561986920829275
+        },
+        {
+          "air": "recursion.air.native_pcs_opening4_v1",
+          "rows": 54460,
+          "committed_cells": 4063232,
+          "padding_cells": 686712,
+          "share_of_air_cells": 0.0034506748295533604
+        },
+        {
+          "air": "recursion.air.linear_ops",
+          "rows": 57101,
+          "committed_cells": 3670016,
+          "padding_cells": 472360,
+          "share_of_air_cells": 0.0031167385557256157
+        },
+        {
+          "air": "recursion.air.detached_opening_accumulate4_v1",
+          "rows": 16970,
+          "committed_cells": 2424832,
+          "padding_cells": 1169052,
+          "share_of_air_cells": 0.0020592736886044247
+        },
+        {
+          "air": "recursion.air.scalar_wire_source",
+          "rows": 65124,
+          "committed_cells": 720896,
+          "padding_cells": 4532,
+          "share_of_air_cells": 0.0006122165020175317
+        },
+        {
+          "air": "recursion.air.qm31_pack_wire",
+          "rows": 14190,
+          "committed_cells": 393216,
+          "padding_cells": 52656,
+          "share_of_air_cells": 0.00033393627382774456
+        },
+        {
+          "air": "recursion.air.qm31_inv",
+          "rows": 4458,
+          "committed_cells": 270336,
+          "padding_cells": 123222,
+          "share_of_air_cells": 0.00022958118825657436
+        },
+        {
+          "air": "recursion.air.blake3_challenge_block",
+          "rows": 272,
+          "committed_cells": 78848,
+          "padding_cells": 36960,
+          "share_of_air_cells": 6.696117990816753e-05
+        },
+        {
+          "air": "recursion.air.blake3_retry_control",
+          "rows": 272,
+          "committed_cells": 37888,
+          "padding_cells": 17760,
+          "share_of_air_cells": 3.2176151384444136e-05
+        },
+        {
+          "air": "recursion.air.blake3_counter_step",
+          "rows": 290,
+          "committed_cells": 31232,
+          "padding_cells": 13542,
+          "share_of_air_cells": 2.6523584249339084e-05
+        },
+        {
+          "air": "recursion.air.blake3_query_mask",
+          "rows": 142,
+          "committed_cells": 7680,
+          "padding_cells": 3420,
+          "share_of_air_cells": 6.522192848198136e-06
+        }
+      ]
+    },
+    {
+      "air_cells": 1293254656,
+      "padding_cells": 120486486,
+      "cohorts": 23,
+      "cohort_geometry": [
+        {
+          "cohort": 0,
+          "air": "recursion.air.blake3_g_call",
+          "rows": 2097152,
+          "padded_rows": 2097152,
+          "fixed": 16,
+          "main": 82,
+          "interaction": 80,
+          "committed_cells": 373293056,
+          "unpadded_cells": 373293056,
+          "padding_cells": 0
+        },
+        {
+          "cohort": 1,
+          "air": "recursion.air.blake3_xor_call",
+          "rows": 1519904,
+          "padded_rows": 2097152,
+          "fixed": 6,
+          "main": 12,
+          "interaction": 16,
+          "committed_cells": 71303168,
+          "unpadded_cells": 51676736,
+          "padding_cells": 19626432
+        },
+        {
+          "cohort": 2,
+          "air": "recursion.air.blake3_boundary",
+          "rows": 1494639,
+          "padded_rows": 2097152,
+          "fixed": 8,
+          "main": 4,
+          "interaction": 4,
+          "committed_cells": 33554432,
+          "unpadded_cells": 23914224,
+          "padding_cells": 9640208
+        },
+        {
+          "cohort": 3,
+          "air": "recursion.air.qm31_mul_add_v1",
+          "rows": 294265,
+          "padded_rows": 524288,
+          "fixed": 10,
+          "main": 17,
+          "interaction": 8,
+          "committed_cells": 18350080,
+          "unpadded_cells": 10299275,
+          "padding_cells": 8050805
+        },
+        {
+          "cohort": 4,
+          "air": "recursion.air.qm31_inv",
+          "rows": 4725,
+          "padded_rows": 8192,
+          "fixed": 15,
+          "main": 14,
+          "interaction": 4,
+          "committed_cells": 270336,
+          "unpadded_cells": 155925,
+          "padding_cells": 114411
+        },
+        {
+          "cohort": 5,
+          "air": "recursion.air.linear_ops",
+          "rows": 59307,
+          "padded_rows": 65536,
+          "fixed": 27,
+          "main": 21,
+          "interaction": 8,
+          "committed_cells": 3670016,
+          "unpadded_cells": 3321192,
+          "padding_cells": 348824
+        },
+        {
+          "cohort": 6,
+          "air": "recursion.air.blake3_challenge_block",
+          "rows": 278,
+          "padded_rows": 512,
+          "fixed": 15,
+          "main": 71,
+          "interaction": 68,
+          "committed_cells": 78848,
+          "unpadded_cells": 42812,
+          "padding_cells": 36036
+        },
+        {
+          "cohort": 7,
+          "air": "recursion.air.blake3_byte_route",
+          "rows": 1233998,
+          "padded_rows": 2097152,
+          "fixed": 45,
+          "main": 12,
+          "interaction": 8,
+          "committed_cells": 136314880,
+          "unpadded_cells": 80209870,
+          "padding_cells": 56105010
+        },
+        {
+          "cohort": 8,
+          "air": "recursion.air.blake3_query_mask",
+          "rows": 142,
+          "padded_rows": 256,
+          "fixed": 10,
+          "main": 8,
+          "interaction": 12,
+          "committed_cells": 7680,
+          "unpadded_cells": 4260,
+          "padding_cells": 3420
+        },
+        {
+          "cohort": 9,
+          "air": "recursion.air.blake3_private_word",
+          "rows": 294374,
+          "padded_rows": 524288,
+          "fixed": 4,
+          "main": 4,
+          "interaction": 8,
+          "committed_cells": 8388608,
+          "unpadded_cells": 4709984,
+          "padding_cells": 3678624
+        },
+        {
+          "cohort": 10,
+          "air": "recursion.air.blake3_field_bytes",
+          "rows": 241146,
+          "padded_rows": 262144,
+          "fixed": 9,
+          "main": 24,
+          "interaction": 36,
+          "committed_cells": 18087936,
+          "unpadded_cells": 16639074,
+          "padding_cells": 1448862
+        },
+        {
+          "cohort": 11,
+          "air": "recursion.air.qm31_pack_wire",
+          "rows": 14530,
+          "padded_rows": 16384,
+          "fixed": 8,
+          "main": 4,
+          "interaction": 12,
+          "committed_cells": 393216,
+          "unpadded_cells": 348720,
+          "padding_cells": 44496
+        },
+        {
+          "cohort": 12,
+          "air": "recursion.air.scalar_wire_source",
+          "rows": 68048,
+          "padded_rows": 131072,
+          "fixed": 6,
+          "main": 1,
+          "interaction": 4,
+          "committed_cells": 1441792,
+          "unpadded_cells": 748528,
+          "padding_cells": 693264
+        },
+        {
+          "cohort": 13,
+          "air": "recursion.air.blake3_path_select",
+          "rows": 346030,
+          "padded_rows": 524288,
+          "fixed": 12,
+          "main": 17,
+          "interaction": 12,
+          "committed_cells": 21495808,
+          "unpadded_cells": 14187230,
+          "padding_cells": 7308578
+        },
+        {
+          "cohort": 14,
+          "air": "recursion.air.blake3_retry_control",
+          "rows": 278,
+          "padded_rows": 512,
+          "fixed": 22,
+          "main": 12,
+          "interaction": 40,
+          "committed_cells": 37888,
+          "unpadded_cells": 20572,
+          "padding_cells": 17316
+        },
+        {
+          "cohort": 15,
+          "air": "recursion.air.blake3_counter_step",
+          "rows": 296,
+          "padded_rows": 512,
+          "fixed": 9,
+          "main": 24,
+          "interaction": 28,
+          "committed_cells": 31232,
+          "unpadded_cells": 18056,
+          "padding_cells": 13176
+        },
+        {
+          "cohort": 16,
+          "air": "recursion.air.readonly_consistency",
+          "rows": 231980,
+          "padded_rows": 262144,
+          "fixed": 6,
+          "main": 19,
+          "interaction": 20,
+          "committed_cells": 11796480,
+          "unpadded_cells": 10439100,
+          "padding_cells": 1357380
+        },
+        {
+          "cohort": 17,
+          "air": "recursion.air.readonly_input",
+          "rows": 231980,
+          "padded_rows": 262144,
+          "fixed": 6,
+          "main": 5,
+          "interaction": 8,
+          "committed_cells": 4980736,
+          "unpadded_cells": 4407620,
+          "padding_cells": 573116
+        },
+        {
+          "cohort": 18,
+          "air": "recursion.air.detached_opening_accumulate4_v1",
+          "rows": 18220,
+          "padded_rows": 32768,
+          "fixed": 13,
+          "main": 41,
+          "interaction": 20,
+          "committed_cells": 2424832,
+          "unpadded_cells": 1348280,
+          "padding_cells": 1076552
+        },
+        {
+          "cohort": 19,
+          "air": "recursion.air.native_pcs_opening4_v1",
+          "rows": 54460,
+          "padded_rows": 65536,
+          "fixed": 13,
+          "main": 29,
+          "interaction": 20,
+          "committed_cells": 4063232,
+          "unpadded_cells": 3376520,
+          "padding_cells": 686712
+        },
+        {
+          "cohort": 20,
+          "air": "recursion.air.blake3_g_call",
+          "rows": 2097152,
+          "padded_rows": 2097152,
+          "fixed": 16,
+          "main": 82,
+          "interaction": 80,
+          "committed_cells": 373293056,
+          "unpadded_cells": 373293056,
+          "padding_cells": 0
+        },
+        {
+          "cohort": 21,
+          "air": "recursion.air.blake3_g_call",
+          "rows": 1048576,
+          "padded_rows": 1048576,
+          "fixed": 16,
+          "main": 82,
+          "interaction": 80,
+          "committed_cells": 186646528,
+          "unpadded_cells": 186646528,
+          "padding_cells": 0
+        },
+        {
+          "cohort": 22,
+          "air": "recursion.air.blake3_g_call",
+          "rows": 76784,
+          "padded_rows": 131072,
+          "fixed": 16,
+          "main": 82,
+          "interaction": 80,
+          "committed_cells": 23330816,
+          "unpadded_cells": 13667552,
+          "padding_cells": 9663264
+        }
+      ],
+      "groups": [
+        {
+          "air": "recursion.air.blake3_g_call",
+          "rows": 5319664,
+          "committed_cells": 956563456,
+          "padding_cells": 9663264,
+          "share_of_air_cells": 0.7396559150682849
+        },
+        {
+          "air": "recursion.air.blake3_byte_route",
+          "rows": 1233998,
+          "committed_cells": 136314880,
+          "padding_cells": 56105010,
+          "share_of_air_cells": 0.10540451516456786
+        },
+        {
+          "air": "recursion.air.blake3_xor_call",
+          "rows": 1519904,
+          "committed_cells": 71303168,
+          "padding_cells": 19626432,
+          "share_of_air_cells": 0.05513466947069704
+        },
+        {
+          "air": "recursion.air.blake3_boundary",
+          "rows": 1494639,
+          "committed_cells": 33554432,
+          "padding_cells": 9640208,
+          "share_of_air_cells": 0.02594572680973978
+        },
+        {
+          "air": "recursion.air.blake3_path_select",
+          "rows": 346030,
+          "committed_cells": 21495808,
+          "padding_cells": 7308578,
+          "share_of_air_cells": 0.01662148123748955
+        },
+        {
+          "air": "recursion.air.qm31_mul_add_v1",
+          "rows": 294265,
+          "committed_cells": 18350080,
+          "padding_cells": 8050805,
+          "share_of_air_cells": 0.014189069349076443
+        },
+        {
+          "air": "recursion.air.blake3_field_bytes",
+          "rows": 241146,
+          "committed_cells": 18087936,
+          "padding_cells": 1448862,
+          "share_of_air_cells": 0.013986368358375351
+        },
+        {
+          "air": "recursion.air.readonly_consistency",
+          "rows": 231980,
+          "committed_cells": 11796480,
+          "padding_cells": 1357380,
+          "share_of_air_cells": 0.009121544581549143
+        },
+        {
+          "air": "recursion.air.blake3_private_word",
+          "rows": 294374,
+          "committed_cells": 8388608,
+          "padding_cells": 3678624,
+          "share_of_air_cells": 0.006486431702434945
+        },
+        {
+          "air": "recursion.air.readonly_input",
+          "rows": 231980,
+          "committed_cells": 4980736,
+          "padding_cells": 573116,
+          "share_of_air_cells": 0.003851318823320749
+        },
+        {
+          "air": "recursion.air.native_pcs_opening4_v1",
+          "rows": 54460,
+          "committed_cells": 4063232,
+          "padding_cells": 686712,
+          "share_of_air_cells": 0.003141865355866927
+        },
+        {
+          "air": "recursion.air.linear_ops",
+          "rows": 59307,
+          "committed_cells": 3670016,
+          "padding_cells": 348824,
+          "share_of_air_cells": 0.0028378138698152886
+        },
+        {
+          "air": "recursion.air.detached_opening_accumulate4_v1",
+          "rows": 18220,
+          "committed_cells": 2424832,
+          "padding_cells": 1076552,
+          "share_of_air_cells": 0.0018749841639851014
+        },
+        {
+          "air": "recursion.air.scalar_wire_source",
+          "rows": 68048,
+          "committed_cells": 1441792,
+          "padding_cells": 693264,
+          "share_of_air_cells": 0.0011148554488560063
+        },
+        {
+          "air": "recursion.air.qm31_pack_wire",
+          "rows": 14530,
+          "committed_cells": 393216,
+          "padding_cells": 44496,
+          "share_of_air_cells": 0.00030405148605163807
+        },
+        {
+          "air": "recursion.air.qm31_inv",
+          "rows": 4725,
+          "committed_cells": 270336,
+          "padding_cells": 114411,
+          "share_of_air_cells": 0.00020903539666050118
+        },
+        {
+          "air": "recursion.air.blake3_challenge_block",
+          "rows": 278,
+          "committed_cells": 78848,
+          "padding_cells": 36036,
+          "share_of_air_cells": 6.096865735931285e-05
+        },
+        {
+          "air": "recursion.air.blake3_retry_control",
+          "rows": 278,
+          "committed_cells": 37888,
+          "padding_cells": 17316,
+          "share_of_air_cells": 2.929662756226721e-05
+        },
+        {
+          "air": "recursion.air.blake3_counter_step",
+          "rows": 296,
+          "committed_cells": 31232,
+          "padding_cells": 13176,
+          "share_of_air_cells": 2.4149922720247295e-05
+        },
+        {
+          "air": "recursion.air.blake3_query_mask",
+          "rows": 142,
+          "committed_cells": 7680,
+          "padding_cells": 3420,
+          "share_of_air_cells": 5.938505586946056e-06
+        }
+      ]
+    }
+  ]
+}
