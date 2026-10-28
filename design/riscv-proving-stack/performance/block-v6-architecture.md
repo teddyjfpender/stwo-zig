@@ -1,5 +1,19 @@
 # Block-v6: remove proof work, then accelerate what remains
 
+The [complete direct-batch receiver](complete-native-batch-m5-20261028.md) now
+passes q8 and q70/26 on real RAM/SHA/Keccak executions. Canonical recursive
+stages take 20.515 s versus 74.265 s of old native leaf callbacks plus forest;
+fresh complete reception takes 2.065 s. This qualifies the new receiver
+boundary, not a replacement driver or standalone recursive block root.
+
+Latest complete-bundle evidence: [register custody comparison](register-custody-m5-20261028.md)
+measures 10.07× less memory area and 4.74× faster memory/range proving, but only
+92.250 → 86.743 s driver wall. Recursion now dominates that real RAM/caller
+fixture. Prioritize direct-batch receiver/driver integration and joint base
+proofs over more isolated memory-packing work; the
+[integration contract](complete-batch-problem-match-20261028.md) preserves fresh
+global verification and does not label the native batch a closed block root.
+
 Implementation update: the [direct-native batch experiment](direct-native-batch-m5-20261028.md)
 now measures 17.0x faster recursion on a two-segment q70/PoW26 fixture.
 A [nine-segment follow-up](native-batch-scaling-m5-20261028.md) now proves
