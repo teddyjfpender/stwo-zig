@@ -65,6 +65,14 @@ joint proof structure and less repeated wide witness work as well as batching.
 
 ## Concrete integration boundaries
 
+**Measured integration update:** the bounded replacement driver is now
+implemented and qualified by the matched fixture. At canonical security it
+measures 87.195 → 32.992 s, with fresh complete verification and hostile-claim
+rejection. See [driver results](native-batch-driver-m5-20261028.md). Checklist
+items 1, 2, 3, 4 (single batch only), 5 and 6 below are complete for the
+one-to-eight-execution path. Multi-batch coverage and global recursive closure
+remain open; no standalone block-root claim follows from this test.
+
 The first receiver implementation now lives in
 `block_v5_global_receiver_impl_v1.zig:verifyCompleteNativeBatch`, selected only
 by an explicit NativeV3 call. It does not alter the existing forest receiver.

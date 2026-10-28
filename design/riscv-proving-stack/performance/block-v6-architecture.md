@@ -1,5 +1,13 @@
 # Block-v6: remove proof work, then accelerate what remains
 
+The [actual replacement driver](native-batch-driver-m5-20261028.md) now measures
+**87.195 → 32.992 s (2.64×)** at q70/26 on the matched two-segment mixed fixture.
+Its charged allocation peak falls 7.568 → 6.591 GB. This removes the old
+per-native wrapper/forest production, with complete fresh bundle verification.
+It supports one native batch (at most eight executions), not a closed block root.
+The [next architecture decision](whole-job-proof-work-20261028.md) prioritizes
+joint commitments and a proof-once event bridge over a CPU block-time extrapolation.
+
 The [complete direct-batch receiver](complete-native-batch-m5-20261028.md) now
 passes q8 and q70/26 on real RAM/SHA/Keccak executions. Canonical recursive
 stages take 20.515 s versus 74.265 s of old native leaf callbacks plus forest;
