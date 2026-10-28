@@ -1,0 +1,23 @@
+{
+  "device_peak_bytes": 18108907520,
+  "exit_code": 0,
+  "expected_proof_sha256": null,
+  "full_command_s": 323.383750395,
+  "h200_cairo_prove_s": 0.938699089,
+  "h200_publication_s": null,
+  "host_rss_peak_bytes": 62306496512,
+  "ingress_s": 3.829181233,
+  "input_sha256": "76858e5bb9d01e7a3e53e5d9bc6ddb7a49017305f7a935620f7f9abd799e9da5",
+  "pie": "15657551_15657579",
+  "policy_env": {
+    "STWO_CUDA_MANAGED_ARENA": "1",
+    "STWO_CUDA_MANAGED_PLACEMENT": "capacity"
+  },
+  "proof_hash_matches_reference": false,
+  "proof_s": 315.792912035,
+  "proof_sha256": "0424274a88f4d47596e9b60a5a5b03ac2f7837f711c28bfc7e2b525776993223",
+  "publication_s": 319.681919503,
+  "status": "verified",
+  "steps": 14369045,
+  "verifier_exit_code": 0
+}

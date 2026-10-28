@@ -6,11 +6,21 @@ const cairo_app = @import("cairo_cuda_app");
 const circuit_app = @import("circuit_recursion_app");
 const circuit_cpu = @import("stwo_circuit_cpu_integration");
 const circuit_cuda = @import("stwo_circuit_cuda_integration");
+const cuda_backend = @import("stwo_cuda_backend");
 const wire = @import("stwo_circuit_recursion_wire");
 const sink = @import("verified_sink.zig");
 const CampaignJob = @import("campaign_contract.zig").CampaignJob;
 
 const max_file = 64 << 20;
+
+fn openRuntime(allocator: std.mem.Allocator) !circuit_cuda.recursion_source.Runtime {
+    const accepted_sms = try cuda_backend.runtime.device_admission.parseArchitectures(
+        allocator,
+        @import("cuda_architectures").architectures,
+    );
+    defer allocator.free(accepted_sms);
+    return circuit_cuda.recursion_source.Runtime.open(accepted_sms);
+}
 
 pub fn main() !void {
     const allocator = std.heap.smp_allocator;
@@ -55,6 +65,7 @@ fn leafWrap(allocator: std.mem.Allocator, args: []const []const u8) !void {
             .source = backend.source(),
         },
         .output_path = leaf_path,
+        .runtime_slot = if (cuda_backend.runtime.arena.compactDeviceProfileEnabled()) &backend.runtime else null,
     };
     var total = try std.time.Timer.start();
     try cairo_app.proveWithSinkUsingPrefetch(allocator, .{
@@ -114,7 +125,7 @@ fn leafWrapCampaign(allocator: std.mem.Allocator, args: []const []const u8) !voi
     defer if (prefetch_live) prefetch.deinit();
     var catalog = try circuit_cuda.air_aot.build(allocator, try circuit_app.authenticatedAirPrograms());
     defer catalog.deinit();
-    var runtime = try circuit_cuda.recursion_source.Runtime.open(&.{ 80, 90 });
+    var runtime = try openRuntime(allocator);
     var runtime_live = true;
     defer if (runtime_live) runtime.abort() catch {};
     var cairo_session = cairo_app.BatchSession{ .allocator = allocator, .runtime = &runtime, .early_prefetch = &prefetch };
@@ -183,7 +194,7 @@ fn leafWrapBatch(allocator: std.mem.Allocator, args: []const []const u8) !void {
     defer prefetch.deinit();
     var catalog = try circuit_cuda.air_aot.build(allocator, try circuit_app.authenticatedAirPrograms());
     defer catalog.deinit();
-    var runtime = try circuit_cuda.recursion_source.Runtime.open(&.{ 80, 90 });
+    var runtime = try openRuntime(allocator);
     var runtime_live = true;
     defer if (runtime_live) runtime.abort() catch {};
     var cairo_session = cairo_app.BatchSession{ .allocator = allocator, .runtime = &runtime, .early_prefetch = &prefetch };
@@ -341,7 +352,7 @@ fn foldTree(allocator: std.mem.Allocator, args: []const []const u8) !void {
     var catalog = try circuit_cuda.air_aot.build(allocator, try circuit_app.authenticatedAirPrograms());
     defer catalog.deinit();
     const catalog_ns = wall.lap();
-    var runtime = try circuit_cuda.recursion_source.Runtime.open(&.{ 80, 90 });
+    var runtime = try openRuntime(allocator);
     var runtime_live = true;
     defer if (runtime_live) runtime.abort() catch {};
     var backend = circuit_cuda.recursion_source.Context{ .catalog = &catalog, .runtime = &runtime };
@@ -386,7 +397,7 @@ fn foldStage(allocator: std.mem.Allocator, args: []const []const u8, terminal_ro
     const parse_ns = wall.lap();
     var catalog = try circuit_cuda.air_aot.build(allocator, try circuit_app.authenticatedAirPrograms());
     defer catalog.deinit();
-    var runtime = try circuit_cuda.recursion_source.Runtime.open(&.{ 80, 90 });
+    var runtime = try openRuntime(allocator);
     var runtime_live = true;
     defer if (runtime_live) runtime.abort() catch {};
     var backend = circuit_cuda.recursion_source.Context{ .catalog = &catalog, .runtime = &runtime };
@@ -425,7 +436,7 @@ fn foldStageCampaign(allocator: std.mem.Allocator, args: []const []const u8) !vo
     const registry = try wire.registry.parseRegistry(a, try readFile(a, registry_path));
     var catalog = try circuit_cuda.air_aot.build(allocator, try circuit_app.authenticatedAirPrograms());
     defer catalog.deinit();
-    var runtime = try circuit_cuda.recursion_source.Runtime.open(&.{ 80, 90 });
+    var runtime = try openRuntime(allocator);
     var runtime_live = true;
     defer if (runtime_live) runtime.abort() catch {};
     var backend = circuit_cuda.recursion_source.Context{ .catalog = &catalog, .runtime = &runtime };

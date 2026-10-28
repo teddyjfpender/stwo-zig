@@ -1,0 +1,102 @@
+{
+  "id": "pipeline:eight-leaf-synthetic-pool-trim",
+  "family": "pipeline",
+  "kind": "full_pipeline",
+  "metric": "adapted_input_to_root_wall_s",
+  "description": "memory and throughput stress: two verified small CPI leaves repeated four times, not a contiguous chain",
+  "input_ids": [
+    "pipeline:two-leaf-root"
+  ],
+  "inputs": [
+    {
+      "path": "15627902-15627904.prover_input.cpi",
+      "sha256": "c92a1ecd5baf8651e88c6d96f016cfa2646bbda2cf646fec9bc0558c200a6f81",
+      "preimage_path": "15627902-15627904.preimage.hex.json",
+      "preimage_sha256": "6ba24d85781e221b35fda38e3550e7107a3202952f61c3ff2696a761106e5de8",
+      "blocks": [
+        15627902,
+        15627904
+      ],
+      "os_steps": 1224007
+    },
+    {
+      "path": "15627905-15627907.prover_input.cpi",
+      "sha256": "3c898538af071069385e5deae70a086a31e8ab87198fa198cd6fcf0f3e3d1557",
+      "preimage_path": "15627905-15627907.preimage.hex.json",
+      "preimage_sha256": "de65c3023ea4c6aecf03fe57de44ebf627a8d0cc47663b24e555013cb7199251",
+      "blocks": [
+        15627905,
+        15627907
+      ],
+      "os_steps": 785807
+    },
+    {
+      "path": "15627902-15627904.prover_input.cpi",
+      "sha256": "c92a1ecd5baf8651e88c6d96f016cfa2646bbda2cf646fec9bc0558c200a6f81",
+      "preimage_path": "15627902-15627904.preimage.hex.json",
+      "preimage_sha256": "6ba24d85781e221b35fda38e3550e7107a3202952f61c3ff2696a761106e5de8",
+      "blocks": [
+        15627902,
+        15627904
+      ],
+      "os_steps": 1224007
+    },
+    {
+      "path": "15627905-15627907.prover_input.cpi",
+      "sha256": "3c898538af071069385e5deae70a086a31e8ab87198fa198cd6fcf0f3e3d1557",
+      "preimage_path": "15627905-15627907.preimage.hex.json",
+      "preimage_sha256": "de65c3023ea4c6aecf03fe57de44ebf627a8d0cc47663b24e555013cb7199251",
+      "blocks": [
+        15627905,
+        15627907
+      ],
+      "os_steps": 785807
+    },
+    {
+      "path": "15627902-15627904.prover_input.cpi",
+      "sha256": "c92a1ecd5baf8651e88c6d96f016cfa2646bbda2cf646fec9bc0558c200a6f81",
+      "preimage_path": "15627902-15627904.preimage.hex.json",
+      "preimage_sha256": "6ba24d85781e221b35fda38e3550e7107a3202952f61c3ff2696a761106e5de8",
+      "blocks": [
+        15627902,
+        15627904
+      ],
+      "os_steps": 1224007
+    },
+    {
+      "path": "15627905-15627907.prover_input.cpi",
+      "sha256": "3c898538af071069385e5deae70a086a31e8ab87198fa198cd6fcf0f3e3d1557",
+      "preimage_path": "15627905-15627907.preimage.hex.json",
+      "preimage_sha256": "de65c3023ea4c6aecf03fe57de44ebf627a8d0cc47663b24e555013cb7199251",
+      "blocks": [
+        15627905,
+        15627907
+      ],
+      "os_steps": 785807
+    },
+    {
+      "path": "15627902-15627904.prover_input.cpi",
+      "sha256": "c92a1ecd5baf8651e88c6d96f016cfa2646bbda2cf646fec9bc0558c200a6f81",
+      "preimage_path": "15627902-15627904.preimage.hex.json",
+      "preimage_sha256": "6ba24d85781e221b35fda38e3550e7107a3202952f61c3ff2696a761106e5de8",
+      "blocks": [
+        15627902,
+        15627904
+      ],
+      "os_steps": 1224007
+    },
+    {
+      "path": "15627905-15627907.prover_input.cpi",
+      "sha256": "3c898538af071069385e5deae70a086a31e8ab87198fa198cd6fcf0f3e3d1557",
+      "preimage_path": "15627905-15627907.preimage.hex.json",
+      "preimage_sha256": "de65c3023ea4c6aecf03fe57de44ebf627a8d0cc47663b24e555013cb7199251",
+      "blocks": [
+        15627905,
+        15627907
+      ],
+      "os_steps": 785807
+    }
+  ],
+  "source": "stwo-zig/vectors/reports/recursive-product-20260918/cuda-ingress-tree-scaling-h200-20261001/receipts/compact-input-a.json",
+  "mode": "batch_integrated"
+}

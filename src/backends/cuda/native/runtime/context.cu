@@ -26,6 +26,7 @@ constexpr size_t kInitialAllocationCapacity = 256;
 struct StwoNativeCudaAllocation {
     uintptr_t address;
     size_t bytes;
+    bool managed;
 };
 
 struct StwoNativeCudaDependency {
@@ -454,6 +455,21 @@ extern "C" int stwo_exec_context_pool_current(
     return 0;
 }
 
+// A compact-device worker alternates Cairo and circuit arenas. Returning
+// freed async-pool pages between those families prevents a retired circuit
+// arena from occupying HBM while the next managed Cairo arena is touched.
+extern "C" int stwo_exec_context_pool_trim_to(void *handle, size_t bytes) {
+    StwoNativeCudaContext *context = nullptr;
+    cudaError_t status = require_context(handle, &context);
+    if (status != cudaSuccess) return static_cast<int>(status);
+#if defined(STWO_CUMETAL)
+    (void)bytes;
+    return static_cast<int>(cudaErrorInvalidValue);
+#else
+    return static_cast<int>(cudaMemPoolTrimTo(context->pool, bytes));
+#endif
+}
+
 extern "C" int stwo_exec_context_stream(
     void *handle,
     void **out_stream) {
@@ -829,9 +845,127 @@ extern "C" int stwo_exec_context_alloc_u32(
         context->allocations[context->allocation_count++] = {
             reinterpret_cast<uintptr_t>(*out_pointer),
             count * sizeof(uint32_t),
+            false,
         };
     }
     return static_cast<int>(status);
+}
+
+// Opt-in out-of-core request arena. The ordinary device allocation remains
+// the default. Managed memory is admitted only on devices that support
+// concurrent managed access (and therefore GPU-memory oversubscription).
+extern "C" int stwo_exec_context_alloc_managed_u32(
+    void *handle,
+    size_t count,
+    uint32_t **out_pointer) {
+    if (count == 0 || out_pointer == nullptr ||
+        count > std::numeric_limits<size_t>::max() / sizeof(uint32_t)) {
+        return static_cast<int>(cudaErrorInvalidValue);
+    }
+    *out_pointer = nullptr;
+    StwoNativeCudaContext *context = nullptr;
+    cudaError_t status = require_context(handle, &context);
+    int concurrent_access = 0;
+    if (status == cudaSuccess) status = cudaDeviceGetAttribute(
+        &concurrent_access, cudaDevAttrConcurrentManagedAccess, context->device);
+    if (status == cudaSuccess && concurrent_access == 0)
+        return static_cast<int>(cudaErrorNotSupported);
+    if (status == cudaSuccess) status = ensure_allocation_capacity(context);
+    if (status == cudaSuccess) status = cudaMallocManaged(
+        reinterpret_cast<void **>(out_pointer),
+        count * sizeof(uint32_t), cudaMemAttachGlobal);
+    if (status == cudaSuccess) {
+        context->allocations[context->allocation_count++] = {
+            reinterpret_cast<uintptr_t>(*out_pointer),
+            count * sizeof(uint32_t),
+            true,
+        };
+    }
+    return static_cast<int>(status);
+}
+
+extern "C" int stwo_exec_context_prefetch_managed(
+    void *handle,
+    const void *pointer,
+    size_t bytes,
+    int to_device) {
+    if (pointer == nullptr || bytes == 0 || (to_device != 0 && to_device != 1))
+        return static_cast<int>(cudaErrorInvalidValue);
+    StwoNativeCudaContext *context = nullptr;
+    cudaError_t status = require_context(handle, &context);
+    if (status != cudaSuccess) return static_cast<int>(status);
+    const uintptr_t address = reinterpret_cast<uintptr_t>(pointer);
+    for (size_t index = 0; index < context->allocation_count; ++index) {
+        const StwoNativeCudaAllocation allocation = context->allocations[index];
+        if (!allocation.managed || address < allocation.address) continue;
+        const size_t offset = static_cast<size_t>(address - allocation.address);
+        if (offset <= allocation.bytes && bytes <= allocation.bytes - offset) {
+#if CUDART_VERSION >= 13000
+            const cudaMemLocation location = to_device
+                ? cudaMemLocation{cudaMemLocationTypeDevice, context->device}
+                : cudaMemLocation{cudaMemLocationTypeHost, 0};
+            return static_cast<int>(cudaMemPrefetchAsync(
+                pointer, bytes, location, 0, context->stream));
+#else
+            return static_cast<int>(cudaMemPrefetchAsync(
+                pointer, bytes,
+                to_device ? context->device : cudaCpuDeviceId,
+                context->stream));
+#endif
+        }
+    }
+    return static_cast<int>(cudaErrorInvalidDevicePointer);
+}
+
+extern "C" int stwo_exec_context_advise_managed_host(
+    void *handle,
+    const void *pointer,
+    size_t bytes,
+    int prefer_host) {
+    if (pointer == nullptr || bytes == 0 ||
+        (prefer_host != 0 && prefer_host != 1))
+        return static_cast<int>(cudaErrorInvalidValue);
+    StwoNativeCudaContext *context = nullptr;
+    cudaError_t status = require_context(handle, &context);
+    if (status != cudaSuccess) return static_cast<int>(status);
+    const uintptr_t address = reinterpret_cast<uintptr_t>(pointer);
+    for (size_t index = 0; index < context->allocation_count; ++index) {
+        const StwoNativeCudaAllocation allocation = context->allocations[index];
+        if (!allocation.managed || address < allocation.address) continue;
+        const size_t offset = static_cast<size_t>(address - allocation.address);
+        if (offset > allocation.bytes || bytes > allocation.bytes - offset)
+            continue;
+#if CUDART_VERSION >= 13000
+        const cudaMemLocation host_location{cudaMemLocationTypeHost, 0};
+        const cudaMemLocation device_location{
+            cudaMemLocationTypeDevice, context->device};
+        if (prefer_host) {
+            status = cudaMemAdvise(pointer, bytes,
+                cudaMemAdviseSetPreferredLocation, host_location);
+            if (status == cudaSuccess) status = cudaMemAdvise(pointer, bytes,
+                cudaMemAdviseSetAccessedBy, device_location);
+        } else {
+            status = cudaMemAdvise(pointer, bytes,
+                cudaMemAdviseUnsetAccessedBy, device_location);
+            if (status == cudaSuccess) status = cudaMemAdvise(pointer, bytes,
+                cudaMemAdviseUnsetPreferredLocation, host_location);
+        }
+#else
+        if (prefer_host) {
+            status = cudaMemAdvise(pointer, bytes,
+                cudaMemAdviseSetPreferredLocation, cudaCpuDeviceId);
+            if (status == cudaSuccess) status = cudaMemAdvise(pointer, bytes,
+                cudaMemAdviseSetAccessedBy, context->device);
+        } else {
+            status = cudaMemAdvise(pointer, bytes,
+                cudaMemAdviseUnsetAccessedBy, context->device);
+            if (status == cudaSuccess) status = cudaMemAdvise(pointer, bytes,
+                cudaMemAdviseUnsetPreferredLocation, cudaCpuDeviceId);
+        }
+#endif
+        return static_cast<int>(status);
+    }
+    return static_cast<int>(cudaErrorInvalidDevicePointer);
 }
 
 extern "C" int stwo_exec_context_free_u32(
@@ -852,7 +986,10 @@ extern "C" int stwo_exec_context_free_u32(
         }
     }
     if (status == cudaSuccess && context->lane_count > 1) status = join_lanes(context);
-    if (status == cudaSuccess) {
+    if (status == cudaSuccess && context->allocations[allocation_index].managed) {
+        status = cudaStreamSynchronize(context->stream);
+        if (status == cudaSuccess) status = cudaFree(pointer);
+    } else if (status == cudaSuccess) {
         status = cudaFreeAsync(pointer, context->stream);
     }
     if (status == cudaSuccess) {

@@ -1,0 +1,22 @@
+{
+  "schema": "stwo.cairo-cuda-memory-trial.v1",
+  "command": [
+    "/tmp/stwo-zig/zig-out/bin/stwo-cairo-cuda",
+    "prove",
+    "--backend",
+    "cuda",
+    "--input",
+    "/tmp/stwo-cuda-challenge/data/inputs/15582797_15582797.cpi",
+    "--input-sha256",
+    "319b538ff50ad8e04735886a7844de300198194a4cc2128dcb57bc625ec4e4cb",
+    "--output",
+    "/workspace/tiled-commit-trials/15582797_15582797/proof.json",
+    "--report-out",
+    "/workspace/tiled-commit-trials/15582797_15582797/report.json"
+  ],
+  "exit_code": 0,
+  "elapsed_ns": 29518814625,
+  "samples": 105,
+  "whole_device_peak_bytes": 72902246400,
+  "process_rss_peak_bytes": 3961683968
+}

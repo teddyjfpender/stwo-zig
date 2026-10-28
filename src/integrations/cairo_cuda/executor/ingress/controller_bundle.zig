@@ -45,12 +45,31 @@ pub const Prepared = struct {
         bundle: composition.Bundle,
         preprocessed_logs: []const u32,
     ) !Prepared {
+        return initWithTransientStatic(
+            allocator,
+            request,
+            protocol,
+            bundle,
+            preprocessed_logs,
+            false,
+        );
+    }
+
+    pub fn initWithTransientStatic(
+        allocator: std.mem.Allocator,
+        request: *const request_compiler.PreparedRequest,
+        protocol: compact.CompactProtocolV1,
+        bundle: composition.Bundle,
+        preprocessed_logs: []const u32,
+        transient_static: bool,
+    ) !Prepared {
         if (request.missing_lowerings.len != 0)
             return error.IncompleteCairoCudaLowering;
-        var resident = try resident_session.Prepared.init(
+        var resident = try resident_session.Prepared.initWithTransientStatic(
             allocator,
             request.resident,
             request.trace_dispatch,
+            transient_static,
         );
         errdefer resident.deinit();
         var preprocessed_commit = try trace_commit.Prepared.initProducedWithBlowup(

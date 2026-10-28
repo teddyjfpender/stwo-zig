@@ -1,0 +1,32 @@
+{
+  "schema": "stwo.cairo-cuda-memory-trial.v1",
+  "command": [
+    "/tmp/stwo-zig/zig-out/bin/stwo-cairo-cuda",
+    "prove",
+    "--backend",
+    "cuda",
+    "--input",
+    "/tmp/stwo-cuda-challenge/data/inputs/15574540_15574549.cpi",
+    "--input-sha256",
+    "d909067e76d12ca0943aac133be98457640210728155392ffe56d4c26fa6e58c",
+    "--output",
+    "/workspace/rtx5090-medium-host-preprocessed-merkle/15574540_15574549/proof.json",
+    "--report-out",
+    "/workspace/rtx5090-medium-host-preprocessed-merkle/15574540_15574549/report.json"
+  ],
+  "binary_sha256": "ab3f1f31cc55a904854cb40b85ebe162da91b1330111518d3200781d5b2b94b5",
+  "source": {
+    "git_head": "dc5dcf5402367d6ff2829d4339b460b97ea21a14",
+    "git_diff_sha256": "dba9a25d34a254422698650c25f3638f85e42dc67d672aaa27516a6689921581"
+  },
+  "policy_env": {
+    "STWO_CAIRO_CUDA_PREPROCESSED_VARIANT": "canonical",
+    "STWO_CUDA_MANAGED_ARENA": "1",
+    "STWO_CUDA_HOST_PREPROCESSED_HASHES": "1"
+  },
+  "exit_code": 0,
+  "elapsed_ns": 10315343852,
+  "samples": 39,
+  "whole_device_peak_bytes": 30591156224,
+  "process_rss_peak_bytes": 7405207552
+}

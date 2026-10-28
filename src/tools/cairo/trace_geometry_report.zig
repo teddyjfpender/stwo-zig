@@ -16,6 +16,7 @@ pub fn writeJsonReport(
     prepared: *const source.Prepared,
     controllers: *const controller_bundle.Prepared,
     registry_sha: ?[32]u8,
+    transient_static: bool,
 ) !void {
     const program = prepared.request.proof_program;
     var partial_ec: ComponentBytes = .{};
@@ -80,6 +81,7 @@ pub fn writeJsonReport(
         .relation_sha256 = &relation_hex,
         .proof_program_sha256 = &program_hex,
         .variant = @tagName(prepared.variant),
+        .transient_static = transient_static,
         .allocated_bytes = try std.math.mul(u64, controllers.resident.combined_arena.total_words, 4),
         .peak_live_bytes = try std.math.mul(u64, prepared.request.resident.summary.peak_live_words, 4),
         .request_arena_bytes = prepared.request.resident.summary.allocatedResidentBytes(),

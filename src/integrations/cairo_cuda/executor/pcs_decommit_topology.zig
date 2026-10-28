@@ -476,6 +476,11 @@ fn openTrace(
     assembly: common.Words,
     opening: TraceOpening,
 ) !void {
+    const timeline = if (std.posix.getenv("STWO_CUDA_DECOMMIT_TIMELINE")) |value|
+        std.mem.eql(u8, value, "1")
+    else
+        false;
+    var timer = if (timeline) try std.time.Timer.start() else null;
     var phase: []const u8 = "map_queries";
     errdefer std.debug.print("cairo-cuda opening tree={} phase={s} failed\n", .{ opening.tree_index, phase });
     const queries = decommit.traceQueries();
@@ -489,6 +494,7 @@ fn openTrace(
         0,
         queries,
     );
+    if (timeline) try traceTimeline(session, &timer, opening.tree_index, "map_queries");
     const tree = try treeAt(trees, opening.tree_index);
     if (tree.role != opening.role or
         tree.column_count != opening.column_count)
@@ -540,6 +546,7 @@ fn openTrace(
             assembly,
         );
     }
+    if (timeline) try traceTimeline(session, &timer, opening.tree_index, "pack_values");
     const empty_words = try decommit.sparse_indices.sub(0, 0);
     const empty_hashes = try decommit.sparse_hashes.sub(0, 0);
     phase = "assemble_trace";
@@ -567,6 +574,19 @@ fn openTrace(
             .assembly = assembly,
         },
     );
+    if (timeline) try traceTimeline(session, &timer, opening.tree_index, "assemble_trace");
+}
+
+fn traceTimeline(session: anytype, timer: *?std.time.Timer, tree: u32, phase: []const u8) !void {
+    if (comptime @TypeOf(session) != void) {
+        if (comptime @hasDecl(@TypeOf(session.context), "sync"))
+            try session.context.sync();
+    }
+    std.debug.print("cairo-cuda decommit timeline tree={} phase={s} elapsed_ns={}\n", .{
+        tree,
+        phase,
+        timer.*.?.lap(),
+    });
 }
 
 fn openFri(

@@ -145,7 +145,8 @@ pub fn build(b: *std.Build) void {
     cairo_app.addImport("stwo_circuit_recursion_wire", wire);
     const architectures = b.addOptions();
     architectures.addOption([]const u8, "architectures", cuda_arch);
-    cairo_app.addImport("cuda_architectures", architectures.createModule());
+    const architecture_module = architectures.createModule();
+    cairo_app.addImport("cuda_architectures", architecture_module);
     const handoff_root = b.createModule(.{
         .root_source_file = .{ .cwd_relative = b.pathFromRoot("../../products/circuit_recursion_cuda/verified_sink.zig") },
         .target = target,
@@ -179,6 +180,8 @@ pub fn build(b: *std.Build) void {
     resident_product_root.addImport("circuit_recursion_app", app);
     resident_product_root.addImport("stwo_circuit_cpu_integration", circuit_cpu);
     resident_product_root.addImport("stwo_circuit_cuda_integration", integration);
+    resident_product_root.addImport("stwo_cuda_backend", cuda_backend);
+    resident_product_root.addImport("cuda_architectures", architecture_module);
     resident_product_root.addImport("stwo_circuit_recursion_wire", wire);
     resident_product_root.addImport("stwo_cairo_cuda_integration", cairo_cuda);
     resident_product_root.addImport("stwo_cairo_frontend", cairo);

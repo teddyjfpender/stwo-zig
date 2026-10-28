@@ -1,0 +1,35 @@
+{
+  "schema": "stwo.cairo-cuda-memory-trial.v1",
+  "command": [
+    "/tmp/stwo-zig/zig-out/bin/stwo-cairo-cuda",
+    "prove",
+    "--backend",
+    "cuda",
+    "--input",
+    "/tmp/stwo-cuda-challenge/data/inputs/15563360_15563369.cpi",
+    "--input-sha256",
+    "c21cdd847a35368254bdb7c0041eb23d9d15e1bc67883c2adbab7a12874d2470",
+    "--output",
+    "/workspace/rtx5090-five-m-all-hashes-maincoeff15-tail/15563360_15563369/proof.json",
+    "--report-out",
+    "/workspace/rtx5090-five-m-all-hashes-maincoeff15-tail/15563360_15563369/report.json"
+  ],
+  "binary_sha256": "3d135cf5fe837a5b560641643dc099219cfdd19eeb738dea59ec8a9d45e6dff7",
+  "source": {
+    "git_head": "dc5dcf5402367d6ff2829d4339b460b97ea21a14",
+    "git_diff_sha256": "cba6d43b3a0477520842531f61211bb767c6e434511028526dcecda31884c290"
+  },
+  "policy_env": {
+    "STWO_CAIRO_CUDA_PREPROCESSED_VARIANT": "canonical",
+    "STWO_CUDA_MANAGED_ARENA": "force",
+    "STWO_CUDA_SELECTIVE_HOST_TAIL": "1",
+    "STWO_CUDA_HOST_MAIN_COEFF_PERCENT": "15",
+    "STWO_CUDA_HOST_PREPROCESSED_HASHES": "1",
+    "STWO_CUDA_HOST_TRACE_HASHES": "1"
+  },
+  "exit_code": 0,
+  "elapsed_ns": 14836005519,
+  "samples": 55,
+  "whole_device_peak_bytes": 33277607936,
+  "process_rss_peak_bytes": 10138927104
+}

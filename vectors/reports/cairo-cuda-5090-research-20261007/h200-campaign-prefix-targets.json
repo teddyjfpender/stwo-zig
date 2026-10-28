@@ -1,0 +1,39 @@
+{
+  "128": {
+    "first_block": 15653256,
+    "first_pie": "15653256_15653263",
+    "last_block": 15654401,
+    "last_pie": "15654372_15654401",
+    "reference": {
+      "accepted_to_publication_wall_s": 544.823956574,
+      "attempt": "h200-api-128-001",
+      "final_root": "0x3ed0fde0b1d06cc8e1f2a8607ce107cbc472d2653c259231dc0e378e1784f37",
+      "root_proof_sha256": "6a5fb42f6367dc930cd14abcc010714ae57abedc3498d76747c8a412e01d1f7b"
+    },
+    "total_adapted_bytes": 44886634656,
+    "total_steps": 2278337430
+  },
+  "512": {
+    "first_block": 15653256,
+    "first_pie": "15653256_15653263",
+    "last_block": 15659106,
+    "last_pie": "15659077_15659106",
+    "reference": {
+      "accepted_to_publication_wall_s": 2103.458650144,
+      "attempt": "h200-api-512-001",
+      "final_root": "0x4ef7668e8bc6c39f4edd974115319ecaaa94940782c3b9a8bd47fbb9fff36b3",
+      "root_proof_sha256": "f7af121a46e08a6edb2a93d72ffc2f44767fc7d914d24c6a68e0e3787fdb1ca4"
+    },
+    "total_adapted_bytes": 174954745116,
+    "total_steps": 8855546317
+  },
+  "64": {
+    "first_block": 15653256,
+    "first_pie": "15653256_15653263",
+    "last_block": 15653810,
+    "last_pie": "15653770_15653810",
+    "reference": null,
+    "total_adapted_bytes": 22236736264,
+    "total_steps": 1130634143
+  }
+}

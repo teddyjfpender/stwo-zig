@@ -1,0 +1,27 @@
+{
+  "schema": "stwo.cairo-cuda-prefix64-preparation-match.v1",
+  "h200_campaign": "h200-api-512-001",
+  "leaves": 64,
+  "first_block": 15653256,
+  "last_block": 15653810,
+  "archive_sha256_matches": 64,
+  "adapted_sha256_matches": 64,
+  "preimage_sha256_matches": 64,
+  "adapted_bytes": 22236736264,
+  "campaign_sha256": "3f44a32b64ff430caedc89aaa06c32b8b5fb3513f8ad47bef95d5bafd9142f1a",
+  "campaign_byte_equal_to_pinned": true,
+  "preparation_receipt_sha256": "bb4a55236b5f0846e4cbdec207f342eb3909ade71a3b6ce26c73233e459d3cd9",
+  "preflight": {
+    "schema": "stwo.proving-service.preflight.v1",
+    "leaves": 64,
+    "first_block": 15653256,
+    "last_block": 15653810,
+    "step_basis": "os_steps",
+    "total_steps": 1130634143,
+    "unique_input_objects": 128,
+    "unique_input_bytes": 22238449909,
+    "adapted_bytes": 22236736264,
+    "preimage_bytes": 1713645,
+    "adapted_hashes_verified": 64
+  }
+}

@@ -1,0 +1,40 @@
+{
+  "schema": "stwo.cairo-cuda-memory-trial.v1",
+  "command": [
+    "zig-out/bin/stwo-cairo-cuda",
+    "prove",
+    "--backend",
+    "cuda",
+    "--input",
+    "/workspace/inputs/15590913_15590913.cpi",
+    "--input-sha256",
+    "9d503fa0c6c818d8de84d3d71208df641bb62ec93e480687252128f698294bc3",
+    "--output",
+    "/workspace/rtx5090-pedersen22m-interactioncoeff25/15590913_15590913/proof.json",
+    "--report-out",
+    "/workspace/rtx5090-pedersen22m-interactioncoeff25/15590913_15590913/report.json"
+  ],
+  "binary_sha256": "d03f79d01681492560467243cf78a26bb09bd3ff7627a4b6f77f09be78ed0911",
+  "source": {
+    "git_head": "dc5dcf5402367d6ff2829d4339b460b97ea21a14",
+    "git_diff_sha256": "aabe63d093569fa898ca61c850d2886fbdee0d7d9dc249acbdf3e5b5992d881e"
+  },
+  "policy_env": {
+    "STWO_CAIRO_CUDA_PREPROCESSED_VARIANT": "canonical",
+    "STWO_CUDA_MANAGED_ARENA": "1",
+    "STWO_CUDA_MANAGED_PLACEMENT": "capacity",
+    "STWO_CUDA_CAPACITY_WRITER_SCRATCH_HOST_PERCENT": "50",
+    "STWO_CUDA_CAPACITY_INTERACTION_COEFF_HOST_PERCENT": "25",
+    "STWO_CUDA_HOST_PREPROCESSED_HASHES": "1",
+    "STWO_CUDA_HOST_TRACE_HASHES": "1"
+  },
+  "exit_code": 0,
+  "elapsed_ns": 353460518429,
+  "started_wall_utc": "2026-10-08T03:41:57.517382+00:00",
+  "process_spawn_wall_utc": "2026-10-08T03:41:57.517910+00:00",
+  "finished_wall_utc": "2026-10-08T03:47:50.977898+00:00",
+  "samples": 1269,
+  "whole_device_peak_bytes": 29519511552,
+  "process_rss_peak_bytes": 88678096896,
+  "process_rss_scope": "process_tree"
+}

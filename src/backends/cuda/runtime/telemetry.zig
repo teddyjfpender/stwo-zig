@@ -74,6 +74,7 @@ pub const Counters = struct {
     memset_operations: u64 = 0,
     fill_words: u64 = 0,
     sync_calls: u64 = 0,
+    managed_policy_sync_calls: u64 = 0,
     lane_joins: u64 = 0,
     kernel_launches: u64 = 0,
     graph_launches: u64 = 0,
@@ -248,11 +249,16 @@ pub const Counters = struct {
     }
 
     pub fn isResident(self: Counters) bool {
+        const expected_syncs = std.math.add(
+            u64,
+            self.managed_policy_sync_calls,
+            1,
+        ) catch return false;
         return self.cpu_fallback_attempts == 0 and
             self.cpu_fallbacks_completed == 0 and
             self.d2h_proof_operations == 1 and
             self.d2h_proof_bytes != 0 and
-            self.sync_calls == 1 and
+            self.sync_calls == expected_syncs and
             self.live_bytes == 0 and
             self.kernel_launches != 0;
     }

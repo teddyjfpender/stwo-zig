@@ -1,0 +1,37 @@
+cairo-cuda arena reservation bytes=44229177920 slots=193
+cairo-cuda arena slot=1 bytes=131481176 offset=16178736896 lifetime=ingress..trace_generation
+cairo-cuda arena slot=3 bytes=748060700 offset=15430675968 lifetime=ingress..trace_generation
+cairo-cuda arena slot=6 bytes=11638008064 offset=0 lifetime=trace_generation..trace_commit
+cairo-cuda arena slot=7 bytes=3792667716 offset=11638008064 lifetime=trace_generation..trace_generation
+cairo-cuda arena slot=16 bytes=224919552 offset=43706166528 lifetime=trace_commit..trace_commit
+cairo-cuda arena slot=27 bytes=3825205248 offset=6987169280 lifetime=constraint_evaluation..constraint_evaluation
+cairo-cuda arena slot=32 bytes=536869376 offset=42900860160 lifetime=constraint_evaluation..constraint_evaluation
+cairo-cuda arena slot=33 bytes=134217728 offset=43931086080 lifetime=ingress..proof_assembly
+cairo-cuda arena slot=34 bytes=134217728 offset=44065303808 lifetime=ingress..proof_assembly
+cairo-cuda arena slot=35 bytes=402653184 offset=42900860160 lifetime=trace_commit..trace_commit
+cairo-cuda arena slot=36 bytes=402653184 offset=43303513344 lifetime=trace_commit..trace_commit
+cairo-cuda arena slot=37 bytes=2172402112 offset=37507232512 lifetime=ingress..proof_assembly
+cairo-cuda arena slot=38 bytes=4344804224 offset=25373876224 lifetime=ingress..proof_assembly
+cairo-cuda arena slot=41 bytes=4294967264 offset=29718680576 lifetime=ingress..proof_assembly
+cairo-cuda arena slot=44 bytes=4578622720 offset=20795253504 lifetime=trace_generation..oods
+cairo-cuda arena slot=45 bytes=9157245440 offset=11638008064 lifetime=trace_commit..decommit
+cairo-cuda arena slot=48 bytes=1073741792 offset=39679634688 lifetime=trace_commit..decommit
+cairo-cuda arena slot=51 bytes=3493584640 offset=34013647872 lifetime=trace_commit..oods
+cairo-cuda arena slot=52 bytes=6987169280 offset=0 lifetime=trace_commit..decommit
+cairo-cuda arena slot=55 bytes=1073741792 offset=41827118336 lifetime=trace_commit..decommit
+cairo-cuda arena slot=58 bytes=268435456 offset=11349245440 lifetime=constraint_evaluation..decommit
+cairo-cuda arena slot=59 bytes=536870912 offset=10812374528 lifetime=constraint_evaluation..decommit
+cairo-cuda arena slot=62 bytes=1073741792 offset=40753376512 lifetime=trace_commit..decommit
+cairo-cuda arena slot=77 bytes=513409024 offset=6987169280 lifetime=oods..oods
+cairo-cuda arena slot=78 bytes=513409024 offset=7500578304 lifetime=oods..oods
+cairo-cuda arena slot=93 bytes=402652416 offset=6987169280 lifetime=quotient..quotient
+cairo-cuda arena slot=94 bytes=268435456 offset=8597782016 lifetime=quotient..decommit
+cairo-cuda arena slot=95 bytes=134217728 offset=7389821696 lifetime=quotient..quotient
+cairo-cuda arena slot=99 bytes=1073741792 offset=6987169280 lifetime=fri_commit..decommit
+cairo-cuda arena slot=101 bytes=134217728 offset=9134652928 lifetime=fri_commit..decommit
+cairo-cuda arena slot=102 bytes=536870880 offset=8060911104 lifetime=fri_commit..decommit
+cairo-cuda arena slot=104 bytes=67108864 offset=9403088384 lifetime=fri_commit..decommit
+cairo-cuda arena slot=105 bytes=268435424 offset=8866217472 lifetime=fri_commit..decommit
+cairo-cuda arena slot=108 bytes=134217696 offset=9268870656 lifetime=fri_commit..decommit
+cairo-cuda phase=allocate_arena failed: InsufficientDeviceMemory
+error: InsufficientDeviceMemory

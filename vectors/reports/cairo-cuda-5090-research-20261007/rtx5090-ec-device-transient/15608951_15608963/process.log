@@ -1,0 +1,14 @@
+cairo-cuda arena reservation bytes=32435887376 slots=193
+cuda prepared arena mode=device bytes=32435887376
+cairo-cuda static-phase initial_upload_ns=20149093 preprocessed_load_ns=343340179 materialize_ns=1081395 cached=false device_image_hit=false
+cairo-cuda-memory-phase phase=proof_begin elapsed_ns=1030
+cairo-cuda-memory-phase phase=trace_generation_end elapsed_ns=66243169
+cairo-cuda-memory-phase phase=preprocessed_commit_end elapsed_ns=105220512
+cairo-cuda-memory-phase phase=main_commit_end elapsed_ns=111014751
+cairo-cuda-memory-phase phase=relation_end elapsed_ns=149897455
+cairo-cuda-memory-phase phase=interaction_commit_end elapsed_ns=151120008
+cairo-cuda-memory-phase phase=trace_commit_end elapsed_ns=151144288
+cuda runtime call failed status=2
+cairo-cuda proof phase=constraint_evaluation failed
+cairo-cuda phase=execute_proof failed: CudaFailure
+error: CudaFailure

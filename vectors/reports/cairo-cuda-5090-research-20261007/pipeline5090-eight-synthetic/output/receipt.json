@@ -1,0 +1,94 @@
+{
+  "schema": "stwo-cuda-external-pipeline-v1",
+  "backend": "cuda-resident",
+  "mode": "batch_integrated",
+  "registry_sha256": "a2503220947f161185a4f5160fd5953db92f6aec0055367830ebc8a65187eabf",
+  "inputs": [
+    {
+      "path": "15627902-15627904.prover_input.cpi",
+      "sha256": "c92a1ecd5baf8651e88c6d96f016cfa2646bbda2cf646fec9bc0558c200a6f81"
+    },
+    {
+      "path": "15627905-15627907.prover_input.cpi",
+      "sha256": "3c898538af071069385e5deae70a086a31e8ab87198fa198cd6fcf0f3e3d1557"
+    },
+    {
+      "path": "15627902-15627904.prover_input.cpi",
+      "sha256": "c92a1ecd5baf8651e88c6d96f016cfa2646bbda2cf646fec9bc0558c200a6f81"
+    },
+    {
+      "path": "15627905-15627907.prover_input.cpi",
+      "sha256": "3c898538af071069385e5deae70a086a31e8ab87198fa198cd6fcf0f3e3d1557"
+    },
+    {
+      "path": "15627902-15627904.prover_input.cpi",
+      "sha256": "c92a1ecd5baf8651e88c6d96f016cfa2646bbda2cf646fec9bc0558c200a6f81"
+    },
+    {
+      "path": "15627905-15627907.prover_input.cpi",
+      "sha256": "3c898538af071069385e5deae70a086a31e8ab87198fa198cd6fcf0f3e3d1557"
+    },
+    {
+      "path": "15627902-15627904.prover_input.cpi",
+      "sha256": "c92a1ecd5baf8651e88c6d96f016cfa2646bbda2cf646fec9bc0558c200a6f81"
+    },
+    {
+      "path": "15627905-15627907.prover_input.cpi",
+      "sha256": "3c898538af071069385e5deae70a086a31e8ab87198fa198cd6fcf0f3e3d1557"
+    }
+  ],
+  "leaves": [
+    {
+      "sha256": "dcf3ed4214790cfef602766f4edbfbaa03dab2fa05ebc3fba88d082f566677d8"
+    },
+    {
+      "sha256": "7cda055e4bf0fcda6debab8c137aaa794176922ba4efb528994b1fd324aa22db"
+    },
+    {
+      "sha256": "dcf3ed4214790cfef602766f4edbfbaa03dab2fa05ebc3fba88d082f566677d8"
+    },
+    {
+      "sha256": "7cda055e4bf0fcda6debab8c137aaa794176922ba4efb528994b1fd324aa22db"
+    },
+    {
+      "sha256": "dcf3ed4214790cfef602766f4edbfbaa03dab2fa05ebc3fba88d082f566677d8"
+    },
+    {
+      "sha256": "7cda055e4bf0fcda6debab8c137aaa794176922ba4efb528994b1fd324aa22db"
+    },
+    {
+      "sha256": "dcf3ed4214790cfef602766f4edbfbaa03dab2fa05ebc3fba88d082f566677d8"
+    },
+    {
+      "sha256": "7cda055e4bf0fcda6debab8c137aaa794176922ba4efb528994b1fd324aa22db"
+    }
+  ],
+  "cairo_proofs": [
+    "/workspace/pipeline5090-eight-synthetic/output/leaf-0.cairo_proof.json",
+    "/workspace/pipeline5090-eight-synthetic/output/leaf-1.cairo_proof.json",
+    "/workspace/pipeline5090-eight-synthetic/output/leaf-2.cairo_proof.json",
+    "/workspace/pipeline5090-eight-synthetic/output/leaf-3.cairo_proof.json",
+    "/workspace/pipeline5090-eight-synthetic/output/leaf-4.cairo_proof.json",
+    "/workspace/pipeline5090-eight-synthetic/output/leaf-5.cairo_proof.json",
+    "/workspace/pipeline5090-eight-synthetic/output/leaf-6.cairo_proof.json",
+    "/workspace/pipeline5090-eight-synthetic/output/leaf-7.cairo_proof.json"
+  ],
+  "cairo_reports": [
+    "/workspace/pipeline5090-eight-synthetic/output/leaf-0.cairo_report.json",
+    "/workspace/pipeline5090-eight-synthetic/output/leaf-1.cairo_report.json",
+    "/workspace/pipeline5090-eight-synthetic/output/leaf-2.cairo_report.json",
+    "/workspace/pipeline5090-eight-synthetic/output/leaf-3.cairo_report.json",
+    "/workspace/pipeline5090-eight-synthetic/output/leaf-4.cairo_report.json",
+    "/workspace/pipeline5090-eight-synthetic/output/leaf-5.cairo_report.json",
+    "/workspace/pipeline5090-eight-synthetic/output/leaf-6.cairo_report.json",
+    "/workspace/pipeline5090-eight-synthetic/output/leaf-7.cairo_report.json"
+  ],
+  "logs": [
+    "/workspace/pipeline5090-eight-synthetic/output/batch.log"
+  ],
+  "root": {
+    "proof_sha256": "82b5c6b09faee0d15ae892c6f9af09b9b1d04faeceda4c5a64dfb4153632d8e4",
+    "outputs_sha256": "7c3b0fa329c73fa7430694b98ba9506b2098d35ff7fb4783e6e0b43eac07a8c1",
+    "packed_sha256": "c2a7864dd8548c69f164411f3894113862710ee13da3b8aec0cc372d7c396097"
+  }
+}

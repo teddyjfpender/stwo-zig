@@ -1,0 +1,119 @@
+cairo-cuda arena reservation bytes=37702335200 slots=193
+cairo-cuda arena slot=1 bytes=130725644 offset=11495959808 lifetime=ingress..trace_generation
+cairo-cuda arena slot=3 bytes=575233124 offset=10920726528 lifetime=ingress..trace_generation
+cairo-cuda arena slot=6 bytes=8278491904 offset=0 lifetime=trace_generation..trace_commit
+cairo-cuda arena slot=7 bytes=2642234436 offset=8278491904 lifetime=trace_generation..trace_generation
+cairo-cuda arena slot=16 bytes=331350016 offset=24261736192 lifetime=trace_commit..trace_commit
+cairo-cuda arena slot=27 bytes=3825205248 offset=23456429824 lifetime=constraint_evaluation..constraint_evaluation
+cairo-cuda arena slot=32 bytes=402635264 offset=6149088768 lifetime=constraint_evaluation..constraint_evaluation
+cairo-cuda arena slot=33 bytes=134217728 offset=37408277504 lifetime=ingress..proof_assembly
+cairo-cuda arena slot=34 bytes=134217728 offset=37542495232 lifetime=ingress..proof_assembly
+cairo-cuda arena slot=35 bytes=402653184 offset=23456429824 lifetime=trace_commit..trace_commit
+cairo-cuda arena slot=36 bytes=402653184 offset=23859083008 lifetime=trace_commit..trace_commit
+cairo-cuda arena slot=37 bytes=2172402112 offset=33088391680 lifetime=ingress..proof_assembly
+cairo-cuda arena slot=38 bytes=4344804224 offset=14816658176 lifetime=ingress..proof_assembly
+cairo-cuda arena slot=41 bytes=4294967264 offset=19161462528 lifetime=ingress..proof_assembly
+cairo-cuda arena slot=44 bytes=3269083136 offset=27281635072 lifetime=trace_generation..oods
+cairo-cuda arena slot=45 bytes=6538166272 offset=8278491904 lifetime=trace_commit..decommit
+cairo-cuda arena slot=48 bytes=1073741792 offset=35260793856 lifetime=trace_commit..decommit
+cairo-cuda arena slot=51 bytes=2537673472 offset=30550718208 lifetime=trace_commit..oods
+cairo-cuda arena slot=52 bytes=5075346944 offset=0 lifetime=trace_commit..decommit
+cairo-cuda arena slot=55 bytes=1073741792 offset=5075346944 lifetime=trace_commit..decommit
+cairo-cuda arena slot=58 bytes=268435456 offset=7759701504 lifetime=constraint_evaluation..decommit
+cairo-cuda arena slot=59 bytes=536870912 offset=7222830592 lifetime=constraint_evaluation..decommit
+cairo-cuda arena slot=62 bytes=1073741792 offset=36334535680 lifetime=trace_commit..decommit
+cairo-cuda arena slot=77 bytes=513343488 offset=6149088736 lifetime=oods..oods
+cairo-cuda arena slot=78 bytes=513343488 offset=6662432224 lifetime=oods..oods
+cairo-cuda arena slot=93 bytes=335535360 offset=6149088768 lifetime=quotient..quotient
+cairo-cuda arena slot=94 bytes=268435456 offset=23993300736 lifetime=quotient..decommit
+cairo-cuda arena slot=95 bytes=134217728 offset=6484624128 lifetime=quotient..quotient
+cairo-cuda arena slot=99 bytes=1073741792 offset=6149088768 lifetime=fri_commit..decommit
+cairo-cuda arena slot=101 bytes=134217728 offset=8028136960 lifetime=fri_commit..decommit
+cairo-cuda arena slot=102 bytes=536870880 offset=23456429824 lifetime=fri_commit..decommit
+cairo-cuda arena slot=104 bytes=67108864 offset=8162354688 lifetime=fri_commit..decommit
+cairo-cuda arena slot=105 bytes=268435424 offset=24261736192 lifetime=fri_commit..decommit
+cairo-cuda arena slot=108 bytes=134217696 offset=24530171648 lifetime=fri_commit..decommit
+cuda prepared arena mode=managed bytes=37702335200
+cairo-cuda static-phase initial_upload_ns=74606301 preprocessed_load_ns=564893923 materialize_ns=1275304 cached=false device_image_hit=false
+cairo-cuda-memory-phase phase=proof_begin elapsed_ns=700
+cairo-cuda-memory-phase phase=trace_generation_end elapsed_ns=2502803294
+cairo-cuda-memory-phase phase=preprocessed_commit_end elapsed_ns=4176446572
+cairo-cuda-memory-phase phase=main_commit_end elapsed_ns=4908289323
+cairo-cuda-relation step=expand ordinal=0 elapsed_ns=2382289
+cairo-cuda-relation step=window ordinal=0 elapsed_ns=21122041
+cairo-cuda-relation step=window ordinal=1 elapsed_ns=30169779
+cairo-cuda-relation step=window ordinal=2 elapsed_ns=6128551
+cairo-cuda-relation step=window ordinal=3 elapsed_ns=7588034
+cairo-cuda-relation step=window ordinal=4 elapsed_ns=3863982
+cairo-cuda-relation step=window ordinal=5 elapsed_ns=19327200
+cairo-cuda-relation step=window ordinal=6 elapsed_ns=3088256
+cairo-cuda-relation step=window ordinal=7 elapsed_ns=44049
+cairo-cuda-relation step=window ordinal=8 elapsed_ns=3850832
+cairo-cuda-relation step=window ordinal=9 elapsed_ns=51230
+cairo-cuda-relation step=window ordinal=10 elapsed_ns=1291874
+cairo-cuda-relation step=window ordinal=11 elapsed_ns=5468354
+cairo-cuda-relation step=window ordinal=12 elapsed_ns=42100
+cairo-cuda-relation step=window ordinal=13 elapsed_ns=37040
+cairo-cuda-relation step=window ordinal=14 elapsed_ns=62400
+cairo-cuda-relation step=window ordinal=15 elapsed_ns=2293229
+cairo-cuda-relation step=window ordinal=16 elapsed_ns=21638549
+cairo-cuda-relation step=window ordinal=17 elapsed_ns=3936901
+cairo-cuda-relation step=window ordinal=18 elapsed_ns=44510
+cairo-cuda-relation step=window ordinal=19 elapsed_ns=2811447
+cairo-cuda-relation step=window ordinal=20 elapsed_ns=761026
+cairo-cuda-relation step=window ordinal=21 elapsed_ns=19724468
+cairo-cuda-relation step=window ordinal=22 elapsed_ns=42125782
+cairo-cuda-relation step=window ordinal=23 elapsed_ns=43040
+cairo-cuda-relation step=window ordinal=24 elapsed_ns=3275425
+cairo-cuda-relation step=window ordinal=25 elapsed_ns=18115745
+cairo-cuda-relation step=window ordinal=26 elapsed_ns=58200
+cairo-cuda-relation step=window ordinal=27 elapsed_ns=438398
+cairo-cuda-relation step=window ordinal=28 elapsed_ns=69339
+cairo-cuda-relation step=window ordinal=29 elapsed_ns=34240
+cairo-cuda-relation step=window ordinal=30 elapsed_ns=95460
+cairo-cuda-relation step=window ordinal=31 elapsed_ns=33990
+cairo-cuda-relation step=window ordinal=32 elapsed_ns=1625182
+cairo-cuda-relation step=window ordinal=33 elapsed_ns=139409
+cairo-cuda-relation step=window ordinal=34 elapsed_ns=5796633
+cairo-cuda-relation step=window ordinal=35 elapsed_ns=399048
+cairo-cuda-relation step=window ordinal=36 elapsed_ns=75456197
+cairo-cuda-relation step=window ordinal=37 elapsed_ns=22511624
+cairo-cuda-relation step=window ordinal=38 elapsed_ns=202649
+cairo-cuda-relation step=window ordinal=39 elapsed_ns=808876
+cairo-cuda-relation step=window ordinal=40 elapsed_ns=238259
+cairo-cuda-relation step=window ordinal=41 elapsed_ns=15241759
+cairo-cuda-relation step=window ordinal=42 elapsed_ns=41310
+cairo-cuda-relation step=window ordinal=43 elapsed_ns=3000366
+cairo-cuda-relation step=window ordinal=44 elapsed_ns=10523740
+cairo-cuda-relation step=window ordinal=45 elapsed_ns=19537699
+cairo-cuda-relation step=window ordinal=46 elapsed_ns=14529242
+cairo-cuda-relation step=window ordinal=47 elapsed_ns=28360
+cairo-cuda-relation step=window ordinal=48 elapsed_ns=23869
+cairo-cuda-relation step=window ordinal=49 elapsed_ns=25330
+cairo-cuda-relation step=window ordinal=50 elapsed_ns=94830
+cairo-cuda-relation step=window ordinal=51 elapsed_ns=779006
+cairo-cuda-relation step=window ordinal=52 elapsed_ns=9580405
+cairo-cuda-relation step=window ordinal=53 elapsed_ns=27380
+cairo-cuda-relation step=window ordinal=54 elapsed_ns=23480
+cairo-cuda-relation step=window ordinal=55 elapsed_ns=2706788
+cairo-cuda-relation step=window ordinal=56 elapsed_ns=29639
+cairo-cuda-relation step=window ordinal=57 elapsed_ns=968826
+cairo-cuda-relation step=window ordinal=58 elapsed_ns=254959
+cairo-cuda-relation step=window ordinal=59 elapsed_ns=321338
+cairo-cuda-relation step=window ordinal=60 elapsed_ns=24590
+cairo-cuda-relation step=window ordinal=61 elapsed_ns=146659
+cairo-cuda-relation step=window ordinal=62 elapsed_ns=313399
+cairo-cuda-relation step=window ordinal=63 elapsed_ns=966875
+cairo-cuda-relation step=tail ordinal=0 elapsed_ns=7336006
+cairo-cuda-memory-phase phase=relation_end elapsed_ns=15392915711
+cairo-cuda-memory-phase phase=interaction_commit_end elapsed_ns=15678901051
+cairo-cuda-memory-phase phase=trace_commit_end elapsed_ns=15678945781
+cairo-cuda-memory-phase phase=constraint_evaluation_end elapsed_ns=16713771732
+cairo-cuda-memory-phase phase=composition_commit_end elapsed_ns=16713905032
+cairo-cuda-memory-phase phase=constraint_stage_end elapsed_ns=16713971432
+cairo-cuda-memory-phase phase=oods_end elapsed_ns=16914501652
+cairo-cuda-memory-phase phase=quotient_end elapsed_ns=17040410182
+cairo-cuda-memory-phase phase=fri_commit_end elapsed_ns=17050681034
+cairo-cuda-memory-phase phase=decommit_end elapsed_ns=17063599003
+cairo-cuda phase=finish_proof failed: StrictAotViolation
+error: StrictAotViolation

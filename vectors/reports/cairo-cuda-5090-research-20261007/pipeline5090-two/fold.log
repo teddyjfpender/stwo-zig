@@ -1,0 +1,10 @@
+circuit-fold-stage setup_and_canonical_ns=1070637529 leaves=2
+info(circuit_recursion): reducing layer 0 with 2 entries
+circuit-cuda resident-phase profile=root arena_reused=false static_reused=false plan_ns=23926680 static_hash_ns=1880 ingress_ns=166767888 schedule_ns=309265050 finish_ns=3551071 decode_ns=2796655
+circuit-cuda circuit-proof profile=root resident_ns=512551330 verify_ns=5364940 convert_ns=214889 arena_bytes=28132569632 peak_device_bytes=28132569632 terminal_bytes=4018944
+info(circuit_recursion): reduce layer 1 pair 0 (root): build 443 ms, prove 518 ms
+circuit-fold-layer index=0 pairs=1 elapsed_ns=1014320587
+circuit-fold-stage reductions_ns=1015157553 count=1
+circuit-fold-stage render_ns=2393507
+circuit-cuda fold-tree leaves=2 reductions=1 prove_ns=2264056528 proof_bytes=1508773
+circuit-cuda fold-tree parse_ns=7799458 catalog_ns=3434401 fold_ns=2264056528 publish_ns=159668597

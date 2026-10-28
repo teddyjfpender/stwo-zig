@@ -455,6 +455,18 @@ pub fn ContextFor(comptime Api: type) type {
             return buffer;
         }
 
+        pub fn allocateManaged(self: *Self, words: usize) runtime_error.Error!Buffer {
+            if (self.active_stage != .ingress)
+                return error.AllocationOutsideIngress;
+            const buffer = try persistent_allocation.allocateRegisteredManaged(
+                Api,
+                self,
+                words,
+            );
+            self.counters.allocation(self.active_stage, try buffer.bytes());
+            return buffer;
+        }
+
         /// Creates a fixed-address process allocation while the context is
         /// idle. Persistent allocations form a protected registry prefix.
         pub fn allocatePersistent(
@@ -463,6 +475,14 @@ pub fn ContextFor(comptime Api: type) type {
         ) runtime_error.Error!Buffer {
             _ = try self.requireHandle();
             return persistent_allocation.allocate(Api, self, words);
+        }
+
+        pub fn allocatePersistentManaged(
+            self: *Self,
+            words: usize,
+        ) runtime_error.Error!Buffer {
+            _ = try self.requireHandle();
+            return persistent_allocation.allocateManaged(Api, self, words);
         }
 
         pub fn allocateRaw(
@@ -475,6 +495,68 @@ pub fn ContextFor(comptime Api: type) type {
                 words,
                 out,
             ));
+        }
+
+        pub fn allocateRawManaged(
+            self: *Self,
+            words: usize,
+            out: *?[*]u32,
+        ) runtime_error.Error!void {
+            if (comptime @hasDecl(Api, "stwo_exec_context_alloc_managed_u32")) {
+                try runtime_error.check(Api.stwo_exec_context_alloc_managed_u32(
+                    try self.requireHandle(),
+                    words,
+                    out,
+                ));
+            } else return error.InvalidState;
+        }
+
+        pub fn prefetchManagedSlice(
+            self: *Self,
+            comptime F: type,
+            source: anytype,
+            to_device: bool,
+        ) runtime_error.Error!void {
+            if (self.active_stage == null) return error.StageNotActive;
+            if (source.len == 0) return error.SizeOverflow;
+            const pointer = try self.deviceSlicePointer(F, source, source.len);
+            const bytes = std.math.mul(usize, source.len, @sizeOf(F)) catch
+                return error.SizeOverflow;
+            if (comptime @hasDecl(Api, "stwo_exec_context_prefetch_managed")) {
+                try runtime_error.check(Api.stwo_exec_context_prefetch_managed(
+                    try self.requireHandle(),
+                    pointer,
+                    bytes,
+                    @intFromBool(to_device),
+                ));
+                self.synchronized = false;
+            } else return error.InvalidState;
+        }
+
+        pub fn adviseManagedHost(
+            self: *Self,
+            comptime F: type,
+            source: anytype,
+            prefer_host: bool,
+        ) runtime_error.Error!void {
+            if (self.active_stage == null) return error.StageNotActive;
+            if (source.len == 0) return error.SizeOverflow;
+            const pointer = try self.deviceSlicePointer(F, source, source.len);
+            const bytes = std.math.mul(usize, source.len, @sizeOf(F)) catch
+                return error.SizeOverflow;
+            if (comptime @hasDecl(Api, "stwo_exec_context_advise_managed_host")) {
+                // A reused physical arena span may be written by the prior
+                // stage. Drain the stream before changing its placement
+                // policy, and account for this deliberate policy barrier.
+                try self.sync();
+                self.counters.managed_policy_sync_calls += 1;
+                try runtime_error.check(Api.stwo_exec_context_advise_managed_host(
+                    try self.requireHandle(),
+                    pointer,
+                    bytes,
+                    @intFromBool(prefer_host),
+                ));
+            } else return error.InvalidState;
         }
 
         pub fn freeRaw(self: *Self, pointer: [*]u32) c_int {
@@ -794,6 +876,15 @@ pub fn ContextFor(comptime Api: type) type {
             return .{ .used = used, .reserved = reserved };
         }
 
+        pub fn trimPoolTo(self: *Self, bytes: usize) runtime_error.Error!void {
+            if (comptime @hasDecl(Api, "stwo_exec_context_pool_trim_to")) {
+                try runtime_error.check(Api.stwo_exec_context_pool_trim_to(
+                    try self.requireHandle(),
+                    bytes,
+                ));
+            } else return error.InvalidState;
+        }
+
         pub fn memoryInfo(self: *Self) runtime_error.Error!struct {
             free: usize,
             total: usize,
@@ -885,6 +976,9 @@ test "context owns buffers and accounts only explicit transfers" {
         var stream_word: u8 = 0;
         var device_words: [16]u32 = [_]u32{0} ** 16;
         var sync_calls: usize = 0;
+        var managed_allocations: usize = 0;
+        var managed_prefetches: usize = 0;
+        var managed_advice: usize = 0;
 
         fn stwo_exec_context_create(out: *?*anyopaque) c_int {
             out.* = &handle_word;
@@ -908,6 +1002,19 @@ test "context owns buffers and accounts only explicit transfers" {
         }
         fn stwo_exec_context_alloc_u32(_: *anyopaque, _: usize, out: *?[*]u32) c_int {
             out.* = &device_words;
+            return 0;
+        }
+        fn stwo_exec_context_alloc_managed_u32(_: *anyopaque, _: usize, out: *?[*]u32) c_int {
+            managed_allocations += 1;
+            out.* = &device_words;
+            return 0;
+        }
+        fn stwo_exec_context_prefetch_managed(_: *anyopaque, _: *const anyopaque, _: usize, _: c_int) c_int {
+            managed_prefetches += 1;
+            return 0;
+        }
+        fn stwo_exec_context_advise_managed_host(_: *anyopaque, _: *const anyopaque, _: usize, _: c_int) c_int {
+            managed_advice += 1;
             return 0;
         }
         fn stwo_exec_context_free_u32(_: *anyopaque, _: [*]u32) c_int {
@@ -966,6 +1073,20 @@ test "context owns buffers and accounts only explicit transfers" {
     const Context = ContextFor(Fake);
     var context = try Context.open();
     try context.beginStage(.ingress);
+    var managed = try context.allocateManaged(4);
+    try std.testing.expectEqual(@as(usize, 1), Fake.managed_allocations);
+    const managed_slice = @import("column.zig").DeviceSlice(u32){
+        .address = @intFromPtr(managed.pointer),
+        .len = managed.words,
+        .owner = managed.owner,
+        .generation = managed.generation,
+    };
+    try context.prefetchManagedSlice(u32, managed_slice, false);
+    try std.testing.expectEqual(@as(usize, 1), Fake.managed_prefetches);
+    try context.adviseManagedHost(u32, managed_slice, true);
+    try context.adviseManagedHost(u32, managed_slice, false);
+    try std.testing.expectEqual(@as(usize, 2), Fake.managed_advice);
+    try context.free(&managed);
     var buffer = try context.allocate(16);
     try context.upload(buffer, &.{ 1, 2, 3, 4 });
     try context.fill(buffer, 7);
@@ -1055,8 +1176,9 @@ test "context owns buffers and accounts only explicit transfers" {
     try std.testing.expectEqual(@as(u64, 16), context.counters.d2d_bytes);
     try std.testing.expectEqual(@as(u64, 16), context.counters.d2h_proof_bytes);
     try std.testing.expectEqual(@as(u64, 1), context.counters.d2h_proof_operations);
-    try std.testing.expectEqual(@as(usize, 1), Fake.sync_calls);
-    try std.testing.expectEqual(@as(u64, 1), context.counters.sync_calls);
+    try std.testing.expectEqual(@as(usize, 3), Fake.sync_calls);
+    try std.testing.expectEqual(@as(u64, 3), context.counters.sync_calls);
+    try std.testing.expectEqual(@as(u64, 2), context.counters.managed_policy_sync_calls);
     try std.testing.expect(context.counters.isResident());
     try std.testing.expect(context.counters.stagesCompleteExactlyOnce());
 }

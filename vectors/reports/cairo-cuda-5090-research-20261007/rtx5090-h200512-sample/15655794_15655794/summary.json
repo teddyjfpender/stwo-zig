@@ -1,0 +1,36 @@
+{
+  "schema": "stwo.cairo-cuda-memory-trial.v1",
+  "command": [
+    "/tmp/stwo-zig/zig-out/bin/stwo-cairo-cuda",
+    "prove",
+    "--backend",
+    "cuda",
+    "--input",
+    "/workspace/h200512sample/inputs/15655794_15655794.cpi",
+    "--input-sha256",
+    "ffe1e1727e5dc730b51aa0851b9e6bf348c64496a233be811cc509d9672b12be",
+    "--output",
+    "/workspace/h200512sample/rtx5090-h200512-sample/15655794_15655794/proof.json",
+    "--report-out",
+    "/workspace/h200512sample/rtx5090-h200512-sample/15655794_15655794/report.json"
+  ],
+  "binary_sha256": "49c8f5702be30217f0293ad97085ef05c4333175c1ea0387a38095c612c89447",
+  "source": {
+    "git_head": "dc5dcf5402367d6ff2829d4339b460b97ea21a14",
+    "git_diff_sha256": "d7e281b3335c8d81488dcdff187dfb2a2defd8c90ac8ac0b52eab0712a27a71b"
+  },
+  "policy_env": {
+    "STWO_CAIRO_CUDA_PREPROCESSED_VARIANT": "canonical",
+    "STWO_CUDA_MANAGED_ARENA": "1",
+    "STWO_CUDA_MANAGED_PLACEMENT": "capacity"
+  },
+  "exit_code": 0,
+  "elapsed_ns": 334924112728,
+  "started_wall_utc": "2026-10-08T06:11:54.075137+00:00",
+  "process_spawn_wall_utc": "2026-10-08T06:11:54.075775+00:00",
+  "finished_wall_utc": "2026-10-08T06:17:28.999248+00:00",
+  "samples": 1201,
+  "whole_device_peak_bytes": 18779996160,
+  "process_rss_peak_bytes": 66179866624,
+  "process_rss_scope": "process_tree"
+}

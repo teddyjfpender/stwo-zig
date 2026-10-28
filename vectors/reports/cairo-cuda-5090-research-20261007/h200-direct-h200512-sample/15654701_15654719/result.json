@@ -1,0 +1,21 @@
+{
+  "device_peak_bytes": 59467890688,
+  "exit_code": 0,
+  "expected_proof_sha256": null,
+  "full_command_s": 5.034557922,
+  "h200_cairo_prove_s": 0.778352969,
+  "h200_ingress_s": 0.716098629,
+  "h200_wrap_s": 0.993730432,
+  "host_rss_peak_bytes": 3384336384,
+  "ingress_s": 3.587565105,
+  "input_sha256": "53993e8440aeec4c16976422a0d1ac9131064d6b16e4d25e6c6dda2b76c634ef",
+  "pie": "15654701_15654719",
+  "policy_env": {},
+  "proof_hash_matches_reference": null,
+  "proof_s": 0.799899854,
+  "proof_sha256": "2aada5c28e563e17ee488133f8c87df7338507f27d2ec29830f263cd25cf5461",
+  "publication_s": 4.490820065,
+  "status": "verified",
+  "steps": 8526822,
+  "verifier_exit_code": 0
+}

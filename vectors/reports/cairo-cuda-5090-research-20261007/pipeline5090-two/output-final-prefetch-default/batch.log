@@ -1,0 +1,28 @@
+cairo-cuda arena reservation bytes=37257364800 slots=199
+cairo-cuda static-phase initial_upload_ns=80084210 preprocessed_load_ns=532903547 materialize_ns=1232953 cached=false device_image_hit=false
+cairo-cuda compact main-coefficient host_percent=5 host_tail=false arena_bytes=37257364800
+cairo-cuda handoff prepared_arena_release_ns=976053834
+info(circuit_recursion): leaf topology c5b609ebdc4a3437b646a06b0f5e926071d4e8a7e4f4eb2e6848bc2096e1ff82: built, 44505598 variables
+circuit-cuda resident-phase profile=internal arena_reused=false static_reused=false plan_ns=25847524 static_hash_ns=1810 ingress_ns=171612531 schedule_ns=210567136 finish_ns=84213659 decode_ns=2907864
+circuit-cuda circuit-proof profile=internal resident_ns=501632281 verify_ns=4568696 convert_ns=392718 arena_bytes=28123853344 peak_device_bytes=28123853344 terminal_bytes=4018944
+cairo-cuda source-lookahead prepare_ns=273649545 wait_ns=1240 input=/tmp/stwo-cuda-challenge/data/inputs/15627905-15627907.prover_input.cpi
+cairo-cuda arena reservation bytes=36848665664 slots=199
+cairo-cuda static-phase initial_upload_ns=45735110 preprocessed_load_ns=579975590 materialize_ns=278449 cached=false device_image_hit=false
+cairo-cuda compact main-coefficient host_percent=5 host_tail=false arena_bytes=36848665664
+cairo-cuda handoff prepared_arena_release_ns=953559982
+info(circuit_recursion): leaf topology c5b609ebdc4a3437b646a06b0f5e926071d4e8a7e4f4eb2e6848bc2096e1ff82: cached, 44505598 variables
+circuit-cuda resident-phase profile=internal arena_reused=false static_reused=false plan_ns=27370516 static_hash_ns=1860 ingress_ns=158082181 schedule_ns=35321275 finish_ns=230876360 decode_ns=2728896
+circuit-cuda circuit-proof profile=internal resident_ns=459778660 verify_ns=4368377 convert_ns=398088 arena_bytes=28123853344 peak_device_bytes=28123853344 terminal_bytes=4018944
+circuit-cuda batch-leaf index=0 wrap_ns=2439564763 proof=/workspace/pipeline5090-two/output-final-prefetch-default/leaf-0.leaf_proof.json
+circuit-cuda batch-leaf index=1 wrap_ns=1104127672 proof=/workspace/pipeline5090-two/output-final-prefetch-default/leaf-1.leaf_proof.json
+circuit-cuda leaf-wrap-batch leaves=2 total_ns=29178595034
+circuit-fold-stage setup_and_canonical_ns=1084523695 leaves=2
+info(circuit_recursion): reducing layer 0 with 2 entries
+circuit-cuda resident-phase profile=root arena_reused=false static_reused=false plan_ns=23648326 static_hash_ns=2410 ingress_ns=383279431 schedule_ns=43222513 finish_ns=268145825 decode_ns=2825065
+circuit-cuda circuit-proof profile=root resident_ns=727447227 verify_ns=3993099 convert_ns=189589 arena_bytes=28132569632 peak_device_bytes=28132569632 terminal_bytes=4018944
+info(circuit_recursion): reduce layer 1 pair 0 (root): build 452 ms, prove 731 ms
+circuit-fold-layer index=0 pairs=1 elapsed_ns=1235370755
+circuit-fold-stage reductions_ns=1236142241 count=1
+circuit-fold-stage render_ns=2777465
+circuit-cuda integrated-fold leaves=2 reductions=1 fold_ns=2383649116 proof_bytes=1508773
+circuit-cuda leaf-wrap-batch setup_ns=279164307 execution_ns=29178595034 cache_hits=1 cache_misses=1

@@ -1,0 +1,32 @@
+{
+  "schema": "stwo.cairo-cuda-memory-trial.v1",
+  "command": [
+    "python3",
+    "/tmp/stwo-cuda-challenge/harness/run_pipeline.py",
+    "--source",
+    "/tmp/stwo-zig",
+    "--fixtures",
+    "/tmp/stwo-cuda-challenge/data/inputs",
+    "--case",
+    "/workspace/fold5090-two/pipeline-batch-case.json",
+    "--out",
+    "/workspace/pipeline5090-two/output-transient-hybrid25-r1"
+  ],
+  "binary_sha256": null,
+  "source": {
+    "git_head": "dc5dcf5402367d6ff2829d4339b460b97ea21a14",
+    "git_diff_sha256": "24652d1082d24eaa2a7085aee4dc306988e9996922c1ae27d3b604476661d617"
+  },
+  "policy_env": {
+    "STWO_CAIRO_CUDA_PREPROCESSED_VARIANT": "canonical",
+    "STWO_CUDA_COMPACT_DEVICE_PROFILE": "1",
+    "STWO_CUDA_COMPACT_HASH_POSTCOMMIT": "1",
+    "STWO_CUDA_COMPACT_PRECOMMIT_HASH_PERCENT": "25"
+  },
+  "exit_code": 0,
+  "elapsed_ns": 33730714283,
+  "samples": 125,
+  "whole_device_peak_bytes": 33667678208,
+  "process_rss_peak_bytes": 16648630272,
+  "process_rss_scope": "process_tree"
+}
