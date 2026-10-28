@@ -32,6 +32,8 @@ pub const Layout = struct {
             if (layer.fold_width % width != 0) return error.InvalidNativeHashLayout;
             try addGroup(a, &cache, &paths, layer.fold_width / width, width * 4, layer.path_depth, layer.positions.len);
         }
+        if (std.posix.getenv("STWO_RISCV_HASH_WORK_CENSUS") != null)
+            try @import("air/blake3_hash_work_census.zig").report(a, capture, transcript.g, paths.g);
         return fromCounts(transcript, paths);
     }
     pub fn fromCounts(transcript: Counts, paths: Counts) !Layout {

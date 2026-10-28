@@ -4,6 +4,14 @@ Status: design and experiment contract, not a qualified proof protocol. The
 archived block-v5 run stopped before a root. All speedups below are hypotheses
 unless explicitly marked measured.
 
+The follow-up [direct-native aggregation analysis](next-generation-riscv-20261028.md)
+changes the first recursion experiment: eliminate compulsory individual wrappers
+before tuning their verifier. A new canonical capture census attributes 431,144
+G rows to the three native verifiers and 10,069,360 additional G rows to verifying
+their wrappers and intermediate parent. This is a 24.35x work-amplification
+finding on the small fixture, not a runtime or block-scale speedup. The report
+also separates FRI schedule, path sharing and vertical batching counterfactuals.
+
 ## The workload that must change
 
 The retained block 24,628,607 run had 139,214,856 guest cycles, 67 execution
