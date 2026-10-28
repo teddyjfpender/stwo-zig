@@ -74,6 +74,16 @@ pub fn ForBackend(comptime Backend: type) type {
             if (!std.meta.eql(prepared.recursive.context.child_config, self.options.profile.config())) return error.V5OpenSetupCacheSecurityMismatch;
             try prepared.values.validate();
             try prepared.recursive.rows.partitionHashRows();
+            if (profiling) {
+                const Storage = @import("../recursion/air/blake3_parent_row_storage.zig");
+                inline for (Storage.Airs, 0..) |Air, index| {
+                    const rows = prepared.recursive.rows.fixed[index].len;
+                    const log = if (rows <= 1) 1 else std.math.log2_int_ceil(usize, rows);
+                    const padded = @as(u64, 1) << @intCast(log);
+                    const width = Air.PREPROCESSED_COLUMN_COUNT + Air.PHYSICAL_MAIN_COLUMN_COUNT + Air.INTERACTION_COLUMN_COUNT;
+                    std.debug.print("BLOCK_V5_PARENT_GEOMETRY cohort={d} air={s} rows={d} padded_rows={d} fixed={d} main={d} interaction={d} committed_cells={d}\n", .{ index, @typeName(Air), rows, padded, Air.PREPROCESSED_COLUMN_COUNT, Air.PHYSICAL_MAIN_COLUMN_COUNT, Air.INTERACTION_COLUMN_COUNT, padded * width });
+                }
+            }
             const digest = try Bus.scheduleDigest(prepared.wires);
             const partition_ns = if (timer) |*clock| clock.lap() else 0;
             self.clock = try std.math.add(u64, self.clock, 1);

@@ -74,6 +74,30 @@ further setup-cache tuning. The next comparison must count committed verifier
 cells, hash calls, openings and quotient work for the same child statements,
 then prove and independently verify the reduced circuit at q70/26.
 
+The follow-up q70/26 census passed all 13 selected tests and complete detached
+verification. `block-v5-parent-census-m5-20261028.json` records the 23 physical
+AIR cohorts per parent; `parent-work-census.py` reproduces the grouping from
+`STWO_BLOCK_V5_PROVE_PROFILE=1` logs. The local parent commits 1.178 billion AIR
+cells and the exact outer 1.293 billion, excluding lookup provider tables,
+composition and PCS expansion. G arithmetic accounts for 71.82%/73.97%, byte
+routing 11.58%/10.54%, XOR 6.06%/5.51%, and hash boundary rows 2.85%/2.59%.
+Padding accounts for 10.71%/9.32%. These are work counts, not peak RAM or
+timing shares. The measured forest remained 123.354 s.
+
+This narrows the specialization target to recursive BLAKE3 commitment and
+transcript verification. A G row currently commits 16 fixed, 82 main and 80
+interaction cells. Its ten generic wire events account for 20 interaction
+cells: deleting just those events would save at most 11.2% of G-row area,
+before replacing their linkage obligations. A full-compression AIR must
+remove more routing/range overhead to justify itself. Likewise, perfect
+padding elimination cannot produce an order-of-magnitude improvement.
+The next experiment must inventory the hash calls by PCS leaf, authentication
+path, FRI and transcript, then compare shared authenticated hash DAGs and joint
+proof layouts on the identical child statements. Query deduplication must
+prove equal query coordinates and exact hash inputs; host digest equality
+cannot authorize reused nodes. The existing shared-root plan already removes
+some repeated root work, so count only additional reductions.
+
 ### 1. Prove registers within execution; use sorted RAM only for mutable words
 
 Complete and qualify mode1 with the already implemented RAM2 relation. Every
