@@ -1,0 +1,24 @@
+{
+  "schema": "stwo-zig-keth-integration-pins-v1",
+  "stwo_zig_base": "6692d40639c88becff2a203c45727f31cbe23ad3",
+  "keth": {
+    "repository": "https://github.com/kkrt-labs/keth",
+    "revision": "e90c0a51699182f140e51c94d09ff9045c194769",
+    "stwo_cairo_revision": "92232543984e20e984c5a7194561ff1fffa76dae",
+    "cairo_vm_revision": "3b5196e4469db0c0abb124cbcdc84bfbc8165acd",
+    "execution_specs_revision": "9e5f36b4d7f8e8ae2d8831d2460fbd88648fcdee",
+    "supported_chain_id": 1,
+    "minimum_block": 22615247
+  },
+  "mantle_op_succinct": {
+    "repository": "https://github.com/mantle-xyz/op-succinct",
+    "revision": "6b1cb5742b6e26fa9ff7f6f82be498549ad7e057",
+    "kona_repository": "https://github.com/mantle-xyz/mantle-v2",
+    "kona_revision": "05e2f58d98c87ccaf8fd2eb6a0e6711bb7e8938b",
+    "revm_repository": "https://github.com/mantle-xyz/revm",
+    "revm_revision": "835cb4eb742698c5884248f546c68c9d716cc995",
+    "mainnet_chain_id": 5000,
+    "first_arsia_block": 94355444,
+    "suggested_first_steady_state_block": 94355445
+  }
+}

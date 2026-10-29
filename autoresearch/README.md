@@ -340,3 +340,10 @@ the purpose of staging, not a hidden assumption in the hermetic suite.
 4. First promotion follows the quickstart above end to end.
 
 Until 1–2 are done every verdict is claimed/advisory — by design, not by gap.
+
+## Keth / Mantle integration experiment
+
+[`experiments/mantle_keth`](experiments/mantle_keth/README.md) pins Kakarot
+Labs' Keth, exports/replays Cairo PIEs through the existing Cairo products,
+and records the remaining Mantle/Kona execution, derivation, statement and
+settlement work. It is owner-operated research outside released products.

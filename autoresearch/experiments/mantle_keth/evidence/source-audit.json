@@ -1,0 +1,30 @@
+{
+  "schema": "stwo-zig-keth-source-audit-v1",
+  "sources": {
+    "keth": {
+      "repository": "https://github.com/kkrt-labs/keth",
+      "revision": "e90c0a51699182f140e51c94d09ff9045c194769",
+      "git_tree": "aa9b9a9b344a3a3bbde23b054f5546ebb9cedc8b"
+    },
+    "mantle_op_succinct": {
+      "repository": "https://github.com/mantle-xyz/op-succinct",
+      "revision": "6b1cb5742b6e26fa9ff7f6f82be498549ad7e057",
+      "git_tree": "0e9bf47a31a713a82d7360c4134e190e27ee0dd6"
+    }
+  },
+  "transport": "cairo-pie-via-official-simple-bootloader",
+  "raw_keth_prover_input_admitted": false,
+  "claims": {
+    "mantle_validity_proof": false,
+    "kona_derivation_proved": false,
+    "ethereum_block_statement_bound": false,
+    "l1_verifier_compatible": false
+  },
+  "blockers": [
+    "Keth Prague execution is not Mantle/OP execution",
+    "Kona L1 derivation and blob validation are not implemented in Cairo",
+    "Keth main output does not expose the Mantle BootInfoStruct journal",
+    "Segment output aggregation needs proof-authenticated composition",
+    "Ethereum settlement needs a Stwo verifier or proof wrapper"
+  ]
+}
