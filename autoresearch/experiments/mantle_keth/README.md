@@ -11,6 +11,31 @@ The starting Stwo Zig main is `6692d40639c88becff2a203c45727f31cbe23ad3`.
 Upstream source identities are in [pins.json](pins.json). The bridge lives
 outside released package closures and leaves all AIR/protocol pins unchanged.
 
+## Qualified smoke result
+
+The committed [evidence](evidence/validation.json) records a complete CPU/SIMD
+run of Keth's own Fibonacci sample: Python Cairo execution → genuine PIE →
+official bootloader replay → Zig proof and self-verification → independent
+official Rust acceptance. The extracted public output ends in `144`; changing
+that public felt to `145` in a copy of the proof is rejected by the official
+verifier. Nine bridge tests and an independent `eth_abi` journal comparison pass.
+
+One Linux process took 8.009 s including execution/proving/self-verification
+and publication, with peak process-tree RSS 1.089 GB; official verification
+was measured separately at 0.058 s. This tiny transport sample is **not** a
+Keth EVM block benchmark or a performance prediction for Mantle. No Metal run
+was performed. Full block compatibility and application statement binding
+remain unqualified.
+
+The retained proof is the same proof converted through the official raw
+binary serializer and bzip2-compressed, then independently reverified:
+
+```sh
+tools/stwo-cairo-official-verifier-rs/target/release/stwo-cairo-official-verifier verify \
+  --proof autoresearch/experiments/mantle_keth/evidence/keth_fibonacci.proof.bz2 \
+  --channel blake2s --proof-format binary --result /tmp/keth-proof-verdict.json
+```
+
 ## What can be reused
 
 | Repository | Relevant capability | Decision |

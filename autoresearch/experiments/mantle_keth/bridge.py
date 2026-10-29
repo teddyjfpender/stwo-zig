@@ -131,8 +131,8 @@ def trace(args: argparse.Namespace) -> dict:
 def prove(args: argparse.Namespace) -> dict:
     # Reuse the canonical benchmark's PCS policy, exact-byte proof receipt checks,
     # Zig self-verification and independent official Rust verification.
-    sys.path.insert(0, str(ROOT / "scripts"))
-    from benchmark_cairo import run_benchmark
+    sys.path.insert(0, str(ROOT))
+    from scripts.benchmark_cairo import run_benchmark
 
     for path in (args.pie, args.product, args.oracle):
         if not path.is_file():

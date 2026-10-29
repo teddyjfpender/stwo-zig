@@ -1,0 +1,96 @@
+{
+  "schema": "stwo-zig-keth-smoke-validation-v1",
+  "scope": "keth-fibonacci-pie-transport-only",
+  "base_source_commit": "6692d40639c88becff2a203c45727f31cbe23ad3",
+  "bridge_tests_passed": 9,
+  "independent_journal_abi_check": "eth_abi.encode agreed for bytes32,bytes32,bytes32,uint64,bytes32",
+  "python_cairo_execution": {
+    "status": "passed",
+    "expected_output": [
+      144
+    ]
+  },
+  "official_vm_pie_replay": {
+    "status": "passed",
+    "compact_input_bytes": 94880,
+    "compact_input_sha256": "8340dab94e8082955d691d73461fa514de70a5d08f5c814e5585fe4284244e52",
+    "adapter_sha256": "01d728014625b1fe4687b19c1530b75e26a0aa3f671e0933ba28dd8423f50a0a"
+  },
+  "proof": {
+    "status": "qualified",
+    "backend": "cpu-simd",
+    "trials": 1,
+    "host": {
+      "platform": "Linux-6.18.55-x86_64-with-glibc2.39",
+      "cpu": "x86_64",
+      "logical_cpus": 9
+    },
+    "product_sha256": "77b69025c5c4529d03c8b3919a6c16356c576b08c0d15a72714cdf46a7470eb3",
+    "oracle_sha256": "ef2935f17e4baa06c920e140c47a754203cc06289403c15d31f99cdc3f8f35f4",
+    "pcs_config": {
+      "pow_bits": 26,
+      "fri_config": {
+        "log_blowup_factor": 1,
+        "log_last_layer_degree_bound": 0,
+        "n_queries": 70,
+        "fold_step": 1
+      },
+      "min_lifting_log_size": 0
+    },
+    "json_proof_sha256": "83a8f06fc05511de2e476241210805b6b144d74eb1db20a777bb457d2dd779f7",
+    "retained_binary_proof": "keth_fibonacci.proof.bz2",
+    "retained_binary_proof_sha256": "d9758c7e73b8d35397e3cb6b2afdf9d35087172af2faac25ed32769178ac7912",
+    "retained_binary_proof_bytes": 912416,
+    "timing": {
+      "input_and_assets_ns": 53118337,
+      "proof_encode_ns": 19513094,
+      "request_until_publication_ns": 8000915768,
+      "execute_ns": 157124560,
+      "prove_ns": 7602403690,
+      "verify_ns": 19412483
+    },
+    "process": {
+      "exit_code": 0,
+      "wall_ns": 8009067289,
+      "user_ns": 29251195000,
+      "system_ns": 5389387000,
+      "max_process_tree_rss_bytes": 1089089536,
+      "rss_is_simultaneous_process_tree_sum": false
+    },
+    "official_verifier": {
+      "exit_code": 0,
+      "wall_ns": 58166432,
+      "user_ns": 49450000,
+      "system_ns": 7263000,
+      "max_process_tree_rss_bytes": 27955200,
+      "rss_is_simultaneous_process_tree_sum": false
+    },
+    "verified_public_output": [
+      "0x1",
+      "0x3",
+      "0xdce790fddc579896603ead62f89a156ada3b0e8210d33d998b571d96f37d8b",
+      "0x90"
+    ]
+  },
+  "negative_control": {
+    "change": "last public output felt changed from 144 to 145 in a copy of the JSON proof",
+    "official_verifier_exit_code": 3,
+    "verified": false,
+    "error": "official Blake2s verify_cairo rejected the proof: Proof of work verification failed."
+  },
+  "build_notes": {
+    "zig": "0.15.2",
+    "rust_successful": "nightly-2026-05-15 (rustc 1.97.0-nightly)",
+    "old_rust_adapter_failure": "nightly-2025-07-14 is below the Cairo 2.20 MSRV 1.94",
+    "old_rust_verifier_failure": "ruint 1.19 const_slice_reverse unavailable on nightly-2025-07-14",
+    "cpu_product": "built from unchanged main product source; explicit STWO_CAIRO_VM_ADAPTER selected the newly built adapter",
+    "baseline_tooling_surface_check": "5 existing failures: two unregistered Starknet tool roots and four lane subtest mismatches; affected scripts/conformance/tools sources unchanged by this branch"
+  },
+  "claims": {
+    "full_keth_ethereum_block_proved": false,
+    "mantle_execution_proved": false,
+    "kona_derivation_proved": false,
+    "ethereum_settlement_compatible": false,
+    "metal_qualified": false
+  }
+}

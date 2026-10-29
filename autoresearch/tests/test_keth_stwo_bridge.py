@@ -4,15 +4,13 @@ from __future__ import annotations
 import argparse
 import json
 from pathlib import Path
-import sys
 import tempfile
 import unittest
 from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[2]
-sys.path.insert(0, str(ROOT / "autoresearch/experiments/mantle_keth"))
-import bridge
-from mantle_journal import MantleRangeJournal
+from autoresearch.experiments.mantle_keth import bridge
+from autoresearch.experiments.mantle_keth.mantle_journal import MantleRangeJournal
 
 
 class KethBridgeTests(unittest.TestCase):
@@ -28,6 +26,10 @@ class KethBridgeTests(unittest.TestCase):
         self.assertEqual(receipt["pie_sha256"], bridge.digest(evidence / "keth_fibonacci.pie.zip"))
         self.assertEqual(receipt["scope"], "keth-fibonacci-pie-transport-only")
         self.assertEqual(receipt["expected_output"], [144])
+        validation = json.loads((evidence / "validation.json").read_text())
+        self.assertEqual(validation["proof"]["retained_binary_proof_sha256"],
+                         bridge.digest(evidence / "keth_fibonacci.proof.bz2"))
+        self.assertTrue(all(value is False for value in validation["claims"].values()))
 
     def test_wrong_revision_and_dirty_source_rejected(self):
         with patch.object(bridge, "git", return_value="0" * 40):
@@ -61,8 +63,7 @@ class KethBridgeTests(unittest.TestCase):
             self.assertEqual(json.loads(path.read_text()), {"value": "original"})
 
     def test_failed_verification_does_not_publish_bridge_acceptance(self):
-        sys.path.insert(0, str(ROOT / "scripts"))
-        import benchmark_cairo
+        from scripts import benchmark_cairo
         with tempfile.TemporaryDirectory() as tmp:
             base = Path(tmp)
             pie = base / "input.zip"
@@ -74,8 +75,7 @@ class KethBridgeTests(unittest.TestCase):
             self.assertFalse((args.out / "receipt.json").exists())
 
     def test_cairo_acceptance_never_implies_mantle_or_ethereum_statement(self):
-        sys.path.insert(0, str(ROOT / "scripts"))
-        import benchmark_cairo
+        from scripts import benchmark_cairo
         with tempfile.TemporaryDirectory() as tmp:
             base = Path(tmp)
             pie = base / "input.zip"
