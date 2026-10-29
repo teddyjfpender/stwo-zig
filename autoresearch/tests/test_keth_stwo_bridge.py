@@ -21,6 +21,14 @@ class KethBridgeTests(unittest.TestCase):
         self.assertEqual(bridge.PINS["mantle_op_succinct"]["mainnet_chain_id"], 5000)
         self.assertTrue(all(value is False for value in bridge.claims().values()))
 
+    def test_committed_smoke_fixture_matches_source_receipt(self):
+        evidence = ROOT / "autoresearch/experiments/mantle_keth/evidence"
+        receipt = json.loads((evidence / "smoke-provenance.json").read_text())
+        self.assertEqual(receipt["source"]["revision"], bridge.PINS["keth"]["revision"])
+        self.assertEqual(receipt["pie_sha256"], bridge.digest(evidence / "keth_fibonacci.pie.zip"))
+        self.assertEqual(receipt["scope"], "keth-fibonacci-pie-transport-only")
+        self.assertEqual(receipt["expected_output"], [144])
+
     def test_wrong_revision_and_dirty_source_rejected(self):
         with patch.object(bridge, "git", return_value="0" * 40):
             with self.assertRaisesRegex(ValueError, "revision mismatch"):

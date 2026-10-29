@@ -3,6 +3,9 @@
 This development bridge pins Kakarot Labs' **Keth** and routes Cairo PIEs to
 `stwo-cairo-cpu` or `stwo-cairo-metal`, with independent official Rust proof
 verification. It does not implement or claim Mantle validity proving.
+This route uses a Cairo execution implementation that must be made equivalent
+to Mantle; it does not execute Kona's Rust program inside Cairo. Direct Kona
+proving is a separate RISC-V integration option discussed below.
 
 The starting Stwo Zig main is `6692d40639c88becff2a203c45727f31cbe23ad3`.
 Upstream source identities are in [pins.json](pins.json). The bridge lives
