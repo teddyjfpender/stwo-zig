@@ -32,7 +32,7 @@ Keth pins Stwo-Cairo `92232543…`; this repository's Cairo frontend pins
 `82f21252…` (1.2.2). Their proof formats are not interchangeable. This bridge
 translates execution-witness schema only, then generates a new proof with the
 existing Zig product and official verifier. JSON and the existing compact-v1
-transport are supported. Source identities are in [pins.json](pins.json).
+transport are supported; the published whole-bundle run uses JSON. Source identities are in [pins.json](pins.json).
 
 The independent PIE route is retained in `block_benchmark.py`: export a genuine
 Keth PIE, replay it through the pinned official simple bootloader, then prove
@@ -59,7 +59,23 @@ Builds are excluded from runtime measurements.
 ```sh
 # In the clean, pinned Keth checkout:
 RUSTUP_TOOLCHAIN=nightly-2025-04-06 CARGO_BUILD_JOBS=2 uv sync --frozen
-uv run --frozen compile_keth
+# Compile serially on a machine with 8 GiB RAM.
+export PYTHONPATH=cairo
+export CAIRO_PATH=cairo:python/cairo-ec/src:python/cairo-addons/src:python/cairo-core/src:python/mpt/src:.venv/lib/python3.10/site-packages
+.venv/bin/python - <<'PYCOMPILE'
+from pathlib import Path
+from scripts.compile_cairo import compile_cairo, save_program_hashes
+Path('build').mkdir(exist_ok=True)
+programs = {'main': 'main', 'init': 'init_main', 'body': 'body_main',
+            'teardown': 'teardown_main', 'mpt_diff': 'mpt_diff_main',
+            'aggregator': 'aggregator_main'}
+hashes = {}
+for role, name in programs.items():
+    output, value = compile_cairo(Path(f'cairo/ethereum/prague/keth/{name}.cairo'),
+                                 proof_mode=True, output_path=Path(f'build/{role}_compiled.json'))
+    hashes[output] = value
+save_program_hashes(hashes, 'build')
+PYCOMPILE
 ```
 
 Build the existing Stwo Zig CPU product and official Rust verifier. Current
@@ -77,7 +93,7 @@ python3 autoresearch/experiments/evm_keth/bundle_benchmark.py \
   --fixture /path/to/keth/test_data/22615247.json \
   --product zig-out/bin/stwo-cairo-cpu \
   --oracle tools/stwo-cairo-official-verifier-rs/target/release/stwo-cairo-official-verifier \
-  --workers 4 --chunk-size 1 --max-address-space-gib 8 \
+  --workers 4 --chunk-size 1 --input-format json --max-address-space-gib 8 \
   --out /tmp/keth-ethereum-bundle
 
 python3 autoresearch/experiments/evm_keth/verify_bundle.py \

@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import argparse
+import copy
 import io
 import json
 from pathlib import Path
@@ -13,6 +14,7 @@ ROOT = Path(__file__).resolve().parents[2]
 from autoresearch.experiments.evm_keth import bridge
 from autoresearch.experiments.evm_keth.op_stack_journal import OpStackRangeJournal
 from autoresearch.experiments.evm_keth.legacy_input import convert, write_compact, OPCODES, BUILTINS
+from autoresearch.experiments.evm_keth.verify_bundle import check_manifest
 
 
 class KethBridgeTests(unittest.TestCase):
@@ -131,6 +133,26 @@ class LegacyInputTests(unittest.TestCase):
         old['public_memory_addresses'] = []
         with self.assertRaisesRegex(ValueError, 'compiled program not bound'):
             convert(old, {'data': ['0x2a']})
+
+
+class BundleBoundaryTests(unittest.TestCase):
+    def test_real_verified_prefix_cannot_be_reported_as_complete_and_links_are_checked(self):
+        path = ROOT / 'autoresearch/experiments/evm_keth/evidence/capacity/single-transaction-disk-interruption.json'
+        failed = json.loads(path.read_text())
+        with self.assertRaisesRegex(ValueError, 'not qualified'):
+            check_manifest(failed)
+        prefix = copy.deepcopy(failed)
+        prefix['segments'] = [s for s in prefix['segments'] if s['status'] == 'qualified']
+        prefix['program_roots_blake2s'] = {s['role']: s['public_statement']['program_root_blake2s'] for s in prefix['segments']}
+        check_manifest(prefix, prefix=True)
+        changed = copy.deepcopy(prefix)
+        changed['segments'][1]['expected_public_output'][0] ^= 1
+        with self.assertRaisesRegex(ValueError, 'transaction commitment chain'):
+            check_manifest(changed, prefix=True)
+        changed = copy.deepcopy(prefix)
+        changed['segments'][2], changed['segments'][3] = changed['segments'][3], changed['segments'][2]
+        with self.assertRaisesRegex(ValueError, 'reordered'):
+            check_manifest(changed, prefix=True)
 
 
 class OpStackJournalTests(unittest.TestCase):

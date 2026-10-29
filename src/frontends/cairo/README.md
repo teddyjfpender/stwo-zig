@@ -457,6 +457,18 @@ Prepared public coefficient/evaluation caching remains experimental and opt-in.
 
 ### Compact storage experiments (v84; opt-in CPU only)
 
+Linux CPU capacity mode can additionally use
+`STWO_CAIRO_FILE_BACKED_ALLOCATOR=1`. Allocations of at least 1 MiB use private,
+immediately unlinked temporary files with reserved disk blocks and coherent
+shared mappings. Periodic flushes make their pages reclaimable without system
+swap. Normal ownership still frees each mapping; process exit also releases its
+unlinked backing. The default allocator, AIRs, field values and PCS parameters
+are unchanged. This trades temporary disk capacity and I/O for resident memory;
+it does not reduce the logical witness size. Product stderr records peak/live
+backing bytes and flush count. Linux RSS excludes reclaimable filesystem cache,
+so report backing usage and the container memory limit alongside RSS. The Keth
+block experiment exercises this path and checks official proof acceptance.
+
 The production storage policy remains unchanged. The experimental CPU modes
 `STWO_CAIRO_COMPACT_POLYNOMIALS=preprocessed` (fixed data only) and `=1` (all
 trees) retain native coefficients and reconstruct values when required.

@@ -39,14 +39,20 @@ def state_root_commitment_limbs(root: str) -> list[int]:
     return [int.from_bytes(commitment[:16], 'little'), int.from_bytes(commitment[16:], 'little')]
 
 
-def check_manifest(manifest: dict) -> None:
-    if manifest['status'] != 'qualified-segmented-keth-block-workload':
+def check_manifest(manifest: dict, *, prefix: bool = False) -> None:
+    if not prefix and manifest['status'] != 'qualified-segmented-keth-block-workload':
         raise ValueError('bundle has not qualified')
     segments = manifest['segments']
-    if [(s['role'], s['indices']) for s in segments] != expected_specs(
-            manifest['workload']['transactions'], manifest['body_chunk_size']):
+    expected = expected_specs(manifest['workload']['transactions'], manifest['body_chunk_size'])
+    if prefix:
+        expected = expected[:len(segments)]
+    if not segments or [(s['role'], s['indices']) for s in segments] != expected:
         raise ValueError('missing, reordered or duplicated block segments')
     joined = []
+    init_output = None
+    body_commitment = None
+    state_diff = None
+    previous_trie_diff = None
     for segment in segments:
         if segment['status'] != 'qualified' or not segment['public_output_matches']:
             raise ValueError('unqualified segment')
@@ -58,10 +64,28 @@ def check_manifest(manifest: dict) -> None:
         if statement['program_root_blake2s'] != manifest['program_roots_blake2s'][segment['role']]:
             raise ValueError('unexpected program identity')
         public = segment['expected_public_output']
+        if segment['role'] == 'init':
+            if len(public) != 4:
+                raise ValueError('invalid init output')
+            init_output = public
+            body_commitment = public[:2]
+        elif segment['role'] == 'body':
+            if len(public) != 4 or public[:2] != body_commitment:
+                raise ValueError('transaction commitment chain mismatch')
+            body_commitment = public[2:]
+        elif segment['role'] == 'teardown':
+            if len(public) != 6 or public[:2] != init_output[2:] or public[2:4] != body_commitment:
+                raise ValueError('teardown commitment chain mismatch')
+            state_diff = public[4:]
         if segment['role'] == 'mpt_diff':
             roots = state_root_commitment_limbs(manifest['workload']['pre_state_root']) + state_root_commitment_limbs(manifest['workload']['post_state_root'])
             if len(public) != 9 or public[2] != segment['indices'][0] or public[3:7] != roots:
                 raise ValueError('verified trie outputs do not bind expected pre/post state roots')
+            if previous_trie_diff is not None and public[:2] != previous_trie_diff:
+                raise ValueError('trie diff commitment chain mismatch')
+            previous_trie_diff = public[-2:]
+            if segment['indices'] == [15] and previous_trie_diff != state_diff:
+                raise ValueError('trie diff does not match execution state diff')
         if segment['role'] == 'aggregator':
             if public != joined:
                 raise ValueError('consistency proof does not bind all verified outputs')
@@ -69,10 +93,23 @@ def check_manifest(manifest: dict) -> None:
             joined.extend([len(public)+2, manifest['program_poseidon_hashes'][segment['role']+'_compiled.json'], *public])
 
 
-def verify(bundle: Path, oracle: Path) -> dict:
+def verify(bundle: Path, oracle: Path, *, prefix: bool = False) -> dict:
     manifest_file = bundle / 'bundle-results.json'
     manifest = json.loads(manifest_file.read_text())
-    check_manifest(manifest)
+    if prefix:
+        # Internal resume path. This receipt explicitly qualifies only a prefix.
+        kept = []
+        for segment in manifest['segments']:
+            if segment['status'] != 'qualified':
+                break
+            kept.append(segment)
+        if any(s['status'] == 'qualified' for s in manifest['segments'][len(kept):]):
+            raise ValueError('qualified segments are not a contiguous prefix')
+        roots = {}
+        for segment in kept:
+            roots.setdefault(segment['role'], segment['public_statement']['program_root_blake2s'])
+        manifest = dict(manifest, segments=kept, program_roots_blake2s=roots)
+    check_manifest(manifest, prefix=prefix)
     checked = []
     with tempfile.TemporaryDirectory(prefix='keth-bundle-verify-') as temporary:
         work = Path(temporary)
@@ -105,6 +142,7 @@ def verify(bundle: Path, oracle: Path) -> dict:
                 raise ValueError('verified public statement mismatch')
             checked.append({'segment': segment['name'], 'proof_sha256': verdict['proof_sha256']})
     return {'schema': 'keth-block-bundle-reverification-v1', 'verified': True,
+            'scope': 'verified-prefix-only' if prefix else 'complete-bundle',
             'manifest_sha256': digest(manifest_file), 'oracle_sha256': digest(oracle),
             'proof_count': len(checked), 'proofs': checked,
             'claims': manifest['claims']}

@@ -29,7 +29,7 @@ def publish(out: Path, result: dict) -> None:
 
 def fixture_metadata(path: Path) -> dict:
     data = json.loads(path.read_text())
-    if data['chainConfig']['chainId'] != 1 or len(data['blocks']) != 1:
+    if type(data['chainConfig']['chainId']) is not int or data['chainConfig']['chainId'] != 1 or len(data['blocks']) != 1:
         raise ValueError('this workload admits one Ethereum mainnet block')
     block = data['blocks'][0]
     header = block['header']
@@ -65,7 +65,11 @@ def run(args: argparse.Namespace) -> dict:
               'workers': args.workers, 'claims': claims()}
     if args.rpc_snapshot:
         rpc = json.loads(args.rpc_snapshot.read_text())['result']
-        if rpc['hash'] != workload['block_hash'] or rpc['stateRoot'] != workload['post_state_root'] or len(rpc['transactions']) != workload['transactions']:
+        if (rpc['hash'] != workload['block_hash'] or rpc['stateRoot'] != workload['post_state_root']
+                or len(rpc['transactions']) != workload['transactions']
+                or int(rpc['gasUsed'], 16) != workload['gas_used']
+                or int(rpc['number'], 16) != workload['block_number']
+                or rpc['parentHash'] != workload['parent_hash']):
             raise ValueError('independent RPC snapshot does not match the witness')
         result['independent_rpc_snapshot_sha256'] = digest(args.rpc_snapshot)
     publish(args.out, result)
