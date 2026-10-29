@@ -341,9 +341,9 @@ the purpose of staging, not a hidden assumption in the hermetic suite.
 
 Until 1–2 are done every verdict is claimed/advisory — by design, not by gap.
 
-## Keth / Mantle integration experiment
+## Keth / OP Stack integration experiment
 
-[`experiments/mantle_keth`](experiments/mantle_keth/README.md) pins Kakarot
+[`experiments/evm_keth`](experiments/evm_keth/README.md) pins Kakarot
 Labs' Keth, exports/replays Cairo PIEs through the existing Cairo products,
-and records the remaining Mantle/Kona execution, derivation, statement and
+and records the remaining OP Stack/Kona execution, derivation, statement and
 settlement work. It is owner-operated research outside released products.

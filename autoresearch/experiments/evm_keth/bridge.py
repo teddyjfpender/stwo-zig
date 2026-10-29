@@ -2,7 +2,7 @@
 """Experimental Keth Cairo PIE -> existing Stwo Zig product bridge.
 
 This is developer orchestration, outside all released package closures.
-A Cairo proof is never promoted to a Mantle/Kona validity claim here.
+A Cairo proof is never promoted to a OP Stack/Kona validity claim here.
 """
 from __future__ import annotations
 
@@ -52,39 +52,20 @@ def authenticate(checkout: Path, pin: dict) -> dict:
 
 def claims() -> dict:
     return {
-        "mantle_validity_proof": False,
+        "op_stack_validity_proof": False,
         "kona_derivation_proved": False,
         "ethereum_block_statement_bound": False,
         "l1_verifier_compatible": False,
     }
 
 
-def audit(keth: Path, op_succinct: Path) -> dict:
-    identities = {
-        "keth": authenticate(keth, PINS["keth"]),
-        "mantle_op_succinct": authenticate(op_succinct, PINS["mantle_op_succinct"]),
-    }
-    cargo = (keth / "Cargo.toml").read_text()
-    lock = (op_succinct / "Cargo.lock").read_text()
-    if PINS["keth"]["stwo_cairo_revision"] not in cargo:
+def audit(keth: Path) -> dict:
+    identity = authenticate(keth, PINS["keth"])
+    if PINS["keth"]["stwo_cairo_revision"] not in (keth / "Cargo.toml").read_text():
         raise ValueError("Keth Stwo-Cairo pin is absent")
-    for key in ("kona_revision", "revm_revision"):
-        if PINS["mantle_op_succinct"][key] not in lock:
-            raise ValueError(f"Mantle lockfile is missing {key}")
-    return {
-        "schema": "stwo-zig-keth-source-audit-v1",
-        "sources": identities,
-        "transport": "cairo-pie-via-official-simple-bootloader",
-        "raw_keth_prover_input_admitted": False,
-        "claims": claims(),
-        "blockers": [
-            "Keth Prague execution is not Mantle/OP execution",
-            "Kona L1 derivation and blob validation are not implemented in Cairo",
-            "Keth main output does not expose the Mantle BootInfoStruct journal",
-            "Segment output aggregation needs proof-authenticated composition",
-            "Ethereum settlement needs a Stwo verifier or proof wrapper",
-        ],
-    }
+    return {"schema": "stwo-zig-keth-source-audit-v1", "sources": {"keth": identity},
+            "transport": "cairo-pie-via-official-simple-bootloader",
+            "raw_keth_prover_input_admitted": False, "claims": claims()}
 
 
 def validate_zkpi(data_dir: Path, block: int) -> Path:
@@ -94,7 +75,7 @@ def validate_zkpi(data_dir: Path, block: int) -> Path:
     data = json.loads(path.read_text())
     # Do not infer OP support from Keth's generic --chain-id CLI option.
     if type(data["chainConfig"]["chainId"]) is not int or data["chainConfig"]["chainId"] != 1:
-        raise ValueError("only Ethereum chain ID 1 is admitted; Mantle is unsupported")
+        raise ValueError("only Ethereum chain ID 1 is admitted; OP Stack is unsupported")
     return path
 
 
@@ -158,7 +139,6 @@ def main() -> None:
     commands = parser.add_subparsers(dest="command", required=True)
     source = commands.add_parser("audit", help="authenticate and assess the pinned upstream sources")
     source.add_argument("--keth-checkout", type=Path, required=True)
-    source.add_argument("--op-succinct-checkout", type=Path, required=True)
     source.add_argument("--out", type=Path, required=True)
     generate = commands.add_parser("trace", help="generate a main-step Ethereum Keth PIE")
     generate.add_argument("--keth-checkout", type=Path, required=True)
@@ -177,7 +157,7 @@ def main() -> None:
         parser.error("--trials must be between 1 and 100")
     try:
         if args.command == "audit":
-            result = audit(args.keth_checkout, args.op_succinct_checkout)
+            result = audit(args.keth_checkout)
             write_new(args.out, result)
         elif args.command == "trace":
             result = trace(args)

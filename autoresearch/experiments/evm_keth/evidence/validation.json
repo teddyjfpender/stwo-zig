@@ -88,7 +88,7 @@
   },
   "claims": {
     "full_keth_ethereum_block_proved": false,
-    "mantle_execution_proved": false,
+    "op_stack_execution_proved": false,
     "kona_derivation_proved": false,
     "ethereum_settlement_compatible": false,
     "metal_qualified": false

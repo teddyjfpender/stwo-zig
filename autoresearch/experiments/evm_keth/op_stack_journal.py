@@ -1,4 +1,4 @@
-"""Host ABI codec for Mantle's pinned BootInfoStruct (not a proof verifier).
+"""Host ABI codec for OP Stack's pinned BootInfoStruct (not a proof verifier).
 
 The range journal is five ABI words. Aggregation has a distinct six-word ABI;
 never substitute an execution state root for an OP L2 output root.
@@ -9,7 +9,7 @@ from dataclasses import dataclass
 
 
 @dataclass(frozen=True)
-class MantleRangeJournal:
+class OpStackRangeJournal:
     l1_head: bytes
     l2_pre_output_root: bytes
     l2_post_output_root: bytes
@@ -29,7 +29,7 @@ class MantleRangeJournal:
                 + self.l2_block_number.to_bytes(32, "big") + self.rollup_config_hash)
 
     @classmethod
-    def decode(cls, data: bytes) -> MantleRangeJournal:
+    def decode(cls, data: bytes) -> OpStackRangeJournal:
         if type(data) is not bytes or len(data) != 5 * 32:
             raise ValueError("range journal must be exactly five ABI words")
         return cls(data[:32], data[32:64], data[64:96],
