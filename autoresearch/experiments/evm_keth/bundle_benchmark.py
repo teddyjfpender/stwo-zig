@@ -23,6 +23,7 @@ from block_benchmark import fixture_metadata
 from bridge import PINS, ROOT, authenticate, claims, digest
 from legacy_input import convert_file
 from verify_bundle import verify as verify_retained
+from guarded_benchmark import run as guarded_benchmark
 sys.path.insert(0, str(ROOT))
 from scripts.benchmark_cairo import measure, run_benchmark
 
@@ -44,6 +45,7 @@ def run(args: argparse.Namespace) -> dict:
               'source': source, 'workload': workload, 'body_chunk_size': args.chunk_size,
               'workers': args.workers, 'segments': [], 'claims': claims(),
               'address_space_limit_gib': args.max_address_space_gib,
+              'resident_guard_bytes': args.rss_limit_bytes,
               'witness_transport': args.input_format,
               'scope': 'individually-verified-segment-bundle-with-consistency-proof',
               'cache_policy': 'fresh bundle cache; retained across serial segments',
@@ -148,10 +150,20 @@ def run(args: argparse.Namespace) -> dict:
             expected = [int(v) % field_prime for v in raw.with_name(raw.name + '.run_output.txt').read_text().split()]
             shutil.copyfile(raw.with_name(raw.name + '.run_output.txt'), trace_dir / (raw.name + '.run_output.txt'))
             segment['expected_public_output'] = expected
-            summary = run_benchmark(argparse.Namespace(
-                product=args.product.resolve(), oracle=args.oracle.resolve(),
-                program=None, program_type=None, prover_input=converted,
-                arguments=None, params=None, trials=1, out=directory / 'proofs'), env=env)
+            if args.rss_limit_bytes:
+                summary = guarded_benchmark(argparse.Namespace(
+                    product=args.product.resolve(), oracle=args.oracle.resolve(),
+                    prover_input=converted, params=None, out=directory / 'proofs',
+                    virtual_gib=args.max_address_space_gib, rss_limit_bytes=args.rss_limit_bytes,
+                    sample_ms=2), env=env)
+                segment['memory_guard'] = json.loads((directory / 'proofs/rss-guard.json').read_text())
+                if segment['memory_guard']['samples'] == 0 or segment['memory_guard']['terminated']:
+                    raise RuntimeError('resident guard did not qualify')
+            else:
+                summary = run_benchmark(argparse.Namespace(
+                    product=args.product.resolve(), oracle=args.oracle.resolve(),
+                    program=None, program_type=None, prover_input=converted,
+                    arguments=None, params=None, trials=1, out=directory / 'proofs'), env=env)
             segment['benchmark'] = {k: v for k, v in summary.items() if k != 'trials'}
             trial = summary['trials'][0]
             segment['trial'] = {k: v for k, v in trial.items() if k not in ('stages', 'command')}
@@ -225,6 +237,7 @@ def main() -> None:
     parser.add_argument('--input-format', choices=('json', 'compact'), default='compact')
     parser.add_argument('--keep-inputs', action='store_true')
     parser.add_argument('--resume', action='store_true', help='reverify a retained prefix and continue a failed run')
+    parser.add_argument('--rss-limit-bytes', type=int, default=0)
     args = parser.parse_args()
     if args.chunk_size < 1 or args.workers < 1 or args.max_address_space_gib < 1:
         parser.error('counts must be positive')

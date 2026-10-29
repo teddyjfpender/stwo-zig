@@ -463,7 +463,10 @@ immediately unlinked temporary files with reserved disk blocks and coherent
 shared mappings. Periodic flushes make their pages reclaimable without system
 swap. Normal ownership still frees each mapping; process exit also releases its
 unlinked backing. The default allocator, AIRs, field values and PCS parameters
-are unchanged. This trades temporary disk capacity and I/O for resident memory;
+are unchanged. `STWO_CAIRO_FILE_BACKED_MIN_BYTES` selects a backing threshold
+between 1 MiB and 256 MiB (default 1 MiB), and
+`STWO_CAIRO_FILE_BACKED_COOLING_BYTES` selects an allocation interval between
+1 MiB and 1 GiB (default 64 MiB). This trades temporary disk capacity and I/O for resident memory;
 it does not reduce the logical witness size. Product stderr records peak/live
 backing bytes and flush count. Linux RSS excludes reclaimable filesystem cache,
 so report backing usage and the container memory limit alongside RSS. The Keth

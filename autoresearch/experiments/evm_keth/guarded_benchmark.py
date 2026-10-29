@@ -15,7 +15,7 @@ sys.path.insert(0, str(ROOT))
 from scripts.benchmark_cairo import run_benchmark
 
 
-def run(args):
+def run(args, env=None):
     product = args.product.resolve()
     out = args.out.resolve()
     old_limit = resource.getrlimit(resource.RLIMIT_AS)
@@ -36,6 +36,7 @@ def run(args):
                     for proc in Path('/proc').iterdir():
                         if not proc.name.isdigit():
                             continue
+                        candidate = None
                         try:
                             command = (proc / 'cmdline').read_bytes().replace(b'\0', b' ').decode(errors='replace')
                             if not command.startswith(str(product) + ' prove ') or str(out / 'trial-1.proof.json') not in command:
@@ -44,10 +45,14 @@ def run(args):
                             candidate = os.pidfd_open(int(fields['NSpid'].split()[-1]))
                             if (proc / 'cmdline').read_bytes().replace(b'\0', b' ').decode(errors='replace') != command:
                                 os.close(candidate)
+                                candidate = None
                                 continue
                             pidfd, target = candidate, proc
+                            candidate = None
                             break
                         except OSError:
+                            if candidate is not None:
+                                os.close(candidate)
                             continue
                 if target is not None:
                     try:
@@ -69,9 +74,12 @@ def run(args):
     thread = threading.Thread(target=watch, daemon=True)
     thread.start()
     try:
-        return run_benchmark(argparse.Namespace(product=product, oracle=args.oracle.resolve(),
+        result = run_benchmark(argparse.Namespace(product=product, oracle=args.oracle.resolve(),
             program=None, program_type=None, prover_input=args.prover_input.resolve(),
-            arguments=None, params=args.params, trials=1, out=out), env=dict(os.environ))
+            arguments=None, params=args.params, trials=1, out=out), env=dict(os.environ) if env is None else env)
+        if guard['samples'] == 0 or guard['terminated']:
+            raise RuntimeError('resident guard did not qualify')
+        return result
     finally:
         stop.set()
         thread.join()

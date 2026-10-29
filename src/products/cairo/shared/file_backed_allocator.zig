@@ -107,15 +107,31 @@ const State = struct {
 // buffers may outlive one run() call, so never invalidate the allocator context.
 var global: State = .{};
 
-pub fn allocator() Allocator {
+pub fn allocator() !Allocator {
+    if (std.posix.getenv("STWO_CAIRO_FILE_BACKED_MIN_BYTES")) |value| {
+        const minimum = std.fmt.parseUnsigned(usize, value, 10) catch return error.InvalidBackingThreshold;
+        if (minimum < 1024 * 1024 or minimum > 256 * 1024 * 1024)
+            return error.InvalidBackingThreshold;
+        global.mutex.lock();
+        global.threshold = minimum;
+        global.mutex.unlock();
+    }
+    if (std.posix.getenv("STWO_CAIRO_FILE_BACKED_COOLING_BYTES")) |value| {
+        const interval = std.fmt.parseUnsigned(usize, value, 10) catch return error.InvalidCoolingInterval;
+        if (interval < 1024 * 1024 or interval > 1024 * 1024 * 1024)
+            return error.InvalidCoolingInterval;
+        global.mutex.lock();
+        global.cooling_interval = interval;
+        global.mutex.unlock();
+    }
     return global.allocator();
 }
 
 pub fn report() void {
     global.mutex.lock();
     defer global.mutex.unlock();
-    std.debug.print("cairo_file_backed_allocator peak_backing_bytes={d} live_backing_bytes={d} cooling_count={d}\n", .{
-        global.peak_bytes, global.live_bytes, global.cooling_count,
+    std.debug.print("cairo_file_backed_allocator peak_backing_bytes={d} live_backing_bytes={d} cooling_count={d} cooling_interval_bytes={d} minimum_bytes={d}\n", .{
+        global.peak_bytes, global.live_bytes, global.cooling_count, global.cooling_interval, global.threshold,
     });
 }
 

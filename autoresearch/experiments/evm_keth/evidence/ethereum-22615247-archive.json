@@ -1,0 +1,9 @@
+{
+  "schema": "keth-proof-archive-v1",
+  "filename": "ethereum_22615247_keth_proofs.zip",
+  "bytes": 89272930,
+  "sha256": "9ed51aa78079e499cfd9a44ea8751e459fbece4b1c984dbd20ec0dbcef9d005e",
+  "proof_count": 45,
+  "manifest_sha256": "d7298b7873e992bf879ba6e34eb10e25d2240ed9e6e0e1d59b2b45dd2b824568",
+  "zip_crc_check": "passed"
+}

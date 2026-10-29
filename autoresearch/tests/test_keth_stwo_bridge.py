@@ -136,6 +136,24 @@ class LegacyInputTests(unittest.TestCase):
 
 
 class BundleBoundaryTests(unittest.TestCase):
+    def test_complete_real_block_checks_trie_coverage_roots_and_consistency(self):
+        path = ROOT / 'autoresearch/experiments/evm_keth/evidence/ethereum-22615247-bundle.json'
+        complete = json.loads(path.read_text())
+        check_manifest(complete)
+        self.assertEqual(len(complete['segments']), 45)
+        mutations = [
+            ('verified trie outputs', lambda m: m['segments'][28]['expected_public_output'].__setitem__(3, 0)),
+            ('missing, reordered', lambda m: m['segments'].pop(29)),
+            ('consistency proof', lambda m: m['segments'][-1]['expected_public_output'].__setitem__(0, 0)),
+            ('unexpected program identity', lambda m: m['segments'][0]['public_statement'].__setitem__('program_root_blake2s', '0' * 64)),
+        ]
+        for expected_error, mutate in mutations:
+            with self.subTest(expected_error=expected_error):
+                changed = copy.deepcopy(complete)
+                mutate(changed)
+                with self.assertRaisesRegex(ValueError, expected_error):
+                    check_manifest(changed)
+
     def test_real_verified_prefix_cannot_be_reported_as_complete_and_links_are_checked(self):
         path = ROOT / 'autoresearch/experiments/evm_keth/evidence/capacity/single-transaction-disk-interruption.json'
         failed = json.loads(path.read_text())

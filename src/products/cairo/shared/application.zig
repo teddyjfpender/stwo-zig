@@ -57,7 +57,7 @@ pub fn run(comptime Product: type) !void {
         break :blk std.mem.eql(u8, flag, "1");
     } else false;
     const file_backed = @import("file_backed_allocator.zig");
-    const allocator = if (paged) file_backed.allocator() else std.heap.smp_allocator;
+    const allocator = if (paged) try file_backed.allocator() else std.heap.smp_allocator;
     defer if (paged) file_backed.report();
     const process_args = try std.process.argsAlloc(allocator);
     defer std.process.argsFree(allocator, process_args);

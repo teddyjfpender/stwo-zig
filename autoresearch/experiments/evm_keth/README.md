@@ -32,7 +32,8 @@ Keth pins Stwo-Cairo `92232543…`; this repository's Cairo frontend pins
 `82f21252…` (1.2.2). Their proof formats are not interchangeable. This bridge
 translates execution-witness schema only, then generates a new proof with the
 existing Zig product and official verifier. JSON and the existing compact-v1
-transport are supported; the published whole-bundle run uses JSON. Source identities are in [pins.json](pins.json).
+transport are supported. The recorded bundle combines JSON transaction inputs
+with compact state/trie inputs; each trial records its transport. Source identities are in [pins.json](pins.json).
 
 The independent PIE route is retained in `block_benchmark.py`: export a genuine
 Keth PIE, replay it through the pinned official simple bootloader, then prove
@@ -49,6 +50,47 @@ A complete proof of this workload benchmarks Keth's program and witness. It
 is not by itself proof of Ethereum consensus, an OP Stack derivation pipeline,
 or compatibility with an Ethereum settlement verifier. The bridge keeps
 those application-level claims false.
+
+## Measured complete block bundle
+
+All **45 proofs** for block 22,615,247 qualified on an Intel Xeon Platinum
+8573C host, with four CPU workers and an 8 GiB container memory limit. Every
+retained proof passed a second independent official Rust verification, including
+exact public-output and compiled-program identity checks. The bundle covers
+**106,374,029 Cairo opcode transitions**.
+
+| Stage | Proofs | Product time (s) | Proving time (s) | Official verification (s) |
+| --- | ---: | ---: | ---: | ---: |
+| Initialization | 1 | 12.087 | 11.563 | 0.317 |
+| Transactions | 26 | 769.760 | 702.067 | 10.072 |
+| Teardown | 1 | 531.755 | 530.584 | 0.291 |
+| Trie branches | 16 | 2,567.994 | 2,560.353 | 1.288 |
+| Commitment consistency | 1 | 14.529 | 14.428 | 0.050 |
+| **Total** | **45** | **3,896.125** | **3,818.994** | **12.018** |
+
+These are sums of unique successful stage measurements, with one trial per
+stage. Compilation, failed attempts, and repeated verification during resume
+are excluded from the table. The run spans six driver sessions and two adopted
+standalone capacity retries; **there is no uninterrupted end-to-end latency or
+throughput sample**. Native tracing and witness conversion additionally total
+598.922 s and 729.195 s. Multiple producer builds are identified per stage in
+the manifest; they differ in allocator capacity settings.
+
+Peak reported product RSS was **5,247,311,872 bytes (4.89 GiB)**; peak temporary
+file backing was **14,217,551,872 bytes (13.24 GiB)**. RSS comes from Linux
+`wait4`, including pre-exec/inherited high-water effects; file cache makes it
+different from total physical footprint. Transaction stages used ordinary RAM;
+teardown, trie, and consistency stages used the opt-in file-backed allocator.
+The retained compressed proof JSON totals **87,474,716 bytes**.
+
+Machine-readable evidence: [manifest](evidence/ethereum-22615247-bundle.json),
+[summary](evidence/ethereum-22615247-summary.json),
+[independent reverification](evidence/ethereum-22615247-reverified.json), and
+[host](evidence/benchmark-host.json). The proof archive is published with the
+benchmark result; the repository also retains an independently verified
+[real transaction proof](evidence/ethereum22615247_tx0.proof.bz2).
+The complete archive's size, SHA-256 and CRC validation are recorded in
+[the archive receipt](evidence/ethereum-22615247-archive.json).
 
 ## Run the real-block benchmark
 
@@ -88,12 +130,18 @@ RUSTUP_TOOLCHAIN=nightly-2026-05-15 zig build stwo-cairo-cpu -Doptimize=ReleaseF
 cargo +nightly-2026-05-15 build --release --locked \
   --manifest-path tools/stwo-cairo-official-verifier-rs/Cargo.toml
 
+STWO_CAIRO_FILE_BACKED_ALLOCATOR=1 \
+STWO_CAIRO_FILE_BACKED_MIN_BYTES=16777216 \
+STWO_CAIRO_FILE_BACKED_COOLING_BYTES=536870912 \
+STWO_CAIRO_CPU_WIDE_LDE=0 STWO_CAIRO_OVERLAP_PREPROCESSED=0 \
+STWO_CAIRO_INCREMENTAL_MULTIPLICITIES=1 STWO_CAIRO_COMPACT_POLYNOMIALS=1 \
 python3 autoresearch/experiments/evm_keth/bundle_benchmark.py \
   --keth-checkout /path/to/keth \
   --fixture /path/to/keth/test_data/22615247.json \
   --product zig-out/bin/stwo-cairo-cpu \
   --oracle tools/stwo-cairo-official-verifier-rs/target/release/stwo-cairo-official-verifier \
-  --workers 4 --chunk-size 1 --input-format json --max-address-space-gib 8 \
+  --workers 4 --chunk-size 1 --input-format compact \
+  --max-address-space-gib 32 --rss-limit-bytes 8000000000 \
   --out /tmp/keth-ethereum-bundle
 
 python3 autoresearch/experiments/evm_keth/verify_bundle.py \
@@ -101,6 +149,21 @@ python3 autoresearch/experiments/evm_keth/verify_bundle.py \
   --oracle tools/stwo-cairo-official-verifier-rs/target/release/stwo-cairo-official-verifier \
   --out /tmp/keth-bundle-reverification.json
 ```
+
+This reproduces the proof workload using the capacity configuration. Large
+allocations use temporary disk backing; the resident guard remains below the
+container's 8 GiB hard memory limit. The measured teardown used 14.22 GB of
+temporary backing, all released after proving. Virtual-address capacity and
+resident memory are separate limits. The allocator defaults to a 1 MiB backing
+threshold and a 64 MiB cooling interval; the command selects 16 MiB and 512 MiB.
+Canonical security is unchanged. Disk I/O is part of the measured proving time.
+
+`--resume` rechecks every retained proof and exact public statement before
+continuing a failed run. Partial prefixes never qualify as complete bundles.
+Native exports and converted inputs are temporary; the evidence tree retains
+proofs, public outputs and receipts. The recorded sample includes interrupted
+sessions and separately verified capacity retries: sum unique accepted stage
+times and do not interpret it as an uninterrupted end-to-end throughput sample.
 
 The driver records native execution, witness conversion, complete product-process
 and proving time, independent verification, source/input/binary hashes, public

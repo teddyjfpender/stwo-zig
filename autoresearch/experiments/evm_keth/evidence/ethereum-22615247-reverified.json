@@ -1,0 +1,196 @@
+{
+  "schema": "keth-block-bundle-reverification-v1",
+  "verified": true,
+  "scope": "complete-bundle",
+  "manifest_sha256": "d7298b7873e992bf879ba6e34eb10e25d2240ed9e6e0e1d59b2b45dd2b824568",
+  "oracle_sha256": "ef2935f17e4baa06c920e140c47a754203cc06289403c15d31f99cdc3f8f35f4",
+  "proof_count": 45,
+  "proofs": [
+    {
+      "segment": "init",
+      "proof_sha256": "b5f6f852d7f00f71271e81cbbf403ddeddf9d9e60a851a68371534eee16d0b59"
+    },
+    {
+      "segment": "body_0_1",
+      "proof_sha256": "cff5db6f27054707379cdc730691f6081ee256466f216694e71c9897e0aec457"
+    },
+    {
+      "segment": "body_1_1",
+      "proof_sha256": "ceb008835fd74e10196904e31cc50627bccea16feb819a4233d58e881b0b9db5"
+    },
+    {
+      "segment": "body_2_1",
+      "proof_sha256": "b9a2539f3fe1b0ff3762be79c6710a272296acc985f368264aef3aeea7512ab5"
+    },
+    {
+      "segment": "body_3_1",
+      "proof_sha256": "b4bcaa70c554cfc8970ec111f57c622cb8ce44c3c40050259e2ab0f15a8f38b9"
+    },
+    {
+      "segment": "body_4_1",
+      "proof_sha256": "33d628ee1080c6feb90d8462e39cd5d9013c515844057cc26377552aabec19eb"
+    },
+    {
+      "segment": "body_5_1",
+      "proof_sha256": "b0f91ecc089599af8bc88162988fb861be110c37f3646c2e8ed026fa5963d12f"
+    },
+    {
+      "segment": "body_6_1",
+      "proof_sha256": "e894a79b642ad5229bf8a2bc4e2ba89b5e1932d6c60c2c725318229072e6d745"
+    },
+    {
+      "segment": "body_7_1",
+      "proof_sha256": "2899d152178efe0ae95f0acea72953e8f4bafa1f5d34adeeccc8cc0dc683d3a6"
+    },
+    {
+      "segment": "body_8_1",
+      "proof_sha256": "4ea9e86dd94984de9463312d61c3b061dcc11f22bab2d2b48fb1ec75b2a8a8b7"
+    },
+    {
+      "segment": "body_9_1",
+      "proof_sha256": "60210c8b55d19284ac117a38f188fe9987b9e0ec3aedfc46de383402f31100b7"
+    },
+    {
+      "segment": "body_10_1",
+      "proof_sha256": "39e22f97d291cd58470dec894504be20bb31f75af117bfad824f990dedbfbfd2"
+    },
+    {
+      "segment": "body_11_1",
+      "proof_sha256": "daf637de39c1666bea5e58bd632db0a0f10f91350d9295b26aa60b1122501a55"
+    },
+    {
+      "segment": "body_12_1",
+      "proof_sha256": "93f840eab42e01c2356a43b0c773aa3fe84a34a07cd35ae9116e28ba4fb2bd24"
+    },
+    {
+      "segment": "body_13_1",
+      "proof_sha256": "4179577d2d82ba32bb4d2ffc8cba1a9d2ebb6a48213eed0e063cca901d0caf80"
+    },
+    {
+      "segment": "body_14_1",
+      "proof_sha256": "a3fea6cb1e88d9c17aa95911410627293fc866076a2202a3094c74835a483d06"
+    },
+    {
+      "segment": "body_15_1",
+      "proof_sha256": "9fbc55721bfd0e55ddde91a2eb600dc1653c16600945a96175d5b8572b69292b"
+    },
+    {
+      "segment": "body_16_1",
+      "proof_sha256": "21b8868fb9b50a81ed7c377f0780e2c3527319b1a5787fc73a109b40ee747f6c"
+    },
+    {
+      "segment": "body_17_1",
+      "proof_sha256": "eed23c810881535282879aba225e95b679ef047a491f5d25da404be3da5209fa"
+    },
+    {
+      "segment": "body_18_1",
+      "proof_sha256": "2a0320f4023fe8e92c30243cda1710effc8b340cb9088d8abf4ada82167fbb38"
+    },
+    {
+      "segment": "body_19_1",
+      "proof_sha256": "cd501838f1fb911a2d64a0d8639e4923181910adf5a868ffb3d1e6fdc22c5f0c"
+    },
+    {
+      "segment": "body_20_1",
+      "proof_sha256": "d2dc52cdfb11a572132b313f4be2ca71ec1cfff0bed2ab4c9c521eaf2948e17e"
+    },
+    {
+      "segment": "body_21_1",
+      "proof_sha256": "c7d39a92ada13a17e556a9bd41dd893f36ef18faf246cd5eae6ce108067fd176"
+    },
+    {
+      "segment": "body_22_1",
+      "proof_sha256": "d95dddb1fd62001eaf70e5e19c14ffaf43fefc0704965180f4eeda44da365245"
+    },
+    {
+      "segment": "body_23_1",
+      "proof_sha256": "8fdf7ef793b73e6aa17f3fec2681f93bf4479e70b37c393478f8a6a4b9430984"
+    },
+    {
+      "segment": "body_24_1",
+      "proof_sha256": "9a710df2417a206939e4f541013b26c4a63b6a4ab4b869745452e6ab9d8e4946"
+    },
+    {
+      "segment": "body_25_1",
+      "proof_sha256": "c5f6352f129ae04015665a1038e86ae675c9864b39203841b89ac1a658098380"
+    },
+    {
+      "segment": "teardown",
+      "proof_sha256": "1fbe22332b1efe15f98112a662e52237925f01b14582af9476d770ce2ae5c0fd"
+    },
+    {
+      "segment": "mpt_diff_0",
+      "proof_sha256": "d71a2ae20d4922393e2c1d1395eb9c7cb4260f0556f484dad3af57ccb4218584"
+    },
+    {
+      "segment": "mpt_diff_1",
+      "proof_sha256": "1bfb69d8df3e3b38a3ebe1ac2cb1f603ae64fa990539732c259718d5d29661a2"
+    },
+    {
+      "segment": "mpt_diff_2",
+      "proof_sha256": "27bb0cec36186c4938b0b5741891e692a57d9faae7834b699ae4c563e956cf00"
+    },
+    {
+      "segment": "mpt_diff_3",
+      "proof_sha256": "b65f855c453f5bfa10933499e900225618f25812236bdfd92d2369e6d144bb86"
+    },
+    {
+      "segment": "mpt_diff_4",
+      "proof_sha256": "26cadcd49c00c8c51abc395358e47a457b42bbbfc57615cda428c39542685edd"
+    },
+    {
+      "segment": "mpt_diff_5",
+      "proof_sha256": "855b1898276609083ccbd881ad1886f672b5c68d44eea395b474bd3d26c0537d"
+    },
+    {
+      "segment": "mpt_diff_6",
+      "proof_sha256": "52ae9667f76ea345a9469b806813ada417cc812507332d90c8d4670619afeb26"
+    },
+    {
+      "segment": "mpt_diff_7",
+      "proof_sha256": "ac450763b24815f951d0a02e11989a791e82b311e5a2a5f37488cf378c04a8cd"
+    },
+    {
+      "segment": "mpt_diff_8",
+      "proof_sha256": "19c1c3c67c96881ed6d8d4f63f8a815cc84ac61b25ec877c8068adf26a71eade"
+    },
+    {
+      "segment": "mpt_diff_9",
+      "proof_sha256": "f9d999d66cfaa66139709b993d4b7eb27435b9022d839213a6ddeaa8ca6a0112"
+    },
+    {
+      "segment": "mpt_diff_10",
+      "proof_sha256": "975ff614458c447ab12e1fb879460421f8fb97d5d4af9796125545a64f2e95c2"
+    },
+    {
+      "segment": "mpt_diff_11",
+      "proof_sha256": "96f75f74945858ec9bfd78941bcb5761780f1e2a1055f32a83556c2df1ed384b"
+    },
+    {
+      "segment": "mpt_diff_12",
+      "proof_sha256": "587e42b159d8dfa83a0a61adca2cd0a843737e7b095b317ef1e125770f88bad1"
+    },
+    {
+      "segment": "mpt_diff_13",
+      "proof_sha256": "485094d5fa0fba66b0113062f15abce60812f6cd6029a95321419f381ece3db6"
+    },
+    {
+      "segment": "mpt_diff_14",
+      "proof_sha256": "89a1212bfe2a0dcc8c0dfe24e90b1e21ec5ffb9d7541763ebf029f2fde8e4645"
+    },
+    {
+      "segment": "mpt_diff_15",
+      "proof_sha256": "0c9b62ec66079d6d3d357c6a0d687ff8229bdadaaa9faf10c522d114ff024909"
+    },
+    {
+      "segment": "aggregator",
+      "proof_sha256": "f3fd4484ca454d74e053dc6aed6d94253004d9c7becfe765f508209329440e68"
+    }
+  ],
+  "claims": {
+    "op_stack_validity_proof": false,
+    "kona_derivation_proved": false,
+    "ethereum_block_statement_bound": false,
+    "l1_verifier_compatible": false
+  }
+}
