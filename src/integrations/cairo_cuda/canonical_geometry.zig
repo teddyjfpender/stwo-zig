@@ -83,7 +83,10 @@ pub fn resolve(
                     }
                     if (instances == 0) continue;
                     parents += 1;
-                    if (!ready[parent]) { parents_ready = false; continue; }
+                    if (!ready[parent]) {
+                        parents_ready = false;
+                        continue;
+                    }
                     const contribution = std.math.mul(u64, extents[parent].active_rows, instances) catch return error.GeometryOverflow;
                     count = std.math.add(u64, count, contribution) catch return error.GeometryOverflow;
                 }
@@ -146,8 +149,7 @@ fn builtinDistinct(allocator: std.mem.Allocator, input: *const cairo.adapter.Pro
         var output: [3]u32 = @splat(0);
         for (0..tuple_words) |word| {
             const address = @as(u64, begin) + @as(u64, @intCast(row)) * tuple_words + word;
-            const encoded = cairo.witness.execution_tables.limb(input, cairo.witness.execution_tables.ADDRESS_TO_ID_TABLE,
-                std.math.cast(u32, address) orelse return error.GeometryOverflow, 0);
+            const encoded = cairo.witness.execution_tables.limb(input, cairo.witness.execution_tables.ADDRESS_TO_ID_TABLE, std.math.cast(u32, address) orelse return error.GeometryOverflow, 0);
             if (word < key_words) key[word] = encoded else output[word - key_words] = encoded;
         }
         const entry = try unique.getOrPut(key);
@@ -180,7 +182,8 @@ test "canonical CUDA geometry matches independent Rust checkpoints" {
         var digest: [32]u8 = undefined;
         std.crypto.hash.sha2.Sha256.hash(encoded, &digest, .{});
         var checkpoint = try cairo.conformance.receipt.readFile(std.testing.allocator, checkpoint_path, .{
-            .input_sha256 = digest, .authority = .{ .stwo_cairo_revision = cairo.claim_registry.source_revision.stwo_cairo, .stwo_revision = cairo.claim_registry.source_revision.stwo },
+            .input_sha256 = digest,
+            .authority = .{ .stwo_cairo_revision = cairo.claim_registry.source_revision.stwo_cairo, .stwo_revision = cairo.claim_registry.source_revision.stwo },
         });
         defer checkpoint.deinit();
         try std.testing.expectEqual(checkpoint.components.len, geometry.components.len);

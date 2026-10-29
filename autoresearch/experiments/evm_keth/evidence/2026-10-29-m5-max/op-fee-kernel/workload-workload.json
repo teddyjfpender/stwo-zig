@@ -1,0 +1,20 @@
+{
+  "schema": "keth-op-fee-workload-v1",
+  "block_hash": "0x76efc10040c7097e4ae949b7fc2e829bf7e3b7e227a5d0441eefa198aa6c5e42",
+  "sequencer_transactions": 34,
+  "excluded_deposits": 1,
+  "da_footprint": 2863200,
+  "native_input_sha256": "3432fd4643845d6e0541c4bc2bb062333524c6ab1d48e4d76ad30de7e363263f",
+  "checkpoints_sha256": "22e663af11894a9a7a797f8ce7cb6f2b823471246cd2b35f105202aed5a7ed1a",
+  "reference_result_sha256": "734deb45b6699869d9c4a3225a87a5812d8b4d5f79bd8b0aa4f5bb924c7f3da3",
+  "oracle_sha256": "57c8fdb783bc5978c9a59fb9eed5c28e750af9b429ba40c8042ecd4907c7f097",
+  "files": {
+    "input.json": "e8e81144abaff62d7e8728ea96ed5adfb0613f26ae377a078a4f09c424fcf832",
+    "reference.json": "549572246f1d08bb08b6933629dda250cc74d3a2ce2faaf079f2943b66ff6a68",
+    "expected-output.json": "2a937193be1e4e435b55feb07462a5a67d2538f1783b4f7c5530f7b1de2fb96e"
+  },
+  "op_block_execution_proved": false,
+  "op_derivation_proved": false,
+  "public_block_statement_bound": false,
+  "scope": "sequencer fee kernel with public parameters and transaction hashes"
+}

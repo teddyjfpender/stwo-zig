@@ -183,7 +183,7 @@ test "Cairo trace lease tiles resolve every row to the whole lease's value" {
     // (interaction, column, mask offset), including the in-place column at
     // an offset (read through the ordinary path) and three halos.
     const reads = [_]struct { u8, u32, i32 }{
-        .{ 0, 0, 0 }, .{ 1, 0, 0 }, .{ 1, 1, 0 }, .{ 1, 2, 0 }, .{ 2, 0, 0 },
+        .{ 0, 0, 0 },  .{ 1, 0, 0 },  .{ 1, 1, 0 }, .{ 1, 2, 0 },  .{ 2, 0, 0 },
         .{ 1, 0, -1 }, .{ 2, 0, -1 }, .{ 0, 0, 1 }, .{ 1, 1, -1 },
     };
     try std.testing.expectEqual(@as(usize, 3), tiles.shifted.len);

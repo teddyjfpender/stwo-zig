@@ -1,0 +1,23 @@
+{
+  "schema": "keth-reference-checkpoint-completion-v1",
+  "status": "qualified",
+  "source_sha256": "ff0687ede5ed4ed52b244f23569912e01e96221647938d6a749f0068b5761209",
+  "access_list_sha256": "f616318bbbdfce9297ec890e706a5a7443416041c33bfaa6727af49e17dc9227",
+  "binary_sha256": "da2841524751a9591a17e019976af337d370717cb4249079b44400c4be3f8ab7",
+  "probe_binary_sha256": null,
+  "supplemental_nodes_sha256": "0e9805c545ba4a2df7783bd65ea4e894d30a8961c678a87ab151d4228eea50d1",
+  "endpoint": null,
+  "attempts": [
+    {
+      "attempt": 1,
+      "input_sha256": "3432fd4643845d6e0541c4bc2bb062333524c6ab1d48e4d76ad30de7e363263f",
+      "result_sha256": "ad191cea7591bb140904761d7e2d5cd64610b375a629ee6dd74631a6b76b5bc9",
+      "error": null,
+      "returncode": 0
+    }
+  ],
+  "cairo_execution_proved": false,
+  "qualified_directory": "block-data/keth-integration-20261029/op-checkpoint-offline-qualified/attempt-1",
+  "final_input_sha256": "3432fd4643845d6e0541c4bc2bb062333524c6ab1d48e4d76ad30de7e363263f",
+  "checkpoints_sha256": "22e663af11894a9a7a797f8ce7cb6f2b823471246cd2b35f105202aed5a7ed1a"
+}

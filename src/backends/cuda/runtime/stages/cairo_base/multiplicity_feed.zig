@@ -129,19 +129,25 @@ pub fn OpsFor(comptime Api: type) type {
             );
             const status = if (prepared.active_rows) |active_rows|
                 Api.stwo_witness_feed_counts_active_on(
-                    source.pointer, prepared.column_length, active_rows,
-                    descriptors.pointer, prepared.descriptor_count, luts.pointer,
-                    destinations.pointer, session.context.stream,
+                    source.pointer,
+                    prepared.column_length,
+                    active_rows,
+                    descriptors.pointer,
+                    prepared.descriptor_count,
+                    luts.pointer,
+                    destinations.pointer,
+                    session.context.stream,
                 )
-            else Api.stwo_witness_feed_counts_on(
-                source.pointer,
-                prepared.column_length,
-                descriptors.pointer,
-                prepared.descriptor_count,
-                luts.pointer,
-                destinations.pointer,
-                session.context.stream,
-            );
+            else
+                Api.stwo_witness_feed_counts_on(
+                    source.pointer,
+                    prepared.column_length,
+                    descriptors.pointer,
+                    prepared.descriptor_count,
+                    luts.pointer,
+                    destinations.pointer,
+                    session.context.stream,
+                );
             try common.record(session, stage, status);
         }
     };

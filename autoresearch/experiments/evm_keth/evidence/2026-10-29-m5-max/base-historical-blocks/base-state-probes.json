@@ -1,0 +1,217 @@
+[
+  {
+    "endpoint": "https://mainnet.base.org",
+    "method": "eth_getProof",
+    "params": [
+      "0x4200000000000000000000000000000000000015",
+      [],
+      "0x1d97485"
+    ],
+    "start": 1793284753.248967,
+    "status": "failed",
+    "error": "eth_getProof: {'code': -32602, 'message': 'distance to target block exceeds maximum proof window'}",
+    "elapsed": 0.28612303733825684
+  },
+  {
+    "endpoint": "https://mainnet.base.org",
+    "method": "eth_getCode",
+    "params": [
+      "0x4200000000000000000000000000000000000015",
+      "0x1d97485"
+    ],
+    "start": 1793284753.2491362,
+    "status": "observed",
+    "bytes": 4154,
+    "elapsed": 0.3007957935333252
+  },
+  {
+    "endpoint": "https://mainnet.base.org",
+    "method": "debug_traceBlockByNumber",
+    "params": [
+      "0x1d97486",
+      {
+        "tracer": "prestateTracer",
+        "timeout": "30s",
+        "tracerConfig": {
+          "diffMode": false
+        }
+      }
+    ],
+    "start": 1793284753.249225,
+    "status": "failed",
+    "error": "HTTP Error 401: Unauthorized",
+    "elapsed": 0.28785204887390137
+  },
+  {
+    "endpoint": "https://base.drpc.org",
+    "method": "eth_getProof",
+    "params": [
+      "0x4200000000000000000000000000000000000015",
+      [],
+      "0x1d97485"
+    ],
+    "start": 1793284753.249296,
+    "status": "failed",
+    "error": "eth_getProof: {'code': -32603, 'message': 'no state found for block number 31028357'}",
+    "elapsed": 0.420166015625
+  },
+  {
+    "endpoint": "https://base.drpc.org",
+    "method": "eth_getCode",
+    "params": [
+      "0x4200000000000000000000000000000000000015",
+      "0x1d97485"
+    ],
+    "start": 1793284753.2494771,
+    "status": "observed",
+    "bytes": 4154,
+    "elapsed": 0.26734375953674316
+  },
+  {
+    "endpoint": "https://base.drpc.org",
+    "method": "debug_traceBlockByNumber",
+    "params": [
+      "0x1d97486",
+      {
+        "tracer": "prestateTracer",
+        "timeout": "30s",
+        "tracerConfig": {
+          "diffMode": false
+        }
+      }
+    ],
+    "start": 1793284753.516848,
+    "status": "failed",
+    "error": "HTTP Error 408: Request Timeout",
+    "elapsed": 1.2455308437347412
+  },
+  {
+    "endpoint": "https://base.gateway.tenderly.co",
+    "method": "eth_getProof",
+    "params": [
+      "0x4200000000000000000000000000000000000015",
+      [],
+      "0x1d97485"
+    ],
+    "start": 1793284753.535121,
+    "status": "failed",
+    "error": "eth_getProof: {'code': -32603, 'message': 'distance to target block exceeds maximum proof window'}",
+    "elapsed": 0.3509950637817383
+  },
+  {
+    "endpoint": "https://base.gateway.tenderly.co",
+    "method": "eth_getCode",
+    "params": [
+      "0x4200000000000000000000000000000000000015",
+      "0x1d97485"
+    ],
+    "start": 1793284753.5370948,
+    "status": "observed",
+    "bytes": 4154,
+    "elapsed": 0.3572721481323242
+  },
+  {
+    "endpoint": "https://base.gateway.tenderly.co",
+    "method": "debug_traceBlockByNumber",
+    "params": [
+      "0x1d97486",
+      {
+        "tracer": "prestateTracer",
+        "timeout": "30s",
+        "tracerConfig": {
+          "diffMode": false
+        }
+      }
+    ],
+    "start": 1793284753.549952,
+    "status": "failed",
+    "error": "HTTP Error 429: Too Many Requests",
+    "elapsed": 0.35286903381347656
+  },
+  {
+    "endpoint": "https://base-mainnet.public.blastapi.io",
+    "method": "eth_getProof",
+    "params": [
+      "0x4200000000000000000000000000000000000015",
+      [],
+      "0x1d97485"
+    ],
+    "start": 1793284753.669494,
+    "status": "failed",
+    "error": "eth_getProof: {'code': -32603, 'message': 'no state found for block number 31028357'}",
+    "elapsed": 0.24398398399353027
+  },
+  {
+    "endpoint": "https://base-mainnet.public.blastapi.io",
+    "method": "eth_getCode",
+    "params": [
+      "0x4200000000000000000000000000000000000015",
+      "0x1d97485"
+    ],
+    "start": 1793284753.886144,
+    "status": "observed",
+    "bytes": 4154,
+    "elapsed": 0.31876516342163086
+  },
+  {
+    "endpoint": "https://base-mainnet.public.blastapi.io",
+    "method": "debug_traceBlockByNumber",
+    "params": [
+      "0x1d97486",
+      {
+        "tracer": "prestateTracer",
+        "timeout": "30s",
+        "tracerConfig": {
+          "diffMode": false
+        }
+      }
+    ],
+    "start": 1793284753.894389,
+    "status": "failed",
+    "error": "HTTP Error 401: Unauthorized",
+    "elapsed": 0.2442491054534912
+  },
+  {
+    "endpoint": "https://base-mainnet.g.alchemy.com/public",
+    "method": "eth_getProof",
+    "params": [
+      "0x4200000000000000000000000000000000000015",
+      [],
+      "0x1d97485"
+    ],
+    "start": 1793284753.902843,
+    "status": "failed",
+    "error": "eth_getProof: {'code': -32603, 'message': 'no state found for block number 31028357'}",
+    "elapsed": 0.4652409553527832
+  },
+  {
+    "endpoint": "https://base-mainnet.g.alchemy.com/public",
+    "method": "eth_getCode",
+    "params": [
+      "0x4200000000000000000000000000000000000015",
+      "0x1d97485"
+    ],
+    "start": 1793284753.913495,
+    "status": "observed",
+    "bytes": 4154,
+    "elapsed": 0.392528772354126
+  },
+  {
+    "endpoint": "https://base-mainnet.g.alchemy.com/public",
+    "method": "debug_traceBlockByNumber",
+    "params": [
+      "0x1d97486",
+      {
+        "tracer": "prestateTracer",
+        "timeout": "30s",
+        "tracerConfig": {
+          "diffMode": false
+        }
+      }
+    ],
+    "start": 1793284754.138665,
+    "status": "failed",
+    "error": "HTTP Error 401: Unauthorized",
+    "elapsed": 0.3704068660736084
+  }
+]

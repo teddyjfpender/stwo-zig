@@ -52,7 +52,13 @@ pub const BackendEvidence = struct {
 };
 
 pub fn run(comptime Product: type) !void {
-    const allocator = std.heap.smp_allocator;
+    const paged = if (comptime @import("builtin").os.tag == .linux and std.mem.eql(u8, Product.backend_name, "cpu")) blk: {
+        const flag = std.posix.getenv("STWO_CAIRO_FILE_BACKED_ALLOCATOR") orelse break :blk false;
+        break :blk std.mem.eql(u8, flag, "1");
+    } else false;
+    const file_backed = @import("file_backed_allocator.zig");
+    const allocator = if (paged) try file_backed.allocator() else std.heap.smp_allocator;
+    defer if (paged) file_backed.report();
     const process_args = try std.process.argsAlloc(allocator);
     defer std.process.argsFree(allocator, process_args);
     const parsed = cli.parse(process_args[1..]) catch |err| {

@@ -37,7 +37,7 @@ pub fn replayRelation(
     @memcpy(slots[0..Runtime.LOGICAL_INPUT_COUNT], &row);
     for (plan.compiled_nodes[0..plan.compiled_node_count]) |node| {
         slots[node.destination] = switch (node.op) {
-            .machine => |v| @import("closed_machine_expression.zig").evaluate(Scalar,v,slots),
+            .machine => |v| @import("closed_machine_expression.zig").evaluate(Scalar, v, slots),
             .constant => |value| Scalar.fromBase(M31.fromU64(value)),
             .add => |binary| slots[binary.lhs].add(slots[binary.rhs]),
             .sub => |binary| slots[binary.lhs].sub(slots[binary.rhs]),
@@ -285,7 +285,11 @@ pub fn preflightRelation(
             destination >= slot_count)
             return error.InvalidRelationPlan;
         switch (node.op) {
-            .machine => |v| { for(@import("closed_machine_expression.zig").operands(v)) |operand| if(operand) |id| { if(@intFromEnum(id)>=destination) return error.InvalidRelationPlan; }; },
+            .machine => |v| {
+                for (@import("closed_machine_expression.zig").operands(v)) |operand| if (operand) |id| {
+                    if (@intFromEnum(id) >= destination) return error.InvalidRelationPlan;
+                };
+            },
             .constant => {},
             .add, .sub, .mul => |binary| {
                 if (binary.lhs >= destination or binary.rhs >= destination)

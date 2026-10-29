@@ -1,0 +1,23 @@
+{
+  "schema": "keth-op-deposit-v2-evidence-v1",
+  "state_view_commitment_version": 2,
+  "parent_integration_revision": "6dee5208e",
+  "uncompressed_proof_sha256": "8ea108a37ea3b686b5e9d52134b9298753dc850cc79eee188f7b2d5906fe1b89",
+  "retained_proof_sha256": "20ce84368d013c196503b9fedd7a506ea9944e8ddf3ddb2865037de9c5c97d60",
+  "claims": {
+    "deposit_execution_kernel_proved": true,
+    "persistent_account_and_storage_access_keys_bound_to_view": true,
+    "initial_account_storage_roots_bound_to_view": true,
+    "initial_created_marker_set_empty": true,
+    "full_op_block_proved": false,
+    "cairo_mpt_authentication_proved": false,
+    "derivation_proved": false,
+    "pre_transaction_system_calls_proved": false,
+    "all_transaction_local_state_soundness_audited": false
+  },
+  "limitations": [
+    "Call deposits only; general OP precompile/fork compatibility remains unfinished.",
+    "View-to-MPT authentication remains a host reference check.",
+    "Complete transaction-local dictionary/default-value soundness audit remains open."
+  ]
+}

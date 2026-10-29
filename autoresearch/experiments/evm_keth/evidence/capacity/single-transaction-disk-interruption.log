@@ -1,0 +1,23 @@
+2026-10-29T13:01:50.425238Z  INFO cairo_run_program: vm::vm::runner: enter
+2026-10-29T13:01:54.744454Z  INFO vm::vm::runner: Execution resources n_steps=2734764 n_memory_holes=245399 builtin_output=4 builtin_range_check=57659 builtin_pedersen=0 builtin_bitwise=16048 builtin_poseidon=40 builtin_range_check96=1548 builtin_add_mod=139 builtin_mul_mod=156
+2026-10-29T13:01:54.857239Z  INFO MemoryBuilder::from_iter: stwo_cairo_adapter::memory: enter
+2026-10-29T13:01:55.477277Z  INFO MemoryBuilder::from_iter: stwo_cairo_adapter::memory: close time.busy=620ms time.idle=4.66µs
+2026-10-29T13:01:55.477346Z  INFO StateTransitions::from_slice_parallel: stwo_cairo_adapter::opcodes: enter
+2026-10-29T13:01:55.758693Z  INFO StateTransitions::from_slice_parallel: stwo_cairo_adapter::opcodes: close time.busy=281ms time.idle=4.14µs
+2026-10-29T13:01:55.759286Z  INFO stwo_cairo_adapter::builtins: Padding segment add_mod of size 139 to size 256
+2026-10-29T13:01:55.759467Z  INFO stwo_cairo_adapter::builtins: Padding segment bitwise of size 16048 to size 16384
+2026-10-29T13:01:55.759523Z  INFO stwo_cairo_adapter::builtins: Padding segment mul_mod of size 156 to size 256
+2026-10-29T13:01:55.759553Z  INFO stwo_cairo_adapter::builtins: Padding segment poseidon of size 40 to size 64
+2026-10-29T13:01:55.761319Z  INFO stwo_cairo_adapter::builtins: Padding segment range_check_96 of size 1548 to size 2048
+2026-10-29T13:01:55.764426Z  INFO stwo_cairo_adapter::builtins: Padding segment range_check_128 of size 57659 to size 65536
+2026-10-29T13:01:57.369027Z  INFO cairo_run_program: vm::vm::runner: close time.busy=4.30s time.idle=2.65s
+Error in pipeline: No space left on device (os error 28)
+2026-10-29 21:01:57,415 - ERROR - Unexpected error
+Traceback (most recent call last):
+  File "/workspace/scratch/4b671f922363/research-keth/cairo/keth_cli/cli.py", line 173, in trace
+    run_trace_pipeline(
+  File "/workspace/scratch/4b671f922363/research-keth/cairo/keth_cli/orchestration.py", line 123, in run_trace_pipeline
+    _execute_trace_job(
+  File "/workspace/scratch/4b671f922363/research-keth/cairo/keth_cli/orchestration.py", line 59, in _execute_trace_job
+    run_generate_trace(
+OSError: No space left on device (os error 28)

@@ -1,0 +1,132 @@
+{
+  "schema": "stwo-zig-keth-block-benchmark-v1",
+  "status": "traced",
+  "scope": "whole-keth-main-workload",
+  "step": "main",
+  "source": {
+    "repository": "https://github.com/kkrt-labs/keth",
+    "revision": "e90c0a51699182f140e51c94d09ff9045c194769",
+    "git_tree": "aa9b9a9b344a3a3bbde23b054f5546ebb9cedc8b"
+  },
+  "workload": {
+    "block_number": 22615247,
+    "block_hash": "0x0497f69549701d578c67a43951f9e4fcb92b1691b9f6bbdfa63a17bc41d3971e",
+    "parent_hash": "0x11e63a1dcfd1e9fe6350eba5697b9e39892b4a70e6c0cf4ae4f4891a5a333b50",
+    "post_state_root": "0x1f6dc5212b4406456276be869b309a30e1bceb43cadf292f1aefdb72186cb84f",
+    "pre_state_root": "0xbe3cc2842dba8d8161325f9a91fd69f2c14a12e2ce8a3ec038a1d95e7bc767b7",
+    "gas_used": 1331413,
+    "transactions": 26,
+    "withdrawals": 16,
+    "fixture_sha256": "48d9c58a2fe7a5e791bacf1c5b8518cbc8426894012a4ea3276916d2a484d99e",
+    "fixture_bytes": 2078954
+  },
+  "compiled_program_sha256": "d528dea0e6247b7121c8fcebca23178e2d6deb9bbad7852c142e6ec4b35a6efe",
+  "stages": [
+    {
+      "name": "keth-trace",
+      "command": [
+        "/Users/theodorepender/code/cryptography/keth-pinned/.venv/bin/keth",
+        "trace",
+        "-b",
+        "22615247",
+        "--chain-id",
+        "1",
+        "--data-dir",
+        "/Users/theodorepender/code/cryptography/stwo-zig-keth-integration/block-data/keth-integration-20261029/ethereum-main-pie-trace/data",
+        "--proving-run-id",
+        "1",
+        "--step",
+        "main",
+        "--compiled-program",
+        "/Users/theodorepender/code/cryptography/keth-pinned/build/main_compiled.json",
+        "--cairo-pie",
+        "--trace-path",
+        "/Users/theodorepender/code/cryptography/stwo-zig-keth-integration/block-data/keth-integration-20261029/ethereum-main-pie-trace/trace"
+      ],
+      "status": "passed",
+      "process": {
+        "exit_code": 0,
+        "wall_ns": 57267079125,
+        "user_ns": 55685896000,
+        "system_ns": 1490525000,
+        "max_process_tree_rss_bytes": 18790432768,
+        "rss_is_simultaneous_process_tree_sum": false
+      }
+    },
+    {
+      "name": "reference-output",
+      "command": [
+        "/Users/theodorepender/code/cryptography/keth-pinned/.venv/bin/python",
+        "-c",
+        "import json,sys\nfrom pathlib import Path\nfrom keth_types.patches import apply_patches\napply_patches()\nfrom mpt.trie_diff import StateDiff\np=Path(sys.argv[1]);data=json.loads(p.read_text())\npre=bytes.fromhex(data['witness']['ancestors'][0]['stateRoot'][2:])\nlo=int.from_bytes(pre[:16],'little');hi=int.from_bytes(pre[16:],'little')\na,b=StateDiff.from_json(p).compute_commitments()\nPath(sys.argv[2]).write_text(json.dumps([lo,hi,a,b,a,b]))\n",
+        "/Users/theodorepender/code/cryptography/keth-pinned/test_data/22615247.json",
+        "/Users/theodorepender/code/cryptography/stwo-zig-keth-integration/block-data/keth-integration-20261029/ethereum-main-pie-trace/expected-main-output.json"
+      ],
+      "status": "passed",
+      "process": {
+        "exit_code": 0,
+        "wall_ns": 766297958,
+        "user_ns": 675578000,
+        "system_ns": 66408000,
+        "max_process_tree_rss_bytes": 125288448,
+        "rss_is_simultaneous_process_tree_sum": false
+      }
+    }
+  ],
+  "address_space_limit_gib": 0.0,
+  "workers": 8,
+  "claims": {
+    "op_stack_validity_proof": false,
+    "kona_derivation_proved": false,
+    "ethereum_block_statement_bound": false,
+    "l1_verifier_compatible": false
+  },
+  "address_space_policy": {
+    "requested_gib": 0.0,
+    "enforced": false,
+    "scope": "per-process virtual address space; inherited by children",
+    "platform": "darwin"
+  },
+  "pie": {
+    "sha256": "1b1252233f18b6ead7e1628aabf31f2e67ec23cfc7b3f72316520466aafd66e6",
+    "bytes": 632839371
+  },
+  "keth_execution_resources": {
+    "n_steps": 64655334,
+    "n_memory_holes": 7575248,
+    "builtin_instance_counter": {
+      "output_builtin": 6,
+      "range_check_builtin": 1468389,
+      "pedersen_builtin": 0,
+      "ecdsa_builtin": 0,
+      "keccak_builtin": 0,
+      "bitwise_builtin": 4760718,
+      "ec_op_builtin": 0,
+      "poseidon_builtin": 1062,
+      "range_check96_builtin": 42272,
+      "add_mod_builtin": 3790,
+      "mul_mod_builtin": 4232
+    }
+  },
+  "trace_output": [
+    322223509135584863967007391715432742078,
+    243787575778998497098000105918778460865,
+    433568830939090591795241854626605503035884651253579660132367448391289000268,
+    216628551545767434706648963563548129985831207195475469782212011199236511345,
+    433568830939090591795241854626605503035884651253579660132367448391289000268,
+    216628551545767434706648963563548129985831207195475469782212011199236511345
+  ],
+  "expected_output": [
+    322223509135584863967007391715432742078,
+    243787575778998497098000105918778460865,
+    433568830939090591795241854626605503035884651253579660132367448391289000268,
+    216628551545767434706648963563548129985831207195475469782212011199236511345,
+    433568830939090591795241854626605503035884651253579660132367448391289000268,
+    216628551545767434706648963563548129985831207195475469782212011199236511345
+  ],
+  "source_after_trace": {
+    "repository": "https://github.com/kkrt-labs/keth",
+    "revision": "e90c0a51699182f140e51c94d09ff9045c194769",
+    "git_tree": "aa9b9a9b344a3a3bbde23b054f5546ebb9cedc8b"
+  }
+}

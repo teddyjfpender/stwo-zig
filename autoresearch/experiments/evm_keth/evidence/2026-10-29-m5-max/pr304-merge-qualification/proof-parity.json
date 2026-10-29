@@ -1,0 +1,22 @@
+[
+  {
+    "manifest": "block-data/keth-integration-20261029/ethereum-metal-w8-native-chunk4/bundle-results.json",
+    "same_all_proof_bytes": true
+  },
+  {
+    "manifest": "block-data/keth-integration-20261029/ethereum-cpu-w8-native-chunk4/bundle-results.json",
+    "same_all_proof_bytes": true
+  },
+  {
+    "manifest": "block-data/keth-integration-20261029/metal-w8-chunk4-repeats/trial-3/bundle-results.json",
+    "same_all_proof_bytes": true
+  },
+  {
+    "manifest": "block-data/keth-integration-20261029/metal-w8-chunk4-repeats/trial-2/bundle-results.json",
+    "same_all_proof_bytes": true
+  },
+  {
+    "manifest": "block-data/keth-integration-20261029/metal-w8-chunk4-repeats/trial-1/bundle-results.json",
+    "same_all_proof_bytes": true
+  }
+]

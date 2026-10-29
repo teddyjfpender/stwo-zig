@@ -68,9 +68,12 @@ pub fn plan(a: std.mem.Allocator, claims: []const memory.Claim, total_events: u6
 fn appendShard(a: std.mem.Allocator, shards: *std.ArrayList(Shard), first: usize, end: usize, first_event: u64, events: u64) !void {
     if (end <= first or events == 0) return error.InvalidRangeShardRoster;
     const shard = Shard{
-        .index = @intCast(shards.items.len), .first_instance = @intCast(first),
-        .instance_count = @intCast(end - first), .first_event = first_event,
-        .event_count = events, .max_requests = try std.math.mul(u64, events, REQUESTS_PER_EVENT),
+        .index = @intCast(shards.items.len),
+        .first_instance = @intCast(first),
+        .instance_count = @intCast(end - first),
+        .first_event = first_event,
+        .event_count = events,
+        .max_requests = try std.math.mul(u64, events, REQUESTS_PER_EVENT),
     };
     try shard.validate();
     try shards.append(a, shard);
@@ -100,16 +103,22 @@ pub fn digestRoster(shards: []const Shard, total_events: u64, total_instances: u
     var hash = std.crypto.hash.sha2.Sha256.init(.{});
     hash.update("stwo-zig/block-memory/range-shards/v2\x00");
     var word: [8]u8 = undefined;
-    std.mem.writeInt(u32, word[0..4], TAG, .little); hash.update(word[0..4]);
-    std.mem.writeInt(u32, word[0..4], @intCast(shards.len), .little); hash.update(word[0..4]);
-    std.mem.writeInt(u32, word[0..4], total_instances, .little); hash.update(word[0..4]);
-    std.mem.writeInt(u64, &word, total_events, .little); hash.update(&word);
+    std.mem.writeInt(u32, word[0..4], TAG, .little);
+    hash.update(word[0..4]);
+    std.mem.writeInt(u32, word[0..4], @intCast(shards.len), .little);
+    hash.update(word[0..4]);
+    std.mem.writeInt(u32, word[0..4], total_instances, .little);
+    hash.update(word[0..4]);
+    std.mem.writeInt(u64, &word, total_events, .little);
+    hash.update(&word);
     for (shards) |shard| {
         for ([_]u32{ shard.index, shard.first_instance, shard.instance_count }) |value| {
-            std.mem.writeInt(u32, word[0..4], value, .little); hash.update(word[0..4]);
+            std.mem.writeInt(u32, word[0..4], value, .little);
+            hash.update(word[0..4]);
         }
         for ([_]u64{ shard.first_event, shard.event_count, shard.max_requests }) |value| {
-            std.mem.writeInt(u64, &word, value, .little); hash.update(&word);
+            std.mem.writeInt(u64, &word, value, .little);
+            hash.update(&word);
         }
     }
     return hash.finalResult();

@@ -27,8 +27,7 @@ pub fn auditPreparedDomainSums(
         var total = QM31.zero();
         for (values) |value| total = total.add(value);
         if (!total.eql(expected_claimed_sum)) return error.ClaimMismatch;
-        return .{ .values = values, .total = total, .logical_rows = rows.len,
-            .event_terms = std.math.mul(usize, Runtime.EVENT_COUNT, rows.len) catch return error.InvalidTraceShape };
+        return .{ .values = values, .total = total, .logical_rows = rows.len, .event_terms = std.math.mul(usize, Runtime.EVENT_COUNT, rows.len) catch return error.InvalidTraceShape };
     }
 
     const pair_count = std.math.mul(

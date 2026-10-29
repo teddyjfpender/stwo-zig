@@ -1,0 +1,56 @@
+2026-10-29T12:11:19.846520Z  INFO cairo_run_program: vm::vm::runner: enter
+2026-10-29T12:12:03.713898Z ERROR cairo_run_program: vm::vm::runner: Failed to run program: Error at pc=0:1272:
+Vector capacity exceeded
+Cairo traceback (most recent call last):
+Unknown location (pc=0:2158)
+Unknown location (pc=0:2158)
+Unknown location (pc=0:2158)
+Unknown location (pc=0:2158)
+Unknown location (pc=0:2158)
+Unknown location (pc=0:2158)
+Unknown location (pc=0:2158)
+Unknown location (pc=0:2158)
+Unknown location (pc=0:2158)
+Unknown location (pc=0:2158)
+Unknown location (pc=0:2158)
+Unknown location (pc=0:2158)
+Unknown location (pc=0:2158)
+Unknown location (pc=0:2158)
+Unknown location (pc=0:2158)
+Unknown location (pc=0:2158)
+Unknown location (pc=0:2158)
+Unknown location (pc=0:2158)
+Unknown location (pc=0:2114)
+Unknown location (pc=0:1709)
+
+
+thread '<unnamed>' panicked at crates/cairo-addons/src/vm/runner.rs:732:13:
+Failed to run block, exiting
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+2026-10-29T12:12:03.717359Z  INFO cairo_run_program: vm::vm::runner: close time.busy=43.9s time.idle=5.57µs
+Traceback (most recent call last):
+  File "/workspace/scratch/4b671f922363/research-keth/.venv/bin/keth", line 10, in <module>
+    sys.exit(app())
+  File "/workspace/scratch/4b671f922363/research-keth/.venv/lib/python3.10/site-packages/typer/main.py", line 323, in __call__
+    return get_command(self)(*args, **kwargs)
+  File "/workspace/scratch/4b671f922363/research-keth/.venv/lib/python3.10/site-packages/click/core.py", line 1161, in __call__
+    return self.main(*args, **kwargs)
+  File "/workspace/scratch/4b671f922363/research-keth/.venv/lib/python3.10/site-packages/typer/core.py", line 740, in main
+    return _main(
+  File "/workspace/scratch/4b671f922363/research-keth/.venv/lib/python3.10/site-packages/typer/core.py", line 195, in _main
+    rv = self.invoke(ctx)
+  File "/workspace/scratch/4b671f922363/research-keth/.venv/lib/python3.10/site-packages/click/core.py", line 1697, in invoke
+    return _process_result(sub_ctx.command.invoke(sub_ctx))
+  File "/workspace/scratch/4b671f922363/research-keth/.venv/lib/python3.10/site-packages/click/core.py", line 1443, in invoke
+    return ctx.invoke(self.callback, **ctx.params)
+  File "/workspace/scratch/4b671f922363/research-keth/.venv/lib/python3.10/site-packages/click/core.py", line 788, in invoke
+    return __callback(*args, **kwargs)
+  File "/workspace/scratch/4b671f922363/research-keth/.venv/lib/python3.10/site-packages/typer/main.py", line 698, in wrapper
+    return callback(**use_params)
+  File "/workspace/scratch/4b671f922363/research-keth/cairo/keth_cli/cli.py", line 173, in trace
+    run_trace_pipeline(
+  File "/workspace/scratch/4b671f922363/research-keth/cairo/keth_cli/orchestration.py", line 123, in run_trace_pipeline
+    _execute_trace_job(
+  File "/workspace/scratch/4b671f922363/research-keth/cairo/keth_cli/orchestration.py", line 59, in _execute_trace_job
+    run_generate_trace(
+pyo3_runtime.PanicException: Failed to run block, exiting

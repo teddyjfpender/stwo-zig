@@ -130,7 +130,8 @@ pub fn ForSha(comptime include_sha: bool) type {
             const execution_sources = if (include_sha) .{ run.base.execution_trace.rows.items, keccak_rows, signer_rows, sha_calls } else .{ run.base.execution_trace.rows.items, keccak_rows, signer_rows };
             var memory = if (sparse_program)
                 try memory_mod.buildSparse(a, @import("../air/program/commitment.zig").DeclaredDecodeAuthority{ .profile = profile }, execution_sources, &run.base.rw_memory, @import("commitment_program_witness.zig").completionFetch(bound.completion), 100)
-            else try memory_mod.build(a, @import("../air/program/commitment.zig").DeclaredDecodeAuthority{ .profile = profile }, execution_sources, &run.base.rw_memory, @import("commitment_program_witness.zig").completionFetch(bound.completion), 100);
+            else
+                try memory_mod.build(a, @import("../air/program/commitment.zig").DeclaredDecodeAuthority{ .profile = profile }, execution_sources, &run.base.rw_memory, @import("commitment_program_witness.zig").completionFetch(bound.completion), 100);
             errdefer memory.deinit();
             try memory.bindPublic(&bound);
             var plan = try memory.plan(a);

@@ -1,0 +1,19 @@
+{
+  "schema": "keth-op-fee-kernel-evidence-v1",
+  "original_native_input_sha256": "5d4474b21caf65d203ac19ff7b314ce9adf5910ce8a74647de2115ec0a8705b7",
+  "complete_native_input_sha256": "3432fd4643845d6e0541c4bc2bb062333524c6ab1d48e4d76ad30de7e363263f",
+  "supplemental_nodes_sha256": "0e9805c545ba4a2df7783bd65ea4e894d30a8961c678a87ab151d4228eea50d1",
+  "checkpoint_raw_sha256": "22e663af11894a9a7a797f8ce7cb6f2b823471246cd2b35f105202aed5a7ed1a",
+  "checkpoint_summary_sha256": "f1b97cf353f7319609ee544c1231336b0944c334341f275b670fb9e240b7fa50",
+  "full_checkpoint_local_path": "block-data/keth-integration-20261029/op-final-checkpoints.json",
+  "retained_proof_sha256": "d1b15ee2854a799372404b0c654f17442ab154069a34c18f807171b03ded483c",
+  "uncompressed_proof_sha256": "fde5e1b9ff0b77e597576d32545d8c0c345644c295074c35e4b38076f99c61f2",
+  "preexisting_adapter_source_commit": "b094f526c",
+  "claims": {
+    "fee_kernel_proved": true,
+    "op_block_execution_proved": false,
+    "op_derivation_proved": false,
+    "public_block_statement_bound": false
+  },
+  "upstream_pr_observed_head": "22af4fdd7c2c72d99925afbbcf50c445e9673eaa"
+}

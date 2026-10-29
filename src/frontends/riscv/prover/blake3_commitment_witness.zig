@@ -44,7 +44,8 @@ pub const Witness = struct {
         const roots = [3]tree.Digest{ self.program.root, self.initial.root, self.final.root };
         return if (self.program_schedule == .sparse_active)
             Plan.initSparse(a, roots, self.boundaries, self.programs, self.program.leaves)
-        else Plan.init(a, roots, self.boundaries, self.programs, self.program.leaves);
+        else
+            Plan.init(a, roots, self.boundaries, self.programs, self.program.leaves);
     }
     pub fn prepareProgram(self: *const Witness, a: std.mem.Allocator, index: usize) !program_word.Prepared {
         if (self.program_schedule == .sparse_active) return error.SparseProgramUsesFixedProvider;

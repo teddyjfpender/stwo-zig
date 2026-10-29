@@ -1,0 +1,70 @@
+[
+  {
+    "endpoint": "https://mainnet.base.org",
+    "chain_id": 8453,
+    "block": "0x1d97486",
+    "hash": "0xd2dda37ec27e4d953a77a9050e68f0eda3f963f2eb745f870b60f61c3555ae91",
+    "transactions": 196,
+    "seconds": 0.812522332998924
+  },
+  {
+    "endpoint": "https://base-rpc.publicnode.com",
+    "chain_id": 8453,
+    "error": "HTTP Error 403: Forbidden",
+    "seconds": 0.5961229579988867
+  },
+  {
+    "endpoint": "https://base-mainnet.public.blastapi.io",
+    "chain_id": 8453,
+    "block": "0x1d97486",
+    "hash": "0xd2dda37ec27e4d953a77a9050e68f0eda3f963f2eb745f870b60f61c3555ae91",
+    "transactions": 196,
+    "seconds": 0.9607986249902751
+  },
+  {
+    "endpoint": "https://base-mainnet.g.alchemy.com/v2/demo",
+    "error": "HTTP Error 429: Too Many Requests",
+    "seconds": 0.6768212919996586
+  },
+  {
+    "endpoint": "https://base-mainnet.g.alchemy.com/public",
+    "chain_id": 8453,
+    "block": "0x1d97486",
+    "hash": "0xd2dda37ec27e4d953a77a9050e68f0eda3f963f2eb745f870b60f61c3555ae91",
+    "transactions": 196,
+    "seconds": 1.2165728750114795
+  },
+  {
+    "endpoint": "https://base.drpc.org",
+    "chain_id": 8453,
+    "block": "0x1d97486",
+    "hash": "0xd2dda37ec27e4d953a77a9050e68f0eda3f963f2eb745f870b60f61c3555ae91",
+    "transactions": 196,
+    "seconds": 0.543564666993916
+  },
+  {
+    "endpoint": "https://base.llamarpc.com",
+    "error": "HTTP Error 525: <none>",
+    "seconds": 0.510022458009189
+  },
+  {
+    "endpoint": "https://1rpc.io/base",
+    "chain_id": 8453,
+    "error": "eth_getBlockByNumber: {'code': 4444, 'message': 'pruned history unavailable: requested 31028358, earliest available 51500000'}",
+    "seconds": 8.294389416987542
+  },
+  {
+    "endpoint": "https://base.gateway.tenderly.co",
+    "chain_id": 8453,
+    "block": "0x1d97486",
+    "hash": "0xd2dda37ec27e4d953a77a9050e68f0eda3f963f2eb745f870b60f61c3555ae91",
+    "transactions": 196,
+    "seconds": 0.8158810420136433
+  },
+  {
+    "endpoint": "https://base.meowrpc.com",
+    "chain_id": 8453,
+    "error": "HTTP Error 429: Too Many Requests",
+    "seconds": 0.5307381660095416
+  }
+]
