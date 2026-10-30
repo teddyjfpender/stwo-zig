@@ -8,6 +8,7 @@ from starkware.cairo.common.math import assert_nn_le
 from starkware.cairo.common.math_cmp import is_le_felt
 from ethereum_types.numeric import U256, U256Struct, Uint, OptionalUint
 from ethereum_types.bytes import OptionalHash32
+from ethereum.prague.blocks import TupleLog, TupleLogStruct, Log
 from ethereum.prague.fork_types import (
     Address, AccountStruct, OptionalAccount, TupleVersionedHash, TupleVersionedHashStruct,
     TupleAuthorization, TupleAuthorizationStruct, Authorization, SetAddress, SetAddressStruct,
@@ -80,15 +81,13 @@ func increment_deposit_nonce{range_check_ptr, block_env: BlockEnvironment}(sende
     return account.value.nonce;
 }
 
-func execute_deposit{
+func execute_deposit_detailed{
     range_check_ptr, bitwise_ptr: BitwiseBuiltin*, keccak_ptr: felt*, poseidon_ptr: PoseidonBuiltin*,
     range_check96_ptr: felt*, add_mod_ptr: ModBuiltin*, mul_mod_ptr: ModBuiltin*,
     block_env: BlockEnvironment,
-}(deposit: Deposit*, tx_hash: Hash32) -> (gas_used: felt, success: felt, nonce: Uint) {
+}(deposit: Deposit*, tx_hash: Hash32) -> (gas_used: felt, success: felt, nonce: Uint, logs: TupleLog) {
     alloc_locals;
-    // Creation support needs the uint64-wrapping sender nonce propagated into
-    // prepare_message's CREATE address calculation. Refuse it until implemented.
-    assert cast(deposit.to.value.bytes0, felt) = 0;
+    // The owned compiler constrains uint64-wrapping creation sender nonces.
     assert_nn_le(block_env.value.block_gas_limit.value, 2 ** 64 - 1);
     assert_nn_le(deposit.gas.value, block_env.value.block_gas_limit.value);
     let state = block_env.value.state;
@@ -112,10 +111,27 @@ func execute_deposit{
     let intrinsic_ok = is_le_felt(intrinsic.value, deposit.gas.value);
     let floor_ok = is_le_felt(floor.value, deposit.gas.value);
     let value_ok = U256_le(deposit.value, balance);
-    if (intrinsic_ok * floor_ok * value_ok.value == 0) {
+    let init_ok = creation_input_valid(deposit);
+    if (intrinsic_ok * floor_ok * value_ok.value * init_ok == 0) {
         // Consensus-invalid deposits retain mint and nonce, consume all gas.
         finish_deposit_state(deposit.sender);
-        return (deposit.gas.value, 0, nonce);
+        let logs = empty_deposit_logs();
+        return (deposit.gas.value, 0, nonce, logs);
+    }
+    if (cast(deposit.to.value.bytes0, felt) != 0 and nonce.value == 2 ** 64 - 1) {
+        // op-geth's CREATE checks nonce overflow before incrementing, while
+        // call deposits wrap. This VM error consumes only the intrinsic gas.
+        let state = block_env.value.state;
+        let account = get_account{state=state}(deposit.sender);
+        tempvar restored = OptionalAccount(new AccountStruct(
+            nonce=nonce, balance=account.value.balance, code_hash=account.value.code_hash,
+            storage_root=account.value.storage_root, code=account.value.code));
+        set_account{state=state}(deposit.sender, restored);
+        BlockEnvImpl.set_state(state);
+        let used = max(intrinsic.value, floor.value);
+        finish_deposit_state(deposit.sender);
+        let logs = empty_deposit_logs();
+        return (used, 0, nonce, logs);
     }
     let (addresses) = default_dict_new(0);
     local address_start: DictAccess* = addresses;
@@ -152,7 +168,31 @@ func execute_deposit{
     BlockEnvImpl.set_state(state);
     finish_deposit_state(deposit.sender);
     if (cast(result.value.error, felt) == 0) {
-        return (used, 1, nonce);
+        return (used, 1, nonce, result.value.logs);
     }
-    return (used, 0, nonce);
+    return (used, 0, nonce, result.value.logs);
+}
+
+func creation_input_valid{range_check_ptr}(deposit: Deposit*) -> felt {
+    if (cast(deposit.to.value.bytes0, felt) == 0) {
+        return 1;
+    }
+    let valid = is_le_felt(deposit.data.value.len, 49152);
+    return valid;
+}
+
+func empty_deposit_logs() -> TupleLog {
+    let (data: Log*) = alloc();
+    tempvar logs = TupleLog(new TupleLogStruct(data, 0));
+    return logs;
+}
+
+// Preserve the original component entry while exposing logs to the block path.
+func execute_deposit{
+    range_check_ptr, bitwise_ptr: BitwiseBuiltin*, keccak_ptr: felt*, poseidon_ptr: PoseidonBuiltin*,
+    range_check96_ptr: felt*, add_mod_ptr: ModBuiltin*, mul_mod_ptr: ModBuiltin*,
+    block_env: BlockEnvironment,
+}(deposit: Deposit*, tx_hash: Hash32) -> (gas_used: felt, success: felt, nonce: Uint) {
+    let (used, success, nonce, logs) = execute_deposit_detailed(deposit, tx_hash);
+    return (used, success, nonce);
 }

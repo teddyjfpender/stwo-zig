@@ -1,0 +1,135 @@
+{
+  "schema": "keth-memory-profile-v1",
+  "identity": {
+    "compiled": "8fdf7e5c1c9dea662011505820e11b75c073774a9bbd62bf9fc8231d7a117edc",
+    "input": "e8a08df6f723980467b39058c7287f32d07bd5882f597d61ad990db1345ddaa0",
+    "runtime": "06b34012f49318781d13e96cb2c2e73e393ce86ea2401a35117baa9c84fdd0cd"
+  },
+  "measurement": {
+    "schema": "keth-bounded-process-v1",
+    "command": [
+      "env",
+      "PYTHONHASHSEED=0",
+      "KETH_WITNESS_MEMORY_PROFILE=1",
+      "PYTHONPATH=/Users/theodorepender/code/cryptography/stwo-zig-keth-integration/block-data/keth-integration-20261029/keth-memory-profile-runtime-1/python:/Users/theodorepender/code/cryptography/stwo-zig-keth-integration",
+      "/Users/theodorepender/code/cryptography/stwo-zig-keth-integration/../keth-pinned/.venv/bin/python",
+      "-m",
+      "autoresearch.experiments.evm_keth.op_cairo",
+      "--keth-checkout",
+      "/Users/theodorepender/code/cryptography/keth-pinned",
+      "trace",
+      "--compiled",
+      "/Users/theodorepender/code/cryptography/stwo-zig-keth-integration/block-data/keth-integration-20261029/op-execution-partitioned-2.json",
+      "--input",
+      "/Users/theodorepender/code/cryptography/stwo-zig-keth-integration/block-data/keth-integration-20261029/op-bound-workloads/3-phase-1.json",
+      "--out",
+      "/Users/theodorepender/code/cryptography/stwo-zig-keth-integration/block-data/keth-integration-20261029/keth-memory-profile-baseline/trace.json"
+    ],
+    "exit_code": 0,
+    "wall_ns": 100611987833,
+    "limit_bytes": 51539607552,
+    "started_utc_ns": 1793337915161206000,
+    "samples_path": "block-data/keth-integration-20261029/keth-memory-profile-baseline/samples.jsonl",
+    "maximum_observed_footprint_bytes": 33889690368,
+    "footprint_samples": 8096,
+    "footprint_source": "darwin_proc_pid_rusage_v6",
+    "termination_reason": null,
+    "completion_latency": true
+  },
+  "stages": [
+    {
+      "stage": "adapter_start",
+      "time_ns": 1793337940113181000,
+      "footprint": 33400446976,
+      "peak": 33400446976,
+      "vm_buffers": 16913596448,
+      "relocated_memory": 21474836480,
+      "trace_buffers": 17179869168,
+      "maximum_observed_until_next_stage": 33425088560
+    },
+    {
+      "stage": "vm_buffers_released",
+      "time_ns": 1793337940398078000,
+      "footprint": 20043938720,
+      "peak": 33425088560,
+      "vm_buffers": 0,
+      "relocated_memory": 21474836480,
+      "trace_buffers": 0,
+      "maximum_observed_until_next_stage": 33889264384
+    },
+    {
+      "stage": "memory_builder_ready",
+      "time_ns": 1793337957219033000,
+      "footprint": 17937593952,
+      "peak": 33889690368,
+      "vm_buffers": 0,
+      "relocated_memory": 0,
+      "trace_buffers": 0,
+      "maximum_observed_until_next_stage": 23304112896
+    },
+    {
+      "stage": "adapted_input_ready",
+      "time_ns": 1793337960593688000,
+      "footprint": 22868019488,
+      "peak": 33889690368,
+      "vm_buffers": 0,
+      "relocated_memory": 0,
+      "trace_buffers": 0,
+      "maximum_observed_until_next_stage": 20753056568
+    },
+    {
+      "stage": "serialization_start",
+      "time_ns": 1793337960663025000,
+      "footprint": 14225584368,
+      "peak": 33889690368,
+      "vm_buffers": 0,
+      "relocated_memory": 0,
+      "trace_buffers": 0,
+      "maximum_observed_until_next_stage": 15721034856
+    },
+    {
+      "stage": "serialization_end",
+      "time_ns": 1793338002022899000,
+      "footprint": 15721034856,
+      "peak": 33889690368,
+      "vm_buffers": 0,
+      "relocated_memory": 0,
+      "trace_buffers": 0,
+      "maximum_observed_until_next_stage": 15215276584
+    }
+  ],
+  "buffers": [
+    {
+      "stage": "memory_builder",
+      "addresses": 2147483648,
+      "f252": 1073741824,
+      "small": 268435456
+    }
+  ],
+  "public_output": [
+    699513661793972486215959708218646750328328192942618726856241,
+    1,
+    2,
+    10,
+    206706290951335319530921228802390617974,
+    88219327642769030967829088419307840503,
+    3,
+    317772914741518013333800479636921151869,
+    63504145220515676905754344266781620987,
+    72515939837342498233238963862581750135,
+    44239540726436514224213612447971181830,
+    24449621026081836504237034051575538777,
+    28581763613192060002692076029731772299,
+    893736,
+    2644963,
+    126225086212129707130586308898443221119,
+    39665571950853406027983816799033614289,
+    70400,
+    51864087857427072053507426404984815507,
+    321411150297835557617198049501069527003,
+    240455181473283387149600615492540784822224023990682548574422544279617244726,
+    450461698445552596225315783221235786062104973712298504932410749330505217147
+  ],
+  "op_block_execution_proved": false,
+  "trace_sha256": "76cbc2249667338edbb766f0c57fef75986101fa122d651bbe0f9f7ee75f43de"
+}

@@ -34,6 +34,7 @@ type input struct {
 	Pre         map[common.Address]*account   `json:"pre_state"`
 	Codes       map[common.Hash]hexutil.Bytes `json:"codes"`
 	Transaction hexutil.Bytes                 `json:"transaction"`
+	PreviousGas uint64                        `json:"previous_gas"`
 	Environment struct {
 		ChainID   uint64         `json:"chain_id"`
 		Number    uint64         `json:"number"`
@@ -96,11 +97,12 @@ func run(value *input) (map[string]any, error) {
 	if err := tx.UnmarshalBinary(value.Transaction); err != nil {
 		return nil, err
 	}
-	if !tx.IsDepositTx() {
-		return nil, errors.New("expected deposit")
+	if !tx.IsDepositTx() && tx.Type() > types.DynamicFeeTxType && tx.Type() != types.SetCodeTxType {
+		return nil, errors.New("expected deposit, legacy, access-list, dynamic-fee or set-code transaction")
 	}
 	e := value.Environment
 	context := vm.BlockContext{CanTransfer: core.CanTransfer, Transfer: core.Transfer,
+		L1CostFunc: types.NewL1CostFunc(config, db), OperatorCostFunc: types.NewOperatorCostFunc(config, db),
 		GetHash: func(n uint64) common.Hash {
 			if n >= e.Number || e.Number-n > uint64(len(e.Hashes)) {
 				return common.Hash{}
@@ -122,6 +124,19 @@ func run(value *input) (map[string]any, error) {
 	db.Finalise(true)
 	if err := db.Error(); err != nil {
 		return nil, err
+	}
+	var encodedReceipt hexutil.Bytes
+	if !tx.IsDepositTx() {
+		receipt := &types.Receipt{Type: tx.Type(), CumulativeGasUsed: value.PreviousGas + result.UsedGas,
+			Status: types.ReceiptStatusSuccessful, Logs: db.GetLogs(tx.Hash(), e.Number, common.Hash{}, e.Timestamp)}
+		if result.Failed() {
+			receipt.Status = types.ReceiptStatusFailed
+		}
+		receipt.Bloom = types.CreateBloom(receipt)
+		encodedReceipt, err = receipt.MarshalBinary()
+		if err != nil {
+			return nil, err
+		}
 	}
 	post := make(map[common.Address]any)
 	for address, original := range value.Pre {
@@ -148,7 +163,8 @@ func run(value *input) (map[string]any, error) {
 	}
 	return map[string]any{"schema": "keth-op-deposit-oracle-v1", "transaction_hash": tx.Hash(),
 		"gas_used": result.UsedGas, "success": !result.Failed(), "nonce": depositNonce,
-		"post_state": post, "geth_module": module, "execution_error": fmt.Sprint(result.Err)}, nil
+		"encoded_receipt": encodedReceipt,
+		"post_state":      post, "geth_module": module, "execution_error": fmt.Sprint(result.Err)}, nil
 }
 
 func main() {

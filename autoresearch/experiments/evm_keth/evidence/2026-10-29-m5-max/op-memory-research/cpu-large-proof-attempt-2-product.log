@@ -1,0 +1,2 @@
+cairo_file_backed_allocator peak_backing_bytes=244169113600 live_backing_bytes=0 cooling_count=89 cooling_interval_bytes=1073741824 minimum_bytes=1048576
+error: FixedGeometryMismatch

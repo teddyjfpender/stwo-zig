@@ -52,7 +52,7 @@ pub const BackendEvidence = struct {
 };
 
 pub fn run(comptime Product: type) !void {
-    const paged = if (comptime @import("builtin").os.tag == .linux and std.mem.eql(u8, Product.backend_name, "cpu")) blk: {
+    const paged = if (comptime (@import("builtin").os.tag == .linux or @import("builtin").os.tag == .macos) and std.mem.eql(u8, Product.backend_name, "cpu")) blk: {
         const flag = std.posix.getenv("STWO_CAIRO_FILE_BACKED_ALLOCATOR") orelse break :blk false;
         break :blk std.mem.eql(u8, flag, "1");
     } else false;
@@ -169,9 +169,10 @@ fn proveFile(
     const input_sha256 = try execution_adapter.fileSha256(
         request.prover_input,
     );
-    var input = try cairo.adapter.input.readFile(
+    var input = try cairo.adapter.input.readFileWithLimits(
         allocator,
         request.prover_input,
+        .{ .max_file_bytes = try @import("input_limits.zig").maximumFileBytes(allocator) },
     );
     defer input.deinit(allocator);
     if (request.proof_format != .json)

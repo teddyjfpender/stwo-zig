@@ -1,0 +1,17 @@
+{
+  "identity": {
+    "dependencies": {
+      "compiled": "8fdf7e5c1c9dea662011505820e11b75c073774a9bbd62bf9fc8231d7a117edc",
+      "runtime": "1f1894776c27b69d5b08c98f77b76b23a412caae1ccfe7279a15034348a5ce00",
+      "converter": "7a3e9a2a2b8561b73fc2e010e91ddaa05e6fcb2ed5e3540fe124e4a319b568f4",
+      "product": "1ccfb0c9cc2050d646726ff78de7c6d07dd36df6e6f2707355826fa9640ad8e8",
+      "oracle": "62b87e805661a2445840575117081872fae2fbc72ca7518ebc8a364193a3c624",
+      "native": "3432fd4643845d6e0541c4bc2bb062333524c6ab1d48e4d76ad30de7e363263f",
+      "checkpoints": "4fdac57dd0bae0dd27b491f663c2343260d3e386847da34f34e4723b201d3c8c"
+    },
+    "workload_sha256": "4c9cba93ea026d650f3423c54753134842250b899bb0f41aa918761741826caf",
+    "phase": 0
+  },
+  "proof": "system-phase-0/attempt-1/proof/trial-1.proof.json",
+  "proof_sha256": "e855fd41d09be0a307bb20ec71515d9c1aae9a359395a50065fe9086664431b9"
+}

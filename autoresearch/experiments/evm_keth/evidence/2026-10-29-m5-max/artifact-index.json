@@ -1537,6 +1537,236 @@
       "sha256": "7176dd362efe07291943b46564338b500cb53ce012964a22524bb5c069f94414"
     },
     {
+      "path": "op-memory-research/baseline-profile.json",
+      "bytes": 4752,
+      "sha256": "f1039e885fa865bd38ffcb37f6fa74655da40aa7890b2ecb299018a85a0a13af"
+    },
+    {
+      "path": "op-memory-research/baseline-runtime-build.json",
+      "bytes": 11691,
+      "sha256": "629a4a038c5bca56ab19185539b9d6319e8f77a0a7d30f7462010bd5deb55a1e"
+    },
+    {
+      "path": "op-memory-research/baseline-samples.jsonl.gz",
+      "bytes": 75506,
+      "sha256": "85d2f2a77ceffe56663638ca6c364a739865988ace7831dd81f373ad21e4b4aa"
+    },
+    {
+      "path": "op-memory-research/blake-spill-after-official.json",
+      "bytes": 373,
+      "sha256": "2b1800ddb5f144779218b3cd8496c0951e145cda0da2187ddb735d934949d54b"
+    },
+    {
+      "path": "op-memory-research/blake-spill-after-proof.json",
+      "bytes": 3056005,
+      "sha256": "c0427515a4dd26d354a1bb20322c189b4d2addb2f308289ed1d5df5ef10b4811"
+    },
+    {
+      "path": "op-memory-research/blake-spill-after-result.json",
+      "bytes": 89748,
+      "sha256": "d0a58f6542077733c5dffbb6556ac84fc4cd77ca1fb93f46f827e31e7109d0fb"
+    },
+    {
+      "path": "op-memory-research/blake-spill-before-product.log",
+      "bytes": 28,
+      "sha256": "2703fb77793d2feeba12382890a1e8397be310d0b26358dbddaa44ee81f728b1"
+    },
+    {
+      "path": "op-memory-research/blake-spill-before-result.json",
+      "bytes": 2717,
+      "sha256": "d0ffa54c3e615ced53ab782317260447ed2386f98048ebf6df0901b2cf30d2f4"
+    },
+    {
+      "path": "op-memory-research/blake-spill-input.json",
+      "bytes": 118842,
+      "sha256": "3c1531a41d6d025e4a3aa187857927958ca4556fd4511836a21f81312725c842"
+    },
+    {
+      "path": "op-memory-research/blake-spill-provenance.json",
+      "bytes": 331,
+      "sha256": "1580e09509a37849bc3c9c140e5f32b0a648f2bb9f0dce04d70983b4cf3e57c7"
+    },
+    {
+      "path": "op-memory-research/blake-spill-unit-tests.log",
+      "bytes": 393,
+      "sha256": "69114183c6288ed8f98ca47de99081b76d6c92d670e1433e8294256d4318197a"
+    },
+    {
+      "path": "op-memory-research/cpu-large-proof-attempt-2-product.log",
+      "bytes": 183,
+      "sha256": "04f51402881e0b13f5205796b7a8acf5ac47aac9521e86328ae3040c15187ae9"
+    },
+    {
+      "path": "op-memory-research/cpu-large-proof-attempt-2.json",
+      "bytes": 2900,
+      "sha256": "11d7155f813d4ed4f55652aece38ffc3b4c6354b3ed587b7ae1ad372fb5c820f"
+    },
+    {
+      "path": "op-memory-research/cpu-large-proof-attempt.json",
+      "bytes": 2826,
+      "sha256": "b1180ed61c5ce644b9c9f83aadfbc853f8b115410bd2498d7ca64323dceeff13"
+    },
+    {
+      "path": "op-memory-research/cpu-large-proof-product.log",
+      "bytes": 181,
+      "sha256": "c1fd767443fa029454b1e448ea4c09140794a54bcfc305ef58673c982ccccc91"
+    },
+    {
+      "path": "op-memory-research/cpu-large-proof-sample.txt",
+      "bytes": 30955,
+      "sha256": "177ab3faafa70eff139df173e6f4a7e65ffc3f10fa7fd60cd7f948a2d5fcff72"
+    },
+    {
+      "path": "op-memory-research/cpu-large-proof-vmmap.txt",
+      "bytes": 4394,
+      "sha256": "e471078130a2ad5730f5ce938e11f28133af4bc04163bb83a0834fbbb2f84efe"
+    },
+    {
+      "path": "op-memory-research/cpu-large-proof-vmmap.txt.raw.gz",
+      "bytes": 1242,
+      "sha256": "4c6c4e41e8f7e59630e7ec39310fe0c27dd9b8684843e2f0b6e4f95a535a525e"
+    },
+    {
+      "path": "op-memory-research/cpu-small-official-verdict.json",
+      "bytes": 374,
+      "sha256": "c1247a638e5d6a8c1f7a4e54a12a6cb73d658ff028a9bfc1dd81f65d2167ccf6"
+    },
+    {
+      "path": "op-memory-research/cpu-small-proof.json",
+      "bytes": 82746,
+      "sha256": "1e2275261468d5ec52e6f61e807f5791a4037b6e00a0b354fa51348775720804"
+    },
+    {
+      "path": "op-memory-research/darwin-allocator-tests.log",
+      "bytes": 224,
+      "sha256": "95975268cd63a97c9702fb264631613b69883e1df493861b6d0b82374e05c947"
+    },
+    {
+      "path": "op-memory-research/diagnostic-text-rendering.json",
+      "bytes": 414,
+      "sha256": "d83b50f9f48afc6f16a72d2948b63a3ef165eae4ee9c01efd52ffdbbbeecd655"
+    },
+    {
+      "path": "op-memory-research/focused-regressions.log",
+      "bytes": 1484,
+      "sha256": "8872ea7d568f999756f8f31f19eeef6c806570361f0d1cec4469ca9c71c4d7ed"
+    },
+    {
+      "path": "op-memory-research/input-capacity-tests.log",
+      "bytes": 105,
+      "sha256": "69af08832e5dc253a4f91369b8a2fb1e5fa5b433ce35ac5a7169b7acb9c21649"
+    },
+    {
+      "path": "op-memory-research/iteration-1.json",
+      "bytes": 5049,
+      "sha256": "320cf8ce34a0e26893737338502c555fe7c2c476712dbc60495256f1f87d541e"
+    },
+    {
+      "path": "op-memory-research/jovian-precompile-limits.log",
+      "bytes": 442,
+      "sha256": "5982d70125239238cfbc2ae0acabe002f18f216240dbfc0365b99a847b34451d"
+    },
+    {
+      "path": "op-memory-research/large-witness-parity-usage.json",
+      "bytes": 795,
+      "sha256": "1b0affb2669e8e3bc755998cf1c540550d8cb34dee1e5f28427504e6a1bac887"
+    },
+    {
+      "path": "op-memory-research/large-witness-parity.json",
+      "bytes": 243,
+      "sha256": "90c0e1af5f66f9afa1a5803a12a01ed8b0cab225f9a65709409a7e8b4b5a9ecb"
+    },
+    {
+      "path": "op-memory-research/memory-geometry-tests.log",
+      "bytes": 1169,
+      "sha256": "8f3dcfa23619847aff9fdaa79c97136fbea58a8f93a1af05db0f042759209921"
+    },
+    {
+      "path": "op-memory-research/root-bound-checkpoints.log",
+      "bytes": 1115,
+      "sha256": "8986a37f6e70e519b00976c4a1281674aa033b8301946411fd7c55572d8f1245"
+    },
+    {
+      "path": "op-memory-research/source-conformance-tests.log",
+      "bytes": 98,
+      "sha256": "e8e4cce93b6999e85a630b0e2f2375f96342089de1b3672c17479d9227502990"
+    },
+    {
+      "path": "op-memory-research/source-conformance.log",
+      "bytes": 11365,
+      "sha256": "c197505dffc2dd004d880d925ab15b8a21a9b6087b339f5325cac10fc18a71d4"
+    },
+    {
+      "path": "op-memory-research/statement-final-tests.log",
+      "bytes": 97,
+      "sha256": "0e0521ed7d2fcee382270388a1c00e4e1f0ccf95b91a3dd0450fcf866392a1ee"
+    },
+    {
+      "path": "op-memory-research/streamed-profile.json",
+      "bytes": 4737,
+      "sha256": "14406b182925b7abc93a7a2c45ca9b2bd4debee6a6a45e915ad1b1d997531e57"
+    },
+    {
+      "path": "op-memory-research/streamed-runtime-build.json",
+      "bytes": 16153,
+      "sha256": "8af371ea9dfbb81a3873501975e962995760cf19a0dfd0a2f14d431891ff973b"
+    },
+    {
+      "path": "op-memory-research/streamed-samples.jsonl.gz",
+      "bytes": 80603,
+      "sha256": "2741d0d0d5c4cb2d4531a92ed4d32ed8e16c155d3228aaeaf9a4382a45a6212c"
+    },
+    {
+      "path": "op-memory-research/system-phase-0.official.json",
+      "bytes": 374,
+      "sha256": "85997f4f943e36540fb018a03ae03bd30e5a48fcb9a20dcd70019e0e32669144"
+    },
+    {
+      "path": "op-memory-research/system-phase-0.proof.json",
+      "bytes": 9648221,
+      "sha256": "e855fd41d09be0a307bb20ec71515d9c1aae9a359395a50065fe9086664431b9"
+    },
+    {
+      "path": "op-memory-research/system-phase-0.qualified.json",
+      "bytes": 908,
+      "sha256": "6c60f192ccf04a803cf6a24f0c4263386d03d998b433895f473135823f744cd8"
+    },
+    {
+      "path": "op-memory-research/system-phase-1.official.json",
+      "bytes": 374,
+      "sha256": "d0f932f48a2deb2a9d8f57ec17ea6598794abdb7db08671447d47858f0d72315"
+    },
+    {
+      "path": "op-memory-research/system-phase-1.proof.json",
+      "bytes": 9690329,
+      "sha256": "7c360bc24009c0d39c635498f627dff23c604a24e1ec009775d3fb294635b94a"
+    },
+    {
+      "path": "op-memory-research/system-phase-1.qualified.json",
+      "bytes": 908,
+      "sha256": "70075c3b598602c69c781f28761818ae3e7bf79e031ad0b8debd5e32c46f7219"
+    },
+    {
+      "path": "op-memory-research/system-phase-2.official.json",
+      "bytes": 374,
+      "sha256": "d9bf59b8e4f459803a710c6bcf40de64550534e70e96faa964a82755e7244c26"
+    },
+    {
+      "path": "op-memory-research/system-phase-2.proof.json",
+      "bytes": 9800541,
+      "sha256": "715af192707878744714b32655652049263b9e9b4621f203e0c3b1bc8e2b7c4a"
+    },
+    {
+      "path": "op-memory-research/system-phase-2.qualified.json",
+      "bytes": 908,
+      "sha256": "265269a3d4204371c59fba9b78b560e230a179bad4a156228a8829a1123a5390"
+    },
+    {
+      "path": "op-memory-research/system-witness-parity.json",
+      "bytes": 235,
+      "sha256": "cd10cb69261532b423326de3c355f8a37797643944d3554a02afaa82001e4f73"
+    },
+    {
       "path": "optimism-account-sample/post-code.json",
       "bytes": 4154,
       "sha256": "bd889fef73b99f29e31f0c4b0c264c9affab72631b5425983a55db47ef2b77c8"
@@ -1678,8 +1908,8 @@
     },
     {
       "path": "work-status.json",
-      "bytes": 9801,
-      "sha256": "23b02be7c1774729dcee249649465335286ce1c64bf90e4c2b4cf13dec9bc83e"
+      "bytes": 12352,
+      "sha256": "47ae3dfa7aafd769f4e91f32b6d1b73746332b2a0ca276880d4639920241b237"
     }
   ]
 }

@@ -24,6 +24,7 @@ from mpt.ethereum_tries import PreState
 
 from autoresearch.experiments.evm_keth.bridge import PINS, authenticate
 from autoresearch.experiments.evm_keth.op_execution_workload import view_hash
+from autoresearch.experiments.evm_keth.op_compiler import compile_owned
 from autoresearch.experiments.evm_keth.state_proofs import EMPTY_CODE_HASH, EMPTY_ROOT
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -58,7 +59,7 @@ class OpDepositTests(unittest.TestCase):
         load_dotenv(KETH / '.env')
         os.environ['CAIRO_PATH'] = str(OVERLAY) + ':' + os.environ.get('CAIRO_PATH', '')
         source = OVERLAY / 'op_stack/deposit_harness.cairo'
-        program = cairo_compile(source, proof_mode=False)
+        program = compile_owned(source, proof_mode=False)
         program.hints = implement_hints(program)
         rust = RustProgram.from_bytes(json.dumps(program.Schema().dump(program)).encode(), 'transition')
         request = SimpleNamespace(config=SimpleNamespace(getoption=lambda name: {
@@ -83,7 +84,7 @@ class OpDepositTests(unittest.TestCase):
             with self.subTest(raw=raw.hex()), self.assertRaises(Exception):
                 self.cairo('deposit_fields', raw=Bytes(raw))
 
-    def fixture(self, *, balance=10, nonce=7, mint=20, value=7, gas=100000, data=b'', code=b'', slot=0):
+    def fixture(self, *, balance=10, nonce=7, mint=20, value=7, gas=100000, data=b'', code=b'', slot=0, to=TARGET):
         code_hash = '0x' + keccak(code).hex()
         def account(n, b, h, storage):
             return dict(nonce=hex(n), balance=hex(b), codeHash=h,
@@ -92,7 +93,7 @@ class OpDepositTests(unittest.TestCase):
                                TARGET: account(0, 1, code_hash, {SLOT: '0x' + slot.to_bytes(32, 'big').hex()}), COINBASE: None},
                     access_list=[dict(address=a, storageKeys=[SLOT] if a == TARGET else []) for a in (SENDER, TARGET, COINBASE)],
                     codes={'0x' + EMPTY_CODE_HASH.hex(): '0x', code_hash: '0x' + code.hex()},
-                    transaction='0x' + envelope(mint=mint, value=value, gas=gas, data=data).hex(),
+                    transaction='0x' + envelope(mint=mint, value=value, gas=gas, data=data, to=to).hex(),
                     environment=dict(chain_id=10, number=158839441, gas_limit=60000000, timestamp=1793278000,
                                      base_fee=1000000, coinbase=COINBASE, prev_randao='0x' + '00'*32,
                                      parent_beacon_block_root='0x' + '00'*32, block_hashes=[]))
@@ -126,7 +127,9 @@ class OpDepositTests(unittest.TestCase):
                  dict(balance=2**256-1, mint=1, nonce=2**64-1, value=0),
                  dict(gas=20000), dict(value=31), dict(code=bytes.fromhex('60006000fd')),
                  dict(code=b'\xfe'), dict(code=bytes.fromhex('5b600056'), gas=25000),
-                 dict(code=bytes.fromhex('600060005500'), slot=1), dict(slot=17), dict(data=b'a'*1000)]
+                 dict(code=bytes.fromhex('600060005500'), slot=1), dict(slot=17), dict(data=b'a'*1000),
+                 dict(code=bytes.fromhex('60005c60005500')),
+                 dict(code=bytes.fromhex('602a60005d60005c60005500'))]
         for case in cases:
             with self.subTest(case=case):
                 self.differential(self.fixture(**case))
@@ -137,6 +140,34 @@ class OpDepositTests(unittest.TestCase):
         with self.assertRaises(Exception):
             self.cairo('transition', raw=Bytes.fromhex(value['transaction'][2:]), block_env=environment(value),
                        codehash_to_code={}, access_list=value['access_list'])
+
+    def test_p256_staticcall_output_is_bound_to_persistent_storage(self):
+        from autoresearch.tests.test_keth_op_p256 import vectors
+        code = bytes.fromhex('3660006000376020610100366000610100612710fa506101005160005500')
+        selected = {'valid-0', 'high-s-1', 'x-above-order', 'wrong-hash-0', 'off-curve', 'short'}
+        for name, data, _ in vectors():
+            if name not in selected:
+                continue
+            value = self.fixture(code=code, data=data)
+            precompile = '0x' + '00'*18 + '0100'
+            value['pre_state'][precompile] = None
+            value['access_list'].append(dict(address=precompile, storageKeys=[]))
+            with self.subTest(name=name):
+                self.differential(value)
+
+    def test_creation_success_revert_invalid_intrinsic_and_nonce_wrap(self):
+        cases = [dict(), dict(nonce=2**64-1), dict(gas=30000),
+                 dict(data=bytes.fromhex('60006000fd')),
+                 dict(data=bytes.fromhex('6001600c60003960016000f300'))]
+        for case in cases:
+            value = self.fixture(to=None, **case)
+            nonce = int(value['pre_state'][SENDER]['nonce'], 16)
+            target = '0x' + keccak(rlp.encode([bytes.fromhex(SENDER[2:]), nonce]))[-20:].hex()
+            del value['pre_state'][TARGET]
+            value['pre_state'][target] = None
+            value['access_list'][1] = dict(address=target, storageKeys=[])
+            with self.subTest(case=case):
+                self.differential(value)
 
     def test_evm_reads_outside_the_committed_view_reject(self):
         hidden = '0x' + '44' * 20

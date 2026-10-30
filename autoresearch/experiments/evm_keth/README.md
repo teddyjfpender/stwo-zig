@@ -109,26 +109,71 @@ RLP encoding and Keccak, including its parent link.
 
 ## Remaining gap and completion criteria
 
-The current result is a verified Keth workload for one Ethereum block, plus
-independently proved OP fee and call-deposit kernels. A complete OP block
-validity proof and an operational settlement path remain unfinished. The work
-below is required before claiming either; kernel timings do not predict full
-OP block cost.
+The retained OP Mainnet block now passes Cairo execution checks for its system
+calls and all 35 transactions, including authenticated starting-state reads,
+MPT root transitions, gas, receipt hashes and DA footprint. These execution
+checks are not a complete-block STARK certificate. Full ordered proof
+qualification remains required before the OP benchmark campaign.
 
-| Priority | Remaining work | Evidence required to close the gap |
+| Priority | Current implementation | Remaining acceptance gate |
 | --- | --- | --- |
-| 1 | Finish execution soundness and state authentication. Persistent read keys, initial storage-root metadata and initial created-account markers are constrained; transaction-local dictionary/default values still need audit. | Adversarial witness/hint tests preserving bytecode; constrained account/storage membership against the initial MPT root; computed final MPT root; exact public chain, block, parent and state-root binding. Host root checks remain a reference oracle. |
-| 2 | Execute all OP sequencer transactions in Cairo. The fee kernel proves fees with supplied parameters; the deposit kernel covers one call deposit. | All 34 sequencer transactions in the retained OP block match op-geth gas, status, logs and intermediate state; fee parameters read from authenticated state; exact sender refunds and base/L1/operator vault credits. |
-| 3 | Complete OP block and fork behavior. | Deposit creation and failure cases, system calls, OP precompiles and fork-specific gas/input limits; complete typed receipts, transaction/receipt roots, withdrawals/message-passer root, requests and DA-footprint checks; a fully verified block bundle with complete ordered linkage. |
-| 4 | Prove L1-to-L2 derivation and authorization. The recovered Base batch has been decoded and matched to observed blocks. | Authenticated L1 inputs and blob data; dynamic batcher/SystemConfig authorization; channel/span acceptance, L1 origin and sequence rules, deposit inclusion/source authorization; derivation outputs bound to proved L2 execution. |
-| 5 | Integrate recursive verification and settlement. Keth's current aggregator checks commitment consistency. | A recursive verifier that actually verifies child proofs, compression as required by the intended settlement verifier, an explicit public-input contract, and positive/negative settlement-verifier tests. |
-| 6 | Establish representative cost and capacity. Current complete Ethereum measurements cover one Prague block; complete OP proving is not measured. | Repeated complete Ethereum and OP/Base blocks across transaction types, gas/state/code sizes and forks; witness acquisition, tracing, conversion, proving, verification, memory and disk costs; worker/chunk/cache comparisons and sustained throughput. Monolithic attempts exceeded a 48 GiB footprint guard before completion. |
-| 7 | Restore repository release gates and independent reproduction. | Resolve provenance and source-conformance findings without weakening gates, obtain required platform CI results, and reproduce retained canonical proof/evidence checks from the documented source pins. |
+| 1 | Transaction-local initialization constraints, canonical trie encodings, account/storage membership and public header/environment binding are implemented. | Preserve adversarial regression coverage and independently verify the complete composed statement. This is a scoped audit, not a formal soundness proof of all Keth code. |
+| 2 | All 34 real sequencer transactions match op-geth state/gas; receipt bytes are checked. Synthetic signed types 0/1/2/4 cover OP fees, refunds and delegation. | Produce and independently verify every sequencer proof against the retained checkpoints. |
+| 3 | Deposit creation/failures, system calls, P-256 and Jovian input bounds are implemented. Every transaction passes combined root-transition checks. | Complete the ordered execution bundle and verifier qualification, including public body roots and final MessagePasser storage root. These final body checks run on the host verifier; this is not an L1 verifier. |
+| 4 | The recovered Base batch is decoded and matched to observed blocks. | Prove authenticated L1/blob inputs, authorization, derivation rules and binding to execution. |
+| 5 | Child-proof verification is implemented in the host bundle verifier. | Recursive child verification, compression and an explicit settlement verifier/public-input contract. |
+| 6 | The fixed-workload memory experiment below is qualified. | Repeated complete OP/Ethereum block campaigns after the complete execution certificate passes. |
+| 7 | Focused execution and memory checks pass. | Resolve inherited repository-wide source/provenance and platform CI failures; reproduce the complete certificate. |
 
-The immediate sequence is execution/default-value audit, sequencer execution
-against the 70 native checkpoints, state-root/public-statement binding, then a
-complete OP block campaign. Derivation and settlement follow with their own
-verified interfaces. The open CI failures remain release gates throughout.
+### Fixed-workload Keth memory research
+
+`profile_keth_memory.py` records 10 ms Darwin physical-footprint samples and
+Rust stage/buffer diagnostics. `build_keth_streaming_runtime.py` creates isolated
+worktrees from the pinned Keth and Cairo VM revisions; the reference checkout
+and installed reference runtime remain untouched. No published Keth fork is
+required to reproduce the experiment.
+
+For OP transaction 3's execution phase, the same 191,169-cell program and input
+produce 269,943,130 transitions and 398,606,764 memory addresses. Streaming
+verified VM segments directly into the unchanged adapter removes the complete
+flat relocated-memory copy:
+
+| Fixed workload | Peak physical footprint | Witness parity |
+| --- | ---: | --- |
+| Streaming JSON export with retained flat relocated memory | 33,889,690,368 bytes | Reference |
+| Direct segment-to-adapter memory export | 26,305,612,952 bytes | Exact typed witness match |
+
+The reduction is **7,584,077,416 bytes (22.38%)**. The comparison covers every
+execution state, address/value table, public memory entry and builtin descriptor;
+only instruction-cache vector order is ignored. Three system-transition phase
+proofs generated by the new runtime independently verify. Buffer diagnostics
+report allocated capacity, which differs from committed physical footprint.
+These are single-workload memory qualifications, not representative throughput
+benchmarks or measurements of complete OP proving.
+
+The proof layout separates read authentication, execution and the authenticated
+root diff. `execution_partitioned.cairo` emits commitments that
+`verify_op_block.py` requires to match across all three independently verified
+proofs. It also binds bytecode, block identity, transaction/receipt bytes, ordered
+state roots, cumulative gas and DA footprint. A partial bundle is refused.
+This is host composition, with no recursion or derivation claim.
+
+Prover memory is a separate issue: inspection of this execution witness reports
+at least 111 GB of logical base and interaction tables, before other work. The
+opt-in CPU file-backed allocator now supports macOS as well as Linux, reserves
+disk blocks before exposing pages and unlinks temporary files immediately. A
+small canonical CPU proof passes the independent verifier in this mode. The
+first large attempt used 136,152,317,952 bytes of peak file backing and a
+4,352,669,208-byte peak private footprint, then stopped at a Blake helper's
+small-integer representation assumption. A small reproducer rejects before the
+fix and proves with independent Rust acceptance after it; large qualification
+is still required. These figures do not constitute a completed proving run.
+
+The transport admission override `STWO_CAIRO_MAX_INPUT_BYTES` accepts an explicit
+4–64 GiB file bound. It leaves semantic address/value limits, AIRs, verifier pins
+and canonical proof parameters unchanged. Memory experiments, runtime patches,
+full witness parity receipts and positive/negative proof evidence are retained
+under [`op-memory-research/`](evidence/2026-10-29-m5-max/op-memory-research).
 
 ## Integration
 
@@ -488,8 +533,9 @@ a fresh preprocessing directory retained across its three trials. Metal inherits
 the existing disk archive. One compressed 891,374-byte proof and the six complete
 benchmark/verifier receipts are retained in
 [the kernel evidence](evidence/2026-10-29-m5-max/op-fee-kernel).
-Complete OP block proving still requires the deposit/sequencer execution layer,
-state authentication, public block statement and derivation integration.
+These historical fee-kernel measurements do not include the subsequently
+implemented execution and state-authentication path described above. A complete
+OP execution certificate and L1 derivation remain separate acceptance gates.
 
 `op_state_fixture.py` reconstructs pre/post state values directly from the
 authenticated witness: 280 accounts, 1,555 storage slots, 36 account changes and
@@ -636,14 +682,11 @@ checkpoint-completion receipt and access list. Its output feeds
 The committed compressed input and expected output also support offline
 reproduction without a new RPC collection.
 
-This is a call-deposit execution kernel. Contract creation is explicitly refused.
-General OP precompile/fork compatibility, complete EVM-read coverage, initial
-account storage-root metadata binding, Cairo MPT membership and L1 deposit
-authorization remain unfinished. The input checkpoint follows pre-transaction
-system calls; those calls are still unproved. Full OP block measurements require
-the remaining 34 sequencer transactions and these integration steps. The
-provenance records every broader block, state-authentication and derivation
-claim as false.
+The retained component proof is a call-deposit statement produced before the
+creation, root-authentication, system-call and sequencer path described above.
+Its historical timings retain that original scope. Full OP block measurements
+require the complete ordered execution certificate; L1 deposit authorization
+and derivation remain unfinished.
 
 The full Python script-contract run completed 2,334 tests with 36 failures,
 61 errors and 28 skips; its failure inventory is retained in the merge

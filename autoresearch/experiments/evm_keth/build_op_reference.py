@@ -23,7 +23,8 @@ def build(checkout: Path, out: Path, target: str, mise: str = 'mise') -> dict:
     directory = Path(__file__).resolve().parent
     names = {'execution': ['op_reference/main.go', 'op_reference/execution.go', 'op_reference/checkpoints.go'],
              'path-probe': ['op_path_probe/main.go'], 'fee-oracle': ['op_fee_oracle/main.go'],
-             'deposit-oracle': ['op_deposit_oracle/main.go']}[target]
+             'deposit-oracle': ['op_deposit_oracle/main.go'],
+             'precompile-oracle': ['op_precompile_oracle/main.go']}[target]
     files = [directory / name for name in names]
     if out.exists() or out.with_suffix(out.suffix + '.build.json').exists():
         raise ValueError('build destination must be new')
@@ -50,7 +51,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--reference-checkout', type=Path, required=True)
     parser.add_argument('--out', type=Path, required=True)
-    parser.add_argument('--target', choices=('execution', 'path-probe', 'fee-oracle', 'deposit-oracle'), default='execution')
+    parser.add_argument('--target', choices=('execution', 'path-probe', 'fee-oracle', 'deposit-oracle', 'precompile-oracle'), default='execution')
     parser.add_argument('--mise', default='mise')
     args = parser.parse_args()
     print(json.dumps(build(args.reference_checkout, args.out, args.target, args.mise), indent=2))

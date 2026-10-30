@@ -1,4 +1,4 @@
-//! Opt-in Linux CPU capacity mode. Large allocations have temporary file backing;
+//! Opt-in Linux/macOS CPU capacity mode. Large allocations have temporary file backing;
 //! field values, ownership, AIRs and proof parameters are unchanged.
 const std = @import("std");
 const builtin = @import("builtin");
@@ -26,7 +26,7 @@ const State = struct {
         const self: *State = @ptrCast(@alignCast(ctx));
         if (len < self.threshold and alignment.toByteUnits() <= std.heap.pageSize())
             return std.heap.smp_allocator.rawAlloc(len, alignment, ret);
-        if (comptime builtin.os.tag != .linux) return null;
+        if (comptime builtin.os.tag != .linux and builtin.os.tag != .macos) return null;
         self.mutex.lock();
         defer self.mutex.unlock();
         if (self.live_bytes >= self.cooling_live_threshold and self.allocated_since_cooling >= self.cooling_interval) {
@@ -49,18 +49,27 @@ const State = struct {
         self.sequence += 1;
         var name_buffer: [160]u8 = undefined;
         const name = std.fmt.bufPrint(&name_buffer, "/tmp/stwo-cairo-backing-{d}-{d}", .{
-            std.os.linux.getpid(), self.sequence,
+            if (builtin.os.tag == .linux) std.os.linux.getpid() else std.c.getpid(), self.sequence,
         }) catch return null;
         const file = std.fs.cwd().createFile(name, .{ .read = true, .exclusive = true, .mode = 0o600 }) catch return null;
         defer file.close();
         // Unlink immediately: kernel ownership lasts until the final unmap,
         // including process failure; no persistent temporary paths accumulate.
         std.fs.cwd().deleteFile(name) catch return null;
-        file.setEndPos(map_len) catch return null;
         // Reserve backing blocks before exposing writable pages, so disk-full
         // fails allocation rather than producing SIGBUS during witness writes.
-        if (std.posix.errno(std.os.linux.fallocate(file.handle, 0, 0, @intCast(map_len))) != .SUCCESS)
-            return null;
+        if (comptime builtin.os.tag == .linux) {
+            if (std.posix.errno(std.os.linux.fallocate(file.handle, 0, 0, @intCast(map_len))) != .SUCCESS)
+                return null;
+        } else if (comptime builtin.os.tag == .macos) {
+            // Darwin F_PREALLOCATE/F_ALLOCATEALL reserves every backing block.
+            // F_PEOFPOSMODE starts at the physical EOF of this new empty inode.
+            const Store = extern struct { flags: u32 = 4, posmode: i32 = 3, offset: i64 = 0, length: i64, allocated: i64 = 0 };
+            var reservation: Store = .{ .length = @intCast(map_len) };
+            if (std.c.fcntl(file.handle, std.c.F.PREALLOCATE, &reservation) == -1 or reservation.allocated < map_len)
+                return null;
+        }
+        file.setEndPos(map_len) catch return null;
         const pages = std.posix.mmap(null, map_len, std.posix.PROT.READ | std.posix.PROT.WRITE, .{ .TYPE = .SHARED }, file.handle, 0) catch return null;
         const address = std.mem.alignForward(usize, @intFromPtr(pages.ptr), alignment.toByteUnits());
         self.mappings.put(std.heap.smp_allocator, address, pages) catch {
@@ -136,7 +145,7 @@ pub fn report() void {
 }
 
 test "file backing preserves aligned data through realloc and releases ownership" {
-    if (builtin.os.tag != .linux) return error.SkipZigTest;
+    if (builtin.os.tag != .linux and builtin.os.tag != .macos) return error.SkipZigTest;
     var state: State = .{ .threshold = 4096, .cooling_live_threshold = 0, .cooling_interval = 4096 };
     defer state.mappings.deinit(std.heap.smp_allocator);
     const a = state.allocator();
@@ -159,7 +168,7 @@ test "file backing preserves aligned data through realloc and releases ownership
 }
 
 test "small and file-backed allocations coexist across threads" {
-    if (builtin.os.tag != .linux) return error.SkipZigTest;
+    if (builtin.os.tag != .linux and builtin.os.tag != .macos) return error.SkipZigTest;
     var state: State = .{ .threshold = 4096 };
     defer state.mappings.deinit(std.heap.smp_allocator);
     const Work = struct {

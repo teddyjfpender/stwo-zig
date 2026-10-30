@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import argparse
 import ctypes
+import importlib.util
 import json
 import os
 from pathlib import Path
@@ -22,7 +23,12 @@ if __package__:
 else:
     from bridge import ROOT
 sys.path.insert(0, str(ROOT))
-from scripts import benchmark_cairo
+sys.path.insert(0, str(ROOT / 'scripts'))
+# Keth's environment also exports a top-level `scripts` package. Load the
+# owned driver by its exact path so that package cannot shadow this module.
+_spec = importlib.util.spec_from_file_location('_stwo_benchmark_cairo', ROOT / 'scripts/benchmark_cairo.py')
+benchmark_cairo = importlib.util.module_from_spec(_spec)
+_spec.loader.exec_module(benchmark_cairo)
 
 
 def physical_usage(pid: int) -> tuple[int, int]:

@@ -16,6 +16,7 @@ func main() {
 	outputPath := flag.String("output", "", "new JSON result path")
 	checkpointPath := flag.String("checkpoints", "", "new optional execution checkpoint JSON")
 	accessesPath := flag.String("access-list", "", "candidate account/storage preimages for checkpoints")
+	checkpointProofs := flag.Bool("checkpoint-proofs", false, "export account/storage membership paths for every checkpoint")
 	flag.Parse()
 	if *inputPath == "" || *outputPath == "" {
 		fmt.Fprintln(os.Stderr, "--input and --output are required")
@@ -39,6 +40,13 @@ func main() {
 	var capture *captureWriter
 	if err == nil && (*checkpointPath != "" || *accessesPath != "") {
 		capture, err = newCapture(*checkpointPath, *accessesPath)
+	}
+	if err == nil && *checkpointProofs {
+		if capture == nil {
+			err = errors.New("--checkpoint-proofs requires --checkpoints and --access-list")
+		} else {
+			capture.proofs = true
+		}
 	}
 	if err == nil {
 		err = execute(&in, result, capture)

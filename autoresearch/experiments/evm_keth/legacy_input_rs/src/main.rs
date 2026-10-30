@@ -4,7 +4,7 @@ use anyhow::{Context, Result, bail, ensure};
 use serde::Deserialize;
 use std::collections::{BTreeMap, HashMap, HashSet};
 use std::fs::OpenOptions;
-use std::io::{BufWriter, Write};
+use std::io::{BufReader, BufWriter, Write};
 use std::path::PathBuf;
 
 const OPCODES: [&str; 20] = [
@@ -40,27 +40,27 @@ const BUILTINS: [&str; 8] = [
     "range_check_bits_128",
 ];
 
-#[derive(Deserialize)]
+#[derive(Deserialize, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
 struct State {
     pc: u32,
     ap: u32,
     fp: u32,
 }
-#[derive(Deserialize)]
+#[derive(Deserialize, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
 struct Transitions {
     initial_state: State,
     final_state: State,
     casm_states_by_opcode: BTreeMap<String, Vec<State>>,
 }
-#[derive(Deserialize)]
+#[derive(Deserialize, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
 struct MemoryConfig {
     small_max: u128,
     log_small_value_capacity: u32,
 }
-#[derive(Deserialize)]
+#[derive(Deserialize, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
 struct Memory {
     config: MemoryConfig,
@@ -68,18 +68,18 @@ struct Memory {
     f252_values: Vec<[u32; 8]>,
     small_values: Vec<u128>,
 }
-#[derive(Deserialize)]
+#[derive(Deserialize, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
 struct Segment {
     begin_addr: u64,
     stop_ptr: u64,
 }
-#[derive(Deserialize)]
+#[derive(Deserialize, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
 struct PublicContext {
     present: [bool; 11],
 }
-#[derive(Deserialize)]
+#[derive(Deserialize, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
 struct Input {
     state_transitions: Transitions,
@@ -279,7 +279,15 @@ fn main() -> Result<()> {
     let mut args = std::env::args().skip(1);
     while let Some(key) = args.next() {
         ensure!(
-            ["--source", "--compiled", "--target", "--receipt"].contains(&key.as_str()),
+            [
+                "--source",
+                "--compiled",
+                "--target",
+                "--receipt",
+                "--compare-left",
+                "--compare-right"
+            ]
+            .contains(&key.as_str()),
             "unknown argument {key}"
         );
         let value = args.next().context("missing argument value")?;
@@ -288,16 +296,53 @@ fn main() -> Result<()> {
             "duplicate argument"
         );
     }
-    if values.len() != 4 {
+    if values.contains_key("--compare-left") || values.contains_key("--compare-right") {
+        ensure!(
+            values.len() == 3
+                && values.contains_key("--receipt")
+                && values.contains_key("--compare-left")
+                && values.contains_key("--compare-right"),
+            "required: --compare-left --compare-right --receipt"
+        );
+        fn read(path: &PathBuf) -> Result<Input> {
+            Ok(serde_json::from_reader(BufReader::with_capacity(
+                3 * 1024 * 1024,
+                std::fs::File::open(path)?,
+            ))?)
+        }
+        let mut left = read(&values["--compare-left"])?;
+        let mut right = read(&values["--compare-right"])?;
+        // Cache vector iteration order is not part of the witness statement.
+        left.inst_cache.sort_unstable();
+        right.inst_cache.sort_unstable();
+        ensure!(left == right, "typed witness contents differ");
+        let receipt = serde_json::json!({"schema":"keth-typed-witness-comparison-v1",
+            "equal":true, "memory_addresses":left.memory.address_to_id.len(),
+            "memory_big_values":left.memory.f252_values.len(), "memory_small_values":left.memory.small_values.len(),
+            "execution_steps":left.state_transitions.casm_states_by_opcode.values().map(Vec::len).sum::<usize>(),
+            "instruction_cache_order_ignored":true});
+        serde_json::to_writer_pretty(
+            OpenOptions::new()
+                .write(true)
+                .create_new(true)
+                .open(&values["--receipt"])?,
+            &receipt,
+        )?;
+        return Ok(());
+    }
+    if values.len() != 4
+        || !["--source", "--compiled", "--target", "--receipt"]
+            .iter()
+            .all(|key| values.contains_key(*key))
+    {
         bail!("required: --source --compiled --target --receipt");
     }
     ensure!(
         !values["--target"].exists() && !values["--receipt"].exists(),
         "target and receipt must be fresh"
     );
-    let bytes = std::fs::read(&values["--source"])?;
-    let input: Input = serde_json::from_slice(&bytes)?;
-    drop(bytes);
+    let source = std::fs::File::open(&values["--source"])?;
+    let input: Input = serde_json::from_reader(BufReader::with_capacity(3 * 1024 * 1024, source))?;
     let compiled: Compiled = serde_json::from_slice(&std::fs::read(&values["--compiled"])?)?;
     validate(&input, &compiled)?;
     let mut output = BufWriter::with_capacity(

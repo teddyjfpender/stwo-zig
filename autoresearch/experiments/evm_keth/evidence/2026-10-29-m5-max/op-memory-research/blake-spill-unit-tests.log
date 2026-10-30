@@ -1,0 +1,5 @@
+1/4 .tmp-keth-blake-tests.test_0...OK
+2/4 src.frontends.cairo.witness.deductions.blake.test.Blake triple xor uses full-width words...OK
+3/4 src.frontends.cairo.witness.deductions.blake.test.Blake G and sigma match the official scalar semantics...OK
+4/4 src.frontends.cairo.witness.deductions.blake.test.Blake messages accept small integers spilled into the F252 table...OK
+All 4 tests passed.

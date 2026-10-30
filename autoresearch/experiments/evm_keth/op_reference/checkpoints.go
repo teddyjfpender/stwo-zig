@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"math/big"
 	"os"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -11,6 +12,9 @@ import (
 	"github.com/ethereum/go-ethereum/core/state"
 	"github.com/ethereum/go-ethereum/core/tracing"
 	"github.com/ethereum/go-ethereum/core/types"
+	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/ethereum/go-ethereum/eth/tracers/logger"
+	"github.com/ethereum/go-ethereum/ethdb/memorydb"
 	"github.com/ethereum/go-ethereum/params"
 )
 
@@ -25,6 +29,7 @@ type captureWriter struct {
 	checkpoints []map[string]any
 	index       int
 	err         error
+	proofs      bool
 }
 
 func newCapture(path, accessPath string) (*captureWriter, error) {
@@ -89,8 +94,67 @@ func (c *captureWriter) take(db *state.StateDB, phase string, txHash common.Hash
 		c.err = fmt.Errorf("checkpoint %d %s: %w", c.index, phase, err)
 		return
 	}
-	c.checkpoints = append(c.checkpoints, map[string]any{"transaction_index": c.index, "transaction_hash": txHash,
-		"phase": phase, "root": root, "state": accounts, "receipt": receipt})
+	entry := map[string]any{"transaction_index": c.index, "transaction_hash": txHash,
+		"phase": phase, "root": root, "state": accounts, "receipt": receipt}
+	if c.proofs {
+		nodes, err := c.proofNodes(view, root)
+		if err != nil {
+			c.err = fmt.Errorf("checkpoint proof %d %s: %w", c.index, phase, err)
+			return
+		}
+		entry["proof_nodes"] = nodes
+	}
+	c.checkpoints = append(c.checkpoints, entry)
+}
+
+// Commit only the detached copy, then reopen it to export membership paths.
+// The live processor's journal and transaction boundaries remain untouched.
+func (c *captureWriter) proofNodes(view *state.StateDB, expected common.Hash) ([]hexutil.Bytes, error) {
+	database := view.Database()
+	root, err := view.Commit(0, true, false)
+	if err != nil {
+		return nil, err
+	}
+	if root != expected {
+		return nil, errors.New("checkpoint commit changed intermediate root")
+	}
+	if err := database.TrieDB().Commit(root, false); err != nil {
+		return nil, err
+	}
+	view, err = state.New(root, database)
+	if err != nil {
+		return nil, err
+	}
+	proof := memorydb.New()
+	defer proof.Close()
+	accounts, err := database.OpenTrie(root)
+	if err != nil {
+		return nil, err
+	}
+	for _, entry := range c.accesses {
+		if err := accounts.Prove(crypto.Keccak256(entry.Address.Bytes()), proof); err != nil {
+			return nil, err
+		}
+		if !view.Exist(entry.Address) || len(entry.Keys) == 0 {
+			continue
+		}
+		storage, err := database.OpenStorageTrie(root, entry.Address, view.GetStorageRoot(entry.Address), accounts)
+		if err != nil {
+			return nil, err
+		}
+		for _, key := range entry.Keys {
+			if err := storage.Prove(crypto.Keccak256(key.Bytes()), proof); err != nil {
+				return nil, err
+			}
+		}
+	}
+	iterator := proof.NewIterator(nil, nil)
+	defer iterator.Release()
+	nodes := []hexutil.Bytes{}
+	for iterator.Next() {
+		nodes = append(nodes, common.CopyBytes(iterator.Value()))
+	}
+	return nodes, iterator.Error()
 }
 
 func (c *captureWriter) hooks(db *state.StateDB, config *params.ChainConfig, timestamp uint64) *tracing.Hooks {
@@ -101,11 +165,34 @@ func (c *captureWriter) hooks(db *state.StateDB, config *params.ChainConfig, tim
 	var current *types.Transaction
 	l1Cost := types.NewL1CostFunc(config, db)
 	operatorCost := types.NewOperatorCostFunc(config, db)
+	var accesses *logger.AccessListTracer
+	var entered types.AccessList
 	return &tracing.Hooks{
-		OnTxStart: func(_ *tracing.VMContext, tx *types.Transaction, _ common.Address) {
+		OnTxStart: func(context *tracing.VMContext, tx *types.Transaction, sender common.Address) {
 			current = tx
 			hash = tx.Hash()
 			c.take(db, "pre", hash, nil)
+			seed := append(types.AccessList{}, tx.AccessList()...)
+			seed = append(seed, types.AccessTuple{Address: sender}, types.AccessTuple{Address: context.Coinbase})
+			if tx.To() != nil {
+				seed = append(seed, types.AccessTuple{Address: *tx.To()})
+			}
+			for _, authorization := range tx.SetCodeAuthorizations() {
+				seed = append(seed, types.AccessTuple{Address: authorization.Address})
+				if authority, err := authorization.Authority(); err == nil {
+					seed = append(seed, types.AccessTuple{Address: authority})
+				}
+			}
+			if !tx.IsDepositTx() {
+				seed = append(seed, types.AccessTuple{Address: params.OptimismBaseFeeRecipient},
+					types.AccessTuple{Address: params.OptimismL1FeeRecipient},
+					types.AccessTuple{Address: params.OptimismOperatorFeeRecipient},
+					types.AccessTuple{Address: common.HexToAddress("0x4200000000000000000000000000000000000015"),
+						StorageKeys: []common.Hash{common.BigToHash(big.NewInt(1)), common.BigToHash(big.NewInt(3)),
+							common.BigToHash(big.NewInt(7)), common.BigToHash(big.NewInt(8))}})
+			}
+			accesses = logger.NewAccessListTracer(seed, nil)
+			entered = nil
 			if c.err == nil {
 				raw, err := tx.MarshalBinary()
 				if err != nil {
@@ -120,11 +207,33 @@ func (c *captureWriter) hooks(db *state.StateDB, config *params.ChainConfig, tim
 				}
 			}
 		},
+		OnEnter: func(_ int, _ byte, from common.Address, to common.Address, _ []byte, _ uint64, _ *big.Int) {
+			if accesses == nil {
+				return
+			}
+			for _, address := range []common.Address{from, to} {
+				entered = append(entered, types.AccessTuple{Address: address})
+				code := db.GetCode(address)
+				if len(code) == 23 && code[0] == 0xef && code[1] == 1 && code[2] == 0 {
+					entered = append(entered, types.AccessTuple{Address: common.BytesToAddress(code[3:])})
+				}
+			}
+		},
+		OnOpcode: func(pc uint64, opcode byte, gas, cost uint64, scope tracing.OpContext, data []byte, depth int, err error) {
+			if accesses != nil {
+				accesses.OnOpcode(pc, opcode, gas, cost, scope, data, depth, err)
+			}
+		},
 		OnTxEnd: func(receipt *types.Receipt, err error) {
 			if err != nil && c.err == nil {
 				c.err = err
 			}
 			c.take(db, "post", hash, receipt)
+			if c.err == nil && accesses != nil {
+				merged := logger.NewAccessListTracer(append(accesses.AccessList(), entered...), nil).AccessList()
+				c.checkpoints[len(c.checkpoints)-1]["transaction_access_list"] = merged
+			}
+			accesses = nil
 			if c.err == nil && receipt != nil && !current.IsDepositTx() && operatorCost != nil {
 				c.checkpoints[len(c.checkpoints)-1]["operator_fee"] = (*hexutil.Big)(operatorCost(receipt.GasUsed, timestamp).ToBig())
 			}
